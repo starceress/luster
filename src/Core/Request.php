@@ -53,15 +53,33 @@ final class Request
     }
 
     /**
-     * Returns the URL path component only, without query string.
-     * Always starts with '/'.
+     * Returns the URL path component only, without query string,
+     * with the installation base directory stripped.
+     *
+     * Always starts with '/'. Works correctly whether Luster is installed
+     * at the document root (/index.php) or a subdirectory
+     * (/luster/public/index.php).
+     *
+     * Examples for a /luster/public/ install:
+     *   REQUEST_URI /luster/public/admin  → /admin
+     *   REQUEST_URI /luster/public/       → /
      */
     public function path(): string
     {
         $uri  = (string) ($this->server['REQUEST_URI'] ?? '/');
         $path = (string) parse_url($uri, PHP_URL_PATH);
 
-        return '/' . ltrim($path, '/');
+        // Determine the base directory from the executing script's location.
+        // e.g. SCRIPT_NAME=/luster/public/admin.php → base=/luster/public
+        //      SCRIPT_NAME=/index.php               → base='' (no stripping)
+        $scriptName = (string) ($this->server['SCRIPT_NAME'] ?? '');
+        $base       = rtrim(dirname($scriptName), '/');
+
+        if ($base !== '' && $base !== '.' && str_starts_with($path, $base)) {
+            $path = substr($path, strlen($base));
+        }
+
+        return '/' . ltrim($path ?: '/', '/');
     }
 
     // -----------------------------------------------------------------------

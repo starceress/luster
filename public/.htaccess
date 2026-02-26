@@ -43,7 +43,11 @@ Options -Indexes -MultiViews
 # -----------------------------------------------------------------------
 <IfModule mod_rewrite.c>
     RewriteEngine On
-    RewriteBase /
+
+    # Set this to the URL path of the public/ directory relative to the
+    # domain root. For a document-root install use: RewriteBase /
+    # For a subdirectory install adjust accordingly, e.g.: RewriteBase /mysite/public/
+    RewriteBase /luster/public/
 
     # Serve real files and directories directly (CSS, JS, images, etc.)
     RewriteCond %{REQUEST_FILENAME} -f [OR]
