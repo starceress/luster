@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+use Luster\Controllers\Admin\AuthController;
+use Luster\Controllers\Admin\DashboardController;
 use Luster\Core\Router;
 
 /**
@@ -10,10 +12,6 @@ use Luster\Core\Router;
  * Returns an array of two callables:
  *   'public' — registered by public/index.php
  *   'admin'  — registered by public/admin.php
- *
- * Controller classes are added in Phase 4 (public) and Phase 5 (admin).
- * Placeholder closures are used here so the Router can be exercised
- * without real controllers.
  */
 
 return [
@@ -32,13 +30,16 @@ return [
     },
 
     // ------------------------------------------------------------------
-    // Admin routes  (Phase 5)
+    // Admin routes  (Phase 2 — auth; Phase 5 — full panel)
     // ------------------------------------------------------------------
     'admin' => function (Router $router): void {
-        // $router->get('/admin',                        Controllers\Admin\DashboardController::class,  'index');
-        // $router->get('/admin/login',                  Controllers\Admin\AuthController::class,       'loginForm');
-        // $router->post('/admin/login',                 Controllers\Admin\AuthController::class,       'login');
-        // $router->post('/admin/logout',                Controllers\Admin\AuthController::class,       'logout');
+        // Authentication (Phase 2)
+        $router->get('/admin',         DashboardController::class, 'index');
+        $router->get('/admin/login',   AuthController::class,      'loginForm');
+        $router->post('/admin/login',  AuthController::class,      'login');
+        $router->post('/admin/logout', AuthController::class,      'logout');
+
+        // Phase 5 — uncomment as controllers are built
         // $router->get('/admin/fanlistings',            Controllers\Admin\FanlistingController::class, 'index');
         // $router->get('/admin/fanlistings/{id}/edit',  Controllers\Admin\FanlistingController::class, 'edit');
         // $router->post('/admin/fanlistings/{id}/edit', Controllers\Admin\FanlistingController::class, 'update');
