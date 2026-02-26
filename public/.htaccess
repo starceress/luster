@@ -1,0 +1,77 @@
+Options -Indexes -MultiViews
+
+# -----------------------------------------------------------------------
+# Security headers
+# -----------------------------------------------------------------------
+<IfModule mod_headers.c>
+    Header always set X-Content-Type-Options "nosniff"
+    Header always set X-Frame-Options "DENY"
+    Header always set X-XSS-Protection "1; mode=block"
+    Header always set Referrer-Policy "strict-origin-when-cross-origin"
+    Header always set Permissions-Policy "geolocation=(), microphone=(), camera=()"
+    # Remove server fingerprinting
+    Header unset X-Powered-By
+    Header always unset X-Powered-By
+</IfModule>
+
+# -----------------------------------------------------------------------
+# Block direct access to sensitive file types
+# -----------------------------------------------------------------------
+<FilesMatch "\.(env|log|sql|md|lock|gitignore|gitkeep|json|xml|ini|cfg|bak|old|tmp)$">
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        Order allow,deny
+        Deny from all
+    </IfModule>
+</FilesMatch>
+
+# Block dot-files (except .htaccess itself)
+<FilesMatch "^\.(?!htaccess)">
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        Order allow,deny
+        Deny from all
+    </IfModule>
+</FilesMatch>
+
+# -----------------------------------------------------------------------
+# Rewrite rules
+# -----------------------------------------------------------------------
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteBase /
+
+    # Serve real files and directories directly (CSS, JS, images, etc.)
+    RewriteCond %{REQUEST_FILENAME} -f [OR]
+    RewriteCond %{REQUEST_FILENAME} -d
+    RewriteRule ^ - [L]
+
+    # Route /admin and /admin/* to the admin front controller
+    RewriteRule ^admin(/.*)?$ admin.php [L,QSA]
+
+    # Route everything else to the public front controller
+    RewriteRule ^ index.php [L,QSA]
+</IfModule>
+
+# -----------------------------------------------------------------------
+# PHP settings (shared hosting safety net)
+# -----------------------------------------------------------------------
+<IfModule mod_php.c>
+    php_flag display_errors Off
+    php_flag log_errors On
+    php_value session.cookie_httponly 1
+    php_value session.cookie_samesite Strict
+    php_value session.use_strict_mode 1
+</IfModule>
+
+# -----------------------------------------------------------------------
+# Compression (optional performance boost)
+# -----------------------------------------------------------------------
+<IfModule mod_deflate.c>
+    AddOutputFilterByType DEFLATE text/html text/plain text/css
+    AddOutputFilterByType DEFLATE application/javascript application/json
+</IfModule>

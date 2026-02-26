@@ -1,0 +1,31 @@
+# Composer
+/vendor/
+composer.lock
+
+# Live config — never commit
+/config/app.php
+
+# Runtime storage
+/storage/logs/*
+!/storage/logs/.gitkeep
+/storage/cache/*
+!/storage/cache/.gitkeep
+
+# User uploads — keep the directory and its .htaccess, not the files
+/public/uploads/*
+!/public/uploads/.htaccess
+
+# OS / editor noise
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Test artefacts
+/.phpunit.cache/
+/coverage/
+
+# Environment file (if ever adopted)
+.env

@@ -1,0 +1,43 @@
+Options -Indexes -ExecCGI
+
+# -----------------------------------------------------------------------
+# CRITICAL: Block PHP (and all script) execution in uploads directory.
+# Uploaded files must never be executed as code.
+# -----------------------------------------------------------------------
+
+# Disable PHP engine for this directory
+<IfModule mod_php.c>
+    php_flag engine off
+</IfModule>
+<IfModule mod_php7.c>
+    php_flag engine off
+</IfModule>
+<IfModule mod_php8.c>
+    php_flag engine off
+</IfModule>
+
+# Deny all script handlers
+<FilesMatch "\.ph(p[2-8]?|tml|ps|ar)$">
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        Order allow,deny
+        Deny from all
+    </IfModule>
+</FilesMatch>
+
+# Deny .phtml, .pl, .py, .jsp, .asp, .sh, .cgi
+<FilesMatch "\.(phtml|pl|py|jsp|asp|aspx|sh|cgi|shtml)$">
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        Order allow,deny
+        Deny from all
+    </IfModule>
+</FilesMatch>
+
+# Remove any CGI or server-side-includes handlers
+RemoveHandler .php .php3 .php4 .php5 .php7 .php8 .phtml .pht
+RemoveType  .php .php3 .php4 .php5 .php7 .php8 .phtml .pht
