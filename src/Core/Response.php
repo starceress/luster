@@ -69,6 +69,18 @@ final class Response
         );
     }
 
+    public static function csv(string $content, string $filename = 'export.csv'): static
+    {
+        $safe = preg_replace('/[^a-zA-Z0-9_.\-]/', '_', $filename);
+
+        return (new static())
+            ->withStatus(200)
+            ->withHeader('Content-Type', 'text/csv; charset=UTF-8')
+            ->withHeader('Content-Disposition', 'attachment; filename="' . $safe . '"')
+            ->withHeader('Cache-Control', 'no-cache, no-store')
+            ->withBody($content);
+    }
+
     public static function serverError(string $message = 'An unexpected error occurred.'): static
     {
         $safe = htmlspecialchars($message, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');

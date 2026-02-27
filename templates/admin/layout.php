@@ -182,34 +182,38 @@
 <!-- -------------------------------------------------------------------- -->
 <!-- Sidebar                                                                -->
 <!-- -------------------------------------------------------------------- -->
+<?php
+$b = rtrim(\Luster\Core\View::e($base_url), '/');
+$s = $current_section ?? '';
+function navActive(string $section, string $current): string {
+    return $section === $current ? ' class="active"' : '';
+}
+?>
 <aside class="sidebar">
   <div class="sidebar-brand">
-    <a href="<?= \Luster\Core\View::e($app_name) ?>"><?= \Luster\Core\View::e($app_name) ?></a>
+    <a href="<?= $b ?>/admin"><?= \Luster\Core\View::e($app_name) ?></a>
     <span>Fanlisting Admin</span>
   </div>
 
   <nav class="sidebar-nav">
     <div class="sidebar-section">Main</div>
-
-    <a href="./admin" <?= ($page_title === 'Dashboard' ? 'class="active"' : '') ?>>
-      &#9632; Dashboard
-    </a>
+    <a href="<?= $b ?>/admin"<?= navActive('dashboard', $s) ?>>&#9632; Dashboard</a>
 
     <div class="sidebar-section">Manage</div>
-
-    <a href="./admin/fanlistings">&#9632; Fanlistings</a>
-    <a href="./admin/members">&#9632; Members</a>
-    <a href="./admin/affiliates">&#9632; Affiliates</a>
+    <a href="<?= $b ?>/admin/fanlistings"<?= navActive('fanlistings', $s) ?>>&#9632; Fanlistings</a>
+    <a href="<?= $b ?>/admin/members"<?= navActive('members', $s) ?>>&#9632; Members</a>
+    <a href="<?= $b ?>/admin/affiliates"<?= navActive('affiliates', $s) ?>>&#9632; Affiliates</a>
+    <a href="<?= $b ?>/admin/joined"<?= navActive('joined', $s) ?>>&#9632; Joined FLs</a>
 
     <div class="sidebar-section">System</div>
-
-    <a href="./admin/settings">&#9632; Settings</a>
+    <a href="<?= $b ?>/admin/settings"<?= navActive('settings', $s) ?>>&#9632; Settings</a>
+    <a href="<?= $b ?>/admin/activity"<?= navActive('activity', $s) ?>>&#9632; Activity Log</a>
   </nav>
 
   <div class="sidebar-footer">
     <strong><?= \Luster\Core\View::e($admin_username) ?></strong>
 
-    <form method="POST" action="./admin/logout">
+    <form method="POST" action="<?= $b ?>/admin/logout">
       <input type="hidden" name="_csrf" value="<?= \Luster\Core\View::e($csrf_token) ?>">
       <button type="submit" class="btn-logout">Sign out</button>
     </form>

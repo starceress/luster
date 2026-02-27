@@ -1,0 +1,302 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Luster\Controllers\Admin;
+
+use Luster\Core\Application;
+use Luster\Core\Request;
+use Luster\Core\Response;
+use Luster\Core\Validator;
+use Luster\Repositories\AffiliateRepo;
+use Luster\Repositories\FanlistingRepo;
+
+/**
+ * Manages affiliates across all fanlistings.
+ *
+ * Routes:
+ *   GET  /admin/affiliates                           — list all affiliates
+ *   GET  /admin/affiliates/add                       — add form (global context)
+ *   POST /admin/affiliates/add                       — insert (global context)
+ *   GET  /admin/fanlistings/{fid}/affiliates/add     — add form (fanlisting context)
+ *   POST /admin/fanlistings/{fid}/affiliates/add     — insert (fanlisting context)
+ *   GET  /admin/affiliates/{id}/edit                 — edit form
+ *   POST /admin/affiliates/{id}/edit                 — update
+ *   POST /admin/affiliates/{id}/toggle               — toggle active/inactive
+ *   POST /admin/affiliates/{id}/delete               — delete
+ *
+ * Fanlisting context: when accessed via /admin/fanlistings/{fid}/affiliates/add,
+ * or when from_fanlisting is passed as a query/POST param, save/toggle/delete
+ * redirect back to /admin/fanlistings/{fid} instead of /admin/affiliates.
+ */
+final class AffiliateController
+{
+    public function __construct(private readonly Application $app) {}
+
+    // -----------------------------------------------------------------------
+    // GET /admin/affiliates
+    // -----------------------------------------------------------------------
+
+    public function index(Request $request, array $params): Response
+    {
+        $db     = $this->app->getDatabase();
+        $config = $this->app->getConfig();
+
+        $affiliateRepo  = new AffiliateRepo($db);
+        $fanlistingRepo = new FanlistingRepo($db, $config);
+
+        $affiliates  = $affiliateRepo->getAll();
+        $fanlistings = $fanlistingRepo->getAll();
+
+        // Build fanlisting lookup map for display
+        $fanMap = [];
+        foreach ($fanlistings as $fl) {
+            $fanMap[$fl->id] = $fl->name;
+        }
+
+        $session = $this->app->getSession();
+        $success = (string) $session->get('lstr_flash_success', '');
+        $error   = (string) $session->get('lstr_flash_error', '');
+        $session->remove('lstr_flash_success');
+        $session->remove('lstr_flash_error');
+
+        return $this->layout('admin/affiliates/index.php', [
+            'affiliates'  => $affiliates,
+            'fan_map'     => $fanMap,
+            'success'     => $success,
+            'error'       => $error,
+        ], 'Affiliates', 'affiliates');
+    }
+
+    // -----------------------------------------------------------------------
+    // GET + POST /admin/affiliates/add
+    // GET + POST /admin/fanlistings/{fid}/affiliates/add
+    // -----------------------------------------------------------------------
+
+    public function add(Request $request, array $params): Response
+    {
+        $db     = $this->app->getDatabase();
+        $config = $this->app->getConfig();
+
+        $affiliateRepo  = new AffiliateRepo($db);
+        $fanlistingRepo = new FanlistingRepo($db, $config);
+        $fanlistings    = $fanlistingRepo->getAll();
+
+        $session = $this->app->getSession();
+        $baseUrl = $this->app->getBaseUrl();
+
+        // Fanlisting context — comes from route {fid} or query param
+        $contextFid = (int) ($params['fid'] ?? $request->query('context_fid', 0));
+
+        if ($request->isPost()) {
+            $fanlistingId = (int) $request->post('fanlisting_id', 0);
+            $name         = trim((string) $request->post('name', ''));
+            $url          = trim((string) $request->post('url', ''));
+            $email        = trim((string) $request->post('email', ''));
+            $image        = trim((string) $request->post('image', ''));
+            $sortOrder    = (int) $request->post('sort_order', 0);
+            // Re-read context from hidden field in case it was a fanlisting-routed form
+            $postContextFid = (int) $request->post('context_fid', $contextFid);
+
+            $v = new Validator(['name' => $name, 'url' => $url]);
+            $v->field('name')->required()->maxLength(255);
+            $v->field('url')->required()->url()->maxLength(500);
+
+            if ($v->fails()) {
+                return $this->layout('admin/affiliates/form.php', [
+                    'fanlistings'  => $fanlistings,
+                    'affiliate'    => null,
+                    'error'        => implode(' ', $v->allErrors()),
+                    'old'          => $request->postAll(),
+                    'context_fid'  => $postContextFid,
+                ], 'Add Affiliate', 'affiliates');
+            }
+
+            $affiliateRepo->insert([
+                'fanlisting_id' => $fanlistingId > 0 ? $fanlistingId : null,
+                'name'          => $name,
+                'url'           => $url,
+                'email'         => $email !== '' ? $email : null,
+                'image'         => $image !== '' ? $image : null,
+                'sort_order'    => $sortOrder,
+            ]);
+
+            $session->set('lstr_flash_success', 'Affiliate added.');
+
+            $redirect = $postContextFid > 0
+                ? $baseUrl . '/admin/fanlistings/' . $postContextFid
+                : $baseUrl . '/admin/affiliates';
+
+            return Response::redirect($redirect);
+        }
+
+        return $this->layout('admin/affiliates/form.php', [
+            'fanlistings' => $fanlistings,
+            'affiliate'   => null,
+            'error'       => '',
+            'old'         => [],
+            'context_fid' => $contextFid,
+        ], 'Add Affiliate', 'affiliates');
+    }
+
+    // -----------------------------------------------------------------------
+    // GET + POST /admin/affiliates/{id}/edit
+    // -----------------------------------------------------------------------
+
+    public function editAffiliate(Request $request, array $params): Response
+    {
+        $id = (int) ($params['id'] ?? 0);
+
+        $db     = $this->app->getDatabase();
+        $config = $this->app->getConfig();
+
+        $affiliateRepo  = new AffiliateRepo($db);
+        $fanlistingRepo = new FanlistingRepo($db, $config);
+
+        $affiliate   = $affiliateRepo->getById($id);
+        $fanlistings = $fanlistingRepo->getAll();
+
+        if ($affiliate === null) {
+            return Response::notFound('Affiliate not found.');
+        }
+
+        $session = $this->app->getSession();
+        $baseUrl = $this->app->getBaseUrl();
+
+        if ($request->isPost()) {
+            $name      = trim((string) $request->post('name', ''));
+            $url       = trim((string) $request->post('url', ''));
+            $email     = trim((string) $request->post('email', ''));
+            $image     = trim((string) $request->post('image', ''));
+            $sortOrder = (int) $request->post('sort_order', 0);
+            $fromFl    = (int) $request->post('from_fanlisting', 0);
+
+            $v = new Validator(['name' => $name, 'url' => $url]);
+            $v->field('name')->required()->maxLength(255);
+            $v->field('url')->required()->url()->maxLength(500);
+
+            if ($v->fails()) {
+                return $this->layout('admin/affiliates/form.php', [
+                    'fanlistings' => $fanlistings,
+                    'affiliate'   => $affiliate,
+                    'error'       => implode(' ', $v->allErrors()),
+                    'old'         => $request->postAll(),
+                    'context_fid' => $fromFl,
+                ], 'Edit Affiliate', 'affiliates');
+            }
+
+            $affiliateRepo->update($id, [
+                'name'       => $name,
+                'url'        => $url,
+                'email'      => $email !== '' ? $email : null,
+                'image'      => $image !== '' ? $image : null,
+                'sort_order' => $sortOrder,
+            ]);
+
+            $session->set('lstr_flash_success', 'Affiliate updated.');
+
+            $redirect = $fromFl > 0
+                ? $baseUrl . '/admin/fanlistings/' . $fromFl
+                : $baseUrl . '/admin/affiliates';
+
+            return Response::redirect($redirect);
+        }
+
+        // GET: read context from query param
+        $fromFl = (int) $request->query('from_fanlisting', 0);
+
+        return $this->layout('admin/affiliates/form.php', [
+            'fanlistings' => $fanlistings,
+            'affiliate'   => $affiliate,
+            'error'       => '',
+            'old'         => [],
+            'context_fid' => $fromFl,
+        ], 'Edit Affiliate', 'affiliates');
+    }
+
+    // -----------------------------------------------------------------------
+    // POST /admin/affiliates/{id}/toggle
+    // -----------------------------------------------------------------------
+
+    public function toggle(Request $request, array $params): Response
+    {
+        $id = (int) ($params['id'] ?? 0);
+        $db = $this->app->getDatabase();
+
+        $affiliateRepo = new AffiliateRepo($db);
+        $session       = $this->app->getSession();
+        $baseUrl       = $this->app->getBaseUrl();
+
+        if ($affiliateRepo->getById($id) === null) {
+            return Response::notFound('Affiliate not found.');
+        }
+
+        $affiliateRepo->toggle($id);
+        $fromFl = (int) $request->post('from_fanlisting', 0);
+
+        $session->set('lstr_flash_success', 'Affiliate status toggled.');
+
+        $redirect = $fromFl > 0
+            ? $baseUrl . '/admin/fanlistings/' . $fromFl
+            : $baseUrl . '/admin/affiliates';
+
+        return Response::redirect($redirect);
+    }
+
+    // -----------------------------------------------------------------------
+    // POST /admin/affiliates/{id}/delete
+    // -----------------------------------------------------------------------
+
+    public function deleteAffiliate(Request $request, array $params): Response
+    {
+        $id = (int) ($params['id'] ?? 0);
+        $db = $this->app->getDatabase();
+
+        $affiliateRepo = new AffiliateRepo($db);
+        $session       = $this->app->getSession();
+        $baseUrl       = $this->app->getBaseUrl();
+
+        if ($affiliateRepo->getById($id) === null) {
+            return Response::notFound('Affiliate not found.');
+        }
+
+        $affiliateRepo->delete($id);
+        $fromFl = (int) $request->post('from_fanlisting', 0);
+
+        $session->set('lstr_flash_success', 'Affiliate deleted.');
+
+        $redirect = $fromFl > 0
+            ? $baseUrl . '/admin/fanlistings/' . $fromFl
+            : $baseUrl . '/admin/affiliates';
+
+        return Response::redirect($redirect);
+    }
+
+    // -----------------------------------------------------------------------
+    // Shared render helper
+    // -----------------------------------------------------------------------
+
+    private function layout(string $template, array $data, string $pageTitle, string $section): Response
+    {
+        $view      = $this->app->getView();
+        $config    = $this->app->getConfig();
+        $session   = $this->app->getSession();
+        $baseUrl   = $this->app->getBaseUrl();
+        $csrfToken = $this->app->getCSRF()->token();
+
+        $inner = $view->render($template, array_merge($data, [
+            'base_url'   => $baseUrl,
+            'csrf_token' => $csrfToken,
+        ]));
+
+        return Response::html($view->render('admin/layout.php', [
+            'page_title'      => $pageTitle,
+            'app_name'        => (string) $config->get('app_name', 'Luster'),
+            'admin_username'  => (string) $session->get('lstr_admin_username', ''),
+            'csrf_token'      => $csrfToken,
+            'current_section' => $section,
+            'base_url'        => $baseUrl,
+            'content'         => $inner,
+        ]));
+    }
+}

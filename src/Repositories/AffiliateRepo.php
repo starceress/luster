@@ -37,6 +37,37 @@ final class AffiliateRepo
     }
 
     /**
+     * Returns a single affiliate by primary key, or null if not found.
+     */
+    public function getById(int $id): ?Affiliate
+    {
+        $stmt = $this->db->prepare(
+            'SELECT * FROM lstr_affiliates WHERE id = :id'
+        );
+        $stmt->execute(['id' => $id]);
+        $row = $stmt->fetch();
+
+        return $row !== false ? Affiliate::fromRow($row) : null;
+    }
+
+    /**
+     * Returns collective affiliates (fanlisting_id IS NULL), sorted by sort_order then name.
+     *
+     * @return Affiliate[]
+     */
+    public function getCollective(): array
+    {
+        $stmt = $this->db->prepare(
+            'SELECT * FROM lstr_affiliates
+             WHERE fanlisting_id IS NULL
+             ORDER BY sort_order ASC, name ASC'
+        );
+        $stmt->execute();
+
+        return array_map(static fn(array $r) => Affiliate::fromRow($r), $stmt->fetchAll());
+    }
+
+    /**
      * Returns affiliates for a specific fanlisting, sorted by sort_order then name.
      *
      * @return Affiliate[]
@@ -60,10 +91,10 @@ final class AffiliateRepo
     /**
      * Inserts a new affiliate and returns the new primary key.
      *
-     * Required keys: fanlisting_id, name, url.
-     * Optional keys: email, image, sort_order.
+     * Required keys: name, url.
+     * Optional keys: fanlisting_id (null = collective), email, image, sort_order.
      *
-     * @param array{fanlisting_id: int, name: string, url: string, email?: ?string, image?: ?string, sort_order?: int} $data
+     * @param array{fanlisting_id?: ?int, name: string, url: string, email?: ?string, image?: ?string, sort_order?: int} $data
      */
     public function insert(array $data): int
     {
@@ -74,8 +105,12 @@ final class AffiliateRepo
                 (:fanlisting_id, :name, :url, :email, :image, :sort_order)'
         );
 
+        $fid = isset($data['fanlisting_id']) && $data['fanlisting_id'] !== null
+            ? (int) $data['fanlisting_id']
+            : null;
+
         $stmt->execute([
-            'fanlisting_id' => (int)    $data['fanlisting_id'],
+            'fanlisting_id' => $fid,
             'name'          => (string) $data['name'],
             'url'           => (string) $data['url'],
             'email'         => isset($data['email'])      ? (string) $data['email']      : null,
@@ -114,6 +149,19 @@ final class AffiliateRepo
             'sort_order' => (int) ($data['sort_order'] ?? 0),
             'id'         => $id,
         ]);
+    }
+
+    /**
+     * Toggles the active flag on an affiliate.
+     * Requires the `active` column (run public/migrate.php first).
+     */
+    public function toggle(int $id): bool
+    {
+        $stmt = $this->db->prepare(
+            'UPDATE lstr_affiliates SET active = 1 - active WHERE id = :id'
+        );
+
+        return $stmt->execute(['id' => $id]);
     }
 
     /**

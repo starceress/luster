@@ -132,6 +132,56 @@ final class FanlistingRepo
     // -----------------------------------------------------------------------
 
     /**
+     * Updates the user-editable metadata on a fanlisting.
+     *
+     * Only touches columns that Luster is allowed to change (title/name, url,
+     * email, status). Subject, dbtable, catid, and listingtype are managed by
+     * Enthusiast and must not be overwritten.
+     */
+    public function updateMeta(
+        int    $id,
+        string $title,
+        string $url,
+        string $email,
+        bool   $upcoming,
+        bool   $trouble,
+    ): bool {
+        if ($this->isOwnedSchema) {
+            $status = $upcoming ? 1 : ($trouble ? 0 : 2);
+
+            $stmt = $this->db->prepare(
+                "UPDATE {$this->table}
+                 SET title = :title, url = :url, email = :email, status = :status
+                 WHERE {$this->pkCol} = :id"
+            );
+
+            return $stmt->execute([
+                'title'  => $title,
+                'url'    => $url,
+                'email'  => $email,
+                'status' => $status,
+                'id'     => $id,
+            ]);
+        }
+
+        $stmt = $this->db->prepare(
+            "UPDATE {$this->table}
+             SET name = :name, url = :url, email = :email,
+                 upcoming = :upcoming, trouble = :trouble
+             WHERE {$this->pkCol} = :id"
+        );
+
+        return $stmt->execute([
+            'name'     => $title,
+            'url'      => $url,
+            'email'    => $email,
+            'upcoming' => (int) $upcoming,
+            'trouble'  => (int) $trouble,
+            'id'       => $id,
+        ]);
+    }
+
+    /**
      * Updates the status flags for a fanlisting.
      *
      * Standard schema: sets the upcoming and trouble boolean columns.

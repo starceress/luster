@@ -147,6 +147,20 @@ final class MemberRepo
     }
 
     /**
+     * Counts pending (queued) members for a fanlisting.
+     */
+    public function countPending(string $prefix): int
+    {
+        $p    = $this->resolveTable($prefix);
+        $stmt = $this->db->prepare(
+            "SELECT COUNT(*) FROM {$p} WHERE {$this->pendingWhere}"
+        );
+        $stmt->execute();
+
+        return (int) $stmt->fetchColumn();
+    }
+
+    /**
      * Counts approved members for a fanlisting.
      */
     public function countApproved(string $prefix): int
@@ -176,6 +190,49 @@ final class MemberRepo
         $stmt->execute(['term' => '%' . $term . '%']);
 
         return array_map(static fn(array $r) => Member::fromRow($r), $stmt->fetchAll());
+    }
+
+    /**
+     * Returns a paginated slice of members filtered by status.
+     *
+     * @param string $status  'approved' | 'pending' | 'all'
+     * @return array{members: Member[], total: int, pages: int}
+     */
+    public function paginateByStatus(
+        string $prefix,
+        int    $page,
+        int    $perPage,
+        string $status = 'approved',
+    ): array {
+        $p      = $this->resolveTable($prefix);
+        $offset = max(0, ($page - 1) * $perPage);
+
+        $where = match ($status) {
+            'pending' => "WHERE {$this->pendingWhere}",
+            'all'     => '',
+            default   => "WHERE {$this->approvedWhere}",
+        };
+
+        $countStmt = $this->db->prepare("SELECT COUNT(*) FROM {$p} {$where}");
+        $countStmt->execute();
+        $total = (int) $countStmt->fetchColumn();
+
+        $stmt = $this->db->prepare(
+            "SELECT * FROM {$p} {$where}
+             ORDER BY name ASC
+             LIMIT :lim OFFSET :off"
+        );
+        $stmt->bindValue(':lim', $perPage, PDO::PARAM_INT);
+        $stmt->bindValue(':off', $offset,  PDO::PARAM_INT);
+        $stmt->execute();
+
+        $members = array_map(static fn(array $r) => Member::fromRow($r), $stmt->fetchAll());
+
+        return [
+            'members' => $members,
+            'total'   => $total,
+            'pages'   => $total > 0 ? (int) ceil($total / $perPage) : 0,
+        ];
     }
 
     /**

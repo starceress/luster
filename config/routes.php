@@ -2,8 +2,15 @@
 
 declare(strict_types=1);
 
+use Luster\Controllers\Admin\ActivityLogController;
+use Luster\Controllers\Admin\AffiliateController;
 use Luster\Controllers\Admin\AuthController;
 use Luster\Controllers\Admin\DashboardController;
+use Luster\Controllers\Admin\FanlistingController;
+use Luster\Controllers\Admin\JoinedController;
+use Luster\Controllers\Admin\MemberController;
+use Luster\Controllers\Admin\MembersIndexController;
+use Luster\Controllers\Admin\SettingsController;
 use Luster\Controllers\Public\JoinController;
 use Luster\Controllers\Public\MembersController;
 use Luster\Controllers\Public\RemoveController;
@@ -44,23 +51,96 @@ return [
     },
 
     // ------------------------------------------------------------------
-    // Admin routes  (Phase 2 — auth; Phase 5 — full panel)
+    // Admin routes  (Phase 2 auth + Phase 5 full panel)
     // ------------------------------------------------------------------
     'admin' => function (Router $router): void {
-        // Authentication (Phase 2)
+
+        // ── Authentication ──────────────────────────────────────────
         $router->get('/admin',         DashboardController::class, 'index');
         $router->get('/admin/login',   AuthController::class,      'loginForm');
         $router->post('/admin/login',  AuthController::class,      'login');
         $router->post('/admin/logout', AuthController::class,      'logout');
 
-        // Phase 5 — uncomment as controllers are built
-        // $router->get('/admin/fanlistings',            Controllers\Admin\FanlistingController::class, 'index');
-        // $router->get('/admin/fanlistings/{id}/edit',  Controllers\Admin\FanlistingController::class, 'edit');
-        // $router->post('/admin/fanlistings/{id}/edit', Controllers\Admin\FanlistingController::class, 'update');
-        // $router->get('/admin/members',                Controllers\Admin\MemberController::class,     'index');
-        // $router->get('/admin/affiliates',             Controllers\Admin\AffiliateController::class,  'index');
-        // $router->get('/admin/settings',               Controllers\Admin\SettingsController::class,   'index');
-        // $router->post('/admin/settings',              Controllers\Admin\SettingsController::class,   'update');
+        // ── Fanlistings ─────────────────────────────────────────────
+        $router->get('/admin/fanlistings',
+            FanlistingController::class, 'index');
+        $router->get('/admin/fanlistings/{id}',
+            FanlistingController::class, 'show');
+        $router->get('/admin/fanlistings/{id}/edit',
+            FanlistingController::class, 'edit');
+        $router->post('/admin/fanlistings/{id}/edit',
+            FanlistingController::class, 'edit');
+
+        // ── Members top-level (fanlisting picker) ───────────────────
+        $router->get('/admin/members',
+            MembersIndexController::class, 'index');
+
+        // ── Members for a specific fanlisting ───────────────────────
+        $router->get('/admin/members/{id}',
+            MemberController::class, 'index');
+        $router->get('/admin/members/{id}/edit',
+            MemberController::class, 'edit');
+        $router->post('/admin/members/{id}/edit',
+            MemberController::class, 'edit');
+        $router->post('/admin/members/{id}/approve',
+            MemberController::class, 'approve');
+        $router->post('/admin/members/{id}/reject',
+            MemberController::class, 'reject');
+        $router->post('/admin/members/{id}/delete',
+            MemberController::class, 'deleteMember');
+        $router->post('/admin/members/{id}/bulk',
+            MemberController::class, 'bulk');
+        $router->get('/admin/members/{id}/export',
+            MemberController::class, 'export');
+
+        // ── Per-fanlisting affiliate add (must be before /affiliates routes
+        //    to avoid route ordering issues, and before /fanlistings/{id}) ──
+        $router->get('/admin/fanlistings/{fid}/affiliates/add',
+            AffiliateController::class, 'add');
+        $router->post('/admin/fanlistings/{fid}/affiliates/add',
+            AffiliateController::class, 'add');
+
+        // ── Affiliates ──────────────────────────────────────────────
+        $router->get('/admin/affiliates',
+            AffiliateController::class, 'index');
+        $router->get('/admin/affiliates/add',
+            AffiliateController::class, 'add');
+        $router->post('/admin/affiliates/add',
+            AffiliateController::class, 'add');
+        $router->get('/admin/affiliates/{id}/edit',
+            AffiliateController::class, 'editAffiliate');
+        $router->post('/admin/affiliates/{id}/edit',
+            AffiliateController::class, 'editAffiliate');
+        $router->post('/admin/affiliates/{id}/toggle',
+            AffiliateController::class, 'toggle');
+        $router->post('/admin/affiliates/{id}/delete',
+            AffiliateController::class, 'deleteAffiliate');
+
+        // ── Settings ────────────────────────────────────────────────
+        $router->get('/admin/settings',
+            SettingsController::class, 'index');
+        $router->post('/admin/settings',
+            SettingsController::class, 'update');
+
+        // ── Joined fanlistings ───────────────────────────────────────
+        $router->get('/admin/joined',
+            JoinedController::class, 'index');
+        $router->get('/admin/joined/add',
+            JoinedController::class, 'add');
+        $router->post('/admin/joined/add',
+            JoinedController::class, 'add');
+        $router->get('/admin/joined/{id}/edit',
+            JoinedController::class, 'edit');
+        $router->post('/admin/joined/{id}/edit',
+            JoinedController::class, 'edit');
+        $router->post('/admin/joined/{id}/delete',
+            JoinedController::class, 'delete');
+        $router->post('/admin/joined/{id}/toggle',
+            JoinedController::class, 'toggle');
+
+        // ── Activity log ─────────────────────────────────────────────
+        $router->get('/admin/activity',
+            ActivityLogController::class, 'index');
     },
 
 ];
