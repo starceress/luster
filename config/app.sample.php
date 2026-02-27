@@ -44,6 +44,25 @@ return [
     'smtp_secure'    => 'tls',   // 'tls', 'ssl', or ''
 
     // ------------------------------------------------------------------
+    // Enthusiast database compatibility
+    //
+    // enth_table_prefix controls the naming convention of your Enthusiast
+    // core tables and member tables.
+    //
+    //   ''       — Unprefixed Enthusiast 3 install (e.g. nebuluna.com style):
+    //              fanlisting registry = 'owned', member tables bare names
+    //              (huntrix, bes, ...), approved column is 'pending = 0'.
+    //
+    //   'enth_'  — Standard prefixed Enthusiast install:
+    //              fanlisting registry = 'enth_fanlistings', member tables
+    //              use {dbprefix}members pattern, approved column is
+    //              'approved = 1'.
+    //
+    // Must match [a-zA-Z0-9_] if non-empty.
+    // ------------------------------------------------------------------
+    'enth_table_prefix' => '',
+
+    // ------------------------------------------------------------------
     // Miscellaneous
     // ------------------------------------------------------------------
     'timezone' => 'UTC',

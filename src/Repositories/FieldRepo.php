@@ -1,0 +1,270 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Luster\Repositories;
+
+use Luster\Core\Config;
+use Luster\Core\Database;
+use Luster\Models\AdditionalField;
+use RuntimeException;
+
+/**
+ * Parses additional field definitions from the fanlisting registry table.
+ *
+ * Two schema variants are supported, driven by 'enth_table_prefix':
+ *
+ *   ''       → Unprefixed Enthusiast 3 ('owned' table):
+ *              Column: 'additional'
+ *              Format: bare field name(s), comma-separated — e.g. 'favorite'
+ *                      or 'favorite_movie'. Labels are synthesised from the
+ *                      field name. No type/required metadata is stored.
+ *                      The actual member table column is the bare name (no prefix).
+ *
+ *   'enth_'  → Standard Enthusiast ('enth_fanlistings' table):
+ *              Column: 'additional_info'
+ *              Format: pipe-separated: name,Label,type,required|name2,...
+ *                      or legacy PHP-serialized array.
+ *                      The actual member table column is 'additional_{name}'.
+ */
+final class FieldRepo
+{
+    private string $table;
+    private string $infoCol;
+    private string $pkCol;
+    private bool   $isOwnedSchema;
+
+    public function __construct(
+        private readonly Database $db,
+        private readonly Config   $config,
+    ) {
+        $prefix = (string) $this->config->get('enth_table_prefix', '');
+
+        if ($prefix !== '' && !preg_match('/^[a-zA-Z0-9_]+$/', $prefix)) {
+            throw new RuntimeException(
+                "Invalid enth_table_prefix '{$prefix}': only [a-zA-Z0-9_] allowed."
+            );
+        }
+
+        $this->isOwnedSchema = ($prefix === '');
+
+        $rawTable        = $this->isOwnedSchema ? 'owned' : $prefix . 'fanlistings';
+        $this->table     = $this->db->validatePrefix($rawTable);
+        $this->infoCol   = $this->isOwnedSchema ? 'additional'   : 'additional_info';
+        $this->pkCol     = $this->isOwnedSchema ? 'listingid'    : 'id';
+    }
+
+    // -----------------------------------------------------------------------
+    // Public API
+    // -----------------------------------------------------------------------
+
+    /**
+     * Returns the parsed field definitions for one fanlisting.
+     *
+     * @return AdditionalField[]
+     */
+    public function getFieldsForFanlisting(int $id): array
+    {
+        $stmt = $this->db->prepare(
+            "SELECT {$this->infoCol} AS field_info FROM {$this->table}
+             WHERE {$this->pkCol} = :id"
+        );
+        $stmt->execute(['id' => $id]);
+
+        $row = $stmt->fetch();
+
+        if ($row === false || $row['field_info'] === null || $row['field_info'] === '') {
+            return [];
+        }
+
+        return $this->parseAdditionalInfo((string) $row['field_info']);
+    }
+
+    /**
+     * Returns parsed field definitions for every fanlisting, keyed by fanlisting ID.
+     *
+     * @return array<int, AdditionalField[]>
+     */
+    public function getAllFields(): array
+    {
+        $stmt = $this->db->prepare(
+            "SELECT {$this->pkCol} AS listing_id, {$this->infoCol} AS field_info
+             FROM {$this->table}"
+        );
+        $stmt->execute();
+
+        $result = [];
+
+        foreach ($stmt->fetchAll() as $row) {
+            $id          = (int) $row['listing_id'];
+            $raw         = (string) ($row['field_info'] ?? '');
+            $result[$id] = $raw !== '' ? $this->parseAdditionalInfo($raw) : [];
+        }
+
+        return $result;
+    }
+
+    // -----------------------------------------------------------------------
+    // Parsing
+    // -----------------------------------------------------------------------
+
+    /**
+     * Dispatches to the appropriate parser.
+     *
+     * @return AdditionalField[]
+     */
+    private function parseAdditionalInfo(string $raw): array
+    {
+        $raw = trim($raw);
+
+        if ($raw === '') {
+            return [];
+        }
+
+        if ($this->isOwnedSchema) {
+            // Unprefixed Enthusiast 3: simple comma-separated field names
+            return $this->parseSimpleNames($raw);
+        }
+
+        // Standard Enthusiast: PHP-serialized or pipe-delimited full definitions
+        if (str_starts_with($raw, 'a:')) {
+            return $this->parseSerializedFormat($raw);
+        }
+
+        return $this->parsePipeFormat($raw);
+    }
+
+    /**
+     * Parses the Enthusiast 3 'owned.additional' format: bare field name(s).
+     *
+     * Examples:  'favorite'          → one field
+     *            'favorite_movie'    → one field
+     *            'fave_song,reading' → two fields
+     *
+     * Labels are synthesised: underscores→spaces, title-cased.
+     * Type defaults to 'text', required defaults to false.
+     *
+     * @return AdditionalField[]
+     */
+    private function parseSimpleNames(string $raw): array
+    {
+        $fields = [];
+
+        foreach (explode(',', $raw) as $name) {
+            $name = trim($name);
+
+            if ($name === '' || !preg_match('/^[a-zA-Z0-9_]+$/', $name)) {
+                continue;
+            }
+
+            // Derive a readable label from the field name
+            $label = ucwords(str_replace('_', ' ', $name));
+
+            $fields[] = new AdditionalField(
+                name:     $name,
+                label:    $label,
+                type:     'text',
+                required: false,
+            );
+        }
+
+        return $fields;
+    }
+
+    /**
+     * Parses the pipe-delimited Enthusiast field format.
+     *
+     * Format: name,Label,type,required|name2,...
+     *
+     * @return AdditionalField[]
+     */
+    private function parsePipeFormat(string $raw): array
+    {
+        $fields = [];
+
+        foreach (explode('|', $raw) as $fieldStr) {
+            $fieldStr = trim($fieldStr);
+
+            if ($fieldStr === '') {
+                continue;
+            }
+
+            $parts = explode(',', $fieldStr, 4);
+
+            if (count($parts) < 2) {
+                // Single token with no comma — treat as a bare field name
+                $name = trim($parts[0]);
+                if ($name !== '' && preg_match('/^[a-zA-Z0-9_]+$/', $name)) {
+                    $fields[] = new AdditionalField(
+                        name:     $name,
+                        label:    ucwords(str_replace('_', ' ', $name)),
+                        type:     'text',
+                        required: false,
+                    );
+                }
+                continue;
+            }
+
+            $name     = trim($parts[0]);
+            $label    = trim($parts[1]);
+            $type     = trim($parts[2] ?? 'text');
+            $required = (bool) (int) trim($parts[3] ?? '0');
+
+            if (!preg_match('/^[a-zA-Z0-9_]+$/', $name) || $name === '') {
+                continue;
+            }
+
+            $fields[] = new AdditionalField(
+                name:     $name,
+                label:    $label,
+                type:     in_array($type, ['text', 'textarea', 'select'], true) ? $type : 'text',
+                required: $required,
+            );
+        }
+
+        return $fields;
+    }
+
+    /**
+     * Parses a PHP-serialized additional_info string (legacy standard Enthusiast).
+     *
+     * unserialize() is called with allowed_classes=false so no arbitrary
+     * object can be instantiated from the stored string.
+     *
+     * @return AdditionalField[]
+     */
+    private function parseSerializedFormat(string $raw): array
+    {
+        $data = @unserialize($raw, ['allowed_classes' => false]);
+
+        if (!is_array($data)) {
+            return [];
+        }
+
+        $fields = [];
+
+        foreach ($data as $item) {
+            if (!is_array($item)) {
+                continue;
+            }
+
+            $name     = (string) ($item['name']     ?? $item[0] ?? '');
+            $label    = (string) ($item['label']    ?? $item[1] ?? '');
+            $type     = (string) ($item['type']     ?? $item[2] ?? 'text');
+            $required = (bool)   (int) ($item['required'] ?? $item[3] ?? 0);
+
+            if (!preg_match('/^[a-zA-Z0-9_]+$/', $name) || $name === '') {
+                continue;
+            }
+
+            $fields[] = new AdditionalField(
+                name:     $name,
+                label:    $label,
+                type:     in_array($type, ['text', 'textarea', 'select'], true) ? $type : 'text',
+                required: $required,
+            );
+        }
+
+        return $fields;
+    }
+}
