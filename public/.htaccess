@@ -9,6 +9,7 @@ Options -Indexes -MultiViews
     Header always set X-XSS-Protection "1; mode=block"
     Header always set Referrer-Policy "strict-origin-when-cross-origin"
     Header always set Permissions-Policy "geolocation=(), microphone=(), camera=()"
+    Header always set Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
     # Remove server fingerprinting
     Header unset X-Powered-By
     Header always unset X-Powered-By
@@ -68,8 +69,10 @@ Options -Indexes -MultiViews
     php_flag display_errors Off
     php_flag log_errors On
     php_value session.cookie_httponly 1
+    php_value session.cookie_secure 1
     php_value session.cookie_samesite Strict
     php_value session.use_strict_mode 1
+    php_flag session.use_only_cookies On
 </IfModule>
 
 # -----------------------------------------------------------------------

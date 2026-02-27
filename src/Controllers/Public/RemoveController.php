@@ -6,6 +6,7 @@ namespace Luster\Controllers\Public;
 
 use Luster\Core\Application;
 use Luster\Core\Mailer;
+use Luster\Core\RateLimit;
 use Luster\Core\Request;
 use Luster\Core\Response;
 use Luster\Core\Validator;
@@ -72,6 +73,14 @@ final class RemoveController
         $fanlistingId = (int) ($params['id'] ?? 0);
         $baseUrl      = $this->app->getBaseUrl();
         $session      = $this->app->getSession();
+        $rateLimit    = $this->app->getRateLimit();
+        $ip           = $request->ip();
+
+        // Rate limiting — prevents credential stuffing and email enumeration
+        if ($rateLimit->isBlocked($ip, RateLimit::ACTION_PUBLIC_REMOVE)) {
+            $session->set('lstr_flash_error', 'Too many attempts. Please try again later.');
+            return Response::redirect($baseUrl . '/remove/' . $fanlistingId);
+        }
 
         $fanlistingRepo = new FanlistingRepo($this->app->getDatabase(), $this->app->getConfig());
         $fanlisting     = $fanlistingRepo->getById($fanlistingId);
@@ -88,6 +97,7 @@ final class RemoveController
         $v->field('password')->required();
 
         if ($v->fails()) {
+            $rateLimit->hitDefault($ip, RateLimit::ACTION_PUBLIC_REMOVE);
             $session->set('lstr_flash_error', implode(' ', $v->allErrors()));
             $session->set('lstr_flash_old_email', $email);
 
@@ -98,6 +108,7 @@ final class RemoveController
         $member     = $memberRepo->getByEmail($fanlisting->dbprefix, $email);
 
         if ($member === null) {
+            $rateLimit->hitDefault($ip, RateLimit::ACTION_PUBLIC_REMOVE);
             $session->set('lstr_flash_error', 'No membership found for that email address.');
             $session->set('lstr_flash_old_email', $email);
 
@@ -117,6 +128,7 @@ final class RemoveController
         }
 
         if (!$verified) {
+            $rateLimit->hitDefault($ip, RateLimit::ACTION_PUBLIC_REMOVE);
             $session->set('lstr_flash_error', 'Incorrect password. Please try again.');
             $session->set('lstr_flash_old_email', $email);
 

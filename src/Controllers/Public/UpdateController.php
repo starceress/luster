@@ -6,6 +6,7 @@ namespace Luster\Controllers\Public;
 
 use Luster\Core\Application;
 use Luster\Core\Mailer;
+use Luster\Core\RateLimit;
 use Luster\Core\Request;
 use Luster\Core\Response;
 use Luster\Core\Validator;
@@ -83,6 +84,14 @@ final class UpdateController
         $fanlistingId = (int) ($params['id'] ?? 0);
         $baseUrl      = $this->app->getBaseUrl();
         $session      = $this->app->getSession();
+        $rateLimit    = $this->app->getRateLimit();
+        $ip           = $request->ip();
+
+        // Rate limiting — prevents credential stuffing and account harvesting
+        if ($rateLimit->isBlocked($ip, RateLimit::ACTION_PUBLIC_UPDATE)) {
+            $session->set('lstr_flash_error', 'Too many attempts. Please try again later.');
+            return Response::redirect($baseUrl . '/update/' . $fanlistingId);
+        }
 
         $fanlistingRepo = new FanlistingRepo($this->app->getDatabase(), $this->app->getConfig());
         $fanlisting     = $fanlistingRepo->getById($fanlistingId);
@@ -118,6 +127,7 @@ final class UpdateController
         }
 
         if ($v->fails()) {
+            $rateLimit->hitDefault($ip, RateLimit::ACTION_PUBLIC_UPDATE);
             $session->set('lstr_flash_error', implode(' ', $v->allErrors()));
             $session->set('lstr_flash_old', [
                 'email'   => $email,
@@ -133,6 +143,7 @@ final class UpdateController
         $member     = $memberRepo->getByEmail($fanlisting->dbprefix, $email);
 
         if ($member === null) {
+            $rateLimit->hitDefault($ip, RateLimit::ACTION_PUBLIC_UPDATE);
             $session->set('lstr_flash_error', 'No membership found for that email address.');
             $session->set('lstr_flash_old', ['email' => $email]);
 
@@ -155,11 +166,14 @@ final class UpdateController
         }
 
         if (!$verified) {
+            $rateLimit->hitDefault($ip, RateLimit::ACTION_PUBLIC_UPDATE);
             $session->set('lstr_flash_error', 'Incorrect password. Please try again.');
             $session->set('lstr_flash_old', ['email' => $email]);
 
             return Response::redirect($baseUrl . '/update/' . $fanlistingId);
         }
+
+        $rateLimit->clear($ip, RateLimit::ACTION_PUBLIC_UPDATE);
 
         // Build update payload
         $updateData = [
