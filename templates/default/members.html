@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{fanlisting_name} — Members</title>
+  <link rel="stylesheet" href="{base_url}/assets/css/public.css">
+</head>
+<body>
+  <div class="site-wrapper">
+    <header class="site-header">
+      <h1><a href="{fanlisting_url}">{fanlisting_name}</a></h1>
+      <nav class="fanlisting-nav">
+        <a href="{join_url}">Join</a>
+        <a href="{base_url}/update/{fanlisting_id}">Update</a>
+        <a href="{base_url}/remove/{fanlisting_id}">Remove</a>
+      </nav>
+    </header>
+
+    <main class="site-main">
+      <h2>Members</h2>
+      <p class="member-count">{total_members} member(s) &mdash; page {current_page} of {total_pages}</p>
+
+      <div class="member-list">
+        {member_loop}
+        <div class="member-card">
+          <strong class="member-name">{fan_name}</strong>
+          <span class="member-country">{fan_country}</span>
+          <a class="member-url" href="{fan_url}">{fan_url}</a>
+        </div>
+        {/member_loop}
+      </div>
+
+      {pagination}
+    </main>
+
+    <footer class="site-footer">
+      <p>Powered by <a href="{base_url}">{app_name}</a></p>
+    </footer>
+  </div>
+</body>
+</html>

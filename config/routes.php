@@ -4,6 +4,10 @@ declare(strict_types=1);
 
 use Luster\Controllers\Admin\AuthController;
 use Luster\Controllers\Admin\DashboardController;
+use Luster\Controllers\Public\JoinController;
+use Luster\Controllers\Public\MembersController;
+use Luster\Controllers\Public\RemoveController;
+use Luster\Controllers\Public\UpdateController;
 use Luster\Core\Router;
 
 /**
@@ -20,13 +24,23 @@ return [
     // Public routes  (Phase 4)
     // ------------------------------------------------------------------
     'public' => function (Router $router): void {
-        // $router->get('/',                    Controllers\Public\JoinController::class,    'index');
-        // $router->post('/join/{slug}',         Controllers\Public\JoinController::class,    'submit');
-        // $router->get('/members/{slug}',       Controllers\Public\MembersController::class, 'index');
-        // $router->get('/update/{slug}',        Controllers\Public\UpdateController::class,  'index');
-        // $router->post('/update/{slug}',       Controllers\Public\UpdateController::class,  'submit');
-        // $router->get('/remove/{slug}',        Controllers\Public\RemoveController::class,  'index');
-        // $router->post('/remove/{slug}',       Controllers\Public\RemoveController::class,  'submit');
+        // Join
+        $router->get('/join/{id}',            JoinController::class,    'showForm');
+        $router->post('/join/{id}',           JoinController::class,    'submit');
+        $router->get('/join/{id}/success',    JoinController::class,    'success');
+
+        // Members list
+        $router->get('/members/{id}',         MembersController::class, 'index');
+
+        // Update membership
+        $router->get('/update/{id}',          UpdateController::class,  'showForm');
+        $router->post('/update/{id}',         UpdateController::class,  'submit');
+        $router->get('/update/{id}/success',  UpdateController::class,  'success');
+
+        // Remove membership
+        $router->get('/remove/{id}',          RemoveController::class,  'showForm');
+        $router->post('/remove/{id}',         RemoveController::class,  'submit');
+        $router->get('/remove/{id}/success',  RemoveController::class,  'success');
     },
 
     // ------------------------------------------------------------------

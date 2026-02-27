@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Update your {fanlisting_name} Membership</title>
+  <link rel="stylesheet" href="{base_url}/assets/css/public.css">
+</head>
+<body>
+  <div class="site-wrapper">
+    <header class="site-header">
+      <h1><a href="{fanlisting_url}">{fanlisting_name}</a></h1>
+    </header>
+
+    <main class="site-main">
+      <h2>Update your Membership</h2>
+
+      <div class="form-error" role="alert">{error}</div>
+
+      <p>Enter your email address and password to update your membership details.</p>
+      <p>Fields marked <span aria-hidden="true">*</span> are required.</p>
+
+      <form method="post" action="{base_url}/update/{fanlisting_id}" novalidate>
+        <input type="hidden" name="_csrf" value="{csrf_token}">
+
+        <div class="form-group">
+          <label for="email">Email Address <span aria-hidden="true">*</span></label>
+          <input type="email" id="email" name="email" value="{old_email}" maxlength="255" required autocomplete="email">
+        </div>
+
+        <div class="form-group">
+          <label for="password">Password <span aria-hidden="true">*</span></label>
+          <input type="password" id="password" name="password" maxlength="255" required autocomplete="current-password">
+        </div>
+
+        <div class="form-group">
+          <label for="name">Name <span aria-hidden="true">*</span></label>
+          <input type="text" id="name" name="name" value="{old_name}" maxlength="100" required autocomplete="name">
+        </div>
+
+        <div class="form-group">
+          <label for="url">Website URL</label>
+          <input type="url" id="url" name="url" value="{old_url}" maxlength="255" placeholder="https://" autocomplete="url">
+        </div>
+
+        <div class="form-group">
+          <label for="country">Country <span aria-hidden="true">*</span></label>
+          <input type="text" id="country" name="country" value="{old_country}" maxlength="100" required autocomplete="country-name">
+        </div>
+
+        {extra_fields}
+
+        <div class="form-actions">
+          <button type="submit">Update Membership</button>
+        </div>
+      </form>
+    </main>
+
+    <footer class="site-footer">
+      <p>Powered by <a href="{base_url}">{app_name}</a></p>
+    </footer>
+  </div>
+</body>
+</html>

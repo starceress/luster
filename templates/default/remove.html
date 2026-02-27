@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Remove your {fanlisting_name} Membership</title>
+  <link rel="stylesheet" href="{base_url}/assets/css/public.css">
+</head>
+<body>
+  <div class="site-wrapper">
+    <header class="site-header">
+      <h1><a href="{fanlisting_url}">{fanlisting_name}</a></h1>
+    </header>
+
+    <main class="site-main">
+      <h2>Remove your Membership</h2>
+
+      <div class="form-error" role="alert">{error}</div>
+
+      <p>Enter your email address and password to remove yourself from this fanlisting.</p>
+      <p><strong>This action cannot be undone.</strong></p>
+
+      <form method="post" action="{base_url}/remove/{fanlisting_id}" novalidate>
+        <input type="hidden" name="_csrf" value="{csrf_token}">
+
+        <div class="form-group">
+          <label for="email">Email Address</label>
+          <input type="email" id="email" name="email" value="{old_email}" maxlength="255" required autocomplete="email">
+        </div>
+
+        <div class="form-group">
+          <label for="password">Password</label>
+          <input type="password" id="password" name="password" maxlength="255" required autocomplete="current-password">
+        </div>
+
+        <div class="form-actions">
+          <button type="submit" class="btn-danger">Remove Membership</button>
+        </div>
+      </form>
+    </main>
+
+    <footer class="site-footer">
+      <p>Powered by <a href="{base_url}">{app_name}</a></p>
+    </footer>
+  </div>
+</body>
+</html>
