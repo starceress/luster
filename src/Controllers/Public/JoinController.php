@@ -102,10 +102,11 @@ final class JoinController
         // Captcha — re-render the form with an error on failure
         if (!Captcha::validate((string) $request->post('captcha_answer', ''))) {
             $old = [
-                'name'    => trim((string) $request->post('name',    '')),
-                'email'   => trim((string) $request->post('email',   '')),
-                'url'     => trim((string) $request->post('url',     '')),
-                'country' => trim((string) $request->post('country', '')),
+                'name'      => trim((string) $request->post('name',    '')),
+                'email'     => trim((string) $request->post('email',   '')),
+                'url'       => trim((string) $request->post('url',     '')),
+                'country'   => trim((string) $request->post('country', '')),
+                'send_info' => (string) $request->post('send_info', ''),
             ];
             return $this->renderJoinForm(
                 $fanlistingId, $fanlisting, $fields, $old,
@@ -138,10 +139,11 @@ final class JoinController
             $rateLimit->hitDefault($ip, RateLimit::ACTION_PUBLIC_JOIN);
             $session->set('lstr_flash_error', implode(' ', $v->allErrors()));
             $session->set('lstr_flash_old', [
-                'name'    => $name,
-                'email'   => $email,
-                'url'     => $url,
-                'country' => $country,
+                'name'      => $name,
+                'email'     => $email,
+                'url'       => $url,
+                'country'   => $country,
+                'send_info' => (string) $request->post('send_info', ''),
             ]);
             return Response::redirect($baseUrl . '/join/' . $fanlistingId);
         }
@@ -152,10 +154,11 @@ final class JoinController
         if ($memberRepo->getByEmail($fanlisting->dbprefix, $email) !== null) {
             $session->set('lstr_flash_error', 'That email address is already registered for this fanlisting.');
             $session->set('lstr_flash_old', [
-                'name'    => $name,
-                'email'   => $email,
-                'url'     => $url,
-                'country' => $country,
+                'name'      => $name,
+                'email'     => $email,
+                'url'       => $url,
+                'country'   => $country,
+                'send_info' => (string) $request->post('send_info', ''),
             ]);
             return Response::redirect($baseUrl . '/join/' . $fanlistingId);
         }
@@ -167,10 +170,11 @@ final class JoinController
         if ($rawPassword !== '' && $rawPassword !== $passwordConfirm) {
             $session->set('lstr_flash_error', 'Passwords do not match. Please try again.');
             $session->set('lstr_flash_old', [
-                'name'    => $name,
-                'email'   => $email,
-                'url'     => $url,
-                'country' => $country,
+                'name'      => $name,
+                'email'     => $email,
+                'url'       => $url,
+                'country'   => $country,
+                'send_info' => (string) $request->post('send_info', ''),
             ]);
             return Response::redirect($baseUrl . '/join/' . $fanlistingId);
         }
@@ -215,25 +219,38 @@ final class JoinController
         $memberRepo->insert($fanlisting->dbprefix, $insertData);
         $rateLimit->clear($ip, RateLimit::ACTION_PUBLIC_JOIN);
 
+        $sendInfo = ($request->post('send_info') === '1');
+
         // Confirmation email (best-effort — do not abort on failure)
-        try {
-            $mailer  = new Mailer($this->app->getConfig());
-            $appName = (string) $this->app->getConfig()->get('app_name', 'Luster');
+        // Send when the member requested it OR when a password was auto-generated
+        // (they need the password regardless of their preference).
+        if ($sendInfo || $wasGenerated) {
+            try {
+                $mailer  = new Mailer($this->app->getConfig());
+                $appName = (string) $this->app->getConfig()->get('app_name', 'Luster');
 
-            $subject = "You've joined the {$fanlisting->name} fanlisting!";
-            $body    = "Hi {$name},\n\n"
-                     . "Thank you for joining the {$fanlisting->name} fanlisting.\n\n";
+                $subject = "Welcome to the {$fanlisting->name} fanlisting!";
+                $body    = "Hi {$name},\n\n"
+                         . "Thank you for joining the {$fanlisting->name} fanlisting.\n\n"
+                         . "Here are your membership details:\n"
+                         . "  Name    : {$name}\n"
+                         . "  Email   : {$email}\n"
+                         . "  Website : " . ($url !== '' ? $url : '(none)') . "\n"
+                         . "  Country : {$country}\n"
+                         . "  Password: {$rawPassword}\n\n";
 
-            if ($wasGenerated) {
-                $body .= "Your auto-generated password is: {$rawPassword}\n"
-                       . "Please keep it safe — you will need it to update or remove your membership.\n\n";
+                if ($wasGenerated) {
+                    $body .= "Your password was automatically generated since you did not provide one.\n\n";
+                }
+
+                $body .= "Please keep this email for your records. "
+                       . "You will need your password to update or remove your membership.\n\n"
+                       . "-- {$appName}";
+
+                $mailer->send($email, $name, $subject, $body);
+            } catch (\Throwable $e) {
+                error_log('[Luster] Join email failed: ' . $e->getMessage());
             }
-
-            $body .= "-- {$appName}";
-
-            $mailer->send($email, $name, $subject, $body);
-        } catch (\Throwable $e) {
-            error_log('[Luster] Join email failed: ' . $e->getMessage());
         }
 
         return Response::redirect($baseUrl . '/join/' . $fanlistingId . '/success');
@@ -294,8 +311,9 @@ final class JoinController
             'old_name'         => (string) ($old['name']  ?? ''),
             'old_email'        => (string) ($old['email'] ?? ''),
             'old_url'          => (string) ($old['url']   ?? ''),
-            'country_select'   => new ViewRaw(Countries::buildSelect((string) ($old['country'] ?? ''))),
-            'extra_fields'     => new ViewRaw($this->buildExtraFieldsHtml($fields, $old)),
+            'country_select'      => new ViewRaw(Countries::buildSelect((string) ($old['country'] ?? ''))),
+            'extra_fields'        => new ViewRaw($this->buildExtraFieldsHtml($fields, $old)),
+            'send_info_checked'   => isset($old['send_info']) ? ($old['send_info'] ? 'checked' : '') : 'checked',
             'captcha_question' => Captcha::getQuestion(),
             'captcha_error'    => $captchaError,
             'app_name'         => (string) $this->app->getConfig()->get('app_name', 'Luster'),
