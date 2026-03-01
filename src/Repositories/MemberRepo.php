@@ -238,6 +238,7 @@ final class MemberRepo
     /**
      * Returns a paginated slice of approved (or all) members.
      *
+     * @param string $sort  'name' (default) or 'country' (country ASC, name ASC)
      * @return array{members: Member[], total: int, pages: int}
      */
     public function paginate(
@@ -245,10 +246,12 @@ final class MemberRepo
         int    $page,
         int    $perPage,
         bool   $approvedOnly = true,
+        string $sort = 'name',
     ): array {
         $p      = $this->db->validatePrefix($prefix);
         $offset = max(0, ($page - 1) * $perPage);
         $where  = $approvedOnly ? "WHERE {$this->approvedWhere}" : '';
+        $order  = $sort === 'country' ? 'country ASC, name ASC' : 'name ASC';
 
         $countStmt = $this->db->prepare(
             "SELECT COUNT(*) FROM {$p} {$where}"
@@ -258,7 +261,7 @@ final class MemberRepo
 
         $stmt = $this->db->prepare(
             "SELECT * FROM {$p} {$where}
-             ORDER BY name ASC
+             ORDER BY {$order}
              LIMIT :lim OFFSET :off"
         );
         $stmt->bindValue(':lim', $perPage, PDO::PARAM_INT);
@@ -272,6 +275,120 @@ final class MemberRepo
             'total'   => $total,
             'pages'   => $total > 0 ? (int) ceil($total / $perPage) : 0,
         ];
+    }
+
+    /**
+     * Returns each distinct country with the count of approved members in it.
+     *
+     * Only countries with at least one approved member are included.
+     * Results are sorted alphabetically by country name.
+     *
+     * @return array<int, array{country: string, fan_count: int}>
+     */
+    public function getCountrySummary(string $prefix): array
+    {
+        $p    = $this->resolveTable($prefix);
+        $stmt = $this->db->prepare(
+            "SELECT country, COUNT(*) AS fan_count
+             FROM {$p}
+             WHERE {$this->approvedWhere} AND country != ''
+             GROUP BY country
+             ORDER BY country ASC"
+        );
+        $stmt->execute();
+
+        return array_map(
+            static fn(array $r) => [
+                'country'   => (string) $r['country'],
+                'fan_count' => (int)    $r['fan_count'],
+            ],
+            $stmt->fetchAll()
+        );
+    }
+
+    /**
+     * Returns a paginated slice of approved members from a single country.
+     *
+     * Members are ordered by name within the country.
+     *
+     * @return array{members: Member[], total: int, pages: int}
+     */
+    public function paginateByCountry(
+        string $prefix,
+        string $country,
+        int    $page,
+        int    $perPage,
+    ): array {
+        $p      = $this->resolveTable($prefix);
+        $offset = max(0, ($page - 1) * $perPage);
+
+        $countStmt = $this->db->prepare(
+            "SELECT COUNT(*) FROM {$p}
+             WHERE {$this->approvedWhere} AND country = :country"
+        );
+        $countStmt->execute(['country' => $country]);
+        $total = (int) $countStmt->fetchColumn();
+
+        $stmt = $this->db->prepare(
+            "SELECT * FROM {$p}
+             WHERE {$this->approvedWhere} AND country = :country
+             ORDER BY name ASC
+             LIMIT :lim OFFSET :off"
+        );
+        $stmt->bindValue(':country', $country);
+        $stmt->bindValue(':lim',     $perPage, PDO::PARAM_INT);
+        $stmt->bindValue(':off',     $offset,  PDO::PARAM_INT);
+        $stmt->execute();
+
+        $members = array_map(static fn(array $r) => Member::fromRow($r), $stmt->fetchAll());
+
+        return [
+            'members' => $members,
+            'total'   => $total,
+            'pages'   => $total > 0 ? (int) ceil($total / $perPage) : 0,
+        ];
+    }
+
+    /**
+     * Returns the N most recently added approved members (id + name only).
+     *
+     * Intended for stats display — avoids fetching full member rows.
+     * Note: the unprefixed Enthusiast 3 schema has no id column; callers
+     * that only need names should ignore the id key.
+     *
+     * @return array<int, array{id: int, name: string}>
+     */
+    public function getNewestMembers(string $prefix, int $limit): array
+    {
+        $p    = $this->db->validatePrefix($prefix);
+        $stmt = $this->db->prepare(
+            "SELECT id, name FROM {$p}
+             WHERE {$this->approvedWhere}
+             ORDER BY added DESC
+             LIMIT :limit"
+        );
+        $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
+        $stmt->execute();
+
+        return array_map(
+            static fn(array $r) => ['id' => (int) ($r['id'] ?? 0), 'name' => (string) $r['name']],
+            $stmt->fetchAll()
+        );
+    }
+
+    /**
+     * Returns the MAX(added) date string for approved members, or null if none exist.
+     */
+    public function getMostRecentApprovedDate(string $prefix): ?string
+    {
+        $p    = $this->db->validatePrefix($prefix);
+        $stmt = $this->db->prepare(
+            "SELECT MAX(added) AS latest FROM {$p} WHERE {$this->approvedWhere}"
+        );
+        $stmt->execute();
+        $val = $stmt->fetchColumn();
+
+        return ($val !== false && $val !== null) ? (string) $val : null;
     }
 
     // -----------------------------------------------------------------------

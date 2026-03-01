@@ -14,6 +14,7 @@ use Luster\Controllers\Admin\SettingsController;
 use Luster\Controllers\Public\JoinController;
 use Luster\Controllers\Public\MembersController;
 use Luster\Controllers\Public\RemoveController;
+use Luster\Controllers\Public\StatsController;
 use Luster\Controllers\Public\UpdateController;
 use Luster\Core\Router;
 
@@ -38,6 +39,9 @@ return [
 
         // Members list
         $router->get('/members/{id}',         MembersController::class, 'index');
+
+        // Stats
+        $router->get('/stats/{fanlistingId}', StatsController::class,   'index');
 
         // Update membership
         $router->get('/update/{id}',          UpdateController::class,  'showForm');
@@ -70,6 +74,8 @@ return [
             FanlistingController::class, 'edit');
         $router->post('/admin/fanlistings/{id}/edit',
             FanlistingController::class, 'edit');
+        $router->post('/admin/fanlistings/{id}/templates',
+            FanlistingController::class, 'saveTemplates');
 
         // ── Members top-level (fanlisting picker) ───────────────────
         $router->get('/admin/members',

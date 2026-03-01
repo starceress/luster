@@ -7,6 +7,8 @@
 /** @var string $base_url */
 /** @var string $csrf_token */
 /** @var string $success */
+/** @var string|null $stats_template */
+/** @var string|null $members_template */
 $b = rtrim(\Luster\Core\View::e($base_url), '/');
 ?>
 <style>
@@ -100,6 +102,48 @@ $b = rtrim(\Luster\Core\View::e($base_url), '/');
   <a href="<?= $b ?>/admin/members/<?= (int) $fanlisting->id ?>?status=pending" style="color:#4f46e5;margin-left:.5rem;font-size:.875rem">Review now &rarr;</a>
 </div>
 <?php endif; ?>
+
+<!-- Website Templates section -->
+<div class="info-card">
+  <h2 style="font-size:1rem;font-weight:700;color:#111827;margin-bottom:1rem">Website Templates</h2>
+
+  <div style="margin-bottom:1.25rem">
+    <label style="font-size:.75rem;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:.04em;display:block;margin-bottom:.35rem">Stats URL</label>
+    <input type="text" readonly
+           value="<?= $b ?>/stats/<?= (int) $fanlisting->id ?>"
+           style="width:100%;font-family:monospace;font-size:.8125rem;background:#f9fafb;border:1px solid #e5e7eb;border-radius:6px;padding:.45rem .75rem;color:#374151;box-sizing:border-box">
+  </div>
+
+  <div style="margin-bottom:1.25rem;padding:.75rem 1rem;background:#f9fafb;border:1px solid #e5e7eb;border-radius:6px">
+    <p style="font-size:.75rem;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:.04em;margin:0 0 .5rem">Available Tokens</p>
+    <p style="font-size:.8125rem;color:#374151;font-family:monospace;line-height:1.8;margin:0">
+      $stat_opened$ &bull; $stat_updated$ &bull; $stat_approved$ &bull; $stat_pending$ &bull;
+      $stat_newmembers$ &bull; $stat_growth$ &bull; $fanlisting_name$ &bull; $fanlisting_url$
+    </p>
+  </div>
+
+  <form method="POST" action="<?= $b ?>/admin/fanlistings/<?= (int) $fanlisting->id ?>/templates">
+    <input type="hidden" name="_csrf" value="<?= \Luster\Core\View::e($csrf_token ?? '') ?>">
+
+    <div style="margin-bottom:1rem">
+      <label for="stats_template"
+             style="font-size:.75rem;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:.04em;display:block;margin-bottom:.35rem">Stats Template</label>
+      <textarea id="stats_template" name="stats_template" rows="8"
+                style="width:100%;font-family:monospace;font-size:.8125rem;border:1px solid #d1d5db;border-radius:6px;padding:.5rem .75rem;color:#111827;box-sizing:border-box;resize:vertical"
+                placeholder="Leave blank to use the built-in default"><?= \Luster\Core\View::e($stats_template ?? '') ?></textarea>
+    </div>
+
+    <div style="margin-bottom:1.25rem">
+      <label for="members_template"
+             style="font-size:.75rem;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:.04em;display:block;margin-bottom:.35rem">Members Page Template</label>
+      <textarea id="members_template" name="members_template" rows="8"
+                style="width:100%;font-family:monospace;font-size:.8125rem;border:1px solid #d1d5db;border-radius:6px;padding:.5rem .75rem;color:#111827;box-sizing:border-box;resize:vertical"
+                placeholder="Leave blank to use the built-in default"><?= \Luster\Core\View::e($members_template ?? '') ?></textarea>
+    </div>
+
+    <button type="submit" class="btn btn-primary">Save Templates</button>
+  </form>
+</div>
 
 <!-- Affiliates section -->
 <div class="info-card">

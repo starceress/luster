@@ -28,17 +28,19 @@ namespace Luster\Models;
 final class Fanlisting
 {
     public function __construct(
-        public readonly int    $id,
-        public readonly string $name,
-        public readonly string $listingtype,
-        public readonly int    $category,
-        public readonly string $subject,
-        public readonly string $url,
-        public readonly string $dbprefix,
-        public readonly string $email,
-        public readonly string $additionalInfo,
-        public readonly bool   $upcoming,
-        public readonly bool   $trouble,
+        public readonly int     $id,
+        public readonly string  $name,
+        public readonly string  $listingtype,
+        public readonly int     $category,
+        public readonly string  $subject,
+        public readonly string  $url,
+        public readonly string  $dbprefix,
+        public readonly string  $email,
+        public readonly string  $additionalInfo,
+        public readonly bool    $upcoming,
+        public readonly bool    $trouble,
+        /** Date the fanlisting opened — from joined/opened/since column if present. */
+        public readonly ?string $joined = null,
     ) {}
 
     /**
@@ -77,6 +79,8 @@ final class Fanlisting
         $catRaw   = $row['category'] ?? $row['catid'] ?? '0';
         $category = self::parseCategoryId((string) $catRaw);
 
+        $joinedRaw = $row['joined'] ?? $row['opened'] ?? $row['since'] ?? null;
+
         return new self(
             id:             $id,
             name:           $name,
@@ -89,6 +93,7 @@ final class Fanlisting
             additionalInfo: $additionalInfo,
             upcoming:       $upcoming,
             trouble:        $trouble,
+            joined:         $joinedRaw !== null ? (string) $joinedRaw : null,
         );
     }
 

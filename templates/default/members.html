@@ -19,7 +19,21 @@
 
     <main class="site-main">
       <h2>Members</h2>
-      <p class="member-count">{total_members} member(s) &mdash; page {current_page} of {total_pages}</p>
+
+      <p class="sort-links">Sort by: {sort_name_link} &bull; {sort_country_link}</p>
+
+      {back_to_countries}
+
+      <p class="stats-line">{stats_line}</p>
+
+      <ul class="country-list">
+        {country_loop}
+        <li class="country-item">
+          <a href="{country_url}">{country_name}</a>
+          <span class="country-count">({country_count} fan(s))</span>
+        </li>
+        {/country_loop}
+      </ul>
 
       <div class="member-list">
         {member_loop}

@@ -10,9 +10,10 @@ use Luster\Core\Database;
  * Data access for the lstr_fanlisting_settings table.
  *
  * Stores Luster-specific per-fanlisting settings that have no equivalent
- * column in the Enthusiast schema (e.g. auto_approve).
+ * column in the Enthusiast schema (e.g. auto_approve, template overrides).
  *
  * Requires lstr_fanlisting_settings to exist — run public/migrate.php first.
+ * Migration 5 adds stats_template and members_template columns.
  */
 final class FanlistingSettingsRepo
 {
@@ -46,6 +47,55 @@ final class FanlistingSettingsRepo
         $stmt->execute([
             'id'  => $fanlistingId,
             'val' => (int) $value,
+        ]);
+    }
+
+    /**
+     * Returns the stats and members template overrides for a fanlisting.
+     *
+     * Both values are null when no override has been saved.
+     *
+     * @return array{stats_template: string|null, members_template: string|null}
+     */
+    public function getTemplates(int $fanlistingId): array
+    {
+        $stmt = $this->db->prepare(
+            'SELECT stats_template, members_template
+             FROM lstr_fanlisting_settings
+             WHERE fanlisting_id = :id'
+        );
+        $stmt->execute(['id' => $fanlistingId]);
+        $row = $stmt->fetch();
+
+        if ($row === false) {
+            return ['stats_template' => null, 'members_template' => null];
+        }
+
+        return [
+            'stats_template'   => $row['stats_template']   !== null ? (string) $row['stats_template']   : null,
+            'members_template' => $row['members_template'] !== null ? (string) $row['members_template'] : null,
+        ];
+    }
+
+    /**
+     * Saves (upserts) the stats and members template overrides for a fanlisting.
+     *
+     * Pass null to clear an override. Does not touch the auto_approve column
+     * on existing rows; new rows default auto_approve to 0.
+     */
+    public function saveTemplates(int $fanlistingId, ?string $statsTemplate, ?string $membersTemplate): void
+    {
+        $stmt = $this->db->prepare(
+            'INSERT INTO lstr_fanlisting_settings (fanlisting_id, stats_template, members_template)
+             VALUES (:id, :stats, :members)
+             ON DUPLICATE KEY UPDATE
+                 stats_template   = VALUES(stats_template),
+                 members_template = VALUES(members_template)'
+        );
+        $stmt->execute([
+            'id'      => $fanlistingId,
+            'stats'   => $statsTemplate,
+            'members' => $membersTemplate,
         ]);
     }
 }

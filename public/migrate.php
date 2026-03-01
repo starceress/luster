@@ -134,6 +134,20 @@ try {
     $errors[] = 'lstr_joined — ' . htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Migration 5: stats and members template columns on lstr_fanlisting_settings
+// ─────────────────────────────────────────────────────────────────────────────
+try {
+    $pdo->exec(
+        'ALTER TABLE `lstr_fanlisting_settings`
+         ADD COLUMN IF NOT EXISTS `stats_template`   TEXT NULL DEFAULT NULL,
+         ADD COLUMN IF NOT EXISTS `members_template` TEXT NULL DEFAULT NULL'
+    );
+    $done[] = 'Added <code>stats_template</code> and <code>members_template</code> columns to <code>lstr_fanlisting_settings</code>';
+} catch (PDOException $e) {
+    $errors[] = 'lstr_fanlisting_settings templates — ' . htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+}
+
 ?><!DOCTYPE html>
 <html lang="en">
 <head>

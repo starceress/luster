@@ -79,13 +79,16 @@ final class FanlistingController
         $pending     = $memberRepo->countPending($fanlisting->dbprefix);
         $autoApprove = $settingsRepo->getAutoApprove($id);
         $affiliates  = $affiliateRepo->getByFanlisting($id);
+        $templates   = $settingsRepo->getTemplates($id);
 
         return $this->layout('admin/fanlistings/show.php', [
-            'fanlisting'   => $fanlisting,
-            'approved'     => $approved,
-            'pending'      => $pending,
-            'auto_approve' => $autoApprove,
-            'affiliates'   => $affiliates,
+            'fanlisting'       => $fanlisting,
+            'approved'         => $approved,
+            'pending'          => $pending,
+            'auto_approve'     => $autoApprove,
+            'affiliates'       => $affiliates,
+            'stats_template'   => $templates['stats_template'],
+            'members_template' => $templates['members_template'],
         ], $fanlisting->name, 'fanlistings');
     }
 
@@ -168,6 +171,39 @@ final class FanlistingController
             'error'        => $error,
             'old'          => [],
         ], 'Edit ' . $fanlisting->name, 'fanlistings');
+    }
+
+    // -----------------------------------------------------------------------
+    // POST /admin/fanlistings/{id}/templates
+    // -----------------------------------------------------------------------
+
+    public function saveTemplates(Request $request, array $params): Response
+    {
+        $id = (int) ($params['id'] ?? 0);
+
+        $db     = $this->app->getDatabase();
+        $config = $this->app->getConfig();
+
+        $fanlistingRepo = new FanlistingRepo($db, $config);
+        $fanlisting     = $fanlistingRepo->getById($id);
+
+        if ($fanlisting === null) {
+            return Response::notFound('Fanlisting not found.');
+        }
+
+        $statsRaw   = (string) $request->post('stats_template',   '');
+        $membersRaw = (string) $request->post('members_template', '');
+
+        // Treat blank / whitespace-only input as null (use built-in default)
+        $statsTemplate   = trim($statsRaw)   !== '' ? $statsRaw   : null;
+        $membersTemplate = trim($membersRaw) !== '' ? $membersRaw : null;
+
+        $settingsRepo = new FanlistingSettingsRepo($db);
+        $settingsRepo->saveTemplates($id, $statsTemplate, $membersTemplate);
+
+        $this->app->getSession()->set('lstr_flash_success', 'Templates saved successfully.');
+
+        return Response::redirect($this->app->getBaseUrl() . '/admin/fanlistings/' . $id);
     }
 
     // -----------------------------------------------------------------------
