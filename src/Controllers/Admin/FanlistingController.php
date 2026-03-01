@@ -87,8 +87,9 @@ final class FanlistingController
             'pending'          => $pending,
             'auto_approve'     => $autoApprove,
             'affiliates'       => $affiliates,
-            'stats_template'   => $templates['stats_template'],
-            'members_template' => $templates['members_template'],
+            'stats_template'      => $templates['stats_template'],
+            'members_template'    => $templates['members_template'],
+            'affiliates_template' => $templates['affiliates_template'],
         ], $fanlisting->name, 'fanlistings');
     }
 
@@ -191,15 +192,17 @@ final class FanlistingController
             return Response::notFound('Fanlisting not found.');
         }
 
-        $statsRaw   = (string) $request->post('stats_template',   '');
-        $membersRaw = (string) $request->post('members_template', '');
+        $statsRaw      = (string) $request->post('stats_template',      '');
+        $membersRaw    = (string) $request->post('members_template',    '');
+        $affiliatesRaw = (string) $request->post('affiliates_template', '');
 
         // Treat blank / whitespace-only input as null (use built-in default)
-        $statsTemplate   = trim($statsRaw)   !== '' ? $statsRaw   : null;
-        $membersTemplate = trim($membersRaw) !== '' ? $membersRaw : null;
+        $statsTemplate      = trim($statsRaw)      !== '' ? $statsRaw      : null;
+        $membersTemplate    = trim($membersRaw)    !== '' ? $membersRaw    : null;
+        $affiliatesTemplate = trim($affiliatesRaw) !== '' ? $affiliatesRaw : null;
 
         $settingsRepo = new FanlistingSettingsRepo($db);
-        $settingsRepo->saveTemplates($id, $statsTemplate, $membersTemplate);
+        $settingsRepo->saveTemplates($id, $statsTemplate, $membersTemplate, $affiliatesTemplate);
 
         $this->app->getSession()->set('lstr_flash_success', 'Templates saved successfully.');
 

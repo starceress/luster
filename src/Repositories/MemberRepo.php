@@ -353,16 +353,14 @@ final class MemberRepo
      * Returns the N most recently added approved members (id + name only).
      *
      * Intended for stats display — avoids fetching full member rows.
-     * Note: the unprefixed Enthusiast 3 schema has no id column; callers
-     * that only need names should ignore the id key.
      *
-     * @return array<int, array{id: int, name: string}>
+     * @return array<int, string>
      */
     public function getNewestMembers(string $prefix, int $limit): array
     {
         $p    = $this->db->validatePrefix($prefix);
         $stmt = $this->db->prepare(
-            "SELECT id, name FROM {$p}
+            "SELECT name FROM {$p}
              WHERE {$this->approvedWhere}
              ORDER BY added DESC
              LIMIT :limit"
@@ -371,7 +369,7 @@ final class MemberRepo
         $stmt->execute();
 
         return array_map(
-            static fn(array $r) => ['id' => (int) ($r['id'] ?? 0), 'name' => (string) $r['name']],
+            static fn(array $r) => (string) $r['name'],
             $stmt->fetchAll()
         );
     }

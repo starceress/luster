@@ -81,7 +81,7 @@ final class StatsController
         $updated = $lastUpdated        !== null ? $this->formatDate($lastUpdated)          : 'Never';
 
         $newMembersStr = implode(', ', array_map(
-            static fn(array $m) => htmlspecialchars($m['name'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),
+            static fn(string $name) => htmlspecialchars($name, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),
             $newest,
         ));
 

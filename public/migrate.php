@@ -148,6 +148,19 @@ try {
     $errors[] = 'lstr_fanlisting_settings templates — ' . htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Migration 6: affiliates template column on lstr_fanlisting_settings
+// ─────────────────────────────────────────────────────────────────────────────
+try {
+    $pdo->exec(
+        'ALTER TABLE `lstr_fanlisting_settings`
+         ADD COLUMN IF NOT EXISTS `affiliates_template` TEXT NULL DEFAULT NULL'
+    );
+    $done[] = 'Added <code>affiliates_template</code> column to <code>lstr_fanlisting_settings</code>';
+} catch (PDOException $e) {
+    $errors[] = 'lstr_fanlisting_settings.affiliates_template — ' . htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+}
+
 ?><!DOCTYPE html>
 <html lang="en">
 <head>
