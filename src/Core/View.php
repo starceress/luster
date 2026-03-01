@@ -120,8 +120,14 @@ final class View
             $content
         ) ?? $content;
 
-        // Substitute scalar tokens
+        // Substitute tokens — ViewRaw values are inserted verbatim (pre-escaped
+        // server-side HTML); all other scalar values are htmlspecialchars()-escaped.
         foreach ($data as $key => $value) {
+            if ($value instanceof ViewRaw) {
+                $content = str_replace('{' . $key . '}', $value->html, $content);
+                continue;
+            }
+
             if (!is_scalar($value) && $value !== null) {
                 continue;
             }

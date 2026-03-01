@@ -5,11 +5,15 @@ declare(strict_types=1);
 namespace Luster\Controllers\Public;
 
 use Luster\Core\Application;
+use Luster\Core\Captcha;
+use Luster\Core\Countries;
 use Luster\Core\Mailer;
 use Luster\Core\RateLimit;
 use Luster\Core\Request;
 use Luster\Core\Response;
 use Luster\Core\Validator;
+use Luster\Core\ViewRaw;
+use Luster\Models\Fanlisting;
 use Luster\Repositories\FanlistingRepo;
 use Luster\Repositories\FieldRepo;
 use Luster\Repositories\MemberRepo;
@@ -23,10 +27,13 @@ use Luster\Repositories\MemberRepo;
  *
  * Security properties:
  *  - CSRF token validated by CsrfMiddleware before this action runs
+ *  - Honeypot field silently rejects bot submissions
+ *  - Arithmetic CAPTCHA prevents automated submissions
  *  - Rate-limited per IP (10 submissions per hour) via lstr_rate_limits
  *  - All input validated before any DB write
  *  - Duplicate email checked before insert
  *  - Additional field names resolved only from FieldRepo (never user-supplied)
+ *  - Member password auto-generated if not supplied; only the hash is stored in DB
  */
 final class JoinController
 {
@@ -50,30 +57,13 @@ final class JoinController
         $fieldRepo = new FieldRepo($this->app->getDatabase(), $this->app->getConfig());
         $fields    = $fieldRepo->getFieldsForFanlisting($fanlistingId);
 
-        $extraFieldsHtml = $this->buildExtraFieldsHtml($fields, []);
-
-        $session  = $this->app->getSession();
-        $error    = (string) $session->get('lstr_flash_error', '');
-        $old      = (array)  $session->get('lstr_flash_old',   []);
+        $session = $this->app->getSession();
+        $error   = (string) $session->get('lstr_flash_error', '');
+        $old     = (array)  $session->get('lstr_flash_old',   []);
         $session->remove('lstr_flash_error');
         $session->remove('lstr_flash_old');
 
-        $html = $this->app->getView()->render('default/join.html', [
-            'fanlisting_name'  => $fanlisting->name,
-            'fanlisting_url'   => $fanlisting->url,
-            'csrf_token'       => $this->app->getCSRF()->token(),
-            'fanlisting_id'    => (string) $fanlistingId,
-            'error'            => $error,
-            'old_name'         => (string) ($old['name']    ?? ''),
-            'old_email'        => (string) ($old['email']   ?? ''),
-            'old_url'          => (string) ($old['url']     ?? ''),
-            'old_country'      => (string) ($old['country'] ?? ''),
-            'extra_fields'     => $extraFieldsHtml,
-            'app_name'         => (string) $this->app->getConfig()->get('app_name', 'Luster'),
-            'base_url'         => $this->app->getBaseUrl(),
-        ]);
-
-        return Response::html($html);
+        return $this->renderJoinForm($fanlistingId, $fanlisting, $fields, $old, $error);
     }
 
     // -----------------------------------------------------------------------
@@ -94,6 +84,11 @@ final class JoinController
             return Response::redirect($baseUrl . '/join/' . $fanlistingId);
         }
 
+        // Honeypot — silent reject; redirect to the success page as if it worked
+        if ((string) $request->post('website_confirm', '') !== '') {
+            return Response::redirect($baseUrl . '/join/' . $fanlistingId . '/success');
+        }
+
         $fanlistingRepo = new FanlistingRepo($this->app->getDatabase(), $this->app->getConfig());
         $fanlisting     = $fanlistingRepo->getById($fanlistingId);
 
@@ -103,6 +98,20 @@ final class JoinController
 
         $fieldRepo = new FieldRepo($this->app->getDatabase(), $this->app->getConfig());
         $fields    = $fieldRepo->getFieldsForFanlisting($fanlistingId);
+
+        // Captcha — re-render the form with an error on failure
+        if (!Captcha::validate((string) $request->post('captcha_answer', ''))) {
+            $old = [
+                'name'    => trim((string) $request->post('name',    '')),
+                'email'   => trim((string) $request->post('email',   '')),
+                'url'     => trim((string) $request->post('url',     '')),
+                'country' => trim((string) $request->post('country', '')),
+            ];
+            return $this->renderJoinForm(
+                $fanlistingId, $fanlisting, $fields, $old,
+                '', 'Incorrect answer — please try again.',
+            );
+        }
 
         // Collect and validate posted data
         $name    = trim((string) $request->post('name',    ''));
@@ -118,7 +127,6 @@ final class JoinController
         $v->field('url')->url()->maxLength(255);
         $v->field('country')->required()->maxLength(100);
 
-        // Validate additional fields
         foreach ($fields as $field) {
             $vf = $v->field('field_' . $field->name)->maxLength(255);
             if ($field->required) {
@@ -128,7 +136,6 @@ final class JoinController
 
         if ($v->fails()) {
             $rateLimit->hitDefault($ip, RateLimit::ACTION_PUBLIC_JOIN);
-
             $session->set('lstr_flash_error', implode(' ', $v->allErrors()));
             $session->set('lstr_flash_old', [
                 'name'    => $name,
@@ -136,7 +143,6 @@ final class JoinController
                 'url'     => $url,
                 'country' => $country,
             ]);
-
             return Response::redirect($baseUrl . '/join/' . $fanlistingId);
         }
 
@@ -151,18 +157,41 @@ final class JoinController
                 'url'     => $url,
                 'country' => $country,
             ]);
-
             return Response::redirect($baseUrl . '/join/' . $fanlistingId);
         }
 
+        // Password — use the supplied value or auto-generate a secure one
+        $rawPassword     = (string) $request->post('password',         '');
+        $passwordConfirm = (string) $request->post('password_confirm', '');
+
+        if ($rawPassword !== '' && $rawPassword !== $passwordConfirm) {
+            $session->set('lstr_flash_error', 'Passwords do not match. Please try again.');
+            $session->set('lstr_flash_old', [
+                'name'    => $name,
+                'email'   => $email,
+                'url'     => $url,
+                'country' => $country,
+            ]);
+            return Response::redirect($baseUrl . '/join/' . $fanlistingId);
+        }
+
+        if ($rawPassword === '') {
+            $rawPassword  = bin2hex(random_bytes(8));
+            $wasGenerated = true;
+        } else {
+            $wasGenerated = false;
+        }
+        $passwordHash = password_hash($rawPassword, PASSWORD_ARGON2ID);
+
         // Build insert data
         $insertData = [
-            'name'    => $name,
-            'email'   => $email,
-            'url'     => $url,
-            'country' => $country,
-            'showurl' => $url !== '' ? 1 : 0,
-            'added'   => date('Y-m-d H:i:s'),
+            'name'     => $name,
+            'email'    => $email,
+            'url'      => $url,
+            'country'  => $country,
+            'showurl'  => $url !== '' ? 1 : 0,
+            'password' => $passwordHash,
+            'added'    => date('Y-m-d H:i:s'),
         ];
 
         // Determine approved/pending column based on schema variant
@@ -170,7 +199,7 @@ final class JoinController
 
         if ($prefix === '') {
             // Unprefixed schema: pending=0 means approved, pending=1 means queued
-            $insertData['pending'] = 0; // auto-approve for now
+            $insertData['pending'] = 0;
         } else {
             // Standard schema: approved=1 means approved
             $insertData['approved'] = 1;
@@ -179,8 +208,8 @@ final class JoinController
 
         // Additional fields — names from FieldRepo only, never raw user input
         foreach ($fields as $field) {
-            $colName               = ($prefix === '') ? $field->name : 'additional_' . $field->name;
-            $insertData[$colName]  = trim((string) ($postData['field_' . $field->name] ?? ''));
+            $colName              = ($prefix === '') ? $field->name : 'additional_' . $field->name;
+            $insertData[$colName] = trim((string) ($postData['field_' . $field->name] ?? ''));
         }
 
         $memberRepo->insert($fanlisting->dbprefix, $insertData);
@@ -188,13 +217,19 @@ final class JoinController
 
         // Confirmation email (best-effort — do not abort on failure)
         try {
-            $mailer = new Mailer($this->app->getConfig());
+            $mailer  = new Mailer($this->app->getConfig());
             $appName = (string) $this->app->getConfig()->get('app_name', 'Luster');
 
             $subject = "You've joined the {$fanlisting->name} fanlisting!";
             $body    = "Hi {$name},\n\n"
-                     . "Thank you for joining the {$fanlisting->name} fanlisting.\n\n"
-                     . "-- {$appName}";
+                     . "Thank you for joining the {$fanlisting->name} fanlisting.\n\n";
+
+            if ($wasGenerated) {
+                $body .= "Your auto-generated password is: {$rawPassword}\n"
+                       . "Please keep it safe — you will need it to update or remove your membership.\n\n";
+            }
+
+            $body .= "-- {$appName}";
 
             $mailer->send($email, $name, $subject, $body);
         } catch (\Throwable $e) {
@@ -234,6 +269,43 @@ final class JoinController
     // -----------------------------------------------------------------------
 
     /**
+     * Renders the join form template with all required tokens.
+     *
+     * Used by both showForm() (on GET) and the captcha-failure path in submit(),
+     * so the form can be re-rendered in-place without a redirect.
+     *
+     * @param \Luster\Models\AdditionalField[] $fields
+     * @param array<string,string>             $old
+     */
+    private function renderJoinForm(
+        int $fanlistingId,
+        Fanlisting $fanlisting,
+        array $fields,
+        array $old = [],
+        string $error = '',
+        string $captchaError = '',
+    ): Response {
+        $html = $this->app->getView()->render('default/join.html', [
+            'fanlisting_name'  => $fanlisting->name,
+            'fanlisting_url'   => $fanlisting->url,
+            'csrf_token'       => $this->app->getCSRF()->token(),
+            'fanlisting_id'    => (string) $fanlistingId,
+            'error'            => $error,
+            'old_name'         => (string) ($old['name']  ?? ''),
+            'old_email'        => (string) ($old['email'] ?? ''),
+            'old_url'          => (string) ($old['url']   ?? ''),
+            'country_select'   => new ViewRaw(Countries::buildSelect((string) ($old['country'] ?? ''))),
+            'extra_fields'     => new ViewRaw($this->buildExtraFieldsHtml($fields, $old)),
+            'captcha_question' => Captcha::getQuestion(),
+            'captcha_error'    => $captchaError,
+            'app_name'         => (string) $this->app->getConfig()->get('app_name', 'Luster'),
+            'base_url'         => $this->app->getBaseUrl(),
+        ]);
+
+        return Response::html($html);
+    }
+
+    /**
      * Builds the HTML for dynamic additional fields from FieldRepo data.
      *
      * @param \Luster\Models\AdditionalField[] $fields
@@ -248,12 +320,12 @@ final class JoinController
         $html = '';
 
         foreach ($fields as $field) {
-            $inputName  = 'field_' . $field->name;
-            $labelText  = htmlspecialchars($field->label,    ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
-            $nameAttr   = htmlspecialchars($inputName,        ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
-            $oldVal     = htmlspecialchars((string) ($oldValues[$inputName] ?? ''), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
-            $required   = $field->required ? ' required' : '';
-            $reqMark    = $field->required ? ' <span aria-hidden="true">*</span>' : '';
+            $inputName = 'field_' . $field->name;
+            $labelText = htmlspecialchars($field->label,    ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+            $nameAttr  = htmlspecialchars($inputName,       ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+            $oldVal    = htmlspecialchars((string) ($oldValues[$inputName] ?? ''), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+            $required  = $field->required ? ' required' : '';
+            $reqMark   = $field->required ? ' <span aria-hidden="true">*</span>' : '';
 
             if ($field->type === 'textarea') {
                 $html .= "<div class=\"form-group\">\n"

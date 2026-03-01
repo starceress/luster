@@ -5,11 +5,13 @@ declare(strict_types=1);
 namespace Luster\Controllers\Public;
 
 use Luster\Core\Application;
+use Luster\Core\Captcha;
 use Luster\Core\Mailer;
 use Luster\Core\RateLimit;
 use Luster\Core\Request;
 use Luster\Core\Response;
 use Luster\Core\Validator;
+use Luster\Models\Fanlisting;
 use Luster\Repositories\FanlistingRepo;
 use Luster\Repositories\MemberRepo;
 
@@ -22,8 +24,10 @@ use Luster\Repositories\MemberRepo;
  *
  * Security properties:
  *  - CSRF token validated by CsrfMiddleware
+ *  - Honeypot field silently rejects bot submissions
+ *  - Arithmetic CAPTCHA prevents automated submissions
  *  - Password verified via password_verify() (Argon2id)
- *  - Legacy MD5 hash detected, verified, and upgraded to Argon2id before deletion
+ *  - Legacy MD5 hash detected and verified before deletion
  */
 final class RemoveController
 {
@@ -44,24 +48,13 @@ final class RemoveController
             return Response::notFound('That fanlisting does not exist.');
         }
 
-        $session = $this->app->getSession();
-        $error   = (string) $session->get('lstr_flash_error', '');
+        $session  = $this->app->getSession();
+        $error    = (string) $session->get('lstr_flash_error',    '');
         $oldEmail = (string) $session->get('lstr_flash_old_email', '');
         $session->remove('lstr_flash_error');
         $session->remove('lstr_flash_old_email');
 
-        $html = $this->app->getView()->render('default/remove.html', [
-            'fanlisting_name' => $fanlisting->name,
-            'fanlisting_url'  => $fanlisting->url,
-            'csrf_token'      => $this->app->getCSRF()->token(),
-            'fanlisting_id'   => (string) $fanlistingId,
-            'error'           => $error,
-            'old_email'       => $oldEmail,
-            'app_name'        => (string) $this->app->getConfig()->get('app_name', 'Luster'),
-            'base_url'        => $this->app->getBaseUrl(),
-        ]);
-
-        return Response::html($html);
+        return $this->renderRemoveForm($fanlistingId, $fanlisting, $oldEmail, $error);
     }
 
     // -----------------------------------------------------------------------
@@ -82,6 +75,11 @@ final class RemoveController
             return Response::redirect($baseUrl . '/remove/' . $fanlistingId);
         }
 
+        // Honeypot — silent reject; redirect to the success page as if it worked
+        if ((string) $request->post('website_confirm', '') !== '') {
+            return Response::redirect($baseUrl . '/remove/' . $fanlistingId . '/success');
+        }
+
         $fanlistingRepo = new FanlistingRepo($this->app->getDatabase(), $this->app->getConfig());
         $fanlisting     = $fanlistingRepo->getById($fanlistingId);
 
@@ -89,7 +87,15 @@ final class RemoveController
             return Response::notFound('That fanlisting does not exist.');
         }
 
-        $email    = trim((string) $request->post('email',    ''));
+        // Captcha — re-render the form with an error on failure
+        $email = trim((string) $request->post('email', ''));
+        if (!Captcha::validate((string) $request->post('captcha_answer', ''))) {
+            return $this->renderRemoveForm(
+                $fanlistingId, $fanlisting, $email,
+                '', 'Incorrect answer — please try again.',
+            );
+        }
+
         $password = (string) $request->post('password', '');
 
         $v = new Validator(['email' => $email, 'password' => $password]);
@@ -100,7 +106,6 @@ final class RemoveController
             $rateLimit->hitDefault($ip, RateLimit::ACTION_PUBLIC_REMOVE);
             $session->set('lstr_flash_error', implode(' ', $v->allErrors()));
             $session->set('lstr_flash_old_email', $email);
-
             return Response::redirect($baseUrl . '/remove/' . $fanlistingId);
         }
 
@@ -111,11 +116,10 @@ final class RemoveController
             $rateLimit->hitDefault($ip, RateLimit::ACTION_PUBLIC_REMOVE);
             $session->set('lstr_flash_error', 'No membership found for that email address.');
             $session->set('lstr_flash_old_email', $email);
-
             return Response::redirect($baseUrl . '/remove/' . $fanlistingId);
         }
 
-        // Verify password — detect and upgrade legacy MD5 hashes before deletion
+        // Verify password — detect and verify legacy MD5 hashes before deletion
         $storedHash = $member->password;
         $verified   = false;
 
@@ -131,7 +135,6 @@ final class RemoveController
             $rateLimit->hitDefault($ip, RateLimit::ACTION_PUBLIC_REMOVE);
             $session->set('lstr_flash_error', 'Incorrect password. Please try again.');
             $session->set('lstr_flash_old_email', $email);
-
             return Response::redirect($baseUrl . '/remove/' . $fanlistingId);
         }
 
@@ -178,6 +181,39 @@ final class RemoveController
             'fanlisting_name' => $fanlistingName,
             'app_name'        => (string) $this->app->getConfig()->get('app_name', 'Luster'),
             'base_url'        => $this->app->getBaseUrl(),
+        ]);
+
+        return Response::html($html);
+    }
+
+    // -----------------------------------------------------------------------
+    // Internals
+    // -----------------------------------------------------------------------
+
+    /**
+     * Renders the remove form template with all required tokens.
+     *
+     * Used by both showForm() (on GET) and the captcha-failure path in submit(),
+     * so the form can be re-rendered in-place without a redirect.
+     */
+    private function renderRemoveForm(
+        int $fanlistingId,
+        Fanlisting $fanlisting,
+        string $oldEmail = '',
+        string $error = '',
+        string $captchaError = '',
+    ): Response {
+        $html = $this->app->getView()->render('default/remove.html', [
+            'fanlisting_name'  => $fanlisting->name,
+            'fanlisting_url'   => $fanlisting->url,
+            'csrf_token'       => $this->app->getCSRF()->token(),
+            'fanlisting_id'    => (string) $fanlistingId,
+            'error'            => $error,
+            'old_email'        => $oldEmail,
+            'captcha_question' => Captcha::getQuestion(),
+            'captcha_error'    => $captchaError,
+            'app_name'         => (string) $this->app->getConfig()->get('app_name', 'Luster'),
+            'base_url'         => $this->app->getBaseUrl(),
         ]);
 
         return Response::html($html);

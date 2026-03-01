@@ -5,11 +5,15 @@ declare(strict_types=1);
 namespace Luster\Controllers\Public;
 
 use Luster\Core\Application;
+use Luster\Core\Captcha;
+use Luster\Core\Countries;
 use Luster\Core\Mailer;
 use Luster\Core\RateLimit;
 use Luster\Core\Request;
 use Luster\Core\Response;
 use Luster\Core\Validator;
+use Luster\Core\ViewRaw;
+use Luster\Models\Fanlisting;
 use Luster\Repositories\FanlistingRepo;
 use Luster\Repositories\FieldRepo;
 use Luster\Repositories\MemberRepo;
@@ -22,6 +26,8 @@ use Luster\Repositories\MemberRepo;
  *
  * Security properties:
  *  - CSRF token validated by CsrfMiddleware
+ *  - Honeypot field silently rejects bot submissions
+ *  - Arithmetic CAPTCHA prevents automated submissions
  *  - Password verified via password_verify() (Argon2id)
  *  - Legacy MD5 hash detected, verified, and upgraded to Argon2id on success
  *  - All input validated before any DB write
@@ -54,25 +60,7 @@ final class UpdateController
         $session->remove('lstr_flash_error');
         $session->remove('lstr_flash_old');
 
-        // If a member was found after credential check, pre-populate fields
-        $extraFieldsHtml = $this->buildExtraFieldsHtml($fields, $old);
-
-        $html = $this->app->getView()->render('default/update.html', [
-            'fanlisting_name' => $fanlisting->name,
-            'fanlisting_url'  => $fanlisting->url,
-            'csrf_token'      => $this->app->getCSRF()->token(),
-            'fanlisting_id'   => (string) $fanlistingId,
-            'error'           => $error,
-            'old_name'        => (string) ($old['name']    ?? ''),
-            'old_email'       => (string) ($old['email']   ?? ''),
-            'old_url'         => (string) ($old['url']     ?? ''),
-            'old_country'     => (string) ($old['country'] ?? ''),
-            'extra_fields'    => $extraFieldsHtml,
-            'app_name'        => (string) $this->app->getConfig()->get('app_name', 'Luster'),
-            'base_url'        => $this->app->getBaseUrl(),
-        ]);
-
-        return Response::html($html);
+        return $this->renderUpdateForm($fanlistingId, $fanlisting, $fields, $old, $error);
     }
 
     // -----------------------------------------------------------------------
@@ -93,6 +81,11 @@ final class UpdateController
             return Response::redirect($baseUrl . '/update/' . $fanlistingId);
         }
 
+        // Honeypot — silent reject; redirect to the success page as if it worked
+        if ((string) $request->post('website_confirm', '') !== '') {
+            return Response::redirect($baseUrl . '/update/' . $fanlistingId . '/success');
+        }
+
         $fanlistingRepo = new FanlistingRepo($this->app->getDatabase(), $this->app->getConfig());
         $fanlisting     = $fanlistingRepo->getById($fanlistingId);
 
@@ -102,6 +95,20 @@ final class UpdateController
 
         $fieldRepo = new FieldRepo($this->app->getDatabase(), $this->app->getConfig());
         $fields    = $fieldRepo->getFieldsForFanlisting($fanlistingId);
+
+        // Captcha — re-render the form with an error on failure
+        if (!Captcha::validate((string) $request->post('captcha_answer', ''))) {
+            $old = [
+                'email'   => trim((string) $request->post('email',   '')),
+                'name'    => trim((string) $request->post('name',    '')),
+                'url'     => trim((string) $request->post('url',     '')),
+                'country' => trim((string) $request->post('country', '')),
+            ];
+            return $this->renderUpdateForm(
+                $fanlistingId, $fanlisting, $fields, $old,
+                '', 'Incorrect answer — please try again.',
+            );
+        }
 
         $email    = trim((string) $request->post('email',    ''));
         $password = (string) $request->post('password', '');
@@ -135,7 +142,6 @@ final class UpdateController
                 'url'     => $url,
                 'country' => $country,
             ]);
-
             return Response::redirect($baseUrl . '/update/' . $fanlistingId);
         }
 
@@ -146,7 +152,6 @@ final class UpdateController
             $rateLimit->hitDefault($ip, RateLimit::ACTION_PUBLIC_UPDATE);
             $session->set('lstr_flash_error', 'No membership found for that email address.');
             $session->set('lstr_flash_old', ['email' => $email]);
-
             return Response::redirect($baseUrl . '/update/' . $fanlistingId);
         }
 
@@ -157,8 +162,8 @@ final class UpdateController
         if (strlen($storedHash) === 32 && ctype_xdigit($storedHash)) {
             // Legacy MD5 — verify then re-hash with Argon2id
             if (hash_equals($storedHash, md5($password))) {
-                $verified    = true;
-                $newHash     = password_hash($password, PASSWORD_ARGON2ID);
+                $verified = true;
+                $newHash  = password_hash($password, PASSWORD_ARGON2ID);
                 $memberRepo->update($fanlisting->dbprefix, $email, ['password' => $newHash]);
             }
         } else {
@@ -169,7 +174,6 @@ final class UpdateController
             $rateLimit->hitDefault($ip, RateLimit::ACTION_PUBLIC_UPDATE);
             $session->set('lstr_flash_error', 'Incorrect password. Please try again.');
             $session->set('lstr_flash_old', ['email' => $email]);
-
             return Response::redirect($baseUrl . '/update/' . $fanlistingId);
         }
 
@@ -239,6 +243,43 @@ final class UpdateController
     // -----------------------------------------------------------------------
     // Internals
     // -----------------------------------------------------------------------
+
+    /**
+     * Renders the update form template with all required tokens.
+     *
+     * Used by both showForm() (on GET) and the captcha-failure path in submit(),
+     * so the form can be re-rendered in-place without a redirect.
+     *
+     * @param \Luster\Models\AdditionalField[] $fields
+     * @param array<string,string>             $old
+     */
+    private function renderUpdateForm(
+        int $fanlistingId,
+        Fanlisting $fanlisting,
+        array $fields,
+        array $old = [],
+        string $error = '',
+        string $captchaError = '',
+    ): Response {
+        $html = $this->app->getView()->render('default/update.html', [
+            'fanlisting_name'  => $fanlisting->name,
+            'fanlisting_url'   => $fanlisting->url,
+            'csrf_token'       => $this->app->getCSRF()->token(),
+            'fanlisting_id'    => (string) $fanlistingId,
+            'error'            => $error,
+            'old_name'         => (string) ($old['name']  ?? ''),
+            'old_email'        => (string) ($old['email'] ?? ''),
+            'old_url'          => (string) ($old['url']   ?? ''),
+            'country_select'   => new ViewRaw(Countries::buildSelect((string) ($old['country'] ?? ''))),
+            'extra_fields'     => new ViewRaw($this->buildExtraFieldsHtml($fields, $old)),
+            'captcha_question' => Captcha::getQuestion(),
+            'captcha_error'    => $captchaError,
+            'app_name'         => (string) $this->app->getConfig()->get('app_name', 'Luster'),
+            'base_url'         => $this->app->getBaseUrl(),
+        ]);
+
+        return Response::html($html);
+    }
 
     /**
      * @param \Luster\Models\AdditionalField[] $fields
