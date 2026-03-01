@@ -161,6 +161,137 @@ try {
     $errors[] = 'lstr_fanlisting_settings.affiliates_template — ' . htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Migration 7: lstr_categories table + category_id on lstr_joined
+// ─────────────────────────────────────────────────────────────────────────────
+try {
+    $pdo->exec(
+        "CREATE TABLE IF NOT EXISTS `lstr_categories` (
+            `id`         INT UNSIGNED NOT NULL AUTO_INCREMENT,
+            `name`       VARCHAR(150) NOT NULL,
+            `parent_id`  INT UNSIGNED NULL,
+            `source`     ENUM('tfl','tafl','custom') NOT NULL DEFAULT 'custom',
+            `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (`id`)
+         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci"
+    );
+    $done[] = 'Created <code>lstr_categories</code> table';
+} catch (PDOException $e) {
+    $errors[] = 'lstr_categories — ' . htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+}
+
+try {
+    $pdo->exec(
+        'ALTER TABLE `lstr_joined`
+         ADD COLUMN IF NOT EXISTS `category_id` INT UNSIGNED NULL'
+    );
+    $done[] = 'Added <code>category_id</code> column to <code>lstr_joined</code>';
+} catch (PDOException $e) {
+    $errors[] = 'lstr_joined.category_id — ' . htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+}
+
+try {
+    $tflCategories = [
+        'Academia',
+        'Actors',
+        'Actresses',
+        'Adult',
+        'Advertising/TV Channels',
+        'Albums',
+        'Animals',
+        'Animation',
+        'Anime/Manga',
+        'Arts and Design',
+        'Authors/Writers',
+        'Calendar Events',
+        'Characters: Book/Movie',
+        'Characters: TV',
+        'Comics',
+        'Companies',
+        'Computer Miscellany and Internet',
+        'Directors/Producers',
+        'Episodes',
+        'Fan Works',
+        'Fashion/Beauty',
+        'Food/Drinks',
+        'Games',
+        'History/Royalty',
+        'Hobbies and Recreation',
+        'Literature',
+        'Miscellaneous',
+        'Models',
+        'Movies',
+        'Music Miscellany',
+        'Musicians: Bands/Groups',
+        'Musicians: Female',
+        'Musicians: Male',
+        'Mythology/Religion',
+        'Nature',
+        'Objects',
+        'People Miscellany',
+        'Personalities',
+        'Places',
+        'Politics and Organisations',
+        'Relationships: Book/Movie',
+        'Relationships: Real Life',
+        'Relationships: TV',
+        'Songs: Bands/Groups 0-M',
+        'Songs: Bands/Groups N-Z',
+        'Songs: Female Solo',
+        'Songs: Male Solo',
+        'Songs: Various',
+        'Sports',
+        'Sports Entertainment',
+        'Stage/Theatre',
+        'Toys/Collectibles',
+        'Transportation',
+        'TV Shows',
+        'TV/Movie/Book Miscellany',
+        'Webmasters',
+        'Websites',
+    ];
+
+    $stmt = $pdo->prepare(
+        "INSERT IGNORE INTO `lstr_categories` (name, source, parent_id)
+         VALUES (:name, 'tfl', NULL)"
+    );
+
+    foreach ($tflCategories as $catName) {
+        $stmt->execute(['name' => $catName]);
+    }
+
+    $done[] = 'Seeded ' . count($tflCategories) . ' TFL categories into <code>lstr_categories</code>';
+} catch (PDOException $e) {
+    $errors[] = 'lstr_categories TFL seed — ' . htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Migration 8: category_id on owned / enth_fanlistings
+//              Adds Luster's own category assignment (distinct from Enthusiast's
+//              native catid column). References lstr_categories.
+// ─────────────────────────────────────────────────────────────────────────────
+try {
+    // Unprefixed Enthusiast 3 schema
+    $pdo->exec(
+        'ALTER TABLE `owned`
+         ADD COLUMN IF NOT EXISTS `category_id` INT UNSIGNED NULL'
+    );
+    $done[] = 'Added <code>category_id</code> column to <code>owned</code>';
+} catch (PDOException $e) {
+    $errors[] = 'owned.category_id — ' . htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+}
+
+try {
+    // Standard prefixed Enthusiast schema
+    $pdo->exec(
+        'ALTER TABLE `enth_fanlistings`
+         ADD COLUMN IF NOT EXISTS `category_id` INT UNSIGNED NULL'
+    );
+    $done[] = 'Added <code>category_id</code> column to <code>enth_fanlistings</code>';
+} catch (PDOException $e) {
+    $errors[] = 'enth_fanlistings.category_id — ' . htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+}
+
 ?><!DOCTYPE html>
 <html lang="en">
 <head>

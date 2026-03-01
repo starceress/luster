@@ -10,6 +10,7 @@ use Luster\Core\Response;
 use Luster\Core\Validator;
 use Luster\Repositories\ActivityRepo;
 use Luster\Repositories\AffiliateRepo;
+use Luster\Repositories\CategoryRepo;
 use Luster\Repositories\FanlistingRepo;
 use Luster\Repositories\FanlistingSettingsRepo;
 use Luster\Repositories\MemberRepo;
@@ -81,15 +82,21 @@ final class FanlistingController
         $affiliates  = $affiliateRepo->getByFanlisting($id);
         $templates   = $settingsRepo->getTemplates($id);
 
+        $categoryRepo        = new CategoryRepo($db);
+        $categories          = $categoryRepo->getAll();
+        $currentCategoryId   = $fanlisting->categoryId;
+
         return $this->layout('admin/fanlistings/show.php', [
-            'fanlisting'       => $fanlisting,
-            'approved'         => $approved,
-            'pending'          => $pending,
-            'auto_approve'     => $autoApprove,
-            'affiliates'       => $affiliates,
+            'fanlisting'          => $fanlisting,
+            'approved'            => $approved,
+            'pending'             => $pending,
+            'auto_approve'        => $autoApprove,
+            'affiliates'          => $affiliates,
             'stats_template'      => $templates['stats_template'],
             'members_template'    => $templates['members_template'],
             'affiliates_template' => $templates['affiliates_template'],
+            'categories'          => $categories,
+            'current_category_id' => $currentCategoryId,
         ], $fanlisting->name, 'fanlistings');
     }
 
@@ -205,6 +212,34 @@ final class FanlistingController
         $settingsRepo->saveTemplates($id, $statsTemplate, $membersTemplate, $affiliatesTemplate);
 
         $this->app->getSession()->set('lstr_flash_success', 'Templates saved successfully.');
+
+        return Response::redirect($this->app->getBaseUrl() . '/admin/fanlistings/' . $id);
+    }
+
+    // -----------------------------------------------------------------------
+    // POST /admin/fanlistings/{id}/update
+    // -----------------------------------------------------------------------
+
+    public function update(Request $request, array $params): Response
+    {
+        $id = (int) ($params['id'] ?? 0);
+
+        $db     = $this->app->getDatabase();
+        $config = $this->app->getConfig();
+
+        $fanlistingRepo = new FanlistingRepo($db, $config);
+        $fanlisting     = $fanlistingRepo->getById($id);
+
+        if ($fanlisting === null) {
+            return Response::notFound('Fanlisting not found.');
+        }
+
+        $rawCategoryId = (int) $request->post('category_id', 0);
+        $categoryId    = $rawCategoryId > 0 ? $rawCategoryId : null;
+
+        $fanlistingRepo->update($id, $categoryId);
+
+        $this->app->getSession()->set('lstr_flash_success', 'Category updated.');
 
         return Response::redirect($this->app->getBaseUrl() . '/admin/fanlistings/' . $id);
     }

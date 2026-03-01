@@ -182,6 +182,25 @@ final class FanlistingRepo
     }
 
     /**
+     * Updates the Luster category assignment for a fanlisting.
+     *
+     * Writes to the category_id column added by Migration 8.
+     * Pass null to clear the assignment.
+     */
+    public function update(int $id, ?int $categoryId): void
+    {
+        $stmt = $this->db->prepare(
+            "UPDATE {$this->table}
+             SET category_id = :category_id
+             WHERE {$this->pkCol} = :id"
+        );
+        $stmt->execute([
+            'category_id' => $categoryId,
+            'id'          => $id,
+        ]);
+    }
+
+    /**
      * Updates the status flags for a fanlisting.
      *
      * Standard schema: sets the upcoming and trouble boolean columns.

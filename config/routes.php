@@ -5,6 +5,7 @@ declare(strict_types=1);
 use Luster\Controllers\Admin\ActivityLogController;
 use Luster\Controllers\Admin\AffiliateController;
 use Luster\Controllers\Admin\AuthController;
+use Luster\Controllers\Admin\CategoryController;
 use Luster\Controllers\Admin\DashboardController;
 use Luster\Controllers\Admin\FanlistingController;
 use Luster\Controllers\Admin\JoinedController;
@@ -76,6 +77,8 @@ return [
             FanlistingController::class, 'edit');
         $router->post('/admin/fanlistings/{id}/templates',
             FanlistingController::class, 'saveTemplates');
+        $router->post('/admin/fanlistings/{id}/update',
+            FanlistingController::class, 'update');
 
         // ── Members top-level (fanlisting picker) ───────────────────
         $router->get('/admin/members',
@@ -143,6 +146,14 @@ return [
             JoinedController::class, 'delete');
         $router->post('/admin/joined/{id}/toggle',
             JoinedController::class, 'toggle');
+
+        // ── Categories ───────────────────────────────────────────────
+        $router->get('/admin/categories',
+            CategoryController::class, 'index');
+        $router->post('/admin/categories/add',
+            CategoryController::class, 'add');
+        $router->post('/admin/categories/{id}/delete',
+            CategoryController::class, 'delete');
 
         // ── Activity log ─────────────────────────────────────────────
         $router->get('/admin/activity',

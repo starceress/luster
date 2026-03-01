@@ -204,6 +204,7 @@ function navActive(string $section, string $current): string {
     <a href="<?= $b ?>/admin/members"<?= navActive('members', $s) ?>>&#9632; Members</a>
     <a href="<?= $b ?>/admin/affiliates"<?= navActive('affiliates', $s) ?>>&#9632; Affiliates</a>
     <a href="<?= $b ?>/admin/joined"<?= navActive('joined', $s) ?>>&#9632; Joined FLs</a>
+    <a href="<?= $b ?>/admin/categories"<?= navActive('categories', $s) ?>>&#9632; Categories</a>
 
     <div class="sidebar-section">System</div>
     <a href="<?= $b ?>/admin/settings"<?= navActive('settings', $s) ?>>&#9632; Settings</a>

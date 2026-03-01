@@ -10,6 +10,8 @@
 /** @var string|null $stats_template */
 /** @var string|null $members_template */
 /** @var string|null $affiliates_template */
+/** @var \Luster\Models\Category[] $categories */
+/** @var int|null $current_category_id */
 $b = rtrim(\Luster\Core\View::e($base_url), '/');
 ?>
 <style>
@@ -94,6 +96,56 @@ $b = rtrim(\Luster\Core\View::e($base_url), '/');
       <label>Auto-Approve</label>
       <span><?= $auto_approve ? 'Yes' : 'No' ?></span>
     </div>
+  </div>
+
+  <!-- Category assignment -->
+  <div style="margin-top:1rem;padding-top:1rem;border-top:1px solid #f3f4f6">
+    <form method="POST" action="<?= $b ?>/admin/fanlistings/<?= (int) $fanlisting->id ?>/update"
+          style="display:flex;align-items:center;gap:.75rem;flex-wrap:wrap">
+      <input type="hidden" name="_csrf" value="<?= \Luster\Core\View::e($csrf_token ?? '') ?>">
+
+      <label for="fl_category_id"
+             style="font-size:.75rem;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:.04em;white-space:nowrap">
+        Category
+      </label>
+
+      <select id="fl_category_id" name="category_id"
+              style="border:1px solid #d1d5db;border-radius:6px;padding:.35rem .65rem;font-size:.875rem;color:#111827;background:#fff">
+        <option value="0">— Uncategorised —</option>
+        <?php
+        // Group into parents and children for optgroup rendering
+        $catParents  = [];
+        $catChildren = [];
+        foreach ($categories as $cat) {
+            if ($cat->parentId === null) {
+                $catParents[$cat->id] = $cat;
+            } else {
+                $catChildren[$cat->parentId][] = $cat;
+            }
+        }
+        foreach ($catParents as $parent):
+            $hasChildren = !empty($catChildren[$parent->id]);
+            if ($hasChildren): ?>
+          <optgroup label="<?= \Luster\Core\View::e($parent->name) ?>">
+            <option value="<?= (int) $parent->id ?>"<?= $current_category_id === $parent->id ? ' selected' : '' ?>>
+              <?= \Luster\Core\View::e($parent->name) ?> (general)
+            </option>
+            <?php foreach ($catChildren[$parent->id] as $child): ?>
+              <option value="<?= (int) $child->id ?>"<?= $current_category_id === $child->id ? ' selected' : '' ?>>
+                &nbsp;&nbsp;<?= \Luster\Core\View::e($child->name) ?>
+              </option>
+            <?php endforeach; ?>
+          </optgroup>
+        <?php else: ?>
+          <option value="<?= (int) $parent->id ?>"<?= $current_category_id === $parent->id ? ' selected' : '' ?>>
+            <?= \Luster\Core\View::e($parent->name) ?>
+          </option>
+        <?php endif;
+        endforeach; ?>
+      </select>
+
+      <button type="submit" class="btn btn-primary" style="font-size:.8125rem;padding:.35rem .8rem">Save</button>
+    </form>
   </div>
 </div>
 

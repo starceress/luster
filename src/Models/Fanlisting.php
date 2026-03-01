@@ -41,6 +41,8 @@ final class Fanlisting
         public readonly bool    $trouble,
         /** Date the fanlisting opened — from joined/opened/since column if present. */
         public readonly ?string $joined = null,
+        /** Luster category assignment from lstr_categories (nullable). */
+        public readonly ?int $categoryId = null,
     ) {}
 
     /**
@@ -94,6 +96,9 @@ final class Fanlisting
             upcoming:       $upcoming,
             trouble:        $trouble,
             joined:         $joinedRaw !== null ? (string) $joinedRaw : null,
+            categoryId:     isset($row['category_id']) && $row['category_id'] !== null
+                                ? (int) $row['category_id']
+                                : null,
         );
     }
 
