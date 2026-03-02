@@ -66,6 +66,41 @@ $done   = [];
 $errors = [];
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Bootstrap: create lstr_migrations tracking table
+// ─────────────────────────────────────────────────────────────────────────────
+try {
+    $pdo->exec(
+        "CREATE TABLE IF NOT EXISTS `lstr_migrations` (
+            `migration_number` INT UNSIGNED NOT NULL,
+            `run_at`           DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (`migration_number`)
+         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci"
+    );
+    $done[] = 'Created (or verified) <code>lstr_migrations</code> tracking table';
+
+    // Existing installs that ran migrations before tracking was added:
+    // if the table is empty AND lstr_categories already exists, mark 1–9 as run.
+    $tracked = (int) $pdo->query('SELECT COUNT(*) FROM `lstr_migrations`')->fetchColumn();
+
+    if ($tracked === 0) {
+        $categoriesExist = (int) $pdo->query(
+            "SELECT COUNT(*) FROM information_schema.TABLES
+             WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'lstr_categories'"
+        )->fetchColumn() > 0;
+
+        if ($categoriesExist) {
+            $pdo->exec(
+                'INSERT INTO `lstr_migrations` (migration_number) VALUES
+                 (1),(2),(3),(4),(5),(6),(7),(8),(9)'
+            );
+            $done[] = 'Marked migrations 1–9 as already run (existing install detected)';
+        }
+    }
+} catch (PDOException $e) {
+    $errors[] = 'lstr_migrations bootstrap — ' . htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Migration 1: active column on lstr_affiliates
 // ─────────────────────────────────────────────────────────────────────────────
 try {
@@ -290,6 +325,69 @@ try {
     $done[] = 'Added <code>category_id</code> column to <code>enth_fanlistings</code>';
 } catch (PDOException $e) {
     $errors[] = 'enth_fanlistings.category_id — ' . htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Migration 9: TAFL category seed into lstr_categories
+//              Flatten TAFL categories to Anime/Manga: Name format.
+//              Clears any previous TAFL rows first so re-runs are idempotent.
+// ─────────────────────────────────────────────────────────────────────────────
+try {
+    $pdo->exec("DELETE FROM `lstr_categories` WHERE source = 'tafl'");
+
+    $taflCategories = [
+        'Anime/Manga: Adult',
+        'Anime/Manga: Characters 0-M',
+        'Anime/Manga: Characters N-Z',
+        'Anime/Manga: Episodes',
+        'Anime/Manga: Fanstuff',
+        'Anime/Manga: General',
+        'Anime/Manga: Items/Locations',
+        'Anime/Manga: Manga-ka & Directors',
+        'Anime/Manga: Movies/OVAs',
+        'Anime/Manga: Music & Songs',
+        'Anime/Manga: Relationships',
+        'Anime/Manga: Rivalries',
+        'Anime/Manga: Seiyuu',
+        'Anime/Manga: Series',
+    ];
+
+    $stmt = $pdo->prepare(
+        "INSERT IGNORE INTO `lstr_categories` (name, parent_id, source)
+         VALUES (:name, NULL, 'tafl')"
+    );
+
+    foreach ($taflCategories as $catName) {
+        $stmt->execute(['name' => $catName]);
+    }
+
+    $done[] = 'Seeded ' . count($taflCategories) . ' TAFL categories into <code>lstr_categories</code>';
+} catch (PDOException $e) {
+    $errors[] = 'lstr_categories TAFL seed — ' . htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Migration 10: Remove duplicate and bare Anime/Manga categories
+// ─────────────────────────────────────────────────────────────────────────────
+try {
+    // 1. Remove the bare "Anime/Manga" category (now superseded by prefixed rows)
+    $pdo->exec("DELETE FROM `lstr_categories` WHERE name = 'Anime/Manga'");
+
+    // 2. Remove any TAFL rows that don't follow the "Anime/Manga: Name" pattern
+    $pdo->exec("DELETE FROM `lstr_categories` WHERE source = 'tafl' AND name NOT LIKE 'Anime/Manga:%'");
+
+    // 3. Deduplicate remaining TAFL rows — keep the lowest id when names collide
+    $pdo->exec(
+        "DELETE c1 FROM `lstr_categories` c1
+         INNER JOIN `lstr_categories` c2
+         WHERE c1.id > c2.id
+           AND c1.name = c2.name
+           AND c1.source = 'tafl'"
+    );
+
+    $done[] = 'Cleaned up duplicate and bare Anime/Manga categories from <code>lstr_categories</code>';
+} catch (PDOException $e) {
+    $errors[] = 'lstr_categories cleanup — ' . htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 }
 
 ?><!DOCTYPE html>
