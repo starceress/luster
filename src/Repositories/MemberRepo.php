@@ -151,13 +151,21 @@ final class MemberRepo
      */
     public function countPending(string $prefix): int
     {
-        $p    = $this->resolveTable($prefix);
-        $stmt = $this->db->prepare(
-            "SELECT COUNT(*) FROM {$p} WHERE {$this->pendingWhere}"
-        );
-        $stmt->execute();
+        $p = $this->resolveTable($prefix);
 
-        return (int) $stmt->fetchColumn();
+        try {
+            $stmt = $this->db->prepare(
+                "SELECT COUNT(*) FROM {$p} WHERE {$this->pendingWhere}"
+            );
+            $stmt->execute();
+
+            return (int) $stmt->fetchColumn();
+        } catch (\PDOException $e) {
+            if (strpos($e->getMessage(), "doesn't exist") !== false) {
+                return 0;
+            }
+            throw $e;
+        }
     }
 
     /**
@@ -165,13 +173,21 @@ final class MemberRepo
      */
     public function countApproved(string $prefix): int
     {
-        $p    = $this->resolveTable($prefix);
-        $stmt = $this->db->prepare(
-            "SELECT COUNT(*) FROM {$p} WHERE {$this->approvedWhere}"
-        );
-        $stmt->execute();
+        $p = $this->resolveTable($prefix);
 
-        return (int) $stmt->fetchColumn();
+        try {
+            $stmt = $this->db->prepare(
+                "SELECT COUNT(*) FROM {$p} WHERE {$this->approvedWhere}"
+            );
+            $stmt->execute();
+
+            return (int) $stmt->fetchColumn();
+        } catch (\PDOException $e) {
+            if (strpos($e->getMessage(), "doesn't exist") !== false) {
+                return 0;
+            }
+            throw $e;
+        }
     }
 
     /**
@@ -200,9 +216,9 @@ final class MemberRepo
      */
     public function paginateByStatus(
         string $prefix,
-        int    $page,
-        int    $perPage,
-        string $status = 'approved',
+        string $status  = 'approved',
+        int    $page    = 1,
+        int    $perPage = 25,
     ): array {
         $p      = $this->resolveTable($prefix);
         $offset = max(0, ($page - 1) * $perPage);

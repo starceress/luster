@@ -106,4 +106,117 @@ final class FanlistingSettingsRepo
             'affiliates' => $affiliatesTemplate,
         ]);
     }
+
+    /**
+     * Returns the stored image filename for a fanlisting, or null if none set.
+     */
+    public function getImage(int $fanlistingId): ?string
+    {
+        $stmt = $this->db->prepare(
+            'SELECT image FROM lstr_fanlisting_settings WHERE fanlisting_id = :id'
+        );
+        $stmt->execute(['id' => $fanlistingId]);
+        $row = $stmt->fetch();
+
+        if ($row === false || $row['image'] === null || $row['image'] === '') {
+            return null;
+        }
+
+        return (string) $row['image'];
+    }
+
+    /**
+     * Saves (upserts) the image filename for a fanlisting.
+     *
+     * Does not touch any other columns on existing rows; new rows default
+     * auto_approve to 0 and all template columns to null.
+     */
+    public function saveImage(int $fanlistingId, string $filename): void
+    {
+        $stmt = $this->db->prepare(
+            'INSERT INTO lstr_fanlisting_settings (fanlisting_id, image)
+             VALUES (:id, :image)
+             ON DUPLICATE KEY UPDATE image = VALUES(image)'
+        );
+        $stmt->execute([
+            'id'    => $fanlistingId,
+            'image' => $filename,
+        ]);
+    }
+
+    /**
+     * Returns the listing type for a fanlisting.
+     * Defaults to 'fanlisting' if no settings row exists or the value is null.
+     */
+    public function getListingType(int $fanlistingId): string
+    {
+        $stmt = $this->db->prepare(
+            'SELECT listing_type FROM lstr_fanlisting_settings WHERE fanlisting_id = :id'
+        );
+        $stmt->execute(['id' => $fanlistingId]);
+        $row = $stmt->fetch();
+
+        if ($row === false || $row['listing_type'] === null || $row['listing_type'] === '') {
+            return 'fanlisting';
+        }
+
+        return (string) $row['listing_type'];
+    }
+
+    /**
+     * Saves (upserts) the listing type for a fanlisting.
+     *
+     * Does not touch any other columns on existing rows; new rows default
+     * auto_approve to 0 and all other columns to null.
+     */
+    public function saveListingType(int $fanlistingId, string $type): void
+    {
+        $stmt = $this->db->prepare(
+            'INSERT INTO lstr_fanlisting_settings (fanlisting_id, listing_type)
+             VALUES (:id, :type)
+             ON DUPLICATE KEY UPDATE listing_type = VALUES(listing_type)'
+        );
+        $stmt->execute([
+            'id'   => $fanlistingId,
+            'type' => $type,
+        ]);
+    }
+
+    /**
+     * Returns the per-page member count override for a fanlisting.
+     * Defaults to 25 if no settings row exists or the value is null.
+     */
+    public function getMembersPerPage(int $fanlistingId): int
+    {
+        $stmt = $this->db->prepare(
+            'SELECT members_per_page FROM lstr_fanlisting_settings WHERE fanlisting_id = :id'
+        );
+        $stmt->execute(['id' => $fanlistingId]);
+        $row = $stmt->fetch();
+
+        if ($row === false || $row['members_per_page'] === null) {
+            return 25;
+        }
+
+        return (int) $row['members_per_page'];
+    }
+
+    /**
+     * Saves (upserts) the per-page member count override for a fanlisting.
+     *
+     * Does not touch any other columns on existing rows; new rows default
+     * auto_approve to 0 and all other columns to null.
+     */
+    public function saveMembersPerPage(int $fanlistingId, int $perPage): void
+    {
+        $stmt = $this->db->prepare(
+            'INSERT INTO lstr_fanlisting_settings (fanlisting_id, members_per_page)
+             VALUES (:id, :per_page)
+             ON DUPLICATE KEY UPDATE members_per_page = VALUES(members_per_page)'
+        );
+        $stmt->execute([
+            'id'       => $fanlistingId,
+            'per_page' => $perPage,
+        ]);
+    }
 }

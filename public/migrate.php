@@ -18,6 +18,8 @@ declare(strict_types=1);
 // Session guard — must be logged in as admin
 ini_set('session.cookie_httponly', '1');
 ini_set('session.use_strict_mode', '1');
+ini_set('session.cookie_samesite', 'Strict');
+session_name('luster_session');
 session_start();
 
 if (empty($_SESSION['lstr_admin_id'])) {
@@ -286,6 +288,8 @@ try {
         'Websites',
     ];
 
+    $pdo->exec("DELETE FROM `lstr_categories` WHERE source = 'tfl'");
+
     $stmt = $pdo->prepare(
         "INSERT IGNORE INTO `lstr_categories` (name, source, parent_id)
          VALUES (:name, 'tfl', NULL)"
@@ -390,6 +394,68 @@ try {
     $errors[] = 'lstr_categories cleanup — ' . htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Migration 11: image column on lstr_fanlisting_settings
+// ─────────────────────────────────────────────────────────────────────────────
+try {
+    $pdo->exec(
+        'ALTER TABLE `lstr_fanlisting_settings`
+         ADD COLUMN IF NOT EXISTS `image` VARCHAR(255) NULL DEFAULT NULL
+         AFTER `affiliates_template`'
+    );
+    $done[] = 'Added <code>image</code> column to <code>lstr_fanlisting_settings</code>';
+} catch (PDOException $e) {
+    $errors[] = 'lstr_fanlisting_settings.image — ' . htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Migration 12: listing_type column on lstr_fanlisting_settings
+// ─────────────────────────────────────────────────────────────────────────────
+try {
+    $pdo->exec(
+        'ALTER TABLE `lstr_fanlisting_settings`
+         ADD COLUMN IF NOT EXISTS `listing_type` VARCHAR(50) NULL DEFAULT NULL
+         AFTER `image`'
+    );
+    $done[] = 'Added <code>listing_type</code> column to <code>lstr_fanlisting_settings</code>';
+} catch (PDOException $e) {
+    $errors[] = 'lstr_fanlisting_settings.listing_type — ' . htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Migration 13: members_per_page column on lstr_fanlisting_settings
+// ─────────────────────────────────────────────────────────────────────────────
+try {
+    $pdo->exec(
+        'ALTER TABLE `lstr_fanlisting_settings`
+         ADD COLUMN IF NOT EXISTS `members_per_page` TINYINT UNSIGNED NULL DEFAULT NULL
+         AFTER `listing_type`'
+    );
+    $done[] = 'Added <code>members_per_page</code> column to <code>lstr_fanlisting_settings</code>';
+} catch (PDOException $e) {
+    $errors[] = 'lstr_fanlisting_settings.members_per_page — ' . htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Migration 14: lstr_error_log table
+// ─────────────────────────────────────────────────────────────────────────────
+try {
+    $pdo->exec(
+        "CREATE TABLE IF NOT EXISTS `lstr_error_log` (
+            `id`         BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+            `level`      VARCHAR(20)     NOT NULL DEFAULT 'error',
+            `message`    TEXT            NOT NULL,
+            `source`     VARCHAR(255)    NULL,
+            `created_at` DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (`id`),
+            INDEX `idx_created` (`created_at`)
+         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci"
+    );
+    $done[] = 'Created <code>lstr_error_log</code> table';
+} catch (PDOException $e) {
+    $errors[] = 'lstr_error_log — ' . htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+}
+
 ?><!DOCTYPE html>
 <html lang="en">
 <head>
@@ -429,6 +495,6 @@ try {
   <p>Nothing to migrate.</p>
 <?php endif; ?>
 
-<p class="back"><a href="admin.php">Return to admin panel</a></p>
+<p class="back"><a href="/luster/public/admin">Return to admin panel</a></p>
 </body>
 </html>

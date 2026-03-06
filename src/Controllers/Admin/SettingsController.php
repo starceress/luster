@@ -41,6 +41,7 @@ final class SettingsController
         'smtp_secure',
         'timezone',
         'per_page',
+        'image_preview_size',
     ];
 
     public function __construct(private readonly Application $app) {}
@@ -117,6 +118,11 @@ final class SettingsController
         if ($newSmtpPass !== '') {
             $updated['smtp_pass'] = $newSmtpPass;
         }
+
+        $previewSize = trim((string) $request->post('image_preview_size', 'medium'));
+        $updated['image_preview_size'] = in_array($previewSize, ['small', 'medium', 'large'], true)
+            ? $previewSize
+            : 'medium';
 
         $this->writeConfig($updated);
 

@@ -69,7 +69,11 @@ ksort($grouped);
     <table>
       <thead>
         <tr>
+          <th style="width:70px">Image</th>
+          <th style="width:40px">ID</th>
           <th>Name</th>
+          <th>URL</th>
+          <th>Category</th>
           <th>Date Joined</th>
           <th>Status</th>
           <th style="text-align:right">Actions</th>
@@ -79,11 +83,28 @@ ksort($grouped);
         <?php foreach ($items as $jf): ?>
         <tr>
           <td>
-            <a href="<?= \Luster\Core\View::e($jf->url) ?>" target="_blank" rel="noopener noreferrer"
-               style="color:#4f46e5;font-weight:500"><?= \Luster\Core\View::e($jf->name) ?></a>
+            <?php if ($jf->image !== null && $jf->image !== ''): ?>
+              <img src="/luster/public/uploads/<?= \Luster\Core\View::e($jf->image) ?>"
+                   alt="" style="max-height:50px;width:auto;display:block;border-radius:3px">
+            <?php else: ?>
+              <span style="color:#9ca3af">&mdash;</span>
+            <?php endif; ?>
+          </td>
+          <td style="color:#9ca3af"><?= (int) $jf->id ?></td>
+          <td style="font-weight:500;color:#111827"><?= \Luster\Core\View::e($jf->name) ?></td>
+          <td>
+            <?php if ($jf->url !== ''): ?>
+              <a href="<?= \Luster\Core\View::e($jf->url) ?>" target="_blank" rel="noopener noreferrer"
+                 style="color:#4f46e5;font-size:.8125rem">Visit</a>
+            <?php else: ?>
+              <span style="color:#9ca3af">&mdash;</span>
+            <?php endif; ?>
           </td>
           <td style="color:#6b7280">
-            <?= $jf->dateJoined !== null ? \Luster\Core\View::e($jf->dateJoined) : '—' ?>
+            <?= $jf->category !== '' ? \Luster\Core\View::e($jf->category) : '<span style="color:#9ca3af">&mdash;</span>' ?>
+          </td>
+          <td style="color:#6b7280">
+            <?= $jf->dateJoined !== null ? \Luster\Core\View::e($jf->dateJoined) : '&mdash;' ?>
           </td>
           <td>
             <span class="badge <?= $jf->active ? 'badge-active' : 'badge-inactive' ?>">

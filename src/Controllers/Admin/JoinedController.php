@@ -81,7 +81,7 @@ final class JoinedController
                     'joined'  => null,
                     'error'   => implode(' ', $v->allErrors()),
                     'old'     => $request->postAll(),
-                ], 'Add Joined Fanlisting', 'joined');
+                ], 'Add Joined FL', 'joined');
             }
 
             $repo->insert([
@@ -102,7 +102,7 @@ final class JoinedController
             'joined' => null,
             'error'  => '',
             'old'    => [],
-        ], 'Add Joined Fanlisting', 'joined');
+        ], 'Add Joined FL', 'joined');
     }
 
     // -----------------------------------------------------------------------
@@ -141,7 +141,7 @@ final class JoinedController
                     'joined' => $joined,
                     'error'  => implode(' ', $v->allErrors()),
                     'old'    => $request->postAll(),
-                ], 'Edit Joined Fanlisting', 'joined');
+                ], 'Edit Joined FL', 'joined');
             }
 
             $repo->update($id, [
@@ -162,7 +162,7 @@ final class JoinedController
             'joined' => $joined,
             'error'  => '',
             'old'    => [],
-        ], 'Edit Joined Fanlisting', 'joined');
+        ], 'Edit Joined FL', 'joined');
     }
 
     // -----------------------------------------------------------------------

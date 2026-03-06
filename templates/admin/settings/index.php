@@ -55,6 +55,18 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
       <p class="form-hint">Example: <code>http://localhost/luster/public</code></p>
     </div>
 
+    <div class="form-group">
+      <label for="s-preview-size">Fanlisting Image Preview Size</label>
+      <select id="s-preview-size" name="image_preview_size" style="max-width:200px">
+        <?php foreach (['small' => 'Small', 'medium' => 'Medium', 'large' => 'Large'] as $val => $lbl): ?>
+          <option value="<?= \Luster\Core\View::e($val) ?>"
+            <?= (cfgVal($cfg, 'image_preview_size', 'medium') === $val ? 'selected' : '') ?>>
+            <?= \Luster\Core\View::e($lbl) ?>
+          </option>
+        <?php endforeach; ?>
+      </select>
+    </div>
+
     <div class="form-row">
       <div class="form-group">
         <label for="s-timezone">Timezone</label>

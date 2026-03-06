@@ -200,15 +200,17 @@ function navActive(string $section, string $current): string {
     <a href="<?= $b ?>/admin"<?= navActive('dashboard', $s) ?>>&#9632; Dashboard</a>
 
     <div class="sidebar-section">Manage</div>
-    <a href="<?= $b ?>/admin/fanlistings"<?= navActive('fanlistings', $s) ?>>&#9632; Fanlistings</a>
+    <a href="<?= $b ?>/admin/fanlistings"<?= navActive('fanlistings', $s) ?>>&#9632; Owned</a>
     <a href="<?= $b ?>/admin/members"<?= navActive('members', $s) ?>>&#9632; Members</a>
     <a href="<?= $b ?>/admin/affiliates"<?= navActive('affiliates', $s) ?>>&#9632; Affiliates</a>
-    <a href="<?= $b ?>/admin/joined"<?= navActive('joined', $s) ?>>&#9632; Joined FLs</a>
+    <a href="<?= $b ?>/admin/joined"<?= navActive('joined', $s) ?>>&#9632; Joined</a>
     <a href="<?= $b ?>/admin/categories"<?= navActive('categories', $s) ?>>&#9632; Categories</a>
 
     <div class="sidebar-section">System</div>
     <a href="<?= $b ?>/admin/settings"<?= navActive('settings', $s) ?>>&#9632; Settings</a>
     <a href="<?= $b ?>/admin/activity"<?= navActive('activity', $s) ?>>&#9632; Activity Log</a>
+    <a href="<?= $b ?>/admin/errorlog"<?= navActive('errorlog', $s) ?>>&#9632; Error Log</a>
+    <a href="<?= $b ?>/admin/sysinfo"<?= navActive('sysinfo', $s) ?>>&#9632; System Info</a>
   </nav>
 
   <div class="sidebar-footer">

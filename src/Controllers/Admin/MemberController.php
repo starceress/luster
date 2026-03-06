@@ -10,6 +10,7 @@ use Luster\Core\Response;
 use Luster\Core\Validator;
 use Luster\Repositories\ActivityRepo;
 use Luster\Repositories\FanlistingRepo;
+use Luster\Repositories\FanlistingSettingsRepo;
 use Luster\Repositories\FieldRepo;
 use Luster\Repositories\MemberRepo;
 
@@ -44,6 +45,7 @@ final class MemberController
         $fanlistingRepo = new FanlistingRepo($db, $config);
         $memberRepo     = new MemberRepo($db, $config);
         $fieldRepo      = new FieldRepo($db, $config);
+        $settingsRepo   = new FanlistingSettingsRepo($db);
 
         $fanlisting = $fanlistingRepo->getById($fanlistingId);
 
@@ -51,7 +53,7 @@ final class MemberController
             return Response::notFound('Fanlisting not found.');
         }
 
-        $perPage = (int) $config->get('per_page', 25);
+        $perPage = $settingsRepo->getMembersPerPage($fanlistingId);
         $page    = max(1, (int) $request->query('page', 1));
         $search  = trim((string) $request->query('search', ''));
         $status  = (string) $request->query('status', 'approved');
@@ -69,7 +71,7 @@ final class MemberController
             $pages      = $total > 0 ? (int) ceil($total / $perPage) : 0;
             $members    = array_slice($allMatches, ($page - 1) * $perPage, $perPage);
         } else {
-            $result  = $memberRepo->paginateByStatus($fanlisting->dbprefix, $page, $perPage, $status);
+            $result  = $memberRepo->paginateByStatus($fanlisting->dbprefix, $status, $page, $perPage);
             $members = $result['members'];
             $total   = $result['total'];
             $pages   = $result['pages'];
@@ -88,6 +90,7 @@ final class MemberController
             'total'       => $total,
             'page'        => $page,
             'pages'       => $pages,
+            'per_page'    => $perPage,
             'search'      => $search,
             'status'      => $status,
             'success'     => $success,

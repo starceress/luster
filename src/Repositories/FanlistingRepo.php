@@ -201,6 +201,63 @@ final class FanlistingRepo
     }
 
     /**
+     * Deletes a fanlisting record from the registry table.
+     *
+     * Note: this removes only the registry row. The member table referenced
+     * by dbtable/dbprefix is left intact and must be dropped separately if
+     * desired. Enthusiast manages member table lifecycle.
+     */
+    public function delete(int $id): void
+    {
+        $stmt = $this->db->prepare(
+            "DELETE FROM {$this->table} WHERE {$this->pkCol} = :id"
+        );
+        $stmt->execute(['id' => $id]);
+    }
+
+    /**
+     * Renames the member table and updates the registry row to match.
+     *
+     * Validates $newPrefix before touching anything. If the registry UPDATE
+     * fails after the RENAME, attempts to RENAME the table back before
+     * re-throwing the original exception.
+     *
+     * @throws \InvalidArgumentException if $newPrefix contains invalid characters
+     * @throws \PDOException             on database failure
+     */
+    public function updateDbPrefix(int $id, string $oldPrefix, string $newPrefix): void
+    {
+        if (!preg_match('/^[a-zA-Z0-9_]+$/', $newPrefix)) {
+            throw new \InvalidArgumentException(
+                "Invalid dbprefix '{$newPrefix}': only [a-zA-Z0-9_] allowed."
+            );
+        }
+
+        $validatedOld = $this->db->validatePrefix($oldPrefix);
+        $validatedNew = $this->db->validatePrefix($newPrefix);
+
+        // Step 1: rename the member table
+        $this->db->pdo()->exec("RENAME TABLE `{$validatedOld}` TO `{$validatedNew}`");
+
+        // Step 2: update the registry row — roll back the rename on failure
+        $dbCol = $this->isOwnedSchema ? 'dbtable' : 'dbprefix';
+
+        try {
+            $stmt = $this->db->prepare(
+                "UPDATE {$this->table} SET `{$dbCol}` = :new WHERE {$this->pkCol} = :id"
+            );
+            $stmt->execute(['new' => $newPrefix, 'id' => $id]);
+        } catch (\PDOException $e) {
+            try {
+                $this->db->pdo()->exec("RENAME TABLE `{$validatedNew}` TO `{$validatedOld}`");
+            } catch (\PDOException) {
+                // Rollback failed — swallow and fall through to re-throw original
+            }
+            throw $e;
+        }
+    }
+
+    /**
      * Updates the status flags for a fanlisting.
      *
      * Standard schema: sets the upcoming and trouble boolean columns.

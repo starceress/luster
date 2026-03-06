@@ -4,10 +4,13 @@ declare(strict_types=1);
 
 use Luster\Controllers\Admin\ActivityLogController;
 use Luster\Controllers\Admin\AffiliateController;
+use Luster\Controllers\Admin\ErrorLogController;
+use Luster\Controllers\Admin\SysInfoController;
 use Luster\Controllers\Admin\AuthController;
 use Luster\Controllers\Admin\CategoryController;
 use Luster\Controllers\Admin\DashboardController;
 use Luster\Controllers\Admin\FanlistingController;
+use Luster\Controllers\Admin\FieldController;
 use Luster\Controllers\Admin\JoinedController;
 use Luster\Controllers\Admin\MemberController;
 use Luster\Controllers\Admin\MembersIndexController;
@@ -79,6 +82,12 @@ return [
             FanlistingController::class, 'saveTemplates');
         $router->post('/admin/fanlistings/{id}/update',
             FanlistingController::class, 'update');
+        $router->post('/admin/fanlistings/{id}/delete',
+            FanlistingController::class, 'delete');
+        $router->get('/admin/fanlistings/{id}/edit-prefix',
+            FanlistingController::class, 'editPrefix');
+        $router->post('/admin/fanlistings/{id}/edit-prefix',
+            FanlistingController::class, 'editPrefix');
 
         // ── Members top-level (fanlisting picker) ───────────────────
         $router->get('/admin/members',
@@ -101,6 +110,18 @@ return [
             MemberController::class, 'bulk');
         $router->get('/admin/members/{id}/export',
             MemberController::class, 'export');
+
+        // ── Additional fields for a specific fanlisting ──────────────
+        $router->get('/admin/fanlistings/{fid}/fields',
+            FieldController::class, 'index');
+        $router->post('/admin/fanlistings/{fid}/fields/add',
+            FieldController::class, 'add');
+        $router->get('/admin/fanlistings/{fid}/fields/{name}/edit',
+            FieldController::class, 'edit');
+        $router->post('/admin/fanlistings/{fid}/fields/{name}/edit',
+            FieldController::class, 'edit');
+        $router->post('/admin/fanlistings/{fid}/fields/{name}/delete',
+            FieldController::class, 'delete');
 
         // ── Per-fanlisting affiliate add (must be before /affiliates routes
         //    to avoid route ordering issues, and before /fanlistings/{id}) ──
@@ -158,6 +179,16 @@ return [
         // ── Activity log ─────────────────────────────────────────────
         $router->get('/admin/activity',
             ActivityLogController::class, 'index');
+
+        // ── Error log ────────────────────────────────────────────────
+        $router->get('/admin/errorlog',
+            ErrorLogController::class, 'index');
+        $router->post('/admin/errorlog/flush',
+            ErrorLogController::class, 'flush');
+
+        // ── System info ──────────────────────────────────────────────
+        $router->get('/admin/sysinfo',
+            SysInfoController::class, 'index');
     },
 
 ];

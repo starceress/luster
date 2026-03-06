@@ -4,6 +4,8 @@
 /** @var int $pending */
 /** @var bool $auto_approve */
 /** @var \Luster\Models\Affiliate[] $affiliates */
+/** @var array       $cfg */
+/** @var string|null $current_image */
 /** @var string $base_url */
 /** @var string $csrf_token */
 /** @var string $success */
@@ -13,6 +15,10 @@
 /** @var \Luster\Models\Category[] $categories */
 /** @var int|null $current_category_id */
 $b = rtrim(\Luster\Core\View::e($base_url), '/');
+
+$sizeMap   = ['small' => '50px', 'medium' => '100px', 'large' => '150px'];
+$sizeKey   = (string) ($cfg['image_preview_size'] ?? 'medium');
+$imgHeight = $sizeMap[$sizeKey] ?? '100px';
 ?>
 <style>
   .info-card { background:#fff;border:1px solid #e5e7eb;border-radius:8px;padding:1.25rem;margin-bottom:1.25rem; }
@@ -28,6 +34,8 @@ $b = rtrim(\Luster\Core\View::e($base_url), '/');
   .btn-primary:hover { background:#4338ca; }
   .btn-secondary { background:#f3f4f6;color:#374151;border:1px solid #d1d5db; }
   .btn-secondary:hover { background:#e5e7eb; }
+  .btn-danger { background:#dc2626;color:#fff; }
+  .btn-danger:hover { background:#b91c1c; }
   .alert-success { background:#f0fdf4;border:1px solid #86efac;border-radius:6px;padding:.65rem 1rem;margin-bottom:1rem;color:#15803d;font-size:.875rem; }
 </style>
 
@@ -58,6 +66,13 @@ $b = rtrim(\Luster\Core\View::e($base_url), '/');
     <div style="display:flex;gap:.5rem;">
       <a href="<?= $b ?>/admin/fanlistings/<?= (int) $fanlisting->id ?>/edit" class="btn btn-primary">Edit</a>
       <a href="<?= $b ?>/admin/members/<?= (int) $fanlisting->id ?>" class="btn btn-secondary">Members</a>
+      <form method="post"
+            action="<?= $b ?>/admin/fanlistings/<?= (int) $fanlisting->id ?>/delete"
+            style="display:inline"
+            onsubmit="return confirm('Delete this fanlisting and all its members? This cannot be undone.')">
+        <input type="hidden" name="_csrf" value="<?= \Luster\Core\View::e($csrf_token ?? '') ?>">
+        <button type="submit" class="btn btn-danger">Delete</button>
+      </form>
     </div>
   </div>
 
@@ -97,6 +112,15 @@ $b = rtrim(\Luster\Core\View::e($base_url), '/');
       <span><?= $auto_approve ? 'Yes' : 'No' ?></span>
     </div>
   </div>
+
+  <!-- Fanlisting image -->
+  <?php if (isset($current_image) && $current_image !== null && $current_image !== ''): ?>
+  <div style="margin-top:1rem;padding-top:1rem;border-top:1px solid #f3f4f6">
+    <img src="/luster/public/uploads/fanlistings/<?= \Luster\Core\View::e($current_image) ?>"
+         alt="<?= \Luster\Core\View::e($fanlisting->name) ?>"
+         style="max-height:<?= \Luster\Core\View::e($imgHeight) ?>;width:auto;display:block;border-radius:4px">
+  </div>
+  <?php endif; ?>
 
   <!-- Category assignment -->
   <div style="margin-top:1rem;padding-top:1rem;border-top:1px solid #f3f4f6">
