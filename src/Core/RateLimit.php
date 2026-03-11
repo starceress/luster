@@ -22,12 +22,14 @@ final class RateLimit
     public const ACTION_PUBLIC_JOIN   = 'public_join';
     public const ACTION_PUBLIC_UPDATE = 'public_update';
     public const ACTION_PUBLIC_REMOVE = 'public_remove';
+    public const ACTION_PUBLIC_RESET  = 'public_reset';
 
     private const DEFAULTS = [
         self::ACTION_ADMIN_LOGIN   => ['max' => 5,  'window' => 900],
         self::ACTION_PUBLIC_JOIN   => ['max' => 10, 'window' => 3600],
         self::ACTION_PUBLIC_UPDATE => ['max' => 10, 'window' => 3600],
         self::ACTION_PUBLIC_REMOVE => ['max' => 10, 'window' => 3600],
+        self::ACTION_PUBLIC_RESET  => ['max' => 5,  'window' => 3600],
     ];
 
     public function __construct(private readonly Database $db) {}

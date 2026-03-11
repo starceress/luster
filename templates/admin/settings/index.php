@@ -24,6 +24,7 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
   <button class="neb-tab-btn active" data-tab="profile">Admin Details</button>
   <button class="neb-tab-btn"        data-tab="general">General</button>
   <button class="neb-tab-btn"        data-tab="email">Email</button>
+  <button class="neb-tab-btn"        data-tab="embed">Embed &amp; Paths</button>
   <button class="neb-tab-btn"        data-tab="database">Database &amp; Debug</button>
 </div>
 
@@ -134,6 +135,14 @@ document.querySelectorAll('.neb-tab-btn').forEach(function (btn) {
           Leave SMTP Host blank to disable outgoing email entirely.
         </p>
 
+        <?php if (cfgVal($cfg, 'smtp_host') === ''): ?>
+        <div class="alert alert-warning" style="margin-bottom:1rem">
+          <strong>Email is not configured.</strong>
+          Fan password reset emails will not be delivered until an SMTP host is set.
+          Fans who request a password reset will see a "check your email" page but receive nothing.
+        </div>
+        <?php endif; ?>
+
         <div class="form-row">
           <div class="form-group">
             <label class="form-label" for="s-smtp-host">SMTP Host</label>
@@ -209,6 +218,109 @@ document.querySelectorAll('.neb-tab-btn').forEach(function (btn) {
       </div>
       <button type="submit" class="btn btn-primary">Save Settings</button>
     </div><!-- /#tab-email -->
+
+    <!-- ── Embed & Paths ────────────────────────────────────────── -->
+    <div id="tab-embed" class="neb-tab-panel">
+      <div class="settings-card">
+
+        <div class="form-group">
+          <label class="form-label" for="s-install-path">Installation Path (absolute)</label>
+          <input id="s-install-path" type="text" name="install_path" class="form-input"
+                 maxlength="500" placeholder="/home/user/nebuluna.com/luster/"
+                 value="<?= \Luster\Core\View::e(cfgVal($cfg, 'install_path')) ?>">
+          <p class="form-hint">
+            Absolute server path to the Luster root directory, with trailing slash.
+            Used to generate embed include lines below.
+          </p>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="s-cookie-domain">Session Cookie Domain</label>
+          <input id="s-cookie-domain" type="text" name="session_cookie_domain" class="form-input"
+                 maxlength="255" placeholder=".yourdomain.com"
+                 value="<?= \Luster\Core\View::e(cfgVal($cfg, 'session_cookie_domain')) ?>">
+          <p class="form-hint">
+            Include the leading dot to cover all subdomains
+            (e.g. <code class="neb-code">.nebuluna.com</code>). Leave blank for single-domain installs.
+            Required when fans submit join forms from <code class="neb-code">fan.yourdomain.com</code>
+            to <code class="neb-code">yourdomain.com</code>.
+          </p>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="s-embed-url">Embed Base URL</label>
+          <input id="s-embed-url" type="url" name="embed_base_url" class="form-input"
+                 maxlength="500" placeholder="https://nebuluna.com/luster/public"
+                 value="<?= \Luster\Core\View::e(cfgVal($cfg, 'embed_base_url')) ?>">
+          <p class="form-hint">
+            The public URL where Luster's form submissions go (no trailing slash).
+            Leave blank to use the Base URL from the General tab.
+          </p>
+        </div>
+
+        <?php
+        $installPath = cfgVal($cfg, 'install_path');
+        if ($installPath !== ''):
+            $installPath = rtrim($installPath, '/');
+        ?>
+        <div class="section-divider">Per-Fanlisting Embed Lines</div>
+
+        <p class="form-hint" style="margin-bottom:0.75rem">
+          Set <code class="neb-code">$luster_fanlisting_id</code> to the fanlisting ID before each include.
+          Optionally set <code class="neb-code">$luster_return = true</code> to capture the output as a string.
+        </p>
+
+        <?php
+        $perFanlistingEmbeds = [
+            'join'        => 'Join form',
+            'members'     => 'Members list',
+            'update'      => 'Update membership',
+            'remove'      => 'Remove membership',
+            'reset'       => 'Password reset',
+            'stats'       => 'Fanlisting stats',
+            'affiliates'  => 'Affiliates (per-fanlisting)',
+        ];
+        foreach ($perFanlistingEmbeds as $file => $label): ?>
+        <div class="form-group">
+          <label class="form-label"><?= \Luster\Core\View::e($label) ?></label>
+          <div class="ro-field" style="font-family:'DM Mono',monospace;font-size:0.8rem;user-select:all">
+            $luster_fanlisting_id = 1; require '<?= \Luster\Core\View::e($installPath) ?>/public/embed/<?= \Luster\Core\View::e($file) ?>.php';
+          </div>
+        </div>
+        <?php endforeach; ?>
+
+        <div class="section-divider" style="margin-top:1.25rem">Site-Wide Embed Lines</div>
+
+        <p class="form-hint" style="margin-bottom:0.75rem">
+          These embeds aggregate data across your entire collective.
+          No <code class="neb-code">$luster_fanlisting_id</code> is needed
+          (except Affiliates, where <code class="neb-code">$luster_fanlisting_id = 0</code> gives site-wide affiliates).
+        </p>
+
+        <div class="form-group">
+          <label class="form-label">Collective stats</label>
+          <div class="ro-field" style="font-family:'DM Mono',monospace;font-size:0.8rem;user-select:all">
+            require '<?= \Luster\Core\View::e($installPath) ?>/public/embed/collective-stats.php';
+          </div>
+          <p class="form-hint">
+            Exposes <code class="neb-code">$luster_owned_active</code>, <code class="neb-code">$luster_members_approved</code>,
+            <code class="neb-code">$luster_owned_newest</code> (array), <code class="neb-code">$luster_owned_random</code>,
+            <code class="neb-code">$luster_categories</code>, growth rates, and more.
+            Optionally set <code class="neb-code">$luster_cache_ttl = 300</code> (seconds) to cache the stats.
+          </p>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Site-wide affiliates</label>
+          <div class="ro-field" style="font-family:'DM Mono',monospace;font-size:0.8rem;user-select:all">
+            $luster_fanlisting_id = 0; require '<?= \Luster\Core\View::e($installPath) ?>/public/embed/affiliates.php';
+          </div>
+        </div>
+        <?php endif; ?>
+
+      </div>
+      <button type="submit" class="btn btn-primary">Save Settings</button>
+    </div><!-- /#tab-embed -->
 
     <!-- ── Database & Debug (read-only) ─────────────────────────── -->
     <div id="tab-database" class="neb-tab-panel">

@@ -12,9 +12,9 @@ use Luster\Core\RateLimit;
 use Luster\Core\Request;
 use Luster\Core\Response;
 use Luster\Core\Validator;
-use Luster\Core\ViewRaw;
 use Luster\Models\Fanlisting;
 use Luster\Repositories\FanlistingRepo;
+use Luster\Repositories\FanlistingSettingsRepo;
 use Luster\Repositories\FieldRepo;
 use Luster\Repositories\MemberRepo;
 
@@ -54,8 +54,10 @@ final class JoinController
             return Response::notFound('That fanlisting does not exist.');
         }
 
-        $fieldRepo = new FieldRepo($this->app->getDatabase(), $this->app->getConfig());
-        $fields    = $fieldRepo->getFieldsForFanlisting($fanlistingId);
+        $fieldRepo     = new FieldRepo($this->app->getDatabase(), $this->app->getConfig());
+        $fields        = $fieldRepo->getFieldsForFanlisting($fanlistingId);
+        $settingsRepo  = new FanlistingSettingsRepo($this->app->getDatabase());
+        $embedSettings = $settingsRepo->getEmbedSettings($fanlistingId);
 
         $session = $this->app->getSession();
         $error   = (string) $session->get('lstr_flash_error', '');
@@ -63,7 +65,7 @@ final class JoinController
         $session->remove('lstr_flash_error');
         $session->remove('lstr_flash_old');
 
-        return $this->renderJoinForm($fanlistingId, $fanlisting, $fields, $old, $error);
+        return $this->renderJoinForm($fanlistingId, $fanlisting, $fields, $embedSettings, $old, $error);
     }
 
     // -----------------------------------------------------------------------
@@ -96,8 +98,12 @@ final class JoinController
             return Response::notFound('That fanlisting does not exist.');
         }
 
-        $fieldRepo = new FieldRepo($this->app->getDatabase(), $this->app->getConfig());
-        $fields    = $fieldRepo->getFieldsForFanlisting($fanlistingId);
+        $fieldRepo     = new FieldRepo($this->app->getDatabase(), $this->app->getConfig());
+        $fields        = $fieldRepo->getFieldsForFanlisting($fanlistingId);
+        $settingsRepo  = new FanlistingSettingsRepo($this->app->getDatabase());
+        $embedSettings = $settingsRepo->getEmbedSettings($fanlistingId);
+
+        $countryEnabled = (bool) $embedSettings['country_field_enabled'];
 
         // Captcha — re-render the form with an error on failure
         if (!Captcha::validate((string) $request->post('captcha_answer', ''))) {
@@ -105,11 +111,11 @@ final class JoinController
                 'name'      => trim((string) $request->post('name',    '')),
                 'email'     => trim((string) $request->post('email',   '')),
                 'url'       => trim((string) $request->post('url',     '')),
-                'country'   => trim((string) $request->post('country', '')),
+                'country'   => $countryEnabled ? trim((string) $request->post('country', '')) : '',
                 'send_info' => (string) $request->post('send_info', ''),
             ];
             return $this->renderJoinForm(
-                $fanlistingId, $fanlisting, $fields, $old,
+                $fanlistingId, $fanlisting, $fields, $embedSettings, $old,
                 '', 'Incorrect answer — please try again.',
             );
         }
@@ -118,15 +124,17 @@ final class JoinController
         $name    = trim((string) $request->post('name',    ''));
         $email   = trim((string) $request->post('email',   ''));
         $url     = trim((string) $request->post('url',     ''));
-        $country = trim((string) $request->post('country', ''));
+        $country = $countryEnabled ? trim((string) $request->post('country', '')) : '';
 
         $postData = $request->postAll();
 
         $v = new Validator($postData);
         $v->field('name')->required()->maxLength(100);
         $v->field('email')->required()->email()->maxLength(255);
-        $v->field('url')->url()->maxLength(255);
-        $v->field('country')->required()->maxLength(100);
+        $v->field('url')->url()->maxLength(500);
+        if ($countryEnabled) {
+            $v->field('country')->required()->maxLength(100);
+        }
 
         foreach ($fields as $field) {
             $vf = $v->field('field_' . $field->name)->maxLength(255);
@@ -253,6 +261,12 @@ final class JoinController
             }
         }
 
+        // Redirect to configured URL or default success page
+        $redirectUrl = (string) $embedSettings['redirect_url_join'];
+        if ($redirectUrl !== '') {
+            return Response::redirect($redirectUrl);
+        }
+
         return Response::redirect($baseUrl . '/join/' . $fanlistingId . '/success');
     }
 
@@ -268,14 +282,18 @@ final class JoinController
         $fanlisting     = $fanlistingRepo->getById($fanlistingId);
 
         $fanlistingName = $fanlisting?->name ?? 'this fanlisting';
+        $baseUrl        = $this->app->getBaseUrl();
 
-        $html = $this->app->getView()->render('default/success.html', [
-            'title'           => 'Thank You!',
-            'message'         => "You have successfully joined the {$fanlistingName} fanlisting. "
-                               . 'Your membership may need to be approved before it appears in the list.',
-            'fanlisting_name' => $fanlistingName,
-            'app_name'        => (string) $this->app->getConfig()->get('app_name', 'Luster'),
-            'base_url'        => $this->app->getBaseUrl(),
+        $html = $this->app->getView()->renderPublic('success.php', [
+            'fanlisting'       => $fanlisting,
+            'fanlisting_name'  => $fanlistingName,
+            'fanlisting_url'   => $fanlisting?->url ?? '',
+            'page_title'       => 'Thank You!',
+            'success_heading'  => 'Thank You!',
+            'success_message'  => "You have successfully joined the {$fanlistingName} fanlisting. "
+                                . 'Your membership may need to be approved before it appears in the list.',
+            'base_url'         => $baseUrl,
+            'theme_path'       => $baseUrl . '/assets/default/',
         ]);
 
         return Response::html($html);
@@ -286,137 +304,55 @@ final class JoinController
     // -----------------------------------------------------------------------
 
     /**
-     * Renders the join form template with all required tokens.
+     * Renders the join form template with all required variables.
      *
      * Used by both showForm() (on GET) and the captcha-failure path in submit(),
      * so the form can be re-rendered in-place without a redirect.
      *
      * @param \Luster\Models\AdditionalField[] $fields
+     * @param array<string,mixed>              $embedSettings
      * @param array<string,string>             $old
      */
     private function renderJoinForm(
         int $fanlistingId,
         Fanlisting $fanlisting,
         array $fields,
+        array $embedSettings,
         array $old = [],
         string $error = '',
         string $captchaError = '',
     ): Response {
-        $html = $this->app->getView()->render('default/join.html', [
-            'fanlisting_name'  => $fanlisting->name,
-            'fanlisting_url'   => $fanlisting->url,
-            'csrf_token'       => $this->app->getCSRF()->token(),
-            'fanlisting_id'    => (string) $fanlistingId,
-            'error'            => $error,
-            'old_name'         => (string) ($old['name']  ?? ''),
-            'old_email'        => (string) ($old['email'] ?? ''),
-            'old_url'          => (string) ($old['url']   ?? ''),
-            'country_select'      => new ViewRaw(Countries::buildSelect((string) ($old['country'] ?? ''))),
-            'extra_fields'        => new ViewRaw($this->buildExtraFieldsHtml($fields, $old)),
-            'send_info_checked'   => isset($old['send_info']) ? ($old['send_info'] ? 'checked' : '') : 'checked',
-            'captcha_question' => Captcha::getQuestion(),
-            'captcha_error'    => $captchaError,
-            'app_name'         => (string) $this->app->getConfig()->get('app_name', 'Luster'),
-            'base_url'         => $this->app->getBaseUrl(),
+        $baseUrl = $this->app->getBaseUrl();
+
+        $errorsHtml = $error !== ''
+            ? '<ul>' . implode('', array_map(
+                fn(string $e) => '<li>' . htmlspecialchars($e, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '</li>',
+                explode(' ', $error),
+              )) . '</ul>'
+            : '';
+
+        $html = $this->app->getView()->renderPublic('join.php', [
+            'fanlisting'           => $fanlisting,
+            'fanlisting_name'      => $fanlisting->name,
+            'fanlisting_url'       => $fanlisting->url,
+            'page_title'           => 'Join',
+            'form_action'          => $baseUrl . '/join/' . $fanlistingId,
+            'csrf_token'           => $this->app->getCSRF()->token(),
+            'errors'               => $error !== '' ? '<p>' . htmlspecialchars($error, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '</p>' : '',
+            'field_name'           => (string) ($old['name']  ?? ''),
+            'field_email'          => (string) ($old['email'] ?? ''),
+            'field_url'            => (string) ($old['url']   ?? ''),
+            'country_select'       => Countries::buildSelect((string) ($old['country'] ?? '')),
+            'country_field_enabled' => (bool) $embedSettings['country_field_enabled'],
+            'fields'               => $fields,
+            'old'                  => $old,
+            'captcha_question'     => Captcha::getQuestion(),
+            'captcha_error'        => $captchaError,
+            'send_info_checked'    => isset($old['send_info']) ? ($old['send_info'] ? 'checked' : '') : 'checked',
+            'base_url'             => $baseUrl,
+            'theme_path'           => $baseUrl . '/assets/default/',
         ]);
 
         return Response::html($html);
-    }
-
-    /**
-     * Builds the HTML for dynamic additional fields from FieldRepo data.
-     *
-     * @param \Luster\Models\AdditionalField[] $fields
-     * @param array<string,string>             $oldValues Repopulation values on error.
-     */
-    private function buildExtraFieldsHtml(array $fields, array $oldValues): string
-    {
-        if (empty($fields)) {
-            return '';
-        }
-
-        $html = '';
-
-        foreach ($fields as $field) {
-            $inputName = 'field_' . $field->name;
-            $labelText = htmlspecialchars($field->label,    ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
-            $nameAttr  = htmlspecialchars($inputName,       ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
-            $oldVal    = htmlspecialchars((string) ($oldValues[$inputName] ?? ''), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
-            $required  = $field->required ? ' required' : '';
-            $reqMark   = $field->required ? ' <span aria-hidden="true">*</span>' : '';
-
-            if ($field->type === 'dropdown') {
-                $optionsHtml = '';
-                foreach (explode(',', $field->options) as $opt) {
-                    $opt = trim($opt);
-                    if ($opt === '') {
-                        continue;
-                    }
-                    $optEsc    = htmlspecialchars($opt, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
-                    $selected  = ($oldVal === $optEsc) ? ' selected' : '';
-                    $optionsHtml .= "    <option value=\"{$optEsc}\"{$selected}>{$optEsc}</option>\n";
-                }
-                $html .= "<div class=\"form-group\">\n"
-                       . "  <label for=\"{$nameAttr}\">{$labelText}{$reqMark}</label>\n"
-                       . "  <select id=\"{$nameAttr}\" name=\"{$nameAttr}\"{$required}>\n"
-                       . "    <option value=\"\"></option>\n"
-                       . $optionsHtml
-                       . "  </select>\n"
-                       . "</div>\n";
-            } elseif ($field->type === 'checkbox') {
-                $rawOpts = array_filter(array_map('trim', explode(',', $field->options)), fn($o) => $o !== '');
-
-                if (empty($rawOpts)) {
-                    $checked = ($oldVal === '1') ? ' checked' : '';
-                    $checkboxesHtml = "  <label>\n"
-                                    . "    <input type=\"checkbox\" name=\"{$nameAttr}\" value=\"1\"{$checked}{$required}>\n"
-                                    . "    {$labelText}\n"
-                                    . "  </label>\n";
-                } else {
-                    $oldArr = (array) ($oldValues[$inputName] ?? []);
-                    $checkboxesHtml = '';
-                    foreach ($rawOpts as $opt) {
-                        $optEsc  = htmlspecialchars($opt, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
-                        $checked = in_array($opt, $oldArr, true) ? ' checked' : '';
-                        $checkboxesHtml .= "  <label>\n"
-                                        . "    <input type=\"checkbox\" name=\"{$nameAttr}[]\" value=\"{$optEsc}\"{$checked}>\n"
-                                        . "    {$optEsc}\n"
-                                        . "  </label>\n";
-                    }
-                }
-
-                $html .= "<div class=\"form-group\">\n"
-                       . "  <span class=\"form-label\">{$labelText}{$reqMark}</span>\n"
-                       . $checkboxesHtml
-                       . "</div>\n";
-            } elseif ($field->type === 'radio') {
-                $rawOpts = array_filter(array_map('trim', explode(',', $field->options)), fn($o) => $o !== '');
-                $radiosHtml = '';
-                foreach ($rawOpts as $opt) {
-                    $optEsc  = htmlspecialchars($opt, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
-                    $checked = ($oldVal === $optEsc) ? ' checked' : '';
-                    $radiosHtml .= "  <label>\n"
-                                 . "    <input type=\"radio\" name=\"{$nameAttr}\" value=\"{$optEsc}\"{$checked}{$required}>\n"
-                                 . "    {$optEsc}\n"
-                                 . "  </label>\n";
-                }
-                $html .= "<div class=\"form-group\">\n"
-                       . "  <span class=\"form-label\">{$labelText}{$reqMark}</span>\n"
-                       . $radiosHtml
-                       . "</div>\n";
-            } elseif ($field->type === 'textarea') {
-                $html .= "<div class=\"form-group\">\n"
-                       . "  <label for=\"{$nameAttr}\">{$labelText}{$reqMark}</label>\n"
-                       . "  <textarea id=\"{$nameAttr}\" name=\"{$nameAttr}\" maxlength=\"255\"{$required}>{$oldVal}</textarea>\n"
-                       . "</div>\n";
-            } else {
-                $html .= "<div class=\"form-group\">\n"
-                       . "  <label for=\"{$nameAttr}\">{$labelText}{$reqMark}</label>\n"
-                       . "  <input type=\"text\" id=\"{$nameAttr}\" name=\"{$nameAttr}\" value=\"{$oldVal}\" maxlength=\"255\"{$required}>\n"
-                       . "</div>\n";
-            }
-        }
-
-        return $html;
     }
 }

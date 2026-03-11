@@ -7,7 +7,6 @@ namespace Luster\Controllers\Public;
 use Luster\Core\Application;
 use Luster\Core\Request;
 use Luster\Core\Response;
-use Luster\Core\ViewRaw;
 use Luster\Models\Member;
 use Luster\Repositories\FanlistingRepo;
 use Luster\Repositories\FieldRepo;
@@ -56,17 +55,18 @@ final class MembersController
 
         $memberRepo = new MemberRepo($this->app->getDatabase(), $this->app->getConfig());
 
-        // Sort toggle links — active view rendered as <strong>, the other as <a>
-        $sortNameEscUrl    = htmlspecialchars($membersBase . '?sort=name',    ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
-        $sortCountryEscUrl = htmlspecialchars($membersBase . '?sort=country', ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
-
-        $sortNameLink = $sort === 'name'
-            ? new ViewRaw('<strong>Name</strong>')
-            : new ViewRaw('<a href="' . $sortNameEscUrl . '">Name</a>');
-
-        $sortCountryLink = $sort === 'country'
-            ? new ViewRaw('<strong>Country</strong>')
-            : new ViewRaw('<a href="' . $sortCountryEscUrl . '">Country</a>');
+        $commonData = [
+            'fanlisting'      => $fanlisting,
+            'fanlisting_name' => $fanlisting->name,
+            'fanlisting_url'  => $fanlisting->url,
+            'page_title'      => 'Members',
+            'join_url'        => $baseUrl . '/join/' . $fanlistingId,
+            'members_base'    => $membersBase,
+            'sort'            => $sort,
+            'fields'          => $fields,
+            'base_url'        => $baseUrl,
+            'theme_path'      => $baseUrl . '/assets/default/',
+        ];
 
         // -----------------------------------------------------------------------
         // Path A: filtered by a specific country
@@ -77,36 +77,23 @@ final class MembersController
                 $fanlisting->dbprefix, $country, $page, $perPage,
             );
 
-            $memberLoop = $this->buildMemberLoop($result['members'], $fields);
-
-            $backEscUrl      = htmlspecialchars($membersBase . '?sort=country', ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
-            $backToCountries = new ViewRaw(
-                '<p class="back-link"><a href="' . $backEscUrl . '">&larr; Back to countries</a></p>',
-            );
-
             $statsLine = $country . ': ' . $result['total'] . ' member(s)'
                 . ($result['pages'] > 1 ? ' — page ' . $page . ' of ' . $result['pages'] : '');
 
-            $pagination = new ViewRaw($this->buildPagination(
+            $paginationHtml = $this->buildPagination(
                 $page, $result['pages'], $membersBase,
                 ['sort' => 'country', 'country' => $country],
-            ));
+            );
 
-            return Response::html($this->app->getView()->render('default/members.html', [
-                'fanlisting_name'   => $fanlisting->name,
-                'fanlisting_url'    => $fanlisting->url,
-                'fanlisting_id'     => (string) $fanlistingId,
-                'join_url'          => $baseUrl . '/join/' . $fanlistingId,
-                'sort_name_link'    => $sortNameLink,
-                'sort_country_link' => $sortCountryLink,
-                'back_to_countries' => $backToCountries,
-                'stats_line'        => $statsLine,
-                'country_loop'      => [],
-                'member_loop'       => $memberLoop,
-                'pagination'        => $pagination,
-                'app_name'          => (string) $this->app->getConfig()->get('app_name', 'Luster'),
-                'base_url'          => $baseUrl,
+            $html = $this->app->getView()->renderPublic('members.php', array_merge($commonData, [
+                'country'        => $country,
+                'members'        => $result['members'],
+                'country_summary' => [],
+                'stats_line'     => $statsLine,
+                'pagination'     => $paginationHtml,
             ]));
+
+            return Response::html($html);
         }
 
         // -----------------------------------------------------------------------
@@ -116,33 +103,27 @@ final class MembersController
         if ($sort === 'country') {
             $countries = $memberRepo->getCountrySummary($fanlisting->dbprefix);
 
-            $countryLoop = [];
+            $countrySummary = [];
             foreach ($countries as $row) {
-                $countryLoop[] = [
-                    'country_name'  => $row['country'],
-                    'country_url'   => $membersBase . '?sort=country&country=' . urlencode($row['country']),
-                    'country_count' => (string) $row['fan_count'],
+                $countrySummary[] = [
+                    'country'   => $row['country'],
+                    'fan_count' => (int) $row['fan_count'],
+                    'url'       => $membersBase . '?sort=country&country=' . urlencode($row['country']),
                 ];
             }
 
             $total     = count($countries);
             $statsLine = $total . ' ' . ($total === 1 ? 'country' : 'countries') . ' represented';
 
-            return Response::html($this->app->getView()->render('default/members.html', [
-                'fanlisting_name'   => $fanlisting->name,
-                'fanlisting_url'    => $fanlisting->url,
-                'fanlisting_id'     => (string) $fanlistingId,
-                'join_url'          => $baseUrl . '/join/' . $fanlistingId,
-                'sort_name_link'    => $sortNameLink,
-                'sort_country_link' => $sortCountryLink,
-                'back_to_countries' => new ViewRaw(''),
-                'stats_line'        => $statsLine,
-                'country_loop'      => $countryLoop,
-                'member_loop'       => [],
-                'pagination'        => new ViewRaw(''),
-                'app_name'          => (string) $this->app->getConfig()->get('app_name', 'Luster'),
-                'base_url'          => $baseUrl,
+            $html = $this->app->getView()->renderPublic('members.php', array_merge($commonData, [
+                'country'         => '',
+                'members'         => [],
+                'country_summary' => $countrySummary,
+                'stats_line'      => $statsLine,
+                'pagination'      => '',
             ]));
+
+            return Response::html($html);
         }
 
         // -----------------------------------------------------------------------
@@ -151,62 +132,25 @@ final class MembersController
 
         $result = $memberRepo->paginate($fanlisting->dbprefix, $page, $perPage, true, 'name');
 
-        $memberLoop = $this->buildMemberLoop($result['members'], $fields);
-        $statsLine  = $result['total'] . ' member(s) — page ' . $page . ' of ' . $result['pages'];
-        $pagination = new ViewRaw($this->buildPagination(
+        $statsLine      = $result['total'] . ' member(s) — page ' . $page . ' of ' . $result['pages'];
+        $paginationHtml = $this->buildPagination(
             $page, $result['pages'], $membersBase, ['sort' => 'name'],
-        ));
+        );
 
-        return Response::html($this->app->getView()->render('default/members.html', [
-            'fanlisting_name'   => $fanlisting->name,
-            'fanlisting_url'    => $fanlisting->url,
-            'fanlisting_id'     => (string) $fanlistingId,
-            'join_url'          => $baseUrl . '/join/' . $fanlistingId,
-            'sort_name_link'    => $sortNameLink,
-            'sort_country_link' => $sortCountryLink,
-            'back_to_countries' => new ViewRaw(''),
-            'stats_line'        => $statsLine,
-            'country_loop'      => [],
-            'member_loop'       => $memberLoop,
-            'pagination'        => $pagination,
-            'app_name'          => (string) $this->app->getConfig()->get('app_name', 'Luster'),
-            'base_url'          => $baseUrl,
+        $html = $this->app->getView()->renderPublic('members.php', array_merge($commonData, [
+            'country'         => '',
+            'members'         => $result['members'],
+            'country_summary' => [],
+            'stats_line'      => $statsLine,
+            'pagination'      => $paginationHtml,
         ]));
+
+        return Response::html($html);
     }
 
     // -----------------------------------------------------------------------
     // Internals
     // -----------------------------------------------------------------------
-
-    /**
-     * Builds the member_loop rows array for the View template engine.
-     *
-     * @param Member[]                            $members
-     * @param \Luster\Models\AdditionalField[]    $fields
-     * @return array<int, array<string, string>>
-     */
-    private function buildMemberLoop(array $members, array $fields): array
-    {
-        $loop = [];
-
-        foreach ($members as $member) {
-            $row = [
-                'fan_name'    => $member->name,
-                'fan_email'   => $member->email,
-                'fan_url'     => $member->showurl ? $member->url : '',
-                'fan_country' => $member->country,
-                'fan_added'   => $member->added,
-            ];
-
-            foreach ($fields as $field) {
-                $row['fan_' . $field->name] = $member->additionalFields[$field->name] ?? '';
-            }
-
-            $loop[] = $row;
-        }
-
-        return $loop;
-    }
 
     /**
      * Builds paginated navigation HTML.
@@ -233,17 +177,17 @@ final class MembersController
             );
         };
 
-        $html  = '<nav class="pagination" aria-label="Members pagination"><ul>';
+        $html = '<nav class="fl-pagination" aria-label="Members pagination"><ul>';
 
         if ($currentPage > 1) {
-            $html .= '<li><a href="' . $makeUrl($currentPage - 1) . '">&laquo; Previous</a></li>';
+            $html .= '<li><a class="fl-page-link" href="' . $makeUrl($currentPage - 1) . '">&laquo; Previous</a></li>';
         }
 
         $start = max(1, $currentPage - 2);
         $end   = min($totalPages, $currentPage + 2);
 
         if ($start > 1) {
-            $html .= '<li><a href="' . $makeUrl(1) . '">1</a></li>';
+            $html .= '<li><a class="fl-page-link" href="' . $makeUrl(1) . '">1</a></li>';
             if ($start > 2) {
                 $html .= '<li><span>&hellip;</span></li>';
             }
@@ -251,9 +195,9 @@ final class MembersController
 
         for ($i = $start; $i <= $end; $i++) {
             if ($i === $currentPage) {
-                $html .= '<li><span class="current" aria-current="page">' . $i . '</span></li>';
+                $html .= '<li><span class="fl-page-current" aria-current="page">' . $i . '</span></li>';
             } else {
-                $html .= '<li><a href="' . $makeUrl($i) . '">' . $i . '</a></li>';
+                $html .= '<li><a class="fl-page-link" href="' . $makeUrl($i) . '">' . $i . '</a></li>';
             }
         }
 
@@ -261,11 +205,11 @@ final class MembersController
             if ($end < $totalPages - 1) {
                 $html .= '<li><span>&hellip;</span></li>';
             }
-            $html .= '<li><a href="' . $makeUrl($totalPages) . '">' . $totalPages . '</a></li>';
+            $html .= '<li><a class="fl-page-link" href="' . $makeUrl($totalPages) . '">' . $totalPages . '</a></li>';
         }
 
         if ($currentPage < $totalPages) {
-            $html .= '<li><a href="' . $makeUrl($currentPage + 1) . '">Next &raquo;</a></li>';
+            $html .= '<li><a class="fl-page-link" href="' . $makeUrl($currentPage + 1) . '">Next &raquo;</a></li>';
         }
 
         $html .= '</ul></nav>';

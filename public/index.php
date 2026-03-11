@@ -14,10 +14,8 @@ declare(strict_types=1);
 
 define('LUSTER_BASE', dirname(__DIR__));
 
-// Composer autoloader
-$autoloader = LUSTER_BASE . '/vendor/autoload.php';
-
-if (!is_file($autoloader)) {
+// Composer autoloader — show a clear error if Composer hasn't been run
+if (!is_file(LUSTER_BASE . '/vendor/autoload.php')) {
     http_response_code(503);
     echo '<!DOCTYPE html><html><head><title>Setup Required</title></head><body>'
         . '<h1>Dependencies not installed</h1>'
@@ -26,18 +24,13 @@ if (!is_file($autoloader)) {
     exit;
 }
 
-require_once $autoloader;
-
-use Luster\Core\Application;
-
 // If config/app.php does not exist yet, send the user to the installer
-$configPath = LUSTER_BASE . '/config/app.php';
-
-if (!is_file($configPath)) {
+if (!is_file(LUSTER_BASE . '/config/app.php')) {
     header('Location: /install.php');
     exit;
 }
 
-$app = new Application(LUSTER_BASE, $configPath);
+/** @var \Luster\Core\Application $app */
+$app = require LUSTER_BASE . '/bootstrap.php';
 $app->run();
 // No exit() here — PHP ends naturally; see Response::send() for redirect handling.

@@ -15,9 +15,11 @@ use Luster\Controllers\Admin\JoinedController;
 use Luster\Controllers\Admin\MemberController;
 use Luster\Controllers\Admin\MembersIndexController;
 use Luster\Controllers\Admin\SettingsController;
+use Luster\Controllers\Public\AffiliatesController;
 use Luster\Controllers\Public\JoinController;
 use Luster\Controllers\Public\MembersController;
 use Luster\Controllers\Public\RemoveController;
+use Luster\Controllers\Public\ResetController;
 use Luster\Controllers\Public\StatsController;
 use Luster\Controllers\Public\UpdateController;
 use Luster\Core\Router;
@@ -56,6 +58,18 @@ return [
         $router->get('/remove/{id}',          RemoveController::class,  'showForm');
         $router->post('/remove/{id}',         RemoveController::class,  'submit');
         $router->get('/remove/{id}/success',  RemoveController::class,  'success');
+
+        // Affiliates — collective route before the per-fanlisting route
+        $router->get('/affiliates',      AffiliatesController::class, 'collective');
+        $router->get('/affiliates/{id}', AffiliatesController::class, 'index');
+
+        // Password reset — specific sub-paths registered before the base route
+        $router->get('/reset/{id}/sent',      ResetController::class,   'sent');
+        $router->get('/reset/{id}/confirm',   ResetController::class,   'showConfirm');
+        $router->post('/reset/{id}/confirm',  ResetController::class,   'submitConfirm');
+        $router->get('/reset/{id}/done',      ResetController::class,   'done');
+        $router->get('/reset/{id}',           ResetController::class,   'showForm');
+        $router->post('/reset/{id}',          ResetController::class,   'submit');
     },
 
     // ------------------------------------------------------------------
@@ -85,6 +99,8 @@ return [
             FanlistingController::class, 'edit');
         $router->post('/admin/fanlistings/{id}/templates',
             FanlistingController::class, 'saveTemplates');
+        $router->post('/admin/fanlistings/{id}/embed',
+            FanlistingController::class, 'saveEmbed');
         $router->post('/admin/fanlistings/{id}/update',
             FanlistingController::class, 'update');
         $router->post('/admin/fanlistings/{id}/delete',

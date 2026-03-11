@@ -106,6 +106,7 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
   <button class="neb-tab-btn" data-tab="fields">Additional Fields</button>
   <button class="neb-tab-btn" data-tab="affiliates">Affiliates</button>
   <button class="neb-tab-btn" data-tab="templates">Templates</button>
+  <button class="neb-tab-btn" data-tab="embed">Embed</button>
 </div>
 <script>
 document.querySelectorAll('.neb-tab-btn').forEach(function (btn) {
@@ -511,6 +512,131 @@ document.querySelectorAll('.neb-tab-btn').forEach(function (btn) {
   <?php endif; ?>
 </div>
 </div><!-- /#tab-affiliates -->
+
+<!-- ═══ TAB: EMBED ═══ -->
+<div id="tab-embed" class="neb-tab-panel">
+<?php
+/** @var array  $embed_settings */
+/** @var array  $cfg */
+$embedSettings  = $embed_settings ?? [];
+$installPath    = rtrim((string) ($cfg['install_path']   ?? ''), '/');
+$embedBaseUrl   = rtrim((string) ($cfg['embed_base_url'] ?? ''), '/') ?: rtrim((string) ($cfg['app_url'] ?? ''), '/');
+?>
+
+<div class="form-card">
+  <form method="POST" action="<?= $b ?>/admin/fanlistings/<?= (int) $fanlisting->id ?>/embed">
+    <input type="hidden" name="_csrf" value="<?= \Luster\Core\View::e($csrf_token ?? '') ?>">
+
+    <div class="section-divider">Public Page Settings</div>
+
+    <div class="form-group">
+      <label class="form-check">
+        <input type="checkbox" name="country_field_enabled" value="1"
+               <?= ($embedSettings['country_field_enabled'] ?? true) ? 'checked' : '' ?>>
+        <span class="form-check-label">Show country field on join &amp; update forms</span>
+      </label>
+      <p class="form-hint" style="margin-top:0.35rem">
+        Uncheck to hide the country dropdown for this fanlisting.
+      </p>
+    </div>
+
+    <div class="section-divider">Post-Action Redirect URLs</div>
+
+    <p class="form-hint" style="margin-bottom:1rem">
+      Override the default success pages with custom URLs.
+      Leave blank to use Luster's built-in success page.
+    </p>
+
+    <div class="form-group">
+      <label class="form-label" for="fl-redir-join">After Join</label>
+      <input id="fl-redir-join" type="url" name="redirect_url_join" class="form-input"
+             maxlength="500" placeholder="https://fan.example.com/thanks"
+             value="<?= \Luster\Core\View::e($embedSettings['redirect_url_join'] ?? '') ?>">
+    </div>
+
+    <div class="form-group">
+      <label class="form-label" for="fl-redir-update">After Update</label>
+      <input id="fl-redir-update" type="url" name="redirect_url_update" class="form-input"
+             maxlength="500" placeholder="https://fan.example.com/updated"
+             value="<?= \Luster\Core\View::e($embedSettings['redirect_url_update'] ?? '') ?>">
+    </div>
+
+    <div class="form-group">
+      <label class="form-label" for="fl-redir-remove">After Remove</label>
+      <input id="fl-redir-remove" type="url" name="redirect_url_remove" class="form-input"
+             maxlength="500" placeholder="https://fan.example.com/removed"
+             value="<?= \Luster\Core\View::e($embedSettings['redirect_url_remove'] ?? '') ?>">
+    </div>
+
+    <div class="section-divider">Per-Fanlisting Database (Advanced)</div>
+
+    <p class="form-hint" style="margin-bottom:1rem">
+      Override the global database connection for this fanlisting only.
+      Leave all fields blank to use the global database.
+    </p>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label" for="fl-db-host">DB Host</label>
+        <input id="fl-db-host" type="text" name="db_host" class="form-input"
+               maxlength="255" placeholder="localhost"
+               value="<?= \Luster\Core\View::e($embedSettings['db_host'] ?? '') ?>">
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="fl-db-name">DB Name</label>
+        <input id="fl-db-name" type="text" name="db_name" class="form-input"
+               maxlength="255" placeholder="my_database"
+               value="<?= \Luster\Core\View::e($embedSettings['db_name'] ?? '') ?>">
+      </div>
+    </div>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label" for="fl-db-user">DB User</label>
+        <input id="fl-db-user" type="text" name="db_user" class="form-input"
+               maxlength="255" autocomplete="off"
+               value="<?= \Luster\Core\View::e($embedSettings['db_user'] ?? '') ?>">
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="fl-db-pass">DB Password</label>
+        <input id="fl-db-pass" type="password" name="db_pass" class="form-input"
+               maxlength="500" autocomplete="new-password"
+               placeholder="Leave blank to keep current">
+        <p class="form-hint">Only fill in to change the stored password.</p>
+      </div>
+    </div>
+
+    <?php if ($installPath !== ''): ?>
+    <div class="section-divider">Embed Snippets</div>
+
+    <p class="form-hint" style="margin-bottom:0.75rem">
+      Paste these lines into your own site's pages to embed this fanlisting's forms.
+    </p>
+
+    <?php foreach (['join', 'members', 'update', 'remove'] as $page): ?>
+    <div class="form-group">
+      <label class="form-label" style="text-transform:capitalize"><?= \Luster\Core\View::e($page) ?> page</label>
+      <div class="ro-field" style="font-family:'DM Mono',monospace;font-size:0.8rem;user-select:all">
+        $luster_fanlisting_id = <?= (int) $fanlisting->id ?>;<br>
+        require '<?= \Luster\Core\View::e($installPath) ?>/public/embed/<?= \Luster\Core\View::e($page) ?>.php';
+      </div>
+    </div>
+    <?php endforeach; ?>
+    <?php elseif ($installPath === ''): ?>
+    <div class="section-divider">Embed Snippets</div>
+    <p class="form-hint">
+      Set the <strong>Installation Path</strong> in
+      <a href="<?= $b ?>/admin/settings" class="neb-link">Settings → Embed &amp; Paths</a>
+      to generate embed snippets here.
+    </p>
+    <?php endif; ?>
+
+    <div class="btn-row">
+      <button type="submit" class="btn btn-primary">Save Embed Settings</button>
+    </div>
+  </form>
+</div>
+</div><!-- /#tab-embed -->
 
 <script>
 (function () {

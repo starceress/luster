@@ -12,9 +12,9 @@ use Luster\Core\RateLimit;
 use Luster\Core\Request;
 use Luster\Core\Response;
 use Luster\Core\Validator;
-use Luster\Core\ViewRaw;
 use Luster\Models\Fanlisting;
 use Luster\Repositories\FanlistingRepo;
+use Luster\Repositories\FanlistingSettingsRepo;
 use Luster\Repositories\FieldRepo;
 use Luster\Repositories\MemberRepo;
 
@@ -53,8 +53,10 @@ final class UpdateController
             return Response::notFound('That fanlisting does not exist.');
         }
 
-        $fieldRepo = new FieldRepo($this->app->getDatabase(), $this->app->getConfig());
-        $fields    = $fieldRepo->getFieldsForFanlisting($fanlistingId);
+        $fieldRepo     = new FieldRepo($this->app->getDatabase(), $this->app->getConfig());
+        $fields        = $fieldRepo->getFieldsForFanlisting($fanlistingId);
+        $settingsRepo  = new FanlistingSettingsRepo($this->app->getDatabase());
+        $embedSettings = $settingsRepo->getEmbedSettings($fanlistingId);
 
         $session = $this->app->getSession();
         $error   = (string) $session->get('lstr_flash_error', '');
@@ -62,7 +64,7 @@ final class UpdateController
         $session->remove('lstr_flash_error');
         $session->remove('lstr_flash_old');
 
-        return $this->renderUpdateForm($fanlistingId, $fanlisting, $fields, $old, $error);
+        return $this->renderUpdateForm($fanlistingId, $fanlisting, $fields, $embedSettings, $old, $error);
     }
 
     // -----------------------------------------------------------------------
@@ -95,8 +97,12 @@ final class UpdateController
             return Response::notFound('That fanlisting does not exist.');
         }
 
-        $fieldRepo = new FieldRepo($this->app->getDatabase(), $this->app->getConfig());
-        $fields    = $fieldRepo->getFieldsForFanlisting($fanlistingId);
+        $fieldRepo     = new FieldRepo($this->app->getDatabase(), $this->app->getConfig());
+        $fields        = $fieldRepo->getFieldsForFanlisting($fanlistingId);
+        $settingsRepo  = new FanlistingSettingsRepo($this->app->getDatabase());
+        $embedSettings = $settingsRepo->getEmbedSettings($fanlistingId);
+
+        $countryEnabled = (bool) $embedSettings['country_field_enabled'];
 
         // Section 1 — authentication credentials
         $email    = trim((string) $request->post('email',    ''));
@@ -108,7 +114,7 @@ final class UpdateController
         $newPassword        = (string) $request->post('new_password',        '');
         $newPasswordConfirm = (string) $request->post('new_password_confirm', '');
         $url                = trim((string) $request->post('url',                 ''));
-        $country            = trim((string) $request->post('country',            ''));
+        $country            = $countryEnabled ? trim((string) $request->post('country', '')) : '';
         $deleteUrl          = ((string) $request->post('delete_url', '') === '1');
 
         $postData = $request->postAll();
@@ -123,7 +129,7 @@ final class UpdateController
                 'country'   => $country,
             ];
             return $this->renderUpdateForm(
-                $fanlistingId, $fanlisting, $fields, $old,
+                $fanlistingId, $fanlisting, $fields, $embedSettings, $old,
                 '', 'Incorrect answer — please try again.',
             );
         }
@@ -141,9 +147,9 @@ final class UpdateController
             $v->field('new_email')->email()->maxLength(255);
         }
         if ($url !== '') {
-            $v->field('url')->url()->maxLength(255);
+            $v->field('url')->url()->maxLength(500);
         }
-        if ($country !== '') {
+        if ($countryEnabled && $country !== '') {
             $v->field('country')->maxLength(100);
         }
 
@@ -212,7 +218,7 @@ final class UpdateController
                 'country'   => $country,
             ];
             return $this->renderUpdateForm(
-                $fanlistingId, $fanlisting, $fields, $old,
+                $fanlistingId, $fanlisting, $fields, $embedSettings, $old,
                 '', '', 'New passwords do not match. Please try again.',
             );
         }
@@ -228,7 +234,7 @@ final class UpdateController
                     'country'   => $country,
                 ];
                 return $this->renderUpdateForm(
-                    $fanlistingId, $fanlisting, $fields, $old,
+                    $fanlistingId, $fanlisting, $fields, $embedSettings, $old,
                     '', '', 'That email address is already registered for this fanlisting.',
                 );
             }
@@ -237,7 +243,7 @@ final class UpdateController
         // Resolve final values — blank submitted field means keep existing value
         $finalName    = $newName  !== '' ? $newName  : $member->name;
         $finalEmail   = $newEmail !== '' ? $newEmail : $email;
-        $finalCountry = $country  !== '' ? $country  : $member->country;
+        $finalCountry = ($countryEnabled && $country !== '') ? $country : $member->country;
 
         // URL: delete_url clears it; non-empty submission overwrites; blank keeps existing
         if ($deleteUrl) {
@@ -290,6 +296,12 @@ final class UpdateController
             error_log('[Luster] Update email failed: ' . $e->getMessage());
         }
 
+        // Redirect to configured URL or default success page
+        $redirectUrl = (string) $embedSettings['redirect_url_update'];
+        if ($redirectUrl !== '') {
+            return Response::redirect($redirectUrl);
+        }
+
         return Response::redirect($baseUrl . '/update/' . $fanlistingId . '/success');
     }
 
@@ -305,13 +317,17 @@ final class UpdateController
         $fanlisting     = $fanlistingRepo->getById($fanlistingId);
 
         $fanlistingName = $fanlisting?->name ?? 'this fanlisting';
+        $baseUrl        = $this->app->getBaseUrl();
 
-        $html = $this->app->getView()->render('default/success.html', [
-            'title'           => 'Membership Updated',
-            'message'         => "Your membership in the {$fanlistingName} fanlisting has been updated successfully.",
+        $html = $this->app->getView()->renderPublic('success.php', [
+            'fanlisting'      => $fanlisting,
             'fanlisting_name' => $fanlistingName,
-            'app_name'        => (string) $this->app->getConfig()->get('app_name', 'Luster'),
-            'base_url'        => $this->app->getBaseUrl(),
+            'fanlisting_url'  => $fanlisting?->url ?? '',
+            'page_title'      => 'Membership Updated',
+            'success_heading' => 'Membership Updated',
+            'success_message' => "Your membership in the {$fanlistingName} fanlisting has been updated successfully.",
+            'base_url'        => $baseUrl,
+            'theme_path'      => $baseUrl . '/assets/default/',
         ]);
 
         return Response::html($html);
@@ -322,18 +338,20 @@ final class UpdateController
     // -----------------------------------------------------------------------
 
     /**
-     * Renders the update form template with all required tokens.
+     * Renders the update form template with all required variables.
      *
      * Used by showForm() (GET), captcha-failure, password-mismatch, and
      * new-email-taken re-renders so the form stays filled in without a redirect.
      *
      * @param \Luster\Models\AdditionalField[] $fields
+     * @param array<string,mixed>              $embedSettings
      * @param array<string,string>             $old
      */
     private function renderUpdateForm(
         int $fanlistingId,
         Fanlisting $fanlisting,
         array $fields,
+        array $embedSettings,
         array $old = [],
         string $error = '',
         string $captchaError = '',
@@ -341,62 +359,30 @@ final class UpdateController
     ): Response {
         $baseUrl = $this->app->getBaseUrl();
 
-        $html = $this->app->getView()->render('default/update.html', [
-            'fanlisting_name'   => $fanlisting->name,
-            'fanlisting_url'    => $fanlisting->url,
-            'csrf_token'        => $this->app->getCSRF()->token(),
-            'fanlisting_id'     => (string) $fanlistingId,
-            'error'             => $error,
-            'update_error'      => $updateError,
-            'old_email'         => (string) ($old['email']     ?? ''),
-            'old_name'          => (string) ($old['new_name']  ?? ''),
-            'old_new_email'     => (string) ($old['new_email'] ?? ''),
-            'old_url'           => (string) ($old['url']       ?? ''),
-            'country_select'    => new ViewRaw(Countries::buildSelect((string) ($old['country'] ?? ''))),
-            'extra_fields'      => new ViewRaw($this->buildExtraFieldsHtml($fields, $old)),
-            'lost_password_url' => $baseUrl . '/remove/' . $fanlistingId,
-            'captcha_question'  => Captcha::getQuestion(),
-            'captcha_error'     => $captchaError,
-            'app_name'          => (string) $this->app->getConfig()->get('app_name', 'Luster'),
-            'base_url'          => $baseUrl,
+        $html = $this->app->getView()->renderPublic('update.php', [
+            'fanlisting'           => $fanlisting,
+            'fanlisting_name'      => $fanlisting->name,
+            'fanlisting_url'       => $fanlisting->url,
+            'page_title'           => 'Update Membership',
+            'form_action'          => $baseUrl . '/update/' . $fanlistingId,
+            'csrf_token'           => $this->app->getCSRF()->token(),
+            'errors'               => $error !== '' ? '<p>' . htmlspecialchars($error, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '</p>' : '',
+            'update_error'         => $updateError,
+            'field_email'          => (string) ($old['email']     ?? ''),
+            'field_name'           => (string) ($old['new_name']  ?? ''),
+            'field_new_email'      => (string) ($old['new_email'] ?? ''),
+            'field_url'            => (string) ($old['url']       ?? ''),
+            'country_select'       => Countries::buildSelect((string) ($old['country'] ?? '')),
+            'country_field_enabled' => (bool) $embedSettings['country_field_enabled'],
+            'fields'               => $fields,
+            'old'                  => $old,
+            'captcha_question'     => Captcha::getQuestion(),
+            'captcha_error'        => $captchaError,
+            'lost_password_url'    => $baseUrl . '/reset/' . $fanlistingId,
+            'base_url'             => $baseUrl,
+            'theme_path'           => $baseUrl . '/assets/default/',
         ]);
 
         return Response::html($html);
-    }
-
-    /**
-     * @param \Luster\Models\AdditionalField[] $fields
-     * @param array<string,string>             $oldValues
-     */
-    private function buildExtraFieldsHtml(array $fields, array $oldValues): string
-    {
-        if (empty($fields)) {
-            return '';
-        }
-
-        $html = '';
-
-        foreach ($fields as $field) {
-            $inputName = 'field_' . $field->name;
-            $labelText = htmlspecialchars($field->label,   ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
-            $nameAttr  = htmlspecialchars($inputName,      ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
-            $oldVal    = htmlspecialchars((string) ($oldValues[$inputName] ?? ''), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
-            $required  = $field->required ? ' required' : '';
-            $reqMark   = $field->required ? ' <span aria-hidden="true">*</span>' : '';
-
-            if ($field->type === 'textarea') {
-                $html .= "<div class=\"form-group\">\n"
-                       . "  <label for=\"{$nameAttr}\">{$labelText}{$reqMark}</label>\n"
-                       . "  <textarea id=\"{$nameAttr}\" name=\"{$nameAttr}\" maxlength=\"255\"{$required}>{$oldVal}</textarea>\n"
-                       . "</div>\n";
-            } else {
-                $html .= "<div class=\"form-group\">\n"
-                       . "  <label for=\"{$nameAttr}\">{$labelText}{$reqMark}</label>\n"
-                       . "  <input type=\"text\" id=\"{$nameAttr}\" name=\"{$nameAttr}\" value=\"{$oldVal}\" maxlength=\"255\"{$required}>\n"
-                       . "</div>\n";
-            }
-        }
-
-        return $html;
     }
 }

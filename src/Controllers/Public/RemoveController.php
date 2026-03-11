@@ -13,6 +13,7 @@ use Luster\Core\Response;
 use Luster\Core\Validator;
 use Luster\Models\Fanlisting;
 use Luster\Repositories\FanlistingRepo;
+use Luster\Repositories\FanlistingSettingsRepo;
 use Luster\Repositories\MemberRepo;
 
 /**
@@ -159,6 +160,14 @@ final class RemoveController
             error_log('[Luster] Remove email failed: ' . $e->getMessage());
         }
 
+        // Redirect to configured URL or default success page
+        $settingsRepo = new FanlistingSettingsRepo($this->app->getDatabase());
+        $embedSettings = $settingsRepo->getEmbedSettings($fanlistingId);
+        $redirectUrl   = (string) $embedSettings['redirect_url_remove'];
+        if ($redirectUrl !== '') {
+            return Response::redirect($redirectUrl);
+        }
+
         return Response::redirect($baseUrl . '/remove/' . $fanlistingId . '/success');
     }
 
@@ -174,13 +183,17 @@ final class RemoveController
         $fanlisting     = $fanlistingRepo->getById($fanlistingId);
 
         $fanlistingName = $fanlisting?->name ?? 'this fanlisting';
+        $baseUrl        = $this->app->getBaseUrl();
 
-        $html = $this->app->getView()->render('default/success.html', [
-            'title'           => 'Membership Removed',
-            'message'         => "You have been removed from the {$fanlistingName} fanlisting. We're sorry to see you go!",
+        $html = $this->app->getView()->renderPublic('success.php', [
+            'fanlisting'      => $fanlisting,
             'fanlisting_name' => $fanlistingName,
-            'app_name'        => (string) $this->app->getConfig()->get('app_name', 'Luster'),
-            'base_url'        => $this->app->getBaseUrl(),
+            'fanlisting_url'  => $fanlisting?->url ?? '',
+            'page_title'      => 'Membership Removed',
+            'success_heading' => 'Membership Removed',
+            'success_message' => "You have been removed from the {$fanlistingName} fanlisting. We're sorry to see you go!",
+            'base_url'        => $baseUrl,
+            'theme_path'      => $baseUrl . '/assets/default/',
         ]);
 
         return Response::html($html);
@@ -191,7 +204,7 @@ final class RemoveController
     // -----------------------------------------------------------------------
 
     /**
-     * Renders the remove form template with all required tokens.
+     * Renders the remove form template with all required variables.
      *
      * Used by both showForm() (on GET) and the captcha-failure path in submit(),
      * so the form can be re-rendered in-place without a redirect.
@@ -203,17 +216,21 @@ final class RemoveController
         string $error = '',
         string $captchaError = '',
     ): Response {
-        $html = $this->app->getView()->render('default/remove.html', [
-            'fanlisting_name'  => $fanlisting->name,
-            'fanlisting_url'   => $fanlisting->url,
-            'csrf_token'       => $this->app->getCSRF()->token(),
-            'fanlisting_id'    => (string) $fanlistingId,
-            'error'            => $error,
-            'old_email'        => $oldEmail,
+        $baseUrl = $this->app->getBaseUrl();
+
+        $html = $this->app->getView()->renderPublic('remove.php', [
+            'fanlisting'      => $fanlisting,
+            'fanlisting_name' => $fanlisting->name,
+            'fanlisting_url'  => $fanlisting->url,
+            'page_title'      => 'Remove Membership',
+            'form_action'     => $baseUrl . '/remove/' . $fanlistingId,
+            'csrf_token'      => $this->app->getCSRF()->token(),
+            'errors'          => $error !== '' ? '<p>' . htmlspecialchars($error, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '</p>' : '',
+            'field_email'     => $oldEmail,
             'captcha_question' => Captcha::getQuestion(),
-            'captcha_error'    => $captchaError,
-            'app_name'         => (string) $this->app->getConfig()->get('app_name', 'Luster'),
-            'base_url'         => $this->app->getBaseUrl(),
+            'captcha_error'   => $captchaError,
+            'base_url'        => $baseUrl,
+            'theme_path'      => $baseUrl . '/assets/default/',
         ]);
 
         return Response::html($html);

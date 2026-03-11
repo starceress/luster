@@ -68,4 +68,25 @@ return [
     'timezone' => 'UTC',
     'per_page' => 25,
 
+    // ------------------------------------------------------------------
+    // Embed & Paths
+    //
+    // install_path — absolute server path to the Luster root directory,
+    //   with trailing slash. Used to generate embed include lines shown
+    //   in the admin panel (e.g. /home/user/nebuluna.com/luster/).
+    //   Leave blank if you are not using the embed system.
+    //
+    // session_cookie_domain — set to ".yourdomain.com" (include the
+    //   leading dot) so sessions are shared across subdomains, e.g.
+    //   fan.yourdomain.com can submit forms to yourdomain.com without
+    //   CSRF token failures. Leave blank for single-domain installs.
+    //
+    // embed_base_url — the public URL where Luster's form submissions
+    //   go (e.g. https://nebuluna.com/luster/public). Leave blank to
+    //   use app_url above.
+    // ------------------------------------------------------------------
+    'install_path'          => '',
+    'session_cookie_domain' => '',
+    'embed_base_url'        => '',
+
 ];

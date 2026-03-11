@@ -1,0 +1,60 @@
+<?php
+
+declare(strict_types=1);
+
+/**
+ * Luster — Public layout template.
+ *
+ * Edit this file to customise the look of your fanlisting pages.
+ * This file wraps every fan-facing page (join, members, update, remove, etc.).
+ *
+ * Available variables:
+ *   $fanlisting      — Fanlisting model object (->name, ->url, ->subject, ->email)
+ *                      May be null on error pages — always use ?? fallbacks.
+ *   $fanlisting_name — string, fanlisting name (pre-sanitised)
+ *   $fanlisting_url  — string, fanlisting URL
+ *   $page_title      — string, page-specific title (e.g. "Join", "Members")
+ *   $base_url        — string, Luster base URL (no trailing slash)
+ *   $theme_path      — string, web-accessible path to this theme's assets, trailing slash
+ *                      e.g. http://localhost/luster/public/assets/default/
+ *   $content         — string, rendered page content — output with <?= $content ?>
+ *                      This is trusted server-rendered HTML; do NOT escape it.
+ *
+ * CSS classes available (from style.css):
+ *   .fl-wrap, .fl-title, .fl-field, .fl-label, .fl-input, .fl-select,
+ *   .fl-textarea, .fl-btn, .fl-errors, .fl-member-list, .fl-member,
+ *   .fl-pagination, .fl-page-link, .fl-page-current, .fl-message, .fl-empty
+ */
+
+use Luster\Core\View;
+?>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><?= View::e($page_title . ' — ' . ($fanlisting->name ?? $fanlisting_name ?? '')) ?></title>
+  <link rel="stylesheet" href="<?= View::e($theme_path) ?>style.css">
+</head>
+<body>
+
+<header>
+  <h1>
+    <?php if (!empty($fanlisting->url ?? '')): ?>
+      <a href="<?= View::e($fanlisting->url) ?>"><?= View::e($fanlisting->name ?? $fanlisting_name ?? '') ?></a>
+    <?php else: ?>
+      <?= View::e($fanlisting->name ?? $fanlisting_name ?? '') ?>
+    <?php endif; ?>
+  </h1>
+</header>
+
+<main>
+  <?= $content ?>
+</main>
+
+<footer>
+  <p><small>Powered by <a href="https://github.com/sjlabels/luster">Luster</a></small></p>
+</footer>
+
+</body>
+</html>

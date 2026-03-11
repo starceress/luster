@@ -18,6 +18,13 @@ final class Session
     private bool $started = false;
 
     /**
+     * @param string $cookieDomain  Optional session cookie domain (e.g. '.nebuluna.com').
+     *                              Pass an empty string for single-domain setups (PHP default).
+     *                              Read from config key 'session_cookie_domain' in Application.
+     */
+    public function __construct(private readonly string $cookieDomain = '') {}
+
+    /**
      * Starts the session with all required security settings applied.
      * Safe to call multiple times; subsequent calls are no-ops.
      */
@@ -37,6 +44,10 @@ final class Session
         ini_set('session.cookie_samesite', 'Strict');
         ini_set('session.use_strict_mode', '1');
         ini_set('session.use_only_cookies', '1');
+
+        if ($this->cookieDomain !== '') {
+            ini_set('session.cookie_domain', $this->cookieDomain);
+        }
 
         session_name('luster_session');
 

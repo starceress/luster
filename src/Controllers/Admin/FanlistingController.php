@@ -577,6 +577,7 @@ final class FanlistingController
         $currentImage       = $settingsRepo->getImage($id);
         $listingType        = $settingsRepo->getListingType($id);
         $membersPerPage     = $settingsRepo->getMembersPerPage($id);
+        $embedSettings      = $settingsRepo->getEmbedSettings($id);
         $approved           = $fanlisting->dbprefix !== '' ? $memberRepo->countApproved($fanlisting->dbprefix) : 0;
         $pending            = $fanlisting->dbprefix !== '' ? $memberRepo->countPending($fanlisting->dbprefix) : 0;
         $countries          = $fanlisting->dbprefix !== '' ? $memberRepo->countUniqueCountries($fanlisting->dbprefix) : 0;
@@ -593,12 +594,15 @@ final class FanlistingController
         $templates          = $settingsRepo->getTemplates($id);
         $categories         = $categoryRepo->getAll();
         $currentCategoryId  = $fanlisting->categoryId ?? null;
+        $success            = (string) $session->get('lstr_flash_success', '');
         $error              = (string) $session->get('lstr_flash_error', '');
+        $session->remove('lstr_flash_success');
         $session->remove('lstr_flash_error');
 
         return $this->layout('admin/fanlistings/edit.php', [
             'fanlisting'          => $fanlisting,
             'auto_approve'        => $autoApprove,
+            'success'             => $success,
             'error'               => $error,
             'old'                 => [],
             'current_image'       => $currentImage,
@@ -618,6 +622,7 @@ final class FanlistingController
             'current_category_id' => $currentCategoryId,
             'listing_type'        => $listingType,
             'members_per_page'    => $membersPerPage,
+            'embed_settings'      => $embedSettings,
         ], 'Edit ' . $fanlisting->name, 'fanlistings');
     }
 
@@ -847,6 +852,69 @@ final class FanlistingController
         $this->app->getSession()->set('lstr_flash_success', 'Templates saved successfully.');
 
         return Response::redirect($this->app->getBaseUrl() . '/admin/fanlistings/' . $id);
+    }
+
+    // -----------------------------------------------------------------------
+    // POST /admin/fanlistings/{id}/embed
+    // -----------------------------------------------------------------------
+
+    public function saveEmbed(Request $request, array $params): Response
+    {
+        $id = (int) ($params['id'] ?? 0);
+
+        $db     = $this->app->getDatabase();
+        $config = $this->app->getConfig();
+
+        $fanlistingRepo = new FanlistingRepo($db, $config);
+        $fanlisting     = $fanlistingRepo->getById($id);
+
+        if ($fanlisting === null) {
+            return Response::notFound('Fanlisting not found.');
+        }
+
+        $settingsRepo = new FanlistingSettingsRepo($db);
+
+        $countryFieldEnabled = $request->post('country_field_enabled') === '1';
+        $redirectUrlJoin     = trim((string) $request->post('redirect_url_join',    ''));
+        $redirectUrlUpdate   = trim((string) $request->post('redirect_url_update',  ''));
+        $redirectUrlRemove   = trim((string) $request->post('redirect_url_remove',  ''));
+        $dbHost              = trim((string) $request->post('db_host',              ''));
+        $dbName              = trim((string) $request->post('db_name',              ''));
+        $dbUser              = trim((string) $request->post('db_user',              ''));
+        $newDbPass           = (string) $request->post('db_pass',                   '');
+
+        // Only update db_pass if a new value was submitted; empty = keep existing
+        if ($newDbPass === '') {
+            $existing = $settingsRepo->getEmbedSettings($id);
+            $dbPass   = $existing['db_pass'];
+        } else {
+            $dbPass = $newDbPass;
+        }
+
+        $settingsRepo->saveEmbedSettings(
+            $id,
+            $countryFieldEnabled,
+            $redirectUrlJoin,
+            $redirectUrlUpdate,
+            $redirectUrlRemove,
+            $dbHost,
+            $dbName,
+            $dbUser,
+            $dbPass,
+        );
+
+        $activityRepo = new ActivityRepo($db);
+        $session      = $this->app->getSession();
+        $activityRepo->log(
+            (int) $session->get('lstr_admin_id'),
+            'fanlisting.embed.save',
+            "Saved embed settings for fanlisting #{$id} ({$fanlisting->name})",
+            $request->ip(),
+        );
+
+        $session->set('lstr_flash_success', 'Embed settings saved successfully.');
+
+        return Response::redirect($this->app->getBaseUrl() . '/admin/fanlistings/' . $id . '/edit');
     }
 
     // -----------------------------------------------------------------------

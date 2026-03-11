@@ -487,6 +487,48 @@ try {
     $errors[] = 'lstr_categories.source VARCHAR — ' . htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Migration 17: per-fanlisting embed settings columns on lstr_fanlisting_settings
+// ─────────────────────────────────────────────────────────────────────────────
+try {
+    $pdo->exec(
+        "ALTER TABLE `lstr_fanlisting_settings`
+         ADD COLUMN IF NOT EXISTS `country_field_enabled` TINYINT(1)   NOT NULL DEFAULT 1   AFTER `members_per_page`,
+         ADD COLUMN IF NOT EXISTS `redirect_url_join`     VARCHAR(500) NOT NULL DEFAULT ''   AFTER `country_field_enabled`,
+         ADD COLUMN IF NOT EXISTS `redirect_url_update`   VARCHAR(500) NOT NULL DEFAULT ''   AFTER `redirect_url_join`,
+         ADD COLUMN IF NOT EXISTS `redirect_url_remove`   VARCHAR(500) NOT NULL DEFAULT ''   AFTER `redirect_url_update`,
+         ADD COLUMN IF NOT EXISTS `db_host`               VARCHAR(255) NOT NULL DEFAULT ''   AFTER `redirect_url_remove`,
+         ADD COLUMN IF NOT EXISTS `db_name`               VARCHAR(255) NOT NULL DEFAULT ''   AFTER `db_host`,
+         ADD COLUMN IF NOT EXISTS `db_user`               VARCHAR(255) NOT NULL DEFAULT ''   AFTER `db_name`,
+         ADD COLUMN IF NOT EXISTS `db_pass`               VARCHAR(500) NOT NULL DEFAULT ''   AFTER `db_user`"
+    );
+    $done[] = 'Added embed settings columns to <code>lstr_fanlisting_settings</code>';
+} catch (PDOException $e) {
+    $errors[] = 'lstr_fanlisting_settings embed columns — ' . htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Migration 18: fan password reset tokens table
+// ─────────────────────────────────────────────────────────────────────────────
+try {
+    $pdo->exec(
+        "CREATE TABLE IF NOT EXISTS `lstr_fan_password_resets` (
+           `id`            INT UNSIGNED  NOT NULL AUTO_INCREMENT,
+           `fanlisting_id` INT UNSIGNED  NOT NULL,
+           `email`         VARCHAR(255)  NOT NULL,
+           `token_hash`    VARCHAR(64)   NOT NULL,
+           `expires_at`    DATETIME      NOT NULL,
+           `created_at`    DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP,
+           PRIMARY KEY (`id`),
+           INDEX `idx_token`    (`token_hash`),
+           INDEX `idx_email_fl` (`fanlisting_id`, `email`)
+         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci"
+    );
+    $done[] = 'Created <code>lstr_fan_password_resets</code> table';
+} catch (PDOException $e) {
+    $errors[] = 'lstr_fan_password_resets — ' . htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+}
+
 ?><!DOCTYPE html>
 <html lang="en">
 <head>

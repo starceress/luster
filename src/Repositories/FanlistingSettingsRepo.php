@@ -219,4 +219,114 @@ final class FanlistingSettingsRepo
             'per_page' => $perPage,
         ]);
     }
+
+    /**
+     * Returns embed-related settings for a fanlisting.
+     *
+     * Requires Migration 17. Returns safe defaults when no settings row exists
+     * or when the columns are not yet present.
+     *
+     * @return array{
+     *   country_field_enabled: bool,
+     *   redirect_url_join:     string,
+     *   redirect_url_update:   string,
+     *   redirect_url_remove:   string,
+     *   db_host:               string,
+     *   db_name:               string,
+     *   db_user:               string,
+     *   db_pass:               string,
+     * }
+     */
+    public function getEmbedSettings(int $fanlistingId): array
+    {
+        $defaults = [
+            'country_field_enabled' => true,
+            'redirect_url_join'     => '',
+            'redirect_url_update'   => '',
+            'redirect_url_remove'   => '',
+            'db_host'               => '',
+            'db_name'               => '',
+            'db_user'               => '',
+            'db_pass'               => '',
+        ];
+
+        try {
+            $stmt = $this->db->prepare(
+                'SELECT country_field_enabled, redirect_url_join, redirect_url_update,
+                        redirect_url_remove, db_host, db_name, db_user, db_pass
+                 FROM lstr_fanlisting_settings
+                 WHERE fanlisting_id = :id'
+            );
+            $stmt->execute(['id' => $fanlistingId]);
+            $row = $stmt->fetch();
+        } catch (\Exception) {
+            // Columns not yet added — Migration 17 not run
+            return $defaults;
+        }
+
+        if ($row === false) {
+            return $defaults;
+        }
+
+        return [
+            'country_field_enabled' => (bool) $row['country_field_enabled'],
+            'redirect_url_join'     => (string) $row['redirect_url_join'],
+            'redirect_url_update'   => (string) $row['redirect_url_update'],
+            'redirect_url_remove'   => (string) $row['redirect_url_remove'],
+            'db_host'               => (string) $row['db_host'],
+            'db_name'               => (string) $row['db_name'],
+            'db_user'               => (string) $row['db_user'],
+            'db_pass'               => (string) $row['db_pass'],
+        ];
+    }
+
+    /**
+     * Saves (upserts) embed-related settings for a fanlisting.
+     *
+     * Pass an empty string for $dbPass to keep the existing stored password
+     * (the controller must do this check before calling).
+     *
+     * Requires Migration 17.
+     */
+    public function saveEmbedSettings(
+        int    $fanlistingId,
+        bool   $countryFieldEnabled,
+        string $redirectUrlJoin,
+        string $redirectUrlUpdate,
+        string $redirectUrlRemove,
+        string $dbHost,
+        string $dbName,
+        string $dbUser,
+        string $dbPass,
+    ): void {
+        $stmt = $this->db->prepare(
+            'INSERT INTO lstr_fanlisting_settings
+                 (fanlisting_id, country_field_enabled, redirect_url_join,
+                  redirect_url_update, redirect_url_remove,
+                  db_host, db_name, db_user, db_pass)
+             VALUES
+                 (:id, :country, :join_url, :update_url, :remove_url,
+                  :host, :dbname, :user, :pass)
+             ON DUPLICATE KEY UPDATE
+                 country_field_enabled = VALUES(country_field_enabled),
+                 redirect_url_join     = VALUES(redirect_url_join),
+                 redirect_url_update   = VALUES(redirect_url_update),
+                 redirect_url_remove   = VALUES(redirect_url_remove),
+                 db_host               = VALUES(db_host),
+                 db_name               = VALUES(db_name),
+                 db_user               = VALUES(db_user),
+                 db_pass               = VALUES(db_pass)'
+        );
+        $stmt->execute([
+            'id'         => $fanlistingId,
+            'country'    => (int) $countryFieldEnabled,
+            'join_url'   => $redirectUrlJoin,
+            'update_url' => $redirectUrlUpdate,
+            'remove_url' => $redirectUrlRemove,
+            'host'       => $dbHost,
+            'dbname'     => $dbName,
+            'user'       => $dbUser,
+            'pass'       => $dbPass,
+        ]);
+    }
 }

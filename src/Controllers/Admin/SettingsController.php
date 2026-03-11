@@ -45,6 +45,9 @@ final class SettingsController
         'timezone',
         'joined_display_mode',
         'joined_per_page',
+        'install_path',
+        'session_cookie_domain',
+        'embed_base_url',
     ];
 
     public function __construct(private readonly Application $app) {}
@@ -126,6 +129,12 @@ final class SettingsController
         if ($newSmtpPass !== '') {
             $updated['smtp_pass'] = $newSmtpPass;
         }
+
+        // Embed & Paths
+        $installPath = rtrim(trim((string) $request->post('install_path', '')), '/\\');
+        $updated['install_path']          = $installPath !== '' ? $installPath . '/' : '';
+        $updated['session_cookie_domain'] = trim((string) $request->post('session_cookie_domain', ''));
+        $updated['embed_base_url']        = rtrim(trim((string) $request->post('embed_base_url', '')), '/');
 
         $this->writeConfig($updated);
 
