@@ -345,7 +345,66 @@ final class JoinController
             $required  = $field->required ? ' required' : '';
             $reqMark   = $field->required ? ' <span aria-hidden="true">*</span>' : '';
 
-            if ($field->type === 'textarea') {
+            if ($field->type === 'dropdown') {
+                $optionsHtml = '';
+                foreach (explode(',', $field->options) as $opt) {
+                    $opt = trim($opt);
+                    if ($opt === '') {
+                        continue;
+                    }
+                    $optEsc    = htmlspecialchars($opt, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+                    $selected  = ($oldVal === $optEsc) ? ' selected' : '';
+                    $optionsHtml .= "    <option value=\"{$optEsc}\"{$selected}>{$optEsc}</option>\n";
+                }
+                $html .= "<div class=\"form-group\">\n"
+                       . "  <label for=\"{$nameAttr}\">{$labelText}{$reqMark}</label>\n"
+                       . "  <select id=\"{$nameAttr}\" name=\"{$nameAttr}\"{$required}>\n"
+                       . "    <option value=\"\"></option>\n"
+                       . $optionsHtml
+                       . "  </select>\n"
+                       . "</div>\n";
+            } elseif ($field->type === 'checkbox') {
+                $rawOpts = array_filter(array_map('trim', explode(',', $field->options)), fn($o) => $o !== '');
+
+                if (empty($rawOpts)) {
+                    $checked = ($oldVal === '1') ? ' checked' : '';
+                    $checkboxesHtml = "  <label>\n"
+                                    . "    <input type=\"checkbox\" name=\"{$nameAttr}\" value=\"1\"{$checked}{$required}>\n"
+                                    . "    {$labelText}\n"
+                                    . "  </label>\n";
+                } else {
+                    $oldArr = (array) ($oldValues[$inputName] ?? []);
+                    $checkboxesHtml = '';
+                    foreach ($rawOpts as $opt) {
+                        $optEsc  = htmlspecialchars($opt, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+                        $checked = in_array($opt, $oldArr, true) ? ' checked' : '';
+                        $checkboxesHtml .= "  <label>\n"
+                                        . "    <input type=\"checkbox\" name=\"{$nameAttr}[]\" value=\"{$optEsc}\"{$checked}>\n"
+                                        . "    {$optEsc}\n"
+                                        . "  </label>\n";
+                    }
+                }
+
+                $html .= "<div class=\"form-group\">\n"
+                       . "  <span class=\"form-label\">{$labelText}{$reqMark}</span>\n"
+                       . $checkboxesHtml
+                       . "</div>\n";
+            } elseif ($field->type === 'radio') {
+                $rawOpts = array_filter(array_map('trim', explode(',', $field->options)), fn($o) => $o !== '');
+                $radiosHtml = '';
+                foreach ($rawOpts as $opt) {
+                    $optEsc  = htmlspecialchars($opt, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+                    $checked = ($oldVal === $optEsc) ? ' checked' : '';
+                    $radiosHtml .= "  <label>\n"
+                                 . "    <input type=\"radio\" name=\"{$nameAttr}\" value=\"{$optEsc}\"{$checked}{$required}>\n"
+                                 . "    {$optEsc}\n"
+                                 . "  </label>\n";
+                }
+                $html .= "<div class=\"form-group\">\n"
+                       . "  <span class=\"form-label\">{$labelText}{$reqMark}</span>\n"
+                       . $radiosHtml
+                       . "</div>\n";
+            } elseif ($field->type === 'textarea') {
                 $html .= "<div class=\"form-group\">\n"
                        . "  <label for=\"{$nameAttr}\">{$labelText}{$reqMark}</label>\n"
                        . "  <textarea id=\"{$nameAttr}\" name=\"{$nameAttr}\" maxlength=\"255\"{$required}>{$oldVal}</textarea>\n"

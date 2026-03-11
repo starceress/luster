@@ -22,18 +22,30 @@ final class AffiliateRepo
     // -----------------------------------------------------------------------
 
     /**
-     * Returns every affiliate, sorted by sort_order then name.
+     * Returns a paginated page of all affiliates, sorted by sort_order then name.
      *
-     * @return Affiliate[]
+     * @return array{items: Affiliate[], total: int, pages: int}
      */
-    public function getAll(): array
+    public function getAll(int $perPage = 10, int $page = 1): array
     {
+        $offset = ($page - 1) * $perPage;
+
+        $countStmt = $this->db->prepare('SELECT COUNT(*) FROM lstr_affiliates');
+        $countStmt->execute();
+        $total = (int) $countStmt->fetchColumn();
+
         $stmt = $this->db->prepare(
-            'SELECT * FROM lstr_affiliates ORDER BY sort_order ASC, name ASC'
+            'SELECT * FROM lstr_affiliates ORDER BY sort_order ASC, name ASC LIMIT :limit OFFSET :offset'
         );
+        $stmt->bindValue(':limit',  $perPage, \PDO::PARAM_INT);
+        $stmt->bindValue(':offset', $offset,  \PDO::PARAM_INT);
         $stmt->execute();
 
-        return array_map(static fn(array $r) => Affiliate::fromRow($r), $stmt->fetchAll());
+        return [
+            'items' => array_map(static fn(array $r) => Affiliate::fromRow($r), $stmt->fetchAll()),
+            'total' => $total,
+            'pages' => $total > 0 ? (int) ceil($total / $perPage) : 1,
+        ];
     }
 
     /**
@@ -51,37 +63,128 @@ final class AffiliateRepo
     }
 
     /**
-     * Returns collective affiliates (fanlisting_id IS NULL), sorted by sort_order then name.
+     * Returns a paginated page of collective affiliates (fanlisting_id IS NULL),
+     * sorted by sort_order then name.
      *
-     * @return Affiliate[]
+     * @return array{items: Affiliate[], total: int, pages: int}
      */
-    public function getCollective(): array
+    public function getCollective(int $perPage = 10, int $page = 1): array
     {
+        $offset = ($page - 1) * $perPage;
+
+        $countStmt = $this->db->prepare(
+            'SELECT COUNT(*) FROM lstr_affiliates WHERE fanlisting_id IS NULL'
+        );
+        $countStmt->execute();
+        $total = (int) $countStmt->fetchColumn();
+
         $stmt = $this->db->prepare(
             'SELECT * FROM lstr_affiliates
              WHERE fanlisting_id IS NULL
-             ORDER BY sort_order ASC, name ASC'
+             ORDER BY sort_order ASC, name ASC
+             LIMIT :limit OFFSET :offset'
         );
+        $stmt->bindValue(':limit',  $perPage, \PDO::PARAM_INT);
+        $stmt->bindValue(':offset', $offset,  \PDO::PARAM_INT);
         $stmt->execute();
 
-        return array_map(static fn(array $r) => Affiliate::fromRow($r), $stmt->fetchAll());
+        return [
+            'items' => array_map(static fn(array $r) => Affiliate::fromRow($r), $stmt->fetchAll()),
+            'total' => $total,
+            'pages' => $total > 0 ? (int) ceil($total / $perPage) : 1,
+        ];
     }
 
     /**
-     * Returns affiliates for a specific fanlisting, sorted by sort_order then name.
+     * Returns a paginated page of affiliates for a specific fanlisting,
+     * sorted by sort_order then name.
      *
-     * @return Affiliate[]
+     * @return array{items: Affiliate[], total: int, pages: int}
      */
-    public function getByFanlisting(int $fanlistingId): array
+    public function getByFanlisting(int $fanlistingId, int $perPage = 10, int $page = 1): array
     {
+        $offset = ($page - 1) * $perPage;
+
+        $countStmt = $this->db->prepare(
+            'SELECT COUNT(*) FROM lstr_affiliates WHERE fanlisting_id = :fid'
+        );
+        $countStmt->execute(['fid' => $fanlistingId]);
+        $total = (int) $countStmt->fetchColumn();
+
         $stmt = $this->db->prepare(
             'SELECT * FROM lstr_affiliates
              WHERE fanlisting_id = :fid
-             ORDER BY sort_order ASC, name ASC'
+             ORDER BY sort_order ASC, name ASC
+             LIMIT :limit OFFSET :offset'
         );
-        $stmt->execute(['fid' => $fanlistingId]);
+        $stmt->bindValue(':fid',    $fanlistingId, \PDO::PARAM_INT);
+        $stmt->bindValue(':limit',  $perPage,      \PDO::PARAM_INT);
+        $stmt->bindValue(':offset', $offset,       \PDO::PARAM_INT);
+        $stmt->execute();
 
-        return array_map(static fn(array $r) => Affiliate::fromRow($r), $stmt->fetchAll());
+        return [
+            'items' => array_map(static fn(array $r) => Affiliate::fromRow($r), $stmt->fetchAll()),
+            'total' => $total,
+            'pages' => $total > 0 ? (int) ceil($total / $perPage) : 1,
+        ];
+    }
+
+    /**
+     * Full-text search across name, url, and email, with optional fanlisting scope.
+     *
+     * $fanlistingId === null  → only collective affiliates (fanlisting_id IS NULL)
+     * $fanlistingId === -1   → all affiliates regardless of fanlisting
+     * $fanlistingId > 0      → only that specific fanlisting
+     *
+     * @return array{items: Affiliate[], total: int, pages: int}
+     */
+    public function search(string $q, ?int $fanlistingId, int $perPage = 10, int $page = 1): array
+    {
+        $offset  = ($page - 1) * $perPage;
+        $pattern = '%' . $q . '%';
+
+        // Build the fanlisting clause — hardcoded SQL fragment, no user data interpolated
+        if ($fanlistingId === null) {
+            $fidClause = ' AND fanlisting_id IS NULL';
+        } elseif ($fanlistingId === -1) {
+            $fidClause = '';
+        } else {
+            $fidClause = ' AND fanlisting_id = :fid';
+        }
+
+        $where = '(name LIKE :q1 OR url LIKE :q2 OR email LIKE :q3)' . $fidClause;
+
+        $countStmt = $this->db->prepare("SELECT COUNT(*) FROM lstr_affiliates WHERE {$where}");
+        $countStmt->bindValue(':q1', $pattern, \PDO::PARAM_STR);
+        $countStmt->bindValue(':q2', $pattern, \PDO::PARAM_STR);
+        $countStmt->bindValue(':q3', $pattern, \PDO::PARAM_STR);
+        if ($fanlistingId !== null && $fanlistingId !== -1) {
+            $countStmt->bindValue(':fid', $fanlistingId, \PDO::PARAM_INT);
+        }
+        $countStmt->execute();
+        $total = (int) $countStmt->fetchColumn();
+
+        $stmt = $this->db->prepare(
+            "SELECT * FROM lstr_affiliates
+             WHERE {$where}
+             ORDER BY sort_order ASC, name ASC
+             LIMIT :limit OFFSET :offset"
+        );
+        $stmt->bindValue(':q1',     $pattern, \PDO::PARAM_STR);
+        $stmt->bindValue(':q2',     $pattern, \PDO::PARAM_STR);
+        $stmt->bindValue(':q3',     $pattern, \PDO::PARAM_STR);
+        if ($fanlistingId !== null && $fanlistingId !== -1) {
+            $stmt->bindValue(':fid', $fanlistingId, \PDO::PARAM_INT);
+        }
+        $stmt->bindValue(':limit',  $perPage, \PDO::PARAM_INT);
+        $stmt->bindValue(':offset', $offset,  \PDO::PARAM_INT);
+        $stmt->execute();
+
+        return [
+            'items' => array_map(static fn(array $r) => Affiliate::fromRow($r), $stmt->fetchAll()),
+            'total' => $total,
+            'pages' => $total > 0 ? (int) ceil($total / $perPage) : 1,
+        ];
     }
 
     // -----------------------------------------------------------------------

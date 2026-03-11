@@ -13,9 +13,10 @@ use Luster\Repositories\ActivityRepo;
  * Paginated activity log viewer.
  *
  * Routes:
- *   GET /admin/activity              — all entries, newest first
- *   GET /admin/activity?action=foo   — filter by action type
- *   GET /admin/activity?page=N       — pagination
+ *   GET  /admin/activity        — all entries, newest first
+ *   GET  /admin/activity?action=foo — filter by action type
+ *   GET  /admin/activity?page=N    — pagination
+ *   POST /admin/activity/flush  — delete all entries
  */
 final class ActivityLogController
 {
@@ -35,6 +36,10 @@ final class ActivityLogController
         $result  = $activityRepo->getPaginated($page, $perPage, $filterAction);
         $actions = $activityRepo->getActions();
 
+        $session = $this->app->getSession();
+        $success = (string) $session->get('lstr_flash_success', '');
+        $session->remove('lstr_flash_success');
+
         return $this->layout('admin/activity/index.php', [
             'entries'       => $result['entries'],
             'total'         => $result['total'],
@@ -42,7 +47,24 @@ final class ActivityLogController
             'pages'         => $result['pages'],
             'filter_action' => $filterAction,
             'actions'       => $actions,
+            'success'       => $success,
         ], 'Activity Log', 'activity');
+    }
+
+    // -----------------------------------------------------------------------
+    // POST /admin/activity/flush
+    // -----------------------------------------------------------------------
+
+    public function flush(Request $request, array $params): Response
+    {
+        $activityRepo = new ActivityRepo($this->app->getDatabase());
+        $session      = $this->app->getSession();
+        $baseUrl      = $this->app->getBaseUrl();
+
+        $activityRepo->flush();
+
+        $session->set('lstr_flash_success', 'Activity log cleared.');
+        return Response::redirect($baseUrl . '/admin/activity');
     }
 
     private function layout(string $template, array $data, string $pageTitle, string $section): Response

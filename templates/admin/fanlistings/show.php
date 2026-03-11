@@ -20,31 +20,13 @@ $sizeMap   = ['small' => '50px', 'medium' => '100px', 'large' => '150px'];
 $sizeKey   = (string) ($cfg['image_preview_size'] ?? 'medium');
 $imgHeight = $sizeMap[$sizeKey] ?? '100px';
 ?>
-<style>
-  .info-card { background:#fff;border:1px solid #e5e7eb;border-radius:8px;padding:1.25rem;margin-bottom:1.25rem; }
-  .info-grid { display:grid;grid-template-columns:1fr 1fr;gap:.75rem 1.5rem; }
-  .info-row label { font-size:.75rem;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:.04em;display:block;margin-bottom:.1rem; }
-  .info-row span { font-size:.9rem;color:#111827; }
-  .stat-row { display:flex;gap:1.25rem;margin-bottom:1.25rem; }
-  .mini-stat { background:#fff;border:1px solid #e5e7eb;border-radius:8px;padding:1rem 1.25rem;min-width:120px; }
-  .mini-stat .v { font-size:1.75rem;font-weight:700;color:#111827; }
-  .mini-stat .l { font-size:.75rem;color:#6b7280;margin-top:.1rem; }
-  .btn { display:inline-block;padding:.45rem 1rem;border-radius:6px;font-size:.875rem;font-weight:500;text-decoration:none;cursor:pointer;border:none; }
-  .btn-primary { background:#4f46e5;color:#fff; }
-  .btn-primary:hover { background:#4338ca; }
-  .btn-secondary { background:#f3f4f6;color:#374151;border:1px solid #d1d5db; }
-  .btn-secondary:hover { background:#e5e7eb; }
-  .btn-danger { background:#dc2626;color:#fff; }
-  .btn-danger:hover { background:#b91c1c; }
-  .alert-success { background:#f0fdf4;border:1px solid #86efac;border-radius:6px;padding:.65rem 1rem;margin-bottom:1rem;color:#15803d;font-size:.875rem; }
-</style>
 
 <p style="margin-bottom:1rem">
-  <a href="<?= $b ?>/admin/fanlistings" style="color:#6b7280;font-size:.875rem;text-decoration:none">&larr; All Fanlistings</a>
+  <a href="<?= $b ?>/admin/fanlistings" class="neb-link">&larr; All Fanlistings</a>
 </p>
 
 <?php if ($success !== ''): ?>
-  <div class="alert-success"><?= \Luster\Core\View::e($success) ?></div>
+  <div class="alert alert-success"><?= \Luster\Core\View::e($success) ?></div>
 <?php endif; ?>
 
 <!-- Stats row -->
@@ -54,18 +36,18 @@ $imgHeight = $sizeMap[$sizeKey] ?? '100px';
     <div class="l">Approved</div>
   </div>
   <div class="mini-stat">
-    <div class="v" style="<?= (int) $pending > 0 ? 'color:#d97706' : '' ?>"><?= (int) $pending ?></div>
+    <div class="v<?= (int) $pending > 0 ? ' warn' : '' ?>"><?= (int) $pending ?></div>
     <div class="l">Pending</div>
   </div>
 </div>
 
 <!-- Details card -->
-<div class="info-card">
-  <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:1rem;">
-    <h2 style="font-size:1.1rem;font-weight:700;color:#111827"><?= \Luster\Core\View::e($fanlisting->name) ?></h2>
-    <div style="display:flex;gap:.5rem;">
+<div class="neb-card" style="padding:1.25rem 1.5rem;margin-bottom:1.25rem">
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:1rem">
+    <h2 style="font-size:1.1rem;font-weight:700;color:var(--text);margin:0"><?= \Luster\Core\View::e($fanlisting->name) ?></h2>
+    <div style="display:flex;gap:.5rem">
       <a href="<?= $b ?>/admin/fanlistings/<?= (int) $fanlisting->id ?>/edit" class="btn btn-primary">Edit</a>
-      <a href="<?= $b ?>/admin/members/<?= (int) $fanlisting->id ?>" class="btn btn-secondary">Members</a>
+      <a href="<?= $b ?>/admin/members/<?= (int) $fanlisting->id ?>" class="btn btn-ghost">Members</a>
       <form method="post"
             action="<?= $b ?>/admin/fanlistings/<?= (int) $fanlisting->id ?>/delete"
             style="display:inline"
@@ -76,38 +58,37 @@ $imgHeight = $sizeMap[$sizeKey] ?? '100px';
     </div>
   </div>
 
-  <div class="info-grid">
-    <div class="info-row">
+  <div class="detail-grid">
+    <div class="detail-row">
       <label>Subject</label>
       <span><?= \Luster\Core\View::e($fanlisting->subject) ?></span>
     </div>
-    <div class="info-row">
+    <div class="detail-row">
       <label>Status</label>
       <span>
         <?php if ($fanlisting->upcoming): ?>Upcoming
-        <?php elseif ($fanlisting->trouble): ?>Trouble
-        <?php else: ?>Active<?php endif; ?>
+        <?php elseif ($fanlisting->trouble): ?>Pending
+        <?php else: ?>Current<?php endif; ?>
       </span>
     </div>
-    <div class="info-row">
+    <div class="detail-row">
       <label>URL</label>
       <span>
         <?php if ($fanlisting->url !== ''): ?>
-          <a href="<?= \Luster\Core\View::e($fanlisting->url) ?>" target="_blank" rel="noopener noreferrer" style="color:#4f46e5">
-            <?= \Luster\Core\View::e($fanlisting->url) ?>
-          </a>
-        <?php else: ?>—<?php endif; ?>
+          <a href="<?= \Luster\Core\View::e($fanlisting->url) ?>" target="_blank" rel="noopener noreferrer"
+             class="neb-link"><?= \Luster\Core\View::e($fanlisting->url) ?></a>
+        <?php else: ?><span class="text-dim">&mdash;</span><?php endif; ?>
       </span>
     </div>
-    <div class="info-row">
+    <div class="detail-row">
       <label>Email</label>
       <span><?= \Luster\Core\View::e($fanlisting->email !== '' ? $fanlisting->email : '—') ?></span>
     </div>
-    <div class="info-row">
+    <div class="detail-row">
       <label>Table</label>
-      <span style="font-family:monospace;font-size:.85rem"><?= \Luster\Core\View::e($fanlisting->dbprefix) ?></span>
+      <span><code class="neb-code"><?= \Luster\Core\View::e($fanlisting->dbprefix) ?></code></span>
     </div>
-    <div class="info-row">
+    <div class="detail-row">
       <label>Auto-Approve</label>
       <span><?= $auto_approve ? 'Yes' : 'No' ?></span>
     </div>
@@ -115,58 +96,58 @@ $imgHeight = $sizeMap[$sizeKey] ?? '100px';
 
   <!-- Fanlisting image -->
   <?php if (isset($current_image) && $current_image !== null && $current_image !== ''): ?>
-  <div style="margin-top:1rem;padding-top:1rem;border-top:1px solid #f3f4f6">
-    <img src="/luster/public/uploads/fanlistings/<?= \Luster\Core\View::e($current_image) ?>"
+  <div style="margin-top:1rem;padding-top:1rem;border-top:1px solid var(--border)">
+    <img src="<?= $b ?>/uploads/fanlistings/<?= \Luster\Core\View::e($current_image) ?>"
          alt="<?= \Luster\Core\View::e($fanlisting->name) ?>"
          style="max-height:<?= \Luster\Core\View::e($imgHeight) ?>;width:auto;display:block;border-radius:4px">
   </div>
   <?php endif; ?>
 
   <!-- Category assignment -->
-  <div style="margin-top:1rem;padding-top:1rem;border-top:1px solid #f3f4f6">
+  <div style="margin-top:1rem;padding-top:1rem;border-top:1px solid var(--border)">
     <form method="POST" action="<?= $b ?>/admin/fanlistings/<?= (int) $fanlisting->id ?>/update"
           style="display:flex;align-items:center;gap:.75rem;flex-wrap:wrap">
       <input type="hidden" name="_csrf" value="<?= \Luster\Core\View::e($csrf_token ?? '') ?>">
 
       <label for="fl_category_id"
-             style="font-size:.75rem;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:.04em;white-space:nowrap">
+             style="font-size:.72rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.04em;white-space:nowrap">
         Category
       </label>
 
-      <select id="fl_category_id" name="category_id"
-              style="border:1px solid #d1d5db;border-radius:6px;padding:.35rem .65rem;font-size:.875rem;color:#111827;background:#fff">
-        <option value="0">— Uncategorised —</option>
-        <?php
-        // Group into parents and children for optgroup rendering
-        $catParents  = [];
-        $catChildren = [];
-        foreach ($categories as $cat) {
-            if ($cat->parentId === null) {
-                $catParents[$cat->id] = $cat;
-            } else {
-                $catChildren[$cat->parentId][] = $cat;
-            }
-        }
-        foreach ($catParents as $parent):
-            $hasChildren = !empty($catChildren[$parent->id]);
-            if ($hasChildren): ?>
-          <optgroup label="<?= \Luster\Core\View::e($parent->name) ?>">
-            <option value="<?= (int) $parent->id ?>"<?= $current_category_id === $parent->id ? ' selected' : '' ?>>
-              <?= \Luster\Core\View::e($parent->name) ?> (general)
-            </option>
-            <?php foreach ($catChildren[$parent->id] as $child): ?>
-              <option value="<?= (int) $child->id ?>"<?= $current_category_id === $child->id ? ' selected' : '' ?>>
-                &nbsp;&nbsp;<?= \Luster\Core\View::e($child->name) ?>
+      <div class="select-wrap">
+        <select id="fl_category_id" name="category_id" class="form-select" style="min-width:200px">
+          <option value="0">— Uncategorised —</option>
+          <?php
+          $catParents  = [];
+          $catChildren = [];
+          foreach ($categories as $cat) {
+              if ($cat->parentId === null) {
+                  $catParents[$cat->id] = $cat;
+              } else {
+                  $catChildren[$cat->parentId][] = $cat;
+              }
+          }
+          foreach ($catParents as $parent):
+              $hasChildren = !empty($catChildren[$parent->id]);
+              if ($hasChildren): ?>
+            <optgroup label="<?= \Luster\Core\View::e($parent->name) ?>">
+              <option value="<?= (int) $parent->id ?>"<?= $current_category_id === $parent->id ? ' selected' : '' ?>>
+                <?= \Luster\Core\View::e($parent->name) ?> (general)
               </option>
-            <?php endforeach; ?>
-          </optgroup>
-        <?php else: ?>
-          <option value="<?= (int) $parent->id ?>"<?= $current_category_id === $parent->id ? ' selected' : '' ?>>
-            <?= \Luster\Core\View::e($parent->name) ?>
-          </option>
-        <?php endif;
-        endforeach; ?>
-      </select>
+              <?php foreach ($catChildren[$parent->id] as $child): ?>
+                <option value="<?= (int) $child->id ?>"<?= $current_category_id === $child->id ? ' selected' : '' ?>>
+                  &nbsp;&nbsp;<?= \Luster\Core\View::e($child->name) ?>
+                </option>
+              <?php endforeach; ?>
+            </optgroup>
+          <?php else: ?>
+            <option value="<?= (int) $parent->id ?>"<?= $current_category_id === $parent->id ? ' selected' : '' ?>>
+              <?= \Luster\Core\View::e($parent->name) ?>
+            </option>
+          <?php endif;
+          endforeach; ?>
+        </select>
+      </div>
 
       <button type="submit" class="btn btn-primary" style="font-size:.8125rem;padding:.35rem .8rem">Save</button>
     </form>
@@ -174,56 +155,53 @@ $imgHeight = $sizeMap[$sizeKey] ?? '100px';
 </div>
 
 <?php if ((int) $pending > 0): ?>
-<div style="background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:1rem 1.25rem;margin-bottom:1.25rem;">
-  <strong style="color:#92400e">&#9888; <?= (int) $pending ?> member(s) awaiting approval.</strong>
-  <a href="<?= $b ?>/admin/members/<?= (int) $fanlisting->id ?>?status=pending" style="color:#4f46e5;margin-left:.5rem;font-size:.875rem">Review now &rarr;</a>
+<div class="alert-warning" style="display:flex;align-items:center;gap:.75rem">
+  <strong>&#9888; <?= (int) $pending ?> member(s) awaiting approval.</strong>
+  <a href="<?= $b ?>/admin/members/<?= (int) $fanlisting->id ?>?status=pending" class="neb-link" style="font-size:.875rem">Review now &rarr;</a>
 </div>
 <?php endif; ?>
 
 <!-- Website Templates section -->
-<div class="info-card">
-  <h2 style="font-size:1rem;font-weight:700;color:#111827;margin-bottom:1rem">Website Templates</h2>
+<div class="neb-card" style="padding:1.25rem 1.5rem;margin-bottom:1.25rem">
+  <h2 style="font-size:1rem;font-weight:700;color:var(--text);margin:0 0 1rem">Website Templates</h2>
 
   <div style="margin-bottom:1.25rem">
-    <label style="font-size:.75rem;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:.04em;display:block;margin-bottom:.35rem">Stats URL</label>
-    <input type="text" readonly
+    <label class="form-label">Stats URL</label>
+    <input type="text" readonly class="form-input"
            value="<?= $b ?>/stats/<?= (int) $fanlisting->id ?>"
-           style="width:100%;font-family:monospace;font-size:.8125rem;background:#f9fafb;border:1px solid #e5e7eb;border-radius:6px;padding:.45rem .75rem;color:#374151;box-sizing:border-box">
+           style="font-family:'DM Mono',monospace;font-size:.8125rem;color:var(--text-muted);cursor:default">
   </div>
 
   <form method="POST" action="<?= $b ?>/admin/fanlistings/<?= (int) $fanlisting->id ?>/templates">
     <input type="hidden" name="_csrf" value="<?= \Luster\Core\View::e($csrf_token ?? '') ?>">
 
     <div style="margin-bottom:1.25rem">
-      <label for="members_template"
-             style="font-size:.875rem;font-weight:600;color:#111827;display:block;margin-bottom:.35rem">Members List</label>
-      <p style="font-size:.8125rem;color:#6b7280;font-family:monospace;margin:0 0 .5rem;line-height:1.8">
+      <label class="form-label" for="members_template">Members List</label>
+      <p class="form-hint" style="font-family:'DM Mono',monospace;line-height:1.8;margin-bottom:.5rem">
         $$fan_name$$ &bull; $$fan_email$$ &bull; $$fan_url$$ &bull; $$fan_country$$
       </p>
-      <textarea id="members_template" name="members_template" rows="8"
-                style="width:100%;font-family:monospace;font-size:.8125rem;border:1px solid #d1d5db;border-radius:6px;padding:.5rem .75rem;color:#111827;box-sizing:border-box;resize:vertical"
+      <textarea id="members_template" name="members_template" class="form-textarea" rows="8"
+                style="font-family:'DM Mono',monospace;font-size:.8125rem"
                 placeholder="Leave blank to use the built-in default"><?= \Luster\Core\View::e($members_template ?? '') ?></textarea>
     </div>
 
     <div style="margin-bottom:1.25rem">
-      <label for="affiliates_template"
-             style="font-size:.875rem;font-weight:600;color:#111827;display:block;margin-bottom:.35rem">Affiliates</label>
-      <p style="font-size:.8125rem;color:#6b7280;font-family:monospace;margin:0 0 .5rem;line-height:1.8">
+      <label class="form-label" for="affiliates_template">Affiliates</label>
+      <p class="form-hint" style="font-family:'DM Mono',monospace;line-height:1.8;margin-bottom:.5rem">
         $$aff_url$$ &bull; $$aff_image$$ &bull; $$aff_name$$
       </p>
-      <textarea id="affiliates_template" name="affiliates_template" rows="8"
-                style="width:100%;font-family:monospace;font-size:.8125rem;border:1px solid #d1d5db;border-radius:6px;padding:.5rem .75rem;color:#111827;box-sizing:border-box;resize:vertical"
+      <textarea id="affiliates_template" name="affiliates_template" class="form-textarea" rows="8"
+                style="font-family:'DM Mono',monospace;font-size:.8125rem"
                 placeholder="Leave blank to use the built-in default"><?= \Luster\Core\View::e($affiliates_template ?? '') ?></textarea>
     </div>
 
     <div style="margin-bottom:1.25rem">
-      <label for="stats_template"
-             style="font-size:.875rem;font-weight:600;color:#111827;display:block;margin-bottom:.35rem">Statistics</label>
-      <p style="font-size:.8125rem;color:#6b7280;font-family:monospace;margin:0 0 .5rem;line-height:1.8">
+      <label class="form-label" for="stats_template">Statistics</label>
+      <p class="form-hint" style="font-family:'DM Mono',monospace;line-height:1.8;margin-bottom:.5rem">
         $$stat_opened$$ &bull; $$stat_updated$$ &bull; $$stat_approved$$ &bull; $$stat_pending$$ &bull; $$stat_newmembers$$
       </p>
-      <textarea id="stats_template" name="stats_template" rows="8"
-                style="width:100%;font-family:monospace;font-size:.8125rem;border:1px solid #d1d5db;border-radius:6px;padding:.5rem .75rem;color:#111827;box-sizing:border-box;resize:vertical"
+      <textarea id="stats_template" name="stats_template" class="form-textarea" rows="8"
+                style="font-family:'DM Mono',monospace;font-size:.8125rem"
                 placeholder="Leave blank to use the built-in default"><?= \Luster\Core\View::e($stats_template ?? '') ?></textarea>
     </div>
 
@@ -232,59 +210,59 @@ $imgHeight = $sizeMap[$sizeKey] ?? '100px';
 </div>
 
 <!-- Affiliates section -->
-<div class="info-card">
-  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
-    <h2 style="font-size:1rem;font-weight:700;color:#111827">Affiliates</h2>
+<div class="neb-card" style="overflow:hidden">
+  <div class="neb-card-header" style="display:flex;justify-content:space-between;align-items:center">
+    <span>Affiliates</span>
     <a href="<?= $b ?>/admin/fanlistings/<?= (int) $fanlisting->id ?>/affiliates/add"
-       class="btn btn-primary" style="font-size:.8125rem;padding:.35rem .8rem">+ Add Affiliate</a>
+       class="btn btn-primary btn-sm">+ Add Affiliate</a>
   </div>
 
   <?php if (empty($affiliates)): ?>
-    <p style="color:#6b7280;font-size:.875rem">No affiliates for this fanlisting yet.</p>
+    <p class="text-muted" style="padding:1.25rem;font-size:.875rem">No affiliates for this fanlisting yet.</p>
   <?php else: ?>
-    <table style="width:100%;border-collapse:collapse;font-size:.875rem">
+    <table class="data-table">
       <thead>
-        <tr style="border-bottom:1px solid #e5e7eb">
-          <th style="text-align:left;padding:.5rem .5rem;color:#6b7280;font-weight:600;font-size:.75rem">NAME</th>
-          <th style="text-align:left;padding:.5rem .5rem;color:#6b7280;font-weight:600;font-size:.75rem">STATUS</th>
-          <th style="text-align:right;padding:.5rem .5rem;color:#6b7280;font-weight:600;font-size:.75rem">ACTIONS</th>
+        <tr>
+          <th>Name</th>
+          <th>Status</th>
+          <th class="act-col">Actions</th>
         </tr>
       </thead>
       <tbody>
         <?php foreach ($affiliates as $aff): ?>
-        <tr style="border-bottom:1px solid #f3f4f6">
-          <td style="padding:.5rem .5rem">
+        <tr>
+          <td>
             <a href="<?= \Luster\Core\View::e($aff->url) ?>" target="_blank" rel="noopener noreferrer"
-               style="color:#4f46e5;font-weight:500"><?= \Luster\Core\View::e($aff->name) ?></a>
+               class="neb-link text-strong"><?= \Luster\Core\View::e($aff->name) ?></a>
           </td>
-          <td style="padding:.5rem .5rem">
+          <td>
             <?php if ($aff->active): ?>
-              <span style="background:#f0fdf4;color:#15803d;padding:.15rem .55rem;border-radius:9999px;font-size:.7rem;font-weight:600">Active</span>
+              <span class="neb-badge badge-current">Active</span>
             <?php else: ?>
-              <span style="background:#f9fafb;color:#6b7280;padding:.15rem .55rem;border-radius:9999px;font-size:.7rem;font-weight:600">Inactive</span>
+              <span class="neb-badge badge-inactive">Inactive</span>
             <?php endif; ?>
           </td>
-          <td style="padding:.5rem .5rem;text-align:right">
+          <td class="act-col">
             <a href="<?= $b ?>/admin/affiliates/<?= (int) $aff->id ?>/edit?from_fanlisting=<?= (int) $fanlisting->id ?>"
-               style="color:#4f46e5;font-size:.8125rem;margin-right:.5rem">Edit</a>
+               class="btn btn-secondary btn-sm">Edit</a>
 
             <form method="POST"
                   action="<?= $b ?>/admin/affiliates/<?= (int) $aff->id ?>/toggle"
-                  style="display:inline">
+                  style="display:inline;margin-left:.25rem">
               <input type="hidden" name="_csrf" value="<?= \Luster\Core\View::e($csrf_token ?? '') ?>">
               <input type="hidden" name="from_fanlisting" value="<?= (int) $fanlisting->id ?>">
-              <button type="submit" style="background:none;border:none;color:#d97706;font-size:.8125rem;cursor:pointer;padding:0;margin-right:.5rem">
+              <button type="submit" class="btn btn-ghost btn-sm">
                 <?= $aff->active ? 'Deactivate' : 'Activate' ?>
               </button>
             </form>
 
             <form method="POST"
                   action="<?= $b ?>/admin/affiliates/<?= (int) $aff->id ?>/delete"
-                  style="display:inline"
+                  style="display:inline;margin-left:.25rem"
                   onsubmit="return confirm('Delete this affiliate?')">
               <input type="hidden" name="_csrf" value="<?= \Luster\Core\View::e($csrf_token ?? '') ?>">
               <input type="hidden" name="from_fanlisting" value="<?= (int) $fanlisting->id ?>">
-              <button type="submit" style="background:none;border:none;color:#dc2626;font-size:.8125rem;cursor:pointer;padding:0">Delete</button>
+              <button type="submit" class="btn btn-danger btn-sm">Delete</button>
             </form>
           </td>
         </tr>

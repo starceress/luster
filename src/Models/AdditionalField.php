@@ -19,5 +19,6 @@ final class AdditionalField
         public readonly string $label,
         public readonly string $type,
         public readonly bool   $required,
+        public readonly string $options = '',
     ) {}
 }

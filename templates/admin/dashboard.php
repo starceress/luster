@@ -1,105 +1,262 @@
 <?php
-/** @var string   $admin_username */
-/** @var string   $app_name */
-/** @var int      $total_fanlistings */
-/** @var int      $total_members */
-/** @var int      $total_pending */
-/** @var array[]  $recent_activity */
-/** @var string   $base_url */
+/**
+ * @var string        $admin_username
+ * @var string        $app_name
+ * @var int           $total_fanlistings
+ * @var int           $fan_pending
+ * @var int           $fan_upcoming
+ * @var int           $total_joined
+ * @var int           $total_joined_inactive
+ * @var int           $total_joined_categories
+ * @var int           $total_members
+ * @var int           $total_pending
+ * @var int           $total_affiliates
+ * @var int           $total_affiliates_collective
+ * @var int           $total_affiliates_per_fl
+ * @var int           $total_categories
+ * @var string|null   $newest_owned_name
+ * @var string|null   $newest_joined_name
+ * @var array[]       $recent_members   [{member: Member, fanlisting_name: string}]
+ * @var array[]       $recent_activity
+ * @var string        $base_url
+ */
 $b = rtrim(\Luster\Core\View::e($base_url), '/');
+
+if (!function_exists('dashTimeAgo')) {
+    function dashTimeAgo(string $dt): string
+    {
+        $diff = max(0, time() - (int) strtotime($dt));
+        if ($diff < 60)    return 'just now';
+        if ($diff < 3600)  return floor($diff / 60) . 'm ago';
+        if ($diff < 86400) return floor($diff / 3600) . 'h ago';
+        return floor($diff / 86400) . 'd ago';
+    }
+
+    function dashDotColor(string $action): string
+    {
+        $a = strtolower($action);
+        if (str_contains($a, 'approve') || str_contains($a, 'add') || str_contains($a, 'creat')) return '#34d399';
+        if (str_contains($a, 'delete')  || str_contains($a, 'reject') || str_contains($a, 'flush')) return '#f87171';
+        if (str_contains($a, 'update')  || str_contains($a, 'save')   || str_contains($a, 'edit'))  return '#fbbf24';
+        return '#a78bfa';
+    }
+
+}
 ?>
-<style>
-  .stat-grid { display: grid; gap: 1rem; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); margin-bottom: 2rem; }
-  .stat-card { background: #fff; border: 1px solid #e5e7eb; border-radius: 8px; padding: 1.25rem; }
-  .stat-card .val { font-size: 2rem; font-weight: 700; color: #111827; line-height: 1; }
-  .stat-card .lbl { font-size: 0.8125rem; color: #6b7280; margin-top: 0.25rem; }
-  .stat-card.warn .val { color: #d97706; }
-  .section-title { font-size: 1rem; font-weight: 600; color: #111827; margin-bottom: 0.75rem; }
-  .activity-table { width: 100%; border-collapse: collapse; background: #fff; border: 1px solid #e5e7eb; border-radius: 8px; overflow: hidden; }
-  .activity-table th { background: #f9fafb; text-align: left; padding: .6rem 1rem; font-size: .8rem; color: #6b7280; border-bottom: 1px solid #e5e7eb; }
-  .activity-table td { padding: .6rem 1rem; font-size: .8125rem; color: #374151; border-bottom: 1px solid #f3f4f6; }
-  .activity-table tr:last-child td { border-bottom: none; }
-  .badge { display: inline-block; padding: .15rem .5rem; border-radius: 999px; font-size: .7rem; font-weight: 600; }
-  .badge-blue { background: #eff6ff; color: #1d4ed8; }
-  .quick-links { display: grid; gap: .75rem; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); }
-  .ql { display: block; background: #fff; border: 1px solid #e5e7eb; border-radius: 8px; padding: 1rem; text-decoration: none; color: #111827; }
-  .ql:hover { box-shadow: 0 4px 12px rgba(0,0,0,.07); }
-  .ql .icon { font-size: 1.5rem; margin-bottom: .4rem; }
-  .ql .name { font-weight: 600; font-size: .875rem; }
-  .ql .desc { font-size: .75rem; color: #6b7280; margin-top: .15rem; }
-</style>
 
-<p style="color:#6b7280;margin-bottom:1.5rem;">
-  Welcome back, <strong><?= \Luster\Core\View::e($admin_username) ?></strong>.
-</p>
-
-<!-- Stats -->
-<div class="stat-grid">
-  <div class="stat-card">
-    <div class="val"><?= (int) $total_fanlistings ?></div>
-    <div class="lbl">Fanlistings</div>
-  </div>
-  <div class="stat-card">
-    <div class="val"><?= (int) $total_members ?></div>
-    <div class="lbl">Approved Members</div>
-  </div>
-  <div class="stat-card <?= (int) $total_pending > 0 ? 'warn' : '' ?>">
-    <div class="val"><?= (int) $total_pending ?></div>
-    <div class="lbl">Pending Approval</div>
+<!-- ── Welcome block ──────────────────────────────────────────── -->
+<div class="welcome-block">
+  <div class="welcome-datetime" id="live-datetime"></div>
+  <div class="welcome-title">Welcome back, <?= \Luster\Core\View::e($admin_username) ?>! ✨</div>
+  <div class="welcome-sub">
+    Your collective, <strong><?= \Luster\Core\View::e($app_name) ?></strong>, is shining today &mdash; here&rsquo;s what&rsquo;s happening <span class="welcome-star">✦</span>
   </div>
 </div>
 
-<!-- Quick links -->
-<p class="section-title">Quick Links</p>
-<div class="quick-links" style="margin-bottom:2rem;">
-  <a href="<?= $b ?>/admin/fanlistings" class="ql">
-    <div class="icon">&#9734;</div>
-    <div class="name">Fanlistings</div>
-    <div class="desc">View &amp; edit</div>
-  </a>
-  <a href="<?= $b ?>/admin/members" class="ql">
-    <div class="icon">&#9829;</div>
-    <div class="name">Members</div>
-    <div class="desc">Approve &amp; manage</div>
-  </a>
-  <a href="<?= $b ?>/admin/affiliates" class="ql">
-    <div class="icon">&#9830;</div>
-    <div class="name">Affiliates</div>
-    <div class="desc">Manage links</div>
-  </a>
-  <a href="<?= $b ?>/admin/settings" class="ql">
-    <div class="icon">&#9881;</div>
-    <div class="name">Settings</div>
-    <div class="desc">Configure panel</div>
-  </a>
+<!-- ── 3×2 stat grid ─────────────────────────────────────────── -->
+<div class="stats-grid">
+
+  <div class="stat-card">
+    <div class="stat-header">
+      <span class="stat-emoji">💎</span>
+      <span class="stat-label">Owned</span>
+      <span class="stat-sparkle">✦</span>
+    </div>
+    <div class="stat-value"><?= (int) $total_fanlistings ?></div>
+    <div class="stat-pills">
+      <?php if ($fan_pending > 0): ?>
+        <span class="pill pill-warn"><?= (int) $fan_pending ?> Pending</span>
+      <?php endif; ?>
+      <?php if ($fan_upcoming > 0): ?>
+        <span class="pill pill-muted"><?= (int) $fan_upcoming ?> Upcoming</span>
+      <?php endif; ?>
+      <?php if ($fan_pending === 0 && $fan_upcoming === 0): ?>
+        <span class="pill pill-ok">All Current</span>
+      <?php endif; ?>
+    </div>
+  </div>
+
+  <div class="stat-card">
+    <div class="stat-header">
+      <span class="stat-emoji">🌸</span>
+      <span class="stat-label">Joined</span>
+      <span class="stat-sparkle">✦</span>
+    </div>
+    <div class="stat-value"><?= (int) $total_joined ?></div>
+    <div class="stat-pills">
+      <?php if ($total_joined_categories > 0): ?>
+        <span class="pill pill-info"><?= (int) $total_joined_categories ?> Categories</span>
+      <?php endif; ?>
+      <?php if ($total_joined_inactive > 0): ?>
+        <span class="pill pill-muted"><?= (int) $total_joined_inactive ?> Inactive</span>
+      <?php endif; ?>
+      <?php if ($total_joined === 0): ?>
+        <span class="pill pill-muted">None yet</span>
+      <?php endif; ?>
+    </div>
+  </div>
+
+  <div class="stat-card">
+    <div class="stat-header">
+      <span class="stat-emoji">👥</span>
+      <span class="stat-label">Total Members</span>
+      <span class="stat-sparkle">✦</span>
+    </div>
+    <div class="stat-value"><?= number_format((int) $total_members) ?></div>
+    <div class="stat-pills">
+      <?php if ($total_pending > 0): ?>
+        <span class="pill pill-warn"><?= (int) $total_pending ?> Pending</span>
+      <?php else: ?>
+        <span class="pill pill-ok">All Approved</span>
+      <?php endif; ?>
+    </div>
+  </div>
+
+  <div class="stat-card">
+    <div class="stat-header">
+      <span class="stat-emoji">⭐</span>
+      <span class="stat-label">Affiliates</span>
+      <span class="stat-sparkle">✦</span>
+    </div>
+    <div class="stat-value"><?= (int) $total_affiliates ?></div>
+    <div class="stat-pills">
+      <?php if ($total_affiliates_collective > 0): ?>
+        <span class="pill pill-info"><?= (int) $total_affiliates_collective ?> Collective</span>
+      <?php endif; ?>
+      <?php if ($total_affiliates_per_fl > 0): ?>
+        <span class="pill pill-muted"><?= (int) $total_affiliates_per_fl ?> Per-FL</span>
+      <?php endif; ?>
+      <?php if ($total_affiliates === 0): ?>
+        <span class="pill pill-muted">None yet</span>
+      <?php endif; ?>
+    </div>
+  </div>
+
+  <div class="stat-card">
+    <div class="stat-header">
+      <span class="stat-emoji">🗂️</span>
+      <span class="stat-label">Categories</span>
+      <span class="stat-sparkle">✦</span>
+    </div>
+    <div class="stat-value"><?= (int) $total_categories ?></div>
+    <div class="stat-pills">
+      <span class="pill pill-ok">All Active</span>
+    </div>
+  </div>
+
+  <div class="stat-card">
+    <div class="stat-header">
+      <span class="stat-emoji">⏳</span>
+      <span class="stat-label">Pending Approvals</span>
+      <span class="stat-sparkle">✦</span>
+    </div>
+    <div class="stat-value"><?= (int) $total_pending ?></div>
+    <div class="stat-pills">
+      <?php if ($total_pending > 0): ?>
+        <span class="pill pill-warn"><?= (int) $total_pending ?> Members</span>
+      <?php else: ?>
+        <span class="pill pill-ok">None Pending</span>
+      <?php endif; ?>
+    </div>
+  </div>
+
+</div><!-- /.stats-grid -->
+
+<!-- ── Newest card ───────────────────────────────────────────── -->
+<div class="newest-card">
+  <div class="newest-row">
+    <span class="newest-star">✦</span>
+    <span class="newest-label">Newest owned fanlisting:</span>
+    <?php if ($newest_owned_name !== null): ?>
+      <a href="<?= $b ?>/admin/fanlistings" class="newest-link"><?= \Luster\Core\View::e($newest_owned_name) ?></a>
+    <?php else: ?>
+      <span style="color:var(--text-dim)">None yet</span>
+    <?php endif; ?>
+  </div>
+  <div class="newest-row">
+    <span class="newest-star">✦</span>
+    <span class="newest-label">Newest joined fanlisting:</span>
+    <?php if ($newest_joined_name !== null): ?>
+      <a href="<?= $b ?>/admin/joined" class="newest-link"><?= \Luster\Core\View::e($newest_joined_name) ?></a>
+    <?php else: ?>
+      <span style="color:var(--text-dim)">None yet</span>
+    <?php endif; ?>
+  </div>
 </div>
 
-<!-- Recent activity -->
-<p class="section-title">Recent Activity</p>
-<?php if (empty($recent_activity)): ?>
-  <p style="color:#6b7280;font-size:.875rem;">No activity recorded yet.</p>
-<?php else: ?>
-<table class="activity-table">
-  <thead>
-    <tr>
-      <th>Action</th>
-      <th>Description</th>
-      <th>User</th>
-      <th>Time</th>
-    </tr>
-  </thead>
-  <tbody>
-    <?php foreach ($recent_activity as $entry): ?>
-    <tr>
-      <td><span class="badge badge-blue"><?= \Luster\Core\View::e((string) $entry['action']) ?></span></td>
-      <td><?= \Luster\Core\View::e((string) ($entry['description'] ?? '')) ?></td>
-      <td><?= \Luster\Core\View::e((string) ($entry['username'] ?? '—')) ?></td>
-      <td style="white-space:nowrap;color:#6b7280"><?= \Luster\Core\View::e((string) ($entry['created_at'] ?? '')) ?></td>
-    </tr>
-    <?php endforeach; ?>
-  </tbody>
-</table>
-<p style="margin-top:.5rem;font-size:.8125rem;">
-  <a href="<?= $b ?>/admin/activity" style="color:#4f46e5">View full activity log &rarr;</a>
-</p>
-<?php endif; ?>
+<!-- ── Two-column: recent members + recent activity ──────────── -->
+<div class="two-col">
+
+  <!-- Recent Members -->
+  <div class="panel">
+    <div class="panel-header">
+      <div class="panel-title">
+        <span class="panel-icon">👤</span> Recent Members
+      </div>
+      <a href="<?= $b ?>/admin/members" class="panel-link">View all &rarr;</a>
+    </div>
+    <?php if (empty($recent_members)): ?>
+      <div style="padding:20px;font-size:.8rem;color:var(--text-muted)">No members yet.</div>
+    <?php else: ?>
+      <?php foreach ($recent_members as $rm):
+        $m       = $rm['member'];
+        $flName  = (string) $rm['fanlisting_name'];
+      ?>
+      <div class="member-row">
+        <div class="member-info">
+          <div class="member-name"><?= \Luster\Core\View::e($m->name) ?></div>
+          <div class="member-fl"><?= \Luster\Core\View::e($flName) ?></div>
+        </div>
+        <span class="member-status <?= $m->approved ? 'status-approved' : 'status-pending' ?>">
+          <?= $m->approved ? 'Approved' : 'Pending' ?>
+        </span>
+        <div class="member-time"><?= dashTimeAgo((string) $m->added) ?></div>
+      </div>
+      <?php endforeach; ?>
+    <?php endif; ?>
+  </div>
+
+  <!-- Recent Activity -->
+  <div class="panel">
+    <div class="panel-header">
+      <div class="panel-title">
+        <span class="panel-icon">📋</span> Recent Activity
+      </div>
+      <a href="<?= $b ?>/admin/activity" class="panel-link">View all &rarr;</a>
+    </div>
+    <?php if (empty($recent_activity)): ?>
+      <div style="padding:20px;font-size:.8rem;color:var(--text-muted)">No activity recorded yet.</div>
+    <?php else: ?>
+      <?php foreach (array_slice($recent_activity, 0, 5) as $entry): ?>
+      <div class="activity-row">
+        <div class="activity-dot" style="background:<?= dashDotColor((string) ($entry['action'] ?? '')) ?>"></div>
+        <div class="activity-text">
+          <strong><?= \Luster\Core\View::e((string) ($entry['username'] ?? 'system')) ?></strong>
+          <?= \Luster\Core\View::e((string) ($entry['description'] ?? '')) ?>
+        </div>
+        <div class="activity-time"><?= dashTimeAgo((string) ($entry['created_at'] ?? '')) ?></div>
+      </div>
+      <?php endforeach; ?>
+    <?php endif; ?>
+  </div>
+
+</div><!-- /.two-col -->
+
+<script>
+/* ── Live date/time ── */
+(function updateTime() {
+  const days   = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+  const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  const now    = new Date();
+  const h      = now.getHours();
+  const m      = now.getMinutes().toString().padStart(2, '0');
+  const ampm   = h >= 12 ? 'PM' : 'AM';
+  const h12    = h % 12 || 12;
+  const el     = document.getElementById('live-datetime');
+  if (el) {
+    el.textContent = 'Today is ' + days[now.getDay()] + ', ' + months[now.getMonth()] + ' ' +
+      now.getDate() + ', ' + now.getFullYear() + ' · ' + h12 + ':' + m + ' ' + ampm;
+  }
+  setTimeout(updateTime, 30000);
+})();
+</script>

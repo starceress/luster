@@ -8,6 +8,7 @@ use Luster\Core\Application;
 use Luster\Core\Request;
 use Luster\Core\Response;
 use Luster\Core\Validator;
+use Luster\Repositories\CategoryRepo;
 use Luster\Repositories\JoinedFanlistingRepo;
 
 /**
@@ -32,11 +33,36 @@ final class JoinedController
 
     public function index(Request $request, array $params): Response
     {
-        $repo = new JoinedFanlistingRepo($this->app->getDatabase());
+        $repo         = new JoinedFanlistingRepo($this->app->getDatabase());
+        $categoryRepo = new CategoryRepo($this->app->getDatabase());
 
-        $filterCat  = trim((string) $request->query('category', ''));
-        $categories = $repo->getCategories();
-        $joined     = $filterCat !== '' ? $repo->getByCategory($filterCat) : $repo->getAll();
+        $displayMode    = (string) ($this->app->getConfig()->get('joined_display_mode', 'all'));
+        $defaultPerPage = (int) ($this->app->getConfig()->get('joined_per_page', 10));
+
+        $search        = trim((string) ($_GET['search']   ?? ''));
+        $filterNetwork = trim((string) ($_GET['network']  ?? ''));
+        $filterCat     = trim((string) ($_GET['category'] ?? ''));
+        $perPage       = max(5, min(100, (int) ($_GET['per_page'] ?? $defaultPerPage)));
+        $page          = max(1, (int) ($_GET['page'] ?? 1));
+
+        $networkCategories = $repo->getNetworkCategories();
+        if ($filterNetwork !== '' && isset($networkCategories[$filterNetwork])) {
+            $categories = $networkCategories[$filterNetwork];
+        } else {
+            $categories = $repo->getCategories();
+        }
+        $tflCats         = $categoryRepo->getBySource('tfl');
+        $taflCats        = $categoryRepo->getBySource('tafl');
+        $customNetworks  = $categoryRepo->getCustomNetworks();
+
+        if ($search !== '' || $filterNetwork !== '') {
+            $result = $repo->search($search, $filterNetwork, $perPage, $page, $filterCat);
+        } else {
+            $result = $repo->getAll($perPage, $page, $filterCat);
+        }
+
+        $joined     = $result['items'];
+        $totalPages = $result['pages'];
 
         $session = $this->app->getSession();
         $success = (string) $session->get('lstr_flash_success', '');
@@ -45,11 +71,21 @@ final class JoinedController
         $session->remove('lstr_flash_error');
 
         return $this->layout('admin/joined/index.php', [
-            'joined'      => $joined,
-            'categories'  => $categories,
-            'filter_cat'  => $filterCat,
-            'success'     => $success,
-            'error'       => $error,
+            'joined'             => $joined,
+            'categories'         => $categories,
+            'network_categories' => $networkCategories,
+            'filter_cat'         => $filterCat,
+            'filter_network'     => $filterNetwork,
+            'display_mode'       => $displayMode,
+            'search'             => $search,
+            'per_page'           => $perPage,
+            'page'               => $page,
+            'total_pages'        => $totalPages,
+            'tfl_cats'           => $tflCats,
+            'tafl_cats'          => $taflCats,
+            'custom_networks'    => $customNetworks,
+            'success'            => $success,
+            'error'              => $error,
         ], 'Joined Fanlistings', 'joined');
     }
 
@@ -59,39 +95,104 @@ final class JoinedController
 
     public function add(Request $request, array $params): Response
     {
-        $repo    = new JoinedFanlistingRepo($this->app->getDatabase());
-        $session = $this->app->getSession();
-        $baseUrl = $this->app->getBaseUrl();
+        $repo         = new JoinedFanlistingRepo($this->app->getDatabase());
+        $categoryRepo = new CategoryRepo($this->app->getDatabase());
+        $session      = $this->app->getSession();
+        $baseUrl      = $this->app->getBaseUrl();
 
         if ($request->isPost()) {
             $name       = trim((string) $request->post('name', ''));
             $url        = trim((string) $request->post('url', ''));
-            $image      = trim((string) $request->post('image', ''));
             $category   = trim((string) $request->post('category', ''));
             $dateJoined = trim((string) $request->post('date_joined', ''));
             $active     = $request->post('active') === '1';
-            $sortOrder  = (int) $request->post('sort_order', 0);
+            $status     = trim((string) $request->post('status', 'joined'));
 
+            if (!in_array($status, ['joined', 'pending'], true)) {
+                $status = 'joined';
+            }
+
+            $categoriesJson = $this->buildCategoriesJson($categoryRepo);
+
+            // --- Image upload ---
+            $image      = null;
+            $imageError = '';
+            $newFilename = null;
+            $tmpPath     = '';
+
+            $uploadErr = (int) ($_FILES['image']['error'] ?? UPLOAD_ERR_NO_FILE);
+
+            if ($uploadErr !== UPLOAD_ERR_NO_FILE) {
+                if ($uploadErr !== UPLOAD_ERR_OK) {
+                    $imageError = 'Image upload failed (error code ' . $uploadErr . ').';
+                } else {
+                    $tmpPath  = (string) ($_FILES['image']['tmp_name'] ?? '');
+                    $fileSize = (int) ($_FILES['image']['size']     ?? 0);
+
+                    if ($fileSize > 2 * 1024 * 1024) {
+                        $imageError = 'Image must be 2 MB or smaller.';
+                    } else {
+                        $allowedMimes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+                        $finfo        = new \finfo(FILEINFO_MIME_TYPE);
+                        $mime         = $finfo->file($tmpPath);
+
+                        if ($mime === false || !in_array($mime, $allowedMimes, true)) {
+                            $imageError = 'Image must be JPEG, PNG, GIF, or WebP.';
+                        } else {
+                            $extMap = [
+                                'image/jpeg' => 'jpg',
+                                'image/png'  => 'png',
+                                'image/gif'  => 'gif',
+                                'image/webp' => 'webp',
+                            ];
+                            $newFilename = uniqid('jn_', true) . '.' . $extMap[$mime];
+                        }
+                    }
+                }
+            }
+
+            // --- Field validation ---
             $v = new Validator(['name' => $name, 'url' => $url]);
             $v->field('name')->required()->maxLength(255);
             $v->field('url')->required()->url()->maxLength(500);
 
-            if ($v->fails()) {
+            if ($imageError !== '' || $v->fails()) {
+                $messages = $v->fails() ? $v->allErrors() : [];
+                if ($imageError !== '') {
+                    array_unshift($messages, $imageError);
+                }
+
                 return $this->layout('admin/joined/form.php', [
-                    'joined'  => null,
-                    'error'   => implode(' ', $v->allErrors()),
-                    'old'     => $request->postAll(),
+                    'joined'          => null,
+                    'error'           => implode(' ', $messages),
+                    'old'             => $request->postAll(),
+                    'tfl_cats'        => $categoryRepo->getBySource('tfl'),
+                    'tafl_cats'       => $categoryRepo->getBySource('tafl'),
+                    'custom_networks' => $categoryRepo->getCustomNetworks(),
                 ], 'Add Joined FL', 'joined');
             }
 
+            // --- All valid: move upload, persist ---
+            if ($newFilename !== null) {
+                $uploadDir = $this->ensureUploadDirectory();
+                $destPath  = $uploadDir . '/' . $newFilename;
+
+                if (!move_uploaded_file($tmpPath, $destPath)) {
+                    throw new \RuntimeException("Failed to move uploaded image to {$destPath}.");
+                }
+
+                $image = $newFilename;
+            }
+
             $repo->insert([
-                'name'        => $name,
-                'url'         => $url,
-                'image'       => $image !== '' ? $image : null,
-                'category'    => $category,
-                'date_joined' => $dateJoined !== '' ? $dateJoined : null,
-                'active'      => $active,
-                'sort_order'  => $sortOrder,
+                'name'            => $name,
+                'url'             => $url,
+                'image'           => $image,
+                'category'        => $category,
+                'date_joined'     => $dateJoined !== '' ? $dateJoined : null,
+                'active'          => $active,
+                'status'          => $status,
+                'categories_json' => $categoriesJson,
             ]);
 
             $session->set('lstr_flash_success', 'Joined fanlisting added.');
@@ -99,9 +200,12 @@ final class JoinedController
         }
 
         return $this->layout('admin/joined/form.php', [
-            'joined' => null,
-            'error'  => '',
-            'old'    => [],
+            'joined'          => null,
+            'error'           => '',
+            'old'             => [],
+            'tfl_cats'        => $categoryRepo->getBySource('tfl'),
+            'tafl_cats'       => $categoryRepo->getBySource('tafl'),
+            'custom_networks' => $categoryRepo->getCustomNetworks(),
         ], 'Add Joined FL', 'joined');
     }
 
@@ -111,8 +215,9 @@ final class JoinedController
 
     public function edit(Request $request, array $params): Response
     {
-        $id   = (int) ($params['id'] ?? 0);
-        $repo = new JoinedFanlistingRepo($this->app->getDatabase());
+        $id           = (int) ($params['id'] ?? 0);
+        $repo         = new JoinedFanlistingRepo($this->app->getDatabase());
+        $categoryRepo = new CategoryRepo($this->app->getDatabase());
 
         $joined = $repo->getById($id);
 
@@ -126,32 +231,114 @@ final class JoinedController
         if ($request->isPost()) {
             $name       = trim((string) $request->post('name', ''));
             $url        = trim((string) $request->post('url', ''));
-            $image      = trim((string) $request->post('image', ''));
             $category   = trim((string) $request->post('category', ''));
             $dateJoined = trim((string) $request->post('date_joined', ''));
-            $active     = $request->post('active') === '1';
-            $sortOrder  = (int) $request->post('sort_order', 0);
+            $active      = $request->post('active') === '1';
+            $deleteImage = $request->post('delete_image') === '1';
+            $status      = trim((string) $request->post('status', 'joined'));
 
+            if (!in_array($status, ['joined', 'pending'], true)) {
+                $status = 'joined';
+            }
+
+            $categoriesJson = $this->buildCategoriesJson($categoryRepo);
+
+            // --- Image upload ---
+            $image       = $joined->image;   // preserve existing by default
+            $imageError  = '';
+            $newFilename = null;
+            $tmpPath     = '';
+
+            if (!$deleteImage) {
+                $uploadErr = (int) ($_FILES['image']['error'] ?? UPLOAD_ERR_NO_FILE);
+
+                if ($uploadErr !== UPLOAD_ERR_NO_FILE) {
+                    if ($uploadErr !== UPLOAD_ERR_OK) {
+                        $imageError = 'Image upload failed (error code ' . $uploadErr . ').';
+                    } else {
+                        $tmpPath  = (string) ($_FILES['image']['tmp_name'] ?? '');
+                        $fileSize = (int) ($_FILES['image']['size']     ?? 0);
+
+                        if ($fileSize > 2 * 1024 * 1024) {
+                            $imageError = 'Image must be 2 MB or smaller.';
+                        } else {
+                            $allowedMimes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+                            $finfo        = new \finfo(FILEINFO_MIME_TYPE);
+                            $mime         = $finfo->file($tmpPath);
+
+                            if ($mime === false || !in_array($mime, $allowedMimes, true)) {
+                                $imageError = 'Image must be JPEG, PNG, GIF, or WebP.';
+                            } else {
+                                $extMap = [
+                                    'image/jpeg' => 'jpg',
+                                    'image/png'  => 'png',
+                                    'image/gif'  => 'gif',
+                                    'image/webp' => 'webp',
+                                ];
+                                $newFilename = uniqid('jn_', true) . '.' . $extMap[$mime];
+                            }
+                        }
+                    }
+                }
+            }
+
+            // --- Field validation ---
             $v = new Validator(['name' => $name, 'url' => $url]);
             $v->field('name')->required()->maxLength(255);
             $v->field('url')->required()->url()->maxLength(500);
 
-            if ($v->fails()) {
+            if ($imageError !== '' || $v->fails()) {
+                $messages = $v->fails() ? $v->allErrors() : [];
+                if ($imageError !== '') {
+                    array_unshift($messages, $imageError);
+                }
+
                 return $this->layout('admin/joined/form.php', [
-                    'joined' => $joined,
-                    'error'  => implode(' ', $v->allErrors()),
-                    'old'    => $request->postAll(),
+                    'joined'          => $joined,
+                    'error'           => implode(' ', $messages),
+                    'old'             => $request->postAll(),
+                    'tfl_cats'        => $categoryRepo->getBySource('tfl'),
+                    'tafl_cats'       => $categoryRepo->getBySource('tafl'),
+                    'custom_networks' => $categoryRepo->getCustomNetworks(),
                 ], 'Edit Joined FL', 'joined');
             }
 
+            // --- All valid: handle image, persist ---
+            if ($deleteImage) {
+                if ($joined->image !== null && $joined->image !== '') {
+                    $oldPath = $this->ensureUploadDirectory() . '/' . $joined->image;
+                    if (is_file($oldPath)) {
+                        unlink($oldPath);
+                    }
+                }
+                $image = null;
+            } elseif ($newFilename !== null) {
+                $uploadDir = $this->ensureUploadDirectory();
+                $destPath  = $uploadDir . '/' . $newFilename;
+
+                if (!move_uploaded_file($tmpPath, $destPath)) {
+                    throw new \RuntimeException("Failed to move uploaded image to {$destPath}.");
+                }
+
+                if ($joined->image !== null && $joined->image !== '') {
+                    $oldPath = $uploadDir . '/' . $joined->image;
+                    if (is_file($oldPath)) {
+                        unlink($oldPath);
+                    }
+                }
+
+                $image = $newFilename;
+            }
+
             $repo->update($id, [
-                'name'        => $name,
-                'url'         => $url,
-                'image'       => $image !== '' ? $image : null,
-                'category'    => $category,
-                'date_joined' => $dateJoined !== '' ? $dateJoined : null,
-                'active'      => $active,
-                'sort_order'  => $sortOrder,
+                'name'            => $name,
+                'url'             => $url,
+                'image'           => $image,
+                'category'        => $category,
+                'date_joined'     => $dateJoined !== '' ? $dateJoined : null,
+                'active'          => $active,
+                'status'          => $status,
+                'categories_json' => $categoriesJson,
             ]);
 
             $session->set('lstr_flash_success', 'Joined fanlisting updated.');
@@ -159,9 +346,12 @@ final class JoinedController
         }
 
         return $this->layout('admin/joined/form.php', [
-            'joined' => $joined,
-            'error'  => '',
-            'old'    => [],
+            'joined'          => $joined,
+            'error'           => '',
+            'old'             => [],
+            'tfl_cats'        => $categoryRepo->getBySource('tfl'),
+            'tafl_cats'       => $categoryRepo->getBySource('tafl'),
+            'custom_networks' => $categoryRepo->getCustomNetworks(),
         ], 'Edit Joined FL', 'joined');
     }
 
@@ -174,8 +364,19 @@ final class JoinedController
         $id   = (int) ($params['id'] ?? 0);
         $repo = new JoinedFanlistingRepo($this->app->getDatabase());
 
-        if ($repo->getById($id) === null) {
+        $joined = $repo->getById($id);
+
+        if ($joined === null) {
             return Response::notFound('Joined fanlisting not found.');
+        }
+
+        // Remove image file if present
+        if ($joined->image !== null && $joined->image !== '') {
+            $uploadDir = dirname(__DIR__, 3) . '/public/uploads/joined';
+            $oldPath   = $uploadDir . '/' . $joined->image;
+            if (is_file($oldPath)) {
+                unlink($oldPath);
+            }
         }
 
         $repo->delete($id);
@@ -205,6 +406,209 @@ final class JoinedController
         $session->set('lstr_flash_success', 'Status toggled.');
 
         return Response::redirect($this->app->getBaseUrl() . '/admin/joined');
+    }
+
+    // -----------------------------------------------------------------------
+    // POST /admin/joined/bulk
+    // -----------------------------------------------------------------------
+
+    public function bulkAction(Request $request, array $params): Response
+    {
+        $session = $this->app->getSession();
+        $baseUrl = $this->app->getBaseUrl();
+
+        // CSRF validation
+        $csrf  = $this->app->getCSRF();
+        $token = (string) ($_POST['_csrf'] ?? '');
+        if (!$csrf->validate($token)) {
+            $session->set('lstr_flash_error', 'Invalid CSRF token.');
+            return Response::redirect($baseUrl . '/admin/joined');
+        }
+
+        $action = (string) ($_POST['bulk_action'] ?? '');
+        $ids    = array_filter(
+            array_map('intval', (array) ($_POST['ids'] ?? [])),
+            static fn(int $i): bool => $i > 0,
+        );
+
+        if ($ids === [] || !in_array($action, ['approve', 'pending', 'delete'], true)) {
+            $session->set('lstr_flash_error', 'No items selected or invalid action.');
+            return Response::redirect($baseUrl . '/admin/joined');
+        }
+
+        $db    = $this->app->getDatabase();
+        $repo  = new JoinedFanlistingRepo($db);
+        $count = 0;
+
+        if ($action === 'approve') {
+            $stmt = $db->prepare('UPDATE lstr_joined SET status = :status WHERE id = :id');
+            foreach ($ids as $id) {
+                $stmt->execute(['status' => 'joined', 'id' => $id]);
+                ++$count;
+            }
+        } elseif ($action === 'pending') {
+            $stmt = $db->prepare('UPDATE lstr_joined SET status = :status WHERE id = :id');
+            foreach ($ids as $id) {
+                $stmt->execute(['status' => 'pending', 'id' => $id]);
+                ++$count;
+            }
+        } else {
+            // delete
+            $uploadDir = dirname(__DIR__, 3) . '/public/uploads/joined';
+            $delStmt   = $db->prepare('DELETE FROM lstr_joined WHERE id = :id');
+            foreach ($ids as $id) {
+                $joined = $repo->getById($id);
+                if ($joined === null) {
+                    continue;
+                }
+                if ($joined->image !== null && $joined->image !== '') {
+                    $oldPath = $uploadDir . '/' . $joined->image;
+                    if (is_file($oldPath)) {
+                        unlink($oldPath);
+                    }
+                }
+                $delStmt->execute(['id' => $id]);
+                ++$count;
+            }
+        }
+
+        $noun = $count === 1 ? 'item' : 'items';
+        $session->set('lstr_flash_success', ucfirst($action) . "d {$count} {$noun}.");
+
+        return Response::redirect($baseUrl . '/admin/joined');
+    }
+
+    // -----------------------------------------------------------------------
+    // GET + POST /admin/joined/settings
+    // -----------------------------------------------------------------------
+
+    public function settings(Request $request, array $params): Response
+    {
+        $config  = $this->app->getConfig();
+        $session = $this->app->getSession();
+        $baseUrl = $this->app->getBaseUrl();
+
+        $success = (string) $session->get('lstr_flash_success', '');
+        $error   = (string) $session->get('lstr_flash_error', '');
+        $session->remove('lstr_flash_success');
+        $session->remove('lstr_flash_error');
+
+        if ($request->isPost()) {
+            // CSRF validation
+            $token = (string) ($_POST['_csrf'] ?? '');
+            if (!$this->app->getCSRF()->validate($token)) {
+                $session->set('lstr_flash_error', 'Invalid CSRF token.');
+                return Response::redirect($baseUrl . '/admin/joined/settings');
+            }
+
+            $mode = (string) ($_POST['display_mode'] ?? 'all');
+            if (!in_array($mode, ['all', 'network', 'category', 'status'], true)) {
+                $mode = 'all';
+            }
+
+            $pp = max(5, min(100, (int) ($_POST['per_page'] ?? 10)));
+
+            $updated = $config->all();
+            $updated['joined_display_mode'] = $mode;
+            $updated['joined_per_page']     = $pp;
+
+            $this->writeConfig($updated);
+
+            $session->set('lstr_flash_success', 'Joined settings saved.');
+            return Response::redirect($baseUrl . '/admin/joined/settings');
+        }
+
+        return $this->layout('admin/joined/settings.php', [
+            'display_mode' => (string) $config->get('joined_display_mode', 'all'),
+            'per_page'     => (int) $config->get('joined_per_page', 10),
+            'success'      => $success,
+            'error'        => $error,
+        ], 'Joined Settings', 'joined');
+    }
+
+    // -----------------------------------------------------------------------
+    // Builds categories_json from parallel POST arrays cat_network[]/cat_name[]
+    // -----------------------------------------------------------------------
+
+    private function buildCategoriesJson(CategoryRepo $categoryRepo): ?string
+    {
+        $networks = array_values((array) ($_POST['cat_network']       ?? []));
+        $names    = array_values((array) ($_POST['cat_name']          ?? []));
+        $others   = array_values((array) ($_POST['cat_network_other'] ?? []));
+
+        $entries = [];
+
+        foreach ($networks as $i => $rawNetwork) {
+            $network = trim((string) $rawNetwork);
+            $name    = trim((string) ($names[$i] ?? ''));
+
+            if ($network === 'other') {
+                $customName = trim((string) ($others[$i] ?? ''));
+                if ($customName === '') {
+                    continue;
+                }
+                $categoryRepo->addCustomNetwork($customName);
+                $network = $customName;
+            }
+
+            if ($network === '' || $name === '') {
+                continue;
+            }
+
+            $entries[] = ['network' => $network, 'name' => $name];
+        }
+
+        return $entries !== [] ? (string) json_encode($entries, JSON_UNESCAPED_UNICODE) : null;
+    }
+
+    // -----------------------------------------------------------------------
+    // Ensures public/uploads/joined/ exists with an .htaccess guard
+    // -----------------------------------------------------------------------
+
+    private function ensureUploadDirectory(): string
+    {
+        $uploadDir = dirname(__DIR__, 3) . '/public/uploads/joined';
+
+        if (!is_dir($uploadDir)) {
+            if (!mkdir($uploadDir, 0755, true)) {
+                throw new \RuntimeException("Failed to create upload directory: {$uploadDir}");
+            }
+        }
+
+        $htaccess = $uploadDir . '/.htaccess';
+        if (!is_file($htaccess)) {
+            $content = "<FilesMatch \"\\.ph(p[0-9]?|tml)\$\">\n    Deny from all\n</FilesMatch>\n";
+            if (file_put_contents($htaccess, $content) === false) {
+                throw new \RuntimeException("Failed to write .htaccess in {$uploadDir}");
+            }
+        }
+
+        return $uploadDir;
+    }
+
+    // -----------------------------------------------------------------------
+    // Writes config array to config/app.php via safe temp-file rename
+    // -----------------------------------------------------------------------
+
+    private function writeConfig(array $config): void
+    {
+        $configPath = $this->app->getBasePath() . '/config/app.php';
+        $tmpPath    = $configPath . '.tmp';
+
+        $export  = "<?php\n\ndeclare(strict_types=1);\n\nreturn ";
+        $export .= var_export($config, true);
+        $export .= ";\n";
+
+        $bytes = file_put_contents($tmpPath, $export, LOCK_EX);
+
+        if ($bytes === false) {
+            throw new \RuntimeException('Could not write temp config file: ' . $tmpPath);
+        }
+
+        if (!rename($tmpPath, $configPath)) {
+            unlink($tmpPath);
+            throw new \RuntimeException('Could not rename temp config file to: ' . $configPath);
+        }
     }
 
     // -----------------------------------------------------------------------

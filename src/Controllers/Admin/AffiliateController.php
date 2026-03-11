@@ -45,7 +45,6 @@ final class AffiliateController
         $affiliateRepo  = new AffiliateRepo($db);
         $fanlistingRepo = new FanlistingRepo($db, $config);
 
-        $affiliates  = $affiliateRepo->getAll();
         $fanlistings = $fanlistingRepo->getAll();
 
         // Build fanlisting lookup map for display
@@ -54,15 +53,45 @@ final class AffiliateController
             $fanMap[$fl->id] = $fl->name;
         }
 
+        $filterFid = trim((string) ($_GET['fanlisting_id'] ?? 'collective'));
+        $search    = trim((string) ($_GET['search']        ?? ''));
+        $page      = max(1, (int) ($_GET['page'] ?? 1));
+        $perPage   = 10;
+
+        if ($search !== '') {
+            $fid    = $filterFid === 'collective' ? null : ($filterFid === '' ? -1 : (int) $filterFid);
+            $result = $affiliateRepo->search($search, $fid, $perPage, $page);
+        } elseif ($filterFid === 'collective') {
+            $result = $affiliateRepo->getCollective($perPage, $page);
+        } elseif ($filterFid !== '') {
+            $result = $affiliateRepo->getByFanlisting((int) $filterFid, $perPage, $page);
+        } else {
+            $result = $affiliateRepo->getAll($perPage, $page);
+        }
+
+        $affiliates = $result['items'];
+        $totalPages = $result['pages'];
+        $total      = $result['total'];
+
         $session = $this->app->getSession();
         $success = (string) $session->get('lstr_flash_success', '');
         $error   = (string) $session->get('lstr_flash_error', '');
         $session->remove('lstr_flash_success');
         $session->remove('lstr_flash_error');
 
+        $siteName = (string) ($this->app->getConfig()->get('app_name', 'Collective'));
+
         return $this->layout('admin/affiliates/index.php', [
             'affiliates'  => $affiliates,
             'fan_map'     => $fanMap,
+            'fanlistings' => $fanlistings,
+            'filter_fid'  => $filterFid,
+            'search'      => $search,
+            'page'        => $page,
+            'per_page'    => $perPage,
+            'total_pages' => $totalPages,
+            'total'       => $total,
+            'site_name'   => $siteName,
             'success'     => $success,
             'error'       => $error,
         ], 'Affiliates', 'affiliates');
@@ -93,14 +122,33 @@ final class AffiliateController
             $name         = trim((string) $request->post('name', ''));
             $url          = trim((string) $request->post('url', ''));
             $email        = trim((string) $request->post('email', ''));
-            $image        = trim((string) $request->post('image', ''));
             $sortOrder    = (int) $request->post('sort_order', 0);
             // Re-read context from hidden field in case it was a fanlisting-routed form
             $postContextFid = (int) $request->post('context_fid', $contextFid);
 
+            // Image upload
+            $image = '';
+            if (!empty($_FILES['image']['tmp_name'])) {
+                $finfo   = new \finfo(FILEINFO_MIME_TYPE);
+                $mime    = $finfo->file($_FILES['image']['tmp_name']);
+                $allowed = ['image/jpeg' => 'jpg', 'image/png' => 'png', 'image/gif' => 'gif', 'image/webp' => 'webp'];
+                if (!isset($allowed[$mime]) || $_FILES['image']['size'] > 2097152) {
+                    throw new \RuntimeException('Invalid image: must be JPEG, PNG, GIF, or WebP and under 2 MB.');
+                }
+                $dir = dirname(__DIR__, 3) . '/public/uploads/affiliates/';
+                if (!is_dir($dir)) {
+                    mkdir($dir, 0755, true);
+                    file_put_contents($dir . '.htaccess', "deny from all\n<FilesMatch \"\.(jpg|jpeg|png|gif|webp)$\">\nAllow from all\n</FilesMatch>");
+                }
+                $image = uniqid('af_', true) . '.' . $allowed[$mime];
+                move_uploaded_file($_FILES['image']['tmp_name'], $dir . $image);
+            }
+
             $v = new Validator(['name' => $name, 'url' => $url]);
             $v->field('name')->required()->maxLength(255);
             $v->field('url')->required()->url()->maxLength(500);
+
+            $siteName = (string) ($this->app->getConfig()->get('app_name', 'Collective'));
 
             if ($v->fails()) {
                 return $this->layout('admin/affiliates/form.php', [
@@ -109,6 +157,7 @@ final class AffiliateController
                     'error'        => implode(' ', $v->allErrors()),
                     'old'          => $request->postAll(),
                     'context_fid'  => $postContextFid,
+                    'site_name'    => $siteName,
                 ], 'Add Affiliate', 'affiliates');
             }
 
@@ -130,12 +179,15 @@ final class AffiliateController
             return Response::redirect($redirect);
         }
 
+        $siteName = (string) ($this->app->getConfig()->get('app_name', 'Collective'));
+
         return $this->layout('admin/affiliates/form.php', [
             'fanlistings' => $fanlistings,
             'affiliate'   => null,
             'error'       => '',
             'old'         => [],
             'context_fid' => $contextFid,
+            'site_name'   => $siteName,
         ], 'Add Affiliate', 'affiliates');
     }
 
@@ -167,13 +219,42 @@ final class AffiliateController
             $name      = trim((string) $request->post('name', ''));
             $url       = trim((string) $request->post('url', ''));
             $email     = trim((string) $request->post('email', ''));
-            $image     = trim((string) $request->post('image', ''));
             $sortOrder = (int) $request->post('sort_order', 0);
             $fromFl    = (int) $request->post('from_fanlisting', 0);
+
+            // Image upload — start from current stored filename
+            $image = $affiliate->image ?? '';
+            if (!empty($_FILES['image']['tmp_name'])) {
+                $finfo   = new \finfo(FILEINFO_MIME_TYPE);
+                $mime    = $finfo->file($_FILES['image']['tmp_name']);
+                $allowed = ['image/jpeg' => 'jpg', 'image/png' => 'png', 'image/gif' => 'gif', 'image/webp' => 'webp'];
+                if (!isset($allowed[$mime]) || $_FILES['image']['size'] > 2097152) {
+                    throw new \RuntimeException('Invalid image: must be JPEG, PNG, GIF, or WebP and under 2 MB.');
+                }
+                $dir = dirname(__DIR__, 3) . '/public/uploads/affiliates/';
+                if (!is_dir($dir)) {
+                    mkdir($dir, 0755, true);
+                    file_put_contents($dir . '.htaccess', "deny from all\n<FilesMatch \"\.(jpg|jpeg|png|gif|webp)$\">\nAllow from all\n</FilesMatch>");
+                }
+                if ($image !== '' && file_exists($dir . $image)) {
+                    unlink($dir . $image);
+                }
+                $image = uniqid('af_', true) . '.' . $allowed[$mime];
+                move_uploaded_file($_FILES['image']['tmp_name'], $dir . $image);
+            }
+            if (!empty($_POST['delete_image']) && $image !== '') {
+                $dir = dirname(__DIR__, 3) . '/public/uploads/affiliates/';
+                if (file_exists($dir . $image)) {
+                    unlink($dir . $image);
+                }
+                $image = '';
+            }
 
             $v = new Validator(['name' => $name, 'url' => $url]);
             $v->field('name')->required()->maxLength(255);
             $v->field('url')->required()->url()->maxLength(500);
+
+            $siteName = (string) ($this->app->getConfig()->get('app_name', 'Collective'));
 
             if ($v->fails()) {
                 return $this->layout('admin/affiliates/form.php', [
@@ -182,6 +263,7 @@ final class AffiliateController
                     'error'       => implode(' ', $v->allErrors()),
                     'old'         => $request->postAll(),
                     'context_fid' => $fromFl,
+                    'site_name'   => $siteName,
                 ], 'Edit Affiliate', 'affiliates');
             }
 
@@ -205,12 +287,15 @@ final class AffiliateController
         // GET: read context from query param
         $fromFl = (int) $request->query('from_fanlisting', 0);
 
+        $siteName = (string) ($this->app->getConfig()->get('app_name', 'Collective'));
+
         return $this->layout('admin/affiliates/form.php', [
             'fanlistings' => $fanlistings,
             'affiliate'   => $affiliate,
             'error'       => '',
             'old'         => [],
             'context_fid' => $fromFl,
+            'site_name'   => $siteName,
         ], 'Edit Affiliate', 'affiliates');
     }
 

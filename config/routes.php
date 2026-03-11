@@ -72,6 +72,11 @@ return [
         // ── Fanlistings ─────────────────────────────────────────────
         $router->get('/admin/fanlistings',
             FanlistingController::class, 'index');
+        $router->get('/admin/fanlistings/add',      FanlistingController::class, 'addForm');
+        $router->post('/admin/fanlistings/add',     FanlistingController::class, 'add');
+        $router->get('/admin/fanlistings/settings', FanlistingController::class, 'indexSettings');
+        $router->post('/admin/fanlistings/settings', FanlistingController::class, 'saveSettings');
+        $router->post('/admin/fanlistings/bulk', FanlistingController::class, 'bulk');
         $router->get('/admin/fanlistings/{id}',
             FanlistingController::class, 'show');
         $router->get('/admin/fanlistings/{id}/edit',
@@ -89,9 +94,13 @@ return [
         $router->post('/admin/fanlistings/{id}/edit-prefix',
             FanlistingController::class, 'editPrefix');
 
-        // ── Members top-level (fanlisting picker) ───────────────────
+        // ── Members overview (pending across all fanlistings) ────────
         $router->get('/admin/members',
-            MembersIndexController::class, 'index');
+            MemberController::class, 'overview');
+        $router->get('/admin/members/settings',
+            MemberController::class, 'indexSettings');
+        $router->post('/admin/members/settings',
+            MemberController::class, 'saveSettings');
 
         // ── Members for a specific fanlisting ───────────────────────
         $router->get('/admin/members/{id}',
@@ -110,6 +119,12 @@ return [
             MemberController::class, 'bulk');
         $router->get('/admin/members/{id}/export',
             MemberController::class, 'export');
+        $router->get('/admin/members/export-pending',
+            MemberController::class, 'exportPending');
+        $router->get('/admin/members/{id}/emailmember',
+            MemberController::class, 'emailMemberForm');
+        $router->post('/admin/members/{id}/emailmember',
+            MemberController::class, 'emailMemberSend');
 
         // ── Additional fields for a specific fanlisting ──────────────
         $router->get('/admin/fanlistings/{fid}/fields',
@@ -151,6 +166,8 @@ return [
             SettingsController::class, 'index');
         $router->post('/admin/settings',
             SettingsController::class, 'update');
+        $router->post('/admin/settings/profile',
+            SettingsController::class, 'updateProfile');
 
         // ── Joined fanlistings ───────────────────────────────────────
         $router->get('/admin/joined',
@@ -167,18 +184,32 @@ return [
             JoinedController::class, 'delete');
         $router->post('/admin/joined/{id}/toggle',
             JoinedController::class, 'toggle');
+        $router->post('/admin/joined/bulk',
+            JoinedController::class, 'bulkAction');
+        $router->get('/admin/joined/settings',
+            JoinedController::class, 'settings');
+        $router->post('/admin/joined/settings',
+            JoinedController::class, 'settings');
 
         // ── Categories ───────────────────────────────────────────────
         $router->get('/admin/categories',
             CategoryController::class, 'index');
+        $router->get('/admin/categories/add',
+            CategoryController::class, 'addForm');
         $router->post('/admin/categories/add',
             CategoryController::class, 'add');
+        $router->get('/admin/categories/{id}/edit',
+            CategoryController::class, 'editForm');
+        $router->post('/admin/categories/{id}/edit',
+            CategoryController::class, 'edit');
         $router->post('/admin/categories/{id}/delete',
             CategoryController::class, 'delete');
 
         // ── Activity log ─────────────────────────────────────────────
         $router->get('/admin/activity',
             ActivityLogController::class, 'index');
+        $router->post('/admin/activity/flush',
+            ActivityLogController::class, 'flush');
 
         // ── Error log ────────────────────────────────────────────────
         $router->get('/admin/errorlog',

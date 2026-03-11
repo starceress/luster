@@ -11,6 +11,7 @@ use Luster\Core\Validator;
 use Luster\Repositories\ActivityRepo;
 use Luster\Repositories\AffiliateRepo;
 use Luster\Repositories\CategoryRepo;
+use Luster\Repositories\FieldRepo;
 use Luster\Repositories\FanlistingRepo;
 use Luster\Repositories\FanlistingSettingsRepo;
 use Luster\Repositories\MemberRepo;
@@ -39,24 +40,134 @@ final class FanlistingController
         $memberRepo     = new MemberRepo($db, $config);
         $settingsRepo   = new FanlistingSettingsRepo($db);
 
-        $fanlistings = $fanlistingRepo->getAll();
+        $categoryRepo  = new CategoryRepo($db);
+
+        $cfgAll    = $config->all();
+        $ownedSort = (string) ($cfgAll['owned_sort'] ?? 'id');
+
+        $search        = trim((string) ($_GET['search']   ?? ''));
+        $filterNetwork = trim((string) ($_GET['network']  ?? ''));
+        $filterCat     = trim((string) ($_GET['category'] ?? ''));
+
+        // Text search via SQL; network/category filtering done in PHP below.
+        $fanlistings = $search !== ''
+            ? $fanlistingRepo->search($search)
+            : $fanlistingRepo->getAll();
+
+        // Network filter — keep only fanlistings whose catid pipe-string contains
+        // at least one ID belonging to the selected network source.
+        if ($filterNetwork !== '') {
+            $netCats   = $categoryRepo->getBySource($filterNetwork);
+            $netCatIds = array_column($netCats, 'id');
+            $fanlistings = array_values(array_filter(
+                $fanlistings,
+                static function ($fl) use ($netCatIds): bool {
+                    $catid = (string) ($fl->catid ?? '');
+                    foreach ($netCatIds as $cid) {
+                        if (str_contains($catid, '|' . $cid . '|')) {
+                            return true;
+                        }
+                    }
+                    return false;
+                }
+            ));
+        }
+
+        // Category filter — narrow to a specific category.
+        // Works with or without a network selected.
+        if ($filterCat !== '') {
+            if ($filterNetwork !== '') {
+                // Scoped to the selected network — find the single matching ID.
+                $cat    = $categoryRepo->findBySourceAndName($filterNetwork, $filterCat);
+                $catIds = $cat !== null ? [$cat->id] : [];
+            } else {
+                // No network selected — match the category name across all sources.
+                $catIds = $categoryRepo->findIdsByName($filterCat);
+            }
+
+            if (!empty($catIds)) {
+                $fanlistings = array_values(array_filter(
+                    $fanlistings,
+                    static function ($fl) use ($catIds): bool {
+                        $catid = (string) ($fl->catid ?? '');
+                        foreach ($catIds as $cid) {
+                            if (str_contains($catid, '|' . $cid . '|')) {
+                                return true;
+                            }
+                        }
+                        return false;
+                    }
+                ));
+            } else {
+                $fanlistings = [];
+            }
+        }
 
         $memberCounts  = [];
         $pendingCounts = [];
         $images        = [];
+        $listingTypes  = [];
+        $categoryNames = [];
         foreach ($fanlistings as $fl) {
-            $memberCounts[$fl->id]  = $memberRepo->countApproved($fl->dbprefix);
-            $pendingCounts[$fl->id] = $memberRepo->countPending($fl->dbprefix);
+            $memberCounts[$fl->id]  = $fl->dbprefix !== '' ? $memberRepo->countApproved($fl->dbprefix) : 0;
+            $pendingCounts[$fl->id] = $fl->dbprefix !== '' ? $memberRepo->countPending($fl->dbprefix) : 0;
             $images[$fl->id]        = $settingsRepo->getImage($fl->id);
+            $listingTypes[$fl->id]  = $settingsRepo->getListingType($fl->id);
+            $categoryNames[$fl->id] = $fanlistingRepo->getCatNames((string) ($fl->catid ?? ''), $fl->categoryId);
+        }
+
+        $filterType  = trim((string) ($_GET['type'] ?? ''));
+        $typeOptions = array_unique(array_values($listingTypes));
+        sort($typeOptions);
+        if ($filterType !== '') {
+            $fanlistings = array_values(array_filter($fanlistings, fn($fl) => ($listingTypes[$fl->id] ?? 'fanlisting') === $filterType));
+        }
+
+        // Apply configured sort order
+        if ($ownedSort === 'subject') {
+            usort($fanlistings, fn($a, $b) => strcasecmp((string) ($a->subject ?? ''), (string) ($b->subject ?? '')));
+        } elseif ($ownedSort === 'category') {
+            usort($fanlistings, fn($a, $b) => strcasecmp($categoryNames[$a->id] ?? '', $categoryNames[$b->id] ?? ''));
+        } elseif ($ownedSort === 'status') {
+            usort($fanlistings, static function ($a, $b): int {
+                $rank = static fn($fl): int => $fl->trouble ? 2 : ($fl->upcoming ? 1 : 0);
+                return $rank($a) <=> $rank($b);
+            });
+        }
+        // 'id' is already sorted numerically by SQL
+
+        $perPage    = max(5, min(200, (int) ($cfgAll['owned_per_page'] ?? 10)));
+        $totalItems = count($fanlistings);
+        $totalPages = max(1, (int) ceil($totalItems / $perPage));
+        $page       = max(1, min($totalPages, (int) ($_GET['page'] ?? 1)));
+        $fanlistings = array_slice($fanlistings, ($page - 1) * $perPage, $perPage);
+
+        $customNetworks = $categoryRepo->getCustomSources();
+        $customCats     = [];
+        foreach ($customNetworks as $cn) {
+            $customCats[$cn] = $categoryRepo->getBySource($cn);
         }
 
         return $this->layout('admin/fanlistings/index.php', [
-            'fanlistings'    => $fanlistings,
-            'member_counts'  => $memberCounts,
-            'pending_counts' => $pendingCounts,
-            'images'         => $images,
-            'cfg'            => $config->all(),
-        ], 'Fanlistings', 'fanlistings');
+            'fanlistings'     => $fanlistings,
+            'member_counts'   => $memberCounts,
+            'pending_counts'  => $pendingCounts,
+            'images'          => $images,
+            'listing_types'   => $listingTypes,
+            'category_names'  => $categoryNames,
+            'cfg'             => $config->all(),
+            'search'          => $search,
+            'filter_network'  => $filterNetwork,
+            'filter_cat'      => $filterCat,
+            'filter_type'     => $filterType,
+            'type_options'    => $typeOptions,
+            'tfl_cats'        => $categoryRepo->getBySource('tfl'),
+            'tafl_cats'       => $categoryRepo->getBySource('tafl'),
+            'custom_networks' => $customNetworks,
+            'custom_cats'     => $customCats,
+            'page'            => $page,
+            'total_pages'     => $totalPages,
+        ], 'Owned Listings', 'fanlistings');
     }
 
     // -----------------------------------------------------------------------
@@ -111,6 +222,179 @@ final class FanlistingController
     }
 
     // -----------------------------------------------------------------------
+    // GET /admin/fanlistings/add
+    // -----------------------------------------------------------------------
+
+    public function addForm(Request $request, array $params): Response
+    {
+        $db           = $this->app->getDatabase();
+        $categoryRepo = new CategoryRepo($db);
+
+        $tflCats        = $categoryRepo->getBySource('tfl');
+        $taflCats       = $categoryRepo->getBySource('tafl');
+        $customNetworks = $categoryRepo->getCustomSources();
+
+        return $this->layout('admin/fanlistings/add.php', [
+            'tfl_cats'       => $tflCats,
+            'tafl_cats'      => $taflCats,
+            'custom_networks' => $customNetworks,
+            'old'            => [],
+            'error'          => '',
+            'default_date'   => date('Y-m-d'),
+        ], 'Add Listing', 'fanlistings');
+    }
+
+    // -----------------------------------------------------------------------
+    // POST /admin/fanlistings/add
+    // -----------------------------------------------------------------------
+
+    public function add(Request $request, array $params): Response
+    {
+        $db             = $this->app->getDatabase();
+        $config         = $this->app->getConfig();
+        $fanlistingRepo = new FanlistingRepo($db, $config);
+        $categoryRepo   = new CategoryRepo($db);
+
+        $title    = trim((string) $request->post('title', ''));
+        $subject  = trim((string) $request->post('subject', ''));
+        $url      = trim((string) $request->post('url', ''));
+        $email    = trim((string) $request->post('email', ''));
+        $statusRaw = (int) $request->post('status', 2);
+        $status   = in_array($statusRaw, [0, 1, 2], true) ? $statusRaw : 2;
+        $opened   = trim((string) $request->post('opened', '')) ?: date('Y-m-d');
+
+        $tflCats        = $categoryRepo->getBySource('tfl');
+        $taflCats       = $categoryRepo->getBySource('tafl');
+        $customNetworks = $categoryRepo->getCustomSources();
+
+        $networks = array_values((array) ($_POST['cat_network'] ?? []));
+        $names    = array_values((array) ($_POST['cat_name'] ?? []));
+        $others   = array_values((array) ($_POST['cat_network_other'] ?? []));
+        $catIds   = [];
+        foreach ($networks as $i => $rawNet) {
+            $net = trim((string) $rawNet);
+            if ($net === 'other') $net = trim((string) ($others[$i] ?? ''));
+            $n = trim((string) ($names[$i] ?? ''));
+            if ($net === '' || $n === '') continue;
+            $catIds[] = $categoryRepo->findOrCreate($net, $n);
+        }
+        $catidStr = $catIds ? '|' . implode('|', $catIds) . '|' : '';
+
+        if ($subject === '' || $url === '') {
+            return $this->layout('admin/fanlistings/add.php', [
+                'tfl_cats'        => $tflCats,
+                'tafl_cats'       => $taflCats,
+                'custom_networks' => $customNetworks,
+                'old'             => $request->post(),
+                'error'           => 'Subject and URL are required.',
+                'default_date'    => date('Y-m-d'),
+            ], 'Add Listing', 'fanlistings');
+        }
+
+        $image     = null;
+        $uploadErr = (int) ($_FILES['image']['error'] ?? UPLOAD_ERR_NO_FILE);
+        if ($uploadErr === UPLOAD_ERR_OK) {
+            $tmp      = (string) ($_FILES['image']['tmp_name'] ?? '');
+            $fileSize = (int) ($_FILES['image']['size'] ?? 0);
+            $mime     = (string) (new \finfo(FILEINFO_MIME_TYPE))->file($tmp);
+            $allowed  = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+
+            if ($fileSize > 2 * 1024 * 1024) {
+                return $this->layout('admin/fanlistings/add.php', [
+                    'tfl_cats'        => $tflCats,
+                    'tafl_cats'       => $taflCats,
+                    'custom_networks' => $customNetworks,
+                    'old'             => $request->post(),
+                    'error'           => 'Image must be 2 MB or smaller.',
+                    'default_date'    => date('Y-m-d'),
+                ], 'Add Listing', 'fanlistings');
+            }
+
+            if (!in_array($mime, $allowed, true)) {
+                return $this->layout('admin/fanlistings/add.php', [
+                    'tfl_cats'        => $tflCats,
+                    'tafl_cats'       => $taflCats,
+                    'custom_networks' => $customNetworks,
+                    'old'             => $request->post(),
+                    'error'           => 'Invalid image type.',
+                    'default_date'    => date('Y-m-d'),
+                ], 'Add Listing', 'fanlistings');
+            }
+            $ext      = ['image/jpeg' => 'jpg', 'image/png' => 'png', 'image/gif' => 'gif', 'image/webp' => 'webp'][$mime];
+            $dir      = dirname(__DIR__, 3) . '/public/uploads/fanlistings/';
+            if (!is_dir($dir)) {
+                mkdir($dir, 0755, true);
+            }
+            $filename = 'fl_' . bin2hex(random_bytes(8)) . '.' . $ext;
+            move_uploaded_file($tmp, $dir . $filename);
+            $image    = $filename;
+        }
+
+        $fanlistingRepo->insert($title, $subject, $url, $email, $status, $image, null, $opened, $catidStr);
+
+        return Response::redirect($this->app->getBaseUrl() . '/admin/fanlistings');
+    }
+
+    public function bulk(Request $request, array $params): Response
+    {
+        $db     = $this->app->getDatabase();
+        $config = $this->app->getConfig();
+        $session = $this->app->getSession();
+        $baseUrl = $this->app->getBaseUrl();
+
+        $action   = (string) $request->post('action', '');
+        $selected = array_filter(array_map('intval', (array) ($_POST['selected'] ?? [])));
+
+        if ($action === 'delete' && !empty($selected)) {
+            $fanlistingRepo = new FanlistingRepo($db, $config);
+            $settingsRepo   = new FanlistingSettingsRepo($db);
+            $activityRepo   = new ActivityRepo($db);
+            $deleted        = 0;
+
+            foreach ($selected as $id) {
+                $fanlisting = $fanlistingRepo->getById($id);
+                if ($fanlisting === null) {
+                    continue;
+                }
+
+                $prefix = $fanlisting->dbprefix;
+
+                if ($prefix !== '' && preg_match('/^[a-zA-Z0-9_]+$/', $prefix)) {
+                    $db->prepare("DROP TABLE IF EXISTS `{$prefix}`")->execute();
+                }
+
+                $db->prepare('DELETE FROM lstr_fanlisting_settings WHERE fanlisting_id = :id')
+                   ->execute(['id' => $id]);
+                $db->prepare('DELETE FROM lstr_affiliates WHERE fanlisting_id = :id')
+                   ->execute(['id' => $id]);
+
+                $imageFilename = $settingsRepo->getImage($id);
+                if ($imageFilename !== null) {
+                    $imagePath = $this->ensureUploadDirectory() . '/' . $imageFilename;
+                    if (is_file($imagePath)) {
+                        unlink($imagePath);
+                    }
+                }
+
+                $fanlistingRepo->delete($id);
+
+                $activityRepo->log(
+                    (int) $session->get('lstr_admin_id'),
+                    'fanlisting.delete',
+                    "Deleted fanlisting #{$id} ({$fanlisting->name}) via bulk action",
+                    $request->ip(),
+                );
+
+                $deleted++;
+            }
+
+            $session->set('lstr_flash_success', "Deleted {$deleted} fanlisting(s).");
+        }
+
+        return Response::redirect($baseUrl . '/admin/fanlistings');
+    }
+
+    // -----------------------------------------------------------------------
     // GET + POST /admin/fanlistings/{id}/edit
     // -----------------------------------------------------------------------
 
@@ -127,6 +411,7 @@ final class FanlistingController
         $memberRepo     = new MemberRepo($db, $config);
         $affiliateRepo  = new AffiliateRepo($db);
         $categoryRepo   = new CategoryRepo($db);
+        $fieldRepo      = new FieldRepo($db, $config);
 
         $fanlisting = $fanlistingRepo->getById($id);
 
@@ -142,8 +427,20 @@ final class FanlistingController
             $title       = trim((string) $request->post('title', ''));
             $url         = trim((string) $request->post('url', ''));
             $email       = trim((string) $request->post('email', ''));
-            $status      = (string) $request->post('status', 'active');
+            $status      = (string) $request->post('status', 'current');
             $autoApprove = $request->post('auto_approve') === '1';
+            $subject     = trim((string) $request->post('subject', ''));
+            $opened      = trim((string) $request->post('opened', ''));
+            $nets        = array_values((array) ($_POST['cat_network'] ?? []));
+            $nms         = array_values((array) ($_POST['cat_name']    ?? []));
+            $catids      = [];
+            foreach ($nets as $i => $net) {
+                $nm = trim((string) ($nms[$i] ?? ''));
+                if ($nm === '' || $net === '') continue;
+                $cat = $categoryRepo->findBySourceAndName($net, $nm);
+                if ($cat) $catids[] = $cat->id;
+            }
+            $catidStr    = $catids ? '|' . implode('|', $catids) . '|' : '';
             $deleteImage = $request->post('delete_image') === '1';
 
             $allowedTypes = ['fanlisting', 'clique', 'collective', 'shrine', 'webring', 'other'];
@@ -215,7 +512,8 @@ final class FanlistingController
                     'cfg'                 => $config->all(),
                     'approved'            => $memberRepo->countApproved($fanlisting->dbprefix),
                     'pending'             => $memberRepo->countPending($fanlisting->dbprefix),
-                    'affiliates'          => $affiliateRepo->getByFanlisting($id),
+                    'affiliates'          => $affiliateRepo->getByFanlisting($id)['items'],
+                    'fields'              => $fieldRepo->getFieldsForFanlisting($id),
                     'templates'           => $settingsRepo->getTemplates($id),
                     'categories'          => $categoryRepo->getAll(),
                     'current_category_id' => $fanlisting->categoryId ?? null,
@@ -226,9 +524,10 @@ final class FanlistingController
 
             // --- All valid: persist ---
             $upcoming = ($status === 'upcoming');
-            $trouble  = ($status === 'trouble');
+            $trouble  = ($status === 'pending');
 
             $fanlistingRepo->updateMeta($id, $title, $url, $email, $upcoming, $trouble);
+            $fanlistingRepo->update($id, !empty($catids) ? $catids[0] : null, $subject, $opened, $catidStr);
             $settingsRepo->setAutoApprove($id, $autoApprove);
             $settingsRepo->saveListingType($id, $listingType);
             $settingsRepo->saveMembersPerPage($id, $membersPerPage);
@@ -278,9 +577,19 @@ final class FanlistingController
         $currentImage       = $settingsRepo->getImage($id);
         $listingType        = $settingsRepo->getListingType($id);
         $membersPerPage     = $settingsRepo->getMembersPerPage($id);
-        $approved           = $memberRepo->countApproved($fanlisting->dbprefix);
-        $pending            = $memberRepo->countPending($fanlisting->dbprefix);
-        $affiliates         = $affiliateRepo->getByFanlisting($id);
+        $approved           = $fanlisting->dbprefix !== '' ? $memberRepo->countApproved($fanlisting->dbprefix) : 0;
+        $pending            = $fanlisting->dbprefix !== '' ? $memberRepo->countPending($fanlisting->dbprefix) : 0;
+        $countries          = $fanlisting->dbprefix !== '' ? $memberRepo->countUniqueCountries($fanlisting->dbprefix) : 0;
+        $lastUpdated        = $fanlisting->dbprefix !== '' ? $memberRepo->getLastUpdated($fanlisting->dbprefix) : null;
+        $tflCats            = $categoryRepo->getBySource('tfl');
+        $taflCats           = $categoryRepo->getBySource('tafl');
+        $customNetworks     = $categoryRepo->getCustomSources();
+        $customCats         = [];
+        foreach ($customNetworks as $cn) {
+            $customCats[$cn] = $categoryRepo->getBySource($cn);
+        }
+        $affiliates         = $affiliateRepo->getByFanlisting($id)['items'];
+        $fields             = $fieldRepo->getFieldsForFanlisting($id);
         $templates          = $settingsRepo->getTemplates($id);
         $categories         = $categoryRepo->getAll();
         $currentCategoryId  = $fanlisting->categoryId ?? null;
@@ -296,7 +605,14 @@ final class FanlistingController
             'cfg'                 => $config->all(),
             'approved'            => $approved,
             'pending'             => $pending,
+            'countries'           => $countries,
+            'last_updated'        => $lastUpdated,
+            'tfl_cats'            => $tflCats,
+            'tafl_cats'           => $taflCats,
+            'custom_networks'     => $customNetworks,
+            'custom_cats'         => $customCats,
             'affiliates'          => $affiliates,
+            'fields'              => $fields,
             'templates'           => $templates,
             'categories'          => $categories,
             'current_category_id' => $currentCategoryId,
@@ -326,20 +642,15 @@ final class FanlistingController
             return Response::notFound('Fanlisting not found.');
         }
 
-        $prefix = $fanlisting->dbprefix;
-
-        if (!preg_match('/^[a-zA-Z0-9_]+$/', $prefix)) {
-            throw new \RuntimeException(
-                "Invalid dbprefix '{$prefix}': only [a-zA-Z0-9_] allowed."
-            );
-        }
-
+        $prefix  = $fanlisting->dbprefix;
         $session = $this->app->getSession();
         $baseUrl = $this->app->getBaseUrl();
         $name    = $fanlisting->name;
 
-        // 1. Drop the member table
-        $db->prepare("DROP TABLE IF EXISTS `{$prefix}`")->execute();
+        // 1. Drop the member table (only if a table name exists and is safe)
+        if ($prefix !== '' && preg_match('/^[a-zA-Z0-9_]+$/', $prefix)) {
+            $db->prepare("DROP TABLE IF EXISTS `{$prefix}`")->execute();
+        }
 
         // 2. Delete Luster rows that reference this fanlisting
         $db->prepare('DELETE FROM lstr_fanlisting_settings WHERE fanlisting_id = :id')
@@ -559,11 +870,75 @@ final class FanlistingController
         $rawCategoryId = (int) $request->post('category_id', 0);
         $categoryId    = $rawCategoryId > 0 ? $rawCategoryId : null;
 
-        $fanlistingRepo->update($id, $categoryId);
+        $fanlistingRepo->update($id, $categoryId, $fanlisting->subject, (string) ($fanlisting->joined ?? ''), (string) ($fanlisting->catid ?? ''));
 
         $this->app->getSession()->set('lstr_flash_success', 'Category updated.');
 
         return Response::redirect($this->app->getBaseUrl() . '/admin/fanlistings/' . $id);
+    }
+
+    // -----------------------------------------------------------------------
+    // GET /admin/fanlistings/settings
+    // -----------------------------------------------------------------------
+
+    public function indexSettings(Request $request, array $params): Response
+    {
+        $session = $this->app->getSession();
+        $success = (string) $session->get('lstr_flash_success', '');
+        $error   = (string) $session->get('lstr_flash_error', '');
+        $session->remove('lstr_flash_success');
+        $session->remove('lstr_flash_error');
+
+        return $this->layout('admin/fanlistings/settings.php', [
+            'cfg'     => $this->app->getConfig()->all(),
+            'success' => $success,
+            'error'   => $error,
+        ], 'Listings Display Settings', 'fanlistings');
+    }
+
+    // -----------------------------------------------------------------------
+    // POST /admin/fanlistings/settings
+    // -----------------------------------------------------------------------
+
+    public function saveSettings(Request $request, array $params): Response
+    {
+        $session = $this->app->getSession();
+        $baseUrl = $this->app->getBaseUrl();
+
+        $sort        = trim((string) $request->post('owned_sort', 'id'));
+        $perPage     = max(5, min(200, (int) $request->post('owned_per_page', 10)));
+        $previewSize = trim((string) $request->post('image_preview_size', 'medium'));
+
+        if (!in_array($sort, ['id', 'subject', 'category', 'status'], true)) {
+            $sort = 'id';
+        }
+
+        if (!in_array($previewSize, ['small', 'medium', 'large'], true)) {
+            $previewSize = 'medium';
+        }
+
+        $updated                       = $this->app->getConfig()->all();
+        $updated['owned_sort']         = $sort;
+        $updated['owned_per_page']     = $perPage;
+        $updated['image_preview_size'] = $previewSize;
+
+        try {
+            $this->writeConfig($updated);
+        } catch (\RuntimeException $e) {
+            $session->set('lstr_flash_error', 'Could not save settings: ' . $e->getMessage());
+            return Response::redirect($baseUrl . '/admin/fanlistings/settings');
+        }
+
+        $activityRepo = new ActivityRepo($this->app->getDatabase());
+        $activityRepo->log(
+            (int) $session->get('lstr_admin_id'),
+            'fanlistings.settings.save',
+            'Owned listings display settings updated',
+            $request->ip(),
+        );
+
+        $session->set('lstr_flash_success', 'Settings saved successfully.');
+        return Response::redirect($baseUrl . '/admin/fanlistings/settings');
     }
 
     // -----------------------------------------------------------------------
@@ -578,14 +953,19 @@ final class FanlistingController
         $baseUrl   = $this->app->getBaseUrl();
         $csrfToken = $this->app->getCSRF()->token();
 
-        $flash = (string) $session->get('lstr_flash_success', '');
+        $flash      = (string) $session->get('lstr_flash_success', '');
+        $flashError = (string) $session->get('lstr_flash_error', '');
         $session->remove('lstr_flash_success');
+        $session->remove('lstr_flash_error');
 
-        $inner = $view->render($template, array_merge($data, [
+        // Merge order: $data takes priority over flash defaults so controllers
+        // that pre-read flash (e.g. indexSettings) keep their values intact.
+        $inner = $view->render($template, array_merge([
             'base_url'   => $baseUrl,
             'success'    => $flash,
+            'error'      => $flashError,
             'csrf_token' => $csrfToken,
-        ]));
+        ], $data));
 
         return Response::html($view->render('admin/layout.php', [
             'page_title'      => $pageTitle,
@@ -596,5 +976,31 @@ final class FanlistingController
             'base_url'        => $baseUrl,
             'content'         => $inner,
         ]));
+    }
+
+    /**
+     * Writes the config array to config/app.php via a safe temp-file pattern.
+     *
+     * @throws \RuntimeException on write failure
+     */
+    private function writeConfig(array $config): void
+    {
+        $configPath = $this->app->getBasePath() . '/config/app.php';
+        $tmpPath    = $configPath . '.tmp';
+
+        $export  = "<?php\n\ndeclare(strict_types=1);\n\nreturn ";
+        $export .= var_export($config, true);
+        $export .= ";\n";
+
+        $bytes = file_put_contents($tmpPath, $export, LOCK_EX);
+
+        if ($bytes === false) {
+            throw new \RuntimeException('Could not write temp config file: ' . $tmpPath);
+        }
+
+        if (!rename($tmpPath, $configPath)) {
+            unlink($tmpPath);
+            throw new \RuntimeException('Could not rename temp config file to: ' . $configPath);
+        }
     }
 }

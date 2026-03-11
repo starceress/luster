@@ -1,126 +1,140 @@
-<?php
-/** @var array<int, \Luster\Models\Category> $parents */
-/** @var array<int, \Luster\Models\Category[]> $children */
-/** @var \Luster\Models\Category[] $all */
+<?php declare(strict_types=1);
+/** @var array  $items */
+/** @var int    $total */
+/** @var int    $page */
+/** @var int    $total_pages */
+/** @var string $source */
+/** @var string $search */
+/** @var array  $custom_sources */
 /** @var string $success */
 /** @var string $error */
 /** @var string $base_url */
 /** @var string $csrf_token */
-$b = rtrim(\Luster\Core\View::e($base_url), '/');
+$b = rtrim(\Luster\Core\View::e($base_url ?? ''), '/');
 
-$sourceBadge = static function (string $source): string {
-    return match ($source) {
-        'tfl'   => '<span style="background:#eff6ff;color:#1d4ed8;padding:.15rem .5rem;border-radius:9999px;font-size:.7rem;font-weight:600">TFL</span>',
-        'tafl'  => '<span style="background:#fdf4ff;color:#7e22ce;padding:.15rem .5rem;border-radius:9999px;font-size:.7rem;font-weight:600">TAFL</span>',
-        default => '<span style="background:#f3f4f6;color:#374151;padding:.15rem .5rem;border-radius:9999px;font-size:.7rem;font-weight:600">Custom</span>',
+$sourceBadge = static function (string $s): string {
+    return match ($s) {
+        'tfl'   => '<span class="neb-badge badge-tfl">TFL</span>',
+        'tafl'  => '<span class="neb-badge badge-tafl">TAFL</span>',
+        default => '<span class="neb-badge badge-inactive">' . htmlspecialchars(ucfirst($s), ENT_QUOTES, 'UTF-8') . '</span>',
     };
 };
+
+$catFilterQs = http_build_query(array_filter([
+    'source' => $source ?? '',
+    'search' => $search ?? '',
+], static fn(string $v): bool => $v !== ''));
+$catPageUrl = static function (int $p) use ($b, $catFilterQs): string {
+    $qs = $catFilterQs !== '' ? $catFilterQs . '&page=' . $p : 'page=' . $p;
+    return $b . '/admin/categories?' . $qs;
+};
 ?>
-<style>
-  .info-card   { background:#fff;border:1px solid #e5e7eb;border-radius:8px;padding:1.25rem;margin-bottom:1.25rem; }
-  .btn         { display:inline-block;padding:.45rem 1rem;border-radius:6px;font-size:.875rem;font-weight:500;text-decoration:none;cursor:pointer;border:none; }
-  .btn-primary { background:#4f46e5;color:#fff; }
-  .btn-primary:hover { background:#4338ca; }
-  .alert-success { background:#f0fdf4;border:1px solid #86efac;border-radius:6px;padding:.65rem 1rem;margin-bottom:1rem;color:#15803d;font-size:.875rem; }
-  .alert-error   { background:#fef2f2;border:1px solid #fca5a5;border-radius:6px;padding:.65rem 1rem;margin-bottom:1rem;color:#b91c1c;font-size:.875rem; }
-  .cat-row     { display:flex;align-items:center;justify-content:space-between;padding:.5rem .5rem;border-bottom:1px solid #f3f4f6; }
-  .cat-row:last-child { border-bottom:none; }
-  .cat-child   { padding-left:1.75rem; }
-</style>
 
-<?php if ($success !== ''): ?>
-  <div class="alert-success"><?= \Luster\Core\View::e($success) ?></div>
+<?php if (($success ?? '') !== ''): ?>
+  <div class="alert alert-success"><?= \Luster\Core\View::e($success ?? '') ?></div>
 <?php endif; ?>
-<?php if ($error !== ''): ?>
-  <div class="alert-error"><?= \Luster\Core\View::e($error) ?></div>
+<?php if (($error ?? '') !== ''): ?>
+  <div class="alert alert-error"><?= \Luster\Core\View::e($error ?? '') ?></div>
 <?php endif; ?>
 
-<!-- Category list -->
-<div class="info-card">
-  <h2 style="font-size:1rem;font-weight:700;color:#111827;margin-bottom:1rem">
-    All Categories <span style="color:#6b7280;font-size:.875rem;font-weight:400">(<?= count($all) ?>)</span>
-  </h2>
+<!-- Toolbar -->
+<div class="neb-toolbar">
+  <form method="GET" action="<?= $b ?>/admin/categories" class="neb-filter-row">
 
-  <?php if (empty($parents)): ?>
-    <p style="color:#6b7280;font-size:.875rem">No categories yet. Add one below.</p>
-  <?php else: ?>
-    <?php foreach ($parents as $parent): ?>
-      <!-- Parent row -->
-      <div class="cat-row">
-        <div style="display:flex;align-items:center;gap:.6rem">
-          <?= $sourceBadge($parent->source) ?>
-          <span style="font-size:.9rem;color:#111827"><?= \Luster\Core\View::e($parent->name) ?></span>
-        </div>
-        <form method="POST"
-              action="<?= $b ?>/admin/categories/<?= (int) $parent->id ?>/delete"
-              onsubmit="return confirm('Delete category &quot;<?= \Luster\Core\View::e(addslashes($parent->name)) ?>&quot;? This will unlink any joined fanlistings in this category.')">
-          <input type="hidden" name="_csrf" value="<?= \Luster\Core\View::e($csrf_token) ?>">
-          <button type="submit"
-                  style="background:none;border:none;color:#dc2626;font-size:.8125rem;cursor:pointer;padding:0">
-            Delete
-          </button>
-        </form>
-      </div>
-
-      <!-- Child rows (e.g. TAFL sub-categories under Anime/Manga) -->
-      <?php foreach ($children[$parent->id] ?? [] as $child): ?>
-        <div class="cat-row cat-child">
-          <div style="display:flex;align-items:center;gap:.6rem">
-            <span style="color:#d1d5db;font-size:.8rem">&#8627;</span>
-            <?= $sourceBadge($child->source) ?>
-            <span style="font-size:.875rem;color:#374151"><?= \Luster\Core\View::e($child->name) ?></span>
-          </div>
-          <form method="POST"
-                action="<?= $b ?>/admin/categories/<?= (int) $child->id ?>/delete"
-                onsubmit="return confirm('Delete category &quot;<?= \Luster\Core\View::e(addslashes($child->name)) ?>&quot;?')">
-            <input type="hidden" name="_csrf" value="<?= \Luster\Core\View::e($csrf_token) ?>">
-            <button type="submit"
-                    style="background:none;border:none;color:#dc2626;font-size:.8125rem;cursor:pointer;padding:0">
-              Delete
-            </button>
-          </form>
-        </div>
+    <div class="toolbar-select-wrap">
+    <select name="source" class="neb-select" onchange="this.form.submit()">
+      <option value="">All Networks</option>
+      <option value="tfl"  <?= ($source ?? '') === 'tfl'  ? 'selected' : '' ?>>TFL</option>
+      <option value="tafl" <?= ($source ?? '') === 'tafl' ? 'selected' : '' ?>>TAFL</option>
+      <?php foreach ($custom_sources ?? [] as $cs): ?>
+        <option value="<?= \Luster\Core\View::e($cs) ?>"
+                <?= ($source ?? '') === $cs ? 'selected' : '' ?>>
+          <?= \Luster\Core\View::e($cs) ?>
+        </option>
       <?php endforeach; ?>
-    <?php endforeach; ?>
-  <?php endif; ?>
-</div>
-
-<!-- Add category form -->
-<div class="info-card">
-  <h2 style="font-size:1rem;font-weight:700;color:#111827;margin-bottom:1rem">Add Category</h2>
-
-  <form method="POST" action="<?= $b ?>/admin/categories/add">
-    <input type="hidden" name="_csrf" value="<?= \Luster\Core\View::e($csrf_token) ?>">
-
-    <div style="display:grid;grid-template-columns:1fr 1fr auto;gap:.75rem;align-items:end">
-      <div>
-        <label for="cat_name"
-               style="font-size:.75rem;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:.04em;display:block;margin-bottom:.35rem">
-          Name <span aria-hidden="true">*</span>
-        </label>
-        <input type="text" id="cat_name" name="name" maxlength="150" required
-               style="width:100%;border:1px solid #d1d5db;border-radius:6px;padding:.45rem .75rem;font-size:.875rem;color:#111827">
-      </div>
-
-      <div>
-        <label for="cat_parent"
-               style="font-size:.75rem;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:.04em;display:block;margin-bottom:.35rem">
-          Parent (optional)
-        </label>
-        <select id="cat_parent" name="parent_id"
-                style="width:100%;border:1px solid #d1d5db;border-radius:6px;padding:.45rem .75rem;font-size:.875rem;color:#111827;background:#fff">
-          <option value="0">— None (top level) —</option>
-          <?php foreach ($parents as $parent): ?>
-            <option value="<?= (int) $parent->id ?>">
-              <?= \Luster\Core\View::e($parent->name) ?>
-            </option>
-          <?php endforeach; ?>
-        </select>
-      </div>
-
-      <div>
-        <button type="submit" class="btn btn-primary">Add Category</button>
-      </div>
+    </select>
     </div>
+
+    <input type="text" name="search" class="neb-input" placeholder="Search&hellip;"
+           value="<?= \Luster\Core\View::e($search ?? '') ?>">
+    <button type="submit" class="btn btn-primary btn-sm">Search</button>
+    <a href="<?= $b ?>/admin/categories" class="btn btn-secondary btn-sm">Reset</a>
+
   </form>
+  <div class="neb-actions">
+    <a href="<?= $b ?>/admin/categories/add" class="btn btn-primary btn-sm">+ Add New Category</a>
+  </div>
 </div>
+
+<p class="text-muted" style="font-size:.8rem;margin-bottom:.5rem">
+  Showing <?= count($items ?? []) ?> of <?= (int) ($total ?? 0) ?> categor<?= (int) ($total ?? 0) === 1 ? 'y' : 'ies' ?>
+  <?php if (($source ?? '') !== ''): ?>
+    in <strong><?= \Luster\Core\View::e(strtoupper($source ?? '')) ?></strong>
+  <?php endif; ?>
+</p>
+
+<div class="neb-card">
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Network</th>
+        <th>Category Name</th>
+        <th class="act-col">Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      <?php foreach ($items ?? [] as $cat): ?>
+      <tr>
+        <td class="text-dim"><?= (int) $cat->id ?></td>
+        <td><?= $sourceBadge($cat->source ?? 'custom') ?></td>
+        <td class="text-strong"><?= \Luster\Core\View::e($cat->name ?? '') ?></td>
+        <td class="act-col">
+          <a href="<?= $b ?>/admin/categories/<?= (int) $cat->id ?>/edit"
+             class="btn btn-primary btn-sm">Edit</a>
+          <?php if (!in_array($cat->source ?? '', ['tfl', 'tafl'], true)): ?>
+            <form method="POST" action="<?= $b ?>/admin/categories/<?= (int) $cat->id ?>/delete"
+                  style="display:inline"
+                  onsubmit="return confirm('Delete this category?')">
+              <input type="hidden" name="_csrf" value="<?= \Luster\Core\View::e($csrf_token ?? '') ?>">
+              <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+            </form>
+          <?php endif; ?>
+        </td>
+      </tr>
+      <?php endforeach; ?>
+    </tbody>
+  </table>
+</div>
+
+<?php if (($total_pages ?? 1) > 1): ?>
+<nav class="neb-pagination" aria-label="Pagination">
+  <a href="<?= \Luster\Core\View::e($catPageUrl($page - 1)) ?>"
+     class="pg-link<?= $page <= 1 ? ' disabled' : '' ?>"
+     <?= $page <= 1 ? 'aria-disabled="true"' : '' ?>>&lsaquo; Prev</a>
+
+  <?php
+    $window = 2;
+    $start  = max(1, $page - $window);
+    $end    = min($total_pages, $page + $window);
+    if ($start > 1): ?>
+      <a href="<?= \Luster\Core\View::e($catPageUrl(1)) ?>" class="pg-link">1</a>
+      <?php if ($start > 2): ?><span class="pg-link disabled">&hellip;</span><?php endif; ?>
+  <?php endif; ?>
+
+  <?php for ($i = $start; $i <= $end; $i++): ?>
+    <a href="<?= \Luster\Core\View::e($catPageUrl($i)) ?>"
+       class="pg-link<?= $i === $page ? ' active' : '' ?>"
+       <?= $i === $page ? 'aria-current="page"' : '' ?>><?= $i ?></a>
+  <?php endfor; ?>
+
+  <?php if ($end < $total_pages): ?>
+    <?php if ($end < $total_pages - 1): ?><span class="pg-link disabled">&hellip;</span><?php endif; ?>
+    <a href="<?= \Luster\Core\View::e($catPageUrl($total_pages)) ?>" class="pg-link"><?= $total_pages ?></a>
+  <?php endif; ?>
+
+  <a href="<?= \Luster\Core\View::e($catPageUrl($page + 1)) ?>"
+     class="pg-link<?= $page >= $total_pages ? ' disabled' : '' ?>"
+     <?= $page >= $total_pages ? 'aria-disabled="true"' : '' ?>>Next &rsaquo;</a>
+</nav>
+<?php endif; ?>

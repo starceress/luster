@@ -3,83 +3,53 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Join the {fanlisting_name} Fanlisting</title>
-  <link rel="stylesheet" href="{base_url}/assets/css/public.css">
+  <title>Join {fanlisting_name}</title>
+  <link rel="stylesheet" href="{theme_path}style.css">
 </head>
 <body>
-  <div class="site-wrapper">
-    <header class="site-header">
-      <h1><a href="{fanlisting_url}">{fanlisting_name}</a></h1>
-    </header>
 
-    <main class="site-main">
-      <h2>Join the Fanlisting</h2>
+<div class="fl-wrap">
 
-      <div class="form-error" role="alert">{error}</div>
+  <h2 class="fl-title">Join {fanlisting_name}</h2>
 
-      <p>Fields marked <span aria-hidden="true">*</span> are required.</p>
+  {errors}
 
-      <form method="post" action="{base_url}/join/{fanlisting_id}" novalidate>
-        <input type="hidden" name="_csrf" value="{csrf_token}">
+  <form method="POST" action="{form_action}">
+    <input type="hidden" name="_csrf" value="{csrf_token}">
 
-        <div style="position:absolute;left:-9999px;top:-9999px;" aria-hidden="true">
-          <label for="website_confirm">Leave this blank</label>
-          <input type="text" name="website_confirm" id="website_confirm" tabindex="-1" autocomplete="off">
-        </div>
+    <div class="fl-field">
+      <label class="fl-label" for="join-name">Name <span aria-hidden="true">*</span></label>
+      <input class="fl-input" type="text" id="join-name" name="fan_name"
+             value="{field_name}" required maxlength="100" autocomplete="name">
+    </div>
 
-        <div class="form-group">
-          <label for="name">Name <span aria-hidden="true">*</span></label>
-          <input type="text" id="name" name="name" value="{old_name}" maxlength="100" required autocomplete="name">
-        </div>
+    <div class="fl-field">
+      <label class="fl-label" for="join-email">Email <span aria-hidden="true">*</span></label>
+      <input class="fl-input" type="email" id="join-email" name="fan_email"
+             value="{field_email}" required maxlength="255" autocomplete="email">
+    </div>
 
-        <div class="form-group">
-          <label for="email">Email Address <span aria-hidden="true">*</span></label>
-          <input type="email" id="email" name="email" value="{old_email}" maxlength="255" required autocomplete="email">
-        </div>
+    <div class="fl-field">
+      <label class="fl-label" for="join-url">Website URL <span style="font-weight:400">(optional)</span></label>
+      <input class="fl-input" type="url" id="join-url" name="fan_url"
+             value="{field_url}" maxlength="500" autocomplete="url" placeholder="https://">
+    </div>
 
-        <div class="form-group">
-          <label for="url">Website URL</label>
-          <input type="url" id="url" name="url" value="{old_url}" maxlength="255" placeholder="https://" autocomplete="url">
-        </div>
+    {country_field}
 
-        <div class="form-group">
-          <label for="country">Country <span aria-hidden="true">*</span></label>
-          {country_select}
-        </div>
+    {extra_fields}
 
-        {extra_fields}
+    <div class="fl-field">
+      <label class="fl-label" for="join-password">Password &mdash; for future updates/removal <span aria-hidden="true">*</span></label>
+      <input class="fl-input" type="password" id="join-password" name="fan_password"
+             required maxlength="255" autocomplete="new-password">
+    </div>
 
-        <div class="form-group">
-          <label for="password">Password</label>
-          <input type="password" id="password" name="password" maxlength="255" autocomplete="new-password">
-        </div>
+    <button class="fl-btn" type="submit">Join</button>
 
-        <div class="form-group">
-          <label for="password_confirm">Confirm Password</label>
-          <input type="password" id="password_confirm" name="password_confirm" maxlength="255" autocomplete="new-password">
-          <small class="form-hint">Leave blank to have a password emailed to you.</small>
-        </div>
+  </form>
 
-        <div class="form-group form-check">
-          <input type="checkbox" name="send_info" id="send_info" value="1" {send_info_checked}>
-          <label for="send_info">Yes, send me my account information!</label>
-        </div>
+</div>
 
-        <div class="form-group">
-          <label for="captcha_answer">Spam check: What is {captcha_question}? <span class="required">*</span></label>
-          <input type="text" name="captcha_answer" id="captcha_answer" required autocomplete="off" inputmode="numeric">
-        </div>
-        <div class="form-error" role="alert">{captcha_error}</div>
-
-        <div class="form-actions">
-          <button type="submit">Join Now</button>
-        </div>
-      </form>
-    </main>
-
-    <footer class="site-footer">
-      <p>Powered by <a href="{base_url}">{app_name}</a></p>
-    </footer>
-  </div>
 </body>
 </html>

@@ -28,20 +28,14 @@ final class CategoryController
 
     public function index(Request $request, array $params): Response
     {
-        $categoryRepo = new CategoryRepo($this->app->getDatabase());
-        $all          = $categoryRepo->getAll();
+        $repo    = new CategoryRepo($this->app->getDatabase());
+        $source  = trim((string) $request->query('source', ''));
+        $search  = trim((string) $request->query('search', ''));
+        $page    = max(1, (int) $request->query('page', 1));
+        $perPage = 10;
 
-        // Group: parents first, then children keyed under parent id
-        $parents  = [];
-        $children = [];
-
-        foreach ($all as $cat) {
-            if ($cat->parentId === null) {
-                $parents[$cat->id] = $cat;
-            } else {
-                $children[$cat->parentId][] = $cat;
-            }
-        }
+        $result        = $repo->paginate($perPage, $page, $source, $search);
+        $customSources = $repo->getCustomSources();
 
         $session = $this->app->getSession();
         $success = (string) $session->get('lstr_flash_success', '');
@@ -49,13 +43,44 @@ final class CategoryController
         $session->remove('lstr_flash_success');
         $session->remove('lstr_flash_error');
 
+        $all = $repo->getAll();
+
         return $this->layout('admin/categories/index.php', [
-            'parents'  => $parents,
-            'children' => $children,
-            'all'      => $all,
-            'success'  => $success,
-            'error'    => $error,
+            'items'          => $result['items'],
+            'total'          => $result['total'],
+            'pages'          => $result['pages'],
+            'page'           => $page,
+            'total_pages'    => $result['pages'],
+            'source'         => $source,
+            'search'         => $search,
+            'custom_sources' => $customSources,
+            'all_cats'       => $all,
+            'success'        => $success,
+            'error'          => $error,
         ], 'Categories', 'categories');
+    }
+
+    // -----------------------------------------------------------------------
+    // GET /admin/categories/add
+    // -----------------------------------------------------------------------
+
+    public function addForm(Request $request, array $params): Response
+    {
+        $repo = new CategoryRepo($this->app->getDatabase());
+        $all  = $repo->getAll();
+
+        $session = $this->app->getSession();
+        $success = (string) $session->get('lstr_flash_success', '');
+        $error   = (string) $session->get('lstr_flash_error', '');
+        $session->remove('lstr_flash_success');
+        $session->remove('lstr_flash_error');
+
+        return $this->layout('admin/categories/add.php', [
+            'all_cats'   => $all,
+            'csrf_token' => $this->app->getSession()->get('csrf_token', ''),
+            'success'    => $success,
+            'error'      => $error,
+        ], 'Add Category', 'categories');
     }
 
     // -----------------------------------------------------------------------
@@ -78,10 +103,74 @@ final class CategoryController
         }
 
         $categoryRepo = new CategoryRepo($this->app->getDatabase());
-        $categoryRepo->add($name, $parentId > 0 ? $parentId : null, 'custom');
+        $networkName = trim((string) $request->post('network_name', ''));
+        $source      = $networkName !== '' ? strtolower($networkName) : 'custom';
+$categoryRepo->add($name, $parentId > 0 ? $parentId : null, $source);
 
         $session->set('lstr_flash_success', 'Category added.');
-        return Response::redirect($baseUrl . '/admin/categories');
+        return Response::redirect($baseUrl . '/admin/categories/add');
+    }
+
+    // -----------------------------------------------------------------------
+    // GET /admin/categories/{id}/edit
+    // -----------------------------------------------------------------------
+
+    public function editForm(Request $request, array $params): Response
+    {
+        $id   = (int) ($params['id'] ?? 0);
+        $repo = new CategoryRepo($this->app->getDatabase());
+        $cat  = $repo->getById($id);
+
+        if ($cat === null) {
+            return Response::redirect($this->app->getBaseUrl() . '/admin/categories');
+        }
+
+        $all = $repo->getAll();
+
+        $session = $this->app->getSession();
+        $success = (string) $session->get('lstr_flash_success', '');
+        $error   = (string) $session->get('lstr_flash_error', '');
+        $session->remove('lstr_flash_success');
+        $session->remove('lstr_flash_error');
+
+        return $this->layout('admin/categories/edit.php', [
+            'cat'        => $cat,
+            'all_cats'   => $all,
+            'csrf_token' => $this->app->getSession()->get('csrf_token', ''),
+            'success'    => $success,
+            'error'      => $error,
+        ], 'Edit Category', 'categories');
+    }
+
+    // -----------------------------------------------------------------------
+    // POST /admin/categories/{id}/edit
+    // -----------------------------------------------------------------------
+
+    public function edit(Request $request, array $params): Response
+    {
+        $id       = (int) ($params['id'] ?? 0);
+        $name     = trim((string) $request->post('name', ''));
+        $parentId = $request->post('parent_id', '') !== '' ? (int) $request->post('parent_id', 0) : null;
+        $baseUrl  = $this->app->getBaseUrl();
+        $session  = $this->app->getSession();
+
+        $v = new Validator(['name' => $name]);
+        $v->field('name')->required()->maxLength(150);
+
+        if ($v->fails()) {
+            $session->set('lstr_flash_error', 'Could not save changes: ' . implode(' ', $v->allErrors()));
+            return Response::redirect($baseUrl . '/admin/categories/' . $id . '/edit');
+        }
+
+        $repo = new CategoryRepo($this->app->getDatabase());
+        $addNetwork    = trim((string) $request->post('add_network', 'no'));
+        $networkName   = trim((string) $request->post('network_name', ''));
+        $currentSource = trim((string) $request->post('current_source', 'custom'));
+        $source        = ($addNetwork === 'yes' && $networkName !== '') ? strtolower($networkName) : $currentSource;
+        $repo->update($id, $name, $parentId, $source);
+
+        $session->set('lstr_flash_success', 'Category updated successfully.');
+        return Response::redirect($baseUrl . '/admin/categories/' . $id . '/edit');
     }
 
     // -----------------------------------------------------------------------

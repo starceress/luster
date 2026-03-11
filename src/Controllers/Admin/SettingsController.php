@@ -9,6 +9,7 @@ use Luster\Core\Request;
 use Luster\Core\Response;
 use Luster\Core\Validator;
 use Luster\Repositories\ActivityRepo;
+use Luster\Repositories\AdminUserRepo;
 use RuntimeException;
 
 /**
@@ -38,10 +39,12 @@ final class SettingsController
         'smtp_pass',
         'smtp_from',
         'smtp_from_name',
+        'smtp_from_fanlisting',
+        'smtp_from_fanlisting_name',
         'smtp_secure',
         'timezone',
-        'per_page',
-        'image_preview_size',
+        'joined_display_mode',
+        'joined_per_page',
     ];
 
     public function __construct(private readonly Application $app) {}
@@ -58,10 +61,15 @@ final class SettingsController
         $session->remove('lstr_flash_success');
         $session->remove('lstr_flash_error');
 
+        $adminId   = (int) $session->get('lstr_admin_id');
+        $adminRepo = new AdminUserRepo($this->app->getDatabase());
+        $adminUser = $adminRepo->getById($adminId);
+
         return $this->layout('admin/settings/index.php', [
-            'cfg'     => $this->app->getConfig()->all(),
-            'success' => $success,
-            'error'   => $error,
+            'cfg'        => $this->app->getConfig()->all(),
+            'admin_user' => $adminUser,
+            'success'    => $success,
+            'error'      => $error,
         ], 'Settings', 'settings');
     }
 
@@ -77,7 +85,6 @@ final class SettingsController
 
         $appName   = trim((string) $request->post('app_name', ''));
         $appUrl    = rtrim(trim((string) $request->post('app_url', '')), '/');
-        $perPage   = max(5, min(200, (int) $request->post('per_page', 25)));
         $timezone  = trim((string) $request->post('timezone', 'UTC'));
 
         $v = new Validator(['app_name' => $appName, 'app_url' => $appUrl]);
@@ -100,13 +107,14 @@ final class SettingsController
         $updated = $existing;
         $updated['app_name']       = $appName;
         $updated['app_url']        = $appUrl;
-        $updated['per_page']       = $perPage;
         $updated['timezone']       = $timezone;
         $updated['smtp_host']      = trim((string) $request->post('smtp_host', ''));
         $updated['smtp_port']      = max(1, min(65535, (int) $request->post('smtp_port', 587)));
         $updated['smtp_user']      = trim((string) $request->post('smtp_user', ''));
         $updated['smtp_from']      = trim((string) $request->post('smtp_from', ''));
-        $updated['smtp_from_name'] = trim((string) $request->post('smtp_from_name', ''));
+        $updated['smtp_from_name']          = trim((string) $request->post('smtp_from_name', ''));
+        $updated['smtp_from_fanlisting']    = trim((string) $request->post('smtp_from_fanlisting', ''));
+        $updated['smtp_from_fanlisting_name'] = trim((string) $request->post('smtp_from_fanlisting_name', ''));
         $updated['smtp_secure']    = in_array(
             trim((string) $request->post('smtp_secure', 'tls')),
             ['tls', 'ssl', ''],
@@ -119,11 +127,6 @@ final class SettingsController
             $updated['smtp_pass'] = $newSmtpPass;
         }
 
-        $previewSize = trim((string) $request->post('image_preview_size', 'medium'));
-        $updated['image_preview_size'] = in_array($previewSize, ['small', 'medium', 'large'], true)
-            ? $previewSize
-            : 'medium';
-
         $this->writeConfig($updated);
 
         $activityRepo->log(
@@ -134,6 +137,78 @@ final class SettingsController
         );
 
         $session->set('lstr_flash_success', 'Settings saved successfully.');
+        return Response::redirect($baseUrl . '/admin/settings');
+    }
+
+    // -----------------------------------------------------------------------
+    // POST /admin/settings/profile
+    // -----------------------------------------------------------------------
+
+    public function updateProfile(Request $request, array $params): Response
+    {
+        $session      = $this->app->getSession();
+        $baseUrl      = $this->app->getBaseUrl();
+        $db           = $this->app->getDatabase();
+        $adminId      = (int) $session->get('lstr_admin_id');
+        $adminRepo    = new AdminUserRepo($db);
+        $activityRepo = new ActivityRepo($db);
+
+        $username        = trim((string) $request->post('admin_username', ''));
+        $email           = trim((string) $request->post('admin_email', ''));
+        $newPassword     = (string) $request->post('admin_new_password', '');
+        $confirmPassword = (string) $request->post('admin_confirm_password', '');
+
+        $v = new Validator(['username' => $username, 'email' => $email]);
+        $v->field('username')->required()->maxLength(50);
+        $v->field('email')->required()->email()->maxLength(255);
+
+        if ($v->fails()) {
+            $session->set('lstr_flash_error', implode(' ', $v->allErrors()));
+            return Response::redirect($baseUrl . '/admin/settings');
+        }
+
+        if ($newPassword !== '') {
+            if (strlen($newPassword) < 8) {
+                $session->set('lstr_flash_error', 'New password must be at least 8 characters.');
+                return Response::redirect($baseUrl . '/admin/settings');
+            }
+            if ($newPassword !== $confirmPassword) {
+                $session->set('lstr_flash_error', 'New password and confirmation do not match.');
+                return Response::redirect($baseUrl . '/admin/settings');
+            }
+        }
+
+        // Uniqueness checks — exclude the current user
+        $existingByUsername = $adminRepo->findByUsername($username);
+        if ($existingByUsername !== null && $existingByUsername->id !== $adminId) {
+            $session->set('lstr_flash_error', 'That username is already taken.');
+            return Response::redirect($baseUrl . '/admin/settings');
+        }
+
+        $existingByEmail = $adminRepo->findByEmail($email);
+        if ($existingByEmail !== null && $existingByEmail->id !== $adminId) {
+            $session->set('lstr_flash_error', 'That email address is already in use.');
+            return Response::redirect($baseUrl . '/admin/settings');
+        }
+
+        $adminRepo->updateProfile($adminId, $username, $email);
+
+        // Reflect changes in session so the topbar updates immediately
+        $session->set('lstr_admin_username', $username);
+        $session->set('lstr_admin_email', $email);
+
+        if ($newPassword !== '') {
+            $adminRepo->updatePassword($adminId, password_hash($newPassword, PASSWORD_ARGON2ID));
+        }
+
+        $activityRepo->log(
+            $adminId,
+            'admin.profile.update',
+            'Admin profile updated',
+            $request->ip(),
+        );
+
+        $session->set('lstr_flash_success', 'Profile updated successfully.');
         return Response::redirect($baseUrl . '/admin/settings');
     }
 

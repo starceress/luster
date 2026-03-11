@@ -41,8 +41,12 @@ final class Fanlisting
         public readonly bool    $trouble,
         /** Date the fanlisting opened — from joined/opened/since column if present. */
         public readonly ?string $joined = null,
+        /** Opened date as a dedicated property (same source as $joined). */
+        public readonly ?string $opened = null,
         /** Luster category assignment from lstr_categories (nullable). */
-        public readonly ?int $categoryId = null,
+        public readonly ?int    $categoryId = null,
+        /** Raw catid/category string from the registry row (pipe-delimited or int). */
+        public readonly string  $catid = '',
     ) {}
 
     /**
@@ -96,9 +100,11 @@ final class Fanlisting
             upcoming:       $upcoming,
             trouble:        $trouble,
             joined:         $joinedRaw !== null ? (string) $joinedRaw : null,
+            opened:         $joinedRaw !== null ? (string) $joinedRaw : null,
             categoryId:     isset($row['category_id']) && $row['category_id'] !== null
                                 ? (int) $row['category_id']
                                 : null,
+            catid:          (string) $catRaw,
         );
     }
 

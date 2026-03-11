@@ -44,15 +44,128 @@ final class CategoryRepo
      *
      * @return array<string, mixed>|null
      */
-    public function getById(int $id): ?array
+    public function getById(int $id): ?object
     {
         $stmt = $this->db->prepare(
             'SELECT * FROM lstr_categories WHERE id = :id'
         );
         $stmt->execute(['id' => $id]);
-        $row = $stmt->fetch();
+        $row = $stmt->fetch(\PDO::FETCH_OBJ);
 
         return $row !== false ? $row : null;
+    }
+
+    public function paginate(int $perPage, int $page, string $source = '', string $search = ''): array
+    {
+        $where  = '1=1';
+        $params = [];
+
+        if ($source !== '') {
+            $where            .= ' AND source = :source';
+            $params['source']  = $source;
+        }
+
+        if ($search !== '') {
+            $where            .= ' AND name LIKE :search';
+            $params['search']  = '%' . $search . '%';
+        }
+
+        $countStmt = $this->db->pdo()->prepare("SELECT COUNT(*) FROM lstr_categories WHERE $where");
+        foreach ($params as $k => $v) {
+            $countStmt->bindValue($k, $v);
+        }
+        $countStmt->execute();
+        $total = (int) $countStmt->fetchColumn();
+        $offset = ($page - 1) * $perPage;
+
+        $stmt = $this->db->pdo()->prepare(
+            "SELECT * FROM lstr_categories WHERE $where ORDER BY source, name LIMIT :lim OFFSET :off"
+        );
+
+        foreach ($params as $k => $v) {
+            $stmt->bindValue($k, $v);
+        }
+
+        $stmt->bindValue('lim', $perPage, \PDO::PARAM_INT);
+        $stmt->bindValue('off', $offset, \PDO::PARAM_INT);
+        $stmt->execute();
+
+        return [
+            'items' => $stmt->fetchAll(\PDO::FETCH_OBJ),
+            'total' => $total,
+            'pages' => $total > 0 ? (int) ceil($total / $perPage) : 0,
+        ];
+    }
+
+    public function getCustomSources(): array
+    {
+        $stmt = $this->db->pdo()->query(
+            "SELECT DISTINCT source FROM lstr_categories WHERE source NOT IN ('tfl', 'tafl') ORDER BY source"
+        );
+
+        return $stmt ? $stmt->fetchAll(\PDO::FETCH_COLUMN) : [];
+    }
+
+    public function update(int $id, string $name, ?int $parentId, string $source = 'custom'): void
+    {
+        $stmt = $this->db->pdo()->prepare(
+            'UPDATE lstr_categories SET name = :name, parent_id = :pid, source = :source WHERE id = :id'
+        );
+        $stmt->execute(['name' => $name, 'pid' => $parentId, 'source' => $source, 'id' => $id]);
+    }
+
+    /**
+     * Returns all categories for a given source, ordered alphabetically.
+     *
+     * @return array<int, array{id: int, name: string}>
+     */
+    public function getBySource(string $source): array
+    {
+        $stmt = $this->db->prepare(
+            'SELECT id, name FROM lstr_categories
+             WHERE source = :source
+             ORDER BY name ASC'
+        );
+        $stmt->execute(['source' => $source]);
+
+        return array_map(
+            static fn(array $r) => ['id' => (int) $r['id'], 'name' => (string) $r['name']],
+            $stmt->fetchAll(),
+        );
+    }
+
+    /**
+     * Returns all distinct custom network names, ordered alphabetically.
+     *
+     * @return string[]
+     */
+    public function getCustomNetworks(): array
+    {
+        $stmt = $this->db->prepare(
+            "SELECT DISTINCT name FROM lstr_categories
+             WHERE source = 'custom'
+             ORDER BY name ASC"
+        );
+        $stmt->execute();
+
+        return array_column($stmt->fetchAll(), 'name');
+    }
+
+    /**
+     * Inserts a custom network name if it does not already exist.
+     */
+    public function addCustomNetwork(string $name): void
+    {
+        $stmt = $this->db->prepare(
+            "INSERT INTO lstr_categories (name, source, parent_id)
+             SELECT :name, 'custom', NULL
+             FROM DUAL
+             WHERE NOT EXISTS (
+                 SELECT 1 FROM lstr_categories
+                 WHERE name = :name AND source = 'custom'
+             )"
+        );
+        $stmt->execute(['name' => $name]);
     }
 
     // -----------------------------------------------------------------------
@@ -92,5 +205,41 @@ final class CategoryRepo
             'DELETE FROM lstr_categories WHERE id = :id'
         );
         $stmtDel->execute(['id' => $id]);
+    }
+
+    /**
+     * Returns all category IDs that have the given name (across all sources).
+     *
+     * @return int[]
+     */
+    public function findIdsByName(string $name): array
+    {
+        $stmt = $this->db->prepare(
+            'SELECT id FROM lstr_categories WHERE name = :name'
+        );
+        $stmt->execute(['name' => $name]);
+
+        return array_map('intval', $stmt->fetchAll(\PDO::FETCH_COLUMN));
+    }
+
+    public function findBySourceAndName(string $source, string $name): ?object {
+        $stmt = $this->db->prepare(
+            'SELECT * FROM lstr_categories WHERE source=:source AND name=:name LIMIT 1'
+        );
+        $stmt->execute(['source'=>$source,'name'=>$name]);
+        $row = $stmt->fetch();
+        return $row ? Category::fromRow((array)$row) : null;
+    }
+
+    public function findOrCreate(string $source, string $name): int {
+        $existing = $this->findBySourceAndName($source, $name);
+        if ($existing !== null) {
+            return $existing->id;
+        }
+        $stmt = $this->db->prepare(
+            'INSERT INTO lstr_categories (name, parent_id, source) VALUES (:name, NULL, :source)'
+        );
+        $stmt->execute(['name' => $name, 'source' => $source]);
+        return (int) $this->db->lastInsertId();
     }
 }

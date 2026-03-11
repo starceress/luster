@@ -77,7 +77,22 @@ final class FieldRepo
             return [];
         }
 
-        return $this->parseAdditionalInfo((string) $row['field_info']);
+        $raw = trim((string) $row['field_info']);
+
+        if ($raw === '') {
+            return [];
+        }
+
+        // Try unserialize first — handles data written by saveFields() as well
+        // as any legacy PHP-serialized Enthusiast additional_info values.
+        $decoded = @unserialize($raw, ['allowed_classes' => false]);
+        if (is_array($decoded)) {
+            return $this->parseSerializedFormat($raw);
+        }
+
+        // Fall back to legacy Enthusiast string-format parsing
+        // (comma-separated bare names or pipe-delimited definitions).
+        return $this->parseAdditionalInfo($raw);
     }
 
     /**
@@ -102,6 +117,75 @@ final class FieldRepo
         }
 
         return $result;
+    }
+
+    /**
+     * Serializes a fields array and persists it to the fanlisting registry row.
+     *
+     * @param array<mixed> $fields
+     */
+    public function saveFields(int $fanlistingId, array $fields): void
+    {
+        $stmt = $this->db->prepare(
+            "UPDATE {$this->table}
+             SET {$this->infoCol} = :info
+             WHERE {$this->pkCol} = :id"
+        );
+        $stmt->execute(['info' => serialize($fields), 'id' => $fanlistingId]);
+    }
+
+    /**
+     * Adds an additional_{$fieldName} TEXT NULL column to the member table.
+     *
+     * Both $prefix and $fieldName are validated against /^[a-zA-Z0-9_]+$/
+     * before being interpolated into the DDL statement.
+     *
+     * @throws \InvalidArgumentException if either argument fails validation.
+     */
+    public function addColumn(string $prefix, string $fieldName, string $options = ''): void
+    {
+        if (!preg_match('/^[a-zA-Z0-9_]+$/', $prefix)) {
+            throw new \InvalidArgumentException(
+                "Invalid prefix '{$prefix}': only [a-zA-Z0-9_] allowed."
+            );
+        }
+
+        if (!preg_match('/^[a-zA-Z0-9_]+$/', $fieldName)) {
+            throw new \InvalidArgumentException(
+                "Invalid field name '{$fieldName}': only [a-zA-Z0-9_] allowed."
+            );
+        }
+
+        $this->db->pdo()->exec(
+            "ALTER TABLE {$prefix} ADD COLUMN additional_{$fieldName} TEXT NULL"
+        );
+    }
+
+    /**
+     * Drops the additional_{$fieldName} column from the member table.
+     *
+     * Both $prefix and $fieldName are validated against /^[a-zA-Z0-9_]+$/
+     * before being interpolated into the DDL statement.
+     *
+     * @throws \InvalidArgumentException if either argument fails validation.
+     */
+    public function dropColumn(string $prefix, string $fieldName): void
+    {
+        if (!preg_match('/^[a-zA-Z0-9_]+$/', $prefix)) {
+            throw new \InvalidArgumentException(
+                "Invalid prefix '{$prefix}': only [a-zA-Z0-9_] allowed."
+            );
+        }
+
+        if (!preg_match('/^[a-zA-Z0-9_]+$/', $fieldName)) {
+            throw new \InvalidArgumentException(
+                "Invalid field name '{$fieldName}': only [a-zA-Z0-9_] allowed."
+            );
+        }
+
+        $this->db->pdo()->exec(
+            "ALTER TABLE {$prefix} DROP COLUMN additional_{$fieldName}"
+        );
     }
 
     // -----------------------------------------------------------------------
@@ -217,7 +301,7 @@ final class FieldRepo
             $fields[] = new AdditionalField(
                 name:     $name,
                 label:    $label,
-                type:     in_array($type, ['text', 'textarea', 'select'], true) ? $type : 'text',
+                type:     in_array($type, ['text', 'textarea', 'select', 'radio'], true) ? $type : 'text',
                 required: $required,
             );
         }
@@ -227,6 +311,7 @@ final class FieldRepo
 
     /**
      * Parses a PHP-serialized additional_info string (legacy standard Enthusiast).
+
      *
      * unserialize() is called with allowed_classes=false so no arbitrary
      * object can be instantiated from the stored string.
@@ -252,6 +337,7 @@ final class FieldRepo
             $label    = (string) ($item['label']    ?? $item[1] ?? '');
             $type     = (string) ($item['type']     ?? $item[2] ?? 'text');
             $required = (bool)   (int) ($item['required'] ?? $item[3] ?? 0);
+            $options  = (string) ($item['options']  ?? '');
 
             if (!preg_match('/^[a-zA-Z0-9_]+$/', $name) || $name === '') {
                 continue;
@@ -260,8 +346,9 @@ final class FieldRepo
             $fields[] = new AdditionalField(
                 name:     $name,
                 label:    $label,
-                type:     in_array($type, ['text', 'textarea', 'select'], true) ? $type : 'text',
+                type:     in_array($type, ['text', 'dropdown', 'checkbox', 'textarea', 'select', 'radio'], true) ? $type : 'text',
                 required: $required,
+                options:  $options,
             );
         }
 

@@ -3,54 +3,30 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>{fanlisting_name} — Members</title>
-  <link rel="stylesheet" href="{base_url}/assets/css/public.css">
+  <title>{fanlisting_name} &mdash; Members</title>
+  <link rel="stylesheet" href="{theme_path}style.css">
 </head>
 <body>
-  <div class="site-wrapper">
-    <header class="site-header">
-      <h1><a href="{fanlisting_url}">{fanlisting_name}</a></h1>
-      <nav class="fanlisting-nav">
-        <a href="{join_url}">Join</a>
-        <a href="{base_url}/update/{fanlisting_id}">Update</a>
-        <a href="{base_url}/remove/{fanlisting_id}">Remove</a>
-      </nav>
-    </header>
 
-    <main class="site-main">
-      <h2>Members</h2>
+<div class="fl-wrap">
 
-      <p class="sort-links">Sort by: {sort_name_link} &bull; {sort_country_link}</p>
+  <h2 class="fl-title">{fanlisting_name} &mdash; Members</h2>
 
-      {back_to_countries}
+  <p>{member_count} members</p>
 
-      <p class="stats-line">{stats_line}</p>
+  <ul class="fl-member-list">
+    {member_loop}
+    <li class="fl-member">
+      <a class="fl-page-link" href="{fan_url}">{fan_name}</a> &mdash; {fan_country}
+    </li>
+    {/member_loop}
+  </ul>
 
-      <ul class="country-list">
-        {country_loop}
-        <li class="country-item">
-          <a href="{country_url}">{country_name}</a>
-          <span class="country-count">({country_count} fan(s))</span>
-        </li>
-        {/country_loop}
-      </ul>
+  <span class="fl-empty">{empty_message}</span>
 
-      <div class="member-list">
-        {member_loop}
-        <div class="member-card">
-          <strong class="member-name">{fan_name}</strong>
-          <span class="member-country">{fan_country}</span>
-          <a class="member-url" href="{fan_url}">{fan_url}</a>
-        </div>
-        {/member_loop}
-      </div>
+  {pagination}
 
-      {pagination}
-    </main>
+</div>
 
-    <footer class="site-footer">
-      <p>Powered by <a href="{base_url}">{app_name}</a></p>
-    </footer>
-  </div>
 </body>
 </html>

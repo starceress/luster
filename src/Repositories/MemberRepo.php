@@ -391,6 +391,23 @@ final class MemberRepo
     }
 
     /**
+     * Returns the N most-recently-added members (any status), newest first.
+     *
+     * @return Member[]
+     */
+    public function getRecent(string $prefix, int $limit = 5): array
+    {
+        $p    = $this->resolveTable($prefix);
+        $stmt = $this->db->prepare(
+            "SELECT * FROM {$p} ORDER BY added DESC LIMIT :limit"
+        );
+        $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
+        $stmt->execute();
+
+        return array_map(static fn(array $r) => Member::fromRow($r), $stmt->fetchAll());
+    }
+
+    /**
      * Returns the MAX(added) date string for approved members, or null if none exist.
      */
     public function getMostRecentApprovedDate(string $prefix): ?string
@@ -464,6 +481,18 @@ final class MemberRepo
         }
 
         return $stmt->execute(['email' => $email]);
+    }
+
+    /**
+     * Sets a member back to pending status by email.
+     */
+    public function setPending(string $prefix, string $email): void
+    {
+        $p    = $this->resolveTable($prefix);
+        $stmt = $this->db->prepare(
+            "UPDATE {$p} SET {$this->pendingWhere} WHERE email = :email"
+        );
+        $stmt->execute([':email' => $email]);
     }
 
     /**
@@ -551,5 +580,20 @@ final class MemberRepo
                 "Invalid column name: '{$column}'. Only [a-zA-Z0-9_] allowed."
             );
         }
+    }
+
+    public function countUniqueCountries(string $prefix): int {
+        $t=$this->resolveTable($prefix);
+        $stmt=$this->db->prepare("SELECT COUNT(DISTINCT country) FROM `{$t}` WHERE pending=0 AND country!=''");
+        $stmt->execute();
+        return (int)$stmt->fetchColumn();
+    }
+
+    public function getLastUpdated(string $prefix): ?string {
+        $t=$this->resolveTable($prefix);
+        $stmt=$this->db->prepare("SELECT MAX(added) FROM `{$t}`");
+        $stmt->execute();
+        $v=$stmt->fetchColumn();
+        return $v?:null;
     }
 }

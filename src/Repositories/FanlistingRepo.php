@@ -62,7 +62,7 @@ final class FanlistingRepo
      */
     public function getAll(): array
     {
-        $orderCol = $this->isOwnedSchema ? 'subject' : 'name';
+        $orderCol = $this->isOwnedSchema ? 'listingid' : 'name';
 
         $stmt = $this->db->prepare(
             "SELECT * FROM {$this->table} ORDER BY {$orderCol} ASC"
@@ -187,17 +187,39 @@ final class FanlistingRepo
      * Writes to the category_id column added by Migration 8.
      * Pass null to clear the assignment.
      */
-    public function update(int $id, ?int $categoryId): void
+    public function update(int $id, ?int $categoryId, string $subject = '', string $opened = '', string $catid = ''): void
     {
-        $stmt = $this->db->prepare(
-            "UPDATE {$this->table}
-             SET category_id = :category_id
-             WHERE {$this->pkCol} = :id"
-        );
-        $stmt->execute([
-            'category_id' => $categoryId,
-            'id'          => $id,
-        ]);
+        // The 'owned' schema has no 'opened' column; the standard schema does not
+        // have 'catid'. Build the SET clause based on the active schema.
+        if ($this->isOwnedSchema) {
+            $stmt = $this->db->prepare(
+                "UPDATE {$this->table}
+                 SET category_id = :category_id,
+                     subject     = :subject,
+                     catid       = :catid
+                 WHERE {$this->pkCol} = :id"
+            );
+            $stmt->execute([
+                'category_id' => $categoryId,
+                'subject'     => $subject,
+                'catid'       => $catid,
+                'id'          => $id,
+            ]);
+        } else {
+            $stmt = $this->db->prepare(
+                "UPDATE {$this->table}
+                 SET category_id = :category_id,
+                     subject     = :subject,
+                     opened      = :opened
+                 WHERE {$this->pkCol} = :id"
+            );
+            $stmt->execute([
+                'category_id' => $categoryId,
+                'subject'     => $subject,
+                'opened'      => $opened,
+                'id'          => $id,
+            ]);
+        }
     }
 
     /**
@@ -287,5 +309,72 @@ final class FanlistingRepo
             'trouble'  => (int) $trouble,
             'id'       => $id,
         ]);
+    }
+
+    /**
+     * Returns the display label for a source value.
+     * tfl → TFL, tafl → TAFL, everything else → as stored.
+     */
+    private static function formatSource(string $source): string
+    {
+        return match (strtolower($source)) {
+            'tfl'  => 'TFL',
+            'tafl' => 'TAFL',
+            default => $source,
+        };
+    }
+
+    public function getCatNames(string $catid, ?int $categoryId = null): string {
+        $ids = array_filter(explode('|', $catid), fn($v) => $v !== '');
+        if (!empty($ids)) {
+            $ph = implode(',', array_fill(0, count($ids), '?'));
+            $s = $this->db->prepare("SELECT catname FROM category WHERE catid IN ($ph)");
+            $s->execute(array_values($ids));
+            $n = $s->fetchAll(\PDO::FETCH_COLUMN);
+            if ($n) return implode(', ', $n);
+            $s2 = $this->db->prepare("SELECT source,name FROM lstr_categories WHERE id IN ($ph) ORDER BY name");
+            $s2->execute(array_values($ids));
+            $rows = $s2->fetchAll(\PDO::FETCH_ASSOC);
+            if ($rows) return implode(', ', array_map(fn($r) => self::formatSource($r['source']) . ' - ' . $r['name'], $rows));
+        }
+        if ($categoryId !== null) {
+            $s = $this->db->prepare('SELECT source,name FROM lstr_categories WHERE id=:id');
+            $s->execute(['id' => $categoryId]);
+            $r = $s->fetch();
+            return $r ? (self::formatSource($r['source']) . ' - ' . $r['name']) : '—';
+        }
+        return '—';
+    }
+
+    public function insert(string $title, string $subject, string $url, string $email, int $status, ?string $image, ?int $categoryId, ?string $opened, string $catid = ''): int {
+        $stmt = $this->db->prepare(
+            "INSERT INTO {$this->table}
+             (title,subject,url,email,status,imagefile,category_id,opened,catid,dbtable,dbserver,dbuser,dbpassword,dbdatabase)
+             VALUES (:title,:subject,:url,:email,:status,:img,:cid,:opened,:catid,'','','','','')"
+        );
+        $stmt->execute([
+            'title'   => $title,
+            'subject' => $subject,
+            'url'     => $url,
+            'email'   => $email,
+            'status'  => $status,
+            'img'     => $image,
+            'cid'     => $categoryId,
+            'opened'  => $opened,
+            'catid'   => $catid,
+        ]);
+        return (int) $this->db->lastInsertId();
+    }
+
+    public function search(string $query): array
+    {
+        $stmt = $this->db->prepare(
+            "SELECT * FROM {$this->table}
+             WHERE subject LIKE :q OR title LIKE :q2
+             ORDER BY subject ASC"
+        );
+        $stmt->execute(['q' => '%' . $query . '%', 'q2' => '%' . $query . '%']);
+
+        return array_map(static fn(array $r) => Fanlisting::fromRow($r), $stmt->fetchAll());
     }
 }

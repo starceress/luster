@@ -25,6 +25,21 @@ final class AdminUserRepo
     // -----------------------------------------------------------------------
 
     /**
+     * Finds an admin user by primary key.
+     */
+    public function getById(int $id): ?AdminUser
+    {
+        $stmt = $this->db->prepare(
+            'SELECT * FROM lstr_admin_users WHERE id = :id LIMIT 1'
+        );
+        $stmt->execute(['id' => $id]);
+
+        $row = $stmt->fetch();
+
+        return $row !== false ? AdminUser::fromRow($row) : null;
+    }
+
+    /**
      * Finds an admin user by username (case-insensitive at the DB collation
      * level — utf8mb4_unicode_ci handles this).
      */
@@ -58,6 +73,18 @@ final class AdminUserRepo
     // -----------------------------------------------------------------------
     // Writes
     // -----------------------------------------------------------------------
+
+    /**
+     * Updates the username and email for an admin user.
+     */
+    public function updateProfile(int $id, string $username, string $email): bool
+    {
+        $stmt = $this->db->prepare(
+            'UPDATE lstr_admin_users SET username = :username, email = :email WHERE id = :id'
+        );
+
+        return $stmt->execute(['username' => $username, 'email' => $email, 'id' => $id]);
+    }
 
     /**
      * Replaces the stored password hash for an admin user.

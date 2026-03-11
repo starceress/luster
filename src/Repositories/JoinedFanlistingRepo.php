@@ -22,19 +22,138 @@ final class JoinedFanlistingRepo
     // -----------------------------------------------------------------------
 
     /**
-     * Returns all joined fanlistings, sorted by category then sort_order then name.
+     * Returns a paginated page of joined fanlistings, sorted by category then name.
      *
-     * @return JoinedFanlisting[]
+     * @return array{items: JoinedFanlisting[], total: int, pages: int}
      */
-    public function getAll(): array
+    public function getAll(int $perPage = 10, int $page = 1, string $filterCat = ''): array
     {
+        $offset     = ($page - 1) * $perPage;
+        // $catClause is a hardcoded SQL fragment — $filterCat itself is always bound, never interpolated
+        $catClause  = $filterCat !== '' ? 'WHERE (category = :cat OR categories_json LIKE :catj)' : '';
+        $catPattern = '%"name":"' . $filterCat . '"%';
+
+        $countStmt = $this->db->prepare("SELECT COUNT(*) FROM lstr_joined {$catClause}");
+        if ($filterCat !== '') {
+            $countStmt->bindValue(':cat',  $filterCat,  \PDO::PARAM_STR);
+            $countStmt->bindValue(':catj', $catPattern, \PDO::PARAM_STR);
+        }
+        $countStmt->execute();
+        $total = (int) $countStmt->fetchColumn();
+
         $stmt = $this->db->prepare(
-            'SELECT * FROM lstr_joined
-             ORDER BY category ASC, sort_order ASC, name ASC'
+            "SELECT * FROM lstr_joined {$catClause}
+             ORDER BY category ASC, name ASC
+             LIMIT :limit OFFSET :offset"
         );
+        if ($filterCat !== '') {
+            $stmt->bindValue(':cat',  $filterCat,  \PDO::PARAM_STR);
+            $stmt->bindValue(':catj', $catPattern, \PDO::PARAM_STR);
+        }
+        $stmt->bindValue(':limit',  $perPage, \PDO::PARAM_INT);
+        $stmt->bindValue(':offset', $offset,  \PDO::PARAM_INT);
         $stmt->execute();
 
-        return array_map(static fn(array $r) => JoinedFanlisting::fromRow($r), $stmt->fetchAll());
+        return [
+            'items' => array_map(static fn(array $r) => JoinedFanlisting::fromRow($r), $stmt->fetchAll()),
+            'total' => $total,
+            'pages' => $total > 0 ? (int) ceil($total / $perPage) : 1,
+        ];
+    }
+
+    /**
+     * Full-text search across name, url, category, and categories_json,
+     * optionally narrowed to a specific network name.
+     *
+     * @return array{items: JoinedFanlisting[], total: int, pages: int}
+     */
+    public function search(string $q, string $network, int $perPage = 10, int $page = 1, string $filterCat = ''): array
+    {
+        $offset     = ($page - 1) * $perPage;
+        $pattern    = '%' . $q . '%';
+        // $catClause is a hardcoded SQL fragment — $filterCat itself is always bound, never interpolated
+        $catClause  = $filterCat !== '' ? ' AND (category = :cat OR categories_json LIKE :catj)' : '';
+        $catPattern = '%"name":"' . $filterCat . '"%';
+
+        if ($network !== '') {
+            $netPattern = '%' . $network . '%';
+
+            $countStmt = $this->db->prepare(
+                "SELECT COUNT(*) FROM lstr_joined
+                 WHERE (name LIKE :q1 OR url LIKE :q2 OR category LIKE :q3 OR categories_json LIKE :q4)
+                   AND categories_json LIKE :net{$catClause}"
+            );
+            $countStmt->bindValue(':q1',  $pattern,    \PDO::PARAM_STR);
+            $countStmt->bindValue(':q2',  $pattern,    \PDO::PARAM_STR);
+            $countStmt->bindValue(':q3',  $pattern,    \PDO::PARAM_STR);
+            $countStmt->bindValue(':q4',  $pattern,    \PDO::PARAM_STR);
+            $countStmt->bindValue(':net', $netPattern, \PDO::PARAM_STR);
+            if ($filterCat !== '') {
+                $countStmt->bindValue(':cat',  $filterCat,  \PDO::PARAM_STR);
+                $countStmt->bindValue(':catj', $catPattern, \PDO::PARAM_STR);
+            }
+            $countStmt->execute();
+            $total = (int) $countStmt->fetchColumn();
+
+            $stmt = $this->db->prepare(
+                "SELECT * FROM lstr_joined
+                 WHERE (name LIKE :q1 OR url LIKE :q2 OR category LIKE :q3 OR categories_json LIKE :q4)
+                   AND categories_json LIKE :net{$catClause}
+                 ORDER BY name ASC
+                 LIMIT :limit OFFSET :offset"
+            );
+            $stmt->bindValue(':q1',     $pattern,    \PDO::PARAM_STR);
+            $stmt->bindValue(':q2',     $pattern,    \PDO::PARAM_STR);
+            $stmt->bindValue(':q3',     $pattern,    \PDO::PARAM_STR);
+            $stmt->bindValue(':q4',     $pattern,    \PDO::PARAM_STR);
+            $stmt->bindValue(':net',    $netPattern, \PDO::PARAM_STR);
+            if ($filterCat !== '') {
+                $stmt->bindValue(':cat',  $filterCat,  \PDO::PARAM_STR);
+                $stmt->bindValue(':catj', $catPattern, \PDO::PARAM_STR);
+            }
+            $stmt->bindValue(':limit',  $perPage, \PDO::PARAM_INT);
+            $stmt->bindValue(':offset', $offset,  \PDO::PARAM_INT);
+        } else {
+            $countStmt = $this->db->prepare(
+                "SELECT COUNT(*) FROM lstr_joined
+                 WHERE (name LIKE :q1 OR url LIKE :q2 OR category LIKE :q3 OR categories_json LIKE :q4){$catClause}"
+            );
+            $countStmt->bindValue(':q1', $pattern, \PDO::PARAM_STR);
+            $countStmt->bindValue(':q2', $pattern, \PDO::PARAM_STR);
+            $countStmt->bindValue(':q3', $pattern, \PDO::PARAM_STR);
+            $countStmt->bindValue(':q4', $pattern, \PDO::PARAM_STR);
+            if ($filterCat !== '') {
+                $countStmt->bindValue(':cat',  $filterCat,  \PDO::PARAM_STR);
+                $countStmt->bindValue(':catj', $catPattern, \PDO::PARAM_STR);
+            }
+            $countStmt->execute();
+            $total = (int) $countStmt->fetchColumn();
+
+            $stmt = $this->db->prepare(
+                "SELECT * FROM lstr_joined
+                 WHERE (name LIKE :q1 OR url LIKE :q2 OR category LIKE :q3 OR categories_json LIKE :q4){$catClause}
+                 ORDER BY name ASC
+                 LIMIT :limit OFFSET :offset"
+            );
+            $stmt->bindValue(':q1',     $pattern, \PDO::PARAM_STR);
+            $stmt->bindValue(':q2',     $pattern, \PDO::PARAM_STR);
+            $stmt->bindValue(':q3',     $pattern, \PDO::PARAM_STR);
+            $stmt->bindValue(':q4',     $pattern, \PDO::PARAM_STR);
+            if ($filterCat !== '') {
+                $stmt->bindValue(':cat',  $filterCat,  \PDO::PARAM_STR);
+                $stmt->bindValue(':catj', $catPattern, \PDO::PARAM_STR);
+            }
+            $stmt->bindValue(':limit',  $perPage, \PDO::PARAM_INT);
+            $stmt->bindValue(':offset', $offset,  \PDO::PARAM_INT);
+        }
+
+        $stmt->execute();
+
+        return [
+            'items' => array_map(static fn(array $r) => JoinedFanlisting::fromRow($r), $stmt->fetchAll()),
+            'total' => $total,
+            'pages' => $total > 0 ? (int) ceil($total / $perPage) : 1,
+        ];
     }
 
     /**
@@ -47,7 +166,7 @@ final class JoinedFanlistingRepo
         $stmt = $this->db->prepare(
             'SELECT * FROM lstr_joined
              WHERE category = :category
-             ORDER BY sort_order ASC, name ASC'
+             ORDER BY name ASC'
         );
         $stmt->execute(['category' => $category]);
 
@@ -55,20 +174,87 @@ final class JoinedFanlistingRepo
     }
 
     /**
-     * Returns all distinct, non-empty category values sorted alphabetically.
+     * Returns all distinct, non-empty category names sorted alphabetically.
+     *
+     * For rows with a non-empty categories_json, each entry's 'name' value is
+     * collected. For rows without categories_json, the legacy category string
+     * is used as the fallback.
      *
      * @return string[]
      */
     public function getCategories(): array
     {
         $stmt = $this->db->prepare(
-            "SELECT DISTINCT category FROM lstr_joined
-             WHERE category != ''
-             ORDER BY category ASC"
+            'SELECT id, categories_json, category FROM lstr_joined'
         );
         $stmt->execute();
 
-        return array_column($stmt->fetchAll(), 'category');
+        $names = [];
+
+        foreach ($stmt->fetchAll() as $row) {
+            $json = $row['categories_json'] ?? null;
+
+            if ($json !== null && $json !== '') {
+                $decoded = json_decode($json, true);
+                if (is_array($decoded)) {
+                    foreach ($decoded as $entry) {
+                        if (isset($entry['name']) && $entry['name'] !== '') {
+                            $names[] = (string) $entry['name'];
+                        }
+                    }
+                }
+            } elseif (isset($row['category']) && $row['category'] !== '') {
+                $names[] = (string) $row['category'];
+            }
+        }
+
+        $names = array_values(array_unique($names));
+        sort($names);
+
+        return $names;
+    }
+
+    /**
+     * Returns all category names grouped by network, derived from categories_json.
+     *
+     * Only rows with a non-null, non-empty categories_json are considered.
+     * Each network key maps to a sorted unique list of category names.
+     *
+     * @return array<string, string[]>  e.g. ['TFL'=>['Actors','Animals'],'TAFL'=>['Characters 0-M']]
+     */
+    public function getNetworkCategories(): array
+    {
+        $stmt = $this->db->prepare(
+            "SELECT id, categories_json FROM lstr_joined
+             WHERE categories_json IS NOT NULL AND categories_json != ''"
+        );
+        $stmt->execute();
+
+        $networks = [];
+
+        foreach ($stmt->fetchAll() as $row) {
+            $decoded = json_decode((string) $row['categories_json'], true);
+            if (!is_array($decoded)) {
+                continue;
+            }
+            foreach ($decoded as $entry) {
+                $network = isset($entry['network']) ? trim((string) $entry['network']) : '';
+                $name    = isset($entry['name'])    ? trim((string) $entry['name'])    : '';
+                if ($network === '' || $name === '') {
+                    continue;
+                }
+                $networks[$network][] = $name;
+            }
+        }
+
+        foreach ($networks as $net => $names) {
+            $networks[$net] = array_values(array_unique($names));
+            sort($networks[$net]);
+        }
+
+        ksort($networks);
+
+        return $networks;
     }
 
     /**
@@ -92,25 +278,26 @@ final class JoinedFanlistingRepo
     /**
      * Inserts a new joined fanlisting and returns the new primary key.
      *
-     * @param array{name: string, url: string, image?: ?string, category?: string, date_joined?: ?string, active?: bool, sort_order?: int} $data
+     * @param array{name: string, url: string, image?: ?string, category?: string, categories_json?: ?string, date_joined?: ?string, active?: bool, status?: string} $data
      */
     public function insert(array $data): int
     {
         $stmt = $this->db->prepare(
             'INSERT INTO lstr_joined
-                (name, url, image, category, date_joined, active, sort_order)
+                (name, url, image, category, categories_json, date_joined, active, status)
              VALUES
-                (:name, :url, :image, :category, :date_joined, :active, :sort_order)'
+                (:name, :url, :image, :category, :categories_json, :date_joined, :active, :status)'
         );
 
         $stmt->execute([
-            'name'        => (string) $data['name'],
-            'url'         => (string) $data['url'],
-            'image'       => isset($data['image'])       && $data['image']       !== null ? (string) $data['image']   : null,
-            'category'    => (string) ($data['category']    ?? ''),
-            'date_joined' => isset($data['date_joined']) && $data['date_joined'] !== null ? (string) $data['date_joined'] : null,
-            'active'      => isset($data['active'])      ? (int) (bool) $data['active'] : 1,
-            'sort_order'  => (int) ($data['sort_order']  ?? 0),
+            'name'            => (string) $data['name'],
+            'url'             => (string) $data['url'],
+            'image'           => isset($data['image'])           && $data['image']           !== null ? (string) $data['image']           : null,
+            'category'        => (string) ($data['category']        ?? ''),
+            'categories_json' => isset($data['categories_json']) && $data['categories_json'] !== null ? (string) $data['categories_json'] : null,
+            'date_joined'     => isset($data['date_joined'])     && $data['date_joined']     !== null ? (string) $data['date_joined']     : null,
+            'active'          => isset($data['active'])          ? (int) (bool) $data['active'] : 1,
+            'status'          => (string) ($data['status']          ?? 'joined'),
         ]);
 
         return (int) $this->db->lastInsertId();
@@ -119,31 +306,33 @@ final class JoinedFanlistingRepo
     /**
      * Replaces all editable fields on an existing row.
      *
-     * @param array{name: string, url: string, image: ?string, category: string, date_joined: ?string, active: bool, sort_order: int} $data
+     * @param array{name: string, url: string, image: ?string, category: string, categories_json: ?string, date_joined: ?string, active: bool, status: string} $data
      */
     public function update(int $id, array $data): bool
     {
         $stmt = $this->db->prepare(
             'UPDATE lstr_joined
-             SET name        = :name,
-                 url         = :url,
-                 image       = :image,
-                 category    = :category,
-                 date_joined = :date_joined,
-                 active      = :active,
-                 sort_order  = :sort_order
+             SET name            = :name,
+                 url             = :url,
+                 image           = :image,
+                 category        = :category,
+                 categories_json = :categories_json,
+                 date_joined     = :date_joined,
+                 active          = :active,
+                 status          = :status
              WHERE id = :id'
         );
 
         return $stmt->execute([
-            'name'        => (string) $data['name'],
-            'url'         => (string) $data['url'],
-            'image'       => isset($data['image'])       && $data['image']       !== null ? (string) $data['image']       : null,
-            'category'    => (string) ($data['category']    ?? ''),
-            'date_joined' => isset($data['date_joined']) && $data['date_joined'] !== null ? (string) $data['date_joined'] : null,
-            'active'      => (int) (bool) ($data['active'] ?? true),
-            'sort_order'  => (int) ($data['sort_order']  ?? 0),
-            'id'          => $id,
+            'name'            => (string) $data['name'],
+            'url'             => (string) $data['url'],
+            'image'           => isset($data['image'])           && $data['image']           !== null ? (string) $data['image']           : null,
+            'category'        => (string) ($data['category']        ?? ''),
+            'categories_json' => isset($data['categories_json']) && $data['categories_json'] !== null ? (string) $data['categories_json'] : null,
+            'date_joined'     => isset($data['date_joined'])     && $data['date_joined']     !== null ? (string) $data['date_joined']     : null,
+            'active'          => (int) (bool) ($data['active']   ?? true),
+            'status'          => (string) ($data['status']          ?? 'joined'),
+            'id'              => $id,
         ]);
     }
 

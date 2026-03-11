@@ -128,4 +128,12 @@ final class ActivityRepo
 
         return $stmt->fetchAll(PDO::FETCH_COLUMN);
     }
+
+    /**
+     * Deletes every row from the activity log table.
+     */
+    public function flush(): void
+    {
+        $this->db->prepare('DELETE FROM lstr_activity_log')->execute();
+    }
 }

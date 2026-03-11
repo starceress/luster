@@ -437,6 +437,27 @@ try {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Migration 15: status and categories_json columns on lstr_joined
+// ─────────────────────────────────────────────────────────────────────────────
+try {
+    $pdo->exec(
+        "ALTER TABLE `lstr_joined`
+         ADD COLUMN IF NOT EXISTS `status`          VARCHAR(20) NOT NULL DEFAULT 'joined' AFTER `active`,
+         ADD COLUMN IF NOT EXISTS `categories_json` TEXT        NULL                      AFTER `category`"
+    );
+    $done[] = 'Added <code>status</code> and <code>categories_json</code> columns to <code>lstr_joined</code>';
+} catch (PDOException $e) {
+    $errors[] = 'lstr_joined status/categories_json — ' . htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+}
+
+try {
+    $pdo->exec("UPDATE `lstr_joined` SET `status` = IF(`active` = 1, 'joined', 'pending')");
+    $done[] = 'Backfilled <code>lstr_joined.status</code> from <code>active</code> column';
+} catch (PDOException $e) {
+    $errors[] = 'lstr_joined status backfill — ' . htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Migration 14: lstr_error_log table
 // ─────────────────────────────────────────────────────────────────────────────
 try {
@@ -454,6 +475,16 @@ try {
     $done[] = 'Created <code>lstr_error_log</code> table';
 } catch (PDOException $e) {
     $errors[] = 'lstr_error_log — ' . htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Migration 16: widen lstr_categories.source from ENUM to VARCHAR(50)
+// ─────────────────────────────────────────────────────────────────────────────
+try {
+    $pdo->exec("ALTER TABLE lstr_categories MODIFY COLUMN source VARCHAR(50) NOT NULL DEFAULT 'custom'");
+    $done[] = 'Changed <code>lstr_categories.source</code> from ENUM to VARCHAR(50)';
+} catch (PDOException $e) {
+    $errors[] = 'lstr_categories.source VARCHAR — ' . htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 }
 
 ?><!DOCTYPE html>

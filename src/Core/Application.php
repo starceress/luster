@@ -6,6 +6,7 @@ namespace Luster\Core;
 
 use Luster\Middleware\AuthMiddleware;
 use Luster\Middleware\CsrfMiddleware;
+use Luster\Repositories\ErrorLogRepo;
 use Throwable;
 
 /**
@@ -216,6 +217,19 @@ final class Application
         $debug = (bool) $this->config->get('app_debug', false);
 
         error_log('[Luster] ' . $e::class . ': ' . $e->getMessage() . "\n" . $e->getTraceAsString());
+
+        // Best-effort write to the DB error log — suppress any secondary failure
+        // (e.g. the exception itself was a DB error) so we don't recurse.
+        try {
+            $repo = new ErrorLogRepo($this->database);
+            $repo->log(
+                $e::class . ': ' . $e->getMessage(),
+                'error',
+                $e->getFile() . ':' . $e->getLine(),
+            );
+        } catch (Throwable) {
+            // Intentionally suppressed — already in error handler
+        }
 
         if ($debug) {
             $msg   = htmlspecialchars($e->getMessage(),       ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
