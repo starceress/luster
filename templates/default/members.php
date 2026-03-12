@@ -24,6 +24,7 @@ use Luster\Core\View;
 <div class="fl-wrap">
   <h2 class="fl-title">Members of <?= View::e($fanlisting_name) ?></h2>
 
+  <?php if ($show_search ?? true): ?>
   <p>
     <a class="fl-link" href="<?= View::e($join_url) ?>">Join this fanlisting</a>
     &nbsp;&mdash;&nbsp;
@@ -42,6 +43,7 @@ use Luster\Core\View;
   <?php if ($country !== ''): ?>
     <p><a class="fl-link" href="<?= View::e($members_base . '?sort=country') ?>">&larr; Back to countries</a></p>
   <?php endif; ?>
+  <?php endif; ?>
 
   <p class="fl-muted" style="font-size:.875rem"><?= View::e($stats_line) ?></p>
 
@@ -55,6 +57,13 @@ use Luster\Core\View;
         </li>
       <?php endforeach; ?>
     </ul>
+
+  <?php elseif (($members_html ?? null) !== null && $members_html !== ''): ?>
+    <!-- Custom DB template member rows -->
+    <?= $members_html ?>
+    <?php if ($pagination !== ''): ?>
+      <div class="fl-pagination"><?= $pagination ?></div>
+    <?php endif; ?>
 
   <?php elseif (!empty($members)): ?>
     <!-- Member list view -->

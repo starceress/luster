@@ -103,9 +103,20 @@ final class CategoryController
         }
 
         $categoryRepo = new CategoryRepo($this->app->getDatabase());
+
+        // Guard: the selected parent must be top-level (max 1 level of nesting)
+        $resolvedParentId = $parentId > 0 ? $parentId : null;
+        if ($resolvedParentId !== null) {
+            $parentCat = $categoryRepo->getById($resolvedParentId);
+            if ($parentCat !== null && $parentCat->parentId !== null) {
+                $session->set('lstr_flash_error', 'The selected parent is itself a sub-category. Only top-level categories may be used as parents.');
+                return Response::redirect($baseUrl . '/admin/categories/add');
+            }
+        }
+
         $networkName = trim((string) $request->post('network_name', ''));
         $source      = $networkName !== '' ? strtolower($networkName) : 'custom';
-$categoryRepo->add($name, $parentId > 0 ? $parentId : null, $source);
+        $categoryRepo->add($name, $resolvedParentId, $source);
 
         $session->set('lstr_flash_success', 'Category added.');
         return Response::redirect($baseUrl . '/admin/categories/add');
@@ -163,6 +174,28 @@ $categoryRepo->add($name, $parentId > 0 ? $parentId : null, $source);
         }
 
         $repo = new CategoryRepo($this->app->getDatabase());
+
+        // Guard: cannot set a category as its own parent
+        if ($parentId !== null && $parentId === $id) {
+            $session->set('lstr_flash_error', 'A category cannot be its own parent.');
+            return Response::redirect($baseUrl . '/admin/categories/' . $id . '/edit');
+        }
+
+        // Guard: cannot make a category a child if it already has children (max 2 levels)
+        if ($parentId !== null && $repo->hasChildren($id)) {
+            $session->set('lstr_flash_error', 'This category has sub-categories and cannot itself become a sub-category. Move or delete its children first.');
+            return Response::redirect($baseUrl . '/admin/categories/' . $id . '/edit');
+        }
+
+        // Guard: the selected parent must be top-level (no deeper than 1 level of nesting)
+        if ($parentId !== null) {
+            $parentCat = $repo->getById($parentId);
+            if ($parentCat !== null && $parentCat->parentId !== null) {
+                $session->set('lstr_flash_error', 'The selected parent is itself a sub-category. Only top-level categories may be used as parents.');
+                return Response::redirect($baseUrl . '/admin/categories/' . $id . '/edit');
+            }
+        }
+
         $addNetwork    = trim((string) $request->post('add_network', 'no'));
         $networkName   = trim((string) $request->post('network_name', ''));
         $currentSource = trim((string) $request->post('current_source', 'custom'));

@@ -184,6 +184,37 @@ if (!function_exists('dashTimeAgo')) {
   </div>
 </div>
 
+<!-- ── Staleness warning ──────────────────────────────────────── -->
+<?php if (!empty($stale_fanlistings)): ?>
+<div class="neb-card" style="margin-bottom:1.5rem;border-left:3px solid var(--warn,#f59e0b)">
+  <div style="display:flex;justify-content:space-between;align-items:center;padding:0.85rem 1.25rem;border-bottom:1px solid var(--border)">
+    <div>
+      <span style="font-weight:700;color:var(--text)">⚠️ Maintenance Needed</span>
+      <span style="font-size:0.8125rem;color:var(--text-dim);margin-left:0.5rem">
+        <?= count($stale_fanlistings) ?> fanlisting<?= count($stale_fanlistings) !== 1 ? 's have' : ' has' ?>
+        not been updated in over <?= (int) $inactive_threshold_days ?> days
+      </span>
+    </div>
+    <form method="POST" action="<?= $b ?>/admin/maintenance/touch-all-updated">
+      <input type="hidden" name="_csrf" value="<?= \Luster\Core\View::e($csrf_token ?? '') ?>">
+      <button type="submit" class="btn btn-secondary btn-sm"
+              onclick="return confirm('Mark all fanlistings as updated today?')">
+        Touch All
+      </button>
+    </form>
+  </div>
+  <div style="padding:0.5rem 0">
+    <?php foreach ($stale_fanlistings as $stalefl): ?>
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:0.5rem 1.25rem">
+      <a href="<?= $b ?>/admin/fanlistings/<?= (int) $stalefl->id ?>/edit"
+         class="neb-link" style="font-size:0.875rem"><?= \Luster\Core\View::e($stalefl->name) ?></a>
+      <span style="font-size:0.75rem;color:var(--text-dim)">Never set or overdue</span>
+    </div>
+    <?php endforeach; ?>
+  </div>
+</div>
+<?php endif; ?>
+
 <!-- ── Two-column: recent members + recent activity ──────────── -->
 <div class="two-col">
 

@@ -69,6 +69,20 @@ return [
     'per_page' => 25,
 
     // ------------------------------------------------------------------
+    // Staleness detection
+    //
+    // inactive_threshold_days — a fanlisting whose last_updated date is
+    //   older than this many days (or has never been set) will appear on
+    //   the dashboard maintenance card as potentially stale.
+    //   Set to 0 to disable the staleness check entirely.
+    //
+    // last_updated_fallback — string shown in public stats when no
+    //   last_updated date has been stored (e.g. "Never", "Unknown").
+    // ------------------------------------------------------------------
+    'inactive_threshold_days' => 60,
+    'last_updated_fallback'   => 'Never',
+
+    // ------------------------------------------------------------------
     // Embed & Paths
     //
     // install_path — absolute server path to the Luster root directory,

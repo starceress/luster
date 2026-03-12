@@ -13,6 +13,7 @@ use Luster\Core\Request;
 use Luster\Core\Response;
 use Luster\Core\Validator;
 use Luster\Models\Fanlisting;
+use Luster\Repositories\EmailTemplateRepo;
 use Luster\Repositories\FanlistingRepo;
 use Luster\Repositories\FanlistingSettingsRepo;
 use Luster\Repositories\FieldRepo;
@@ -104,6 +105,9 @@ final class JoinController
         $embedSettings = $settingsRepo->getEmbedSettings($fanlistingId);
 
         $countryEnabled = (bool) $embedSettings['country_field_enabled'];
+        $formUrl        = (string) $embedSettings['form_url_join'] !== ''
+                        ? (string) $embedSettings['form_url_join']
+                        : $baseUrl . '/join/' . $fanlistingId;
 
         // Captcha — re-render the form with an error on failure
         if (!Captcha::validate((string) $request->post('captcha_answer', ''))) {
@@ -153,7 +157,7 @@ final class JoinController
                 'country'   => $country,
                 'send_info' => (string) $request->post('send_info', ''),
             ]);
-            return Response::redirect($baseUrl . '/join/' . $fanlistingId);
+            return Response::redirect($formUrl);
         }
 
         $memberRepo = new MemberRepo($this->app->getDatabase(), $this->app->getConfig());
@@ -168,7 +172,7 @@ final class JoinController
                 'country'   => $country,
                 'send_info' => (string) $request->post('send_info', ''),
             ]);
-            return Response::redirect($baseUrl . '/join/' . $fanlistingId);
+            return Response::redirect($formUrl);
         }
 
         // Password — use the supplied value or auto-generate a secure one
@@ -184,7 +188,7 @@ final class JoinController
                 'country'   => $country,
                 'send_info' => (string) $request->post('send_info', ''),
             ]);
-            return Response::redirect($baseUrl . '/join/' . $fanlistingId);
+            return Response::redirect($formUrl);
         }
 
         if ($rawPassword === '') {
@@ -226,6 +230,7 @@ final class JoinController
 
         $memberRepo->insert($fanlisting->dbprefix, $insertData);
         $rateLimit->clear($ip, RateLimit::ACTION_PUBLIC_JOIN);
+        $settingsRepo->touchLastUpdated($fanlistingId);
 
         $sendInfo = ($request->post('send_info') === '1');
 
@@ -234,27 +239,21 @@ final class JoinController
         // (they need the password regardless of their preference).
         if ($sendInfo || $wasGenerated) {
             try {
-                $mailer  = new Mailer($this->app->getConfig());
-                $appName = (string) $this->app->getConfig()->get('app_name', 'Luster');
-
-                $subject = "Welcome to the {$fanlisting->name} fanlisting!";
-                $body    = "Hi {$name},\n\n"
-                         . "Thank you for joining the {$fanlisting->name} fanlisting.\n\n"
-                         . "Here are your membership details:\n"
-                         . "  Name    : {$name}\n"
-                         . "  Email   : {$email}\n"
-                         . "  Website : " . ($url !== '' ? $url : '(none)') . "\n"
-                         . "  Country : {$country}\n"
-                         . "  Password: {$rawPassword}\n\n";
-
-                if ($wasGenerated) {
-                    $body .= "Your password was automatically generated since you did not provide one.\n\n";
-                }
-
-                $body .= "Please keep this email for your records. "
-                       . "You will need your password to update or remove your membership.\n\n"
-                       . "-- {$appName}";
-
+                $mailer    = new Mailer($this->app->getConfig());
+                $appName   = (string) $this->app->getConfig()->get('app_name', 'Luster');
+                $emailRepo = new EmailTemplateRepo($this->app->getDatabase());
+                $tpl       = $emailRepo->get($fanlistingId, EmailTemplateRepo::TYPE_JOIN);
+                $tokens    = EmailTemplateRepo::buildTokens(
+                    fanlistingName: $fanlisting->name,
+                    fanlistingUrl:  $fanlisting->url,
+                    appName:        $appName,
+                    fanName:        $name,
+                    fanEmail:       $email,
+                    fanUrl:         $url,
+                    fanCountry:     $country,
+                    fanPassword:    $rawPassword,
+                );
+                [$subject, $body] = EmailTemplateRepo::resolve($tpl, EmailTemplateRepo::TYPE_JOIN, $tokens);
                 $mailer->send($email, $name, $subject, $body);
             } catch (\Throwable $e) {
                 error_log('[Luster] Join email failed: ' . $e->getMessage());

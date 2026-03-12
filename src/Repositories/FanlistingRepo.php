@@ -377,4 +377,84 @@ final class FanlistingRepo
 
         return array_map(static fn(array $r) => Fanlisting::fromRow($r), $stmt->fetchAll());
     }
+
+    /**
+     * Returns fanlistings filtered by status and optional Luster category ID.
+     *
+     * Status values:
+     *   'current'  — active/open fanlistings (status=2 or upcoming=0 AND trouble=0)
+     *   'upcoming' — upcoming fanlistings (status=1 or upcoming=1)
+     *   'trouble'  — trouble/inactive fanlistings (status=0 or trouble=1)
+     *   'all'      — no status filter (combine with $excludeTrouble to omit broken listings)
+     *
+     * @param int|null $categoryId    Filter to a Luster category (lstr_categories.id), or null for all
+     * @param bool     $excludeTrouble When true and $status is 'all', trouble/inactive fanlistings
+     *                                 are silently omitted. Has no effect for other status values.
+     * @return Fanlisting[]
+     */
+    public function getFiltered(string $status = 'current', ?int $categoryId = null, bool $excludeTrouble = false): array
+    {
+        // These fragments are built from a controlled match on internal values — safe to interpolate
+        $statusWhere = match (true) {
+            $status === 'current'               => $this->isOwnedSchema ? 'status = 2'  : 'upcoming = 0 AND trouble = 0',
+            $status === 'upcoming'              => $this->isOwnedSchema ? 'status = 1'  : 'upcoming = 1',
+            $status === 'trouble'               => $this->isOwnedSchema ? 'status = 0'  : 'trouble = 1',
+            $status === 'all' && $excludeTrouble => $this->isOwnedSchema ? 'status != 0' : 'trouble = 0',
+            default                             => '1 = 1',
+        };
+
+        $catWhere = $categoryId !== null ? ' AND category_id = :category_id' : '';
+        $params   = [];
+        if ($categoryId !== null) {
+            $params['category_id'] = $categoryId;
+        }
+
+        $orderCol = $this->isOwnedSchema ? 'title' : 'name';
+
+        $stmt = $this->db->prepare(
+            "SELECT * FROM {$this->table}
+             WHERE {$statusWhere}{$catWhere}
+             ORDER BY {$orderCol} ASC"
+        );
+        $stmt->execute($params);
+
+        return array_map(
+            static fn(array $row) => Fanlisting::fromRow($row),
+            $stmt->fetchAll()
+        );
+    }
+
+    /**
+     * Returns distinct Luster categories assigned to at least one fanlisting,
+     * ordered parent-first then alphabetically.
+     *
+     * Each entry includes parent_id and parent_name (null for top-level categories)
+     * so callers can build grouped <optgroup> selectors.
+     *
+     * @return array<int, array{id: int, name: string, source: string, parent_id: int|null, parent_name: string|null}>
+     */
+    public function getCategoryList(): array
+    {
+        $stmt = $this->db->prepare(
+            "SELECT DISTINCT c.id, c.name, c.source, c.parent_id,
+                    p.name AS parent_name
+             FROM {$this->table} f
+             JOIN lstr_categories c ON c.id = f.category_id
+             LEFT JOIN lstr_categories p ON p.id = c.parent_id
+             WHERE f.category_id IS NOT NULL
+             ORDER BY COALESCE(p.name, c.name) ASC, c.name ASC"
+        );
+        $stmt->execute();
+
+        return array_map(
+            static fn(array $r) => [
+                'id'          => (int)    $r['id'],
+                'name'        => (string) $r['name'],
+                'source'      => (string) $r['source'],
+                'parent_id'   => $r['parent_id'] !== null ? (int) $r['parent_id'] : null,
+                'parent_name' => $r['parent_name'] !== null ? (string) $r['parent_name'] : null,
+            ],
+            $stmt->fetchAll()
+        );
+    }
 }

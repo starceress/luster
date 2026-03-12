@@ -75,6 +75,13 @@ $avatarChar = strtoupper(substr((string) ($admin_username ?? 'A'), 0, 1));
         </svg>
         Members
       </a>
+      <a href="<?= $b ?>/admin/pending-updates" class="nav-item<?= navActive('pending-updates', $s) ?>">
+        <svg class="nav-icon" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+          <circle cx="12" cy="12" r="10"/>
+          <polyline points="12 6 12 12 16 14"/>
+        </svg>
+        Pending Updates
+      </a>
       <a href="<?= $b ?>/admin/affiliates" class="nav-item<?= navActive('affiliates', $s) ?>">
         <svg class="nav-icon" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
           <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
@@ -88,6 +95,12 @@ $avatarChar = strtoupper(substr((string) ($admin_username ?? 'A'), 0, 1));
           <line x1="7" y1="7" x2="7.01" y2="7"/>
         </svg>
         Categories
+      </a>
+      <a href="<?= $b ?>/admin/embed-codes" class="nav-item<?= navActive('embed-codes', $s) ?>">
+        <svg class="nav-icon" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+          <polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/>
+        </svg>
+        Embed Codes
       </a>
     </div>
 

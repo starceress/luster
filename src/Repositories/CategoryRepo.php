@@ -190,12 +190,74 @@ final class CategoryRepo
         return (int) $this->db->lastInsertId();
     }
 
+    // -----------------------------------------------------------------------
+    // Hierarchy helpers
+    // -----------------------------------------------------------------------
+
     /**
-     * Deletes a category by id and NULLs out any lstr_joined rows that
-     * reference it, preserving the joined fanlisting records.
+     * Returns all top-level categories (parent_id IS NULL), ordered by name.
+     *
+     * @return Category[]
+     */
+    public function getTopLevel(): array
+    {
+        $stmt = $this->db->prepare(
+            'SELECT * FROM lstr_categories WHERE parent_id IS NULL ORDER BY name ASC'
+        );
+        $stmt->execute();
+
+        return array_map(
+            static fn(array $r) => Category::fromRow($r),
+            $stmt->fetchAll(),
+        );
+    }
+
+    /**
+     * Returns all direct children of a given parent, ordered by name.
+     *
+     * @return Category[]
+     */
+    public function getChildren(int $parentId): array
+    {
+        $stmt = $this->db->prepare(
+            'SELECT * FROM lstr_categories WHERE parent_id = :pid ORDER BY name ASC'
+        );
+        $stmt->execute(['pid' => $parentId]);
+
+        return array_map(
+            static fn(array $r) => Category::fromRow($r),
+            $stmt->fetchAll(),
+        );
+    }
+
+    /**
+     * Returns true if the given category has at least one child.
+     */
+    public function hasChildren(int $id): bool
+    {
+        $stmt = $this->db->prepare(
+            'SELECT COUNT(*) FROM lstr_categories WHERE parent_id = :id'
+        );
+        $stmt->execute(['id' => $id]);
+
+        return (int) $stmt->fetchColumn() > 0;
+    }
+
+    /**
+     * Deletes a category by id.
+     *
+     * Child categories are promoted to top-level (parent_id set to NULL).
+     * Any lstr_joined rows that reference the deleted category are also nulled.
      */
     public function delete(int $id): void
     {
+        // Promote children to top-level
+        $stmtPromote = $this->db->prepare(
+            'UPDATE lstr_categories SET parent_id = NULL WHERE parent_id = :id'
+        );
+        $stmtPromote->execute(['id' => $id]);
+
+        // Unlink joined fanlistings referencing this category
         $stmtNull = $this->db->prepare(
             'UPDATE lstr_joined SET category_id = NULL WHERE category_id = :id'
         );

@@ -12,6 +12,7 @@ use Luster\Core\Request;
 use Luster\Core\Response;
 use Luster\Core\Validator;
 use Luster\Models\Fanlisting;
+use Luster\Repositories\EmailTemplateRepo;
 use Luster\Repositories\FanlistingRepo;
 use Luster\Repositories\FanlistingSettingsRepo;
 use Luster\Repositories\MemberRepo;
@@ -88,6 +89,12 @@ final class RemoveController
             return Response::notFound('That fanlisting does not exist.');
         }
 
+        $settingsRepo  = new FanlistingSettingsRepo($this->app->getDatabase());
+        $embedSettings = $settingsRepo->getEmbedSettings($fanlistingId);
+        $formUrl       = (string) $embedSettings['form_url_remove'] !== ''
+                       ? (string) $embedSettings['form_url_remove']
+                       : $baseUrl . '/remove/' . $fanlistingId;
+
         // Captcha — re-render the form with an error on failure
         $email = trim((string) $request->post('email', ''));
         if (!Captcha::validate((string) $request->post('captcha_answer', ''))) {
@@ -107,7 +114,7 @@ final class RemoveController
             $rateLimit->hitDefault($ip, RateLimit::ACTION_PUBLIC_REMOVE);
             $session->set('lstr_flash_error', implode(' ', $v->allErrors()));
             $session->set('lstr_flash_old_email', $email);
-            return Response::redirect($baseUrl . '/remove/' . $fanlistingId);
+            return Response::redirect($formUrl);
         }
 
         $memberRepo = new MemberRepo($this->app->getDatabase(), $this->app->getConfig());
@@ -117,7 +124,7 @@ final class RemoveController
             $rateLimit->hitDefault($ip, RateLimit::ACTION_PUBLIC_REMOVE);
             $session->set('lstr_flash_error', 'No membership found for that email address.');
             $session->set('lstr_flash_old_email', $email);
-            return Response::redirect($baseUrl . '/remove/' . $fanlistingId);
+            return Response::redirect($formUrl);
         }
 
         // Verify password — detect and verify legacy MD5 hashes before deletion
@@ -136,7 +143,7 @@ final class RemoveController
             $rateLimit->hitDefault($ip, RateLimit::ACTION_PUBLIC_REMOVE);
             $session->set('lstr_flash_error', 'Incorrect password. Please try again.');
             $session->set('lstr_flash_old_email', $email);
-            return Response::redirect($baseUrl . '/remove/' . $fanlistingId);
+            return Response::redirect($formUrl);
         }
 
         $memberName = $member->name;
@@ -145,25 +152,25 @@ final class RemoveController
 
         // Farewell email (best-effort)
         try {
-            $mailer  = new Mailer($this->app->getConfig());
-            $appName = (string) $this->app->getConfig()->get('app_name', 'Luster');
-
-            $mailer->send(
-                $email,
-                $memberName,
-                "You have been removed from the {$fanlisting->name} fanlisting",
-                "Hi {$memberName},\n\n"
-                . "Your membership in the {$fanlisting->name} fanlisting has been removed as requested.\n\n"
-                . "-- {$appName}",
+            $mailer    = new Mailer($this->app->getConfig());
+            $appName   = (string) $this->app->getConfig()->get('app_name', 'Luster');
+            $emailRepo = new EmailTemplateRepo($this->app->getDatabase());
+            $tpl       = $emailRepo->get($fanlistingId, EmailTemplateRepo::TYPE_REMOVE);
+            $tokens    = EmailTemplateRepo::buildTokens(
+                fanlistingName: $fanlisting->name,
+                fanlistingUrl:  $fanlisting->url,
+                appName:        $appName,
+                fanName:        $memberName,
+                fanEmail:       $email,
             );
+            [$subject, $body] = EmailTemplateRepo::resolve($tpl, EmailTemplateRepo::TYPE_REMOVE, $tokens);
+            $mailer->send($email, $memberName, $subject, $body);
         } catch (\Throwable $e) {
             error_log('[Luster] Remove email failed: ' . $e->getMessage());
         }
 
         // Redirect to configured URL or default success page
-        $settingsRepo = new FanlistingSettingsRepo($this->app->getDatabase());
-        $embedSettings = $settingsRepo->getEmbedSettings($fanlistingId);
-        $redirectUrl   = (string) $embedSettings['redirect_url_remove'];
+        $redirectUrl = (string) $embedSettings['redirect_url_remove'];
         if ($redirectUrl !== '') {
             return Response::redirect($redirectUrl);
         }

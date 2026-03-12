@@ -80,15 +80,33 @@ $catPageUrl = static function (int $p) use ($b, $catFilterQs): string {
         <th>ID</th>
         <th>Network</th>
         <th>Category Name</th>
+        <th>Parent</th>
         <th class="act-col">Actions</th>
       </tr>
     </thead>
     <tbody>
+      <?php
+      // Build a quick id→name lookup for parent display
+      $catIndex = [];
+      foreach ($all_cats ?? [] as $_ac) { $catIndex[$_ac->id] = $_ac->name; }
+      ?>
       <?php foreach ($items ?? [] as $cat): ?>
       <tr>
         <td class="text-dim"><?= (int) $cat->id ?></td>
         <td><?= $sourceBadge($cat->source ?? 'custom') ?></td>
-        <td class="text-strong"><?= \Luster\Core\View::e($cat->name ?? '') ?></td>
+        <td class="text-strong">
+          <?php if ($cat->parentId !== null): ?>
+            <span style="color:var(--text-dim);font-size:.8rem;margin-right:.25rem">└</span>
+          <?php endif; ?>
+          <?= \Luster\Core\View::e($cat->name ?? '') ?>
+        </td>
+        <td class="text-dim" style="font-size:.85rem">
+          <?php if ($cat->parentId !== null && isset($catIndex[$cat->parentId])): ?>
+            <?= \Luster\Core\View::e($catIndex[$cat->parentId]) ?>
+          <?php else: ?>
+            —
+          <?php endif; ?>
+        </td>
         <td class="act-col">
           <a href="<?= $b ?>/admin/categories/<?= (int) $cat->id ?>/edit"
              class="btn btn-primary btn-sm">Edit</a>

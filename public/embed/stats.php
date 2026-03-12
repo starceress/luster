@@ -20,14 +20,17 @@ use Luster\Repositories\MemberRepo;
  *   require '/absolute/path/to/luster/public/embed/stats.php';
  *
  * Available $token$ placeholders (same as the /stats/{id} endpoint):
- *   $stat_opened$      — date fanlisting opened ("March 1st 2026")
- *   $stat_updated$     — date of most recent approved member (same format)
- *   $stat_approved$    — approved member count
- *   $stat_pending$     — pending member count
- *   $stat_newmembers$  — comma-separated newest 5 approved member names
- *   $stat_growth$      — members per day since opened (2 decimal places)
- *   $fanlisting_name$  — fanlisting name (HTML-escaped)
- *   $fanlisting_url$   — fanlisting URL (HTML-escaped)
+ *   $stat_opened$       — date fanlisting opened ("March 1st 2026")
+ *   $stat_updated$      — date of most recent approved member (same format)
+ *   $stat_last_updated$ — admin-controlled "last updated" date from
+ *                         lstr_fanlisting_settings; falls back to the
+ *                         last_updated_fallback config value (default "Never")
+ *   $stat_approved$     — approved member count
+ *   $stat_pending$      — pending member count
+ *   $stat_newmembers$   — comma-separated newest 5 approved member names
+ *   $stat_growth$       — members per day since opened (2 decimal places)
+ *   $fanlisting_name$   — fanlisting name (HTML-escaped)
+ *   $fanlisting_url$    — fanlisting URL (HTML-escaped)
  */
 
 // ---------------------------------------------------------------------------
@@ -99,6 +102,11 @@ $_lusterLastUpdated = $_lusterMemberRepo->getMostRecentApprovedDate($_lusterPref
 
 $_lusterSettingsRepo = new FanlistingSettingsRepo($_lusterApp->getDatabase());
 $_lusterTemplates    = $_lusterSettingsRepo->getTemplates($_lusterFanlistingId);
+
+// Last Updated — from lstr_fanlisting_settings.last_updated (admin-controlled)
+$_lusterAdminLastUpdated = $_lusterSettingsRepo->getLastUpdated($_lusterFanlistingId);
+$_lusterLastUpdatedFallback = (string) $_lusterApp->getConfig()->get('last_updated_fallback', 'Never');
+
 $_lusterTemplate     = ($_lusterTemplates['stats_template'] !== null
                      && trim($_lusterTemplates['stats_template']) !== '')
     ? $_lusterTemplates['stats_template']
@@ -155,10 +163,15 @@ if ($_lusterFanlisting->joined !== null) {
 // 8. Replace tokens and output
 // ---------------------------------------------------------------------------
 
+$_lusterAdminUpdatedStr = $_lusterAdminLastUpdated !== null
+    ? $_lusterFormatDate($_lusterAdminLastUpdated)
+    : $_lusterLastUpdatedFallback;
+
 $_lusterHtml = str_replace(
     [
         '$stat_opened$',
         '$stat_updated$',
+        '$stat_last_updated$',
         '$stat_approved$',
         '$stat_pending$',
         '$stat_newmembers$',
@@ -169,6 +182,7 @@ $_lusterHtml = str_replace(
     [
         $_lusterOpened,
         $_lusterUpdated,
+        $_lusterAdminUpdatedStr,
         (string) $_lusterApproved,
         (string) $_lusterPending,
         $_lusterNewMembersStr,

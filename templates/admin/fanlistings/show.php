@@ -178,7 +178,7 @@ $imgHeight = $sizeMap[$sizeKey] ?? '100px';
     <div style="margin-bottom:1.25rem">
       <label class="form-label" for="members_template">Members List</label>
       <p class="form-hint" style="font-family:'DM Mono',monospace;line-height:1.8;margin-bottom:.5rem">
-        $$fan_name$$ &bull; $$fan_email$$ &bull; $$fan_url$$ &bull; $$fan_country$$
+        $$fan_name$$ &bull; $$fan_email$$ &bull; $$fan_url$$ &bull; $$fan_country$$ &bull; $$fan_{fieldname}$$
       </p>
       <textarea id="members_template" name="members_template" class="form-textarea" rows="8"
                 style="font-family:'DM Mono',monospace;font-size:.8125rem"
@@ -188,7 +188,7 @@ $imgHeight = $sizeMap[$sizeKey] ?? '100px';
     <div style="margin-bottom:1.25rem">
       <label class="form-label" for="affiliates_template">Affiliates</label>
       <p class="form-hint" style="font-family:'DM Mono',monospace;line-height:1.8;margin-bottom:.5rem">
-        $$aff_url$$ &bull; $$aff_image$$ &bull; $$aff_name$$
+        $$aff_name$$ &bull; $$aff_url$$ &bull; $$aff_image$$ &bull; $$aff_image_url$$
       </p>
       <textarea id="affiliates_template" name="affiliates_template" class="form-textarea" rows="8"
                 style="font-family:'DM Mono',monospace;font-size:.8125rem"

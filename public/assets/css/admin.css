@@ -762,6 +762,7 @@ body::before {
 .badge-current  { background: var(--success-bg); color: var(--success); border-color: rgba(52,211,153,0.2); }
 .badge-upcoming { background: var(--warn-bg);    color: var(--warn);    border-color: rgba(251,191,36,0.2); }
 .badge-pending  { background: var(--danger-bg);  color: var(--danger);  border-color: rgba(248,113,113,0.2); }
+.badge-trouble  { background: rgba(249,115,22,0.12); color: #f97316;    border-color: rgba(249,115,22,0.2); }
 .badge-info     { background: rgba(129,140,248,0.12); color: var(--neb-indigo); border-color: rgba(129,140,248,0.2); }
 
 /* Alerts */

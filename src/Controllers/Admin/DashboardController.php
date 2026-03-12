@@ -11,6 +11,7 @@ use Luster\Repositories\ActivityRepo;
 use Luster\Repositories\AffiliateRepo;
 use Luster\Repositories\CategoryRepo;
 use Luster\Repositories\FanlistingRepo;
+use Luster\Repositories\FanlistingSettingsRepo;
 use Luster\Repositories\JoinedFanlistingRepo;
 use Luster\Repositories\MemberRepo;
 
@@ -21,6 +22,38 @@ final class DashboardController
 {
     public function __construct(private readonly Application $app) {}
 
+    /**
+     * POST /admin/maintenance/touch-all-updated
+     *
+     * Sets last_updated to today for every fanlisting — useful when first
+     * enabling the staleness check on an existing install.
+     */
+    public function touchAllUpdated(Request $request, array $params): Response
+    {
+        $db     = $this->app->getDatabase();
+        $config = $this->app->getConfig();
+
+        $fanlistingRepo = new FanlistingRepo($db, $config);
+        $settingsRepo   = new FanlistingSettingsRepo($db);
+        $activityRepo   = new ActivityRepo($db);
+        $session        = $this->app->getSession();
+
+        $fanlistings = $fanlistingRepo->getAll();
+        foreach ($fanlistings as $fl) {
+            $settingsRepo->touchLastUpdated($fl->id);
+        }
+
+        $activityRepo->log(
+            (int) $session->get('lstr_admin_id'),
+            'maintenance.touch_all_updated',
+            'Bulk-touched last_updated to today for all ' . count($fanlistings) . ' fanlistings',
+            $request->ip(),
+        );
+
+        $session->set('lstr_flash_success', 'Last Updated date set to today for all fanlistings.');
+        return Response::redirect($this->app->getBaseUrl() . '/admin');
+    }
+
     public function index(Request $request, array $params): Response
     {
         $db      = $this->app->getDatabase();
@@ -29,12 +62,13 @@ final class DashboardController
         $view    = $this->app->getView();
         $baseUrl = $this->app->getBaseUrl();
 
-        $fanlistingRepo = new FanlistingRepo($db, $config);
-        $memberRepo     = new MemberRepo($db, $config);
-        $activityRepo   = new ActivityRepo($db);
-        $affiliateRepo  = new AffiliateRepo($db);
-        $joinedRepo     = new JoinedFanlistingRepo($db);
-        $categoryRepo   = new CategoryRepo($db);
+        $fanlistingRepo  = new FanlistingRepo($db, $config);
+        $memberRepo      = new MemberRepo($db, $config);
+        $activityRepo    = new ActivityRepo($db);
+        $affiliateRepo   = new AffiliateRepo($db);
+        $joinedRepo      = new JoinedFanlistingRepo($db);
+        $categoryRepo    = new CategoryRepo($db);
+        $settingsRepo    = new FanlistingSettingsRepo($db);
 
         // ── Owned fanlistings ────────────────────────────────────────────
         $fanStats    = $fanlistingRepo->getStats();
@@ -101,6 +135,18 @@ final class DashboardController
         // ── Recent activity ──────────────────────────────────────────────
         $recentActivity = $activityRepo->getRecent(10);
 
+        // ── Staleness detection ───────────────────────────────────────────
+        $thresholdDays = (int) $config->get('inactive_threshold_days', 60);
+        $staleIds      = $settingsRepo->getStaleIds($thresholdDays);
+        $staleFanlistings = [];
+        if (!empty($staleIds)) {
+            foreach ($fanlistings as $fl) {
+                if (in_array($fl->id, $staleIds, true)) {
+                    $staleFanlistings[] = $fl;
+                }
+            }
+        }
+
         // ── Render ───────────────────────────────────────────────────────
         $inner = $view->render('admin/dashboard.php', [
             'admin_username'              => (string) $session->get('lstr_admin_username', ''),
@@ -121,6 +167,8 @@ final class DashboardController
             'newest_joined_name'         => $newestJoinedName,
             'recent_members'             => $recentMembers,
             'recent_activity'            => $recentActivity,
+            'stale_fanlistings'          => $staleFanlistings,
+            'inactive_threshold_days'    => $thresholdDays,
             'base_url'                   => $baseUrl,
         ]);
 

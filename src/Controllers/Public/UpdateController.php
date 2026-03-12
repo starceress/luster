@@ -13,10 +13,12 @@ use Luster\Core\Request;
 use Luster\Core\Response;
 use Luster\Core\Validator;
 use Luster\Models\Fanlisting;
+use Luster\Repositories\EmailTemplateRepo;
 use Luster\Repositories\FanlistingRepo;
 use Luster\Repositories\FanlistingSettingsRepo;
 use Luster\Repositories\FieldRepo;
 use Luster\Repositories\MemberRepo;
+use Luster\Repositories\PendingUpdateRepo;
 
 /**
  * Fan update form — allows a fan to edit their own membership record.
@@ -103,6 +105,9 @@ final class UpdateController
         $embedSettings = $settingsRepo->getEmbedSettings($fanlistingId);
 
         $countryEnabled = (bool) $embedSettings['country_field_enabled'];
+        $formUrl        = (string) $embedSettings['form_url_update'] !== ''
+                        ? (string) $embedSettings['form_url_update']
+                        : $baseUrl . '/update/' . $fanlistingId;
 
         // Section 1 — authentication credentials
         $email    = trim((string) $request->post('email',    ''));
@@ -170,7 +175,7 @@ final class UpdateController
                 'url'       => $url,
                 'country'   => $country,
             ]);
-            return Response::redirect($baseUrl . '/update/' . $fanlistingId);
+            return Response::redirect($formUrl);
         }
 
         $memberRepo = new MemberRepo($this->app->getDatabase(), $this->app->getConfig());
@@ -180,7 +185,7 @@ final class UpdateController
             $rateLimit->hitDefault($ip, RateLimit::ACTION_PUBLIC_UPDATE);
             $session->set('lstr_flash_error', 'No membership found for that email address.');
             $session->set('lstr_flash_old', ['email' => $email]);
-            return Response::redirect($baseUrl . '/update/' . $fanlistingId);
+            return Response::redirect($formUrl);
         }
 
         // Verify password — detect and upgrade legacy MD5 hashes
@@ -202,7 +207,7 @@ final class UpdateController
             $rateLimit->hitDefault($ip, RateLimit::ACTION_PUBLIC_UPDATE);
             $session->set('lstr_flash_error', 'Incorrect password. Please try again.');
             $session->set('lstr_flash_old', ['email' => $email]);
-            return Response::redirect($baseUrl . '/update/' . $fanlistingId);
+            return Response::redirect($formUrl);
         }
 
         $rateLimit->clear($ip, RateLimit::ACTION_PUBLIC_UPDATE);
@@ -277,21 +282,53 @@ final class UpdateController
             $updateData[$colName] = trim((string) ($postData['field_' . $field->name] ?? ''));
         }
 
+        // ── Queue vs immediate ────────────────────────────────────────────────
+        if ($settingsRepo->getQueueUpdates($fanlistingId)) {
+            // Apply new password immediately (auth-critical; don't queue it)
+            if (isset($updateData['password'])) {
+                $memberRepo->update($fanlisting->dbprefix, $email, ['password' => $updateData['password']]);
+                unset($updateData['password']);
+            }
+
+            // Also unset email change from queued payload — email is the member key,
+            // so email changes are applied immediately to keep the member locatable
+            if (isset($updateData['email'])) {
+                $memberRepo->update($fanlisting->dbprefix, $email, ['email' => $updateData['email']]);
+                unset($updateData['email']);
+            }
+
+            $pendingRepo = new PendingUpdateRepo($this->app->getDatabase());
+            $pendingRepo->insert($fanlistingId, $finalEmail, $updateData);
+
+            $session->set('lstr_flash_pending', '1');
+            $redirectUrl = (string) $embedSettings['redirect_url_update'];
+            if ($redirectUrl !== '') {
+                return Response::redirect($redirectUrl);
+            }
+
+            return Response::redirect($baseUrl . '/update/' . $fanlistingId . '/success');
+        }
+
+        // Immediate update (default path)
         $memberRepo->update($fanlisting->dbprefix, $email, $updateData);
 
         // Confirmation email (best-effort)
         try {
-            $mailer  = new Mailer($this->app->getConfig());
-            $appName = (string) $this->app->getConfig()->get('app_name', 'Luster');
-
-            $mailer->send(
-                $finalEmail,
-                $finalName,
-                "Your {$fanlisting->name} membership has been updated",
-                "Hi {$finalName},\n\n"
-                . "Your membership in the {$fanlisting->name} fanlisting has been updated.\n\n"
-                . "-- {$appName}",
+            $mailer    = new Mailer($this->app->getConfig());
+            $appName   = (string) $this->app->getConfig()->get('app_name', 'Luster');
+            $emailRepo = new EmailTemplateRepo($this->app->getDatabase());
+            $tpl       = $emailRepo->get($fanlistingId, EmailTemplateRepo::TYPE_UPDATE);
+            $tokens    = EmailTemplateRepo::buildTokens(
+                fanlistingName: $fanlisting->name,
+                fanlistingUrl:  $fanlisting->url,
+                appName:        $appName,
+                fanName:        $finalName,
+                fanEmail:       $finalEmail,
+                fanUrl:         $finalUrl,
+                fanCountry:     $finalCountry,
             );
+            [$subject, $body] = EmailTemplateRepo::resolve($tpl, EmailTemplateRepo::TYPE_UPDATE, $tokens);
+            $mailer->send($finalEmail, $finalName, $subject, $body);
         } catch (\Throwable $e) {
             error_log('[Luster] Update email failed: ' . $e->getMessage());
         }
@@ -318,14 +355,20 @@ final class UpdateController
 
         $fanlistingName = $fanlisting?->name ?? 'this fanlisting';
         $baseUrl        = $this->app->getBaseUrl();
+        $session        = $this->app->getSession();
+
+        $isPending = $session->get('lstr_flash_pending') === '1';
+        $session->remove('lstr_flash_pending');
 
         $html = $this->app->getView()->renderPublic('success.php', [
             'fanlisting'      => $fanlisting,
             'fanlisting_name' => $fanlistingName,
             'fanlisting_url'  => $fanlisting?->url ?? '',
-            'page_title'      => 'Membership Updated',
-            'success_heading' => 'Membership Updated',
-            'success_message' => "Your membership in the {$fanlistingName} fanlisting has been updated successfully.",
+            'page_title'      => $isPending ? 'Update Pending' : 'Membership Updated',
+            'success_heading' => $isPending ? 'Update Submitted' : 'Membership Updated',
+            'success_message' => $isPending
+                ? "Your update for the {$fanlistingName} fanlisting has been submitted and is awaiting admin review. Changes will appear once approved."
+                : "Your membership in the {$fanlistingName} fanlisting has been updated successfully.",
             'base_url'        => $baseUrl,
             'theme_path'      => $baseUrl . '/assets/default/',
         ]);

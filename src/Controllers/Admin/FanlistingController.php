@@ -12,6 +12,7 @@ use Luster\Repositories\ActivityRepo;
 use Luster\Repositories\AffiliateRepo;
 use Luster\Repositories\CategoryRepo;
 use Luster\Repositories\FieldRepo;
+use Luster\Repositories\EmailTemplateRepo;
 use Luster\Repositories\FanlistingRepo;
 use Luster\Repositories\FanlistingSettingsRepo;
 use Luster\Repositories\MemberRepo;
@@ -428,7 +429,8 @@ final class FanlistingController
             $url         = trim((string) $request->post('url', ''));
             $email       = trim((string) $request->post('email', ''));
             $status      = (string) $request->post('status', 'current');
-            $autoApprove = $request->post('auto_approve') === '1';
+            $autoApprove   = $request->post('auto_approve')   === '1';
+            $queueUpdates  = $request->post('queue_updates')  === '1';
             $subject     = trim((string) $request->post('subject', ''));
             $opened      = trim((string) $request->post('opened', ''));
             $nets        = array_values((array) ($_POST['cat_network'] ?? []));
@@ -506,6 +508,7 @@ final class FanlistingController
                 return $this->layout('admin/fanlistings/edit.php', [
                     'fanlisting'          => $fanlisting,
                     'auto_approve'        => $autoApprove,
+                    'queue_updates'       => $queueUpdates,
                     'error'               => implode(' ', $messages),
                     'old'                 => ['title' => $title, 'url' => $url, 'email' => $email, 'status' => $status],
                     'current_image'       => $settingsRepo->getImage($id),
@@ -526,11 +529,21 @@ final class FanlistingController
             $upcoming = ($status === 'upcoming');
             $trouble  = ($status === 'pending');
 
+            $lastUpdatedInput = trim((string) $request->post('fl_last_updated', ''));
+            // Validate: must be empty or a parseable date in YYYY-MM-DD format
+            if ($lastUpdatedInput !== '' && !preg_match('/^\d{4}-\d{2}-\d{2}$/', $lastUpdatedInput)) {
+                $lastUpdatedInput = '';
+            }
+
             $fanlistingRepo->updateMeta($id, $title, $url, $email, $upcoming, $trouble);
             $fanlistingRepo->update($id, !empty($catids) ? $catids[0] : null, $subject, $opened, $catidStr);
             $settingsRepo->setAutoApprove($id, $autoApprove);
+            $settingsRepo->setQueueUpdates($id, $queueUpdates);
             $settingsRepo->saveListingType($id, $listingType);
             $settingsRepo->saveMembersPerPage($id, $membersPerPage);
+            if ($lastUpdatedInput !== '' || $request->post('fl_last_updated') !== null) {
+                $settingsRepo->setLastUpdated($id, $lastUpdatedInput !== '' ? $lastUpdatedInput : null);
+            }
 
             if ($deleteImage) {
                 $oldFilename = $settingsRepo->getImage($id);
@@ -574,9 +587,11 @@ final class FanlistingController
 
         // ---- GET: show form ----
         $autoApprove        = $settingsRepo->getAutoApprove($id);
+        $queueUpdates       = $settingsRepo->getQueueUpdates($id);
         $currentImage       = $settingsRepo->getImage($id);
         $listingType        = $settingsRepo->getListingType($id);
         $membersPerPage     = $settingsRepo->getMembersPerPage($id);
+        $flLastUpdated      = $settingsRepo->getLastUpdated($id);
         $embedSettings      = $settingsRepo->getEmbedSettings($id);
         $approved           = $fanlisting->dbprefix !== '' ? $memberRepo->countApproved($fanlisting->dbprefix) : 0;
         $pending            = $fanlisting->dbprefix !== '' ? $memberRepo->countPending($fanlisting->dbprefix) : 0;
@@ -602,6 +617,7 @@ final class FanlistingController
         return $this->layout('admin/fanlistings/edit.php', [
             'fanlisting'          => $fanlisting,
             'auto_approve'        => $autoApprove,
+            'queue_updates'       => $queueUpdates,
             'success'             => $success,
             'error'               => $error,
             'old'                 => [],
@@ -611,6 +627,7 @@ final class FanlistingController
             'pending'             => $pending,
             'countries'           => $countries,
             'last_updated'        => $lastUpdated,
+            'fl_last_updated'     => $flLastUpdated,
             'tfl_cats'            => $tflCats,
             'tafl_cats'           => $taflCats,
             'custom_networks'     => $customNetworks,
@@ -878,6 +895,11 @@ final class FanlistingController
         $redirectUrlJoin     = trim((string) $request->post('redirect_url_join',    ''));
         $redirectUrlUpdate   = trim((string) $request->post('redirect_url_update',  ''));
         $redirectUrlRemove   = trim((string) $request->post('redirect_url_remove',  ''));
+        $redirectUrlReset    = trim((string) $request->post('redirect_url_reset',   ''));
+        $formUrlJoin         = trim((string) $request->post('form_url_join',        ''));
+        $formUrlUpdate       = trim((string) $request->post('form_url_update',      ''));
+        $formUrlRemove       = trim((string) $request->post('form_url_remove',      ''));
+        $formUrlReset        = trim((string) $request->post('form_url_reset',       ''));
         $dbHost              = trim((string) $request->post('db_host',              ''));
         $dbName              = trim((string) $request->post('db_name',              ''));
         $dbUser              = trim((string) $request->post('db_user',              ''));
@@ -897,6 +919,11 @@ final class FanlistingController
             $redirectUrlJoin,
             $redirectUrlUpdate,
             $redirectUrlRemove,
+            $redirectUrlReset,
+            $formUrlJoin,
+            $formUrlUpdate,
+            $formUrlRemove,
+            $formUrlReset,
             $dbHost,
             $dbName,
             $dbUser,
@@ -1007,6 +1034,68 @@ final class FanlistingController
 
         $session->set('lstr_flash_success', 'Settings saved successfully.');
         return Response::redirect($baseUrl . '/admin/fanlistings/settings');
+    }
+
+    // -----------------------------------------------------------------------
+    // GET /admin/fanlistings/{id}/email-templates
+    // -----------------------------------------------------------------------
+
+    public function emailTemplatesForm(Request $request, array $params): Response
+    {
+        $id = (int) ($params['id'] ?? 0);
+
+        $db     = $this->app->getDatabase();
+        $config = $this->app->getConfig();
+
+        $fanlistingRepo = new FanlistingRepo($db, $config);
+        $fanlisting     = $fanlistingRepo->getById($id);
+
+        if ($fanlisting === null) {
+            return Response::notFound('Fanlisting not found.');
+        }
+
+        $emailRepo = new EmailTemplateRepo($db);
+        $templates = $emailRepo->getAll($id);
+
+        return $this->layout('admin/fanlistings/email-templates.php', [
+            'fanlisting' => $fanlisting,
+            'templates'  => $templates,
+        ], 'Email Templates — ' . $fanlisting->name, 'fanlistings');
+    }
+
+    // -----------------------------------------------------------------------
+    // POST /admin/fanlistings/{id}/email-templates
+    // -----------------------------------------------------------------------
+
+    public function saveEmailTemplates(Request $request, array $params): Response
+    {
+        $id = (int) ($params['id'] ?? 0);
+
+        $db     = $this->app->getDatabase();
+        $config = $this->app->getConfig();
+
+        $fanlistingRepo = new FanlistingRepo($db, $config);
+        $fanlisting     = $fanlistingRepo->getById($id);
+
+        if ($fanlisting === null) {
+            return Response::notFound('Fanlisting not found.');
+        }
+
+        $emailRepo = new EmailTemplateRepo($db);
+
+        foreach (EmailTemplateRepo::TYPES as $type) {
+            $enabled = $request->post('email_enabled_' . $type) === '1';
+            $subject = trim((string) $request->post('email_subject_' . $type, ''));
+            $body    = trim((string) $request->post('email_body_'    . $type, ''));
+
+            $emailRepo->save($id, $type, $subject, $body, $enabled);
+        }
+
+        $this->app->getSession()->set('lstr_flash_success', 'Email templates saved.');
+
+        return Response::redirect(
+            $this->app->getBaseUrl() . '/admin/fanlistings/' . $id . '/email-templates'
+        );
     }
 
     // -----------------------------------------------------------------------

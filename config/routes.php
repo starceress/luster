@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 use Luster\Controllers\Admin\ActivityLogController;
 use Luster\Controllers\Admin\AffiliateController;
+use Luster\Controllers\Admin\CodesController;
+use Luster\Controllers\Admin\EmbedCodesController;
+use Luster\Controllers\Admin\PendingUpdateController;
 use Luster\Controllers\Admin\ErrorLogController;
 use Luster\Controllers\Admin\SysInfoController;
 use Luster\Controllers\Admin\AuthController;
@@ -83,6 +86,10 @@ return [
         $router->post('/admin/login',  AuthController::class,      'login');
         $router->post('/admin/logout', AuthController::class,      'logout');
 
+        // ── Maintenance ──────────────────────────────────────────────
+        $router->post('/admin/maintenance/touch-all-updated',
+            DashboardController::class, 'touchAllUpdated');
+
         // ── Fanlistings ─────────────────────────────────────────────
         $router->get('/admin/fanlistings',
             FanlistingController::class, 'index');
@@ -99,6 +106,10 @@ return [
             FanlistingController::class, 'edit');
         $router->post('/admin/fanlistings/{id}/templates',
             FanlistingController::class, 'saveTemplates');
+        $router->get('/admin/fanlistings/{id}/email-templates',
+            FanlistingController::class, 'emailTemplatesForm');
+        $router->post('/admin/fanlistings/{id}/email-templates',
+            FanlistingController::class, 'saveEmailTemplates');
         $router->post('/admin/fanlistings/{id}/embed',
             FanlistingController::class, 'saveEmbed');
         $router->post('/admin/fanlistings/{id}/update',
@@ -141,6 +152,18 @@ return [
             MemberController::class, 'emailMemberForm');
         $router->post('/admin/members/{id}/emailmember',
             MemberController::class, 'emailMemberSend');
+
+        // ── Codes for a specific fanlisting ─────────────────────────
+        //    /codes/upload and /codes/bulk must be registered before
+        //    /codes/{id}/delete to avoid 'upload'/'bulk' matching as {id}
+        $router->get('/admin/fanlistings/{fid}/codes',
+            CodesController::class, 'index');
+        $router->post('/admin/fanlistings/{fid}/codes/upload',
+            CodesController::class, 'upload');
+        $router->post('/admin/fanlistings/{fid}/codes/bulk',
+            CodesController::class, 'bulk');
+        $router->post('/admin/fanlistings/{fid}/codes/{id}/delete',
+            CodesController::class, 'delete');
 
         // ── Additional fields for a specific fanlisting ──────────────
         $router->get('/admin/fanlistings/{fid}/fields',
@@ -236,6 +259,20 @@ return [
         // ── System info ──────────────────────────────────────────────
         $router->get('/admin/sysinfo',
             SysInfoController::class, 'index');
+
+        // ── Pending update approvals ──────────────────────────────────
+        $router->get('/admin/pending-updates',
+            PendingUpdateController::class, 'index');
+        $router->get('/admin/pending-updates/{id}',
+            PendingUpdateController::class, 'show');
+        $router->post('/admin/pending-updates/{id}/approve',
+            PendingUpdateController::class, 'approve');
+        $router->post('/admin/pending-updates/{id}/reject',
+            PendingUpdateController::class, 'reject');
+
+        // ── Embed codes reference ─────────────────────────────────────
+        $router->get('/admin/embed-codes',
+            EmbedCodesController::class, 'index');
     },
 
 ];

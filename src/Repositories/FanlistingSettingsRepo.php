@@ -20,6 +20,110 @@ final class FanlistingSettingsRepo
 {
     public function __construct(private readonly Database $db) {}
 
+    // -----------------------------------------------------------------------
+    // Last Updated
+    // -----------------------------------------------------------------------
+
+    /**
+     * Returns the stored last_updated DATE for a fanlisting, or null if unset.
+     *
+     * Requires Migration 20.
+     */
+    public function getLastUpdated(int $fanlistingId): ?string
+    {
+        try {
+            $stmt = $this->db->prepare(
+                'SELECT last_updated FROM lstr_fanlisting_settings WHERE fanlisting_id = :id'
+            );
+            $stmt->execute(['id' => $fanlistingId]);
+            $row = $stmt->fetch();
+        } catch (\Exception) {
+            return null;
+        }
+
+        if ($row === false || $row['last_updated'] === null || $row['last_updated'] === '') {
+            return null;
+        }
+
+        return (string) $row['last_updated'];
+    }
+
+    /**
+     * Sets last_updated to today's date for the given fanlisting (upsert).
+     *
+     * Called automatically on member approve, edit, and affiliate mutations.
+     * Requires Migration 20.
+     */
+    public function touchLastUpdated(int $fanlistingId): void
+    {
+        try {
+            $stmt = $this->db->prepare(
+                'INSERT INTO lstr_fanlisting_settings (fanlisting_id, last_updated)
+                 VALUES (:id, CURDATE())
+                 ON DUPLICATE KEY UPDATE last_updated = CURDATE()'
+            );
+            $stmt->execute(['id' => $fanlistingId]);
+        } catch (\Exception) {
+            // Column not yet present — Migration 20 not run; silently ignore
+        }
+    }
+
+    /**
+     * Sets last_updated to a specific date string (YYYY-MM-DD) for a fanlisting.
+     *
+     * Pass null or empty string to clear the stored value.
+     * Requires Migration 20.
+     */
+    public function setLastUpdated(int $fanlistingId, ?string $date): void
+    {
+        $value = ($date !== null && $date !== '') ? $date : null;
+
+        try {
+            $stmt = $this->db->prepare(
+                'INSERT INTO lstr_fanlisting_settings (fanlisting_id, last_updated)
+                 VALUES (:id, :date)
+                 ON DUPLICATE KEY UPDATE last_updated = :date2'
+            );
+            $stmt->execute(['id' => $fanlistingId, 'date' => $value, 'date2' => $value]);
+        } catch (\Exception) {
+            // Column not yet present — Migration 20 not run; silently ignore
+        }
+    }
+
+    /**
+     * Returns fanlisting IDs whose last_updated is older than $thresholdDays
+     * days, or NULL (never set). Passing 0 disables the check (returns []).
+     *
+     * @return int[]
+     */
+    public function getStaleIds(int $thresholdDays): array
+    {
+        if ($thresholdDays <= 0) {
+            return [];
+        }
+
+        try {
+            $stmt = $this->db->prepare(
+                'SELECT fanlisting_id FROM lstr_fanlisting_settings
+                 WHERE last_updated IS NULL
+                    OR last_updated < DATE_SUB(CURDATE(), INTERVAL :days DAY)'
+            );
+            $stmt->execute(['days' => $thresholdDays]);
+
+            return array_map(
+                static fn(array $r) => (int) $r['fanlisting_id'],
+                $stmt->fetchAll(),
+            );
+        } catch (\Exception) {
+            // Column not yet present — Migration 20 not run
+            return [];
+        }
+    }
+
+    // -----------------------------------------------------------------------
+    // Auto-approve
+    // -----------------------------------------------------------------------
+
     /**
      * Returns whether auto-approve is enabled for the given fanlisting.
      * Defaults to false if no settings row exists.
@@ -49,6 +153,45 @@ final class FanlistingSettingsRepo
             'id'  => $fanlistingId,
             'val' => (int) $value,
         ]);
+    }
+
+    /**
+     * Returns whether update-queuing is enabled for the given fanlisting.
+     * Defaults to false if no settings row exists or migration hasn't run.
+     */
+    public function getQueueUpdates(int $fanlistingId): bool
+    {
+        try {
+            $stmt = $this->db->prepare(
+                'SELECT queue_updates FROM lstr_fanlisting_settings WHERE fanlisting_id = :id'
+            );
+            $stmt->execute(['id' => $fanlistingId]);
+            $row = $stmt->fetch();
+
+            return $row !== false ? (bool) $row['queue_updates'] : false;
+        } catch (\Exception) {
+            return false;
+        }
+    }
+
+    /**
+     * Sets the queue-updates flag for a fanlisting, upserting the settings row.
+     */
+    public function setQueueUpdates(int $fanlistingId, bool $value): void
+    {
+        try {
+            $stmt = $this->db->prepare(
+                'INSERT INTO lstr_fanlisting_settings (fanlisting_id, queue_updates)
+                 VALUES (:id, :val)
+                 ON DUPLICATE KEY UPDATE queue_updates = VALUES(queue_updates)'
+            );
+            $stmt->execute([
+                'id'  => $fanlistingId,
+                'val' => (int) $value,
+            ]);
+        } catch (\Exception) {
+            // Column not yet added — migration hasn't been run
+        }
     }
 
     /**
@@ -223,14 +366,25 @@ final class FanlistingSettingsRepo
     /**
      * Returns embed-related settings for a fanlisting.
      *
-     * Requires Migration 17. Returns safe defaults when no settings row exists
-     * or when the columns are not yet present.
+     * Requires Migration 17 (redirect URLs, DB override) and Migration 19
+     * (form URLs + redirect_url_reset). Returns safe defaults when no settings
+     * row exists or when columns are not yet present (migrations not run).
+     *
+     * redirect_url_*  — where to redirect AFTER a successful action
+     * form_url_*      — where to redirect on validation FAILURE so the member
+     *                   ends up back on the external embed page (not Luster's
+     *                   internal /join/{id} etc.)
      *
      * @return array{
      *   country_field_enabled: bool,
      *   redirect_url_join:     string,
      *   redirect_url_update:   string,
      *   redirect_url_remove:   string,
+     *   redirect_url_reset:    string,
+     *   form_url_join:         string,
+     *   form_url_update:       string,
+     *   form_url_remove:       string,
+     *   form_url_reset:        string,
      *   db_host:               string,
      *   db_name:               string,
      *   db_user:               string,
@@ -244,6 +398,11 @@ final class FanlistingSettingsRepo
             'redirect_url_join'     => '',
             'redirect_url_update'   => '',
             'redirect_url_remove'   => '',
+            'redirect_url_reset'    => '',
+            'form_url_join'         => '',
+            'form_url_update'       => '',
+            'form_url_remove'       => '',
+            'form_url_reset'        => '',
             'db_host'               => '',
             'db_name'               => '',
             'db_user'               => '',
@@ -252,15 +411,19 @@ final class FanlistingSettingsRepo
 
         try {
             $stmt = $this->db->prepare(
-                'SELECT country_field_enabled, redirect_url_join, redirect_url_update,
-                        redirect_url_remove, db_host, db_name, db_user, db_pass
+                'SELECT country_field_enabled,
+                        redirect_url_join, redirect_url_update,
+                        redirect_url_remove, redirect_url_reset,
+                        form_url_join, form_url_update,
+                        form_url_remove, form_url_reset,
+                        db_host, db_name, db_user, db_pass
                  FROM lstr_fanlisting_settings
                  WHERE fanlisting_id = :id'
             );
             $stmt->execute(['id' => $fanlistingId]);
             $row = $stmt->fetch();
         } catch (\Exception) {
-            // Columns not yet added — Migration 17 not run
+            // Columns not yet added — Migration 17/19 not run
             return $defaults;
         }
 
@@ -269,14 +432,19 @@ final class FanlistingSettingsRepo
         }
 
         return [
-            'country_field_enabled' => (bool) $row['country_field_enabled'],
-            'redirect_url_join'     => (string) $row['redirect_url_join'],
-            'redirect_url_update'   => (string) $row['redirect_url_update'],
-            'redirect_url_remove'   => (string) $row['redirect_url_remove'],
-            'db_host'               => (string) $row['db_host'],
-            'db_name'               => (string) $row['db_name'],
-            'db_user'               => (string) $row['db_user'],
-            'db_pass'               => (string) $row['db_pass'],
+            'country_field_enabled' => (bool)   $row['country_field_enabled'],
+            'redirect_url_join'     => (string) ($row['redirect_url_join']     ?? ''),
+            'redirect_url_update'   => (string) ($row['redirect_url_update']   ?? ''),
+            'redirect_url_remove'   => (string) ($row['redirect_url_remove']   ?? ''),
+            'redirect_url_reset'    => (string) ($row['redirect_url_reset']    ?? ''),
+            'form_url_join'         => (string) ($row['form_url_join']         ?? ''),
+            'form_url_update'       => (string) ($row['form_url_update']       ?? ''),
+            'form_url_remove'       => (string) ($row['form_url_remove']       ?? ''),
+            'form_url_reset'        => (string) ($row['form_url_reset']        ?? ''),
+            'db_host'               => (string) ($row['db_host']               ?? ''),
+            'db_name'               => (string) ($row['db_name']               ?? ''),
+            'db_user'               => (string) ($row['db_user']               ?? ''),
+            'db_pass'               => (string) ($row['db_pass']               ?? ''),
         ];
     }
 
@@ -286,7 +454,8 @@ final class FanlistingSettingsRepo
      * Pass an empty string for $dbPass to keep the existing stored password
      * (the controller must do this check before calling).
      *
-     * Requires Migration 17.
+     * Requires Migration 17 (redirect URLs, DB override) and Migration 19
+     * (form URLs + redirect_url_reset).
      */
     public function saveEmbedSettings(
         int    $fanlistingId,
@@ -294,6 +463,11 @@ final class FanlistingSettingsRepo
         string $redirectUrlJoin,
         string $redirectUrlUpdate,
         string $redirectUrlRemove,
+        string $redirectUrlReset,
+        string $formUrlJoin,
+        string $formUrlUpdate,
+        string $formUrlRemove,
+        string $formUrlReset,
         string $dbHost,
         string $dbName,
         string $dbUser,
@@ -301,32 +475,47 @@ final class FanlistingSettingsRepo
     ): void {
         $stmt = $this->db->prepare(
             'INSERT INTO lstr_fanlisting_settings
-                 (fanlisting_id, country_field_enabled, redirect_url_join,
-                  redirect_url_update, redirect_url_remove,
+                 (fanlisting_id, country_field_enabled,
+                  redirect_url_join, redirect_url_update,
+                  redirect_url_remove, redirect_url_reset,
+                  form_url_join, form_url_update,
+                  form_url_remove, form_url_reset,
                   db_host, db_name, db_user, db_pass)
              VALUES
-                 (:id, :country, :join_url, :update_url, :remove_url,
+                 (:id, :country,
+                  :redir_join, :redir_update, :redir_remove, :redir_reset,
+                  :form_join, :form_update, :form_remove, :form_reset,
                   :host, :dbname, :user, :pass)
              ON DUPLICATE KEY UPDATE
                  country_field_enabled = VALUES(country_field_enabled),
                  redirect_url_join     = VALUES(redirect_url_join),
                  redirect_url_update   = VALUES(redirect_url_update),
                  redirect_url_remove   = VALUES(redirect_url_remove),
+                 redirect_url_reset    = VALUES(redirect_url_reset),
+                 form_url_join         = VALUES(form_url_join),
+                 form_url_update       = VALUES(form_url_update),
+                 form_url_remove       = VALUES(form_url_remove),
+                 form_url_reset        = VALUES(form_url_reset),
                  db_host               = VALUES(db_host),
                  db_name               = VALUES(db_name),
                  db_user               = VALUES(db_user),
                  db_pass               = VALUES(db_pass)'
         );
         $stmt->execute([
-            'id'         => $fanlistingId,
-            'country'    => (int) $countryFieldEnabled,
-            'join_url'   => $redirectUrlJoin,
-            'update_url' => $redirectUrlUpdate,
-            'remove_url' => $redirectUrlRemove,
-            'host'       => $dbHost,
-            'dbname'     => $dbName,
-            'user'       => $dbUser,
-            'pass'       => $dbPass,
+            'id'          => $fanlistingId,
+            'country'     => (int) $countryFieldEnabled,
+            'redir_join'  => $redirectUrlJoin,
+            'redir_update'=> $redirectUrlUpdate,
+            'redir_remove'=> $redirectUrlRemove,
+            'redir_reset' => $redirectUrlReset,
+            'form_join'   => $formUrlJoin,
+            'form_update' => $formUrlUpdate,
+            'form_remove' => $formUrlRemove,
+            'form_reset'  => $formUrlReset,
+            'host'        => $dbHost,
+            'dbname'      => $dbName,
+            'user'        => $dbUser,
+            'pass'        => $dbPass,
         ]);
     }
 }

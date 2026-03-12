@@ -10,6 +10,7 @@ use Luster\Core\Response;
 use Luster\Core\Validator;
 use Luster\Repositories\AffiliateRepo;
 use Luster\Repositories\FanlistingRepo;
+use Luster\Repositories\FanlistingSettingsRepo;
 
 /**
  * Manages affiliates across all fanlistings.
@@ -170,6 +171,10 @@ final class AffiliateController
                 'sort_order'    => $sortOrder,
             ]);
 
+            if ($postContextFid > 0) {
+                (new FanlistingSettingsRepo($db))->touchLastUpdated($postContextFid);
+            }
+
             $session->set('lstr_flash_success', 'Affiliate added.');
 
             $redirect = $postContextFid > 0
@@ -275,6 +280,10 @@ final class AffiliateController
                 'sort_order' => $sortOrder,
             ]);
 
+            if ($fromFl > 0) {
+                (new FanlistingSettingsRepo($db))->touchLastUpdated($fromFl);
+            }
+
             $session->set('lstr_flash_success', 'Affiliate updated.');
 
             $redirect = $fromFl > 0
@@ -319,6 +328,10 @@ final class AffiliateController
         $affiliateRepo->toggle($id);
         $fromFl = (int) $request->post('from_fanlisting', 0);
 
+        if ($fromFl > 0) {
+            (new FanlistingSettingsRepo($db))->touchLastUpdated($fromFl);
+        }
+
         $session->set('lstr_flash_success', 'Affiliate status toggled.');
 
         $redirect = $fromFl > 0
@@ -347,6 +360,10 @@ final class AffiliateController
 
         $affiliateRepo->delete($id);
         $fromFl = (int) $request->post('from_fanlisting', 0);
+
+        if ($fromFl > 0) {
+            (new FanlistingSettingsRepo($db))->touchLastUpdated($fromFl);
+        }
 
         $session->set('lstr_flash_success', 'Affiliate deleted.');
 

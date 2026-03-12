@@ -508,6 +508,48 @@ try {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Migration 19: per-fanlisting form page URLs + reset redirect URL
+//
+// form_url_*      — the URL where the embedded form lives on the fan's own site.
+//                   On validation failure Luster redirects here (instead of its
+//                   own /join/{id} page) so the member ends up back on the
+//                   external embed page with the flash-error still in session.
+// redirect_url_reset — where to send after a successful password reset
+//                      (mirrors the existing redirect_url_join/update/remove).
+// ─────────────────────────────────────────────────────────────────────────────
+try {
+    $pdo->exec(
+        "ALTER TABLE `lstr_fanlisting_settings`
+         ADD COLUMN IF NOT EXISTS `form_url_join`      VARCHAR(500) NOT NULL DEFAULT '' AFTER `redirect_url_remove`,
+         ADD COLUMN IF NOT EXISTS `form_url_update`    VARCHAR(500) NOT NULL DEFAULT '' AFTER `form_url_join`,
+         ADD COLUMN IF NOT EXISTS `form_url_remove`    VARCHAR(500) NOT NULL DEFAULT '' AFTER `form_url_update`,
+         ADD COLUMN IF NOT EXISTS `form_url_reset`     VARCHAR(500) NOT NULL DEFAULT '' AFTER `form_url_remove`,
+         ADD COLUMN IF NOT EXISTS `redirect_url_reset` VARCHAR(500) NOT NULL DEFAULT '' AFTER `form_url_reset`"
+    );
+    $done[] = 'Added <code>form_url_*</code> and <code>redirect_url_reset</code> columns to <code>lstr_fanlisting_settings</code>';
+} catch (PDOException $e) {
+    $errors[] = 'lstr_fanlisting_settings form URLs — ' . htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Migration 20: last_updated DATE on lstr_fanlisting_settings
+//
+// Stores the admin-controlled "last updated" date for each fanlisting.
+// Used for public stats ($stat_last_updated$ token) and the dashboard
+// staleness detector (configurable via inactive_threshold_days config key).
+// ─────────────────────────────────────────────────────────────────────────────
+try {
+    $pdo->exec(
+        'ALTER TABLE `lstr_fanlisting_settings`
+         ADD COLUMN IF NOT EXISTS `last_updated` DATE NULL DEFAULT NULL
+         AFTER `redirect_url_reset`'
+    );
+    $done[] = 'Added <code>last_updated</code> column to <code>lstr_fanlisting_settings</code>';
+} catch (PDOException $e) {
+    $errors[] = 'lstr_fanlisting_settings.last_updated — ' . htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Migration 18: fan password reset tokens table
 // ─────────────────────────────────────────────────────────────────────────────
 try {
@@ -527,6 +569,91 @@ try {
     $done[] = 'Created <code>lstr_fan_password_resets</code> table';
 } catch (PDOException $e) {
     $errors[] = 'lstr_fan_password_resets — ' . htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Migration 21: pending update approval
+//
+// queue_updates flag per fanlisting + table to queue member update requests
+// for admin review before they are applied to the member record.
+// ─────────────────────────────────────────────────────────────────────────────
+try {
+    $pdo->exec(
+        'ALTER TABLE `lstr_fanlisting_settings`
+         ADD COLUMN IF NOT EXISTS `queue_updates` TINYINT(1) NOT NULL DEFAULT 0
+         AFTER `last_updated`'
+    );
+    $done[] = 'Added <code>queue_updates</code> column to <code>lstr_fanlisting_settings</code>';
+} catch (PDOException $e) {
+    $errors[] = 'lstr_fanlisting_settings.queue_updates — ' . htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+}
+
+try {
+    $pdo->exec(
+        "CREATE TABLE IF NOT EXISTS `lstr_pending_updates` (
+           `id`            INT UNSIGNED  NOT NULL AUTO_INCREMENT,
+           `fanlisting_id` INT UNSIGNED  NOT NULL,
+           `member_email`  VARCHAR(255)  NOT NULL,
+           `changes`       TEXT          NOT NULL,
+           `submitted_at`  DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP,
+           PRIMARY KEY (`id`),
+           INDEX `idx_fanlisting` (`fanlisting_id`),
+           INDEX `idx_email`      (`member_email`)
+         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci"
+    );
+    $done[] = 'Created <code>lstr_pending_updates</code> table';
+} catch (PDOException $e) {
+    $errors[] = 'lstr_pending_updates — ' . htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Migration 22: fanlisting codes
+//
+// Stores uploaded code images (small button graphics members use to link back
+// to a fanlisting). One row per image per fanlisting.
+// ─────────────────────────────────────────────────────────────────────────────
+try {
+    $pdo->exec(
+        "CREATE TABLE IF NOT EXISTS `lstr_codes` (
+           `id`            INT UNSIGNED      NOT NULL AUTO_INCREMENT,
+           `fanlisting_id` INT UNSIGNED      NOT NULL,
+           `filename`      VARCHAR(255)      NOT NULL,
+           `width`         SMALLINT UNSIGNED NOT NULL DEFAULT 0,
+           `height`        SMALLINT UNSIGNED NOT NULL DEFAULT 0,
+           `sort_order`    SMALLINT UNSIGNED NOT NULL DEFAULT 0,
+           `created_at`    DATETIME          NOT NULL DEFAULT CURRENT_TIMESTAMP,
+           PRIMARY KEY (`id`),
+           INDEX `idx_fanlisting`      (`fanlisting_id`),
+           INDEX `idx_fanlisting_sort` (`fanlisting_id`, `sort_order`, `id`)
+         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci"
+    );
+    $done[] = 'Created <code>lstr_codes</code> table';
+} catch (PDOException $e) {
+    $errors[] = 'lstr_codes — ' . htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Migration 23: per-fanlisting email templates
+//
+// Stores admin-editable subject + body for the four member-facing transactional
+// emails: join confirmation, membership approved, update confirmation, removal.
+// ─────────────────────────────────────────────────────────────────────────────
+try {
+    $pdo->exec(
+        "CREATE TABLE IF NOT EXISTS `lstr_email_templates` (
+           `id`            INT UNSIGNED  NOT NULL AUTO_INCREMENT,
+           `fanlisting_id` INT UNSIGNED  NOT NULL,
+           `type`          VARCHAR(20)   NOT NULL,
+           `enabled`       TINYINT(1)    NOT NULL DEFAULT 1,
+           `subject`       VARCHAR(255)  NOT NULL DEFAULT '',
+           `body`          TEXT          NOT NULL,
+           PRIMARY KEY (`id`),
+           UNIQUE KEY `uq_fanlisting_type` (`fanlisting_id`, `type`)
+         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci"
+    );
+    $done[] = 'Created <code>lstr_email_templates</code> table';
+} catch (PDOException $e) {
+    $errors[] = 'lstr_email_templates — ' . htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 }
 
 ?><!DOCTYPE html>

@@ -7,8 +7,10 @@ namespace Luster\Controllers\Public;
 use Luster\Core\Application;
 use Luster\Core\Request;
 use Luster\Core\Response;
+use Luster\Models\Affiliate;
 use Luster\Repositories\AffiliateRepo;
 use Luster\Repositories\FanlistingRepo;
+use Luster\Repositories\FanlistingSettingsRepo;
 
 /**
  * Public affiliates page.
@@ -48,20 +50,32 @@ final class AffiliatesController
         $baseUrl    = $this->app->getBaseUrl();
         $baseHref   = $baseUrl . '/affiliates/' . $fanlistingId;
         $pagination = $this->buildPagination($page, $result['pages'], $baseHref);
+        $uploadsUrl = $baseUrl . '/uploads';
+
+        $settingsRepo       = new FanlistingSettingsRepo($this->app->getDatabase());
+        $templates          = $settingsRepo->getTemplates($fanlistingId);
+        $affiliatesTemplate = ($templates['affiliates_template'] !== null && trim($templates['affiliates_template']) !== '')
+            ? $templates['affiliates_template']
+            : null;
+
+        $affiliatesHtml = $affiliatesTemplate !== null && !empty($result['items'])
+            ? $this->buildAffiliateRows($affiliatesTemplate, $result['items'], $uploadsUrl)
+            : null;
 
         $html = $this->app->getView()->renderPublic('affiliates.php', [
-            'fanlisting'      => $fanlisting,
-            'fanlisting_name' => $fanlisting->name,
-            'fanlisting_url'  => $fanlisting->url,
-            'page_title'      => 'Affiliates — ' . $fanlisting->name,
-            'affiliates'      => $result['items'],
-            'total'           => $result['total'],
-            'pagination'      => $pagination,
-            'is_collective'   => false,
-            'join_url'        => $baseUrl . '/join/' . $fanlistingId,
-            'base_url'        => $baseUrl,
-            'uploads_url'     => $baseUrl . '/uploads',
-            'theme_path'      => $baseUrl . '/assets/default/',
+            'fanlisting'       => $fanlisting,
+            'fanlisting_name'  => $fanlisting->name,
+            'fanlisting_url'   => $fanlisting->url,
+            'page_title'       => 'Affiliates — ' . $fanlisting->name,
+            'affiliates'       => $result['items'],
+            'affiliates_html'  => $affiliatesHtml,
+            'total'            => $result['total'],
+            'pagination'       => $pagination,
+            'is_collective'    => false,
+            'join_url'         => $baseUrl . '/join/' . $fanlistingId,
+            'base_url'         => $baseUrl,
+            'uploads_url'      => $uploadsUrl,
+            'theme_path'       => $baseUrl . '/assets/default/',
         ]);
 
         return Response::html($html);
@@ -90,6 +104,7 @@ final class AffiliatesController
             'fanlisting_url'  => $baseUrl,
             'page_title'      => 'Affiliates',
             'affiliates'      => $result['items'],
+            'affiliates_html' => null,
             'total'           => $result['total'],
             'pagination'      => $pagination,
             'is_collective'   => true,
@@ -105,6 +120,41 @@ final class AffiliatesController
     // -----------------------------------------------------------------------
     // Internals
     // -----------------------------------------------------------------------
+
+    /**
+     * Applies a per-affiliate row template to a list of affiliates and returns
+     * the concatenated HTML string. Each row replaces these tokens:
+     *
+     *   $aff_name$      — affiliate name (HTML-escaped)
+     *   $aff_url$       — affiliate URL (HTML-escaped)
+     *   $aff_image$     — image filename only (HTML-escaped), or empty string
+     *   $aff_image_url$ — full src-ready URL including uploads path (HTML-escaped)
+     *
+     * @param Affiliate[] $affiliates
+     */
+    private function buildAffiliateRows(string $template, array $affiliates, string $uploadsUrl): string
+    {
+        $rows = [];
+
+        foreach ($affiliates as $affiliate) {
+            $imageUrl = ($affiliate->image !== null && $affiliate->image !== '')
+                ? $uploadsUrl . '/' . $affiliate->image
+                : '';
+
+            $rows[] = str_replace(
+                ['$aff_name$', '$aff_url$', '$aff_image$', '$aff_image_url$'],
+                [
+                    htmlspecialchars($affiliate->name,         ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),
+                    htmlspecialchars($affiliate->url,          ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),
+                    htmlspecialchars($affiliate->image ?? '',  ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),
+                    htmlspecialchars($imageUrl,                ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),
+                ],
+                $template,
+            );
+        }
+
+        return implode("\n", $rows);
+    }
 
     private function buildPagination(int $current, int $total, string $baseHref): string
     {

@@ -9,6 +9,7 @@ use Luster\Core\Request;
 use Luster\Core\Response;
 use Luster\Models\Member;
 use Luster\Repositories\FanlistingRepo;
+use Luster\Repositories\FanlistingSettingsRepo;
 use Luster\Repositories\FieldRepo;
 use Luster\Repositories\MemberRepo;
 
@@ -43,6 +44,12 @@ final class MembersController
         $fieldRepo = new FieldRepo($this->app->getDatabase(), $this->app->getConfig());
         $fields    = $fieldRepo->getFieldsForFanlisting($fanlistingId);
 
+        $settingsRepo    = new FanlistingSettingsRepo($this->app->getDatabase());
+        $templates       = $settingsRepo->getTemplates($fanlistingId);
+        $membersTemplate = ($templates['members_template'] !== null && trim($templates['members_template']) !== '')
+            ? $templates['members_template']
+            : null;
+
         $baseUrl     = $this->app->getBaseUrl();
         $membersBase = $baseUrl . '/members/' . $fanlistingId;
         $perPage     = max(1, (int) $this->app->getConfig()->get('per_page', 50));
@@ -63,6 +70,7 @@ final class MembersController
             'join_url'        => $baseUrl . '/join/' . $fanlistingId,
             'members_base'    => $membersBase,
             'sort'            => $sort,
+            'show_search'     => true,
             'fields'          => $fields,
             'base_url'        => $baseUrl,
             'theme_path'      => $baseUrl . '/assets/default/',
@@ -85,12 +93,17 @@ final class MembersController
                 ['sort' => 'country', 'country' => $country],
             );
 
+            $membersHtml = $membersTemplate !== null && !empty($result['members'])
+                ? $this->buildMemberRows($membersTemplate, $result['members'], $fields)
+                : null;
+
             $html = $this->app->getView()->renderPublic('members.php', array_merge($commonData, [
-                'country'        => $country,
-                'members'        => $result['members'],
+                'country'         => $country,
+                'members'         => $result['members'],
+                'members_html'    => $membersHtml,
                 'country_summary' => [],
-                'stats_line'     => $statsLine,
-                'pagination'     => $paginationHtml,
+                'stats_line'      => $statsLine,
+                'pagination'      => $paginationHtml,
             ]));
 
             return Response::html($html);
@@ -118,6 +131,7 @@ final class MembersController
             $html = $this->app->getView()->renderPublic('members.php', array_merge($commonData, [
                 'country'         => '',
                 'members'         => [],
+                'members_html'    => null,
                 'country_summary' => $countrySummary,
                 'stats_line'      => $statsLine,
                 'pagination'      => '',
@@ -137,9 +151,14 @@ final class MembersController
             $page, $result['pages'], $membersBase, ['sort' => 'name'],
         );
 
+        $membersHtml = $membersTemplate !== null && !empty($result['members'])
+            ? $this->buildMemberRows($membersTemplate, $result['members'], $fields)
+            : null;
+
         $html = $this->app->getView()->renderPublic('members.php', array_merge($commonData, [
             'country'         => '',
             'members'         => $result['members'],
+            'members_html'    => $membersHtml,
             'country_summary' => [],
             'stats_line'      => $statsLine,
             'pagination'      => $paginationHtml,
@@ -151,6 +170,42 @@ final class MembersController
     // -----------------------------------------------------------------------
     // Internals
     // -----------------------------------------------------------------------
+
+    /**
+     * Applies a per-member row template to a list of members and returns the
+     * concatenated HTML string. Each member row replaces these tokens:
+     *
+     *   $fan_name$    — member name (HTML-escaped)
+     *   $fan_url$     — member URL (HTML-escaped)
+     *   $fan_email$   — member email (HTML-escaped)
+     *   $fan_country$ — member country (HTML-escaped)
+     *   $fan_{name}$  — additional field value (HTML-escaped), e.g. $fan_fave_song$
+     *
+     * @param Member[]            $members
+     * @param \Luster\Models\AdditionalField[] $fields
+     */
+    private function buildMemberRows(string $template, array $members, array $fields): string
+    {
+        $rows = [];
+
+        foreach ($members as $member) {
+            $tokens = [
+                '$fan_name$'    => htmlspecialchars($member->name,    ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),
+                '$fan_url$'     => htmlspecialchars($member->url,     ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),
+                '$fan_email$'   => htmlspecialchars($member->email,   ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),
+                '$fan_country$' => htmlspecialchars($member->country, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),
+            ];
+
+            foreach ($fields as $field) {
+                $val = (string) ($member->additionalFields[$field->name] ?? '');
+                $tokens['$fan_' . $field->name . '$'] = htmlspecialchars($val, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+            }
+
+            $rows[] = str_replace(array_keys($tokens), array_values($tokens), $template);
+        }
+
+        return implode("\n", $rows);
+    }
 
     /**
      * Builds paginated navigation HTML.

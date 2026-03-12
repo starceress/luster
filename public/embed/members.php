@@ -14,7 +14,18 @@ use Luster\Repositories\MemberRepo;
  *   $luster_return        = false;  // optional: true = return string, false = echo
  *   require '/absolute/path/to/luster/public/embed/members.php';
  *
- * Reads sort/country/page from $_GET the same way MembersController does.
+ * Optional variables:
+ *   $luster_per_page    int   Members per page. Overrides the config per_page value.
+ *                             Default: reads config per_page (typically 50).
+ *   $luster_sort_by     string  Force a default sort: 'name' or 'country'.
+ *                             When set, $_GET['sort'] is ignored unless you also
+ *                             want visitors to be able to switch — omit this variable
+ *                             if you want the user-facing sort links to work normally.
+ *                             Default: reads $_GET['sort'] (falls back to 'country').
+ *   $luster_show_search bool  Show or hide the sort links and filter controls.
+ *                             Default: true (controls visible).
+ *
+ * Reads country/page from $_GET the same way MembersController does.
  * Renders the member list or country summary as a content fragment with no layout wrapper.
  */
 
@@ -79,12 +90,23 @@ $_lusterFields    = $_lusterFieldRepo->getFieldsForFanlisting($_lusterFanlisting
 
 $_lusterBaseUrl     = $_lusterApp->getBaseUrl();
 $_lusterMembersBase = $_lusterBaseUrl . '/members/' . $_lusterFanlistingId;
-$_lusterPerPage     = max(1, (int) $_lusterApp->getConfig()->get('per_page', 50));
-$_lusterPage        = max(1, (int) ($_GET['page'] ?? 1));
 
-$_lusterRawSort = (string) ($_GET['sort'] ?? 'country');
+// $luster_per_page — override config value when set
+$_lusterPerPage = (isset($luster_per_page) && (int) $luster_per_page > 0)
+    ? (int) $luster_per_page
+    : max(1, (int) $_lusterApp->getConfig()->get('per_page', 50));
+
+$_lusterPage    = max(1, (int) ($_GET['page'] ?? 1));
+
+// $luster_sort_by — force a default sort, ignoring $_GET['sort'] when set
+$_lusterRawSort = (isset($luster_sort_by) && in_array($luster_sort_by, ['name', 'country'], true))
+    ? (string) $luster_sort_by
+    : (string) ($_GET['sort'] ?? 'country');
 $_lusterSort    = in_array($_lusterRawSort, ['name', 'country'], true) ? $_lusterRawSort : 'country';
 $_lusterCountry = trim((string) ($_GET['country'] ?? ''));
+
+// $luster_show_search — whether to render sort/filter controls in the template
+$_lusterShowSearch = (bool) ($luster_show_search ?? true);
 
 $_lusterMemberRepo = new MemberRepo($_lusterApp->getDatabase(), $_lusterApp->getConfig());
 
@@ -97,6 +119,7 @@ $_lusterCommonData = [
     'join_url'        => $_lusterBaseUrl . '/join/' . $_lusterFanlistingId,
     'members_base'    => $_lusterMembersBase,
     'sort'            => $_lusterSort,
+    'show_search'     => $_lusterShowSearch,
     'fields'          => $_lusterFields,
     'base_url'        => $_lusterBaseUrl,
     'theme_path'      => $_lusterBaseUrl . '/assets/default/',

@@ -13,6 +13,7 @@ use Luster\Core\Response;
 use Luster\Core\Validator;
 use Luster\Models\Fanlisting;
 use Luster\Repositories\FanlistingRepo;
+use Luster\Repositories\FanlistingSettingsRepo;
 use Luster\Repositories\FanPasswordResetRepo;
 use Luster\Repositories\MemberRepo;
 
@@ -107,6 +108,12 @@ final class ResetController
             );
         }
 
+        $settingsRepo  = new FanlistingSettingsRepo($this->app->getDatabase());
+        $embedSettings = $settingsRepo->getEmbedSettings($fanlistingId);
+        $formUrl       = (string) $embedSettings['form_url_reset'] !== ''
+                       ? (string) $embedSettings['form_url_reset']
+                       : $baseUrl . '/reset/' . $fanlistingId;
+
         $v = new Validator(['email' => $email]);
         $v->field('email')->required()->email()->maxLength(255);
 
@@ -114,7 +121,7 @@ final class ResetController
             $rateLimit->hitDefault($ip, RateLimit::ACTION_PUBLIC_RESET);
             $session->set('lstr_flash_error', implode(' ', $v->allErrors()));
             $session->set('lstr_flash_old_email', $email);
-            return Response::redirect($baseUrl . '/reset/' . $fanlistingId);
+            return Response::redirect($formUrl);
         }
 
         $rateLimit->hitDefault($ip, RateLimit::ACTION_PUBLIC_RESET);
@@ -303,6 +310,14 @@ final class ResetController
         // Consume the token — one-time use
         $resetRepo->deleteByToken(hash('sha256', $rawToken));
         $rateLimit->clear($ip, RateLimit::ACTION_PUBLIC_RESET);
+
+        // Redirect to configured URL or default done page
+        $settingsRepo  = new FanlistingSettingsRepo($this->app->getDatabase());
+        $embedSettings = $settingsRepo->getEmbedSettings($fanlistingId);
+        $redirectUrl   = (string) $embedSettings['redirect_url_reset'];
+        if ($redirectUrl !== '') {
+            return Response::redirect($redirectUrl);
+        }
 
         return Response::redirect($baseUrl . '/reset/' . $fanlistingId . '/done');
     }

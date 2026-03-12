@@ -63,6 +63,8 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
   <a href="<?= $b ?>/admin/fanlistings" class="neb-link">&larr; Back to Owned Listings</a>
   <div style="display:flex;gap:.5rem;">
     <a href="<?= $b ?>/admin/members/<?= (int) $fanlisting->id ?>" class="btn btn-secondary btn-sm">Members</a>
+    <a href="<?= $b ?>/admin/fanlistings/<?= (int) $fanlisting->id ?>/codes" class="btn btn-secondary btn-sm">Codes</a>
+    <a href="<?= $b ?>/admin/fanlistings/<?= (int) $fanlisting->id ?>/email-templates" class="btn btn-secondary btn-sm">Emails</a>
     <form method="post"
           action="<?= $b ?>/admin/fanlistings/<?= (int) $fanlisting->id ?>/delete"
           style="display:inline"
@@ -205,6 +207,19 @@ document.querySelectorAll('.neb-tab-btn').forEach(function (btn) {
     </div>
 
     <div class="form-group">
+      <label class="form-check">
+        <input id="queue-updates" type="checkbox" name="queue_updates" value="1"
+               <?= ($queue_updates ?? false) ? 'checked' : '' ?>>
+        <span class="form-check-label">Queue member update requests for approval</span>
+      </label>
+      <p class="form-hint" style="margin-top:0.35rem">
+        When enabled, member-submitted profile updates are held for admin review
+        before being applied. Password and email changes are still applied immediately.
+        Requires <code>migrate.php</code> (Migration 21) to have been run.
+      </p>
+    </div>
+
+    <div class="form-group">
       <label class="form-label" for="fl-listing-type">Listing Type</label>
       <?php $lt = $listing_type ?? 'fanlisting'; ?>
       <div class="select-wrap">
@@ -225,6 +240,28 @@ document.querySelectorAll('.neb-tab-btn').forEach(function (btn) {
              min="5" max="200" style="max-width:120px"
              value="<?= (int) ($members_per_page ?? 25) ?>">
       <p class="form-hint">How many members to show per page in the admin panel (5–200).</p>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label" for="fl-last-updated">Last Updated Date</label>
+      <div style="display:flex;align-items:center;gap:0.6rem">
+        <input id="fl-last-updated" type="date" name="fl_last_updated" class="form-input"
+               style="max-width:200px"
+               value="<?= \Luster\Core\View::e($fl_last_updated ?? '') ?>">
+        <button type="button" class="btn btn-secondary btn-sm"
+                onclick="document.getElementById('fl-last-updated').value=new Date().toISOString().slice(0,10)">
+          Set to today
+        </button>
+        <button type="button" class="btn btn-ghost btn-sm"
+                onclick="document.getElementById('fl-last-updated').value=''">
+          Clear
+        </button>
+      </div>
+      <p class="form-hint" style="margin-top:0.35rem">
+        The date this fanlisting was last actively maintained.
+        Auto-updated when members are approved or affiliates are changed.
+        Drives the staleness check on the dashboard.
+      </p>
     </div>
 
     <div class="section-divider">Fanlisting Image</div>
@@ -540,6 +577,43 @@ $embedBaseUrl   = rtrim((string) ($cfg['embed_base_url'] ?? ''), '/') ?: rtrim((
       </p>
     </div>
 
+    <div class="section-divider">Form Page URLs</div>
+
+    <p class="form-hint" style="margin-bottom:1rem">
+      If you embed Luster's forms on your own site, enter the URL of each page
+      containing the embed. When a visitor submits a form and validation fails,
+      Luster redirects back here (instead of its internal page) so the error
+      appears on your site. Leave blank to use Luster's internal form pages.
+    </p>
+
+    <div class="form-group">
+      <label class="form-label" for="fl-form-join">Join page URL</label>
+      <input id="fl-form-join" type="url" name="form_url_join" class="form-input"
+             maxlength="500" placeholder="https://fan.example.com/join.php"
+             value="<?= \Luster\Core\View::e($embedSettings['form_url_join'] ?? '') ?>">
+    </div>
+
+    <div class="form-group">
+      <label class="form-label" for="fl-form-update">Update page URL</label>
+      <input id="fl-form-update" type="url" name="form_url_update" class="form-input"
+             maxlength="500" placeholder="https://fan.example.com/update.php"
+             value="<?= \Luster\Core\View::e($embedSettings['form_url_update'] ?? '') ?>">
+    </div>
+
+    <div class="form-group">
+      <label class="form-label" for="fl-form-remove">Remove page URL</label>
+      <input id="fl-form-remove" type="url" name="form_url_remove" class="form-input"
+             maxlength="500" placeholder="https://fan.example.com/remove.php"
+             value="<?= \Luster\Core\View::e($embedSettings['form_url_remove'] ?? '') ?>">
+    </div>
+
+    <div class="form-group">
+      <label class="form-label" for="fl-form-reset">Password reset page URL</label>
+      <input id="fl-form-reset" type="url" name="form_url_reset" class="form-input"
+             maxlength="500" placeholder="https://fan.example.com/reset.php"
+             value="<?= \Luster\Core\View::e($embedSettings['form_url_reset'] ?? '') ?>">
+    </div>
+
     <div class="section-divider">Post-Action Redirect URLs</div>
 
     <p class="form-hint" style="margin-bottom:1rem">
@@ -566,6 +640,13 @@ $embedBaseUrl   = rtrim((string) ($cfg['embed_base_url'] ?? ''), '/') ?: rtrim((
       <input id="fl-redir-remove" type="url" name="redirect_url_remove" class="form-input"
              maxlength="500" placeholder="https://fan.example.com/removed"
              value="<?= \Luster\Core\View::e($embedSettings['redirect_url_remove'] ?? '') ?>">
+    </div>
+
+    <div class="form-group">
+      <label class="form-label" for="fl-redir-reset">After Password Reset</label>
+      <input id="fl-redir-reset" type="url" name="redirect_url_reset" class="form-input"
+             maxlength="500" placeholder="https://fan.example.com/password-updated"
+             value="<?= \Luster\Core\View::e($embedSettings['redirect_url_reset'] ?? '') ?>">
     </div>
 
     <div class="section-divider">Per-Fanlisting Database (Advanced)</div>
