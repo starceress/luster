@@ -15,7 +15,7 @@ $b = rtrim(View::e($base_url ?? ''), '/');
 ?>
 
 <p style="margin:0 0 .75rem">
-  <a href="<?= $b ?>/admin/admin-users" class="neb-link">&larr; Back to Admin Accounts</a>
+  <a href="<?= $b ?>/admin/settings" class="neb-link">&larr; Back to Settings</a>
 </p>
 
 <?php if ($error !== ''): ?>
@@ -60,7 +60,7 @@ $b = rtrim(View::e($base_url ?? ''), '/');
 
     <div class="btn-row">
       <button type="submit" class="btn btn-primary">Save Changes</button>
-      <a href="<?= $b ?>/admin/admin-users" class="btn btn-secondary">Cancel</a>
+      <a href="<?= $b ?>/admin/settings" class="btn btn-secondary">Cancel</a>
     </div>
   </form>
 </div>

@@ -9,6 +9,7 @@ use Luster\Core\RateLimit;
 use Luster\Core\Request;
 use Luster\Core\Response;
 use Luster\Core\Validator;
+use Luster\Repositories\AdminUserRepo;
 
 /**
  * Handles admin authentication: login form, login submission, and logout.
@@ -128,9 +129,13 @@ final class AuthController
         // Authentication successful
         $rateLimit->clear($ip, RateLimit::ACTION_ADMIN_LOGIN);
         $session->regenerate();
-        $session->set('lstr_admin_id',       (int)    $user['id']);
+
+        $userId = (int) $user['id'];
+        $session->set('lstr_admin_id',       $userId);
         $session->set('lstr_admin_username', (string) $user['username']);
         $session->set('lstr_admin_email',    (string) $user['email']);
+
+        (new AdminUserRepo($db))->updateLastLogin($userId);
 
         return Response::redirect($baseUrl . '/admin');
     }

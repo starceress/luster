@@ -114,14 +114,7 @@ $avatarChar = strtoupper(substr((string) ($admin_username ?? 'A'), 0, 1));
 
     <div class="sidebar-section">
       <div class="sidebar-label">System</div>
-      <a href="<?= $b ?>/admin/admin-users" class="nav-item<?= navActive('admin-users', $s) ?>">
-        <svg class="nav-icon" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
-          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
-          <line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/>
-        </svg>
-        Admin Accounts
-      </a>
-      <a href="<?= $b ?>/admin/settings" class="nav-item<?= navActive('settings', $s) ?>">
+<a href="<?= $b ?>/admin/settings" class="nav-item<?= navActive('settings', $s) ?>">
         <svg class="nav-icon" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
           <circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/>
         </svg>

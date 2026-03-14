@@ -12,9 +12,11 @@ use Luster\Repositories\ActivityRepo;
 use Luster\Repositories\AdminUserRepo;
 
 /**
- * Admin user management — list, add, edit, delete.
+ * Admin user management — add, edit, delete.
  *
- * GET  /admin/admin-users              → index()
+ * The account list lives in the Settings page (Admin Details tab).
+ * These handlers cover the add/edit sub-pages and the delete POST action.
+ *
  * GET  /admin/admin-users/add          → addForm()
  * POST /admin/admin-users/add          → add()
  * GET  /admin/admin-users/{id}/edit    → editForm()
@@ -28,28 +30,6 @@ use Luster\Repositories\AdminUserRepo;
 final class AdminUsersController
 {
     public function __construct(private readonly Application $app) {}
-
-    // -----------------------------------------------------------------------
-    // GET /admin/admin-users
-    // -----------------------------------------------------------------------
-
-    public function index(Request $request, array $params): Response
-    {
-        $repo    = new AdminUserRepo($this->app->getDatabase());
-        $session = $this->app->getSession();
-
-        $success = (string) $session->get('lstr_flash_success', '');
-        $error   = (string) $session->get('lstr_flash_error',   '');
-        $session->remove('lstr_flash_success');
-        $session->remove('lstr_flash_error');
-
-        return $this->layout('admin-users/index.php', [
-            'users'      => $repo->getAll(),
-            'current_id' => (int) $session->get('lstr_admin_id'),
-            'success'    => $success,
-            'error'      => $error,
-        ]);
-    }
 
     // -----------------------------------------------------------------------
     // GET + POST /admin/admin-users/add
@@ -112,7 +92,7 @@ final class AdminUsersController
         );
 
         $session->set('lstr_flash_success', "Admin account <strong>" . htmlspecialchars($username, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . "</strong> created.");
-        return Response::redirect($baseUrl . '/admin/admin-users');
+        return Response::redirect($baseUrl . '/admin/settings');
     }
 
     // -----------------------------------------------------------------------
@@ -198,7 +178,7 @@ final class AdminUsersController
         );
 
         $session->set('lstr_flash_success', "Account <strong>" . htmlspecialchars($username, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . "</strong> updated.");
-        return Response::redirect($baseUrl . '/admin/admin-users');
+        return Response::redirect($baseUrl . '/admin/settings');
     }
 
     // -----------------------------------------------------------------------
@@ -215,20 +195,20 @@ final class AdminUsersController
 
         if ($id === $currentId) {
             $session->set('lstr_flash_error', 'You cannot delete your own account.');
-            return Response::redirect($baseUrl . '/admin/admin-users');
+            return Response::redirect($baseUrl . '/admin/settings');
         }
 
         $repo = new AdminUserRepo($this->app->getDatabase());
 
         if ($repo->count() <= 1) {
             $session->set('lstr_flash_error', 'Cannot delete the last admin account.');
-            return Response::redirect($baseUrl . '/admin/admin-users');
+            return Response::redirect($baseUrl . '/admin/settings');
         }
 
         $user = $repo->getById($id);
         if ($user === null) {
             $session->set('lstr_flash_error', 'Admin user not found.');
-            return Response::redirect($baseUrl . '/admin/admin-users');
+            return Response::redirect($baseUrl . '/admin/settings');
         }
 
         $repo->delete($id);
@@ -240,7 +220,7 @@ final class AdminUsersController
         );
 
         $session->set('lstr_flash_success', "Account <strong>" . htmlspecialchars($user->username, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . "</strong> deleted.");
-        return Response::redirect($baseUrl . '/admin/admin-users');
+        return Response::redirect($baseUrl . '/admin/settings');
     }
 
     // -----------------------------------------------------------------------
@@ -252,7 +232,7 @@ final class AdminUsersController
         $session = $this->app->getSession();
 
         $data['page_title']      = 'Admin Accounts';
-        $data['current_section'] = 'admin-users';
+        $data['current_section'] = 'settings';
         $data['app_name']        = (string) $this->app->getConfig()->get('app_name', 'Luster');
         $data['admin_username']  = (string) $session->get('lstr_admin_username', '');
         $data['csrf_token']      = $this->app->getCSRF()->token();

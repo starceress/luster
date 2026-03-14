@@ -70,10 +70,12 @@ final class SettingsController
         $adminUser = $adminRepo->getById($adminId);
 
         return $this->layout('admin/settings/index.php', [
-            'cfg'        => $this->app->getConfig()->all(),
-            'admin_user' => $adminUser,
-            'success'    => $success,
-            'error'      => $error,
+            'cfg'             => $this->app->getConfig()->all(),
+            'admin_user'      => $adminUser,
+            'users'           => $adminRepo->getAll(),
+            'current_admin_id' => $adminId,
+            'success'         => $success,
+            'error'           => $error,
         ], 'Settings', 'settings');
     }
 

@@ -212,9 +212,7 @@ return [
         $router->post('/admin/affiliates/{id}/delete',
             AffiliateController::class, 'deleteAffiliate');
 
-        // ── Admin user management ────────────────────────────────────
-        $router->get('/admin/admin-users',
-            AdminUsersController::class, 'index');
+        // ── Admin user management (list lives in Settings › Admin Details) ──
         $router->get('/admin/admin-users/add',
             AdminUsersController::class, 'addForm');
         $router->post('/admin/admin-users/add',
