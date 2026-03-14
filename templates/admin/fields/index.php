@@ -1,9 +1,9 @@
 <?php
 /**
- * Admin — Additional Fields index for one fanlisting.
+ * Admin — Additional Fields index for one listing.
  *
  * Variables provided by FieldController::index() via layout():
- * @var \Luster\Models\Fanlisting        $fanlisting
+ * @var \Luster\Models\Listing        $listing
  * @var \Luster\Models\AdditionalField[] $fields
  * @var string $success   Value of ?success= query param (empty when absent)
  * @var string $error     Value of ?error=   query param (empty when absent)
@@ -11,19 +11,19 @@
  * @var string $csrf_token
  */
 $b  = rtrim(\Luster\Core\View::e($base_url), '/');
-$id = (int) $fanlisting->id;
+$id = (int) $listing->id;
 ?>
 
 <!-- Breadcrumb -->
 <p style="margin:0 0 .75rem">
-  <a href="<?= $b ?>/admin/fanlistings/<?= $id ?>" class="neb-link">
-    &larr; <?= \Luster\Core\View::e($fanlisting->name) ?>
+  <a href="<?= $b ?>/admin/listings/<?= $id ?>" class="neb-link">
+    &larr; <?= \Luster\Core\View::e($listing->name) ?>
   </a>
 </p>
 
 <!-- Page title -->
 <h2 style="margin:0 0 1.1rem;font-size:1.125rem;font-weight:600">
-  <?= \Luster\Core\View::e($fanlisting->name) ?> &mdash; Additional Fields
+  <?= \Luster\Core\View::e($listing->name) ?> &mdash; Additional Fields
 </h2>
 
 <!-- Flash messages -->
@@ -66,11 +66,11 @@ $id = (int) $fanlisting->id;
               <?php endif; ?>
             </td>
             <td class="act-col">
-              <a href="<?= $b ?>/admin/fanlistings/<?= $id ?>/fields/<?= urlencode($field->name) ?>/edit"
+              <a href="<?= $b ?>/admin/listings/<?= $id ?>/fields/<?= urlencode($field->name) ?>/edit"
                  class="btn btn-secondary btn-sm">Edit</a>
 
               <form method="POST"
-                    action="<?= $b ?>/admin/fanlistings/<?= $id ?>/fields/<?= urlencode($field->name) ?>/delete"
+                    action="<?= $b ?>/admin/listings/<?= $id ?>/fields/<?= urlencode($field->name) ?>/delete"
                     style="display:inline;margin-left:.25rem"
                     onsubmit="return confirm('Drop the column for field \u201c<?= \Luster\Core\View::e(addslashes($field->name)) ?>\u201d? This permanently removes member data for this field and cannot be undone.')">
                 <input type="hidden" name="_csrf"      value="<?= \Luster\Core\View::e($csrf_token) ?>">
@@ -88,7 +88,7 @@ $id = (int) $fanlisting->id;
 <!-- Add New Field form -->
 <div class="neb-card" style="padding:1.25rem 1.5rem;margin-top:1.5rem">
   <h3 style="margin:0 0 1rem;font-size:.9375rem;font-weight:600">Add New Field</h3>
-  <form method="POST" action="<?= $b ?>/admin/fanlistings/<?= $id ?>/fields/add">
+  <form method="POST" action="<?= $b ?>/admin/listings/<?= $id ?>/fields/add">
     <input type="hidden" name="_csrf" value="<?= \Luster\Core\View::e($csrf_token) ?>">
     <div class="add-grid">
 

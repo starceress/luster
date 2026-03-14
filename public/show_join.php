@@ -37,7 +37,7 @@ use Luster\Repositories\FieldRepo;
  * is echoed in place of the form. On error, the form is re-rendered inline
  * with error messages (no redirect needed — PRG is for full-page flows).
  *
- * Outputs nothing (silently) for upcoming or trouble fanlistings.
+ * Outputs nothing (silently) for upcoming or trouble listings.
  */
 
 // ── Bootstrap ────────────────────────────────────────────────────────────────
@@ -60,7 +60,7 @@ if (session_status() !== PHP_SESSION_ACTIVE) {
 // ── Shared setup ──────────────────────────────────────────────────────────────
 
 $_lstr_fieldRepo = new FieldRepo($lstr_db, $lstr_config);
-$_lstr_fields    = $_lstr_fieldRepo->getFieldsForFanlisting($luster_listing);
+$_lstr_fields    = $_lstr_fieldRepo->getFieldsForListing($luster_listing);
 
 /** Current page path without query string — used as the form action URL. */
 $_lstr_pageBase = strtok($_SERVER['REQUEST_URI'], '?') ?: '/';
@@ -131,7 +131,7 @@ $_lstr_renderJoinForm = function (
     }
     $csrfToken = (string) $_SESSION['lstr_join_csrf'];
 
-    $captchaQuestion = Captcha::getQuestion();
+    $captchaQuestion = Captcha::getQuestion('join');
     $countrySelect   = Countries::buildSelect((string) ($old['country'] ?? ''));
     $extraFieldsHtml = $_lstr_buildExtraFields($_lstr_fields, $old);
 
@@ -275,7 +275,7 @@ foreach ($_lstr_fields as $_lstr_f) {
     $_lstr_captchaOld[$k] = trim((string) ($_POST[$k] ?? ''));
 }
 
-if (!Captcha::validate((string) ($_POST['captcha_answer'] ?? ''))) {
+if (!Captcha::validate((string) ($_POST['captcha_answer'] ?? ''), 'join')) {
     $_lstr_renderJoinForm('', 'Incorrect answer — please try again.', $_lstr_captchaOld);
     return;
 }
@@ -325,7 +325,7 @@ if ($lstr_memberRepo->getByEmail($lstr_fl->dbprefix, $_lstr_email) !== null) {
         'country'   => $_lstr_country,
         'send_info' => (string) ($_POST['send_info'] ?? ''),
     ];
-    $_lstr_renderJoinForm('That email address is already registered for this fanlisting.', '', $_lstr_dupOld);
+    $_lstr_renderJoinForm('That email address is already registered for this listing.', '', $_lstr_dupOld);
     return;
 }
 
@@ -393,9 +393,9 @@ if ($_lstr_sendInfo || $_lstr_wasGenerated) {
         $_lstr_mailer  = new Mailer($lstr_config);
         $_lstr_appName = (string) $lstr_config->get('app_name', 'Luster');
 
-        $_lstr_subject = "Welcome to the {$lstr_fl->name} fanlisting!";
+        $_lstr_subject = "Welcome to the {$lstr_fl->name} listing!";
         $_lstr_body    = "Hi {$_lstr_name},\n\n"
-                       . "Thank you for joining the {$lstr_fl->name} fanlisting.\n\n"
+                       . "Thank you for joining the {$lstr_fl->name} listing.\n\n"
                        . "Here are your membership details:\n"
                        . "  Name    : {$_lstr_name}\n"
                        . "  Email   : {$_lstr_email}\n"
@@ -421,6 +421,6 @@ if ($_lstr_sendInfo || $_lstr_wasGenerated) {
 $_lstr_flName = $_lstr_e($lstr_fl->name);
 
 echo '<div class="luster-join-success">' . "\n"
-    . '<p>Thank you for joining the <strong>' . $_lstr_flName . '</strong> fanlisting! '
+    . '<p>Thank you for joining the <strong>' . $_lstr_flName . '</strong> listing! '
     . 'Your membership may need to be approved before it appears in the list.</p>' . "\n"
     . '</div>';

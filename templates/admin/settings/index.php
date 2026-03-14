@@ -188,22 +188,22 @@ document.querySelectorAll('.neb-tab-btn').forEach(function (btn) {
                    value="<?= \Luster\Core\View::e(cfgVal($cfg, 'smtp_from_name')) ?>">
           </div>
           <div class="form-group">
-            <label class="form-label" for="s-smtp-from-fl">Fanlisting From Address</label>
-            <input id="s-smtp-from-fl" type="email" name="smtp_from_fanlisting" class="form-input"
+            <label class="form-label" for="s-smtp-from-fl">Listing From Address</label>
+            <input id="s-smtp-from-fl" type="email" name="smtp_from_listing" class="form-input"
                    maxlength="255"
-                   value="<?= \Luster\Core\View::e(cfgVal($cfg, 'smtp_from_fanlisting')) ?>">
+                   value="<?= \Luster\Core\View::e(cfgVal($cfg, 'smtp_from_listing')) ?>">
           </div>
           <div class="form-group">
-            <label class="form-label" for="s-smtp-from-fl-name">Fanlisting From Name</label>
-            <input id="s-smtp-from-fl-name" type="text" name="smtp_from_fanlisting_name" class="form-input"
+            <label class="form-label" for="s-smtp-from-fl-name">Listing From Name</label>
+            <input id="s-smtp-from-fl-name" type="text" name="smtp_from_listing_name" class="form-input"
                    maxlength="255"
-                   value="<?= \Luster\Core\View::e(cfgVal($cfg, 'smtp_from_fanlisting_name')) ?>">
+                   value="<?= \Luster\Core\View::e(cfgVal($cfg, 'smtp_from_listing_name')) ?>">
           </div>
         </div>
 
         <div class="form-group">
           <label class="form-label" for="s-smtp-secure">Encryption</label>
-          <div class="select-wrap" style="max-width:200px">
+          <div class="select-wrap">
             <select id="s-smtp-secure" name="smtp_secure" class="form-select">
               <?php foreach (['tls' => 'TLS (STARTTLS)', 'ssl' => 'SSL', '' => 'None'] as $val => $lbl): ?>
                 <option value="<?= \Luster\Core\View::e($val) ?>"
@@ -216,7 +216,18 @@ document.querySelectorAll('.neb-tab-btn').forEach(function (btn) {
         </div>
 
       </div>
-      <button type="submit" class="btn btn-primary">Save Settings</button>
+      <div style="display:flex;align-items:center;gap:1rem;flex-wrap:wrap">
+        <button type="submit" class="btn btn-primary">Save Settings</button>
+        <?php if (cfgVal($cfg, 'smtp_host') !== ''): ?>
+        <form method="POST" action="<?= $b ?>/admin/settings/test-email" style="display:contents">
+          <input type="hidden" name="_csrf" value="<?= \Luster\Core\View::e($csrf_token ?? '') ?>">
+          <button type="submit" class="btn btn-ghost btn-sm">Send test email</button>
+        </form>
+        <span class="form-hint" style="margin:0">
+          &rarr; <code class="neb-code"><?= \Luster\Core\View::e($admin_user->email ?? '') ?></code>
+        </span>
+        <?php endif; ?>
+      </div>
     </div><!-- /#tab-email -->
 
     <!-- ── Embed & Paths ────────────────────────────────────────── -->
@@ -263,24 +274,24 @@ document.querySelectorAll('.neb-tab-btn').forEach(function (btn) {
         if ($installPath !== ''):
             $installPath = rtrim($installPath, '/');
         ?>
-        <div class="section-divider">Per-Fanlisting Embed Lines</div>
+        <div class="section-divider">Per-Listing Embed Lines</div>
 
         <p class="form-hint" style="margin-bottom:0.75rem">
-          Set <code class="neb-code">$luster_fanlisting_id</code> to the fanlisting ID before each include.
+          Set <code class="neb-code">$luster_fanlisting_id</code> to the listing ID before each include.
           Optionally set <code class="neb-code">$luster_return = true</code> to capture the output as a string.
         </p>
 
         <?php
-        $perFanlistingEmbeds = [
+        $perListingEmbeds = [
             'join'        => 'Join form',
             'members'     => 'Members list',
             'update'      => 'Update membership',
             'remove'      => 'Remove membership',
             'reset'       => 'Password reset',
-            'stats'       => 'Fanlisting stats',
-            'affiliates'  => 'Affiliates (per-fanlisting)',
+            'stats'       => 'Listing stats',
+            'affiliates'  => 'Affiliates (per-listing)',
         ];
-        foreach ($perFanlistingEmbeds as $file => $label): ?>
+        foreach ($perListingEmbeds as $file => $label): ?>
         <div class="form-group">
           <label class="form-label"><?= \Luster\Core\View::e($label) ?></label>
           <div class="ro-field" style="font-family:'DM Mono',monospace;font-size:0.8rem;user-select:all">
@@ -328,7 +339,7 @@ document.querySelectorAll('.neb-tab-btn').forEach(function (btn) {
         <p class="text-muted" style="font-size:.8rem;margin-bottom:1rem">
           These values are set in <code class="neb-code">config/app.php</code> and cannot be changed from the admin panel.
         </p>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem 1rem">
+        <div class="db-info-grid">
           <div>
             <label class="form-label" style="margin-bottom:.25rem">Host</label>
             <div class="ro-field"><?= \Luster\Core\View::e(cfgVal($cfg, 'db_host', 'localhost')) ?></div>

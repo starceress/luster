@@ -1,7 +1,7 @@
 <?php
-/** @var \Luster\Models\Fanlisting[]   $fanlistings */
+/** @var \Luster\Models\Listing[]   $listings */
 /** @var \Luster\Models\Affiliate|null $affiliate   null = add mode */
-/** @var int    $context_fid  non-zero = came from a specific fanlisting */
+/** @var int    $context_fid  non-zero = came from a specific listing */
 /** @var string $error */
 /** @var array  $old */
 /** @var string $base_url */
@@ -11,18 +11,18 @@ $b          = rtrim(\Luster\Core\View::e($base_url), '/');
 $isEdit     = $affiliate !== null;
 $contextFid = (int) ($context_fid ?? 0);
 
-// Form action: fanlisting-context add uses the dedicated route
+// Form action: listing-context add uses the dedicated route
 if ($isEdit) {
     $action = $b . '/admin/affiliates/' . (int) $affiliate->id . '/edit';
 } elseif ($contextFid > 0) {
-    $action = $b . '/admin/fanlistings/' . $contextFid . '/affiliates/add';
+    $action = $b . '/admin/listings/' . $contextFid . '/affiliates/add';
 } else {
     $action = $b . '/admin/affiliates/add';
 }
 
 // Back/cancel destination
-$backUrl   = $contextFid > 0 ? $b . '/admin/fanlistings/' . $contextFid : $b . '/admin/affiliates';
-$backLabel = $contextFid > 0 ? '&larr; Fanlisting' : '&larr; Affiliates';
+$backUrl   = $contextFid > 0 ? $b . '/admin/listings/' . $contextFid : $b . '/admin/affiliates';
+$backLabel = $contextFid > 0 ? '&larr; Listing' : '&larr; Affiliates';
 
 // Value helper: prefer $old (re-populate on error), then model, then ''
 $v = static function (string $key, $model, string $prop, string $default = '') use ($old): string {
@@ -49,17 +49,17 @@ $v = static function (string $key, $model, string $prop, string $default = '') u
     <input type="hidden" name="_csrf" value="<?= \Luster\Core\View::e($csrf_token ?? '') ?>">
 
     <?php if ($isEdit && $contextFid > 0): ?>
-      <input type="hidden" name="from_fanlisting" value="<?= $contextFid ?>">
+      <input type="hidden" name="from_listing" value="<?= $contextFid ?>">
     <?php endif; ?>
 
     <?php if ($contextFid === 0): ?>
     <div class="form-group">
-      <label class="form-label" for="aff-fanlisting">Fanlisting</label>
+      <label class="form-label" for="aff-listing">Listing</label>
       <div class="select-wrap">
-        <select id="aff-fanlisting" name="fanlisting_id" class="form-select">
+        <select id="aff-listing" name="fanlisting_id" class="form-select">
           <option value="0"><?= \Luster\Core\View::e(($site_name ?? 'Collective') . ' (Collective)') ?></option>
-          <?php foreach ($fanlistings as $fl): ?>
-            <?php $selId = (int) ($old['fanlisting_id'] ?? ($affiliate?->fanlistingId ?? 0)); ?>
+          <?php foreach ($listings as $fl): ?>
+            <?php $selId = (int) ($old['fanlisting_id'] ?? ($affiliate?->listingId ?? 0)); ?>
             <option value="<?= (int) $fl->id ?>"
                     <?= (int) $fl->id === $selId ? 'selected' : '' ?>>
               <?= \Luster\Core\View::e($fl->name) ?>
@@ -67,7 +67,7 @@ $v = static function (string $key, $model, string $prop, string $default = '') u
           <?php endforeach; ?>
         </select>
       </div>
-      <p class="form-hint">Leave as &ldquo;Collective&rdquo; if this affiliate belongs to all fanlistings.</p>
+      <p class="form-hint">Leave as &ldquo;Collective&rdquo; if this affiliate belongs to all listings.</p>
     </div>
     <?php else: ?>
       <input type="hidden" name="fanlisting_id" value="<?= $contextFid ?>">

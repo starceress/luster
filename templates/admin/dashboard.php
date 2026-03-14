@@ -2,7 +2,7 @@
 /**
  * @var string        $admin_username
  * @var string        $app_name
- * @var int           $total_fanlistings
+ * @var int           $total_listings
  * @var int           $fan_pending
  * @var int           $fan_upcoming
  * @var int           $total_joined
@@ -16,7 +16,7 @@
  * @var int           $total_categories
  * @var string|null   $newest_owned_name
  * @var string|null   $newest_joined_name
- * @var array[]       $recent_members   [{member: Member, fanlisting_name: string}]
+ * @var array[]       $recent_members   [{member: Member, listing_name: string}]
  * @var array[]       $recent_activity
  * @var string        $base_url
  */
@@ -53,8 +53,8 @@ if (!function_exists('dashTimeAgo')) {
   </div>
 </div>
 
-<!-- ── 3×2 stat grid ─────────────────────────────────────────── -->
-<div class="stats-grid">
+<!-- ── Stat row ────────────────────────────────────────────────── -->
+<div class="stats-grid stats-grid-row">
 
   <div class="stat-card">
     <div class="stat-header">
@@ -62,7 +62,7 @@ if (!function_exists('dashTimeAgo')) {
       <span class="stat-label">Owned</span>
       <span class="stat-sparkle">✦</span>
     </div>
-    <div class="stat-value"><?= (int) $total_fanlistings ?></div>
+    <div class="stat-value"><?= (int) $total_listings ?></div>
     <div class="stat-pills">
       <?php if ($fan_pending > 0): ?>
         <span class="pill pill-warn"><?= (int) $fan_pending ?> Pending</span>
@@ -96,20 +96,21 @@ if (!function_exists('dashTimeAgo')) {
     </div>
   </div>
 
-  <div class="stat-card">
+  <div class="stat-card stat-card-green">
     <div class="stat-header">
       <span class="stat-emoji">👥</span>
       <span class="stat-label">Total Members</span>
       <span class="stat-sparkle">✦</span>
     </div>
-    <div class="stat-value"><?= number_format((int) $total_members) ?></div>
-    <div class="stat-pills">
+    <div class="stat-value">
+      <span style="display:block"><?= number_format((int) $total_members) ?> total</span>
       <?php if ($total_pending > 0): ?>
-        <span class="pill pill-warn"><?= (int) $total_pending ?> Pending</span>
+        <a href="<?= $b ?>/admin/members" class="stat-pending-link" style="display:block"><?= (int) $total_pending ?> pending</a>
       <?php else: ?>
-        <span class="pill pill-ok">All Approved</span>
+        <span style="display:block;font-size:1rem;color:var(--text-muted)">No pending members</span>
       <?php endif; ?>
     </div>
+    <div class="stat-pills"></div>
   </div>
 
   <div class="stat-card">
@@ -132,50 +133,22 @@ if (!function_exists('dashTimeAgo')) {
     </div>
   </div>
 
-  <div class="stat-card">
-    <div class="stat-header">
-      <span class="stat-emoji">🗂️</span>
-      <span class="stat-label">Categories</span>
-      <span class="stat-sparkle">✦</span>
-    </div>
-    <div class="stat-value"><?= (int) $total_categories ?></div>
-    <div class="stat-pills">
-      <span class="pill pill-ok">All Active</span>
-    </div>
-  </div>
-
-  <div class="stat-card">
-    <div class="stat-header">
-      <span class="stat-emoji">⏳</span>
-      <span class="stat-label">Pending Approvals</span>
-      <span class="stat-sparkle">✦</span>
-    </div>
-    <div class="stat-value"><?= (int) $total_pending ?></div>
-    <div class="stat-pills">
-      <?php if ($total_pending > 0): ?>
-        <span class="pill pill-warn"><?= (int) $total_pending ?> Members</span>
-      <?php else: ?>
-        <span class="pill pill-ok">None Pending</span>
-      <?php endif; ?>
-    </div>
-  </div>
-
 </div><!-- /.stats-grid -->
 
 <!-- ── Newest card ───────────────────────────────────────────── -->
 <div class="newest-card">
   <div class="newest-row">
     <span class="newest-star">✦</span>
-    <span class="newest-label">Newest owned fanlisting:</span>
+    <span class="newest-label">Newest owned listing:</span>
     <?php if ($newest_owned_name !== null): ?>
-      <a href="<?= $b ?>/admin/fanlistings" class="newest-link"><?= \Luster\Core\View::e($newest_owned_name) ?></a>
+      <a href="<?= $b ?>/admin/listings" class="newest-link"><?= \Luster\Core\View::e($newest_owned_name) ?></a>
     <?php else: ?>
       <span style="color:var(--text-dim)">None yet</span>
     <?php endif; ?>
   </div>
   <div class="newest-row">
     <span class="newest-star">✦</span>
-    <span class="newest-label">Newest joined fanlisting:</span>
+    <span class="newest-label">Newest joined listing:</span>
     <?php if ($newest_joined_name !== null): ?>
       <a href="<?= $b ?>/admin/joined" class="newest-link"><?= \Luster\Core\View::e($newest_joined_name) ?></a>
     <?php else: ?>
@@ -185,28 +158,28 @@ if (!function_exists('dashTimeAgo')) {
 </div>
 
 <!-- ── Staleness warning ──────────────────────────────────────── -->
-<?php if (!empty($stale_fanlistings)): ?>
+<?php if (!empty($stale_listings)): ?>
 <div class="neb-card" style="margin-bottom:1.5rem;border-left:3px solid var(--warn,#f59e0b)">
   <div style="display:flex;justify-content:space-between;align-items:center;padding:0.85rem 1.25rem;border-bottom:1px solid var(--border)">
     <div>
       <span style="font-weight:700;color:var(--text)">⚠️ Maintenance Needed</span>
       <span style="font-size:0.8125rem;color:var(--text-dim);margin-left:0.5rem">
-        <?= count($stale_fanlistings) ?> fanlisting<?= count($stale_fanlistings) !== 1 ? 's have' : ' has' ?>
+        <?= count($stale_listings) ?> listing<?= count($stale_listings) !== 1 ? 's have' : ' has' ?>
         not been updated in over <?= (int) $inactive_threshold_days ?> days
       </span>
     </div>
     <form method="POST" action="<?= $b ?>/admin/maintenance/touch-all-updated">
       <input type="hidden" name="_csrf" value="<?= \Luster\Core\View::e($csrf_token ?? '') ?>">
       <button type="submit" class="btn btn-secondary btn-sm"
-              onclick="return confirm('Mark all fanlistings as updated today?')">
+              onclick="return confirm('Mark all listings as updated today?')">
         Touch All
       </button>
     </form>
   </div>
   <div style="padding:0.5rem 0">
-    <?php foreach ($stale_fanlistings as $stalefl): ?>
+    <?php foreach ($stale_listings as $stalefl): ?>
     <div style="display:flex;justify-content:space-between;align-items:center;padding:0.5rem 1.25rem">
-      <a href="<?= $b ?>/admin/fanlistings/<?= (int) $stalefl->id ?>/edit"
+      <a href="<?= $b ?>/admin/listings/<?= (int) $stalefl->id ?>/edit"
          class="neb-link" style="font-size:0.875rem"><?= \Luster\Core\View::e($stalefl->name) ?></a>
       <span style="font-size:0.75rem;color:var(--text-dim)">Never set or overdue</span>
     </div>
@@ -231,7 +204,7 @@ if (!function_exists('dashTimeAgo')) {
     <?php else: ?>
       <?php foreach ($recent_members as $rm):
         $m       = $rm['member'];
-        $flName  = (string) $rm['fanlisting_name'];
+        $flName  = (string) $rm['listing_name'];
       ?>
       <div class="member-row">
         <div class="member-info">

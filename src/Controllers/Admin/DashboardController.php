@@ -8,11 +8,10 @@ use Luster\Core\Application;
 use Luster\Core\Request;
 use Luster\Core\Response;
 use Luster\Repositories\ActivityRepo;
-use Luster\Repositories\AffiliateRepo;
 use Luster\Repositories\CategoryRepo;
-use Luster\Repositories\FanlistingRepo;
-use Luster\Repositories\FanlistingSettingsRepo;
-use Luster\Repositories\JoinedFanlistingRepo;
+use Luster\Repositories\ListingRepo;
+use Luster\Repositories\ListingSettingsRepo;
+use Luster\Repositories\JoinedListingRepo;
 use Luster\Repositories\MemberRepo;
 
 /**
@@ -25,7 +24,7 @@ final class DashboardController
     /**
      * POST /admin/maintenance/touch-all-updated
      *
-     * Sets last_updated to today for every fanlisting — useful when first
+     * Sets last_updated to today for every listing — useful when first
      * enabling the staleness check on an existing install.
      */
     public function touchAllUpdated(Request $request, array $params): Response
@@ -33,24 +32,24 @@ final class DashboardController
         $db     = $this->app->getDatabase();
         $config = $this->app->getConfig();
 
-        $fanlistingRepo = new FanlistingRepo($db, $config);
-        $settingsRepo   = new FanlistingSettingsRepo($db);
+        $listingRepo = new ListingRepo($db, $config);
+        $settingsRepo   = new ListingSettingsRepo($db);
         $activityRepo   = new ActivityRepo($db);
         $session        = $this->app->getSession();
 
-        $fanlistings = $fanlistingRepo->getAll();
-        foreach ($fanlistings as $fl) {
+        $listings = $listingRepo->getAll();
+        foreach ($listings as $fl) {
             $settingsRepo->touchLastUpdated($fl->id);
         }
 
         $activityRepo->log(
             (int) $session->get('lstr_admin_id'),
             'maintenance.touch_all_updated',
-            'Bulk-touched last_updated to today for all ' . count($fanlistings) . ' fanlistings',
+            'Bulk-touched last_updated to today for all ' . count($listings) . ' listings',
             $request->ip(),
         );
 
-        $session->set('lstr_flash_success', 'Last Updated date set to today for all fanlistings.');
+        $session->set('lstr_flash_success', 'Last Updated date set to today for all listings.');
         return Response::redirect($this->app->getBaseUrl() . '/admin');
     }
 
@@ -62,23 +61,22 @@ final class DashboardController
         $view    = $this->app->getView();
         $baseUrl = $this->app->getBaseUrl();
 
-        $fanlistingRepo  = new FanlistingRepo($db, $config);
-        $memberRepo      = new MemberRepo($db, $config);
-        $activityRepo    = new ActivityRepo($db);
-        $affiliateRepo   = new AffiliateRepo($db);
-        $joinedRepo      = new JoinedFanlistingRepo($db);
-        $categoryRepo    = new CategoryRepo($db);
-        $settingsRepo    = new FanlistingSettingsRepo($db);
+        $listingRepo  = new ListingRepo($db, $config);
+        $memberRepo   = new MemberRepo($db, $config);
+        $activityRepo = new ActivityRepo($db);
+        $joinedRepo   = new JoinedListingRepo($db);
+        $categoryRepo = new CategoryRepo($db);
+        $settingsRepo = new ListingSettingsRepo($db);
 
-        // ── Owned fanlistings ────────────────────────────────────────────
-        $fanStats    = $fanlistingRepo->getStats();
-        $fanlistings = $fanlistingRepo->getAll();
+        // ── Owned listings ────────────────────────────────────────────
+        $fanStats    = $listingRepo->getStats();
+        $listings = $listingRepo->getAll();
         $fanPending  = (int) $fanStats['trouble'];   // 'trouble' = pending status
         $fanUpcoming = (int) $fanStats['upcoming'];
 
         $newestOwnedName = null;
-        if (!empty($fanlistings)) {
-            $newestOwnedName = $fanlistings[count($fanlistings) - 1]->name;
+        if (!empty($listings)) {
+            $newestOwnedName = $listings[count($listings) - 1]->name;
         }
 
         // ── Members ──────────────────────────────────────────────────────
@@ -86,7 +84,7 @@ final class DashboardController
         $totalPending  = 0;
         $recentMembers = [];
 
-        foreach ($fanlistings as $fl) {
+        foreach ($listings as $fl) {
             if ($fl->dbprefix === '') {
                 continue;
             }
@@ -94,7 +92,7 @@ final class DashboardController
             $totalPending += $memberRepo->countPending($fl->dbprefix);
 
             foreach ($memberRepo->getRecent($fl->dbprefix, 2) as $m) {
-                $recentMembers[] = ['member' => $m, 'fanlisting_name' => $fl->name];
+                $recentMembers[] = ['member' => $m, 'listing_name' => $fl->name];
             }
         }
 
@@ -104,7 +102,7 @@ final class DashboardController
         ));
         $recentMembers = array_slice($recentMembers, 0, 5);
 
-        // ── Joined fanlistings ───────────────────────────────────────────
+        // ── Joined listings ───────────────────────────────────────────
         $stmt = $db->prepare(
             'SELECT COUNT(*) AS total, SUM(active = 0) AS inactive FROM lstr_joined'
         );
@@ -138,20 +136,23 @@ final class DashboardController
         // ── Staleness detection ───────────────────────────────────────────
         $thresholdDays = (int) $config->get('inactive_threshold_days', 60);
         $staleIds      = $settingsRepo->getStaleIds($thresholdDays);
-        $staleFanlistings = [];
+        $staleListings = [];
         if (!empty($staleIds)) {
-            foreach ($fanlistings as $fl) {
+            foreach ($listings as $fl) {
                 if (in_array($fl->id, $staleIds, true)) {
-                    $staleFanlistings[] = $fl;
+                    $staleListings[] = $fl;
                 }
             }
         }
 
         // ── Render ───────────────────────────────────────────────────────
+        $csrfToken = $this->app->getCSRF()->token();
+
         $inner = $view->render('admin/dashboard.php', [
             'admin_username'              => (string) $session->get('lstr_admin_username', ''),
             'app_name'                    => (string) $config->get('app_name', 'Luster'),
-            'total_fanlistings'           => $fanStats['total'],
+            'csrf_token'                  => $csrfToken,
+            'total_listings'           => $fanStats['total'],
             'fan_pending'                 => $fanPending,
             'fan_upcoming'               => $fanUpcoming,
             'total_joined'               => $totalJoined,
@@ -167,7 +168,7 @@ final class DashboardController
             'newest_joined_name'         => $newestJoinedName,
             'recent_members'             => $recentMembers,
             'recent_activity'            => $recentActivity,
-            'stale_fanlistings'          => $staleFanlistings,
+            'stale_listings'          => $staleListings,
             'inactive_threshold_days'    => $thresholdDays,
             'base_url'                   => $baseUrl,
         ]);
@@ -176,7 +177,7 @@ final class DashboardController
             'page_title'      => 'Dashboard',
             'app_name'        => (string) $config->get('app_name', 'Luster'),
             'admin_username'  => (string) $session->get('lstr_admin_username', ''),
-            'csrf_token'      => $this->app->getCSRF()->token(),
+            'csrf_token'      => $csrfToken,
             'current_section' => 'dashboard',
             'base_url'        => $baseUrl,
             'content'         => $inner,

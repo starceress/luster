@@ -98,6 +98,7 @@
    RESET & BASE
 ═══════════════════════════════════════════════════════════════ */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { overflow-x: hidden; }
 body {
   font-family: 'DM Sans', sans-serif;
   background: var(--bg);
@@ -260,7 +261,7 @@ body::before {
    MAIN LAYOUT
 ═══════════════════════════════════════════════════════════════ */
 .main-wrap {
-  margin-left: 248px; flex: 1;
+  margin-left: 248px; flex: 1; min-width: 0;
   display: flex; flex-direction: column;
   min-height: 100vh; position: relative; z-index: 1;
 }
@@ -276,7 +277,7 @@ body::before {
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
 }
-.topbar-left { display: flex; flex-direction: column; }
+.topbar-left { display: flex; flex-direction: row; align-items: center; gap: 10px; }
 .topbar-page { font-size: 1.05rem; font-weight: 600; color: var(--text); line-height: 1; }
 .topbar-crumb { font-size: 0.7rem; color: var(--text-muted); margin-top: 2px; letter-spacing: 0.03em; }
 .topbar-right { display: flex; align-items: center; gap: 14px; }
@@ -300,20 +301,6 @@ body::before {
   box-shadow: 0 1px 4px rgba(0,0,0,0.3);
 }
 [data-theme="dark"] .toggle-thumb { transform: translateX(18px); background: var(--accent); }
-.topbar-notif {
-  width: 34px; height: 34px; border-radius: 8px;
-  background: var(--bg-subtle); border: 1px solid var(--border);
-  display: flex; align-items: center; justify-content: center;
-  cursor: pointer; transition: all 0.2s; position: relative;
-}
-.topbar-notif:hover { border-color: var(--accent-blue); }
-.notif-dot {
-  position: absolute; top: 6px; right: 6px;
-  width: 7px; height: 7px; border-radius: 50%;
-  background: #f87171;
-  box-shadow: 0 0 6px rgba(248,113,113,0.7);
-}
-
 /* Page content */
 .page-content { padding: 28px 32px 48px; flex: 1; }
 
@@ -366,6 +353,7 @@ body::before {
   gap: 16px;
   margin-bottom: 20px;
 }
+.stats-grid-row { grid-template-columns: repeat(4, 1fr); }
 .stat-card {
   background: var(--bg-card);
   border: 1px solid var(--border);
@@ -424,6 +412,11 @@ body::before {
   font-size: 2.2rem; font-weight: 700; line-height: 1;
   color: var(--text); margin-bottom: 14px;
 }
+.stat-pending-link {
+  color: var(--success); text-decoration: none; font-weight: 700;
+  border-bottom: 1px dashed currentColor;
+}
+.stat-pending-link:hover { opacity: 0.8; }
 .stat-pills { display: flex; flex-wrap: wrap; gap: 6px; }
 .pill {
   font-size: 0.7rem; font-weight: 500;
@@ -521,32 +514,6 @@ body::before {
 .activity-text { flex: 1; font-size: 0.8rem; line-height: 1.4; color: var(--text-muted); }
 .activity-text strong { color: var(--text); font-weight: 500; }
 .activity-time { font-size: 0.68rem; color: var(--text-dim); flex-shrink: 0; font-family: 'DM Mono', monospace; margin-top: 2px; }
-
-/* ═══════════════════════════════════════════════════════════════
-   JOIN FORM PAGE
-═══════════════════════════════════════════════════════════════ */
-.join-wrap {
-  max-width: 560px; margin: 0 auto;
-}
-.join-header { text-align: center; margin-bottom: 28px; }
-.join-title {
-  font-family: 'Playfair Display', serif;
-  font-size: 1.9rem; font-weight: 700;
-  color: var(--text); margin-bottom: 6px;
-}
-.join-sub { font-size: 0.875rem; color: var(--text-muted); }
-.join-card {
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: 20px; padding: 32px 36px;
-  box-shadow: var(--shadow-lg);
-  position: relative; overflow: hidden;
-}
-.join-card::before {
-  content: '';
-  position: absolute; top: 0; left: 0; right: 0; height: 3px;
-  background: linear-gradient(90deg, #a78bfa, #818cf8, #93c5fd, #f9a8d4, #fbbf24);
-}
 
 /* Form elements */
 .form-group { margin-bottom: 20px; }
@@ -650,25 +617,6 @@ body::before {
   font-family: 'DM Mono', monospace;
 }
 
-/* ═══════════════════════════════════════════════════════════════
-   PAGE SWITCHER (demo only)
-═══════════════════════════════════════════════════════════════ */
-.demo-switcher {
-  position: fixed; bottom: 24px; right: 24px; z-index: 200;
-  display: flex; flex-direction: column; gap: 8px; align-items: flex-end;
-}
-.demo-btn {
-  background: var(--bg-card); border: 1px solid var(--border);
-  border-radius: 10px; padding: 8px 16px;
-  font-size: 0.78rem; color: var(--text-muted); cursor: pointer;
-  transition: all 0.2s; font-family: 'DM Sans', sans-serif;
-  box-shadow: var(--shadow);
-}
-.demo-btn:hover, .demo-btn.active {
-  border-color: var(--accent); color: var(--accent);
-  box-shadow: 0 4px 16px var(--accent-glow);
-}
-
 /* Divider */
 .section-divider {
   display: flex; align-items: center; gap: 10px;
@@ -677,10 +625,6 @@ body::before {
 .section-divider::before, .section-divider::after {
   content: ''; flex: 1; height: 1px; background: var(--border);
 }
-
-/* Page visibility */
-.page { display: none; }
-.page.active { display: block; }
 
 /* ═══════════════════════════════════════════════════════════════
    ADMIN PANEL — TABLES, TOOLBAR, BADGES, PAGINATION, ALERTS
@@ -866,6 +810,15 @@ body::before {
   font-size: 0.875rem;
   color: var(--text-muted);
   font-family: 'DM Mono', monospace;
+  overflow-x: auto;
+  word-break: break-all;
+}
+
+/* ── Database info grid (Settings → Database tab) ── */
+.db-info-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: .75rem 1rem;
 }
 
 /* ── Fieldset (additional fields section) ── */
@@ -1272,3 +1225,141 @@ body::before {
   background: rgba(252,165,165,0.06);
 }
 
+/* ═══════════════════════════════════════════════════════════════
+   RESPONSIVE — HAMBURGER + OFF-CANVAS SIDEBAR
+═══════════════════════════════════════════════════════════════ */
+
+/* Hamburger button — hidden on desktop */
+.hamburger {
+  display: none;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 5px;
+  width: 36px; height: 36px;
+  background: none; border: none;
+  cursor: pointer; padding: 0;
+  flex-shrink: 0;
+}
+.hamburger span {
+  display: block;
+  width: 20px; height: 2px;
+  background: var(--text-muted);
+  border-radius: 2px;
+  transition: background 0.2s;
+}
+.hamburger:hover span { background: var(--text); }
+
+/* Sidebar overlay — mobile backdrop */
+.sidebar-overlay {
+  display: none;
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.6);
+  z-index: 99;
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+}
+.sidebar-overlay.active { display: block; }
+
+/* ── Breakpoint: tablet landscape / small desktop (≤ 1024px) ── */
+@media (max-width: 1024px) {
+  .sidebar {
+    transform: translateX(-260px);
+    transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1), background 0.4s;
+    z-index: 200;
+    box-shadow: none;
+  }
+  .sidebar.open {
+    transform: translateX(0);
+    box-shadow: 4px 0 32px rgba(0,0,0,0.5);
+  }
+  .main-wrap { margin-left: 0; }
+  .hamburger { display: flex; }
+  body.sidebar-open { overflow: hidden; }
+}
+
+/* ── Breakpoint: tablet portrait (≤ 768px) ── */
+@media (max-width: 768px) {
+  .topbar { padding: 0 18px; }
+  .page-content { padding: 20px 18px 40px; }
+
+  /* Dashboard stat cards: 2 columns (fix: was .stat-cards, class is .stats-grid-row) */
+  .stats-grid-row { grid-template-columns: repeat(2, 1fr) !important; }
+  .stats-grid:not(.stats-grid-row) { grid-template-columns: repeat(2, 1fr) !important; }
+
+  /* Dashboard two-column panels: stack vertically */
+  .two-col { grid-template-columns: 1fr; }
+
+  /* Form rows: collapse to single column */
+  .form-row { grid-template-columns: 1fr; }
+
+  /* DB info grid in Settings: collapse to single column */
+  .db-info-grid { grid-template-columns: 1fr; }
+
+  /* Select wrappers with inline max-width: allow full width */
+  .select-wrap { max-width: 100% !important; }
+
+  /* Tab bar: horizontal scroll instead of truncation */
+  .neb-tabs { overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+  .neb-tabs::-webkit-scrollbar { display: none; }
+  .neb-tab-btn { white-space: nowrap; flex-shrink: 0; }
+
+  /* Data table: allow horizontal scroll */
+  .neb-card { overflow-x: auto; }
+  .data-table { min-width: 520px; }
+
+  /* Settings card full width */
+  .settings-card { max-width: 100%; padding: 20px 18px; }
+
+  /* Detail grid single column */
+  .detail-grid { grid-template-columns: 1fr; }
+
+  /* Add/edit grid collapse to 1 column */
+  .add-grid { grid-template-columns: 1fr !important; }
+
+  /* Stat row wrap */
+  .stat-row { gap: 0.6rem; }
+  .mini-stat { min-width: 80px; }
+
+  /* Topbar page title smaller */
+  .topbar-page { font-size: 0.9rem; }
+}
+
+/* ── Breakpoint: large phone / small tablet (≤ 600px) ── */
+@media (max-width: 600px) {
+  /* Email composer: stack label above content */
+  .email-row { grid-template-columns: 1fr; }
+  .email-label { border-right: none; border-bottom: 1px solid var(--border); }
+
+  /* Action column: allow buttons to wrap */
+  .data-table .act-col { white-space: normal; }
+  .data-table .act-col form { display: inline; }
+
+  /* Category widget: fixed-width network select goes full row */
+  .cat-net-sel { flex: 0 0 100%; width: 100%; }
+}
+
+/* ── Breakpoint: mobile (≤ 480px) ── */
+@media (max-width: 480px) {
+  .topbar { padding: 0 12px; }
+  .page-content { padding: 14px 12px 36px; }
+
+  /* Dashboard stat cards: single column */
+  .stats-grid-row { grid-template-columns: 1fr !important; }
+  .stats-grid:not(.stats-grid-row) { grid-template-columns: 1fr !important; }
+
+  /* Topbar title: truncate to prevent overflow */
+  .topbar-page { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 55vw; }
+
+  /* Welcome block reduce padding */
+  .welcome-block { padding: 16px 16px; }
+
+  /* Fanlisting picker: single column */
+  .fl-grid { grid-template-columns: 1fr; }
+
+  /* Newest card: allow text to wrap */
+  .newest-row { flex-wrap: wrap; gap: 4px; }
+
+  /* Tab buttons: slightly smaller text to fit more */
+  .neb-tab-btn { padding: 10px 14px; font-size: 0.78rem; }
+}

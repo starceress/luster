@@ -1,13 +1,14 @@
 <?php
-/** @var \Luster\Models\Fanlisting        $fanlisting */
+/** @var \Luster\Models\Listing        $listing */
 /** @var \Luster\Models\Member             $member */
 /** @var \Luster\Models\AdditionalField[] $fields */
 /** @var string $error */
+/** @var string $success */
 /** @var array  $old */
 /** @var string $base_url */
 /** @var string $csrf_token */
 $b  = rtrim(\Luster\Core\View::e($base_url), '/');
-$id = (int) $fanlisting->id;
+$id = (int) $listing->id;
 
 function oldVal(array $old, \Luster\Models\Member $m, string $key): string {
     return $old[$key] ?? (string) ($m->$key ?? '');
@@ -15,9 +16,12 @@ function oldVal(array $old, \Luster\Models\Member $m, string $key): string {
 ?>
 
 <p style="margin-bottom:1rem">
-  <a href="<?= $b ?>/admin/members/<?= $id ?>" class="neb-link">&larr; Members &mdash; <?= \Luster\Core\View::e($fanlisting->name) ?></a>
+  <a href="<?= $b ?>/admin/members/<?= $id ?>" class="neb-link">&larr; Members &mdash; <?= \Luster\Core\View::e($listing->name) ?></a>
 </p>
 
+<?php if (($success ?? '') !== ''): ?>
+  <div class="alert alert-success"><?= \Luster\Core\View::e($success) ?></div>
+<?php endif; ?>
 <?php if ($error !== ''): ?>
   <div class="alert alert-error"><?= \Luster\Core\View::e($error) ?></div>
 <?php endif; ?>
@@ -105,7 +109,38 @@ function oldVal(array $old, \Luster\Models\Member $m, string $key): string {
     <div class="btn-row">
       <button type="submit" class="btn btn-primary">Save Changes</button>
       <button type="button" class="btn btn-ghost" onclick="this.form.reset()">Clear Form</button>
-      <a href="<?= $b ?>/admin/members/<?= (int) ($fanlisting->id ?? 0) ?>" class="neb-link">Cancel</a>
+      <a href="<?= $b ?>/admin/members/<?= (int) ($listing->id ?? 0) ?>" class="neb-link">Cancel</a>
     </div>
   </form>
 </div>
+
+<!-- ── Merge duplicate ─────────────────────────────────────────── -->
+<details class="neb-card" style="margin-top:1.25rem;padding:0">
+  <summary style="padding:1rem 1.25rem;cursor:pointer;font-weight:600;font-size:.85rem;color:var(--text-muted);list-style:none;display:flex;align-items:center;gap:.5rem">
+    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24"
+         fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+         style="flex-shrink:0"><circle cx="18" cy="18" r="3"/><circle cx="6" cy="6" r="3"/>
+      <path d="M13 6h3a2 2 0 0 1 2 2v7"/><line x1="6" y1="9" x2="6" y2="21"/>
+    </svg>
+    Merge duplicate member
+  </summary>
+  <div style="padding:0 1.25rem 1.25rem">
+    <p class="form-hint" style="margin-bottom:1rem">
+      If this member joined again under a different email, enter that email below to delete the duplicate.
+      <strong><?= \Luster\Core\View::e($member->email) ?></strong> will be kept; the duplicate will be permanently removed.
+    </p>
+    <form method="POST" action="<?= $b ?>/admin/members/<?= $id ?>/merge"
+          onsubmit="return confirm('Delete the duplicate member? This cannot be undone.')">
+      <input type="hidden" name="_csrf"        value="<?= \Luster\Core\View::e($csrf_token ?? '') ?>">
+      <input type="hidden" name="member_email" value="<?= \Luster\Core\View::e($member->email) ?>">
+      <div style="display:flex;gap:.75rem;align-items:flex-end;flex-wrap:wrap">
+        <div class="form-group" style="flex:1;min-width:200px;margin-bottom:0">
+          <label class="form-label" for="merge-dupe-email">Duplicate email to delete</label>
+          <input id="merge-dupe-email" type="email" name="duplicate_email" class="form-input"
+                 maxlength="255" placeholder="duplicate@example.com" required>
+        </div>
+        <button type="submit" class="btn btn-danger btn-sm" style="margin-bottom:1px">Delete duplicate</button>
+      </div>
+    </form>
+  </div>
+</details>

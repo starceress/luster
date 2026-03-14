@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 /**
  * @var string  $embed_path   Absolute server path to public/embed/
- * @var int     $example_id   A real fanlisting ID to use in snippets
- * @var array   $fanlistings  All Fanlisting objects
+ * @var int     $example_id   A real listing ID to use in snippets
+ * @var array   $listings  All Listing objects
  * @var string  $base_url
  * @var string  $csrf_token
  */
@@ -16,7 +16,7 @@ $id = max(1, (int) ($example_id ?? 1));
 
 // Build ID selector options for the "try a different listing" hint
 $flOptions = [];
-foreach ($fanlistings ?? [] as $fl) {
+foreach ($listings ?? [] as $fl) {
     $flOptions[$fl->id] = \Luster\Core\View::e($fl->name);
 }
 
@@ -88,7 +88,7 @@ foreach ($fanlistings ?? [] as $fl) {
 
 <?php if (!empty($flOptions)): ?>
   <p class="ec-intro" style="margin-top:-.75rem">
-    Your fanlisting IDs:
+    Your listing IDs:
     <?php foreach ($flOptions as $fid => $fname): ?>
       <strong>#<?= (int) $fid ?></strong> — <?= $fname ?>&nbsp;&nbsp;
     <?php endforeach; ?>
@@ -113,7 +113,7 @@ foreach ($fanlistings ?? [] as $fl) {
     <div class="ec-card-head">
       <span class="ec-filename">embed/stats.php</span>
       <span class="ec-badge ec-badge-req">Requires ID</span>
-      <span class="ec-desc">Per-fanlisting stats block with token substitution</span>
+      <span class="ec-desc">Per-listing stats block with token substitution</span>
     </div>
     <div class="ec-body">
       <?php $codeBlock('stats', htmlspecialchars(
@@ -124,7 +124,7 @@ foreach ($fanlistings ?? [] as $fl) {
         ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'
       )); ?>
 
-      <div class="ec-section">Available <code>$token$</code> placeholders (set in the fanlisting&rsquo;s Stats Template field)</div>
+      <div class="ec-section">Available <code>$token$</code> placeholders (set in the listing&rsquo;s Stats Template field)</div>
       <div class="ec-tokens">
         <span class="ec-token">$stat_opened$</span>
         <span class="ec-token">$stat_updated$</span>
@@ -133,11 +133,11 @@ foreach ($fanlistings ?? [] as $fl) {
         <span class="ec-token">$stat_pending$</span>
         <span class="ec-token">$stat_newmembers$</span>
         <span class="ec-token">$stat_growth$</span>
-        <span class="ec-token">$fanlisting_name$</span>
-        <span class="ec-token">$fanlisting_url$</span>
+        <span class="ec-token">$listing_name$</span>
+        <span class="ec-token">$listing_url$</span>
       </div>
       <p class="ec-note">
-        <code>$stat_last_updated$</code> uses the admin-controlled date from fanlisting settings.
+        <code>$stat_last_updated$</code> uses the admin-controlled date from listing settings.
         Falls back to the <code>last_updated_fallback</code> config value (default: &ldquo;Never&rdquo;).
       </p>
     </div>
@@ -150,7 +150,7 @@ foreach ($fanlistings ?? [] as $fl) {
     <div class="ec-card-head">
       <span class="ec-filename">embed/owned.php</span>
       <span class="ec-badge ec-badge-free">No ID needed</span>
-      <span class="ec-desc">Filterable list of owned fanlistings</span>
+      <span class="ec-desc">Filterable list of owned listings</span>
     </div>
     <div class="ec-body">
       <?php $codeBlock('owned', htmlspecialchars(
@@ -168,7 +168,7 @@ foreach ($fanlistings ?? [] as $fl) {
       <table class="ec-vars">
         <thead><tr><th>Variable</th><th>Type</th><th>Default</th><th>Description</th></tr></thead>
         <tbody>
-          <tr><td><code>$luster_status</code></td><td class="ec-type">string</td><td class="ec-def">'current'</td><td>Which fanlistings to show: <code>current</code>, <code>upcoming</code>, <code>trouble</code>, or <code>all</code></td></tr>
+          <tr><td><code>$luster_status</code></td><td class="ec-type">string</td><td class="ec-def">'current'</td><td>Which listings to show: <code>current</code>, <code>upcoming</code>, <code>trouble</code>, or <code>all</code></td></tr>
           <tr><td><code>$luster_category_id</code></td><td class="ec-type">int</td><td class="ec-def">0</td><td>Pre-filter to a category ID. 0 reads <code>$_GET['cat']</code> so the built-in selector works automatically</td></tr>
           <tr><td><code>$luster_hide_dropdown</code></td><td class="ec-type">bool</td><td class="ec-def">false</td><td>Suppress the category selector entirely</td></tr>
           <tr><td><code>$luster_show_list</code></td><td class="ec-type">bool</td><td class="ec-def">false</td><td>Show categories as a bulleted link list instead of a dropdown</td></tr>
@@ -237,10 +237,10 @@ foreach ($fanlistings ?? [] as $fl) {
       <p class="ec-note">
         The form POSTs to Luster&rsquo;s <code>/join/<?= $id ?></code> URL.
         On <strong>success</strong> the visitor is sent to the redirect URL configured in
-        the fanlisting&rsquo;s Embed settings (Redirect after Join), or to Luster&rsquo;s
+        the listing&rsquo;s Embed settings (Redirect after Join), or to Luster&rsquo;s
         own success page if none is set.<br>
         On <strong>validation error</strong> the visitor is sent to the
-        <em>Form URL — Join</em> field in the fanlisting&rsquo;s Embed settings.
+        <em>Form URL — Join</em> field in the listing&rsquo;s Embed settings.
         Set that to the URL of this page to keep users on your site after errors.
       </p>
     </div>
@@ -329,12 +329,12 @@ foreach ($fanlistings ?? [] as $fl) {
     <div class="ec-card-head">
       <span class="ec-filename">embed/affiliates.php</span>
       <span class="ec-badge ec-badge-req">ID or 0</span>
-      <span class="ec-desc">Affiliates list — per-fanlisting or site-wide collective</span>
+      <span class="ec-desc">Affiliates list — per-listing or site-wide collective</span>
     </div>
     <div class="ec-body">
       <?php $codeBlock('affiliates', htmlspecialchars(
         '<?php' . "\n" .
-        '// Per-fanlisting:' . "\n" .
+        '// Per-listing:' . "\n" .
         '$luster_fanlisting_id = ' . $id . ';' . "\n\n" .
         '// OR site-wide collective (fanlisting_id IS NULL):' . "\n" .
         '// $luster_fanlisting_id = 0;' . "\n\n" .
@@ -348,7 +348,7 @@ foreach ($fanlistings ?? [] as $fl) {
       <table class="ec-vars">
         <thead><tr><th>Variable</th><th>Type</th><th>Default</th><th>Description</th></tr></thead>
         <tbody>
-          <tr><td><code>$luster_fanlisting_id</code></td><td class="ec-type">int</td><td class="ec-def">—</td><td><strong>Required.</strong> Fanlisting ID, or <code>0</code> for site-wide collective affiliates</td></tr>
+          <tr><td><code>$luster_fanlisting_id</code></td><td class="ec-type">int</td><td class="ec-def">—</td><td><strong>Required.</strong> Listing ID, or <code>0</code> for site-wide collective affiliates</td></tr>
           <tr><td><code>$luster_per_page</code></td><td class="ec-type">int</td><td class="ec-def">50</td><td>Affiliates per page</td></tr>
           <tr><td><code>$luster_page</code></td><td class="ec-type">int</td><td class="ec-def"><code>$_GET['page']</code></td><td>Current page; defaults to reading <code>$_GET['page']</code></td></tr>
           <tr><td><code>$luster_return</code></td><td class="ec-type">bool</td><td class="ec-def">false</td><td>Return HTML string instead of echoing</td></tr>
@@ -364,7 +364,7 @@ foreach ($fanlistings ?? [] as $fl) {
     <div class="ec-card-head">
       <span class="ec-filename">embed/joined.php</span>
       <span class="ec-badge ec-badge-free">No ID needed</span>
-      <span class="ec-desc">Joined fanlistings — categorised list</span>
+      <span class="ec-desc">Joined listings — categorised list</span>
     </div>
     <div class="ec-body">
       <?php $codeBlock('joined', htmlspecialchars(
@@ -412,7 +412,7 @@ foreach ($fanlistings ?? [] as $fl) {
         '// Then use the exposed variables directly:' . "\n" .
         'echo $luster_owned_active;        // e.g. 24' . "\n" .
         'echo $luster_members_total;       // e.g. 1482' . "\n" .
-        'echo $luster_owned_newest[0]->name;  // newest fanlisting name' . "\n",
+        'echo $luster_owned_newest[0]->name;  // newest listing name' . "\n",
         ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'
       )); ?>
 
@@ -420,15 +420,15 @@ foreach ($fanlistings ?? [] as $fl) {
       <table class="ec-vars">
         <thead><tr><th>Variable</th><th>Type</th><th>Description</th></tr></thead>
         <tbody>
-          <tr><td><code>$luster_owned</code></td><td class="ec-type">int</td><td>Total owned fanlistings</td></tr>
+          <tr><td><code>$luster_owned</code></td><td class="ec-type">int</td><td>Total owned listings</td></tr>
           <tr><td><code>$luster_owned_active</code></td><td class="ec-type">int</td><td>Open/active owned (not upcoming/trouble)</td></tr>
           <tr><td><code>$luster_owned_upcoming</code></td><td class="ec-type">int</td><td>Upcoming owned</td></tr>
           <tr><td><code>$luster_owned_trouble</code></td><td class="ec-type">int</td><td>Trouble/inactive owned</td></tr>
-          <tr><td><code>$luster_joined</code></td><td class="ec-type">int</td><td>Total joined fanlistings</td></tr>
+          <tr><td><code>$luster_joined</code></td><td class="ec-type">int</td><td>Total joined listings</td></tr>
           <tr><td><code>$luster_joined_active</code></td><td class="ec-type">int</td><td>Active joined</td></tr>
-          <tr><td><code>$luster_members_approved</code></td><td class="ec-type">int</td><td>Approved members across all fanlistings</td></tr>
-          <tr><td><code>$luster_members_pending</code></td><td class="ec-type">int</td><td>Pending members across all fanlistings</td></tr>
-          <tr><td><code>$luster_members_total</code></td><td class="ec-type">int</td><td>Total members across all fanlistings</td></tr>
+          <tr><td><code>$luster_members_approved</code></td><td class="ec-type">int</td><td>Approved members across all listings</td></tr>
+          <tr><td><code>$luster_members_pending</code></td><td class="ec-type">int</td><td>Pending members across all listings</td></tr>
+          <tr><td><code>$luster_members_total</code></td><td class="ec-type">int</td><td>Total members across all listings</td></tr>
           <tr><td><code>$luster_affiliates</code></td><td class="ec-type">int</td><td>Active collective affiliates</td></tr>
         </tbody>
       </table>
@@ -437,9 +437,9 @@ foreach ($fanlistings ?? [] as $fl) {
       <table class="ec-vars">
         <thead><tr><th>Variable</th><th>Type</th><th>Description</th></tr></thead>
         <tbody>
-          <tr><td><code>$luster_owned_growth_rate</code></td><td class="ec-type">string</td><td>Active owned fanlistings per year (2 dp)</td></tr>
-          <tr><td><code>$luster_joined_growth_rate</code></td><td class="ec-type">string</td><td>Active joined fanlistings per year (2 dp)</td></tr>
-          <tr><td><code>$luster_members_growth_rate</code></td><td class="ec-type">string</td><td>Approved members per day across all fanlistings (2 dp)</td></tr>
+          <tr><td><code>$luster_owned_growth_rate</code></td><td class="ec-type">string</td><td>Active owned listings per year (2 dp)</td></tr>
+          <tr><td><code>$luster_joined_growth_rate</code></td><td class="ec-type">string</td><td>Active joined listings per year (2 dp)</td></tr>
+          <tr><td><code>$luster_members_growth_rate</code></td><td class="ec-type">string</td><td>Approved members per day across all listings (2 dp)</td></tr>
         </tbody>
       </table>
 
@@ -447,10 +447,10 @@ foreach ($fanlistings ?? [] as $fl) {
       <table class="ec-vars">
         <thead><tr><th>Variable</th><th>Type</th><th>Description</th></tr></thead>
         <tbody>
-          <tr><td><code>$luster_owned_newest</code></td><td class="ec-type">Fanlisting[]</td><td>Newest <code>$luster_count</code> active owned. Properties: <code>name</code>, <code>url</code>, <code>subject</code>, <code>joined</code>, <code>id</code></td></tr>
-          <tr><td><code>$luster_joined_newest</code></td><td class="ec-type">JoinedFanlisting[]</td><td>Newest <code>$luster_count</code> active joined. Properties: <code>name</code>, <code>url</code>, <code>category</code>, <code>dateJoined</code>, <code>image</code></td></tr>
-          <tr><td><code>$luster_owned_random</code></td><td class="ec-type">?Fanlisting</td><td>One random active owned fanlisting, or <code>null</code></td></tr>
-          <tr><td><code>$luster_joined_random</code></td><td class="ec-type">?JoinedFanlisting</td><td>One random active joined fanlisting, or <code>null</code></td></tr>
+          <tr><td><code>$luster_owned_newest</code></td><td class="ec-type">Listing[]</td><td>Newest <code>$luster_count</code> active owned. Properties: <code>name</code>, <code>url</code>, <code>subject</code>, <code>joined</code>, <code>id</code></td></tr>
+          <tr><td><code>$luster_joined_newest</code></td><td class="ec-type">JoinedListing[]</td><td>Newest <code>$luster_count</code> active joined. Properties: <code>name</code>, <code>url</code>, <code>category</code>, <code>dateJoined</code>, <code>image</code></td></tr>
+          <tr><td><code>$luster_owned_random</code></td><td class="ec-type">?Listing</td><td>One random active owned listing, or <code>null</code></td></tr>
+          <tr><td><code>$luster_joined_random</code></td><td class="ec-type">?JoinedListing</td><td>One random active joined listing, or <code>null</code></td></tr>
           <tr><td><code>$luster_categories</code></td><td class="ec-type">array</td><td>Category breakdown: <code>[{id, name, source, count}, …]</code> — count = active owned in that category</td></tr>
         </tbody>
       </table>

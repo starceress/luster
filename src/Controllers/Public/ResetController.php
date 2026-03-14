@@ -11,9 +11,10 @@ use Luster\Core\RateLimit;
 use Luster\Core\Request;
 use Luster\Core\Response;
 use Luster\Core\Validator;
-use Luster\Models\Fanlisting;
-use Luster\Repositories\FanlistingRepo;
-use Luster\Repositories\FanlistingSettingsRepo;
+use Luster\Models\Listing;
+use Luster\Repositories\EmailTemplateRepo;
+use Luster\Repositories\ListingRepo;
+use Luster\Repositories\ListingSettingsRepo;
 use Luster\Repositories\FanPasswordResetRepo;
 use Luster\Repositories\MemberRepo;
 
@@ -51,13 +52,13 @@ final class ResetController
 
     public function showForm(Request $request, array $params): Response
     {
-        $fanlistingId = (int) ($params['id'] ?? 0);
+        $listingId = (int) ($params['id'] ?? 0);
 
-        $fanlistingRepo = new FanlistingRepo($this->app->getDatabase(), $this->app->getConfig());
-        $fanlisting     = $fanlistingRepo->getById($fanlistingId);
+        $listingRepo = new ListingRepo($this->app->getDatabase(), $this->app->getConfig());
+        $listing     = $listingRepo->getById($listingId);
 
-        if ($fanlisting === null) {
-            return Response::notFound('That fanlisting does not exist.');
+        if ($listing === null) {
+            return Response::notFound('That listing does not exist.');
         }
 
         $session  = $this->app->getSession();
@@ -66,7 +67,7 @@ final class ResetController
         $session->remove('lstr_flash_error');
         $session->remove('lstr_flash_old_email');
 
-        return $this->renderResetForm($fanlistingId, $fanlisting, $oldEmail, $error);
+        return $this->renderResetForm($listingId, $listing, $oldEmail, $error);
     }
 
     // -----------------------------------------------------------------------
@@ -75,7 +76,7 @@ final class ResetController
 
     public function submit(Request $request, array $params): Response
     {
-        $fanlistingId = (int) ($params['id'] ?? 0);
+        $listingId = (int) ($params['id'] ?? 0);
         $baseUrl      = $this->app->getBaseUrl();
         $session      = $this->app->getSession();
         $rateLimit    = $this->app->getRateLimit();
@@ -83,36 +84,36 @@ final class ResetController
 
         if ($rateLimit->isBlocked($ip, RateLimit::ACTION_PUBLIC_RESET)) {
             // Still redirect to /sent — don't reveal that the IP is blocked
-            return Response::redirect($baseUrl . '/reset/' . $fanlistingId . '/sent');
+            return Response::redirect($baseUrl . '/reset/' . $listingId . '/sent');
         }
 
         // Honeypot — silent reject
         if ((string) $request->post('website_confirm', '') !== '') {
-            return Response::redirect($baseUrl . '/reset/' . $fanlistingId . '/sent');
+            return Response::redirect($baseUrl . '/reset/' . $listingId . '/sent');
         }
 
-        $fanlistingRepo = new FanlistingRepo($this->app->getDatabase(), $this->app->getConfig());
-        $fanlisting     = $fanlistingRepo->getById($fanlistingId);
+        $listingRepo = new ListingRepo($this->app->getDatabase(), $this->app->getConfig());
+        $listing     = $listingRepo->getById($listingId);
 
-        if ($fanlisting === null) {
-            return Response::notFound('That fanlisting does not exist.');
+        if ($listing === null) {
+            return Response::notFound('That listing does not exist.');
         }
 
         $email = trim((string) $request->post('email', ''));
 
         // Captcha — re-render the form (not a redirect) so CAPTCHA question refreshes
-        if (!Captcha::validate((string) $request->post('captcha_answer', ''))) {
+        if (!Captcha::validate((string) $request->post('captcha_answer', ''), 'reset')) {
             return $this->renderResetForm(
-                $fanlistingId, $fanlisting, $email,
+                $listingId, $listing, $email,
                 '', 'Incorrect answer — please try again.',
             );
         }
 
-        $settingsRepo  = new FanlistingSettingsRepo($this->app->getDatabase());
-        $embedSettings = $settingsRepo->getEmbedSettings($fanlistingId);
+        $settingsRepo  = new ListingSettingsRepo($this->app->getDatabase());
+        $embedSettings = $settingsRepo->getEmbedSettings($listingId);
         $formUrl       = (string) $embedSettings['form_url_reset'] !== ''
                        ? (string) $embedSettings['form_url_reset']
-                       : $baseUrl . '/reset/' . $fanlistingId;
+                       : $baseUrl . '/reset/' . $listingId;
 
         $v = new Validator(['email' => $email]);
         $v->field('email')->required()->email()->maxLength(255);
@@ -128,13 +129,13 @@ final class ResetController
 
         // Look up the member — only send email if they exist AND are approved
         $memberRepo = new MemberRepo($this->app->getDatabase(), $this->app->getConfig());
-        $member     = $memberRepo->getByEmail($fanlisting->dbprefix, $email);
+        $member     = $memberRepo->getByEmail($listing->dbprefix, $email);
 
         if ($member !== null && $member->approved) {
             $resetRepo = new FanPasswordResetRepo($this->app->getDatabase());
 
             // One token at a time — delete any existing token for this email+fanlisting
-            $resetRepo->deleteByEmail($fanlistingId, $email);
+            $resetRepo->deleteByEmail($listingId, $email);
 
             // Generate token
             $rawToken  = bin2hex(random_bytes(32));
@@ -143,34 +144,32 @@ final class ResetController
                 ->modify('+' . self::TOKEN_TTL_SECONDS . ' seconds')
                 ->format('Y-m-d H:i:s');
 
-            $resetRepo->create($fanlistingId, $email, $tokenHash, $expiresAt);
+            $resetRepo->create($listingId, $email, $tokenHash, $expiresAt);
 
-            $resetUrl = $baseUrl . '/reset/' . $fanlistingId . '/confirm?token=' . urlencode($rawToken);
+            $resetUrl = $baseUrl . '/reset/' . $listingId . '/confirm?token=' . urlencode($rawToken);
             $appName  = (string) $this->app->getConfig()->get('app_name', 'Luster');
 
             try {
-                $mailer = new Mailer($this->app->getConfig());
-                $mailer->send(
-                    $email,
-                    $member->name,
-                    "Reset your {$fanlisting->name} password",
-                    "Hi {$member->name},\n\n"
-                    . "We received a request to reset the password for your membership "
-                    . "in the {$fanlisting->name} fanlisting.\n\n"
-                    . "Click the link below to set a new password. "
-                    . "This link expires in 1 hour.\n\n"
-                    . $resetUrl . "\n\n"
-                    . "If you did not request this, you can safely ignore this email. "
-                    . "Your password will not change.\n\n"
-                    . "-- {$appName}",
+                $mailer    = new Mailer($this->app->getConfig());
+                $emailRepo = new EmailTemplateRepo($this->app->getDatabase());
+                $tpl       = $emailRepo->get($listingId, EmailTemplateRepo::TYPE_RESET);
+                $tokens    = EmailTemplateRepo::buildTokens(
+                    listingName: $listing->name,
+                    listingUrl:  $listing->url,
+                    appName:     $appName,
+                    fanName:     $member->name,
+                    fanEmail:    $email,
+                    resetUrl:    $resetUrl,
                 );
+                [$subject, $body] = EmailTemplateRepo::resolve($tpl, EmailTemplateRepo::TYPE_RESET, $tokens);
+                $mailer->send($email, $member->name, $subject, $body);
             } catch (\Throwable $e) {
                 error_log('[Luster] Fan password reset email failed: ' . $e->getMessage());
             }
         }
 
         // Always redirect to /sent — never reveal whether the email was found
-        return Response::redirect($baseUrl . '/reset/' . $fanlistingId . '/sent');
+        return Response::redirect($baseUrl . '/reset/' . $listingId . '/sent');
     }
 
     // -----------------------------------------------------------------------
@@ -179,21 +178,21 @@ final class ResetController
 
     public function sent(Request $request, array $params): Response
     {
-        $fanlistingId = (int) ($params['id'] ?? 0);
+        $listingId = (int) ($params['id'] ?? 0);
 
-        $fanlistingRepo = new FanlistingRepo($this->app->getDatabase(), $this->app->getConfig());
-        $fanlisting     = $fanlistingRepo->getById($fanlistingId);
+        $listingRepo = new ListingRepo($this->app->getDatabase(), $this->app->getConfig());
+        $listing     = $listingRepo->getById($listingId);
 
-        $fanlistingName = $fanlisting?->name ?? 'this fanlisting';
+        $listingName = $listing?->name ?? 'this listing';
         $baseUrl        = $this->app->getBaseUrl();
 
         $html = $this->app->getView()->renderPublic('success.php', [
-            'fanlisting'      => $fanlisting,
-            'fanlisting_name' => $fanlistingName,
-            'fanlisting_url'  => $fanlisting?->url ?? '',
+            'listing'      => $listing,
+            'listing_name' => $listingName,
+            'listing_url'  => $listing?->url ?? '',
             'page_title'      => 'Check Your Email',
             'success_heading' => 'Check Your Email',
-            'success_message' => 'If that email address is registered for this fanlisting, '
+            'success_message' => 'If that email address is registered for this listing, '
                                . 'you will receive a password reset link shortly. '
                                . 'The link expires in 1 hour.',
             'base_url'        => $baseUrl,
@@ -209,32 +208,32 @@ final class ResetController
 
     public function showConfirm(Request $request, array $params): Response
     {
-        $fanlistingId = (int) ($params['id'] ?? 0);
+        $listingId = (int) ($params['id'] ?? 0);
 
-        $fanlistingRepo = new FanlistingRepo($this->app->getDatabase(), $this->app->getConfig());
-        $fanlisting     = $fanlistingRepo->getById($fanlistingId);
+        $listingRepo = new ListingRepo($this->app->getDatabase(), $this->app->getConfig());
+        $listing     = $listingRepo->getById($listingId);
 
-        if ($fanlisting === null) {
-            return Response::notFound('That fanlisting does not exist.');
+        if ($listing === null) {
+            return Response::notFound('That listing does not exist.');
         }
 
         $rawToken = trim((string) $request->query('token', ''));
 
         if ($rawToken === '') {
-            return $this->renderConfirmForm($fanlistingId, $fanlisting, '', 'Missing or invalid reset link.');
+            return $this->renderConfirmForm($listingId, $listing, '', 'Missing or invalid reset link.');
         }
 
         $resetRepo = new FanPasswordResetRepo($this->app->getDatabase());
         $tokenRow  = $resetRepo->findValidByToken(hash('sha256', $rawToken));
 
-        if ($tokenRow === null || (int) $tokenRow['fanlisting_id'] !== $fanlistingId) {
+        if ($tokenRow === null || (int) $tokenRow['fanlisting_id'] !== $listingId) {
             return $this->renderConfirmForm(
-                $fanlistingId, $fanlisting, '',
+                $listingId, $listing, '',
                 'This reset link has expired or is invalid. Please request a new one.',
             );
         }
 
-        return $this->renderConfirmForm($fanlistingId, $fanlisting, $rawToken);
+        return $this->renderConfirmForm($listingId, $listing, $rawToken);
     }
 
     // -----------------------------------------------------------------------
@@ -243,27 +242,27 @@ final class ResetController
 
     public function submitConfirm(Request $request, array $params): Response
     {
-        $fanlistingId = (int) ($params['id'] ?? 0);
+        $listingId = (int) ($params['id'] ?? 0);
         $baseUrl      = $this->app->getBaseUrl();
         $rateLimit    = $this->app->getRateLimit();
         $ip           = $request->ip();
 
         if ($rateLimit->isBlocked($ip, RateLimit::ACTION_PUBLIC_RESET)) {
-            return Response::redirect($baseUrl . '/reset/' . $fanlistingId . '/sent');
+            return Response::redirect($baseUrl . '/reset/' . $listingId . '/sent');
         }
 
-        $fanlistingRepo = new FanlistingRepo($this->app->getDatabase(), $this->app->getConfig());
-        $fanlisting     = $fanlistingRepo->getById($fanlistingId);
+        $listingRepo = new ListingRepo($this->app->getDatabase(), $this->app->getConfig());
+        $listing     = $listingRepo->getById($listingId);
 
-        if ($fanlisting === null) {
-            return Response::notFound('That fanlisting does not exist.');
+        if ($listing === null) {
+            return Response::notFound('That listing does not exist.');
         }
 
         $rawToken = trim((string) $request->post('token', ''));
 
         if ($rawToken === '') {
             return $this->renderConfirmForm(
-                $fanlistingId, $fanlisting, '',
+                $listingId, $listing, '',
                 'Missing token. Please use the link from your email.',
             );
         }
@@ -271,10 +270,10 @@ final class ResetController
         $resetRepo = new FanPasswordResetRepo($this->app->getDatabase());
         $tokenRow  = $resetRepo->findValidByToken(hash('sha256', $rawToken));
 
-        if ($tokenRow === null || (int) $tokenRow['fanlisting_id'] !== $fanlistingId) {
+        if ($tokenRow === null || (int) $tokenRow['fanlisting_id'] !== $listingId) {
             $rateLimit->hitDefault($ip, RateLimit::ACTION_PUBLIC_RESET);
             return $this->renderConfirmForm(
-                $fanlistingId, $fanlisting, '',
+                $listingId, $listing, '',
                 'This reset link has expired or is invalid. Please request a new one.',
             );
         }
@@ -287,14 +286,14 @@ final class ResetController
 
         if ($v->fails()) {
             return $this->renderConfirmForm(
-                $fanlistingId, $fanlisting, $rawToken,
+                $listingId, $listing, $rawToken,
                 implode(' ', $v->allErrors()),
             );
         }
 
         if ($newPassword !== $newPasswordConfirm) {
             return $this->renderConfirmForm(
-                $fanlistingId, $fanlisting, $rawToken,
+                $listingId, $listing, $rawToken,
                 'Passwords do not match. Please try again.',
             );
         }
@@ -302,7 +301,7 @@ final class ResetController
         // Update the member's password
         $memberRepo = new MemberRepo($this->app->getDatabase(), $this->app->getConfig());
         $memberRepo->update(
-            $fanlisting->dbprefix,
+            $listing->dbprefix,
             (string) $tokenRow['email'],
             ['password' => password_hash($newPassword, PASSWORD_ARGON2ID)],
         );
@@ -312,14 +311,14 @@ final class ResetController
         $rateLimit->clear($ip, RateLimit::ACTION_PUBLIC_RESET);
 
         // Redirect to configured URL or default done page
-        $settingsRepo  = new FanlistingSettingsRepo($this->app->getDatabase());
-        $embedSettings = $settingsRepo->getEmbedSettings($fanlistingId);
+        $settingsRepo  = new ListingSettingsRepo($this->app->getDatabase());
+        $embedSettings = $settingsRepo->getEmbedSettings($listingId);
         $redirectUrl   = (string) $embedSettings['redirect_url_reset'];
         if ($redirectUrl !== '') {
             return Response::redirect($redirectUrl);
         }
 
-        return Response::redirect($baseUrl . '/reset/' . $fanlistingId . '/done');
+        return Response::redirect($baseUrl . '/reset/' . $listingId . '/done');
     }
 
     // -----------------------------------------------------------------------
@@ -328,21 +327,21 @@ final class ResetController
 
     public function done(Request $request, array $params): Response
     {
-        $fanlistingId = (int) ($params['id'] ?? 0);
+        $listingId = (int) ($params['id'] ?? 0);
 
-        $fanlistingRepo = new FanlistingRepo($this->app->getDatabase(), $this->app->getConfig());
-        $fanlisting     = $fanlistingRepo->getById($fanlistingId);
+        $listingRepo = new ListingRepo($this->app->getDatabase(), $this->app->getConfig());
+        $listing     = $listingRepo->getById($listingId);
 
-        $fanlistingName = $fanlisting?->name ?? 'this fanlisting';
+        $listingName = $listing?->name ?? 'this listing';
         $baseUrl        = $this->app->getBaseUrl();
 
         $html = $this->app->getView()->renderPublic('success.php', [
-            'fanlisting'      => $fanlisting,
-            'fanlisting_name' => $fanlistingName,
-            'fanlisting_url'  => $fanlisting?->url ?? '',
+            'listing'      => $listing,
+            'listing_name' => $listingName,
+            'listing_url'  => $listing?->url ?? '',
             'page_title'      => 'Password Updated',
             'success_heading' => 'Password Updated',
-            'success_message' => "Your password for the {$fanlistingName} fanlisting has been updated. "
+            'success_message' => "Your password for the {$listingName} listing has been updated. "
                                . 'You can now use it to update or remove your membership.',
             'base_url'        => $baseUrl,
             'theme_path'      => $baseUrl . '/assets/default/',
@@ -356,8 +355,8 @@ final class ResetController
     // -----------------------------------------------------------------------
 
     private function renderResetForm(
-        int $fanlistingId,
-        Fanlisting $fanlisting,
+        int $listingId,
+        Listing $listing,
         string $oldEmail = '',
         string $error = '',
         string $captchaError = '',
@@ -365,17 +364,17 @@ final class ResetController
         $baseUrl = $this->app->getBaseUrl();
 
         $html = $this->app->getView()->renderPublic('reset.php', [
-            'fanlisting'      => $fanlisting,
-            'fanlisting_name' => $fanlisting->name,
-            'fanlisting_url'  => $fanlisting->url,
+            'listing'      => $listing,
+            'listing_name' => $listing->name,
+            'listing_url'  => $listing->url,
             'page_title'      => 'Reset Password',
-            'form_action'     => $baseUrl . '/reset/' . $fanlistingId,
+            'form_action'     => $baseUrl . '/reset/' . $listingId,
             'csrf_token'      => $this->app->getCSRF()->token(),
             'errors'          => $error !== ''
                 ? '<p>' . htmlspecialchars($error, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '</p>'
                 : '',
             'field_email'     => $oldEmail,
-            'captcha_question' => Captcha::getQuestion(),
+            'captcha_question' => Captcha::getQuestion('reset'),
             'captcha_error'   => $captchaError,
             'base_url'        => $baseUrl,
             'theme_path'      => $baseUrl . '/assets/default/',
@@ -385,20 +384,20 @@ final class ResetController
     }
 
     private function renderConfirmForm(
-        int $fanlistingId,
-        Fanlisting $fanlisting,
+        int $listingId,
+        Listing $listing,
         string $rawToken,
         string $error = '',
     ): Response {
         $baseUrl = $this->app->getBaseUrl();
 
         $html = $this->app->getView()->renderPublic('reset_confirm.php', [
-            'fanlisting'      => $fanlisting,
-            'fanlisting_name' => $fanlisting->name,
-            'fanlisting_url'  => $fanlisting->url,
+            'listing'      => $listing,
+            'listing_name' => $listing->name,
+            'listing_url'  => $listing->url,
             'page_title'      => 'Set New Password',
-            'form_action'     => $baseUrl . '/reset/' . $fanlistingId . '/confirm',
-            'reset_url'       => $baseUrl . '/reset/' . $fanlistingId,
+            'form_action'     => $baseUrl . '/reset/' . $listingId . '/confirm',
+            'reset_url'       => $baseUrl . '/reset/' . $listingId,
             'csrf_token'      => $this->app->getCSRF()->token(),
             'errors'          => $error !== ''
                 ? '<p>' . htmlspecialchars($error, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '</p>'

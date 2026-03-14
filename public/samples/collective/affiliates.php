@@ -4,8 +4,8 @@
  * See index.php for setup instructions.
  *
  * Uses $luster_fanlisting_id = 0 to show collective (site-wide) affiliates —
- * those with no specific fanlisting assigned.
- * Change to a real fanlisting ID to show that fanlisting's affiliates instead.
+ * those with no specific listing assigned.
+ * Change to a real listing ID to show that listing's affiliates instead.
  */
 
 $_embedPath = dirname(__DIR__, 3) . '/public/embed';
@@ -28,7 +28,7 @@ $_navActive = 'affiliates';
     <p class="fl-site-title"><a href="index.php"><?= htmlspecialchars($_siteName, ENT_QUOTES, 'UTF-8') ?></a></p>
     <nav class="fl-nav" aria-label="Collective navigation">
       <a href="index.php">Home</a>
-      <a href="fanlistings.php">Fanlistings</a>
+      <a href="listings.php">Listings</a>
       <a href="joined.php">Joined</a>
       <a href="affiliates.php" class="active">Affiliates</a>
     </nav>

@@ -3,9 +3,9 @@
 declare(strict_types=1);
 
 /**
- * luster_bootstrap.php — Embeddable Luster bootstrap for standalone fanlisting pages.
+ * luster_bootstrap.php — Embeddable Luster bootstrap for standalone listing pages.
  *
- * Include this file at the top of an individual fanlisting's PHP page to gain
+ * Include this file at the top of an individual listing's PHP page to gain
  * access to live Luster data without going through the full HTTP stack.
  *
  * Usage
@@ -15,13 +15,13 @@ declare(strict_types=1);
  *   require '/path/to/luster/public/luster_bootstrap.php';
  *
  *   // After include, the following variables are available:
- *   //   $lstr_fl          — Luster\Models\Fanlisting  (the loaded fanlisting)
+ *   //   $lstr_fl          — Luster\Models\Listing  (the loaded listing)
  *   //   $lstr_db          — Luster\Core\Database
  *   //   $lstr_config      — Luster\Core\Config
  *   //   $lstr_memberRepo  — Luster\Repositories\MemberRepo
- *   //   $lstr_settingsRepo — Luster\Repositories\FanlistingSettingsRepo
+ *   //   $lstr_settingsRepo — Luster\Repositories\ListingSettingsRepo
  *
- * If $luster_listing is not a positive integer, or the fanlisting cannot be found,
+ * If $luster_listing is not a positive integer, or the listing cannot be found,
  * the script emits an HTML comment and stops execution of the calling page.
  */
 
@@ -40,8 +40,8 @@ require_once __DIR__ . '/../vendor/autoload.php';
 
 use Luster\Core\Config;
 use Luster\Core\Database;
-use Luster\Repositories\FanlistingRepo;
-use Luster\Repositories\FanlistingSettingsRepo;
+use Luster\Repositories\ListingRepo;
+use Luster\Repositories\ListingSettingsRepo;
 use Luster\Repositories\MemberRepo;
 
 $lstr_config = new Config(__DIR__ . '/../config/app.php');
@@ -49,16 +49,16 @@ $lstr_db     = new Database($lstr_config);
 
 // ── 4. Repositories ──────────────────────────────────────────────────────────
 
-$lstr_fanlistingRepo  = new FanlistingRepo($lstr_db, $lstr_config);
+$lstr_listingRepo     = new ListingRepo($lstr_db, $lstr_config);
 $lstr_memberRepo      = new MemberRepo($lstr_db, $lstr_config);
-$lstr_settingsRepo    = new FanlistingSettingsRepo($lstr_db);
+$lstr_settingsRepo    = new ListingSettingsRepo($lstr_db);
 
-// ── 5. Load fanlisting ───────────────────────────────────────────────────────
+// ── 5. Load listing ───────────────────────────────────────────────────────
 
-$lstr_fl = $lstr_fanlistingRepo->getById($luster_listing);
+$lstr_fl = $lstr_listingRepo->getById($luster_listing);
 
 if ($lstr_fl === null) {
-    // Fanlisting not found — exit silently so the calling page stays blank
+    // Listing not found — exit silently so the calling page stays blank
     // rather than crashing with a PHP error.
     exit;
 }

@@ -2,25 +2,25 @@
 
 declare(strict_types=1);
 
-use Luster\Repositories\FanlistingRepo;
-use Luster\Repositories\FanlistingSettingsRepo;
+use Luster\Repositories\ListingRepo;
+use Luster\Repositories\ListingSettingsRepo;
 use Luster\Repositories\MemberRepo;
 
 /**
  * Luster embed — stats fragment.
  *
- * Outputs the fanlisting stats snippet using the template stored in
+ * Outputs the listing stats snippet using the template stored in
  * lstr_fanlisting_settings.stats_template, with $token$ placeholders
- * replaced with live data. Identical output to GET /stats/{fanlistingId}
+ * replaced with live data. Identical output to GET /stats/{listingId}
  * but available as a server-side PHP include.
  *
  * Usage:
- *   $luster_fanlisting_id = 1;     // required: fanlisting ID (int)
+ *   $luster_fanlisting_id = 1;     // required: listing ID (int)
  *   $luster_return        = false;  // optional: true = return string, false = echo
  *   require '/absolute/path/to/luster/public/embed/stats.php';
  *
  * Available $token$ placeholders (same as the /stats/{id} endpoint):
- *   $stat_opened$       — date fanlisting opened ("March 1st 2026")
+ *   $stat_opened$       — date listing opened ("March 1st 2026")
  *   $stat_updated$      — date of most recent approved member (same format)
  *   $stat_last_updated$ — admin-controlled "last updated" date from
  *                         lstr_fanlisting_settings; falls back to the
@@ -29,17 +29,17 @@ use Luster\Repositories\MemberRepo;
  *   $stat_pending$      — pending member count
  *   $stat_newmembers$   — comma-separated newest 5 approved member names
  *   $stat_growth$       — members per day since opened (2 decimal places)
- *   $fanlisting_name$   — fanlisting name (HTML-escaped)
- *   $fanlisting_url$    — fanlisting URL (HTML-escaped)
+ *   $listing_name$   — listing name (HTML-escaped)
+ *   $listing_url$    — listing URL (HTML-escaped)
  */
 
 // ---------------------------------------------------------------------------
 // 1. Validate the required variable
 // ---------------------------------------------------------------------------
 
-$_lusterFanlistingId = (int) ($luster_fanlisting_id ?? 0);
+$_lusterListingId = (int) ($luster_fanlisting_id ?? 0);
 
-if ($_lusterFanlistingId === 0) {
+if ($_lusterListingId === 0) {
     $_lusterHtml = '<p class="fl-errors">Luster embed error: <code>$luster_fanlisting_id</code> is not set.</p>';
     if ($luster_return ?? false) {
         return $_lusterHtml;
@@ -72,11 +72,11 @@ $_lusterApp = require $_lusterRoot . '/bootstrap.php';
 // 3. Load fanlisting
 // ---------------------------------------------------------------------------
 
-$_lusterFanlistingRepo = new FanlistingRepo($_lusterApp->getDatabase(), $_lusterApp->getConfig());
-$_lusterFanlisting     = $_lusterFanlistingRepo->getById($_lusterFanlistingId);
+$_lusterListingRepo = new ListingRepo($_lusterApp->getDatabase(), $_lusterApp->getConfig());
+$_lusterListing     = $_lusterListingRepo->getById($_lusterListingId);
 
-if ($_lusterFanlisting === null || $_lusterFanlisting->upcoming || $_lusterFanlisting->trouble) {
-    $_lusterHtml = '<!-- Luster: stats not available for fanlisting #' . $_lusterFanlistingId . ' -->';
+if ($_lusterListing === null || $_lusterListing->upcoming || $_lusterListing->trouble) {
+    $_lusterHtml = '<!-- Luster: stats not available for listing #' . $_lusterListingId . ' -->';
     if ($luster_return ?? false) {
         return $_lusterHtml;
     }
@@ -89,7 +89,7 @@ if ($_lusterFanlisting === null || $_lusterFanlisting->upcoming || $_lusterFanli
 // ---------------------------------------------------------------------------
 
 $_lusterMemberRepo = new MemberRepo($_lusterApp->getDatabase(), $_lusterApp->getConfig());
-$_lusterPrefix     = $_lusterFanlisting->dbprefix;
+$_lusterPrefix     = $_lusterListing->dbprefix;
 
 $_lusterApproved    = $_lusterMemberRepo->countApproved($_lusterPrefix);
 $_lusterPending     = $_lusterMemberRepo->countPending($_lusterPrefix);
@@ -100,11 +100,11 @@ $_lusterLastUpdated = $_lusterMemberRepo->getMostRecentApprovedDate($_lusterPref
 // 5. Load template from DB (falls back to default)
 // ---------------------------------------------------------------------------
 
-$_lusterSettingsRepo = new FanlistingSettingsRepo($_lusterApp->getDatabase());
-$_lusterTemplates    = $_lusterSettingsRepo->getTemplates($_lusterFanlistingId);
+$_lusterSettingsRepo = new ListingSettingsRepo($_lusterApp->getDatabase());
+$_lusterTemplates    = $_lusterSettingsRepo->getTemplates($_lusterListingId);
 
 // Last Updated — from lstr_fanlisting_settings.last_updated (admin-controlled)
-$_lusterAdminLastUpdated = $_lusterSettingsRepo->getLastUpdated($_lusterFanlistingId);
+$_lusterAdminLastUpdated = $_lusterSettingsRepo->getLastUpdated($_lusterListingId);
 $_lusterLastUpdatedFallback = (string) $_lusterApp->getConfig()->get('last_updated_fallback', 'Never');
 
 $_lusterTemplate     = ($_lusterTemplates['stats_template'] !== null
@@ -134,8 +134,8 @@ $_lusterFormatDate = static function (string $dateStr): string {
     return date('F', $ts) . ' ' . $day . $suffix . ' ' . date('Y', $ts);
 };
 
-$_lusterOpened  = $_lusterFanlisting->joined !== null
-    ? $_lusterFormatDate($_lusterFanlisting->joined)
+$_lusterOpened  = $_lusterListing->joined !== null
+    ? $_lusterFormatDate($_lusterListing->joined)
     : 'Unknown';
 $_lusterUpdated = $_lusterLastUpdated !== null
     ? $_lusterFormatDate($_lusterLastUpdated)
@@ -151,8 +151,8 @@ $_lusterNewMembersStr = implode(', ', array_map(
 ));
 
 $_lusterGrowth = '0.00';
-if ($_lusterFanlisting->joined !== null) {
-    $_lusterOpenedTs = strtotime($_lusterFanlisting->joined);
+if ($_lusterListing->joined !== null) {
+    $_lusterOpenedTs = strtotime($_lusterListing->joined);
     if ($_lusterOpenedTs !== false) {
         $_lusterDays   = max(1, (int) round((time() - $_lusterOpenedTs) / 86400));
         $_lusterGrowth = number_format($_lusterApproved / $_lusterDays, 2);
@@ -176,8 +176,8 @@ $_lusterHtml = str_replace(
         '$stat_pending$',
         '$stat_newmembers$',
         '$stat_growth$',
-        '$fanlisting_name$',
-        '$fanlisting_url$',
+        '$listing_name$',
+        '$listing_url$',
     ],
     [
         $_lusterOpened,
@@ -187,8 +187,8 @@ $_lusterHtml = str_replace(
         (string) $_lusterPending,
         $_lusterNewMembersStr,
         $_lusterGrowth,
-        htmlspecialchars($_lusterFanlisting->name, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),
-        htmlspecialchars($_lusterFanlisting->url,  ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),
+        htmlspecialchars($_lusterListing->name, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),
+        htmlspecialchars($_lusterListing->url,  ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),
     ],
     $_lusterTemplate,
 );

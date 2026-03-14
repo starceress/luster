@@ -7,16 +7,15 @@ namespace Luster\Controllers\Public;
 use Luster\Core\Application;
 use Luster\Core\Captcha;
 use Luster\Core\Countries;
-use Luster\Core\Mailer;
 use Luster\Core\RateLimit;
 use Luster\Core\Request;
 use Luster\Core\Response;
 use Luster\Core\Validator;
-use Luster\Models\Fanlisting;
-use Luster\Repositories\EmailTemplateRepo;
-use Luster\Repositories\FanlistingRepo;
-use Luster\Repositories\FanlistingSettingsRepo;
+use Luster\Models\Listing;
+use Luster\Repositories\ListingRepo;
+use Luster\Repositories\ListingSettingsRepo;
 use Luster\Repositories\FieldRepo;
+use Luster\Repositories\BlacklistRepo;
 use Luster\Repositories\MemberRepo;
 use Luster\Repositories\PendingUpdateRepo;
 
@@ -46,19 +45,19 @@ final class UpdateController
 
     public function showForm(Request $request, array $params): Response
     {
-        $fanlistingId = (int) ($params['id'] ?? 0);
+        $listingId = (int) ($params['id'] ?? 0);
 
-        $fanlistingRepo = new FanlistingRepo($this->app->getDatabase(), $this->app->getConfig());
-        $fanlisting     = $fanlistingRepo->getById($fanlistingId);
+        $listingRepo = new ListingRepo($this->app->getDatabase(), $this->app->getConfig());
+        $listing     = $listingRepo->getById($listingId);
 
-        if ($fanlisting === null) {
-            return Response::notFound('That fanlisting does not exist.');
+        if ($listing === null) {
+            return Response::notFound('That listing does not exist.');
         }
 
         $fieldRepo     = new FieldRepo($this->app->getDatabase(), $this->app->getConfig());
-        $fields        = $fieldRepo->getFieldsForFanlisting($fanlistingId);
-        $settingsRepo  = new FanlistingSettingsRepo($this->app->getDatabase());
-        $embedSettings = $settingsRepo->getEmbedSettings($fanlistingId);
+        $fields        = $fieldRepo->getFieldsForListing($listingId);
+        $settingsRepo  = new ListingSettingsRepo($this->app->getDatabase());
+        $embedSettings = $settingsRepo->getEmbedSettings($listingId);
 
         $session = $this->app->getSession();
         $error   = (string) $session->get('lstr_flash_error', '');
@@ -66,7 +65,7 @@ final class UpdateController
         $session->remove('lstr_flash_error');
         $session->remove('lstr_flash_old');
 
-        return $this->renderUpdateForm($fanlistingId, $fanlisting, $fields, $embedSettings, $old, $error);
+        return $this->renderUpdateForm($listingId, $listing, $fields, $embedSettings, $old, $error);
     }
 
     // -----------------------------------------------------------------------
@@ -75,7 +74,7 @@ final class UpdateController
 
     public function submit(Request $request, array $params): Response
     {
-        $fanlistingId = (int) ($params['id'] ?? 0);
+        $listingId = (int) ($params['id'] ?? 0);
         $baseUrl      = $this->app->getBaseUrl();
         $session      = $this->app->getSession();
         $rateLimit    = $this->app->getRateLimit();
@@ -84,30 +83,30 @@ final class UpdateController
         // Rate limiting — prevents credential stuffing and account harvesting
         if ($rateLimit->isBlocked($ip, RateLimit::ACTION_PUBLIC_UPDATE)) {
             $session->set('lstr_flash_error', 'Too many attempts. Please try again later.');
-            return Response::redirect($baseUrl . '/update/' . $fanlistingId);
+            return Response::redirect($baseUrl . '/update/' . $listingId);
         }
 
         // Honeypot — silent reject
         if ((string) $request->post('website_confirm', '') !== '') {
-            return Response::redirect($baseUrl . '/update/' . $fanlistingId . '/success');
+            return Response::redirect($baseUrl . '/update/' . $listingId . '/success');
         }
 
-        $fanlistingRepo = new FanlistingRepo($this->app->getDatabase(), $this->app->getConfig());
-        $fanlisting     = $fanlistingRepo->getById($fanlistingId);
+        $listingRepo = new ListingRepo($this->app->getDatabase(), $this->app->getConfig());
+        $listing     = $listingRepo->getById($listingId);
 
-        if ($fanlisting === null) {
-            return Response::notFound('That fanlisting does not exist.');
+        if ($listing === null) {
+            return Response::notFound('That listing does not exist.');
         }
 
         $fieldRepo     = new FieldRepo($this->app->getDatabase(), $this->app->getConfig());
-        $fields        = $fieldRepo->getFieldsForFanlisting($fanlistingId);
-        $settingsRepo  = new FanlistingSettingsRepo($this->app->getDatabase());
-        $embedSettings = $settingsRepo->getEmbedSettings($fanlistingId);
+        $fields        = $fieldRepo->getFieldsForListing($listingId);
+        $settingsRepo  = new ListingSettingsRepo($this->app->getDatabase());
+        $embedSettings = $settingsRepo->getEmbedSettings($listingId);
 
         $countryEnabled = (bool) $embedSettings['country_field_enabled'];
         $formUrl        = (string) $embedSettings['form_url_update'] !== ''
                         ? (string) $embedSettings['form_url_update']
-                        : $baseUrl . '/update/' . $fanlistingId;
+                        : $baseUrl . '/update/' . $listingId;
 
         // Section 1 — authentication credentials
         $email    = trim((string) $request->post('email',    ''));
@@ -125,7 +124,7 @@ final class UpdateController
         $postData = $request->postAll();
 
         // Captcha — re-render the form with an error on failure
-        if (!Captcha::validate((string) $request->post('captcha_answer', ''))) {
+        if (!Captcha::validate((string) $request->post('captcha_answer', ''), 'update')) {
             $old = [
                 'email'     => $email,
                 'new_name'  => $newName,
@@ -134,7 +133,7 @@ final class UpdateController
                 'country'   => $country,
             ];
             return $this->renderUpdateForm(
-                $fanlistingId, $fanlisting, $fields, $embedSettings, $old,
+                $listingId, $listing, $fields, $embedSettings, $old,
                 '', 'Incorrect answer — please try again.',
             );
         }
@@ -179,7 +178,7 @@ final class UpdateController
         }
 
         $memberRepo = new MemberRepo($this->app->getDatabase(), $this->app->getConfig());
-        $member     = $memberRepo->getByEmail($fanlisting->dbprefix, $email);
+        $member     = $memberRepo->getByEmail($listing->dbprefix, $email);
 
         if ($member === null) {
             $rateLimit->hitDefault($ip, RateLimit::ACTION_PUBLIC_UPDATE);
@@ -197,7 +196,7 @@ final class UpdateController
             if (hash_equals($storedHash, md5($password))) {
                 $verified = true;
                 $newHash  = password_hash($password, PASSWORD_ARGON2ID);
-                $memberRepo->update($fanlisting->dbprefix, $email, ['password' => $newHash]);
+                $memberRepo->update($listing->dbprefix, $email, ['password' => $newHash]);
             }
         } else {
             $verified = password_verify($password, $storedHash);
@@ -223,14 +222,14 @@ final class UpdateController
                 'country'   => $country,
             ];
             return $this->renderUpdateForm(
-                $fanlistingId, $fanlisting, $fields, $embedSettings, $old,
+                $listingId, $listing, $fields, $embedSettings, $old,
                 '', '', 'New passwords do not match. Please try again.',
             );
         }
 
-        // New email uniqueness check — only when the address is actually changing
+        // New email blacklist + uniqueness check — only when the address is actually changing
         if ($newEmail !== '' && $newEmail !== $email) {
-            if ($memberRepo->getByEmail($fanlisting->dbprefix, $newEmail) !== null) {
+            if ((new BlacklistRepo($this->app->getDatabase()))->isBlocked($newEmail)) {
                 $old = [
                     'email'     => $email,
                     'new_name'  => $newName,
@@ -239,8 +238,25 @@ final class UpdateController
                     'country'   => $country,
                 ];
                 return $this->renderUpdateForm(
-                    $fanlistingId, $fanlisting, $fields, $embedSettings, $old,
-                    '', '', 'That email address is already registered for this fanlisting.',
+                    $listingId, $listing, $fields, $embedSettings, $old,
+                    '', '', 'That email address cannot be used.',
+                );
+            }
+        }
+
+        // New email uniqueness check — only when the address is actually changing
+        if ($newEmail !== '' && $newEmail !== $email) {
+            if ($memberRepo->getByEmail($listing->dbprefix, $newEmail) !== null) {
+                $old = [
+                    'email'     => $email,
+                    'new_name'  => $newName,
+                    'new_email' => $newEmail,
+                    'url'       => $url,
+                    'country'   => $country,
+                ];
+                return $this->renderUpdateForm(
+                    $listingId, $listing, $fields, $embedSettings, $old,
+                    '', '', 'That email address is already registered for this listing.',
                 );
             }
         }
@@ -282,64 +298,30 @@ final class UpdateController
             $updateData[$colName] = trim((string) ($postData['field_' . $field->name] ?? ''));
         }
 
-        // ── Queue vs immediate ────────────────────────────────────────────────
-        if ($settingsRepo->getQueueUpdates($fanlistingId)) {
-            // Apply new password immediately (auth-critical; don't queue it)
-            if (isset($updateData['password'])) {
-                $memberRepo->update($fanlisting->dbprefix, $email, ['password' => $updateData['password']]);
-                unset($updateData['password']);
-            }
-
-            // Also unset email change from queued payload — email is the member key,
-            // so email changes are applied immediately to keep the member locatable
-            if (isset($updateData['email'])) {
-                $memberRepo->update($fanlisting->dbprefix, $email, ['email' => $updateData['email']]);
-                unset($updateData['email']);
-            }
-
-            $pendingRepo = new PendingUpdateRepo($this->app->getDatabase());
-            $pendingRepo->insert($fanlistingId, $finalEmail, $updateData);
-
-            $session->set('lstr_flash_pending', '1');
-            $redirectUrl = (string) $embedSettings['redirect_url_update'];
-            if ($redirectUrl !== '') {
-                return Response::redirect($redirectUrl);
-            }
-
-            return Response::redirect($baseUrl . '/update/' . $fanlistingId . '/success');
+        // Apply new password immediately (auth-critical; don't queue it)
+        if (isset($updateData['password'])) {
+            $memberRepo->update($listing->dbprefix, $email, ['password' => $updateData['password']]);
+            unset($updateData['password']);
         }
 
-        // Immediate update (default path)
-        $memberRepo->update($fanlisting->dbprefix, $email, $updateData);
-
-        // Confirmation email (best-effort)
-        try {
-            $mailer    = new Mailer($this->app->getConfig());
-            $appName   = (string) $this->app->getConfig()->get('app_name', 'Luster');
-            $emailRepo = new EmailTemplateRepo($this->app->getDatabase());
-            $tpl       = $emailRepo->get($fanlistingId, EmailTemplateRepo::TYPE_UPDATE);
-            $tokens    = EmailTemplateRepo::buildTokens(
-                fanlistingName: $fanlisting->name,
-                fanlistingUrl:  $fanlisting->url,
-                appName:        $appName,
-                fanName:        $finalName,
-                fanEmail:       $finalEmail,
-                fanUrl:         $finalUrl,
-                fanCountry:     $finalCountry,
-            );
-            [$subject, $body] = EmailTemplateRepo::resolve($tpl, EmailTemplateRepo::TYPE_UPDATE, $tokens);
-            $mailer->send($finalEmail, $finalName, $subject, $body);
-        } catch (\Throwable $e) {
-            error_log('[Luster] Update email failed: ' . $e->getMessage());
+        // Apply email change immediately — email is the member key, so deferring
+        // it would leave the pending record unreachable if the email changes.
+        if (isset($updateData['email'])) {
+            $memberRepo->update($listing->dbprefix, $email, ['email' => $updateData['email']]);
+            unset($updateData['email']);
         }
 
-        // Redirect to configured URL or default success page
+        // Queue the remaining field changes for admin review.
+        $pendingRepo = new PendingUpdateRepo($this->app->getDatabase());
+        $pendingRepo->insert($listingId, $finalEmail, $updateData);
+
+        $session->set('lstr_flash_pending', '1');
         $redirectUrl = (string) $embedSettings['redirect_url_update'];
         if ($redirectUrl !== '') {
             return Response::redirect($redirectUrl);
         }
 
-        return Response::redirect($baseUrl . '/update/' . $fanlistingId . '/success');
+        return Response::redirect($baseUrl . '/update/' . $listingId . '/success');
     }
 
     // -----------------------------------------------------------------------
@@ -348,12 +330,12 @@ final class UpdateController
 
     public function success(Request $request, array $params): Response
     {
-        $fanlistingId = (int) ($params['id'] ?? 0);
+        $listingId = (int) ($params['id'] ?? 0);
 
-        $fanlistingRepo = new FanlistingRepo($this->app->getDatabase(), $this->app->getConfig());
-        $fanlisting     = $fanlistingRepo->getById($fanlistingId);
+        $listingRepo = new ListingRepo($this->app->getDatabase(), $this->app->getConfig());
+        $listing     = $listingRepo->getById($listingId);
 
-        $fanlistingName = $fanlisting?->name ?? 'this fanlisting';
+        $listingName = $listing?->name ?? 'this listing';
         $baseUrl        = $this->app->getBaseUrl();
         $session        = $this->app->getSession();
 
@@ -361,14 +343,14 @@ final class UpdateController
         $session->remove('lstr_flash_pending');
 
         $html = $this->app->getView()->renderPublic('success.php', [
-            'fanlisting'      => $fanlisting,
-            'fanlisting_name' => $fanlistingName,
-            'fanlisting_url'  => $fanlisting?->url ?? '',
+            'listing'      => $listing,
+            'listing_name' => $listingName,
+            'listing_url'  => $listing?->url ?? '',
             'page_title'      => $isPending ? 'Update Pending' : 'Membership Updated',
             'success_heading' => $isPending ? 'Update Submitted' : 'Membership Updated',
             'success_message' => $isPending
-                ? "Your update for the {$fanlistingName} fanlisting has been submitted and is awaiting admin review. Changes will appear once approved."
-                : "Your membership in the {$fanlistingName} fanlisting has been updated successfully.",
+                ? "Your update for the {$listingName} listing has been submitted and is awaiting admin review. Changes will appear once approved."
+                : "Your membership in the {$listingName} listing has been updated successfully.",
             'base_url'        => $baseUrl,
             'theme_path'      => $baseUrl . '/assets/default/',
         ]);
@@ -391,8 +373,8 @@ final class UpdateController
      * @param array<string,string>             $old
      */
     private function renderUpdateForm(
-        int $fanlistingId,
-        Fanlisting $fanlisting,
+        int $listingId,
+        Listing $listing,
         array $fields,
         array $embedSettings,
         array $old = [],
@@ -403,11 +385,11 @@ final class UpdateController
         $baseUrl = $this->app->getBaseUrl();
 
         $html = $this->app->getView()->renderPublic('update.php', [
-            'fanlisting'           => $fanlisting,
-            'fanlisting_name'      => $fanlisting->name,
-            'fanlisting_url'       => $fanlisting->url,
+            'listing'           => $listing,
+            'listing_name'      => $listing->name,
+            'listing_url'       => $listing->url,
             'page_title'           => 'Update Membership',
-            'form_action'          => $baseUrl . '/update/' . $fanlistingId,
+            'form_action'          => $baseUrl . '/update/' . $listingId,
             'csrf_token'           => $this->app->getCSRF()->token(),
             'errors'               => $error !== '' ? '<p>' . htmlspecialchars($error, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '</p>' : '',
             'update_error'         => $updateError,
@@ -419,9 +401,9 @@ final class UpdateController
             'country_field_enabled' => (bool) $embedSettings['country_field_enabled'],
             'fields'               => $fields,
             'old'                  => $old,
-            'captcha_question'     => Captcha::getQuestion(),
+            'captcha_question'     => Captcha::getQuestion('update'),
             'captcha_error'        => $captchaError,
-            'lost_password_url'    => $baseUrl . '/reset/' . $fanlistingId,
+            'lost_password_url'    => $baseUrl . '/reset/' . $listingId,
             'base_url'             => $baseUrl,
             'theme_path'           => $baseUrl . '/assets/default/',
         ]);

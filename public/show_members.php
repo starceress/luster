@@ -5,7 +5,7 @@ declare(strict_types=1);
 /**
  * show_members.php — Embeddable Luster members-list widget.
  *
- * Outputs an approved member list fragment for a fanlisting. No HTML
+ * Outputs an approved member list fragment for a listing. No HTML
  * wrapper — drop this include anywhere inside your page's body.
  *
  * Usage
@@ -18,7 +18,7 @@ declare(strict_types=1);
  * once per approved member, concatenates the rows, and echoes the result.
  * Falls back to a built-in default if no template has been saved.
  *
- * Outputs nothing (silently) for upcoming or trouble fanlistings.
+ * Outputs nothing (silently) for upcoming or trouble listings.
  *
  * Tokens available in members_template ($$token$$ style):
  *   $$fan_name$$    — member name (HTML-escaped)
@@ -31,7 +31,7 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/luster_bootstrap.php';
 
-// ── Guard: suppress output for inactive fanlistings ──────────────────────────
+// ── Guard: suppress output for inactive listings ──────────────────────────
 
 if ($lstr_fl->upcoming || $lstr_fl->trouble) {
     return;

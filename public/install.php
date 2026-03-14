@@ -35,16 +35,23 @@ ini_set('display_errors', '0');
 ini_set('log_errors', '1');
 error_reporting(E_ALL);
 
+ini_set('session.cookie_httponly', '1');
+ini_set('session.cookie_secure', '1');
+ini_set('session.cookie_samesite', 'Strict');
+ini_set('session.use_strict_mode', '1');
 session_start();
 
 define('LUSTER_BASE', dirname(__DIR__));
-define('CONFIG_PATH', LUSTER_BASE . '/config/app.php');
+define('CONFIG_PATH',   LUSTER_BASE . '/config/app.php');
+define('SENTINEL_PATH', LUSTER_BASE . '/storage/.installed');
 
 // -------------------------------------------------------------------------
 // Already installed?
+// Checked against a sentinel file in storage/ so that deleting config/app.php
+// alone cannot re-open the installer and allow a takeover.
 // -------------------------------------------------------------------------
 
-if (is_file(CONFIG_PATH)) {
+if (is_file(SENTINEL_PATH) || is_file(CONFIG_PATH)) {
     renderAlreadyInstalled();
     exit;
 }
@@ -146,12 +153,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             // Step 3: site config + admin account → run install
             // ----------------------------------------------------------------
             case 3:
-                $appUrl              = rtrim(trim((string) ($_POST['app_url'] ?? '')), '/');
-                $appName             = trim((string) ($_POST['app_name'] ?? 'Luster'));
-                $timezone            = trim((string) ($_POST['timezone'] ?? 'UTC'));
-                $adminUsername       = trim((string) ($_POST['admin_username'] ?? ''));
-                $adminEmail          = trim((string) ($_POST['admin_email'] ?? ''));
-                $adminPassword       = (string) ($_POST['admin_password'] ?? '');
+                $appUrl               = rtrim(trim((string) ($_POST['app_url'] ?? '')), '/');
+                $appName              = trim((string) ($_POST['app_name'] ?? 'Luster'));
+                $timezone             = trim((string) ($_POST['timezone'] ?? 'UTC'));
+                $adminUsername        = trim((string) ($_POST['admin_username'] ?? ''));
+                $adminEmail           = trim((string) ($_POST['admin_email'] ?? ''));
+                $adminPassword        = (string) ($_POST['admin_password'] ?? '');
                 $adminPasswordConfirm = (string) ($_POST['admin_password_confirm'] ?? '');
 
                 if ($appUrl === '') {
@@ -201,6 +208,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         installAdminUser($pdo, $adminUsername, $adminEmail, $adminPassword);
                         writeConfig($db, $appName, $appUrl, $timezone, $adminEmail);
 
+                        // Write installation sentinel — prevents the installer from
+                        // re-opening even if config/app.php is later deleted.
+                        file_put_contents(SENTINEL_PATH, date('Y-m-d H:i:s') . "\n");
+
                         // Clear install session
                         unset(
                             $_SESSION['lstr_install_step'],
@@ -248,8 +259,13 @@ renderPage($step === 1 ? 'req' : (string) $step, $errors, $csrfToken, $step, $st
 
 function installTables(PDO $pdo): void
 {
-    $sql = <<<'SQL'
-        CREATE TABLE IF NOT EXISTS `lstr_admin_users` (
+    $statements = [
+
+        // ------------------------------------------------------------------
+        // Core auth + security tables
+        // ------------------------------------------------------------------
+
+        "CREATE TABLE IF NOT EXISTS `lstr_admin_users` (
             `id`              INT UNSIGNED    NOT NULL AUTO_INCREMENT,
             `username`        VARCHAR(50)     NOT NULL,
             `email`           VARCHAR(255)    NOT NULL,
@@ -261,9 +277,9 @@ function installTables(PDO $pdo): void
             PRIMARY KEY (`id`),
             UNIQUE KEY `uk_username` (`username`),
             UNIQUE KEY `uk_email`    (`email`)
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
 
-        CREATE TABLE IF NOT EXISTS `lstr_password_resets` (
+        "CREATE TABLE IF NOT EXISTS `lstr_password_resets` (
             `id`            INT UNSIGNED NOT NULL AUTO_INCREMENT,
             `admin_user_id` INT UNSIGNED NOT NULL,
             `token_hash`    VARCHAR(255) NOT NULL,
@@ -271,14 +287,14 @@ function installTables(PDO $pdo): void
             `used`          TINYINT(1)   NOT NULL DEFAULT 0,
             `created_at`    DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
             PRIMARY KEY (`id`),
-            KEY `idx_token_hash`              (`token_hash`),
-            KEY `fk_pr_admin_user`            (`admin_user_id`),
+            KEY `idx_token_hash`   (`token_hash`),
+            KEY `fk_pr_admin_user` (`admin_user_id`),
             CONSTRAINT `fk_pr_admin_user`
                 FOREIGN KEY (`admin_user_id`) REFERENCES `lstr_admin_users` (`id`)
                 ON DELETE CASCADE
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
 
-        CREATE TABLE IF NOT EXISTS `lstr_rate_limits` (
+        "CREATE TABLE IF NOT EXISTS `lstr_rate_limits` (
             `id`            INT UNSIGNED NOT NULL AUTO_INCREMENT,
             `identifier`    VARCHAR(255) NOT NULL,
             `action`        VARCHAR(100) NOT NULL,
@@ -287,9 +303,13 @@ function installTables(PDO $pdo): void
             `blocked_until` DATETIME     NULL,
             PRIMARY KEY (`id`),
             UNIQUE KEY `uk_identifier_action` (`identifier`, `action`)
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
 
-        CREATE TABLE IF NOT EXISTS `lstr_activity_log` (
+        // ------------------------------------------------------------------
+        // Audit
+        // ------------------------------------------------------------------
+
+        "CREATE TABLE IF NOT EXISTS `lstr_activity_log` (
             `id`            INT UNSIGNED  NOT NULL AUTO_INCREMENT,
             `admin_user_id` INT UNSIGNED  NULL,
             `action`        VARCHAR(100)  NOT NULL,
@@ -300,29 +320,183 @@ function installTables(PDO $pdo): void
             KEY `idx_admin_user_id` (`admin_user_id`),
             KEY `idx_action`        (`action`),
             KEY `idx_created_at`    (`created_at`)
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
 
-        CREATE TABLE IF NOT EXISTS `lstr_affiliates` (
+        "CREATE TABLE IF NOT EXISTS `lstr_error_log` (
+            `id`         BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+            `level`      VARCHAR(20)     NOT NULL DEFAULT 'error',
+            `message`    TEXT            NOT NULL,
+            `source`     VARCHAR(255)    NULL,
+            `created_at` DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (`id`),
+            INDEX `idx_created` (`created_at`)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
+
+        // ------------------------------------------------------------------
+        // Migration tracking
+        // ------------------------------------------------------------------
+
+        "CREATE TABLE IF NOT EXISTS `lstr_migrations` (
+            `migration_number` INT UNSIGNED NOT NULL,
+            `run_at`           DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (`migration_number`)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
+
+        // ------------------------------------------------------------------
+        // Listing data
+        // ------------------------------------------------------------------
+
+        // Affiliates: fanlisting_id nullable (NULL = collective/site-wide),
+        //             active flag included from the start.
+        "CREATE TABLE IF NOT EXISTS `lstr_affiliates` (
             `id`             INT UNSIGNED  NOT NULL AUTO_INCREMENT,
-            `fanlisting_id`  INT UNSIGNED  NOT NULL,
+            `fanlisting_id`  INT UNSIGNED  NULL DEFAULT NULL,
             `name`           VARCHAR(255)  NOT NULL,
             `url`            VARCHAR(500)  NOT NULL,
             `email`          VARCHAR(255)  NULL,
             `image`          VARCHAR(255)  NULL,
             `sort_order`     INT UNSIGNED  NOT NULL DEFAULT 0,
+            `active`         TINYINT(1)    NOT NULL DEFAULT 1,
             `created_at`     DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP,
             `updated_at`     DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
             PRIMARY KEY (`id`),
             KEY `idx_fanlisting_id` (`fanlisting_id`)
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-    SQL;
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
 
-    // Execute each statement separately (PDO does not support multi-statement exec reliably)
-    foreach (array_filter(array_map('trim', explode(';', $sql))) as $statement) {
-        if ($statement !== '') {
-            $pdo->exec($statement);
-        }
+        // Per-listing Luster settings — full column set (all migrations merged).
+        "CREATE TABLE IF NOT EXISTS `lstr_fanlisting_settings` (
+            `fanlisting_id`           INT UNSIGNED     NOT NULL,
+            `auto_approve`            TINYINT(1)       NOT NULL DEFAULT 0,
+            `stats_template`          TEXT             NULL DEFAULT NULL,
+            `members_template`        TEXT             NULL DEFAULT NULL,
+            `affiliates_template`     TEXT             NULL DEFAULT NULL,
+            `image`                   VARCHAR(255)     NULL DEFAULT NULL,
+            `listing_type`            VARCHAR(50)      NULL DEFAULT NULL,
+            `members_per_page`        TINYINT UNSIGNED NULL DEFAULT NULL,
+            `country_field_enabled`   TINYINT(1)       NOT NULL DEFAULT 1,
+            `redirect_url_join`       VARCHAR(500)     NOT NULL DEFAULT '',
+            `redirect_url_update`     VARCHAR(500)     NOT NULL DEFAULT '',
+            `redirect_url_remove`     VARCHAR(500)     NOT NULL DEFAULT '',
+            `form_url_join`           VARCHAR(500)     NOT NULL DEFAULT '',
+            `form_url_update`         VARCHAR(500)     NOT NULL DEFAULT '',
+            `form_url_remove`         VARCHAR(500)     NOT NULL DEFAULT '',
+            `form_url_reset`          VARCHAR(500)     NOT NULL DEFAULT '',
+            `redirect_url_reset`      VARCHAR(500)     NOT NULL DEFAULT '',
+            `last_updated`            DATE             NULL DEFAULT NULL,
+            `queue_updates`           TINYINT(1)       NOT NULL DEFAULT 0,
+            `db_host`                 VARCHAR(255)     NOT NULL DEFAULT '',
+            `db_name`                 VARCHAR(255)     NOT NULL DEFAULT '',
+            `db_user`                 VARCHAR(255)     NOT NULL DEFAULT '',
+            `db_pass`                 VARCHAR(500)     NOT NULL DEFAULT '',
+            `updated_at`              DATETIME         NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            PRIMARY KEY (`fanlisting_id`)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
+
+        // Codes (button images members use to link back to a listing).
+        "CREATE TABLE IF NOT EXISTS `lstr_codes` (
+            `id`            INT UNSIGNED      NOT NULL AUTO_INCREMENT,
+            `fanlisting_id` INT UNSIGNED      NOT NULL,
+            `filename`      VARCHAR(255)      NOT NULL,
+            `width`         SMALLINT UNSIGNED NOT NULL DEFAULT 0,
+            `height`        SMALLINT UNSIGNED NOT NULL DEFAULT 0,
+            `sort_order`    SMALLINT UNSIGNED NOT NULL DEFAULT 0,
+            `created_at`    DATETIME          NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (`id`),
+            INDEX `idx_fanlisting`      (`fanlisting_id`),
+            INDEX `idx_fanlisting_sort` (`fanlisting_id`, `sort_order`, `id`)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
+
+        // Per-listing transactional email templates.
+        "CREATE TABLE IF NOT EXISTS `lstr_email_templates` (
+            `id`            INT UNSIGNED  NOT NULL AUTO_INCREMENT,
+            `fanlisting_id` INT UNSIGNED  NOT NULL,
+            `type`          VARCHAR(20)   NOT NULL,
+            `enabled`       TINYINT(1)    NOT NULL DEFAULT 1,
+            `subject`       VARCHAR(255)  NOT NULL DEFAULT '',
+            `body`          TEXT          NOT NULL,
+            PRIMARY KEY (`id`),
+            UNIQUE KEY `uq_fanlisting_type` (`fanlisting_id`, `type`)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
+
+        // Fan-facing password reset tokens.
+        "CREATE TABLE IF NOT EXISTS `lstr_fan_password_resets` (
+            `id`            INT UNSIGNED  NOT NULL AUTO_INCREMENT,
+            `fanlisting_id` INT UNSIGNED  NOT NULL,
+            `email`         VARCHAR(255)  NOT NULL,
+            `token_hash`    VARCHAR(64)   NOT NULL,
+            `expires_at`    DATETIME      NOT NULL,
+            `created_at`    DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (`id`),
+            INDEX `idx_token`    (`token_hash`),
+            INDEX `idx_email_fl` (`fanlisting_id`, `email`)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
+
+        // Member-submitted updates awaiting admin review.
+        "CREATE TABLE IF NOT EXISTS `lstr_pending_updates` (
+            `id`            INT UNSIGNED  NOT NULL AUTO_INCREMENT,
+            `fanlisting_id` INT UNSIGNED  NOT NULL,
+            `member_email`  VARCHAR(255)  NOT NULL,
+            `changes`       TEXT          NOT NULL,
+            `submitted_at`  DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (`id`),
+            INDEX `idx_fanlisting` (`fanlisting_id`),
+            INDEX `idx_email`      (`member_email`)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
+
+        // ------------------------------------------------------------------
+        // Collective data
+        // ------------------------------------------------------------------
+
+        // Categories (TFL/TAFL/custom) — source VARCHAR(50) from the start.
+        "CREATE TABLE IF NOT EXISTS `lstr_categories` (
+            `id`         INT UNSIGNED NOT NULL AUTO_INCREMENT,
+            `name`       VARCHAR(150) NOT NULL,
+            `parent_id`  INT UNSIGNED NULL,
+            `source`     VARCHAR(50)  NOT NULL DEFAULT 'custom',
+            `created_at` DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (`id`)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
+
+        // Spam / email blacklist.
+        "CREATE TABLE IF NOT EXISTS `lstr_blacklist` (
+            `id`         INT UNSIGNED  NOT NULL AUTO_INCREMENT,
+            `pattern`    VARCHAR(255)  NOT NULL,
+            `note`       VARCHAR(500)  NOT NULL DEFAULT '',
+            `created_at` DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (`id`),
+            UNIQUE KEY `uq_pattern` (`pattern`)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
+
+        // Joined listings tracker — all columns from migrations 4, 7, 15.
+        "CREATE TABLE IF NOT EXISTS `lstr_joined` (
+            `id`              INT UNSIGNED  NOT NULL AUTO_INCREMENT,
+            `name`            VARCHAR(255)  NOT NULL,
+            `url`             VARCHAR(500)  NOT NULL,
+            `image`           VARCHAR(255)  NULL,
+            `category`        VARCHAR(100)  NOT NULL DEFAULT '',
+            `categories_json` TEXT          NULL,
+            `date_joined`     DATE          NULL,
+            `active`          TINYINT(1)    NOT NULL DEFAULT 1,
+            `status`          VARCHAR(20)   NOT NULL DEFAULT 'joined',
+            `sort_order`      INT           NOT NULL DEFAULT 0,
+            `category_id`     INT UNSIGNED  NULL,
+            `created_at`      DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (`id`)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
+
+    ];
+
+    foreach ($statements as $statement) {
+        $pdo->exec($statement);
     }
+
+    // Mark all current migrations as already run so that migrate.php
+    // treats this as a fully up-to-date install.
+    $pdo->exec(
+        'INSERT IGNORE INTO `lstr_migrations` (migration_number) VALUES
+         (1),(2),(3),(4),(5),(6),(7),(8),(9),(10),(11),(12),(13),
+         (14),(15),(16),(17),(18),(19),(20),(21),(22),(23),(24)'
+    );
 }
 
 function installAdminUser(PDO $pdo, string $username, string $email, string $password): void
@@ -338,15 +512,18 @@ function installAdminUser(PDO $pdo, string $username, string $email, string $pas
 function writeConfig(array $db, string $appName, string $appUrl, string $timezone, string $adminEmail): void
 {
     $config = [
-        'db_host'        => $db['host'],
-        'db_port'        => $db['port'],
-        'db_name'        => $db['name'],
-        'db_user'        => $db['user'],
-        'db_pass'        => $db['pass'],
-        'db_charset'     => 'utf8mb4',
-        'app_name'       => $appName,
-        'app_url'        => $appUrl,
-        'app_debug'      => false,
+        // Database
+        'db_host'    => $db['host'],
+        'db_port'    => $db['port'],
+        'db_name'    => $db['name'],
+        'db_user'    => $db['user'],
+        'db_pass'    => $db['pass'],
+        'db_charset' => 'utf8mb4',
+        // Application
+        'app_name'  => $appName,
+        'app_url'   => $appUrl,
+        'app_debug' => false,
+        // Email (SMTP)
         'smtp_host'      => '',
         'smtp_port'      => 587,
         'smtp_user'      => '',
@@ -354,8 +531,18 @@ function writeConfig(array $db, string $appName, string $appUrl, string $timezon
         'smtp_from'      => $adminEmail,
         'smtp_from_name' => $appName,
         'smtp_secure'    => 'tls',
-        'timezone'       => $timezone,
-        'per_page'       => 25,
+        // Enthusiast compatibility
+        'enth_table_prefix' => '',
+        // Miscellaneous
+        'timezone' => $timezone,
+        'per_page' => 25,
+        // Staleness detection
+        'inactive_threshold_days' => 60,
+        'last_updated_fallback'   => 'Never',
+        // Embed & Paths
+        'install_path'          => '',
+        'session_cookie_domain' => '',
+        'embed_base_url'        => '',
     ];
 
     $exported = var_export($config, true);
@@ -448,21 +635,31 @@ function e(string $v): string
 function renderAlreadyInstalled(): void
 {
     renderHeader('Already Installed', 0);
-    echo '<div class="card">';
-    echo '<h2>Luster is already installed</h2>';
-    echo '<p>A <code>config/app.php</code> file already exists. '
-        . 'If you need to re-install, delete that file first.</p>';
-    echo '<p><a href="/" class="btn">Go to the site</a> &nbsp; <a href="/admin" class="btn btn-secondary">Go to admin</a></p>';
-    echo '</div>';
+    ?>
+<div class="install-card" style="text-align:center">
+  <div style="font-size:2.5rem;margin-bottom:1rem;color:var(--warn)">&#9888;</div>
+  <h2>Already Installed</h2>
+  <p style="color:var(--text-muted);margin:.5rem 0 1.75rem">
+    Luster is already installed. To reinstall from scratch, delete both
+    <code style="background:var(--bg-subtle);padding:.1rem .4rem;border-radius:5px;font-size:.85em">storage/.installed</code>
+    and
+    <code style="background:var(--bg-subtle);padding:.1rem .4rem;border-radius:5px;font-size:.85em">config/app.php</code>.
+  </p>
+  <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
+    <a href="./" class="btn btn-ghost">Home</a>
+    <a href="./admin.php" class="btn btn-primary">Go to Admin Panel &rarr;</a>
+  </div>
+</div>
+    <?php
     renderFooter();
 }
 
 function renderPage(string $view, array $errors, string $csrf, int $step, array $stored = []): void
 {
     $titles = [
-        'req' => 'Step 1: Requirements',
-        '2'   => 'Step 2: Database',
-        '3'   => 'Step 3: Site &amp; Admin',
+        'req'  => 'Step 1: Requirements',
+        '2'    => 'Step 2: Database',
+        '3'    => 'Step 3: Site &amp; Admin',
         'done' => 'Installation Complete',
     ];
     $title = $titles[$view] ?? 'Luster Installer';
@@ -471,7 +668,7 @@ function renderPage(string $view, array $errors, string $csrf, int $step, array 
 
     // Error list
     if (!empty($errors)) {
-        echo '<div class="alert alert-error"><strong>Please fix the following:</strong><ul>';
+        echo '<div class="alert alert-error" role="alert"><strong>Please fix the following:</strong><ul style="margin:.5rem 0 0 1.2rem">';
         foreach ($errors as $err) {
             echo '<li>' . e($err) . '</li>';
         }
@@ -491,74 +688,198 @@ function renderPage(string $view, array $errors, string $csrf, int $step, array 
 
 function renderHeader(string $title, int $step): void
 {
-    $stepClasses = static function (int $current, int $n): string {
-        if ($n < $current) {
-            return 'step done';
-        }
-        if ($n === $current) {
-            return 'step active';
-        }
-        return 'step';
-    };
     ?>
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title><?= e($title) ?> — Luster Installer</title>
+<title><?= e($title) ?> &mdash; Luster Installer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=DM+Sans:wght@400;500;600&family=DM+Mono&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="./assets/css/admin.css">
+<script>
+(function(){
+  var t=localStorage.getItem('lstr_theme')||'dark';
+  document.documentElement.setAttribute('data-theme',t);
+})();
+</script>
 <style>
-*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f0f2f5;color:#1a1a2e;padding:2rem 1rem;min-height:100vh}
-.container{max-width:620px;margin:0 auto}
-.brand{font-size:1.75rem;font-weight:700;color:#4f46e5;margin-bottom:.25rem}
-.brand-sub{color:#6b7280;font-size:.9rem;margin-bottom:1.75rem}
-.steps{display:flex;gap:.4rem;margin-bottom:1.75rem}
-.step{flex:1;height:5px;border-radius:3px;background:#e5e7eb;transition:background .3s}
-.step.active{background:#4f46e5}
-.step.done{background:#22c55e}
-.card{background:#fff;border-radius:10px;padding:2rem;box-shadow:0 1px 4px rgba(0,0,0,.08);margin-bottom:1.5rem}
-h2{font-size:1.2rem;margin-bottom:1.25rem;color:#1a1a2e}
-.form-group{margin-bottom:1.2rem}
-label{display:block;font-size:.85rem;font-weight:600;color:#374151;margin-bottom:.35rem}
-input[type=text],input[type=password],input[type=email],input[type=number],input[type=url],select{
-    width:100%;padding:.55rem .75rem;border:1.5px solid #d1d5db;border-radius:6px;
-    font-size:.95rem;background:#fff;transition:border-color .15s,box-shadow .15s}
-input:focus,select:focus{outline:none;border-color:#4f46e5;box-shadow:0 0 0 3px rgba(79,70,229,.1)}
-.hint{font-size:.78rem;color:#9ca3af;margin-top:.3rem}
-.row{display:grid;grid-template-columns:1fr 1fr;gap:1rem}
-.btn{display:inline-block;padding:.6rem 1.4rem;background:#4f46e5;color:#fff;border:none;border-radius:6px;
-     font-size:.95rem;font-weight:600;cursor:pointer;text-decoration:none;transition:background .15s}
-.btn:hover{background:#4338ca}
-.btn-secondary{background:#6b7280}.btn-secondary:hover{background:#4b5563}
-.btn-success{background:#16a34a}.btn-success:hover{background:#15803d}
-.alert{padding:.85rem 1rem;border-radius:6px;margin-bottom:1.25rem;font-size:.875rem}
-.alert ul{margin:.4rem 0 0 1.2rem}
-.alert-error{background:#fef2f2;border:1px solid #fca5a5;color:#b91c1c}
-.alert-success{background:#f0fdf4;border:1px solid #86efac;color:#166534}
-.alert-info{background:#eff6ff;border:1px solid #93c5fd;color:#1d4ed8}
-.req-list{list-style:none}
-.req-list li{display:flex;align-items:center;gap:.6rem;padding:.4rem 0;border-bottom:1px solid #f3f4f6;font-size:.875rem}
-.req-list li:last-child{border-bottom:none}
-.badge{display:inline-block;padding:.15rem .5rem;border-radius:4px;font-size:.75rem;font-weight:700;min-width:46px;text-align:center}
-.badge-ok{background:#dcfce7;color:#166534}
-.badge-fail{background:#fee2e2;color:#991b1b}
-.badge-warn{background:#fef9c3;color:#92400e}
-.success-icon{font-size:3rem;margin-bottom:1rem}
-.creds{background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;padding:1rem;margin:1rem 0;font-size:.875rem}
-.creds strong{color:#4f46e5}
-.notice{font-size:.825rem;color:#6b7280;margin-top:1.5rem;padding-top:1rem;border-top:1px solid #f3f4f6}
+/* ── Installer-specific layout ── */
+.install-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 3rem 1rem 5rem;
+  background: var(--bg);
+  font-family: 'DM Sans', sans-serif;
+  flex-direction: column;
+}
+.install-wrap {
+  width: 100%;
+  max-width: 580px;
+  margin: 0 auto;
+}
+/* Brand */
+.install-brand {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+.install-gem {
+  width: 40px; height: 40px; margin: 0 auto 0.75rem;
+  background: linear-gradient(135deg, #c4b5fd 0%, #818cf8 35%, #93c5fd 65%, #f9a8d4 100%);
+  clip-path: polygon(50% 0%, 100% 35%, 80% 100%, 20% 100%, 0% 35%);
+  animation: iGemFloat 6s ease-in-out infinite;
+}
+@keyframes iGemFloat {
+  0%,100% { transform: translateY(0) rotate(0deg); }
+  33%     { transform: translateY(-5px) rotate(5deg); }
+  66%     { transform: translateY(-2px) rotate(-3deg); }
+}
+.install-brand-name {
+  font-family: 'Playfair Display', serif;
+  font-size: 2rem; font-weight: 700; line-height: 1;
+  background: linear-gradient(135deg, #fff 0%, #c4b5fd 60%, #93c5fd 100%);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+  letter-spacing: 0.01em;
+}
+[data-theme="light"] .install-brand-name {
+  background: linear-gradient(135deg, #1e1340 0%, #7c3aed 60%, #4f46e5 100%);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+}
+.install-brand-sub {
+  font-size: 0.7rem; color: var(--text-dim);
+  letter-spacing: 0.2em; text-transform: uppercase; margin-top: 6px;
+}
+/* Step indicator */
+.install-steps {
+  display: flex;
+  align-items: center;
+  margin-bottom: 1.75rem;
+}
+.i-step {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.i-step-num {
+  width: 28px; height: 28px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 0.72rem; font-weight: 700; flex-shrink: 0;
+  border: 1px solid var(--border);
+  background: var(--bg-subtle); color: var(--text-dim);
+  transition: all 0.3s;
+}
+.i-step-label { font-size: 0.75rem; color: var(--text-dim); font-weight: 500; white-space: nowrap; }
+.i-connector { flex: 1; height: 2px; background: var(--border); margin: 0 8px; transition: background 0.3s; }
+.i-step.done .i-step-num {
+  background: var(--success-bg); border-color: var(--success); color: var(--success);
+}
+.i-step.done .i-step-label { color: var(--success); }
+.i-step.done + .i-connector { background: var(--success); }
+.i-step.active .i-step-num {
+  background: var(--accent-glow); border-color: var(--accent); color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-glow);
+}
+.i-step.active .i-step-label { color: var(--text); font-weight: 600; }
+/* Card */
+.install-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 2rem 2.25rem;
+  box-shadow: var(--shadow-lg);
+  margin-bottom: 1rem;
+}
+.install-card h2 {
+  font-size: 1.05rem; font-weight: 700;
+  color: var(--text); margin-bottom: 1.5rem; line-height: 1;
+}
+/* Section dividers within a card */
+.install-section {
+  font-size: 0.65rem; font-weight: 700;
+  letter-spacing: 0.18em; text-transform: uppercase;
+  color: var(--text-dim); margin: 1.75rem 0 1.25rem;
+  display: flex; align-items: center; gap: 8px;
+}
+.install-section::after {
+  content: ''; flex: 1; height: 1px; background: var(--border);
+}
+/* Requirements list */
+.req-list { list-style: none; }
+.req-list li {
+  display: flex; align-items: center; gap: 10px;
+  padding: 9px 0; border-bottom: 1px solid var(--border-soft);
+  font-size: 0.85rem; color: var(--text-muted);
+}
+.req-list li:last-child { border-bottom: none; }
+.req-badge {
+  display: inline-flex; align-items: center; justify-content: center;
+  padding: 2px 8px; border-radius: 6px; font-size: 0.68rem; font-weight: 700;
+  min-width: 44px; border: 1px solid transparent; flex-shrink: 0;
+}
+.req-badge.ok   { background: var(--success-bg); color: var(--success); border-color: rgba(52,211,153,.2); }
+.req-badge.fail { background: var(--danger-bg);  color: var(--danger);  border-color: rgba(248,113,113,.2); }
+.req-badge.warn { background: var(--warn-bg);    color: var(--warn);    border-color: rgba(251,191,36,.2); }
+/* Success / done */
+.install-success-icon { font-size: 3rem; color: var(--success); margin-bottom: 1rem; }
+/* Footer hint */
+.install-footer {
+  font-size: 0.78rem; color: var(--text-dim);
+  text-align: center; margin-top: 0.75rem; line-height: 1.5;
+}
+/* Theme toggle (fixed) */
+.install-theme-btn {
+  position: fixed; top: 16px; right: 16px;
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: 8px; padding: 6px 10px; cursor: pointer;
+  color: var(--text-muted); font-size: 0.9rem; line-height: 1;
+  transition: border-color 0.2s, color 0.2s;
+  font-family: 'DM Sans', sans-serif;
+  z-index: 200;
+}
+.install-theme-btn:hover { border-color: var(--accent); color: var(--accent); }
 </style>
 </head>
-<body>
-<div class="container">
-<div class="brand">Luster</div>
-<div class="brand-sub">Installation Wizard</div>
-<?php if ($step >= 1 && $step <= 3): ?>
-<div class="steps">
-  <div class="<?= $stepClasses($step, 1) ?>"></div>
-  <div class="<?= $stepClasses($step, 2) ?>"></div>
-  <div class="<?= $stepClasses($step, 3) ?>"></div>
+<body class="install-page">
+
+<button class="install-theme-btn" id="installThemeBtn" aria-label="Toggle theme">
+  <span id="installThemeIcon">&#9728;</span>
+</button>
+
+<div class="install-wrap">
+
+  <div class="install-brand">
+    <div class="install-gem"></div>
+    <div class="install-brand-name">Luster</div>
+    <div class="install-brand-sub">Installation Wizard</div>
+  </div>
+
+<?php if ($step >= 1 && $step <= 3):
+    $s = static function (int $current, int $n): string {
+        if ($n < $current) return 'done';
+        if ($n === $current) return 'active';
+        return '';
+    };
+?>
+<div class="install-steps">
+  <div class="i-step <?= $s($step, 1) ?>">
+    <div class="i-step-num"><?= $step > 1 ? '&#10003;' : '1' ?></div>
+    <div class="i-step-label">Requirements</div>
+  </div>
+  <div class="i-connector"></div>
+  <div class="i-step <?= $s($step, 2) ?>">
+    <div class="i-step-num"><?= $step > 2 ? '&#10003;' : '2' ?></div>
+    <div class="i-step-label">Database</div>
+  </div>
+  <div class="i-connector"></div>
+  <div class="i-step <?= $s($step, 3) ?>">
+    <div class="i-step-num">3</div>
+    <div class="i-step-label">Site &amp; Admin</div>
+  </div>
 </div>
 <?php endif; ?>
     <?php
@@ -566,20 +887,40 @@ input:focus,select:focus{outline:none;border-color:#4f46e5;box-shadow:0 0 0 3px 
 
 function renderFooter(): void
 {
-    echo '</div></body></html>';
+    ?>
+</div>
+
+<script>
+(function(){
+  var btn  = document.getElementById('installThemeBtn');
+  var icon = document.getElementById('installThemeIcon');
+  function updateIcon(t) { icon.innerHTML = t === 'dark' ? '&#9728;' : '&#9790;'; }
+  updateIcon(document.documentElement.getAttribute('data-theme') || 'dark');
+  btn.addEventListener('click', function(){
+    var cur  = document.documentElement.getAttribute('data-theme') || 'dark';
+    var next = cur === 'dark' ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', next);
+    localStorage.setItem('lstr_theme', next);
+    updateIcon(next);
+  });
+})();
+</script>
+</body>
+</html>
+    <?php
 }
 
 function renderStep1(string $csrf): void
 {
-    $checks = checkRequirements();
+    $checks     = checkRequirements();
     $canContinue = requirementsPass($checks);
     ?>
-<div class="card">
-  <h2>Step 1 — System Requirements</h2>
+<div class="install-card">
+  <h2>System Requirements</h2>
   <ul class="req-list">
     <?php foreach ($checks as $c): ?>
     <li>
-      <span class="badge badge-<?= e($c['status']) ?>"><?= strtoupper(e($c['status'])) ?></span>
+      <span class="req-badge <?= e($c['status']) ?>"><?= strtoupper(e($c['status'])) ?></span>
       <?= e($c['label']) ?>
     </li>
     <?php endforeach; ?>
@@ -588,14 +929,14 @@ function renderStep1(string $csrf): void
 
 <?php if (!$canContinue): ?>
 <div class="alert alert-error">
-  One or more requirements have <strong>FAIL</strong> status. Please resolve them before continuing.
+  One or more requirements have <strong>FAIL</strong> status. Resolve them before continuing.
 </div>
 <?php else: ?>
 <div class="alert alert-success">All requirements met. You may continue.</div>
 <form method="post" action="install.php">
   <input type="hidden" name="lstr_install_token" value="<?= e($csrf) ?>">
   <input type="hidden" name="install_step" value="1">
-  <button type="submit" class="btn">Continue to Database Setup &rarr;</button>
+  <button type="submit" class="btn btn-primary">Continue to Database Setup &rarr;</button>
 </form>
 <?php endif; ?>
     <?php
@@ -605,45 +946,49 @@ function renderStep2(string $csrf, array $stored): void
 {
     $db = $stored['db'] ?? [];
     ?>
-<div class="card">
-  <h2>Step 2 — Database Configuration</h2>
+<div class="install-card">
+  <h2>Database Configuration</h2>
   <form method="post" action="install.php">
     <input type="hidden" name="lstr_install_token" value="<?= e($csrf) ?>">
     <input type="hidden" name="install_step" value="2">
 
-    <div class="row">
+    <div class="form-row">
       <div class="form-group">
-        <label for="db_host">Database Host</label>
-        <input type="text" id="db_host" name="db_host"
+        <label class="form-label" for="db_host">Database Host</label>
+        <input type="text" id="db_host" name="db_host" class="form-input"
                value="<?= e((string) ($db['host'] ?? 'localhost')) ?>" required>
       </div>
       <div class="form-group">
-        <label for="db_port">Port</label>
-        <input type="number" id="db_port" name="db_port" min="1" max="65535"
+        <label class="form-label" for="db_port">Port</label>
+        <input type="number" id="db_port" name="db_port" class="form-input"
+               min="1" max="65535"
                value="<?= e((string) ($db['port'] ?? '3306')) ?>" required>
       </div>
     </div>
 
     <div class="form-group">
-      <label for="db_name">Database Name</label>
-      <input type="text" id="db_name" name="db_name"
+      <label class="form-label" for="db_name">Database Name</label>
+      <input type="text" id="db_name" name="db_name" class="form-input"
              value="<?= e((string) ($db['name'] ?? '')) ?>" required>
-      <p class="hint">The database must already exist and belong to your Enthusiast installation (or a fresh empty database).</p>
+      <p class="form-hint">The database must already exist. It can be your existing Enthusiast database or a fresh empty one.</p>
     </div>
 
     <div class="form-group">
-      <label for="db_user">Database Username</label>
-      <input type="text" id="db_user" name="db_user"
+      <label class="form-label" for="db_user">Database Username</label>
+      <input type="text" id="db_user" name="db_user" class="form-input"
              value="<?= e((string) ($db['user'] ?? '')) ?>" required autocomplete="username">
     </div>
 
     <div class="form-group">
-      <label for="db_pass">Database Password</label>
-      <input type="password" id="db_pass" name="db_pass" autocomplete="current-password">
-      <p class="hint">Leave blank if your database user has no password.</p>
+      <label class="form-label" for="db_pass">Database Password</label>
+      <input type="password" id="db_pass" name="db_pass" class="form-input"
+             autocomplete="current-password">
+      <p class="form-hint">Leave blank if your database user has no password.</p>
     </div>
 
-    <button type="submit" class="btn">Test &amp; Continue &rarr;</button>
+    <div class="btn-row">
+      <button type="submit" class="btn btn-primary">Test &amp; Continue &rarr;</button>
+    </div>
   </form>
 </div>
     <?php
@@ -658,74 +1003,81 @@ function renderStep3(string $csrf, array $stored): void
     // Strip /install.php or /public if present
     $guessedUrl = rtrim(preg_replace('#/install\.php.*$#i', '', $guessedUrl) ?? $guessedUrl, '/');
     ?>
-<div class="card">
-  <h2>Step 3 — Site Settings &amp; Admin Account</h2>
+<div class="alert alert-success">
+  &#10003; Database connection successful &mdash;
+  connected to <strong><?= e((string) ($db['name'] ?? '')) ?></strong>
+  on <strong><?= e((string) ($db['host'] ?? '')) ?></strong>.
+</div>
 
-  <div class="alert alert-success" style="margin-bottom:1.5rem">
-    ✓ Database connection successful.
-    Connected to <strong><?= e((string) ($db['name'] ?? '')) ?></strong>
-    on <strong><?= e((string) ($db['host'] ?? '')) ?></strong>.
-  </div>
-
+<div class="install-card">
+  <h2>Site Settings &amp; Admin Account</h2>
   <form method="post" action="install.php">
     <input type="hidden" name="lstr_install_token" value="<?= e($csrf) ?>">
     <input type="hidden" name="install_step" value="3">
 
-    <h2 style="font-size:1rem;margin-bottom:1rem;color:#6b7280;font-weight:600;text-transform:uppercase;letter-spacing:.05em">Site Settings</h2>
+    <div class="install-section">Site Settings</div>
 
     <div class="form-group">
-      <label for="app_name">Site Name</label>
-      <input type="text" id="app_name" name="app_name" value="Luster" required>
+      <label class="form-label" for="app_name">Site Name</label>
+      <input type="text" id="app_name" name="app_name" class="form-input"
+             value="Luster" required>
     </div>
 
     <div class="form-group">
-      <label for="app_url">Site URL</label>
-      <input type="url" id="app_url" name="app_url"
-             value="<?= e($guessedUrl) ?>" required placeholder="https://yoursite.example.com">
-      <p class="hint">No trailing slash. This is the URL where Luster is installed.</p>
+      <label class="form-label" for="app_url">Site URL</label>
+      <input type="url" id="app_url" name="app_url" class="form-input"
+             value="<?= e($guessedUrl) ?>" required
+             placeholder="https://yoursite.example.com">
+      <p class="form-hint">No trailing slash. This is the base URL where Luster is installed (e.g. <code>https://example.com/luster/public</code>).</p>
     </div>
 
     <div class="form-group">
-      <label for="timezone">Timezone</label>
-      <select id="timezone" name="timezone">
-        <?php
-        $current = date_default_timezone_get();
-        foreach (timezone_identifiers_list() as $tz):
-        ?>
-        <option value="<?= e($tz) ?>"<?= $tz === $current ? ' selected' : '' ?>><?= e($tz) ?></option>
-        <?php endforeach; ?>
-      </select>
-    </div>
-
-    <h2 style="font-size:1rem;margin:1.5rem 0 1rem;color:#6b7280;font-weight:600;text-transform:uppercase;letter-spacing:.05em">Administrator Account</h2>
-
-    <div class="form-group">
-      <label for="admin_username">Username</label>
-      <input type="text" id="admin_username" name="admin_username" required
-             autocomplete="username" pattern="[a-zA-Z0-9_\-]{3,50}">
-      <p class="hint">3–50 characters: letters, numbers, underscores, hyphens.</p>
-    </div>
-
-    <div class="form-group">
-      <label for="admin_email">Email Address</label>
-      <input type="email" id="admin_email" name="admin_email" required autocomplete="email">
-    </div>
-
-    <div class="row">
-      <div class="form-group">
-        <label for="admin_password">Password</label>
-        <input type="password" id="admin_password" name="admin_password" required
-               autocomplete="new-password" minlength="12">
-        <p class="hint">Minimum 12 characters.</p>
-      </div>
-      <div class="form-group">
-        <label for="admin_password_confirm">Confirm Password</label>
-        <input type="password" id="admin_password_confirm" name="admin_password_confirm" required
-               autocomplete="new-password" minlength="12">
+      <label class="form-label" for="timezone">Timezone</label>
+      <div class="select-wrap">
+        <select id="timezone" name="timezone" class="form-select">
+          <?php
+          $current = date_default_timezone_get();
+          foreach (timezone_identifiers_list() as $tz):
+          ?>
+          <option value="<?= e($tz) ?>"<?= $tz === $current ? ' selected' : '' ?>><?= e($tz) ?></option>
+          <?php endforeach; ?>
+        </select>
       </div>
     </div>
 
-    <button type="submit" class="btn btn-success">Install Luster &rarr;</button>
+    <div class="install-section">Administrator Account</div>
+
+    <div class="form-group">
+      <label class="form-label" for="admin_username">Username</label>
+      <input type="text" id="admin_username" name="admin_username" class="form-input"
+             required autocomplete="username"
+             pattern="[a-zA-Z0-9_\-]{3,50}">
+      <p class="form-hint">3–50 characters: letters, numbers, underscores, hyphens.</p>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label" for="admin_email">Email Address</label>
+      <input type="email" id="admin_email" name="admin_email" class="form-input"
+             required autocomplete="email">
+    </div>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label" for="admin_password">Password</label>
+        <input type="password" id="admin_password" name="admin_password" class="form-input"
+               required autocomplete="new-password" minlength="12">
+        <p class="form-hint">Minimum 12 characters.</p>
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="admin_password_confirm">Confirm Password</label>
+        <input type="password" id="admin_password_confirm" name="admin_password_confirm" class="form-input"
+               required autocomplete="new-password" minlength="12">
+      </div>
+    </div>
+
+    <div class="btn-row">
+      <button type="submit" class="btn btn-primary">Install Luster &rarr;</button>
+    </div>
   </form>
 </div>
     <?php
@@ -734,24 +1086,24 @@ function renderStep3(string $csrf, array $stored): void
 function renderDone(): void
 {
     ?>
-<div class="card" style="text-align:center">
-  <div class="success-icon">&#10003;</div>
+<div class="install-card" style="text-align:center">
+  <div class="install-success-icon">&#10003;</div>
   <h2>Installation Complete!</h2>
-  <p style="color:#6b7280;margin:.5rem 0 1.5rem">
-    Luster has been installed successfully. Your database tables have been created
+  <p style="color:var(--text-muted);margin:.5rem 0 1.75rem;line-height:1.6">
+    Luster has been installed successfully. All database tables have been created
     and your admin account is ready.
   </p>
-  <a href="/admin" class="btn btn-success">Go to Admin Panel &rarr;</a>
+  <a href="./admin.php" class="btn btn-primary btn-full">Go to Admin Panel &rarr;</a>
 </div>
 
-<div class="alert alert-info">
-  <strong>Important:</strong> For security, please delete or restrict access to
-  <code>public/install.php</code> now that installation is complete.
+<div class="alert alert-warning" style="background:var(--warn-bg);color:var(--warn);border:1px solid rgba(251,191,36,.2);padding:12px 16px;border-radius:10px;font-size:.85rem">
+  <strong>Security:</strong> Delete or restrict access to
+  <code style="background:rgba(0,0,0,.15);padding:.1rem .35rem;border-radius:4px">public/install.php</code>
+  now that installation is complete.
 </div>
 
-<div class="notice">
-  Next steps: configure your SMTP settings in <code>config/app.php</code>,
-  then visit the admin panel to add your first fanlisting.
-</div>
+<p class="install-footer">
+  Next: configure SMTP in <code>config/app.php</code>, then visit the admin panel to add your first listing.
+</p>
     <?php
 }

@@ -12,7 +12,7 @@ declare(strict_types=1);
  *   1. Adds `active` TINYINT column to lstr_affiliates (toggle active/inactive)
  *   2. Creates lstr_fanlisting_settings table (auto-approve per fanlisting)
  *   3. Makes lstr_affiliates.fanlisting_id nullable (NULL = collective affiliate)
- *   4. Creates lstr_joined table (joined fanlistings tracker)
+ *   4. Creates lstr_joined table (joined listings tracker)
  */
 
 // Session guard — must be logged in as admin
@@ -29,6 +29,54 @@ if (empty($_SESSION['lstr_admin_id'])) {
         . '</body></html>';
     exit;
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// CSRF guard — GET shows confirmation form; POST requires a valid token.
+// ─────────────────────────────────────────────────────────────────────────────
+
+// Generate a per-session token if one doesn't exist yet.
+if (empty($_SESSION['lstr_migrate_token'])) {
+    $_SESSION['lstr_migrate_token'] = bin2hex(random_bytes(32));
+}
+
+$migrateToken = (string) $_SESSION['lstr_migrate_token'];
+
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    // Show confirmation page — nothing runs on GET.
+    $style = 'body{font-family:system-ui,sans-serif;max-width:540px;margin:2.5rem auto;padding:1rem;color:#111}'
+           . 'h1{font-size:1.4rem;margin-bottom:.75rem}'
+           . 'p{margin:.5rem 0 1rem}'
+           . '.warn{background:#fffbeb;border:1px solid #fcd34d;border-radius:5px;padding:.7rem 1rem;margin-bottom:1.25rem;color:#92400e}'
+           . 'button{background:#4f46e5;color:#fff;border:none;padding:.55rem 1.25rem;border-radius:5px;cursor:pointer;font-size:1rem}'
+           . 'button:hover{background:#4338ca}'
+           . 'a{color:#4f46e5}';
+    echo '<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>Run Migrations</title>'
+        . '<style>' . $style . '</style></head><body>'
+        . '<h1>Luster — Run Migrations</h1>'
+        . '<div class="warn">This will apply all pending database migrations. '
+        . 'Back up your database before continuing.</div>'
+        . '<form method="POST" action="">'
+        . '<input type="hidden" name="_csrf" value="' . htmlspecialchars($migrateToken, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '">'
+        . '<button type="submit">Run Migrations</button>'
+        . '</form>'
+        . '<p style="margin-top:1.25rem"><a href="admin.php">Cancel — return to admin panel</a></p>'
+        . '</body></html>';
+    exit;
+}
+
+// POST — validate CSRF token before running anything.
+$submittedToken = (string) ($_POST['_csrf'] ?? '');
+if (!hash_equals($migrateToken, $submittedToken)) {
+    http_response_code(403);
+    echo '<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>Invalid Token</title></head><body>'
+        . '<h1>Invalid or Expired Token</h1>'
+        . '<p><a href="migrate.php">Go back and try again.</a></p>'
+        . '</body></html>';
+    exit;
+}
+
+// Consume the token — one-time use.
+unset($_SESSION['lstr_migrate_token']);
 
 $configPath = dirname(__DIR__) . '/config/app.php';
 
@@ -149,7 +197,7 @@ try {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Migration 4: lstr_joined (joined fanlistings tracker)
+// Migration 4: lstr_joined (joined listings tracker)
 // ─────────────────────────────────────────────────────────────────────────────
 try {
     $pdo->exec(
@@ -534,7 +582,7 @@ try {
 // ─────────────────────────────────────────────────────────────────────────────
 // Migration 20: last_updated DATE on lstr_fanlisting_settings
 //
-// Stores the admin-controlled "last updated" date for each fanlisting.
+// Stores the admin-controlled "last updated" date for each listing.
 // Used for public stats ($stat_last_updated$ token) and the dashboard
 // staleness detector (configurable via inactive_threshold_days config key).
 // ─────────────────────────────────────────────────────────────────────────────
@@ -574,7 +622,7 @@ try {
 // ─────────────────────────────────────────────────────────────────────────────
 // Migration 21: pending update approval
 //
-// queue_updates flag per fanlisting + table to queue member update requests
+// queue_updates flag per listing + table to queue member update requests
 // for admin review before they are applied to the member record.
 // ─────────────────────────────────────────────────────────────────────────────
 try {
@@ -607,10 +655,10 @@ try {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Migration 22: fanlisting codes
+// Migration 22: listing codes
 //
 // Stores uploaded code images (small button graphics members use to link back
-// to a fanlisting). One row per image per fanlisting.
+// to a listing). One row per image per listing.
 // ─────────────────────────────────────────────────────────────────────────────
 try {
     $pdo->exec(
@@ -654,6 +702,32 @@ try {
     $done[] = 'Created <code>lstr_email_templates</code> table';
 } catch (PDOException $e) {
     $errors[] = 'lstr_email_templates — ' . htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Migration 24: lstr_blacklist (email / domain spam block list)
+// ─────────────────────────────────────────────────────────────────────────────
+try {
+    $already = (int) $pdo->query(
+        'SELECT COUNT(*) FROM `lstr_migrations` WHERE migration_number = 24'
+    )->fetchColumn();
+
+    if (!$already) {
+        $pdo->exec(
+            "CREATE TABLE IF NOT EXISTS `lstr_blacklist` (
+                `id`         INT UNSIGNED  NOT NULL AUTO_INCREMENT,
+                `pattern`    VARCHAR(255)  NOT NULL,
+                `note`       VARCHAR(500)  NOT NULL DEFAULT '',
+                `created_at` DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                PRIMARY KEY (`id`),
+                UNIQUE KEY `uq_pattern` (`pattern`)
+             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci"
+        );
+        $pdo->exec('INSERT INTO `lstr_migrations` (migration_number) VALUES (24)');
+        $done[] = 'Created <code>lstr_blacklist</code> table';
+    }
+} catch (PDOException $e) {
+    $errors[] = 'lstr_blacklist — ' . htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 }
 
 ?><!DOCTYPE html>

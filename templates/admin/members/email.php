@@ -1,6 +1,6 @@
 <?php declare(strict_types=1);
 $b         = rtrim(\Luster\Core\View::e($base_url ?? ''), '/');
-$flName    = \Luster\Core\View::e($fanlisting->name ?? '');
+$flName    = \Luster\Core\View::e($listing->name ?? '');
 $oldSubject = \Luster\Core\View::e($old['subject'] ?? '');
 $oldBody   = htmlspecialchars($old['body'] ?? '', ENT_QUOTES, 'UTF-8');
 ?>
@@ -66,7 +66,7 @@ $oldBody   = htmlspecialchars($old['body'] ?? '', ENT_QUOTES, 'UTF-8');
       <button type="submit" class="btn btn-primary">Send</button>
       <button type="button" class="btn btn-ghost" onclick="previewEmail()">Preview</button>
       <button type="button" class="btn btn-ghost" onclick="document.getElementById('email-form').reset()">Clear</button>
-      <a href="<?= \Luster\Core\View::e($referer ?? $b . '/admin/members/' . (int) ($fanlisting->id ?? 0)) ?>"
+      <a href="<?= \Luster\Core\View::e($referer ?? $b . '/admin/members/' . (int) ($listing->id ?? 0)) ?>"
          class="btn btn-ghost">Cancel</a>
     </div>
   </form>

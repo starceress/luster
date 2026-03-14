@@ -3,8 +3,8 @@
  * Members list — content fragment.
  *
  * Variables injected by MembersController:
- *   $fanlisting_name   string
- *   $fanlisting_url    string
+ *   $listing_name   string
+ *   $listing_url    string
  *   $join_url          string
  *   $members_base      string  base URL for sort/filter links
  *   $sort              string  'name' or 'country'
@@ -22,11 +22,11 @@ declare(strict_types=1);
 use Luster\Core\View;
 ?>
 <div class="fl-wrap">
-  <h2 class="fl-title">Members of <?= View::e($fanlisting_name) ?></h2>
+  <h2 class="fl-title">Members of <?= View::e($listing_name) ?></h2>
 
   <?php if ($show_search ?? true): ?>
   <p>
-    <a class="fl-link" href="<?= View::e($join_url) ?>">Join this fanlisting</a>
+    <a class="fl-link" href="<?= View::e($join_url) ?>">Join this listing</a>
     &nbsp;&mdash;&nbsp;
     Sort by:
     <?php $nameUrl    = View::e($members_base . '?sort=name'); ?>

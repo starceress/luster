@@ -12,17 +12,18 @@ use Luster\Core\RateLimit;
 use Luster\Core\Request;
 use Luster\Core\Response;
 use Luster\Core\Validator;
-use Luster\Models\Fanlisting;
+use Luster\Models\Listing;
 use Luster\Repositories\EmailTemplateRepo;
-use Luster\Repositories\FanlistingRepo;
-use Luster\Repositories\FanlistingSettingsRepo;
+use Luster\Repositories\ListingRepo;
+use Luster\Repositories\ListingSettingsRepo;
 use Luster\Repositories\FieldRepo;
+use Luster\Repositories\BlacklistRepo;
 use Luster\Repositories\MemberRepo;
 
 /**
  * Public join form.
  *
- * GET  /join/{id} — renders the join form for a fanlisting.
+ * GET  /join/{id} — renders the join form for a listing.
  * POST /join/{id} — validates input, checks for duplicates, inserts member,
  *                   sends confirmation email, redirects to success page.
  *
@@ -46,19 +47,19 @@ final class JoinController
 
     public function showForm(Request $request, array $params): Response
     {
-        $fanlistingId = (int) ($params['id'] ?? 0);
+        $listingId = (int) ($params['id'] ?? 0);
 
-        $fanlistingRepo = new FanlistingRepo($this->app->getDatabase(), $this->app->getConfig());
-        $fanlisting     = $fanlistingRepo->getById($fanlistingId);
+        $listingRepo = new ListingRepo($this->app->getDatabase(), $this->app->getConfig());
+        $listing     = $listingRepo->getById($listingId);
 
-        if ($fanlisting === null) {
-            return Response::notFound('That fanlisting does not exist.');
+        if ($listing === null) {
+            return Response::notFound('That listing does not exist.');
         }
 
         $fieldRepo     = new FieldRepo($this->app->getDatabase(), $this->app->getConfig());
-        $fields        = $fieldRepo->getFieldsForFanlisting($fanlistingId);
-        $settingsRepo  = new FanlistingSettingsRepo($this->app->getDatabase());
-        $embedSettings = $settingsRepo->getEmbedSettings($fanlistingId);
+        $fields        = $fieldRepo->getFieldsForListing($listingId);
+        $settingsRepo  = new ListingSettingsRepo($this->app->getDatabase());
+        $embedSettings = $settingsRepo->getEmbedSettings($listingId);
 
         $session = $this->app->getSession();
         $error   = (string) $session->get('lstr_flash_error', '');
@@ -66,7 +67,7 @@ final class JoinController
         $session->remove('lstr_flash_error');
         $session->remove('lstr_flash_old');
 
-        return $this->renderJoinForm($fanlistingId, $fanlisting, $fields, $embedSettings, $old, $error);
+        return $this->renderJoinForm($listingId, $listing, $fields, $embedSettings, $old, $error);
     }
 
     // -----------------------------------------------------------------------
@@ -75,7 +76,7 @@ final class JoinController
 
     public function submit(Request $request, array $params): Response
     {
-        $fanlistingId = (int) ($params['id'] ?? 0);
+        $listingId = (int) ($params['id'] ?? 0);
         $baseUrl      = $this->app->getBaseUrl();
         $session      = $this->app->getSession();
         $rateLimit    = $this->app->getRateLimit();
@@ -84,33 +85,33 @@ final class JoinController
         // Rate limiting
         if ($rateLimit->isBlocked($ip, RateLimit::ACTION_PUBLIC_JOIN)) {
             $session->set('lstr_flash_error', 'Too many join attempts. Please try again later.');
-            return Response::redirect($baseUrl . '/join/' . $fanlistingId);
+            return Response::redirect($baseUrl . '/join/' . $listingId);
         }
 
         // Honeypot — silent reject; redirect to the success page as if it worked
         if ((string) $request->post('website_confirm', '') !== '') {
-            return Response::redirect($baseUrl . '/join/' . $fanlistingId . '/success');
+            return Response::redirect($baseUrl . '/join/' . $listingId . '/success');
         }
 
-        $fanlistingRepo = new FanlistingRepo($this->app->getDatabase(), $this->app->getConfig());
-        $fanlisting     = $fanlistingRepo->getById($fanlistingId);
+        $listingRepo = new ListingRepo($this->app->getDatabase(), $this->app->getConfig());
+        $listing     = $listingRepo->getById($listingId);
 
-        if ($fanlisting === null) {
-            return Response::notFound('That fanlisting does not exist.');
+        if ($listing === null) {
+            return Response::notFound('That listing does not exist.');
         }
 
         $fieldRepo     = new FieldRepo($this->app->getDatabase(), $this->app->getConfig());
-        $fields        = $fieldRepo->getFieldsForFanlisting($fanlistingId);
-        $settingsRepo  = new FanlistingSettingsRepo($this->app->getDatabase());
-        $embedSettings = $settingsRepo->getEmbedSettings($fanlistingId);
+        $fields        = $fieldRepo->getFieldsForListing($listingId);
+        $settingsRepo  = new ListingSettingsRepo($this->app->getDatabase());
+        $embedSettings = $settingsRepo->getEmbedSettings($listingId);
 
         $countryEnabled = (bool) $embedSettings['country_field_enabled'];
         $formUrl        = (string) $embedSettings['form_url_join'] !== ''
                         ? (string) $embedSettings['form_url_join']
-                        : $baseUrl . '/join/' . $fanlistingId;
+                        : $baseUrl . '/join/' . $listingId;
 
         // Captcha — re-render the form with an error on failure
-        if (!Captcha::validate((string) $request->post('captcha_answer', ''))) {
+        if (!Captcha::validate((string) $request->post('captcha_answer', ''), 'join')) {
             $old = [
                 'name'      => trim((string) $request->post('name',    '')),
                 'email'     => trim((string) $request->post('email',   '')),
@@ -119,7 +120,7 @@ final class JoinController
                 'send_info' => (string) $request->post('send_info', ''),
             ];
             return $this->renderJoinForm(
-                $fanlistingId, $fanlisting, $fields, $embedSettings, $old,
+                $listingId, $listing, $fields, $embedSettings, $old,
                 '', 'Incorrect answer — please try again.',
             );
         }
@@ -162,9 +163,22 @@ final class JoinController
 
         $memberRepo = new MemberRepo($this->app->getDatabase(), $this->app->getConfig());
 
+        // Blacklist check
+        if ((new BlacklistRepo($this->app->getDatabase()))->isBlocked($email)) {
+            $session->set('lstr_flash_error', 'That email address cannot be used to join.');
+            $session->set('lstr_flash_old', [
+                'name'      => $name,
+                'email'     => $email,
+                'url'       => $url,
+                'country'   => $country,
+                'send_info' => (string) $request->post('send_info', ''),
+            ]);
+            return Response::redirect($formUrl);
+        }
+
         // Duplicate email check
-        if ($memberRepo->getByEmail($fanlisting->dbprefix, $email) !== null) {
-            $session->set('lstr_flash_error', 'That email address is already registered for this fanlisting.');
+        if ($memberRepo->getByEmail($listing->dbprefix, $email) !== null) {
+            $session->set('lstr_flash_error', 'That email address is already registered for this listing.');
             $session->set('lstr_flash_old', [
                 'name'      => $name,
                 'email'     => $email,
@@ -228,9 +242,9 @@ final class JoinController
             $insertData[$colName] = trim((string) ($postData['field_' . $field->name] ?? ''));
         }
 
-        $memberRepo->insert($fanlisting->dbprefix, $insertData);
+        $memberRepo->insert($listing->dbprefix, $insertData);
         $rateLimit->clear($ip, RateLimit::ACTION_PUBLIC_JOIN);
-        $settingsRepo->touchLastUpdated($fanlistingId);
+        $settingsRepo->touchLastUpdated($listingId);
 
         $sendInfo = ($request->post('send_info') === '1');
 
@@ -242,10 +256,10 @@ final class JoinController
                 $mailer    = new Mailer($this->app->getConfig());
                 $appName   = (string) $this->app->getConfig()->get('app_name', 'Luster');
                 $emailRepo = new EmailTemplateRepo($this->app->getDatabase());
-                $tpl       = $emailRepo->get($fanlistingId, EmailTemplateRepo::TYPE_JOIN);
+                $tpl       = $emailRepo->get($listingId, EmailTemplateRepo::TYPE_JOIN);
                 $tokens    = EmailTemplateRepo::buildTokens(
-                    fanlistingName: $fanlisting->name,
-                    fanlistingUrl:  $fanlisting->url,
+                    listingName: $listing->name,
+                    listingUrl:  $listing->url,
                     appName:        $appName,
                     fanName:        $name,
                     fanEmail:       $email,
@@ -260,13 +274,38 @@ final class JoinController
             }
         }
 
+        // Admin notification email (best-effort — only when listing has an email address)
+        if ($listing->email !== '') {
+            try {
+                $notifyMailer = new Mailer($this->app->getConfig());
+                $notifyAppName = (string) $this->app->getConfig()->get('app_name', 'Luster');
+                $notifyRepo    = new EmailTemplateRepo($this->app->getDatabase());
+                $notifyTpl     = $notifyRepo->get($listingId, EmailTemplateRepo::TYPE_NOTIFY_JOIN);
+                $notifyTokens  = EmailTemplateRepo::buildTokens(
+                    listingName: $listing->name,
+                    listingUrl:  $listing->url,
+                    appName:     $notifyAppName,
+                    fanName:     $name,
+                    fanEmail:    $email,
+                    fanUrl:      $url,
+                    fanCountry:  $country,
+                );
+                [$notifySubject, $notifyBody] = EmailTemplateRepo::resolve(
+                    $notifyTpl, EmailTemplateRepo::TYPE_NOTIFY_JOIN, $notifyTokens,
+                );
+                $notifyMailer->send($listing->email, $listing->name, $notifySubject, $notifyBody);
+            } catch (\Throwable $e) {
+                error_log('[Luster] Join notification email failed: ' . $e->getMessage());
+            }
+        }
+
         // Redirect to configured URL or default success page
         $redirectUrl = (string) $embedSettings['redirect_url_join'];
         if ($redirectUrl !== '') {
             return Response::redirect($redirectUrl);
         }
 
-        return Response::redirect($baseUrl . '/join/' . $fanlistingId . '/success');
+        return Response::redirect($baseUrl . '/join/' . $listingId . '/success');
     }
 
     // -----------------------------------------------------------------------
@@ -275,21 +314,21 @@ final class JoinController
 
     public function success(Request $request, array $params): Response
     {
-        $fanlistingId = (int) ($params['id'] ?? 0);
+        $listingId = (int) ($params['id'] ?? 0);
 
-        $fanlistingRepo = new FanlistingRepo($this->app->getDatabase(), $this->app->getConfig());
-        $fanlisting     = $fanlistingRepo->getById($fanlistingId);
+        $listingRepo = new ListingRepo($this->app->getDatabase(), $this->app->getConfig());
+        $listing     = $listingRepo->getById($listingId);
 
-        $fanlistingName = $fanlisting?->name ?? 'this fanlisting';
+        $listingName = $listing?->name ?? 'this listing';
         $baseUrl        = $this->app->getBaseUrl();
 
         $html = $this->app->getView()->renderPublic('success.php', [
-            'fanlisting'       => $fanlisting,
-            'fanlisting_name'  => $fanlistingName,
-            'fanlisting_url'   => $fanlisting?->url ?? '',
+            'listing'       => $listing,
+            'listing_name'  => $listingName,
+            'listing_url'   => $listing?->url ?? '',
             'page_title'       => 'Thank You!',
             'success_heading'  => 'Thank You!',
-            'success_message'  => "You have successfully joined the {$fanlistingName} fanlisting. "
+            'success_message'  => "You have successfully joined the {$listingName} listing. "
                                 . 'Your membership may need to be approved before it appears in the list.',
             'base_url'         => $baseUrl,
             'theme_path'       => $baseUrl . '/assets/default/',
@@ -313,8 +352,8 @@ final class JoinController
      * @param array<string,string>             $old
      */
     private function renderJoinForm(
-        int $fanlistingId,
-        Fanlisting $fanlisting,
+        int $listingId,
+        Listing $listing,
         array $fields,
         array $embedSettings,
         array $old = [],
@@ -323,19 +362,12 @@ final class JoinController
     ): Response {
         $baseUrl = $this->app->getBaseUrl();
 
-        $errorsHtml = $error !== ''
-            ? '<ul>' . implode('', array_map(
-                fn(string $e) => '<li>' . htmlspecialchars($e, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '</li>',
-                explode(' ', $error),
-              )) . '</ul>'
-            : '';
-
         $html = $this->app->getView()->renderPublic('join.php', [
-            'fanlisting'           => $fanlisting,
-            'fanlisting_name'      => $fanlisting->name,
-            'fanlisting_url'       => $fanlisting->url,
+            'listing'           => $listing,
+            'listing_name'      => $listing->name,
+            'listing_url'       => $listing->url,
             'page_title'           => 'Join',
-            'form_action'          => $baseUrl . '/join/' . $fanlistingId,
+            'form_action'          => $baseUrl . '/join/' . $listingId,
             'csrf_token'           => $this->app->getCSRF()->token(),
             'errors'               => $error !== '' ? '<p>' . htmlspecialchars($error, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '</p>' : '',
             'field_name'           => (string) ($old['name']  ?? ''),
@@ -345,9 +377,9 @@ final class JoinController
             'country_field_enabled' => (bool) $embedSettings['country_field_enabled'],
             'fields'               => $fields,
             'old'                  => $old,
-            'captcha_question'     => Captcha::getQuestion(),
+            'captcha_question'     => Captcha::getQuestion('join'),
             'captcha_error'        => $captchaError,
-            'send_info_checked'    => isset($old['send_info']) ? ($old['send_info'] ? 'checked' : '') : 'checked',
+            'send_info_checked'    => !isset($old['send_info']) || $old['send_info'] === '1' ? 'checked' : '',
             'base_url'             => $baseUrl,
             'theme_path'           => $baseUrl . '/assets/default/',
         ]);

@@ -32,7 +32,7 @@ use Luster\Core\Validator;
  * The form POSTs back to the current page URL. On success, a success fragment
  * is echoed in place of the form. All error paths re-render inline (no redirect).
  *
- * Outputs nothing (silently) for upcoming or trouble fanlistings.
+ * Outputs nothing (silently) for upcoming or trouble listings.
  */
 
 // ── Bootstrap ────────────────────────────────────────────────────────────────
@@ -77,11 +77,11 @@ $_lstr_renderRemoveForm = function (
     }
     $csrfToken = (string) $_SESSION['lstr_remove_csrf'];
 
-    $captchaQuestion = Captcha::getQuestion();
+    $captchaQuestion = Captcha::getQuestion('remove');
 
     $tpl = '<div class="luster-remove">' . "\n"
          . '<div class="form-error" role="alert">{error}</div>' . "\n"
-         . '<p>Enter your email address and password to remove yourself from this fanlisting.</p>' . "\n"
+         . '<p>Enter your email address and password to remove yourself from this listing.</p>' . "\n"
          . '<p><strong>This action cannot be undone.</strong></p>' . "\n"
          . '<form method="post" action="{form_action}" novalidate>' . "\n"
          . '<input type="hidden" name="_lstr_csrf" value="{csrf_token}">' . "\n"
@@ -165,7 +165,7 @@ $_lstr_email    = trim((string) ($_POST['email']    ?? ''));
 $_lstr_password = (string) ($_POST['password'] ?? '');
 
 // 5. Captcha
-if (!Captcha::validate((string) ($_POST['captcha_answer'] ?? ''))) {
+if (!Captcha::validate((string) ($_POST['captcha_answer'] ?? ''), 'remove')) {
     $_lstr_renderRemoveForm('', 'Incorrect answer — please try again.', $_lstr_email);
     return;
 }
@@ -220,7 +220,7 @@ try {
         $_lstr_memberName,
         "You have been removed from the {$lstr_fl->name} fanlisting",
         "Hi {$_lstr_memberName},\n\n"
-        . "Your membership in the {$lstr_fl->name} fanlisting has been removed as requested.\n\n"
+        . "Your membership in the {$lstr_fl->name} listing has been removed as requested.\n\n"
         . "-- {$_lstr_appName}",
     );
 } catch (\Throwable $e) {
@@ -230,5 +230,5 @@ try {
 // 11. Success fragment
 $_lstr_flName = $_lstr_e($lstr_fl->name);
 echo '<div class="luster-remove-success">' . "\n"
-    . '<p>Your membership in the <strong>' . $_lstr_flName . '</strong> fanlisting has been removed. We\'re sorry to see you go!</p>' . "\n"
+    . '<p>Your membership in the <strong>' . $_lstr_flName . '</strong> listing has been removed. We\'re sorry to see you go!</p>' . "\n"
     . '</div>';

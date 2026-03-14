@@ -22,7 +22,7 @@ use RuntimeException;
  *   'enth_'  → standard Enthusiast: member tables use 'approved' column
  *              where approved=1 means approved, approved=0 means queued.
  *
- * In both cases, the member table name comes from Fanlisting::$dbprefix
+ * In both cases, the member table name comes from Listing::$dbprefix
  * (mapped from 'dbtable' in the owned schema). It is validated via
  * Database::validatePrefix() before SQL interpolation.
  */
@@ -80,7 +80,7 @@ final class MemberRepo
     // -----------------------------------------------------------------------
 
     /**
-     * Returns all approved members for a fanlisting, ordered by name.
+     * Returns all approved members for a listing, ordered by name.
      *
      * @return Member[]
      */
@@ -147,7 +147,7 @@ final class MemberRepo
     }
 
     /**
-     * Counts pending (queued) members for a fanlisting.
+     * Counts pending (queued) members for a listing.
      */
     public function countPending(string $prefix): int
     {
@@ -169,7 +169,7 @@ final class MemberRepo
     }
 
     /**
-     * Counts approved members for a fanlisting.
+     * Counts approved members for a listing.
      */
     public function countApproved(string $prefix): int
     {
@@ -264,7 +264,7 @@ final class MemberRepo
         bool   $approvedOnly = true,
         string $sort = 'name',
     ): array {
-        $p      = $this->db->validatePrefix($prefix);
+        $p      = $this->resolveTable($prefix);
         $offset = max(0, ($page - 1) * $perPage);
         $where  = $approvedOnly ? "WHERE {$this->approvedWhere}" : '';
         $order  = $sort === 'country' ? 'country ASC, name ASC' : 'name ASC';
@@ -374,7 +374,7 @@ final class MemberRepo
      */
     public function getNewestMembers(string $prefix, int $limit): array
     {
-        $p    = $this->db->validatePrefix($prefix);
+        $p    = $this->resolveTable($prefix);
         $stmt = $this->db->prepare(
             "SELECT name FROM {$p}
              WHERE {$this->approvedWhere}
@@ -412,7 +412,7 @@ final class MemberRepo
      */
     public function getMostRecentApprovedDate(string $prefix): ?string
     {
-        $p    = $this->db->validatePrefix($prefix);
+        $p    = $this->resolveTable($prefix);
         $stmt = $this->db->prepare(
             "SELECT MAX(added) AS latest FROM {$p} WHERE {$this->approvedWhere}"
         );
@@ -492,7 +492,7 @@ final class MemberRepo
         $stmt = $this->db->prepare(
             "UPDATE {$p} SET {$this->pendingWhere} WHERE email = :email"
         );
-        $stmt->execute([':email' => $email]);
+        $stmt->execute(['email' => $email]);
     }
 
     /**
@@ -582,18 +582,24 @@ final class MemberRepo
         }
     }
 
-    public function countUniqueCountries(string $prefix): int {
-        $t=$this->resolveTable($prefix);
-        $stmt=$this->db->prepare("SELECT COUNT(DISTINCT country) FROM `{$t}` WHERE pending=0 AND country!=''");
+    public function countUniqueCountries(string $prefix): int
+    {
+        $table = $this->resolveTable($prefix);
+        $stmt  = $this->db->prepare(
+            "SELECT COUNT(DISTINCT country) FROM `{$table}` WHERE {$this->approvedWhere} AND country != ''"
+        );
         $stmt->execute();
-        return (int)$stmt->fetchColumn();
+
+        return (int) $stmt->fetchColumn();
     }
 
-    public function getLastUpdated(string $prefix): ?string {
-        $t=$this->resolveTable($prefix);
-        $stmt=$this->db->prepare("SELECT MAX(added) FROM `{$t}`");
+    public function getLastUpdated(string $prefix): ?string
+    {
+        $table = $this->resolveTable($prefix);
+        $stmt  = $this->db->prepare("SELECT MAX(added) FROM `{$table}`");
         $stmt->execute();
-        $v=$stmt->fetchColumn();
-        return $v?:null;
+        $value = $stmt->fetchColumn();
+
+        return $value ?: null;
     }
 }

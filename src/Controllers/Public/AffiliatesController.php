@@ -9,8 +9,8 @@ use Luster\Core\Request;
 use Luster\Core\Response;
 use Luster\Models\Affiliate;
 use Luster\Repositories\AffiliateRepo;
-use Luster\Repositories\FanlistingRepo;
-use Luster\Repositories\FanlistingSettingsRepo;
+use Luster\Repositories\ListingRepo;
+use Luster\Repositories\ListingSettingsRepo;
 
 /**
  * Public affiliates page.
@@ -33,27 +33,27 @@ final class AffiliatesController
 
     public function index(Request $request, array $params): Response
     {
-        $fanlistingId = (int) ($params['id'] ?? 0);
+        $listingId = (int) ($params['id'] ?? 0);
 
-        $fanlistingRepo = new FanlistingRepo($this->app->getDatabase(), $this->app->getConfig());
-        $fanlisting     = $fanlistingRepo->getById($fanlistingId);
+        $listingRepo = new ListingRepo($this->app->getDatabase(), $this->app->getConfig());
+        $listing     = $listingRepo->getById($listingId);
 
-        if ($fanlisting === null) {
-            return Response::notFound('That fanlisting does not exist.');
+        if ($listing === null) {
+            return Response::notFound('That listing does not exist.');
         }
 
         $page = max(1, (int) $request->query('page', 1));
 
         $affiliateRepo = new AffiliateRepo($this->app->getDatabase());
-        $result        = $affiliateRepo->getActiveByFanlisting($fanlistingId, self::PER_PAGE, $page);
+        $result        = $affiliateRepo->getActiveByListing($listingId, self::PER_PAGE, $page);
 
         $baseUrl    = $this->app->getBaseUrl();
-        $baseHref   = $baseUrl . '/affiliates/' . $fanlistingId;
+        $baseHref   = $baseUrl . '/affiliates/' . $listingId;
         $pagination = $this->buildPagination($page, $result['pages'], $baseHref);
         $uploadsUrl = $baseUrl . '/uploads';
 
-        $settingsRepo       = new FanlistingSettingsRepo($this->app->getDatabase());
-        $templates          = $settingsRepo->getTemplates($fanlistingId);
+        $settingsRepo       = new ListingSettingsRepo($this->app->getDatabase());
+        $templates          = $settingsRepo->getTemplates($listingId);
         $affiliatesTemplate = ($templates['affiliates_template'] !== null && trim($templates['affiliates_template']) !== '')
             ? $templates['affiliates_template']
             : null;
@@ -63,16 +63,16 @@ final class AffiliatesController
             : null;
 
         $html = $this->app->getView()->renderPublic('affiliates.php', [
-            'fanlisting'       => $fanlisting,
-            'fanlisting_name'  => $fanlisting->name,
-            'fanlisting_url'   => $fanlisting->url,
-            'page_title'       => 'Affiliates — ' . $fanlisting->name,
+            'listing'       => $listing,
+            'listing_name'  => $listing->name,
+            'listing_url'   => $listing->url,
+            'page_title'       => 'Affiliates — ' . $listing->name,
             'affiliates'       => $result['items'],
             'affiliates_html'  => $affiliatesHtml,
             'total'            => $result['total'],
             'pagination'       => $pagination,
             'is_collective'    => false,
-            'join_url'         => $baseUrl . '/join/' . $fanlistingId,
+            'join_url'         => $baseUrl . '/join/' . $listingId,
             'base_url'         => $baseUrl,
             'uploads_url'      => $uploadsUrl,
             'theme_path'       => $baseUrl . '/assets/default/',
@@ -99,9 +99,9 @@ final class AffiliatesController
         $appName = (string) $this->app->getConfig()->get('app_name', 'Luster');
 
         $html = $this->app->getView()->renderPublic('affiliates.php', [
-            'fanlisting'      => null,
-            'fanlisting_name' => $appName,
-            'fanlisting_url'  => $baseUrl,
+            'listing'      => null,
+            'listing_name' => $appName,
+            'listing_url'  => $baseUrl,
             'page_title'      => 'Affiliates',
             'affiliates'      => $result['items'],
             'affiliates_html' => null,

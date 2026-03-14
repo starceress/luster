@@ -9,24 +9,30 @@ use Luster\Core\Database;
 /**
  * Data access for the lstr_email_templates table.
  *
- * Stores admin-configurable email subjects and bodies for the four
- * member-facing transactional emails. Each row covers one action type
- * for one fanlisting. When no custom row exists, the DEFAULT_* constants
- * supply the fallback text.
+ * Stores admin-configurable email subjects and bodies for transactional
+ * emails. Each row covers one action type for one listing. When no custom
+ * row exists, the DEFAULT_* constants supply the fallback text.
  *
  * Token syntax: $token_name$ (dollar signs on both sides).
  *
- * Available tokens (all types):
+ * Available tokens (all fan-facing types):
  *   $fan_name$        — member's name
  *   $fan_email$       — member's email address
  *   $fan_url$         — member's website URL
  *   $fan_country$     — member's country
- *   $fanlisting_name$ — name of the fanlisting
- *   $fanlisting_url$  — URL of the fanlisting
+ *   $listing_name$    — name of the listing
+ *   $listing_url$     — URL of the listing
  *   $app_name$        — collective / site name from config
  *
  * Join-only additional token:
  *   $fan_password$    — member's raw password (shown when set during join)
+ *
+ * Reset-only additional token:
+ *   $reset_url$       — one-time password reset link
+ *
+ * Admin notification (notify_join) — sent to the listing's admin email:
+ *   same tokens as join (fan_name, fan_email, fan_url, fan_country, listing_name,
+ *   listing_url, app_name); $fan_password$ is intentionally left blank.
  *
  * Requires Migration 23.
  */
@@ -36,23 +42,34 @@ final class EmailTemplateRepo
     // Type constants
     // -----------------------------------------------------------------------
 
-    public const TYPE_JOIN    = 'join';
-    public const TYPE_APPROVE = 'approve';
-    public const TYPE_UPDATE  = 'update';
-    public const TYPE_REMOVE  = 'remove';
+    public const TYPE_JOIN         = 'join';
+    public const TYPE_APPROVE      = 'approve';
+    public const TYPE_UPDATE       = 'update';
+    public const TYPE_REMOVE       = 'remove';
+    public const TYPE_RESET        = 'reset';
+    public const TYPE_NOTIFY_JOIN  = 'notify_join';
 
     /** All valid type values in display order. */
-    public const TYPES = [self::TYPE_JOIN, self::TYPE_APPROVE, self::TYPE_UPDATE, self::TYPE_REMOVE];
+    public const TYPES = [
+        self::TYPE_JOIN,
+        self::TYPE_APPROVE,
+        self::TYPE_UPDATE,
+        self::TYPE_REMOVE,
+        self::TYPE_RESET,
+        self::TYPE_NOTIFY_JOIN,
+    ];
 
     // -----------------------------------------------------------------------
     // Default subjects
     // -----------------------------------------------------------------------
 
     private const DEFAULT_SUBJECTS = [
-        self::TYPE_JOIN    => 'Welcome to the $fanlisting_name$ fanlisting!',
-        self::TYPE_APPROVE => 'Your $fanlisting_name$ membership has been approved',
-        self::TYPE_UPDATE  => 'Your $fanlisting_name$ membership has been updated',
-        self::TYPE_REMOVE  => 'You have been removed from the $fanlisting_name$ fanlisting',
+        self::TYPE_JOIN        => 'Welcome to the $listing_name$ listing!',
+        self::TYPE_APPROVE     => 'Your $listing_name$ membership has been approved',
+        self::TYPE_UPDATE      => 'Your $listing_name$ membership has been updated',
+        self::TYPE_REMOVE      => 'You have been removed from the $listing_name$ listing',
+        self::TYPE_RESET       => 'Reset your $listing_name$ password',
+        self::TYPE_NOTIFY_JOIN => 'New member joined $listing_name$',
     ];
 
     // -----------------------------------------------------------------------
@@ -61,7 +78,7 @@ final class EmailTemplateRepo
 
     private const DEFAULT_BODY_JOIN =
         'Hi $fan_name$,' . "\n\n"
-        . 'Thank you for joining the $fanlisting_name$ fanlisting.' . "\n\n"
+        . 'Thank you for joining the $listing_name$ listing.' . "\n\n"
         . 'Here are your membership details:' . "\n"
         . '  Name    : $fan_name$' . "\n"
         . '  Email   : $fan_email$' . "\n"
@@ -73,18 +90,34 @@ final class EmailTemplateRepo
 
     private const DEFAULT_BODY_APPROVE =
         'Hi $fan_name$,' . "\n\n"
-        . 'Great news — your membership in the $fanlisting_name$ fanlisting has been approved!' . "\n\n"
-        . 'Visit the fanlisting at: $fanlisting_url$' . "\n\n"
+        . 'Great news — your membership in the $listing_name$ listing has been approved!' . "\n\n"
+        . 'Visit the listing at: $listing_url$' . "\n\n"
         . '-- $app_name$';
 
     private const DEFAULT_BODY_UPDATE =
         'Hi $fan_name$,' . "\n\n"
-        . 'Your membership in the $fanlisting_name$ fanlisting has been updated successfully.' . "\n\n"
+        . 'Your membership in the $listing_name$ listing has been updated successfully.' . "\n\n"
         . '-- $app_name$';
 
     private const DEFAULT_BODY_REMOVE =
         'Hi $fan_name$,' . "\n\n"
-        . 'Your membership in the $fanlisting_name$ fanlisting has been removed as requested.' . "\n\n"
+        . 'Your membership in the $listing_name$ listing has been removed as requested.' . "\n\n"
+        . '-- $app_name$';
+
+    private const DEFAULT_BODY_RESET =
+        'Hi $fan_name$,' . "\n\n"
+        . 'We received a request to reset the password for your membership in the $listing_name$ listing.' . "\n\n"
+        . 'Click the link below to set a new password. This link expires in 1 hour.' . "\n\n"
+        . '$reset_url$' . "\n\n"
+        . 'If you did not request this, you can safely ignore this email. Your password will not change.' . "\n\n"
+        . '-- $app_name$';
+
+    private const DEFAULT_BODY_NOTIFY_JOIN =
+        'A new member has joined the $listing_name$ listing.' . "\n\n"
+        . '  Name   : $fan_name$' . "\n"
+        . '  Email  : $fan_email$' . "\n"
+        . '  Website: $fan_url$' . "\n"
+        . '  Country: $fan_country$' . "\n\n"
         . '-- $app_name$';
 
     // -----------------------------------------------------------------------
@@ -98,7 +131,7 @@ final class EmailTemplateRepo
     /**
      * Returns the custom template for one type, or null if none has been saved.
      */
-    public function get(int $fanlistingId, string $type): ?object
+    public function get(int $listingId, string $type): ?object
     {
         try {
             $stmt = $this->db->prepare(
@@ -106,7 +139,7 @@ final class EmailTemplateRepo
                  FROM lstr_email_templates
                  WHERE fanlisting_id = :fid AND type = :type'
             );
-            $stmt->execute(['fid' => $fanlistingId, 'type' => $type]);
+            $stmt->execute(['fid' => $listingId, 'type' => $type]);
             $row = $stmt->fetch();
         } catch (\Exception) {
             return null;
@@ -118,7 +151,7 @@ final class EmailTemplateRepo
 
         return (object) [
             'id'           => (int)    $row['id'],
-            'fanlistingId' => (int)    $row['fanlisting_id'],
+            'listingId' => (int)    $row['fanlisting_id'],
             'type'         => (string) $row['type'],
             'enabled'      => (bool)   $row['enabled'],
             'subject'      => (string) $row['subject'],
@@ -132,7 +165,7 @@ final class EmailTemplateRepo
      *
      * @return array<string, object|null>
      */
-    public function getAll(int $fanlistingId): array
+    public function getAll(int $listingId): array
     {
         $result = array_fill_keys(self::TYPES, null);
 
@@ -142,7 +175,7 @@ final class EmailTemplateRepo
                  FROM lstr_email_templates
                  WHERE fanlisting_id = :fid'
             );
-            $stmt->execute(['fid' => $fanlistingId]);
+            $stmt->execute(['fid' => $listingId]);
             $rows = $stmt->fetchAll();
         } catch (\Exception) {
             return $result;
@@ -153,7 +186,7 @@ final class EmailTemplateRepo
             if (array_key_exists($t, $result)) {
                 $result[$t] = (object) [
                     'id'           => (int)    $row['id'],
-                    'fanlistingId' => (int)    $row['fanlisting_id'],
+                    'listingId' => (int)    $row['fanlisting_id'],
                     'type'         => $t,
                     'enabled'      => (bool)   $row['enabled'],
                     'subject'      => (string) $row['subject'],
@@ -173,7 +206,7 @@ final class EmailTemplateRepo
      * Upserts the template for one fanlisting+type combination.
      */
     public function save(
-        int    $fanlistingId,
+        int    $listingId,
         string $type,
         string $subject,
         string $body,
@@ -189,7 +222,7 @@ final class EmailTemplateRepo
                      enabled = VALUES(enabled)'
             );
             $stmt->execute([
-                'fid'     => $fanlistingId,
+                'fid'     => $listingId,
                 'type'    => $type,
                 'subject' => $subject,
                 'body'    => $body,
@@ -214,11 +247,13 @@ final class EmailTemplateRepo
     public static function defaultBody(string $type): string
     {
         return match ($type) {
-            self::TYPE_JOIN    => self::DEFAULT_BODY_JOIN,
-            self::TYPE_APPROVE => self::DEFAULT_BODY_APPROVE,
-            self::TYPE_UPDATE  => self::DEFAULT_BODY_UPDATE,
-            self::TYPE_REMOVE  => self::DEFAULT_BODY_REMOVE,
-            default            => '',
+            self::TYPE_JOIN        => self::DEFAULT_BODY_JOIN,
+            self::TYPE_APPROVE     => self::DEFAULT_BODY_APPROVE,
+            self::TYPE_UPDATE      => self::DEFAULT_BODY_UPDATE,
+            self::TYPE_REMOVE      => self::DEFAULT_BODY_REMOVE,
+            self::TYPE_RESET       => self::DEFAULT_BODY_RESET,
+            self::TYPE_NOTIFY_JOIN => self::DEFAULT_BODY_NOTIFY_JOIN,
+            default                => '',
         };
     }
 
@@ -241,14 +276,15 @@ final class EmailTemplateRepo
      * @return array<string, string>
      */
     public static function buildTokens(
-        string $fanlistingName,
-        string $fanlistingUrl,
+        string $listingName,
+        string $listingUrl,
         string $appName,
         string $fanName     = '',
         string $fanEmail    = '',
         string $fanUrl      = '',
         string $fanCountry  = '',
         string $fanPassword = '',
+        string $resetUrl    = '',
     ): array {
         return [
             '$fan_name$'        => $fanName,
@@ -256,8 +292,9 @@ final class EmailTemplateRepo
             '$fan_url$'         => $fanUrl,
             '$fan_country$'     => $fanCountry,
             '$fan_password$'    => $fanPassword,
-            '$fanlisting_name$' => $fanlistingName,
-            '$fanlisting_url$'  => $fanlistingUrl,
+            '$reset_url$'       => $resetUrl,
+            '$listing_name$'    => $listingName,
+            '$listing_url$'     => $listingUrl,
             '$app_name$'        => $appName,
         ];
     }

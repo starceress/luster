@@ -11,7 +11,7 @@ use Luster\Core\Validator;
 use Luster\Repositories\CategoryRepo;
 
 /**
- * Manages categories for joined fanlistings.
+ * Manages categories for joined listings.
  *
  * Routes:
  *   GET  /admin/categories          — list all categories
@@ -76,10 +76,9 @@ final class CategoryController
         $session->remove('lstr_flash_error');
 
         return $this->layout('admin/categories/add.php', [
-            'all_cats'   => $all,
-            'csrf_token' => $this->app->getSession()->get('csrf_token', ''),
-            'success'    => $success,
-            'error'      => $error,
+            'all_cats' => $all,
+            'success'  => $success,
+            'error'    => $error,
         ], 'Add Category', 'categories');
     }
 
@@ -145,11 +144,10 @@ final class CategoryController
         $session->remove('lstr_flash_error');
 
         return $this->layout('admin/categories/edit.php', [
-            'cat'        => $cat,
-            'all_cats'   => $all,
-            'csrf_token' => $this->app->getSession()->get('csrf_token', ''),
-            'success'    => $success,
-            'error'      => $error,
+            'cat'      => $cat,
+            'all_cats' => $all,
+            'success'  => $success,
+            'error'    => $error,
         ], 'Edit Category', 'categories');
     }
 

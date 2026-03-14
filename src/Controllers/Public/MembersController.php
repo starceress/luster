@@ -8,8 +8,8 @@ use Luster\Core\Application;
 use Luster\Core\Request;
 use Luster\Core\Response;
 use Luster\Models\Member;
-use Luster\Repositories\FanlistingRepo;
-use Luster\Repositories\FanlistingSettingsRepo;
+use Luster\Repositories\ListingRepo;
+use Luster\Repositories\ListingSettingsRepo;
 use Luster\Repositories\FieldRepo;
 use Luster\Repositories\MemberRepo;
 
@@ -32,26 +32,26 @@ final class MembersController
 
     public function index(Request $request, array $params): Response
     {
-        $fanlistingId = (int) ($params['id'] ?? 0);
+        $listingId = (int) ($params['id'] ?? 0);
 
-        $fanlistingRepo = new FanlistingRepo($this->app->getDatabase(), $this->app->getConfig());
-        $fanlisting     = $fanlistingRepo->getById($fanlistingId);
+        $listingRepo = new ListingRepo($this->app->getDatabase(), $this->app->getConfig());
+        $listing     = $listingRepo->getById($listingId);
 
-        if ($fanlisting === null) {
-            return Response::notFound('That fanlisting does not exist.');
+        if ($listing === null) {
+            return Response::notFound('That listing does not exist.');
         }
 
         $fieldRepo = new FieldRepo($this->app->getDatabase(), $this->app->getConfig());
-        $fields    = $fieldRepo->getFieldsForFanlisting($fanlistingId);
+        $fields    = $fieldRepo->getFieldsForListing($listingId);
 
-        $settingsRepo    = new FanlistingSettingsRepo($this->app->getDatabase());
-        $templates       = $settingsRepo->getTemplates($fanlistingId);
+        $settingsRepo    = new ListingSettingsRepo($this->app->getDatabase());
+        $templates       = $settingsRepo->getTemplates($listingId);
         $membersTemplate = ($templates['members_template'] !== null && trim($templates['members_template']) !== '')
             ? $templates['members_template']
             : null;
 
         $baseUrl     = $this->app->getBaseUrl();
-        $membersBase = $baseUrl . '/members/' . $fanlistingId;
+        $membersBase = $baseUrl . '/members/' . $listingId;
         $perPage     = max(1, (int) $this->app->getConfig()->get('per_page', 50));
         $page        = max(1, (int) ($request->query('page', 1)));
 
@@ -63,11 +63,11 @@ final class MembersController
         $memberRepo = new MemberRepo($this->app->getDatabase(), $this->app->getConfig());
 
         $commonData = [
-            'fanlisting'      => $fanlisting,
-            'fanlisting_name' => $fanlisting->name,
-            'fanlisting_url'  => $fanlisting->url,
+            'listing'      => $listing,
+            'listing_name' => $listing->name,
+            'listing_url'  => $listing->url,
             'page_title'      => 'Members',
-            'join_url'        => $baseUrl . '/join/' . $fanlistingId,
+            'join_url'        => $baseUrl . '/join/' . $listingId,
             'members_base'    => $membersBase,
             'sort'            => $sort,
             'show_search'     => true,
@@ -82,7 +82,7 @@ final class MembersController
 
         if ($country !== '') {
             $result = $memberRepo->paginateByCountry(
-                $fanlisting->dbprefix, $country, $page, $perPage,
+                $listing->dbprefix, $country, $page, $perPage,
             );
 
             $statsLine = $country . ': ' . $result['total'] . ' member(s)'
@@ -114,7 +114,7 @@ final class MembersController
         // -----------------------------------------------------------------------
 
         if ($sort === 'country') {
-            $countries = $memberRepo->getCountrySummary($fanlisting->dbprefix);
+            $countries = $memberRepo->getCountrySummary($listing->dbprefix);
 
             $countrySummary = [];
             foreach ($countries as $row) {
@@ -144,7 +144,7 @@ final class MembersController
         // Path C: alphabetical by name (sort=name)
         // -----------------------------------------------------------------------
 
-        $result = $memberRepo->paginate($fanlisting->dbprefix, $page, $perPage, true, 'name');
+        $result = $memberRepo->paginate($listing->dbprefix, $page, $perPage, true, 'name');
 
         $statsLine      = $result['total'] . ' member(s) — page ' . $page . ' of ' . $result['pages'];
         $paginationHtml = $this->buildPagination(

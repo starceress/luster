@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-use Luster\Repositories\FanlistingRepo;
+use Luster\Repositories\ListingRepo;
 
 /**
- * Luster embed — owned fanlistings list.
+ * Luster embed — owned listings list.
  *
- * Drop this into any PHP page to embed the list of fanlistings you own.
+ * Drop this into any PHP page to embed the list of listings you own.
  * Supports status filtering, category filtering, and two selector display modes.
  *
  * Usage:
@@ -18,7 +18,7 @@ use Luster\Repositories\FanlistingRepo;
  *   $luster_status            string  'current' | 'upcoming' | 'trouble' | 'all'
  *                                     Default: 'current'
  *   $luster_exclude_trouble   bool    When true and $luster_status is 'all', trouble /
- *                                     inactive fanlistings are silently omitted so they
+ *                                     inactive listings are silently omitted so they
  *                                     never appear in a general listing. Has no effect
  *                                     when $luster_status is any other value.
  *                                     Default: true
@@ -78,18 +78,18 @@ $_lusterCatId = isset($luster_category_id) && (int) $luster_category_id > 0
               : max(0, (int) ($_GET['cat'] ?? 0));
 
 // ---------------------------------------------------------------------------
-// 3. Load fanlistings and categories
+// 3. Load listings and categories
 // ---------------------------------------------------------------------------
 
-$_lusterFanlistingRepo = new FanlistingRepo($_lusterApp->getDatabase(), $_lusterApp->getConfig());
+$_lusterListingRepo = new ListingRepo($_lusterApp->getDatabase(), $_lusterApp->getConfig());
 
-$_lusterFanlistings = $_lusterFanlistingRepo->getFiltered(
+$_lusterListings = $_lusterListingRepo->getFiltered(
     $_lusterStatus,
     $_lusterCatId > 0 ? $_lusterCatId : null,
     $_lusterExcludeTrouble,
 );
 
-$_lusterCategories = $_lusterFanlistingRepo->getCategoryList();
+$_lusterCategories = $_lusterListingRepo->getCategoryList();
 
 // ---------------------------------------------------------------------------
 // 4. Build form action URL (current page so the selector posts back here)
@@ -106,7 +106,7 @@ $_lusterFormAction = htmlspecialchars(
 // ---------------------------------------------------------------------------
 
 $_lusterHtml = $_lusterApp->getView()->renderFragment('owned.php', [
-    'fanlistings'      => $_lusterFanlistings,
+    'listings'      => $_lusterListings,
     'categories'       => $_lusterCategories,
     'current_category' => $_lusterCatId,
     'status'           => $_lusterStatus,

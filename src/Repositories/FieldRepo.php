@@ -10,7 +10,7 @@ use Luster\Models\AdditionalField;
 use RuntimeException;
 
 /**
- * Parses additional field definitions from the fanlisting registry table.
+ * Parses additional field definitions from the listing registry table.
  *
  * Two schema variants are supported, driven by 'enth_table_prefix':
  *
@@ -48,7 +48,7 @@ final class FieldRepo
 
         $this->isOwnedSchema = ($prefix === '');
 
-        $rawTable        = $this->isOwnedSchema ? 'owned' : $prefix . 'fanlistings';
+        $rawTable        = $this->isOwnedSchema ? 'owned' : $prefix . 'listings';
         $this->table     = $this->db->validatePrefix($rawTable);
         $this->infoCol   = $this->isOwnedSchema ? 'additional'   : 'additional_info';
         $this->pkCol     = $this->isOwnedSchema ? 'listingid'    : 'id';
@@ -59,11 +59,11 @@ final class FieldRepo
     // -----------------------------------------------------------------------
 
     /**
-     * Returns the parsed field definitions for one fanlisting.
+     * Returns the parsed field definitions for one listing.
      *
      * @return AdditionalField[]
      */
-    public function getFieldsForFanlisting(int $id): array
+    public function getFieldsForListing(int $id): array
     {
         $stmt = $this->db->prepare(
             "SELECT {$this->infoCol} AS field_info FROM {$this->table}
@@ -96,7 +96,7 @@ final class FieldRepo
     }
 
     /**
-     * Returns parsed field definitions for every fanlisting, keyed by fanlisting ID.
+     * Returns parsed field definitions for every fanlisting, keyed by listing ID.
      *
      * @return array<int, AdditionalField[]>
      */
@@ -120,18 +120,18 @@ final class FieldRepo
     }
 
     /**
-     * Serializes a fields array and persists it to the fanlisting registry row.
+     * Serializes a fields array and persists it to the listing registry row.
      *
      * @param array<mixed> $fields
      */
-    public function saveFields(int $fanlistingId, array $fields): void
+    public function saveFields(int $listingId, array $fields): void
     {
         $stmt = $this->db->prepare(
             "UPDATE {$this->table}
              SET {$this->infoCol} = :info
              WHERE {$this->pkCol} = :id"
         );
-        $stmt->execute(['info' => serialize($fields), 'id' => $fanlistingId]);
+        $stmt->execute(['info' => serialize($fields), 'id' => $listingId]);
     }
 
     /**

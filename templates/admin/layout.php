@@ -56,7 +56,7 @@ $avatarChar = strtoupper(substr((string) ($admin_username ?? 'A'), 0, 1));
 
     <div class="sidebar-section">
       <div class="sidebar-label">Manage</div>
-      <a href="<?= $b ?>/admin/fanlistings" class="nav-item<?= navActive('fanlistings', $s) ?>">
+      <a href="<?= $b ?>/admin/listings" class="nav-item<?= navActive('listings', $s) ?>">
         <svg class="nav-icon" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
           <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01z"/>
         </svg>
@@ -75,13 +75,7 @@ $avatarChar = strtoupper(substr((string) ($admin_username ?? 'A'), 0, 1));
         </svg>
         Members
       </a>
-      <a href="<?= $b ?>/admin/pending-updates" class="nav-item<?= navActive('pending-updates', $s) ?>">
-        <svg class="nav-icon" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
-          <circle cx="12" cy="12" r="10"/>
-          <polyline points="12 6 12 12 16 14"/>
-        </svg>
-        Pending Updates
-      </a>
+
       <a href="<?= $b ?>/admin/affiliates" class="nav-item<?= navActive('affiliates', $s) ?>">
         <svg class="nav-icon" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
           <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
@@ -102,10 +96,31 @@ $avatarChar = strtoupper(substr((string) ($admin_username ?? 'A'), 0, 1));
         </svg>
         Embed Codes
       </a>
+      <a href="<?= $b ?>/admin/mass-email" class="nav-item<?= navActive('mass-email', $s) ?>">
+        <svg class="nav-icon" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+          <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+          <polyline points="22,6 12,13 2,6"/>
+        </svg>
+        Mass Email
+      </a>
+      <a href="<?= $b ?>/admin/blacklist" class="nav-item<?= navActive('blacklist', $s) ?>">
+        <svg class="nav-icon" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+          <circle cx="12" cy="12" r="10"/>
+          <line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/>
+        </svg>
+        Blacklist
+      </a>
     </div>
 
     <div class="sidebar-section">
       <div class="sidebar-label">System</div>
+      <a href="<?= $b ?>/admin/admin-users" class="nav-item<?= navActive('admin-users', $s) ?>">
+        <svg class="nav-icon" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
+          <line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/>
+        </svg>
+        Admin Accounts
+      </a>
       <a href="<?= $b ?>/admin/settings" class="nav-item<?= navActive('settings', $s) ?>">
         <svg class="nav-icon" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
           <circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/>
@@ -154,11 +169,17 @@ $avatarChar = strtoupper(substr((string) ($admin_username ?? 'A'), 0, 1));
 
 </aside>
 
+<!-- ═══════════ SIDEBAR OVERLAY (mobile) ═══════════ -->
+<div class="sidebar-overlay" id="sidebarOverlay" onclick="closeSidebar()"></div>
+
 <!-- ═══════════ MAIN ═══════════ -->
 <div class="main-wrap">
 
   <div class="topbar">
     <div class="topbar-left">
+      <button class="hamburger" id="hamburger" aria-label="Open menu" onclick="openSidebar()">
+        <span></span><span></span><span></span>
+      </button>
       <span class="topbar-page"><?= \Luster\Core\View::e($page_title) ?></span>
     </div>
     <div class="topbar-right">
@@ -169,12 +190,6 @@ $avatarChar = strtoupper(substr((string) ($admin_username ?? 'A'), 0, 1));
         </div>
         <span class="theme-toggle-icon">🌙</span>
       </button>
-      <div class="topbar-notif">
-        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
-          <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/>
-        </svg>
-        <div class="notif-dot"></div>
-      </div>
     </div>
   </div>
 
@@ -263,6 +278,22 @@ function toggleTheme() {
   html.setAttribute('data-theme', next);
   localStorage.setItem('lstr_theme', next);
 }
+
+/* ── Mobile sidebar ── */
+function openSidebar() {
+  document.querySelector('.sidebar').classList.add('open');
+  document.getElementById('sidebarOverlay').classList.add('active');
+  document.body.classList.add('sidebar-open');
+}
+function closeSidebar() {
+  document.querySelector('.sidebar').classList.remove('open');
+  document.getElementById('sidebarOverlay').classList.remove('active');
+  document.body.classList.remove('sidebar-open');
+}
+// Close on nav link click (navigating away closes drawer)
+document.querySelectorAll('.sidebar .nav-item').forEach(function(el) {
+  el.addEventListener('click', closeSidebar);
+});
 </script>
 
 </body>

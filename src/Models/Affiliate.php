@@ -13,7 +13,7 @@ final class Affiliate
 {
     public function __construct(
         public readonly int     $id,
-        public readonly ?int    $fanlistingId,
+        public readonly ?int    $listingId,
         public readonly string  $name,
         public readonly string  $url,
         public readonly ?string $email,
@@ -31,7 +31,7 @@ final class Affiliate
     {
         return new self(
             id:           (int)    $row['id'],
-            fanlistingId: $row['fanlisting_id'] !== null ? (int) $row['fanlisting_id'] : null,
+            listingId: $row['fanlisting_id'] !== null ? (int) $row['fanlisting_id'] : null,
             name:         (string) $row['name'],
             url:          (string) $row['url'],
             email:        isset($row['email'])  && $row['email']  !== null ? (string) $row['email']  : null,

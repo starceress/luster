@@ -3,8 +3,8 @@
  * Affiliates list — content fragment.
  *
  * Variables injected by AffiliatesController:
- *   $fanlisting_name  string   fanlisting name (or site name for collective)
- *   $fanlisting_url   string
+ *   $listing_name  string   listing name (or site name for collective)
+ *   $listing_url   string
  *   $affiliates       Affiliate[]  active affiliates for this page
  *   $total            int      total active affiliate count
  *   $pagination       string   pre-built pagination HTML, or ''
@@ -23,12 +23,12 @@ use Luster\Core\View;
     <?php if ($is_collective): ?>
       Affiliates
     <?php else: ?>
-      Affiliates of <?= View::e($fanlisting_name) ?>
+      Affiliates of <?= View::e($listing_name) ?>
     <?php endif; ?>
   </h2>
 
   <?php if (!$is_collective && $join_url !== ''): ?>
-    <p><a class="fl-link" href="<?= View::e($join_url) ?>">Join this fanlisting</a></p>
+    <p><a class="fl-link" href="<?= View::e($join_url) ?>">Join this listing</a></p>
   <?php endif; ?>
 
   <?php if (empty($affiliates)): ?>

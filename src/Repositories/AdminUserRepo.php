@@ -71,8 +71,73 @@ final class AdminUserRepo
     }
 
     // -----------------------------------------------------------------------
+    // Collections
+    // -----------------------------------------------------------------------
+
+    /**
+     * Returns all admin users ordered by username.
+     *
+     * @return AdminUser[]
+     */
+    public function getAll(): array
+    {
+        $stmt = $this->db->prepare(
+            'SELECT * FROM lstr_admin_users ORDER BY username ASC'
+        );
+        $stmt->execute();
+
+        return array_map(
+            static fn(array $row) => AdminUser::fromRow($row),
+            $stmt->fetchAll()
+        );
+    }
+
+    /**
+     * Returns the total number of admin accounts.
+     */
+    public function count(): int
+    {
+        $stmt = $this->db->prepare('SELECT COUNT(*) FROM lstr_admin_users');
+        $stmt->execute();
+        return (int) $stmt->fetchColumn();
+    }
+
+    // -----------------------------------------------------------------------
     // Writes
     // -----------------------------------------------------------------------
+
+    /**
+     * Inserts a new admin user and returns the new primary key.
+     *
+     * $passwordHash must already be hashed with password_hash(..., PASSWORD_ARGON2ID).
+     *
+     * @throws \PDOException on duplicate username or email
+     */
+    public function insert(string $username, string $email, string $passwordHash): int
+    {
+        $stmt = $this->db->prepare(
+            'INSERT INTO lstr_admin_users (username, email, password)
+             VALUES (:username, :email, :password)'
+        );
+        $stmt->execute([
+            'username' => $username,
+            'email'    => $email,
+            'password' => $passwordHash,
+        ]);
+
+        return (int) $this->db->lastInsertId();
+    }
+
+    /**
+     * Deletes an admin user by primary key.
+     */
+    public function delete(int $id): bool
+    {
+        $stmt = $this->db->prepare(
+            'DELETE FROM lstr_admin_users WHERE id = :id'
+        );
+        return $stmt->execute(['id' => $id]);
+    }
 
     /**
      * Updates the username and email for an admin user.

@@ -11,14 +11,14 @@ use Luster\Core\RateLimit;
 use Luster\Core\Request;
 use Luster\Core\Response;
 use Luster\Core\Validator;
-use Luster\Models\Fanlisting;
+use Luster\Models\Listing;
 use Luster\Repositories\EmailTemplateRepo;
-use Luster\Repositories\FanlistingRepo;
-use Luster\Repositories\FanlistingSettingsRepo;
+use Luster\Repositories\ListingRepo;
+use Luster\Repositories\ListingSettingsRepo;
 use Luster\Repositories\MemberRepo;
 
 /**
- * Fan removal form — lets a fan remove themselves from a fanlisting.
+ * Fan removal form — lets a fan remove themselves from a listing.
  *
  * GET  /remove/{id} — shows the confirmation/credential form.
  * POST /remove/{id} — verifies email + password, deletes the member row,
@@ -41,13 +41,13 @@ final class RemoveController
 
     public function showForm(Request $request, array $params): Response
     {
-        $fanlistingId = (int) ($params['id'] ?? 0);
+        $listingId = (int) ($params['id'] ?? 0);
 
-        $fanlistingRepo = new FanlistingRepo($this->app->getDatabase(), $this->app->getConfig());
-        $fanlisting     = $fanlistingRepo->getById($fanlistingId);
+        $listingRepo = new ListingRepo($this->app->getDatabase(), $this->app->getConfig());
+        $listing     = $listingRepo->getById($listingId);
 
-        if ($fanlisting === null) {
-            return Response::notFound('That fanlisting does not exist.');
+        if ($listing === null) {
+            return Response::notFound('That listing does not exist.');
         }
 
         $session  = $this->app->getSession();
@@ -56,7 +56,7 @@ final class RemoveController
         $session->remove('lstr_flash_error');
         $session->remove('lstr_flash_old_email');
 
-        return $this->renderRemoveForm($fanlistingId, $fanlisting, $oldEmail, $error);
+        return $this->renderRemoveForm($listingId, $listing, $oldEmail, $error);
     }
 
     // -----------------------------------------------------------------------
@@ -65,7 +65,7 @@ final class RemoveController
 
     public function submit(Request $request, array $params): Response
     {
-        $fanlistingId = (int) ($params['id'] ?? 0);
+        $listingId = (int) ($params['id'] ?? 0);
         $baseUrl      = $this->app->getBaseUrl();
         $session      = $this->app->getSession();
         $rateLimit    = $this->app->getRateLimit();
@@ -74,32 +74,32 @@ final class RemoveController
         // Rate limiting — prevents credential stuffing and email enumeration
         if ($rateLimit->isBlocked($ip, RateLimit::ACTION_PUBLIC_REMOVE)) {
             $session->set('lstr_flash_error', 'Too many attempts. Please try again later.');
-            return Response::redirect($baseUrl . '/remove/' . $fanlistingId);
+            return Response::redirect($baseUrl . '/remove/' . $listingId);
         }
 
         // Honeypot — silent reject; redirect to the success page as if it worked
         if ((string) $request->post('website_confirm', '') !== '') {
-            return Response::redirect($baseUrl . '/remove/' . $fanlistingId . '/success');
+            return Response::redirect($baseUrl . '/remove/' . $listingId . '/success');
         }
 
-        $fanlistingRepo = new FanlistingRepo($this->app->getDatabase(), $this->app->getConfig());
-        $fanlisting     = $fanlistingRepo->getById($fanlistingId);
+        $listingRepo = new ListingRepo($this->app->getDatabase(), $this->app->getConfig());
+        $listing     = $listingRepo->getById($listingId);
 
-        if ($fanlisting === null) {
-            return Response::notFound('That fanlisting does not exist.');
+        if ($listing === null) {
+            return Response::notFound('That listing does not exist.');
         }
 
-        $settingsRepo  = new FanlistingSettingsRepo($this->app->getDatabase());
-        $embedSettings = $settingsRepo->getEmbedSettings($fanlistingId);
+        $settingsRepo  = new ListingSettingsRepo($this->app->getDatabase());
+        $embedSettings = $settingsRepo->getEmbedSettings($listingId);
         $formUrl       = (string) $embedSettings['form_url_remove'] !== ''
                        ? (string) $embedSettings['form_url_remove']
-                       : $baseUrl . '/remove/' . $fanlistingId;
+                       : $baseUrl . '/remove/' . $listingId;
 
         // Captcha — re-render the form with an error on failure
         $email = trim((string) $request->post('email', ''));
-        if (!Captcha::validate((string) $request->post('captcha_answer', ''))) {
+        if (!Captcha::validate((string) $request->post('captcha_answer', ''), 'remove')) {
             return $this->renderRemoveForm(
-                $fanlistingId, $fanlisting, $email,
+                $listingId, $listing, $email,
                 '', 'Incorrect answer — please try again.',
             );
         }
@@ -118,7 +118,7 @@ final class RemoveController
         }
 
         $memberRepo = new MemberRepo($this->app->getDatabase(), $this->app->getConfig());
-        $member     = $memberRepo->getByEmail($fanlisting->dbprefix, $email);
+        $member     = $memberRepo->getByEmail($listing->dbprefix, $email);
 
         if ($member === null) {
             $rateLimit->hitDefault($ip, RateLimit::ACTION_PUBLIC_REMOVE);
@@ -148,17 +148,17 @@ final class RemoveController
 
         $memberName = $member->name;
 
-        $memberRepo->deleteByEmail($fanlisting->dbprefix, $email);
+        $memberRepo->deleteByEmail($listing->dbprefix, $email);
 
         // Farewell email (best-effort)
         try {
             $mailer    = new Mailer($this->app->getConfig());
             $appName   = (string) $this->app->getConfig()->get('app_name', 'Luster');
             $emailRepo = new EmailTemplateRepo($this->app->getDatabase());
-            $tpl       = $emailRepo->get($fanlistingId, EmailTemplateRepo::TYPE_REMOVE);
+            $tpl       = $emailRepo->get($listingId, EmailTemplateRepo::TYPE_REMOVE);
             $tokens    = EmailTemplateRepo::buildTokens(
-                fanlistingName: $fanlisting->name,
-                fanlistingUrl:  $fanlisting->url,
+                listingName: $listing->name,
+                listingUrl:  $listing->url,
                 appName:        $appName,
                 fanName:        $memberName,
                 fanEmail:       $email,
@@ -175,7 +175,7 @@ final class RemoveController
             return Response::redirect($redirectUrl);
         }
 
-        return Response::redirect($baseUrl . '/remove/' . $fanlistingId . '/success');
+        return Response::redirect($baseUrl . '/remove/' . $listingId . '/success');
     }
 
     // -----------------------------------------------------------------------
@@ -184,21 +184,21 @@ final class RemoveController
 
     public function success(Request $request, array $params): Response
     {
-        $fanlistingId = (int) ($params['id'] ?? 0);
+        $listingId = (int) ($params['id'] ?? 0);
 
-        $fanlistingRepo = new FanlistingRepo($this->app->getDatabase(), $this->app->getConfig());
-        $fanlisting     = $fanlistingRepo->getById($fanlistingId);
+        $listingRepo = new ListingRepo($this->app->getDatabase(), $this->app->getConfig());
+        $listing     = $listingRepo->getById($listingId);
 
-        $fanlistingName = $fanlisting?->name ?? 'this fanlisting';
+        $listingName = $listing?->name ?? 'this listing';
         $baseUrl        = $this->app->getBaseUrl();
 
         $html = $this->app->getView()->renderPublic('success.php', [
-            'fanlisting'      => $fanlisting,
-            'fanlisting_name' => $fanlistingName,
-            'fanlisting_url'  => $fanlisting?->url ?? '',
+            'listing'      => $listing,
+            'listing_name' => $listingName,
+            'listing_url'  => $listing?->url ?? '',
             'page_title'      => 'Membership Removed',
             'success_heading' => 'Membership Removed',
-            'success_message' => "You have been removed from the {$fanlistingName} fanlisting. We're sorry to see you go!",
+            'success_message' => "You have been removed from the {$listingName} listing. We're sorry to see you go!",
             'base_url'        => $baseUrl,
             'theme_path'      => $baseUrl . '/assets/default/',
         ]);
@@ -217,8 +217,8 @@ final class RemoveController
      * so the form can be re-rendered in-place without a redirect.
      */
     private function renderRemoveForm(
-        int $fanlistingId,
-        Fanlisting $fanlisting,
+        int $listingId,
+        Listing $listing,
         string $oldEmail = '',
         string $error = '',
         string $captchaError = '',
@@ -226,15 +226,15 @@ final class RemoveController
         $baseUrl = $this->app->getBaseUrl();
 
         $html = $this->app->getView()->renderPublic('remove.php', [
-            'fanlisting'      => $fanlisting,
-            'fanlisting_name' => $fanlisting->name,
-            'fanlisting_url'  => $fanlisting->url,
+            'listing'      => $listing,
+            'listing_name' => $listing->name,
+            'listing_url'  => $listing->url,
             'page_title'      => 'Remove Membership',
-            'form_action'     => $baseUrl . '/remove/' . $fanlistingId,
+            'form_action'     => $baseUrl . '/remove/' . $listingId,
             'csrf_token'      => $this->app->getCSRF()->token(),
             'errors'          => $error !== '' ? '<p>' . htmlspecialchars($error, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '</p>' : '',
             'field_email'     => $oldEmail,
-            'captcha_question' => Captcha::getQuestion(),
+            'captcha_question' => Captcha::getQuestion('remove'),
             'captcha_error'   => $captchaError,
             'base_url'        => $baseUrl,
             'theme_path'      => $baseUrl . '/assets/default/',

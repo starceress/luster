@@ -9,10 +9,10 @@ use Luster\Core\Request;
 use Luster\Core\Response;
 use Luster\Core\Validator;
 use Luster\Repositories\CategoryRepo;
-use Luster\Repositories\JoinedFanlistingRepo;
+use Luster\Repositories\JoinedListingRepo;
 
 /**
- * Manages the site owner's joined fanlistings list.
+ * Manages the site owner's joined listings list.
  *
  * Routes:
  *   GET  /admin/joined              — list, grouped by category
@@ -33,17 +33,17 @@ final class JoinedController
 
     public function index(Request $request, array $params): Response
     {
-        $repo         = new JoinedFanlistingRepo($this->app->getDatabase());
+        $repo         = new JoinedListingRepo($this->app->getDatabase());
         $categoryRepo = new CategoryRepo($this->app->getDatabase());
 
         $displayMode    = (string) ($this->app->getConfig()->get('joined_display_mode', 'all'));
         $defaultPerPage = (int) ($this->app->getConfig()->get('joined_per_page', 10));
 
-        $search        = trim((string) ($_GET['search']   ?? ''));
-        $filterNetwork = trim((string) ($_GET['network']  ?? ''));
-        $filterCat     = trim((string) ($_GET['category'] ?? ''));
-        $perPage       = max(5, min(100, (int) ($_GET['per_page'] ?? $defaultPerPage)));
-        $page          = max(1, (int) ($_GET['page'] ?? 1));
+        $search        = trim((string) $request->query('search', ''));
+        $filterNetwork = trim((string) $request->query('network', ''));
+        $filterCat     = trim((string) $request->query('category', ''));
+        $perPage       = max(5, min(100, (int) $request->query('per_page', $defaultPerPage)));
+        $page          = max(1, (int) $request->query('page', 1));
 
         $networkCategories = $repo->getNetworkCategories();
         if ($filterNetwork !== '' && isset($networkCategories[$filterNetwork])) {
@@ -86,7 +86,7 @@ final class JoinedController
             'custom_networks'    => $customNetworks,
             'success'            => $success,
             'error'              => $error,
-        ], 'Joined Fanlistings', 'joined');
+        ], 'Joined Listings', 'joined');
     }
 
     // -----------------------------------------------------------------------
@@ -95,7 +95,7 @@ final class JoinedController
 
     public function add(Request $request, array $params): Response
     {
-        $repo         = new JoinedFanlistingRepo($this->app->getDatabase());
+        $repo         = new JoinedListingRepo($this->app->getDatabase());
         $categoryRepo = new CategoryRepo($this->app->getDatabase());
         $session      = $this->app->getSession();
         $baseUrl      = $this->app->getBaseUrl();
@@ -112,22 +112,23 @@ final class JoinedController
                 $status = 'joined';
             }
 
-            $categoriesJson = $this->buildCategoriesJson($categoryRepo);
+            $categoriesJson = $this->buildCategoriesJson($categoryRepo, $request);
 
             // --- Image upload ---
             $image      = null;
             $imageError = '';
             $newFilename = null;
             $tmpPath     = '';
+            $imageFile   = $request->file('image') ?? [];
 
-            $uploadErr = (int) ($_FILES['image']['error'] ?? UPLOAD_ERR_NO_FILE);
+            $uploadErr = (int) ($imageFile['error'] ?? UPLOAD_ERR_NO_FILE);
 
             if ($uploadErr !== UPLOAD_ERR_NO_FILE) {
                 if ($uploadErr !== UPLOAD_ERR_OK) {
                     $imageError = 'Image upload failed (error code ' . $uploadErr . ').';
                 } else {
-                    $tmpPath  = (string) ($_FILES['image']['tmp_name'] ?? '');
-                    $fileSize = (int) ($_FILES['image']['size']     ?? 0);
+                    $tmpPath  = (string) ($imageFile['tmp_name'] ?? '');
+                    $fileSize = (int) ($imageFile['size'] ?? 0);
 
                     if ($fileSize > 2 * 1024 * 1024) {
                         $imageError = 'Image must be 2 MB or smaller.';
@@ -195,7 +196,7 @@ final class JoinedController
                 'categories_json' => $categoriesJson,
             ]);
 
-            $session->set('lstr_flash_success', 'Joined fanlisting added.');
+            $session->set('lstr_flash_success', 'Joined listing added.');
             return Response::redirect($baseUrl . '/admin/joined');
         }
 
@@ -216,13 +217,13 @@ final class JoinedController
     public function edit(Request $request, array $params): Response
     {
         $id           = (int) ($params['id'] ?? 0);
-        $repo         = new JoinedFanlistingRepo($this->app->getDatabase());
+        $repo         = new JoinedListingRepo($this->app->getDatabase());
         $categoryRepo = new CategoryRepo($this->app->getDatabase());
 
         $joined = $repo->getById($id);
 
         if ($joined === null) {
-            return Response::notFound('Joined fanlisting not found.');
+            return Response::notFound('Joined listing not found.');
         }
 
         $session = $this->app->getSession();
@@ -241,23 +242,24 @@ final class JoinedController
                 $status = 'joined';
             }
 
-            $categoriesJson = $this->buildCategoriesJson($categoryRepo);
+            $categoriesJson = $this->buildCategoriesJson($categoryRepo, $request);
 
             // --- Image upload ---
             $image       = $joined->image;   // preserve existing by default
             $imageError  = '';
             $newFilename = null;
             $tmpPath     = '';
+            $imageFile   = $request->file('image') ?? [];
 
             if (!$deleteImage) {
-                $uploadErr = (int) ($_FILES['image']['error'] ?? UPLOAD_ERR_NO_FILE);
+                $uploadErr = (int) ($imageFile['error'] ?? UPLOAD_ERR_NO_FILE);
 
                 if ($uploadErr !== UPLOAD_ERR_NO_FILE) {
                     if ($uploadErr !== UPLOAD_ERR_OK) {
                         $imageError = 'Image upload failed (error code ' . $uploadErr . ').';
                     } else {
-                        $tmpPath  = (string) ($_FILES['image']['tmp_name'] ?? '');
-                        $fileSize = (int) ($_FILES['image']['size']     ?? 0);
+                        $tmpPath  = (string) ($imageFile['tmp_name'] ?? '');
+                        $fileSize = (int) ($imageFile['size'] ?? 0);
 
                         if ($fileSize > 2 * 1024 * 1024) {
                             $imageError = 'Image must be 2 MB or smaller.';
@@ -341,7 +343,7 @@ final class JoinedController
                 'categories_json' => $categoriesJson,
             ]);
 
-            $session->set('lstr_flash_success', 'Joined fanlisting updated.');
+            $session->set('lstr_flash_success', 'Joined listing updated.');
             return Response::redirect($baseUrl . '/admin/joined');
         }
 
@@ -362,12 +364,12 @@ final class JoinedController
     public function delete(Request $request, array $params): Response
     {
         $id   = (int) ($params['id'] ?? 0);
-        $repo = new JoinedFanlistingRepo($this->app->getDatabase());
+        $repo = new JoinedListingRepo($this->app->getDatabase());
 
         $joined = $repo->getById($id);
 
         if ($joined === null) {
-            return Response::notFound('Joined fanlisting not found.');
+            return Response::notFound('Joined listing not found.');
         }
 
         // Remove image file if present
@@ -382,7 +384,7 @@ final class JoinedController
         $repo->delete($id);
 
         $session = $this->app->getSession();
-        $session->set('lstr_flash_success', 'Joined fanlisting deleted.');
+        $session->set('lstr_flash_success', 'Joined listing deleted.');
 
         return Response::redirect($this->app->getBaseUrl() . '/admin/joined');
     }
@@ -394,10 +396,10 @@ final class JoinedController
     public function toggle(Request $request, array $params): Response
     {
         $id   = (int) ($params['id'] ?? 0);
-        $repo = new JoinedFanlistingRepo($this->app->getDatabase());
+        $repo = new JoinedListingRepo($this->app->getDatabase());
 
         if ($repo->getById($id) === null) {
-            return Response::notFound('Joined fanlisting not found.');
+            return Response::notFound('Joined listing not found.');
         }
 
         $repo->toggleActive($id);
@@ -419,15 +421,15 @@ final class JoinedController
 
         // CSRF validation
         $csrf  = $this->app->getCSRF();
-        $token = (string) ($_POST['_csrf'] ?? '');
+        $token = (string) $request->post('_csrf', '');
         if (!$csrf->validate($token)) {
             $session->set('lstr_flash_error', 'Invalid CSRF token.');
             return Response::redirect($baseUrl . '/admin/joined');
         }
 
-        $action = (string) ($_POST['bulk_action'] ?? '');
+        $action = (string) $request->post('bulk_action', '');
         $ids    = array_filter(
-            array_map('intval', (array) ($_POST['ids'] ?? [])),
+            array_map('intval', (array) $request->post('ids', [])),
             static fn(int $i): bool => $i > 0,
         );
 
@@ -437,7 +439,7 @@ final class JoinedController
         }
 
         $db    = $this->app->getDatabase();
-        $repo  = new JoinedFanlistingRepo($db);
+        $repo  = new JoinedListingRepo($db);
         $count = 0;
 
         if ($action === 'approve') {
@@ -495,18 +497,18 @@ final class JoinedController
 
         if ($request->isPost()) {
             // CSRF validation
-            $token = (string) ($_POST['_csrf'] ?? '');
+            $token = (string) $request->post('_csrf', '');
             if (!$this->app->getCSRF()->validate($token)) {
                 $session->set('lstr_flash_error', 'Invalid CSRF token.');
                 return Response::redirect($baseUrl . '/admin/joined/settings');
             }
 
-            $mode = (string) ($_POST['display_mode'] ?? 'all');
+            $mode = (string) $request->post('display_mode', 'all');
             if (!in_array($mode, ['all', 'network', 'category', 'status'], true)) {
                 $mode = 'all';
             }
 
-            $pp = max(5, min(100, (int) ($_POST['per_page'] ?? 10)));
+            $pp = max(5, min(100, (int) $request->post('per_page', 10)));
 
             $updated = $config->all();
             $updated['joined_display_mode'] = $mode;
@@ -530,11 +532,11 @@ final class JoinedController
     // Builds categories_json from parallel POST arrays cat_network[]/cat_name[]
     // -----------------------------------------------------------------------
 
-    private function buildCategoriesJson(CategoryRepo $categoryRepo): ?string
+    private function buildCategoriesJson(CategoryRepo $categoryRepo, Request $request): ?string
     {
-        $networks = array_values((array) ($_POST['cat_network']       ?? []));
-        $names    = array_values((array) ($_POST['cat_name']          ?? []));
-        $others   = array_values((array) ($_POST['cat_network_other'] ?? []));
+        $networks = array_values((array) $request->post('cat_network', []));
+        $names    = array_values((array) $request->post('cat_name', []));
+        $others   = array_values((array) $request->post('cat_network_other', []));
 
         $entries = [];
 

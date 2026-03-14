@@ -11,13 +11,14 @@ use Luster\Core\Response;
 use Luster\Core\Validator;
 use Luster\Repositories\ActivityRepo;
 use Luster\Repositories\EmailTemplateRepo;
-use Luster\Repositories\FanlistingRepo;
-use Luster\Repositories\FanlistingSettingsRepo;
+use Luster\Repositories\ListingRepo;
+use Luster\Repositories\ListingSettingsRepo;
 use Luster\Repositories\FieldRepo;
 use Luster\Repositories\MemberRepo;
+use Luster\Repositories\PendingUpdateRepo;
 
 /**
- * Manages members for a specific fanlisting.
+ * Manages members for a specific listing.
  *
  * Routes:
  *   GET  /admin/members/{id}             — list with search + status filter
@@ -42,26 +43,20 @@ final class MemberController
         $db     = $this->app->getDatabase();
         $config = $this->app->getConfig();
 
-        $fanlistingRepo = new FanlistingRepo($db, $config);
-        $memberRepo     = new MemberRepo($db, $config);
-        $allFanlistings = $fanlistingRepo->getAll();
+        $listingRepo       = new ListingRepo($db, $config);
+        $memberRepo        = new MemberRepo($db, $config);
+        $pendingUpdateRepo = new PendingUpdateRepo($db);
+        $allListings       = $listingRepo->getAll();
 
-        $grouped = [];
-        foreach ($allFanlistings as $fl) {
-            if ($fl->dbprefix === '') continue;
-            $pending = $memberRepo->getPending($fl->dbprefix);
-            if (count($pending) > 0) {
-                $grouped[] = ['fanlisting' => $fl, 'members' => $pending];
-            }
+        // Build listing-id → Listing map for use in both render paths.
+        $flById = [];
+        foreach ($allListings as $fl) {
+            $flById[(int) $fl->id] = $fl;
         }
+
+        $pendingUpdates = $pendingUpdateRepo->getAll();
 
         $search = trim((string) $request->query('search', ''));
-        if ($search !== '') {
-            $grouped = array_values(array_filter(array_map(function ($g) use ($search) {
-                $g['members'] = array_values(array_filter($g['members'], fn($m) => stripos($m->name, $search) !== false || stripos($m->email, $search) !== false));
-                return count($g['members']) > 0 ? $g : null;
-            }, $grouped)));
-        }
 
         $session = $this->app->getSession();
         $success = (string) $session->get('lstr_flash_success', '');
@@ -69,9 +64,59 @@ final class MemberController
         $session->remove('lstr_flash_success');
         $session->remove('lstr_flash_error');
 
+        // ------------------------------------------------------------------
+        // Global search — return results across all listings
+        // ------------------------------------------------------------------
+        if ($search !== '') {
+            $searchResults = []; // [{listing, member}]
+
+            foreach ($allListings as $fl) {
+                if ($fl->dbprefix === '') {
+                    continue;
+                }
+                foreach ($memberRepo->search($fl->dbprefix, $search) as $member) {
+                    $searchResults[] = ['listing' => $fl, 'member' => $member];
+                }
+            }
+
+            // Sort by listing name, then member name
+            usort($searchResults, fn($a, $b) =>
+                strcmp($a['listing']->name, $b['listing']->name) ?:
+                strcmp($a['member']->name,  $b['member']->name)
+            );
+
+            return $this->layout('admin/members/overview.php', [
+                'grouped'         => [],
+                'all_listings'    => $allListings,
+                'search_results'  => $searchResults,
+                'pending_updates' => $pendingUpdates,
+                'fl_by_id'        => $flById,
+                'success'         => $success,
+                'error'           => $error,
+                'search'          => $search,
+            ], 'Members', 'members');
+        }
+
+        // ------------------------------------------------------------------
+        // Default view — pending members grouped by listing
+        // ------------------------------------------------------------------
+        $grouped = [];
+        foreach ($allListings as $fl) {
+            if ($fl->dbprefix === '') {
+                continue;
+            }
+            $pending = $memberRepo->getPending($fl->dbprefix);
+            if (count($pending) > 0) {
+                $grouped[] = ['listing' => $fl, 'members' => $pending];
+            }
+        }
+
         return $this->layout('admin/members/overview.php', [
             'grouped'         => $grouped,
-            'all_fanlistings' => $allFanlistings,
+            'all_listings'    => $allListings,
+            'search_results'  => [],
+            'pending_updates' => $pendingUpdates,
+            'fl_by_id'        => $flById,
             'success'         => $success,
             'error'           => $error,
             'search'          => $search,
@@ -84,20 +129,20 @@ final class MemberController
 
     public function index(Request $request, array $params): Response
     {
-        $fanlistingId = (int) ($params['id'] ?? 0);
+        $listingId = (int) ($params['id'] ?? 0);
 
         $db     = $this->app->getDatabase();
         $config = $this->app->getConfig();
 
-        $fanlistingRepo = new FanlistingRepo($db, $config);
+        $listingRepo = new ListingRepo($db, $config);
         $memberRepo     = new MemberRepo($db, $config);
         $fieldRepo      = new FieldRepo($db, $config);
-        $settingsRepo   = new FanlistingSettingsRepo($db);
+        $settingsRepo   = new ListingSettingsRepo($db);
 
-        $fanlisting = $fanlistingRepo->getById($fanlistingId);
+        $listing = $listingRepo->getById($listingId);
 
-        if ($fanlisting === null) {
-            return Response::notFound('Fanlisting not found.');
+        if ($listing === null) {
+            return Response::notFound('Listing not found.');
         }
 
         $page    = max(1, (int) $request->query('page', 1));
@@ -109,18 +154,18 @@ final class MemberController
             $status = 'all';
         }
 
-        $allFanlistings = (new FanlistingRepo($db, $config))->getAll();
+        $allListings = (new ListingRepo($db, $config))->getAll();
 
-        $fields = $fieldRepo->getFieldsForFanlisting($fanlistingId);
+        $fields = $fieldRepo->getFieldsForListing($listingId);
 
         if ($search !== '') {
             // Search ignores status filter and paginates manually
-            $allMatches = $memberRepo->search($fanlisting->dbprefix, $search);
+            $allMatches = $memberRepo->search($listing->dbprefix, $search);
             $total      = count($allMatches);
             $pages      = $total > 0 ? (int) ceil($total / $perPage) : 0;
             $members    = array_slice($allMatches, ($page - 1) * $perPage, $perPage);
         } else {
-            $result  = $memberRepo->paginateByStatus($fanlisting->dbprefix, $status, $page, $perPage);
+            $result  = $memberRepo->paginateByStatus($listing->dbprefix, $status, $page, $perPage);
             $members = $result['members'];
             $total   = $result['total'];
             $pages   = $result['pages'];
@@ -133,7 +178,7 @@ final class MemberController
         $session->remove('lstr_flash_error');
 
         return $this->layout('admin/members/index.php', [
-            'fanlisting'      => $fanlisting,
+            'listing'      => $listing,
             'members'         => $members,
             'fields'          => $fields,
             'total'           => $total,
@@ -142,10 +187,10 @@ final class MemberController
             'per_page'        => $perPage,
             'search'          => $search,
             'status'          => $status,
-            'all_fanlistings' => $allFanlistings,
+            'all_listings' => $allListings,
             'success'         => $success,
             'error'           => $error,
-        ], 'Members — ' . $fanlisting->name, 'members');
+        ], 'Members — ' . $listing->name, 'members');
     }
 
     // -----------------------------------------------------------------------
@@ -154,26 +199,26 @@ final class MemberController
 
     public function edit(Request $request, array $params): Response
     {
-        $fanlistingId = (int) ($params['id'] ?? 0);
+        $listingId = (int) ($params['id'] ?? 0);
 
         $db     = $this->app->getDatabase();
         $config = $this->app->getConfig();
 
-        $fanlistingRepo = new FanlistingRepo($db, $config);
+        $listingRepo = new ListingRepo($db, $config);
         $memberRepo     = new MemberRepo($db, $config);
         $fieldRepo      = new FieldRepo($db, $config);
         $activityRepo   = new ActivityRepo($db);
 
-        $fanlisting     = $fanlistingRepo->getById($fanlistingId);
-        $allFanlistings = $fanlistingRepo->getAll();
+        $listing     = $listingRepo->getById($listingId);
+        $allListings = $listingRepo->getAll();
 
-        if ($fanlisting === null) {
-            return Response::notFound('Fanlisting not found.');
+        if ($listing === null) {
+            return Response::notFound('Listing not found.');
         }
 
         $session = $this->app->getSession();
         $baseUrl = $this->app->getBaseUrl();
-        $fields  = $fieldRepo->getFieldsForFanlisting($fanlistingId);
+        $fields  = $fieldRepo->getFieldsForListing($listingId);
 
         // ---- POST: save ----
         if ($request->isPost()) {
@@ -183,7 +228,7 @@ final class MemberController
                 return Response::notFound('Member email not provided.');
             }
 
-            $member = $memberRepo->getByEmail($fanlisting->dbprefix, $email);
+            $member = $memberRepo->getByEmail($listing->dbprefix, $email);
 
             if ($member === null) {
                 return Response::notFound('Member not found.');
@@ -202,12 +247,13 @@ final class MemberController
 
             if ($v->fails()) {
                 return $this->layout('admin/members/edit.php', [
-                    'fanlisting'      => $fanlisting,
+                    'listing'      => $listing,
                     'member'          => $member,
                     'fields'          => $fields,
                     'error'           => implode(' ', $v->allErrors()),
+                    'success'         => '',
                     'old'             => $request->postAll(),
-                    'all_fanlistings' => $allFanlistings,
+                    'all_listings' => $allListings,
                 ], 'Edit Member', 'members');
             }
 
@@ -224,18 +270,18 @@ final class MemberController
                 $updateData[$col] = $value;
             }
 
-            $memberRepo->update($fanlisting->dbprefix, $email, $updateData);
-            (new FanlistingSettingsRepo($db))->touchLastUpdated($fanlistingId);
+            $memberRepo->update($listing->dbprefix, $email, $updateData);
+            (new ListingSettingsRepo($db))->touchLastUpdated($listingId);
 
             $activityRepo->log(
                 (int) $session->get('lstr_admin_id'),
                 'member.edit',
-                "Edited member {$email} in fanlisting #{$fanlistingId}",
+                "Edited member {$email} in listing #{$listingId}",
                 $request->ip(),
             );
 
             $session->set('lstr_flash_success', 'Member updated.');
-            return Response::redirect($baseUrl . '/admin/members/' . $fanlistingId);
+            return Response::redirect($baseUrl . '/admin/members/' . $listingId);
         }
 
         // ---- GET: show form ----
@@ -245,19 +291,25 @@ final class MemberController
             return Response::notFound('Member email not specified.');
         }
 
-        $member = $memberRepo->getByEmail($fanlisting->dbprefix, $email);
+        $member = $memberRepo->getByEmail($listing->dbprefix, $email);
 
         if ($member === null) {
             return Response::notFound('Member not found.');
         }
 
+        $flashSuccess = (string) $session->get('lstr_flash_success', '');
+        $flashError   = (string) $session->get('lstr_flash_error',   '');
+        $session->remove('lstr_flash_success');
+        $session->remove('lstr_flash_error');
+
         return $this->layout('admin/members/edit.php', [
-            'fanlisting'      => $fanlisting,
+            'listing'      => $listing,
             'member'          => $member,
             'fields'          => $fields,
-            'error'           => '',
+            'error'           => $flashError,
+            'success'         => $flashSuccess,
             'old'             => [],
-            'all_fanlistings' => $allFanlistings,
+            'all_listings' => $allListings,
         ], 'Edit Member', 'members');
     }
 
@@ -267,10 +319,10 @@ final class MemberController
 
     public function approve(Request $request, array $params): Response
     {
-        $fanlistingId = (int) ($params['id'] ?? 0);
+        $listingId = (int) ($params['id'] ?? 0);
         $email        = trim((string) $request->post('member_email', ''));
 
-        return $this->singleAction($fanlistingId, $email, 'approve', $request);
+        return $this->singleAction($listingId, $email, 'approve', $request);
     }
 
     // -----------------------------------------------------------------------
@@ -279,10 +331,10 @@ final class MemberController
 
     public function reject(Request $request, array $params): Response
     {
-        $fanlistingId = (int) ($params['id'] ?? 0);
+        $listingId = (int) ($params['id'] ?? 0);
         $email        = trim((string) $request->post('member_email', ''));
 
-        return $this->singleAction($fanlistingId, $email, 'reject', $request);
+        return $this->singleAction($listingId, $email, 'reject', $request);
     }
 
     // -----------------------------------------------------------------------
@@ -291,10 +343,83 @@ final class MemberController
 
     public function deleteMember(Request $request, array $params): Response
     {
-        $fanlistingId = (int) ($params['id'] ?? 0);
+        $listingId = (int) ($params['id'] ?? 0);
         $email        = trim((string) $request->post('member_email', ''));
 
-        return $this->singleAction($fanlistingId, $email, 'delete', $request);
+        return $this->singleAction($listingId, $email, 'delete', $request);
+    }
+
+    // -----------------------------------------------------------------------
+    // POST /admin/members/{id}/merge
+    //
+    // Merges two members by deleting the secondary (duplicate) member.
+    // The primary member (currently being edited) is kept unchanged.
+    // Both must exist in the same listing.
+    // -----------------------------------------------------------------------
+
+    public function merge(Request $request, array $params): Response
+    {
+        $listingId    = (int) ($params['id'] ?? 0);
+        $primaryEmail = trim((string) $request->post('member_email',   ''));
+        $dupeEmail    = trim((string) $request->post('duplicate_email', ''));
+
+        $db     = $this->app->getDatabase();
+        $config = $this->app->getConfig();
+        $session = $this->app->getSession();
+        $baseUrl = $this->app->getBaseUrl();
+
+        $listingRepo = new ListingRepo($db, $config);
+        $memberRepo  = new MemberRepo($db, $config);
+        $activityRepo = new ActivityRepo($db);
+
+        $listing = $listingRepo->getById($listingId);
+        if ($listing === null) {
+            return Response::notFound('Listing not found.');
+        }
+
+        $redirectEdit = $baseUrl . '/admin/members/' . $listingId
+            . '/edit?email=' . urlencode($primaryEmail);
+
+        if ($primaryEmail === '' || $dupeEmail === '') {
+            $session->set('lstr_flash_error', 'Both emails are required for a merge.');
+            return Response::redirect($redirectEdit);
+        }
+
+        if (strtolower($primaryEmail) === strtolower($dupeEmail)) {
+            $session->set('lstr_flash_error', 'The primary and duplicate email must be different.');
+            return Response::redirect($redirectEdit);
+        }
+
+        // Verify both members exist
+        $primary = $memberRepo->getByEmail($listing->dbprefix, $primaryEmail);
+        if ($primary === null) {
+            $session->set('lstr_flash_error', 'Primary member not found.');
+            return Response::redirect($redirectEdit);
+        }
+
+        $duplicate = $memberRepo->getByEmail($listing->dbprefix, $dupeEmail);
+        if ($duplicate === null) {
+            $session->set('lstr_flash_error', 'Duplicate member "' . $dupeEmail . '" not found in this listing.');
+            return Response::redirect($redirectEdit);
+        }
+
+        // Delete the duplicate
+        $memberRepo->deleteByEmail($listing->dbprefix, $dupeEmail);
+
+        $activityRepo->log(
+            (int) $session->get('lstr_admin_id'),
+            'member.merge',
+            'Merged duplicate member ' . $dupeEmail . ' into ' . $primaryEmail
+                . ' in listing #' . $listingId . ' (' . $listing->name . ')',
+            $request->ip(),
+        );
+
+        $session->set(
+            'lstr_flash_success',
+            'Duplicate member "' . $dupeEmail . '" removed. "' . $primaryEmail . '" retained.',
+        );
+        return Response::redirect($baseUrl . '/admin/members/' . $listingId
+            . '/edit?email=' . urlencode($primaryEmail));
     }
 
     // -----------------------------------------------------------------------
@@ -303,19 +428,19 @@ final class MemberController
 
     public function bulk(Request $request, array $params): Response
     {
-        $fanlistingId = (int) ($params['id'] ?? 0);
+        $listingId = (int) ($params['id'] ?? 0);
 
         $db     = $this->app->getDatabase();
         $config = $this->app->getConfig();
 
-        $fanlistingRepo = new FanlistingRepo($db, $config);
+        $listingRepo = new ListingRepo($db, $config);
         $memberRepo     = new MemberRepo($db, $config);
         $activityRepo   = new ActivityRepo($db);
 
-        $fanlisting = $fanlistingRepo->getById($fanlistingId);
+        $listing = $listingRepo->getById($listingId);
 
-        if ($fanlisting === null) {
-            return Response::notFound('Fanlisting not found.');
+        if ($listing === null) {
+            return Response::notFound('Listing not found.');
         }
 
         $session = $this->app->getSession();
@@ -327,8 +452,11 @@ final class MemberController
 
         if (empty($emails) || !in_array($action, ['approve', 'pending', 'reject', 'delete'], true)) {
             $session->set('lstr_flash_error', 'No members selected or invalid action.');
-            return Response::redirect($baseUrl . '/admin/members/' . $fanlistingId);
+            return Response::redirect($baseUrl . '/admin/members/' . $listingId);
         }
+
+        $mailer  = new Mailer($this->app->getConfig());
+        $appName = (string) $config->get('app_name', 'Luster');
 
         $count = 0;
         foreach ($emails as $email) {
@@ -337,30 +465,337 @@ final class MemberController
             }
 
             match ($action) {
-                'approve' => $memberRepo->approve($fanlisting->dbprefix, $email),
-                'pending' => $memberRepo->setPending($fanlisting->dbprefix, $email),
-                'reject'  => $memberRepo->reject($fanlisting->dbprefix, $email),
-                'delete'  => $memberRepo->deleteByEmail($fanlisting->dbprefix, $email),
+                'approve' => $memberRepo->approve($listing->dbprefix, $email),
+                'pending' => $memberRepo->setPending($listing->dbprefix, $email),
+                'reject'  => $memberRepo->reject($listing->dbprefix, $email),
+                'delete'  => $memberRepo->deleteByEmail($listing->dbprefix, $email),
             };
+
+            // Approval email — mirrors the single-action path (best-effort)
+            if ($action === 'approve') {
+                $member = $memberRepo->getByEmail($listing->dbprefix, $email);
+                if ($member !== null) {
+                    try {
+                        $emailRepo = new EmailTemplateRepo($db);
+                        $tpl       = $emailRepo->get($listingId, EmailTemplateRepo::TYPE_APPROVE);
+                        $tokens    = EmailTemplateRepo::buildTokens(
+                            listingName: $listing->name,
+                            listingUrl:  $listing->url,
+                            appName:     $appName,
+                            fanName:     $member->name,
+                            fanEmail:    $member->email,
+                        );
+                        [$subject, $body] = EmailTemplateRepo::resolve($tpl, EmailTemplateRepo::TYPE_APPROVE, $tokens);
+                        $mailer->send($member->email, $member->name, $subject, $body);
+                    } catch (\Throwable $e) {
+                        error_log('[Luster] Bulk approve email failed for ' . $email . ': ' . $e->getMessage());
+                    }
+                }
+            }
 
             $count++;
         }
 
         // Touch last_updated when at least one member was approved
         if ($count > 0 && $action === 'approve') {
-            (new FanlistingSettingsRepo($db))->touchLastUpdated($fanlistingId);
+            (new ListingSettingsRepo($db))->touchLastUpdated($listingId);
         }
 
         $activityRepo->log(
             (int) $session->get('lstr_admin_id'),
             "member.bulk_{$action}",
-            "Bulk {$action}: {$count} member(s) in fanlisting #{$fanlistingId}",
+            "Bulk {$action}: {$count} member(s) in listing #{$listingId}",
             $request->ip(),
         );
 
         $session->set('lstr_flash_success', "Bulk {$action}: {$count} member(s) processed.");
         $from = (string) $request->post('from', '');
-        return Response::redirect($baseUrl . '/admin/members/' . ($from === 'overview' ? '' : $fanlistingId));
+        return Response::redirect($baseUrl . '/admin/members/' . ($from === 'overview' ? '' : $listingId));
+    }
+
+    // -----------------------------------------------------------------------
+    // GET  /admin/members/{id}/import       — show import form
+    // POST /admin/members/{id}/import       — process uploaded CSV
+    // GET  /admin/members/{id}/import/template — download blank CSV template
+    // -----------------------------------------------------------------------
+
+    public function importForm(Request $request, array $params): Response
+    {
+        $listingId = (int) ($params['id'] ?? 0);
+
+        $listing = (new ListingRepo($this->app->getDatabase(), $this->app->getConfig()))
+            ->getById($listingId);
+
+        if ($listing === null) {
+            return Response::notFound('Listing not found.');
+        }
+
+        return $this->layout('admin/members/import.php', [
+            'listing' => $listing,
+            'results' => null,
+            'error'   => '',
+        ], 'Import Members', 'members');
+    }
+
+    public function importTemplate(Request $request, array $params): Response
+    {
+        $listingId = (int) ($params['id'] ?? 0);
+
+        $db     = $this->app->getDatabase();
+        $config = $this->app->getConfig();
+
+        $listing = (new ListingRepo($db, $config))->getById($listingId);
+
+        if ($listing === null) {
+            return Response::notFound('Listing not found.');
+        }
+
+        $fields = (new FieldRepo($db, $config))->getFieldsForListing($listingId);
+
+        $handle = fopen('php://temp', 'r+');
+
+        if ($handle === false) {
+            return Response::serverError('Could not create CSV stream.');
+        }
+
+        $header = ['name', 'email', 'url', 'country', 'password'];
+        foreach ($fields as $field) {
+            $header[] = $field->name;
+        }
+        fputcsv($handle, $header);
+
+        rewind($handle);
+        $csv = (string) stream_get_contents($handle);
+        fclose($handle);
+
+        $slug = preg_replace('/[^a-z0-9_]/', '_', strtolower($listing->name));
+        return Response::csv($csv, "import_template_{$slug}.csv");
+    }
+
+    public function import(Request $request, array $params): Response
+    {
+        $listingId = (int) ($params['id'] ?? 0);
+
+        $db     = $this->app->getDatabase();
+        $config = $this->app->getConfig();
+
+        $listingRepo  = new ListingRepo($db, $config);
+        $memberRepo   = new MemberRepo($db, $config);
+        $fieldRepo    = new FieldRepo($db, $config);
+        $activityRepo = new ActivityRepo($db);
+        $session      = $this->app->getSession();
+        $baseUrl      = $this->app->getBaseUrl();
+
+        $listing = $listingRepo->getById($listingId);
+
+        if ($listing === null) {
+            return Response::notFound('Listing not found.');
+        }
+
+        $fields = $fieldRepo->getFieldsForListing($listingId);
+
+        // ------------------------------------------------------------------
+        // File validation
+        // ------------------------------------------------------------------
+
+        $upload = $request->file('csv');
+
+        if ($upload === null || ($upload['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_NO_FILE) {
+            return $this->layout('admin/members/import.php', [
+                'listing' => $listing,
+                'results' => null,
+                'error'   => 'Please select a CSV file to upload.',
+            ], 'Import Members', 'members');
+        }
+
+        if (($upload['error'] ?? 0) !== UPLOAD_ERR_OK) {
+            return $this->layout('admin/members/import.php', [
+                'listing' => $listing,
+                'results' => null,
+                'error'   => 'File upload failed (error code ' . (int) $upload['error'] . ').',
+            ], 'Import Members', 'members');
+        }
+
+        if ((int) ($upload['size'] ?? 0) > 2 * 1024 * 1024) {
+            return $this->layout('admin/members/import.php', [
+                'listing' => $listing,
+                'results' => null,
+                'error'   => 'File exceeds the 2 MB size limit.',
+            ], 'Import Members', 'members');
+        }
+
+        $tmpPath = (string) ($upload['tmp_name'] ?? '');
+
+        $finfo    = new \finfo(FILEINFO_MIME_TYPE);
+        $mimeType = $finfo->file($tmpPath);
+        $allowed  = ['text/csv', 'text/plain', 'application/csv', 'application/vnd.ms-excel'];
+
+        if (!in_array($mimeType, $allowed, true)) {
+            return $this->layout('admin/members/import.php', [
+                'listing' => $listing,
+                'results' => null,
+                'error'   => 'Only CSV files are accepted (detected: ' . htmlspecialchars($mimeType, ENT_QUOTES, 'UTF-8') . ').',
+            ], 'Import Members', 'members');
+        }
+
+        // ------------------------------------------------------------------
+        // Parse CSV
+        // ------------------------------------------------------------------
+
+        $handle = fopen($tmpPath, 'r');
+
+        if ($handle === false) {
+            return $this->layout('admin/members/import.php', [
+                'listing' => $listing,
+                'results' => null,
+                'error'   => 'Could not open uploaded file for reading.',
+            ], 'Import Members', 'members');
+        }
+
+        // Read + normalise header row
+        $rawHeader = fgetcsv($handle);
+
+        if ($rawHeader === false || $rawHeader === null) {
+            fclose($handle);
+            return $this->layout('admin/members/import.php', [
+                'listing' => $listing,
+                'results' => null,
+                'error'   => 'The file appears to be empty or could not be read.',
+            ], 'Import Members', 'members');
+        }
+
+        $headerMap = []; // column name (lowercase) → column index
+        foreach ($rawHeader as $i => $col) {
+            $headerMap[strtolower(trim((string) $col))] = $i;
+        }
+
+        if (!isset($headerMap['name']) || !isset($headerMap['email'])) {
+            fclose($handle);
+            return $this->layout('admin/members/import.php', [
+                'listing' => $listing,
+                'results' => null,
+                'error'   => 'The CSV must have at least a "name" column and an "email" column in the header row.',
+            ], 'Import Members', 'members');
+        }
+
+        // Build set of valid additional field names for this listing
+        $fieldNames = [];
+        foreach ($fields as $field) {
+            $fieldNames[] = $field->name;
+        }
+
+        // ------------------------------------------------------------------
+        // Process rows
+        // ------------------------------------------------------------------
+
+        $prefix      = (string) $config->get('enth_table_prefix', '');
+        $imported    = 0;
+        $skipped     = 0;
+        $errors      = [];
+        $rowNumber   = 1; // 1 = header; data rows start at 2
+
+        while (($row = fgetcsv($handle)) !== false) {
+            $rowNumber++;
+
+            // Skip entirely blank rows
+            if ($row === [null] || array_filter(array_map('trim', $row)) === []) {
+                continue;
+            }
+
+            $get = static function (string $col) use ($row, $headerMap): string {
+                $idx = $headerMap[$col] ?? null;
+                return $idx !== null && isset($row[$idx]) ? trim((string) $row[$idx]) : '';
+            };
+
+            $name    = $get('name');
+            $email   = $get('email');
+            $url     = $get('url');
+            $country = $get('country');
+            $rawPass = $get('password');
+
+            // Validate name
+            if ($name === '') {
+                $errors[] = ['row' => $rowNumber, 'email' => $email, 'reason' => 'Name is required.'];
+                continue;
+            }
+            if (strlen($name) > 255) {
+                $errors[] = ['row' => $rowNumber, 'email' => $email, 'reason' => 'Name exceeds 255 characters.'];
+                continue;
+            }
+
+            // Validate email
+            if ($email === '') {
+                $errors[] = ['row' => $rowNumber, 'email' => '(empty)', 'reason' => 'Email is required.'];
+                continue;
+            }
+            if (!filter_var($email, FILTER_VALIDATE_EMAIL) || strlen($email) > 255) {
+                $errors[] = ['row' => $rowNumber, 'email' => $email, 'reason' => 'Invalid email address.'];
+                continue;
+            }
+
+            // Duplicate check
+            if ($memberRepo->getByEmail($listing->dbprefix, $email) !== null) {
+                $skipped++;
+                continue;
+            }
+
+            // Build insert data
+            $password    = $rawPass !== '' ? $rawPass : bin2hex(random_bytes(8));
+            $insertData  = [
+                'name'     => $name,
+                'email'    => $email,
+                'url'      => $url,
+                'country'  => $country,
+                'showurl'  => $url !== '' ? 1 : 0,
+                'password' => password_hash($password, PASSWORD_ARGON2ID),
+                'added'    => date('Y-m-d H:i:s'),
+            ];
+
+            // Schema-specific status column
+            if ($prefix === '') {
+                $insertData['pending'] = 0; // immediately approved
+            } else {
+                $insertData['approved'] = 1;
+                $insertData['updated']  = date('Y-m-d H:i:s');
+            }
+
+            // Additional fields
+            foreach ($fields as $field) {
+                $colName              = ($prefix === '') ? $field->name : 'additional_' . $field->name;
+                $insertData[$colName] = $get($field->name);
+            }
+
+            try {
+                $memberRepo->insert($listing->dbprefix, $insertData);
+                $imported++;
+            } catch (\Throwable $e) {
+                $errors[] = ['row' => $rowNumber, 'email' => $email, 'reason' => 'Database error: ' . $e->getMessage()];
+            }
+        }
+
+        fclose($handle);
+
+        // Touch last_updated if anything was imported
+        if ($imported > 0) {
+            (new ListingSettingsRepo($db))->touchLastUpdated($listingId);
+        }
+
+        $activityRepo->log(
+            (int) $session->get('lstr_admin_id'),
+            'member.import',
+            "CSV import into listing #{$listingId}: {$imported} imported, {$skipped} skipped (duplicates), " . count($errors) . ' errors.',
+            $request->ip(),
+        );
+
+        return $this->layout('admin/members/import.php', [
+            'listing' => $listing,
+            'results' => [
+                'imported' => $imported,
+                'skipped'  => $skipped,
+                'errors'   => $errors,
+            ],
+            'error' => '',
+        ], 'Import Members', 'members');
     }
 
     // -----------------------------------------------------------------------
@@ -369,23 +804,23 @@ final class MemberController
 
     public function export(Request $request, array $params): Response
     {
-        $fanlistingId = (int) ($params['id'] ?? 0);
+        $listingId = (int) ($params['id'] ?? 0);
 
         $db     = $this->app->getDatabase();
         $config = $this->app->getConfig();
 
-        $fanlistingRepo = new FanlistingRepo($db, $config);
+        $listingRepo = new ListingRepo($db, $config);
         $memberRepo     = new MemberRepo($db, $config);
         $fieldRepo      = new FieldRepo($db, $config);
 
-        $fanlisting = $fanlistingRepo->getById($fanlistingId);
+        $listing = $listingRepo->getById($listingId);
 
-        if ($fanlisting === null) {
-            return Response::notFound('Fanlisting not found.');
+        if ($listing === null) {
+            return Response::notFound('Listing not found.');
         }
 
-        $members = $memberRepo->getApproved($fanlisting->dbprefix);
-        $fields  = $fieldRepo->getFieldsForFanlisting($fanlistingId);
+        $members = $memberRepo->getApproved($listing->dbprefix);
+        $fields  = $fieldRepo->getFieldsForListing($listingId);
 
         // Build CSV in memory
         $handle = fopen('php://temp', 'r+');
@@ -420,7 +855,7 @@ final class MemberController
         $csv = stream_get_contents($handle);
         fclose($handle);
 
-        $filename = 'members_' . preg_replace('/[^a-z0-9_]/', '_', strtolower($fanlisting->name)) . '.csv';
+        $filename = 'members_' . preg_replace('/[^a-z0-9_]/', '_', strtolower($listing->name)) . '.csv';
 
         return Response::csv((string) $csv, $filename);
     }
@@ -430,13 +865,13 @@ final class MemberController
         $db     = $this->app->getDatabase();
         $config = $this->app->getConfig();
 
-        $fanlistingRepo = new FanlistingRepo($db, $config);
+        $listingRepo = new ListingRepo($db, $config);
         $memberRepo     = new MemberRepo($db, $config);
 
-        $all    = $fanlistingRepo->getAll();
+        $all    = $listingRepo->getAll();
         $handle = fopen('php://temp', 'r+');
 
-        fputcsv($handle, ['Fanlisting', 'Name', 'Email', 'Country', 'URL']);
+        fputcsv($handle, ['Listing', 'Name', 'Email', 'Country', 'URL']);
 
         foreach ($all as $fl) {
             foreach ($memberRepo->getPending($fl->dbprefix) as $m) {
@@ -458,19 +893,19 @@ final class MemberController
     /**
      * Executes a single approve / reject / delete action and redirects.
      */
-    private function singleAction(int $fanlistingId, string $email, string $action, Request $request): Response
+    private function singleAction(int $listingId, string $email, string $action, Request $request): Response
     {
         $db     = $this->app->getDatabase();
         $config = $this->app->getConfig();
 
-        $fanlistingRepo = new FanlistingRepo($db, $config);
+        $listingRepo = new ListingRepo($db, $config);
         $memberRepo     = new MemberRepo($db, $config);
         $activityRepo   = new ActivityRepo($db);
 
-        $fanlisting = $fanlistingRepo->getById($fanlistingId);
+        $listing = $listingRepo->getById($listingId);
 
-        if ($fanlisting === null) {
-            return Response::notFound('Fanlisting not found.');
+        if ($listing === null) {
+            return Response::notFound('Listing not found.');
         }
 
         $session = $this->app->getSession();
@@ -478,31 +913,31 @@ final class MemberController
 
         if ($email === '') {
             $session->set('lstr_flash_error', 'No member email provided.');
-            return Response::redirect($baseUrl . '/admin/members/' . $fanlistingId);
+            return Response::redirect($baseUrl . '/admin/members/' . $listingId);
         }
 
         match ($action) {
-            'approve' => $memberRepo->approve($fanlisting->dbprefix, $email),
-            'pending' => $memberRepo->setPending($fanlisting->dbprefix, $email),
-            'reject'  => $memberRepo->reject($fanlisting->dbprefix, $email),
-            'delete'  => $memberRepo->deleteByEmail($fanlisting->dbprefix, $email),
+            'approve' => $memberRepo->approve($listing->dbprefix, $email),
+            'pending' => $memberRepo->setPending($listing->dbprefix, $email),
+            'reject'  => $memberRepo->reject($listing->dbprefix, $email),
+            'delete'  => $memberRepo->deleteByEmail($listing->dbprefix, $email),
         };
 
-        // Touch last_updated when a member is approved (signals fanlisting activity)
+        // Touch last_updated when a member is approved (signals listing activity)
         if ($action === 'approve') {
-            (new FanlistingSettingsRepo($db))->touchLastUpdated($fanlistingId);
+            (new ListingSettingsRepo($db))->touchLastUpdated($listingId);
 
             // Approval email (best-effort)
-            $member = $memberRepo->getByEmail($fanlisting->dbprefix, $email);
+            $member = $memberRepo->getByEmail($listing->dbprefix, $email);
             if ($member !== null) {
                 try {
                     $mailer    = new Mailer($this->app->getConfig());
                     $appName   = (string) $this->app->getConfig()->get('app_name', 'Luster');
                     $emailRepo = new EmailTemplateRepo($db);
-                    $tpl       = $emailRepo->get($fanlistingId, EmailTemplateRepo::TYPE_APPROVE);
+                    $tpl       = $emailRepo->get($listingId, EmailTemplateRepo::TYPE_APPROVE);
                     $tokens    = EmailTemplateRepo::buildTokens(
-                        fanlistingName: $fanlisting->name,
-                        fanlistingUrl:  $fanlisting->url,
+                        listingName: $listing->name,
+                        listingUrl:  $listing->url,
                         appName:        $appName,
                         fanName:        $member->name,
                         fanEmail:       $member->email,
@@ -518,7 +953,7 @@ final class MemberController
         $activityRepo->log(
             (int) $session->get('lstr_admin_id'),
             "member.{$action}",
-            ucfirst($action) . "d member {$email} in fanlisting #{$fanlistingId}",
+            ucfirst($action) . "d member {$email} in listing #{$listingId}",
             $request->ip(),
         );
 
@@ -529,7 +964,7 @@ final class MemberController
         };
 
         $session->set('lstr_flash_success', $label);
-        return Response::redirect($baseUrl . '/admin/members/' . $fanlistingId);
+        return Response::redirect($baseUrl . '/admin/members/' . $listingId);
     }
 
     // -----------------------------------------------------------------------
@@ -618,22 +1053,22 @@ final class MemberController
         $config = $this->app->getConfig();
         $id     = (int) $params['id'];
 
-        $fanlistingRepo = new FanlistingRepo($db, $config);
-        $fanlisting     = $fanlistingRepo->getById($id);
+        $listingRepo = new ListingRepo($db, $config);
+        $listing     = $listingRepo->getById($id);
 
-        if ($fanlisting === null) {
+        if ($listing === null) {
             return Response::redirect($this->app->getConfig()->get('app_url', '') . '/admin/members');
         }
 
         $email          = trim((string) $request->query('email', ''));
-        $member         = (new MemberRepo($db, $config))->getByEmail($fanlisting->dbprefix, $email);
-        $templateRepo   = new \Luster\Repositories\EmailTemplateRepo($db, $config);
+        $member         = (new MemberRepo($db, $config))->getByEmail($listing->dbprefix, $email);
+        $templateRepo   = new EmailTemplateRepo($db);
         $templates     = $templateRepo->getAll();
         $baseUrl       = rtrim((string) $config->get('app_url', ''), '/');
         $session       = $this->app->getSession();
-        $csrf          = $session->get('csrf_token', '');
-        $fromEmail     = (string) $config->get('smtp_from_fanlisting', (string) $config->get('smtp_from', ''));
-        $fromName      = (string) $config->get('smtp_from_fanlisting_name', (string) $config->get('smtp_from_name', 'Luster'));
+        $csrf          = $this->app->getCSRF()->token();
+        $fromEmail     = (string) $config->get('smtp_from_listing', (string) $config->get('smtp_from', ''));
+        $fromName      = (string) $config->get('smtp_from_listing_name', (string) $config->get('smtp_from_name', 'Luster'));
         $flash_error   = $session->get('lstr_flash_error', '');
         $flash_success = $session->get('lstr_flash_success', '');
         $old           = (array) $session->get('lstr_email_old', []);
@@ -641,10 +1076,10 @@ final class MemberController
         $session->remove('lstr_flash_success');
         $session->remove('lstr_email_old');
 
-        $referer = (string) ($_SERVER['HTTP_REFERER'] ?? $baseUrl . '/admin/members/' . $id);
+        $referer = $request->header('referer') ?? $baseUrl . '/admin/members/' . $id;
 
         return $this->layout('admin/members/email.php', [
-            'fanlisting'   => $fanlisting,
+            'listing'   => $listing,
             'member_email' => $email,
             'member_name'  => $member ? $member->name : '',
             'from_email'   => $fromEmail,
@@ -665,9 +1100,9 @@ final class MemberController
         $id       = (int) $params['id'];
         $toEmail         = trim((string) $request->post('member_email', ''));
         $db              = $this->app->getDatabase();
-        $fanlistingRepo  = new FanlistingRepo($db, $config);
-        $fanlisting      = $fanlistingRepo->getById($id);
-        $flName          = $fanlisting ? $fanlisting->name : '';
+        $listingRepo  = new ListingRepo($db, $config);
+        $listing      = $listingRepo->getById($id);
+        $flName          = $listing ? $listing->name : '';
         $suffix          = trim((string) $request->post('subject_suffix', ''));
         $subject         = $flName !== '' ? $flName . ': ' . $suffix : $suffix;
         $body            = trim((string) $request->post('body', ''));

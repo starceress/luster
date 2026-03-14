@@ -13,7 +13,7 @@ $_embedPath = dirname(__DIR__, 3) . '/public/embed';   // adjust if you move thi
 
 // ── Site identity ─────────────────────────────────────────────────────────────
 $_siteName    = 'Collective Name';    // ← your collective / site name
-$_siteTagline = 'A fanlisting collective';  // ← shown below the site name
+$_siteTagline = 'A listing collective';  // ← shown below the site name
 $_navActive   = 'home';
 
 function _e(string $v): string {
@@ -35,7 +35,7 @@ function _e(string $v): string {
     <p class="fl-site-title"><a href="index.php"><?= _e($_siteName) ?></a></p>
     <nav class="fl-nav" aria-label="Collective navigation">
       <a href="index.php"       class="active">Home</a>
-      <a href="fanlistings.php">Fanlistings</a>
+      <a href="listings.php">Listings</a>
       <a href="joined.php">Joined</a>
       <a href="affiliates.php">Affiliates</a>
     </nav>
@@ -50,7 +50,7 @@ function _e(string $v): string {
 
     <p>
       Welcome! Edit this section to introduce your collective.
-      Browse the owned fanlistings, see which fanlistings I've joined,
+      Browse the owned listings, see which listings I've joined,
       or check out my affiliates.
     </p>
 
@@ -67,9 +67,9 @@ function _e(string $v): string {
     ?>
 
     <p style="margin-top:1.5rem">
-      <a class="fl-btn" href="fanlistings.php">Browse fanlistings</a>
+      <a class="fl-btn" href="listings.php">Browse listings</a>
       &nbsp;
-      <a class="fl-link" href="joined.php" style="font-size:.9rem">Joined fanlistings &rarr;</a>
+      <a class="fl-link" href="joined.php" style="font-size:.9rem">Joined listings &rarr;</a>
     </p>
 
   </div>

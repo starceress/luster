@@ -49,14 +49,14 @@ final class PendingUpdateRepo
      *
      * @return array<int, object>
      */
-    public function getByFanlisting(int $fanlistingId): array
+    public function getByListing(int $listingId): array
     {
         $stmt = $this->db->prepare(
             'SELECT * FROM lstr_pending_updates
              WHERE fanlisting_id = :fid
              ORDER BY submitted_at DESC'
         );
-        $stmt->execute(['fid' => $fanlistingId]);
+        $stmt->execute(['fid' => $listingId]);
 
         return array_map(
             static fn(array $r) => (object) [
@@ -95,7 +95,7 @@ final class PendingUpdateRepo
     }
 
     /**
-     * Returns the total count of pending updates across all fanlistings.
+     * Returns the total count of pending updates across all listings.
      */
     public function countAll(): int
     {
@@ -106,14 +106,14 @@ final class PendingUpdateRepo
     }
 
     /**
-     * Returns the count of pending updates for a specific fanlisting.
+     * Returns the count of pending updates for a specific listing.
      */
-    public function countByFanlisting(int $fanlistingId): int
+    public function countByListing(int $listingId): int
     {
         $stmt = $this->db->prepare(
             'SELECT COUNT(*) FROM lstr_pending_updates WHERE fanlisting_id = :fid'
         );
-        $stmt->execute(['fid' => $fanlistingId]);
+        $stmt->execute(['fid' => $listingId]);
 
         return (int) $stmt->fetchColumn();
     }
@@ -127,14 +127,14 @@ final class PendingUpdateRepo
      *
      * @param array<string, mixed> $changes  Final resolved field values (no password).
      */
-    public function insert(int $fanlistingId, string $email, array $changes): int
+    public function insert(int $listingId, string $email, array $changes): int
     {
         $stmt = $this->db->prepare(
             'INSERT INTO lstr_pending_updates (fanlisting_id, member_email, changes)
              VALUES (:fid, :email, :changes)'
         );
         $stmt->execute([
-            'fid'     => $fanlistingId,
+            'fid'     => $listingId,
             'email'   => $email,
             'changes' => json_encode($changes, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
         ]);
@@ -154,7 +154,7 @@ final class PendingUpdateRepo
     }
 
     /**
-     * Deletes all pending updates for a given member email across all fanlistings.
+     * Deletes all pending updates for a given member email across all listings.
      * Called when a member is deleted from the system.
      */
     public function deleteByEmail(string $email): void

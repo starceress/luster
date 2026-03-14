@@ -5,25 +5,26 @@ declare(strict_types=1);
 use Luster\Core\View;
 
 /**
- * Joined fanlistings list — content fragment.
+ * Joined listings list — content fragment.
  *
  * Variables injected by embed/joined.php:
- *   $fanlistings        JoinedFanlisting[]              flat list (single-category or selector mode)
- *   $grouped            array<string, JoinedFanlisting[]>  category-keyed list (show-all mode, sorted)
- *                       When non-empty, $fanlistings is unused.
+ *   $listings        JoinedListing[]              flat list (single-category or selector mode)
+ *   $grouped            array<string, JoinedListing[]>  category-keyed list (show-all mode, sorted)
+ *                       When non-empty, $listings is unused.
  *   $categories         string[]            all available category names (for the selector)
- *   $current_category   string              '' = selector | 'all' = grouped | other = single cat
+ *   $current_category   string              '' = no category chosen | 'all' = grouped | other = filter
  *   $show_list          bool                show category selector as bulleted list (vs dropdown)
- *   $uploads_url        string              base URL for fanlisting images
+ *   $uploads_url        string              base URL for listing images
  *   $form_action        string              URL the category filter form/links point to
  *   $base_url           string
  *   $theme_path         string
  */
 
 $_isGroupedMode = !empty($grouped);
-$_isSelectorMode = $current_category === '' && !$_isGroupedMode;
+$_hasCategory   = $current_category !== '' && !$_isGroupedMode;
+$_showSelector  = !$_isGroupedMode && !empty($categories);
 
-/** Renders one JoinedFanlisting item — shared by both display modes */
+/** Renders one JoinedListing item — shared by both display modes */
 $_renderItem = static function ($fl) use ($uploads_url): void {
     if ($fl->image !== null && $fl->image !== '') {
         echo '<a class="fl-affiliate-link" href="' . View::e($fl->url) . '" target="_blank" rel="noopener noreferrer">';
@@ -38,41 +39,10 @@ $_renderItem = static function ($fl) use ($uploads_url): void {
 ?>
 <div class="fl-wrap">
 
-  <?php if ($_isSelectorMode && !empty($categories)): ?>
-    <?php /* Selector mode: visitor must choose a category */ ?>
-    <div class="fl-filter">
-      <?php if ($show_list): ?>
-        <ul class="fl-category-list">
-          <?php foreach ($categories as $catName): ?>
-            <li>
-              <a class="fl-link"
-                 href="<?= View::e($form_action . '?cat=' . urlencode($catName)) ?>">
-                <?= View::e($catName) ?>
-              </a>
-            </li>
-          <?php endforeach; ?>
-        </ul>
-      <?php else: ?>
-        <form method="GET" action="<?= View::e($form_action) ?>" class="fl-filter-form">
-          <label class="fl-label" for="fl-joined-cat">Category:</label>
-          <select class="fl-select" id="fl-joined-cat" name="cat"
-                  onchange="this.form.submit()">
-            <option value="">Select a category&hellip;</option>
-            <?php foreach ($categories as $catName): ?>
-              <option value="<?= View::e($catName) ?>">
-                <?= View::e($catName) ?>
-              </option>
-            <?php endforeach; ?>
-          </select>
-          <noscript><button class="fl-btn" type="submit">Go</button></noscript>
-        </form>
-      <?php endif; ?>
-    </div>
-
-  <?php elseif ($_isGroupedMode): ?>
-    <?php /* Show-all mode: all active fanlistings grouped by category heading */ ?>
+  <?php if ($_isGroupedMode): ?>
+    <?php /* Show-all mode: all active listings grouped by category heading */ ?>
     <?php if (empty($grouped)): ?>
-      <p class="fl-empty">No fanlistings to display.</p>
+      <p class="fl-empty">No listings to display.</p>
     <?php else: ?>
       <?php foreach ($grouped as $catName => $items): ?>
         <h3 class="fl-category-heading"><?= View::e($catName) ?></h3>
@@ -85,21 +55,54 @@ $_renderItem = static function ($fl) use ($uploads_url): void {
     <?php endif; ?>
 
   <?php else: ?>
-    <?php /* Single-category mode */ ?>
-    <p class="fl-muted" style="font-size:.875rem">
-      <?= View::e($current_category) ?>
-      &mdash; <a class="fl-link" href="<?= View::e($form_action) ?>">All categories</a>
-    </p>
+    <?php /* Selector + results mode — filter persists after selection */ ?>
 
-    <?php if (empty($fanlistings)): ?>
-      <p class="fl-empty">No fanlistings in this category.</p>
-    <?php else: ?>
-      <ul class="fl-fanlisting-list">
-        <?php foreach ($fanlistings as $fl): ?>
-          <li class="fl-fanlisting"><?php $_renderItem($fl); ?></li>
-        <?php endforeach; ?>
-      </ul>
+    <?php if ($_showSelector): ?>
+      <div class="fl-filter">
+        <?php if ($show_list): ?>
+          <ul class="fl-category-list">
+            <?php foreach ($categories as $catName): ?>
+              <li>
+                <a class="fl-link<?= $current_category === $catName ? ' active' : '' ?>"
+                   href="<?= View::e($form_action . '?cat=' . urlencode($catName)) ?>">
+                  <?= View::e($catName) ?>
+                </a>
+              </li>
+            <?php endforeach; ?>
+          </ul>
+        <?php else: ?>
+          <form method="GET" action="<?= View::e($form_action) ?>" class="fl-filter-form">
+            <label class="fl-label" for="fl-joined-cat">Category:</label>
+            <select class="fl-select" id="fl-joined-cat" name="cat"
+                    onchange="this.form.submit()">
+              <option value="">All categories&hellip;</option>
+              <?php foreach ($categories as $catName): ?>
+                <option value="<?= View::e($catName) ?>"
+                  <?= $current_category === $catName ? 'selected' : '' ?>>
+                  <?= View::e($catName) ?>
+                </option>
+              <?php endforeach; ?>
+            </select>
+            <noscript><button class="fl-btn" type="submit">Go</button></noscript>
+          </form>
+        <?php endif; ?>
+      </div>
     <?php endif; ?>
+
+    <?php if ($_hasCategory): ?>
+      <?php if (empty($listings)): ?>
+        <p class="fl-empty">No listings in this category.</p>
+      <?php else: ?>
+        <ul class="fl-fanlisting-list">
+          <?php foreach ($listings as $fl): ?>
+            <li class="fl-fanlisting"><?php $_renderItem($fl); ?></li>
+          <?php endforeach; ?>
+        </ul>
+      <?php endif; ?>
+    <?php elseif (!$_showSelector): ?>
+      <p class="fl-empty">No listings to display.</p>
+    <?php endif; ?>
+
   <?php endif; ?>
 
 </div>

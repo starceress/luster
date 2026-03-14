@@ -3,16 +3,16 @@
 declare(strict_types=1);
 
 use Luster\Repositories\AffiliateRepo;
-use Luster\Repositories\FanlistingRepo;
+use Luster\Repositories\ListingRepo;
 
 /**
  * Luster embed — affiliates fragment.
  *
- * Outputs the active affiliates list for a fanlisting (or site-wide collective)
+ * Outputs the active affiliates list for a listing (or site-wide collective)
  * using the same HTML structure as GET /affiliates/{id}.
  *
  * Usage — per-fanlisting:
- *   $luster_fanlisting_id = 1;     // required: fanlisting ID (int)
+ *   $luster_fanlisting_id = 1;     // required: listing ID (int)
  *   $luster_return        = false;  // optional: true = return string, false = echo
  *   require '/absolute/path/to/luster/public/embed/affiliates.php';
  *
@@ -50,7 +50,7 @@ $_lusterApp = require $_lusterRoot . '/bootstrap.php';
 // 2. Resolve parameters
 // ---------------------------------------------------------------------------
 
-$_lusterFanlistingId = (int) ($luster_fanlisting_id ?? 0);
+$_lusterListingId = (int) ($luster_fanlisting_id ?? 0);
 $_lusterPerPage      = max(1, (int) ($luster_per_page ?? 50));
 $_lusterPage         = max(1, (int) ($luster_page ?? ($_GET['page'] ?? 1)));
 
@@ -64,13 +64,13 @@ $_lusterUploadsUrl = $_lusterApp->getBaseUrl() . '/uploads';
 
 $_lusterAffiliateRepo = new AffiliateRepo($_lusterApp->getDatabase());
 
-if ($_lusterFanlistingId > 0) {
+if ($_lusterListingId > 0) {
     // Per-fanlisting mode
-    $_lusterFanlistingRepo = new FanlistingRepo($_lusterApp->getDatabase(), $_lusterApp->getConfig());
-    $_lusterFanlisting     = $_lusterFanlistingRepo->getById($_lusterFanlistingId);
+    $_lusterListingRepo = new ListingRepo($_lusterApp->getDatabase(), $_lusterApp->getConfig());
+    $_lusterListing     = $_lusterListingRepo->getById($_lusterListingId);
 
-    if ($_lusterFanlisting === null) {
-        $_lusterHtml = '<p class="fl-errors">Luster embed error: fanlisting #' . $_lusterFanlistingId . ' not found.</p>';
+    if ($_lusterListing === null) {
+        $_lusterHtml = '<p class="fl-errors">Luster embed error: listing #' . $_lusterListingId . ' not found.</p>';
         if ($luster_return ?? false) {
             return $_lusterHtml;
         }
@@ -78,13 +78,13 @@ if ($_lusterFanlistingId > 0) {
         return;
     }
 
-    $_lusterResult      = $_lusterAffiliateRepo->getActiveByFanlisting($_lusterFanlistingId, $_lusterPerPage, $_lusterPage);
+    $_lusterResult      = $_lusterAffiliateRepo->getActiveByListing($_lusterListingId, $_lusterPerPage, $_lusterPage);
     $_lusterIsCollective = false;
-    $_lusterJoinUrl      = $_lusterBaseUrl . '/join/' . $_lusterFanlistingId;
-    $_lusterTitle        = $_lusterFanlisting->name;
+    $_lusterJoinUrl      = $_lusterBaseUrl . '/join/' . $_lusterListingId;
+    $_lusterTitle        = $_lusterListing->name;
 } else {
     // Collective mode
-    $_lusterFanlisting   = null;
+    $_lusterListing   = null;
     $_lusterResult       = $_lusterAffiliateRepo->getActiveCollective($_lusterPerPage, $_lusterPage);
     $_lusterIsCollective = true;
     $_lusterJoinUrl      = '';
@@ -111,9 +111,12 @@ $_lusterBuildPagination = static function (int $current, int $total, string $bas
     return implode(' ', $parts);
 };
 
-$_lusterPaginationBase = $_lusterFanlistingId > 0
-    ? $_lusterBaseUrl . '/affiliates/' . $_lusterFanlistingId
-    : $_lusterBaseUrl . '/affiliates';
+// Allow the embedding page to override pagination base URL.
+$_lusterPaginationBase = (isset($luster_affiliates_base) && (string) $luster_affiliates_base !== '')
+    ? (string) $luster_affiliates_base
+    : ($_lusterListingId > 0
+        ? $_lusterBaseUrl . '/affiliates/' . $_lusterListingId
+        : $_lusterBaseUrl . '/affiliates');
 
 $_lusterPagination = $_lusterBuildPagination($_lusterPage, $_lusterResult['pages'], $_lusterPaginationBase);
 
@@ -122,9 +125,9 @@ $_lusterPagination = $_lusterBuildPagination($_lusterPage, $_lusterResult['pages
 // ---------------------------------------------------------------------------
 
 $_lusterHtml = $_lusterApp->getView()->renderFragment('affiliates.php', [
-    'fanlisting'      => $_lusterFanlisting,
-    'fanlisting_name' => $_lusterTitle,
-    'fanlisting_url'  => $_lusterFanlisting?->url ?? $_lusterApp->getBaseUrl(),
+    'listing'      => $_lusterListing,
+    'listing_name' => $_lusterTitle,
+    'listing_url'  => $_lusterListing?->url ?? $_lusterApp->getBaseUrl(),
     'page_title'      => $_lusterIsCollective ? 'Affiliates' : 'Affiliates — ' . $_lusterTitle,
     'affiliates'      => $_lusterResult['items'],
     'total'           => $_lusterResult['total'],

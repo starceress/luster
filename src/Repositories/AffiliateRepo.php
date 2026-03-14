@@ -10,8 +10,8 @@ use Luster\Models\Affiliate;
 /**
  * Data access for the lstr_affiliates table.
  *
- * Affiliates are linked to a specific fanlisting via fanlisting_id, which
- * corresponds to enth_fanlistings.id. All queries use prepared statements.
+ * Affiliates are linked to a specific listing via listing_id, which
+ * corresponds to enth_listings.id. All queries use prepared statements.
  */
 final class AffiliateRepo
 {
@@ -101,14 +101,14 @@ final class AffiliateRepo
      *
      * @return array{items: Affiliate[], total: int, pages: int}
      */
-    public function getByFanlisting(int $fanlistingId, int $perPage = 10, int $page = 1): array
+    public function getByListing(int $listingId, int $perPage = 10, int $page = 1): array
     {
         $offset = ($page - 1) * $perPage;
 
         $countStmt = $this->db->prepare(
             'SELECT COUNT(*) FROM lstr_affiliates WHERE fanlisting_id = :fid'
         );
-        $countStmt->execute(['fid' => $fanlistingId]);
+        $countStmt->execute(['fid' => $listingId]);
         $total = (int) $countStmt->fetchColumn();
 
         $stmt = $this->db->prepare(
@@ -117,7 +117,7 @@ final class AffiliateRepo
              ORDER BY sort_order ASC, name ASC
              LIMIT :limit OFFSET :offset'
         );
-        $stmt->bindValue(':fid',    $fanlistingId, \PDO::PARAM_INT);
+        $stmt->bindValue(':fid',    $listingId, \PDO::PARAM_INT);
         $stmt->bindValue(':limit',  $perPage,      \PDO::PARAM_INT);
         $stmt->bindValue(':offset', $offset,       \PDO::PARAM_INT);
         $stmt->execute();
@@ -135,14 +135,14 @@ final class AffiliateRepo
      *
      * @return array{items: Affiliate[], total: int, pages: int}
      */
-    public function getActiveByFanlisting(int $fanlistingId, int $perPage = 50, int $page = 1): array
+    public function getActiveByListing(int $listingId, int $perPage = 50, int $page = 1): array
     {
         $offset = ($page - 1) * $perPage;
 
         $countStmt = $this->db->prepare(
             'SELECT COUNT(*) FROM lstr_affiliates WHERE fanlisting_id = :fid AND active = 1'
         );
-        $countStmt->execute(['fid' => $fanlistingId]);
+        $countStmt->execute(['fid' => $listingId]);
         $total = (int) $countStmt->fetchColumn();
 
         $stmt = $this->db->prepare(
@@ -151,7 +151,7 @@ final class AffiliateRepo
              ORDER BY sort_order ASC, name ASC
              LIMIT :limit OFFSET :offset'
         );
-        $stmt->bindValue(':fid',    $fanlistingId, \PDO::PARAM_INT);
+        $stmt->bindValue(':fid',    $listingId, \PDO::PARAM_INT);
         $stmt->bindValue(':limit',  $perPage,      \PDO::PARAM_INT);
         $stmt->bindValue(':offset', $offset,       \PDO::PARAM_INT);
         $stmt->execute();
@@ -197,23 +197,23 @@ final class AffiliateRepo
     }
 
     /**
-     * Full-text search across name, url, and email, with optional fanlisting scope.
+     * Full-text search across name, url, and email, with optional listing scope.
      *
-     * $fanlistingId === null  → only collective affiliates (fanlisting_id IS NULL)
-     * $fanlistingId === -1   → all affiliates regardless of fanlisting
-     * $fanlistingId > 0      → only that specific fanlisting
+     * $listingId === null  → only collective affiliates (fanlisting_id IS NULL)
+     * $listingId === -1   → all affiliates regardless of fanlisting
+     * $listingId > 0      → only that specific fanlisting
      *
      * @return array{items: Affiliate[], total: int, pages: int}
      */
-    public function search(string $q, ?int $fanlistingId, int $perPage = 10, int $page = 1): array
+    public function search(string $q, ?int $listingId, int $perPage = 10, int $page = 1): array
     {
         $offset  = ($page - 1) * $perPage;
         $pattern = '%' . $q . '%';
 
-        // Build the fanlisting clause — hardcoded SQL fragment, no user data interpolated
-        if ($fanlistingId === null) {
+        // Build the listing clause — hardcoded SQL fragment, no user data interpolated
+        if ($listingId === null) {
             $fidClause = ' AND fanlisting_id IS NULL';
-        } elseif ($fanlistingId === -1) {
+        } elseif ($listingId === -1) {
             $fidClause = '';
         } else {
             $fidClause = ' AND fanlisting_id = :fid';
@@ -225,8 +225,8 @@ final class AffiliateRepo
         $countStmt->bindValue(':q1', $pattern, \PDO::PARAM_STR);
         $countStmt->bindValue(':q2', $pattern, \PDO::PARAM_STR);
         $countStmt->bindValue(':q3', $pattern, \PDO::PARAM_STR);
-        if ($fanlistingId !== null && $fanlistingId !== -1) {
-            $countStmt->bindValue(':fid', $fanlistingId, \PDO::PARAM_INT);
+        if ($listingId !== null && $listingId !== -1) {
+            $countStmt->bindValue(':fid', $listingId, \PDO::PARAM_INT);
         }
         $countStmt->execute();
         $total = (int) $countStmt->fetchColumn();
@@ -240,8 +240,8 @@ final class AffiliateRepo
         $stmt->bindValue(':q1',     $pattern, \PDO::PARAM_STR);
         $stmt->bindValue(':q2',     $pattern, \PDO::PARAM_STR);
         $stmt->bindValue(':q3',     $pattern, \PDO::PARAM_STR);
-        if ($fanlistingId !== null && $fanlistingId !== -1) {
-            $stmt->bindValue(':fid', $fanlistingId, \PDO::PARAM_INT);
+        if ($listingId !== null && $listingId !== -1) {
+            $stmt->bindValue(':fid', $listingId, \PDO::PARAM_INT);
         }
         $stmt->bindValue(':limit',  $perPage, \PDO::PARAM_INT);
         $stmt->bindValue(':offset', $offset,  \PDO::PARAM_INT);

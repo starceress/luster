@@ -11,12 +11,15 @@ namespace Luster\Core;
  * The Session class handles session initialisation for all public and admin
  * request flows.
  *
+ * Each form should pass its own $key so that separate tabs / different forms
+ * do not overwrite each other's stored answer.
+ *
  * Usage:
  *  // GET handler — render the question:
- *  $question = Captcha::getQuestion();
+ *  $question = Captcha::getQuestion('join');
  *
  *  // POST handler — validate the answer:
- *  if (!Captcha::validate($request->post('captcha_answer', ''))) {
+ *  if (!Captcha::validate($request->post('captcha_answer', ''), 'join')) {
  *      // wrong — a fresh question has already been generated
  *  }
  */
@@ -31,9 +34,12 @@ final class Captcha
      * If both operands are equal the operator is switched to addition so
      * the answer is never zero.
      *
+     * @param  string $key  Form identifier — used to scope the session keys so
+     *                      different forms (join, update, remove, reset) do not
+     *                      share a captcha slot and produce independent questions.
      * @return array{question: string, answer: int}
      */
-    public static function generate(): array
+    public static function generate(string $key = 'default'): array
     {
         $a  = random_int(1, 12);
         $b  = random_int(1, 12);
@@ -53,40 +59,42 @@ final class Captcha
         $answer   = ($op === '+') ? ($a + $b) : ($a - $b);
         $question = "{$a} {$op} {$b}";
 
-        $_SESSION['captcha_answer']   = $answer;
-        $_SESSION['captcha_question'] = $question;
+        $_SESSION["captcha_{$key}_answer"]   = $answer;
+        $_SESSION["captcha_{$key}_question"] = $question;
 
         return ['question' => $question, 'answer' => $answer];
     }
 
     /**
-     * Validates a submitted answer against the session-stored answer.
+     * Validates a submitted answer against the session-stored answer for $key.
      *
      * Always regenerates a fresh question regardless of outcome so that:
      *  - a wrong answer never lets the user retry with the same question, and
      *  - a correct answer cannot be replayed.
+     *
+     * @param string $key  Must match the key used when the form was rendered.
      */
-    public static function validate(string $submitted): bool
+    public static function validate(string $submitted, string $key = 'default'): bool
     {
-        $expected = $_SESSION['captcha_answer'] ?? null;
+        $expected = $_SESSION["captcha_{$key}_answer"] ?? null;
         $correct  = ($expected !== null) && ((int) $submitted === (int) $expected);
 
         // Regenerate unconditionally — prevents answer reuse
-        self::generate();
+        self::generate($key);
 
         return $correct;
     }
 
     /**
-     * Returns the current captcha question string, generating a fresh one if
-     * no question is stored in session yet.
+     * Generates a fresh captcha question for $key and returns the question string.
+     *
+     * Always generates a new question on every call so that each page load
+     * presents a different challenge to the user.
+     *
+     * @param string $key  Form identifier — use the same key as validate().
      */
-    public static function getQuestion(): string
+    public static function getQuestion(string $key = 'default'): string
     {
-        if (!isset($_SESSION['captcha_question'])) {
-            self::generate();
-        }
-
-        return (string) $_SESSION['captcha_question'];
+        return self::generate($key)['question'];
     }
 }

@@ -5,14 +5,14 @@ declare(strict_types=1);
 /**
  * Luster — Public layout template.
  *
- * Edit this file to customise the look of your fanlisting pages.
+ * Edit this file to customise the look of your listing pages.
  * This file wraps every fan-facing page (join, members, update, remove, etc.).
  *
  * Available variables:
- *   $fanlisting      — Fanlisting model object (->name, ->url, ->subject, ->email)
+ *   $listing      — Listing model object (->name, ->url, ->subject, ->email)
  *                      May be null on error pages — always use ?? fallbacks.
- *   $fanlisting_name — string, fanlisting name (pre-sanitised)
- *   $fanlisting_url  — string, fanlisting URL
+ *   $listing_name — string, listing name (pre-sanitised)
+ *   $listing_url  — string, listing URL
  *   $page_title      — string, page-specific title (e.g. "Join", "Members")
  *   $base_url        — string, Luster base URL (no trailing slash)
  *   $theme_path      — string, web-accessible path to this theme's assets, trailing slash
@@ -33,17 +33,17 @@ use Luster\Core\View;
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title><?= View::e($page_title . ' — ' . ($fanlisting->name ?? $fanlisting_name ?? '')) ?></title>
+  <title><?= View::e($page_title . ' — ' . ($listing->name ?? $listing_name ?? '')) ?></title>
   <link rel="stylesheet" href="<?= View::e($theme_path) ?>style.css">
 </head>
 <body>
 
 <header>
   <h1>
-    <?php if (!empty($fanlisting->url ?? '')): ?>
-      <a href="<?= View::e($fanlisting->url) ?>"><?= View::e($fanlisting->name ?? $fanlisting_name ?? '') ?></a>
+    <?php if (!empty($listing->url ?? '')): ?>
+      <a href="<?= View::e($listing->url) ?>"><?= View::e($listing->name ?? $listing_name ?? '') ?></a>
     <?php else: ?>
-      <?= View::e($fanlisting->name ?? $fanlisting_name ?? '') ?>
+      <?= View::e($listing->name ?? $listing_name ?? '') ?>
     <?php endif; ?>
   </h1>
 </header>

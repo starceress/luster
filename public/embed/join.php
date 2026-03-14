@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 use Luster\Core\Captcha;
 use Luster\Core\Countries;
-use Luster\Repositories\FanlistingRepo;
-use Luster\Repositories\FanlistingSettingsRepo;
+use Luster\Repositories\ListingRepo;
+use Luster\Repositories\ListingSettingsRepo;
 use Luster\Repositories\FieldRepo;
 
 /**
@@ -15,12 +15,12 @@ use Luster\Repositories\FieldRepo;
  * The surrounding HTML (header, footer, nav) comes from your own page.
  *
  * Usage:
- *   $luster_fanlisting_id = 1;     // required: fanlisting ID (int)
+ *   $luster_fanlisting_id = 1;     // required: listing ID (int)
  *   $luster_return        = false;  // optional: true = return string, false = echo
  *   require '/absolute/path/to/luster/public/embed/join.php';
  *
  * The form POSTs to Luster's join URL. On success the user is sent to the
- * post-join redirect URL configured in the fanlisting's embed settings, or to
+ * post-join redirect URL configured in the listing's embed settings, or to
  * Luster's own success page if none is set.
  *
  * On validation error the controller redirects back to Luster's /join/{id} URL
@@ -32,9 +32,9 @@ use Luster\Repositories\FieldRepo;
 // 1. Validate the required variable
 // ---------------------------------------------------------------------------
 
-$_lusterFanlistingId = (int) ($luster_fanlisting_id ?? 0);
+$_lusterListingId = (int) ($luster_fanlisting_id ?? 0);
 
-if ($_lusterFanlistingId === 0) {
+if ($_lusterListingId === 0) {
     $_lusterHtml = '<p class="fl-errors">Luster embed error: <code>$luster_fanlisting_id</code> is not set.</p>';
     if ($luster_return ?? false) {
         return $_lusterHtml;
@@ -67,14 +67,14 @@ $_lusterApp = require $_lusterRoot . '/bootstrap.php';
 $_lusterApp->getSession()->start();
 
 // ---------------------------------------------------------------------------
-// 3. Load fanlisting data
+// 3. Load listing data
 // ---------------------------------------------------------------------------
 
-$_lusterFanlistingRepo = new FanlistingRepo($_lusterApp->getDatabase(), $_lusterApp->getConfig());
-$_lusterFanlisting     = $_lusterFanlistingRepo->getById($_lusterFanlistingId);
+$_lusterListingRepo = new ListingRepo($_lusterApp->getDatabase(), $_lusterApp->getConfig());
+$_lusterListing     = $_lusterListingRepo->getById($_lusterListingId);
 
-if ($_lusterFanlisting === null) {
-    $_lusterHtml = '<p class="fl-errors">Luster embed error: fanlisting #' . $_lusterFanlistingId . ' not found.</p>';
+if ($_lusterListing === null) {
+    $_lusterHtml = '<p class="fl-errors">Luster embed error: listing #' . $_lusterListingId . ' not found.</p>';
     if ($luster_return ?? false) {
         return $_lusterHtml;
     }
@@ -83,9 +83,9 @@ if ($_lusterFanlisting === null) {
 }
 
 $_lusterFieldRepo     = new FieldRepo($_lusterApp->getDatabase(), $_lusterApp->getConfig());
-$_lusterFields        = $_lusterFieldRepo->getFieldsForFanlisting($_lusterFanlistingId);
-$_lusterSettingsRepo  = new FanlistingSettingsRepo($_lusterApp->getDatabase());
-$_lusterEmbedSettings = $_lusterSettingsRepo->getEmbedSettings($_lusterFanlistingId);
+$_lusterFields        = $_lusterFieldRepo->getFieldsForListing($_lusterListingId);
+$_lusterSettingsRepo  = new ListingSettingsRepo($_lusterApp->getDatabase());
+$_lusterEmbedSettings = $_lusterSettingsRepo->getEmbedSettings($_lusterListingId);
 
 // ---------------------------------------------------------------------------
 // 4. Consume flash data (set by the controller after a failed POST)
@@ -103,12 +103,12 @@ $_lusterSession->remove('lstr_flash_old');
 
 $_lusterBaseUrl    = rtrim((string) $_lusterApp->getConfig()->get('embed_base_url', ''), '/')
                    ?: $_lusterApp->getBaseUrl();
-$_lusterFormAction = $_lusterBaseUrl . '/join/' . $_lusterFanlistingId;
+$_lusterFormAction = $_lusterBaseUrl . '/join/' . $_lusterListingId;
 
 $_lusterHtml = $_lusterApp->getView()->renderFragment('join.php', [
-    'fanlisting'            => $_lusterFanlisting,
-    'fanlisting_name'       => $_lusterFanlisting->name,
-    'fanlisting_url'        => $_lusterFanlisting->url,
+    'listing'            => $_lusterListing,
+    'listing_name'       => $_lusterListing->name,
+    'listing_url'        => $_lusterListing->url,
     'page_title'            => 'Join',
     'form_action'           => $_lusterFormAction,
     'csrf_token'            => $_lusterApp->getCSRF()->token(),
@@ -122,7 +122,7 @@ $_lusterHtml = $_lusterApp->getView()->renderFragment('join.php', [
     'country_field_enabled' => (bool) $_lusterEmbedSettings['country_field_enabled'],
     'fields'                => $_lusterFields,
     'old'                   => $_lusterOld,
-    'captcha_question'      => Captcha::getQuestion(),
+    'captcha_question'      => Captcha::getQuestion('join'),
     'captcha_error'         => '',
     'send_info_checked'     => 'checked',
     'base_url'              => $_lusterApp->getBaseUrl(),

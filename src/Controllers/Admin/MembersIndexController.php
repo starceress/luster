@@ -7,11 +7,11 @@ namespace Luster\Controllers\Admin;
 use Luster\Core\Application;
 use Luster\Core\Request;
 use Luster\Core\Response;
-use Luster\Repositories\FanlistingRepo;
+use Luster\Repositories\ListingRepo;
 use Luster\Repositories\MemberRepo;
 
 /**
- * Top-level members index: lists all fanlistings so the admin can
+ * Top-level members index: lists all listings so the admin can
  * choose which one to manage.
  *
  * Route: GET /admin/members
@@ -25,14 +25,14 @@ final class MembersIndexController
         $db     = $this->app->getDatabase();
         $config = $this->app->getConfig();
 
-        $fanlistingRepo = new FanlistingRepo($db, $config);
+        $listingRepo = new ListingRepo($db, $config);
         $memberRepo     = new MemberRepo($db, $config);
 
-        $fanlistings = $fanlistingRepo->getAll();
+        $listings = $listingRepo->getAll();
 
         $memberCounts  = [];
         $pendingCounts = [];
-        foreach ($fanlistings as $fl) {
+        foreach ($listings as $fl) {
             $memberCounts[$fl->id]  = $memberRepo->countApproved($fl->dbprefix);
             $pendingCounts[$fl->id] = $memberRepo->countPending($fl->dbprefix);
         }
@@ -41,8 +41,8 @@ final class MembersIndexController
         $session = $this->app->getSession();
         $baseUrl = $this->app->getBaseUrl();
 
-        $inner = $view->render('admin/members/fanlistings.php', [
-            'fanlistings'    => $fanlistings,
+        $inner = $view->render('admin/members/listings.php', [
+            'listings'    => $listings,
             'member_counts'  => $memberCounts,
             'pending_counts' => $pendingCounts,
             'base_url'       => $baseUrl,

@@ -9,7 +9,7 @@ use Luster\Core\Database;
 /**
  * Data access for the lstr_codes table.
  *
- * Each row represents one uploaded code image for a fanlisting.
+ * Each row represents one uploaded code image for a listing.
  * Requires Migration 22 to run before use.
  */
 final class CodesRepo
@@ -21,11 +21,11 @@ final class CodesRepo
     // -----------------------------------------------------------------------
 
     /**
-     * Returns all codes for a fanlisting, ordered by sort_order then id.
+     * Returns all codes for a listing, ordered by sort_order then id.
      *
      * @return object[]
      */
-    public function getByFanlisting(int $fanlistingId): array
+    public function getByListing(int $listingId): array
     {
         $stmt = $this->db->prepare(
             'SELECT id, fanlisting_id, filename, width, height, sort_order, created_at
@@ -33,11 +33,11 @@ final class CodesRepo
              WHERE fanlisting_id = :fid
              ORDER BY sort_order ASC, id ASC'
         );
-        $stmt->execute(['fid' => $fanlistingId]);
+        $stmt->execute(['fid' => $listingId]);
 
         return array_map(static fn(array $r) => (object) [
             'id'           => (int)    $r['id'],
-            'fanlistingId' => (int)    $r['fanlisting_id'],
+            'listingId' => (int)    $r['fanlisting_id'],
             'filename'     => (string) $r['filename'],
             'width'        => (int)    $r['width'],
             'height'       => (int)    $r['height'],
@@ -64,7 +64,7 @@ final class CodesRepo
 
         return (object) [
             'id'           => (int)    $row['id'],
-            'fanlistingId' => (int)    $row['fanlisting_id'],
+            'listingId' => (int)    $row['fanlisting_id'],
             'filename'     => (string) $row['filename'],
             'width'        => (int)    $row['width'],
             'height'       => (int)    $row['height'],
@@ -74,26 +74,26 @@ final class CodesRepo
     }
 
     /**
-     * Returns the total number of codes for a fanlisting.
+     * Returns the total number of codes for a listing.
      */
-    public function countByFanlisting(int $fanlistingId): int
+    public function countByListing(int $listingId): int
     {
         $stmt = $this->db->prepare(
             'SELECT COUNT(*) FROM lstr_codes WHERE fanlisting_id = :fid'
         );
-        $stmt->execute(['fid' => $fanlistingId]);
+        $stmt->execute(['fid' => $listingId]);
         return (int) $stmt->fetchColumn();
     }
 
     /**
-     * Returns the highest sort_order value for a fanlisting (0 if none exist).
+     * Returns the highest sort_order value for a listing (0 if none exist).
      */
-    public function getMaxSortOrder(int $fanlistingId): int
+    public function getMaxSortOrder(int $listingId): int
     {
         $stmt = $this->db->prepare(
             'SELECT COALESCE(MAX(sort_order), 0) FROM lstr_codes WHERE fanlisting_id = :fid'
         );
-        $stmt->execute(['fid' => $fanlistingId]);
+        $stmt->execute(['fid' => $listingId]);
         return (int) $stmt->fetchColumn();
     }
 
@@ -105,7 +105,7 @@ final class CodesRepo
      * Inserts a new code record and returns its new ID.
      */
     public function insert(
-        int    $fanlistingId,
+        int    $listingId,
         string $filename,
         int    $width,
         int    $height,
@@ -116,7 +116,7 @@ final class CodesRepo
              VALUES (:fid, :filename, :width, :height, :sort)'
         );
         $stmt->execute([
-            'fid'      => $fanlistingId,
+            'fid'      => $listingId,
             'filename' => $filename,
             'width'    => $width,
             'height'   => $height,
@@ -136,11 +136,11 @@ final class CodesRepo
     }
 
     /**
-     * Deletes all codes for a fanlisting (used when deleting the fanlisting itself).
+     * Deletes all codes for a listing (used when deleting the listing itself).
      */
-    public function deleteByFanlisting(int $fanlistingId): void
+    public function deleteByListing(int $listingId): void
     {
         $stmt = $this->db->prepare('DELETE FROM lstr_codes WHERE fanlisting_id = :fid');
-        $stmt->execute(['fid' => $fanlistingId]);
+        $stmt->execute(['fid' => $listingId]);
     }
 }

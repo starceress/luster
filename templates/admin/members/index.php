@@ -1,8 +1,8 @@
 <?php
-/** @var \Luster\Models\Fanlisting       $fanlisting */
+/** @var \Luster\Models\Listing       $listing */
 /** @var \Luster\Models\Member[]         $members */
 /** @var \Luster\Models\AdditionalField[] $fields */
-/** @var array    $all_fanlistings */
+/** @var array    $all_listings */
 /** @var int      $total */
 /** @var int      $page */
 /** @var int      $pages */
@@ -13,7 +13,7 @@
 /** @var string   $base_url */
 /** @var string   $csrf_token */
 $b  = rtrim(\Luster\Core\View::e($base_url), '/');
-$id = (int) $fanlisting->id;
+$id = (int) $listing->id;
 ?>
 
 <?php if ($success !== ''): ?>
@@ -29,10 +29,10 @@ $id = (int) $fanlisting->id;
 
     <div class="toolbar-select-wrap">
     <select class="neb-select" onchange="location=this.value">
-      <option value="<?= $b ?>/admin/members"<?= !isset($fanlisting) ? ' selected' : '' ?>>All pending members</option>
-      <?php foreach ($all_fanlistings as $fl): ?>
+      <option value="<?= $b ?>/admin/members"<?= !isset($listing) ? ' selected' : '' ?>>All pending members</option>
+      <?php foreach ($all_listings as $fl): ?>
         <option value="<?= $b ?>/admin/members/<?= (int) $fl->id ?>?status=all"
-                <?= (int) $fl->id === (int) ($fanlisting->id ?? 0) ? 'selected' : '' ?>>
+                <?= (int) $fl->id === (int) ($listing->id ?? 0) ? 'selected' : '' ?>>
           <?= \Luster\Core\View::e($fl->name) ?>
         </option>
       <?php endforeach; ?>
@@ -56,6 +56,7 @@ $id = (int) $fanlisting->id;
   </form>
 
   <div class="neb-actions">
+    <a href="<?= $b ?>/admin/members/<?= $id ?>/import" class="btn btn-secondary btn-sm">&#8593; Import CSV</a>
     <a href="<?= $b ?>/admin/members/<?= $id ?>/export" class="btn btn-secondary btn-sm">&#8595; Export CSV</a>
   </div>
 </div>

@@ -41,33 +41,33 @@ use Luster\Repositories\CollectiveStatsRepo;
  * Variables exposed after require (always available):
  *
  *  Counts
- *   $luster_owned               int   Total owned fanlistings
+ *   $luster_owned               int   Total owned listings
  *   $luster_owned_active        int   Open / active owned (not upcoming/trouble)
- *   $luster_owned_upcoming      int   Upcoming owned fanlistings
- *   $luster_owned_trouble       int   Trouble / inactive owned fanlistings
- *   $luster_joined              int   Total joined fanlistings
- *   $luster_joined_active       int   Active joined fanlistings
- *   $luster_joined_upcoming     int   Upcoming joined fanlistings
- *   $luster_joined_pending      int   Pending joined fanlistings
+ *   $luster_owned_upcoming      int   Upcoming owned listings
+ *   $luster_owned_trouble       int   Trouble / inactive owned listings
+ *   $luster_joined              int   Total joined listings
+ *   $luster_joined_active       int   Active joined listings
+ *   $luster_joined_upcoming     int   Upcoming joined listings
+ *   $luster_joined_pending      int   Pending joined listings
  *   $luster_affiliates          int   Active collective affiliates
- *   $luster_members_approved    int   Approved members across all fanlistings
- *   $luster_members_pending     int   Pending members across all fanlistings
- *   $luster_members_total       int   Total members across all fanlistings
+ *   $luster_members_approved    int   Approved members across all listings
+ *   $luster_members_pending     int   Pending members across all listings
+ *   $luster_members_total       int   Total members across all listings
  *
  *  Growth rates (formatted to 2 decimal places)
- *   $luster_owned_growth_rate   string  Active owned fanlistings per year
- *   $luster_joined_growth_rate  string  Active joined fanlistings per year
- *   $luster_members_growth_rate string  Approved members per day (all fanlistings)
+ *   $luster_owned_growth_rate   string  Active owned listings per year
+ *   $luster_joined_growth_rate  string  Active joined listings per year
+ *   $luster_members_growth_rate string  Approved members per day (all listings)
  *
  *  Object arrays (Luster models — full property access, not flat arrays)
- *   $luster_owned_newest        Fanlisting[]        Newest $luster_count active owned
- *   $luster_joined_newest       JoinedFanlisting[]  Newest $luster_count active joined
- *   $luster_owned_random        ?Fanlisting         One random active owned, or null
- *   $luster_joined_random       ?JoinedFanlisting   One random active joined, or null
+ *   $luster_owned_newest        Listing[]        Newest $luster_count active owned
+ *   $luster_joined_newest       JoinedListing[]  Newest $luster_count active joined
+ *   $luster_owned_random        ?Listing         One random active owned, or null
+ *   $luster_joined_random       ?JoinedListing   One random active joined, or null
  *
  *  Category breakdown
  *   $luster_categories  array  [{id, name, source, count}, ...]
- *                              count = active owned fanlistings in that category
+ *                              count = active owned listings in that category
  *
  *  Convenience (backwards-compat aliases matching Enthusiast naming)
  *   $luster_total_cats          int   Alias of count($luster_categories)
@@ -77,17 +77,17 @@ use Luster\Repositories\CollectiveStatsRepo;
  * ──────────────────────────────────────────────────────────────────────
  * Accessing newest/random listing properties:
  *
- *   // Owned Fanlisting object properties:
- *   $luster_owned_newest[0]->name        // fanlisting title
+ *   // Owned Listing object properties:
+ *   $luster_owned_newest[0]->name        // listing title
  *   $luster_owned_newest[0]->subject     // subject / topic
- *   $luster_owned_newest[0]->url         // fanlisting URL
- *   $luster_owned_newest[0]->listingtype // e.g. 'fanlisting'
+ *   $luster_owned_newest[0]->url         // listing URL
+ *   $luster_owned_newest[0]->listingtype // e.g. 'listing'
  *   $luster_owned_newest[0]->joined      // opened date string (nullable)
- *   $luster_owned_newest[0]->id          // fanlisting ID
+ *   $luster_owned_newest[0]->id          // listing ID
  *
- *   // Joined JoinedFanlisting object properties:
- *   $luster_joined_newest[0]->name       // fanlisting name
- *   $luster_joined_newest[0]->url        // fanlisting URL
+ *   // Joined JoinedListing object properties:
+ *   $luster_joined_newest[0]->name       // listing name
+ *   $luster_joined_newest[0]->url        // listing URL
  *   $luster_joined_newest[0]->category   // category string
  *   $luster_joined_newest[0]->dateJoined // date joined (nullable)
  *   $luster_joined_newest[0]->image      // image filename (nullable)
@@ -96,7 +96,7 @@ use Luster\Repositories\CollectiveStatsRepo;
  * ──────────────────────────────────────────────────────────────────────
  * Example usage (newest owned link):
  *
- *   Newest fanlisting:
+ *   Newest listing:
  *   <a href="<?= htmlspecialchars($luster_owned_newest[0]->url ?? '#', ENT_QUOTES, 'UTF-8') ?>">
  *     <?= htmlspecialchars($luster_owned_newest[0]->name ?? '', ENT_QUOTES, 'UTF-8') ?>
  *   </a>
@@ -105,7 +105,7 @@ use Luster\Repositories\CollectiveStatsRepo;
  *
  *   <?php foreach ($luster_categories as $cat): ?>
  *     <a href="..."><?= htmlspecialchars($cat['name'], ENT_QUOTES, 'UTF-8') ?></a>
- *     (<?= $cat['count'] ?> fanlistings)<br>
+ *     (<?= $cat['count'] ?> listings)<br>
  *   <?php endforeach; ?>
  */
 
@@ -252,10 +252,10 @@ ob_start();
 ?>
 <div class="fl-collective-stats">
   <dl class="fl-stats-grid">
-    <dt>Owned fanlistings</dt>
+    <dt>Owned listings</dt>
     <dd><?= $luster_owned_active ?> open<?= $luster_owned_upcoming > 0 ? ', ' . $luster_owned_upcoming . ' upcoming' : '' ?></dd>
 
-    <dt>Joined fanlistings</dt>
+    <dt>Joined listings</dt>
     <dd><?= $luster_joined_active ?></dd>
 
     <dt>Total members</dt>
@@ -267,7 +267,7 @@ ob_start();
 
   <?php if (!empty($_lusterOwnedNewest)): ?>
   <div class="fl-newest-owned">
-    <h3>Newest Fanlistings</h3>
+    <h3>Newest Listings</h3>
     <ul>
       <?php foreach ($_lusterOwnedNewest as $_lusterListing): ?>
       <li>
@@ -283,7 +283,7 @@ ob_start();
 
   <?php if ($_lusterOwnedRandom !== null): ?>
   <div class="fl-random-owned">
-    <h3>Featured Fanlisting</h3>
+    <h3>Featured Listing</h3>
     <p>
       <a href="<?= $_lusterE($_lusterOwnedRandom->url) ?>"><?= $_lusterE($_lusterOwnedRandom->name) ?></a>
       <?php if ($_lusterOwnedRandom->subject !== ''): ?>

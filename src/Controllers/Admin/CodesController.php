@@ -9,16 +9,16 @@ use Luster\Core\Request;
 use Luster\Core\Response;
 use Luster\Repositories\ActivityRepo;
 use Luster\Repositories\CodesRepo;
-use Luster\Repositories\FanlistingRepo;
+use Luster\Repositories\ListingRepo;
 
 /**
  * Admin CRUD for per-fanlisting codes.
  *
  * Routes:
- *   GET  /admin/fanlistings/{fid}/codes                — list + upload form
- *   POST /admin/fanlistings/{fid}/codes/upload         — multi-file upload
- *   POST /admin/fanlistings/{fid}/codes/{id}/delete    — single delete
- *   POST /admin/fanlistings/{fid}/codes/bulk           — bulk delete
+ *   GET  /admin/listings/{fid}/codes                — list + upload form
+ *   POST /admin/listings/{fid}/codes/upload         — multi-file upload
+ *   POST /admin/listings/{fid}/codes/{id}/delete    — single delete
+ *   POST /admin/listings/{fid}/codes/bulk           — bulk delete
  */
 final class CodesController
 {
@@ -31,59 +31,59 @@ final class CodesController
     public function __construct(private readonly Application $app) {}
 
     // -----------------------------------------------------------------------
-    // GET /admin/fanlistings/{fid}/codes
+    // GET /admin/listings/{fid}/codes
     // -----------------------------------------------------------------------
 
     public function index(Request $request, array $params): Response
     {
-        $fanlistingId = (int) ($params['fid'] ?? 0);
+        $listingId = (int) ($params['fid'] ?? 0);
 
         $db     = $this->app->getDatabase();
         $config = $this->app->getConfig();
 
-        $fanlistingRepo = new FanlistingRepo($db, $config);
-        $fanlisting     = $fanlistingRepo->getById($fanlistingId);
+        $listingRepo = new ListingRepo($db, $config);
+        $listing     = $listingRepo->getById($listingId);
 
-        if ($fanlisting === null) {
-            return Response::notFound('Fanlisting not found.');
+        if ($listing === null) {
+            return Response::notFound('Listing not found.');
         }
 
         $session   = $this->app->getSession();
         $codesRepo = new CodesRepo($db);
-        $codes     = $codesRepo->getByFanlisting($fanlistingId);
+        $codes     = $codesRepo->getByListing($listingId);
 
         $success = (string) $session->get('lstr_flash_success', '');
         $error   = (string) $session->get('lstr_flash_error', '');
         $session->remove('lstr_flash_success');
         $session->remove('lstr_flash_error');
 
-        return $this->layout('admin/fanlistings/codes.php', [
-            'fanlisting'  => $fanlisting,
+        return $this->layout('admin/listings/codes.php', [
+            'listing'  => $listing,
             'codes'       => $codes,
             'uploads_url' => $this->app->getBaseUrl() . '/uploads/codes',
             'success'     => $success,
             'error'       => $error,
-        ], 'Codes — ' . $fanlisting->name, 'fanlistings');
+        ], 'Codes — ' . $listing->name, 'listings');
     }
 
     // -----------------------------------------------------------------------
-    // POST /admin/fanlistings/{fid}/codes/upload
+    // POST /admin/listings/{fid}/codes/upload
     // -----------------------------------------------------------------------
 
     public function upload(Request $request, array $params): Response
     {
-        $fanlistingId = (int) ($params['fid'] ?? 0);
+        $listingId = (int) ($params['fid'] ?? 0);
 
         $db      = $this->app->getDatabase();
         $config  = $this->app->getConfig();
         $session = $this->app->getSession();
         $baseUrl = $this->app->getBaseUrl();
 
-        $fanlistingRepo = new FanlistingRepo($db, $config);
-        $fanlisting     = $fanlistingRepo->getById($fanlistingId);
+        $listingRepo = new ListingRepo($db, $config);
+        $listing     = $listingRepo->getById($listingId);
 
-        if ($fanlisting === null) {
-            return Response::notFound('Fanlisting not found.');
+        if ($listing === null) {
+            return Response::notFound('Listing not found.');
         }
 
         $codesRepo    = new CodesRepo($db);
@@ -100,7 +100,7 @@ final class CodesController
 
         if ($fileData === null || (is_array($fileData['name']) ? empty(array_filter($fileData['name'])) : $fileData['name'] === '')) {
             $session->set('lstr_flash_error', 'No files selected for upload.');
-            return Response::redirect($baseUrl . '/admin/fanlistings/' . $fanlistingId . '/codes');
+            return Response::redirect($baseUrl . '/admin/listings/' . $listingId . '/codes');
         }
 
         // Normalise PHP's grouped multi-file array into a flat list of file structs
@@ -111,7 +111,7 @@ final class CodesController
 
         $uploaded   = 0;
         $skipped    = [];
-        $sortOffset = $codesRepo->getMaxSortOrder($fanlistingId);
+        $sortOffset = $codesRepo->getMaxSortOrder($listingId);
         $finfo      = new \finfo(FILEINFO_MIME_TYPE);
 
         foreach ($names as $i => $originalName) {
@@ -147,6 +147,11 @@ final class CodesController
                 default      => 'bin',
             };
 
+            // Validate dimensions on the temp file before it touches the upload dir.
+            $imgInfo = getimagesize($tmpName);
+            $width   = $imgInfo !== false ? (int) $imgInfo[0] : 0;
+            $height  = $imgInfo !== false ? (int) $imgInfo[1] : 0;
+
             $newFilename = 'c_' . uniqid('', true) . bin2hex(random_bytes(4)) . '.' . $ext;
             $dest        = $uploadDir . DIRECTORY_SEPARATOR . $newFilename;
 
@@ -155,19 +160,14 @@ final class CodesController
                 continue;
             }
 
-            // Auto-detect dimensions
-            $imgInfo = @getimagesize($dest);
-            $width   = $imgInfo !== false ? (int) $imgInfo[0] : 0;
-            $height  = $imgInfo !== false ? (int) $imgInfo[1] : 0;
-
-            $codesRepo->insert($fanlistingId, $newFilename, $width, $height, ++$sortOffset);
+            $codesRepo->insert($listingId, $newFilename, $width, $height, ++$sortOffset);
             $uploaded++;
         }
 
         $activityRepo->log(
             (int) $session->get('lstr_admin_id'),
             'codes.upload',
-            "Uploaded {$uploaded} code(s) for fanlisting #{$fanlistingId} ({$fanlisting->name})",
+            "Uploaded {$uploaded} code(s) for listing #{$listingId} ({$listing->name})",
             $request->ip(),
         );
 
@@ -185,16 +185,16 @@ final class CodesController
             $session->set('lstr_flash_error', $msg);
         }
 
-        return Response::redirect($baseUrl . '/admin/fanlistings/' . $fanlistingId . '/codes');
+        return Response::redirect($baseUrl . '/admin/listings/' . $listingId . '/codes');
     }
 
     // -----------------------------------------------------------------------
-    // POST /admin/fanlistings/{fid}/codes/{id}/delete
+    // POST /admin/listings/{fid}/codes/{id}/delete
     // -----------------------------------------------------------------------
 
     public function delete(Request $request, array $params): Response
     {
-        $fanlistingId = (int) ($params['fid'] ?? 0);
+        $listingId = (int) ($params['fid'] ?? 0);
         $codeId       = (int) ($params['id']  ?? 0);
 
         $db      = $this->app->getDatabase();
@@ -202,11 +202,11 @@ final class CodesController
         $session = $this->app->getSession();
         $baseUrl = $this->app->getBaseUrl();
 
-        $fanlistingRepo = new FanlistingRepo($db, $config);
-        $fanlisting     = $fanlistingRepo->getById($fanlistingId);
+        $listingRepo = new ListingRepo($db, $config);
+        $listing     = $listingRepo->getById($listingId);
 
-        if ($fanlisting === null) {
-            return Response::notFound('Fanlisting not found.');
+        if ($listing === null) {
+            return Response::notFound('Listing not found.');
         }
 
         $codesRepo    = new CodesRepo($db);
@@ -214,9 +214,9 @@ final class CodesController
 
         $code = $codesRepo->getById($codeId);
 
-        if ($code === null || $code->fanlistingId !== $fanlistingId) {
+        if ($code === null || $code->listingId !== $listingId) {
             $session->set('lstr_flash_error', 'Code not found.');
-            return Response::redirect($baseUrl . '/admin/fanlistings/' . $fanlistingId . '/codes');
+            return Response::redirect($baseUrl . '/admin/listings/' . $listingId . '/codes');
         }
 
         // Delete the file from disk
@@ -224,7 +224,7 @@ final class CodesController
         if ($uploadDir !== false) {
             $filePath = $uploadDir . DIRECTORY_SEPARATOR . $code->filename;
             if (is_file($filePath)) {
-                @unlink($filePath);
+                unlink($filePath);
             }
         }
 
@@ -233,32 +233,32 @@ final class CodesController
         $activityRepo->log(
             (int) $session->get('lstr_admin_id'),
             'codes.delete',
-            "Deleted code #{$codeId} ({$code->filename}) from fanlisting #{$fanlistingId}",
+            "Deleted code #{$codeId} ({$code->filename}) from listing #{$listingId}",
             $request->ip(),
         );
 
         $session->set('lstr_flash_success', 'Code deleted.');
-        return Response::redirect($baseUrl . '/admin/fanlistings/' . $fanlistingId . '/codes');
+        return Response::redirect($baseUrl . '/admin/listings/' . $listingId . '/codes');
     }
 
     // -----------------------------------------------------------------------
-    // POST /admin/fanlistings/{fid}/codes/bulk
+    // POST /admin/listings/{fid}/codes/bulk
     // -----------------------------------------------------------------------
 
     public function bulk(Request $request, array $params): Response
     {
-        $fanlistingId = (int) ($params['fid'] ?? 0);
+        $listingId = (int) ($params['fid'] ?? 0);
 
         $db      = $this->app->getDatabase();
         $config  = $this->app->getConfig();
         $session = $this->app->getSession();
         $baseUrl = $this->app->getBaseUrl();
 
-        $fanlistingRepo = new FanlistingRepo($db, $config);
-        $fanlisting     = $fanlistingRepo->getById($fanlistingId);
+        $listingRepo = new ListingRepo($db, $config);
+        $listing     = $listingRepo->getById($listingId);
 
-        if ($fanlisting === null) {
-            return Response::notFound('Fanlisting not found.');
+        if ($listing === null) {
+            return Response::notFound('Listing not found.');
         }
 
         $action      = (string) $request->post('bulk_action', '');
@@ -266,7 +266,7 @@ final class CodesController
 
         if ($action !== 'delete' || empty($selectedIds)) {
             $session->set('lstr_flash_error', 'No action or selection provided.');
-            return Response::redirect($baseUrl . '/admin/fanlistings/' . $fanlistingId . '/codes');
+            return Response::redirect($baseUrl . '/admin/listings/' . $listingId . '/codes');
         }
 
         $codesRepo    = new CodesRepo($db);
@@ -278,14 +278,14 @@ final class CodesController
         foreach ($selectedIds as $codeId) {
             $code = $codesRepo->getById($codeId);
 
-            if ($code === null || $code->fanlistingId !== $fanlistingId) {
+            if ($code === null || $code->listingId !== $listingId) {
                 continue;
             }
 
             if ($uploadDir !== false) {
                 $filePath = $uploadDir . DIRECTORY_SEPARATOR . $code->filename;
                 if (is_file($filePath)) {
-                    @unlink($filePath);
+                    unlink($filePath);
                 }
             }
 
@@ -296,7 +296,7 @@ final class CodesController
         $activityRepo->log(
             (int) $session->get('lstr_admin_id'),
             'codes.bulk_delete',
-            "Bulk-deleted {$deleted} code(s) from fanlisting #{$fanlistingId} ({$fanlisting->name})",
+            "Bulk-deleted {$deleted} code(s) from listing #{$listingId} ({$listing->name})",
             $request->ip(),
         );
 
@@ -305,7 +305,7 @@ final class CodesController
             'Deleted ' . $deleted . ' code' . ($deleted !== 1 ? 's' : '') . '.',
         );
 
-        return Response::redirect($baseUrl . '/admin/fanlistings/' . $fanlistingId . '/codes');
+        return Response::redirect($baseUrl . '/admin/listings/' . $listingId . '/codes');
     }
 
     // -----------------------------------------------------------------------

@@ -22,7 +22,7 @@ final class FanPasswordResetRepo
     /**
      * Stores a new reset token. Call deleteByEmail() first to enforce one-token-at-a-time.
      */
-    public function create(int $fanlistingId, string $email, string $tokenHash, string $expiresAt): void
+    public function create(int $listingId, string $email, string $tokenHash, string $expiresAt): void
     {
         $stmt = $this->db->prepare(
             'INSERT INTO lstr_fan_password_resets
@@ -30,7 +30,7 @@ final class FanPasswordResetRepo
              VALUES (:fanlisting_id, :email, :token_hash, :expires_at)'
         );
         $stmt->execute([
-            'fanlisting_id' => $fanlistingId,
+            'fanlisting_id' => $listingId,
             'email'         => $email,
             'token_hash'    => $tokenHash,
             'expires_at'    => $expiresAt,
@@ -39,7 +39,7 @@ final class FanPasswordResetRepo
 
     /**
      * Returns the token row if found and not yet expired, null otherwise.
-     * Also deletes expired rows for this fanlisting as a side effect.
+     * Also deletes expired rows for this listing as a side effect.
      *
      * @return array{id:int, fanlisting_id:int, email:string, expires_at:string}|null
      */
@@ -61,16 +61,16 @@ final class FanPasswordResetRepo
     }
 
     /**
-     * Deletes all existing reset tokens for this email + fanlisting.
+     * Deletes all existing reset tokens for this email + listing.
      * Call before creating a new token to enforce one-at-a-time.
      */
-    public function deleteByEmail(int $fanlistingId, string $email): void
+    public function deleteByEmail(int $listingId, string $email): void
     {
         $stmt = $this->db->prepare(
             'DELETE FROM lstr_fan_password_resets
              WHERE fanlisting_id = :fanlisting_id AND email = :email'
         );
-        $stmt->execute(['fanlisting_id' => $fanlistingId, 'email' => $email]);
+        $stmt->execute(['fanlisting_id' => $listingId, 'email' => $email]);
     }
 
     /**
@@ -85,7 +85,7 @@ final class FanPasswordResetRepo
     }
 
     /**
-     * Removes all expired tokens across all fanlistings.
+     * Removes all expired tokens across all listings.
      */
     public function deleteExpired(): void
     {

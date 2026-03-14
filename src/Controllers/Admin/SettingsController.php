@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Luster\Controllers\Admin;
 
 use Luster\Core\Application;
+use Luster\Core\Mailer;
 use Luster\Core\Request;
 use Luster\Core\Response;
 use Luster\Core\Validator;
@@ -39,8 +40,8 @@ final class SettingsController
         'smtp_pass',
         'smtp_from',
         'smtp_from_name',
-        'smtp_from_fanlisting',
-        'smtp_from_fanlisting_name',
+        'smtp_from_listing',
+        'smtp_from_listing_name',
         'smtp_secure',
         'timezone',
         'joined_display_mode',
@@ -116,8 +117,8 @@ final class SettingsController
         $updated['smtp_user']      = trim((string) $request->post('smtp_user', ''));
         $updated['smtp_from']      = trim((string) $request->post('smtp_from', ''));
         $updated['smtp_from_name']          = trim((string) $request->post('smtp_from_name', ''));
-        $updated['smtp_from_fanlisting']    = trim((string) $request->post('smtp_from_fanlisting', ''));
-        $updated['smtp_from_fanlisting_name'] = trim((string) $request->post('smtp_from_fanlisting_name', ''));
+        $updated['smtp_from_listing']    = trim((string) $request->post('smtp_from_listing', ''));
+        $updated['smtp_from_listing_name'] = trim((string) $request->post('smtp_from_listing_name', ''));
         $updated['smtp_secure']    = in_array(
             trim((string) $request->post('smtp_secure', 'tls')),
             ['tls', 'ssl', ''],
@@ -146,6 +147,60 @@ final class SettingsController
         );
 
         $session->set('lstr_flash_success', 'Settings saved successfully.');
+        return Response::redirect($baseUrl . '/admin/settings');
+    }
+
+    // -----------------------------------------------------------------------
+    // POST /admin/settings/test-email
+    // -----------------------------------------------------------------------
+
+    public function testEmail(Request $request, array $params): Response
+    {
+        $session  = $this->app->getSession();
+        $baseUrl  = $this->app->getBaseUrl();
+        $config   = $this->app->getConfig();
+
+        $smtpHost = (string) $config->get('smtp_host', '');
+        if ($smtpHost === '') {
+            $session->set('lstr_flash_error', 'Email is not configured. Set an SMTP host first.');
+            return Response::redirect($baseUrl . '/admin/settings');
+        }
+
+        $adminId   = (int) $session->get('lstr_admin_id');
+        $adminRepo = new AdminUserRepo($this->app->getDatabase());
+        $adminUser = $adminRepo->getById($adminId);
+
+        if ($adminUser === null) {
+            $session->set('lstr_flash_error', 'Could not determine your email address.');
+            return Response::redirect($baseUrl . '/admin/settings');
+        }
+
+        $appName = (string) $config->get('app_name', 'Luster');
+
+        try {
+            $mailer = new Mailer($config);
+            $mailer->send(
+                $adminUser->email,
+                $adminUser->username,
+                '[' . $appName . '] SMTP test email',
+                "This is a test email sent from your " . $appName . " admin panel.\n\n"
+                . "If you received this message, your SMTP configuration is working correctly.\n\n"
+                . "— Luster",
+            );
+
+            $activityRepo = new ActivityRepo($this->app->getDatabase());
+            $activityRepo->log(
+                $adminId,
+                'settings.test_email',
+                'Test email sent to ' . $adminUser->email,
+                $request->ip(),
+            );
+
+            $session->set('lstr_flash_success', 'Test email sent to ' . $adminUser->email . '.');
+        } catch (\Throwable $e) {
+            $session->set('lstr_flash_error', 'Test email failed: ' . $e->getMessage());
+        }
+
         return Response::redirect($baseUrl . '/admin/settings');
     }
 

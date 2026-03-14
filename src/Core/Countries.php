@@ -212,4 +212,32 @@ final class Countries
             'Zimbabwe',
         ];
     }
+
+    /**
+     * Builds a <select> element pre-populated with all country names.
+     *
+     * @param string $selected  Currently selected country name (for pre-selecting on edit/repopulate).
+     * @param string $id        The HTML id attribute. Defaults to 'country'.
+     * @param string $name      The form field name. Defaults to 'country'.
+     */
+    public static function buildSelect(
+        string $selected = '',
+        string $id = 'country',
+        string $name = 'country',
+    ): string {
+        $e = static fn(string $v): string =>
+            htmlspecialchars($v, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+
+        $html  = '<select class="fl-select" id="' . $e($id) . '" name="' . $e($name) . '">';
+        $html .= '<option value=""></option>';
+
+        foreach (self::list() as $country) {
+            $sel   = ($country === $selected) ? ' selected' : '';
+            $html .= '<option value="' . $e($country) . '"' . $sel . '>' . $e($country) . '</option>';
+        }
+
+        $html .= '</select>';
+
+        return $html;
+    }
 }

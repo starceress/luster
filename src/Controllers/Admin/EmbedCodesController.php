@@ -7,7 +7,7 @@ namespace Luster\Controllers\Admin;
 use Luster\Core\Application;
 use Luster\Core\Request;
 use Luster\Core\Response;
-use Luster\Repositories\FanlistingRepo;
+use Luster\Repositories\ListingRepo;
 
 /**
  * Read-only reference page showing copyable PHP embed snippets.
@@ -20,18 +20,19 @@ final class EmbedCodesController
 
     public function index(Request $request, array $params): Response
     {
-        $db      = $this->app->getDatabase();
-        $config  = $this->app->getConfig();
-        $view    = $this->app->getView();
-        $session = $this->app->getSession();
-        $baseUrl = $this->app->getBaseUrl();
+        $db        = $this->app->getDatabase();
+        $config    = $this->app->getConfig();
+        $view      = $this->app->getView();
+        $session   = $this->app->getSession();
+        $baseUrl   = $this->app->getBaseUrl();
+        $csrfToken = $this->app->getCSRF()->token();
 
-        $fanlistingRepo = new FanlistingRepo($db, $config);
-        $fanlistings    = $fanlistingRepo->getAll();
+        $listingRepo = new ListingRepo($db, $config);
+        $listings    = $listingRepo->getAll();
 
-        // Pick a real fanlisting ID for snippet examples; fall back to 1
+        // Pick a real listing ID for snippet examples; fall back to 1
         $exampleId = 1;
-        foreach ($fanlistings as $fl) {
+        foreach ($listings as $fl) {
             if (!$fl->upcoming && !$fl->trouble) {
                 $exampleId = $fl->id;
                 break;
@@ -45,16 +46,16 @@ final class EmbedCodesController
         $inner = $view->render('admin/embed-codes/index.php', [
             'embed_path'  => $embedPath,
             'example_id'  => $exampleId,
-            'fanlistings' => $fanlistings,
+            'listings'    => $listings,
             'base_url'    => $baseUrl,
-            'csrf_token'  => $this->app->getCSRF()->token(),
+            'csrf_token'  => $csrfToken,
         ]);
 
         return Response::html($view->render('admin/layout.php', [
             'page_title'      => 'Embed Codes',
             'app_name'        => (string) $config->get('app_name', 'Luster'),
             'admin_username'  => (string) $session->get('lstr_admin_username', ''),
-            'csrf_token'      => $this->app->getCSRF()->token(),
+            'csrf_token'      => $csrfToken,
             'current_section' => 'embed-codes',
             'base_url'        => $baseUrl,
             'content'         => $inner,

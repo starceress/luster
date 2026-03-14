@@ -3,7 +3,7 @@
  * Password reset confirmation — new password form fragment.
  *
  * Variables injected by ResetController:
- *   $fanlisting_name  string
+ *   $listing_name  string
  *   $form_action      string
  *   $csrf_token       string
  *   $errors           string  pre-escaped HTML error string, or ''
@@ -18,7 +18,7 @@ declare(strict_types=1);
 use Luster\Core\View;
 ?>
 <div class="fl-wrap">
-  <h2 class="fl-title">Set a new password for <?= View::e($fanlisting_name) ?></h2>
+  <h2 class="fl-title">Set a new password for <?= View::e($listing_name) ?></h2>
 
   <?php if ($errors !== ''): ?>
     <div class="fl-errors"><?= $errors ?></div>
@@ -31,7 +31,7 @@ use Luster\Core\View;
     </p>
   <?php else: ?>
     <p class="fl-muted" style="font-size:.875rem">
-      Choose a new password. It must be at least 8 characters long.
+      Choose a new password.
     </p>
 
     <form method="POST" action="<?= View::e($form_action) ?>">
@@ -41,13 +41,13 @@ use Luster\Core\View;
       <div class="fl-field">
         <label class="fl-label" for="rc-password">New Password <span class="fl-required">*</span></label>
         <input class="fl-input" type="password" id="rc-password" name="new_password"
-               requiredmaxlength="255" autocomplete="new-password">
+               required maxlength="255" autocomplete="new-password">
       </div>
 
       <div class="fl-field">
         <label class="fl-label" for="rc-confirm">Confirm New Password <span class="fl-required">*</span></label>
         <input class="fl-input" type="password" id="rc-confirm" name="new_password_confirm"
-               requiredmaxlength="255" autocomplete="new-password">
+               required maxlength="255" autocomplete="new-password">
       </div>
 
       <button class="fl-btn" type="submit">Update Password</button>

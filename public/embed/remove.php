@@ -3,27 +3,27 @@
 declare(strict_types=1);
 
 use Luster\Core\Captcha;
-use Luster\Repositories\FanlistingRepo;
+use Luster\Repositories\ListingRepo;
 
 /**
  * Luster embed — remove membership form fragment.
  *
  * Usage:
- *   $luster_fanlisting_id = 1;     // required: fanlisting ID (int)
+ *   $luster_fanlisting_id = 1;     // required: listing ID (int)
  *   $luster_return        = false;  // optional: true = return string, false = echo
  *   require '/absolute/path/to/luster/public/embed/remove.php';
  *
  * The form POSTs to Luster's remove URL. On success the user is sent to the
- * post-remove redirect URL from fanlisting settings, or Luster's success page.
+ * post-remove redirect URL from listing settings, or Luster's success page.
  */
 
 // ---------------------------------------------------------------------------
 // 1. Validate the required variable
 // ---------------------------------------------------------------------------
 
-$_lusterFanlistingId = (int) ($luster_fanlisting_id ?? 0);
+$_lusterListingId = (int) ($luster_fanlisting_id ?? 0);
 
-if ($_lusterFanlistingId === 0) {
+if ($_lusterListingId === 0) {
     $_lusterHtml = '<p class="fl-errors">Luster embed error: <code>$luster_fanlisting_id</code> is not set.</p>';
     if ($luster_return ?? false) {
         return $_lusterHtml;
@@ -54,14 +54,14 @@ $_lusterApp = require $_lusterRoot . '/bootstrap.php';
 $_lusterApp->getSession()->start();
 
 // ---------------------------------------------------------------------------
-// 3. Load fanlisting data
+// 3. Load listing data
 // ---------------------------------------------------------------------------
 
-$_lusterFanlistingRepo = new FanlistingRepo($_lusterApp->getDatabase(), $_lusterApp->getConfig());
-$_lusterFanlisting     = $_lusterFanlistingRepo->getById($_lusterFanlistingId);
+$_lusterListingRepo = new ListingRepo($_lusterApp->getDatabase(), $_lusterApp->getConfig());
+$_lusterListing     = $_lusterListingRepo->getById($_lusterListingId);
 
-if ($_lusterFanlisting === null) {
-    $_lusterHtml = '<p class="fl-errors">Luster embed error: fanlisting #' . $_lusterFanlistingId . ' not found.</p>';
+if ($_lusterListing === null) {
+    $_lusterHtml = '<p class="fl-errors">Luster embed error: listing #' . $_lusterListingId . ' not found.</p>';
     if ($luster_return ?? false) {
         return $_lusterHtml;
     }
@@ -85,12 +85,12 @@ $_lusterSession->remove('lstr_flash_old_email');
 
 $_lusterBaseUrl    = rtrim((string) $_lusterApp->getConfig()->get('embed_base_url', ''), '/')
                    ?: $_lusterApp->getBaseUrl();
-$_lusterFormAction = $_lusterBaseUrl . '/remove/' . $_lusterFanlistingId;
+$_lusterFormAction = $_lusterBaseUrl . '/remove/' . $_lusterListingId;
 
 $_lusterHtml = $_lusterApp->getView()->renderFragment('remove.php', [
-    'fanlisting'       => $_lusterFanlisting,
-    'fanlisting_name'  => $_lusterFanlisting->name,
-    'fanlisting_url'   => $_lusterFanlisting->url,
+    'listing'       => $_lusterListing,
+    'listing_name'  => $_lusterListing->name,
+    'listing_url'   => $_lusterListing->url,
     'page_title'       => 'Remove Membership',
     'form_action'      => $_lusterFormAction,
     'csrf_token'       => $_lusterApp->getCSRF()->token(),
@@ -98,7 +98,7 @@ $_lusterHtml = $_lusterApp->getView()->renderFragment('remove.php', [
         ? '<p>' . htmlspecialchars($_lusterError, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '</p>'
         : '',
     'field_email'      => $_lusterOldEmail,
-    'captcha_question' => Captcha::getQuestion(),
+    'captcha_question' => Captcha::getQuestion('remove'),
     'captcha_error'    => '',
     'base_url'         => $_lusterApp->getBaseUrl(),
     'theme_path'       => $_lusterApp->getBaseUrl() . '/assets/default/',

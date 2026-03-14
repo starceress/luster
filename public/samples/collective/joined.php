@@ -1,6 +1,6 @@
 <?php
 /**
- * Sample collective — joined fanlistings.
+ * Sample collective — joined listings.
  * See index.php for setup instructions.
  */
 
@@ -14,7 +14,7 @@ $_navActive = 'joined';
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title><?= htmlspecialchars($_siteName, ENT_QUOTES, 'UTF-8') ?> &mdash; Joined Fanlistings</title>
+  <title><?= htmlspecialchars($_siteName, ENT_QUOTES, 'UTF-8') ?> &mdash; Joined Listings</title>
   <link rel="stylesheet" href="../../assets/default/style.css">
 </head>
 <body>
@@ -24,7 +24,7 @@ $_navActive = 'joined';
     <p class="fl-site-title"><a href="index.php"><?= htmlspecialchars($_siteName, ENT_QUOTES, 'UTF-8') ?></a></p>
     <nav class="fl-nav" aria-label="Collective navigation">
       <a href="index.php">Home</a>
-      <a href="fanlistings.php">Fanlistings</a>
+      <a href="listings.php">Listings</a>
       <a href="joined.php" class="active">Joined</a>
       <a href="affiliates.php">Affiliates</a>
     </nav>
@@ -34,7 +34,7 @@ $_navActive = 'joined';
 <main class="fl-site-main">
 <?php
 /*
- * Renders joined fanlistings with a category selector.
+ * Renders joined listings with a category selector.
  *
  * Options (set before require):
  *   $luster_category  = '';     // '' = dropdown selector (reads $_GET['cat'])

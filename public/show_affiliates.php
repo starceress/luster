@@ -7,7 +7,7 @@ use Luster\Repositories\AffiliateRepo;
 /**
  * show_affiliates.php — Embeddable Luster affiliates widget.
  *
- * Outputs an affiliates fragment for a fanlisting. No HTML wrapper —
+ * Outputs an affiliates fragment for a listing. No HTML wrapper —
  * drop this include anywhere inside your page's body.
  *
  * Usage
@@ -20,8 +20,8 @@ use Luster\Repositories\AffiliateRepo;
  * once per active affiliate, concatenates the rows, and echoes the result.
  * Falls back to a built-in default if no template has been saved.
  *
- * Outputs nothing (silently) for upcoming or trouble fanlistings,
- * or when the fanlisting has no active affiliates.
+ * Outputs nothing (silently) for upcoming or trouble listings,
+ * or when the listing has no active affiliates.
  *
  * Tokens available in affiliates_template ($$token$$ style):
  *   $$aff_url$$   — affiliate URL (HTML-escaped)
@@ -33,7 +33,7 @@ use Luster\Repositories\AffiliateRepo;
 
 require_once __DIR__ . '/luster_bootstrap.php';
 
-// ── Guard: suppress output for inactive fanlistings ──────────────────────────
+// ── Guard: suppress output for inactive listings ──────────────────────────
 
 if ($lstr_fl->upcoming || $lstr_fl->trouble) {
     return;
@@ -42,7 +42,7 @@ if ($lstr_fl->upcoming || $lstr_fl->trouble) {
 // ── Load affiliates ───────────────────────────────────────────────────────────
 
 $_lstr_affiliateRepo = new AffiliateRepo($lstr_db);
-$_lstr_affiliates    = $_lstr_affiliateRepo->getByFanlisting($lstr_fl->id);
+$_lstr_affiliates    = $_lstr_affiliateRepo->getActiveByListing($lstr_fl->id)['items'];
 
 if (empty($_lstr_affiliates)) {
     return;
@@ -65,10 +65,6 @@ $_lstr_e = static fn(string $v): string =>
 $_lstr_out = '';
 
 foreach ($_lstr_affiliates as $_lstr_aff) {
-    if (!$_lstr_aff->active) {
-        continue;
-    }
-
     $_lstr_out .= str_replace(
         ['$$aff_url$$', '$$aff_image$$', '$$aff_name$$'],
         [

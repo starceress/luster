@@ -1,5 +1,5 @@
 <?php
-/** @var \Luster\Models\JoinedFanlisting|null $joined  null = add mode */
+/** @var \Luster\Models\JoinedListing|null $joined  null = add mode */
 /** @var string $error */
 /** @var array  $old */
 /** @var string $base_url */
@@ -45,7 +45,7 @@ $dataExist  = json_encode($existingCats,     JSON_HEX_QUOT | JSON_HEX_AMP | JSON
 ?>
 
 <p style="margin-bottom:1rem">
-  <a href="<?= $b ?>/admin/joined" class="neb-link">&larr; Joined Fanlistings</a>
+  <a href="<?= $b ?>/admin/joined" class="neb-link">&larr; Joined Listings</a>
 </p>
 
 <?php if ($error !== ''): ?>

@@ -5,17 +5,17 @@ declare(strict_types=1);
 use Luster\Core\View;
 
 /**
- * Owned fanlistings list — content fragment.
+ * Owned listings list — content fragment.
  *
  * Variables injected by embed/owned.php:
- *   $fanlistings        Fanlisting[]  filtered list of owned fanlistings
+ *   $listings        Listing[]  filtered list of owned listings
  *   $categories         array         [{id, name, source},...] for the category selector
  *   $current_category   int           selected category ID (0 = all)
  *   $status             string        active status filter: current|upcoming|trouble|all
  *   $hide_dropdown      bool          suppress the category selector entirely
  *   $show_list          bool          show category links as a bulleted list (vs dropdown)
  *   $form_action        string        URL the category filter form/links point to
- *   $uploads_url        string        base URL for fanlisting images
+ *   $uploads_url        string        base URL for listing images
  *   $base_url           string
  *   $theme_path         string
  */
@@ -84,11 +84,11 @@ use Luster\Core\View;
     </div>
   <?php endif; ?>
 
-  <?php if (empty($fanlistings)): ?>
-    <p class="fl-empty">No fanlistings to display.</p>
+  <?php if (empty($listings)): ?>
+    <p class="fl-empty">No listings to display.</p>
   <?php else: ?>
     <ul class="fl-fanlisting-list">
-      <?php foreach ($fanlistings as $fl): ?>
+      <?php foreach ($listings as $fl): ?>
         <li class="fl-fanlisting">
           <a class="fl-link" href="<?= View::e($fl->url) ?>"
              target="_blank" rel="noopener noreferrer">

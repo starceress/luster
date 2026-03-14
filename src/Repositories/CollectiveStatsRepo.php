@@ -6,14 +6,14 @@ namespace Luster\Repositories;
 
 use Luster\Core\Config;
 use Luster\Core\Database;
-use Luster\Models\Fanlisting;
-use Luster\Models\JoinedFanlisting;
+use Luster\Models\Listing;
+use Luster\Models\JoinedListing;
 
 /**
  * Aggregated statistics for the whole collective (site-wide).
  *
- * Covers owned fanlistings, joined fanlistings, member totals across all
- * fanlisting member tables, affiliates, growth rates, newest/random listings,
+ * Covers owned listings, joined listings, member totals across all
+ * listing member tables, affiliates, growth rates, newest/random listings,
  * and category breakdown. Handles both Enthusiast schema variants transparently.
  *
  * Schema variants (driven by 'enth_table_prefix' config key):
@@ -43,7 +43,7 @@ final class CollectiveStatsRepo
 
         $this->isOwnedSchema = ($prefix === '');
 
-        $rawTable            = $this->isOwnedSchema ? 'owned' : $prefix . 'fanlistings';
+        $rawTable            = $this->isOwnedSchema ? 'owned' : $prefix . 'listings';
         $this->ownedTable    = $this->db->validatePrefix($rawTable);
         $this->ownedPk       = $this->isOwnedSchema ? 'listingid' : 'id';
         $this->ownedPrefixCol = $this->isOwnedSchema ? 'dbtable' : 'dbprefix';
@@ -59,11 +59,11 @@ final class CollectiveStatsRepo
     }
 
     // -----------------------------------------------------------------------
-    // Owned fanlisting counts
+    // Owned listing counts
     // -----------------------------------------------------------------------
 
     /**
-     * Returns status counts for all owned fanlistings.
+     * Returns status counts for all owned listings.
      *
      * @return array{total: int, active: int, upcoming: int, trouble: int}
      */
@@ -99,11 +99,11 @@ final class CollectiveStatsRepo
     }
 
     // -----------------------------------------------------------------------
-    // Joined fanlisting counts
+    // Joined listing counts
     // -----------------------------------------------------------------------
 
     /**
-     * Returns status counts for all joined fanlistings.
+     * Returns status counts for all joined listings.
      *
      * Returns zeros if the lstr_joined table does not yet exist.
      *
@@ -157,7 +157,7 @@ final class CollectiveStatsRepo
     }
 
     // -----------------------------------------------------------------------
-    // Member totals across all fanlistings
+    // Member totals across all listings
     // -----------------------------------------------------------------------
 
     /**
@@ -220,12 +220,12 @@ final class CollectiveStatsRepo
     // -----------------------------------------------------------------------
 
     /**
-     * Returns the N most recently added active owned fanlistings.
+     * Returns the N most recently added active owned listings.
      *
      * Sorted by opened date descending when available, then by primary key
      * descending as a fallback (insertion order).
      *
-     * @return Fanlisting[]
+     * @return Listing[]
      */
     public function getNewestOwned(int $n = 3): array
     {
@@ -249,18 +249,18 @@ final class CollectiveStatsRepo
         $stmt->execute();
 
         return array_map(
-            static fn(array $row) => Fanlisting::fromRow($row),
+            static fn(array $row) => Listing::fromRow($row),
             $stmt->fetchAll()
         );
     }
 
     /**
-     * Returns the N most recently added active joined fanlistings,
+     * Returns the N most recently added active joined listings,
      * ordered by date_joined descending then by primary key descending.
      *
      * Returns an empty array if lstr_joined does not yet exist.
      *
-     * @return JoinedFanlisting[]
+     * @return JoinedListing[]
      */
     public function getNewestJoined(int $n = 3): array
     {
@@ -279,7 +279,7 @@ final class CollectiveStatsRepo
             $stmt->execute();
 
             return array_map(
-                static fn(array $row) => JoinedFanlisting::fromRow($row),
+                static fn(array $row) => JoinedListing::fromRow($row),
                 $stmt->fetchAll()
             );
         } catch (\Throwable) {
@@ -294,7 +294,7 @@ final class CollectiveStatsRepo
     /**
      * Returns a single random active owned fanlisting, or null if none exist.
      */
-    public function getRandomOwned(): ?Fanlisting
+    public function getRandomOwned(): ?Listing
     {
         if ($this->isOwnedSchema) {
             $activeWhere = 'status = 2';
@@ -311,7 +311,7 @@ final class CollectiveStatsRepo
         $stmt->execute();
         $row = $stmt->fetch();
 
-        return $row !== false ? Fanlisting::fromRow($row) : null;
+        return $row !== false ? Listing::fromRow($row) : null;
     }
 
     /**
@@ -319,7 +319,7 @@ final class CollectiveStatsRepo
      *
      * Returns null if lstr_joined does not yet exist.
      */
-    public function getRandomJoined(): ?JoinedFanlisting
+    public function getRandomJoined(): ?JoinedListing
     {
         try {
             $stmt = $this->db->prepare(
@@ -331,7 +331,7 @@ final class CollectiveStatsRepo
             $stmt->execute();
             $row = $stmt->fetch();
 
-            return $row !== false ? JoinedFanlisting::fromRow($row) : null;
+            return $row !== false ? JoinedListing::fromRow($row) : null;
         } catch (\Throwable) {
             return null;
         }
@@ -342,10 +342,10 @@ final class CollectiveStatsRepo
     // -----------------------------------------------------------------------
 
     /**
-     * Returns all Luster categories with the count of active owned fanlistings
+     * Returns all Luster categories with the count of active owned listings
      * assigned to each, ordered by source then name.
      *
-     * Entries with zero active fanlistings are included so site owners can see
+     * Entries with zero active listings are included so site owners can see
      * the full category list.
      *
      * Returns an empty array if lstr_categories does not yet exist.
@@ -388,11 +388,11 @@ final class CollectiveStatsRepo
     // -----------------------------------------------------------------------
 
     /**
-     * Returns growth rates for owned fanlistings, joined fanlistings, and members.
+     * Returns growth rates for owned listings, joined listings, and members.
      *
      * All rates are computed from the earliest known date and expressed as:
-     *   - owned_per_year   — active owned fanlistings per year (2 decimal places)
-     *   - joined_per_year  — active joined fanlistings per year (2 decimal places)
+     *   - owned_per_year   — active owned listings per year (2 decimal places)
+     *   - joined_per_year  — active joined listings per year (2 decimal places)
      *   - members_per_day  — total approved members per day (2 decimal places)
      *
      * Returns '0.00' for any rate that cannot be computed.
@@ -401,7 +401,7 @@ final class CollectiveStatsRepo
      */
     public function getGrowthRates(int $approvedTotal, int $activeOwned, int $activeJoined): array
     {
-        // ── Oldest opened owned fanlisting ──────────────────────────────────
+        // ── Oldest opened owned listing ──────────────────────────────────
         $ownedPerYear    = '0.00';
         $membersPerDay   = '0.00';
 
@@ -423,7 +423,7 @@ final class CollectiveStatsRepo
             }
         } catch (\Throwable) {}
 
-        // ── Oldest joined fanlisting ─────────────────────────────────────────
+        // ── Oldest joined listing ─────────────────────────────────────────
         $joinedPerYear = '0.00';
 
         try {

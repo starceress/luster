@@ -5,7 +5,7 @@ declare(strict_types=1);
 /**
  * show_stats.php — Embeddable Luster stats widget.
  *
- * Outputs the stats template fragment for a fanlisting. No HTML wrapper —
+ * Outputs the stats template fragment for a listing. No HTML wrapper —
  * drop this include anywhere inside your page's body.
  *
  * Usage
@@ -18,24 +18,24 @@ declare(strict_types=1);
  * with $$token$$ placeholders replaced by live data. Falls back to a sensible
  * default if no custom template has been saved.
  *
- * Outputs nothing (silently) for upcoming or trouble fanlistings.
+ * Outputs nothing (silently) for upcoming or trouble listings.
  *
  * Tokens replaced:
- *   $$stat_opened$$     — date fanlisting opened, formatted "Month Dth Year"
+ *   $$stat_opened$$     — date listing opened, formatted "Month Dth Year"
  *   $$stat_updated$$    — date of most recently added approved member (same format)
  *   $$stat_approved$$   — approved member count
  *   $$stat_pending$$    — pending member count
  *   $$stat_newmembers$$ — comma-separated list of newest 5 approved member names
  *   $$stat_growth$$     — members per day since opened, to 2 decimal places
- *   $$fanlisting_name$$ — fanlisting name (HTML-escaped)
- *   $$fanlisting_url$$  — fanlisting URL (HTML-escaped)
+ *   $$listing_name$$ — listing name (HTML-escaped)
+ *   $$listing_url$$  — listing URL (HTML-escaped)
  */
 
 // ── Bootstrap (loads $lstr_fl, $lstr_memberRepo, $lstr_settingsRepo, etc.) ──
 
 require_once __DIR__ . '/luster_bootstrap.php';
 
-// ── Guard: suppress output for inactive fanlistings ──────────────────────────
+// ── Guard: suppress output for inactive listings ──────────────────────────
 
 if ($lstr_fl->upcoming || $lstr_fl->trouble) {
     return;
@@ -111,8 +111,8 @@ echo str_replace(
         '$$stat_pending$$',
         '$$stat_newmembers$$',
         '$$stat_growth$$',
-        '$$fanlisting_name$$',
-        '$$fanlisting_url$$',
+        '$$listing_name$$',
+        '$$listing_url$$',
     ],
     [
         $_lstr_opened,

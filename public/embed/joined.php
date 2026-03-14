@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-use Luster\Repositories\JoinedFanlistingRepo;
+use Luster\Repositories\JoinedListingRepo;
 
 /**
- * Luster embed — joined fanlistings list.
+ * Luster embed — joined listings list.
  *
- * Drop this into any PHP page to embed the list of fanlistings you have joined.
+ * Drop this into any PHP page to embed the list of listings you have joined.
  * Supports category filtering and two selector display modes.
  *
  * Usage:
@@ -18,10 +18,10 @@ use Luster\Repositories\JoinedFanlistingRepo;
  *   $luster_category    string  Controls what is displayed:
  *                               ''    — show the category selector; visitor picks a category
  *                                       (reads $_GET['cat'] automatically, no PHP needed)
- *                               'all' — show ALL active fanlistings grouped by category
+ *                               'all' — show ALL active listings grouped by category
  *                                       heading, no selector rendered (best for small lists)
  *                               other — exact category name; show only that category's
- *                                       fanlistings, selector suppressed
+ *                                       listings, selector suppressed
  *                               Default: '' (reads $_GET['cat'])
  *   $luster_show_list   bool    When the selector is visible, show category links as a
  *                               bulleted list instead of a <select> dropdown.
@@ -61,15 +61,15 @@ $_lusterCategory = isset($luster_category) && (string) $luster_category !== ''
                  : (string) ($_GET['cat'] ?? '');
 
 // ---------------------------------------------------------------------------
-// 3. Load fanlistings and categories
+// 3. Load listings and categories
 // ---------------------------------------------------------------------------
 
-$_lusterRepo = new JoinedFanlistingRepo($_lusterApp->getDatabase());
+$_lusterRepo = new JoinedListingRepo($_lusterApp->getDatabase());
 
 $_lusterCategories = $_lusterRepo->getCategories();
 
 if ($_lusterCategory === 'all') {
-    // Show-all mode: load every active fanlisting and group by category
+    // Show-all mode: load every active listing and group by category
     $result        = $_lusterRepo->getAll(perPage: 9999, page: 1);
     $_lusterGrouped = [];
     foreach ($result['items'] as $fl) {
@@ -80,18 +80,18 @@ if ($_lusterCategory === 'all') {
         $_lusterGrouped[$cat][] = $fl;
     }
     ksort($_lusterGrouped);
-    $_lusterFanlistings = [];  // not used in grouped mode
+    $_lusterListings = [];  // not used in grouped mode
 } elseif ($_lusterCategory !== '') {
     // Single-category mode
     $result             = $_lusterRepo->getAll(perPage: 9999, page: 1, filterCat: $_lusterCategory);
-    $_lusterFanlistings = array_values(array_filter(
+    $_lusterListings = array_values(array_filter(
         $result['items'],
         static fn($fl) => $fl->active,
     ));
     $_lusterGrouped = [];
 } else {
     // Selector mode: no category chosen yet
-    $_lusterFanlistings = [];
+    $_lusterListings = [];
     $_lusterGrouped     = [];
 }
 
@@ -110,7 +110,7 @@ $_lusterFormAction = htmlspecialchars(
 // ---------------------------------------------------------------------------
 
 $_lusterHtml = $_lusterApp->getView()->renderFragment('joined.php', [
-    'fanlistings'      => $_lusterFanlistings,
+    'listings'         => $_lusterListings,
     'grouped'          => $_lusterGrouped,
     'categories'       => $_lusterCategories,
     'current_category' => $_lusterCategory,

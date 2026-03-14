@@ -9,26 +9,26 @@ use Luster\Core\Request;
 use Luster\Core\Response;
 use Luster\Core\Validator;
 use Luster\Repositories\AffiliateRepo;
-use Luster\Repositories\FanlistingRepo;
-use Luster\Repositories\FanlistingSettingsRepo;
+use Luster\Repositories\ListingRepo;
+use Luster\Repositories\ListingSettingsRepo;
 
 /**
- * Manages affiliates across all fanlistings.
+ * Manages affiliates across all listings.
  *
  * Routes:
  *   GET  /admin/affiliates                           — list all affiliates
  *   GET  /admin/affiliates/add                       — add form (global context)
  *   POST /admin/affiliates/add                       — insert (global context)
- *   GET  /admin/fanlistings/{fid}/affiliates/add     — add form (fanlisting context)
- *   POST /admin/fanlistings/{fid}/affiliates/add     — insert (fanlisting context)
+ *   GET  /admin/listings/{fid}/affiliates/add     — add form (fanlisting context)
+ *   POST /admin/listings/{fid}/affiliates/add     — insert (fanlisting context)
  *   GET  /admin/affiliates/{id}/edit                 — edit form
  *   POST /admin/affiliates/{id}/edit                 — update
  *   POST /admin/affiliates/{id}/toggle               — toggle active/inactive
  *   POST /admin/affiliates/{id}/delete               — delete
  *
- * Fanlisting context: when accessed via /admin/fanlistings/{fid}/affiliates/add,
- * or when from_fanlisting is passed as a query/POST param, save/toggle/delete
- * redirect back to /admin/fanlistings/{fid} instead of /admin/affiliates.
+ * Listing context: when accessed via /admin/listings/{fid}/affiliates/add,
+ * or when from_listing is passed as a query/POST param, save/toggle/delete
+ * redirect back to /admin/listings/{fid} instead of /admin/affiliates.
  */
 final class AffiliateController
 {
@@ -44,19 +44,19 @@ final class AffiliateController
         $config = $this->app->getConfig();
 
         $affiliateRepo  = new AffiliateRepo($db);
-        $fanlistingRepo = new FanlistingRepo($db, $config);
+        $listingRepo = new ListingRepo($db, $config);
 
-        $fanlistings = $fanlistingRepo->getAll();
+        $listings = $listingRepo->getAll();
 
-        // Build fanlisting lookup map for display
+        // Build listing lookup map for display
         $fanMap = [];
-        foreach ($fanlistings as $fl) {
+        foreach ($listings as $fl) {
             $fanMap[$fl->id] = $fl->name;
         }
 
-        $filterFid = trim((string) ($_GET['fanlisting_id'] ?? 'collective'));
-        $search    = trim((string) ($_GET['search']        ?? ''));
-        $page      = max(1, (int) ($_GET['page'] ?? 1));
+        $filterFid = trim((string) $request->query('fanlisting_id', 'collective'));
+        $search    = trim((string) $request->query('search', ''));
+        $page      = max(1, (int) $request->query('page', 1));
         $perPage   = 10;
 
         if ($search !== '') {
@@ -65,7 +65,7 @@ final class AffiliateController
         } elseif ($filterFid === 'collective') {
             $result = $affiliateRepo->getCollective($perPage, $page);
         } elseif ($filterFid !== '') {
-            $result = $affiliateRepo->getByFanlisting((int) $filterFid, $perPage, $page);
+            $result = $affiliateRepo->getByListing((int) $filterFid, $perPage, $page);
         } else {
             $result = $affiliateRepo->getAll($perPage, $page);
         }
@@ -85,7 +85,7 @@ final class AffiliateController
         return $this->layout('admin/affiliates/index.php', [
             'affiliates'  => $affiliates,
             'fan_map'     => $fanMap,
-            'fanlistings' => $fanlistings,
+            'listings' => $listings,
             'filter_fid'  => $filterFid,
             'search'      => $search,
             'page'        => $page,
@@ -100,7 +100,7 @@ final class AffiliateController
 
     // -----------------------------------------------------------------------
     // GET + POST /admin/affiliates/add
-    // GET + POST /admin/fanlistings/{fid}/affiliates/add
+    // GET + POST /admin/listings/{fid}/affiliates/add
     // -----------------------------------------------------------------------
 
     public function add(Request $request, array $params): Response
@@ -109,31 +109,32 @@ final class AffiliateController
         $config = $this->app->getConfig();
 
         $affiliateRepo  = new AffiliateRepo($db);
-        $fanlistingRepo = new FanlistingRepo($db, $config);
-        $fanlistings    = $fanlistingRepo->getAll();
+        $listingRepo = new ListingRepo($db, $config);
+        $listings    = $listingRepo->getAll();
 
         $session = $this->app->getSession();
         $baseUrl = $this->app->getBaseUrl();
 
-        // Fanlisting context — comes from route {fid} or query param
+        // Listing context — comes from route {fid} or query param
         $contextFid = (int) ($params['fid'] ?? $request->query('context_fid', 0));
 
         if ($request->isPost()) {
-            $fanlistingId = (int) $request->post('fanlisting_id', 0);
+            $listingId = (int) $request->post('listing_id', 0);
             $name         = trim((string) $request->post('name', ''));
             $url          = trim((string) $request->post('url', ''));
             $email        = trim((string) $request->post('email', ''));
             $sortOrder    = (int) $request->post('sort_order', 0);
-            // Re-read context from hidden field in case it was a fanlisting-routed form
+            // Re-read context from hidden field in case it was a listing-routed form
             $postContextFid = (int) $request->post('context_fid', $contextFid);
 
             // Image upload
-            $image = '';
-            if (!empty($_FILES['image']['tmp_name'])) {
+            $image     = '';
+            $imageFile = $request->file('image') ?? [];
+            if (!empty($imageFile['tmp_name'])) {
                 $finfo   = new \finfo(FILEINFO_MIME_TYPE);
-                $mime    = $finfo->file($_FILES['image']['tmp_name']);
+                $mime    = $finfo->file($imageFile['tmp_name']);
                 $allowed = ['image/jpeg' => 'jpg', 'image/png' => 'png', 'image/gif' => 'gif', 'image/webp' => 'webp'];
-                if (!isset($allowed[$mime]) || $_FILES['image']['size'] > 2097152) {
+                if (!isset($allowed[$mime]) || $imageFile['size'] > 2097152) {
                     throw new \RuntimeException('Invalid image: must be JPEG, PNG, GIF, or WebP and under 2 MB.');
                 }
                 $dir = dirname(__DIR__, 3) . '/public/uploads/affiliates/';
@@ -142,7 +143,7 @@ final class AffiliateController
                     file_put_contents($dir . '.htaccess', "deny from all\n<FilesMatch \"\.(jpg|jpeg|png|gif|webp)$\">\nAllow from all\n</FilesMatch>");
                 }
                 $image = uniqid('af_', true) . '.' . $allowed[$mime];
-                move_uploaded_file($_FILES['image']['tmp_name'], $dir . $image);
+                move_uploaded_file($imageFile['tmp_name'], $dir . $image);
             }
 
             $v = new Validator(['name' => $name, 'url' => $url]);
@@ -153,7 +154,7 @@ final class AffiliateController
 
             if ($v->fails()) {
                 return $this->layout('admin/affiliates/form.php', [
-                    'fanlistings'  => $fanlistings,
+                    'listings'  => $listings,
                     'affiliate'    => null,
                     'error'        => implode(' ', $v->allErrors()),
                     'old'          => $request->postAll(),
@@ -163,7 +164,7 @@ final class AffiliateController
             }
 
             $affiliateRepo->insert([
-                'fanlisting_id' => $fanlistingId > 0 ? $fanlistingId : null,
+                'fanlisting_id' => $listingId > 0 ? $listingId : null,
                 'name'          => $name,
                 'url'           => $url,
                 'email'         => $email !== '' ? $email : null,
@@ -172,13 +173,13 @@ final class AffiliateController
             ]);
 
             if ($postContextFid > 0) {
-                (new FanlistingSettingsRepo($db))->touchLastUpdated($postContextFid);
+                (new ListingSettingsRepo($db))->touchLastUpdated($postContextFid);
             }
 
             $session->set('lstr_flash_success', 'Affiliate added.');
 
             $redirect = $postContextFid > 0
-                ? $baseUrl . '/admin/fanlistings/' . $postContextFid
+                ? $baseUrl . '/admin/listings/' . $postContextFid
                 : $baseUrl . '/admin/affiliates';
 
             return Response::redirect($redirect);
@@ -187,7 +188,7 @@ final class AffiliateController
         $siteName = (string) ($this->app->getConfig()->get('app_name', 'Collective'));
 
         return $this->layout('admin/affiliates/form.php', [
-            'fanlistings' => $fanlistings,
+            'listings' => $listings,
             'affiliate'   => null,
             'error'       => '',
             'old'         => [],
@@ -208,10 +209,10 @@ final class AffiliateController
         $config = $this->app->getConfig();
 
         $affiliateRepo  = new AffiliateRepo($db);
-        $fanlistingRepo = new FanlistingRepo($db, $config);
+        $listingRepo = new ListingRepo($db, $config);
 
         $affiliate   = $affiliateRepo->getById($id);
-        $fanlistings = $fanlistingRepo->getAll();
+        $listings = $listingRepo->getAll();
 
         if ($affiliate === null) {
             return Response::notFound('Affiliate not found.');
@@ -225,15 +226,16 @@ final class AffiliateController
             $url       = trim((string) $request->post('url', ''));
             $email     = trim((string) $request->post('email', ''));
             $sortOrder = (int) $request->post('sort_order', 0);
-            $fromFl    = (int) $request->post('from_fanlisting', 0);
+            $fromFl    = (int) $request->post('from_listing', 0);
 
             // Image upload — start from current stored filename
-            $image = $affiliate->image ?? '';
-            if (!empty($_FILES['image']['tmp_name'])) {
+            $image     = $affiliate->image ?? '';
+            $imageFile = $request->file('image') ?? [];
+            if (!empty($imageFile['tmp_name'])) {
                 $finfo   = new \finfo(FILEINFO_MIME_TYPE);
-                $mime    = $finfo->file($_FILES['image']['tmp_name']);
+                $mime    = $finfo->file($imageFile['tmp_name']);
                 $allowed = ['image/jpeg' => 'jpg', 'image/png' => 'png', 'image/gif' => 'gif', 'image/webp' => 'webp'];
-                if (!isset($allowed[$mime]) || $_FILES['image']['size'] > 2097152) {
+                if (!isset($allowed[$mime]) || $imageFile['size'] > 2097152) {
                     throw new \RuntimeException('Invalid image: must be JPEG, PNG, GIF, or WebP and under 2 MB.');
                 }
                 $dir = dirname(__DIR__, 3) . '/public/uploads/affiliates/';
@@ -245,9 +247,9 @@ final class AffiliateController
                     unlink($dir . $image);
                 }
                 $image = uniqid('af_', true) . '.' . $allowed[$mime];
-                move_uploaded_file($_FILES['image']['tmp_name'], $dir . $image);
+                move_uploaded_file($imageFile['tmp_name'], $dir . $image);
             }
-            if (!empty($_POST['delete_image']) && $image !== '') {
+            if ($request->post('delete_image') && $image !== '') {
                 $dir = dirname(__DIR__, 3) . '/public/uploads/affiliates/';
                 if (file_exists($dir . $image)) {
                     unlink($dir . $image);
@@ -263,7 +265,7 @@ final class AffiliateController
 
             if ($v->fails()) {
                 return $this->layout('admin/affiliates/form.php', [
-                    'fanlistings' => $fanlistings,
+                    'listings' => $listings,
                     'affiliate'   => $affiliate,
                     'error'       => implode(' ', $v->allErrors()),
                     'old'         => $request->postAll(),
@@ -281,25 +283,25 @@ final class AffiliateController
             ]);
 
             if ($fromFl > 0) {
-                (new FanlistingSettingsRepo($db))->touchLastUpdated($fromFl);
+                (new ListingSettingsRepo($db))->touchLastUpdated($fromFl);
             }
 
             $session->set('lstr_flash_success', 'Affiliate updated.');
 
             $redirect = $fromFl > 0
-                ? $baseUrl . '/admin/fanlistings/' . $fromFl
+                ? $baseUrl . '/admin/listings/' . $fromFl
                 : $baseUrl . '/admin/affiliates';
 
             return Response::redirect($redirect);
         }
 
         // GET: read context from query param
-        $fromFl = (int) $request->query('from_fanlisting', 0);
+        $fromFl = (int) $request->query('from_listing', 0);
 
         $siteName = (string) ($this->app->getConfig()->get('app_name', 'Collective'));
 
         return $this->layout('admin/affiliates/form.php', [
-            'fanlistings' => $fanlistings,
+            'listings' => $listings,
             'affiliate'   => $affiliate,
             'error'       => '',
             'old'         => [],
@@ -326,16 +328,16 @@ final class AffiliateController
         }
 
         $affiliateRepo->toggle($id);
-        $fromFl = (int) $request->post('from_fanlisting', 0);
+        $fromFl = (int) $request->post('from_listing', 0);
 
         if ($fromFl > 0) {
-            (new FanlistingSettingsRepo($db))->touchLastUpdated($fromFl);
+            (new ListingSettingsRepo($db))->touchLastUpdated($fromFl);
         }
 
         $session->set('lstr_flash_success', 'Affiliate status toggled.');
 
         $redirect = $fromFl > 0
-            ? $baseUrl . '/admin/fanlistings/' . $fromFl
+            ? $baseUrl . '/admin/listings/' . $fromFl
             : $baseUrl . '/admin/affiliates';
 
         return Response::redirect($redirect);
@@ -359,16 +361,16 @@ final class AffiliateController
         }
 
         $affiliateRepo->delete($id);
-        $fromFl = (int) $request->post('from_fanlisting', 0);
+        $fromFl = (int) $request->post('from_listing', 0);
 
         if ($fromFl > 0) {
-            (new FanlistingSettingsRepo($db))->touchLastUpdated($fromFl);
+            (new ListingSettingsRepo($db))->touchLastUpdated($fromFl);
         }
 
         $session->set('lstr_flash_success', 'Affiliate deleted.');
 
         $redirect = $fromFl > 0
-            ? $baseUrl . '/admin/fanlistings/' . $fromFl
+            ? $baseUrl . '/admin/listings/' . $fromFl
             : $baseUrl . '/admin/affiliates';
 
         return Response::redirect($redirect);

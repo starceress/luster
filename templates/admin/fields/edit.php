@@ -3,7 +3,7 @@
  * Admin — Edit a single additional field.
  *
  * Variables provided by FieldController::edit() via layout():
- * @var \Luster\Models\Fanlisting      $fanlisting
+ * @var \Luster\Models\Listing      $listing
  * @var \Luster\Models\AdditionalField $field
  * @var string $options    Current options string (empty when not set)
  * @var string $error      Value of ?error= query param (empty when absent)
@@ -11,14 +11,14 @@
  * @var string $csrf_token
  */
 $b       = rtrim(\Luster\Core\View::e($base_url), '/');
-$id      = (int) $fanlisting->id;
+$id      = (int) $listing->id;
 $encName = urlencode($field->name);
 ?>
 
 <!-- Breadcrumb -->
 <p style="margin:0 0 .75rem">
-  <a href="<?= $b ?>/admin/fanlistings/<?= $id ?>/fields" class="neb-link">
-    &larr; <?= \Luster\Core\View::e($fanlisting->name) ?> &mdash; Fields
+  <a href="<?= $b ?>/admin/listings/<?= $id ?>/fields" class="neb-link">
+    &larr; <?= \Luster\Core\View::e($listing->name) ?> &mdash; Fields
   </a>
 </p>
 
@@ -33,7 +33,7 @@ $encName = urlencode($field->name);
 
 <div class="form-card">
   <form method="POST"
-        action="<?= $b ?>/admin/fanlistings/<?= $id ?>/fields/<?= $encName ?>/edit">
+        action="<?= $b ?>/admin/listings/<?= $id ?>/fields/<?= $encName ?>/edit">
     <input type="hidden" name="_csrf"      value="<?= \Luster\Core\View::e($csrf_token) ?>">
     <input type="hidden" name="field_name" value="<?= \Luster\Core\View::e($field->name) ?>">
 
@@ -91,7 +91,7 @@ $encName = urlencode($field->name);
 
     <div class="btn-row">
       <button type="submit" class="btn btn-primary">Save Changes</button>
-      <a href="<?= $b ?>/admin/fanlistings/<?= $id ?>/fields" class="btn btn-ghost">Cancel</a>
+      <a href="<?= $b ?>/admin/listings/<?= $id ?>/fields" class="btn btn-ghost">Cancel</a>
     </div>
 
   </form>

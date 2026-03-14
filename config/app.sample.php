@@ -50,11 +50,11 @@ return [
     // core tables and member tables.
     //
     //   ''       — Unprefixed Enthusiast 3 install (e.g. nebuluna.com style):
-    //              fanlisting registry = 'owned', member tables bare names
+    //              listing registry = 'owned', member tables bare names
     //              (huntrix, bes, ...), approved column is 'pending = 0'.
     //
     //   'enth_'  — Standard prefixed Enthusiast install:
-    //              fanlisting registry = 'enth_fanlistings', member tables
+    //              listing registry = 'enth_fanlistings', member tables
     //              use {dbprefix}members pattern, approved column is
     //              'approved = 1'.
     //
@@ -71,7 +71,7 @@ return [
     // ------------------------------------------------------------------
     // Staleness detection
     //
-    // inactive_threshold_days — a fanlisting whose last_updated date is
+    // inactive_threshold_days — a listing whose last_updated date is
     //   older than this many days (or has never been set) will appear on
     //   the dashboard maintenance card as potentially stale.
     //   Set to 0 to disable the staleness check entirely.

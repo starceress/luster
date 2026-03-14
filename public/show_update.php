@@ -37,7 +37,7 @@ use Luster\Repositories\FieldRepo;
  * The form POSTs back to the current page URL. On success, a success fragment
  * is echoed in place of the form. All error paths re-render inline (no redirect).
  *
- * Outputs nothing (silently) for upcoming or trouble fanlistings.
+ * Outputs nothing (silently) for upcoming or trouble listings.
  */
 
 // ── Bootstrap ────────────────────────────────────────────────────────────────
@@ -60,7 +60,7 @@ if (session_status() !== PHP_SESSION_ACTIVE) {
 // ── Shared setup ──────────────────────────────────────────────────────────────
 
 $_lstr_fieldRepo = new FieldRepo($lstr_db, $lstr_config);
-$_lstr_fields    = $_lstr_fieldRepo->getFieldsForFanlisting($luster_listing);
+$_lstr_fields    = $_lstr_fieldRepo->getFieldsForListing($luster_listing);
 
 $_lstr_pageBase  = strtok($_SERVER['REQUEST_URI'], '?') ?: '/';
 $_lstr_ip        = (string) ($_SERVER['REMOTE_ADDR'] ?? '');
@@ -119,7 +119,7 @@ $_lstr_renderUpdateForm = function (
     }
     $csrfToken = (string) $_SESSION['lstr_update_csrf'];
 
-    $captchaQuestion = Captcha::getQuestion();
+    $captchaQuestion = Captcha::getQuestion('update');
     $countrySelect   = Countries::buildSelect((string) ($old['country'] ?? ''));
     $extraFieldsHtml = $_lstr_buildExtraFields($_lstr_fields, $old);
 
@@ -277,7 +277,7 @@ foreach ($_lstr_fields as $_lstr_f) {
 }
 
 // 5. Captcha — always regenerates on validate(), so re-render gets a fresh question
-if (!Captcha::validate((string) ($_POST['captcha_answer'] ?? ''))) {
+if (!Captcha::validate((string) ($_POST['captcha_answer'] ?? ''), 'update')) {
     $_lstr_renderUpdateForm('', 'Incorrect answer — please try again.', '', $_lstr_repopOld);
     return;
 }
@@ -356,7 +356,7 @@ if ($_lstr_newPassword !== '' && $_lstr_newPassword !== $_lstr_newPasswordConfir
 // 10. New email uniqueness (only when the address is actually changing)
 if ($_lstr_newEmail !== '' && $_lstr_newEmail !== $_lstr_email) {
     if ($lstr_memberRepo->getByEmail($lstr_fl->dbprefix, $_lstr_newEmail) !== null) {
-        $_lstr_renderUpdateForm('', '', 'That email address is already registered for this fanlisting.', $_lstr_postAuthOld);
+        $_lstr_renderUpdateForm('', '', 'That email address is already registered for this listing.', $_lstr_postAuthOld);
         return;
     }
 }
@@ -408,7 +408,7 @@ try {
         $_lstr_finalName,
         "Your {$lstr_fl->name} membership has been updated",
         "Hi {$_lstr_finalName},\n\n"
-        . "Your membership in the {$lstr_fl->name} fanlisting has been updated.\n\n"
+        . "Your membership in the {$lstr_fl->name} listing has been updated.\n\n"
         . "-- {$_lstr_appName}",
     );
 } catch (\Throwable $e) {
@@ -418,5 +418,5 @@ try {
 // 14. Success fragment
 $_lstr_flName = $_lstr_e($lstr_fl->name);
 echo '<div class="luster-update-success">' . "\n"
-    . '<p>Your membership in the <strong>' . $_lstr_flName . '</strong> fanlisting has been updated successfully.</p>' . "\n"
+    . '<p>Your membership in the <strong>' . $_lstr_flName . '</strong> listing has been updated successfully.</p>' . "\n"
     . '</div>';

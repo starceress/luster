@@ -3,7 +3,7 @@
  * Join form — content fragment.
  *
  * Variables injected by JoinController:
- *   $fanlisting_name        string
+ *   $listing_name        string
  *   $form_action            string
  *   $csrf_token             string
  *   $errors                 string  pre-escaped HTML error string, or ''
@@ -25,7 +25,7 @@ declare(strict_types=1);
 use Luster\Core\View;
 ?>
 <div class="fl-wrap">
-  <h2 class="fl-title">Join <?= View::e($fanlisting_name) ?></h2>
+  <h2 class="fl-title">Join <?= View::e($listing_name) ?></h2>
 
   <?php if ($errors !== ''): ?>
     <div class="fl-errors"><?= $errors ?></div>
@@ -54,7 +54,7 @@ use Luster\Core\View;
 
     <?php if ($country_field_enabled): ?>
     <div class="fl-field">
-      <label class="fl-label" for="join-country">Country <span class="fl-required">*</span></label>
+      <label class="fl-label" for="country">Country <span class="fl-required">*</span></label>
       <?= $country_select ?>
     </div>
     <?php endif; ?>
@@ -151,7 +151,7 @@ use Luster\Core\View;
 
     <div class="fl-field">
       <label class="fl-label" for="join-captcha">
-        <?= View::e($captcha_question) ?> <span class="fl-required">*</span>
+        Captcha: <?= View::e($captcha_question) ?> <span class="fl-required">*</span>
       </label>
       <?php if ($captcha_error !== ''): ?>
         <div class="fl-errors"><?= View::e($captcha_error) ?></div>

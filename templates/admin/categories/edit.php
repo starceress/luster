@@ -68,7 +68,7 @@ $b = rtrim(\Luster\Core\View::e($base_url ?? ''), '/');
   <?php if (!in_array($cat->source ?? '', ['tfl', 'tafl'], true)): ?>
     <div class="section-divider"></div>
     <form method="POST" action="<?= $b ?>/admin/categories/<?= (int) ($cat->id ?? 0) ?>/delete"
-          onsubmit="return confirm('Delete this category? This will unlink any fanlistings using it.')">
+          onsubmit="return confirm('Delete this category? This will unlink any listings using it.')">
       <input type="hidden" name="_csrf" value="<?= \Luster\Core\View::e($csrf_token ?? '') ?>">
       <button type="submit" class="btn btn-danger">Delete Category</button>
     </form>

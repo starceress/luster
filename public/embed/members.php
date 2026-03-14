@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-use Luster\Repositories\FanlistingRepo;
+use Luster\Repositories\ListingRepo;
 use Luster\Repositories\FieldRepo;
 use Luster\Repositories\MemberRepo;
 
@@ -10,7 +10,7 @@ use Luster\Repositories\MemberRepo;
  * Luster embed — members list fragment.
  *
  * Usage:
- *   $luster_fanlisting_id = 1;     // required: fanlisting ID (int)
+ *   $luster_fanlisting_id = 1;     // required: listing ID (int)
  *   $luster_return        = false;  // optional: true = return string, false = echo
  *   require '/absolute/path/to/luster/public/embed/members.php';
  *
@@ -33,9 +33,9 @@ use Luster\Repositories\MemberRepo;
 // 1. Validate the required variable
 // ---------------------------------------------------------------------------
 
-$_lusterFanlistingId = (int) ($luster_fanlisting_id ?? 0);
+$_lusterListingId = (int) ($luster_fanlisting_id ?? 0);
 
-if ($_lusterFanlistingId === 0) {
+if ($_lusterListingId === 0) {
     $_lusterHtml = '<p class="fl-errors">Luster embed error: <code>$luster_fanlisting_id</code> is not set.</p>';
     if ($luster_return ?? false) {
         return $_lusterHtml;
@@ -66,14 +66,14 @@ $_lusterApp = require $_lusterRoot . '/bootstrap.php';
 $_lusterApp->getSession()->start();
 
 // ---------------------------------------------------------------------------
-// 3. Load fanlisting data
+// 3. Load listing data
 // ---------------------------------------------------------------------------
 
-$_lusterFanlistingRepo = new FanlistingRepo($_lusterApp->getDatabase(), $_lusterApp->getConfig());
-$_lusterFanlisting     = $_lusterFanlistingRepo->getById($_lusterFanlistingId);
+$_lusterListingRepo = new ListingRepo($_lusterApp->getDatabase(), $_lusterApp->getConfig());
+$_lusterListing     = $_lusterListingRepo->getById($_lusterListingId);
 
-if ($_lusterFanlisting === null) {
-    $_lusterHtml = '<p class="fl-errors">Luster embed error: fanlisting #' . $_lusterFanlistingId . ' not found.</p>';
+if ($_lusterListing === null) {
+    $_lusterHtml = '<p class="fl-errors">Luster embed error: listing #' . $_lusterListingId . ' not found.</p>';
     if ($luster_return ?? false) {
         return $_lusterHtml;
     }
@@ -82,14 +82,20 @@ if ($_lusterFanlisting === null) {
 }
 
 $_lusterFieldRepo = new FieldRepo($_lusterApp->getDatabase(), $_lusterApp->getConfig());
-$_lusterFields    = $_lusterFieldRepo->getFieldsForFanlisting($_lusterFanlistingId);
+$_lusterFields    = $_lusterFieldRepo->getFieldsForListing($_lusterListingId);
 
 // ---------------------------------------------------------------------------
 // 4. Read query params
 // ---------------------------------------------------------------------------
 
 $_lusterBaseUrl     = $_lusterApp->getBaseUrl();
-$_lusterMembersBase = $_lusterBaseUrl . '/members/' . $_lusterFanlistingId;
+
+// Allow the embedding page to override the base URL used for sort/pagination
+// links so they point back to the external page rather than Luster's own route.
+//   $luster_members_base = strtok($_SERVER['REQUEST_URI'] ?? '', '?') ?: '';
+$_lusterMembersBase = (isset($luster_members_base) && (string) $luster_members_base !== '')
+    ? (string) $luster_members_base
+    : $_lusterBaseUrl . '/members/' . $_lusterListingId;
 
 // $luster_per_page — override config value when set
 $_lusterPerPage = (isset($luster_per_page) && (int) $luster_per_page > 0)
@@ -112,11 +118,11 @@ $_lusterMemberRepo = new MemberRepo($_lusterApp->getDatabase(), $_lusterApp->get
 
 // Shared data for all rendering paths
 $_lusterCommonData = [
-    'fanlisting'      => $_lusterFanlisting,
-    'fanlisting_name' => $_lusterFanlisting->name,
-    'fanlisting_url'  => $_lusterFanlisting->url,
+    'listing'      => $_lusterListing,
+    'listing_name' => $_lusterListing->name,
+    'listing_url'  => $_lusterListing->url,
     'page_title'      => 'Members',
-    'join_url'        => $_lusterBaseUrl . '/join/' . $_lusterFanlistingId,
+    'join_url'        => $_lusterBaseUrl . '/join/' . $_lusterListingId,
     'members_base'    => $_lusterMembersBase,
     'sort'            => $_lusterSort,
     'show_search'     => $_lusterShowSearch,
@@ -186,7 +192,7 @@ $_lusterBuildPagination = static function (
 if ($_lusterCountry !== '') {
     // Path A: filtered by a specific country
     $_lusterResult     = $_lusterMemberRepo->paginateByCountry(
-        $_lusterFanlisting->dbprefix, $_lusterCountry, $_lusterPage, $_lusterPerPage,
+        $_lusterListing->dbprefix, $_lusterCountry, $_lusterPage, $_lusterPerPage,
     );
     $_lusterStatsLine  = $_lusterCountry . ': ' . $_lusterResult['total'] . ' member(s)'
         . ($_lusterResult['pages'] > 1
@@ -206,7 +212,7 @@ if ($_lusterCountry !== '') {
     ]));
 } elseif ($_lusterSort === 'country') {
     // Path B: country summary
-    $_lusterCountries      = $_lusterMemberRepo->getCountrySummary($_lusterFanlisting->dbprefix);
+    $_lusterCountries      = $_lusterMemberRepo->getCountrySummary($_lusterListing->dbprefix);
     $_lusterCountrySummary = [];
     foreach ($_lusterCountries as $_lusterRow) {
         $_lusterCountrySummary[] = [
@@ -228,7 +234,7 @@ if ($_lusterCountry !== '') {
 } else {
     // Path C: alphabetical by name
     $_lusterResult     = $_lusterMemberRepo->paginate(
-        $_lusterFanlisting->dbprefix, $_lusterPage, $_lusterPerPage, true, 'name',
+        $_lusterListing->dbprefix, $_lusterPage, $_lusterPerPage, true, 'name',
     );
     $_lusterStatsLine  = $_lusterResult['total'] . ' member(s) — page '
         . $_lusterPage . ' of ' . $_lusterResult['pages'];

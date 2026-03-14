@@ -9,13 +9,13 @@ use Luster\Core\Application;
 use Luster\Core\Request;
 use Luster\Core\Response;
 use Luster\Core\Validator;
-use Luster\Repositories\FanlistingRepo;
+use Luster\Repositories\ListingRepo;
 use Luster\Repositories\FieldRepo;
 
 /**
- * Manages additional field definitions for a single fanlisting.
+ * Manages additional field definitions for a single listing.
  *
- * Routes (all scoped under /admin/fanlistings/{fid}/fields):
+ * Routes (all scoped under /admin/listings/{fid}/fields):
  *   GET  /                  → index()   — field list + add form
  *   POST /add               → add()     — create field + ALTER TABLE column
  *   GET  /edit?name={name}  → edit()    — edit form for one field
@@ -35,48 +35,48 @@ final class FieldController
     public function __construct(private readonly Application $app) {}
 
     // -----------------------------------------------------------------------
-    // GET /admin/fanlistings/{fid}/fields
+    // GET /admin/listings/{fid}/fields
     // -----------------------------------------------------------------------
 
     public function index(Request $req, array $params): Response
     {
-        $fanlistingId = (int) ($params['fid'] ?? 0);
+        $listingId = (int) ($params['fid'] ?? 0);
 
-        [$fanlisting, $fieldRepo] = $this->resolve($fanlistingId);
+        [$listing, $fieldRepo] = $this->resolve($listingId);
 
-        if ($fanlisting === null) {
-            return Response::notFound('Fanlisting not found.');
+        if ($listing === null) {
+            return Response::notFound('Listing not found.');
         }
 
-        $fields  = $fieldRepo->getFieldsForFanlisting($fanlistingId);
+        $fields  = $fieldRepo->getFieldsForListing($listingId);
         $success = (string) $req->query('success', '');
         $error   = (string) $req->query('error', '');
 
         return $this->layout('admin/fields/index.php', [
-            'fanlisting' => $fanlisting,
+            'listing' => $listing,
             'fields'     => $fields,
             'success'    => $success,
             'error'      => $error,
-        ], 'Fields — ' . $fanlisting->name, 'fanlistings');
+        ], 'Fields — ' . $listing->name, 'listings');
     }
 
     // -----------------------------------------------------------------------
-    // POST /admin/fanlistings/{fid}/fields/add
+    // POST /admin/listings/{fid}/fields/add
     // -----------------------------------------------------------------------
 
     public function add(Request $req, array $params): Response
     {
-        $fanlistingId = (int) ($params['fid'] ?? 0);
+        $listingId = (int) ($params['fid'] ?? 0);
         $fromEdit     = $req->post('from_edit', '') === '1';
 
         if (!$req->isPost()) {
-            return $this->redirectAfterFieldAction($fanlistingId, $fromEdit, 'error', 'Invalid request method.');
+            return $this->redirectAfterFieldAction($listingId, $fromEdit, 'error', 'Invalid request method.');
         }
 
-        [$fanlisting, $fieldRepo] = $this->resolve($fanlistingId);
+        [$listing, $fieldRepo] = $this->resolve($listingId);
 
-        if ($fanlisting === null) {
-            return Response::notFound('Fanlisting not found.');
+        if ($listing === null) {
+            return Response::notFound('Listing not found.');
         }
 
         $name     = trim((string) $req->post('name', ''));
@@ -104,14 +104,14 @@ final class FieldController
         $v->field('required')->in(['0', '1']);
 
         if ($v->fails()) {
-            return $this->redirectAfterFieldAction($fanlistingId, $fromEdit, 'error', implode(' ', $v->allErrors()));
+            return $this->redirectAfterFieldAction($listingId, $fromEdit, 'error', implode(' ', $v->allErrors()));
         }
 
-        $existingFields = $fieldRepo->getFieldsForFanlisting($fanlistingId);
+        $existingFields = $fieldRepo->getFieldsForListing($listingId);
 
         foreach ($existingFields as $f) {
             if ($f->name === $name) {
-                return $this->redirectAfterFieldAction($fanlistingId, $fromEdit, 'error', "A field named '{$name}' already exists.");
+                return $this->redirectAfterFieldAction($listingId, $fromEdit, 'error', "A field named '{$name}' already exists.");
             }
         }
 
@@ -127,32 +127,32 @@ final class FieldController
 
         try {
             // Add the DB column first; if it fails, the definition is not saved
-            $fieldRepo->addColumn($fanlisting->dbprefix, $name, $options);
+            $fieldRepo->addColumn($listing->dbprefix, $name, $options);
         } catch (InvalidArgumentException $e) {
-            return $this->redirectAfterFieldAction($fanlistingId, $fromEdit, 'error', $e->getMessage());
+            return $this->redirectAfterFieldAction($listingId, $fromEdit, 'error', $e->getMessage());
         }
 
-        $fieldRepo->saveFields($fanlistingId, $fieldsArray);
+        $fieldRepo->saveFields($listingId, $fieldsArray);
 
-        return $this->redirectAfterFieldAction($fanlistingId, $fromEdit, 'success', 'Field added successfully.');
+        return $this->redirectAfterFieldAction($listingId, $fromEdit, 'success', 'Field added successfully.');
     }
 
     // -----------------------------------------------------------------------
-    // GET + POST /admin/fanlistings/{fid}/fields/edit
+    // GET + POST /admin/listings/{fid}/fields/edit
     // -----------------------------------------------------------------------
 
     public function edit(Request $req, array $params): Response
     {
-        $fanlistingId = (int) ($params['fid'] ?? 0);
-        $indexUrl     = $this->indexUrl($fanlistingId);
+        $listingId = (int) ($params['fid'] ?? 0);
+        $indexUrl     = $this->indexUrl($listingId);
 
-        [$fanlisting, $fieldRepo] = $this->resolve($fanlistingId);
+        [$listing, $fieldRepo] = $this->resolve($listingId);
 
-        if ($fanlisting === null) {
-            return Response::notFound('Fanlisting not found.');
+        if ($listing === null) {
+            return Response::notFound('Listing not found.');
         }
 
-        $fields = $fieldRepo->getFieldsForFanlisting($fanlistingId);
+        $fields = $fieldRepo->getFieldsForListing($listingId);
 
         // ---- POST: save ----
         if ($req->isPost()) {
@@ -206,7 +206,7 @@ final class FieldController
                 return Response::redirect($indexUrl . '?error=' . urlencode('Field not found.'));
             }
 
-            $fieldRepo->saveFields($fanlistingId, $fieldsArray);
+            $fieldRepo->saveFields($listingId, $fieldsArray);
 
             return Response::redirect($indexUrl . '?success=' . urlencode('Field updated successfully.'));
         }
@@ -227,39 +227,39 @@ final class FieldController
         }
 
         return $this->layout('admin/fields/edit.php', [
-            'fanlisting' => $fanlisting,
+            'listing' => $listing,
             'field'      => $current,
             'options'    => $current->options,
             'error'      => (string) $req->query('error', ''),
-        ], 'Edit Field — ' . $fanlisting->name, 'fanlistings');
+        ], 'Edit Field — ' . $listing->name, 'listings');
     }
 
     // -----------------------------------------------------------------------
-    // POST /admin/fanlistings/{fid}/fields/delete
+    // POST /admin/listings/{fid}/fields/delete
     // -----------------------------------------------------------------------
 
     public function delete(Request $req, array $params): Response
     {
-        $fanlistingId = (int) ($params['fid'] ?? 0);
+        $listingId = (int) ($params['fid'] ?? 0);
         $fromEdit     = $req->post('from_edit', '') === '1';
 
         if (!$req->isPost()) {
-            return $this->redirectAfterFieldAction($fanlistingId, $fromEdit, 'error', 'Invalid request method.');
+            return $this->redirectAfterFieldAction($listingId, $fromEdit, 'error', 'Invalid request method.');
         }
 
-        [$fanlisting, $fieldRepo] = $this->resolve($fanlistingId);
+        [$listing, $fieldRepo] = $this->resolve($listingId);
 
-        if ($fanlisting === null) {
-            return Response::notFound('Fanlisting not found.');
+        if ($listing === null) {
+            return Response::notFound('Listing not found.');
         }
 
         $fieldName = trim((string) ($params['name'] ?? ''));
 
         if ($fieldName === '') {
-            return $this->redirectAfterFieldAction($fanlistingId, $fromEdit, 'error', 'No field specified.');
+            return $this->redirectAfterFieldAction($listingId, $fromEdit, 'error', 'No field specified.');
         }
 
-        $fields      = $fieldRepo->getFieldsForFanlisting($fanlistingId);
+        $fields      = $fieldRepo->getFieldsForListing($listingId);
         $found       = false;
         $fieldsArray = [];
 
@@ -278,19 +278,19 @@ final class FieldController
         }
 
         if (!$found) {
-            return $this->redirectAfterFieldAction($fanlistingId, $fromEdit, 'error', 'Field not found.');
+            return $this->redirectAfterFieldAction($listingId, $fromEdit, 'error', 'Field not found.');
         }
 
         try {
             // Drop column first; if it fails, definition is unchanged
-            $fieldRepo->dropColumn($fanlisting->dbprefix, $fieldName);
+            $fieldRepo->dropColumn($listing->dbprefix, $fieldName);
         } catch (InvalidArgumentException $e) {
-            return $this->redirectAfterFieldAction($fanlistingId, $fromEdit, 'error', $e->getMessage());
+            return $this->redirectAfterFieldAction($listingId, $fromEdit, 'error', $e->getMessage());
         }
 
-        $fieldRepo->saveFields($fanlistingId, $fieldsArray);
+        $fieldRepo->saveFields($listingId, $fieldsArray);
 
-        return $this->redirectAfterFieldAction($fanlistingId, $fromEdit, 'success', 'Field deleted successfully.');
+        return $this->redirectAfterFieldAction($listingId, $fromEdit, 'success', 'Field deleted successfully.');
     }
 
     // -----------------------------------------------------------------------
@@ -298,39 +298,39 @@ final class FieldController
     // -----------------------------------------------------------------------
 
     /**
-     * Loads the fanlisting and a FieldRepo instance together.
+     * Loads the listing and a FieldRepo instance together.
      *
-     * @return array{0: \Luster\Models\Fanlisting|null, 1: FieldRepo}
+     * @return array{0: \Luster\Models\Listing|null, 1: FieldRepo}
      */
-    private function resolve(int $fanlistingId): array
+    private function resolve(int $listingId): array
     {
         $db     = $this->app->getDatabase();
         $config = $this->app->getConfig();
 
-        $fanlistingRepo = new FanlistingRepo($db, $config);
+        $listingRepo = new ListingRepo($db, $config);
         $fieldRepo      = new FieldRepo($db, $config);
 
-        return [$fanlistingRepo->getById($fanlistingId), $fieldRepo];
+        return [$listingRepo->getById($listingId), $fieldRepo];
     }
 
     /**
-     * Returns the base URL for the field index of a fanlisting.
+     * Returns the base URL for the field index of a listing.
      */
-    private function indexUrl(int $fanlistingId): string
+    private function indexUrl(int $listingId): string
     {
-        return $this->app->getBaseUrl() . '/admin/fanlistings/' . $fanlistingId . '/fields';
+        return $this->app->getBaseUrl() . '/admin/listings/' . $listingId . '/fields';
     }
 
     /**
      * Builds the redirect Response after a field action.
      *
-     * When $fromEdit is true, the user submitted from within the fanlisting
+     * When $fromEdit is true, the user submitted from within the listing
      * edit page — redirect back there using session flash so the message is
-     * displayed by FanlistingController::edit().
+     * displayed by ListingController::edit().
      * Otherwise, redirect to the standalone fields index with a query param.
      */
     private function redirectAfterFieldAction(
-        int    $fanlistingId,
+        int    $listingId,
         bool   $fromEdit,
         string $type,
         string $message
@@ -343,12 +343,12 @@ final class FieldController
                 $session->set('lstr_flash_error', $message);
             }
             return Response::redirect(
-                $this->app->getBaseUrl() . '/admin/fanlistings/' . $fanlistingId . '/edit'
+                $this->app->getBaseUrl() . '/admin/listings/' . $listingId . '/edit'
             );
         }
 
         $param = $type === 'success' ? 'success' : 'error';
-        return Response::redirect($this->indexUrl($fanlistingId) . '?' . $param . '=' . urlencode($message));
+        return Response::redirect($this->indexUrl($listingId) . '?' . $param . '=' . urlencode($message));
     }
 
     /**

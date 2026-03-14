@@ -3,7 +3,7 @@
  * Update membership form — content fragment.
  *
  * Variables injected by UpdateController:
- *   $fanlisting_name        string
+ *   $listing_name        string
  *   $form_action            string
  *   $csrf_token             string
  *   $errors                 string  pre-escaped HTML error string, or ''
@@ -27,7 +27,7 @@ declare(strict_types=1);
 use Luster\Core\View;
 ?>
 <div class="fl-wrap">
-  <h2 class="fl-title">Update your membership in <?= View::e($fanlisting_name) ?></h2>
+  <h2 class="fl-title">Update your membership in <?= View::e($listing_name) ?></h2>
 
   <?php if ($errors !== ''): ?>
     <div class="fl-errors"><?= $errors ?></div>
@@ -86,7 +86,7 @@ use Luster\Core\View;
 
     <?php if ($country_field_enabled): ?>
     <div class="fl-field">
-      <label class="fl-label" for="upd-country">New Country</label>
+      <label class="fl-label" for="country">New Country</label>
       <?= $country_select ?>
     </div>
     <?php endif; ?>
@@ -132,7 +132,7 @@ use Luster\Core\View;
 
     <div class="fl-field">
       <label class="fl-label" for="upd-captcha">
-        <?= View::e($captcha_question) ?> <span class="fl-required">*</span>
+        Captcha: <?= View::e($captcha_question) ?> <span class="fl-required">*</span>
       </label>
       <?php if ($captcha_error !== ''): ?>
         <div class="fl-errors"><?= View::e($captcha_error) ?></div>

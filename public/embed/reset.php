@@ -3,7 +3,7 @@
 declare(strict_types=1);
 
 use Luster\Core\Captcha;
-use Luster\Repositories\FanlistingRepo;
+use Luster\Repositories\ListingRepo;
 use Luster\Repositories\FanPasswordResetRepo;
 
 /**
@@ -13,7 +13,7 @@ use Luster\Repositories\FanPasswordResetRepo;
  * determined by the presence of $luster_reset_step.
  *
  * Usage — email entry form (default):
- *   $luster_fanlisting_id = 1;        // required: fanlisting ID (int)
+ *   $luster_fanlisting_id = 1;        // required: listing ID (int)
  *   $luster_return        = false;     // optional: true = return string, false = echo
  *   require '/absolute/path/to/luster/public/embed/reset.php';
  *
@@ -25,7 +25,7 @@ use Luster\Repositories\FanPasswordResetRepo;
  *
  * In both cases the form POSTs to Luster's URL. On success the user is sent
  * to Luster's /reset/{id}/sent or /reset/{id}/done page respectively, unless
- * redirect URLs are configured in the fanlisting's embed settings.
+ * redirect URLs are configured in the listing's embed settings.
  *
  * The ?token= query parameter is read automatically from $_GET when
  * $luster_reset_step = 'confirm'.
@@ -35,9 +35,9 @@ use Luster\Repositories\FanPasswordResetRepo;
 // 1. Validate the required variable
 // ---------------------------------------------------------------------------
 
-$_lusterFanlistingId = (int) ($luster_fanlisting_id ?? 0);
+$_lusterListingId = (int) ($luster_fanlisting_id ?? 0);
 
-if ($_lusterFanlistingId === 0) {
+if ($_lusterListingId === 0) {
     $_lusterHtml = '<p class="fl-errors">Luster embed error: <code>$luster_fanlisting_id</code> is not set.</p>';
     if ($luster_return ?? false) {
         return $_lusterHtml;
@@ -70,14 +70,14 @@ $_lusterApp = require $_lusterRoot . '/bootstrap.php';
 $_lusterApp->getSession()->start();
 
 // ---------------------------------------------------------------------------
-// 3. Load fanlisting data
+// 3. Load listing data
 // ---------------------------------------------------------------------------
 
-$_lusterFanlistingRepo = new FanlistingRepo($_lusterApp->getDatabase(), $_lusterApp->getConfig());
-$_lusterFanlisting     = $_lusterFanlistingRepo->getById($_lusterFanlistingId);
+$_lusterListingRepo = new ListingRepo($_lusterApp->getDatabase(), $_lusterApp->getConfig());
+$_lusterListing     = $_lusterListingRepo->getById($_lusterListingId);
 
-if ($_lusterFanlisting === null) {
-    $_lusterHtml = '<p class="fl-errors">Luster embed error: fanlisting #' . $_lusterFanlistingId . ' not found.</p>';
+if ($_lusterListing === null) {
+    $_lusterHtml = '<p class="fl-errors">Luster embed error: listing #' . $_lusterListingId . ' not found.</p>';
     if ($luster_return ?? false) {
         return $_lusterHtml;
     }
@@ -105,7 +105,7 @@ if ($_lusterStep === 'confirm') {
         $_lusterResetRepo = new FanPasswordResetRepo($_lusterApp->getDatabase());
         $_lusterTokenRow  = $_lusterResetRepo->findValidByToken(hash('sha256', $_lusterRawToken));
 
-        if ($_lusterTokenRow === null || (int) $_lusterTokenRow['fanlisting_id'] !== $_lusterFanlistingId) {
+        if ($_lusterTokenRow === null || (int) $_lusterTokenRow['fanlisting_id'] !== $_lusterListingId) {
             $_lusterError = 'This reset link has expired or is invalid. Please request a new one.';
         } else {
             $_lusterTokenValid = true;
@@ -113,12 +113,12 @@ if ($_lusterStep === 'confirm') {
     }
 
     $_lusterHtml = $_lusterApp->getView()->renderFragment('reset_confirm.php', [
-        'fanlisting'      => $_lusterFanlisting,
-        'fanlisting_name' => $_lusterFanlisting->name,
-        'fanlisting_url'  => $_lusterFanlisting->url,
+        'listing'      => $_lusterListing,
+        'listing_name' => $_lusterListing->name,
+        'listing_url'  => $_lusterListing->url,
         'page_title'      => 'Set New Password',
-        'form_action'     => $_lusterBaseUrl . '/reset/' . $_lusterFanlistingId . '/confirm',
-        'reset_url'       => $_lusterBaseUrl . '/reset/' . $_lusterFanlistingId,
+        'form_action'     => $_lusterBaseUrl . '/reset/' . $_lusterListingId . '/confirm',
+        'reset_url'       => $_lusterBaseUrl . '/reset/' . $_lusterListingId,
         'csrf_token'      => $_lusterApp->getCSRF()->token(),
         'errors'          => $_lusterError !== ''
             ? '<p>' . htmlspecialchars($_lusterError, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '</p>'
@@ -138,17 +138,17 @@ if ($_lusterStep === 'confirm') {
     $_lusterSession->remove('lstr_flash_old_email');
 
     $_lusterHtml = $_lusterApp->getView()->renderFragment('reset.php', [
-        'fanlisting'       => $_lusterFanlisting,
-        'fanlisting_name'  => $_lusterFanlisting->name,
-        'fanlisting_url'   => $_lusterFanlisting->url,
+        'listing'       => $_lusterListing,
+        'listing_name'  => $_lusterListing->name,
+        'listing_url'   => $_lusterListing->url,
         'page_title'       => 'Reset Password',
-        'form_action'      => $_lusterBaseUrl . '/reset/' . $_lusterFanlistingId,
+        'form_action'      => $_lusterBaseUrl . '/reset/' . $_lusterListingId,
         'csrf_token'       => $_lusterApp->getCSRF()->token(),
         'errors'           => $_lusterError !== ''
             ? '<p>' . htmlspecialchars($_lusterError, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '</p>'
             : '',
         'field_email'      => $_lusterOldEmail,
-        'captcha_question' => Captcha::getQuestion(),
+        'captcha_question' => Captcha::getQuestion('reset'),
         'captcha_error'    => '',
         'base_url'         => $_lusterApp->getBaseUrl(),
         'theme_path'       => $_lusterApp->getBaseUrl() . '/assets/default/',

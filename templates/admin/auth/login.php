@@ -59,7 +59,7 @@
 
   </div>
 
-  <p class="login-footer"><?= \Luster\Core\View::e($app_name) ?> &mdash; Fanlisting Management</p>
+  <p class="login-footer"><?= \Luster\Core\View::e($app_name) ?> &mdash; Listing Management</p>
 </div>
 
 </body>

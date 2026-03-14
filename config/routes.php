@@ -3,6 +3,9 @@
 declare(strict_types=1);
 
 use Luster\Controllers\Admin\ActivityLogController;
+use Luster\Controllers\Admin\MassEmailController;
+use Luster\Controllers\Admin\AdminUsersController;
+use Luster\Controllers\Admin\BlacklistController;
 use Luster\Controllers\Admin\AffiliateController;
 use Luster\Controllers\Admin\CodesController;
 use Luster\Controllers\Admin\EmbedCodesController;
@@ -12,11 +15,10 @@ use Luster\Controllers\Admin\SysInfoController;
 use Luster\Controllers\Admin\AuthController;
 use Luster\Controllers\Admin\CategoryController;
 use Luster\Controllers\Admin\DashboardController;
-use Luster\Controllers\Admin\FanlistingController;
+use Luster\Controllers\Admin\ListingController;
 use Luster\Controllers\Admin\FieldController;
 use Luster\Controllers\Admin\JoinedController;
 use Luster\Controllers\Admin\MemberController;
-use Luster\Controllers\Admin\MembersIndexController;
 use Luster\Controllers\Admin\SettingsController;
 use Luster\Controllers\Public\AffiliatesController;
 use Luster\Controllers\Public\JoinController;
@@ -50,7 +52,7 @@ return [
         $router->get('/members/{id}',         MembersController::class, 'index');
 
         // Stats
-        $router->get('/stats/{fanlistingId}', StatsController::class,   'index');
+        $router->get('/stats/{listingId}', StatsController::class,   'index');
 
         // Update membership
         $router->get('/update/{id}',          UpdateController::class,  'showForm');
@@ -90,38 +92,38 @@ return [
         $router->post('/admin/maintenance/touch-all-updated',
             DashboardController::class, 'touchAllUpdated');
 
-        // ── Fanlistings ─────────────────────────────────────────────
-        $router->get('/admin/fanlistings',
-            FanlistingController::class, 'index');
-        $router->get('/admin/fanlistings/add',      FanlistingController::class, 'addForm');
-        $router->post('/admin/fanlistings/add',     FanlistingController::class, 'add');
-        $router->get('/admin/fanlistings/settings', FanlistingController::class, 'indexSettings');
-        $router->post('/admin/fanlistings/settings', FanlistingController::class, 'saveSettings');
-        $router->post('/admin/fanlistings/bulk', FanlistingController::class, 'bulk');
-        $router->get('/admin/fanlistings/{id}',
-            FanlistingController::class, 'show');
-        $router->get('/admin/fanlistings/{id}/edit',
-            FanlistingController::class, 'edit');
-        $router->post('/admin/fanlistings/{id}/edit',
-            FanlistingController::class, 'edit');
-        $router->post('/admin/fanlistings/{id}/templates',
-            FanlistingController::class, 'saveTemplates');
-        $router->get('/admin/fanlistings/{id}/email-templates',
-            FanlistingController::class, 'emailTemplatesForm');
-        $router->post('/admin/fanlistings/{id}/email-templates',
-            FanlistingController::class, 'saveEmailTemplates');
-        $router->post('/admin/fanlistings/{id}/embed',
-            FanlistingController::class, 'saveEmbed');
-        $router->post('/admin/fanlistings/{id}/update',
-            FanlistingController::class, 'update');
-        $router->post('/admin/fanlistings/{id}/delete',
-            FanlistingController::class, 'delete');
-        $router->get('/admin/fanlistings/{id}/edit-prefix',
-            FanlistingController::class, 'editPrefix');
-        $router->post('/admin/fanlistings/{id}/edit-prefix',
-            FanlistingController::class, 'editPrefix');
+        // ── Listings ────────────────────────────────────────────────
+        $router->get('/admin/listings',
+            ListingController::class, 'index');
+        $router->get('/admin/listings/add',      ListingController::class, 'addForm');
+        $router->post('/admin/listings/add',     ListingController::class, 'add');
+        $router->get('/admin/listings/settings', ListingController::class, 'indexSettings');
+        $router->post('/admin/listings/settings', ListingController::class, 'saveSettings');
+        $router->post('/admin/listings/bulk', ListingController::class, 'bulk');
+        $router->get('/admin/listings/{id}',
+            ListingController::class, 'show');
+        $router->get('/admin/listings/{id}/edit',
+            ListingController::class, 'edit');
+        $router->post('/admin/listings/{id}/edit',
+            ListingController::class, 'edit');
+        $router->post('/admin/listings/{id}/templates',
+            ListingController::class, 'saveTemplates');
+        $router->get('/admin/listings/{id}/email-templates',
+            ListingController::class, 'emailTemplatesForm');
+        $router->post('/admin/listings/{id}/email-templates',
+            ListingController::class, 'saveEmailTemplates');
+        $router->post('/admin/listings/{id}/embed',
+            ListingController::class, 'saveEmbed');
+        $router->post('/admin/listings/{id}/update',
+            ListingController::class, 'update');
+        $router->post('/admin/listings/{id}/delete',
+            ListingController::class, 'delete');
+        $router->get('/admin/listings/{id}/edit-prefix',
+            ListingController::class, 'editPrefix');
+        $router->post('/admin/listings/{id}/edit-prefix',
+            ListingController::class, 'editPrefix');
 
-        // ── Members overview (pending across all fanlistings) ────────
+        // ── Members overview (pending across all listings) ────────
         $router->get('/admin/members',
             MemberController::class, 'overview');
         $router->get('/admin/members/settings',
@@ -129,7 +131,7 @@ return [
         $router->post('/admin/members/settings',
             MemberController::class, 'saveSettings');
 
-        // ── Members for a specific fanlisting ───────────────────────
+        // ── Members for a specific listing ───────────────────────
         $router->get('/admin/members/{id}',
             MemberController::class, 'index');
         $router->get('/admin/members/{id}/edit',
@@ -142,6 +144,8 @@ return [
             MemberController::class, 'reject');
         $router->post('/admin/members/{id}/delete',
             MemberController::class, 'deleteMember');
+        $router->post('/admin/members/{id}/merge',
+            MemberController::class, 'merge');
         $router->post('/admin/members/{id}/bulk',
             MemberController::class, 'bulk');
         $router->get('/admin/members/{id}/export',
@@ -153,35 +157,43 @@ return [
         $router->post('/admin/members/{id}/emailmember',
             MemberController::class, 'emailMemberSend');
 
-        // ── Codes for a specific fanlisting ─────────────────────────
+        // import/template must be before import so 'template' isn't treated as a sub-param
+        $router->get('/admin/members/{id}/import/template',
+            MemberController::class, 'importTemplate');
+        $router->get('/admin/members/{id}/import',
+            MemberController::class, 'importForm');
+        $router->post('/admin/members/{id}/import',
+            MemberController::class, 'import');
+
+        // ── Codes for a specific listing ─────────────────────────
         //    /codes/upload and /codes/bulk must be registered before
         //    /codes/{id}/delete to avoid 'upload'/'bulk' matching as {id}
-        $router->get('/admin/fanlistings/{fid}/codes',
+        $router->get('/admin/listings/{fid}/codes',
             CodesController::class, 'index');
-        $router->post('/admin/fanlistings/{fid}/codes/upload',
+        $router->post('/admin/listings/{fid}/codes/upload',
             CodesController::class, 'upload');
-        $router->post('/admin/fanlistings/{fid}/codes/bulk',
+        $router->post('/admin/listings/{fid}/codes/bulk',
             CodesController::class, 'bulk');
-        $router->post('/admin/fanlistings/{fid}/codes/{id}/delete',
+        $router->post('/admin/listings/{fid}/codes/{id}/delete',
             CodesController::class, 'delete');
 
-        // ── Additional fields for a specific fanlisting ──────────────
-        $router->get('/admin/fanlistings/{fid}/fields',
+        // ── Additional fields for a specific listing ──────────────
+        $router->get('/admin/listings/{fid}/fields',
             FieldController::class, 'index');
-        $router->post('/admin/fanlistings/{fid}/fields/add',
+        $router->post('/admin/listings/{fid}/fields/add',
             FieldController::class, 'add');
-        $router->get('/admin/fanlistings/{fid}/fields/{name}/edit',
+        $router->get('/admin/listings/{fid}/fields/{name}/edit',
             FieldController::class, 'edit');
-        $router->post('/admin/fanlistings/{fid}/fields/{name}/edit',
+        $router->post('/admin/listings/{fid}/fields/{name}/edit',
             FieldController::class, 'edit');
-        $router->post('/admin/fanlistings/{fid}/fields/{name}/delete',
+        $router->post('/admin/listings/{fid}/fields/{name}/delete',
             FieldController::class, 'delete');
 
-        // ── Per-fanlisting affiliate add (must be before /affiliates routes
-        //    to avoid route ordering issues, and before /fanlistings/{id}) ──
-        $router->get('/admin/fanlistings/{fid}/affiliates/add',
+        // ── Per-listing affiliate add (must be before /affiliates routes
+        //    to avoid route ordering issues, and before /listings/{id}) ──
+        $router->get('/admin/listings/{fid}/affiliates/add',
             AffiliateController::class, 'add');
-        $router->post('/admin/fanlistings/{fid}/affiliates/add',
+        $router->post('/admin/listings/{fid}/affiliates/add',
             AffiliateController::class, 'add');
 
         // ── Affiliates ──────────────────────────────────────────────
@@ -200,6 +212,20 @@ return [
         $router->post('/admin/affiliates/{id}/delete',
             AffiliateController::class, 'deleteAffiliate');
 
+        // ── Admin user management ────────────────────────────────────
+        $router->get('/admin/admin-users',
+            AdminUsersController::class, 'index');
+        $router->get('/admin/admin-users/add',
+            AdminUsersController::class, 'addForm');
+        $router->post('/admin/admin-users/add',
+            AdminUsersController::class, 'add');
+        $router->get('/admin/admin-users/{id}/edit',
+            AdminUsersController::class, 'editForm');
+        $router->post('/admin/admin-users/{id}/edit',
+            AdminUsersController::class, 'edit');
+        $router->post('/admin/admin-users/{id}/delete',
+            AdminUsersController::class, 'delete');
+
         // ── Settings ────────────────────────────────────────────────
         $router->get('/admin/settings',
             SettingsController::class, 'index');
@@ -207,8 +233,10 @@ return [
             SettingsController::class, 'update');
         $router->post('/admin/settings/profile',
             SettingsController::class, 'updateProfile');
+        $router->post('/admin/settings/test-email',
+            SettingsController::class, 'testEmail');
 
-        // ── Joined fanlistings ───────────────────────────────────────
+        // ── Joined listings ───────────────────────────────────────
         $router->get('/admin/joined',
             JoinedController::class, 'index');
         $router->get('/admin/joined/add',
@@ -260,19 +288,31 @@ return [
         $router->get('/admin/sysinfo',
             SysInfoController::class, 'index');
 
-        // ── Pending update approvals ──────────────────────────────────
-        $router->get('/admin/pending-updates',
-            PendingUpdateController::class, 'index');
-        $router->get('/admin/pending-updates/{id}',
-            PendingUpdateController::class, 'show');
+        // ── Pending update approvals (list + detail live in Members overview) ──
         $router->post('/admin/pending-updates/{id}/approve',
             PendingUpdateController::class, 'approve');
         $router->post('/admin/pending-updates/{id}/reject',
             PendingUpdateController::class, 'reject');
 
+        // ── Blacklist ─────────────────────────────────────────────────
+        $router->get('/admin/blacklist',
+            BlacklistController::class, 'index');
+        $router->post('/admin/blacklist/add',
+            BlacklistController::class, 'add');
+        $router->post('/admin/blacklist/{id}/delete',
+            BlacklistController::class, 'delete');
+
         // ── Embed codes reference ─────────────────────────────────────
         $router->get('/admin/embed-codes',
             EmbedCodesController::class, 'index');
+
+        // ── Mass email ────────────────────────────────────────────────
+        $router->get('/admin/mass-email',
+            MassEmailController::class, 'compose');
+        $router->post('/admin/mass-email/preview',
+            MassEmailController::class, 'preview');
+        $router->post('/admin/mass-email/send',
+            MassEmailController::class, 'send');
     },
 
 ];

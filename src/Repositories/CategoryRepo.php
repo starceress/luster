@@ -257,7 +257,7 @@ final class CategoryRepo
         );
         $stmtPromote->execute(['id' => $id]);
 
-        // Unlink joined fanlistings referencing this category
+        // Unlink joined listings referencing this category
         $stmtNull = $this->db->prepare(
             'UPDATE lstr_joined SET category_id = NULL WHERE category_id = :id'
         );

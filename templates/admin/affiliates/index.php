@@ -1,6 +1,6 @@
 <?php
 /** @var \Luster\Models\Affiliate[]  $affiliates */
-/** @var \Luster\Models\Fanlisting[] $fanlistings */
+/** @var \Luster\Models\Listing[] $listings */
 /** @var array<int,string>           $fan_map */
 /** @var string                      $filter_fid */
 /** @var string                      $search */
@@ -40,7 +40,7 @@ $pageUrl = static function (int $p) use ($b, $filterQs): string {
     <div class="toolbar-select-wrap">
     <select name="fanlisting_id" class="neb-select" onchange="this.form.submit()">
       <option value="collective"<?= ($filter_fid ?? 'collective') === 'collective' ? ' selected' : '' ?>><?= \Luster\Core\View::e(($site_name ?? 'Collective') . ' (Collective) Affiliates') ?></option>
-      <?php foreach ($fanlistings as $fl): ?>
+      <?php foreach ($listings as $fl): ?>
         <option value="<?= (int) $fl->id ?>"
                 <?= ($filter_fid ?? '') === (string) $fl->id ? ' selected' : '' ?>>
           <?= \Luster\Core\View::e($fl->name) ?>

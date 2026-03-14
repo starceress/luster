@@ -1,5 +1,5 @@
 <?php
-/** @var \Luster\Models\JoinedFanlisting[] $joined */
+/** @var \Luster\Models\JoinedListing[] $joined */
 /** @var string[] $categories */
 /** @var string   $filter_cat */
 /** @var string   $filter_network */
@@ -109,7 +109,7 @@ if ($displayMode === 'category') {
 
 <?php if (empty($joined)): ?>
   <div class="neb-card" style="padding:24px;color:var(--text-muted);font-size:.875rem">
-    No joined fanlistings found<?= ($search ?? '') !== '' || ($filter_network ?? '') !== '' ? ' matching your filters' : '' ?>.
+    No joined listings found<?= ($search ?? '') !== '' || ($filter_network ?? '') !== '' ? ' matching your filters' : '' ?>.
   </div>
 <?php else: ?>
 
@@ -184,7 +184,7 @@ if ($displayMode === 'category') {
             <form method="POST"
                   action="<?= $b ?>/admin/joined/<?= (int) $jf->id ?>/delete"
                   style="display:inline"
-                  onsubmit="return confirm('Delete this joined fanlisting?')">
+                  onsubmit="return confirm('Delete this joined listing?')">
               <input type="hidden" name="_csrf" value="<?= \Luster\Core\View::e($csrf_token ?? '') ?>">
               <button type="submit" class="btn btn-danger btn-sm">Delete</button>
             </form>

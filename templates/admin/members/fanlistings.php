@@ -1,17 +1,17 @@
 <?php
-/** @var \Luster\Models\Fanlisting[] $fanlistings */
+/** @var \Luster\Models\Listing[] $listings */
 /** @var array<int,int> $member_counts */
 /** @var array<int,int> $pending_counts */
 /** @var string $base_url */
 $b = rtrim(\Luster\Core\View::e($base_url), '/');
 ?>
 
-<?php if (empty($fanlistings)): ?>
-  <p class="text-muted">No fanlistings found.</p>
+<?php if (empty($listings)): ?>
+  <p class="text-muted">No listings found.</p>
 <?php else: ?>
-<p class="text-muted" style="font-size:.875rem;margin-bottom:1rem">Select a fanlisting to manage its members.</p>
+<p class="text-muted" style="font-size:.875rem;margin-bottom:1rem">Select a listing to manage its members.</p>
 <div class="fl-grid">
-  <?php foreach ($fanlistings as $fl): ?>
+  <?php foreach ($listings as $fl): ?>
   <a href="<?= $b ?>/admin/members/<?= (int) $fl->id ?>" class="fl-card">
     <div class="title"><?= \Luster\Core\View::e($fl->name) ?></div>
     <div class="subject"><?= \Luster\Core\View::e($fl->subject) ?></div>
