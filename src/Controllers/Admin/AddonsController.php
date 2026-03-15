@@ -92,15 +92,12 @@ final class AddonsController
         $pdo   = $this->app->getDatabase()->pdo();
 
         try {
-            $pdo->beginTransaction();
+            // DDL (CREATE TABLE) causes an implicit commit in MySQL, so we
+            // cannot wrap install() in a transaction — run steps sequentially.
             $addon->install($pdo);
             $stmt = $pdo->prepare('INSERT INTO `lstr_addons` (`addon_key`) VALUES (:k)');
             $stmt->execute(['k' => $key]);
-            $pdo->commit();
         } catch (Throwable $e) {
-            if ($pdo->inTransaction()) {
-                $pdo->rollBack();
-            }
             $session->set('lstr_flash_error', 'Install failed: ' . $e->getMessage());
             return Response::redirect($redirect);
         }
@@ -147,15 +144,12 @@ final class AddonsController
         $pdo   = $this->app->getDatabase()->pdo();
 
         try {
-            $pdo->beginTransaction();
+            // DDL (DROP TABLE) causes an implicit commit in MySQL, so we
+            // cannot wrap uninstall() in a transaction — run steps sequentially.
             $addon->uninstall($pdo);
             $stmt = $pdo->prepare('DELETE FROM `lstr_addons` WHERE `addon_key` = :k');
             $stmt->execute(['k' => $key]);
-            $pdo->commit();
         } catch (Throwable $e) {
-            if ($pdo->inTransaction()) {
-                $pdo->rollBack();
-            }
             $session->set('lstr_flash_error', 'Uninstall failed: ' . $e->getMessage());
             return Response::redirect($redirect);
         }
