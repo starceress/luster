@@ -23,34 +23,26 @@ $b = rtrim(View::e($base_url), '/');
 <?php endif; ?>
 
 <div class="page-header">
-  <div class="page-header-left">
-    <nav class="breadcrumb">
-      <a href="<?= $b ?>/admin/addons">Add-ons</a>
-      <span class="breadcrumb-sep">/</span>
-      <a href="<?= $b ?>/admin/kim">KIM List</a>
-      <span class="breadcrumb-sep">/</span>
-      <a href="<?= $b ?>/admin/kim/<?= View::e((string) $member->fanlistingId) ?>/show">
-        <?= View::e($fanlisting_name) ?>
-      </a>
-      <span class="breadcrumb-sep">/</span>
-      <span>Edit</span>
-    </nav>
-    <h1>Edit KIM Member</h1>
-  </div>
+  <h1>Edit KIM Member</h1>
 </div>
+<p style="margin:-0.5rem 0 1.25rem">
+  <a href="<?= $b ?>/admin/kim/<?= (int) $member->fanlistingId ?>/show" class="neb-link">
+    &larr; Back to <?= View::e($fanlisting_name) ?>
+  </a>
+</p>
 
 <div class="neb-card">
-  <form method="POST" action="<?= $b ?>/admin/kim/<?= View::e((string) $member->id) ?>/edit">
+  <form method="POST" action="<?= $b ?>/admin/kim/<?= (int) $member->id ?>/edit">
     <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
 
     <div class="form-group">
-      <label class="form-label" for="kim-name">Name <span class="text-danger">*</span></label>
+      <label class="form-label" for="kim-name">Name <span>*</span></label>
       <input class="form-input" type="text" id="kim-name" name="name"
              value="<?= View::e($member->name) ?>" required maxlength="100">
     </div>
 
     <div class="form-group">
-      <label class="form-label" for="kim-email">Email <span class="text-danger">*</span></label>
+      <label class="form-label" for="kim-email">Email <span>*</span></label>
       <input class="form-input" type="email" id="kim-email" name="email"
              value="<?= View::e($member->email) ?>" required maxlength="255">
     </div>
@@ -62,24 +54,25 @@ $b = rtrim(View::e($base_url), '/');
     </div>
 
     <div class="form-group">
-      <label class="form-label" for="kim-fanlisting">Fanlisting <span class="text-danger">*</span></label>
-      <select class="form-input" id="kim-fanlisting" name="fanlisting_id" required>
-        <?php foreach ($fanlistings as $fl): ?>
-          <option value="<?= View::e((string) $fl->id) ?>"
-            <?= $fl->id === $member->fanlistingId ? 'selected' : '' ?>>
-            <?= View::e($fl->subject) ?>
-          </option>
-        <?php endforeach; ?>
-      </select>
+      <label class="form-label" for="kim-fanlisting">Fanlisting <span>*</span></label>
+      <div class="select-wrap">
+        <select class="form-select" id="kim-fanlisting" name="fanlisting_id" required>
+          <?php foreach ($fanlistings as $fl): ?>
+            <option value="<?= (int) $fl->id ?>"
+              <?= $fl->id === $member->fanlistingId ? 'selected' : '' ?>>
+              <?= View::e($fl->subject) ?>
+            </option>
+          <?php endforeach; ?>
+        </select>
+      </div>
     </div>
 
     <div class="form-group">
-      <label class="form-label" for="kim-new-password">
-        New Password
-        <span class="form-hint">(min 8 chars; leave blank to keep current)</span>
-      </label>
+      <label class="form-label" for="kim-new-password">New Password</label>
       <input class="form-input" type="password" id="kim-new-password" name="new_password"
-             maxlength="255" autocomplete="new-password">
+             maxlength="255" autocomplete="new-password"
+             placeholder="Leave blank to keep current">
+      <p class="form-hint">Minimum 8 characters.</p>
     </div>
 
     <div class="form-group">
@@ -88,9 +81,9 @@ $b = rtrim(View::e($base_url), '/');
              maxlength="255" autocomplete="new-password">
     </div>
 
-    <div class="form-actions">
+    <div class="btn-row">
       <button type="submit" class="btn btn-primary">Save Changes</button>
-      <a href="<?= $b ?>/admin/kim/<?= View::e((string) $member->fanlistingId) ?>/show"
+      <a href="<?= $b ?>/admin/kim/<?= (int) $member->fanlistingId ?>/show"
          class="btn btn-secondary">Cancel</a>
     </div>
   </form>

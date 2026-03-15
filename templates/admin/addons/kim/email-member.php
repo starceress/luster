@@ -22,50 +22,44 @@ $b = rtrim(View::e($base_url), '/');
 <?php endif; ?>
 
 <div class="page-header">
-  <div class="page-header-left">
-    <nav class="breadcrumb">
-      <a href="<?= $b ?>/admin/addons">Add-ons</a>
-      <span class="breadcrumb-sep">/</span>
-      <a href="<?= $b ?>/admin/kim">KIM List</a>
-      <?php if ($listing !== null): ?>
-        <span class="breadcrumb-sep">/</span>
-        <a href="<?= $b ?>/admin/kim/<?= View::e((string) $listing->id) ?>/show">
-          <?= View::e($listing->subject) ?>
-        </a>
-      <?php endif; ?>
-      <span class="breadcrumb-sep">/</span>
-      <span>Email <?= View::e($member->name) ?></span>
-    </nav>
-    <h1>Email <?= View::e($member->name) ?></h1>
-  </div>
+  <h1>Email <?= View::e($member->name) ?></h1>
 </div>
+<p style="margin:-0.5rem 0 1.25rem">
+  <?php if ($listing !== null): ?>
+    <a href="<?= $b ?>/admin/kim/<?= (int) $listing->id ?>/show" class="neb-link">
+      &larr; Back to <?= View::e($listing->subject) ?>
+    </a>
+  <?php else: ?>
+    <a href="<?= $b ?>/admin/kim" class="neb-link">&larr; Back to KIM List</a>
+  <?php endif; ?>
+</p>
 
-<div class="neb-card">
-  <p>
-    Sending to: <strong><?= View::e($member->name) ?></strong>
-    &lt;<a href="mailto:<?= View::e($member->email) ?>"><?= View::e($member->email) ?></a>&gt;
+<div class="neb-card" style="padding:1.25rem">
+  <p style="margin-bottom:1.25rem;color:var(--text-muted);font-size:.875rem">
+    Sending to: <strong style="color:var(--text)"><?= View::e($member->name) ?></strong>
+    &lt;<a href="mailto:<?= View::e($member->email) ?>" class="neb-link"><?= View::e($member->email) ?></a>&gt;
   </p>
 
   <form method="POST"
-        action="<?= $b ?>/admin/kim/<?= View::e((string) $member->id) ?>/email-member">
+        action="<?= $b ?>/admin/kim/<?= (int) $member->id ?>/email-member">
     <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
 
     <div class="form-group">
-      <label class="form-label" for="em-subject">Subject <span class="text-danger">*</span></label>
+      <label class="form-label" for="em-subject">Subject <span>*</span></label>
       <input class="form-input" type="text" id="em-subject" name="subject"
              required maxlength="255">
     </div>
 
     <div class="form-group">
-      <label class="form-label" for="em-body">Message <span class="text-danger">*</span></label>
-      <textarea class="form-input" id="em-body" name="body"
-                rows="10" required style="font-family:monospace"></textarea>
+      <label class="form-label" for="em-body">Message <span>*</span></label>
+      <textarea class="form-textarea" id="em-body" name="body"
+                rows="10" required style="font-family:var(--font-mono)"></textarea>
     </div>
 
-    <div class="form-actions">
+    <div class="btn-row">
       <button type="submit" class="btn btn-primary">Send Email</button>
       <?php if ($listing !== null): ?>
-        <a href="<?= $b ?>/admin/kim/<?= View::e((string) $listing->id) ?>/show"
+        <a href="<?= $b ?>/admin/kim/<?= (int) $listing->id ?>/show"
            class="btn btn-secondary">Cancel</a>
       <?php else: ?>
         <a href="<?= $b ?>/admin/kim" class="btn btn-secondary">Cancel</a>

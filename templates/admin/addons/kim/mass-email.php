@@ -22,52 +22,44 @@ $b = rtrim(View::e($base_url), '/');
 <?php endif; ?>
 
 <div class="page-header">
-  <div class="page-header-left">
-    <nav class="breadcrumb">
-      <a href="<?= $b ?>/admin/addons">Add-ons</a>
-      <span class="breadcrumb-sep">/</span>
-      <a href="<?= $b ?>/admin/kim">KIM List</a>
-      <span class="breadcrumb-sep">/</span>
-      <a href="<?= $b ?>/admin/kim/<?= View::e((string) $listing->id) ?>/show">
-        <?= View::e($listing->subject) ?>
-      </a>
-      <span class="breadcrumb-sep">/</span>
-      <span>Mass Email</span>
-    </nav>
-    <h1>Mass Email — KIM members for <?= View::e($listing->subject) ?></h1>
-  </div>
+  <h1>Mass Email &mdash; <?= View::e($listing->subject) ?></h1>
 </div>
+<p style="margin:-0.5rem 0 1.25rem">
+  <a href="<?= $b ?>/admin/kim/<?= (int) $listing->id ?>/show" class="neb-link">
+    &larr; Back to <?= View::e($listing->subject) ?>
+  </a>
+</p>
 
-<div class="neb-card">
-  <p>
+<div class="neb-card" style="padding:1.25rem">
+  <p style="margin-bottom:1.25rem;color:var(--text-muted);font-size:.875rem">
     This will send an email to
-    <strong><?= View::e((string) $recipient_count) ?></strong>
+    <strong style="color:var(--text)"><?= (int) $recipient_count ?></strong>
     approved KIM member<?= $recipient_count === 1 ? '' : 's' ?> for
-    <strong><?= View::e($listing->subject) ?></strong>.
+    <strong style="color:var(--text)"><?= View::e($listing->subject) ?></strong>.
   </p>
 
   <form method="POST"
-        action="<?= $b ?>/admin/kim/<?= View::e((string) $listing->id) ?>/mass-email">
+        action="<?= $b ?>/admin/kim/<?= (int) $listing->id ?>/mass-email">
     <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
 
     <div class="form-group">
-      <label class="form-label" for="mass-subject">Subject <span class="text-danger">*</span></label>
+      <label class="form-label" for="mass-subject">Subject <span>*</span></label>
       <input class="form-input" type="text" id="mass-subject" name="subject"
              required maxlength="255">
     </div>
 
     <div class="form-group">
-      <label class="form-label" for="mass-body">Message <span class="text-danger">*</span></label>
-      <textarea class="form-input" id="mass-body" name="body"
-                rows="10" required style="font-family:monospace"></textarea>
+      <label class="form-label" for="mass-body">Message <span>*</span></label>
+      <textarea class="form-textarea" id="mass-body" name="body"
+                rows="10" required style="font-family:var(--font-mono)"></textarea>
     </div>
 
-    <div class="form-actions">
+    <div class="btn-row">
       <button type="submit" class="btn btn-primary"
-              onclick="return confirm('Send to <?= View::e((string) $recipient_count) ?> member(s)?')">
-        Send to <?= View::e((string) $recipient_count) ?> member<?= $recipient_count === 1 ? '' : 's' ?>
+              onclick="return confirm('Send to <?= (int) $recipient_count ?> member(s)?')">
+        Send to <?= (int) $recipient_count ?> member<?= $recipient_count === 1 ? '' : 's' ?>
       </button>
-      <a href="<?= $b ?>/admin/kim/<?= View::e((string) $listing->id) ?>/show"
+      <a href="<?= $b ?>/admin/kim/<?= (int) $listing->id ?>/show"
          class="btn btn-secondary">Cancel</a>
     </div>
   </form>

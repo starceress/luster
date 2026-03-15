@@ -232,7 +232,7 @@ if (!function_exists('dashTimeAgo')) {
       </div>
     </div>
 
-    <div style="padding:1rem 1.25rem 0.75rem">
+    <div style="padding:1rem 1.25rem 0.75rem;display:flex;flex-direction:column;gap:10px">
       <div class="newest-row">
         <span class="newest-star">✦</span>
         <span class="newest-label">Categories:</span>
@@ -255,7 +255,7 @@ if (!function_exists('dashTimeAgo')) {
       </div>
     </div>
 
-    <div style="padding:0.75rem 1.25rem 1rem;border-top:1px solid var(--border)">
+    <div style="padding:0.75rem 1.25rem 1rem;border-top:1px solid var(--border);display:flex;flex-direction:column;gap:10px">
       <div class="newest-row">
         <span class="newest-star">✦</span>
         <span class="newest-label">Newest joined:</span>

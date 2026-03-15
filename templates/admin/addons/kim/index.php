@@ -25,15 +25,9 @@ $b = rtrim(View::e($base_url), '/');
 <?php endif; ?>
 
 <div class="page-header">
-  <div class="page-header-left">
-    <nav class="breadcrumb">
-      <a href="<?= $b ?>/admin/addons">Add-ons</a>
-      <span class="breadcrumb-sep">/</span>
-      <span>KIM List</span>
-    </nav>
-    <h1>KIM List</h1>
-  </div>
+  <h1>KIM List</h1>
 </div>
+<p style="margin:-0.5rem 0 1.25rem"><a href="<?= $b ?>/admin/addons" class="neb-link">&larr; Back to Add-ons</a></p>
 
 <?php if (empty($fanlistings_data)): ?>
   <div class="neb-card">
@@ -41,13 +35,13 @@ $b = rtrim(View::e($base_url), '/');
   </div>
 <?php else: ?>
   <div class="neb-card">
-    <table class="neb-table">
+    <table class="data-table">
       <thead>
         <tr>
           <th>Fanlisting</th>
           <th>Pending</th>
           <th>Approved</th>
-          <th>Actions</th>
+          <th class="act-col"></th>
         </tr>
       </thead>
       <tbody>
@@ -58,26 +52,26 @@ $b = rtrim(View::e($base_url), '/');
           $approved = (int) $entry['approved'];
         ?>
         <tr>
-          <td><?= View::e($listing->subject) ?></td>
+          <td class="text-strong"><?= View::e($listing->subject) ?></td>
           <td>
             <?php if ($pending > 0): ?>
-              <span class="badge badge-warning"><?= View::e((string) $pending) ?></span>
+              <span class="neb-badge badge-upcoming"><?= (int) $pending ?></span>
             <?php else: ?>
-              <span class="text-muted">0</span>
+              <span class="text-dim">0</span>
             <?php endif; ?>
           </td>
           <td>
             <?php if ($approved > 0): ?>
-              <span class="badge badge-success"><?= View::e((string) $approved) ?></span>
+              <span class="neb-badge badge-current"><?= (int) $approved ?></span>
             <?php else: ?>
-              <span class="text-muted">0</span>
+              <span class="text-dim">0</span>
             <?php endif; ?>
           </td>
-          <td class="actions">
-            <a href="<?= $b ?>/admin/kim/<?= View::e((string) $listing->id) ?>/show"
+          <td class="act-col">
+            <a href="<?= $b ?>/admin/kim/<?= (int) $listing->id ?>/show"
                class="btn btn-secondary btn-sm">View</a>
             <?php if ($approved > 0): ?>
-              <a href="<?= $b ?>/admin/kim/<?= View::e((string) $listing->id) ?>/mass-email"
+              <a href="<?= $b ?>/admin/kim/<?= (int) $listing->id ?>/mass-email"
                  class="btn btn-secondary btn-sm">Mass Email</a>
             <?php endif; ?>
           </td>
