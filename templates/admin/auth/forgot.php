@@ -4,9 +4,6 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Forgot Password &mdash; <?= \Luster\Core\View::e($app_name) ?></title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400;1,600&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500&family=DM+Mono:wght@400&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="<?= rtrim(\Luster\Core\View::e($base_url ?? ''), '/') ?>/assets/css/admin.css">
   <script>
     (function(){var t=localStorage.getItem('lstr_theme');if(t==='dark'||t==='light')document.documentElement.setAttribute('data-theme',t);})();
@@ -74,6 +71,7 @@
   const ctx    = canvas.getContext('2d');
   let stars    = [];
   const N      = 80;
+  let rafId    = null;
   function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
   function init() {
     resize(); stars = [];
@@ -100,9 +98,14 @@
       if(d<90){ctx.beginPath();ctx.moveTo(stars[i].x,stars[i].y);ctx.lineTo(stars[j].x,stars[j].y);
         ctx.strokeStyle=`rgba(196,181,253,${0.09*(1-d/90)})`;ctx.lineWidth=0.5;ctx.stroke();}
     }
-    requestAnimationFrame(draw);
+    rafId = requestAnimationFrame(draw);
   }
-  window.addEventListener('resize',init); init(); draw();
+  function start() { if (!rafId) { rafId = requestAnimationFrame(draw); } }
+  function stop()  { if (rafId)  { cancelAnimationFrame(rafId); rafId = null; } }
+  document.addEventListener('visibilitychange', function() {
+    document.hidden ? stop() : start();
+  });
+  window.addEventListener('resize',init); init(); start();
 })();
 function toggleTheme() {
   const html = document.documentElement;
