@@ -53,7 +53,7 @@ $b = rtrim(\Luster\Core\View::e($base_url), '/');
             <a href="<?= $b ?>/admin/kim" class="btn btn-primary btn-sm">Manage</a>
           <?php endif; ?>
           <form method="POST" action="<?= $b ?>/admin/addons/uninstall"
-                onsubmit="return confirm('Uninstall <?= \Luster\Core\View::e(addslashes($addon->getName())) ?>? This will permanently remove all data created by this add-on.')">
+                data-confirm="Uninstall <?= \Luster\Core\View::e($addon->getName()) ?>? This will permanently remove all data created by this add-on.">
             <input type="hidden" name="_csrf"      value="<?= \Luster\Core\View::e($csrf_token) ?>">
             <input type="hidden" name="addon_key"  value="<?= \Luster\Core\View::e($key) ?>">
             <button type="submit" class="btn btn-danger btn-sm">Uninstall</button>

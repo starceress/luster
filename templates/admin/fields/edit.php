@@ -93,15 +93,3 @@ $encName = urlencode($field->name);
   </form>
 </div>
 
-<script>
-(function () {
-  var typeEl = document.getElementById('ef-type');
-  var optRow = document.getElementById('ef-options-row');
-  function toggle() {
-    var v = typeEl.value;
-    optRow.style.display = (v === 'dropdown' || v === 'checkbox' || v === 'radio') ? '' : 'none';
-  }
-  typeEl.addEventListener('change', toggle);
-  toggle();
-}());
-</script>

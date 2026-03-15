@@ -64,8 +64,8 @@ $oldBody   = htmlspecialchars($old['body'] ?? '', ENT_QUOTES, 'UTF-8');
 
     <div class="email-btn-row">
       <button type="submit" class="btn btn-primary">Send</button>
-      <button type="button" class="btn btn-ghost" onclick="previewEmail()">Preview</button>
-      <button type="button" class="btn btn-ghost" onclick="document.getElementById('email-form').reset()">Clear</button>
+      <button type="button" class="btn btn-ghost" id="preview-email-btn">Preview</button>
+      <button type="button" class="btn btn-ghost js-form-reset">Clear</button>
       <a href="<?= \Luster\Core\View::e($referer ?? $b . '/admin/members/' . (int) ($listing->id ?? 0)) ?>"
          class="btn btn-ghost">Cancel</a>
     </div>
@@ -73,7 +73,7 @@ $oldBody   = htmlspecialchars($old['body'] ?? '', ENT_QUOTES, 'UTF-8');
 </div>
 
 <!-- Preview modal -->
-<div class="modal-overlay" id="preview-modal" onclick="if(event.target===this)closePreview()">
+<div class="modal-overlay" id="preview-modal" data-listing-name="<?= \Luster\Core\View::e($flName) ?>">
   <div class="modal-box">
     <h3>Email Preview</h3>
     <p><strong>To:</strong> <?= \Luster\Core\View::e($member_name ?? '') ?> &lt;<?= \Luster\Core\View::e($member_email ?? '') ?>&gt;</p>
@@ -81,27 +81,7 @@ $oldBody   = htmlspecialchars($old['body'] ?? '', ENT_QUOTES, 'UTF-8');
     <hr>
     <div id="preview-body" style="white-space:pre-wrap;font-size:.875rem;color:var(--text)"></div>
     <br>
-    <button class="btn btn-ghost" onclick="closePreview()">Close</button>
+    <button class="btn btn-ghost" id="close-preview-btn">Close</button>
   </div>
 </div>
 
-<script>
-document.getElementById('template-select').addEventListener('change', function () {
-  var o = this.options[this.selectedIndex];
-  if (o.value) {
-    document.getElementById('subject').value = o.value;
-    document.getElementById('body').value = o.dataset.body || '';
-  }
-});
-
-function previewEmail() {
-  document.getElementById('preview-subject').textContent = '<?= addslashes($flName) ?>: ' + document.getElementById('subject').value;
-  document.getElementById('preview-body').textContent    = document.getElementById('body').value;
-  var m = document.getElementById('preview-modal');
-  m.style.display = 'flex';
-}
-
-function closePreview() {
-  document.getElementById('preview-modal').style.display = 'none';
-}
-</script>

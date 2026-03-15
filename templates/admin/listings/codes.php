@@ -83,7 +83,8 @@ $b = rtrim(View::e($base_url), '/');
 
   <!-- Standalone bulk form (no content rendered — buttons reference it by id) -->
   <form id="codes-bulk-form" method="POST"
-        action="<?= $b ?>/admin/listings/<?= (int) $listing->id ?>/codes/bulk">
+        action="<?= $b ?>/admin/listings/<?= (int) $listing->id ?>/codes/bulk"
+        data-confirm="Delete all selected codes? This cannot be undone.">
     <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
     <input type="hidden" name="bulk_action" value="delete">
   </form>
@@ -92,7 +93,7 @@ $b = rtrim(View::e($base_url), '/');
   <?php foreach ($codes as $code): ?>
   <form id="del-<?= (int) $code->id ?>" method="POST"
         action="<?= $b ?>/admin/listings/<?= (int) $listing->id ?>/codes/<?= (int) $code->id ?>/delete"
-        onsubmit="return confirm('Delete this code? This cannot be undone.')">
+        data-confirm="Delete this code? This cannot be undone.">
     <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
   </form>
   <?php endforeach; ?>
@@ -103,8 +104,7 @@ $b = rtrim(View::e($base_url), '/');
       <input type="checkbox" id="codes-select-all">
       Select all
     </label>
-    <button type="submit" form="codes-bulk-form" class="btn btn-danger btn-sm"
-            onclick="return confirm('Delete all selected codes? This cannot be undone.')">
+    <button type="submit" form="codes-bulk-form" class="btn btn-danger btn-sm">
       Delete Selected
     </button>
   </div>
@@ -142,10 +142,5 @@ $b = rtrim(View::e($base_url), '/');
     <?php endforeach; ?>
   </div>
 
-  <script>
-  document.getElementById('codes-select-all').addEventListener('change', function () {
-    document.querySelectorAll('.code-check').forEach(cb => { cb.checked = this.checked; });
-  });
-  </script>
 
 <?php endif; ?>

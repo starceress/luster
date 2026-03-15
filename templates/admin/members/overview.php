@@ -28,7 +28,7 @@ $isSearch   = $search !== '';
   <div class="neb-filter-row">
     <span style="font-weight:600;color:var(--text)">Manage:</span>
     <div class="select-wrap">
-      <select class="form-select" onchange="location=this.value">
+      <select class="form-select js-nav-select">
         <option value="<?= $b ?>/admin/members">All pending members</option>
         <?php foreach ($all_listings as $fl): ?>
           <option value="<?= $b ?>/admin/members/<?= (int) $fl->id ?>?status=all">
@@ -193,11 +193,11 @@ $isSearch   = $search !== '';
                 <button type="submit" class="btn btn-primary btn-sm">Approve</button>
               </form>
               <form method="POST" action="<?= $b ?>/admin/members/<?= $flId ?>/delete"
-                    style="display:inline;margin-left:.25rem">
+                    style="display:inline;margin-left:.25rem"
+                    data-confirm="Reject this member?">
                 <input type="hidden" name="_csrf"        value="<?= \Luster\Core\View::e($csrf_token ?? '') ?>">
                 <input type="hidden" name="member_email" value="<?= \Luster\Core\View::e($m->email) ?>">
-                <button type="submit" class="btn btn-danger btn-sm"
-                        onclick="return confirm('Reject this member?')">Reject</button>
+                <button type="submit" class="btn btn-danger btn-sm">Reject</button>
               </form>
               <a href="<?= $b ?>/admin/members/<?= $flId ?>/emailmember?email=<?= urlencode($m->email) ?>"
                  class="btn btn-secondary btn-sm" style="margin-left:.25rem">Email</a>
@@ -214,7 +214,7 @@ $isSearch   = $search !== '';
             <option value="delete">Delete</option>
           </select>
         </div>
-        <button type="submit" class="btn btn-ghost btn-sm" onclick="return confirmBulk()">Apply</button>
+        <button type="submit" class="btn btn-ghost btn-sm">Apply</button>
       </div>
       </form>
     </div>
@@ -283,19 +283,19 @@ $isSearch   = $search !== '';
               <td class="act-col" style="white-space:nowrap">
                 <form method="POST"
                       action="<?= $b ?>/admin/pending-updates/<?= (int) $pu->id ?>/approve"
-                      style="display:inline;margin-left:.25rem">
+                      style="display:inline;margin-left:.25rem"
+                      data-confirm="Approve and apply this update?">
                   <input type="hidden" name="_csrf"  value="<?= \Luster\Core\View::e($csrf_token ?? '') ?>">
                   <input type="hidden" name="_from"  value="members">
-                  <button type="submit" class="btn btn-primary btn-sm"
-                          onclick="return confirm('Approve and apply this update?')">Approve</button>
+                  <button type="submit" class="btn btn-primary btn-sm">Approve</button>
                 </form>
                 <form method="POST"
                       action="<?= $b ?>/admin/pending-updates/<?= (int) $pu->id ?>/reject"
-                      style="display:inline;margin-left:.25rem">
+                      style="display:inline;margin-left:.25rem"
+                      data-confirm="Reject and discard this update?">
                   <input type="hidden" name="_csrf"  value="<?= \Luster\Core\View::e($csrf_token ?? '') ?>">
                   <input type="hidden" name="_from"  value="members">
-                  <button type="submit" class="btn btn-danger btn-sm"
-                          onclick="return confirm('Reject and discard this update?')">Reject</button>
+                  <button type="submit" class="btn btn-danger btn-sm">Reject</button>
                 </form>
               </td>
             </tr>
@@ -308,23 +308,3 @@ $isSearch   = $search !== '';
 
 <?php endif; ?>
 
-<script>
-document.querySelectorAll('.sel-all').forEach(function (selAll) {
-  selAll.addEventListener('change', function () {
-    var fid = this.dataset.fid;
-    document.querySelectorAll('.row-cb-' + fid).forEach(function (cb) {
-      cb.checked = selAll.checked;
-    });
-  });
-});
-
-window.confirmBulk = function () {
-  var action = event.target.closest('form').querySelector('select[name="bulk_action"]').value;
-  var checked = event.target.closest('form').querySelectorAll('input[name="emails[]"]:checked');
-  if (!checked.length) { alert('No members selected.'); return false; }
-  if (action === 'delete') {
-    return confirm('Delete ' + checked.length + ' selected member(s)? This cannot be undone.');
-  }
-  return true;
-};
-</script>

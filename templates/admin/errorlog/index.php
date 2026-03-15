@@ -20,7 +20,7 @@ $b = rtrim(\Luster\Core\View::e($base_url), '/');
   <div class="neb-actions">
     <form method="POST"
           action="<?= $b ?>/admin/errorlog/flush"
-          onsubmit="return confirm('Clear all error logs? This cannot be undone.')">
+          data-confirm="Clear all error logs? This cannot be undone.">
       <input type="hidden" name="_csrf" value="<?= \Luster\Core\View::e($csrf_token ?? '') ?>">
       <button type="submit" class="btn btn-danger btn-sm">Flush Logs</button>
     </form>

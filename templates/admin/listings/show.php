@@ -51,7 +51,7 @@ $imgHeight = $sizeMap[$sizeKey] ?? '100px';
       <form method="post"
             action="<?= $b ?>/admin/listings/<?= (int) $listing->id ?>/delete"
             style="display:inline"
-            onsubmit="return confirm('Delete this listing and all its members? This cannot be undone.')">
+            data-confirm="Delete this listing and all its members? This cannot be undone.">
         <input type="hidden" name="_csrf" value="<?= \Luster\Core\View::e($csrf_token ?? '') ?>">
         <button type="submit" class="btn btn-danger">Delete</button>
       </form>
@@ -259,7 +259,7 @@ $imgHeight = $sizeMap[$sizeKey] ?? '100px';
             <form method="POST"
                   action="<?= $b ?>/admin/affiliates/<?= (int) $aff->id ?>/delete"
                   style="display:inline;margin-left:.25rem"
-                  onsubmit="return confirm('Delete this affiliate?')">
+                  data-confirm="Delete this affiliate?">
               <input type="hidden" name="_csrf" value="<?= \Luster\Core\View::e($csrf_token ?? '') ?>">
               <input type="hidden" name="from_listing" value="<?= (int) $listing->id ?>">
               <button type="submit" class="btn btn-danger btn-sm">Delete</button>

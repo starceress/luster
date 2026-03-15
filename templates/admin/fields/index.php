@@ -71,7 +71,7 @@ $id = (int) $listing->id;
               <form method="POST"
                     action="<?= $b ?>/admin/listings/<?= $id ?>/fields/<?= urlencode($field->name) ?>/delete"
                     style="display:inline;margin-left:.25rem"
-                    onsubmit="return confirm('Drop the column for field \u201c<?= \Luster\Core\View::e(addslashes($field->name)) ?>\u201d? This permanently removes member data for this field and cannot be undone.')">
+                    data-confirm="Drop the column for field &#x201C;<?= \Luster\Core\View::e($field->name) ?>&#x201D;? This permanently removes member data for this field and cannot be undone.">
                 <input type="hidden" name="_csrf"      value="<?= \Luster\Core\View::e($csrf_token) ?>">
                 <input type="hidden" name="field_name" value="<?= $safeName ?>">
                 <button type="submit" class="btn btn-danger btn-sm">Delete</button>
@@ -152,15 +152,3 @@ $id = (int) $listing->id;
   </form>
 </div><!-- /.neb-card -->
 
-<script>
-(function () {
-  var typeEl = document.getElementById('af-type');
-  var optRow = document.getElementById('af-options-row');
-  function toggle() {
-    var v = typeEl.value;
-    optRow.style.display = (v === 'dropdown' || v === 'checkbox') ? '' : 'none';
-  }
-  typeEl.addEventListener('change', toggle);
-  toggle();
-}());
-</script>

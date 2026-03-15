@@ -464,7 +464,7 @@ $snip['kim'] = htmlspecialchars(
     <div class="ec-panel-body">
       <div class="ec-code-wrap">
         <pre class="ec-pre" id="ec-pre-join"><?= $snip['join'] ?></pre>
-        <button class="ec-copy" onclick="ecCopy('ec-pre-join',this)">Copy</button>
+        <button class="ec-copy" data-ec-copy="ec-pre-join">Copy</button>
       </div>
       <details class="ec-detail">
         <summary>Where do people go after they submit?</summary>
@@ -489,7 +489,7 @@ $snip['kim'] = htmlspecialchars(
     <div class="ec-panel-body">
       <div class="ec-code-wrap">
         <pre class="ec-pre" id="ec-pre-members"><?= $snip['members'] ?></pre>
-        <button class="ec-copy" onclick="ecCopy('ec-pre-members',this)">Copy</button>
+        <button class="ec-copy" data-ec-copy="ec-pre-members">Copy</button>
       </div>
       <details class="ec-detail">
         <summary>Optional customization</summary>
@@ -527,7 +527,7 @@ $snip['kim'] = htmlspecialchars(
     <div class="ec-panel-body">
       <div class="ec-code-wrap">
         <pre class="ec-pre" id="ec-pre-stats"><?= $snip['stats'] ?></pre>
-        <button class="ec-copy" onclick="ecCopy('ec-pre-stats',this)">Copy</button>
+        <button class="ec-copy" data-ec-copy="ec-pre-stats">Copy</button>
       </div>
       <details class="ec-detail">
         <summary>Placeholders you can use in your stats template</summary>
@@ -562,7 +562,7 @@ $snip['kim'] = htmlspecialchars(
     <div class="ec-panel-body">
       <div class="ec-code-wrap">
         <pre class="ec-pre" id="ec-pre-update"><?= $snip['update'] ?></pre>
-        <button class="ec-copy" onclick="ecCopy('ec-pre-update',this)">Copy</button>
+        <button class="ec-copy" data-ec-copy="ec-pre-update">Copy</button>
       </div>
       <details class="ec-detail">
         <summary>Where do people go after they submit?</summary>
@@ -586,7 +586,7 @@ $snip['kim'] = htmlspecialchars(
     <div class="ec-panel-body">
       <div class="ec-code-wrap">
         <pre class="ec-pre" id="ec-pre-remove"><?= $snip['remove'] ?></pre>
-        <button class="ec-copy" onclick="ecCopy('ec-pre-remove',this)">Copy</button>
+        <button class="ec-copy" data-ec-copy="ec-pre-remove">Copy</button>
       </div>
       <details class="ec-detail">
         <summary>Where do people go after they submit?</summary>
@@ -610,7 +610,7 @@ $snip['kim'] = htmlspecialchars(
     <div class="ec-panel-body">
       <div class="ec-code-wrap">
         <pre class="ec-pre" id="ec-pre-reset"><?= $snip['reset'] ?></pre>
-        <button class="ec-copy" onclick="ecCopy('ec-pre-reset',this)">Copy</button>
+        <button class="ec-copy" data-ec-copy="ec-pre-reset">Copy</button>
       </div>
       <details class="ec-detail">
         <summary>Two-step reset — splitting across two pages</summary>
@@ -650,7 +650,7 @@ $snip['kim'] = htmlspecialchars(
     <div class="ec-panel-body">
       <div class="ec-code-wrap">
         <pre class="ec-pre" id="ec-pre-affiliates"><?= $snip['affiliates'] ?></pre>
-        <button class="ec-copy" onclick="ecCopy('ec-pre-affiliates',this)">Copy</button>
+        <button class="ec-copy" data-ec-copy="ec-pre-affiliates">Copy</button>
       </div>
       <details class="ec-detail">
         <summary>Optional customization</summary>
@@ -676,7 +676,7 @@ $snip['kim'] = htmlspecialchars(
     <div class="ec-panel-body">
       <div class="ec-code-wrap">
         <pre class="ec-pre" id="ec-pre-owned"><?= $snip['owned'] ?></pre>
-        <button class="ec-copy" onclick="ecCopy('ec-pre-owned',this)">Copy</button>
+        <button class="ec-copy" data-ec-copy="ec-pre-owned">Copy</button>
       </div>
       <details class="ec-detail">
         <summary>Optional customization</summary>
@@ -706,7 +706,7 @@ $snip['kim'] = htmlspecialchars(
     <div class="ec-panel-body">
       <div class="ec-code-wrap">
         <pre class="ec-pre" id="ec-pre-joined"><?= $snip['joined'] ?></pre>
-        <button class="ec-copy" onclick="ecCopy('ec-pre-joined',this)">Copy</button>
+        <button class="ec-copy" data-ec-copy="ec-pre-joined">Copy</button>
       </div>
       <details class="ec-detail">
         <summary>Optional customization</summary>
@@ -732,7 +732,7 @@ $snip['kim'] = htmlspecialchars(
     <div class="ec-panel-body">
       <div class="ec-code-wrap">
         <pre class="ec-pre" id="ec-pre-cstats"><?= $snip['cstats'] ?></pre>
-        <button class="ec-copy" onclick="ecCopy('ec-pre-cstats',this)">Copy</button>
+        <button class="ec-copy" data-ec-copy="ec-pre-cstats">Copy</button>
       </div>
       <details class="ec-detail">
         <summary>All available variables</summary>
@@ -795,7 +795,7 @@ $snip['kim'] = htmlspecialchars(
           '?>',
           ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'
         ) ?></pre>
-        <button class="ec-copy" onclick="ecCopy('ec-pre-affiliates-collective',this)">Copy</button>
+        <button class="ec-copy" data-ec-copy="ec-pre-affiliates-collective">Copy</button>
       </div>
       <details class="ec-detail">
         <summary>Optional customization</summary>
@@ -821,7 +821,7 @@ $snip['kim'] = htmlspecialchars(
     <div class="ec-panel-body">
       <div class="ec-code-wrap">
         <pre class="ec-pre" id="ec-pre-kim"><?= $snip['kim'] ?></pre>
-        <button class="ec-copy" onclick="ecCopy('ec-pre-kim',this)">Copy</button>
+        <button class="ec-copy" data-ec-copy="ec-pre-kim">Copy</button>
       </div>
       <details class="ec-detail">
         <summary>Before you use this</summary>
@@ -837,57 +837,3 @@ $snip['kim'] = htmlspecialchars(
   </div>
 
 </div><!-- /.ec-panel-wrap -->
-
-<script>
-(function () {
-  var currentTarget = null;
-
-  function showPanel(target) {
-    // Deactivate previous panel
-    if (currentTarget) {
-      var prev = document.getElementById('ec-panel-' + currentTarget);
-      if (prev) prev.classList.remove('ec-panel--active');
-    }
-    // Activate new panel
-    var next = document.getElementById('ec-panel-' + target);
-    if (next) next.classList.add('ec-panel--active');
-    currentTarget = target;
-
-    // Update button states
-    document.querySelectorAll('.ec-opt').forEach(function (btn) {
-      btn.setAttribute('aria-selected', btn.dataset.target === target ? 'true' : 'false');
-    });
-  }
-
-  // Wire up all option buttons
-  document.querySelectorAll('.ec-opt').forEach(function (btn) {
-    btn.addEventListener('click', function () {
-      showPanel(btn.dataset.target);
-    });
-  });
-
-  // Default: show join
-  showPanel('join');
-}());
-
-function ecCopy(preId, btn) {
-  var text = (document.getElementById(preId) || {}).textContent || '';
-  if (navigator.clipboard) {
-    navigator.clipboard.writeText(text).catch(function () {});
-  } else {
-    var ta = document.createElement('textarea');
-    ta.value = text;
-    ta.style.cssText = 'position:fixed;opacity:0;pointer-events:none';
-    document.body.appendChild(ta);
-    ta.select();
-    try { document.execCommand('copy'); } catch (e) {}
-    document.body.removeChild(ta);
-  }
-  btn.textContent = 'Copied!';
-  btn.classList.add('ec-copied');
-  setTimeout(function () {
-    btn.textContent = 'Copy';
-    btn.classList.remove('ec-copied');
-  }, 1800);
-}
-</script>

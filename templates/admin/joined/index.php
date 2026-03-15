@@ -70,7 +70,7 @@ if ($displayMode === 'category') {
   <form method="GET" action="<?= $b ?>/admin/joined" class="neb-filter-row">
 
     <div class="toolbar-select-wrap">
-    <select id="net-sel" name="network" class="neb-select">
+    <select id="net-sel" name="network" class="neb-select" data-net-cats='<?= json_encode($network_categories ?? [], JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS) ?>'>
       <option value="">All Networks</option>
       <option value="TFL"<?= ($filter_network ?? '') === 'TFL'  ? ' selected' : '' ?>>TFL</option>
       <option value="TAFL"<?= ($filter_network ?? '') === 'TAFL' ? ' selected' : '' ?>>TAFL</option>
@@ -184,7 +184,7 @@ if ($displayMode === 'category') {
             <form method="POST"
                   action="<?= $b ?>/admin/joined/<?= (int) $jf->id ?>/delete"
                   style="display:inline"
-                  onsubmit="return confirm('Delete this joined listing?')">
+                  data-confirm="Delete this joined listing?">
               <input type="hidden" name="_csrf" value="<?= \Luster\Core\View::e($csrf_token ?? '') ?>">
               <button type="submit" class="btn btn-danger btn-sm">Delete</button>
             </form>
@@ -207,66 +207,13 @@ if ($displayMode === 'category') {
         <option value="delete">Delete</option>
       </select>
       </div>
-      <button type="submit" class="btn btn-secondary btn-sm"
-              onclick="return confirmBulk()">Apply to selected</button>
+      <button type="submit" class="btn btn-secondary btn-sm">Apply to selected</button>
     </div>
   </div>
 
 </form>
 <?php endif; ?>
 
-<script>
-(function () {
-  var selAll = document.getElementById('sel-all');
-  if (selAll) {
-    selAll.addEventListener('change', function () {
-      document.querySelectorAll('#bulk-form input[name="ids[]"]').forEach(function (cb) {
-        cb.checked = selAll.checked;
-      });
-    });
-    document.querySelectorAll('#bulk-form input[name="ids[]"]').forEach(function (cb) {
-      cb.addEventListener('change', function () {
-        var all  = document.querySelectorAll('#bulk-form input[name="ids[]"]');
-        var checked = document.querySelectorAll('#bulk-form input[name="ids[]"]:checked');
-        selAll.checked = all.length === checked.length;
-        selAll.indeterminate = checked.length > 0 && checked.length < all.length;
-      });
-    });
-  }
-
-  window.confirmBulk = function () {
-    var action = document.querySelector('#bulk-form select[name="bulk_action"]');
-    var checked = document.querySelectorAll('#bulk-form input[name="ids[]"]:checked');
-    if (checked.length === 0) {
-      alert('No items selected.');
-      return false;
-    }
-    if (action && action.value === 'delete') {
-      return confirm('Delete ' + checked.length + ' selected item(s)? This cannot be undone.');
-    }
-    return true;
-  };
-}());
-</script>
-
-<script>
-(function () {
-  var netCats = <?= json_encode($network_categories ?? [], JSON_HEX_TAG | JSON_HEX_AMP) ?>;
-  document.getElementById('net-sel').addEventListener('change', function () {
-    var net = this.value, catSel = document.getElementById('cat-sel');
-    catSel.innerHTML = '<option value="">All Categories</option>';
-    if (net && netCats[net]) {
-      netCats[net].forEach(function (c) {
-        var o = document.createElement('option');
-        o.value = c;
-        o.textContent = c;
-        catSel.appendChild(o);
-      });
-    }
-    this.form.submit();
-  });
-}());
-</script>
 
 <?php if (($total_pages ?? 1) > 1): ?>
 <nav class="neb-pagination" aria-label="Pagination">

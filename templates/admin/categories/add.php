@@ -40,8 +40,7 @@ $b = rtrim(\Luster\Core\View::e($base_url ?? ''), '/');
     <div class="form-group">
       <label class="form-label">Add to a Network?</label>
       <div class="select-wrap">
-        <select name="add_network" id="add-network-toggle" class="form-select"
-                onchange="document.getElementById('network-name-row').style.display=this.value==='yes'?'block':'none'">
+        <select name="add_network" id="add-network-toggle" class="form-select">
           <option value="no">No — use Custom</option>
           <option value="yes">Yes — specify network</option>
         </select>
@@ -55,7 +54,7 @@ $b = rtrim(\Luster\Core\View::e($base_url ?? ''), '/');
 
     <div class="btn-row">
       <button type="submit" class="btn btn-primary">Add Category</button>
-      <button type="button" class="btn btn-ghost" onclick="document.getElementById('add-form').reset()">Clear</button>
+      <button type="button" class="btn btn-ghost js-form-reset">Clear</button>
       <a href="<?= $b ?>/admin/categories" class="btn btn-ghost">Cancel</a>
     </div>
   </form>

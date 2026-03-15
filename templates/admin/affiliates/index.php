@@ -38,7 +38,7 @@ $pageUrl = static function (int $p) use ($b, $filterQs): string {
   <form method="GET" action="<?= $b ?>/admin/affiliates" class="neb-filter-row">
 
     <div class="toolbar-select-wrap">
-    <select name="fanlisting_id" class="neb-select" onchange="this.form.submit()">
+    <select name="fanlisting_id" class="neb-select js-autosubmit">
       <option value="collective"<?= ($filter_fid ?? 'collective') === 'collective' ? ' selected' : '' ?>><?= \Luster\Core\View::e(($site_name ?? 'Collective') . ' (Collective) Affiliates') ?></option>
       <?php foreach ($listings as $fl): ?>
         <option value="<?= (int) $fl->id ?>"
@@ -122,7 +122,7 @@ $pageUrl = static function (int $p) use ($b, $filterQs): string {
 
           <form method="POST" action="<?= $b ?>/admin/affiliates/<?= (int) $aff->id ?>/delete"
                 style="display:inline"
-                onsubmit="return confirm('Delete this affiliate?')">
+                data-confirm="Delete this affiliate?">
             <input type="hidden" name="_csrf" value="<?= \Luster\Core\View::e($csrf_token ?? '') ?>">
             <button type="submit" class="btn btn-danger btn-sm">Delete</button>
           </form>

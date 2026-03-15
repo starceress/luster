@@ -17,9 +17,7 @@ $avatarChar = strtoupper(substr((string) ($admin_username ?? 'A'), 0, 1));
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title><?= \Luster\Core\View::e($page_title) ?> &mdash; <?= \Luster\Core\View::e($app_name) ?></title>
   <link rel="stylesheet" href="<?= $b ?>/assets/css/admin.css">
-  <script>
-    (function(){var t=localStorage.getItem('lstr_theme');if(t==='dark'||t==='light')document.documentElement.setAttribute('data-theme',t);})();
-  </script>
+  <script>(function(){var t=localStorage.getItem('lstr_theme');if(t==='dark'||t==='light')document.documentElement.setAttribute('data-theme',t);})();</script>
 </head>
 <body>
 
@@ -167,20 +165,20 @@ $avatarChar = strtoupper(substr((string) ($admin_username ?? 'A'), 0, 1));
 </aside>
 
 <!-- ═══════════ SIDEBAR OVERLAY (mobile) ═══════════ -->
-<div class="sidebar-overlay" id="sidebarOverlay" onclick="closeSidebar()"></div>
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
 
 <!-- ═══════════ MAIN ═══════════ -->
 <div class="main-wrap">
 
   <div class="topbar">
     <div class="topbar-left">
-      <button class="hamburger" id="hamburger" aria-label="Open menu" onclick="openSidebar()">
+      <button class="hamburger" id="hamburger" aria-label="Open menu">
         <span></span><span></span><span></span>
       </button>
       <span class="topbar-page"><?= \Luster\Core\View::e($page_title) ?></span>
     </div>
     <div class="topbar-right">
-      <button class="theme-toggle" onclick="toggleTheme()" aria-label="Toggle theme">
+      <button class="theme-toggle" aria-label="Toggle theme">
         <span class="theme-toggle-icon">☀️</span>
         <div class="toggle-track">
           <div class="toggle-thumb"></div>
@@ -196,120 +194,7 @@ $avatarChar = strtoupper(substr((string) ($admin_username ?? 'A'), 0, 1));
 
 </div>
 
-<script>
-/* ── Constellation Canvas ── */
-(function() {
-  const canvas = document.getElementById('constellation');
-  const ctx = canvas.getContext('2d');
-  let stars = [];
-  const N = 30;
-  let rafId = null;
-
-  function resize() {
-    canvas.width  = canvas.parentElement.offsetWidth;
-    canvas.height = canvas.parentElement.offsetHeight;
-  }
-
-  function init() {
-    resize();
-    stars = [];
-    for (let i = 0; i < N; i++) {
-      stars.push({
-        x: Math.random() * canvas.width,
-        y: Math.random() * canvas.height,
-        r: Math.random() * 1.4 + 0.4,
-        dx: (Math.random() - 0.5) * 0.22,
-        dy: (Math.random() - 0.5) * 0.22,
-        opacity: Math.random() * 0.5 + 0.2,
-        twinkleSpeed: Math.random() * 0.015 + 0.005,
-        twinklePhase: Math.random() * Math.PI * 2,
-      });
-    }
-  }
-
-  function draw() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    const t = Date.now() * 0.001;
-
-    stars.forEach(s => {
-      s.x += s.dx; s.y += s.dy;
-      if (s.x < 0) s.x = canvas.width;
-      if (s.x > canvas.width) s.x = 0;
-      if (s.y < 0) s.y = canvas.height;
-      if (s.y > canvas.height) s.y = 0;
-
-      const twinkle = s.opacity + Math.sin(t * s.twinkleSpeed * 60 + s.twinklePhase) * 0.2;
-      ctx.beginPath();
-      ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
-      ctx.fillStyle = `rgba(196,181,253,${Math.max(0.05, Math.min(0.9, twinkle))})`;
-      ctx.fill();
-    });
-
-    for (let i = 0; i < stars.length; i++) {
-      for (let j = i + 1; j < stars.length; j++) {
-        const dx = stars[i].x - stars[j].x;
-        const dy = stars[i].y - stars[j].y;
-        const dist = Math.sqrt(dx*dx + dy*dy);
-        if (dist < 70) {
-          ctx.beginPath();
-          ctx.moveTo(stars[i].x, stars[i].y);
-          ctx.lineTo(stars[j].x, stars[j].y);
-          ctx.strokeStyle = `rgba(196,181,253,${0.12 * (1 - dist/70)})`;
-          ctx.lineWidth = 0.5;
-          ctx.stroke();
-        }
-      }
-    }
-    rafId = requestAnimationFrame(draw);
-  }
-
-  function start() { if (!rafId) { rafId = requestAnimationFrame(draw); } }
-  function stop()  { if (rafId)  { cancelAnimationFrame(rafId); rafId = null; } }
-
-  document.addEventListener('visibilitychange', function() {
-    document.hidden ? stop() : start();
-  });
-
-  window.addEventListener('resize', init);
-  init();
-  start();
-})();
-
-/* ── Theme toggle ── */
-function toggleTheme() {
-  const html = document.documentElement;
-  const isDark = html.getAttribute('data-theme') === 'dark';
-  const next = isDark ? 'light' : 'dark';
-  html.setAttribute('data-theme', next);
-  localStorage.setItem('lstr_theme', next);
-}
-
-/* ── Password show/hide ── */
-function togglePwd(btn) {
-  var inp = btn.previousElementSibling;
-  var show = inp.type === 'password';
-  inp.type = show ? 'text' : 'password';
-  btn.querySelector('.eye-on').style.display  = show ? 'none' : '';
-  btn.querySelector('.eye-off').style.display = show ? ''     : 'none';
-  btn.setAttribute('aria-label', show ? 'Hide password' : 'Show password');
-}
-
-/* ── Mobile sidebar ── */
-function openSidebar() {
-  document.querySelector('.sidebar').classList.add('open');
-  document.getElementById('sidebarOverlay').classList.add('active');
-  document.body.classList.add('sidebar-open');
-}
-function closeSidebar() {
-  document.querySelector('.sidebar').classList.remove('open');
-  document.getElementById('sidebarOverlay').classList.remove('active');
-  document.body.classList.remove('sidebar-open');
-}
-// Close on nav link click (navigating away closes drawer)
-document.querySelectorAll('.sidebar .nav-item').forEach(function(el) {
-  el.addEventListener('click', closeSidebar);
-});
-</script>
+<script src="<?= $b ?>/assets/js/admin.js"></script>
 
 </body>
 </html>

@@ -45,8 +45,7 @@ $b = rtrim(\Luster\Core\View::e($base_url ?? ''), '/');
     <div class="form-group">
       <label class="form-label">Change Network?</label>
       <div class="select-wrap">
-        <select name="add_network" id="add-network-toggle" class="form-select"
-                onchange="document.getElementById('network-name-row').style.display=this.value==='yes'?'block':'none'">
+        <select name="add_network" id="add-network-toggle" class="form-select">
           <option value="no">Keep current (<?= \Luster\Core\View::e($cat->source ?? 'custom') ?>)</option>
           <option value="yes">Change network</option>
         </select>
@@ -60,7 +59,7 @@ $b = rtrim(\Luster\Core\View::e($base_url ?? ''), '/');
 
     <div class="btn-row">
       <button type="submit" class="btn btn-primary">Save Changes</button>
-      <button type="button" class="btn btn-ghost" onclick="document.getElementById('edit-form').reset()">Clear</button>
+      <button type="button" class="btn btn-ghost js-form-reset">Clear</button>
       <a href="<?= $b ?>/admin/categories" class="btn btn-ghost">Cancel</a>
     </div>
   </form>
@@ -68,7 +67,7 @@ $b = rtrim(\Luster\Core\View::e($base_url ?? ''), '/');
   <?php if (!in_array($cat->source ?? '', ['tfl', 'tafl'], true)): ?>
     <div class="section-divider"></div>
     <form method="POST" action="<?= $b ?>/admin/categories/<?= (int) ($cat->id ?? 0) ?>/delete"
-          onsubmit="return confirm('Delete this category? This will unlink any listings using it.')">
+          data-confirm="Delete this category? This will unlink any listings using it.">
       <input type="hidden" name="_csrf" value="<?= \Luster\Core\View::e($csrf_token ?? '') ?>">
       <button type="submit" class="btn btn-danger">Delete Category</button>
     </form>

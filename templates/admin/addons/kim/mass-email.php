@@ -39,7 +39,8 @@ $b = rtrim(View::e($base_url), '/');
   </p>
 
   <form method="POST"
-        action="<?= $b ?>/admin/kim/<?= (int) $listing->id ?>/mass-email">
+        action="<?= $b ?>/admin/kim/<?= (int) $listing->id ?>/mass-email"
+        data-confirm="Send to <?= (int) $recipient_count ?> member<?= $recipient_count === 1 ? '' : 's' ?>?">
     <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
 
     <div class="form-group">
@@ -55,8 +56,7 @@ $b = rtrim(View::e($base_url), '/');
     </div>
 
     <div class="btn-row">
-      <button type="submit" class="btn btn-primary"
-              onclick="return confirm('Send to <?= (int) $recipient_count ?> member(s)?')">
+      <button type="submit" class="btn btn-primary">
         Send to <?= (int) $recipient_count ?> member<?= $recipient_count === 1 ? '' : 's' ?>
       </button>
       <a href="<?= $b ?>/admin/kim/<?= (int) $listing->id ?>/show"

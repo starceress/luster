@@ -5,9 +5,11 @@ declare(strict_types=1);
 namespace Luster\Controllers\Admin;
 
 use Luster\Core\Application;
+use Luster\Core\Mailer;
 use Luster\Core\Request;
 use Luster\Core\Response;
 use Luster\Repositories\ActivityRepo;
+use Luster\Repositories\EmailTemplateRepo;
 use Luster\Repositories\ListingRepo;
 use Luster\Repositories\MemberRepo;
 use Luster\Repositories\PendingUpdateRepo;
@@ -72,6 +74,25 @@ final class PendingUpdateController
         $memberRepo->update($listing->dbprefix, $pending->member_email, $pending->changes);
 
         $pendingRepo->delete($id);
+
+        // Notify the fan that their update has been applied (best-effort)
+        try {
+            $mailer    = new Mailer($this->app->getConfig());
+            $appName   = (string) $this->app->getConfig()->get('app_name', 'Luster');
+            $emailRepo = new EmailTemplateRepo($db);
+            $tpl       = $emailRepo->get($pending->fanlisting_id, EmailTemplateRepo::TYPE_UPDATE);
+            $tokens    = EmailTemplateRepo::buildTokens(
+                listingName: $listing->name,
+                listingUrl:  $listing->url,
+                appName:     $appName,
+                fanName:     $member->name,
+                fanEmail:    $member->email,
+            );
+            [$subject, $body] = EmailTemplateRepo::resolve($tpl, EmailTemplateRepo::TYPE_UPDATE, $tokens);
+            $mailer->send($member->email, $member->name, $subject, $body);
+        } catch (\Throwable $e) {
+            error_log('[Luster] Pending update approval email failed: ' . $e->getMessage());
+        }
 
         $activityRepo->log(
             (int) $session->get('lstr_admin_id'),

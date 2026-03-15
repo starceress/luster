@@ -68,7 +68,7 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
     <form method="post"
           action="<?= $b ?>/admin/listings/<?= (int) $listing->id ?>/delete"
           style="display:inline"
-          onsubmit="return confirm('Delete this listing and all its members? This cannot be undone.')">
+          data-confirm="Delete this listing and all its members? This cannot be undone.">
       <input type="hidden" name="_csrf" value="<?= \Luster\Core\View::e($csrf_token ?? '') ?>">
       <button type="submit" class="btn btn-danger btn-sm">Delete</button>
     </form>
@@ -110,17 +110,6 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
   <button class="neb-tab-btn" data-tab="templates">Templates</button>
   <button class="neb-tab-btn" data-tab="embed">Embed</button>
 </div>
-<script>
-document.querySelectorAll('.neb-tab-btn').forEach(function (btn) {
-  btn.addEventListener('click', function () {
-    document.querySelectorAll('.neb-tab-btn, .neb-tab-panel').forEach(function (el) {
-      el.classList.remove('active');
-    });
-    btn.classList.add('active');
-    document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
-  });
-});
-</script>
 
 <!-- ═══ TAB: GENERAL ═══ -->
 <div id="tab-general" class="neb-tab-panel active">
@@ -235,12 +224,10 @@ document.querySelectorAll('.neb-tab-btn').forEach(function (btn) {
         <input id="fl-last-updated" type="date" name="fl_last_updated" class="form-input"
                style="max-width:200px"
                value="<?= \Luster\Core\View::e($fl_last_updated ?? '') ?>">
-        <button type="button" class="btn btn-secondary btn-sm"
-                onclick="document.getElementById('fl-last-updated').value=new Date().toISOString().slice(0,10)">
+        <button type="button" class="btn btn-secondary btn-sm" id="set-today-btn">
           Set to today
         </button>
-        <button type="button" class="btn btn-ghost btn-sm"
-                onclick="document.getElementById('fl-last-updated').value=''">
+        <button type="button" class="btn btn-ghost btn-sm" id="clear-date-btn">
           Clear
         </button>
       </div>
@@ -442,7 +429,7 @@ document.querySelectorAll('.neb-tab-btn').forEach(function (btn) {
               <form method="POST"
                     action="<?= $b ?>/admin/listings/<?= (int) $listing->id ?>/fields/<?= urlencode($field->name) ?>/delete"
                     style="display:inline"
-                    onsubmit="return confirm('Drop the column for field \u201c<?= \Luster\Core\View::e(addslashes($field->name)) ?>\u201d? This permanently removes member data and cannot be undone.')">
+                    data-confirm="Drop the column for field &#x201C;<?= \Luster\Core\View::e($field->name) ?>&#x201D;? This permanently removes member data and cannot be undone.">
                 <input type="hidden" name="_csrf"     value="<?= \Luster\Core\View::e($csrf_token ?? '') ?>">
                 <input type="hidden" name="from_edit" value="1">
                 <button type="submit" style="background:none;border:none;color:var(--danger);font-size:0.8125rem;cursor:pointer;padding:0">Delete</button>
@@ -457,16 +444,6 @@ document.querySelectorAll('.neb-tab-btn').forEach(function (btn) {
 
   <?php endif; ?>
 
-<script>
-(function () {
-  var s = document.getElementById('fields-type-sel');
-  var r = document.getElementById('fields-options-row');
-  if (!s) return;
-  function t() { r.style.display = (s.value === 'dropdown' || s.value === 'checkbox' || s.value === 'radio') ? '' : 'none'; }
-  s.addEventListener('change', t);
-  t();
-}());
-</script>
 </div><!-- /#tab-fields -->
 
 <!-- ═══ TAB: AFFILIATES ═══ -->
@@ -520,7 +497,7 @@ document.querySelectorAll('.neb-tab-btn').forEach(function (btn) {
             <form method="POST"
                   action="<?= $b ?>/admin/affiliates/<?= (int) $aff->id ?>/delete"
                   style="display:inline"
-                  onsubmit="return confirm('Delete this affiliate?')">
+                  data-confirm="Delete this affiliate?">
               <input type="hidden" name="_csrf" value="<?= \Luster\Core\View::e($csrf_token ?? '') ?>">
               <input type="hidden" name="from_listing" value="<?= (int) $listing->id ?>">
               <button type="submit" style="background:none;border:none;color:var(--danger);font-size:0.8125rem;cursor:pointer;padding:0">Delete</button>
@@ -668,7 +645,7 @@ $embedBaseUrl   = rtrim((string) ($cfg['embed_base_url'] ?? ''), '/') ?: rtrim((
           <input id="fl-db-pass" type="password" name="db_pass" class="form-input"
                  maxlength="500" autocomplete="new-password"
                  placeholder="Leave blank to keep current">
-          <button type="button" class="input-icon-btn" onclick="togglePwd(this)" aria-label="Show password" tabindex="-1">
+          <button type="button" class="input-icon-btn" aria-label="Show password" tabindex="-1">
             <svg class="eye-on" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
             <svg class="eye-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" style="display:none"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
           </button>
@@ -709,121 +686,3 @@ $embedBaseUrl   = rtrim((string) ($cfg['embed_base_url'] ?? ''), '/') ?: rtrim((
 </div>
 </div><!-- /#tab-embed -->
 
-<script>
-(function () {
-  'use strict';
-
-  var widget   = document.getElementById('cat-widget');
-  var rowsEl   = document.getElementById('cat-rows');
-  var addLink  = document.getElementById('cat-add');
-
-  var tflCats    = JSON.parse(widget.dataset.tfl);
-  var taflCats   = JSON.parse(widget.dataset.tafl);
-  var customNets = JSON.parse(widget.dataset.custom);
-  var existing   = JSON.parse(widget.dataset.existing);
-
-  function esc(str) {
-    return String(str)
-      .replace(/&/g, '&amp;').replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-  }
-
-  function buildNetOpts(selected) {
-    var h = '<option value="">\u2014 select network \u2014</option>';
-    var nets = ['TFL', 'TAFL'].concat(customNets).sort(function (a, b) {
-      return a.toLowerCase().localeCompare(b.toLowerCase());
-    });
-    nets.forEach(function (name) {
-      h += '<option value="' + esc(name) + '"' + (selected === name ? ' selected' : '') + '>' + esc(name) + '</option>';
-    });
-    h += '<option value="other"' + (selected === 'other' ? ' selected' : '') + '>Other (add new)</option>';
-    return h;
-  }
-
-  function buildCatOpts(cats, selected) {
-    var h = '<option value="">\u2014 select category \u2014</option>';
-    cats.forEach(function (c) {
-      h += '<option value="' + esc(c.name) + '"' + (selected === c.name ? ' selected' : '') + '>' + esc(c.name) + '</option>';
-    });
-    return h;
-  }
-
-  function syncRow(row, netVal, catVal) {
-    var catSel = row.querySelector('.cat-name-sel');
-    var catTxt = row.querySelector('.cat-name-txt');
-    var othTxt = row.querySelector('.cat-other-net');
-    catVal = catVal || '';
-
-    if (netVal === 'TFL' || netVal === 'TAFL') {
-      catSel.innerHTML     = buildCatOpts(netVal === 'TFL' ? tflCats : taflCats, catVal);
-      catSel.disabled      = false;
-      catSel.style.display = '';
-      catTxt.disabled      = true;
-      catTxt.style.display = 'none';
-      othTxt.style.display = 'none';
-    } else if (netVal === 'other') {
-      catSel.disabled      = true;
-      catSel.style.display = 'none';
-      catTxt.disabled      = false;
-      catTxt.style.display = '';
-      if (catVal) { catTxt.value = catVal; }
-      othTxt.style.display = '';
-    } else if (netVal !== '') {
-      catSel.disabled      = true;
-      catSel.style.display = 'none';
-      catTxt.disabled      = false;
-      catTxt.style.display = '';
-      if (catVal) { catTxt.value = catVal; }
-      othTxt.style.display = 'none';
-    } else {
-      catSel.disabled      = true;
-      catSel.style.display = 'none';
-      catTxt.disabled      = true;
-      catTxt.style.display = 'none';
-      othTxt.style.display = 'none';
-    }
-  }
-
-  function makeRow(netVal, catVal, otherNetVal) {
-    netVal      = netVal      || '';
-    catVal      = catVal      || '';
-    otherNetVal = otherNetVal || '';
-
-    var row = document.createElement('div');
-    row.className = 'cat-row';
-    row.innerHTML =
-      '<select name="cat_network[]" class="cat-net-sel">' + buildNetOpts(netVal) + '</select>' +
-      '<select name="cat_name[]" class="cat-name-sel" disabled style="display:none"></select>' +
-      '<input  type="text" name="cat_network_other[]" class="cat-other-net" value="' + esc(otherNetVal) + '" placeholder="New network name" style="display:none">' +
-      '<input  type="text" name="cat_name[]"          class="cat-name-txt"  disabled style="display:none" placeholder="Category name">' +
-      '<button type="button" class="cat-remove-btn" title="Remove">&times;</button>';
-
-    row.querySelector('.cat-net-sel').addEventListener('change', function () {
-      syncRow(row, this.value, '');
-    });
-    row.querySelector('.cat-remove-btn').addEventListener('click', function () {
-      row.remove();
-    });
-
-    if (netVal) { syncRow(row, netVal, catVal); }
-    return row;
-  }
-
-  existing.forEach(function (entry) {
-    rowsEl.appendChild(makeRow(entry.network || '', entry.name || '', ''));
-  });
-
-  if (rowsEl.children.length === 0) {
-    rowsEl.appendChild(makeRow('', '', ''));
-  }
-
-  addLink.addEventListener('click', function (e) {
-    e.preventDefault();
-    rowsEl.appendChild(makeRow('', '', ''));
-  });
-
-  window.addCatRow = function () {
-    rowsEl.appendChild(makeRow('', '', ''));
-  };
-}());
-</script>

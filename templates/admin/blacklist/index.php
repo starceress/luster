@@ -98,7 +98,7 @@ $b = rtrim(View::e($base_url ?? ''), '/');
           <td class="act-col">
             <form method="POST"
                   action="<?= $b ?>/admin/blacklist/<?= (int) $entry['id'] ?>/delete"
-                  onsubmit="return confirm('Remove <?= View::e($entry['pattern']) ?> from the blacklist?')">
+                  data-confirm="Remove <?= \Luster\Core\View::e($entry['pattern']) ?> from the blacklist?">
               <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
               <button type="submit" class="btn btn-danger btn-sm">Remove</button>
             </form>

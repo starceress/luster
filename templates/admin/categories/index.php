@@ -42,7 +42,7 @@ $catPageUrl = static function (int $p) use ($b, $catFilterQs): string {
   <form method="GET" action="<?= $b ?>/admin/categories" class="neb-filter-row">
 
     <div class="toolbar-select-wrap">
-    <select name="source" class="neb-select" onchange="this.form.submit()">
+    <select name="source" class="neb-select js-autosubmit">
       <option value="">All Networks</option>
       <option value="tfl"  <?= ($source ?? '') === 'tfl'  ? 'selected' : '' ?>>TFL</option>
       <option value="tafl" <?= ($source ?? '') === 'tafl' ? 'selected' : '' ?>>TAFL</option>
@@ -113,7 +113,7 @@ $catPageUrl = static function (int $p) use ($b, $catFilterQs): string {
           <?php if (!in_array($cat->source ?? '', ['tfl', 'tafl'], true)): ?>
             <form method="POST" action="<?= $b ?>/admin/categories/<?= (int) $cat->id ?>/delete"
                   style="display:inline"
-                  onsubmit="return confirm('Delete this category?')">
+                  data-confirm="Delete this category?">
               <input type="hidden" name="_csrf" value="<?= \Luster\Core\View::e($csrf_token ?? '') ?>">
               <button type="submit" class="btn btn-danger btn-sm">Delete</button>
             </form>

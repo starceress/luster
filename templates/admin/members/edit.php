@@ -108,7 +108,7 @@ function oldVal(array $old, \Luster\Models\Member $m, string $key): string {
 
     <div class="btn-row">
       <button type="submit" class="btn btn-primary">Save Changes</button>
-      <button type="button" class="btn btn-ghost" onclick="this.form.reset()">Clear Form</button>
+      <button type="button" class="btn btn-ghost js-form-reset">Clear Form</button>
       <a href="<?= $b ?>/admin/members/<?= (int) ($listing->id ?? 0) ?>" class="neb-link">Cancel</a>
     </div>
   </form>
@@ -130,7 +130,7 @@ function oldVal(array $old, \Luster\Models\Member $m, string $key): string {
       <strong><?= \Luster\Core\View::e($member->email) ?></strong> will be kept; the duplicate will be permanently removed.
     </p>
     <form method="POST" action="<?= $b ?>/admin/members/<?= $id ?>/merge"
-          onsubmit="return confirm('Delete the duplicate member? This cannot be undone.')">
+          data-confirm="Delete the duplicate member? This cannot be undone.">
       <input type="hidden" name="_csrf"        value="<?= \Luster\Core\View::e($csrf_token ?? '') ?>">
       <input type="hidden" name="member_email" value="<?= \Luster\Core\View::e($member->email) ?>">
       <div style="display:flex;gap:.75rem;align-items:flex-end;flex-wrap:wrap">

@@ -62,8 +62,7 @@ usort($allNetworks, static fn($a, $b) => strcasecmp($a, $b));
   <form method="GET" action="" class="neb-filter-row" id="fl-filter-form">
 
     <div class="toolbar-select-wrap">
-    <select id="fl-net-sel" name="network" class="neb-select"
-            onchange="flNetChange(this.value);this.form.submit()">
+    <select id="fl-net-sel" name="network" class="neb-select">
       <option value="">All Networks</option>
       <?php foreach ($allNetworks as $net): ?>
         <option value="<?= \Luster\Core\View::e($net) ?>"
@@ -90,7 +89,7 @@ usort($allNetworks, static fn($a, $b) => strcasecmp($a, $b));
     </div>
 
     <div class="toolbar-select-wrap">
-    <select name="type" class="neb-select" onchange="this.form.submit()">
+    <select name="type" class="neb-select js-autosubmit">
       <option value="">All Types</option>
       <?php foreach ($type_options ?? [] as $to): ?>
         <option value="<?= \Luster\Core\View::e($to) ?>"
@@ -114,34 +113,6 @@ usort($allNetworks, static fn($a, $b) => strcasecmp($a, $b));
   </div>
 </div>
 
-<script>
-(function () {
-  var catSel    = document.getElementById('fl-cat-sel');
-  var tflCats   = JSON.parse(catSel.dataset.tfl);
-  var taflCats  = JSON.parse(catSel.dataset.tafl);
-  var customMap = JSON.parse(catSel.dataset.custom);
-
-  function esc(s) {
-    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-  }
-
-  window.flNetChange = function (net) {
-    var cats;
-    if (net === 'TFL')       cats = tflCats;
-    else if (net === 'TAFL') cats = taflCats;
-    else if (net !== '')     cats = customMap[net] || [];
-    else {
-      cats = tflCats.concat(taflCats);
-      Object.values(customMap).forEach(function (arr) { cats = cats.concat(arr); });
-      cats.sort(function (a, b) { return a.name.localeCompare(b.name); });
-    }
-    var html = '<option value="">All Categories</option>';
-    cats.forEach(function (c) { html += '<option value="' + esc(c.name) + '">' + esc(c.name) + '</option>'; });
-    catSel.innerHTML = html;
-    document.getElementById('fl-filter-form').submit();
-  };
-}());
-</script>
 
 <?php if ($success !== ''): ?>
   <div class="alert alert-success"><?= \Luster\Core\View::e($success) ?></div>
@@ -245,7 +216,7 @@ usort($allNetworks, static fn($a, $b) => strcasecmp($a, $b));
             <form method="POST"
                   action="<?= $b ?>/admin/listings/<?= (int) $fl->id ?>/delete"
                   style="display:inline"
-                  onsubmit="return confirm('Delete this listing and all its members? This cannot be undone.')">
+                  data-confirm="Delete this listing and all its members? This cannot be undone.">
               <input type="hidden" name="_csrf" value="<?= \Luster\Core\View::e($csrf_token ?? '') ?>">
               <button type="submit" class="btn btn-danger btn-sm">Delete</button>
             </form>
@@ -265,8 +236,7 @@ usort($allNetworks, static fn($a, $b) => strcasecmp($a, $b));
         <option value="delete">Delete selected</option>
       </select>
       </div>
-      <button type="submit" class="btn btn-secondary btn-sm"
-              onclick="return document.querySelector('.fl-row-cb:checked') ? confirm('Apply bulk action to selected listings?') : (alert('No listings selected.'), false)">
+      <button type="submit" class="btn btn-secondary btn-sm">
         Apply
       </button>
     </div>
@@ -306,10 +276,5 @@ usort($allNetworks, static fn($a, $b) => strcasecmp($a, $b));
 </nav>
 <?php endif; ?>
 
-<script>
-document.getElementById('fl-select-all').addEventListener('change', function () {
-  document.querySelectorAll('.fl-row-cb').forEach(cb => cb.checked = this.checked);
-});
-</script>
 
 <?php endif; ?>

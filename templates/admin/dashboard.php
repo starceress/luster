@@ -172,10 +172,10 @@ if (!function_exists('dashTimeAgo')) {
         not been updated in over <?= (int) $inactive_threshold_days ?> days
       </span>
     </div>
-    <form method="POST" action="<?= $b ?>/admin/maintenance/touch-all-updated">
+    <form method="POST" action="<?= $b ?>/admin/maintenance/touch-all-updated"
+          data-confirm="Mark all listings as updated today?">
       <input type="hidden" name="_csrf" value="<?= \Luster\Core\View::e($csrf_token ?? '') ?>">
-      <button type="submit" class="btn btn-secondary btn-sm"
-              onclick="return confirm('Mark all listings as updated today?')">
+      <button type="submit" class="btn btn-secondary btn-sm">
         Touch All
       </button>
     </form>
@@ -285,21 +285,3 @@ if (!function_exists('dashTimeAgo')) {
 
 </div><!-- /.two-col -->
 
-<script>
-/* ── Live date/time ── */
-(function updateTime() {
-  const days   = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
-  const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
-  const now    = new Date();
-  const h      = now.getHours();
-  const m      = now.getMinutes().toString().padStart(2, '0');
-  const ampm   = h >= 12 ? 'PM' : 'AM';
-  const h12    = h % 12 || 12;
-  const el     = document.getElementById('live-datetime');
-  if (el) {
-    el.textContent = 'Today is ' + days[now.getDay()] + ', ' + months[now.getMonth()] + ' ' +
-      now.getDate() + ', ' + now.getFullYear() + ' · ' + h12 + ':' + m + ' ' + ampm;
-  }
-  setTimeout(updateTime, 30000);
-})();
-</script>

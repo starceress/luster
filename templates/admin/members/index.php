@@ -45,7 +45,7 @@ $id = (int) $listing->id;
 
   <div class="neb-actions">
     <div class="toolbar-select-wrap">
-    <select class="neb-select" onchange="location=this.value">
+    <select class="neb-select js-nav-select">
       <option value="<?= $b ?>/admin/members"<?= !isset($listing) ? ' selected' : '' ?>>All pending members</option>
       <?php foreach ($all_listings as $fl): ?>
         <option value="<?= $b ?>/admin/members/<?= (int) $fl->id ?>?status=all"
@@ -70,7 +70,7 @@ $id = (int) $listing->id;
   Showing <?= count($members) ?> of <?= (int) $total ?> member(s) &mdash; page <?= (int) $page ?> of <?= (int) $pages ?>
 </p>
 
-<form method="POST" id="bulk-form">
+<form method="POST" id="bulk-form" action="<?= $b ?>/admin/members/<?= $id ?>/bulk">
   <input type="hidden" name="_csrf" value="<?= \Luster\Core\View::e($csrf_token ?? '') ?>">
 
   <div class="neb-card">
@@ -128,11 +128,11 @@ $id = (int) $listing->id;
             </form>
             <?php endif; ?>
 
-            <form method="POST" action="<?= $b ?>/admin/members/<?= $id ?>/delete" style="display:inline">
+            <form method="POST" action="<?= $b ?>/admin/members/<?= $id ?>/delete" style="display:inline"
+                  data-confirm="Delete this member permanently?">
               <input type="hidden" name="_csrf"        value="<?= \Luster\Core\View::e($csrf_token ?? '') ?>">
               <input type="hidden" name="member_email" value="<?= \Luster\Core\View::e($m->email) ?>">
-              <button type="submit" class="btn btn-danger btn-sm"
-                      onclick="return confirm('Delete this member permanently?')">Delete</button>
+              <button type="submit" class="btn btn-danger btn-sm">Delete</button>
             </form>
           </td>
         </tr>
@@ -150,8 +150,7 @@ $id = (int) $listing->id;
         <option value="delete">Delete</option>
       </select>
       </div>
-      <button type="submit" class="btn btn-secondary btn-sm"
-              onclick="return confirmBulk()">Apply</button>
+      <button type="submit" class="btn btn-secondary btn-sm">Apply</button>
     </div>
   </div><!-- /.neb-card -->
 
@@ -202,22 +201,3 @@ $memPageUrl = static function (int $p) use ($b, $id, $memFilterQs): string {
 
 <?php endif; ?>
 
-<script>
-document.getElementById('check-all').addEventListener('change', function () {
-  document.querySelectorAll('#bulk-form input[name="emails[]"]').forEach(function (cb) {
-    cb.checked = this.checked;
-  }, this);
-});
-
-document.getElementById('bulk-form').action = '<?= $b ?>/admin/members/<?= $id ?>/bulk';
-
-window.confirmBulk = function () {
-  var checked = document.querySelectorAll('#bulk-form input[name="emails[]"]:checked');
-  if (!checked.length) { alert('No members selected.'); return false; }
-  var action = document.querySelector('#bulk-form select[name="bulk_action"]').value;
-  if (action === 'delete') {
-    return confirm('Delete ' + checked.length + ' selected member(s)? This cannot be undone.');
-  }
-  return true;
-};
-</script>

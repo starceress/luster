@@ -86,7 +86,7 @@ $approvedMembers = array_filter($members, static fn($m) => !$m->pending);
             </form>
             <form method="POST" action="<?= $b ?>/admin/kim/<?= (int) $m->id ?>/delete"
                   style="display:inline"
-                  onsubmit="return confirm('Delete this KIM entry for <?= View::e(addslashes($m->name)) ?>?')">
+                  data-confirm="Delete this KIM entry for <?= \Luster\Core\View::e($m->name) ?>?">
               <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
               <button type="submit" class="btn btn-danger btn-sm">Delete</button>
             </form>
@@ -141,7 +141,7 @@ $approvedMembers = array_filter($members, static fn($m) => !$m->pending);
                class="btn btn-secondary btn-sm">Email</a>
             <form method="POST" action="<?= $b ?>/admin/kim/<?= (int) $m->id ?>/delete"
                   style="display:inline"
-                  onsubmit="return confirm('Delete this KIM entry for <?= View::e(addslashes($m->name)) ?>?')">
+                  data-confirm="Delete this KIM entry for <?= \Luster\Core\View::e($m->name) ?>?">
               <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
               <button type="submit" class="btn btn-danger btn-sm">Delete</button>
             </form>
