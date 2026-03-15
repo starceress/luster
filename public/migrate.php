@@ -174,6 +174,10 @@ try {
             // Migration 23 was applied
             $toMark[] = 23;
         }
+        if ($tableExists('lstr_addons')) {
+            // Migration 27 was applied
+            $toMark[] = 27;
+        }
 
         if (!empty($toMark)) {
             $vals = implode(',', array_map(static fn(int $n): string => "($n)", $toMark));
@@ -745,6 +749,25 @@ try {
     }
 } catch (PDOException $e) {
     $errors[] = 'lstr_admin_remember_tokens — ' . htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Migration 27: lstr_addons — installed add-on registry
+// ─────────────────────────────────────────────────────────────────────────────
+try {
+    if (!(int) $pdo->query('SELECT COUNT(*) FROM `lstr_migrations` WHERE migration_number = 27')->fetchColumn()) {
+        $pdo->exec(
+            "CREATE TABLE IF NOT EXISTS `lstr_addons` (
+                `addon_key`    VARCHAR(50)  NOT NULL,
+                `installed_at` DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                PRIMARY KEY (`addon_key`)
+             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci"
+        );
+        $pdo->exec('INSERT INTO `lstr_migrations` (migration_number) VALUES (27)');
+        $done[] = 'Created <code>lstr_addons</code> table';
+    }
+} catch (PDOException $e) {
+    $errors[] = 'lstr_addons — ' . htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 }
 
 ?><!DOCTYPE html>

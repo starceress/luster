@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use Luster\Controllers\Admin\AddonsController;
 use Luster\Controllers\Admin\ActivityLogController;
 use Luster\Controllers\Admin\MassEmailController;
 use Luster\Controllers\Admin\AdminUsersController;
@@ -273,6 +274,14 @@ return [
             CategoryController::class, 'edit');
         $router->post('/admin/categories/{id}/delete',
             CategoryController::class, 'delete');
+
+        // ── Add-ons ───────────────────────────────────────────────────
+        $router->get('/admin/addons',
+            AddonsController::class, 'index');
+        $router->post('/admin/addons/install',
+            AddonsController::class, 'install');
+        $router->post('/admin/addons/uninstall',
+            AddonsController::class, 'uninstall');
 
         // ── Activity log ─────────────────────────────────────────────
         $router->get('/admin/activity',

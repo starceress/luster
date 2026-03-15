@@ -45,6 +45,12 @@ final class Application
     private CSRF      $csrf;
     private RateLimit $rateLimit;
 
+    /** Addon keys that are currently installed (populated at boot). */
+    private array $installedAddonKeys = [];
+
+    /** Discovered addon instances keyed by addon key (populated on demand). */
+    private ?array $discoveredAddons = null;
+
     public function __construct(
         private readonly string $basePath,
         string $configPath,
@@ -108,6 +114,64 @@ final class Application
     }
 
     /**
+     * Returns addon keys that are currently installed.
+     * Available after boot() has been called.
+     */
+    public function getInstalledAddonKeys(): array
+    {
+        return $this->installedAddonKeys;
+    }
+
+    public function isAddonInstalled(string $key): bool
+    {
+        return in_array($key, $this->installedAddonKeys, true);
+    }
+
+    /**
+     * Scans src/Addons/ and returns one instance per discovered add-on.
+     * Results are cached for the lifetime of the request.
+     *
+     * @return AddonInterface[]  keyed by addon key, sorted alphabetically
+     */
+    public function discoverAddons(): array
+    {
+        if ($this->discoveredAddons !== null) {
+            return $this->discoveredAddons;
+        }
+
+        $this->discoveredAddons = [];
+        $addonsDir = $this->basePath . '/src/Addons';
+
+        if (!is_dir($addonsDir)) {
+            return $this->discoveredAddons;
+        }
+
+        foreach (new \DirectoryIterator($addonsDir) as $entry) {
+            if (!$entry->isDir() || $entry->isDot()) {
+                continue;
+            }
+
+            $dirName = $entry->getFilename();
+            $class   = "Luster\\Addons\\{$dirName}\\{$dirName}Addon";
+
+            if (!class_exists($class)) {
+                continue;
+            }
+
+            $instance = new $class();
+
+            if (!($instance instanceof AddonInterface)) {
+                continue;
+            }
+
+            $this->discoveredAddons[$instance->getKey()] = $instance;
+        }
+
+        ksort($this->discoveredAddons);
+        return $this->discoveredAddons;
+    }
+
+    /**
      * Returns the application base URL with no trailing slash.
      * Used by controllers to build full redirect URLs (e.g. for Location headers).
      */
@@ -157,7 +221,9 @@ final class Application
         try {
             $this->applyTimezone();
             $this->session->start();
+            $this->loadInstalledAddons();
             $this->loadRoutes($context);
+            $this->loadAddonRoutes();
 
             $request = new Request();
 
@@ -174,6 +240,43 @@ final class Application
             $response->send();
         } catch (Throwable $e) {
             $this->handleException($e);
+        }
+    }
+
+    /**
+     * Loads the list of installed addon keys from lstr_addons.
+     * Silently skips if the table does not exist yet (pre-migration 27).
+     */
+    private function loadInstalledAddons(): void
+    {
+        try {
+            $rows = $this->database
+                ->pdo()
+                ->query('SELECT `addon_key` FROM `lstr_addons`')
+                ->fetchAll(\PDO::FETCH_COLUMN);
+
+            $this->installedAddonKeys = is_array($rows) ? $rows : [];
+        } catch (\Throwable) {
+            // Table doesn't exist yet — treat as no addons installed.
+            $this->installedAddonKeys = [];
+        }
+    }
+
+    /**
+     * Calls registerRoutes() on every installed addon that has been discovered.
+     */
+    private function loadAddonRoutes(): void
+    {
+        if (empty($this->installedAddonKeys)) {
+            return;
+        }
+
+        $discovered = $this->discoverAddons();
+
+        foreach ($this->installedAddonKeys as $key) {
+            if (isset($discovered[$key])) {
+                $discovered[$key]->registerRoutes($this->router);
+            }
         }
     }
 
