@@ -234,6 +234,8 @@ return [
             SettingsController::class, 'index');
         $router->post('/admin/settings',
             SettingsController::class, 'update');
+        $router->post('/admin/settings/templates',
+            SettingsController::class, 'updateTemplates');
         $router->post('/admin/settings/profile',
             SettingsController::class, 'updateProfile');
         $router->post('/admin/settings/test-email',

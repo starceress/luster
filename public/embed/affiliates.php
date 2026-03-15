@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use Luster\Repositories\AffiliateRepo;
 use Luster\Repositories\ListingRepo;
+use Luster\Repositories\ListingSettingsRepo;
 
 /**
  * Luster embed — affiliates fragment.
@@ -92,6 +93,20 @@ if ($_lusterListingId > 0) {
 }
 
 // ---------------------------------------------------------------------------
+// 3b. Load affiliate row template from DB (per-listing mode only)
+// ---------------------------------------------------------------------------
+
+$_lusterAffiliateTemplate = null;
+if ($_lusterListingId > 0) {
+    $_lusterSettingsRepo      = new ListingSettingsRepo($_lusterApp->getDatabase());
+    $_lusterTpls              = $_lusterSettingsRepo->getTemplates($_lusterListingId);
+    if ($_lusterTpls['affiliates_template'] !== null
+        && trim($_lusterTpls['affiliates_template']) !== '') {
+        $_lusterAffiliateTemplate = $_lusterTpls['affiliates_template'];
+    }
+}
+
+// ---------------------------------------------------------------------------
 // 4. Build pagination
 // ---------------------------------------------------------------------------
 
@@ -124,12 +139,31 @@ $_lusterPagination = $_lusterBuildPagination($_lusterPage, $_lusterResult['pages
 // 5. Render fragment
 // ---------------------------------------------------------------------------
 
+// Build per-row HTML when a custom template is set
+$_lusterAffiliatesHtml = null;
+if ($_lusterAffiliateTemplate !== null) {
+    $e = static fn(string $v): string => htmlspecialchars($v, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+    $rows = '';
+    foreach ($_lusterResult['items'] as $_aff) {
+        $imageTag = ($_aff->image !== null && $_aff->image !== '')
+            ? '<img src="' . $e($_lusterUploadsUrl . '/' . $_aff->image) . '" alt="' . $e($_aff->name) . '">'
+            : '';
+        $rows .= str_replace(
+            ['$$aff_name$$', '$$aff_url$$', '$$aff_image$$'],
+            [$e($_aff->name), $e($_aff->url), $imageTag],
+            $_lusterAffiliateTemplate,
+        );
+    }
+    $_lusterAffiliatesHtml = $rows;
+}
+
 $_lusterHtml = $_lusterApp->getView()->renderFragment('affiliates.php', [
     'listing'      => $_lusterListing,
     'listing_name' => $_lusterTitle,
     'listing_url'  => $_lusterListing?->url ?? $_lusterApp->getBaseUrl(),
     'page_title'      => $_lusterIsCollective ? 'Affiliates' : 'Affiliates — ' . $_lusterTitle,
     'affiliates'      => $_lusterResult['items'],
+    'affiliates_html' => $_lusterAffiliatesHtml,
     'total'           => $_lusterResult['total'],
     'pagination'      => $_lusterPagination,
     'is_collective'   => $_lusterIsCollective,

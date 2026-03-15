@@ -60,7 +60,9 @@ use Luster\Core\View;
 
   <?php elseif (($members_html ?? null) !== null && $members_html !== ''): ?>
     <!-- Custom DB template member rows -->
-    <?= $members_html ?>
+    <ul class="fl-member-list">
+      <?= $members_html ?>
+    </ul>
     <?php if ($pagination !== ''): ?>
       <div class="fl-pagination"><?= $pagination ?></div>
     <?php endif; ?>

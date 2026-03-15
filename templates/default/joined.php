@@ -39,7 +39,13 @@ $_renderItem = static function ($fl) use ($uploads_url): void {
 ?>
 <div class="fl-wrap">
 
-  <?php if ($_isGroupedMode): ?>
+  <?php if (($listing_html ?? null) !== null && $listing_html !== ''): ?>
+    <!-- Custom DB template listing rows -->
+    <ul class="fl-fanlisting-list">
+      <?= $listing_html ?>
+    </ul>
+
+  <?php elseif ($_isGroupedMode): ?>
     <?php /* Show-all mode: all active listings grouped by category heading */ ?>
     <?php if (empty($grouped)): ?>
       <p class="fl-empty">No listings to display.</p>

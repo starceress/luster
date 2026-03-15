@@ -312,8 +312,7 @@ document.querySelectorAll('.neb-tab-btn').forEach(function (btn) {
         $$fan_name$$ &bull; $$fan_email$$ &bull; $$fan_url$$ &bull; $$fan_country$$
       </p>
       <textarea id="members_template" name="members_template" class="form-textarea" rows="8"
-                style="font-family:'DM Mono',monospace;font-size:0.8125rem"
-                placeholder="Leave blank to use the built-in default"><?= \Luster\Core\View::e($templates['members_template'] ?? '') ?></textarea>
+                style="font-family:'DM Mono',monospace;font-size:0.8125rem"><?= \Luster\Core\View::e($templates['members_template'] ?? '<li class="fl-member"><a class="fl-link" href="$$fan_url$$">$$fan_name$$</a> <span class="fl-muted">— $$fan_country$$</span></li>') ?></textarea>
     </div>
 
     <div class="form-group">
@@ -322,18 +321,16 @@ document.querySelectorAll('.neb-tab-btn').forEach(function (btn) {
         $$aff_url$$ &bull; $$aff_image$$ &bull; $$aff_name$$
       </p>
       <textarea id="affiliates_template" name="affiliates_template" class="form-textarea" rows="8"
-                style="font-family:'DM Mono',monospace;font-size:0.8125rem"
-                placeholder="Leave blank to use the built-in default"><?= \Luster\Core\View::e($templates['affiliates_template'] ?? '') ?></textarea>
+                style="font-family:'DM Mono',monospace;font-size:0.8125rem"><?= \Luster\Core\View::e($templates['affiliates_template'] ?? '<li class="fl-affiliate"><a class="fl-affiliate-link" href="$$aff_url$$" target="_blank" rel="noopener noreferrer">$$aff_image$$$$aff_name$$</a></li>') ?></textarea>
     </div>
 
     <div class="form-group">
       <label class="form-label" for="stats_template">Statistics</label>
       <p class="form-hint" style="font-family:'DM Mono',monospace;margin-bottom:0.5rem;line-height:1.8">
-        $$stat_opened$$ &bull; $$stat_updated$$ &bull; $$stat_approved$$ &bull; $$stat_pending$$ &bull; $$stat_newmembers$$
+        $$stat_opened$$ &bull; $$stat_updated$$ &bull; $$stat_last_updated$$ &bull; $$stat_approved$$ &bull; $$stat_pending$$ &bull; $$stat_newmembers$$ &bull; $$stat_growth$$
       </p>
       <textarea id="stats_template" name="stats_template" class="form-textarea" rows="8"
-                style="font-family:'DM Mono',monospace;font-size:0.8125rem"
-                placeholder="Leave blank to use the built-in default"><?= \Luster\Core\View::e($templates['stats_template'] ?? '') ?></textarea>
+                style="font-family:'DM Mono',monospace;font-size:0.8125rem"><?= \Luster\Core\View::e($templates['stats_template'] ?? '<p>Opened: $$stat_opened$$<br>Last updated: $$stat_updated$$<br>Members: $$stat_approved$$ ($$stat_pending$$ pending)<br>Newest: $$stat_newmembers$$</p>') ?></textarea>
     </div>
 
     <div class="btn-row">

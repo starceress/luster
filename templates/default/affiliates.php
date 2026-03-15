@@ -38,7 +38,9 @@ use Luster\Core\View;
     <p class="fl-muted" style="font-size:.875rem">
       <?= (int) $total ?> affiliate<?= $total !== 1 ? 's' : '' ?>
     </p>
-    <?= $affiliates_html ?>
+    <ul class="fl-affiliate-list">
+      <?= $affiliates_html ?>
+    </ul>
     <?php if ($pagination !== ''): ?>
       <div class="fl-pagination"><?= $pagination ?></div>
     <?php endif; ?>

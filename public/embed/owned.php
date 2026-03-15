@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use Luster\Repositories\ListingRepo;
+use Luster\Repositories\SiteSettingsRepo;
 
 /**
  * Luster embed — owned listings list.
@@ -92,6 +93,33 @@ $_lusterListings = $_lusterListingRepo->getFiltered(
 $_lusterCategories = $_lusterListingRepo->getCategoryList();
 
 // ---------------------------------------------------------------------------
+// 3b. Load owned listing row template from DB (if set)
+// ---------------------------------------------------------------------------
+
+$_lusterSiteRepo      = new SiteSettingsRepo($_lusterApp->getDatabase());
+$_lusterOwnedTemplate = $_lusterSiteRepo->get('owned_template');
+if ($_lusterOwnedTemplate !== null && trim($_lusterOwnedTemplate) === '') {
+    $_lusterOwnedTemplate = null;
+}
+
+// Build per-listing HTML when a custom template is set
+$_lusterListingHtml = null;
+if ($_lusterOwnedTemplate !== null) {
+    $e = static fn(string $v): string => htmlspecialchars($v, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+    $statusLabels = ['current' => 'Current', 'upcoming' => 'Upcoming', 'trouble' => 'Trouble'];
+    $rows = '';
+    foreach ($_lusterListings as $_fl) {
+        $statusLabel = $statusLabels[$_fl->status ?? 'current'] ?? 'Current';
+        $rows .= str_replace(
+            ['$$listing_name$$', '$$listing_url$$', '$$listing_subject$$', '$$listing_status$$'],
+            [$e($_fl->name), $e($_fl->url), $e($_fl->subject ?? ''), $e($statusLabel)],
+            $_lusterOwnedTemplate,
+        );
+    }
+    $_lusterListingHtml = $rows;
+}
+
+// ---------------------------------------------------------------------------
 // 4. Build form action URL (current page so the selector posts back here)
 // ---------------------------------------------------------------------------
 
@@ -107,6 +135,7 @@ $_lusterFormAction = htmlspecialchars(
 
 $_lusterHtml = $_lusterApp->getView()->renderFragment('owned.php', [
     'listings'      => $_lusterListings,
+    'listing_html'  => $_lusterListingHtml,
     'categories'       => $_lusterCategories,
     'current_category' => $_lusterCatId,
     'status'           => $_lusterStatus,

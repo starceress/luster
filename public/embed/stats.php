@@ -19,18 +19,18 @@ use Luster\Repositories\MemberRepo;
  *   $luster_return        = false;  // optional: true = return string, false = echo
  *   require '/absolute/path/to/luster/public/embed/stats.php';
  *
- * Available $token$ placeholders (same as the /stats/{id} endpoint):
- *   $stat_opened$       — date listing opened ("March 1st 2026")
- *   $stat_updated$      — date of most recent approved member (same format)
- *   $stat_last_updated$ — admin-controlled "last updated" date from
- *                         lstr_fanlisting_settings; falls back to the
- *                         last_updated_fallback config value (default "Never")
- *   $stat_approved$     — approved member count
- *   $stat_pending$      — pending member count
- *   $stat_newmembers$   — comma-separated newest 5 approved member names
- *   $stat_growth$       — members per day since opened (2 decimal places)
- *   $listing_name$   — listing name (HTML-escaped)
- *   $listing_url$    — listing URL (HTML-escaped)
+ * Available $$token$$ placeholders (same as the /stats/{id} endpoint):
+ *   $$stat_opened$$       — date listing opened ("March 1st 2026")
+ *   $$stat_updated$$      — date of most recent approved member (same format)
+ *   $$stat_last_updated$$ — admin-controlled "last updated" date from
+ *                           lstr_fanlisting_settings; falls back to the
+ *                           last_updated_fallback config value (default "Never")
+ *   $$stat_approved$$     — approved member count
+ *   $$stat_pending$$      — pending member count
+ *   $$stat_newmembers$$   — comma-separated newest 5 approved member names
+ *   $$stat_growth$$       — members per day since opened (2 decimal places)
+ *   $$listing_name$$      — listing name (HTML-escaped)
+ *   $$listing_url$$       — listing URL (HTML-escaped)
  */
 
 // ---------------------------------------------------------------------------
@@ -110,9 +110,9 @@ $_lusterLastUpdatedFallback = (string) $_lusterApp->getConfig()->get('last_updat
 $_lusterTemplate     = ($_lusterTemplates['stats_template'] !== null
                      && trim($_lusterTemplates['stats_template']) !== '')
     ? $_lusterTemplates['stats_template']
-    : '<p>Opened: $stat_opened$<br>Last updated: $stat_updated$<br>'
-    . 'Members: $stat_approved$ ($stat_pending$ pending)<br>'
-    . 'Newest: $stat_newmembers$</p>';
+    : '<p>Opened: $$stat_opened$$<br>Last updated: $$stat_updated$$<br>'
+    . 'Members: $$stat_approved$$ ($$stat_pending$$ pending)<br>'
+    . 'Newest: $$stat_newmembers$$</p>';
 
 // ---------------------------------------------------------------------------
 // 6. Format dates
@@ -169,15 +169,15 @@ $_lusterAdminUpdatedStr = $_lusterAdminLastUpdated !== null
 
 $_lusterHtml = str_replace(
     [
-        '$stat_opened$',
-        '$stat_updated$',
-        '$stat_last_updated$',
-        '$stat_approved$',
-        '$stat_pending$',
-        '$stat_newmembers$',
-        '$stat_growth$',
-        '$listing_name$',
-        '$listing_url$',
+        '$$stat_opened$$',
+        '$$stat_updated$$',
+        '$$stat_last_updated$$',
+        '$$stat_approved$$',
+        '$$stat_pending$$',
+        '$$stat_newmembers$$',
+        '$$stat_growth$$',
+        '$$listing_name$$',
+        '$$listing_url$$',
     ],
     [
         $_lusterOpened,

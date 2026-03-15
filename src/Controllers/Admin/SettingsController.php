@@ -11,6 +11,7 @@ use Luster\Core\Response;
 use Luster\Core\Validator;
 use Luster\Repositories\ActivityRepo;
 use Luster\Repositories\AdminUserRepo;
+use Luster\Repositories\SiteSettingsRepo;
 use RuntimeException;
 
 /**
@@ -69,13 +70,21 @@ final class SettingsController
         $adminRepo = new AdminUserRepo($this->app->getDatabase());
         $adminUser = $adminRepo->getById($adminId);
 
+        $siteRepo        = new SiteSettingsRepo($this->app->getDatabase());
+        $collectiveTemplates = $siteRepo->getMany([
+            'owned_template',
+            'joined_template',
+            'collective_stats_template',
+        ]);
+
         return $this->layout('admin/settings/index.php', [
-            'cfg'             => $this->app->getConfig()->all(),
-            'admin_user'      => $adminUser,
-            'users'           => $adminRepo->getAll(),
-            'current_admin_id' => $adminId,
-            'success'         => $success,
-            'error'           => $error,
+            'cfg'                 => $this->app->getConfig()->all(),
+            'admin_user'          => $adminUser,
+            'users'               => $adminRepo->getAll(),
+            'current_admin_id'    => $adminId,
+            'collective_templates' => $collectiveTemplates,
+            'success'             => $success,
+            'error'               => $error,
         ], 'Settings', 'settings');
     }
 
@@ -281,6 +290,36 @@ final class SettingsController
     // -----------------------------------------------------------------------
     // Internals
     // -----------------------------------------------------------------------
+
+    // -----------------------------------------------------------------------
+    // POST /admin/settings/templates
+    // -----------------------------------------------------------------------
+
+    public function updateTemplates(Request $request, array $params): Response
+    {
+        $session  = $this->app->getSession();
+        $baseUrl  = $this->app->getBaseUrl();
+
+        $ownedTemplate       = (string) $request->post('owned_template', '');
+        $joinedTemplate      = (string) $request->post('joined_template', '');
+        $cStatsTemplate      = (string) $request->post('collective_stats_template', '');
+
+        $siteRepo = new SiteSettingsRepo($this->app->getDatabase());
+        $siteRepo->set('owned_template',            $ownedTemplate      !== '' ? $ownedTemplate      : null);
+        $siteRepo->set('joined_template',           $joinedTemplate     !== '' ? $joinedTemplate     : null);
+        $siteRepo->set('collective_stats_template', $cStatsTemplate     !== '' ? $cStatsTemplate     : null);
+
+        $activityRepo = new ActivityRepo($this->app->getDatabase());
+        $activityRepo->log(
+            (int) $session->get('lstr_admin_id'),
+            'settings.templates.update',
+            'Updated collective embed templates',
+            $request->ip(),
+        );
+
+        $session->set('lstr_flash_success', 'Collective templates saved.');
+        return Response::redirect($baseUrl . '/admin/settings#tab-collective-templates');
+    }
 
     /**
      * Writes the config array to config/app.php via a safe temp-file pattern.

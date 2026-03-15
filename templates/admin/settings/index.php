@@ -26,18 +26,29 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
   <button class="neb-tab-btn"        data-tab="email">Email</button>
   <button class="neb-tab-btn"        data-tab="embed">Embed &amp; Paths</button>
   <button class="neb-tab-btn"        data-tab="database">Database &amp; Debug</button>
+  <button class="neb-tab-btn"        data-tab="collective-templates">Collective Templates</button>
 </div>
 
 <script>
-document.querySelectorAll('.neb-tab-btn').forEach(function (btn) {
-  btn.addEventListener('click', function () {
-    document.querySelectorAll('.neb-tab-btn, .neb-tab-panel').forEach(function (el) {
-      el.classList.remove('active');
-    });
-    btn.classList.add('active');
-    document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+function settingsActivateTab(tabId) {
+  document.querySelectorAll('.neb-tab-btn, .neb-tab-panel').forEach(function (el) {
+    el.classList.remove('active');
   });
+  var btn = document.querySelector('.neb-tab-btn[data-tab="' + tabId + '"]');
+  var panel = document.getElementById('tab-' + tabId);
+  if (btn)   btn.classList.add('active');
+  if (panel) panel.classList.add('active');
+}
+document.querySelectorAll('.neb-tab-btn').forEach(function (btn) {
+  btn.addEventListener('click', function () { settingsActivateTab(btn.dataset.tab); });
 });
+// Activate tab from URL hash (e.g. after redirect from updateTemplates)
+(function () {
+  var hash = window.location.hash.replace('#tab-', '');
+  if (hash && document.querySelector('.neb-tab-btn[data-tab="' + hash + '"]')) {
+    settingsActivateTab(hash);
+  }
+}());
 </script>
 
 <!-- ── Admin Details ────────────────────────────────────────── -->
@@ -434,3 +445,77 @@ document.querySelectorAll('.neb-tab-btn').forEach(function (btn) {
     </div><!-- /#tab-database -->
 
   </form>
+
+  <!-- ═══ TAB: COLLECTIVE TEMPLATES ═══ -->
+  <div id="tab-collective-templates" class="neb-tab-panel">
+  <form method="POST" action="<?= $b ?>/admin/settings/templates">
+    <input type="hidden" name="_csrf" value="<?= \Luster\Core\View::e($csrf_token) ?>">
+
+    <div class="neb-card" style="padding:1.25rem 1.5rem;margin-bottom:1.25rem">
+      <div class="neb-card-header" style="margin:-1.25rem -1.5rem 1rem;padding:.75rem 1.5rem">About Collective Templates</div>
+      <p class="form-hint" style="margin:0">
+        These templates control how each item looks in the <strong>Owned Listings</strong>,
+        <strong>Joined Listings</strong>, and <strong>Site Statistics</strong> embeds on your
+        collective page. Write plain HTML and drop in the tokens shown below each field —
+        Luster replaces them with real data automatically. Each field is pre-filled
+        with the built-in default so you can edit from a working starting point.
+      </p>
+    </div>
+
+    <?php $ct = $collective_templates ?? []; ?>
+
+    <!-- Owned listing row -->
+    <div class="neb-card" style="padding:1.25rem 1.5rem;margin-bottom:1.25rem">
+      <div class="neb-card-header" style="margin:-1.25rem -1.5rem 1rem;padding:.75rem 1.5rem">Owned Listings — Row Template</div>
+      <p class="form-hint" style="font-family:'DM Mono',monospace;margin-bottom:.5rem;line-height:2">
+        $$listing_name$$ &bull; $$listing_url$$ &bull; $$listing_subject$$ &bull; $$listing_status$$
+      </p>
+      <div class="form-group" style="margin-bottom:0">
+        <textarea name="owned_template" class="form-textarea" rows="6"
+                  style="font-family:'DM Mono',monospace;font-size:.8125rem"><?= \Luster\Core\View::e($ct['owned_template'] ?? '<li class="fl-fanlisting"><a class="fl-link" href="$$listing_url$$" target="_blank" rel="noopener noreferrer">$$listing_name$$</a> <span class="fl-muted">— $$listing_subject$$</span></li>') ?></textarea>
+      </div>
+    </div>
+
+    <!-- Joined listing row -->
+    <div class="neb-card" style="padding:1.25rem 1.5rem;margin-bottom:1.25rem">
+      <div class="neb-card-header" style="margin:-1.25rem -1.5rem 1rem;padding:.75rem 1.5rem">Joined Listings — Row Template</div>
+      <p class="form-hint" style="font-family:'DM Mono',monospace;margin-bottom:.5rem;line-height:2">
+        $$listing_name$$ &bull; $$listing_url$$ &bull; $$listing_category$$ &bull; $$listing_image$$
+      </p>
+      <div class="form-group" style="margin-bottom:0">
+        <textarea name="joined_template" class="form-textarea" rows="6"
+                  style="font-family:'DM Mono',monospace;font-size:.8125rem"><?= \Luster\Core\View::e($ct['joined_template'] ?? '<li class="fl-fanlisting"><a class="fl-link" href="$$listing_url$$" target="_blank" rel="noopener noreferrer">$$listing_name$$</a> <span class="fl-muted">— $$listing_category$$</span></li>') ?></textarea>
+      </div>
+    </div>
+
+    <!-- Collective stats template -->
+    <div class="neb-card" style="padding:1.25rem 1.5rem;margin-bottom:1.25rem">
+      <div class="neb-card-header" style="margin:-1.25rem -1.5rem 1rem;padding:.75rem 1.5rem">Site Statistics Template</div>
+      <p class="form-hint" style="font-family:'DM Mono',monospace;margin-bottom:.5rem;line-height:2">
+        $$owned_active$$ &bull; $$owned_upcoming$$ &bull; $$owned_trouble$$ &bull; $$joined_active$$
+        &bull; $$affiliates$$ &bull; $$members_total$$ &bull; $$members_approved$$ &bull; $$members_pending$$
+        &bull; $$owned_newest_name$$ &bull; $$owned_newest_url$$ &bull; $$owned_random_name$$ &bull; $$owned_random_url$$
+      </p>
+      <div class="form-group" style="margin-bottom:0">
+        <textarea name="collective_stats_template" class="form-textarea" rows="8"
+                  style="font-family:'DM Mono',monospace;font-size:.8125rem"><?= \Luster\Core\View::e($ct['collective_stats_template'] ?? '<div class="fl-collective-stats">
+  <dl class="fl-stats-grid">
+    <dt>Owned listings</dt>
+    <dd>$$owned_active$$ open, $$owned_upcoming$$ upcoming</dd>
+    <dt>Joined listings</dt>
+    <dd>$$joined_active$$</dd>
+    <dt>Total members</dt>
+    <dd>$$members_approved$$ approved, $$members_pending$$ pending</dd>
+  </dl>
+  <p>Newest: <a href="$$owned_newest_url$$">$$owned_newest_name$$</a></p>
+  <p>Featured: <a href="$$owned_random_url$$">$$owned_random_name$$</a></p>
+</div>') ?></textarea>
+      </div>
+    </div>
+
+    <div style="display:flex;gap:.75rem;align-items:center">
+      <button type="submit" class="btn btn-primary">Save Templates</button>
+    </div>
+  </form>
+  </div><!-- /#tab-collective-templates -->
+

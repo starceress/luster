@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use Luster\Repositories\JoinedListingRepo;
+use Luster\Repositories\SiteSettingsRepo;
 
 /**
  * Luster embed — joined listings list.
@@ -96,6 +97,46 @@ if ($_lusterCategory === 'all') {
 }
 
 // ---------------------------------------------------------------------------
+// 3b. Load joined listing row template from DB (if set)
+// ---------------------------------------------------------------------------
+
+$_lusterSiteRepo       = new SiteSettingsRepo($_lusterApp->getDatabase());
+$_lusterJoinedTemplate = $_lusterSiteRepo->get('joined_template');
+if ($_lusterJoinedTemplate !== null && trim($_lusterJoinedTemplate) === '') {
+    $_lusterJoinedTemplate = null;
+}
+
+// Build per-listing HTML when a custom template is set.
+// Applied to both flat ($listings) and grouped ($grouped) modes.
+$_lusterListingHtml = null;
+if ($_lusterJoinedTemplate !== null) {
+    $e          = static fn(string $v): string => htmlspecialchars($v, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+    $_lusterUploadsUrl = $_lusterApp->getBaseUrl() . '/uploads';
+    $renderRow  = static function (object $fl) use ($_lusterJoinedTemplate, $e, $_lusterUploadsUrl): string {
+        $imageTag = ($fl->image !== null && $fl->image !== '')
+            ? '<img src="' . $e($_lusterUploadsUrl . '/' . $fl->image) . '" alt="' . $e($fl->name) . '">'
+            : '';
+        return str_replace(
+            ['$$listing_name$$', '$$listing_url$$', '$$listing_category$$', '$$listing_image$$'],
+            [$e($fl->name), $e($fl->url), $e($fl->category ?? ''), $imageTag],
+            $_lusterJoinedTemplate,
+        );
+    };
+
+    if (!empty($_lusterGrouped)) {
+        $rows = '';
+        foreach ($_lusterGrouped as $catName => $items) {
+            foreach ($items as $fl) {
+                $rows .= $renderRow($fl);
+            }
+        }
+        $_lusterListingHtml = $rows;
+    } elseif (!empty($_lusterListings)) {
+        $_lusterListingHtml = implode('', array_map($renderRow, $_lusterListings));
+    }
+}
+
+// ---------------------------------------------------------------------------
 // 4. Build form action URL (current page so the selector posts back here)
 // ---------------------------------------------------------------------------
 
@@ -112,6 +153,7 @@ $_lusterFormAction = htmlspecialchars(
 $_lusterHtml = $_lusterApp->getView()->renderFragment('joined.php', [
     'listings'         => $_lusterListings,
     'grouped'          => $_lusterGrouped,
+    'listing_html'     => $_lusterListingHtml,
     'categories'       => $_lusterCategories,
     'current_category' => $_lusterCategory,
     'show_list'        => $_lusterShowList,

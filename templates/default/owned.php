@@ -86,6 +86,11 @@ use Luster\Core\View;
 
   <?php if (empty($listings)): ?>
     <p class="fl-empty">No listings to display.</p>
+  <?php elseif (($listing_html ?? null) !== null && $listing_html !== ''): ?>
+    <!-- Custom DB template listing rows -->
+    <ul class="fl-fanlisting-list">
+      <?= $listing_html ?>
+    </ul>
   <?php else: ?>
     <ul class="fl-fanlisting-list">
       <?php foreach ($listings as $fl): ?>

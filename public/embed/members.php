@@ -5,6 +5,7 @@ declare(strict_types=1);
 use Luster\Repositories\ListingRepo;
 use Luster\Repositories\FieldRepo;
 use Luster\Repositories\MemberRepo;
+use Luster\Repositories\ListingSettingsRepo;
 
 /**
  * Luster embed — members list fragment.
@@ -116,6 +117,30 @@ $_lusterShowSearch = (bool) ($luster_show_search ?? true);
 
 $_lusterMemberRepo = new MemberRepo($_lusterApp->getDatabase(), $_lusterApp->getConfig());
 
+// ---------------------------------------------------------------------------
+// 4b. Load member row template from DB (if set)
+// ---------------------------------------------------------------------------
+
+$_lusterSettingsRepo   = new ListingSettingsRepo($_lusterApp->getDatabase());
+$_lusterTemplates      = $_lusterSettingsRepo->getTemplates($_lusterListingId);
+$_lusterMemberTemplate = ($_lusterTemplates['members_template'] !== null
+                       && trim($_lusterTemplates['members_template']) !== '')
+    ? $_lusterTemplates['members_template']
+    : null;
+
+/**
+ * Applies $$token$$ substitution for a single member row.
+ * Always HTML-escapes values before substitution.
+ */
+$_lusterRenderMember = static function (object $member) use ($_lusterMemberTemplate): string {
+    $e = static fn(string $v): string => htmlspecialchars($v, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+    return str_replace(
+        ['$$fan_name$$', '$$fan_url$$', '$$fan_email$$', '$$fan_country$$'],
+        [$e($member->name), $e($member->url ?? ''), $e($member->email), $e($member->country)],
+        (string) $_lusterMemberTemplate,
+    );
+};
+
 // Shared data for all rendering paths
 $_lusterCommonData = [
     'listing'      => $_lusterListing,
@@ -203,9 +228,14 @@ if ($_lusterCountry !== '') {
         ['sort' => 'country', 'country' => $_lusterCountry],
     );
 
+    $_lusterMembersHtml = null;
+    if ($_lusterMemberTemplate !== null) {
+        $_lusterMembersHtml = implode('', array_map($_lusterRenderMember, $_lusterResult['members']));
+    }
     $_lusterHtml = $_lusterApp->getView()->renderFragment('members.php', array_merge($_lusterCommonData, [
         'country'         => $_lusterCountry,
         'members'         => $_lusterResult['members'],
+        'members_html'    => $_lusterMembersHtml,
         'country_summary' => [],
         'stats_line'      => $_lusterStatsLine,
         'pagination'      => $_lusterPagination,
@@ -227,6 +257,7 @@ if ($_lusterCountry !== '') {
     $_lusterHtml = $_lusterApp->getView()->renderFragment('members.php', array_merge($_lusterCommonData, [
         'country'         => '',
         'members'         => [],
+        'members_html'    => null,
         'country_summary' => $_lusterCountrySummary,
         'stats_line'      => $_lusterStatsLine,
         'pagination'      => '',
@@ -242,9 +273,14 @@ if ($_lusterCountry !== '') {
         $_lusterPage, $_lusterResult['pages'], $_lusterMembersBase, ['sort' => 'name'],
     );
 
+    $_lusterMembersHtml = null;
+    if ($_lusterMemberTemplate !== null) {
+        $_lusterMembersHtml = implode('', array_map($_lusterRenderMember, $_lusterResult['members']));
+    }
     $_lusterHtml = $_lusterApp->getView()->renderFragment('members.php', array_merge($_lusterCommonData, [
         'country'         => '',
         'members'         => $_lusterResult['members'],
+        'members_html'    => $_lusterMembersHtml,
         'country_summary' => [],
         'stats_line'      => $_lusterStatsLine,
         'pagination'      => $_lusterPagination,

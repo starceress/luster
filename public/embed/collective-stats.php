@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use Luster\Repositories\CollectiveStatsRepo;
+use Luster\Repositories\SiteSettingsRepo;
 
 /**
  * Luster embed — collective statistics.
@@ -241,7 +242,58 @@ $luster_collective_fans     = $_lusterMembers['total'];
 // 5. Optional rendered HTML block
 // ---------------------------------------------------------------------------
 
-if (!($luster_return ?? false)) {
+// Load collective stats template from DB (if set)
+$_lusterSiteRepo    = new SiteSettingsRepo($_lusterApp->getDatabase());
+$_lusterCStatsTemplate = $_lusterSiteRepo->get('collective_stats_template');
+if ($_lusterCStatsTemplate !== null && trim($_lusterCStatsTemplate) === '') {
+    $_lusterCStatsTemplate = null;
+}
+
+if (!($luster_return ?? false) && $_lusterCStatsTemplate === null) {
+    return;
+}
+
+// When a DB template is set, do token substitution and return/echo it
+if ($_lusterCStatsTemplate !== null) {
+    $_lusterE = static fn(string $v): string =>
+        htmlspecialchars($v, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+
+    $_lusterHtml = str_replace(
+        [
+            '$$owned_active$$',
+            '$$owned_upcoming$$',
+            '$$owned_trouble$$',
+            '$$joined_active$$',
+            '$$affiliates$$',
+            '$$members_total$$',
+            '$$members_approved$$',
+            '$$members_pending$$',
+            '$$owned_newest_name$$',
+            '$$owned_newest_url$$',
+            '$$owned_random_name$$',
+            '$$owned_random_url$$',
+        ],
+        [
+            (string) $luster_owned_active,
+            (string) $luster_owned_upcoming,
+            (string) $luster_owned_trouble,
+            (string) $luster_joined_active,
+            (string) $luster_affiliates,
+            (string) $luster_members_total,
+            (string) $luster_members_approved,
+            (string) $luster_members_pending,
+            $_lusterE(!empty($_lusterOwnedNewest) ? $_lusterOwnedNewest[0]->name : ''),
+            $_lusterE(!empty($_lusterOwnedNewest) ? $_lusterOwnedNewest[0]->url  : ''),
+            $_lusterE($_lusterOwnedRandom !== null ? $_lusterOwnedRandom->name : ''),
+            $_lusterE($_lusterOwnedRandom !== null ? $_lusterOwnedRandom->url  : ''),
+        ],
+        $_lusterCStatsTemplate,
+    );
+
+    if ($luster_return ?? false) {
+        return $_lusterHtml;
+    }
+    echo $_lusterHtml;
     return;
 }
 

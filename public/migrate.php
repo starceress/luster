@@ -19,11 +19,291 @@ ini_set('session.cookie_samesite', 'Strict');
 session_name('luster_session');
 session_start();
 
+// ─── Shared page shell ────────────────────────────────────────────────────
+/**
+ * Returns a fully-styled Nebula-themed HTML page for the migration runner.
+ *
+ * @param string $title    <title> / topbar subtitle
+ * @param string $content  Main card HTML
+ */
+function mig_page(string $title, string $content): string
+{
+    $h = static fn(string $s): string => htmlspecialchars($s, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+    $titleSafe = $h($title);
+
+    return <<<HTML
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{$titleSafe} — Luster</title>
+  <link rel="stylesheet" href="./assets/css/admin.css">
+  <style>
+    /* ── Migration runner — page-level overrides ─────────────── */
+    body {
+      display: block;
+      min-height: 100vh;
+      padding: 0;
+      margin: 0;
+    }
+
+    .mig-topbar {
+      position: sticky; top: 0; z-index: 50;
+      display: flex; align-items: center; gap: 14px;
+      padding: 0 28px;
+      height: 58px;
+      background: var(--bg-sidebar);
+      border-bottom: 1px solid var(--border);
+      box-shadow: 0 2px 16px rgba(0,0,0,0.35);
+    }
+    .mig-topbar-brand {
+      font-family: 'Playfair Display', Georgia, serif;
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: var(--accent);
+      letter-spacing: -0.01em;
+      text-decoration: none;
+    }
+    .mig-topbar-sep {
+      width: 1px; height: 20px;
+      background: var(--border);
+      flex-shrink: 0;
+    }
+    .mig-topbar-title {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      font-weight: 400;
+    }
+    .mig-topbar-theme {
+      margin-left: auto;
+      background: none; border: 1px solid var(--border);
+      color: var(--text-muted);
+      border-radius: 8px;
+      padding: 5px 10px;
+      cursor: pointer;
+      font-size: 0.8rem;
+      font-family: 'DM Sans', sans-serif;
+      transition: border-color 0.2s, color 0.2s;
+    }
+    .mig-topbar-theme:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    .mig-wrap {
+      max-width: 680px;
+      margin: 48px auto;
+      padding: 0 20px 48px;
+    }
+
+    .mig-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 32px 36px;
+      box-shadow: var(--shadow);
+      position: relative;
+      overflow: hidden;
+    }
+    .mig-card::before {
+      content: '';
+      position: absolute; top: 0; left: 0;
+      width: 4px; height: 100%;
+      background: linear-gradient(180deg, var(--accent), var(--accent2));
+      border-radius: 4px 0 0 4px;
+    }
+
+    .mig-heading {
+      font-family: 'Playfair Display', Georgia, serif;
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 6px;
+    }
+    .mig-sub {
+      font-size: 0.875rem;
+      color: var(--text-muted);
+      margin-bottom: 24px;
+      line-height: 1.5;
+    }
+
+    /* Warning callout */
+    .mig-warn {
+      display: flex; align-items: flex-start; gap: 12px;
+      background: var(--warn-bg);
+      border: 1px solid color-mix(in srgb, var(--warn) 40%, transparent);
+      border-radius: 10px;
+      padding: 14px 16px;
+      margin-bottom: 24px;
+    }
+    .mig-warn-icon {
+      font-size: 1rem; flex-shrink: 0;
+      line-height: 1.5;
+      color: var(--warn);
+    }
+    .mig-warn-text {
+      font-size: 0.875rem;
+      color: var(--text);
+      line-height: 1.5;
+    }
+    .mig-warn-text strong { color: var(--warn); }
+
+    /* Error callout */
+    .mig-error-callout {
+      display: flex; align-items: flex-start; gap: 12px;
+      background: var(--danger-bg);
+      border: 1px solid color-mix(in srgb, var(--danger) 40%, transparent);
+      border-radius: 10px;
+      padding: 14px 16px;
+      margin-bottom: 24px;
+    }
+    .mig-error-callout-icon { font-size: 1rem; flex-shrink: 0; line-height: 1.5; color: var(--danger); }
+    .mig-error-callout-text { font-size: 0.875rem; color: var(--text); line-height: 1.5; }
+
+    /* Result items */
+    .mig-results { display: flex; flex-direction: column; gap: 8px; margin: 20px 0; }
+
+    .mig-item {
+      display: flex; align-items: flex-start; gap: 12px;
+      padding: 12px 14px;
+      border-radius: 10px;
+      border: 1px solid transparent;
+      font-size: 0.875rem;
+      line-height: 1.4;
+    }
+    .mig-item-icon {
+      font-size: 0.85rem; flex-shrink: 0;
+      width: 22px; height: 22px;
+      display: flex; align-items: center; justify-content: center;
+      border-radius: 50%;
+      font-weight: 700;
+    }
+    .mig-item-text { color: var(--text); padding-top: 2px; }
+
+    .mig-item--ok {
+      background: var(--success-bg);
+      border-color: color-mix(in srgb, var(--success) 30%, transparent);
+    }
+    .mig-item--ok .mig-item-icon {
+      background: color-mix(in srgb, var(--success) 20%, transparent);
+      color: var(--success);
+    }
+
+    .mig-item--err {
+      background: var(--danger-bg);
+      border-color: color-mix(in srgb, var(--danger) 30%, transparent);
+    }
+    .mig-item--err .mig-item-icon {
+      background: color-mix(in srgb, var(--danger) 20%, transparent);
+      color: var(--danger);
+    }
+
+    /* Section labels */
+    .mig-section-label {
+      display: flex; align-items: center; gap: 10px;
+      font-size: 0.75rem; font-weight: 600; text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 10px; margin-top: 20px;
+    }
+    .mig-section-label::after {
+      content: ''; flex: 1; height: 1px; background: var(--border);
+    }
+    .mig-section-label--ok  { color: var(--success); }
+    .mig-section-label--err { color: var(--danger); }
+
+    /* Empty state */
+    .mig-empty {
+      text-align: center;
+      padding: 28px 0;
+      color: var(--text-dim);
+      font-size: 0.9rem;
+    }
+    .mig-empty-icon { font-size: 2rem; margin-bottom: 8px; opacity: 0.5; }
+
+    /* Summary pill */
+    .mig-summary {
+      display: flex; gap: 12px; flex-wrap: wrap;
+      margin-top: 24px; padding-top: 20px;
+      border-top: 1px solid var(--border);
+    }
+    .mig-badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 5px 12px;
+      border-radius: 100px;
+      font-size: 0.8rem; font-weight: 500;
+    }
+    .mig-badge--ok  { background: var(--success-bg); color: var(--success); }
+    .mig-badge--err { background: var(--danger-bg);  color: var(--danger); }
+
+    /* Back link */
+    .mig-back {
+      margin-top: 24px;
+      font-size: 0.875rem;
+    }
+    .mig-back a {
+      color: var(--accent);
+      text-decoration: none;
+      display: inline-flex; align-items: center; gap: 6px;
+      transition: opacity 0.15s;
+    }
+    .mig-back a:hover { opacity: 0.75; }
+
+    /* code */
+    code {
+      font-family: 'DM Mono', 'Courier New', monospace;
+      font-size: 0.82em;
+      background: var(--bg-subtle);
+      color: var(--accent);
+      padding: 1px 6px;
+      border-radius: 4px;
+      border: 1px solid var(--border-soft);
+    }
+  </style>
+  <script>
+    (function(){
+      var t = localStorage.getItem('lstr_theme');
+      if (t === 'dark' || t === 'light') document.documentElement.setAttribute('data-theme', t);
+      else document.documentElement.setAttribute('data-theme', 'dark');
+    })();
+  </script>
+</head>
+<body>
+
+<div class="mig-topbar">
+  <a class="mig-topbar-brand" href="./admin">Luster</a>
+  <div class="mig-topbar-sep"></div>
+  <span class="mig-topbar-title">Database Migrations</span>
+  <button class="mig-topbar-theme" onclick="(function(){var h=document.documentElement,t=h.getAttribute('data-theme')==='dark'?'light':'dark';h.setAttribute('data-theme',t);localStorage.setItem('lstr_theme',t);})()">
+    Toggle theme
+  </button>
+</div>
+
+<div class="mig-wrap">
+  <div class="mig-card">
+    {$content}
+  </div>
+</div>
+
+</body>
+</html>
+HTML;
+}
+
+// ─── Access denied ────────────────────────────────────────────────────────
 if (empty($_SESSION['lstr_admin_id'])) {
     http_response_code(403);
-    echo '<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>Access Denied</title></head><body>'
-        . '<h1>Access Denied</h1><p>Please <a href="admin.php">log in to the admin panel</a> first.</p>'
-        . '</body></html>';
+    echo mig_page('Access Denied', <<<HTML
+<h1 class="mig-heading">Access Denied</h1>
+<p class="mig-sub">You must be logged into the admin panel to run migrations.</p>
+<div class="mig-error-callout">
+  <div class="mig-error-callout-icon">&#128274;</div>
+  <div class="mig-error-callout-text">No active admin session was detected. Please log in first, then return to this page.</div>
+</div>
+<div class="mig-back">
+  <a href="./admin">&#8592; Go to admin login</a>
+</div>
+HTML);
     exit;
 }
 
@@ -37,27 +317,30 @@ if (empty($_SESSION['lstr_migrate_token'])) {
 }
 
 $migrateToken = (string) $_SESSION['lstr_migrate_token'];
+$tokenSafe    = htmlspecialchars($migrateToken, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     // Show confirmation page — nothing runs on GET.
-    $style = 'body{font-family:system-ui,sans-serif;max-width:540px;margin:2.5rem auto;padding:1rem;color:#111}'
-           . 'h1{font-size:1.4rem;margin-bottom:.75rem}'
-           . 'p{margin:.5rem 0 1rem}'
-           . '.warn{background:#fffbeb;border:1px solid #fcd34d;border-radius:5px;padding:.7rem 1rem;margin-bottom:1.25rem;color:#92400e}'
-           . 'button{background:#4f46e5;color:#fff;border:none;padding:.55rem 1.25rem;border-radius:5px;cursor:pointer;font-size:1rem}'
-           . 'button:hover{background:#4338ca}'
-           . 'a{color:#4f46e5}';
-    echo '<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>Run Migrations</title>'
-        . '<style>' . $style . '</style></head><body>'
-        . '<h1>Luster — Run Migrations</h1>'
-        . '<div class="warn">This will apply all pending database migrations. '
-        . 'Back up your database before continuing.</div>'
-        . '<form method="POST" action="">'
-        . '<input type="hidden" name="_csrf" value="' . htmlspecialchars($migrateToken, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '">'
-        . '<button type="submit">Run Migrations</button>'
-        . '</form>'
-        . '<p style="margin-top:1.25rem"><a href="admin.php">Cancel — return to admin panel</a></p>'
-        . '</body></html>';
+    echo mig_page('Run Migrations', <<<HTML
+<h1 class="mig-heading">Run Migrations</h1>
+<p class="mig-sub">Applies all pending database schema updates in sequence. Safe to re-run — already-applied migrations are skipped automatically.</p>
+<div class="mig-warn">
+  <div class="mig-warn-icon">&#9888;</div>
+  <div class="mig-warn-text">
+    <strong>Back up your database before continuing.</strong>
+    While each migration is designed to be safe, a backup ensures you can recover if anything goes wrong.
+  </div>
+</div>
+<form method="POST" action="">
+  <input type="hidden" name="_csrf" value="{$tokenSafe}">
+  <button type="submit" class="btn btn-primary">
+    &#8635;&nbsp; Run migrations
+  </button>
+</form>
+<div class="mig-back">
+  <a href="./admin">&#8592; Cancel &mdash; return to admin panel</a>
+</div>
+HTML);
     exit;
 }
 
@@ -65,10 +348,17 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 $submittedToken = (string) ($_POST['_csrf'] ?? '');
 if (!hash_equals($migrateToken, $submittedToken)) {
     http_response_code(403);
-    echo '<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>Invalid Token</title></head><body>'
-        . '<h1>Invalid or Expired Token</h1>'
-        . '<p><a href="migrate.php">Go back and try again.</a></p>'
-        . '</body></html>';
+    echo mig_page('Invalid Token', <<<HTML
+<h1 class="mig-heading">Invalid Token</h1>
+<p class="mig-sub">The security token was missing or expired.</p>
+<div class="mig-error-callout">
+  <div class="mig-error-callout-icon">&#128683;</div>
+  <div class="mig-error-callout-text">Please go back to the migration page and try again. Tokens are single-use and expire with your session.</div>
+</div>
+<div class="mig-back">
+  <a href="./migrate.php">&#8592; Back to migration page</a>
+</div>
+HTML);
     exit;
 }
 
@@ -79,9 +369,17 @@ $configPath = dirname(__DIR__) . '/config/app.php';
 
 if (!is_file($configPath)) {
     http_response_code(500);
-    echo '<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>Error</title></head><body>'
-        . '<h1>Configuration Missing</h1><p>config/app.php not found. Run the installer first.</p>'
-        . '</body></html>';
+    echo mig_page('Configuration Missing', <<<HTML
+<h1 class="mig-heading">Configuration Missing</h1>
+<p class="mig-sub">Luster is not yet installed.</p>
+<div class="mig-error-callout">
+  <div class="mig-error-callout-icon">&#128462;</div>
+  <div class="mig-error-callout-text"><code>config/app.php</code> was not found. Run the installer first, then return to this page.</div>
+</div>
+<div class="mig-back">
+  <a href="./install.php">&#8594; Go to installer</a>
+</div>
+HTML);
     exit;
 }
 
@@ -101,11 +399,19 @@ try {
         PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
     ]);
 } catch (PDOException $e) {
+    $errMsg = htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
     http_response_code(500);
-    echo '<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>DB Error</title></head><body>'
-        . '<h1>Database Connection Failed</h1>'
-        . '<p>' . htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '</p>'
-        . '</body></html>';
+    echo mig_page('Database Error', <<<HTML
+<h1 class="mig-heading">Database Connection Failed</h1>
+<p class="mig-sub">Could not connect to the database. Check your <code>config/app.php</code> credentials.</p>
+<div class="mig-error-callout">
+  <div class="mig-error-callout-icon">&#128268;</div>
+  <div class="mig-error-callout-text">{$errMsg}</div>
+</div>
+<div class="mig-back">
+  <a href="./migrate.php">&#8592; Try again</a>
+</div>
+HTML);
     exit;
 }
 
@@ -770,45 +1076,90 @@ try {
     $errors[] = 'lstr_addons — ' . htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 }
 
-?><!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <title>Luster Migration</title>
-  <style>
-    body  { font-family: system-ui, sans-serif; max-width: 640px; margin: 2.5rem auto; padding: 1rem; color: #111; }
-    h1    { font-size: 1.5rem; margin-bottom: 1.25rem; }
-    h2    { font-size: 1.1rem; margin: 1rem 0 0.5rem; }
-    .ok   { background: #f0fdf4; border: 1px solid #86efac; border-radius: 5px;
-            padding: .65rem 1rem; margin: .35rem 0; color: #15803d; }
-    .err  { background: #fef2f2; border: 1px solid #fca5a5; border-radius: 5px;
-            padding: .65rem 1rem; margin: .35rem 0; color: #b91c1c; }
-    code  { background: #f3f4f6; padding: .1rem .3rem; border-radius: 3px; font-size: .9em; }
-    a     { color: #4f46e5; }
-    .back { margin-top: 1.75rem; }
-  </style>
-</head>
-<body>
-<h1>Luster — Migration Runner</h1>
+// Migration 28: lstr_site_settings — global key/value store (collective templates etc.)
+// ─────────────────────────────────────────────────────────────────────────────
+try {
+    if (!(int) $pdo->query('SELECT COUNT(*) FROM `lstr_migrations` WHERE migration_number = 28')->fetchColumn()) {
+        $pdo->exec(
+            "CREATE TABLE IF NOT EXISTS `lstr_site_settings` (
+                `setting_key`   VARCHAR(100) NOT NULL,
+                `setting_value` TEXT         NULL,
+                `updated_at`    DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP
+                                             ON UPDATE CURRENT_TIMESTAMP,
+                PRIMARY KEY (`setting_key`)
+             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci"
+        );
+        $pdo->exec('INSERT INTO `lstr_migrations` (migration_number) VALUES (28)');
+        $done[] = 'Created <code>lstr_site_settings</code> table';
+    }
+} catch (PDOException $e) {
+    $errors[] = 'lstr_site_settings — ' . htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+}
 
-<?php if (!empty($errors)): ?>
-  <h2 style="color:#b91c1c">Errors</h2>
-  <?php foreach ($errors as $msg): ?>
-    <div class="err"><?= $msg ?></div>
-  <?php endforeach; ?>
+// ─────────────────────────────────────────────────────────────────────────────
+// Build results HTML
+// ─────────────────────────────────────────────────────────────────────────────
+
+$doneCount   = count($done);
+$errorCount  = count($errors);
+$totalCount  = $doneCount + $errorCount;
+
+ob_start();
+?>
+<h1 class="mig-heading">Migration Results</h1>
+<p class="mig-sub">All migrations have been processed.</p>
+
+<?php if ($totalCount === 0): ?>
+  <div class="mig-empty">
+    <div class="mig-empty-icon">&#10003;</div>
+    <div>Nothing to migrate &mdash; your schema is already up to date.</div>
+  </div>
+
+<?php else: ?>
+
+  <?php if (!empty($errors)): ?>
+    <div class="mig-section-label mig-section-label--err">
+      &#9888;&nbsp; Errors
+    </div>
+    <div class="mig-results">
+      <?php foreach ($errors as $msg): ?>
+        <div class="mig-item mig-item--err">
+          <div class="mig-item-icon">&#10005;</div>
+          <div class="mig-item-text"><?= $msg ?></div>
+        </div>
+      <?php endforeach; ?>
+    </div>
+  <?php endif; ?>
+
+  <?php if (!empty($done)): ?>
+    <div class="mig-section-label mig-section-label--ok">
+      &#10003;&nbsp; Applied
+    </div>
+    <div class="mig-results">
+      <?php foreach ($done as $msg): ?>
+        <div class="mig-item mig-item--ok">
+          <div class="mig-item-icon">&#10003;</div>
+          <div class="mig-item-text"><?= $msg ?></div>
+        </div>
+      <?php endforeach; ?>
+    </div>
+  <?php endif; ?>
+
+  <div class="mig-summary">
+    <?php if ($doneCount > 0): ?>
+      <span class="mig-badge mig-badge--ok">&#10003;&nbsp; <?= $doneCount ?> applied</span>
+    <?php endif; ?>
+    <?php if ($errorCount > 0): ?>
+      <span class="mig-badge mig-badge--err">&#9888;&nbsp; <?= $errorCount ?> failed</span>
+    <?php endif; ?>
+  </div>
+
 <?php endif; ?>
 
-<?php if (!empty($done)): ?>
-  <h2 style="color:#15803d">Completed</h2>
-  <?php foreach ($done as $msg): ?>
-    <div class="ok"><?= $msg ?></div>
-  <?php endforeach; ?>
-<?php endif; ?>
+<div class="mig-back">
+  <a href="./admin">&#8592; Return to admin panel</a>
+</div>
+<?php
 
-<?php if (empty($errors) && empty($done)): ?>
-  <p>Nothing to migrate.</p>
-<?php endif; ?>
-
-<p class="back"><a href="/luster/public/admin">Return to admin panel</a></p>
-</body>
-</html>
+$resultsHtml = ob_get_clean();
+echo mig_page('Migration Results', $resultsHtml);
