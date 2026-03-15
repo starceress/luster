@@ -97,7 +97,7 @@ if ($displayMode === 'category') {
 
     <input type="text" name="search" class="neb-input" placeholder="Search&hellip;"
            value="<?= \Luster\Core\View::e($search ?? '') ?>">
-    <button type="submit" class="btn btn-primary btn-sm">Search</button>
+    <button type="submit" class="btn btn-secondary btn-sm">Search</button>
     <a href="?" class="btn btn-secondary btn-sm">Reset</a>
 
   </form>
@@ -108,8 +108,8 @@ if ($displayMode === 'category') {
 </div>
 
 <?php if (empty($joined)): ?>
-  <div class="neb-card" style="padding:24px;color:var(--text-muted);font-size:.875rem">
-    No joined listings found<?= ($search ?? '') !== '' || ($filter_network ?? '') !== '' ? ' matching your filters' : '' ?>.
+  <div class="neb-card">
+    <p class="neb-empty">No joined listings found<?= ($search ?? '') !== '' || ($filter_network ?? '') !== '' ? ' matching your filters' : '' ?>.</p>
   </div>
 <?php else: ?>
 

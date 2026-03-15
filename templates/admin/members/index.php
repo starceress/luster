@@ -50,7 +50,7 @@ $id = (int) $listing->id;
     </select>
     </div>
 
-    <button type="submit" class="btn btn-primary btn-sm">Filter</button>
+    <button type="submit" class="btn btn-secondary btn-sm">Filter</button>
     <a href="?" class="btn btn-secondary btn-sm">Reset</a>
 
   </form>
@@ -67,7 +67,7 @@ $id = (int) $listing->id;
   </div>
 <?php else: ?>
 
-<p class="text-muted" style="font-size:.8rem;margin-bottom:.5rem">
+<p class="result-count">
   Showing <?= count($members) ?> of <?= (int) $total ?> member(s) &mdash; page <?= (int) $page ?> of <?= (int) $pages ?>
 </p>
 

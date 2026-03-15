@@ -9,7 +9,7 @@ $b = rtrim(\Luster\Core\View::e($base_url ?? ''), '/');
   <div class="alert alert-error"><?= \Luster\Core\View::e($error ?? '') ?></div>
 <?php endif; ?>
 
-<p style="margin:0 0 .75rem">
+<p class="page-back">
   <a href="<?= $b ?>/admin/categories" class="neb-link">&larr; Back to Categories</a>
 </p>
 

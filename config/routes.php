@@ -87,6 +87,10 @@ return [
         $router->get('/admin/login',   AuthController::class,      'loginForm');
         $router->post('/admin/login',  AuthController::class,      'login');
         $router->post('/admin/logout', AuthController::class,      'logout');
+        $router->get('/admin/forgot',          AuthController::class,      'forgotForm');
+        $router->post('/admin/forgot',         AuthController::class,      'forgot');
+        $router->get('/admin/reset/{token}',   AuthController::class,      'resetForm');
+        $router->post('/admin/reset/{token}',  AuthController::class,      'reset');
 
         // ── Maintenance ──────────────────────────────────────────────
         $router->post('/admin/maintenance/touch-all-updated',

@@ -15,7 +15,7 @@ $id = (int) $listing->id;
 ?>
 
 <!-- Breadcrumb -->
-<p style="margin:0 0 .75rem">
+<p class="page-back">
   <a href="<?= $b ?>/admin/listings/<?= $id ?>" class="neb-link">
     &larr; <?= \Luster\Core\View::e($listing->name) ?>
   </a>
@@ -67,7 +67,7 @@ $id = (int) $listing->id;
             </td>
             <td class="act-col">
               <a href="<?= $b ?>/admin/listings/<?= $id ?>/fields/<?= urlencode($field->name) ?>/edit"
-                 class="btn btn-secondary btn-sm">Edit</a>
+                 class="btn btn-primary btn-sm">Edit</a>
 
               <form method="POST"
                     action="<?= $b ?>/admin/listings/<?= $id ?>/fields/<?= urlencode($field->name) ?>/delete"
@@ -146,7 +146,7 @@ $id = (int) $listing->id;
 
       <!-- Submit -->
       <div>
-        <button type="submit" class="btn btn-primary">Add Field</button>
+        <button type="submit" class="btn btn-primary btn-sm">Add Field</button>
       </div>
 
     </div><!-- /.add-grid -->

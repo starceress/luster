@@ -65,16 +65,28 @@ document.querySelectorAll('.neb-tab-btn').forEach(function (btn) {
         <div class="form-row">
           <div class="form-group">
             <label class="form-label" for="p-new-pass">New Password</label>
-            <input id="p-new-pass" type="password" name="admin_new_password" class="form-input"
-                   maxlength="255" autocomplete="new-password"
-                   placeholder="Leave blank to keep current">
+            <div class="input-icon-wrap">
+              <input id="p-new-pass" type="password" name="admin_new_password" class="form-input"
+                     maxlength="255" autocomplete="new-password"
+                     placeholder="Leave blank to keep current">
+              <button type="button" class="input-icon-btn" onclick="togglePwd(this)" aria-label="Show password" tabindex="-1">
+                <svg class="eye-on" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                <svg class="eye-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" style="display:none"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+              </button>
+            </div>
             <p class="form-hint">Minimum 8 characters.</p>
           </div>
           <div class="form-group">
             <label class="form-label" for="p-confirm-pass">Confirm New Password</label>
-            <input id="p-confirm-pass" type="password" name="admin_confirm_password" class="form-input"
-                   maxlength="255" autocomplete="new-password"
-                   placeholder="Repeat new password">
+            <div class="input-icon-wrap">
+              <input id="p-confirm-pass" type="password" name="admin_confirm_password" class="form-input"
+                     maxlength="255" autocomplete="new-password"
+                     placeholder="Repeat new password">
+              <button type="button" class="input-icon-btn" onclick="togglePwd(this)" aria-label="Show password" tabindex="-1">
+                <svg class="eye-on" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                <svg class="eye-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" style="display:none"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+              </button>
+            </div>
           </div>
         </div>
 
@@ -105,22 +117,22 @@ document.querySelectorAll('.neb-tab-btn').forEach(function (btn) {
         <tbody>
           <?php foreach (($users ?? []) as $user): ?>
           <tr>
-            <td style="font-weight:600;color:var(--text)">
+            <td class="text-strong">
               <?= \Luster\Core\View::e($user->username) ?>
               <?php if ($user->id === ($current_admin_id ?? 0)): ?>
-                <span class="badge badge-info" style="font-size:.65rem;margin-left:.4rem">You</span>
+                <span class="neb-badge badge-info" style="margin-left:.4rem">You</span>
               <?php endif; ?>
             </td>
-            <td style="font-size:.875rem;color:var(--text-muted)"><?= \Luster\Core\View::e($user->email) ?></td>
-            <td style="font-size:.8rem;color:var(--text-dim)">
-              <?= $user->lastLogin !== null ? \Luster\Core\View::e(substr($user->lastLogin, 0, 16)) : '<span style="color:var(--text-dim)">Never</span>' ?>
+            <td class="text-muted"><?= \Luster\Core\View::e($user->email) ?></td>
+            <td class="text-dim">
+              <?= $user->lastLogin !== null ? \Luster\Core\View::e(substr($user->lastLogin, 0, 16)) : '—' ?>
             </td>
-            <td style="font-size:.8rem;color:var(--text-dim);white-space:nowrap">
+            <td class="text-dim nowrap">
               <?= \Luster\Core\View::e(substr($user->createdAt, 0, 10)) ?>
             </td>
             <td class="act-col">
               <a href="<?= $b ?>/admin/admin-users/<?= $user->id ?>/edit"
-                 class="btn btn-secondary btn-sm">Edit</a>
+                 class="btn btn-primary btn-sm">Edit</a>
               <?php if ($user->id !== ($current_admin_id ?? 0)): ?>
                 <form method="POST"
                       action="<?= $b ?>/admin/admin-users/<?= $user->id ?>/delete"
@@ -222,9 +234,15 @@ document.querySelectorAll('.neb-tab-btn').forEach(function (btn) {
           </div>
           <div class="form-group">
             <label class="form-label" for="s-smtp-pass">Password</label>
-            <input id="s-smtp-pass" type="password" name="smtp_pass" class="form-input"
-                   maxlength="500" autocomplete="new-password"
-                   placeholder="Leave blank to keep current">
+            <div class="input-icon-wrap">
+              <input id="s-smtp-pass" type="password" name="smtp_pass" class="form-input"
+                     maxlength="500" autocomplete="new-password"
+                     placeholder="Leave blank to keep current">
+              <button type="button" class="input-icon-btn" onclick="togglePwd(this)" aria-label="Show password" tabindex="-1">
+                <svg class="eye-on" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                <svg class="eye-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" style="display:none"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+              </button>
+            </div>
             <p class="form-hint">Only fill in to change the stored password.</p>
           </div>
         </div>

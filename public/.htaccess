@@ -79,9 +79,24 @@ Options -Indexes -MultiViews
 </IfModule>
 
 # -----------------------------------------------------------------------
-# Compression (optional performance boost)
+# Browser caching for static assets
+# -----------------------------------------------------------------------
+<IfModule mod_headers.c>
+    # Fonts and CSS: cache for 1 year (bump filename query string on deploy)
+    <FilesMatch "\.(woff2|woff|ttf|otf|eot|css)$">
+        Header set Cache-Control "public, max-age=31536000, immutable"
+    </FilesMatch>
+    # JS and images: cache for 1 week
+    <FilesMatch "\.(js|png|jpg|jpeg|gif|webp|svg|ico)$">
+        Header set Cache-Control "public, max-age=604800"
+    </FilesMatch>
+</IfModule>
+
+# -----------------------------------------------------------------------
+# Compression
 # -----------------------------------------------------------------------
 <IfModule mod_deflate.c>
     AddOutputFilterByType DEFLATE text/html text/plain text/css
     AddOutputFilterByType DEFLATE application/javascript application/json
+    AddOutputFilterByType DEFLATE image/svg+xml
 </IfModule>

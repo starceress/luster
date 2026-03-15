@@ -103,7 +103,7 @@ usort($allNetworks, static fn($a, $b) => strcasecmp($a, $b));
 
     <input type="text" name="search" class="neb-input"
            placeholder="Search&hellip;" value="<?= \Luster\Core\View::e($search ?? '') ?>">
-    <button type="submit" class="btn btn-primary btn-sm">Search</button>
+    <button type="submit" class="btn btn-secondary btn-sm">Search</button>
     <a href="?" class="btn btn-secondary btn-sm">Reset</a>
 
   </form>
@@ -148,8 +148,8 @@ usort($allNetworks, static fn($a, $b) => strcasecmp($a, $b));
 <?php endif; ?>
 
 <?php if (empty($listings)): ?>
-  <div class="neb-card" style="padding:24px;color:var(--text-muted);font-size:.875rem">
-    No listings found. <a href="<?= $b ?>/admin/listings/add" class="neb-link">Add one to get started</a>.
+  <div class="neb-card">
+    <p class="neb-empty">No listings found. <a href="<?= $b ?>/admin/listings/add" class="neb-link">Add one to get started</a>.</p>
   </div>
 <?php else: ?>
 

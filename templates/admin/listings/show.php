@@ -244,7 +244,7 @@ $imgHeight = $sizeMap[$sizeKey] ?? '100px';
           </td>
           <td class="act-col">
             <a href="<?= $b ?>/admin/affiliates/<?= (int) $aff->id ?>/edit?from_listing=<?= (int) $listing->id ?>"
-               class="btn btn-secondary btn-sm">Edit</a>
+               class="btn btn-primary btn-sm">Edit</a>
 
             <form method="POST"
                   action="<?= $b ?>/admin/affiliates/<?= (int) $aff->id ?>/toggle"

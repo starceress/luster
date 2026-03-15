@@ -140,7 +140,7 @@ final class Application
         $loginUrl = $this->getBaseUrl() . '/admin/login';
 
         $this->boot('admin', [
-            new AuthMiddleware($this->session, $loginUrl, ['/admin/login']),
+            new AuthMiddleware($this->session, $loginUrl, ['/admin/login', '/admin/forgot', '/admin/reset/'], $this->getDatabase()),
             new CsrfMiddleware($this->csrf),
         ]);
     }

@@ -16,8 +16,6 @@ $avatarChar = strtoupper(substr((string) ($admin_username ?? 'A'), 0, 1));
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title><?= \Luster\Core\View::e($page_title) ?> &mdash; <?= \Luster\Core\View::e($app_name) ?></title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400;1,600&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500&family=DM+Mono:wght@400&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="<?= $b ?>/assets/css/admin.css">
   <script>
     (function(){var t=localStorage.getItem('lstr_theme');if(t==='dark'||t==='light')document.documentElement.setAttribute('data-theme',t);})();
@@ -198,7 +196,8 @@ $avatarChar = strtoupper(substr((string) ($admin_username ?? 'A'), 0, 1));
   const canvas = document.getElementById('constellation');
   const ctx = canvas.getContext('2d');
   let stars = [];
-  const N = 55;
+  const N = 30;
+  let rafId = null;
 
   function resize() {
     canvas.width  = canvas.parentElement.offsetWidth;
@@ -255,12 +254,19 @@ $avatarChar = strtoupper(substr((string) ($admin_username ?? 'A'), 0, 1));
         }
       }
     }
-    requestAnimationFrame(draw);
+    rafId = requestAnimationFrame(draw);
   }
+
+  function start() { if (!rafId) { rafId = requestAnimationFrame(draw); } }
+  function stop()  { if (rafId)  { cancelAnimationFrame(rafId); rafId = null; } }
+
+  document.addEventListener('visibilitychange', function() {
+    document.hidden ? stop() : start();
+  });
 
   window.addEventListener('resize', init);
   init();
-  draw();
+  start();
 })();
 
 /* ── Theme toggle ── */
@@ -270,6 +276,16 @@ function toggleTheme() {
   const next = isDark ? 'light' : 'dark';
   html.setAttribute('data-theme', next);
   localStorage.setItem('lstr_theme', next);
+}
+
+/* ── Password show/hide ── */
+function togglePwd(btn) {
+  var inp = btn.previousElementSibling;
+  var show = inp.type === 'password';
+  inp.type = show ? 'text' : 'password';
+  btn.querySelector('.eye-on').style.display  = show ? 'none' : '';
+  btn.querySelector('.eye-off').style.display = show ? ''     : 'none';
+  btn.setAttribute('aria-label', show ? 'Hide password' : 'Show password');
 }
 
 /* ── Mobile sidebar ── */

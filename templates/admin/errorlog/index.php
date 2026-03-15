@@ -14,8 +14,8 @@ $b = rtrim(\Luster\Core\View::e($base_url), '/');
   <div class="alert alert-success"><?= \Luster\Core\View::e($success) ?></div>
 <?php endif; ?>
 
-<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.25rem">
-  <h1 style="font-size:1.25rem;font-weight:700;color:var(--text);margin:0">
+<div class="page-header">
+  <h1>
     Error Log
     <?php if ($total > 0): ?>
       <span style="font-size:.8rem;font-weight:400;color:var(--text-muted);margin-left:.4rem">(<?= (int) $total ?> entries)</span>
@@ -33,7 +33,7 @@ $b = rtrim(\Luster\Core\View::e($base_url), '/');
 
 <div class="neb-card">
   <?php if (empty($rows)): ?>
-    <p class="text-muted" style="padding:1.5rem 1rem;font-size:.875rem">No errors logged.</p>
+    <p class="neb-empty">No errors logged.</p>
   <?php else: ?>
     <table class="data-table">
       <thead>

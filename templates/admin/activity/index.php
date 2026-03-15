@@ -12,8 +12,8 @@ $b = rtrim(\Luster\Core\View::e($base_url), '/');
 ?>
 
 <!-- Page header -->
-<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
-  <h1 style="margin:0;font-size:1.25rem;font-weight:700;color:var(--text)">
+<div class="page-header">
+  <h1>
     Activity Log
     <?php if (($total ?? 0) > 0): ?>
       <span style="font-size:.8rem;font-weight:400;color:var(--text-muted);margin-left:.4rem">(<?= (int) $total ?> entries)</span>
@@ -58,7 +58,7 @@ $b = rtrim(\Luster\Core\View::e($base_url), '/');
   <p class="text-muted" style="font-size:.875rem">No log entries<?= $filter_action !== '' ? ' matching that filter' : '' ?>.</p>
 <?php else: ?>
 
-<p class="text-muted" style="font-size:.8rem;margin-bottom:.5rem">
+<p class="result-count">
   Showing <?= count($entries) ?> of <?= (int) $total ?> entr<?= $total === 1 ? 'y' : 'ies' ?> &mdash; page <?= (int) $page ?> of <?= (int) $pages ?>
 </p>
 

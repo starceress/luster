@@ -44,7 +44,7 @@ $dataCustom = json_encode($custom_networks ?? [], JSON_HEX_QUOT | JSON_HEX_AMP |
 $dataExist  = json_encode($existingCats,     JSON_HEX_QUOT | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_TAG);
 ?>
 
-<p style="margin-bottom:1rem">
+<p class="page-back">
   <a href="<?= $b ?>/admin/joined" class="neb-link">&larr; Joined Listings</a>
 </p>
 

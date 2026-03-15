@@ -3,9 +3,11 @@
  * @var string        $admin_username
  * @var string        $app_name
  * @var int           $total_listings
+ * @var int           $fan_current
  * @var int           $fan_pending
  * @var int           $fan_upcoming
  * @var int           $total_joined
+ * @var int           $total_joined_active
  * @var int           $total_joined_inactive
  * @var int           $total_joined_categories
  * @var int           $total_members
@@ -15,7 +17,9 @@
  * @var int           $total_affiliates_per_fl
  * @var int           $total_categories
  * @var string|null   $newest_owned_name
+ * @var string|null   $newest_owned_opened
  * @var string|null   $newest_joined_name
+ * @var string|null   $newest_joined_date
  * @var array[]       $recent_members   [{member: Member, listing_name: string}]
  * @var array[]       $recent_activity
  * @var string        $base_url
@@ -103,11 +107,11 @@ if (!function_exists('dashTimeAgo')) {
       <span class="stat-sparkle">✦</span>
     </div>
     <div class="stat-value">
-      <span style="display:block"><?= number_format((int) $total_members) ?> total</span>
+      <div><?= number_format((int) $total_members) ?> total</div>
       <?php if ($total_pending > 0): ?>
-        <a href="<?= $b ?>/admin/members" class="stat-pending-link" style="display:block"><?= (int) $total_pending ?> pending</a>
+        <a href="<?= $b ?>/admin/members" class="stat-pending-link"><?= (int) $total_pending ?> pending</a>
       <?php else: ?>
-        <span style="display:block;font-size:1rem;color:var(--text-muted)">No pending members</span>
+        <div class="stat-no-pending">No pending</div>
       <?php endif; ?>
     </div>
     <div class="stat-pills"></div>
@@ -143,7 +147,7 @@ if (!function_exists('dashTimeAgo')) {
     <?php if ($newest_owned_name !== null): ?>
       <a href="<?= $b ?>/admin/listings" class="newest-link"><?= \Luster\Core\View::e($newest_owned_name) ?></a>
     <?php else: ?>
-      <span style="color:var(--text-dim)">None yet</span>
+      <span class="text-dim">None yet</span>
     <?php endif; ?>
   </div>
   <div class="newest-row">
@@ -152,7 +156,7 @@ if (!function_exists('dashTimeAgo')) {
     <?php if ($newest_joined_name !== null): ?>
       <a href="<?= $b ?>/admin/joined" class="newest-link"><?= \Luster\Core\View::e($newest_joined_name) ?></a>
     <?php else: ?>
-      <span style="color:var(--text-dim)">None yet</span>
+      <span class="text-dim">None yet</span>
     <?php endif; ?>
   </div>
 </div>
@@ -200,7 +204,7 @@ if (!function_exists('dashTimeAgo')) {
       <a href="<?= $b ?>/admin/members" class="panel-link">View all &rarr;</a>
     </div>
     <?php if (empty($recent_members)): ?>
-      <div style="padding:20px;font-size:.8rem;color:var(--text-muted)">No members yet.</div>
+      <div class="panel-empty">No members yet.</div>
     <?php else: ?>
       <?php foreach ($recent_members as $rm):
         $m       = $rm['member'];
@@ -220,28 +224,63 @@ if (!function_exists('dashTimeAgo')) {
     <?php endif; ?>
   </div>
 
-  <!-- Recent Activity -->
+  <!-- Collective Statistics -->
   <div class="panel">
     <div class="panel-header">
       <div class="panel-title">
-        <span class="panel-icon">📋</span> Recent Activity
+        <span class="panel-icon">🌐</span> Collective Statistics
       </div>
-      <a href="<?= $b ?>/admin/activity" class="panel-link">View all &rarr;</a>
     </div>
-    <?php if (empty($recent_activity)): ?>
-      <div style="padding:20px;font-size:.8rem;color:var(--text-muted)">No activity recorded yet.</div>
-    <?php else: ?>
-      <?php foreach (array_slice($recent_activity, 0, 5) as $entry): ?>
-      <div class="activity-row">
-        <div class="activity-dot" style="background:<?= dashDotColor((string) ($entry['action'] ?? '')) ?>"></div>
-        <div class="activity-text">
-          <strong><?= \Luster\Core\View::e((string) ($entry['username'] ?? 'system')) ?></strong>
-          <?= \Luster\Core\View::e((string) ($entry['description'] ?? '')) ?>
-        </div>
-        <div class="activity-time"><?= dashTimeAgo((string) ($entry['created_at'] ?? '')) ?></div>
+
+    <div style="padding:1rem 1.25rem 0.75rem">
+      <div class="newest-row">
+        <span class="newest-star">✦</span>
+        <span class="newest-label">Categories:</span>
+        <span><?= (int) $total_categories ?></span>
       </div>
-      <?php endforeach; ?>
-    <?php endif; ?>
+      <div class="newest-row">
+        <span class="newest-star">✦</span>
+        <span class="newest-label">Joined Listings:</span>
+        <span><?= (int) $total_joined_active ?> approved (<?= (int) $total_joined_inactive ?> pending)</span>
+      </div>
+      <div class="newest-row">
+        <span class="newest-star">✦</span>
+        <span class="newest-label">Owned Listings:</span>
+        <span><?= (int) $fan_current ?> current, <?= (int) $fan_upcoming ?> upcoming, <?= (int) $fan_pending ?> pending</span>
+      </div>
+      <div class="newest-row">
+        <span class="newest-star">✦</span>
+        <span class="newest-label">Affiliates:</span>
+        <span><?= (int) $total_affiliates ?> affiliates</span>
+      </div>
+    </div>
+
+    <div style="padding:0.75rem 1.25rem 1rem;border-top:1px solid var(--border)">
+      <div class="newest-row">
+        <span class="newest-star">✦</span>
+        <span class="newest-label">Newest joined:</span>
+        <?php if ($newest_joined_name !== null): ?>
+          <a href="<?= $b ?>/admin/joined" class="newest-link"><?= \Luster\Core\View::e($newest_joined_name) ?></a>
+          <?php if (!empty($newest_joined_date)): ?>
+            <span class="text-dim">on <?= \Luster\Core\View::e(date('F j, Y', strtotime($newest_joined_date))) ?></span>
+          <?php endif; ?>
+        <?php else: ?>
+          <span class="text-dim">None yet</span>
+        <?php endif; ?>
+      </div>
+      <div class="newest-row">
+        <span class="newest-star">✦</span>
+        <span class="newest-label">Newest owned:</span>
+        <?php if ($newest_owned_name !== null): ?>
+          <a href="<?= $b ?>/admin/listings" class="newest-link"><?= \Luster\Core\View::e($newest_owned_name) ?></a>
+          <?php if (!empty($newest_owned_opened)): ?>
+            <span class="text-dim">on <?= \Luster\Core\View::e(date('F j, Y', strtotime($newest_owned_opened))) ?></span>
+          <?php endif; ?>
+        <?php else: ?>
+          <span class="text-dim">None yet</span>
+        <?php endif; ?>
+      </div>
+    </div>
   </div>
 
 </div><!-- /.two-col -->

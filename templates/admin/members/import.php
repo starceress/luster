@@ -16,7 +16,7 @@ $b  = rtrim(View::e($base_url ?? ''), '/');
 $id = (int) $listing->id;
 ?>
 
-<p style="margin:0 0 .75rem">
+<p class="page-back">
   <a href="<?= $b ?>/admin/members/<?= $id ?>" class="neb-link">&larr; Back to <?= View::e($listing->name) ?> members</a>
 </p>
 

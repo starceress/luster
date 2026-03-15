@@ -57,7 +57,7 @@ $catPageUrl = static function (int $p) use ($b, $catFilterQs): string {
 
     <input type="text" name="search" class="neb-input" placeholder="Search&hellip;"
            value="<?= \Luster\Core\View::e($search ?? '') ?>">
-    <button type="submit" class="btn btn-primary btn-sm">Search</button>
+    <button type="submit" class="btn btn-secondary btn-sm">Search</button>
     <a href="<?= $b ?>/admin/categories" class="btn btn-secondary btn-sm">Reset</a>
 
   </form>
@@ -66,7 +66,7 @@ $catPageUrl = static function (int $p) use ($b, $catFilterQs): string {
   </div>
 </div>
 
-<p class="text-muted" style="font-size:.8rem;margin-bottom:.5rem">
+<p class="result-count">
   Showing <?= count($items ?? []) ?> of <?= (int) ($total ?? 0) ?> categor<?= (int) ($total ?? 0) === 1 ? 'y' : 'ies' ?>
   <?php if (($source ?? '') !== ''): ?>
     in <strong><?= \Luster\Core\View::e(strtoupper($source ?? '')) ?></strong>

@@ -51,7 +51,7 @@ $pageUrl = static function (int $p) use ($b, $filterQs): string {
 
     <input type="text" name="search" class="neb-input" placeholder="Search name, URL, email&hellip;"
            value="<?= \Luster\Core\View::e($search ?? '') ?>">
-    <button type="submit" class="btn btn-primary btn-sm">Search</button>
+    <button type="submit" class="btn btn-secondary btn-sm">Search</button>
     <a href="?" class="btn btn-secondary btn-sm">Reset</a>
 
   </form>
@@ -61,8 +61,8 @@ $pageUrl = static function (int $p) use ($b, $filterQs): string {
 </div>
 
 <?php if (empty($affiliates)): ?>
-  <div class="neb-card" style="padding:24px;color:var(--text-muted);font-size:.875rem">
-    No affiliates found.
+  <div class="neb-card">
+    <p class="neb-empty">No affiliates found.</p>
   </div>
 <?php else: ?>
 
@@ -112,7 +112,7 @@ $pageUrl = static function (int $p) use ($b, $filterQs): string {
         </td>
         <td class="act-col">
           <a href="<?= $b ?>/admin/affiliates/<?= (int) $aff->id ?>/edit"
-             class="btn btn-secondary btn-sm">Edit</a>
+             class="btn btn-primary btn-sm">Edit</a>
 
           <form method="POST" action="<?= $b ?>/admin/affiliates/<?= (int) $aff->id ?>/toggle"
                 style="display:inline">

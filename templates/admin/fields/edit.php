@@ -16,7 +16,7 @@ $encName = urlencode($field->name);
 ?>
 
 <!-- Breadcrumb -->
-<p style="margin:0 0 .75rem">
+<p class="page-back">
   <a href="<?= $b ?>/admin/listings/<?= $id ?>/fields" class="neb-link">
     &larr; <?= \Luster\Core\View::e($listing->name) ?> &mdash; Fields
   </a>

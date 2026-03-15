@@ -70,14 +70,14 @@ final class DashboardController
 
         // ── Owned listings ────────────────────────────────────────────
         $fanStats    = $listingRepo->getStats();
-        $listings = $listingRepo->getAll();
+        $listings    = $listingRepo->getAll();
         $fanPending  = (int) $fanStats['trouble'];   // 'trouble' = pending status
         $fanUpcoming = (int) $fanStats['upcoming'];
+        $fanCurrent  = (int) $fanStats['total'] - $fanPending - $fanUpcoming;
 
-        $newestOwnedName = null;
-        if (!empty($listings)) {
-            $newestOwnedName = $listings[count($listings) - 1]->name;
-        }
+        $newestOwned       = !empty($listings) ? $listings[count($listings) - 1] : null;
+        $newestOwnedName   = $newestOwned?->name;
+        $newestOwnedOpened = $newestOwned?->opened;
 
         // ── Members ──────────────────────────────────────────────────────
         $totalMembers  = 0;
@@ -110,12 +110,14 @@ final class DashboardController
         $joinedRow           = $stmt->fetch();
         $totalJoined         = (int) ($joinedRow['total']    ?? 0);
         $totalJoinedInactive = (int) ($joinedRow['inactive'] ?? 0);
+        $totalJoinedActive   = $totalJoined - $totalJoinedInactive;
         $totalJoinedCats     = count($joinedRepo->getCategories());
 
-        $stmt = $db->prepare('SELECT name FROM lstr_joined ORDER BY id DESC LIMIT 1');
+        $stmt = $db->prepare('SELECT name, date_joined FROM lstr_joined ORDER BY id DESC LIMIT 1');
         $stmt->execute();
         $row              = $stmt->fetch();
-        $newestJoinedName = $row !== false ? (string) $row['name'] : null;
+        $newestJoinedName = $row !== false ? (string) $row['name']        : null;
+        $newestJoinedDate = $row !== false ? (string) ($row['date_joined'] ?? '') : null;
 
         // ── Affiliates ───────────────────────────────────────────────────
         $stmt = $db->prepare(
@@ -152,10 +154,12 @@ final class DashboardController
             'admin_username'              => (string) $session->get('lstr_admin_username', ''),
             'app_name'                    => (string) $config->get('app_name', 'Luster'),
             'csrf_token'                  => $csrfToken,
-            'total_listings'           => $fanStats['total'],
+            'total_listings'              => $fanStats['total'],
+            'fan_current'                 => $fanCurrent,
             'fan_pending'                 => $fanPending,
             'fan_upcoming'               => $fanUpcoming,
             'total_joined'               => $totalJoined,
+            'total_joined_active'        => $totalJoinedActive,
             'total_joined_inactive'      => $totalJoinedInactive,
             'total_joined_categories'    => $totalJoinedCats,
             'total_members'              => $totalMembers,
@@ -165,10 +169,12 @@ final class DashboardController
             'total_affiliates_per_fl'    => $totalAffiliatesPerFl,
             'total_categories'           => $totalCategories,
             'newest_owned_name'          => $newestOwnedName,
+            'newest_owned_opened'        => $newestOwnedOpened,
             'newest_joined_name'         => $newestJoinedName,
+            'newest_joined_date'         => $newestJoinedDate,
             'recent_members'             => $recentMembers,
             'recent_activity'            => $recentActivity,
-            'stale_listings'          => $staleListings,
+            'stale_listings'             => $staleListings,
             'inactive_threshold_days'    => $thresholdDays,
             'base_url'                   => $baseUrl,
         ]);

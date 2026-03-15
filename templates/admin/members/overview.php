@@ -40,7 +40,7 @@ $isSearch   = $search !== '';
     <form method="GET" action="<?= $b ?>/admin/members" style="display:flex;gap:.5rem;align-items:center">
       <input type="text" name="search" value="<?= \Luster\Core\View::e($search ?? '') ?>"
              placeholder="Search all listings&hellip;" class="form-input" style="max-width:240px">
-      <button type="submit" class="btn btn-primary btn-sm">Search</button>
+      <button type="submit" class="btn btn-secondary btn-sm">Search</button>
       <?php if ($isSearch): ?>
         <a href="<?= $b ?>/admin/members" class="btn btn-secondary btn-sm">Clear</a>
       <?php endif; ?>
@@ -106,7 +106,7 @@ $isSearch   = $search !== '';
             </td>
             <td class="act-col" style="white-space:nowrap">
               <a href="<?= $b ?>/admin/members/<?= $flId ?>/edit?email=<?= urlencode($m->email) ?>"
-                 class="btn btn-secondary btn-sm">Edit</a>
+                 class="btn btn-primary btn-sm">Edit</a>
               <?php if (!$m->approved): ?>
                 <form method="POST" action="<?= $b ?>/admin/members/<?= $flId ?>/approve"
                       style="display:inline;margin-left:.25rem">
@@ -133,7 +133,7 @@ $isSearch   = $search !== '';
   </h2>
   <?php if (empty($grouped)): ?>
     <div class="neb-card" style="margin-bottom:1.5rem">
-      <p class="text-muted" style="padding:1.25rem;font-size:.875rem">No pending members across any listing.</p>
+      <p class="neb-empty">No pending members across any listing.</p>
     </div>
   <?php else: ?>
     <?php foreach ($grouped as $g): ?>
@@ -227,7 +227,7 @@ $isSearch   = $search !== '';
   </h2>
   <?php if (empty($pending_updates)): ?>
     <div class="neb-card">
-      <p class="text-muted" style="padding:1.25rem;font-size:.875rem">No pending info updates.</p>
+      <p class="neb-empty">No pending info updates.</p>
     </div>
   <?php else: ?>
     <div class="neb-card" style="overflow:hidden">
