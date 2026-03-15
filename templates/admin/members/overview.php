@@ -63,11 +63,11 @@ $isSearch   = $search !== '';
 
   <?php if ($total === 0): ?>
     <div class="neb-card">
-      <p class="text-muted" style="padding:1.25rem;font-size:.875rem">No members found matching that search.</p>
+      <p class="neb-empty">No members found matching that search.</p>
     </div>
   <?php else: ?>
-    <div style="overflow-x:auto">
-      <table class="neb-table">
+    <div class="neb-card" style="overflow-x:auto">
+      <table class="data-table">
         <thead>
           <tr>
             <th>Listing</th>
@@ -96,9 +96,9 @@ $isSearch   = $search !== '';
             <td><?= \Luster\Core\View::e($m->country) ?></td>
             <td>
               <?php if ($m->approved): ?>
-                <span class="badge badge-success">Approved</span>
+                <span class="neb-badge badge-current">Approved</span>
               <?php else: ?>
-                <span class="badge badge-warning">Pending</span>
+                <span class="neb-badge badge-upcoming">Pending</span>
               <?php endif; ?>
             </td>
             <td style="white-space:nowrap;font-size:.8rem;color:var(--text-muted)">
@@ -122,15 +122,15 @@ $isSearch   = $search !== '';
           <?php endforeach; ?>
         </tbody>
       </table>
-    </div>
+    </div><!-- /.neb-card -->
   <?php endif; ?>
 
 <?php else: ?>
 
   <!-- ═══ Pending new members by listing ═══ -->
-  <h2 class="section-title" style="font-size:.8rem;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--text-muted);margin-bottom:.75rem">
+  <p class="text-dim" style="font-size:0.7rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:0.75rem">
     Pending New Members
-  </h2>
+  </p>
   <?php if (empty($grouped)): ?>
     <div class="neb-card" style="margin-bottom:1.5rem">
       <p class="neb-empty">No pending members across any listing.</p>
@@ -222,9 +222,9 @@ $isSearch   = $search !== '';
   <?php endif; ?>
 
   <!-- ═══ Pending info updates ═══ -->
-  <h2 class="section-title" style="font-size:.8rem;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--text-muted);margin-top:2rem;margin-bottom:.75rem">
+  <p class="text-dim" style="font-size:0.7rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;margin-top:2rem;margin-bottom:0.75rem">
     Pending Info Updates
-  </h2>
+  </p>
   <?php if (empty($pending_updates)): ?>
     <div class="neb-card">
       <p class="neb-empty">No pending info updates.</p>
@@ -265,7 +265,7 @@ $isSearch   = $search !== '';
                 <?php else: ?>
                   <details style="cursor:pointer">
                     <summary style="list-style:none;display:inline-flex;align-items:center;gap:.35rem">
-                      <span class="badge badge-warning"><?= $puCount ?> field<?= $puCount !== 1 ? 's' : '' ?></span>
+                      <span class="neb-badge badge-upcoming"><?= $puCount ?> field<?= $puCount !== 1 ? 's' : '' ?></span>
                     </summary>
                     <dl style="margin:.4rem 0 0;font-size:.78rem;line-height:1.6">
                       <?php foreach ($pu->changes as $field => $val): ?>

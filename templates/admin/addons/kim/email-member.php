@@ -53,7 +53,7 @@ $b = rtrim(View::e($base_url), '/');
     <div class="form-group">
       <label class="form-label" for="em-body">Message <span>*</span></label>
       <textarea class="form-textarea" id="em-body" name="body"
-                rows="10" required style="font-family:var(--font-mono)"></textarea>
+                rows="10" required style="font-family:'DM Mono',monospace"></textarea>
     </div>
 
     <div class="btn-row">

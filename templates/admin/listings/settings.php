@@ -20,10 +20,6 @@ function flsCfgVal(array $cfg, string $key, $default = ''): string {
   <a href="<?= $b ?>/admin/listings" class="neb-link">&larr; Back to Owned Listings</a>
 </p>
 
-<h2 style="margin:0 0 1.25rem;font-size:1.125rem;font-weight:700;color:var(--text)">
-  Listings Display Settings
-</h2>
-
 <?php if ($success !== ''): ?>
   <div class="alert alert-success"><?= \Luster\Core\View::e($success) ?></div>
 <?php endif; ?>

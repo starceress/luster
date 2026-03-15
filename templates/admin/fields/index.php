@@ -21,10 +21,9 @@ $id = (int) $listing->id;
   </a>
 </p>
 
-<!-- Page title -->
-<h2 style="margin:0 0 1.1rem;font-size:1.125rem;font-weight:600">
-  <?= \Luster\Core\View::e($listing->name) ?> &mdash; Additional Fields
-</h2>
+<div class="page-header">
+  <h1><?= \Luster\Core\View::e($listing->name) ?> &mdash; Additional Fields</h1>
+</div>
 
 <!-- Flash messages -->
 <?php if ($success !== ''): ?>
@@ -87,7 +86,7 @@ $id = (int) $listing->id;
 
 <!-- Add New Field form -->
 <div class="neb-card" style="padding:1.25rem 1.5rem;margin-top:1.5rem">
-  <h3 style="margin:0 0 1rem;font-size:.9375rem;font-weight:600">Add New Field</h3>
+  <h3 class="card-title" style="margin-bottom:1rem">Add New Field</h3>
   <form method="POST" action="<?= $b ?>/admin/listings/<?= $id ?>/fields/add">
     <input type="hidden" name="_csrf" value="<?= \Luster\Core\View::e($csrf_token) ?>">
     <div class="add-grid">

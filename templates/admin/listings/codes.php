@@ -33,7 +33,7 @@ $b = rtrim(View::e($base_url), '/');
 
 <!-- ── Upload ──────────────────────────────────────────────────────────── -->
 <div class="neb-card" style="padding:1.25rem 1.5rem;margin-bottom:1.25rem">
-  <h2 style="font-size:1rem;font-weight:700;color:var(--text);margin:0 0 1rem">Upload Codes</h2>
+  <h2 class="card-title" style="margin-bottom:1rem">Upload Codes</h2>
   <form method="POST"
         action="<?= $b ?>/admin/listings/<?= (int) $listing->id ?>/codes/upload"
         enctype="multipart/form-data">

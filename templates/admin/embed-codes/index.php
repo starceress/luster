@@ -35,20 +35,20 @@ foreach ($listings ?? [] as $fl) {
   --ec-copy-bg:   rgba(0,0,0,.05);
 }
 
-.ec-intro      { margin-bottom: 1.75rem; font-size: .9rem; color: var(--text-dim); line-height: 1.6; }
+.ec-intro      { margin-bottom: 1.5rem; font-size: .875rem; color: var(--text-muted); line-height: 1.6; }
 .ec-grid       { display: flex; flex-direction: column; gap: 1.5rem; }
-.ec-card       { background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+.ec-card       { background: var(--bg-card); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; box-shadow: var(--shadow); }
 .ec-card-head  { display: flex; align-items: center; gap: .75rem; padding: .9rem 1.25rem;
-                 background: var(--bg-subtle); border-bottom: 1px solid var(--border); }
-.ec-filename   { font-family: monospace; font-size: .9rem; font-weight: 700; color: var(--accent); }
+                 background: var(--bg-subtle); border-bottom: 1px solid var(--border); flex-wrap: wrap; }
+.ec-filename   { font-family: 'DM Mono', monospace; font-size: .9rem; font-weight: 700; color: var(--accent); }
 .ec-badge      { font-size: .7rem; padding: .15rem .5rem; border-radius: 4px; font-weight: 600; }
 .ec-badge-req  { background: var(--accent-glow); color: var(--accent); }
 .ec-badge-opt  { background: var(--success-bg); color: var(--success); }
 .ec-badge-free { background: rgba(251,191,36,.15); color: var(--text-muted); }
-.ec-desc       { margin-left: auto; font-size: .8rem; color: var(--text-dim); max-width: 320px; text-align: right; }
+.ec-desc       { margin-left: auto; font-size: .8rem; color: var(--text-dim); }
 .ec-body       { padding: 1.25rem; }
 .ec-pre-wrap   { position: relative; margin-bottom: 1rem; }
-.ec-pre        { background: var(--ec-code-bg); border: 1px solid var(--border); border-radius: 6px;
+.ec-pre        { background: var(--ec-code-bg); border: 1px solid var(--border); border-radius: 8px;
                  padding: .85rem 3rem .85rem 1rem; font-size: .78rem; line-height: 1.7; overflow-x: auto;
                  color: var(--ec-code-text); white-space: pre; font-family: 'DM Mono', monospace; margin: 0; }
 .ec-copy       { position: absolute; top: .5rem; right: .5rem; padding: .25rem .65rem;

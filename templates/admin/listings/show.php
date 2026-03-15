@@ -44,7 +44,7 @@ $imgHeight = $sizeMap[$sizeKey] ?? '100px';
 <!-- Details card -->
 <div class="neb-card" style="padding:1.25rem 1.5rem;margin-bottom:1.25rem">
   <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:1rem">
-    <h2 style="font-size:1.1rem;font-weight:700;color:var(--text);margin:0"><?= \Luster\Core\View::e($listing->name) ?></h2>
+    <h2 class="card-title"><?= \Luster\Core\View::e($listing->name) ?></h2>
     <div style="display:flex;gap:.5rem">
       <a href="<?= $b ?>/admin/listings/<?= (int) $listing->id ?>/edit" class="btn btn-primary">Edit</a>
       <a href="<?= $b ?>/admin/members/<?= (int) $listing->id ?>" class="btn btn-ghost">Members</a>
@@ -163,7 +163,7 @@ $imgHeight = $sizeMap[$sizeKey] ?? '100px';
 
 <!-- Website Templates section -->
 <div class="neb-card" style="padding:1.25rem 1.5rem;margin-bottom:1.25rem">
-  <h2 style="font-size:1rem;font-weight:700;color:var(--text);margin:0 0 1rem">Website Templates</h2>
+  <h2 class="card-title" style="margin-bottom:1rem">Website Templates</h2>
 
   <div style="margin-bottom:1.25rem">
     <label class="form-label">Stats URL</label>

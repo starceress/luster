@@ -65,7 +65,7 @@ $id = (int) $listing->id;
   <div class="settings-card" style="margin-bottom:1.25rem">
     <div style="font-weight:600;margin-bottom:.75rem">Rows with errors</div>
     <div style="overflow-x:auto">
-      <table class="neb-table">
+      <table class="data-table">
         <thead>
           <tr>
             <th style="width:60px">Row</th>
@@ -126,7 +126,7 @@ $id = (int) $listing->id;
       The first row must be a header row. Column names are case-insensitive.
     </p>
     <div style="overflow-x:auto">
-      <table class="neb-table">
+      <table class="data-table">
         <thead>
           <tr><th>Column</th><th>Required</th><th>Notes</th></tr>
         </thead>

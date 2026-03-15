@@ -14,7 +14,7 @@ $b = rtrim(\Luster\Core\View::e($base_url ?? ''), '/');
 </p>
 
 <div class="form-card" style="max-width:500px">
-  <h2 style="margin:0 0 1.25rem;font-size:1.1rem;font-weight:600;color:var(--text)">Add New Category</h2>
+  <h2 class="card-title" style="margin-bottom:1.25rem">Add New Category</h2>
   <form method="POST" id="add-form">
     <input type="hidden" name="_csrf" value="<?= \Luster\Core\View::e($csrf_token ?? '') ?>">
 

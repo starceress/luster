@@ -17,7 +17,7 @@ $b = rtrim(View::e($base_url ?? ''), '/');
 $allOk = empty($failed);
 ?>
 
-<div class="settings-card">
+<div class="neb-card" style="padding:1.75rem 2rem">
   <?php if ($allOk): ?>
     <div class="alert alert-success" style="margin-bottom:1.25rem">
       Mass email sent successfully.

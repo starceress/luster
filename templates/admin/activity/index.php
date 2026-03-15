@@ -11,33 +11,15 @@
 $b = rtrim(\Luster\Core\View::e($base_url), '/');
 ?>
 
-<!-- Page header -->
-<div class="page-header">
-  <h1>
-    Activity Log
-    <?php if (($total ?? 0) > 0): ?>
-      <span style="font-size:.8rem;font-weight:400;color:var(--text-muted);margin-left:.4rem">(<?= (int) $total ?> entries)</span>
-    <?php endif; ?>
-  </h1>
-  <?php if (($total ?? 0) > 0): ?>
-    <form method="POST"
-          action="<?= $b ?>/admin/activity/flush"
-          onsubmit="return confirm('Permanently delete all activity log entries from the database? This cannot be undone.')">
-      <input type="hidden" name="_csrf" value="<?= \Luster\Core\View::e($csrf_token ?? '') ?>">
-      <button type="submit" class="btn btn-danger">Flush Log</button>
-    </form>
-  <?php endif; ?>
-</div>
-
 <?php if (($success ?? '') !== ''): ?>
   <div class="alert alert-success"><?= \Luster\Core\View::e($success) ?></div>
 <?php endif; ?>
 
-<!-- Filter toolbar -->
-<form method="GET" action="<?= $b ?>/admin/activity">
-  <div class="neb-filter-row" style="margin-bottom:1rem">
-    <div class="select-wrap" style="max-width:220px">
-      <select name="action" class="form-select">
+<!-- Filter + action toolbar -->
+<div class="neb-toolbar">
+  <form method="GET" action="<?= $b ?>/admin/activity" class="neb-filter-row">
+    <div class="toolbar-select-wrap">
+      <select name="action" class="neb-select">
         <option value="">All actions</option>
         <?php foreach ($actions as $act): ?>
           <option value="<?= \Luster\Core\View::e($act) ?>"
@@ -47,12 +29,22 @@ $b = rtrim(\Luster\Core\View::e($base_url), '/');
         <?php endforeach; ?>
       </select>
     </div>
-    <button type="submit" class="btn btn-primary">Filter</button>
+    <button type="submit" class="btn btn-secondary btn-sm">Filter</button>
     <?php if ($filter_action !== ''): ?>
-      <a href="<?= $b ?>/admin/activity" class="btn btn-ghost">Clear</a>
+      <a href="<?= $b ?>/admin/activity" class="btn btn-secondary btn-sm">Clear</a>
     <?php endif; ?>
+  </form>
+  <?php if (($total ?? 0) > 0): ?>
+  <div class="neb-actions">
+    <form method="POST"
+          action="<?= $b ?>/admin/activity/flush"
+          onsubmit="return confirm('Permanently delete all activity log entries from the database? This cannot be undone.')">
+      <input type="hidden" name="_csrf" value="<?= \Luster\Core\View::e($csrf_token ?? '') ?>">
+      <button type="submit" class="btn btn-danger btn-sm">Flush Log</button>
+    </form>
   </div>
-</form>
+  <?php endif; ?>
+</div>
 
 <?php if (empty($entries)): ?>
   <p class="text-muted" style="font-size:.875rem">No log entries<?= $filter_action !== '' ? ' matching that filter' : '' ?>.</p>

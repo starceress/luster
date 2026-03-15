@@ -19,10 +19,6 @@ $b = rtrim(\Luster\Core\View::e($base_url), '/');
   <div class="alert alert-error"><?= \Luster\Core\View::e($error) ?></div>
 <?php endif; ?>
 
-<div class="page-header">
-  <h1>Add-ons</h1>
-</div>
-
 <?php if (empty($discovered)): ?>
   <div class="neb-card">
     <p class="neb-empty">
@@ -43,9 +39,9 @@ $b = rtrim(\Luster\Core\View::e($base_url), '/');
           <span class="addon-version">v<?= \Luster\Core\View::e($addon->getVersion()) ?></span>
         </div>
         <?php if ($isInstalled): ?>
-          <span class="badge badge-success">Installed</span>
+          <span class="neb-badge badge-current">Installed</span>
         <?php else: ?>
-          <span class="badge badge-muted">Not installed</span>
+          <span class="neb-badge badge-inactive">Not installed</span>
         <?php endif; ?>
       </div>
 
@@ -79,51 +75,45 @@ $b = rtrim(\Luster\Core\View::e($base_url), '/');
 <style>
 .addon-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
   gap: 1rem;
 }
-
 .addon-card {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
+  background: var(--bg-card);
+  border: 1px solid var(--border-soft);
+  border-radius: 16px;
   padding: 1.25rem;
   display: flex;
   flex-direction: column;
   gap: .75rem;
-  transition: border-color .15s;
+  box-shadow: var(--shadow);
+  transition: border-color .2s, box-shadow .2s;
 }
-
 .addon-card--installed {
   border-color: var(--accent);
-  box-shadow: 0 0 0 1px var(--accent);
+  box-shadow: var(--shadow), 0 0 0 1px var(--accent-glow);
 }
-
 .addon-card-header {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
   gap: .5rem;
 }
-
 .addon-meta {
   display: flex;
   flex-direction: column;
   gap: .2rem;
 }
-
 .addon-name {
   font-weight: 700;
   font-size: .9375rem;
   color: var(--text);
 }
-
 .addon-version {
   font-size: .75rem;
   color: var(--text-muted);
-  font-family: var(--font-mono);
+  font-family: 'DM Mono', monospace;
 }
-
 .addon-desc {
   font-size: .875rem;
   color: var(--text-muted);
@@ -131,21 +121,12 @@ $b = rtrim(\Luster\Core\View::e($base_url), '/');
   margin: 0;
   flex: 1;
 }
-
 .addon-actions {
+  display: flex;
+  gap: .5rem;
+  flex-wrap: wrap;
   margin-top: auto;
   padding-top: .25rem;
-}
-
-.badge-muted {
-  background: var(--surface-alt, var(--border));
-  color: var(--text-muted);
-  font-size: .7rem;
-  font-weight: 600;
-  padding: .2rem .45rem;
-  border-radius: 999px;
-  letter-spacing: .04em;
-  text-transform: uppercase;
-  white-space: nowrap;
+  border-top: 1px solid var(--border-soft);
 }
 </style>

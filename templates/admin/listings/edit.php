@@ -354,7 +354,7 @@ document.querySelectorAll('.neb-tab-btn').forEach(function (btn) {
 
   <!-- Add New Field -->
   <div class="form-card" style="margin-bottom:1.25rem">
-    <h2 style="font-size:1rem;font-weight:700;color:var(--text);margin:0 0 0.5rem">Add New Field</h2>
+    <h2 class="card-title" style="margin-bottom:0.5rem">Add New Field</h2>
     <p class="form-hint" style="margin:0 0 1rem;line-height:1.6">
       <strong style="color:var(--text-muted)">Field Name Rules:</strong>
       Letters (a-z, A-Z), numbers (0-9), and underscores (_).<br>
@@ -409,7 +409,7 @@ document.querySelectorAll('.neb-tab-btn').forEach(function (btn) {
   <!-- Existing Fields -->
   <div class="neb-card">
     <div style="padding:1rem 1.25rem;border-bottom:1px solid var(--border)">
-      <h2 style="font-size:1rem;font-weight:700;color:var(--text);margin:0">Current Fields</h2>
+      <h2 class="card-title">Current Fields</h2>
     </div>
     <?php if (empty($fields)): ?>
       <p class="text-muted" style="padding:1rem 1.25rem;font-size:0.875rem">No additional fields defined yet.</p>
@@ -476,7 +476,7 @@ document.querySelectorAll('.neb-tab-btn').forEach(function (btn) {
 <div id="tab-affiliates" class="neb-tab-panel">
 <div class="neb-card">
   <div style="display:flex;justify-content:space-between;align-items:center;padding:1rem 1.25rem;border-bottom:1px solid var(--border)">
-    <h2 style="font-size:1rem;font-weight:700;color:var(--text);margin:0">Affiliates</h2>
+    <h2 class="card-title">Affiliates</h2>
     <a href="<?= $b ?>/admin/listings/<?= (int) $listing->id ?>/affiliates/add"
        class="btn btn-primary btn-sm">+ Add Affiliate</a>
   </div>

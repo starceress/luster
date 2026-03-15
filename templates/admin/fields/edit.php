@@ -22,10 +22,6 @@ $encName = urlencode($field->name);
   </a>
 </p>
 
-<!-- Page title -->
-<h2 style="margin:0 0 1.1rem;font-size:1.125rem;font-weight:600">
-  Edit Field
-</h2>
 
 <?php if ($error !== ''): ?>
   <div class="alert alert-error" role="alert"><?= \Luster\Core\View::e($error) ?></div>

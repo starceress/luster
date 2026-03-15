@@ -18,8 +18,8 @@ use Luster\Core\View;
 $b = rtrim(View::e($base_url ?? ''), '/');
 ?>
 
-<div class="settings-card">
-  <h2 style="margin:0 0 1rem;font-size:1.05rem;font-weight:600">Confirm send</h2>
+<div class="neb-card" style="padding:1.75rem 2rem">
+  <h2 class="card-title" style="margin-bottom:1rem">Confirm send</h2>
 
   <div class="db-info-grid" style="margin-bottom:1.25rem">
     <div>

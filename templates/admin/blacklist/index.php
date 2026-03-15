@@ -16,7 +16,7 @@ $b = rtrim(View::e($base_url ?? ''), '/');
 ?>
 
 <?php if ($success !== ''): ?>
-  <div class="alert alert-success"><?= $success ?></div>
+  <div class="alert alert-success"><?= View::e($success) ?></div>
 <?php endif; ?>
 <?php if ($error !== ''): ?>
   <div class="alert alert-error"><?= View::e($error) ?></div>
@@ -24,15 +24,12 @@ $b = rtrim(View::e($base_url ?? ''), '/');
 
 <!-- ── Add form ───────────────────────────────────────────────── -->
 <div class="neb-card" style="margin-bottom:1.25rem">
-  <div style="padding:.85rem 1.25rem;border-bottom:1px solid var(--border);font-weight:700;color:var(--text)">
-    Add Pattern
-  </div>
+  <div class="neb-card-header">Add Pattern</div>
   <form method="POST" action="<?= $b ?>/admin/blacklist/add" style="padding:1.25rem">
     <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
 
-    <div style="display:grid;grid-template-columns:1fr 1fr auto;gap:.75rem;align-items:end">
-
-      <div>
+    <div class="form-row">
+      <div class="form-group" style="margin-bottom:0">
         <label class="form-label" for="bl-pattern">Pattern <span>*</span></label>
         <input id="bl-pattern" type="text" name="pattern" class="form-input"
                maxlength="255" required
@@ -43,32 +40,31 @@ $b = rtrim(View::e($base_url ?? ''), '/');
         </p>
       </div>
 
-      <div>
-        <label class="form-label" for="bl-note">Note <em style="font-weight:400">(optional)</em></label>
+      <div class="form-group" style="margin-bottom:0">
+        <label class="form-label" for="bl-note">Note <em style="font-weight:400;text-transform:none;letter-spacing:0">(optional)</em></label>
         <input id="bl-note" type="text" name="note" class="form-input"
                maxlength="500"
                placeholder="Why this address was blocked">
       </div>
+    </div>
 
-      <div>
-        <button type="submit" class="btn btn-primary" style="width:100%">Add</button>
-      </div>
-
+    <div class="btn-row">
+      <button type="submit" class="btn btn-primary">Add to Blacklist</button>
     </div>
   </form>
 </div>
 
 <!-- ── Entries table ──────────────────────────────────────────── -->
 <div class="neb-card">
-  <div style="padding:.85rem 1.25rem;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">
-    <span style="font-weight:700;color:var(--text)">Blocked Patterns</span>
-    <span style="font-size:.8rem;color:var(--text-muted)"><?= count($entries) ?> entr<?= count($entries) === 1 ? 'y' : 'ies' ?></span>
+  <div class="neb-card-header" style="display:flex;align-items:center;justify-content:space-between">
+    <span>Blocked Patterns</span>
+    <span style="font-weight:400;text-transform:none;letter-spacing:0;font-size:.8rem;color:var(--text-muted)">
+      <?= count($entries) ?> entr<?= count($entries) === 1 ? 'y' : 'ies' ?>
+    </span>
   </div>
 
   <?php if (empty($entries)): ?>
-    <div style="padding:2rem;text-align:center;color:var(--text-muted);font-size:.875rem">
-      No blocked patterns yet. Add email addresses or domains above to prevent them from joining.
-    </div>
+    <p class="neb-empty">No blocked patterns yet. Add email addresses or domains above to prevent them from joining.</p>
   <?php else: ?>
     <table class="data-table">
       <thead>
@@ -88,15 +84,15 @@ $b = rtrim(View::e($base_url ?? ''), '/');
           </td>
           <td>
             <?php if (str_starts_with($entry['pattern'], '@')): ?>
-              <span class="badge badge-info" style="font-size:.7rem">Domain</span>
+              <span class="neb-badge badge-info">Domain</span>
             <?php else: ?>
-              <span class="badge" style="font-size:.7rem;background:var(--bg-subtle);color:var(--text-muted);border-color:var(--border)">Exact</span>
+              <span class="neb-badge badge-inactive">Exact</span>
             <?php endif; ?>
           </td>
-          <td style="font-size:.85rem;color:var(--text-muted)">
-            <?= $entry['note'] !== '' ? View::e($entry['note']) : '<span style="color:var(--text-dim)">—</span>' ?>
+          <td class="text-muted" style="font-size:.85rem">
+            <?= $entry['note'] !== '' ? View::e($entry['note']) : '<span class="text-dim">—</span>' ?>
           </td>
-          <td style="font-size:.8rem;color:var(--text-dim);white-space:nowrap">
+          <td class="text-dim nowrap" style="font-family:'DM Mono',monospace;font-size:.8rem">
             <?= View::e(substr($entry['created_at'], 0, 10)) ?>
           </td>
           <td class="act-col">

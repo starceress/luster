@@ -102,8 +102,8 @@ if ($displayMode === 'category') {
 
   </form>
   <div class="neb-actions">
-    <a href="<?= $b ?>/admin/joined/settings" class="btn btn-secondary btn-sm">Settings</a>
     <a href="<?= $b ?>/admin/joined/add" class="btn btn-primary btn-sm">+ Add Joined FL</a>
+    <a href="<?= $b ?>/admin/joined/settings" class="btn btn-secondary btn-sm">Settings</a>
   </div>
 </div>
 
@@ -197,17 +197,19 @@ if ($displayMode === 'category') {
   <?php endforeach; ?>
 
   <!-- Bulk action bar -->
-  <div class="neb-bulk">
-    <label for="bulk-action-sel">Bulk action:</label>
-    <div class="toolbar-select-wrap">
-    <select id="bulk-action-sel" name="bulk_action" class="neb-select">
-      <option value="approve">Approve</option>
-      <option value="pending">Set Pending</option>
-      <option value="delete">Delete</option>
-    </select>
+  <div class="neb-card" style="overflow:visible">
+    <div class="neb-bulk">
+      <label for="bulk-action-sel">Bulk action:</label>
+      <div class="toolbar-select-wrap">
+      <select id="bulk-action-sel" name="bulk_action" class="neb-select">
+        <option value="approve">Approve</option>
+        <option value="pending">Set Pending</option>
+        <option value="delete">Delete</option>
+      </select>
+      </div>
+      <button type="submit" class="btn btn-secondary btn-sm"
+              onclick="return confirmBulk()">Apply to selected</button>
     </div>
-    <button type="submit" class="btn btn-secondary btn-sm"
-            onclick="return confirmBulk()">Apply to selected</button>
   </div>
 
 </form>

@@ -27,18 +27,6 @@ $id = (int) $listing->id;
 <div class="neb-toolbar">
   <form method="GET" action="<?= $b ?>/admin/members/<?= $id ?>" class="neb-filter-row" id="mem-filter-form">
 
-    <div class="toolbar-select-wrap">
-    <select class="neb-select" onchange="location=this.value">
-      <option value="<?= $b ?>/admin/members"<?= !isset($listing) ? ' selected' : '' ?>>All pending members</option>
-      <?php foreach ($all_listings as $fl): ?>
-        <option value="<?= $b ?>/admin/members/<?= (int) $fl->id ?>?status=all"
-                <?= (int) $fl->id === (int) ($listing->id ?? 0) ? 'selected' : '' ?>>
-          <?= \Luster\Core\View::e($fl->name) ?>
-        </option>
-      <?php endforeach; ?>
-    </select>
-    </div>
-
     <input type="text" name="search" class="neb-input" placeholder="Search&hellip;"
            value="<?= \Luster\Core\View::e($search ?? '') ?>">
 
@@ -56,14 +44,25 @@ $id = (int) $listing->id;
   </form>
 
   <div class="neb-actions">
+    <div class="toolbar-select-wrap">
+    <select class="neb-select" onchange="location=this.value">
+      <option value="<?= $b ?>/admin/members"<?= !isset($listing) ? ' selected' : '' ?>>All pending members</option>
+      <?php foreach ($all_listings as $fl): ?>
+        <option value="<?= $b ?>/admin/members/<?= (int) $fl->id ?>?status=all"
+                <?= (int) $fl->id === (int) ($listing->id ?? 0) ? 'selected' : '' ?>>
+          <?= \Luster\Core\View::e($fl->name) ?>
+        </option>
+      <?php endforeach; ?>
+    </select>
+    </div>
     <a href="<?= $b ?>/admin/members/<?= $id ?>/import" class="btn btn-secondary btn-sm">&#8593; Import CSV</a>
     <a href="<?= $b ?>/admin/members/<?= $id ?>/export" class="btn btn-secondary btn-sm">&#8595; Export CSV</a>
   </div>
 </div>
 
 <?php if (empty($members)): ?>
-  <div class="neb-card" style="padding:24px;color:var(--text-muted);font-size:.875rem">
-    No members found.
+  <div class="neb-card">
+    <p class="neb-empty">No members found.</p>
   </div>
 <?php else: ?>
 

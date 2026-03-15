@@ -14,22 +14,19 @@ $b = rtrim(\Luster\Core\View::e($base_url), '/');
   <div class="alert alert-success"><?= \Luster\Core\View::e($success) ?></div>
 <?php endif; ?>
 
-<div class="page-header">
-  <h1>
-    Error Log
-    <?php if ($total > 0): ?>
-      <span style="font-size:.8rem;font-weight:400;color:var(--text-muted);margin-left:.4rem">(<?= (int) $total ?> entries)</span>
-    <?php endif; ?>
-  </h1>
-  <?php if ($total > 0): ?>
+<?php if ($total > 0): ?>
+<div class="neb-toolbar">
+  <span class="text-muted" style="font-size:.8125rem"><?= (int) $total ?> entr<?= $total === 1 ? 'y' : 'ies' ?> logged</span>
+  <div class="neb-actions">
     <form method="POST"
           action="<?= $b ?>/admin/errorlog/flush"
           onsubmit="return confirm('Clear all error logs? This cannot be undone.')">
       <input type="hidden" name="_csrf" value="<?= \Luster\Core\View::e($csrf_token ?? '') ?>">
-      <button type="submit" class="btn btn-danger">Flush Logs</button>
+      <button type="submit" class="btn btn-danger btn-sm">Flush Logs</button>
     </form>
-  <?php endif; ?>
+  </div>
 </div>
+<?php endif; ?>
 
 <div class="neb-card">
   <?php if (empty($rows)): ?>

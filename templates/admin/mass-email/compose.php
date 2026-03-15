@@ -21,8 +21,8 @@ $b = rtrim(View::e($base_url ?? ''), '/');
   <div class="alert alert-error"><?= View::e($error) ?></div>
 <?php endif; ?>
 
-<div class="settings-card">
-  <p style="margin:0 0 1.25rem;color:var(--text-muted);font-size:.9rem">
+<div class="neb-card" style="padding:1.75rem 2rem">
+  <p style="margin:0 0 1.5rem;color:var(--text-muted);font-size:.9rem;line-height:1.6">
     Send a personalised email to all approved members of one listing, or every listing at once.
     Recipients are deduplicated — each address receives at most one message.
   </p>
@@ -33,7 +33,7 @@ $b = rtrim(View::e($base_url ?? ''), '/');
     <div class="form-group">
       <label class="form-label" for="me-listing">Send to</label>
       <div class="select-wrap">
-        <select name="listing_id" id="me-listing" class="form-input">
+        <select name="listing_id" id="me-listing" class="form-select">
           <option value="0"<?= ($old_listing_id ?? 0) === 0 ? ' selected' : '' ?>>
             All listings (deduplicated)
           </option>
@@ -56,10 +56,10 @@ $b = rtrim(View::e($base_url ?? ''), '/');
 
     <div class="form-group">
       <label class="form-label" for="me-body">Message body <span>*</span></label>
-      <textarea id="me-body" name="body" class="form-input"
-                rows="12" maxlength="50000"
+      <textarea id="me-body" name="body" class="form-textarea"
+                rows="14" maxlength="50000"
                 required
-                style="resize:vertical;font-family:var(--font-mono);font-size:.85rem"><?= htmlspecialchars($old_body ?? '', ENT_QUOTES, 'UTF-8') ?></textarea>
+                style="font-family:'DM Mono',monospace"><?= htmlspecialchars($old_body ?? '', ENT_QUOTES, 'UTF-8') ?></textarea>
       <p class="form-hint">
         Available tokens:
         <code>{name}</code> &mdash; member's name &nbsp;|&nbsp;

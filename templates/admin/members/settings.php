@@ -16,10 +16,6 @@ $b = rtrim(\Luster\Core\View::e($base_url), '/');
   <a href="<?= $b ?>/admin/members" class="neb-link">&larr; Back to Members</a>
 </p>
 
-<h2 style="margin:0 0 1.25rem;font-size:1.125rem;font-weight:700;color:var(--text)">
-  Members Settings
-</h2>
-
 <?php if (($success ?? '') !== ''): ?>
   <div class="alert alert-success"><?= \Luster\Core\View::e($success) ?></div>
 <?php endif; ?>
