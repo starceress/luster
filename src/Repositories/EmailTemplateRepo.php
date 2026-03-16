@@ -10,29 +10,36 @@ use Luster\Core\Database;
  * Data access for the lstr_email_templates table.
  *
  * Stores admin-configurable email subjects and bodies for transactional
- * emails. Each row covers one action type for one listing. When no custom
- * row exists, the DEFAULT_* constants supply the fallback text.
+ * emails. Each row covers one action type for one listing. Global templates
+ * use fanlisting_id = 0 and apply to all listings unless overridden.
  *
- * Token syntax: $token_name$ (dollar signs on both sides).
+ * Resolution order (first match wins):
+ *   1. Per-listing template (fanlisting_id = N) — enabled, non-blank subject
+ *   2. Global template      (fanlisting_id = 0) — enabled, non-blank subject
+ *   3. Built-in hardcoded default
+ *
+ * Token syntax: $token_name$ (single dollar signs on both sides).
  *
  * Available tokens (all fan-facing types):
- *   $fan_name$        — member's name
- *   $fan_email$       — member's email address
- *   $fan_url$         — member's website URL
- *   $fan_country$     — member's country
- *   $listing_name$    — name of the listing
- *   $listing_url$     — URL of the listing
- *   $app_name$        — collective / site name from config
+ *   $fan_name$          — member's name
+ *   $fan_email$         — member's email address
+ *   $fan_url$           — member's website URL
+ *   $fan_country$       — member's country
+ *   $listing_name$      — name / title of the listing
+ *   $listing_subject$   — subject / topic of the listing
+ *   $listing_url$       — URL of the listing
+ *   $site_name$         — collective / site name from config
+ *   $owner_name$        — site owner's display name (config: owner_name)
+ *   $owner_email$       — site owner's contact email (config: owner_email)
  *
  * Join-only additional token:
- *   $fan_password$    — member's raw password (shown when set during join)
+ *   $fan_password$      — member's raw password (shown when set during join)
  *
  * Reset-only additional token:
- *   $reset_url$       — one-time password reset link
+ *   $reset_url$         — one-time password reset link
  *
  * Admin notification (notify_join) — sent to the listing's admin email:
- *   same tokens as join (fan_name, fan_email, fan_url, fan_country, listing_name,
- *   listing_url, app_name); $fan_password$ is intentionally left blank.
+ *   same tokens as join; $fan_password$ is intentionally left blank.
  *
  * Requires Migration 23.
  */
@@ -86,23 +93,27 @@ final class EmailTemplateRepo
         . '  Country : $fan_country$' . "\n"
         . '  Password: $fan_password$' . "\n\n"
         . 'Please keep this email for your records. You will need your password to update or remove your membership.' . "\n\n"
-        . '-- $app_name$';
+        . '-- $owner_name$' . "\n"
+        . '$site_name$';
 
     private const DEFAULT_BODY_APPROVE =
         'Hi $fan_name$,' . "\n\n"
         . 'Great news — your membership in the $listing_name$ listing has been approved!' . "\n\n"
         . 'Visit the listing at: $listing_url$' . "\n\n"
-        . '-- $app_name$';
+        . '-- $owner_name$' . "\n"
+        . '$site_name$';
 
     private const DEFAULT_BODY_UPDATE =
         'Hi $fan_name$,' . "\n\n"
         . 'Your membership in the $listing_name$ listing has been updated successfully.' . "\n\n"
-        . '-- $app_name$';
+        . '-- $owner_name$' . "\n"
+        . '$site_name$';
 
     private const DEFAULT_BODY_REMOVE =
         'Hi $fan_name$,' . "\n\n"
         . 'Your membership in the $listing_name$ listing has been removed as requested.' . "\n\n"
-        . '-- $app_name$';
+        . '-- $owner_name$' . "\n"
+        . '$site_name$';
 
     private const DEFAULT_BODY_RESET =
         'Hi $fan_name$,' . "\n\n"
@@ -110,7 +121,8 @@ final class EmailTemplateRepo
         . 'Click the link below to set a new password. This link expires in 1 hour.' . "\n\n"
         . '$reset_url$' . "\n\n"
         . 'If you did not request this, you can safely ignore this email. Your password will not change.' . "\n\n"
-        . '-- $app_name$';
+        . '-- $owner_name$' . "\n"
+        . '$site_name$';
 
     private const DEFAULT_BODY_NOTIFY_JOIN =
         'A new member has joined the $listing_name$ listing.' . "\n\n"
@@ -118,84 +130,57 @@ final class EmailTemplateRepo
         . '  Email  : $fan_email$' . "\n"
         . '  Website: $fan_url$' . "\n"
         . '  Country: $fan_country$' . "\n\n"
-        . '-- $app_name$';
+        . '-- $owner_name$' . "\n"
+        . '$site_name$';
 
     // -----------------------------------------------------------------------
 
     public function __construct(private readonly Database $db) {}
 
     // -----------------------------------------------------------------------
-    // Reads
+    // Reads — per-listing
     // -----------------------------------------------------------------------
 
     /**
-     * Returns the custom template for one type, or null if none has been saved.
+     * Returns the custom template for one listing + type, or null if none saved.
      */
     public function get(int $listingId, string $type): ?object
     {
-        try {
-            $stmt = $this->db->prepare(
-                'SELECT id, fanlisting_id, type, enabled, subject, body
-                 FROM lstr_email_templates
-                 WHERE fanlisting_id = :fid AND type = :type'
-            );
-            $stmt->execute(['fid' => $listingId, 'type' => $type]);
-            $row = $stmt->fetch();
-        } catch (\Exception) {
-            return null;
-        }
-
-        if ($row === false) {
-            return null;
-        }
-
-        return (object) [
-            'id'           => (int)    $row['id'],
-            'listingId' => (int)    $row['fanlisting_id'],
-            'type'         => (string) $row['type'],
-            'enabled'      => (bool)   $row['enabled'],
-            'subject'      => (string) $row['subject'],
-            'body'         => (string) $row['body'],
-        ];
+        return $this->fetchOne($listingId, $type);
     }
 
     /**
-     * Returns custom templates for all four types, keyed by type.
+     * Returns custom templates for all types for one listing, keyed by type.
      * Missing rows are represented as null.
      *
      * @return array<string, object|null>
      */
     public function getAll(int $listingId): array
     {
-        $result = array_fill_keys(self::TYPES, null);
+        return $this->fetchAll($listingId);
+    }
 
-        try {
-            $stmt = $this->db->prepare(
-                'SELECT id, fanlisting_id, type, enabled, subject, body
-                 FROM lstr_email_templates
-                 WHERE fanlisting_id = :fid'
-            );
-            $stmt->execute(['fid' => $listingId]);
-            $rows = $stmt->fetchAll();
-        } catch (\Exception) {
-            return $result;
-        }
+    // -----------------------------------------------------------------------
+    // Reads — global (fanlisting_id = 0)
+    // -----------------------------------------------------------------------
 
-        foreach ($rows as $row) {
-            $t = (string) $row['type'];
-            if (array_key_exists($t, $result)) {
-                $result[$t] = (object) [
-                    'id'           => (int)    $row['id'],
-                    'listingId' => (int)    $row['fanlisting_id'],
-                    'type'         => $t,
-                    'enabled'      => (bool)   $row['enabled'],
-                    'subject'      => (string) $row['subject'],
-                    'body'         => (string) $row['body'],
-                ];
-            }
-        }
+    /**
+     * Returns the global template for one type, or null if none saved.
+     */
+    public function getGlobal(string $type): ?object
+    {
+        return $this->fetchOne(0, $type);
+    }
 
-        return $result;
+    /**
+     * Returns global templates for all types, keyed by type.
+     * Missing rows are represented as null.
+     *
+     * @return array<string, object|null>
+     */
+    public function getAllGlobal(): array
+    {
+        return $this->fetchAll(0);
     }
 
     // -----------------------------------------------------------------------
@@ -203,7 +188,8 @@ final class EmailTemplateRepo
     // -----------------------------------------------------------------------
 
     /**
-     * Upserts the template for one fanlisting+type combination.
+     * Upserts the template for one fanlisting_id + type combination.
+     * Pass fanlisting_id = 0 for global templates.
      */
     public function save(
         int    $listingId,
@@ -231,6 +217,45 @@ final class EmailTemplateRepo
         } catch (\Exception) {
             // Migration not yet run — silently ignore
         }
+    }
+
+    /**
+     * Deletes the saved template for one fanlisting_id + type, reverting to
+     * the next level in the inheritance chain.
+     * - fanlisting_id = 0 → deletes global, reverts to built-in default
+     * - fanlisting_id = N → deletes per-listing, reverts to global (or built-in)
+     */
+    public function delete(int $listingId, string $type): void
+    {
+        try {
+            $stmt = $this->db->prepare(
+                'DELETE FROM lstr_email_templates WHERE fanlisting_id = :fid AND type = :type'
+            );
+            $stmt->execute(['fid' => $listingId, 'type' => $type]);
+        } catch (\Exception) {
+            // Migration not yet run — silently ignore
+        }
+    }
+
+    // -----------------------------------------------------------------------
+    // Convenience — resolve for a listing (handles full inheritance chain)
+    // -----------------------------------------------------------------------
+
+    /**
+     * Full inheritance-chain resolution for sending an email.
+     *
+     * Loads the per-listing template and global template, then applies
+     * token replacement on whichever level wins:
+     *   per-listing (enabled) → global (enabled) → built-in default
+     *
+     * @param  array<string, string>  $tokens  From buildTokens()
+     * @return array{string, string}  [subject, body]
+     */
+    public function resolveForListing(int $listingId, string $type, array $tokens): array
+    {
+        $perListing = $this->get($listingId, $type);
+        $global     = $this->getGlobal($type);
+        return self::resolve($perListing, $type, $tokens, $global);
     }
 
     // -----------------------------------------------------------------------
@@ -270,60 +295,140 @@ final class EmailTemplateRepo
     /**
      * Builds the standard token map for use with applyTokens().
      *
-     * Pass empty string for values that are not applicable for a given email type
-     * (e.g. $fanPassword is only meaningful for join emails).
-     *
      * @return array<string, string>
      */
     public static function buildTokens(
         string $listingName,
         string $listingUrl,
-        string $appName,
-        string $fanName     = '',
-        string $fanEmail    = '',
-        string $fanUrl      = '',
-        string $fanCountry  = '',
-        string $fanPassword = '',
-        string $resetUrl    = '',
+        string $siteName,
+        string $listingSubject = '',
+        string $ownerName      = '',
+        string $ownerEmail     = '',
+        string $fanName        = '',
+        string $fanEmail       = '',
+        string $fanUrl         = '',
+        string $fanCountry     = '',
+        string $fanPassword    = '',
+        string $resetUrl       = '',
     ): array {
         return [
-            '$fan_name$'        => $fanName,
-            '$fan_email$'       => $fanEmail,
-            '$fan_url$'         => $fanUrl,
-            '$fan_country$'     => $fanCountry,
-            '$fan_password$'    => $fanPassword,
-            '$reset_url$'       => $resetUrl,
-            '$listing_name$'    => $listingName,
-            '$listing_url$'     => $listingUrl,
-            '$app_name$'        => $appName,
+            '$fan_name$'         => $fanName,
+            '$fan_email$'        => $fanEmail,
+            '$fan_url$'          => $fanUrl,
+            '$fan_country$'      => $fanCountry,
+            '$fan_password$'     => $fanPassword,
+            '$reset_url$'        => $resetUrl,
+            '$listing_name$'     => $listingName,
+            '$listing_subject$'  => $listingSubject,
+            '$listing_url$'      => $listingUrl,
+            '$site_name$'        => $siteName,
+            '$owner_name$'       => $ownerName,
+            '$owner_email$'      => $ownerEmail,
         ];
     }
 
     /**
      * Resolves the subject and body for a transactional email.
      *
-     * Uses the custom template when it is saved and enabled; falls back to
-     * the built-in default otherwise. Token replacement is applied to whichever
-     * text is used.
+     * Resolution order:
+     *   1. $perListing — if non-null, enabled, and non-blank subject
+     *   2. $global     — if non-null, enabled, and non-blank subject
+     *   3. Built-in hardcoded default for $type
      *
-     * Returns [subject, body].
+     * Token replacement is applied to whichever text is used.
      *
      * @param  array<string, string>  $tokens  From buildTokens()
-     * @return array{string, string}
+     * @return array{string, string}  [subject, body]
      */
     public static function resolve(
-        ?object $template,
+        ?object $perListing,
         string  $type,
         array   $tokens,
+        ?object $global = null,
     ): array {
-        if ($template !== null && $template->enabled && trim($template->subject) !== '') {
-            $subject = self::applyTokens($template->subject, $tokens);
-            $body    = self::applyTokens($template->body,    $tokens);
-        } else {
-            $subject = self::applyTokens(self::defaultSubject($type), $tokens);
-            $body    = self::applyTokens(self::defaultBody($type),    $tokens);
+        if ($perListing !== null && $perListing->enabled && trim($perListing->subject) !== '') {
+            return [
+                self::applyTokens($perListing->subject, $tokens),
+                self::applyTokens($perListing->body,    $tokens),
+            ];
         }
 
-        return [$subject, $body];
+        if ($global !== null && $global->enabled && trim($global->subject) !== '') {
+            return [
+                self::applyTokens($global->subject, $tokens),
+                self::applyTokens($global->body,    $tokens),
+            ];
+        }
+
+        return [
+            self::applyTokens(self::defaultSubject($type), $tokens),
+            self::applyTokens(self::defaultBody($type),    $tokens),
+        ];
+    }
+
+    // -----------------------------------------------------------------------
+    // Private helpers
+    // -----------------------------------------------------------------------
+
+    private function fetchOne(int $listingId, string $type): ?object
+    {
+        try {
+            $stmt = $this->db->prepare(
+                'SELECT id, fanlisting_id, type, enabled, subject, body
+                 FROM lstr_email_templates
+                 WHERE fanlisting_id = :fid AND type = :type'
+            );
+            $stmt->execute(['fid' => $listingId, 'type' => $type]);
+            $row = $stmt->fetch();
+        } catch (\Exception) {
+            return null;
+        }
+
+        if ($row === false) {
+            return null;
+        }
+
+        return $this->rowToObject($row);
+    }
+
+    /**
+     * @return array<string, object|null>
+     */
+    private function fetchAll(int $listingId): array
+    {
+        $result = array_fill_keys(self::TYPES, null);
+
+        try {
+            $stmt = $this->db->prepare(
+                'SELECT id, fanlisting_id, type, enabled, subject, body
+                 FROM lstr_email_templates
+                 WHERE fanlisting_id = :fid'
+            );
+            $stmt->execute(['fid' => $listingId]);
+            $rows = $stmt->fetchAll();
+        } catch (\Exception) {
+            return $result;
+        }
+
+        foreach ($rows as $row) {
+            $t = (string) $row['type'];
+            if (array_key_exists($t, $result)) {
+                $result[$t] = $this->rowToObject($row);
+            }
+        }
+
+        return $result;
+    }
+
+    private function rowToObject(array $row): object
+    {
+        return (object) [
+            'id'         => (int)    $row['id'],
+            'listingId'  => (int)    $row['fanlisting_id'],
+            'type'       => (string) $row['type'],
+            'enabled'    => (bool)   $row['enabled'],
+            'subject'    => (string) $row['subject'],
+            'body'       => (string) $row['body'],
+        ];
     }
 }

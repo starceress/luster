@@ -36,7 +36,7 @@ function togglePwd(btn) {
   if (!canvas) return;
   var ctx   = canvas.getContext('2d');
   var stars = [];
-  var N     = 30;
+  var N     = 16;
   var rafId = null;
 
   function resize() {
@@ -51,10 +51,10 @@ function togglePwd(btn) {
       stars.push({
         x: Math.random() * canvas.width,
         y: Math.random() * canvas.height,
-        r: Math.random() * 1.4 + 0.4,
+        r: Math.random() * 1.2 + 0.3,
         dx: (Math.random() - 0.5) * 0.22,
         dy: (Math.random() - 0.5) * 0.22,
-        opacity: Math.random() * 0.5 + 0.2,
+        opacity: Math.random() * 0.25 + 0.08,
         twinkleSpeed: Math.random() * 0.015 + 0.005,
         twinklePhase: Math.random() * Math.PI * 2,
       });
@@ -70,10 +70,10 @@ function togglePwd(btn) {
       if (s.x > canvas.width)  s.x = 0;
       if (s.y < 0) s.y = canvas.height;
       if (s.y > canvas.height) s.y = 0;
-      var tw = s.opacity + Math.sin(t * s.twinkleSpeed * 60 + s.twinklePhase) * 0.2;
+      var tw = s.opacity + Math.sin(t * s.twinkleSpeed * 60 + s.twinklePhase) * 0.08;
       ctx.beginPath();
       ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
-      ctx.fillStyle = 'rgba(196,181,253,' + Math.max(0.05, Math.min(0.9, tw)) + ')';
+      ctx.fillStyle = 'rgba(196,181,253,' + Math.max(0.03, Math.min(0.4, tw)) + ')';
       ctx.fill();
     });
     for (var i = 0; i < stars.length; i++) {
@@ -85,7 +85,7 @@ function togglePwd(btn) {
           ctx.beginPath();
           ctx.moveTo(stars[i].x, stars[i].y);
           ctx.lineTo(stars[j].x, stars[j].y);
-          ctx.strokeStyle = 'rgba(196,181,253,' + (0.12 * (1 - d / 70)) + ')';
+          ctx.strokeStyle = 'rgba(196,181,253,' + (0.05 * (1 - d / 70)) + ')';
           ctx.lineWidth   = 0.5;
           ctx.stroke();
         }
@@ -742,4 +742,66 @@ document.addEventListener('click', function (e) {
   if (previewBtn) previewBtn.addEventListener('click', previewEmail);
   if (closeBtn)   closeBtn.addEventListener('click', closePreview);
   modal.addEventListener('click', function (e) { if (e.target === modal) closePreview(); });
+}());
+
+// ── 30. Email template page: live preview ────────────────────────────────────
+
+(function () {
+  var pd = document.getElementById('et-preview-data');
+  if (!pd) return;
+
+  // Token substitution map (example/dummy values for preview)
+  var tokens = {
+    '$fan_name$':        'Jane Fan',
+    '$fan_email$':       'jane@example.com',
+    '$fan_url$':         'https://jane.example.com',
+    '$fan_country$':     'United States',
+    '$fan_password$':    '(password)',
+    '$reset_url$':       'https://example.com/reset/1/confirm?token=abc123',
+    '$listing_name$':    pd.dataset.listingName    || 'My Fanlisting',
+    '$listing_subject$': pd.dataset.listingSubject || 'Music',
+    '$listing_url$':     pd.dataset.listingUrl     || 'https://myfanlisting.com',
+    '$site_name$':       pd.dataset.siteName       || 'Luster',
+    '$owner_name$':      pd.dataset.ownerName      || 'The Admin',
+    '$owner_email$':     pd.dataset.ownerEmail     || 'admin@example.com',
+  };
+
+  function applyTokens(text) {
+    var result = text;
+    Object.keys(tokens).forEach(function (k) {
+      result = result.split(k).join(tokens[k]);
+    });
+    return result;
+  }
+
+  function updatePreview(type) {
+    var subjInput = document.querySelector('.et-subject[data-type="' + type + '"]');
+    var bodyInput = document.querySelector('.et-body[data-type="' + type + '"]');
+    var pSubj     = document.querySelector('#et-preview-' + type + ' .et-preview-subject');
+    var pBody     = document.querySelector('#et-preview-' + type + ' .et-preview-body');
+    if (subjInput && pSubj) pSubj.textContent = applyTokens(subjInput.value);
+    if (bodyInput && pBody) pBody.textContent = applyTokens(bodyInput.value);
+  }
+
+  // Wire preview toggle buttons
+  document.querySelectorAll('.et-preview-toggle').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var type  = btn.dataset.type;
+      var panel = document.getElementById('et-preview-' + type);
+      if (!panel) return;
+      var visible = panel.style.display !== 'none';
+      panel.style.display = visible ? 'none' : 'block';
+      btn.textContent = visible ? 'Preview' : 'Hide Preview';
+      if (!visible) updatePreview(type);
+    });
+  });
+
+  // Wire live updates: subject + body inputs refresh visible preview panel
+  document.querySelectorAll('.et-subject, .et-body').forEach(function (inp) {
+    inp.addEventListener('input', function () {
+      var type  = inp.dataset.type;
+      var panel = document.getElementById('et-preview-' + type);
+      if (panel && panel.style.display !== 'none') updatePreview(type);
+    });
+  });
 }());

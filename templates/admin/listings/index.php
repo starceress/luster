@@ -189,7 +189,7 @@ usort($allNetworks, static fn($a, $b) => strcasecmp($a, $b));
             <?php if ($fl->upcoming): ?>
               <span class="neb-badge badge-upcoming">Upcoming</span>
             <?php elseif ($fl->trouble): ?>
-              <span class="neb-badge badge-trouble">Trouble</span>
+              <span class="neb-badge badge-pending">Pending</span>
             <?php else: ?>
               <span class="neb-badge badge-current">Current</span>
             <?php endif; ?>

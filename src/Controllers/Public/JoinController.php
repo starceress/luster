@@ -253,21 +253,23 @@ final class JoinController
         // (they need the password regardless of their preference).
         if ($sendInfo || $wasGenerated) {
             try {
-                $mailer    = new Mailer($this->app->getConfig());
-                $appName   = (string) $this->app->getConfig()->get('app_name', 'Luster');
+                $cfg       = $this->app->getConfig();
+                $mailer    = new Mailer($cfg);
                 $emailRepo = new EmailTemplateRepo($this->app->getDatabase());
-                $tpl       = $emailRepo->get($listingId, EmailTemplateRepo::TYPE_JOIN);
                 $tokens    = EmailTemplateRepo::buildTokens(
-                    listingName: $listing->name,
-                    listingUrl:  $listing->url,
-                    appName:        $appName,
+                    listingName:    $listing->name,
+                    listingUrl:     $listing->url,
+                    siteName:       (string) $cfg->get('site_name', 'Luster'),
+                    listingSubject: $listing->subject,
+                    ownerName:      (string) $cfg->get('owner_name', ''),
+                    ownerEmail:     (string) $cfg->get('owner_email', ''),
                     fanName:        $name,
                     fanEmail:       $email,
                     fanUrl:         $url,
                     fanCountry:     $country,
                     fanPassword:    $rawPassword,
                 );
-                [$subject, $body] = EmailTemplateRepo::resolve($tpl, EmailTemplateRepo::TYPE_JOIN, $tokens);
+                [$subject, $body] = $emailRepo->resolveForListing($listingId, EmailTemplateRepo::TYPE_JOIN, $tokens);
                 $mailer->send($email, $name, $subject, $body);
             } catch (\Throwable $e) {
                 error_log('[Luster] Join email failed: ' . $e->getMessage());
@@ -277,21 +279,23 @@ final class JoinController
         // Admin notification email (best-effort — only when listing has an email address)
         if ($listing->email !== '') {
             try {
-                $notifyMailer = new Mailer($this->app->getConfig());
-                $notifyAppName = (string) $this->app->getConfig()->get('app_name', 'Luster');
-                $notifyRepo    = new EmailTemplateRepo($this->app->getDatabase());
-                $notifyTpl     = $notifyRepo->get($listingId, EmailTemplateRepo::TYPE_NOTIFY_JOIN);
-                $notifyTokens  = EmailTemplateRepo::buildTokens(
-                    listingName: $listing->name,
-                    listingUrl:  $listing->url,
-                    appName:     $notifyAppName,
-                    fanName:     $name,
-                    fanEmail:    $email,
-                    fanUrl:      $url,
-                    fanCountry:  $country,
+                $cfg          = $this->app->getConfig();
+                $notifyMailer = new Mailer($cfg);
+                $notifyRepo   = new EmailTemplateRepo($this->app->getDatabase());
+                $notifyTokens = EmailTemplateRepo::buildTokens(
+                    listingName:    $listing->name,
+                    listingUrl:     $listing->url,
+                    siteName:       (string) $cfg->get('site_name', 'Luster'),
+                    listingSubject: $listing->subject,
+                    ownerName:      (string) $cfg->get('owner_name', ''),
+                    ownerEmail:     (string) $cfg->get('owner_email', ''),
+                    fanName:        $name,
+                    fanEmail:       $email,
+                    fanUrl:         $url,
+                    fanCountry:     $country,
                 );
-                [$notifySubject, $notifyBody] = EmailTemplateRepo::resolve(
-                    $notifyTpl, EmailTemplateRepo::TYPE_NOTIFY_JOIN, $notifyTokens,
+                [$notifySubject, $notifyBody] = $notifyRepo->resolveForListing(
+                    $listingId, EmailTemplateRepo::TYPE_NOTIFY_JOIN, $notifyTokens,
                 );
                 $notifyMailer->send($listing->email, $listing->name, $notifySubject, $notifyBody);
             } catch (\Throwable $e) {

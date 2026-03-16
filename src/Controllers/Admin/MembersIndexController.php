@@ -50,7 +50,7 @@ final class MembersIndexController
 
         return Response::html($view->render('admin/layout.php', [
             'page_title'      => 'Members',
-            'app_name'        => (string) $config->get('app_name', 'Luster'),
+            'site_name'       => (string) $config->get('site_name', 'Luster'),
             'admin_username'  => (string) $session->get('lstr_admin_username', ''),
             'csrf_token'      => $this->app->getCSRF()->token(),
             'current_section' => 'members',

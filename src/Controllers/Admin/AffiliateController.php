@@ -80,7 +80,7 @@ final class AffiliateController
         $session->remove('lstr_flash_success');
         $session->remove('lstr_flash_error');
 
-        $siteName = (string) ($this->app->getConfig()->get('app_name', 'Collective'));
+        $siteName = (string) ($this->app->getConfig()->get('site_name', 'Collective'));
 
         return $this->layout('admin/affiliates/index.php', [
             'affiliates'  => $affiliates,
@@ -150,7 +150,7 @@ final class AffiliateController
             $v->field('name')->required()->maxLength(255);
             $v->field('url')->required()->url()->maxLength(500);
 
-            $siteName = (string) ($this->app->getConfig()->get('app_name', 'Collective'));
+            $siteName = (string) ($this->app->getConfig()->get('site_name', 'Collective'));
 
             if ($v->fails()) {
                 return $this->layout('admin/affiliates/form.php', [
@@ -185,7 +185,7 @@ final class AffiliateController
             return Response::redirect($redirect);
         }
 
-        $siteName = (string) ($this->app->getConfig()->get('app_name', 'Collective'));
+        $siteName = (string) ($this->app->getConfig()->get('site_name', 'Collective'));
 
         return $this->layout('admin/affiliates/form.php', [
             'listings' => $listings,
@@ -261,7 +261,7 @@ final class AffiliateController
             $v->field('name')->required()->maxLength(255);
             $v->field('url')->required()->url()->maxLength(500);
 
-            $siteName = (string) ($this->app->getConfig()->get('app_name', 'Collective'));
+            $siteName = (string) ($this->app->getConfig()->get('site_name', 'Collective'));
 
             if ($v->fails()) {
                 return $this->layout('admin/affiliates/form.php', [
@@ -298,7 +298,7 @@ final class AffiliateController
         // GET: read context from query param
         $fromFl = (int) $request->query('from_listing', 0);
 
-        $siteName = (string) ($this->app->getConfig()->get('app_name', 'Collective'));
+        $siteName = (string) ($this->app->getConfig()->get('site_name', 'Collective'));
 
         return $this->layout('admin/affiliates/form.php', [
             'listings' => $listings,
@@ -395,7 +395,7 @@ final class AffiliateController
 
         return Response::html($view->render('admin/layout.php', [
             'page_title'      => $pageTitle,
-            'app_name'        => (string) $config->get('app_name', 'Luster'),
+            'site_name'       => (string) $config->get('site_name', 'Luster'),
             'admin_username'  => (string) $session->get('lstr_admin_username', ''),
             'csrf_token'      => $csrfToken,
             'current_section' => $section,

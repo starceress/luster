@@ -77,18 +77,20 @@ final class PendingUpdateController
 
         // Notify the fan that their update has been applied (best-effort)
         try {
-            $mailer    = new Mailer($this->app->getConfig());
-            $appName   = (string) $this->app->getConfig()->get('app_name', 'Luster');
+            $cfg       = $this->app->getConfig();
+            $mailer    = new Mailer($cfg);
             $emailRepo = new EmailTemplateRepo($db);
-            $tpl       = $emailRepo->get($pending->fanlisting_id, EmailTemplateRepo::TYPE_UPDATE);
             $tokens    = EmailTemplateRepo::buildTokens(
-                listingName: $listing->name,
-                listingUrl:  $listing->url,
-                appName:     $appName,
-                fanName:     $member->name,
-                fanEmail:    $member->email,
+                listingName:    $listing->name,
+                listingUrl:     $listing->url,
+                siteName:       (string) $cfg->get('site_name', 'Luster'),
+                listingSubject: $listing->subject,
+                ownerName:      (string) $cfg->get('owner_name', ''),
+                ownerEmail:     (string) $cfg->get('owner_email', ''),
+                fanName:        $member->name,
+                fanEmail:       $member->email,
             );
-            [$subject, $body] = EmailTemplateRepo::resolve($tpl, EmailTemplateRepo::TYPE_UPDATE, $tokens);
+            [$subject, $body] = $emailRepo->resolveForListing($pending->fanlisting_id, EmailTemplateRepo::TYPE_UPDATE, $tokens);
             $mailer->send($member->email, $member->name, $subject, $body);
         } catch (\Throwable $e) {
             error_log('[Luster] Pending update approval email failed: ' . $e->getMessage());

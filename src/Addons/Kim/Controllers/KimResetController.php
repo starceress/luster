@@ -112,18 +112,18 @@ final class KimResetController
                 $resetRepo->create($member->id, $tokenHash, $expiresAt);
 
                 $resetUrl = $baseUrl . '/kim/reset/confirm?token=' . urlencode($rawToken);
-                $appName  = (string) $this->app->getConfig()->get('app_name', 'Luster');
+                $siteName = (string) $this->app->getConfig()->get('site_name', 'Luster');
 
                 try {
                     $mailer  = new Mailer($this->app->getConfig());
-                    $subject = "KIM List Password Reset — {$appName}";
+                    $subject = "KIM List Password Reset — {$siteName}";
                     $body    = "Hi {$member->name},\n\n"
                              . "A password reset was requested for your KIM List account.\n\n"
                              . "Click the link below to set a new password:\n"
                              . "{$resetUrl}\n\n"
                              . "This link expires in 1 hour.\n\n"
                              . "If you did not request this, you can ignore this email.\n\n"
-                             . "-- {$appName}";
+                             . "-- {$siteName}";
                     $mailer->send($email, $member->name, $subject, $body);
                 } catch (\Throwable $e) {
                     error_log('[KIM] Password reset email failed: ' . $e->getMessage());
@@ -307,14 +307,14 @@ final class KimResetController
     {
         $view    = $this->app->getView();
         $baseUrl = $this->app->getBaseUrl();
-        $appName = (string) $this->app->getConfig()->get('app_name', 'Luster');
+        $siteName = (string) $this->app->getConfig()->get('site_name', 'Luster');
 
         $content = $view->render('addons/kim/' . $template, $data);
 
         $layoutData = array_merge($data, [
             'content'      => $content,
             'listing'      => null,
-            'listing_name' => $appName,
+            'listing_name' => $siteName,
             'listing_url'  => $baseUrl,
             'theme_path'   => $baseUrl . '/assets/default/',
         ]);

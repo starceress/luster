@@ -41,7 +41,7 @@ final class AddonsController
         $installed  = array_flip($this->app->getInstalledAddonKeys()); // key => true
 
         $inner = $view->render('admin/addons/index.php', [
-            'app_name'        => (string) $config->get('app_name', 'Luster'),
+            'site_name'       => (string) $config->get('site_name', 'Luster'),
             'admin_username'  => (string) $session->get('lstr_admin_username', ''),
             'csrf_token'      => $this->app->getCSRF()->token(),
             'base_url'        => $baseUrl,
@@ -53,7 +53,7 @@ final class AddonsController
 
         return Response::html($view->render('admin/layout.php', [
             'page_title'      => 'Add-ons',
-            'app_name'        => (string) $config->get('app_name', 'Luster'),
+            'site_name'       => (string) $config->get('site_name', 'Luster'),
             'admin_username'  => (string) $session->get('lstr_admin_username', ''),
             'csrf_token'      => $this->app->getCSRF()->token(),
             'current_section' => 'addons',

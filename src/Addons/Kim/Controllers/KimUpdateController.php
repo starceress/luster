@@ -233,12 +233,12 @@ final class KimUpdateController
         if ($sendCopy) {
             try {
                 $mailer  = new Mailer($this->app->getConfig());
-                $appName = (string) $this->app->getConfig()->get('app_name', 'Luster');
-                $subject = "KIM List Updated — {$appName}";
+                $siteName = (string) $this->app->getConfig()->get('site_name', 'Luster');
+                $subject = "KIM List Updated — {$siteName}";
                 $body    = "Hi {$name},\n\n"
                          . "Your KIM List entry has been updated.\n"
                          . "Updated fields: " . implode(', ', $updatedFields) . "\n\n"
-                         . "-- {$appName}";
+                         . "-- {$siteName}";
                 $mailer->send($newEmail !== '' ? $newEmail : $currentEmail, $name, $subject, $body);
             } catch (\Throwable $e) {
                 error_log('[KIM] Update confirmation email failed: ' . $e->getMessage());
@@ -297,14 +297,14 @@ final class KimUpdateController
     {
         $view    = $this->app->getView();
         $baseUrl = $this->app->getBaseUrl();
-        $appName = (string) $this->app->getConfig()->get('app_name', 'Luster');
+        $siteName = (string) $this->app->getConfig()->get('site_name', 'Luster');
 
         $content = $view->render('addons/kim/' . $template, $data);
 
         $layoutData = array_merge($data, [
             'content'      => $content,
             'listing'      => null,
-            'listing_name' => $appName,
+            'listing_name' => $siteName,
             'listing_url'  => $baseUrl,
             'theme_path'   => $baseUrl . '/assets/default/',
         ]);

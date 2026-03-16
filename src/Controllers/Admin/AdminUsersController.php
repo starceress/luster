@@ -233,7 +233,7 @@ final class AdminUsersController
 
         $data['page_title']      = 'Admin Accounts';
         $data['current_section'] = 'settings';
-        $data['app_name']        = (string) $this->app->getConfig()->get('app_name', 'Luster');
+        $data['site_name']       = (string) $this->app->getConfig()->get('site_name', 'Luster');
         $data['admin_username']  = (string) $session->get('lstr_admin_username', '');
         $data['csrf_token']      = $this->app->getCSRF()->token();
         $data['base_url']        = $this->app->getBaseUrl();

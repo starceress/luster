@@ -11,6 +11,7 @@ use Luster\Core\Response;
 use Luster\Core\Validator;
 use Luster\Repositories\ActivityRepo;
 use Luster\Repositories\AdminUserRepo;
+use Luster\Repositories\BlacklistRepo;
 use Luster\Repositories\SiteSettingsRepo;
 use RuntimeException;
 
@@ -33,8 +34,8 @@ final class SettingsController
      * in-panel editing (they are set once at install time).
      */
     private const ALLOWED_KEYS = [
-        'app_name',
-        'app_url',
+        'site_name',
+        'site_url',
         'smtp_host',
         'smtp_port',
         'smtp_user',
@@ -50,6 +51,8 @@ final class SettingsController
         'install_path',
         'session_cookie_domain',
         'embed_base_url',
+        'owner_name',
+        'owner_email',
     ];
 
     public function __construct(private readonly Application $app) {}
@@ -70,21 +73,25 @@ final class SettingsController
         $adminRepo = new AdminUserRepo($this->app->getDatabase());
         $adminUser = $adminRepo->getById($adminId);
 
-        $siteRepo        = new SiteSettingsRepo($this->app->getDatabase());
+        $db       = $this->app->getDatabase();
+        $siteRepo = new SiteSettingsRepo($db);
         $collectiveTemplates = $siteRepo->getMany([
             'owned_template',
             'joined_template',
             'collective_stats_template',
         ]);
 
+        $blacklistEntries = (new BlacklistRepo($db))->getAll();
+
         return $this->layout('admin/settings/index.php', [
-            'cfg'                 => $this->app->getConfig()->all(),
-            'admin_user'          => $adminUser,
-            'users'               => $adminRepo->getAll(),
-            'current_admin_id'    => $adminId,
+            'cfg'                  => $this->app->getConfig()->all(),
+            'admin_user'           => $adminUser,
+            'users'                => $adminRepo->getAll(),
+            'current_admin_id'     => $adminId,
             'collective_templates' => $collectiveTemplates,
-            'success'             => $success,
-            'error'               => $error,
+            'blacklist_entries'    => $blacklistEntries,
+            'success'              => $success,
+            'error'                => $error,
         ], 'Settings', 'settings');
     }
 
@@ -98,13 +105,13 @@ final class SettingsController
         $baseUrl     = $this->app->getBaseUrl();
         $activityRepo = new ActivityRepo($this->app->getDatabase());
 
-        $appName   = trim((string) $request->post('app_name', ''));
-        $appUrl    = rtrim(trim((string) $request->post('app_url', '')), '/');
+        $siteName   = trim((string) $request->post('site_name', ''));
+        $siteUrl    = rtrim(trim((string) $request->post('site_url', '')), '/');
         $timezone  = trim((string) $request->post('timezone', 'UTC'));
 
-        $v = new Validator(['app_name' => $appName, 'app_url' => $appUrl]);
-        $v->field('app_name')->required()->maxLength(100);
-        $v->field('app_url')->required()->maxLength(500);
+        $v = new Validator(['site_name' => $siteName, 'site_url' => $siteUrl]);
+        $v->field('site_name')->required()->maxLength(100);
+        $v->field('site_url')->required()->maxLength(500);
 
         if ($v->fails()) {
             $session->set('lstr_flash_error', implode(' ', $v->allErrors()));
@@ -120,8 +127,8 @@ final class SettingsController
         $existing = $this->app->getConfig()->all();
 
         $updated = $existing;
-        $updated['app_name']       = $appName;
-        $updated['app_url']        = $appUrl;
+        $updated['site_name']      = $siteName;
+        $updated['site_url']       = $siteUrl;
         $updated['timezone']       = $timezone;
         $updated['smtp_host']      = trim((string) $request->post('smtp_host', ''));
         $updated['smtp_port']      = max(1, min(65535, (int) $request->post('smtp_port', 587)));
@@ -148,6 +155,10 @@ final class SettingsController
         $updated['session_cookie_domain'] = trim((string) $request->post('session_cookie_domain', ''));
         $updated['embed_base_url']        = rtrim(trim((string) $request->post('embed_base_url', '')), '/');
 
+        // Site owner identity (used in email templates)
+        $updated['owner_name']  = trim((string) $request->post('owner_name',  ''));
+        $updated['owner_email'] = trim((string) $request->post('owner_email', ''));
+
         $this->writeConfig($updated);
 
         $activityRepo->log(
@@ -158,7 +169,7 @@ final class SettingsController
         );
 
         $session->set('lstr_flash_success', 'Settings saved successfully.');
-        return Response::redirect($baseUrl . '/admin/settings');
+        return Response::redirect($baseUrl . '/admin/settings#tab-general');
     }
 
     // -----------------------------------------------------------------------
@@ -186,15 +197,15 @@ final class SettingsController
             return Response::redirect($baseUrl . '/admin/settings');
         }
 
-        $appName = (string) $config->get('app_name', 'Luster');
+        $siteName = (string) $config->get('site_name', 'Luster');
 
         try {
             $mailer = new Mailer($config);
             $mailer->send(
                 $adminUser->email,
                 $adminUser->username,
-                '[' . $appName . '] SMTP test email',
-                "This is a test email sent from your " . $appName . " admin panel.\n\n"
+                '[' . $siteName . '] SMTP test email',
+                "This is a test email sent from your " . $siteName . " admin panel.\n\n"
                 . "If you received this message, your SMTP configuration is working correctly.\n\n"
                 . "— Luster",
             );
@@ -362,7 +373,7 @@ final class SettingsController
 
         return Response::html($view->render('admin/layout.php', [
             'page_title'      => $pageTitle,
-            'app_name'        => (string) $config->get('app_name', 'Luster'),
+            'site_name'       => (string) $config->get('site_name', 'Luster'),
             'admin_username'  => (string) $session->get('lstr_admin_username', ''),
             'csrf_token'      => $csrfToken,
             'current_section' => $section,

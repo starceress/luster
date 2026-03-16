@@ -7,6 +7,7 @@ use Luster\Controllers\Admin\ActivityLogController;
 use Luster\Controllers\Admin\MassEmailController;
 use Luster\Controllers\Admin\AdminUsersController;
 use Luster\Controllers\Admin\BlacklistController;
+use Luster\Controllers\Admin\EmailTemplatesController;
 use Luster\Controllers\Admin\AffiliateController;
 use Luster\Controllers\Admin\CodesController;
 use Luster\Controllers\Admin\EmbedCodesController;
@@ -113,10 +114,11 @@ return [
             ListingController::class, 'edit');
         $router->post('/admin/listings/{id}/templates',
             ListingController::class, 'saveTemplates');
+        // Old per-listing email-template routes — redirect to unified page
         $router->get('/admin/listings/{id}/email-templates',
-            ListingController::class, 'emailTemplatesForm');
+            ListingController::class, 'emailTemplatesRedirect');
         $router->post('/admin/listings/{id}/email-templates',
-            ListingController::class, 'saveEmailTemplates');
+            ListingController::class, 'emailTemplatesRedirect');
         $router->post('/admin/listings/{id}/embed',
             ListingController::class, 'saveEmbed');
         $router->post('/admin/listings/{id}/update',
@@ -228,6 +230,14 @@ return [
             AdminUsersController::class, 'edit');
         $router->post('/admin/admin-users/{id}/delete',
             AdminUsersController::class, 'delete');
+
+        // ── Email Templates ───────────────────────────────────────────
+        $router->get('/admin/email-templates',
+            EmailTemplatesController::class, 'index');
+        $router->post('/admin/email-templates/save',
+            EmailTemplatesController::class, 'save');
+        $router->post('/admin/email-templates/reset',
+            EmailTemplatesController::class, 'reset');
 
         // ── Settings ────────────────────────────────────────────────
         $router->get('/admin/settings',

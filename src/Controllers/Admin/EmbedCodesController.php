@@ -53,7 +53,7 @@ final class EmbedCodesController
 
         return Response::html($view->render('admin/layout.php', [
             'page_title'      => 'Embed Codes',
-            'app_name'        => (string) $config->get('app_name', 'Luster'),
+            'site_name'       => (string) $config->get('site_name', 'Luster'),
             'admin_username'  => (string) $session->get('lstr_admin_username', ''),
             'csrf_token'      => $csrfToken,
             'current_section' => 'embed-codes',

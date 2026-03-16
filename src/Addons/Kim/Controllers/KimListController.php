@@ -89,14 +89,14 @@ final class KimListController
     {
         $view    = $this->app->getView();
         $baseUrl = $this->app->getBaseUrl();
-        $appName = (string) $this->app->getConfig()->get('app_name', 'Luster');
+        $siteName = (string) $this->app->getConfig()->get('site_name', 'Luster');
 
         $content = $view->render('addons/kim/' . $template, $data);
 
         $layoutData = array_merge($data, [
             'content'      => $content,
             'listing'      => $data['listing'] ?? null,
-            'listing_name' => $appName,
+            'listing_name' => $siteName,
             'listing_url'  => $baseUrl,
             'theme_path'   => $baseUrl . '/assets/default/',
         ]);

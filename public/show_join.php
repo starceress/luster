@@ -391,7 +391,7 @@ $_lstr_sendInfo = (($_POST['send_info'] ?? '') === '1');
 if ($_lstr_sendInfo || $_lstr_wasGenerated) {
     try {
         $_lstr_mailer  = new Mailer($lstr_config);
-        $_lstr_appName = (string) $lstr_config->get('app_name', 'Luster');
+        $_lstr_siteName = (string) $lstr_config->get('site_name', 'Luster');
 
         $_lstr_subject = "Welcome to the {$lstr_fl->name} listing!";
         $_lstr_body    = "Hi {$_lstr_name},\n\n"
@@ -409,7 +409,7 @@ if ($_lstr_sendInfo || $_lstr_wasGenerated) {
 
         $_lstr_body .= "Please keep this email for your records. "
                      . "You will need your password to update or remove your membership.\n\n"
-                     . "-- {$_lstr_appName}";
+                     . "-- {$_lstr_siteName}";
 
         $_lstr_mailer->send($_lstr_email, $_lstr_name, $_lstr_subject, $_lstr_body);
     } catch (\Throwable $e) {

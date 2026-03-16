@@ -89,7 +89,7 @@ if ($_lusterListingId > 0) {
     $_lusterResult       = $_lusterAffiliateRepo->getActiveCollective($_lusterPerPage, $_lusterPage);
     $_lusterIsCollective = true;
     $_lusterJoinUrl      = '';
-    $_lusterTitle        = (string) $_lusterApp->getConfig()->get('app_name', 'Luster');
+    $_lusterTitle        = (string) $_lusterApp->getConfig()->get('site_name', 'Luster');
 }
 
 // ---------------------------------------------------------------------------

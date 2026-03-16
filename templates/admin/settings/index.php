@@ -27,6 +27,7 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
   <button class="neb-tab-btn"        data-tab="embed">Embed &amp; Paths</button>
   <button class="neb-tab-btn"        data-tab="database">Database &amp; Debug</button>
   <button class="neb-tab-btn"        data-tab="collective-templates">Collective Templates</button>
+  <button class="neb-tab-btn"        data-tab="blacklist">Blacklist</button>
 </div>
 
 
@@ -148,20 +149,37 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
       <div class="settings-card">
 
         <div class="form-group">
-          <label class="form-label" for="s-app-name">Site Name</label>
-          <input id="s-app-name" type="text" name="app_name" class="form-input"
+          <label class="form-label" for="s-site-name">Site Name</label>
+          <input id="s-site-name" type="text" name="site_name" class="form-input"
                  maxlength="100" required
-                 value="<?= \Luster\Core\View::e(cfgVal($cfg, 'app_name', 'Luster')) ?>">
+                 value="<?= \Luster\Core\View::e(cfgVal($cfg, 'site_name', 'Luster')) ?>">
         </div>
 
         <div class="form-group">
-          <label class="form-label" for="s-app-url">
+          <label class="form-label" for="s-site-url">
             Base URL <em style="font-weight:400;font-size:.75rem">(no trailing slash)</em>
           </label>
-          <input id="s-app-url" type="url" name="app_url" class="form-input"
+          <input id="s-site-url" type="url" name="site_url" class="form-input"
                  maxlength="500" required
-                 value="<?= \Luster\Core\View::e(cfgVal($cfg, 'app_url')) ?>">
+                 value="<?= \Luster\Core\View::e(cfgVal($cfg, 'site_url')) ?>">
           <p class="form-hint">Example: <code class="neb-code">http://localhost/luster/public</code></p>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label" for="s-owner-name">Owner Name</label>
+            <input id="s-owner-name" type="text" name="owner_name" class="form-input"
+                   maxlength="100"
+                   value="<?= \Luster\Core\View::e(cfgVal($cfg, 'owner_name')) ?>">
+            <p class="form-hint">Your display name used in outgoing email templates (e.g. <code class="neb-code">Jiji</code>).</p>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="s-owner-email">Owner Email</label>
+            <input id="s-owner-email" type="email" name="owner_email" class="form-input"
+                   maxlength="255"
+                   value="<?= \Luster\Core\View::e(cfgVal($cfg, 'owner_email')) ?>">
+            <p class="form-hint">Contact email shown in outgoing emails. Can differ from your admin login email.</p>
+          </div>
         </div>
 
         <div class="form-group">
@@ -497,4 +515,97 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
     </div>
   </form>
   </div><!-- /#tab-collective-templates -->
+
+  <!-- ═══ TAB: BLACKLIST ═══ -->
+  <div id="tab-blacklist" class="neb-tab-panel">
+
+    <!-- Add form -->
+    <div class="neb-card" style="margin-bottom:1.25rem">
+      <div class="neb-card-header">Add Pattern</div>
+      <form method="POST" action="<?= $b ?>/admin/blacklist/add" style="padding:1.25rem">
+        <input type="hidden" name="_csrf" value="<?= \Luster\Core\View::e($csrf_token ?? '') ?>">
+
+        <div class="form-row">
+          <div class="form-group" style="margin-bottom:0">
+            <label class="form-label" for="bl-pattern">Pattern <span>*</span></label>
+            <input id="bl-pattern" type="text" name="pattern" class="form-input"
+                   maxlength="255" required
+                   placeholder="spam@example.com  or  @spam.com">
+            <p class="form-hint">
+              Full email for an exact block, or start with <code class="neb-code">@</code> to block an entire domain
+              (e.g. <code class="neb-code">@mailnull.com</code>).
+            </p>
+          </div>
+
+          <div class="form-group" style="margin-bottom:0">
+            <label class="form-label" for="bl-note">Note <em style="font-weight:400;text-transform:none;letter-spacing:0">(optional)</em></label>
+            <input id="bl-note" type="text" name="note" class="form-input"
+                   maxlength="500"
+                   placeholder="Why this address was blocked">
+          </div>
+        </div>
+
+        <div class="btn-row">
+          <button type="submit" class="btn btn-primary">Add to Blacklist</button>
+        </div>
+      </form>
+    </div>
+
+    <!-- Entries table -->
+    <div class="neb-card">
+      <div class="neb-card-header" style="display:flex;align-items:center;justify-content:space-between">
+        <span>Blocked Patterns</span>
+        <span style="font-weight:400;text-transform:none;letter-spacing:0;font-size:.8rem;color:var(--text-muted)">
+          <?= count($blacklist_entries ?? []) ?> entr<?= count($blacklist_entries ?? []) === 1 ? 'y' : 'ies' ?>
+        </span>
+      </div>
+
+      <?php if (empty($blacklist_entries)): ?>
+        <p class="neb-empty">No blocked patterns yet. Add email addresses or domains above to prevent them from joining.</p>
+      <?php else: ?>
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Pattern</th>
+              <th>Type</th>
+              <th>Note</th>
+              <th>Added</th>
+              <th class="act-col"></th>
+            </tr>
+          </thead>
+          <tbody>
+            <?php foreach ($blacklist_entries as $entry): ?>
+            <tr>
+              <td>
+                <code class="neb-code" style="font-size:.85rem"><?= \Luster\Core\View::e($entry['pattern']) ?></code>
+              </td>
+              <td>
+                <?php if (str_starts_with($entry['pattern'], '@')): ?>
+                  <span class="neb-badge badge-info">Domain</span>
+                <?php else: ?>
+                  <span class="neb-badge badge-inactive">Exact</span>
+                <?php endif; ?>
+              </td>
+              <td class="text-muted" style="font-size:.85rem">
+                <?= $entry['note'] !== '' ? \Luster\Core\View::e($entry['note']) : '<span class="text-dim">—</span>' ?>
+              </td>
+              <td class="text-dim nowrap" style="font-family:'DM Mono',monospace;font-size:.8rem">
+                <?= \Luster\Core\View::e(substr($entry['created_at'], 0, 10)) ?>
+              </td>
+              <td class="act-col">
+                <form method="POST"
+                      action="<?= $b ?>/admin/blacklist/<?= (int) $entry['id'] ?>/delete"
+                      data-confirm="Remove <?= \Luster\Core\View::e($entry['pattern']) ?> from the blacklist?">
+                  <input type="hidden" name="_csrf" value="<?= \Luster\Core\View::e($csrf_token ?? '') ?>">
+                  <button type="submit" class="btn btn-danger btn-sm">Remove</button>
+                </form>
+              </td>
+            </tr>
+            <?php endforeach; ?>
+          </tbody>
+        </table>
+      <?php endif; ?>
+    </div>
+
+  </div><!-- /#tab-blacklist -->
 

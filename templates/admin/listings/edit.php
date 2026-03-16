@@ -64,7 +64,7 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
   <div style="display:flex;gap:.5rem;">
     <a href="<?= $b ?>/admin/members/<?= (int) $listing->id ?>" class="btn btn-secondary btn-sm">Members</a>
     <a href="<?= $b ?>/admin/listings/<?= (int) $listing->id ?>/codes" class="btn btn-secondary btn-sm">Codes</a>
-    <a href="<?= $b ?>/admin/listings/<?= (int) $listing->id ?>/email-templates" class="btn btn-secondary btn-sm">Emails</a>
+    <a href="<?= $b ?>/admin/email-templates?listing=<?= (int) $listing->id ?>" class="btn btn-secondary btn-sm">Emails</a>
     <form method="post"
           action="<?= $b ?>/admin/listings/<?= (int) $listing->id ?>/delete"
           style="display:inline"
@@ -518,7 +518,7 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
 /** @var array  $cfg */
 $embedSettings  = $embed_settings ?? [];
 $installPath    = rtrim((string) ($cfg['install_path']   ?? ''), '/');
-$embedBaseUrl   = rtrim((string) ($cfg['embed_base_url'] ?? ''), '/') ?: rtrim((string) ($cfg['app_url'] ?? ''), '/');
+$embedBaseUrl   = rtrim((string) ($cfg['embed_base_url'] ?? ''), '/') ?: rtrim((string) ($cfg['site_url'] ?? ''), '/');
 ?>
 
 <div class="form-card">

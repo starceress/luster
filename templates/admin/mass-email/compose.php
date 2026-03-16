@@ -17,6 +17,11 @@ use Luster\Core\View;
 $b = rtrim(View::e($base_url ?? ''), '/');
 ?>
 
+<div class="neb-tabs" style="margin-bottom:1.5rem">
+  <a href="<?= $b ?>/admin/mass-email"      class="neb-tab-btn active">Compose</a>
+  <a href="<?= $b ?>/admin/email-templates" class="neb-tab-btn">Email Templates</a>
+</div>
+
 <?php if ($error !== ''): ?>
   <div class="alert alert-error"><?= View::e($error) ?></div>
 <?php endif; ?>
@@ -65,7 +70,7 @@ $b = rtrim(View::e($base_url ?? ''), '/');
         <code>{name}</code> &mdash; member's name &nbsp;|&nbsp;
         <code>{email}</code> &mdash; member's email &nbsp;|&nbsp;
         <code>{listing_name}</code> &mdash; listing name &nbsp;|&nbsp;
-        <code>{app_name}</code> &mdash; site name
+        <code>{site_name}</code> &mdash; site name
       </p>
     </div>
 

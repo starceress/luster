@@ -69,7 +69,7 @@ $_lstr_e = static fn(string $v): string =>
     htmlspecialchars($v, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 
 // "Lost it?" link points to Luster's own /remove/{id} page
-$_lstr_removeUrl = rtrim((string) $lstr_config->get('app_url', ''), '/') . '/remove/' . $luster_listing;
+$_lstr_removeUrl = rtrim((string) $lstr_config->get('site_url', ''), '/') . '/remove/' . $luster_listing;
 
 // ── Extra fields HTML builder ─────────────────────────────────────────────────
 
@@ -401,7 +401,7 @@ $lstr_memberRepo->update($lstr_fl->dbprefix, $_lstr_email, $_lstr_updateData);
 // 13. Confirmation email (best-effort)
 try {
     $_lstr_mailer  = new Mailer($lstr_config);
-    $_lstr_appName = (string) $lstr_config->get('app_name', 'Luster');
+    $_lstr_siteName = (string) $lstr_config->get('site_name', 'Luster');
 
     $_lstr_mailer->send(
         $_lstr_finalEmail,
@@ -409,7 +409,7 @@ try {
         "Your {$lstr_fl->name} membership has been updated",
         "Hi {$_lstr_finalName},\n\n"
         . "Your membership in the {$lstr_fl->name} listing has been updated.\n\n"
-        . "-- {$_lstr_appName}",
+        . "-- {$_lstr_siteName}",
     );
 } catch (\Throwable $e) {
     error_log('[Luster] Update email failed: ' . $e->getMessage());

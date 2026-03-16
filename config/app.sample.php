@@ -27,9 +27,17 @@ return [
     // ------------------------------------------------------------------
     // Application
     // ------------------------------------------------------------------
-    'app_name'  => 'Luster',
-    'app_url'   => 'http://localhost',   // No trailing slash
+    'site_name'  => 'Luster',
+    'site_url'  => 'http://localhost',   // No trailing slash
     'app_debug' => false,                // Set true only in development
+
+    // ------------------------------------------------------------------
+    // Site owner identity
+    // Used in outgoing email templates as $owner_name$ / $owner_email$.
+    // owner_email may differ from your admin login email.
+    // ------------------------------------------------------------------
+    'owner_name'  => '',
+    'owner_email' => '',
 
     // ------------------------------------------------------------------
     // Email (PHPMailer / SMTP)
@@ -97,7 +105,7 @@ return [
     //
     // embed_base_url — the public URL where Luster's form submissions
     //   go (e.g. https://nebuluna.com/luster/public). Leave blank to
-    //   use app_url above.
+    //   use site_url above.
     // ------------------------------------------------------------------
     'install_path'          => '',
     'session_cookie_domain' => '',

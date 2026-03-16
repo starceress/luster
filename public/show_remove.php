@@ -213,7 +213,7 @@ $lstr_memberRepo->deleteByEmail($lstr_fl->dbprefix, $_lstr_email);
 // 10. Farewell email (best-effort)
 try {
     $_lstr_mailer  = new Mailer($lstr_config);
-    $_lstr_appName = (string) $lstr_config->get('app_name', 'Luster');
+    $_lstr_siteName = (string) $lstr_config->get('site_name', 'Luster');
 
     $_lstr_mailer->send(
         $_lstr_email,
@@ -221,7 +221,7 @@ try {
         "You have been removed from the {$lstr_fl->name} fanlisting",
         "Hi {$_lstr_memberName},\n\n"
         . "Your membership in the {$lstr_fl->name} listing has been removed as requested.\n\n"
-        . "-- {$_lstr_appName}",
+        . "-- {$_lstr_siteName}",
     );
 } catch (\Throwable $e) {
     error_log('[Luster] Remove email failed: ' . $e->getMessage());

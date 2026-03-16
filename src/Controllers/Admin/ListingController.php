@@ -1024,7 +1024,17 @@ final class ListingController
     }
 
     // -----------------------------------------------------------------------
-    // GET /admin/listings/{id}/email-templates
+    // GET|POST /admin/listings/{id}/email-templates  → unified page
+    // -----------------------------------------------------------------------
+
+    public function emailTemplatesRedirect(Request $request, array $params): Response
+    {
+        $id = (int) ($params['id'] ?? 0);
+        return Response::redirect($this->app->getBaseUrl() . '/admin/email-templates?listing=' . $id);
+    }
+
+    // -----------------------------------------------------------------------
+    // GET /admin/listings/{id}/email-templates  (kept for reference; no longer routed)
     // -----------------------------------------------------------------------
 
     public function emailTemplatesForm(Request $request, array $params): Response
@@ -1113,7 +1123,7 @@ final class ListingController
 
         return Response::html($view->render('admin/layout.php', [
             'page_title'      => $pageTitle,
-            'app_name'        => (string) $config->get('app_name', 'Luster'),
+            'site_name'       => (string) $config->get('site_name', 'Luster'),
             'admin_username'  => (string) $session->get('lstr_admin_username', ''),
             'csrf_token'      => $csrfToken,
             'current_section' => $section,

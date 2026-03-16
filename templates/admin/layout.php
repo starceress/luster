@@ -1,6 +1,11 @@
 <?php
 $b = rtrim(\Luster\Core\View::e($base_url), '/');
-$s = $current_section ?? '';
+// Treat 'blacklist' as part of Settings for nav highlighting
+$s = match ($current_section ?? '') {
+    'blacklist'       => 'settings',
+    'email-templates' => 'mass-email',
+    default           => ($current_section ?? ''),
+};
 
 if (!function_exists('navActive')) {
     function navActive(string $section, string $current): string {
@@ -15,7 +20,7 @@ $avatarChar = strtoupper(substr((string) ($admin_username ?? 'A'), 0, 1));
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title><?= \Luster\Core\View::e($page_title) ?> &mdash; <?= \Luster\Core\View::e($app_name) ?></title>
+  <title><?= \Luster\Core\View::e($page_title) ?> &mdash; <?= \Luster\Core\View::e($site_name) ?></title>
   <link rel="stylesheet" href="<?= $b ?>/assets/css/admin.css">
   <script>(function(){var t=localStorage.getItem('lstr_theme');if(t==='dark'||t==='light')document.documentElement.setAttribute('data-theme',t);})();</script>
 </head>
@@ -32,7 +37,7 @@ $avatarChar = strtoupper(substr((string) ($admin_username ?? 'A'), 0, 1));
         <div class="brand-gem-glow"></div>
       </div>
       <div class="brand-text">
-        <span class="brand-name"><?= \Luster\Core\View::e($app_name) ?></span>
+        <span class="brand-name">Luster</span>
         <span class="brand-sub">Admin Panel</span>
       </div>
     </div>
@@ -98,13 +103,6 @@ $avatarChar = strtoupper(substr((string) ($admin_username ?? 'A'), 0, 1));
           <polyline points="22,6 12,13 2,6"/>
         </svg>
         Mass Email
-      </a>
-      <a href="<?= $b ?>/admin/blacklist" class="nav-item<?= navActive('blacklist', $s) ?>">
-        <svg class="nav-icon" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
-          <circle cx="12" cy="12" r="10"/>
-          <line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/>
-        </svg>
-        Blacklist
       </a>
     </div>
 
@@ -179,11 +177,11 @@ $avatarChar = strtoupper(substr((string) ($admin_username ?? 'A'), 0, 1));
     </div>
     <div class="topbar-right">
       <button class="theme-toggle" aria-label="Toggle theme">
-        <span class="theme-toggle-icon">☀️</span>
+        <span class="theme-toggle-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg></span>
         <div class="toggle-track">
           <div class="toggle-thumb"></div>
         </div>
-        <span class="theme-toggle-icon">🌙</span>
+        <span class="theme-toggle-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg></span>
       </button>
     </div>
   </div>

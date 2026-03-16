@@ -152,7 +152,7 @@ final class DashboardController
 
         $inner = $view->render('admin/dashboard.php', [
             'admin_username'              => (string) $session->get('lstr_admin_username', ''),
-            'app_name'                    => (string) $config->get('app_name', 'Luster'),
+            'site_name'                   => (string) $config->get('site_name', 'Luster'),
             'csrf_token'                  => $csrfToken,
             'total_listings'              => $fanStats['total'],
             'fan_current'                 => $fanCurrent,
@@ -181,7 +181,7 @@ final class DashboardController
 
         return Response::html($view->render('admin/layout.php', [
             'page_title'      => 'Dashboard',
-            'app_name'        => (string) $config->get('app_name', 'Luster'),
+            'site_name'       => (string) $config->get('site_name', 'Luster'),
             'admin_username'  => (string) $session->get('lstr_admin_username', ''),
             'csrf_token'      => $csrfToken,
             'current_section' => 'dashboard',

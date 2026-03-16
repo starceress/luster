@@ -26,7 +26,7 @@ use Luster\Repositories\MemberRepo;
  *   {name}         → member's name
  *   {email}        → member's email address
  *   {listing_name} → name of the listing they are a member of (or app name for all-listing sends)
- *   {app_name}     → site/collective name from config
+ *   {site_name}    → site/collective name from config
  */
 final class MassEmailController
 {
@@ -102,8 +102,8 @@ final class MassEmailController
 
         [$recipients, $listingName] = $this->collectRecipients($listingId);
 
-        $appName = (string) $this->app->getConfig()->get('app_name', 'Luster');
-        $mailer  = new Mailer($this->app->getConfig());
+        $siteName = (string) $this->app->getConfig()->get('site_name', 'Luster');
+        $mailer   = new Mailer($this->app->getConfig());
 
         // Allow long-running send without hitting the default 30 s limit
         set_time_limit(300);
@@ -112,8 +112,8 @@ final class MassEmailController
         $failed   = [];
 
         foreach ($recipients as $email => $name) {
-            $personalBody    = $this->applyTokens($body,    $name, $email, $listingName, $appName);
-            $personalSubject = $this->applyTokens($subject, $name, $email, $listingName, $appName);
+            $personalBody    = $this->applyTokens($body,    $name, $email, $listingName, $siteName);
+            $personalSubject = $this->applyTokens($subject, $name, $email, $listingName, $siteName);
 
             try {
                 $mailer->send($email, $name, $personalSubject, $personalBody);
@@ -159,12 +159,12 @@ final class MassEmailController
         $config      = $this->app->getConfig();
         $listingRepo = new ListingRepo($db, $config);
         $memberRepo  = new MemberRepo($db, $config);
-        $appName     = (string) $config->get('app_name', 'Luster');
+        $siteName    = (string) $config->get('site_name', 'Luster');
 
         if ($listingId > 0) {
             $listing = $listingRepo->getById($listingId);
             if ($listing === null || $listing->dbprefix === '') {
-                return [[], $appName];
+                return [[], $siteName];
             }
 
             $recipients = [];
@@ -188,24 +188,24 @@ final class MassEmailController
             }
         }
 
-        return [$recipients, $appName];
+        return [$recipients, $siteName];
     }
 
     /**
      * Replaces supported tokens in a string with per-recipient values.
      *
-     * Tokens: {name}, {email}, {listing_name}, {app_name}
+     * Tokens: {name}, {email}, {listing_name}, {site_name}
      */
     private function applyTokens(
         string $text,
         string $name,
         string $email,
         string $listingName,
-        string $appName,
+        string $siteName,
     ): string {
         return str_replace(
-            ['{name}', '{email}', '{listing_name}', '{app_name}'],
-            [$name,    $email,    $listingName,      $appName],
+            ['{name}', '{email}', '{listing_name}', '{site_name}'],
+            [$name,    $email,    $listingName,      $siteName],
             $text,
         );
     }
@@ -216,7 +216,7 @@ final class MassEmailController
 
         $data['page_title']      = 'Mass Email';
         $data['current_section'] = 'mass-email';
-        $data['app_name']        = (string) $this->app->getConfig()->get('app_name', 'Luster');
+        $data['site_name']       = (string) $this->app->getConfig()->get('site_name', 'Luster');
         $data['admin_username']  = (string) $session->get('lstr_admin_username', '');
         $data['csrf_token']      = $this->app->getCSRF()->token();
         $data['base_url']        = $this->app->getBaseUrl();

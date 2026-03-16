@@ -153,18 +153,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             // Step 3: site config + admin account → run install
             // ----------------------------------------------------------------
             case 3:
-                $appUrl               = rtrim(trim((string) ($_POST['app_url'] ?? '')), '/');
-                $appName              = trim((string) ($_POST['app_name'] ?? 'Luster'));
+                $siteUrl               = rtrim(trim((string) ($_POST['site_url'] ?? '')), '/');
+                $siteName              = trim((string) ($_POST['site_name'] ?? 'Luster'));
                 $timezone             = trim((string) ($_POST['timezone'] ?? 'UTC'));
+                $ownerName            = trim((string) ($_POST['owner_name']  ?? ''));
+                $ownerEmail           = trim((string) ($_POST['owner_email'] ?? ''));
                 $adminUsername        = trim((string) ($_POST['admin_username'] ?? ''));
                 $adminEmail           = trim((string) ($_POST['admin_email'] ?? ''));
                 $adminPassword        = (string) ($_POST['admin_password'] ?? '');
                 $adminPasswordConfirm = (string) ($_POST['admin_password_confirm'] ?? '');
 
-                if ($appUrl === '') {
+                if ($siteUrl === '') {
                     $errors[] = 'Site URL is required.';
                 }
-                if ($appName === '') {
+                if ($siteName === '') {
                     $errors[] = 'Site name is required.';
                 }
                 if (!in_array($timezone, timezone_identifiers_list(), true)) {
@@ -206,7 +208,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                         installTables($pdo);
                         installAdminUser($pdo, $adminUsername, $adminEmail, $adminPassword);
-                        writeConfig($db, $appName, $appUrl, $timezone, $adminEmail);
+                        writeConfig($db, $siteName, $siteUrl, $timezone, $adminEmail, $ownerName, $ownerEmail);
 
                         // Write installation sentinel — prevents the installer from
                         // re-opening even if config/app.php is later deleted.
@@ -509,7 +511,7 @@ function installAdminUser(PDO $pdo, string $username, string $email, string $pas
     $stmt->execute(['username' => $username, 'email' => $email, 'password' => $hash]);
 }
 
-function writeConfig(array $db, string $appName, string $appUrl, string $timezone, string $adminEmail): void
+function writeConfig(array $db, string $siteName, string $siteUrl, string $timezone, string $adminEmail, string $ownerName = '', string $ownerEmail = ''): void
 {
     $config = [
         // Database
@@ -520,16 +522,19 @@ function writeConfig(array $db, string $appName, string $appUrl, string $timezon
         'db_pass'    => $db['pass'],
         'db_charset' => 'utf8mb4',
         // Application
-        'app_name'  => $appName,
-        'app_url'   => $appUrl,
-        'app_debug' => false,
+        'site_name'  => $siteName,
+        'site_url'   => $siteUrl,
+        'app_debug'  => false,
+        // Site owner identity (shown in email templates)
+        'owner_name'  => $ownerName,
+        'owner_email' => $ownerEmail !== '' ? $ownerEmail : $adminEmail,
         // Email (SMTP)
         'smtp_host'      => '',
         'smtp_port'      => 587,
         'smtp_user'      => '',
         'smtp_pass'      => '',
         'smtp_from'      => $adminEmail,
-        'smtp_from_name' => $appName,
+        'smtp_from_name' => $siteName,
         'smtp_secure'    => 'tls',
         // Enthusiast compatibility
         'enth_table_prefix' => '',
@@ -1018,14 +1023,14 @@ function renderStep3(string $csrf, array $stored): void
     <div class="install-section">Site Settings</div>
 
     <div class="form-group">
-      <label class="form-label" for="app_name">Site Name</label>
-      <input type="text" id="app_name" name="app_name" class="form-input"
+      <label class="form-label" for="site_name">Site Name</label>
+      <input type="text" id="site_name" name="site_name" class="form-input"
              value="Luster" required>
     </div>
 
     <div class="form-group">
-      <label class="form-label" for="app_url">Site URL</label>
-      <input type="url" id="app_url" name="app_url" class="form-input"
+      <label class="form-label" for="site_url">Site URL</label>
+      <input type="url" id="site_url" name="site_url" class="form-input"
              value="<?= e($guessedUrl) ?>" required
              placeholder="https://yoursite.example.com">
       <p class="form-hint">No trailing slash. This is the base URL where Luster is installed (e.g. <code>https://example.com/luster/public</code>).</p>
@@ -1042,6 +1047,21 @@ function renderStep3(string $csrf, array $stored): void
           <option value="<?= e($tz) ?>"<?= $tz === $current ? ' selected' : '' ?>><?= e($tz) ?></option>
           <?php endforeach; ?>
         </select>
+      </div>
+    </div>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label" for="owner_name">Owner Name</label>
+        <input type="text" id="owner_name" name="owner_name" class="form-input"
+               maxlength="100" placeholder="Jiji">
+        <p class="form-hint">Your display name used in outgoing fan emails (e.g. <em>Jiji</em>). Can be changed later in Settings.</p>
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="owner_email">Owner Email <em style="font-weight:400">(optional)</em></label>
+        <input type="email" id="owner_email" name="owner_email" class="form-input"
+               maxlength="255" placeholder="you@example.com">
+        <p class="form-hint">Contact email shown in fan emails. Defaults to your admin email if left blank.</p>
       </div>
     </div>
 

@@ -54,7 +54,7 @@ final class AuthController
             'csrf_token' => $this->app->getCSRF()->token(),
             'error'      => $error,
             'username'   => $username,
-            'app_name'   => (string) $this->app->getConfig()->get('app_name', 'Luster'),
+            'site_name'  => (string) $this->app->getConfig()->get('site_name', 'Luster'),
             'base_url'   => $this->app->getBaseUrl(),
         ]);
 
@@ -228,7 +228,7 @@ final class AuthController
             'csrf_token' => $this->app->getCSRF()->token(),
             'success'    => $success,
             'error'      => $error,
-            'app_name'   => (string) $this->app->getConfig()->get('app_name', 'Luster'),
+            'site_name'  => (string) $this->app->getConfig()->get('site_name', 'Luster'),
             'base_url'   => $this->app->getBaseUrl(),
         ]);
 
@@ -281,20 +281,20 @@ final class AuthController
             $resetRepo->create((int) $user['id'], $tokenHash, $expiresAt);
 
             $resetLink = $baseUrl . '/admin/reset/' . $rawToken;
-            $appName   = (string) $this->app->getConfig()->get('app_name', 'Luster');
+            $siteName  = (string) $this->app->getConfig()->get('site_name', 'Luster');
 
             try {
                 $mailer = new Mailer($this->app->getConfig());
                 $mailer->send(
                     (string) $user['email'],
                     (string) $user['username'],
-                    'Reset your ' . $appName . ' admin password',
+                    'Reset your ' . $siteName . ' admin password',
                     "Hello {$user['username']},\n\n"
-                    . "A password reset was requested for your {$appName} admin account.\n\n"
+                    . "A password reset was requested for your {$siteName} admin account.\n\n"
                     . "Click the link below to set a new password. This link expires in 60 minutes.\n\n"
                     . $resetLink . "\n\n"
                     . "If you did not request this, you can safely ignore this email.\n\n"
-                    . "— {$appName}"
+                    . "— {$siteName}"
                 );
             } catch (\Throwable) {
                 // Log silently; don't reveal email delivery failure to the user
@@ -335,7 +335,7 @@ final class AuthController
             'csrf_token' => $this->app->getCSRF()->token(),
             'error'      => $error,
             'raw_token'  => $rawToken,
-            'app_name'   => (string) $this->app->getConfig()->get('app_name', 'Luster'),
+            'site_name'  => (string) $this->app->getConfig()->get('site_name', 'Luster'),
             'base_url'   => $baseUrl,
         ]);
 

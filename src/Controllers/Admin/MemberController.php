@@ -455,8 +455,8 @@ final class MemberController
             return Response::redirect($baseUrl . '/admin/members/' . $listingId);
         }
 
-        $mailer  = new Mailer($this->app->getConfig());
-        $appName = (string) $config->get('app_name', 'Luster');
+        $mailer   = new Mailer($this->app->getConfig());
+        $siteName = (string) $config->get('site_name', 'Luster');
 
         $count = 0;
         foreach ($emails as $email) {
@@ -476,16 +476,19 @@ final class MemberController
                 $member = $memberRepo->getByEmail($listing->dbprefix, $email);
                 if ($member !== null) {
                     try {
+                        $cfg       = $this->app->getConfig();
                         $emailRepo = new EmailTemplateRepo($db);
-                        $tpl       = $emailRepo->get($listingId, EmailTemplateRepo::TYPE_APPROVE);
                         $tokens    = EmailTemplateRepo::buildTokens(
-                            listingName: $listing->name,
-                            listingUrl:  $listing->url,
-                            appName:     $appName,
-                            fanName:     $member->name,
-                            fanEmail:    $member->email,
+                            listingName:    $listing->name,
+                            listingUrl:     $listing->url,
+                            siteName:       (string) $cfg->get('site_name', 'Luster'),
+                            listingSubject: $listing->subject,
+                            ownerName:      (string) $cfg->get('owner_name', ''),
+                            ownerEmail:     (string) $cfg->get('owner_email', ''),
+                            fanName:        $member->name,
+                            fanEmail:       $member->email,
                         );
-                        [$subject, $body] = EmailTemplateRepo::resolve($tpl, EmailTemplateRepo::TYPE_APPROVE, $tokens);
+                        [$subject, $body] = $emailRepo->resolveForListing($listingId, EmailTemplateRepo::TYPE_APPROVE, $tokens);
                         $mailer->send($member->email, $member->name, $subject, $body);
                     } catch (\Throwable $e) {
                         error_log('[Luster] Bulk approve email failed for ' . $email . ': ' . $e->getMessage());
@@ -931,18 +934,20 @@ final class MemberController
             $member = $memberRepo->getByEmail($listing->dbprefix, $email);
             if ($member !== null) {
                 try {
-                    $mailer    = new Mailer($this->app->getConfig());
-                    $appName   = (string) $this->app->getConfig()->get('app_name', 'Luster');
+                    $cfg       = $this->app->getConfig();
+                    $mailer    = new Mailer($cfg);
                     $emailRepo = new EmailTemplateRepo($db);
-                    $tpl       = $emailRepo->get($listingId, EmailTemplateRepo::TYPE_APPROVE);
                     $tokens    = EmailTemplateRepo::buildTokens(
-                        listingName: $listing->name,
-                        listingUrl:  $listing->url,
-                        appName:        $appName,
+                        listingName:    $listing->name,
+                        listingUrl:     $listing->url,
+                        siteName:       (string) $cfg->get('site_name', 'Luster'),
+                        listingSubject: $listing->subject,
+                        ownerName:      (string) $cfg->get('owner_name', ''),
+                        ownerEmail:     (string) $cfg->get('owner_email', ''),
                         fanName:        $member->name,
                         fanEmail:       $member->email,
                     );
-                    [$subject, $body] = EmailTemplateRepo::resolve($tpl, EmailTemplateRepo::TYPE_APPROVE, $tokens);
+                    [$subject, $body] = $emailRepo->resolveForListing($listingId, EmailTemplateRepo::TYPE_APPROVE, $tokens);
                     $mailer->send($member->email, $member->name, $subject, $body);
                 } catch (\Throwable $e) {
                     error_log('[Luster] Approve email failed: ' . $e->getMessage());
@@ -1038,7 +1043,7 @@ final class MemberController
 
         return Response::html($view->render('admin/layout.php', [
             'page_title'      => $pageTitle,
-            'app_name'        => (string) $config->get('app_name', 'Luster'),
+            'site_name'       => (string) $config->get('site_name', 'Luster'),
             'admin_username'  => (string) $session->get('lstr_admin_username', ''),
             'csrf_token'      => $csrfToken,
             'current_section' => $section,
@@ -1057,14 +1062,14 @@ final class MemberController
         $listing     = $listingRepo->getById($id);
 
         if ($listing === null) {
-            return Response::redirect($this->app->getConfig()->get('app_url', '') . '/admin/members');
+            return Response::redirect($this->app->getConfig()->get('site_url', '') . '/admin/members');
         }
 
         $email          = trim((string) $request->query('email', ''));
         $member         = (new MemberRepo($db, $config))->getByEmail($listing->dbprefix, $email);
         $templateRepo   = new EmailTemplateRepo($db);
         $templates     = $templateRepo->getAll();
-        $baseUrl       = rtrim((string) $config->get('app_url', ''), '/');
+        $baseUrl       = rtrim((string) $config->get('site_url', ''), '/');
         $session       = $this->app->getSession();
         $csrf          = $this->app->getCSRF()->token();
         $fromEmail     = (string) $config->get('smtp_from_listing', (string) $config->get('smtp_from', ''));
@@ -1106,7 +1111,7 @@ final class MemberController
         $suffix          = trim((string) $request->post('subject_suffix', ''));
         $subject         = $flName !== '' ? $flName . ': ' . $suffix : $suffix;
         $body            = trim((string) $request->post('body', ''));
-        $baseUrl  = rtrim((string) $config->get('app_url', ''), '/');
+        $baseUrl  = rtrim((string) $config->get('site_url', ''), '/');
         $session  = $this->app->getSession();
 
         $redirectBack = $baseUrl . '/admin/members/' . $id . '/emailmember?email=' . urlencode($toEmail);

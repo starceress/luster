@@ -174,8 +174,8 @@ final class KimSignupController
         if ($sendCopy || $wasGenerated) {
             try {
                 $mailer  = new Mailer($this->app->getConfig());
-                $appName = (string) $this->app->getConfig()->get('app_name', 'Luster');
-                $subject = "KIM List Sign-Up — {$appName}";
+                $siteName = (string) $this->app->getConfig()->get('site_name', 'Luster');
+                $subject = "KIM List Sign-Up — {$siteName}";
                 $body    = "Hi {$name},\n\n"
                          . "You have signed up for the KIM List for:\n"
                          . "  Fanlisting: " . ($selectedListing?->subject ?? "ID {$fanlistingId}") . "\n"
@@ -184,7 +184,7 @@ final class KimSignupController
                          . "  Your URL:   {$url}\n"
                          . "  Password:   {$rawPassword}\n\n"
                          . "Your entry is currently pending approval.\n\n"
-                         . "-- {$appName}";
+                         . "-- {$siteName}";
                 $mailer->send($email, $name, $subject, $body);
             } catch (\Throwable $e) {
                 error_log('[KIM] Sign-up confirmation email failed: ' . $e->getMessage());
@@ -241,16 +241,16 @@ final class KimSignupController
 
     private function renderKimPage(string $template, array $data): Response
     {
-        $view    = $this->app->getView();
-        $baseUrl = $this->app->getBaseUrl();
-        $appName = (string) $this->app->getConfig()->get('app_name', 'Luster');
+        $view     = $this->app->getView();
+        $baseUrl  = $this->app->getBaseUrl();
+        $siteName = (string) $this->app->getConfig()->get('site_name', 'Luster');
 
         $content = $view->render('addons/kim/' . $template, $data);
 
         $layoutData = array_merge($data, [
             'content'      => $content,
             'listing'      => null,
-            'listing_name' => $appName,
+            'listing_name' => $siteName,
             'listing_url'  => $baseUrl,
             'theme_path'   => $baseUrl . '/assets/default/',
         ]);

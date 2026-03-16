@@ -477,7 +477,7 @@ final class KimAdminController
 
         return Response::html($view->render('admin/layout.php', [
             'page_title'      => $data['page_title'] ?? 'KIM',
-            'app_name'        => (string) $config->get('app_name', 'Luster'),
+            'site_name'       => (string) $config->get('site_name', 'Luster'),
             'admin_username'  => (string) $session->get('lstr_admin_username', ''),
             'csrf_token'      => $csrfToken,
             'current_section' => $data['current_section'] ?? 'addons',

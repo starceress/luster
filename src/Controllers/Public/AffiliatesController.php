@@ -96,11 +96,11 @@ final class AffiliatesController
         $baseHref   = $baseUrl . '/affiliates';
         $pagination = $this->buildPagination($page, $result['pages'], $baseHref);
 
-        $appName = (string) $this->app->getConfig()->get('app_name', 'Luster');
+        $siteName = (string) $this->app->getConfig()->get('site_name', 'Luster');
 
         $html = $this->app->getView()->renderPublic('affiliates.php', [
             'listing'      => null,
-            'listing_name' => $appName,
+            'listing_name' => $siteName,
             'listing_url'  => $baseUrl,
             'page_title'      => 'Affiliates',
             'affiliates'      => $result['items'],

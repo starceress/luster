@@ -177,7 +177,7 @@ final class Application
      */
     public function getBaseUrl(): string
     {
-        return rtrim((string) $this->config->get('app_url', ''), '/');
+        return rtrim((string) ($this->config->get('site_url') ?: $this->config->get('app_url', '')), '/');
     }
 
     // -----------------------------------------------------------------------

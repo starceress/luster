@@ -147,21 +147,23 @@ final class ResetController
             $resetRepo->create($listingId, $email, $tokenHash, $expiresAt);
 
             $resetUrl = $baseUrl . '/reset/' . $listingId . '/confirm?token=' . urlencode($rawToken);
-            $appName  = (string) $this->app->getConfig()->get('app_name', 'Luster');
 
             try {
-                $mailer    = new Mailer($this->app->getConfig());
+                $cfg       = $this->app->getConfig();
+                $mailer    = new Mailer($cfg);
                 $emailRepo = new EmailTemplateRepo($this->app->getDatabase());
-                $tpl       = $emailRepo->get($listingId, EmailTemplateRepo::TYPE_RESET);
                 $tokens    = EmailTemplateRepo::buildTokens(
-                    listingName: $listing->name,
-                    listingUrl:  $listing->url,
-                    appName:     $appName,
-                    fanName:     $member->name,
-                    fanEmail:    $email,
-                    resetUrl:    $resetUrl,
+                    listingName:    $listing->name,
+                    listingUrl:     $listing->url,
+                    siteName:       (string) $cfg->get('site_name', 'Luster'),
+                    listingSubject: $listing->subject,
+                    ownerName:      (string) $cfg->get('owner_name', ''),
+                    ownerEmail:     (string) $cfg->get('owner_email', ''),
+                    fanName:        $member->name,
+                    fanEmail:       $email,
+                    resetUrl:       $resetUrl,
                 );
-                [$subject, $body] = EmailTemplateRepo::resolve($tpl, EmailTemplateRepo::TYPE_RESET, $tokens);
+                [$subject, $body] = $emailRepo->resolveForListing($listingId, EmailTemplateRepo::TYPE_RESET, $tokens);
                 $mailer->send($email, $member->name, $subject, $body);
             } catch (\Throwable $e) {
                 error_log('[Luster] Fan password reset email failed: ' . $e->getMessage());
