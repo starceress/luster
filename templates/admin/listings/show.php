@@ -2,7 +2,6 @@
 /** @var \Luster\Models\Listing $listing */
 /** @var int $approved */
 /** @var int $pending */
-/** @var bool $auto_approve */
 /** @var \Luster\Models\Affiliate[] $affiliates */
 /** @var array       $cfg */
 /** @var string|null $current_image */
@@ -87,10 +86,6 @@ $imgHeight = $sizeMap[$sizeKey] ?? '100px';
     <div class="detail-row">
       <label>Table</label>
       <span><code class="neb-code"><?= \Luster\Core\View::e($listing->dbprefix) ?></code></span>
-    </div>
-    <div class="detail-row">
-      <label>Auto-Approve</label>
-      <span><?= $auto_approve ? 'Yes' : 'No' ?></span>
     </div>
   </div>
 
@@ -178,7 +173,7 @@ $imgHeight = $sizeMap[$sizeKey] ?? '100px';
     <div style="margin-bottom:1.25rem">
       <label class="form-label" for="members_template">Members List</label>
       <p class="form-hint" style="font-family:'DM Mono',monospace;line-height:1.8;margin-bottom:.5rem">
-        $$fan_name$$ &bull; $$fan_email$$ &bull; $$fan_url$$ &bull; $$fan_country$$ &bull; $$fan_{fieldname}$$
+        {fan_name} &bull; {fan_email} &bull; {fan_url} &bull; {fan_country} &bull; {fan_{fieldname}}
       </p>
       <textarea id="members_template" name="members_template" class="form-textarea" rows="8"
                 style="font-family:'DM Mono',monospace;font-size:.8125rem"
@@ -188,7 +183,7 @@ $imgHeight = $sizeMap[$sizeKey] ?? '100px';
     <div style="margin-bottom:1.25rem">
       <label class="form-label" for="affiliates_template">Affiliates</label>
       <p class="form-hint" style="font-family:'DM Mono',monospace;line-height:1.8;margin-bottom:.5rem">
-        $$aff_name$$ &bull; $$aff_url$$ &bull; $$aff_image$$ &bull; $$aff_image_url$$
+        {aff_name} &bull; {aff_url} &bull; {aff_image} &bull; {aff_image_url}
       </p>
       <textarea id="affiliates_template" name="affiliates_template" class="form-textarea" rows="8"
                 style="font-family:'DM Mono',monospace;font-size:.8125rem"
@@ -198,7 +193,7 @@ $imgHeight = $sizeMap[$sizeKey] ?? '100px';
     <div style="margin-bottom:1.25rem">
       <label class="form-label" for="stats_template">Statistics</label>
       <p class="form-hint" style="font-family:'DM Mono',monospace;line-height:1.8;margin-bottom:.5rem">
-        $$stat_opened$$ &bull; $$stat_updated$$ &bull; $$stat_approved$$ &bull; $$stat_pending$$ &bull; $$stat_newmembers$$
+        {stat_opened} &bull; {stat_updated} &bull; {stat_approved} &bull; {stat_pending} &bull; {stat_newmembers}
       </p>
       <textarea id="stats_template" name="stats_template" class="form-textarea" rows="8"
                 style="font-family:'DM Mono',monospace;font-size:.8125rem"

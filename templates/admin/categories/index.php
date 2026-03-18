@@ -74,7 +74,7 @@ $catPageUrl = static function (int $p) use ($b, $catFilterQs): string {
 </p>
 
 <div class="neb-card">
-  <table class="data-table">
+  <table class="data-table mem-table">
     <thead>
       <tr>
         <th>ID</th>
@@ -92,27 +92,27 @@ $catPageUrl = static function (int $p) use ($b, $catFilterQs): string {
       ?>
       <?php foreach ($items ?? [] as $cat): ?>
       <tr>
-        <td class="text-dim"><?= (int) $cat->id ?></td>
-        <td><?= $sourceBadge($cat->source ?? 'custom') ?></td>
-        <td class="text-strong">
+        <td class="text-dim" data-label="ID"><?= (int) $cat->id ?></td>
+        <td data-label="Network"><?= $sourceBadge($cat->source ?? 'custom') ?></td>
+        <td class="text-strong" data-label="Name">
           <?php if ($cat->parentId !== null): ?>
             <span style="color:var(--text-dim);font-size:.8rem;margin-right:.25rem">└</span>
           <?php endif; ?>
           <?= \Luster\Core\View::e($cat->name ?? '') ?>
         </td>
-        <td class="text-dim" style="font-size:.85rem">
+        <td class="text-dim" data-label="Parent" style="font-size:.85rem">
           <?php if ($cat->parentId !== null && isset($catIndex[$cat->parentId])): ?>
             <?= \Luster\Core\View::e($catIndex[$cat->parentId]) ?>
           <?php else: ?>
             —
           <?php endif; ?>
         </td>
-        <td class="act-col">
+        <td class="act-col" data-label="">
           <a href="<?= $b ?>/admin/categories/<?= (int) $cat->id ?>/edit"
              class="btn btn-primary btn-sm">Edit</a>
           <?php if (!in_array($cat->source ?? '', ['tfl', 'tafl'], true)): ?>
             <form method="POST" action="<?= $b ?>/admin/categories/<?= (int) $cat->id ?>/delete"
-                  style="display:inline"
+                  style="display:contents"
                   data-confirm="Delete this category?">
               <input type="hidden" name="_csrf" value="<?= \Luster\Core\View::e($csrf_token ?? '') ?>">
               <button type="submit" class="btn btn-danger btn-sm">Delete</button>

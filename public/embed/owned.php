@@ -111,7 +111,7 @@ if ($_lusterOwnedTemplate !== null) {
     foreach ($_lusterListings as $_fl) {
         $statusLabel = $statusLabels[$_fl->status ?? 'current'] ?? 'Current';
         $rows .= str_replace(
-            ['$$listing_name$$', '$$listing_url$$', '$$listing_subject$$', '$$listing_status$$'],
+            ['{listing_name}', '{listing_url}', '{listing_subject}', '{listing_status}'],
             [$e($_fl->name), $e($_fl->url), $e($_fl->subject ?? ''), $e($statusLabel)],
             $_lusterOwnedTemplate,
         );

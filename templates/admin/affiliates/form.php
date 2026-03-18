@@ -4,10 +4,12 @@
 /** @var int    $context_fid  non-zero = came from a specific listing */
 /** @var string $error */
 /** @var array  $old */
+/** @var array  $field_errors */
 /** @var string $base_url */
 /** @var string $csrf_token */
 /** @var string $site_name */
 $b          = rtrim(\Luster\Core\View::e($base_url), '/');
+$fe         = $field_errors ?? [];
 $isEdit     = $affiliate !== null;
 $contextFid = (int) ($context_fid ?? 0);
 
@@ -45,7 +47,7 @@ $v = static function (string $key, $model, string $prop, string $default = '') u
 <?php endif; ?>
 
 <div class="form-card">
-  <form method="POST" action="<?= $action ?>" enctype="multipart/form-data">
+  <form method="POST" action="<?= $action ?>" enctype="multipart/form-data" class="js-warn-unsaved">
     <input type="hidden" name="_csrf" value="<?= \Luster\Core\View::e($csrf_token ?? '') ?>">
 
     <?php if ($isEdit && $contextFid > 0): ?>
@@ -73,17 +75,19 @@ $v = static function (string $key, $model, string $prop, string $default = '') u
       <input type="hidden" name="fanlisting_id" value="<?= $contextFid ?>">
     <?php endif; ?>
 
-    <div class="form-group">
+    <div class="form-group<?= !empty($fe['name']) ? ' has-error' : '' ?>">
       <label class="form-label" for="aff-name">Affiliate Name <span>*</span></label>
       <input id="aff-name" type="text" name="name" class="form-input" maxlength="255" required
              value="<?= \Luster\Core\View::e($v('name', $affiliate, 'name')) ?>">
+      <?php if (!empty($fe['name'])): ?><p class="field-error"><?= \Luster\Core\View::e($fe['name'][0]) ?></p><?php endif; ?>
     </div>
 
-    <div class="form-group">
+    <div class="form-group<?= !empty($fe['url']) ? ' has-error' : '' ?>">
       <label class="form-label" for="aff-url">URL <span>*</span></label>
       <input id="aff-url" type="url" name="url" class="form-input" maxlength="500"
              placeholder="https://" required
              value="<?= \Luster\Core\View::e($v('url', $affiliate, 'url')) ?>">
+      <?php if (!empty($fe['url'])): ?><p class="field-error"><?= \Luster\Core\View::e($fe['url'][0]) ?></p><?php endif; ?>
     </div>
 
     <div class="form-group">
@@ -95,12 +99,16 @@ $v = static function (string $key, $model, string $prop, string $default = '') u
     <div class="form-group">
       <label class="form-label" for="aff-image">Image</label>
       <?php if ($isEdit && ($affiliate->image ?? '') !== ''): ?>
-        <img src="<?= $b ?>/uploads/affiliates/<?= \Luster\Core\View::e($affiliate->image) ?>"
-             alt="Current image" class="fl-image" style="max-height:80px;margin-bottom:.5rem">
-        <label class="form-check" style="margin-bottom:.4rem;color:var(--danger)">
-          <input type="checkbox" name="delete_image" value="1">
-          <span class="form-check-label" style="color:var(--danger)">Delete current image</span>
-        </label>
+        <div style="margin-bottom:.75rem">
+          <p class="form-hint" style="margin:0 0 .35rem">Current image:</p>
+          <img src="<?= $b ?>/uploads/affiliates/<?= \Luster\Core\View::e($affiliate->image) ?>"
+               alt="Current affiliate image"
+               style="max-height:80px;max-width:200px;border:1px solid var(--border);border-radius:4px;display:block;margin-bottom:.5rem">
+          <label class="form-check" style="color:var(--danger)">
+            <input type="checkbox" name="delete_image" value="1">
+            <span class="form-check-label" style="color:var(--danger)">Delete current image</span>
+          </label>
+        </div>
       <?php endif; ?>
       <input id="aff-image" type="file" name="image"
              accept="image/jpeg,image/png,image/gif,image/webp">

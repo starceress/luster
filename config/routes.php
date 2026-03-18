@@ -27,6 +27,7 @@ use Luster\Controllers\Public\JoinController;
 use Luster\Controllers\Public\MembersController;
 use Luster\Controllers\Public\RemoveController;
 use Luster\Controllers\Public\ResetController;
+use Luster\Controllers\Public\CodesSubmitController;
 use Luster\Controllers\Public\StatsController;
 use Luster\Controllers\Public\UpdateController;
 use Luster\Core\Router;
@@ -69,6 +70,11 @@ return [
         // Affiliates — collective route before the per-fanlisting route
         $router->get('/affiliates',      AffiliatesController::class, 'collective');
         $router->get('/affiliates/{id}', AffiliatesController::class, 'index');
+
+        // Code submission (fan-facing) — /thanks must be before the base /{id} route
+        $router->get('/codes/submit/{id}/thanks', CodesSubmitController::class, 'thanks');
+        $router->get('/codes/submit/{id}',        CodesSubmitController::class, 'showForm');
+        $router->post('/codes/submit/{id}',       CodesSubmitController::class, 'submit');
 
         // Password reset — specific sub-paths registered before the base route
         $router->get('/reset/{id}/sent',      ResetController::class,   'sent');
@@ -155,6 +161,8 @@ return [
             MemberController::class, 'merge');
         $router->post('/admin/members/{id}/bulk',
             MemberController::class, 'bulk');
+        $router->post('/admin/members/{id}/approve-all-pending',
+            MemberController::class, 'approveAllPending');
         $router->get('/admin/members/{id}/export',
             MemberController::class, 'export');
         $router->get('/admin/members/export-pending',
@@ -173,16 +181,48 @@ return [
             MemberController::class, 'import');
 
         // ── Codes for a specific listing ─────────────────────────
-        //    /codes/upload and /codes/bulk must be registered before
-        //    /codes/{id}/delete to avoid 'upload'/'bulk' matching as {id}
+        //    Specific literal paths are registered before parameterised ones
+        //    to prevent e.g. 'upload' or 'sizes' matching as {id}.
         $router->get('/admin/listings/{fid}/codes',
             CodesController::class, 'index');
         $router->post('/admin/listings/{fid}/codes/upload',
             CodesController::class, 'upload');
+        $router->post('/admin/listings/{fid}/codes/sizes/add',
+            CodesController::class, 'addSize');
+        $router->post('/admin/listings/{fid}/codes/sizes/{sid}/edit',
+            CodesController::class, 'editSize');
+        $router->post('/admin/listings/{fid}/codes/sizes/{sid}/delete',
+            CodesController::class, 'deleteSize');
+        $router->post('/admin/listings/{fid}/codes/categories/add',
+            CodesController::class, 'addCategory');
+        $router->post('/admin/listings/{fid}/codes/categories/{cid}/edit',
+            CodesController::class, 'editCategory');
+        $router->post('/admin/listings/{fid}/codes/categories/{cid}/delete',
+            CodesController::class, 'deleteCategory');
+        $router->post('/admin/listings/{fid}/codes/donors/add',
+            CodesController::class, 'addDonor');
+        $router->post('/admin/listings/{fid}/codes/donors/{did}/edit',
+            CodesController::class, 'editDonor');
+        $router->post('/admin/listings/{fid}/codes/donors/{did}/delete',
+            CodesController::class, 'deleteDonor');
         $router->post('/admin/listings/{fid}/codes/bulk',
             CodesController::class, 'bulk');
+        $router->get('/admin/listings/{fid}/codes/export',
+            CodesController::class, 'export');
+        $router->post('/admin/listings/{fid}/codes/reorder',
+            CodesController::class, 'reorder');
         $router->post('/admin/listings/{fid}/codes/{id}/delete',
             CodesController::class, 'delete');
+        $router->post('/admin/listings/{fid}/codes/{id}/size',
+            CodesController::class, 'assignSize');
+        $router->post('/admin/listings/{fid}/codes/{id}/categories',
+            CodesController::class, 'assignCategories');
+        $router->post('/admin/listings/{fid}/codes/{id}/donor',
+            CodesController::class, 'assignDonor');
+        $router->post('/admin/listings/{fid}/codes/{id}/status',
+            CodesController::class, 'assignStatus');
+        $router->post('/admin/listings/{fid}/codes/{id}/name',
+            CodesController::class, 'assignName');
 
         // ── Additional fields for a specific listing ──────────────
         $router->get('/admin/listings/{fid}/fields',
@@ -248,6 +288,8 @@ return [
             SettingsController::class, 'updateTemplates');
         $router->post('/admin/settings/profile',
             SettingsController::class, 'updateProfile');
+        $router->post('/admin/settings/validate-smtp',
+            SettingsController::class, 'validateSmtp');
         $router->post('/admin/settings/test-email',
             SettingsController::class, 'testEmail');
 
@@ -312,6 +354,8 @@ return [
             SysInfoController::class, 'index');
 
         // ── Pending update approvals (list + detail live in Members overview) ──
+        $router->post('/admin/pending-updates/bulk',
+            PendingUpdateController::class, 'bulk');
         $router->post('/admin/pending-updates/{id}/approve',
             PendingUpdateController::class, 'approve');
         $router->post('/admin/pending-updates/{id}/reject',
@@ -336,6 +380,14 @@ return [
             MassEmailController::class, 'preview');
         $router->post('/admin/mass-email/send',
             MassEmailController::class, 'send');
+
+        // ── Saved email templates ─────────────────────────────────────
+        $router->get('/admin/saved-emails',
+            MassEmailController::class, 'savedEmails');
+        $router->post('/admin/saved-emails/save',
+            MassEmailController::class, 'saveTemplate');
+        $router->post('/admin/saved-emails/{id}/delete',
+            MassEmailController::class, 'deleteTemplate');
     },
 
 ];

@@ -38,14 +38,17 @@ final class AdminUsersController
     public function addForm(Request $request, array $params): Response
     {
         $session = $this->app->getSession();
-        $error   = (string) $session->get('lstr_flash_error', '');
-        $old     = (array)  $session->get('lstr_flash_old',   []);
+        $error       = (string) $session->get('lstr_flash_error', '');
+        $old         = (array)  $session->get('lstr_flash_old',   []);
+        $fieldErrors = json_decode((string) $session->get('lstr_flash_field_errors', '{}'), true);
         $session->remove('lstr_flash_error');
         $session->remove('lstr_flash_old');
+        $session->remove('lstr_flash_field_errors');
 
         return $this->layout('admin-users/add.php', [
-            'error' => $error,
-            'old'   => $old,
+            'error'        => $error,
+            'old'          => $old,
+            'field_errors' => is_array($fieldErrors) ? $fieldErrors : [],
         ]);
     }
 
@@ -66,12 +69,14 @@ final class AdminUsersController
         if ($v->fails()) {
             $session->set('lstr_flash_error', implode(' ', $v->allErrors()));
             $session->set('lstr_flash_old', ['username' => $username, 'email' => $email]);
+            $session->set('lstr_flash_field_errors', json_encode($v->errors()));
             return Response::redirect($baseUrl . '/admin/admin-users/add');
         }
 
         if ($password !== $confirm) {
             $session->set('lstr_flash_error', 'Passwords do not match.');
             $session->set('lstr_flash_old', ['username' => $username, 'email' => $email]);
+            $session->set('lstr_flash_field_errors', json_encode(['password_confirm' => ['Passwords do not match.']]));
             return Response::redirect($baseUrl . '/admin/admin-users/add');
         }
 
@@ -110,12 +115,15 @@ final class AdminUsersController
             return Response::notFound('Admin user not found.');
         }
 
-        $error = (string) $session->get('lstr_flash_error', '');
+        $error       = (string) $session->get('lstr_flash_error', '');
+        $fieldErrors = json_decode((string) $session->get('lstr_flash_field_errors', '{}'), true);
         $session->remove('lstr_flash_error');
+        $session->remove('lstr_flash_field_errors');
 
         return $this->layout('admin-users/edit.php', [
-            'user'  => $user,
-            'error' => $error,
+            'user'         => $user,
+            'error'        => $error,
+            'field_errors' => is_array($fieldErrors) ? $fieldErrors : [],
         ]);
     }
 
@@ -145,11 +153,13 @@ final class AdminUsersController
 
         if ($v->fails()) {
             $session->set('lstr_flash_error', implode(' ', $v->allErrors()));
+            $session->set('lstr_flash_field_errors', json_encode($v->errors()));
             return Response::redirect($baseUrl . '/admin/admin-users/' . $id . '/edit');
         }
 
         if ($password !== '' && $password !== $confirm) {
             $session->set('lstr_flash_error', 'Passwords do not match.');
+            $session->set('lstr_flash_field_errors', json_encode(['new_password_confirm' => ['Passwords do not match.']]));
             return Response::redirect($baseUrl . '/admin/admin-users/' . $id . '/edit');
         }
 
@@ -244,7 +254,7 @@ final class AdminUsersController
         $content = ob_get_clean();
 
         ob_start();
-        extract(['content' => $content] + $data);
+        extract(array_merge(['content' => $content] + $data, $this->app->getAdminNavData()));
         require \LUSTER_BASE . '/templates/admin/layout.php';
         return Response::html((string) ob_get_clean());
     }

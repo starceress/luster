@@ -13,8 +13,6 @@ $b = rtrim(\Luster\Core\View::e($base_url), '/');
      class="neb-link">&larr; Back to <?= \Luster\Core\View::e($listing->name) ?></a>
 </p>
 
-<h1 style="font-size:1.25rem;font-weight:700;color:var(--text);margin-bottom:1.25rem">Change Table Prefix</h1>
-
 <?php if ($error !== ''): ?>
   <div class="alert alert-error"><?= \Luster\Core\View::e($error) ?></div>
 <?php endif; ?>

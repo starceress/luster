@@ -131,6 +131,11 @@ $snip['cstats'] = htmlspecialchars(
     ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'
 );
 
+$listingsJson = json_encode(
+    array_map(fn($fl) => ['id' => (int) $fl->id, 'name' => $fl->name], $listings ?? []),
+    JSON_HEX_QUOT | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_TAG
+);
+
 $snip['kim'] = htmlspecialchars(
     '<?php' . "\n" .
     $div . "\n" .
@@ -278,6 +283,14 @@ $snip['kim'] = htmlspecialchars(
 
 .ec-panel-body { padding: 1rem 1.1rem; }
 
+/* ─── Paste tip ───────────────────────────────────────────────── */
+.ec-paste-tip {
+  font-size: .8rem;
+  color: var(--text-dim);
+  margin: 0 0 .65rem;
+  line-height: 1.5;
+}
+
 /* ─── Code block ──────────────────────────────────────────────── */
 .ec-code-wrap { position: relative; margin-bottom: .75rem; }
 .ec-pre {
@@ -398,6 +411,86 @@ $snip['kim'] = htmlspecialchars(
   border-radius: 3px;
 }
 
+/* ─── Wizard ──────────────────────────────────────────────────── */
+.ec-wiz {
+  background: var(--bg-card);
+  border: 1px solid var(--border-soft);
+  border-radius: 12px;
+  overflow: hidden;
+  margin-bottom: 1.5rem;
+}
+.ec-wiz-head {
+  display: flex; align-items: center; gap: .75rem; flex-wrap: wrap;
+  padding: .65rem 1.1rem;
+  background: var(--bg-subtle);
+  border-bottom: 1px solid var(--border-soft);
+}
+.ec-wiz-title {
+  display: flex; align-items: center; gap: .45rem;
+  font-size: .78rem; font-weight: 700;
+  text-transform: uppercase; letter-spacing: .07em; color: var(--accent);
+}
+.ec-wiz-steps-bar { display: flex; align-items: center; gap: 5px; margin-left: auto; }
+.ec-wiz-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--border); transition: background .2s;
+}
+.ec-wiz-dot.active { background: var(--accent); }
+.ec-wiz-dot.done   { background: var(--success); }
+.ec-wiz-connector  { width: 22px; height: 1px; background: var(--border-soft); }
+.ec-wiz-step-label { font-size: .75rem; color: var(--text-dim); white-space: nowrap; }
+.ec-wiz-body { padding: 1.1rem 1.1rem .8rem; }
+/* Type grid (step 1) */
+.ec-wiz-group + .ec-wiz-group { margin-top: .9rem; }
+.ec-wiz-group-label {
+  font-size: .68rem; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .08em; color: var(--text-dim); margin: 0 0 .45rem;
+}
+.ec-wiz-type-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(148px, 1fr)); gap: .35rem;
+}
+.ec-wiz-type-btn {
+  display: flex; flex-direction: column; gap: .15rem;
+  padding: .55rem .7rem;
+  background: var(--bg-subtle);
+  border: 1.5px solid var(--border-soft);
+  border-radius: 8px; cursor: pointer; text-align: left;
+  font-family: inherit; transition: border-color .12s, background .12s;
+}
+.ec-wiz-type-btn:hover { border-color: var(--border); background: var(--bg-card); }
+.ec-wiz-type-btn[aria-selected="true"] { border-color: var(--accent); background: var(--accent-glow); }
+.ec-wiz-type-label { font-size: .82rem; font-weight: 600; color: var(--text); }
+.ec-wiz-type-desc  { font-size: .71rem; color: var(--text-dim); line-height: 1.4; }
+/* Options form (step 2) */
+.ec-wiz-no-opts { font-size: .85rem; color: var(--text-muted); padding: .25rem 0 .5rem; font-style: italic; }
+.ec-wiz-opts-note { font-size: .78rem; color: var(--text-dim); margin: 0 0 .75rem; }
+.ec-wiz-field { margin-bottom: .8rem; }
+.ec-wiz-field:last-child { margin-bottom: 0; }
+.ec-wiz-label { display: block; font-size: .82rem; font-weight: 600; color: var(--text-muted); margin-bottom: .3rem; }
+.ec-wiz-label em { font-style: normal; color: var(--accent); }
+.ec-wiz-hint { font-size: .74rem; color: var(--text-dim); margin-top: .3rem; }
+/* Nav bar */
+.ec-wiz-nav {
+  display: flex; align-items: center; gap: .6rem;
+  padding: .75rem 1.1rem;
+  border-top: 1px solid var(--border-soft);
+  background: var(--bg-subtle);
+}
+.ec-wiz-restart {
+  margin-left: auto; font-size: .76rem; color: var(--text-dim);
+  background: none; border: none; cursor: pointer; font-family: inherit;
+  padding: 0; text-decoration: underline; text-underline-offset: 2px;
+}
+.ec-wiz-restart:hover { color: var(--accent); }
+/* Divider between wizard and reference section */
+.ec-wiz-divider {
+  display: flex; align-items: center; gap: .85rem;
+  margin: 1.75rem 0 1.25rem; color: var(--text-dim); font-size: .78rem;
+}
+.ec-wiz-divider::before, .ec-wiz-divider::after {
+  content: ''; flex: 1; height: 1px; background: var(--border-soft);
+}
+
 /* ─── Tokens (stats placeholders) ────────────────────────────── */
 .ec-token-grid {
   display: flex;
@@ -421,6 +514,112 @@ $snip['kim'] = htmlspecialchars(
   in for you based on where Luster is installed on this server, so you don&rsquo;t need to
   change it. Each embed drops into your existing page without any extra setup.
 </p>
+
+<!-- ═══ WIZARD ═══════════════════════════════════════════════════ -->
+<div class="ec-wiz" id="ec-wiz"
+     data-embed-path="<?= \Luster\Core\View::e($ep) ?>"
+     data-listings='<?= $listingsJson ?>'>
+
+  <div class="ec-wiz-head">
+    <span class="ec-wiz-title">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01z"/></svg>
+      Quick Setup
+    </span>
+    <div class="ec-wiz-steps-bar" aria-hidden="true">
+      <span class="ec-wiz-dot" data-wiz-dot="1"></span>
+      <span class="ec-wiz-connector"></span>
+      <span class="ec-wiz-dot" data-wiz-dot="2"></span>
+      <span class="ec-wiz-connector"></span>
+      <span class="ec-wiz-dot" data-wiz-dot="3"></span>
+    </div>
+    <span class="ec-wiz-step-label" id="ec-wiz-step-label"></span>
+  </div>
+
+  <!-- Step 1: choose type -->
+  <div class="ec-wiz-body" id="ec-wiz-p1">
+    <div class="ec-wiz-group">
+      <p class="ec-wiz-group-label">For a fanlisting page</p>
+      <div class="ec-wiz-type-grid">
+        <button class="ec-wiz-type-btn" data-wiz-type="join" aria-selected="false">
+          <span class="ec-wiz-type-label">Join form</span>
+          <span class="ec-wiz-type-desc">Let visitors join your fanlisting</span>
+        </button>
+        <button class="ec-wiz-type-btn" data-wiz-type="members" aria-selected="false">
+          <span class="ec-wiz-type-label">Member list</span>
+          <span class="ec-wiz-type-desc">Paginated list of approved members</span>
+        </button>
+        <button class="ec-wiz-type-btn" data-wiz-type="stats" aria-selected="false">
+          <span class="ec-wiz-type-label">Statistics</span>
+          <span class="ec-wiz-type-desc">Member count using your custom template</span>
+        </button>
+        <button class="ec-wiz-type-btn" data-wiz-type="update" aria-selected="false">
+          <span class="ec-wiz-type-label">Update details</span>
+          <span class="ec-wiz-type-desc">Members update their name and URL</span>
+        </button>
+        <button class="ec-wiz-type-btn" data-wiz-type="remove" aria-selected="false">
+          <span class="ec-wiz-type-label">Leave listing</span>
+          <span class="ec-wiz-type-desc">Members remove their membership</span>
+        </button>
+        <button class="ec-wiz-type-btn" data-wiz-type="reset" aria-selected="false">
+          <span class="ec-wiz-type-label">Password reset</span>
+          <span class="ec-wiz-type-desc">Two-step password reset flow</span>
+        </button>
+        <button class="ec-wiz-type-btn" data-wiz-type="affiliates" aria-selected="false">
+          <span class="ec-wiz-type-label">Affiliates</span>
+          <span class="ec-wiz-type-desc">Affiliates for this fanlisting</span>
+        </button>
+      </div>
+    </div>
+    <div class="ec-wiz-group">
+      <p class="ec-wiz-group-label">For a collective page</p>
+      <div class="ec-wiz-type-grid">
+        <button class="ec-wiz-type-btn" data-wiz-type="owned" aria-selected="false">
+          <span class="ec-wiz-type-label">Owned listings</span>
+          <span class="ec-wiz-type-desc">Grid of all your fanlistings</span>
+        </button>
+        <button class="ec-wiz-type-btn" data-wiz-type="joined" aria-selected="false">
+          <span class="ec-wiz-type-label">Joined listings</span>
+          <span class="ec-wiz-type-desc">Fanlistings you&rsquo;ve joined</span>
+        </button>
+        <button class="ec-wiz-type-btn" data-wiz-type="cstats" aria-selected="false">
+          <span class="ec-wiz-type-label">Site statistics</span>
+          <span class="ec-wiz-type-desc">Site-wide stats into PHP variables</span>
+        </button>
+        <button class="ec-wiz-type-btn" data-wiz-type="aff-col" aria-selected="false">
+          <span class="ec-wiz-type-label">Collective affiliates</span>
+          <span class="ec-wiz-type-desc">Affiliates for your whole site</span>
+        </button>
+        <button class="ec-wiz-type-btn" data-wiz-type="kim" aria-selected="false">
+          <span class="ec-wiz-type-label">KIM sign-up</span>
+          <span class="ec-wiz-type-desc">KIM List adoption-interest form</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Step 2: configure -->
+  <div class="ec-wiz-body" id="ec-wiz-p2" hidden>
+    <div id="ec-wiz-opts"></div>
+  </div>
+
+  <!-- Step 3: copy code -->
+  <div class="ec-wiz-body" id="ec-wiz-p3" hidden>
+    <p class="ec-paste-tip" style="margin-bottom:.65rem">Copy this snippet and paste it into your PHP page where you want the embed to appear.</p>
+    <div class="ec-code-wrap">
+      <pre class="ec-pre" id="ec-wiz-code"></pre>
+      <button class="ec-copy" data-ec-copy="ec-wiz-code">Copy</button>
+    </div>
+  </div>
+
+  <div class="ec-wiz-nav">
+    <button class="btn btn-ghost btn-sm" id="ec-wiz-back" hidden>&larr; Back</button>
+    <button class="btn btn-primary btn-sm" id="ec-wiz-next" disabled>Choose an option above</button>
+    <button class="ec-wiz-restart" id="ec-wiz-restart" hidden>Start over</button>
+  </div>
+
+</div><!-- /.ec-wiz -->
+
+<div class="ec-wiz-divider"><span>or browse all embed codes</span></div>
 
 <!-- ═══ PICKER ═══════════════════════════════════════════════════ -->
 <div class="ec-picker">
@@ -462,6 +661,7 @@ $snip['kim'] = htmlspecialchars(
       <span class="ec-panel-desc">The join form for your fanlisting</span>
     </div>
     <div class="ec-panel-body">
+      <p class="ec-paste-tip">Paste this into the PHP page where you want the join form to appear.</p>
       <div class="ec-code-wrap">
         <pre class="ec-pre" id="ec-pre-join"><?= $snip['join'] ?></pre>
         <button class="ec-copy" data-ec-copy="ec-pre-join">Copy</button>
@@ -487,6 +687,7 @@ $snip['kim'] = htmlspecialchars(
       <span class="ec-panel-desc">Paginated list of approved members</span>
     </div>
     <div class="ec-panel-body">
+      <p class="ec-paste-tip">Paste this into the PHP page where you want the member list to appear.</p>
       <div class="ec-code-wrap">
         <pre class="ec-pre" id="ec-pre-members"><?= $snip['members'] ?></pre>
         <button class="ec-copy" data-ec-copy="ec-pre-members">Copy</button>
@@ -525,6 +726,7 @@ $snip['kim'] = htmlspecialchars(
       <span class="ec-panel-desc">Member stats using your own custom template</span>
     </div>
     <div class="ec-panel-body">
+      <p class="ec-paste-tip">Paste this into the PHP page where you want the stats block to appear.</p>
       <div class="ec-code-wrap">
         <pre class="ec-pre" id="ec-pre-stats"><?= $snip['stats'] ?></pre>
         <button class="ec-copy" data-ec-copy="ec-pre-stats">Copy</button>
@@ -537,15 +739,15 @@ $snip['kim'] = htmlspecialchars(
             Use any of these placeholders — they get replaced with live data when the page loads.
           </p>
           <div class="ec-token-grid">
-            <span class="ec-token">$stat_approved$</span>
-            <span class="ec-token">$stat_pending$</span>
-            <span class="ec-token">$stat_newmembers$</span>
-            <span class="ec-token">$stat_opened$</span>
-            <span class="ec-token">$stat_updated$</span>
-            <span class="ec-token">$stat_last_updated$</span>
-            <span class="ec-token">$stat_growth$</span>
-            <span class="ec-token">$listing_name$</span>
-            <span class="ec-token">$listing_url$</span>
+            <span class="ec-token">{stat_approved}</span>
+            <span class="ec-token">{stat_pending}</span>
+            <span class="ec-token">{stat_newmembers}</span>
+            <span class="ec-token">{stat_opened}</span>
+            <span class="ec-token">{stat_updated}</span>
+            <span class="ec-token">{stat_last_updated}</span>
+            <span class="ec-token">{stat_growth}</span>
+            <span class="ec-token">{listing_name}</span>
+            <span class="ec-token">{listing_url}</span>
           </div>
         </div>
       </details>
@@ -560,6 +762,7 @@ $snip['kim'] = htmlspecialchars(
       <span class="ec-panel-desc">Lets members update their name, URL, and other details</span>
     </div>
     <div class="ec-panel-body">
+      <p class="ec-paste-tip">Paste this into the PHP page where you want the update form to appear.</p>
       <div class="ec-code-wrap">
         <pre class="ec-pre" id="ec-pre-update"><?= $snip['update'] ?></pre>
         <button class="ec-copy" data-ec-copy="ec-pre-update">Copy</button>
@@ -584,6 +787,7 @@ $snip['kim'] = htmlspecialchars(
       <span class="ec-panel-desc">Lets members remove themselves from the fanlisting</span>
     </div>
     <div class="ec-panel-body">
+      <p class="ec-paste-tip">Paste this into the PHP page where you want the leave/remove form to appear.</p>
       <div class="ec-code-wrap">
         <pre class="ec-pre" id="ec-pre-remove"><?= $snip['remove'] ?></pre>
         <button class="ec-copy" data-ec-copy="ec-pre-remove">Copy</button>
@@ -608,6 +812,7 @@ $snip['kim'] = htmlspecialchars(
       <span class="ec-panel-desc">Password reset — email entry and new-password form</span>
     </div>
     <div class="ec-panel-body">
+      <p class="ec-paste-tip">Paste this into the PHP page where you want the password reset form to appear.</p>
       <div class="ec-code-wrap">
         <pre class="ec-pre" id="ec-pre-reset"><?= $snip['reset'] ?></pre>
         <button class="ec-copy" data-ec-copy="ec-pre-reset">Copy</button>
@@ -648,6 +853,7 @@ $snip['kim'] = htmlspecialchars(
       <span class="ec-panel-desc">Affiliates for this fanlisting</span>
     </div>
     <div class="ec-panel-body">
+      <p class="ec-paste-tip">Paste this into the PHP page where you want your affiliates to appear.</p>
       <div class="ec-code-wrap">
         <pre class="ec-pre" id="ec-pre-affiliates"><?= $snip['affiliates'] ?></pre>
         <button class="ec-copy" data-ec-copy="ec-pre-affiliates">Copy</button>
@@ -674,6 +880,7 @@ $snip['kim'] = htmlspecialchars(
       <span class="ec-panel-desc">All your owned fanlistings with optional category filter</span>
     </div>
     <div class="ec-panel-body">
+      <p class="ec-paste-tip">Paste this into the PHP page where you want your owned listings to appear.</p>
       <div class="ec-code-wrap">
         <pre class="ec-pre" id="ec-pre-owned"><?= $snip['owned'] ?></pre>
         <button class="ec-copy" data-ec-copy="ec-pre-owned">Copy</button>
@@ -704,6 +911,7 @@ $snip['kim'] = htmlspecialchars(
       <span class="ec-panel-desc">Fanlistings you&rsquo;ve joined, grouped by category</span>
     </div>
     <div class="ec-panel-body">
+      <p class="ec-paste-tip">Paste this into the PHP page where you want your joined listings to appear.</p>
       <div class="ec-code-wrap">
         <pre class="ec-pre" id="ec-pre-joined"><?= $snip['joined'] ?></pre>
         <button class="ec-copy" data-ec-copy="ec-pre-joined">Copy</button>
@@ -730,6 +938,7 @@ $snip['kim'] = htmlspecialchars(
       <span class="ec-panel-desc">Loads site-wide stats into variables you can use anywhere on your page</span>
     </div>
     <div class="ec-panel-body">
+      <p class="ec-paste-tip">Paste this near the top of any PHP page to load site-wide stats into variables you can use anywhere on that page.</p>
       <div class="ec-code-wrap">
         <pre class="ec-pre" id="ec-pre-cstats"><?= $snip['cstats'] ?></pre>
         <button class="ec-copy" data-ec-copy="ec-pre-cstats">Copy</button>
@@ -784,6 +993,7 @@ $snip['kim'] = htmlspecialchars(
       <span class="ec-panel-desc">Affiliates for your whole collective</span>
     </div>
     <div class="ec-panel-body">
+      <p class="ec-paste-tip">Paste this into the PHP page where you want your collective affiliates to appear.</p>
       <div class="ec-code-wrap">
         <pre class="ec-pre" id="ec-pre-affiliates-collective"><?= htmlspecialchars(
           '<?php' . "\n" .
@@ -819,6 +1029,7 @@ $snip['kim'] = htmlspecialchars(
       <span class="ec-panel-desc">KIM List sign-up form &mdash; lets visitors join your KIM mailing list</span>
     </div>
     <div class="ec-panel-body">
+      <p class="ec-paste-tip">Paste this into the PHP page where you want the KIM sign-up form to appear.</p>
       <div class="ec-code-wrap">
         <pre class="ec-pre" id="ec-pre-kim"><?= $snip['kim'] ?></pre>
         <button class="ec-copy" data-ec-copy="ec-pre-kim">Copy</button>

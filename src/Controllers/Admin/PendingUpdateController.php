@@ -108,6 +108,69 @@ final class PendingUpdateController
     }
 
     // -----------------------------------------------------------------------
+    // POST /admin/pending-updates/bulk
+    // -----------------------------------------------------------------------
+
+    public function bulk(Request $request, array $params): Response
+    {
+        $db      = $this->app->getDatabase();
+        $config  = $this->app->getConfig();
+        $session = $this->app->getSession();
+        $baseUrl = $this->app->getBaseUrl();
+
+        $action = (string) $request->post('bulk_action', '');
+        $ids    = array_filter(array_map('intval', (array) $request->post('ids', [])));
+
+        if (empty($ids) || !in_array($action, ['approve', 'reject'], true)) {
+            $session->set('lstr_flash_error', 'No updates selected.');
+            return Response::redirect($baseUrl . '/admin/members');
+        }
+
+        $pendingRepo  = new PendingUpdateRepo($db);
+        $listingRepo  = new ListingRepo($db, $config);
+        $memberRepo   = new MemberRepo($db, $config);
+        $activityRepo = new ActivityRepo($db);
+
+        $pendings = $pendingRepo->getByIds($ids);
+        $count    = 0;
+
+        foreach ($pendings as $pending) {
+            if ($action === 'reject') {
+                $pendingRepo->delete($pending->id);
+                $count++;
+                continue;
+            }
+
+            // approve
+            $listing = $listingRepo->getById($pending->fanlisting_id);
+            if ($listing === null) {
+                $pendingRepo->delete($pending->id);
+                continue;
+            }
+
+            $member = $memberRepo->getByEmail($listing->dbprefix, $pending->member_email);
+            if ($member === null) {
+                $pendingRepo->delete($pending->id);
+                continue;
+            }
+
+            $memberRepo->update($listing->dbprefix, $pending->member_email, $pending->changes);
+            $pendingRepo->delete($pending->id);
+            $count++;
+        }
+
+        $activityRepo->log(
+            (int) $session->get('lstr_admin_id'),
+            'pending_update.bulk_' . $action,
+            "Bulk {$action}d {$count} pending update(s)",
+            $request->ip(),
+        );
+
+        $session->set('lstr_flash_success', ucfirst($action) . "d {$count} pending update" . ($count !== 1 ? 's' : '') . '.');
+        return Response::redirect($baseUrl . '/admin/members');
+    }
+
+    // -----------------------------------------------------------------------
     // POST /admin/pending-updates/{id}/reject
     // -----------------------------------------------------------------------
 

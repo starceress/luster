@@ -117,7 +117,7 @@ if ($_lusterJoinedTemplate !== null) {
             ? '<img src="' . $e($_lusterUploadsUrl . '/' . $fl->image) . '" alt="' . $e($fl->name) . '">'
             : '';
         return str_replace(
-            ['$$listing_name$$', '$$listing_url$$', '$$listing_category$$', '$$listing_image$$'],
+            ['{listing_name}', '{listing_url}', '{listing_category}', '{listing_image}'],
             [$e($fl->name), $e($fl->url), $e($fl->category ?? ''), $imageTag],
             $_lusterJoinedTemplate,
         );

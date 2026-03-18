@@ -10,10 +10,14 @@ use Luster\Core\Database;
  * Data access for the lstr_codes table.
  *
  * Each row represents one uploaded code image for a listing.
- * Requires Migration 22 to run before use.
+ * Requires Migration 22 (table), Migration 30 (size_id), Migration 31 (donor_id),
+ * Migration 32 (status), Migration 33 (name), Migration 34 (submitter_name/email).
  */
 final class CodesRepo
 {
+    /** Valid status values — matches the DB ENUM. */
+    public const STATUSES = ['approved', 'pending', 'rejected'];
+
     public function __construct(private readonly Database $db) {}
 
     // -----------------------------------------------------------------------
@@ -21,28 +25,42 @@ final class CodesRepo
     // -----------------------------------------------------------------------
 
     /**
-     * Returns all codes for a listing, ordered by sort_order then id.
+     * Returns codes for a listing, ordered by sort_order then id.
+     * Pass a status string to filter to that status only; null returns all.
      *
      * @return object[]
      */
-    public function getByListing(int $listingId): array
+    public function getByListing(int $listingId, ?string $status = null): array
     {
-        $stmt = $this->db->prepare(
-            'SELECT id, fanlisting_id, filename, width, height, sort_order, created_at
-             FROM lstr_codes
-             WHERE fanlisting_id = :fid
-             ORDER BY sort_order ASC, id ASC'
-        );
-        $stmt->execute(['fid' => $listingId]);
+        $sql    = 'SELECT id, fanlisting_id, name, filename, width, height, size_id, donor_id, sort_order, status, submitter_name, submitter_email, created_at
+                   FROM lstr_codes
+                   WHERE fanlisting_id = :fid';
+        $params = ['fid' => $listingId];
+
+        if ($status !== null) {
+            $sql             .= ' AND status = :status';
+            $params['status'] = $status;
+        }
+
+        $sql .= ' ORDER BY sort_order ASC, id ASC';
+
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute($params);
 
         return array_map(static fn(array $r) => (object) [
-            'id'           => (int)    $r['id'],
-            'listingId' => (int)    $r['fanlisting_id'],
-            'filename'     => (string) $r['filename'],
-            'width'        => (int)    $r['width'],
-            'height'       => (int)    $r['height'],
-            'sortOrder'    => (int)    $r['sort_order'],
-            'createdAt'    => (string) $r['created_at'],
+            'id'             => (int)    $r['id'],
+            'listingId'      => (int)    $r['fanlisting_id'],
+            'name'           => $r['name'] !== null ? (string) $r['name'] : null,
+            'filename'       => (string) $r['filename'],
+            'width'          => (int)    $r['width'],
+            'height'         => (int)    $r['height'],
+            'sizeId'         => $r['size_id']  !== null ? (int) $r['size_id']  : null,
+            'donorId'        => $r['donor_id'] !== null ? (int) $r['donor_id'] : null,
+            'sortOrder'      => (int)    $r['sort_order'],
+            'status'         => (string) $r['status'],
+            'submitterName'  => $r['submitter_name']  !== null ? (string) $r['submitter_name']  : null,
+            'submitterEmail' => $r['submitter_email'] !== null ? (string) $r['submitter_email'] : null,
+            'createdAt'      => (string) $r['created_at'],
         ], $stmt->fetchAll());
     }
 
@@ -52,7 +70,7 @@ final class CodesRepo
     public function getById(int $id): ?object
     {
         $stmt = $this->db->prepare(
-            'SELECT id, fanlisting_id, filename, width, height, sort_order, created_at
+            'SELECT id, fanlisting_id, name, filename, width, height, size_id, donor_id, sort_order, status, submitter_name, submitter_email, created_at
              FROM lstr_codes WHERE id = :id'
         );
         $stmt->execute(['id' => $id]);
@@ -63,13 +81,19 @@ final class CodesRepo
         }
 
         return (object) [
-            'id'           => (int)    $row['id'],
-            'listingId' => (int)    $row['fanlisting_id'],
-            'filename'     => (string) $row['filename'],
-            'width'        => (int)    $row['width'],
-            'height'       => (int)    $row['height'],
-            'sortOrder'    => (int)    $row['sort_order'],
-            'createdAt'    => (string) $row['created_at'],
+            'id'             => (int)    $row['id'],
+            'listingId'      => (int)    $row['fanlisting_id'],
+            'name'           => $row['name'] !== null ? (string) $row['name'] : null,
+            'filename'       => (string) $row['filename'],
+            'width'          => (int)    $row['width'],
+            'height'         => (int)    $row['height'],
+            'sizeId'         => $row['size_id']  !== null ? (int) $row['size_id']  : null,
+            'donorId'        => $row['donor_id'] !== null ? (int) $row['donor_id'] : null,
+            'sortOrder'      => (int)    $row['sort_order'],
+            'status'         => (string) $row['status'],
+            'submitterName'  => $row['submitter_name']  !== null ? (string) $row['submitter_name']  : null,
+            'submitterEmail' => $row['submitter_email'] !== null ? (string) $row['submitter_email'] : null,
+            'createdAt'      => (string) $row['created_at'],
         ];
     }
 
@@ -80,6 +104,18 @@ final class CodesRepo
     {
         $stmt = $this->db->prepare(
             'SELECT COUNT(*) FROM lstr_codes WHERE fanlisting_id = :fid'
+        );
+        $stmt->execute(['fid' => $listingId]);
+        return (int) $stmt->fetchColumn();
+    }
+
+    /**
+     * Returns the number of pending codes for a listing.
+     */
+    public function countPendingByListing(int $listingId): int
+    {
+        $stmt = $this->db->prepare(
+            "SELECT COUNT(*) FROM lstr_codes WHERE fanlisting_id = :fid AND status = 'pending'"
         );
         $stmt->execute(['fid' => $listingId]);
         return (int) $stmt->fetchColumn();
@@ -105,25 +141,84 @@ final class CodesRepo
      * Inserts a new code record and returns its new ID.
      */
     public function insert(
-        int    $listingId,
-        string $filename,
-        int    $width,
-        int    $height,
-        int    $sortOrder,
+        int     $listingId,
+        string  $filename,
+        int     $width,
+        int     $height,
+        int     $sortOrder,
+        ?int    $sizeId         = null,
+        ?int    $donorId        = null,
+        string  $status         = 'approved',
+        ?string $name           = null,
+        ?string $submitterName  = null,
+        ?string $submitterEmail = null,
     ): int {
         $stmt = $this->db->prepare(
-            'INSERT INTO lstr_codes (fanlisting_id, filename, width, height, sort_order)
-             VALUES (:fid, :filename, :width, :height, :sort)'
+            'INSERT INTO lstr_codes (fanlisting_id, name, filename, width, height, size_id, donor_id, sort_order, status, submitter_name, submitter_email)
+             VALUES (:fid, :name, :filename, :width, :height, :size_id, :donor_id, :sort, :status, :submitter_name, :submitter_email)'
         );
         $stmt->execute([
-            'fid'      => $listingId,
-            'filename' => $filename,
-            'width'    => $width,
-            'height'   => $height,
-            'sort'     => $sortOrder,
+            'fid'             => $listingId,
+            'name'            => $name,
+            'filename'        => $filename,
+            'width'           => $width,
+            'height'          => $height,
+            'size_id'         => $sizeId,
+            'donor_id'        => $donorId,
+            'sort'            => $sortOrder,
+            'status'          => $status,
+            'submitter_name'  => $submitterName,
+            'submitter_email' => $submitterEmail,
         ]);
 
         return (int) $this->db->lastInsertId();
+    }
+
+    /**
+     * Updates the approval status of a code.
+     *
+     * @param string $status One of CodesRepo::STATUSES ('approved', 'pending', 'rejected')
+     */
+    public function updateStatus(int $id, string $status): void
+    {
+        $stmt = $this->db->prepare(
+            'UPDATE lstr_codes SET status = :status WHERE id = :id'
+        );
+        $stmt->execute(['status' => $status, 'id' => $id]);
+    }
+
+    /**
+     * Sets or clears the human-readable label for a code.
+     * Pass null (or an empty string normalised to null) to remove the name.
+     */
+    public function updateName(int $id, ?string $name): void
+    {
+        $stmt = $this->db->prepare(
+            'UPDATE lstr_codes SET name = :name WHERE id = :id'
+        );
+        $stmt->execute(['name' => $name, 'id' => $id]);
+    }
+
+    /**
+     * Reassigns a code to a different size (or clears it with null).
+     */
+    public function updateSize(int $id, ?int $sizeId): void
+    {
+        $stmt = $this->db->prepare(
+            'UPDATE lstr_codes SET size_id = :size_id WHERE id = :id'
+        );
+        $stmt->execute(['size_id' => $sizeId, 'id' => $id]);
+    }
+
+    /**
+     * Reassigns a code to a different donor (or clears it with null).
+     */
+    public function updateDonor(int $id, ?int $donorId): void
+    {
+        $stmt = $this->db->prepare(
+            'UPDATE lstr_codes SET donor_id = :donor_id WHERE id = :id'
+        );
+        $stmt->execute(['donor_id' => $donorId, 'id' => $id]);
     }
 
     /**
@@ -133,6 +228,32 @@ final class CodesRepo
     {
         $stmt = $this->db->prepare('DELETE FROM lstr_codes WHERE id = :id');
         $stmt->execute(['id' => $id]);
+    }
+
+    /**
+     * Bulk-updates sort_order for codes belonging to a listing.
+     * Only codes that actually belong to $listingId are updated (ownership guard).
+     *
+     * @param int   $listingId   The fanlisting that owns these codes.
+     * @param int[] $orderedIds  Code IDs in the desired display order (first = 0, etc.).
+     */
+    public function reorder(int $listingId, array $orderedIds): void
+    {
+        if (empty($orderedIds)) {
+            return;
+        }
+
+        $stmt = $this->db->prepare(
+            'UPDATE lstr_codes SET sort_order = :sort WHERE id = :id AND fanlisting_id = :fid'
+        );
+
+        foreach ($orderedIds as $index => $codeId) {
+            $stmt->execute([
+                'sort' => $index,
+                'id'   => (int) $codeId,
+                'fid'  => $listingId,
+            ]);
+        }
     }
 
     /**

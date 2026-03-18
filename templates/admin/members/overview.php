@@ -25,10 +25,17 @@ $isSearch   = $search !== '';
 <?php endif; ?>
 
 <div class="neb-toolbar">
-  <div class="neb-filter-row">
-    <span style="font-weight:600;color:var(--text)">Manage:</span>
-    <div class="select-wrap">
-      <select class="form-select js-nav-select">
+  <form method="GET" action="<?= $b ?>/admin/members" class="neb-filter-row">
+    <input type="text" name="search" value="<?= \Luster\Core\View::e($search ?? '') ?>"
+           placeholder="Search all listings&hellip;" class="neb-input" style="max-width:240px">
+    <button type="submit" class="btn btn-secondary btn-sm">Search</button>
+    <?php if ($isSearch): ?>
+      <a href="<?= $b ?>/admin/members" class="btn btn-secondary btn-sm">Clear</a>
+    <?php endif; ?>
+  </form>
+  <div class="neb-actions">
+    <div class="toolbar-select-wrap">
+      <select class="neb-select js-nav-select">
         <option value="<?= $b ?>/admin/members">All pending members</option>
         <?php foreach ($all_listings as $fl): ?>
           <option value="<?= $b ?>/admin/members/<?= (int) $fl->id ?>?status=all">
@@ -37,18 +44,9 @@ $isSearch   = $search !== '';
         <?php endforeach; ?>
       </select>
     </div>
-    <form method="GET" action="<?= $b ?>/admin/members" style="display:flex;gap:.5rem;align-items:center">
-      <input type="text" name="search" value="<?= \Luster\Core\View::e($search ?? '') ?>"
-             placeholder="Search all listings&hellip;" class="form-input" style="max-width:240px">
-      <button type="submit" class="btn btn-secondary btn-sm">Search</button>
-      <?php if ($isSearch): ?>
-        <a href="<?= $b ?>/admin/members" class="btn btn-secondary btn-sm">Clear</a>
-      <?php endif; ?>
-    </form>
-  </div>
-  <div class="neb-actions">
-    <a href="<?= $b ?>/admin/members/export-pending" class="btn btn-ghost">&#8595; Export CSV</a>
-    <a href="<?= $b ?>/admin/members/settings" class="btn btn-ghost">Settings</a>
+    <a href="<?= $b ?>/admin/members/export-pending" class="btn btn-secondary">&#8595; Export CSV</a>
+    <a href="<?= $b ?>/admin/mass-email" class="btn btn-secondary">Mass Email &rarr;</a>
+    <a href="<?= $b ?>/admin/members/settings" class="btn btn-secondary">Display Settings</a>
   </div>
 </div>
 
@@ -63,11 +61,15 @@ $isSearch   = $search !== '';
 
   <?php if ($total === 0): ?>
     <div class="neb-card">
-      <p class="neb-empty">No members found matching that search.</p>
+      <div class="neb-empty">
+        <svg class="empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        No members found matching that search.
+        <a href="<?= $b ?>/admin/members" class="btn btn-secondary btn-sm">Clear Search</a>
+      </div>
     </div>
   <?php else: ?>
     <div class="neb-card" style="overflow-x:auto">
-      <table class="data-table">
+      <table class="data-table mem-table">
         <thead>
           <tr>
             <th>Listing</th>
@@ -86,37 +88,38 @@ $isSearch   = $search !== '';
             $flId = (int) $fl->id;
           ?>
           <tr>
-            <td>
+            <td data-label="Listing">
               <a href="<?= $b ?>/admin/members/<?= $flId ?>" class="neb-link">
                 <?= \Luster\Core\View::e($fl->name) ?>
               </a>
             </td>
-            <td class="text-strong"><?= \Luster\Core\View::e($m->name) ?></td>
-            <td><?= \Luster\Core\View::e($m->email) ?></td>
-            <td><?= \Luster\Core\View::e($m->country) ?></td>
-            <td>
+            <td class="text-strong" data-label="Name"><?= \Luster\Core\View::e($m->name) ?></td>
+            <td class="td-mono" data-label="Email"><?= \Luster\Core\View::e($m->email) ?></td>
+            <td data-label="Country"><?= \Luster\Core\View::e($m->country) ?></td>
+            <td data-label="Status">
               <?php if ($m->approved): ?>
                 <span class="neb-badge badge-current">Approved</span>
               <?php else: ?>
                 <span class="neb-badge badge-upcoming">Pending</span>
               <?php endif; ?>
             </td>
-            <td style="white-space:nowrap;font-size:.8rem;color:var(--text-muted)">
+            <td class="td-mono" data-label="Joined" style="white-space:nowrap;color:var(--text-muted)">
               <?= \Luster\Core\View::e($m->added ?? '') ?>
             </td>
-            <td class="act-col" style="white-space:nowrap">
-              <a href="<?= $b ?>/admin/members/<?= $flId ?>/edit?email=<?= urlencode($m->email) ?>"
-                 class="btn btn-primary btn-sm">Edit</a>
-              <?php if (!$m->approved): ?>
-                <form method="POST" action="<?= $b ?>/admin/members/<?= $flId ?>/approve"
-                      style="display:inline;margin-left:.25rem">
-                  <input type="hidden" name="_csrf"        value="<?= \Luster\Core\View::e($csrf_token ?? '') ?>">
-                  <input type="hidden" name="member_email" value="<?= \Luster\Core\View::e($m->email) ?>">
-                  <button type="submit" class="btn btn-primary btn-sm">Approve</button>
-                </form>
-              <?php endif; ?>
-              <a href="<?= $b ?>/admin/members/<?= $flId ?>/emailmember?email=<?= urlencode($m->email) ?>"
-                 class="btn btn-ghost btn-sm" style="margin-left:.25rem">Email</a>
+            <td class="act-col" data-label="">
+              <div class="row-actions">
+                <?php if (!$m->approved): ?>
+                  <form method="POST" action="<?= $b ?>/admin/members/<?= $flId ?>/approve" style="display:contents">
+                    <input type="hidden" name="_csrf"        value="<?= \Luster\Core\View::e($csrf_token ?? '') ?>">
+                    <input type="hidden" name="member_email" value="<?= \Luster\Core\View::e($m->email) ?>">
+                    <button type="submit" class="btn btn-success btn-sm">Approve</button>
+                  </form>
+                <?php endif; ?>
+                <a href="<?= $b ?>/admin/members/<?= $flId ?>/edit?email=<?= urlencode($m->email) ?>"
+                   class="btn btn-secondary btn-sm">Edit</a>
+                <a href="<?= $b ?>/admin/members/<?= $flId ?>/emailmember?email=<?= urlencode($m->email) ?>"
+                   class="btn btn-secondary btn-sm">Email</a>
+              </div>
             </td>
           </tr>
           <?php endforeach; ?>
@@ -128,12 +131,21 @@ $isSearch   = $search !== '';
 <?php else: ?>
 
   <!-- ═══ Pending new members by listing ═══ -->
-  <p class="text-dim" style="font-size:0.7rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:0.75rem">
-    Pending New Members
-  </p>
+  <div class="overview-section-head">
+    <div>
+      <div class="overview-section-title">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="15" height="15"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M19 8v6m3-3h-6"/></svg>
+        Pending New Members
+      </div>
+      <div class="overview-section-sub">New join requests awaiting your approval decision.</div>
+    </div>
+  </div>
   <?php if (empty($grouped)): ?>
     <div class="neb-card" style="margin-bottom:1.5rem">
-      <p class="neb-empty">No pending members across any listing.</p>
+      <div class="neb-empty">
+        <svg class="empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+        No pending members — you're all caught up.
+      </div>
     </div>
   <?php else: ?>
     <?php foreach ($grouped as $g): ?>
@@ -154,7 +166,17 @@ $isSearch   = $search !== '';
       <form method="POST" action="<?= $b ?>/admin/members/<?= $flId ?>/bulk">
       <input type="hidden" name="_csrf" value="<?= \Luster\Core\View::e($csrf_token ?? '') ?>">
       <input type="hidden" name="from" value="overview">
-      <table class="data-table">
+      <div class="neb-bulk" style="margin:0 0 0 0;border-left:none;border-right:none;border-top:none;border-radius:0;border-bottom:1px solid var(--border)">
+        <span style="font-weight:600;margin-right:.25rem;color:var(--text)">Bulk:</span>
+        <div class="select-wrap">
+          <select name="bulk_action" class="form-select" style="padding:.3rem 2rem .3rem .6rem;font-size:.8125rem">
+            <option value="approve">Approve</option>
+            <option value="delete">Delete</option>
+          </select>
+        </div>
+        <button type="submit" class="btn btn-secondary btn-sm">Apply</button>
+      </div>
+      <table class="data-table mem-table">
         <thead>
           <tr>
             <th class="cb-col">
@@ -170,139 +192,168 @@ $isSearch   = $search !== '';
         <tbody>
           <?php foreach ($pendingMembers as $m): ?>
           <tr>
-            <td class="cb-col">
+            <td class="cb-col" data-label="">
               <input type="checkbox" name="emails[]" class="row-cb-<?= $flId ?>"
                      value="<?= \Luster\Core\View::e($m->email) ?>">
             </td>
-            <td class="text-strong"><?= \Luster\Core\View::e($m->name) ?></td>
-            <td><?= \Luster\Core\View::e($m->email) ?></td>
-            <td><?= \Luster\Core\View::e($m->country) ?></td>
-            <td>
+            <td class="text-strong" data-label="Name"><?= \Luster\Core\View::e($m->name) ?></td>
+            <td data-label="Email"><?= \Luster\Core\View::e($m->email) ?></td>
+            <td data-label="Country"><?= \Luster\Core\View::e($m->country) ?></td>
+            <td data-label="URL">
               <?php if ($m->url !== ''): ?>
                 <a href="<?= \Luster\Core\View::e($m->url) ?>" target="_blank" rel="noopener noreferrer"
-                   class="neb-link" style="font-size:.8rem"><?= \Luster\Core\View::e($m->url) ?></a>
+                   class="neb-link" style="word-break:break-all"><?= \Luster\Core\View::e($m->url) ?></a>
               <?php else: ?>
                 <span class="text-dim">&mdash;</span>
               <?php endif; ?>
             </td>
-            <td class="act-col">
-              <form method="POST" action="<?= $b ?>/admin/members/<?= $flId ?>/approve"
-                    style="display:inline">
-                <input type="hidden" name="_csrf"        value="<?= \Luster\Core\View::e($csrf_token ?? '') ?>">
-                <input type="hidden" name="member_email" value="<?= \Luster\Core\View::e($m->email) ?>">
-                <button type="submit" class="btn btn-primary btn-sm">Approve</button>
-              </form>
-              <form method="POST" action="<?= $b ?>/admin/members/<?= $flId ?>/delete"
-                    style="display:inline;margin-left:.25rem"
-                    data-confirm="Reject this member?">
-                <input type="hidden" name="_csrf"        value="<?= \Luster\Core\View::e($csrf_token ?? '') ?>">
-                <input type="hidden" name="member_email" value="<?= \Luster\Core\View::e($m->email) ?>">
-                <button type="submit" class="btn btn-danger btn-sm">Reject</button>
-              </form>
-              <a href="<?= $b ?>/admin/members/<?= $flId ?>/emailmember?email=<?= urlencode($m->email) ?>"
-                 class="btn btn-secondary btn-sm" style="margin-left:.25rem">Email</a>
+            <td class="act-col" data-label="">
+              <div class="row-actions">
+                <form method="POST" action="<?= $b ?>/admin/members/<?= $flId ?>/approve" style="display:contents">
+                  <input type="hidden" name="_csrf"        value="<?= \Luster\Core\View::e($csrf_token ?? '') ?>">
+                  <input type="hidden" name="member_email" value="<?= \Luster\Core\View::e($m->email) ?>">
+                  <button type="submit" class="btn btn-success btn-sm">Approve</button>
+                </form>
+                <a href="<?= $b ?>/admin/members/<?= $flId ?>/edit?email=<?= urlencode($m->email) ?>"
+                   class="btn btn-secondary btn-sm">Edit</a>
+                <a href="<?= $b ?>/admin/members/<?= $flId ?>/emailmember?email=<?= urlencode($m->email) ?>"
+                   class="btn btn-secondary btn-sm">Email</a>
+                <form method="POST" action="<?= $b ?>/admin/members/<?= $flId ?>/delete" style="display:contents"
+                      data-confirm="Reject this member?">
+                  <input type="hidden" name="_csrf"        value="<?= \Luster\Core\View::e($csrf_token ?? '') ?>">
+                  <input type="hidden" name="member_email" value="<?= \Luster\Core\View::e($m->email) ?>">
+                  <button type="submit" class="btn btn-danger btn-sm">Reject</button>
+                </form>
+              </div>
             </td>
           </tr>
           <?php endforeach; ?>
         </tbody>
       </table>
-      <div class="neb-bulk">
-        <span style="font-weight:600;margin-right:.5rem;color:var(--text)">Bulk:</span>
-        <div class="select-wrap">
-          <select name="bulk_action" class="form-select" style="padding:.3rem .6rem;font-size:.8125rem">
-            <option value="approve">Approve</option>
-            <option value="delete">Delete</option>
-          </select>
-        </div>
-        <button type="submit" class="btn btn-ghost btn-sm">Apply</button>
-      </div>
       </form>
     </div>
     <?php endforeach; ?>
   <?php endif; ?>
 
   <!-- ═══ Pending info updates ═══ -->
-  <p class="text-dim" style="font-size:0.7rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;margin-top:2rem;margin-bottom:0.75rem">
-    Pending Info Updates
-  </p>
+  <div class="overview-section-divider"></div>
+  <div class="overview-section-head">
+    <div>
+      <div class="overview-section-title">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="15" height="15"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+        Pending Info Updates
+      </div>
+      <div class="overview-section-sub">Members requesting changes to their details — review each diff and accept or reject.</div>
+    </div>
+  </div>
   <?php if (empty($pending_updates)): ?>
     <div class="neb-card">
-      <p class="neb-empty">No pending info updates.</p>
+      <div class="neb-empty">
+        <svg class="empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+        No pending info updates.
+      </div>
     </div>
   <?php else: ?>
     <div class="neb-card" style="overflow:hidden">
-      <div style="overflow-x:auto">
-        <table class="data-table">
-          <thead>
-            <tr>
-              <th>Listing</th>
-              <th>Member Email</th>
-              <th>Fields Changed</th>
-              <th>Submitted</th>
-              <th class="act-col">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            <?php foreach ($pending_updates as $pu):
-              $puListing = $fl_by_id[(int) $pu->fanlisting_id] ?? null;
-              $puFlId    = (int) $pu->fanlisting_id;
-              $puCount   = is_array($pu->changes) ? count($pu->changes) : 0;
-            ?>
-            <tr>
-              <td>
-                <?php if ($puListing !== null): ?>
-                  <a href="<?= $b ?>/admin/members/<?= $puFlId ?>" class="neb-link">
-                    <?= \Luster\Core\View::e($puListing->name) ?>
-                  </a>
-                <?php else: ?>
-                  <span class="text-dim">#<?= $puFlId ?></span>
-                <?php endif; ?>
-              </td>
-              <td><?= \Luster\Core\View::e($pu->member_email) ?></td>
-              <td>
-                <?php if ($puCount === 0): ?>
-                  <span class="text-dim">—</span>
-                <?php else: ?>
-                  <details style="cursor:pointer">
-                    <summary style="list-style:none;display:inline-flex;align-items:center;gap:.35rem">
-                      <span class="neb-badge badge-upcoming"><?= $puCount ?> field<?= $puCount !== 1 ? 's' : '' ?></span>
-                    </summary>
-                    <dl style="margin:.4rem 0 0;font-size:.78rem;line-height:1.6">
-                      <?php foreach ($pu->changes as $field => $val): ?>
-                        <dt style="font-weight:600;color:var(--text-muted)"><?= \Luster\Core\View::e((string) $field) ?></dt>
-                        <dd style="margin:0 0 .2rem 1rem;word-break:break-all"><?= \Luster\Core\View::e((string) $val) ?></dd>
-                      <?php endforeach; ?>
-                    </dl>
-                  </details>
-                <?php endif; ?>
-              </td>
-              <td style="white-space:nowrap;font-size:.8rem;color:var(--text-muted)"
-                  title="<?= \Luster\Core\View::e($pu->submitted_at) ?>">
-                <?= \Luster\Core\View::e($pu->submitted_at) ?>
-              </td>
-              <td class="act-col" style="white-space:nowrap">
-                <form method="POST"
-                      action="<?= $b ?>/admin/pending-updates/<?= (int) $pu->id ?>/approve"
-                      style="display:inline;margin-left:.25rem"
-                      data-confirm="Approve and apply this update?">
-                  <input type="hidden" name="_csrf"  value="<?= \Luster\Core\View::e($csrf_token ?? '') ?>">
-                  <input type="hidden" name="_from"  value="members">
-                  <button type="submit" class="btn btn-primary btn-sm">Approve</button>
-                </form>
-                <form method="POST"
-                      action="<?= $b ?>/admin/pending-updates/<?= (int) $pu->id ?>/reject"
-                      style="display:inline;margin-left:.25rem"
-                      data-confirm="Reject and discard this update?">
-                  <input type="hidden" name="_csrf"  value="<?= \Luster\Core\View::e($csrf_token ?? '') ?>">
-                  <input type="hidden" name="_from"  value="members">
-                  <button type="submit" class="btn btn-danger btn-sm">Reject</button>
-                </form>
-              </td>
-            </tr>
-            <?php endforeach; ?>
-          </tbody>
-        </table>
-      </div>
+      <form method="POST" action="<?= $b ?>/admin/pending-updates/bulk">
+        <input type="hidden" name="_csrf" value="<?= \Luster\Core\View::e($csrf_token ?? '') ?>">
+        <div class="neb-bulk" style="margin:0;border-left:none;border-right:none;border-top:none;border-radius:0;border-bottom:1px solid var(--border)">
+          <span style="font-weight:600;margin-right:.25rem;color:var(--text)">Bulk:</span>
+          <div class="select-wrap">
+            <select name="bulk_action" class="form-select" style="padding:.3rem 2rem .3rem .6rem;font-size:.8125rem">
+              <option value="approve">Approve</option>
+              <option value="reject">Reject</option>
+            </select>
+          </div>
+          <button type="submit" class="btn btn-secondary btn-sm">Apply</button>
+        </div>
+        <div style="overflow-x:auto">
+          <table class="data-table mem-table">
+            <thead>
+              <tr>
+                <th class="cb-col">
+                  <input type="checkbox" class="sel-all" data-fid="pu" title="Select all">
+                </th>
+                <th>Listing</th>
+                <th>Member Email</th>
+                <th>Fields Changed</th>
+                <th>Submitted</th>
+                <th class="act-col">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <?php foreach ($pending_updates as $pu):
+                $puListing = $fl_by_id[(int) $pu->fanlisting_id] ?? null;
+                $puFlId    = (int) $pu->fanlisting_id;
+                $puCount   = is_array($pu->changes) ? count($pu->changes) : 0;
+              ?>
+              <tr>
+                <td class="cb-col" data-label="">
+                  <input type="checkbox" name="ids[]" class="row-cb-pu"
+                         value="<?= (int) $pu->id ?>">
+                </td>
+                <td data-label="Listing">
+                  <?php if ($puListing !== null): ?>
+                    <a href="<?= $b ?>/admin/members/<?= $puFlId ?>" class="neb-link">
+                      <?= \Luster\Core\View::e($puListing->name) ?>
+                    </a>
+                  <?php else: ?>
+                    <span class="text-dim">#<?= $puFlId ?></span>
+                  <?php endif; ?>
+                </td>
+                <td data-label="Email"><?= \Luster\Core\View::e($pu->member_email) ?></td>
+                <td data-label="Changes">
+                  <?php if ($puCount === 0): ?>
+                    <span class="text-dim">—</span>
+                  <?php else: ?>
+                    <details style="cursor:pointer">
+                      <summary style="list-style:none;display:inline-flex;align-items:center;gap:.3rem;font-size:.85rem;color:var(--text-muted)">
+                        <?= $puCount ?> field<?= $puCount !== 1 ? 's' : '' ?>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="11" height="11" style="flex-shrink:0;transition:transform .15s"><polyline points="6 9 12 15 18 9"/></svg>
+                      </summary>
+                      <div style="margin:.4rem 0 0;font-size:.78rem;line-height:1.8">
+                        <?php foreach ($pu->changes as $field => $val): ?>
+                          <div style="word-break:break-all">
+                            <span style="font-weight:600;color:var(--text-muted)"><?= \Luster\Core\View::e(ucfirst((string) $field)) ?>:</span>
+                            <?= \Luster\Core\View::e((string) $val) ?>
+                          </div>
+                        <?php endforeach; ?>
+                      </div>
+                    </details>
+                  <?php endif; ?>
+                </td>
+                <td data-label="Submitted" style="white-space:nowrap;font-size:.8rem;color:var(--text-muted)"
+                    title="<?= \Luster\Core\View::e($pu->submitted_at) ?>">
+                  <?= \Luster\Core\View::e($pu->submitted_at) ?>
+                </td>
+                <td class="act-col" data-label="" style="white-space:nowrap">
+                  <div class="row-actions">
+                    <form method="POST"
+                          action="<?= $b ?>/admin/pending-updates/<?= (int) $pu->id ?>/approve"
+                          style="display:contents"
+                          data-confirm="Approve and apply this update?">
+                      <input type="hidden" name="_csrf"  value="<?= \Luster\Core\View::e($csrf_token ?? '') ?>">
+                      <input type="hidden" name="_from"  value="members">
+                      <button type="submit" class="btn btn-success btn-sm">Approve</button>
+                    </form>
+                    <a href="<?= $b ?>/admin/members/<?= $puFlId ?>/edit?email=<?= urlencode($pu->member_email) ?>"
+                       class="btn btn-secondary btn-sm">Edit</a>
+                    <form method="POST"
+                          action="<?= $b ?>/admin/pending-updates/<?= (int) $pu->id ?>/reject"
+                          style="display:contents"
+                          data-confirm="Reject and discard this update?">
+                      <input type="hidden" name="_csrf"  value="<?= \Luster\Core\View::e($csrf_token ?? '') ?>">
+                      <input type="hidden" name="_from"  value="members">
+                      <button type="submit" class="btn btn-danger btn-sm">Reject</button>
+                    </form>
+                  </div>
+                </td>
+              </tr>
+              <?php endforeach; ?>
+            </tbody>
+          </table>
+        </div>
+      </form>
     </div>
   <?php endif; ?>
 

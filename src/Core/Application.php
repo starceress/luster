@@ -7,6 +7,8 @@ namespace Luster\Core;
 use Luster\Middleware\AuthMiddleware;
 use Luster\Middleware\CsrfMiddleware;
 use Luster\Repositories\ErrorLogRepo;
+use Luster\Repositories\ListingRepo;
+use Luster\Repositories\MemberRepo;
 use Throwable;
 
 /**
@@ -172,12 +174,43 @@ final class Application
     }
 
     /**
+     * Returns global nav data for admin layout templates.
+     * Lazily computed once per request and cached on the instance.
+     *
+     * @return array{nav_pending_members: int, nav_site_url: string}
+     */
+    public function getAdminNavData(): array
+    {
+        static $cache = null;
+        if ($cache !== null) {
+            return $cache;
+        }
+
+        $pending     = 0;
+        $listingRepo = new ListingRepo($this->database, $this->config);
+        $memberRepo  = new MemberRepo($this->database, $this->config);
+
+        foreach ($listingRepo->getAll() as $fl) {
+            if ($fl->dbprefix === '') {
+                continue;
+            }
+            $pending += $memberRepo->countPending($fl->dbprefix);
+        }
+
+        $cache = [
+            'nav_pending_members' => $pending,
+            'nav_site_url'        => rtrim((string) $this->config->get('site_url', ''), '/'),
+        ];
+        return $cache;
+    }
+
+    /**
      * Returns the application base URL with no trailing slash.
      * Used by controllers to build full redirect URLs (e.g. for Location headers).
      */
     public function getBaseUrl(): string
     {
-        return rtrim((string) ($this->config->get('site_url') ?: $this->config->get('app_url', '')), '/');
+        return rtrim((string) $this->config->get('app_url', ''), '/');
     }
 
     // -----------------------------------------------------------------------

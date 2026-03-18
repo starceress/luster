@@ -15,20 +15,20 @@ declare(strict_types=1);
  *   include '/path/to/luster/public/show_stats.php';
  *
  * The output is the rendered stats_template stored in lstr_fanlisting_settings,
- * with $$token$$ placeholders replaced by live data. Falls back to a sensible
+ * with {token} placeholders replaced by live data. Falls back to a sensible
  * default if no custom template has been saved.
  *
  * Outputs nothing (silently) for upcoming or trouble listings.
  *
  * Tokens replaced:
- *   $$stat_opened$$     — date listing opened, formatted "Month Dth Year"
- *   $$stat_updated$$    — date of most recently added approved member (same format)
- *   $$stat_approved$$   — approved member count
- *   $$stat_pending$$    — pending member count
- *   $$stat_newmembers$$ — comma-separated list of newest 5 approved member names
- *   $$stat_growth$$     — members per day since opened, to 2 decimal places
- *   $$listing_name$$ — listing name (HTML-escaped)
- *   $$listing_url$$  — listing URL (HTML-escaped)
+ *   {stat_opened}     — date listing opened, formatted "Month Dth Year"
+ *   {stat_updated}    — date of most recently added approved member (same format)
+ *   {stat_approved}   — approved member count
+ *   {stat_pending}    — pending member count
+ *   {stat_newmembers} — comma-separated list of newest 5 approved member names
+ *   {stat_growth}     — members per day since opened, to 2 decimal places
+ *   {listing_name}    — listing name (HTML-escaped)
+ *   {listing_url}     — listing URL (HTML-escaped)
  */
 
 // ── Bootstrap (loads $lstr_fl, $lstr_memberRepo, $lstr_settingsRepo, etc.) ──
@@ -54,9 +54,9 @@ $lastUpdated = $lstr_memberRepo->getMostRecentApprovedDate($prefix);
 $_lstr_templates = $lstr_settingsRepo->getTemplates($luster_listing);
 $_lstr_template  = ($_lstr_templates['stats_template'] !== null && trim($_lstr_templates['stats_template']) !== '')
     ? $_lstr_templates['stats_template']
-    : '<p>Opened: $$stat_opened$$<br>Last updated: $$stat_updated$$<br>'
-      . 'Members: $$stat_approved$$ ($$stat_pending$$ pending)<br>'
-      . 'Newest: $$stat_newmembers$$</p>';
+    : '<p>Opened: {stat_opened}<br>Last updated: {stat_updated}<br>'
+      . 'Members: {stat_approved} ({stat_pending} pending)<br>'
+      . 'Newest: {stat_newmembers}</p>';
 
 // ── Build token values ────────────────────────────────────────────────────────
 
@@ -105,14 +105,14 @@ if ($lstr_fl->joined !== null) {
 
 echo str_replace(
     [
-        '$$stat_opened$$',
-        '$$stat_updated$$',
-        '$$stat_approved$$',
-        '$$stat_pending$$',
-        '$$stat_newmembers$$',
-        '$$stat_growth$$',
-        '$$listing_name$$',
-        '$$listing_url$$',
+        '{stat_opened}',
+        '{stat_updated}',
+        '{stat_approved}',
+        '{stat_pending}',
+        '{stat_newmembers}',
+        '{stat_growth}',
+        '{listing_name}',
+        '{listing_url}',
     ],
     [
         $_lstr_opened,

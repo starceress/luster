@@ -80,7 +80,7 @@ final class ErrorLogController
             'csrf_token' => $csrfToken,
         ]));
 
-        return Response::html($view->render('admin/layout.php', [
+        return Response::html($view->render('admin/layout.php', array_merge([
             'page_title'      => $pageTitle,
             'site_name'       => (string) $config->get('site_name', 'Luster'),
             'admin_username'  => (string) $session->get('lstr_admin_username', ''),
@@ -88,6 +88,6 @@ final class ErrorLogController
             'current_section' => $section,
             'base_url'        => $baseUrl,
             'content'         => $inner,
-        ]));
+        ], $this->app->getAdminNavData())));
     }
 }

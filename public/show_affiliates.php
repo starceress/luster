@@ -23,10 +23,10 @@ use Luster\Repositories\AffiliateRepo;
  * Outputs nothing (silently) for upcoming or trouble listings,
  * or when the listing has no active affiliates.
  *
- * Tokens available in affiliates_template ($$token$$ style):
- *   $$aff_url$$   — affiliate URL (HTML-escaped)
- *   $$aff_image$$ — affiliate image URL (HTML-escaped; empty when not set)
- *   $$aff_name$$  — affiliate name (HTML-escaped)
+ * Tokens available in affiliates_template ({token} style):
+ *   {aff_url}   — affiliate URL (HTML-escaped)
+ *   {aff_image} — affiliate image URL (HTML-escaped; empty when not set)
+ *   {aff_name}  — affiliate name (HTML-escaped)
  */
 
 // ── Bootstrap ────────────────────────────────────────────────────────────────
@@ -55,7 +55,7 @@ $_lstr_tpls = $lstr_settingsRepo->getTemplates($luster_listing);
 $_lstr_rowTpl = ($_lstr_tpls['affiliates_template'] !== null
     && trim($_lstr_tpls['affiliates_template']) !== '')
     ? $_lstr_tpls['affiliates_template']
-    : '<a href="$$aff_url$$"><img src="$$aff_image$$" alt="$$aff_name$$" /></a>';
+    : '<a href="{aff_url}"><img src="{aff_image}" alt="{aff_name}" /></a>';
 
 // ── Apply template per affiliate and echo ─────────────────────────────────────
 
@@ -66,7 +66,7 @@ $_lstr_out = '';
 
 foreach ($_lstr_affiliates as $_lstr_aff) {
     $_lstr_out .= str_replace(
-        ['$$aff_url$$', '$$aff_image$$', '$$aff_name$$'],
+        ['{aff_url}', '{aff_image}', '{aff_name}'],
         [
             $_lstr_e($_lstr_aff->url),
             $_lstr_e($_lstr_aff->image ?? ''),

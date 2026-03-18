@@ -20,6 +20,8 @@
 /** @var string[]               $type_options */
 /** @var int                    $page */
 /** @var int                    $total_pages */
+/** @var int                    $total */
+/** @var int                    $per_page */
 $b = rtrim(\Luster\Core\View::e($base_url), '/');
 
 $flFilterQs = http_build_query(array_filter([
@@ -109,7 +111,7 @@ usort($allNetworks, static fn($a, $b) => strcasecmp($a, $b));
 
   <div class="neb-actions">
     <a href="<?= $b ?>/admin/listings/add" class="btn btn-primary btn-sm">+ Add Listing</a>
-    <a href="<?= $b ?>/admin/listings/settings" class="btn btn-secondary btn-sm">Settings</a>
+    <a href="<?= $b ?>/admin/listings/settings" class="btn btn-secondary btn-sm">Display Settings</a>
   </div>
 </div>
 
@@ -120,15 +122,34 @@ usort($allNetworks, static fn($a, $b) => strcasecmp($a, $b));
 
 <?php if (empty($listings)): ?>
   <div class="neb-card">
-    <p class="neb-empty">No listings found. <a href="<?= $b ?>/admin/listings/add" class="neb-link">Add one to get started</a>.</p>
+    <div class="neb-empty">
+      <svg class="empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01z"/></svg>
+      No listings yet.
+      <a href="<?= $b ?>/admin/listings/add" class="btn btn-primary btn-sm">+ Add Listing</a>
+    </div>
   </div>
 <?php else: ?>
 
 <form method="POST" action="<?= $b ?>/admin/listings/bulk" id="bulk-form">
   <input type="hidden" name="_csrf" value="<?= \Luster\Core\View::e($csrf_token ?? '') ?>">
 
+  <!-- Bulk action bar -->
+  <div class="neb-bulk">
+    <label for="bulk-action">Bulk action:</label>
+    <div class="toolbar-select-wrap">
+    <select id="bulk-action" name="action" class="neb-select">
+      <option value="">— Select —</option>
+      <option value="delete">Delete selected</option>
+    </select>
+    </div>
+    <button type="submit" class="btn btn-secondary btn-sm">Apply</button>
+  </div>
+
+  <?php $flFrom = ($page - 1) * $per_page + 1; $flTo = ($page - 1) * $per_page + count($listings); ?>
+  <p class="result-count">Showing <?= $flFrom ?>&#8211;<?= $flTo ?> of <?= number_format((int) $total) ?> listings<?php if ($total_pages > 1): ?> &mdash; page <?= (int) $page ?> of <?= (int) $total_pages ?><?php endif; ?></p>
+
   <div class="neb-card">
-    <table class="data-table">
+    <table class="data-table mem-table">
       <thead>
         <tr>
           <th class="cb-col"><input type="checkbox" id="fl-select-all"></th>
@@ -147,12 +168,12 @@ usort($allNetworks, static fn($a, $b) => strcasecmp($a, $b));
         <tr>
 
           <!-- Checkbox -->
-          <td class="cb-col">
+          <td class="cb-col" data-label="">
             <input type="checkbox" name="selected[]" value="<?= (int) $fl->id ?>" class="fl-row-cb">
           </td>
 
           <!-- Image -->
-          <td>
+          <td data-label="Image">
             <?php $flImage = $images[$fl->id] ?? null; ?>
             <?php if ($flImage !== null && $flImage !== ''): ?>
               <img src="<?= $b ?>/uploads/listings/<?= \Luster\Core\View::e($flImage) ?>"
@@ -163,10 +184,10 @@ usort($allNetworks, static fn($a, $b) => strcasecmp($a, $b));
           </td>
 
           <!-- Listing # -->
-          <td class="text-dim"><?= (int) $fl->id ?></td>
+          <td class="text-dim" data-label="ID"><?= (int) $fl->id ?></td>
 
           <!-- Subject -->
-          <td class="text-strong">
+          <td class="text-strong" data-label="Subject">
             <?php if ($fl->url !== ''): ?>
               <a href="<?= \Luster\Core\View::e($fl->url) ?>" target="_blank" rel="noopener noreferrer"
                  class="neb-link"><?= \Luster\Core\View::e($fl->subject) ?></a>
@@ -176,16 +197,16 @@ usort($allNetworks, static fn($a, $b) => strcasecmp($a, $b));
           </td>
 
           <!-- Title -->
-          <td>
+          <td data-label="Title">
             <a href="<?= $b ?>/admin/listings/<?= (int) $fl->id ?>/edit"
                class="neb-link"><?= \Luster\Core\View::e($fl->name) ?></a>
           </td>
 
           <!-- Category -->
-          <td class="text-muted"><?= \Luster\Core\View::e($category_names[$fl->id] ?? '—') ?></td>
+          <td class="text-muted" data-label="Category"><?= \Luster\Core\View::e($category_names[$fl->id] ?? '—') ?></td>
 
           <!-- Status -->
-          <td>
+          <td data-label="Status">
             <?php if ($fl->upcoming): ?>
               <span class="neb-badge badge-upcoming">Upcoming</span>
             <?php elseif ($fl->trouble): ?>
@@ -196,30 +217,31 @@ usort($allNetworks, static fn($a, $b) => strcasecmp($a, $b));
           </td>
 
           <!-- Members -->
-          <td>
+          <td data-label="Members">
             <?php
               $app  = (int) ($member_counts[$fl->id]  ?? 0);
               $pend = (int) ($pending_counts[$fl->id] ?? 0);
             ?>
-            <?= $app ?> Approved<?php if ($pend > 0): ?>,
-              <a href="<?= $b ?>/admin/members/<?= (int) $fl->id ?>?status=pending"
-                 class="neb-link"><?= $pend ?> Pending</a>
+            <div><?= $app ?> approved</div>
+            <?php if ($pend > 0): ?>
+              <div><a href="<?= $b ?>/admin/members/<?= (int) $fl->id ?>?status=pending"
+                 class="neb-link"><?= $pend ?> pending</a></div>
             <?php endif; ?>
           </td>
 
           <!-- Actions -->
-          <td class="act-col">
-            <a href="<?= $b ?>/admin/listings/<?= (int) $fl->id ?>/edit"
-               class="btn btn-primary btn-sm">Edit</a>
-            <a href="<?= $b ?>/admin/members/<?= (int) $fl->id ?>"
-               class="btn btn-secondary btn-sm">Members</a>
-            <form method="POST"
-                  action="<?= $b ?>/admin/listings/<?= (int) $fl->id ?>/delete"
-                  style="display:inline"
-                  data-confirm="Delete this listing and all its members? This cannot be undone.">
-              <input type="hidden" name="_csrf" value="<?= \Luster\Core\View::e($csrf_token ?? '') ?>">
-              <button type="submit" class="btn btn-danger btn-sm">Delete</button>
-            </form>
+          <td class="act-col" data-label="">
+            <div class="row-actions">
+              <a href="<?= $b ?>/admin/listings/<?= (int) $fl->id ?>/edit"
+                 class="btn btn-primary btn-sm">Edit</a>
+              <a href="<?= $b ?>/admin/members/<?= (int) $fl->id ?>"
+                 class="btn btn-secondary btn-sm">Members</a>
+              <form method="POST" action="<?= $b ?>/admin/listings/<?= (int) $fl->id ?>/delete" style="display:contents"
+                    data-confirm="Delete this listing and all its members? This cannot be undone.">
+                <input type="hidden" name="_csrf" value="<?= \Luster\Core\View::e($csrf_token ?? '') ?>">
+                <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+              </form>
+            </div>
           </td>
 
         </tr>
@@ -227,19 +249,6 @@ usort($allNetworks, static fn($a, $b) => strcasecmp($a, $b));
       </tbody>
     </table>
 
-    <!-- Bulk action bar -->
-    <div class="neb-bulk">
-      <label for="bulk-action">Bulk action:</label>
-      <div class="toolbar-select-wrap">
-      <select id="bulk-action" name="action" class="neb-select">
-        <option value="">— Select —</option>
-        <option value="delete">Delete selected</option>
-      </select>
-      </div>
-      <button type="submit" class="btn btn-secondary btn-sm">
-        Apply
-      </button>
-    </div>
   </div><!-- /.neb-card -->
 
 </form>

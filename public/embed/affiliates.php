@@ -149,7 +149,7 @@ if ($_lusterAffiliateTemplate !== null) {
             ? '<img src="' . $e($_lusterUploadsUrl . '/' . $_aff->image) . '" alt="' . $e($_aff->name) . '">'
             : '';
         $rows .= str_replace(
-            ['$$aff_name$$', '$$aff_url$$', '$$aff_image$$'],
+            ['{aff_name}', '{aff_url}', '{aff_image}'],
             [$e($_aff->name), $e($_aff->url), $imageTag],
             $_lusterAffiliateTemplate,
         );

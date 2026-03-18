@@ -18,28 +18,28 @@ use Luster\Core\Database;
  *   2. Global template      (fanlisting_id = 0) — enabled, non-blank subject
  *   3. Built-in hardcoded default
  *
- * Token syntax: $token_name$ (single dollar signs on both sides).
+ * Token syntax: {token_name} (curly braces on both sides).
  *
  * Available tokens (all fan-facing types):
- *   $fan_name$          — member's name
- *   $fan_email$         — member's email address
- *   $fan_url$           — member's website URL
- *   $fan_country$       — member's country
- *   $listing_name$      — name / title of the listing
- *   $listing_subject$   — subject / topic of the listing
- *   $listing_url$       — URL of the listing
- *   $site_name$         — collective / site name from config
- *   $owner_name$        — site owner's display name (config: owner_name)
- *   $owner_email$       — site owner's contact email (config: owner_email)
+ *   {fan_name}          — member's name
+ *   {fan_email}         — member's email address
+ *   {fan_url}           — member's website URL
+ *   {fan_country}       — member's country
+ *   {listing_name}      — name / title of the listing
+ *   {listing_subject}   — subject / topic of the listing
+ *   {listing_url}       — URL of the listing
+ *   {site_name}         — collective / site name from config
+ *   {owner_name}        — site owner's display name (config: owner_name)
+ *   {owner_email}       — site owner's contact email (config: owner_email)
  *
  * Join-only additional token:
- *   $fan_password$      — member's raw password (shown when set during join)
+ *   {fan_password}      — member's raw password (shown when set during join)
  *
  * Reset-only additional token:
- *   $reset_url$         — one-time password reset link
+ *   {reset_url}         — one-time password reset link
  *
  * Admin notification (notify_join) — sent to the listing's admin email:
- *   same tokens as join; $fan_password$ is intentionally left blank.
+ *   same tokens as join; {fan_password} is intentionally left blank.
  *
  * Requires Migration 23.
  */
@@ -71,12 +71,12 @@ final class EmailTemplateRepo
     // -----------------------------------------------------------------------
 
     private const DEFAULT_SUBJECTS = [
-        self::TYPE_JOIN        => 'Welcome to the $listing_name$ listing!',
-        self::TYPE_APPROVE     => 'Your $listing_name$ membership has been approved',
-        self::TYPE_UPDATE      => 'Your $listing_name$ membership has been updated',
-        self::TYPE_REMOVE      => 'You have been removed from the $listing_name$ listing',
-        self::TYPE_RESET       => 'Reset your $listing_name$ password',
-        self::TYPE_NOTIFY_JOIN => 'New member joined $listing_name$',
+        self::TYPE_JOIN        => 'Welcome to the {listing_name} listing!',
+        self::TYPE_APPROVE     => 'Your {listing_name} membership has been approved',
+        self::TYPE_UPDATE      => 'Your {listing_name} membership has been updated',
+        self::TYPE_REMOVE      => 'You have been removed from the {listing_name} listing',
+        self::TYPE_RESET       => 'Reset your {listing_name} password',
+        self::TYPE_NOTIFY_JOIN => 'New member joined {listing_name}',
     ];
 
     // -----------------------------------------------------------------------
@@ -84,54 +84,54 @@ final class EmailTemplateRepo
     // -----------------------------------------------------------------------
 
     private const DEFAULT_BODY_JOIN =
-        'Hi $fan_name$,' . "\n\n"
-        . 'Thank you for joining the $listing_name$ listing.' . "\n\n"
+        'Hi {fan_name},' . "\n\n"
+        . 'Thank you for joining the {listing_name} listing.' . "\n\n"
         . 'Here are your membership details:' . "\n"
-        . '  Name    : $fan_name$' . "\n"
-        . '  Email   : $fan_email$' . "\n"
-        . '  Website : $fan_url$' . "\n"
-        . '  Country : $fan_country$' . "\n"
-        . '  Password: $fan_password$' . "\n\n"
+        . '  Name    : {fan_name}' . "\n"
+        . '  Email   : {fan_email}' . "\n"
+        . '  Website : {fan_url}' . "\n"
+        . '  Country : {fan_country}' . "\n"
+        . '  Password: {fan_password}' . "\n\n"
         . 'Please keep this email for your records. You will need your password to update or remove your membership.' . "\n\n"
-        . '-- $owner_name$' . "\n"
-        . '$site_name$';
+        . '-- {owner_name}' . "\n"
+        . '{site_name}';
 
     private const DEFAULT_BODY_APPROVE =
-        'Hi $fan_name$,' . "\n\n"
-        . 'Great news — your membership in the $listing_name$ listing has been approved!' . "\n\n"
-        . 'Visit the listing at: $listing_url$' . "\n\n"
-        . '-- $owner_name$' . "\n"
-        . '$site_name$';
+        'Hi {fan_name},' . "\n\n"
+        . 'Great news — your membership in the {listing_name} listing has been approved!' . "\n\n"
+        . 'Visit the listing at: {listing_url}' . "\n\n"
+        . '-- {owner_name}' . "\n"
+        . '{site_name}';
 
     private const DEFAULT_BODY_UPDATE =
-        'Hi $fan_name$,' . "\n\n"
-        . 'Your membership in the $listing_name$ listing has been updated successfully.' . "\n\n"
-        . '-- $owner_name$' . "\n"
-        . '$site_name$';
+        'Hi {fan_name},' . "\n\n"
+        . 'Your membership in the {listing_name} listing has been updated successfully.' . "\n\n"
+        . '-- {owner_name}' . "\n"
+        . '{site_name}';
 
     private const DEFAULT_BODY_REMOVE =
-        'Hi $fan_name$,' . "\n\n"
-        . 'Your membership in the $listing_name$ listing has been removed as requested.' . "\n\n"
-        . '-- $owner_name$' . "\n"
-        . '$site_name$';
+        'Hi {fan_name},' . "\n\n"
+        . 'Your membership in the {listing_name} listing has been removed as requested.' . "\n\n"
+        . '-- {owner_name}' . "\n"
+        . '{site_name}';
 
     private const DEFAULT_BODY_RESET =
-        'Hi $fan_name$,' . "\n\n"
-        . 'We received a request to reset the password for your membership in the $listing_name$ listing.' . "\n\n"
+        'Hi {fan_name},' . "\n\n"
+        . 'We received a request to reset the password for your membership in the {listing_name} listing.' . "\n\n"
         . 'Click the link below to set a new password. This link expires in 1 hour.' . "\n\n"
-        . '$reset_url$' . "\n\n"
+        . '{reset_url}' . "\n\n"
         . 'If you did not request this, you can safely ignore this email. Your password will not change.' . "\n\n"
-        . '-- $owner_name$' . "\n"
-        . '$site_name$';
+        . '-- {owner_name}' . "\n"
+        . '{site_name}';
 
     private const DEFAULT_BODY_NOTIFY_JOIN =
-        'A new member has joined the $listing_name$ listing.' . "\n\n"
-        . '  Name   : $fan_name$' . "\n"
-        . '  Email  : $fan_email$' . "\n"
-        . '  Website: $fan_url$' . "\n"
-        . '  Country: $fan_country$' . "\n\n"
-        . '-- $owner_name$' . "\n"
-        . '$site_name$';
+        'A new member has joined the {listing_name} listing.' . "\n\n"
+        . '  Name   : {fan_name}' . "\n"
+        . '  Email  : {fan_email}' . "\n"
+        . '  Website: {fan_url}' . "\n"
+        . '  Country: {fan_country}' . "\n\n"
+        . '-- {owner_name}' . "\n"
+        . '{site_name}';
 
     // -----------------------------------------------------------------------
 
@@ -283,9 +283,9 @@ final class EmailTemplateRepo
     }
 
     /**
-     * Replaces all $token$ placeholders in $text with the corresponding values.
+     * Replaces all {token} placeholders in $text with the corresponding values.
      *
-     * @param array<string, string> $tokens  Keys are '$token_name$' style strings
+     * @param array<string, string> $tokens  Keys are '{token_name}' style strings
      */
     public static function applyTokens(string $text, array $tokens): string
     {
@@ -312,18 +312,18 @@ final class EmailTemplateRepo
         string $resetUrl       = '',
     ): array {
         return [
-            '$fan_name$'         => $fanName,
-            '$fan_email$'        => $fanEmail,
-            '$fan_url$'          => $fanUrl,
-            '$fan_country$'      => $fanCountry,
-            '$fan_password$'     => $fanPassword,
-            '$reset_url$'        => $resetUrl,
-            '$listing_name$'     => $listingName,
-            '$listing_subject$'  => $listingSubject,
-            '$listing_url$'      => $listingUrl,
-            '$site_name$'        => $siteName,
-            '$owner_name$'       => $ownerName,
-            '$owner_email$'      => $ownerEmail,
+            '{fan_name}'         => $fanName,
+            '{fan_email}'        => $fanEmail,
+            '{fan_url}'          => $fanUrl,
+            '{fan_country}'      => $fanCountry,
+            '{fan_password}'     => $fanPassword,
+            '{reset_url}'        => $resetUrl,
+            '{listing_name}'     => $listingName,
+            '{listing_subject}'  => $listingSubject,
+            '{listing_url}'      => $listingUrl,
+            '{site_name}'        => $siteName,
+            '{owner_name}'       => $ownerName,
+            '{owner_email}'      => $ownerEmail,
         ];
     }
 

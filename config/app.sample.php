@@ -33,7 +33,7 @@ return [
 
     // ------------------------------------------------------------------
     // Site owner identity
-    // Used in outgoing email templates as $owner_name$ / $owner_email$.
+    // Used in outgoing email templates as {owner_name} / {owner_email}.
     // owner_email may differ from your admin login email.
     // ------------------------------------------------------------------
     'owner_name'  => '',

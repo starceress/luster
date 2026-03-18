@@ -24,14 +24,14 @@ $b = rtrim(View::e($base_url), '/');
   <div class="alert alert-error"><?= View::e($error) ?></div>
 <?php endif; ?>
 
-<div class="page-header">
-  <h1>KIM List</h1>
-</div>
-<p style="margin:-0.5rem 0 1.25rem"><a href="<?= $b ?>/admin/addons" class="neb-link">&larr; Back to Add-ons</a></p>
+<p style="margin-bottom:1.25rem"><a href="<?= $b ?>/admin/addons" class="neb-link">&larr; Back to Add-ons</a></p>
 
 <?php if (empty($fanlistings_data)): ?>
   <div class="neb-card">
-    <p class="neb-empty">No fanlistings found. Add fanlistings to use the KIM List.</p>
+    <div class="neb-empty">
+      <svg class="empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01z"/></svg>
+      No fanlistings found — add fanlistings first to use KIM List.
+    </div>
   </div>
 <?php else: ?>
   <div class="neb-card">

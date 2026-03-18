@@ -70,15 +70,18 @@ final class CategoryController
         $all  = $repo->getAll();
 
         $session = $this->app->getSession();
-        $success = (string) $session->get('lstr_flash_success', '');
-        $error   = (string) $session->get('lstr_flash_error', '');
+        $success     = (string) $session->get('lstr_flash_success', '');
+        $error       = (string) $session->get('lstr_flash_error', '');
+        $fieldErrors = json_decode((string) $session->get('lstr_flash_field_errors', '{}'), true);
         $session->remove('lstr_flash_success');
         $session->remove('lstr_flash_error');
+        $session->remove('lstr_flash_field_errors');
 
         return $this->layout('admin/categories/add.php', [
-            'all_cats' => $all,
-            'success'  => $success,
-            'error'    => $error,
+            'all_cats'     => $all,
+            'success'      => $success,
+            'error'        => $error,
+            'field_errors' => is_array($fieldErrors) ? $fieldErrors : [],
         ], 'Add Category', 'categories');
     }
 
@@ -98,7 +101,8 @@ final class CategoryController
 
         if ($v->fails()) {
             $session->set('lstr_flash_error', implode(' ', $v->allErrors()));
-            return Response::redirect($baseUrl . '/admin/categories');
+            $session->set('lstr_flash_field_errors', json_encode($v->errors()));
+            return Response::redirect($baseUrl . '/admin/categories/add');
         }
 
         $categoryRepo = new CategoryRepo($this->app->getDatabase());
@@ -138,16 +142,19 @@ final class CategoryController
         $all = $repo->getAll();
 
         $session = $this->app->getSession();
-        $success = (string) $session->get('lstr_flash_success', '');
-        $error   = (string) $session->get('lstr_flash_error', '');
+        $success     = (string) $session->get('lstr_flash_success', '');
+        $error       = (string) $session->get('lstr_flash_error', '');
+        $fieldErrors = json_decode((string) $session->get('lstr_flash_field_errors', '{}'), true);
         $session->remove('lstr_flash_success');
         $session->remove('lstr_flash_error');
+        $session->remove('lstr_flash_field_errors');
 
         return $this->layout('admin/categories/edit.php', [
-            'cat'      => $cat,
-            'all_cats' => $all,
-            'success'  => $success,
-            'error'    => $error,
+            'cat'          => $cat,
+            'all_cats'     => $all,
+            'success'      => $success,
+            'error'        => $error,
+            'field_errors' => is_array($fieldErrors) ? $fieldErrors : [],
         ], 'Edit Category', 'categories');
     }
 
@@ -167,7 +174,8 @@ final class CategoryController
         $v->field('name')->required()->maxLength(150);
 
         if ($v->fails()) {
-            $session->set('lstr_flash_error', 'Could not save changes: ' . implode(' ', $v->allErrors()));
+            $session->set('lstr_flash_error', implode(' ', $v->allErrors()));
+            $session->set('lstr_flash_field_errors', json_encode($v->errors()));
             return Response::redirect($baseUrl . '/admin/categories/' . $id . '/edit');
         }
 
@@ -243,7 +251,7 @@ final class CategoryController
             'csrf_token' => $csrfToken,
         ]));
 
-        return Response::html($view->render('admin/layout.php', [
+        return Response::html($view->render('admin/layout.php', array_merge([
             'page_title'      => $pageTitle,
             'site_name'       => (string) $config->get('site_name', 'Luster'),
             'admin_username'  => (string) $session->get('lstr_admin_username', ''),
@@ -251,6 +259,6 @@ final class CategoryController
             'current_section' => $section,
             'base_url'        => $baseUrl,
             'content'         => $inner,
-        ]));
+        ], $this->app->getAdminNavData())));
     }
 }

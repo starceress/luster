@@ -57,7 +57,7 @@ final class FieldController
             'fields'     => $fields,
             'success'    => $success,
             'error'      => $error,
-        ], 'Fields — ' . $listing->name, 'listings');
+        ], 'Fields', 'listings', $listing->name);
     }
 
     // -----------------------------------------------------------------------
@@ -231,7 +231,7 @@ final class FieldController
             'field'      => $current,
             'options'    => $current->options,
             'error'      => (string) $req->query('error', ''),
-        ], 'Edit Field — ' . $listing->name, 'listings');
+        ], 'Edit Field', 'listings', $listing->name);
     }
 
     // -----------------------------------------------------------------------
@@ -374,7 +374,7 @@ final class FieldController
      *
      * @param array<string, mixed> $data
      */
-    private function layout(string $template, array $data, string $pageTitle, string $section): Response
+    private function layout(string $template, array $data, string $pageTitle, string $section, string $pageSubtitle = ''): Response
     {
         $view      = $this->app->getView();
         $config    = $this->app->getConfig();
@@ -387,14 +387,15 @@ final class FieldController
             'csrf_token' => $csrfToken,
         ]));
 
-        return Response::html($view->render('admin/layout.php', [
+        return Response::html($view->render('admin/layout.php', array_merge([
             'page_title'      => $pageTitle,
+            'page_subtitle'   => $pageSubtitle,
             'site_name'       => (string) $config->get('site_name', 'Luster'),
             'admin_username'  => (string) $session->get('lstr_admin_username', ''),
             'csrf_token'      => $csrfToken,
             'current_section' => $section,
             'base_url'        => $baseUrl,
             'content'         => $inner,
-        ]));
+        ], $this->app->getAdminNavData())));
     }
 }

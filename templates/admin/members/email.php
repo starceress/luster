@@ -1,8 +1,9 @@
 <?php declare(strict_types=1);
-$b         = rtrim(\Luster\Core\View::e($base_url ?? ''), '/');
-$flName    = \Luster\Core\View::e($listing->name ?? '');
+$b          = rtrim(\Luster\Core\View::e($base_url ?? ''), '/');
+$flName     = \Luster\Core\View::e($listing->name ?? '');
 $oldSubject = \Luster\Core\View::e($old['subject'] ?? '');
-$oldBody   = htmlspecialchars($old['body'] ?? '', ENT_QUOTES, 'UTF-8');
+$oldBody    = htmlspecialchars($old['body'] ?? '', ENT_QUOTES, 'UTF-8');
+$listingId  = (int) ($listing->id ?? 0);
 ?>
 
 <?php if (($error ?? '') !== ''): ?>
@@ -45,32 +46,77 @@ $oldBody   = htmlspecialchars($old['body'] ?? '', ENT_QUOTES, 'UTF-8');
       </div>
     </div>
 
+    <?php if (!empty($saved_emails)): ?>
     <div class="email-row">
-      <div class="email-label">Use Template?</div>
+      <div class="email-label">Load template</div>
       <div class="email-value">
         <div class="select-wrap">
-        <select id="template-select">
-          <option value="">No, write manually</option>
-          <?php foreach ($templates ?? [] as $t): ?>
-            <option value="<?= \Luster\Core\View::e($t['subject'] ?? '') ?>"
-                    data-body="<?= htmlspecialchars($t['content'] ?? '', ENT_QUOTES, 'UTF-8') ?>">
-              <?= \Luster\Core\View::e($t['templatename'] ?? '') ?>
+        <select id="em-template-select">
+          <option value="">— Select a saved template —</option>
+          <?php foreach ($saved_emails as $t): ?>
+            <option value="<?= \Luster\Core\View::e($t->subject) ?>"
+                    data-body="<?= htmlspecialchars($t->body, ENT_QUOTES, 'UTF-8') ?>">
+              <?= \Luster\Core\View::e($t->name) ?>
             </option>
           <?php endforeach; ?>
         </select>
         </div>
+        <p class="form-hint" style="margin-top:.35rem">Selecting a template will overwrite the subject and message fields.</p>
       </div>
     </div>
+    <?php endif; ?>
 
     <div class="email-btn-row">
       <button type="submit" class="btn btn-primary">Send</button>
       <button type="button" class="btn btn-ghost" id="preview-email-btn">Preview</button>
       <button type="button" class="btn btn-ghost js-form-reset">Clear</button>
-      <a href="<?= \Luster\Core\View::e($referer ?? $b . '/admin/members/' . (int) ($listing->id ?? 0)) ?>"
+      <a href="<?= \Luster\Core\View::e($referer ?? $b . '/admin/members/' . $listingId) ?>"
          class="btn btn-ghost">Cancel</a>
     </div>
   </form>
+
+  <!-- Save as template -->
+  <div style="margin-top:1.5rem;padding-top:1.25rem;border-top:1px solid var(--border)">
+    <p style="margin:0 0 .75rem;font-size:.85rem;color:var(--text-muted)">Save the current subject &amp; message as a reusable template:</p>
+    <form method="POST" action="<?= $b ?>/admin/saved-emails/save" class="save-tpl-row" id="em-save-tpl-form">
+      <input type="hidden" name="_csrf"       value="<?= \Luster\Core\View::e($csrf_token ?? '') ?>">
+      <input type="hidden" name="referer"     id="em-save-referer" value="<?= \Luster\Core\View::e($_SERVER['REQUEST_URI'] ?? '') ?>">
+      <input type="hidden" name="tpl_subject" id="em-save-subject">
+      <input type="hidden" name="tpl_body"    id="em-save-body">
+      <input type="text"   name="tpl_name"    id="em-save-name"
+             class="neb-input" placeholder="Template name&hellip;" style="flex:1;min-width:160px" maxlength="150">
+      <button type="submit" class="btn btn-secondary btn-sm" id="em-save-btn">Save template</button>
+    </form>
+  </div>
 </div>
+
+<script>
+(function () {
+  /* Load template */
+  var tplSel = document.getElementById('em-template-select');
+  if (tplSel) {
+    tplSel.addEventListener('change', function () {
+      var opt = this.options[this.selectedIndex];
+      if (!opt.value) return;
+      var subj = document.getElementById('subject');
+      var body = document.getElementById('body');
+      if (subj) subj.value = opt.value;
+      if (body) body.value = opt.dataset.body || '';
+    });
+  }
+
+  /* Save template — copy current field values into hidden inputs before submit */
+  var saveForm = document.getElementById('em-save-tpl-form');
+  if (saveForm) {
+    saveForm.addEventListener('submit', function () {
+      var subj = document.getElementById('subject');
+      var body = document.getElementById('body');
+      document.getElementById('em-save-subject').value = subj ? subj.value : '';
+      document.getElementById('em-save-body').value    = body ? body.value : '';
+    });
+  }
+})();
+</script>
 
 <!-- Preview modal -->
 <div class="modal-overlay" id="preview-modal" data-listing-name="<?= \Luster\Core\View::e($flName) ?>">

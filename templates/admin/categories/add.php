@@ -1,5 +1,6 @@
 <?php declare(strict_types=1);
-$b = rtrim(\Luster\Core\View::e($base_url ?? ''), '/');
+$b  = rtrim(\Luster\Core\View::e($base_url ?? ''), '/');
+$fe = $field_errors ?? [];
 ?>
 
 <?php if (($success ?? '') !== ''): ?>
@@ -15,12 +16,13 @@ $b = rtrim(\Luster\Core\View::e($base_url ?? ''), '/');
 
 <div class="form-card" style="max-width:500px">
   <h2 class="card-title" style="margin-bottom:1.25rem">Add New Category</h2>
-  <form method="POST" id="add-form">
+  <form method="POST" id="add-form" class="js-warn-unsaved">
     <input type="hidden" name="_csrf" value="<?= \Luster\Core\View::e($csrf_token ?? '') ?>">
 
-    <div class="form-group">
+    <div class="form-group<?= !empty($fe['name']) ? ' has-error' : '' ?>">
       <label class="form-label">Category Name</label>
       <input type="text" name="name" class="form-input" required maxlength="150">
+      <?php if (!empty($fe['name'])): ?><p class="field-error"><?= \Luster\Core\View::e($fe['name'][0]) ?></p><?php endif; ?>
     </div>
 
     <div class="form-group">

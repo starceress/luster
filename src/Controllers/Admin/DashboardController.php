@@ -140,9 +140,25 @@ final class DashboardController
         $staleIds      = $settingsRepo->getStaleIds($thresholdDays);
         $staleListings = [];
         if (!empty($staleIds)) {
+            // Fetch last_updated dates for stale listings in one query
+            $placeholders   = implode(',', array_fill(0, count($staleIds), '?'));
+            $stmt           = $db->prepare(
+                "SELECT fanlisting_id, last_updated FROM lstr_fanlisting_settings
+                  WHERE fanlisting_id IN ($placeholders)"
+            );
+            $stmt->execute($staleIds);
+            $lastUpdatedMap = [];
+            foreach ($stmt->fetchAll() as $luRow) {
+                $lastUpdatedMap[(int) $luRow['fanlisting_id']] = $luRow['last_updated'];
+            }
+
             foreach ($listings as $fl) {
                 if (in_array($fl->id, $staleIds, true)) {
-                    $staleListings[] = $fl;
+                    $lu      = $lastUpdatedMap[$fl->id] ?? null;
+                    $daysAgo = ($lu !== null && $lu !== '')
+                        ? (int) floor((time() - (int) strtotime($lu)) / 86400)
+                        : null;
+                    $staleListings[] = ['listing' => $fl, 'days_ago' => $daysAgo];
                 }
             }
         }
@@ -179,7 +195,7 @@ final class DashboardController
             'base_url'                   => $baseUrl,
         ]);
 
-        return Response::html($view->render('admin/layout.php', [
+        return Response::html($view->render('admin/layout.php', array_merge([
             'page_title'      => 'Dashboard',
             'site_name'       => (string) $config->get('site_name', 'Luster'),
             'admin_username'  => (string) $session->get('lstr_admin_username', ''),
@@ -187,6 +203,6 @@ final class DashboardController
             'current_section' => 'dashboard',
             'base_url'        => $baseUrl,
             'content'         => $inner,
-        ]));
+        ], $this->app->getAdminNavData())));
     }
 }

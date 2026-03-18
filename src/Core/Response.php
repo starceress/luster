@@ -81,6 +81,18 @@ final class Response
             ->withBody($content);
     }
 
+    public static function download(string $body, string $filename, string $mime = 'application/octet-stream'): static
+    {
+        $safe = preg_replace('/[^a-zA-Z0-9_.\-]/', '_', $filename);
+
+        return (new static())
+            ->withStatus(200)
+            ->withHeader('Content-Type', $mime)
+            ->withHeader('Content-Disposition', 'attachment; filename="' . $safe . '"')
+            ->withHeader('Cache-Control', 'no-cache, no-store')
+            ->withBody($body);
+    }
+
     public static function serverError(string $message = 'An unexpected error occurred.'): static
     {
         $safe = htmlspecialchars($message, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');

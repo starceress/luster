@@ -31,13 +31,12 @@ $approvedMembers = array_filter($members, static fn($m) => !$m->pending);
 <?php endif; ?>
 
 <div class="page-header">
-  <h1>KIM &mdash; <?= View::e($listing->subject) ?></h1>
+  <p class="page-back" style="margin:0"><a href="<?= $b ?>/admin/kim" class="neb-link">&larr; Back to KIM List</a></p>
   <?php if ($approved_count > 0): ?>
     <a href="<?= $b ?>/admin/kim/<?= (int) $listing->id ?>/mass-email"
        class="btn btn-secondary">Mass Email (<?= (int) $approved_count ?>)</a>
   <?php endif; ?>
 </div>
-<p style="margin:-0.5rem 0 1.25rem"><a href="<?= $b ?>/admin/kim" class="neb-link">&larr; Back to KIM List</a></p>
 
 <!-- ── Pending ──────────────────────────────────────────────────────────── -->
 <div class="neb-card" style="margin-bottom:1.5rem">
@@ -49,7 +48,10 @@ $approvedMembers = array_filter($members, static fn($m) => !$m->pending);
   </div>
 
   <?php if (empty($pendingMembers)): ?>
-    <p class="neb-empty">No pending entries.</p>
+    <div class="neb-empty">
+      <svg class="empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      No pending entries — all caught up.
+    </div>
   <?php else: ?>
     <table class="data-table">
       <thead>
@@ -108,7 +110,10 @@ $approvedMembers = array_filter($members, static fn($m) => !$m->pending);
   </div>
 
   <?php if (empty($approvedMembers)): ?>
-    <p class="neb-empty">No approved entries.</p>
+    <div class="neb-empty">
+      <svg class="empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+      No approved entries yet.
+    </div>
   <?php else: ?>
     <table class="data-table">
       <thead>

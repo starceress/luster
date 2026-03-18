@@ -512,6 +512,11 @@ final class MemberRepo
     {
         $p = $this->resolveTable($prefix);
 
+        // Filter $data to columns that actually exist in the table, so stale
+        // additional-field definitions in owned.additional never cause a crash.
+        $existing = $this->getTableColumns($p);
+        $data     = array_intersect_key($data, array_flip($existing));
+
         $setParts = [];
         $params   = [];
 
@@ -573,6 +578,21 @@ final class MemberRepo
      *
      * @throws RuntimeException
      */
+    /**
+     * Returns the actual column names present in a member table.
+     * Used to filter update data against stale field definitions.
+     *
+     * @return string[]
+     */
+    private function getTableColumns(string $table): array
+    {
+        $stmt = $this->db->pdo()->query("DESCRIBE `{$table}`");
+        if ($stmt === false) {
+            return [];
+        }
+        return array_column($stmt->fetchAll(\PDO::FETCH_ASSOC), 'Field');
+    }
+
     private function validateColumnName(string $column): void
     {
         if (!preg_match('/^[a-zA-Z0-9_]+$/', $column)) {

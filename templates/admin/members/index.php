@@ -10,6 +10,8 @@
 /** @var string   $status */
 /** @var string   $success */
 /** @var string   $error */
+/** @var int      $per_page */
+/** @var int      $pending_count */
 /** @var string   $base_url */
 /** @var string   $csrf_token */
 $b  = rtrim(\Luster\Core\View::e($base_url), '/');
@@ -55,26 +57,59 @@ $id = (int) $listing->id;
       <?php endforeach; ?>
     </select>
     </div>
+    <?php if (($pending_count ?? 0) > 0): ?>
+    <form method="POST" action="<?= $b ?>/admin/members/<?= $id ?>/approve-all-pending"
+          data-confirm="Approve all <?= (int) ($pending_count ?? 0) ?> pending member(s)?">
+      <input type="hidden" name="_csrf" value="<?= \Luster\Core\View::e($csrf_token ?? '') ?>">
+      <button type="submit" class="btn btn-success btn-sm">
+        &#10003; Approve All Pending (<?= (int) ($pending_count ?? 0) ?>)
+      </button>
+    </form>
+    <?php endif; ?>
     <a href="<?= $b ?>/admin/members/<?= $id ?>/import" class="btn btn-secondary btn-sm">&#8593; Import CSV</a>
     <a href="<?= $b ?>/admin/members/<?= $id ?>/export" class="btn btn-secondary btn-sm">&#8595; Export CSV</a>
   </div>
 </div>
 
+
 <?php if (empty($members)): ?>
   <div class="neb-card">
-    <p class="neb-empty">No members found.</p>
+    <div class="neb-empty">
+      <svg class="empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      <?php if (($search ?? '') !== '' || ($status ?? '') !== '' && $status !== 'all'): ?>
+        No members match those filters.
+        <a href="?" class="btn btn-secondary btn-sm">Clear Filters</a>
+      <?php else: ?>
+        No members yet — they'll appear here after the first join.
+        <a href="<?= $b ?>/admin/members/<?= $id ?>/import" class="btn btn-secondary btn-sm">&#8593; Import CSV</a>
+      <?php endif; ?>
+    </div>
   </div>
 <?php else: ?>
 
+<?php $from = ($page - 1) * $per_page + 1; $to = ($page - 1) * $per_page + count($members); ?>
 <p class="result-count">
-  Showing <?= count($members) ?> of <?= (int) $total ?> member(s) &mdash; page <?= (int) $page ?> of <?= (int) $pages ?>
+  Showing <?= $from ?>&#8211;<?= $to ?> of <?= number_format((int) $total) ?> members<?php if ($pages > 1): ?> &mdash; page <?= (int) $page ?> of <?= (int) $pages ?><?php endif; ?>
 </p>
 
 <form method="POST" id="bulk-form" action="<?= $b ?>/admin/members/<?= $id ?>/bulk">
   <input type="hidden" name="_csrf" value="<?= \Luster\Core\View::e($csrf_token ?? '') ?>">
 
+  <!-- Bulk action bar -->
+  <div class="neb-bulk">
+    <label for="bulk-action-sel">Bulk action:</label>
+    <div class="toolbar-select-wrap">
+    <select id="bulk-action-sel" name="bulk_action" class="neb-select">
+      <option value="approve">Approve</option>
+      <option value="pending">Set Pending</option>
+      <option value="delete">Delete</option>
+    </select>
+    </div>
+    <button type="submit" class="btn btn-secondary btn-sm">Apply</button>
+  </div>
+
   <div class="neb-card">
-    <table class="data-table">
+    <table class="data-table mem-table">
       <thead>
         <tr>
           <th class="cb-col"><input type="checkbox" id="check-all"></th>
@@ -92,13 +127,13 @@ $id = (int) $listing->id;
       <tbody>
         <?php foreach ($members as $m): ?>
         <tr>
-          <td class="cb-col">
+          <td class="cb-col" data-label="">
             <input type="checkbox" name="emails[]" value="<?= \Luster\Core\View::e($m->email) ?>">
           </td>
-          <td class="text-strong"><?= \Luster\Core\View::e($m->name) ?></td>
-          <td><?= \Luster\Core\View::e($m->email) ?></td>
-          <td class="text-muted"><?= \Luster\Core\View::e($m->country) ?></td>
-          <td>
+          <td class="text-strong" data-label="Name"><?= \Luster\Core\View::e($m->name) ?></td>
+          <td class="td-mono" data-label="Email"><?= \Luster\Core\View::e($m->email) ?></td>
+          <td class="text-muted" data-label="Country"><?= \Luster\Core\View::e($m->country) ?></td>
+          <td class="td-mono" data-label="URL">
             <?php if ($m->url): ?>
               <a href="<?= \Luster\Core\View::e($m->url) ?>" target="_blank" rel="noopener noreferrer"
                  class="neb-link text-dim" style="word-break:break-all"><?= \Luster\Core\View::e($m->url) ?></a>
@@ -107,51 +142,41 @@ $id = (int) $listing->id;
             <?php endif; ?>
           </td>
           <?php foreach ($fields as $field): ?>
-            <td class="text-muted"><?= \Luster\Core\View::e($m->additionalFields[$field->name] ?? '') ?></td>
+            <td class="text-muted" data-label="<?= \Luster\Core\View::e($field->label) ?>"><?= \Luster\Core\View::e($m->additionalFields[$field->name] ?? '') ?></td>
           <?php endforeach; ?>
-          <td>
+          <td data-label="Status">
             <span class="neb-badge <?= $m->approved ? 'badge-current' : 'badge-pending' ?>">
               <?= $m->approved ? 'Approved' : 'Pending' ?>
             </span>
           </td>
-          <td class="act-col">
-            <a href="<?= $b ?>/admin/members/<?= $id ?>/edit?email=<?= urlencode($m->email) ?>"
-               class="btn btn-primary btn-sm">Edit</a>
-            <a href="<?= $b ?>/admin/members/<?= $id ?>/emailmember?email=<?= urlencode($m->email) ?>"
-               class="btn btn-secondary btn-sm">Email</a>
-
-            <?php if (!$m->approved): ?>
-            <form method="POST" action="<?= $b ?>/admin/members/<?= $id ?>/approve" style="display:inline">
-              <input type="hidden" name="_csrf"        value="<?= \Luster\Core\View::e($csrf_token ?? '') ?>">
-              <input type="hidden" name="member_email" value="<?= \Luster\Core\View::e($m->email) ?>">
-              <button type="submit" class="btn btn-primary btn-sm">Approve</button>
-            </form>
-            <?php endif; ?>
-
-            <form method="POST" action="<?= $b ?>/admin/members/<?= $id ?>/delete" style="display:inline"
-                  data-confirm="Delete this member permanently?">
-              <input type="hidden" name="_csrf"        value="<?= \Luster\Core\View::e($csrf_token ?? '') ?>">
-              <input type="hidden" name="member_email" value="<?= \Luster\Core\View::e($m->email) ?>">
-              <button type="submit" class="btn btn-danger btn-sm">Delete</button>
-            </form>
+          <td class="act-col" data-label="">
+            <div class="row-actions">
+              <?php if (!$m->approved): ?>
+                <form method="POST" action="<?= $b ?>/admin/members/<?= $id ?>/approve" style="display:contents">
+                  <input type="hidden" name="_csrf"        value="<?= \Luster\Core\View::e($csrf_token ?? '') ?>">
+                  <input type="hidden" name="member_email" value="<?= \Luster\Core\View::e($m->email) ?>">
+                  <input type="hidden" name="_page"        value="<?= (int) $page ?>">
+                  <button type="submit" class="btn btn-success btn-sm">Approve</button>
+                </form>
+              <?php endif; ?>
+              <a href="<?= $b ?>/admin/members/<?= $id ?>/edit?email=<?= urlencode($m->email) ?>"
+                 class="btn btn-secondary btn-sm">Edit</a>
+              <a href="<?= $b ?>/admin/members/<?= $id ?>/emailmember?email=<?= urlencode($m->email) ?>"
+                 class="btn btn-secondary btn-sm">Email</a>
+              <form method="POST" action="<?= $b ?>/admin/members/<?= $id ?>/delete" style="display:contents"
+                    data-confirm="Delete this member permanently?">
+                <input type="hidden" name="_csrf"        value="<?= \Luster\Core\View::e($csrf_token ?? '') ?>">
+                <input type="hidden" name="member_email" value="<?= \Luster\Core\View::e($m->email) ?>">
+                <input type="hidden" name="_page"        value="<?= (int) $page ?>">
+                <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+              </form>
+            </div>
           </td>
         </tr>
         <?php endforeach; ?>
       </tbody>
     </table>
 
-    <!-- Bulk action bar -->
-    <div class="neb-bulk">
-      <label for="bulk-action-sel">Bulk action:</label>
-      <div class="toolbar-select-wrap">
-      <select id="bulk-action-sel" name="bulk_action" class="neb-select">
-        <option value="approve">Approve</option>
-        <option value="pending">Set Pending</option>
-        <option value="delete">Delete</option>
-      </select>
-      </div>
-      <button type="submit" class="btn btn-secondary btn-sm">Apply</button>
-    </div>
   </div><!-- /.neb-card -->
 
 </form>

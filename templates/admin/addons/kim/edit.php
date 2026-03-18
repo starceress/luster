@@ -22,10 +22,7 @@ $b = rtrim(View::e($base_url), '/');
   <div class="alert alert-error"><?= View::e($error) ?></div>
 <?php endif; ?>
 
-<div class="page-header">
-  <h1>Edit KIM Member</h1>
-</div>
-<p style="margin:-0.5rem 0 1.25rem">
+<p class="page-back">
   <a href="<?= $b ?>/admin/kim/<?= (int) $member->fanlistingId ?>/show" class="neb-link">
     &larr; Back to <?= View::e($fanlisting_name) ?>
   </a>

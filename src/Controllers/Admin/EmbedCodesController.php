@@ -30,10 +30,16 @@ final class EmbedCodesController
         $listingRepo = new ListingRepo($db, $config);
         $listings    = $listingRepo->getAll();
 
-        // Pick a real listing ID for snippet examples; fall back to 1
-        $exampleId = 1;
+        // Pick a real listing ID for snippet examples.
+        // Honour ?listing=ID so callers can deep-link to a specific listing.
+        $requestedId = (int) $request->query('listing', 0);
+        $exampleId   = 1;
         foreach ($listings as $fl) {
-            if (!$fl->upcoming && !$fl->trouble) {
+            if ($requestedId > 0 && $fl->id === $requestedId) {
+                $exampleId = $fl->id;
+                break;
+            }
+            if ($requestedId === 0 && !$fl->upcoming && !$fl->trouble) {
                 $exampleId = $fl->id;
                 break;
             }
@@ -52,7 +58,7 @@ final class EmbedCodesController
         ]);
 
         return Response::html($view->render('admin/layout.php', [
-            'page_title'      => 'Embed Codes',
+            'page_title'      => 'Display Codes',
             'site_name'       => (string) $config->get('site_name', 'Luster'),
             'admin_username'  => (string) $session->get('lstr_admin_username', ''),
             'csrf_token'      => $csrfToken,

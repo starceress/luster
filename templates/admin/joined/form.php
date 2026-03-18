@@ -2,6 +2,7 @@
 /** @var \Luster\Models\JoinedListing|null $joined  null = add mode */
 /** @var string $error */
 /** @var array  $old */
+/** @var array  $field_errors */
 /** @var string $base_url */
 /** @var string $csrf_token */
 /** @var array  $tfl_cats         [{id: int, name: string}] */
@@ -9,6 +10,7 @@
 /** @var array  $custom_networks  string[] */
 
 $b      = rtrim(\Luster\Core\View::e($base_url), '/');
+$fe     = $field_errors ?? [];
 $isEdit = $joined !== null;
 $action = $isEdit
     ? $b . '/admin/joined/' . (int) $joined->id . '/edit'
@@ -53,7 +55,7 @@ $dataExist  = json_encode($existingCats,     JSON_HEX_QUOT | JSON_HEX_AMP | JSON
 <?php endif; ?>
 
 <div class="form-card">
-  <form method="POST" action="<?= $action ?>" enctype="multipart/form-data">
+  <form method="POST" action="<?= $action ?>" enctype="multipart/form-data" class="js-warn-unsaved">
     <input type="hidden" name="_csrf" value="<?= \Luster\Core\View::e($csrf_token ?? '') ?>">
 
     <!-- ① Category widget -->
@@ -75,18 +77,20 @@ $dataExist  = json_encode($existingCats,     JSON_HEX_QUOT | JSON_HEX_AMP | JSON
     <div class="section-divider"></div>
 
     <!-- ② URL -->
-    <div class="form-group">
+    <div class="form-group<?= !empty($fe['url']) ? ' has-error' : '' ?>">
       <label class="form-label" for="jf-url">URL <span>*</span></label>
       <input id="jf-url" type="url" name="url" class="form-input" maxlength="500"
              placeholder="https://" required
              value="<?= \Luster\Core\View::e($val('url', $joined, 'url')) ?>">
+      <?php if (!empty($fe['url'])): ?><p class="field-error"><?= \Luster\Core\View::e($fe['url'][0]) ?></p><?php endif; ?>
     </div>
 
     <!-- ③ Subject -->
-    <div class="form-group">
+    <div class="form-group<?= !empty($fe['name']) ? ' has-error' : '' ?>">
       <label class="form-label" for="jf-name">Subject <span>*</span></label>
       <input id="jf-name" type="text" name="name" class="form-input" maxlength="255" required
              value="<?= \Luster\Core\View::e($val('name', $joined, 'name')) ?>">
+      <?php if (!empty($fe['name'])): ?><p class="field-error"><?= \Luster\Core\View::e($fe['name'][0]) ?></p><?php endif; ?>
     </div>
 
     <!-- ④ Date Joined -->

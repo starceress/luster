@@ -21,10 +21,6 @@ $id = (int) $listing->id;
   </a>
 </p>
 
-<div class="page-header">
-  <h1><?= \Luster\Core\View::e($listing->name) ?> &mdash; Additional Fields</h1>
-</div>
-
 <!-- Flash messages -->
 <?php if ($success !== ''): ?>
   <div class="alert alert-success" role="status"><?= \Luster\Core\View::e($success) ?></div>

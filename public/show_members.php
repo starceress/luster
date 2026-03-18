@@ -20,11 +20,11 @@ declare(strict_types=1);
  *
  * Outputs nothing (silently) for upcoming or trouble listings.
  *
- * Tokens available in members_template ($$token$$ style):
- *   $$fan_name$$    — member name (HTML-escaped)
- *   $$fan_email$$   — member email (HTML-escaped)
- *   $$fan_url$$     — member URL (empty when showurl is false; HTML-escaped)
- *   $$fan_country$$ — member country (HTML-escaped)
+ * Tokens available in members_template ({token} style):
+ *   {fan_name}    — member name (HTML-escaped)
+ *   {fan_email}   — member email (HTML-escaped)
+ *   {fan_url}     — member URL (empty when showurl is false; HTML-escaped)
+ *   {fan_country} — member country (HTML-escaped)
  */
 
 // ── Bootstrap ────────────────────────────────────────────────────────────────
@@ -44,7 +44,7 @@ $_lstr_tpls = $lstr_settingsRepo->getTemplates($luster_listing);
 $_lstr_rowTpl = ($_lstr_tpls['members_template'] !== null
     && trim($_lstr_tpls['members_template']) !== '')
     ? $_lstr_tpls['members_template']
-    : '<p><a href="$$fan_url$$">$$fan_name$$</a> ($$fan_country$$)</p>';
+    : '<p><a href="{fan_url}">{fan_name}</a> ({fan_country})</p>';
 
 // ── Load approved members ─────────────────────────────────────────────────────
 
@@ -59,7 +59,7 @@ $_lstr_out = '';
 
 foreach ($_lstr_members as $_lstr_member) {
     $_lstr_out .= str_replace(
-        ['$$fan_name$$', '$$fan_email$$', '$$fan_url$$', '$$fan_country$$'],
+        ['{fan_name}', '{fan_email}', '{fan_url}', '{fan_country}'],
         [
             $_lstr_e($_lstr_member->name),
             $_lstr_e($_lstr_member->email),

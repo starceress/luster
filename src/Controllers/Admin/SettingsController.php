@@ -12,6 +12,7 @@ use Luster\Core\Validator;
 use Luster\Repositories\ActivityRepo;
 use Luster\Repositories\AdminUserRepo;
 use Luster\Repositories\BlacklistRepo;
+use Luster\Repositories\ErrorLogRepo;
 use Luster\Repositories\SiteSettingsRepo;
 use RuntimeException;
 
@@ -65,9 +66,11 @@ final class SettingsController
     {
         $session = $this->app->getSession();
         $success = (string) $session->get('lstr_flash_success', '');
-        $error   = (string) $session->get('lstr_flash_error', '');
+        $error       = (string) $session->get('lstr_flash_error', '');
+        $fieldErrors = json_decode((string) $session->get('lstr_flash_field_errors', '{}'), true);
         $session->remove('lstr_flash_success');
         $session->remove('lstr_flash_error');
+        $session->remove('lstr_flash_field_errors');
 
         $adminId   = (int) $session->get('lstr_admin_id');
         $adminRepo = new AdminUserRepo($this->app->getDatabase());
@@ -83,6 +86,10 @@ final class SettingsController
 
         $blacklistEntries = (new BlacklistRepo($db))->getAll();
 
+        $pdo           = $db->pdo();
+        $dbVersion     = (string) $pdo->query('SELECT VERSION()')->fetchColumn();
+        $errorLogCount = (new ErrorLogRepo($db))->count();
+
         return $this->layout('admin/settings/index.php', [
             'cfg'                  => $this->app->getConfig()->all(),
             'admin_user'           => $adminUser,
@@ -92,6 +99,10 @@ final class SettingsController
             'blacklist_entries'    => $blacklistEntries,
             'success'              => $success,
             'error'                => $error,
+            'field_errors'         => is_array($fieldErrors) ? $fieldErrors : [],
+            'php_version'          => PHP_VERSION,
+            'db_version'           => $dbVersion,
+            'error_log_count'      => $errorLogCount,
         ], 'Settings', 'settings');
     }
 
@@ -115,7 +126,8 @@ final class SettingsController
 
         if ($v->fails()) {
             $session->set('lstr_flash_error', implode(' ', $v->allErrors()));
-            return Response::redirect($baseUrl . '/admin/settings');
+            $session->set('lstr_flash_field_errors', json_encode($v->errors()));
+            return Response::redirect($baseUrl . '/admin/settings#general');
         }
 
         // Validate timezone
@@ -170,6 +182,70 @@ final class SettingsController
 
         $session->set('lstr_flash_success', 'Settings saved successfully.');
         return Response::redirect($baseUrl . '/admin/settings#tab-general');
+    }
+
+    // -----------------------------------------------------------------------
+    // POST /admin/settings/validate-smtp   (returns JSON — AJAX only)
+    // -----------------------------------------------------------------------
+
+    public function validateSmtp(Request $request, array $params): Response
+    {
+        $host   = trim((string) $request->post('smtp_host',   ''));
+        $port   = (int)          $request->post('smtp_port',   587);
+        $user   = trim((string) $request->post('smtp_user',   ''));
+        $pass   = trim((string) $request->post('smtp_pass',   ''));
+        $secure = trim((string) $request->post('smtp_secure', 'tls'));
+
+        // Fall back to stored password if the form field was left blank
+        if ($pass === '') {
+            $pass = (string) $this->app->getConfig()->get('smtp_pass', '');
+        }
+
+        if ($host === '') {
+            return Response::json(['ok' => false, 'message' => 'SMTP host is empty.']);
+        }
+
+        $smtp = new \PHPMailer\PHPMailer\SMTP();
+        $smtp->do_debug = \PHPMailer\PHPMailer\SMTP::DEBUG_OFF;
+
+        try {
+            if (!$smtp->connect($host, $port, 10)) {
+                return Response::json(['ok' => false, 'message' => "Could not connect to {$host}:{$port}. Check host and port."]);
+            }
+
+            $ehloHost = gethostname() ?: 'localhost';
+
+            if (!$smtp->hello($ehloHost)) {
+                $smtp->quit();
+                return Response::json(['ok' => false, 'message' => 'EHLO failed — server did not respond correctly.']);
+            }
+
+            if ($secure === 'tls') {
+                if (!$smtp->startTLS()) {
+                    $smtp->quit();
+                    return Response::json(['ok' => false, 'message' => 'STARTTLS failed — server may not support TLS on this port.']);
+                }
+                if (!$smtp->hello($ehloHost)) {
+                    $smtp->quit();
+                    return Response::json(['ok' => false, 'message' => 'EHLO after STARTTLS failed.']);
+                }
+            }
+
+            if ($user !== '') {
+                if (!$smtp->authenticate($user, $pass)) {
+                    $smtp->quit();
+                    return Response::json(['ok' => false, 'message' => 'Authentication failed — check username and password.']);
+                }
+            }
+
+            $smtp->quit();
+            $authNote = $user !== '' ? ' and authenticated successfully' : ' (no auth configured)';
+            return Response::json(['ok' => true, 'message' => "Connected to {$host}:{$port}{$authNote}."]);
+
+        } catch (\Throwable $e) {
+            try { $smtp->quit(); } catch (\Throwable) {}
+            return Response::json(['ok' => false, 'message' => $e->getMessage()]);
+        }
     }
 
     // -----------------------------------------------------------------------
@@ -250,17 +326,20 @@ final class SettingsController
 
         if ($v->fails()) {
             $session->set('lstr_flash_error', implode(' ', $v->allErrors()));
-            return Response::redirect($baseUrl . '/admin/settings');
+            $session->set('lstr_flash_field_errors', json_encode($v->errors()));
+            return Response::redirect($baseUrl . '/admin/settings#profile');
         }
 
         if ($newPassword !== '') {
             if (strlen($newPassword) < 8) {
                 $session->set('lstr_flash_error', 'New password must be at least 8 characters.');
-                return Response::redirect($baseUrl . '/admin/settings');
+                $session->set('lstr_flash_field_errors', json_encode(['admin_new_password' => ['New password must be at least 8 characters.']]));
+                return Response::redirect($baseUrl . '/admin/settings#profile');
             }
             if ($newPassword !== $confirmPassword) {
                 $session->set('lstr_flash_error', 'New password and confirmation do not match.');
-                return Response::redirect($baseUrl . '/admin/settings');
+                $session->set('lstr_flash_field_errors', json_encode(['admin_confirm_password' => ['New password and confirmation do not match.']]));
+                return Response::redirect($baseUrl . '/admin/settings#profile');
             }
         }
 
@@ -268,13 +347,15 @@ final class SettingsController
         $existingByUsername = $adminRepo->findByUsername($username);
         if ($existingByUsername !== null && $existingByUsername->id !== $adminId) {
             $session->set('lstr_flash_error', 'That username is already taken.');
-            return Response::redirect($baseUrl . '/admin/settings');
+            $session->set('lstr_flash_field_errors', json_encode(['username' => ['That username is already taken.']]));
+            return Response::redirect($baseUrl . '/admin/settings#profile');
         }
 
         $existingByEmail = $adminRepo->findByEmail($email);
         if ($existingByEmail !== null && $existingByEmail->id !== $adminId) {
             $session->set('lstr_flash_error', 'That email address is already in use.');
-            return Response::redirect($baseUrl . '/admin/settings');
+            $session->set('lstr_flash_field_errors', json_encode(['email' => ['That email address is already in use.']]));
+            return Response::redirect($baseUrl . '/admin/settings#profile');
         }
 
         $adminRepo->updateProfile($adminId, $username, $email);
@@ -371,7 +452,7 @@ final class SettingsController
             'csrf_token' => $csrfToken,
         ]));
 
-        return Response::html($view->render('admin/layout.php', [
+        return Response::html($view->render('admin/layout.php', array_merge([
             'page_title'      => $pageTitle,
             'site_name'       => (string) $config->get('site_name', 'Luster'),
             'admin_username'  => (string) $session->get('lstr_admin_username', ''),
@@ -379,6 +460,6 @@ final class SettingsController
             'current_section' => $section,
             'base_url'        => $baseUrl,
             'content'         => $inner,
-        ]));
+        ], $this->app->getAdminNavData())));
     }
 }

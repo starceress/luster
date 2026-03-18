@@ -734,7 +734,7 @@ function renderHeader(string $title, int $step): void
 }
 .install-gem {
   width: 40px; height: 40px; margin: 0 auto 0.75rem;
-  background: linear-gradient(135deg, #c4b5fd 0%, #818cf8 35%, #93c5fd 65%, #f9a8d4 100%);
+  background: linear-gradient(135deg, #ff7eb3 0%, #78e8d8 35%, #ffd166 65%, #70e098 100%);
   clip-path: polygon(50% 0%, 100% 35%, 80% 100%, 20% 100%, 0% 35%);
   animation: iGemFloat 6s ease-in-out infinite;
 }
@@ -746,12 +746,12 @@ function renderHeader(string $title, int $step): void
 .install-brand-name {
   font-family: 'Playfair Display', serif;
   font-size: 2rem; font-weight: 700; line-height: 1;
-  background: linear-gradient(135deg, #fff 0%, #c4b5fd 60%, #93c5fd 100%);
+  background: linear-gradient(135deg, #f4f0ff 0%, #ff7eb3 55%, #78e8d8 100%);
   -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
   letter-spacing: 0.01em;
 }
 [data-theme="light"] .install-brand-name {
-  background: linear-gradient(135deg, #1e1340 0%, #7c3aed 60%, #4f46e5 100%);
+  background: linear-gradient(135deg, #160f2a 0%, #d4006a 55%, #008b80 100%);
   -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
 }
 .install-brand-sub {

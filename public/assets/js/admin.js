@@ -29,150 +29,9 @@ function togglePwd(btn) {
   btn.setAttribute('aria-label', show ? 'Hide password' : 'Show password');
 }
 
-// ── 3. Sidebar constellation (#constellation — in the layout sidebar) ─────────
+// ── 3. (Sidebar constellation removed — replaced with static CSS dot grid) ─────
 
-(function () {
-  var canvas = document.getElementById('constellation');
-  if (!canvas) return;
-  var ctx   = canvas.getContext('2d');
-  var stars = [];
-  var N     = 16;
-  var rafId = null;
-
-  function resize() {
-    canvas.width  = canvas.parentElement.offsetWidth;
-    canvas.height = canvas.parentElement.offsetHeight;
-  }
-
-  function init() {
-    resize();
-    stars = [];
-    for (var i = 0; i < N; i++) {
-      stars.push({
-        x: Math.random() * canvas.width,
-        y: Math.random() * canvas.height,
-        r: Math.random() * 1.2 + 0.3,
-        dx: (Math.random() - 0.5) * 0.22,
-        dy: (Math.random() - 0.5) * 0.22,
-        opacity: Math.random() * 0.25 + 0.08,
-        twinkleSpeed: Math.random() * 0.015 + 0.005,
-        twinklePhase: Math.random() * Math.PI * 2,
-      });
-    }
-  }
-
-  function draw() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    var t = Date.now() * 0.001;
-    stars.forEach(function (s) {
-      s.x += s.dx; s.y += s.dy;
-      if (s.x < 0) s.x = canvas.width;
-      if (s.x > canvas.width)  s.x = 0;
-      if (s.y < 0) s.y = canvas.height;
-      if (s.y > canvas.height) s.y = 0;
-      var tw = s.opacity + Math.sin(t * s.twinkleSpeed * 60 + s.twinklePhase) * 0.08;
-      ctx.beginPath();
-      ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
-      ctx.fillStyle = 'rgba(196,181,253,' + Math.max(0.03, Math.min(0.4, tw)) + ')';
-      ctx.fill();
-    });
-    for (var i = 0; i < stars.length; i++) {
-      for (var j = i + 1; j < stars.length; j++) {
-        var dx = stars[i].x - stars[j].x;
-        var dy = stars[i].y - stars[j].y;
-        var d  = Math.sqrt(dx * dx + dy * dy);
-        if (d < 70) {
-          ctx.beginPath();
-          ctx.moveTo(stars[i].x, stars[i].y);
-          ctx.lineTo(stars[j].x, stars[j].y);
-          ctx.strokeStyle = 'rgba(196,181,253,' + (0.05 * (1 - d / 70)) + ')';
-          ctx.lineWidth   = 0.5;
-          ctx.stroke();
-        }
-      }
-    }
-    rafId = requestAnimationFrame(draw);
-  }
-
-  function start() { if (!rafId) rafId = requestAnimationFrame(draw); }
-  function stop()  { if (rafId) { cancelAnimationFrame(rafId); rafId = null; } }
-
-  document.addEventListener('visibilitychange', function () {
-    document.hidden ? stop() : start();
-  });
-  window.addEventListener('resize', init);
-  init();
-  start();
-}());
-
-// ── 4. Auth-page constellation (#login-constellation — login, forgot, reset) ──
-
-(function () {
-  var canvas = document.getElementById('login-constellation');
-  if (!canvas) return;
-  var ctx   = canvas.getContext('2d');
-  var stars = [];
-  var N     = 80;
-  var rafId = null;
-
-  function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
-
-  function init() {
-    resize();
-    stars = [];
-    for (var i = 0; i < N; i++) {
-      stars.push({
-        x: Math.random() * canvas.width,
-        y: Math.random() * canvas.height,
-        r: Math.random() * 1.5 + 0.3,
-        dx: (Math.random() - 0.5) * 0.18,
-        dy: (Math.random() - 0.5) * 0.18,
-        opacity: Math.random() * 0.5 + 0.15,
-        twinkleSpeed: Math.random() * 0.012 + 0.004,
-        twinklePhase: Math.random() * Math.PI * 2,
-      });
-    }
-  }
-
-  function draw() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    var t = Date.now() * 0.001;
-    stars.forEach(function (s) {
-      s.x += s.dx; s.y += s.dy;
-      if (s.x < 0) s.x = canvas.width; if (s.x > canvas.width)  s.x = 0;
-      if (s.y < 0) s.y = canvas.height; if (s.y > canvas.height) s.y = 0;
-      var tw = s.opacity + Math.sin(t * s.twinkleSpeed * 60 + s.twinklePhase) * 0.18;
-      ctx.beginPath();
-      ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
-      ctx.fillStyle = 'rgba(196,181,253,' + Math.max(0.04, Math.min(0.85, tw)) + ')';
-      ctx.fill();
-    });
-    for (var i = 0; i < stars.length; i++) {
-      for (var j = i + 1; j < stars.length; j++) {
-        var dx = stars[i].x - stars[j].x;
-        var dy = stars[i].y - stars[j].y;
-        var d  = Math.sqrt(dx * dx + dy * dy);
-        if (d < 90) {
-          ctx.beginPath();
-          ctx.moveTo(stars[i].x, stars[i].y);
-          ctx.lineTo(stars[j].x, stars[j].y);
-          ctx.strokeStyle = 'rgba(196,181,253,' + (0.09 * (1 - d / 90)) + ')';
-          ctx.lineWidth   = 0.5;
-          ctx.stroke();
-        }
-      }
-    }
-    rafId = requestAnimationFrame(draw);
-  }
-
-  function start() { if (!rafId) rafId = requestAnimationFrame(draw); }
-  function stop()  { if (rafId) { cancelAnimationFrame(rafId); rafId = null; } }
-
-  document.addEventListener('visibilitychange', function () { document.hidden ? stop() : start(); });
-  window.addEventListener('resize', init);
-  init();
-  start();
-}());
+// ── 4. (Auth-page constellation removed — replaced with static CSS background) ──
 
 // ── 5. Theme toggle button ────────────────────────────────────────────────────
 
@@ -216,28 +75,100 @@ document.addEventListener('click', function (e) {
 
 // ── 8. Form submit handler: data-confirm + bulk validation ────────────────────
 //
-// data-confirm on a <form>: shows a confirmation dialog before submitting.
-// Forms with select[name="bulk_action"]: validates that at least one row is
-// checked and confirms destructive deletes.
+// data-confirm on a <form>: shows an inline confirmation bar instead of
+// window.confirm(). The original submit button is hidden; a "Yes / Cancel"
+// pair slides in beside it. Escape and Cancel restore the button.
+//
+// Forms with select[name="bulk_action"]: validates selection count and shows
+// the same inline bar for destructive (delete) bulk actions.
+//
 // Listings bulk form (select[name="action"] + .fl-row-cb): validates selection.
+
+function showConfirmBar(anchorEl, message, onConfirm) {
+  // Only one confirm bar at a time — dismiss any stale one
+  var stale = document.querySelector('.confirm-bar');
+  if (stale) stale.remove();
+
+  // Hide the trigger element while the bar is showing
+  anchorEl.style.display = 'none';
+
+  var bar = document.createElement('span');
+  bar.className = 'confirm-bar';
+  bar.setAttribute('role', 'group');
+  bar.setAttribute('aria-label', 'Confirm action');
+  bar.innerHTML =
+    '<span class="confirm-bar-msg">' + message + '</span>' +
+    '<button type="button" class="btn btn-danger btn-sm confirm-bar-yes">Yes</button>' +
+    '<button type="button" class="btn btn-ghost btn-sm confirm-bar-no">Cancel</button>';
+
+  anchorEl.insertAdjacentElement('afterend', bar);
+
+  // Animate in on next two frames so the transition fires
+  requestAnimationFrame(function () {
+    requestAnimationFrame(function () { bar.classList.add('is-visible'); });
+  });
+
+  function dismiss() {
+    bar.classList.remove('is-visible');
+    document.removeEventListener('keydown', onKey);
+    setTimeout(function () {
+      if (bar.parentNode) bar.remove();
+      anchorEl.style.display = '';
+    }, 90);
+  }
+
+  bar.querySelector('.confirm-bar-yes').addEventListener('click', function () {
+    if (bar.parentNode) bar.remove();
+    document.removeEventListener('keydown', onKey);
+    onConfirm();
+  });
+
+  bar.querySelector('.confirm-bar-no').addEventListener('click', dismiss);
+
+  function onKey(e) { if (e.key === 'Escape') dismiss(); }
+  document.addEventListener('keydown', onKey);
+
+  // Focus Cancel so Escape works immediately without a mouse move
+  bar.querySelector('.confirm-bar-no').focus();
+}
 
 document.addEventListener('submit', function (e) {
   var form = e.target;
 
-  // data-confirm: simple confirmation dialog
-  var msg = form.dataset.confirm;
-  if (msg) {
-    if (!confirm(msg)) { e.preventDefault(); return; }
+  // data-confirm: inline confirmation bar
+  var confirmMsg = form.dataset.confirm;
+  if (confirmMsg) {
+    if (form.dataset.confirmed === '1') { delete form.dataset.confirmed; return; }
+    e.preventDefault();
+    var submitBtn = form.querySelector('[type="submit"]');
+    showConfirmBar(submitBtn || form, confirmMsg, function () {
+      form.dataset.confirmed = '1';
+      form.requestSubmit ? form.requestSubmit() : form.submit();
+    });
+    return;
   }
 
   // Members / joined bulk form: select[name="bulk_action"]
   var bulkSel = form.querySelector('select[name="bulk_action"]');
   if (bulkSel) {
     var bulkChecked = form.querySelectorAll('input[name="emails[]"]:checked, input[name="ids[]"]:checked');
-    if (!bulkChecked.length) { alert('No items selected.'); e.preventDefault(); return; }
-    if (bulkSel.value === 'delete' &&
-        !confirm('Delete ' + bulkChecked.length + ' selected item(s)? This cannot be undone.')) {
-      e.preventDefault(); return;
+    if (!bulkChecked.length) {
+      e.preventDefault();
+      window.lstrToast && window.lstrToast('warning', 'No items selected.');
+      return;
+    }
+    if (bulkSel.value === 'delete') {
+      if (form.dataset.confirmed === '1') { delete form.dataset.confirmed; return; }
+      e.preventDefault();
+      var bulkApplyBtn = form.querySelector('[type="submit"]');
+      showConfirmBar(
+        bulkApplyBtn || form,
+        'Delete ' + bulkChecked.length + ' item(s)? This cannot be undone.',
+        function () {
+          form.dataset.confirmed = '1';
+          form.requestSubmit ? form.requestSubmit() : form.submit();
+        }
+      );
     }
     return;
   }
@@ -246,8 +177,22 @@ document.addEventListener('submit', function (e) {
   var actionSel = form.querySelector('select[name="action"]');
   if (actionSel && form.querySelector('.fl-row-cb')) {
     var listingChecked = form.querySelectorAll('.fl-row-cb:checked');
-    if (!listingChecked.length) { alert('No listings selected.'); e.preventDefault(); return; }
-    if (!confirm('Apply bulk action to selected listings?')) { e.preventDefault(); return; }
+    if (!listingChecked.length) {
+      e.preventDefault();
+      window.lstrToast && window.lstrToast('warning', 'No listings selected.');
+      return;
+    }
+    if (form.dataset.confirmed === '1') { delete form.dataset.confirmed; return; }
+    e.preventDefault();
+    var listingApplyBtn = form.querySelector('[type="submit"]');
+    showConfirmBar(
+      listingApplyBtn || form,
+      'Apply bulk action to ' + listingChecked.length + ' listing(s)?',
+      function () {
+        form.dataset.confirmed = '1';
+        form.requestSubmit ? form.requestSubmit() : form.submit();
+      }
+    );
   }
 });
 
@@ -283,33 +228,41 @@ document.addEventListener('click', function (e) {
   if (btn && btn.form) btn.form.reset();
 });
 
-// ── 13. Tab switching (.neb-tab-btn[data-tab] / #tab-{tabId}) ─────────────────
+// ── 13. Tab switching (.neb-tab-btn / .settings-nav-item / #tab-{tabId}) ──────
 //
 // Generic tab switcher used by listings/edit, settings, and anywhere else that
-// uses the .neb-tab-btn / .neb-tab-panel markup pattern.
+// uses the .neb-tab-btn / .neb-tab-panel markup pattern. Also handles the
+// settings page vertical sidebar nav (.settings-nav-item).
 // Activates a tab by URL hash on load (e.g. settings redirects with #tab-email).
 
 (function () {
-  var tabs = document.querySelectorAll('.neb-tab-btn');
-  if (!tabs.length) return;
+  var tabs     = document.querySelectorAll('.neb-tab-btn');
+  var navItems = document.querySelectorAll('.settings-nav-item');
+  if (!tabs.length && !navItems.length) return;
 
   function activateTab(tabId) {
-    document.querySelectorAll('.neb-tab-btn, .neb-tab-panel').forEach(function (el) {
+    document.querySelectorAll('.neb-tab-btn, .neb-tab-panel, .settings-nav-item').forEach(function (el) {
       el.classList.remove('active');
     });
-    var btn   = document.querySelector('.neb-tab-btn[data-tab="' + tabId + '"]');
-    var panel = document.getElementById('tab-' + tabId);
-    if (btn)   btn.classList.add('active');
-    if (panel) panel.classList.add('active');
+    var btn     = document.querySelector('.neb-tab-btn[data-tab="' + tabId + '"]');
+    var navItem = document.querySelector('.settings-nav-item[data-tab="' + tabId + '"]');
+    var panel   = document.getElementById('tab-' + tabId);
+    if (btn)     btn.classList.add('active');
+    if (navItem) navItem.classList.add('active');
+    if (panel)   panel.classList.add('active');
   }
 
   tabs.forEach(function (btn) {
     btn.addEventListener('click', function () { activateTab(btn.dataset.tab); });
   });
+  navItems.forEach(function (item) {
+    item.addEventListener('click', function () { activateTab(item.dataset.tab); });
+  });
 
   // Activate from URL hash (settings page: redirect with ?...#tab-email etc.)
   var hash = window.location.hash.replace('#tab-', '');
-  if (hash && document.querySelector('.neb-tab-btn[data-tab="' + hash + '"]')) {
+  if (hash && (document.querySelector('.neb-tab-btn[data-tab="' + hash + '"]') ||
+               document.querySelector('.settings-nav-item[data-tab="' + hash + '"]'))) {
     activateTab(hash);
   }
 }());
@@ -803,5 +756,561 @@ document.addEventListener('click', function (e) {
       var panel = document.getElementById('et-preview-' + type);
       if (panel && panel.style.display !== 'none') updatePreview(type);
     });
+  });
+}());
+
+// ── Toast notifications ───────────────────────────────────────────────────────
+
+(function () {
+  var DURATION = 4000;
+
+  var ICONS = {
+    success: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>',
+    error:   '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>',
+    warning: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>',
+  };
+
+  function getContainer() {
+    var c = document.querySelector('.toast-container');
+    if (!c) {
+      c = document.createElement('div');
+      c.className = 'toast-container';
+      document.body.appendChild(c);
+    }
+    return c;
+  }
+
+  function dismiss(toast) {
+    toast.style.animation = 'toastOut 0.22s ease forwards';
+    setTimeout(function () {
+      if (toast.parentNode) toast.parentNode.removeChild(toast);
+    }, 220);
+  }
+
+  function createToast(type, message) {
+    var toast = document.createElement('div');
+    toast.className = 'toast toast-' + type;
+
+    var icon = document.createElement('span');
+    icon.className = 'toast-icon';
+    icon.innerHTML = ICONS[type] || ICONS.error;
+
+    var msg = document.createElement('span');
+    msg.className = 'toast-msg';
+    msg.textContent = message;
+
+    var close = document.createElement('button');
+    close.className = 'toast-close';
+    close.setAttribute('aria-label', 'Dismiss');
+    close.innerHTML = '&times;';
+
+    var progress = document.createElement('div');
+    progress.className = 'toast-progress';
+    progress.style.animation = 'toastDrain ' + (DURATION / 1000) + 's linear forwards';
+
+    toast.appendChild(icon);
+    toast.appendChild(msg);
+    toast.appendChild(close);
+    toast.appendChild(progress);
+
+    var timer = setTimeout(function () { dismiss(toast); }, DURATION);
+
+    close.addEventListener('click', function () {
+      clearTimeout(timer);
+      dismiss(toast);
+    });
+
+    return toast;
+  }
+
+  function liftAlerts() {
+    var selectors = [
+      '.page-content .alert-success',
+      '.page-content .alert-error',
+      '.page-content .alert-warning',
+    ];
+    var alerts = document.querySelectorAll(selectors.join(','));
+    if (!alerts.length) return;
+
+    var container = getContainer();
+
+    alerts.forEach(function (alert) {
+      var type = alert.classList.contains('alert-success') ? 'success'
+               : alert.classList.contains('alert-warning') ? 'warning'
+               : 'error';
+      var message = alert.textContent.trim();
+      if (!message) return;
+
+      alert.style.display = 'none';
+      container.appendChild(createToast(type, message));
+    });
+  }
+
+  document.addEventListener('DOMContentLoaded', liftAlerts);
+
+  /* Programmatic API — call from anywhere to fire a toast */
+  window.lstrToast = function (type, message) {
+    getContainer().appendChild(createToast(type, message));
+  };
+}());
+
+/* ── Row-actions overflow menu ──────────────────────────────────────────── */
+(function () {
+  var THREE_DOTS_SVG =
+    '<svg viewBox="0 0 16 4" fill="currentColor" width="16" height="4" aria-hidden="true">' +
+    '<circle cx="2" cy="2" r="1.5"/><circle cx="8" cy="2" r="1.5"/><circle cx="14" cy="2" r="1.5"/></svg>';
+
+  function closeAll(except) {
+    document.querySelectorAll('.row-actions-toggle[aria-expanded="true"]').forEach(function (btn) {
+      if (btn === except) return;
+      btn.setAttribute('aria-expanded', 'false');
+      var menu = btn.closest('.row-actions').querySelector('.row-actions-menu');
+      if (menu) menu.hidden = true;
+    });
+  }
+
+  document.addEventListener('click', function (e) {
+    var toggle = e.target.closest('.row-actions-toggle');
+    if (toggle) {
+      var isOpen = toggle.getAttribute('aria-expanded') === 'true';
+      closeAll(toggle);
+      if (!isOpen) {
+        toggle.setAttribute('aria-expanded', 'true');
+        var menu = toggle.closest('.row-actions').querySelector('.row-actions-menu');
+        if (menu) {
+          menu.hidden = false;
+          /* Flip upward if the menu would overflow the viewport bottom */
+          var rect = menu.getBoundingClientRect();
+          if (rect.bottom > window.innerHeight - 8) {
+            menu.style.top = 'auto';
+            menu.style.bottom = 'calc(100% + 5px)';
+          } else {
+            menu.style.top = '';
+            menu.style.bottom = '';
+          }
+        }
+      } else {
+        toggle.setAttribute('aria-expanded', 'false');
+        var menu = toggle.closest('.row-actions').querySelector('.row-actions-menu');
+        if (menu) menu.hidden = true;
+      }
+      e.stopPropagation();
+      return;
+    }
+
+    /* Clicking a link item navigates — close the menu first */
+    var linkItem = e.target.closest('.row-action-item');
+    if (linkItem && linkItem.tagName === 'A') {
+      closeAll();
+      return;
+    }
+
+    /* Click outside any open menu */
+    if (!e.target.closest('.row-actions')) closeAll();
+  });
+
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') closeAll();
+  });
+}());
+
+/* ── Form submit loading state ─────────────────────────────────────────── */
+(function () {
+  document.addEventListener('submit', function (e) {
+    var form = e.target;
+    if (form.tagName !== 'FORM') return;
+
+    /* Skip on the first (intercepted) submit — only apply after confirmation */
+    if (form.dataset.confirm && form.dataset.confirmed !== '1') return;
+
+    var btn = form.querySelector('[type="submit"]');
+    if (!btn || btn.classList.contains('btn-loading')) return;
+
+    /* Only apply to btn-classed submit buttons to avoid bare inputs */
+    if (!btn.classList.contains('btn')) return;
+
+    btn.classList.add('btn-loading');
+    btn.setAttribute('aria-disabled', 'true');
+
+    /* Restore after 8s as a safety net (e.g. server error, back-navigation) */
+    setTimeout(function () {
+      btn.classList.remove('btn-loading');
+      btn.removeAttribute('aria-disabled');
+    }, 8000);
+  });
+}());
+
+// ── 31. Embed codes: quick-setup wizard ───────────────────────────────────────
+
+(function () {
+  var wiz = document.getElementById('ec-wiz');
+  if (!wiz) return;
+
+  var embedPath = wiz.dataset.embedPath || '';
+  var listings  = JSON.parse(wiz.dataset.listings || '[]');
+
+  var TYPES = [
+    { key: 'join',       file: 'join.php',            label: 'Join form',            group: 'fl',  needsId: true,  idVal: null, opts: [] },
+    { key: 'members',    file: 'members.php',          label: 'Member list',          group: 'fl',  needsId: true,  idVal: null, opts: ['per_page','sort_by','show_search','members_base'] },
+    { key: 'stats',      file: 'stats.php',            label: 'Statistics',           group: 'fl',  needsId: true,  idVal: null, opts: [] },
+    { key: 'update',     file: 'update.php',           label: 'Update details',       group: 'fl',  needsId: true,  idVal: null, opts: [] },
+    { key: 'remove',     file: 'remove.php',           label: 'Leave listing',        group: 'fl',  needsId: true,  idVal: null, opts: [] },
+    { key: 'reset',      file: 'reset.php',            label: 'Password reset',       group: 'fl',  needsId: true,  idVal: null, opts: ['reset_step'] },
+    { key: 'affiliates', file: 'affiliates.php',       label: 'Affiliates',           group: 'fl',  needsId: true,  idVal: null, opts: ['affiliates_base'] },
+    { key: 'owned',      file: 'owned.php',            label: 'Owned listings',       group: 'col', needsId: false, idVal: null, opts: ['status','hide_dropdown'] },
+    { key: 'joined',     file: 'joined.php',           label: 'Joined listings',      group: 'col', needsId: false, idVal: null, opts: ['category'] },
+    { key: 'cstats',     file: 'collective-stats.php', label: 'Site statistics',      group: 'col', needsId: false, idVal: null, opts: [] },
+    { key: 'aff-col',    file: 'affiliates.php',       label: 'Collective affiliates',group: 'col', needsId: false, idVal: 0,    opts: ['affiliates_base'] },
+    { key: 'kim',        file: 'kim-signup.php',       label: 'KIM sign-up',          group: 'col', needsId: false, idVal: null, opts: [] },
+  ];
+
+  var OPT_DEFS = {
+    per_page:       { label: 'Members per page', type: 'number', placeholder: '20',
+                      hint: 'Leave blank to use your site\u2019s default.' },
+    sort_by:        { label: 'Default sort order', type: 'select',
+                      choices: [['', 'Visitor\u2019s choice (default)'], ['name', 'By name'], ['country', 'By country']] },
+    show_search:    { label: 'Sort & search controls', type: 'select',
+                      choices: [['', 'Shown (default)'], ['false', 'Hidden']] },
+    members_base:   { label: 'URL of this page', type: 'text', placeholder: 'https://yoursite.com/members.php',
+                      hint: 'The URL of the page where you\u2019re pasting this embed \u2014 keeps pagination links pointing back to your page.' },
+    reset_step:     { label: 'Which step to show', type: 'select',
+                      choices: [['', 'Both steps on one page (default)'], ['confirm', 'Step 2 only \u2014 new-password form']] },
+    affiliates_base:{ label: 'URL of this page', type: 'text', placeholder: 'https://yoursite.com/affiliates.php',
+                      hint: 'The URL of the page where you\u2019re pasting this embed \u2014 keeps pagination links pointing back to your page.' },
+    status:         { label: 'Which listings to show', type: 'select',
+                      choices: [['', 'Current only (default)'], ['current', 'Current'], ['upcoming', 'Upcoming'], ['trouble', 'Trouble'], ['all', 'All statuses']] },
+    hide_dropdown:  { label: 'Category filter dropdown', type: 'select',
+                      choices: [['', 'Shown (default)'], ['true', 'Hidden']] },
+    category:       { label: 'Category filter', type: 'text', placeholder: 'Leave blank for a dropdown, or enter a category name',
+                      hint: 'Blank = show category dropdown. \u2018all\u2019 = show all categories. Or enter an exact category name.' },
+  };
+
+  var state = { step: 1, type: null, skippedStep2: false, opts: {} };
+
+  var p1         = document.getElementById('ec-wiz-p1');
+  var p2         = document.getElementById('ec-wiz-p2');
+  var p3         = document.getElementById('ec-wiz-p3');
+  var btnBack    = document.getElementById('ec-wiz-back');
+  var btnNext    = document.getElementById('ec-wiz-next');
+  var btnRestart = document.getElementById('ec-wiz-restart');
+  var optsEl     = document.getElementById('ec-wiz-opts');
+  var codeEl     = document.getElementById('ec-wiz-code');
+  var stepLabel  = document.getElementById('ec-wiz-step-label');
+  var dots       = wiz.querySelectorAll('.ec-wiz-dot');
+
+  var STEP_LABELS = [
+    '',
+    'Step 1 of 3 \u2014 Choose embed',
+    'Step 2 of 3 \u2014 Configure',
+    'Step 3 of 3 \u2014 Copy code',
+  ];
+
+  function getDef(key) {
+    for (var i = 0; i < TYPES.length; i++) {
+      if (TYPES[i].key === key) return TYPES[i];
+    }
+    return null;
+  }
+
+  function esc(s) {
+    return String(s)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+
+  function phpStr(s) {
+    return "'" + String(s).replace(/\\/g, '\\\\').replace(/'/g, "\\'") + "'";
+  }
+
+  function phpVal(optKey, val) {
+    if (optKey === 'per_page')     return String(parseInt(val, 10) || 1);
+    if (optKey === 'hide_dropdown' && val === 'true')  return 'true';
+    if (optKey === 'show_search'   && val === 'false') return 'false';
+    return phpStr(val);
+  }
+
+  function generateCode() {
+    var def = getDef(state.type);
+    if (!def) return '';
+    var D = '# -----------------------------------------------------------';
+    var lines = ['<?php'];
+    lines.push(D);
+    if (def.needsId) {
+      var lid = state.opts['wiz_listing_id'];
+      if (!lid && listings.length) lid = listings[0].id;
+      if (!lid) lid = 1;
+      lines.push('$luster_fanlisting_id = ' + parseInt(lid, 10) + ';');
+      lines.push(D);
+    } else if (def.idVal === 0) {
+      lines.push('$luster_fanlisting_id = 0; // 0 = collective / site-wide');
+      lines.push(D);
+    }
+    def.opts.forEach(function (optKey) {
+      var val = (state.opts[optKey] || '').trim();
+      if (!val) return;
+      lines.push('$luster_' + optKey + ' = ' + phpVal(optKey, val) + ';');
+      lines.push(D);
+    });
+    lines.push("require('" + embedPath + '/' + def.file + "');");
+    lines.push(D);
+    lines.push('?>');
+    return lines.join('\n');
+  }
+
+  function updateDots(step) {
+    dots.forEach(function (dot, i) {
+      var n = i + 1;
+      dot.classList.toggle('active', n === step);
+      dot.classList.toggle('done', n < step);
+    });
+  }
+
+  function showStep(n) {
+    state.step = n;
+    p1.hidden = n !== 1;
+    p2.hidden = n !== 2;
+    p3.hidden = n !== 3;
+    btnBack.hidden    = n === 1;
+    btnRestart.hidden = n < 3;
+    updateDots(n);
+    if (stepLabel) stepLabel.textContent = STEP_LABELS[n] || '';
+    if (n === 1) {
+      btnNext.disabled    = !state.type;
+      btnNext.textContent = state.type ? 'Next \u2192' : 'Choose an option above';
+    } else if (n === 2) {
+      btnNext.disabled    = false;
+      btnNext.textContent = 'Next \u2192';
+    } else {
+      btnNext.disabled    = false;
+      btnNext.textContent = 'Done';
+    }
+  }
+
+  function buildOptsForm() {
+    var def = getDef(state.type);
+    if (!def) { optsEl.innerHTML = ''; return; }
+    var html = '';
+
+    if (def.needsId) {
+      html += '<div class="ec-wiz-field"><label class="ec-wiz-label" for="wiz-lid">Which fanlisting? <em>*</em></label>';
+      if (listings.length) {
+        html += '<select class="form-input" id="wiz-lid" name="wiz_listing_id">';
+        listings.forEach(function (fl) {
+          var sel = String(fl.id) === String(state.opts['wiz_listing_id'] || '') ? ' selected' : '';
+          html += '<option value="' + parseInt(fl.id, 10) + '"' + sel + '>' + esc(fl.name) + '</option>';
+        });
+        html += '</select>';
+      } else {
+        html += '<input class="form-input" type="number" id="wiz-lid" name="wiz_listing_id" min="1" placeholder="1" style="max-width:100px" value="' + esc(state.opts['wiz_listing_id'] || '') + '">';
+      }
+      html += '</div>';
+    }
+
+    if (def.opts.length > 0) {
+      html += '<p class="ec-wiz-opts-note">Optional &mdash; leave at default if you&rsquo;re not sure.</p>';
+      def.opts.forEach(function (optKey) {
+        var d = OPT_DEFS[optKey];
+        if (!d) return;
+        var curVal = state.opts[optKey] || '';
+        html += '<div class="ec-wiz-field"><label class="ec-wiz-label" for="wiz-' + optKey + '">' + esc(d.label) + '</label>';
+        if (d.type === 'select') {
+          html += '<select class="form-input" id="wiz-' + optKey + '" name="' + optKey + '">';
+          d.choices.forEach(function (ch) {
+            html += '<option value="' + esc(ch[0]) + '"' + (curVal === ch[0] ? ' selected' : '') + '>' + esc(ch[1]) + '</option>';
+          });
+          html += '</select>';
+        } else {
+          html += '<input class="form-input" type="' + d.type + '" id="wiz-' + optKey + '" name="' + optKey + '"' +
+            ' value="' + esc(curVal) + '"' +
+            (d.placeholder ? ' placeholder="' + esc(d.placeholder) + '"' : '') + '>';
+        }
+        if (d.hint) html += '<p class="ec-wiz-hint">' + esc(d.hint) + '</p>';
+        html += '</div>';
+      });
+    }
+
+    if (!def.needsId && def.opts.length === 0) {
+      html += '<p class="ec-wiz-no-opts">No configuration needed. Click <strong>Next</strong> to get your code.</p>';
+    }
+
+    optsEl.innerHTML = html;
+
+    // Capture initial values (pre-selected / default values)
+    optsEl.querySelectorAll('input, select').forEach(function (el) {
+      if (el.name && (el.value || el.value === 0)) state.opts[el.name] = el.value;
+      el.addEventListener('change', collectOpts);
+      el.addEventListener('input',  collectOpts);
+    });
+  }
+
+  function collectOpts() {
+    if (!optsEl) return;
+    optsEl.querySelectorAll('input, select').forEach(function (el) {
+      if (el.name) state.opts[el.name] = el.value;
+    });
+  }
+
+  // Type card clicks
+  wiz.querySelectorAll('.ec-wiz-type-btn').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      wiz.querySelectorAll('.ec-wiz-type-btn').forEach(function (b) {
+        b.setAttribute('aria-selected', 'false');
+      });
+      btn.setAttribute('aria-selected', 'true');
+      state.type = btn.dataset.wizType;
+      btnNext.disabled    = false;
+      btnNext.textContent = 'Next \u2192';
+    });
+  });
+
+  // Navigation
+  btnNext.addEventListener('click', function () {
+    if (state.step === 1) {
+      if (!state.type) return;
+      var def = getDef(state.type);
+      if (!def.needsId && def.opts.length === 0) {
+        // No options at all — skip step 2
+        state.skippedStep2 = true;
+        if (codeEl) codeEl.textContent = generateCode();
+        showStep(3);
+      } else {
+        state.skippedStep2 = false;
+        state.opts = {};
+        buildOptsForm();
+        showStep(2);
+      }
+    } else if (state.step === 2) {
+      collectOpts();
+      if (codeEl) codeEl.textContent = generateCode();
+      showStep(3);
+    } else {
+      reset();
+    }
+  });
+
+  btnBack.addEventListener('click', function () {
+    if (state.step === 3) {
+      if (state.skippedStep2) {
+        showStep(1);
+      } else {
+        buildOptsForm();
+        showStep(2);
+      }
+    } else if (state.step === 2) {
+      showStep(1);
+    }
+  });
+
+  btnRestart.addEventListener('click', reset);
+
+  function reset() {
+    state = { step: 1, type: null, skippedStep2: false, opts: {} };
+    wiz.querySelectorAll('.ec-wiz-type-btn').forEach(function (b) {
+      b.setAttribute('aria-selected', 'false');
+    });
+    if (optsEl) optsEl.innerHTML = '';
+    if (codeEl) codeEl.textContent = '';
+    showStep(1);
+  }
+
+  showStep(1);
+}());
+
+// ── 32. Sidebar: collapsible nav groups ───────────────────────────────────────
+
+(function () {
+  var toggles = document.querySelectorAll('.nav-group-toggle');
+  if (!toggles.length) return;
+
+  toggles.forEach(function (toggle) {
+    var group = toggle.dataset.group;
+    var key   = 'lstr_navgroup_' + group;
+    var panel = document.getElementById('nav-group-' + group);
+    if (!panel) return;
+
+    // If PHP forced it open (active page inside group), sync localStorage
+    if (toggle.getAttribute('aria-expanded') === 'true') {
+      localStorage.setItem(key, '1');
+    } else if (localStorage.getItem(key) === '1') {
+      // Restore from localStorage (user previously opened it)
+      toggle.setAttribute('aria-expanded', 'true');
+      panel.classList.add('open');
+    }
+
+    toggle.addEventListener('click', function () {
+      var expanded = toggle.getAttribute('aria-expanded') === 'true';
+      toggle.setAttribute('aria-expanded', String(!expanded));
+      panel.classList.toggle('open', !expanded);
+      localStorage.setItem(key, !expanded ? '1' : '0');
+    });
+  });
+
+  // ── Collective template live preview (.js-tpl-preview buttons) ────────────
+  document.addEventListener('click', function (e) {
+    var btn = e.target.closest('.js-tpl-preview');
+    if (!btn) return;
+
+    var target  = btn.dataset.target;
+    var kind    = btn.dataset.kind;
+    var ta      = document.getElementById(target);
+    var preview = document.getElementById('preview-' + target);
+    if (!ta || !preview) return;
+
+    if (preview.style.display !== 'none') {
+      preview.style.display = 'none';
+      btn.textContent = 'Preview';
+      return;
+    }
+
+    var samples = (window.lusterTplSamples && window.lusterTplSamples[kind]) || {};
+    var out = ta.value;
+    for (var key in samples) { out = out.split(key).join(samples[key]); }
+    preview.innerHTML = out;
+    preview.style.display = '';
+    btn.textContent = 'Hide preview';
+  });
+
+}());
+
+// ── Unsaved-changes beforeunload guard (.js-warn-unsaved) ──────────────────
+//
+// Forms with class js-warn-unsaved trigger a browser "Leave page?" prompt if
+// the user navigates away before submitting. The guard is cleared on submit so
+// saving always works without the prompt.
+
+(function () {
+  var guards = [];
+
+  function snapshotForm(form) {
+    var parts = [];
+    var els   = form.elements;
+    for (var i = 0; i < els.length; i++) {
+      var el = els[i];
+      if (!el.name || el.disabled) continue;
+      if (el.type === 'submit' || el.type === 'button' || el.type === 'hidden') continue;
+      if (el.type === 'checkbox' || el.type === 'radio') {
+        parts.push(el.name + ':' + (el.checked ? '1' : '0'));
+      } else {
+        parts.push(el.name + ':' + el.value);
+      }
+    }
+    return parts.join('|');
+  }
+
+  document.querySelectorAll('form.js-warn-unsaved').forEach(function (form) {
+    var initial   = snapshotForm(form);
+    var submitted = false;
+    form.addEventListener('submit', function () { submitted = true; });
+    guards.push(function () { return submitted || snapshotForm(form) === initial; });
+  });
+
+  if (!guards.length) return;
+
+  window.addEventListener('beforeunload', function (e) {
+    var allClean = guards.every(function (g) { return g(); });
+    if (!allClean) {
+      e.preventDefault();
+      e.returnValue = '';
+    }
   });
 }());

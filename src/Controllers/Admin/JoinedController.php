@@ -166,6 +166,7 @@ final class JoinedController
                 return $this->layout('admin/joined/form.php', [
                     'joined'          => null,
                     'error'           => implode(' ', $messages),
+                    'field_errors'    => $v->errors(),
                     'old'             => $request->postAll(),
                     'tfl_cats'        => $categoryRepo->getBySource('tfl'),
                     'tafl_cats'       => $categoryRepo->getBySource('tafl'),
@@ -298,6 +299,7 @@ final class JoinedController
                 return $this->layout('admin/joined/form.php', [
                     'joined'          => $joined,
                     'error'           => implode(' ', $messages),
+                    'field_errors'    => $v->errors(),
                     'old'             => $request->postAll(),
                     'tfl_cats'        => $categoryRepo->getBySource('tfl'),
                     'tafl_cats'       => $categoryRepo->getBySource('tafl'),
@@ -630,7 +632,7 @@ final class JoinedController
             'csrf_token' => $csrfToken,
         ]));
 
-        return Response::html($view->render('admin/layout.php', [
+        return Response::html($view->render('admin/layout.php', array_merge([
             'page_title'      => $pageTitle,
             'site_name'       => (string) $config->get('site_name', 'Luster'),
             'admin_username'  => (string) $session->get('lstr_admin_username', ''),
@@ -638,6 +640,6 @@ final class JoinedController
             'current_section' => $section,
             'base_url'        => $baseUrl,
             'content'         => $inner,
-        ]));
+        ], $this->app->getAdminNavData())));
     }
 }

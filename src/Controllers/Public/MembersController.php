@@ -175,11 +175,11 @@ final class MembersController
      * Applies a per-member row template to a list of members and returns the
      * concatenated HTML string. Each member row replaces these tokens:
      *
-     *   $fan_name$    — member name (HTML-escaped)
-     *   $fan_url$     — member URL (HTML-escaped)
-     *   $fan_email$   — member email (HTML-escaped)
-     *   $fan_country$ — member country (HTML-escaped)
-     *   $fan_{name}$  — additional field value (HTML-escaped), e.g. $fan_fave_song$
+     *   {fan_name}    — member name (HTML-escaped)
+     *   {fan_url}     — member URL (HTML-escaped)
+     *   {fan_email}   — member email (HTML-escaped)
+     *   {fan_country} — member country (HTML-escaped)
+     *   {fan_{name}}  — additional field value (HTML-escaped), e.g. {fan_fave_song}
      *
      * @param Member[]            $members
      * @param \Luster\Models\AdditionalField[] $fields
@@ -190,15 +190,15 @@ final class MembersController
 
         foreach ($members as $member) {
             $tokens = [
-                '$fan_name$'    => htmlspecialchars($member->name,    ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),
-                '$fan_url$'     => htmlspecialchars($member->url,     ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),
-                '$fan_email$'   => htmlspecialchars($member->email,   ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),
-                '$fan_country$' => htmlspecialchars($member->country, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),
+                '{fan_name}'    => htmlspecialchars($member->name,    ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),
+                '{fan_url}'     => htmlspecialchars($member->url,     ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),
+                '{fan_email}'   => htmlspecialchars($member->email,   ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),
+                '{fan_country}' => htmlspecialchars($member->country, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),
             ];
 
             foreach ($fields as $field) {
                 $val = (string) ($member->additionalFields[$field->name] ?? '');
-                $tokens['$fan_' . $field->name . '$'] = htmlspecialchars($val, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+                $tokens['{fan_' . $field->name . '}'] = htmlspecialchars($val, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
             }
 
             $rows[] = str_replace(array_keys($tokens), array_values($tokens), $template);

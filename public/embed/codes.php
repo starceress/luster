@@ -2,6 +2,9 @@
 
 declare(strict_types=1);
 
+use Luster\Repositories\CodeCategoriesRepo;
+use Luster\Repositories\CodeDonorsRepo;
+use Luster\Repositories\CodeSizesRepo;
 use Luster\Repositories\CodesRepo;
 use Luster\Repositories\ListingRepo;
 
@@ -13,8 +16,8 @@ use Luster\Repositories\ListingRepo;
  *   $luster_return        = false;  // optional: true = return string, false = echo
  *   require '/absolute/path/to/luster/public/embed/codes.php';
  *
- * Renders the codes grid for the given listing as a content fragment
- * with no layout wrapper — your own page provides the surrounding HTML.
+ * Renders the codes for the given listing as a content fragment grouped by
+ * size (when sizes are defined), with no layout wrapper.
  */
 
 // ---------------------------------------------------------------------------
@@ -69,8 +72,27 @@ if ($_lusterListing === null) {
     return;
 }
 
-$_lusterCodesRepo = new CodesRepo($_lusterApp->getDatabase());
-$_lusterCodes     = $_lusterCodesRepo->getByListing($_lusterListingId);
+$_lusterDb          = $_lusterApp->getDatabase();
+$_lusterCodesRepo   = new CodesRepo($_lusterDb);
+$_lusterSizesRepo   = new CodeSizesRepo($_lusterDb);
+$_lusterCatsRepo    = new CodeCategoriesRepo($_lusterDb);
+$_lusterDonorsRepo  = new CodeDonorsRepo($_lusterDb);
+$_lusterCodes       = $_lusterCodesRepo->getByListing($_lusterListingId, 'approved');
+$_lusterSizes       = $_lusterSizesRepo->getByListing($_lusterListingId);
+$_lusterCategories  = $_lusterCatsRepo->getByListing($_lusterListingId);
+$_lusterCatMap      = $_lusterCatsRepo->getCategoryMapForListing($_lusterListingId);
+$_lusterDonors      = $_lusterDonorsRepo->getByListing($_lusterListingId);
+
+// Build donor lookup: id => object
+$_lusterDonorMap = [];
+foreach ($_lusterDonors as $_d) {
+    $_lusterDonorMap[$_d->id] = $_d;
+}
+// Build category lookup: id => object
+$_lusterCategoryMap = [];
+foreach ($_lusterCategories as $_cat) {
+    $_lusterCategoryMap[$_cat->id] = $_cat;
+}
 
 // ---------------------------------------------------------------------------
 // 4. Render
@@ -83,12 +105,18 @@ $_lusterHtml = $_lusterApp->getView()->renderFragment('codes.php', [
     'listing'      => $_lusterListing,
     'listing_name' => $_lusterListing->name,
     'listing_url'  => $_lusterListing->url,
-    'page_title'      => 'Codes',
-    'codes'           => $_lusterCodes,
-    'uploads_url'     => $_lusterUploadsUrl,
-    'join_url'        => $_lusterBaseUrl . '/join/' . $_lusterListingId,
-    'base_url'        => $_lusterBaseUrl,
-    'theme_path'      => $_lusterBaseUrl . '/assets/default/',
+    'page_title'   => 'Codes',
+    'codes'        => $_lusterCodes,
+    'sizes'        => $_lusterSizes,
+    'categories'   => $_lusterCategories,
+    'cat_map'      => $_lusterCatMap,
+    'category_map' => $_lusterCategoryMap,
+    'donors'       => $_lusterDonors,
+    'donor_map'    => $_lusterDonorMap,
+    'uploads_url'  => $_lusterUploadsUrl,
+    'join_url'     => $_lusterBaseUrl . '/join/' . $_lusterListingId,
+    'base_url'     => $_lusterBaseUrl,
+    'theme_path'   => $_lusterBaseUrl . '/assets/default/',
 ]);
 
 if ($luster_return ?? false) {

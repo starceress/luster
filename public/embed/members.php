@@ -129,13 +129,13 @@ $_lusterMemberTemplate = ($_lusterTemplates['members_template'] !== null
     : null;
 
 /**
- * Applies $$token$$ substitution for a single member row.
+ * Applies {token} substitution for a single member row.
  * Always HTML-escapes values before substitution.
  */
 $_lusterRenderMember = static function (object $member) use ($_lusterMemberTemplate): string {
     $e = static fn(string $v): string => htmlspecialchars($v, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
     return str_replace(
-        ['$$fan_name$$', '$$fan_url$$', '$$fan_email$$', '$$fan_country$$'],
+        ['{fan_name}', '{fan_url}', '{fan_email}', '{fan_country}'],
         [$e($member->name), $e($member->url ?? ''), $e($member->email), $e($member->country)],
         (string) $_lusterMemberTemplate,
     );

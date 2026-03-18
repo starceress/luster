@@ -12,13 +12,17 @@ use Luster\Core\Validator;
 use Luster\Repositories\ActivityRepo;
 use Luster\Repositories\ListingRepo;
 use Luster\Repositories\MemberRepo;
+use Luster\Repositories\SavedEmailRepo;
 
 /**
  * Mass email — send an announcement to approved members of one or all listings.
  *
- * GET  /admin/mass-email          → compose()  — compose form
- * POST /admin/mass-email/preview  → preview()  — validate + show recipient count
- * POST /admin/mass-email/send     → send()     — perform the send loop + results
+ * GET  /admin/mass-email                     → compose()        — compose form
+ * POST /admin/mass-email/preview             → preview()        — validate + show recipient count
+ * POST /admin/mass-email/send                → send()           — perform the send loop + results
+ * GET  /admin/saved-emails                   → savedEmails()    — list + manage saved templates
+ * POST /admin/saved-emails/save              → saveTemplate()   — create a saved template
+ * POST /admin/saved-emails/{id}/delete       → deleteTemplate() — delete a saved template
  *
  * Listing ID = 0 means "all listings" (recipients are deduplicated by email).
  *
@@ -38,11 +42,38 @@ final class MassEmailController
 
     public function compose(Request $request, array $params): Response
     {
-        $listings = (new ListingRepo($this->app->getDatabase(), $this->app->getConfig()))->getAll();
+        $db       = $this->app->getDatabase();
+        $listings = (new ListingRepo($db, $this->app->getConfig()))->getAll();
+        $session  = $this->app->getSession();
+        $repo     = new SavedEmailRepo($db);
+
+        $success = (string) $session->get('lstr_flash_success', '');
+        $error   = (string) $session->get('lstr_flash_error', '');
+        $session->remove('lstr_flash_success');
+        $session->remove('lstr_flash_error');
+
+        $savedEmails = $repo->getAll();
+
+        // Pre-fill from a saved template when ?load=ID is passed (from saved-templates page)
+        $loadId   = (int) $request->query('load', 0);
+        $preSubject = '';
+        $preBody    = '';
+        if ($loadId > 0) {
+            $tpl = $repo->getById($loadId);
+            if ($tpl !== null) {
+                $preSubject = $tpl->subject;
+                $preBody    = $tpl->body;
+            }
+        }
 
         return $this->layout('mass-email/compose.php', [
-            'listings' => $listings,
-            'error'    => '',
+            'listings'       => $listings,
+            'saved_emails'   => $savedEmails,
+            'error'          => $error,
+            'success'        => $success,
+            'old_listing_id' => 0,
+            'old_subject'    => $preSubject,
+            'old_body'       => $preBody,
         ]);
     }
 
@@ -61,10 +92,13 @@ final class MassEmailController
         $v->field('body')->required()->maxLength(50000);
 
         if ($v->fails()) {
-            $listings = (new ListingRepo($this->app->getDatabase(), $this->app->getConfig()))->getAll();
+            $db       = $this->app->getDatabase();
+            $listings = (new ListingRepo($db, $this->app->getConfig()))->getAll();
             return $this->layout('mass-email/compose.php', [
-                'listings'   => $listings,
-                'error'      => implode(' ', $v->allErrors()),
+                'listings'       => $listings,
+                'saved_emails'   => (new SavedEmailRepo($db))->getAll(),
+                'error'          => implode(' ', $v->allErrors()),
+                'success'        => '',
                 'old_listing_id' => $listingId,
                 'old_subject'    => $subject,
                 'old_body'       => $body,
@@ -142,6 +176,74 @@ final class MassEmailController
     }
 
     // -----------------------------------------------------------------------
+    // GET /admin/saved-emails
+    // -----------------------------------------------------------------------
+
+    public function savedEmails(Request $request, array $params): Response
+    {
+        $db      = $this->app->getDatabase();
+        $session = $this->app->getSession();
+
+        $success = (string) $session->get('lstr_flash_success', '');
+        $error   = (string) $session->get('lstr_flash_error', '');
+        $session->remove('lstr_flash_success');
+        $session->remove('lstr_flash_error');
+
+        $savedEmails = (new SavedEmailRepo($db))->getAll();
+
+        return $this->layout('mass-email/saved-templates.php', [
+            'saved_emails' => $savedEmails,
+            'success'      => $success,
+            'error'        => $error,
+        ]);
+    }
+
+    // -----------------------------------------------------------------------
+    // POST /admin/saved-emails/save
+    // -----------------------------------------------------------------------
+
+    public function saveTemplate(Request $request, array $params): Response
+    {
+        $name    = trim((string) $request->post('tpl_name', ''));
+        $subject = trim((string) $request->post('tpl_subject', ''));
+        $body    = trim((string) $request->post('tpl_body', ''));
+
+        $session = $this->app->getSession();
+        $baseUrl = $this->app->getBaseUrl();
+
+        $referer = trim((string) $request->post('referer', ''));
+        $redirect = ($referer !== '' && str_starts_with($referer, $baseUrl))
+            ? $referer
+            : $baseUrl . '/admin/saved-emails';
+
+        if ($name === '' || $body === '') {
+            $session->set('lstr_flash_error', 'Template name and body are required.');
+            return Response::redirect($redirect);
+        }
+
+        (new SavedEmailRepo($this->app->getDatabase()))->create($name, $subject, $body);
+
+        $session->set('lstr_flash_success', 'Template "' . $name . '" saved.');
+        return Response::redirect($redirect);
+    }
+
+    // -----------------------------------------------------------------------
+    // POST /admin/saved-emails/{id}/delete
+    // -----------------------------------------------------------------------
+
+    public function deleteTemplate(Request $request, array $params): Response
+    {
+        $id      = (int) ($params['id'] ?? 0);
+        $session = $this->app->getSession();
+        $baseUrl = $this->app->getBaseUrl();
+
+        (new SavedEmailRepo($this->app->getDatabase()))->delete($id);
+
+        $session->set('lstr_flash_success', 'Template deleted.');
+        return Response::redirect($baseUrl . '/admin/saved-emails');
+    }
+
+    // -----------------------------------------------------------------------
     // Internals
     // -----------------------------------------------------------------------
 
@@ -214,7 +316,7 @@ final class MassEmailController
     {
         $session = $this->app->getSession();
 
-        $data['page_title']      = 'Mass Email';
+        $data['page_title']      = 'Emails';
         $data['current_section'] = 'mass-email';
         $data['site_name']       = (string) $this->app->getConfig()->get('site_name', 'Luster');
         $data['admin_username']  = (string) $session->get('lstr_admin_username', '');
@@ -227,7 +329,7 @@ final class MassEmailController
         $content = ob_get_clean();
 
         ob_start();
-        extract(['content' => $content] + $data);
+        extract(array_merge(['content' => $content] + $data, $this->app->getAdminNavData()));
         require \LUSTER_BASE . '/templates/admin/layout.php';
         return Response::html((string) ob_get_clean());
     }

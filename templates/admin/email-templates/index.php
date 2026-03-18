@@ -35,17 +35,17 @@ $typeHints = [
     EmailTemplateRepo::TYPE_APPROVE     => 'Sent when an admin approves a pending membership.',
     EmailTemplateRepo::TYPE_UPDATE      => 'Sent to the fan after they update their details.',
     EmailTemplateRepo::TYPE_REMOVE      => 'Sent to the fan after their membership is removed.',
-    EmailTemplateRepo::TYPE_RESET       => 'Sent when a fan requests a password reset. Must include $reset_url$.',
+    EmailTemplateRepo::TYPE_RESET       => 'Sent when a fan requests a password reset. Must include {reset_url}.',
     EmailTemplateRepo::TYPE_NOTIFY_JOIN => 'Sent to this listing\'s admin email when a new fan joins.',
 ];
 
 $tokenHints = [
-    EmailTemplateRepo::TYPE_JOIN        => '$fan_name$ &bull; $fan_email$ &bull; $fan_url$ &bull; $fan_country$ &bull; $fan_password$ &bull; $listing_name$ &bull; $listing_subject$ &bull; $listing_url$ &bull; $site_name$ &bull; $owner_name$ &bull; $owner_email$',
-    EmailTemplateRepo::TYPE_APPROVE     => '$fan_name$ &bull; $fan_email$ &bull; $listing_name$ &bull; $listing_subject$ &bull; $listing_url$ &bull; $site_name$ &bull; $owner_name$ &bull; $owner_email$',
-    EmailTemplateRepo::TYPE_UPDATE      => '$fan_name$ &bull; $fan_email$ &bull; $fan_url$ &bull; $fan_country$ &bull; $listing_name$ &bull; $listing_subject$ &bull; $listing_url$ &bull; $site_name$ &bull; $owner_name$ &bull; $owner_email$',
-    EmailTemplateRepo::TYPE_REMOVE      => '$fan_name$ &bull; $fan_email$ &bull; $listing_name$ &bull; $listing_subject$ &bull; $listing_url$ &bull; $site_name$ &bull; $owner_name$ &bull; $owner_email$',
-    EmailTemplateRepo::TYPE_RESET       => '$fan_name$ &bull; $fan_email$ &bull; $reset_url$ &bull; $listing_name$ &bull; $listing_subject$ &bull; $listing_url$ &bull; $site_name$ &bull; $owner_name$ &bull; $owner_email$',
-    EmailTemplateRepo::TYPE_NOTIFY_JOIN => '$fan_name$ &bull; $fan_email$ &bull; $fan_url$ &bull; $fan_country$ &bull; $listing_name$ &bull; $listing_subject$ &bull; $listing_url$ &bull; $site_name$ &bull; $owner_name$ &bull; $owner_email$',
+    EmailTemplateRepo::TYPE_JOIN        => '{fan_name} &bull; {fan_email} &bull; {fan_url} &bull; {fan_country} &bull; {fan_password} &bull; {listing_name} &bull; {listing_subject} &bull; {listing_url} &bull; {site_name} &bull; {owner_name} &bull; {owner_email}',
+    EmailTemplateRepo::TYPE_APPROVE     => '{fan_name} &bull; {fan_email} &bull; {listing_name} &bull; {listing_subject} &bull; {listing_url} &bull; {site_name} &bull; {owner_name} &bull; {owner_email}',
+    EmailTemplateRepo::TYPE_UPDATE      => '{fan_name} &bull; {fan_email} &bull; {fan_url} &bull; {fan_country} &bull; {listing_name} &bull; {listing_subject} &bull; {listing_url} &bull; {site_name} &bull; {owner_name} &bull; {owner_email}',
+    EmailTemplateRepo::TYPE_REMOVE      => '{fan_name} &bull; {fan_email} &bull; {listing_name} &bull; {listing_subject} &bull; {listing_url} &bull; {site_name} &bull; {owner_name} &bull; {owner_email}',
+    EmailTemplateRepo::TYPE_RESET       => '{fan_name} &bull; {fan_email} &bull; {reset_url} &bull; {listing_name} &bull; {listing_subject} &bull; {listing_url} &bull; {site_name} &bull; {owner_name} &bull; {owner_email}',
+    EmailTemplateRepo::TYPE_NOTIFY_JOIN => '{fan_name} &bull; {fan_email} &bull; {fan_url} &bull; {fan_country} &bull; {listing_name} &bull; {listing_subject} &bull; {listing_url} &bull; {site_name} &bull; {owner_name} &bull; {owner_email}',
 ];
 
 $isGlobal     = ($scope === 'global');

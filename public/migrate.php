@@ -1096,6 +1096,201 @@ try {
     $errors[] = 'lstr_site_settings — ' . htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 }
 
+// Migration 29: lstr_saved_emails — admin-saved reusable email draft templates
+// ─────────────────────────────────────────────────────────────────────────────
+try {
+    if (!(int) $pdo->query('SELECT COUNT(*) FROM `lstr_migrations` WHERE migration_number = 29')->fetchColumn()) {
+        $pdo->exec(
+            "CREATE TABLE IF NOT EXISTS `lstr_saved_emails` (
+                `id`         INT UNSIGNED  NOT NULL AUTO_INCREMENT,
+                `name`       VARCHAR(150)  NOT NULL,
+                `subject`    VARCHAR(255)  NOT NULL DEFAULT '',
+                `body`       TEXT          NOT NULL,
+                `created_at` TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                PRIMARY KEY (`id`)
+             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci"
+        );
+        $pdo->exec('INSERT INTO `lstr_migrations` (migration_number) VALUES (29)');
+        $done[] = 'Created <code>lstr_saved_emails</code> table';
+    }
+} catch (PDOException $e) {
+    $errors[] = 'lstr_saved_emails — ' . htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+}
+
+// Migration 30: lstr_code_sizes + size_id column on lstr_codes
+// ─────────────────────────────────────────────────────────────────────────────
+try {
+    if (!(int) $pdo->query('SELECT COUNT(*) FROM `lstr_migrations` WHERE migration_number = 30')->fetchColumn()) {
+        $pdo->exec(
+            "CREATE TABLE IF NOT EXISTS `lstr_code_sizes` (
+                `id`            INT UNSIGNED      NOT NULL AUTO_INCREMENT,
+                `fanlisting_id` INT UNSIGNED      NOT NULL,
+                `label`         VARCHAR(100)      NOT NULL,
+                `width`         SMALLINT UNSIGNED NULL,
+                `height`        SMALLINT UNSIGNED NULL,
+                `sort_order`    SMALLINT UNSIGNED NOT NULL DEFAULT 0,
+                PRIMARY KEY (`id`),
+                INDEX `idx_fanlisting` (`fanlisting_id`)
+             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci"
+        );
+        // Add size_id only if the column does not already exist
+        $colCheck = $pdo->query("SHOW COLUMNS FROM `lstr_codes` LIKE 'size_id'")->fetchAll();
+        if (empty($colCheck)) {
+            $pdo->exec("ALTER TABLE `lstr_codes` ADD COLUMN `size_id` INT UNSIGNED NULL AFTER `height`");
+            $pdo->exec(
+                "ALTER TABLE `lstr_codes`
+                 ADD CONSTRAINT `fk_lstr_codes_size`
+                 FOREIGN KEY (`size_id`) REFERENCES `lstr_code_sizes` (`id`) ON DELETE SET NULL"
+            );
+        }
+        $pdo->exec('INSERT INTO `lstr_migrations` (migration_number) VALUES (30)');
+        $done[] = 'Created <code>lstr_code_sizes</code> table; added <code>size_id</code> to <code>lstr_codes</code>';
+    }
+} catch (PDOException $e) {
+    $errors[] = 'Code sizes — ' . htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+}
+
+// Migration 31: lstr_code_categories, lstr_code_category_map, lstr_code_donors,
+//               donor_id column on lstr_codes
+// ─────────────────────────────────────────────────────────────────────────────
+try {
+    if (!(int) $pdo->query('SELECT COUNT(*) FROM `lstr_migrations` WHERE migration_number = 31')->fetchColumn()) {
+
+        // Categories (supports one level of parent/child)
+        $pdo->exec(
+            "CREATE TABLE IF NOT EXISTS `lstr_code_categories` (
+                `id`            INT UNSIGNED      NOT NULL AUTO_INCREMENT,
+                `fanlisting_id` INT UNSIGNED      NOT NULL,
+                `name`          VARCHAR(100)      NOT NULL,
+                `parent_id`     INT UNSIGNED      NULL,
+                `sort_order`    SMALLINT UNSIGNED NOT NULL DEFAULT 0,
+                PRIMARY KEY (`id`),
+                INDEX `idx_fanlisting` (`fanlisting_id`),
+                CONSTRAINT `fk_lstr_cat_parent`
+                    FOREIGN KEY (`parent_id`) REFERENCES `lstr_code_categories` (`id`) ON DELETE SET NULL
+             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci"
+        );
+
+        // Many-to-many junction: codes ↔ categories
+        $pdo->exec(
+            "CREATE TABLE IF NOT EXISTS `lstr_code_category_map` (
+                `code_id`     INT UNSIGNED NOT NULL,
+                `category_id` INT UNSIGNED NOT NULL,
+                PRIMARY KEY (`code_id`, `category_id`),
+                CONSTRAINT `fk_lstr_ccmap_code`
+                    FOREIGN KEY (`code_id`) REFERENCES `lstr_codes` (`id`) ON DELETE CASCADE,
+                CONSTRAINT `fk_lstr_ccmap_cat`
+                    FOREIGN KEY (`category_id`) REFERENCES `lstr_code_categories` (`id`) ON DELETE CASCADE
+             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci"
+        );
+
+        // Donors
+        $pdo->exec(
+            "CREATE TABLE IF NOT EXISTS `lstr_code_donors` (
+                `id`            INT UNSIGNED  NOT NULL AUTO_INCREMENT,
+                `fanlisting_id` INT UNSIGNED  NOT NULL,
+                `name`          VARCHAR(150)  NOT NULL,
+                `email`         VARCHAR(255)  NULL,
+                `url`           VARCHAR(500)  NULL,
+                PRIMARY KEY (`id`),
+                INDEX `idx_fanlisting` (`fanlisting_id`)
+             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci"
+        );
+
+        // donor_id on lstr_codes (only if not already present)
+        $colCheck = $pdo->query("SHOW COLUMNS FROM `lstr_codes` LIKE 'donor_id'")->fetchAll();
+        if (empty($colCheck)) {
+            $pdo->exec("ALTER TABLE `lstr_codes` ADD COLUMN `donor_id` INT UNSIGNED NULL AFTER `size_id`");
+            $pdo->exec(
+                "ALTER TABLE `lstr_codes`
+                 ADD CONSTRAINT `fk_lstr_codes_donor`
+                 FOREIGN KEY (`donor_id`) REFERENCES `lstr_code_donors` (`id`) ON DELETE SET NULL"
+            );
+        }
+
+        $pdo->exec('INSERT INTO `lstr_migrations` (migration_number) VALUES (31)');
+        $done[] = 'Created <code>lstr_code_categories</code>, <code>lstr_code_category_map</code>, <code>lstr_code_donors</code>; added <code>donor_id</code> to <code>lstr_codes</code>';
+    }
+} catch (PDOException $e) {
+    $errors[] = 'Code categories/donors — ' . htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Migration 33: name column on lstr_codes (per-code label)
+// ─────────────────────────────────────────────────────────────────────────────
+try {
+    if (!(int) $pdo->query('SELECT COUNT(*) FROM `lstr_migrations` WHERE migration_number = 33')->fetchColumn()) {
+
+        $colCheck = $pdo->query("SHOW COLUMNS FROM `lstr_codes` LIKE 'name'")->fetchAll();
+        if (empty($colCheck)) {
+            $pdo->exec(
+                "ALTER TABLE `lstr_codes`
+                 ADD COLUMN `name` VARCHAR(150) NULL DEFAULT NULL
+                 AFTER `filename`"
+            );
+        }
+
+        $pdo->exec('INSERT INTO `lstr_migrations` (migration_number) VALUES (33)');
+        $done[] = 'Added <code>name</code> column to <code>lstr_codes</code> (per-code label)';
+    }
+} catch (PDOException $e) {
+    $errors[] = 'Code name — ' . htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Migration 32: status column on lstr_codes (approval workflow)
+// ─────────────────────────────────────────────────────────────────────────────
+try {
+    if (!(int) $pdo->query('SELECT COUNT(*) FROM `lstr_migrations` WHERE migration_number = 32')->fetchColumn()) {
+
+        // Add status only if not already present
+        $colCheck = $pdo->query("SHOW COLUMNS FROM `lstr_codes` LIKE 'status'")->fetchAll();
+        if (empty($colCheck)) {
+            $pdo->exec(
+                "ALTER TABLE `lstr_codes`
+                 ADD COLUMN `status` ENUM('approved','pending','rejected') NOT NULL DEFAULT 'approved'
+                 AFTER `donor_id`"
+            );
+        }
+
+        // Backfill any existing rows (should all be 'approved' via DEFAULT, but be explicit)
+        $pdo->exec("UPDATE `lstr_codes` SET `status` = 'approved' WHERE `status` NOT IN ('approved','pending','rejected')");
+
+        // Index for fast per-listing status queries
+        $idxCheck = $pdo->query("SHOW INDEX FROM `lstr_codes` WHERE Key_name = 'idx_lstr_codes_status'")->fetchAll();
+        if (empty($idxCheck)) {
+            $pdo->exec("ALTER TABLE `lstr_codes` ADD INDEX `idx_lstr_codes_status` (`fanlisting_id`, `status`)");
+        }
+
+        $pdo->exec('INSERT INTO `lstr_migrations` (migration_number) VALUES (32)');
+        $done[] = 'Added <code>status</code> column to <code>lstr_codes</code> (approval workflow)';
+    }
+} catch (PDOException $e) {
+    $errors[] = 'Code status — ' . htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Migration 34: submitter_name and submitter_email on lstr_codes (fan submissions)
+// ─────────────────────────────────────────────────────────────────────────────
+try {
+    if (!(int) $pdo->query('SELECT COUNT(*) FROM `lstr_migrations` WHERE migration_number = 34')->fetchColumn()) {
+
+        $colCheck = $pdo->query("SHOW COLUMNS FROM `lstr_codes` LIKE 'submitter_name'")->fetchAll();
+        if (empty($colCheck)) {
+            $pdo->exec(
+                "ALTER TABLE `lstr_codes`
+                 ADD COLUMN `submitter_name`  VARCHAR(150) NULL DEFAULT NULL AFTER `status`,
+                 ADD COLUMN `submitter_email` VARCHAR(255) NULL DEFAULT NULL AFTER `submitter_name`"
+            );
+        }
+
+        $pdo->exec('INSERT INTO `lstr_migrations` (migration_number) VALUES (34)');
+        $done[] = 'Added <code>submitter_name</code> and <code>submitter_email</code> to <code>lstr_codes</code> (fan code submissions)';
+    }
+} catch (PDOException $e) {
+    $errors[] = 'Code submitter — ' . htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Build results HTML
 // ─────────────────────────────────────────────────────────────────────────────

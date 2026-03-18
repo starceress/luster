@@ -16,7 +16,7 @@ use Luster\Repositories\MemberRepo;
  *
  * GET /stats/{listingId}
  *
- * Returns the stats_template stored in lstr_fanlisting_settings, with $$token$$
+ * Returns the stats_template stored in lstr_fanlisting_settings, with {token}
  * placeholders replaced with live data. If no custom template is configured,
  * DEFAULT_TEMPLATE is used.
  *
@@ -24,22 +24,22 @@ use Luster\Repositories\MemberRepo;
  * (i.e. anything that is not actively open).
  *
  * Tokens:
- *   $$stat_opened$$       — date listing opened, formatted "Month Dth Year"
- *   $$stat_updated$$      — date of most recently added approved member (same format)
- *   $$stat_last_updated$$ — admin-controlled "last updated" date from settings
- *   $$stat_approved$$     — approved member count
- *   $$stat_pending$$      — pending member count
- *   $$stat_newmembers$$   — comma-separated list of newest 5 approved member names
- *   $$stat_growth$$       — members per day since opened, formatted to 2 decimal places
- *   $$listing_name$$      — listing name (HTML-escaped)
- *   $$listing_url$$       — listing URL (HTML-escaped)
+ *   {stat_opened}       — date listing opened, formatted "Month Dth Year"
+ *   {stat_updated}      — date of most recently added approved member (same format)
+ *   {stat_last_updated} — admin-controlled "last updated" date from settings
+ *   {stat_approved}     — approved member count
+ *   {stat_pending}      — pending member count
+ *   {stat_newmembers}   — comma-separated list of newest 5 approved member names
+ *   {stat_growth}       — members per day since opened, formatted to 2 decimal places
+ *   {listing_name}      — listing name (HTML-escaped)
+ *   {listing_url}       — listing URL (HTML-escaped)
  */
 final class StatsController
 {
     private const DEFAULT_TEMPLATE =
-        '<p>Opened: $$stat_opened$$<br>Last updated: $$stat_updated$$<br>'
-        . 'Members: $$stat_approved$$ ($$stat_pending$$ pending)<br>'
-        . 'Newest: $$stat_newmembers$$</p>';
+        '<p>Opened: {stat_opened}<br>Last updated: {stat_updated}<br>'
+        . 'Members: {stat_approved} ({stat_pending} pending)<br>'
+        . 'Newest: {stat_newmembers}</p>';
 
     public function __construct(private readonly Application $app) {}
 
@@ -100,14 +100,14 @@ final class StatsController
 
         $output = str_replace(
             [
-                '$$stat_opened$$',
-                '$$stat_updated$$',
-                '$$stat_approved$$',
-                '$$stat_pending$$',
-                '$$stat_newmembers$$',
-                '$$stat_growth$$',
-                '$$listing_name$$',
-                '$$listing_url$$',
+                '{stat_opened}',
+                '{stat_updated}',
+                '{stat_approved}',
+                '{stat_pending}',
+                '{stat_newmembers}',
+                '{stat_growth}',
+                '{listing_name}',
+                '{listing_url}',
             ],
             [
                 $opened,

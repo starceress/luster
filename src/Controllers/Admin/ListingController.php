@@ -21,8 +21,7 @@ use Luster\Repositories\MemberRepo;
  * Manages the listing list and per-listing settings.
  *
  * Listings are created/deleted in Enthusiast; Luster only edits
- * metadata (name, URL, email, status) and Luster-specific settings
- * (auto_approve). Requires migrate.php to have been run for auto_approve.
+ * metadata (name, URL, email, status) and Luster-specific settings.
  */
 final class ListingController
 {
@@ -168,6 +167,8 @@ final class ListingController
             'custom_cats'     => $customCats,
             'page'            => $page,
             'total_pages'     => $totalPages,
+            'total'           => $totalItems,
+            'per_page'        => $perPage,
         ], 'Owned Listings', 'listings');
     }
 
@@ -242,12 +243,20 @@ final class ListingController
         $catidStr = $catIds ? '|' . implode('|', $catIds) . '|' : '';
 
         if ($subject === '' || $url === '') {
+            $addFieldErrors = [];
+            if ($subject === '') {
+                $addFieldErrors['subject'] = ['Subject is required.'];
+            }
+            if ($url === '') {
+                $addFieldErrors['url'] = ['URL is required.'];
+            }
             return $this->layout('admin/listings/add.php', [
                 'tfl_cats'        => $tflCats,
                 'tafl_cats'       => $taflCats,
                 'custom_networks' => $customNetworks,
                 'old'             => $request->post(),
                 'error'           => 'Subject and URL are required.',
+                'field_errors'    => $addFieldErrors,
                 'default_date'    => date('Y-m-d'),
             ], 'Add Listing', 'listings');
         }
@@ -390,7 +399,6 @@ final class ListingController
             $url         = trim((string) $request->post('url', ''));
             $email       = trim((string) $request->post('email', ''));
             $status      = (string) $request->post('status', 'current');
-            $autoApprove   = $request->post('auto_approve')   === '1';
             $subject     = trim((string) $request->post('subject', ''));
             $opened      = trim((string) $request->post('opened', ''));
             $nets        = array_values((array) $request->post('cat_network', []));
@@ -468,8 +476,8 @@ final class ListingController
 
                 return $this->layout('admin/listings/edit.php', [
                     'listing'          => $listing,
-                    'auto_approve'        => $autoApprove,
                     'error'               => implode(' ', $messages),
+                    'field_errors'        => $v->errors(),
                     'old'                 => ['title' => $title, 'url' => $url, 'email' => $email, 'status' => $status],
                     'current_image'       => $settingsRepo->getImage($id),
                     'cfg'                 => $config->all(),
@@ -482,7 +490,7 @@ final class ListingController
                     'current_category_id' => $listing->categoryId ?? null,
                     'listing_type'        => $listingType,
                     'members_per_page'    => $membersPerPage,
-                ], 'Edit ' . $listing->name, 'listings');
+                ], 'Edit Listing', 'listings', $listing->name);
             }
 
             // --- All valid: persist ---
@@ -497,7 +505,6 @@ final class ListingController
 
             $listingRepo->updateMeta($id, $title, $url, $email, $upcoming, $trouble);
             $listingRepo->update($id, !empty($catids) ? $catids[0] : null, $subject, $opened, $catidStr);
-            $settingsRepo->setAutoApprove($id, $autoApprove);
             $settingsRepo->saveListingType($id, $listingType);
             $settingsRepo->saveMembersPerPage($id, $membersPerPage);
             if ($lastUpdatedInput !== '' || $request->post('fl_last_updated') !== null) {
@@ -545,7 +552,6 @@ final class ListingController
         }
 
         // ---- GET: show form ----
-        $autoApprove        = $settingsRepo->getAutoApprove($id);
         $currentImage       = $settingsRepo->getImage($id);
         $listingType        = $settingsRepo->getListingType($id);
         $membersPerPage     = $settingsRepo->getMembersPerPage($id);
@@ -574,7 +580,6 @@ final class ListingController
 
         return $this->layout('admin/listings/edit.php', [
             'listing'          => $listing,
-            'auto_approve'        => $autoApprove,
             'success'             => $success,
             'error'               => $error,
             'old'                 => [],
@@ -597,7 +602,7 @@ final class ListingController
             'listing_type'        => $listingType,
             'members_per_page'    => $membersPerPage,
             'embed_settings'      => $embedSettings,
-        ], 'Edit ' . $listing->name, 'listings');
+        ], 'Edit Listing', 'listings', $listing->name);
     }
 
     // -----------------------------------------------------------------------
@@ -743,7 +748,7 @@ final class ListingController
                     'listing'   => $listing,
                     'table_exists' => $tableExists,
                     'error'        => $error,
-                ], 'Change Table Prefix — ' . $listing->name, 'listings');
+                ], 'Change Table Prefix', 'listings', $listing->name);
             }
 
             $oldPrefix = $listing->dbprefix;
@@ -765,7 +770,7 @@ final class ListingController
             'listing'   => $listing,
             'table_exists' => $tableExists,
             'error'        => '',
-        ], 'Change Table Prefix — ' . $listing->name, 'listings');
+        ], 'Change Table Prefix', 'listings', $listing->name);
     }
 
     // -----------------------------------------------------------------------
@@ -1057,7 +1062,7 @@ final class ListingController
         return $this->layout('admin/listings/email-templates.php', [
             'listing' => $listing,
             'templates'  => $templates,
-        ], 'Email Templates — ' . $listing->name, 'listings');
+        ], 'Email Templates', 'listings', $listing->name);
     }
 
     // -----------------------------------------------------------------------
@@ -1099,7 +1104,7 @@ final class ListingController
     // Shared render helper
     // -----------------------------------------------------------------------
 
-    private function layout(string $template, array $data, string $pageTitle, string $section): Response
+    private function layout(string $template, array $data, string $pageTitle, string $section, string $pageSubtitle = ''): Response
     {
         $view      = $this->app->getView();
         $config    = $this->app->getConfig();
@@ -1121,15 +1126,16 @@ final class ListingController
             'csrf_token' => $csrfToken,
         ], $data));
 
-        return Response::html($view->render('admin/layout.php', [
+        return Response::html($view->render('admin/layout.php', array_merge([
             'page_title'      => $pageTitle,
+            'page_subtitle'   => $pageSubtitle,
             'site_name'       => (string) $config->get('site_name', 'Luster'),
             'admin_username'  => (string) $session->get('lstr_admin_username', ''),
             'csrf_token'      => $csrfToken,
             'current_section' => $section,
             'base_url'        => $baseUrl,
             'content'         => $inner,
-        ]));
+        ], $this->app->getAdminNavData())));
     }
 
     /**

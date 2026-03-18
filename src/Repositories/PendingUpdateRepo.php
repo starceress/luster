@@ -145,6 +145,39 @@ final class PendingUpdateRepo
     /**
      * Deletes a pending update by primary key (used by both approve and reject).
      */
+    /**
+     * Returns multiple pending updates by their IDs.
+     *
+     * @param  int[] $ids
+     * @return array<int, object>  keyed by id
+     */
+    public function getByIds(array $ids): array
+    {
+        if (empty($ids)) {
+            return [];
+        }
+
+        $placeholders = implode(',', array_fill(0, count($ids), '?'));
+        $stmt         = $this->db->prepare(
+            "SELECT * FROM lstr_pending_updates WHERE id IN ({$placeholders})"
+        );
+        $stmt->execute(array_values($ids));
+
+        $result = [];
+        foreach ($stmt->fetchAll() as $r) {
+            $id          = (int) $r['id'];
+            $result[$id] = (object) [
+                'id'            => $id,
+                'fanlisting_id' => (int)    $r['fanlisting_id'],
+                'member_email'  => (string) $r['member_email'],
+                'changes'       => (array)  (json_decode((string) $r['changes'], true) ?? []),
+                'submitted_at'  => (string) $r['submitted_at'],
+            ];
+        }
+
+        return $result;
+    }
+
     public function delete(int $id): void
     {
         $stmt = $this->db->prepare(

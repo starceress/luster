@@ -6,7 +6,9 @@ use Luster\Core\View;
 
 /**
  * @var array  $listings        Listing[]
+ * @var array  $saved_emails    object[]
  * @var string $error
+ * @var string $success
  * @var int    $old_listing_id
  * @var string $old_subject
  * @var string $old_body
@@ -17,13 +19,20 @@ use Luster\Core\View;
 $b = rtrim(View::e($base_url ?? ''), '/');
 ?>
 
-<div class="neb-tabs" style="margin-bottom:1.5rem">
-  <a href="<?= $b ?>/admin/mass-email"      class="neb-tab-btn active">Compose</a>
-  <a href="<?= $b ?>/admin/email-templates" class="neb-tab-btn">Email Templates</a>
+<div style="display:flex;align-items:center;justify-content:space-between;gap:1rem;margin-bottom:1.5rem">
+  <div class="neb-tabs" style="margin-bottom:0">
+    <a href="<?= $b ?>/admin/mass-email"      class="neb-tab-btn active">Compose</a>
+    <a href="<?= $b ?>/admin/saved-emails"    class="neb-tab-btn">Saved Templates</a>
+    <a href="<?= $b ?>/admin/email-templates" class="neb-tab-btn">Email Templates</a>
+  </div>
+  <a href="<?= $b ?>/admin/members" class="btn btn-ghost btn-sm">&larr; Members</a>
 </div>
 
-<?php if ($error !== ''): ?>
+<?php if (($error ?? '') !== ''): ?>
   <div class="alert alert-error"><?= View::e($error) ?></div>
+<?php endif; ?>
+<?php if (($success ?? '') !== ''): ?>
+  <div class="alert alert-success"><?= View::e($success) ?></div>
 <?php endif; ?>
 
 <div class="neb-card" style="padding:1.75rem 2rem">
@@ -31,6 +40,27 @@ $b = rtrim(View::e($base_url ?? ''), '/');
     Send a personalised email to all approved members of one listing, or every listing at once.
     Recipients are deduplicated — each address receives at most one message.
   </p>
+
+  <?php if (!empty($saved_emails)): ?>
+  <div class="form-group" style="margin-bottom:1.5rem;padding-bottom:1.5rem;border-bottom:1px solid var(--border)">
+    <label class="form-label">Load saved template</label>
+    <div style="display:flex;align-items:center;gap:.75rem;flex-wrap:wrap">
+      <div class="select-wrap" style="flex:1;min-width:200px">
+        <select id="me-tpl-select">
+          <option value="">— Select a template —</option>
+          <?php foreach ($saved_emails as $t): ?>
+            <option value="<?= View::e($t->subject) ?>"
+                    data-body="<?= htmlspecialchars($t->body, ENT_QUOTES, 'UTF-8') ?>">
+              <?= View::e($t->name) ?>
+            </option>
+          <?php endforeach; ?>
+        </select>
+      </div>
+      <a href="<?= $b ?>/admin/saved-emails" class="btn btn-ghost btn-sm">Manage templates</a>
+    </div>
+    <p class="form-hint" style="margin-top:.35rem">Selecting fills the subject and message fields. You can edit before sending.</p>
+  </div>
+  <?php endif; ?>
 
   <form method="POST" action="<?= $b ?>/admin/mass-email/preview" id="compose-form">
     <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
@@ -78,4 +108,47 @@ $b = rtrim(View::e($base_url ?? ''), '/');
       <button type="submit" class="btn btn-primary">Preview &amp; confirm &rarr;</button>
     </div>
   </form>
+
+  <!-- Save as template -->
+  <div style="margin-top:1.5rem;padding-top:1.25rem;border-top:1px solid var(--border)">
+    <p style="margin:0 0 .75rem;font-size:.85rem;color:var(--text-muted)">Save the current subject &amp; message as a reusable template:</p>
+    <form method="POST" action="<?= $b ?>/admin/saved-emails/save" id="me-save-tpl-form"
+          style="display:flex;align-items:center;gap:.5rem;flex-wrap:wrap">
+      <input type="hidden" name="_csrf"       value="<?= View::e($csrf_token ?? '') ?>">
+      <input type="hidden" name="referer"     value="<?= View::e($b . '/admin/mass-email') ?>">
+      <input type="hidden" name="tpl_subject" id="me-save-subject">
+      <input type="hidden" name="tpl_body"    id="me-save-body">
+      <input type="text"   name="tpl_name"    id="me-save-name"
+             class="neb-input" placeholder="Template name&hellip;" style="flex:1;min-width:160px" maxlength="150">
+      <button type="submit" class="btn btn-secondary btn-sm" id="me-save-btn">Save template</button>
+    </form>
+  </div>
 </div>
+
+<script>
+(function () {
+  /* Load template into compose fields */
+  var tplSel = document.getElementById('me-tpl-select');
+  if (tplSel) {
+    tplSel.addEventListener('change', function () {
+      var opt = this.options[this.selectedIndex];
+      if (!opt.value) return;
+      var subj = document.getElementById('me-subject');
+      var body = document.getElementById('me-body');
+      if (subj) subj.value = opt.value;
+      if (body) body.value = opt.dataset.body || '';
+    });
+  }
+
+  /* Save template — copy current field values into hidden inputs before submit */
+  var saveForm = document.getElementById('me-save-tpl-form');
+  if (saveForm) {
+    saveForm.addEventListener('submit', function () {
+      var subj = document.getElementById('me-subject');
+      var body = document.getElementById('me-body');
+      document.getElementById('me-save-subject').value = subj ? subj.value : '';
+      document.getElementById('me-save-body').value    = body ? body.value : '';
+    });
+  }
+})();
+</script>

@@ -103,23 +103,45 @@ if ($displayMode === 'category') {
   </form>
   <div class="neb-actions">
     <a href="<?= $b ?>/admin/joined/add" class="btn btn-primary btn-sm">+ Add Joined FL</a>
-    <a href="<?= $b ?>/admin/joined/settings" class="btn btn-secondary btn-sm">Settings</a>
+    <a href="<?= $b ?>/admin/joined/settings" class="btn btn-secondary btn-sm">Display Settings</a>
   </div>
 </div>
 
 <?php if (empty($joined)): ?>
   <div class="neb-card">
-    <p class="neb-empty">No joined listings found<?= ($search ?? '') !== '' || ($filter_network ?? '') !== '' ? ' matching your filters' : '' ?>.</p>
+    <div class="neb-empty">
+      <svg class="empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+      <?php if (($search ?? '') !== '' || ($filter_network ?? '') !== '' || ($filter_cat ?? '') !== ''): ?>
+        No joined listings match those filters.
+        <a href="<?= $b ?>/admin/joined" class="btn btn-secondary btn-sm">Clear Filters</a>
+      <?php else: ?>
+        No joined listings yet.
+        <a href="<?= $b ?>/admin/joined/add" class="btn btn-primary btn-sm">+ Add a Listing</a>
+      <?php endif; ?>
+    </div>
   </div>
 <?php else: ?>
 
 <form method="POST" action="<?= $b ?>/admin/joined/bulk" id="bulk-form">
   <input type="hidden" name="_csrf" value="<?= \Luster\Core\View::e($csrf_token ?? '') ?>">
 
+  <!-- Bulk action bar -->
+  <div class="neb-bulk">
+    <label for="bulk-action-sel">Bulk action:</label>
+    <div class="toolbar-select-wrap">
+    <select id="bulk-action-sel" name="bulk_action" class="neb-select">
+      <option value="approve">Approve</option>
+      <option value="pending">Set Pending</option>
+      <option value="delete">Delete</option>
+    </select>
+    </div>
+    <button type="submit" class="btn btn-secondary btn-sm">Apply to selected</button>
+  </div>
+
   <?php $loop = 0; $firstGroup = true; foreach ($grouped as $catName => $items): ?>
   <div class="neb-card" style="margin-bottom:1.25rem">
     <div class="neb-card-header"><?= \Luster\Core\View::e($catName) ?> (<?= count($items) ?>)</div>
-    <table class="data-table">
+    <table class="data-table mem-table">
       <thead>
         <tr>
           <th class="cb-col"><input type="checkbox" <?= $firstGroup ? 'id="sel-all"' : '' ?> title="Select all"><?php $firstGroup = false; ?></th>
@@ -135,8 +157,8 @@ if ($displayMode === 'category') {
       <tbody>
         <?php foreach ($items as $jf): $loop++; ?>
         <tr>
-          <td class="cb-col"><input type="checkbox" name="ids[]" value="<?= (int) $jf->id ?>"></td>
-          <td>
+          <td class="cb-col" data-label=""><input type="checkbox" name="ids[]" value="<?= (int) $jf->id ?>"></td>
+          <td data-label="Image">
             <?php if ($jf->image !== null && $jf->image !== ''): ?>
               <img src="<?= $b ?>/uploads/joined/<?= \Luster\Core\View::e($jf->image) ?>"
                    alt="" class="fl-image" style="max-height:50px">
@@ -144,12 +166,12 @@ if ($displayMode === 'category') {
               <span class="text-dim">&mdash;</span>
             <?php endif; ?>
           </td>
-          <td class="text-dim"><?= $loop ?></td>
-          <td>
+          <td class="text-dim" data-label=""><?= $loop ?></td>
+          <td data-label="Subject">
             <a href="<?= \Luster\Core\View::e($jf->url) ?>" target="_blank" rel="noopener noreferrer"
                class="neb-link"><?= \Luster\Core\View::e($jf->name) ?></a>
           </td>
-          <td class="text-muted">
+          <td class="text-muted" data-label="Category">
             <?php
               $cats = ($jf->categoriesJson !== null && $jf->categoriesJson !== '')
                 ? json_decode($jf->categoriesJson, true)
@@ -169,21 +191,21 @@ if ($displayMode === 'category') {
               <span class="text-dim">&mdash;</span>
             <?php endif; ?>
           </td>
-          <td class="text-muted">
+          <td class="text-muted" data-label="Date">
             <?= $jf->dateJoined !== null ? \Luster\Core\View::e($jf->dateJoined) : '<span class="text-dim">&mdash;</span>' ?>
           </td>
-          <td>
+          <td data-label="Status">
             <?php $statusVal = $jf->status ?? 'joined'; ?>
             <span class="neb-badge <?= $statusVal === 'pending' ? 'badge-pending' : 'badge-current' ?>">
               <?= $statusVal === 'pending' ? 'Pending' : 'Joined' ?>
             </span>
           </td>
-          <td class="act-col">
+          <td class="act-col" data-label="">
             <a href="<?= $b ?>/admin/joined/<?= (int) $jf->id ?>/edit"
                class="btn btn-primary btn-sm">Edit</a>
             <form method="POST"
                   action="<?= $b ?>/admin/joined/<?= (int) $jf->id ?>/delete"
-                  style="display:inline"
+                  style="display:contents"
                   data-confirm="Delete this joined listing?">
               <input type="hidden" name="_csrf" value="<?= \Luster\Core\View::e($csrf_token ?? '') ?>">
               <button type="submit" class="btn btn-danger btn-sm">Delete</button>
@@ -196,20 +218,6 @@ if ($displayMode === 'category') {
   </div>
   <?php endforeach; ?>
 
-  <!-- Bulk action bar -->
-  <div class="neb-card" style="overflow:visible">
-    <div class="neb-bulk">
-      <label for="bulk-action-sel">Bulk action:</label>
-      <div class="toolbar-select-wrap">
-      <select id="bulk-action-sel" name="bulk_action" class="neb-select">
-        <option value="approve">Approve</option>
-        <option value="pending">Set Pending</option>
-        <option value="delete">Delete</option>
-      </select>
-      </div>
-      <button type="submit" class="btn btn-secondary btn-sm">Apply to selected</button>
-    </div>
-  </div>
 
 </form>
 <?php endif; ?>

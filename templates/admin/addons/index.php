@@ -21,10 +21,10 @@ $b = rtrim(\Luster\Core\View::e($base_url), '/');
 
 <?php if (empty($discovered)): ?>
   <div class="neb-card">
-    <p class="neb-empty">
-      No add-ons found. Place add-on directories inside
-      <code>src/Addons/</code> to make them appear here.
-    </p>
+    <div class="neb-empty">
+      <svg class="empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
+      No add-ons found. Place add-on directories inside <code>src/Addons/</code> to make them appear here.
+    </div>
   </div>
 <?php else: ?>
   <div class="addon-grid">

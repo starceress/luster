@@ -1,9 +1,9 @@
 <?php
 /** @var \Luster\Models\Listing    $listing */
-/** @var bool                         $auto_approve */
 /** @var string                       $error */
 /** @var string                       $success */
 /** @var array                        $old */
+/** @var array                        $field_errors */
 /** @var array                        $cfg */
 /** @var string|null                  $current_image */
 /** @var int                          $approved */
@@ -15,7 +15,8 @@
 /** @var int|null                     $current_category_id */
 /** @var string                       $base_url */
 /** @var string                       $csrf_token */
-$b = rtrim(\Luster\Core\View::e($base_url), '/');
+$b  = rtrim(\Luster\Core\View::e($base_url), '/');
+$fe = $field_errors ?? [];
 
 $sizeMap   = ['small' => '50px', 'medium' => '100px', 'large' => '150px'];
 $sizeKey   = (string) ($cfg['image_preview_size'] ?? 'medium');
@@ -113,171 +114,175 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
 
 <!-- ═══ TAB: GENERAL ═══ -->
 <div id="tab-general" class="neb-tab-panel active">
-<div class="form-card">
-  <form method="POST" action="<?= $b ?>/admin/listings/<?= (int) $listing->id ?>/edit" enctype="multipart/form-data">
+  <form method="POST" action="<?= $b ?>/admin/listings/<?= (int) $listing->id ?>/edit" enctype="multipart/form-data" class="js-warn-unsaved">
     <input type="hidden" name="_csrf" value="<?= \Luster\Core\View::e($csrf_token ?? '') ?>">
 
-    <div class="form-group">
-      <label class="form-label">Category</label>
-      <div class="cat-widget" id="cat-widget"
-           data-tfl='<?= $dataTfl ?>'
-           data-tafl='<?= $dataTafl ?>'
-           data-custom='<?= $dataCustom ?>'
-           data-existing='<?= $dataExisting ?>'>
-        <div id="cat-rows"></div>
-        <a href="#" class="neb-link" id="cat-add" style="font-size:0.8125rem;display:inline-block;margin-top:0.4rem">+ Add another category</a>
-      </div>
-      <p class="form-hint">Assign to one or more networks (TFL, TAFL, custom).</p>
-    </div>
+    <div class="edit-layout">
 
-    <div class="form-group">
-      <label class="form-label" for="fl-subject">Subject</label>
-      <input id="fl-subject" type="text" name="subject" class="form-input"
-             value="<?= \Luster\Core\View::e($listing->subject ?? '') ?>" maxlength="255">
-    </div>
+      <!-- ── Left: identity / content ──────────────────────────── -->
+      <div class="form-card">
 
-    <div class="form-group">
-      <label class="form-label" for="fl-title">Title</label>
-      <input id="fl-title" type="text" name="title" class="form-input"
-             value="<?= \Luster\Core\View::e((string) $oldTitle) ?>"
-             maxlength="255" required>
-    </div>
-
-    <div class="form-group">
-      <label class="form-label" for="fl-url">Website URL</label>
-      <input id="fl-url" type="url" name="url" class="form-input"
-             value="<?= \Luster\Core\View::e((string) $oldUrl) ?>"
-             maxlength="500" placeholder="https://example.com" required>
-    </div>
-
-    <div class="form-group">
-      <label class="form-label" for="fl-email">Contact Email</label>
-      <input id="fl-email" type="email" name="email" class="form-input"
-             value="<?= \Luster\Core\View::e((string) $oldEmail) ?>"
-             maxlength="255" required>
-    </div>
-
-    <div class="form-group">
-      <label class="form-label">Status</label>
-      <div style="display:flex;gap:1.5rem;margin-top:0.35rem">
-        <label class="form-check">
-          <input type="radio" name="status" value="current" <?= $oldStatus === 'current'  ? 'checked' : '' ?>>
-          <span class="form-check-label">Current</span>
-        </label>
-        <label class="form-check">
-          <input type="radio" name="status" value="upcoming" <?= $oldStatus === 'upcoming' ? 'checked' : '' ?>>
-          <span class="form-check-label">Upcoming</span>
-        </label>
-        <label class="form-check">
-          <input type="radio" name="status" value="pending" <?= $oldStatus === 'pending'  ? 'checked' : '' ?>>
-          <span class="form-check-label">Pending</span>
-        </label>
-      </div>
-    </div>
-
-    <div class="form-group">
-      <label class="form-label" for="fl-opened">Opened On</label>
-      <input id="fl-opened" type="date" name="opened" class="form-input" style="max-width:200px"
-             value="<?= \Luster\Core\View::e(strlen((string) ($listing->opened ?? '')) >= 10 ? substr((string) $listing->opened, 0, 10) : '') ?>">
-    </div>
-
-    <div class="section-divider">Luster Settings</div>
-
-    <div class="form-group">
-      <label class="form-check">
-        <input id="auto-approve" type="checkbox" name="auto_approve" value="1"
-               <?= $auto_approve ? 'checked' : '' ?>>
-        <span class="form-check-label">Auto-approve new join requests</span>
-      </label>
-      <p class="form-hint" style="margin-top:0.35rem">
-        When enabled, members are approved immediately on join (no admin review).
-        Requires <code>migrate.php</code> to have been run.
-      </p>
-    </div>
-
-    <div class="form-group">
-      <label class="form-label" for="fl-listing-type">Listing Type</label>
-      <?php $lt = $listing_type ?? 'listing'; ?>
-      <div class="select-wrap">
-        <select id="fl-listing-type" name="listing_type" class="form-select">
-          <option value="listing"  <?= $lt === 'listing'  ? 'selected' : '' ?>>Listing</option>
-          <option value="clique"      <?= $lt === 'clique'      ? 'selected' : '' ?>>Clique</option>
-          <option value="collective"  <?= $lt === 'collective'  ? 'selected' : '' ?>>Collective</option>
-          <option value="shrine"      <?= $lt === 'shrine'      ? 'selected' : '' ?>>Shrine</option>
-          <option value="webring"     <?= $lt === 'webring'     ? 'selected' : '' ?>>Webring</option>
-          <option value="other"       <?= $lt === 'other'       ? 'selected' : '' ?>>Other</option>
-        </select>
-      </div>
-    </div>
-
-    <div class="form-group">
-      <label class="form-label" for="fl-members-per-page">Members Per Page</label>
-      <input id="fl-members-per-page" type="number" name="members_per_page" class="form-input"
-             min="5" max="200" style="max-width:120px"
-             value="<?= (int) ($members_per_page ?? 25) ?>">
-      <p class="form-hint">How many members to show per page in the admin panel (5–200).</p>
-    </div>
-
-    <div class="form-group">
-      <label class="form-label" for="fl-last-updated">Last Updated Date</label>
-      <div style="display:flex;align-items:center;gap:0.6rem">
-        <input id="fl-last-updated" type="date" name="fl_last_updated" class="form-input"
-               style="max-width:200px"
-               value="<?= \Luster\Core\View::e($fl_last_updated ?? '') ?>">
-        <button type="button" class="btn btn-secondary btn-sm" id="set-today-btn">
-          Set to today
-        </button>
-        <button type="button" class="btn btn-ghost btn-sm" id="clear-date-btn">
-          Clear
-        </button>
-      </div>
-      <p class="form-hint" style="margin-top:0.35rem">
-        The date this listing was last actively maintained.
-        Auto-updated when members are approved or affiliates are changed.
-        Drives the staleness check on the dashboard.
-      </p>
-    </div>
-
-    <div class="section-divider">Listing Image</div>
-
-    <div class="form-group">
-      <?php if (isset($current_image) && $current_image !== null && $current_image !== ''): ?>
-        <div style="margin-bottom:0.6rem">
-          <img src="<?= $b ?>/uploads/listings/<?= \Luster\Core\View::e($current_image) ?>"
-               alt="Current listing image"
-               style="max-height:<?= \Luster\Core\View::e($imgHeight) ?>;width:auto;display:block;border-radius:6px;border:1px solid var(--border)">
+        <div class="form-group">
+          <label class="form-label">Category</label>
+          <div class="cat-widget" id="cat-widget"
+               data-tfl='<?= $dataTfl ?>'
+               data-tafl='<?= $dataTafl ?>'
+               data-custom='<?= $dataCustom ?>'
+               data-existing='<?= $dataExisting ?>'>
+            <div id="cat-rows"></div>
+            <a href="#" class="neb-link" id="cat-add" style="font-size:0.8125rem;display:inline-block;margin-top:0.4rem">+ Add another category</a>
+          </div>
+          <p class="form-hint">Assign to one or more networks (TFL, TAFL, custom).</p>
         </div>
-        <label class="form-check" style="margin-bottom:0.6rem">
-          <input type="checkbox" id="fl-delete-image" name="delete_image" value="1">
-          <span class="form-check-label">Delete current image</span>
-        </label>
-        <label class="form-label" for="fl-image">Replace with new image</label>
-      <?php else: ?>
-        <label class="form-label" for="fl-image">Upload image</label>
-      <?php endif; ?>
-      <input type="file" id="fl-image" name="image" accept="image/*">
-      <p class="form-hint" style="margin-top:0.35rem">JPEG, PNG, GIF, or WebP. Max 2 MB. Leave empty to keep the current image.</p>
-    </div>
 
-    <div class="section-divider">Database</div>
+        <div class="form-group">
+          <label class="form-label" for="fl-subject">Subject</label>
+          <input id="fl-subject" type="text" name="subject" class="form-input"
+                 value="<?= \Luster\Core\View::e($listing->subject ?? '') ?>" maxlength="255">
+        </div>
 
-    <div class="form-group">
-      <label class="form-label">Listing ID#</label>
-      <div style="display:flex;align-items:center;gap:0.75rem">
-        <input type="text" class="form-input" value="<?= \Luster\Core\View::e($listing->dbprefix) ?>"
-               readonly style="color:var(--text-dim);cursor:not-allowed;flex:1">
-        <a href="<?= $b ?>/admin/listings/<?= (int) $listing->id ?>/edit-prefix"
-           class="btn btn-secondary btn-sm" style="white-space:nowrap">Edit Prefix</a>
-      </div>
-      <p class="form-hint">The member table name in your database.</p>
-    </div>
+        <div class="form-group<?= !empty($fe['title']) ? ' has-error' : '' ?>">
+          <label class="form-label" for="fl-title">Title</label>
+          <input id="fl-title" type="text" name="title" class="form-input"
+                 value="<?= \Luster\Core\View::e((string) $oldTitle) ?>"
+                 maxlength="255" required>
+          <?php if (!empty($fe['title'])): ?><p class="field-error"><?= \Luster\Core\View::e($fe['title'][0]) ?></p><?php endif; ?>
+        </div>
+
+        <div class="form-group<?= !empty($fe['url']) ? ' has-error' : '' ?>">
+          <label class="form-label" for="fl-url">Website URL</label>
+          <input id="fl-url" type="url" name="url" class="form-input"
+                 value="<?= \Luster\Core\View::e((string) $oldUrl) ?>"
+                 maxlength="500" placeholder="https://example.com" required>
+          <?php if (!empty($fe['url'])): ?><p class="field-error"><?= \Luster\Core\View::e($fe['url'][0]) ?></p><?php endif; ?>
+        </div>
+
+        <div class="form-group<?= !empty($fe['email']) ? ' has-error' : '' ?>">
+          <label class="form-label" for="fl-email">Contact Email</label>
+          <input id="fl-email" type="email" name="email" class="form-input"
+                 value="<?= \Luster\Core\View::e((string) $oldEmail) ?>"
+                 maxlength="255" required>
+          <?php if (!empty($fe['email'])): ?><p class="field-error"><?= \Luster\Core\View::e($fe['email'][0]) ?></p><?php endif; ?>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Status</label>
+          <div style="display:flex;gap:1.5rem;margin-top:0.35rem">
+            <label class="form-check">
+              <input type="radio" name="status" value="current" <?= $oldStatus === 'current'  ? 'checked' : '' ?>>
+              <span class="form-check-label">Current</span>
+            </label>
+            <label class="form-check">
+              <input type="radio" name="status" value="upcoming" <?= $oldStatus === 'upcoming' ? 'checked' : '' ?>>
+              <span class="form-check-label">Upcoming</span>
+            </label>
+            <label class="form-check">
+              <input type="radio" name="status" value="pending" <?= $oldStatus === 'pending'  ? 'checked' : '' ?>>
+              <span class="form-check-label">Pending</span>
+            </label>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="fl-opened">Opened On</label>
+          <input id="fl-opened" type="date" name="opened" class="form-input" style="max-width:200px"
+                 value="<?= \Luster\Core\View::e(strlen((string) ($listing->opened ?? '')) >= 10 ? substr((string) $listing->opened, 0, 10) : '') ?>">
+        </div>
+
+        <div class="section-divider">Listing Image</div>
+
+        <div class="form-group" style="margin-bottom:0">
+          <?php if (isset($current_image) && $current_image !== null && $current_image !== ''): ?>
+            <div style="margin-bottom:0.6rem">
+              <img src="<?= $b ?>/uploads/listings/<?= \Luster\Core\View::e($current_image) ?>"
+                   alt="Current listing image"
+                   style="max-height:<?= \Luster\Core\View::e($imgHeight) ?>;width:auto;display:block;border-radius:6px;border:1px solid var(--border)">
+            </div>
+            <label class="form-check" style="margin-bottom:0.6rem">
+              <input type="checkbox" id="fl-delete-image" name="delete_image" value="1">
+              <span class="form-check-label">Delete current image</span>
+            </label>
+            <label class="form-label" for="fl-image">Replace with new image</label>
+          <?php else: ?>
+            <label class="form-label" for="fl-image">Upload image</label>
+          <?php endif; ?>
+          <input type="file" id="fl-image" name="image" accept="image/*">
+          <p class="form-hint" style="margin-top:0.35rem">JPEG, PNG, GIF, or WebP. Max 2 MB.</p>
+        </div>
+
+      </div><!-- /.form-card (main) -->
+
+      <!-- ── Right: behaviour / settings panel ─────────────────── -->
+      <div class="edit-panel">
+
+        <div class="edit-panel-section">
+          <div class="edit-panel-label">Behaviour</div>
+
+          <div class="form-group">
+            <label class="form-label" for="fl-listing-type">Type</label>
+            <?php $lt = $listing_type ?? 'listing'; ?>
+            <div class="select-wrap">
+              <select id="fl-listing-type" name="listing_type" class="form-select">
+                <option value="listing"    <?= $lt === 'listing'    ? 'selected' : '' ?>>Listing</option>
+                <option value="clique"     <?= $lt === 'clique'     ? 'selected' : '' ?>>Clique</option>
+                <option value="collective" <?= $lt === 'collective' ? 'selected' : '' ?>>Collective</option>
+                <option value="shrine"     <?= $lt === 'shrine'     ? 'selected' : '' ?>>Shrine</option>
+                <option value="webring"    <?= $lt === 'webring'    ? 'selected' : '' ?>>Webring</option>
+                <option value="other"      <?= $lt === 'other'      ? 'selected' : '' ?>>Other</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="fl-members-per-page">Members per page</label>
+            <input id="fl-members-per-page" type="number" name="members_per_page" class="form-input"
+                   min="5" max="200"
+                   value="<?= (int) ($members_per_page ?? 25) ?>">
+            <p class="form-hint">Admin list view (5–200).</p>
+          </div>
+        </div><!-- /.edit-panel-section -->
+
+        <div class="edit-panel-section">
+          <div class="edit-panel-label">Maintenance</div>
+
+          <div class="form-group">
+            <label class="form-label" for="fl-last-updated">Last Updated</label>
+            <input id="fl-last-updated" type="date" name="fl_last_updated" class="form-input"
+                   value="<?= \Luster\Core\View::e($fl_last_updated ?? '') ?>">
+            <div style="display:flex;gap:0.5rem;margin-top:0.4rem">
+              <button type="button" class="btn btn-secondary btn-sm" id="set-today-btn">Today</button>
+              <button type="button" class="btn btn-ghost btn-sm" id="clear-date-btn">Clear</button>
+            </div>
+            <p class="form-hint" style="margin-top:0.4rem">Drives the staleness check on the dashboard.</p>
+          </div>
+        </div><!-- /.edit-panel-section -->
+
+        <div class="edit-panel-section">
+          <div class="edit-panel-label">Advanced</div>
+
+          <details class="form-details">
+            <summary>Table Prefix</summary>
+            <div class="form-details-body">
+              <div style="display:flex;align-items:center;gap:0.5rem">
+                <input type="text" class="form-input" value="<?= \Luster\Core\View::e($listing->dbprefix) ?>"
+                       readonly style="color:var(--text-dim);cursor:not-allowed;font-family:'DM Mono',monospace;font-size:0.8rem;flex:1;min-width:0">
+                <a href="<?= $b ?>/admin/listings/<?= (int) $listing->id ?>/edit-prefix"
+                   class="btn btn-secondary btn-sm" style="white-space:nowrap;flex-shrink:0">Edit</a>
+              </div>
+              <p class="form-hint" style="margin-top:0.35rem">The member table name in your database. Most users never need to change this.</p>
+            </div>
+          </details>
+        </div><!-- /.edit-panel-section -->
+
+      </div><!-- /.edit-panel -->
+
+    </div><!-- /.edit-layout -->
 
     <div class="btn-row">
       <button type="submit" class="btn btn-primary">Save Changes</button>
       <a href="<?= $b ?>/admin/listings" class="btn btn-ghost">Cancel</a>
     </div>
   </form>
-</div>
 </div><!-- /#tab-general -->
 
 <!-- ═══ TAB: TEMPLATES ═══ -->
@@ -296,28 +301,28 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
     <div class="form-group">
       <label class="form-label" for="members_template">Members List</label>
       <p class="form-hint" style="font-family:'DM Mono',monospace;margin-bottom:0.5rem;line-height:1.8">
-        $$fan_name$$ &bull; $$fan_email$$ &bull; $$fan_url$$ &bull; $$fan_country$$
+        {fan_name} &bull; {fan_email} &bull; {fan_url} &bull; {fan_country}
       </p>
       <textarea id="members_template" name="members_template" class="form-textarea" rows="8"
-                style="font-family:'DM Mono',monospace;font-size:0.8125rem"><?= \Luster\Core\View::e($templates['members_template'] ?? '<li class="fl-member"><a class="fl-link" href="$$fan_url$$">$$fan_name$$</a> <span class="fl-muted">— $$fan_country$$</span></li>') ?></textarea>
+                style="font-family:'DM Mono',monospace;font-size:0.8125rem"><?= \Luster\Core\View::e($templates['members_template'] ?? '<li class="fl-member"><a class="fl-link" href="{fan_url}">{fan_name}</a> <span class="fl-muted">— {fan_country}</span></li>') ?></textarea>
     </div>
 
     <div class="form-group">
       <label class="form-label" for="affiliates_template">Affiliates</label>
       <p class="form-hint" style="font-family:'DM Mono',monospace;margin-bottom:0.5rem;line-height:1.8">
-        $$aff_url$$ &bull; $$aff_image$$ &bull; $$aff_name$$
+        {aff_url} &bull; {aff_image} &bull; {aff_name}
       </p>
       <textarea id="affiliates_template" name="affiliates_template" class="form-textarea" rows="8"
-                style="font-family:'DM Mono',monospace;font-size:0.8125rem"><?= \Luster\Core\View::e($templates['affiliates_template'] ?? '<li class="fl-affiliate"><a class="fl-affiliate-link" href="$$aff_url$$" target="_blank" rel="noopener noreferrer">$$aff_image$$$$aff_name$$</a></li>') ?></textarea>
+                style="font-family:'DM Mono',monospace;font-size:0.8125rem"><?= \Luster\Core\View::e($templates['affiliates_template'] ?? '<li class="fl-affiliate"><a class="fl-affiliate-link" href="{aff_url}" target="_blank" rel="noopener noreferrer">{aff_image}{aff_name}</a></li>') ?></textarea>
     </div>
 
     <div class="form-group">
       <label class="form-label" for="stats_template">Statistics</label>
       <p class="form-hint" style="font-family:'DM Mono',monospace;margin-bottom:0.5rem;line-height:1.8">
-        $$stat_opened$$ &bull; $$stat_updated$$ &bull; $$stat_last_updated$$ &bull; $$stat_approved$$ &bull; $$stat_pending$$ &bull; $$stat_newmembers$$ &bull; $$stat_growth$$
+        {stat_opened} &bull; {stat_updated} &bull; {stat_last_updated} &bull; {stat_approved} &bull; {stat_pending} &bull; {stat_newmembers} &bull; {stat_growth}
       </p>
       <textarea id="stats_template" name="stats_template" class="form-textarea" rows="8"
-                style="font-family:'DM Mono',monospace;font-size:0.8125rem"><?= \Luster\Core\View::e($templates['stats_template'] ?? '<p>Opened: $$stat_opened$$<br>Last updated: $$stat_updated$$<br>Members: $$stat_approved$$ ($$stat_pending$$ pending)<br>Newest: $$stat_newmembers$$</p>') ?></textarea>
+                style="font-family:'DM Mono',monospace;font-size:0.8125rem"><?= \Luster\Core\View::e($templates['stats_template'] ?? '<p>Opened: {stat_opened}<br>Last updated: {stat_updated}<br>Members: {stat_approved} ({stat_pending} pending)<br>Newest: {stat_newmembers}</p>') ?></textarea>
     </div>
 
     <div class="btn-row">
@@ -520,6 +525,16 @@ $embedSettings  = $embed_settings ?? [];
 $installPath    = rtrim((string) ($cfg['install_path']   ?? ''), '/');
 $embedBaseUrl   = rtrim((string) ($cfg['embed_base_url'] ?? ''), '/') ?: rtrim((string) ($cfg['site_url'] ?? ''), '/');
 ?>
+
+<div class="neb-toolbar" style="margin-bottom:1rem">
+  <div></div>
+  <div class="neb-actions">
+    <a href="<?= $b ?>/admin/embed-codes?listing=<?= (int) $listing->id ?>" class="btn btn-ghost btn-sm">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="13" height="13"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+      Display Codes for this listing &rarr;
+    </a>
+  </div>
+</div>
 
 <div class="form-card">
   <form method="POST" action="<?= $b ?>/admin/listings/<?= (int) $listing->id ?>/embed">

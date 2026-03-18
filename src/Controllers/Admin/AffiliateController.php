@@ -154,9 +154,10 @@ final class AffiliateController
 
             if ($v->fails()) {
                 return $this->layout('admin/affiliates/form.php', [
-                    'listings'  => $listings,
+                    'listings'     => $listings,
                     'affiliate'    => null,
                     'error'        => implode(' ', $v->allErrors()),
+                    'field_errors' => $v->errors(),
                     'old'          => $request->postAll(),
                     'context_fid'  => $postContextFid,
                     'site_name'    => $siteName,
@@ -265,12 +266,13 @@ final class AffiliateController
 
             if ($v->fails()) {
                 return $this->layout('admin/affiliates/form.php', [
-                    'listings' => $listings,
-                    'affiliate'   => $affiliate,
-                    'error'       => implode(' ', $v->allErrors()),
-                    'old'         => $request->postAll(),
-                    'context_fid' => $fromFl,
-                    'site_name'   => $siteName,
+                    'listings'     => $listings,
+                    'affiliate'    => $affiliate,
+                    'error'        => implode(' ', $v->allErrors()),
+                    'field_errors' => $v->errors(),
+                    'old'          => $request->postAll(),
+                    'context_fid'  => $fromFl,
+                    'site_name'    => $siteName,
                 ], 'Edit Affiliate', 'affiliates');
             }
 
@@ -393,7 +395,7 @@ final class AffiliateController
             'csrf_token' => $csrfToken,
         ]));
 
-        return Response::html($view->render('admin/layout.php', [
+        return Response::html($view->render('admin/layout.php', array_merge([
             'page_title'      => $pageTitle,
             'site_name'       => (string) $config->get('site_name', 'Luster'),
             'admin_username'  => (string) $session->get('lstr_admin_username', ''),
@@ -401,6 +403,6 @@ final class AffiliateController
             'current_section' => $section,
             'base_url'        => $baseUrl,
             'content'         => $inner,
-        ]));
+        ], $this->app->getAdminNavData())));
     }
 }

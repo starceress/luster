@@ -125,10 +125,10 @@ final class AffiliatesController
      * Applies a per-affiliate row template to a list of affiliates and returns
      * the concatenated HTML string. Each row replaces these tokens:
      *
-     *   $aff_name$      — affiliate name (HTML-escaped)
-     *   $aff_url$       — affiliate URL (HTML-escaped)
-     *   $aff_image$     — image filename only (HTML-escaped), or empty string
-     *   $aff_image_url$ — full src-ready URL including uploads path (HTML-escaped)
+     *   {aff_name}      — affiliate name (HTML-escaped)
+     *   {aff_url}       — affiliate URL (HTML-escaped)
+     *   {aff_image}     — image filename only (HTML-escaped), or empty string
+     *   {aff_image_url} — full src-ready URL including uploads path (HTML-escaped)
      *
      * @param Affiliate[] $affiliates
      */
@@ -142,7 +142,7 @@ final class AffiliatesController
                 : '';
 
             $rows[] = str_replace(
-                ['$aff_name$', '$aff_url$', '$aff_image$', '$aff_image_url$'],
+                ['{aff_name}', '{aff_url}', '{aff_image}', '{aff_image_url}'],
                 [
                     htmlspecialchars($affiliate->name,         ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),
                     htmlspecialchars($affiliate->url,          ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),

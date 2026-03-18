@@ -53,13 +53,43 @@ if (!function_exists('dashTimeAgo')) {
   <div class="welcome-datetime" id="live-datetime"></div>
   <div class="welcome-title">Welcome back, <?= \Luster\Core\View::e($admin_username) ?>!</div>
   <div class="welcome-sub">
-    Your collective, <strong><?= \Luster\Core\View::e($site_name) ?></strong>, is shining today &mdash; here&rsquo;s what&rsquo;s happening.
+    <?php if ($total_pending > 0 || !empty($stale_listings)): ?>
+      <?php
+        $parts = [];
+        if ($total_pending > 0) {
+            $parts[] = (int) $total_pending . ' pending member' . ($total_pending !== 1 ? 's' : '');
+        }
+        if (!empty($stale_listings)) {
+            $n = count($stale_listings);
+            $parts[] = $n . ' neglected listing' . ($n !== 1 ? 's' : '');
+        }
+      ?>
+      You have <?= implode(' and ', $parts) ?><?= count($parts) === 1 ? ' that needs' : ' that need' ?> attention.
+    <?php else: ?>
+      Everything is up to date &mdash; <?= number_format((int) $total_members) ?> member<?= $total_members !== 1 ? 's' : '' ?> across <?= (int) $total_listings ?> listing<?= $total_listings !== 1 ? 's' : '' ?>.
+    <?php endif; ?>
   </div>
+</div>
+
+<!-- ── Quick actions ───────────────────────────────────────────── -->
+<div class="quick-actions">
+  <span class="quick-actions-label">Quick Actions</span>
+  <a href="<?= $b ?>/admin/listings/create" class="quick-action-btn">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+    Add Listing
+  </a>
+  <a href="<?= $b ?>/admin/joined/create" class="quick-action-btn">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+    Add Joined FL
+  </a>
+  <a href="<?= $b ?>/admin/members/export-pending" class="quick-action-btn">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+    Export Members CSV
+  </a>
 </div>
 
 <!-- ── Stat row ────────────────────────────────────────────────── -->
 <div class="stats-grid stats-grid-row">
-
   <div class="stat-card">
     <div class="stat-header">
       <span class="stat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01z"/></svg></span>
@@ -81,7 +111,7 @@ if (!function_exists('dashTimeAgo')) {
 
   <div class="stat-card">
     <div class="stat-header">
-      <span class="stat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg></span>
+      <span class="stat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></span>
       <span class="stat-label">Joined</span>
     </div>
     <div class="stat-value"><?= (int) $total_joined ?></div>
@@ -98,19 +128,12 @@ if (!function_exists('dashTimeAgo')) {
     </div>
   </div>
 
-  <div class="stat-card stat-card-green">
+  <div class="stat-card">
     <div class="stat-header">
       <span class="stat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span>
       <span class="stat-label">Total Members</span>
     </div>
-    <div class="stat-value">
-      <div><?= number_format((int) $total_members) ?> total</div>
-      <?php if ($total_pending > 0): ?>
-        <a href="<?= $b ?>/admin/members" class="stat-pending-link"><?= (int) $total_pending ?> pending</a>
-      <?php else: ?>
-        <div class="stat-no-pending">No pending</div>
-      <?php endif; ?>
-    </div>
+    <div class="stat-value"><?= number_format((int) $total_members) ?></div>
     <div class="stat-pills"></div>
   </div>
 
@@ -125,137 +148,125 @@ if (!function_exists('dashTimeAgo')) {
         <span class="pill pill-info"><?= (int) $total_affiliates_collective ?> Collective</span>
       <?php endif; ?>
       <?php if ($total_affiliates_per_fl > 0): ?>
-        <span class="pill pill-muted"><?= (int) $total_affiliates_per_fl ?> Per-FL</span>
+        <span class="pill pill-muted"><?= (int) $total_affiliates_per_fl ?> Per FL</span>
       <?php endif; ?>
       <?php if ($total_affiliates === 0): ?>
         <span class="pill pill-muted">None yet</span>
       <?php endif; ?>
     </div>
   </div>
+</div>
 
-</div><!-- /.stats-grid -->
+<!-- ── Pending members banner ──────────────────────────────────── -->
+<?php if ($total_pending > 0): ?>
+<div class="pending-banner">
+  <div class="pending-banner-left">
+    <span class="pending-banner-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="20" height="20"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+    </span>
+    <div>
+      <span class="pending-banner-title">Action required</span>
+      <span class="pending-banner-msg"><?= (int) $total_pending ?> member<?= $total_pending !== 1 ? 's are' : ' is' ?> awaiting approval</span>
+    </div>
+  </div>
+  <a href="<?= $b ?>/admin/members" class="btn btn-primary btn-sm">Review now &rarr;</a>
+</div>
+<?php endif; ?>
+
 
 <!-- ── Staleness warning ──────────────────────────────────────── -->
 <?php if (!empty($stale_listings)): ?>
-<div class="neb-card" style="margin-bottom:1.5rem;border-left:3px solid var(--warn,#f59e0b)">
-  <div style="display:flex;justify-content:space-between;align-items:center;padding:0.85rem 1.25rem;border-bottom:1px solid var(--border)">
-    <div>
-      <span style="font-weight:700;color:var(--text);display:flex;align-items:center;gap:6px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="16" height="16" style="flex-shrink:0;color:var(--warn)"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> Maintenance Needed</span>
-      <span style="font-size:0.8125rem;color:var(--text-dim);margin-left:0.5rem">
-        <?= count($stale_listings) ?> listing<?= count($stale_listings) !== 1 ? 's have' : ' has' ?>
-        not been updated in over <?= (int) $inactive_threshold_days ?> days
+<div class="stale-banner">
+  <div class="stale-banner-head">
+    <div class="pending-banner-left">
+      <span class="stale-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="20" height="20"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
       </span>
+      <div>
+        <span class="pending-banner-title">Maintenance Needed</span>
+        <span class="pending-banner-msg">
+          <?= count($stale_listings) ?> listing<?= count($stale_listings) !== 1 ? 's have' : ' has' ?>
+          not been updated in over <?= (int) $inactive_threshold_days ?> days
+        </span>
+      </div>
     </div>
     <form method="POST" action="<?= $b ?>/admin/maintenance/touch-all-updated"
           data-confirm="Mark all listings as updated today?">
       <input type="hidden" name="_csrf" value="<?= \Luster\Core\View::e($csrf_token ?? '') ?>">
-      <button type="submit" class="btn btn-secondary btn-sm">
-        Update Entire Collective
-      </button>
+      <button type="submit" class="btn btn-warn btn-sm">Update Entire Collective</button>
     </form>
   </div>
-  <div style="padding:0.5rem 0">
-    <?php foreach ($stale_listings as $stalefl): ?>
-    <div style="display:flex;justify-content:space-between;align-items:center;padding:0.5rem 1.25rem">
-      <a href="<?= $b ?>/admin/listings/<?= (int) $stalefl->id ?>/edit"
-         class="neb-link" style="font-size:0.875rem"><?= \Luster\Core\View::e($stalefl->name) ?></a>
-      <span style="font-size:0.75rem;color:var(--text-dim)">Never set or overdue</span>
+  <div class="stale-rows">
+    <?php foreach ($stale_listings as $staleItem): ?>
+    <div class="stale-row">
+      <a href="<?= $b ?>/admin/listings/<?= (int) $staleItem['listing']->id ?>/edit"
+         class="neb-link"><?= \Luster\Core\View::e($staleItem['listing']->name) ?></a>
+      <span class="stale-row-age">
+        <?php if ($staleItem['days_ago'] !== null): ?>
+          Last updated <?= (int) $staleItem['days_ago'] ?> day<?= $staleItem['days_ago'] !== 1 ? 's' : '' ?> ago
+        <?php else: ?>
+          Never updated
+        <?php endif; ?>
+      </span>
     </div>
     <?php endforeach; ?>
   </div>
 </div>
 <?php endif; ?>
 
-<!-- ── Two-column: recent members + recent activity ──────────── -->
-<div class="two-col">
-
-  <!-- Recent Members -->
-  <div class="panel">
-    <div class="panel-header">
-      <div class="panel-title">
-        <svg class="panel-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg> Recent Members
-      </div>
-      <a href="<?= $b ?>/admin/members" class="panel-link">View all &rarr;</a>
-    </div>
-    <?php if (empty($recent_members)): ?>
-      <div class="panel-empty">No members yet.</div>
-    <?php else: ?>
-      <?php foreach ($recent_members as $rm):
-        $m       = $rm['member'];
-        $flName  = (string) $rm['listing_name'];
-      ?>
-      <div class="member-row">
-        <div class="member-info">
-          <div class="member-name"><?= \Luster\Core\View::e($m->name) ?></div>
-          <div class="member-fl"><?= \Luster\Core\View::e($flName) ?></div>
-        </div>
-        <span class="member-status <?= $m->approved ? 'status-approved' : 'status-pending' ?>">
-          <?= $m->approved ? 'Approved' : 'Pending' ?>
-        </span>
-        <div class="member-time"><?= dashTimeAgo((string) $m->added) ?></div>
-      </div>
-      <?php endforeach; ?>
-    <?php endif; ?>
-  </div>
-
-  <!-- Collective Statistics -->
-  <div class="panel">
-    <div class="panel-header">
-      <div class="panel-title">
-        <svg class="panel-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg> Collective Statistics
-      </div>
-    </div>
-
-    <div style="padding:1rem 1.25rem 0.75rem;display:flex;flex-direction:column;gap:10px">
-      <div class="newest-row">
-        <span class="newest-star">✦</span>
-        <span class="newest-label">Categories:</span>
-        <span><?= (int) $total_categories ?></span>
-      </div>
-      <div class="newest-row">
-        <span class="newest-star">✦</span>
-        <span class="newest-label">Joined Listings:</span>
-        <span><?= (int) $total_joined_active ?> approved (<?= (int) $total_joined_inactive ?> pending)</span>
-      </div>
-      <div class="newest-row">
-        <span class="newest-star">✦</span>
-        <span class="newest-label">Owned Listings:</span>
-        <span><?= (int) $fan_current ?> current, <?= (int) $fan_upcoming ?> upcoming, <?= (int) $fan_pending ?> pending</span>
-      </div>
-      <div class="newest-row">
-        <span class="newest-star">✦</span>
-        <span class="newest-label">Affiliates:</span>
-        <span><?= (int) $total_affiliates ?> affiliates</span>
-      </div>
-    </div>
-
-    <div style="padding:0.75rem 1.25rem 1rem;border-top:1px solid var(--border);display:flex;flex-direction:column;gap:10px">
-      <div class="newest-row">
-        <span class="newest-star">✦</span>
-        <span class="newest-label">Newest joined:</span>
-        <?php if ($newest_joined_name !== null): ?>
-          <a href="<?= $b ?>/admin/joined" class="newest-link"><?= \Luster\Core\View::e($newest_joined_name) ?></a>
-          <?php if (!empty($newest_joined_date)): ?>
-            <span class="text-dim">on <?= \Luster\Core\View::e(date('F j, Y', strtotime($newest_joined_date))) ?></span>
-          <?php endif; ?>
-        <?php else: ?>
-          <span class="text-dim">None yet</span>
-        <?php endif; ?>
-      </div>
-      <div class="newest-row">
-        <span class="newest-star">✦</span>
-        <span class="newest-label">Newest owned:</span>
-        <?php if ($newest_owned_name !== null): ?>
-          <a href="<?= $b ?>/admin/listings" class="newest-link"><?= \Luster\Core\View::e($newest_owned_name) ?></a>
-          <?php if (!empty($newest_owned_opened)): ?>
-            <span class="text-dim">on <?= \Luster\Core\View::e(date('F j, Y', strtotime($newest_owned_opened))) ?></span>
-          <?php endif; ?>
-        <?php else: ?>
-          <span class="text-dim">None yet</span>
-        <?php endif; ?>
-      </div>
+<!-- ── Collective Statistics (full-width) ────────────────────── -->
+<div class="panel">
+  <div class="panel-header">
+    <div class="panel-title">
+      <svg class="panel-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg> Collective Statistics
     </div>
   </div>
 
-</div><!-- /.two-col -->
+  <div style="padding:1rem 1.25rem 0.75rem;display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px 2rem">
+    <div class="newest-row">
+      <span class="newest-star">✦</span>
+      <span class="newest-label">Categories:</span>
+      <span><?= (int) $total_categories ?></span>
+    </div>
+    <div class="newest-row">
+      <span class="newest-star">✦</span>
+      <span class="newest-label">Joined Listings:</span>
+      <span><?= (int) $total_joined_active ?> active (<?= (int) $total_joined_inactive ?> inactive)</span>
+    </div>
+    <div class="newest-row">
+      <span class="newest-star">✦</span>
+      <span class="newest-label">Owned Listings:</span>
+      <span><?= (int) $fan_current ?> current, <?= (int) $fan_upcoming ?> upcoming, <?= (int) $fan_pending ?> pending</span>
+    </div>
+    <div class="newest-row">
+      <span class="newest-star">✦</span>
+      <span class="newest-label">Affiliates:</span>
+      <span><?= (int) $total_affiliates ?></span>
+    </div>
+    <div class="newest-row">
+      <span class="newest-star">✦</span>
+      <span class="newest-label">Newest joined:</span>
+      <?php if ($newest_joined_name !== null): ?>
+        <a href="<?= $b ?>/admin/joined" class="newest-link"><?= \Luster\Core\View::e($newest_joined_name) ?></a>
+        <?php if (!empty($newest_joined_date)): ?>
+          <span class="newest-date"><?= \Luster\Core\View::e(date('j M Y', strtotime($newest_joined_date))) ?></span>
+        <?php endif; ?>
+      <?php else: ?>
+        <span class="text-dim">None yet</span>
+      <?php endif; ?>
+    </div>
+    <div class="newest-row">
+      <span class="newest-star">✦</span>
+      <span class="newest-label">Newest owned:</span>
+      <?php if ($newest_owned_name !== null): ?>
+        <a href="<?= $b ?>/admin/listings" class="newest-link"><?= \Luster\Core\View::e($newest_owned_name) ?></a>
+        <?php if (!empty($newest_owned_opened)): ?>
+          <span class="newest-date"><?= \Luster\Core\View::e(date('j M Y', strtotime($newest_owned_opened))) ?></span>
+        <?php endif; ?>
+      <?php else: ?>
+        <span class="text-dim">None yet</span>
+      <?php endif; ?>
+    </div>
+  </div>
+</div>
 

@@ -1,11 +1,16 @@
 <?php
-/** @var array  $cfg     Current config values */
+/** @var array  $cfg          Current config values */
 /** @var string $success */
 /** @var string $error */
+/** @var array  $field_errors */
 /** @var string $base_url */
 /** @var string $csrf_token */
 /** @var \Luster\Models\AdminUser|null $admin_user */
-$b = rtrim(\Luster\Core\View::e($base_url), '/');
+/** @var string $php_version */
+/** @var string $db_version */
+/** @var int    $error_log_count */
+$b  = rtrim(\Luster\Core\View::e($base_url), '/');
+$fe = $field_errors ?? [];
 
 function cfgVal(array $cfg, string $key, $default = ''): string {
     return (string) ($cfg[$key] ?? $default);
@@ -19,42 +24,71 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
   <div class="alert alert-error"><?= \Luster\Core\View::e($error) ?></div>
 <?php endif; ?>
 
-<!-- Tab navigation -->
-<div class="neb-tabs">
-  <button class="neb-tab-btn active" data-tab="profile">Admin Details</button>
-  <button class="neb-tab-btn"        data-tab="general">General</button>
-  <button class="neb-tab-btn"        data-tab="email">Email</button>
-  <button class="neb-tab-btn"        data-tab="embed">Embed &amp; Paths</button>
-  <button class="neb-tab-btn"        data-tab="database">Database &amp; Debug</button>
-  <button class="neb-tab-btn"        data-tab="collective-templates">Collective Templates</button>
-  <button class="neb-tab-btn"        data-tab="blacklist">Blacklist</button>
-</div>
+<div class="settings-layout">
 
+<nav class="settings-nav">
+  <button class="settings-nav-item active" data-tab="profile">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+    Admin Details
+  </button>
+  <button class="settings-nav-item" data-tab="general">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07M8.46 8.46a5 5 0 0 0 0 7.07"/></svg>
+    General
+  </button>
+  <button class="settings-nav-item" data-tab="email">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+    Email
+  </button>
+  <button class="settings-nav-item" data-tab="embed">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+    Embed &amp; Paths
+  </button>
+  <button class="settings-nav-item" data-tab="database">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>
+    Database &amp; Debug
+  </button>
+  <button class="settings-nav-item" data-tab="collective-templates">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+    Collective Templates
+  </button>
+  <button class="settings-nav-item" data-tab="blacklist">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><line x1="9" y1="9" x2="15" y2="15"/><line x1="15" y1="9" x2="9" y2="15"/></svg>
+    Blacklist
+  </button>
+  <button class="settings-nav-item" data-tab="sysinfo">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
+    System Info
+  </button>
+</nav>
+
+<div class="settings-content">
 
 <!-- ── Admin Details ────────────────────────────────────────── -->
   <div id="tab-profile" class="neb-tab-panel active">
-    <form method="POST" action="<?= $b ?>/admin/settings/profile">
+    <form method="POST" action="<?= $b ?>/admin/settings/profile" class="js-warn-unsaved">
       <input type="hidden" name="_csrf" value="<?= \Luster\Core\View::e($csrf_token ?? '') ?>">
       <div class="settings-card">
 
-        <div class="form-group">
+        <div class="form-group<?= !empty($fe['username']) ? ' has-error' : '' ?>">
           <label class="form-label" for="p-username">Username</label>
           <input id="p-username" type="text" name="admin_username" class="form-input"
                  maxlength="50" required
                  value="<?= \Luster\Core\View::e($admin_user->username ?? '') ?>">
+          <?php if (!empty($fe['username'])): ?><p class="field-error"><?= \Luster\Core\View::e($fe['username'][0]) ?></p><?php endif; ?>
         </div>
 
-        <div class="form-group">
+        <div class="form-group<?= !empty($fe['email']) ? ' has-error' : '' ?>">
           <label class="form-label" for="p-email">Email Address</label>
           <input id="p-email" type="email" name="admin_email" class="form-input"
                  maxlength="255" required
                  value="<?= \Luster\Core\View::e($admin_user->email ?? '') ?>">
+          <?php if (!empty($fe['email'])): ?><p class="field-error"><?= \Luster\Core\View::e($fe['email'][0]) ?></p><?php endif; ?>
         </div>
 
         <div class="section-divider"></div>
 
         <div class="form-row">
-          <div class="form-group">
+          <div class="form-group<?= !empty($fe['admin_new_password']) ? ' has-error' : '' ?>">
             <label class="form-label" for="p-new-pass">New Password</label>
             <div class="input-icon-wrap">
               <input id="p-new-pass" type="password" name="admin_new_password" class="form-input"
@@ -66,8 +100,9 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
               </button>
             </div>
             <p class="form-hint">Minimum 8 characters.</p>
+            <?php if (!empty($fe['admin_new_password'])): ?><p class="field-error"><?= \Luster\Core\View::e($fe['admin_new_password'][0]) ?></p><?php endif; ?>
           </div>
-          <div class="form-group">
+          <div class="form-group<?= !empty($fe['admin_confirm_password']) ? ' has-error' : '' ?>">
             <label class="form-label" for="p-confirm-pass">Confirm New Password</label>
             <div class="input-icon-wrap">
               <input id="p-confirm-pass" type="password" name="admin_confirm_password" class="form-input"
@@ -78,6 +113,7 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
                 <svg class="eye-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" style="display:none"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
               </button>
             </div>
+            <?php if (!empty($fe['admin_confirm_password'])): ?><p class="field-error"><?= \Luster\Core\View::e($fe['admin_confirm_password'][0]) ?></p><?php endif; ?>
           </div>
         </div>
 
@@ -141,21 +177,22 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
 
   </div><!-- /#tab-profile -->
 
-  <form method="POST" action="<?= $b ?>/admin/settings">
+  <form method="POST" action="<?= $b ?>/admin/settings" class="js-warn-unsaved">
     <input type="hidden" name="_csrf" value="<?= \Luster\Core\View::e($csrf_token ?? '') ?>">
 
     <!-- ── General ──────────────────────────────────────────────── -->
     <div id="tab-general" class="neb-tab-panel">
       <div class="settings-card">
 
-        <div class="form-group">
+        <div class="form-group<?= !empty($fe['site_name']) ? ' has-error' : '' ?>">
           <label class="form-label" for="s-site-name">Site Name</label>
           <input id="s-site-name" type="text" name="site_name" class="form-input"
                  maxlength="100" required
                  value="<?= \Luster\Core\View::e(cfgVal($cfg, 'site_name', 'Luster')) ?>">
+          <?php if (!empty($fe['site_name'])): ?><p class="field-error"><?= \Luster\Core\View::e($fe['site_name'][0]) ?></p><?php endif; ?>
         </div>
 
-        <div class="form-group">
+        <div class="form-group<?= !empty($fe['site_url']) ? ' has-error' : '' ?>">
           <label class="form-label" for="s-site-url">
             Base URL <em style="font-weight:400;font-size:.75rem">(no trailing slash)</em>
           </label>
@@ -163,6 +200,7 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
                  maxlength="500" required
                  value="<?= \Luster\Core\View::e(cfgVal($cfg, 'site_url')) ?>">
           <p class="form-hint">Example: <code class="neb-code">http://localhost/luster/public</code></p>
+          <?php if (!empty($fe['site_url'])): ?><p class="field-error"><?= \Luster\Core\View::e($fe['site_url'][0]) ?></p><?php endif; ?>
         </div>
 
         <div class="form-row">
@@ -184,18 +222,62 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
 
         <div class="form-group">
           <label class="form-label" for="s-timezone">Timezone</label>
-          <input id="s-timezone" type="text" name="timezone" class="form-input"
-                 maxlength="60" list="tz-list" autocomplete="off"
-                 value="<?= \Luster\Core\View::e(cfgVal($cfg, 'timezone', 'UTC')) ?>">
-          <datalist id="tz-list">
-            <?php foreach (['UTC','America/New_York','America/Chicago','America/Denver','America/Los_Angeles','Europe/London','Europe/Paris','Europe/Berlin','Asia/Tokyo','Australia/Sydney'] as $tz): ?>
-              <option value="<?= \Luster\Core\View::e($tz) ?>">
+          <?php
+            $currentTz = cfgVal($cfg, 'timezone', 'UTC');
+            $commonTz  = [
+                'UTC'        => ['UTC'],
+                'America'    => [
+                    'America/New_York', 'America/Chicago', 'America/Denver',
+                    'America/Los_Angeles', 'America/Anchorage', 'America/Halifax',
+                    'America/Toronto', 'America/Vancouver', 'America/Phoenix',
+                    'America/Mexico_City', 'America/Bogota', 'America/Lima',
+                    'America/Santiago', 'America/Sao_Paulo', 'America/Buenos_Aires',
+                ],
+                'Europe'     => [
+                    'Europe/London', 'Europe/Dublin', 'Europe/Lisbon',
+                    'Europe/Paris', 'Europe/Berlin', 'Europe/Amsterdam',
+                    'Europe/Rome', 'Europe/Madrid', 'Europe/Stockholm',
+                    'Europe/Warsaw', 'Europe/Athens', 'Europe/Helsinki',
+                    'Europe/Istanbul', 'Europe/Moscow',
+                ],
+                'Asia'       => [
+                    'Asia/Dubai', 'Asia/Karachi', 'Asia/Kolkata',
+                    'Asia/Dhaka', 'Asia/Bangkok', 'Asia/Singapore',
+                    'Asia/Hong_Kong', 'Asia/Shanghai', 'Asia/Tokyo',
+                    'Asia/Seoul',
+                ],
+                'Pacific'    => [
+                    'Pacific/Auckland', 'Pacific/Fiji', 'Pacific/Honolulu',
+                ],
+                'Australia'  => [
+                    'Australia/Perth', 'Australia/Adelaide',
+                    'Australia/Sydney', 'Australia/Brisbane',
+                ],
+                'Africa'     => [
+                    'Africa/Cairo', 'Africa/Johannesburg', 'Africa/Lagos',
+                    'Africa/Nairobi',
+                ],
+            ];
+            // If the current timezone isn't in our list, add it under "Other"
+            $allListed = array_merge(...array_values($commonTz));
+            if (!in_array($currentTz, $allListed, true)) {
+                $commonTz['Other'] = [$currentTz];
+            }
+          ?>
+          <div class="select-wrap">
+          <select id="s-timezone" name="timezone" class="form-select">
+            <?php foreach ($commonTz as $group => $tzList): ?>
+              <optgroup label="<?= \Luster\Core\View::e($group) ?>">
+                <?php foreach ($tzList as $tz): ?>
+                  <option value="<?= \Luster\Core\View::e($tz) ?>"<?= $tz === $currentTz ? ' selected' : '' ?>>
+                    <?= \Luster\Core\View::e(str_replace('_', ' ', $tz)) ?>
+                  </option>
+                <?php endforeach; ?>
+              </optgroup>
             <?php endforeach; ?>
-          </datalist>
-          <p class="form-hint">
-            PHP timezone identifier.
-            <a href="https://www.php.net/timezones" target="_blank" rel="noopener" class="neb-link">Full list &rarr;</a>
-          </p>
+          </select>
+          </div>
+          <p class="form-hint">PHP timezone used for all date/time display in the admin panel.</p>
         </div>
 
       </div>
@@ -297,6 +379,13 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
         </div>
 
       </div>
+      <div style="display:flex;align-items:center;gap:.75rem;flex-wrap:wrap;margin-bottom:1rem">
+        <button type="button" class="btn btn-secondary btn-sm" id="smtp-validate-btn">
+          Validate connection
+        </button>
+        <span id="smtp-validate-result" style="font-size:.85rem;display:none"></span>
+      </div>
+
       <div style="display:flex;align-items:center;gap:1rem;flex-wrap:wrap">
         <button type="submit" class="btn btn-primary">Save Settings</button>
         <?php if (cfgVal($cfg, 'smtp_host') !== ''): ?>
@@ -309,6 +398,64 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
         </span>
         <?php endif; ?>
       </div>
+
+<script>
+(function () {
+  var btn    = document.getElementById('smtp-validate-btn');
+  var result = document.getElementById('smtp-validate-result');
+  if (!btn) return;
+
+  btn.addEventListener('click', function () {
+    var host   = document.getElementById('s-smtp-host').value.trim();
+    var port   = document.getElementById('s-smtp-port').value.trim();
+    var user   = document.getElementById('s-smtp-user').value.trim();
+    var pass   = document.getElementById('s-smtp-pass').value.trim();
+    var secure = document.getElementById('s-smtp-secure').value;
+
+    if (host === '') {
+      result.style.display = '';
+      result.style.color   = 'var(--danger)';
+      result.textContent   = 'Enter an SMTP host first.';
+      return;
+    }
+
+    btn.disabled     = true;
+    btn.textContent  = 'Connecting\u2026';
+    result.style.display = 'none';
+
+    var csrf = document.querySelector('input[name="_csrf"]');
+    var body = new URLSearchParams({
+      _csrf:       csrf ? csrf.value : '',
+      smtp_host:   host,
+      smtp_port:   port,
+      smtp_user:   user,
+      smtp_pass:   pass,
+      smtp_secure: secure,
+    });
+
+    fetch('<?= $b ?>/admin/settings/validate-smtp', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body:    body.toString(),
+    })
+    .then(function (r) { return r.json(); })
+    .then(function (data) {
+      result.style.display = '';
+      result.style.color   = data.ok ? 'var(--success, #2a9d5c)' : 'var(--danger)';
+      result.textContent   = (data.ok ? '\u2713 ' : '\u2717 ') + data.message;
+    })
+    .catch(function () {
+      result.style.display = '';
+      result.style.color   = 'var(--danger)';
+      result.textContent   = '\u2717 Request failed — check browser console.';
+    })
+    .finally(function () {
+      btn.disabled    = false;
+      btn.textContent = 'Validate connection';
+    });
+  });
+}());
+</script>
     </div><!-- /#tab-email -->
 
     <!-- ── Embed & Paths ────────────────────────────────────────── -->
@@ -463,50 +610,62 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
 
     <!-- Owned listing row -->
     <div class="neb-card" style="padding:1.25rem 1.5rem;margin-bottom:1.25rem">
-      <div class="neb-card-header" style="margin:-1.25rem -1.5rem 1rem;padding:.75rem 1.5rem">Owned Listings — Row Template</div>
+      <div class="neb-card-header" style="margin:-1.25rem -1.5rem 1rem;padding:.75rem 1.5rem;display:flex;align-items:center;justify-content:space-between">
+        <span>Owned Listings — Row Template</span>
+        <button type="button" class="btn btn-ghost btn-sm js-tpl-preview" data-target="owned_template" data-kind="listing">Preview</button>
+      </div>
       <p class="form-hint" style="font-family:'DM Mono',monospace;margin-bottom:.5rem;line-height:2">
-        $$listing_name$$ &bull; $$listing_url$$ &bull; $$listing_subject$$ &bull; $$listing_status$$
+        {listing_name} &bull; {listing_url} &bull; {listing_subject} &bull; {listing_status}
       </p>
       <div class="form-group" style="margin-bottom:0">
-        <textarea name="owned_template" class="form-textarea" rows="6"
-                  style="font-family:'DM Mono',monospace;font-size:.8125rem"><?= \Luster\Core\View::e($ct['owned_template'] ?? '<li class="fl-fanlisting"><a class="fl-link" href="$$listing_url$$" target="_blank" rel="noopener noreferrer">$$listing_name$$</a> <span class="fl-muted">— $$listing_subject$$</span></li>') ?></textarea>
+        <textarea name="owned_template" id="owned_template" class="form-textarea" rows="6"
+                  style="font-family:'DM Mono',monospace;font-size:.8125rem"><?= \Luster\Core\View::e($ct['owned_template'] ?? '<li class="fl-fanlisting"><a class="fl-link" href="{listing_url}" target="_blank" rel="noopener noreferrer">{listing_name}</a> <span class="fl-muted">— {listing_subject}</span></li>') ?></textarea>
+        <div class="tpl-preview-box" id="preview-owned_template" style="display:none"></div>
       </div>
     </div>
 
     <!-- Joined listing row -->
     <div class="neb-card" style="padding:1.25rem 1.5rem;margin-bottom:1.25rem">
-      <div class="neb-card-header" style="margin:-1.25rem -1.5rem 1rem;padding:.75rem 1.5rem">Joined Listings — Row Template</div>
+      <div class="neb-card-header" style="margin:-1.25rem -1.5rem 1rem;padding:.75rem 1.5rem;display:flex;align-items:center;justify-content:space-between">
+        <span>Joined Listings — Row Template</span>
+        <button type="button" class="btn btn-ghost btn-sm js-tpl-preview" data-target="joined_template" data-kind="joined">Preview</button>
+      </div>
       <p class="form-hint" style="font-family:'DM Mono',monospace;margin-bottom:.5rem;line-height:2">
-        $$listing_name$$ &bull; $$listing_url$$ &bull; $$listing_category$$ &bull; $$listing_image$$
+        {listing_name} &bull; {listing_url} &bull; {listing_category} &bull; {listing_image}
       </p>
       <div class="form-group" style="margin-bottom:0">
-        <textarea name="joined_template" class="form-textarea" rows="6"
-                  style="font-family:'DM Mono',monospace;font-size:.8125rem"><?= \Luster\Core\View::e($ct['joined_template'] ?? '<li class="fl-fanlisting"><a class="fl-link" href="$$listing_url$$" target="_blank" rel="noopener noreferrer">$$listing_name$$</a> <span class="fl-muted">— $$listing_category$$</span></li>') ?></textarea>
+        <textarea name="joined_template" id="joined_template" class="form-textarea" rows="6"
+                  style="font-family:'DM Mono',monospace;font-size:.8125rem"><?= \Luster\Core\View::e($ct['joined_template'] ?? '<li class="fl-fanlisting"><a class="fl-link" href="{listing_url}" target="_blank" rel="noopener noreferrer">{listing_name}</a> <span class="fl-muted">— {listing_category}</span></li>') ?></textarea>
+        <div class="tpl-preview-box" id="preview-joined_template" style="display:none"></div>
       </div>
     </div>
 
     <!-- Collective stats template -->
     <div class="neb-card" style="padding:1.25rem 1.5rem;margin-bottom:1.25rem">
-      <div class="neb-card-header" style="margin:-1.25rem -1.5rem 1rem;padding:.75rem 1.5rem">Site Statistics Template</div>
+      <div class="neb-card-header" style="margin:-1.25rem -1.5rem 1rem;padding:.75rem 1.5rem;display:flex;align-items:center;justify-content:space-between">
+        <span>Site Statistics Template</span>
+        <button type="button" class="btn btn-ghost btn-sm js-tpl-preview" data-target="collective_stats_template" data-kind="stats">Preview</button>
+      </div>
       <p class="form-hint" style="font-family:'DM Mono',monospace;margin-bottom:.5rem;line-height:2">
-        $$owned_active$$ &bull; $$owned_upcoming$$ &bull; $$owned_trouble$$ &bull; $$joined_active$$
-        &bull; $$affiliates$$ &bull; $$members_total$$ &bull; $$members_approved$$ &bull; $$members_pending$$
-        &bull; $$owned_newest_name$$ &bull; $$owned_newest_url$$ &bull; $$owned_random_name$$ &bull; $$owned_random_url$$
+        {owned_active} &bull; {owned_upcoming} &bull; {owned_trouble} &bull; {joined_active}
+        &bull; {affiliates} &bull; {members_total} &bull; {members_approved} &bull; {members_pending}
+        &bull; {owned_newest_name} &bull; {owned_newest_url} &bull; {owned_random_name} &bull; {owned_random_url}
       </p>
       <div class="form-group" style="margin-bottom:0">
-        <textarea name="collective_stats_template" class="form-textarea" rows="8"
+        <textarea name="collective_stats_template" id="collective_stats_template" class="form-textarea" rows="8"
                   style="font-family:'DM Mono',monospace;font-size:.8125rem"><?= \Luster\Core\View::e($ct['collective_stats_template'] ?? '<div class="fl-collective-stats">
   <dl class="fl-stats-grid">
     <dt>Owned listings</dt>
-    <dd>$$owned_active$$ open, $$owned_upcoming$$ upcoming</dd>
+    <dd>{owned_active} open, {owned_upcoming} upcoming</dd>
     <dt>Joined listings</dt>
-    <dd>$$joined_active$$</dd>
+    <dd>{joined_active}</dd>
     <dt>Total members</dt>
-    <dd>$$members_approved$$ approved, $$members_pending$$ pending</dd>
+    <dd>{members_approved} approved, {members_pending} pending</dd>
   </dl>
-  <p>Newest: <a href="$$owned_newest_url$$">$$owned_newest_name$$</a></p>
-  <p>Featured: <a href="$$owned_random_url$$">$$owned_random_name$$</a></p>
+  <p>Newest: <a href="{owned_newest_url}">{owned_newest_name}</a></p>
+  <p>Featured: <a href="{owned_random_url}">{owned_random_name}</a></p>
 </div>') ?></textarea>
+        <div class="tpl-preview-box" id="preview-collective_stats_template" style="display:none"></div>
       </div>
     </div>
 
@@ -514,6 +673,40 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
       <button type="submit" class="btn btn-primary">Save Templates</button>
     </div>
   </form>
+
+<!-- preview logic lives in admin.js (.js-tpl-preview handler) -->
+<script>
+window.lusterTplSamples = {
+  listing: {
+    '{listing_name}':    'My Fanlisting',
+      '{listing_url}':     '#',
+      '{listing_subject}': 'Sample Subject',
+      '{listing_status}':  'open',
+      '{listing_image}':   '',
+    },
+    joined: {
+      '{listing_name}':     'A Joined Fanlisting',
+      '{listing_url}':      '#',
+      '{listing_subject}':  'Sample Subject',
+      '{listing_category}': 'Anime &rarr; General',
+      '{listing_image}':    '',
+    },
+    stats: {
+      '{owned_active}':     '12',
+      '{owned_upcoming}':   '2',
+      '{owned_trouble}':    '0',
+      '{joined_active}':    '5',
+      '{affiliates}':       '8',
+      '{members_total}':    '145',
+      '{members_approved}': '143',
+      '{members_pending}':  '2',
+      '{owned_newest_name}': 'My Newest Listing',
+      '{owned_newest_url}':  '#',
+      '{owned_random_name}': 'Featured Listing',
+      '{owned_random_url}':  '#',
+    },
+};
+</script>
   </div><!-- /#tab-collective-templates -->
 
   <!-- ═══ TAB: BLACKLIST ═══ -->
@@ -561,7 +754,10 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
       </div>
 
       <?php if (empty($blacklist_entries)): ?>
-        <p class="neb-empty">No blocked patterns yet. Add email addresses or domains above to prevent them from joining.</p>
+        <div class="neb-empty">
+          <svg class="empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          No blocked patterns yet — add email addresses or domains above to prevent them from joining.
+        </div>
       <?php else: ?>
         <table class="data-table">
           <thead>
@@ -609,3 +805,45 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
 
   </div><!-- /#tab-blacklist -->
 
+<!-- ── System Info ──────────────────────────────────────────── -->
+  <div id="tab-sysinfo" class="neb-tab-panel">
+
+    <div class="settings-card" style="margin-bottom:1.25rem">
+      <div class="form-section-label">Script</div>
+      <div class="sysinfo-grid">
+        <span class="sysinfo-label">Name</span>
+        <span class="sysinfo-value">Luster</span>
+        <span class="sysinfo-label">Version</span>
+        <span class="sysinfo-value">beta</span>
+      </div>
+    </div>
+
+    <div class="settings-card" style="margin-bottom:1.25rem">
+      <div class="form-section-label">Server</div>
+      <div class="sysinfo-grid">
+        <span class="sysinfo-label">PHP Version</span>
+        <span class="sysinfo-value"><?= \Luster\Core\View::e($php_version) ?></span>
+        <span class="sysinfo-label">Database</span>
+        <span class="sysinfo-value"><?= \Luster\Core\View::e($db_version) ?></span>
+      </div>
+    </div>
+
+    <div class="settings-card">
+      <div class="form-section-label">Diagnostics</div>
+      <div class="sysinfo-grid">
+        <span class="sysinfo-label">Error Log</span>
+        <span class="sysinfo-value">
+          <?php if ($error_log_count > 0): ?>
+            <span class="neb-badge badge-error"><?= (int) $error_log_count ?> entries</span>
+            <a href="<?= $b ?>/admin/errorlog" class="neb-link" style="margin-left:.5rem;font-size:.8125rem">View &rarr;</a>
+          <?php else: ?>
+            <span class="neb-badge badge-inactive">0 entries</span>
+          <?php endif; ?>
+        </span>
+      </div>
+    </div>
+
+  </div><!-- /#tab-sysinfo -->
+
+</div><!-- /.settings-content -->
+</div><!-- /.settings-layout -->

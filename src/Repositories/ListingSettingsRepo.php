@@ -10,7 +10,7 @@ use Luster\Core\Database;
  * Data access for the lstr_fanlisting_settings table.
  *
  * Stores Luster-specific per-fanlisting settings that have no equivalent
- * column in the Enthusiast schema (e.g. auto_approve, template overrides).
+ * column in the Enthusiast schema (e.g. template overrides, embed settings).
  *
  * Requires lstr_fanlisting_settings to exist — run public/migrate.php first.
  * Migration 5 adds stats_template and members_template columns.
@@ -120,41 +120,6 @@ final class ListingSettingsRepo
         }
     }
 
-    // -----------------------------------------------------------------------
-    // Auto-approve
-    // -----------------------------------------------------------------------
-
-    /**
-     * Returns whether auto-approve is enabled for the given listing.
-     * Defaults to false if no settings row exists.
-     */
-    public function getAutoApprove(int $listingId): bool
-    {
-        $stmt = $this->db->prepare(
-            'SELECT auto_approve FROM lstr_fanlisting_settings WHERE fanlisting_id = :id'
-        );
-        $stmt->execute(['id' => $listingId]);
-        $row = $stmt->fetch();
-
-        return $row !== false ? (bool) $row['auto_approve'] : false;
-    }
-
-    /**
-     * Sets the auto-approve flag for a listing, upserting the settings row.
-     */
-    public function setAutoApprove(int $listingId, bool $value): void
-    {
-        $stmt = $this->db->prepare(
-            'INSERT INTO lstr_fanlisting_settings (fanlisting_id, auto_approve)
-             VALUES (:id, :val)
-             ON DUPLICATE KEY UPDATE auto_approve = VALUES(auto_approve)'
-        );
-        $stmt->execute([
-            'id'  => $listingId,
-            'val' => (int) $value,
-        ]);
-    }
-
     /**
      * Returns whether update-queuing is enabled for the given listing.
      * Defaults to false if no settings row exists or migration hasn't run.
@@ -225,8 +190,7 @@ final class ListingSettingsRepo
     /**
      * Saves (upserts) the stats, members, and affiliates template overrides for a listing.
      *
-     * Pass null to clear an override. Does not touch the auto_approve column
-     * on existing rows; new rows default auto_approve to 0.
+     * Pass null to clear an override. Does not touch other columns on existing rows.
      */
     public function saveTemplates(
         int $listingId,
@@ -271,8 +235,7 @@ final class ListingSettingsRepo
     /**
      * Saves (upserts) the image filename for a listing.
      *
-     * Does not touch any other columns on existing rows; new rows default
-     * auto_approve to 0 and all template columns to null.
+     * Does not touch any other columns on existing rows.
      */
     public function saveImage(int $listingId, string $filename): void
     {
@@ -309,8 +272,7 @@ final class ListingSettingsRepo
     /**
      * Saves (upserts) the listing type for a listing.
      *
-     * Does not touch any other columns on existing rows; new rows default
-     * auto_approve to 0 and all other columns to null.
+     * Does not touch any other columns on existing rows.
      */
     public function saveListingType(int $listingId, string $type): void
     {
@@ -347,8 +309,7 @@ final class ListingSettingsRepo
     /**
      * Saves (upserts) the per-page member count override for a listing.
      *
-     * Does not touch any other columns on existing rows; new rows default
-     * auto_approve to 0 and all other columns to null.
+     * Does not touch any other columns on existing rows.
      */
     public function saveMembersPerPage(int $listingId, int $perPage): void
     {
