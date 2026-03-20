@@ -4,7 +4,7 @@ $b = rtrim(\Luster\Core\View::e($base_url), '/');
 $s = match ($current_section ?? '') {
     'blacklist'       => 'settings',
     'sysinfo'         => 'settings',
-    'email-templates' => 'mass-email',
+    'email-templates' => 'emails',
     default           => ($current_section ?? ''),
 };
 // Section identity attribute — shared by neb-card borders and active nav colour
@@ -105,9 +105,9 @@ $avatarChar = strtoupper(substr((string) ($admin_username ?? 'A'), 0, 1));
         <svg class="nav-icon" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
           <polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/>
         </svg>
-        Display Codes
+        Embed Codes
       </a>
-      <a href="<?= $b ?>/admin/mass-email" class="nav-item<?= navActive('mass-email', $s) ?>">
+      <a href="<?= $b ?>/admin/email-templates" class="nav-item<?= navActive('emails', $s) ?>">
         <svg class="nav-icon" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
           <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
           <polyline points="22,6 12,13 2,6"/>

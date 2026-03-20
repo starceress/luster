@@ -105,9 +105,9 @@ final class JoinController
         $settingsRepo  = new ListingSettingsRepo($this->app->getDatabase());
         $embedSettings = $settingsRepo->getEmbedSettings($listingId);
 
-        $countryEnabled = (bool) $embedSettings['country_field_enabled'];
-        $formUrl        = (string) $embedSettings['form_url_join'] !== ''
-                        ? (string) $embedSettings['form_url_join']
+        $formPageName   = (string) $embedSettings['form_url_join'];
+        $formUrl        = $formPageName !== ''
+                        ? rtrim((string) $listing->url, '/') . '/' . ltrim($formPageName, '/')
                         : $baseUrl . '/join/' . $listingId;
 
         // Captcha — re-render the form with an error on failure
@@ -116,7 +116,7 @@ final class JoinController
                 'name'      => trim((string) $request->post('name',    '')),
                 'email'     => trim((string) $request->post('email',   '')),
                 'url'       => trim((string) $request->post('url',     '')),
-                'country'   => $countryEnabled ? trim((string) $request->post('country', '')) : '',
+                'country'   => trim((string) $request->post('country', '')),
                 'send_info' => (string) $request->post('send_info', ''),
             ];
             return $this->renderJoinForm(
@@ -129,7 +129,7 @@ final class JoinController
         $name    = trim((string) $request->post('name',    ''));
         $email   = trim((string) $request->post('email',   ''));
         $url     = trim((string) $request->post('url',     ''));
-        $country = $countryEnabled ? trim((string) $request->post('country', '')) : '';
+        $country = trim((string) $request->post('country', ''));
 
         $postData = $request->postAll();
 
@@ -137,9 +137,7 @@ final class JoinController
         $v->field('name')->required()->maxLength(100);
         $v->field('email')->required()->email()->maxLength(255);
         $v->field('url')->url()->maxLength(500);
-        if ($countryEnabled) {
-            $v->field('country')->required()->maxLength(100);
-        }
+        $v->field('country')->required()->maxLength(100);
 
         foreach ($fields as $field) {
             $vf = $v->field('field_' . $field->name)->maxLength(255);
@@ -224,22 +222,27 @@ final class JoinController
             'added'    => date('Y-m-d H:i:s'),
         ];
 
-        // Determine approved/pending column based on schema variant
+        // Determine approved/pending column based on schema variant.
+        // All new members start as pending — admin must approve manually.
         $prefix = (string) $this->app->getConfig()->get('enth_table_prefix', '');
 
         if ($prefix === '') {
-            // Unprefixed schema: pending=0 means approved, pending=1 means queued
-            $insertData['pending'] = 0;
+            // Unprefixed schema: pending=1 means queued for approval
+            $insertData['pending'] = 1;
         } else {
-            // Standard schema: approved=1 means approved
-            $insertData['approved'] = 1;
+            // Standard schema: approved=0 means pending
+            $insertData['approved'] = 0;
             $insertData['updated']  = date('Y-m-d H:i:s');
         }
 
-        // Additional fields — names from FieldRepo only, never raw user input
+        // Additional fields — names from FieldRepo only, never raw user input.
+        // Checkbox fields post as arrays; implode to a comma-separated string.
         foreach ($fields as $field) {
-            $colName              = ($prefix === '') ? $field->name : 'additional_' . $field->name;
-            $insertData[$colName] = trim((string) ($postData['field_' . $field->name] ?? ''));
+            $colName   = ($prefix === '') ? $field->name : 'additional_' . $field->name;
+            $raw       = $postData['field_' . $field->name] ?? '';
+            $insertData[$colName] = is_array($raw)
+                ? implode(', ', array_map('trim', $raw))
+                : trim((string) $raw);
         }
 
         $memberRepo->insert($listing->dbprefix, $insertData);
@@ -301,12 +304,6 @@ final class JoinController
             } catch (\Throwable $e) {
                 error_log('[Luster] Join notification email failed: ' . $e->getMessage());
             }
-        }
-
-        // Redirect to configured URL or default success page
-        $redirectUrl = (string) $embedSettings['redirect_url_join'];
-        if ($redirectUrl !== '') {
-            return Response::redirect($redirectUrl);
         }
 
         return Response::redirect($baseUrl . '/join/' . $listingId . '/success');
@@ -378,7 +375,6 @@ final class JoinController
             'field_email'          => (string) ($old['email'] ?? ''),
             'field_url'            => (string) ($old['url']   ?? ''),
             'country_select'       => Countries::buildSelect((string) ($old['country'] ?? '')),
-            'country_field_enabled' => (bool) $embedSettings['country_field_enabled'],
             'fields'               => $fields,
             'old'                  => $old,
             'captcha_question'     => Captcha::getQuestion('join'),

@@ -1,29 +1,75 @@
 <?php
 /** @var \Luster\Models\Affiliate[]  $affiliates */
-/** @var \Luster\Models\Listing[] $listings */
+/** @var \Luster\Models\Listing[]    $listings */
 /** @var array<int,string>           $fan_map */
 /** @var string                      $filter_fid */
 /** @var string                      $search */
+/** @var string                      $sort */
+/** @var string                      $dir */
 /** @var int                         $page */
 /** @var int                         $per_page */
 /** @var int                         $total_pages */
 /** @var int                         $total */
 /** @var string                      $site_name */
+/** @var bool                        $reorder_mode */
 /** @var string                      $success */
 /** @var string                      $error */
+/** @var string                      $reorder_url */
 /** @var string                      $base_url */
 /** @var string                      $csrf_token */
 $b = rtrim(\Luster\Core\View::e($base_url), '/');
 
-// Pagination URL builder
+$sort = $sort ?? 'sort_order';
+$dir  = $dir  ?? 'asc';
+$reorderMode = (bool) ($reorder_mode ?? false);
+
+// URL to return to normal view (same scope, no reorder flag)
+$normalUrl = $b . '/admin/affiliates?' . http_build_query(array_filter([
+    'fanlisting_id' => ($filter_fid ?? 'collective') !== 'collective' ? ($filter_fid ?? '') : '',
+], static fn(string $v): bool => $v !== ''));
+
+// URL to enter reorder mode (same scope + reorder=1)
+$reorderEntryUrl = $b . '/admin/affiliates?' . http_build_query(array_filter([
+    'fanlisting_id' => ($filter_fid ?? 'collective') !== 'collective' ? ($filter_fid ?? '') : '',
+    'reorder'       => '1',
+], static fn(string $v): bool => $v !== ''));
+
+// Pagination + sort URL builder (normal mode only)
 $filterQs = http_build_query(array_filter([
     'fanlisting_id' => ($filter_fid ?? 'collective') !== 'collective' ? ($filter_fid ?? '') : '',
     'search'        => $search ?? '',
+    'sort'          => $sort !== 'sort_order' ? $sort : '',
+    'dir'           => $dir  !== 'asc'        ? $dir  : '',
 ], static fn(string $v): bool => $v !== ''));
+
 $pageUrl = static function (int $p) use ($b, $filterQs): string {
     $qs = $filterQs !== '' ? $filterQs . '&page=' . $p : 'page=' . $p;
     return $b . '/admin/affiliates?' . $qs;
 };
+
+$sortUrl = static function (string $col) use ($b, $filter_fid, $search, $sort, $dir): string {
+    $newDir = ($sort === $col && $dir === 'asc') ? 'desc' : 'asc';
+    $qs = http_build_query(array_filter([
+        'fanlisting_id' => ($filter_fid ?? 'collective') !== 'collective' ? ($filter_fid ?? '') : '',
+        'search'        => $search ?? '',
+        'sort'          => $col,
+        'dir'           => $newDir,
+    ], static fn(string $v): bool => $v !== ''));
+    return $b . '/admin/affiliates?' . $qs;
+};
+
+$sortIcon = static function (string $col) use ($sort, $dir): string {
+    if ($sort !== $col) {
+        return '<svg viewBox="0 0 10 14" width="9" height="9" fill="currentColor" style="opacity:.35;flex-shrink:0"><path d="M5 0l3 4H2zM5 14l-3-4h6z"/></svg>';
+    }
+    if ($dir === 'asc') {
+        return '<svg viewBox="0 0 10 14" width="9" height="9" fill="currentColor" style="flex-shrink:0"><path d="M5 0l3 4H2z"/><path d="M5 14l-3-4h6z" fill-opacity=".25"/></svg>';
+    }
+    return '<svg viewBox="0 0 10 14" width="9" height="9" fill="currentColor" style="flex-shrink:0"><path d="M5 0l3 4H2z" fill-opacity=".25"/><path d="M5 14l-3-4h6z"/></svg>';
+};
+
+// Reorder mode is only meaningful for collective or a specific listing — not cross-scope.
+$canReorder = ($search ?? '') === '' && ($filter_fid ?? 'collective') !== '';
 ?>
 
 <?php if (($success ?? '') !== ''): ?>
@@ -33,9 +79,31 @@ $pageUrl = static function (int $p) use ($b, $filterQs): string {
   <div class="alert alert-error"><?= \Luster\Core\View::e($error) ?></div>
 <?php endif; ?>
 
-<!-- Toolbar -->
+<?php if ($reorderMode): ?>
+
+<!-- ── Reorder mode banner ───────────────────────────────────────────── -->
+<div class="neb-reorder-banner">
+  <div style="display:flex;align-items:center;gap:.6rem">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+    <strong>Reorder mode</strong> — drag rows to rearrange. Changes are saved automatically.
+  </div>
+  <a href="<?= \Luster\Core\View::e($normalUrl) ?>" class="btn btn-secondary btn-sm">Done</a>
+</div>
+
+<!-- Hidden CSRF for AJAX reorder save -->
+<input type="hidden" name="_csrf" value="<?= \Luster\Core\View::e($csrf_token) ?>">
+
+<?php else: ?>
+
+<!-- ── Normal mode toolbar ───────────────────────────────────────────── -->
 <div class="neb-toolbar">
   <form method="GET" action="<?= $b ?>/admin/affiliates" class="neb-filter-row">
+    <?php if ($sort !== 'sort_order'): ?>
+      <input type="hidden" name="sort" value="<?= \Luster\Core\View::e($sort) ?>">
+    <?php endif; ?>
+    <?php if ($dir !== 'asc'): ?>
+      <input type="hidden" name="dir" value="<?= \Luster\Core\View::e($dir) ?>">
+    <?php endif; ?>
 
     <div class="toolbar-select-wrap">
     <select name="fanlisting_id" class="neb-select js-autosubmit">
@@ -53,12 +121,16 @@ $pageUrl = static function (int $p) use ($b, $filterQs): string {
            value="<?= \Luster\Core\View::e($search ?? '') ?>">
     <button type="submit" class="btn btn-secondary btn-sm">Search</button>
     <a href="?" class="btn btn-secondary btn-sm">Reset</a>
-
   </form>
   <div class="neb-actions">
+    <?php if ($canReorder && !empty($affiliates)): ?>
+    <a href="<?= \Luster\Core\View::e($reorderEntryUrl) ?>" class="btn btn-secondary btn-sm">Reorder</a>
+    <?php endif; ?>
     <a href="<?= $b ?>/admin/affiliates/add" class="btn btn-primary btn-sm">+ Add Affiliate</a>
   </div>
 </div>
+
+<?php endif; ?>
 
 <?php if (empty($affiliates)): ?>
   <div class="neb-card">
@@ -71,56 +143,85 @@ $pageUrl = static function (int $p) use ($b, $filterQs): string {
 <?php else: ?>
 
 <div class="neb-card">
+
+<?php if ($reorderMode): ?>
+  <!-- ── Reorder table ──────────────────────────────────────────────── -->
+  <table class="data-table mem-table" data-reorder-url="<?= \Luster\Core\View::e($reorder_url) ?>">
+    <thead>
+      <tr>
+        <th style="width:40px"></th>
+        <th>Name</th>
+      </tr>
+    </thead>
+    <tbody>
+      <?php foreach ($affiliates as $aff): ?>
+      <tr draggable="true" data-id="<?= (int) $aff->id ?>">
+        <td style="width:40px;text-align:center">
+          <span class="drag-handle" title="Drag to reorder">⠿</span>
+        </td>
+        <td>
+          <span class="text-strong"><?= \Luster\Core\View::e($aff->name) ?></span>
+          <?php if (!$aff->active): ?>
+            <span class="neb-badge badge-inactive" style="margin-left:.4rem;font-size:.7rem">Inactive</span>
+          <?php endif; ?>
+        </td>
+      </tr>
+      <?php endforeach; ?>
+    </tbody>
+  </table>
+
+<?php else: ?>
+  <!-- ── Normal table ───────────────────────────────────────────────── -->
   <table class="data-table mem-table">
     <thead>
       <tr>
-        <th style="width:72px">Image</th>
-        <th style="width:36px">#</th>
-        <th>Name</th>
+        <th style="width:56px">
+          <a href="<?= \Luster\Core\View::e($sortUrl('sort_order')) ?>" class="sort-th<?= $sort === 'sort_order' ? ' sort-active' : '' ?>">
+            Sort # <?= $sortIcon('sort_order') ?>
+          </a>
+        </th>
+        <th>
+          <a href="<?= \Luster\Core\View::e($sortUrl('name')) ?>" class="sort-th<?= $sort === 'name' ? ' sort-active' : '' ?>">
+            Name <?= $sortIcon('name') ?>
+          </a>
+        </th>
         <th>Scope</th>
-        <th>Email</th>
-        <th>Status</th>
+        <th>
+          <a href="<?= \Luster\Core\View::e($sortUrl('email')) ?>" class="sort-th<?= $sort === 'email' ? ' sort-active' : '' ?>">
+            Email <?= $sortIcon('email') ?>
+          </a>
+        </th>
+        <th>
+          <a href="<?= \Luster\Core\View::e($sortUrl('status')) ?>" class="sort-th<?= $sort === 'status' ? ' sort-active' : '' ?>">
+            Status <?= $sortIcon('status') ?>
+          </a>
+        </th>
         <th class="act-col">Actions</th>
       </tr>
     </thead>
     <tbody>
-      <?php $loop = 0; foreach ($affiliates as $aff): $loop++; ?>
+      <?php foreach ($affiliates as $aff): ?>
       <?php
-        // Resolve scope label
         $scopeLabel = ($aff->listingId !== null && isset($fan_map[$aff->listingId]))
             ? \Luster\Core\View::e($fan_map[$aff->listingId])
             : \Luster\Core\View::e($site_name ?? 'Collective');
       ?>
       <tr>
-        <td data-label="Image">
-          <?php if ($aff->image !== null && $aff->image !== ''): ?>
-            <?php if ($aff->url !== ''): ?>
-              <a href="<?= \Luster\Core\View::e($aff->url) ?>" target="_blank" rel="noopener noreferrer">
-                <img src="<?= $b ?>/uploads/affiliates/<?= \Luster\Core\View::e($aff->image) ?>"
-                     alt="" class="fl-image" style="max-height:50px;display:block">
-              </a>
-            <?php else: ?>
-              <img src="<?= $b ?>/uploads/affiliates/<?= \Luster\Core\View::e($aff->image) ?>"
-                   alt="" class="fl-image" style="max-height:50px;display:block">
-            <?php endif; ?>
-          <?php else: ?>
-            <span class="text-dim">&mdash;</span>
-          <?php endif; ?>
-        </td>
-        <td class="text-dim" data-label=""><?= $loop ?></td>
+        <td class="text-dim" data-label="Sort #"><?= (int) $aff->sortOrder ?></td>
         <td data-label="Name">
-          <?php if ($aff->url !== ''): ?>
+          <div style="display:inline-flex;align-items:center;gap:.4rem">
+            <a href="<?= $b ?>/admin/affiliates/<?= (int) $aff->id ?>/edit"
+               class="neb-link text-strong"><?= \Luster\Core\View::e($aff->name) ?></a>
+            <?php if ($aff->url !== ''): ?>
             <a href="<?= \Luster\Core\View::e($aff->url) ?>" target="_blank" rel="noopener noreferrer"
-               class="neb-link text-strong" style="display:inline-flex;align-items:center;gap:.3rem">
-              <?= \Luster\Core\View::e($aff->name) ?>
+               class="text-dim" title="Visit site" style="display:inline-flex;align-items:center;line-height:1">
               <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5"
-                   style="width:11px;height:11px;flex-shrink:0;opacity:.45">
+                   style="width:11px;height:11px;flex-shrink:0">
                 <path d="M5 2H2a1 1 0 0 0-1 1v7a1 1 0 0 0 1 1h7a1 1 0 0 0 1-1V7M8 1h3m0 0v3m0-3L5 7"/>
               </svg>
             </a>
-          <?php else: ?>
-            <span class="text-strong"><?= \Luster\Core\View::e($aff->name) ?></span>
-          <?php endif; ?>
+            <?php endif; ?>
+          </div>
         </td>
         <td class="text-muted" data-label="Scope">
           <?php if ($aff->listingId !== null): ?>
@@ -160,11 +261,13 @@ $pageUrl = static function (int $p) use ($b, $filterQs): string {
       <?php endforeach; ?>
     </tbody>
   </table>
-</div>
+<?php endif; ?>
+
+</div><!-- /.neb-card -->
 
 <?php endif; ?>
 
-<?php if (($total_pages ?? 1) > 1): ?>
+<?php if (!$reorderMode && ($total_pages ?? 1) > 1): ?>
 <nav class="neb-pagination" aria-label="Pagination">
   <a href="<?= \Luster\Core\View::e($pageUrl($page - 1)) ?>"
      class="pg-link<?= $page <= 1 ? ' disabled' : '' ?>"

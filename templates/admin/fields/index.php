@@ -31,8 +31,11 @@ $id = (int) $listing->id;
 
 <!-- Fields table -->
 <?php if (empty($fields)): ?>
-  <div class="neb-card" style="padding:2.5rem 1rem;text-align:center;color:var(--text-muted);font-size:.875rem">
-    No additional fields defined yet. Use the form below to add one.
+  <div class="neb-card">
+    <div class="neb-empty">
+      <svg class="empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 10h18M8 5v14"/></svg>
+      No additional fields defined yet. Use the form below to add one.
+    </div>
   </div>
 <?php else: ?>
   <div class="neb-card">

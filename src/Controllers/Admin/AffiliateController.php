@@ -54,24 +54,57 @@ final class AffiliateController
             $fanMap[$fl->id] = $fl->name;
         }
 
-        $filterFid = trim((string) $request->query('fanlisting_id', 'collective'));
-        $search    = trim((string) $request->query('search', ''));
-        $page      = max(1, (int) $request->query('page', 1));
-        $perPage   = 10;
+        $filterFid   = trim((string) $request->query('fanlisting_id', 'collective'));
+        $search      = trim((string) $request->query('search', ''));
+        $page        = max(1, (int) $request->query('page', 1));
+        $perPage     = 10;
+        $reorderMode = $request->query('reorder', '') === '1' && $search === '';
 
-        if ($search !== '') {
-            $fid    = $filterFid === 'collective' ? null : ($filterFid === '' ? -1 : (int) $filterFid);
-            $result = $affiliateRepo->search($search, $fid, $perPage, $page);
-        } elseif ($filterFid === 'collective') {
-            $result = $affiliateRepo->getCollective($perPage, $page);
-        } elseif ($filterFid !== '') {
-            $result = $affiliateRepo->getByListing((int) $filterFid, $perPage, $page);
+        if ($reorderMode) {
+            // Reorder mode: load every affiliate for the current scope in
+            // sort_order ASC, no pagination, and skip the repack step.
+            $orderBy = 'sort_order ASC, name ASC';
+            if ($filterFid === 'collective') {
+                $result = $affiliateRepo->getCollective(PHP_INT_MAX, 1, $orderBy);
+            } elseif ($filterFid !== '') {
+                $result = $affiliateRepo->getByListing((int) $filterFid, PHP_INT_MAX, 1, $orderBy);
+            } else {
+                $result = $affiliateRepo->getAll(PHP_INT_MAX, 1, $orderBy);
+            }
+            $sortParam  = 'sort_order';
+            $sortDir    = 'ASC';
+            $totalPages = 1;
         } else {
-            $result = $affiliateRepo->getAll($perPage, $page);
+            // Normal mode: repack gaps, then paginate/sort as requested.
+            if ($search === '') {
+                if ($filterFid === 'collective') {
+                    $affiliateRepo->repackSortOrder(null);
+                } elseif ($filterFid !== '') {
+                    $affiliateRepo->repackSortOrder((int) $filterFid);
+                }
+            }
+
+            $allowedCols = ['sort_order' => 'sort_order', 'name' => 'name', 'email' => 'email', 'status' => 'active'];
+            $sortParam   = (string) $request->query('sort', 'sort_order');
+            $dirParam    = strtolower(trim((string) $request->query('dir', 'asc')));
+            $sortCol     = $allowedCols[$sortParam] ?? 'sort_order';
+            $sortDir     = $dirParam === 'desc' ? 'DESC' : 'ASC';
+            $orderBy     = $sortCol . ' ' . $sortDir . ($sortCol !== 'name' ? ', name ASC' : '');
+
+            if ($search !== '') {
+                $fid    = $filterFid === 'collective' ? null : ($filterFid === '' ? -1 : (int) $filterFid);
+                $result = $affiliateRepo->search($search, $fid, $perPage, $page, $orderBy);
+            } elseif ($filterFid === 'collective') {
+                $result = $affiliateRepo->getCollective($perPage, $page, $orderBy);
+            } elseif ($filterFid !== '') {
+                $result = $affiliateRepo->getByListing((int) $filterFid, $perPage, $page, $orderBy);
+            } else {
+                $result = $affiliateRepo->getAll($perPage, $page, $orderBy);
+            }
+            $totalPages = $result['pages'];
         }
 
         $affiliates = $result['items'];
-        $totalPages = $result['pages'];
         $total      = $result['total'];
 
         $session = $this->app->getSession();
@@ -82,20 +115,31 @@ final class AffiliateController
 
         $siteName = (string) ($this->app->getConfig()->get('site_name', 'Collective'));
 
+        $baseUrl = $this->app->getBaseUrl();
+
+        // Subtitle: show the listing name when filtered to a specific listing
+        $indexSubtitle = ($filterFid !== '' && $filterFid !== 'collective' && isset($fanMap[(int) $filterFid]))
+            ? 'Owned › ' . $fanMap[(int) $filterFid]
+            : '';
+
         return $this->layout('admin/affiliates/index.php', [
-            'affiliates'  => $affiliates,
-            'fan_map'     => $fanMap,
-            'listings' => $listings,
-            'filter_fid'  => $filterFid,
-            'search'      => $search,
-            'page'        => $page,
-            'per_page'    => $perPage,
-            'total_pages' => $totalPages,
-            'total'       => $total,
-            'site_name'   => $siteName,
-            'success'     => $success,
-            'error'       => $error,
-        ], 'Affiliates', 'affiliates');
+            'affiliates'   => $affiliates,
+            'fan_map'      => $fanMap,
+            'listings'     => $listings,
+            'filter_fid'   => $filterFid,
+            'search'       => $search,
+            'page'         => $page,
+            'per_page'     => $perPage,
+            'total_pages'  => $totalPages,
+            'total'        => $total,
+            'site_name'    => $siteName,
+            'sort'         => $sortParam,
+            'dir'          => strtolower($sortDir),
+            'reorder_url'  => $baseUrl . '/admin/affiliates/reorder',
+            'reorder_mode' => $reorderMode,
+            'success'      => $success,
+            'error'        => $error,
+        ], 'Affiliates', 'affiliates', $indexSubtitle);
     }
 
     // -----------------------------------------------------------------------
@@ -117,6 +161,12 @@ final class AffiliateController
 
         // Listing context — comes from route {fid} or query param
         $contextFid = (int) ($params['fid'] ?? $request->query('context_fid', 0));
+
+        // Subtitle helper: "Owned › Listing Name" when in listing context
+        $contextListing = $contextFid > 0
+            ? (static function (array $ls, int $fid): ?object { foreach ($ls as $l) { if ((int) $l->id === $fid) return $l; } return null; })($listings, $contextFid)
+            : null;
+        $addSubtitle = $contextListing !== null ? 'Owned › ' . $contextListing->name : '';
 
         if ($request->isPost()) {
             $listingId = (int) $request->post('listing_id', 0);
@@ -161,7 +211,7 @@ final class AffiliateController
                     'old'          => $request->postAll(),
                     'context_fid'  => $postContextFid,
                     'site_name'    => $siteName,
-                ], 'Add Affiliate', 'affiliates');
+                ], 'Add Affiliate', 'affiliates', $addSubtitle);
             }
 
             $affiliateRepo->insert([
@@ -188,14 +238,18 @@ final class AffiliateController
 
         $siteName = (string) ($this->app->getConfig()->get('site_name', 'Collective'));
 
+        // Prefill sort order: next available in the context scope (collective when no context)
+        $nextSortOrder = $affiliateRepo->getNextSortOrder($contextFid > 0 ? $contextFid : null);
+
         return $this->layout('admin/affiliates/form.php', [
-            'listings' => $listings,
-            'affiliate'   => null,
-            'error'       => '',
-            'old'         => [],
-            'context_fid' => $contextFid,
-            'site_name'   => $siteName,
-        ], 'Add Affiliate', 'affiliates');
+            'listings'       => $listings,
+            'affiliate'      => null,
+            'error'          => '',
+            'old'            => [],
+            'context_fid'    => $contextFid,
+            'site_name'      => $siteName,
+            'next_sort_order' => $nextSortOrder,
+        ], 'Add Affiliate', 'affiliates', $addSubtitle);
     }
 
     // -----------------------------------------------------------------------
@@ -218,6 +272,12 @@ final class AffiliateController
         if ($affiliate === null) {
             return Response::notFound('Affiliate not found.');
         }
+
+        // Subtitle: "Owned › Listing Name" when affiliate belongs to a specific listing
+        $editListingObj = $affiliate->listingId !== null
+            ? (static function (array $ls, int $fid): ?object { foreach ($ls as $l) { if ((int) $l->id === $fid) return $l; } return null; })($listings, $affiliate->listingId)
+            : null;
+        $editSubtitle = $editListingObj !== null ? 'Owned › ' . $editListingObj->name : '';
 
         $session = $this->app->getSession();
         $baseUrl = $this->app->getBaseUrl();
@@ -273,7 +333,7 @@ final class AffiliateController
                     'old'          => $request->postAll(),
                     'context_fid'  => $fromFl,
                     'site_name'    => $siteName,
-                ], 'Edit Affiliate', 'affiliates');
+                ], 'Edit Affiliate', 'affiliates', $editSubtitle);
             }
 
             $affiliateRepo->update($id, [
@@ -309,7 +369,28 @@ final class AffiliateController
             'old'         => [],
             'context_fid' => $fromFl,
             'site_name'   => $siteName,
-        ], 'Edit Affiliate', 'affiliates');
+        ], 'Edit Affiliate', 'affiliates', $editSubtitle);
+    }
+
+    // -----------------------------------------------------------------------
+    // POST /admin/affiliates/reorder  (AJAX)
+    // -----------------------------------------------------------------------
+
+    public function reorder(Request $request, array $params): Response
+    {
+        $db   = $this->app->getDatabase();
+        $repo = new AffiliateRepo($db);
+
+        $raw = (array) $request->post('ids', []);
+        $ids = array_values(array_filter(array_map('intval', $raw), fn(int $id) => $id > 0));
+
+        if (empty($ids)) {
+            return Response::json(['ok' => false, 'error' => 'No IDs provided.']);
+        }
+
+        $repo->setSortOrders($ids);
+
+        return Response::json(['ok' => true]);
     }
 
     // -----------------------------------------------------------------------
@@ -358,11 +439,15 @@ final class AffiliateController
         $session       = $this->app->getSession();
         $baseUrl       = $this->app->getBaseUrl();
 
-        if ($affiliateRepo->getById($id) === null) {
+        $affiliate = $affiliateRepo->getById($id);
+
+        if ($affiliate === null) {
             return Response::notFound('Affiliate not found.');
         }
 
         $affiliateRepo->delete($id);
+        $affiliateRepo->repackSortOrder($affiliate->listingId);
+
         $fromFl = (int) $request->post('from_listing', 0);
 
         if ($fromFl > 0) {
@@ -382,7 +467,7 @@ final class AffiliateController
     // Shared render helper
     // -----------------------------------------------------------------------
 
-    private function layout(string $template, array $data, string $pageTitle, string $section): Response
+    private function layout(string $template, array $data, string $pageTitle, string $section, string $pageSubtitle = ''): Response
     {
         $view      = $this->app->getView();
         $config    = $this->app->getConfig();
@@ -397,6 +482,7 @@ final class AffiliateController
 
         return Response::html($view->render('admin/layout.php', array_merge([
             'page_title'      => $pageTitle,
+            'page_subtitle'   => $pageSubtitle,
             'site_name'       => (string) $config->get('site_name', 'Luster'),
             'admin_username'  => (string) $session->get('lstr_admin_username', ''),
             'csrf_token'      => $csrfToken,

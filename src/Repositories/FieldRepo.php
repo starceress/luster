@@ -156,8 +156,12 @@ final class FieldRepo
             );
         }
 
+        // Unprefixed (Enthusiast 3) schema: column is the bare field name.
+        // Standard (enth_) schema: column is additional_{fieldName}.
+        $colName = $this->isOwnedSchema ? $fieldName : 'additional_' . $fieldName;
+
         $this->db->pdo()->exec(
-            "ALTER TABLE {$prefix} ADD COLUMN additional_{$fieldName} TEXT NULL"
+            "ALTER TABLE {$prefix} ADD COLUMN {$colName} TEXT NULL"
         );
     }
 
@@ -183,9 +187,29 @@ final class FieldRepo
             );
         }
 
-        $this->db->pdo()->exec(
-            "ALTER TABLE {$prefix} DROP COLUMN additional_{$fieldName}"
-        );
+        if ($this->isOwnedSchema) {
+            // Unprefixed schema: bare column name.
+            // For backwards compatibility also try the legacy additional_{name} form
+            // in case the column was created before this bug was fixed.
+            $pdo = $this->db->pdo();
+            $stmt = $pdo->prepare(
+                "SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
+                 WHERE TABLE_SCHEMA = DATABASE()
+                   AND TABLE_NAME   = :tbl
+                   AND COLUMN_NAME  = :col"
+            );
+            $stmt->execute(['tbl' => $prefix, 'col' => $fieldName]);
+            if ((int) $stmt->fetchColumn() > 0) {
+                $pdo->exec("ALTER TABLE {$prefix} DROP COLUMN {$fieldName}");
+            } else {
+                // Fall back to the old bugged name so pre-fix columns can still be removed
+                $pdo->exec("ALTER TABLE {$prefix} DROP COLUMN additional_{$fieldName}");
+            }
+        } else {
+            $this->db->pdo()->exec(
+                "ALTER TABLE {$prefix} DROP COLUMN additional_{$fieldName}"
+            );
+        }
     }
 
     // -----------------------------------------------------------------------

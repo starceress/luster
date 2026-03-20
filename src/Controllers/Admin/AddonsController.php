@@ -51,7 +51,7 @@ final class AddonsController
             'error'           => $error,
         ]);
 
-        return Response::html($view->render('admin/layout.php', [
+        return Response::html($view->render('admin/layout.php', array_merge([
             'page_title'      => 'Add-ons',
             'site_name'       => (string) $config->get('site_name', 'Luster'),
             'admin_username'  => (string) $session->get('lstr_admin_username', ''),
@@ -59,7 +59,7 @@ final class AddonsController
             'current_section' => 'addons',
             'base_url'        => $baseUrl,
             'content'         => $inner,
-        ]));
+        ], $this->app->getAdminNavData())));
     }
 
     // -------------------------------------------------------------------------

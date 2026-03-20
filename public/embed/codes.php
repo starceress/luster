@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 use Luster\Repositories\CodeCategoriesRepo;
 use Luster\Repositories\CodeDonorsRepo;
-use Luster\Repositories\CodeSizesRepo;
 use Luster\Repositories\CodesRepo;
 use Luster\Repositories\ListingRepo;
 
@@ -17,7 +16,7 @@ use Luster\Repositories\ListingRepo;
  *   require '/absolute/path/to/luster/public/embed/codes.php';
  *
  * Renders the codes for the given listing as a content fragment grouped by
- * size (when sizes are defined), with no layout wrapper.
+ * detected dimensions, with no layout wrapper.
  */
 
 // ---------------------------------------------------------------------------
@@ -74,11 +73,9 @@ if ($_lusterListing === null) {
 
 $_lusterDb          = $_lusterApp->getDatabase();
 $_lusterCodesRepo   = new CodesRepo($_lusterDb);
-$_lusterSizesRepo   = new CodeSizesRepo($_lusterDb);
 $_lusterCatsRepo    = new CodeCategoriesRepo($_lusterDb);
 $_lusterDonorsRepo  = new CodeDonorsRepo($_lusterDb);
 $_lusterCodes       = $_lusterCodesRepo->getByListing($_lusterListingId, 'approved');
-$_lusterSizes       = $_lusterSizesRepo->getByListing($_lusterListingId);
 $_lusterCategories  = $_lusterCatsRepo->getByListing($_lusterListingId);
 $_lusterCatMap      = $_lusterCatsRepo->getCategoryMapForListing($_lusterListingId);
 $_lusterDonors      = $_lusterDonorsRepo->getByListing($_lusterListingId);
@@ -94,6 +91,29 @@ foreach ($_lusterCategories as $_cat) {
     $_lusterCategoryMap[$_cat->id] = $_cat;
 }
 
+// Auto-group codes by detected dimensions; unknown dimensions last
+$_lusterGrouped = [];
+foreach ($_lusterCodes as $_lc) {
+    if ($_lc->width > 0 && $_lc->height > 0) {
+        $_lKey   = (int) $_lc->width . 'x' . (int) $_lc->height;
+        $_lLabel = (int) $_lc->width . '×' . (int) $_lc->height . 'px';
+    } else {
+        $_lKey   = 'unknown';
+        $_lLabel = 'Other';
+    }
+    if (!isset($_lusterGrouped[$_lKey])) {
+        $_lusterGrouped[$_lKey] = ['label' => $_lLabel, 'codes' => []];
+    }
+    $_lusterGrouped[$_lKey]['codes'][] = $_lc;
+}
+uksort($_lusterGrouped, function (string $a, string $b): int {
+    if ($a === 'unknown') return 1;
+    if ($b === 'unknown') return -1;
+    [$aw, $ah] = explode('x', $a);
+    [$bw, $bh] = explode('x', $b);
+    return $aw !== $bw ? (int) $aw - (int) $bw : (int) $ah - (int) $bh;
+});
+
 // ---------------------------------------------------------------------------
 // 4. Render
 // ---------------------------------------------------------------------------
@@ -107,7 +127,7 @@ $_lusterHtml = $_lusterApp->getView()->renderFragment('codes.php', [
     'listing_url'  => $_lusterListing->url,
     'page_title'   => 'Codes',
     'codes'        => $_lusterCodes,
-    'sizes'        => $_lusterSizes,
+    'grouped'      => $_lusterGrouped,
     'categories'   => $_lusterCategories,
     'cat_map'      => $_lusterCatMap,
     'category_map' => $_lusterCategoryMap,

@@ -55,34 +55,23 @@ final class ActivityRepo
     /**
      * Returns paginated log entries, newest first.
      *
-     * @param  string $filterAction  Optional exact match on the action column.
      * @return array{entries: list<array>, total: int, pages: int}
      */
-    public function getPaginated(int $page, int $perPage, string $filterAction = ''): array
+    public function getPaginated(int $page, int $perPage): array
     {
         $offset = max(0, ($page - 1) * $perPage);
-        $where  = $filterAction !== '' ? 'WHERE l.action = :action' : '';
 
-        $countStmt = $this->db->prepare(
-            "SELECT COUNT(*) FROM lstr_activity_log l {$where}"
-        );
-        if ($filterAction !== '') {
-            $countStmt->bindValue(':action', $filterAction);
-        }
+        $countStmt = $this->db->prepare('SELECT COUNT(*) FROM lstr_activity_log');
         $countStmt->execute();
         $total = (int) $countStmt->fetchColumn();
 
         $listStmt = $this->db->prepare(
-            "SELECT l.id, l.action, l.description, l.ip_address, l.created_at, u.username
+            'SELECT l.description, l.ip_address, l.created_at, u.username
              FROM lstr_activity_log l
              LEFT JOIN lstr_admin_users u ON u.id = l.admin_user_id
-             {$where}
              ORDER BY l.created_at DESC
-             LIMIT :lim OFFSET :off"
+             LIMIT :lim OFFSET :off'
         );
-        if ($filterAction !== '') {
-            $listStmt->bindValue(':action', $filterAction);
-        }
         $listStmt->bindValue(':lim', $perPage, PDO::PARAM_INT);
         $listStmt->bindValue(':off', $offset,  PDO::PARAM_INT);
         $listStmt->execute();
@@ -115,18 +104,21 @@ final class ActivityRepo
     }
 
     /**
-     * Returns all distinct action types (for the filter drop-down).
+     * Returns all log entries, newest first (for CSV export).
      *
-     * @return list<string>
+     * @return list<array>
      */
-    public function getActions(): array
+    public function getAll(): array
     {
         $stmt = $this->db->prepare(
-            'SELECT DISTINCT action FROM lstr_activity_log ORDER BY action ASC'
+            'SELECT l.created_at, l.description, u.username, l.ip_address
+             FROM lstr_activity_log l
+             LEFT JOIN lstr_admin_users u ON u.id = l.admin_user_id
+             ORDER BY l.created_at DESC'
         );
         $stmt->execute();
 
-        return $stmt->fetchAll(PDO::FETCH_COLUMN);
+        return $stmt->fetchAll();
     }
 
     /**

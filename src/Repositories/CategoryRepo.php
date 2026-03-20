@@ -55,7 +55,7 @@ final class CategoryRepo
         return $row !== false ? $row : null;
     }
 
-    public function paginate(int $perPage, int $page, string $source = '', string $search = ''): array
+    public function paginate(int $perPage, int $page, string $source = '', string $search = '', string $sort = 'source', string $dir = 'asc'): array
     {
         $where  = '1=1';
         $params = [];
@@ -70,6 +70,13 @@ final class CategoryRepo
             $params['search']  = '%' . $search . '%';
         }
 
+        $dir   = $dir === 'desc' ? 'DESC' : 'ASC';
+        $order = match (in_array($sort, ['id', 'source', 'name'], true) ? $sort : 'source') {
+            'id'   => "id {$dir}",
+            'name' => "name {$dir}",
+            default => "source {$dir}, name ASC",
+        };
+
         $countStmt = $this->db->pdo()->prepare("SELECT COUNT(*) FROM lstr_categories WHERE $where");
         foreach ($params as $k => $v) {
             $countStmt->bindValue($k, $v);
@@ -79,7 +86,7 @@ final class CategoryRepo
         $offset = ($page - 1) * $perPage;
 
         $stmt = $this->db->pdo()->prepare(
-            "SELECT * FROM lstr_categories WHERE $where ORDER BY source, name LIMIT :lim OFFSET :off"
+            "SELECT * FROM lstr_categories WHERE $where ORDER BY {$order} LIMIT :lim OFFSET :off"
         );
 
         foreach ($params as $k => $v) {

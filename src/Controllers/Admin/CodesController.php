@@ -36,6 +36,7 @@ use Luster\Repositories\ListingRepo;
  *   POST /admin/listings/{fid}/codes/{id}/donor                — set donor for a code
  *   POST /admin/listings/{fid}/codes/{id}/status               — set approval status for a code
  *   POST /admin/listings/{fid}/codes/{id}/name                 — set or clear the per-code label
+ *   POST /admin/listings/{fid}/codes/{id}/update               — consolidated update (name, size, categories, donor, status)
  *   GET  /admin/listings/{fid}/codes/export                    — ZIP download of all approved codes
  *   POST /admin/listings/{fid}/codes/reorder                   — drag-drop sort order save
  */
@@ -78,7 +79,6 @@ final class CodesController
 
         $session    = $this->app->getSession();
         $codesRepo  = new CodesRepo($db);
-        $sizesRepo  = new CodeSizesRepo($db);
         $catsRepo   = new CodeCategoriesRepo($db);
         $donorsRepo = new CodeDonorsRepo($db);
 
@@ -93,7 +93,6 @@ final class CodesController
             ? array_values(array_filter($allCodes, fn($c) => $c->status === $statusFilter))
             : $allCodes;
 
-        $sizes      = $sizesRepo->getByListing($listingId);
         $categories = $catsRepo->getByListing($listingId);
         $donors     = $donorsRepo->getByListing($listingId);
 
@@ -110,19 +109,31 @@ final class CodesController
             $donorMap[$donor->id] = $donor;
         }
 
-        // Build grouped structure from the display-filtered codes
+        // Auto-group display codes by detected dimensions (width × height).
+        // Codes with no dimension data fall into an 'unknown' bucket shown last.
         $grouped = [];
-        foreach ($sizes as $size) {
-            $grouped[$size->id] = ['size' => $size, 'codes' => []];
-        }
-        $grouped[0] = ['size' => null, 'codes' => []];
-
         foreach ($codes as $code) {
-            $key = ($code->sizeId !== null && isset($grouped[$code->sizeId]))
-                ? $code->sizeId
-                : 0;
+            if ($code->width > 0 && $code->height > 0) {
+                $key   = (int) $code->width . 'x' . (int) $code->height;
+                $label = (int) $code->width . '×' . (int) $code->height . 'px';
+            } else {
+                $key   = 'unknown';
+                $label = 'Unknown dimensions';
+            }
+            if (!isset($grouped[$key])) {
+                $grouped[$key] = ['label' => $label, 'codes' => []];
+            }
             $grouped[$key]['codes'][] = $code;
         }
+
+        // Sort groups: smallest width first, then height; unknown last
+        uksort($grouped, function (string $a, string $b): int {
+            if ($a === 'unknown') return 1;
+            if ($b === 'unknown') return -1;
+            [$aw, $ah] = explode('x', $a);
+            [$bw, $bh] = explode('x', $b);
+            return $aw !== $bw ? (int) $aw - (int) $bw : (int) $ah - (int) $bh;
+        });
 
         $success = (string) $session->get('lstr_flash_success', '');
         $error   = (string) $session->get('lstr_flash_error', '');
@@ -132,14 +143,12 @@ final class CodesController
         return $this->layout('admin/listings/codes.php', [
             'listing'         => $listing,
             'codes'           => $codes,
-            'sizes'           => $sizes,
             'categories'      => $categories,
             'donors'          => $donors,
             'grouped'         => $grouped,
             'code_categories' => $codeCategories,
             'category_map'    => $categoryMap,
             'donor_map'       => $donorMap,
-            'edit_size_id'    => $editSizeId,
             'edit_cat_id'     => $editCatId,
             'edit_donor_id'   => $editDonorId,
             'status_filter'   => $statusFilter,
@@ -148,7 +157,7 @@ final class CodesController
             'uploads_url'     => $this->app->getBaseUrl() . '/uploads/codes',
             'success'         => $success,
             'error'           => $error,
-        ], 'Codes', 'listings', $listing->name);
+        ], 'Codes', 'listings', 'Owned › ' . $listing->name);
     }
 
     // -----------------------------------------------------------------------
@@ -1353,6 +1362,85 @@ final class CodesController
         $filename = 'codes_' . $safeName . '_' . date('Ymd') . '.zip';
 
         return Response::download($zipContent, $filename, 'application/zip');
+    }
+
+    // -----------------------------------------------------------------------
+    // POST /admin/listings/{fid}/codes/{id}/update
+    // -----------------------------------------------------------------------
+
+    /**
+     * Consolidated per-code update: name, size, categories, donor, status in one POST.
+     */
+    public function updateCode(Request $request, array $params): Response
+    {
+        $listingId = (int) ($params['fid'] ?? 0);
+        $codeId    = (int) ($params['id']  ?? 0);
+
+        $db      = $this->app->getDatabase();
+        $config  = $this->app->getConfig();
+        $session = $this->app->getSession();
+        $baseUrl = $this->app->getBaseUrl();
+
+        $listingRepo = new ListingRepo($db, $config);
+        if ($listingRepo->getById($listingId) === null) {
+            return Response::notFound('Listing not found.');
+        }
+
+        $codesRepo = new CodesRepo($db);
+        $code      = $codesRepo->getById($codeId);
+
+        if ($code === null || $code->listingId !== $listingId) {
+            $session->set('lstr_flash_error', 'Code not found.');
+            return Response::redirect($baseUrl . '/admin/listings/' . $listingId . '/codes');
+        }
+
+        $adminId = (int) $session->get('lstr_admin_id');
+
+        // Name (empty → null)
+        $rawName = trim((string) $request->post('name', ''));
+        $name    = $rawName !== '' ? $rawName : null;
+        $codesRepo->updateName($codeId, $name);
+
+        // Categories
+        $catsRepo    = new CodeCategoriesRepo($db);
+        $postedIds   = array_map('intval', (array) ($request->post('cat_ids') ?? []));
+        $validCatIds = [];
+        foreach ($postedIds as $catId) {
+            if ($catId <= 0) continue;
+            $cat = $catsRepo->getById($catId);
+            if ($cat !== null && $cat->listingId === $listingId) {
+                $validCatIds[] = $catId;
+            }
+        }
+        $catsRepo->setCategories($codeId, $validCatIds);
+
+        // Donor
+        $donorRaw = $request->post('donor_id', '');
+        $donorId  = null;
+        if ($donorRaw !== '' && (int) $donorRaw > 0) {
+            $donor = (new CodeDonorsRepo($db))->getById((int) $donorRaw);
+            if ($donor !== null && $donor->listingId === $listingId) {
+                $donorId = (int) $donorRaw;
+            }
+        }
+        $codesRepo->updateDonor($codeId, $donorId);
+
+        // Status
+        $status = (string) $request->post('status', 'approved');
+        if (!in_array($status, CodesRepo::STATUSES, true)) {
+            $status = 'approved';
+        }
+        $codesRepo->updateStatus($codeId, $status);
+
+        (new ActivityRepo($db))->log(
+            $adminId,
+            'codes.update',
+            "Updated code #{$codeId} (listing #{$listingId}): status={$status}",
+            $request->ip(),
+        );
+
+        $session->set('lstr_flash_success', 'Code updated.');
+        return Response::redirect($baseUrl . '/admin/listings/' . $listingId . '/codes');
     }
 
     // -----------------------------------------------------------------------

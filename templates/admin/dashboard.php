@@ -51,7 +51,7 @@ if (!function_exists('dashTimeAgo')) {
 <!-- ── Welcome block ──────────────────────────────────────────── -->
 <div class="welcome-block">
   <div class="welcome-datetime" id="live-datetime"></div>
-  <div class="welcome-title">Welcome back, <?= \Luster\Core\View::e($admin_username) ?>!</div>
+  <div class="welcome-title">Hey there, <?= \Luster\Core\View::e($admin_username) ?>!</div>
   <div class="welcome-sub">
     <?php if ($total_pending > 0 || !empty($stale_listings)): ?>
       <?php
@@ -82,14 +82,11 @@ if (!function_exists('dashTimeAgo')) {
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
     Add Joined FL
   </a>
-  <a href="<?= $b ?>/admin/members/export-pending" class="quick-action-btn">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-    Export Members CSV
-  </a>
 </div>
 
 <!-- ── Stat row ────────────────────────────────────────────────── -->
 <div class="stats-grid stats-grid-row">
+
   <div class="stat-card">
     <div class="stat-header">
       <span class="stat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01z"/></svg></span>
@@ -148,14 +145,15 @@ if (!function_exists('dashTimeAgo')) {
         <span class="pill pill-info"><?= (int) $total_affiliates_collective ?> Collective</span>
       <?php endif; ?>
       <?php if ($total_affiliates_per_fl > 0): ?>
-        <span class="pill pill-muted"><?= (int) $total_affiliates_per_fl ?> Per FL</span>
+        <span class="pill pill-muted"><?= (int) $total_affiliates_per_fl ?> Per-FL</span>
       <?php endif; ?>
       <?php if ($total_affiliates === 0): ?>
         <span class="pill pill-muted">None yet</span>
       <?php endif; ?>
     </div>
   </div>
-</div>
+
+</div><!-- /.stats-grid -->
 
 <!-- ── Pending members banner ──────────────────────────────────── -->
 <?php if ($total_pending > 0): ?>
@@ -172,7 +170,6 @@ if (!function_exists('dashTimeAgo')) {
   <a href="<?= $b ?>/admin/members" class="btn btn-primary btn-sm">Review now &rarr;</a>
 </div>
 <?php endif; ?>
-
 
 <!-- ── Staleness warning ──────────────────────────────────────── -->
 <?php if (!empty($stale_listings)): ?>
@@ -193,7 +190,7 @@ if (!function_exists('dashTimeAgo')) {
     <form method="POST" action="<?= $b ?>/admin/maintenance/touch-all-updated"
           data-confirm="Mark all listings as updated today?">
       <input type="hidden" name="_csrf" value="<?= \Luster\Core\View::e($csrf_token ?? '') ?>">
-      <button type="submit" class="btn btn-warn btn-sm">Update Entire Collective</button>
+      <button type="submit" class="btn btn-warn btn-sm">Update Entire Collective &rarr;</button>
     </form>
   </div>
   <div class="stale-rows">
@@ -214,38 +211,18 @@ if (!function_exists('dashTimeAgo')) {
 </div>
 <?php endif; ?>
 
-<!-- ── Collective Statistics (full-width) ────────────────────── -->
+<!-- ── Recent Listings (full-width) ──────────────────────────── -->
 <div class="panel">
   <div class="panel-header">
     <div class="panel-title">
-      <svg class="panel-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg> Collective Statistics
+      <svg class="panel-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01z"/></svg> Recent Listings
     </div>
   </div>
 
-  <div style="padding:1rem 1.25rem 0.75rem;display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px 2rem">
+  <div style="padding:1rem 1.25rem 0.75rem;display:flex;flex-direction:column;gap:.5rem">
     <div class="newest-row">
       <span class="newest-star">✦</span>
-      <span class="newest-label">Categories:</span>
-      <span><?= (int) $total_categories ?></span>
-    </div>
-    <div class="newest-row">
-      <span class="newest-star">✦</span>
-      <span class="newest-label">Joined Listings:</span>
-      <span><?= (int) $total_joined_active ?> active (<?= (int) $total_joined_inactive ?> inactive)</span>
-    </div>
-    <div class="newest-row">
-      <span class="newest-star">✦</span>
-      <span class="newest-label">Owned Listings:</span>
-      <span><?= (int) $fan_current ?> current, <?= (int) $fan_upcoming ?> upcoming, <?= (int) $fan_pending ?> pending</span>
-    </div>
-    <div class="newest-row">
-      <span class="newest-star">✦</span>
-      <span class="newest-label">Affiliates:</span>
-      <span><?= (int) $total_affiliates ?></span>
-    </div>
-    <div class="newest-row">
-      <span class="newest-star">✦</span>
-      <span class="newest-label">Newest joined:</span>
+      <span class="newest-label">Newest Joined:</span>
       <?php if ($newest_joined_name !== null): ?>
         <a href="<?= $b ?>/admin/joined" class="newest-link"><?= \Luster\Core\View::e($newest_joined_name) ?></a>
         <?php if (!empty($newest_joined_date)): ?>
@@ -257,7 +234,7 @@ if (!function_exists('dashTimeAgo')) {
     </div>
     <div class="newest-row">
       <span class="newest-star">✦</span>
-      <span class="newest-label">Newest owned:</span>
+      <span class="newest-label">Newest Owned Listing:</span>
       <?php if ($newest_owned_name !== null): ?>
         <a href="<?= $b ?>/admin/listings" class="newest-link"><?= \Luster\Core\View::e($newest_owned_name) ?></a>
         <?php if (!empty($newest_owned_opened)): ?>

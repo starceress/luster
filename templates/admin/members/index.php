@@ -14,8 +14,31 @@
 /** @var int      $pending_count */
 /** @var string   $base_url */
 /** @var string   $csrf_token */
-$b  = rtrim(\Luster\Core\View::e($base_url), '/');
-$id = (int) $listing->id;
+$b    = rtrim(\Luster\Core\View::e($base_url), '/');
+$id   = (int) $listing->id;
+$sort = $sort ?? 'name';
+$dir  = $dir  ?? 'asc';
+
+$memSortUrl = static function (string $col) use ($b, $id, $sort, $dir, $search, $status): string {
+    $newDir = ($sort === $col && $dir === 'asc') ? 'desc' : 'asc';
+    $qs = http_build_query(array_filter([
+        'search' => $search ?? '',
+        'status' => $status ?? '',
+        'sort'   => $col,
+        'dir'    => $newDir,
+    ], static fn(string $v): bool => $v !== ''));
+    return $b . '/admin/members/' . $id . ($qs !== '' ? '?' . $qs : '');
+};
+
+$memSortIcon = static function (string $col) use ($sort, $dir): string {
+    if ($sort !== $col) {
+        return '<svg viewBox="0 0 10 14" width="9" height="9" fill="currentColor" style="opacity:.35;flex-shrink:0"><path d="M5 0l3 4H2zM5 14l-3-4h6z"/></svg>';
+    }
+    if ($dir === 'asc') {
+        return '<svg viewBox="0 0 10 14" width="9" height="9" fill="currentColor" style="flex-shrink:0"><path d="M5 0l3 4H2z"/><path d="M5 14l-3-4h6z" fill-opacity=".25"/></svg>';
+    }
+    return '<svg viewBox="0 0 10 14" width="9" height="9" fill="currentColor" style="flex-shrink:0"><path d="M5 0l3 4H2z" fill-opacity=".25"/><path d="M5 14l-3-4h6z"/></svg>';
+};
 ?>
 
 <?php if ($success !== ''): ?>
@@ -28,6 +51,18 @@ $id = (int) $listing->id;
 <!-- Toolbar -->
 <div class="neb-toolbar">
   <form method="GET" action="<?= $b ?>/admin/members/<?= $id ?>" class="neb-filter-row" id="mem-filter-form">
+
+    <div class="toolbar-select-wrap">
+    <select class="neb-select js-nav-select">
+      <option value="<?= $b ?>/admin/members"<?= !isset($listing) ? ' selected' : '' ?>>All pending members</option>
+      <?php foreach ($all_listings as $fl): ?>
+        <option value="<?= $b ?>/admin/members/<?= (int) $fl->id ?>?status=all"
+                <?= (int) $fl->id === (int) ($listing->id ?? 0) ? 'selected' : '' ?>>
+          <?= \Luster\Core\View::e($fl->name) ?>
+        </option>
+      <?php endforeach; ?>
+    </select>
+    </div>
 
     <input type="text" name="search" class="neb-input" placeholder="Search&hellip;"
            value="<?= \Luster\Core\View::e($search ?? '') ?>">
@@ -46,31 +81,33 @@ $id = (int) $listing->id;
   </form>
 
   <div class="neb-actions">
-    <div class="toolbar-select-wrap">
-    <select class="neb-select js-nav-select">
-      <option value="<?= $b ?>/admin/members"<?= !isset($listing) ? ' selected' : '' ?>>All pending members</option>
-      <?php foreach ($all_listings as $fl): ?>
-        <option value="<?= $b ?>/admin/members/<?= (int) $fl->id ?>?status=all"
-                <?= (int) $fl->id === (int) ($listing->id ?? 0) ? 'selected' : '' ?>>
-          <?= \Luster\Core\View::e($fl->name) ?>
-        </option>
-      <?php endforeach; ?>
-    </select>
-    </div>
-    <?php if (($pending_count ?? 0) > 0): ?>
-    <form method="POST" action="<?= $b ?>/admin/members/<?= $id ?>/approve-all-pending"
-          data-confirm="Approve all <?= (int) ($pending_count ?? 0) ?> pending member(s)?">
-      <input type="hidden" name="_csrf" value="<?= \Luster\Core\View::e($csrf_token ?? '') ?>">
-      <button type="submit" class="btn btn-success btn-sm">
-        &#10003; Approve All Pending (<?= (int) ($pending_count ?? 0) ?>)
-      </button>
-    </form>
-    <?php endif; ?>
     <a href="<?= $b ?>/admin/members/<?= $id ?>/import" class="btn btn-secondary btn-sm">&#8593; Import CSV</a>
     <a href="<?= $b ?>/admin/members/<?= $id ?>/export" class="btn btn-secondary btn-sm">&#8595; Export CSV</a>
   </div>
 </div>
 
+
+<?php if (($pending_count ?? 0) > 0 && ($status ?? 'all') !== 'pending'): ?>
+<div class="pending-banner">
+  <div class="pending-banner-left">
+    <span class="pending-banner-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="20" height="20"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+    </span>
+    <div>
+      <span class="pending-banner-title">Action required</span>
+      <span class="pending-banner-msg"><?= (int) $pending_count ?> member<?= $pending_count !== 1 ? 's are' : ' is' ?> awaiting approval</span>
+    </div>
+  </div>
+  <div style="display:flex;gap:.5rem;align-items:center">
+    <a href="?status=pending" class="btn btn-ghost btn-sm">View Pending</a>
+    <form method="POST" action="<?= $b ?>/admin/members/<?= $id ?>/approve-all-pending"
+          data-confirm="Approve all <?= (int) $pending_count ?> pending member(s)?">
+      <input type="hidden" name="_csrf" value="<?= \Luster\Core\View::e($csrf_token ?? '') ?>">
+      <button type="submit" class="btn btn-success btn-sm">Approve All &rarr;</button>
+    </form>
+  </div>
+</div>
+<?php endif; ?>
 
 <?php if (empty($members)): ?>
   <div class="neb-card">
@@ -100,9 +137,11 @@ $id = (int) $listing->id;
     <label for="bulk-action-sel">Bulk action:</label>
     <div class="toolbar-select-wrap">
     <select id="bulk-action-sel" name="bulk_action" class="neb-select">
+      <option value="" disabled selected>— Select —</option>
       <option value="approve">Approve</option>
-      <option value="pending">Set Pending</option>
+      <option value="pending">Pending</option>
       <option value="delete">Delete</option>
+      <option value="email_selected">Email</option>
     </select>
     </div>
     <button type="submit" class="btn btn-secondary btn-sm">Apply</button>
@@ -113,14 +152,14 @@ $id = (int) $listing->id;
       <thead>
         <tr>
           <th class="cb-col"><input type="checkbox" id="check-all"></th>
-          <th>Name</th>
-          <th>Email</th>
-          <th>Country</th>
+          <th><a href="<?= \Luster\Core\View::e($memSortUrl('name')) ?>" class="sort-th<?= $sort === 'name' ? ' sort-active' : '' ?>">Name <?= $memSortIcon('name') ?></a></th>
+          <th><a href="<?= \Luster\Core\View::e($memSortUrl('email')) ?>" class="sort-th<?= $sort === 'email' ? ' sort-active' : '' ?>">Email <?= $memSortIcon('email') ?></a></th>
+          <th><a href="<?= \Luster\Core\View::e($memSortUrl('country')) ?>" class="sort-th<?= $sort === 'country' ? ' sort-active' : '' ?>">Country <?= $memSortIcon('country') ?></a></th>
           <th>URL</th>
           <?php foreach ($fields as $field): ?>
             <th><?= \Luster\Core\View::e($field->label) ?></th>
           <?php endforeach; ?>
-          <th>Status</th>
+          <th><a href="<?= \Luster\Core\View::e($memSortUrl('status')) ?>" class="sort-th<?= $sort === 'status' ? ' sort-active' : '' ?>">Status <?= $memSortIcon('status') ?></a></th>
           <th class="act-col">Actions</th>
         </tr>
       </thead>
@@ -131,12 +170,12 @@ $id = (int) $listing->id;
             <input type="checkbox" name="emails[]" value="<?= \Luster\Core\View::e($m->email) ?>">
           </td>
           <td class="text-strong" data-label="Name"><?= \Luster\Core\View::e($m->name) ?></td>
-          <td class="td-mono" data-label="Email"><?= \Luster\Core\View::e($m->email) ?></td>
+          <td data-label="Email"><?= \Luster\Core\View::e($m->email) ?></td>
           <td class="text-muted" data-label="Country"><?= \Luster\Core\View::e($m->country) ?></td>
-          <td class="td-mono" data-label="URL">
+          <td data-label="URL">
             <?php if ($m->url): ?>
               <a href="<?= \Luster\Core\View::e($m->url) ?>" target="_blank" rel="noopener noreferrer"
-                 class="neb-link text-dim" style="word-break:break-all"><?= \Luster\Core\View::e($m->url) ?></a>
+                 class="neb-link text-dim"><?= \Luster\Core\View::e($m->url) ?></a>
             <?php else: ?>
               <span class="text-dim">—</span>
             <?php endif; ?>

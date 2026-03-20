@@ -26,6 +26,7 @@ $_navActive = 'listings';
       <a href="index.php">Home</a>
       <a href="listings.php" class="active">Listings</a>
       <a href="joined.php">Joined</a>
+      <a href="updates.php">Updates</a>
       <a href="affiliates.php">Affiliates</a>
     </nav>
   </div>

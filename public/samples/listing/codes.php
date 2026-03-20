@@ -53,6 +53,9 @@ $luster_fanlisting_id = LISTING_ID;
 $luster_return        = true;
 echo require $_embedPath . '/codes.php';
 ?>
+<div style="margin-top:1rem;text-align:center">
+  <a href="codes-submit.php" class="fl-link" style="font-size:.875rem">Donate a code</a>
+</div>
 </main>
 
 <footer class="fl-site-footer">

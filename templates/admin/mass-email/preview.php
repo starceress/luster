@@ -67,7 +67,7 @@ $b = rtrim(View::e($base_url ?? ''), '/');
 
   <div class="btn-row">
     <?php if ($total > 0): ?>
-    <form method="POST" action="<?= $b ?>/admin/mass-email/send" id="send-form">
+    <form method="POST" action="<?= $b ?>/admin/emails/send" id="send-form">
       <input type="hidden" name="_csrf"       value="<?= View::e($csrf_token ?? '') ?>">
       <input type="hidden" name="listing_id"  value="<?= (int) $listing_id ?>">
       <input type="hidden" name="subject"     value="<?= View::e($subject) ?>">
@@ -77,7 +77,7 @@ $b = rtrim(View::e($base_url ?? ''), '/');
       </button>
     </form>
     <?php endif; ?>
-    <a href="<?= $b ?>/admin/mass-email" class="btn btn-secondary">
+    <a href="<?= $b ?>/admin/emails" class="btn btn-secondary">
       &larr; Back to compose
     </a>
   </div>

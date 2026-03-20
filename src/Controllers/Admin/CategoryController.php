@@ -32,9 +32,14 @@ final class CategoryController
         $source  = trim((string) $request->query('source', ''));
         $search  = trim((string) $request->query('search', ''));
         $page    = max(1, (int) $request->query('page', 1));
+        $sort    = trim((string) $request->query('sort', 'source'));
+        $dir     = trim((string) $request->query('dir', 'asc'));
         $perPage = 10;
 
-        $result        = $repo->paginate($perPage, $page, $source, $search);
+        if (!in_array($sort, ['id', 'source', 'name'], true)) { $sort = 'source'; }
+        if (!in_array($dir, ['asc', 'desc'], true)) { $dir = 'asc'; }
+
+        $result        = $repo->paginate($perPage, $page, $source, $search, $sort, $dir);
         $customSources = $repo->getCustomSources();
 
         $session = $this->app->getSession();
@@ -53,6 +58,8 @@ final class CategoryController
             'total_pages'    => $result['pages'],
             'source'         => $source,
             'search'         => $search,
+            'sort'           => $sort,
+            'dir'            => $dir,
             'custom_sources' => $customSources,
             'all_cats'       => $all,
             'success'        => $success,

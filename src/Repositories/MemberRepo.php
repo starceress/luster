@@ -96,15 +96,21 @@ final class MemberRepo
     }
 
     /**
-     * Returns all pending (queued) members, oldest first.
+     * Returns all pending (queued) members.
      *
+     * @param string $sort  'name' | 'email' | 'country'
+     * @param string $dir   'asc' | 'desc'
      * @return Member[]
      */
-    public function getPending(string $prefix): array
+    public function getPending(string $prefix, string $sort = 'name', string $dir = 'asc'): array
     {
-        $p    = $this->resolveTable($prefix);
+        $p     = $this->resolveTable($prefix);
+        $sort  = in_array($sort, ['name', 'email', 'country'], true) ? $sort : 'name';
+        $dir   = $dir === 'desc' ? 'DESC' : 'ASC';
+        $order = $sort !== 'name' ? "{$sort} {$dir}, name ASC" : "name {$dir}";
+
         $stmt = $this->db->prepare(
-            "SELECT * FROM {$p} WHERE {$this->pendingWhere} ORDER BY added ASC"
+            "SELECT * FROM {$p} WHERE {$this->pendingWhere} ORDER BY {$order}"
         );
         $stmt->execute();
 
@@ -214,11 +220,18 @@ final class MemberRepo
      * @param string $status  'approved' | 'pending' | 'all'
      * @return array{members: Member[], total: int, pages: int}
      */
+    /**
+     * @param string $sort  'name' | 'email' | 'country' | 'status'
+     * @param string $dir   'asc' | 'desc'
+     * @return array{members: Member[], total: int, pages: int}
+     */
     public function paginateByStatus(
         string $prefix,
         string $status  = 'approved',
         int    $page    = 1,
         int    $perPage = 25,
+        string $sort    = 'name',
+        string $dir     = 'asc',
     ): array {
         $p      = $this->resolveTable($prefix);
         $offset = max(0, ($page - 1) * $perPage);
@@ -229,13 +242,30 @@ final class MemberRepo
             default   => "WHERE {$this->approvedWhere}",
         };
 
+        $sort = in_array($sort, ['name', 'email', 'country', 'status'], true) ? $sort : 'name';
+        $dir  = $dir === 'desc' ? 'DESC' : 'ASC';
+
+        if ($sort === 'status') {
+            // Schema-appropriate status column; ascending = approved first.
+            if ($this->appendMembers) {
+                $statusDir = $dir === 'ASC' ? 'DESC' : 'ASC'; // approved=1, so flip
+                $order = "approved {$statusDir}, name ASC";
+            } else {
+                $order = "pending {$dir}, name ASC"; // pending=0 = approved, ASC = approved first
+            }
+        } elseif ($sort !== 'name') {
+            $order = "{$sort} {$dir}, name ASC";
+        } else {
+            $order = "name {$dir}";
+        }
+
         $countStmt = $this->db->prepare("SELECT COUNT(*) FROM {$p} {$where}");
         $countStmt->execute();
         $total = (int) $countStmt->fetchColumn();
 
         $stmt = $this->db->prepare(
             "SELECT * FROM {$p} {$where}
-             ORDER BY name ASC
+             ORDER BY {$order}
              LIMIT :lim OFFSET :off"
         );
         $stmt->bindValue(':lim', $perPage, PDO::PARAM_INT);

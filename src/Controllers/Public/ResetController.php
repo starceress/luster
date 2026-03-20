@@ -111,8 +111,9 @@ final class ResetController
 
         $settingsRepo  = new ListingSettingsRepo($this->app->getDatabase());
         $embedSettings = $settingsRepo->getEmbedSettings($listingId);
-        $formUrl       = (string) $embedSettings['form_url_reset'] !== ''
-                       ? (string) $embedSettings['form_url_reset']
+        $formPageName  = (string) $embedSettings['form_url_reset'];
+        $formUrl       = $formPageName !== ''
+                       ? rtrim((string) $listing->url, '/') . '/' . ltrim($formPageName, '/')
                        : $baseUrl . '/reset/' . $listingId;
 
         $v = new Validator(['email' => $email]);
@@ -311,14 +312,6 @@ final class ResetController
         // Consume the token — one-time use
         $resetRepo->deleteByToken(hash('sha256', $rawToken));
         $rateLimit->clear($ip, RateLimit::ACTION_PUBLIC_RESET);
-
-        // Redirect to configured URL or default done page
-        $settingsRepo  = new ListingSettingsRepo($this->app->getDatabase());
-        $embedSettings = $settingsRepo->getEmbedSettings($listingId);
-        $redirectUrl   = (string) $embedSettings['redirect_url_reset'];
-        if ($redirectUrl !== '') {
-            return Response::redirect($redirectUrl);
-        }
 
         return Response::redirect($baseUrl . '/reset/' . $listingId . '/done');
     }

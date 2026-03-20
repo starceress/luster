@@ -91,8 +91,9 @@ final class RemoveController
 
         $settingsRepo  = new ListingSettingsRepo($this->app->getDatabase());
         $embedSettings = $settingsRepo->getEmbedSettings($listingId);
-        $formUrl       = (string) $embedSettings['form_url_remove'] !== ''
-                       ? (string) $embedSettings['form_url_remove']
+        $formPageName  = (string) $embedSettings['form_url_remove'];
+        $formUrl       = $formPageName !== ''
+                       ? rtrim((string) $listing->url, '/') . '/' . ltrim($formPageName, '/')
                        : $baseUrl . '/remove/' . $listingId;
 
         // Captcha — re-render the form with an error on failure
@@ -171,11 +172,6 @@ final class RemoveController
             error_log('[Luster] Remove email failed: ' . $e->getMessage());
         }
 
-        // Redirect to configured URL or default success page
-        $redirectUrl = (string) $embedSettings['redirect_url_remove'];
-        if ($redirectUrl !== '') {
-            return Response::redirect($redirectUrl);
-        }
 
         return Response::redirect($baseUrl . '/remove/' . $listingId . '/success');
     }

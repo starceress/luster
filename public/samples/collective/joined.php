@@ -26,6 +26,7 @@ $_navActive = 'joined';
       <a href="index.php">Home</a>
       <a href="listings.php">Listings</a>
       <a href="joined.php" class="active">Joined</a>
+      <a href="updates.php">Updates</a>
       <a href="affiliates.php">Affiliates</a>
     </nav>
   </div>
@@ -42,8 +43,9 @@ $_navActive = 'joined';
  *                               // 'Anime' = only show a specific category by name
  *   $luster_show_list = false;  // show categories as a bulleted link list vs dropdown
  */
-$luster_category = '';     // change to 'all' to show everything grouped, no selector
-$luster_return   = true;
+$luster_category           = '';    // '' = show dropdown selector
+$luster_show_all_by_default = true; // show all listings grouped below the selector by default
+$luster_return             = true;
 echo require $_embedPath . '/joined.php';
 ?>
 </main>

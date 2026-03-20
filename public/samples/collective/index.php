@@ -37,6 +37,7 @@ function _e(string $v): string {
       <a href="index.php"       class="active">Home</a>
       <a href="listings.php">Listings</a>
       <a href="joined.php">Joined</a>
+      <a href="updates.php">Updates</a>
       <a href="affiliates.php">Affiliates</a>
     </nav>
   </div>

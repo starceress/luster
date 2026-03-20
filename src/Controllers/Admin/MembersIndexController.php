@@ -48,7 +48,7 @@ final class MembersIndexController
             'base_url'       => $baseUrl,
         ]);
 
-        return Response::html($view->render('admin/layout.php', [
+        return Response::html($view->render('admin/layout.php', array_merge([
             'page_title'      => 'Members',
             'site_name'       => (string) $config->get('site_name', 'Luster'),
             'admin_username'  => (string) $session->get('lstr_admin_username', ''),
@@ -56,6 +56,6 @@ final class MembersIndexController
             'current_section' => 'members',
             'base_url'        => $baseUrl,
             'content'         => $inner,
-        ]));
+        ], $this->app->getAdminNavData())));
     }
 }

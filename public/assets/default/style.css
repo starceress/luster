@@ -269,6 +269,12 @@ footer a:hover { text-decoration: underline; }
 }
 .fl-btn:hover { opacity: .87; text-decoration: none; }
 .fl-btn:focus-visible { outline: 2px solid var(--fl-accent); outline-offset: 3px; }
+.fl-btn-ghost {
+  color: var(--fl-text);
+  background: transparent;
+  border-color: var(--fl-border);
+}
+.fl-form-actions { display: flex; gap: .75rem; align-items: center; flex-wrap: wrap; }
 
 /* ── Member list ─────────────────────────────────────────────────────────────── */
 .fl-member-list {
@@ -479,6 +485,53 @@ footer a:hover { text-decoration: underline; }
 .fl-categories   li:last-child { border-bottom: none; }
 
 .fl-random-owned p { margin: .25rem 0 0; font-size: .9375rem; }
+
+/* ── Updates ─────────────────────────────────────────────────────────────────── */
+.fl-updates { margin-top: .25rem; }
+
+.fl-update {
+  padding: 1.25rem 0;
+  border-bottom: 1px solid var(--fl-border-soft);
+}
+.fl-update:last-child { border-bottom: none; }
+
+.fl-update-title {
+  margin: 0 0 .3rem;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--fl-text);
+}
+
+.fl-update-meta {
+  font-size: .8125rem;
+  color: var(--fl-muted);
+  margin-bottom: .5rem;
+}
+
+.fl-update-cats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .3rem;
+  margin-bottom: .65rem;
+}
+
+.fl-tag {
+  display: inline-block;
+  padding: .15rem .5rem;
+  font-size: .75rem;
+  font-weight: 600;
+  color: var(--fl-accent);
+  background: rgba(75,88,153,.08);
+  border: 1px solid rgba(75,88,153,.18);
+  border-radius: calc(var(--fl-radius) - 1px);
+  text-transform: uppercase;
+  letter-spacing: .03em;
+}
+
+.fl-update-body {
+  font-size: .9375rem;
+  line-height: var(--fl-line);
+}
 
 /* ── Responsive ──────────────────────────────────────────────────────────────── */
 @media (max-width: 520px) {

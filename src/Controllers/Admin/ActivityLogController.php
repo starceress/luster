@@ -14,8 +14,8 @@ use Luster\Repositories\ActivityRepo;
  *
  * Routes:
  *   GET  /admin/activity        — all entries, newest first
- *   GET  /admin/activity?action=foo — filter by action type
- *   GET  /admin/activity?page=N    — pagination
+ *   GET  /admin/activity?page=N — pagination
+ *   GET  /admin/activity/export — download CSV
  *   POST /admin/activity/flush  — delete all entries
  */
 final class ActivityLogController
@@ -29,26 +29,50 @@ final class ActivityLogController
 
         $activityRepo = new ActivityRepo($db);
 
-        $perPage      = (int) $config->get('per_page', 25);
-        $page         = max(1, (int) $request->query('page', 1));
-        $filterAction = trim((string) $request->query('action', ''));
+        $perPage = (int) $config->get('per_page', 25);
+        $page    = max(1, (int) $request->query('page', 1));
 
-        $result  = $activityRepo->getPaginated($page, $perPage, $filterAction);
-        $actions = $activityRepo->getActions();
+        $result  = $activityRepo->getPaginated($page, $perPage);
 
         $session = $this->app->getSession();
         $success = (string) $session->get('lstr_flash_success', '');
         $session->remove('lstr_flash_success');
 
         return $this->layout('admin/activity/index.php', [
-            'entries'       => $result['entries'],
-            'total'         => $result['total'],
-            'page'          => $page,
-            'pages'         => $result['pages'],
-            'filter_action' => $filterAction,
-            'actions'       => $actions,
-            'success'       => $success,
+            'entries' => $result['entries'],
+            'total'   => $result['total'],
+            'page'    => $page,
+            'pages'   => $result['pages'],
+            'success' => $success,
         ], 'Activity Log', 'activity');
+    }
+
+    // -----------------------------------------------------------------------
+    // GET /admin/activity/export
+    // -----------------------------------------------------------------------
+
+    public function export(Request $request, array $params): Response
+    {
+        $repo = new ActivityRepo($this->app->getDatabase());
+        $rows = $repo->getAll();
+
+        $filename = 'activity-log-' . date('Y-m-d') . '.csv';
+
+        $out = fopen('php://temp', 'r+');
+        fputcsv($out, ['Date & Time', 'Action', 'User', 'IP']);
+        foreach ($rows as $row) {
+            fputcsv($out, [
+                $row['created_at']  ?? '',
+                $row['description'] ?? '',
+                $row['username']    ?? '',
+                $row['ip_address']  ?? '',
+            ]);
+        }
+        rewind($out);
+        $csv = stream_get_contents($out);
+        fclose($out);
+
+        return Response::csv($csv, $filename);
     }
 
     // -----------------------------------------------------------------------

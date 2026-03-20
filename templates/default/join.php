@@ -52,12 +52,10 @@ use Luster\Core\View;
              value="<?= View::e($field_url) ?>" maxlength="500" placeholder="https://" autocomplete="url">
     </div>
 
-    <?php if ($country_field_enabled): ?>
     <div class="fl-field">
       <label class="fl-label" for="country">Country <span class="fl-required">*</span></label>
       <?= $country_select ?>
     </div>
-    <?php endif; ?>
 
     <?php foreach ($fields as $field): ?>
     <div class="fl-field">
@@ -131,17 +129,16 @@ use Luster\Core\View;
 
     <div class="fl-field">
       <label class="fl-label" for="join-password">
-        Password <span class="fl-required">*</span>
-        <span style="font-weight:400"> — needed to update or remove your membership</span>
+        Password <span style="font-weight:400">(optional — one will be emailed to you if left blank)</span>
       </label>
       <input class="fl-input" type="password" id="join-password" name="password"
-             required maxlength="255" autocomplete="new-password">
+             maxlength="255" autocomplete="new-password">
     </div>
 
     <div class="fl-field">
-      <label class="fl-label" for="join-password-confirm">Confirm Password <span class="fl-required">*</span></label>
+      <label class="fl-label" for="join-password-confirm">Confirm Password <span style="font-weight:400">(optional)</span></label>
       <input class="fl-input" type="password" id="join-password-confirm" name="password_confirm"
-             required maxlength="255" autocomplete="new-password">
+             maxlength="255" autocomplete="new-password">
     </div>
 
     <!-- Honeypot — hidden from humans, filled by bots -->
@@ -167,6 +164,9 @@ use Luster\Core\View;
       </label>
     </div>
 
-    <button class="fl-btn" type="submit">Join</button>
+    <div class="fl-form-actions">
+      <button class="fl-btn" type="submit">Join</button>
+      <button class="fl-btn fl-btn-ghost" type="reset">Clear</button>
+    </div>
   </form>
 </div>

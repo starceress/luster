@@ -42,6 +42,7 @@ $_navActive = 'members';
       <a href="remove.php">Remove</a>
       <a href="members.php" class="active">Members</a>
       <a href="codes.php">Codes</a>
+      <a href="updates.php">Updates</a>
       <a href="affiliates.php">Affiliates</a>
     </nav>
   </div>

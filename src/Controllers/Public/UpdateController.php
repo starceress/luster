@@ -103,9 +103,9 @@ final class UpdateController
         $settingsRepo  = new ListingSettingsRepo($this->app->getDatabase());
         $embedSettings = $settingsRepo->getEmbedSettings($listingId);
 
-        $countryEnabled = (bool) $embedSettings['country_field_enabled'];
-        $formUrl        = (string) $embedSettings['form_url_update'] !== ''
-                        ? (string) $embedSettings['form_url_update']
+        $formPageName   = (string) $embedSettings['form_url_update'];
+        $formUrl        = $formPageName !== ''
+                        ? rtrim((string) $listing->url, '/') . '/' . ltrim($formPageName, '/')
                         : $baseUrl . '/update/' . $listingId;
 
         // Section 1 — authentication credentials
@@ -118,7 +118,7 @@ final class UpdateController
         $newPassword        = (string) $request->post('new_password',        '');
         $newPasswordConfirm = (string) $request->post('new_password_confirm', '');
         $url                = trim((string) $request->post('url',                 ''));
-        $country            = $countryEnabled ? trim((string) $request->post('country', '')) : '';
+        $country            = trim((string) $request->post('country', ''));
         $deleteUrl          = ((string) $request->post('delete_url', '') === '1');
 
         $postData = $request->postAll();
@@ -153,7 +153,7 @@ final class UpdateController
         if ($url !== '') {
             $v->field('url')->url()->maxLength(500);
         }
-        if ($countryEnabled && $country !== '') {
+        if ($country !== '') {
             $v->field('country')->maxLength(100);
         }
 
@@ -166,14 +166,19 @@ final class UpdateController
 
         if ($v->fails()) {
             $rateLimit->hitDefault($ip, RateLimit::ACTION_PUBLIC_UPDATE);
-            $session->set('lstr_flash_error', implode(' ', $v->allErrors()));
-            $session->set('lstr_flash_old', [
+            $flashOld = [
                 'email'     => $email,
                 'new_name'  => $newName,
                 'new_email' => $newEmail,
                 'url'       => $url,
                 'country'   => $country,
-            ]);
+            ];
+            foreach ($fields as $field) {
+                $raw = $postData['field_' . $field->name] ?? '';
+                $flashOld['field_' . $field->name] = $raw;
+            }
+            $session->set('lstr_flash_error', implode(' ', $v->allErrors()));
+            $session->set('lstr_flash_old', $flashOld);
             return Response::redirect($formUrl);
         }
 
@@ -264,7 +269,7 @@ final class UpdateController
         // Resolve final values — blank submitted field means keep existing value
         $finalName    = $newName  !== '' ? $newName  : $member->name;
         $finalEmail   = $newEmail !== '' ? $newEmail : $email;
-        $finalCountry = ($countryEnabled && $country !== '') ? $country : $member->country;
+        $finalCountry = $country !== '' ? $country : $member->country;
 
         // URL: delete_url clears it; non-empty submission overwrites; blank keeps existing
         if ($deleteUrl) {
@@ -294,8 +299,11 @@ final class UpdateController
         $prefix = (string) $this->app->getConfig()->get('enth_table_prefix', '');
 
         foreach ($fields as $field) {
-            $colName              = ($prefix === '') ? $field->name : 'additional_' . $field->name;
-            $updateData[$colName] = trim((string) ($postData['field_' . $field->name] ?? ''));
+            $colName   = ($prefix === '') ? $field->name : 'additional_' . $field->name;
+            $raw       = $postData['field_' . $field->name] ?? '';
+            $updateData[$colName] = is_array($raw)
+                ? implode(', ', array_map('trim', $raw))
+                : trim((string) $raw);
         }
 
         // Apply new password immediately (auth-critical; don't queue it)
@@ -316,10 +324,6 @@ final class UpdateController
         $pendingRepo->insert($listingId, $finalEmail, $updateData);
 
         $session->set('lstr_flash_pending', '1');
-        $redirectUrl = (string) $embedSettings['redirect_url_update'];
-        if ($redirectUrl !== '') {
-            return Response::redirect($redirectUrl);
-        }
 
         return Response::redirect($baseUrl . '/update/' . $listingId . '/success');
     }
@@ -398,7 +402,6 @@ final class UpdateController
             'field_new_email'      => (string) ($old['new_email'] ?? ''),
             'field_url'            => (string) ($old['url']       ?? ''),
             'country_select'       => Countries::buildSelect((string) ($old['country'] ?? '')),
-            'country_field_enabled' => (bool) $embedSettings['country_field_enabled'],
             'fields'               => $fields,
             'old'                  => $old,
             'captcha_question'     => Captcha::getQuestion('update'),

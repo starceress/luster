@@ -531,7 +531,7 @@ $embedBaseUrl   = rtrim((string) ($cfg['embed_base_url'] ?? ''), '/') ?: rtrim((
   <div class="neb-actions">
     <a href="<?= $b ?>/admin/embed-codes?listing=<?= (int) $listing->id ?>" class="btn btn-ghost btn-sm">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="13" height="13"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
-      Display Codes for this listing &rarr;
+      Embed Codes for this listing &rarr;
     </a>
   </div>
 </div>
@@ -540,89 +540,46 @@ $embedBaseUrl   = rtrim((string) ($cfg['embed_base_url'] ?? ''), '/') ?: rtrim((
   <form method="POST" action="<?= $b ?>/admin/listings/<?= (int) $listing->id ?>/embed">
     <input type="hidden" name="_csrf" value="<?= \Luster\Core\View::e($csrf_token ?? '') ?>">
 
-    <div class="section-divider">Public Page Settings</div>
-
-    <div class="form-group">
-      <label class="form-check">
-        <input type="checkbox" name="country_field_enabled" value="1"
-               <?= ($embedSettings['country_field_enabled'] ?? true) ? 'checked' : '' ?>>
-        <span class="form-check-label">Show country field on join &amp; update forms</span>
-      </label>
-      <p class="form-hint" style="margin-top:0.35rem">
-        Uncheck to hide the country dropdown for this listing.
-      </p>
-    </div>
-
     <div class="section-divider">Form Page URLs</div>
 
     <p class="form-hint" style="margin-bottom:1rem">
-      If you embed Luster's forms on your own site, enter the URL of each page
-      containing the embed. When a visitor submits a form and validation fails,
-      Luster redirects back here (instead of its internal page) so the error
-      appears on your site. Leave blank to use Luster's internal form pages.
+      Enter the <strong>page filename</strong> on your site that contains each embedded form
+      (e.g. <code>join.php</code>). When a form submission fails validation, Luster redirects
+      back to this page so the error message appears on your site. Leave blank to use
+      Luster&rsquo;s internal form pages.
     </p>
 
+    <?php
+    $formDefaults = ['form_url_join' => 'join.php', 'form_url_update' => 'update.php',
+                     'form_url_remove' => 'remove.php', 'form_url_reset' => 'reset.php'];
+    ?>
+
     <div class="form-group">
-      <label class="form-label" for="fl-form-join">Join page URL</label>
-      <input id="fl-form-join" type="url" name="form_url_join" class="form-input"
-             maxlength="500" placeholder="https://fan.example.com/join.php"
-             value="<?= \Luster\Core\View::e($embedSettings['form_url_join'] ?? '') ?>">
+      <label class="form-label" for="fl-form-join">Join page</label>
+      <input id="fl-form-join" type="text" name="form_url_join" class="form-input"
+             maxlength="200"
+             value="<?= \Luster\Core\View::e($embedSettings['form_url_join'] !== '' ? $embedSettings['form_url_join'] : 'join.php') ?>">
     </div>
 
     <div class="form-group">
-      <label class="form-label" for="fl-form-update">Update page URL</label>
-      <input id="fl-form-update" type="url" name="form_url_update" class="form-input"
-             maxlength="500" placeholder="https://fan.example.com/update.php"
-             value="<?= \Luster\Core\View::e($embedSettings['form_url_update'] ?? '') ?>">
+      <label class="form-label" for="fl-form-update">Update page</label>
+      <input id="fl-form-update" type="text" name="form_url_update" class="form-input"
+             maxlength="200"
+             value="<?= \Luster\Core\View::e($embedSettings['form_url_update'] !== '' ? $embedSettings['form_url_update'] : 'update.php') ?>">
     </div>
 
     <div class="form-group">
-      <label class="form-label" for="fl-form-remove">Remove page URL</label>
-      <input id="fl-form-remove" type="url" name="form_url_remove" class="form-input"
-             maxlength="500" placeholder="https://fan.example.com/remove.php"
-             value="<?= \Luster\Core\View::e($embedSettings['form_url_remove'] ?? '') ?>">
+      <label class="form-label" for="fl-form-remove">Remove page</label>
+      <input id="fl-form-remove" type="text" name="form_url_remove" class="form-input"
+             maxlength="200"
+             value="<?= \Luster\Core\View::e($embedSettings['form_url_remove'] !== '' ? $embedSettings['form_url_remove'] : 'remove.php') ?>">
     </div>
 
     <div class="form-group">
-      <label class="form-label" for="fl-form-reset">Password reset page URL</label>
-      <input id="fl-form-reset" type="url" name="form_url_reset" class="form-input"
-             maxlength="500" placeholder="https://fan.example.com/reset.php"
-             value="<?= \Luster\Core\View::e($embedSettings['form_url_reset'] ?? '') ?>">
-    </div>
-
-    <div class="section-divider">Post-Action Redirect URLs</div>
-
-    <p class="form-hint" style="margin-bottom:1rem">
-      Override the default success pages with custom URLs.
-      Leave blank to use Luster's built-in success page.
-    </p>
-
-    <div class="form-group">
-      <label class="form-label" for="fl-redir-join">After Join</label>
-      <input id="fl-redir-join" type="url" name="redirect_url_join" class="form-input"
-             maxlength="500" placeholder="https://fan.example.com/thanks"
-             value="<?= \Luster\Core\View::e($embedSettings['redirect_url_join'] ?? '') ?>">
-    </div>
-
-    <div class="form-group">
-      <label class="form-label" for="fl-redir-update">After Update</label>
-      <input id="fl-redir-update" type="url" name="redirect_url_update" class="form-input"
-             maxlength="500" placeholder="https://fan.example.com/updated"
-             value="<?= \Luster\Core\View::e($embedSettings['redirect_url_update'] ?? '') ?>">
-    </div>
-
-    <div class="form-group">
-      <label class="form-label" for="fl-redir-remove">After Remove</label>
-      <input id="fl-redir-remove" type="url" name="redirect_url_remove" class="form-input"
-             maxlength="500" placeholder="https://fan.example.com/removed"
-             value="<?= \Luster\Core\View::e($embedSettings['redirect_url_remove'] ?? '') ?>">
-    </div>
-
-    <div class="form-group">
-      <label class="form-label" for="fl-redir-reset">After Password Reset</label>
-      <input id="fl-redir-reset" type="url" name="redirect_url_reset" class="form-input"
-             maxlength="500" placeholder="https://fan.example.com/password-updated"
-             value="<?= \Luster\Core\View::e($embedSettings['redirect_url_reset'] ?? '') ?>">
+      <label class="form-label" for="fl-form-reset">Password reset page</label>
+      <input id="fl-form-reset" type="text" name="form_url_reset" class="form-input"
+             maxlength="200"
+             value="<?= \Luster\Core\View::e($embedSettings['form_url_reset'] !== '' ? $embedSettings['form_url_reset'] : 'reset.php') ?>">
     </div>
 
     <div class="section-divider">Per-Listing Database (Advanced)</div>

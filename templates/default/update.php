@@ -84,12 +84,10 @@ use Luster\Core\View;
       </label>
     </div>
 
-    <?php if ($country_field_enabled): ?>
     <div class="fl-field">
       <label class="fl-label" for="country">New Country</label>
       <?= $country_select ?>
     </div>
-    <?php endif; ?>
 
     <?php foreach ($fields as $field): ?>
     <div class="fl-field">
@@ -102,6 +100,54 @@ use Luster\Core\View;
                   name="field_<?= View::e($field->name) ?>"
                   maxlength="255"
                   <?= $field->required ? 'required' : '' ?>><?= View::e($old['field_' . $field->name] ?? '') ?></textarea>
+
+      <?php elseif ($field->type === 'dropdown'): ?>
+        <select class="fl-select"
+                id="f-<?= View::e($field->name) ?>"
+                name="field_<?= View::e($field->name) ?>"
+                <?= $field->required ? 'required' : '' ?>>
+          <option value=""></option>
+          <?php foreach (array_filter(array_map('trim', explode(',', $field->options))) as $opt): ?>
+            <option value="<?= View::e($opt) ?>"
+              <?= ($old['field_' . $field->name] ?? '') === $opt ? 'selected' : '' ?>>
+              <?= View::e($opt) ?>
+            </option>
+          <?php endforeach; ?>
+        </select>
+
+      <?php elseif ($field->type === 'checkbox'): ?>
+        <?php $opts = array_filter(array_map('trim', explode(',', $field->options)), fn($o) => $o !== ''); ?>
+        <?php if (empty($opts)): ?>
+          <label>
+            <input type="checkbox"
+                   name="field_<?= View::e($field->name) ?>" value="1"
+                   <?= ($old['field_' . $field->name] ?? '') === '1' ? 'checked' : '' ?>
+                   <?= $field->required ? 'required' : '' ?>>
+            <?= View::e($field->label) ?>
+          </label>
+        <?php else: ?>
+          <?php $oldArr = (array) ($old['field_' . $field->name] ?? []); ?>
+          <?php foreach ($opts as $opt): ?>
+            <label>
+              <input type="checkbox"
+                     name="field_<?= View::e($field->name) ?>[]" value="<?= View::e($opt) ?>"
+                     <?= in_array($opt, $oldArr, true) ? 'checked' : '' ?>>
+              <?= View::e($opt) ?>
+            </label>
+          <?php endforeach; ?>
+        <?php endif; ?>
+
+      <?php elseif ($field->type === 'radio'): ?>
+        <?php foreach (array_filter(array_map('trim', explode(',', $field->options)), fn($o) => $o !== '') as $opt): ?>
+          <label>
+            <input type="radio"
+                   name="field_<?= View::e($field->name) ?>" value="<?= View::e($opt) ?>"
+                   <?= ($old['field_' . $field->name] ?? '') === $opt ? 'checked' : '' ?>
+                   <?= $field->required ? 'required' : '' ?>>
+            <?= View::e($opt) ?>
+          </label>
+        <?php endforeach; ?>
+
       <?php else: ?>
         <input class="fl-input" type="text"
                id="f-<?= View::e($field->name) ?>"

@@ -29,7 +29,7 @@ final class ErrorLogController
         $repo    = new ErrorLogRepo($this->app->getDatabase());
         $session = $this->app->getSession();
 
-        $perPage = 25;
+        $perPage = 10;
         $page    = max(1, (int) $request->query('page', 1));
 
         $result = $repo->getPaginated($page, $perPage);
@@ -45,6 +45,33 @@ final class ErrorLogController
             'per_page' => $perPage,
             'success' => $success,
         ], 'Error Log', 'errorlog');
+    }
+
+    // -----------------------------------------------------------------------
+    // GET /admin/errorlog/export
+    // -----------------------------------------------------------------------
+
+    public function export(Request $request, array $params): Response
+    {
+        $repo = new ErrorLogRepo($this->app->getDatabase());
+        $rows = $repo->getAll();
+
+        $filename = 'error-log-' . date('Y-m-d') . '.csv';
+
+        $out = fopen('php://temp', 'r+');
+        fputcsv($out, ['Date', 'Source', 'Message']);
+        foreach ($rows as $row) {
+            fputcsv($out, [
+                $row['created_at'] ?? '',
+                $row['source']     ?? '',
+                $row['message']    ?? '',
+            ]);
+        }
+        rewind($out);
+        $csv = stream_get_contents($out);
+        fclose($out);
+
+        return Response::csv($csv, $filename);
     }
 
     // -----------------------------------------------------------------------

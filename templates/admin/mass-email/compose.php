@@ -21,9 +21,10 @@ $b = rtrim(View::e($base_url ?? ''), '/');
 
 <div style="display:flex;align-items:center;justify-content:space-between;gap:1rem;margin-bottom:1.5rem">
   <div class="neb-tabs" style="margin-bottom:0">
-    <a href="<?= $b ?>/admin/mass-email"      class="neb-tab-btn active">Compose</a>
-    <a href="<?= $b ?>/admin/saved-emails"    class="neb-tab-btn">Saved Templates</a>
-    <a href="<?= $b ?>/admin/email-templates" class="neb-tab-btn">Email Templates</a>
+    <a href="<?= $b ?>/admin/email-templates"      class="neb-tab-btn">Email Templates</a>
+    <a href="<?= $b ?>/admin/emails"               class="neb-tab-btn active">Compose Email</a>
+    <a href="<?= $b ?>/admin/new-email-template"   class="neb-tab-btn">New Template</a>
+    <a href="<?= $b ?>/admin/emails/smtp-settings" class="neb-tab-btn">Email/SMTP Settings</a>
   </div>
   <a href="<?= $b ?>/admin/members" class="btn btn-ghost btn-sm">&larr; Members</a>
 </div>
@@ -56,13 +57,13 @@ $b = rtrim(View::e($base_url ?? ''), '/');
           <?php endforeach; ?>
         </select>
       </div>
-      <a href="<?= $b ?>/admin/saved-emails" class="btn btn-ghost btn-sm">Manage templates</a>
+      <a href="<?= $b ?>/admin/new-email-template" class="btn btn-ghost btn-sm">Manage templates</a>
     </div>
     <p class="form-hint" style="margin-top:.35rem">Selecting fills the subject and message fields. You can edit before sending.</p>
   </div>
   <?php endif; ?>
 
-  <form method="POST" action="<?= $b ?>/admin/mass-email/preview" id="compose-form">
+  <form method="POST" action="<?= $b ?>/admin/emails/preview" id="compose-form">
     <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
 
     <div class="form-group">
@@ -112,10 +113,10 @@ $b = rtrim(View::e($base_url ?? ''), '/');
   <!-- Save as template -->
   <div style="margin-top:1.5rem;padding-top:1.25rem;border-top:1px solid var(--border)">
     <p style="margin:0 0 .75rem;font-size:.85rem;color:var(--text-muted)">Save the current subject &amp; message as a reusable template:</p>
-    <form method="POST" action="<?= $b ?>/admin/saved-emails/save" id="me-save-tpl-form"
+    <form method="POST" action="<?= $b ?>/admin/new-email-template/save" id="me-save-tpl-form"
           style="display:flex;align-items:center;gap:.5rem;flex-wrap:wrap">
       <input type="hidden" name="_csrf"       value="<?= View::e($csrf_token ?? '') ?>">
-      <input type="hidden" name="referer"     value="<?= View::e($b . '/admin/mass-email') ?>">
+      <input type="hidden" name="referer"     value="<?= View::e($b . '/admin/new-email-template') ?>">
       <input type="hidden" name="tpl_subject" id="me-save-subject">
       <input type="hidden" name="tpl_body"    id="me-save-body">
       <input type="text"   name="tpl_name"    id="me-save-name"
@@ -125,30 +126,3 @@ $b = rtrim(View::e($base_url ?? ''), '/');
   </div>
 </div>
 
-<script>
-(function () {
-  /* Load template into compose fields */
-  var tplSel = document.getElementById('me-tpl-select');
-  if (tplSel) {
-    tplSel.addEventListener('change', function () {
-      var opt = this.options[this.selectedIndex];
-      if (!opt.value) return;
-      var subj = document.getElementById('me-subject');
-      var body = document.getElementById('me-body');
-      if (subj) subj.value = opt.value;
-      if (body) body.value = opt.dataset.body || '';
-    });
-  }
-
-  /* Save template — copy current field values into hidden inputs before submit */
-  var saveForm = document.getElementById('me-save-tpl-form');
-  if (saveForm) {
-    saveForm.addEventListener('submit', function () {
-      var subj = document.getElementById('me-subject');
-      var body = document.getElementById('me-body');
-      document.getElementById('me-save-subject').value = subj ? subj.value : '';
-      document.getElementById('me-save-body').value    = body ? body.value : '';
-    });
-  }
-})();
-</script>

@@ -44,6 +44,10 @@ final class JoinedController
         $filterCat     = trim((string) $request->query('category', ''));
         $perPage       = max(5, min(100, (int) $request->query('per_page', $defaultPerPage)));
         $page          = max(1, (int) $request->query('page', 1));
+        $sort          = trim((string) $request->query('sort', ''));
+        $dir           = trim((string) $request->query('dir', 'asc'));
+        if (!in_array($sort, ['name', 'category', 'date_joined', 'status'], true)) { $sort = ''; }
+        if (!in_array($dir, ['asc', 'desc'], true)) { $dir = 'asc'; }
 
         $networkCategories = $repo->getNetworkCategories();
         if ($filterNetwork !== '' && isset($networkCategories[$filterNetwork])) {
@@ -63,6 +67,18 @@ final class JoinedController
 
         $joined     = $result['items'];
         $totalPages = $result['pages'];
+
+        if ($sort !== '') {
+            usort($joined, static function ($a, $b) use ($sort, $dir): int {
+                $cmp = match ($sort) {
+                    'category'   => strcasecmp($a->category ?? '', $b->category ?? '') ?: strcasecmp($a->name, $b->name),
+                    'date_joined' => strcmp($a->dateJoined ?? '', $b->dateJoined ?? '') ?: strcasecmp($a->name, $b->name),
+                    'status'     => strcmp($a->status ?? 'joined', $b->status ?? 'joined') ?: strcasecmp($a->name, $b->name),
+                    default      => strcasecmp($a->name, $b->name),
+                };
+                return $dir === 'desc' ? -$cmp : $cmp;
+            });
+        }
 
         $session = $this->app->getSession();
         $success = (string) $session->get('lstr_flash_success', '');
@@ -84,6 +100,8 @@ final class JoinedController
             'tfl_cats'           => $tflCats,
             'tafl_cats'          => $taflCats,
             'custom_networks'    => $customNetworks,
+            'sort'               => $sort,
+            'dir'                => $dir,
             'success'            => $success,
             'error'              => $error,
         ], 'Joined Listings', 'joined');
@@ -304,7 +322,7 @@ final class JoinedController
                     'tfl_cats'        => $categoryRepo->getBySource('tfl'),
                     'tafl_cats'       => $categoryRepo->getBySource('tafl'),
                     'custom_networks' => $categoryRepo->getCustomNetworks(),
-                ], 'Edit Joined FL', 'joined');
+                ], 'Edit Joined FL', 'joined', 'Joined Listings › ' . $joined->name);
             }
 
             // --- All valid: handle image, persist ---
@@ -356,7 +374,7 @@ final class JoinedController
             'tfl_cats'        => $categoryRepo->getBySource('tfl'),
             'tafl_cats'       => $categoryRepo->getBySource('tafl'),
             'custom_networks' => $categoryRepo->getCustomNetworks(),
-        ], 'Edit Joined FL', 'joined');
+        ], 'Edit Joined FL', 'joined', 'Joined Listings › ' . $joined->name);
     }
 
     // -----------------------------------------------------------------------
@@ -619,7 +637,7 @@ final class JoinedController
     // Shared render helper
     // -----------------------------------------------------------------------
 
-    private function layout(string $template, array $data, string $pageTitle, string $section): Response
+    private function layout(string $template, array $data, string $pageTitle, string $section, string $pageSubtitle = ''): Response
     {
         $view      = $this->app->getView();
         $config    = $this->app->getConfig();
@@ -634,6 +652,7 @@ final class JoinedController
 
         return Response::html($view->render('admin/layout.php', array_merge([
             'page_title'      => $pageTitle,
+            'page_subtitle'   => $pageSubtitle,
             'site_name'       => (string) $config->get('site_name', 'Luster'),
             'admin_username'  => (string) $session->get('lstr_admin_username', ''),
             'csrf_token'      => $csrfToken,

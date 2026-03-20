@@ -57,7 +57,7 @@ final class CodesSubmitController
 
         $captchaQuestion = Captcha::getQuestion('code_submit');
 
-        return Response::html($this->app->getView()->renderPublic('code-submit.php', [
+        return Response::html($this->app->getView()->renderPublic('codes-submit.php', [
             'listing'          => $listing,
             'listing_name'     => $listing->name,
             'listing_url'      => $listing->url ?? '',
@@ -234,7 +234,7 @@ final class CodesSubmitController
 
         $baseUrl = $this->app->getBaseUrl();
 
-        return Response::html($this->app->getView()->renderPublic('code-submit.php', [
+        return Response::html($this->app->getView()->renderPublic('codes-submit.php', [
             'listing'          => $listing,
             'listing_name'     => $listing->name,
             'listing_url'      => $listing->url ?? '',

@@ -58,6 +58,12 @@ Options -Indexes -MultiViews
     RewriteCond %{REQUEST_FILENAME} -d
     RewriteRule ^ - [L]
 
+    # Redirect old display-codes URL to embed-codes (permanent, preserves query string)
+    RewriteRule ^admin/display-codes$ /luster/public/admin/embed-codes [R=301,L,QSA]
+
+    # Redirect old saved-emails URL to new-email-template (permanent, preserves query string)
+    RewriteRule ^admin/saved-emails(/.*)?$ /luster/public/admin/new-email-template$1 [R=301,L,QSA]
+
     # Route /admin and /admin/* to the admin front controller
     RewriteRule ^admin(/.*)?$ admin.php [L,QSA]
 

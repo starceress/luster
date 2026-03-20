@@ -15,6 +15,23 @@ declare(strict_types=1);
 
 $b          = rtrim(\Luster\Core\View::e($base_url), '/');
 $isSearch   = $search !== '';
+$sort       = $sort ?? 'name';
+$dir        = $dir  ?? 'asc';
+
+$pendingSortUrl = static function (string $col) use ($b, $sort, $dir): string {
+    $newDir = ($sort === $col && $dir === 'asc') ? 'desc' : 'asc';
+    return $b . '/admin/members?' . http_build_query(['sort' => $col, 'dir' => $newDir]);
+};
+
+$pendingSortIcon = static function (string $col) use ($sort, $dir): string {
+    if ($sort !== $col) {
+        return '<svg viewBox="0 0 10 14" width="9" height="9" fill="currentColor" style="opacity:.35;flex-shrink:0"><path d="M5 0l3 4H2zM5 14l-3-4h6z"/></svg>';
+    }
+    if ($dir === 'asc') {
+        return '<svg viewBox="0 0 10 14" width="9" height="9" fill="currentColor" style="flex-shrink:0"><path d="M5 0l3 4H2z"/><path d="M5 14l-3-4h6z" fill-opacity=".25"/></svg>';
+    }
+    return '<svg viewBox="0 0 10 14" width="9" height="9" fill="currentColor" style="flex-shrink:0"><path d="M5 0l3 4H2z" fill-opacity=".25"/><path d="M5 14l-3-4h6z"/></svg>';
+};
 ?>
 
 <?php if (($success ?? '') !== ''): ?>
@@ -26,14 +43,6 @@ $isSearch   = $search !== '';
 
 <div class="neb-toolbar">
   <form method="GET" action="<?= $b ?>/admin/members" class="neb-filter-row">
-    <input type="text" name="search" value="<?= \Luster\Core\View::e($search ?? '') ?>"
-           placeholder="Search all listings&hellip;" class="neb-input" style="max-width:240px">
-    <button type="submit" class="btn btn-secondary btn-sm">Search</button>
-    <?php if ($isSearch): ?>
-      <a href="<?= $b ?>/admin/members" class="btn btn-secondary btn-sm">Clear</a>
-    <?php endif; ?>
-  </form>
-  <div class="neb-actions">
     <div class="toolbar-select-wrap">
       <select class="neb-select js-nav-select">
         <option value="<?= $b ?>/admin/members">All pending members</option>
@@ -44,9 +53,17 @@ $isSearch   = $search !== '';
         <?php endforeach; ?>
       </select>
     </div>
-    <a href="<?= $b ?>/admin/members/export-pending" class="btn btn-secondary">&#8595; Export CSV</a>
-    <a href="<?= $b ?>/admin/mass-email" class="btn btn-secondary">Mass Email &rarr;</a>
-    <a href="<?= $b ?>/admin/members/settings" class="btn btn-secondary">Display Settings</a>
+    <input type="text" name="search" value="<?= \Luster\Core\View::e($search ?? '') ?>"
+           placeholder="Search all listings&hellip;" class="neb-input" style="max-width:240px">
+    <button type="submit" class="btn btn-secondary btn-sm">Search</button>
+    <?php if ($isSearch): ?>
+      <a href="<?= $b ?>/admin/members" class="btn btn-secondary btn-sm">Clear</a>
+    <?php endif; ?>
+  </form>
+  <div class="neb-actions">
+    <a href="<?= $b ?>/admin/members/export-pending" class="btn btn-secondary btn-sm">&#8595; Export CSV</a>
+    <a href="<?= $b ?>/admin/emails" class="btn btn-secondary btn-sm">Bulk Email</a>
+    <a href="<?= $b ?>/admin/members/settings" class="btn btn-secondary btn-sm">Display Settings</a>
   </div>
 </div>
 
@@ -156,7 +173,7 @@ $isSearch   = $search !== '';
       $pendingCount   = count($pendingMembers);
       $approvedCount  = (int) ($g['approved_count'] ?? 0);
     ?>
-    <div class="neb-card" style="margin-bottom:1.25rem;overflow:hidden">
+    <div class="neb-card" style="margin-bottom:1.25rem">
       <div class="neb-card-header">
         <a href="<?= $b ?>/admin/members/<?= $flId ?>" class="neb-link"><?= \Luster\Core\View::e($fl->name) ?></a>
         <span class="text-dim" style="font-weight:400;text-transform:none;letter-spacing:0;margin-left:.25rem">
@@ -171,7 +188,7 @@ $isSearch   = $search !== '';
         <div class="select-wrap">
           <select name="bulk_action" class="form-select" style="padding:.3rem 2rem .3rem .6rem;font-size:.8125rem">
             <option value="approve">Approve</option>
-            <option value="delete">Delete</option>
+            <option value="delete">Reject</option>
           </select>
         </div>
         <button type="submit" class="btn btn-secondary btn-sm">Apply</button>
@@ -182,9 +199,9 @@ $isSearch   = $search !== '';
             <th class="cb-col">
               <input type="checkbox" class="sel-all" data-fid="<?= $flId ?>" title="Select all">
             </th>
-            <th>Name</th>
-            <th>Email</th>
-            <th>Country</th>
+            <th><a href="<?= \Luster\Core\View::e($pendingSortUrl('name')) ?>" class="sort-th<?= $sort === 'name' ? ' sort-active' : '' ?>">Name <?= $pendingSortIcon('name') ?></a></th>
+            <th><a href="<?= \Luster\Core\View::e($pendingSortUrl('email')) ?>" class="sort-th<?= $sort === 'email' ? ' sort-active' : '' ?>">Email <?= $pendingSortIcon('email') ?></a></th>
+            <th><a href="<?= \Luster\Core\View::e($pendingSortUrl('country')) ?>" class="sort-th<?= $sort === 'country' ? ' sort-active' : '' ?>">Country <?= $pendingSortIcon('country') ?></a></th>
             <th>URL</th>
             <th class="act-col">Actions</th>
           </tr>

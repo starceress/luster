@@ -656,11 +656,13 @@ document.addEventListener('click', function (e) {
   toggle();
 }());
 
-// ── 29. Members email: template selector + preview modal ─────────────────────
+// ── 29. Members email: template selector + save template + preview modal ──────
 
 (function () {
+  if (!document.getElementById('email-form')) return;
+
   // Template select: populate subject and body when a saved template is chosen
-  var tplSel = document.getElementById('template-select');
+  var tplSel = document.getElementById('em-template-select');
   if (tplSel) {
     tplSel.addEventListener('change', function () {
       var o = this.options[this.selectedIndex];
@@ -673,8 +675,21 @@ document.addEventListener('click', function (e) {
     });
   }
 
+  // Save template: copy current field values into hidden inputs before submit
+  var saveForm = document.getElementById('em-save-tpl-form');
+  if (saveForm) {
+    saveForm.addEventListener('submit', function () {
+      var subj = document.getElementById('subject');
+      var body = document.getElementById('body');
+      var hs   = document.getElementById('em-save-subject');
+      var hb   = document.getElementById('em-save-body');
+      if (hs) hs.value = subj ? subj.value : '';
+      if (hb) hb.value = body ? body.value : '';
+    });
+  }
+
   // Preview modal
-  var modal      = document.getElementById('preview-modal');
+  var modal = document.getElementById('preview-modal');
   if (!modal) return;
   var listingName = modal.dataset.listingName || '';
   var previewBtn  = document.getElementById('preview-email-btn');
@@ -705,18 +720,18 @@ document.addEventListener('click', function (e) {
 
   // Token substitution map (example/dummy values for preview)
   var tokens = {
-    '$fan_name$':        'Jane Fan',
-    '$fan_email$':       'jane@example.com',
-    '$fan_url$':         'https://jane.example.com',
-    '$fan_country$':     'United States',
-    '$fan_password$':    '(password)',
-    '$reset_url$':       'https://example.com/reset/1/confirm?token=abc123',
-    '$listing_name$':    pd.dataset.listingName    || 'My Fanlisting',
-    '$listing_subject$': pd.dataset.listingSubject || 'Music',
-    '$listing_url$':     pd.dataset.listingUrl     || 'https://myfanlisting.com',
-    '$site_name$':       pd.dataset.siteName       || 'Luster',
-    '$owner_name$':      pd.dataset.ownerName      || 'The Admin',
-    '$owner_email$':     pd.dataset.ownerEmail     || 'admin@example.com',
+    '{fan_name}':        'Jane Fan',
+    '{fan_email}':       'jane@example.com',
+    '{fan_url}':         'https://jane.example.com',
+    '{fan_country}':     'United States',
+    '{fan_password}':    '(password)',
+    '{reset_url}':       'https://example.com/reset/1/confirm?token=abc123',
+    '{listing_name}':    pd.dataset.listingName    || 'My Fanlisting',
+    '{listing_subject}': pd.dataset.listingSubject || 'Music',
+    '{listing_url}':     pd.dataset.listingUrl     || 'https://myfanlisting.com',
+    '{site_name}':       pd.dataset.siteName       || 'Luster',
+    '{owner_name}':      pd.dataset.ownerName      || 'The Admin',
+    '{owner_email}':     pd.dataset.ownerEmail     || 'admin@example.com',
   };
 
   function applyTokens(text) {
@@ -756,6 +771,28 @@ document.addEventListener('click', function (e) {
       var panel = document.getElementById('et-preview-' + type);
       if (panel && panel.style.display !== 'none') updatePreview(type);
     });
+  });
+}());
+
+// ── Email template enabled toggle ─────────────────────────────────────────────
+//
+// Drives the toggle-switch label text and shows/hides the disabled warning
+// banner when the enabled checkbox is toggled.
+
+(function () {
+  document.querySelectorAll('.et-enabled-cb').forEach(function (cb) {
+    var card   = cb.closest('.neb-card');
+    var banner = card ? card.querySelector('.et-disabled-banner') : null;
+    var label  = cb.parentElement ? cb.parentElement.querySelector('.et-toggle-label') : null;
+
+    function sync() {
+      var on = cb.checked;
+      if (banner) banner.style.display = on ? 'none' : '';
+      if (label)  label.textContent    = on ? 'Enabled' : 'Disabled';
+      if (card)   card.classList.toggle('et-card-disabled', !on);
+    }
+
+    cb.addEventListener('change', sync);
   });
 }());
 
@@ -1262,7 +1299,9 @@ document.addEventListener('click', function (e) {
       return;
     }
 
-    var samples = (window.lusterTplSamples && window.lusterTplSamples[kind]) || {};
+    var tplDataEl = document.getElementById('luster-tpl-samples');
+    var tplData   = tplDataEl ? JSON.parse(tplDataEl.textContent) : {};
+    var samples   = (tplData && tplData[kind]) || {};
     var out = ta.value;
     for (var key in samples) { out = out.split(key).join(samples[key]); }
     preview.innerHTML = out;
@@ -1270,6 +1309,94 @@ document.addEventListener('click', function (e) {
     btn.textContent = 'Hide preview';
   });
 
+}());
+
+// ── Settings page: SMTP validate connection ───────────────────────────────────
+
+(function () {
+  var btn    = document.getElementById('smtp-validate-btn');
+  var result = document.getElementById('smtp-validate-result');
+  if (!btn) return;
+
+  btn.addEventListener('click', function () {
+    var host   = (document.getElementById('s-smtp-host')   || {}).value || '';
+    var port   = (document.getElementById('s-smtp-port')   || {}).value || '';
+    var user   = (document.getElementById('s-smtp-user')   || {}).value || '';
+    var pass   = (document.getElementById('s-smtp-pass')   || {}).value || '';
+    var secure = (document.getElementById('s-smtp-secure') || {}).value || '';
+
+    if (host.trim() === '') {
+      if (result) { result.style.display = ''; result.style.color = 'var(--danger)'; result.textContent = 'Enter an SMTP host first.'; }
+      return;
+    }
+
+    btn.disabled = true;
+    btn.textContent = 'Connecting\u2026';
+    if (result) result.style.display = 'none';
+
+    var csrf = document.querySelector('input[name="_csrf"]');
+    var body = new URLSearchParams({
+      _csrf: csrf ? csrf.value : '',
+      smtp_host: host, smtp_port: port, smtp_user: user, smtp_pass: pass, smtp_secure: secure,
+    });
+
+    fetch(btn.dataset.url || '', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: body.toString(),
+    })
+    .then(function (r) { return r.json(); })
+    .then(function (data) {
+      if (result) {
+        result.style.display = '';
+        result.style.color   = data.ok ? 'var(--success, #2a9d5c)' : 'var(--danger)';
+        result.textContent   = (data.ok ? '\u2713 ' : '\u2717 ') + data.message;
+      }
+    })
+    .catch(function () {
+      if (result) {
+        result.style.display = '';
+        result.style.color   = 'var(--danger)';
+        result.textContent   = '\u2717 Request failed \u2014 check browser console.';
+      }
+    })
+    .finally(function () {
+      btn.disabled = false;
+      btn.textContent = 'Validate connection';
+    });
+  });
+}());
+
+// ── Mass email compose page ───────────────────────────────────────────────────
+
+(function () {
+  if (!document.getElementById('compose-form')) return;
+
+  // Load saved template into subject and body fields
+  var tplSel = document.getElementById('me-tpl-select');
+  if (tplSel) {
+    tplSel.addEventListener('change', function () {
+      var opt = this.options[this.selectedIndex];
+      if (!opt.value) return;
+      var subj = document.getElementById('me-subject');
+      var body = document.getElementById('me-body');
+      if (subj) subj.value = opt.value;
+      if (body) body.value = opt.dataset.body || '';
+    });
+  }
+
+  // Save template: copy current field values into hidden inputs before submit
+  var saveForm = document.getElementById('me-save-tpl-form');
+  if (saveForm) {
+    saveForm.addEventListener('submit', function () {
+      var subj = document.getElementById('me-subject');
+      var body = document.getElementById('me-body');
+      var hs   = document.getElementById('me-save-subject');
+      var hb   = document.getElementById('me-save-body');
+      if (hs) hs.value = subj ? subj.value : '';
+      if (hb) hb.value = body ? body.value : '';
+    });
+  }
 }());
 
 // ── Unsaved-changes beforeunload guard (.js-warn-unsaved) ──────────────────
@@ -1312,5 +1439,380 @@ document.addEventListener('click', function (e) {
       e.preventDefault();
       e.returnValue = '';
     }
+  });
+}());
+
+// ── Codes management page ─────────────────────────────────────────────────────
+// Guards on .code-card so this block only activates on the codes admin page.
+
+(function () {
+  if (!document.querySelector('.code-card')) return;
+
+  // ── Select-all checkbox ──────────────────────────────────────────────────
+  var selAll = document.getElementById('codes-select-all');
+  if (selAll) {
+    selAll.addEventListener('change', function () {
+      document.querySelectorAll('.code-check').forEach(function (cb) {
+        cb.checked = selAll.checked;
+      });
+    });
+  }
+
+  // ── Bulk action toolbar ──────────────────────────────────────────────────
+  var bulkSel    = document.getElementById('bulk-action-sel');
+  var catsWrap   = document.getElementById('bulk-cats-wrap');
+  var catsSel    = document.getElementById('bulk-cats-sel');
+  var applyBtn   = document.getElementById('bulk-apply-btn');
+  var saveOrdBtn = document.getElementById('save-order-btn');
+  var bulkForm   = document.getElementById('codes-bulk-form');
+
+  if (bulkSel && catsWrap) {
+    bulkSel.addEventListener('change', function () {
+      catsWrap.style.display = bulkSel.value === 'categorize' ? '' : 'none';
+    });
+  }
+
+  if (applyBtn && bulkForm) {
+    applyBtn.addEventListener('click', function () {
+      var action  = bulkSel ? bulkSel.value : 'delete';
+      var checked = document.querySelectorAll('.code-check:checked');
+
+      if (checked.length === 0) {
+        window.lstrToast && window.lstrToast('warning', 'No codes selected.');
+        return;
+      }
+
+      function doSubmit() {
+        bulkForm.querySelectorAll('.js-bulk-inject').forEach(function (el) { el.remove(); });
+
+        function addHidden(name, val) {
+          var inp = document.createElement('input');
+          inp.type = 'hidden'; inp.name = name; inp.value = val;
+          inp.className = 'js-bulk-inject';
+          bulkForm.appendChild(inp);
+        }
+
+        addHidden('bulk_action', action);
+        if (action === 'categorize' && catsSel) {
+          Array.from(catsSel.selectedOptions).forEach(function (opt) {
+            addHidden('bulk_cat_ids[]', opt.value);
+          });
+        }
+
+        bulkForm.submit();
+      }
+
+      if (action === 'delete') {
+        showConfirmBar(
+          applyBtn,
+          'Delete ' + checked.length + ' code(s)? This cannot be undone.',
+          doSubmit
+        );
+        return;
+      }
+
+      doSubmit();
+    });
+  }
+
+  // ── Drag-and-drop reorder ────────────────────────────────────────────────
+  // draggable="true" is on .code-drag-handle spans (set below via JS so that
+  // browsers won't try to drag the whole card when clicking other controls).
+  // dragstart/dragend fire on the handle; dragover/dragleave/drop on the card.
+  var reorderForm = document.getElementById('codes-reorder-form');
+  var reorderIds  = document.getElementById('reorder-ids');
+
+  if (reorderForm && reorderIds && saveOrdBtn) {
+    var allCards   = Array.from(document.querySelectorAll('.code-card'));
+    var allHandles = Array.from(document.querySelectorAll('.code-drag-handle'));
+
+    if (allCards.length > 1) {
+      saveOrdBtn.style.display = '';
+
+      var dragSrc = null;
+
+      allHandles.forEach(function (handle) {
+        handle.setAttribute('draggable', 'true');
+
+        handle.addEventListener('dragstart', function (e) {
+          dragSrc = handle.closest('.code-card');
+          if (!dragSrc) { e.preventDefault(); return; }
+          dragSrc.style.opacity = '0.45';
+          e.dataTransfer.effectAllowed = 'move';
+          // Firefox requires at least one setData call for drag to proceed
+          e.dataTransfer.setData('text/plain', dragSrc.dataset.codeId || '');
+        });
+
+        handle.addEventListener('dragend', function () {
+          if (dragSrc) { dragSrc.style.opacity = ''; }
+          document.querySelectorAll('.code-card').forEach(function (c) {
+            c.style.outline = '';
+          });
+          dragSrc = null;
+        });
+      });
+
+      allCards.forEach(function (card) {
+        card.addEventListener('dragover', function (e) {
+          if (!dragSrc || dragSrc === card) return;
+          e.preventDefault();
+          e.dataTransfer.dropEffect = 'move';
+          card.style.outline = '2px solid var(--accent, #6366f1)';
+        });
+
+        card.addEventListener('dragleave', function (e) {
+          // Only clear outline if leaving the card entirely (not entering a child)
+          if (!card.contains(e.relatedTarget)) {
+            card.style.outline = '';
+          }
+        });
+
+        card.addEventListener('drop', function (e) {
+          e.preventDefault();
+          card.style.outline = '';
+          if (!dragSrc || dragSrc === card) return;
+          var parent = card.parentNode;
+          var nodes  = Array.from(parent.children);
+          var srcIdx = nodes.indexOf(dragSrc);
+          var tgtIdx = nodes.indexOf(card);
+          if (srcIdx < tgtIdx) {
+            parent.insertBefore(dragSrc, card.nextSibling);
+          } else {
+            parent.insertBefore(dragSrc, card);
+          }
+        });
+      });
+
+      saveOrdBtn.addEventListener('click', function () {
+        var ordered = Array.from(document.querySelectorAll('.code-card')).map(function (c) {
+          return parseInt(c.getAttribute('data-code-id'), 10);
+        }).filter(function (id) { return id > 0; });
+        reorderIds.value = JSON.stringify(ordered);
+        reorderForm.submit();
+      });
+    }
+  }
+
+  // ── Code edit dialogs ────────────────────────────────────────────────────
+  document.querySelectorAll('.code-edit-btn').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var dlg = document.getElementById(btn.getAttribute('data-dialog'));
+      if (dlg && typeof dlg.showModal === 'function') { dlg.showModal(); }
+    });
+  });
+
+  document.querySelectorAll('.code-edit-dialog').forEach(function (dlg) {
+    dlg.querySelectorAll('[data-close-dialog]').forEach(function (closeBtn) {
+      closeBtn.addEventListener('click', function () { dlg.close(); });
+    });
+    // Click directly on the backdrop (event target is the dialog itself)
+    dlg.addEventListener('click', function (e) {
+      if (e.target === dlg) { dlg.close(); }
+    });
+  });
+}());
+
+// ── 33. Listings index: filter panel toggle ───────────────────────────────────
+
+(function () {
+  var btn   = document.getElementById('fl-filter-toggle');
+  var panel = document.getElementById('fl-filter-panel');
+  if (!btn || !panel) return;
+
+  var LS_KEY = 'lstr_fl_filter_open';
+
+  // If no filters are active, restore the user's last open/closed preference
+  if (!panel.classList.contains('is-open') && localStorage.getItem(LS_KEY) === '1') {
+    panel.classList.add('is-open');
+    btn.setAttribute('aria-expanded', 'true');
+  }
+
+  btn.addEventListener('click', function () {
+    var open = panel.classList.contains('is-open');
+    panel.classList.toggle('is-open', !open);
+    btn.setAttribute('aria-expanded', String(!open));
+    localStorage.setItem(LS_KEY, !open ? '1' : '0');
+  });
+}());
+
+// ── 34. Affiliate drag-and-drop row reorder ───────────────────────────────────
+//
+// Requires: <table data-reorder-url="..."> with <tr data-id="N"> rows
+// and a .drag-handle element inside each row. Sends ordered IDs via AJAX.
+
+(function () {
+  var table = document.querySelector('table[data-reorder-url]');
+  if (!table) return;
+
+  var reorderUrl = table.dataset.reorderUrl;
+  var tbody      = table.querySelector('tbody');
+  var dragged    = null;
+
+  tbody.addEventListener('dragstart', function (e) {
+    var row = e.target.closest('tr[data-id]');
+    if (!row) return;
+    dragged = row;
+    row.classList.add('dragging');
+    e.dataTransfer.effectAllowed = 'move';
+  });
+
+  tbody.addEventListener('dragover', function (e) {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    var row = e.target.closest('tr[data-id]');
+    if (!row || row === dragged) return;
+    tbody.querySelectorAll('tr').forEach(function (r) { r.classList.remove('drag-over'); });
+    row.classList.add('drag-over');
+    var rect = row.getBoundingClientRect();
+    if (e.clientY < rect.top + rect.height / 2) {
+      tbody.insertBefore(dragged, row);
+    } else {
+      tbody.insertBefore(dragged, row.nextSibling);
+    }
+  });
+
+  tbody.addEventListener('drop', function (e) {
+    e.preventDefault();
+  });
+
+  tbody.addEventListener('dragend', function () {
+    if (dragged) dragged.classList.remove('dragging');
+    tbody.querySelectorAll('tr').forEach(function (r) { r.classList.remove('drag-over'); });
+    dragged = null;
+
+    // Update visible sort numbers and save via AJAX
+    var ids = [];
+    tbody.querySelectorAll('tr[data-id]').forEach(function (r) { ids.push(parseInt(r.dataset.id, 10)); });
+
+    tbody.querySelectorAll('td[data-label="Sort #"]').forEach(function (cell, i) {
+      cell.textContent = i + 1;
+    });
+
+    var params = new URLSearchParams();
+    var csrfInput = document.querySelector('input[name="_csrf"]');
+    if (csrfInput) params.append('_csrf', csrfInput.value);
+    ids.forEach(function (id) { params.append('ids[]', id); });
+
+    var xhr = new XMLHttpRequest();
+    xhr.open('POST', reorderUrl, true);
+    xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+    xhr.send(params.toString());
+  });
+}());
+
+// ── 35. Email template type left-nav (.et-nav-item / .et-panel) ───────────────
+//
+// Standalone switcher so it does not conflict with the .neb-tab-btn switcher
+// (which would clear the active sub-tab when a sidebar item is clicked).
+
+(function () {
+  var items = document.querySelectorAll('.et-nav-item');
+  if (!items.length) return;
+
+  function activate(tabId) {
+    items.forEach(function (el) { el.classList.remove('active'); });
+    document.querySelectorAll('.et-panel').forEach(function (el) { el.classList.remove('active'); });
+    var item  = document.querySelector('.et-nav-item[data-et-tab="' + tabId + '"]');
+    var panel = document.getElementById('et-tab-' + tabId);
+    if (item)  item.classList.add('active');
+    if (panel) panel.classList.add('active');
+  }
+
+  items.forEach(function (item) {
+    item.addEventListener('click', function () { activate(item.dataset.etTab); });
+  });
+}());
+
+// ── 36. Add-on uninstall confirmation modal ───────────────────────────────────
+
+(function () {
+  var modal = document.getElementById('addon-uninstall-modal');
+  if (!modal) return;
+
+  var modalName  = document.getElementById('addon-modal-name');
+  var confirmBtn = document.getElementById('addon-modal-confirm');
+  var cancelBtn  = document.getElementById('addon-modal-cancel');
+  var pendingForm = null;
+
+  document.querySelectorAll('.js-uninstall-btn').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var form = btn.closest('.js-uninstall-form');
+      pendingForm = form;
+      modalName.textContent = form.dataset.addonName || 'this add-on';
+      modal.style.display = 'flex';
+    });
+  });
+
+  function closeModal() {
+    modal.style.display = 'none';
+    pendingForm = null;
+  }
+
+  confirmBtn.addEventListener('click', function () {
+    if (pendingForm) pendingForm.submit();
+  });
+
+  cancelBtn.addEventListener('click', closeModal);
+
+  modal.addEventListener('click', function (e) {
+    if (e.target === modal) closeModal();
+  });
+
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && modal.style.display !== 'none') closeModal();
+  });
+}());
+
+// ── 37. Flush activity-log confirmation modal ──────────────────────────────────
+
+(function () {
+  var modal      = document.getElementById('flush-activity-modal');
+  var openBtn    = document.getElementById('flush-activity-btn');
+  if (!modal || !openBtn) return;
+
+  var confirmBtn = document.getElementById('flush-activity-confirm');
+  var cancelBtn  = document.getElementById('flush-activity-cancel');
+  var form       = document.getElementById('flush-activity-form');
+
+  function openModal()  { modal.style.display = 'flex'; }
+  function closeModal() { modal.style.display = 'none'; }
+
+  openBtn.addEventListener('click', openModal);
+  cancelBtn.addEventListener('click', closeModal);
+  confirmBtn.addEventListener('click', function () { form.submit(); });
+
+  modal.addEventListener('click', function (e) {
+    if (e.target === modal) closeModal();
+  });
+
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && modal.style.display !== 'none') closeModal();
+  });
+}());
+
+// ── 38. Flush error-log confirmation modal ─────────────────────────────────────
+
+(function () {
+  var modal      = document.getElementById('flush-logs-modal');
+  var openBtn    = document.getElementById('flush-logs-btn');
+  if (!modal || !openBtn) return;
+
+  var confirmBtn = document.getElementById('flush-modal-confirm');
+  var cancelBtn  = document.getElementById('flush-modal-cancel');
+  var form       = document.getElementById('flush-logs-form');
+
+  function openModal()  { modal.style.display = 'flex'; }
+  function closeModal() { modal.style.display = 'none'; }
+
+  openBtn.addEventListener('click', openModal);
+  cancelBtn.addEventListener('click', closeModal);
+  confirmBtn.addEventListener('click', function () { form.submit(); });
+
+  modal.addEventListener('click', function (e) {
+    if (e.target === modal) closeModal();
+  });
+
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && modal.style.display !== 'none') closeModal();
   });
 }());

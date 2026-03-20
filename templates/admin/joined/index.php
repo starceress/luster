@@ -18,6 +18,8 @@
 /** @var string   $csrf_token */
 $b = rtrim(\Luster\Core\View::e($base_url), '/');
 
+$filtersActive = ($search ?? '') !== '' || ($filter_network ?? '') !== '' || ($filter_cat ?? '') !== '';
+
 // Build a base query string (current filters minus page) for pagination links
 $filterQs = http_build_query(array_filter([
     'search'   => $search          ?? '',
@@ -30,8 +32,34 @@ $pageUrl = static function (int $p) use ($b, $filterQs): string {
     return $b . '/admin/joined?' . $qs;
 };
 
+$sort = $sort ?? '';
+$dir  = $dir  ?? 'asc';
+
+$joinedSortUrl = static function (string $col) use ($b, $sort, $dir, $search, $filter_network, $filter_cat, $per_page): string {
+    $newDir = ($sort === $col && $dir === 'asc') ? 'desc' : 'asc';
+    $qs = http_build_query(array_filter([
+        'search'   => $search          ?? '',
+        'network'  => $filter_network  ?? '',
+        'category' => $filter_cat      ?? '',
+        'per_page' => ($per_page ?? 10) !== 10 ? (string) ($per_page ?? 10) : '',
+        'sort'     => $col,
+        'dir'      => $newDir,
+    ], static fn(string $v): bool => $v !== ''));
+    return $b . '/admin/joined?' . $qs;
+};
+
+$joinedSortIcon = static function (string $col) use ($sort, $dir): string {
+    if ($sort !== $col) {
+        return '<svg viewBox="0 0 10 14" width="9" height="9" fill="currentColor" style="opacity:.35;flex-shrink:0"><path d="M5 0l3 4H2zM5 14l-3-4h6z"/></svg>';
+    }
+    if ($dir === 'asc') {
+        return '<svg viewBox="0 0 10 14" width="9" height="9" fill="currentColor" style="flex-shrink:0"><path d="M5 0l3 4H2z"/><path d="M5 14l-3-4h6z" fill-opacity=".25"/></svg>';
+    }
+    return '<svg viewBox="0 0 10 14" width="9" height="9" fill="currentColor" style="flex-shrink:0"><path d="M5 0l3 4H2z" fill-opacity=".25"/><path d="M5 14l-3-4h6z"/></svg>';
+};
+
 $displayMode = $display_mode ?? 'all';
-if ($displayMode === 'all') { usort($joined, fn($a, $b) => $a->id <=> $b->id); }
+if ($displayMode === 'all' && $sort === '') { usort($joined, fn($a, $b) => $a->id <=> $b->id); }
 $grouped = [];
 foreach ($joined as $jf) {
     if ($displayMode === 'network') {
@@ -67,6 +95,22 @@ if ($displayMode === 'category') {
 
 <!-- Toolbar -->
 <div class="neb-toolbar">
+  <div class="neb-actions">
+    <button type="button" class="btn btn-secondary btn-sm fl-filter-toggle" id="fl-filter-toggle"
+            aria-expanded="<?= $filtersActive ? 'true' : 'false' ?>"
+            aria-controls="fl-filter-panel">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><line x1="4" y1="6" x2="20" y2="6"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="11" y1="18" x2="13" y2="18"/></svg>
+      Filter<?php if ($filtersActive): ?><span class="fl-filter-dot" aria-hidden="true"></span><?php endif; ?>
+    </button>
+  </div>
+  <div class="neb-actions">
+    <a href="<?= $b ?>/admin/joined/add" class="btn btn-primary btn-sm">+ Add Joined FL</a>
+    <a href="<?= $b ?>/admin/joined/settings" class="btn btn-secondary btn-sm">Display Settings</a>
+  </div>
+</div>
+
+<!-- Collapsible filter panel -->
+<div class="fl-filter-panel<?= $filtersActive ? ' is-open' : '' ?>" id="fl-filter-panel">
   <form method="GET" action="<?= $b ?>/admin/joined" class="neb-filter-row">
 
     <div class="toolbar-select-wrap">
@@ -101,10 +145,6 @@ if ($displayMode === 'category') {
     <a href="?" class="btn btn-secondary btn-sm">Reset</a>
 
   </form>
-  <div class="neb-actions">
-    <a href="<?= $b ?>/admin/joined/add" class="btn btn-primary btn-sm">+ Add Joined FL</a>
-    <a href="<?= $b ?>/admin/joined/settings" class="btn btn-secondary btn-sm">Display Settings</a>
-  </div>
 </div>
 
 <?php if (empty($joined)): ?>
@@ -130,12 +170,13 @@ if ($displayMode === 'category') {
     <label for="bulk-action-sel">Bulk action:</label>
     <div class="toolbar-select-wrap">
     <select id="bulk-action-sel" name="bulk_action" class="neb-select">
+      <option value="" disabled selected>— Select —</option>
       <option value="approve">Approve</option>
-      <option value="pending">Set Pending</option>
+      <option value="pending">Pending</option>
       <option value="delete">Delete</option>
     </select>
     </div>
-    <button type="submit" class="btn btn-secondary btn-sm">Apply to selected</button>
+    <button type="submit" class="btn btn-secondary btn-sm">Apply</button>
   </div>
 
   <?php $loop = 0; $firstGroup = true; foreach ($grouped as $catName => $items): ?>
@@ -147,10 +188,10 @@ if ($displayMode === 'category') {
           <th class="cb-col"><input type="checkbox" <?= $firstGroup ? 'id="sel-all"' : '' ?> title="Select all"><?php $firstGroup = false; ?></th>
           <th style="width:70px">Image</th>
           <th style="width:40px">#</th>
-          <th>Subject / URL</th>
-          <th>Category</th>
-          <th>Date Joined</th>
-          <th>Status</th>
+          <th><a href="<?= \Luster\Core\View::e($joinedSortUrl('name')) ?>" class="sort-th<?= $sort === 'name' ? ' sort-active' : '' ?>">Subject / URL <?= $joinedSortIcon('name') ?></a></th>
+          <th><a href="<?= \Luster\Core\View::e($joinedSortUrl('category')) ?>" class="sort-th<?= $sort === 'category' ? ' sort-active' : '' ?>">Category <?= $joinedSortIcon('category') ?></a></th>
+          <th><a href="<?= \Luster\Core\View::e($joinedSortUrl('date_joined')) ?>" class="sort-th<?= $sort === 'date_joined' ? ' sort-active' : '' ?>">Date Joined <?= $joinedSortIcon('date_joined') ?></a></th>
+          <th><a href="<?= \Luster\Core\View::e($joinedSortUrl('status')) ?>" class="sort-th<?= $sort === 'status' ? ' sort-active' : '' ?>">Status <?= $joinedSortIcon('status') ?></a></th>
           <th class="act-col">Actions</th>
         </tr>
       </thead>

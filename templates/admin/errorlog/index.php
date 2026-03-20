@@ -8,6 +8,8 @@
 /** @var string $base_url */
 /** @var string $csrf_token */
 $b = rtrim(\Luster\Core\View::e($base_url), '/');
+
+$pageUrl = static fn(int $p): string => $b . '/admin/errorlog?page=' . $p;
 ?>
 
 <?php if ($success !== ''): ?>
@@ -18,11 +20,10 @@ $b = rtrim(\Luster\Core\View::e($base_url), '/');
 <div class="neb-toolbar">
   <span class="text-muted" style="font-size:.8125rem"><?= (int) $total ?> entr<?= $total === 1 ? 'y' : 'ies' ?> logged</span>
   <div class="neb-actions">
-    <form method="POST"
-          action="<?= $b ?>/admin/errorlog/flush"
-          data-confirm="Clear all error logs? This cannot be undone.">
+    <a href="<?= $b ?>/admin/errorlog/export" class="btn btn-secondary btn-sm">&#8595; Export CSV</a>
+    <form method="POST" action="<?= $b ?>/admin/errorlog/flush" id="flush-logs-form">
       <input type="hidden" name="_csrf" value="<?= \Luster\Core\View::e($csrf_token ?? '') ?>">
-      <button type="submit" class="btn btn-danger btn-sm">Flush Logs</button>
+      <button type="button" class="btn btn-danger btn-sm" id="flush-logs-btn">Flush Logs</button>
     </form>
   </div>
 </div>
@@ -39,7 +40,6 @@ $b = rtrim(\Luster\Core\View::e($base_url), '/');
       <thead>
         <tr>
           <th style="width:160px">Date</th>
-          <th style="width:90px">Level</th>
           <th style="width:200px">Source</th>
           <th>Message</th>
         </tr>
@@ -48,18 +48,6 @@ $b = rtrim(\Luster\Core\View::e($base_url), '/');
         <?php foreach ($rows as $row): ?>
         <tr>
           <td class="text-muted" style="white-space:nowrap"><?= \Luster\Core\View::e((string) $row['created_at']) ?></td>
-          <td>
-            <?php
-            $lvl = strtolower((string) ($row['level'] ?? 'error'));
-            $badgeClass = match ($lvl) {
-                'error'   => 'badge-error',
-                'warning' => 'badge-upcoming',
-                'notice'  => 'badge-inactive',
-                default   => 'badge-inactive',
-            };
-            ?>
-            <span class="neb-badge <?= $badgeClass ?>"><?= \Luster\Core\View::e($lvl) ?></span>
-          </td>
           <td class="text-muted">
             <?= $row['source'] !== null && $row['source'] !== ''
                 ? \Luster\Core\View::e((string) $row['source'])
@@ -74,13 +62,55 @@ $b = rtrim(\Luster\Core\View::e($base_url), '/');
 </div>
 
 <?php if ($pages > 1): ?>
-<div class="neb-pagination">
-  <?php for ($i = 1; $i <= $pages; $i++): ?>
-    <?php if ($i === $page): ?>
-      <span class="pg-link active"><?= $i ?></span>
-    <?php else: ?>
-      <a href="<?= $b ?>/admin/errorlog?page=<?= $i ?>" class="pg-link"><?= $i ?></a>
-    <?php endif; ?>
+<?php
+$window = 2;
+$start  = max(2, $page - $window);
+$end    = min($pages - 1, $page + $window);
+?>
+<nav class="neb-pagination" aria-label="Pagination">
+  <a href="<?= \Luster\Core\View::e($pageUrl($page - 1)) ?>"
+     class="pg-link<?= $page <= 1 ? ' disabled' : '' ?>"
+     aria-label="Previous"><?= '&lsaquo;' ?></a>
+
+  <a href="<?= \Luster\Core\View::e($pageUrl(1)) ?>"
+     class="pg-link<?= $page === 1 ? ' active' : '' ?>">1</a>
+
+  <?php if ($start > 2): ?><span class="pg-link disabled">&hellip;</span><?php endif; ?>
+
+  <?php for ($i = $start; $i <= $end; $i++): ?>
+    <a href="<?= \Luster\Core\View::e($pageUrl($i)) ?>"
+       class="pg-link<?= $i === $page ? ' active' : '' ?>"><?= $i ?></a>
   <?php endfor; ?>
-</div>
+
+  <?php if ($end < $pages - 1): ?><span class="pg-link disabled">&hellip;</span><?php endif; ?>
+
+  <?php if ($pages > 1): ?>
+    <a href="<?= \Luster\Core\View::e($pageUrl($pages)) ?>"
+       class="pg-link<?= $page === $pages ? ' active' : '' ?>"><?= $pages ?></a>
+  <?php endif; ?>
+
+  <a href="<?= \Luster\Core\View::e($pageUrl($page + 1)) ?>"
+     class="pg-link<?= $page >= $pages ? ' disabled' : '' ?>"
+     aria-label="Next"><?= '&rsaquo;' ?></a>
+</nav>
 <?php endif; ?>
+
+<!-- Flush logs confirmation modal -->
+<div id="flush-logs-modal" class="neb-modal-backdrop" style="display:none" role="dialog" aria-modal="true" aria-labelledby="flush-modal-title">
+  <div class="neb-modal">
+    <div class="neb-modal-header">
+      <h3 class="neb-modal-title" id="flush-modal-title">Flush Error Logs</h3>
+    </div>
+    <div class="neb-modal-body">
+      <p>You are about to permanently delete all error log entries.</p>
+      <div class="addon-modal-warning">
+        <strong>Warning:</strong> This action cannot be undone.
+      </div>
+    </div>
+    <div class="neb-modal-footer">
+      <button type="button" class="btn btn-danger" id="flush-modal-confirm">Flush Logs</button>
+      <button type="button" class="btn btn-secondary" id="flush-modal-cancel">Cancel</button>
+    </div>
+  </div>
+</div>
+

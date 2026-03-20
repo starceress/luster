@@ -23,7 +23,7 @@ $b = rtrim(\Luster\Core\View::e($base_url), '/');
   <div class="alert alert-error"><?= \Luster\Core\View::e($error) ?></div>
 <?php endif; ?>
 
-<div style="max-width:620px">
+<div>
 <form method="POST" action="<?= $b ?>/admin/members/settings">
   <input type="hidden" name="_csrf" value="<?= \Luster\Core\View::e($csrf_token ?? '') ?>">
 

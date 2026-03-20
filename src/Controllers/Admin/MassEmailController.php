@@ -17,12 +17,12 @@ use Luster\Repositories\SavedEmailRepo;
 /**
  * Mass email — send an announcement to approved members of one or all listings.
  *
- * GET  /admin/mass-email                     → compose()        — compose form
- * POST /admin/mass-email/preview             → preview()        — validate + show recipient count
- * POST /admin/mass-email/send                → send()           — perform the send loop + results
- * GET  /admin/saved-emails                   → savedEmails()    — list + manage saved templates
- * POST /admin/saved-emails/save              → saveTemplate()   — create a saved template
- * POST /admin/saved-emails/{id}/delete       → deleteTemplate() — delete a saved template
+ * GET  /admin/emails                     → compose()        — compose form
+ * POST /admin/emails/preview             → preview()        — validate + show recipient count
+ * POST /admin/emails/send                → send()           — perform the send loop + results
+ * GET  /admin/new-email-template                   → savedEmails()    — list + manage saved templates
+ * POST /admin/new-email-template/save              → saveTemplate()   — create a saved template
+ * POST /admin/new-email-template/{id}/delete       → deleteTemplate() — delete a saved template
  *
  * Listing ID = 0 means "all listings" (recipients are deduplicated by email).
  *
@@ -37,7 +37,7 @@ final class MassEmailController
     public function __construct(private readonly Application $app) {}
 
     // -----------------------------------------------------------------------
-    // GET /admin/mass-email
+    // GET /admin/emails
     // -----------------------------------------------------------------------
 
     public function compose(Request $request, array $params): Response
@@ -78,7 +78,7 @@ final class MassEmailController
     }
 
     // -----------------------------------------------------------------------
-    // POST /admin/mass-email/preview
+    // POST /admin/emails/preview
     // -----------------------------------------------------------------------
 
     public function preview(Request $request, array $params): Response
@@ -120,7 +120,7 @@ final class MassEmailController
     }
 
     // -----------------------------------------------------------------------
-    // POST /admin/mass-email/send
+    // POST /admin/emails/send
     // -----------------------------------------------------------------------
 
     public function send(Request $request, array $params): Response
@@ -131,7 +131,7 @@ final class MassEmailController
 
         // Re-validate — never trust hidden fields without checking
         if ($subject === '' || $body === '') {
-            return Response::redirect($this->app->getBaseUrl() . '/admin/mass-email');
+            return Response::redirect($this->app->getBaseUrl() . '/admin/emails');
         }
 
         [$recipients, $listingName] = $this->collectRecipients($listingId);
@@ -176,7 +176,7 @@ final class MassEmailController
     }
 
     // -----------------------------------------------------------------------
-    // GET /admin/saved-emails
+    // GET /admin/new-email-template
     // -----------------------------------------------------------------------
 
     public function savedEmails(Request $request, array $params): Response
@@ -199,7 +199,7 @@ final class MassEmailController
     }
 
     // -----------------------------------------------------------------------
-    // POST /admin/saved-emails/save
+    // POST /admin/new-email-template/save
     // -----------------------------------------------------------------------
 
     public function saveTemplate(Request $request, array $params): Response
@@ -214,7 +214,7 @@ final class MassEmailController
         $referer = trim((string) $request->post('referer', ''));
         $redirect = ($referer !== '' && str_starts_with($referer, $baseUrl))
             ? $referer
-            : $baseUrl . '/admin/saved-emails';
+            : $baseUrl . '/admin/new-email-template';
 
         if ($name === '' || $body === '') {
             $session->set('lstr_flash_error', 'Template name and body are required.');
@@ -228,7 +228,7 @@ final class MassEmailController
     }
 
     // -----------------------------------------------------------------------
-    // POST /admin/saved-emails/{id}/delete
+    // POST /admin/new-email-template/{id}/delete
     // -----------------------------------------------------------------------
 
     public function deleteTemplate(Request $request, array $params): Response
@@ -240,7 +240,7 @@ final class MassEmailController
         (new SavedEmailRepo($this->app->getDatabase()))->delete($id);
 
         $session->set('lstr_flash_success', 'Template deleted.');
-        return Response::redirect($baseUrl . '/admin/saved-emails');
+        return Response::redirect($baseUrl . '/admin/new-email-template');
     }
 
     // -----------------------------------------------------------------------
@@ -317,7 +317,7 @@ final class MassEmailController
         $session = $this->app->getSession();
 
         $data['page_title']      = 'Emails';
-        $data['current_section'] = 'mass-email';
+        $data['current_section'] = 'emails';
         $data['site_name']       = (string) $this->app->getConfig()->get('site_name', 'Luster');
         $data['admin_username']  = (string) $session->get('lstr_admin_username', '');
         $data['csrf_token']      = $this->app->getCSRF()->token();

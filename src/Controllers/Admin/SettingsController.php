@@ -185,6 +185,74 @@ final class SettingsController
     }
 
     // -----------------------------------------------------------------------
+    // GET /admin/emails/smtp-settings
+    // -----------------------------------------------------------------------
+
+    public function emailSettings(Request $request, array $params): Response
+    {
+        $session = $this->app->getSession();
+        $success = (string) $session->get('lstr_flash_success', '');
+        $error   = (string) $session->get('lstr_flash_error', '');
+        $session->remove('lstr_flash_success');
+        $session->remove('lstr_flash_error');
+
+        $adminId   = (int) $session->get('lstr_admin_id');
+        $adminRepo = new AdminUserRepo($this->app->getDatabase());
+        $adminUser = $adminRepo->getById($adminId);
+
+        return $this->emailLayout('admin/emails/smtp-settings.php', [
+            'cfg'        => $this->app->getConfig()->all(),
+            'admin_user' => $adminUser,
+            'success'    => $success,
+            'error'      => $error,
+        ]);
+    }
+
+    // -----------------------------------------------------------------------
+    // POST /admin/emails/smtp-settings/save
+    // -----------------------------------------------------------------------
+
+    public function saveEmailSettings(Request $request, array $params): Response
+    {
+        $session      = $this->app->getSession();
+        $baseUrl      = $this->app->getBaseUrl();
+        $activityRepo = new ActivityRepo($this->app->getDatabase());
+
+        $existing = $this->app->getConfig()->all();
+        $updated  = $existing;
+
+        $updated['smtp_host']              = trim((string) $request->post('smtp_host', ''));
+        $updated['smtp_port']              = max(1, min(65535, (int) $request->post('smtp_port', 587)));
+        $updated['smtp_user']              = trim((string) $request->post('smtp_user', ''));
+        $updated['smtp_from']              = trim((string) $request->post('smtp_from', ''));
+        $updated['smtp_from_name']         = trim((string) $request->post('smtp_from_name', ''));
+        $updated['smtp_from_listing']      = trim((string) $request->post('smtp_from_listing', ''));
+        $updated['smtp_from_listing_name'] = trim((string) $request->post('smtp_from_listing_name', ''));
+        $updated['smtp_secure']            = in_array(
+            trim((string) $request->post('smtp_secure', 'tls')),
+            ['tls', 'ssl', ''],
+            true,
+        ) ? trim((string) $request->post('smtp_secure', 'tls')) : 'tls';
+
+        $newSmtpPass = (string) $request->post('smtp_pass', '');
+        if ($newSmtpPass !== '') {
+            $updated['smtp_pass'] = $newSmtpPass;
+        }
+
+        $this->writeConfig($updated);
+
+        $activityRepo->log(
+            (int) $session->get('lstr_admin_id'),
+            'settings.save',
+            'Email/SMTP settings updated',
+            $request->ip(),
+        );
+
+        $session->set('lstr_flash_success', 'Email settings saved.');
+        return Response::redirect($baseUrl . '/admin/emails/smtp-settings');
+    }
+
+    // -----------------------------------------------------------------------
     // POST /admin/settings/validate-smtp   (returns JSON — AJAX only)
     // -----------------------------------------------------------------------
 
@@ -259,8 +327,9 @@ final class SettingsController
         $config   = $this->app->getConfig();
 
         $smtpHost = (string) $config->get('smtp_host', '');
-        if ($smtpHost === '') {
-            $session->set('lstr_flash_error', 'Email is not configured. Set an SMTP host first.');
+        $smtpFrom = (string) $config->get('smtp_from', '');
+        if ($smtpHost === '' && $smtpFrom === '') {
+            $session->set('lstr_flash_error', 'Email is disabled. Set a From Address (or SMTP host) in settings first.');
             return Response::redirect($baseUrl . '/admin/settings');
         }
 
@@ -299,7 +368,7 @@ final class SettingsController
             $session->set('lstr_flash_error', 'Test email failed: ' . $e->getMessage());
         }
 
-        return Response::redirect($baseUrl . '/admin/settings');
+        return Response::redirect($baseUrl . '/admin/emails/smtp-settings');
     }
 
     // -----------------------------------------------------------------------
@@ -437,6 +506,30 @@ final class SettingsController
             unlink($tmpPath);
             throw new RuntimeException('Could not rename temp config file to: ' . $configPath);
         }
+    }
+
+    private function emailLayout(string $template, array $data): Response
+    {
+        $view      = $this->app->getView();
+        $config    = $this->app->getConfig();
+        $session   = $this->app->getSession();
+        $baseUrl   = $this->app->getBaseUrl();
+        $csrfToken = $this->app->getCSRF()->token();
+
+        $inner = $view->render($template, array_merge($data, [
+            'base_url'   => $baseUrl,
+            'csrf_token' => $csrfToken,
+        ]));
+
+        return Response::html($view->render('admin/layout.php', array_merge([
+            'page_title'      => 'Email/SMTP Settings',
+            'site_name'       => (string) $config->get('site_name', 'Luster'),
+            'admin_username'  => (string) $session->get('lstr_admin_username', ''),
+            'csrf_token'      => $csrfToken,
+            'current_section' => 'email-templates',
+            'base_url'        => $baseUrl,
+            'content'         => $inner,
+        ], $this->app->getAdminNavData())));
     }
 
     private function layout(string $template, array $data, string $pageTitle, string $section): Response

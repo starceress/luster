@@ -52,7 +52,10 @@ $b = rtrim(\Luster\Core\View::e($base_url), '/');
       </div>
 
       <div class="section-divider"></div>
-      <button type="submit" class="btn btn-primary">Save Settings</button>
+      <div style="display:flex;gap:.75rem;align-items:center">
+        <button type="submit" class="btn btn-primary">Save Settings</button>
+        <a href="<?= $b ?>/admin/joined" class="btn btn-ghost">Cancel</a>
+      </div>
     </form>
   </div>
 </div>

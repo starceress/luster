@@ -17,9 +17,10 @@ $b = rtrim(View::e($base_url ?? ''), '/');
 
 <div style="display:flex;align-items:center;justify-content:space-between;gap:1rem;margin-bottom:1.5rem">
   <div class="neb-tabs" style="margin-bottom:0">
-    <a href="<?= $b ?>/admin/mass-email"      class="neb-tab-btn">Compose</a>
-    <a href="<?= $b ?>/admin/saved-emails"    class="neb-tab-btn active">Saved Templates</a>
-    <a href="<?= $b ?>/admin/email-templates" class="neb-tab-btn">Email Templates</a>
+    <a href="<?= $b ?>/admin/email-templates"      class="neb-tab-btn">Email Templates</a>
+    <a href="<?= $b ?>/admin/emails"               class="neb-tab-btn">Compose Email</a>
+    <a href="<?= $b ?>/admin/new-email-template"   class="neb-tab-btn active">New Template</a>
+    <a href="<?= $b ?>/admin/emails/smtp-settings" class="neb-tab-btn">Email/SMTP Settings</a>
   </div>
   <a href="<?= $b ?>/admin/members" class="btn btn-ghost btn-sm">&larr; Members</a>
 </div>
@@ -34,9 +35,9 @@ $b = rtrim(View::e($base_url ?? ''), '/');
 <!-- New template form -->
 <div class="neb-card" style="padding:1.5rem 2rem;margin-bottom:1.5rem">
   <h3 style="margin:0 0 1rem;font-size:1rem;font-weight:600">Add new template</h3>
-  <form method="POST" action="<?= $b ?>/admin/saved-emails/save">
+  <form method="POST" action="<?= $b ?>/admin/new-email-template/save">
     <input type="hidden" name="_csrf"   value="<?= View::e($csrf_token ?? '') ?>">
-    <input type="hidden" name="referer" value="<?= View::e($b . '/admin/saved-emails') ?>">
+    <input type="hidden" name="referer" value="<?= View::e($b . '/admin/new-email-template') ?>">
 
     <div class="form-group">
       <label class="form-label" for="new-tpl-name">Template name <span>*</span></label>
@@ -105,9 +106,9 @@ $b = rtrim(View::e($base_url ?? ''), '/');
           </td>
           <td class="act-col">
             <div class="row-actions">
-              <a href="<?= $b ?>/admin/mass-email?load=<?= (int) $t->id ?>"
+              <a href="<?= $b ?>/admin/emails?load=<?= (int) $t->id ?>"
                  class="btn btn-secondary btn-sm">Use</a>
-              <form method="POST" action="<?= $b ?>/admin/saved-emails/<?= (int) $t->id ?>/delete"
+              <form method="POST" action="<?= $b ?>/admin/new-email-template/<?= (int) $t->id ?>/delete"
                     style="display:contents" data-confirm="Delete this template?">
                 <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
                 <button type="submit" class="btn btn-danger btn-sm">Delete</button>

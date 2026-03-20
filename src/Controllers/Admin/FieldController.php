@@ -57,7 +57,7 @@ final class FieldController
             'fields'     => $fields,
             'success'    => $success,
             'error'      => $error,
-        ], 'Fields', 'listings', $listing->name);
+        ], 'Fields', 'listings', 'Owned › ' . $listing->name);
     }
 
     // -----------------------------------------------------------------------
@@ -231,7 +231,7 @@ final class FieldController
             'field'      => $current,
             'options'    => $current->options,
             'error'      => (string) $req->query('error', ''),
-        ], 'Edit Field', 'listings', $listing->name);
+        ], 'Edit Field', 'listings', 'Owned › ' . $listing->name);
     }
 
     // -----------------------------------------------------------------------

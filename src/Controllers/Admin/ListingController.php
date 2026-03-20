@@ -123,18 +123,43 @@ final class ListingController
             $listings = array_values(array_filter($listings, fn($fl) => ($listingTypes[$fl->id] ?? 'listing') === $filterType));
         }
 
-        // Apply configured sort order
-        if ($ownedSort === 'subject') {
-            usort($listings, fn($a, $b) => strcasecmp((string) ($a->subject ?? ''), (string) ($b->subject ?? '')));
-        } elseif ($ownedSort === 'category') {
-            usort($listings, fn($a, $b) => strcasecmp($categoryNames[$a->id] ?? '', $categoryNames[$b->id] ?? ''));
-        } elseif ($ownedSort === 'status') {
-            usort($listings, static function ($a, $b): int {
+        // Column-header sort (URL param) overrides the configured display sort.
+        $sort = trim((string) $request->query('sort', ''));
+        $dir  = trim((string) $request->query('dir', 'asc'));
+        if (!in_array($sort, ['id', 'subject', 'name', 'category', 'status'], true)) { $sort = ''; }
+        if (!in_array($dir, ['asc', 'desc'], true)) { $dir = 'asc'; }
+
+        $activeSort = $sort !== '' ? $sort : $ownedSort;
+        $activeDir  = $sort !== '' ? $dir  : 'asc';
+
+        if ($activeSort === 'subject') {
+            usort($listings, static function ($a, $b) use ($activeDir): int {
+                $cmp = strcasecmp((string) ($a->subject ?? ''), (string) ($b->subject ?? ''));
+                return $activeDir === 'desc' ? -$cmp : $cmp;
+            });
+        } elseif ($activeSort === 'name') {
+            usort($listings, static function ($a, $b) use ($activeDir): int {
+                $cmp = strcasecmp((string) ($a->name ?? ''), (string) ($b->name ?? ''));
+                return $activeDir === 'desc' ? -$cmp : $cmp;
+            });
+        } elseif ($activeSort === 'category') {
+            usort($listings, static function ($a, $b) use ($activeDir, $categoryNames): int {
+                $cmp = strcasecmp($categoryNames[$a->id] ?? '', $categoryNames[$b->id] ?? '');
+                return $activeDir === 'desc' ? -$cmp : $cmp;
+            });
+        } elseif ($activeSort === 'status') {
+            usort($listings, static function ($a, $b) use ($activeDir): int {
                 $rank = static fn($fl): int => $fl->trouble ? 2 : ($fl->upcoming ? 1 : 0);
-                return $rank($a) <=> $rank($b);
+                $cmp  = $rank($a) <=> $rank($b);
+                return $activeDir === 'desc' ? -$cmp : $cmp;
+            });
+        } elseif ($activeSort === 'id') {
+            usort($listings, static function ($a, $b) use ($activeDir): int {
+                $cmp = $a->id <=> $b->id;
+                return $activeDir === 'desc' ? -$cmp : $cmp;
             });
         }
-        // 'id' is already sorted numerically by SQL
+        // if $activeSort is empty, SQL already sorted by id/name
 
         $perPage    = max(5, min(200, (int) ($cfgAll['owned_per_page'] ?? 10)));
         $totalItems = count($listings);
@@ -169,6 +194,8 @@ final class ListingController
             'total_pages'     => $totalPages,
             'total'           => $totalItems,
             'per_page'        => $perPage,
+            'sort'            => $sort,
+            'dir'             => $dir,
         ], 'Owned Listings', 'listings');
     }
 
@@ -301,7 +328,21 @@ final class ListingController
             $image    = $filename;
         }
 
-        $listingRepo->insert($title, $subject, $url, $email, $status, $image, null, $opened, $catidStr);
+        $newId = $listingRepo->insert($title, $subject, $url, $email, $status, $image, null, $opened, $catidStr);
+
+        // Pre-fill default embed page names for the new listing.
+        $settingsRepo = new ListingSettingsRepo($db);
+        $settingsRepo->saveEmbedSettings(
+            $newId,
+            'join.php',   // form_url_join
+            'update.php', // form_url_update
+            'remove.php', // form_url_remove
+            'reset.php',  // form_url_reset
+            '',           // db_host
+            '',           // db_name
+            '',           // db_user
+            '',           // db_pass
+        );
 
         return Response::redirect($this->app->getBaseUrl() . '/admin/listings');
     }
@@ -490,7 +531,7 @@ final class ListingController
                     'current_category_id' => $listing->categoryId ?? null,
                     'listing_type'        => $listingType,
                     'members_per_page'    => $membersPerPage,
-                ], 'Edit Listing', 'listings', $listing->name);
+                ], 'Edit Listing', 'listings', 'Owned › ' . $listing->name);
             }
 
             // --- All valid: persist ---
@@ -602,7 +643,7 @@ final class ListingController
             'listing_type'        => $listingType,
             'members_per_page'    => $membersPerPage,
             'embed_settings'      => $embedSettings,
-        ], 'Edit Listing', 'listings', $listing->name);
+        ], 'Edit Listing', 'listings', 'Owned › ' . $listing->name);
     }
 
     // -----------------------------------------------------------------------
@@ -748,7 +789,7 @@ final class ListingController
                     'listing'   => $listing,
                     'table_exists' => $tableExists,
                     'error'        => $error,
-                ], 'Change Table Prefix', 'listings', $listing->name);
+                ], 'Change Table Prefix', 'listings', 'Owned › ' . $listing->name);
             }
 
             $oldPrefix = $listing->dbprefix;
@@ -770,7 +811,7 @@ final class ListingController
             'listing'   => $listing,
             'table_exists' => $tableExists,
             'error'        => '',
-        ], 'Change Table Prefix', 'listings', $listing->name);
+        ], 'Change Table Prefix', 'listings', 'Owned › ' . $listing->name);
     }
 
     // -----------------------------------------------------------------------
@@ -853,49 +894,14 @@ final class ListingController
 
         $settingsRepo = new ListingSettingsRepo($db);
 
-        $countryFieldEnabled = $request->post('country_field_enabled') === '1';
-        $redirectUrlJoin     = trim((string) $request->post('redirect_url_join',    ''));
-        $redirectUrlUpdate   = trim((string) $request->post('redirect_url_update',  ''));
-        $redirectUrlRemove   = trim((string) $request->post('redirect_url_remove',  ''));
-        $redirectUrlReset    = trim((string) $request->post('redirect_url_reset',   ''));
-        $formUrlJoin         = trim((string) $request->post('form_url_join',        ''));
-        $formUrlUpdate       = trim((string) $request->post('form_url_update',      ''));
-        $formUrlRemove       = trim((string) $request->post('form_url_remove',      ''));
-        $formUrlReset        = trim((string) $request->post('form_url_reset',       ''));
-        $dbHost              = trim((string) $request->post('db_host',              ''));
-        $dbName              = trim((string) $request->post('db_name',              ''));
-        $dbUser              = trim((string) $request->post('db_user',              ''));
-        $newDbPass           = (string) $request->post('db_pass',                   '');
-
-        // Validate redirect/form URL fields — must be blank or http(s):// only.
-        // javascript: URIs and protocol-relative URLs (//) are rejected.
-        $urlFields = [
-            'Redirect URL (join)'   => $redirectUrlJoin,
-            'Redirect URL (update)' => $redirectUrlUpdate,
-            'Redirect URL (remove)' => $redirectUrlRemove,
-            'Redirect URL (reset)'  => $redirectUrlReset,
-            'Form URL (join)'       => $formUrlJoin,
-            'Form URL (update)'     => $formUrlUpdate,
-            'Form URL (remove)'     => $formUrlRemove,
-            'Form URL (reset)'      => $formUrlReset,
-        ];
-
-        foreach ($urlFields as $label => $value) {
-            if ($value === '') {
-                continue;
-            }
-            if (
-                filter_var($value, FILTER_VALIDATE_URL) === false
-                || (!str_starts_with($value, 'http://') && !str_starts_with($value, 'https://'))
-            ) {
-                $this->app->getSession()->set(
-                    'lstr_flash_error',
-                    htmlspecialchars($label, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8')
-                    . ': URLs must begin with http:// or https://.',
-                );
-                return Response::redirect($this->app->getBaseUrl() . '/admin/listings/' . $id);
-            }
-        }
+        $formUrlJoin   = ltrim(trim((string) $request->post('form_url_join',   '')), '/');
+        $formUrlUpdate = ltrim(trim((string) $request->post('form_url_update', '')), '/');
+        $formUrlRemove = ltrim(trim((string) $request->post('form_url_remove', '')), '/');
+        $formUrlReset  = ltrim(trim((string) $request->post('form_url_reset',  '')), '/');
+        $dbHost        = trim((string) $request->post('db_host', ''));
+        $dbName        = trim((string) $request->post('db_name', ''));
+        $dbUser        = trim((string) $request->post('db_user', ''));
+        $newDbPass     = (string) $request->post('db_pass', '');
 
         // Only update db_pass if a new value was submitted; empty = keep existing
         if ($newDbPass === '') {
@@ -907,11 +913,6 @@ final class ListingController
 
         $settingsRepo->saveEmbedSettings(
             $id,
-            $countryFieldEnabled,
-            $redirectUrlJoin,
-            $redirectUrlUpdate,
-            $redirectUrlRemove,
-            $redirectUrlReset,
             $formUrlJoin,
             $formUrlUpdate,
             $formUrlRemove,
@@ -1062,7 +1063,7 @@ final class ListingController
         return $this->layout('admin/listings/email-templates.php', [
             'listing' => $listing,
             'templates'  => $templates,
-        ], 'Email Templates', 'listings', $listing->name);
+        ], 'Email Templates', 'listings', 'Owned › ' . $listing->name);
     }
 
     // -----------------------------------------------------------------------

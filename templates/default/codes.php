@@ -10,8 +10,8 @@ use Luster\Core\View;
  * Variables injected by embed/codes.php:
  *   $listing_name  string
  *   $listing_url   string       target URL for code links
- *   $codes         object[]     CodesRepo rows (filename, name, width, height, sizeId, donorId)
- *   $sizes         object[]     CodeSizesRepo rows (sorted)
+ *   $codes         object[]     CodesRepo rows (filename, name, width, height, donorId)
+ *   $grouped       array        ['WxH' => ['label' => string, 'codes' => object[]]]
  *   $categories    object[]     CodeCategoriesRepo rows
  *   $cat_map       array        [code_id => [cat_id, ...]] from getCategoryMapForListing()
  *   $category_map  array        [cat_id => category object]
@@ -22,31 +22,10 @@ use Luster\Core\View;
  *   $base_url      string
  */
 
-// Group codes by size when sizes are defined.
-// Key 0 = unsized bucket.
-$_hasSizes = !empty($sizes);
-
-if ($_hasSizes) {
-    $_grouped = [];
-    foreach ($sizes as $_sz) {
-        $_grouped[$_sz->id] = ['size' => $_sz, 'codes' => []];
-    }
-    $_grouped[0] = ['size' => null, 'codes' => []];
-
-    foreach ($codes as $_c) {
-        $_key = ($_c->sizeId !== null && isset($_grouped[$_c->sizeId])) ? $_c->sizeId : 0;
-        $_grouped[$_key]['codes'][] = $_c;
-    }
-
-    // Drop groups with no codes
-    $_grouped = array_filter($_grouped, static fn($g) => !empty($g['codes']));
-} else {
-    $_grouped = [0 => ['size' => null, 'codes' => $codes]];
-}
-
-$_totalCodes  = count($codes);
-$_hasCategories = !empty($categories);
-$_hasDonors     = !empty($donors);
+$_totalCodes      = count($codes);
+$_hasCategories   = !empty($categories);
+$_hasDonors       = !empty($donors);
+$_showHeadings    = count($grouped) > 1;
 ?>
 <div class="fl-wrap">
   <h2 class="fl-title">Codes for <?= View::e($listing_name) ?></h2>
@@ -63,17 +42,12 @@ $_hasDonors     = !empty($donors);
       Right-click an image to save, or link directly.
     </p>
 
-    <?php foreach ($_grouped as $_group): ?>
+    <?php foreach ($grouped as $_group): ?>
       <?php if (empty($_group['codes'])) continue; ?>
 
-      <?php if ($_hasSizes): ?>
+      <?php if ($_showHeadings): ?>
         <h3 class="fl-category-heading" style="margin:1.25em 0 .5em">
-          <?= $_group['size'] !== null ? View::e($_group['size']->label) : 'Other' ?>
-          <?php if ($_group['size'] !== null && $_group['size']->width !== null && $_group['size']->height !== null): ?>
-            <small style="font-weight:400;opacity:.65;font-size:.75em">
-              (<?= (int) $_group['size']->width ?>&times;<?= (int) $_group['size']->height ?>)
-            </small>
-          <?php endif; ?>
+          <?= View::e($_group['label']) ?>
         </h3>
       <?php endif; ?>
 
@@ -115,7 +89,7 @@ $_hasDonors     = !empty($donors);
             ?>
               <p class="fl-code-donor" style="margin:.2em 0 0;font-size:.75rem;opacity:.7">
                 &#9829;
-                <?php if ($_donor->url !== ''): ?>
+                <?php if ($_donor->url !== null && $_donor->url !== ''): ?>
                   <a class="fl-link" href="<?= View::e($_donor->url) ?>" target="_blank" rel="noopener noreferrer"><?= View::e($_donor->name) ?></a>
                 <?php else: ?>
                   <?= View::e($_donor->name) ?>

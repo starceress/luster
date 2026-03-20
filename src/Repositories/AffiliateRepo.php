@@ -22,11 +22,12 @@ final class AffiliateRepo
     // -----------------------------------------------------------------------
 
     /**
-     * Returns a paginated page of all affiliates, sorted by sort_order then name.
+     * Returns a paginated page of all affiliates.
      *
+     * @param string $orderBy Pre-validated "column DIR" fragment (e.g. "name ASC").
      * @return array{items: Affiliate[], total: int, pages: int}
      */
-    public function getAll(int $perPage = 10, int $page = 1): array
+    public function getAll(int $perPage = 10, int $page = 1, string $orderBy = 'id ASC'): array
     {
         $offset = ($page - 1) * $perPage;
 
@@ -35,7 +36,7 @@ final class AffiliateRepo
         $total = (int) $countStmt->fetchColumn();
 
         $stmt = $this->db->prepare(
-            'SELECT * FROM lstr_affiliates ORDER BY sort_order ASC, name ASC LIMIT :limit OFFSET :offset'
+            "SELECT * FROM lstr_affiliates ORDER BY {$orderBy} LIMIT :limit OFFSET :offset"
         );
         $stmt->bindValue(':limit',  $perPage, \PDO::PARAM_INT);
         $stmt->bindValue(':offset', $offset,  \PDO::PARAM_INT);
@@ -63,12 +64,12 @@ final class AffiliateRepo
     }
 
     /**
-     * Returns a paginated page of collective affiliates (fanlisting_id IS NULL),
-     * sorted by sort_order then name.
+     * Returns a paginated page of collective affiliates (fanlisting_id IS NULL).
      *
+     * @param string $orderBy Pre-validated "column DIR" fragment.
      * @return array{items: Affiliate[], total: int, pages: int}
      */
-    public function getCollective(int $perPage = 10, int $page = 1): array
+    public function getCollective(int $perPage = 10, int $page = 1, string $orderBy = 'id ASC'): array
     {
         $offset = ($page - 1) * $perPage;
 
@@ -79,10 +80,10 @@ final class AffiliateRepo
         $total = (int) $countStmt->fetchColumn();
 
         $stmt = $this->db->prepare(
-            'SELECT * FROM lstr_affiliates
+            "SELECT * FROM lstr_affiliates
              WHERE fanlisting_id IS NULL
-             ORDER BY sort_order ASC, name ASC
-             LIMIT :limit OFFSET :offset'
+             ORDER BY {$orderBy}
+             LIMIT :limit OFFSET :offset"
         );
         $stmt->bindValue(':limit',  $perPage, \PDO::PARAM_INT);
         $stmt->bindValue(':offset', $offset,  \PDO::PARAM_INT);
@@ -96,12 +97,12 @@ final class AffiliateRepo
     }
 
     /**
-     * Returns a paginated page of affiliates for a specific fanlisting,
-     * sorted by sort_order then name.
+     * Returns a paginated page of affiliates for a specific fanlisting.
      *
+     * @param string $orderBy Pre-validated "column DIR" fragment.
      * @return array{items: Affiliate[], total: int, pages: int}
      */
-    public function getByListing(int $listingId, int $perPage = 10, int $page = 1): array
+    public function getByListing(int $listingId, int $perPage = 10, int $page = 1, string $orderBy = 'id ASC'): array
     {
         $offset = ($page - 1) * $perPage;
 
@@ -112,14 +113,14 @@ final class AffiliateRepo
         $total = (int) $countStmt->fetchColumn();
 
         $stmt = $this->db->prepare(
-            'SELECT * FROM lstr_affiliates
+            "SELECT * FROM lstr_affiliates
              WHERE fanlisting_id = :fid
-             ORDER BY sort_order ASC, name ASC
-             LIMIT :limit OFFSET :offset'
+             ORDER BY {$orderBy}
+             LIMIT :limit OFFSET :offset"
         );
         $stmt->bindValue(':fid',    $listingId, \PDO::PARAM_INT);
-        $stmt->bindValue(':limit',  $perPage,      \PDO::PARAM_INT);
-        $stmt->bindValue(':offset', $offset,       \PDO::PARAM_INT);
+        $stmt->bindValue(':limit',  $perPage,   \PDO::PARAM_INT);
+        $stmt->bindValue(':offset', $offset,    \PDO::PARAM_INT);
         $stmt->execute();
 
         return [
@@ -205,7 +206,7 @@ final class AffiliateRepo
      *
      * @return array{items: Affiliate[], total: int, pages: int}
      */
-    public function search(string $q, ?int $listingId, int $perPage = 10, int $page = 1): array
+    public function search(string $q, ?int $listingId, int $perPage = 10, int $page = 1, string $orderBy = 'id ASC'): array
     {
         $offset  = ($page - 1) * $perPage;
         $pattern = '%' . $q . '%';
@@ -234,7 +235,7 @@ final class AffiliateRepo
         $stmt = $this->db->prepare(
             "SELECT * FROM lstr_affiliates
              WHERE {$where}
-             ORDER BY sort_order ASC, name ASC
+             ORDER BY {$orderBy}
              LIMIT :limit OFFSET :offset"
         );
         $stmt->bindValue(':q1',     $pattern, \PDO::PARAM_STR);
@@ -285,7 +286,7 @@ final class AffiliateRepo
             'url'           => (string) $data['url'],
             'email'         => isset($data['email'])      ? (string) $data['email']      : null,
             'image'         => isset($data['image'])      ? (string) $data['image']      : null,
-            'sort_order'    => isset($data['sort_order']) ? (int)    $data['sort_order'] : 0,
+            'sort_order'    => isset($data['sort_order']) ? max(1, (int) $data['sort_order']) : 1,
         ]);
 
         return (int) $this->db->lastInsertId();
@@ -316,9 +317,84 @@ final class AffiliateRepo
             'url'        => (string) $data['url'],
             'email'      => isset($data['email']) ? (string) $data['email'] : null,
             'image'      => isset($data['image']) ? (string) $data['image'] : null,
-            'sort_order' => (int) ($data['sort_order'] ?? 0),
+            'sort_order' => max(1, (int) ($data['sort_order'] ?? 1)),
             'id'         => $id,
         ]);
+    }
+
+    /**
+     * Returns the next available sort_order for a given scope (1-based).
+     * Returns 1 when no affiliates exist in that scope yet.
+     */
+    public function getNextSortOrder(?int $fanlistingId): int
+    {
+        if ($fanlistingId === null) {
+            $stmt = $this->db->prepare(
+                'SELECT COALESCE(MAX(sort_order), 0) + 1 FROM lstr_affiliates WHERE fanlisting_id IS NULL'
+            );
+            $stmt->execute();
+        } else {
+            $stmt = $this->db->prepare(
+                'SELECT COALESCE(MAX(sort_order), 0) + 1 FROM lstr_affiliates WHERE fanlisting_id = :fid'
+            );
+            $stmt->execute(['fid' => $fanlistingId]);
+        }
+
+        return max(1, (int) $stmt->fetchColumn());
+    }
+
+    /**
+     * Reassigns sort_order 1, 2, 3… to every affiliate in the given scope,
+     * ordered by their current sort_order then name. Closes any gaps and
+     * normalises values that start above 1.
+     *
+     * Pass null for the collective scope; pass a listing ID for a per-listing scope.
+     */
+    public function repackSortOrder(?int $fanlistingId): void
+    {
+        if ($fanlistingId === null) {
+            $sel = $this->db->prepare(
+                'SELECT id FROM lstr_affiliates
+                 WHERE fanlisting_id IS NULL
+                 ORDER BY sort_order ASC, name ASC'
+            );
+            $sel->execute();
+        } else {
+            $sel = $this->db->prepare(
+                'SELECT id FROM lstr_affiliates
+                 WHERE fanlisting_id = :fid
+                 ORDER BY sort_order ASC, name ASC'
+            );
+            $sel->execute(['fid' => $fanlistingId]);
+        }
+
+        $ids = $sel->fetchAll(\PDO::FETCH_COLUMN);
+        if (empty($ids)) {
+            return;
+        }
+
+        $upd = $this->db->prepare(
+            'UPDATE lstr_affiliates SET sort_order = :pos WHERE id = :id'
+        );
+        foreach ($ids as $i => $id) {
+            $upd->execute(['pos' => $i + 1, 'id' => (int) $id]);
+        }
+    }
+
+    /**
+     * Assigns sort_order 1, 2, 3… to the given affiliate IDs in the order
+     * they are provided. Used by the drag-and-drop reorder endpoint.
+     *
+     * @param int[] $orderedIds
+     */
+    public function setSortOrders(array $orderedIds): void
+    {
+        $upd = $this->db->prepare(
+            'UPDATE lstr_affiliates SET sort_order = :pos WHERE id = :id'
+        );
+        foreach ($orderedIds as $i => $id) {
+            $upd->execute(['pos' => $i + 1, 'id' => (int) $id]);
+        }
     }
 
     /**

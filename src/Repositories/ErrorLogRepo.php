@@ -57,6 +57,23 @@ final class ErrorLogRepo
     }
 
     /**
+     * Returns all error log rows, newest first.
+     *
+     * @return array<int,array<string,mixed>>
+     */
+    public function getAll(): array
+    {
+        $stmt = $this->db->prepare(
+            'SELECT id, level, message, source, created_at
+             FROM `lstr_error_log`
+             ORDER BY created_at DESC'
+        );
+        $stmt->execute();
+
+        return $stmt->fetchAll();
+    }
+
+    /**
      * Deletes all rows from lstr_error_log.
      */
     public function flush(): void

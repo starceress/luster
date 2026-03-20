@@ -57,7 +57,7 @@ $_lusterPage         = max(1, (int) ($luster_page ?? ($_GET['page'] ?? 1)));
 
 $_lusterBaseUrl    = rtrim((string) $_lusterApp->getConfig()->get('embed_base_url', ''), '/')
                    ?: $_lusterApp->getBaseUrl();
-$_lusterUploadsUrl = $_lusterApp->getBaseUrl() . '/uploads';
+$_lusterUploadsUrl = $_lusterApp->getBaseUrl() . '/uploads/affiliates';
 
 // ---------------------------------------------------------------------------
 // 3. Load affiliates

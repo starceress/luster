@@ -171,6 +171,12 @@ return [
             MemberController::class, 'emailMemberForm');
         $router->post('/admin/members/{id}/emailmember',
             MemberController::class, 'emailMemberSend');
+        $router->get('/admin/members/{id}/email-selected',
+            MemberController::class, 'emailSelectedForm');
+        $router->post('/admin/members/{id}/email-selected/send',
+            MemberController::class, 'emailSelectedSend');
+        $router->post('/admin/members/{id}/email-selected/save-template',
+            MemberController::class, 'emailSelectedSaveTemplate');
 
         // import/template must be before import so 'template' isn't treated as a sub-param
         $router->get('/admin/members/{id}/import/template',
@@ -223,6 +229,8 @@ return [
             CodesController::class, 'assignStatus');
         $router->post('/admin/listings/{fid}/codes/{id}/name',
             CodesController::class, 'assignName');
+        $router->post('/admin/listings/{fid}/codes/{id}/update',
+            CodesController::class, 'updateCode');
 
         // ── Additional fields for a specific listing ──────────────
         $router->get('/admin/listings/{fid}/fields',
@@ -258,6 +266,8 @@ return [
             AffiliateController::class, 'toggle');
         $router->post('/admin/affiliates/{id}/delete',
             AffiliateController::class, 'deleteAffiliate');
+        $router->post('/admin/affiliates/reorder',
+            AffiliateController::class, 'reorder');
 
         // ── Admin user management (list lives in Settings › Admin Details) ──
         $router->get('/admin/admin-users/add',
@@ -292,6 +302,12 @@ return [
             SettingsController::class, 'validateSmtp');
         $router->post('/admin/settings/test-email',
             SettingsController::class, 'testEmail');
+
+        // ── Email/SMTP Settings (under Emails nav) ───────────────────
+        $router->get('/admin/emails/smtp-settings',
+            SettingsController::class, 'emailSettings');
+        $router->post('/admin/emails/smtp-settings/save',
+            SettingsController::class, 'saveEmailSettings');
 
         // ── Joined listings ───────────────────────────────────────
         $router->get('/admin/joined',
@@ -340,12 +356,16 @@ return [
         // ── Activity log ─────────────────────────────────────────────
         $router->get('/admin/activity',
             ActivityLogController::class, 'index');
+        $router->get('/admin/activity/export',
+            ActivityLogController::class, 'export');
         $router->post('/admin/activity/flush',
             ActivityLogController::class, 'flush');
 
         // ── Error log ────────────────────────────────────────────────
         $router->get('/admin/errorlog',
             ErrorLogController::class, 'index');
+        $router->get('/admin/errorlog/export',
+            ErrorLogController::class, 'export');
         $router->post('/admin/errorlog/flush',
             ErrorLogController::class, 'flush');
 
@@ -374,19 +394,19 @@ return [
             EmbedCodesController::class, 'index');
 
         // ── Mass email ────────────────────────────────────────────────
-        $router->get('/admin/mass-email',
+        $router->get('/admin/emails',
             MassEmailController::class, 'compose');
-        $router->post('/admin/mass-email/preview',
+        $router->post('/admin/emails/preview',
             MassEmailController::class, 'preview');
-        $router->post('/admin/mass-email/send',
+        $router->post('/admin/emails/send',
             MassEmailController::class, 'send');
 
         // ── Saved email templates ─────────────────────────────────────
-        $router->get('/admin/saved-emails',
+        $router->get('/admin/new-email-template',
             MassEmailController::class, 'savedEmails');
-        $router->post('/admin/saved-emails/save',
+        $router->post('/admin/new-email-template/save',
             MassEmailController::class, 'saveTemplate');
-        $router->post('/admin/saved-emails/{id}/delete',
+        $router->post('/admin/new-email-template/{id}/delete',
             MassEmailController::class, 'deleteTemplate');
     },
 

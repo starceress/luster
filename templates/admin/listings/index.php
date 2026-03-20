@@ -55,12 +55,56 @@ else {
     usort($activeCats, static fn($a, $b) => strcmp($a['name'], $b['name']));
 }
 
-$allNetworks = array_merge(['TFL', 'TAFL'], $custom_networks ?? []);
+$allNetworks  = array_merge(['TFL', 'TAFL'], $custom_networks ?? []);
 usort($allNetworks, static fn($a, $b) => strcasecmp($a, $b));
+$filtersActive = ($search ?? '') !== '' || ($filter_network ?? '') !== ''
+              || ($filter_cat ?? '') !== '' || ($filter_type ?? '') !== '';
+
+$flSort = $sort ?? '';
+$flDir  = $dir  ?? 'asc';
+
+$flSortUrl = static function (string $col) use ($b, $flSort, $flDir, $search, $filter_network, $filter_cat, $filter_type): string {
+    $newDir = ($flSort === $col && $flDir === 'asc') ? 'desc' : 'asc';
+    $qs = http_build_query(array_filter([
+        'search'   => $search          ?? '',
+        'network'  => $filter_network  ?? '',
+        'category' => $filter_cat      ?? '',
+        'type'     => $filter_type     ?? '',
+        'sort'     => $col,
+        'dir'      => $newDir,
+    ], static fn(string $v): bool => $v !== ''));
+    return $b . '/admin/listings' . ($qs !== '' ? '?' . $qs : '');
+};
+
+$flSortIcon = static function (string $col) use ($flSort, $flDir): string {
+    if ($flSort !== $col) {
+        return '<svg viewBox="0 0 10 14" width="9" height="9" fill="currentColor" style="opacity:.35;flex-shrink:0"><path d="M5 0l3 4H2zM5 14l-3-4h6z"/></svg>';
+    }
+    if ($flDir === 'asc') {
+        return '<svg viewBox="0 0 10 14" width="9" height="9" fill="currentColor" style="flex-shrink:0"><path d="M5 0l3 4H2z"/><path d="M5 14l-3-4h6z" fill-opacity=".25"/></svg>';
+    }
+    return '<svg viewBox="0 0 10 14" width="9" height="9" fill="currentColor" style="flex-shrink:0"><path d="M5 0l3 4H2z" fill-opacity=".25"/><path d="M5 14l-3-4h6z"/></svg>';
+};
 ?>
 
 <!-- Toolbar -->
 <div class="neb-toolbar">
+  <div class="neb-actions">
+    <button type="button" class="btn btn-secondary btn-sm fl-filter-toggle" id="fl-filter-toggle"
+            aria-expanded="<?= $filtersActive ? 'true' : 'false' ?>"
+            aria-controls="fl-filter-panel">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><line x1="4" y1="6" x2="20" y2="6"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="11" y1="18" x2="13" y2="18"/></svg>
+      Filter<?php if ($filtersActive): ?><span class="fl-filter-dot" aria-hidden="true"></span><?php endif; ?>
+    </button>
+  </div>
+  <div class="neb-actions">
+    <a href="<?= $b ?>/admin/listings/add" class="btn btn-primary btn-sm">+ Add Listing</a>
+    <a href="<?= $b ?>/admin/listings/settings" class="btn btn-secondary btn-sm">Display Settings</a>
+  </div>
+</div>
+
+<!-- Collapsible filter panel -->
+<div class="fl-filter-panel<?= $filtersActive ? ' is-open' : '' ?>" id="fl-filter-panel">
   <form method="GET" action="" class="neb-filter-row" id="fl-filter-form">
 
     <div class="toolbar-select-wrap">
@@ -108,11 +152,6 @@ usort($allNetworks, static fn($a, $b) => strcasecmp($a, $b));
     <a href="?" class="btn btn-secondary btn-sm">Reset</a>
 
   </form>
-
-  <div class="neb-actions">
-    <a href="<?= $b ?>/admin/listings/add" class="btn btn-primary btn-sm">+ Add Listing</a>
-    <a href="<?= $b ?>/admin/listings/settings" class="btn btn-secondary btn-sm">Display Settings</a>
-  </div>
 </div>
 
 
@@ -138,8 +177,8 @@ usort($allNetworks, static fn($a, $b) => strcasecmp($a, $b));
     <label for="bulk-action">Bulk action:</label>
     <div class="toolbar-select-wrap">
     <select id="bulk-action" name="action" class="neb-select">
-      <option value="">— Select —</option>
-      <option value="delete">Delete selected</option>
+      <option value="" disabled selected>— Select —</option>
+      <option value="delete">Delete</option>
     </select>
     </div>
     <button type="submit" class="btn btn-secondary btn-sm">Apply</button>
@@ -153,12 +192,11 @@ usort($allNetworks, static fn($a, $b) => strcasecmp($a, $b));
       <thead>
         <tr>
           <th class="cb-col"><input type="checkbox" id="fl-select-all"></th>
-          <th style="width:100px">Image</th>
-          <th>#</th>
-          <th>Subject</th>
-          <th>Title</th>
-          <th>Category</th>
-          <th>Status</th>
+          <th><a href="<?= \Luster\Core\View::e($flSortUrl('id')) ?>" class="sort-th<?= $flSort === 'id' ? ' sort-active' : '' ?>"># <?= $flSortIcon('id') ?></a></th>
+          <th><a href="<?= \Luster\Core\View::e($flSortUrl('subject')) ?>" class="sort-th<?= $flSort === 'subject' ? ' sort-active' : '' ?>">Subject <?= $flSortIcon('subject') ?></a></th>
+          <th><a href="<?= \Luster\Core\View::e($flSortUrl('name')) ?>" class="sort-th<?= $flSort === 'name' ? ' sort-active' : '' ?>">Title <?= $flSortIcon('name') ?></a></th>
+          <th><a href="<?= \Luster\Core\View::e($flSortUrl('category')) ?>" class="sort-th<?= $flSort === 'category' ? ' sort-active' : '' ?>">Category <?= $flSortIcon('category') ?></a></th>
+          <th><a href="<?= \Luster\Core\View::e($flSortUrl('status')) ?>" class="sort-th<?= $flSort === 'status' ? ' sort-active' : '' ?>">Status <?= $flSortIcon('status') ?></a></th>
           <th>Members</th>
           <th class="act-col">Actions</th>
         </tr>
@@ -170,17 +208,6 @@ usort($allNetworks, static fn($a, $b) => strcasecmp($a, $b));
           <!-- Checkbox -->
           <td class="cb-col" data-label="">
             <input type="checkbox" name="selected[]" value="<?= (int) $fl->id ?>" class="fl-row-cb">
-          </td>
-
-          <!-- Image -->
-          <td data-label="Image">
-            <?php $flImage = $images[$fl->id] ?? null; ?>
-            <?php if ($flImage !== null && $flImage !== ''): ?>
-              <img src="<?= $b ?>/uploads/listings/<?= \Luster\Core\View::e($flImage) ?>"
-                   alt="" class="fl-image" style="max-height:<?= \Luster\Core\View::e($imgHeight) ?>">
-            <?php else: ?>
-              <div class="img-placeholder">No image</div>
-            <?php endif; ?>
           </td>
 
           <!-- Listing # -->
@@ -222,10 +249,11 @@ usort($allNetworks, static fn($a, $b) => strcasecmp($a, $b));
               $app  = (int) ($member_counts[$fl->id]  ?? 0);
               $pend = (int) ($pending_counts[$fl->id] ?? 0);
             ?>
-            <div><?= $app ?> approved</div>
+            <div><?= $app ?>
             <?php if ($pend > 0): ?>
-              <div><a href="<?= $b ?>/admin/members/<?= (int) $fl->id ?>?status=pending"
-                 class="neb-link"><?= $pend ?> pending</a></div>
+                <a href="<?= $b ?>/admin/members/<?= (int) $fl->id ?>?status=pending"
+                   class="nav-badge" style="text-decoration:none">(+ <?= $pend ?>)</a>
+            </div>
             <?php endif; ?>
           </td>
 

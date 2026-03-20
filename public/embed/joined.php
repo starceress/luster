@@ -54,7 +54,8 @@ $_lusterApp = require $_lusterRoot . '/bootstrap.php';
 // 2. Resolve parameters
 // ---------------------------------------------------------------------------
 
-$_lusterShowList = (bool) ($luster_show_list ?? false);
+$_lusterShowList        = (bool) ($luster_show_list         ?? false);
+$_lusterShowAllDefault  = (bool) ($luster_show_all_by_default ?? false);
 
 // Category: prefer explicit $luster_category; fall back to $_GET['cat']
 $_lusterCategory = isset($luster_category) && (string) $luster_category !== ''
@@ -69,31 +70,41 @@ $_lusterRepo = new JoinedListingRepo($_lusterApp->getDatabase());
 
 $_lusterCategories = $_lusterRepo->getCategories();
 
-if ($_lusterCategory === 'all') {
-    // Show-all mode: load every active listing and group by category
-    $result        = $_lusterRepo->getAll(perPage: 9999, page: 1);
-    $_lusterGrouped = [];
-    foreach ($result['items'] as $fl) {
+/**
+ * Groups a flat result set of JoinedListings into [category => [...]] sorted by key.
+ */
+$_lusterGroupByCategory = static function (array $items): array {
+    $grouped = [];
+    foreach ($items as $fl) {
         if (!$fl->active) {
             continue;
         }
         $cat = $fl->category !== '' ? $fl->category : 'Uncategorized';
-        $_lusterGrouped[$cat][] = $fl;
+        $grouped[$cat][] = $fl;
     }
-    ksort($_lusterGrouped);
-    $_lusterListings = [];  // not used in grouped mode
-} elseif ($_lusterCategory !== '') {
-    // Single-category mode
-    $result             = $_lusterRepo->getAll(perPage: 9999, page: 1, filterCat: $_lusterCategory);
-    $_lusterListings = array_values(array_filter(
-        $result['items'],
-        static fn($fl) => $fl->active,
-    ));
-    $_lusterGrouped = [];
-} else {
-    // Selector mode: no category chosen yet
+    ksort($grouped);
+    return $grouped;
+};
+
+if ($_lusterCategory === 'all') {
+    // Show-all mode: load every active listing and group by category (no selector shown)
+    $result          = $_lusterRepo->getAll(perPage: 9999, page: 1);
+    $_lusterGrouped  = $_lusterGroupByCategory($result['items']);
     $_lusterListings = [];
-    $_lusterGrouped     = [];
+} elseif ($_lusterCategory !== '') {
+    // Single-category mode: filter by the chosen category
+    $result          = $_lusterRepo->getAll(perPage: 9999, page: 1, filterCat: $_lusterCategory);
+    $_lusterListings = array_values(array_filter($result['items'], static fn($fl) => $fl->active));
+    $_lusterGrouped  = [];
+} elseif ($_lusterShowAllDefault) {
+    // Selector mode with show-all-by-default: show grouped listings AND the selector
+    $result          = $_lusterRepo->getAll(perPage: 9999, page: 1);
+    $_lusterGrouped  = $_lusterGroupByCategory($result['items']);
+    $_lusterListings = [];
+} else {
+    // Selector mode: no category chosen yet — show only the selector
+    $_lusterListings = [];
+    $_lusterGrouped  = [];
 }
 
 // ---------------------------------------------------------------------------

@@ -78,7 +78,7 @@ $listingId  = (int) ($listing->id ?? 0);
   <!-- Save as template -->
   <div style="margin-top:1.5rem;padding-top:1.25rem;border-top:1px solid var(--border)">
     <p style="margin:0 0 .75rem;font-size:.85rem;color:var(--text-muted)">Save the current subject &amp; message as a reusable template:</p>
-    <form method="POST" action="<?= $b ?>/admin/saved-emails/save" class="save-tpl-row" id="em-save-tpl-form">
+    <form method="POST" action="<?= $b ?>/admin/new-email-template/save" class="save-tpl-row" id="em-save-tpl-form">
       <input type="hidden" name="_csrf"       value="<?= \Luster\Core\View::e($csrf_token ?? '') ?>">
       <input type="hidden" name="referer"     id="em-save-referer" value="<?= \Luster\Core\View::e($_SERVER['REQUEST_URI'] ?? '') ?>">
       <input type="hidden" name="tpl_subject" id="em-save-subject">
@@ -90,33 +90,6 @@ $listingId  = (int) ($listing->id ?? 0);
   </div>
 </div>
 
-<script>
-(function () {
-  /* Load template */
-  var tplSel = document.getElementById('em-template-select');
-  if (tplSel) {
-    tplSel.addEventListener('change', function () {
-      var opt = this.options[this.selectedIndex];
-      if (!opt.value) return;
-      var subj = document.getElementById('subject');
-      var body = document.getElementById('body');
-      if (subj) subj.value = opt.value;
-      if (body) body.value = opt.dataset.body || '';
-    });
-  }
-
-  /* Save template — copy current field values into hidden inputs before submit */
-  var saveForm = document.getElementById('em-save-tpl-form');
-  if (saveForm) {
-    saveForm.addEventListener('submit', function () {
-      var subj = document.getElementById('subject');
-      var body = document.getElementById('body');
-      document.getElementById('em-save-subject').value = subj ? subj.value : '';
-      document.getElementById('em-save-body').value    = body ? body.value : '';
-    });
-  }
-})();
-</script>
 
 <!-- Preview modal -->
 <div class="modal-overlay" id="preview-modal" data-listing-name="<?= \Luster\Core\View::e($flName) ?>">

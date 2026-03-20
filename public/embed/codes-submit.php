@@ -12,7 +12,7 @@ use Luster\Repositories\ListingRepo;
  * Drop into any PHP page:
  *   $luster_fanlisting_id = 1;
  *   $luster_return        = true;  // true = return string, false/omit = echo
- *   echo require '/path/to/luster/public/embed/code-submit.php';
+ *   echo require '/path/to/luster/public/embed/codes-submit.php';
  *
  * Optional overrides:
  *   $luster_return_url  — URL to redirect to after a successful submission
@@ -107,7 +107,7 @@ $_lusterCaptchaQuestion = $_lusterSubmitted ? '' : Captcha::getQuestion('code_su
 // 6. Render fragment
 // ---------------------------------------------------------------------------
 
-$_lusterHtml = $_lusterApp->getView()->renderFragment('code-submit.php', [
+$_lusterHtml = $_lusterApp->getView()->renderFragment('codes-submit.php', [
     'listing'          => $_lusterListing,
     'listing_name'     => $_lusterListing->name,
     'listing_url'      => $_lusterListing->url ?? '',

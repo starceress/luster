@@ -50,7 +50,7 @@ final class AffiliatesController
         $baseUrl    = $this->app->getBaseUrl();
         $baseHref   = $baseUrl . '/affiliates/' . $listingId;
         $pagination = $this->buildPagination($page, $result['pages'], $baseHref);
-        $uploadsUrl = $baseUrl . '/uploads';
+        $uploadsUrl = $baseUrl . '/uploads/affiliates';
 
         $settingsRepo       = new ListingSettingsRepo($this->app->getDatabase());
         $templates          = $settingsRepo->getTemplates($listingId);
@@ -110,7 +110,7 @@ final class AffiliatesController
             'is_collective'   => true,
             'join_url'        => '',
             'base_url'        => $baseUrl,
-            'uploads_url'     => $baseUrl . '/uploads',
+            'uploads_url'     => $baseUrl . '/uploads/affiliates',
             'theme_path'      => $baseUrl . '/assets/default/',
         ]);
 

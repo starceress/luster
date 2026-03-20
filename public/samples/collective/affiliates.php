@@ -30,6 +30,7 @@ $_navActive = 'affiliates';
       <a href="index.php">Home</a>
       <a href="listings.php">Listings</a>
       <a href="joined.php">Joined</a>
+      <a href="updates.php">Updates</a>
       <a href="affiliates.php" class="active">Affiliates</a>
     </nav>
   </div>

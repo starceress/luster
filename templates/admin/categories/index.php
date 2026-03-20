@@ -20,13 +20,41 @@ $sourceBadge = static function (string $s): string {
     };
 };
 
+$sort = $sort ?? 'source';
+$dir  = $dir  ?? 'asc';
+
+$filtersActive = ($source ?? '') !== '' || ($search ?? '') !== '';
+
 $catFilterQs = http_build_query(array_filter([
     'source' => $source ?? '',
     'search' => $search ?? '',
+    'sort'   => $sort !== 'source' ? $sort : '',
+    'dir'    => $dir  !== 'asc'   ? $dir  : '',
 ], static fn(string $v): bool => $v !== ''));
 $catPageUrl = static function (int $p) use ($b, $catFilterQs): string {
     $qs = $catFilterQs !== '' ? $catFilterQs . '&page=' . $p : 'page=' . $p;
     return $b . '/admin/categories?' . $qs;
+};
+
+$catSortUrl = static function (string $col) use ($b, $sort, $dir, $source, $search): string {
+    $newDir = ($sort === $col && $dir === 'asc') ? 'desc' : 'asc';
+    $qs = http_build_query(array_filter([
+        'source' => $source ?? '',
+        'search' => $search ?? '',
+        'sort'   => $col,
+        'dir'    => $newDir,
+    ], static fn(string $v): bool => $v !== ''));
+    return $b . '/admin/categories?' . $qs;
+};
+
+$catSortIcon = static function (string $col) use ($sort, $dir): string {
+    if ($sort !== $col) {
+        return '<svg viewBox="0 0 10 14" width="9" height="9" fill="currentColor" style="opacity:.35;flex-shrink:0"><path d="M5 0l3 4H2zM5 14l-3-4h6z"/></svg>';
+    }
+    if ($dir === 'asc') {
+        return '<svg viewBox="0 0 10 14" width="9" height="9" fill="currentColor" style="flex-shrink:0"><path d="M5 0l3 4H2z"/><path d="M5 14l-3-4h6z" fill-opacity=".25"/></svg>';
+    }
+    return '<svg viewBox="0 0 10 14" width="9" height="9" fill="currentColor" style="flex-shrink:0"><path d="M5 0l3 4H2z" fill-opacity=".25"/><path d="M5 14l-3-4h6z"/></svg>';
 };
 ?>
 
@@ -39,7 +67,24 @@ $catPageUrl = static function (int $p) use ($b, $catFilterQs): string {
 
 <!-- Toolbar -->
 <div class="neb-toolbar">
+  <div class="neb-actions">
+    <button type="button" class="btn btn-secondary btn-sm fl-filter-toggle" id="fl-filter-toggle"
+            aria-expanded="<?= $filtersActive ? 'true' : 'false' ?>"
+            aria-controls="fl-filter-panel">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><line x1="4" y1="6" x2="20" y2="6"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="11" y1="18" x2="13" y2="18"/></svg>
+      Filter<?php if ($filtersActive): ?><span class="fl-filter-dot" aria-hidden="true"></span><?php endif; ?>
+    </button>
+  </div>
+  <div class="neb-actions">
+    <a href="<?= $b ?>/admin/categories/add" class="btn btn-primary btn-sm">+ Add New Category</a>
+  </div>
+</div>
+
+<!-- Collapsible filter panel -->
+<div class="fl-filter-panel<?= $filtersActive ? ' is-open' : '' ?>" id="fl-filter-panel">
   <form method="GET" action="<?= $b ?>/admin/categories" class="neb-filter-row">
+    <?php if ($sort !== 'source'): ?><input type="hidden" name="sort" value="<?= \Luster\Core\View::e($sort) ?>"><?php endif; ?>
+    <?php if ($dir !== 'asc'):    ?><input type="hidden" name="dir"  value="<?= \Luster\Core\View::e($dir) ?>"><?php endif; ?>
 
     <div class="toolbar-select-wrap">
     <select name="source" class="neb-select js-autosubmit">
@@ -61,10 +106,23 @@ $catPageUrl = static function (int $p) use ($b, $catFilterQs): string {
     <a href="<?= $b ?>/admin/categories" class="btn btn-secondary btn-sm">Reset</a>
 
   </form>
-  <div class="neb-actions">
-    <a href="<?= $b ?>/admin/categories/add" class="btn btn-primary btn-sm">+ Add New Category</a>
+</div>
+
+<?php if (empty($items ?? [])): ?>
+<div class="neb-card">
+  <div class="neb-empty">
+    <?php if (($search ?? '') !== '' || ($source ?? '') !== ''): ?>
+      <svg class="empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+      No categories match your search.
+      <a href="<?= $b ?>/admin/categories" class="btn btn-secondary btn-sm">Reset</a>
+    <?php else: ?>
+      <svg class="empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 7h18M3 12h18M3 17h18"/></svg>
+      No categories yet. Add your first to start organising fanlistings.
+      <a href="<?= $b ?>/admin/categories/add" class="btn btn-primary btn-sm">+ Add New Category</a>
+    <?php endif; ?>
   </div>
 </div>
+<?php else: ?>
 
 <p class="result-count">
   Showing <?= count($items ?? []) ?> of <?= (int) ($total ?? 0) ?> categor<?= (int) ($total ?? 0) === 1 ? 'y' : 'ies' ?>
@@ -77,9 +135,9 @@ $catPageUrl = static function (int $p) use ($b, $catFilterQs): string {
   <table class="data-table mem-table">
     <thead>
       <tr>
-        <th>ID</th>
-        <th>Network</th>
-        <th>Category Name</th>
+        <th><a href="<?= \Luster\Core\View::e($catSortUrl('id')) ?>" class="sort-th<?= $sort === 'id' ? ' sort-active' : '' ?>">ID <?= $catSortIcon('id') ?></a></th>
+        <th><a href="<?= \Luster\Core\View::e($catSortUrl('source')) ?>" class="sort-th<?= $sort === 'source' ? ' sort-active' : '' ?>">Network <?= $catSortIcon('source') ?></a></th>
+        <th><a href="<?= \Luster\Core\View::e($catSortUrl('name')) ?>" class="sort-th<?= $sort === 'name' ? ' sort-active' : '' ?>">Category Name <?= $catSortIcon('name') ?></a></th>
         <th>Parent</th>
         <th class="act-col">Actions</th>
       </tr>
@@ -94,7 +152,7 @@ $catPageUrl = static function (int $p) use ($b, $catFilterQs): string {
       <tr>
         <td class="text-dim" data-label="ID"><?= (int) $cat->id ?></td>
         <td data-label="Network"><?= $sourceBadge($cat->source ?? 'custom') ?></td>
-        <td class="text-strong" data-label="Name">
+        <td data-label="Name">
           <?php if ($cat->parentId !== null): ?>
             <span style="color:var(--text-dim);font-size:.8rem;margin-right:.25rem">└</span>
           <?php endif; ?>
@@ -124,6 +182,7 @@ $catPageUrl = static function (int $p) use ($b, $catFilterQs): string {
     </tbody>
   </table>
 </div>
+<?php endif; ?>
 
 <?php if (($total_pages ?? 1) > 1): ?>
 <nav class="neb-pagination" aria-label="Pagination">

@@ -20,9 +20,11 @@ use Luster\Core\View;
  *   $theme_path         string
  */
 
-$_isGroupedMode = !empty($grouped);
-$_hasCategory   = $current_category !== '' && !$_isGroupedMode;
-$_showSelector  = !$_isGroupedMode && !empty($categories);
+// Grouped mode = 'all' keyword (no selector) OR show-all-by-default with no category picked
+$_isGroupedMode    = !empty($grouped) && $current_category === 'all';
+$_selectorWithAll  = !empty($grouped) && $current_category === '';  // dropdown + grouped below
+$_hasCategory      = $current_category !== '' && $current_category !== 'all' && !$_isGroupedMode;
+$_showSelector     = ($current_category === '' || $_hasCategory) && !empty($categories);
 
 /** Renders one JoinedListing item — shared by both display modes */
 $_renderItem = static function ($fl) use ($uploads_url): void {
@@ -46,7 +48,7 @@ $_renderItem = static function ($fl) use ($uploads_url): void {
     </ul>
 
   <?php elseif ($_isGroupedMode): ?>
-    <?php /* Show-all mode: all active listings grouped by category heading */ ?>
+    <?php /* 'all' mode: grouped by category, no selector */ ?>
     <?php if (empty($grouped)): ?>
       <p class="fl-empty">No listings to display.</p>
     <?php else: ?>
@@ -61,41 +63,57 @@ $_renderItem = static function ($fl) use ($uploads_url): void {
     <?php endif; ?>
 
   <?php else: ?>
-    <?php /* Selector + results mode — filter persists after selection */ ?>
+    <?php /* Selector + results mode */ ?>
 
     <?php if ($_showSelector): ?>
-      <div class="fl-filter">
-        <?php if ($show_list): ?>
-          <ul class="fl-category-list">
-            <?php foreach ($categories as $catName): ?>
-              <li>
-                <a class="fl-link<?= $current_category === $catName ? ' active' : '' ?>"
-                   href="<?= View::e($form_action . '?cat=' . urlencode($catName)) ?>">
-                  <?= View::e($catName) ?>
-                </a>
-              </li>
-            <?php endforeach; ?>
-          </ul>
-        <?php else: ?>
-          <form method="GET" action="<?= View::e($form_action) ?>" class="fl-filter-form">
-            <label class="fl-label" for="fl-joined-cat">Category:</label>
-            <select class="fl-select" id="fl-joined-cat" name="cat"
-                    onchange="this.form.submit()">
-              <option value="">All categories&hellip;</option>
+      <?php $_selector = static function () use ($categories, $current_category, $form_action, $show_list): void { ?>
+        <div class="fl-filter">
+          <?php if ($show_list): ?>
+            <ul class="fl-category-list">
               <?php foreach ($categories as $catName): ?>
-                <option value="<?= View::e($catName) ?>"
-                  <?= $current_category === $catName ? 'selected' : '' ?>>
-                  <?= View::e($catName) ?>
-                </option>
+                <li>
+                  <a class="fl-link<?= $current_category === $catName ? ' active' : '' ?>"
+                     href="<?= View::e($form_action . '?cat=' . urlencode($catName)) ?>">
+                    <?= View::e($catName) ?>
+                  </a>
+                </li>
               <?php endforeach; ?>
-            </select>
-            <noscript><button class="fl-btn" type="submit">Go</button></noscript>
-          </form>
-        <?php endif; ?>
-      </div>
+            </ul>
+          <?php else: ?>
+            <form method="GET" action="<?= View::e($form_action) ?>" class="fl-filter-form">
+              <label class="fl-label" for="fl-joined-cat">Category:</label>
+              <select class="fl-select" id="fl-joined-cat" name="cat"
+                      onchange="this.form.submit()">
+                <option value="">All categories&hellip;</option>
+                <?php foreach ($categories as $catName): ?>
+                  <option value="<?= View::e($catName) ?>"
+                    <?= $current_category === $catName ? 'selected' : '' ?>>
+                    <?= View::e($catName) ?>
+                  </option>
+                <?php endforeach; ?>
+              </select>
+              <noscript><button class="fl-btn" type="submit">Go</button></noscript>
+            </form>
+          <?php endif; ?>
+        </div>
+      <?php }; $_selector(); ?>
     <?php endif; ?>
 
-    <?php if ($_hasCategory): ?>
+    <?php if ($_selectorWithAll): ?>
+      <?php /* show-all-by-default: grouped listings below the selector */ ?>
+      <?php if (empty($grouped)): ?>
+        <p class="fl-empty">No listings to display.</p>
+      <?php else: ?>
+        <?php foreach ($grouped as $catName => $items): ?>
+          <h3 class="fl-category-heading"><?= View::e($catName) ?></h3>
+          <ul class="fl-fanlisting-list">
+            <?php foreach ($items as $fl): ?>
+              <li class="fl-fanlisting"><?php $_renderItem($fl); ?></li>
+            <?php endforeach; ?>
+          </ul>
+        <?php endforeach; ?>
+      <?php endif; ?>
+    <?php elseif ($_hasCategory): ?>
       <?php if (empty($listings)): ?>
         <p class="fl-empty">No listings in this category.</p>
       <?php else: ?>

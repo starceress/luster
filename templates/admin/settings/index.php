@@ -35,17 +35,9 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07M8.46 8.46a5 5 0 0 0 0 7.07"/></svg>
     General
   </button>
-  <button class="settings-nav-item" data-tab="email">
-    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
-    Email
-  </button>
   <button class="settings-nav-item" data-tab="embed">
     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
     Embed &amp; Paths
-  </button>
-  <button class="settings-nav-item" data-tab="database">
-    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>
-    Database &amp; Debug
   </button>
   <button class="settings-nav-item" data-tab="collective-templates">
     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
@@ -284,180 +276,6 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
       <button type="submit" class="btn btn-primary">Save Settings</button>
     </div><!-- /#tab-general -->
 
-    <!-- ── Email ────────────────────────────────────────────────── -->
-    <div id="tab-email" class="neb-tab-panel">
-      <div class="settings-card">
-
-        <p class="text-muted" style="font-size:.8rem;margin-bottom:1rem">
-          Leave SMTP Host blank to disable outgoing email entirely.
-        </p>
-
-        <?php if (cfgVal($cfg, 'smtp_host') === ''): ?>
-        <div class="alert alert-warning" style="margin-bottom:1rem">
-          <strong>Email is not configured.</strong>
-          Fan password reset emails will not be delivered until an SMTP host is set.
-          Fans who request a password reset will see a "check your email" page but receive nothing.
-        </div>
-        <?php endif; ?>
-
-        <div class="form-row">
-          <div class="form-group">
-            <label class="form-label" for="s-smtp-host">SMTP Host</label>
-            <input id="s-smtp-host" type="text" name="smtp_host" class="form-input"
-                   maxlength="255" placeholder="smtp.example.com"
-                   value="<?= \Luster\Core\View::e(cfgVal($cfg, 'smtp_host')) ?>">
-          </div>
-          <div class="form-group">
-            <label class="form-label" for="s-smtp-port">SMTP Port</label>
-            <input id="s-smtp-port" type="number" name="smtp_port" class="form-input"
-                   min="1" max="65535"
-                   value="<?= (int) ($cfg['smtp_port'] ?? 587) ?>">
-          </div>
-        </div>
-
-        <div class="form-row">
-          <div class="form-group">
-            <label class="form-label" for="s-smtp-user">Username</label>
-            <input id="s-smtp-user" type="text" name="smtp_user" class="form-input"
-                   maxlength="255" autocomplete="off"
-                   value="<?= \Luster\Core\View::e(cfgVal($cfg, 'smtp_user')) ?>">
-          </div>
-          <div class="form-group">
-            <label class="form-label" for="s-smtp-pass">Password</label>
-            <div class="input-icon-wrap">
-              <input id="s-smtp-pass" type="password" name="smtp_pass" class="form-input"
-                     maxlength="500" autocomplete="new-password"
-                     placeholder="Leave blank to keep current">
-              <button type="button" class="input-icon-btn" aria-label="Show password" tabindex="-1">
-                <svg class="eye-on" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-                <svg class="eye-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" style="display:none"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
-              </button>
-            </div>
-            <p class="form-hint">Only fill in to change the stored password.</p>
-          </div>
-        </div>
-
-        <div class="form-row">
-          <div class="form-group">
-            <label class="form-label" for="s-smtp-from">From Address</label>
-            <input id="s-smtp-from" type="email" name="smtp_from" class="form-input"
-                   maxlength="255"
-                   value="<?= \Luster\Core\View::e(cfgVal($cfg, 'smtp_from')) ?>">
-          </div>
-          <div class="form-group">
-            <label class="form-label" for="s-smtp-from-name">From Name</label>
-            <input id="s-smtp-from-name" type="text" name="smtp_from_name" class="form-input"
-                   maxlength="255"
-                   value="<?= \Luster\Core\View::e(cfgVal($cfg, 'smtp_from_name')) ?>">
-          </div>
-          <div class="form-group">
-            <label class="form-label" for="s-smtp-from-fl">Listing From Address</label>
-            <input id="s-smtp-from-fl" type="email" name="smtp_from_listing" class="form-input"
-                   maxlength="255"
-                   value="<?= \Luster\Core\View::e(cfgVal($cfg, 'smtp_from_listing')) ?>">
-          </div>
-          <div class="form-group">
-            <label class="form-label" for="s-smtp-from-fl-name">Listing From Name</label>
-            <input id="s-smtp-from-fl-name" type="text" name="smtp_from_listing_name" class="form-input"
-                   maxlength="255"
-                   value="<?= \Luster\Core\View::e(cfgVal($cfg, 'smtp_from_listing_name')) ?>">
-          </div>
-        </div>
-
-        <div class="form-group">
-          <label class="form-label" for="s-smtp-secure">Encryption</label>
-          <div class="select-wrap">
-            <select id="s-smtp-secure" name="smtp_secure" class="form-select">
-              <?php foreach (['tls' => 'TLS (STARTTLS)', 'ssl' => 'SSL', '' => 'None'] as $val => $lbl): ?>
-                <option value="<?= \Luster\Core\View::e($val) ?>"
-                  <?= cfgVal($cfg, 'smtp_secure', 'tls') === $val ? 'selected' : '' ?>>
-                  <?= \Luster\Core\View::e($lbl) ?>
-                </option>
-              <?php endforeach; ?>
-            </select>
-          </div>
-        </div>
-
-      </div>
-      <div style="display:flex;align-items:center;gap:.75rem;flex-wrap:wrap;margin-bottom:1rem">
-        <button type="button" class="btn btn-secondary btn-sm" id="smtp-validate-btn">
-          Validate connection
-        </button>
-        <span id="smtp-validate-result" style="font-size:.85rem;display:none"></span>
-      </div>
-
-      <div style="display:flex;align-items:center;gap:1rem;flex-wrap:wrap">
-        <button type="submit" class="btn btn-primary">Save Settings</button>
-        <?php if (cfgVal($cfg, 'smtp_host') !== ''): ?>
-        <form method="POST" action="<?= $b ?>/admin/settings/test-email" style="display:contents">
-          <input type="hidden" name="_csrf" value="<?= \Luster\Core\View::e($csrf_token ?? '') ?>">
-          <button type="submit" class="btn btn-ghost btn-sm">Send test email</button>
-        </form>
-        <span class="form-hint" style="margin:0">
-          &rarr; <code class="neb-code"><?= \Luster\Core\View::e($admin_user->email ?? '') ?></code>
-        </span>
-        <?php endif; ?>
-      </div>
-
-<script>
-(function () {
-  var btn    = document.getElementById('smtp-validate-btn');
-  var result = document.getElementById('smtp-validate-result');
-  if (!btn) return;
-
-  btn.addEventListener('click', function () {
-    var host   = document.getElementById('s-smtp-host').value.trim();
-    var port   = document.getElementById('s-smtp-port').value.trim();
-    var user   = document.getElementById('s-smtp-user').value.trim();
-    var pass   = document.getElementById('s-smtp-pass').value.trim();
-    var secure = document.getElementById('s-smtp-secure').value;
-
-    if (host === '') {
-      result.style.display = '';
-      result.style.color   = 'var(--danger)';
-      result.textContent   = 'Enter an SMTP host first.';
-      return;
-    }
-
-    btn.disabled     = true;
-    btn.textContent  = 'Connecting\u2026';
-    result.style.display = 'none';
-
-    var csrf = document.querySelector('input[name="_csrf"]');
-    var body = new URLSearchParams({
-      _csrf:       csrf ? csrf.value : '',
-      smtp_host:   host,
-      smtp_port:   port,
-      smtp_user:   user,
-      smtp_pass:   pass,
-      smtp_secure: secure,
-    });
-
-    fetch('<?= $b ?>/admin/settings/validate-smtp', {
-      method:  'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body:    body.toString(),
-    })
-    .then(function (r) { return r.json(); })
-    .then(function (data) {
-      result.style.display = '';
-      result.style.color   = data.ok ? 'var(--success, #2a9d5c)' : 'var(--danger)';
-      result.textContent   = (data.ok ? '\u2713 ' : '\u2717 ') + data.message;
-    })
-    .catch(function () {
-      result.style.display = '';
-      result.style.color   = 'var(--danger)';
-      result.textContent   = '\u2717 Request failed — check browser console.';
-    })
-    .finally(function () {
-      btn.disabled    = false;
-      btn.textContent = 'Validate connection';
-    });
-  });
-}());
-</script>
-    </div><!-- /#tab-email -->
-
     <!-- ── Embed & Paths ────────────────────────────────────────── -->
     <div id="tab-embed" class="neb-tab-panel">
       <div class="settings-card">
@@ -561,33 +379,6 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
       <button type="submit" class="btn btn-primary">Save Settings</button>
     </div><!-- /#tab-embed -->
 
-    <!-- ── Database & Debug (read-only) ─────────────────────────── -->
-    <div id="tab-database" class="neb-tab-panel">
-      <div class="settings-card">
-        <p class="text-muted" style="font-size:.8rem;margin-bottom:1rem">
-          These values are set in <code class="neb-code">config/app.php</code> and cannot be changed from the admin panel.
-        </p>
-        <div class="db-info-grid">
-          <div>
-            <label class="form-label" style="margin-bottom:.25rem">Host</label>
-            <div class="ro-field"><?= \Luster\Core\View::e(cfgVal($cfg, 'db_host', 'localhost')) ?></div>
-          </div>
-          <div>
-            <label class="form-label" style="margin-bottom:.25rem">Database</label>
-            <div class="ro-field"><?= \Luster\Core\View::e(cfgVal($cfg, 'db_name')) ?></div>
-          </div>
-          <div>
-            <label class="form-label" style="margin-bottom:.25rem">User</label>
-            <div class="ro-field"><?= \Luster\Core\View::e(cfgVal($cfg, 'db_user')) ?></div>
-          </div>
-          <div>
-            <label class="form-label" style="margin-bottom:.25rem">Debug Mode</label>
-            <div class="ro-field"><?= ($cfg['app_debug'] ?? false) ? 'enabled' : 'disabled' ?></div>
-          </div>
-        </div>
-      </div>
-    </div><!-- /#tab-database -->
-
   </form>
 
   <!-- ═══ TAB: COLLECTIVE TEMPLATES ═══ -->
@@ -674,38 +465,38 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
     </div>
   </form>
 
-<!-- preview logic lives in admin.js (.js-tpl-preview handler) -->
-<script>
-window.lusterTplSamples = {
-  listing: {
-    '{listing_name}':    'My Fanlisting',
-      '{listing_url}':     '#',
-      '{listing_subject}': 'Sample Subject',
-      '{listing_status}':  'open',
-      '{listing_image}':   '',
-    },
-    joined: {
-      '{listing_name}':     'A Joined Fanlisting',
-      '{listing_url}':      '#',
-      '{listing_subject}':  'Sample Subject',
-      '{listing_category}': 'Anime &rarr; General',
-      '{listing_image}':    '',
-    },
-    stats: {
-      '{owned_active}':     '12',
-      '{owned_upcoming}':   '2',
-      '{owned_trouble}':    '0',
-      '{joined_active}':    '5',
-      '{affiliates}':       '8',
-      '{members_total}':    '145',
-      '{members_approved}': '143',
-      '{members_pending}':  '2',
-      '{owned_newest_name}': 'My Newest Listing',
-      '{owned_newest_url}':  '#',
-      '{owned_random_name}': 'Featured Listing',
-      '{owned_random_url}':  '#',
-    },
-};
+<!-- Sample data for collective template preview (read by admin.js, not executed) -->
+<script type="application/json" id="luster-tpl-samples">
+{
+  "listing": {
+    "{listing_name}":    "My Fanlisting",
+    "{listing_url}":     "#",
+    "{listing_subject}": "Sample Subject",
+    "{listing_status}":  "open",
+    "{listing_image}":   ""
+  },
+  "joined": {
+    "{listing_name}":     "A Joined Fanlisting",
+    "{listing_url}":      "#",
+    "{listing_subject}":  "Sample Subject",
+    "{listing_category}": "Anime \u2192 General",
+    "{listing_image}":    ""
+  },
+  "stats": {
+    "{owned_active}":      "12",
+    "{owned_upcoming}":    "2",
+    "{owned_trouble}":     "0",
+    "{joined_active}":     "5",
+    "{affiliates}":        "8",
+    "{members_total}":     "145",
+    "{members_approved}":  "143",
+    "{members_pending}":   "2",
+    "{owned_newest_name}": "My Newest Listing",
+    "{owned_newest_url}":  "#",
+    "{owned_random_name}": "Featured Listing",
+    "{owned_random_url}":  "#"
+  }
+}
 </script>
   </div><!-- /#tab-collective-templates -->
 
@@ -825,6 +616,27 @@ window.lusterTplSamples = {
         <span class="sysinfo-value"><?= \Luster\Core\View::e($php_version) ?></span>
         <span class="sysinfo-label">Database</span>
         <span class="sysinfo-value"><?= \Luster\Core\View::e($db_version) ?></span>
+      </div>
+    </div>
+
+    <div class="settings-card" style="margin-bottom:1.25rem">
+      <div class="form-section-label">Database Connection</div>
+      <p class="form-hint" style="margin-bottom:.75rem">Read from <code class="neb-code">config/app.php</code> — edit that file to change connection settings.</p>
+      <div class="sysinfo-grid">
+        <span class="sysinfo-label">Host</span>
+        <span class="sysinfo-value"><?= \Luster\Core\View::e(cfgVal($cfg, 'db_host', 'localhost')) ?></span>
+        <span class="sysinfo-label">Database</span>
+        <span class="sysinfo-value"><?= \Luster\Core\View::e(cfgVal($cfg, 'db_name')) ?></span>
+        <span class="sysinfo-label">User</span>
+        <span class="sysinfo-value"><?= \Luster\Core\View::e(cfgVal($cfg, 'db_user')) ?></span>
+        <span class="sysinfo-label">Debug Mode</span>
+        <span class="sysinfo-value">
+          <?php if ($cfg['app_debug'] ?? false): ?>
+            <span class="neb-badge badge-error">enabled</span>
+          <?php else: ?>
+            <span class="neb-badge badge-inactive">disabled</span>
+          <?php endif; ?>
+        </span>
       </div>
     </div>
 

@@ -27,8 +27,10 @@ use Luster\Repositories\PendingUpdateRepo;
  *   POST /admin/members/{id}/approve     — approve one member
  *   POST /admin/members/{id}/reject      — reject one member
  *   POST /admin/members/{id}/delete      — delete one member
- *   POST /admin/members/{id}/bulk                 — bulk approve / reject / delete
+ *   POST /admin/members/{id}/bulk                 — bulk approve / reject / delete / email_selected
  *   POST /admin/members/{id}/approve-all-pending  — approve every pending member in one click
+ *   GET  /admin/members/{id}/email-selected       — compose form for emailing selected members
+ *   POST /admin/members/{id}/email-selected/send  — send the composed email to selected members
  *   GET  /admin/members/{id}/export      — CSV download of approved members
  */
 final class MemberController
@@ -58,6 +60,10 @@ final class MemberController
         $pendingUpdates = $pendingUpdateRepo->getAll();
 
         $search = trim((string) $request->query('search', ''));
+        $sort   = trim((string) $request->query('sort', 'name'));
+        $dir    = trim((string) $request->query('dir', 'asc'));
+        if (!in_array($sort, ['name', 'email', 'country'], true)) { $sort = 'name'; }
+        if (!in_array($dir, ['asc', 'desc'], true)) { $dir = 'asc'; }
 
         $session = $this->app->getSession();
         $success = (string) $session->get('lstr_flash_success', '');
@@ -106,7 +112,7 @@ final class MemberController
             if ($fl->dbprefix === '') {
                 continue;
             }
-            $pending = $memberRepo->getPending($fl->dbprefix);
+            $pending = $memberRepo->getPending($fl->dbprefix, $sort, $dir);
             if (count($pending) > 0) {
                 $grouped[] = ['listing' => $fl, 'members' => $pending];
             }
@@ -118,6 +124,8 @@ final class MemberController
             'search_results'  => [],
             'pending_updates' => $pendingUpdates,
             'fl_by_id'        => $flById,
+            'sort'            => $sort,
+            'dir'             => $dir,
             'success'         => $success,
             'error'           => $error,
             'search'          => $search,
@@ -150,9 +158,17 @@ final class MemberController
         $perPage = max(5, min(200, (int) $config->get('per_page', 25)));
         $search  = trim((string) $request->query('search', ''));
         $status  = trim((string) $request->query('status', 'all'));
+        $sort    = trim((string) $request->query('sort', 'name'));
+        $dir     = trim((string) $request->query('dir', 'asc'));
 
         if (!in_array($status, ['approved', 'pending', 'all'], true)) {
             $status = 'all';
+        }
+        if (!in_array($sort, ['name', 'email', 'country', 'status'], true)) {
+            $sort = 'name';
+        }
+        if (!in_array($dir, ['asc', 'desc'], true)) {
+            $dir = 'asc';
         }
 
         $allListings = (new ListingRepo($db, $config))->getAll();
@@ -160,13 +176,22 @@ final class MemberController
         $fields = $fieldRepo->getFieldsForListing($listingId);
 
         if ($search !== '') {
-            // Search ignores status filter and paginates manually
+            // Search ignores status filter; sort applied in PHP
             $allMatches = $memberRepo->search($listing->dbprefix, $search);
-            $total      = count($allMatches);
-            $pages      = $total > 0 ? (int) ceil($total / $perPage) : 0;
-            $members    = array_slice($allMatches, ($page - 1) * $perPage, $perPage);
+            usort($allMatches, static function ($a, $b) use ($sort, $dir): int {
+                $cmp = match ($sort) {
+                    'email'   => strcasecmp($a->email,   $b->email),
+                    'country' => strcasecmp($a->country,  $b->country) ?: strcasecmp($a->name, $b->name),
+                    'status'  => ($a->approved <=> $b->approved) ?: strcasecmp($a->name, $b->name),
+                    default   => strcasecmp($a->name,    $b->name),
+                };
+                return $dir === 'desc' ? -$cmp : $cmp;
+            });
+            $total   = count($allMatches);
+            $pages   = $total > 0 ? (int) ceil($total / $perPage) : 0;
+            $members = array_slice($allMatches, ($page - 1) * $perPage, $perPage);
         } else {
-            $result  = $memberRepo->paginateByStatus($listing->dbprefix, $status, $page, $perPage);
+            $result  = $memberRepo->paginateByStatus($listing->dbprefix, $status, $page, $perPage, $sort, $dir);
             $members = $result['members'];
             $total   = $result['total'];
             $pages   = $result['pages'];
@@ -192,9 +217,11 @@ final class MemberController
             'status'          => $status,
             'all_listings'    => $allListings,
             'pending_count'   => $pendingCount,
+            'sort'            => $sort,
+            'dir'             => $dir,
             'success'         => $success,
             'error'           => $error,
-        ], 'Members', 'members', $listing->name);
+        ], 'Members', 'members', 'Owned › ' . $listing->name);
     }
 
     // -----------------------------------------------------------------------
@@ -259,7 +286,7 @@ final class MemberController
                     'success'         => '',
                     'old'             => $request->postAll(),
                     'all_listings' => $allListings,
-                ], 'Edit Member', 'members', $listing->name);
+                ], 'Edit Member', 'members', 'Owned › ' . $listing->name);
             }
 
             $updateData = [
@@ -315,7 +342,7 @@ final class MemberController
             'success'         => $flashSuccess,
             'old'             => [],
             'all_listings' => $allListings,
-        ], 'Edit Member', 'members', $listing->name);
+        ], 'Edit Member', 'members', 'Owned › ' . $listing->name);
     }
 
     // -----------------------------------------------------------------------
@@ -455,9 +482,14 @@ final class MemberController
         $emails = (array) $request->post('emails', []);
         $emails = array_filter(array_map('trim', $emails));
 
-        if (empty($emails) || !in_array($action, ['approve', 'pending', 'reject', 'delete'], true)) {
+        if (empty($emails) || !in_array($action, ['approve', 'pending', 'reject', 'delete', 'email_selected'], true)) {
             $session->set('lstr_flash_error', 'No members selected or invalid action.');
             return Response::redirect($baseUrl . '/admin/members/' . $listingId);
+        }
+
+        if ($action === 'email_selected') {
+            $session->set('lstr_selected_emails', array_values($emails));
+            return Response::redirect($baseUrl . '/admin/members/' . $listingId . '/email-selected');
         }
 
         $mailer   = new Mailer($this->app->getConfig());
@@ -614,7 +646,7 @@ final class MemberController
             'listing' => $listing,
             'results' => null,
             'error'   => '',
-        ], 'Import Members', 'members', $listing->name);
+        ], 'Import Members', 'members', 'Owned › ' . $listing->name);
     }
 
     public function importTemplate(Request $request, array $params): Response
@@ -685,7 +717,7 @@ final class MemberController
                 'listing' => $listing,
                 'results' => null,
                 'error'   => 'Please select a CSV file to upload.',
-            ], 'Import Members', 'members', $listing->name);
+            ], 'Import Members', 'members', 'Owned › ' . $listing->name);
         }
 
         if (($upload['error'] ?? 0) !== UPLOAD_ERR_OK) {
@@ -693,7 +725,7 @@ final class MemberController
                 'listing' => $listing,
                 'results' => null,
                 'error'   => 'File upload failed (error code ' . (int) $upload['error'] . ').',
-            ], 'Import Members', 'members', $listing->name);
+            ], 'Import Members', 'members', 'Owned › ' . $listing->name);
         }
 
         if ((int) ($upload['size'] ?? 0) > 2 * 1024 * 1024) {
@@ -701,7 +733,7 @@ final class MemberController
                 'listing' => $listing,
                 'results' => null,
                 'error'   => 'File exceeds the 2 MB size limit.',
-            ], 'Import Members', 'members', $listing->name);
+            ], 'Import Members', 'members', 'Owned › ' . $listing->name);
         }
 
         $tmpPath = (string) ($upload['tmp_name'] ?? '');
@@ -715,7 +747,7 @@ final class MemberController
                 'listing' => $listing,
                 'results' => null,
                 'error'   => 'Only CSV files are accepted (detected: ' . htmlspecialchars($mimeType, ENT_QUOTES, 'UTF-8') . ').',
-            ], 'Import Members', 'members', $listing->name);
+            ], 'Import Members', 'members', 'Owned › ' . $listing->name);
         }
 
         // ------------------------------------------------------------------
@@ -729,7 +761,7 @@ final class MemberController
                 'listing' => $listing,
                 'results' => null,
                 'error'   => 'Could not open uploaded file for reading.',
-            ], 'Import Members', 'members', $listing->name);
+            ], 'Import Members', 'members', 'Owned › ' . $listing->name);
         }
 
         // Read + normalise header row
@@ -741,7 +773,7 @@ final class MemberController
                 'listing' => $listing,
                 'results' => null,
                 'error'   => 'The file appears to be empty or could not be read.',
-            ], 'Import Members', 'members', $listing->name);
+            ], 'Import Members', 'members', 'Owned › ' . $listing->name);
         }
 
         $headerMap = []; // column name (lowercase) → column index
@@ -755,7 +787,7 @@ final class MemberController
                 'listing' => $listing,
                 'results' => null,
                 'error'   => 'The CSV must have at least a "name" column and an "email" column in the header row.',
-            ], 'Import Members', 'members', $listing->name);
+            ], 'Import Members', 'members', 'Owned › ' . $listing->name);
         }
 
         // Build set of valid additional field names for this listing
@@ -875,7 +907,7 @@ final class MemberController
                 'errors'   => $errors,
             ],
             'error' => '',
-        ], 'Import Members', 'members', $listing->name);
+        ], 'Import Members', 'members', 'Owned › ' . $listing->name);
     }
 
     // -----------------------------------------------------------------------
@@ -1176,7 +1208,7 @@ final class MemberController
             'success'      => $flash_success,
             'old'          => $old,
             'referer'      => $referer,
-        ], 'Email Member', 'members', $listing->name);
+        ], 'Email Member', 'members', 'Owned › ' . $listing->name);
     }
 
     public function emailMemberSend(Request $request, array $params): Response
@@ -1213,6 +1245,192 @@ final class MemberController
 
         return Response::redirect($redirectBack);
     }
+
+    // -----------------------------------------------------------------------
+    // GET /admin/members/{id}/email-selected
+    // -----------------------------------------------------------------------
+
+    public function emailSelectedForm(Request $request, array $params): Response
+    {
+        $db     = $this->app->getDatabase();
+        $config = $this->app->getConfig();
+        $id     = (int) ($params['id'] ?? 0);
+        $session = $this->app->getSession();
+        $baseUrl = $this->app->getBaseUrl();
+
+        $listingRepo = new ListingRepo($db, $config);
+        $listing     = $listingRepo->getById($id);
+
+        if ($listing === null) {
+            return Response::redirect($baseUrl . '/admin/members');
+        }
+
+        $selectedEmails = array_values(array_filter(array_map(
+            'trim',
+            (array) $session->get('lstr_selected_emails', []),
+        )));
+        $session->remove('lstr_selected_emails');
+
+        if (empty($selectedEmails)) {
+            $session->set('lstr_flash_error', 'No members selected for email.');
+            return Response::redirect($baseUrl . '/admin/members/' . $id);
+        }
+
+        $savedEmails = (new \Luster\Repositories\SavedEmailRepo($db))->getAll();
+        $error   = (string) $session->get('lstr_flash_error', '');
+        $success = (string) $session->get('lstr_flash_success', '');
+        $old     = (array)  $session->get('lstr_email_old', []);
+        $session->remove('lstr_flash_error');
+        $session->remove('lstr_flash_success');
+        $session->remove('lstr_email_old');
+
+        // Look up member names so chips can show "Name <email>"
+        $memberRepo  = new MemberRepo($db, $config);
+        $memberNames = [];
+        foreach ($selectedEmails as $email) {
+            $m = $memberRepo->getByEmail($listing->dbprefix, $email);
+            $memberNames[$email] = $m ? $m->name : '';
+        }
+
+        return $this->layout('admin/members/email-selected.php', [
+            'listing'         => $listing,
+            'selected_emails' => $selectedEmails,
+            'member_names'    => $memberNames,
+            'saved_emails'    => $savedEmails,
+            'from_name'       => (string) $config->get('smtp_from_name', 'Luster'),
+            'from_email'      => (string) $config->get('smtp_from', ''),
+            'site_name'       => (string) $config->get('site_name', 'Luster'),
+            'error'           => $error,
+            'success'         => $success,
+            'old'             => $old,
+        ], 'Email Selected Members', 'members', 'Owned › ' . $listing->name);
+    }
+
+    // -----------------------------------------------------------------------
+    // POST /admin/members/{id}/email-selected/send
+    // -----------------------------------------------------------------------
+
+    public function emailSelectedSend(Request $request, array $params): Response
+    {
+        $db      = $this->app->getDatabase();
+        $config  = $this->app->getConfig();
+        $id      = (int) ($params['id'] ?? 0);
+        $session = $this->app->getSession();
+        $baseUrl = $this->app->getBaseUrl();
+
+        $listingRepo = new ListingRepo($db, $config);
+        $listing     = $listingRepo->getById($id);
+
+        if ($listing === null) {
+            return Response::redirect($baseUrl . '/admin/members');
+        }
+
+        $emails  = array_values(array_filter(array_map('trim', (array) $request->post('emails', []))));
+        $subject = trim((string) $request->post('subject', ''));
+        $body    = trim((string) $request->post('body', ''));
+
+        if ($subject === '' || $body === '') {
+            $session->set('lstr_flash_error', 'Subject and message are required.');
+            $session->set('lstr_selected_emails', $emails);
+            $session->set('lstr_email_old', ['subject' => $subject, 'body' => $body]);
+            return Response::redirect($baseUrl . '/admin/members/' . $id . '/email-selected');
+        }
+
+        if (empty($emails)) {
+            $session->set('lstr_flash_error', 'No recipients found.');
+            return Response::redirect($baseUrl . '/admin/members/' . $id);
+        }
+
+        $memberRepo = new MemberRepo($db, $config);
+        $siteName   = (string) $config->get('site_name', 'Luster');
+        $mailer     = new Mailer($this->app->getConfig());
+
+        $sent   = 0;
+        $failed = [];
+
+        foreach ($emails as $email) {
+            $member  = $memberRepo->getByEmail($listing->dbprefix, $email);
+            $name    = $member ? $member->name : '';
+
+            $personalSubject = str_replace(
+                ['{name}', '{email}', '{listing_name}', '{site_name}'],
+                [$name,    $email,    $listing->name,    $siteName],
+                $subject,
+            );
+            $personalBody = str_replace(
+                ['{name}', '{email}', '{listing_name}', '{site_name}'],
+                [$name,    $email,    $listing->name,    $siteName],
+                $body,
+            );
+
+            try {
+                $mailer->send($email, $name, $personalSubject, $personalBody);
+                $sent++;
+            } catch (\Throwable $e) {
+                $failed[] = $email;
+                error_log('[Luster] email-selected send failed for ' . $email . ': ' . $e->getMessage());
+            }
+        }
+
+        (new ActivityRepo($db))->log(
+            (int) $session->get('lstr_admin_id'),
+            'member.email_selected',
+            "Sent email to {$sent} selected member(s) in listing #{$id} ({$listing->name}). Subject: {$subject}",
+            $request->ip(),
+        );
+
+        if (!empty($failed)) {
+            $session->set('lstr_flash_error', "Sent to {$sent} member(s). Failed for: " . implode(', ', $failed));
+        } else {
+            $session->set('lstr_flash_success', "Email sent to {$sent} member(s).");
+        }
+
+        return Response::redirect($baseUrl . '/admin/members/' . $id);
+    }
+
+    // -----------------------------------------------------------------------
+    // POST /admin/members/{id}/email-selected/save-template
+    // -----------------------------------------------------------------------
+
+    public function emailSelectedSaveTemplate(Request $request, array $params): Response
+    {
+        $db      = $this->app->getDatabase();
+        $config  = $this->app->getConfig();
+        $id      = (int) ($params['id'] ?? 0);
+        $session = $this->app->getSession();
+        $baseUrl = $this->app->getBaseUrl();
+
+        $listingRepo = new ListingRepo($db, $config);
+        $listing     = $listingRepo->getById($id);
+
+        if ($listing === null) {
+            return Response::redirect($baseUrl . '/admin/members');
+        }
+
+        $name    = trim((string) $request->post('tpl_name', ''));
+        $subject = trim((string) $request->post('tpl_subject', ''));
+        $body    = trim((string) $request->post('tpl_body', ''));
+        $emails  = array_values(array_filter(array_map('trim', (array) $request->post('emails', []))));
+
+        $redirect = $baseUrl . '/admin/members/' . $id . '/email-selected';
+
+        if ($name === '' || $body === '') {
+            $session->set('lstr_flash_error', 'Template name and message body are required.');
+        } else {
+            (new \Luster\Repositories\SavedEmailRepo($db))->create($name, $subject, $body);
+            $session->set('lstr_flash_success', 'Template "' . $name . '" saved.');
+        }
+
+        // Restore compose state so the page can re-show recipients + filled fields
+        if (!empty($emails)) {
+            $session->set('lstr_selected_emails', $emails);
+        }
+        $session->set('lstr_email_old', ['subject' => $subject, 'body' => $body]);
+
+        return Response::redirect($redirect);
+    }
+
+    // -----------------------------------------------------------------------
 
     private function writeConfig(array $config): void
     {

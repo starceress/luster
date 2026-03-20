@@ -97,6 +97,14 @@ $v = static function (string $key, $model, string $prop, string $default = '') u
     </div>
 
     <div class="form-group">
+      <label class="form-label" for="aff-sort-order">Sort Order</label>
+      <input id="aff-sort-order" type="number" name="sort_order" class="form-input"
+             min="1" max="9999" style="max-width:120px"
+             value="<?= \Luster\Core\View::e($v('sort_order', $affiliate, 'sortOrder', (string) ($next_sort_order ?? 1))) ?>">
+      <p class="form-hint">Lower numbers appear first on the public site. Affiliates with the same sort order are sorted alphabetically.</p>
+    </div>
+
+    <div class="form-group">
       <label class="form-label" for="aff-image">Image</label>
       <?php if ($isEdit && ($affiliate->image ?? '') !== ''): ?>
         <div style="margin-bottom:.75rem">
