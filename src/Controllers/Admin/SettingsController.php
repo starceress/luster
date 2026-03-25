@@ -43,8 +43,6 @@ final class SettingsController
         'smtp_pass',
         'smtp_from',
         'smtp_from_name',
-        'smtp_from_listing',
-        'smtp_from_listing_name',
         'smtp_secure',
         'timezone',
         'joined_display_mode',
@@ -59,6 +57,31 @@ final class SettingsController
     public function __construct(private readonly Application $app) {}
 
     // -----------------------------------------------------------------------
+    // GET /admin/listings/collective-templates
+    // -----------------------------------------------------------------------
+
+    public function collectiveTemplates(Request $request, array $params): Response
+    {
+        $session = $this->app->getSession();
+        $success = (string) $session->get('lstr_flash_success', '');
+        $error   = (string) $session->get('lstr_flash_error',   '');
+        $session->remove('lstr_flash_success');
+        $session->remove('lstr_flash_error');
+
+        $siteRepo = new SiteSettingsRepo($this->app->getDatabase());
+        $collectiveTemplates = $siteRepo->getMany([
+            'owned_template',
+            'joined_template',
+            'collective_stats_template',
+        ]);
+
+        return $this->layout('admin/listings/collective-templates.php', [
+            'collective_templates' => $collectiveTemplates,
+            'success'              => $success,
+            'error'                => $error,
+        ], 'Collective Templates', 'listings');
+    }
+
     // GET /admin/settings
     // -----------------------------------------------------------------------
 
@@ -76,13 +99,7 @@ final class SettingsController
         $adminRepo = new AdminUserRepo($this->app->getDatabase());
         $adminUser = $adminRepo->getById($adminId);
 
-        $db       = $this->app->getDatabase();
-        $siteRepo = new SiteSettingsRepo($db);
-        $collectiveTemplates = $siteRepo->getMany([
-            'owned_template',
-            'joined_template',
-            'collective_stats_template',
-        ]);
+        $db = $this->app->getDatabase();
 
         $blacklistEntries = (new BlacklistRepo($db))->getAll();
 
@@ -95,7 +112,6 @@ final class SettingsController
             'admin_user'           => $adminUser,
             'users'                => $adminRepo->getAll(),
             'current_admin_id'     => $adminId,
-            'collective_templates' => $collectiveTemplates,
             'blacklist_entries'    => $blacklistEntries,
             'success'              => $success,
             'error'                => $error,
@@ -127,7 +143,7 @@ final class SettingsController
         if ($v->fails()) {
             $session->set('lstr_flash_error', implode(' ', $v->allErrors()));
             $session->set('lstr_flash_field_errors', json_encode($v->errors()));
-            return Response::redirect($baseUrl . '/admin/settings#general');
+            return Response::redirect($baseUrl . '/admin/settings#panel-general');
         }
 
         // Validate timezone
@@ -146,9 +162,7 @@ final class SettingsController
         $updated['smtp_port']      = max(1, min(65535, (int) $request->post('smtp_port', 587)));
         $updated['smtp_user']      = trim((string) $request->post('smtp_user', ''));
         $updated['smtp_from']      = trim((string) $request->post('smtp_from', ''));
-        $updated['smtp_from_name']          = trim((string) $request->post('smtp_from_name', ''));
-        $updated['smtp_from_listing']    = trim((string) $request->post('smtp_from_listing', ''));
-        $updated['smtp_from_listing_name'] = trim((string) $request->post('smtp_from_listing_name', ''));
+        $updated['smtp_from_name'] = trim((string) $request->post('smtp_from_name', ''));
         $updated['smtp_secure']    = in_array(
             trim((string) $request->post('smtp_secure', 'tls')),
             ['tls', 'ssl', ''],
@@ -173,6 +187,21 @@ final class SettingsController
 
         $this->writeConfig($updated);
 
+        // Save date_format and time_format to lstr_site_settings (UI preferences, not in config/app.php)
+        $siteSettings = new SiteSettingsRepo($this->app->getDatabase());
+
+        $allowedDateFormats = ['j M Y', 'M j, Y', 'F j, Y', 'd/m/Y', 'm/d/Y', 'Y-m-d', 'd-m-Y', 'm-d-Y'];
+        $dateFormat = in_array($request->post('date_format'), $allowedDateFormats, true)
+            ? (string) $request->post('date_format')
+            : 'j M Y';
+        $siteSettings->set('date_format', $dateFormat);
+
+        $allowedTimeFormats = ['H:i', 'g:i A', 'g:i a'];
+        $timeFormat = in_array($request->post('time_format'), $allowedTimeFormats, true)
+            ? (string) $request->post('time_format')
+            : 'H:i';
+        $siteSettings->set('time_format', $timeFormat);
+
         $activityRepo->log(
             (int) $session->get('lstr_admin_id'),
             'settings.save',
@@ -181,11 +210,20 @@ final class SettingsController
         );
 
         $session->set('lstr_flash_success', 'Settings saved successfully.');
-        return Response::redirect($baseUrl . '/admin/settings#tab-general');
+        return Response::redirect($baseUrl . '/admin/settings#panel-general');
     }
 
     // -----------------------------------------------------------------------
-    // GET /admin/emails/smtp-settings
+    // GET /admin/emails/smtp-settings — redirect to unified Emails page
+    // -----------------------------------------------------------------------
+
+    public function emailSettingsRedirect(Request $request, array $params): Response
+    {
+        return Response::redirect($this->app->getBaseUrl() . '/admin/emails?tab=smtp');
+    }
+
+    // -----------------------------------------------------------------------
+    // GET /admin/emails/smtp-settings (legacy — no longer routed, kept for reference)
     // -----------------------------------------------------------------------
 
     public function emailSettings(Request $request, array $params): Response
@@ -224,11 +262,9 @@ final class SettingsController
         $updated['smtp_host']              = trim((string) $request->post('smtp_host', ''));
         $updated['smtp_port']              = max(1, min(65535, (int) $request->post('smtp_port', 587)));
         $updated['smtp_user']              = trim((string) $request->post('smtp_user', ''));
-        $updated['smtp_from']              = trim((string) $request->post('smtp_from', ''));
-        $updated['smtp_from_name']         = trim((string) $request->post('smtp_from_name', ''));
-        $updated['smtp_from_listing']      = trim((string) $request->post('smtp_from_listing', ''));
-        $updated['smtp_from_listing_name'] = trim((string) $request->post('smtp_from_listing_name', ''));
-        $updated['smtp_secure']            = in_array(
+        $updated['smtp_from']      = trim((string) $request->post('smtp_from', ''));
+        $updated['smtp_from_name'] = trim((string) $request->post('smtp_from_name', ''));
+        $updated['smtp_secure']    = in_array(
             trim((string) $request->post('smtp_secure', 'tls')),
             ['tls', 'ssl', ''],
             true,
@@ -249,7 +285,7 @@ final class SettingsController
         );
 
         $session->set('lstr_flash_success', 'Email settings saved.');
-        return Response::redirect($baseUrl . '/admin/emails/smtp-settings');
+        return Response::redirect($baseUrl . '/admin/emails?tab=smtp');
     }
 
     // -----------------------------------------------------------------------
@@ -326,11 +362,10 @@ final class SettingsController
         $baseUrl  = $this->app->getBaseUrl();
         $config   = $this->app->getConfig();
 
-        $smtpHost = (string) $config->get('smtp_host', '');
-        $smtpFrom = (string) $config->get('smtp_from', '');
-        if ($smtpHost === '' && $smtpFrom === '') {
-            $session->set('lstr_flash_error', 'Email is disabled. Set a From Address (or SMTP host) in settings first.');
-            return Response::redirect($baseUrl . '/admin/settings');
+        $fromEmail = (string) ($config->get('smtp_from', '') ?: $config->get('owner_email', ''));
+        if ($fromEmail === '') {
+            $session->set('lstr_flash_error', 'No From address is set. Add a From Address in SMTP settings, or set the Owner Email in General settings.');
+            return Response::redirect($baseUrl . '/admin/emails?tab=smtp');
         }
 
         $adminId   = (int) $session->get('lstr_admin_id');
@@ -368,7 +403,7 @@ final class SettingsController
             $session->set('lstr_flash_error', 'Test email failed: ' . $e->getMessage());
         }
 
-        return Response::redirect($baseUrl . '/admin/emails/smtp-settings');
+        return Response::redirect($baseUrl . '/admin/emails?tab=smtp');
     }
 
     // -----------------------------------------------------------------------
@@ -396,19 +431,19 @@ final class SettingsController
         if ($v->fails()) {
             $session->set('lstr_flash_error', implode(' ', $v->allErrors()));
             $session->set('lstr_flash_field_errors', json_encode($v->errors()));
-            return Response::redirect($baseUrl . '/admin/settings#profile');
+            return Response::redirect($baseUrl . '/admin/settings#panel-admin');
         }
 
         if ($newPassword !== '') {
             if (strlen($newPassword) < 8) {
                 $session->set('lstr_flash_error', 'New password must be at least 8 characters.');
                 $session->set('lstr_flash_field_errors', json_encode(['admin_new_password' => ['New password must be at least 8 characters.']]));
-                return Response::redirect($baseUrl . '/admin/settings#profile');
+                return Response::redirect($baseUrl . '/admin/settings#panel-admin');
             }
             if ($newPassword !== $confirmPassword) {
                 $session->set('lstr_flash_error', 'New password and confirmation do not match.');
                 $session->set('lstr_flash_field_errors', json_encode(['admin_confirm_password' => ['New password and confirmation do not match.']]));
-                return Response::redirect($baseUrl . '/admin/settings#profile');
+                return Response::redirect($baseUrl . '/admin/settings#panel-admin');
             }
         }
 
@@ -417,14 +452,14 @@ final class SettingsController
         if ($existingByUsername !== null && $existingByUsername->id !== $adminId) {
             $session->set('lstr_flash_error', 'That username is already taken.');
             $session->set('lstr_flash_field_errors', json_encode(['username' => ['That username is already taken.']]));
-            return Response::redirect($baseUrl . '/admin/settings#profile');
+            return Response::redirect($baseUrl . '/admin/settings#panel-admin');
         }
 
         $existingByEmail = $adminRepo->findByEmail($email);
         if ($existingByEmail !== null && $existingByEmail->id !== $adminId) {
             $session->set('lstr_flash_error', 'That email address is already in use.');
             $session->set('lstr_flash_field_errors', json_encode(['email' => ['That email address is already in use.']]));
-            return Response::redirect($baseUrl . '/admin/settings#profile');
+            return Response::redirect($baseUrl . '/admin/settings#panel-admin');
         }
 
         $adminRepo->updateProfile($adminId, $username, $email);
@@ -479,7 +514,7 @@ final class SettingsController
         );
 
         $session->set('lstr_flash_success', 'Collective templates saved.');
-        return Response::redirect($baseUrl . '/admin/settings#tab-collective-templates');
+        return Response::redirect($baseUrl . '/admin/listings/collective-templates');
     }
 
     /**
@@ -522,7 +557,8 @@ final class SettingsController
         ]));
 
         return Response::html($view->render('admin/layout.php', array_merge([
-            'page_title'      => 'Email/SMTP Settings',
+            'page_title'      => 'Emails',
+            'page_subtitle'   => 'Emails › Email / SMTP Settings',
             'site_name'       => (string) $config->get('site_name', 'Luster'),
             'admin_username'  => (string) $session->get('lstr_admin_username', ''),
             'csrf_token'      => $csrfToken,

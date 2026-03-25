@@ -40,6 +40,20 @@ final class UpdatesAdminController
         $latestColl    = $updateRepo->getLatestCollective();
         $collectiveCnt = $updateRepo->countCollective();
 
+        $sort = trim((string) $request->query('sort', 'id'));
+        $dir  = trim((string) $request->query('dir',  'asc'));
+        if (!in_array($sort, ['id', 'name'], true)) { $sort = 'id'; }
+        if (!in_array($dir,  ['asc', 'desc'], true)) { $dir  = 'asc'; }
+
+        usort($listings, static function ($a, $b) use ($sort, $dir): int {
+            if ($sort === 'name') {
+                $cmp = strcasecmp($a->name, $b->name);
+                return $dir === 'asc' ? $cmp : -$cmp;
+            }
+            $diff = $a->id - $b->id;
+            return $dir === 'asc' ? $diff : -$diff;
+        });
+
         $success = (string) $session->get('lstr_flash_success', '');
         $error   = (string) $session->get('lstr_flash_error',   '');
         $session->remove('lstr_flash_success');
@@ -50,9 +64,12 @@ final class UpdatesAdminController
             'latest_per_fl'  => $latestPerFl,
             'latest_coll'    => $latestColl,
             'collective_cnt' => $collectiveCnt,
+            'site_name'      => (string) $config->get('site_name', 'Luster'),
+            'sort'           => $sort,
+            'dir'            => $dir,
             'success'        => $success,
             'error'          => $error,
-        ], 'Updates', 'addons');
+        ], 'Updates', 'updates');
     }
 
     // -----------------------------------------------------------------------
@@ -87,7 +104,7 @@ final class UpdatesAdminController
             'listing'       => null,
             'success'       => $success,
             'error'         => $error,
-        ], 'Updates — Collective', 'addons', 'Collective');
+        ], 'Updates — Collective', 'updates', 'Collective');
     }
 
     // -----------------------------------------------------------------------
@@ -145,7 +162,7 @@ final class UpdatesAdminController
             'listing'       => $listing,
             'success'       => $success,
             'error'         => $error,
-        ], 'Updates — ' . $listing->name, 'addons', 'Owned › ' . $listing->name);
+        ], 'Updates — ' . $listing->name, 'updates', 'Owned › ' . $listing->name);
     }
 
     // -----------------------------------------------------------------------
@@ -206,11 +223,13 @@ final class UpdatesAdminController
 
         return $this->layout('admin/addons/updates/form.php', [
             'update'           => $update,
+            'fanlisting_id'    => $update->fanlistingId,
             'known_categories' => $updateRepo->getKnownCategories(),
             'back_url'         => $backUrl,
+            'ctx_label'        => $subtitle,
             'is_edit'          => true,
             'error'            => $error,
-        ], 'Edit Update', 'addons', $subtitle);
+        ], 'Edit Update', 'updates', $subtitle);
     }
 
     public function edit(Request $request, array $params): Response
@@ -325,9 +344,10 @@ final class UpdatesAdminController
             'fanlisting_id'    => $fanlistingId,
             'known_categories' => $updateRepo->getKnownCategories(),
             'back_url'         => $backUrl,
+            'ctx_label'        => $subtitle,
             'is_edit'          => false,
             'error'            => $error,
-        ], 'Add Update', 'addons', $subtitle);
+        ], 'Add Update', 'updates', $subtitle);
     }
 
     /**
