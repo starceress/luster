@@ -87,7 +87,7 @@ $canReorder = ($search ?? '') === '' && ($filter_fid ?? 'collective') !== '';
     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
     <strong>Reorder mode</strong> — drag rows to rearrange. Changes are saved automatically.
   </div>
-  <a href="<?= \Luster\Core\View::e($normalUrl) ?>" class="btn btn-secondary btn-sm">Done</a>
+  <a href="<?= \Luster\Core\View::e($normalUrl) ?>" class="btn btn-tertiary btn-sm">Done</a>
 </div>
 
 <!-- Hidden CSRF for AJAX reorder save -->
@@ -119,12 +119,12 @@ $canReorder = ($search ?? '') === '' && ($filter_fid ?? 'collective') !== '';
 
     <input type="text" name="search" class="neb-input" placeholder="Search name, URL, email&hellip;"
            value="<?= \Luster\Core\View::e($search ?? '') ?>">
-    <button type="submit" class="btn btn-secondary btn-sm">Search</button>
-    <a href="?" class="btn btn-secondary btn-sm">Reset</a>
+    <button type="submit" class="btn btn-tertiary btn-sm">Search</button>
+    <a href="?" class="btn btn-tertiary btn-sm">Reset</a>
   </form>
   <div class="neb-actions">
     <?php if ($canReorder && !empty($affiliates)): ?>
-    <a href="<?= \Luster\Core\View::e($reorderEntryUrl) ?>" class="btn btn-secondary btn-sm">Reorder</a>
+    <a href="<?= \Luster\Core\View::e($reorderEntryUrl) ?>" class="btn btn-tertiary btn-sm">Reorder</a>
     <?php endif; ?>
     <a href="<?= $b ?>/admin/affiliates/add" class="btn btn-primary btn-sm">+ Add Affiliate</a>
   </div>
@@ -146,6 +146,7 @@ $canReorder = ($search ?? '') === '' && ($filter_fid ?? 'collective') !== '';
 
 <?php if ($reorderMode): ?>
   <!-- ── Reorder table ──────────────────────────────────────────────── -->
+  <div class="neb-table-wrap">
   <table class="data-table mem-table" data-reorder-url="<?= \Luster\Core\View::e($reorder_url) ?>">
     <thead>
       <tr>
@@ -169,9 +170,11 @@ $canReorder = ($search ?? '') === '' && ($filter_fid ?? 'collective') !== '';
       <?php endforeach; ?>
     </tbody>
   </table>
+  </div>
 
 <?php else: ?>
   <!-- ── Normal table ───────────────────────────────────────────────── -->
+  <div class="neb-table-wrap">
   <table class="data-table mem-table">
     <thead>
       <tr>
@@ -225,9 +228,9 @@ $canReorder = ($search ?? '') === '' && ($filter_fid ?? 'collective') !== '';
         </td>
         <td class="text-muted" data-label="Scope">
           <?php if ($aff->listingId !== null): ?>
-            <span class="neb-badge badge-current" style="font-size:.75rem"><?= $scopeLabel ?></span>
+            <span class="neb-badge badge-current"><?= $scopeLabel ?></span>
           <?php else: ?>
-            <span class="neb-badge" style="font-size:.75rem;background:var(--bg-subtle);color:var(--text-muted)">Collective</span>
+            <span class="neb-badge badge-pending">Collective</span>
           <?php endif; ?>
         </td>
         <td class="text-muted" data-label="Email">
@@ -247,12 +250,13 @@ $canReorder = ($search ?? '') === '' && ($filter_fid ?? 'collective') !== '';
           <form method="POST" action="<?= $b ?>/admin/affiliates/<?= (int) $aff->id ?>/toggle"
                 style="display:contents">
             <input type="hidden" name="_csrf" value="<?= \Luster\Core\View::e($csrf_token ?? '') ?>">
-            <button type="submit" class="btn btn-secondary btn-sm"><?= $aff->active ? 'Disable' : 'Enable' ?></button>
+            <button type="submit" class="btn btn-tertiary btn-sm"><?= $aff->active ? 'Disable' : 'Enable' ?></button>
           </form>
 
           <form method="POST" action="<?= $b ?>/admin/affiliates/<?= (int) $aff->id ?>/delete"
                 style="display:contents"
-                data-confirm="Delete this affiliate?">
+                data-del-modal data-del-entity="affiliate"
+                data-del-name="<?= \Luster\Core\View::e($aff->name) ?>">
             <input type="hidden" name="_csrf" value="<?= \Luster\Core\View::e($csrf_token ?? '') ?>">
             <button type="submit" class="btn btn-danger btn-sm">Delete</button>
           </form>
@@ -261,6 +265,7 @@ $canReorder = ($search ?? '') === '' && ($filter_fid ?? 'collective') !== '';
       <?php endforeach; ?>
     </tbody>
   </table>
+  </div>
 <?php endif; ?>
 
 </div><!-- /.neb-card -->

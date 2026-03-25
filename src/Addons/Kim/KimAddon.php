@@ -29,17 +29,12 @@ final class KimAddon implements AddonInterface
 
     public function getName(): string
     {
-        return 'KIM List';
+        return 'Keep In Mind (KIM)';
     }
 
     public function getDescription(): string
     {
-        return 'Collect adoption interest from the community for your owned fanlistings.';
-    }
-
-    public function getVersion(): string
-    {
-        return '1.0.0';
+        return 'KIM helps manage a registry of fanlisting owners who are interested in adopting your fanlisting(s) if it were to become available for adoption.';
     }
 
     public function install(PDO $pdo): void

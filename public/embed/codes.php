@@ -91,9 +91,20 @@ foreach ($_lusterCategories as $_cat) {
     $_lusterCategoryMap[$_cat->id] = $_cat;
 }
 
-// Auto-group codes by detected dimensions; unknown dimensions last
-$_lusterGrouped = [];
+// Separate donated (fan-submitted) codes from regular codes
+$_lusterDonated = [];
+$_lusterRegular = [];
 foreach ($_lusterCodes as $_lc) {
+    if ($_lc->submitterName !== null) {
+        $_lusterDonated[] = $_lc;
+    } else {
+        $_lusterRegular[] = $_lc;
+    }
+}
+
+// Auto-group regular codes by detected dimensions; unknown dimensions last
+$_lusterGrouped = [];
+foreach ($_lusterRegular as $_lc) {
     if ($_lc->width > 0 && $_lc->height > 0) {
         $_lKey   = (int) $_lc->width . 'x' . (int) $_lc->height;
         $_lLabel = (int) $_lc->width . '×' . (int) $_lc->height . 'px';
@@ -127,6 +138,7 @@ $_lusterHtml = $_lusterApp->getView()->renderFragment('codes.php', [
     'listing_url'  => $_lusterListing->url,
     'page_title'   => 'Codes',
     'codes'        => $_lusterCodes,
+    'donated'      => $_lusterDonated,
     'grouped'      => $_lusterGrouped,
     'categories'   => $_lusterCategories,
     'cat_map'      => $_lusterCatMap,

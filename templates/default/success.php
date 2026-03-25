@@ -13,7 +13,7 @@ declare(strict_types=1);
 
 use Luster\Core\View;
 ?>
-<div class="fl-wrap">
-  <h2 class="fl-title"><?= View::e($success_heading) ?></h2>
-  <p class="fl-message"><?= View::e($success_message) ?></p>
+<div>
+  <h2><?= View::e($success_heading) ?></h2>
+  <p><?= View::e($success_message) ?></p>
 </div>

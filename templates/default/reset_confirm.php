@@ -17,20 +17,18 @@ declare(strict_types=1);
 
 use Luster\Core\View;
 ?>
-<div class="fl-wrap">
-  <h2 class="fl-title">Set a new password for <?= View::e($listing_name) ?></h2>
-
+<div>
   <?php if ($errors !== ''): ?>
-    <div class="fl-errors"><?= $errors ?></div>
+    <div><?= $errors ?></div>
   <?php endif; ?>
 
   <?php if (!$token_valid): ?>
     <p>
       This reset link has expired or is invalid.
-      <a class="fl-link" href="<?= View::e($reset_url) ?>">Request a new one.</a>
+      <a href="<?= View::e($reset_url) ?>">Request a new one.</a>
     </p>
   <?php else: ?>
-    <p class="fl-muted" style="font-size:.875rem">
+    <p style="font-size:.875rem">
       Choose a new password.
     </p>
 
@@ -38,19 +36,19 @@ use Luster\Core\View;
       <input type="hidden" name="_csrf"  value="<?= View::e($csrf_token) ?>">
       <input type="hidden" name="token"  value="<?= View::e($token) ?>">
 
-      <div class="fl-field">
-        <label class="fl-label" for="rc-password">New Password <span class="fl-required">*</span></label>
-        <input class="fl-input" type="password" id="rc-password" name="new_password"
+      <div>
+        <label for="rc-password">New Password *</label>
+        <input type="password" id="rc-password" name="new_password"
                required maxlength="255" autocomplete="new-password">
       </div>
 
-      <div class="fl-field">
-        <label class="fl-label" for="rc-confirm">Confirm New Password <span class="fl-required">*</span></label>
-        <input class="fl-input" type="password" id="rc-confirm" name="new_password_confirm"
+      <div>
+        <label for="rc-confirm">Confirm New Password *</label>
+        <input type="password" id="rc-confirm" name="new_password_confirm"
                required maxlength="255" autocomplete="new-password">
       </div>
 
-      <button class="fl-btn" type="submit">Update Password</button>
+      <button type="submit">Update Password</button>
     </form>
   <?php endif; ?>
 </div>

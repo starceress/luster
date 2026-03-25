@@ -80,21 +80,54 @@ final class DashboardController
         $newestOwnedOpened = $newestOwned?->opened;
 
         // ── Members ──────────────────────────────────────────────────────
-        $totalMembers  = 0;
-        $totalPending  = 0;
-        $recentMembers = [];
+        $totalMembers        = 0;
+        $totalPending        = 0;
+        $recentMembers       = [];
+        $allCountries        = [];
+        $topCountryCounts    = [];
+        $mostActiveId        = null;
+        $mostActiveName      = null;
+        $mostActiveCount     = 0;
+        $growthThisMonth     = 0;
+        $growthLastMonth     = 0;
+        $thisMonthStart      = date('Y-m-01');
+        $lastMonthStart      = date('Y-m-01', strtotime('first day of last month'));
 
         foreach ($listings as $fl) {
             if ($fl->dbprefix === '') {
                 continue;
             }
-            $totalMembers += $memberRepo->countApproved($fl->dbprefix);
+            $approved      = $memberRepo->countApproved($fl->dbprefix);
+            $totalMembers += $approved;
             $totalPending += $memberRepo->countPending($fl->dbprefix);
 
-            foreach ($memberRepo->getRecent($fl->dbprefix, 2) as $m) {
-                $recentMembers[] = ['member' => $m, 'listing_name' => $fl->name];
+            if ($approved > $mostActiveCount) {
+                $mostActiveCount = $approved;
+                $mostActiveName  = $fl->name;
+                $mostActiveId    = $fl->id;
             }
+
+            foreach ($memberRepo->getDistinctCountryNames($fl->dbprefix) as $c) {
+                $allCountries[$c] = true;
+            }
+
+            foreach ($memberRepo->getCountrySummary($fl->dbprefix) as $row) {
+                $topCountryCounts[$row['country']] = ($topCountryCounts[$row['country']] ?? 0) + $row['fan_count'];
+            }
+
+            foreach ($memberRepo->getRecent($fl->dbprefix, 2) as $m) {
+                $recentMembers[] = ['member' => $m, 'listing_name' => $fl->name, 'listing_id' => $fl->id];
+            }
+
+            $thisMonthCount   = $memberRepo->countApprovedSince($fl->dbprefix, $thisMonthStart);
+            $sinceLastMonth   = $memberRepo->countApprovedSince($fl->dbprefix, $lastMonthStart);
+            $growthThisMonth += $thisMonthCount;
+            $growthLastMonth += $sinceLastMonth - $thisMonthCount;
         }
+
+        arsort($topCountryCounts);
+        $topCountries    = array_slice($topCountryCounts, 0, 3, true);
+        $memberCountries = count($allCountries);
 
         usort($recentMembers, fn($a, $b) => strcmp(
             (string) $b['member']->added,
@@ -118,6 +151,22 @@ final class DashboardController
         $row              = $stmt->fetch();
         $newestJoinedName = $row !== false ? (string) $row['name']        : null;
         $newestJoinedDate = $row !== false ? (string) ($row['date_joined'] ?? '') : null;
+
+        $stmt = $db->prepare(
+            "SELECT COUNT(*) FROM lstr_joined WHERE date_joined >= ? AND date_joined IS NOT NULL"
+        );
+        $stmt->execute([date('Y-01-01')]);
+        $joinedThisYear = (int) $stmt->fetchColumn();
+
+        // ── Opened this year ──────────────────────────────────────────
+        $currentYear    = (int) date('Y');
+        $openedThisYear = 0;
+        foreach ($listings as $fl) {
+            if ($fl->opened !== null && $fl->opened !== ''
+                && (int) date('Y', strtotime((string) $fl->opened)) === $currentYear) {
+                $openedThisYear++;
+            }
+        }
 
         // ── Affiliates ───────────────────────────────────────────────────
         $stmt = $db->prepare(
@@ -179,6 +228,7 @@ final class DashboardController
             'total_joined_inactive'      => $totalJoinedInactive,
             'total_joined_categories'    => $totalJoinedCats,
             'total_members'              => $totalMembers,
+            'member_countries'           => $memberCountries,
             'total_pending'              => $totalPending,
             'total_affiliates'           => $totalAffiliates,
             'total_affiliates_collective' => $totalAffiliatesCollective,
@@ -188,6 +238,15 @@ final class DashboardController
             'newest_owned_opened'        => $newestOwnedOpened,
             'newest_joined_name'         => $newestJoinedName,
             'newest_joined_date'         => $newestJoinedDate,
+            'most_active_listing_name'   => $mostActiveName,
+            'most_active_listing_id'     => $mostActiveId,
+            'most_active_listing_count'  => $mostActiveCount,
+            'top_countries'              => $topCountries,
+            'growth_this_month'          => $growthThisMonth,
+            'growth_last_month'          => $growthLastMonth,
+            'opened_this_year'           => $openedThisYear,
+            'joined_this_year'           => $joinedThisYear,
+            'listings_up_to_date'        => max(0, (int) $fanStats['total'] - count($staleListings)),
             'recent_members'             => $recentMembers,
             'recent_activity'            => $recentActivity,
             'stale_listings'             => $staleListings,

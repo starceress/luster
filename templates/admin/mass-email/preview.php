@@ -77,7 +77,7 @@ $b = rtrim(View::e($base_url ?? ''), '/');
       </button>
     </form>
     <?php endif; ?>
-    <a href="<?= $b ?>/admin/emails" class="btn btn-secondary">
+    <a href="<?= $b ?>/admin/emails?tab=bulk" class="btn btn-tertiary">
       &larr; Back to compose
     </a>
   </div>

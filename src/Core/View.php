@@ -31,6 +31,19 @@ final class View
 {
     public function __construct(private readonly string $templateDir) {}
 
+    /** Variables automatically merged into every renderPhp() call. */
+    private array $shared = [];
+
+    /**
+     * Sets variables that are injected into every PHP template render.
+     * Useful for values that every admin template needs (e.g. admin_date_format).
+     * Explicit $data values passed to render() take precedence over shared ones.
+     */
+    public function share(array $vars): void
+    {
+        $this->shared = array_merge($this->shared, $vars);
+    }
+
     // -----------------------------------------------------------------------
     // Public API
     // -----------------------------------------------------------------------
@@ -128,8 +141,9 @@ final class View
 
     private function renderPhp(string $path, array $data): string
     {
-        // Extract into local scope (EXTR_SKIP prevents overwriting $path/$data)
-        extract($data, EXTR_SKIP);
+        // Merge shared vars (set once via share()) with per-render data.
+        // $data values take precedence over shared values.
+        extract(array_merge($this->shared, $data), EXTR_SKIP);
 
         ob_start();
 

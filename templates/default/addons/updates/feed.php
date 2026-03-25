@@ -25,18 +25,18 @@ $pageUrl = static function (int $p) use ($feed_url): string {
     return htmlspecialchars($feed_url . '?page=' . $p, ENT_QUOTES, 'UTF-8');
 };
 ?>
-<div class="fl-wrap">
-  <h2 class="fl-title">Updates</h2>
+<div>
+  <h2>Updates</h2>
 
   <?php if (empty($updates)): ?>
-    <p class="fl-empty">No updates posted yet.</p>
+    <p>No updates posted yet.</p>
   <?php else: ?>
 
-    <div class="fl-updates">
+    <div>
       <?php foreach ($updates as $u): ?>
-      <article class="fl-update">
-        <h3 class="fl-update-title"><?= View::e($u->title) ?></h3>
-        <p class="fl-update-meta">
+      <article>
+        <h3><?= View::e($u->title) ?></h3>
+        <p>
           <time datetime="<?= View::e(substr($u->postedAt, 0, 10)) ?>">
             <?= View::e(date('F j, Y', strtotime($u->postedAt))) ?>
           </time>
@@ -45,13 +45,13 @@ $pageUrl = static function (int $p) use ($feed_url): string {
           <?php endif; ?>
         </p>
         <?php if ($show_cats && !empty($u->categories())): ?>
-          <div class="fl-update-cats">
+          <p>
             <?php foreach ($u->categories() as $cat): ?>
-              <span class="fl-tag"><?= View::e($cat) ?></span>
+              <span><?= View::e($cat) ?></span>
             <?php endforeach; ?>
-          </div>
+          </p>
         <?php endif; ?>
-        <div class="fl-update-body">
+        <div>
           <?= nl2br(View::e($u->body)) ?>
         </div>
       </article>
@@ -59,21 +59,21 @@ $pageUrl = static function (int $p) use ($feed_url): string {
     </div>
 
     <?php if ($pages > 1): ?>
-    <nav class="fl-pagination" aria-label="Updates pagination">
+    <nav aria-label="Updates pagination">
       <?php if ($page > 1): ?>
-        <a href="<?= $pageUrl($page - 1) ?>" class="fl-page-link">&lsaquo; Prev</a>
+        <a href="<?= $pageUrl($page - 1) ?>">&lsaquo; Prev</a>
       <?php endif; ?>
 
       <?php for ($p = 1; $p <= $pages; $p++): ?>
         <?php if ($p === $page): ?>
-          <span class="fl-page-current" aria-current="page"><?= $p ?></span>
+          <span aria-current="page"><?= $p ?></span>
         <?php else: ?>
-          <a href="<?= $pageUrl($p) ?>" class="fl-page-link"><?= $p ?></a>
+          <a href="<?= $pageUrl($p) ?>"><?= $p ?></a>
         <?php endif; ?>
       <?php endfor; ?>
 
       <?php if ($page < $pages): ?>
-        <a href="<?= $pageUrl($page + 1) ?>" class="fl-page-link">Next &rsaquo;</a>
+        <a href="<?= $pageUrl($page + 1) ?>">Next &rsaquo;</a>
       <?php endif; ?>
     </nav>
     <?php endif; ?>

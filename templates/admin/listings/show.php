@@ -50,7 +50,8 @@ $imgHeight = $sizeMap[$sizeKey] ?? '100px';
       <form method="post"
             action="<?= $b ?>/admin/listings/<?= (int) $listing->id ?>/delete"
             style="display:inline"
-            data-confirm="Delete this listing and all its members? This cannot be undone.">
+            data-del-modal data-del-entity="listing"
+            data-del-name="<?= \Luster\Core\View::e($listing->name) ?>">
         <input type="hidden" name="_csrf" value="<?= \Luster\Core\View::e($csrf_token ?? '') ?>">
         <button type="submit" class="btn btn-danger">Delete</button>
       </form>
@@ -215,6 +216,7 @@ $imgHeight = $sizeMap[$sizeKey] ?? '100px';
   <?php if (empty($affiliates)): ?>
     <p class="text-muted" style="padding:1.25rem;font-size:.875rem">No affiliates for this listing yet.</p>
   <?php else: ?>
+    <div class="neb-table-wrap">
     <table class="data-table">
       <thead>
         <tr>
@@ -254,7 +256,8 @@ $imgHeight = $sizeMap[$sizeKey] ?? '100px';
             <form method="POST"
                   action="<?= $b ?>/admin/affiliates/<?= (int) $aff->id ?>/delete"
                   style="display:inline;margin-left:.25rem"
-                  data-confirm="Delete this affiliate?">
+                  data-del-modal data-del-entity="affiliate"
+                  data-del-name="<?= \Luster\Core\View::e($aff->name) ?>">
               <input type="hidden" name="_csrf" value="<?= \Luster\Core\View::e($csrf_token ?? '') ?>">
               <input type="hidden" name="from_listing" value="<?= (int) $listing->id ?>">
               <button type="submit" class="btn btn-danger btn-sm">Delete</button>
@@ -264,5 +267,6 @@ $imgHeight = $sizeMap[$sizeKey] ?? '100px';
         <?php endforeach; ?>
       </tbody>
     </table>
+    </div>
   <?php endif; ?>
 </div>

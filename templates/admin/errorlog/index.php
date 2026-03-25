@@ -20,7 +20,7 @@ $pageUrl = static fn(int $p): string => $b . '/admin/errorlog?page=' . $p;
 <div class="neb-toolbar">
   <span class="text-muted" style="font-size:.8125rem"><?= (int) $total ?> entr<?= $total === 1 ? 'y' : 'ies' ?> logged</span>
   <div class="neb-actions">
-    <a href="<?= $b ?>/admin/errorlog/export" class="btn btn-secondary btn-sm">&#8595; Export CSV</a>
+    <a href="<?= $b ?>/admin/errorlog/export" class="btn btn-tertiary btn-sm">&#8595; Export CSV</a>
     <form method="POST" action="<?= $b ?>/admin/errorlog/flush" id="flush-logs-form">
       <input type="hidden" name="_csrf" value="<?= \Luster\Core\View::e($csrf_token ?? '') ?>">
       <button type="button" class="btn btn-danger btn-sm" id="flush-logs-btn">Flush Logs</button>
@@ -36,6 +36,7 @@ $pageUrl = static fn(int $p): string => $b . '/admin/errorlog?page=' . $p;
       All clear — no errors have been logged.
     </div>
   <?php else: ?>
+    <div class="neb-table-wrap">
     <table class="data-table">
       <thead>
         <tr>
@@ -47,7 +48,7 @@ $pageUrl = static fn(int $p): string => $b . '/admin/errorlog?page=' . $p;
       <tbody>
         <?php foreach ($rows as $row): ?>
         <tr>
-          <td class="text-muted" style="white-space:nowrap"><?= \Luster\Core\View::e((string) $row['created_at']) ?></td>
+          <td class="text-muted" style="white-space:nowrap"><?= \Luster\Core\View::e($row['created_at'] !== null ? date($admin_date_format . ' ' . $admin_time_format, strtotime((string) $row['created_at'])) : '') ?></td>
           <td class="text-muted">
             <?= $row['source'] !== null && $row['source'] !== ''
                 ? \Luster\Core\View::e((string) $row['source'])
@@ -58,6 +59,7 @@ $pageUrl = static fn(int $p): string => $b . '/admin/errorlog?page=' . $p;
         <?php endforeach; ?>
       </tbody>
     </table>
+    </div>
   <?php endif; ?>
 </div>
 
@@ -109,7 +111,7 @@ $end    = min($pages - 1, $page + $window);
     </div>
     <div class="neb-modal-footer">
       <button type="button" class="btn btn-danger" id="flush-modal-confirm">Flush Logs</button>
-      <button type="button" class="btn btn-secondary" id="flush-modal-cancel">Cancel</button>
+      <button type="button" class="btn btn-tertiary" id="flush-modal-cancel">Cancel</button>
     </div>
   </div>
 </div>

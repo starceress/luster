@@ -48,6 +48,8 @@ final class UpdatesPublicController
         $baseUrl   = $this->app->getBaseUrl();
         $themePath = $baseUrl . '/assets/default/';
 
+        $ownerName = (string) $config->get('owner_name', '');
+
         $html = $this->app->getView()->renderPublic('addons/updates/feed.php', [
             'listing'       => $listing,
             'listing_name'  => $listing->name,
@@ -61,6 +63,7 @@ final class UpdatesPublicController
             'pages'         => $pages,
             'is_collective' => false,
             'show_cats'     => true,
+            'owner_name'    => $ownerName,
             'feed_url'      => $baseUrl . '/updates/' . $fid,
         ]);
 
@@ -88,6 +91,8 @@ final class UpdatesPublicController
         $themePath = $baseUrl . '/assets/default/';
         $siteName  = (string) $config->get('site_name', 'Luster');
 
+        $ownerName = (string) $config->get('owner_name', '');
+
         $html = $this->app->getView()->renderPublic('addons/updates/feed.php', [
             'listing'       => null,
             'listing_name'  => $siteName,
@@ -101,6 +106,7 @@ final class UpdatesPublicController
             'pages'         => $pages,
             'is_collective' => true,
             'show_cats'     => true,
+            'owner_name'    => $ownerName,
             'feed_url'      => $baseUrl . '/updates',
         ]);
 

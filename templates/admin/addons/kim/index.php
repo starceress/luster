@@ -35,6 +35,7 @@ $b = rtrim(View::e($base_url), '/');
   </div>
 <?php else: ?>
   <div class="neb-card">
+    <div class="neb-table-wrap">
     <table class="data-table">
       <thead>
         <tr>
@@ -69,15 +70,16 @@ $b = rtrim(View::e($base_url), '/');
           </td>
           <td class="act-col">
             <a href="<?= $b ?>/admin/kim/<?= (int) $listing->id ?>/show"
-               class="btn btn-secondary btn-sm">View</a>
+               class="btn btn-tertiary btn-sm">View</a>
             <?php if ($approved > 0): ?>
               <a href="<?= $b ?>/admin/kim/<?= (int) $listing->id ?>/mass-email"
-                 class="btn btn-secondary btn-sm">Mass Email</a>
+                 class="btn btn-tertiary btn-sm">Mass Email</a>
             <?php endif; ?>
           </td>
         </tr>
         <?php endforeach; ?>
       </tbody>
     </table>
+    </div>
   </div>
 <?php endif; ?>

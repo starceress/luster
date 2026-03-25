@@ -28,7 +28,7 @@ use Luster\Repositories\MemberRepo;
  *   {stat_approved}     — approved member count
  *   {stat_pending}      — pending member count
  *   {stat_newmembers}   — comma-separated newest 5 approved member names
- *   {stat_growth}       — members per day since opened (2 decimal places)
+ *   {stat_growth}       — average members per day since opened, e.g. "1.23 members/day"
  *   {listing_name}      — listing name (HTML-escaped)
  *   {listing_url}       — listing URL (HTML-escaped)
  */
@@ -110,9 +110,17 @@ $_lusterLastUpdatedFallback = (string) $_lusterApp->getConfig()->get('last_updat
 $_lusterTemplate     = ($_lusterTemplates['stats_template'] !== null
                      && trim($_lusterTemplates['stats_template']) !== '')
     ? $_lusterTemplates['stats_template']
-    : '<p>Opened: {stat_opened}<br>Last updated: {stat_updated}<br>'
-    . 'Members: {stat_approved} ({stat_pending} pending)<br>'
-    . 'Newest: {stat_newmembers}</p>';
+    : '<table>'
+    . '<tr><td>Opened</td><td>{stat_opened}</td></tr>'
+    . '<tr><td>Last updated</td><td>{stat_last_updated}</td></tr>'
+    . '<tr><td>Members</td><td>{stat_approved} ({stat_pending} pending)</td></tr>'
+    . '<tr><td>Newest</td><td>{stat_newmembers}</td></tr>'
+    . '</table>';
+
+// Allow an inline override set before require (e.g. from the customizer-generated code).
+if (isset($luster_stats_template) && trim((string) $luster_stats_template) !== '') {
+    $_lusterTemplate = (string) $luster_stats_template;
+}
 
 // ---------------------------------------------------------------------------
 // 6. Format dates
@@ -186,7 +194,7 @@ $_lusterHtml = str_replace(
         (string) $_lusterApproved,
         (string) $_lusterPending,
         $_lusterNewMembersStr,
-        $_lusterGrowth,
+        $_lusterGrowth . ' members/day',
         htmlspecialchars($_lusterListing->name, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),
         htmlspecialchars($_lusterListing->url,  ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),
     ],

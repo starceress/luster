@@ -57,7 +57,7 @@ $b = rtrim(View::e($base_url), '/');
         Send to <?= (int) $recipient_count ?> member<?= $recipient_count === 1 ? '' : 's' ?>
       </button>
       <a href="<?= $b ?>/admin/kim/<?= (int) $listing->id ?>/show"
-         class="btn btn-secondary">Cancel</a>
+         class="btn btn-tertiary">Cancel</a>
     </div>
   </form>
 </div>

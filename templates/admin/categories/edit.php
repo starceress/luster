@@ -14,7 +14,7 @@ $fe = $field_errors ?? [];
   <a href="<?= $b ?>/admin/categories" class="neb-link">&larr; Back to Categories</a>
 </p>
 
-<div class="form-card" style="max-width:500px">
+<div class="neb-card neb-card-padded" style="max-width:500px">
   <h2 class="card-title" style="margin-bottom:1.25rem">Edit Category</h2>
   <form method="POST" id="edit-form" class="js-warn-unsaved">
     <input type="hidden" name="_csrf" value="<?= \Luster\Core\View::e($csrf_token ?? '') ?>">
@@ -69,7 +69,8 @@ $fe = $field_errors ?? [];
   <?php if (!in_array($cat->source ?? '', ['tfl', 'tafl'], true)): ?>
     <div class="section-divider"></div>
     <form method="POST" action="<?= $b ?>/admin/categories/<?= (int) ($cat->id ?? 0) ?>/delete"
-          data-confirm="Delete this category? This will unlink any listings using it.">
+          data-del-modal data-del-entity="category"
+          data-del-name="<?= \Luster\Core\View::e($cat->name ?? '') ?>">
       <input type="hidden" name="_csrf" value="<?= \Luster\Core\View::e($csrf_token ?? '') ?>">
       <button type="submit" class="btn btn-danger">Delete Category</button>
     </form>

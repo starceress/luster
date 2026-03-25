@@ -27,7 +27,7 @@ $encName = urlencode($field->name);
   <div class="alert alert-error" role="alert"><?= \Luster\Core\View::e($error) ?></div>
 <?php endif; ?>
 
-<div class="form-card">
+<div class="neb-card neb-card-padded">
   <form method="POST"
         action="<?= $b ?>/admin/listings/<?= $id ?>/fields/<?= $encName ?>/edit">
     <input type="hidden" name="_csrf"      value="<?= \Luster\Core\View::e($csrf_token) ?>">

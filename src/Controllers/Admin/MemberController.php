@@ -1184,8 +1184,11 @@ final class MemberController
         $baseUrl     = $this->app->getBaseUrl();
         $session       = $this->app->getSession();
         $csrf          = $this->app->getCSRF()->token();
-        $fromEmail     = (string) $config->get('smtp_from_listing', (string) $config->get('smtp_from', ''));
-        $fromName      = (string) $config->get('smtp_from_listing_name', (string) $config->get('smtp_from_name', 'Luster'));
+        $smtpFrom  = (string) $config->get('smtp_from', '');
+        $fromEmail = $smtpFrom !== '' ? $smtpFrom : $listing->email;
+        $fromName  = (string) $config->get('smtp_from_name', '') !== ''
+            ? (string) $config->get('smtp_from_name', '')
+            : (string) $config->get('owner_name', '');
         $flash_error   = $session->get('lstr_flash_error', '');
         $flash_success = $session->get('lstr_flash_success', '');
         $old           = (array) $session->get('lstr_email_old', []);
@@ -1196,18 +1199,21 @@ final class MemberController
         $referer = $request->header('referer') ?? $baseUrl . '/admin/members/' . $id;
 
         return $this->layout('admin/members/email.php', [
-            'listing'      => $listing,
-            'member_email' => $email,
-            'member_name'  => $member ? $member->name : '',
-            'from_email'   => $fromEmail,
-            'from_name'    => $fromName,
-            'saved_emails' => $savedEmails,
-            'csrf_token'   => $csrf,
-            'base_url'     => $baseUrl,
-            'error'        => $flash_error,
-            'success'      => $flash_success,
-            'old'          => $old,
-            'referer'      => $referer,
+            'listing'        => $listing,
+            'member_email'   => $email,
+            'member_name'    => $member ? $member->name    : '',
+            'member_url'     => $member ? $member->url     : '',
+            'member_country' => $member ? $member->country : '',
+            'from_email'     => $fromEmail,
+            'from_name'      => $fromName,
+            'site_name'      => (string) $config->get('site_name', ''),
+            'saved_emails'   => $savedEmails,
+            'csrf_token'     => $csrf,
+            'base_url'       => $baseUrl,
+            'error'          => $flash_error,
+            'success'        => $flash_success,
+            'old'            => $old,
+            'referer'        => $referer,
         ], 'Email Member', 'members', 'Owned › ' . $listing->name);
     }
 

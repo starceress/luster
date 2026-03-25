@@ -91,10 +91,20 @@ $_lusterSession->remove('lstr_flash_old');
 // 5. Render fragment
 // ---------------------------------------------------------------------------
 
-$_lusterBaseUrl      = rtrim((string) $_lusterApp->getConfig()->get('embed_base_url', ''), '/')
-                     ?: $_lusterApp->getBaseUrl();
-$_lusterFormAction   = $_lusterBaseUrl . '/update/' . $_lusterListingId;
-$_lusterRemoveUrl    = $_lusterApp->getBaseUrl() . '/remove/' . $_lusterListingId;
+$_lusterBaseUrl    = rtrim((string) $_lusterApp->getConfig()->get('embed_base_url', ''), '/')
+                   ?: $_lusterApp->getBaseUrl();
+$_lusterFormAction = $_lusterBaseUrl . '/update/' . $_lusterListingId;
+
+// Build "Forgot your password?" URL.
+// $luster_lost_password_url can be set before require to override the DB-configured value.
+if (isset($luster_lost_password_url)) {
+    $_lusterLostPasswordUrl = (string) $luster_lost_password_url;
+} else {
+    $_lusterResetPage       = (string) ($_lusterEmbedSettings['form_url_reset'] ?? '');
+    $_lusterLostPasswordUrl = $_lusterResetPage !== ''
+        ? rtrim((string) $_lusterListing->url, '/') . '/' . ltrim($_lusterResetPage, '/')
+        : '';
+}
 
 $_lusterHtml = $_lusterApp->getView()->renderFragment('update.php', [
     'listing'            => $_lusterListing,
@@ -117,7 +127,7 @@ $_lusterHtml = $_lusterApp->getView()->renderFragment('update.php', [
     'old'                   => $_lusterOld,
     'captcha_question'      => Captcha::getQuestion('update'),
     'captcha_error'         => '',
-    'lost_password_url'     => $_lusterRemoveUrl,
+    'lost_password_url'     => $_lusterLostPasswordUrl,
     'base_url'              => $_lusterApp->getBaseUrl(),
     'theme_path'            => $_lusterApp->getBaseUrl() . '/assets/default/',
 ]);

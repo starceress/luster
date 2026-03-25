@@ -84,10 +84,18 @@ $_lusterPage     = max(1, (int) ($_GET['page'] ?? 1));
 // 5. Load updates
 // ---------------------------------------------------------------------------
 
-$_lusterUpdateRepo = new UpdateRepo($_lusterDb);
-$_lusterUpdates    = $_lusterUpdateRepo->getForFanlisting($_lusterFid, $_lusterPage, $_lusterPerPage);
-$_lusterTotal      = $_lusterUpdateRepo->countForFanlisting($_lusterFid);
-$_lusterPages      = max(1, (int) ceil($_lusterTotal / $_lusterPerPage));
+try {
+    $_lusterUpdateRepo = new UpdateRepo($_lusterDb);
+    $_lusterUpdates    = $_lusterUpdateRepo->getForFanlisting($_lusterFid, $_lusterPage, $_lusterPerPage);
+    $_lusterTotal      = $_lusterUpdateRepo->countForFanlisting($_lusterFid);
+    $_lusterPages      = max(1, (int) ceil($_lusterTotal / $_lusterPerPage));
+} catch (\Throwable $_lusterEx) {
+    // Updates add-on not installed or table missing — return empty output silently.
+    if ($luster_return ?? false) {
+        return '';
+    }
+    return;
+}
 
 // ---------------------------------------------------------------------------
 // 6. Build feed URL for pagination links
@@ -110,6 +118,7 @@ $_lusterHtml = $_lusterApp->getView()->renderFragment('addons/updates/feed.php',
     'pages'         => $_lusterPages,
     'is_collective' => false,
     'show_cats'     => $_lusterShowCats,
+    'owner_name'    => (string) ($_lusterConfig->get('owner_name', '')),
     'feed_url'      => $_lusterFeedUrl,
     'base_url'      => $_lusterApp->getBaseUrl(),
     'theme_path'    => $_lusterApp->getBaseUrl() . '/assets/default/',

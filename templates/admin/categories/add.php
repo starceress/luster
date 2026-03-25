@@ -14,7 +14,7 @@ $fe = $field_errors ?? [];
   <a href="<?= $b ?>/admin/categories" class="neb-link">&larr; Back to Categories</a>
 </p>
 
-<div class="form-card" style="max-width:500px">
+<div class="neb-card neb-card-padded" style="max-width:500px">
   <h2 class="card-title" style="margin-bottom:1.25rem">Add New Category</h2>
   <form method="POST" id="add-form" class="js-warn-unsaved">
     <input type="hidden" name="_csrf" value="<?= \Luster\Core\View::e($csrf_token ?? '') ?>">

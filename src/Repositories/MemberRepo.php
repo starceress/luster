@@ -197,6 +197,28 @@ final class MemberRepo
     }
 
     /**
+     * Counts approved members added on or after $since (Y-m-d or Y-m-d H:i:s).
+     */
+    public function countApprovedSince(string $prefix, string $since): int
+    {
+        $p = $this->resolveTable($prefix);
+
+        try {
+            $stmt = $this->db->prepare(
+                "SELECT COUNT(*) FROM {$p} WHERE {$this->approvedWhere} AND added >= ?"
+            );
+            $stmt->execute([$since]);
+
+            return (int) $stmt->fetchColumn();
+        } catch (\PDOException $e) {
+            if (strpos($e->getMessage(), "doesn't exist") !== false) {
+                return 0;
+            }
+            throw $e;
+        }
+    }
+
+    /**
      * Full-text search across name, email, and URL (all members).
      *
      * @return Member[]
@@ -641,6 +663,23 @@ final class MemberRepo
         $stmt->execute();
 
         return (int) $stmt->fetchColumn();
+    }
+
+    /**
+     * Returns the distinct non-empty country names for approved members in one listing.
+     * Used by the dashboard to aggregate a cross-listing unique-country count.
+     *
+     * @return string[]
+     */
+    public function getDistinctCountryNames(string $prefix): array
+    {
+        $table = $this->resolveTable($prefix);
+        $stmt  = $this->db->prepare(
+            "SELECT DISTINCT country FROM `{$table}` WHERE {$this->approvedWhere} AND country != ''"
+        );
+        $stmt->execute();
+
+        return $stmt->fetchAll(\PDO::FETCH_COLUMN);
     }
 
     public function getLastUpdated(string $prefix): ?string

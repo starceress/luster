@@ -19,7 +19,7 @@ $pageUrl = static fn(int $p): string => $b . '/admin/activity?page=' . $p;
 <div class="neb-toolbar">
   <span class="text-muted" style="font-size:.8125rem"><?= (int) $total ?> entr<?= $total === 1 ? 'y' : 'ies' ?> logged</span>
   <div class="neb-actions">
-    <a href="<?= $b ?>/admin/activity/export" class="btn btn-secondary btn-sm">&#8595; Export CSV</a>
+    <a href="<?= $b ?>/admin/activity/export" class="btn btn-tertiary btn-sm">&#8595; Export CSV</a>
     <form method="POST" action="<?= $b ?>/admin/activity/flush" id="flush-activity-form">
       <input type="hidden" name="_csrf" value="<?= \Luster\Core\View::e($csrf_token ?? '') ?>">
       <button type="button" class="btn btn-danger btn-sm" id="flush-activity-btn">Flush Log</button>
@@ -38,6 +38,7 @@ $pageUrl = static fn(int $p): string => $b . '/admin/activity?page=' . $p;
 <?php else: ?>
 
 <div class="neb-card">
+  <div class="neb-table-wrap">
   <table class="data-table">
     <thead>
       <tr>
@@ -51,7 +52,7 @@ $pageUrl = static fn(int $p): string => $b . '/admin/activity?page=' . $p;
       <?php foreach ($entries as $entry): ?>
       <tr>
         <td class="text-muted" style="white-space:nowrap">
-          <?= \Luster\Core\View::e((string) ($entry['created_at'] ?? '')) ?>
+          <?= \Luster\Core\View::e(($entry['created_at'] ?? '') !== '' ? date($admin_date_format . ' ' . $admin_time_format, strtotime((string) $entry['created_at'])) : '') ?>
         </td>
         <td><?= \Luster\Core\View::e((string) ($entry['description'] ?? '')) ?></td>
         <td class="text-muted"><?= \Luster\Core\View::e((string) ($entry['username'] ?? '—')) ?></td>
@@ -62,6 +63,7 @@ $pageUrl = static fn(int $p): string => $b . '/admin/activity?page=' . $p;
       <?php endforeach; ?>
     </tbody>
   </table>
+  </div>
 </div>
 
 <?php if ($pages > 1): ?>
@@ -114,7 +116,7 @@ $end    = min($pages - 1, $page + $window);
     </div>
     <div class="neb-modal-footer">
       <button type="button" class="btn btn-danger" id="flush-activity-confirm">Flush Log</button>
-      <button type="button" class="btn btn-secondary" id="flush-activity-cancel">Cancel</button>
+      <button type="button" class="btn btn-tertiary" id="flush-activity-cancel">Cancel</button>
     </div>
   </div>
 </div>

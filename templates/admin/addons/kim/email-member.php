@@ -57,9 +57,9 @@ $b = rtrim(View::e($base_url), '/');
       <button type="submit" class="btn btn-primary">Send Email</button>
       <?php if ($listing !== null): ?>
         <a href="<?= $b ?>/admin/kim/<?= (int) $listing->id ?>/show"
-           class="btn btn-secondary">Cancel</a>
+           class="btn btn-tertiary">Cancel</a>
       <?php else: ?>
-        <a href="<?= $b ?>/admin/kim" class="btn btn-secondary">Cancel</a>
+        <a href="<?= $b ?>/admin/kim" class="btn btn-tertiary">Cancel</a>
       <?php endif; ?>
     </div>
   </form>

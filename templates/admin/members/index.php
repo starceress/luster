@@ -75,14 +75,14 @@ $memSortIcon = static function (string $col) use ($sort, $dir): string {
     </select>
     </div>
 
-    <button type="submit" class="btn btn-secondary btn-sm">Filter</button>
-    <a href="?" class="btn btn-secondary btn-sm">Reset</a>
+    <button type="submit" class="btn btn-tertiary btn-sm">Filter</button>
+    <a href="?" class="btn btn-tertiary btn-sm">Reset</a>
 
   </form>
 
   <div class="neb-actions">
-    <a href="<?= $b ?>/admin/members/<?= $id ?>/import" class="btn btn-secondary btn-sm">&#8593; Import CSV</a>
-    <a href="<?= $b ?>/admin/members/<?= $id ?>/export" class="btn btn-secondary btn-sm">&#8595; Export CSV</a>
+    <a href="<?= $b ?>/admin/members/<?= $id ?>/import" class="btn btn-tertiary btn-sm">&#8593; Import CSV</a>
+    <a href="<?= $b ?>/admin/members/<?= $id ?>/export" class="btn btn-tertiary btn-sm">&#8595; Export CSV</a>
   </div>
 </div>
 
@@ -115,10 +115,10 @@ $memSortIcon = static function (string $col) use ($sort, $dir): string {
       <svg class="empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
       <?php if (($search ?? '') !== '' || ($status ?? '') !== '' && $status !== 'all'): ?>
         No members match those filters.
-        <a href="?" class="btn btn-secondary btn-sm">Clear Filters</a>
+        <a href="?" class="btn btn-tertiary btn-sm">Clear Filters</a>
       <?php else: ?>
         No members yet — they'll appear here after the first join.
-        <a href="<?= $b ?>/admin/members/<?= $id ?>/import" class="btn btn-secondary btn-sm">&#8593; Import CSV</a>
+        <a href="<?= $b ?>/admin/members/<?= $id ?>/import" class="btn btn-tertiary btn-sm">&#8593; Import CSV</a>
       <?php endif; ?>
     </div>
   </div>
@@ -129,7 +129,9 @@ $memSortIcon = static function (string $col) use ($sort, $dir): string {
   Showing <?= $from ?>&#8211;<?= $to ?> of <?= number_format((int) $total) ?> members<?php if ($pages > 1): ?> &mdash; page <?= (int) $page ?> of <?= (int) $pages ?><?php endif; ?>
 </p>
 
-<form method="POST" id="bulk-form" action="<?= $b ?>/admin/members/<?= $id ?>/bulk">
+<form method="POST" id="bulk-form" action="<?= $b ?>/admin/members/<?= $id ?>/bulk"
+      data-del-bulk data-del-entity="member"
+      data-del-context="<?= \Luster\Core\View::e($listing->name) ?>">
   <input type="hidden" name="_csrf" value="<?= \Luster\Core\View::e($csrf_token ?? '') ?>">
 
   <!-- Bulk action bar -->
@@ -144,10 +146,11 @@ $memSortIcon = static function (string $col) use ($sort, $dir): string {
       <option value="email_selected">Email</option>
     </select>
     </div>
-    <button type="submit" class="btn btn-secondary btn-sm">Apply</button>
+    <button type="submit" class="btn btn-tertiary btn-sm">Apply</button>
   </div>
 
   <div class="neb-card">
+    <div class="neb-table-wrap">
     <table class="data-table mem-table">
       <thead>
         <tr>
@@ -167,7 +170,8 @@ $memSortIcon = static function (string $col) use ($sort, $dir): string {
         <?php foreach ($members as $m): ?>
         <tr>
           <td class="cb-col" data-label="">
-            <input type="checkbox" name="emails[]" value="<?= \Luster\Core\View::e($m->email) ?>">
+            <input type="checkbox" name="emails[]" value="<?= \Luster\Core\View::e($m->email) ?>"
+                   data-name="<?= \Luster\Core\View::e($m->name) ?>">
           </td>
           <td class="text-strong" data-label="Name"><?= \Luster\Core\View::e($m->name) ?></td>
           <td data-label="Email"><?= \Luster\Core\View::e($m->email) ?></td>
@@ -199,26 +203,34 @@ $memSortIcon = static function (string $col) use ($sort, $dir): string {
                 </form>
               <?php endif; ?>
               <a href="<?= $b ?>/admin/members/<?= $id ?>/edit?email=<?= urlencode($m->email) ?>"
-                 class="btn btn-secondary btn-sm">Edit</a>
+                 class="btn btn-primary btn-sm">Edit</a>
               <a href="<?= $b ?>/admin/members/<?= $id ?>/emailmember?email=<?= urlencode($m->email) ?>"
-                 class="btn btn-secondary btn-sm">Email</a>
-              <form method="POST" action="<?= $b ?>/admin/members/<?= $id ?>/delete" style="display:contents"
-                    data-confirm="Delete this member permanently?">
-                <input type="hidden" name="_csrf"        value="<?= \Luster\Core\View::e($csrf_token ?? '') ?>">
-                <input type="hidden" name="member_email" value="<?= \Luster\Core\View::e($m->email) ?>">
-                <input type="hidden" name="_page"        value="<?= (int) $page ?>">
-                <button type="submit" class="btn btn-danger btn-sm">Delete</button>
-              </form>
+                 class="btn btn-tertiary btn-sm">Email</a>
+              <button type="submit" form="del-mem-<?= md5($m->email) ?>" class="btn btn-danger btn-sm">Delete</button>
             </div>
           </td>
         </tr>
         <?php endforeach; ?>
       </tbody>
     </table>
+    </div>
 
   </div><!-- /.neb-card -->
 
 </form>
+
+<?php foreach ($members as $m): ?>
+<form id="del-mem-<?= md5($m->email) ?>" method="POST"
+      action="<?= $b ?>/admin/members/<?= $id ?>/delete"
+      style="display:none"
+      data-del-modal data-del-entity="member"
+      data-del-name="<?= \Luster\Core\View::e($m->name) ?>"
+      data-del-context="<?= \Luster\Core\View::e($listing->name) ?>">
+  <input type="hidden" name="_csrf"        value="<?= \Luster\Core\View::e($csrf_token ?? '') ?>">
+  <input type="hidden" name="member_email" value="<?= \Luster\Core\View::e($m->email) ?>">
+  <input type="hidden" name="_page"        value="<?= (int) $page ?>">
+</form>
+<?php endforeach; ?>
 
 <!-- Pagination -->
 <?php

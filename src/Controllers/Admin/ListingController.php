@@ -250,7 +250,9 @@ final class ListingController
         $email    = trim((string) $request->post('email', ''));
         $statusRaw = (int) $request->post('status', 2);
         $status   = in_array($statusRaw, [0, 1, 2], true) ? $statusRaw : 2;
-        $opened   = trim((string) $request->post('opened', '')) ?: date('Y-m-d');
+        $opened   = $status !== 2
+            ? 'TBA'
+            : (trim((string) $request->post('opened', '')) ?: date('Y-m-d'));
 
         $tflCats        = $categoryRepo->getBySource('tfl');
         $taflCats       = $categoryRepo->getBySource('tafl');
@@ -334,14 +336,15 @@ final class ListingController
         $settingsRepo = new ListingSettingsRepo($db);
         $settingsRepo->saveEmbedSettings(
             $newId,
-            'join.php',   // form_url_join
-            'update.php', // form_url_update
-            'remove.php', // form_url_remove
-            'reset.php',  // form_url_reset
-            '',           // db_host
-            '',           // db_name
-            '',           // db_user
-            '',           // db_pass
+            'join.php',          // form_url_join
+            'update.php',        // form_url_update
+            'remove.php',        // form_url_remove
+            'reset.php',         // form_url_reset
+            'codes-submit.php',  // form_url_codes_submit
+            '',                  // db_host
+            '',                  // db_name
+            '',                  // db_user
+            '',                  // db_pass
         );
 
         return Response::redirect($this->app->getBaseUrl() . '/admin/listings');
@@ -441,7 +444,9 @@ final class ListingController
             $email       = trim((string) $request->post('email', ''));
             $status      = (string) $request->post('status', 'current');
             $subject     = trim((string) $request->post('subject', ''));
-            $opened      = trim((string) $request->post('opened', ''));
+            $opened      = $status !== 'current'
+                ? 'TBA'
+                : trim((string) $request->post('opened', ''));
             $nets        = array_values((array) $request->post('cat_network', []));
             $nms         = array_values((array) $request->post('cat_name', []));
             $catids      = [];
@@ -894,14 +899,15 @@ final class ListingController
 
         $settingsRepo = new ListingSettingsRepo($db);
 
-        $formUrlJoin   = ltrim(trim((string) $request->post('form_url_join',   '')), '/');
-        $formUrlUpdate = ltrim(trim((string) $request->post('form_url_update', '')), '/');
-        $formUrlRemove = ltrim(trim((string) $request->post('form_url_remove', '')), '/');
-        $formUrlReset  = ltrim(trim((string) $request->post('form_url_reset',  '')), '/');
-        $dbHost        = trim((string) $request->post('db_host', ''));
-        $dbName        = trim((string) $request->post('db_name', ''));
-        $dbUser        = trim((string) $request->post('db_user', ''));
-        $newDbPass     = (string) $request->post('db_pass', '');
+        $formUrlJoin         = ltrim(trim((string) $request->post('form_url_join',         '')), '/');
+        $formUrlUpdate       = ltrim(trim((string) $request->post('form_url_update',       '')), '/');
+        $formUrlRemove       = ltrim(trim((string) $request->post('form_url_remove',       '')), '/');
+        $formUrlReset        = ltrim(trim((string) $request->post('form_url_reset',        '')), '/');
+        $formUrlCodesSubmit  = ltrim(trim((string) $request->post('form_url_codes_submit', '')), '/');
+        $dbHost              = trim((string) $request->post('db_host', ''));
+        $dbName              = trim((string) $request->post('db_name', ''));
+        $dbUser              = trim((string) $request->post('db_user', ''));
+        $newDbPass           = (string) $request->post('db_pass', '');
 
         // Only update db_pass if a new value was submitted; empty = keep existing
         if ($newDbPass === '') {
@@ -917,6 +923,7 @@ final class ListingController
             $formUrlUpdate,
             $formUrlRemove,
             $formUrlReset,
+            $formUrlCodesSubmit,
             $dbHost,
             $dbName,
             $dbUser,
@@ -1036,7 +1043,7 @@ final class ListingController
     public function emailTemplatesRedirect(Request $request, array $params): Response
     {
         $id = (int) ($params['id'] ?? 0);
-        return Response::redirect($this->app->getBaseUrl() . '/admin/email-templates?listing=' . $id);
+        return Response::redirect($this->app->getBaseUrl() . '/admin/emails?tab=templates&listing=' . $id);
     }
 
     // -----------------------------------------------------------------------

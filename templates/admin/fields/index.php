@@ -39,6 +39,7 @@ $id = (int) $listing->id;
   </div>
 <?php else: ?>
   <div class="neb-card">
+    <div class="neb-table-wrap">
     <table class="data-table">
       <thead>
         <tr>
@@ -70,7 +71,8 @@ $id = (int) $listing->id;
               <form method="POST"
                     action="<?= $b ?>/admin/listings/<?= $id ?>/fields/<?= urlencode($field->name) ?>/delete"
                     style="display:inline;margin-left:.25rem"
-                    data-confirm="Drop the column for field &#x201C;<?= \Luster\Core\View::e($field->name) ?>&#x201D;? This permanently removes member data for this field and cannot be undone.">
+                    data-del-modal data-del-entity="field"
+                    data-del-name="<?= $safeName ?>">
                 <input type="hidden" name="_csrf"      value="<?= \Luster\Core\View::e($csrf_token) ?>">
                 <input type="hidden" name="field_name" value="<?= $safeName ?>">
                 <button type="submit" class="btn btn-danger btn-sm">Delete</button>
@@ -80,6 +82,7 @@ $id = (int) $listing->id;
         <?php endforeach; ?>
       </tbody>
     </table>
+    </div>
   </div>
 <?php endif; ?>
 

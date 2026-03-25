@@ -62,7 +62,7 @@ $allOk = empty($failed);
   <?php endif; ?>
 
   <div class="btn-row">
-    <a href="<?= $b ?>/admin/emails" class="btn btn-primary">Compose another</a>
-    <a href="<?= $b ?>/admin/activity"   class="btn btn-secondary">View activity log</a>
+    <a href="<?= $b ?>/admin/emails?tab=bulk" class="btn btn-primary">Compose another</a>
+    <a href="<?= $b ?>/admin/activity"   class="btn btn-tertiary">View activity log</a>
   </div>
 </div>

@@ -22,112 +22,126 @@ $dataTafl   = json_encode($tafl_cats     ?? [], JSON_HEX_QUOT | JSON_HEX_AMP | J
 $dataCustom = json_encode($custom_networks ?? [], JSON_HEX_QUOT | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_TAG);
 ?>
 
-<p style="margin-bottom:1rem">
-  <a href="<?= $b ?>/admin/listings" class="neb-link">&larr; Back to Owned Listings</a>
+<p class="page-back">
+  <a href="<?= $b ?>/admin/listings" class="back-link">&larr; Back to Owned Listings</a>
 </p>
 
 <?php if ($error !== ''): ?>
   <div class="alert alert-error"><?= \Luster\Core\View::e($error) ?></div>
 <?php endif; ?>
 
-<div class="form-card">
+<div class="neb-card listing-field-card">
   <form method="POST" action="<?= $b ?>/admin/listings/add" enctype="multipart/form-data" class="js-warn-unsaved">
     <input type="hidden" name="_csrf" value="<?= \Luster\Core\View::e($csrf_token ?? '') ?>">
 
-    <!-- ── Listing Details ─────────────────────────────────────── -->
-    <div class="form-section">
-      <div class="form-section-label">Listing Details</div>
+    <div class="listing-field-section">
 
-      <div class="form-group<?= !empty($fe['subject']) ? ' has-error' : '' ?>">
-        <label class="form-label" for="fl-subject">Subject <span>*</span></label>
-        <input id="fl-subject" type="text" name="subject" class="form-input" maxlength="255" required
-               value="<?= \Luster\Core\View::e($val('subject')) ?>">
-        <p class="form-hint">The subject of your listing (e.g. character name, show title).</p>
-        <?php if (!empty($fe['subject'])): ?><p class="field-error"><?= \Luster\Core\View::e($fe['subject'][0]) ?></p><?php endif; ?>
+      <!-- ── Network & Category ── -->
+      <div class="listing-field-row listing-field-row--top">
+        <span class="listing-field-label">Network &amp; Category</span>
+        <div>
+          <div class="cat-widget" id="cat-widget"
+               data-tfl='<?= $dataTfl ?>'
+               data-tafl='<?= $dataTafl ?>'
+               data-custom='<?= $dataCustom ?>'
+               data-existing='[]'>
+            <div id="cat-rows"></div>
+            <a href="#" class="neb-link" id="cat-add" style="font-size:.8125rem;display:inline-block;margin-top:.4rem">+ Add another category</a>
+          </div>
+          <p class="form-hint">The network(s) and category(ies) this listing is listed under.</p>
+        </div>
       </div>
 
-      <div class="form-group">
-        <label class="form-label" for="fl-title">Title</label>
-        <input id="fl-title" type="text" name="title" class="form-input" maxlength="255"
-               value="<?= \Luster\Core\View::e($val('title')) ?>">
-        <p class="form-hint">Optional display name — defaults to Subject if left blank.</p>
+      <!-- ── Subject ── -->
+      <div class="listing-field-row listing-field-row--top<?= !empty($fe['subject']) ? ' has-error' : '' ?>">
+        <label class="listing-field-label" for="fl-subject">Subject <span class="req">*</span></label>
+        <div>
+          <input id="fl-subject" type="text" name="subject" class="form-input" maxlength="255" required
+                 value="<?= \Luster\Core\View::e($val('subject')) ?>">
+          <p class="form-hint">The subject of your listing (e.g. character name, show title).</p>
+          <?php if (!empty($fe['subject'])): ?><p class="field-error"><?= \Luster\Core\View::e($fe['subject'][0]) ?></p><?php endif; ?>
+        </div>
       </div>
 
-      <div class="form-group<?= !empty($fe['url']) ? ' has-error' : '' ?>">
-        <label class="form-label" for="fl-url">URL <span>*</span></label>
-        <input id="fl-url" type="url" name="url" class="form-input" maxlength="500" placeholder="https://" required
-               value="<?= \Luster\Core\View::e($val('url')) ?>">
-        <p class="form-hint">The public URL of your fanlisting.</p>
-        <?php if (!empty($fe['url'])): ?><p class="field-error"><?= \Luster\Core\View::e($fe['url'][0]) ?></p><?php endif; ?>
+      <!-- ── Title ── -->
+      <div class="listing-field-row listing-field-row--top">
+        <label class="listing-field-label" for="fl-title">Title</label>
+        <div>
+          <input id="fl-title" type="text" name="title" class="form-input" maxlength="255"
+                 value="<?= \Luster\Core\View::e($val('title')) ?>">
+          <p class="form-hint">Optional display name — defaults to Subject if left blank.</p>
+        </div>
       </div>
 
-      <div class="form-group">
-        <label class="form-label" for="fl-email">Email</label>
-        <input id="fl-email" type="email" name="email" class="form-input" maxlength="255"
-               value="<?= \Luster\Core\View::e($val('email')) ?>">
-        <p class="form-hint">Address listing emails are sent from.</p>
+      <!-- ── URL ── -->
+      <div class="listing-field-row listing-field-row--top<?= !empty($fe['url']) ? ' has-error' : '' ?>">
+        <label class="listing-field-label" for="fl-url">URL <span class="req">*</span></label>
+        <div>
+          <input id="fl-url" type="url" name="url" class="form-input" maxlength="500" placeholder="https://" required
+                 value="<?= \Luster\Core\View::e($val('url')) ?>">
+          <?php if (!empty($fe['url'])): ?><p class="field-error"><?= \Luster\Core\View::e($fe['url'][0]) ?></p><?php endif; ?>
+        </div>
       </div>
 
-      <div class="form-group">
-        <label class="form-label" for="fl-image">Listing Image</label>
-        <input id="fl-image" type="file" name="image"
-               accept="image/jpeg,image/png,image/gif,image/webp">
-        <p class="form-hint">JPEG, PNG, GIF, or WebP &mdash; max&nbsp;2&nbsp;MB.</p>
+      <!-- ── Email ── -->
+      <div class="listing-field-row listing-field-row--top">
+        <label class="listing-field-label" for="fl-email">Email</label>
+        <div>
+          <input id="fl-email" type="email" name="email" class="form-input" maxlength="255"
+                 placeholder="admin@example.com"
+                 value="<?= \Luster\Core\View::e($val('email')) ?>">
+          <p class="form-hint">Address listing emails are sent from.</p>
+        </div>
       </div>
-    </div>
 
-    <div class="section-divider"></div>
+      <!-- ── Listing Image ── -->
+      <div class="listing-field-row">
+        <span class="listing-field-label">Listing Image</span>
+        <label class="file-drop-zone">
+          <input type="file" name="image" accept="image/jpeg,image/png,image/gif,image/webp">
+          <svg class="file-drop-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+            <rect x="2" y="2" width="12" height="12" rx="1.5"/>
+            <circle cx="5.5" cy="5.5" r="1"/>
+            <path d="M14 10l-3.5-3.5L6 11l-2-2-2 2"/>
+          </svg>
+          <span class="file-drop-label">Click to upload</span>
+          <span class="file-drop-sub">JPEG, PNG, GIF, WebP &mdash; max&nbsp;2&nbsp;MB</span>
+        </label>
+      </div>
 
-    <!-- ── Status & Schedule ────────────────────────────────────── -->
-    <div class="form-section">
-      <div class="form-section-label">Status &amp; Schedule</div>
-
-      <div class="form-group">
-        <label class="form-label">Status</label>
-        <div style="display:flex;flex-direction:column;gap:0.35rem;margin-top:0.25rem">
-          <label class="form-check">
+      <!-- ── Status ── -->
+      <div class="listing-field-row">
+        <span class="listing-field-label">Status</span>
+        <div class="status-pill-row">
+          <label class="status-pill status-pill--current">
             <input type="radio" name="status" value="2" <?= $selStatus === 2 ? 'checked' : '' ?>>
-            <span class="form-check-label">Current — open and accepting members</span>
+            Current
           </label>
-          <label class="form-check">
+          <label class="status-pill status-pill--upcoming">
             <input type="radio" name="status" value="1" <?= $selStatus === 1 ? 'checked' : '' ?>>
-            <span class="form-check-label">Upcoming — not open yet</span>
+            Upcoming
           </label>
-          <label class="form-check">
+          <label class="status-pill status-pill--pending">
             <input type="radio" name="status" value="0" <?= $selStatus === 0 ? 'checked' : '' ?>>
-            <span class="form-check-label">Pending — awaiting TFL approval</span>
+            Pending
           </label>
         </div>
       </div>
 
-      <div class="form-group">
-        <label class="form-label" for="fl-opened">Opened On</label>
-        <input id="fl-opened" type="date" name="opened" class="form-input" style="max-width:200px"
-               value="<?= \Luster\Core\View::e($val('opened', $default_date)) ?>">
-        <p class="form-hint">The date this fanlisting first opened.</p>
-      </div>
-    </div>
-
-    <div class="section-divider"></div>
-
-    <!-- ── Category ─────────────────────────────────────────────── -->
-    <div class="form-section">
-      <div class="form-section-label">Category</div>
-
-      <div class="form-group">
-        <div class="cat-widget" id="cat-widget"
-             data-tfl='<?= $dataTfl ?>'
-             data-tafl='<?= $dataTafl ?>'
-             data-custom='<?= $dataCustom ?>'
-             data-existing='[]'>
-          <div id="cat-rows"></div>
-          <a href="#" class="neb-link" id="cat-add" style="font-size:0.8125rem;display:inline-block;margin-top:0.4rem">+ Add another category</a>
+      <!-- ── Opened On ── -->
+      <div class="listing-field-row" id="opened-row">
+        <label class="listing-field-label" for="fl-opened">Opened On</label>
+        <div>
+          <input id="fl-opened" type="date" name="opened" class="form-input" style="max-width:180px"
+                 value="<?= \Luster\Core\View::e($val('opened', $default_date)) ?>">
+          <input type="hidden" id="fl-opened-tba" name="opened" value="TBA" disabled>
+          <span id="fl-opened-tba-text" style="display:none;font-size:.85rem;color:var(--text-muted);font-style:italic">TBA &mdash; date will be set when the listing opens.</span>
         </div>
-        <p class="form-hint">The network(s) and category(ies) this listing is listed under.</p>
       </div>
-    </div>
 
-    <div class="btn-row">
+    </div><!-- /.listing-field-section -->
+
+    <div class="composer-footer">
       <button type="submit" class="btn btn-primary">Add Listing</button>
       <button type="button" class="btn btn-ghost" id="clear-form-btn">Clear Form</button>
       <a href="<?= $b ?>/admin/listings" class="btn btn-ghost">Cancel</a>
@@ -135,4 +149,3 @@ $dataCustom = json_encode($custom_networks ?? [], JSON_HEX_QUOT | JSON_HEX_AMP |
 
   </form>
 </div>
-

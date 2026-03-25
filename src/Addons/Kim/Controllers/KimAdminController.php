@@ -55,7 +55,7 @@ final class KimAdminController
 
         return $this->adminResponse('admin/addons/kim/index.php', [
             'page_title'      => 'KIM List',
-            'current_section' => 'addons',
+            'current_section' => 'kim',
             'fanlistings_data' => $fanlistingsData,
             'success'         => $success,
             'error'           => $error,
@@ -100,7 +100,7 @@ final class KimAdminController
 
         return $this->adminResponse('admin/addons/kim/show.php', [
             'page_title'      => 'KIM — ' . $listing->subject,
-            'current_section' => 'addons',
+            'current_section' => 'kim',
             'listing'         => $listing,
             'members'         => $members,
             'pending_count'   => $pendingCount,
@@ -147,7 +147,7 @@ final class KimAdminController
 
             return $this->adminResponse('admin/addons/kim/edit.php', [
                 'page_title'      => 'Edit KIM Member',
-                'current_section' => 'addons',
+                'current_section' => 'kim',
                 'member'          => $member,
                 'fanlistings'     => $fanlistings,
                 'fanlisting_name' => $fanlistingName,
@@ -312,7 +312,7 @@ final class KimAdminController
 
         return $this->adminResponse('admin/addons/kim/mass-email.php', [
             'page_title'      => 'Mass Email — KIM ' . $listing->subject,
-            'current_section' => 'addons',
+            'current_section' => 'kim',
             'listing'         => $listing,
             'recipient_count' => count($recipients),
             'error'           => $error,
@@ -404,7 +404,7 @@ final class KimAdminController
 
         return $this->adminResponse('admin/addons/kim/email-member.php', [
             'page_title'      => 'Email ' . $member->name,
-            'current_section' => 'addons',
+            'current_section' => 'kim',
             'member'          => $member,
             'listing'         => $listing,
             'error'           => $error,
@@ -475,14 +475,14 @@ final class KimAdminController
             'csrf_token'     => $csrfToken,
         ]));
 
-        return Response::html($view->render('admin/layout.php', [
+        return Response::html($view->render('admin/layout.php', array_merge([
             'page_title'      => $data['page_title'] ?? 'KIM',
             'site_name'       => (string) $config->get('site_name', 'Luster'),
             'admin_username'  => (string) $session->get('lstr_admin_username', ''),
             'csrf_token'      => $csrfToken,
-            'current_section' => $data['current_section'] ?? 'addons',
+            'current_section' => $data['current_section'] ?? 'kim',
             'base_url'        => $baseUrl,
             'content'         => $inner,
-        ]));
+        ], $this->app->getAdminNavData())));
     }
 }

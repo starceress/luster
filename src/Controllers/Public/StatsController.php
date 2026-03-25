@@ -30,7 +30,7 @@ use Luster\Repositories\MemberRepo;
  *   {stat_approved}     — approved member count
  *   {stat_pending}      — pending member count
  *   {stat_newmembers}   — comma-separated list of newest 5 approved member names
- *   {stat_growth}       — members per day since opened, formatted to 2 decimal places
+ *   {stat_growth}       — average members per day since opened, e.g. "1.23 members/day"
  *   {listing_name}      — listing name (HTML-escaped)
  *   {listing_url}       — listing URL (HTML-escaped)
  */
@@ -115,7 +115,7 @@ final class StatsController
                 (string) $approved,
                 (string) $pending,
                 $newMembersStr,
-                $growth,
+                $growth . ' members/day',
                 htmlspecialchars($listing->name, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),
                 htmlspecialchars($listing->url,  ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),
             ],

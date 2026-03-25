@@ -32,7 +32,7 @@ final class CodesRepo
      */
     public function getByListing(int $listingId, ?string $status = null): array
     {
-        $sql    = 'SELECT id, fanlisting_id, name, filename, width, height, size_id, donor_id, sort_order, status, submitter_name, submitter_email, created_at
+        $sql    = 'SELECT id, fanlisting_id, name, filename, width, height, size_id, donor_id, sort_order, status, submitter_name, submitter_email, submitter_url, created_at
                    FROM lstr_codes
                    WHERE fanlisting_id = :fid';
         $params = ['fid' => $listingId];
@@ -60,6 +60,7 @@ final class CodesRepo
             'status'         => (string) $r['status'],
             'submitterName'  => $r['submitter_name']  !== null ? (string) $r['submitter_name']  : null,
             'submitterEmail' => $r['submitter_email'] !== null ? (string) $r['submitter_email'] : null,
+            'submitterUrl'   => $r['submitter_url']   !== null ? (string) $r['submitter_url']   : null,
             'createdAt'      => (string) $r['created_at'],
         ], $stmt->fetchAll());
     }
@@ -70,7 +71,7 @@ final class CodesRepo
     public function getById(int $id): ?object
     {
         $stmt = $this->db->prepare(
-            'SELECT id, fanlisting_id, name, filename, width, height, size_id, donor_id, sort_order, status, submitter_name, submitter_email, created_at
+            'SELECT id, fanlisting_id, name, filename, width, height, size_id, donor_id, sort_order, status, submitter_name, submitter_email, submitter_url, created_at
              FROM lstr_codes WHERE id = :id'
         );
         $stmt->execute(['id' => $id]);
@@ -93,6 +94,7 @@ final class CodesRepo
             'status'         => (string) $row['status'],
             'submitterName'  => $row['submitter_name']  !== null ? (string) $row['submitter_name']  : null,
             'submitterEmail' => $row['submitter_email'] !== null ? (string) $row['submitter_email'] : null,
+            'submitterUrl'   => $row['submitter_url']   !== null ? (string) $row['submitter_url']   : null,
             'createdAt'      => (string) $row['created_at'],
         ];
     }
@@ -152,10 +154,11 @@ final class CodesRepo
         ?string $name           = null,
         ?string $submitterName  = null,
         ?string $submitterEmail = null,
+        ?string $submitterUrl   = null,
     ): int {
         $stmt = $this->db->prepare(
-            'INSERT INTO lstr_codes (fanlisting_id, name, filename, width, height, size_id, donor_id, sort_order, status, submitter_name, submitter_email)
-             VALUES (:fid, :name, :filename, :width, :height, :size_id, :donor_id, :sort, :status, :submitter_name, :submitter_email)'
+            'INSERT INTO lstr_codes (fanlisting_id, name, filename, width, height, size_id, donor_id, sort_order, status, submitter_name, submitter_email, submitter_url)
+             VALUES (:fid, :name, :filename, :width, :height, :size_id, :donor_id, :sort, :status, :submitter_name, :submitter_email, :submitter_url)'
         );
         $stmt->execute([
             'fid'             => $listingId,
@@ -169,6 +172,7 @@ final class CodesRepo
             'status'          => $status,
             'submitter_name'  => $submitterName,
             'submitter_email' => $submitterEmail,
+            'submitter_url'   => $submitterUrl,
         ]);
 
         return (int) $this->db->lastInsertId();

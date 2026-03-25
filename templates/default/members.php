@@ -21,69 +21,65 @@ declare(strict_types=1);
 
 use Luster\Core\View;
 ?>
-<div class="fl-wrap">
-  <h2 class="fl-title">Members of <?= View::e($listing_name) ?></h2>
-
+<div>
   <?php if ($show_search ?? true): ?>
   <p>
-    <a class="fl-link" href="<?= View::e($join_url) ?>">Join this listing</a>
-    &nbsp;&mdash;&nbsp;
     Sort by:
     <?php $nameUrl    = View::e($members_base . '?sort=name'); ?>
     <?php $countryUrl = View::e($members_base . '?sort=country'); ?>
     <?php if ($sort === 'name'): ?>
       <strong>Name</strong> |
-      <a class="fl-link" href="<?= $countryUrl ?>">Country</a>
+      <a href="<?= $countryUrl ?>">Country</a>
     <?php else: ?>
-      <a class="fl-link" href="<?= $nameUrl ?>">Name</a> |
+      <a href="<?= $nameUrl ?>">Name</a> |
       <strong>Country</strong>
     <?php endif; ?>
   </p>
 
   <?php if ($country !== ''): ?>
-    <p><a class="fl-link" href="<?= View::e($members_base . '?sort=country') ?>">&larr; Back to countries</a></p>
+    <p><a href="<?= View::e($members_base . '?sort=country') ?>">&larr; Back to countries</a></p>
   <?php endif; ?>
   <?php endif; ?>
 
-  <p class="fl-muted" style="font-size:.875rem"><?= View::e($stats_line) ?></p>
+  <p style="font-size:.875rem"><?= View::e($stats_line) ?></p>
 
   <?php if (!empty($country_summary)): ?>
     <!-- Country summary view -->
-    <ul class="fl-member-list">
+    <ul>
       <?php foreach ($country_summary as $row): ?>
-        <li class="fl-member">
-          <a class="fl-link" href="<?= View::e($row['url']) ?>"><?= View::e($row['country']) ?></a>
-          <span class="fl-muted">(<?= (int) $row['fan_count'] ?>)</span>
+        <li>
+          <a href="<?= View::e($row['url']) ?>"><?= View::e($row['country']) ?></a>
+          (<?= (int) $row['fan_count'] ?>)
         </li>
       <?php endforeach; ?>
     </ul>
 
   <?php elseif (($members_html ?? null) !== null && $members_html !== ''): ?>
     <!-- Custom DB template member rows -->
-    <ul class="fl-member-list">
+    <ul>
       <?= $members_html ?>
     </ul>
     <?php if ($pagination !== ''): ?>
-      <div class="fl-pagination"><?= $pagination ?></div>
+      <div><?= $pagination ?></div>
     <?php endif; ?>
 
   <?php elseif (!empty($members)): ?>
     <!-- Member list view -->
-    <ul class="fl-member-list">
+    <ul>
       <?php foreach ($members as $member): ?>
-        <li class="fl-member">
+        <li>
           <?php if ($member->showurl && $member->url !== ''): ?>
-            <a class="fl-link" href="<?= View::e($member->url) ?>"><?= View::e($member->name) ?></a>
+            <a href="<?= View::e($member->url) ?>"><?= View::e($member->name) ?></a>
           <?php else: ?>
             <?= View::e($member->name) ?>
           <?php endif; ?>
           <?php if ($member->country !== ''): ?>
-            <span class="fl-muted">&mdash; <?= View::e($member->country) ?></span>
+            &mdash; <?= View::e($member->country) ?>
           <?php endif; ?>
           <?php foreach ($fields as $field): ?>
             <?php $val = $member->additionalFields[$field->name] ?? ''; ?>
             <?php if ($val !== ''): ?>
-              <span class="fl-muted">&bull; <?= View::e($field->label) ?>: <?= View::e($val) ?></span>
+              &bull; <?= View::e($field->label) ?>: <?= View::e($val) ?>
             <?php endif; ?>
           <?php endforeach; ?>
         </li>
@@ -91,10 +87,10 @@ use Luster\Core\View;
     </ul>
 
     <?php if ($pagination !== ''): ?>
-      <div class="fl-pagination"><?= $pagination ?></div>
+      <div><?= $pagination ?></div>
     <?php endif; ?>
 
   <?php else: ?>
-    <p class="fl-empty">No members to display yet.</p>
+    <p>No members to display yet.</p>
   <?php endif; ?>
 </div>

@@ -10,6 +10,7 @@ use Luster\Core\Request;
 use Luster\Core\Response;
 use Luster\Repositories\CodesRepo;
 use Luster\Repositories\ListingRepo;
+use Luster\Repositories\ListingSettingsRepo;
 
 /**
  * Public fan code submission — allows fans to submit code images for review.
@@ -94,7 +95,13 @@ final class CodesSubmitController
             return Response::notFound('Listing not found.');
         }
 
-        $submitUrl = $baseUrl . '/codes/submit/' . $listingId;
+        $settingsRepo  = new ListingSettingsRepo($db);
+        $embedSettings = $settingsRepo->getEmbedSettings($listingId);
+
+        $codesSubmitPage = (string) ($embedSettings['form_url_codes_submit'] ?? '');
+        $submitUrl = $codesSubmitPage !== ''
+            ? rtrim((string) $listing->url, '/') . '/' . ltrim($codesSubmitPage, '/')
+            : $baseUrl . '/codes/submit/' . $listingId;
 
         // Validate captcha
         $captchaAnswer = (string) $request->post('captcha', '');
@@ -103,6 +110,7 @@ final class CodesSubmitController
             $session->set('lstr_flash_old', [
                 'submitter_name'  => $request->post('submitter_name',  ''),
                 'submitter_email' => $request->post('submitter_email', ''),
+                'submitter_url'   => $request->post('submitter_url',   ''),
             ]);
             return Response::redirect($submitUrl);
         }
@@ -110,8 +118,10 @@ final class CodesSubmitController
         // Collect optional submitter info
         $submitterName  = trim((string) $request->post('submitter_name',  ''));
         $submitterEmail = trim((string) $request->post('submitter_email', ''));
+        $submitterUrl   = trim((string) $request->post('submitter_url',   ''));
         $submitterName  = $submitterName  !== '' ? $submitterName  : null;
         $submitterEmail = $submitterEmail !== '' ? $submitterEmail : null;
+        $submitterUrl   = $submitterUrl   !== '' ? $submitterUrl   : null;
 
         // Validate email if provided
         if ($submitterEmail !== null && filter_var($submitterEmail, FILTER_VALIDATE_EMAIL) === false) {
@@ -119,6 +129,18 @@ final class CodesSubmitController
             $session->set('lstr_flash_old', [
                 'submitter_name'  => $submitterName  ?? '',
                 'submitter_email' => $submitterEmail ?? '',
+                'submitter_url'   => $submitterUrl   ?? '',
+            ]);
+            return Response::redirect($submitUrl);
+        }
+
+        // Validate URL if provided
+        if ($submitterUrl !== null && filter_var($submitterUrl, FILTER_VALIDATE_URL) === false) {
+            $session->set('lstr_flash_error', 'Please enter a valid website URL (e.g. https://example.com).');
+            $session->set('lstr_flash_old', [
+                'submitter_name'  => $submitterName  ?? '',
+                'submitter_email' => $submitterEmail ?? '',
+                'submitter_url'   => $submitterUrl   ?? '',
             ]);
             return Response::redirect($submitUrl);
         }
@@ -130,6 +152,7 @@ final class CodesSubmitController
             $session->set('lstr_flash_old', [
                 'submitter_name'  => $submitterName  ?? '',
                 'submitter_email' => $submitterEmail ?? '',
+                'submitter_url'   => $submitterUrl   ?? '',
             ]);
             return Response::redirect($submitUrl);
         }
@@ -139,6 +162,7 @@ final class CodesSubmitController
             $session->set('lstr_flash_old', [
                 'submitter_name'  => $submitterName  ?? '',
                 'submitter_email' => $submitterEmail ?? '',
+                'submitter_url'   => $submitterUrl   ?? '',
             ]);
             return Response::redirect($submitUrl);
         }
@@ -148,6 +172,7 @@ final class CodesSubmitController
             $session->set('lstr_flash_old', [
                 'submitter_name'  => $submitterName  ?? '',
                 'submitter_email' => $submitterEmail ?? '',
+                'submitter_url'   => $submitterUrl   ?? '',
             ]);
             return Response::redirect($submitUrl);
         }
@@ -160,6 +185,7 @@ final class CodesSubmitController
             $session->set('lstr_flash_old', [
                 'submitter_name'  => $submitterName  ?? '',
                 'submitter_email' => $submitterEmail ?? '',
+                'submitter_url'   => $submitterUrl   ?? '',
             ]);
             return Response::redirect($submitUrl);
         }
@@ -190,6 +216,7 @@ final class CodesSubmitController
             $session->set('lstr_flash_old', [
                 'submitter_name'  => $submitterName  ?? '',
                 'submitter_email' => $submitterEmail ?? '',
+                'submitter_url'   => $submitterUrl   ?? '',
             ]);
             return Response::redirect($submitUrl);
         }
@@ -209,6 +236,7 @@ final class CodesSubmitController
             null,
             $submitterName,
             $submitterEmail,
+            $submitterUrl,
         );
 
         return Response::redirect($baseUrl . '/codes/submit/' . $listingId . '/thanks');

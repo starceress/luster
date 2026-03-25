@@ -96,7 +96,7 @@ if ($displayMode === 'category') {
 <!-- Toolbar -->
 <div class="neb-toolbar">
   <div class="neb-actions">
-    <button type="button" class="btn btn-secondary btn-sm fl-filter-toggle" id="fl-filter-toggle"
+    <button type="button" class="btn btn-tertiary btn-sm fl-filter-toggle" id="fl-filter-toggle"
             aria-expanded="<?= $filtersActive ? 'true' : 'false' ?>"
             aria-controls="fl-filter-panel">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><line x1="4" y1="6" x2="20" y2="6"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="11" y1="18" x2="13" y2="18"/></svg>
@@ -105,7 +105,7 @@ if ($displayMode === 'category') {
   </div>
   <div class="neb-actions">
     <a href="<?= $b ?>/admin/joined/add" class="btn btn-primary btn-sm">+ Add Joined FL</a>
-    <a href="<?= $b ?>/admin/joined/settings" class="btn btn-secondary btn-sm">Display Settings</a>
+    <a href="<?= $b ?>/admin/joined/settings" class="btn btn-tertiary btn-sm">Display Settings</a>
   </div>
 </div>
 
@@ -141,8 +141,8 @@ if ($displayMode === 'category') {
 
     <input type="text" name="search" class="neb-input" placeholder="Search&hellip;"
            value="<?= \Luster\Core\View::e($search ?? '') ?>">
-    <button type="submit" class="btn btn-secondary btn-sm">Search</button>
-    <a href="?" class="btn btn-secondary btn-sm">Reset</a>
+    <button type="submit" class="btn btn-tertiary btn-sm">Search</button>
+    <a href="?" class="btn btn-tertiary btn-sm">Reset</a>
 
   </form>
 </div>
@@ -153,7 +153,7 @@ if ($displayMode === 'category') {
       <svg class="empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
       <?php if (($search ?? '') !== '' || ($filter_network ?? '') !== '' || ($filter_cat ?? '') !== ''): ?>
         No joined listings match those filters.
-        <a href="<?= $b ?>/admin/joined" class="btn btn-secondary btn-sm">Clear Filters</a>
+        <a href="<?= $b ?>/admin/joined" class="btn btn-tertiary btn-sm">Clear Filters</a>
       <?php else: ?>
         No joined listings yet.
         <a href="<?= $b ?>/admin/joined/add" class="btn btn-primary btn-sm">+ Add a Listing</a>
@@ -162,7 +162,8 @@ if ($displayMode === 'category') {
   </div>
 <?php else: ?>
 
-<form method="POST" action="<?= $b ?>/admin/joined/bulk" id="bulk-form">
+<form method="POST" action="<?= $b ?>/admin/joined/bulk" id="bulk-form"
+      data-del-bulk data-del-entity="joined">
   <input type="hidden" name="_csrf" value="<?= \Luster\Core\View::e($csrf_token ?? '') ?>">
 
   <!-- Bulk action bar -->
@@ -176,12 +177,15 @@ if ($displayMode === 'category') {
       <option value="delete">Delete</option>
     </select>
     </div>
-    <button type="submit" class="btn btn-secondary btn-sm">Apply</button>
+    <button type="submit" class="btn btn-tertiary btn-sm">Apply</button>
   </div>
 
   <?php $loop = 0; $firstGroup = true; foreach ($grouped as $catName => $items): ?>
   <div class="neb-card" style="margin-bottom:1.25rem">
-    <div class="neb-card-header"><?= \Luster\Core\View::e($catName) ?> (<?= count($items) ?>)</div>
+    <div class="card-head">
+      <span class="card-head-title"><?= \Luster\Core\View::e($catName) ?> (<?= count($items) ?>)</span>
+    </div>
+    <div class="neb-table-wrap">
     <table class="data-table mem-table">
       <thead>
         <tr>
@@ -198,7 +202,8 @@ if ($displayMode === 'category') {
       <tbody>
         <?php foreach ($items as $jf): $loop++; ?>
         <tr>
-          <td class="cb-col" data-label=""><input type="checkbox" name="ids[]" value="<?= (int) $jf->id ?>"></td>
+          <td class="cb-col" data-label=""><input type="checkbox" name="ids[]" value="<?= (int) $jf->id ?>"
+               data-name="<?= \Luster\Core\View::e($jf->name) ?>"></td>
           <td data-label="Image">
             <?php if ($jf->image !== null && $jf->image !== ''): ?>
               <img src="<?= $b ?>/uploads/joined/<?= \Luster\Core\View::e($jf->image) ?>"
@@ -233,7 +238,7 @@ if ($displayMode === 'category') {
             <?php endif; ?>
           </td>
           <td class="text-muted" data-label="Date">
-            <?= $jf->dateJoined !== null ? \Luster\Core\View::e($jf->dateJoined) : '<span class="text-dim">&mdash;</span>' ?>
+            <?= $jf->dateJoined !== null ? \Luster\Core\View::e(date($admin_date_format, strtotime($jf->dateJoined))) : '<span class="text-dim">&mdash;</span>' ?>
           </td>
           <td data-label="Status">
             <?php $statusVal = $jf->status ?? 'joined'; ?>
@@ -244,23 +249,29 @@ if ($displayMode === 'category') {
           <td class="act-col" data-label="">
             <a href="<?= $b ?>/admin/joined/<?= (int) $jf->id ?>/edit"
                class="btn btn-primary btn-sm">Edit</a>
-            <form method="POST"
-                  action="<?= $b ?>/admin/joined/<?= (int) $jf->id ?>/delete"
-                  style="display:contents"
-                  data-confirm="Delete this joined listing?">
-              <input type="hidden" name="_csrf" value="<?= \Luster\Core\View::e($csrf_token ?? '') ?>">
-              <button type="submit" class="btn btn-danger btn-sm">Delete</button>
-            </form>
+            <button type="submit" form="del-jf-<?= (int) $jf->id ?>" class="btn btn-danger btn-sm">Delete</button>
           </td>
         </tr>
         <?php endforeach; ?>
       </tbody>
     </table>
+    </div>
   </div>
   <?php endforeach; ?>
 
 
 </form>
+
+<?php foreach ($joined as $jf): ?>
+<form id="del-jf-<?= (int) $jf->id ?>" method="POST"
+      action="<?= $b ?>/admin/joined/<?= (int) $jf->id ?>/delete"
+      style="display:none"
+      data-del-modal data-del-entity="joined"
+      data-del-name="<?= \Luster\Core\View::e($jf->name) ?>">
+  <input type="hidden" name="_csrf" value="<?= \Luster\Core\View::e($csrf_token ?? '') ?>">
+</form>
+<?php endforeach; ?>
+
 <?php endif; ?>
 
 

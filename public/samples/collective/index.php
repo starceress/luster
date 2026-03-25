@@ -1,84 +1,56 @@
 <?php
 /**
- * Sample collective — home page with site-wide statistics.
+ * Sample collective — home page.
  *
  * SETUP
- *   1. Fill in the config below.
- *   2. Copy this directory to your collective's web root (any location).
- *      Then update $_embedPath to the absolute server path of Luster's
+ *   1. Update $_embedPath to the absolute server path of Luster's
  *      public/embed/ directory.
+ *   2. Fill in $_siteName, $_siteTagline, $_ownerName, $_ownerEmail below.
  */
 
-$_embedPath = dirname(__DIR__, 3) . '/public/embed';   // adjust if you move this file
+$_embedPath = dirname(__DIR__, 3) . '/public/embed';   // ← adjust if needed
 
-// ── Site identity ─────────────────────────────────────────────────────────────
-$_siteName    = 'Collective Name';    // ← your collective / site name
-$_siteTagline = 'A listing collective';  // ← shown below the site name
+$_siteName    = 'Collective Name';          // ← your collective name
+$_siteTagline = 'A fanlisting collective';  // ← your tagline
+$_ownerName   = 'Your Name';               // ← your name
+$_ownerEmail  = 'you@example.com';         // ← your email address
 $_navActive   = 'home';
+$_pageTitle   = 'Home';
 
-function _e(string $v): string {
-    return htmlspecialchars($v, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
-}
+require 'header.php';
 ?>
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title><?= _e($_siteName) ?> &mdash; Home</title>
-  <link rel="stylesheet" href="../../assets/default/style.css">
-</head>
-<body>
 
-<header class="fl-site-header">
-  <div class="fl-header-inner">
-    <p class="fl-site-title"><a href="index.php"><?= _e($_siteName) ?></a></p>
-    <nav class="fl-nav" aria-label="Collective navigation">
-      <a href="index.php"       class="active">Home</a>
-      <a href="listings.php">Listings</a>
-      <a href="joined.php">Joined</a>
-      <a href="updates.php">Updates</a>
-      <a href="affiliates.php">Affiliates</a>
-    </nav>
-  </div>
-</header>
+  <h1 class="page-heading">Welcome</h1>
 
-<main class="fl-site-main">
-  <div class="fl-wrap">
+  <p class="text-muted">
+    Welcome to <?= htmlspecialchars($_siteName, ENT_QUOTES, 'UTF-8') ?>.
+    Edit this text to introduce your collective.
+    Browse the owned listings, see which listings I've joined,
+    or check out my affiliates.
+  </p>
 
-    <h2 class="fl-title"><?= _e($_siteName) ?></h2>
-    <p class="fl-muted" style="margin-top:-.75rem;margin-bottom:1.25rem"><?= _e($_siteTagline) ?></p>
+  <?php
+  // Collective stats block
+  $luster_cache_ttl = 300;   // cache for 5 minutes (0 = disabled)
+  $luster_count     = 3;     // newest/random listings to fetch
+  $luster_return    = true;
+  $statsHtml = require $_embedPath . '/collective-stats.php';
+  if ($statsHtml) echo $statsHtml;
+  ?>
 
-    <p>
-      Welcome! Edit this section to introduce your collective.
-      Browse the owned listings, see which listings I've joined,
-      or check out my affiliates.
-    </p>
+  <p class="form-actions" style="margin-top: 1.25rem">
+    <a class="btn" href="owned.php">Browse listings</a>
+    <a class="back-link" href="joined.php">Joined listings &rarr;</a>
+  </p>
 
-    <?php
-    // Collective stats — $luster_return = true renders an HTML block.
-    // You can also use the exposed $luster_* variables directly (see embed/collective-stats.php).
-    $luster_cache_ttl = 300;   // cache stats for 5 minutes (0 = disabled)
-    $luster_count     = 3;     // number of newest/random listings to fetch
-    $luster_return    = true;
-    $statsHtml = require $_embedPath . '/collective-stats.php';
-    if ($statsHtml) {
-        echo $statsHtml;
-    }
-    ?>
+  <?php
+  // Collective updates feed — requires the Updates add-on (blank when not installed)
+  $luster_show_cats = true;
+  $luster_return    = true;
+  $updatesHtml = require $_embedPath . '/collective-updates.php';
+  if ($updatesHtml): ?>
+    <p class="section-heading">Updates</p>
+    <?= $updatesHtml ?>
+  <?php endif; ?>
 
-    <p style="margin-top:1.5rem">
-      <a class="fl-btn" href="listings.php">Browse listings</a>
-      &nbsp;
-      <a class="fl-link" href="joined.php" style="font-size:.9rem">Joined listings &rarr;</a>
-    </p>
-
-  </div>
-</main>
-
-<footer class="fl-site-footer">
-  <p>Powered by <a href="https://github.com/sjlabels/luster">Luster</a></p>
-</footer>
-
-</body>
-</html>
+<?php require 'footer.php'; ?>

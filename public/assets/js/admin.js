@@ -157,7 +157,7 @@ document.addEventListener('submit', function (e) {
       window.lstrToast && window.lstrToast('warning', 'No items selected.');
       return;
     }
-    if (bulkSel.value === 'delete') {
+    if (bulkSel.value === 'delete' && !form.hasAttribute('data-del-bulk')) {
       if (form.dataset.confirmed === '1') { delete form.dataset.confirmed; return; }
       e.preventDefault();
       var bulkApplyBtn = form.querySelector('[type="submit"]');
@@ -182,6 +182,7 @@ document.addEventListener('submit', function (e) {
       window.lstrToast && window.lstrToast('warning', 'No listings selected.');
       return;
     }
+    if (form.hasAttribute('data-del-bulk')) return; // section 40 handles modal
     if (form.dataset.confirmed === '1') { delete form.dataset.confirmed; return; }
     e.preventDefault();
     var listingApplyBtn = form.querySelector('[type="submit"]');
@@ -228,24 +229,24 @@ document.addEventListener('click', function (e) {
   if (btn && btn.form) btn.form.reset();
 });
 
-// ── 13. Tab switching (.neb-tab-btn / .settings-nav-item / #tab-{tabId}) ──────
+// ── 13. Tab switching (.neb-tab-btn / .neb-sidebar-nav-item / #tab-{tabId}) ───
 //
 // Generic tab switcher used by listings/edit, settings, and anywhere else that
 // uses the .neb-tab-btn / .neb-tab-panel markup pattern. Also handles the
-// settings page vertical sidebar nav (.settings-nav-item).
+// settings page vertical sidebar nav (.neb-sidebar-nav-item).
 // Activates a tab by URL hash on load (e.g. settings redirects with #tab-email).
 
 (function () {
   var tabs     = document.querySelectorAll('.neb-tab-btn');
-  var navItems = document.querySelectorAll('.settings-nav-item');
+  var navItems = document.querySelectorAll('.neb-sidebar-nav-item');
   if (!tabs.length && !navItems.length) return;
 
   function activateTab(tabId) {
-    document.querySelectorAll('.neb-tab-btn, .neb-tab-panel, .settings-nav-item').forEach(function (el) {
+    document.querySelectorAll('.neb-tab-btn, .neb-tab-panel, .neb-sidebar-nav-item').forEach(function (el) {
       el.classList.remove('active');
     });
     var btn     = document.querySelector('.neb-tab-btn[data-tab="' + tabId + '"]');
-    var navItem = document.querySelector('.settings-nav-item[data-tab="' + tabId + '"]');
+    var navItem = document.querySelector('.neb-sidebar-nav-item[data-tab="' + tabId + '"]');
     var panel   = document.getElementById('tab-' + tabId);
     if (btn)     btn.classList.add('active');
     if (navItem) navItem.classList.add('active');
@@ -256,15 +257,44 @@ document.addEventListener('click', function (e) {
     btn.addEventListener('click', function () { activateTab(btn.dataset.tab); });
   });
   navItems.forEach(function (item) {
+    if (!item.dataset.tab) return; // skip items handled by their own switcher (e.g. data-et-tab)
     item.addEventListener('click', function () { activateTab(item.dataset.tab); });
   });
+
+  /* Keep select dropdowns in sync with tab state */
+  document.querySelectorAll('.neb-tabs-select').forEach(function (sel) {
+    sel.addEventListener('change', function () { activateTab(sel.value); });
+  });
+
+  /* Patch activateTab to also update the select value */
+  var _origActivate = activateTab;
+  activateTab = function (tabId) {
+    _origActivate(tabId);
+    document.querySelectorAll('.neb-tabs-select').forEach(function (sel) {
+      sel.value = tabId;
+    });
+  };
 
   // Activate from URL hash (settings page: redirect with ?...#tab-email etc.)
   var hash = window.location.hash.replace('#tab-', '');
   if (hash && (document.querySelector('.neb-tab-btn[data-tab="' + hash + '"]') ||
-               document.querySelector('.settings-nav-item[data-tab="' + hash + '"]'))) {
+               document.querySelector('.neb-sidebar-nav-item[data-tab="' + hash + '"]'))) {
     activateTab(hash);
   }
+}());
+
+// ── 13b. Tab bar scroll-fade indicator ────────────────────────────────────────
+(function () {
+  document.querySelectorAll('.neb-tabs-wrap').forEach(function (wrap) {
+    var tabs = wrap.querySelector('.neb-tabs');
+    if (!tabs) return;
+    function update() {
+      var atEnd = tabs.scrollLeft + tabs.clientWidth >= tabs.scrollWidth - 4;
+      wrap.classList.toggle('at-end', atEnd);
+    }
+    tabs.addEventListener('scroll', update, { passive: true });
+    update();
+  });
 }());
 
 // ── 14. Category/network widget ───────────────────────────────────────────────
@@ -392,52 +422,7 @@ document.addEventListener('click', function (e) {
   });
 }());
 
-// ── 16. Embed codes: panel switcher + copy buttons ───────────────────────────
-
-(function () {
-  var opts = document.querySelectorAll('.ec-opt');
-  if (!opts.length) return;
-  var current = null;
-
-  function showPanel(target) {
-    if (current) {
-      var prev = document.getElementById('ec-panel-' + current);
-      if (prev) prev.classList.remove('ec-panel--active');
-    }
-    var next = document.getElementById('ec-panel-' + target);
-    if (next) next.classList.add('ec-panel--active');
-    current = target;
-    opts.forEach(function (btn) {
-      btn.setAttribute('aria-selected', btn.dataset.target === target ? 'true' : 'false');
-    });
-  }
-
-  opts.forEach(function (btn) {
-    btn.addEventListener('click', function () { showPanel(btn.dataset.target); });
-  });
-  showPanel('join');
-}());
-
-// Embed copy buttons: data-ec-copy="preId" (event delegation)
-document.addEventListener('click', function (e) {
-  var btn = e.target.closest('[data-ec-copy]');
-  if (!btn) return;
-  var text = (document.getElementById(btn.dataset.ecCopy) || {}).textContent || '';
-  if (navigator.clipboard) {
-    navigator.clipboard.writeText(text).catch(function () {});
-  } else {
-    var ta = document.createElement('textarea');
-    ta.value = text;
-    ta.style.cssText = 'position:fixed;opacity:0;pointer-events:none';
-    document.body.appendChild(ta);
-    ta.select();
-    try { document.execCommand('copy'); } catch (err) {}
-    document.body.removeChild(ta);
-  }
-  btn.textContent = 'Copied!';
-  btn.classList.add('ec-copied');
-  setTimeout(function () { btn.textContent = 'Copy'; btn.classList.remove('ec-copied'); }, 1800);
-});
+// ── 16. (embed codes panel copy — see section 31) ────────────────────────────
 
 // ── 17. Members index: select-all checkboxes ──────────────────────────────────
 
@@ -585,6 +570,33 @@ document.addEventListener('click', function (e) {
   updateTime();
 }());
 
+// ── 24a. File-drop labels: forward clicks to the hidden file input ─────────────
+
+document.addEventListener('click', function (e) {
+  var label = e.target.closest('.file-drop');
+  if (!label) return;
+  var input = label.querySelector('input[type="file"]');
+  if (!input || e.target === input) return;
+  e.preventDefault();
+  input.click();
+});
+
+// ── 24b. Listings edit: status pill toggle ────────────────────────────────────
+
+(function () {
+  var row = document.getElementById('status-pills');
+  if (!row) return;
+  var pillMap = { current: 'pill-current', upcoming: 'pill-upcoming', pending: 'pill-pending' };
+  row.addEventListener('change', function (e) {
+    if (e.target.type !== 'radio') return;
+    row.querySelectorAll('.status-pill').forEach(function (pill) {
+      pill.classList.remove('pill-current', 'pill-upcoming', 'pill-pending');
+    });
+    var active = e.target.closest('.status-pill');
+    if (active && pillMap[e.target.value]) active.classList.add(pillMap[e.target.value]);
+  });
+}());
+
 // ── 25. Listings edit: last-updated date set/clear buttons ────────────────────
 
 (function () {
@@ -689,27 +701,100 @@ document.addEventListener('click', function (e) {
   }
 
   // Preview modal
-  var modal = document.getElementById('preview-modal');
+  var modal           = document.getElementById('preview-modal');
   if (!modal) return;
-  var listingName = modal.dataset.listingName || '';
-  var previewBtn  = document.getElementById('preview-email-btn');
-  var closeBtn    = document.getElementById('close-preview-btn');
+  var listingName      = modal.dataset.listingName || '';
+  var previewBtn       = document.getElementById('preview-email-btn');
+  var emSendBtn        = document.getElementById('em-send-btn');
+  var closeBtn         = document.getElementById('close-preview-btn');
+  var emFooterPreview  = document.getElementById('em-footer-preview');
+  var emFooterConfirm  = document.getElementById('em-footer-confirm');
+  var emConfirmSend    = document.getElementById('em-confirm-send-btn');
+  var emConfirmCancel  = document.getElementById('em-confirm-cancel-btn');
 
-  function previewEmail() {
+  function replaceTokens(text, map) {
+    return text.replace(/\{([a-z_]+)\}/g, function (m, key) {
+      return Object.prototype.hasOwnProperty.call(map, key) ? map[key] : m;
+    });
+  }
+
+  function emSetMode(mode) {
+    if (!emFooterPreview || !emFooterConfirm) return;
+    if (mode === 'confirm') {
+      emFooterPreview.style.display = 'none';
+      emFooterConfirm.style.display = 'block';
+    } else {
+      emFooterPreview.style.display = 'flex';
+      emFooterConfirm.style.display = 'none';
+    }
+  }
+
+  function previewEmail(mode) {
     var subj = document.getElementById('subject');
     var body = document.getElementById('body');
     var ps   = document.getElementById('preview-subject');
     var pb   = document.getElementById('preview-body');
-    if (ps) ps.textContent = (listingName ? listingName + ': ' : '') + (subj ? subj.value : '');
-    if (pb) pb.textContent = body ? body.value : '';
+    var md   = modal.dataset;
+    var tokens = {
+      fan_name:        md.fanName        || '',
+      fan_email:       md.fanEmail       || '',
+      fan_url:         md.fanUrl         || '',
+      fan_country:     md.fanCountry     || '',
+      fan_password:    '',
+      listing_name:    md.listingName    || '',
+      listing_subject: md.listingSubject || '',
+      listing_url:     md.listingUrl     || '',
+      site_name:       md.siteName       || '',
+      owner_name:      md.ownerName      || '',
+      owner_email:     md.ownerEmail     || '',
+    };
+    var rawSubj = (listingName ? listingName + ': ' : '') + (subj ? subj.value : '');
+
+    // Populate addr-block rows
+    var fromName  = md.ownerName  || '';
+    var fromEmail = md.ownerEmail || '';
+    var fanName   = md.fanName    || '';
+    var fanEmail  = md.fanEmail   || '';
+    var fn = document.getElementById('em-preview-from-name');
+    var fe = document.getElementById('em-preview-from-email');
+    var tn = document.getElementById('em-preview-to-name');
+    var te = document.getElementById('em-preview-to-email');
+    if (fn) fn.textContent = fromName;
+    if (fe) fe.textContent = fromEmail ? '<' + fromEmail + '>' : '';
+    if (tn) tn.textContent = fanName;
+    if (te) te.textContent = fanEmail ? '<' + fanEmail + '>' : '';
+
+    if (ps) ps.textContent = replaceTokens(rawSubj, tokens);
+    if (pb) pb.textContent = replaceTokens(body ? body.value : '', tokens);
+
+    emSetMode(mode === 'confirm' ? 'confirm' : 'preview');
     modal.style.display = 'flex';
   }
 
-  function closePreview() { modal.style.display = 'none'; }
+  function closePreview() {
+    modal.style.display = 'none';
+    emSetMode('preview');
+  }
 
-  if (previewBtn) previewBtn.addEventListener('click', previewEmail);
-  if (closeBtn)   closeBtn.addEventListener('click', closePreview);
+  if (previewBtn)    previewBtn.addEventListener('click',    function () { previewEmail('preview'); });
+  if (emSendBtn)     emSendBtn.addEventListener('click',     function () { previewEmail('confirm'); });
+  if (closeBtn)      closeBtn.addEventListener('click', closePreview);
+  if (emConfirmCancel) emConfirmCancel.addEventListener('click', closePreview);
+  if (emConfirmSend) emConfirmSend.addEventListener('click', function () {
+    var form = document.getElementById('email-form');
+    if (form) form.submit();
+  });
   modal.addEventListener('click', function (e) { if (e.target === modal) closePreview(); });
+
+  // Char counter
+  var bodyEl   = document.getElementById('body');
+  var charOut  = document.getElementById('em-char-count');
+  function updateCharCount() {
+    if (!bodyEl || !charOut) return;
+    var n = bodyEl.value.length;
+    charOut.textContent = n + ' char' + (n !== 1 ? 's' : '');
+  }
+  if (bodyEl) { bodyEl.addEventListener('input', updateCharCount); updateCharCount(); }
 }());
 
 // ── 30. Email template page: live preview ────────────────────────────────────
@@ -792,7 +877,44 @@ document.addEventListener('click', function (e) {
       if (card)   card.classList.toggle('et-card-disabled', !on);
     }
 
-    cb.addEventListener('change', sync);
+    cb.addEventListener('change', function () {
+      sync();
+
+      // Auto-save the enabled state immediately via AJAX.
+      var form  = document.getElementById('et-save-form');
+      var csrf  = form ? form.querySelector('input[name="_csrf"]') : null;
+      var scope = form ? form.querySelector('input[name="scope"]') : null;
+      var type  = cb.name.replace('email_enabled_', '');
+
+      if (!csrf || !scope || !type) { return; }
+
+      var body = new URLSearchParams();
+      body.append('_csrf',   csrf.value);
+      body.append('scope',   scope.value);
+      body.append('type',    type);
+      body.append('enabled', cb.checked ? '1' : '0');
+
+      fetch(form.action.replace('/save', '/toggle'), {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body:    body.toString(),
+      })
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+          if (data.ok && window.lstrToast) {
+            window.lstrToast('success', cb.checked ? 'Email enabled.' : 'Email disabled.');
+          } else if (!data.ok && window.lstrToast) {
+            window.lstrToast('error', data.error || 'Could not save.');
+            cb.checked = !cb.checked; // revert toggle
+            sync();
+          }
+        })
+        .catch(function () {
+          if (window.lstrToast) { window.lstrToast('error', 'Could not save.'); }
+          cb.checked = !cb.checked; // revert toggle
+          sync();
+        });
+    });
   });
 }());
 
@@ -802,10 +924,12 @@ document.addEventListener('click', function (e) {
   var DURATION = 4000;
 
   var ICONS = {
-    success: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>',
-    error:   '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>',
-    warning: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>',
+    success: '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2"><circle cx="10" cy="10" r="8"/><path d="M6.5 10l2.5 2.5 4.5-4.5"/></svg>',
+    error:   '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2"><circle cx="10" cy="10" r="8"/><path d="M7 7l6 6M13 7l-6 6"/></svg>',
+    warning: '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 3L2 17h16L10 3z"/><path d="M10 9v4M10 14.5v.5"/></svg>',
   };
+
+  var TITLES = { success: 'Success', error: 'Error', warning: 'Warning' };
 
   function getContainer() {
     var c = document.querySelector('.toast-container');
@@ -824,17 +948,29 @@ document.addEventListener('click', function (e) {
     }, 220);
   }
 
-  function createToast(type, message) {
+  function createToast(type, title, message) {
+    if (message === undefined) { message = title; title = TITLES[type] || type; }
+
     var toast = document.createElement('div');
     toast.className = 'toast toast-' + type;
 
-    var icon = document.createElement('span');
-    icon.className = 'toast-icon';
-    icon.innerHTML = ICONS[type] || ICONS.error;
+    var iconWrap = document.createElement('div');
+    iconWrap.className = 'toast-icon-wrap';
+    iconWrap.innerHTML = ICONS[type] || ICONS.error;
 
-    var msg = document.createElement('span');
+    var body = document.createElement('div');
+    body.className = 'toast-body';
+
+    var titleEl = document.createElement('div');
+    titleEl.className = 'toast-title';
+    titleEl.textContent = title;
+
+    var msg = document.createElement('div');
     msg.className = 'toast-msg';
     msg.textContent = message;
+
+    body.appendChild(titleEl);
+    body.appendChild(msg);
 
     var close = document.createElement('button');
     close.className = 'toast-close';
@@ -845,8 +981,8 @@ document.addEventListener('click', function (e) {
     progress.className = 'toast-progress';
     progress.style.animation = 'toastDrain ' + (DURATION / 1000) + 's linear forwards';
 
-    toast.appendChild(icon);
-    toast.appendChild(msg);
+    toast.appendChild(iconWrap);
+    toast.appendChild(body);
     toast.appendChild(close);
     toast.appendChild(progress);
 
@@ -885,9 +1021,11 @@ document.addEventListener('click', function (e) {
 
   document.addEventListener('DOMContentLoaded', liftAlerts);
 
-  /* Programmatic API — call from anywhere to fire a toast */
-  window.lstrToast = function (type, message) {
-    getContainer().appendChild(createToast(type, message));
+  /* Programmatic API:
+     lstrToast(type, message)         — auto title
+     lstrToast(type, title, message)  — custom title */
+  window.lstrToast = function (type, title, message) {
+    getContainer().appendChild(createToast(type, title, message));
   };
 }());
 
@@ -977,280 +1115,655 @@ document.addEventListener('click', function (e) {
   });
 }());
 
-// ── 31. Embed codes: quick-setup wizard ───────────────────────────────────────
+// ── 31. Custom templates: preview toggle + edit modal ────────────────────────
 
 (function () {
-  var wiz = document.getElementById('ec-wiz');
-  if (!wiz) return;
+  // ── Preview for "Add New Template" form ─────────────────────────────────────
+  var previewBtn   = document.getElementById('ct-preview-btn');
+  var previewPanel = document.getElementById('ct-new-preview');
+  var previewSubj  = document.getElementById('ct-preview-subject');
+  var previewBody  = document.getElementById('ct-preview-body');
+  var newSubjInp   = document.getElementById('new-tpl-subject');
+  var newBodyInp   = document.getElementById('new-tpl-body');
 
-  var embedPath = wiz.dataset.embedPath || '';
-  var listings  = JSON.parse(wiz.dataset.listings || '[]');
-
-  var TYPES = [
-    { key: 'join',       file: 'join.php',            label: 'Join form',            group: 'fl',  needsId: true,  idVal: null, opts: [] },
-    { key: 'members',    file: 'members.php',          label: 'Member list',          group: 'fl',  needsId: true,  idVal: null, opts: ['per_page','sort_by','show_search','members_base'] },
-    { key: 'stats',      file: 'stats.php',            label: 'Statistics',           group: 'fl',  needsId: true,  idVal: null, opts: [] },
-    { key: 'update',     file: 'update.php',           label: 'Update details',       group: 'fl',  needsId: true,  idVal: null, opts: [] },
-    { key: 'remove',     file: 'remove.php',           label: 'Leave listing',        group: 'fl',  needsId: true,  idVal: null, opts: [] },
-    { key: 'reset',      file: 'reset.php',            label: 'Password reset',       group: 'fl',  needsId: true,  idVal: null, opts: ['reset_step'] },
-    { key: 'affiliates', file: 'affiliates.php',       label: 'Affiliates',           group: 'fl',  needsId: true,  idVal: null, opts: ['affiliates_base'] },
-    { key: 'owned',      file: 'owned.php',            label: 'Owned listings',       group: 'col', needsId: false, idVal: null, opts: ['status','hide_dropdown'] },
-    { key: 'joined',     file: 'joined.php',           label: 'Joined listings',      group: 'col', needsId: false, idVal: null, opts: ['category'] },
-    { key: 'cstats',     file: 'collective-stats.php', label: 'Site statistics',      group: 'col', needsId: false, idVal: null, opts: [] },
-    { key: 'aff-col',    file: 'affiliates.php',       label: 'Collective affiliates',group: 'col', needsId: false, idVal: 0,    opts: ['affiliates_base'] },
-    { key: 'kim',        file: 'kim-signup.php',       label: 'KIM sign-up',          group: 'col', needsId: false, idVal: null, opts: [] },
-  ];
-
-  var OPT_DEFS = {
-    per_page:       { label: 'Members per page', type: 'number', placeholder: '20',
-                      hint: 'Leave blank to use your site\u2019s default.' },
-    sort_by:        { label: 'Default sort order', type: 'select',
-                      choices: [['', 'Visitor\u2019s choice (default)'], ['name', 'By name'], ['country', 'By country']] },
-    show_search:    { label: 'Sort & search controls', type: 'select',
-                      choices: [['', 'Shown (default)'], ['false', 'Hidden']] },
-    members_base:   { label: 'URL of this page', type: 'text', placeholder: 'https://yoursite.com/members.php',
-                      hint: 'The URL of the page where you\u2019re pasting this embed \u2014 keeps pagination links pointing back to your page.' },
-    reset_step:     { label: 'Which step to show', type: 'select',
-                      choices: [['', 'Both steps on one page (default)'], ['confirm', 'Step 2 only \u2014 new-password form']] },
-    affiliates_base:{ label: 'URL of this page', type: 'text', placeholder: 'https://yoursite.com/affiliates.php',
-                      hint: 'The URL of the page where you\u2019re pasting this embed \u2014 keeps pagination links pointing back to your page.' },
-    status:         { label: 'Which listings to show', type: 'select',
-                      choices: [['', 'Current only (default)'], ['current', 'Current'], ['upcoming', 'Upcoming'], ['trouble', 'Trouble'], ['all', 'All statuses']] },
-    hide_dropdown:  { label: 'Category filter dropdown', type: 'select',
-                      choices: [['', 'Shown (default)'], ['true', 'Hidden']] },
-    category:       { label: 'Category filter', type: 'text', placeholder: 'Leave blank for a dropdown, or enter a category name',
-                      hint: 'Blank = show category dropdown. \u2018all\u2019 = show all categories. Or enter an exact category name.' },
+  var CT_TOKENS = {
+    '{fan_name}':        'Jane Fan',
+    '{fan_email}':       'jane@example.com',
+    '{fan_url}':         'https://jane.example.com',
+    '{fan_country}':     'United States',
+    '{listing_name}':    'My Fanlisting',
+    '{listing_subject}': 'Music',
+    '{listing_url}':     'https://myfanlisting.com',
+    '{site_name}':       'My Collective',
+    '{owner_name}':      'The Admin',
+    '{owner_email}':     'admin@example.com',
+    '{name}':            'Jane Fan',
+    '{email}':           'jane@example.com',
   };
 
-  var state = { step: 1, type: null, skippedStep2: false, opts: {} };
-
-  var p1         = document.getElementById('ec-wiz-p1');
-  var p2         = document.getElementById('ec-wiz-p2');
-  var p3         = document.getElementById('ec-wiz-p3');
-  var btnBack    = document.getElementById('ec-wiz-back');
-  var btnNext    = document.getElementById('ec-wiz-next');
-  var btnRestart = document.getElementById('ec-wiz-restart');
-  var optsEl     = document.getElementById('ec-wiz-opts');
-  var codeEl     = document.getElementById('ec-wiz-code');
-  var stepLabel  = document.getElementById('ec-wiz-step-label');
-  var dots       = wiz.querySelectorAll('.ec-wiz-dot');
-
-  var STEP_LABELS = [
-    '',
-    'Step 1 of 3 \u2014 Choose embed',
-    'Step 2 of 3 \u2014 Configure',
-    'Step 3 of 3 \u2014 Copy code',
-  ];
-
-  function getDef(key) {
-    for (var i = 0; i < TYPES.length; i++) {
-      if (TYPES[i].key === key) return TYPES[i];
-    }
-    return null;
+  function ctApplyTokens(text) {
+    var result = text;
+    Object.keys(CT_TOKENS).forEach(function (k) { result = result.split(k).join(CT_TOKENS[k]); });
+    return result;
   }
 
-  function esc(s) {
-    return String(s)
-      .replace(/&/g, '&amp;').replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  function updateCtPreview() {
+    if (previewSubj) previewSubj.textContent = ctApplyTokens(newSubjInp ? newSubjInp.value : '');
+    if (previewBody) previewBody.textContent = ctApplyTokens(newBodyInp ? newBodyInp.value : '');
   }
 
-  function phpStr(s) {
-    return "'" + String(s).replace(/\\/g, '\\\\').replace(/'/g, "\\'") + "'";
-  }
-
-  function phpVal(optKey, val) {
-    if (optKey === 'per_page')     return String(parseInt(val, 10) || 1);
-    if (optKey === 'hide_dropdown' && val === 'true')  return 'true';
-    if (optKey === 'show_search'   && val === 'false') return 'false';
-    return phpStr(val);
-  }
-
-  function generateCode() {
-    var def = getDef(state.type);
-    if (!def) return '';
-    var D = '# -----------------------------------------------------------';
-    var lines = ['<?php'];
-    lines.push(D);
-    if (def.needsId) {
-      var lid = state.opts['wiz_listing_id'];
-      if (!lid && listings.length) lid = listings[0].id;
-      if (!lid) lid = 1;
-      lines.push('$luster_fanlisting_id = ' + parseInt(lid, 10) + ';');
-      lines.push(D);
-    } else if (def.idVal === 0) {
-      lines.push('$luster_fanlisting_id = 0; // 0 = collective / site-wide');
-      lines.push(D);
-    }
-    def.opts.forEach(function (optKey) {
-      var val = (state.opts[optKey] || '').trim();
-      if (!val) return;
-      lines.push('$luster_' + optKey + ' = ' + phpVal(optKey, val) + ';');
-      lines.push(D);
+  if (previewBtn && previewPanel) {
+    previewBtn.addEventListener('click', function () {
+      var visible = previewPanel.style.display !== 'none';
+      previewPanel.style.display = visible ? 'none' : 'block';
+      previewBtn.textContent = visible ? 'Preview' : 'Hide Preview';
+      if (!visible) updateCtPreview();
     });
-    lines.push("require('" + embedPath + '/' + def.file + "');");
-    lines.push(D);
+  }
+
+  [newSubjInp, newBodyInp].forEach(function (inp) {
+    if (!inp) return;
+    inp.addEventListener('input', function () {
+      if (previewPanel && previewPanel.style.display !== 'none') updateCtPreview();
+    });
+  });
+
+  // ── Clear button resets preview too ─────────────────────────────────────────
+  var newForm = document.getElementById('ct-new-form');
+  if (newForm) {
+    var clearBtn = newForm.querySelector('.js-form-reset');
+    if (clearBtn) {
+      clearBtn.addEventListener('click', function () {
+        if (previewPanel) previewPanel.style.display = 'none';
+        if (previewBtn)   previewBtn.textContent = 'Preview';
+      });
+    }
+  }
+
+  // ── Edit modal ───────────────────────────────────────────────────────────────
+  var editModal   = document.getElementById('ct-edit-modal');
+  var editForm    = document.getElementById('ct-edit-form');
+  var editName    = document.getElementById('ct-edit-name');
+  var editSubject = document.getElementById('ct-edit-subject');
+  var editBody    = document.getElementById('ct-edit-body');
+  var editClose   = document.getElementById('ct-edit-close');
+  var editCancel  = document.getElementById('ct-edit-cancel');
+
+  document.querySelectorAll('.ct-edit-btn').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      if (!editModal || !editForm) return;
+      if (editName)    editName.value    = btn.dataset.name    || '';
+      if (editSubject) editSubject.value = btn.dataset.subject || '';
+      if (editBody)    editBody.value    = btn.dataset.body    || '';
+      editForm.action = (editForm.dataset.baseAction || '').replace('__ID__', btn.dataset.id || '0');
+      editModal.style.display = 'flex';
+    });
+  });
+
+  function closeEditModal() {
+    if (editModal) editModal.style.display = 'none';
+  }
+
+  if (editClose)  editClose.addEventListener('click', closeEditModal);
+  if (editCancel) editCancel.addEventListener('click', closeEditModal);
+  if (editModal) {
+    editModal.addEventListener('click', function (e) {
+      if (e.target === editModal) closeEditModal();
+    });
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && editModal.style.display !== 'none') closeEditModal();
+    });
+  }
+}());
+
+// ── 32. Embed codes: tab system, quick copy & customizer ─────────────────────
+
+(function () {
+  var root = document.getElementById('ec-root');
+  if (!root) return;
+
+  var embedPath = root.dataset.embedPath || '';
+  var listings  = JSON.parse(root.dataset.listings || '[]');
+  var items     = JSON.parse(root.dataset.items    || '{}');
+
+  // ── Tab switching ──────────────────────────────────────────────────────────
+  var tabBtns = root.querySelectorAll('[data-ec-tab]');
+  var panels  = {
+    qc:   document.getElementById('ec-panel-qc'),
+    cust: document.getElementById('ec-panel-cust'),
+    ref:  document.getElementById('ec-panel-ref'),
+  };
+
+  function switchTab(id) {
+    tabBtns.forEach(function (b) {
+      var isActive = b.dataset.ecTab === id;
+      b.classList.toggle('active', isActive);
+      b.setAttribute('aria-selected', isActive ? 'true' : 'false');
+    });
+    Object.keys(panels).forEach(function (k) {
+      if (panels[k]) panels[k].classList.toggle('active', k === id);
+    });
+  }
+
+  tabBtns.forEach(function (btn) {
+    btn.addEventListener('click', function () { switchTab(btn.dataset.ecTab); });
+  });
+
+  // ── Copy helper ────────────────────────────────────────────────────────────
+  function copyText(text, btn, origLabel) {
+    origLabel = origLabel || btn.textContent;
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(text).catch(function () {});
+    } else {
+      var ta = document.createElement('textarea');
+      ta.value = text; ta.style.cssText = 'position:fixed;opacity:0;pointer-events:none';
+      document.body.appendChild(ta); ta.select();
+      try { document.execCommand('copy'); } catch (e) {}
+      document.body.removeChild(ta);
+    }
+    btn.textContent = 'Copied!'; btn.classList.add('ec-copied');
+    setTimeout(function () { btn.textContent = origLabel; btn.classList.remove('ec-copied'); }, 1800);
+  }
+
+  // ── Syntax highlighter ─────────────────────────────────────────────────────
+  function highlight(code) {
+    var e = code.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    return e.replace(/(\/\/[^\n]*)|('(?:[^'\\]|\\.)*')|(&lt;\?php|\?&gt;)|(\brequire\b|\btrue\b|\bfalse\b|\bnull\b)|(\$\w+)|(\b\d+\b)/g, function (m, c, s, t, k, v, n) {
+      if (c !== undefined) return '<span class="ec-hl-c">' + m + '</span>';
+      if (s !== undefined) return '<span class="ec-hl-s">' + m + '</span>';
+      if (t !== undefined) return '<span class="ec-hl-k">' + m + '</span>';
+      if (k !== undefined) return '<span class="ec-hl-k">' + m + '</span>';
+      if (v !== undefined) return '<span class="ec-hl-v">' + m + '</span>';
+      if (n !== undefined) return '<span class="ec-hl-n">' + m + '</span>';
+      return m;
+    });
+  }
+
+  // ════════════════════════════════════════════════════════════
+  // QUICK COPY
+  // ════════════════════════════════════════════════════════════
+
+  var qcTitle = document.getElementById('ec-qc-title');
+  var qcBadge = document.getElementById('ec-qc-badge');
+  var qcDesc  = document.getElementById('ec-qc-desc');
+  var qcCode  = document.getElementById('ec-qc-code');
+  var qcCp    = document.getElementById('ec-qc-cp');
+  var qcFile  = document.getElementById('ec-qc-file');
+  var qcCust  = document.getElementById('ec-qc-cust');
+  var qcItems = root.querySelectorAll('.ec-qc-item');
+
+  function selectQcItem(id) {
+    qcItems.forEach(function (b) { b.classList.toggle('act', b.dataset.ecItem === id); });
+    var item = items[id];
+    if (!item) return;
+    qcTitle.textContent = item.label || id;
+    qcBadge.textContent = item.badge ? item.badge.charAt(0).toUpperCase() + item.badge.slice(1) : '';
+    qcBadge.className   = 'ec-badge ec-badge--' + (item.badge || 'data');
+    qcDesc.textContent  = item.desc  || '';
+    qcCode.innerHTML    = highlight(item.code || '');
+    qcCode.dataset.raw  = item.code  || '';
+    qcFile.textContent  = item.file  || '';
+    if (qcCust) qcCust.dataset.custType = item.custType || id;
+  }
+
+  qcItems.forEach(function (btn) {
+    btn.addEventListener('click', function () { selectQcItem(btn.dataset.ecItem); });
+  });
+
+  if (qcCp) {
+    qcCp.addEventListener('click', function () {
+      copyText(qcCode.dataset.raw || qcCode.textContent, qcCp, 'Copy');
+    });
+  }
+
+  if (qcCust) {
+    qcCust.addEventListener('click', function () {
+      switchTab('cust');
+      selectCustType(qcCust.dataset.custType || 'join');
+    });
+  }
+
+  // Select first item on load
+  if (qcItems.length) selectQcItem(qcItems[0].dataset.ecItem);
+
+  // ════════════════════════════════════════════════════════════
+  // CUSTOMIZER
+  // ════════════════════════════════════════════════════════════
+
+  var custTypeBtns = root.querySelectorAll('.ec-type-btn');
+  var optsHead     = document.getElementById('ec-opts-head');
+  var optsBody     = document.getElementById('ec-opts-body');
+  var liveTa       = document.getElementById('ec-live-ta');
+  var liveNote     = document.getElementById('ec-live-note');
+  var liveCp       = document.getElementById('ec-live-cp');
+  var liveRst      = document.getElementById('ec-live-rst');
+  var previewBtn   = document.getElementById('ec-preview-btn');
+  var previewCard  = document.getElementById('ec-preview-card');
+  var previewClose = document.getElementById('ec-preview-close');
+  var previewBody  = document.getElementById('ec-preview-body');
+
+  var liveCode = ''; // auto-generated code; reset restores textarea to this
+
+  var curCustType = 'join';
+  var custVals    = {};
+
+  // Type definitions: fields = list of option inputs, note = hint HTML
+  var CUST = {
+    join: {
+      label: 'Join form',
+      fields: [{ id: 'lid', label: 'Fanlisting', type: 'listing', hint: '' }],
+      note: '<strong>Join form</strong> — submissions land in the pending queue. Approve them from <strong>Admin → Members</strong>.',
+    },
+    members: {
+      label: 'Members list',
+      fields: [
+        { id: 'lid',          label: 'Fanlisting',             type: 'listing',                                                              hint: '' },
+        { id: 'per_page',     label: 'Members per page',       type: 'number', ph: '20',                                                    hint: 'Leave blank to use your site’s default.' },
+        { id: 'sort_by',      label: 'Default sort order',     type: 'select', opts: [['','Visitor’s choice (default)'],['name','By name'],['country','By country']], hint: '' },
+        { id: 'show_search',  label: 'Sort &amp; search controls', type: 'select', opts: [['','Shown (default)'],['false','Hidden']],        hint: '' },
+        { id: 'members_base', label: 'URL of this page',       type: 'text',   ph: 'https://yoursite.com/members.php',                      hint: 'Keeps pagination and sort links pointing back to your page.' },
+      ],
+      note: '<strong>Members list</strong> — pagination links appear when members exceed the per-page limit.',
+    },
+    stats: {
+      label: 'Statistics',
+      fields: [
+        { id: 'lid', label: 'Fanlisting', type: 'listing', hint: '' },
+        { id: 'tpl', label: 'Stats to display', type: 'tokens',
+          hint: 'Check the stats you want to show. This builds a <code>$luster_stats_template</code> override. Leave all unchecked to use the template from <strong>Admin → Listings → Edit</strong> instead.',
+          tokens: [
+            { token: '{stat_approved}',     label: 'Approved members',      line: '{stat_approved} members' },
+            { token: '{stat_pending}',      label: 'Pending members',       line: '{stat_pending} pending' },
+            { token: '{stat_opened}',       label: 'Opening date',          line: 'Opened: {stat_opened}' },
+            { token: '{stat_updated}',      label: 'Last member date',      line: 'Last updated: {stat_updated}' },
+            { token: '{stat_last_updated}', label: 'Last updated (admin)',  line: 'Last updated: {stat_last_updated}' },
+            { token: '{stat_newmembers}',   label: 'Newest members',        line: 'Newest: {stat_newmembers}' },
+            { token: '{stat_growth}',       label: 'Growth rate (per day)', line: 'Growth: {stat_growth}/day' },
+            { token: '{listing_name}',      label: 'Listing name',          line: '{listing_name}' },
+            { token: '{listing_url}',       label: 'Listing URL',           line: '{listing_url}' },
+          ],
+        },
+      ],
+      note: '<strong>Statistics</strong> — check tokens above to generate a quick template, or leave all unchecked to use the template saved in <strong>Admin → Listings → Edit</strong>.',
+    },
+    update: {
+      label: 'Update details',
+      fields: [{ id: 'lid', label: 'Fanlisting', type: 'listing', hint: '' }],
+      note: '<strong>Update form</strong> — lets existing members change their name, URL, and other details.',
+    },
+    remove: {
+      label: 'Remove membership',
+      fields: [{ id: 'lid', label: 'Fanlisting', type: 'listing', hint: '' }],
+      note: '<strong>Remove form</strong> — lets members remove themselves from the fanlisting.',
+    },
+    reset: {
+      label: 'Password reset',
+      fields: [
+        { id: 'lid',        label: 'Fanlisting',        type: 'listing',                                                                                                              hint: '' },
+        { id: 'reset_step', label: 'Which step to show',type: 'select', opts: [['','Both steps on one page (default)'],['confirm','Step 2 only — new-password form']], hint: '' },
+      ],
+      note: '<strong>Password reset</strong> — two-step flow. Both steps appear on the same page by default.',
+    },
+    affiliates: {
+      label: 'Affiliates',
+      fields: [{ id: 'lid', label: 'Fanlisting (0 for collective)', type: 'listing_or_zero', hint: 'Use 0 to embed collective-wide affiliates.' }],
+      note: '<strong>Affiliates</strong> — set ID to 0 for collective-wide affiliates, or pick a listing for per-listing affiliates.',
+    },
+    owned: {
+      label: 'Owned listings',
+      fields: [
+        { id: 'status',        label: 'Status filter',   type: 'select', opts: [['','Current only (default)'],['current','Current'],['upcoming','Upcoming'],['trouble','Trouble'],['all','All statuses']], hint: '' },
+        { id: 'hide_dropdown', label: 'Category filter', type: 'select', opts: [['','Shown (default)'],['true','Hidden']], hint: '' },
+      ],
+      note: '<strong>Owned listings</strong> — filter by status or show all. Hide the dropdown to split categories across separate pages.',
+    },
+    joined: {
+      label: 'Joined listings',
+      fields: [
+        { id: 'category', label: 'Category filter', type: 'text', ph: '', hint: "Blank = dropdown. 'all' = show all grouped. Or enter an exact category name." },
+      ],
+      note: "<strong>Joined listings</strong> — blank shows a dropdown; 'all' shows everything grouped; a name shows just that category.",
+    },
+    cstats: {
+      label: 'Site statistics',
+      fields: [
+        { id: 'vars', label: 'Variables to use', type: 'cstatvars',
+          hint: 'Check the variables you want. Selected ones appear as <code>echo</code> lines in the generated code — all variables are available regardless.',
+          vars: [
+            { name: 'luster_owned_active',        label: 'Active owned listings',      desc: 'open fanlistings only' },
+            { name: 'luster_owned_upcoming',      label: 'Upcoming owned',             desc: '' },
+            { name: 'luster_owned_trouble',       label: 'Trouble / inactive owned',   desc: '' },
+            { name: 'luster_owned',               label: 'Total owned (all)',           desc: '' },
+            { name: 'luster_joined_active',       label: 'Active joined listings',     desc: '' },
+            { name: 'luster_joined',              label: 'Total joined (all)',          desc: '' },
+            { name: 'luster_affiliates',          label: 'Collective affiliates',      desc: '' },
+            { name: 'luster_members_approved',    label: 'Approved members',           desc: 'across all listings' },
+            { name: 'luster_members_pending',     label: 'Pending members',            desc: '' },
+            { name: 'luster_members_total',       label: 'Total members',              desc: 'approved + pending' },
+            { name: 'luster_owned_growth_rate',   label: 'Owned growth rate',          desc: 'listings / year' },
+            { name: 'luster_joined_growth_rate',  label: 'Joined growth rate',         desc: 'listings / year' },
+            { name: 'luster_members_growth_rate', label: 'Member growth rate',         desc: 'members / day' },
+          ],
+        },
+      ],
+      note: '<strong>Site statistics</strong> — exposes stats as PHP variables after the <code>require</code>. All variables are always available; the checkboxes just add <code>echo</code> lines for the ones you select.',
+    },
+    'aff-col': {
+      label: 'Collective affiliates',
+      fields: [],
+      note: '<strong>Collective affiliates</strong> — automatically embeds site-wide affiliates (listing ID = 0).',
+    },
+    kim: {
+      label: 'KIM List sign-up',
+      fields: [],
+      note: '<strong>KIM List</strong> — the KIM List add-on must be installed and active. Install from <strong>Admin → Add-ons</strong>.',
+    },
+  };
+
+  function escHtml(s) {
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+  function phpStr(s) {
+    return "'" + String(s).replace(/\\/g,'\\\\').replace(/'/g,"\'") + "'";
+  }
+
+  function generateCode(type, vals) {
+    var def = CUST[type];
+    if (!def) return '';
+    var FILE = { join:'join.php', members:'members.php', stats:'stats.php', update:'update.php', remove:'remove.php', reset:'reset.php', affiliates:'affiliates.php', owned:'owned.php', joined:'joined.php', cstats:'collective-stats.php', 'aff-col':'affiliates.php', kim:'kim-signup.php' };
+    var lines = ['<?php'];
+    // Listing ID
+    if (['join','members','stats','update','remove','reset'].indexOf(type) !== -1) {
+      var lid = parseInt(vals.lid || (listings.length ? listings[0].id : 1), 10) || 1;
+      lines.push('$luster_fanlisting_id = ' + lid + ';');
+    } else if (type === 'affiliates') {
+      var aid = (vals.lid === '0' || vals.lid === '') ? 0 : (parseInt(vals.lid, 10) || (listings.length ? listings[0].id : 1));
+      lines.push('$luster_fanlisting_id = ' + aid + '; // 0 = collective affiliates');
+    } else if (type === 'aff-col') {
+      lines.push('$luster_fanlisting_id = 0; // collective affiliates');
+    }
+    // Extra options
+    if (type === 'members') {
+      if (vals.per_page && vals.per_page !== '' && vals.per_page !== '20') lines.push('$luster_per_page     = ' + (parseInt(vals.per_page, 10) || 20) + ';');
+      if (vals.sort_by)                                                    lines.push('$luster_sort_by      = ' + phpStr(vals.sort_by) + ';');
+      if (vals.show_search === 'false')                                    lines.push('$luster_show_search  = false;');
+      if (vals.members_base)                                               lines.push('$luster_members_base = ' + phpStr(vals.members_base) + ';');
+    }
+    if (type === 'reset' && vals.reset_step) lines.push('$luster_reset_step = ' + phpStr(vals.reset_step) + ';');
+    if (type === 'owned') {
+      if (vals.status)                    lines.push('$luster_status        = ' + phpStr(vals.status) + ';');
+      if (vals.hide_dropdown === 'true')  lines.push('$luster_hide_dropdown = true;');
+    }
+    if (type === 'joined' && vals.category) lines.push('$luster_category = ' + phpStr(vals.category) + ';');
+    // Stats template override — set before require so the embed can pick it up
+    if (type === 'stats' && Array.isArray(vals.tpl) && vals.tpl.length > 0) {
+      if (vals.tpl.length === 1) {
+        lines.push('$luster_stats_template = ' + phpStr(vals.tpl[0].line) + ';');
+      } else {
+        lines.push('$luster_stats_template = ' + phpStr(vals.tpl[0].line));
+        for (var ti = 1; ti < vals.tpl.length - 1; ti++) {
+          lines.push("  . '<br>" + vals.tpl[ti].line.replace(/\\/g, '\\\\').replace(/'/g, "\\'") + "'");
+        }
+        lines.push("  . '<br>" + vals.tpl[vals.tpl.length - 1].line.replace(/\\/g, '\\\\').replace(/'/g, "\\'") + "';");
+      }
+    }
+    // Require line
+    if (type === 'kim') lines.push('// Requires KIM List add-on (Admin → Add-ons)');
+    lines.push("require('" + embedPath + '/' + (FILE[type] || type + '.php') + "');");
+    // Collective stats: echo lines for selected variables
+    if (type === 'cstats') {
+      var selVars = Array.isArray(vals.vars) ? vals.vars : [];
+      if (selVars.length > 0) {
+        selVars.forEach(function (v) {
+          var stmt = 'echo $' + v.name + ';';
+          var pad  = new Array(Math.max(2, 34 - stmt.length)).join(' ');
+          lines.push(stmt + pad + '// ' + v.label);
+        });
+      } else {
+        lines.push('// All variables are available — select some above to add echo lines.');
+      }
+    }
     lines.push('?>');
     return lines.join('\n');
   }
 
-  function updateDots(step) {
-    dots.forEach(function (dot, i) {
-      var n = i + 1;
-      dot.classList.toggle('active', n === step);
-      dot.classList.toggle('done', n < step);
-    });
-  }
-
-  function showStep(n) {
-    state.step = n;
-    p1.hidden = n !== 1;
-    p2.hidden = n !== 2;
-    p3.hidden = n !== 3;
-    btnBack.hidden    = n === 1;
-    btnRestart.hidden = n < 3;
-    updateDots(n);
-    if (stepLabel) stepLabel.textContent = STEP_LABELS[n] || '';
-    if (n === 1) {
-      btnNext.disabled    = !state.type;
-      btnNext.textContent = state.type ? 'Next \u2192' : 'Choose an option above';
-    } else if (n === 2) {
-      btnNext.disabled    = false;
-      btnNext.textContent = 'Next \u2192';
-    } else {
-      btnNext.disabled    = false;
-      btnNext.textContent = 'Done';
+  function buildOptsForm(type) {
+    var def = CUST[type];
+    if (!def) return;
+    custVals = {};
+    if (optsHead) optsHead.textContent = def.label + ' — options';
+    if (!optsBody) return;
+    if (!def.fields.length) {
+      optsBody.innerHTML = '<p class="ec-opts-empty">No configuration needed — the code on the right is ready to use.</p>';
+      return;
     }
-  }
-
-  function buildOptsForm() {
-    var def = getDef(state.type);
-    if (!def) { optsEl.innerHTML = ''; return; }
     var html = '';
-
-    if (def.needsId) {
-      html += '<div class="ec-wiz-field"><label class="ec-wiz-label" for="wiz-lid">Which fanlisting? <em>*</em></label>';
-      if (listings.length) {
-        html += '<select class="form-input" id="wiz-lid" name="wiz_listing_id">';
+    def.fields.forEach(function (f) {
+      if (f.type === 'tokens') {
+        // ── Token checkbox grid (stats template builder) ──────────
+        custVals[f.id] = [];
+        html += '<div class="ec-f"><label class="ec-f-label">' + f.label + '</label>';
+        html += '<div class="ec-token-grid">';
+        (f.tokens || []).forEach(function (t) {
+          html += '<label class="ec-token-item">'
+                + '<input type="checkbox" class="ec-tok-cb" data-tokfid="' + escHtml(f.id) + '"'
+                + ' data-tok="' + escHtml(t.token) + '" data-line="' + escHtml(t.line) + '">'
+                + '<span class="ec-token-inner">'
+                + '<span class="ec-tok-name">' + escHtml(t.token) + '</span>'
+                + '<span class="ec-tok-desc">' + escHtml(t.label) + '</span>'
+                + '</span></label>';
+        });
+        html += '</div>';
+        if (f.hint) html += '<p class="ec-f-hint">' + f.hint + '</p>';
+        html += '</div>';
+        return;
+      }
+      if (f.type === 'cstatvars') {
+        // ── Variable checkbox grid (collective stats echo builder) ─
+        custVals[f.id] = [];
+        html += '<div class="ec-f"><label class="ec-f-label">' + f.label + '</label>';
+        html += '<div class="ec-token-grid">';
+        (f.vars || []).forEach(function (v) {
+          var desc = v.desc ? ' <span class="ec-tok-desc">' + escHtml(v.desc) + '</span>' : '';
+          html += '<label class="ec-token-item">'
+                + '<input type="checkbox" class="ec-var-cb" data-varfid="' + escHtml(f.id) + '"'
+                + ' data-varname="' + escHtml(v.name) + '" data-varlabel="' + escHtml(v.label) + '">'
+                + '<span class="ec-token-inner">'
+                + '<span class="ec-tok-name">$' + escHtml(v.name) + '</span>'
+                + '<span class="ec-tok-desc">' + escHtml(v.label) + (v.desc ? ' — ' + escHtml(v.desc) : '') + '</span>'
+                + '</span></label>';
+        });
+        html += '</div>';
+        if (f.hint) html += '<p class="ec-f-hint">' + f.hint + '</p>';
+        html += '</div>';
+        return;
+      }
+      // ── Standard input types ───────────────────────────────────
+      html += '<div class="ec-f"><label class="ec-f-label" for="ec-f-' + escHtml(f.id) + '">' + f.label + '</label>';
+      if (f.type === 'listing' || f.type === 'listing_or_zero') {
+        html += '<select class="form-input" id="ec-f-' + escHtml(f.id) + '" data-fid="' + escHtml(f.id) + '">';
+        if (f.type === 'listing_or_zero') html += '<option value="0">0 — collective / site-wide</option>';
         listings.forEach(function (fl) {
-          var sel = String(fl.id) === String(state.opts['wiz_listing_id'] || '') ? ' selected' : '';
-          html += '<option value="' + parseInt(fl.id, 10) + '"' + sel + '>' + esc(fl.name) + '</option>';
+          html += '<option value="' + parseInt(fl.id, 10) + '">' + escHtml(fl.name) + '</option>';
+        });
+        if (!listings.length) html += '<option value="1">1</option>';
+        html += '</select>';
+      } else if (f.type === 'select') {
+        html += '<select class="form-input" id="ec-f-' + escHtml(f.id) + '" data-fid="' + escHtml(f.id) + '">';
+        (f.opts || []).forEach(function (o) {
+          html += '<option value="' + escHtml(o[0]) + '">' + escHtml(o[1]) + '</option>';
         });
         html += '</select>';
       } else {
-        html += '<input class="form-input" type="number" id="wiz-lid" name="wiz_listing_id" min="1" placeholder="1" style="max-width:100px" value="' + esc(state.opts['wiz_listing_id'] || '') + '">';
+        html += '<input class="form-input" type="' + (f.type === 'number' ? 'number' : 'text') + '"'
+              + ' id="ec-f-' + escHtml(f.id) + '" data-fid="' + escHtml(f.id) + '"'
+              + (f.ph !== undefined ? ' placeholder="' + escHtml(f.ph) + '"' : '') + '>';
       }
+      if (f.hint) html += '<p class="ec-f-hint">' + escHtml(f.hint) + '</p>';
       html += '</div>';
-    }
-
-    if (def.opts.length > 0) {
-      html += '<p class="ec-wiz-opts-note">Optional &mdash; leave at default if you&rsquo;re not sure.</p>';
-      def.opts.forEach(function (optKey) {
-        var d = OPT_DEFS[optKey];
-        if (!d) return;
-        var curVal = state.opts[optKey] || '';
-        html += '<div class="ec-wiz-field"><label class="ec-wiz-label" for="wiz-' + optKey + '">' + esc(d.label) + '</label>';
-        if (d.type === 'select') {
-          html += '<select class="form-input" id="wiz-' + optKey + '" name="' + optKey + '">';
-          d.choices.forEach(function (ch) {
-            html += '<option value="' + esc(ch[0]) + '"' + (curVal === ch[0] ? ' selected' : '') + '>' + esc(ch[1]) + '</option>';
-          });
-          html += '</select>';
-        } else {
-          html += '<input class="form-input" type="' + d.type + '" id="wiz-' + optKey + '" name="' + optKey + '"' +
-            ' value="' + esc(curVal) + '"' +
-            (d.placeholder ? ' placeholder="' + esc(d.placeholder) + '"' : '') + '>';
-        }
-        if (d.hint) html += '<p class="ec-wiz-hint">' + esc(d.hint) + '</p>';
-        html += '</div>';
+    });
+    optsBody.innerHTML = html;
+    // Standard inputs
+    optsBody.querySelectorAll('[data-fid]').forEach(function (el) {
+      custVals[el.dataset.fid] = el.value;
+      el.addEventListener('input',  function () { custVals[el.dataset.fid] = el.value; updateLive(); });
+      el.addEventListener('change', function () { custVals[el.dataset.fid] = el.value; updateLive(); });
+    });
+    // Token checkboxes (stats)
+    optsBody.querySelectorAll('.ec-tok-cb').forEach(function (cb) {
+      cb.addEventListener('change', function () {
+        var fid = cb.dataset.tokfid;
+        custVals[fid] = [];
+        optsBody.querySelectorAll('.ec-tok-cb[data-tokfid="' + fid + '"]:checked').forEach(function (c) {
+          custVals[fid].push({ token: c.dataset.tok, line: c.dataset.line });
+        });
+        updateLive();
       });
-    }
-
-    if (!def.needsId && def.opts.length === 0) {
-      html += '<p class="ec-wiz-no-opts">No configuration needed. Click <strong>Next</strong> to get your code.</p>';
-    }
-
-    optsEl.innerHTML = html;
-
-    // Capture initial values (pre-selected / default values)
-    optsEl.querySelectorAll('input, select').forEach(function (el) {
-      if (el.name && (el.value || el.value === 0)) state.opts[el.name] = el.value;
-      el.addEventListener('change', collectOpts);
-      el.addEventListener('input',  collectOpts);
+    });
+    // Variable checkboxes (cstats)
+    optsBody.querySelectorAll('.ec-var-cb').forEach(function (cb) {
+      cb.addEventListener('change', function () {
+        var fid = cb.dataset.varfid;
+        custVals[fid] = [];
+        optsBody.querySelectorAll('.ec-var-cb[data-varfid="' + fid + '"]:checked').forEach(function (c) {
+          custVals[fid].push({ name: c.dataset.varname, label: c.dataset.varlabel });
+        });
+        updateLive();
+      });
     });
   }
 
-  function collectOpts() {
-    if (!optsEl) return;
-    optsEl.querySelectorAll('input, select').forEach(function (el) {
-      if (el.name) state.opts[el.name] = el.value;
-    });
+  // ── Preview example values ──────────────────────────────────────────────────
+  var STAT_EXAMPLES = {
+    '{stat_approved}':     '142',
+    '{stat_pending}':      '3',
+    '{stat_opened}':       'January 1st 2020',
+    '{stat_updated}':      'March 15th 2026',
+    '{stat_last_updated}': 'March 15th 2026',
+    '{stat_newmembers}':   'Alice, Bob, Carol, Dave, Eve',
+    '{stat_growth}':       '0.08',
+    '{listing_name}':      'My Fanlisting',
+    '{listing_url}':       'https://example.com/fanlisting/',
+  };
+
+  var CSTAT_EXAMPLES = {
+    'luster_owned_active':        '24',
+    'luster_owned_upcoming':      '2',
+    'luster_owned_trouble':       '1',
+    'luster_owned':               '27',
+    'luster_joined_active':       '150',
+    'luster_joined':              '155',
+    'luster_affiliates':          '8',
+    'luster_members_approved':    '3,842',
+    'luster_members_pending':     '12',
+    'luster_members_total':       '3,854',
+    'luster_owned_growth_rate':   '4.50',
+    'luster_joined_growth_rate':  '18.20',
+    'luster_members_growth_rate': '2.11',
+  };
+
+  function extractStatsTemplate(code) {
+    var start = code.indexOf('$luster_stats_template');
+    if (start === -1) return null;
+    var endIdx = code.indexOf(';', start);
+    if (endIdx === -1) return null;
+    var sub  = code.slice(start, endIdx + 1);
+    var re   = /'((?:[^'\\]|\\.)*)'/g;
+    var parts = [], m;
+    while ((m = re.exec(sub)) !== null) {
+      parts.push(m[1].replace(/\\'/g, "'").replace(/\\\\/g, '\\'));
+    }
+    return parts.length ? parts.join('') : null;
   }
 
-  // Type card clicks
-  wiz.querySelectorAll('.ec-wiz-type-btn').forEach(function (btn) {
-    btn.addEventListener('click', function () {
-      wiz.querySelectorAll('.ec-wiz-type-btn').forEach(function (b) {
-        b.setAttribute('aria-selected', 'false');
-      });
-      btn.setAttribute('aria-selected', 'true');
-      state.type = btn.dataset.wizType;
-      btnNext.disabled    = false;
-      btnNext.textContent = 'Next \u2192';
-    });
-  });
+  function renderPreview() {
+    if (!previewBody) return;
+    var code = liveTa ? liveTa.value : liveCode;
 
-  // Navigation
-  btnNext.addEventListener('click', function () {
-    if (state.step === 1) {
-      if (!state.type) return;
-      var def = getDef(state.type);
-      if (!def.needsId && def.opts.length === 0) {
-        // No options at all — skip step 2
-        state.skippedStep2 = true;
-        if (codeEl) codeEl.textContent = generateCode();
-        showStep(3);
-      } else {
-        state.skippedStep2 = false;
-        state.opts = {};
-        buildOptsForm();
-        showStep(2);
+    if (curCustType === 'stats') {
+      var tpl = extractStatsTemplate(code);
+      if (tpl === null) {
+        previewBody.innerHTML = '<p class="ec-preview-note">No <code>$luster_stats_template</code> in the code &mdash; the template from <strong>Admin → Listings → Edit</strong> will be used. Select tokens above to see a preview.</p>';
+        return;
       }
-    } else if (state.step === 2) {
-      collectOpts();
-      if (codeEl) codeEl.textContent = generateCode();
-      showStep(3);
+      Object.keys(STAT_EXAMPLES).forEach(function (tok) {
+        tpl = tpl.split(tok).join('<span class="ec-pv-ex">' + escHtml(STAT_EXAMPLES[tok]) + '</span>');
+      });
+      previewBody.innerHTML = '<div class="ec-preview-rendered">' + tpl + '</div>';
+
+    } else if (curCustType === 'cstats') {
+      var echoRe = /echo\s+\$(\w+)\s*;/g;
+      var rows = '', em;
+      while ((em = echoRe.exec(code)) !== null) {
+        var vn  = em[1];
+        var ex  = CSTAT_EXAMPLES[vn] !== undefined ? String(CSTAT_EXAMPLES[vn]) : '—';
+        rows += '<tr><td><code>$' + escHtml(vn) + '</code></td><td>' + escHtml(ex) + '</td></tr>';
+      }
+      previewBody.innerHTML = rows
+        ? '<table class="ec-preview-tbl"><thead><tr><th>Variable</th><th>Example value</th></tr></thead><tbody>' + rows + '</tbody></table>'
+        : '<p class="ec-preview-note">No <code>echo</code> lines found. Select variables in the options panel to see them here.</p>';
+
     } else {
-      reset();
+      previewBody.innerHTML = '<p class="ec-preview-note">This embed fetches live data from your server (members, listings, forms) and can\'t be previewed here. To see it in action, paste the snippet into a PHP page on your site.</p>';
     }
-  });
-
-  btnBack.addEventListener('click', function () {
-    if (state.step === 3) {
-      if (state.skippedStep2) {
-        showStep(1);
-      } else {
-        buildOptsForm();
-        showStep(2);
-      }
-    } else if (state.step === 2) {
-      showStep(1);
-    }
-  });
-
-  btnRestart.addEventListener('click', reset);
-
-  function reset() {
-    state = { step: 1, type: null, skippedStep2: false, opts: {} };
-    wiz.querySelectorAll('.ec-wiz-type-btn').forEach(function (b) {
-      b.setAttribute('aria-selected', 'false');
-    });
-    if (optsEl) optsEl.innerHTML = '';
-    if (codeEl) codeEl.textContent = '';
-    showStep(1);
   }
 
-  showStep(1);
+  function updateLive() {
+    liveCode = generateCode(curCustType, custVals);
+    if (liveTa)   liveTa.value = liveCode;
+    if (liveNote) liveNote.innerHTML = (CUST[curCustType] || {}).note || '';
+    if (previewCard && !previewCard.hidden) renderPreview();
+  }
+
+  function selectCustType(type) {
+    if (!CUST[type]) type = 'join';
+    curCustType = type;
+    custTypeBtns.forEach(function (b) { b.classList.toggle('act', b.dataset.custType === type); });
+    buildOptsForm(type);
+    updateLive();
+  }
+
+  custTypeBtns.forEach(function (btn) {
+    btn.addEventListener('click', function () { selectCustType(btn.dataset.custType); });
+  });
+
+  if (liveCp) {
+    liveCp.addEventListener('click', function () {
+      copyText(liveTa ? liveTa.value : liveCode, liveCp, 'Copy');
+    });
+  }
+
+  if (liveRst) {
+    liveRst.addEventListener('click', function () {
+      if (liveTa) liveTa.value = liveCode;
+      if (previewCard && !previewCard.hidden) renderPreview();
+    });
+  }
+
+  if (liveTa) {
+    liveTa.addEventListener('input', function () {
+      if (previewCard && !previewCard.hidden) renderPreview();
+    });
+  }
+
+  if (previewBtn) {
+    previewBtn.addEventListener('click', function () {
+      var open = previewCard && !previewCard.hidden;
+      if (previewCard) previewCard.hidden = open;
+      previewBtn.classList.toggle('active', !open);
+      if (!open) renderPreview();
+    });
+  }
+
+  if (previewClose) {
+    previewClose.addEventListener('click', function () {
+      if (previewCard) previewCard.hidden = true;
+      previewBtn.classList.remove('active');
+    });
+  }
+
+  // Initialise
+  selectCustType('join');
 }());
 
 // ── 32. Sidebar: collapsible nav groups ───────────────────────────────────────
@@ -1310,6 +1823,21 @@ document.addEventListener('click', function (e) {
   });
 
 }());
+
+// ── Template reset buttons (.btn-tpl-reset → restore default HTML) ────────────
+
+document.addEventListener('click', function (e) {
+  var btn = e.target.closest('.btn-tpl-reset');
+  if (!btn) return;
+  var defaultsEl = document.getElementById('luster-tpl-defaults');
+  if (!defaultsEl) return;
+  var defaults = JSON.parse(defaultsEl.textContent);
+  var id  = btn.dataset.target;
+  var def = defaults[id];
+  if (!def) return;
+  var ta = document.getElementById(id);
+  if (ta) { ta.value = def; ta.focus(); }
+});
 
 // ── Settings page: SMTP validate connection ───────────────────────────────────
 
@@ -1397,6 +1925,130 @@ document.addEventListener('click', function (e) {
       if (hb) hb.value = body ? body.value : '';
     });
   }
+
+  // Listing chip: update label when Send To selector changes
+  var listingSel  = document.getElementById('me-listing');
+  var chipLabel   = document.getElementById('me-chip-label');
+  if (listingSel && chipLabel) {
+    listingSel.addEventListener('change', function () {
+      var opt = this.options[this.selectedIndex];
+      chipLabel.textContent = opt ? opt.textContent.trim() : 'All Listings';
+    });
+  }
+
+  // Preview modal
+  var meModal         = document.getElementById('me-preview-modal');
+  var mePreviewBtn    = document.getElementById('me-preview-btn');
+  var meSendBtn       = document.getElementById('me-send-btn');
+  var meCloseBtn      = document.getElementById('me-close-preview-btn');
+  var meFooterPreview = document.getElementById('me-footer-preview');
+  var meFooterConfirm = document.getElementById('me-footer-confirm');
+  var meConfirmSend   = document.getElementById('me-confirm-send-btn');
+  var meConfirmCancel = document.getElementById('me-confirm-cancel-btn');
+
+  function meCurrListingName() {
+    if (!listingSel) return '';
+    var opt = listingSel.options[listingSel.selectedIndex];
+    return opt ? opt.textContent.trim() : '';
+  }
+
+  function meReplaceTokens(text, map) {
+    return text.replace(/\{([a-z_]+)\}/g, function (m, key) {
+      return Object.prototype.hasOwnProperty.call(map, key) ? map[key] : m;
+    });
+  }
+
+  function meSetMode(mode) {
+    if (!meFooterPreview || !meFooterConfirm) return;
+    if (mode === 'confirm') {
+      meFooterPreview.style.display = 'none';
+      meFooterConfirm.style.display = 'block';
+    } else {
+      meFooterPreview.style.display = 'flex';
+      meFooterConfirm.style.display = 'none';
+    }
+  }
+
+  function meOpenPreview(mode) {
+    if (!meModal) return;
+    var subj = document.getElementById('me-subject');
+    var body = document.getElementById('me-body');
+    var md   = meModal.dataset;
+
+    // Selected listing info
+    var selOpt     = listingSel ? listingSel.options[listingSel.selectedIndex] : null;
+    var toLabel    = selOpt ? (selOpt.dataset.label || selOpt.textContent.trim()) : '';
+    var toCount    = selOpt ? parseInt(selOpt.dataset.count || '0', 10) : 0;
+    var listName   = meCurrListingName();
+
+    var selSubject = selOpt ? (selOpt.dataset.subject || '') : '';
+    var selUrl     = selOpt ? (selOpt.dataset.url     || '') : '';
+
+    var tokens = {
+      fan_name:        'Fan Name',
+      fan_email:       'fan@example.com',
+      fan_url:         'https://example.com',
+      fan_country:     'United States',
+      fan_password:    '',
+      name:            'Fan Name',
+      email:           'fan@example.com',
+      listing_name:    listName,
+      listing_subject: selSubject,
+      listing_url:     selUrl,
+      site_name:       md.siteName  || '',
+      owner_name:      md.fromName  || '',
+      owner_email:     md.fromEmail || '',
+    };
+
+    var fromName  = md.fromName  || '';
+    var fromEmail = md.fromEmail || '';
+
+    // To row
+    var toL = document.getElementById('me-preview-to-label');
+    var toC = document.getElementById('me-preview-to-count');
+    if (toL) toL.textContent = toLabel;
+    if (toC) toC.textContent = toCount + ' recipient' + (toCount !== 1 ? 's' : '');
+
+    // From row
+    var fn = document.getElementById('me-preview-from-name');
+    var fe = document.getElementById('me-preview-from-email');
+    if (fn) fn.textContent = fromName;
+    if (fe) fe.textContent = fromEmail ? '<' + fromEmail + '>' : '';
+
+    // Subject + body
+    var ps = document.getElementById('me-preview-subject');
+    var pb = document.getElementById('me-preview-body');
+    if (ps) ps.textContent = meReplaceTokens(subj ? subj.value : '', tokens);
+    if (pb) pb.textContent = meReplaceTokens(body ? body.value : '', tokens);
+
+    meSetMode(mode === 'confirm' ? 'confirm' : 'preview');
+    meModal.style.display = 'flex';
+  }
+
+  function meClosePreview() {
+    if (meModal) meModal.style.display = 'none';
+    meSetMode('preview');
+  }
+
+  if (mePreviewBtn) mePreviewBtn.addEventListener('click', function () { meOpenPreview('preview'); });
+  if (meSendBtn)    meSendBtn.addEventListener('click',    function () { meOpenPreview('confirm'); });
+  if (meCloseBtn)   meCloseBtn.addEventListener('click', meClosePreview);
+  if (meConfirmCancel) meConfirmCancel.addEventListener('click', meClosePreview);
+  if (meConfirmSend) meConfirmSend.addEventListener('click', function () {
+    var form = document.getElementById('compose-form');
+    if (form) form.submit();
+  });
+  if (meModal) meModal.addEventListener('click', function (e) { if (e.target === meModal) meClosePreview(); });
+
+  // Char counter
+  var meBody    = document.getElementById('me-body');
+  var meCharOut = document.getElementById('me-char-count');
+  function updateMeCharCount() {
+    if (!meBody || !meCharOut) return;
+    var n = meBody.value.length;
+    meCharOut.textContent = n + ' char' + (n !== 1 ? 's' : '');
+  }
+  if (meBody) { meBody.addEventListener('input', updateMeCharCount); updateMeCharCount(); }
 }());
 
 // ── Unsaved-changes beforeunload guard (.js-warn-unsaved) ──────────────────
@@ -1700,19 +2352,19 @@ document.addEventListener('click', function (e) {
   });
 }());
 
-// ── 35. Email template type left-nav (.et-nav-item / .et-panel) ───────────────
+// ── 35. Email template type left-nav (.neb-sidebar-nav-item / .et-panel) ──────
 //
 // Standalone switcher so it does not conflict with the .neb-tab-btn switcher
 // (which would clear the active sub-tab when a sidebar item is clicked).
 
 (function () {
-  var items = document.querySelectorAll('.et-nav-item');
+  var items = document.querySelectorAll('.neb-sidebar-nav-item[data-et-tab]');
   if (!items.length) return;
 
   function activate(tabId) {
     items.forEach(function (el) { el.classList.remove('active'); });
     document.querySelectorAll('.et-panel').forEach(function (el) { el.classList.remove('active'); });
-    var item  = document.querySelector('.et-nav-item[data-et-tab="' + tabId + '"]');
+    var item  = document.querySelector('.neb-sidebar-nav-item[data-et-tab="' + tabId + '"]');
     var panel = document.getElementById('et-tab-' + tabId);
     if (item)  item.classList.add('active');
     if (panel) panel.classList.add('active');
@@ -1790,7 +2442,314 @@ document.addEventListener('click', function (e) {
   });
 }());
 
-// ── 38. Flush error-log confirmation modal ─────────────────────────────────────
+// ── 38. Listings add/edit: opened-on date ↔ TBA toggle ───────────────────────
+
+(function () {
+  var openedInput = document.getElementById('fl-opened');
+  var openedTba   = document.getElementById('fl-opened-tba');
+  var openedText  = document.getElementById('fl-opened-tba-text');
+  if (!openedInput) return;
+
+  var radios = document.querySelectorAll('input[name="status"]');
+  if (!radios.length) return;
+
+  function getStatusVal() {
+    for (var i = 0; i < radios.length; i++) {
+      if (radios[i].checked) return radios[i].value;
+    }
+    return '';
+  }
+
+  function isTba(val) {
+    // Add listing uses numeric strings: '0'=pending, '1'=upcoming, '2'=current
+    // Edit listing uses: 'pending', 'upcoming', 'current'
+    return val === '0' || val === '1' || val === 'upcoming' || val === 'pending';
+  }
+
+  function setTbaState(tba) {
+    if (tba) {
+      openedInput.style.display = 'none';
+      openedInput.disabled      = true;
+      if (openedTba)  { openedTba.disabled = false; }
+      if (openedText) { openedText.style.display = ''; }
+    } else {
+      openedInput.style.display = '';
+      openedInput.disabled      = false;
+      if (openedTba)  { openedTba.disabled = true; }
+      if (openedText) { openedText.style.display = 'none'; }
+    }
+  }
+
+  radios.forEach(function (r) {
+    r.addEventListener('change', function () { setTbaState(isTba(this.value)); });
+  });
+
+  setTbaState(isTba(getStatusVal()));
+}());
+
+// ── 39. Global delete / destructive-action confirmation modal ────────────────────
+//
+// Single-item forms: add data-del-modal to the <form>, plus:
+//   data-del-entity  — key into the CFG map below
+//   data-del-name    — display name of the item being deleted
+//   data-del-context — (optional) secondary label (e.g. listing name for member)
+//   data-del-warning — (optional) override the default warning text
+//
+// Bulk forms: add data-del-bulk to the <form>, plus data-del-entity (and
+//   optionally data-del-context). Add data-name="..." to each checkbox.
+//   Fires when bulk_action/action = "delete" or "reject".
+
+(function () {
+  var modal      = document.getElementById('del-confirm-modal');
+  if (!modal) return;
+
+  var titleEl    = document.getElementById('del-modal-title');
+  var descEl     = document.getElementById('del-modal-desc');
+  var warnEl     = document.getElementById('del-modal-warning-text');
+  var confirmBtn = document.getElementById('del-modal-confirm');
+  var cancelBtn  = document.getElementById('del-modal-cancel');
+  var pending    = null;
+
+  var CFG = {
+    listing:               { title: 'Delete Listing',          btn: 'Delete',      desc: 'You are about to delete <strong>$$names$$</strong>.',                                   warn: 'This will permanently delete the listing and all its member data. This action cannot be undone.' },
+    member:                { title: 'Delete Member',           btn: 'Delete',      desc: 'You are about to delete <strong>$$names$$</strong> from <strong>$$context$$</strong>.', warn: 'This will permanently delete the member and all their data. This action cannot be undone.' },
+    member_reject:         { title: 'Reject Member',           btn: 'Reject',      desc: 'You are about to reject <strong>$$names$$</strong>.',                                   warn: 'The member will be removed from the pending queue. This action cannot be undone.' },
+    affiliate:             { title: 'Delete Affiliate',        btn: 'Delete',      desc: 'You are about to delete affiliate <strong>$$names$$</strong>.',                        warn: 'This action cannot be undone.' },
+    category:              { title: 'Delete Category',         btn: 'Delete',      desc: 'You are about to delete category <strong>$$names$$</strong>.',                         warn: 'This action cannot be undone.' },
+    joined:                { title: 'Delete Joined Listing',   btn: 'Delete',      desc: 'You are about to delete <strong>$$names$$</strong> from your joined listings.',        warn: 'This action cannot be undone.' },
+    email_template:        { title: 'Delete Template',         btn: 'Delete',      desc: 'You are about to delete template <strong>$$names$$</strong>.',                        warn: 'This action cannot be undone.' },
+    admin_user:            { title: 'Delete Admin Account',    btn: 'Delete',      desc: 'You are about to delete admin account <strong>$$names$$</strong>.',                   warn: 'This will permanently remove admin access for this user. This action cannot be undone.' },
+    blacklist:             { title: 'Remove Blacklist Entry',  btn: 'Remove',      desc: 'You are about to remove <strong>$$names$$</strong> from the blacklist.',              warn: 'This action cannot be undone.' },
+    field:                 { title: 'Drop Field Column',       btn: 'Drop Column', desc: 'You are about to drop the column for field <strong>$$names$$</strong>.',             warn: 'This permanently removes all member data for this field and cannot be undone.' },
+    code:                  { title: 'Delete Code',             btn: 'Delete',      desc: 'You are about to delete code <strong>$$names$$</strong>.',                           warn: 'This action cannot be undone.' },
+    code_category:         { title: 'Delete Code Category',    btn: 'Delete',      desc: 'You are about to delete code category <strong>$$names$$</strong>. Assignments will be removed.', warn: 'This action cannot be undone.' },
+    code_donor:            { title: 'Delete Code Donor',       btn: 'Delete',      desc: 'You are about to delete donor <strong>$$names$$</strong>. Their codes will be unattributed.', warn: 'This action cannot be undone.' },
+    kim_member:            { title: 'Delete KIM Entry',        btn: 'Delete',      desc: 'You are about to delete the KIM entry for <strong>$$names$$</strong>.',              warn: 'This action cannot be undone.' },
+    pending_update_reject: { title: 'Reject Update',           btn: 'Reject',      desc: 'You are about to reject the update for <strong>$$names$$</strong>.',                 warn: 'The pending update will be discarded. This action cannot be undone.' },
+    merge_member:          { title: 'Delete Duplicate Member', btn: 'Delete',      desc: 'You are about to delete the duplicate account for <strong>$$names$$</strong>.',      warn: 'This permanently deletes the duplicate account. This action cannot be undone.' }
+  };
+
+  function esc(str) {
+    return String(str)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+
+  function show(cfg, names, context, warnOverride) {
+    if (!cfg) return;
+    titleEl.textContent    = cfg.title;
+    confirmBtn.textContent = cfg.btn;
+    var html = cfg.desc
+      .replace('$$names$$',   esc(names))
+      .replace('$$context$$', esc(context || ''));
+    descEl.innerHTML       = html;
+    warnEl.textContent     = warnOverride || cfg.warn;
+    modal.style.display    = 'flex';
+    confirmBtn.focus();
+  }
+
+  function close() { modal.style.display = 'none'; pending = null; }
+
+  cancelBtn.addEventListener('click', close);
+
+  // ── Buttons that use form="id" to reference an out-of-flow data-del-modal form ──
+  // Some browsers fire submit on the ancestor form instead of the referenced one,
+  // so we intercept the click and handle it directly.
+  document.addEventListener('click', function (e) {
+    var btn = e.target.closest('button[type="submit"][form]');
+    if (!btn) return;
+    var target = document.getElementById(btn.getAttribute('form'));
+    if (!target || !target.hasAttribute('data-del-modal')) return;
+    if (target.dataset.delConfirmed === '1') { delete target.dataset.delConfirmed; return; }
+    e.preventDefault();
+    var cfg = CFG[target.dataset.delEntity || ''];
+    if (!cfg) return;
+    pending = target;
+    show(cfg, target.dataset.delName || '', target.dataset.delContext || '', target.dataset.delWarning || '');
+  });
+
+  confirmBtn.addEventListener('click', function () {
+    if (!pending) return;
+    var f = pending;
+    close();
+    f.dataset.delConfirmed = '1';
+    f.requestSubmit ? f.requestSubmit() : f.submit();
+  });
+  modal.addEventListener('click', function (e) { if (e.target === modal) close(); });
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && modal.style.display !== 'none') close();
+  });
+
+  document.addEventListener('submit', function (e) {
+    var form = e.target;
+
+    // ── Single-item delete ──────────────────────────────────────────────────
+    if (form.hasAttribute('data-del-modal')) {
+      if (form.dataset.delConfirmed === '1') { delete form.dataset.delConfirmed; return; }
+      var cfg = CFG[form.dataset.delEntity || ''];
+      if (!cfg) return;
+      e.preventDefault();
+      pending = form;
+      show(cfg, form.dataset.delName || '', form.dataset.delContext || '', form.dataset.delWarning || '');
+      return;
+    }
+
+    // ── Bulk delete / reject ────────────────────────────────────────────────
+    if (form.hasAttribute('data-del-bulk')) {
+      if (form.dataset.delConfirmed === '1') { delete form.dataset.delConfirmed; return; }
+      var bulkSel2 = form.querySelector('select[name="bulk_action"], select[name="action"]');
+      if (!bulkSel2) return;
+      var val = bulkSel2.value;
+      if (val !== 'delete' && val !== 'reject') return;
+      var cfg2 = CFG[form.dataset.delEntity || ''];
+      if (!cfg2) return;
+      var cbs = form.querySelectorAll('input[type="checkbox"]:checked[data-name]');
+      if (!cbs.length) return; // nothing checked — validation toast already shown
+      var nameList = [];
+      cbs.forEach(function (cb) { nameList.push(cb.dataset.name); });
+      e.preventDefault();
+      pending = form;
+      show(cfg2, nameList.join(', '), form.dataset.delContext || '', '');
+    }
+  });
+}());
+
+// ── 42. Collective Templates — token insert, accordion, preview modal ─────────
+
+(function () {
+  // Token accordion toggle
+  document.querySelectorAll('.tok-group-btn').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var expanded = btn.getAttribute('aria-expanded') === 'true';
+      btn.setAttribute('aria-expanded', String(!expanded));
+      var body = btn.nextElementSibling;
+      if (body) body.classList.toggle('open', !expanded);
+    });
+  });
+
+  // Token row: insert at cursor in target textarea (event delegation)
+  document.addEventListener('click', function (e) {
+    var row = e.target.closest('.tok-row[data-textarea]');
+    if (!row) return;
+    var ta = document.getElementById(row.dataset.textarea);
+    if (!ta) return;
+    var token = row.dataset.token || '';
+    var start = ta.selectionStart, end = ta.selectionEnd;
+    ta.value = ta.value.slice(0, start) + token + ta.value.slice(end);
+    ta.selectionStart = ta.selectionEnd = start + token.length;
+    ta.focus();
+  });
+
+  // Reset to default button
+  var defaultsEl = document.getElementById('luster-coltpl-defaults');
+  var defaults = {};
+  if (defaultsEl) {
+    try { defaults = JSON.parse(defaultsEl.textContent); } catch (err) {}
+  }
+  document.addEventListener('click', function (e) {
+    var btn = e.target.closest('.btn-reset[data-textarea]');
+    if (!btn) return;
+    var ta = document.getElementById(btn.dataset.textarea);
+    if (ta && defaults[btn.dataset.textarea] !== undefined) {
+      ta.value = defaults[btn.dataset.textarea];
+      ta.focus();
+    }
+  });
+
+  // Preview modal
+  var backdrop = document.getElementById('tpl-preview-modal-backdrop');
+  var titleEl  = document.getElementById('tpl-preview-modal-title');
+  var content  = document.getElementById('tpl-preview-modal-content');
+  var closeBtn = document.getElementById('tpl-preview-modal-close');
+  if (!backdrop) return;
+
+  var samplesEl = document.getElementById('luster-tpl-samples');
+  var samples = {};
+  if (samplesEl) {
+    try { samples = JSON.parse(samplesEl.textContent); } catch (err) {}
+  }
+
+  function openPreview(taId, modalTitle, kind) {
+    var ta = document.getElementById(taId);
+    if (!ta) return;
+    var html = ta.value;
+    var sampleMap = samples[kind] || {};
+    Object.keys(sampleMap).forEach(function (k) {
+      html = html.split(k).join(sampleMap[k]);
+    });
+    if (titleEl)  titleEl.textContent = modalTitle;
+    if (content)  content.innerHTML   = html;
+    backdrop.classList.add('open');
+  }
+
+  function closePreview() { backdrop.classList.remove('open'); }
+
+  document.addEventListener('click', function (e) {
+    var btn = e.target.closest('.btn-tpl-preview');
+    if (!btn) return;
+    openPreview(btn.dataset.textarea, btn.dataset.title, btn.dataset.kind);
+  });
+
+  closeBtn && closeBtn.addEventListener('click', closePreview);
+  backdrop.addEventListener('click', function (e) {
+    if (e.target === backdrop) closePreview();
+  });
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && backdrop.classList.contains('open')) closePreview();
+  });
+}());
+
+// ── 40. Updates add-on — category tag widget ──────────────────────────────────
+
+(function () {
+  document.querySelectorAll('.tag-input-wrap[data-tag-hidden]').forEach(function (wrap) {
+    var hiddenId  = wrap.getAttribute('data-tag-hidden');
+    var hidden    = document.getElementById(hiddenId);
+    if (!hidden) return;
+    var textInput = wrap.querySelector('.tag-input-field');
+    if (!textInput) return;
+
+    function syncHidden() {
+      var chips = wrap.querySelectorAll('.tag-chip');
+      var vals  = [];
+      chips.forEach(function (c) { vals.push(c.dataset.value); });
+      hidden.value = vals.join(', ');
+    }
+
+    function addChip(value) {
+      value = value.trim().replace(/,+$/, '').trim();
+      if (!value) return;
+      var chip = document.createElement('span');
+      chip.className      = 'tag-chip';
+      chip.dataset.value  = value;
+      chip.innerHTML      = '<span>' + value.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;') + '</span>'
+                          + '<button type="button" class="tag-chip-remove" aria-label="Remove">&times;</button>';
+      chip.querySelector('.tag-chip-remove').addEventListener('click', function () {
+        chip.remove();
+        syncHidden();
+      });
+      wrap.insertBefore(chip, textInput);
+    }
+
+    // Initialise from existing hidden value
+    var existing = hidden.value.split(',').map(function (s) { return s.trim(); }).filter(Boolean);
+    existing.forEach(addChip);
+    syncHidden();
+
+    textInput.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter' || e.key === ',') {
+        e.preventDefault();
+        var val = textInput.value.replace(/,+$/, '').trim();
+        if (val) { addChip(val); syncHidden(); }
+        textInput.value = '';
+      }
+    });
+
+    wrap.addEventListener('click', function () { textInput.focus(); });
+  });
+}());
+
+// ── 41. Flush error-log confirmation modal ─────────────────────────────────────
 
 (function () {
   var modal      = document.getElementById('flush-logs-modal');

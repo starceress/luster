@@ -21,7 +21,7 @@ use Luster\Core\View;
 
 $b = rtrim(View::e($base_url), '/');
 
-$addUrl  = $is_collective
+$addUrl = $is_collective
     ? $b . '/admin/updates/collective/add'
     : $b . '/admin/updates/' . (int) $listing->id . '/add';
 
@@ -35,6 +35,8 @@ $pageUrl = static function (int $p) use ($b, $is_collective, $listing): string {
 $confirmMsg = static function (string $title): string {
     return 'Delete the update "' . htmlspecialchars($title, ENT_QUOTES, 'UTF-8') . '"? This cannot be undone.';
 };
+
+$latestDate = !empty($updates) ? date('M Y', strtotime($updates[0]->postedAt)) : null;
 ?>
 
 <?php if ($success !== ''): ?>
@@ -44,74 +46,112 @@ $confirmMsg = static function (string $title): string {
   <div class="alert alert-error"><?= View::e($error) ?></div>
 <?php endif; ?>
 
-<div class="neb-toolbar" style="margin-bottom:1.25rem">
-  <p style="margin:0">
-    <a href="<?= $b ?>/admin/updates" class="neb-link">&larr; Back to Overview</a>
-  </p>
-  <div class="neb-actions">
-    <a href="<?= View::e($addUrl) ?>" class="btn btn-primary btn-sm">+ Add Update</a>
+<div class="page-topbar">
+  <a href="<?= $b ?>/admin/updates" class="back-link neb-link">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+    Back to Overview
+  </a>
+  <div class="topbar-actions">
+    <a href="<?= View::e($addUrl) ?>" class="btn btn-primary btn-sm">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      Add Update
+    </a>
   </div>
 </div>
 
 <?php if (empty($updates)): ?>
+
   <div class="neb-card">
     <div class="neb-empty">
-      <svg class="empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M19 20H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h10l6 6v8a2 2 0 0 1-2 2z"/><path d="M17 20v-8H7v8M7 4v4h8"/></svg>
-      No updates posted yet.
-      <a href="<?= View::e($addUrl) ?>" class="btn btn-primary btn-sm">+ Add Update</a>
+      <svg class="empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 11a9 9 0 0 1 9 9"/><path d="M4 4a16 16 0 0 1 16 16"/><circle cx="5" cy="19" r="1"/></svg>
+      <div style="font-weight:600;color:var(--text)">No updates posted yet</div>
+      <div>Post your first update to let visitors know what&rsquo;s new.</div>
+      <a href="<?= View::e($addUrl) ?>" class="btn btn-primary btn-sm" style="margin-top:.5rem">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Add Update
+      </a>
     </div>
   </div>
+
 <?php else: ?>
 
-  <p class="result-count">
-    Showing <?= count($updates) ?> of <?= (int) $total ?>
-    update<?= $total === 1 ? '' : 's' ?>
-    <?php if ($pages > 1): ?>&mdash; page <?= (int) $page ?> of <?= (int) $pages ?><?php endif; ?>
-  </p>
+  <!-- Stats strip -->
+  <div class="updates-stats-strip">
+    <div class="ustat">
+      <div class="ustat-val"><?= (int) $total ?></div>
+      <div class="ustat-lbl">Total Updates</div>
+    </div>
+    <?php if ($latestDate !== null): ?>
+    <div class="ustat">
+      <div class="ustat-val" style="font-size:1.1rem;color:var(--accent)"><?= View::e($latestDate) ?></div>
+      <div class="ustat-lbl">Latest Month</div>
+    </div>
+    <?php endif; ?>
+    <?php if ($pages > 1): ?>
+    <div class="ustat">
+      <div class="ustat-val" style="font-size:1.1rem;color:var(--text-muted)"><?= (int) $page ?> / <?= (int) $pages ?></div>
+      <div class="ustat-lbl">Page</div>
+    </div>
+    <?php endif; ?>
+  </div>
 
+  <!-- Timeline -->
   <div class="neb-card">
-    <table class="data-table">
-      <thead>
-        <tr>
-          <th>Title</th>
-          <th>Categories</th>
-          <th>Author</th>
-          <th>Posted</th>
-          <th class="act-col">Actions</th>
-        </tr>
-      </thead>
-      <tbody>
-        <?php foreach ($updates as $u): ?>
-        <tr>
-          <td class="text-strong"><?= View::e($u->title) ?></td>
-          <td>
-            <?php if ($u->category !== ''): ?>
-              <?php foreach ($u->categories() as $cat): ?>
-                <span class="neb-badge badge-inactive"><?= View::e($cat) ?></span>
-              <?php endforeach; ?>
-            <?php else: ?>
-              <span class="text-dim">—</span>
+    <div class="card-head">
+      <div class="card-head-title">
+        <?= $is_collective ? 'Collective Updates' : 'Updates &mdash; ' . View::e($listing->name) ?>
+      </div>
+      <span style="font-size:.72rem;color:var(--text-dim)"><?= (int) $total ?> update<?= $total === 1 ? '' : 's' ?></span>
+    </div>
+    <div class="updates-timeline">
+      <?php foreach ($updates as $u): ?>
+        <?php
+          $dt    = strtotime($u->postedAt);
+          $day   = date('j', $dt);
+          $month = date('M', $dt);
+          $year  = date('Y', $dt);
+          $time  = date('g:i A', $dt);
+        ?>
+        <div class="update-card">
+          <div class="update-date-col">
+            <span class="ud-day"><?= $day ?></span>
+            <span class="ud-month"><?= $month ?></span>
+            <span class="ud-year"><?= $year ?></span>
+            <span class="ud-time"><?= $time ?></span>
+          </div>
+          <div class="update-content-col">
+            <div class="update-header">
+              <span class="update-title"><?= View::e($u->title) ?></span>
+              <div class="row-actions">
+                <a href="<?= $b ?>/admin/updates/entry/<?= (int) $u->id ?>/edit"
+                   class="btn btn-tertiary btn-sm">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                  Edit
+                </a>
+                <form method="POST"
+                      action="<?= $b ?>/admin/updates/entry/<?= (int) $u->id ?>/delete"
+                      style="display:inline"
+                      data-confirm="<?= $confirmMsg($u->title) ?>">
+                  <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
+                  <button type="submit" class="btn btn-danger btn-sm">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+                    Delete
+                  </button>
+                </form>
+              </div>
+            </div>
+            <?php if (!empty($u->categories())): ?>
+              <div class="update-cats">
+                <?php foreach ($u->categories() as $cat): ?>
+                  <span class="update-cat-chip"><?= View::e($cat) ?></span>
+                <?php endforeach; ?>
+              </div>
             <?php endif; ?>
-          </td>
-          <td class="text-muted"><?= View::e($u->author !== '' ? $u->author : '—') ?></td>
-          <td class="text-muted" style="white-space:nowrap;font-size:.85rem">
-            <?= View::e(substr($u->postedAt, 0, 10)) ?>
-          </td>
-          <td class="act-col">
-            <a href="<?= $b ?>/admin/updates/entry/<?= (int) $u->id ?>/edit"
-               class="btn btn-primary btn-sm">Edit</a>
-            <form method="POST"
-                  action="<?= $b ?>/admin/updates/entry/<?= (int) $u->id ?>/delete"
-                  style="display:inline;margin-left:.25rem"
-                  data-confirm="<?= $confirmMsg($u->title) ?>">
-              <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
-              <button type="submit" class="btn btn-danger btn-sm">Delete</button>
-            </form>
-          </td>
-        </tr>
-        <?php endforeach; ?>
-      </tbody>
-    </table>
+            <div class="update-body"><?= nl2br(View::e($u->body)) ?></div>
+          </div>
+        </div>
+      <?php endforeach; ?>
+    </div>
   </div>
 
   <?php if ($pages > 1): ?>

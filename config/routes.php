@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use Luster\Controllers\Admin\AddonsController;
 use Luster\Controllers\Admin\ActivityLogController;
+use Luster\Controllers\Admin\EmailsController;
 use Luster\Controllers\Admin\MassEmailController;
 use Luster\Controllers\Admin\AdminUsersController;
 use Luster\Controllers\Admin\BlacklistController;
@@ -112,6 +113,8 @@ return [
         $router->get('/admin/listings/settings', ListingController::class, 'indexSettings');
         $router->post('/admin/listings/settings', ListingController::class, 'saveSettings');
         $router->post('/admin/listings/bulk', ListingController::class, 'bulk');
+        $router->get('/admin/listings/collective-templates',
+            SettingsController::class, 'collectiveTemplates');
         $router->get('/admin/listings/{id}',
             ListingController::class, 'show');
         $router->get('/admin/listings/{id}/edit',
@@ -282,12 +285,14 @@ return [
             AdminUsersController::class, 'delete');
 
         // ── Email Templates ───────────────────────────────────────────
-        $router->get('/admin/email-templates',
-            EmailTemplatesController::class, 'index');
+        // Old URL → redirect to unified Emails page
+        $router->get('/admin/email-templates', EmailTemplatesController::class, 'indexRedirect');
         $router->post('/admin/email-templates/save',
             EmailTemplatesController::class, 'save');
         $router->post('/admin/email-templates/reset',
             EmailTemplatesController::class, 'reset');
+        $router->post('/admin/email-templates/toggle',
+            EmailTemplatesController::class, 'toggleEnabled');
 
         // ── Settings ────────────────────────────────────────────────
         $router->get('/admin/settings',
@@ -304,8 +309,9 @@ return [
             SettingsController::class, 'testEmail');
 
         // ── Email/SMTP Settings (under Emails nav) ───────────────────
+        // Old URL → redirect to unified Emails page SMTP tab
         $router->get('/admin/emails/smtp-settings',
-            SettingsController::class, 'emailSettings');
+            SettingsController::class, 'emailSettingsRedirect');
         $router->post('/admin/emails/smtp-settings/save',
             SettingsController::class, 'saveEmailSettings');
 
@@ -393,21 +399,23 @@ return [
         $router->get('/admin/embed-codes',
             EmbedCodesController::class, 'index');
 
-        // ── Mass email ────────────────────────────────────────────────
+        // ── Unified Emails page ───────────────────────────────────────
         $router->get('/admin/emails',
-            MassEmailController::class, 'compose');
+            EmailsController::class, 'index');
         $router->post('/admin/emails/preview',
             MassEmailController::class, 'preview');
         $router->post('/admin/emails/send',
             MassEmailController::class, 'send');
 
-        // ── Saved email templates ─────────────────────────────────────
+        // ── Saved email templates (old URL → redirect) ────────────────
         $router->get('/admin/new-email-template',
-            MassEmailController::class, 'savedEmails');
+            MassEmailController::class, 'savedEmailsRedirect');
         $router->post('/admin/new-email-template/save',
             MassEmailController::class, 'saveTemplate');
         $router->post('/admin/new-email-template/{id}/delete',
             MassEmailController::class, 'deleteTemplate');
+        $router->post('/admin/new-email-template/{id}/update',
+            MassEmailController::class, 'updateTemplate');
     },
 
 ];

@@ -31,7 +31,7 @@ $b = rtrim(\Luster\Core\View::e($base_url), '/');
   </div>
 <?php endif; ?>
 
-<div class="form-card">
+<div class="neb-card neb-card-padded">
   <form method="POST"
         action="<?= $b ?>/admin/listings/<?= (int) $listing->id ?>/edit-prefix">
     <input type="hidden" name="_csrf" value="<?= \Luster\Core\View::e($csrf_token ?? '') ?>">

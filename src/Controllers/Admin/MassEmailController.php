@@ -22,6 +22,7 @@ use Luster\Repositories\SavedEmailRepo;
  * POST /admin/emails/send                → send()           — perform the send loop + results
  * GET  /admin/new-email-template                   → savedEmails()    — list + manage saved templates
  * POST /admin/new-email-template/save              → saveTemplate()   — create a saved template
+ * POST /admin/new-email-template/{id}/update       → updateTemplate() — update a saved template
  * POST /admin/new-email-template/{id}/delete       → deleteTemplate() — delete a saved template
  *
  * Listing ID = 0 means "all listings" (recipients are deduplicated by email).
@@ -52,10 +53,31 @@ final class MassEmailController
         $session->remove('lstr_flash_success');
         $session->remove('lstr_flash_error');
 
-        $savedEmails = $repo->getAll();
+        $savedEmails   = $repo->getAll();
+        $etRepo        = new \Luster\Repositories\EmailTemplateRepo($db);
+        $globalEtRaw   = $etRepo->getAllGlobal();
+
+        // Resolve each global email template — saved row or built-in default
+        $typeLabels = [
+            \Luster\Repositories\EmailTemplateRepo::TYPE_JOIN        => 'Join confirmation',
+            \Luster\Repositories\EmailTemplateRepo::TYPE_APPROVE     => 'Membership approved',
+            \Luster\Repositories\EmailTemplateRepo::TYPE_UPDATE      => 'Membership updated',
+            \Luster\Repositories\EmailTemplateRepo::TYPE_REMOVE      => 'Membership removed',
+            \Luster\Repositories\EmailTemplateRepo::TYPE_RESET       => 'Password reset',
+            \Luster\Repositories\EmailTemplateRepo::TYPE_NOTIFY_JOIN => 'New member notification',
+        ];
+        $globalEmailTemplates = [];
+        foreach ($typeLabels as $type => $label) {
+            $row = $globalEtRaw[$type] ?? null;
+            $globalEmailTemplates[] = (object) [
+                'label'   => $label,
+                'subject' => ($row !== null && $row->subject !== '') ? $row->subject : \Luster\Repositories\EmailTemplateRepo::defaultSubject($type),
+                'body'    => ($row !== null && $row->body    !== '') ? $row->body    : \Luster\Repositories\EmailTemplateRepo::defaultBody($type),
+            ];
+        }
 
         // Pre-fill from a saved template when ?load=ID is passed (from saved-templates page)
-        $loadId   = (int) $request->query('load', 0);
+        $loadId     = (int) $request->query('load', 0);
         $preSubject = '';
         $preBody    = '';
         if ($loadId > 0) {
@@ -66,14 +88,42 @@ final class MassEmailController
             }
         }
 
+        // Per-listing approved member counts + deduplicated total for preview modal
+        $config     = $this->app->getConfig();
+        $memberRepo = new \Luster\Repositories\MemberRepo($db, $config);
+        $listingCounts = [];
+        $allEmails     = [];
+        foreach ($listings as $lst) {
+            $count = $lst->dbprefix !== '' ? $memberRepo->countApproved($lst->dbprefix) : 0;
+            $listingCounts[$lst->id] = $count;
+            if ($lst->dbprefix !== '') {
+                foreach ($memberRepo->getApproved($lst->dbprefix) as $m) {
+                    $allEmails[strtolower($m->email)] = true;
+                }
+            }
+        }
+        $deduplicatedTotal = count($allEmails);
+
+        $smtpFrom     = (string) $config->get('smtp_from',      '');
+        $smtpFromName = (string) $config->get('smtp_from_name', '');
+        $fromEmail    = $smtpFrom     !== '' ? $smtpFrom     : (string) $config->get('owner_email', '');
+        $fromName     = $smtpFromName !== '' ? $smtpFromName : (string) $config->get('owner_name',  '');
+
         return $this->layout('mass-email/compose.php', [
-            'listings'       => $listings,
-            'saved_emails'   => $savedEmails,
-            'error'          => $error,
-            'success'        => $success,
-            'old_listing_id' => 0,
-            'old_subject'    => $preSubject,
-            'old_body'       => $preBody,
+            'page_subtitle'         => 'Emails › Bulk Email',
+            'listings'              => $listings,
+            'listing_counts'        => $listingCounts,
+            'deduplicated_total'    => $deduplicatedTotal,
+            'saved_emails'          => $savedEmails,
+            'global_email_templates' => $globalEmailTemplates,
+            'error'              => $error,
+            'success'            => $success,
+            'old_listing_id'     => 0,
+            'old_subject'        => $preSubject,
+            'old_body'           => $preBody,
+            'site_name_val'      => (string) $config->get('site_name', ''),
+            'from_name_val'      => $fromName,
+            'from_email_val'     => $fromEmail,
         ]);
     }
 
@@ -92,17 +142,14 @@ final class MassEmailController
         $v->field('body')->required()->maxLength(50000);
 
         if ($v->fails()) {
-            $db       = $this->app->getDatabase();
-            $listings = (new ListingRepo($db, $this->app->getConfig()))->getAll();
-            return $this->layout('mass-email/compose.php', [
-                'listings'       => $listings,
-                'saved_emails'   => (new SavedEmailRepo($db))->getAll(),
-                'error'          => implode(' ', $v->allErrors()),
-                'success'        => '',
-                'old_listing_id' => $listingId,
-                'old_subject'    => $subject,
-                'old_body'       => $body,
+            $session = $this->app->getSession();
+            $session->set('lstr_flash_error', implode(' ', $v->allErrors()));
+            $session->set('lstr_flash_old', [
+                'listing_id' => $listingId,
+                'subject'    => $subject,
+                'body'       => $body,
             ]);
+            return Response::redirect($this->app->getBaseUrl() . '/admin/emails?tab=bulk');
         }
 
         [$recipients, $listingName] = $this->collectRecipients($listingId);
@@ -110,6 +157,7 @@ final class MassEmailController
         $sample = array_slice(array_keys($recipients), 0, 5, true);
 
         return $this->layout('mass-email/preview.php', [
+            'page_subtitle' => 'Emails › Bulk Email',
             'listing_id'   => $listingId,
             'listing_name' => $listingName,
             'subject'      => $subject,
@@ -131,26 +179,29 @@ final class MassEmailController
 
         // Re-validate — never trust hidden fields without checking
         if ($subject === '' || $body === '') {
-            return Response::redirect($this->app->getBaseUrl() . '/admin/emails');
+            return Response::redirect($this->app->getBaseUrl() . '/admin/emails?tab=bulk');
         }
 
         [$recipients, $listingName] = $this->collectRecipients($listingId);
 
-        $siteName = (string) $this->app->getConfig()->get('site_name', 'Luster');
-        $mailer   = new Mailer($this->app->getConfig());
+        $config     = $this->app->getConfig();
+        $siteName   = (string) $config->get('site_name',      'Luster');
+        $ownerName  = (string) ($config->get('smtp_from_name', '') ?: $config->get('owner_name',  ''));
+        $ownerEmail = (string) ($config->get('smtp_from',      '') ?: $config->get('owner_email', ''));
+        $mailer     = new Mailer($config);
 
         // Allow long-running send without hitting the default 30 s limit
         set_time_limit(300);
 
-        $sent     = 0;
-        $failed   = [];
+        $sent   = 0;
+        $failed = [];
 
-        foreach ($recipients as $email => $name) {
-            $personalBody    = $this->applyTokens($body,    $name, $email, $listingName, $siteName);
-            $personalSubject = $this->applyTokens($subject, $name, $email, $listingName, $siteName);
+        foreach ($recipients as $email => $recipient) {
+            $personalBody    = $this->applyTokens($body,    $recipient, $siteName, $ownerName, $ownerEmail);
+            $personalSubject = $this->applyTokens($subject, $recipient, $siteName, $ownerName, $ownerEmail);
 
             try {
-                $mailer->send($email, $name, $personalSubject, $personalBody);
+                $mailer->send($email, $recipient['name'], $personalSubject, $personalBody);
                 $sent++;
             } catch (\Throwable $e) {
                 $failed[] = $email;
@@ -176,7 +227,16 @@ final class MassEmailController
     }
 
     // -----------------------------------------------------------------------
-    // GET /admin/new-email-template
+    // GET /admin/new-email-template — redirect to unified page
+    // -----------------------------------------------------------------------
+
+    public function savedEmailsRedirect(Request $request, array $params): Response
+    {
+        return Response::redirect($this->app->getBaseUrl() . '/admin/emails?tab=custom');
+    }
+
+    // -----------------------------------------------------------------------
+    // GET /admin/new-email-template (legacy — no longer routed, kept for reference)
     // -----------------------------------------------------------------------
 
     public function savedEmails(Request $request, array $params): Response
@@ -192,6 +252,7 @@ final class MassEmailController
         $savedEmails = (new SavedEmailRepo($db))->getAll();
 
         return $this->layout('mass-email/saved-templates.php', [
+            'page_subtitle' => 'Emails › New Template',
             'saved_emails' => $savedEmails,
             'success'      => $success,
             'error'        => $error,
@@ -214,7 +275,7 @@ final class MassEmailController
         $referer = trim((string) $request->post('referer', ''));
         $redirect = ($referer !== '' && str_starts_with($referer, $baseUrl))
             ? $referer
-            : $baseUrl . '/admin/new-email-template';
+            : $baseUrl . '/admin/emails?tab=custom';
 
         if ($name === '' || $body === '') {
             $session->set('lstr_flash_error', 'Template name and body are required.');
@@ -225,6 +286,37 @@ final class MassEmailController
 
         $session->set('lstr_flash_success', 'Template "' . $name . '" saved.');
         return Response::redirect($redirect);
+    }
+
+    // -----------------------------------------------------------------------
+    // POST /admin/new-email-template/{id}/update
+    // -----------------------------------------------------------------------
+
+    public function updateTemplate(Request $request, array $params): Response
+    {
+        $id      = (int) ($params['id'] ?? 0);
+        $name    = trim((string) $request->post('tpl_name', ''));
+        $subject = trim((string) $request->post('tpl_subject', ''));
+        $body    = trim((string) $request->post('tpl_body', ''));
+
+        $session = $this->app->getSession();
+        $baseUrl = $this->app->getBaseUrl();
+
+        if ($name === '' || $body === '') {
+            $session->set('lstr_flash_error', 'Template name and body are required.');
+            return Response::redirect($baseUrl . '/admin/emails?tab=custom');
+        }
+
+        $repo = new SavedEmailRepo($this->app->getDatabase());
+        if ($repo->getById($id) === null) {
+            $session->set('lstr_flash_error', 'Template not found.');
+            return Response::redirect($baseUrl . '/admin/emails?tab=custom');
+        }
+
+        $repo->update($id, $name, $subject, $body);
+
+        $session->set('lstr_flash_success', 'Template "' . $name . '" updated.');
+        return Response::redirect($baseUrl . '/admin/emails?tab=custom');
     }
 
     // -----------------------------------------------------------------------
@@ -240,7 +332,7 @@ final class MassEmailController
         (new SavedEmailRepo($this->app->getDatabase()))->delete($id);
 
         $session->set('lstr_flash_success', 'Template deleted.');
-        return Response::redirect($baseUrl . '/admin/new-email-template');
+        return Response::redirect($baseUrl . '/admin/emails?tab=custom');
     }
 
     // -----------------------------------------------------------------------
@@ -271,13 +363,21 @@ final class MassEmailController
 
             $recipients = [];
             foreach ($memberRepo->getApproved($listing->dbprefix) as $member) {
-                $recipients[$member->email] = $member->name;
+                $recipients[$member->email] = [
+                    'name'             => $member->name,
+                    'email'            => $member->email,
+                    'url'              => $member->url,
+                    'country'          => $member->country,
+                    'listing_name'     => $listing->name,
+                    'listing_subject'  => $listing->subject,
+                    'listing_url'      => $listing->url,
+                ];
             }
 
             return [$recipients, $listing->name];
         }
 
-        // All listings — deduplicate by email
+        // All listings — deduplicate by email (first listing wins)
         $recipients = [];
         foreach ($listingRepo->getAll() as $listing) {
             if ($listing->dbprefix === '') {
@@ -285,7 +385,15 @@ final class MassEmailController
             }
             foreach ($memberRepo->getApproved($listing->dbprefix) as $member) {
                 if (!isset($recipients[$member->email])) {
-                    $recipients[$member->email] = $member->name;
+                    $recipients[$member->email] = [
+                        'name'             => $member->name,
+                        'email'            => $member->email,
+                        'url'              => $member->url,
+                        'country'          => $member->country,
+                        'listing_name'     => $listing->name,
+                        'listing_subject'  => $listing->subject,
+                        'listing_url'      => $listing->url,
+                    ];
                 }
             }
         }
@@ -294,20 +402,35 @@ final class MassEmailController
     }
 
     /**
-     * Replaces supported tokens in a string with per-recipient values.
+     * Replaces all supported tokens in a string with per-recipient values.
      *
-     * Tokens: {name}, {email}, {listing_name}, {site_name}
+     * Tokens: {fan_name}, {fan_email}, {fan_url}, {fan_country},
+     *         {listing_name}, {listing_subject}, {listing_url},
+     *         {site_name}, {owner_name}, {owner_email}
+     * Legacy aliases: {name} → {fan_name}, {email} → {fan_email}
+     *
+     * @param array{name:string,url:string,country:string,listing_name:string,listing_subject:string,listing_url:string} $recipient
      */
     private function applyTokens(
         string $text,
-        string $name,
-        string $email,
-        string $listingName,
+        array  $recipient,
         string $siteName,
+        string $ownerName,
+        string $ownerEmail,
     ): string {
         return str_replace(
-            ['{name}', '{email}', '{listing_name}', '{site_name}'],
-            [$name,    $email,    $listingName,      $siteName],
+            [
+                '{fan_name}', '{fan_email}', '{fan_url}', '{fan_country}', '{fan_password}',
+                '{name}',                    '{email}',
+                '{listing_name}',            '{listing_subject}',            '{listing_url}',
+                '{site_name}',  '{owner_name}', '{owner_email}',
+            ],
+            [
+                $recipient['name'], $recipient['email'], $recipient['url'], $recipient['country'], '',
+                $recipient['name'],                      $recipient['email'],
+                $recipient['listing_name'], $recipient['listing_subject'], $recipient['listing_url'],
+                $siteName,      $ownerName,     $ownerEmail,
+            ],
             $text,
         );
     }
@@ -316,9 +439,13 @@ final class MassEmailController
     {
         $session = $this->app->getSession();
 
-        $data['page_title']      = 'Emails';
-        $data['current_section'] = 'emails';
-        $data['site_name']       = (string) $this->app->getConfig()->get('site_name', 'Luster');
+        $siteRepo = new \Luster\Repositories\SiteSettingsRepo($this->app->getDatabase());
+
+        $data['page_title']         = 'Emails';
+        $data['current_section']    = 'emails';
+        $data['site_name']          = (string) $this->app->getConfig()->get('site_name', 'Luster');
+        $data['admin_date_format']  = $siteRepo->get('date_format', 'j M Y') ?? 'j M Y';
+        $data['admin_time_format']  = $siteRepo->get('time_format', 'H:i')   ?? 'H:i';
         $data['admin_username']  = (string) $session->get('lstr_admin_username', '');
         $data['csrf_token']      = $this->app->getCSRF()->token();
         $data['base_url']        = $this->app->getBaseUrl();

@@ -84,59 +84,10 @@ $b = rtrim(\Luster\Core\View::e($base_url), '/');
       </div>
       <div class="neb-modal-footer">
         <button type="button" class="btn btn-danger" id="addon-modal-confirm">Uninstall</button>
-        <button type="button" class="btn btn-secondary" id="addon-modal-cancel">Cancel</button>
+        <button type="button" class="btn btn-tertiary" id="addon-modal-cancel">Cancel</button>
       </div>
     </div>
   </div>
 <?php endif; ?>
 
-<style>
-.addon-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 1rem;
-}
-.addon-card {
-  background: var(--bg-card);
-  border: 1px solid var(--border-soft);
-  border-radius: 16px;
-  padding: 1.25rem;
-  display: flex;
-  flex-direction: column;
-  gap: .75rem;
-  box-shadow: var(--shadow);
-  transition: border-color .2s, box-shadow .2s;
-}
-.addon-card--installed {
-  border-color: var(--accent);
-  box-shadow: var(--shadow), 0 0 0 1px var(--accent-glow);
-}
-.addon-card-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: .5rem;
-}
-.addon-name {
-  font-weight: 700;
-  font-size: .9375rem;
-  color: var(--text);
-}
-.addon-desc {
-  font-size: .875rem;
-  color: var(--text-muted);
-  line-height: 1.5;
-  margin: 0;
-  flex: 1;
-}
-.addon-actions {
-  display: flex;
-  gap: .5rem;
-  flex-wrap: wrap;
-  margin-top: auto;
-  padding-top: .25rem;
-  border-top: 1px solid var(--border-soft);
-}
-
-</style>
 

@@ -20,7 +20,6 @@ if (!function_exists('navActive')) {
     }
 }
 
-$avatarChar = strtoupper(substr((string) ($admin_username ?? 'A'), 0, 1));
 ?>
 <!DOCTYPE html>
 <html lang="en" data-theme="light">
@@ -83,7 +82,7 @@ $avatarChar = strtoupper(substr((string) ($admin_username ?? 'A'), 0, 1));
         </svg>
         Members
         <?php if (($nav_pending_members ?? 0) > 0): ?>
-          <span class="nav-badge"><?= (int) $nav_pending_members ?></span>
+          <span class="nav-pending"><?= (int) $nav_pending_members ?></span>
         <?php endif; ?>
       </a>
 
@@ -107,13 +106,33 @@ $avatarChar = strtoupper(substr((string) ($admin_username ?? 'A'), 0, 1));
         </svg>
         Embed Codes
       </a>
-      <a href="<?= $b ?>/admin/email-templates" class="nav-item<?= navActive('emails', $s) ?>">
+      <a href="<?= $b ?>/admin/emails" class="nav-item<?= navActive('emails', $s) ?>">
         <svg class="nav-icon" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
           <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
           <polyline points="22,6 12,13 2,6"/>
         </svg>
         Emails
       </a>
+      <?php
+      $_navAddons = $nav_installed_addons ?? [];
+      if (in_array('Kim', $_navAddons, true)): ?>
+      <a href="<?= $b ?>/admin/kim" class="nav-item<?= navActive('kim', $s) ?>">
+        <svg class="nav-icon" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
+          <line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/>
+        </svg>
+        Keep In Mind
+      </a>
+      <?php endif; ?>
+      <?php if (in_array('Updates', $_navAddons, true)): ?>
+      <a href="<?= $b ?>/admin/updates" class="nav-item<?= navActive('updates', $s) ?>">
+        <svg class="nav-icon" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>
+          <line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>
+        </svg>
+        Updates Feed
+      </a>
+      <?php endif; ?>
     </div>
 
     <div class="sidebar-section">
@@ -155,10 +174,7 @@ $avatarChar = strtoupper(substr((string) ($admin_username ?? 'A'), 0, 1));
             Activity Log
           </a>
           <a href="<?= $b ?>/admin/errorlog" class="nav-item nav-sub-item<?= navActive('errorlog', $s) ?>">
-            <svg class="nav-icon" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
-              <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
-              <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
-            </svg>
+            <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><rect x="11" y="8.5" width="2" height="5.5" rx="1" fill="currentColor" stroke="none"/><circle cx="12" cy="16.5" r="1.1" fill="currentColor" stroke="none"/></svg>
             Error Log
           </a>
         </div>
@@ -169,7 +185,7 @@ $avatarChar = strtoupper(substr((string) ($admin_username ?? 'A'), 0, 1));
 
   <div class="sidebar-footer">
     <div class="sidebar-user">
-      <div class="user-avatar"><?= \Luster\Core\View::e($avatarChar) ?></div>
+      <div class="user-star">✦</div>
       <div class="user-info">
         <span class="user-name"><?= \Luster\Core\View::e($admin_username) ?></span>
         <span class="user-role"><?= \Luster\Core\View::e($site_name) ?></span>
@@ -177,7 +193,7 @@ $avatarChar = strtoupper(substr((string) ($admin_username ?? 'A'), 0, 1));
     </div>
     <form method="POST" action="<?= $b ?>/admin/logout" style="margin-top:12px">
       <input type="hidden" name="_csrf" value="<?= \Luster\Core\View::e($csrf_token) ?>">
-      <button type="submit" class="btn-signout"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg> Sign out</button>
+      <button type="submit" class="btn-signout"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg> Log Out</button>
     </form>
   </div>
 
@@ -226,6 +242,25 @@ $avatarChar = strtoupper(substr((string) ($admin_username ?? 'A'), 0, 1));
     <?= $content ?>
   </div>
 
+</div>
+
+<!-- ── Global delete confirmation modal ────────────────────────────────────── -->
+<div id="del-confirm-modal" class="neb-modal-backdrop" style="display:none" role="dialog" aria-modal="true" aria-labelledby="del-modal-title">
+  <div class="neb-modal">
+    <div class="neb-modal-header">
+      <h3 class="neb-modal-title" id="del-modal-title">Confirm Deletion</h3>
+    </div>
+    <div class="neb-modal-body">
+      <p id="del-modal-desc" style="margin-bottom:.75rem"></p>
+      <div class="addon-modal-warning">
+        <strong>Warning:</strong> <span id="del-modal-warning-text">This action cannot be undone.</span>
+      </div>
+    </div>
+    <div class="neb-modal-footer">
+      <button type="button" class="btn btn-danger" id="del-modal-confirm">Delete</button>
+      <button type="button" class="btn btn-tertiary" id="del-modal-cancel">Cancel</button>
+    </div>
+  </div>
 </div>
 
 <script src="<?= $b ?>/assets/js/admin.js"></script>

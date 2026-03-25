@@ -44,9 +44,6 @@ interface AddonInterface
     /** One-sentence description shown in the admin Add-ons panel. */
     public function getDescription(): string;
 
-    /** Semantic version string, e.g. '1.0.0'. */
-    public function getVersion(): string;
-
     /**
      * Run all install-time DDL/DML.
      * Called inside a PDO transaction — throw on failure to trigger rollback.

@@ -12,7 +12,7 @@ declare(strict_types=1);
 
 use Luster\Core\View;
 ?>
-<div class="fl-wrap">
-  <h2 class="fl-title"><?= View::e($error_title) ?></h2>
-  <p class="fl-message"><?= View::e($error_message) ?></p>
+<div>
+  <h2><?= View::e($error_title) ?></h2>
+  <p><?= View::e($error_message) ?></p>
 </div>

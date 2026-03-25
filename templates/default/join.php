@@ -24,54 +24,51 @@ declare(strict_types=1);
 
 use Luster\Core\View;
 ?>
-<div class="fl-wrap">
-  <h2 class="fl-title">Join <?= View::e($listing_name) ?></h2>
+<div>
 
   <?php if ($errors !== ''): ?>
-    <div class="fl-errors"><?= $errors ?></div>
+    <div><?= $errors ?></div>
   <?php endif; ?>
 
   <form method="POST" action="<?= View::e($form_action) ?>">
     <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
 
-    <div class="fl-field">
-      <label class="fl-label" for="join-name">Name <span class="fl-required">*</span></label>
-      <input class="fl-input" type="text" id="join-name" name="name"
+    <div>
+      <label for="join-name">Name *</label>
+      <input type="text" id="join-name" name="name"
              value="<?= View::e($field_name) ?>" required maxlength="100" autocomplete="name">
     </div>
 
-    <div class="fl-field">
-      <label class="fl-label" for="join-email">Email <span class="fl-required">*</span></label>
-      <input class="fl-input" type="email" id="join-email" name="email"
+    <div>
+      <label for="join-email">Email *</label>
+      <input type="email" id="join-email" name="email"
              value="<?= View::e($field_email) ?>" required maxlength="255" autocomplete="email">
     </div>
 
-    <div class="fl-field">
-      <label class="fl-label" for="join-url">Website URL <span style="font-weight:400">(optional)</span></label>
-      <input class="fl-input" type="url" id="join-url" name="url"
+    <div>
+      <label for="join-url">Website URL <span style="font-weight:400">(optional)</span></label>
+      <input type="url" id="join-url" name="url"
              value="<?= View::e($field_url) ?>" maxlength="500" placeholder="https://" autocomplete="url">
     </div>
 
-    <div class="fl-field">
-      <label class="fl-label" for="country">Country <span class="fl-required">*</span></label>
+    <div>
+      <label for="country">Country *</label>
       <?= $country_select ?>
     </div>
 
     <?php foreach ($fields as $field): ?>
-    <div class="fl-field">
-      <label class="fl-label" for="f-<?= View::e($field->name) ?>">
-        <?= View::e($field->label) ?><?= $field->required ? ' <span class="fl-required">*</span>' : '' ?>
+    <div>
+      <label for="f-<?= View::e($field->name) ?>">
+        <?= View::e($field->label) ?><?= $field->required ? ' *' : '' ?>
       </label>
       <?php if ($field->type === 'textarea'): ?>
-        <textarea class="fl-textarea"
-                  id="f-<?= View::e($field->name) ?>"
+        <textarea id="f-<?= View::e($field->name) ?>"
                   name="field_<?= View::e($field->name) ?>"
                   maxlength="255"
                   <?= $field->required ? 'required' : '' ?>><?= View::e($old['field_' . $field->name] ?? '') ?></textarea>
 
       <?php elseif ($field->type === 'dropdown'): ?>
-        <select class="fl-select"
-                id="f-<?= View::e($field->name) ?>"
+        <select id="f-<?= View::e($field->name) ?>"
                 name="field_<?= View::e($field->name) ?>"
                 <?= $field->required ? 'required' : '' ?>>
           <option value=""></option>
@@ -117,7 +114,7 @@ use Luster\Core\View;
         <?php endforeach; ?>
 
       <?php else: ?>
-        <input class="fl-input" type="text"
+        <input type="text"
                id="f-<?= View::e($field->name) ?>"
                name="field_<?= View::e($field->name) ?>"
                value="<?= View::e($old['field_' . $field->name] ?? '') ?>"
@@ -127,17 +124,17 @@ use Luster\Core\View;
     </div>
     <?php endforeach; ?>
 
-    <div class="fl-field">
-      <label class="fl-label" for="join-password">
+    <div>
+      <label for="join-password">
         Password <span style="font-weight:400">(optional — one will be emailed to you if left blank)</span>
       </label>
-      <input class="fl-input" type="password" id="join-password" name="password"
+      <input type="password" id="join-password" name="password"
              maxlength="255" autocomplete="new-password">
     </div>
 
-    <div class="fl-field">
-      <label class="fl-label" for="join-password-confirm">Confirm Password <span style="font-weight:400">(optional)</span></label>
-      <input class="fl-input" type="password" id="join-password-confirm" name="password_confirm"
+    <div>
+      <label for="join-password-confirm">Confirm Password <span style="font-weight:400">(optional)</span></label>
+      <input type="password" id="join-password-confirm" name="password_confirm"
              maxlength="255" autocomplete="new-password">
     </div>
 
@@ -146,27 +143,27 @@ use Luster\Core\View;
       <input type="text" name="website_confirm" tabindex="-1" autocomplete="off">
     </div>
 
-    <div class="fl-field">
-      <label class="fl-label" for="join-captcha">
-        Captcha: <?= View::e($captcha_question) ?> <span class="fl-required">*</span>
+    <div>
+      <label for="join-captcha">
+        Captcha: <?= View::e($captcha_question) ?> *
       </label>
       <?php if ($captcha_error !== ''): ?>
-        <div class="fl-errors"><?= View::e($captcha_error) ?></div>
+        <div><?= View::e($captcha_error) ?></div>
       <?php endif; ?>
-      <input class="fl-input" type="text" id="join-captcha" name="captcha_answer"
+      <input type="text" id="join-captcha" name="captcha_answer"
              required maxlength="10" autocomplete="off">
     </div>
 
-    <div class="fl-field">
+    <div>
       <label>
         <input type="checkbox" name="send_info" value="1" <?= $send_info_checked ?>>
         Send me a confirmation email
       </label>
     </div>
 
-    <div class="fl-form-actions">
-      <button class="fl-btn" type="submit">Join</button>
-      <button class="fl-btn fl-btn-ghost" type="reset">Clear</button>
+    <div>
+      <button type="submit">Join Fanlisting</button>
+      <button type="reset">Clear Form</button>
     </div>
   </form>
 </div>

@@ -11,30 +11,37 @@ use RuntimeException;
 /**
  * Thin wrapper around PHPMailer for transactional email.
  *
- * When smtp_host is set, email is sent via SMTP.
- * When smtp_host is empty but smtp_from is set, PHPMailer falls back to
- * PHP's native mail() function — no SMTP configuration required.
- * When both are empty, send() is a no-op (email fully disabled).
+ * From address resolution (first non-empty wins):
+ *   1. smtp_from / smtp_from_name  — explicit SMTP sender override
+ *   2. owner_email / owner_name    — site owner identity from General settings
+ *
+ * Delivery method:
+ *   - smtp_host set  → PHPMailer sends via SMTP
+ *   - smtp_host empty → PHPMailer uses PHP's native mail() function
  *
  * Usage:
  *   $mailer = new Mailer($app->getConfig());
- *   $mailer->send('fan@example.com', 'Fan Name', 'Joined!', $bodyHtml);
+ *   $mailer->send('fan@example.com', 'Fan Name', 'Joined!', $body);
  */
 final class Mailer
 {
-    private bool   $enabled;
     private bool   $useSMTP;
     private string $fromEmail;
     private string $fromName;
 
     public function __construct(private readonly Config $config)
     {
-        $host            = (string) $this->config->get('smtp_host', '');
-        $this->fromEmail = (string) $this->config->get('smtp_from',      '');
-        $this->fromName  = (string) $this->config->get('smtp_from_name', 'Luster');
+        $host = (string) $this->config->get('smtp_host', '');
+
+        // Prefer the explicit SMTP From, fall back to the site owner identity
+        $smtpFrom     = (string) $this->config->get('smtp_from',      '');
+        $smtpFromName = (string) $this->config->get('smtp_from_name', '');
+        $ownerEmail   = (string) $this->config->get('owner_email',    '');
+        $ownerName    = (string) $this->config->get('owner_name',     '');
+
+        $this->fromEmail = $smtpFrom     !== '' ? $smtpFrom     : $ownerEmail;
+        $this->fromName  = $smtpFromName !== '' ? $smtpFromName : $ownerName;
         $this->useSMTP   = ($host !== '');
-        // Enabled if we have SMTP, or at minimum a From address for PHP mail()
-        $this->enabled   = ($host !== '' || $this->fromEmail !== '');
     }
 
     /**
@@ -44,10 +51,6 @@ final class Mailer
      */
     public function send(string $toEmail, string $toName, string $subject, string $body): void
     {
-        if (!$this->enabled) {
-            return;
-        }
-
         $mail = $this->buildMailer();
 
         $mail->addAddress($toEmail, $toName);
@@ -72,10 +75,6 @@ final class Mailer
         string $htmlBody,
         string $plainBody = '',
     ): void {
-        if (!$this->enabled) {
-            return;
-        }
-
         $mail = $this->buildMailer();
 
         $mail->addAddress($toEmail, $toName);
@@ -122,7 +121,9 @@ final class Mailer
             $mail->isMail();
         }
 
-        $mail->setFrom($this->fromEmail, $this->fromName);
+        if ($this->fromEmail !== '') {
+            $mail->setFrom($this->fromEmail, $this->fromName);
+        }
 
         return $mail;
     }

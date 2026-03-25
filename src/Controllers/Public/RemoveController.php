@@ -56,7 +56,11 @@ final class RemoveController
         $session->remove('lstr_flash_error');
         $session->remove('lstr_flash_old_email');
 
-        return $this->renderRemoveForm($listingId, $listing, $oldEmail, $error);
+        $settingsRepo    = new ListingSettingsRepo($this->app->getDatabase());
+        $embedSettings   = $settingsRepo->getEmbedSettings($listingId);
+        $lostPasswordUrl = $this->buildResetUrl($listing, $embedSettings);
+
+        return $this->renderRemoveForm($listingId, $listing, $oldEmail, $error, '', $lostPasswordUrl);
     }
 
     // -----------------------------------------------------------------------
@@ -97,11 +101,13 @@ final class RemoveController
                        : $baseUrl . '/remove/' . $listingId;
 
         // Captcha — re-render the form with an error on failure
-        $email = trim((string) $request->post('email', ''));
+        $email           = trim((string) $request->post('email', ''));
+        $lostPasswordUrl = $this->buildResetUrl($listing, $embedSettings);
         if (!Captcha::validate((string) $request->post('captcha_answer', ''), 'remove')) {
             return $this->renderRemoveForm(
                 $listingId, $listing, $email,
                 '', 'Incorrect answer — please try again.',
+                $lostPasswordUrl,
             );
         }
 
@@ -214,28 +220,39 @@ final class RemoveController
      * Used by both showForm() (on GET) and the captcha-failure path in submit(),
      * so the form can be re-rendered in-place without a redirect.
      */
+    private function buildResetUrl(Listing $listing, array $embedSettings): string
+    {
+        $resetPage = (string) ($embedSettings['form_url_reset'] ?? '');
+        if ($resetPage !== '') {
+            return rtrim((string) $listing->url, '/') . '/' . ltrim($resetPage, '/');
+        }
+        return '';
+    }
+
     private function renderRemoveForm(
         int $listingId,
         Listing $listing,
         string $oldEmail = '',
         string $error = '',
         string $captchaError = '',
+        string $lostPasswordUrl = '',
     ): Response {
         $baseUrl = $this->app->getBaseUrl();
 
         $html = $this->app->getView()->renderPublic('remove.php', [
-            'listing'      => $listing,
-            'listing_name' => $listing->name,
-            'listing_url'  => $listing->url,
-            'page_title'      => 'Remove Membership',
-            'form_action'     => $baseUrl . '/remove/' . $listingId,
-            'csrf_token'      => $this->app->getCSRF()->token(),
-            'errors'          => $error !== '' ? '<p>' . htmlspecialchars($error, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '</p>' : '',
-            'field_email'     => $oldEmail,
-            'captcha_question' => Captcha::getQuestion('remove'),
-            'captcha_error'   => $captchaError,
-            'base_url'        => $baseUrl,
-            'theme_path'      => $baseUrl . '/assets/default/',
+            'listing'           => $listing,
+            'listing_name'      => $listing->name,
+            'listing_url'       => $listing->url,
+            'page_title'        => 'Remove Membership',
+            'form_action'       => $baseUrl . '/remove/' . $listingId,
+            'csrf_token'        => $this->app->getCSRF()->token(),
+            'errors'            => $error !== '' ? '<p>' . htmlspecialchars($error, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '</p>' : '',
+            'field_email'       => $oldEmail,
+            'lost_password_url' => $lostPasswordUrl,
+            'captcha_question'  => Captcha::getQuestion('remove'),
+            'captcha_error'     => $captchaError,
+            'base_url'          => $baseUrl,
+            'theme_path'        => $baseUrl . '/assets/default/',
         ]);
 
         return Response::html($html);

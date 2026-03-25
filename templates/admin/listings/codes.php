@@ -46,7 +46,7 @@ $settingsOpen = $hasCats || $hasDonors;
   <div style="display:flex;align-items:center;gap:.75rem">
     <?php if (($status_counts['approved'] ?? 0) > 0): ?>
     <a href="<?= $b ?>/admin/listings/<?= $fid ?>/codes/export"
-       class="btn btn-secondary btn-sm">&#8659; Export ZIP</a>
+       class="btn btn-tertiary btn-sm">&#8659; Export ZIP</a>
     <?php endif; ?>
     <span style="font-size:.8rem;color:var(--text-dim)">
       <?= $total_codes ?> code<?= $total_codes !== 1 ? 's' : '' ?>
@@ -204,6 +204,7 @@ $settingsOpen = $hasCats || $hasDonors;
       </div>
 
       <?php if ($hasCats): ?>
+      <div class="neb-table-wrap">
       <table class="data-table" style="margin:0;font-size:.82rem">
         <tbody>
           <?php foreach ($categories as $cat): ?>
@@ -222,10 +223,11 @@ $settingsOpen = $hasCats || $hasDonors;
               <?= $catCodeCount ?>
             </td>
             <td class="act-col" style="padding:.5rem .75rem">
-              <a href="?edit_cat=<?= (int)$cat->id ?>" class="btn btn-secondary btn-sm">Edit</a>
+              <a href="?edit_cat=<?= (int)$cat->id ?>" class="btn btn-tertiary btn-sm">Edit</a>
               <form method="POST" action="<?= $b ?>/admin/listings/<?= $fid ?>/codes/categories/<?= (int)$cat->id ?>/delete"
                     style="display:contents"
-                    data-confirm="Delete &ldquo;<?= View::e($cat->name) ?>&rdquo;? Assignments to this category will be removed.">
+                    data-del-modal data-del-entity="code_category"
+                    data-del-name="<?= View::e($cat->name) ?>">
                 <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
                 <button class="btn btn-danger btn-sm">Delete</button>
               </form>
@@ -253,13 +255,14 @@ $settingsOpen = $hasCats || $hasDonors;
                   </div>
                 </div>
                 <button class="btn btn-primary btn-sm">Save</button>
-                <a href="?" class="btn btn-secondary btn-sm">Cancel</a>
+                <a href="?" class="btn btn-tertiary btn-sm">Cancel</a>
               </form>
             </td>
           </tr>
           <?php endforeach; ?>
         </tbody>
       </table>
+      </div>
       <?php else: ?>
       <p style="padding:.75rem 1rem;color:var(--text-dim);font-size:.8rem;margin:0">
         No categories yet. Use these to tag codes by theme.
@@ -297,6 +300,7 @@ $settingsOpen = $hasCats || $hasDonors;
       </div>
 
       <?php if ($hasDonors): ?>
+      <div class="neb-table-wrap">
       <table class="data-table" style="margin:0;font-size:.82rem">
         <tbody>
           <?php foreach ($donors as $dn): ?>
@@ -317,10 +321,11 @@ $settingsOpen = $hasCats || $hasDonors;
               <?= count(array_filter($codes, fn($c) => $c->donorId === $dn->id)) ?>
             </td>
             <td class="act-col" style="padding:.5rem .75rem">
-              <a href="?edit_donor=<?= (int)$dn->id ?>" class="btn btn-secondary btn-sm">Edit</a>
+              <a href="?edit_donor=<?= (int)$dn->id ?>" class="btn btn-tertiary btn-sm">Edit</a>
               <form method="POST" action="<?= $b ?>/admin/listings/<?= $fid ?>/codes/donors/<?= (int)$dn->id ?>/delete"
                     style="display:contents"
-                    data-confirm="Delete donor &ldquo;<?= View::e($dn->name) ?>&rdquo;? Their codes will be unattributed.">
+                    data-del-modal data-del-entity="code_donor"
+                    data-del-name="<?= View::e($dn->name) ?>">
                 <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
                 <button class="btn btn-danger btn-sm">Delete</button>
               </form>
@@ -341,13 +346,14 @@ $settingsOpen = $hasCats || $hasDonors;
                   <input class="form-input" type="url" name="url" value="<?= View::e($dn->url ?? '') ?>" placeholder="URL">
                 </div>
                 <button class="btn btn-primary btn-sm">Save</button>
-                <a href="?" class="btn btn-secondary btn-sm">Cancel</a>
+                <a href="?" class="btn btn-tertiary btn-sm">Cancel</a>
               </form>
             </td>
           </tr>
           <?php endforeach; ?>
         </tbody>
       </table>
+      </div>
       <?php else: ?>
       <p style="padding:.75rem 1rem;color:var(--text-dim);font-size:.8rem;margin:0">
         No donors yet. Credit the people who made codes for this listing.
@@ -363,18 +369,33 @@ $settingsOpen = $hasCats || $hasDonors;
 <?php
 $filterTabs = [
     ''         => 'All (' . $total_codes . ')',
-    'approved' => '&#10003; Live (' . ($status_counts['approved'] ?? 0) . ')',
-    'pending'  => '&#8987; Pending (' . ($status_counts['pending'] ?? 0) . ')',
-    'rejected' => '&#10007; Rejected (' . ($status_counts['rejected'] ?? 0) . ')',
+    'approved' => '✓ Live (' . ($status_counts['approved'] ?? 0) . ')',
+    'pending'  => '⏳ Pending (' . ($status_counts['pending'] ?? 0) . ')',
+    'rejected' => '✗ Rejected (' . ($status_counts['rejected'] ?? 0) . ')',
 ];
 ?>
-<div class="neb-tabs" style="margin-bottom:1.25rem">
-  <?php foreach ($filterTabs as $sf => $label): ?>
-    <?php $href = $sf === '' ? '?' : '?status_filter=' . rawurlencode($sf); ?>
-    <a href="<?= $href ?>" class="neb-tab-btn<?= $status_filter === $sf ? ' active' : '' ?>">
-      <?= $label ?>
-    </a>
-  <?php endforeach; ?>
+<div class="neb-tabs-wrap" style="margin-bottom:1.25rem">
+  <div class="neb-tabs">
+    <?php foreach ($filterTabs as $sf => $label): ?>
+      <?php $href = $sf === '' ? '?' : '?status_filter=' . rawurlencode($sf); ?>
+      <a href="<?= $href ?>" class="neb-tab-btn<?= $status_filter === $sf ? ' active' : '' ?>">
+        <?= $label ?>
+      </a>
+    <?php endforeach; ?>
+  </div>
+  <div class="neb-tabs-select-wrap">
+    <span class="neb-tabs-select-label">Filter:</span>
+    <div class="toolbar-select-wrap">
+      <select class="neb-tabs-select neb-select js-nav-select">
+        <?php foreach ($filterTabs as $sf => $label): ?>
+          <?php $href = $sf === '' ? '?' : '?status_filter=' . rawurlencode($sf); ?>
+          <option value="<?= $href ?>"<?= $status_filter === $sf ? ' selected' : '' ?>>
+            <?= $label ?>
+          </option>
+        <?php endforeach; ?>
+      </select>
+    </div>
+  </div>
 </div>
 
 
@@ -420,7 +441,8 @@ $filterTabs = [
   ?>
   <form id="del-<?= (int)$code->id ?>" method="POST"
         action="<?= $b ?>/admin/listings/<?= $fid ?>/codes/<?= (int)$code->id ?>/delete"
-        data-confirm="Delete this code? This cannot be undone.">
+        data-del-modal data-del-entity="code"
+        data-del-name="<?= View::e($dLabel !== null ? $dLabel : 'Code #' . (int)$code->id) ?>">
     <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
   </form>
 
@@ -549,8 +571,8 @@ $filterTabs = [
         </select>
       </div>
       <?php endif; ?>
-      <button type="button" id="bulk-apply-btn" class="btn btn-secondary btn-sm">Apply to selected</button>
-      <button type="button" id="save-order-btn" class="btn btn-secondary btn-sm" style="display:none">Save order</button>
+      <button type="button" id="bulk-apply-btn" class="btn btn-tertiary btn-sm">Apply to selected</button>
+      <button type="button" id="save-order-btn" class="btn btn-tertiary btn-sm" style="display:none">Save order</button>
     </div>
   </div>
 
@@ -645,7 +667,7 @@ $filterTabs = [
 
         <!-- Edit button (opens out-of-flow dialog) -->
         <div style="margin-top:.1rem;padding-top:.25rem;border-top:1px solid var(--border-soft);text-align:center">
-          <button type="button" class="btn btn-secondary btn-sm code-edit-btn"
+          <button type="button" class="btn btn-tertiary btn-sm code-edit-btn"
                   data-dialog="edit-dialog-<?= (int)$code->id ?>"
                   style="font-size:.7rem;width:100%">
             &#9881; Edit

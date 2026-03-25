@@ -1,58 +1,35 @@
 <?php
 /**
  * Sample collective — joined listings.
- * See index.php for setup instructions.
+ *
+ * Options (set before the embed require):
+ *   $luster_category            = '';    // '' = dropdown, 'all' = all grouped,
+ *                                        // or a category name string
+ *   $luster_show_list           = false; // categories as link list vs dropdown
+ *   $luster_show_all_by_default = true;  // show all grouped below selector
  */
 
 $_embedPath = dirname(__DIR__, 3) . '/public/embed';
 
-$_siteName  = 'Collective Name';
-$_navActive = 'joined';
+$_siteName    = 'Collective Name';
+$_siteTagline = 'A fanlisting collective';
+$_ownerName   = 'Your Name';
+$_ownerEmail  = 'you@example.com';
+$_navActive   = 'joined';
+$_pageTitle   = 'Joined';
+
+require 'header.php';
 ?>
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title><?= htmlspecialchars($_siteName, ENT_QUOTES, 'UTF-8') ?> &mdash; Joined Listings</title>
-  <link rel="stylesheet" href="../../assets/default/style.css">
-</head>
-<body>
 
-<header class="fl-site-header">
-  <div class="fl-header-inner">
-    <p class="fl-site-title"><a href="index.php"><?= htmlspecialchars($_siteName, ENT_QUOTES, 'UTF-8') ?></a></p>
-    <nav class="fl-nav" aria-label="Collective navigation">
-      <a href="index.php">Home</a>
-      <a href="listings.php">Listings</a>
-      <a href="joined.php" class="active">Joined</a>
-      <a href="updates.php">Updates</a>
-      <a href="affiliates.php">Affiliates</a>
-    </nav>
-  </div>
-</header>
+  <h1 class="page-heading">Joined listings</h1>
 
-<main class="fl-site-main">
-<?php
-/*
- * Renders joined listings with a category selector.
- *
- * Options (set before require):
- *   $luster_category  = '';     // '' = dropdown selector (reads $_GET['cat'])
- *                               // 'all' = all listings grouped by category heading
- *                               // 'Anime' = only show a specific category by name
- *   $luster_show_list = false;  // show categories as a bulleted link list vs dropdown
- */
-$luster_category           = '';    // '' = show dropdown selector
-$luster_show_all_by_default = true; // show all listings grouped below the selector by default
-$luster_return             = true;
-echo require $_embedPath . '/joined.php';
-?>
-</main>
+  <p class="text-muted">Fanlistings I'm a member of.</p>
 
-<footer class="fl-site-footer">
-  <p>Powered by <a href="https://github.com/sjlabels/luster">Luster</a></p>
-</footer>
+  <?php
+  $luster_category            = '';
+  $luster_show_all_by_default = true;
+  $luster_return              = true;
+  echo require $_embedPath . '/joined.php';
+  ?>
 
-</body>
-</html>
+<?php require 'footer.php'; ?>

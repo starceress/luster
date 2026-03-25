@@ -18,56 +18,40 @@ declare(strict_types=1);
 
 use Luster\Core\View;
 ?>
-<div class="fl-wrap">
-  <h2 class="fl-title">
-    <?php if ($is_collective): ?>
-      Affiliates
-    <?php else: ?>
-      Affiliates of <?= View::e($listing_name) ?>
-    <?php endif; ?>
-  </h2>
-
-  <?php if (!$is_collective && $join_url !== ''): ?>
-    <p><a class="fl-link" href="<?= View::e($join_url) ?>">Join this listing</a></p>
-  <?php endif; ?>
+<div>
 
   <?php if (empty($affiliates)): ?>
-    <p class="fl-empty">No affiliates to display yet.</p>
+    <p>No affiliates to display yet.</p>
   <?php elseif (($affiliates_html ?? null) !== null && $affiliates_html !== ''): ?>
     <!-- Custom DB template affiliate rows -->
-    <p class="fl-muted" style="font-size:.875rem">
+    <p>
       <?= (int) $total ?> affiliate<?= $total !== 1 ? 's' : '' ?>
     </p>
-    <ul class="fl-affiliate-list">
+    <ul>
       <?= $affiliates_html ?>
     </ul>
     <?php if ($pagination !== ''): ?>
-      <div class="fl-pagination"><?= $pagination ?></div>
+      <div><?= $pagination ?></div>
     <?php endif; ?>
   <?php else: ?>
-    <p class="fl-muted" style="font-size:.875rem">
+    <p>
       <?= (int) $total ?> affiliate<?= $total !== 1 ? 's' : '' ?>
     </p>
 
-    <ul class="fl-affiliate-list">
-      <?php foreach ($affiliates as $affiliate): ?>
-        <li class="fl-affiliate">
-          <a class="fl-affiliate-link" href="<?= View::e($affiliate->url) ?>"
-             target="_blank" rel="noopener noreferrer">
-            <?php if ($affiliate->image !== null && $affiliate->image !== ''): ?>
-              <img class="fl-affiliate-img"
-                   src="<?= View::e($uploads_url . '/' . $affiliate->image) ?>"
-                   alt="<?= View::e($affiliate->name) ?>">
-            <?php else: ?>
-              <?= View::e($affiliate->name) ?>
-            <?php endif; ?>
-          </a>
-        </li>
-      <?php endforeach; ?>
-    </ul>
+    <?php foreach ($affiliates as $affiliate): ?>
+        <a href="<?= View::e($affiliate->url) ?>"
+            target="_blank" rel="noopener noreferrer">
+          <?php if ($affiliate->image !== null && $affiliate->image !== ''): ?>
+            <img src="<?= View::e($uploads_url . '/' . $affiliate->image) ?>"
+                  alt="<?= View::e($affiliate->name) ?>">
+          <?php else: ?>
+            <?= View::e($affiliate->name) ?>
+          <?php endif; ?>
+        </a>
+    <?php endforeach; ?>
 
     <?php if ($pagination !== ''): ?>
-      <div class="fl-pagination"><?= $pagination ?></div>
+      <div><?= $pagination ?></div>
     <?php endif; ?>
   <?php endif; ?>
 </div>

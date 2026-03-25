@@ -1292,6 +1292,48 @@ try {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Migration 35: form_url_codes_submit on lstr_fanlisting_settings
+// ─────────────────────────────────────────────────────────────────────────────
+try {
+    if (!(int) $pdo->query('SELECT COUNT(*) FROM `lstr_migrations` WHERE migration_number = 35')->fetchColumn()) {
+
+        $colCheck = $pdo->query("SHOW COLUMNS FROM `lstr_fanlisting_settings` LIKE 'form_url_codes_submit'")->fetchAll();
+        if (empty($colCheck)) {
+            $pdo->exec(
+                "ALTER TABLE `lstr_fanlisting_settings`
+                 ADD COLUMN `form_url_codes_submit` VARCHAR(200) NOT NULL DEFAULT '' AFTER `form_url_reset`"
+            );
+        }
+
+        $pdo->exec('INSERT INTO `lstr_migrations` (migration_number) VALUES (35)');
+        $done[] = 'Added <code>form_url_codes_submit</code> to <code>lstr_fanlisting_settings</code> (code submission page URL)';
+    }
+} catch (PDOException $e) {
+    $errors[] = 'Code submit page URL — ' . htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Migration 36: submitter_url on lstr_codes
+// ─────────────────────────────────────────────────────────────────────────────
+try {
+    if (!(int) $pdo->query('SELECT COUNT(*) FROM `lstr_migrations` WHERE migration_number = 36')->fetchColumn()) {
+
+        $colCheck = $pdo->query("SHOW COLUMNS FROM `lstr_codes` LIKE 'submitter_url'")->fetchAll();
+        if (empty($colCheck)) {
+            $pdo->exec(
+                "ALTER TABLE `lstr_codes`
+                 ADD COLUMN `submitter_url` VARCHAR(255) NULL DEFAULT NULL AFTER `submitter_email`"
+            );
+        }
+
+        $pdo->exec('INSERT INTO `lstr_migrations` (migration_number) VALUES (36)');
+        $done[] = 'Added <code>submitter_url</code> to <code>lstr_codes</code> (donor website URL)';
+    }
+} catch (PDOException $e) {
+    $errors[] = 'Donor URL — ' . htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Build results HTML
 // ─────────────────────────────────────────────────────────────────────────────
 

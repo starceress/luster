@@ -60,16 +60,20 @@ if (!empty($catIds)) {
 $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_TAG);
 ?>
 
-<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
-  <a href="<?= $b ?>/admin/listings" class="neb-link">&larr; Back to Owned Listings</a>
-  <div style="display:flex;gap:.5rem;">
-    <a href="<?= $b ?>/admin/members/<?= (int) $listing->id ?>" class="btn btn-secondary btn-sm">Members</a>
-    <a href="<?= $b ?>/admin/listings/<?= (int) $listing->id ?>/codes" class="btn btn-secondary btn-sm">Codes</a>
-    <a href="<?= $b ?>/admin/email-templates?listing=<?= (int) $listing->id ?>" class="btn btn-secondary btn-sm">Emails</a>
+<div class="page-topbar">
+  <a href="<?= $b ?>/admin/listings" class="back-link">
+    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.75" width="14" height="14"><path d="M10 3L5 8l5 5"/></svg>
+    Back to Owned Listings
+  </a>
+  <div class="topbar-actions">
+    <a href="<?= $b ?>/admin/members/<?= (int) $listing->id ?>" class="btn btn-tertiary btn-sm">Members</a>
+    <a href="<?= $b ?>/admin/listings/<?= (int) $listing->id ?>/codes" class="btn btn-tertiary btn-sm">Codes</a>
+    <a href="<?= $b ?>/admin/emails?tab=templates&listing=<?= (int) $listing->id ?>" class="btn btn-tertiary btn-sm">Emails</a>
     <form method="post"
           action="<?= $b ?>/admin/listings/<?= (int) $listing->id ?>/delete"
           style="display:inline"
-          data-confirm="Delete this listing and all its members? This cannot be undone.">
+          data-del-modal data-del-entity="listing"
+          data-del-name="<?= \Luster\Core\View::e($listing->name) ?>">
       <input type="hidden" name="_csrf" value="<?= \Luster\Core\View::e($csrf_token ?? '') ?>">
       <button type="submit" class="btn btn-danger btn-sm">Delete</button>
     </form>
@@ -84,32 +88,48 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
   <div class="alert alert-error"><?= \Luster\Core\View::e($error) ?></div>
 <?php endif; ?>
 
-<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:1rem;margin-bottom:1.5rem">
+<div class="stats-row">
 <?php $pl = \Luster\Core\View::e($b . '/admin/members/' . (int) $listing->id . '?status=pending'); ?>
-<div class="neb-card" style="padding:1rem 1.25rem">
-  <span style="font-size:1.75rem;font-weight:700;color:var(--text)"><?= (int) $approved ?></span><br>
-  <span class="text-dim">Total Members</span>
+<div class="stat-mini">
+  <div class="val"><?= (int) $approved ?></div>
+  <div class="lbl">Total Members</div>
 </div>
-<div class="neb-card" style="padding:1rem 1.25rem">
-  <span style="font-size:1.75rem;font-weight:700;color:var(--text)"><?= $pending > 0 ? '<a href="' . $pl . '" class="neb-link">' . $pending . '</a>' : $pending ?></span><br>
-  <span class="text-dim">Pending</span>
+<div class="stat-mini">
+  <div class="val"><?= $pending > 0 ? '<a href="' . $pl . '" class="neb-link" style="font-family:inherit;font-size:inherit;font-weight:inherit">' . $pending . '</a>' : $pending ?></div>
+  <div class="lbl">Pending</div>
 </div>
-<div class="neb-card" style="padding:1rem 1.25rem">
-  <span style="font-size:1.75rem;font-weight:700;color:var(--text)"><?= (int) ($countries ?? 0) ?></span><br>
-  <span class="text-dim">Total Countries</span>
+<div class="stat-mini">
+  <div class="val"><?= (int) ($countries ?? 0) ?></div>
+  <div class="lbl">Total Countries</div>
 </div>
-<div class="neb-card" style="padding:1rem 1.25rem">
-  <span style="font-size:1.75rem;font-weight:700;color:var(--text)"><?= \Luster\Core\View::e($fl_last_updated ?? '—') ?></span><br>
-  <span class="text-dim">Date Last Updated</span>
+<div class="stat-mini">
+  <div class="val" style="font-size:1.2rem"><?= \Luster\Core\View::e(($fl_last_updated ?? '') !== '' ? date($admin_date_format, strtotime($fl_last_updated)) : '—') ?></div>
+  <div class="lbl">Date Last Updated</div>
 </div>
 </div>
 
+<div class="neb-tabs-wrap">
 <div class="neb-tabs">
   <button class="neb-tab-btn active" data-tab="general">General</button>
   <button class="neb-tab-btn" data-tab="fields">Additional Fields</button>
   <button class="neb-tab-btn" data-tab="affiliates">Affiliates</button>
   <button class="neb-tab-btn" data-tab="templates">Templates</button>
   <button class="neb-tab-btn" data-tab="embed">Embed</button>
+  <button class="neb-tab-btn" data-tab="advanced">Advanced</button>
+</div>
+<div class="neb-tabs-select-wrap">
+  <span class="neb-tabs-select-label">Navigation</span>
+  <div class="select-wrap" style="flex:1">
+    <select class="neb-tabs-select neb-select">
+      <option value="general">General</option>
+      <option value="fields">Additional Fields</option>
+      <option value="affiliates">Affiliates</option>
+      <option value="templates">Templates</option>
+      <option value="embed">Embed</option>
+      <option value="advanced">Advanced</option>
+    </select>
+  </div>
+</div>
 </div>
 
 <!-- ═══ TAB: GENERAL ═══ -->
@@ -119,216 +139,311 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
 
     <div class="edit-layout">
 
-      <!-- ── Left: identity / content ──────────────────────────── -->
-      <div class="form-card">
+      <!-- ── Left: main card ──────────────────────────────────── -->
+      <div class="main-card">
+        <div class="card-section">
 
-        <div class="form-group">
-          <label class="form-label">Category</label>
-          <div class="cat-widget" id="cat-widget"
-               data-tfl='<?= $dataTfl ?>'
-               data-tafl='<?= $dataTafl ?>'
-               data-custom='<?= $dataCustom ?>'
-               data-existing='<?= $dataExisting ?>'>
-            <div id="cat-rows"></div>
-            <a href="#" class="neb-link" id="cat-add" style="font-size:0.8125rem;display:inline-block;margin-top:0.4rem">+ Add another category</a>
-          </div>
-          <p class="form-hint">Assign to one or more networks (TFL, TAFL, custom).</p>
-        </div>
-
-        <div class="form-group">
-          <label class="form-label" for="fl-subject">Subject</label>
-          <input id="fl-subject" type="text" name="subject" class="form-input"
-                 value="<?= \Luster\Core\View::e($listing->subject ?? '') ?>" maxlength="255">
-        </div>
-
-        <div class="form-group<?= !empty($fe['title']) ? ' has-error' : '' ?>">
-          <label class="form-label" for="fl-title">Title</label>
-          <input id="fl-title" type="text" name="title" class="form-input"
-                 value="<?= \Luster\Core\View::e((string) $oldTitle) ?>"
-                 maxlength="255" required>
-          <?php if (!empty($fe['title'])): ?><p class="field-error"><?= \Luster\Core\View::e($fe['title'][0]) ?></p><?php endif; ?>
-        </div>
-
-        <div class="form-group<?= !empty($fe['url']) ? ' has-error' : '' ?>">
-          <label class="form-label" for="fl-url">Website URL</label>
-          <input id="fl-url" type="url" name="url" class="form-input"
-                 value="<?= \Luster\Core\View::e((string) $oldUrl) ?>"
-                 maxlength="500" placeholder="https://example.com" required>
-          <?php if (!empty($fe['url'])): ?><p class="field-error"><?= \Luster\Core\View::e($fe['url'][0]) ?></p><?php endif; ?>
-        </div>
-
-        <div class="form-group<?= !empty($fe['email']) ? ' has-error' : '' ?>">
-          <label class="form-label" for="fl-email">Contact Email</label>
-          <input id="fl-email" type="email" name="email" class="form-input"
-                 value="<?= \Luster\Core\View::e((string) $oldEmail) ?>"
-                 maxlength="255" required>
-          <?php if (!empty($fe['email'])): ?><p class="field-error"><?= \Luster\Core\View::e($fe['email'][0]) ?></p><?php endif; ?>
-        </div>
-
-        <div class="form-group">
-          <label class="form-label">Status</label>
-          <div style="display:flex;gap:1.5rem;margin-top:0.35rem">
-            <label class="form-check">
-              <input type="radio" name="status" value="current" <?= $oldStatus === 'current'  ? 'checked' : '' ?>>
-              <span class="form-check-label">Current</span>
-            </label>
-            <label class="form-check">
-              <input type="radio" name="status" value="upcoming" <?= $oldStatus === 'upcoming' ? 'checked' : '' ?>>
-              <span class="form-check-label">Upcoming</span>
-            </label>
-            <label class="form-check">
-              <input type="radio" name="status" value="pending" <?= $oldStatus === 'pending'  ? 'checked' : '' ?>>
-              <span class="form-check-label">Pending</span>
-            </label>
-          </div>
-        </div>
-
-        <div class="form-group">
-          <label class="form-label" for="fl-opened">Opened On</label>
-          <input id="fl-opened" type="date" name="opened" class="form-input" style="max-width:200px"
-                 value="<?= \Luster\Core\View::e(strlen((string) ($listing->opened ?? '')) >= 10 ? substr((string) $listing->opened, 0, 10) : '') ?>">
-        </div>
-
-        <div class="section-divider">Listing Image</div>
-
-        <div class="form-group" style="margin-bottom:0">
-          <?php if (isset($current_image) && $current_image !== null && $current_image !== ''): ?>
-            <div style="margin-bottom:0.6rem">
-              <img src="<?= $b ?>/uploads/listings/<?= \Luster\Core\View::e($current_image) ?>"
-                   alt="Current listing image"
-                   style="max-height:<?= \Luster\Core\View::e($imgHeight) ?>;width:auto;display:block;border-radius:6px;border:1px solid var(--border)">
-            </div>
-            <label class="form-check" style="margin-bottom:0.6rem">
-              <input type="checkbox" id="fl-delete-image" name="delete_image" value="1">
-              <span class="form-check-label">Delete current image</span>
-            </label>
-            <label class="form-label" for="fl-image">Replace with new image</label>
-          <?php else: ?>
-            <label class="form-label" for="fl-image">Upload image</label>
-          <?php endif; ?>
-          <input type="file" id="fl-image" name="image" accept="image/*">
-          <p class="form-hint" style="margin-top:0.35rem">JPEG, PNG, GIF, or WebP. Max 2 MB.</p>
-        </div>
-
-      </div><!-- /.form-card (main) -->
-
-      <!-- ── Right: behaviour / settings panel ─────────────────── -->
-      <div class="edit-panel">
-
-        <div class="edit-panel-section">
-          <div class="edit-panel-label">Behaviour</div>
-
-          <div class="form-group">
-            <label class="form-label" for="fl-listing-type">Type</label>
-            <?php $lt = $listing_type ?? 'listing'; ?>
-            <div class="select-wrap">
-              <select id="fl-listing-type" name="listing_type" class="form-select">
-                <option value="listing"    <?= $lt === 'listing'    ? 'selected' : '' ?>>Listing</option>
-                <option value="clique"     <?= $lt === 'clique'     ? 'selected' : '' ?>>Clique</option>
-                <option value="collective" <?= $lt === 'collective' ? 'selected' : '' ?>>Collective</option>
-                <option value="shrine"     <?= $lt === 'shrine'     ? 'selected' : '' ?>>Shrine</option>
-                <option value="webring"    <?= $lt === 'webring'    ? 'selected' : '' ?>>Webring</option>
-                <option value="other"      <?= $lt === 'other'      ? 'selected' : '' ?>>Other</option>
-              </select>
-            </div>
-          </div>
-
-          <div class="form-group">
-            <label class="form-label" for="fl-members-per-page">Members per page</label>
-            <input id="fl-members-per-page" type="number" name="members_per_page" class="form-input"
-                   min="5" max="200"
-                   value="<?= (int) ($members_per_page ?? 25) ?>">
-            <p class="form-hint">Admin list view (5–200).</p>
-          </div>
-        </div><!-- /.edit-panel-section -->
-
-        <div class="edit-panel-section">
-          <div class="edit-panel-label">Maintenance</div>
-
-          <div class="form-group">
-            <label class="form-label" for="fl-last-updated">Last Updated</label>
-            <input id="fl-last-updated" type="date" name="fl_last_updated" class="form-input"
-                   value="<?= \Luster\Core\View::e($fl_last_updated ?? '') ?>">
-            <div style="display:flex;gap:0.5rem;margin-top:0.4rem">
-              <button type="button" class="btn btn-secondary btn-sm" id="set-today-btn">Today</button>
-              <button type="button" class="btn btn-ghost btn-sm" id="clear-date-btn">Clear</button>
-            </div>
-            <p class="form-hint" style="margin-top:0.4rem">Drives the staleness check on the dashboard.</p>
-          </div>
-        </div><!-- /.edit-panel-section -->
-
-        <div class="edit-panel-section">
-          <div class="edit-panel-label">Advanced</div>
-
-          <details class="form-details">
-            <summary>Table Prefix</summary>
-            <div class="form-details-body">
-              <div style="display:flex;align-items:center;gap:0.5rem">
-                <input type="text" class="form-input" value="<?= \Luster\Core\View::e($listing->dbprefix) ?>"
-                       readonly style="color:var(--text-dim);cursor:not-allowed;font-family:'DM Mono',monospace;font-size:0.8rem;flex:1;min-width:0">
-                <a href="<?= $b ?>/admin/listings/<?= (int) $listing->id ?>/edit-prefix"
-                   class="btn btn-secondary btn-sm" style="white-space:nowrap;flex-shrink:0">Edit</a>
+          <div class="field-row field-row--top">
+            <label class="field-label">Network &amp; Category</label>
+            <div>
+              <div class="cat-widget" id="cat-widget"
+                   data-tfl='<?= $dataTfl ?>'
+                   data-tafl='<?= $dataTafl ?>'
+                   data-custom='<?= $dataCustom ?>'
+                   data-existing='<?= $dataExisting ?>'>
+                <div id="cat-rows"></div>
+                <a href="#" class="neb-link" id="cat-add" style="font-size:.8125rem;display:inline-block;margin-top:.4rem">+ Add another category</a>
               </div>
-              <p class="form-hint" style="margin-top:0.35rem">The member table name in your database. Most users never need to change this.</p>
+              <p class="field-hint-sm">Assign to one or more networks (TFL, TAFL, custom).</p>
             </div>
-          </details>
-        </div><!-- /.edit-panel-section -->
+          </div>
 
-      </div><!-- /.edit-panel -->
+          <div class="field-row field-row--top">
+            <label class="field-label" for="fl-subject">Subject</label>
+            <div>
+              <input id="fl-subject" type="text" name="subject" class="form-input"
+                     value="<?= \Luster\Core\View::e($listing->subject ?? '') ?>" maxlength="255">
+              <p class="field-hint-sm">The subject of your listing (e.g. character name, show title).</p>
+            </div>
+          </div>
+
+          <div class="field-row<?= !empty($fe['title']) ? ' has-error' : '' ?>">
+            <label class="field-label" for="fl-title">Title</label>
+            <div>
+              <input id="fl-title" type="text" name="title" class="form-input"
+                     value="<?= \Luster\Core\View::e((string) $oldTitle) ?>"
+                     maxlength="255" required>
+              <?php if (!empty($fe['title'])): ?><p class="field-error"><?= \Luster\Core\View::e($fe['title'][0]) ?></p><?php endif; ?>
+            </div>
+          </div>
+
+          <div class="field-row<?= !empty($fe['url']) ? ' has-error' : '' ?>">
+            <label class="field-label" for="fl-url">Website URL <span class="req">*</span></label>
+            <div>
+              <input id="fl-url" type="url" name="url" class="form-input"
+                     value="<?= \Luster\Core\View::e((string) $oldUrl) ?>"
+                     maxlength="500" placeholder="https://example.com" required>
+              <?php if (!empty($fe['url'])): ?><p class="field-error"><?= \Luster\Core\View::e($fe['url'][0]) ?></p><?php endif; ?>
+            </div>
+          </div>
+
+          <div class="field-row field-row--top<?= !empty($fe['email']) ? ' has-error' : '' ?>">
+            <label class="field-label" for="fl-email">Contact Email</label>
+            <div>
+              <input id="fl-email" type="email" name="email" class="form-input"
+                     value="<?= \Luster\Core\View::e((string) $oldEmail) ?>"
+                     maxlength="255" required>
+              <p class="field-hint-sm">Address listing emails are sent from.</p>
+              <?php if (!empty($fe['email'])): ?><p class="field-error"><?= \Luster\Core\View::e($fe['email'][0]) ?></p><?php endif; ?>
+            </div>
+          </div>
+
+          <div class="field-row">
+            <label class="field-label">Status</label>
+            <div class="status-pill-row" id="status-pills">
+              <label class="status-pill<?= $oldStatus === 'current'  ? ' pill-current'  : '' ?>">
+                <input type="radio" name="status" value="current"  <?= $oldStatus === 'current'  ? 'checked' : '' ?>> Current
+              </label>
+              <label class="status-pill<?= $oldStatus === 'upcoming' ? ' pill-upcoming' : '' ?>">
+                <input type="radio" name="status" value="upcoming" <?= $oldStatus === 'upcoming' ? 'checked' : '' ?>> Upcoming
+              </label>
+              <label class="status-pill<?= $oldStatus === 'pending'  ? ' pill-pending'  : '' ?>">
+                <input type="radio" name="status" value="pending"  <?= $oldStatus === 'pending'  ? 'checked' : '' ?>> Pending
+              </label>
+            </div>
+          </div>
+
+          <div class="field-row" id="opened-row">
+            <label class="field-label" for="fl-opened">Opened On</label>
+            <div>
+              <?php
+                $openedRaw = (string) ($listing->opened ?? '');
+                $openedDateVal = strlen($openedRaw) >= 10 ? substr($openedRaw, 0, 10) : '';
+              ?>
+              <input id="fl-opened" type="date" name="opened" class="form-input" style="max-width:200px"
+                     value="<?= \Luster\Core\View::e($openedDateVal) ?>">
+              <input type="hidden" id="fl-opened-tba" name="opened" value="TBA" disabled>
+              <span id="fl-opened-tba-text" style="display:none;font-size:.85rem;color:var(--text-muted);font-style:italic;margin-top:.35rem">TBA &mdash; date will be set when the listing opens.</span>
+            </div>
+          </div>
+
+        </div><!-- /.card-section (identity) -->
+
+        <div class="card-section">
+
+          <div class="field-row field-row--top">
+            <label class="field-label">Listing Image</label>
+            <div>
+              <?php if (isset($current_image) && $current_image !== null && $current_image !== ''): ?>
+                <div class="existing-image-row" style="margin-bottom:.625rem">
+                  <div class="existing-img-placeholder">
+                    <img src="<?= $b ?>/uploads/listings/<?= \Luster\Core\View::e($current_image) ?>"
+                         alt="<?= \Luster\Core\View::e($current_image) ?>">
+                  </div>
+                  <div>
+                    <div style="font-size:.8rem;font-weight:600;color:var(--text)"><?= \Luster\Core\View::e($current_image) ?></div>
+                    <label class="del-img-check">
+                      <input type="checkbox" id="fl-delete-image" name="delete_image" value="1">
+                      Delete current image
+                    </label>
+                  </div>
+                </div>
+                <p style="font-size:.72rem;font-weight:600;color:var(--text-muted);margin-bottom:.35rem">Replace with new image</p>
+              <?php endif; ?>
+              <label class="file-drop">
+                <input type="file" id="fl-image" name="image" accept="image/jpeg,image/png,image/gif,image/webp">
+                <svg class="file-drop-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="2" width="12" height="12" rx="1.5"/><circle cx="5.5" cy="5.5" r="1"/><path d="M14 10l-3.5-3.5L6 11l-2-2-2 2"/></svg>
+                <span class="file-drop-label">Click to upload</span>
+                <span class="file-drop-sub">JPEG, PNG, GIF, WebP &mdash; max 2 MB</span>
+              </label>
+            </div>
+          </div>
+
+        </div><!-- /.card-section (image) -->
+
+        <div class="card-footer">
+          <button type="submit" class="btn btn-primary">Save Changes</button>
+          <a href="<?= $b ?>/admin/listings" class="btn btn-ghost">Cancel</a>
+        </div>
+
+      </div><!-- /.main-card -->
+
+      <!-- ── Right: panel column ─────────────────────────────── -->
+      <div class="panel-col">
+
+        <!-- Behaviour -->
+        <div class="panel-card">
+          <div class="card-head">
+            <span class="card-head-title">Behaviour</span>
+          </div>
+          <div class="panel-body">
+            <?php $lt = $listing_type ?? 'listing'; ?>
+            <div class="panel-field">
+              <label class="field-label" for="fl-listing-type">Type</label>
+              <div class="select-wrap">
+                <select id="fl-listing-type" name="listing_type" class="panel-select">
+                  <option value="listing"    <?= $lt === 'listing'    ? 'selected' : '' ?>>Listing</option>
+                  <option value="clique"     <?= $lt === 'clique'     ? 'selected' : '' ?>>Clique</option>
+                  <option value="collective" <?= $lt === 'collective' ? 'selected' : '' ?>>Collective</option>
+                  <option value="shrine"     <?= $lt === 'shrine'     ? 'selected' : '' ?>>Shrine</option>
+                  <option value="webring"    <?= $lt === 'webring'    ? 'selected' : '' ?>>Webring</option>
+                  <option value="other"      <?= $lt === 'other'      ? 'selected' : '' ?>>Other</option>
+                </select>
+              </div>
+            </div>
+            <div class="panel-field">
+              <label class="field-label" for="fl-members-per-page">Members per page</label>
+              <input id="fl-members-per-page" type="number" name="members_per_page" class="panel-input"
+                     min="5" max="200" value="<?= (int) ($members_per_page ?? 25) ?>">
+              <p class="panel-hint">Admin list view (5–200).</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Maintenance -->
+        <div class="panel-card">
+          <div class="card-head">
+            <span class="card-head-title">Maintenance</span>
+          </div>
+          <div class="panel-body">
+            <div class="panel-field">
+              <label class="field-label" for="fl-last-updated">Last Updated</label>
+              <input id="fl-last-updated" type="date" name="fl_last_updated" class="panel-input"
+                     value="<?= \Luster\Core\View::e($fl_last_updated ?? '') ?>">
+              <div class="panel-mini-row">
+                <button type="button" class="btn btn-tertiary btn-sm" id="set-today-btn">Today</button>
+                <button type="button" class="btn btn-ghost btn-sm" id="clear-date-btn">Clear</button>
+              </div>
+              <p class="panel-hint">Drives the staleness check on the dashboard.</p>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /.panel-col -->
 
     </div><!-- /.edit-layout -->
-
-    <div class="btn-row">
-      <button type="submit" class="btn btn-primary">Save Changes</button>
-      <a href="<?= $b ?>/admin/listings" class="btn btn-ghost">Cancel</a>
-    </div>
   </form>
 </div><!-- /#tab-general -->
 
 <!-- ═══ TAB: TEMPLATES ═══ -->
 <div id="tab-templates" class="neb-tab-panel">
-<div class="form-card">
-  <div class="form-group">
-    <label class="form-label">Stats URL</label>
-    <input type="text" class="form-input" readonly
-           value="<?= $b ?>/stats/<?= (int) $listing->id ?>"
-           style="font-family:'DM Mono',monospace;font-size:0.8125rem;color:var(--text-muted)">
+<div style="display:grid;grid-template-columns:1fr 260px;gap:1.25rem;align-items:start">
+
+  <!-- Left: template editor -->
+  <div class="neb-card" style="overflow:hidden">
+    <div class="card-head">
+      <div class="card-head-text">
+        <span class="card-head-title">HTML Templates</span>
+        <span class="card-head-sub">Controls how members, affiliates, and stats render on your site.</span>
+      </div>
+    </div>
+
+    <div class="tpl-field">
+      <div class="tpl-label">Stats URL</div>
+      <div class="ro-field" style="margin-top:.35rem;font-size:.8rem"><?= $b ?>/stats/<?= (int) $listing->id ?></div>
+    </div>
+
+    <form method="POST" action="<?= $b ?>/admin/listings/<?= (int) $listing->id ?>/templates">
+      <input type="hidden" name="_csrf" value="<?= \Luster\Core\View::e($csrf_token ?? '') ?>">
+
+      <div class="tpl-field">
+        <div class="tpl-label" style="display:flex;align-items:center;justify-content:space-between">
+          Members List
+          <button type="button" class="btn-tpl-reset" data-target="members_template">Reset to default</button>
+        </div>
+        <textarea id="members_template" name="members_template" class="form-textarea" rows="6"><?= \Luster\Core\View::e($templates['members_template'] ?? '<li><a href="{fan_url}">{fan_name}</a> — {fan_country}</li>') ?></textarea>
+      </div>
+
+      <div class="tpl-field">
+        <div class="tpl-label" style="display:flex;align-items:center;justify-content:space-between">
+          Affiliates
+          <button type="button" class="btn-tpl-reset" data-target="affiliates_template">Reset to default</button>
+        </div>
+        <textarea id="affiliates_template" name="affiliates_template" class="form-textarea" rows="6"><?= \Luster\Core\View::e($templates['affiliates_template'] ?? '<a href="{aff_url}" target="_blank" title="{aff_name}">{aff_image}</a>') ?></textarea>
+      </div>
+
+      <div class="tpl-field">
+        <div class="tpl-label" style="display:flex;align-items:center;justify-content:space-between">
+          Statistics
+          <button type="button" class="btn-tpl-reset" data-target="stats_template">Reset to default</button>
+        </div>
+        <textarea id="stats_template" name="stats_template" class="form-textarea" rows="6"><?= \Luster\Core\View::e($templates['stats_template'] ?? '<div><b>Opened:</b> {stat_opened}<br>
+<b>Updated:</b> {stat_last_updated}<br>
+<b>Fans:</b> {stat_approved} (+ {stat_pending} pending)<br>
+<b>Newest Fan:</b> {stat_newmembers}<br>
+<b>Growth:</b> {stat_growth}</div>') ?></textarea>
+      </div>
+
+      <div class="card-footer">
+        <button type="submit" class="btn btn-primary">Save Templates</button>
+      </div>
+    </form>
+
+    <script type="application/json" id="luster-tpl-defaults">{"members_template":"<li><a href=\"{fan_url}\">{fan_name}<\/a> \u2014 {fan_country}<\/li>","affiliates_template":"<a href=\"{aff_url}\" target=\"_blank\" title=\"{aff_name}\">{aff_image}<\/a>","stats_template":"<div>\n<b>Opened:<\/b> {stat_opened}<br>\n<b>Updated:<\/b> {stat_last_updated}<br>\n<b>Fans:<\/b> {stat_approved} (+ {stat_pending} pending)<br>\n<b>Newest Fan:<\/b> {stat_newmembers}<br>\n<b>Growth:<\/b> {stat_growth}\n<\/div>"}</script>
   </div>
 
-  <form method="POST" action="<?= $b ?>/admin/listings/<?= (int) $listing->id ?>/templates">
-    <input type="hidden" name="_csrf" value="<?= \Luster\Core\View::e($csrf_token ?? '') ?>">
-
-    <div class="form-group">
-      <label class="form-label" for="members_template">Members List</label>
-      <p class="form-hint" style="font-family:'DM Mono',monospace;margin-bottom:0.5rem;line-height:1.8">
-        {fan_name} &bull; {fan_email} &bull; {fan_url} &bull; {fan_country}
-      </p>
-      <textarea id="members_template" name="members_template" class="form-textarea" rows="8"
-                style="font-family:'DM Mono',monospace;font-size:0.8125rem"><?= \Luster\Core\View::e($templates['members_template'] ?? '<li class="fl-member"><a class="fl-link" href="{fan_url}">{fan_name}</a> <span class="fl-muted">— {fan_country}</span></li>') ?></textarea>
+  <!-- Right: token reference -->
+  <div class="neb-card" style="overflow:hidden;position:sticky;top:1rem">
+    <div class="card-head">
+      <span class="card-head-title">Available Tokens</span>
     </div>
+    <details class="side-card" open>
+      <summary class="side-card-head">
+        <svg class="side-card-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 4h8M4 8h5M4 12h3"/></svg>
+        <span class="side-card-title">Members List</span>
+        <svg class="side-card-chevron" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 6 8 10 12 6"/></svg>
+      </summary>
+      <div class="side-card-body">
+        <table class="et-token-table">
+          <tbody>
+            <tr class="tok-row" data-textarea="members_template" data-token="{fan_name}"    title="Click to insert"><td><code>{fan_name}</code></td><td>Fan&rsquo;s display name</td></tr>
+            <tr class="tok-row" data-textarea="members_template" data-token="{fan_email}"   title="Click to insert"><td><code>{fan_email}</code></td><td>Fan&rsquo;s email address</td></tr>
+            <tr class="tok-row" data-textarea="members_template" data-token="{fan_url}"     title="Click to insert"><td><code>{fan_url}</code></td><td>Fan&rsquo;s website URL</td></tr>
+            <tr class="tok-row" data-textarea="members_template" data-token="{fan_country}" title="Click to insert"><td><code>{fan_country}</code></td><td>Fan&rsquo;s country</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </details>
 
-    <div class="form-group">
-      <label class="form-label" for="affiliates_template">Affiliates</label>
-      <p class="form-hint" style="font-family:'DM Mono',monospace;margin-bottom:0.5rem;line-height:1.8">
-        {aff_url} &bull; {aff_image} &bull; {aff_name}
-      </p>
-      <textarea id="affiliates_template" name="affiliates_template" class="form-textarea" rows="8"
-                style="font-family:'DM Mono',monospace;font-size:0.8125rem"><?= \Luster\Core\View::e($templates['affiliates_template'] ?? '<li class="fl-affiliate"><a class="fl-affiliate-link" href="{aff_url}" target="_blank" rel="noopener noreferrer">{aff_image}{aff_name}</a></li>') ?></textarea>
-    </div>
+    <details class="side-card" open>
+      <summary class="side-card-head">
+        <svg class="side-card-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 4h8M4 8h5M4 12h3"/></svg>
+        <span class="side-card-title">Affiliates</span>
+        <svg class="side-card-chevron" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 6 8 10 12 6"/></svg>
+      </summary>
+      <div class="side-card-body">
+        <table class="et-token-table">
+          <tbody>
+            <tr class="tok-row" data-textarea="affiliates_template" data-token="{aff_url}"   title="Click to insert"><td><code>{aff_url}</code></td><td>Affiliate URL</td></tr>
+            <tr class="tok-row" data-textarea="affiliates_template" data-token="{aff_image}" title="Click to insert"><td><code>{aff_image}</code></td><td>Affiliate image tag</td></tr>
+            <tr class="tok-row" data-textarea="affiliates_template" data-token="{aff_name}"  title="Click to insert"><td><code>{aff_name}</code></td><td>Affiliate name</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </details>
 
-    <div class="form-group">
-      <label class="form-label" for="stats_template">Statistics</label>
-      <p class="form-hint" style="font-family:'DM Mono',monospace;margin-bottom:0.5rem;line-height:1.8">
-        {stat_opened} &bull; {stat_updated} &bull; {stat_last_updated} &bull; {stat_approved} &bull; {stat_pending} &bull; {stat_newmembers} &bull; {stat_growth}
-      </p>
-      <textarea id="stats_template" name="stats_template" class="form-textarea" rows="8"
-                style="font-family:'DM Mono',monospace;font-size:0.8125rem"><?= \Luster\Core\View::e($templates['stats_template'] ?? '<p>Opened: {stat_opened}<br>Last updated: {stat_updated}<br>Members: {stat_approved} ({stat_pending} pending)<br>Newest: {stat_newmembers}</p>') ?></textarea>
-    </div>
+    <details class="side-card" open>
+      <summary class="side-card-head">
+        <svg class="side-card-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 4h8M4 8h5M4 12h3"/></svg>
+        <span class="side-card-title">Statistics</span>
+        <svg class="side-card-chevron" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 6 8 10 12 6"/></svg>
+      </summary>
+      <div class="side-card-body">
+        <table class="et-token-table">
+          <tbody>
+            <tr class="tok-row" data-textarea="stats_template" data-token="{stat_opened}"       title="Click to insert"><td><code>{stat_opened}</code></td><td>Date opened</td></tr>
+            <tr class="tok-row" data-textarea="stats_template" data-token="{stat_updated}"      title="Click to insert"><td><code>{stat_updated}</code></td><td>Last updated (formatted)</td></tr>
+            <tr class="tok-row" data-textarea="stats_template" data-token="{stat_last_updated}" title="Click to insert"><td><code>{stat_last_updated}</code></td><td>Last updated (raw date)</td></tr>
+            <tr class="tok-row" data-textarea="stats_template" data-token="{stat_approved}"     title="Click to insert"><td><code>{stat_approved}</code></td><td>Approved member count</td></tr>
+            <tr class="tok-row" data-textarea="stats_template" data-token="{stat_pending}"      title="Click to insert"><td><code>{stat_pending}</code></td><td>Pending member count</td></tr>
+            <tr class="tok-row" data-textarea="stats_template" data-token="{stat_newmembers}"   title="Click to insert"><td><code>{stat_newmembers}</code></td><td>Newest member name</td></tr>
+            <tr class="tok-row" data-textarea="stats_template" data-token="{stat_growth}"       title="Click to insert"><td><code>{stat_growth}</code></td><td>Average members per day since opening (e.g. 1.23 members/day)</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </details>
+  </div>
 
-    <div class="btn-row">
-      <button type="submit" class="btn btn-primary">Save Templates</button>
-    </div>
-  </form>
 </div>
 </div><!-- /#tab-templates -->
 
@@ -336,24 +451,25 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
 <div id="tab-fields" class="neb-tab-panel">
 
   <?php if ($listing->dbprefix === ''): ?>
-  <div class="form-card">
+  <div class="neb-card neb-card-padded">
     <p class="text-muted" style="font-size:0.875rem">Additional fields require a member table. This listing has no database table configured yet.</p>
   </div>
   <?php else: ?>
 
   <!-- Add New Field -->
-  <div class="form-card" style="margin-bottom:1.25rem">
-    <h2 class="card-title" style="margin-bottom:0.5rem">Add New Field</h2>
-    <p class="form-hint" style="margin:0 0 1rem;line-height:1.6">
-      <strong style="color:var(--text-muted)">Field Name Rules:</strong>
-      Letters (a-z, A-Z), numbers (0-9), and underscores (_).<br>
-      NO spaces, use underscores in place of spaces (i.e. <code>fave_song</code>, <code>vanilla_or_chocolate</code>), NO punctuation, NO special characters (hyphens, dots, slashes, etc.).<br>
-      Max length 30 characters. Must be unique per listing.
-    </p>
+  <div class="neb-card" style="margin-bottom:1.25rem;overflow:hidden">
+    <div class="card-head">
+      <div class="card-head-text">
+        <span class="card-head-title">Add New Field</span>
+        <span class="card-head-sub">Letters (a–z, A–Z), numbers, and underscores only. No spaces. Max 30 chars, unique per listing.</span>
+      </div>
+      <button type="submit" form="fields-add-form" class="btn btn-primary btn-sm">Add Field</button>
+    </div>
+    <div style="padding:1rem 1.25rem">
     <form method="POST" action="<?= $b ?>/admin/listings/<?= (int) $listing->id ?>/fields/add" id="fields-add-form">
       <input type="hidden" name="_csrf"     value="<?= \Luster\Core\View::e($csrf_token ?? '') ?>">
       <input type="hidden" name="from_edit" value="1">
-      <div style="display:grid;grid-template-columns:1fr 1fr 140px 100px auto;gap:0.75rem;align-items:end">
+      <div style="display:grid;grid-template-columns:1fr 1fr 140px;gap:0.75rem;align-items:end">
         <div class="form-group" style="margin-bottom:0">
           <label class="form-label">Field Name</label>
           <input type="text" name="name" class="form-input" maxlength="30" pattern="[a-zA-Z0-9_]+"
@@ -375,15 +491,6 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
             </select>
           </div>
         </div>
-        <div class="form-group" style="margin-bottom:0">
-          <label class="form-label">Required</label>
-          <div style="display:flex;align-items:center;height:40px">
-            <input type="checkbox" name="required" value="1" style="width:auto;margin:0;accent-color:var(--accent)">
-          </div>
-        </div>
-        <div>
-          <button type="submit" class="btn btn-primary btn-sm">Add Field</button>
-        </div>
       </div>
       <div id="fields-options-row" style="display:none;margin-top:0.75rem">
         <div class="form-group" style="margin-bottom:0">
@@ -393,24 +500,25 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
         </div>
       </div>
     </form>
+    </div>
   </div>
 
   <!-- Existing Fields -->
   <div class="neb-card">
-    <div style="padding:1rem 1.25rem;border-bottom:1px solid var(--border)">
-      <h2 class="card-title">Current Fields</h2>
+    <div class="card-head">
+      <span class="card-head-title">Current Fields</span>
     </div>
     <?php if (empty($fields)): ?>
       <p class="text-muted" style="padding:1rem 1.25rem;font-size:0.875rem">No additional fields defined yet.</p>
     <?php else: ?>
+      <div class="neb-table-wrap">
       <table class="data-table">
         <thead>
           <tr>
             <th>Label</th>
             <th>Field Name</th>
             <th>Type</th>
-            <th>Required</th>
-            <th style="text-align:right">Actions</th>
+            <th>Actions</th>
           </tr>
         </thead>
         <tbody>
@@ -421,29 +529,26 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
               <code style="background:var(--bg-subtle);padding:0.1rem 0.35rem;border-radius:4px;font-size:0.75rem;font-family:'DM Mono',monospace"><?= \Luster\Core\View::e($field->name) ?></code>
             </td>
             <td><?= \Luster\Core\View::e($field->type) ?></td>
-            <td>
-              <?php if ($field->required): ?>
-                <span class="neb-badge badge-current">Yes</span>
-              <?php else: ?>
-                <span class="neb-badge" style="background:var(--bg-subtle);color:var(--text-dim);border-color:var(--border)">No</span>
-              <?php endif; ?>
-            </td>
-            <td style="text-align:right;white-space:nowrap" class="act-col">
-              <a href="<?= $b ?>/admin/listings/<?= (int) $listing->id ?>/fields/<?= urlencode($field->name) ?>/edit"
-                 class="neb-link" style="font-size:0.8125rem;margin-right:0.5rem">Edit</a>
-              <form method="POST"
-                    action="<?= $b ?>/admin/listings/<?= (int) $listing->id ?>/fields/<?= urlencode($field->name) ?>/delete"
-                    style="display:inline"
-                    data-confirm="Drop the column for field &#x201C;<?= \Luster\Core\View::e($field->name) ?>&#x201D;? This permanently removes member data and cannot be undone.">
-                <input type="hidden" name="_csrf"     value="<?= \Luster\Core\View::e($csrf_token ?? '') ?>">
-                <input type="hidden" name="from_edit" value="1">
-                <button type="submit" style="background:none;border:none;color:var(--danger);font-size:0.8125rem;cursor:pointer;padding:0">Delete</button>
-              </form>
+            <td class="act-col">
+              <div class="row-actions">
+                <a href="<?= $b ?>/admin/listings/<?= (int) $listing->id ?>/fields/<?= urlencode($field->name) ?>/edit"
+                   class="btn btn-tertiary btn-sm">Edit</a>
+                <form method="POST"
+                      action="<?= $b ?>/admin/listings/<?= (int) $listing->id ?>/fields/<?= urlencode($field->name) ?>/delete"
+                      style="display:contents"
+                      data-del-modal data-del-entity="field"
+                      data-del-name="<?= \Luster\Core\View::e($field->name) ?>">
+                  <input type="hidden" name="_csrf"     value="<?= \Luster\Core\View::e($csrf_token ?? '') ?>">
+                  <input type="hidden" name="from_edit" value="1">
+                  <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+                </form>
+              </div>
             </td>
           </tr>
           <?php endforeach; ?>
         </tbody>
       </table>
+      </div>
     <?php endif; ?>
   </div>
 
@@ -454,8 +559,8 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
 <!-- ═══ TAB: AFFILIATES ═══ -->
 <div id="tab-affiliates" class="neb-tab-panel">
 <div class="neb-card">
-  <div style="display:flex;justify-content:space-between;align-items:center;padding:1rem 1.25rem;border-bottom:1px solid var(--border)">
-    <h2 class="card-title">Affiliates</h2>
+  <div class="card-head">
+    <span class="card-head-title">Affiliates</span>
     <a href="<?= $b ?>/admin/listings/<?= (int) $listing->id ?>/affiliates/add"
        class="btn btn-primary btn-sm">+ Add Affiliate</a>
   </div>
@@ -463,12 +568,13 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
   <?php if (empty($affiliates)): ?>
     <p class="text-muted" style="padding:1rem 1.25rem;font-size:0.875rem">No affiliates for this listing yet.</p>
   <?php else: ?>
+    <div class="neb-table-wrap">
     <table class="data-table">
       <thead>
         <tr>
           <th>Name</th>
           <th>Status</th>
-          <th style="text-align:right">Actions</th>
+          <th>Actions</th>
         </tr>
       </thead>
       <tbody>
@@ -485,33 +591,37 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
               <span class="neb-badge badge-pending">Inactive</span>
             <?php endif; ?>
           </td>
-          <td style="text-align:right" class="act-col">
-            <a href="<?= $b ?>/admin/affiliates/<?= (int) $aff->id ?>/edit?from_listing=<?= (int) $listing->id ?>"
-               class="neb-link" style="font-size:0.8125rem;margin-right:0.5rem">Edit</a>
+          <td class="act-col">
+            <div class="row-actions">
+              <a href="<?= $b ?>/admin/affiliates/<?= (int) $aff->id ?>/edit?from_listing=<?= (int) $listing->id ?>"
+                 class="btn btn-tertiary btn-sm">Edit</a>
 
-            <form method="POST"
-                  action="<?= $b ?>/admin/affiliates/<?= (int) $aff->id ?>/toggle"
-                  style="display:inline">
-              <input type="hidden" name="_csrf" value="<?= \Luster\Core\View::e($csrf_token ?? '') ?>">
-              <input type="hidden" name="from_listing" value="<?= (int) $listing->id ?>">
-              <button type="submit" style="background:none;border:none;color:var(--warn);font-size:0.8125rem;cursor:pointer;padding:0;margin-right:0.5rem">
-                <?= $aff->active ? 'Deactivate' : 'Activate' ?>
-              </button>
-            </form>
+              <form method="POST"
+                    action="<?= $b ?>/admin/affiliates/<?= (int) $aff->id ?>/toggle"
+                    style="display:contents">
+                <input type="hidden" name="_csrf" value="<?= \Luster\Core\View::e($csrf_token ?? '') ?>">
+                <input type="hidden" name="from_listing" value="<?= (int) $listing->id ?>">
+                <button type="submit" class="btn btn-sm <?= $aff->active ? 'btn-warn' : 'btn-tertiary' ?>">
+                  <?= $aff->active ? 'Deactivate' : 'Activate' ?>
+                </button>
+              </form>
 
-            <form method="POST"
-                  action="<?= $b ?>/admin/affiliates/<?= (int) $aff->id ?>/delete"
-                  style="display:inline"
-                  data-confirm="Delete this affiliate?">
-              <input type="hidden" name="_csrf" value="<?= \Luster\Core\View::e($csrf_token ?? '') ?>">
-              <input type="hidden" name="from_listing" value="<?= (int) $listing->id ?>">
-              <button type="submit" style="background:none;border:none;color:var(--danger);font-size:0.8125rem;cursor:pointer;padding:0">Delete</button>
-            </form>
+              <form method="POST"
+                    action="<?= $b ?>/admin/affiliates/<?= (int) $aff->id ?>/delete"
+                    style="display:contents"
+                    data-del-modal data-del-entity="affiliate"
+                    data-del-name="<?= \Luster\Core\View::e($aff->name ?? '') ?>">
+                <input type="hidden" name="_csrf" value="<?= \Luster\Core\View::e($csrf_token ?? '') ?>">
+                <input type="hidden" name="from_listing" value="<?= (int) $listing->id ?>">
+                <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+              </form>
+            </div>
           </td>
         </tr>
         <?php endforeach; ?>
       </tbody>
     </table>
+    </div>
   <?php endif; ?>
 </div>
 </div><!-- /#tab-affiliates -->
@@ -526,135 +636,182 @@ $installPath    = rtrim((string) ($cfg['install_path']   ?? ''), '/');
 $embedBaseUrl   = rtrim((string) ($cfg['embed_base_url'] ?? ''), '/') ?: rtrim((string) ($cfg['site_url'] ?? ''), '/');
 ?>
 
-<div class="neb-toolbar" style="margin-bottom:1rem">
-  <div></div>
-  <div class="neb-actions">
+<div class="neb-card" style="overflow:hidden">
+  <div class="card-head">
+    <span class="card-head-title">Embed Settings</span>
     <a href="<?= $b ?>/admin/embed-codes?listing=<?= (int) $listing->id ?>" class="btn btn-ghost btn-sm">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="13" height="13"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
-      Embed Codes for this listing &rarr;
+      Embed Codes &rarr;
     </a>
   </div>
-</div>
-
-<div class="form-card">
   <form method="POST" action="<?= $b ?>/admin/listings/<?= (int) $listing->id ?>/embed">
     <input type="hidden" name="_csrf" value="<?= \Luster\Core\View::e($csrf_token ?? '') ?>">
+    <div style="padding:1rem 1.25rem;border-bottom:1px solid var(--border)">
 
-    <div class="section-divider">Form Page URLs</div>
+      <div class="section-label">Form Page URLs</div>
+      <p style="font-size:.78rem;color:var(--text-dim);margin-bottom:.875rem;line-height:1.5">
+        Enter the <strong style="color:var(--text-muted)">page filename</strong> on your site containing each embedded form
+        (e.g. <span class="neb-code">join.php</span>). Used to redirect visitors back to your page after form submissions and errors.
+      </p>
 
-    <p class="form-hint" style="margin-bottom:1rem">
-      Enter the <strong>page filename</strong> on your site that contains each embedded form
-      (e.g. <code>join.php</code>). When a form submission fails validation, Luster redirects
-      back to this page so the error message appears on your site. Leave blank to use
-      Luster&rsquo;s internal form pages.
-    </p>
-
-    <?php
-    $formDefaults = ['form_url_join' => 'join.php', 'form_url_update' => 'update.php',
-                     'form_url_remove' => 'remove.php', 'form_url_reset' => 'reset.php'];
-    ?>
-
-    <div class="form-group">
-      <label class="form-label" for="fl-form-join">Join page</label>
-      <input id="fl-form-join" type="text" name="form_url_join" class="form-input"
-             maxlength="200"
-             value="<?= \Luster\Core\View::e($embedSettings['form_url_join'] !== '' ? $embedSettings['form_url_join'] : 'join.php') ?>">
-    </div>
-
-    <div class="form-group">
-      <label class="form-label" for="fl-form-update">Update page</label>
-      <input id="fl-form-update" type="text" name="form_url_update" class="form-input"
-             maxlength="200"
-             value="<?= \Luster\Core\View::e($embedSettings['form_url_update'] !== '' ? $embedSettings['form_url_update'] : 'update.php') ?>">
-    </div>
-
-    <div class="form-group">
-      <label class="form-label" for="fl-form-remove">Remove page</label>
-      <input id="fl-form-remove" type="text" name="form_url_remove" class="form-input"
-             maxlength="200"
-             value="<?= \Luster\Core\View::e($embedSettings['form_url_remove'] !== '' ? $embedSettings['form_url_remove'] : 'remove.php') ?>">
-    </div>
-
-    <div class="form-group">
-      <label class="form-label" for="fl-form-reset">Password reset page</label>
-      <input id="fl-form-reset" type="text" name="form_url_reset" class="form-input"
-             maxlength="200"
-             value="<?= \Luster\Core\View::e($embedSettings['form_url_reset'] !== '' ? $embedSettings['form_url_reset'] : 'reset.php') ?>">
-    </div>
-
-    <div class="section-divider">Per-Listing Database (Advanced)</div>
-
-    <p class="form-hint" style="margin-bottom:1rem">
-      Override the global database connection for this listing only.
-      Leave all fields blank to use the global database.
-    </p>
-
-    <div class="form-row">
-      <div class="form-group">
-        <label class="form-label" for="fl-db-host">DB Host</label>
-        <input id="fl-db-host" type="text" name="db_host" class="form-input"
-               maxlength="255" placeholder="localhost"
-               value="<?= \Luster\Core\View::e($embedSettings['db_host'] ?? '') ?>">
-      </div>
-      <div class="form-group">
-        <label class="form-label" for="fl-db-name">DB Name</label>
-        <input id="fl-db-name" type="text" name="db_name" class="form-input"
-               maxlength="255" placeholder="my_database"
-               value="<?= \Luster\Core\View::e($embedSettings['db_name'] ?? '') ?>">
-      </div>
-    </div>
-
-    <div class="form-row">
-      <div class="form-group">
-        <label class="form-label" for="fl-db-user">DB User</label>
-        <input id="fl-db-user" type="text" name="db_user" class="form-input"
-               maxlength="255" autocomplete="off"
-               value="<?= \Luster\Core\View::e($embedSettings['db_user'] ?? '') ?>">
-      </div>
-      <div class="form-group">
-        <label class="form-label" for="fl-db-pass">DB Password</label>
-        <div class="input-icon-wrap">
-          <input id="fl-db-pass" type="password" name="db_pass" class="form-input"
-                 maxlength="500" autocomplete="new-password"
-                 placeholder="Leave blank to keep current">
-          <button type="button" class="input-icon-btn" aria-label="Show password" tabindex="-1">
-            <svg class="eye-on" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-            <svg class="eye-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" style="display:none"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
-          </button>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label-sm" for="fl-form-join">Join page</label>
+          <input id="fl-form-join" type="text" name="form_url_join" class="form-input"
+                 maxlength="200"
+                 value="<?= \Luster\Core\View::e($embedSettings['form_url_join'] !== '' ? $embedSettings['form_url_join'] : 'join.php') ?>">
         </div>
-        <p class="form-hint">Only fill in to change the stored password.</p>
+        <div class="form-group">
+          <label class="form-label-sm" for="fl-form-update">Update page</label>
+          <input id="fl-form-update" type="text" name="form_url_update" class="form-input"
+                 maxlength="200"
+                 value="<?= \Luster\Core\View::e($embedSettings['form_url_update'] !== '' ? $embedSettings['form_url_update'] : 'update.php') ?>">
+        </div>
       </div>
-    </div>
 
-    <?php if ($installPath !== ''): ?>
-    <div class="section-divider">Embed Snippets</div>
-
-    <p class="form-hint" style="margin-bottom:0.75rem">
-      Paste these lines into your own site's pages to embed this listing's forms.
-    </p>
-
-    <?php foreach (['join', 'members', 'update', 'remove'] as $page): ?>
-    <div class="form-group">
-      <label class="form-label" style="text-transform:capitalize"><?= \Luster\Core\View::e($page) ?> page</label>
-      <div class="ro-field" style="font-family:'DM Mono',monospace;font-size:0.8rem;user-select:all">
-        $luster_fanlisting_id = <?= (int) $listing->id ?>;<br>
-        require '<?= \Luster\Core\View::e($installPath) ?>/public/embed/<?= \Luster\Core\View::e($page) ?>.php';
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label-sm" for="fl-form-remove">Remove page</label>
+          <input id="fl-form-remove" type="text" name="form_url_remove" class="form-input"
+                 maxlength="200"
+                 value="<?= \Luster\Core\View::e($embedSettings['form_url_remove'] !== '' ? $embedSettings['form_url_remove'] : 'remove.php') ?>">
+        </div>
+        <div class="form-group">
+          <label class="form-label-sm" for="fl-form-reset">Password reset page</label>
+          <input id="fl-form-reset" type="text" name="form_url_reset" class="form-input"
+                 maxlength="200"
+                 value="<?= \Luster\Core\View::e($embedSettings['form_url_reset'] !== '' ? $embedSettings['form_url_reset'] : 'reset.php') ?>">
+        </div>
       </div>
-    </div>
-    <?php endforeach; ?>
-    <?php elseif ($installPath === ''): ?>
-    <div class="section-divider">Embed Snippets</div>
-    <p class="form-hint">
-      Set the <strong>Installation Path</strong> in
-      <a href="<?= $b ?>/admin/settings" class="neb-link">Settings → Embed &amp; Paths</a>
-      to generate embed snippets here.
-    </p>
-    <?php endif; ?>
 
-    <div class="btn-row">
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label-sm" for="fl-form-codes-submit">Code submission page</label>
+          <input id="fl-form-codes-submit" type="text" name="form_url_codes_submit" class="form-input"
+                 maxlength="200"
+                 value="<?= \Luster\Core\View::e($embedSettings['form_url_codes_submit'] !== '' ? $embedSettings['form_url_codes_submit'] : 'codes-submit.php') ?>">
+        </div>
+      </div>
+
+      <div class="section-label">Embed Snippets</div>
+      <?php if ($installPath !== ''): ?>
+        <p style="font-size:.78rem;color:var(--text-dim);margin-bottom:.875rem;line-height:1.5">
+          Paste these lines into your own site&rsquo;s pages to embed this listing&rsquo;s forms.
+        </p>
+        <?php foreach (['join', 'members', 'update', 'remove'] as $page): ?>
+        <div class="form-group">
+          <label class="form-label-sm" style="text-transform:capitalize"><?= \Luster\Core\View::e($page) ?> page</label>
+          <div class="ro-field" style="font-family:'DM Mono',monospace;font-size:0.8rem;user-select:all">
+            $luster_fanlisting_id = <?= (int) $listing->id ?>;<br>
+            require '<?= \Luster\Core\View::e($installPath) ?>/public/embed/<?= \Luster\Core\View::e($page) ?>.php';
+          </div>
+        </div>
+        <?php endforeach; ?>
+      <?php else: ?>
+        <p style="font-size:.78rem;color:var(--text-dim);line-height:1.5">
+          Set the <strong style="color:var(--text-muted)">Installation Path</strong> in
+          <a href="<?= $b ?>/admin/settings" class="neb-link">Settings &rarr; Embed &amp; Paths</a>
+          to generate embed snippets here.
+        </p>
+      <?php endif; ?>
+
+    </div>
+    <div class="card-footer">
       <button type="submit" class="btn btn-primary">Save Embed Settings</button>
     </div>
   </form>
 </div>
 </div><!-- /#tab-embed -->
+
+<!-- ═══ TAB: ADVANCED ═══ -->
+<div id="tab-advanced" class="neb-tab-panel">
+
+  <!-- Warning banner -->
+  <div style="display:flex;align-items:flex-start;gap:.75rem;padding:.875rem 1.1rem;margin-bottom:1.25rem;background:var(--warn-bg);border:1px solid var(--warn);border-left-width:4px;border-radius:10px">
+    <svg style="flex-shrink:0;margin-top:.1rem;color:var(--warn)" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+    <div>
+      <strong style="font-size:.8rem;color:var(--warn);display:block;margin-bottom:.2rem">Advanced settings — proceed with caution</strong>
+      <span style="font-size:.75rem;color:var(--text-muted);line-height:1.5">Only modify these settings if you know what you are doing. Incorrect values can break your listing or prevent members from being found.</span>
+    </div>
+  </div>
+
+  <!-- Database Prefix (collapsible, collapsed by default) -->
+  <details class="neb-card adv-collapsible" style="overflow:hidden;margin-bottom:1.25rem">
+    <summary class="card-head" style="cursor:pointer;user-select:none">
+      <div class="card-head-text">
+        <span class="card-head-title">Database Prefix</span>
+        <span class="card-head-sub">The member table name in your database. Most users never need to change this.</span>
+      </div>
+      <svg class="adv-chevron" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;transition:transform .2s"><polyline points="4 6 8 10 12 6"/></svg>
+    </summary>
+    <div style="padding:1rem 1.25rem">
+      <div style="display:flex;align-items:center;gap:.75rem">
+        <input type="text" class="form-input" value="<?= \Luster\Core\View::e($listing->dbprefix) ?>"
+               readonly style="color:var(--text-dim);cursor:not-allowed;font-family:'DM Mono',monospace;max-width:260px">
+        <a href="<?= $b ?>/admin/listings/<?= (int) $listing->id ?>/edit-prefix"
+           class="btn btn-tertiary btn-sm" style="white-space:nowrap;flex-shrink:0">Edit</a>
+      </div>
+    </div>
+  </details>
+
+  <!-- Per-listing Database Connection (collapsible, collapsed by default) -->
+  <details class="neb-card adv-collapsible" style="overflow:hidden">
+    <summary class="card-head" style="cursor:pointer;user-select:none">
+      <div class="card-head-text">
+        <span class="card-head-title">Per-listing Database Connection</span>
+        <span class="card-head-sub">Override the global database connection for this listing only. Leave all fields blank to use the global database.</span>
+      </div>
+      <svg class="adv-chevron" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;transition:transform .2s"><polyline points="4 6 8 10 12 6"/></svg>
+    </summary>
+    <form method="POST" action="<?= $b ?>/admin/listings/<?= (int) $listing->id ?>/embed">
+      <input type="hidden" name="_csrf" value="<?= \Luster\Core\View::e($csrf_token ?? '') ?>">
+      <?php
+      /** @var array $embed_settings */
+      /** @var array $cfg */
+      $advEmbedSettings = $embed_settings ?? [];
+      ?>
+      <div style="padding:1rem 1.25rem;border-bottom:1px solid var(--border)">
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label-sm" for="adv-db-host">DB Host</label>
+            <input id="adv-db-host" type="text" name="db_host" class="form-input"
+                   maxlength="255" placeholder="localhost"
+                   value="<?= \Luster\Core\View::e($advEmbedSettings['db_host'] ?? '') ?>">
+          </div>
+          <div class="form-group">
+            <label class="form-label-sm" for="adv-db-name">DB Name</label>
+            <input id="adv-db-name" type="text" name="db_name" class="form-input"
+                   maxlength="255" placeholder="my_database"
+                   value="<?= \Luster\Core\View::e($advEmbedSettings['db_name'] ?? '') ?>">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label-sm" for="adv-db-user">DB User</label>
+            <input id="adv-db-user" type="text" name="db_user" class="form-input"
+                   maxlength="255" autocomplete="off"
+                   value="<?= \Luster\Core\View::e($advEmbedSettings['db_user'] ?? '') ?>">
+          </div>
+          <div class="form-group">
+            <label class="form-label-sm" for="adv-db-pass">DB Password</label>
+            <div class="input-icon-wrap">
+              <input id="adv-db-pass" type="password" name="db_pass" class="form-input"
+                     maxlength="500" autocomplete="new-password"
+                     placeholder="Leave blank to keep current">
+              <button type="button" class="input-icon-btn" aria-label="Show password" tabindex="-1">
+                <svg class="eye-on" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                <svg class="eye-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" style="display:none"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+              </button>
+            </div>
+            <p class="form-hint-sm">Only fill in to change the stored password.</p>
+          </div>
+        </div>
+      </div>
+      <div class="card-footer">
+        <button type="submit" class="btn btn-primary">Save Database Settings</button>
+      </div>
+    </form>
+  </details>
+
+</div><!-- /#tab-advanced -->
 

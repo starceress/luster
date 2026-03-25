@@ -34,7 +34,7 @@ $approvedMembers = array_filter($members, static fn($m) => !$m->pending);
   <p class="page-back" style="margin:0"><a href="<?= $b ?>/admin/kim" class="neb-link">&larr; Back to KIM List</a></p>
   <?php if ($approved_count > 0): ?>
     <a href="<?= $b ?>/admin/kim/<?= (int) $listing->id ?>/mass-email"
-       class="btn btn-secondary">Mass Email (<?= (int) $approved_count ?>)</a>
+       class="btn btn-tertiary">Mass Email (<?= (int) $approved_count ?>)</a>
   <?php endif; ?>
 </div>
 
@@ -53,6 +53,7 @@ $approvedMembers = array_filter($members, static fn($m) => !$m->pending);
       No pending entries — all caught up.
     </div>
   <?php else: ?>
+    <div class="neb-table-wrap">
     <table class="data-table">
       <thead>
         <tr>
@@ -76,10 +77,10 @@ $approvedMembers = array_filter($members, static fn($m) => !$m->pending);
               <span class="text-dim">—</span>
             <?php endif; ?>
           </td>
-          <td class="text-dim nowrap"><?= View::e(substr($m->addedAt, 0, 10)) ?></td>
+          <td class="text-dim nowrap"><?= View::e(date($admin_date_format, strtotime($m->addedAt))) ?></td>
           <td class="act-col">
             <a href="<?= $b ?>/admin/kim/<?= (int) $m->id ?>/edit"
-               class="btn btn-secondary btn-sm">Edit</a>
+               class="btn btn-tertiary btn-sm">Edit</a>
             <form method="POST" action="<?= $b ?>/admin/kim/<?= (int) $m->id ?>/approve"
                   style="display:inline">
               <input type="hidden" name="_csrf"    value="<?= View::e($csrf_token) ?>">
@@ -88,7 +89,8 @@ $approvedMembers = array_filter($members, static fn($m) => !$m->pending);
             </form>
             <form method="POST" action="<?= $b ?>/admin/kim/<?= (int) $m->id ?>/delete"
                   style="display:inline"
-                  data-confirm="Delete this KIM entry for <?= \Luster\Core\View::e($m->name) ?>?">
+                  data-del-modal data-del-entity="kim_member"
+                  data-del-name="<?= View::e($m->name) ?>">
               <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
               <button type="submit" class="btn btn-danger btn-sm">Delete</button>
             </form>
@@ -97,6 +99,7 @@ $approvedMembers = array_filter($members, static fn($m) => !$m->pending);
         <?php endforeach; ?>
       </tbody>
     </table>
+    </div>
   <?php endif; ?>
 </div>
 
@@ -115,6 +118,7 @@ $approvedMembers = array_filter($members, static fn($m) => !$m->pending);
       No approved entries yet.
     </div>
   <?php else: ?>
+    <div class="neb-table-wrap">
     <table class="data-table">
       <thead>
         <tr>
@@ -138,15 +142,16 @@ $approvedMembers = array_filter($members, static fn($m) => !$m->pending);
               <span class="text-dim">—</span>
             <?php endif; ?>
           </td>
-          <td class="text-dim nowrap"><?= View::e(substr($m->addedAt, 0, 10)) ?></td>
+          <td class="text-dim nowrap"><?= View::e(date($admin_date_format, strtotime($m->addedAt))) ?></td>
           <td class="act-col">
             <a href="<?= $b ?>/admin/kim/<?= (int) $m->id ?>/edit"
-               class="btn btn-secondary btn-sm">Edit</a>
+               class="btn btn-tertiary btn-sm">Edit</a>
             <a href="<?= $b ?>/admin/kim/<?= (int) $m->id ?>/email-member"
-               class="btn btn-secondary btn-sm">Email</a>
+               class="btn btn-tertiary btn-sm">Email</a>
             <form method="POST" action="<?= $b ?>/admin/kim/<?= (int) $m->id ?>/delete"
                   style="display:inline"
-                  data-confirm="Delete this KIM entry for <?= \Luster\Core\View::e($m->name) ?>?">
+                  data-del-modal data-del-entity="kim_member"
+                  data-del-name="<?= View::e($m->name) ?>">
               <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
               <button type="submit" class="btn btn-danger btn-sm">Delete</button>
             </form>
@@ -155,5 +160,6 @@ $approvedMembers = array_filter($members, static fn($m) => !$m->pending);
         <?php endforeach; ?>
       </tbody>
     </table>
+    </div>
   <?php endif; ?>
 </div>

@@ -25,17 +25,12 @@ final class UpdatesAddon implements AddonInterface
 
     public function getName(): string
     {
-        return 'Updates';
+        return 'Updates Feed';
     }
 
     public function getDescription(): string
     {
-        return 'Post news and update entries for each fanlisting and your collective.';
-    }
-
-    public function getVersion(): string
-    {
-        return '1.0.0';
+        return 'Blogging management system to post news & updates for both individual fanlistings and an entire collective.';
     }
 
     public function install(PDO $pdo): void

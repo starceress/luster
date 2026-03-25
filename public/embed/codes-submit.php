@@ -78,10 +78,11 @@ if ($_lusterListing === null) {
 }
 
 $_lusterSession = $_lusterApp->getSession();
-$_lusterBaseUrl = rtrim($_lusterApp->getBaseUrl(), '/');
-$_lusterEmbedBase = !empty($_lusterConfig['embed_base_url'])
-    ? rtrim((string) $_lusterConfig['embed_base_url'], '/')
-    : $_lusterBaseUrl;
+$_lusterBaseUrl   = rtrim($_lusterApp->getBaseUrl(), '/');
+$_lusterEmbedBase = rtrim((string) $_lusterConfig->get('embed_base_url', ''), '/');
+if ($_lusterEmbedBase === '') {
+    $_lusterEmbedBase = $_lusterBaseUrl;
+}
 
 // Build form action — POSTs to Luster's public route
 $_lusterFormAction = $_lusterEmbedBase . '/codes/submit/' . $_lusterListingId;

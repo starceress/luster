@@ -198,8 +198,9 @@ final class Application
         }
 
         $cache = [
-            'nav_pending_members' => $pending,
-            'nav_site_url'        => rtrim((string) $this->config->get('site_url', ''), '/'),
+            'nav_pending_members'  => $pending,
+            'nav_site_url'         => rtrim((string) $this->config->get('site_url', ''), '/'),
+            'nav_installed_addons' => $this->installedAddonKeys,
         ];
         return $cache;
     }
@@ -234,6 +235,18 @@ final class Application
      */
     public function runAdmin(): void
     {
+        // Share admin-wide template variables before route dispatch so every
+        // inner template receives them without each controller needing to pass them.
+        try {
+            $siteRepo = new \Luster\Repositories\SiteSettingsRepo($this->database);
+            $dateFmt  = $siteRepo->get('date_format', 'j M Y') ?? 'j M Y';
+            $timeFmt  = $siteRepo->get('time_format', 'H:i')   ?? 'H:i';
+        } catch (\Throwable) {
+            $dateFmt = 'j M Y';
+            $timeFmt = 'H:i';
+        }
+        $this->view->share(['admin_date_format' => $dateFmt, 'admin_time_format' => $timeFmt]);
+
         $loginUrl = $this->getBaseUrl() . '/admin/login';
 
         $this->boot('admin', [

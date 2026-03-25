@@ -68,7 +68,7 @@ $catSortIcon = static function (string $col) use ($sort, $dir): string {
 <!-- Toolbar -->
 <div class="neb-toolbar">
   <div class="neb-actions">
-    <button type="button" class="btn btn-secondary btn-sm fl-filter-toggle" id="fl-filter-toggle"
+    <button type="button" class="btn btn-tertiary btn-sm fl-filter-toggle" id="fl-filter-toggle"
             aria-expanded="<?= $filtersActive ? 'true' : 'false' ?>"
             aria-controls="fl-filter-panel">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><line x1="4" y1="6" x2="20" y2="6"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="11" y1="18" x2="13" y2="18"/></svg>
@@ -102,8 +102,8 @@ $catSortIcon = static function (string $col) use ($sort, $dir): string {
 
     <input type="text" name="search" class="neb-input" placeholder="Search&hellip;"
            value="<?= \Luster\Core\View::e($search ?? '') ?>">
-    <button type="submit" class="btn btn-secondary btn-sm">Search</button>
-    <a href="<?= $b ?>/admin/categories" class="btn btn-secondary btn-sm">Reset</a>
+    <button type="submit" class="btn btn-tertiary btn-sm">Search</button>
+    <a href="<?= $b ?>/admin/categories" class="btn btn-tertiary btn-sm">Reset</a>
 
   </form>
 </div>
@@ -114,7 +114,7 @@ $catSortIcon = static function (string $col) use ($sort, $dir): string {
     <?php if (($search ?? '') !== '' || ($source ?? '') !== ''): ?>
       <svg class="empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
       No categories match your search.
-      <a href="<?= $b ?>/admin/categories" class="btn btn-secondary btn-sm">Reset</a>
+      <a href="<?= $b ?>/admin/categories" class="btn btn-tertiary btn-sm">Reset</a>
     <?php else: ?>
       <svg class="empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 7h18M3 12h18M3 17h18"/></svg>
       No categories yet. Add your first to start organising fanlistings.
@@ -132,6 +132,7 @@ $catSortIcon = static function (string $col) use ($sort, $dir): string {
 </p>
 
 <div class="neb-card">
+  <div class="neb-table-wrap">
   <table class="data-table mem-table">
     <thead>
       <tr>
@@ -171,7 +172,8 @@ $catSortIcon = static function (string $col) use ($sort, $dir): string {
           <?php if (!in_array($cat->source ?? '', ['tfl', 'tafl'], true)): ?>
             <form method="POST" action="<?= $b ?>/admin/categories/<?= (int) $cat->id ?>/delete"
                   style="display:contents"
-                  data-confirm="Delete this category?">
+                  data-del-modal data-del-entity="category"
+                  data-del-name="<?= \Luster\Core\View::e($cat->name ?? '') ?>">
               <input type="hidden" name="_csrf" value="<?= \Luster\Core\View::e($csrf_token ?? '') ?>">
               <button type="submit" class="btn btn-danger btn-sm">Delete</button>
             </form>
@@ -181,6 +183,7 @@ $catSortIcon = static function (string $col) use ($sort, $dir): string {
       <?php endforeach; ?>
     </tbody>
   </table>
+  </div>
 </div>
 <?php endif; ?>
 

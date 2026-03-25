@@ -55,15 +55,15 @@ $pendingSortIcon = static function (string $col) use ($sort, $dir): string {
     </div>
     <input type="text" name="search" value="<?= \Luster\Core\View::e($search ?? '') ?>"
            placeholder="Search all listings&hellip;" class="neb-input" style="max-width:240px">
-    <button type="submit" class="btn btn-secondary btn-sm">Search</button>
+    <button type="submit" class="btn btn-tertiary btn-sm">Search</button>
     <?php if ($isSearch): ?>
-      <a href="<?= $b ?>/admin/members" class="btn btn-secondary btn-sm">Clear</a>
+      <a href="<?= $b ?>/admin/members" class="btn btn-tertiary btn-sm">Clear</a>
     <?php endif; ?>
   </form>
   <div class="neb-actions">
-    <a href="<?= $b ?>/admin/members/export-pending" class="btn btn-secondary btn-sm">&#8595; Export CSV</a>
-    <a href="<?= $b ?>/admin/emails" class="btn btn-secondary btn-sm">Bulk Email</a>
-    <a href="<?= $b ?>/admin/members/settings" class="btn btn-secondary btn-sm">Display Settings</a>
+    <a href="<?= $b ?>/admin/members/export-pending" class="btn btn-tertiary btn-sm">&#8595; Export CSV</a>
+    <a href="<?= $b ?>/admin/emails?tab=bulk" class="btn btn-tertiary btn-sm">Bulk Email</a>
+    <a href="<?= $b ?>/admin/members/settings" class="btn btn-tertiary btn-sm">Display Settings</a>
   </div>
 </div>
 
@@ -81,11 +81,12 @@ $pendingSortIcon = static function (string $col) use ($sort, $dir): string {
       <div class="neb-empty">
         <svg class="empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
         No members found matching that search.
-        <a href="<?= $b ?>/admin/members" class="btn btn-secondary btn-sm">Clear Search</a>
+        <a href="<?= $b ?>/admin/members" class="btn btn-tertiary btn-sm">Clear Search</a>
       </div>
     </div>
   <?php else: ?>
     <div class="neb-card" style="overflow-x:auto">
+      <div class="neb-table-wrap">
       <table class="data-table mem-table">
         <thead>
           <tr>
@@ -121,7 +122,7 @@ $pendingSortIcon = static function (string $col) use ($sort, $dir): string {
               <?php endif; ?>
             </td>
             <td class="td-mono" data-label="Joined" style="white-space:nowrap;color:var(--text-muted)">
-              <?= \Luster\Core\View::e($m->added ?? '') ?>
+              <?= \Luster\Core\View::e(($m->added ?? '') !== '' ? date($admin_date_format, strtotime($m->added)) : '') ?>
             </td>
             <td class="act-col" data-label="">
               <div class="row-actions">
@@ -133,15 +134,16 @@ $pendingSortIcon = static function (string $col) use ($sort, $dir): string {
                   </form>
                 <?php endif; ?>
                 <a href="<?= $b ?>/admin/members/<?= $flId ?>/edit?email=<?= urlencode($m->email) ?>"
-                   class="btn btn-secondary btn-sm">Edit</a>
+                   class="btn btn-primary btn-sm">Edit</a>
                 <a href="<?= $b ?>/admin/members/<?= $flId ?>/emailmember?email=<?= urlencode($m->email) ?>"
-                   class="btn btn-secondary btn-sm">Email</a>
+                   class="btn btn-tertiary btn-sm">Email</a>
               </div>
             </td>
           </tr>
           <?php endforeach; ?>
         </tbody>
       </table>
+      </div>
     </div><!-- /.neb-card -->
   <?php endif; ?>
 
@@ -158,7 +160,7 @@ $pendingSortIcon = static function (string $col) use ($sort, $dir): string {
     </div>
   </div>
   <?php if (empty($grouped)): ?>
-    <div class="neb-card" style="margin-bottom:1.5rem">
+    <div class="neb-card">
       <div class="neb-empty">
         <svg class="empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
         No pending members — you're all caught up.
@@ -173,14 +175,15 @@ $pendingSortIcon = static function (string $col) use ($sort, $dir): string {
       $pendingCount   = count($pendingMembers);
       $approvedCount  = (int) ($g['approved_count'] ?? 0);
     ?>
-    <div class="neb-card" style="margin-bottom:1.25rem">
+    <div class="neb-card">
       <div class="neb-card-header">
         <a href="<?= $b ?>/admin/members/<?= $flId ?>" class="neb-link"><?= \Luster\Core\View::e($fl->name) ?></a>
-        <span class="text-dim" style="font-weight:400;text-transform:none;letter-spacing:0;margin-left:.25rem">
+        <span class="text-dim">
           &mdash; <?= $pendingCount ?> pending<?= $approvedCount > 0 ? ', ' . $approvedCount . ' approved' : '' ?>
         </span>
       </div>
-      <form method="POST" action="<?= $b ?>/admin/members/<?= $flId ?>/bulk">
+      <form method="POST" action="<?= $b ?>/admin/members/<?= $flId ?>/bulk"
+            data-del-bulk data-del-entity="member_reject">
       <input type="hidden" name="_csrf" value="<?= \Luster\Core\View::e($csrf_token ?? '') ?>">
       <input type="hidden" name="from" value="overview">
       <div class="neb-bulk" style="margin:0 0 0 0;border-left:none;border-right:none;border-top:none;border-radius:0;border-bottom:1px solid var(--border)">
@@ -191,8 +194,9 @@ $pendingSortIcon = static function (string $col) use ($sort, $dir): string {
             <option value="delete">Reject</option>
           </select>
         </div>
-        <button type="submit" class="btn btn-secondary btn-sm">Apply</button>
+        <button type="submit" class="btn btn-tertiary btn-sm">Apply</button>
       </div>
+      <div class="neb-table-wrap">
       <table class="data-table mem-table">
         <thead>
           <tr>
@@ -211,7 +215,8 @@ $pendingSortIcon = static function (string $col) use ($sort, $dir): string {
           <tr>
             <td class="cb-col" data-label="">
               <input type="checkbox" name="emails[]" class="row-cb-<?= $flId ?>"
-                     value="<?= \Luster\Core\View::e($m->email) ?>">
+                     value="<?= \Luster\Core\View::e($m->email) ?>"
+                     data-name="<?= \Luster\Core\View::e($m->name) ?>">
             </td>
             <td class="text-strong" data-label="Name"><?= \Luster\Core\View::e($m->name) ?></td>
             <td data-label="Email"><?= \Luster\Core\View::e($m->email) ?></td>
@@ -232,22 +237,28 @@ $pendingSortIcon = static function (string $col) use ($sort, $dir): string {
                   <button type="submit" class="btn btn-success btn-sm">Approve</button>
                 </form>
                 <a href="<?= $b ?>/admin/members/<?= $flId ?>/edit?email=<?= urlencode($m->email) ?>"
-                   class="btn btn-secondary btn-sm">Edit</a>
+                   class="btn btn-primary btn-sm">Edit</a>
                 <a href="<?= $b ?>/admin/members/<?= $flId ?>/emailmember?email=<?= urlencode($m->email) ?>"
-                   class="btn btn-secondary btn-sm">Email</a>
-                <form method="POST" action="<?= $b ?>/admin/members/<?= $flId ?>/delete" style="display:contents"
-                      data-confirm="Reject this member?">
-                  <input type="hidden" name="_csrf"        value="<?= \Luster\Core\View::e($csrf_token ?? '') ?>">
-                  <input type="hidden" name="member_email" value="<?= \Luster\Core\View::e($m->email) ?>">
-                  <button type="submit" class="btn btn-danger btn-sm">Reject</button>
-                </form>
+                   class="btn btn-tertiary btn-sm">Email</a>
+                <button type="submit" form="del-rej-<?= md5($m->email . $flId) ?>" class="btn btn-danger btn-sm">Reject</button>
               </div>
             </td>
           </tr>
           <?php endforeach; ?>
         </tbody>
       </table>
+      </div>
       </form>
+      <?php foreach ($pendingMembers as $m): ?>
+      <form id="del-rej-<?= md5($m->email . $flId) ?>" method="POST"
+            action="<?= $b ?>/admin/members/<?= $flId ?>/delete"
+            style="display:none"
+            data-del-modal data-del-entity="member_reject"
+            data-del-name="<?= \Luster\Core\View::e($m->name) ?>">
+        <input type="hidden" name="_csrf"        value="<?= \Luster\Core\View::e($csrf_token ?? '') ?>">
+        <input type="hidden" name="member_email" value="<?= \Luster\Core\View::e($m->email) ?>">
+      </form>
+      <?php endforeach; ?>
     </div>
     <?php endforeach; ?>
   <?php endif; ?>
@@ -272,7 +283,8 @@ $pendingSortIcon = static function (string $col) use ($sort, $dir): string {
     </div>
   <?php else: ?>
     <div class="neb-card" style="overflow:hidden">
-      <form method="POST" action="<?= $b ?>/admin/pending-updates/bulk">
+      <form method="POST" action="<?= $b ?>/admin/pending-updates/bulk"
+            data-del-bulk data-del-entity="pending_update_reject">
         <input type="hidden" name="_csrf" value="<?= \Luster\Core\View::e($csrf_token ?? '') ?>">
         <div class="neb-bulk" style="margin:0;border-left:none;border-right:none;border-top:none;border-radius:0;border-bottom:1px solid var(--border)">
           <span style="font-weight:600;margin-right:.25rem;color:var(--text)">Bulk:</span>
@@ -282,9 +294,10 @@ $pendingSortIcon = static function (string $col) use ($sort, $dir): string {
               <option value="reject">Reject</option>
             </select>
           </div>
-          <button type="submit" class="btn btn-secondary btn-sm">Apply</button>
+          <button type="submit" class="btn btn-tertiary btn-sm">Apply</button>
         </div>
         <div style="overflow-x:auto">
+          <div class="neb-table-wrap">
           <table class="data-table mem-table">
             <thead>
               <tr>
@@ -307,7 +320,8 @@ $pendingSortIcon = static function (string $col) use ($sort, $dir): string {
               <tr>
                 <td class="cb-col" data-label="">
                   <input type="checkbox" name="ids[]" class="row-cb-pu"
-                         value="<?= (int) $pu->id ?>">
+                         value="<?= (int) $pu->id ?>"
+                         data-name="<?= \Luster\Core\View::e($pu->member_email) ?>">
                 </td>
                 <td data-label="Listing">
                   <?php if ($puListing !== null): ?>
@@ -354,23 +368,27 @@ $pendingSortIcon = static function (string $col) use ($sort, $dir): string {
                       <button type="submit" class="btn btn-success btn-sm">Approve</button>
                     </form>
                     <a href="<?= $b ?>/admin/members/<?= $puFlId ?>/edit?email=<?= urlencode($pu->member_email) ?>"
-                       class="btn btn-secondary btn-sm">Edit</a>
-                    <form method="POST"
-                          action="<?= $b ?>/admin/pending-updates/<?= (int) $pu->id ?>/reject"
-                          style="display:contents"
-                          data-confirm="Reject and discard this update?">
-                      <input type="hidden" name="_csrf"  value="<?= \Luster\Core\View::e($csrf_token ?? '') ?>">
-                      <input type="hidden" name="_from"  value="members">
-                      <button type="submit" class="btn btn-danger btn-sm">Reject</button>
-                    </form>
+                       class="btn btn-tertiary btn-sm">Edit</a>
+                    <button type="submit" form="del-pu-<?= (int) $pu->id ?>" class="btn btn-danger btn-sm">Reject</button>
                   </div>
                 </td>
               </tr>
               <?php endforeach; ?>
             </tbody>
           </table>
+          </div>
         </div>
       </form>
+      <?php foreach ($pending_updates as $pu): ?>
+      <form id="del-pu-<?= (int) $pu->id ?>" method="POST"
+            action="<?= $b ?>/admin/pending-updates/<?= (int) $pu->id ?>/reject"
+            style="display:none"
+            data-del-modal data-del-entity="pending_update_reject"
+            data-del-name="<?= \Luster\Core\View::e($pu->member_email) ?>">
+        <input type="hidden" name="_csrf" value="<?= \Luster\Core\View::e($csrf_token ?? '') ?>">
+        <input type="hidden" name="_from" value="members">
+      </form>
+      <?php endforeach; ?>
     </div>
   <?php endif; ?>
 

@@ -28,7 +28,7 @@ function oldVal(array $old, \Luster\Models\Member $m, string $key): string {
   <div class="alert alert-error"><?= \Luster\Core\View::e($error) ?></div>
 <?php endif; ?>
 
-<div class="form-card">
+<div class="neb-card neb-card-padded">
   <form method="POST" action="<?= $b ?>/admin/members/<?= $id ?>/edit" class="js-warn-unsaved">
     <input type="hidden" name="_csrf"        value="<?= \Luster\Core\View::e($csrf_token ?? '') ?>">
     <input type="hidden" name="member_email" value="<?= \Luster\Core\View::e($member->email) ?>">
@@ -134,7 +134,8 @@ function oldVal(array $old, \Luster\Models\Member $m, string $key): string {
       <strong><?= \Luster\Core\View::e($member->email) ?></strong> will be kept; the duplicate will be permanently removed.
     </p>
     <form method="POST" action="<?= $b ?>/admin/members/<?= $id ?>/merge"
-          data-confirm="Delete the duplicate member? This cannot be undone.">
+          data-del-modal data-del-entity="merge_member"
+          data-del-name="<?= \Luster\Core\View::e($member->email) ?>">
       <input type="hidden" name="_csrf"        value="<?= \Luster\Core\View::e($csrf_token ?? '') ?>">
       <input type="hidden" name="member_email" value="<?= \Luster\Core\View::e($member->email) ?>">
       <div style="display:flex;gap:.75rem;align-items:flex-end;flex-wrap:wrap">

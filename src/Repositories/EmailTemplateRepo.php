@@ -220,6 +220,28 @@ final class EmailTemplateRepo
     }
 
     /**
+     * Upserts only the enabled flag for one fanlisting_id + type, leaving
+     * subject and body untouched if a row already exists.
+     */
+    public function setEnabled(int $listingId, string $type, bool $enabled): void
+    {
+        try {
+            $stmt = $this->db->prepare(
+                'INSERT INTO lstr_email_templates (fanlisting_id, type, subject, body, enabled)
+                 VALUES (:fid, :type, \'\', \'\', :enabled)
+                 ON DUPLICATE KEY UPDATE enabled = VALUES(enabled)'
+            );
+            $stmt->execute([
+                'fid'     => $listingId,
+                'type'    => $type,
+                'enabled' => (int) $enabled,
+            ]);
+        } catch (\Exception) {
+            // Migration not yet run — silently ignore
+        }
+    }
+
+    /**
      * Deletes the saved template for one fanlisting_id + type, reverting to
      * the next level in the inheritance chain.
      * - fanlisting_id = 0 → deletes global, reverts to built-in default

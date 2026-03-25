@@ -81,7 +81,7 @@ $b = rtrim(View::e($base_url), '/');
     <div class="btn-row">
       <button type="submit" class="btn btn-primary">Save Changes</button>
       <a href="<?= $b ?>/admin/kim/<?= (int) $member->fanlistingId ?>/show"
-         class="btn btn-secondary">Cancel</a>
+         class="btn btn-tertiary">Cancel</a>
     </div>
   </form>
 </div>

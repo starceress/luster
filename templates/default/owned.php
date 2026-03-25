@@ -20,22 +20,22 @@ use Luster\Core\View;
  *   $theme_path         string
  */
 ?>
-<div class="fl-wrap">
+<div>
 
   <?php if (!$hide_dropdown && !empty($categories)): ?>
-    <div class="fl-filter">
+    <div>
       <?php if ($show_list): ?>
-        <ul class="fl-category-list">
+        <ul>
           <li>
-            <a class="fl-link<?= $current_category === 0 ? ' fl-page-current' : '' ?>"
+            <a <?= $current_category === 0 ? 'aria-current="true"' : '' ?>
                href="<?= View::e($form_action) ?>">All</a>
           </li>
           <?php foreach ($categories as $cat): ?>
             <li>
-              <a class="fl-link<?= $current_category === $cat['id'] ? ' fl-page-current' : '' ?>"
+              <a <?= $current_category === $cat['id'] ? 'aria-current="true"' : '' ?>
                  href="<?= View::e($form_action . '?cat=' . $cat['id']) ?>">
                 <?php if ($cat['parent_name'] !== null): ?>
-                  <span class="fl-cat-parent"><?= View::e($cat['parent_name']) ?> &rsaquo;</span>
+                  <span><?= View::e($cat['parent_name']) ?> &rsaquo;</span>
                 <?php endif; ?>
                 <?= View::e($cat['name']) ?>
               </a>
@@ -56,9 +56,9 @@ use Luster\Core\View;
             }
         }
         ?>
-        <form method="GET" action="<?= View::e($form_action) ?>" class="fl-filter-form">
-          <label class="fl-label" for="fl-owned-cat">Category:</label>
-          <select class="fl-select" id="fl-owned-cat" name="cat"
+        <form method="GET" action="<?= View::e($form_action) ?>">
+          <label for="fl-owned-cat">Category:</label>
+          <select id="fl-owned-cat" name="cat"
                   onchange="this.form.submit()">
             <option value="0"<?= $current_category === 0 ? ' selected' : '' ?>>All</option>
             <?php foreach ($ownedTopLevel as $_oc): ?>
@@ -78,29 +78,29 @@ use Luster\Core\View;
               </optgroup>
             <?php endforeach; ?>
           </select>
-          <noscript><button class="fl-btn" type="submit">Go</button></noscript>
+          <noscript><button type="submit">Go</button></noscript>
         </form>
       <?php endif; ?>
     </div>
   <?php endif; ?>
 
   <?php if (empty($listings)): ?>
-    <p class="fl-empty">No listings to display.</p>
+    <p>No listings to display.</p>
   <?php elseif (($listing_html ?? null) !== null && $listing_html !== ''): ?>
     <!-- Custom DB template listing rows -->
-    <ul class="fl-fanlisting-list">
+    <ul>
       <?= $listing_html ?>
     </ul>
   <?php else: ?>
-    <ul class="fl-fanlisting-list">
+    <ul>
       <?php foreach ($listings as $fl): ?>
-        <li class="fl-fanlisting">
-          <a class="fl-link" href="<?= View::e($fl->url) ?>"
+        <li>
+          <a href="<?= View::e($fl->url) ?>"
              target="_blank" rel="noopener noreferrer">
             <?= View::e($fl->name) ?>
           </a>
           <?php if ($fl->subject !== ''): ?>
-            <span class="fl-muted"> — <?= View::e($fl->subject) ?></span>
+            &mdash; <?= View::e($fl->subject) ?>
           <?php endif; ?>
         </li>
       <?php endforeach; ?>

@@ -406,11 +406,29 @@ final class UpdateController
             'old'                  => $old,
             'captcha_question'     => Captcha::getQuestion('update'),
             'captcha_error'        => $captchaError,
-            'lost_password_url'    => $baseUrl . '/reset/' . $listingId,
+            'lost_password_url'    => $this->buildResetUrl($listing, $embedSettings, $baseUrl, $listingId),
             'base_url'             => $baseUrl,
             'theme_path'           => $baseUrl . '/assets/default/',
         ]);
 
         return Response::html($html);
+    }
+
+    /**
+     * Builds the URL for the "Forgot your password?" link in the update form.
+     *
+     * Uses the admin-configured reset page filename (form_url_reset) combined
+     * with the listing URL. Returns an empty string if not configured, which
+     * causes the template to hide the link entirely.
+     */
+    private function buildResetUrl(Listing $listing, array $embedSettings, string $baseUrl, int $listingId): string
+    {
+        $resetPage = (string) ($embedSettings['form_url_reset'] ?? '');
+
+        if ($resetPage !== '') {
+            return rtrim((string) $listing->url, '/') . '/' . ltrim($resetPage, '/');
+        }
+
+        return '';
     }
 }

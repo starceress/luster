@@ -14,1037 +14,552 @@ $b  = rtrim(\Luster\Core\View::e($base_url ?? ''), '/');
 $ep = rtrim($embed_path ?? '/path/to/luster/public/embed', '/');
 $id = max(1, (int) ($example_id ?? 1));
 
-// Pre-render every code snippet into a PHP array for clean output below
-$snip = [];
-$div  = '# -----------------------------------------------------------';
+// ── Quick Copy snippet code strings (raw PHP, JSON-encoded for JS) ────────────
 
-$snip['join'] = htmlspecialchars(
-    '<?php' . "\n" .
-    $div . "\n" .
-    '$luster_fanlisting_id = ' . $id . ';' . "\n" .
-    $div . "\n" .
-    'require(\'' . $ep . '/join.php\');' . "\n" .
-    $div . "\n" .
-    '?>',
-    ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'
-);
+$snippets = [
 
-$snip['update'] = htmlspecialchars(
-    '<?php' . "\n" .
-    $div . "\n" .
-    '$luster_fanlisting_id = ' . $id . ';' . "\n" .
-    $div . "\n" .
-    'require(\'' . $ep . '/update.php\');' . "\n" .
-    $div . "\n" .
+  'join' => implode("\n", [
+    '<?php',
+    "\$luster_fanlisting_id = {$id};",
+    "require('{$ep}/join.php');",
     '?>',
-    ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'
-);
+  ]),
 
-$snip['remove'] = htmlspecialchars(
-    '<?php' . "\n" .
-    $div . "\n" .
-    '$luster_fanlisting_id = ' . $id . ';' . "\n" .
-    $div . "\n" .
-    'require(\'' . $ep . '/remove.php\');' . "\n" .
-    $div . "\n" .
+  'members' => implode("\n", [
+    '<?php',
+    "\$luster_fanlisting_id = {$id};",
+    "// \$luster_per_page    = 20;     // members per page (overrides site default)",
+    "// \$luster_sort_by     = 'name'; // name | country",
+    "// \$luster_members_base = strtok(\$_SERVER['REQUEST_URI'], '?');",
+    "require('{$ep}/members.php');",
     '?>',
-    ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'
-);
+  ]),
 
-$snip['reset'] = htmlspecialchars(
-    '<?php' . "\n" .
-    $div . "\n" .
-    '$luster_fanlisting_id = ' . $id . ';' . "\n" .
-    $div . "\n" .
-    'require(\'' . $ep . '/reset.php\');' . "\n" .
-    $div . "\n" .
+  'stats' => implode("\n", [
+    '<?php',
+    "\$luster_fanlisting_id = {$id};",
+    '// Template is set in Admin → Listings → Edit → Templates',
+    '// Available tokens: {stat_opened}, {stat_approved}, {stat_updated}, ...',
+    "require('{$ep}/stats.php');",
     '?>',
-    ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'
-);
+  ]),
 
-$snip['members'] = htmlspecialchars(
-    '<?php' . "\n" .
-    $div . "\n" .
-    '$luster_fanlisting_id = ' . $id . ';' . "\n" .
-    $div . "\n" .
-    'require(\'' . $ep . '/members.php\');' . "\n" .
-    $div . "\n" .
+  'affiliates' => implode("\n", [
+    '<?php',
+    "\$luster_fanlisting_id = {$id}; // use 0 for collective affiliates",
+    "require('{$ep}/affiliates.php');",
     '?>',
-    ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'
-);
+  ]),
 
-$snip['stats'] = htmlspecialchars(
-    '<?php' . "\n" .
-    $div . "\n" .
-    '$luster_fanlisting_id = ' . $id . ';' . "\n" .
-    $div . "\n" .
-    'require(\'' . $ep . '/stats.php\');' . "\n" .
-    $div . "\n" .
+  'update' => implode("\n", [
+    '<?php',
+    "\$luster_fanlisting_id = {$id};",
+    "require('{$ep}/update.php');",
     '?>',
-    ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'
-);
+  ]),
 
-$snip['affiliates'] = htmlspecialchars(
-    '<?php' . "\n" .
-    $div . "\n" .
-    '$luster_fanlisting_id = ' . $id . ';' . "\n" .
-    $div . "\n" .
-    'require(\'' . $ep . '/affiliates.php\');' . "\n" .
-    $div . "\n" .
+  'remove' => implode("\n", [
+    '<?php',
+    "\$luster_fanlisting_id = {$id};",
+    "require('{$ep}/remove.php');",
     '?>',
-    ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'
-);
+  ]),
 
-$snip['owned'] = htmlspecialchars(
-    '<?php' . "\n" .
-    $div . "\n" .
-    '// $luster_status        = \'current\'; // current | upcoming | trouble | all' . "\n" .
-    '// $luster_hide_dropdown = false;       // true = hide the category filter' . "\n" .
-    $div . "\n" .
-    'require(\'' . $ep . '/owned.php\');' . "\n" .
-    $div . "\n" .
+  'reset' => implode("\n", [
+    '<?php',
+    "\$luster_fanlisting_id = {$id};",
+    "// \$luster_reset_step = 'confirm'; // show new-password form only",
+    "require('{$ep}/reset.php');",
     '?>',
-    ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'
-);
+  ]),
 
-$snip['joined'] = htmlspecialchars(
-    '<?php' . "\n" .
-    $div . "\n" .
-    '// $luster_category = \'\'; // \'\' = dropdown | \'all\' = all categories | or a category name' . "\n" .
-    $div . "\n" .
-    'require(\'' . $ep . '/joined.php\');' . "\n" .
-    $div . "\n" .
+  'owned' => implode("\n", [
+    '<?php',
+    "// \$luster_status        = 'current'; // current | upcoming | trouble | all",
+    "// \$luster_hide_dropdown = false;     // true = hide category filter",
+    "require('{$ep}/owned.php');",
     '?>',
-    ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'
-);
+  ]),
 
-$snip['cstats'] = htmlspecialchars(
-    '<?php' . "\n" .
-    $div . "\n" .
-    'require(\'' . $ep . '/collective-stats.php\');' . "\n" .
-    $div . "\n" .
-    '// Use the variables anywhere on your page:' . "\n" .
-    'echo $luster_owned_active;   // e.g. "12"' . "\n" .
-    'echo $luster_members_total;  // e.g. "3,450"' . "\n" .
-    $div . "\n" .
+  'joined' => implode("\n", [
+    '<?php',
+    "// \$luster_category = ''; // '' = dropdown | 'all' = all | or exact name",
+    "require('{$ep}/joined.php');",
     '?>',
-    ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'
+  ]),
+
+  'cstats' => implode("\n", [
+    '<?php',
+    "require('{$ep}/collective-stats.php');",
+    '// Use the exposed variables anywhere on your page:',
+    '// echo $luster_owned_active;   // e.g. 12',
+    '// echo $luster_members_total;  // e.g. 3450',
+    '?>',
+  ]),
+
+  'aff-col' => implode("\n", [
+    '<?php',
+    "\$luster_fanlisting_id = 0; // 0 = collective / site-wide affiliates",
+    "require('{$ep}/affiliates.php');",
+    '?>',
+  ]),
+
+  'kim' => implode("\n", [
+    '<?php',
+    '// Requires KIM List add-on — install from Admin → Add-ons',
+    "require('{$ep}/kim-signup.php');",
+    '?>',
+  ]),
+
+];
+
+// ── Item metadata (label, badge, desc, file, custType) ────────────────────────
+
+$items = [
+  'join' => [
+    'label'    => 'Join form',
+    'badge'    => 'form',
+    'file'     => 'embed/join.php',
+    'custType' => 'join',
+    'desc'     => 'Embeds the join form. Visitors submit their name, email, URL, and country. Extra fields from Edit Listing additional fields also appear here.',
+  ],
+  'members' => [
+    'label'    => 'Members list',
+    'badge'    => 'data',
+    'file'     => 'embed/members.php',
+    'custType' => 'members',
+    'desc'     => 'Paginated list of approved members, rendered using the row template from Edit Listing templates.',
+  ],
+  'stats' => [
+    'label'    => 'Statistics',
+    'badge'    => 'stat',
+    'file'     => 'embed/stats.php',
+    'custType' => 'stats',
+    'desc'     => 'Outputs your stats template with live data — member count, dates, newest member, and more. Edit the template in Edit Listing → Templates.',
+  ],
+  'affiliates' => [
+    'label'    => 'Affiliates',
+    'badge'    => 'data',
+    'file'     => 'embed/affiliates.php',
+    'custType' => 'affiliates',
+    'desc'     => 'Displays this listing affiliates using the template from Edit Listing → Templates.',
+  ],
+  'update' => [
+    'label'    => 'Update details',
+    'badge'    => 'form',
+    'file'     => 'embed/update.php',
+    'custType' => 'update',
+    'desc'     => 'Lets existing members update their name, URL, and other details.',
+  ],
+  'remove' => [
+    'label'    => 'Remove membership',
+    'badge'    => 'form',
+    'file'     => 'embed/remove.php',
+    'custType' => 'remove',
+    'desc'     => 'Lets members remove themselves from the fanlisting.',
+  ],
+  'reset' => [
+    'label'    => 'Password reset',
+    'badge'    => 'form',
+    'file'     => 'embed/reset.php',
+    'custType' => 'reset',
+    'desc'     => 'Two-step password reset — members enter their email, then receive a link to set a new password.',
+  ],
+  'owned' => [
+    'label'    => 'Owned listings',
+    'badge'    => 'data',
+    'file'     => 'embed/owned.php',
+    'custType' => 'owned',
+    'desc'     => 'Displays all your owned fanlistings with an optional category filter dropdown.',
+  ],
+  'joined' => [
+    'label'    => 'Joined listings',
+    'badge'    => 'data',
+    'file'     => 'embed/joined.php',
+    'custType' => 'joined',
+    'desc'     => 'Lists the fanlistings you have joined, grouped by category.',
+  ],
+  'cstats' => [
+    'label'    => 'Site statistics',
+    'badge'    => 'stat',
+    'file'     => 'embed/collective-stats.php',
+    'custType' => 'cstats',
+    'desc'     => 'Exposes site-wide stats as PHP variables — owned count, total members, and more. No template needed: use the variables directly.',
+  ],
+  'aff-col' => [
+    'label'    => 'Collective affiliates',
+    'badge'    => 'data',
+    'file'     => 'embed/affiliates.php',
+    'custType' => 'aff-col',
+    'desc'     => 'Displays your site-wide collective affiliates (not tied to any single listing).',
+  ],
+  'kim' => [
+    'label'    => 'KIM sign-up',
+    'badge'    => 'ext',
+    'file'     => 'embed/kim-signup.php',
+    'custType' => 'kim',
+    'desc'     => 'Embeds the KIM List sign-up form. The KIM List add-on must be installed and active. If the add-on is not active, a short error appears instead.',
+  ],
+];
+
+// Attach snippets to item metadata for a single data attribute
+foreach ($items as $k => &$item) {
+  $item['code'] = $snippets[$k] ?? '';
+}
+unset($item);
+
+$itemsJson = json_encode(
+  $items,
+  JSON_HEX_QUOT | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_TAG
 );
 
 $listingsJson = json_encode(
-    array_map(fn($fl) => ['id' => (int) $fl->id, 'name' => $fl->name], $listings ?? []),
-    JSON_HEX_QUOT | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_TAG
+  array_map(fn($fl) => ['id' => (int) $fl->id, 'name' => $fl->name], $listings ?? []),
+  JSON_HEX_QUOT | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_TAG
 );
 
-$snip['kim'] = htmlspecialchars(
-    '<?php' . "\n" .
-    $div . "\n" .
-    'require(\'' . $ep . '/kim-signup.php\');' . "\n" .
-    $div . "\n" .
-    '?>',
-    ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'
-);
+$epSafe = \Luster\Core\View::e($ep);
+
+// Nav item groups
+$navGroups = [
+  ['label' => 'For a fanlisting page', 'keys' => ['join', 'members', 'stats', 'affiliates', 'update', 'remove', 'reset']],
+  ['label' => 'For a collective page',  'keys' => ['owned', 'joined', 'cstats', 'aff-col', 'kim']],
+];
+
+// Customizer type groups (mirror nav groups)
+$custGroups = [
+  ['label' => 'For a fanlisting page', 'keys' => ['join', 'members', 'stats', 'affiliates', 'update', 'remove', 'reset']],
+  ['label' => 'For a collective page',  'keys' => ['owned', 'joined', 'cstats', 'aff-col', 'kim']],
+];
 
 ?>
-<style>
-/* ─── Theme tokens ────────────────────────────────────────────── */
-[data-theme="dark"]  {
-  --ec-bg:   #07040f;
-  --ec-text: #ddd6fe;
-  --ec-copy: rgba(255,255,255,.07);
-}
-[data-theme="light"] {
-  --ec-bg:   #f3f0ff;
-  --ec-text: #1e1340;
-  --ec-copy: rgba(0,0,0,.05);
-}
 
-/* ─── Page intro ──────────────────────────────────────────────── */
-.ec-intro {
-  font-size: .875rem;
-  color: var(--text-muted);
-  line-height: 1.65;
-  margin-bottom: 1.5rem;
-}
-.ec-intro code {
-  font-family: 'DM Mono', monospace;
-  font-size: .85em;
-  color: var(--accent);
-  background: var(--accent-glow);
-  padding: .1em .4em;
-  border-radius: 3px;
-}
+<div class="ec-root" id="ec-root"
+     data-embed-path="<?= $epSafe ?>"
+     data-listings='<?= $listingsJson ?>'
+     data-items='<?= $itemsJson ?>'>
 
-/* ─── Picker layout ───────────────────────────────────────────── */
-.ec-picker {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 1rem;
-  margin-bottom: 1.5rem;
-}
-@media (max-width: 580px) {
-  .ec-picker { grid-template-columns: 1fr; }
-}
+  <p class="ec-intro">
+    Add Luster forms and data to any PHP page on your site with a single snippet.
+    The embed path is already filled in based on where Luster is installed on this server.
+  </p>
 
-.ec-group {
-  background: var(--bg-card);
-  border: 1px solid var(--border-soft);
-  border-radius: 12px;
-  overflow: hidden;
-}
-.ec-group-label {
-  padding: .55rem 1rem;
-  font-size: .7rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: .08em;
-  color: var(--text-dim);
-  background: var(--bg-subtle);
-  border-bottom: 1px solid var(--border-soft);
-}
-.ec-opts { display: flex; flex-direction: column; }
-.ec-opt {
-  display: flex;
-  align-items: center;
-  gap: .6rem;
-  padding: .6rem 1rem;
-  font-size: .8375rem;
-  color: var(--text-muted);
-  background: none;
-  border: none;
-  border-bottom: 1px solid var(--border-soft);
-  cursor: pointer;
-  text-align: left;
-  transition: background .12s, color .12s;
-  font-family: inherit;
-  line-height: 1.2;
-}
-.ec-opt:last-child { border-bottom: none; }
-.ec-opt::before {
-  content: '';
-  width: 6px; height: 6px;
-  border-radius: 50%;
-  border: 1.5px solid var(--border);
-  flex-shrink: 0;
-  transition: background .12s, border-color .12s;
-}
-.ec-opt:hover { background: var(--bg-subtle); color: var(--text); }
-.ec-opt[aria-selected="true"] {
-  background: var(--accent-glow);
-  color: var(--accent);
-  font-weight: 600;
-}
-.ec-opt[aria-selected="true"]::before {
-  background: var(--accent);
-  border-color: var(--accent);
-}
-
-/* ─── Active code panel ───────────────────────────────────────── */
-.ec-panel-wrap { position: relative; }
-.ec-panel {
-  display: none;
-  background: var(--bg-card);
-  border: 1px solid var(--border-soft);
-  border-radius: 12px;
-  overflow: hidden;
-}
-.ec-panel.ec-panel--active { display: block; }
-
-.ec-panel-head {
-  display: flex;
-  align-items: center;
-  gap: .6rem;
-  flex-wrap: wrap;
-  padding: .7rem 1.1rem;
-  background: var(--bg-subtle);
-  border-bottom: 1px solid var(--border-soft);
-}
-.ec-filename {
-  font-family: 'DM Mono', monospace;
-  font-size: .825rem;
-  font-weight: 700;
-  color: var(--accent);
-}
-.ec-badge {
-  font-size: .68rem;
-  font-weight: 600;
-  padding: .15rem .5rem;
-  border-radius: 4px;
-  white-space: nowrap;
-}
-.ec-badge-id   { background: var(--accent-glow); color: var(--accent); }
-.ec-badge-free { background: var(--bg-card); color: var(--text-dim);
-                 border: 1px solid var(--border-soft); }
-.ec-panel-desc {
-  margin-left: auto;
-  font-size: .775rem;
-  color: var(--text-dim);
-}
-
-.ec-panel-body { padding: 1rem 1.1rem; }
-
-/* ─── Paste tip ───────────────────────────────────────────────── */
-.ec-paste-tip {
-  font-size: .8rem;
-  color: var(--text-dim);
-  margin: 0 0 .65rem;
-  line-height: 1.5;
-}
-
-/* ─── Code block ──────────────────────────────────────────────── */
-.ec-code-wrap { position: relative; margin-bottom: .75rem; }
-.ec-pre {
-  background: var(--ec-bg);
-  border: 1px solid var(--border-soft);
-  border-radius: 8px;
-  padding: .9rem 3.5rem .9rem 1rem;
-  font-size: .775rem;
-  line-height: 1.8;
-  overflow-x: auto;
-  color: var(--ec-text);
-  white-space: pre;
-  font-family: 'DM Mono', monospace;
-  margin: 0;
-}
-.ec-copy {
-  position: absolute;
-  top: .6rem; right: .6rem;
-  padding: .25rem .6rem;
-  font-size: .68rem;
-  border-radius: 5px;
-  cursor: pointer;
-  border: 1px solid var(--border);
-  background: var(--ec-copy);
-  color: var(--text-muted);
-  font-family: inherit;
-  transition: background .14s, color .14s, border-color .14s;
-  white-space: nowrap;
-}
-.ec-copy:hover  { background: var(--accent); color: #fff; border-color: var(--accent); }
-.ec-copy.ec-copied { background: var(--success); color: #fff; border-color: var(--success); }
-
-/* ─── Collapsible extras ──────────────────────────────────────── */
-.ec-detail {
-  border: 1px solid var(--border-soft);
-  border-radius: 8px;
-  overflow: hidden;
-  margin-top: .6rem;
-}
-.ec-detail + .ec-detail { margin-top: .4rem; }
-.ec-detail summary {
-  padding: .55rem .9rem;
-  font-size: .78rem;
-  font-weight: 600;
-  color: var(--text-muted);
-  cursor: pointer;
-  user-select: none;
-  list-style: none;
-  display: flex;
-  align-items: center;
-  gap: .45rem;
-  background: var(--bg-subtle);
-  transition: color .12s;
-}
-.ec-detail summary::-webkit-details-marker { display: none; }
-.ec-detail summary::before {
-  content: '▶';
-  font-size: .58rem;
-  color: var(--accent);
-  transition: transform .14s;
-  flex-shrink: 0;
-}
-.ec-detail[open] summary { color: var(--text); border-bottom: 1px solid var(--border-soft); }
-.ec-detail[open] summary::before { transform: rotate(90deg); }
-.ec-detail summary:hover { color: var(--text); }
-
-.ec-detail-body { padding: .85rem .9rem; }
-
-/* ─── Two-column variable table ───────────────────────────────── */
-.ec-vars-list {
-  display: grid;
-  grid-template-columns: auto 1fr;
-  gap: .45rem .85rem;
-  align-items: baseline;
-}
-.ec-var-row { display: contents; }
-.ec-var-name {
-  font-family: 'DM Mono', monospace;
-  font-size: .775rem;
-  color: var(--accent);
-  background: var(--accent-glow);
-  padding: .15em .45em;
-  border-radius: 3px;
-  white-space: nowrap;
-  align-self: start;
-}
-.ec-var-desc {
-  font-size: .8rem;
-  color: var(--text-muted);
-  line-height: 1.5;
-}
-.ec-var-desc code {
-  font-family: 'DM Mono', monospace;
-  font-size: .85em;
-  color: var(--accent);
-  background: var(--accent-glow);
-  padding: .1em .35em;
-  border-radius: 3px;
-}
-
-/* ─── Note callout ────────────────────────────────────────────── */
-.ec-note {
-  font-size: .8rem;
-  color: var(--text-muted);
-  line-height: 1.55;
-  padding: .55rem .85rem;
-  background: var(--accent-glow);
-  border-left: 3px solid var(--accent);
-  border-radius: 0 5px 5px 0;
-  margin: 0;
-}
-.ec-note code {
-  font-family: 'DM Mono', monospace;
-  font-size: .85em;
-  color: var(--accent);
-  background: var(--accent-glow);
-  padding: .1em .35em;
-  border-radius: 3px;
-}
-
-/* ─── Wizard ──────────────────────────────────────────────────── */
-.ec-wiz {
-  background: var(--bg-card);
-  border: 1px solid var(--border-soft);
-  border-radius: 12px;
-  overflow: hidden;
-  margin-bottom: 1.5rem;
-}
-.ec-wiz-head {
-  display: flex; align-items: center; gap: .75rem; flex-wrap: wrap;
-  padding: .65rem 1.1rem;
-  background: var(--bg-subtle);
-  border-bottom: 1px solid var(--border-soft);
-}
-.ec-wiz-title {
-  display: flex; align-items: center; gap: .45rem;
-  font-size: .78rem; font-weight: 700;
-  text-transform: uppercase; letter-spacing: .07em; color: var(--accent);
-}
-.ec-wiz-steps-bar { display: flex; align-items: center; gap: 5px; margin-left: auto; }
-.ec-wiz-dot {
-  width: 8px; height: 8px; border-radius: 50%;
-  background: var(--border); transition: background .2s;
-}
-.ec-wiz-dot.active { background: var(--accent); }
-.ec-wiz-dot.done   { background: var(--success); }
-.ec-wiz-connector  { width: 22px; height: 1px; background: var(--border-soft); }
-.ec-wiz-step-label { font-size: .75rem; color: var(--text-dim); white-space: nowrap; }
-.ec-wiz-body { padding: 1.1rem 1.1rem .8rem; }
-/* Type grid (step 1) */
-.ec-wiz-group + .ec-wiz-group { margin-top: .9rem; }
-.ec-wiz-group-label {
-  font-size: .68rem; font-weight: 700; text-transform: uppercase;
-  letter-spacing: .08em; color: var(--text-dim); margin: 0 0 .45rem;
-}
-.ec-wiz-type-grid {
-  display: grid; grid-template-columns: repeat(auto-fill, minmax(148px, 1fr)); gap: .35rem;
-}
-.ec-wiz-type-btn {
-  display: flex; flex-direction: column; gap: .15rem;
-  padding: .55rem .7rem;
-  background: var(--bg-subtle);
-  border: 1.5px solid var(--border-soft);
-  border-radius: 8px; cursor: pointer; text-align: left;
-  font-family: inherit; transition: border-color .12s, background .12s;
-}
-.ec-wiz-type-btn:hover { border-color: var(--border); background: var(--bg-card); }
-.ec-wiz-type-btn[aria-selected="true"] { border-color: var(--accent); background: var(--accent-glow); }
-.ec-wiz-type-label { font-size: .82rem; font-weight: 600; color: var(--text); }
-.ec-wiz-type-desc  { font-size: .71rem; color: var(--text-dim); line-height: 1.4; }
-/* Options form (step 2) */
-.ec-wiz-no-opts { font-size: .85rem; color: var(--text-muted); padding: .25rem 0 .5rem; font-style: italic; }
-.ec-wiz-opts-note { font-size: .78rem; color: var(--text-dim); margin: 0 0 .75rem; }
-.ec-wiz-field { margin-bottom: .8rem; }
-.ec-wiz-field:last-child { margin-bottom: 0; }
-.ec-wiz-label { display: block; font-size: .82rem; font-weight: 600; color: var(--text-muted); margin-bottom: .3rem; }
-.ec-wiz-label em { font-style: normal; color: var(--accent); }
-.ec-wiz-hint { font-size: .74rem; color: var(--text-dim); margin-top: .3rem; }
-/* Nav bar */
-.ec-wiz-nav {
-  display: flex; align-items: center; gap: .6rem;
-  padding: .75rem 1.1rem;
-  border-top: 1px solid var(--border-soft);
-  background: var(--bg-subtle);
-}
-.ec-wiz-restart {
-  margin-left: auto; font-size: .76rem; color: var(--text-dim);
-  background: none; border: none; cursor: pointer; font-family: inherit;
-  padding: 0; text-decoration: underline; text-underline-offset: 2px;
-}
-.ec-wiz-restart:hover { color: var(--accent); }
-/* Divider between wizard and reference section */
-.ec-wiz-divider {
-  display: flex; align-items: center; gap: .85rem;
-  margin: 1.75rem 0 1.25rem; color: var(--text-dim); font-size: .78rem;
-}
-.ec-wiz-divider::before, .ec-wiz-divider::after {
-  content: ''; flex: 1; height: 1px; background: var(--border-soft);
-}
-
-/* ─── Tokens (stats placeholders) ────────────────────────────── */
-.ec-token-grid {
-  display: flex;
-  flex-wrap: wrap;
-  gap: .3rem;
-  margin-top: .35rem;
-}
-.ec-token {
-  font-family: 'DM Mono', monospace;
-  font-size: .75rem;
-  color: var(--accent);
-  background: var(--accent-glow);
-  padding: .2em .55em;
-  border-radius: 3px;
-}
-</style>
-
-<p class="ec-intro">
-  Pick what you want to add from the list below, then copy the code and paste it into your
-  PHP page — right where you want the form or list to appear. The file path is already filled
-  in for you based on where Luster is installed on this server, so you don&rsquo;t need to
-  change it. Each embed drops into your existing page without any extra setup.
-</p>
-
-<!-- ═══ WIZARD ═══════════════════════════════════════════════════ -->
-<div class="ec-wiz" id="ec-wiz"
-     data-embed-path="<?= \Luster\Core\View::e($ep) ?>"
-     data-listings='<?= $listingsJson ?>'>
-
-  <div class="ec-wiz-head">
-    <span class="ec-wiz-title">
-      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01z"/></svg>
-      Quick Setup
-    </span>
-    <div class="ec-wiz-steps-bar" aria-hidden="true">
-      <span class="ec-wiz-dot" data-wiz-dot="1"></span>
-      <span class="ec-wiz-connector"></span>
-      <span class="ec-wiz-dot" data-wiz-dot="2"></span>
-      <span class="ec-wiz-connector"></span>
-      <span class="ec-wiz-dot" data-wiz-dot="3"></span>
-    </div>
-    <span class="ec-wiz-step-label" id="ec-wiz-step-label"></span>
+  <div class="ec-callout">
+    <strong>Before you start:</strong> every snippet needs your
+    <code>$luster_fanlisting_id</code> (the integer ID of the listing &mdash;
+    find it in the URL when editing a listing in this admin panel).
+    Collective embeds like owned listings and site statistics do not need a listing ID.
   </div>
 
-  <!-- Step 1: choose type -->
-  <div class="ec-wiz-body" id="ec-wiz-p1">
-    <div class="ec-wiz-group">
-      <p class="ec-wiz-group-label">For a fanlisting page</p>
-      <div class="ec-wiz-type-grid">
-        <button class="ec-wiz-type-btn" data-wiz-type="join" aria-selected="false">
-          <span class="ec-wiz-type-label">Join form</span>
-          <span class="ec-wiz-type-desc">Let visitors join your fanlisting</span>
-        </button>
-        <button class="ec-wiz-type-btn" data-wiz-type="members" aria-selected="false">
-          <span class="ec-wiz-type-label">Member list</span>
-          <span class="ec-wiz-type-desc">Paginated list of approved members</span>
-        </button>
-        <button class="ec-wiz-type-btn" data-wiz-type="stats" aria-selected="false">
-          <span class="ec-wiz-type-label">Statistics</span>
-          <span class="ec-wiz-type-desc">Member count using your custom template</span>
-        </button>
-        <button class="ec-wiz-type-btn" data-wiz-type="update" aria-selected="false">
-          <span class="ec-wiz-type-label">Update details</span>
-          <span class="ec-wiz-type-desc">Members update their name and URL</span>
-        </button>
-        <button class="ec-wiz-type-btn" data-wiz-type="remove" aria-selected="false">
-          <span class="ec-wiz-type-label">Leave listing</span>
-          <span class="ec-wiz-type-desc">Members remove their membership</span>
-        </button>
-        <button class="ec-wiz-type-btn" data-wiz-type="reset" aria-selected="false">
-          <span class="ec-wiz-type-label">Password reset</span>
-          <span class="ec-wiz-type-desc">Two-step password reset flow</span>
-        </button>
-        <button class="ec-wiz-type-btn" data-wiz-type="affiliates" aria-selected="false">
-          <span class="ec-wiz-type-label">Affiliates</span>
-          <span class="ec-wiz-type-desc">Affiliates for this fanlisting</span>
-        </button>
-      </div>
-    </div>
-    <div class="ec-wiz-group">
-      <p class="ec-wiz-group-label">For a collective page</p>
-      <div class="ec-wiz-type-grid">
-        <button class="ec-wiz-type-btn" data-wiz-type="owned" aria-selected="false">
-          <span class="ec-wiz-type-label">Owned listings</span>
-          <span class="ec-wiz-type-desc">Grid of all your fanlistings</span>
-        </button>
-        <button class="ec-wiz-type-btn" data-wiz-type="joined" aria-selected="false">
-          <span class="ec-wiz-type-label">Joined listings</span>
-          <span class="ec-wiz-type-desc">Fanlistings you&rsquo;ve joined</span>
-        </button>
-        <button class="ec-wiz-type-btn" data-wiz-type="cstats" aria-selected="false">
-          <span class="ec-wiz-type-label">Site statistics</span>
-          <span class="ec-wiz-type-desc">Site-wide stats into PHP variables</span>
-        </button>
-        <button class="ec-wiz-type-btn" data-wiz-type="aff-col" aria-selected="false">
-          <span class="ec-wiz-type-label">Collective affiliates</span>
-          <span class="ec-wiz-type-desc">Affiliates for your whole site</span>
-        </button>
-        <button class="ec-wiz-type-btn" data-wiz-type="kim" aria-selected="false">
-          <span class="ec-wiz-type-label">KIM sign-up</span>
-          <span class="ec-wiz-type-desc">KIM List adoption-interest form</span>
-        </button>
-      </div>
+  <!-- Tab bar (reuses Nebula .neb-tab-btn / .neb-tab-panel) -->
+  <div class="neb-tabs-wrap" id="ec-tabs-wrap">
+    <div class="neb-tabs" id="ec-tabs" role="tablist" aria-label="Embed codes sections">
+      <button class="neb-tab-btn active" data-ec-tab="qc"   role="tab" aria-selected="true"  aria-controls="ec-panel-qc">Quick copy</button>
+      <button class="neb-tab-btn"        data-ec-tab="cust" role="tab" aria-selected="false" aria-controls="ec-panel-cust">Customizer</button>
+      <button class="neb-tab-btn"        data-ec-tab="ref"  role="tab" aria-selected="false" aria-controls="ec-panel-ref">Variable reference</button>
     </div>
   </div>
 
-  <!-- Step 2: configure -->
-  <div class="ec-wiz-body" id="ec-wiz-p2" hidden>
-    <div id="ec-wiz-opts"></div>
-  </div>
+  <!-- ════════════════════════════════════════════════════════
+       QUICK COPY
+       ════════════════════════════════════════════════════════ -->
+  <div class="neb-tab-panel active ec-tab-panel" id="ec-panel-qc" role="tabpanel">
+    <div class="ec-qc-layout">
 
-  <!-- Step 3: copy code -->
-  <div class="ec-wiz-body" id="ec-wiz-p3" hidden>
-    <p class="ec-paste-tip" style="margin-bottom:.65rem">Copy this snippet and paste it into your PHP page where you want the embed to appear.</p>
-    <div class="ec-code-wrap">
-      <pre class="ec-pre" id="ec-wiz-code"></pre>
-      <button class="ec-copy" data-ec-copy="ec-wiz-code">Copy</button>
-    </div>
-  </div>
+      <!-- Sidebar nav -->
+      <nav class="ec-qc-nav" aria-label="Embed types">
+        <?php foreach ($navGroups as $group): ?>
+          <div class="ec-qc-group">
+            <span class="ec-qc-label"><?= \Luster\Core\View::e($group['label']) ?></span>
+            <?php foreach ($group['keys'] as $key): if (!isset($items[$key])) continue; $item = $items[$key]; ?>
+              <button class="ec-qc-item" data-ec-item="<?= \Luster\Core\View::e($key) ?>">
+                <span class="ec-qc-dot" aria-hidden="true"></span>
+                <?= \Luster\Core\View::e($item['label']) ?>
+              </button>
+            <?php endforeach; ?>
+          </div>
+        <?php endforeach; ?>
+      </nav>
 
-  <div class="ec-wiz-nav">
-    <button class="btn btn-ghost btn-sm" id="ec-wiz-back" hidden>&larr; Back</button>
-    <button class="btn btn-primary btn-sm" id="ec-wiz-next" disabled>Choose an option above</button>
-    <button class="ec-wiz-restart" id="ec-wiz-restart" hidden>Start over</button>
-  </div>
-
-</div><!-- /.ec-wiz -->
-
-<div class="ec-wiz-divider"><span>or browse all embed codes</span></div>
-
-<!-- ═══ PICKER ═══════════════════════════════════════════════════ -->
-<div class="ec-picker">
-
-  <div class="ec-group">
-    <div class="ec-group-label">Adding to a fanlisting page</div>
-    <div class="ec-opts" role="listbox" aria-label="Fanlisting embeds">
-      <button class="ec-opt" role="option" aria-selected="false" data-target="join">Join form</button>
-      <button class="ec-opt" role="option" aria-selected="false" data-target="members">Member list</button>
-      <button class="ec-opt" role="option" aria-selected="false" data-target="stats">Statistics</button>
-      <button class="ec-opt" role="option" aria-selected="false" data-target="update">Update details</button>
-      <button class="ec-opt" role="option" aria-selected="false" data-target="remove">Remove membership</button>
-      <button class="ec-opt" role="option" aria-selected="false" data-target="reset">Password reset</button>
-      <button class="ec-opt" role="option" aria-selected="false" data-target="affiliates">Affiliates</button>
-    </div>
-  </div>
-
-  <div class="ec-group">
-    <div class="ec-group-label">Adding to a collective page</div>
-    <div class="ec-opts" role="listbox" aria-label="Collective embeds">
-      <button class="ec-opt" role="option" aria-selected="false" data-target="owned">Owned listings</button>
-      <button class="ec-opt" role="option" aria-selected="false" data-target="joined">Joined listings</button>
-      <button class="ec-opt" role="option" aria-selected="false" data-target="cstats">Site statistics</button>
-      <button class="ec-opt" role="option" aria-selected="false" data-target="affiliates-collective">Collective affiliates</button>
-      <button class="ec-opt" role="option" aria-selected="false" data-target="kim">KIM sign-up form</button>
-    </div>
-  </div>
-
-</div><!-- /.ec-picker -->
-
-<!-- ═══ CODE PANELS ══════════════════════════════════════════════ -->
-<div class="ec-panel-wrap">
-
-  <!-- join -->
-  <div class="ec-panel" id="ec-panel-join">
-    <div class="ec-panel-head">
-      <span class="ec-filename">embed/join.php</span>
-      <span class="ec-badge ec-badge-id">Requires listing ID</span>
-      <span class="ec-panel-desc">The join form for your fanlisting</span>
-    </div>
-    <div class="ec-panel-body">
-      <p class="ec-paste-tip">Paste this into the PHP page where you want the join form to appear.</p>
-      <div class="ec-code-wrap">
-        <pre class="ec-pre" id="ec-pre-join"><?= $snip['join'] ?></pre>
-        <button class="ec-copy" data-ec-copy="ec-pre-join">Copy</button>
-      </div>
-      <details class="ec-detail">
-        <summary>Where do people go after they submit?</summary>
-        <div class="ec-detail-body">
-          <p class="ec-note">
-            After someone fills in the form, they get sent to the URL you set under the listing&rsquo;s
-            <strong>Edit &rarr; Embed tab</strong>. Set <em>Redirect after Join</em> to your success page,
-            and <em>Form URL &mdash; Join</em> to this same page (so validation errors bring them back here).
-          </p>
+      <!-- Content pane (populated by JS) -->
+      <div class="ec-qc-pane" id="ec-qc-pane">
+        <div class="ec-qc-head">
+          <span class="ec-qc-title" id="ec-qc-title">&nbsp;</span>
+          <span class="ec-badge" id="ec-qc-badge"></span>
         </div>
-      </details>
-    </div>
-  </div>
-
-  <!-- members -->
-  <div class="ec-panel" id="ec-panel-members">
-    <div class="ec-panel-head">
-      <span class="ec-filename">embed/members.php</span>
-      <span class="ec-badge ec-badge-id">Requires listing ID</span>
-      <span class="ec-panel-desc">Paginated list of approved members</span>
-    </div>
-    <div class="ec-panel-body">
-      <p class="ec-paste-tip">Paste this into the PHP page where you want the member list to appear.</p>
-      <div class="ec-code-wrap">
-        <pre class="ec-pre" id="ec-pre-members"><?= $snip['members'] ?></pre>
-        <button class="ec-copy" data-ec-copy="ec-pre-members">Copy</button>
+        <div class="ec-qc-desc" id="ec-qc-desc"></div>
+        <div class="ec-code-wrap">
+          <pre class="ec-pre" id="ec-qc-code"></pre>
+          <button class="ec-cp-btn" id="ec-qc-cp">Copy</button>
+        </div>
+        <div class="ec-qc-foot">
+          <span class="ec-qc-file" id="ec-qc-file"></span>
+          <button class="ec-cust-link" id="ec-qc-cust">Customize options &rarr;</button>
+        </div>
       </div>
-      <details class="ec-detail">
-        <summary>Optional customization</summary>
-        <div class="ec-detail-body">
-          <div class="ec-vars-list">
-            <div class="ec-var-row">
-              <span class="ec-var-name">$luster_per_page</span>
-              <span class="ec-var-desc">How many members to show per page. Example: <code>$luster_per_page = 20;</code> — defaults to the site setting if left out.</span>
-            </div>
-            <div class="ec-var-row">
-              <span class="ec-var-name">$luster_sort_by</span>
-              <span class="ec-var-desc">Lock the default sort order. Use <code>'name'</code> or <code>'country'</code>. Leave it out and visitors can choose their own sort.</span>
-            </div>
-            <div class="ec-var-row">
-              <span class="ec-var-name">$luster_show_search</span>
-              <span class="ec-var-desc">Set to <code>false</code> to hide the sort and search controls above the list entirely.</span>
-            </div>
-            <div class="ec-var-row">
-              <span class="ec-var-name">$luster_members_base</span>
-              <span class="ec-var-desc">The full URL of the page where you put this embed. This keeps pagination links pointing back to your page instead of Luster&rsquo;s internal URL. Example: <code>'https://yoursite.com/members.php'</code></span>
+
+    </div>
+  </div><!-- /#ec-panel-qc -->
+
+  <!-- ════════════════════════════════════════════════════════
+       CUSTOMIZER
+       ════════════════════════════════════════════════════════ -->
+  <div class="neb-tab-panel ec-tab-panel" id="ec-panel-cust" role="tabpanel">
+    <div class="ec-cust-layout">
+
+      <!-- Left column: type picker + options -->
+      <div class="ec-cust-left">
+        <?php foreach ($custGroups as $group): ?>
+          <div class="ec-type-sec">
+            <div class="ec-type-label"><?= \Luster\Core\View::e($group['label']) ?></div>
+            <div class="ec-type-grid">
+              <?php foreach ($group['keys'] as $key): if (!isset($items[$key])) continue; ?>
+                <button class="ec-type-btn"
+                        data-cust-type="<?= \Luster\Core\View::e($key) ?>">
+                  <?= \Luster\Core\View::e($items[$key]['label']) ?>
+                </button>
+              <?php endforeach; ?>
             </div>
           </div>
-        </div>
-      </details>
-    </div>
-  </div>
+        <?php endforeach; ?>
 
-  <!-- stats -->
-  <div class="ec-panel" id="ec-panel-stats">
-    <div class="ec-panel-head">
-      <span class="ec-filename">embed/stats.php</span>
-      <span class="ec-badge ec-badge-id">Requires listing ID</span>
-      <span class="ec-panel-desc">Member stats using your own custom template</span>
-    </div>
-    <div class="ec-panel-body">
-      <p class="ec-paste-tip">Paste this into the PHP page where you want the stats block to appear.</p>
-      <div class="ec-code-wrap">
-        <pre class="ec-pre" id="ec-pre-stats"><?= $snip['stats'] ?></pre>
-        <button class="ec-copy" data-ec-copy="ec-pre-stats">Copy</button>
-      </div>
-      <details class="ec-detail">
-        <summary>Placeholders you can use in your stats template</summary>
-        <div class="ec-detail-body">
-          <p style="font-size:.8rem;color:var(--text-muted);margin:0 0 .75rem">
-            Write a template in the listing&rsquo;s <strong>Website Templates</strong> settings.
-            Use any of these placeholders — they get replaced with live data when the page loads.
-          </p>
-          <div class="ec-token-grid">
-            <span class="ec-token">{stat_approved}</span>
-            <span class="ec-token">{stat_pending}</span>
-            <span class="ec-token">{stat_newmembers}</span>
-            <span class="ec-token">{stat_opened}</span>
-            <span class="ec-token">{stat_updated}</span>
-            <span class="ec-token">{stat_last_updated}</span>
-            <span class="ec-token">{stat_growth}</span>
-            <span class="ec-token">{listing_name}</span>
-            <span class="ec-token">{listing_url}</span>
-          </div>
+        <div class="ec-opts-card">
+          <div class="ec-opts-head" id="ec-opts-head">Options</div>
+          <div class="ec-opts-body" id="ec-opts-body"></div>
         </div>
-      </details>
-    </div>
-  </div>
-
-  <!-- update -->
-  <div class="ec-panel" id="ec-panel-update">
-    <div class="ec-panel-head">
-      <span class="ec-filename">embed/update.php</span>
-      <span class="ec-badge ec-badge-id">Requires listing ID</span>
-      <span class="ec-panel-desc">Lets members update their name, URL, and other details</span>
-    </div>
-    <div class="ec-panel-body">
-      <p class="ec-paste-tip">Paste this into the PHP page where you want the update form to appear.</p>
-      <div class="ec-code-wrap">
-        <pre class="ec-pre" id="ec-pre-update"><?= $snip['update'] ?></pre>
-        <button class="ec-copy" data-ec-copy="ec-pre-update">Copy</button>
       </div>
-      <details class="ec-detail">
-        <summary>Where do people go after they submit?</summary>
-        <div class="ec-detail-body">
-          <p class="ec-note">
-            Set <em>Redirect after Update</em> and <em>Form URL &mdash; Update</em> in the
-            listing&rsquo;s <strong>Edit &rarr; Embed tab</strong>.
-          </p>
-        </div>
-      </details>
-    </div>
-  </div>
 
-  <!-- remove -->
-  <div class="ec-panel" id="ec-panel-remove">
-    <div class="ec-panel-head">
-      <span class="ec-filename">embed/remove.php</span>
-      <span class="ec-badge ec-badge-id">Requires listing ID</span>
-      <span class="ec-panel-desc">Lets members remove themselves from the fanlisting</span>
-    </div>
-    <div class="ec-panel-body">
-      <p class="ec-paste-tip">Paste this into the PHP page where you want the leave/remove form to appear.</p>
-      <div class="ec-code-wrap">
-        <pre class="ec-pre" id="ec-pre-remove"><?= $snip['remove'] ?></pre>
-        <button class="ec-copy" data-ec-copy="ec-pre-remove">Copy</button>
-      </div>
-      <details class="ec-detail">
-        <summary>Where do people go after they submit?</summary>
-        <div class="ec-detail-body">
-          <p class="ec-note">
-            Set <em>Redirect after Remove</em> and <em>Form URL &mdash; Remove</em> in the
-            listing&rsquo;s <strong>Edit &rarr; Embed tab</strong>.
-          </p>
-        </div>
-      </details>
-    </div>
-  </div>
-
-  <!-- reset -->
-  <div class="ec-panel" id="ec-panel-reset">
-    <div class="ec-panel-head">
-      <span class="ec-filename">embed/reset.php</span>
-      <span class="ec-badge ec-badge-id">Requires listing ID</span>
-      <span class="ec-panel-desc">Password reset — email entry and new-password form</span>
-    </div>
-    <div class="ec-panel-body">
-      <p class="ec-paste-tip">Paste this into the PHP page where you want the password reset form to appear.</p>
-      <div class="ec-code-wrap">
-        <pre class="ec-pre" id="ec-pre-reset"><?= $snip['reset'] ?></pre>
-        <button class="ec-copy" data-ec-copy="ec-pre-reset">Copy</button>
-      </div>
-      <details class="ec-detail">
-        <summary>Two-step reset — splitting across two pages</summary>
-        <div class="ec-detail-body">
-          <p style="font-size:.8rem;color:var(--text-muted);margin:0 0 .75rem">
-            The reset flow has two steps: first they enter their email, then they set a new password.
-            By default, both steps show on the same page. If you want to put them on separate pages,
-            use the variable below on your step-2 page.
-          </p>
-          <div class="ec-vars-list">
-            <div class="ec-var-row">
-              <span class="ec-var-name">$luster_reset_step</span>
-              <span class="ec-var-desc">Set to <code>'confirm'</code> to show the new-password form (step 2) instead of the email entry form. Use this on a dedicated confirm page that the reset email links to.</span>
+      <!-- Right column: generated code + preview -->
+      <div class="ec-cust-right">
+        <div class="ec-live-card">
+          <div class="ec-live-head">
+            <span class="ec-live-title">Generated code</span>
+            <div class="ec-live-actions">
+              <button class="ec-live-rst" id="ec-live-rst" title="Restore to generated code">Reset</button>
+              <button class="ec-live-cp"  id="ec-live-cp">Copy</button>
             </div>
           </div>
+          <textarea class="ec-live-ta" id="ec-live-ta"
+                    spellcheck="false" autocomplete="off" autocorrect="off"
+                    autocapitalize="off"></textarea>
         </div>
-      </details>
-      <details class="ec-detail">
-        <summary>Where do people go after they submit?</summary>
-        <div class="ec-detail-body">
-          <p class="ec-note">
-            Set <em>Redirect after Password Reset</em> and <em>Form URL &mdash; Reset</em> in the
-            listing&rsquo;s <strong>Edit &rarr; Embed tab</strong>.
-          </p>
+        <div class="ec-live-foot">
+          <div class="ec-live-note" id="ec-live-note"></div>
+          <button class="ec-preview-btn" id="ec-preview-btn">Preview with example data &rarr;</button>
         </div>
-      </details>
-    </div>
-  </div>
-
-  <!-- affiliates (per-listing) -->
-  <div class="ec-panel" id="ec-panel-affiliates">
-    <div class="ec-panel-head">
-      <span class="ec-filename">embed/affiliates.php</span>
-      <span class="ec-badge ec-badge-id">Requires listing ID</span>
-      <span class="ec-panel-desc">Affiliates for this fanlisting</span>
-    </div>
-    <div class="ec-panel-body">
-      <p class="ec-paste-tip">Paste this into the PHP page where you want your affiliates to appear.</p>
-      <div class="ec-code-wrap">
-        <pre class="ec-pre" id="ec-pre-affiliates"><?= $snip['affiliates'] ?></pre>
-        <button class="ec-copy" data-ec-copy="ec-pre-affiliates">Copy</button>
-      </div>
-      <details class="ec-detail">
-        <summary>Optional customization</summary>
-        <div class="ec-detail-body">
-          <div class="ec-vars-list">
-            <div class="ec-var-row">
-              <span class="ec-var-name">$luster_affiliates_base</span>
-              <span class="ec-var-desc">The full URL of the page where you put this embed. Keeps pagination links pointing back to your page. Example: <code>'https://yoursite.com/affiliates.php'</code></span>
-            </div>
+        <div class="ec-preview-card" id="ec-preview-card" hidden>
+          <div class="ec-preview-head">
+            <span>Preview &mdash; example data</span>
+            <button class="ec-preview-close" id="ec-preview-close" aria-label="Close preview">&times;</button>
           </div>
+          <div class="ec-preview-body" id="ec-preview-body"></div>
         </div>
-      </details>
-    </div>
-  </div>
-
-  <!-- owned -->
-  <div class="ec-panel" id="ec-panel-owned">
-    <div class="ec-panel-head">
-      <span class="ec-filename">embed/owned.php</span>
-      <span class="ec-badge ec-badge-free">No listing ID needed</span>
-      <span class="ec-panel-desc">All your owned fanlistings with optional category filter</span>
-    </div>
-    <div class="ec-panel-body">
-      <p class="ec-paste-tip">Paste this into the PHP page where you want your owned listings to appear.</p>
-      <div class="ec-code-wrap">
-        <pre class="ec-pre" id="ec-pre-owned"><?= $snip['owned'] ?></pre>
-        <button class="ec-copy" data-ec-copy="ec-pre-owned">Copy</button>
       </div>
-      <details class="ec-detail">
-        <summary>Optional customization</summary>
-        <div class="ec-detail-body">
-          <div class="ec-vars-list">
-            <div class="ec-var-row">
-              <span class="ec-var-name">$luster_status</span>
-              <span class="ec-var-desc">Which listings to show. Use <code>'current'</code>, <code>'upcoming'</code>, <code>'trouble'</code>, or <code>'all'</code>. Defaults to current listings only.</span>
-            </div>
-            <div class="ec-var-row">
-              <span class="ec-var-name">$luster_hide_dropdown</span>
-              <span class="ec-var-desc">Set to <code>true</code> to hide the category filter dropdown entirely.</span>
-            </div>
-          </div>
-        </div>
-      </details>
-    </div>
-  </div>
 
-  <!-- joined -->
-  <div class="ec-panel" id="ec-panel-joined">
-    <div class="ec-panel-head">
-      <span class="ec-filename">embed/joined.php</span>
-      <span class="ec-badge ec-badge-free">No listing ID needed</span>
-      <span class="ec-panel-desc">Fanlistings you&rsquo;ve joined, grouped by category</span>
     </div>
-    <div class="ec-panel-body">
-      <p class="ec-paste-tip">Paste this into the PHP page where you want your joined listings to appear.</p>
-      <div class="ec-code-wrap">
-        <pre class="ec-pre" id="ec-pre-joined"><?= $snip['joined'] ?></pre>
-        <button class="ec-copy" data-ec-copy="ec-pre-joined">Copy</button>
+  </div><!-- /#ec-panel-cust -->
+
+  <!-- ════════════════════════════════════════════════════════
+       VARIABLE REFERENCE
+       ════════════════════════════════════════════════════════ -->
+  <div class="neb-tab-panel ec-tab-panel" id="ec-panel-ref" role="tabpanel">
+
+    <p class="ec-ref-intro">
+      Variables are PHP variables you set <em>before</em> the <code>require</code> line.
+      Tokens like <code>{stat_approved}</code> go inside your stats or members template string
+      &mdash; Luster replaces them with live data when the page loads.
+    </p>
+
+    <details class="ec-acc" open>
+      <summary>General &mdash; used by most embeds</summary>
+      <div class="ec-acc-body">
+        <table class="ec-vt">
+          <thead>
+            <tr><th>Variable</th><th>Description</th><th></th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>$luster_fanlisting_id</code></td>
+              <td>Integer ID of the listing to embed. Find it in the URL when editing a listing (e.g. <samp>/admin/listings/3/edit</samp> &rarr; ID is <samp>3</samp>). Use <samp>0</samp> for collective-level affiliates.</td>
+              <td><span class="ec-pill ec-pill--req">Most embeds</span></td>
+            </tr>
+            <tr>
+              <td><code>$luster_return</code></td>
+              <td>When <code>true</code>, the embed returns its HTML string instead of echoing it. Useful when you need to place the output in a variable.</td>
+              <td><span class="ec-pill ec-pill--opt">Optional</span></td>
+            </tr>
+          </tbody>
+        </table>
       </div>
-      <details class="ec-detail">
-        <summary>Optional customization</summary>
-        <div class="ec-detail-body">
-          <div class="ec-vars-list">
-            <div class="ec-var-row">
-              <span class="ec-var-name">$luster_category</span>
-              <span class="ec-var-desc">Controls what gets shown. Leave empty (<code>''</code>) to show a category dropdown. Set to <code>'all'</code> to show everything grouped by category. Or use an exact category name to show only that one category.</span>
-            </div>
-          </div>
-        </div>
-      </details>
-    </div>
-  </div>
+    </details>
 
-  <!-- collective-stats -->
-  <div class="ec-panel" id="ec-panel-cstats">
-    <div class="ec-panel-head">
-      <span class="ec-filename">embed/collective-stats.php</span>
-      <span class="ec-badge ec-badge-free">No listing ID needed</span>
-      <span class="ec-panel-desc">Loads site-wide stats into variables you can use anywhere on your page</span>
-    </div>
-    <div class="ec-panel-body">
-      <p class="ec-paste-tip">Paste this near the top of any PHP page to load site-wide stats into variables you can use anywhere on that page.</p>
-      <div class="ec-code-wrap">
-        <pre class="ec-pre" id="ec-pre-cstats"><?= $snip['cstats'] ?></pre>
-        <button class="ec-copy" data-ec-copy="ec-pre-cstats">Copy</button>
+    <details class="ec-acc">
+      <summary>Members list options</summary>
+      <div class="ec-acc-body">
+        <table class="ec-vt">
+          <thead>
+            <tr><th>Variable</th><th>Description</th><th></th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>$luster_per_page</code></td>
+              <td>Members per page. Overrides the site-wide default from Settings.</td>
+              <td><span class="ec-pill ec-pill--opt">Optional</span></td>
+            </tr>
+            <tr>
+              <td><code>$luster_sort_by</code></td>
+              <td>Force a default sort: <code>'name'</code> or <code>'country'</code>. When set, the visitor&rsquo;s sort link clicks are overridden.</td>
+              <td><span class="ec-pill ec-pill--opt">Optional</span></td>
+            </tr>
+            <tr>
+              <td><code>$luster_show_search</code></td>
+              <td>Set to <code>false</code> to hide the sort and filter controls.</td>
+              <td><span class="ec-pill ec-pill--opt">Optional</span></td>
+            </tr>
+            <tr>
+              <td><code>$luster_members_base</code></td>
+              <td>The URL of the page where you&rsquo;re embedding the list. Keeps pagination and sort links pointing back to your page instead of the Luster install URL.</td>
+              <td><span class="ec-pill ec-pill--opt">Optional</span></td>
+            </tr>
+          </tbody>
+        </table>
       </div>
-      <details class="ec-detail">
-        <summary>All available variables</summary>
-        <div class="ec-detail-body">
-          <div class="ec-vars-list">
-            <div class="ec-var-row">
-              <span class="ec-var-name">$luster_owned_active</span>
-              <span class="ec-var-desc">How many of your fanlistings are currently active.</span>
-            </div>
-            <div class="ec-var-row">
-              <span class="ec-var-name">$luster_owned_upcoming</span>
-              <span class="ec-var-desc">How many of your fanlistings are upcoming (not open yet).</span>
-            </div>
-            <div class="ec-var-row">
-              <span class="ec-var-name">$luster_owned_newest</span>
-              <span class="ec-var-desc">An array of your most recently added listings. Use <code>$luster_owned_newest[0]->name</code>, <code>->url</code>, or <code>->subject</code> to get details about the newest one.</span>
-            </div>
-            <div class="ec-var-row">
-              <span class="ec-var-name">$luster_owned_random</span>
-              <span class="ec-var-desc">One randomly picked active listing. Use <code>->name</code> or <code>->url</code> to display it — great for a &ldquo;random listing&rdquo; link.</span>
-            </div>
-            <div class="ec-var-row">
-              <span class="ec-var-name">$luster_members_total</span>
-              <span class="ec-var-desc">Total number of approved members across all your fanlistings combined.</span>
-            </div>
-            <div class="ec-var-row">
-              <span class="ec-var-name">$luster_joined_active</span>
-              <span class="ec-var-desc">How many fanlistings you&rsquo;ve joined that are marked active.</span>
-            </div>
-            <div class="ec-var-row">
-              <span class="ec-var-name">$luster_joined_newest</span>
-              <span class="ec-var-desc">An array of the fanlistings you joined most recently. Use <code>$luster_joined_newest[0]->name</code> or <code>->url</code>.</span>
-            </div>
-            <div class="ec-var-row">
-              <span class="ec-var-name">$luster_affiliates</span>
-              <span class="ec-var-desc">The total number of active collective-level affiliates.</span>
-            </div>
-          </div>
-        </div>
-      </details>
-    </div>
-  </div>
+    </details>
 
-  <!-- affiliates-collective (separate panel, same file) -->
-  <div class="ec-panel" id="ec-panel-affiliates-collective">
-    <div class="ec-panel-head">
-      <span class="ec-filename">embed/affiliates.php</span>
-      <span class="ec-badge ec-badge-free">Use ID 0 for site-wide</span>
-      <span class="ec-panel-desc">Affiliates for your whole collective</span>
-    </div>
-    <div class="ec-panel-body">
-      <p class="ec-paste-tip">Paste this into the PHP page where you want your collective affiliates to appear.</p>
-      <div class="ec-code-wrap">
-        <pre class="ec-pre" id="ec-pre-affiliates-collective"><?= htmlspecialchars(
-          '<?php' . "\n" .
-          $div . "\n" .
-          '$luster_fanlisting_id = 0;' . "\n" .
-          $div . "\n" .
-          'require(\'' . $ep . '/affiliates.php\');' . "\n" .
-          $div . "\n" .
-          '?>',
-          ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'
-        ) ?></pre>
-        <button class="ec-copy" data-ec-copy="ec-pre-affiliates-collective">Copy</button>
+    <details class="ec-acc">
+      <summary>Password reset options</summary>
+      <div class="ec-acc-body">
+        <table class="ec-vt">
+          <thead>
+            <tr><th>Variable</th><th>Description</th><th></th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>$luster_reset_step</code></td>
+              <td>By default both steps (email entry and new-password form) appear on the same page. Set to <code>'confirm'</code> to show only step 2 (new-password form) &mdash; useful if you host both steps on separate pages.</td>
+              <td><span class="ec-pill ec-pill--opt">Optional</span></td>
+            </tr>
+          </tbody>
+        </table>
       </div>
-      <details class="ec-detail">
-        <summary>Optional customization</summary>
-        <div class="ec-detail-body">
-          <div class="ec-vars-list">
-            <div class="ec-var-row">
-              <span class="ec-var-name">$luster_affiliates_base</span>
-              <span class="ec-var-desc">The full URL of the page where you put this embed. Keeps pagination links pointing back to your page. Example: <code>'https://yoursite.com/affiliates.php'</code></span>
-            </div>
-          </div>
-        </div>
-      </details>
-    </div>
-  </div>
+    </details>
 
-  <!-- kim -->
-  <div class="ec-panel" id="ec-panel-kim">
-    <div class="ec-panel-head">
-      <span class="ec-filename">embed/kim-signup.php</span>
-      <span class="ec-badge ec-badge-free">No listing ID needed</span>
-      <span class="ec-panel-desc">KIM List sign-up form &mdash; lets visitors join your KIM mailing list</span>
-    </div>
-    <div class="ec-panel-body">
-      <p class="ec-paste-tip">Paste this into the PHP page where you want the KIM sign-up form to appear.</p>
-      <div class="ec-code-wrap">
-        <pre class="ec-pre" id="ec-pre-kim"><?= $snip['kim'] ?></pre>
-        <button class="ec-copy" data-ec-copy="ec-pre-kim">Copy</button>
+    <details class="ec-acc">
+      <summary>Owned listings options</summary>
+      <div class="ec-acc-body">
+        <table class="ec-vt">
+          <thead>
+            <tr><th>Variable</th><th>Description</th><th></th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>$luster_status</code></td>
+              <td>Filter by status: <code>'current'</code>, <code>'upcoming'</code>, <code>'trouble'</code>, or <code>'all'</code>. Defaults to current only.</td>
+              <td><span class="ec-pill ec-pill--opt">Optional</span></td>
+            </tr>
+            <tr>
+              <td><code>$luster_hide_dropdown</code></td>
+              <td>Set to <code>true</code> to hide the category filter dropdown. Useful when you want to show listings for one category per page.</td>
+              <td><span class="ec-pill ec-pill--opt">Optional</span></td>
+            </tr>
+          </tbody>
+        </table>
       </div>
-      <details class="ec-detail">
-        <summary>Before you use this</summary>
-        <div class="ec-detail-body">
-          <p class="ec-note">
-            The KIM List add-on must be installed and active for this embed to work. If it&rsquo;s not
-            installed, the embed will show a short error message instead of the form. You can install
-            KIM from the <strong>Add-ons</strong> page in your admin panel.
-          </p>
-        </div>
-      </details>
-    </div>
-  </div>
+    </details>
 
-</div><!-- /.ec-panel-wrap -->
+    <details class="ec-acc">
+      <summary>Joined listings options</summary>
+      <div class="ec-acc-body">
+        <table class="ec-vt">
+          <thead>
+            <tr><th>Variable</th><th>Description</th><th></th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>$luster_category</code></td>
+              <td>Leave blank for a dropdown. Set to <code>'all'</code> to show all categories grouped. Or enter an exact category name to show only that category.</td>
+              <td><span class="ec-pill ec-pill--opt">Optional</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </details>
+
+    <details class="ec-acc">
+      <summary>Per-listing stat tokens &mdash; <code>{stat_*}</code></summary>
+      <div class="ec-acc-body">
+        <p class="ec-acc-desc">
+          Use these tokens inside the stats template in <strong>Edit Listing &rarr; Templates</strong>.
+          The template is processed by <code>embed/stats.php</code>.
+        </p>
+        <table class="ec-vt">
+          <thead>
+            <tr><th>Token</th><th>Output</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><code class="ec-tk">{stat_approved}</code></td><td>Approved member count. <span class="ec-ex">e.g. <em>33</em></span></td></tr>
+            <tr><td><code class="ec-tk">{stat_pending}</code></td><td>Members awaiting approval. <span class="ec-ex">e.g. <em>2</em></span></td></tr>
+            <tr><td><code class="ec-tk">{stat_opened}</code></td><td>Date the listing opened. <span class="ec-ex">e.g. <em>January 29th 2026</em></span></td></tr>
+            <tr><td><code class="ec-tk">{stat_updated}</code></td><td>Date of the most recently approved member.</td></tr>
+            <tr><td><code class="ec-tk">{stat_last_updated}</code></td><td>Admin-controlled &ldquo;last updated&rdquo; date from listing settings.</td></tr>
+            <tr><td><code class="ec-tk">{stat_newmembers}</code></td><td>Comma-separated list of the 5 most recently approved member names.</td></tr>
+            <tr><td><code class="ec-tk">{stat_growth}</code></td><td>Members per day since the listing opened (2 decimal places).</td></tr>
+            <tr><td><code class="ec-tk">{listing_name}</code></td><td>The listing name. <span class="ec-ex">e.g. <em>Huntrix</em></span></td></tr>
+            <tr><td><code class="ec-tk">{listing_url}</code></td><td>The listing URL.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </details>
+
+    <details class="ec-acc">
+      <summary>Collective stat variables &mdash; <code>$luster_*</code></summary>
+      <div class="ec-acc-body">
+        <p class="ec-acc-desc">
+          After <code>require()</code>-ing <code>collective-stats.php</code>, these PHP variables are exposed
+          for you to use directly anywhere on your page.
+        </p>
+        <table class="ec-vt">
+          <thead>
+            <tr><th>Variable</th><th>Output</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><code>$luster_owned</code></td><td>Total owned listings (all statuses).</td></tr>
+            <tr><td><code>$luster_owned_active</code></td><td>Open / active owned listings.</td></tr>
+            <tr><td><code>$luster_owned_upcoming</code></td><td>Upcoming owned listings.</td></tr>
+            <tr><td><code>$luster_owned_trouble</code></td><td>Trouble / inactive owned listings.</td></tr>
+            <tr><td><code>$luster_joined</code></td><td>Total joined listings.</td></tr>
+            <tr><td><code>$luster_joined_active</code></td><td>Active joined listings.</td></tr>
+            <tr><td><code>$luster_members_approved</code></td><td>Approved members across all listings.</td></tr>
+            <tr><td><code>$luster_members_total</code></td><td>Total members (approved + pending) across all listings.</td></tr>
+            <tr><td><code>$luster_affiliates</code></td><td>Active collective affiliates.</td></tr>
+            <tr><td><code>$luster_owned_newest</code></td><td>Array of newest active owned listings (Listing objects).</td></tr>
+            <tr><td><code>$luster_joined_newest</code></td><td>Array of newest active joined listings (JoinedListing objects).</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </details>
+
+    <details class="ec-acc">
+      <summary>Members row template tokens &mdash; <code>{fan_*}</code></summary>
+      <div class="ec-acc-body">
+        <p class="ec-acc-desc">
+          Use these tokens in the member row template in <strong>Edit Listing &rarr; Templates</strong>.
+          Each token is replaced per row when rendering the members list.
+        </p>
+        <table class="ec-vt">
+          <thead>
+            <tr><th>Token</th><th>Output</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><code class="ec-tk">{fan_name}</code></td><td>Member&rsquo;s display name. <span class="ec-ex">e.g. <em>Alexia</em></span></td></tr>
+            <tr><td><code class="ec-tk">{fan_url}</code></td><td>Member&rsquo;s website URL.</td></tr>
+            <tr><td><code class="ec-tk">{fan_email}</code></td><td>Member&rsquo;s email address &mdash; visible on the page, use with care.</td></tr>
+            <tr><td><code class="ec-tk">{fan_country}</code></td><td>Country name. <span class="ec-ex">e.g. <em>Philippines</em></span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </details>
+
+  </div><!-- /#ec-panel-ref -->
+
+</div><!-- /.ec-root -->

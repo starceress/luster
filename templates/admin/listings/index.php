@@ -60,6 +60,32 @@ usort($allNetworks, static fn($a, $b) => strcasecmp($a, $b));
 $filtersActive = ($search ?? '') !== '' || ($filter_network ?? '') !== ''
               || ($filter_cat ?? '') !== '' || ($filter_type ?? '') !== '';
 
+// ── Dynamic card-head title ────────────────────────────────────────
+// Combinations:
+//   network [: category] [ — type] [ — "search"]
+//   type only, search only, or any subset thereof
+//   nothing → "All Listings"
+$_fn  = $filter_network ?? '';
+$_fc  = $filter_cat     ?? '';
+$_ft  = $filter_type    ?? '';
+$_fs  = $search         ?? '';
+
+$_titleParts = [];
+if ($_fn !== '') {
+    $_scope = \Luster\Core\View::e($_fn);
+    if ($_fc !== '') {
+        $_scope .= ': ' . \Luster\Core\View::e($_fc);
+    }
+    $_titleParts[] = $_scope;
+}
+if ($_ft !== '') {
+    $_titleParts[] = \Luster\Core\View::e(ucfirst($_ft));
+}
+if ($_fs !== '') {
+    $_titleParts[] = '&#8220;' . \Luster\Core\View::e($_fs) . '&#8221;';
+}
+$tableTitle = !empty($_titleParts) ? implode(' &mdash; ', $_titleParts) : 'All Listings';
+
 $flSort = $sort ?? '';
 $flDir  = $dir  ?? 'asc';
 
@@ -90,7 +116,7 @@ $flSortIcon = static function (string $col) use ($flSort, $flDir): string {
 <!-- Toolbar -->
 <div class="neb-toolbar">
   <div class="neb-actions">
-    <button type="button" class="btn btn-secondary btn-sm fl-filter-toggle" id="fl-filter-toggle"
+    <button type="button" class="btn btn-tertiary btn-sm fl-filter-toggle" id="fl-filter-toggle"
             aria-expanded="<?= $filtersActive ? 'true' : 'false' ?>"
             aria-controls="fl-filter-panel">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><line x1="4" y1="6" x2="20" y2="6"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="11" y1="18" x2="13" y2="18"/></svg>
@@ -99,7 +125,8 @@ $flSortIcon = static function (string $col) use ($flSort, $flDir): string {
   </div>
   <div class="neb-actions">
     <a href="<?= $b ?>/admin/listings/add" class="btn btn-primary btn-sm">+ Add Listing</a>
-    <a href="<?= $b ?>/admin/listings/settings" class="btn btn-secondary btn-sm">Display Settings</a>
+    <a href="<?= $b ?>/admin/listings/collective-templates" class="btn btn-secondary btn-sm">Collective Templates</a>
+    <a href="<?= $b ?>/admin/listings/settings" class="btn btn-tertiary btn-sm">Display Settings</a>
   </div>
 </div>
 
@@ -148,8 +175,8 @@ $flSortIcon = static function (string $col) use ($flSort, $flDir): string {
 
     <input type="text" name="search" class="neb-input"
            placeholder="Search&hellip;" value="<?= \Luster\Core\View::e($search ?? '') ?>">
-    <button type="submit" class="btn btn-secondary btn-sm">Search</button>
-    <a href="?" class="btn btn-secondary btn-sm">Reset</a>
+    <button type="submit" class="btn btn-tertiary btn-sm">Search</button>
+    <a href="?" class="btn btn-tertiary btn-sm">Reset</a>
 
   </form>
 </div>
@@ -169,7 +196,8 @@ $flSortIcon = static function (string $col) use ($flSort, $flDir): string {
   </div>
 <?php else: ?>
 
-<form method="POST" action="<?= $b ?>/admin/listings/bulk" id="bulk-form">
+<form method="POST" action="<?= $b ?>/admin/listings/bulk" id="bulk-form"
+      data-del-bulk data-del-entity="listing">
   <input type="hidden" name="_csrf" value="<?= \Luster\Core\View::e($csrf_token ?? '') ?>">
 
   <!-- Bulk action bar -->
@@ -181,13 +209,19 @@ $flSortIcon = static function (string $col) use ($flSort, $flDir): string {
       <option value="delete">Delete</option>
     </select>
     </div>
-    <button type="submit" class="btn btn-secondary btn-sm">Apply</button>
+    <button type="submit" class="btn btn-tertiary btn-sm">Apply</button>
   </div>
 
   <?php $flFrom = ($page - 1) * $per_page + 1; $flTo = ($page - 1) * $per_page + count($listings); ?>
-  <p class="result-count">Showing <?= $flFrom ?>&#8211;<?= $flTo ?> of <?= number_format((int) $total) ?> listings<?php if ($total_pages > 1): ?> &mdash; page <?= (int) $page ?> of <?= (int) $total_pages ?><?php endif; ?></p>
 
   <div class="neb-card">
+    <div class="card-head">
+      <span class="card-head-title"><?= $tableTitle ?></span>
+      <span style="font-size:.8rem;color:var(--text-muted);white-space:nowrap">
+        Showing <?= $flFrom ?>&#8211;<?= $flTo ?> of <?= number_format((int) $total) ?> listing<?= (int) $total !== 1 ? 's' : '' ?><?php if ($total_pages > 1): ?> &mdash; page <?= (int) $page ?> of <?= (int) $total_pages ?><?php endif; ?>
+      </span>
+    </div>
+    <div class="neb-table-wrap">
     <table class="data-table mem-table">
       <thead>
         <tr>
@@ -207,7 +241,8 @@ $flSortIcon = static function (string $col) use ($flSort, $flDir): string {
 
           <!-- Checkbox -->
           <td class="cb-col" data-label="">
-            <input type="checkbox" name="selected[]" value="<?= (int) $fl->id ?>" class="fl-row-cb">
+            <input type="checkbox" name="selected[]" value="<?= (int) $fl->id ?>" class="fl-row-cb"
+                   data-name="<?= \Luster\Core\View::e($fl->name) ?>">
           </td>
 
           <!-- Listing # -->
@@ -263,12 +298,8 @@ $flSortIcon = static function (string $col) use ($flSort, $flDir): string {
               <a href="<?= $b ?>/admin/listings/<?= (int) $fl->id ?>/edit"
                  class="btn btn-primary btn-sm">Edit</a>
               <a href="<?= $b ?>/admin/members/<?= (int) $fl->id ?>"
-                 class="btn btn-secondary btn-sm">Members</a>
-              <form method="POST" action="<?= $b ?>/admin/listings/<?= (int) $fl->id ?>/delete" style="display:contents"
-                    data-confirm="Delete this listing and all its members? This cannot be undone.">
-                <input type="hidden" name="_csrf" value="<?= \Luster\Core\View::e($csrf_token ?? '') ?>">
-                <button type="submit" class="btn btn-danger btn-sm">Delete</button>
-              </form>
+                 class="btn btn-tertiary btn-sm">Members</a>
+              <button type="submit" form="del-fl-<?= (int) $fl->id ?>" class="btn btn-danger btn-sm">Delete</button>
             </div>
           </td>
 
@@ -276,10 +307,21 @@ $flSortIcon = static function (string $col) use ($flSort, $flDir): string {
         <?php endforeach; ?>
       </tbody>
     </table>
+    </div>
 
   </div><!-- /.neb-card -->
 
 </form>
+
+<?php foreach ($listings as $fl): ?>
+<form id="del-fl-<?= (int) $fl->id ?>" method="POST"
+      action="<?= $b ?>/admin/listings/<?= (int) $fl->id ?>/delete"
+      style="display:none"
+      data-del-modal data-del-entity="listing"
+      data-del-name="<?= \Luster\Core\View::e($fl->name) ?>">
+  <input type="hidden" name="_csrf" value="<?= \Luster\Core\View::e($csrf_token ?? '') ?>">
+</form>
+<?php endforeach; ?>
 
 <?php if (($total_pages ?? 1) > 1): ?>
 <nav class="neb-pagination" aria-label="Pagination">

@@ -337,33 +337,36 @@ final class ListingSettingsRepo
      *                   internal /join/{id} etc.)
      *
      * @return array{
-     *   form_url_join:   string,
-     *   form_url_update: string,
-     *   form_url_remove: string,
-     *   form_url_reset:  string,
-     *   db_host:         string,
-     *   db_name:         string,
-     *   db_user:         string,
-     *   db_pass:         string,
+     *   form_url_join:          string,
+     *   form_url_update:        string,
+     *   form_url_remove:        string,
+     *   form_url_reset:         string,
+     *   form_url_codes_submit:  string,
+     *   db_host:                string,
+     *   db_name:                string,
+     *   db_user:                string,
+     *   db_pass:                string,
      * }
      */
     public function getEmbedSettings(int $listingId): array
     {
         $defaults = [
-            'form_url_join'   => '',
-            'form_url_update' => '',
-            'form_url_remove' => '',
-            'form_url_reset'  => '',
-            'db_host'         => '',
-            'db_name'         => '',
-            'db_user'         => '',
-            'db_pass'         => '',
+            'form_url_join'         => '',
+            'form_url_update'       => '',
+            'form_url_remove'       => '',
+            'form_url_reset'        => '',
+            'form_url_codes_submit' => '',
+            'db_host'               => '',
+            'db_name'               => '',
+            'db_user'               => '',
+            'db_pass'               => '',
         ];
 
         try {
             $stmt = $this->db->prepare(
                 'SELECT form_url_join, form_url_update,
                         form_url_remove, form_url_reset,
+                        form_url_codes_submit,
                         db_host, db_name, db_user, db_pass
                  FROM lstr_fanlisting_settings
                  WHERE fanlisting_id = :id'
@@ -379,14 +382,15 @@ final class ListingSettingsRepo
         }
 
         return [
-            'form_url_join'   => (string) ($row['form_url_join']   ?? ''),
-            'form_url_update' => (string) ($row['form_url_update'] ?? ''),
-            'form_url_remove' => (string) ($row['form_url_remove'] ?? ''),
-            'form_url_reset'  => (string) ($row['form_url_reset']  ?? ''),
-            'db_host'         => (string) ($row['db_host']         ?? ''),
-            'db_name'         => (string) ($row['db_name']         ?? ''),
-            'db_user'         => (string) ($row['db_user']         ?? ''),
-            'db_pass'         => (string) ($row['db_pass']         ?? ''),
+            'form_url_join'         => (string) ($row['form_url_join']         ?? ''),
+            'form_url_update'       => (string) ($row['form_url_update']       ?? ''),
+            'form_url_remove'       => (string) ($row['form_url_remove']       ?? ''),
+            'form_url_reset'        => (string) ($row['form_url_reset']        ?? ''),
+            'form_url_codes_submit' => (string) ($row['form_url_codes_submit'] ?? ''),
+            'db_host'               => (string) ($row['db_host']               ?? ''),
+            'db_name'               => (string) ($row['db_name']               ?? ''),
+            'db_user'               => (string) ($row['db_user']               ?? ''),
+            'db_pass'               => (string) ($row['db_pass']               ?? ''),
         ];
     }
 
@@ -405,6 +409,7 @@ final class ListingSettingsRepo
         string $formUrlUpdate,
         string $formUrlRemove,
         string $formUrlReset,
+        string $formUrlCodesSubmit,
         string $dbHost,
         string $dbName,
         string $dbUser,
@@ -415,31 +420,35 @@ final class ListingSettingsRepo
                  (fanlisting_id,
                   form_url_join, form_url_update,
                   form_url_remove, form_url_reset,
+                  form_url_codes_submit,
                   db_host, db_name, db_user, db_pass)
              VALUES
                  (:id,
                   :form_join, :form_update, :form_remove, :form_reset,
+                  :form_codes_submit,
                   :host, :dbname, :user, :pass)
              ON DUPLICATE KEY UPDATE
-                 form_url_join   = VALUES(form_url_join),
-                 form_url_update = VALUES(form_url_update),
-                 form_url_remove = VALUES(form_url_remove),
-                 form_url_reset  = VALUES(form_url_reset),
-                 db_host         = VALUES(db_host),
-                 db_name         = VALUES(db_name),
-                 db_user         = VALUES(db_user),
-                 db_pass         = VALUES(db_pass)'
+                 form_url_join         = VALUES(form_url_join),
+                 form_url_update       = VALUES(form_url_update),
+                 form_url_remove       = VALUES(form_url_remove),
+                 form_url_reset        = VALUES(form_url_reset),
+                 form_url_codes_submit = VALUES(form_url_codes_submit),
+                 db_host               = VALUES(db_host),
+                 db_name               = VALUES(db_name),
+                 db_user               = VALUES(db_user),
+                 db_pass               = VALUES(db_pass)'
         );
         $stmt->execute([
-            'id'          => $listingId,
-            'form_join'   => $formUrlJoin,
-            'form_update' => $formUrlUpdate,
-            'form_remove' => $formUrlRemove,
-            'form_reset'  => $formUrlReset,
-            'host'        => $dbHost,
-            'dbname'      => $dbName,
-            'user'        => $dbUser,
-            'pass'        => $dbPass,
+            'id'                => $listingId,
+            'form_join'         => $formUrlJoin,
+            'form_update'       => $formUrlUpdate,
+            'form_remove'       => $formUrlRemove,
+            'form_reset'        => $formUrlReset,
+            'form_codes_submit' => $formUrlCodesSubmit,
+            'host'              => $dbHost,
+            'dbname'            => $dbName,
+            'user'              => $dbUser,
+            'pass'              => $dbPass,
         ]);
     }
 }

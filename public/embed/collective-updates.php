@@ -50,11 +50,20 @@ $_lusterPage     = max(1, (int) ($_GET['page'] ?? 1));
 // 3. Load updates
 // ---------------------------------------------------------------------------
 
-$_lusterDb         = $_lusterApp->getDatabase();
-$_lusterUpdateRepo = new UpdateRepo($_lusterDb);
-$_lusterUpdates    = $_lusterUpdateRepo->getCollective($_lusterPage, $_lusterPerPage);
-$_lusterTotal      = $_lusterUpdateRepo->countCollective();
-$_lusterPages      = max(1, (int) ceil($_lusterTotal / $_lusterPerPage));
+$_lusterDb = $_lusterApp->getDatabase();
+
+try {
+    $_lusterUpdateRepo = new UpdateRepo($_lusterDb);
+    $_lusterUpdates    = $_lusterUpdateRepo->getCollective($_lusterPage, $_lusterPerPage);
+    $_lusterTotal      = $_lusterUpdateRepo->countCollective();
+    $_lusterPages      = max(1, (int) ceil($_lusterTotal / $_lusterPerPage));
+} catch (\Throwable $_lusterEx) {
+    // Updates add-on not installed or table missing — return empty output silently.
+    if ($luster_return ?? false) {
+        return '';
+    }
+    return;
+}
 
 // ---------------------------------------------------------------------------
 // 4. Build feed URL for pagination links

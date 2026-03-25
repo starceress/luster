@@ -13,94 +13,207 @@ $listingId  = (int) ($listing->id ?? 0);
   <div class="alert alert-success"><?= \Luster\Core\View::e($success ?? '') ?></div>
 <?php endif; ?>
 
-<div class="email-card">
-  <div class="email-header">Email Member &mdash; <?= $flName ?></div>
-  <form method="POST" id="email-form">
-    <input type="hidden" name="_csrf"        value="<?= \Luster\Core\View::e($csrf_token ?? '') ?>">
-    <input type="hidden" name="member_email" value="<?= \Luster\Core\View::e($member_email ?? '') ?>">
+<div class="composer-grid">
 
-    <div class="email-row">
-      <div class="email-label">From</div>
-      <div class="email-value">&ldquo;<?= \Luster\Core\View::e($from_name ?? '') ?>&rdquo; &lt;<?= \Luster\Core\View::e($from_email ?? '') ?>&gt;</div>
-    </div>
-
-    <div class="email-row">
-      <div class="email-label">To</div>
-      <div class="email-value"><?= \Luster\Core\View::e($member_name ?? '') ?> &lt;<?= \Luster\Core\View::e($member_email ?? '') ?>&gt;</div>
-    </div>
-
-    <div class="email-row">
-      <div class="email-label">Subject</div>
-      <div class="email-value">
-        <span style="font-weight:500;margin-right:.4rem;color:var(--text-muted)"><?= $flName ?>:</span>
-        <input type="text" name="subject_suffix" id="subject"
-               value="<?= $oldSubject ?>"
-               style="width:calc(100% - 160px)">
-      </div>
-    </div>
-
-    <div class="email-row">
-      <div class="email-label">Message</div>
-      <div class="email-value">
-        <textarea name="body" id="body"><?= $oldBody ?></textarea>
-      </div>
-    </div>
+  <!-- ── Sidebar ── -->
+  <div class="composer-side">
 
     <?php if (!empty($saved_emails)): ?>
-    <div class="email-row">
-      <div class="email-label">Load template</div>
-      <div class="email-value">
+    <div class="neb-card side-card">
+      <div class="side-card-head">
+        <svg class="side-card-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+          <rect x="2" y="3" width="12" height="10" rx="1.5"/><path d="M2 6.5h12"/>
+        </svg>
+        <span class="side-card-title">Load Template</span>
+      </div>
+      <div class="side-card-body">
         <div class="select-wrap">
-        <select id="em-template-select">
-          <option value="">— Select a saved template —</option>
-          <?php foreach ($saved_emails as $t): ?>
-            <option value="<?= \Luster\Core\View::e($t->subject) ?>"
-                    data-body="<?= htmlspecialchars($t->body, ENT_QUOTES, 'UTF-8') ?>">
-              <?= \Luster\Core\View::e($t->name) ?>
-            </option>
-          <?php endforeach; ?>
-        </select>
+          <select id="em-template-select" class="neb-select">
+            <option value="">— Select a template —</option>
+            <?php foreach ($saved_emails as $t): ?>
+              <option value="<?= \Luster\Core\View::e($t->subject) ?>"
+                      data-body="<?= htmlspecialchars($t->body, ENT_QUOTES, 'UTF-8') ?>">
+                <?= \Luster\Core\View::e($t->name) ?>
+              </option>
+            <?php endforeach; ?>
+          </select>
         </div>
-        <p class="form-hint" style="margin-top:.35rem">Selecting a template will overwrite the subject and message fields.</p>
+        <p class="form-hint">Loading a template will replace your current subject and message.</p>
       </div>
     </div>
     <?php endif; ?>
 
-    <div class="email-btn-row">
-      <button type="submit" class="btn btn-primary">Send</button>
-      <button type="button" class="btn btn-ghost" id="preview-email-btn">Preview</button>
-      <button type="button" class="btn btn-ghost js-form-reset">Clear</button>
-      <a href="<?= \Luster\Core\View::e($referer ?? $b . '/admin/members/' . $listingId) ?>"
-         class="btn btn-ghost">Cancel</a>
+    <div class="neb-card side-card">
+      <div class="side-card-head">
+        <svg class="side-card-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+          <path d="M3 14V3l3-1h6l3 3v9M6 14V9h4v5"/>
+        </svg>
+        <span class="side-card-title">Save as Template</span>
+      </div>
+      <div class="side-card-body">
+        <form method="POST" action="<?= $b ?>/admin/new-email-template/save" id="em-save-tpl-form">
+          <input type="hidden" name="_csrf"       value="<?= \Luster\Core\View::e($csrf_token ?? '') ?>">
+          <input type="hidden" name="referer"     id="em-save-referer" value="<?= \Luster\Core\View::e($_SERVER['REQUEST_URI'] ?? '') ?>">
+          <input type="hidden" name="tpl_subject" id="em-save-subject">
+          <input type="hidden" name="tpl_body"    id="em-save-body">
+          <input type="text"   name="tpl_name"    id="em-save-name"
+                 class="neb-input" placeholder="Template name&hellip;" maxlength="150">
+          <button type="submit" class="btn-save-tpl" id="em-save-btn">
+            <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.75">
+              <path d="M3 14V3l3-1h6l3 3v9M6 14V9h4v5"/>
+            </svg>
+            Save template
+          </button>
+        </form>
+      </div>
     </div>
-  </form>
 
-  <!-- Save as template -->
-  <div style="margin-top:1.5rem;padding-top:1.25rem;border-top:1px solid var(--border)">
-    <p style="margin:0 0 .75rem;font-size:.85rem;color:var(--text-muted)">Save the current subject &amp; message as a reusable template:</p>
-    <form method="POST" action="<?= $b ?>/admin/new-email-template/save" class="save-tpl-row" id="em-save-tpl-form">
-      <input type="hidden" name="_csrf"       value="<?= \Luster\Core\View::e($csrf_token ?? '') ?>">
-      <input type="hidden" name="referer"     id="em-save-referer" value="<?= \Luster\Core\View::e($_SERVER['REQUEST_URI'] ?? '') ?>">
-      <input type="hidden" name="tpl_subject" id="em-save-subject">
-      <input type="hidden" name="tpl_body"    id="em-save-body">
-      <input type="text"   name="tpl_name"    id="em-save-name"
-             class="neb-input" placeholder="Template name&hellip;" style="flex:1;min-width:160px" maxlength="150">
-      <button type="submit" class="btn btn-secondary btn-sm" id="em-save-btn">Save template</button>
+    <details class="neb-card side-card">
+      <summary class="side-card-head">
+        <svg class="side-card-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+          <path d="M4 4h8M4 8h5M4 12h3"/>
+        </svg>
+        <span class="side-card-title">Available Tokens</span>
+        <svg class="side-card-chevron" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="4 6 8 10 12 6"/>
+        </svg>
+      </summary>
+      <div class="side-card-body">
+        <table class="et-token-table">
+          <thead>
+            <tr><th>Token</th><th>Description</th></tr>
+          </thead>
+          <tbody>
+            <tr class="tok-row" data-textarea="body" data-token="{fan_name}"       title="Click to insert"><td><code>{fan_name}</code></td><td>Fan's display name</td></tr>
+            <tr class="tok-row" data-textarea="body" data-token="{fan_email}"      title="Click to insert"><td><code>{fan_email}</code></td><td>Fan's email address</td></tr>
+            <tr class="tok-row" data-textarea="body" data-token="{fan_url}"        title="Click to insert"><td><code>{fan_url}</code></td><td>Fan's website URL</td></tr>
+            <tr class="tok-row" data-textarea="body" data-token="{fan_country}"    title="Click to insert"><td><code>{fan_country}</code></td><td>Fan's country</td></tr>
+            <tr class="tok-row" data-textarea="body" data-token="{fan_password}"   title="Click to insert"><td><code>{fan_password}</code></td><td>Plain-text password (sign-up only)</td></tr>
+            <tr class="tok-row" data-textarea="body" data-token="{listing_name}"   title="Click to insert"><td><code>{listing_name}</code></td><td>Name of the listing</td></tr>
+            <tr class="tok-row" data-textarea="body" data-token="{listing_subject}" title="Click to insert"><td><code>{listing_subject}</code></td><td>Subject or topic</td></tr>
+            <tr class="tok-row" data-textarea="body" data-token="{listing_url}"    title="Click to insert"><td><code>{listing_url}</code></td><td>URL of the listing</td></tr>
+            <tr class="tok-row" data-textarea="body" data-token="{site_name}"      title="Click to insert"><td><code>{site_name}</code></td><td>Collective or site name</td></tr>
+            <tr class="tok-row" data-textarea="body" data-token="{owner_name}"     title="Click to insert"><td><code>{owner_name}</code></td><td>Owner's display name</td></tr>
+            <tr class="tok-row" data-textarea="body" data-token="{owner_email}"    title="Click to insert"><td><code>{owner_email}</code></td><td>Owner's email address</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </details>
+
+  </div><!-- /.composer-side -->
+
+  <!-- ── Main composer ── -->
+  <div class="neb-card composer-card">
+    <form method="POST" id="email-form">
+      <input type="hidden" name="_csrf"        value="<?= \Luster\Core\View::e($csrf_token ?? '') ?>">
+      <input type="hidden" name="member_email" value="<?= \Luster\Core\View::e($member_email ?? '') ?>">
+
+      <div class="composer-header">
+        <span class="composer-header-label">New Message</span>
+        <span class="listing-chip">
+          <span class="listing-chip-dot"></span><?= $flName ?>
+        </span>
+      </div>
+
+      <div class="addr-block">
+        <div class="addr-row">
+          <span class="addr-lbl">From</span>
+          <div>
+            <?php if (($from_name ?? '') !== ''): ?>
+              <span class="addr-name"><?= \Luster\Core\View::e($from_name) ?></span>
+            <?php endif; ?>
+            <span class="addr-email">&lt;<?= \Luster\Core\View::e($from_email ?? '') ?>&gt;</span>
+          </div>
+        </div>
+        <div class="addr-row">
+          <span class="addr-lbl">To</span>
+          <div>
+            <span class="addr-name"><?= \Luster\Core\View::e($member_name ?? '') ?></span><span class="addr-email">&lt;<?= \Luster\Core\View::e($member_email ?? '') ?>&gt;</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="subj-row">
+        <span class="subj-prefix"><?= $flName ?>:</span>
+        <input class="subj-input" type="text" name="subject_suffix" id="subject"
+               value="<?= $oldSubject ?>" placeholder="Enter subject&hellip;">
+      </div>
+
+      <div class="body-area">
+        <textarea class="body-textarea" name="body" id="body"
+                  placeholder="Write your message&hellip;"><?= $oldBody ?></textarea>
+        <span class="char-count" id="em-char-count">0 chars</span>
+      </div>
+
+      <div class="composer-footer">
+        <button type="button" class="btn btn-primary" id="em-send-btn">
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.75">
+            <path d="M14 2L7 9M14 2L9.5 14 7 9 2 6.5 14 2z"/>
+          </svg>
+          Send &rarr;
+        </button>
+        <button type="button" class="btn btn-ghost" id="preview-email-btn">Preview</button>
+        <button type="button" class="btn btn-ghost js-form-reset">Clear</button>
+        <div style="flex:1"></div>
+        <a href="<?= \Luster\Core\View::e($referer ?? $b . '/admin/members/' . $listingId) ?>"
+           class="btn btn-ghost btn-sm">Cancel</a>
+      </div>
     </form>
-  </div>
-</div>
+  </div><!-- /.composer-card -->
 
+</div><!-- /.composer-grid -->
 
 <!-- Preview modal -->
-<div class="modal-overlay" id="preview-modal" data-listing-name="<?= \Luster\Core\View::e($flName) ?>">
-  <div class="modal-box">
-    <h3>Email Preview</h3>
-    <p><strong>To:</strong> <?= \Luster\Core\View::e($member_name ?? '') ?> &lt;<?= \Luster\Core\View::e($member_email ?? '') ?>&gt;</p>
-    <p><strong>Subject:</strong> <span id="preview-subject"></span></p>
-    <hr>
-    <div id="preview-body" style="white-space:pre-wrap;font-size:.875rem;color:var(--text)"></div>
-    <br>
-    <button class="btn btn-ghost" id="close-preview-btn">Close</button>
+<div class="neb-modal-backdrop" id="preview-modal" style="display:none"
+     data-listing-name="<?= $flName ?>"
+     data-listing-subject="<?= \Luster\Core\View::e($listing->subject ?? '') ?>"
+     data-listing-url="<?= \Luster\Core\View::e($listing->url ?? '') ?>"
+     data-fan-name="<?= \Luster\Core\View::e($member_name ?? '') ?>"
+     data-fan-email="<?= \Luster\Core\View::e($member_email ?? '') ?>"
+     data-fan-url="<?= \Luster\Core\View::e($member_url ?? '') ?>"
+     data-fan-country="<?= \Luster\Core\View::e($member_country ?? '') ?>"
+     data-site-name="<?= \Luster\Core\View::e($site_name ?? '') ?>"
+     data-owner-name="<?= \Luster\Core\View::e($from_name ?? '') ?>"
+     data-owner-email="<?= \Luster\Core\View::e($from_email ?? '') ?>">
+  <div class="neb-modal neb-modal--wide">
+    <div class="neb-modal-header">
+      <h3 class="neb-modal-title">Email Preview</h3>
+    </div>
+    <div class="neb-modal-body">
+      <div class="addr-block" style="margin:-.25rem -1.5rem .75rem;border-top:1px solid var(--border-soft)">
+        <div class="addr-row">
+          <span class="addr-lbl">From</span>
+          <div>
+            <span class="addr-name" id="em-preview-from-name"></span>
+            <span class="addr-email" id="em-preview-from-email"></span>
+          </div>
+        </div>
+        <div class="addr-row">
+          <span class="addr-lbl">To</span>
+          <div>
+            <span class="addr-name" id="em-preview-to-name"></span>
+            <span class="addr-email" id="em-preview-to-email"></span>
+          </div>
+        </div>
+        <div class="addr-row">
+          <span class="addr-lbl">Subject</span>
+          <span class="addr-val" id="preview-subject"></span>
+        </div>
+      </div>
+      <div id="preview-body" style="white-space:pre-wrap;font-size:.875rem;color:var(--text)"></div>
+    </div>
+    <div class="neb-modal-footer" id="em-footer-preview">
+      <button class="btn btn-ghost" id="close-preview-btn">Close</button>
+    </div>
+    <div id="em-footer-confirm" style="display:none">
+      <div class="me-confirm-warning">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><rect x="11" y="8.5" width="2" height="5.5" rx="1" fill="currentColor" stroke="none"/><circle cx="12" cy="16.5" r="1.1" fill="currentColor" stroke="none"/></svg>
+        Are you sure you want to send this email? This action cannot be undone.
+      </div>
+      <div class="neb-modal-footer">
+        <button type="button" class="btn btn-ghost" id="em-confirm-cancel-btn">Cancel</button>
+        <button type="button" class="btn btn-primary" id="em-confirm-send-btn">Send &rarr;</button>
+      </div>
+    </div>
   </div>
 </div>
-

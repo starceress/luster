@@ -24,7 +24,7 @@ $fe = $field_errors ?? [];
   <div class="alert alert-error"><?= View::e($error) ?></div>
 <?php endif; ?>
 
-<div class="settings-card">
+<div class="neb-card neb-card-padded">
   <form method="POST" action="<?= $b ?>/admin/admin-users/add" class="js-warn-unsaved">
     <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
 
@@ -76,7 +76,7 @@ $fe = $field_errors ?? [];
 
     <div class="btn-row">
       <button type="submit" class="btn btn-primary">Create Account</button>
-      <a href="<?= $b ?>/admin/settings" class="btn btn-secondary">Cancel</a>
+      <a href="<?= $b ?>/admin/settings" class="btn btn-tertiary">Cancel</a>
     </div>
   </form>
 </div>

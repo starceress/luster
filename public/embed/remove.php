@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use Luster\Core\Captcha;
 use Luster\Repositories\ListingRepo;
+use Luster\Repositories\ListingSettingsRepo;
 
 /**
  * Luster embed — remove membership form fragment.
@@ -87,6 +88,19 @@ $_lusterBaseUrl    = rtrim((string) $_lusterApp->getConfig()->get('embed_base_ur
                    ?: $_lusterApp->getBaseUrl();
 $_lusterFormAction = $_lusterBaseUrl . '/remove/' . $_lusterListingId;
 
+$_lusterSettingsRepo  = new ListingSettingsRepo($_lusterApp->getDatabase());
+$_lusterEmbedSettings = $_lusterSettingsRepo->getEmbedSettings($_lusterListingId);
+
+// $luster_lost_password_url can be set before require to override the DB-configured value.
+if (isset($luster_lost_password_url)) {
+    $_lusterLostPasswordUrl = (string) $luster_lost_password_url;
+} else {
+    $_lusterResetPage       = (string) ($_lusterEmbedSettings['form_url_reset'] ?? '');
+    $_lusterLostPasswordUrl = $_lusterResetPage !== ''
+        ? rtrim((string) $_lusterListing->url, '/') . '/' . ltrim($_lusterResetPage, '/')
+        : '';
+}
+
 $_lusterHtml = $_lusterApp->getView()->renderFragment('remove.php', [
     'listing'       => $_lusterListing,
     'listing_name'  => $_lusterListing->name,
@@ -97,8 +111,9 @@ $_lusterHtml = $_lusterApp->getView()->renderFragment('remove.php', [
     'errors'           => $_lusterError !== ''
         ? '<p>' . htmlspecialchars($_lusterError, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '</p>'
         : '',
-    'field_email'      => $_lusterOldEmail,
-    'captcha_question' => Captcha::getQuestion('remove'),
+    'field_email'        => $_lusterOldEmail,
+    'lost_password_url'  => $_lusterLostPasswordUrl,
+    'captcha_question'   => Captcha::getQuestion('remove'),
     'captcha_error'    => '',
     'base_url'         => $_lusterApp->getBaseUrl(),
     'theme_path'       => $_lusterApp->getBaseUrl() . '/assets/default/',

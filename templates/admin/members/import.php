@@ -42,7 +42,7 @@ $id = (int) $listing->id;
     </div>
   <?php endif; ?>
 
-  <div class="settings-card" style="margin-bottom:1.25rem">
+  <div class="neb-card neb-card-padded" style="margin-bottom:1.25rem">
     <div class="db-info-grid">
       <div>
         <div class="form-label" style="margin-bottom:.25rem">Imported</div>
@@ -62,9 +62,10 @@ $id = (int) $listing->id;
   </div>
 
   <?php if ($errCount > 0): ?>
-  <div class="settings-card" style="margin-bottom:1.25rem">
+  <div class="neb-card neb-card-padded" style="margin-bottom:1.25rem">
     <div style="font-weight:600;margin-bottom:.75rem">Rows with errors</div>
     <div style="overflow-x:auto">
+      <div class="neb-table-wrap">
       <table class="data-table">
         <thead>
           <tr>
@@ -83,18 +84,19 @@ $id = (int) $listing->id;
           <?php endforeach; ?>
         </tbody>
       </table>
+      </div>
     </div>
   </div>
   <?php endif; ?>
 
   <div class="btn-row">
     <a href="<?= $b ?>/admin/members/<?= $id ?>" class="btn btn-primary">View member list</a>
-    <a href="<?= $b ?>/admin/members/<?= $id ?>/import" class="btn btn-secondary">Import another file</a>
+    <a href="<?= $b ?>/admin/members/<?= $id ?>/import" class="btn btn-tertiary">Import another file</a>
   </div>
 
 <?php else: ?>
   <!-- ── Upload form ── -->
-  <div class="settings-card">
+  <div class="neb-card neb-card-padded">
     <p style="margin:0 0 1.25rem;color:var(--text-muted);font-size:.9rem">
       Upload a CSV file to import members directly into <strong><?= View::e($listing->name) ?></strong>.
       All imported members are set to <strong>approved</strong> immediately.
@@ -115,17 +117,18 @@ $id = (int) $listing->id;
       <div class="btn-row">
         <button type="submit" class="btn btn-primary">Upload &amp; import</button>
         <a href="<?= $b ?>/admin/members/<?= $id ?>/import/template"
-           class="btn btn-secondary">Download CSV template</a>
+           class="btn btn-tertiary">Download CSV template</a>
       </div>
     </form>
   </div>
 
-  <div class="settings-card" style="margin-top:1.25rem">
+  <div class="neb-card neb-card-padded" style="margin-top:1.25rem">
     <div style="font-weight:600;margin-bottom:.75rem">Expected CSV format</div>
     <p style="font-size:.875rem;color:var(--text-muted);margin:0 0 .75rem">
       The first row must be a header row. Column names are case-insensitive.
     </p>
     <div style="overflow-x:auto">
+      <div class="neb-table-wrap">
       <table class="data-table">
         <thead>
           <tr><th>Column</th><th>Required</th><th>Notes</th></tr>
@@ -139,6 +142,7 @@ $id = (int) $listing->id;
           <tr><td><em>field name</em></td> <td>No</td> <td>Any additional field defined for this listing (use the field's internal name as the column header)</td></tr>
         </tbody>
       </table>
+      </div>
     </div>
     <p class="form-hint" style="margin-top:.75rem">
       Use the "Download CSV template" button above to get a file pre-filled with the correct headers for this listing.
