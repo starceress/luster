@@ -6,7 +6,7 @@ use Luster\Core\View;
 use Luster\Repositories\EmailTemplateRepo;
 
 /**
- * Unified Emails page — four tabs.
+ * Unified Emails page â€” four tabs.
  *
  * @var string                            $active_tab      'templates'|'bulk'|'custom'|'smtp'
  * @var string                            $success
@@ -43,14 +43,14 @@ use Luster\Repositories\EmailTemplateRepo;
 
 $b = rtrim(View::e($base_url), '/');
 
-// ── Email Templates tab helpers ───────────────────────────────────────────
+// â”€â”€ Email Templates tab helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 $typeLabels = [
     EmailTemplateRepo::TYPE_JOIN        => 'Join Confirmation',
     EmailTemplateRepo::TYPE_APPROVE     => 'Membership Approved',
     EmailTemplateRepo::TYPE_UPDATE      => 'Update Confirmation',
     EmailTemplateRepo::TYPE_REMOVE      => 'Removal Confirmation',
     EmailTemplateRepo::TYPE_RESET       => 'Password Reset',
-    EmailTemplateRepo::TYPE_NOTIFY_JOIN => 'Admin — New Member Notification',
+    EmailTemplateRepo::TYPE_NOTIFY_JOIN => 'Admin â€” New Member Notification',
 ];
 
 $navLabels = [
@@ -76,8 +76,8 @@ $allTokenDesc = [
     '{fan_email}'       => "Fan's email address",
     '{fan_url}'         => "Fan's website URL (may be empty)",
     '{fan_country}'     => "Fan's country",
-    '{fan_password}'    => "Plain-text password — included once at sign-up only",
-    '{reset_url}'       => "Password reset link — required in Reset emails",
+    '{fan_password}'    => "Plain-text password â€” included once at sign-up only",
+    '{reset_url}'       => "Password reset link â€” required in Reset emails",
     '{listing_name}'    => "Name of the fanlisting",
     '{listing_subject}' => "Subject or topic of the fanlisting",
     '{listing_url}'     => "URL of the fanlisting",
@@ -98,11 +98,11 @@ $resetConfirm = $isGlobal
     ? 'Reset this template to the built-in default? Your edits will be lost.'
     : 'Reset this template to the global version? Your per-listing customisation will be removed.';
 
-// ── Bulk email tab helpers ────────────────────────────────────────────────
+// â”€â”€ Bulk email tab helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 $oldSubjectE = View::e($old_subject ?? '');
 $oldBodyE    = htmlspecialchars($old_body ?? '', ENT_QUOTES, 'UTF-8');
 
-// ── SMTP tab helper ───────────────────────────────────────────────────────
+// â”€â”€ SMTP tab helper â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 if (!function_exists('smtpVal')) {
     function smtpVal(array $cfg, string $key, string $default = ''): string {
         return (string) ($cfg[$key] ?? $default);
@@ -117,7 +117,7 @@ if (!function_exists('smtpVal')) {
   <div class="alert alert-error"><?= View::e($error) ?></div>
 <?php endif; ?>
 
-<!-- ── Tab bar ────────────────────────────────────────────────────────── -->
+<!-- â”€â”€ Tab bar â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
 <div class="neb-tabs-wrap">
   <div class="neb-tabs">
     <button class="neb-tab-btn<?= $active_tab === 'templates' ? ' active' : '' ?>" data-tab="templates">Email Templates</button>
@@ -126,7 +126,7 @@ if (!function_exists('smtpVal')) {
     <button class="neb-tab-btn<?= $active_tab === 'smtp'      ? ' active' : '' ?>" data-tab="smtp">SMTP Settings</button>
   </div>
   <div class="select-wrap neb-tabs-select-wrap">
-    <select class="neb-tabs-select neb-select">
+    <select class="neb-tabs-select select">
       <option value="templates"<?= $active_tab === 'templates' ? ' selected' : '' ?>>Email Templates</option>
       <option value="bulk"<?=      $active_tab === 'bulk'      ? ' selected' : '' ?>>Bulk Email</option>
       <option value="custom"<?=    $active_tab === 'custom'    ? ' selected' : '' ?>>Custom Templates</option>
@@ -135,9 +135,9 @@ if (!function_exists('smtpVal')) {
   </div>
 </div>
 
-<!-- ══════════════════════════════════════════════════════════════════════ -->
+<!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
 <!-- TAB: EMAIL TEMPLATES                                                  -->
-<!-- ══════════════════════════════════════════════════════════════════════ -->
+<!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
 <div id="tab-templates" class="neb-tab-panel<?= $active_tab === 'templates' ? ' active' : '' ?>">
 
   <!-- Scope selector -->
@@ -150,7 +150,7 @@ if (!function_exists('smtpVal')) {
             Global (default for all listings)
           </option>
           <?php if (!empty($all_listings)): ?>
-            <option disabled>─────────────────</option>
+            <option disabled>â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€</option>
             <?php foreach ($all_listings as $l): ?>
               <?php $sel = (!$isGlobal && (int) $scope === $l->id); ?>
               <option value="<?= (int) $l->id ?>"<?= $sel ? ' selected' : '' ?>>
@@ -164,8 +164,8 @@ if (!function_exists('smtpVal')) {
 
     <?php if (!$isGlobal && $listing !== null): ?>
       <span class="overview-section-sub2">
-        Cards showing <span class="neb-badge badge-info">Customised</span> override the global template.
-        Cards showing <span class="neb-badge badge-info3">Using Global</span> inherit global templates.
+        Cards showing <span class="badge badge-info">Customised</span> override the global template.
+        Cards showing <span class="badge badge-subtle">Using Global</span> inherit global templates.
       </span>
     <?php else: ?>
       <span class="overview-section-sub2">
@@ -193,17 +193,20 @@ if (!function_exists('smtpVal')) {
     <div class="et-layout">
 
       <!-- Left nav -->
-      <nav class="neb-sidebar-nav">
-        <?php foreach (EmailTemplateRepo::TYPES as $i => $type): ?>
-          <button type="button"
-                  class="neb-sidebar-nav-item<?= $i === 0 ? ' active' : '' ?>"
-                  data-et-tab="<?= View::e($type) ?>">
-            <?= View::e($navLabels[$type]) ?>
-            <?php if (!$isGlobal && isset($cards[$type]) && $cards[$type]['isCustomised']): ?>
-              <span class="neb-badge badge-info" style="margin-left:auto;font-size:.65rem;padding:.1rem .35rem">•</span>
-            <?php endif; ?>
-          </button>
-        <?php endforeach; ?>
+      <nav class="panel-card">
+        <div class="card-head"><div class="card-head-title">Template Name</div></div>
+        <div class="panel-body">
+          <?php foreach (EmailTemplateRepo::TYPES as $i => $type): ?>
+            <button type="button"
+                    class="mini-nav-item<?= $i === 0 ? ' active' : '' ?>"
+                    data-et-tab="<?= View::e($type) ?>">
+              <?= View::e($navLabels[$type]) ?>
+              <?php if (!$isGlobal && isset($cards[$type]) && $cards[$type]['isCustomised']): ?>
+                <span class="badge badge-info" style="margin-left:auto;font-size:.65rem;padding:.1rem .35rem">â€¢</span>
+              <?php endif; ?>
+            </button>
+          <?php endforeach; ?>
+        </div>
       </nav>
 
       <!-- Template panels -->
@@ -214,7 +217,7 @@ if (!function_exists('smtpVal')) {
         <div class="et-panel<?= $i === 0 ? ' active' : '' ?>"
              id="et-tab-<?= View::e($type) ?>">
 
-          <div class="neb-card<?= !$card['isEnabled'] ? ' et-card-disabled' : '' ?>" style="overflow:hidden">
+          <div class="card<?= !$card['isEnabled'] ? ' et-card-disabled' : '' ?>" style="overflow:hidden">
 
             <!-- Card header -->
             <div class="card-head">
@@ -225,9 +228,9 @@ if (!function_exists('smtpVal')) {
               <div style="display:flex;align-items:center;gap:.6rem;flex-shrink:0">
                 <?php if (!$isGlobal): ?>
                   <?php if ($card['isCustomised']): ?>
-                    <span class="neb-badge badge-info">Customised</span>
+                    <span class="badge badge-info">Customised</span>
                   <?php else: ?>
-                    <span class="neb-badge badge-info3">Using global</span>
+                    <span class="badge badge-subtle">Using global</span>
                   <?php endif; ?>
                 <?php endif; ?>
                 <!-- Enabled toggle switch -->
@@ -246,7 +249,7 @@ if (!function_exists('smtpVal')) {
             <!-- Disabled warning banner -->
             <div class="et-disabled-banner"<?= $card['isEnabled'] ? ' style="display:none"' : '' ?>>
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><rect x="11" y="8.5" width="2" height="5.5" rx="1" fill="currentColor" stroke="none"/><circle cx="12" cy="16.5" r="1.1" fill="currentColor" stroke="none"/></svg>
-              This template is <strong>disabled</strong> — no email(s) will be sent for this event.
+              This template is <strong>disabled</strong> â€” no email(s) will be sent for this event.
             </div>
 
             <!-- Fields -->
@@ -277,7 +280,7 @@ if (!function_exists('smtpVal')) {
                 <div style="padding:.5rem .875rem;background:var(--surface-alt,var(--sidebar));border-bottom:1px solid var(--border);font-size:.72rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.04em">
                   Preview <span style="font-weight:400;text-transform:none;letter-spacing:0">(example values)</span>
                   <?php if ($isGlobal): ?>
-                    <span style="color:var(--text-dim);margin-left:.5rem">· listing tokens show generic placeholders</span>
+                    <span style="color:var(--text-dim);margin-left:.5rem">Â· listing tokens show generic placeholders</span>
                   <?php endif; ?>
                 </div>
                 <div style="padding:.875rem 1rem">
@@ -292,19 +295,19 @@ if (!function_exists('smtpVal')) {
             <!-- Card footer: action buttons right-aligned -->
             <div class="card-footer">
               <button type="submit" class="btn btn-primary">Save Template</button>
-              <button type="button" class="btn btn-tertiary btn-sm et-preview-toggle"
+              <button type="button" class="btn btn-quaternary btn-sm et-preview-toggle"
                       data-type="<?= View::e($type) ?>">Preview</button>
               <button type="submit"
                       form="et-reset-<?= View::e($type) ?>"
-                      class="btn btn-tertiary btn-sm"
+                      class="btn btn-quaternary btn-sm"
                       style="color:var(--text-dim)">
                 <?= $isGlobal ? 'Reset to Default' : 'Reset to Global' ?>
               </button>
             </div>
 
-          </div><!-- /.neb-card -->
+          </div><!-- /.card -->
 
-          <!-- Available Tokens — outside the card -->
+          <!-- Available Tokens â€” outside the card -->
           <details class="form-details" style="margin-top:.75rem">
             <summary>Available Tokens</summary>
             <div class="form-details-body" style="padding-bottom:.75rem">
@@ -351,15 +354,15 @@ if (!function_exists('smtpVal')) {
 
 </div><!-- /#tab-templates -->
 
-<!-- ══════════════════════════════════════════════════════════════════════ -->
+<!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
 <!-- TAB: BULK EMAIL                                                       -->
-<!-- ══════════════════════════════════════════════════════════════════════ -->
+<!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
 <div id="tab-bulk" class="neb-tab-panel<?= $active_tab === 'bulk' ? ' active' : '' ?>">
 
   <div class="composer-grid">
 
     <!-- Main compose area -->
-    <div class="neb-card composer-card">
+    <div class="card composer-card">
       <form method="POST" action="<?= $b ?>/admin/emails/preview" id="compose-form">
         <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
 
@@ -381,7 +384,7 @@ if (!function_exists('smtpVal')) {
         <div class="composer-section composer-section--inline">
           <label class="composer-section-label" for="me-listing">Send To</label>
           <div class="select-wrap">
-            <select name="listing_id" id="me-listing" class="neb-select">
+            <select name="listing_id" id="me-listing" class="select">
               <option value="0"
                       data-count="<?= (int) ($deduplicated_total ?? 0) ?>"
                       data-label="All Listings"
@@ -406,7 +409,7 @@ if (!function_exists('smtpVal')) {
           <label class="composer-section-label" for="me-subject">
             Subject <span class="req">*</span>
           </label>
-          <input id="me-subject" type="text" name="subject" class="neb-input"
+          <input id="me-subject" type="text" name="subject" class="input"
                  maxlength="255" required value="<?= $oldSubjectE ?>">
         </div>
 
@@ -435,7 +438,7 @@ if (!function_exists('smtpVal')) {
     <div class="composer-side">
 
       <?php if (!empty($saved_emails) || !empty($global_email_templates)): ?>
-      <div class="neb-card side-card">
+      <div class="card side-card">
         <div class="side-card-head">
           <svg class="side-card-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
             <rect x="2" y="3" width="12" height="10" rx="1.5"/><path d="M2 6.5h12"/>
@@ -445,8 +448,8 @@ if (!function_exists('smtpVal')) {
         </div>
         <div class="side-card-body">
           <div class="select-wrap">
-            <select id="me-tpl-select" class="neb-select">
-              <option value="">— Select a template —</option>
+            <select id="me-tpl-select" class="select">
+              <option value="">â€” Select a template â€”</option>
               <?php if (!empty($global_email_templates)): ?>
                 <optgroup label="Email Templates">
                   <?php foreach ($global_email_templates as $t): ?>
@@ -474,7 +477,7 @@ if (!function_exists('smtpVal')) {
       </div>
       <?php endif; ?>
 
-      <div class="neb-card side-card">
+      <div class="card side-card">
         <div class="side-card-head">
           <svg class="side-card-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
             <path d="M3 14V3l3-1h6l3 3v9M6 14V9h4v5"/>
@@ -488,7 +491,7 @@ if (!function_exists('smtpVal')) {
             <input type="hidden" name="tpl_subject" id="me-save-subject">
             <input type="hidden" name="tpl_body"    id="me-save-body">
             <input type="text"   name="tpl_name"    id="me-save-name"
-                   class="neb-input" placeholder="Template name&hellip;" maxlength="150">
+                   class="input" placeholder="Template name&hellip;" maxlength="150">
             <button type="submit" class="btn-save-tpl" id="me-save-btn">
               <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.75">
                 <path d="M3 14V3l3-1h6l3 3v9M6 14V9h4v5"/>
@@ -499,7 +502,7 @@ if (!function_exists('smtpVal')) {
         </div>
       </div>
 
-      <details class="neb-card side-card">
+      <details class="card side-card">
         <summary class="side-card-head">
           <svg class="side-card-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
             <path d="M4 4h8M4 8h5M4 12h3"/>
@@ -535,15 +538,15 @@ if (!function_exists('smtpVal')) {
   </div><!-- /.composer-grid -->
 
   <!-- Preview modal -->
-  <div class="neb-modal-backdrop" id="me-preview-modal" style="display:none"
+  <div class="modal-backdrop" id="me-preview-modal" style="display:none"
        data-site-name="<?= View::e($site_name_val ?? '') ?>"
        data-from-name="<?= View::e($from_name_val  ?? '') ?>"
        data-from-email="<?= View::e($from_email_val ?? '') ?>">
-    <div class="neb-modal neb-modal--wide">
-      <div class="neb-modal-header">
-        <h3 class="neb-modal-title">Bulk Email Preview</h3>
+    <div class="modal modal--wide">
+      <div class="modal-header">
+        <h3 class="modal-title">Bulk Email Preview</h3>
       </div>
-      <div class="neb-modal-body">
+      <div class="modal-body">
         <div class="addr-block" style="margin: -.25rem -1.5rem .75rem;border-top:1px solid var(--border-soft)">
           <div class="addr-row">
             <span class="addr-lbl">To</span>
@@ -566,7 +569,7 @@ if (!function_exists('smtpVal')) {
         </div>
         <div id="me-preview-body" style="white-space:pre-wrap;font-size:.875rem;color:var(--text)"></div>
       </div>
-      <div class="neb-modal-footer" id="me-footer-preview">
+      <div class="modal-footer" id="me-footer-preview">
         <button class="btn btn-ghost" id="me-close-preview-btn">Close</button>
       </div>
       <div id="me-footer-confirm" style="display:none">
@@ -574,7 +577,7 @@ if (!function_exists('smtpVal')) {
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><rect x="11" y="8.5" width="2" height="5.5" rx="1" fill="currentColor" stroke="none"/><circle cx="12" cy="16.5" r="1.1" fill="currentColor" stroke="none"/></svg>
           Are you sure you want to send this email to all recipients? This action cannot be undone.
         </div>
-        <div class="neb-modal-footer">
+        <div class="modal-footer">
           <button type="button" class="btn btn-ghost" id="me-confirm-cancel-btn">Cancel</button>
           <button type="button" class="btn btn-primary" id="me-confirm-send-btn">Send &rarr;</button>
         </div>
@@ -584,15 +587,15 @@ if (!function_exists('smtpVal')) {
 
 </div><!-- /#tab-bulk -->
 
-<!-- ══════════════════════════════════════════════════════════════════════ -->
+<!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
 <!-- TAB: CUSTOM TEMPLATES                                                 -->
-<!-- ══════════════════════════════════════════════════════════════════════ -->
+<!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
 <div id="tab-custom" class="neb-tab-panel<?= $active_tab === 'custom' ? ' active' : '' ?>">
 
   <div class="composer-grid">
 
     <!-- Main: Add New Template form -->
-    <div class="neb-card composer-card" style="overflow:hidden">
+    <div class="card composer-card" style="overflow:hidden">
 
       <div class="card-head">
         <div>
@@ -616,7 +619,7 @@ if (!function_exists('smtpVal')) {
           <div class="form-group">
             <label class="form-label" for="new-tpl-subject">Subject</label>
             <input id="new-tpl-subject" type="text" name="tpl_subject" class="form-input"
-                   maxlength="255" placeholder="(optional — leave blank to fill in when composing)">
+                   maxlength="255" placeholder="(optional â€” leave blank to fill in when composing)">
           </div>
 
           <div class="form-group" style="margin-bottom:0">
@@ -644,8 +647,8 @@ if (!function_exists('smtpVal')) {
 
         <div class="card-footer">
           <button type="submit" class="btn btn-primary">Save Template</button>
-          <button type="button" class="btn btn-tertiary btn-sm" id="ct-preview-btn">Preview</button>
-          <button type="button" class="btn btn-tertiary btn-sm js-form-reset"
+          <button type="button" class="btn btn-quaternary btn-sm" id="ct-preview-btn">Preview</button>
+          <button type="button" class="btn btn-quaternary btn-sm js-form-reset"
                   style="color:var(--text-dim)">Clear</button>
         </div>
 
@@ -654,7 +657,7 @@ if (!function_exists('smtpVal')) {
 
     <!-- Sidebar: Available Tokens -->
     <div class="composer-side">
-      <details class="neb-card side-card" open>
+      <details class="card side-card" open>
         <summary class="side-card-head">
           <svg class="side-card-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
             <path d="M4 4h8M4 8h5M4 12h3"/>
@@ -692,21 +695,21 @@ if (!function_exists('smtpVal')) {
   <div class="section-divider">Saved Templates</div>
 
   <!-- Saved Templates table card -->
-  <div class="neb-card" style="overflow:hidden">
+  <div class="card" style="overflow:hidden">
 
     <div class="card-head">
       <div class="card-title">Saved Templates</div>
     </div>
 
     <?php if (empty($saved_emails)): ?>
-      <div class="neb-empty">
+      <div class="empty">
         <svg class="empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
           <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
         </svg>
         No saved templates yet. Use the form above to create one, or save a draft while composing.
       </div>
     <?php else: ?>
-      <div class="neb-table-wrap">
+      <div class="table-wrap">
         <table class="data-table">
           <thead>
             <tr>
@@ -720,15 +723,15 @@ if (!function_exists('smtpVal')) {
             <?php foreach ($saved_emails as $t): ?>
             <tr>
               <td class="text-strong"><?= View::e($t->name) ?></td>
-              <td class="text-muted"><?= $t->subject !== '' ? View::e($t->subject) : '<span class="text-dim">—</span>' ?></td>
+              <td class="text-muted"><?= $t->subject !== '' ? View::e($t->subject) : '<span class="text-dim">â€”</span>' ?></td>
               <td class="text-muted" style="white-space:nowrap">
                 <?= View::e(date($admin_date_format, strtotime($t->created_at))) ?>
               </td>
               <td class="act-col">
                 <div class="row-actions">
                   <a href="<?= $b ?>/admin/emails?tab=bulk&load=<?= (int) $t->id ?>"
-                     class="btn btn-tertiary btn-sm">Use</a>
-                  <button type="button" class="btn btn-tertiary btn-sm ct-edit-btn"
+                     class="btn btn-quaternary btn-sm">Use</a>
+                  <button type="button" class="btn btn-quaternary btn-sm ct-edit-btn"
                           data-id="<?= (int) $t->id ?>"
                           data-name="<?= View::e($t->name) ?>"
                           data-subject="<?= View::e($t->subject) ?>"
@@ -750,19 +753,19 @@ if (!function_exists('smtpVal')) {
       </div>
     <?php endif; ?>
 
-  </div><!-- /.neb-card saved templates -->
+  </div><!-- /.card saved templates -->
 
   <!-- Edit Template modal -->
-  <div class="neb-modal-backdrop" id="ct-edit-modal" style="display:none">
-    <div class="neb-modal">
-      <div class="neb-modal-header">
-        <h3 class="neb-modal-title">Edit Template</h3>
-        <button type="button" class="neb-modal-close" id="ct-edit-close" aria-label="Close">&times;</button>
+  <div class="modal-backdrop" id="ct-edit-modal" style="display:none">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 class="modal-title">Edit Template</h3>
+        <button type="button" class="modal-close" id="ct-edit-close" aria-label="Close">&times;</button>
       </div>
       <form method="POST" id="ct-edit-form"
             data-base-action="<?= $b ?>/admin/new-email-template/__ID__/update">
         <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
-        <div class="neb-modal-body">
+        <div class="modal-body">
           <div class="form-group">
             <label class="form-label" for="ct-edit-name">Template Name <span class="req">*</span></label>
             <input type="text" id="ct-edit-name" name="tpl_name" class="form-input"
@@ -780,7 +783,7 @@ if (!function_exists('smtpVal')) {
                       style="font-family:'DM Mono',monospace;font-size:.8125rem"></textarea>
           </div>
         </div>
-        <div class="neb-modal-footer">
+        <div class="modal-footer">
           <button type="button" class="btn btn-ghost" id="ct-edit-cancel">Cancel</button>
           <button type="submit" class="btn btn-primary">Save Changes</button>
         </div>
@@ -790,15 +793,15 @@ if (!function_exists('smtpVal')) {
 
 </div><!-- /#tab-custom -->
 
-<!-- ══════════════════════════════════════════════════════════════════════ -->
+<!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
 <!-- TAB: SMTP SETTINGS                                                    -->
-<!-- ══════════════════════════════════════════════════════════════════════ -->
+<!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
 <div id="tab-smtp" class="neb-tab-panel<?= $active_tab === 'smtp' ? ' active' : '' ?>">
 
   <form method="POST" action="<?= $b ?>/admin/emails/smtp-settings/save">
   <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
 
-  <div class="neb-card neb-card-padded">
+  <div class="card card-padded">
 
     <p class="text-muted" style="font-size:.8rem;margin-bottom:1rem">
       Leave SMTP Host blank to send via PHP's native <code>mail()</code> function.
@@ -809,7 +812,7 @@ if (!function_exists('smtpVal')) {
     <div class="alert alert-warning" style="margin-bottom:1rem">
       <strong>From address not set.</strong>
       Outgoing emails have no sender address and will likely be rejected by your mail server.
-      Set a From Address below, or set the Owner Email in <a href="<?= $b ?>/admin/settings" class="neb-link">General settings</a>.
+      Set a From Address below, or set the Owner Email in <a href="<?= $b ?>/admin/settings" class="link">General settings</a>.
     </div>
     <?php endif; ?>
 
@@ -882,7 +885,7 @@ if (!function_exists('smtpVal')) {
   </div>
 
   <div style="display:flex;align-items:center;gap:.75rem;flex-wrap:wrap;margin-bottom:1rem">
-    <button type="button" class="btn btn-tertiary btn-sm" id="smtp-validate-btn"
+    <button type="button" class="btn btn-quaternary btn-sm" id="smtp-validate-btn"
             data-url="<?= $b ?>/admin/settings/validate-smtp">
       Validate connection
     </button>

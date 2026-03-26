@@ -79,6 +79,7 @@ if ($_lusterListing === null) {
 $_lusterPerPage  = isset($luster_per_page)  ? max(1, (int) $luster_per_page)  : max(1, (int) $_lusterConfig->get('per_page', 20));
 $_lusterShowCats = isset($luster_show_cats) ? (bool) $luster_show_cats : true;
 $_lusterPage     = max(1, (int) ($_GET['page'] ?? 1));
+$_lusterCat      = trim((string) ($_GET['cat'] ?? ''));
 
 // ---------------------------------------------------------------------------
 // 5. Load updates
@@ -86,9 +87,14 @@ $_lusterPage     = max(1, (int) ($_GET['page'] ?? 1));
 
 try {
     $_lusterUpdateRepo = new UpdateRepo($_lusterDb);
-    $_lusterUpdates    = $_lusterUpdateRepo->getForFanlisting($_lusterFid, $_lusterPage, $_lusterPerPage);
-    $_lusterTotal      = $_lusterUpdateRepo->countForFanlisting($_lusterFid);
-    $_lusterPages      = max(1, (int) ceil($_lusterTotal / $_lusterPerPage));
+    if ($_lusterCat !== '') {
+        $_lusterUpdates = $_lusterUpdateRepo->getForFanlistingByCategory($_lusterFid, $_lusterCat, $_lusterPage, $_lusterPerPage);
+        $_lusterTotal   = $_lusterUpdateRepo->countForFanlistingByCategory($_lusterFid, $_lusterCat);
+    } else {
+        $_lusterUpdates = $_lusterUpdateRepo->getForFanlisting($_lusterFid, $_lusterPage, $_lusterPerPage);
+        $_lusterTotal   = $_lusterUpdateRepo->countForFanlisting($_lusterFid);
+    }
+    $_lusterPages = max(1, (int) ceil($_lusterTotal / $_lusterPerPage));
 } catch (\Throwable $_lusterEx) {
     // Updates add-on not installed or table missing — return empty output silently.
     if ($luster_return ?? false) {
@@ -119,6 +125,7 @@ $_lusterHtml = $_lusterApp->getView()->renderFragment('addons/updates/feed.php',
     'is_collective' => false,
     'show_cats'     => $_lusterShowCats,
     'owner_name'    => (string) ($_lusterConfig->get('owner_name', '')),
+    'active_cat'    => $_lusterCat,
     'feed_url'      => $_lusterFeedUrl,
     'base_url'      => $_lusterApp->getBaseUrl(),
     'theme_path'    => $_lusterApp->getBaseUrl() . '/assets/default/',

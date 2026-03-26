@@ -1,4 +1,5 @@
 <?php
+use Luster\Core\View;
 /** @var \Luster\Models\JoinedListing|null $joined  null = add mode */
 /** @var string $error */
 /** @var array  $old */
@@ -9,7 +10,7 @@
 /** @var array  $tafl_cats        [{id: int, name: string}] */
 /** @var array  $custom_networks  string[] */
 
-$b      = rtrim(\Luster\Core\View::e($base_url), '/');
+$b      = rtrim(View::e($base_url), '/');
 $fe     = $field_errors ?? [];
 $isEdit = $joined !== null;
 $action = $isEdit
@@ -47,16 +48,16 @@ $dataExist  = json_encode($existingCats,     JSON_HEX_QUOT | JSON_HEX_AMP | JSON
 ?>
 
 <p class="page-back">
-  <a href="<?= $b ?>/admin/joined" class="neb-link">&larr; Joined Listings</a>
+  <a href="<?= $b ?>/admin/joined" class="link">&larr; Joined Listings</a>
 </p>
 
 <?php if ($error !== ''): ?>
-  <div class="alert alert-error"><?= \Luster\Core\View::e($error) ?></div>
+  <div class="alert alert-error"><?= View::e($error) ?></div>
 <?php endif; ?>
 
-<div class="neb-card neb-card-padded">
+<div class="card card-padded">
   <form method="POST" action="<?= $action ?>" enctype="multipart/form-data" class="js-warn-unsaved">
-    <input type="hidden" name="_csrf" value="<?= \Luster\Core\View::e($csrf_token ?? '') ?>">
+    <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
 
     <!-- ① Category widget -->
     <div class="form-group">
@@ -68,7 +69,7 @@ $dataExist  = json_encode($existingCats,     JSON_HEX_QUOT | JSON_HEX_AMP | JSON
            data-custom='<?= $dataCustom ?>'
            data-existing='<?= $dataExist ?>'>
         <div id="cat-rows"></div>
-        <a href="#" class="neb-link" id="cat-add"
+        <a href="#" class="link" id="cat-add"
            style="font-size:0.8125rem;display:inline-block;margin-top:0.4rem">+ Add another category</a>
       </div>
       <p class="form-hint">Assign to one or more networks (TFL, TAFL, custom).</p>
@@ -81,23 +82,23 @@ $dataExist  = json_encode($existingCats,     JSON_HEX_QUOT | JSON_HEX_AMP | JSON
       <label class="form-label" for="jf-url">URL <span>*</span></label>
       <input id="jf-url" type="url" name="url" class="form-input" maxlength="500"
              placeholder="https://" required
-             value="<?= \Luster\Core\View::e($val('url', $joined, 'url')) ?>">
-      <?php if (!empty($fe['url'])): ?><p class="field-error"><?= \Luster\Core\View::e($fe['url'][0]) ?></p><?php endif; ?>
+             value="<?= View::e($val('url', $joined, 'url')) ?>">
+      <?php if (!empty($fe['url'])): ?><p class="field-error"><?= View::e($fe['url'][0]) ?></p><?php endif; ?>
     </div>
 
     <!-- ③ Subject -->
     <div class="form-group<?= !empty($fe['name']) ? ' has-error' : '' ?>">
       <label class="form-label" for="jf-name">Subject <span>*</span></label>
       <input id="jf-name" type="text" name="name" class="form-input" maxlength="255" required
-             value="<?= \Luster\Core\View::e($val('name', $joined, 'name')) ?>">
-      <?php if (!empty($fe['name'])): ?><p class="field-error"><?= \Luster\Core\View::e($fe['name'][0]) ?></p><?php endif; ?>
+             value="<?= View::e($val('name', $joined, 'name')) ?>">
+      <?php if (!empty($fe['name'])): ?><p class="field-error"><?= View::e($fe['name'][0]) ?></p><?php endif; ?>
     </div>
 
     <!-- ④ Date Joined -->
     <div class="form-group">
       <label class="form-label" for="jf-date">Date Joined</label>
       <input id="jf-date" type="date" name="date_joined" class="form-input" style="max-width:200px"
-             value="<?= \Luster\Core\View::e($val('date_joined', $joined, 'dateJoined')) ?>">
+             value="<?= View::e($val('date_joined', $joined, 'dateJoined')) ?>">
     </div>
 
     <div class="section-divider"></div>
@@ -106,7 +107,7 @@ $dataExist  = json_encode($existingCats,     JSON_HEX_QUOT | JSON_HEX_AMP | JSON
     <div class="form-group">
       <label class="form-label" for="jf-image">Image</label>
       <?php if ($isEdit && $joined->image !== null && $joined->image !== ''): ?>
-        <img src="<?= \Luster\Core\View::e($b . '/uploads/joined/' . $joined->image) ?>"
+        <img src="<?= View::e($b . '/uploads/joined/' . $joined->image) ?>"
              alt="Current image" class="fl-image" style="max-height:80px;margin-bottom:.5rem">
         <label class="form-check" style="margin-bottom:.4rem;color:var(--danger)">
           <input type="checkbox" id="jf-delete-img" name="delete_image" value="1">
@@ -143,7 +144,7 @@ $dataExist  = json_encode($existingCats,     JSON_HEX_QUOT | JSON_HEX_AMP | JSON
     <div class="btn-row">
       <button type="submit" class="btn btn-primary"><?= $isEdit ? 'Save Changes' : 'Add Joined FL' ?></button>
       <button type="button" class="btn btn-ghost" id="clear-form-btn">Clear Form</button>
-      <a href="<?= $b ?>/admin/joined" class="neb-link">Cancel</a>
+      <a href="<?= $b ?>/admin/joined" class="link">Cancel</a>
     </div>
 
   </form>

@@ -107,12 +107,22 @@ final class SettingsController
         $dbVersion     = (string) $pdo->query('SELECT VERSION()')->fetchColumn();
         $errorLogCount = (new ErrorLogRepo($db))->count();
 
+        $siteRepo     = new SiteSettingsRepo($db);
+        $siteSettings = $siteRepo->getMany([
+            'owned_template',
+            'joined_template',
+            'collective_stats_template',
+            'collective_contact_enabled',
+            'collective_contact_recipient',
+        ]);
+
         return $this->layout('admin/settings/index.php', [
             'cfg'                  => $this->app->getConfig()->all(),
             'admin_user'           => $adminUser,
             'users'                => $adminRepo->getAll(),
             'current_admin_id'     => $adminId,
             'blacklist_entries'    => $blacklistEntries,
+            'site_settings'        => $siteSettings,
             'success'              => $success,
             'error'                => $error,
             'field_errors'         => is_array($fieldErrors) ? $fieldErrors : [],
@@ -201,6 +211,15 @@ final class SettingsController
             ? (string) $request->post('time_format')
             : 'H:i';
         $siteSettings->set('time_format', $timeFormat);
+
+        // Collective contact form settings
+        $collectiveContactEnabled   = $request->post('collective_contact_enabled') === '1' ? '1' : '0';
+        $collectiveContactRecipient = trim((string) $request->post('collective_contact_recipient', ''));
+        if ($collectiveContactRecipient !== '' && !filter_var($collectiveContactRecipient, FILTER_VALIDATE_EMAIL)) {
+            $collectiveContactRecipient = '';
+        }
+        $siteSettings->set('collective_contact_enabled',   $collectiveContactEnabled);
+        $siteSettings->set('collective_contact_recipient', $collectiveContactRecipient !== '' ? $collectiveContactRecipient : null);
 
         $activityRepo->log(
             (int) $session->get('lstr_admin_id'),

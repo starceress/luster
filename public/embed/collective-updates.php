@@ -45,6 +45,7 @@ $_lusterConfig   = $_lusterApp->getConfig();
 $_lusterPerPage  = isset($luster_per_page)  ? max(1, (int) $luster_per_page)  : max(1, (int) $_lusterConfig->get('per_page', 20));
 $_lusterShowCats = isset($luster_show_cats) ? (bool) $luster_show_cats : true;
 $_lusterPage     = max(1, (int) ($_GET['page'] ?? 1));
+$_lusterCat      = trim((string) ($_GET['cat'] ?? ''));
 
 // ---------------------------------------------------------------------------
 // 3. Load updates
@@ -54,9 +55,14 @@ $_lusterDb = $_lusterApp->getDatabase();
 
 try {
     $_lusterUpdateRepo = new UpdateRepo($_lusterDb);
-    $_lusterUpdates    = $_lusterUpdateRepo->getCollective($_lusterPage, $_lusterPerPage);
-    $_lusterTotal      = $_lusterUpdateRepo->countCollective();
-    $_lusterPages      = max(1, (int) ceil($_lusterTotal / $_lusterPerPage));
+    if ($_lusterCat !== '') {
+        $_lusterUpdates = $_lusterUpdateRepo->getCollectiveByCategory($_lusterCat, $_lusterPage, $_lusterPerPage);
+        $_lusterTotal   = $_lusterUpdateRepo->countCollectiveByCategory($_lusterCat);
+    } else {
+        $_lusterUpdates = $_lusterUpdateRepo->getCollective($_lusterPage, $_lusterPerPage);
+        $_lusterTotal   = $_lusterUpdateRepo->countCollective();
+    }
+    $_lusterPages = max(1, (int) ceil($_lusterTotal / $_lusterPerPage));
 } catch (\Throwable $_lusterEx) {
     // Updates add-on not installed or table missing — return empty output silently.
     if ($luster_return ?? false) {
@@ -86,6 +92,8 @@ $_lusterHtml = $_lusterApp->getView()->renderFragment('addons/updates/feed.php',
     'pages'         => $_lusterPages,
     'is_collective' => true,
     'show_cats'     => $_lusterShowCats,
+    'owner_name'    => (string) ($_lusterConfig->get('owner_name', '')),
+    'active_cat'    => $_lusterCat,
     'feed_url'      => $_lusterFeedUrl,
     'base_url'      => $_lusterApp->getBaseUrl(),
     'theme_path'    => $_lusterApp->getBaseUrl() . '/assets/default/',

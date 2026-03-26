@@ -15,6 +15,7 @@ declare(strict_types=1);
  * @var bool                            $is_collective
  * @var bool                            $show_cats
  * @var string                          $owner_name
+ * @var string                          $active_cat    currently filtered category ('' = none)
  * @var string                          $feed_url      base URL for pagination links
  * @var string                          $base_url
  * @var string                          $theme_path
@@ -22,8 +23,12 @@ declare(strict_types=1);
 
 use Luster\Core\View;
 
-$pageUrl = static function (int $p) use ($feed_url): string {
-    return htmlspecialchars($feed_url . '?page=' . $p, ENT_QUOTES, 'UTF-8');
+$_activeCat = $active_cat ?? '';
+$pageUrl = static function (int $p) use ($feed_url, $_activeCat): string {
+    $qs = $_activeCat !== ''
+        ? 'cat=' . rawurlencode($_activeCat) . '&page=' . $p
+        : 'page=' . $p;
+    return htmlspecialchars($feed_url . '?' . $qs, ENT_QUOTES, 'UTF-8');
 };
 ?>
 
@@ -41,7 +46,12 @@ $pageUrl = static function (int $p) use ($feed_url): string {
       <?php endif; ?>
     </p>
     <?php if ($show_cats && !empty($u->categories())): ?>
-      <p>Category: <?= View::e(implode(', ', $u->categories())) ?></p>
+      <p>Category:
+        <?php foreach ($u->categories() as $_ci => $_cat): ?>
+          <?php if ($_ci > 0): ?>, <?php endif; ?>
+          <a href="<?= htmlspecialchars($feed_url . '?cat=' . rawurlencode($_cat), ENT_QUOTES, 'UTF-8') ?>"><?= View::e($_cat) ?></a>
+        <?php endforeach; ?>
+      </p>
     <?php endif; ?>
     <p><?= nl2br(View::e($u->body)) ?></p>
   </div>

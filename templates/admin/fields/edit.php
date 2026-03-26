@@ -1,4 +1,5 @@
 <?php
+use Luster\Core\View;
 /**
  * Admin — Edit a single additional field.
  *
@@ -10,28 +11,28 @@
  * @var string $base_url
  * @var string $csrf_token
  */
-$b       = rtrim(\Luster\Core\View::e($base_url), '/');
+$b       = rtrim(View::e($base_url), '/');
 $id      = (int) $listing->id;
 $encName = urlencode($field->name);
 ?>
 
 <!-- Breadcrumb -->
 <p class="page-back">
-  <a href="<?= $b ?>/admin/listings/<?= $id ?>/fields" class="neb-link">
-    &larr; <?= \Luster\Core\View::e($listing->name) ?> &mdash; Fields
+  <a href="<?= $b ?>/admin/listings/<?= $id ?>/fields" class="link">
+    &larr; <?= View::e($listing->name) ?> &mdash; Fields
   </a>
 </p>
 
 
 <?php if ($error !== ''): ?>
-  <div class="alert alert-error" role="alert"><?= \Luster\Core\View::e($error) ?></div>
+  <div class="alert alert-error" role="alert"><?= View::e($error) ?></div>
 <?php endif; ?>
 
-<div class="neb-card neb-card-padded">
+<div class="card card-padded">
   <form method="POST"
         action="<?= $b ?>/admin/listings/<?= $id ?>/fields/<?= $encName ?>/edit">
-    <input type="hidden" name="_csrf"      value="<?= \Luster\Core\View::e($csrf_token) ?>">
-    <input type="hidden" name="field_name" value="<?= \Luster\Core\View::e($field->name) ?>">
+    <input type="hidden" name="_csrf"      value="<?= View::e($csrf_token) ?>">
+    <input type="hidden" name="field_name" value="<?= View::e($field->name) ?>">
 
     <!-- Field Name (read-only display) -->
     <div class="form-group">
@@ -39,7 +40,7 @@ $encName = urlencode($field->name);
         Field Name
         <small class="text-dim" style="font-weight:400"> (cannot be changed)</small>
       </label>
-      <div class="ro-field"><?= \Luster\Core\View::e($field->name) ?></div>
+      <div class="ro-field"><?= View::e($field->name) ?></div>
     </div>
 
     <!-- Label -->
@@ -47,7 +48,7 @@ $encName = urlencode($field->name);
       <label class="form-label" for="ef-label">Label <span>*</span></label>
       <input type="text" id="ef-label" name="label" class="form-input"
              maxlength="100" required
-             value="<?= \Luster\Core\View::e($field->label) ?>">
+             value="<?= View::e($field->label) ?>">
     </div>
 
     <!-- Type -->
@@ -70,7 +71,7 @@ $encName = urlencode($field->name);
         <small class="text-dim" style="font-weight:400"> (comma-separated, for Drop Down, Checkbox, and Radio types)</small>
       </label>
       <textarea id="ef-options" name="options" class="form-textarea" rows="3"
-                placeholder="e.g. Option A, Option B, Option C"><?= \Luster\Core\View::e($options) ?></textarea>
+                placeholder="e.g. Option A, Option B, Option C"><?= View::e($options) ?></textarea>
     </div>
 
     <!-- Required -->

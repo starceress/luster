@@ -3,7 +3,7 @@
 declare(strict_types=1);
 
 /**
- * Updates add-on — update list (per-fanlisting or collective).
+ * Updates add-on â€” update list (per-fanlisting or collective).
  *
  * @var \Luster\Addons\Updates\Update[] $updates
  * @var int                             $total
@@ -47,7 +47,7 @@ $latestDate = !empty($updates) ? date('M Y', strtotime($updates[0]->postedAt)) :
 <?php endif; ?>
 
 <div class="page-topbar">
-  <a href="<?= $b ?>/admin/updates" class="back-link neb-link">
+  <a href="<?= $b ?>/admin/updates" class="back-link link">
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
     Back to Overview
   </a>
@@ -61,8 +61,8 @@ $latestDate = !empty($updates) ? date('M Y', strtotime($updates[0]->postedAt)) :
 
 <?php if (empty($updates)): ?>
 
-  <div class="neb-card">
-    <div class="neb-empty">
+  <div class="card">
+    <div class="empty">
       <svg class="empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 11a9 9 0 0 1 9 9"/><path d="M4 4a16 16 0 0 1 16 16"/><circle cx="5" cy="19" r="1"/></svg>
       <div style="font-weight:600;color:var(--text)">No updates posted yet</div>
       <div>Post your first update to let visitors know what&rsquo;s new.</div>
@@ -96,7 +96,7 @@ $latestDate = !empty($updates) ? date('M Y', strtotime($updates[0]->postedAt)) :
   </div>
 
   <!-- Timeline -->
-  <div class="neb-card">
+  <div class="card">
     <div class="card-head">
       <div class="card-head-title">
         <?= $is_collective ? 'Collective Updates' : 'Updates &mdash; ' . View::e($listing->name) ?>
@@ -124,7 +124,7 @@ $latestDate = !empty($updates) ? date('M Y', strtotime($updates[0]->postedAt)) :
               <span class="update-title"><?= View::e($u->title) ?></span>
               <div class="row-actions">
                 <a href="<?= $b ?>/admin/updates/entry/<?= (int) $u->id ?>/edit"
-                   class="btn btn-tertiary btn-sm">
+                   class="btn btn-quaternary btn-sm">
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
                   Edit
                 </a>
@@ -155,7 +155,7 @@ $latestDate = !empty($updates) ? date('M Y', strtotime($updates[0]->postedAt)) :
   </div>
 
   <?php if ($pages > 1): ?>
-  <nav class="neb-pagination" aria-label="Pagination">
+  <nav class="pg" aria-label="Pagination">
     <a href="<?= View::e($pageUrl($page - 1)) ?>"
        class="pg-link<?= $page <= 1 ? ' disabled' : '' ?>"
        <?= $page <= 1 ? 'aria-disabled="true"' : '' ?>>&lsaquo; Prev</a>

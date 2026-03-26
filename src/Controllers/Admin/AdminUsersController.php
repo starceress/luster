@@ -97,7 +97,7 @@ final class AdminUsersController
         );
 
         $session->set('lstr_flash_success', "Admin account <strong>" . htmlspecialchars($username, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . "</strong> created.");
-        return Response::redirect($baseUrl . '/admin/settings');
+        return Response::redirect($baseUrl . '/admin/settings#panel-accounts');
     }
 
     // -----------------------------------------------------------------------
@@ -188,7 +188,7 @@ final class AdminUsersController
         );
 
         $session->set('lstr_flash_success', "Account <strong>" . htmlspecialchars($username, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . "</strong> updated.");
-        return Response::redirect($baseUrl . '/admin/settings');
+        return Response::redirect($baseUrl . '/admin/settings#panel-accounts');
     }
 
     // -----------------------------------------------------------------------
@@ -205,20 +205,20 @@ final class AdminUsersController
 
         if ($id === $currentId) {
             $session->set('lstr_flash_error', 'You cannot delete your own account.');
-            return Response::redirect($baseUrl . '/admin/settings');
+            return Response::redirect($baseUrl . '/admin/settings#panel-accounts');
         }
 
         $repo = new AdminUserRepo($this->app->getDatabase());
 
         if ($repo->count() <= 1) {
             $session->set('lstr_flash_error', 'Cannot delete the last admin account.');
-            return Response::redirect($baseUrl . '/admin/settings');
+            return Response::redirect($baseUrl . '/admin/settings#panel-accounts');
         }
 
         $user = $repo->getById($id);
         if ($user === null) {
             $session->set('lstr_flash_error', 'Admin user not found.');
-            return Response::redirect($baseUrl . '/admin/settings');
+            return Response::redirect($baseUrl . '/admin/settings#panel-accounts');
         }
 
         $repo->delete($id);
@@ -230,7 +230,7 @@ final class AdminUsersController
         );
 
         $session->set('lstr_flash_success', "Account <strong>" . htmlspecialchars($user->username, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . "</strong> deleted.");
-        return Response::redirect($baseUrl . '/admin/settings');
+        return Response::redirect($baseUrl . '/admin/settings#panel-accounts');
     }
 
     // -----------------------------------------------------------------------

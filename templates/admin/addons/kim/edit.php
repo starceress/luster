@@ -1,6 +1,6 @@
 <?php
 /**
- * KIM List admin — edit a KIM member.
+ * KIM List admin â€” edit a KIM member.
  *
  * Variables:
  *   $member          KimMember
@@ -23,12 +23,12 @@ $b = rtrim(View::e($base_url), '/');
 <?php endif; ?>
 
 <p class="page-back">
-  <a href="<?= $b ?>/admin/kim/<?= (int) $member->fanlistingId ?>/show" class="neb-link">
+  <a href="<?= $b ?>/admin/kim/<?= (int) $member->fanlistingId ?>/show" class="link">
     &larr; Back to <?= View::e($fanlisting_name) ?>
   </a>
 </p>
 
-<div class="neb-card">
+<div class="card">
   <form method="POST" action="<?= $b ?>/admin/kim/<?= (int) $member->id ?>/edit">
     <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
 
@@ -81,7 +81,7 @@ $b = rtrim(View::e($base_url), '/');
     <div class="btn-row">
       <button type="submit" class="btn btn-primary">Save Changes</button>
       <a href="<?= $b ?>/admin/kim/<?= (int) $member->fanlistingId ?>/show"
-         class="btn btn-tertiary">Cancel</a>
+         class="btn btn-quaternary">Cancel</a>
     </div>
   </form>
 </div>

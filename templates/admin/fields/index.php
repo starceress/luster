@@ -1,4 +1,5 @@
 <?php
+use Luster\Core\View;
 /**
  * Admin — Additional Fields index for one listing.
  *
@@ -10,36 +11,36 @@
  * @var string $base_url
  * @var string $csrf_token
  */
-$b  = rtrim(\Luster\Core\View::e($base_url), '/');
+$b  = rtrim(View::e($base_url), '/');
 $id = (int) $listing->id;
 ?>
 
 <!-- Breadcrumb -->
 <p class="page-back">
-  <a href="<?= $b ?>/admin/listings/<?= $id ?>" class="neb-link">
-    &larr; <?= \Luster\Core\View::e($listing->name) ?>
+  <a href="<?= $b ?>/admin/listings/<?= $id ?>" class="link">
+    &larr; <?= View::e($listing->name) ?>
   </a>
 </p>
 
 <!-- Flash messages -->
 <?php if ($success !== ''): ?>
-  <div class="alert alert-success" role="status"><?= \Luster\Core\View::e($success) ?></div>
+  <div class="alert alert-success" role="status"><?= View::e($success) ?></div>
 <?php endif; ?>
 <?php if ($error !== ''): ?>
-  <div class="alert alert-error" role="alert"><?= \Luster\Core\View::e($error) ?></div>
+  <div class="alert alert-error" role="alert"><?= View::e($error) ?></div>
 <?php endif; ?>
 
 <!-- Fields table -->
 <?php if (empty($fields)): ?>
-  <div class="neb-card">
-    <div class="neb-empty">
+  <div class="card">
+    <div class="empty">
       <svg class="empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 10h18M8 5v14"/></svg>
       No additional fields defined yet. Use the form below to add one.
     </div>
   </div>
 <?php else: ?>
-  <div class="neb-card">
-    <div class="neb-table-wrap">
+  <div class="card">
+    <div class="table-wrap">
     <table class="data-table">
       <thead>
         <tr>
@@ -52,16 +53,16 @@ $id = (int) $listing->id;
       </thead>
       <tbody>
         <?php foreach ($fields as $field): ?>
-          <?php $safeName = \Luster\Core\View::e($field->name); ?>
+          <?php $safeName = View::e($field->name); ?>
           <tr>
-            <td class="text-strong"><?= \Luster\Core\View::e($field->label) ?></td>
+            <td class="text-strong"><?= View::e($field->label) ?></td>
             <td><code class="neb-code"><?= $safeName ?></code></td>
-            <td class="text-muted"><?= \Luster\Core\View::e($field->type) ?></td>
+            <td class="text-muted"><?= View::e($field->type) ?></td>
             <td>
               <?php if ($field->required): ?>
-                <span class="neb-badge badge-yes">Yes</span>
+                <span class="badge badge-current">Yes</span>
               <?php else: ?>
-                <span class="neb-badge badge-no">No</span>
+                <span class="badge badge-inactive">No</span>
               <?php endif; ?>
             </td>
             <td class="act-col">
@@ -73,7 +74,7 @@ $id = (int) $listing->id;
                     style="display:inline;margin-left:.25rem"
                     data-del-modal data-del-entity="field"
                     data-del-name="<?= $safeName ?>">
-                <input type="hidden" name="_csrf"      value="<?= \Luster\Core\View::e($csrf_token) ?>">
+                <input type="hidden" name="_csrf"      value="<?= View::e($csrf_token) ?>">
                 <input type="hidden" name="field_name" value="<?= $safeName ?>">
                 <button type="submit" class="btn btn-danger btn-sm">Delete</button>
               </form>
@@ -87,10 +88,10 @@ $id = (int) $listing->id;
 <?php endif; ?>
 
 <!-- Add New Field form -->
-<div class="neb-card" style="padding:1.25rem 1.5rem;margin-top:1.5rem">
+<div class="card" style="padding:1.25rem 1.5rem;margin-top:1.5rem">
   <h3 class="card-title" style="margin-bottom:1rem">Add New Field</h3>
   <form method="POST" action="<?= $b ?>/admin/listings/<?= $id ?>/fields/add">
-    <input type="hidden" name="_csrf" value="<?= \Luster\Core\View::e($csrf_token) ?>">
+    <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
     <div class="add-grid">
 
       <!-- Field Name -->
@@ -152,5 +153,5 @@ $id = (int) $listing->id;
 
     </div><!-- /.add-grid -->
   </form>
-</div><!-- /.neb-card -->
+</div><!-- /.card -->
 

@@ -171,6 +171,34 @@ final class UpdateRepo
     }
 
     // -----------------------------------------------------------------------
+    // Reads — by category (PHP-side filter; correct for typical feed sizes)
+    // -----------------------------------------------------------------------
+
+    /** @return Update[] */
+    public function getForFanlistingByCategory(int $fanlistingId, string $category, int $page, int $perPage): array
+    {
+        $filtered = $this->filterByCategory($this->fetchAllByFanlisting($fanlistingId), $category);
+        return array_slice($filtered, ($page - 1) * $perPage, $perPage);
+    }
+
+    public function countForFanlistingByCategory(int $fanlistingId, string $category): int
+    {
+        return count($this->filterByCategory($this->fetchAllByFanlisting($fanlistingId), $category));
+    }
+
+    /** @return Update[] */
+    public function getCollectiveByCategory(string $category, int $page, int $perPage): array
+    {
+        $filtered = $this->filterByCategory($this->fetchAllCollective(), $category);
+        return array_slice($filtered, ($page - 1) * $perPage, $perPage);
+    }
+
+    public function countCollectiveByCategory(string $category): int
+    {
+        return count($this->filterByCategory($this->fetchAllCollective(), $category));
+    }
+
+    // -----------------------------------------------------------------------
     // Category datalist
     // -----------------------------------------------------------------------
 
@@ -248,6 +276,42 @@ final class UpdateRepo
     {
         $stmt = $this->db->prepare('DELETE FROM `lstr_updates` WHERE `id` = :id');
         $stmt->execute([':id' => $id]);
+    }
+
+    // -----------------------------------------------------------------------
+    // Private helpers
+    // -----------------------------------------------------------------------
+
+    /** @return Update[] */
+    private function fetchAllByFanlisting(int $fanlistingId): array
+    {
+        $stmt = $this->db->prepare(
+            'SELECT * FROM `lstr_updates` WHERE `fanlisting_id` = :fid ORDER BY `posted_at` DESC',
+        );
+        $stmt->execute([':fid' => $fanlistingId]);
+        return array_map([$this, 'hydrate'], $stmt->fetchAll(\PDO::FETCH_ASSOC));
+    }
+
+    /** @return Update[] */
+    private function fetchAllCollective(): array
+    {
+        $stmt = $this->db->prepare(
+            'SELECT * FROM `lstr_updates` WHERE `fanlisting_id` IS NULL ORDER BY `posted_at` DESC',
+        );
+        $stmt->execute();
+        return array_map([$this, 'hydrate'], $stmt->fetchAll(\PDO::FETCH_ASSOC));
+    }
+
+    /**
+     * @param  Update[] $updates
+     * @return Update[]
+     */
+    private function filterByCategory(array $updates, string $category): array
+    {
+        return array_values(array_filter(
+            $updates,
+            static fn(Update $u): bool => in_array($category, $u->categories(), true),
+        ));
     }
 
     // -----------------------------------------------------------------------

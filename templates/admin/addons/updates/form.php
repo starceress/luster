@@ -46,7 +46,7 @@ $ctxDisplay = preg_replace('/^Owned\s*›\s*/u', '', (string) ($ctx_label ?? '')
 <?php endif; ?>
 
 <div class="page-topbar" style="margin-bottom:1.25rem">
-  <a href="<?= View::e($back_url) ?>" class="back-link neb-link">
+  <a href="<?= View::e($back_url) ?>" class="back-link link">
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
     Back
   </a>
@@ -158,7 +158,7 @@ $ctxDisplay = preg_replace('/^Owned\s*›\s*/u', '', (string) ($ctx_label ?? '')
           <div class="panel-field">
             <div style="display:flex;align-items:center;gap:.5rem;padding:.5rem .75rem;background:var(--bg-subtle);border:1px solid var(--border);border-radius:8px">
               <?php if ($isCollective): ?>
-                <span class="neb-badge badge-info" style="flex-shrink:0">Collective</span>
+                <span class="badge badge-info" style="flex-shrink:0">Collective</span>
                 <span style="font-size:.825rem;font-weight:600;color:var(--text)">Site-wide</span>
               <?php else: ?>
                 <span style="font-size:.825rem;font-weight:600;color:var(--text)"><?= View::e($ctxDisplay) ?></span>

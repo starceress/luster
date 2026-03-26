@@ -30,6 +30,7 @@ use Luster\Controllers\Public\RemoveController;
 use Luster\Controllers\Public\ResetController;
 use Luster\Controllers\Public\CodesSubmitController;
 use Luster\Controllers\Public\StatsController;
+use Luster\Controllers\Public\ContactController;
 use Luster\Controllers\Public\UpdateController;
 use Luster\Core\Router;
 
@@ -76,6 +77,14 @@ return [
         $router->get('/codes/submit/{id}/thanks', CodesSubmitController::class, 'thanks');
         $router->get('/codes/submit/{id}',        CodesSubmitController::class, 'showForm');
         $router->post('/codes/submit/{id}',       CodesSubmitController::class, 'submit');
+
+        // Contact forms — collective routes before per-listing; /sent before base
+        $router->get('/contact/sent',        ContactController::class, 'collectiveSent');
+        $router->get('/contact',             ContactController::class, 'collectiveForm');
+        $router->post('/contact',            ContactController::class, 'collectiveSubmit');
+        $router->get('/contact/{id}/sent',   ContactController::class, 'listingSent');
+        $router->get('/contact/{id}',        ContactController::class, 'listingForm');
+        $router->post('/contact/{id}',       ContactController::class, 'listingSubmit');
 
         // Password reset — specific sub-paths registered before the base route
         $router->get('/reset/{id}/sent',      ResetController::class,   'sent');
@@ -360,11 +369,11 @@ return [
             AddonsController::class, 'uninstall');
 
         // ── Activity log ─────────────────────────────────────────────
-        $router->get('/admin/activity',
+        $router->get('/admin/activitylog',
             ActivityLogController::class, 'index');
-        $router->get('/admin/activity/export',
+        $router->get('/admin/activitylog/export',
             ActivityLogController::class, 'export');
-        $router->post('/admin/activity/flush',
+        $router->post('/admin/activitylog/flush',
             ActivityLogController::class, 'flush');
 
         // ── Error log ────────────────────────────────────────────────

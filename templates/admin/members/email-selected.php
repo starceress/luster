@@ -31,13 +31,13 @@ $oldBody    = htmlspecialchars($old['body']    ?? '', ENT_QUOTES, 'UTF-8');
 <?php endif; ?>
 
 <p style="margin-bottom:1.25rem">
-  <a href="<?= $b ?>/admin/members/<?= $listingId ?>" class="neb-link">&larr; Back to Members</a>
+  <a href="<?= $b ?>/admin/members/<?= $listingId ?>" class="link">&larr; Back to Members</a>
 </p>
 
 <div class="composer-grid">
 
   <!-- ── Main compose card ──────────────────────────────────────────────── -->
-  <div class="neb-card composer-card">
+  <div class="card composer-card">
     <form method="POST" action="<?= $b ?>/admin/members/<?= $listingId ?>/email-selected/send"
           id="es-form">
       <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
@@ -107,7 +107,7 @@ $oldBody    = htmlspecialchars($old['body']    ?? '', ENT_QUOTES, 'UTF-8');
                 <line x1="12" y1="16" x2="12.01" y2="16"/>
               </svg>
               Not configured &mdash;
-              <a href="<?= $b ?>/admin/emails?tab=smtp" class="neb-link">check SMTP settings</a>
+              <a href="<?= $b ?>/admin/emails?tab=smtp" class="link">check SMTP settings</a>
             </span>
           <?php endif; ?>
         </div>
@@ -118,7 +118,7 @@ $oldBody    = htmlspecialchars($old['body']    ?? '', ENT_QUOTES, 'UTF-8');
         <label class="composer-section-label" for="es-subject">
           Subject <span class="req">*</span>
         </label>
-        <input id="es-subject" type="text" name="subject" class="neb-input"
+        <input id="es-subject" type="text" name="subject" class="input"
                maxlength="255" required value="<?= $oldSubject ?>">
       </div>
 
@@ -155,7 +155,7 @@ $oldBody    = htmlspecialchars($old['body']    ?? '', ENT_QUOTES, 'UTF-8');
   <div class="composer-side">
 
     <?php if (!empty($saved_emails)): ?>
-    <div class="neb-card side-card">
+    <div class="card side-card">
       <div class="side-card-head">
         <svg class="side-card-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
           <rect x="2" y="3" width="12" height="10" rx="1.5"/><path d="M2 6.5h12"/>
@@ -167,7 +167,7 @@ $oldBody    = htmlspecialchars($old['body']    ?? '', ENT_QUOTES, 'UTF-8');
       </div>
       <div class="side-card-body">
         <div class="select-wrap">
-          <select id="es-tpl-select" class="neb-select">
+          <select id="es-tpl-select" class="select">
             <option value="">— Select a template —</option>
             <?php foreach ($saved_emails as $t): ?>
               <option value="<?= View::e($t->subject) ?>"
@@ -183,7 +183,7 @@ $oldBody    = htmlspecialchars($old['body']    ?? '', ENT_QUOTES, 'UTF-8');
     <?php endif; ?>
 
     <!-- Save as Template -->
-    <div class="neb-card side-card">
+    <div class="card side-card">
       <div class="side-card-head">
         <svg class="side-card-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
           <path d="M3 14V3l3-1h6l3 3v9M6 14V9h4v5"/>
@@ -199,7 +199,7 @@ $oldBody    = htmlspecialchars($old['body']    ?? '', ENT_QUOTES, 'UTF-8');
           <input type="hidden" name="tpl_body"    id="es-save-body">
           <div id="es-save-emails"></div>
           <input type="text" name="tpl_name" id="es-save-name"
-                 class="neb-input" placeholder="Template name&hellip;" maxlength="150">
+                 class="input" placeholder="Template name&hellip;" maxlength="150">
           <button type="submit" class="btn-save-tpl">
             <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.75">
               <path d="M3 14V3l3-1h6l3 3v9M6 14V9h4v5"/>
@@ -211,7 +211,7 @@ $oldBody    = htmlspecialchars($old['body']    ?? '', ENT_QUOTES, 'UTF-8');
     </div>
 
     <!-- Available Tokens -->
-    <details class="neb-card side-card" open>
+    <details class="card side-card" open>
       <summary class="side-card-head">
         <svg class="side-card-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
           <path d="M4 4h8M4 8h5M4 12h3"/>
@@ -245,13 +245,13 @@ $oldBody    = htmlspecialchars($old['body']    ?? '', ENT_QUOTES, 'UTF-8');
 </div><!-- /.composer-grid -->
 
 <!-- ── Preview / Confirm modal ────────────────────────────────────────── -->
-<div class="neb-modal-backdrop" id="es-preview-modal" style="display:none">
-  <div class="neb-modal neb-modal--wide">
-    <div class="neb-modal-header">
-      <h3 class="neb-modal-title" id="es-modal-title">Preview</h3>
-      <button type="button" class="neb-modal-close" id="es-modal-close" aria-label="Close">&times;</button>
+<div class="modal-backdrop" id="es-preview-modal" style="display:none">
+  <div class="modal modal--wide">
+    <div class="modal-header">
+      <h3 class="modal-title" id="es-modal-title">Preview</h3>
+      <button type="button" class="modal-close" id="es-modal-close" aria-label="Close">&times;</button>
     </div>
-    <div class="neb-modal-body">
+    <div class="modal-body">
       <div class="addr-block" style="margin:-.25rem -1.5rem .875rem;border-top:1px solid var(--border-soft)">
         <div class="addr-row">
           <span class="addr-lbl">To</span>
@@ -298,12 +298,12 @@ $oldBody    = htmlspecialchars($old['body']    ?? '', ENT_QUOTES, 'UTF-8');
       This will send to all listed recipients. This action cannot be undone.
     </div>
     <!-- Footer: preview mode -->
-    <div class="neb-modal-footer" id="es-footer-preview">
+    <div class="modal-footer" id="es-footer-preview">
       <button type="button" class="btn btn-ghost" id="es-modal-close-preview">Close</button>
     </div>
     <!-- Footer: confirm mode -->
     <div id="es-footer-confirm" style="display:none">
-      <div class="neb-modal-footer">
+      <div class="modal-footer">
         <button type="button" class="btn btn-ghost" id="es-modal-cancel">Cancel</button>
         <button type="button" class="btn btn-primary" id="es-modal-send">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">

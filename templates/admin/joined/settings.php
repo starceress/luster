@@ -2,31 +2,33 @@
 
 declare(strict_types=1);
 
+use Luster\Core\View;
+
 /** @var string $display_mode */
 /** @var int    $per_page */
 /** @var string $success */
 /** @var string $error */
 /** @var string $base_url */
 /** @var string $csrf_token */
-$b = rtrim(\Luster\Core\View::e($base_url), '/');
+$b = rtrim(View::e($base_url), '/');
 ?>
 
 <?php if (($success ?? '') !== ''): ?>
-  <div class="alert alert-success"><?= \Luster\Core\View::e($success) ?></div>
+  <div class="alert alert-success"><?= View::e($success) ?></div>
 <?php endif; ?>
 <?php if (($error ?? '') !== ''): ?>
-  <div class="alert alert-error"><?= \Luster\Core\View::e($error) ?></div>
+  <div class="alert alert-error"><?= View::e($error) ?></div>
 <?php endif; ?>
 
 <p style="margin-bottom:1.25rem">
-  <a href="<?= $b ?>/admin/joined" class="neb-link">&larr; Back to Joined FLs</a>
+  <a href="<?= $b ?>/admin/joined" class="link">&larr; Back to Joined FLs</a>
 </p>
 
-<div class="neb-card" style="max-width:520px;overflow:hidden">
-  <div class="neb-card-header">Display Preferences</div>
+<div class="card" style="max-width:520px;overflow:hidden">
+  <div class="card-head">Display Preferences</div>
   <div style="padding:1.25rem">
     <form method="POST" action="<?= $b ?>/admin/joined/settings">
-      <input type="hidden" name="_csrf" value="<?= \Luster\Core\View::e($csrf_token ?? '') ?>">
+      <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
 
       <div class="form-group">
         <label class="form-label" for="display_mode">Sort Listings By</label>

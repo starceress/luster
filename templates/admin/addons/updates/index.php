@@ -3,7 +3,7 @@
 declare(strict_types=1);
 
 /**
- * Updates add-on — admin overview.
+ * Updates add-on â€” admin overview.
  *
  * @var \Luster\Models\Listing[]                                                    $listings
  * @var array<int, array{count: int, latest: \Luster\Addons\Updates\Update|null}>  $latest_per_fl
@@ -34,16 +34,6 @@ $sortUrl = static function (string $col) use ($b, $sort, $dir): string {
     return $b . '/admin/updates' . ($qs !== '' ? '?' . $qs : '');
 };
 
-$sortIcon = static function (string $col) use ($sort, $dir): string {
-    if ($sort !== $col) {
-        return '<svg viewBox="0 0 10 14" width="9" height="9" fill="currentColor" style="opacity:.35;flex-shrink:0"><path d="M5 0l3 4H2zM5 14l-3-4h6z"/></svg>';
-    }
-    if ($dir === 'asc') {
-        return '<svg viewBox="0 0 10 14" width="9" height="9" fill="currentColor" style="flex-shrink:0"><path d="M5 0l3 4H2z"/><path d="M5 14l-3-4h6z" fill-opacity=".25"/></svg>';
-    }
-    return '<svg viewBox="0 0 10 14" width="9" height="9" fill="currentColor" style="flex-shrink:0"><path d="M5 0l3 4H2z" fill-opacity=".25"/><path d="M5 14l-3-4h6z"/></svg>';
-};
-
 $totalUpdates = (int) $collective_cnt;
 foreach ($latest_per_fl as $entry) {
     $totalUpdates += (int) ($entry['count'] ?? 0);
@@ -58,22 +48,22 @@ $listingCount = count($listings) + 1; // +1 for collective
   <div class="alert alert-error"><?= View::e($error) ?></div>
 <?php endif; ?>
 
-<div class="neb-card">
+<div class="card">
   <div class="card-head">
     <div class="card-head-title">All Listings</div>
-    <span style="font-size:.72rem;color:var(--text-dim)"><?= $listingCount ?> listing<?= $listingCount === 1 ? '' : 's' ?> &middot; <?= $totalUpdates ?> update<?= $totalUpdates === 1 ? '' : 's' ?> total</span>
+    <span class="text-dim"><?= $listingCount ?> listing<?= $listingCount === 1 ? '' : 's' ?> &middot; <?= $totalUpdates ?> update<?= $totalUpdates === 1 ? '' : 's' ?> total</span>
   </div>
-  <div class="neb-table-wrap">
+  <div class="table-wrap">
     <table class="data-table">
       <thead>
         <tr>
-          <th style="width:1px;white-space:nowrap">
-            <a href="<?= View::e($sortUrl('id')) ?>" class="sort-th<?= $sort === 'id' ? ' sort-active' : '' ?>"># <?= $sortIcon('id') ?></a>
+          <th>
+            <a href="<?= View::e($sortUrl('id')) ?>" class="sort-th<?= $sort === 'id' ? ' sort-active' : '' ?>"># <?= View::sortIcon('id', $sort, $dir) ?></a>
           </th>
           <th>
-            <a href="<?= View::e($sortUrl('name')) ?>" class="sort-th<?= $sort === 'name' ? ' sort-active' : '' ?>">Listing <?= $sortIcon('name') ?></a>
+            <a href="<?= View::e($sortUrl('name')) ?>" class="sort-th<?= $sort === 'name' ? ' sort-active' : '' ?>">Listing <?= View::sortIcon('name', $sort, $dir) ?></a>
           </th>
-          <th style="text-align:center;width:1px;white-space:nowrap">Updates</th>
+          <th>Updates</th>
           <th class="act-col">Actions</th>
         </tr>
       </thead>
@@ -81,19 +71,19 @@ $listingCount = count($listings) + 1; // +1 for collective
 
         <!-- Collective row -->
         <tr>
-          <td class="text-dim" style="font-family:'DM Mono',monospace;text-align:right">0</td>
+          <td class="text-dim">0</td>
           <td>
             <div class="ctx-cell">
-              <span class="neb-badge badge-info" style="flex-shrink:0">Collective</span>
+              <span class="badge badge-info">Collective</span>
               <span><?= View::e($site_name) ?></span>
             </div>
           </td>
-          <td style="text-align:center">
+          <td>
             <span class="update-count <?= $collective_cnt > 0 ? 'has-updates' : 'no-updates' ?>"><?= (int) $collective_cnt ?></span>
           </td>
           <td class="act-col">
             <div class="row-actions">
-              <a href="<?= $b ?>/admin/updates/collective" class="btn btn-tertiary btn-sm">View All</a>
+              <a href="<?= $b ?>/admin/updates/collective" class="btn btn-quaternary btn-sm">View All</a>
               <a href="<?= $b ?>/admin/updates/collective/add" class="btn btn-primary btn-sm">+ Add Update</a>
             </div>
           </td>
@@ -107,14 +97,14 @@ $listingCount = count($listings) + 1; // +1 for collective
             $cnt   = (int) ($entry['count'] ?? 0);
           ?>
           <tr>
-            <td class="text-dim" style="font-family:'DM Mono',monospace;text-align:right"><?= $fid ?></td>
+            <td class="text-dim"><?= $fid ?></td>
             <td class="<?= $cnt === 0 ? 'text-muted' : '' ?>"><?= View::e($listing->name) ?></td>
-            <td style="text-align:center">
+            <td>
               <span class="update-count <?= $cnt > 0 ? 'has-updates' : 'no-updates' ?>"><?= $cnt ?></span>
             </td>
             <td class="act-col">
               <div class="row-actions">
-                <a href="<?= $b ?>/admin/updates/<?= $fid ?>" class="btn btn-tertiary btn-sm">View All</a>
+                <a href="<?= $b ?>/admin/updates/<?= $fid ?>" class="btn btn-quaternary btn-sm">View All</a>
                 <a href="<?= $b ?>/admin/updates/<?= $fid ?>/add" class="btn btn-primary btn-sm">+ Add Update</a>
               </div>
             </td>
@@ -124,9 +114,9 @@ $listingCount = count($listings) + 1; // +1 for collective
         <?php if (empty($listings)): ?>
           <tr>
             <td colspan="4">
-              <div class="neb-empty">
+              <div class="empty">
                 <svg class="empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 11a9 9 0 0 1 9 9"/><path d="M4 4a16 16 0 0 1 16 16"/><circle cx="5" cy="19" r="1"/></svg>
-                No fanlistings found. Add a fanlisting first to post per-listing updates.
+                No listings found. Add a listing first to post per-listing updates.
               </div>
             </td>
           </tr>

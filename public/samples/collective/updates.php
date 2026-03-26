@@ -4,15 +4,11 @@
  * Requires the Updates add-on to be installed.
  */
 
-$_embedPath = dirname(__DIR__, 3) . '/public/embed';
-
-$_siteName    = 'Collective Name';
-$_siteTagline = 'A fanlisting collective';
-$_ownerName   = 'Your Name';
-$_ownerEmail  = 'you@example.com';
+$_lusterRoot  = dirname(__DIR__, 3);
+$_siteTagline = 'A fanlisting collective';  // ← your tagline
 $_navActive   = 'home';
 $_pageTitle   = 'Updates';
-
+require __DIR__ . '/_setup.php';
 require 'header.php';
 ?>
 

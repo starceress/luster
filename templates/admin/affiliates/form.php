@@ -1,4 +1,5 @@
 <?php
+use Luster\Core\View;
 /** @var \Luster\Models\Listing[]   $listings */
 /** @var \Luster\Models\Affiliate|null $affiliate   null = add mode */
 /** @var int    $context_fid  non-zero = came from a specific listing */
@@ -8,7 +9,7 @@
 /** @var string $base_url */
 /** @var string $csrf_token */
 /** @var string $site_name */
-$b          = rtrim(\Luster\Core\View::e($base_url), '/');
+$b          = rtrim(View::e($base_url), '/');
 $fe         = $field_errors ?? [];
 $isEdit     = $affiliate !== null;
 $contextFid = (int) ($context_fid ?? 0);
@@ -39,16 +40,16 @@ $v = static function (string $key, $model, string $prop, string $default = '') u
 ?>
 
 <p style="margin-bottom:1rem">
-  <a href="<?= $backUrl ?>" class="neb-link"><?= $backLabel ?></a>
+  <a href="<?= $backUrl ?>" class="link"><?= $backLabel ?></a>
 </p>
 
 <?php if ($error !== ''): ?>
-  <div class="alert alert-error"><?= \Luster\Core\View::e($error) ?></div>
+  <div class="alert alert-error"><?= View::e($error) ?></div>
 <?php endif; ?>
 
-<div class="neb-card neb-card-padded">
+<div class="card card-padded">
   <form method="POST" action="<?= $action ?>" enctype="multipart/form-data" class="js-warn-unsaved">
-    <input type="hidden" name="_csrf" value="<?= \Luster\Core\View::e($csrf_token ?? '') ?>">
+    <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
 
     <?php if ($isEdit && $contextFid > 0): ?>
       <input type="hidden" name="from_listing" value="<?= $contextFid ?>">
@@ -59,12 +60,12 @@ $v = static function (string $key, $model, string $prop, string $default = '') u
       <label class="form-label" for="aff-listing">Listing</label>
       <div class="select-wrap">
         <select id="aff-listing" name="fanlisting_id" class="form-select">
-          <option value="0"><?= \Luster\Core\View::e(($site_name ?? 'Collective') . ' (Collective)') ?></option>
+          <option value="0"><?= View::e(($site_name ?? 'Collective') . ' (Collective)') ?></option>
           <?php foreach ($listings as $fl): ?>
             <?php $selId = (int) ($old['fanlisting_id'] ?? ($affiliate?->listingId ?? 0)); ?>
             <option value="<?= (int) $fl->id ?>"
                     <?= (int) $fl->id === $selId ? 'selected' : '' ?>>
-              <?= \Luster\Core\View::e($fl->name) ?>
+              <?= View::e($fl->name) ?>
             </option>
           <?php endforeach; ?>
         </select>
@@ -78,29 +79,29 @@ $v = static function (string $key, $model, string $prop, string $default = '') u
     <div class="form-group<?= !empty($fe['name']) ? ' has-error' : '' ?>">
       <label class="form-label" for="aff-name">Affiliate Name <span>*</span></label>
       <input id="aff-name" type="text" name="name" class="form-input" maxlength="255" required
-             value="<?= \Luster\Core\View::e($v('name', $affiliate, 'name')) ?>">
-      <?php if (!empty($fe['name'])): ?><p class="field-error"><?= \Luster\Core\View::e($fe['name'][0]) ?></p><?php endif; ?>
+             value="<?= View::e($v('name', $affiliate, 'name')) ?>">
+      <?php if (!empty($fe['name'])): ?><p class="field-error"><?= View::e($fe['name'][0]) ?></p><?php endif; ?>
     </div>
 
     <div class="form-group<?= !empty($fe['url']) ? ' has-error' : '' ?>">
       <label class="form-label" for="aff-url">URL <span>*</span></label>
       <input id="aff-url" type="url" name="url" class="form-input" maxlength="500"
              placeholder="https://" required
-             value="<?= \Luster\Core\View::e($v('url', $affiliate, 'url')) ?>">
-      <?php if (!empty($fe['url'])): ?><p class="field-error"><?= \Luster\Core\View::e($fe['url'][0]) ?></p><?php endif; ?>
+             value="<?= View::e($v('url', $affiliate, 'url')) ?>">
+      <?php if (!empty($fe['url'])): ?><p class="field-error"><?= View::e($fe['url'][0]) ?></p><?php endif; ?>
     </div>
 
     <div class="form-group">
       <label class="form-label" for="aff-email">Email</label>
       <input id="aff-email" type="email" name="email" class="form-input" maxlength="255"
-             value="<?= \Luster\Core\View::e($v('email', $affiliate, 'email')) ?>">
+             value="<?= View::e($v('email', $affiliate, 'email')) ?>">
     </div>
 
     <div class="form-group">
       <label class="form-label" for="aff-sort-order">Sort Order</label>
       <input id="aff-sort-order" type="number" name="sort_order" class="form-input"
              min="1" max="9999" style="max-width:120px"
-             value="<?= \Luster\Core\View::e($v('sort_order', $affiliate, 'sortOrder', (string) ($next_sort_order ?? 1))) ?>">
+             value="<?= View::e($v('sort_order', $affiliate, 'sortOrder', (string) ($next_sort_order ?? 1))) ?>">
       <p class="form-hint">Lower numbers appear first on the public site. Affiliates with the same sort order are sorted alphabetically.</p>
     </div>
 
@@ -109,7 +110,7 @@ $v = static function (string $key, $model, string $prop, string $default = '') u
       <?php if ($isEdit && ($affiliate->image ?? '') !== ''): ?>
         <div style="margin-bottom:.75rem">
           <p class="form-hint" style="margin:0 0 .35rem">Current image:</p>
-          <img src="<?= $b ?>/uploads/affiliates/<?= \Luster\Core\View::e($affiliate->image) ?>"
+          <img src="<?= $b ?>/uploads/affiliates/<?= View::e($affiliate->image) ?>"
                alt="Current affiliate image"
                style="max-height:80px;max-width:200px;border:1px solid var(--border);border-radius:4px;display:block;margin-bottom:.5rem">
           <label class="form-check" style="color:var(--danger)">
@@ -125,7 +126,7 @@ $v = static function (string $key, $model, string $prop, string $default = '') u
 
     <div class="btn-row">
       <button type="submit" class="btn btn-primary"><?= $isEdit ? 'Save Changes' : 'Add Affiliate' ?></button>
-      <a href="<?= $backUrl ?>" class="neb-link">Cancel</a>
+      <a href="<?= $backUrl ?>" class="link">Cancel</a>
     </div>
   </form>
 </div>

@@ -17,7 +17,7 @@ $id = (int) $listing->id;
 ?>
 
 <p class="page-back">
-  <a href="<?= $b ?>/admin/members/<?= $id ?>" class="neb-link">&larr; Back to <?= View::e($listing->name) ?> members</a>
+  <a href="<?= $b ?>/admin/members/<?= $id ?>" class="link">&larr; Back to <?= View::e($listing->name) ?> members</a>
 </p>
 
 <?php if ($error !== ''): ?>
@@ -25,7 +25,7 @@ $id = (int) $listing->id;
 <?php endif; ?>
 
 <?php if ($results !== null): ?>
-  <!-- ── Results ── -->
+  <!-- â”€â”€ Results â”€â”€ -->
   <?php $errCount = count($results['errors']); ?>
 
   <?php if ($errCount === 0 && $results['imported'] > 0): ?>
@@ -34,7 +34,7 @@ $id = (int) $listing->id;
     </div>
   <?php elseif ($results['imported'] === 0 && $errCount === 0 && $results['skipped'] > 0): ?>
     <div class="alert alert-error" style="margin-bottom:1.25rem">
-      No members were imported — all rows were duplicates.
+      No members were imported â€” all rows were duplicates.
     </div>
   <?php elseif ($errCount > 0): ?>
     <div class="alert alert-error" style="margin-bottom:1.25rem">
@@ -42,7 +42,7 @@ $id = (int) $listing->id;
     </div>
   <?php endif; ?>
 
-  <div class="neb-card neb-card-padded" style="margin-bottom:1.25rem">
+  <div class="card card-padded" style="margin-bottom:1.25rem">
     <div class="db-info-grid">
       <div>
         <div class="form-label" style="margin-bottom:.25rem">Imported</div>
@@ -62,10 +62,10 @@ $id = (int) $listing->id;
   </div>
 
   <?php if ($errCount > 0): ?>
-  <div class="neb-card neb-card-padded" style="margin-bottom:1.25rem">
+  <div class="card card-padded" style="margin-bottom:1.25rem">
     <div style="font-weight:600;margin-bottom:.75rem">Rows with errors</div>
     <div style="overflow-x:auto">
-      <div class="neb-table-wrap">
+      <div class="table-wrap">
       <table class="data-table">
         <thead>
           <tr>
@@ -91,12 +91,12 @@ $id = (int) $listing->id;
 
   <div class="btn-row">
     <a href="<?= $b ?>/admin/members/<?= $id ?>" class="btn btn-primary">View member list</a>
-    <a href="<?= $b ?>/admin/members/<?= $id ?>/import" class="btn btn-tertiary">Import another file</a>
+    <a href="<?= $b ?>/admin/members/<?= $id ?>/import" class="btn btn-quaternary">Import another file</a>
   </div>
 
 <?php else: ?>
-  <!-- ── Upload form ── -->
-  <div class="neb-card neb-card-padded">
+  <!-- â”€â”€ Upload form â”€â”€ -->
+  <div class="card card-padded">
     <p style="margin:0 0 1.25rem;color:var(--text-muted);font-size:.9rem">
       Upload a CSV file to import members directly into <strong><?= View::e($listing->name) ?></strong>.
       All imported members are set to <strong>approved</strong> immediately.
@@ -117,18 +117,18 @@ $id = (int) $listing->id;
       <div class="btn-row">
         <button type="submit" class="btn btn-primary">Upload &amp; import</button>
         <a href="<?= $b ?>/admin/members/<?= $id ?>/import/template"
-           class="btn btn-tertiary">Download CSV template</a>
+           class="btn btn-quaternary">Download CSV template</a>
       </div>
     </form>
   </div>
 
-  <div class="neb-card neb-card-padded" style="margin-top:1.25rem">
+  <div class="card card-padded" style="margin-top:1.25rem">
     <div style="font-weight:600;margin-bottom:.75rem">Expected CSV format</div>
     <p style="font-size:.875rem;color:var(--text-muted);margin:0 0 .75rem">
       The first row must be a header row. Column names are case-insensitive.
     </p>
     <div style="overflow-x:auto">
-      <div class="neb-table-wrap">
+      <div class="table-wrap">
       <table class="data-table">
         <thead>
           <tr><th>Column</th><th>Required</th><th>Notes</th></tr>
@@ -138,7 +138,7 @@ $id = (int) $listing->id;
           <tr><td><code>email</code></td>  <td>Yes</td><td>Must be a valid email address; rows with duplicate emails are skipped</td></tr>
           <tr><td><code>url</code></td>    <td>No</td> <td>Member's website URL</td></tr>
           <tr><td><code>country</code></td><td>No</td> <td>Country name or code</td></tr>
-          <tr><td><code>password</code></td><td>No</td><td>Plain text — will be hashed; a random password is generated if omitted</td></tr>
+          <tr><td><code>password</code></td><td>No</td><td>Plain text â€” will be hashed; a random password is generated if omitted</td></tr>
           <tr><td><em>field name</em></td> <td>No</td> <td>Any additional field defined for this listing (use the field's internal name as the column header)</td></tr>
         </tbody>
       </table>

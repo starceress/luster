@@ -39,11 +39,17 @@ final class UpdatesPublicController
 
         $perPage = max(1, (int) ($config->get('per_page', 20)));
         $page    = max(1, (int) ($request->query('page', 1)));
+        $cat     = trim((string) $request->query('cat', ''));
 
         $updateRepo = new UpdateRepo($db);
-        $updates    = $updateRepo->getForFanlisting($fid, $page, $perPage);
-        $total      = $updateRepo->countForFanlisting($fid);
-        $pages      = max(1, (int) ceil($total / $perPage));
+        if ($cat !== '') {
+            $updates = $updateRepo->getForFanlistingByCategory($fid, $cat, $page, $perPage);
+            $total   = $updateRepo->countForFanlistingByCategory($fid, $cat);
+        } else {
+            $updates = $updateRepo->getForFanlisting($fid, $page, $perPage);
+            $total   = $updateRepo->countForFanlisting($fid);
+        }
+        $pages = max(1, (int) ceil($total / $perPage));
 
         $baseUrl   = $this->app->getBaseUrl();
         $themePath = $baseUrl . '/assets/default/';
@@ -64,6 +70,7 @@ final class UpdatesPublicController
             'is_collective' => false,
             'show_cats'     => true,
             'owner_name'    => $ownerName,
+            'active_cat'    => $cat,
             'feed_url'      => $baseUrl . '/updates/' . $fid,
         ]);
 
@@ -81,11 +88,17 @@ final class UpdatesPublicController
 
         $perPage = max(1, (int) ($config->get('per_page', 20)));
         $page    = max(1, (int) ($request->query('page', 1)));
+        $cat     = trim((string) $request->query('cat', ''));
 
         $updateRepo = new UpdateRepo($db);
-        $updates    = $updateRepo->getCollective($page, $perPage);
-        $total      = $updateRepo->countCollective();
-        $pages      = max(1, (int) ceil($total / $perPage));
+        if ($cat !== '') {
+            $updates = $updateRepo->getCollectiveByCategory($cat, $page, $perPage);
+            $total   = $updateRepo->countCollectiveByCategory($cat);
+        } else {
+            $updates = $updateRepo->getCollective($page, $perPage);
+            $total   = $updateRepo->countCollective();
+        }
+        $pages = max(1, (int) ceil($total / $perPage));
 
         $baseUrl   = $this->app->getBaseUrl();
         $themePath = $baseUrl . '/assets/default/';
@@ -107,6 +120,7 @@ final class UpdatesPublicController
             'is_collective' => true,
             'show_cats'     => true,
             'owner_name'    => $ownerName,
+            'active_cat'    => $cat,
             'feed_url'      => $baseUrl . '/updates',
         ]);
 

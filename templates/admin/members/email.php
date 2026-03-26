@@ -1,16 +1,17 @@
 <?php declare(strict_types=1);
-$b          = rtrim(\Luster\Core\View::e($base_url ?? ''), '/');
-$flName     = \Luster\Core\View::e($listing->name ?? '');
-$oldSubject = \Luster\Core\View::e($old['subject'] ?? '');
+use Luster\Core\View;
+$b          = rtrim(View::e($base_url ?? ''), '/');
+$flName     = View::e($listing->name ?? '');
+$oldSubject = View::e($old['subject'] ?? '');
 $oldBody    = htmlspecialchars($old['body'] ?? '', ENT_QUOTES, 'UTF-8');
 $listingId  = (int) ($listing->id ?? 0);
 ?>
 
 <?php if (($error ?? '') !== ''): ?>
-  <div class="alert alert-error"><?= \Luster\Core\View::e($error ?? '') ?></div>
+  <div class="alert alert-error"><?= View::e($error ?? '') ?></div>
 <?php endif; ?>
 <?php if (($success ?? '') !== ''): ?>
-  <div class="alert alert-success"><?= \Luster\Core\View::e($success ?? '') ?></div>
+  <div class="alert alert-success"><?= View::e($success ?? '') ?></div>
 <?php endif; ?>
 
 <div class="composer-grid">
@@ -19,7 +20,7 @@ $listingId  = (int) ($listing->id ?? 0);
   <div class="composer-side">
 
     <?php if (!empty($saved_emails)): ?>
-    <div class="neb-card side-card">
+    <div class="card side-card">
       <div class="side-card-head">
         <svg class="side-card-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
           <rect x="2" y="3" width="12" height="10" rx="1.5"/><path d="M2 6.5h12"/>
@@ -28,12 +29,12 @@ $listingId  = (int) ($listing->id ?? 0);
       </div>
       <div class="side-card-body">
         <div class="select-wrap">
-          <select id="em-template-select" class="neb-select">
+          <select id="em-template-select" class="select">
             <option value="">— Select a template —</option>
             <?php foreach ($saved_emails as $t): ?>
-              <option value="<?= \Luster\Core\View::e($t->subject) ?>"
+              <option value="<?= View::e($t->subject) ?>"
                       data-body="<?= htmlspecialchars($t->body, ENT_QUOTES, 'UTF-8') ?>">
-                <?= \Luster\Core\View::e($t->name) ?>
+                <?= View::e($t->name) ?>
               </option>
             <?php endforeach; ?>
           </select>
@@ -43,7 +44,7 @@ $listingId  = (int) ($listing->id ?? 0);
     </div>
     <?php endif; ?>
 
-    <div class="neb-card side-card">
+    <div class="card side-card">
       <div class="side-card-head">
         <svg class="side-card-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
           <path d="M3 14V3l3-1h6l3 3v9M6 14V9h4v5"/>
@@ -52,12 +53,12 @@ $listingId  = (int) ($listing->id ?? 0);
       </div>
       <div class="side-card-body">
         <form method="POST" action="<?= $b ?>/admin/new-email-template/save" id="em-save-tpl-form">
-          <input type="hidden" name="_csrf"       value="<?= \Luster\Core\View::e($csrf_token ?? '') ?>">
-          <input type="hidden" name="referer"     id="em-save-referer" value="<?= \Luster\Core\View::e($_SERVER['REQUEST_URI'] ?? '') ?>">
+          <input type="hidden" name="_csrf"       value="<?= View::e($csrf_token ?? '') ?>">
+          <input type="hidden" name="referer"     id="em-save-referer" value="<?= View::e($_SERVER['REQUEST_URI'] ?? '') ?>">
           <input type="hidden" name="tpl_subject" id="em-save-subject">
           <input type="hidden" name="tpl_body"    id="em-save-body">
           <input type="text"   name="tpl_name"    id="em-save-name"
-                 class="neb-input" placeholder="Template name&hellip;" maxlength="150">
+                 class="input" placeholder="Template name&hellip;" maxlength="150">
           <button type="submit" class="btn-save-tpl" id="em-save-btn">
             <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.75">
               <path d="M3 14V3l3-1h6l3 3v9M6 14V9h4v5"/>
@@ -68,7 +69,7 @@ $listingId  = (int) ($listing->id ?? 0);
       </div>
     </div>
 
-    <details class="neb-card side-card">
+    <details class="card side-card">
       <summary class="side-card-head">
         <svg class="side-card-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
           <path d="M4 4h8M4 8h5M4 12h3"/>
@@ -103,10 +104,10 @@ $listingId  = (int) ($listing->id ?? 0);
   </div><!-- /.composer-side -->
 
   <!-- ── Main composer ── -->
-  <div class="neb-card composer-card">
+  <div class="card composer-card">
     <form method="POST" id="email-form">
-      <input type="hidden" name="_csrf"        value="<?= \Luster\Core\View::e($csrf_token ?? '') ?>">
-      <input type="hidden" name="member_email" value="<?= \Luster\Core\View::e($member_email ?? '') ?>">
+      <input type="hidden" name="_csrf"        value="<?= View::e($csrf_token ?? '') ?>">
+      <input type="hidden" name="member_email" value="<?= View::e($member_email ?? '') ?>">
 
       <div class="composer-header">
         <span class="composer-header-label">New Message</span>
@@ -120,15 +121,15 @@ $listingId  = (int) ($listing->id ?? 0);
           <span class="addr-lbl">From</span>
           <div>
             <?php if (($from_name ?? '') !== ''): ?>
-              <span class="addr-name"><?= \Luster\Core\View::e($from_name) ?></span>
+              <span class="addr-name"><?= View::e($from_name) ?></span>
             <?php endif; ?>
-            <span class="addr-email">&lt;<?= \Luster\Core\View::e($from_email ?? '') ?>&gt;</span>
+            <span class="addr-email">&lt;<?= View::e($from_email ?? '') ?>&gt;</span>
           </div>
         </div>
         <div class="addr-row">
           <span class="addr-lbl">To</span>
           <div>
-            <span class="addr-name"><?= \Luster\Core\View::e($member_name ?? '') ?></span><span class="addr-email">&lt;<?= \Luster\Core\View::e($member_email ?? '') ?>&gt;</span>
+            <span class="addr-name"><?= View::e($member_name ?? '') ?></span><span class="addr-email">&lt;<?= View::e($member_email ?? '') ?>&gt;</span>
           </div>
         </div>
       </div>
@@ -155,7 +156,7 @@ $listingId  = (int) ($listing->id ?? 0);
         <button type="button" class="btn btn-ghost" id="preview-email-btn">Preview</button>
         <button type="button" class="btn btn-ghost js-form-reset">Clear</button>
         <div style="flex:1"></div>
-        <a href="<?= \Luster\Core\View::e($referer ?? $b . '/admin/members/' . $listingId) ?>"
+        <a href="<?= View::e($referer ?? $b . '/admin/members/' . $listingId) ?>"
            class="btn btn-ghost btn-sm">Cancel</a>
       </div>
     </form>
@@ -164,22 +165,22 @@ $listingId  = (int) ($listing->id ?? 0);
 </div><!-- /.composer-grid -->
 
 <!-- Preview modal -->
-<div class="neb-modal-backdrop" id="preview-modal" style="display:none"
+<div class="modal-backdrop" id="preview-modal" style="display:none"
      data-listing-name="<?= $flName ?>"
-     data-listing-subject="<?= \Luster\Core\View::e($listing->subject ?? '') ?>"
-     data-listing-url="<?= \Luster\Core\View::e($listing->url ?? '') ?>"
-     data-fan-name="<?= \Luster\Core\View::e($member_name ?? '') ?>"
-     data-fan-email="<?= \Luster\Core\View::e($member_email ?? '') ?>"
-     data-fan-url="<?= \Luster\Core\View::e($member_url ?? '') ?>"
-     data-fan-country="<?= \Luster\Core\View::e($member_country ?? '') ?>"
-     data-site-name="<?= \Luster\Core\View::e($site_name ?? '') ?>"
-     data-owner-name="<?= \Luster\Core\View::e($from_name ?? '') ?>"
-     data-owner-email="<?= \Luster\Core\View::e($from_email ?? '') ?>">
-  <div class="neb-modal neb-modal--wide">
-    <div class="neb-modal-header">
-      <h3 class="neb-modal-title">Email Preview</h3>
+     data-listing-subject="<?= View::e($listing->subject ?? '') ?>"
+     data-listing-url="<?= View::e($listing->url ?? '') ?>"
+     data-fan-name="<?= View::e($member_name ?? '') ?>"
+     data-fan-email="<?= View::e($member_email ?? '') ?>"
+     data-fan-url="<?= View::e($member_url ?? '') ?>"
+     data-fan-country="<?= View::e($member_country ?? '') ?>"
+     data-site-name="<?= View::e($site_name ?? '') ?>"
+     data-owner-name="<?= View::e($from_name ?? '') ?>"
+     data-owner-email="<?= View::e($from_email ?? '') ?>">
+  <div class="modal modal--wide">
+    <div class="modal-header">
+      <h3 class="modal-title">Email Preview</h3>
     </div>
-    <div class="neb-modal-body">
+    <div class="modal-body">
       <div class="addr-block" style="margin:-.25rem -1.5rem .75rem;border-top:1px solid var(--border-soft)">
         <div class="addr-row">
           <span class="addr-lbl">From</span>
@@ -202,7 +203,7 @@ $listingId  = (int) ($listing->id ?? 0);
       </div>
       <div id="preview-body" style="white-space:pre-wrap;font-size:.875rem;color:var(--text)"></div>
     </div>
-    <div class="neb-modal-footer" id="em-footer-preview">
+    <div class="modal-footer" id="em-footer-preview">
       <button class="btn btn-ghost" id="close-preview-btn">Close</button>
     </div>
     <div id="em-footer-confirm" style="display:none">
@@ -210,7 +211,7 @@ $listingId  = (int) ($listing->id ?? 0);
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><rect x="11" y="8.5" width="2" height="5.5" rx="1" fill="currentColor" stroke="none"/><circle cx="12" cy="16.5" r="1.1" fill="currentColor" stroke="none"/></svg>
         Are you sure you want to send this email? This action cannot be undone.
       </div>
-      <div class="neb-modal-footer">
+      <div class="modal-footer">
         <button type="button" class="btn btn-ghost" id="em-confirm-cancel-btn">Cancel</button>
         <button type="button" class="btn btn-primary" id="em-confirm-send-btn">Send &rarr;</button>
       </div>

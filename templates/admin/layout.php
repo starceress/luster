@@ -1,5 +1,6 @@
 <?php
-$b = rtrim(\Luster\Core\View::e($base_url), '/');
+use Luster\Core\View;
+$b = rtrim(View::e($base_url), '/');
 // Treat 'blacklist' as part of Settings for nav highlighting
 $s = match ($current_section ?? '') {
     'blacklist'       => 'settings',
@@ -7,7 +8,7 @@ $s = match ($current_section ?? '') {
     'email-templates' => 'emails',
     default           => ($current_section ?? ''),
 };
-// Section identity attribute — shared by neb-card borders and active nav colour
+// Section identity attribute â€” shared by neb-card borders and active nav colour
 $_uri = $_SERVER['REQUEST_URI'] ?? '';
 $pageSection = '';
 if (preg_match('#/admin/(listings|joined|members|affiliates|categories|pending-updates)(?:/|$|\?)#', $_uri, $_m)) {
@@ -26,13 +27,13 @@ if (!function_exists('navActive')) {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title><?= \Luster\Core\View::e($page_title) ?> &mdash; <?= \Luster\Core\View::e($site_name) ?></title>
+  <title>Luster &#10022; Fanlisting Management System  &mdash; <?= View::e($page_title) ?></title>
   <link rel="stylesheet" href="<?= $b ?>/assets/css/admin.css">
   <script>(function(){var t=localStorage.getItem('lstr_theme');if(t==='dark'||t==='light')document.documentElement.setAttribute('data-theme',t);})();</script>
 </head>
 <body<?= $pageSection !== '' ? ' data-section="' . $pageSection . '"' : '' ?>>
 
-<!-- ═══════════ SIDEBAR ═══════════ -->
+<!-- â•â•â•â•â•â•â•â•â•â•â• SIDEBAR â•â•â•â•â•â•â•â•â•â•â• -->
 <aside class="sidebar">
   <div class="sidebar-dots" aria-hidden="true"></div>
 
@@ -53,130 +54,57 @@ if (!function_exists('navActive')) {
 
     <div class="sidebar-section">
       <div class="sidebar-label">Main</div>
-      <a href="<?= $b ?>/admin" class="nav-item<?= navActive('dashboard', $s) ?>">
-        <svg class="nav-icon" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
-          <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>
-        </svg>
-        Dashboard
-      </a>
+      <a href="<?= $b ?>/admin" class="nav-item<?= navActive('dashboard', $s) ?>"><span class="nav-icon"><?= View::icon('home') ?></span> Dashboard</a>
     </div>
 
     <div class="sidebar-section">
       <div class="sidebar-label">Manage</div>
-      <a href="<?= $b ?>/admin/listings" class="nav-item<?= navActive('listings', $s) ?>">
-        <svg class="nav-icon" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
-          <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01z"/>
-        </svg>
-        Owned
-      </a>
-      <a href="<?= $b ?>/admin/joined" class="nav-item<?= navActive('joined', $s) ?>">
-        <svg class="nav-icon" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
-          <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
-        </svg>
-        Joined
-      </a>
-      <a href="<?= $b ?>/admin/members" class="nav-item<?= navActive('members', $s) ?>">
-        <svg class="nav-icon" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
-          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
-          <path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
-        </svg>
-        Members
+      <a href="<?= $b ?>/admin/listings" class="nav-item<?= navActive('listings', $s) ?>"><span class="nav-icon"><?= View::icon('star') ?></span> Owned</a>
+
+      <a href="<?= $b ?>/admin/joined" class="nav-item<?= navActive('joined', $s) ?>"><span class="nav-icon"><?= View::icon('heart') ?></span> Joined</a>
+
+      <a href="<?= $b ?>/admin/members" class="nav-item<?= navActive('members', $s) ?>"><span class="nav-icon"><?= View::icon('members') ?></span> Members
         <?php if (($nav_pending_members ?? 0) > 0): ?>
           <span class="nav-pending"><?= (int) $nav_pending_members ?></span>
         <?php endif; ?>
       </a>
 
-      <a href="<?= $b ?>/admin/affiliates" class="nav-item<?= navActive('affiliates', $s) ?>">
-        <svg class="nav-icon" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
-          <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
-          <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
-        </svg>
-        Affiliates
-      </a>
-      <a href="<?= $b ?>/admin/categories" class="nav-item<?= navActive('categories', $s) ?>">
-        <svg class="nav-icon" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
-          <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/>
-          <line x1="7" y1="7" x2="7.01" y2="7"/>
-        </svg>
-        Categories
-      </a>
-      <a href="<?= $b ?>/admin/embed-codes" class="nav-item<?= navActive('embed-codes', $s) ?>">
-        <svg class="nav-icon" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
-          <polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/>
-        </svg>
-        Embed Codes
-      </a>
-      <a href="<?= $b ?>/admin/emails" class="nav-item<?= navActive('emails', $s) ?>">
-        <svg class="nav-icon" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
-          <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
-          <polyline points="22,6 12,13 2,6"/>
-        </svg>
-        Emails
-      </a>
-      <?php
-      $_navAddons = $nav_installed_addons ?? [];
+      <a href="<?= $b ?>/admin/affiliates" class="nav-item<?= navActive('affiliates', $s) ?>"><span class="nav-icon"><?= View::icon('link') ?></span> Affiliates</a>
+
+      <a href="<?= $b ?>/admin/categories" class="nav-item<?= navActive('categories', $s) ?>"><span class="nav-icon"><?= View::icon('tag') ?></span> Categories</a>
+      
+      <a href="<?= $b ?>/admin/embed-codes" class="nav-item<?= navActive('embed-codes', $s) ?>"><span class="nav-icon"><?= View::icon('embed') ?></span> Embed Codes</a>
+
+      <a href="<?= $b ?>/admin/emails" class="nav-item<?= navActive('emails', $s) ?>"><span class="nav-icon"><?= View::icon('email') ?></span> Emails</a>
+
+      <?php $_navAddons = $nav_installed_addons ?? [];
       if (in_array('Kim', $_navAddons, true)): ?>
-      <a href="<?= $b ?>/admin/kim" class="nav-item<?= navActive('kim', $s) ?>">
-        <svg class="nav-icon" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
-          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
-          <line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/>
-        </svg>
-        Keep In Mind
-      </a>
+      <a href="<?= $b ?>/admin/kim" class="nav-item<?= navActive('kim', $s) ?>"><span class="nav-icon"><?= View::icon('kim') ?></span> Keep In Mind</a>
       <?php endif; ?>
+
       <?php if (in_array('Updates', $_navAddons, true)): ?>
-      <a href="<?= $b ?>/admin/updates" class="nav-item<?= navActive('updates', $s) ?>">
-        <svg class="nav-icon" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
-          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>
-          <line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>
-        </svg>
-        Updates Feed
-      </a>
+      <a href="<?= $b ?>/admin/updates" class="nav-item<?= navActive('updates', $s) ?>"><span class="nav-icon"><?= View::icon('updates') ?></span> Updates Feed</a>
       <?php endif; ?>
     </div>
 
     <div class="sidebar-section">
       <div class="sidebar-label">System</div>
-      <a href="<?= $b ?>/admin/addons" class="nav-item<?= navActive('addons', $s) ?>">
-        <svg class="nav-icon" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
-          <path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
-        </svg>
-        Add-ons
-      </a>
-      <a href="<?= $b ?>/admin/settings" class="nav-item<?= navActive('settings', $s) ?>">
-        <svg class="nav-icon" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
-          <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
-        </svg>
-        Settings
-      </a>
-      <?php $logsOpen = in_array($s, ['activity', 'errorlog']); ?>
+      <a href="<?= $b ?>/admin/addons" class="nav-item<?= navActive('addons', $s) ?>"><span class="nav-icon"><?= View::icon('addon') ?></span> Add-Ons</a>
+      
+      <a href="<?= $b ?>/admin/settings" class="nav-item<?= navActive('settings', $s) ?>"><span class="nav-icon"><?= View::icon('gear') ?></span> Settings</a>
+
+      <?php $logsOpen = in_array($s, ['activitylog', 'errorlog']); ?>
       <div class="nav-group">
         <button class="nav-group-toggle"
                 aria-expanded="<?= $logsOpen ? 'true' : 'false' ?>"
                 data-group="logs">
-          <svg class="nav-icon" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
-            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-            <polyline points="14 2 14 8 20 8"/>
-            <line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>
-          </svg>
-          Logs
-          <svg class="nav-group-chevron" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-            <polyline points="6 9 12 15 18 9"/>
-          </svg>
+          <span class="nav-icon"><?= View::icon('logs') ?></span> Logs
+          <span class="nav-icon nav-group-chevron"><?= View::icon('chevrondown') ?></span>
         </button>
         <div class="nav-group-panel<?= $logsOpen ? ' open' : '' ?>" id="nav-group-logs">
-          <a href="<?= $b ?>/admin/activity" class="nav-item nav-sub-item<?= navActive('activity', $s) ?>">
-            <svg class="nav-icon" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
-              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-              <polyline points="14 2 14 8 20 8"/>
-              <line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>
-            </svg>
-            Activity Log
-          </a>
-          <a href="<?= $b ?>/admin/errorlog" class="nav-item nav-sub-item<?= navActive('errorlog', $s) ?>">
-            <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><rect x="11" y="8.5" width="2" height="5.5" rx="1" fill="currentColor" stroke="none"/><circle cx="12" cy="16.5" r="1.1" fill="currentColor" stroke="none"/></svg>
-            Error Log
-          </a>
+          <a href="<?= $b ?>/admin/errorlog" class="nav-item nav-sub-item<?= navActive('errorlog', $s) ?>"><span class="nav-icon"><?= View::icon('caution') ?></span> Error Log</a>
+
+          <a href="<?= $b ?>/admin/activitylog" class="nav-item nav-sub-item<?= navActive('activitylog', $s) ?>"><span class="nav-icon"><?= View::icon('notes') ?></span> Activity Log</a>
         </div>
       </div>
     </div>
@@ -185,41 +113,38 @@ if (!function_exists('navActive')) {
 
   <div class="sidebar-footer">
     <div class="sidebar-user">
-      <div class="user-star">✦</div>
+      <div class="user-star">âœ¦</div>
       <div class="user-info">
-        <span class="user-name"><?= \Luster\Core\View::e($admin_username) ?></span>
-        <span class="user-role"><?= \Luster\Core\View::e($site_name) ?></span>
+        <span class="user-name"><?= View::e($admin_username) ?></span>
+        <span class="user-role"><?= View::e($site_name) ?></span>
       </div>
     </div>
     <form method="POST" action="<?= $b ?>/admin/logout" style="margin-top:12px">
-      <input type="hidden" name="_csrf" value="<?= \Luster\Core\View::e($csrf_token) ?>">
-      <button type="submit" class="btn-signout"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg> Log Out</button>
+      <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
+      <button type="submit" class="btn-signout"><?= View::icon('signout') ?> Sign Out</button>
     </form>
   </div>
-
 </aside>
 
-<!-- ═══════════ SIDEBAR OVERLAY (mobile) ═══════════ -->
+<!-- â•â•â•â•â•â•â•â•â•â•â• SIDEBAR OVERLAY (mobile) â•â•â•â•â•â•â•â•â•â•â• -->
 <div class="sidebar-overlay" id="sidebarOverlay"></div>
 
-<!-- ═══════════ MAIN ═══════════ -->
-<div class="main-wrap">
-
+<main>
   <div class="topbar">
     <div class="topbar-left">
       <button class="hamburger" id="hamburger" aria-label="Open menu">
         <span></span><span></span><span></span>
       </button>
       <div class="topbar-title-group">
-        <span class="topbar-page"><?= \Luster\Core\View::e($page_title) ?></span>
+        <span class="topbar-page"><?= View::e($page_title) ?></span>
         <?php if (!empty($page_subtitle)): ?>
-          <span class="topbar-sub"><?= \Luster\Core\View::e($page_subtitle) ?></span>
+          <span class="topbar-sub"><?= View::e($page_subtitle) ?></span>
         <?php endif; ?>
       </div>
     </div>
     <div class="topbar-right">
       <?php if (!empty($nav_site_url)): ?>
-        <a href="<?= \Luster\Core\View::e($nav_site_url) ?>" target="_blank" rel="noopener noreferrer"
+        <a href="<?= View::e($nav_site_url) ?>" target="_blank" rel="noopener noreferrer"
            class="topbar-view-site" aria-label="View public site">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
             <circle cx="12" cy="12" r="10"/>
@@ -242,23 +167,23 @@ if (!function_exists('navActive')) {
     <?= $content ?>
   </div>
 
-</div>
+</main>
 
-<!-- ── Global delete confirmation modal ────────────────────────────────────── -->
-<div id="del-confirm-modal" class="neb-modal-backdrop" style="display:none" role="dialog" aria-modal="true" aria-labelledby="del-modal-title">
-  <div class="neb-modal">
-    <div class="neb-modal-header">
-      <h3 class="neb-modal-title" id="del-modal-title">Confirm Deletion</h3>
+<!-- â”€â”€ Global delete confirmation modal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
+<div id="del-confirm-modal" class="modal-backdrop" style="display:none" role="dialog" aria-modal="true" aria-labelledby="del-modal-title">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 class="modal-title" id="del-modal-title">Confirm Deletion</h3>
     </div>
-    <div class="neb-modal-body">
+    <div class="modal-body">
       <p id="del-modal-desc" style="margin-bottom:.75rem"></p>
-      <div class="addon-modal-warning">
+      <div class="modal-warning">
         <strong>Warning:</strong> <span id="del-modal-warning-text">This action cannot be undone.</span>
       </div>
     </div>
-    <div class="neb-modal-footer">
+    <div class="modal-footer">
       <button type="button" class="btn btn-danger" id="del-modal-confirm">Delete</button>
-      <button type="button" class="btn btn-tertiary" id="del-modal-cancel">Cancel</button>
+      <button type="button" class="btn btn-quaternary" id="del-modal-cancel">Cancel</button>
     </div>
   </div>
 </div>

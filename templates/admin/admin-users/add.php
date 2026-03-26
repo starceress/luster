@@ -17,14 +17,14 @@ $fe = $field_errors ?? [];
 ?>
 
 <p class="page-back">
-  <a href="<?= $b ?>/admin/settings" class="neb-link">&larr; Back to Settings</a>
+  <a href="<?= $b ?>/admin/settings" class="link">&larr; Back to Settings</a>
 </p>
 
 <?php if ($error !== ''): ?>
   <div class="alert alert-error"><?= View::e($error) ?></div>
 <?php endif; ?>
 
-<div class="neb-card neb-card-padded">
+<div class="card card-padded">
   <form method="POST" action="<?= $b ?>/admin/admin-users/add" class="js-warn-unsaved">
     <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
 
@@ -76,7 +76,7 @@ $fe = $field_errors ?? [];
 
     <div class="btn-row">
       <button type="submit" class="btn btn-primary">Create Account</button>
-      <a href="<?= $b ?>/admin/settings" class="btn btn-tertiary">Cancel</a>
+      <a href="<?= $b ?>/admin/settings" class="btn btn-quaternary">Cancel</a>
     </div>
   </form>
 </div>

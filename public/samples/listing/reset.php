@@ -18,26 +18,11 @@
  *      the reset link sent by email.)
  */
 
-const LISTING_ID = 1;   // ← your listing ID
-
-$_embedPath  = dirname(__DIR__, 3) . '/public/embed';
+const LISTING_ID = 1;           // ← your listing ID
 $_lusterRoot = dirname(__DIR__, 3);
-
-defined('LUSTER_BASE') || define('LUSTER_BASE', $_lusterRoot);
-require_once $_lusterRoot . '/vendor/autoload.php';
-
-$_sampleApp = require $_lusterRoot . '/bootstrap.php';
-$_sampleL   = (new \Luster\Repositories\ListingRepo(
-    $_sampleApp->getDatabase(),
-    $_sampleApp->getConfig(),
-))->getById(LISTING_ID);
-
-$_siteName   = $_sampleL?->name ?? 'Listing Name';
-$_ownerName  = (string) ($_sampleApp->getConfig()->get('owner_name',  '') ?: 'Your Name');
-$_ownerEmail = (string) ($_sampleApp->getConfig()->get('owner_email', '') ?: 'you@example.com');
-$_navActive  = '';           // not a nav item — accessed via "Forgot your password?" link
+$_navActive  = '';              // not a nav item — accessed via "Forgot your password?" link
 $_pageTitle  = 'Reset Password';
-
+require __DIR__ . '/_setup.php';
 require 'header.php';
 ?>
 

@@ -22,6 +22,7 @@ $_navLinks = [
     'members'    => ['href' => 'members.php',      'label' => 'Members'],
     'codes'      => ['href' => 'codes.php',        'label' => 'Codes'],
     'affiliates' => ['href' => 'affiliates.php',   'label' => 'Affiliates'],
+    'contact'    => ['href' => 'contact.php',      'label' => 'Contact'],
 ];
 ?>
 <!DOCTYPE html>

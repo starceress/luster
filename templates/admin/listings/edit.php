@@ -1,4 +1,5 @@
 <?php
+use Luster\Core\View;
 /** @var \Luster\Models\Listing    $listing */
 /** @var string                       $error */
 /** @var string                       $success */
@@ -15,7 +16,7 @@
 /** @var int|null                     $current_category_id */
 /** @var string                       $base_url */
 /** @var string                       $csrf_token */
-$b  = rtrim(\Luster\Core\View::e($base_url), '/');
+$b  = rtrim(View::e($base_url), '/');
 $fe = $field_errors ?? [];
 
 $sizeMap   = ['small' => '50px', 'medium' => '100px', 'large' => '150px'];
@@ -66,36 +67,36 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
     Back to Owned Listings
   </a>
   <div class="topbar-actions">
-    <a href="<?= $b ?>/admin/members/<?= (int) $listing->id ?>" class="btn btn-tertiary btn-sm">Members</a>
-    <a href="<?= $b ?>/admin/listings/<?= (int) $listing->id ?>/codes" class="btn btn-tertiary btn-sm">Codes</a>
-    <a href="<?= $b ?>/admin/emails?tab=templates&listing=<?= (int) $listing->id ?>" class="btn btn-tertiary btn-sm">Emails</a>
+    <a href="<?= $b ?>/admin/members/<?= (int) $listing->id ?>" class="btn btn-quaternary btn-sm">Members</a>
+    <a href="<?= $b ?>/admin/listings/<?= (int) $listing->id ?>/codes" class="btn btn-quaternary btn-sm">Codes</a>
+    <a href="<?= $b ?>/admin/emails?tab=templates&listing=<?= (int) $listing->id ?>" class="btn btn-quaternary btn-sm">Emails</a>
     <form method="post"
           action="<?= $b ?>/admin/listings/<?= (int) $listing->id ?>/delete"
           style="display:inline"
           data-del-modal data-del-entity="listing"
-          data-del-name="<?= \Luster\Core\View::e($listing->name) ?>">
-      <input type="hidden" name="_csrf" value="<?= \Luster\Core\View::e($csrf_token ?? '') ?>">
+          data-del-name="<?= View::e($listing->name) ?>">
+      <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
       <button type="submit" class="btn btn-danger btn-sm">Delete</button>
     </form>
   </div>
 </div>
 
 <?php if ($success !== ''): ?>
-  <div class="alert alert-success"><?= \Luster\Core\View::e($success) ?></div>
+  <div class="alert alert-success"><?= View::e($success) ?></div>
 <?php endif; ?>
 
 <?php if ($error !== ''): ?>
-  <div class="alert alert-error"><?= \Luster\Core\View::e($error) ?></div>
+  <div class="alert alert-error"><?= View::e($error) ?></div>
 <?php endif; ?>
 
 <div class="stats-row">
-<?php $pl = \Luster\Core\View::e($b . '/admin/members/' . (int) $listing->id . '?status=pending'); ?>
+<?php $pl = View::e($b . '/admin/members/' . (int) $listing->id . '?status=pending'); ?>
 <div class="stat-mini">
   <div class="val"><?= (int) $approved ?></div>
   <div class="lbl">Total Members</div>
 </div>
 <div class="stat-mini">
-  <div class="val"><?= $pending > 0 ? '<a href="' . $pl . '" class="neb-link" style="font-family:inherit;font-size:inherit;font-weight:inherit">' . $pending . '</a>' : $pending ?></div>
+  <div class="val"><?= $pending > 0 ? '<a href="' . $pl . '" class="link" style="font-family:inherit;font-size:inherit;font-weight:inherit">' . $pending . '</a>' : $pending ?></div>
   <div class="lbl">Pending</div>
 </div>
 <div class="stat-mini">
@@ -103,7 +104,7 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
   <div class="lbl">Total Countries</div>
 </div>
 <div class="stat-mini">
-  <div class="val" style="font-size:1.2rem"><?= \Luster\Core\View::e(($fl_last_updated ?? '') !== '' ? date($admin_date_format, strtotime($fl_last_updated)) : '—') ?></div>
+  <div class="val" style="font-size:1.2rem"><?= View::e(($fl_last_updated ?? '') !== '' ? date($admin_date_format, strtotime($fl_last_updated)) : 'â€”') ?></div>
   <div class="lbl">Date Last Updated</div>
 </div>
 </div>
@@ -120,7 +121,7 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
 <div class="neb-tabs-select-wrap">
   <span class="neb-tabs-select-label">Navigation</span>
   <div class="select-wrap" style="flex:1">
-    <select class="neb-tabs-select neb-select">
+    <select class="neb-tabs-select select">
       <option value="general">General</option>
       <option value="fields">Additional Fields</option>
       <option value="affiliates">Affiliates</option>
@@ -132,14 +133,14 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
 </div>
 </div>
 
-<!-- ═══ TAB: GENERAL ═══ -->
+<!-- â•â•â• TAB: GENERAL â•â•â• -->
 <div id="tab-general" class="neb-tab-panel active">
   <form method="POST" action="<?= $b ?>/admin/listings/<?= (int) $listing->id ?>/edit" enctype="multipart/form-data" class="js-warn-unsaved">
-    <input type="hidden" name="_csrf" value="<?= \Luster\Core\View::e($csrf_token ?? '') ?>">
+    <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
 
     <div class="edit-layout">
 
-      <!-- ── Left: main card ──────────────────────────────────── -->
+      <!-- â”€â”€ Left: main card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
       <div class="main-card">
         <div class="card-section">
 
@@ -152,7 +153,7 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
                    data-custom='<?= $dataCustom ?>'
                    data-existing='<?= $dataExisting ?>'>
                 <div id="cat-rows"></div>
-                <a href="#" class="neb-link" id="cat-add" style="font-size:.8125rem;display:inline-block;margin-top:.4rem">+ Add another category</a>
+                <a href="#" class="link" id="cat-add" style="font-size:.8125rem;display:inline-block;margin-top:.4rem">+ Add another category</a>
               </div>
               <p class="field-hint-sm">Assign to one or more networks (TFL, TAFL, custom).</p>
             </div>
@@ -162,7 +163,7 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
             <label class="field-label" for="fl-subject">Subject</label>
             <div>
               <input id="fl-subject" type="text" name="subject" class="form-input"
-                     value="<?= \Luster\Core\View::e($listing->subject ?? '') ?>" maxlength="255">
+                     value="<?= View::e($listing->subject ?? '') ?>" maxlength="255">
               <p class="field-hint-sm">The subject of your listing (e.g. character name, show title).</p>
             </div>
           </div>
@@ -171,9 +172,9 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
             <label class="field-label" for="fl-title">Title</label>
             <div>
               <input id="fl-title" type="text" name="title" class="form-input"
-                     value="<?= \Luster\Core\View::e((string) $oldTitle) ?>"
+                     value="<?= View::e((string) $oldTitle) ?>"
                      maxlength="255" required>
-              <?php if (!empty($fe['title'])): ?><p class="field-error"><?= \Luster\Core\View::e($fe['title'][0]) ?></p><?php endif; ?>
+              <?php if (!empty($fe['title'])): ?><p class="field-error"><?= View::e($fe['title'][0]) ?></p><?php endif; ?>
             </div>
           </div>
 
@@ -181,9 +182,9 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
             <label class="field-label" for="fl-url">Website URL <span class="req">*</span></label>
             <div>
               <input id="fl-url" type="url" name="url" class="form-input"
-                     value="<?= \Luster\Core\View::e((string) $oldUrl) ?>"
+                     value="<?= View::e((string) $oldUrl) ?>"
                      maxlength="500" placeholder="https://example.com" required>
-              <?php if (!empty($fe['url'])): ?><p class="field-error"><?= \Luster\Core\View::e($fe['url'][0]) ?></p><?php endif; ?>
+              <?php if (!empty($fe['url'])): ?><p class="field-error"><?= View::e($fe['url'][0]) ?></p><?php endif; ?>
             </div>
           </div>
 
@@ -191,23 +192,23 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
             <label class="field-label" for="fl-email">Contact Email</label>
             <div>
               <input id="fl-email" type="email" name="email" class="form-input"
-                     value="<?= \Luster\Core\View::e((string) $oldEmail) ?>"
+                     value="<?= View::e((string) $oldEmail) ?>"
                      maxlength="255" required>
               <p class="field-hint-sm">Address listing emails are sent from.</p>
-              <?php if (!empty($fe['email'])): ?><p class="field-error"><?= \Luster\Core\View::e($fe['email'][0]) ?></p><?php endif; ?>
+              <?php if (!empty($fe['email'])): ?><p class="field-error"><?= View::e($fe['email'][0]) ?></p><?php endif; ?>
             </div>
           </div>
 
           <div class="field-row">
             <label class="field-label">Status</label>
             <div class="status-pill-row" id="status-pills">
-              <label class="status-pill<?= $oldStatus === 'current'  ? ' pill-current'  : '' ?>">
+              <label class="status-pill status-pill--current">
                 <input type="radio" name="status" value="current"  <?= $oldStatus === 'current'  ? 'checked' : '' ?>> Current
               </label>
-              <label class="status-pill<?= $oldStatus === 'upcoming' ? ' pill-upcoming' : '' ?>">
+              <label class="status-pill status-pill--upcoming">
                 <input type="radio" name="status" value="upcoming" <?= $oldStatus === 'upcoming' ? 'checked' : '' ?>> Upcoming
               </label>
-              <label class="status-pill<?= $oldStatus === 'pending'  ? ' pill-pending'  : '' ?>">
+              <label class="status-pill status-pill--pending">
                 <input type="radio" name="status" value="pending"  <?= $oldStatus === 'pending'  ? 'checked' : '' ?>> Pending
               </label>
             </div>
@@ -221,7 +222,7 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
                 $openedDateVal = strlen($openedRaw) >= 10 ? substr($openedRaw, 0, 10) : '';
               ?>
               <input id="fl-opened" type="date" name="opened" class="form-input" style="max-width:200px"
-                     value="<?= \Luster\Core\View::e($openedDateVal) ?>">
+                     value="<?= View::e($openedDateVal) ?>">
               <input type="hidden" id="fl-opened-tba" name="opened" value="TBA" disabled>
               <span id="fl-opened-tba-text" style="display:none;font-size:.85rem;color:var(--text-muted);font-style:italic;margin-top:.35rem">TBA &mdash; date will be set when the listing opens.</span>
             </div>
@@ -237,11 +238,11 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
               <?php if (isset($current_image) && $current_image !== null && $current_image !== ''): ?>
                 <div class="existing-image-row" style="margin-bottom:.625rem">
                   <div class="existing-img-placeholder">
-                    <img src="<?= $b ?>/uploads/listings/<?= \Luster\Core\View::e($current_image) ?>"
-                         alt="<?= \Luster\Core\View::e($current_image) ?>">
+                    <img src="<?= $b ?>/uploads/listings/<?= View::e($current_image) ?>"
+                         alt="<?= View::e($current_image) ?>">
                   </div>
                   <div>
-                    <div style="font-size:.8rem;font-weight:600;color:var(--text)"><?= \Luster\Core\View::e($current_image) ?></div>
+                    <div style="font-size:.8rem;font-weight:600;color:var(--text)"><?= View::e($current_image) ?></div>
                     <label class="del-img-check">
                       <input type="checkbox" id="fl-delete-image" name="delete_image" value="1">
                       Delete current image
@@ -268,7 +269,7 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
 
       </div><!-- /.main-card -->
 
-      <!-- ── Right: panel column ─────────────────────────────── -->
+      <!-- â”€â”€ Right: panel column â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
       <div class="panel-col">
 
         <!-- Behaviour -->
@@ -295,7 +296,22 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
               <label class="field-label" for="fl-members-per-page">Members per page</label>
               <input id="fl-members-per-page" type="number" name="members_per_page" class="panel-input"
                      min="5" max="200" value="<?= (int) ($members_per_page ?? 25) ?>">
-              <p class="panel-hint">Admin list view (5–200).</p>
+              <p class="panel-hint">Admin list view (5â€“200).</p>
+            </div>
+            <div class="panel-field">
+              <label class="field-label">Contact Form</label>
+              <label class="toggle-wrap">
+                <input type="checkbox" name="contact_enabled" value="1"
+                       <?= ($contact_enabled ?? true) ? 'checked' : '' ?>>
+                <span class="toggle-label">Enable contact form for this listing</span>
+              </label>
+            </div>
+            <div class="panel-field">
+              <label class="field-label" for="fl-contact-recipient">Contact recipient email</label>
+              <input id="fl-contact-recipient" type="email" name="contact_recipient" class="panel-input"
+                     maxlength="255" placeholder="Defaults to listing email"
+                     value="<?= View::e($contact_recipient ?? '') ?>">
+              <p class="panel-hint">Override which email address receives contact messages for this listing. Leave blank to use the listing's email address.</p>
             </div>
           </div>
         </div>
@@ -309,9 +325,9 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
             <div class="panel-field">
               <label class="field-label" for="fl-last-updated">Last Updated</label>
               <input id="fl-last-updated" type="date" name="fl_last_updated" class="panel-input"
-                     value="<?= \Luster\Core\View::e($fl_last_updated ?? '') ?>">
+                     value="<?= View::e($fl_last_updated ?? '') ?>">
               <div class="panel-mini-row">
-                <button type="button" class="btn btn-tertiary btn-sm" id="set-today-btn">Today</button>
+                <button type="button" class="btn btn-quaternary btn-sm" id="set-today-btn">Today</button>
                 <button type="button" class="btn btn-ghost btn-sm" id="clear-date-btn">Clear</button>
               </div>
               <p class="panel-hint">Drives the staleness check on the dashboard.</p>
@@ -325,12 +341,12 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
   </form>
 </div><!-- /#tab-general -->
 
-<!-- ═══ TAB: TEMPLATES ═══ -->
+<!-- â•â•â• TAB: TEMPLATES â•â•â• -->
 <div id="tab-templates" class="neb-tab-panel">
 <div style="display:grid;grid-template-columns:1fr 260px;gap:1.25rem;align-items:start">
 
   <!-- Left: template editor -->
-  <div class="neb-card" style="overflow:hidden">
+  <div class="card" style="overflow:hidden">
     <div class="card-head">
       <div class="card-head-text">
         <span class="card-head-title">HTML Templates</span>
@@ -344,14 +360,14 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
     </div>
 
     <form method="POST" action="<?= $b ?>/admin/listings/<?= (int) $listing->id ?>/templates">
-      <input type="hidden" name="_csrf" value="<?= \Luster\Core\View::e($csrf_token ?? '') ?>">
+      <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
 
       <div class="tpl-field">
         <div class="tpl-label" style="display:flex;align-items:center;justify-content:space-between">
           Members List
           <button type="button" class="btn-tpl-reset" data-target="members_template">Reset to default</button>
         </div>
-        <textarea id="members_template" name="members_template" class="form-textarea" rows="6"><?= \Luster\Core\View::e($templates['members_template'] ?? '<li><a href="{fan_url}">{fan_name}</a> — {fan_country}</li>') ?></textarea>
+        <textarea id="members_template" name="members_template" class="form-textarea" rows="6"><?= View::e($templates['members_template'] ?? '<li><a href="{fan_url}">{fan_name}</a> â€” {fan_country}</li>') ?></textarea>
       </div>
 
       <div class="tpl-field">
@@ -359,7 +375,7 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
           Affiliates
           <button type="button" class="btn-tpl-reset" data-target="affiliates_template">Reset to default</button>
         </div>
-        <textarea id="affiliates_template" name="affiliates_template" class="form-textarea" rows="6"><?= \Luster\Core\View::e($templates['affiliates_template'] ?? '<a href="{aff_url}" target="_blank" title="{aff_name}">{aff_image}</a>') ?></textarea>
+        <textarea id="affiliates_template" name="affiliates_template" class="form-textarea" rows="6"><?= View::e($templates['affiliates_template'] ?? '<a href="{aff_url}" target="_blank" title="{aff_name}">{aff_image}</a>') ?></textarea>
       </div>
 
       <div class="tpl-field">
@@ -367,7 +383,7 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
           Statistics
           <button type="button" class="btn-tpl-reset" data-target="stats_template">Reset to default</button>
         </div>
-        <textarea id="stats_template" name="stats_template" class="form-textarea" rows="6"><?= \Luster\Core\View::e($templates['stats_template'] ?? '<div><b>Opened:</b> {stat_opened}<br>
+        <textarea id="stats_template" name="stats_template" class="form-textarea" rows="6"><?= View::e($templates['stats_template'] ?? '<div><b>Opened:</b> {stat_opened}<br>
 <b>Updated:</b> {stat_last_updated}<br>
 <b>Fans:</b> {stat_approved} (+ {stat_pending} pending)<br>
 <b>Newest Fan:</b> {stat_newmembers}<br>
@@ -383,7 +399,7 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
   </div>
 
   <!-- Right: token reference -->
-  <div class="neb-card" style="overflow:hidden;position:sticky;top:1rem">
+  <div class="card" style="overflow:hidden;position:sticky;top:1rem">
     <div class="card-head">
       <span class="card-head-title">Available Tokens</span>
     </div>
@@ -447,27 +463,27 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
 </div>
 </div><!-- /#tab-templates -->
 
-<!-- ═══ TAB: ADDITIONAL FIELDS ═══ -->
+<!-- â•â•â• TAB: ADDITIONAL FIELDS â•â•â• -->
 <div id="tab-fields" class="neb-tab-panel">
 
   <?php if ($listing->dbprefix === ''): ?>
-  <div class="neb-card neb-card-padded">
+  <div class="card card-padded">
     <p class="text-muted" style="font-size:0.875rem">Additional fields require a member table. This listing has no database table configured yet.</p>
   </div>
   <?php else: ?>
 
   <!-- Add New Field -->
-  <div class="neb-card" style="margin-bottom:1.25rem;overflow:hidden">
+  <div class="card" style="margin-bottom:1.25rem;overflow:hidden">
     <div class="card-head">
       <div class="card-head-text">
         <span class="card-head-title">Add New Field</span>
-        <span class="card-head-sub">Letters (a–z, A–Z), numbers, and underscores only. No spaces. Max 30 chars, unique per listing.</span>
+        <span class="card-head-sub">Letters (aâ€“z, Aâ€“Z), numbers, and underscores only. No spaces. Max 30 chars, unique per listing.</span>
       </div>
       <button type="submit" form="fields-add-form" class="btn btn-primary btn-sm">Add Field</button>
     </div>
     <div style="padding:1rem 1.25rem">
     <form method="POST" action="<?= $b ?>/admin/listings/<?= (int) $listing->id ?>/fields/add" id="fields-add-form">
-      <input type="hidden" name="_csrf"     value="<?= \Luster\Core\View::e($csrf_token ?? '') ?>">
+      <input type="hidden" name="_csrf"     value="<?= View::e($csrf_token ?? '') ?>">
       <input type="hidden" name="from_edit" value="1">
       <div style="display:grid;grid-template-columns:1fr 1fr 140px;gap:0.75rem;align-items:end">
         <div class="form-group" style="margin-bottom:0">
@@ -504,14 +520,14 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
   </div>
 
   <!-- Existing Fields -->
-  <div class="neb-card">
+  <div class="card">
     <div class="card-head">
       <span class="card-head-title">Current Fields</span>
     </div>
     <?php if (empty($fields)): ?>
       <p class="text-muted" style="padding:1rem 1.25rem;font-size:0.875rem">No additional fields defined yet.</p>
     <?php else: ?>
-      <div class="neb-table-wrap">
+      <div class="table-wrap">
       <table class="data-table">
         <thead>
           <tr>
@@ -524,21 +540,21 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
         <tbody>
           <?php foreach ($fields as $field): ?>
           <tr>
-            <td><?= \Luster\Core\View::e($field->label) ?></td>
+            <td><?= View::e($field->label) ?></td>
             <td>
-              <code style="background:var(--bg-subtle);padding:0.1rem 0.35rem;border-radius:4px;font-size:0.75rem;font-family:'DM Mono',monospace"><?= \Luster\Core\View::e($field->name) ?></code>
+              <code style="background:var(--bg-subtle);padding:0.1rem 0.35rem;border-radius:4px;font-size:0.75rem;font-family:'DM Mono',monospace"><?= View::e($field->name) ?></code>
             </td>
-            <td><?= \Luster\Core\View::e($field->type) ?></td>
+            <td><?= View::e($field->type) ?></td>
             <td class="act-col">
               <div class="row-actions">
                 <a href="<?= $b ?>/admin/listings/<?= (int) $listing->id ?>/fields/<?= urlencode($field->name) ?>/edit"
-                   class="btn btn-tertiary btn-sm">Edit</a>
+                   class="btn btn-quaternary btn-sm">Edit</a>
                 <form method="POST"
                       action="<?= $b ?>/admin/listings/<?= (int) $listing->id ?>/fields/<?= urlencode($field->name) ?>/delete"
                       style="display:contents"
                       data-del-modal data-del-entity="field"
-                      data-del-name="<?= \Luster\Core\View::e($field->name) ?>">
-                  <input type="hidden" name="_csrf"     value="<?= \Luster\Core\View::e($csrf_token ?? '') ?>">
+                      data-del-name="<?= View::e($field->name) ?>">
+                  <input type="hidden" name="_csrf"     value="<?= View::e($csrf_token ?? '') ?>">
                   <input type="hidden" name="from_edit" value="1">
                   <button type="submit" class="btn btn-danger btn-sm">Delete</button>
                 </form>
@@ -556,9 +572,9 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
 
 </div><!-- /#tab-fields -->
 
-<!-- ═══ TAB: AFFILIATES ═══ -->
+<!-- â•â•â• TAB: AFFILIATES â•â•â• -->
 <div id="tab-affiliates" class="neb-tab-panel">
-<div class="neb-card">
+<div class="card">
   <div class="card-head">
     <span class="card-head-title">Affiliates</span>
     <a href="<?= $b ?>/admin/listings/<?= (int) $listing->id ?>/affiliates/add"
@@ -568,7 +584,7 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
   <?php if (empty($affiliates)): ?>
     <p class="text-muted" style="padding:1rem 1.25rem;font-size:0.875rem">No affiliates for this listing yet.</p>
   <?php else: ?>
-    <div class="neb-table-wrap">
+    <div class="table-wrap">
     <table class="data-table">
       <thead>
         <tr>
@@ -581,27 +597,27 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
         <?php foreach ($affiliates as $aff): ?>
         <tr>
           <td>
-            <a href="<?= \Luster\Core\View::e($aff->url ?? '') ?>" target="_blank" rel="noopener noreferrer"
-               class="neb-link"><?= \Luster\Core\View::e($aff->name ?? '') ?></a>
+            <a href="<?= View::e($aff->url ?? '') ?>" target="_blank" rel="noopener noreferrer"
+               class="link"><?= View::e($aff->name ?? '') ?></a>
           </td>
           <td>
             <?php if ($aff->active): ?>
-              <span class="neb-badge badge-current">Active</span>
+              <span class="badge badge-current">Active</span>
             <?php else: ?>
-              <span class="neb-badge badge-pending">Inactive</span>
+              <span class="badge badge-pending">Inactive</span>
             <?php endif; ?>
           </td>
           <td class="act-col">
             <div class="row-actions">
               <a href="<?= $b ?>/admin/affiliates/<?= (int) $aff->id ?>/edit?from_listing=<?= (int) $listing->id ?>"
-                 class="btn btn-tertiary btn-sm">Edit</a>
+                 class="btn btn-quaternary btn-sm">Edit</a>
 
               <form method="POST"
                     action="<?= $b ?>/admin/affiliates/<?= (int) $aff->id ?>/toggle"
                     style="display:contents">
-                <input type="hidden" name="_csrf" value="<?= \Luster\Core\View::e($csrf_token ?? '') ?>">
+                <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
                 <input type="hidden" name="from_listing" value="<?= (int) $listing->id ?>">
-                <button type="submit" class="btn btn-sm <?= $aff->active ? 'btn-warn' : 'btn-tertiary' ?>">
+                <button type="submit" class="btn btn-sm <?= $aff->active ? 'btn-warn' : 'btn-quaternary' ?>">
                   <?= $aff->active ? 'Deactivate' : 'Activate' ?>
                 </button>
               </form>
@@ -610,8 +626,8 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
                     action="<?= $b ?>/admin/affiliates/<?= (int) $aff->id ?>/delete"
                     style="display:contents"
                     data-del-modal data-del-entity="affiliate"
-                    data-del-name="<?= \Luster\Core\View::e($aff->name ?? '') ?>">
-                <input type="hidden" name="_csrf" value="<?= \Luster\Core\View::e($csrf_token ?? '') ?>">
+                    data-del-name="<?= View::e($aff->name ?? '') ?>">
+                <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
                 <input type="hidden" name="from_listing" value="<?= (int) $listing->id ?>">
                 <button type="submit" class="btn btn-danger btn-sm">Delete</button>
               </form>
@@ -626,7 +642,7 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
 </div>
 </div><!-- /#tab-affiliates -->
 
-<!-- ═══ TAB: EMBED ═══ -->
+<!-- â•â•â• TAB: EMBED â•â•â• -->
 <div id="tab-embed" class="neb-tab-panel">
 <?php
 /** @var array  $embed_settings */
@@ -636,7 +652,7 @@ $installPath    = rtrim((string) ($cfg['install_path']   ?? ''), '/');
 $embedBaseUrl   = rtrim((string) ($cfg['embed_base_url'] ?? ''), '/') ?: rtrim((string) ($cfg['site_url'] ?? ''), '/');
 ?>
 
-<div class="neb-card" style="overflow:hidden">
+<div class="card" style="overflow:hidden">
   <div class="card-head">
     <span class="card-head-title">Embed Settings</span>
     <a href="<?= $b ?>/admin/embed-codes?listing=<?= (int) $listing->id ?>" class="btn btn-ghost btn-sm">
@@ -645,7 +661,7 @@ $embedBaseUrl   = rtrim((string) ($cfg['embed_base_url'] ?? ''), '/') ?: rtrim((
     </a>
   </div>
   <form method="POST" action="<?= $b ?>/admin/listings/<?= (int) $listing->id ?>/embed">
-    <input type="hidden" name="_csrf" value="<?= \Luster\Core\View::e($csrf_token ?? '') ?>">
+    <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
     <div style="padding:1rem 1.25rem;border-bottom:1px solid var(--border)">
 
       <div class="section-label">Form Page URLs</div>
@@ -659,13 +675,13 @@ $embedBaseUrl   = rtrim((string) ($cfg['embed_base_url'] ?? ''), '/') ?: rtrim((
           <label class="form-label-sm" for="fl-form-join">Join page</label>
           <input id="fl-form-join" type="text" name="form_url_join" class="form-input"
                  maxlength="200"
-                 value="<?= \Luster\Core\View::e($embedSettings['form_url_join'] !== '' ? $embedSettings['form_url_join'] : 'join.php') ?>">
+                 value="<?= View::e($embedSettings['form_url_join'] !== '' ? $embedSettings['form_url_join'] : 'join.php') ?>">
         </div>
         <div class="form-group">
           <label class="form-label-sm" for="fl-form-update">Update page</label>
           <input id="fl-form-update" type="text" name="form_url_update" class="form-input"
                  maxlength="200"
-                 value="<?= \Luster\Core\View::e($embedSettings['form_url_update'] !== '' ? $embedSettings['form_url_update'] : 'update.php') ?>">
+                 value="<?= View::e($embedSettings['form_url_update'] !== '' ? $embedSettings['form_url_update'] : 'update.php') ?>">
         </div>
       </div>
 
@@ -674,13 +690,13 @@ $embedBaseUrl   = rtrim((string) ($cfg['embed_base_url'] ?? ''), '/') ?: rtrim((
           <label class="form-label-sm" for="fl-form-remove">Remove page</label>
           <input id="fl-form-remove" type="text" name="form_url_remove" class="form-input"
                  maxlength="200"
-                 value="<?= \Luster\Core\View::e($embedSettings['form_url_remove'] !== '' ? $embedSettings['form_url_remove'] : 'remove.php') ?>">
+                 value="<?= View::e($embedSettings['form_url_remove'] !== '' ? $embedSettings['form_url_remove'] : 'remove.php') ?>">
         </div>
         <div class="form-group">
           <label class="form-label-sm" for="fl-form-reset">Password reset page</label>
           <input id="fl-form-reset" type="text" name="form_url_reset" class="form-input"
                  maxlength="200"
-                 value="<?= \Luster\Core\View::e($embedSettings['form_url_reset'] !== '' ? $embedSettings['form_url_reset'] : 'reset.php') ?>">
+                 value="<?= View::e($embedSettings['form_url_reset'] !== '' ? $embedSettings['form_url_reset'] : 'reset.php') ?>">
         </div>
       </div>
 
@@ -689,7 +705,7 @@ $embedBaseUrl   = rtrim((string) ($cfg['embed_base_url'] ?? ''), '/') ?: rtrim((
           <label class="form-label-sm" for="fl-form-codes-submit">Code submission page</label>
           <input id="fl-form-codes-submit" type="text" name="form_url_codes_submit" class="form-input"
                  maxlength="200"
-                 value="<?= \Luster\Core\View::e($embedSettings['form_url_codes_submit'] !== '' ? $embedSettings['form_url_codes_submit'] : 'codes-submit.php') ?>">
+                 value="<?= View::e($embedSettings['form_url_codes_submit'] !== '' ? $embedSettings['form_url_codes_submit'] : 'codes-submit.php') ?>">
         </div>
       </div>
 
@@ -700,17 +716,17 @@ $embedBaseUrl   = rtrim((string) ($cfg['embed_base_url'] ?? ''), '/') ?: rtrim((
         </p>
         <?php foreach (['join', 'members', 'update', 'remove'] as $page): ?>
         <div class="form-group">
-          <label class="form-label-sm" style="text-transform:capitalize"><?= \Luster\Core\View::e($page) ?> page</label>
+          <label class="form-label-sm" style="text-transform:capitalize"><?= View::e($page) ?> page</label>
           <div class="ro-field" style="font-family:'DM Mono',monospace;font-size:0.8rem;user-select:all">
             $luster_fanlisting_id = <?= (int) $listing->id ?>;<br>
-            require '<?= \Luster\Core\View::e($installPath) ?>/public/embed/<?= \Luster\Core\View::e($page) ?>.php';
+            require '<?= View::e($installPath) ?>/public/embed/<?= View::e($page) ?>.php';
           </div>
         </div>
         <?php endforeach; ?>
       <?php else: ?>
         <p style="font-size:.78rem;color:var(--text-dim);line-height:1.5">
           Set the <strong style="color:var(--text-muted)">Installation Path</strong> in
-          <a href="<?= $b ?>/admin/settings" class="neb-link">Settings &rarr; Embed &amp; Paths</a>
+          <a href="<?= $b ?>/admin/settings" class="link">Settings &rarr; Embed &amp; Paths</a>
           to generate embed snippets here.
         </p>
       <?php endif; ?>
@@ -723,20 +739,20 @@ $embedBaseUrl   = rtrim((string) ($cfg['embed_base_url'] ?? ''), '/') ?: rtrim((
 </div>
 </div><!-- /#tab-embed -->
 
-<!-- ═══ TAB: ADVANCED ═══ -->
+<!-- â•â•â• TAB: ADVANCED â•â•â• -->
 <div id="tab-advanced" class="neb-tab-panel">
 
   <!-- Warning banner -->
   <div style="display:flex;align-items:flex-start;gap:.75rem;padding:.875rem 1.1rem;margin-bottom:1.25rem;background:var(--warn-bg);border:1px solid var(--warn);border-left-width:4px;border-radius:10px">
     <svg style="flex-shrink:0;margin-top:.1rem;color:var(--warn)" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
     <div>
-      <strong style="font-size:.8rem;color:var(--warn);display:block;margin-bottom:.2rem">Advanced settings — proceed with caution</strong>
+      <strong style="font-size:.8rem;color:var(--warn);display:block;margin-bottom:.2rem">Advanced settings â€” proceed with caution</strong>
       <span style="font-size:.75rem;color:var(--text-muted);line-height:1.5">Only modify these settings if you know what you are doing. Incorrect values can break your listing or prevent members from being found.</span>
     </div>
   </div>
 
   <!-- Database Prefix (collapsible, collapsed by default) -->
-  <details class="neb-card adv-collapsible" style="overflow:hidden;margin-bottom:1.25rem">
+  <details class="card adv-collapsible" style="overflow:hidden;margin-bottom:1.25rem">
     <summary class="card-head" style="cursor:pointer;user-select:none">
       <div class="card-head-text">
         <span class="card-head-title">Database Prefix</span>
@@ -746,16 +762,16 @@ $embedBaseUrl   = rtrim((string) ($cfg['embed_base_url'] ?? ''), '/') ?: rtrim((
     </summary>
     <div style="padding:1rem 1.25rem">
       <div style="display:flex;align-items:center;gap:.75rem">
-        <input type="text" class="form-input" value="<?= \Luster\Core\View::e($listing->dbprefix) ?>"
+        <input type="text" class="form-input" value="<?= View::e($listing->dbprefix) ?>"
                readonly style="color:var(--text-dim);cursor:not-allowed;font-family:'DM Mono',monospace;max-width:260px">
         <a href="<?= $b ?>/admin/listings/<?= (int) $listing->id ?>/edit-prefix"
-           class="btn btn-tertiary btn-sm" style="white-space:nowrap;flex-shrink:0">Edit</a>
+           class="btn btn-quaternary btn-sm" style="white-space:nowrap;flex-shrink:0">Edit</a>
       </div>
     </div>
   </details>
 
   <!-- Per-listing Database Connection (collapsible, collapsed by default) -->
-  <details class="neb-card adv-collapsible" style="overflow:hidden">
+  <details class="card adv-collapsible" style="overflow:hidden">
     <summary class="card-head" style="cursor:pointer;user-select:none">
       <div class="card-head-text">
         <span class="card-head-title">Per-listing Database Connection</span>
@@ -764,7 +780,7 @@ $embedBaseUrl   = rtrim((string) ($cfg['embed_base_url'] ?? ''), '/') ?: rtrim((
       <svg class="adv-chevron" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;transition:transform .2s"><polyline points="4 6 8 10 12 6"/></svg>
     </summary>
     <form method="POST" action="<?= $b ?>/admin/listings/<?= (int) $listing->id ?>/embed">
-      <input type="hidden" name="_csrf" value="<?= \Luster\Core\View::e($csrf_token ?? '') ?>">
+      <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
       <?php
       /** @var array $embed_settings */
       /** @var array $cfg */
@@ -776,13 +792,13 @@ $embedBaseUrl   = rtrim((string) ($cfg['embed_base_url'] ?? ''), '/') ?: rtrim((
             <label class="form-label-sm" for="adv-db-host">DB Host</label>
             <input id="adv-db-host" type="text" name="db_host" class="form-input"
                    maxlength="255" placeholder="localhost"
-                   value="<?= \Luster\Core\View::e($advEmbedSettings['db_host'] ?? '') ?>">
+                   value="<?= View::e($advEmbedSettings['db_host'] ?? '') ?>">
           </div>
           <div class="form-group">
             <label class="form-label-sm" for="adv-db-name">DB Name</label>
             <input id="adv-db-name" type="text" name="db_name" class="form-input"
                    maxlength="255" placeholder="my_database"
-                   value="<?= \Luster\Core\View::e($advEmbedSettings['db_name'] ?? '') ?>">
+                   value="<?= View::e($advEmbedSettings['db_name'] ?? '') ?>">
           </div>
         </div>
         <div class="form-row">
@@ -790,7 +806,7 @@ $embedBaseUrl   = rtrim((string) ($cfg['embed_base_url'] ?? ''), '/') ?: rtrim((
             <label class="form-label-sm" for="adv-db-user">DB User</label>
             <input id="adv-db-user" type="text" name="db_user" class="form-input"
                    maxlength="255" autocomplete="off"
-                   value="<?= \Luster\Core\View::e($advEmbedSettings['db_user'] ?? '') ?>">
+                   value="<?= View::e($advEmbedSettings['db_user'] ?? '') ?>">
           </div>
           <div class="form-group">
             <label class="form-label-sm" for="adv-db-pass">DB Password</label>

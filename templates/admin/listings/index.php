@@ -1,4 +1,5 @@
 <?php
+use Luster\Core\View;
 /** @var \Luster\Models\Listing[] $listings */
 /** @var array<int,int>         $member_counts */
 /** @var array<int,int>         $pending_counts */
@@ -22,7 +23,7 @@
 /** @var int                    $total_pages */
 /** @var int                    $total */
 /** @var int                    $per_page */
-$b = rtrim(\Luster\Core\View::e($base_url), '/');
+$b = rtrim(View::e($base_url), '/');
 
 $flFilterQs = http_build_query(array_filter([
     'search'   => $search          ?? '',
@@ -60,11 +61,11 @@ usort($allNetworks, static fn($a, $b) => strcasecmp($a, $b));
 $filtersActive = ($search ?? '') !== '' || ($filter_network ?? '') !== ''
               || ($filter_cat ?? '') !== '' || ($filter_type ?? '') !== '';
 
-// ── Dynamic card-head title ────────────────────────────────────────
+// â”€â”€ Dynamic card-head title â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // Combinations:
-//   network [: category] [ — type] [ — "search"]
+//   network [: category] [ â€” type] [ â€” "search"]
 //   type only, search only, or any subset thereof
-//   nothing → "All Listings"
+//   nothing â†’ "All Listings"
 $_fn  = $filter_network ?? '';
 $_fc  = $filter_cat     ?? '';
 $_ft  = $filter_type    ?? '';
@@ -72,17 +73,17 @@ $_fs  = $search         ?? '';
 
 $_titleParts = [];
 if ($_fn !== '') {
-    $_scope = \Luster\Core\View::e($_fn);
+    $_scope = View::e($_fn);
     if ($_fc !== '') {
-        $_scope .= ': ' . \Luster\Core\View::e($_fc);
+        $_scope .= ': ' . View::e($_fc);
     }
     $_titleParts[] = $_scope;
 }
 if ($_ft !== '') {
-    $_titleParts[] = \Luster\Core\View::e(ucfirst($_ft));
+    $_titleParts[] = View::e(ucfirst($_ft));
 }
 if ($_fs !== '') {
-    $_titleParts[] = '&#8220;' . \Luster\Core\View::e($_fs) . '&#8221;';
+    $_titleParts[] = '&#8220;' . View::e($_fs) . '&#8221;';
 }
 $tableTitle = !empty($_titleParts) ? implode(' &mdash; ', $_titleParts) : 'All Listings';
 
@@ -102,93 +103,84 @@ $flSortUrl = static function (string $col) use ($b, $flSort, $flDir, $search, $f
     return $b . '/admin/listings' . ($qs !== '' ? '?' . $qs : '');
 };
 
-$flSortIcon = static function (string $col) use ($flSort, $flDir): string {
-    if ($flSort !== $col) {
-        return '<svg viewBox="0 0 10 14" width="9" height="9" fill="currentColor" style="opacity:.35;flex-shrink:0"><path d="M5 0l3 4H2zM5 14l-3-4h6z"/></svg>';
-    }
-    if ($flDir === 'asc') {
-        return '<svg viewBox="0 0 10 14" width="9" height="9" fill="currentColor" style="flex-shrink:0"><path d="M5 0l3 4H2z"/><path d="M5 14l-3-4h6z" fill-opacity=".25"/></svg>';
-    }
-    return '<svg viewBox="0 0 10 14" width="9" height="9" fill="currentColor" style="flex-shrink:0"><path d="M5 0l3 4H2z" fill-opacity=".25"/><path d="M5 14l-3-4h6z"/></svg>';
-};
 ?>
 
 <!-- Toolbar -->
-<div class="neb-toolbar">
-  <div class="neb-actions">
-    <button type="button" class="btn btn-tertiary btn-sm fl-filter-toggle" id="fl-filter-toggle"
+<div class="toolbar">
+  <div class="actions">
+    <button type="button" class="btn btn-quaternary btn-sm filter-toggle" id="fl-filter-toggle"
             aria-expanded="<?= $filtersActive ? 'true' : 'false' ?>"
-            aria-controls="fl-filter-panel">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><line x1="4" y1="6" x2="20" y2="6"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="11" y1="18" x2="13" y2="18"/></svg>
-      Filter<?php if ($filtersActive): ?><span class="fl-filter-dot" aria-hidden="true"></span><?php endif; ?>
+            aria-controls="filter-panel">
+      <?= View::icon('filter') ?>
+      Filter<?php if ($filtersActive): ?><span class="filter-dot" aria-hidden="true"></span><?php endif; ?>
     </button>
   </div>
-  <div class="neb-actions">
+  <div>
     <a href="<?= $b ?>/admin/listings/add" class="btn btn-primary btn-sm">+ Add Listing</a>
     <a href="<?= $b ?>/admin/listings/collective-templates" class="btn btn-secondary btn-sm">Collective Templates</a>
-    <a href="<?= $b ?>/admin/listings/settings" class="btn btn-tertiary btn-sm">Display Settings</a>
+    <a href="<?= $b ?>/admin/listings/settings" class="btn btn-ghost btn-sm">Display Settings</a>
   </div>
 </div>
 
 <!-- Collapsible filter panel -->
-<div class="fl-filter-panel<?= $filtersActive ? ' is-open' : '' ?>" id="fl-filter-panel">
-  <form method="GET" action="" class="neb-filter-row" id="fl-filter-form">
+<div class="filter-panel<?= $filtersActive ? ' is-open' : '' ?>" id="filter-panel">
+  <form method="GET" action="" class="filter-row" id="fl-filter-form">
 
     <div class="toolbar-select-wrap">
-    <select id="fl-net-sel" name="network" class="neb-select">
+    <select id="fl-net-sel" name="network" class="select">
       <option value="">All Networks</option>
       <?php foreach ($allNetworks as $net): ?>
-        <option value="<?= \Luster\Core\View::e($net) ?>"
+        <option value="<?= View::e($net) ?>"
                 <?= ($filter_network ?? '') === $net ? 'selected' : '' ?>>
-          <?= \Luster\Core\View::e($net) ?>
+          <?= View::e($net) ?>
         </option>
       <?php endforeach; ?>
     </select>
     </div>
 
     <div class="toolbar-select-wrap">
-    <select id="fl-cat-sel" name="category" class="neb-select"
+    <select id="fl-cat-sel" name="category" class="select"
             data-tfl='<?= $dataTfl ?>'
             data-tafl='<?= $dataTafl ?>'
             data-custom='<?= $dataCustom ?>'>
       <option value="">All Categories</option>
       <?php foreach ($activeCats as $c): ?>
-        <option value="<?= \Luster\Core\View::e($c['name']) ?>"
+        <option value="<?= View::e($c['name']) ?>"
                 <?= ($filter_cat ?? '') === $c['name'] ? 'selected' : '' ?>>
-          <?= \Luster\Core\View::e($c['name']) ?>
+          <?= View::e($c['name']) ?>
         </option>
       <?php endforeach; ?>
     </select>
     </div>
 
     <div class="toolbar-select-wrap">
-    <select name="type" class="neb-select js-autosubmit">
+    <select name="type" class="select js-autosubmit">
       <option value="">All Types</option>
       <?php foreach ($type_options ?? [] as $to): ?>
-        <option value="<?= \Luster\Core\View::e($to) ?>"
+        <option value="<?= View::e($to) ?>"
                 <?= ($filter_type ?? '') === $to ? 'selected' : '' ?>>
-          <?= \Luster\Core\View::e(ucfirst($to)) ?>
+          <?= View::e(ucfirst($to)) ?>
         </option>
       <?php endforeach; ?>
     </select>
     </div>
 
-    <input type="text" name="search" class="neb-input"
-           placeholder="Search&hellip;" value="<?= \Luster\Core\View::e($search ?? '') ?>">
-    <button type="submit" class="btn btn-tertiary btn-sm">Search</button>
-    <a href="?" class="btn btn-tertiary btn-sm">Reset</a>
+    <input type="text" name="search" class="input"
+           placeholder="Search&hellip;" value="<?= View::e($search ?? '') ?>">
+    <button type="submit" class="btn btn-quaternary btn-sm">Search</button>
+    <a href="?" class="btn btn-quaternary btn-sm">Reset</a>
 
   </form>
 </div>
 
 
 <?php if ($success !== ''): ?>
-  <div class="alert alert-success"><?= \Luster\Core\View::e($success) ?></div>
+  <div class="alert alert-success"><?= View::e($success) ?></div>
 <?php endif; ?>
 
 <?php if (empty($listings)): ?>
-  <div class="neb-card">
-    <div class="neb-empty">
+  <div class="card">
+    <div class="empty">
       <svg class="empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01z"/></svg>
       No listings yet.
       <a href="<?= $b ?>/admin/listings/add" class="btn btn-primary btn-sm">+ Add Listing</a>
@@ -198,39 +190,39 @@ $flSortIcon = static function (string $col) use ($flSort, $flDir): string {
 
 <form method="POST" action="<?= $b ?>/admin/listings/bulk" id="bulk-form"
       data-del-bulk data-del-entity="listing">
-  <input type="hidden" name="_csrf" value="<?= \Luster\Core\View::e($csrf_token ?? '') ?>">
+  <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
 
   <!-- Bulk action bar -->
-  <div class="neb-bulk">
+  <div class="bulk">
     <label for="bulk-action">Bulk action:</label>
     <div class="toolbar-select-wrap">
-    <select id="bulk-action" name="action" class="neb-select">
-      <option value="" disabled selected>— Select —</option>
+    <select id="bulk-action" name="action" class="select">
+      <option value="" disabled selected>â€” Select â€”</option>
       <option value="delete">Delete</option>
     </select>
     </div>
-    <button type="submit" class="btn btn-tertiary btn-sm">Apply</button>
+    <button type="submit" class="btn btn-quaternary btn-sm">Apply</button>
   </div>
 
   <?php $flFrom = ($page - 1) * $per_page + 1; $flTo = ($page - 1) * $per_page + count($listings); ?>
 
-  <div class="neb-card">
+  <div class="card">
     <div class="card-head">
       <span class="card-head-title"><?= $tableTitle ?></span>
-      <span style="font-size:.8rem;color:var(--text-muted);white-space:nowrap">
+      <span class="row-sub">
         Showing <?= $flFrom ?>&#8211;<?= $flTo ?> of <?= number_format((int) $total) ?> listing<?= (int) $total !== 1 ? 's' : '' ?><?php if ($total_pages > 1): ?> &mdash; page <?= (int) $page ?> of <?= (int) $total_pages ?><?php endif; ?>
       </span>
     </div>
-    <div class="neb-table-wrap">
+    <div class="table-wrap">
     <table class="data-table mem-table">
       <thead>
         <tr>
-          <th class="cb-col"><input type="checkbox" id="fl-select-all"></th>
-          <th><a href="<?= \Luster\Core\View::e($flSortUrl('id')) ?>" class="sort-th<?= $flSort === 'id' ? ' sort-active' : '' ?>"># <?= $flSortIcon('id') ?></a></th>
-          <th><a href="<?= \Luster\Core\View::e($flSortUrl('subject')) ?>" class="sort-th<?= $flSort === 'subject' ? ' sort-active' : '' ?>">Subject <?= $flSortIcon('subject') ?></a></th>
-          <th><a href="<?= \Luster\Core\View::e($flSortUrl('name')) ?>" class="sort-th<?= $flSort === 'name' ? ' sort-active' : '' ?>">Title <?= $flSortIcon('name') ?></a></th>
-          <th><a href="<?= \Luster\Core\View::e($flSortUrl('category')) ?>" class="sort-th<?= $flSort === 'category' ? ' sort-active' : '' ?>">Category <?= $flSortIcon('category') ?></a></th>
-          <th><a href="<?= \Luster\Core\View::e($flSortUrl('status')) ?>" class="sort-th<?= $flSort === 'status' ? ' sort-active' : '' ?>">Status <?= $flSortIcon('status') ?></a></th>
+          <th class="cb-col"><input type="checkbox" id="select-all"></th>
+          <th><a href="<?= View::e($flSortUrl('id')) ?>" class="sort-th<?= $flSort === 'id' ? ' sort-active' : '' ?>"># <?= View::sortIcon('id', $flSort, $flDir) ?></a></th>
+          <th><a href="<?= View::e($flSortUrl('subject')) ?>" class="sort-th<?= $flSort === 'subject' ? ' sort-active' : '' ?>">Subject <?= View::sortIcon('subject', $flSort, $flDir) ?></a></th>
+          <th><a href="<?= View::e($flSortUrl('name')) ?>" class="sort-th<?= $flSort === 'name' ? ' sort-active' : '' ?>">Title <?= View::sortIcon('name', $flSort, $flDir) ?></a></th>
+          <th><a href="<?= View::e($flSortUrl('category')) ?>" class="sort-th<?= $flSort === 'category' ? ' sort-active' : '' ?>">Category <?= View::sortIcon('category', $flSort, $flDir) ?></a></th>
+          <th><a href="<?= View::e($flSortUrl('status')) ?>" class="sort-th<?= $flSort === 'status' ? ' sort-active' : '' ?>">Status <?= View::sortIcon('status', $flSort, $flDir) ?></a></th>
           <th>Members</th>
           <th class="act-col">Actions</th>
         </tr>
@@ -241,40 +233,40 @@ $flSortIcon = static function (string $col) use ($flSort, $flDir): string {
 
           <!-- Checkbox -->
           <td class="cb-col" data-label="">
-            <input type="checkbox" name="selected[]" value="<?= (int) $fl->id ?>" class="fl-row-cb"
-                   data-name="<?= \Luster\Core\View::e($fl->name) ?>">
+            <input type="checkbox" name="selected[]" value="<?= (int) $fl->id ?>" class="row-cb"
+                   data-name="<?= View::e($fl->name) ?>">
           </td>
 
           <!-- Listing # -->
           <td class="text-dim" data-label="ID"><?= (int) $fl->id ?></td>
 
           <!-- Subject -->
-          <td class="text-strong" data-label="Subject">
+          <td data-label="Subject">
             <?php if ($fl->url !== ''): ?>
-              <a href="<?= \Luster\Core\View::e($fl->url) ?>" target="_blank" rel="noopener noreferrer"
-                 class="neb-link"><?= \Luster\Core\View::e($fl->subject) ?></a>
+              <a href="<?= View::e($fl->url) ?>" target="_blank" rel="noopener noreferrer"
+                 class="link"><?= View::e($fl->subject) ?></a>
             <?php else: ?>
-              <?= \Luster\Core\View::e($fl->subject) ?>
+              <?= View::e($fl->subject) ?>
             <?php endif; ?>
           </td>
 
           <!-- Title -->
           <td data-label="Title">
             <a href="<?= $b ?>/admin/listings/<?= (int) $fl->id ?>/edit"
-               class="neb-link"><?= \Luster\Core\View::e($fl->name) ?></a>
+               class="link"><?= View::e($fl->name) ?></a>
           </td>
 
           <!-- Category -->
-          <td class="text-muted" data-label="Category"><?= \Luster\Core\View::e($category_names[$fl->id] ?? '—') ?></td>
+          <td class="text-muted" data-label="Category"><?= View::e($category_names[$fl->id] ?? 'â€”') ?></td>
 
           <!-- Status -->
           <td data-label="Status">
             <?php if ($fl->upcoming): ?>
-              <span class="neb-badge badge-upcoming">Upcoming</span>
+              <span class="badge badge-upcoming">Upcoming</span>
             <?php elseif ($fl->trouble): ?>
-              <span class="neb-badge badge-pending">Pending</span>
+              <span class="badge badge-pending">Pending</span>
             <?php else: ?>
-              <span class="neb-badge badge-current">Current</span>
+              <span class="badge badge-current">Current</span>
             <?php endif; ?>
           </td>
 
@@ -287,7 +279,7 @@ $flSortIcon = static function (string $col) use ($flSort, $flDir): string {
             <div><?= $app ?>
             <?php if ($pend > 0): ?>
                 <a href="<?= $b ?>/admin/members/<?= (int) $fl->id ?>?status=pending"
-                   class="nav-badge" style="text-decoration:none">(+ <?= $pend ?>)</a>
+                   class="link--pending">(+ <?= $pend ?>)</a>
             </div>
             <?php endif; ?>
           </td>
@@ -296,9 +288,9 @@ $flSortIcon = static function (string $col) use ($flSort, $flDir): string {
           <td class="act-col" data-label="">
             <div class="row-actions">
               <a href="<?= $b ?>/admin/listings/<?= (int) $fl->id ?>/edit"
-                 class="btn btn-primary btn-sm">Edit</a>
+                 class="btn btn-tertiary btn-sm">Edit</a>
               <a href="<?= $b ?>/admin/members/<?= (int) $fl->id ?>"
-                 class="btn btn-tertiary btn-sm">Members</a>
+                 class="btn btn-quaternary btn-sm">Members</a>
               <button type="submit" form="del-fl-<?= (int) $fl->id ?>" class="btn btn-danger btn-sm">Delete</button>
             </div>
           </td>
@@ -318,14 +310,14 @@ $flSortIcon = static function (string $col) use ($flSort, $flDir): string {
       action="<?= $b ?>/admin/listings/<?= (int) $fl->id ?>/delete"
       style="display:none"
       data-del-modal data-del-entity="listing"
-      data-del-name="<?= \Luster\Core\View::e($fl->name) ?>">
-  <input type="hidden" name="_csrf" value="<?= \Luster\Core\View::e($csrf_token ?? '') ?>">
+      data-del-name="<?= View::e($fl->name) ?>">
+  <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
 </form>
 <?php endforeach; ?>
 
 <?php if (($total_pages ?? 1) > 1): ?>
-<nav class="neb-pagination" aria-label="Pagination">
-  <a href="<?= \Luster\Core\View::e($flPageUrl($page - 1)) ?>"
+<nav class="pg" aria-label="Pagination">
+  <a href="<?= View::e($flPageUrl($page - 1)) ?>"
      class="pg-link<?= $page <= 1 ? ' disabled' : '' ?>"
      <?= $page <= 1 ? 'aria-disabled="true"' : '' ?>>&lsaquo; Prev</a>
 
@@ -334,22 +326,22 @@ $flSortIcon = static function (string $col) use ($flSort, $flDir): string {
     $start  = max(1, $page - $window);
     $end    = min($total_pages, $page + $window);
     if ($start > 1): ?>
-      <a href="<?= \Luster\Core\View::e($flPageUrl(1)) ?>" class="pg-link">1</a>
+      <a href="<?= View::e($flPageUrl(1)) ?>" class="pg-link">1</a>
       <?php if ($start > 2): ?><span class="pg-link disabled">&hellip;</span><?php endif; ?>
   <?php endif; ?>
 
   <?php for ($i = $start; $i <= $end; $i++): ?>
-    <a href="<?= \Luster\Core\View::e($flPageUrl($i)) ?>"
+    <a href="<?= View::e($flPageUrl($i)) ?>"
        class="pg-link<?= $i === $page ? ' active' : '' ?>"
        <?= $i === $page ? 'aria-current="page"' : '' ?>><?= $i ?></a>
   <?php endfor; ?>
 
   <?php if ($end < $total_pages): ?>
     <?php if ($end < $total_pages - 1): ?><span class="pg-link disabled">&hellip;</span><?php endif; ?>
-    <a href="<?= \Luster\Core\View::e($flPageUrl($total_pages)) ?>" class="pg-link"><?= $total_pages ?></a>
+    <a href="<?= View::e($flPageUrl($total_pages)) ?>" class="pg-link"><?= $total_pages ?></a>
   <?php endif; ?>
 
-  <a href="<?= \Luster\Core\View::e($flPageUrl($page + 1)) ?>"
+  <a href="<?= View::e($flPageUrl($page + 1)) ?>"
      class="pg-link<?= $page >= $total_pages ? ' disabled' : '' ?>"
      <?= $page >= $total_pages ? 'aria-disabled="true"' : '' ?>>Next &rsaquo;</a>
 </nav>

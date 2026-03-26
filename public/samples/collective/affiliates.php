@@ -7,15 +7,11 @@
  * Change to a real listing ID to show that listing's affiliates instead.
  */
 
-$_embedPath = dirname(__DIR__, 3) . '/public/embed';
-
-$_siteName    = 'Collective Name';
-$_siteTagline = 'A fanlisting collective';
-$_ownerName   = 'Your Name';
-$_ownerEmail  = 'you@example.com';
+$_lusterRoot  = dirname(__DIR__, 3);
+$_siteTagline = 'A fanlisting collective';  // ← your tagline
 $_navActive   = 'affiliates';
 $_pageTitle   = 'Affiliates';
-
+require __DIR__ . '/_setup.php';
 require 'header.php';
 ?>
 

@@ -14,6 +14,8 @@ declare(strict_types=1);
  * @var int                             $pages
  * @var bool                            $is_collective
  * @var bool                            $show_cats
+ * @var string                          $owner_name    site owner name (from config)
+ * @var string                          $active_cat    currently filtered category ('' = none)
  * @var string                          $feed_url      base URL for pagination links
  * @var string                          $base_url
  * @var string                          $theme_path
@@ -21,12 +23,20 @@ declare(strict_types=1);
 
 use Luster\Core\View;
 
-$pageUrl = static function (int $p) use ($feed_url): string {
-    return htmlspecialchars($feed_url . '?page=' . $p, ENT_QUOTES, 'UTF-8');
+$_activeCat = $active_cat ?? '';
+$pageUrl = static function (int $p) use ($feed_url, $_activeCat): string {
+    $qs = $_activeCat !== ''
+        ? 'cat=' . rawurlencode($_activeCat) . '&page=' . $p
+        : 'page=' . $p;
+    return htmlspecialchars($feed_url . '?' . $qs, ENT_QUOTES, 'UTF-8');
 };
 ?>
 <div>
-  <h2>Updates</h2>
+  <?php if ($_activeCat !== ''): ?>
+    <p>Filtering by: <strong><?= View::e($_activeCat) ?></strong>
+      &mdash; <a href="<?= htmlspecialchars($feed_url, ENT_QUOTES, 'UTF-8') ?>">Clear filter</a>
+    </p>
+  <?php endif; ?>
 
   <?php if (empty($updates)): ?>
     <p>No updates posted yet.</p>
@@ -40,14 +50,16 @@ $pageUrl = static function (int $p) use ($feed_url): string {
           <time datetime="<?= View::e(substr($u->postedAt, 0, 10)) ?>">
             <?= View::e(date('F j, Y', strtotime($u->postedAt))) ?>
           </time>
-          <?php if ($u->author !== ''): ?>
-            &mdash; <?= View::e($u->author) ?>
+          <?php $displayAuthor = ($owner_name ?? '') !== '' ? $owner_name : $u->author; ?>
+          <?php if ($displayAuthor !== ''): ?>
+            &mdash; <?= View::e($displayAuthor) ?>
           <?php endif; ?>
         </p>
         <?php if ($show_cats && !empty($u->categories())): ?>
-          <p>
-            <?php foreach ($u->categories() as $cat): ?>
-              <span><?= View::e($cat) ?></span>
+          <p>Category:
+            <?php foreach ($u->categories() as $_ci => $_cat): ?>
+              <?php if ($_ci > 0): ?>, <?php endif; ?>
+              <a href="<?= htmlspecialchars($feed_url . '?cat=' . rawurlencode($_cat), ENT_QUOTES, 'UTF-8') ?>"><?= View::e($_cat) ?></a>
             <?php endforeach; ?>
           </p>
         <?php endif; ?>

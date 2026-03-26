@@ -1,6 +1,6 @@
 <?php
 /**
- * KIM List admin — show members for one fanlisting.
+ * KIM List admin â€” show members for one fanlisting.
  *
  * Variables:
  *   $listing         Listing
@@ -31,29 +31,29 @@ $approvedMembers = array_filter($members, static fn($m) => !$m->pending);
 <?php endif; ?>
 
 <div class="page-header">
-  <p class="page-back" style="margin:0"><a href="<?= $b ?>/admin/kim" class="neb-link">&larr; Back to KIM List</a></p>
+  <p class="page-back" style="margin:0"><a href="<?= $b ?>/admin/kim" class="link">&larr; Back to KIM List</a></p>
   <?php if ($approved_count > 0): ?>
     <a href="<?= $b ?>/admin/kim/<?= (int) $listing->id ?>/mass-email"
-       class="btn btn-tertiary">Mass Email (<?= (int) $approved_count ?>)</a>
+       class="btn btn-quaternary">Mass Email (<?= (int) $approved_count ?>)</a>
   <?php endif; ?>
 </div>
 
-<!-- ── Pending ──────────────────────────────────────────────────────────── -->
-<div class="neb-card" style="margin-bottom:1.5rem">
-  <div class="neb-card-header">
-    Pending
+<!-- â”€â”€ Pending â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
+<div class="card" style="margin-bottom:1.5rem">
+  <div class="card-head">
+    <div class="card-head-title">Pending</div>
     <?php if ($pending_count > 0): ?>
-      <span class="neb-badge badge-upcoming" style="margin-left:.4rem"><?= (int) $pending_count ?></span>
+      <span class="badge badge-upcoming" style="margin-left:.4rem"><?= (int) $pending_count ?></span>
     <?php endif; ?>
   </div>
 
   <?php if (empty($pendingMembers)): ?>
-    <div class="neb-empty">
-      <svg class="empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-      No pending entries — all caught up.
+    <div class="empty">
+      <?= View::icon('check-badge', ['width' => '40', 'height' => '40']) ?>
+      No pending entries â€” all caught up.
     </div>
   <?php else: ?>
-    <div class="neb-table-wrap">
+    <div class="table-wrap">
     <table class="data-table">
       <thead>
         <tr>
@@ -72,15 +72,15 @@ $approvedMembers = array_filter($members, static fn($m) => !$m->pending);
           <td>
             <?php if ($m->url !== ''): ?>
               <a href="<?= View::e($m->url) ?>" target="_blank" rel="noopener noreferrer"
-                 class="neb-link"><?= View::e($m->url) ?></a>
+                 class="link"><?= View::e($m->url) ?></a>
             <?php else: ?>
-              <span class="text-dim">—</span>
+              <span class="text-dim">â€”</span>
             <?php endif; ?>
           </td>
           <td class="text-dim nowrap"><?= View::e(date($admin_date_format, strtotime($m->addedAt))) ?></td>
           <td class="act-col">
             <a href="<?= $b ?>/admin/kim/<?= (int) $m->id ?>/edit"
-               class="btn btn-tertiary btn-sm">Edit</a>
+               class="btn btn-quaternary btn-sm">Edit</a>
             <form method="POST" action="<?= $b ?>/admin/kim/<?= (int) $m->id ?>/approve"
                   style="display:inline">
               <input type="hidden" name="_csrf"    value="<?= View::e($csrf_token) ?>">
@@ -103,22 +103,22 @@ $approvedMembers = array_filter($members, static fn($m) => !$m->pending);
   <?php endif; ?>
 </div>
 
-<!-- ── Approved ─────────────────────────────────────────────────────────── -->
-<div class="neb-card">
-  <div class="neb-card-header">
-    Approved
+<!-- â”€â”€ Approved â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
+<div class="card">
+  <div class="card-head">
+    <div class="card-head-title">Approved</div>
     <?php if ($approved_count > 0): ?>
-      <span class="neb-badge badge-current" style="margin-left:.4rem"><?= (int) $approved_count ?></span>
+      <span class="badge badge-current" style="margin-left:.4rem"><?= (int) $approved_count ?></span>
     <?php endif; ?>
   </div>
 
   <?php if (empty($approvedMembers)): ?>
-    <div class="neb-empty">
-      <svg class="empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+    <div class="empty">
+      <?= View::icon('check-badge', ['width' => '40', 'height' => '40']) ?>
       No approved entries yet.
     </div>
   <?php else: ?>
-    <div class="neb-table-wrap">
+    <div class="table-wrap">
     <table class="data-table">
       <thead>
         <tr>
@@ -137,17 +137,17 @@ $approvedMembers = array_filter($members, static fn($m) => !$m->pending);
           <td>
             <?php if ($m->url !== ''): ?>
               <a href="<?= View::e($m->url) ?>" target="_blank" rel="noopener noreferrer"
-                 class="neb-link"><?= View::e($m->url) ?></a>
+                 class="link"><?= View::e($m->url) ?></a>
             <?php else: ?>
-              <span class="text-dim">—</span>
+              <span class="text-dim">â€”</span>
             <?php endif; ?>
           </td>
           <td class="text-dim nowrap"><?= View::e(date($admin_date_format, strtotime($m->addedAt))) ?></td>
           <td class="act-col">
             <a href="<?= $b ?>/admin/kim/<?= (int) $m->id ?>/edit"
-               class="btn btn-tertiary btn-sm">Edit</a>
+               class="btn btn-quaternary btn-sm">Edit</a>
             <a href="<?= $b ?>/admin/kim/<?= (int) $m->id ?>/email-member"
-               class="btn btn-tertiary btn-sm">Email</a>
+               class="btn btn-quaternary btn-sm">Email</a>
             <form method="POST" action="<?= $b ?>/admin/kim/<?= (int) $m->id ?>/delete"
                   style="display:inline"
                   data-del-modal data-del-entity="kim_member"

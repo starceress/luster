@@ -1,0 +1,96 @@
+<?php
+
+declare(strict_types=1);
+
+use Luster\Core\Captcha;
+use Luster\Core\View;
+use Luster\Repositories\SiteSettingsRepo;
+
+/**
+ * Luster embed — collective contact form fragment.
+ *
+ * Usage:
+ *   $luster_return = false;  // optional: true = return string, false = echo
+ *   require '/absolute/path/to/luster/public/embed/collective-contact.php';
+ *
+ * Override variables (set before require):
+ *   $luster_contact_action  — override the form POST URL
+ */
+
+// ---------------------------------------------------------------------------
+// 1. Bootstrap Luster
+// ---------------------------------------------------------------------------
+
+$_lusterRoot = dirname(__DIR__, 2);
+
+if (!is_file($_lusterRoot . '/vendor/autoload.php') || !is_file($_lusterRoot . '/config/app.php')) {
+    $_lusterHtml = '<p class="fl-errors">Luster embed error: Luster is not installed correctly.</p>';
+    if ($luster_return ?? false) { return $_lusterHtml; }
+    echo $_lusterHtml;
+    return;
+}
+
+defined('LUSTER_BASE') || define('LUSTER_BASE', $_lusterRoot);
+
+/** @var \Luster\Core\Application $_lusterApp */
+$_lusterApp = require $_lusterRoot . '/bootstrap.php';
+$_lusterApp->getSession()->start();
+
+// ---------------------------------------------------------------------------
+// 2. Check if collective contact is enabled
+// ---------------------------------------------------------------------------
+
+$_lusterSiteRepo = new SiteSettingsRepo($_lusterApp->getDatabase());
+$_lusterEnabled  = (bool) ((int) ($_lusterSiteRepo->get('collective_contact_enabled') ?? '1'));
+
+if (!$_lusterEnabled) {
+    $_lusterHtml = '';
+    if ($luster_return ?? false) { return $_lusterHtml; }
+    echo $_lusterHtml;
+    return;
+}
+
+// ---------------------------------------------------------------------------
+// 3. Consume flash data
+// ---------------------------------------------------------------------------
+
+$_lusterSession = $_lusterApp->getSession();
+$_lusterError   = (string) $_lusterSession->get('lstr_flash_error', '');
+$_lusterOld     = (array)  $_lusterSession->get('lstr_flash_old',   []);
+$_lusterSession->remove('lstr_flash_error');
+$_lusterSession->remove('lstr_flash_old');
+
+// ---------------------------------------------------------------------------
+// 4. Build form data and render
+// ---------------------------------------------------------------------------
+
+$_lusterConfig     = $_lusterApp->getConfig();
+$_lusterBaseUrl    = $_lusterApp->getBaseUrl();
+$_lusterFormAction = isset($luster_contact_action)
+    ? (string) $luster_contact_action
+    : $_lusterBaseUrl . '/contact';
+
+$_lusterData = [
+    'listing'          => null,
+    'listing_name'     => (string) $_lusterConfig->get('app_name', 'Collective'),
+    'listing_url'      => (string) $_lusterConfig->get('app_url',  ''),
+    'page_title'       => 'Contact',
+    'base_url'         => $_lusterBaseUrl,
+    'theme_path'       => rtrim($_lusterBaseUrl, '/') . '/assets/default',
+    'form_action'      => $_lusterFormAction,
+    'csrf_token'       => $_lusterApp->getCSRF()->token(),
+    'errors'           => $_lusterError !== '' ? View::e($_lusterError) : '',
+    'captcha_question' => Captcha::getQuestion('contact_collective'),
+    'captcha_error'    => '',
+    'old'              => $_lusterOld,
+    'field_name'       => View::e($_lusterOld['name']    ?? ''),
+    'field_email'      => View::e($_lusterOld['email']   ?? ''),
+    'field_url'        => View::e($_lusterOld['url']     ?? ''),
+    'field_subject'    => View::e($_lusterOld['subject'] ?? ''),
+    'field_message'    => View::e($_lusterOld['message'] ?? ''),
+];
+
+$_lusterHtml = $_lusterApp->getView()->renderFragment('contact.php', $_lusterData);
+
+if ($luster_return ?? false) { return $_lusterHtml; }
+echo $_lusterHtml;

@@ -465,7 +465,12 @@ final class ListingController
                 $listingType = 'listing';
             }
 
-            $membersPerPage = max(5, min(200, (int) $request->post('members_per_page', 25)));
+            $membersPerPage   = max(5, min(200, (int) $request->post('members_per_page', 25)));
+            $contactEnabled   = $request->post('contact_enabled') === '1';
+            $contactRecipient = trim((string) $request->post('contact_recipient', ''));
+            if ($contactRecipient !== '' && !filter_var($contactRecipient, FILTER_VALIDATE_EMAIL)) {
+                $contactRecipient = '';
+            }
 
             // --- Image upload validation (before moving any file) ---
             $imageError  = '';
@@ -536,6 +541,8 @@ final class ListingController
                     'current_category_id' => $listing->categoryId ?? null,
                     'listing_type'        => $listingType,
                     'members_per_page'    => $membersPerPage,
+                    'contact_enabled'     => $contactEnabled,
+                    'contact_recipient'   => $contactRecipient,
                 ], 'Edit Listing', 'listings', 'Owned › ' . $listing->name);
             }
 
@@ -553,6 +560,7 @@ final class ListingController
             $listingRepo->update($id, !empty($catids) ? $catids[0] : null, $subject, $opened, $catidStr);
             $settingsRepo->saveListingType($id, $listingType);
             $settingsRepo->saveMembersPerPage($id, $membersPerPage);
+            $settingsRepo->saveContactSettings($id, $contactEnabled, $contactRecipient !== '' ? $contactRecipient : null);
             if ($lastUpdatedInput !== '' || $request->post('fl_last_updated') !== null) {
                 $settingsRepo->setLastUpdated($id, $lastUpdatedInput !== '' ? $lastUpdatedInput : null);
             }
@@ -603,6 +611,7 @@ final class ListingController
         $membersPerPage     = $settingsRepo->getMembersPerPage($id);
         $flLastUpdated      = $settingsRepo->getLastUpdated($id);
         $embedSettings      = $settingsRepo->getEmbedSettings($id);
+        $contactSettings    = $settingsRepo->getContactSettings($id);
         $approved           = $listing->dbprefix !== '' ? $memberRepo->countApproved($listing->dbprefix) : 0;
         $pending            = $listing->dbprefix !== '' ? $memberRepo->countPending($listing->dbprefix) : 0;
         $countries          = $listing->dbprefix !== '' ? $memberRepo->countUniqueCountries($listing->dbprefix) : 0;
@@ -648,6 +657,8 @@ final class ListingController
             'listing_type'        => $listingType,
             'members_per_page'    => $membersPerPage,
             'embed_settings'      => $embedSettings,
+            'contact_enabled'     => $contactSettings['enabled'],
+            'contact_recipient'   => $contactSettings['recipient'] ?? '',
         ], 'Edit Listing', 'listings', 'Owned › ' . $listing->name);
     }
 

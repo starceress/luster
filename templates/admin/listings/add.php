@@ -1,4 +1,5 @@
 <?php
+use Luster\Core\View;
 /** @var array  $tfl_cats        [{id: int, name: string}] */
 /** @var array  $tafl_cats       [{id: int, name: string}] */
 /** @var array  $custom_networks string[] */
@@ -8,7 +9,7 @@
 /** @var string $default_date */
 /** @var string $base_url */
 /** @var string $csrf_token */
-$b  = rtrim(\Luster\Core\View::e($base_url), '/');
+$b  = rtrim(View::e($base_url), '/');
 $fe = $field_errors ?? [];
 
 $val = static function (string $k, string $def = '') use ($old): string {
@@ -27,12 +28,12 @@ $dataCustom = json_encode($custom_networks ?? [], JSON_HEX_QUOT | JSON_HEX_AMP |
 </p>
 
 <?php if ($error !== ''): ?>
-  <div class="alert alert-error"><?= \Luster\Core\View::e($error) ?></div>
+  <div class="alert alert-error"><?= View::e($error) ?></div>
 <?php endif; ?>
 
-<div class="neb-card listing-field-card">
+<div class="card listing-field-card">
   <form method="POST" action="<?= $b ?>/admin/listings/add" enctype="multipart/form-data" class="js-warn-unsaved">
-    <input type="hidden" name="_csrf" value="<?= \Luster\Core\View::e($csrf_token ?? '') ?>">
+    <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
 
     <div class="listing-field-section">
 
@@ -46,7 +47,7 @@ $dataCustom = json_encode($custom_networks ?? [], JSON_HEX_QUOT | JSON_HEX_AMP |
                data-custom='<?= $dataCustom ?>'
                data-existing='[]'>
             <div id="cat-rows"></div>
-            <a href="#" class="neb-link" id="cat-add" style="font-size:.8125rem;display:inline-block;margin-top:.4rem">+ Add another category</a>
+            <a href="#" class="link" id="cat-add" style="font-size:.8125rem;display:inline-block;margin-top:.4rem">+ Add another category</a>
           </div>
           <p class="form-hint">The network(s) and category(ies) this listing is listed under.</p>
         </div>
@@ -57,9 +58,9 @@ $dataCustom = json_encode($custom_networks ?? [], JSON_HEX_QUOT | JSON_HEX_AMP |
         <label class="listing-field-label" for="fl-subject">Subject <span class="req">*</span></label>
         <div>
           <input id="fl-subject" type="text" name="subject" class="form-input" maxlength="255" required
-                 value="<?= \Luster\Core\View::e($val('subject')) ?>">
+                 value="<?= View::e($val('subject')) ?>">
           <p class="form-hint">The subject of your listing (e.g. character name, show title).</p>
-          <?php if (!empty($fe['subject'])): ?><p class="field-error"><?= \Luster\Core\View::e($fe['subject'][0]) ?></p><?php endif; ?>
+          <?php if (!empty($fe['subject'])): ?><p class="field-error"><?= View::e($fe['subject'][0]) ?></p><?php endif; ?>
         </div>
       </div>
 
@@ -68,7 +69,7 @@ $dataCustom = json_encode($custom_networks ?? [], JSON_HEX_QUOT | JSON_HEX_AMP |
         <label class="listing-field-label" for="fl-title">Title</label>
         <div>
           <input id="fl-title" type="text" name="title" class="form-input" maxlength="255"
-                 value="<?= \Luster\Core\View::e($val('title')) ?>">
+                 value="<?= View::e($val('title')) ?>">
           <p class="form-hint">Optional display name — defaults to Subject if left blank.</p>
         </div>
       </div>
@@ -78,8 +79,8 @@ $dataCustom = json_encode($custom_networks ?? [], JSON_HEX_QUOT | JSON_HEX_AMP |
         <label class="listing-field-label" for="fl-url">URL <span class="req">*</span></label>
         <div>
           <input id="fl-url" type="url" name="url" class="form-input" maxlength="500" placeholder="https://" required
-                 value="<?= \Luster\Core\View::e($val('url')) ?>">
-          <?php if (!empty($fe['url'])): ?><p class="field-error"><?= \Luster\Core\View::e($fe['url'][0]) ?></p><?php endif; ?>
+                 value="<?= View::e($val('url')) ?>">
+          <?php if (!empty($fe['url'])): ?><p class="field-error"><?= View::e($fe['url'][0]) ?></p><?php endif; ?>
         </div>
       </div>
 
@@ -89,7 +90,7 @@ $dataCustom = json_encode($custom_networks ?? [], JSON_HEX_QUOT | JSON_HEX_AMP |
         <div>
           <input id="fl-email" type="email" name="email" class="form-input" maxlength="255"
                  placeholder="admin@example.com"
-                 value="<?= \Luster\Core\View::e($val('email')) ?>">
+                 value="<?= View::e($val('email')) ?>">
           <p class="form-hint">Address listing emails are sent from.</p>
         </div>
       </div>
@@ -133,7 +134,7 @@ $dataCustom = json_encode($custom_networks ?? [], JSON_HEX_QUOT | JSON_HEX_AMP |
         <label class="listing-field-label" for="fl-opened">Opened On</label>
         <div>
           <input id="fl-opened" type="date" name="opened" class="form-input" style="max-width:180px"
-                 value="<?= \Luster\Core\View::e($val('opened', $default_date)) ?>">
+                 value="<?= View::e($val('opened', $default_date)) ?>">
           <input type="hidden" id="fl-opened-tba" name="opened" value="TBA" disabled>
           <span id="fl-opened-tba-text" style="display:none;font-size:.85rem;color:var(--text-muted);font-style:italic">TBA &mdash; date will be set when the listing opens.</span>
         </div>

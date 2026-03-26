@@ -13,10 +13,10 @@ use Luster\Repositories\ActivityRepo;
  * Paginated activity log viewer.
  *
  * Routes:
- *   GET  /admin/activity        — all entries, newest first
- *   GET  /admin/activity?page=N — pagination
- *   GET  /admin/activity/export — download CSV
- *   POST /admin/activity/flush  — delete all entries
+ *   GET  /admin/activitylog        — all entries, newest first
+ *   GET  /admin/activitylog?page=N — pagination
+ *   GET  /admin/activitylog/export — download CSV
+ *   POST /admin/activitylog/flush  — delete all entries
  */
 final class ActivityLogController
 {
@@ -38,17 +38,17 @@ final class ActivityLogController
         $success = (string) $session->get('lstr_flash_success', '');
         $session->remove('lstr_flash_success');
 
-        return $this->layout('admin/activity/index.php', [
+        return $this->layout('admin/activitylog/index.php', [
             'entries' => $result['entries'],
             'total'   => $result['total'],
             'page'    => $page,
             'pages'   => $result['pages'],
             'success' => $success,
-        ], 'Activity Log', 'activity');
+        ], 'Activity Log', 'activitylog');
     }
 
     // -----------------------------------------------------------------------
-    // GET /admin/activity/export
+    // GET /admin/activitylog/export
     // -----------------------------------------------------------------------
 
     public function export(Request $request, array $params): Response
@@ -76,7 +76,7 @@ final class ActivityLogController
     }
 
     // -----------------------------------------------------------------------
-    // POST /admin/activity/flush
+    // POST /admin/activitylog/flush
     // -----------------------------------------------------------------------
 
     public function flush(Request $request, array $params): Response
@@ -88,7 +88,7 @@ final class ActivityLogController
         $activityRepo->flush();
 
         $session->set('lstr_flash_success', 'Activity log cleared.');
-        return Response::redirect($baseUrl . '/admin/activity');
+        return Response::redirect($baseUrl . '/admin/activitylog');
     }
 
     private function layout(string $template, array $data, string $pageTitle, string $section): Response

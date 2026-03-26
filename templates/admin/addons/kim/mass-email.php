@@ -1,6 +1,6 @@
 <?php
 /**
- * KIM List admin — mass email compose form.
+ * KIM List admin â€” mass email compose form.
  *
  * Variables:
  *   $listing          Listing
@@ -22,12 +22,12 @@ $b = rtrim(View::e($base_url), '/');
 <?php endif; ?>
 
 <p class="page-back">
-  <a href="<?= $b ?>/admin/kim/<?= (int) $listing->id ?>/show" class="neb-link">
+  <a href="<?= $b ?>/admin/kim/<?= (int) $listing->id ?>/show" class="link">
     &larr; Back to <?= View::e($listing->subject) ?>
   </a>
 </p>
 
-<div class="neb-card" style="padding:1.25rem">
+<div class="card" style="padding:1.25rem">
   <p style="margin-bottom:1.25rem;color:var(--text-muted);font-size:.875rem">
     This will send an email to
     <strong style="color:var(--text)"><?= (int) $recipient_count ?></strong>
@@ -57,7 +57,7 @@ $b = rtrim(View::e($base_url), '/');
         Send to <?= (int) $recipient_count ?> member<?= $recipient_count === 1 ? '' : 's' ?>
       </button>
       <a href="<?= $b ?>/admin/kim/<?= (int) $listing->id ?>/show"
-         class="btn btn-tertiary">Cancel</a>
+         class="btn btn-quaternary">Cancel</a>
     </div>
   </form>
 </div>

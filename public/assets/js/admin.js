@@ -229,24 +229,24 @@ document.addEventListener('click', function (e) {
   if (btn && btn.form) btn.form.reset();
 });
 
-// ── 13. Tab switching (.neb-tab-btn / .neb-sidebar-nav-item / #tab-{tabId}) ───
+// ── 13. Tab switching (.neb-tab-btn / .sidebar-nav-item / #tab-{tabId}) ───
 //
 // Generic tab switcher used by listings/edit, settings, and anywhere else that
 // uses the .neb-tab-btn / .neb-tab-panel markup pattern. Also handles the
-// settings page vertical sidebar nav (.neb-sidebar-nav-item).
+// settings page vertical sidebar nav (.sidebar-nav-item).
 // Activates a tab by URL hash on load (e.g. settings redirects with #tab-email).
 
 (function () {
   var tabs     = document.querySelectorAll('.neb-tab-btn');
-  var navItems = document.querySelectorAll('.neb-sidebar-nav-item');
+  var navItems = document.querySelectorAll('.sidebar-nav-item');
   if (!tabs.length && !navItems.length) return;
 
   function activateTab(tabId) {
-    document.querySelectorAll('.neb-tab-btn, .neb-tab-panel, .neb-sidebar-nav-item').forEach(function (el) {
+    document.querySelectorAll('.neb-tab-btn, .neb-tab-panel, .sidebar-nav-item').forEach(function (el) {
       el.classList.remove('active');
     });
     var btn     = document.querySelector('.neb-tab-btn[data-tab="' + tabId + '"]');
-    var navItem = document.querySelector('.neb-sidebar-nav-item[data-tab="' + tabId + '"]');
+    var navItem = document.querySelector('.sidebar-nav-item[data-tab="' + tabId + '"]');
     var panel   = document.getElementById('tab-' + tabId);
     if (btn)     btn.classList.add('active');
     if (navItem) navItem.classList.add('active');
@@ -278,7 +278,7 @@ document.addEventListener('click', function (e) {
   // Activate from URL hash (settings page: redirect with ?...#tab-email etc.)
   var hash = window.location.hash.replace('#tab-', '');
   if (hash && (document.querySelector('.neb-tab-btn[data-tab="' + hash + '"]') ||
-               document.querySelector('.neb-sidebar-nav-item[data-tab="' + hash + '"]'))) {
+               document.querySelector('.sidebar-nav-item[data-tab="' + hash + '"]'))) {
     activateTab(hash);
   }
 }());
@@ -582,20 +582,7 @@ document.addEventListener('click', function (e) {
 });
 
 // ── 24b. Listings edit: status pill toggle ────────────────────────────────────
-
-(function () {
-  var row = document.getElementById('status-pills');
-  if (!row) return;
-  var pillMap = { current: 'pill-current', upcoming: 'pill-upcoming', pending: 'pill-pending' };
-  row.addEventListener('change', function (e) {
-    if (e.target.type !== 'radio') return;
-    row.querySelectorAll('.status-pill').forEach(function (pill) {
-      pill.classList.remove('pill-current', 'pill-upcoming', 'pill-pending');
-    });
-    var active = e.target.closest('.status-pill');
-    if (active && pillMap[e.target.value]) active.classList.add(pillMap[e.target.value]);
-  });
-}());
+// Active state is handled by CSS :has(input:checked) on .status-pill--* classes.
 
 // ── 25. Listings edit: last-updated date set/clear buttons ────────────────────
 
@@ -2268,7 +2255,7 @@ document.addEventListener('click', function (e) {
 
 (function () {
   var btn   = document.getElementById('fl-filter-toggle');
-  var panel = document.getElementById('fl-filter-panel');
+  var panel = document.getElementById('filter-panel');
   if (!btn || !panel) return;
 
   var LS_KEY = 'lstr_fl_filter_open';
@@ -2352,19 +2339,19 @@ document.addEventListener('click', function (e) {
   });
 }());
 
-// ── 35. Email template type left-nav (.neb-sidebar-nav-item / .et-panel) ──────
+// ── 35. Email template type left-nav (.sidebar-nav-item / .et-panel) ──────
 //
 // Standalone switcher so it does not conflict with the .neb-tab-btn switcher
 // (which would clear the active sub-tab when a sidebar item is clicked).
 
 (function () {
-  var items = document.querySelectorAll('.neb-sidebar-nav-item[data-et-tab]');
+  var items = document.querySelectorAll('.mini-nav-item[data-et-tab]');
   if (!items.length) return;
 
   function activate(tabId) {
     items.forEach(function (el) { el.classList.remove('active'); });
     document.querySelectorAll('.et-panel').forEach(function (el) { el.classList.remove('active'); });
-    var item  = document.querySelector('.neb-sidebar-nav-item[data-et-tab="' + tabId + '"]');
+    var item  = document.querySelector('.sidebar-nav-item[data-et-tab="' + tabId + '"]');
     var panel = document.getElementById('et-tab-' + tabId);
     if (item)  item.classList.add('active');
     if (panel) panel.classList.add('active');

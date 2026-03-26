@@ -10,9 +10,9 @@ use Luster\Core\View;
  * @var object[]               $categories       Category groups (CodeCategoriesRepo result objects)
  * @var object[]               $donors           Donors (CodeDonorsRepo result objects)
  * @var array                  $grouped          ['WxH' => ['label' => string, 'codes' => object[]]]
- * @var array<int,int[]>       $code_categories  code_id → [category_id, ...]
- * @var array<int,object>      $category_map     category_id → category object
- * @var array<int,object>      $donor_map        donor_id → donor object
+ * @var array<int,int[]>       $code_categories  code_id â†’ [category_id, ...]
+ * @var array<int,object>      $category_map     category_id â†’ category object
+ * @var array<int,object>      $donor_map        donor_id â†’ donor object
  * @var int                    $edit_cat_id      Which category row to show in edit mode (0 = none)
  * @var int                    $edit_donor_id    Which donor row to show in edit mode (0 = none)
  * @var string                 $status_filter    Active status filter ('' = all)
@@ -38,15 +38,15 @@ $topLevelCats = array_filter($categories, fn($c) => $c->parentId === null);
 $settingsOpen = $hasCats || $hasDonors;
 ?>
 
-<!-- ── Header ────────────────────────────────────────────────────────────── -->
+<!-- â”€â”€ Header â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
-  <a href="<?= $b ?>/admin/listings/<?= $fid ?>/edit" class="neb-link">
+  <a href="<?= $b ?>/admin/listings/<?= $fid ?>/edit" class="link">
     &larr; Back to <?= View::e($listing->name) ?>
   </a>
   <div style="display:flex;align-items:center;gap:.75rem">
     <?php if (($status_counts['approved'] ?? 0) > 0): ?>
     <a href="<?= $b ?>/admin/listings/<?= $fid ?>/codes/export"
-       class="btn btn-tertiary btn-sm">&#8659; Export ZIP</a>
+       class="btn btn-quaternary btn-sm">&#8659; Export ZIP</a>
     <?php endif; ?>
     <span style="font-size:.8rem;color:var(--text-dim)">
       <?= $total_codes ?> code<?= $total_codes !== 1 ? 's' : '' ?>
@@ -61,7 +61,7 @@ $settingsOpen = $hasCats || $hasDonors;
   <div class="alert alert-error"><?= View::e($error) ?></div>
 <?php endif; ?>
 
-<!-- ── Pending codes banner ──────────────────────────────────────────────── -->
+<!-- â”€â”€ Pending codes banner â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
 <?php if ($pendingCount > 0 && $status_filter !== 'pending'): ?>
 <div class="pending-banner" style="margin-bottom:1.25rem">
   <div class="pending-banner-left">
@@ -79,8 +79,8 @@ $settingsOpen = $hasCats || $hasDonors;
 </div>
 <?php endif; ?>
 
-<!-- ── Upload ──────────────────────────────────────────────────────────────── -->
-<div class="neb-card" style="padding:1.25rem 1.5rem;margin-bottom:1.25rem">
+<!-- â”€â”€ Upload â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
+<div class="card" style="padding:1.25rem 1.5rem;margin-bottom:1.25rem">
   <h2 class="card-title" style="margin-bottom:1rem">Upload Codes</h2>
   <form method="POST"
         action="<?= $b ?>/admin/listings/<?= $fid ?>/codes/upload"
@@ -91,7 +91,7 @@ $settingsOpen = $hasCats || $hasDonors;
       <div style="flex:1;min-width:220px">
         <label class="form-label" for="codes-input">
           Images
-          <span style="font-weight:400;color:var(--text-dim)">(JPEG, PNG, GIF, WebP — max 500 KB each)</span>
+          <span style="font-weight:400;color:var(--text-dim)">(JPEG, PNG, GIF, WebP â€” max 500 KB each)</span>
         </label>
         <input class="form-input" type="file" id="codes-input" name="codes[]"
                accept="image/jpeg,image/png,image/gif,image/webp" multiple>
@@ -101,7 +101,7 @@ $settingsOpen = $hasCats || $hasDonors;
       <div>
         <label class="form-label" for="upload-donor">Donor</label>
         <div class="toolbar-select-wrap">
-          <select id="upload-donor" name="donor_id" class="neb-select">
+          <select id="upload-donor" name="donor_id" class="select">
             <option value="">None</option>
             <?php foreach ($donors as $dn): ?>
               <option value="<?= (int)$dn->id ?>"><?= View::e($dn->name) ?></option>
@@ -114,7 +114,7 @@ $settingsOpen = $hasCats || $hasDonors;
       <div>
         <label class="form-label" for="upload-status">Status</label>
         <div class="toolbar-select-wrap">
-          <select id="upload-status" name="upload_status" class="neb-select">
+          <select id="upload-status" name="upload_status" class="select">
             <option value="approved">Live</option>
             <option value="pending">Pending</option>
           </select>
@@ -131,7 +131,7 @@ $settingsOpen = $hasCats || $hasDonors;
               class="form-input" style="height:auto;min-height:60px">
         <?php foreach ($categories as $cat): ?>
           <option value="<?= (int)$cat->id ?>">
-            <?= $cat->parentId !== null ? '└ ' : '' ?><?= View::e($cat->name) ?>
+            <?= $cat->parentId !== null ? 'â”” ' : '' ?><?= View::e($cat->name) ?>
           </option>
         <?php endforeach; ?>
       </select>
@@ -147,7 +147,7 @@ $settingsOpen = $hasCats || $hasDonors;
 </div>
 
 
-<!-- ── Code Settings (Categories, Donors) ───────────────────────────────── -->
+<!-- â”€â”€ Code Settings (Categories, Donors) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
 <details <?= $settingsOpen ? 'open' : '' ?> style="margin-bottom:1.25rem">
   <summary style="cursor:pointer;padding:.6rem .75rem;border-radius:8px;background:var(--bg-card);border:1px solid var(--border);font-size:.85rem;font-weight:600;color:var(--text);list-style:none;display:flex;align-items:center;gap:.5rem;user-select:none">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="15" height="15">
@@ -169,8 +169,8 @@ $settingsOpen = $hasCats || $hasDonors;
 
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem;margin-top:1rem">
 
-    <!-- ── Categories ────────────────────────────────────────────────────── -->
-    <div class="neb-card">
+    <!-- â”€â”€ Categories â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
+    <div class="card">
       <div class="panel-header" style="border-bottom:1px solid var(--border)">
         <div class="panel-title" style="font-size:.875rem">
           <svg class="panel-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
@@ -190,7 +190,7 @@ $settingsOpen = $hasCats || $hasDonors;
           <div style="min-width:100px">
             <label class="form-label" style="font-size:.72rem;margin-bottom:.2rem">Parent</label>
             <div class="toolbar-select-wrap">
-              <select name="parent_id" class="neb-select" style="font-size:.8rem">
+              <select name="parent_id" class="select" style="font-size:.8rem">
                 <option value="">None (top-level)</option>
                 <?php foreach ($topLevelCats as $tlc): ?>
                   <option value="<?= (int)$tlc->id ?>"><?= View::e($tlc->name) ?></option>
@@ -204,7 +204,7 @@ $settingsOpen = $hasCats || $hasDonors;
       </div>
 
       <?php if ($hasCats): ?>
-      <div class="neb-table-wrap">
+      <div class="table-wrap">
       <table class="data-table" style="margin:0;font-size:.82rem">
         <tbody>
           <?php foreach ($categories as $cat): ?>
@@ -212,7 +212,7 @@ $settingsOpen = $hasCats || $hasDonors;
           <tr <?= $isCatEditing ? 'style="display:none"' : '' ?>>
             <td style="padding:.5rem .75rem">
               <?php if ($cat->parentId !== null): ?>
-                <span style="color:var(--text-dim);margin-right:.2rem">└</span>
+                <span style="color:var(--text-dim);margin-right:.2rem">â””</span>
               <?php endif; ?>
               <span class="text-strong"><?= View::e($cat->name) ?></span>
             </td>
@@ -223,7 +223,7 @@ $settingsOpen = $hasCats || $hasDonors;
               <?= $catCodeCount ?>
             </td>
             <td class="act-col" style="padding:.5rem .75rem">
-              <a href="?edit_cat=<?= (int)$cat->id ?>" class="btn btn-tertiary btn-sm">Edit</a>
+              <a href="?edit_cat=<?= (int)$cat->id ?>" class="btn btn-quaternary btn-sm">Edit</a>
               <form method="POST" action="<?= $b ?>/admin/listings/<?= $fid ?>/codes/categories/<?= (int)$cat->id ?>/delete"
                     style="display:contents"
                     data-del-modal data-del-entity="code_category"
@@ -243,7 +243,7 @@ $settingsOpen = $hasCats || $hasDonors;
                 </div>
                 <div style="min-width:100px">
                   <div class="toolbar-select-wrap">
-                    <select name="parent_id" class="neb-select" style="font-size:.8rem">
+                    <select name="parent_id" class="select" style="font-size:.8rem">
                       <option value="">None (top-level)</option>
                       <?php foreach ($categories as $pcat): ?>
                         <?php if ($pcat->id === $cat->id || $pcat->parentId !== null) continue; ?>
@@ -255,7 +255,7 @@ $settingsOpen = $hasCats || $hasDonors;
                   </div>
                 </div>
                 <button class="btn btn-primary btn-sm">Save</button>
-                <a href="?" class="btn btn-tertiary btn-sm">Cancel</a>
+                <a href="?" class="btn btn-quaternary btn-sm">Cancel</a>
               </form>
             </td>
           </tr>
@@ -270,8 +270,8 @@ $settingsOpen = $hasCats || $hasDonors;
       <?php endif; ?>
     </div>
 
-    <!-- ── Donors ────────────────────────────────────────────────────────── -->
-    <div class="neb-card">
+    <!-- â”€â”€ Donors â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
+    <div class="card">
       <div class="panel-header" style="border-bottom:1px solid var(--border)">
         <div class="panel-title" style="font-size:.875rem">
           <svg class="panel-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
@@ -300,7 +300,7 @@ $settingsOpen = $hasCats || $hasDonors;
       </div>
 
       <?php if ($hasDonors): ?>
-      <div class="neb-table-wrap">
+      <div class="table-wrap">
       <table class="data-table" style="margin:0;font-size:.82rem">
         <tbody>
           <?php foreach ($donors as $dn): ?>
@@ -309,19 +309,19 @@ $settingsOpen = $hasCats || $hasDonors;
             <td style="padding:.5rem .75rem">
               <?php if ($dn->url !== null): ?>
                 <a href="<?= View::e($dn->url) ?>" target="_blank" rel="noopener noreferrer"
-                   class="neb-link text-strong"><?= View::e($dn->name) ?></a>
+                   class="link text-strong"><?= View::e($dn->name) ?></a>
               <?php else: ?>
                 <span class="text-strong"><?= View::e($dn->name) ?></span>
               <?php endif; ?>
             </td>
             <td class="text-dim" style="padding:.5rem .25rem;font-size:.75rem">
-              <?= $dn->email !== null ? View::e($dn->email) : '—' ?>
+              <?= $dn->email !== null ? View::e($dn->email) : 'â€”' ?>
             </td>
             <td class="text-dim" style="padding:.5rem .25rem;text-align:center">
               <?= count(array_filter($codes, fn($c) => $c->donorId === $dn->id)) ?>
             </td>
             <td class="act-col" style="padding:.5rem .75rem">
-              <a href="?edit_donor=<?= (int)$dn->id ?>" class="btn btn-tertiary btn-sm">Edit</a>
+              <a href="?edit_donor=<?= (int)$dn->id ?>" class="btn btn-quaternary btn-sm">Edit</a>
               <form method="POST" action="<?= $b ?>/admin/listings/<?= $fid ?>/codes/donors/<?= (int)$dn->id ?>/delete"
                     style="display:contents"
                     data-del-modal data-del-entity="code_donor"
@@ -346,7 +346,7 @@ $settingsOpen = $hasCats || $hasDonors;
                   <input class="form-input" type="url" name="url" value="<?= View::e($dn->url ?? '') ?>" placeholder="URL">
                 </div>
                 <button class="btn btn-primary btn-sm">Save</button>
-                <a href="?" class="btn btn-tertiary btn-sm">Cancel</a>
+                <a href="?" class="btn btn-quaternary btn-sm">Cancel</a>
               </form>
             </td>
           </tr>
@@ -365,13 +365,13 @@ $settingsOpen = $hasCats || $hasDonors;
 </details>
 
 
-<!-- ── Status filter tabs ─────────────────────────────────────────────────── -->
+<!-- â”€â”€ Status filter tabs â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
 <?php
 $filterTabs = [
     ''         => 'All (' . $total_codes . ')',
-    'approved' => '✓ Live (' . ($status_counts['approved'] ?? 0) . ')',
-    'pending'  => '⏳ Pending (' . ($status_counts['pending'] ?? 0) . ')',
-    'rejected' => '✗ Rejected (' . ($status_counts['rejected'] ?? 0) . ')',
+    'approved' => 'âœ“ Live (' . ($status_counts['approved'] ?? 0) . ')',
+    'pending'  => 'â³ Pending (' . ($status_counts['pending'] ?? 0) . ')',
+    'rejected' => 'âœ— Rejected (' . ($status_counts['rejected'] ?? 0) . ')',
 ];
 ?>
 <div class="neb-tabs-wrap" style="margin-bottom:1.25rem">
@@ -386,7 +386,7 @@ $filterTabs = [
   <div class="neb-tabs-select-wrap">
     <span class="neb-tabs-select-label">Filter:</span>
     <div class="toolbar-select-wrap">
-      <select class="neb-tabs-select neb-select js-nav-select">
+      <select class="neb-tabs-select select js-nav-select">
         <?php foreach ($filterTabs as $sf => $label): ?>
           <?php $href = $sf === '' ? '?' : '?status_filter=' . rawurlencode($sf); ?>
           <option value="<?= $href ?>"<?= $status_filter === $sf ? ' selected' : '' ?>>
@@ -399,16 +399,16 @@ $filterTabs = [
 </div>
 
 
-<!-- ── Codes grid ──────────────────────────────────────────────────────────── -->
+<!-- â”€â”€ Codes grid â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
 
 <?php if ($total_codes === 0): ?>
 
-  <div class="neb-card" style="padding:2.5rem;text-align:center">
-    <div style="font-size:1.75rem;margin-bottom:.75rem">🖼️</div>
+  <div class="card" style="padding:2.5rem;text-align:center">
+    <div style="font-size:1.75rem;margin-bottom:.75rem">ðŸ–¼ï¸</div>
     <div style="font-weight:600;color:var(--text);margin-bottom:.35rem">No codes yet</div>
     <div style="font-size:.85rem;color:var(--text-dim)">
       Upload code images above. Members will link to
-      <a class="neb-link" href="<?= View::e($listing->url !== '' ? $listing->url : '#') ?>"
+      <a class="link" href="<?= View::e($listing->url !== '' ? $listing->url : '#') ?>"
          target="_blank" rel="noopener noreferrer"><?= View::e($listing->name) ?></a>
       using these images.
     </div>
@@ -416,11 +416,11 @@ $filterTabs = [
 
 <?php elseif (empty($codes)): ?>
 
-  <div class="neb-card" style="padding:2.5rem;text-align:center">
+  <div class="card" style="padding:2.5rem;text-align:center">
     <div style="font-size:1.25rem;margin-bottom:.5rem">&#128269;</div>
     <div style="font-weight:600;color:var(--text);margin-bottom:.35rem">No codes match this filter</div>
     <div style="font-size:.85rem;color:var(--text-dim)">
-      <a href="?" class="neb-link">Clear filter</a> to see all <?= $total_codes ?> code<?= $total_codes !== 1 ? 's' : '' ?>.
+      <a href="?" class="link">Clear filter</a> to see all <?= $total_codes ?> code<?= $total_codes !== 1 ? 's' : '' ?>.
     </div>
   </div>
 
@@ -449,7 +449,7 @@ $filterTabs = [
   <dialog id="edit-dialog-<?= (int)$code->id ?>" class="code-edit-dialog">
     <div class="code-edit-dialog-header">
       <span class="code-edit-dialog-title">
-        Edit code<?= $dLabel !== null ? ' — ' . View::e($dLabel) : ' #' . (int)$code->id ?>
+        Edit code<?= $dLabel !== null ? ' â€” ' . View::e($dLabel) : ' #' . (int)$code->id ?>
       </span>
       <button type="button" class="code-edit-dialog-close" data-close-dialog aria-label="Close">&times;</button>
     </div>
@@ -482,7 +482,7 @@ $filterTabs = [
         <div>
           <label class="form-label" style="font-size:.8rem">Status</label>
           <div class="toolbar-select-wrap">
-            <select name="status" class="neb-select" style="width:100%">
+            <select name="status" class="select" style="width:100%">
               <option value="approved" <?= $code->status === 'approved' ? 'selected' : '' ?>>&#10003; Live</option>
               <option value="pending"  <?= $code->status === 'pending'  ? 'selected' : '' ?>>&#8987; Pending</option>
               <option value="rejected" <?= $code->status === 'rejected' ? 'selected' : '' ?>>&#10007; Rejected</option>
@@ -494,7 +494,7 @@ $filterTabs = [
         <div>
           <label class="form-label" style="font-size:.8rem">Donor</label>
           <div class="toolbar-select-wrap">
-            <select name="donor_id" class="neb-select" style="width:100%">
+            <select name="donor_id" class="select" style="width:100%">
               <option value="">No donor</option>
               <?php foreach ($donors as $dn): ?>
                 <option value="<?= (int)$dn->id ?>" <?= $code->donorId === $dn->id ? 'selected' : '' ?>>
@@ -513,7 +513,7 @@ $filterTabs = [
                   class="form-input" style="height:auto;width:100%">
             <?php foreach ($categories as $cat): ?>
               <option value="<?= (int)$cat->id ?>" <?= in_array($cat->id, $dCatIds, true) ? 'selected' : '' ?>>
-                <?= $cat->parentId !== null ? '└ ' : '' ?><?= View::e($cat->name) ?>
+                <?= $cat->parentId !== null ? 'â”” ' : '' ?><?= View::e($cat->name) ?>
               </option>
             <?php endforeach; ?>
           </select>
@@ -543,13 +543,13 @@ $filterTabs = [
   </form>
 
   <!-- Bulk toolbar -->
-  <div class="neb-toolbar" style="margin-bottom:1rem;flex-wrap:wrap;gap:.5rem">
+  <div class="toolbar" style="margin-bottom:1rem;flex-wrap:wrap;gap:.5rem">
     <label style="display:flex;align-items:center;gap:.4rem;font-size:.85rem;color:var(--text-dim);cursor:pointer">
       <input type="checkbox" id="codes-select-all"> Select all
     </label>
     <div style="display:flex;align-items:center;gap:.5rem;flex-wrap:wrap">
       <div class="toolbar-select-wrap">
-        <select id="bulk-action-sel" class="neb-select" style="min-width:130px">
+        <select id="bulk-action-sel" class="select" style="min-width:130px">
           <option value="delete">Delete</option>
           <option value="approve">Approve</option>
           <option value="reject">Reject</option>
@@ -565,14 +565,14 @@ $filterTabs = [
                 style="height:auto;font-size:.8rem;min-height:50px">
           <?php foreach ($categories as $cat): ?>
             <option value="<?= (int)$cat->id ?>">
-              <?= $cat->parentId !== null ? '  └ ' : '' ?><?= View::e($cat->name) ?>
+              <?= $cat->parentId !== null ? '  â”” ' : '' ?><?= View::e($cat->name) ?>
             </option>
           <?php endforeach; ?>
         </select>
       </div>
       <?php endif; ?>
-      <button type="button" id="bulk-apply-btn" class="btn btn-tertiary btn-sm">Apply to selected</button>
-      <button type="button" id="save-order-btn" class="btn btn-tertiary btn-sm" style="display:none">Save order</button>
+      <button type="button" id="bulk-apply-btn" class="btn btn-quaternary btn-sm">Apply to selected</button>
+      <button type="button" id="save-order-btn" class="btn btn-quaternary btn-sm" style="display:none">Save order</button>
     </div>
   </div>
 
@@ -603,7 +603,7 @@ $filterTabs = [
             default    => ['var(--text-dim)', View::e($code->status)],
         };
       ?>
-      <div class="neb-card code-card" data-code-id="<?= (int)$code->id ?>"
+      <div class="card code-card" data-code-id="<?= (int)$code->id ?>"
            style="padding:.75rem;display:flex;flex-direction:column;gap:.4rem">
 
         <!-- Top row: drag + checkbox -->
@@ -639,7 +639,7 @@ $filterTabs = [
         <div style="display:flex;flex-wrap:wrap;gap:3px;justify-content:center">
           <?php foreach ($codeCatIds as $catId): ?>
             <?php if (isset($category_map[$catId])): ?>
-            <span class="neb-badge" style="font-size:.64rem;background:var(--accent-dim,var(--bg-subtle));color:var(--accent)">
+            <span class="badge" style="font-size:.64rem;background:var(--accent-dim,var(--bg-subtle));color:var(--accent)">
               <?= View::e($category_map[$catId]->name) ?>
             </span>
             <?php endif; ?>
@@ -660,14 +660,14 @@ $filterTabs = [
             <div><?= View::e($code->submitterName) ?></div>
           <?php endif; ?>
           <?php if ($code->submitterEmail !== null): ?>
-            <div><a class="neb-link" href="mailto:<?= View::e($code->submitterEmail) ?>"><?= View::e($code->submitterEmail) ?></a></div>
+            <div><a class="link" href="mailto:<?= View::e($code->submitterEmail) ?>"><?= View::e($code->submitterEmail) ?></a></div>
           <?php endif; ?>
         </div>
         <?php endif; ?>
 
         <!-- Edit button (opens out-of-flow dialog) -->
         <div style="margin-top:.1rem;padding-top:.25rem;border-top:1px solid var(--border-soft);text-align:center">
-          <button type="button" class="btn btn-tertiary btn-sm code-edit-btn"
+          <button type="button" class="btn btn-quaternary btn-sm code-edit-btn"
                   data-dialog="edit-dialog-<?= (int)$code->id ?>"
                   style="font-size:.7rem;width:100%">
             &#9881; Edit

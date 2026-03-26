@@ -18,7 +18,7 @@ use Luster\Core\View;
 $b = rtrim(View::e($base_url ?? ''), '/');
 ?>
 
-<div class="neb-card" style="padding:1.75rem 2rem">
+<div class="card" style="padding:1.75rem 2rem">
   <h2 class="card-title" style="margin-bottom:1rem">Confirm send</h2>
 
   <div class="db-info-grid" style="margin-bottom:1.25rem">
@@ -72,12 +72,12 @@ $b = rtrim(View::e($base_url ?? ''), '/');
       <input type="hidden" name="listing_id"  value="<?= (int) $listing_id ?>">
       <input type="hidden" name="subject"     value="<?= View::e($subject) ?>">
       <input type="hidden" name="body"        value="<?= htmlspecialchars($body, ENT_QUOTES, 'UTF-8') ?>">
-      <button type="submit" class="btn btn-primary" data-once-submit="Sending…">
+      <button type="submit" class="btn btn-primary" data-once-submit="Sendingâ€¦">
         Send to <?= (int) $total ?> recipient<?= $total !== 1 ? 's' : '' ?>
       </button>
     </form>
     <?php endif; ?>
-    <a href="<?= $b ?>/admin/emails?tab=bulk" class="btn btn-tertiary">
+    <a href="<?= $b ?>/admin/emails?tab=bulk" class="btn btn-quaternary">
       &larr; Back to compose
     </a>
   </div>

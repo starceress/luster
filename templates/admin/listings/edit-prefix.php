@@ -1,20 +1,21 @@
 <?php
+use Luster\Core\View;
 /** @var \Luster\Models\Listing $listing */
 /** @var bool                      $table_exists */
 /** @var string                    $error */
 /** @var string                    $success */
 /** @var string                    $base_url */
 /** @var string                    $csrf_token */
-$b = rtrim(\Luster\Core\View::e($base_url), '/');
+$b = rtrim(View::e($base_url), '/');
 ?>
 
 <p style="margin-bottom:1rem">
   <a href="<?= $b ?>/admin/listings/<?= (int) $listing->id ?>/edit"
-     class="neb-link">&larr; Back to <?= \Luster\Core\View::e($listing->name) ?></a>
+     class="link">&larr; Back to <?= View::e($listing->name) ?></a>
 </p>
 
 <?php if ($error !== ''): ?>
-  <div class="alert alert-error"><?= \Luster\Core\View::e($error) ?></div>
+  <div class="alert alert-error"><?= View::e($error) ?></div>
 <?php endif; ?>
 
 <div class="alert-warning">
@@ -26,20 +27,20 @@ $b = rtrim(\Luster\Core\View::e($base_url), '/');
 <?php if (!$table_exists): ?>
   <div class="alert alert-error">
     <strong>Warning:</strong> the current member table
-    <code class="neb-code"><?= \Luster\Core\View::e($listing->dbprefix) ?></code>
+    <code class="neb-code"><?= View::e($listing->dbprefix) ?></code>
     does not exist in the database. Proceeding may cause errors.
   </div>
 <?php endif; ?>
 
-<div class="neb-card neb-card-padded">
+<div class="card card-padded">
   <form method="POST"
         action="<?= $b ?>/admin/listings/<?= (int) $listing->id ?>/edit-prefix">
-    <input type="hidden" name="_csrf" value="<?= \Luster\Core\View::e($csrf_token ?? '') ?>">
+    <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
 
     <div class="form-group">
       <label class="form-label">Current Prefix</label>
       <input type="text" class="form-input"
-             value="<?= \Luster\Core\View::e($listing->dbprefix) ?>" readonly
+             value="<?= View::e($listing->dbprefix) ?>" readonly
              style="color:var(--text-muted);cursor:not-allowed">
       <p class="form-hint">This is the existing member table name in the database.</p>
     </div>
@@ -63,7 +64,7 @@ $b = rtrim(\Luster\Core\View::e($base_url), '/');
 
     <div class="btn-row">
       <button type="submit" class="btn btn-danger">Rename Table</button>
-      <a href="<?= $b ?>/admin/listings/<?= (int) $listing->id ?>/edit" class="neb-link">Cancel</a>
+      <a href="<?= $b ?>/admin/listings/<?= (int) $listing->id ?>/edit" class="link">Cancel</a>
     </div>
   </form>
 </div>

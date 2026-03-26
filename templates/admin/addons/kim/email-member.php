@@ -1,6 +1,6 @@
 <?php
 /**
- * KIM List admin — email individual member form.
+ * KIM List admin â€” email individual member form.
  *
  * Variables:
  *   $member      KimMember
@@ -23,18 +23,18 @@ $b = rtrim(View::e($base_url), '/');
 
 <p class="page-back">
   <?php if ($listing !== null): ?>
-    <a href="<?= $b ?>/admin/kim/<?= (int) $listing->id ?>/show" class="neb-link">
+    <a href="<?= $b ?>/admin/kim/<?= (int) $listing->id ?>/show" class="link">
       &larr; Back to <?= View::e($listing->subject) ?>
     </a>
   <?php else: ?>
-    <a href="<?= $b ?>/admin/kim" class="neb-link">&larr; Back to KIM List</a>
+    <a href="<?= $b ?>/admin/kim" class="link">&larr; Back to KIM List</a>
   <?php endif; ?>
 </p>
 
-<div class="neb-card" style="padding:1.25rem">
+<div class="card" style="padding:1.25rem">
   <p style="margin-bottom:1.25rem;color:var(--text-muted);font-size:.875rem">
     Sending to: <strong style="color:var(--text)"><?= View::e($member->name) ?></strong>
-    &lt;<a href="mailto:<?= View::e($member->email) ?>" class="neb-link"><?= View::e($member->email) ?></a>&gt;
+    &lt;<a href="mailto:<?= View::e($member->email) ?>" class="link"><?= View::e($member->email) ?></a>&gt;
   </p>
 
   <form method="POST"
@@ -57,9 +57,9 @@ $b = rtrim(View::e($base_url), '/');
       <button type="submit" class="btn btn-primary">Send Email</button>
       <?php if ($listing !== null): ?>
         <a href="<?= $b ?>/admin/kim/<?= (int) $listing->id ?>/show"
-           class="btn btn-tertiary">Cancel</a>
+           class="btn btn-quaternary">Cancel</a>
       <?php else: ?>
-        <a href="<?= $b ?>/admin/kim" class="btn btn-tertiary">Cancel</a>
+        <a href="<?= $b ?>/admin/kim" class="btn btn-quaternary">Cancel</a>
       <?php endif; ?>
     </div>
   </form>

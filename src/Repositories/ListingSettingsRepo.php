@@ -325,6 +325,64 @@ final class ListingSettingsRepo
     }
 
     /**
+     * Returns contact form settings for a listing.
+     *
+     * Requires Migration 37.
+     *
+     * @return array{enabled: bool, recipient: string|null}
+     */
+    public function getContactSettings(int $listingId): array
+    {
+        try {
+            $stmt = $this->db->prepare(
+                'SELECT contact_enabled, contact_recipient
+                 FROM lstr_fanlisting_settings
+                 WHERE fanlisting_id = :id'
+            );
+            $stmt->execute(['id' => $listingId]);
+            $row = $stmt->fetch();
+        } catch (\Exception) {
+            return ['enabled' => true, 'recipient' => null];
+        }
+
+        if ($row === false) {
+            return ['enabled' => true, 'recipient' => null];
+        }
+
+        return [
+            'enabled'   => (bool) $row['contact_enabled'],
+            'recipient' => $row['contact_recipient'] !== null && $row['contact_recipient'] !== ''
+                ? (string) $row['contact_recipient']
+                : null,
+        ];
+    }
+
+    /**
+     * Saves (upserts) contact form settings for a listing.
+     *
+     * Requires Migration 37.
+     */
+    public function saveContactSettings(int $listingId, bool $enabled, ?string $recipient): void
+    {
+        try {
+            $stmt = $this->db->prepare(
+                'INSERT INTO lstr_fanlisting_settings (fanlisting_id, contact_enabled, contact_recipient)
+                 VALUES (:id, :enabled, :recipient)
+                 ON DUPLICATE KEY UPDATE
+                     contact_enabled   = VALUES(contact_enabled),
+                     contact_recipient = VALUES(contact_recipient)'
+            );
+            $stmt->execute([
+                'id'        => $listingId,
+                'enabled'   => (int) $enabled,
+                'recipient' => ($recipient !== null && $recipient !== '') ? $recipient : null,
+            ]);
+        } catch (\Exception) {
+            // Migration 37 not run yet
+        }
+    }
+
+    /**
      * Returns embed-related settings for a listing.
      *
      * Requires Migration 17 (redirect URLs, DB override) and Migration 19

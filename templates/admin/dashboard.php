@@ -1,4 +1,5 @@
 <?php
+use Luster\Core\View;
 /**
  * @var string        $admin_username
  * @var string        $site_name
@@ -37,7 +38,7 @@
  * @var string        $base_url
  * @var string        $csrf_token
  */
-$b = rtrim(\Luster\Core\View::e($base_url), '/');
+$b = rtrim(View::e($base_url), '/');
 
 if (!function_exists('dashTimeAgo')) {
     function dashTimeAgo(string $dt): string
@@ -55,11 +56,11 @@ $growthDiff          = $growth_this_month - $growth_last_month;
 ?>
 
 <!-- ── Welcome block ──────────────────────────────────────────────── -->
-<div class="welcome-block">
-  <div class="welcome-text">
-    <div class="welcome-datetime" id="live-datetime"></div>
-    <div class="welcome-title">Hey there, <?= \Luster\Core\View::e($admin_username) ?>!</div>
-    <div class="welcome-sub">
+<div class="gradient-block">
+  <div>
+    <div class="gradient-sub" id="live-datetime"></div>
+    <div class="gradient-title">Hey there, <?= View::e($admin_username) ?>!</div>
+    <div class="gradient-sub">
       <?php if ($total_pending > 0 || !empty($stale_listings)): ?>
         <?php
           $parts = [];
@@ -77,14 +78,12 @@ $growthDiff          = $growth_this_month - $growth_last_month;
       <?php endif; ?>
     </div>
   </div>
-  <div class="welcome-actions">
+  <div class="gradient-actions">
     <a href="<?= $b ?>/admin/listings/add" class="btn btn-primary btn-sm">
-      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><path d="M8 3v10M3 8h10"/></svg>
-      Add Listing
+      <?= View::icon('add') ?> Add Owned
     </a>
-    <a href="<?= $b ?>/admin/joined/add" class="btn btn-tertiary btn-sm">
-      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><path d="M8 3v10M3 8h10"/></svg>
-      Add Joined FL
+    <a href="<?= $b ?>/admin/joined/add" class="btn btn-secondary btn-sm">
+     <?= View::icon('add') ?> Add Joined
     </a>
   </div>
 </div>
@@ -94,70 +93,70 @@ $growthDiff          = $growth_this_month - $growth_last_month;
 
   <div class="stat-card">
     <div class="stat-header">
-      <span class="stat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01z"/></svg></span>
-      <span class="stat-label">Owned</span>
+      <span class="stat-icon"><?= View::icon('star') ?></span>
+      <span class="stat-label">Total Owned</span>
     </div>
     <div class="stat-value"><?= (int) $total_listings ?></div>
     <div class="stat-pills">
       <?php if ($fan_pending > 0): ?>
-        <span class="neb-badge badge-pending"><?= (int) $fan_pending ?> Pending</span>
+        <span class="badge badge-pending"><?= (int) $fan_pending ?> Pending</span>
       <?php endif; ?>
       <?php if ($fan_upcoming > 0): ?>
-        <span class="neb-badge badge-upcoming"><?= (int) $fan_upcoming ?> Upcoming</span>
+        <span class="badge badge-upcoming"><?= (int) $fan_upcoming ?> Upcoming</span>
       <?php endif; ?>
       <?php if ($fan_pending === 0 && $fan_upcoming === 0): ?>
-        <span class="neb-badge badge-current">All Current</span>
+        <span class="badge badge-current">All Current</span>
       <?php endif; ?>
     </div>
   </div>
 
   <div class="stat-card">
     <div class="stat-header">
-      <span class="stat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></span>
-      <span class="stat-label">Joined</span>
+      <span class="stat-icon"><?= View::icon('heart') ?></span>
+      <span class="stat-label">Total Joined</span>
     </div>
     <div class="stat-value"><?= (int) $total_joined ?></div>
     <div class="stat-pills">
       <?php if ($total_joined_categories > 0): ?>
-        <span class="neb-badge badge-info"><?= (int) $total_joined_categories ?> Categories</span>
+        <span class="badge badge-info"><?= (int) $total_joined_categories ?> Categories</span>
       <?php endif; ?>
       <?php if ($total_joined_inactive > 0): ?>
-        <span class="neb-badge badge-pending"><?= (int) $total_joined_inactive ?> Inactive</span>
+        <span class="badge badge-pending"><?= (int) $total_joined_inactive ?> Inactive</span>
       <?php endif; ?>
       <?php if ($total_joined === 0): ?>
-        <span class="neb-badge badge-muted">None yet</span>
+        <span class="badge badge-muted">None yet</span>
       <?php endif; ?>
     </div>
   </div>
 
   <div class="stat-card">
     <div class="stat-header">
-      <span class="stat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span>
+      <span class="stat-icon"><?= View::icon('members') ?></span>
       <span class="stat-label">Total Members</span>
     </div>
     <div class="stat-value"><?= number_format((int) $total_members) ?></div>
     <div class="stat-pills">
       <?php if ($member_countries > 0): ?>
-        <span class="neb-badge badge-muted">Across <?= (int) $member_countries ?> <?= $member_countries === 1 ? 'Country' : 'Countries' ?></span>
+        <span class="badge badge-muted">Across <?= (int) $member_countries ?> <?= $member_countries === 1 ? 'Country' : 'Countries' ?></span>
       <?php endif; ?>
     </div>
   </div>
 
   <div class="stat-card">
     <div class="stat-header">
-      <span class="stat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg></span>
-      <span class="stat-label">Affiliates</span>
+      <span class="stat-icon"><?= View::icon('link') ?></span>
+      <span class="stat-label">Total Affiliates</span>
     </div>
     <div class="stat-value"><?= (int) $total_affiliates ?></div>
     <div class="stat-pills">
       <?php if ($total_affiliates_collective > 0): ?>
-        <span class="neb-badge badge-muted"><?= (int) $total_affiliates_collective ?> Collective</span>
+        <span class="badge badge-muted"><?= (int) $total_affiliates_collective ?> Collective</span>
       <?php endif; ?>
       <?php if ($total_affiliates_per_fl > 0): ?>
-        <span class="neb-badge badge-muted"><?= (int) $total_affiliates_per_fl ?> Per-FL</span>
+        <span class="badge badge-muted"><?= (int) $total_affiliates_per_fl ?> Per-FL</span>
       <?php endif; ?>
       <?php if ($total_affiliates === 0): ?>
-        <span class="neb-badge badge-muted">None yet</span>
+        <span class="badge badge-muted">None yet</span>
       <?php endif; ?>
     </div>
   </div>
@@ -166,14 +165,12 @@ $growthDiff          = $growth_this_month - $growth_last_month;
 
 <!-- ── Pending members banner ──────────────────────────────────────── -->
 <?php if ($total_pending > 0): ?>
-<div class="action-banner action-banner--danger">
+<div class="action-banner">
   <div class="action-banner-head">
     <div class="action-banner-left">
-      <span class="action-banner-icon action-banner-icon--danger">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="18" height="18"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>
-      </span>
+      <span class="action-banner-icon"><?= View::icon('bell') ?></span>
       <div>
-        <span class="action-banner-title action-banner-title--danger">Action Required!</span>
+        <span class="action-banner-title">Action Required!</span>
         <span class="action-banner-msg"><?= (int) $total_pending ?> member<?= $total_pending !== 1 ? 's are' : ' is' ?> awaiting approval</span>
       </div>
     </div>
@@ -187,9 +184,7 @@ $growthDiff          = $growth_this_month - $growth_last_month;
 <div class="action-banner">
   <div class="action-banner-head">
     <div class="action-banner-left">
-      <span class="action-banner-icon">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="18" height="18"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><rect x="11" y="8.5" width="2" height="5.5" rx="1" fill="currentColor" stroke="none"/><circle cx="12" cy="16.5" r="1.1" fill="currentColor" stroke="none"/></svg>
-      </span>
+      <span class="action-banner-icon"><?= View::icon('caution') ?></span>
       <div>
         <span class="action-banner-title">Maintenance Needed!</span>
         <span class="action-banner-msg">
@@ -200,7 +195,7 @@ $growthDiff          = $growth_this_month - $growth_last_month;
     </div>
     <form method="POST" action="<?= $b ?>/admin/maintenance/touch-all-updated"
           data-confirm="Mark all listings as updated today?">
-      <input type="hidden" name="_csrf" value="<?= \Luster\Core\View::e($csrf_token ?? '') ?>">
+      <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
       <button type="submit" class="btn-ghost-sm">Update Entire Collective &rarr;</button>
     </form>
   </div>
@@ -208,7 +203,7 @@ $growthDiff          = $growth_this_month - $growth_last_month;
     <?php foreach ($stale_listings as $staleItem): ?>
     <div class="banner-listing-row">
       <a href="<?= $b ?>/admin/listings/<?= (int) $staleItem['listing']->id ?>/edit"
-         class="listing-link"><?= \Luster\Core\View::e($staleItem['listing']->name) ?></a>
+         class="link"><?= View::e($staleItem['listing']->name) ?></a>
       <span class="listing-meta">
         <?php if ($staleItem['days_ago'] !== null): ?>
           (Last updated <?= (int) $staleItem['days_ago'] ?> day<?= $staleItem['days_ago'] !== 1 ? 's' : '' ?> ago)
@@ -223,102 +218,100 @@ $growthDiff          = $growth_this_month - $growth_last_month;
 <?php endif; ?>
 
 <!-- ── Collective at a Glance ──────────────────────────────────────── -->
-<div class="neb-card">
+<div class="card">
   <div class="card-head">
-    <div style="display:flex;align-items:center;gap:.5rem">
       <div class="card-head-icon">
         <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6"/><path d="M8 5v3l2 2"/></svg>
       </div>
       <span class="card-head-title">At a Glance</span>
-    </div>
   </div>
 
   <!-- Recent Listings -->
-  <div class="glance-section">
-    <div class="glance-section-label">Recent Listings</div>
-    <div class="glance-row">
-      <span class="glance-label">Newest Joined</span>
+  <div class="row-section">
+    <div class="row-section-label">Recent Listings</div>
+    <div class="row">
+      <span class="row-label">Newest Joined</span>
       <?php if ($newest_joined_name !== null): ?>
-        <a href="<?= $b ?>/admin/joined" class="glance-link"><?= \Luster\Core\View::e($newest_joined_name) ?></a>
+        <a href="<?= $b ?>/admin/joined" class="link"><?= View::e($newest_joined_name) ?></a>
       <?php else: ?>
-        <span class="glance-val glance-val--dim">None yet</span>
+        <span class="row-val --text-dim">None yet</span>
       <?php endif; ?>
     </div>
-    <div class="glance-row">
-      <span class="glance-label">Newest Owned</span>
+    <div class="row">
+      <span class="row-label">Newest Owned</span>
       <?php if ($newest_owned_name !== null): ?>
         <span>
-          <a href="<?= $b ?>/admin/listings" class="glance-link"><?= \Luster\Core\View::e($newest_owned_name) ?></a>
+          <a href="<?= $b ?>/admin/listings" class="link"><?= View::e($newest_owned_name) ?></a>
           <?php if (!empty($newest_owned_opened)): ?>
-            <span class="glance-sub">(Opened <?= \Luster\Core\View::e(date($admin_date_format, strtotime((string) $newest_owned_opened))) ?>)</span>
+            <span class="row-sub">(Opened <?= View::e(date($admin_date_format, strtotime((string) $newest_owned_opened))) ?>)</span>
           <?php endif; ?>
         </span>
       <?php else: ?>
-        <span class="glance-val glance-val--dim">None yet</span>
+        <span class="row-val --text-dim">None yet</span>
       <?php endif; ?>
     </div>
     <?php if ($most_active_listing_name !== null && $most_active_listing_count > 0): ?>
-    <div class="glance-row">
-      <span class="glance-label">Most Active Listing</span>
+    <div class="row">
+      <span class="row-label">Most Active Listing</span>
       <span>
-        <a href="<?= $b ?>/admin/members/<?= (int) $most_active_listing_id ?>" class="glance-link glance-link--pink"><?= \Luster\Core\View::e($most_active_listing_name) ?></a>
-        <span class="glance-sub">(<?= number_format($most_active_listing_count) ?> member<?= $most_active_listing_count !== 1 ? 's' : '' ?>)</span>
+        <a href="<?= $b ?>/admin/members/<?= (int) $most_active_listing_id ?>" class="link"><?= View::e($most_active_listing_name) ?></a>
+        <span class="row-sub">(<?= number_format($most_active_listing_count) ?> member<?= $most_active_listing_count !== 1 ? 's' : '' ?>)</span>
       </span>
     </div>
     <?php endif; ?>
   </div>
 
-  <!-- Health -->
-  <div class="glance-section">
-    <div class="glance-section-label">Collective</div>
-    <div class="glance-row">
-      <span class="glance-label">Total Current Listings</span>
-      <span class="glance-val"><?= (int) $fan_current ?></span>
+  <!-- Collective -->
+  <div class="row-section">
+    <div class="row-section-label">Collective</div>
+    <div class="row">
+      <span class="row-label">Total Current Listings</span>
+      <span class="row-val"><?= (int) $fan_current ?></span>
     </div>
-    <div class="glance-row">
-      <span class="glance-label">Listings Up to Date</span>
+    <div class="row">
+      <span class="row-label">Listings Up to Date</span>
       <?php $allUpToDate = $listings_up_to_date >= (int) $total_listings; ?>
-      <span class="glance-val <?= $allUpToDate ? 'glance-val--success' : 'glance-val--warn' ?>">
+      <span class="row-val <?= $allUpToDate ? 'row-val--success' : 'row-val--warn' ?>">
         <?= (int) $listings_up_to_date ?> of <?= (int) $total_listings ?>
       </span>
     </div>
     <?php if ($fan_pending > 0): ?>
-    <div class="glance-row">
-      <span class="glance-label">Listings Pending Approval</span>
-      <span class="glance-val glance-val--danger"><?= (int) $fan_pending ?></span>
+    <div class="row">
+      <span class="row-label">Listings Pending Approval</span>
+      <span class="row-val-warn"><?= (int) $fan_pending ?></span>
     </div>
     <?php endif; ?>
     <?php if ($opened_this_year > 0): ?>
-    <div class="glance-row">
-      <span class="glance-label">Opened This Year</span>
-      <span class="glance-val"><?= (int) $opened_this_year ?></span>
+    <div class="row">
+      <span class="row-label">Opened This Year</span>
+      <span class="row-val"><?= (int) $opened_this_year ?></span>
     </div>
     <?php endif; ?>
     <?php if ($joined_this_year > 0): ?>
-    <div class="glance-row">
-      <span class="glance-label">Joined This Year</span>
-      <span class="glance-val"><?= (int) $joined_this_year ?></span>
+    <div class="row">
+      <span class="row-label">Joined This Year</span>
+      <span class="row-val"><?= (int) $joined_this_year ?></span>
     </div>
     <?php endif; ?>
   </div>
 
   <!-- Members -->
-  <div class="glance-section">
-    <div class="glance-section-label">Members</div>
-    <div class="glance-row">
-      <span class="glance-label">Total Members</span>
-      <span class="glance-val"><?= number_format((int) $total_members) ?></span>
+  <div class="row-section">
+    <div class="row-section-label">Members</div>
+    <div class="row">
+      <span class="row-label">Total Members</span>
+      <span class="row-val"><?= number_format((int) $total_members) ?></span>
     </div>
     <?php if ($total_pending > 0): ?>
-    <div class="glance-row">
-      <span class="glance-label">Members Pending Review</span>
-      <span class="glance-val glance-val--danger"><?= (int) $total_pending ?></span>
+    <div class="row">
+      <span class="row-label">Members Pending Review</span>
+      <span class="row-val row-val-warn"><?= (int) $total_pending ?></span>
     </div>
     <?php endif; ?>
-    <div class="glance-row">
-      <span class="glance-label">Growth This Month</span>
+    <div class="row">
+      <span class="row-label">Growth This Month</span>
       <div style="display:flex;align-items:center;gap:.4rem">
-        <span class="glance-val"><?= (int) $growth_this_month ?></span>
+        <span class="row-val"><?= (int) $growth_this_month ?></span>
         <?php if ($growthDiff > 0): ?>
         <span class="growth-pill growth-pill--up">
           <svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M2 7l3-4 3 4"/></svg>
@@ -328,14 +321,14 @@ $growthDiff          = $growth_this_month - $growth_last_month;
       </div>
     </div>
     <?php if ($newestMember !== null): ?>
-    <div class="glance-row">
-      <span class="glance-label">Newest Member</span>
-      <span>
+    <div class="row">
+      <span class="row-label">Newest Member</span>
+      <span class="row-val">
         <a href="<?= $b ?>/admin/members/<?= (int) $newestMember['listing_id'] ?>?search=<?= urlencode($newestMember['member']->email) ?>"
-           class="glance-member-name"><?= \Luster\Core\View::e($newestMember['member']->name) ?></a>
-        <span class="glance-member-fl">(<?= \Luster\Core\View::e($newestMember['listing_name']) ?>)</span>
+           class="link"><?= View::e($newestMember['member']->name) ?></a>
+        (<?= View::e($newestMember['listing_name']) ?>)
         <?php if (!empty($newestMember['member']->added)): ?>
-          <span class="glance-member-date">&mdash; <?= dashTimeAgo((string) $newestMember['member']->added) ?></span>
+          &mdash; <?= dashTimeAgo((string) $newestMember['member']->added) ?>
         <?php endif; ?>
       </span>
     </div>
@@ -344,16 +337,16 @@ $growthDiff          = $growth_this_month - $growth_last_month;
 
   <!-- Top Countries -->
   <?php if (!empty($top_countries)): ?>
-  <div class="glance-section">
-    <div class="glance-section-label">Top <?= count($top_countries) ?> Countries</div>
+  <div class="row-section">
+    <div class="row-section-label">Top <?= count($top_countries) ?> Countries</div>
     <?php $rank = 1; foreach ($top_countries as $country => $count): ?>
-    <div class="country-row">
-      <span class="country-rank"><?= $rank++ ?>.</span>
-      <span class="country-name"><?= \Luster\Core\View::e($country) ?></span>
-      <span class="country-count"><?= (int) $count ?><?php if ($total_members > 0): ?> <span style="opacity:.65">(<?= round($count / $total_members * 100) ?>%)</span><?php endif; ?></span>
+    <div class="row-country">
+      <?= $rank++ ?>.
+      <span class="row-label"><?= View::e($country) ?></span>
+      <span class="row-val"><?= (int) $count ?><?php if ($total_members > 0): ?> <span style="opacity:.65">(<?= round($count / $total_members * 100) ?>%)</span><?php endif; ?></span>
     </div>
     <?php endforeach; ?>
   </div>
   <?php endif; ?>
 
-</div><!-- /.neb-card -->
+</div><!-- /.card -->

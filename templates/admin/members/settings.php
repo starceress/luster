@@ -1,4 +1,5 @@
 <?php
+use Luster\Core\View;
 /**
  * Admin — Members display settings.
  *
@@ -9,26 +10,26 @@
  * @var string $base_url
  * @var string $csrf_token
  */
-$b = rtrim(\Luster\Core\View::e($base_url), '/');
+$b = rtrim(View::e($base_url), '/');
 ?>
 
 <div class="back-link">
-  <a href="<?= $b ?>/admin/members" class="neb-link">&larr; Back to Members</a>
+  <a href="<?= $b ?>/admin/members" class="link">&larr; Back to Members</a>
 </div>
 
 <?php if (($success ?? '') !== ''): ?>
-  <div class="alert alert-success"><?= \Luster\Core\View::e($success) ?></div>
+  <div class="alert alert-success"><?= View::e($success) ?></div>
 <?php endif; ?>
 <?php if (($error ?? '') !== ''): ?>
-  <div class="alert alert-error"><?= \Luster\Core\View::e($error) ?></div>
+  <div class="alert alert-error"><?= View::e($error) ?></div>
 <?php endif; ?>
 
 <div>
 <form method="POST" action="<?= $b ?>/admin/members/settings">
-  <input type="hidden" name="_csrf" value="<?= \Luster\Core\View::e($csrf_token ?? '') ?>">
+  <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
 
-  <div class="neb-card">
-    <div class="neb-card-header">Pagination</div>
+  <div class="card">
+    <div class="card-head">Pagination</div>
 
     <div class="panel-content">
     <div class="form-group">

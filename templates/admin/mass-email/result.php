@@ -17,14 +17,14 @@ $b = rtrim(View::e($base_url ?? ''), '/');
 $allOk = empty($failed);
 ?>
 
-<div class="neb-card" style="padding:1.75rem 2rem">
+<div class="card" style="padding:1.75rem 2rem">
   <?php if ($allOk): ?>
     <div class="alert alert-success" style="margin-bottom:1.25rem">
       Mass email sent successfully.
     </div>
   <?php else: ?>
     <div class="alert alert-error" style="margin-bottom:1.25rem">
-      Send completed with errors — <?= count($failed) ?> message<?= count($failed) !== 1 ? 's' : '' ?> failed.
+      Send completed with errors â€” <?= count($failed) ?> message<?= count($failed) !== 1 ? 's' : '' ?> failed.
     </div>
   <?php endif; ?>
 
@@ -63,6 +63,6 @@ $allOk = empty($failed);
 
   <div class="btn-row">
     <a href="<?= $b ?>/admin/emails?tab=bulk" class="btn btn-primary">Compose another</a>
-    <a href="<?= $b ?>/admin/activity"   class="btn btn-tertiary">View activity log</a>
+    <a href="<?= $b ?>/admin/activitylog" class="btn btn-quaternary">View activity log</a>
   </div>
 </div>

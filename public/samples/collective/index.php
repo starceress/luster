@@ -3,20 +3,16 @@
  * Sample collective — home page.
  *
  * SETUP
- *   1. Update $_embedPath to the absolute server path of Luster's
- *      public/embed/ directory.
- *   2. Fill in $_siteName, $_siteTagline, $_ownerName, $_ownerEmail below.
+ *   1. Update $_lusterRoot to the absolute server path of the Luster root directory.
+ *   2. Set $_siteTagline to your collective's tagline.
+ *   3. Site name and owner info are read automatically from Admin → Settings → General.
  */
 
-$_embedPath = dirname(__DIR__, 3) . '/public/embed';   // ← adjust if needed
-
-$_siteName    = 'Collective Name';          // ← your collective name
+$_lusterRoot  = dirname(__DIR__, 3);
 $_siteTagline = 'A fanlisting collective';  // ← your tagline
-$_ownerName   = 'Your Name';               // ← your name
-$_ownerEmail  = 'you@example.com';         // ← your email address
 $_navActive   = 'home';
 $_pageTitle   = 'Home';
-
+require __DIR__ . '/_setup.php';
 require 'header.php';
 ?>
 

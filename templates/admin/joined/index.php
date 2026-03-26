@@ -1,4 +1,5 @@
 <?php
+use Luster\Core\View;
 /** @var \Luster\Models\JoinedListing[] $joined */
 /** @var string[] $categories */
 /** @var string   $filter_cat */
@@ -16,7 +17,7 @@
 /** @var string   $error */
 /** @var string   $base_url */
 /** @var string   $csrf_token */
-$b = rtrim(\Luster\Core\View::e($base_url), '/');
+$b = rtrim(View::e($base_url), '/');
 
 $filtersActive = ($search ?? '') !== '' || ($filter_network ?? '') !== '' || ($filter_cat ?? '') !== '';
 
@@ -48,16 +49,6 @@ $joinedSortUrl = static function (string $col) use ($b, $sort, $dir, $search, $f
     return $b . '/admin/joined?' . $qs;
 };
 
-$joinedSortIcon = static function (string $col) use ($sort, $dir): string {
-    if ($sort !== $col) {
-        return '<svg viewBox="0 0 10 14" width="9" height="9" fill="currentColor" style="opacity:.35;flex-shrink:0"><path d="M5 0l3 4H2zM5 14l-3-4h6z"/></svg>';
-    }
-    if ($dir === 'asc') {
-        return '<svg viewBox="0 0 10 14" width="9" height="9" fill="currentColor" style="flex-shrink:0"><path d="M5 0l3 4H2z"/><path d="M5 14l-3-4h6z" fill-opacity=".25"/></svg>';
-    }
-    return '<svg viewBox="0 0 10 14" width="9" height="9" fill="currentColor" style="flex-shrink:0"><path d="M5 0l3 4H2z" fill-opacity=".25"/><path d="M5 14l-3-4h6z"/></svg>';
-};
-
 $displayMode = $display_mode ?? 'all';
 if ($displayMode === 'all' && $sort === '') { usort($joined, fn($a, $b) => $a->id <=> $b->id); }
 $grouped = [];
@@ -87,73 +78,73 @@ if ($displayMode === 'category') {
 ?>
 
 <?php if ($success !== ''): ?>
-  <div class="alert alert-success"><?= \Luster\Core\View::e($success) ?></div>
+  <div class="alert alert-success"><?= View::e($success) ?></div>
 <?php endif; ?>
 <?php if ($error !== ''): ?>
-  <div class="alert alert-error"><?= \Luster\Core\View::e($error) ?></div>
+  <div class="alert alert-error"><?= View::e($error) ?></div>
 <?php endif; ?>
 
 <!-- Toolbar -->
-<div class="neb-toolbar">
-  <div class="neb-actions">
-    <button type="button" class="btn btn-tertiary btn-sm fl-filter-toggle" id="fl-filter-toggle"
+<div class="toolbar">
+  <div class="actions">
+    <button type="button" class="btn btn-quaternary btn-sm fl-filter-toggle" id="fl-filter-toggle"
             aria-expanded="<?= $filtersActive ? 'true' : 'false' ?>"
-            aria-controls="fl-filter-panel">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><line x1="4" y1="6" x2="20" y2="6"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="11" y1="18" x2="13" y2="18"/></svg>
-      Filter<?php if ($filtersActive): ?><span class="fl-filter-dot" aria-hidden="true"></span><?php endif; ?>
+            aria-controls="filter-panel">
+      <?= View::icon('filter') ?>
+      Filter<?php if ($filtersActive): ?><span class="filter-dot" aria-hidden="true"></span><?php endif; ?>
     </button>
   </div>
-  <div class="neb-actions">
+  <div class="actions">
     <a href="<?= $b ?>/admin/joined/add" class="btn btn-primary btn-sm">+ Add Joined FL</a>
-    <a href="<?= $b ?>/admin/joined/settings" class="btn btn-tertiary btn-sm">Display Settings</a>
+    <a href="<?= $b ?>/admin/joined/settings" class="btn btn-quaternary btn-sm">Display Settings</a>
   </div>
 </div>
 
 <!-- Collapsible filter panel -->
-<div class="fl-filter-panel<?= $filtersActive ? ' is-open' : '' ?>" id="fl-filter-panel">
-  <form method="GET" action="<?= $b ?>/admin/joined" class="neb-filter-row">
+<div class="filter-panel<?= $filtersActive ? ' is-open' : '' ?>" id="filter-panel">
+  <form method="GET" action="<?= $b ?>/admin/joined" class="filter-row">
 
     <div class="toolbar-select-wrap">
-    <select id="net-sel" name="network" class="neb-select" data-net-cats='<?= json_encode($network_categories ?? [], JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS) ?>'>
+    <select id="net-sel" name="network" class="select" data-net-cats='<?= json_encode($network_categories ?? [], JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS) ?>'>
       <option value="">All Networks</option>
       <option value="TFL"<?= ($filter_network ?? '') === 'TFL'  ? ' selected' : '' ?>>TFL</option>
       <option value="TAFL"<?= ($filter_network ?? '') === 'TAFL' ? ' selected' : '' ?>>TAFL</option>
       <?php foreach ($custom_networks ?? [] as $net): ?>
-        <option value="<?= \Luster\Core\View::e($net) ?>"
+        <option value="<?= View::e($net) ?>"
                 <?= ($filter_network ?? '') === $net ? ' selected' : '' ?>>
-          <?= \Luster\Core\View::e($net) ?>
+          <?= View::e($net) ?>
         </option>
       <?php endforeach; ?>
     </select>
     </div>
 
     <div class="toolbar-select-wrap">
-    <select id="cat-sel" name="category" class="neb-select">
+    <select id="cat-sel" name="category" class="select">
       <option value="">All Categories</option>
       <?php foreach ($categories as $cat): ?>
-        <option value="<?= \Luster\Core\View::e($cat) ?>"
+        <option value="<?= View::e($cat) ?>"
                 <?= ($filter_cat ?? '') === $cat ? ' selected' : '' ?>>
-          <?= \Luster\Core\View::e($cat) ?>
+          <?= View::e($cat) ?>
         </option>
       <?php endforeach; ?>
     </select>
     </div>
 
-    <input type="text" name="search" class="neb-input" placeholder="Search&hellip;"
-           value="<?= \Luster\Core\View::e($search ?? '') ?>">
-    <button type="submit" class="btn btn-tertiary btn-sm">Search</button>
-    <a href="?" class="btn btn-tertiary btn-sm">Reset</a>
+    <input type="text" name="search" class="input" placeholder="Search&hellip;"
+           value="<?= View::e($search ?? '') ?>">
+    <button type="submit" class="btn btn-quaternary btn-sm">Search</button>
+    <a href="?" class="btn btn-quaternary btn-sm">Reset</a>
 
   </form>
 </div>
 
 <?php if (empty($joined)): ?>
-  <div class="neb-card">
-    <div class="neb-empty">
+  <div class="card">
+    <div class="empty">
       <svg class="empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
       <?php if (($search ?? '') !== '' || ($filter_network ?? '') !== '' || ($filter_cat ?? '') !== ''): ?>
         No joined listings match those filters.
-        <a href="<?= $b ?>/admin/joined" class="btn btn-tertiary btn-sm">Clear Filters</a>
+        <a href="<?= $b ?>/admin/joined" class="btn btn-quaternary btn-sm">Clear Filters</a>
       <?php else: ?>
         No joined listings yet.
         <a href="<?= $b ?>/admin/joined/add" class="btn btn-primary btn-sm">+ Add a Listing</a>
@@ -164,38 +155,38 @@ if ($displayMode === 'category') {
 
 <form method="POST" action="<?= $b ?>/admin/joined/bulk" id="bulk-form"
       data-del-bulk data-del-entity="joined">
-  <input type="hidden" name="_csrf" value="<?= \Luster\Core\View::e($csrf_token ?? '') ?>">
+  <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
 
   <!-- Bulk action bar -->
-  <div class="neb-bulk">
+  <div class="bulk">
     <label for="bulk-action-sel">Bulk action:</label>
     <div class="toolbar-select-wrap">
-    <select id="bulk-action-sel" name="bulk_action" class="neb-select">
-      <option value="" disabled selected>— Select —</option>
+    <select id="bulk-action-sel" name="bulk_action" class="select">
+      <option value="" disabled selected>â€” Select â€”</option>
       <option value="approve">Approve</option>
       <option value="pending">Pending</option>
       <option value="delete">Delete</option>
     </select>
     </div>
-    <button type="submit" class="btn btn-tertiary btn-sm">Apply</button>
+    <button type="submit" class="btn btn-quaternary btn-sm">Apply</button>
   </div>
 
   <?php $loop = 0; $firstGroup = true; foreach ($grouped as $catName => $items): ?>
-  <div class="neb-card" style="margin-bottom:1.25rem">
+  <div class="card" style="margin-bottom:1.25rem">
     <div class="card-head">
-      <span class="card-head-title"><?= \Luster\Core\View::e($catName) ?> (<?= count($items) ?>)</span>
+      <span class="card-head-title"><?= View::e($catName) ?> (<?= count($items) ?>)</span>
     </div>
-    <div class="neb-table-wrap">
+    <div class="table-wrap">
     <table class="data-table mem-table">
       <thead>
         <tr>
           <th class="cb-col"><input type="checkbox" <?= $firstGroup ? 'id="sel-all"' : '' ?> title="Select all"><?php $firstGroup = false; ?></th>
           <th style="width:70px">Image</th>
           <th style="width:40px">#</th>
-          <th><a href="<?= \Luster\Core\View::e($joinedSortUrl('name')) ?>" class="sort-th<?= $sort === 'name' ? ' sort-active' : '' ?>">Subject / URL <?= $joinedSortIcon('name') ?></a></th>
-          <th><a href="<?= \Luster\Core\View::e($joinedSortUrl('category')) ?>" class="sort-th<?= $sort === 'category' ? ' sort-active' : '' ?>">Category <?= $joinedSortIcon('category') ?></a></th>
-          <th><a href="<?= \Luster\Core\View::e($joinedSortUrl('date_joined')) ?>" class="sort-th<?= $sort === 'date_joined' ? ' sort-active' : '' ?>">Date Joined <?= $joinedSortIcon('date_joined') ?></a></th>
-          <th><a href="<?= \Luster\Core\View::e($joinedSortUrl('status')) ?>" class="sort-th<?= $sort === 'status' ? ' sort-active' : '' ?>">Status <?= $joinedSortIcon('status') ?></a></th>
+          <th><a href="<?= View::e($joinedSortUrl('name')) ?>" class="sort-th<?= $sort === 'name' ? ' sort-active' : '' ?>">Subject / URL <?= View::sortIcon('name', $sort, $dir) ?></a></th>
+          <th><a href="<?= View::e($joinedSortUrl('category')) ?>" class="sort-th<?= $sort === 'category' ? ' sort-active' : '' ?>">Category <?= View::sortIcon('category', $sort, $dir) ?></a></th>
+          <th><a href="<?= View::e($joinedSortUrl('date_joined')) ?>" class="sort-th<?= $sort === 'date_joined' ? ' sort-active' : '' ?>">Date Joined <?= View::sortIcon('date_joined', $sort, $dir) ?></a></th>
+          <th><a href="<?= View::e($joinedSortUrl('status')) ?>" class="sort-th<?= $sort === 'status' ? ' sort-active' : '' ?>">Status <?= View::sortIcon('status', $sort, $dir) ?></a></th>
           <th class="act-col">Actions</th>
         </tr>
       </thead>
@@ -203,10 +194,10 @@ if ($displayMode === 'category') {
         <?php foreach ($items as $jf): $loop++; ?>
         <tr>
           <td class="cb-col" data-label=""><input type="checkbox" name="ids[]" value="<?= (int) $jf->id ?>"
-               data-name="<?= \Luster\Core\View::e($jf->name) ?>"></td>
+               data-name="<?= View::e($jf->name) ?>"></td>
           <td data-label="Image">
             <?php if ($jf->image !== null && $jf->image !== ''): ?>
-              <img src="<?= $b ?>/uploads/joined/<?= \Luster\Core\View::e($jf->image) ?>"
+              <img src="<?= $b ?>/uploads/joined/<?= View::e($jf->image) ?>"
                    alt="" class="fl-image" style="max-height:50px">
             <?php else: ?>
               <span class="text-dim">&mdash;</span>
@@ -214,8 +205,8 @@ if ($displayMode === 'category') {
           </td>
           <td class="text-dim" data-label=""><?= $loop ?></td>
           <td data-label="Subject">
-            <a href="<?= \Luster\Core\View::e($jf->url) ?>" target="_blank" rel="noopener noreferrer"
-               class="neb-link"><?= \Luster\Core\View::e($jf->name) ?></a>
+            <a href="<?= View::e($jf->url) ?>" target="_blank" rel="noopener noreferrer"
+               class="link"><?= View::e($jf->name) ?></a>
           </td>
           <td class="text-muted" data-label="Category">
             <?php
@@ -226,23 +217,23 @@ if ($displayMode === 'category') {
                 $parts = [];
                 foreach ($cats as $c) {
                     if (isset($c['network'], $c['name']) && $c['network'] !== '' && $c['name'] !== '') {
-                        $parts[] = \Luster\Core\View::e($c['network']) . ': ' . \Luster\Core\View::e($c['name']);
+                        $parts[] = View::e($c['network']) . ': ' . View::e($c['name']);
                     }
                 }
-                echo $parts !== [] ? implode(', ', $parts) : \Luster\Core\View::e($jf->category);
+                echo $parts !== [] ? implode(', ', $parts) : View::e($jf->category);
               elseif ($jf->category !== ''):
-                echo \Luster\Core\View::e($jf->category);
+                echo View::e($jf->category);
               else:
             ?>
               <span class="text-dim">&mdash;</span>
             <?php endif; ?>
           </td>
           <td class="text-muted" data-label="Date">
-            <?= $jf->dateJoined !== null ? \Luster\Core\View::e(date($admin_date_format, strtotime($jf->dateJoined))) : '<span class="text-dim">&mdash;</span>' ?>
+            <?= $jf->dateJoined !== null ? View::e(date($admin_date_format, strtotime($jf->dateJoined))) : '<span class="text-dim">&mdash;</span>' ?>
           </td>
           <td data-label="Status">
             <?php $statusVal = $jf->status ?? 'joined'; ?>
-            <span class="neb-badge <?= $statusVal === 'pending' ? 'badge-pending' : 'badge-current' ?>">
+            <span class="badge <?= $statusVal === 'pending' ? 'badge-pending' : 'badge-current' ?>">
               <?= $statusVal === 'pending' ? 'Pending' : 'Joined' ?>
             </span>
           </td>
@@ -267,8 +258,8 @@ if ($displayMode === 'category') {
       action="<?= $b ?>/admin/joined/<?= (int) $jf->id ?>/delete"
       style="display:none"
       data-del-modal data-del-entity="joined"
-      data-del-name="<?= \Luster\Core\View::e($jf->name) ?>">
-  <input type="hidden" name="_csrf" value="<?= \Luster\Core\View::e($csrf_token ?? '') ?>">
+      data-del-name="<?= View::e($jf->name) ?>">
+  <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
 </form>
 <?php endforeach; ?>
 
@@ -276,18 +267,18 @@ if ($displayMode === 'category') {
 
 
 <?php if (($total_pages ?? 1) > 1): ?>
-<nav class="neb-pagination" aria-label="Pagination">
-  <a href="<?= \Luster\Core\View::e($pageUrl($page - 1)) ?>"
+<nav class="pg" aria-label="Pagination">
+  <a href="<?= View::e($pageUrl($page - 1)) ?>"
      class="pg-link<?= $page <= 1 ? ' disabled' : '' ?>"
      <?= $page <= 1 ? 'aria-disabled="true"' : '' ?>>&lsaquo; Prev</a>
 
   <?php for ($i = 1; $i <= $total_pages; $i++): ?>
-    <a href="<?= \Luster\Core\View::e($pageUrl($i)) ?>"
+    <a href="<?= View::e($pageUrl($i)) ?>"
        class="pg-link<?= $i === $page ? ' active' : '' ?>"
        <?= $i === $page ? 'aria-current="page"' : '' ?>><?= $i ?></a>
   <?php endfor; ?>
 
-  <a href="<?= \Luster\Core\View::e($pageUrl($page + 1)) ?>"
+  <a href="<?= View::e($pageUrl($page + 1)) ?>"
      class="pg-link<?= $page >= $total_pages ? ' disabled' : '' ?>"
      <?= $page >= $total_pages ? 'aria-disabled="true"' : '' ?>>Next &rsaquo;</a>
 </nav>

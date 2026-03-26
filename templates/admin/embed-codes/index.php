@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+use Luster\Core\View;
+
 /**
  * @var string  $embed_path  Absolute server path to public/embed/
  * @var int     $example_id  A real listing ID to use in snippets
@@ -10,7 +12,7 @@ declare(strict_types=1);
  * @var string  $csrf_token
  */
 
-$b  = rtrim(\Luster\Core\View::e($base_url ?? ''), '/');
+$b  = rtrim(View::e($base_url ?? ''), '/');
 $ep = rtrim($embed_path ?? '/path/to/luster/public/embed', '/');
 $id = max(1, (int) ($example_id ?? 1));
 
@@ -218,7 +220,7 @@ $listingsJson = json_encode(
   JSON_HEX_QUOT | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_TAG
 );
 
-$epSafe = \Luster\Core\View::e($ep);
+$epSafe = View::e($ep);
 
 // Nav item groups
 $navGroups = [
@@ -270,11 +272,11 @@ $custGroups = [
       <nav class="ec-qc-nav" aria-label="Embed types">
         <?php foreach ($navGroups as $group): ?>
           <div class="ec-qc-group">
-            <span class="ec-qc-label"><?= \Luster\Core\View::e($group['label']) ?></span>
+            <span class="ec-qc-label"><?= View::e($group['label']) ?></span>
             <?php foreach ($group['keys'] as $key): if (!isset($items[$key])) continue; $item = $items[$key]; ?>
-              <button class="ec-qc-item" data-ec-item="<?= \Luster\Core\View::e($key) ?>">
+              <button class="ec-qc-item" data-ec-item="<?= View::e($key) ?>">
                 <span class="ec-qc-dot" aria-hidden="true"></span>
-                <?= \Luster\Core\View::e($item['label']) ?>
+                <?= View::e($item['label']) ?>
               </button>
             <?php endforeach; ?>
           </div>
@@ -311,12 +313,12 @@ $custGroups = [
       <div class="ec-cust-left">
         <?php foreach ($custGroups as $group): ?>
           <div class="ec-type-sec">
-            <div class="ec-type-label"><?= \Luster\Core\View::e($group['label']) ?></div>
+            <div class="ec-type-label"><?= View::e($group['label']) ?></div>
             <div class="ec-type-grid">
               <?php foreach ($group['keys'] as $key): if (!isset($items[$key])) continue; ?>
                 <button class="ec-type-btn"
-                        data-cust-type="<?= \Luster\Core\View::e($key) ?>">
-                  <?= \Luster\Core\View::e($items[$key]['label']) ?>
+                        data-cust-type="<?= View::e($key) ?>">
+                  <?= View::e($items[$key]['label']) ?>
                 </button>
               <?php endforeach; ?>
             </div>

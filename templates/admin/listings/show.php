@@ -1,4 +1,5 @@
 <?php
+use Luster\Core\View;
 /** @var \Luster\Models\Listing $listing */
 /** @var int $approved */
 /** @var int $pending */
@@ -13,7 +14,7 @@
 /** @var string|null $affiliates_template */
 /** @var \Luster\Models\Category[] $categories */
 /** @var int|null $current_category_id */
-$b = rtrim(\Luster\Core\View::e($base_url), '/');
+$b = rtrim(View::e($base_url), '/');
 
 $sizeMap   = ['small' => '50px', 'medium' => '100px', 'large' => '150px'];
 $sizeKey   = (string) ($cfg['image_preview_size'] ?? 'medium');
@@ -21,11 +22,11 @@ $imgHeight = $sizeMap[$sizeKey] ?? '100px';
 ?>
 
 <p style="margin-bottom:1rem">
-  <a href="<?= $b ?>/admin/listings" class="neb-link">&larr; All Listings</a>
+  <a href="<?= $b ?>/admin/listings" class="link">&larr; All Listings</a>
 </p>
 
 <?php if ($success !== ''): ?>
-  <div class="alert alert-success"><?= \Luster\Core\View::e($success) ?></div>
+  <div class="alert alert-success"><?= View::e($success) ?></div>
 <?php endif; ?>
 
 <!-- Stats row -->
@@ -41,9 +42,9 @@ $imgHeight = $sizeMap[$sizeKey] ?? '100px';
 </div>
 
 <!-- Details card -->
-<div class="neb-card" style="padding:1.25rem 1.5rem;margin-bottom:1.25rem">
+<div class="card" style="padding:1.25rem 1.5rem;margin-bottom:1.25rem">
   <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:1rem">
-    <h2 class="card-title"><?= \Luster\Core\View::e($listing->name) ?></h2>
+    <h2 class="card-title"><?= View::e($listing->name) ?></h2>
     <div style="display:flex;gap:.5rem">
       <a href="<?= $b ?>/admin/listings/<?= (int) $listing->id ?>/edit" class="btn btn-primary">Edit</a>
       <a href="<?= $b ?>/admin/members/<?= (int) $listing->id ?>" class="btn btn-ghost">Members</a>
@@ -51,8 +52,8 @@ $imgHeight = $sizeMap[$sizeKey] ?? '100px';
             action="<?= $b ?>/admin/listings/<?= (int) $listing->id ?>/delete"
             style="display:inline"
             data-del-modal data-del-entity="listing"
-            data-del-name="<?= \Luster\Core\View::e($listing->name) ?>">
-        <input type="hidden" name="_csrf" value="<?= \Luster\Core\View::e($csrf_token ?? '') ?>">
+            data-del-name="<?= View::e($listing->name) ?>">
+        <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
         <button type="submit" class="btn btn-danger">Delete</button>
       </form>
     </div>
@@ -61,7 +62,7 @@ $imgHeight = $sizeMap[$sizeKey] ?? '100px';
   <div class="detail-grid">
     <div class="detail-row">
       <label>Subject</label>
-      <span><?= \Luster\Core\View::e($listing->subject) ?></span>
+      <span><?= View::e($listing->subject) ?></span>
     </div>
     <div class="detail-row">
       <label>Status</label>
@@ -75,27 +76,27 @@ $imgHeight = $sizeMap[$sizeKey] ?? '100px';
       <label>URL</label>
       <span>
         <?php if ($listing->url !== ''): ?>
-          <a href="<?= \Luster\Core\View::e($listing->url) ?>" target="_blank" rel="noopener noreferrer"
-             class="neb-link"><?= \Luster\Core\View::e($listing->url) ?></a>
+          <a href="<?= View::e($listing->url) ?>" target="_blank" rel="noopener noreferrer"
+             class="link"><?= View::e($listing->url) ?></a>
         <?php else: ?><span class="text-dim">&mdash;</span><?php endif; ?>
       </span>
     </div>
     <div class="detail-row">
       <label>Email</label>
-      <span><?= \Luster\Core\View::e($listing->email !== '' ? $listing->email : '—') ?></span>
+      <span><?= View::e($listing->email !== '' ? $listing->email : '—') ?></span>
     </div>
     <div class="detail-row">
       <label>Table</label>
-      <span><code class="neb-code"><?= \Luster\Core\View::e($listing->dbprefix) ?></code></span>
+      <span><code class="neb-code"><?= View::e($listing->dbprefix) ?></code></span>
     </div>
   </div>
 
   <!-- Listing image -->
   <?php if (isset($current_image) && $current_image !== null && $current_image !== ''): ?>
   <div style="margin-top:1rem;padding-top:1rem;border-top:1px solid var(--border)">
-    <img src="<?= $b ?>/uploads/listings/<?= \Luster\Core\View::e($current_image) ?>"
-         alt="<?= \Luster\Core\View::e($listing->name) ?>"
-         style="max-height:<?= \Luster\Core\View::e($imgHeight) ?>;width:auto;display:block;border-radius:4px">
+    <img src="<?= $b ?>/uploads/listings/<?= View::e($current_image) ?>"
+         alt="<?= View::e($listing->name) ?>"
+         style="max-height:<?= View::e($imgHeight) ?>;width:auto;display:block;border-radius:4px">
   </div>
   <?php endif; ?>
 
@@ -103,7 +104,7 @@ $imgHeight = $sizeMap[$sizeKey] ?? '100px';
   <div style="margin-top:1rem;padding-top:1rem;border-top:1px solid var(--border)">
     <form method="POST" action="<?= $b ?>/admin/listings/<?= (int) $listing->id ?>/update"
           style="display:flex;align-items:center;gap:.75rem;flex-wrap:wrap">
-      <input type="hidden" name="_csrf" value="<?= \Luster\Core\View::e($csrf_token ?? '') ?>">
+      <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
 
       <label for="fl_category_id"
              style="font-size:.72rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.04em;white-space:nowrap">
@@ -126,19 +127,19 @@ $imgHeight = $sizeMap[$sizeKey] ?? '100px';
           foreach ($catParents as $parent):
               $hasChildren = !empty($catChildren[$parent->id]);
               if ($hasChildren): ?>
-            <optgroup label="<?= \Luster\Core\View::e($parent->name) ?>">
+            <optgroup label="<?= View::e($parent->name) ?>">
               <option value="<?= (int) $parent->id ?>"<?= $current_category_id === $parent->id ? ' selected' : '' ?>>
-                <?= \Luster\Core\View::e($parent->name) ?> (general)
+                <?= View::e($parent->name) ?> (general)
               </option>
               <?php foreach ($catChildren[$parent->id] as $child): ?>
                 <option value="<?= (int) $child->id ?>"<?= $current_category_id === $child->id ? ' selected' : '' ?>>
-                  &nbsp;&nbsp;<?= \Luster\Core\View::e($child->name) ?>
+                  &nbsp;&nbsp;<?= View::e($child->name) ?>
                 </option>
               <?php endforeach; ?>
             </optgroup>
           <?php else: ?>
             <option value="<?= (int) $parent->id ?>"<?= $current_category_id === $parent->id ? ' selected' : '' ?>>
-              <?= \Luster\Core\View::e($parent->name) ?>
+              <?= View::e($parent->name) ?>
             </option>
           <?php endif;
           endforeach; ?>
@@ -153,12 +154,12 @@ $imgHeight = $sizeMap[$sizeKey] ?? '100px';
 <?php if ((int) $pending > 0): ?>
 <div class="alert-warning" style="display:flex;align-items:center;gap:.75rem">
   <strong>&#9888; <?= (int) $pending ?> member(s) awaiting approval.</strong>
-  <a href="<?= $b ?>/admin/members/<?= (int) $listing->id ?>?status=pending" class="neb-link" style="font-size:.875rem">Review now &rarr;</a>
+  <a href="<?= $b ?>/admin/members/<?= (int) $listing->id ?>?status=pending" class="link" style="font-size:.875rem">Review now &rarr;</a>
 </div>
 <?php endif; ?>
 
 <!-- Website Templates section -->
-<div class="neb-card" style="padding:1.25rem 1.5rem;margin-bottom:1.25rem">
+<div class="card" style="padding:1.25rem 1.5rem;margin-bottom:1.25rem">
   <h2 class="card-title" style="margin-bottom:1rem">Website Templates</h2>
 
   <div style="margin-bottom:1.25rem">
@@ -169,7 +170,7 @@ $imgHeight = $sizeMap[$sizeKey] ?? '100px';
   </div>
 
   <form method="POST" action="<?= $b ?>/admin/listings/<?= (int) $listing->id ?>/templates">
-    <input type="hidden" name="_csrf" value="<?= \Luster\Core\View::e($csrf_token ?? '') ?>">
+    <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
 
     <div style="margin-bottom:1.25rem">
       <label class="form-label" for="members_template">Members List</label>
@@ -178,7 +179,7 @@ $imgHeight = $sizeMap[$sizeKey] ?? '100px';
       </p>
       <textarea id="members_template" name="members_template" class="form-textarea" rows="8"
                 style="font-family:'DM Mono',monospace;font-size:.8125rem"
-                placeholder="Leave blank to use the built-in default"><?= \Luster\Core\View::e($members_template ?? '') ?></textarea>
+                placeholder="Leave blank to use the built-in default"><?= View::e($members_template ?? '') ?></textarea>
     </div>
 
     <div style="margin-bottom:1.25rem">
@@ -188,7 +189,7 @@ $imgHeight = $sizeMap[$sizeKey] ?? '100px';
       </p>
       <textarea id="affiliates_template" name="affiliates_template" class="form-textarea" rows="8"
                 style="font-family:'DM Mono',monospace;font-size:.8125rem"
-                placeholder="Leave blank to use the built-in default"><?= \Luster\Core\View::e($affiliates_template ?? '') ?></textarea>
+                placeholder="Leave blank to use the built-in default"><?= View::e($affiliates_template ?? '') ?></textarea>
     </div>
 
     <div style="margin-bottom:1.25rem">
@@ -198,7 +199,7 @@ $imgHeight = $sizeMap[$sizeKey] ?? '100px';
       </p>
       <textarea id="stats_template" name="stats_template" class="form-textarea" rows="8"
                 style="font-family:'DM Mono',monospace;font-size:.8125rem"
-                placeholder="Leave blank to use the built-in default"><?= \Luster\Core\View::e($stats_template ?? '') ?></textarea>
+                placeholder="Leave blank to use the built-in default"><?= View::e($stats_template ?? '') ?></textarea>
     </div>
 
     <button type="submit" class="btn btn-primary">Save Templates</button>
@@ -206,8 +207,8 @@ $imgHeight = $sizeMap[$sizeKey] ?? '100px';
 </div>
 
 <!-- Affiliates section -->
-<div class="neb-card" style="overflow:hidden">
-  <div class="neb-card-header" style="display:flex;justify-content:space-between;align-items:center">
+<div class="card" style="overflow:hidden">
+  <div class="card-head" style="display:flex;justify-content:space-between;align-items:center">
     <span>Affiliates</span>
     <a href="<?= $b ?>/admin/listings/<?= (int) $listing->id ?>/affiliates/add"
        class="btn btn-primary btn-sm">+ Add Affiliate</a>
@@ -216,7 +217,7 @@ $imgHeight = $sizeMap[$sizeKey] ?? '100px';
   <?php if (empty($affiliates)): ?>
     <p class="text-muted" style="padding:1.25rem;font-size:.875rem">No affiliates for this listing yet.</p>
   <?php else: ?>
-    <div class="neb-table-wrap">
+    <div class="table-wrap">
     <table class="data-table">
       <thead>
         <tr>
@@ -229,14 +230,14 @@ $imgHeight = $sizeMap[$sizeKey] ?? '100px';
         <?php foreach ($affiliates as $aff): ?>
         <tr>
           <td>
-            <a href="<?= \Luster\Core\View::e($aff->url) ?>" target="_blank" rel="noopener noreferrer"
-               class="neb-link text-strong"><?= \Luster\Core\View::e($aff->name) ?></a>
+            <a href="<?= View::e($aff->url) ?>" target="_blank" rel="noopener noreferrer"
+               class="link text-strong"><?= View::e($aff->name) ?></a>
           </td>
           <td>
             <?php if ($aff->active): ?>
-              <span class="neb-badge badge-current">Active</span>
+              <span class="badge badge-current">Active</span>
             <?php else: ?>
-              <span class="neb-badge badge-inactive">Inactive</span>
+              <span class="badge badge-inactive">Inactive</span>
             <?php endif; ?>
           </td>
           <td class="act-col">
@@ -246,7 +247,7 @@ $imgHeight = $sizeMap[$sizeKey] ?? '100px';
             <form method="POST"
                   action="<?= $b ?>/admin/affiliates/<?= (int) $aff->id ?>/toggle"
                   style="display:inline;margin-left:.25rem">
-              <input type="hidden" name="_csrf" value="<?= \Luster\Core\View::e($csrf_token ?? '') ?>">
+              <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
               <input type="hidden" name="from_listing" value="<?= (int) $listing->id ?>">
               <button type="submit" class="btn btn-ghost btn-sm">
                 <?= $aff->active ? 'Deactivate' : 'Activate' ?>
@@ -257,8 +258,8 @@ $imgHeight = $sizeMap[$sizeKey] ?? '100px';
                   action="<?= $b ?>/admin/affiliates/<?= (int) $aff->id ?>/delete"
                   style="display:inline;margin-left:.25rem"
                   data-del-modal data-del-entity="affiliate"
-                  data-del-name="<?= \Luster\Core\View::e($aff->name) ?>">
-              <input type="hidden" name="_csrf" value="<?= \Luster\Core\View::e($csrf_token ?? '') ?>">
+                  data-del-name="<?= View::e($aff->name) ?>">
+              <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
               <input type="hidden" name="from_listing" value="<?= (int) $listing->id ?>">
               <button type="submit" class="btn btn-danger btn-sm">Delete</button>
             </form>

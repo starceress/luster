@@ -1334,6 +1334,28 @@ try {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Migration 37: contact_enabled + contact_recipient on lstr_fanlisting_settings
+// ─────────────────────────────────────────────────────────────────────────────
+try {
+    if (!(int) $pdo->query('SELECT COUNT(*) FROM `lstr_migrations` WHERE migration_number = 37')->fetchColumn()) {
+
+        $colCheck = $pdo->query("SHOW COLUMNS FROM `lstr_fanlisting_settings` LIKE 'contact_enabled'")->fetchAll();
+        if (empty($colCheck)) {
+            $pdo->exec(
+                "ALTER TABLE `lstr_fanlisting_settings`
+                 ADD COLUMN `contact_enabled`   TINYINT(1)   NOT NULL DEFAULT 1   AFTER `queue_updates`,
+                 ADD COLUMN `contact_recipient` VARCHAR(255) NULL     DEFAULT NULL AFTER `contact_enabled`"
+            );
+        }
+
+        $pdo->exec('INSERT INTO `lstr_migrations` (migration_number) VALUES (37)');
+        $done[] = 'Added <code>contact_enabled</code> and <code>contact_recipient</code> to <code>lstr_fanlisting_settings</code> (per-listing contact form)';
+    }
+} catch (PDOException $e) {
+    $errors[] = 'Contact form columns — ' . htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Build results HTML
 // ─────────────────────────────────────────────────────────────────────────────
 

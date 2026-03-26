@@ -9,15 +9,11 @@
  *   $luster_show_all_by_default = true;  // show all grouped below selector
  */
 
-$_embedPath = dirname(__DIR__, 3) . '/public/embed';
-
-$_siteName    = 'Collective Name';
-$_siteTagline = 'A fanlisting collective';
-$_ownerName   = 'Your Name';
-$_ownerEmail  = 'you@example.com';
+$_lusterRoot  = dirname(__DIR__, 3);
+$_siteTagline = 'A fanlisting collective';  // ← your tagline
 $_navActive   = 'joined';
 $_pageTitle   = 'Joined';
-
+require __DIR__ . '/_setup.php';
 require 'header.php';
 ?>
 
