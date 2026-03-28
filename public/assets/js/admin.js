@@ -1016,66 +1016,6 @@ document.addEventListener('click', function (e) {
   };
 }());
 
-/* ── Row-actions overflow menu ──────────────────────────────────────────── */
-(function () {
-  var THREE_DOTS_SVG =
-    '<svg viewBox="0 0 16 4" fill="currentColor" width="16" height="4" aria-hidden="true">' +
-    '<circle cx="2" cy="2" r="1.5"/><circle cx="8" cy="2" r="1.5"/><circle cx="14" cy="2" r="1.5"/></svg>';
-
-  function closeAll(except) {
-    document.querySelectorAll('.row-actions-toggle[aria-expanded="true"]').forEach(function (btn) {
-      if (btn === except) return;
-      btn.setAttribute('aria-expanded', 'false');
-      var menu = btn.closest('.row-actions').querySelector('.row-actions-menu');
-      if (menu) menu.hidden = true;
-    });
-  }
-
-  document.addEventListener('click', function (e) {
-    var toggle = e.target.closest('.row-actions-toggle');
-    if (toggle) {
-      var isOpen = toggle.getAttribute('aria-expanded') === 'true';
-      closeAll(toggle);
-      if (!isOpen) {
-        toggle.setAttribute('aria-expanded', 'true');
-        var menu = toggle.closest('.row-actions').querySelector('.row-actions-menu');
-        if (menu) {
-          menu.hidden = false;
-          /* Flip upward if the menu would overflow the viewport bottom */
-          var rect = menu.getBoundingClientRect();
-          if (rect.bottom > window.innerHeight - 8) {
-            menu.style.top = 'auto';
-            menu.style.bottom = 'calc(100% + 5px)';
-          } else {
-            menu.style.top = '';
-            menu.style.bottom = '';
-          }
-        }
-      } else {
-        toggle.setAttribute('aria-expanded', 'false');
-        var menu = toggle.closest('.row-actions').querySelector('.row-actions-menu');
-        if (menu) menu.hidden = true;
-      }
-      e.stopPropagation();
-      return;
-    }
-
-    /* Clicking a link item navigates — close the menu first */
-    var linkItem = e.target.closest('.row-action-item');
-    if (linkItem && linkItem.tagName === 'A') {
-      closeAll();
-      return;
-    }
-
-    /* Click outside any open menu */
-    if (!e.target.closest('.row-actions')) closeAll();
-  });
-
-  document.addEventListener('keydown', function (e) {
-    if (e.key === 'Escape') closeAll();
-  });
-}());
-
 /* ── Form submit loading state ─────────────────────────────────────────── */
 (function () {
   document.addEventListener('submit', function (e) {
