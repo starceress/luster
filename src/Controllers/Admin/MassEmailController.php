@@ -16,13 +16,15 @@ use Luster\Repositories\SavedEmailRepo;
 /**
  * Mass email — send an announcement to approved members of one or all listings.
  *
- * GET  /admin/emails                     → compose()        — compose form
  * POST /admin/emails/preview             → preview()        — validate + show recipient count
  * POST /admin/emails/send                → send()           — perform the send loop + results
- * GET  /admin/new-email-template                   → savedEmails()    — list + manage saved templates
+ * GET  /admin/new-email-template                   → savedEmailsRedirect() — redirect to /admin/emails?tab=custom
  * POST /admin/new-email-template/save              → saveTemplate()   — create a saved template
  * POST /admin/new-email-template/{id}/update       → updateTemplate() — update a saved template
  * POST /admin/new-email-template/{id}/delete       → deleteTemplate() — delete a saved template
+ *
+ * The compose form and saved-template list are rendered by EmailsController::index()
+ * (?tab=bulk and ?tab=custom respectively).
  *
  * Listing ID = 0 means "all listings" (recipients are deduplicated by email).
  *
@@ -34,95 +36,6 @@ use Luster\Repositories\SavedEmailRepo;
  */
 final class MassEmailController extends AdminController
 {
-
-    // -----------------------------------------------------------------------
-    // GET /admin/emails
-    // -----------------------------------------------------------------------
-
-    public function compose(Request $request, array $params): Response
-    {
-        $db       = $this->app->getDatabase();
-        $listings = (new ListingRepo($db, $this->app->getConfig()))->getAll();
-        $session  = $this->app->getSession();
-        $repo     = new SavedEmailRepo($db);
-
-        $success = (string) $session->get('lstr_flash_success', '');
-        $error   = (string) $session->get('lstr_flash_error', '');
-        $session->remove('lstr_flash_success');
-        $session->remove('lstr_flash_error');
-
-        $savedEmails   = $repo->getAll();
-        $etRepo        = new \Luster\Repositories\EmailTemplateRepo($db);
-        $globalEtRaw   = $etRepo->getAllGlobal();
-
-        // Resolve each global email template — saved row or built-in default
-        $typeLabels = [
-            \Luster\Repositories\EmailTemplateRepo::TYPE_JOIN        => 'Join confirmation',
-            \Luster\Repositories\EmailTemplateRepo::TYPE_APPROVE     => 'Membership approved',
-            \Luster\Repositories\EmailTemplateRepo::TYPE_UPDATE      => 'Membership updated',
-            \Luster\Repositories\EmailTemplateRepo::TYPE_REMOVE      => 'Membership removed',
-            \Luster\Repositories\EmailTemplateRepo::TYPE_RESET       => 'Password reset',
-            \Luster\Repositories\EmailTemplateRepo::TYPE_NOTIFY_JOIN => 'New member notification',
-        ];
-        $globalEmailTemplates = [];
-        foreach ($typeLabels as $type => $label) {
-            $row = $globalEtRaw[$type] ?? null;
-            $globalEmailTemplates[] = (object) [
-                'label'   => $label,
-                'subject' => ($row !== null && $row->subject !== '') ? $row->subject : \Luster\Repositories\EmailTemplateRepo::defaultSubject($type),
-                'body'    => ($row !== null && $row->body    !== '') ? $row->body    : \Luster\Repositories\EmailTemplateRepo::defaultBody($type),
-            ];
-        }
-
-        // Pre-fill from a saved template when ?load=ID is passed (from saved-templates page)
-        $loadId     = (int) $request->query('load', 0);
-        $preSubject = '';
-        $preBody    = '';
-        if ($loadId > 0) {
-            $tpl = $repo->getById($loadId);
-            if ($tpl !== null) {
-                $preSubject = $tpl->subject;
-                $preBody    = $tpl->body;
-            }
-        }
-
-        // Per-listing approved member counts + deduplicated total for preview modal
-        $config     = $this->app->getConfig();
-        $memberRepo = new \Luster\Repositories\MemberRepo($db, $config);
-        $listingCounts = [];
-        $allEmails     = [];
-        foreach ($listings as $lst) {
-            $count = $lst->dbprefix !== '' ? $memberRepo->countApproved($lst->dbprefix) : 0;
-            $listingCounts[$lst->id] = $count;
-            if ($lst->dbprefix !== '') {
-                foreach ($memberRepo->getApproved($lst->dbprefix) as $m) {
-                    $allEmails[strtolower($m->email)] = true;
-                }
-            }
-        }
-        $deduplicatedTotal = count($allEmails);
-
-        $smtpFrom     = (string) $config->get('smtp_from',      '');
-        $smtpFromName = (string) $config->get('smtp_from_name', '');
-        $fromEmail    = $smtpFrom     !== '' ? $smtpFrom     : (string) $config->get('owner_email', '');
-        $fromName     = $smtpFromName !== '' ? $smtpFromName : (string) $config->get('owner_name',  '');
-
-        return $this->adminLayout('admin/mass-email/compose.php', 'Emails', 'emails', [
-            'listings'              => $listings,
-            'listing_counts'        => $listingCounts,
-            'deduplicated_total'    => $deduplicatedTotal,
-            'saved_emails'          => $savedEmails,
-            'global_email_templates' => $globalEmailTemplates,
-            'error'              => $error,
-            'success'            => $success,
-            'old_listing_id'     => 0,
-            'old_subject'        => $preSubject,
-            'old_body'           => $preBody,
-            'site_name_val'      => (string) $config->get('site_name', ''),
-            'from_name_val'      => $fromName,
-            'from_email_val'     => $fromEmail,
-        ], 'Emails › Bulk Email');
-    }
 
     // -----------------------------------------------------------------------
     // POST /admin/emails/preview
@@ -229,29 +142,6 @@ final class MassEmailController extends AdminController
     public function savedEmailsRedirect(Request $request, array $params): Response
     {
         return Response::redirect($this->app->getBaseUrl() . '/admin/emails?tab=custom');
-    }
-
-    // -----------------------------------------------------------------------
-    // GET /admin/new-email-template (legacy — no longer routed, kept for reference)
-    // -----------------------------------------------------------------------
-
-    public function savedEmails(Request $request, array $params): Response
-    {
-        $db      = $this->app->getDatabase();
-        $session = $this->app->getSession();
-
-        $success = (string) $session->get('lstr_flash_success', '');
-        $error   = (string) $session->get('lstr_flash_error', '');
-        $session->remove('lstr_flash_success');
-        $session->remove('lstr_flash_error');
-
-        $savedEmails = (new SavedEmailRepo($db))->getAll();
-
-        return $this->adminLayout('admin/mass-email/saved-templates.php', 'Emails', 'emails', [
-            'saved_emails' => $savedEmails,
-            'success'      => $success,
-            'error'        => $error,
-        ], 'Emails › New Template');
     }
 
     // -----------------------------------------------------------------------
