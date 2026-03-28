@@ -80,7 +80,6 @@
   --va-pink:     #ff7eb3;
   --va-teal:     #78e8d8;
   --va-gold:     #ffd166;
-  --va-mint:     #70e098;
 
   --pending: #f97316;
   --gradient:  #ff7eb3, #78e8d8, #ffd166;
@@ -98,7 +97,6 @@
   --text-muted:   #9c90c4;
   --text-dim:     #5a527a;
   --text-sidebar: #b8b0d8;
-  --text-si-act:  #ffffff;
   --accent:       #8fdcff;
   --accent-glow:  rgba(255,126,179,0.15);
   --accent2:      #b34774;
@@ -133,7 +131,6 @@
   --text-muted:   #564e80;
   --text-dim:     #8878b8;
   --text-sidebar: #b8b0d8;
-  --text-si-act:  #ffffff;
   --accent:       #d4006a;
   --accent-glow:  rgba(212,0,106,0.1);
   --accent2:      #27b1a5;
@@ -807,7 +804,6 @@ details[open] .code-settings-chevron { transform: rotate(180deg); }
 }
 
 /* Form section grouping — labelled field clusters in flat forms */
-.form-section { margin-bottom: 0.25rem; }
 .neb-section-label {
   font-size: 0.72rem; font-weight: 700; text-transform: uppercase;
   letter-spacing: 0.07em; color: var(--text-dim);
