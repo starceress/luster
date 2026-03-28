@@ -59,7 +59,7 @@ $pageUrl = static fn(int $p): string => $b . '/admin/activitylog?page=' . $p;
         <td class="text-dim"><?= $ts !== null ? View::e(date($admin_date_format, $ts)) : '' ?></td>
         <td class="text-dim"><?= $ts !== null ? View::e(date($admin_time_format, $ts)) : '' ?></td>
         <td><?= View::e((string) ($entry['description'] ?? '')) ?></td>
-        <td><?= View::e((string) ($entry['username'] ?? 'â€”')) ?></td>
+        <td><?= View::e((string) ($entry['username'] ?? '-')) ?></td>
         <td>
           <?= View::e((string) ($entry['ip_address'] ?? '')) ?>
         </td>

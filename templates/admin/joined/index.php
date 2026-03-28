@@ -162,7 +162,7 @@ if ($displayMode === 'category') {
     <label for="bulk-action-sel">Bulk action:</label>
     <div class="toolbar-select-wrap">
     <select id="bulk-action-sel" name="bulk_action" class="select">
-      <option value="" disabled selected>â€” Select â€”</option>
+      <option value="" disabled selected>- Select -</option>
       <option value="approve">Approve</option>
       <option value="pending">Pending</option>
       <option value="delete">Delete</option>
@@ -239,7 +239,7 @@ if ($displayMode === 'category') {
           </td>
           <td class="act-col" data-label="">
             <a href="<?= $b ?>/admin/joined/<?= (int) $jf->id ?>/edit"
-               class="btn btn-primary btn-sm">Edit</a>
+               class="btn btn-tertiary btn-sm">Edit</a>
             <button type="submit" form="del-jf-<?= (int) $jf->id ?>" class="btn btn-danger btn-sm">Delete</button>
           </td>
         </tr>

@@ -18,6 +18,8 @@ declare(strict_types=1);
 use Luster\Core\View;
 
 $b = rtrim(View::e($base_url), '/');
+$_linkReset = ($link_reset !== null && $link_reset !== '') ? $link_reset : null;
+$_linkList  = ($link_list  !== null && $link_list  !== '') ? $link_list  : null;
 ?>
 <div class="fl-wrap">
   <h2 class="fl-title">KIM List — Update Your Entry</h2>
@@ -119,8 +121,14 @@ $b = rtrim(View::e($base_url), '/');
     <button class="fl-btn" type="submit">Update</button>
   </form>
 
+  <?php
+  $_metaLinks = [];
+  if ($_linkReset !== null) $_metaLinks[] = '<a href="' . View::e($_linkReset) . '">Forgot password?</a>';
+  if ($_linkList  !== null) $_metaLinks[] = '<a href="' . View::e($_linkList)  . '">View the KIM list</a>';
+  ?>
+  <?php if (!empty($_metaLinks)): ?>
   <p class="fl-meta" style="margin-top:1.5rem">
-    <a href="<?= $b ?>/kim/reset">Forgot password?</a> &middot;
-    <a href="<?= $b ?>/kim/list">View the KIM list</a>
+    <?= implode(' &middot; ', $_metaLinks) ?>
   </p>
+  <?php endif; ?>
 </div>

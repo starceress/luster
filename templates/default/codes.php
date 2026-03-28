@@ -38,9 +38,9 @@ $_donated       = $donated ?? [];
     <?php if (empty($_group['codes'])) continue; ?>
 
     <?php if ($_showHeadings): ?>
-      <h3 style="margin:1.25em 0 .5em">
+      <h2>
         <?= View::e($_group['label']) ?>
-      </h3>
+      </h2>
     <?php endif; ?>
 
     <?php foreach ($_group['codes'] as $_code): ?>
@@ -49,70 +49,22 @@ $_donated       = $donated ?? [];
       $_sizeTitle = ($_code->width > 0 && $_code->height > 0)
           ? (int) $_code->width . 'x' . (int) $_code->height
           : '';
-      ?>
-      <img src="<?= View::e($uploads_url . '/' . $_code->filename) ?>"
-           alt="<?= View::e($_codeName ?? ($listing_name . ' code')) ?>"
-           <?php if ($_sizeTitle !== ''): ?>title="<?= View::e($_sizeTitle) ?>"<?php endif; ?>
-           <?php if ($_code->width > 0): ?>width="<?= (int) $_code->width ?>"<?php endif; ?>
-           <?php if ($_code->height > 0): ?>height="<?= (int) $_code->height ?>"<?php endif; ?>
-           loading="lazy">
-
-      <?php if ($_codeName !== null): ?>
-        <p><?= View::e($_codeName) ?></p>
-      <?php endif; ?>
-
-      <?php
-      $_codeCatIds = $cat_map[$_code->id] ?? [];
-      if ($_hasCategories && !empty($_codeCatIds)):
-      ?>
-        <p>
-          <?php foreach ($_codeCatIds as $_catId): ?>
-            <?php if (isset($category_map[$_catId])): ?>
-              <span><?= View::e($category_map[$_catId]->name) ?></span>
-            <?php endif; ?>
-          <?php endforeach; ?>
-        </p>
-      <?php endif; ?>
-
-      <?php
-      $_donor = ($_hasDonors && $_code->donorId !== null) ? ($donor_map[$_code->donorId] ?? null) : null;
-      if ($_donor !== null):
-      ?>
-        <p>
-          &#9829;
-          <?php if ($_donor->url !== null && $_donor->url !== ''): ?>
-            <a href="<?= View::e($_donor->url) ?>" target="_blank" rel="noopener noreferrer"><?= View::e($_donor->name) ?></a>
-          <?php else: ?>
-            <?= View::e($_donor->name) ?>
-          <?php endif; ?>
-        </p>
-      <?php endif; ?>
-    <?php endforeach; ?>
-  <?php endforeach; ?>
-
-  <?php if (!empty($_donated)): ?>
-    <h3 style="margin:1.25em 0 .5em">Donated</h3>
-
-    <?php foreach ($_donated as $_code): ?>
-      <?php
-      $_codeName     = ($_code->name !== null && $_code->name !== '') ? $_code->name : null;
-      $_donorName    = $_code->submitterName;
-      $_donorUrl     = ($_code->submitterUrl !== null && $_code->submitterUrl !== '') ? $_code->submitterUrl : null;
-      $_hoverTitle   = 'Donated by ' . $_donorName;
+      $_donor    = ($_hasDonors && $_code->donorId !== null) ? ($donor_map[$_code->donorId] ?? null) : null;
+      $_donorUrl = ($_donor !== null && $_donor->url !== null && $_donor->url !== '') ? $_donor->url : null;
       ?>
       <?php if ($_donorUrl !== null): ?>
         <a href="<?= View::e($_donorUrl) ?>" target="_blank" rel="noopener noreferrer">
           <img src="<?= View::e($uploads_url . '/' . $_code->filename) ?>"
-               alt="<?= View::e($_codeName ?? ($listing_name . ' code — donated by ' . $_donorName)) ?>"
-               title="<?= View::e($_hoverTitle) ?>"
+               alt="<?= View::e($_sizeTitle !== '' ? $_sizeTitle : ($listing_name . ' code')) ?>"
+               title="<?= View::e('Donated by ' . $_donor->name) ?>"
                <?php if ($_code->width > 0): ?>width="<?= (int) $_code->width ?>"<?php endif; ?>
                <?php if ($_code->height > 0): ?>height="<?= (int) $_code->height ?>"<?php endif; ?>
                loading="lazy">
         </a>
       <?php else: ?>
         <img src="<?= View::e($uploads_url . '/' . $_code->filename) ?>"
-             alt="<?= View::e($_codeName ?? ($listing_name . ' code — donated by ' . $_donorName)) ?>"
-             title="<?= View::e($_hoverTitle) ?>"
+             alt="<?= View::e($_sizeTitle !== '' ? $_sizeTitle : ($listing_name . ' code')) ?>"
+             <?php if ($_sizeTitle !== ''): ?>title="<?= View::e($_sizeTitle) ?>"<?php endif; ?>
              <?php if ($_code->width > 0): ?>width="<?= (int) $_code->width ?>"<?php endif; ?>
              <?php if ($_code->height > 0): ?>height="<?= (int) $_code->height ?>"<?php endif; ?>
              loading="lazy">
@@ -133,6 +85,57 @@ $_donated       = $donated ?? [];
             <?php endif; ?>
           <?php endforeach; ?>
         </p>
+      <?php endif; ?>
+
+      <?php if ($_donor !== null): ?>
+        <p>
+          &#9829;
+          <?php if ($_donorUrl !== null): ?>
+            <a href="<?= View::e($_donorUrl) ?>" target="_blank" rel="noopener noreferrer"><?= View::e($_donor->name) ?></a>
+          <?php else: ?>
+            <?= View::e($_donor->name) ?>
+          <?php endif; ?>
+        </p>
+      <?php endif; ?>
+    <?php endforeach; ?>
+  <?php endforeach; ?>
+
+  <?php if (!empty($_donated)): ?>
+    <h2>Donated</h2>
+
+    <?php foreach ($_donated as $_code): ?>
+      <?php
+      $_codeName  = ($_code->name !== null && $_code->name !== '') ? $_code->name : null;
+      $_dnrObj    = ($_hasDonors && $_code->donorId !== null) ? ($donor_map[$_code->donorId] ?? null) : null;
+      $_donorName = $_code->submitterName ?? ($_dnrObj !== null ? $_dnrObj->name : null);
+      $_donorUrl  = null;
+      if ($_code->submitterUrl !== null && $_code->submitterUrl !== '') {
+          $_donorUrl = $_code->submitterUrl;
+      } elseif ($_dnrObj !== null && $_dnrObj->url !== null && $_dnrObj->url !== '') {
+          $_donorUrl = $_dnrObj->url;
+      }
+      $_hoverTitle = $_donorName !== null ? 'Donated by ' . $_donorName : 'Donated';
+      ?>
+      <?php if ($_donorUrl !== null): ?>
+        <a href="<?= View::e($_donorUrl) ?>" target="_blank" rel="noopener noreferrer">
+          <img src="<?= View::e($uploads_url . '/' . $_code->filename) ?>"
+               alt="<?= View::e($_hoverTitle) ?>"
+               title="<?= View::e($_hoverTitle) ?>"
+               <?php if ($_code->width > 0): ?>width="<?= (int) $_code->width ?>"<?php endif; ?>
+               <?php if ($_code->height > 0): ?>height="<?= (int) $_code->height ?>"<?php endif; ?>
+               loading="lazy">
+        </a>
+      <?php else: ?>
+        <img src="<?= View::e($uploads_url . '/' . $_code->filename) ?>"
+             alt="<?= View::e($_hoverTitle) ?>"
+             title="<?= View::e($_hoverTitle) ?>"
+             <?php if ($_code->width > 0): ?>width="<?= (int) $_code->width ?>"<?php endif; ?>
+             <?php if ($_code->height > 0): ?>height="<?= (int) $_code->height ?>"<?php endif; ?>
+             loading="lazy">
+      <?php endif; ?>
+
+      <?php if ($_codeName !== null): ?>
+        <p><?= View::e($_codeName) ?></p>
       <?php endif; ?>
     <?php endforeach; ?>
   <?php endif; ?>

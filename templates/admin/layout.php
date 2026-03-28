@@ -8,7 +8,7 @@ $s = match ($current_section ?? '') {
     'email-templates' => 'emails',
     default           => ($current_section ?? ''),
 };
-// Section identity attribute â€” shared by neb-card borders and active nav colour
+// Section identity attribute - shared by neb-card borders and active nav colour
 $_uri = $_SERVER['REQUEST_URI'] ?? '';
 $pageSection = '';
 if (preg_match('#/admin/(listings|joined|members|affiliates|categories|pending-updates)(?:/|$|\?)#', $_uri, $_m)) {
@@ -33,7 +33,7 @@ if (!function_exists('navActive')) {
 </head>
 <body<?= $pageSection !== '' ? ' data-section="' . $pageSection . '"' : '' ?>>
 
-<!-- â•â•â•â•â•â•â•â•â•â•â• SIDEBAR â•â•â•â•â•â•â•â•â•â•â• -->
+<!--  SIDEBAR  -->
 <aside class="sidebar">
   <div class="sidebar-dots" aria-hidden="true"></div>
 
@@ -113,7 +113,7 @@ if (!function_exists('navActive')) {
 
   <div class="sidebar-footer">
     <div class="sidebar-user">
-      <div class="user-star">âœ¦</div>
+      <div class="user-star">&#10022;</div>
       <div class="user-info">
         <span class="user-name"><?= View::e($admin_username) ?></span>
         <span class="user-role"><?= View::e($site_name) ?></span>
@@ -126,7 +126,7 @@ if (!function_exists('navActive')) {
   </div>
 </aside>
 
-<!-- â•â•â•â•â•â•â•â•â•â•â• SIDEBAR OVERLAY (mobile) â•â•â•â•â•â•â•â•â•â•â• -->
+<!--  SIDEBAR OVERLAY (mobile)  -->
 <div class="sidebar-overlay" id="sidebarOverlay"></div>
 
 <main>
@@ -169,7 +169,7 @@ if (!function_exists('navActive')) {
 
 </main>
 
-<!-- â”€â”€ Global delete confirmation modal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
+<!--  Global delete confirmation modal  -->
 <div id="del-confirm-modal" class="modal-backdrop" style="display:none" role="dialog" aria-modal="true" aria-labelledby="del-modal-title">
   <div class="modal">
     <div class="modal-header">

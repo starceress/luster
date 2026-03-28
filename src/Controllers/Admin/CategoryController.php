@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Luster\Controllers\Admin;
 
-use Luster\Core\Application;
 use Luster\Core\Request;
 use Luster\Core\Response;
 use Luster\Core\Validator;
@@ -18,9 +17,8 @@ use Luster\Repositories\CategoryRepo;
  *   POST /admin/categories/add      — insert new category
  *   POST /admin/categories/{id}/delete — delete category
  */
-final class CategoryController
+final class CategoryController extends AdminController
 {
-    public function __construct(private readonly Application $app) {}
 
     // -----------------------------------------------------------------------
     // GET /admin/categories
@@ -50,7 +48,7 @@ final class CategoryController
 
         $all = $repo->getAll();
 
-        return $this->layout('admin/categories/index.php', [
+        return $this->adminLayout('admin/categories/index.php', 'Categories', 'categories', [
             'items'          => $result['items'],
             'total'          => $result['total'],
             'pages'          => $result['pages'],
@@ -64,7 +62,7 @@ final class CategoryController
             'all_cats'       => $all,
             'success'        => $success,
             'error'          => $error,
-        ], 'Categories', 'categories');
+        ]);
     }
 
     // -----------------------------------------------------------------------
@@ -84,12 +82,12 @@ final class CategoryController
         $session->remove('lstr_flash_error');
         $session->remove('lstr_flash_field_errors');
 
-        return $this->layout('admin/categories/add.php', [
+        return $this->adminLayout('admin/categories/add.php', 'Add Category', 'categories', [
             'all_cats'     => $all,
             'success'      => $success,
             'error'        => $error,
             'field_errors' => is_array($fieldErrors) ? $fieldErrors : [],
-        ], 'Add Category', 'categories');
+        ]);
     }
 
     // -----------------------------------------------------------------------
@@ -156,13 +154,13 @@ final class CategoryController
         $session->remove('lstr_flash_error');
         $session->remove('lstr_flash_field_errors');
 
-        return $this->layout('admin/categories/edit.php', [
+        return $this->adminLayout('admin/categories/edit.php', 'Edit Category', 'categories', [
             'cat'          => $cat,
             'all_cats'     => $all,
             'success'      => $success,
             'error'        => $error,
             'field_errors' => is_array($fieldErrors) ? $fieldErrors : [],
-        ], 'Edit Category', 'categories');
+        ]);
     }
 
     // -----------------------------------------------------------------------
@@ -241,31 +239,4 @@ final class CategoryController
         return Response::redirect($baseUrl . '/admin/categories');
     }
 
-    // -----------------------------------------------------------------------
-    // Shared render helper
-    // -----------------------------------------------------------------------
-
-    private function layout(string $template, array $data, string $pageTitle, string $section): Response
-    {
-        $view      = $this->app->getView();
-        $config    = $this->app->getConfig();
-        $session   = $this->app->getSession();
-        $baseUrl   = $this->app->getBaseUrl();
-        $csrfToken = $this->app->getCSRF()->token();
-
-        $inner = $view->render($template, array_merge($data, [
-            'base_url'   => $baseUrl,
-            'csrf_token' => $csrfToken,
-        ]));
-
-        return Response::html($view->render('admin/layout.php', array_merge([
-            'page_title'      => $pageTitle,
-            'site_name'       => (string) $config->get('site_name', 'Luster'),
-            'admin_username'  => (string) $session->get('lstr_admin_username', ''),
-            'csrf_token'      => $csrfToken,
-            'current_section' => $section,
-            'base_url'        => $baseUrl,
-            'content'         => $inner,
-        ], $this->app->getAdminNavData())));
-    }
 }

@@ -104,7 +104,7 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
   <div class="lbl">Total Countries</div>
 </div>
 <div class="stat-mini">
-  <div class="val" style="font-size:1.2rem"><?= View::e(($fl_last_updated ?? '') !== '' ? date($admin_date_format, strtotime($fl_last_updated)) : 'â€”') ?></div>
+  <div class="val" style="font-size:1.2rem"><?= View::e(($fl_last_updated ?? '') !== '' ? date($admin_date_format, strtotime($fl_last_updated)) : '-') ?></div>
   <div class="lbl">Date Last Updated</div>
 </div>
 </div>
@@ -133,14 +133,14 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
 </div>
 </div>
 
-<!-- â•â•â• TAB: GENERAL â•â•â• -->
+<!--  TAB: GENERAL  -->
 <div id="tab-general" class="neb-tab-panel active">
   <form method="POST" action="<?= $b ?>/admin/listings/<?= (int) $listing->id ?>/edit" enctype="multipart/form-data" class="js-warn-unsaved">
     <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
 
     <div class="edit-layout">
 
-      <!-- â”€â”€ Left: main card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
+      <!--  Left: main card  -->
       <div class="main-card">
         <div class="card-section">
 
@@ -269,7 +269,7 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
 
       </div><!-- /.main-card -->
 
-      <!-- â”€â”€ Right: panel column â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
+      <!--  Right: panel column  -->
       <div class="panel-col">
 
         <!-- Behaviour -->
@@ -296,7 +296,7 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
               <label class="field-label" for="fl-members-per-page">Members per page</label>
               <input id="fl-members-per-page" type="number" name="members_per_page" class="panel-input"
                      min="5" max="200" value="<?= (int) ($members_per_page ?? 25) ?>">
-              <p class="panel-hint">Admin list view (5â€“200).</p>
+              <p class="panel-hint">Admin list view (5€“200).</p>
             </div>
             <div class="panel-field">
               <label class="field-label">Contact Form</label>
@@ -341,7 +341,7 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
   </form>
 </div><!-- /#tab-general -->
 
-<!-- â•â•â• TAB: TEMPLATES â•â•â• -->
+<!--  TAB: TEMPLATES  -->
 <div id="tab-templates" class="neb-tab-panel">
 <div style="display:grid;grid-template-columns:1fr 260px;gap:1.25rem;align-items:start">
 
@@ -367,7 +367,7 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
           Members List
           <button type="button" class="btn-tpl-reset" data-target="members_template">Reset to default</button>
         </div>
-        <textarea id="members_template" name="members_template" class="form-textarea" rows="6"><?= View::e($templates['members_template'] ?? '<li><a href="{fan_url}">{fan_name}</a> â€” {fan_country}</li>') ?></textarea>
+        <textarea id="members_template" name="members_template" class="form-textarea" rows="6"><?= View::e($templates['members_template'] ?? '<li><a href="{fan_url}">{fan_name}</a> - {fan_country}</li>') ?></textarea>
       </div>
 
       <div class="tpl-field">
@@ -463,7 +463,7 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
 </div>
 </div><!-- /#tab-templates -->
 
-<!-- â•â•â• TAB: ADDITIONAL FIELDS â•â•â• -->
+<!--  TAB: ADDITIONAL FIELDS  -->
 <div id="tab-fields" class="neb-tab-panel">
 
   <?php if ($listing->dbprefix === ''): ?>
@@ -477,7 +477,7 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
     <div class="card-head">
       <div class="card-head-text">
         <span class="card-head-title">Add New Field</span>
-        <span class="card-head-sub">Letters (aâ€“z, Aâ€“Z), numbers, and underscores only. No spaces. Max 30 chars, unique per listing.</span>
+        <span class="card-head-sub">Letters (a€“z, A€“Z), numbers, and underscores only. No spaces. Max 30 chars, unique per listing.</span>
       </div>
       <button type="submit" form="fields-add-form" class="btn btn-primary btn-sm">Add Field</button>
     </div>
@@ -548,7 +548,7 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
             <td class="act-col">
               <div class="row-actions">
                 <a href="<?= $b ?>/admin/listings/<?= (int) $listing->id ?>/fields/<?= urlencode($field->name) ?>/edit"
-                   class="btn btn-quaternary btn-sm">Edit</a>
+                   class="btn btn-tertiary btn-sm">Edit</a>
                 <form method="POST"
                       action="<?= $b ?>/admin/listings/<?= (int) $listing->id ?>/fields/<?= urlencode($field->name) ?>/delete"
                       style="display:contents"
@@ -572,7 +572,7 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
 
 </div><!-- /#tab-fields -->
 
-<!-- â•â•â• TAB: AFFILIATES â•â•â• -->
+<!--  TAB: AFFILIATES  -->
 <div id="tab-affiliates" class="neb-tab-panel">
 <div class="card">
   <div class="card-head">
@@ -610,7 +610,7 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
           <td class="act-col">
             <div class="row-actions">
               <a href="<?= $b ?>/admin/affiliates/<?= (int) $aff->id ?>/edit?from_listing=<?= (int) $listing->id ?>"
-                 class="btn btn-quaternary btn-sm">Edit</a>
+                 class="btn btn-tertiary btn-sm">Edit</a>
 
               <form method="POST"
                     action="<?= $b ?>/admin/affiliates/<?= (int) $aff->id ?>/toggle"
@@ -642,7 +642,7 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
 </div>
 </div><!-- /#tab-affiliates -->
 
-<!-- â•â•â• TAB: EMBED â•â•â• -->
+<!--  TAB: EMBED  -->
 <div id="tab-embed" class="neb-tab-panel">
 <?php
 /** @var array  $embed_settings */
@@ -739,14 +739,14 @@ $embedBaseUrl   = rtrim((string) ($cfg['embed_base_url'] ?? ''), '/') ?: rtrim((
 </div>
 </div><!-- /#tab-embed -->
 
-<!-- â•â•â• TAB: ADVANCED â•â•â• -->
+<!--  TAB: ADVANCED  -->
 <div id="tab-advanced" class="neb-tab-panel">
 
   <!-- Warning banner -->
   <div style="display:flex;align-items:flex-start;gap:.75rem;padding:.875rem 1.1rem;margin-bottom:1.25rem;background:var(--warn-bg);border:1px solid var(--warn);border-left-width:4px;border-radius:10px">
     <svg style="flex-shrink:0;margin-top:.1rem;color:var(--warn)" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
     <div>
-      <strong style="font-size:.8rem;color:var(--warn);display:block;margin-bottom:.2rem">Advanced settings â€” proceed with caution</strong>
+      <strong style="font-size:.8rem;color:var(--warn);display:block;margin-bottom:.2rem">Advanced settings - proceed with caution</strong>
       <span style="font-size:.75rem;color:var(--text-muted);line-height:1.5">Only modify these settings if you know what you are doing. Incorrect values can break your listing or prevent members from being found.</span>
     </div>
   </div>
@@ -765,7 +765,7 @@ $embedBaseUrl   = rtrim((string) ($cfg['embed_base_url'] ?? ''), '/') ?: rtrim((
         <input type="text" class="form-input" value="<?= View::e($listing->dbprefix) ?>"
                readonly style="color:var(--text-dim);cursor:not-allowed;font-family:'DM Mono',monospace;max-width:260px">
         <a href="<?= $b ?>/admin/listings/<?= (int) $listing->id ?>/edit-prefix"
-           class="btn btn-quaternary btn-sm" style="white-space:nowrap;flex-shrink:0">Edit</a>
+           class="btn btn-tertiary btn-sm" style="white-space:nowrap;flex-shrink:0">Edit</a>
       </div>
     </div>
   </details>

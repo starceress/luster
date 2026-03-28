@@ -130,6 +130,7 @@ final class AuthController
 
         $rateLimit->clear($ip, RateLimit::ACTION_ADMIN_LOGIN);
         $session->regenerate();
+        $this->app->getCSRF()->regenerate();
 
         $userId = (int) $user['id'];
         $session->set('lstr_admin_id',       $userId);
@@ -386,6 +387,9 @@ final class AuthController
         // Invalidate any remember-me tokens for this user
         $db->prepare('DELETE FROM lstr_admin_remember_tokens WHERE admin_user_id = :uid')
            ->execute(['uid' => (int) $tokenRow['admin_user_id']]);
+
+        // Rotate CSRF token — password changed, treat as privilege change
+        $this->app->getCSRF()->regenerate();
 
         $session->set('lstr_flash_success', 'Your password has been reset. Please sign in with your new password.');
         return Response::redirect($baseUrl . '/admin/login');

@@ -6,22 +6,22 @@ namespace Luster\Addons\Kim\Controllers;
 
 use Luster\Addons\Kim\KimMember;
 use Luster\Addons\Kim\KimMemberRepo;
-use Luster\Core\Application;
+use Luster\Controllers\Admin\AdminController;
 use Luster\Core\Mailer;
 use Luster\Core\Request;
 use Luster\Core\Response;
 use Luster\Core\Validator;
 use Luster\Repositories\ActivityRepo;
 use Luster\Repositories\ListingRepo;
+use Luster\Repositories\SiteSettingsRepo;
 
 /**
  * Admin KIM management controller.
  *
  * All state-changing actions validate CSRF (via CsrfMiddleware) and log to ActivityRepo.
  */
-final class KimAdminController
+final class KimAdminController extends AdminController
 {
-    public function __construct(private readonly Application $app) {}
 
     // -----------------------------------------------------------------------
     // GET /admin/kim
@@ -53,12 +53,10 @@ final class KimAdminController
         $session->remove('lstr_flash_success');
         $session->remove('lstr_flash_error');
 
-        return $this->adminResponse('admin/addons/kim/index.php', [
-            'page_title'      => 'KIM List',
-            'current_section' => 'kim',
+        return $this->adminLayout('admin/addons/kim/index.php', 'KIM List', 'kim', [
             'fanlistings_data' => $fanlistingsData,
-            'success'         => $success,
-            'error'           => $error,
+            'success'          => $success,
+            'error'            => $error,
         ]);
     }
 
@@ -98,9 +96,7 @@ final class KimAdminController
         $session->remove('lstr_flash_success');
         $session->remove('lstr_flash_error');
 
-        return $this->adminResponse('admin/addons/kim/show.php', [
-            'page_title'      => 'KIM — ' . $listing->subject,
-            'current_section' => 'kim',
+        return $this->adminLayout('admin/addons/kim/show.php', 'KIM — ' . $listing->subject, 'kim', [
             'listing'         => $listing,
             'members'         => $members,
             'pending_count'   => $pendingCount,
@@ -145,9 +141,7 @@ final class KimAdminController
             $error = (string) $session->get('lstr_flash_error', '');
             $session->remove('lstr_flash_error');
 
-            return $this->adminResponse('admin/addons/kim/edit.php', [
-                'page_title'      => 'Edit KIM Member',
-                'current_section' => 'kim',
+            return $this->adminLayout('admin/addons/kim/edit.php', 'Edit KIM Member', 'kim', [
                 'member'          => $member,
                 'fanlistings'     => $fanlistings,
                 'fanlisting_name' => $fanlistingName,
@@ -310,9 +304,7 @@ final class KimAdminController
         $error = (string) $session->get('lstr_flash_error', '');
         $session->remove('lstr_flash_error');
 
-        return $this->adminResponse('admin/addons/kim/mass-email.php', [
-            'page_title'      => 'Mass Email — KIM ' . $listing->subject,
-            'current_section' => 'kim',
+        return $this->adminLayout('admin/addons/kim/mass-email.php', 'Mass Email — KIM ' . $listing->subject, 'kim', [
             'listing'         => $listing,
             'recipient_count' => count($recipients),
             'error'           => $error,
@@ -402,9 +394,7 @@ final class KimAdminController
         $error = (string) $session->get('lstr_flash_error', '');
         $session->remove('lstr_flash_error');
 
-        return $this->adminResponse('admin/addons/kim/email-member.php', [
-            'page_title'      => 'Email ' . $member->name,
-            'current_section' => 'kim',
+        return $this->adminLayout('admin/addons/kim/email-member.php', 'Email ' . $member->name, 'kim', [
             'member'          => $member,
             'listing'         => $listing,
             'error'           => $error,
@@ -458,31 +448,55 @@ final class KimAdminController
     }
 
     // -----------------------------------------------------------------------
+    // GET /admin/kim/settings
+    // -----------------------------------------------------------------------
+
+    public function showSettings(Request $request, array $params): Response
+    {
+        $db      = $this->app->getDatabase();
+        $session = $this->app->getSession();
+
+        $siteSettings = new SiteSettingsRepo($db);
+        $kimUrls = $siteSettings->getMany([
+            'kim_url_signup', 'kim_url_update', 'kim_url_reset', 'kim_url_list',
+        ]);
+
+        $success = (string) $session->get('lstr_flash_success', '');
+        $error   = (string) $session->get('lstr_flash_error',   '');
+        $session->remove('lstr_flash_success');
+        $session->remove('lstr_flash_error');
+
+        return $this->adminLayout('admin/addons/kim/settings.php', 'KIM Settings', 'kim', [
+            'kim_urls'        => $kimUrls,
+            'success'         => $success,
+            'error'           => $error,
+        ]);
+    }
+
+    // -----------------------------------------------------------------------
+    // POST /admin/kim/settings
+    // -----------------------------------------------------------------------
+
+    public function saveSettings(Request $request, array $params): Response
+    {
+        $db      = $this->app->getDatabase();
+        $session = $this->app->getSession();
+        $baseUrl = $this->app->getBaseUrl();
+
+        $siteSettings = new SiteSettingsRepo($db);
+
+        foreach (['kim_url_signup', 'kim_url_update', 'kim_url_reset', 'kim_url_list'] as $key) {
+            $field = str_replace('kim_url_', '', $key); // 'signup', 'update', etc.
+            $value = trim((string) $request->post($field, ''));
+            $siteSettings->set($key, $value !== '' ? $value : null);
+        }
+
+        $session->set('lstr_flash_success', 'KIM page URLs saved.');
+        return Response::redirect($baseUrl . '/admin/kim/settings');
+    }
+
+    // -----------------------------------------------------------------------
     // Internals
     // -----------------------------------------------------------------------
 
-    private function adminResponse(string $template, array $data): Response
-    {
-        $view    = $this->app->getView();
-        $session = $this->app->getSession();
-        $config  = $this->app->getConfig();
-        $baseUrl = $this->app->getBaseUrl();
-
-        $csrfToken = $this->app->getCSRF()->token();
-
-        $inner = $view->render($template, array_merge($data, [
-            'base_url'       => $baseUrl,
-            'csrf_token'     => $csrfToken,
-        ]));
-
-        return Response::html($view->render('admin/layout.php', array_merge([
-            'page_title'      => $data['page_title'] ?? 'KIM',
-            'site_name'       => (string) $config->get('site_name', 'Luster'),
-            'admin_username'  => (string) $session->get('lstr_admin_username', ''),
-            'csrf_token'      => $csrfToken,
-            'current_section' => $data['current_section'] ?? 'kim',
-            'base_url'        => $baseUrl,
-            'content'         => $inner,
-        ], $this->app->getAdminNavData())));
-    }
 }

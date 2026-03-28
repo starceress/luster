@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Luster\Controllers\Admin;
 
-use Luster\Core\Application;
 use Luster\Core\Request;
 use Luster\Core\Response;
 use Luster\Core\Validator;
@@ -27,9 +26,8 @@ use Luster\Repositories\AdminUserRepo;
  *  - Cannot delete your own account
  *  - Cannot delete the last remaining admin account
  */
-final class AdminUsersController
+final class AdminUsersController extends AdminController
 {
-    public function __construct(private readonly Application $app) {}
 
     // -----------------------------------------------------------------------
     // GET + POST /admin/admin-users/add
@@ -45,7 +43,7 @@ final class AdminUsersController
         $session->remove('lstr_flash_old');
         $session->remove('lstr_flash_field_errors');
 
-        return $this->layout('admin-users/add.php', [
+        return $this->adminLayout('admin/admin-users/add.php', 'Admin Accounts', 'settings', [
             'error'        => $error,
             'old'          => $old,
             'field_errors' => is_array($fieldErrors) ? $fieldErrors : [],
@@ -120,7 +118,7 @@ final class AdminUsersController
         $session->remove('lstr_flash_error');
         $session->remove('lstr_flash_field_errors');
 
-        return $this->layout('admin-users/edit.php', [
+        return $this->adminLayout('admin/admin-users/edit.php', 'Admin Accounts', 'settings', [
             'user'         => $user,
             'error'        => $error,
             'field_errors' => is_array($fieldErrors) ? $fieldErrors : [],
@@ -172,6 +170,8 @@ final class AdminUsersController
 
         if ($password !== '') {
             $repo->updatePassword($id, password_hash($password, PASSWORD_ARGON2ID));
+            // Rotate CSRF token — password changed, treat as privilege change
+            $this->app->getCSRF()->regenerate();
         }
 
         // If the logged-in user edited their own account, refresh session identity
@@ -233,29 +233,4 @@ final class AdminUsersController
         return Response::redirect($baseUrl . '/admin/settings#panel-accounts');
     }
 
-    // -----------------------------------------------------------------------
-    // Internals
-    // -----------------------------------------------------------------------
-
-    private function layout(string $template, array $data): Response
-    {
-        $session = $this->app->getSession();
-
-        $data['page_title']      = 'Admin Accounts';
-        $data['current_section'] = 'settings';
-        $data['site_name']       = (string) $this->app->getConfig()->get('site_name', 'Luster');
-        $data['admin_username']  = (string) $session->get('lstr_admin_username', '');
-        $data['csrf_token']      = $this->app->getCSRF()->token();
-        $data['base_url']        = $this->app->getBaseUrl();
-
-        ob_start();
-        extract($data);
-        require \LUSTER_BASE . '/templates/admin/' . $template;
-        $content = ob_get_clean();
-
-        ob_start();
-        extract(array_merge(['content' => $content] + $data, $this->app->getAdminNavData()));
-        require \LUSTER_BASE . '/templates/admin/layout.php';
-        return Response::html((string) ob_get_clean());
-    }
 }

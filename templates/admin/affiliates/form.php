@@ -25,7 +25,7 @@ if ($isEdit) {
 
 // Back/cancel destination
 $backUrl   = $contextFid > 0 ? $b . '/admin/listings/' . $contextFid : $b . '/admin/affiliates';
-$backLabel = $contextFid > 0 ? '&larr; Listing' : '&larr; Affiliates';
+$backLabel = $contextFid > 0 ? 'Back to Listing' : 'Back to Affiliates';
 
 // Value helper: prefer $old (re-populate on error), then model, then ''
 $v = static function (string $key, $model, string $prop, string $default = '') use ($old): string {
@@ -39,94 +39,128 @@ $v = static function (string $key, $model, string $prop, string $default = '') u
 };
 ?>
 
-<p style="margin-bottom:1rem">
-  <a href="<?= $backUrl ?>" class="link"><?= $backLabel ?></a>
-</p>
+<div class="page-topbar">
+  <a href="<?= $backUrl ?>" class="back-link">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+    <?= $backLabel ?>
+  </a>
+</div>
 
 <?php if ($error !== ''): ?>
   <div class="alert alert-error"><?= View::e($error) ?></div>
 <?php endif; ?>
 
-<div class="card card-padded">
-  <form method="POST" action="<?= $action ?>" enctype="multipart/form-data" class="js-warn-unsaved">
-    <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
+<form method="POST" action="<?= $action ?>" enctype="multipart/form-data" class="js-warn-unsaved">
+  <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
+  <?php if ($isEdit && $contextFid > 0): ?>
+    <input type="hidden" name="from_listing" value="<?= $contextFid ?>">
+  <?php endif; ?>
 
-    <?php if ($isEdit && $contextFid > 0): ?>
-      <input type="hidden" name="from_listing" value="<?= $contextFid ?>">
-    <?php endif; ?>
+  <div class="card listing-field-card" style="margin-bottom:0">
+    <div class="listing-field-section">
 
-    <?php if ($contextFid === 0): ?>
-    <div class="form-group">
-      <label class="form-label" for="aff-listing">Listing</label>
-      <div class="select-wrap">
-        <select id="aff-listing" name="fanlisting_id" class="form-select">
-          <option value="0"><?= View::e(($site_name ?? 'Collective') . ' (Collective)') ?></option>
-          <?php foreach ($listings as $fl): ?>
-            <?php $selId = (int) ($old['fanlisting_id'] ?? ($affiliate?->listingId ?? 0)); ?>
-            <option value="<?= (int) $fl->id ?>"
-                    <?= (int) $fl->id === $selId ? 'selected' : '' ?>>
-              <?= View::e($fl->name) ?>
-            </option>
-          <?php endforeach; ?>
-        </select>
+      <!-- Listing -->
+      <?php if ($contextFid === 0): ?>
+      <div class="listing-field-row listing-field-row--top">
+        <label class="listing-field-label" for="aff-listing">Listing</label>
+        <div>
+          <div class="select-wrap">
+            <select id="aff-listing" name="fanlisting_id" class="form-select">
+              <option value="0"><?= View::e(($site_name ?? 'Collective') . ' (Collective)') ?></option>
+              <?php foreach ($listings as $fl): ?>
+                <?php $selId = (int) ($old['fanlisting_id'] ?? ($affiliate?->listingId ?? 0)); ?>
+                <option value="<?= (int) $fl->id ?>" <?= (int) $fl->id === $selId ? 'selected' : '' ?>>
+                  <?= View::e($fl->name) ?>
+                </option>
+              <?php endforeach; ?>
+            </select>
+          </div>
+          <p class="form-hint">Leave as &ldquo;Collective&rdquo; if this affiliate belongs to all listings.</p>
+        </div>
       </div>
-      <p class="form-hint">Leave as &ldquo;Collective&rdquo; if this affiliate belongs to all listings.</p>
-    </div>
-    <?php else: ?>
-      <input type="hidden" name="fanlisting_id" value="<?= $contextFid ?>">
-    <?php endif; ?>
+      <?php else: ?>
+        <input type="hidden" name="fanlisting_id" value="<?= $contextFid ?>">
+      <?php endif; ?>
 
-    <div class="form-group<?= !empty($fe['name']) ? ' has-error' : '' ?>">
-      <label class="form-label" for="aff-name">Affiliate Name <span>*</span></label>
-      <input id="aff-name" type="text" name="name" class="form-input" maxlength="255" required
-             value="<?= View::e($v('name', $affiliate, 'name')) ?>">
-      <?php if (!empty($fe['name'])): ?><p class="field-error"><?= View::e($fe['name'][0]) ?></p><?php endif; ?>
-    </div>
+      <!-- Affiliate Name -->
+      <div class="listing-field-row<?= !empty($fe['name']) ? ' has-error' : '' ?>">
+        <label class="listing-field-label" for="aff-name">
+          Affiliate Name <span class="req">*</span>
+        </label>
+        <div>
+          <input id="aff-name" type="text" name="name" class="form-input"
+                 maxlength="255" required
+                 placeholder="e.g. Starlight Fanlisting"
+                 value="<?= View::e($v('name', $affiliate, 'name')) ?>">
+          <?php if (!empty($fe['name'])): ?>
+            <p class="field-error"><?= View::e($fe['name'][0]) ?></p>
+          <?php endif; ?>
+        </div>
+      </div>
 
-    <div class="form-group<?= !empty($fe['url']) ? ' has-error' : '' ?>">
-      <label class="form-label" for="aff-url">URL <span>*</span></label>
-      <input id="aff-url" type="url" name="url" class="form-input" maxlength="500"
-             placeholder="https://" required
-             value="<?= View::e($v('url', $affiliate, 'url')) ?>">
-      <?php if (!empty($fe['url'])): ?><p class="field-error"><?= View::e($fe['url'][0]) ?></p><?php endif; ?>
-    </div>
+      <!-- URL -->
+      <div class="listing-field-row<?= !empty($fe['url']) ? ' has-error' : '' ?>">
+        <label class="listing-field-label" for="aff-url">
+          URL <span class="req">*</span>
+        </label>
+        <div>
+          <input id="aff-url" type="url" name="url" class="form-input"
+                 maxlength="500" placeholder="https://" required
+                 value="<?= View::e($v('url', $affiliate, 'url')) ?>">
+          <?php if (!empty($fe['url'])): ?>
+            <p class="field-error"><?= View::e($fe['url'][0]) ?></p>
+          <?php endif; ?>
+        </div>
+      </div>
 
-    <div class="form-group">
-      <label class="form-label" for="aff-email">Email</label>
-      <input id="aff-email" type="email" name="email" class="form-input" maxlength="255"
-             value="<?= View::e($v('email', $affiliate, 'email')) ?>">
-    </div>
+      <!-- Email -->
+      <div class="listing-field-row">
+        <label class="listing-field-label" for="aff-email">Email</label>
+        <input id="aff-email" type="email" name="email" class="form-input"
+               maxlength="255" placeholder="owner@example.com"
+               value="<?= View::e($v('email', $affiliate, 'email')) ?>">
+      </div>
 
-    <div class="form-group">
-      <label class="form-label" for="aff-sort-order">Sort Order</label>
-      <input id="aff-sort-order" type="number" name="sort_order" class="form-input"
-             min="1" max="9999" style="max-width:120px"
-             value="<?= View::e($v('sort_order', $affiliate, 'sortOrder', (string) ($next_sort_order ?? 1))) ?>">
-      <p class="form-hint">Lower numbers appear first on the public site. Affiliates with the same sort order are sorted alphabetically.</p>
-    </div>
+      <!-- Sort Order -->
+      <div class="listing-field-row listing-field-row--top">
+        <label class="listing-field-label" for="aff-sort-order">Sort Order</label>
+        <div>
+          <input id="aff-sort-order" type="number" name="sort_order" class="form-input"
+                 min="1" max="9999" style="max-width:120px"
+                 value="<?= View::e($v('sort_order', $affiliate, 'sortOrder', (string) ($next_sort_order ?? 1))) ?>">
+          <p class="form-hint">Lower numbers appear first. Same order = sorted alphabetically.</p>
+        </div>
+      </div>
 
-    <div class="form-group">
-      <label class="form-label" for="aff-image">Image</label>
-      <?php if ($isEdit && ($affiliate->image ?? '') !== ''): ?>
-        <div style="margin-bottom:.75rem">
-          <p class="form-hint" style="margin:0 0 .35rem">Current image:</p>
-          <img src="<?= $b ?>/uploads/affiliates/<?= View::e($affiliate->image) ?>"
-               alt="Current affiliate image"
-               style="max-height:80px;max-width:200px;border:1px solid var(--border);border-radius:4px;display:block;margin-bottom:.5rem">
-          <label class="form-check" style="color:var(--danger)">
-            <input type="checkbox" name="delete_image" value="1">
-            <span class="form-check-label" style="color:var(--danger)">Delete current image</span>
+      <!-- Image -->
+      <div class="listing-field-row listing-field-row--top">
+        <span class="listing-field-label">Image</span>
+        <div>
+          <?php if ($isEdit && ($affiliate->image ?? '') !== ''): ?>
+            <div style="margin-bottom:.75rem">
+              <img src="<?= $b ?>/uploads/affiliates/<?= View::e($affiliate->image) ?>"
+                   alt="Current affiliate image"
+                   style="max-height:80px;max-width:200px;border:1px solid var(--border);border-radius:6px;display:block;margin-bottom:.5rem">
+              <label class="form-check" style="color:var(--danger)">
+                <input type="checkbox" name="delete_image" value="1">
+                <span class="form-check-label" style="color:var(--danger)">Delete current image</span>
+              </label>
+            </div>
+          <?php endif; ?>
+          <label class="file-drop-zone">
+            <input type="file" name="image" accept="image/jpeg,image/png,image/gif,image/webp">
+            <svg class="file-drop-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="2" width="12" height="12" rx="1.5"/><circle cx="5.5" cy="5.5" r="1"/><path d="M14 10l-3.5-3.5L6 11l-2-2-2 2"/></svg>
+            <span class="file-drop-label">Click to upload</span>
+            <span class="file-drop-sub">JPEG, PNG, GIF, WebP &mdash; max 2 MB</span>
           </label>
         </div>
-      <?php endif; ?>
-      <input id="aff-image" type="file" name="image"
-             accept="image/jpeg,image/png,image/gif,image/webp">
-      <p class="form-hint">Accepted: JPG, PNG, GIF, WEBP. Max 2 MB.</p>
-    </div>
+      </div>
 
-    <div class="btn-row">
+    </div><!-- /.listing-field-section -->
+
+    <div class="composer-footer">
       <button type="submit" class="btn btn-primary"><?= $isEdit ? 'Save Changes' : 'Add Affiliate' ?></button>
-      <a href="<?= $backUrl ?>" class="link">Cancel</a>
+      <a href="<?= $backUrl ?>" class="btn btn-ghost">Cancel</a>
     </div>
-  </form>
-</div>
+  </div>
+</form>

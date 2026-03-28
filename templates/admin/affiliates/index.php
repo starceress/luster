@@ -59,7 +59,7 @@ $sortUrl = static function (string $col) use ($b, $filter_fid, $search, $sort, $
     return $b . '/admin/affiliates?' . $qs;
 };
 
-// Reorder mode is only meaningful for collective or a specific listing â€” not cross-scope.
+// Reorder mode is only meaningful for collective or a specific listing - not cross-scope.
 $canReorder = ($search ?? '') === '' && ($filter_fid ?? 'collective') !== '';
 ?>
 
@@ -72,11 +72,11 @@ $canReorder = ($search ?? '') === '' && ($filter_fid ?? 'collective') !== '';
 
 <?php if ($reorderMode): ?>
 
-<!-- â”€â”€ Reorder mode banner â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
+<!--  Reorder mode banner  -->
 <div class="neb-reorder-banner">
   <div style="display:flex;align-items:center;gap:.6rem">
     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
-    <strong>Reorder mode</strong> â€” drag rows to rearrange. Changes are saved automatically.
+    <strong>Reorder mode</strong> - drag rows to rearrange. Changes are saved automatically.
   </div>
   <a href="<?= View::e($normalUrl) ?>" class="btn btn-quaternary btn-sm">Done</a>
 </div>
@@ -86,7 +86,7 @@ $canReorder = ($search ?? '') === '' && ($filter_fid ?? 'collective') !== '';
 
 <?php else: ?>
 
-<!-- â”€â”€ Normal mode toolbar â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
+<!--  Normal mode toolbar  -->
 <div class="toolbar">
   <form method="GET" action="<?= $b ?>/admin/affiliates" class="filter-row">
     <?php if ($sort !== 'sort_order'): ?>
@@ -136,7 +136,7 @@ $canReorder = ($search ?? '') === '' && ($filter_fid ?? 'collective') !== '';
 <div class="card">
 
 <?php if ($reorderMode): ?>
-  <!-- â”€â”€ Reorder table â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
+  <!--  Reorder table  -->
   <div class="table-wrap">
   <table class="data-table mem-table" data-reorder-url="<?= View::e($reorder_url) ?>">
     <thead>
@@ -149,7 +149,7 @@ $canReorder = ($search ?? '') === '' && ($filter_fid ?? 'collective') !== '';
       <?php foreach ($affiliates as $aff): ?>
       <tr draggable="true" data-id="<?= (int) $aff->id ?>">
         <td style="width:40px;text-align:center">
-          <span class="drag-handle" title="Drag to reorder">â ¿</span>
+          <span class="drag-handle" title="Drag to reorder"> ¿</span>
         </td>
         <td>
           <span class="text-strong"><?= View::e($aff->name) ?></span>
@@ -164,7 +164,7 @@ $canReorder = ($search ?? '') === '' && ($filter_fid ?? 'collective') !== '';
   </div>
 
 <?php else: ?>
-  <!-- â”€â”€ Normal table â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
+  <!--  Normal table  -->
   <div class="table-wrap">
   <table class="data-table mem-table">
     <thead>
@@ -236,7 +236,7 @@ $canReorder = ($search ?? '') === '' && ($filter_fid ?? 'collective') !== '';
         </td>
         <td class="act-col" data-label="">
           <a href="<?= $b ?>/admin/affiliates/<?= (int) $aff->id ?>/edit"
-             class="btn btn-primary btn-sm">Edit</a>
+             class="btn btn-tertiary btn-sm">Edit</a>
 
           <form method="POST" action="<?= $b ?>/admin/affiliates/<?= (int) $aff->id ?>/toggle"
                 style="display:contents">

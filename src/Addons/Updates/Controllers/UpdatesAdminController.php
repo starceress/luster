@@ -6,7 +6,7 @@ namespace Luster\Addons\Updates\Controllers;
 
 use Luster\Addons\Updates\Update;
 use Luster\Addons\Updates\UpdateRepo;
-use Luster\Core\Application;
+use Luster\Controllers\Admin\AdminController;
 use Luster\Core\Request;
 use Luster\Core\Response;
 use Luster\Repositories\ActivityRepo;
@@ -18,9 +18,8 @@ use Luster\Repositories\ListingRepo;
  * All state-changing actions require CSRF validation (handled globally by
  * CsrfMiddleware) and log to the activity log.
  */
-final class UpdatesAdminController
+final class UpdatesAdminController extends AdminController
 {
-    public function __construct(private readonly Application $app) {}
 
     // -----------------------------------------------------------------------
     // GET /admin/updates  — overview index
@@ -59,7 +58,7 @@ final class UpdatesAdminController
         $session->remove('lstr_flash_success');
         $session->remove('lstr_flash_error');
 
-        return $this->layout('admin/addons/updates/index.php', [
+        return $this->adminLayout('admin/addons/updates/index.php', 'Updates', 'updates', [
             'listings'       => $listings,
             'latest_per_fl'  => $latestPerFl,
             'latest_coll'    => $latestColl,
@@ -69,7 +68,7 @@ final class UpdatesAdminController
             'dir'            => $dir,
             'success'        => $success,
             'error'          => $error,
-        ], 'Updates', 'updates');
+        ]);
     }
 
     // -----------------------------------------------------------------------
@@ -95,7 +94,7 @@ final class UpdatesAdminController
         $session->remove('lstr_flash_success');
         $session->remove('lstr_flash_error');
 
-        return $this->layout('admin/addons/updates/list.php', [
+        return $this->adminLayout('admin/addons/updates/list.php', 'Updates — Collective', 'updates', [
             'updates'       => $updates,
             'total'         => $total,
             'page'          => $page,
@@ -104,7 +103,7 @@ final class UpdatesAdminController
             'listing'       => null,
             'success'       => $success,
             'error'         => $error,
-        ], 'Updates — Collective', 'updates', 'Collective');
+        ], 'Collective');
     }
 
     // -----------------------------------------------------------------------
@@ -153,7 +152,7 @@ final class UpdatesAdminController
         $session->remove('lstr_flash_success');
         $session->remove('lstr_flash_error');
 
-        return $this->layout('admin/addons/updates/list.php', [
+        return $this->adminLayout('admin/addons/updates/list.php', 'Updates — ' . $listing->name, 'updates', [
             'updates'       => $updates,
             'total'         => $total,
             'page'          => $page,
@@ -162,7 +161,7 @@ final class UpdatesAdminController
             'listing'       => $listing,
             'success'       => $success,
             'error'         => $error,
-        ], 'Updates — ' . $listing->name, 'updates', 'Owned › ' . $listing->name);
+        ], 'Owned › ' . $listing->name);
     }
 
     // -----------------------------------------------------------------------
@@ -221,7 +220,7 @@ final class UpdatesAdminController
         $error = (string) $session->get('lstr_flash_error', '');
         $session->remove('lstr_flash_error');
 
-        return $this->layout('admin/addons/updates/form.php', [
+        return $this->adminLayout('admin/addons/updates/form.php', 'Edit Update', 'updates', [
             'update'           => $update,
             'fanlisting_id'    => $update->fanlistingId,
             'known_categories' => $updateRepo->getKnownCategories(),
@@ -229,7 +228,7 @@ final class UpdatesAdminController
             'ctx_label'        => $subtitle,
             'is_edit'          => true,
             'error'            => $error,
-        ], 'Edit Update', 'updates', $subtitle);
+        ], $subtitle);
     }
 
     public function edit(Request $request, array $params): Response
@@ -339,7 +338,7 @@ final class UpdatesAdminController
             ? $baseUrl . '/admin/updates/' . $fanlistingId
             : $baseUrl . '/admin/updates/collective';
 
-        return $this->layout('admin/addons/updates/form.php', [
+        return $this->adminLayout('admin/addons/updates/form.php', 'Add Update', 'updates', [
             'update'           => null,
             'fanlisting_id'    => $fanlistingId,
             'known_categories' => $updateRepo->getKnownCategories(),
@@ -347,7 +346,7 @@ final class UpdatesAdminController
             'ctx_label'        => $subtitle,
             'is_edit'          => false,
             'error'            => $error,
-        ], 'Add Update', 'updates', $subtitle);
+        ], $subtitle);
     }
 
     /**
@@ -454,36 +453,4 @@ final class UpdatesAdminController
         ];
     }
 
-    /**
-     * Shared admin layout renderer — same pattern as AffiliateController::layout().
-     */
-    private function layout(
-        string $template,
-        array  $data,
-        string $pageTitle,
-        string $section,
-        string $pageSubtitle = '',
-    ): Response {
-        $view      = $this->app->getView();
-        $config    = $this->app->getConfig();
-        $session   = $this->app->getSession();
-        $baseUrl   = $this->app->getBaseUrl();
-        $csrfToken = $this->app->getCSRF()->token();
-
-        $inner = $view->render($template, array_merge($data, [
-            'base_url'   => $baseUrl,
-            'csrf_token' => $csrfToken,
-        ]));
-
-        return Response::html($view->render('admin/layout.php', array_merge([
-            'page_title'      => $pageTitle,
-            'page_subtitle'   => $pageSubtitle,
-            'site_name'       => (string) $config->get('site_name', 'Luster'),
-            'admin_username'  => (string) $session->get('lstr_admin_username', ''),
-            'csrf_token'      => $csrfToken,
-            'current_section' => $section,
-            'base_url'        => $baseUrl,
-            'content'         => $inner,
-        ], $this->app->getAdminNavData())));
-    }
 }

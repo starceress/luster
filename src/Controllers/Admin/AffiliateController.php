@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Luster\Controllers\Admin;
 
-use Luster\Core\Application;
 use Luster\Core\Request;
 use Luster\Core\Response;
 use Luster\Core\Validator;
@@ -30,9 +29,8 @@ use Luster\Repositories\ListingSettingsRepo;
  * or when from_listing is passed as a query/POST param, save/toggle/delete
  * redirect back to /admin/listings/{fid} instead of /admin/affiliates.
  */
-final class AffiliateController
+final class AffiliateController extends AdminController
 {
-    public function __construct(private readonly Application $app) {}
 
     // -----------------------------------------------------------------------
     // GET /admin/affiliates
@@ -122,7 +120,7 @@ final class AffiliateController
             ? 'Owned › ' . $fanMap[(int) $filterFid]
             : '';
 
-        return $this->layout('admin/affiliates/index.php', [
+        return $this->adminLayout('admin/affiliates/index.php', 'Affiliates', 'affiliates', [
             'affiliates'   => $affiliates,
             'fan_map'      => $fanMap,
             'listings'     => $listings,
@@ -139,7 +137,7 @@ final class AffiliateController
             'reorder_mode' => $reorderMode,
             'success'      => $success,
             'error'        => $error,
-        ], 'Affiliates', 'affiliates', $indexSubtitle);
+        ], $indexSubtitle);
     }
 
     // -----------------------------------------------------------------------
@@ -203,7 +201,7 @@ final class AffiliateController
             $siteName = (string) ($this->app->getConfig()->get('site_name', 'Collective'));
 
             if ($v->fails()) {
-                return $this->layout('admin/affiliates/form.php', [
+                return $this->adminLayout('admin/affiliates/form.php', 'Add Affiliate', 'affiliates', [
                     'listings'     => $listings,
                     'affiliate'    => null,
                     'error'        => implode(' ', $v->allErrors()),
@@ -211,7 +209,7 @@ final class AffiliateController
                     'old'          => $request->postAll(),
                     'context_fid'  => $postContextFid,
                     'site_name'    => $siteName,
-                ], 'Add Affiliate', 'affiliates', $addSubtitle);
+                ], $addSubtitle);
             }
 
             $affiliateRepo->insert([
@@ -241,7 +239,7 @@ final class AffiliateController
         // Prefill sort order: next available in the context scope (collective when no context)
         $nextSortOrder = $affiliateRepo->getNextSortOrder($contextFid > 0 ? $contextFid : null);
 
-        return $this->layout('admin/affiliates/form.php', [
+        return $this->adminLayout('admin/affiliates/form.php', 'Add Affiliate', 'affiliates', [
             'listings'       => $listings,
             'affiliate'      => null,
             'error'          => '',
@@ -249,7 +247,7 @@ final class AffiliateController
             'context_fid'    => $contextFid,
             'site_name'      => $siteName,
             'next_sort_order' => $nextSortOrder,
-        ], 'Add Affiliate', 'affiliates', $addSubtitle);
+        ], $addSubtitle);
     }
 
     // -----------------------------------------------------------------------
@@ -325,7 +323,7 @@ final class AffiliateController
             $siteName = (string) ($this->app->getConfig()->get('site_name', 'Collective'));
 
             if ($v->fails()) {
-                return $this->layout('admin/affiliates/form.php', [
+                return $this->adminLayout('admin/affiliates/form.php', 'Edit Affiliate', 'affiliates', [
                     'listings'     => $listings,
                     'affiliate'    => $affiliate,
                     'error'        => implode(' ', $v->allErrors()),
@@ -333,7 +331,7 @@ final class AffiliateController
                     'old'          => $request->postAll(),
                     'context_fid'  => $fromFl,
                     'site_name'    => $siteName,
-                ], 'Edit Affiliate', 'affiliates', $editSubtitle);
+                ], $editSubtitle);
             }
 
             $affiliateRepo->update($id, [
@@ -362,14 +360,14 @@ final class AffiliateController
 
         $siteName = (string) ($this->app->getConfig()->get('site_name', 'Collective'));
 
-        return $this->layout('admin/affiliates/form.php', [
+        return $this->adminLayout('admin/affiliates/form.php', 'Edit Affiliate', 'affiliates', [
             'listings' => $listings,
             'affiliate'   => $affiliate,
             'error'       => '',
             'old'         => [],
             'context_fid' => $fromFl,
             'site_name'   => $siteName,
-        ], 'Edit Affiliate', 'affiliates', $editSubtitle);
+        ], $editSubtitle);
     }
 
     // -----------------------------------------------------------------------
@@ -463,32 +461,4 @@ final class AffiliateController
         return Response::redirect($redirect);
     }
 
-    // -----------------------------------------------------------------------
-    // Shared render helper
-    // -----------------------------------------------------------------------
-
-    private function layout(string $template, array $data, string $pageTitle, string $section, string $pageSubtitle = ''): Response
-    {
-        $view      = $this->app->getView();
-        $config    = $this->app->getConfig();
-        $session   = $this->app->getSession();
-        $baseUrl   = $this->app->getBaseUrl();
-        $csrfToken = $this->app->getCSRF()->token();
-
-        $inner = $view->render($template, array_merge($data, [
-            'base_url'   => $baseUrl,
-            'csrf_token' => $csrfToken,
-        ]));
-
-        return Response::html($view->render('admin/layout.php', array_merge([
-            'page_title'      => $pageTitle,
-            'page_subtitle'   => $pageSubtitle,
-            'site_name'       => (string) $config->get('site_name', 'Luster'),
-            'admin_username'  => (string) $session->get('lstr_admin_username', ''),
-            'csrf_token'      => $csrfToken,
-            'current_section' => $section,
-            'base_url'        => $baseUrl,
-            'content'         => $inner,
-        ], $this->app->getAdminNavData())));
-    }
 }

@@ -34,7 +34,7 @@ $pageUrl = static fn(int $p): string => $b . '/admin/errorlog?page=' . $p;
   <?php if (empty($rows)): ?>
     <div class="empty">
       <?= View::icon('check-badge', ['width' => '40', 'height' => '40']) ?>
-      All clear â€” no errors have been logged.
+      All clear - no errors have been logged.
     </div>
   <?php else: ?>
     <div class="table-wrap">

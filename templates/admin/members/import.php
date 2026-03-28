@@ -25,7 +25,7 @@ $id = (int) $listing->id;
 <?php endif; ?>
 
 <?php if ($results !== null): ?>
-  <!-- â”€â”€ Results â”€â”€ -->
+  <!--  Results  -->
   <?php $errCount = count($results['errors']); ?>
 
   <?php if ($errCount === 0 && $results['imported'] > 0): ?>
@@ -34,7 +34,7 @@ $id = (int) $listing->id;
     </div>
   <?php elseif ($results['imported'] === 0 && $errCount === 0 && $results['skipped'] > 0): ?>
     <div class="alert alert-error" style="margin-bottom:1.25rem">
-      No members were imported â€” all rows were duplicates.
+      No members were imported - all rows were duplicates.
     </div>
   <?php elseif ($errCount > 0): ?>
     <div class="alert alert-error" style="margin-bottom:1.25rem">
@@ -95,7 +95,7 @@ $id = (int) $listing->id;
   </div>
 
 <?php else: ?>
-  <!-- â”€â”€ Upload form â”€â”€ -->
+  <!--  Upload form  -->
   <div class="card card-padded">
     <p style="margin:0 0 1.25rem;color:var(--text-muted);font-size:.9rem">
       Upload a CSV file to import members directly into <strong><?= View::e($listing->name) ?></strong>.
@@ -138,7 +138,7 @@ $id = (int) $listing->id;
           <tr><td><code>email</code></td>  <td>Yes</td><td>Must be a valid email address; rows with duplicate emails are skipped</td></tr>
           <tr><td><code>url</code></td>    <td>No</td> <td>Member's website URL</td></tr>
           <tr><td><code>country</code></td><td>No</td> <td>Country name or code</td></tr>
-          <tr><td><code>password</code></td><td>No</td><td>Plain text â€” will be hashed; a random password is generated if omitted</td></tr>
+          <tr><td><code>password</code></td><td>No</td><td>Plain text - will be hashed; a random password is generated if omitted</td></tr>
           <tr><td><em>field name</em></td> <td>No</td> <td>Any additional field defined for this listing (use the field's internal name as the column header)</td></tr>
         </tbody>
       </table>

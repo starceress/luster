@@ -18,6 +18,7 @@ declare(strict_types=1);
 use Luster\Core\View;
 
 $b = rtrim(View::e($base_url), '/');
+$_linkUpdate = ($link_update !== null && $link_update !== '') ? $link_update : null;
 ?>
 <div class="fl-wrap">
   <h2 class="fl-title">KIM List — Reset Password</h2>
@@ -70,7 +71,9 @@ $b = rtrim(View::e($base_url), '/');
     <button class="fl-btn" type="submit">Send Reset Link</button>
   </form>
 
+  <?php if ($_linkUpdate !== null): ?>
   <p class="fl-meta" style="margin-top:1.5rem">
-    <a href="<?= $b ?>/kim/update">&larr; Back to Update</a>
+    <a href="<?= View::e($_linkUpdate) ?>">&larr; Back to Update</a>
   </p>
+  <?php endif; ?>
 </div>

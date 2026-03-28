@@ -23,6 +23,7 @@ CREATE TABLE lstr_codes (
     status         TEXT    NOT NULL DEFAULT 'approved',
     submitter_name  TEXT   NULL,
     submitter_email TEXT   NULL,
+    submitter_url   TEXT   NULL,
     sort_order     INTEGER NOT NULL DEFAULT 0,
     created_at     TEXT    NOT NULL DEFAULT CURRENT_TIMESTAMP
 )

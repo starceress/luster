@@ -36,6 +36,7 @@ require 'header.php';
   if ($statsHtml) echo $statsHtml;
   ?>
 
+  <p>
   <?php
   // Updates feed — requires the Updates add-on (blank when not installed)
   $luster_fanlisting_id = LISTING_ID;
@@ -46,5 +47,6 @@ require 'header.php';
     <h1>Updates</h1>
     <?= $updatesHtml ?>
   <?php endif; ?>
+  </p>
 
 <?php require 'footer.php'; ?>

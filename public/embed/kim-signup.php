@@ -5,6 +5,7 @@ declare(strict_types=1);
 use Luster\Addons\Kim\KimMemberRepo;
 use Luster\Core\Captcha;
 use Luster\Repositories\ListingRepo;
+use Luster\Repositories\SiteSettingsRepo;
 
 /**
  * Luster embed — KIM List sign-up form fragment.
@@ -73,6 +74,30 @@ $_lusterSession->remove('lstr_flash_error');
 $_lusterSession->remove('lstr_flash_old');
 
 // ---------------------------------------------------------------------------
+// Load KIM page URLs from settings (allow host-page override)
+// ---------------------------------------------------------------------------
+
+$_lusterSiteSettings = new SiteSettingsRepo($_lusterApp->getDatabase());
+$_lusterKimUrls = $_lusterSiteSettings->getMany([
+    "kim_url_signup", "kim_url_update", "kim_url_reset", "kim_url_list"
+]);
+
+// Stored values are page filenames; combine with the site origin to build full URLs.
+// Host-page $luster_kim_*_url overrides are used as-is (they are already full URLs).
+$_lusterKimParsed   = parse_url((string) $_lusterApp->getConfig()->get('app_url', ''));
+$_lusterKimSiteRoot = ($_lusterKimParsed['scheme'] ?? 'https') . '://' . ($_lusterKimParsed['host'] ?? '');
+if (!empty($_lusterKimParsed['port'])) {
+    $_lusterKimSiteRoot .= ':' . $_lusterKimParsed['port'];
+}
+$_toKimLink = static fn(?string $v): ?string =>
+    ($v !== null && $v !== '') ? $_lusterKimSiteRoot . '/' . ltrim($v, '/') : null;
+
+$_lusterLinkSignup = $luster_kim_signup_url ?? $_toKimLink($_lusterKimUrls["kim_url_signup"] ?: null);
+$_lusterLinkUpdate = $luster_kim_update_url ?? $_toKimLink($_lusterKimUrls["kim_url_update"] ?: null);
+$_lusterLinkReset  = $luster_kim_reset_url  ?? $_toKimLink($_lusterKimUrls["kim_url_reset"]  ?: null);
+$_lusterLinkList   = $luster_kim_list_url   ?? $_toKimLink($_lusterKimUrls["kim_url_list"]   ?: null);
+
+// ---------------------------------------------------------------------------
 // 5. Render fragment (no layout wrapper)
 // ---------------------------------------------------------------------------
 
@@ -90,6 +115,9 @@ $_lusterHtml = $_lusterApp->getView()->render('addons/kim/signup.php', [
     'captcha_error'    => '',
     'base_url'         => $_lusterBaseUrl,
     'theme_path'       => $_lusterBaseUrl . '/assets/default/',
+    'link_update'      => $_lusterLinkUpdate,
+    'link_reset'       => $_lusterLinkReset,
+    'link_list'        => $_lusterLinkList,
 ]);
 
 if ($luster_return ?? false) {

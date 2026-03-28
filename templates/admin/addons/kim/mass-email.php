@@ -1,6 +1,6 @@
 <?php
 /**
- * KIM List admin â€” mass email compose form.
+ * KIM List admin - mass email compose form.
  *
  * Variables:
  *   $listing          Listing

@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Luster\Controllers\Admin;
 
-use Luster\Core\Application;
 use Luster\Core\Mailer;
 use Luster\Core\Request;
 use Luster\Core\Response;
@@ -33,9 +32,8 @@ use Luster\Repositories\SavedEmailRepo;
  *   {listing_name} → name of the listing they are a member of (or app name for all-listing sends)
  *   {site_name}    → site/collective name from config
  */
-final class MassEmailController
+final class MassEmailController extends AdminController
 {
-    public function __construct(private readonly Application $app) {}
 
     // -----------------------------------------------------------------------
     // GET /admin/emails
@@ -109,8 +107,7 @@ final class MassEmailController
         $fromEmail    = $smtpFrom     !== '' ? $smtpFrom     : (string) $config->get('owner_email', '');
         $fromName     = $smtpFromName !== '' ? $smtpFromName : (string) $config->get('owner_name',  '');
 
-        return $this->layout('mass-email/compose.php', [
-            'page_subtitle'         => 'Emails › Bulk Email',
+        return $this->adminLayout('admin/mass-email/compose.php', 'Emails', 'emails', [
             'listings'              => $listings,
             'listing_counts'        => $listingCounts,
             'deduplicated_total'    => $deduplicatedTotal,
@@ -124,7 +121,7 @@ final class MassEmailController
             'site_name_val'      => (string) $config->get('site_name', ''),
             'from_name_val'      => $fromName,
             'from_email_val'     => $fromEmail,
-        ]);
+        ], 'Emails › Bulk Email');
     }
 
     // -----------------------------------------------------------------------
@@ -156,15 +153,14 @@ final class MassEmailController
 
         $sample = array_slice(array_keys($recipients), 0, 5, true);
 
-        return $this->layout('mass-email/preview.php', [
-            'page_subtitle' => 'Emails › Bulk Email',
+        return $this->adminLayout('admin/mass-email/preview.php', 'Emails', 'emails', [
             'listing_id'   => $listingId,
             'listing_name' => $listingName,
             'subject'      => $subject,
             'body'         => $body,
             'total'        => count($recipients),
             'sample'       => $sample,
-        ]);
+        ], 'Emails › Bulk Email');
     }
 
     // -----------------------------------------------------------------------
@@ -217,13 +213,13 @@ final class MassEmailController
             "Sent mass email to {$sent} member(s) across {$scope}. Subject: {$subject}",
         );
 
-        return $this->layout('mass-email/result.php', [
+        return $this->adminLayout('admin/mass-email/result.php', 'Emails', 'emails', [
             'listing_name' => $listingName,
             'subject'      => $subject,
             'sent'         => $sent,
             'total'        => count($recipients),
             'failed'       => $failed,
-        ]);
+        ], 'Emails › Bulk Email');
     }
 
     // -----------------------------------------------------------------------
@@ -251,12 +247,11 @@ final class MassEmailController
 
         $savedEmails = (new SavedEmailRepo($db))->getAll();
 
-        return $this->layout('mass-email/saved-templates.php', [
-            'page_subtitle' => 'Emails › New Template',
+        return $this->adminLayout('admin/mass-email/saved-templates.php', 'Emails', 'emails', [
             'saved_emails' => $savedEmails,
             'success'      => $success,
             'error'        => $error,
-        ]);
+        ], 'Emails › New Template');
     }
 
     // -----------------------------------------------------------------------
@@ -435,29 +430,4 @@ final class MassEmailController
         );
     }
 
-    private function layout(string $template, array $data): Response
-    {
-        $session = $this->app->getSession();
-
-        $siteRepo = new \Luster\Repositories\SiteSettingsRepo($this->app->getDatabase());
-
-        $data['page_title']         = 'Emails';
-        $data['current_section']    = 'emails';
-        $data['site_name']          = (string) $this->app->getConfig()->get('site_name', 'Luster');
-        $data['admin_date_format']  = $siteRepo->get('date_format', 'j M Y') ?? 'j M Y';
-        $data['admin_time_format']  = $siteRepo->get('time_format', 'H:i')   ?? 'H:i';
-        $data['admin_username']  = (string) $session->get('lstr_admin_username', '');
-        $data['csrf_token']      = $this->app->getCSRF()->token();
-        $data['base_url']        = $this->app->getBaseUrl();
-
-        ob_start();
-        extract($data);
-        require \LUSTER_BASE . '/templates/admin/' . $template;
-        $content = ob_get_clean();
-
-        ob_start();
-        extract(array_merge(['content' => $content] + $data, $this->app->getAdminNavData()));
-        require \LUSTER_BASE . '/templates/admin/layout.php';
-        return Response::html((string) ob_get_clean());
-    }
 }

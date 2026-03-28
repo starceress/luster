@@ -47,8 +47,11 @@ final class Application
     private CSRF      $csrf;
     private RateLimit $rateLimit;
 
-    /** Addon keys that are currently installed (populated at boot). */
+    /** Addon keys that are currently installed (populated at boot or on first use). */
     private array $installedAddonKeys = [];
+
+    /** Whether installedAddonKeys has been loaded from the DB yet. */
+    private bool $addonsLoaded = false;
 
     /** Discovered addon instances keyed by addon key (populated on demand). */
     private ?array $discoveredAddons = null;
@@ -126,6 +129,9 @@ final class Application
 
     public function isAddonInstalled(string $key): bool
     {
+        if (!$this->addonsLoaded) {
+            $this->loadInstalledAddons();
+        }
         return in_array($key, $this->installedAddonKeys, true);
     }
 
@@ -295,6 +301,7 @@ final class Application
      */
     private function loadInstalledAddons(): void
     {
+        $this->addonsLoaded = true;
         try {
             $rows = $this->database
                 ->pdo()

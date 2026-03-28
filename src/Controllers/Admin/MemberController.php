@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Luster\Controllers\Admin;
 
-use Luster\Core\Application;
 use Luster\Core\Mailer;
 use Luster\Core\Request;
 use Luster\Core\Response;
@@ -33,9 +32,8 @@ use Luster\Repositories\PendingUpdateRepo;
  *   POST /admin/members/{id}/email-selected/send  — send the composed email to selected members
  *   GET  /admin/members/{id}/export      — CSV download of approved members
  */
-final class MemberController
+final class MemberController extends AdminController
 {
-    public function __construct(private readonly Application $app) {}
 
     // -----------------------------------------------------------------------
     // GET /admin/members
@@ -92,7 +90,7 @@ final class MemberController
                 strcmp($a['member']->name,  $b['member']->name)
             );
 
-            return $this->layout('admin/members/overview.php', [
+            return $this->adminLayout('admin/members/overview.php', 'Members', 'members', [
                 'grouped'         => [],
                 'all_listings'    => $allListings,
                 'search_results'  => $searchResults,
@@ -101,7 +99,7 @@ final class MemberController
                 'success'         => $success,
                 'error'           => $error,
                 'search'          => $search,
-            ], 'Members', 'members');
+            ]);
         }
 
         // ------------------------------------------------------------------
@@ -118,7 +116,7 @@ final class MemberController
             }
         }
 
-        return $this->layout('admin/members/overview.php', [
+        return $this->adminLayout('admin/members/overview.php', 'Members', 'members', [
             'grouped'         => $grouped,
             'all_listings'    => $allListings,
             'search_results'  => [],
@@ -129,7 +127,7 @@ final class MemberController
             'success'         => $success,
             'error'           => $error,
             'search'          => $search,
-        ], 'Members', 'members');
+        ]);
     }
 
     // -----------------------------------------------------------------------
@@ -205,7 +203,7 @@ final class MemberController
         $session->remove('lstr_flash_success');
         $session->remove('lstr_flash_error');
 
-        return $this->layout('admin/members/index.php', [
+        return $this->adminLayout('admin/members/index.php', 'Members', 'members', [
             'listing'         => $listing,
             'members'         => $members,
             'fields'          => $fields,
@@ -221,7 +219,7 @@ final class MemberController
             'dir'             => $dir,
             'success'         => $success,
             'error'           => $error,
-        ], 'Members', 'members', 'Owned › ' . $listing->name);
+        ], 'Owned › ' . $listing->name);
     }
 
     // -----------------------------------------------------------------------
@@ -277,7 +275,7 @@ final class MemberController
             }
 
             if ($v->fails()) {
-                return $this->layout('admin/members/edit.php', [
+                return $this->adminLayout('admin/members/edit.php', 'Edit Member', 'members', [
                     'listing'      => $listing,
                     'member'          => $member,
                     'fields'          => $fields,
@@ -286,7 +284,7 @@ final class MemberController
                     'success'         => '',
                     'old'             => $request->postAll(),
                     'all_listings' => $allListings,
-                ], 'Edit Member', 'members', 'Owned › ' . $listing->name);
+                ], 'Owned › ' . $listing->name);
             }
 
             $updateData = [
@@ -334,7 +332,7 @@ final class MemberController
         $session->remove('lstr_flash_success');
         $session->remove('lstr_flash_error');
 
-        return $this->layout('admin/members/edit.php', [
+        return $this->adminLayout('admin/members/edit.php', 'Edit Member', 'members', [
             'listing'      => $listing,
             'member'          => $member,
             'fields'          => $fields,
@@ -342,7 +340,7 @@ final class MemberController
             'success'         => $flashSuccess,
             'old'             => [],
             'all_listings' => $allListings,
-        ], 'Edit Member', 'members', 'Owned › ' . $listing->name);
+        ], 'Owned › ' . $listing->name);
     }
 
     // -----------------------------------------------------------------------
@@ -642,11 +640,11 @@ final class MemberController
             return Response::notFound('Listing not found.');
         }
 
-        return $this->layout('admin/members/import.php', [
+        return $this->adminLayout('admin/members/import.php', 'Import Members', 'members', [
             'listing' => $listing,
             'results' => null,
             'error'   => '',
-        ], 'Import Members', 'members', 'Owned › ' . $listing->name);
+        ], 'Owned › ' . $listing->name);
     }
 
     public function importTemplate(Request $request, array $params): Response
@@ -713,27 +711,27 @@ final class MemberController
         $upload = $request->file('csv');
 
         if ($upload === null || ($upload['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_NO_FILE) {
-            return $this->layout('admin/members/import.php', [
+            return $this->adminLayout('admin/members/import.php', 'Import Members', 'members', [
                 'listing' => $listing,
                 'results' => null,
                 'error'   => 'Please select a CSV file to upload.',
-            ], 'Import Members', 'members', 'Owned › ' . $listing->name);
+            ], 'Owned › ' . $listing->name);
         }
 
         if (($upload['error'] ?? 0) !== UPLOAD_ERR_OK) {
-            return $this->layout('admin/members/import.php', [
+            return $this->adminLayout('admin/members/import.php', 'Import Members', 'members', [
                 'listing' => $listing,
                 'results' => null,
                 'error'   => 'File upload failed (error code ' . (int) $upload['error'] . ').',
-            ], 'Import Members', 'members', 'Owned › ' . $listing->name);
+            ], 'Owned › ' . $listing->name);
         }
 
         if ((int) ($upload['size'] ?? 0) > 2 * 1024 * 1024) {
-            return $this->layout('admin/members/import.php', [
+            return $this->adminLayout('admin/members/import.php', 'Import Members', 'members', [
                 'listing' => $listing,
                 'results' => null,
                 'error'   => 'File exceeds the 2 MB size limit.',
-            ], 'Import Members', 'members', 'Owned › ' . $listing->name);
+            ], 'Owned › ' . $listing->name);
         }
 
         $tmpPath = (string) ($upload['tmp_name'] ?? '');
@@ -743,11 +741,11 @@ final class MemberController
         $allowed  = ['text/csv', 'text/plain', 'application/csv', 'application/vnd.ms-excel'];
 
         if (!in_array($mimeType, $allowed, true)) {
-            return $this->layout('admin/members/import.php', [
+            return $this->adminLayout('admin/members/import.php', 'Import Members', 'members', [
                 'listing' => $listing,
                 'results' => null,
                 'error'   => 'Only CSV files are accepted (detected: ' . htmlspecialchars($mimeType, ENT_QUOTES, 'UTF-8') . ').',
-            ], 'Import Members', 'members', 'Owned › ' . $listing->name);
+            ], 'Owned › ' . $listing->name);
         }
 
         // ------------------------------------------------------------------
@@ -757,11 +755,11 @@ final class MemberController
         $handle = fopen($tmpPath, 'r');
 
         if ($handle === false) {
-            return $this->layout('admin/members/import.php', [
+            return $this->adminLayout('admin/members/import.php', 'Import Members', 'members', [
                 'listing' => $listing,
                 'results' => null,
                 'error'   => 'Could not open uploaded file for reading.',
-            ], 'Import Members', 'members', 'Owned › ' . $listing->name);
+            ], 'Owned › ' . $listing->name);
         }
 
         // Read + normalise header row
@@ -769,11 +767,11 @@ final class MemberController
 
         if ($rawHeader === false || $rawHeader === null) {
             fclose($handle);
-            return $this->layout('admin/members/import.php', [
+            return $this->adminLayout('admin/members/import.php', 'Import Members', 'members', [
                 'listing' => $listing,
                 'results' => null,
                 'error'   => 'The file appears to be empty or could not be read.',
-            ], 'Import Members', 'members', 'Owned › ' . $listing->name);
+            ], 'Owned › ' . $listing->name);
         }
 
         $headerMap = []; // column name (lowercase) → column index
@@ -783,11 +781,11 @@ final class MemberController
 
         if (!isset($headerMap['name']) || !isset($headerMap['email'])) {
             fclose($handle);
-            return $this->layout('admin/members/import.php', [
+            return $this->adminLayout('admin/members/import.php', 'Import Members', 'members', [
                 'listing' => $listing,
                 'results' => null,
                 'error'   => 'The CSV must have at least a "name" column and an "email" column in the header row.',
-            ], 'Import Members', 'members', 'Owned › ' . $listing->name);
+            ], 'Owned › ' . $listing->name);
         }
 
         // Build set of valid additional field names for this listing
@@ -899,7 +897,7 @@ final class MemberController
             $request->ip(),
         );
 
-        return $this->layout('admin/members/import.php', [
+        return $this->adminLayout('admin/members/import.php', 'Import Members', 'members', [
             'listing' => $listing,
             'results' => [
                 'imported' => $imported,
@@ -907,7 +905,7 @@ final class MemberController
                 'errors'   => $errors,
             ],
             'error' => '',
-        ], 'Import Members', 'members', 'Owned › ' . $listing->name);
+        ], 'Owned › ' . $listing->name);
     }
 
     // -----------------------------------------------------------------------
@@ -1096,11 +1094,11 @@ final class MemberController
         $session->remove('lstr_flash_success');
         $session->remove('lstr_flash_error');
 
-        return $this->layout('admin/members/settings.php', [
+        return $this->adminLayout('admin/members/settings.php', 'Members Settings', 'members', [
             'cfg'     => $this->app->getConfig()->all(),
             'success' => $success,
             'error'   => $error,
-        ], 'Members Settings', 'members');
+        ]);
     }
 
     // -----------------------------------------------------------------------
@@ -1136,35 +1134,6 @@ final class MemberController
         return Response::redirect($baseUrl . '/admin/members/settings');
     }
 
-    // -----------------------------------------------------------------------
-    // Shared render helper
-    // -----------------------------------------------------------------------
-
-    private function layout(string $template, array $data, string $pageTitle, string $section, string $pageSubtitle = ''): Response
-    {
-        $view      = $this->app->getView();
-        $config    = $this->app->getConfig();
-        $session   = $this->app->getSession();
-        $baseUrl   = $this->app->getBaseUrl();
-        $csrfToken = $this->app->getCSRF()->token();
-
-        $inner = $view->render($template, array_merge($data, [
-            'base_url'   => $baseUrl,
-            'csrf_token' => $csrfToken,
-        ]));
-
-        return Response::html($view->render('admin/layout.php', array_merge([
-            'page_title'      => $pageTitle,
-            'page_subtitle'   => $pageSubtitle,
-            'site_name'       => (string) $config->get('site_name', 'Luster'),
-            'admin_username'  => (string) $session->get('lstr_admin_username', ''),
-            'csrf_token'      => $csrfToken,
-            'current_section' => $section,
-            'base_url'        => $baseUrl,
-            'content'         => $inner,
-        ], $this->app->getAdminNavData())));
-    }
-
     public function emailMemberForm(Request $request, array $params): Response
     {
         $db     = $this->app->getDatabase();
@@ -1198,7 +1167,7 @@ final class MemberController
 
         $referer = $request->header('referer') ?? $baseUrl . '/admin/members/' . $id;
 
-        return $this->layout('admin/members/email.php', [
+        return $this->adminLayout('admin/members/email.php', 'Email Member', 'members', [
             'listing'        => $listing,
             'member_email'   => $email,
             'member_name'    => $member ? $member->name    : '',
@@ -1214,7 +1183,7 @@ final class MemberController
             'success'        => $flash_success,
             'old'            => $old,
             'referer'        => $referer,
-        ], 'Email Member', 'members', 'Owned › ' . $listing->name);
+        ], 'Owned › ' . $listing->name);
     }
 
     public function emailMemberSend(Request $request, array $params): Response
@@ -1298,7 +1267,7 @@ final class MemberController
             $memberNames[$email] = $m ? $m->name : '';
         }
 
-        return $this->layout('admin/members/email-selected.php', [
+        return $this->adminLayout('admin/members/email-selected.php', 'Email Selected Members', 'members', [
             'listing'         => $listing,
             'selected_emails' => $selectedEmails,
             'member_names'    => $memberNames,
@@ -1309,7 +1278,7 @@ final class MemberController
             'error'           => $error,
             'success'         => $success,
             'old'             => $old,
-        ], 'Email Selected Members', 'members', 'Owned › ' . $listing->name);
+        ], 'Owned › ' . $listing->name);
     }
 
     // -----------------------------------------------------------------------

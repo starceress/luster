@@ -72,7 +72,7 @@ $b = rtrim(View::e($base_url ?? ''), '/');
       <input type="hidden" name="listing_id"  value="<?= (int) $listing_id ?>">
       <input type="hidden" name="subject"     value="<?= View::e($subject) ?>">
       <input type="hidden" name="body"        value="<?= htmlspecialchars($body, ENT_QUOTES, 'UTF-8') ?>">
-      <button type="submit" class="btn btn-primary" data-once-submit="Sendingâ€¦">
+      <button type="submit" class="btn btn-primary" data-once-submit="Sending€¦">
         Send to <?= (int) $total ?> recipient<?= $total !== 1 ? 's' : '' ?>
       </button>
     </form>

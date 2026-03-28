@@ -19,6 +19,7 @@ $_navLinks = [
     'home'       => ['href' => 'index.php',      'label' => 'Home'],
     'owned'      => ['href' => 'owned.php',       'label' => 'Owned'],
     'joined'     => ['href' => 'joined.php',      'label' => 'Joined'],
+    'kim'        => ['href' => 'kim.php',          'label' => 'Keep In Mind'],
     'codes'      => ['href' => 'codes.php',       'label' => 'Codes'],
     'affiliates' => ['href' => 'affiliates.php',  'label' => 'Affiliates'],
     'contact'    => ['href' => 'contact.php',     'label' => 'Contact'],

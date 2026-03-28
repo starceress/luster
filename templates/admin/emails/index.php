@@ -6,7 +6,7 @@ use Luster\Core\View;
 use Luster\Repositories\EmailTemplateRepo;
 
 /**
- * Unified Emails page â€” four tabs.
+ * Unified Emails page - four tabs.
  *
  * @var string                            $active_tab      'templates'|'bulk'|'custom'|'smtp'
  * @var string                            $success
@@ -43,14 +43,14 @@ use Luster\Repositories\EmailTemplateRepo;
 
 $b = rtrim(View::e($base_url), '/');
 
-// â”€â”€ Email Templates tab helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+//  Email Templates tab helpers 
 $typeLabels = [
     EmailTemplateRepo::TYPE_JOIN        => 'Join Confirmation',
     EmailTemplateRepo::TYPE_APPROVE     => 'Membership Approved',
     EmailTemplateRepo::TYPE_UPDATE      => 'Update Confirmation',
     EmailTemplateRepo::TYPE_REMOVE      => 'Removal Confirmation',
     EmailTemplateRepo::TYPE_RESET       => 'Password Reset',
-    EmailTemplateRepo::TYPE_NOTIFY_JOIN => 'Admin â€” New Member Notification',
+    EmailTemplateRepo::TYPE_NOTIFY_JOIN => 'Admin - New Member Notification',
 ];
 
 $navLabels = [
@@ -76,8 +76,8 @@ $allTokenDesc = [
     '{fan_email}'       => "Fan's email address",
     '{fan_url}'         => "Fan's website URL (may be empty)",
     '{fan_country}'     => "Fan's country",
-    '{fan_password}'    => "Plain-text password â€” included once at sign-up only",
-    '{reset_url}'       => "Password reset link â€” required in Reset emails",
+    '{fan_password}'    => "Plain-text password - included once at sign-up only",
+    '{reset_url}'       => "Password reset link - required in Reset emails",
     '{listing_name}'    => "Name of the fanlisting",
     '{listing_subject}' => "Subject or topic of the fanlisting",
     '{listing_url}'     => "URL of the fanlisting",
@@ -98,11 +98,11 @@ $resetConfirm = $isGlobal
     ? 'Reset this template to the built-in default? Your edits will be lost.'
     : 'Reset this template to the global version? Your per-listing customisation will be removed.';
 
-// â”€â”€ Bulk email tab helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+//  Bulk email tab helpers 
 $oldSubjectE = View::e($old_subject ?? '');
 $oldBodyE    = htmlspecialchars($old_body ?? '', ENT_QUOTES, 'UTF-8');
 
-// â”€â”€ SMTP tab helper â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+//  SMTP tab helper 
 if (!function_exists('smtpVal')) {
     function smtpVal(array $cfg, string $key, string $default = ''): string {
         return (string) ($cfg[$key] ?? $default);
@@ -117,7 +117,7 @@ if (!function_exists('smtpVal')) {
   <div class="alert alert-error"><?= View::e($error) ?></div>
 <?php endif; ?>
 
-<!-- â”€â”€ Tab bar â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
+<!--  Tab bar  -->
 <div class="neb-tabs-wrap">
   <div class="neb-tabs">
     <button class="neb-tab-btn<?= $active_tab === 'templates' ? ' active' : '' ?>" data-tab="templates">Email Templates</button>
@@ -135,9 +135,9 @@ if (!function_exists('smtpVal')) {
   </div>
 </div>
 
-<!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
+<!--  -->
 <!-- TAB: EMAIL TEMPLATES                                                  -->
-<!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
+<!--  -->
 <div id="tab-templates" class="neb-tab-panel<?= $active_tab === 'templates' ? ' active' : '' ?>">
 
   <!-- Scope selector -->
@@ -150,7 +150,7 @@ if (!function_exists('smtpVal')) {
             Global (default for all listings)
           </option>
           <?php if (!empty($all_listings)): ?>
-            <option disabled>â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€</option>
+            <option disabled></option>
             <?php foreach ($all_listings as $l): ?>
               <?php $sel = (!$isGlobal && (int) $scope === $l->id); ?>
               <option value="<?= (int) $l->id ?>"<?= $sel ? ' selected' : '' ?>>
@@ -202,7 +202,7 @@ if (!function_exists('smtpVal')) {
                     data-et-tab="<?= View::e($type) ?>">
               <?= View::e($navLabels[$type]) ?>
               <?php if (!$isGlobal && isset($cards[$type]) && $cards[$type]['isCustomised']): ?>
-                <span class="badge badge-info" style="margin-left:auto;font-size:.65rem;padding:.1rem .35rem">â€¢</span>
+                <span class="badge badge-info" style="margin-left:auto;font-size:.65rem;padding:.1rem .35rem">€¢</span>
               <?php endif; ?>
             </button>
           <?php endforeach; ?>
@@ -249,7 +249,7 @@ if (!function_exists('smtpVal')) {
             <!-- Disabled warning banner -->
             <div class="et-disabled-banner"<?= $card['isEnabled'] ? ' style="display:none"' : '' ?>>
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><rect x="11" y="8.5" width="2" height="5.5" rx="1" fill="currentColor" stroke="none"/><circle cx="12" cy="16.5" r="1.1" fill="currentColor" stroke="none"/></svg>
-              This template is <strong>disabled</strong> â€” no email(s) will be sent for this event.
+              This template is <strong>disabled</strong> - no email(s) will be sent for this event.
             </div>
 
             <!-- Fields -->
@@ -280,7 +280,7 @@ if (!function_exists('smtpVal')) {
                 <div style="padding:.5rem .875rem;background:var(--surface-alt,var(--sidebar));border-bottom:1px solid var(--border);font-size:.72rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.04em">
                   Preview <span style="font-weight:400;text-transform:none;letter-spacing:0">(example values)</span>
                   <?php if ($isGlobal): ?>
-                    <span style="color:var(--text-dim);margin-left:.5rem">Â· listing tokens show generic placeholders</span>
+                    <span style="color:var(--text-dim);margin-left:.5rem">· listing tokens show generic placeholders</span>
                   <?php endif; ?>
                 </div>
                 <div style="padding:.875rem 1rem">
@@ -307,7 +307,7 @@ if (!function_exists('smtpVal')) {
 
           </div><!-- /.card -->
 
-          <!-- Available Tokens â€” outside the card -->
+          <!-- Available Tokens - outside the card -->
           <details class="form-details" style="margin-top:.75rem">
             <summary>Available Tokens</summary>
             <div class="form-details-body" style="padding-bottom:.75rem">
@@ -354,9 +354,9 @@ if (!function_exists('smtpVal')) {
 
 </div><!-- /#tab-templates -->
 
-<!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
+<!--  -->
 <!-- TAB: BULK EMAIL                                                       -->
-<!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
+<!--  -->
 <div id="tab-bulk" class="neb-tab-panel<?= $active_tab === 'bulk' ? ' active' : '' ?>">
 
   <div class="composer-grid">
@@ -449,7 +449,7 @@ if (!function_exists('smtpVal')) {
         <div class="side-card-body">
           <div class="select-wrap">
             <select id="me-tpl-select" class="select">
-              <option value="">â€” Select a template â€”</option>
+              <option value="">- Select a template -</option>
               <?php if (!empty($global_email_templates)): ?>
                 <optgroup label="Email Templates">
                   <?php foreach ($global_email_templates as $t): ?>
@@ -587,9 +587,9 @@ if (!function_exists('smtpVal')) {
 
 </div><!-- /#tab-bulk -->
 
-<!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
+<!--  -->
 <!-- TAB: CUSTOM TEMPLATES                                                 -->
-<!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
+<!--  -->
 <div id="tab-custom" class="neb-tab-panel<?= $active_tab === 'custom' ? ' active' : '' ?>">
 
   <div class="composer-grid">
@@ -619,7 +619,7 @@ if (!function_exists('smtpVal')) {
           <div class="form-group">
             <label class="form-label" for="new-tpl-subject">Subject</label>
             <input id="new-tpl-subject" type="text" name="tpl_subject" class="form-input"
-                   maxlength="255" placeholder="(optional â€” leave blank to fill in when composing)">
+                   maxlength="255" placeholder="(optional - leave blank to fill in when composing)">
           </div>
 
           <div class="form-group" style="margin-bottom:0">
@@ -723,7 +723,7 @@ if (!function_exists('smtpVal')) {
             <?php foreach ($saved_emails as $t): ?>
             <tr>
               <td class="text-strong"><?= View::e($t->name) ?></td>
-              <td class="text-muted"><?= $t->subject !== '' ? View::e($t->subject) : '<span class="text-dim">â€”</span>' ?></td>
+              <td class="text-muted"><?= $t->subject !== '' ? View::e($t->subject) : '<span class="text-dim">-</span>' ?></td>
               <td class="text-muted" style="white-space:nowrap">
                 <?= View::e(date($admin_date_format, strtotime($t->created_at))) ?>
               </td>
@@ -793,114 +793,157 @@ if (!function_exists('smtpVal')) {
 
 </div><!-- /#tab-custom -->
 
-<!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
+<!--  -->
 <!-- TAB: SMTP SETTINGS                                                    -->
-<!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
+<!--  -->
 <div id="tab-smtp" class="neb-tab-panel<?= $active_tab === 'smtp' ? ' active' : '' ?>">
+
+  <!-- Informational callout -->
+  <div style="display:flex;align-items:flex-start;gap:.75rem;padding:.875rem 1.1rem;margin-bottom:1.25rem;
+              background:rgba(120,232,216,.06);border:1px solid rgba(120,232,216,.18);
+              border-left:3px solid var(--accent);border-radius:0 10px 10px 0">
+    <svg style="flex-shrink:0;margin-top:.1rem;color:var(--accent)" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+    </svg>
+    <span style="font-size:.78rem;color:var(--text-muted);line-height:1.6">
+      Leave <strong style="color:var(--text-muted);font-family:'DM Mono',monospace;font-size:.75rem">SMTP Host</strong> blank to send via PHP&rsquo;s native <code>mail()</code> function.
+      All emails use the From Address below; if left blank, the Owner Email from General settings is used as a fallback.
+    </span>
+  </div>
+
+  <?php if (smtpVal($cfg, 'smtp_from') === '' && smtpVal($cfg, 'owner_email') === ''): ?>
+  <div class="alert alert-warning" style="margin-bottom:1.25rem">
+    <strong>From address not set.</strong>
+    Outgoing emails have no sender address and will likely be rejected by your mail server.
+    Set a From Address below, or set the Owner Email in <a href="<?= $b ?>/admin/settings" class="link">General settings</a>.
+  </div>
+  <?php endif; ?>
 
   <form method="POST" action="<?= $b ?>/admin/emails/smtp-settings/save">
   <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
 
-  <div class="card card-padded">
+  <div class="card listing-field-card" style="margin-bottom:1.25rem">
 
-    <p class="text-muted" style="font-size:.8rem;margin-bottom:1rem">
-      Leave SMTP Host blank to send via PHP's native <code>mail()</code> function.
-      All emails use the From Address below; if left blank, the Owner Email from General settings is used as a fallback.
-    </p>
+    <!-- Server -->
+    <div class="listing-field-section">
+      <div class="section-divider" style="margin-top:0;margin-bottom:1.125rem">Server</div>
 
-    <?php if (smtpVal($cfg, 'smtp_from') === '' && smtpVal($cfg, 'owner_email') === ''): ?>
-    <div class="alert alert-warning" style="margin-bottom:1rem">
-      <strong>From address not set.</strong>
-      Outgoing emails have no sender address and will likely be rejected by your mail server.
-      Set a From Address below, or set the Owner Email in <a href="<?= $b ?>/admin/settings" class="link">General settings</a>.
-    </div>
-    <?php endif; ?>
-
-    <div class="form-row">
-      <div class="form-group">
-        <label class="form-label" for="s-smtp-host">SMTP Host</label>
-        <input id="s-smtp-host" type="text" name="smtp_host" class="form-input"
-               maxlength="255" placeholder="smtp.example.com"
-               value="<?= View::e(smtpVal($cfg, 'smtp_host')) ?>">
+      <div class="listing-field-row listing-field-row--top">
+        <label class="listing-field-label" for="s-smtp-host">SMTP Host</label>
+        <div>
+          <input id="s-smtp-host" type="text" name="smtp_host" class="form-input"
+                 maxlength="255" placeholder="smtp.example.com"
+                 value="<?= View::e(smtpVal($cfg, 'smtp_host')) ?>">
+          <p class="form-hint">Leave blank to use PHP&rsquo;s native <code>mail()</code> function.</p>
+        </div>
       </div>
-      <div class="form-group">
-        <label class="form-label" for="s-smtp-port">SMTP Port</label>
-        <input id="s-smtp-port" type="number" name="smtp_port" class="form-input"
-               min="1" max="65535"
-               value="<?= (int) ($cfg['smtp_port'] ?? 587) ?>">
-      </div>
-    </div>
 
-    <div class="form-row">
-      <div class="form-group">
-        <label class="form-label" for="s-smtp-user">Username</label>
+      <div class="listing-field-row listing-field-row--top">
+        <label class="listing-field-label" for="s-smtp-port">SMTP Port</label>
+        <div>
+          <input id="s-smtp-port" type="number" name="smtp_port" class="form-input"
+                 min="1" max="65535" style="max-width:140px"
+                 value="<?= (int) ($cfg['smtp_port'] ?? 587) ?>">
+          <p class="form-hint">Common ports: 25 (plain), 465 (SSL), 587 (STARTTLS).</p>
+        </div>
+      </div>
+
+      <div class="listing-field-row listing-field-row--top">
+        <label class="listing-field-label" for="s-smtp-secure">Encryption</label>
+        <div>
+          <div class="select-wrap" style="max-width:260px">
+            <select id="s-smtp-secure" name="smtp_secure" class="form-select">
+              <?php foreach (['tls' => 'TLS (STARTTLS)', 'ssl' => 'SSL', '' => 'None'] as $val => $lbl): ?>
+                <option value="<?= View::e($val) ?>"
+                  <?= smtpVal($cfg, 'smtp_secure', 'tls') === $val ? 'selected' : '' ?>>
+                  <?= View::e($lbl) ?>
+                </option>
+              <?php endforeach; ?>
+            </select>
+          </div>
+          <p class="form-hint">Use TLS (STARTTLS) on port 587, SSL on port 465, or None on port 25.</p>
+        </div>
+      </div>
+    </div><!-- /.listing-field-section (server) -->
+
+    <!-- Authentication -->
+    <div class="listing-field-section" style="border-top:1px solid var(--border)">
+      <div class="section-divider" style="margin-top:0;margin-bottom:1.125rem">Authentication</div>
+
+      <div class="listing-field-row">
+        <label class="listing-field-label" for="s-smtp-user">Username</label>
         <input id="s-smtp-user" type="text" name="smtp_user" class="form-input"
-               maxlength="255" autocomplete="off"
+               maxlength="255" autocomplete="off" placeholder="your@email.com"
                value="<?= View::e(smtpVal($cfg, 'smtp_user')) ?>">
       </div>
-      <div class="form-group">
-        <label class="form-label" for="s-smtp-pass">Password</label>
-        <div class="input-icon-wrap">
-          <input id="s-smtp-pass" type="password" name="smtp_pass" class="form-input"
-                 maxlength="500" autocomplete="new-password"
-                 placeholder="Leave blank to keep current">
-          <button type="button" class="input-icon-btn" aria-label="Show password" tabindex="-1">
-            <svg class="eye-on" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-            <svg class="eye-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" style="display:none"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
-          </button>
+
+      <div class="listing-field-row listing-field-row--top">
+        <label class="listing-field-label" for="s-smtp-pass">Password</label>
+        <div>
+          <div class="input-icon-wrap">
+            <input id="s-smtp-pass" type="password" name="smtp_pass" class="form-input"
+                   maxlength="500" autocomplete="new-password"
+                   placeholder="Leave blank to keep current">
+            <button type="button" class="input-icon-btn" aria-label="Show password" tabindex="-1">
+              <svg class="eye-on" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+              <svg class="eye-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" style="display:none"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+            </button>
+          </div>
+          <p class="form-hint">Only fill in to change the stored password.</p>
         </div>
-        <p class="form-hint">Only fill in to change the stored password.</p>
       </div>
+    </div><!-- /.listing-field-section (auth) -->
+
+    <!-- Sender -->
+    <div class="listing-field-section" style="border-top:1px solid var(--border)">
+      <div class="section-divider" style="margin-top:0;margin-bottom:1.125rem">Sender</div>
+
+      <div class="listing-field-row listing-field-row--top">
+        <label class="listing-field-label" for="s-smtp-from">From Address</label>
+        <div>
+          <input id="s-smtp-from" type="email" name="smtp_from" class="form-input"
+                 maxlength="255" placeholder="noreply@yoursite.com"
+                 value="<?= View::e(smtpVal($cfg, 'smtp_from')) ?>">
+          <p class="form-hint">The &ldquo;From&rdquo; email on all outgoing messages. Defaults to Owner Email if left blank.</p>
+        </div>
+      </div>
+
+      <div class="listing-field-row listing-field-row--top">
+        <label class="listing-field-label" for="s-smtp-from-name">From Name</label>
+        <div>
+          <input id="s-smtp-from-name" type="text" name="smtp_from_name" class="form-input"
+                 maxlength="255" placeholder="Your Site Name"
+                 value="<?= View::e(smtpVal($cfg, 'smtp_from_name')) ?>">
+          <p class="form-hint">The display name shown alongside the From Address in mail clients.</p>
+        </div>
+      </div>
+    </div><!-- /.listing-field-section (sender) -->
+
+    <div class="composer-footer">
+      <!-- Validate + feedback (left) -->
+      <button type="button" class="btn btn-quaternary btn-sm" id="smtp-validate-btn"
+              data-url="<?= $b ?>/admin/settings/validate-smtp">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+        Validate connection
+      </button>
+      <span id="smtp-validate-result" style="font-size:.78rem;display:none"></span>
+
+      <div style="flex:1"></div>
+
+      <!-- Test email + Save (right) -->
+      <div class="test-email-row">
+        <button type="button" form="smtp-test-form-trigger" class="btn btn-ghost btn-sm"
+                onclick="document.getElementById('smtp-test-form').submit()">Send test email</button>
+        <?php if (!empty($admin_user->email)): ?>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polyline points="9 18 15 12 9 6"/></svg>
+          <span class="test-email-addr"><?= View::e($admin_user->email) ?></span>
+        <?php endif; ?>
+      </div>
+
+      <button type="submit" class="btn btn-primary">Save Settings</button>
     </div>
 
-    <div class="form-row">
-      <div class="form-group">
-        <label class="form-label" for="s-smtp-from">From Address</label>
-        <input id="s-smtp-from" type="email" name="smtp_from" class="form-input"
-               maxlength="255"
-               value="<?= View::e(smtpVal($cfg, 'smtp_from')) ?>">
-      </div>
-      <div class="form-group">
-        <label class="form-label" for="s-smtp-from-name">From Name</label>
-        <input id="s-smtp-from-name" type="text" name="smtp_from_name" class="form-input"
-               maxlength="255"
-               value="<?= View::e(smtpVal($cfg, 'smtp_from_name')) ?>">
-      </div>
-    </div>
-
-    <div class="form-group">
-      <label class="form-label" for="s-smtp-secure">Encryption</label>
-      <div class="select-wrap">
-        <select id="s-smtp-secure" name="smtp_secure" class="form-select">
-          <?php foreach (['tls' => 'TLS (STARTTLS)', 'ssl' => 'SSL', '' => 'None'] as $val => $lbl): ?>
-            <option value="<?= View::e($val) ?>"
-              <?= smtpVal($cfg, 'smtp_secure', 'tls') === $val ? 'selected' : '' ?>>
-              <?= View::e($lbl) ?>
-            </option>
-          <?php endforeach; ?>
-        </select>
-      </div>
-    </div>
-
-  </div>
-
-  <div style="display:flex;align-items:center;gap:.75rem;flex-wrap:wrap;margin-bottom:1rem">
-    <button type="button" class="btn btn-quaternary btn-sm" id="smtp-validate-btn"
-            data-url="<?= $b ?>/admin/settings/validate-smtp">
-      Validate connection
-    </button>
-    <span id="smtp-validate-result" style="font-size:.85rem;display:none"></span>
-  </div>
-
-  <div style="display:flex;align-items:center;gap:1rem;flex-wrap:wrap">
-    <button type="submit" class="btn btn-primary">Save Settings</button>
-    <button type="submit" form="smtp-test-form" class="btn btn-ghost btn-sm">Send test email</button>
-    <?php if (!empty($admin_user->email)): ?>
-    <span class="form-hint" style="margin:0">
-      &rarr; <code class="neb-code"><?= View::e($admin_user->email) ?></code>
-    </span>
-    <?php endif; ?>
-  </div>
+  </div><!-- /.listing-field-card -->
 
   </form>
 

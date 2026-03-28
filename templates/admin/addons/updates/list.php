@@ -3,7 +3,7 @@
 declare(strict_types=1);
 
 /**
- * Updates add-on â€” update list (per-fanlisting or collective).
+ * Updates add-on - update list (per-fanlisting or collective).
  *
  * @var \Luster\Addons\Updates\Update[] $updates
  * @var int                             $total

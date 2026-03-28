@@ -1,6 +1,6 @@
 <?php
 /**
- * KIM List admin â€” email individual member form.
+ * KIM List admin - email individual member form.
  *
  * Variables:
  *   $member      KimMember

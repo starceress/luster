@@ -215,6 +215,17 @@ final class CodesRepo
     }
 
     /**
+     * Sets or clears the submitter URL for a donated code.
+     */
+    public function updateSubmitterUrl(int $id, ?string $url): void
+    {
+        $stmt = $this->db->prepare(
+            'UPDATE lstr_codes SET submitter_url = :url WHERE id = :id'
+        );
+        $stmt->execute(['url' => $url, 'id' => $id]);
+    }
+
+    /**
      * Reassigns a code to a different donor (or clears it with null).
      */
     public function updateDonor(int $id, ?int $donorId): void

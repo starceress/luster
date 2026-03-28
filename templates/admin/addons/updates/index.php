@@ -3,7 +3,7 @@
 declare(strict_types=1);
 
 /**
- * Updates add-on â€” admin overview.
+ * Updates add-on - admin overview.
  *
  * @var \Luster\Models\Listing[]                                                    $listings
  * @var array<int, array{count: int, latest: \Luster\Addons\Updates\Update|null}>  $latest_per_fl

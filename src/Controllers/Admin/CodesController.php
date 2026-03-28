@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Luster\Controllers\Admin;
 
-use Luster\Core\Application;
 use Luster\Core\Request;
 use Luster\Core\Response;
 use Luster\Repositories\ActivityRepo;
@@ -40,15 +39,13 @@ use Luster\Repositories\ListingRepo;
  *   GET  /admin/listings/{fid}/codes/export                    — ZIP download of all approved codes
  *   POST /admin/listings/{fid}/codes/reorder                   — drag-drop sort order save
  */
-final class CodesController
+final class CodesController extends AdminController
 {
     /** Allowed MIME types for uploaded code images. */
     private const ALLOWED_MIME = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
 
     /** Maximum upload size per file (500 KB). */
     private const MAX_SIZE = 512_000;
-
-    public function __construct(private readonly Application $app) {}
 
     // -----------------------------------------------------------------------
     // GET /admin/listings/{fid}/codes
@@ -140,7 +137,7 @@ final class CodesController
         $session->remove('lstr_flash_success');
         $session->remove('lstr_flash_error');
 
-        return $this->layout('admin/listings/codes.php', [
+        return $this->adminLayout('admin/listings/codes.php', 'Codes', 'listings', [
             'listing'         => $listing,
             'codes'           => $codes,
             'categories'      => $categories,
@@ -157,7 +154,7 @@ final class CodesController
             'uploads_url'     => $this->app->getBaseUrl() . '/uploads/codes',
             'success'         => $success,
             'error'           => $error,
-        ], 'Codes', 'listings', 'Owned › ' . $listing->name);
+        ], 'Owned › ' . $listing->name);
     }
 
     // -----------------------------------------------------------------------
@@ -1425,6 +1422,13 @@ final class CodesController
         }
         $codesRepo->updateDonor($codeId, $donorId);
 
+        // Submitter URL (for donated codes — empty string clears it)
+        $rawSubmitterUrl = trim((string) $request->post('submitter_url', ''));
+        if ($rawSubmitterUrl !== '' && (filter_var($rawSubmitterUrl, FILTER_VALIDATE_URL) === false || !in_array(parse_url($rawSubmitterUrl, PHP_URL_SCHEME), ['http', 'https'], true))) {
+            $rawSubmitterUrl = '';
+        }
+        $codesRepo->updateSubmitterUrl($codeId, $rawSubmitterUrl !== '' ? $rawSubmitterUrl : null);
+
         // Status
         $status = (string) $request->post('status', 'approved');
         if (!in_array($status, CodesRepo::STATUSES, true)) {
@@ -1443,32 +1447,4 @@ final class CodesController
         return Response::redirect($baseUrl . '/admin/listings/' . $listingId . '/codes');
     }
 
-    // -----------------------------------------------------------------------
-    // Shared render helper
-    // -----------------------------------------------------------------------
-
-    private function layout(string $template, array $data, string $pageTitle, string $section, string $pageSubtitle = ''): Response
-    {
-        $view      = $this->app->getView();
-        $config    = $this->app->getConfig();
-        $session   = $this->app->getSession();
-        $baseUrl   = $this->app->getBaseUrl();
-        $csrfToken = $this->app->getCSRF()->token();
-
-        $inner = $view->render($template, array_merge($data, [
-            'base_url'   => $baseUrl,
-            'csrf_token' => $csrfToken,
-        ]));
-
-        return Response::html($view->render('admin/layout.php', array_merge([
-            'page_title'      => $pageTitle,
-            'page_subtitle'   => $pageSubtitle,
-            'site_name'       => (string) $config->get('site_name', 'Luster'),
-            'admin_username'  => (string) $session->get('lstr_admin_username', ''),
-            'csrf_token'      => $csrfToken,
-            'current_section' => $section,
-            'base_url'        => $baseUrl,
-            'content'         => $inner,
-        ], $this->app->getAdminNavData())));
-    }
 }

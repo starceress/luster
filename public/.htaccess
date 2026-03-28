@@ -4,14 +4,21 @@ Options -Indexes -MultiViews
 # Security headers
 # -----------------------------------------------------------------------
 <IfModule mod_headers.c>
-    # Enable HSTS only on HTTPS-only installs. Remove or comment out this line
-    # if the site is ever served over plain HTTP (e.g. local dev, non-SSL hosting).
-    Header always set Strict-Transport-Security "max-age=31536000; includeSubDomains"
+    # HSTS — only sent over HTTPS so HTTP installs (local dev, non-SSL hosting)
+    # are never affected. Remove the <If> block entirely if you want to disable HSTS.
+    <If "%{HTTPS} == 'on'">
+        Header always set Strict-Transport-Security "max-age=31536000; includeSubDomains"
+    </If>
     Header always set X-Content-Type-Options "nosniff"
     Header always set X-Frame-Options "DENY"
     Header always set X-XSS-Protection "1; mode=block"
     Header always set Referrer-Policy "strict-origin-when-cross-origin"
     Header always set Permissions-Policy "geolocation=(), microphone=(), camera=()"
+    # CSP: style-src uses 'unsafe-inline' because the admin UI has many hardcoded
+    # inline style= attributes. No user-controlled data reaches any style= attribute
+    # (all dynamic values are either (int)-cast or drawn from a hardcoded map).
+    # To remove 'unsafe-inline', migrate all inline styles to CSS classes and then
+    # switch to a per-request nonce or hash-based approach.
     Header always set Content-Security-Policy "default-src 'self'; script-src 'self' 'sha256-lfZvxb5T4sGLkAT0mD3Vb+Uc8DCNaZf6KEuzEkUi0eA='; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
     # Remove server fingerprinting
     Header unset X-Powered-By

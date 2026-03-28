@@ -12,13 +12,14 @@ declare(strict_types=1);
 use Luster\Core\View;
 
 $b = rtrim(View::e($base_url), '/');
+$_linkSignup = ($link_signup !== null && $link_signup !== '') ? $link_signup : null;
 ?>
 <div class="fl-wrap">
   <h2 class="fl-title">KIM List</h2>
   <p class="fl-intro">
     KIM (Keep In Mind) is an adoption interest registry. The numbers below show how many
     people have expressed interest in adopting each fanlisting if it ever becomes available.
-    <a href="<?= $b ?>/kim">Sign up</a> to add your name to a fanlisting's list.
+    <?php if ($_linkSignup !== null): ?><a href="<?= View::e($_linkSignup) ?>">Sign up</a> to add your name to a fanlisting's list.<?php endif; ?>
   </p>
 
   <?php if (empty($fanlistings_with_counts)): ?>
@@ -45,7 +46,9 @@ $b = rtrim(View::e($base_url), '/');
     </ul>
   <?php endif; ?>
 
+  <?php if ($_linkSignup !== null): ?>
   <p class="fl-meta" style="margin-top:1.5rem">
-    <a href="<?= $b ?>/kim">Sign up for the KIM list</a>
+    <a href="<?= View::e($_linkSignup) ?>">Sign up for the KIM list</a>
   </p>
+  <?php endif; ?>
 </div>

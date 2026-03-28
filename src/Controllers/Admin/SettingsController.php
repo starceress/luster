@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Luster\Controllers\Admin;
 
-use Luster\Core\Application;
 use Luster\Core\Mailer;
 use Luster\Core\Request;
 use Luster\Core\Response;
@@ -27,7 +26,7 @@ use RuntimeException;
  *   GET  /admin/settings — show settings form
  *   POST /admin/settings — save settings
  */
-final class SettingsController
+final class SettingsController extends AdminController
 {
     /**
      * Keys that are safe to update via the settings form.
@@ -54,8 +53,6 @@ final class SettingsController
         'owner_email',
     ];
 
-    public function __construct(private readonly Application $app) {}
-
     // -----------------------------------------------------------------------
     // GET /admin/listings/collective-templates
     // -----------------------------------------------------------------------
@@ -75,11 +72,11 @@ final class SettingsController
             'collective_stats_template',
         ]);
 
-        return $this->layout('admin/listings/collective-templates.php', [
+        return $this->adminLayout('admin/listings/collective-templates.php', 'Collective Templates', 'listings', [
             'collective_templates' => $collectiveTemplates,
             'success'              => $success,
             'error'                => $error,
-        ], 'Collective Templates', 'listings');
+        ]);
     }
 
     // GET /admin/settings
@@ -116,7 +113,7 @@ final class SettingsController
             'collective_contact_recipient',
         ]);
 
-        return $this->layout('admin/settings/index.php', [
+        return $this->adminLayout('admin/settings/index.php', 'Settings', 'settings', [
             'cfg'                  => $this->app->getConfig()->all(),
             'admin_user'           => $adminUser,
             'users'                => $adminRepo->getAll(),
@@ -129,7 +126,7 @@ final class SettingsController
             'php_version'          => PHP_VERSION,
             'db_version'           => $dbVersion,
             'error_log_count'      => $errorLogCount,
-        ], 'Settings', 'settings');
+        ]);
     }
 
     // -----------------------------------------------------------------------
@@ -257,12 +254,12 @@ final class SettingsController
         $adminRepo = new AdminUserRepo($this->app->getDatabase());
         $adminUser = $adminRepo->getById($adminId);
 
-        return $this->emailLayout('admin/emails/smtp-settings.php', [
+        return $this->adminLayout('admin/emails/smtp-settings.php', 'Emails', 'email-templates', [
             'cfg'        => $this->app->getConfig()->all(),
             'admin_user' => $adminUser,
             'success'    => $success,
             'error'      => $error,
-        ]);
+        ], 'Emails › Email / SMTP Settings');
     }
 
     // -----------------------------------------------------------------------
@@ -562,52 +559,4 @@ final class SettingsController
         }
     }
 
-    private function emailLayout(string $template, array $data): Response
-    {
-        $view      = $this->app->getView();
-        $config    = $this->app->getConfig();
-        $session   = $this->app->getSession();
-        $baseUrl   = $this->app->getBaseUrl();
-        $csrfToken = $this->app->getCSRF()->token();
-
-        $inner = $view->render($template, array_merge($data, [
-            'base_url'   => $baseUrl,
-            'csrf_token' => $csrfToken,
-        ]));
-
-        return Response::html($view->render('admin/layout.php', array_merge([
-            'page_title'      => 'Emails',
-            'page_subtitle'   => 'Emails › Email / SMTP Settings',
-            'site_name'       => (string) $config->get('site_name', 'Luster'),
-            'admin_username'  => (string) $session->get('lstr_admin_username', ''),
-            'csrf_token'      => $csrfToken,
-            'current_section' => 'email-templates',
-            'base_url'        => $baseUrl,
-            'content'         => $inner,
-        ], $this->app->getAdminNavData())));
-    }
-
-    private function layout(string $template, array $data, string $pageTitle, string $section): Response
-    {
-        $view      = $this->app->getView();
-        $config    = $this->app->getConfig();
-        $session   = $this->app->getSession();
-        $baseUrl   = $this->app->getBaseUrl();
-        $csrfToken = $this->app->getCSRF()->token();
-
-        $inner = $view->render($template, array_merge($data, [
-            'base_url'   => $baseUrl,
-            'csrf_token' => $csrfToken,
-        ]));
-
-        return Response::html($view->render('admin/layout.php', array_merge([
-            'page_title'      => $pageTitle,
-            'site_name'       => (string) $config->get('site_name', 'Luster'),
-            'admin_username'  => (string) $session->get('lstr_admin_username', ''),
-            'csrf_token'      => $csrfToken,
-            'current_section' => $section,
-            'base_url'        => $baseUrl,
-            'content'         => $inner,
-        ], $this->app->getAdminNavData())));
-    }
 }

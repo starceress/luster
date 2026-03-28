@@ -14,6 +14,7 @@ declare(strict_types=1);
 
 // Session guard — must be logged in as admin
 ini_set('session.cookie_httponly', '1');
+ini_set('session.cookie_secure', '1');
 ini_set('session.use_strict_mode', '1');
 ini_set('session.cookie_samesite', 'Strict');
 session_name('luster_session');

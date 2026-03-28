@@ -10,9 +10,9 @@ use Luster\Core\View;
  * @var object[]               $categories       Category groups (CodeCategoriesRepo result objects)
  * @var object[]               $donors           Donors (CodeDonorsRepo result objects)
  * @var array                  $grouped          ['WxH' => ['label' => string, 'codes' => object[]]]
- * @var array<int,int[]>       $code_categories  code_id â†’ [category_id, ...]
- * @var array<int,object>      $category_map     category_id â†’ category object
- * @var array<int,object>      $donor_map        donor_id â†’ donor object
+ * @var array<int,int[]>       $code_categories  code_id → [category_id, ...]
+ * @var array<int,object>      $category_map     category_id → category object
+ * @var array<int,object>      $donor_map        donor_id → donor object
  * @var int                    $edit_cat_id      Which category row to show in edit mode (0 = none)
  * @var int                    $edit_donor_id    Which donor row to show in edit mode (0 = none)
  * @var string                 $status_filter    Active status filter ('' = all)
@@ -30,27 +30,41 @@ $fid          = (int) $listing->id;
 $hasCats      = !empty($categories);
 $hasDonors    = !empty($donors);
 $pendingCount = $status_counts['pending'] ?? 0;
+$approvedCount = $status_counts['approved'] ?? 0;
+
+// Non-empty groups for count display
+$nonEmptyGroups = array_filter($grouped, fn($g) => !empty($g['codes']));
+$groupCount = count($nonEmptyGroups);
 
 // Separate top-level categories from children for the add-category parent dropdown
 $topLevelCats = array_filter($categories, fn($c) => $c->parentId === null);
 
 // Settings panel is open if any cats/donors already exist
 $settingsOpen = $hasCats || $hasDonors;
+
+// Summary badge for Code Settings
+if ($hasCats || $hasDonors) {
+    $_settingsSummary = count($categories) . ' categor' . (count($categories) !== 1 ? 'ies' : 'y')
+        . ' &middot; ' . count($donors) . ' donor' . (count($donors) !== 1 ? 's' : '');
+} else {
+    $_settingsSummary = 'categories &amp; donors';
+}
 ?>
 
-<!-- â”€â”€ Header â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
-<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
-  <a href="<?= $b ?>/admin/listings/<?= $fid ?>/edit" class="link">
-    &larr; Back to <?= View::e($listing->name) ?>
+<!-- ── Page topbar ──────────────────────────────────────────────────────── -->
+<div class="page-topbar">
+  <a href="<?= $b ?>/admin/listings/<?= $fid ?>/edit" class="back-link">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+    Back to <?= View::e($listing->name) ?>
   </a>
-  <div style="display:flex;align-items:center;gap:.75rem">
-    <?php if (($status_counts['approved'] ?? 0) > 0): ?>
-    <a href="<?= $b ?>/admin/listings/<?= $fid ?>/codes/export"
-       class="btn btn-quaternary btn-sm">&#8659; Export ZIP</a>
+  <div class="topbar-actions">
+    <span class="badge badge-muted"><?= $total_codes ?> code<?= $total_codes !== 1 ? 's' : '' ?></span>
+    <?php if ($approvedCount > 0): ?>
+    <a href="<?= $b ?>/admin/listings/<?= $fid ?>/codes/export" class="btn btn-quaternary btn-sm">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="8 17 12 21 16 17"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.88 18.09A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.29"/></svg>
+      Export ZIP
+    </a>
     <?php endif; ?>
-    <span style="font-size:.8rem;color:var(--text-dim)">
-      <?= $total_codes ?> code<?= $total_codes !== 1 ? 's' : '' ?>
-    </span>
   </div>
 </div>
 
@@ -61,7 +75,7 @@ $settingsOpen = $hasCats || $hasDonors;
   <div class="alert alert-error"><?= View::e($error) ?></div>
 <?php endif; ?>
 
-<!-- â”€â”€ Pending codes banner â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
+<!-- ── Pending codes banner ─────────────────────────────────────────────── -->
 <?php if ($pendingCount > 0 && $status_filter !== 'pending'): ?>
 <div class="pending-banner" style="margin-bottom:1.25rem">
   <div class="pending-banner-left">
@@ -79,477 +93,439 @@ $settingsOpen = $hasCats || $hasDonors;
 </div>
 <?php endif; ?>
 
-<!-- â”€â”€ Upload â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
-<div class="card" style="padding:1.25rem 1.5rem;margin-bottom:1.25rem">
-  <h2 class="card-title" style="margin-bottom:1rem">Upload Codes</h2>
-  <form method="POST"
-        action="<?= $b ?>/admin/listings/<?= $fid ?>/codes/upload"
-        enctype="multipart/form-data">
-    <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
-    <div style="display:flex;gap:.75rem;align-items:flex-end;flex-wrap:wrap">
+<!-- ── Code Settings collapsible band ──────────────────────────────────── -->
+<details class="card codes-settings-band" <?= $settingsOpen ? 'open' : '' ?> id="settingsBand">
+  <summary>
+    <div class="card-head-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06A1.65 1.65 0 0 0 15 19.4a1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+    </div>
+    <span class="card-head-title">Code Settings</span>
+    <span class="badge badge-muted" style="font-size:.58rem"><?= $_settingsSummary ?></span>
+  </summary>
 
-      <div style="flex:1;min-width:220px">
-        <label class="form-label" for="codes-input">
-          Images
-          <span style="font-weight:400;color:var(--text-dim)">(JPEG, PNG, GIF, WebP â€” max 500 KB each)</span>
-        </label>
-        <input class="form-input" type="file" id="codes-input" name="codes[]"
-               accept="image/jpeg,image/png,image/gif,image/webp" multiple>
+  <div class="settings-band-grid">
+
+    <!-- ── Categories ── -->
+    <div class="settings-band-col">
+      <div class="pc-section-label" style="margin-bottom:.875rem">Categories</div>
+
+      <form method="POST" action="<?= $b ?>/admin/listings/<?= $fid ?>/codes/categories/add"
+            style="display:flex;gap:.5rem;align-items:flex-end;margin-bottom:.875rem;flex-wrap:wrap">
+        <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
+        <div style="flex:1;min-width:120px">
+          <input class="form-input" type="text" name="name" placeholder="Category name&hellip;" required>
+        </div>
+        <?php if (!empty($topLevelCats)): ?>
+        <div class="toolbar-select-wrap" style="min-width:130px">
+          <select name="parent_id" class="select">
+            <option value="">None (top-level)</option>
+            <?php foreach ($topLevelCats as $tlc): ?>
+              <option value="<?= (int)$tlc->id ?>"><?= View::e($tlc->name) ?></option>
+            <?php endforeach; ?>
+          </select>
+        </div>
+        <?php endif; ?>
+        <button type="submit" class="btn btn-quaternary btn-sm" style="flex-shrink:0">+ Add</button>
+      </form>
+
+      <?php if ($hasCats): ?>
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Amount</th>
+              <th>Parent</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            <?php foreach ($categories as $cat): ?>
+            <?php $isCatEditing = $edit_cat_id === $cat->id; ?>
+            <tr <?= $isCatEditing ? 'style="display:none"' : '' ?>>
+              <td class="text-strong"><?= View::e($cat->name) ?></td>
+              <td>
+                <?php
+                  $catCodeCount = count(array_filter($code_categories, fn($ids) => in_array($cat->id, $ids, true)));
+                ?>
+                <span class="badge badge-info"><?= $catCodeCount ?> code<?= $catCodeCount !== 1 ? 's' : '' ?></span>
+              </td>
+              <td>
+                <?php if ($cat->parentId !== null && isset($category_map[$cat->parentId])): ?>
+                  <span class="text-dim"><?= View::e($category_map[$cat->parentId]->name) ?></span>
+                <?php else: ?>
+                  <span class="text-dim">&mdash;</span>
+                <?php endif; ?>
+              </td>
+              <td class="act-col">
+                <a href="?edit_cat=<?= (int)$cat->id ?>" class="btn btn-tertiary btn-sm">Edit</a>
+                <form method="POST" action="<?= $b ?>/admin/listings/<?= $fid ?>/codes/categories/<?= (int)$cat->id ?>/delete"
+                      style="display:contents"
+                      data-del-modal data-del-entity="code_category"
+                      data-del-name="<?= View::e($cat->name) ?>">
+                  <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
+                  <button class="btn btn-danger btn-sm">Delete</button>
+                </form>
+              </td>
+            </tr>
+            <tr <?= !$isCatEditing ? 'style="display:none"' : '' ?>>
+              <td colspan="4">
+                <form method="POST" action="<?= $b ?>/admin/listings/<?= $fid ?>/codes/categories/<?= (int)$cat->id ?>/edit"
+                      style="display:flex;gap:.4rem;align-items:flex-end;flex-wrap:wrap">
+                  <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
+                  <div style="flex:1;min-width:100px">
+                    <input class="form-input" type="text" name="name" value="<?= View::e($cat->name) ?>" required>
+                  </div>
+                  <div>
+                    <div class="toolbar-select-wrap">
+                      <select name="parent_id" class="select" style="font-size:.8rem">
+                        <option value="">None (top-level)</option>
+                        <?php foreach ($categories as $pcat): ?>
+                          <?php if ($pcat->id === $cat->id || $pcat->parentId !== null) continue; ?>
+                          <option value="<?= (int)$pcat->id ?>" <?= $cat->parentId === $pcat->id ? 'selected' : '' ?>>
+                            <?= View::e($pcat->name) ?>
+                          </option>
+                        <?php endforeach; ?>
+                      </select>
+                    </div>
+                  </div>
+                  <button class="btn btn-primary btn-sm">Save</button>
+                  <a href="?" class="btn btn-quaternary btn-sm">Cancel</a>
+                </form>
+              </td>
+            </tr>
+            <?php endforeach; ?>
+          </tbody>
+        </table>
+      </div>
+      <?php else: ?>
+      <p style="font-size:.82rem;color:var(--text-dim)">No categories yet. Use these to tag codes by theme.</p>
+      <?php endif; ?>
+    </div>
+
+    <!-- ── Donors ── -->
+    <div class="settings-band-col">
+      <div class="pc-section-label" style="margin-bottom:.875rem">Donors</div>
+
+      <form method="POST" action="<?= $b ?>/admin/listings/<?= $fid ?>/codes/donors/add"
+            style="display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:.5rem;align-items:end;margin-bottom:.875rem">
+        <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
+        <input type="text"  class="form-input" name="name"  placeholder="Display name&hellip;" required>
+        <input type="email" class="form-input" name="email" placeholder="Email (optional)">
+        <input type="url"   class="form-input" name="url"   placeholder="URL (optional)">
+        <button type="submit" class="btn btn-quaternary btn-sm" style="white-space:nowrap">+ Add</button>
+      </form>
+
+      <?php if ($hasDonors): ?>
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Email</th>
+              <th>URL</th>
+              <th># Donated</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            <?php foreach ($donors as $dn): ?>
+            <?php $isDnEditing = $edit_donor_id === $dn->id; ?>
+            <tr <?= $isDnEditing ? 'style="display:none"' : '' ?>>
+              <td class="text-strong"><?= View::e($dn->name) ?></td>
+              <td class="text-dim"><?= $dn->email !== null ? View::e($dn->email) : '&mdash;' ?></td>
+              <td class="text-dim">
+                <?php if ($dn->url !== null): ?>
+                  <?php $_dnHost = parse_url($dn->url, PHP_URL_HOST) ?? $dn->url; ?>
+                  <a href="<?= View::e($dn->url) ?>" target="_blank" rel="noopener noreferrer"
+                     title="<?= View::e($dn->url) ?>" class="link"><?= View::e($_dnHost) ?></a>
+                <?php else: ?>
+                  &mdash;
+                <?php endif; ?>
+              </td>
+              <td>
+                <span class="badge badge-info"><?= count(array_filter($codes, fn($c) => $c->donorId === $dn->id)) ?></span>
+              </td>
+              <td class="act-col">
+                <a href="?edit_donor=<?= (int)$dn->id ?>" class="btn btn-tertiary btn-sm">Edit</a>
+                <form method="POST" action="<?= $b ?>/admin/listings/<?= $fid ?>/codes/donors/<?= (int)$dn->id ?>/delete"
+                      style="display:contents"
+                      data-del-modal data-del-entity="code_donor"
+                      data-del-name="<?= View::e($dn->name) ?>">
+                  <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
+                  <button class="btn btn-danger btn-sm">Delete</button>
+                </form>
+              </td>
+            </tr>
+            <tr <?= !$isDnEditing ? 'style="display:none"' : '' ?>>
+              <td colspan="5" style="padding:.6rem .75rem;background:var(--bg-subtle)">
+                <form method="POST" action="<?= $b ?>/admin/listings/<?= $fid ?>/codes/donors/<?= (int)$dn->id ?>/edit"
+                      style="display:flex;gap:.4rem;align-items:flex-end;flex-wrap:wrap">
+                  <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
+                  <div style="flex:1;min-width:100px">
+                    <input class="form-input" type="text" name="name" value="<?= View::e($dn->name) ?>" required>
+                  </div>
+                  <div style="flex:1;min-width:100px">
+                    <input class="form-input" type="email" name="email" value="<?= View::e($dn->email ?? '') ?>" placeholder="Email">
+                  </div>
+                  <div style="flex:1;min-width:100px">
+                    <input class="form-input" type="url" name="url" value="<?= View::e($dn->url ?? '') ?>" placeholder="URL">
+                  </div>
+                  <button class="btn btn-primary btn-sm">Save</button>
+                  <a href="?" class="btn btn-quaternary btn-sm">Cancel</a>
+                </form>
+              </td>
+            </tr>
+            <?php endforeach; ?>
+          </tbody>
+        </table>
+      </div>
+      <?php else: ?>
+      <p style="font-size:.82rem;color:var(--text-dim)">No donors yet. Credit the people who made codes for this listing.</p>
+      <?php endif; ?>
+    </div>
+
+  </div><!-- /.settings-band-grid -->
+</details>
+
+<!-- ── Out-of-flow forms & dialogs ─────────────────────────────────────── -->
+
+<!-- Bulk form -->
+<form id="codes-bulk-form" method="POST"
+      action="<?= $b ?>/admin/listings/<?= $fid ?>/codes/bulk">
+  <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
+</form>
+
+<!-- Reorder form -->
+<form id="codes-reorder-form" method="POST"
+      action="<?= $b ?>/admin/listings/<?= $fid ?>/codes/reorder">
+  <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
+  <input type="hidden" id="reorder-ids" name="ordered_ids" value="">
+</form>
+
+<!-- Per-code delete forms + edit dialogs -->
+<?php foreach ($codes as $code): ?>
+<?php
+  $dDonor = ($code->donorId !== null && isset($donor_map[$code->donorId])) ? $donor_map[$code->donorId] : null;
+  $dLabel = ($code->name !== null && $code->name !== '') ? $code->name : null;
+?>
+<form id="del-<?= (int)$code->id ?>" method="POST"
+      action="<?= $b ?>/admin/listings/<?= $fid ?>/codes/<?= (int)$code->id ?>/delete"
+      data-del-modal data-del-entity="code"
+      data-del-name="<?= View::e($dLabel !== null ? $dLabel : 'Code #' . (int)$code->id) ?>">
+  <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
+</form>
+
+<dialog id="edit-dialog-<?= (int)$code->id ?>" class="code-edit-dialog">
+  <div class="code-edit-dialog-header">
+    <span class="code-edit-dialog-title">
+      Edit code<?= $dLabel !== null ? ' &mdash; ' . View::e($dLabel) : ' #' . (int)$code->id ?>
+    </span>
+    <button type="button" class="code-edit-dialog-close" data-close-dialog aria-label="Close">&times;</button>
+  </div>
+  <div class="code-edit-dialog-body">
+    <div style="text-align:center;margin-bottom:.875rem">
+      <img src="<?= View::e($uploads_url . '/' . $code->filename) ?>"
+           alt="Code #<?= (int)$code->id ?>"
+           style="max-width:100%;max-height:120px;object-fit:contain;border-radius:6px">
+      <?php if ($code->width > 0 && $code->height > 0): ?>
+      <div style="font-size:.7rem;color:var(--text-dim);margin-top:.3rem">
+        <?= (int)$code->width ?>&times;<?= (int)$code->height ?>px
+      </div>
+      <?php endif; ?>
+    </div>
+
+    <form method="POST"
+          action="<?= $b ?>/admin/listings/<?= $fid ?>/codes/<?= (int)$code->id ?>/update"
+          style="display:flex;flex-direction:column;gap:.6rem">
+      <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
+
+      <div>
+        <label class="form-label" style="font-size:.8rem">Label (optional)</label>
+        <input class="form-input" type="text" name="name"
+               value="<?= View::e($code->name ?? '') ?>"
+               placeholder="e.g. Animated version">
+      </div>
+
+      <div>
+        <label class="form-label" style="font-size:.8rem">Status</label>
+        <div class="toolbar-select-wrap">
+          <select name="status" class="select" style="width:100%">
+            <option value="approved" <?= $code->status === 'approved' ? 'selected' : '' ?>>&#10003; Live</option>
+            <option value="pending"  <?= $code->status === 'pending'  ? 'selected' : '' ?>>&#8987; Pending</option>
+          </select>
+        </div>
       </div>
 
       <?php if ($hasDonors): ?>
       <div>
-        <label class="form-label" for="upload-donor">Donor</label>
+        <label class="form-label" style="font-size:.8rem">Donor</label>
         <div class="toolbar-select-wrap">
-          <select id="upload-donor" name="donor_id" class="select">
-            <option value="">None</option>
+          <select name="donor_id" class="select" style="width:100%">
+            <option value="">No donor</option>
             <?php foreach ($donors as $dn): ?>
-              <option value="<?= (int)$dn->id ?>"><?= View::e($dn->name) ?></option>
+              <option value="<?= (int)$dn->id ?>" <?= $code->donorId === $dn->id ? 'selected' : '' ?>>
+                <?= View::e($dn->name) ?>
+              </option>
             <?php endforeach; ?>
           </select>
         </div>
       </div>
       <?php endif; ?>
 
+      <?php if ($hasCats): ?>
       <div>
-        <label class="form-label" for="upload-status">Status</label>
+        <label class="form-label" style="font-size:.8rem">Category</label>
         <div class="toolbar-select-wrap">
-          <select id="upload-status" name="upload_status" class="select">
-            <option value="approved">Live</option>
-            <option value="pending">Pending</option>
+          <select name="cat_ids[]" class="select" style="width:100%">
+            <option value="">None</option>
+            <?php
+              $dCatIds = $code_categories[$code->id] ?? [];
+              foreach ($categories as $cat):
+            ?>
+              <option value="<?= (int)$cat->id ?>" <?= in_array($cat->id, $dCatIds, true) ? 'selected' : '' ?>>
+                <?= $cat->parentId !== null ? '└ ' : '' ?><?= View::e($cat->name) ?>
+              </option>
+            <?php endforeach; ?>
           </select>
         </div>
       </div>
-
-      <button type="submit" class="btn btn-primary" style="white-space:nowrap">Upload</button>
-    </div>
-
-    <?php if ($hasCats): ?>
-    <div style="margin-top:.75rem">
-      <label class="form-label" style="margin-bottom:.35rem">Categories</label>
-      <select name="cat_ids[]" multiple size="<?= min(5, count($categories)) ?>"
-              class="form-input" style="height:auto;min-height:60px">
-        <?php foreach ($categories as $cat): ?>
-          <option value="<?= (int)$cat->id ?>">
-            <?= $cat->parentId !== null ? 'â”” ' : '' ?><?= View::e($cat->name) ?>
-          </option>
-        <?php endforeach; ?>
-      </select>
-      <p class="form-hint" style="margin-top:.3rem">Hold Ctrl / Cmd to select multiple.</p>
-    </div>
-    <?php endif; ?>
-
-    <p class="form-hint" style="margin-top:.5rem">
-      Select multiple files at once. Dimensions are detected automatically.
-      Attributes above apply to all files in this batch.
-    </p>
-  </form>
-</div>
-
-
-<!-- â”€â”€ Code Settings (Categories, Donors) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
-<details <?= $settingsOpen ? 'open' : '' ?> style="margin-bottom:1.25rem">
-  <summary style="cursor:pointer;padding:.6rem .75rem;border-radius:8px;background:var(--bg-card);border:1px solid var(--border);font-size:.85rem;font-weight:600;color:var(--text);list-style:none;display:flex;align-items:center;gap:.5rem;user-select:none">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="15" height="15">
-      <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
-    </svg>
-    Code Settings
-    <span style="font-weight:400;color:var(--text-muted);font-size:.78rem">
-      <?php if ($hasCats || $hasDonors): ?>
-        <?= count($categories) ?> categor<?= count($categories) !== 1 ? 'ies' : 'y' ?>,
-        <?= count($donors) ?> donor<?= count($donors) !== 1 ? 's' : '' ?>
-      <?php else: ?>
-        categories &amp; donors
       <?php endif; ?>
-    </span>
-    <svg class="code-settings-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14" style="margin-left:auto;transition:transform .2s;flex-shrink:0">
-      <polyline points="6 9 12 15 18 9"/>
-    </svg>
-  </summary>
 
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem;margin-top:1rem">
-
-    <!-- â”€â”€ Categories â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
-    <div class="card">
-      <div class="panel-header" style="border-bottom:1px solid var(--border)">
-        <div class="panel-title" style="font-size:.875rem">
-          <svg class="panel-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
-          Categories
-        </div>
+      <?php if ($code->submitterName !== null): ?>
+      <div>
+        <label class="form-label" style="font-size:.8rem">Submitter website</label>
+        <input class="form-input" type="url" name="submitter_url"
+               value="<?= View::e($code->submitterUrl ?? '') ?>"
+               placeholder="https://example.com">
       </div>
+      <?php endif; ?>
 
-      <div style="padding:.75rem 1rem;border-bottom:1px solid var(--border-soft)">
-        <form method="POST" action="<?= $b ?>/admin/listings/<?= $fid ?>/codes/categories/add"
-              style="display:flex;gap:.4rem;align-items:flex-end;flex-wrap:wrap">
+      <button class="btn btn-primary" style="width:100%">Save changes</button>
+    </form>
+
+    <div style="margin-top:.75rem;padding-top:.75rem;border-top:1px solid var(--border-soft)">
+      <button type="submit" form="del-<?= (int)$code->id ?>"
+              class="btn btn-danger btn-sm" style="width:100%">
+        Delete this code
+      </button>
+    </div>
+  </div>
+</dialog>
+<?php endforeach; ?>
+
+<!-- ── Split layout ─────────────────────────────────────────────────────── -->
+<div class="codes-split">
+
+  <!-- ── Left: Upload panel ── -->
+  <div class="codes-panel-col">
+    <div class="panel-card">
+      <div class="card-head">
+        <div class="card-head-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/></svg>
+        </div>
+        <span class="card-head-title">Upload Codes</span>
+      </div>
+      <div class="panel-body">
+        <form method="POST"
+              action="<?= $b ?>/admin/listings/<?= $fid ?>/codes/upload"
+              enctype="multipart/form-data">
           <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
-          <div style="flex:1;min-width:100px">
-            <label class="form-label" style="font-size:.72rem;margin-bottom:.2rem">Name</label>
-            <input class="form-input" type="text" name="name" placeholder="e.g. Animated" required>
+
+          <!-- Drop zone -->
+          <div class="codes-drop" style="margin-bottom:.875rem">
+            <input type="file" id="codes-input" name="codes[]"
+                   multiple accept="image/jpeg,image/png,image/gif,image/webp">
+            <svg class="codes-drop-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/></svg>
+            <span class="codes-drop-label">Click or drop images</span>
+            <span class="codes-drop-hint">JPEG, PNG, GIF, WebP &mdash; max 500 KB each</span>
           </div>
-          <?php if (!empty($topLevelCats)): ?>
-          <div style="min-width:100px">
-            <label class="form-label" style="font-size:.72rem;margin-bottom:.2rem">Parent</label>
-            <div class="toolbar-select-wrap">
-              <select name="parent_id" class="select" style="font-size:.8rem">
-                <option value="">None (top-level)</option>
-                <?php foreach ($topLevelCats as $tlc): ?>
-                  <option value="<?= (int)$tlc->id ?>"><?= View::e($tlc->name) ?></option>
+
+          <!-- Donor + Status -->
+          <div class="field-row-2" style="margin-bottom:.625rem">
+            <div class="panel-field" style="margin-bottom:0">
+              <label class="panel-label" for="upload-donor">Donor</label>
+              <div class="select-wrap">
+                <select id="upload-donor" name="donor_id" class="panel-select">
+                  <option value="">None</option>
+                  <?php foreach ($donors as $dn): ?>
+                    <option value="<?= (int)$dn->id ?>"><?= View::e($dn->name) ?></option>
+                  <?php endforeach; ?>
+                </select>
+              </div>
+            </div>
+            <div class="panel-field" style="margin-bottom:0">
+              <label class="panel-label" for="upload-status">Status</label>
+              <div class="select-wrap">
+                <select id="upload-status" name="upload_status" class="panel-select">
+                  <option value="approved">Live</option>
+                  <option value="pending">Pending</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <!-- Category -->
+          <?php if ($hasCats): ?>
+          <div class="panel-field">
+            <label class="panel-label">Category</label>
+            <div class="select-wrap">
+              <select name="cat_ids[]" class="panel-select">
+                <option value="">None</option>
+                <?php foreach ($categories as $cat): ?>
+                  <option value="<?= (int)$cat->id ?>">
+                    <?= $cat->parentId !== null ? '└ ' : '' ?><?= View::e($cat->name) ?>
+                  </option>
                 <?php endforeach; ?>
               </select>
             </div>
           </div>
           <?php endif; ?>
-          <button type="submit" class="btn btn-primary btn-sm" style="margin-bottom:1px;white-space:nowrap">+ Add</button>
+
+          <button type="submit" class="btn btn-primary btn-sm" style="width:100%;justify-content:center;margin-top:.25rem">
+            Upload
+          </button>
+          <p class="panel-hint" style="margin-top:.5rem">Dimensions are detected automatically. Attributes above apply to all files in this batch.</p>
         </form>
       </div>
+    </div>
+  </div><!-- /.codes-panel-col -->
 
-      <?php if ($hasCats): ?>
-      <div class="table-wrap">
-      <table class="data-table" style="margin:0;font-size:.82rem">
-        <tbody>
-          <?php foreach ($categories as $cat): ?>
-          <?php $isCatEditing = $edit_cat_id === $cat->id; ?>
-          <tr <?= $isCatEditing ? 'style="display:none"' : '' ?>>
-            <td style="padding:.5rem .75rem">
-              <?php if ($cat->parentId !== null): ?>
-                <span style="color:var(--text-dim);margin-right:.2rem">â””</span>
-              <?php endif; ?>
-              <span class="text-strong"><?= View::e($cat->name) ?></span>
-            </td>
-            <td class="text-dim" style="padding:.5rem .25rem;text-align:center">
-              <?php
-                $catCodeCount = count(array_filter($code_categories, fn($ids) => in_array($cat->id, $ids, true)));
-              ?>
-              <?= $catCodeCount ?>
-            </td>
-            <td class="act-col" style="padding:.5rem .75rem">
-              <a href="?edit_cat=<?= (int)$cat->id ?>" class="btn btn-quaternary btn-sm">Edit</a>
-              <form method="POST" action="<?= $b ?>/admin/listings/<?= $fid ?>/codes/categories/<?= (int)$cat->id ?>/delete"
-                    style="display:contents"
-                    data-del-modal data-del-entity="code_category"
-                    data-del-name="<?= View::e($cat->name) ?>">
-                <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
-                <button class="btn btn-danger btn-sm">Delete</button>
-              </form>
-            </td>
-          </tr>
-          <tr <?= !$isCatEditing ? 'style="display:none"' : '' ?>>
-            <td colspan="3" style="padding:.6rem .75rem;background:var(--bg-subtle)">
-              <form method="POST" action="<?= $b ?>/admin/listings/<?= $fid ?>/codes/categories/<?= (int)$cat->id ?>/edit"
-                    style="display:flex;gap:.4rem;align-items:flex-end;flex-wrap:wrap">
-                <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
-                <div style="flex:1;min-width:100px">
-                  <input class="form-input" type="text" name="name" value="<?= View::e($cat->name) ?>" required>
-                </div>
-                <div style="min-width:100px">
-                  <div class="toolbar-select-wrap">
-                    <select name="parent_id" class="select" style="font-size:.8rem">
-                      <option value="">None (top-level)</option>
-                      <?php foreach ($categories as $pcat): ?>
-                        <?php if ($pcat->id === $cat->id || $pcat->parentId !== null) continue; ?>
-                        <option value="<?= (int)$pcat->id ?>" <?= $cat->parentId === $pcat->id ? 'selected' : '' ?>>
-                          <?= View::e($pcat->name) ?>
-                        </option>
-                      <?php endforeach; ?>
-                    </select>
-                  </div>
-                </div>
-                <button class="btn btn-primary btn-sm">Save</button>
-                <a href="?" class="btn btn-quaternary btn-sm">Cancel</a>
-              </form>
-            </td>
-          </tr>
-          <?php endforeach; ?>
-        </tbody>
-      </table>
+  <!-- ── Right: Gallery ── -->
+  <div class="main-card" style="margin-bottom:0">
+
+    <!-- Info row -->
+    <div class="codes-info-row">
+      <div style="font-size:.825rem;color:var(--text-muted)">
+        <strong style="color:var(--text)"><?= $approvedCount ?> approved code<?= $approvedCount !== 1 ? 's' : '' ?></strong>
+        <?php if ($groupCount > 0): ?>
+          across <?= $groupCount ?> size group<?= $groupCount !== 1 ? 's' : '' ?> &mdash; drag tiles to reorder.
+        <?php endif; ?>
       </div>
-      <?php else: ?>
-      <p style="padding:.75rem 1rem;color:var(--text-dim);font-size:.8rem;margin:0">
-        No categories yet. Use these to tag codes by theme.
-      </p>
+      <?php if ($total_codes > 0 && $pendingCount === 0): ?>
+        <span class="badge badge-current">All Live</span>
+      <?php elseif ($pendingCount > 0): ?>
+        <span class="badge badge-upcoming"><?= $pendingCount ?> Pending</span>
       <?php endif; ?>
     </div>
 
-    <!-- â”€â”€ Donors â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
-    <div class="card">
-      <div class="panel-header" style="border-bottom:1px solid var(--border)">
-        <div class="panel-title" style="font-size:.875rem">
-          <svg class="panel-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
-          Donors
-        </div>
-      </div>
-
-      <div style="padding:.75rem 1rem;border-bottom:1px solid var(--border-soft)">
-        <form method="POST" action="<?= $b ?>/admin/listings/<?= $fid ?>/codes/donors/add"
-              style="display:flex;gap:.4rem;align-items:flex-end;flex-wrap:wrap">
-          <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
-          <div style="flex:1;min-width:100px">
-            <label class="form-label" style="font-size:.72rem;margin-bottom:.2rem">Name</label>
-            <input class="form-input" type="text" name="name" placeholder="Display name" required>
-          </div>
-          <div style="flex:1;min-width:100px">
-            <label class="form-label" style="font-size:.72rem;margin-bottom:.2rem">Email</label>
-            <input class="form-input" type="email" name="email" placeholder="optional">
-          </div>
-          <div style="flex:1;min-width:100px">
-            <label class="form-label" style="font-size:.72rem;margin-bottom:.2rem">URL</label>
-            <input class="form-input" type="url" name="url" placeholder="optional">
-          </div>
-          <button type="submit" class="btn btn-primary btn-sm" style="margin-bottom:1px;white-space:nowrap">+ Add</button>
-        </form>
-      </div>
-
-      <?php if ($hasDonors): ?>
-      <div class="table-wrap">
-      <table class="data-table" style="margin:0;font-size:.82rem">
-        <tbody>
-          <?php foreach ($donors as $dn): ?>
-          <?php $isDnEditing = $edit_donor_id === $dn->id; ?>
-          <tr <?= $isDnEditing ? 'style="display:none"' : '' ?>>
-            <td style="padding:.5rem .75rem">
-              <?php if ($dn->url !== null): ?>
-                <a href="<?= View::e($dn->url) ?>" target="_blank" rel="noopener noreferrer"
-                   class="link text-strong"><?= View::e($dn->name) ?></a>
-              <?php else: ?>
-                <span class="text-strong"><?= View::e($dn->name) ?></span>
-              <?php endif; ?>
-            </td>
-            <td class="text-dim" style="padding:.5rem .25rem;font-size:.75rem">
-              <?= $dn->email !== null ? View::e($dn->email) : 'â€”' ?>
-            </td>
-            <td class="text-dim" style="padding:.5rem .25rem;text-align:center">
-              <?= count(array_filter($codes, fn($c) => $c->donorId === $dn->id)) ?>
-            </td>
-            <td class="act-col" style="padding:.5rem .75rem">
-              <a href="?edit_donor=<?= (int)$dn->id ?>" class="btn btn-quaternary btn-sm">Edit</a>
-              <form method="POST" action="<?= $b ?>/admin/listings/<?= $fid ?>/codes/donors/<?= (int)$dn->id ?>/delete"
-                    style="display:contents"
-                    data-del-modal data-del-entity="code_donor"
-                    data-del-name="<?= View::e($dn->name) ?>">
-                <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
-                <button class="btn btn-danger btn-sm">Delete</button>
-              </form>
-            </td>
-          </tr>
-          <tr <?= !$isDnEditing ? 'style="display:none"' : '' ?>>
-            <td colspan="4" style="padding:.6rem .75rem;background:var(--bg-subtle)">
-              <form method="POST" action="<?= $b ?>/admin/listings/<?= $fid ?>/codes/donors/<?= (int)$dn->id ?>/edit"
-                    style="display:flex;gap:.4rem;align-items:flex-end;flex-wrap:wrap">
-                <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
-                <div style="flex:1;min-width:100px">
-                  <input class="form-input" type="text" name="name" value="<?= View::e($dn->name) ?>" required>
-                </div>
-                <div style="flex:1;min-width:100px">
-                  <input class="form-input" type="email" name="email" value="<?= View::e($dn->email ?? '') ?>" placeholder="Email">
-                </div>
-                <div style="flex:1;min-width:100px">
-                  <input class="form-input" type="url" name="url" value="<?= View::e($dn->url ?? '') ?>" placeholder="URL">
-                </div>
-                <button class="btn btn-primary btn-sm">Save</button>
-                <a href="?" class="btn btn-quaternary btn-sm">Cancel</a>
-              </form>
-            </td>
-          </tr>
-          <?php endforeach; ?>
-        </tbody>
-      </table>
-      </div>
-      <?php else: ?>
-      <p style="padding:.75rem 1rem;color:var(--text-dim);font-size:.8rem;margin:0">
-        No donors yet. Credit the people who made codes for this listing.
-      </p>
-      <?php endif; ?>
-    </div>
-
-  </div><!-- /settings grid -->
-</details>
-
-
-<!-- â”€â”€ Status filter tabs â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
-<?php
-$filterTabs = [
-    ''         => 'All (' . $total_codes . ')',
-    'approved' => 'âœ“ Live (' . ($status_counts['approved'] ?? 0) . ')',
-    'pending'  => 'â³ Pending (' . ($status_counts['pending'] ?? 0) . ')',
-    'rejected' => 'âœ— Rejected (' . ($status_counts['rejected'] ?? 0) . ')',
-];
-?>
-<div class="neb-tabs-wrap" style="margin-bottom:1.25rem">
-  <div class="neb-tabs">
-    <?php foreach ($filterTabs as $sf => $label): ?>
-      <?php $href = $sf === '' ? '?' : '?status_filter=' . rawurlencode($sf); ?>
-      <a href="<?= $href ?>" class="neb-tab-btn<?= $status_filter === $sf ? ' active' : '' ?>">
-        <?= $label ?>
+    <!-- Status tabs -->
+    <div class="codes-tabs">
+      <a href="?" class="neb-tab-btn<?= $status_filter === '' ? ' active' : '' ?>">
+        All <span class="badge badge-muted" style="font-size:.55rem;padding:1px 6px;vertical-align:middle"><?= $total_codes ?></span>
       </a>
-    <?php endforeach; ?>
-  </div>
-  <div class="neb-tabs-select-wrap">
-    <span class="neb-tabs-select-label">Filter:</span>
-    <div class="toolbar-select-wrap">
-      <select class="neb-tabs-select select js-nav-select">
-        <?php foreach ($filterTabs as $sf => $label): ?>
-          <?php $href = $sf === '' ? '?' : '?status_filter=' . rawurlencode($sf); ?>
-          <option value="<?= $href ?>"<?= $status_filter === $sf ? ' selected' : '' ?>>
-            <?= $label ?>
-          </option>
-        <?php endforeach; ?>
-      </select>
+      <a href="?status_filter=pending" class="neb-tab-btn<?= $status_filter === 'pending' ? ' active' : '' ?>">
+        Pending <span class="badge badge-<?= $pendingCount > 0 ? 'upcoming' : 'muted' ?>" style="font-size:.55rem;padding:1px 6px;vertical-align:middle"><?= $pendingCount ?></span>
+      </a>
     </div>
-  </div>
-</div>
 
-
-<!-- â”€â”€ Codes grid â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
-
-<?php if ($total_codes === 0): ?>
-
-  <div class="card" style="padding:2.5rem;text-align:center">
-    <div style="font-size:1.75rem;margin-bottom:.75rem">ðŸ–¼ï¸</div>
-    <div style="font-weight:600;color:var(--text);margin-bottom:.35rem">No codes yet</div>
-    <div style="font-size:.85rem;color:var(--text-dim)">
-      Upload code images above. Members will link to
-      <a class="link" href="<?= View::e($listing->url !== '' ? $listing->url : '#') ?>"
-         target="_blank" rel="noopener noreferrer"><?= View::e($listing->name) ?></a>
-      using these images.
-    </div>
-  </div>
-
-<?php elseif (empty($codes)): ?>
-
-  <div class="card" style="padding:2.5rem;text-align:center">
-    <div style="font-size:1.25rem;margin-bottom:.5rem">&#128269;</div>
-    <div style="font-weight:600;color:var(--text);margin-bottom:.35rem">No codes match this filter</div>
-    <div style="font-size:.85rem;color:var(--text-dim)">
-      <a href="?" class="link">Clear filter</a> to see all <?= $total_codes ?> code<?= $total_codes !== 1 ? 's' : '' ?>.
-    </div>
-  </div>
-
-<?php else: ?>
-
-  <!-- Standalone bulk form -->
-  <form id="codes-bulk-form" method="POST"
-        action="<?= $b ?>/admin/listings/<?= $fid ?>/codes/bulk">
-    <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
-  </form>
-
-  <!-- Standalone delete forms + edit dialogs (one per code) -->
-  <?php foreach ($codes as $code): ?>
-  <?php
-    $dCatIds  = $code_categories[$code->id] ?? [];
-    $dDonor   = ($code->donorId !== null && isset($donor_map[$code->donorId])) ? $donor_map[$code->donorId] : null;
-    $dLabel   = ($code->name !== null && $code->name !== '') ? $code->name : null;
-  ?>
-  <form id="del-<?= (int)$code->id ?>" method="POST"
-        action="<?= $b ?>/admin/listings/<?= $fid ?>/codes/<?= (int)$code->id ?>/delete"
-        data-del-modal data-del-entity="code"
-        data-del-name="<?= View::e($dLabel !== null ? $dLabel : 'Code #' . (int)$code->id) ?>">
-    <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
-  </form>
-
-  <dialog id="edit-dialog-<?= (int)$code->id ?>" class="code-edit-dialog">
-    <div class="code-edit-dialog-header">
-      <span class="code-edit-dialog-title">
-        Edit code<?= $dLabel !== null ? ' â€” ' . View::e($dLabel) : ' #' . (int)$code->id ?>
-      </span>
-      <button type="button" class="code-edit-dialog-close" data-close-dialog aria-label="Close">&times;</button>
-    </div>
-    <div class="code-edit-dialog-body">
-      <!-- Preview -->
-      <div style="text-align:center;margin-bottom:.875rem">
-        <img src="<?= View::e($uploads_url . '/' . $code->filename) ?>"
-             alt="Code #<?= (int)$code->id ?>"
-             style="max-width:100%;max-height:120px;object-fit:contain;border-radius:6px">
-        <?php if ($code->width > 0 && $code->height > 0): ?>
-        <div style="font-size:.7rem;color:var(--text-dim);margin-top:.3rem">
-          <?= (int)$code->width ?>&times;<?= (int)$code->height ?>px
-        </div>
-        <?php endif; ?>
-      </div>
-
-      <!-- Update form -->
-      <form method="POST"
-            action="<?= $b ?>/admin/listings/<?= $fid ?>/codes/<?= (int)$code->id ?>/update"
-            style="display:flex;flex-direction:column;gap:.6rem">
-        <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
-
-        <div>
-          <label class="form-label" style="font-size:.8rem">Label (optional)</label>
-          <input class="form-input" type="text" name="name"
-                 value="<?= View::e($code->name ?? '') ?>"
-                 placeholder="e.g. Animated version">
-        </div>
-
-        <div>
-          <label class="form-label" style="font-size:.8rem">Status</label>
-          <div class="toolbar-select-wrap">
-            <select name="status" class="select" style="width:100%">
-              <option value="approved" <?= $code->status === 'approved' ? 'selected' : '' ?>>&#10003; Live</option>
-              <option value="pending"  <?= $code->status === 'pending'  ? 'selected' : '' ?>>&#8987; Pending</option>
-              <option value="rejected" <?= $code->status === 'rejected' ? 'selected' : '' ?>>&#10007; Rejected</option>
-            </select>
-          </div>
-        </div>
-
-        <?php if ($hasDonors): ?>
-        <div>
-          <label class="form-label" style="font-size:.8rem">Donor</label>
-          <div class="toolbar-select-wrap">
-            <select name="donor_id" class="select" style="width:100%">
-              <option value="">No donor</option>
-              <?php foreach ($donors as $dn): ?>
-                <option value="<?= (int)$dn->id ?>" <?= $code->donorId === $dn->id ? 'selected' : '' ?>>
-                  <?= View::e($dn->name) ?>
-                </option>
-              <?php endforeach; ?>
-            </select>
-          </div>
-        </div>
-        <?php endif; ?>
-
-        <?php if ($hasCats): ?>
-        <div>
-          <label class="form-label" style="font-size:.8rem">Categories</label>
-          <select name="cat_ids[]" multiple size="<?= min(5, count($categories)) ?>"
-                  class="form-input" style="height:auto;width:100%">
-            <?php foreach ($categories as $cat): ?>
-              <option value="<?= (int)$cat->id ?>" <?= in_array($cat->id, $dCatIds, true) ? 'selected' : '' ?>>
-                <?= $cat->parentId !== null ? 'â”” ' : '' ?><?= View::e($cat->name) ?>
-              </option>
-            <?php endforeach; ?>
-          </select>
-          <p class="form-hint" style="margin-top:.25rem">Hold Ctrl / Cmd to select multiple.</p>
-        </div>
-        <?php endif; ?>
-
-        <button class="btn btn-primary" style="width:100%">Save changes</button>
-      </form>
-
-      <!-- Delete -->
-      <div style="margin-top:.75rem;padding-top:.75rem;border-top:1px solid var(--border-soft)">
-        <button type="submit" form="del-<?= (int)$code->id ?>"
-                class="btn btn-danger btn-sm" style="width:100%">
-          Delete this code
-        </button>
-      </div>
-    </div>
-  </dialog>
-  <?php endforeach; ?>
-
-  <!-- Reorder form -->
-  <form id="codes-reorder-form" method="POST"
-        action="<?= $b ?>/admin/listings/<?= $fid ?>/codes/reorder">
-    <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
-    <input type="hidden" id="reorder-ids" name="ordered_ids" value="">
-  </form>
-
-  <!-- Bulk toolbar -->
-  <div class="toolbar" style="margin-bottom:1rem;flex-wrap:wrap;gap:.5rem">
-    <label style="display:flex;align-items:center;gap:.4rem;font-size:.85rem;color:var(--text-dim);cursor:pointer">
-      <input type="checkbox" id="codes-select-all"> Select all
-    </label>
-    <div style="display:flex;align-items:center;gap:.5rem;flex-wrap:wrap">
+    <!-- Bulk toolbar -->
+    <div class="codes-bulk">
+      <label style="display:flex;align-items:center;gap:5px;font-size:.78rem;color:var(--text-dim);cursor:pointer;flex-shrink:0">
+        <input type="checkbox" id="codes-select-all" style="accent-color:var(--va-pink);width:13px;height:13px"> Select all
+      </label>
       <div class="toolbar-select-wrap">
-        <select id="bulk-action-sel" class="select" style="min-width:130px">
+        <select id="bulk-action-sel" class="select" style="font-size:.78rem;padding:4px 28px 4px 9px">
           <option value="delete">Delete</option>
           <option value="approve">Approve</option>
           <option value="reject">Reject</option>
@@ -565,119 +541,105 @@ $filterTabs = [
                 style="height:auto;font-size:.8rem;min-height:50px">
           <?php foreach ($categories as $cat): ?>
             <option value="<?= (int)$cat->id ?>">
-              <?= $cat->parentId !== null ? '  â”” ' : '' ?><?= View::e($cat->name) ?>
+              <?= $cat->parentId !== null ? '  └ ' : '' ?><?= View::e($cat->name) ?>
             </option>
           <?php endforeach; ?>
         </select>
       </div>
       <?php endif; ?>
       <button type="button" id="bulk-apply-btn" class="btn btn-quaternary btn-sm">Apply to selected</button>
-      <button type="button" id="save-order-btn" class="btn btn-quaternary btn-sm" style="display:none">Save order</button>
+      <div class="codes-bulk-right">
+        <button type="button" id="save-order-btn" class="btn btn-quaternary btn-sm" style="display:none">Save order</button>
+      </div>
     </div>
-  </div>
 
-  <!-- Grid, grouped by detected dimensions -->
-  <?php $showGroupHeadings = count($grouped) > 1; ?>
+    <!-- Gallery content -->
+    <?php if ($total_codes === 0): ?>
 
-  <?php foreach ($grouped as $group): ?>
-    <?php if (empty($group['codes'])) continue; ?>
+      <div class="card-section" style="text-align:center;padding:2.5rem">
+        <div class="empty">
+          <svg class="empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+          No codes yet &mdash; upload images using the panel on the left.
+        </div>
+      </div>
 
-    <?php if ($showGroupHeadings): ?>
-    <div style="display:flex;align-items:baseline;gap:.75rem;margin:1.25rem 0 .6rem">
-      <span style="font-weight:600;color:var(--text);font-size:.95rem"><?= View::e($group['label']) ?></span>
-      <span style="font-size:.75rem;color:var(--text-dim)"><?= count($group['codes']) ?> code<?= count($group['codes']) !== 1 ? 's' : '' ?></span>
-    </div>
+    <?php elseif (empty($codes)): ?>
+
+      <div class="card-section" style="text-align:center;padding:2.5rem">
+        <div class="empty">
+          <svg class="empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          No codes match this filter &mdash; <a href="?" class="link">clear filter</a> to see all <?= $total_codes ?>.
+        </div>
+      </div>
+
+    <?php else: ?>
+
+      <div class="card-section">
+        <?php foreach ($grouped as $group): ?>
+          <?php if (empty($group['codes'])) continue; ?>
+          <?php
+            $firstCode = reset($group['codes']);
+            $gridMin   = max((int)$firstCode->width + 32, 80) . 'px';
+          ?>
+
+          <div class="dim-head">
+            <span class="dim-label"><?= View::e($group['label']) ?></span>
+            <span class="dim-count"><?= count($group['codes']) ?> code<?= count($group['codes']) !== 1 ? 's' : '' ?></span>
+          </div>
+
+          <div class="code-grid" style="grid-template-columns:repeat(auto-fill,minmax(<?= $gridMin ?>,1fr))">
+            <?php foreach ($group['codes'] as $code): ?>
+            <?php
+              $codeCatIds = $code_categories[$code->id] ?? [];
+              $codeDonor  = ($code->donorId !== null && isset($donor_map[$code->donorId])) ? $donor_map[$code->donorId] : null;
+              $codeLabel  = ($code->name !== null && $code->name !== '') ? $code->name : null;
+              $isDonated  = $codeDonor !== null || $code->submitterName !== null;
+            ?>
+            <div class="code-tile code-card"
+                 data-code-id="<?= (int)$code->id ?>"
+                 <?= $isDonated ? 'style="border-color:rgba(249,115,22,.3)"' : '' ?>>
+
+              <input type="checkbox" form="codes-bulk-form" name="selected[]"
+                     value="<?= (int)$code->id ?>"
+                     class="code-tile-cb code-check">
+
+              <span class="code-drag-handle drag-handle" title="Drag to reorder">&#8942;&#8942;</span>
+
+              <img src="<?= View::e($uploads_url . '/' . $code->filename) ?>"
+                   alt="<?= (int)$code->width ?>&times;<?= (int)$code->height ?>px"
+                   style="max-width:100%;object-fit:contain"
+                   loading="lazy">
+
+              <?php if ($codeLabel !== null): ?>
+              <div style="font-size:.68rem;font-weight:600;color:var(--text);text-align:center;word-break:break-word;line-height:1.3">
+                <?= View::e($codeLabel) ?>
+              </div>
+              <?php endif; ?>
+
+              <?php if ($codeDonor !== null): ?>
+              <div class="code-tile-donor">&hearts; <?= View::e($codeDonor->name) ?></div>
+              <?php elseif ($code->submitterName !== null): ?>
+              <div class="code-tile-donor">&hearts; <?= View::e($code->submitterName) ?></div>
+              <?php endif; ?>
+
+              <?php if ($code->status === 'pending'): ?>
+              <span class="badge badge-upcoming" style="font-size:.58rem;padding:1px 7px">Pending</span>
+              <?php endif; ?>
+
+              <button type="button" class="btn btn-quaternary btn-sm code-tile-btn code-edit-btn"
+                      data-dialog="edit-dialog-<?= (int)$code->id ?>">
+                &#9881; Edit
+              </button>
+
+            </div>
+            <?php endforeach; ?>
+          </div>
+
+        <?php endforeach; ?>
+      </div><!-- /.card-section -->
+
     <?php endif; ?>
 
-    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:1rem;margin-bottom:1.25rem">
-      <?php foreach ($group['codes'] as $code): ?>
-      <?php
-        $codeCatIds = $code_categories[$code->id] ?? [];
-        $codeDonor  = ($code->donorId !== null && isset($donor_map[$code->donorId])) ? $donor_map[$code->donorId] : null;
-        $codeLabel  = ($code->name !== null && $code->name !== '') ? $code->name : null;
+  </div><!-- /.main-card -->
 
-        [$statusColor, $statusDot] = match ($code->status) {
-            'approved' => ['#22c55e', '&#10003; Live'],
-            'pending'  => ['#f59e0b', '&#8987; Pending'],
-            'rejected' => ['var(--error,#ef4444)', '&#10007; Rejected'],
-            default    => ['var(--text-dim)', View::e($code->status)],
-        };
-      ?>
-      <div class="card code-card" data-code-id="<?= (int)$code->id ?>"
-           style="padding:.75rem;display:flex;flex-direction:column;gap:.4rem">
-
-        <!-- Top row: drag + checkbox -->
-        <div style="display:flex;align-items:center;justify-content:space-between">
-          <span class="code-drag-handle" title="Drag to reorder"
-                style="cursor:grab;color:var(--text-dim);line-height:1;padding:.25rem .5rem;margin:-.25rem -.5rem;font-size:1rem;letter-spacing:1px">&#8942;&#8942;</span>
-          <input type="checkbox" form="codes-bulk-form" name="selected[]"
-                 value="<?= (int)$code->id ?>" class="code-check" style="cursor:pointer">
-        </div>
-
-        <!-- Preview image -->
-        <img src="<?= View::e($uploads_url . '/' . $code->filename) ?>"
-             alt="Code #<?= (int)$code->id ?>"
-             style="max-width:100%;max-height:90px;object-fit:contain;display:block;margin:0 auto"
-             loading="lazy">
-
-        <!-- Name label (if set) -->
-        <?php if ($codeLabel !== null): ?>
-        <div style="font-size:.72rem;font-weight:600;color:var(--text);text-align:center;word-break:break-word;line-height:1.3">
-          <?= View::e($codeLabel) ?>
-        </div>
-        <?php endif; ?>
-
-        <!-- Dimensions (shown only when there's one size group so we don't double-display) -->
-        <?php if ($code->width > 0 && $code->height > 0 && !$showGroupHeadings): ?>
-        <div style="font-size:.7rem;color:var(--text-dim);text-align:center">
-          <?= (int)$code->width ?>&times;<?= (int)$code->height ?>
-        </div>
-        <?php endif; ?>
-
-        <!-- Category badges -->
-        <?php if (!empty($codeCatIds)): ?>
-        <div style="display:flex;flex-wrap:wrap;gap:3px;justify-content:center">
-          <?php foreach ($codeCatIds as $catId): ?>
-            <?php if (isset($category_map[$catId])): ?>
-            <span class="badge" style="font-size:.64rem;background:var(--accent-dim,var(--bg-subtle));color:var(--accent)">
-              <?= View::e($category_map[$catId]->name) ?>
-            </span>
-            <?php endif; ?>
-          <?php endforeach; ?>
-        </div>
-        <?php endif; ?>
-
-        <!-- Donor + status row -->
-        <div style="font-size:.68rem;color:var(--text-dim);text-align:center;line-height:1.6">
-          <?php if ($codeDonor !== null): ?>&hearts; <?= View::e($codeDonor->name) ?><br><?php endif; ?>
-          <span style="color:<?= $statusColor ?>;font-weight:600"><?= $statusDot ?></span>
-        </div>
-
-        <!-- Submitter info (pending codes only) -->
-        <?php if ($code->status === 'pending' && ($code->submitterName !== null || $code->submitterEmail !== null)): ?>
-        <div style="font-size:.65rem;color:var(--text-dim);text-align:center;line-height:1.5;word-break:break-all;border-top:1px solid var(--border-soft);padding-top:.3rem">
-          <?php if ($code->submitterName !== null): ?>
-            <div><?= View::e($code->submitterName) ?></div>
-          <?php endif; ?>
-          <?php if ($code->submitterEmail !== null): ?>
-            <div><a class="link" href="mailto:<?= View::e($code->submitterEmail) ?>"><?= View::e($code->submitterEmail) ?></a></div>
-          <?php endif; ?>
-        </div>
-        <?php endif; ?>
-
-        <!-- Edit button (opens out-of-flow dialog) -->
-        <div style="margin-top:.1rem;padding-top:.25rem;border-top:1px solid var(--border-soft);text-align:center">
-          <button type="button" class="btn btn-quaternary btn-sm code-edit-btn"
-                  data-dialog="edit-dialog-<?= (int)$code->id ?>"
-                  style="font-size:.7rem;width:100%">
-            &#9881; Edit
-          </button>
-        </div>
-
-      </div>
-      <?php endforeach; ?>
-    </div>
-  <?php endforeach; ?>
-
-<?php endif; ?>
-
+</div><!-- /.codes-split -->

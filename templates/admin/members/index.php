@@ -111,7 +111,7 @@ $memSortUrl = static function (string $col) use ($b, $id, $sort, $dir, $search, 
         No members match those filters.
         <a href="?" class="btn btn-quaternary btn-sm">Clear Filters</a>
       <?php else: ?>
-        No members yet â€” they'll appear here after the first join.
+        No members yet - they'll appear here after the first join.
         <a href="<?= $b ?>/admin/members/<?= $id ?>/import" class="btn btn-quaternary btn-sm">&#8593; Import CSV</a>
       <?php endif; ?>
     </div>
@@ -133,7 +133,7 @@ $memSortUrl = static function (string $col) use ($b, $id, $sort, $dir, $search, 
     <label for="bulk-action-sel">Bulk action:</label>
     <div class="toolbar-select-wrap">
     <select id="bulk-action-sel" name="bulk_action" class="select">
-      <option value="" disabled selected>â€” Select â€”</option>
+      <option value="" disabled selected>- Select -</option>
       <option value="approve">Approve</option>
       <option value="pending">Pending</option>
       <option value="delete">Delete</option>
@@ -175,7 +175,7 @@ $memSortUrl = static function (string $col) use ($b, $id, $sort, $dir, $search, 
               <a href="<?= View::e($m->url) ?>" target="_blank" rel="noopener noreferrer"
                  class="link text-dim"><?= View::e($m->url) ?></a>
             <?php else: ?>
-              <span class="text-dim">â€”</span>
+              <span class="text-dim">-</span>
             <?php endif; ?>
           </td>
           <?php foreach ($fields as $field): ?>
@@ -197,7 +197,7 @@ $memSortUrl = static function (string $col) use ($b, $id, $sort, $dir, $search, 
                 </form>
               <?php endif; ?>
               <a href="<?= $b ?>/admin/members/<?= $id ?>/edit?email=<?= urlencode($m->email) ?>"
-                 class="btn btn-primary btn-sm">Edit</a>
+                 class="btn btn-tertiary btn-sm">Edit</a>
               <a href="<?= $b ?>/admin/members/<?= $id ?>/emailmember?email=<?= urlencode($m->email) ?>"
                  class="btn btn-quaternary btn-sm">Email</a>
               <button type="submit" form="del-mem-<?= md5($m->email) ?>" class="btn btn-danger btn-sm">Delete</button>

@@ -46,7 +46,7 @@ $imgHeight = $sizeMap[$sizeKey] ?? '100px';
   <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:1rem">
     <h2 class="card-title"><?= View::e($listing->name) ?></h2>
     <div style="display:flex;gap:.5rem">
-      <a href="<?= $b ?>/admin/listings/<?= (int) $listing->id ?>/edit" class="btn btn-primary">Edit</a>
+      <a href="<?= $b ?>/admin/listings/<?= (int) $listing->id ?>/edit" class="btn btn-tertiary">Edit</a>
       <a href="<?= $b ?>/admin/members/<?= (int) $listing->id ?>" class="btn btn-ghost">Members</a>
       <form method="post"
             action="<?= $b ?>/admin/listings/<?= (int) $listing->id ?>/delete"
@@ -242,7 +242,7 @@ $imgHeight = $sizeMap[$sizeKey] ?? '100px';
           </td>
           <td class="act-col">
             <a href="<?= $b ?>/admin/affiliates/<?= (int) $aff->id ?>/edit?from_listing=<?= (int) $listing->id ?>"
-               class="btn btn-primary btn-sm">Edit</a>
+               class="btn btn-tertiary btn-sm">Edit</a>
 
             <form method="POST"
                   action="<?= $b ?>/admin/affiliates/<?= (int) $aff->id ?>/toggle"

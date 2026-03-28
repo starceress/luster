@@ -203,7 +203,17 @@ final class CodesSubmitController
         $height  = $imgInfo !== false ? (int) $imgInfo[1] : 0;
 
         // Ensure upload directory exists
-        $uploadDir = realpath(__DIR__ . '/../../../public/uploads') . DIRECTORY_SEPARATOR . 'codes';
+        $uploadsBase = realpath(__DIR__ . '/../../../public/uploads');
+        if ($uploadsBase === false) {
+            $session->set('lstr_flash_error', 'Server configuration error: uploads directory not found. Please contact the site administrator.');
+            $session->set('lstr_flash_old', [
+                'submitter_name'  => $submitterName  ?? '',
+                'submitter_email' => $submitterEmail ?? '',
+                'submitter_url'   => $submitterUrl   ?? '',
+            ]);
+            return Response::redirect($submitUrl);
+        }
+        $uploadDir = $uploadsBase . DIRECTORY_SEPARATOR . 'codes';
         if (!is_dir($uploadDir)) {
             mkdir($uploadDir, 0755, true);
         }

@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Luster\Controllers\Admin;
 
-use Luster\Core\Application;
 use Luster\Core\Request;
 use Luster\Core\Response;
 use Luster\Core\Validator;
@@ -23,9 +22,8 @@ use Luster\Repositories\MemberRepo;
  * Listings are created/deleted in Enthusiast; Luster only edits
  * metadata (name, URL, email, status) and Luster-specific settings.
  */
-final class ListingController
+final class ListingController extends AdminController
 {
-    public function __construct(private readonly Application $app) {}
 
     // -----------------------------------------------------------------------
     // GET /admin/listings
@@ -173,7 +171,13 @@ final class ListingController
             $customCats[$cn] = $categoryRepo->getBySource($cn);
         }
 
-        return $this->layout('admin/listings/index.php', [
+        $session = $this->app->getSession();
+        $success = (string) $session->get('lstr_flash_success', '');
+        $error   = (string) $session->get('lstr_flash_error', '');
+        $session->remove('lstr_flash_success');
+        $session->remove('lstr_flash_error');
+
+        return $this->adminLayout('admin/listings/index.php', 'Owned Listings', 'listings', [
             'listings'     => $listings,
             'member_counts'   => $memberCounts,
             'pending_counts'  => $pendingCounts,
@@ -196,7 +200,9 @@ final class ListingController
             'per_page'        => $perPage,
             'sort'            => $sort,
             'dir'             => $dir,
-        ], 'Owned Listings', 'listings');
+            'success'         => $success,
+            'error'           => $error,
+        ]);
     }
 
     // -----------------------------------------------------------------------
@@ -223,14 +229,14 @@ final class ListingController
         $taflCats       = $categoryRepo->getBySource('tafl');
         $customNetworks = $categoryRepo->getCustomSources();
 
-        return $this->layout('admin/listings/add.php', [
+        return $this->adminLayout('admin/listings/add.php', 'Add Listing', 'listings', [
             'tfl_cats'       => $tflCats,
             'tafl_cats'      => $taflCats,
             'custom_networks' => $customNetworks,
             'old'            => [],
             'error'          => '',
             'default_date'   => date('Y-m-d'),
-        ], 'Add Listing', 'listings');
+        ]);
     }
 
     // -----------------------------------------------------------------------
@@ -279,7 +285,7 @@ final class ListingController
             if ($url === '') {
                 $addFieldErrors['url'] = ['URL is required.'];
             }
-            return $this->layout('admin/listings/add.php', [
+            return $this->adminLayout('admin/listings/add.php', 'Add Listing', 'listings', [
                 'tfl_cats'        => $tflCats,
                 'tafl_cats'       => $taflCats,
                 'custom_networks' => $customNetworks,
@@ -287,7 +293,7 @@ final class ListingController
                 'error'           => 'Subject and URL are required.',
                 'field_errors'    => $addFieldErrors,
                 'default_date'    => date('Y-m-d'),
-            ], 'Add Listing', 'listings');
+            ]);
         }
 
         $image      = null;
@@ -300,25 +306,25 @@ final class ListingController
             $allowed  = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
 
             if ($fileSize > 2 * 1024 * 1024) {
-                return $this->layout('admin/listings/add.php', [
+                return $this->adminLayout('admin/listings/add.php', 'Add Listing', 'listings', [
                     'tfl_cats'        => $tflCats,
                     'tafl_cats'       => $taflCats,
                     'custom_networks' => $customNetworks,
                     'old'             => $request->post(),
                     'error'           => 'Image must be 2 MB or smaller.',
                     'default_date'    => date('Y-m-d'),
-                ], 'Add Listing', 'listings');
+                ]);
             }
 
             if (!in_array($mime, $allowed, true)) {
-                return $this->layout('admin/listings/add.php', [
+                return $this->adminLayout('admin/listings/add.php', 'Add Listing', 'listings', [
                     'tfl_cats'        => $tflCats,
                     'tafl_cats'       => $taflCats,
                     'custom_networks' => $customNetworks,
                     'old'             => $request->post(),
                     'error'           => 'Invalid image type.',
                     'default_date'    => date('Y-m-d'),
-                ], 'Add Listing', 'listings');
+                ]);
             }
             $ext      = ['image/jpeg' => 'jpg', 'image/png' => 'png', 'image/gif' => 'gif', 'image/webp' => 'webp'][$mime];
             $dir      = dirname(__DIR__, 3) . '/public/uploads/listings/';
@@ -525,7 +531,7 @@ final class ListingController
                     array_unshift($messages, $imageError);
                 }
 
-                return $this->layout('admin/listings/edit.php', [
+                return $this->adminLayout('admin/listings/edit.php', 'Edit Listing', 'listings', [
                     'listing'          => $listing,
                     'error'               => implode(' ', $messages),
                     'field_errors'        => $v->errors(),
@@ -543,7 +549,7 @@ final class ListingController
                     'members_per_page'    => $membersPerPage,
                     'contact_enabled'     => $contactEnabled,
                     'contact_recipient'   => $contactRecipient,
-                ], 'Edit Listing', 'listings', 'Owned › ' . $listing->name);
+                ], 'Owned › ' . $listing->name);
             }
 
             // --- All valid: persist ---
@@ -633,7 +639,7 @@ final class ListingController
         $session->remove('lstr_flash_success');
         $session->remove('lstr_flash_error');
 
-        return $this->layout('admin/listings/edit.php', [
+        return $this->adminLayout('admin/listings/edit.php', 'Edit Listing', 'listings', [
             'listing'          => $listing,
             'success'             => $success,
             'error'               => $error,
@@ -659,7 +665,7 @@ final class ListingController
             'embed_settings'      => $embedSettings,
             'contact_enabled'     => $contactSettings['enabled'],
             'contact_recipient'   => $contactSettings['recipient'] ?? '',
-        ], 'Edit Listing', 'listings', 'Owned › ' . $listing->name);
+        ], 'Owned › ' . $listing->name);
     }
 
     // -----------------------------------------------------------------------
@@ -801,11 +807,11 @@ final class ListingController
             }
 
             if ($error !== '') {
-                return $this->layout('admin/listings/edit-prefix.php', [
+                return $this->adminLayout('admin/listings/edit-prefix.php', 'Change Table Prefix', 'listings', [
                     'listing'   => $listing,
                     'table_exists' => $tableExists,
                     'error'        => $error,
-                ], 'Change Table Prefix', 'listings', 'Owned › ' . $listing->name);
+                ], 'Owned › ' . $listing->name);
             }
 
             $oldPrefix = $listing->dbprefix;
@@ -823,11 +829,11 @@ final class ListingController
         }
 
         // ---- GET: show form ----
-        return $this->layout('admin/listings/edit-prefix.php', [
+        return $this->adminLayout('admin/listings/edit-prefix.php', 'Change Table Prefix', 'listings', [
             'listing'   => $listing,
             'table_exists' => $tableExists,
             'error'        => '',
-        ], 'Change Table Prefix', 'listings', 'Owned › ' . $listing->name);
+        ], 'Owned › ' . $listing->name);
     }
 
     // -----------------------------------------------------------------------
@@ -995,11 +1001,11 @@ final class ListingController
         $session->remove('lstr_flash_success');
         $session->remove('lstr_flash_error');
 
-        return $this->layout('admin/listings/settings.php', [
+        return $this->adminLayout('admin/listings/settings.php', 'Listings Display Settings', 'listings', [
             'cfg'     => $this->app->getConfig()->all(),
             'success' => $success,
             'error'   => $error,
-        ], 'Listings Display Settings', 'listings');
+        ]);
     }
 
     // -----------------------------------------------------------------------
@@ -1078,10 +1084,10 @@ final class ListingController
         $emailRepo = new EmailTemplateRepo($db);
         $templates = $emailRepo->getAll($id);
 
-        return $this->layout('admin/listings/email-templates.php', [
+        return $this->adminLayout('admin/listings/email-templates.php', 'Email Templates', 'listings', [
             'listing' => $listing,
             'templates'  => $templates,
-        ], 'Email Templates', 'listings', 'Owned › ' . $listing->name);
+        ], 'Owned › ' . $listing->name);
     }
 
     // -----------------------------------------------------------------------
@@ -1117,44 +1123,6 @@ final class ListingController
         return Response::redirect(
             $this->app->getBaseUrl() . '/admin/listings/' . $id . '/email-templates'
         );
-    }
-
-    // -----------------------------------------------------------------------
-    // Shared render helper
-    // -----------------------------------------------------------------------
-
-    private function layout(string $template, array $data, string $pageTitle, string $section, string $pageSubtitle = ''): Response
-    {
-        $view      = $this->app->getView();
-        $config    = $this->app->getConfig();
-        $session   = $this->app->getSession();
-        $baseUrl   = $this->app->getBaseUrl();
-        $csrfToken = $this->app->getCSRF()->token();
-
-        $flash      = (string) $session->get('lstr_flash_success', '');
-        $flashError = (string) $session->get('lstr_flash_error', '');
-        $session->remove('lstr_flash_success');
-        $session->remove('lstr_flash_error');
-
-        // Merge order: $data takes priority over flash defaults so controllers
-        // that pre-read flash (e.g. indexSettings) keep their values intact.
-        $inner = $view->render($template, array_merge([
-            'base_url'   => $baseUrl,
-            'success'    => $flash,
-            'error'      => $flashError,
-            'csrf_token' => $csrfToken,
-        ], $data));
-
-        return Response::html($view->render('admin/layout.php', array_merge([
-            'page_title'      => $pageTitle,
-            'page_subtitle'   => $pageSubtitle,
-            'site_name'       => (string) $config->get('site_name', 'Luster'),
-            'admin_username'  => (string) $session->get('lstr_admin_username', ''),
-            'csrf_token'      => $csrfToken,
-            'current_section' => $section,
-            'base_url'        => $baseUrl,
-            'content'         => $inner,
-        ], $this->app->getAdminNavData())));
     }
 
     /**

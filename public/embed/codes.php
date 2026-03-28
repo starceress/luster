@@ -91,11 +91,11 @@ foreach ($_lusterCategories as $_cat) {
     $_lusterCategoryMap[$_cat->id] = $_cat;
 }
 
-// Separate donated (fan-submitted) codes from regular codes
+// Separate donated codes (fan-submitted OR assigned to a donor) from regular codes
 $_lusterDonated = [];
 $_lusterRegular = [];
 foreach ($_lusterCodes as $_lc) {
-    if ($_lc->submitterName !== null) {
+    if ($_lc->submitterName !== null || $_lc->donorId !== null) {
         $_lusterDonated[] = $_lc;
     } else {
         $_lusterRegular[] = $_lc;

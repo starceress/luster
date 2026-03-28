@@ -1,6 +1,6 @@
 <?php
 /**
- * KIM List admin â€” show members for one fanlisting.
+ * KIM List admin - show members for one fanlisting.
  *
  * Variables:
  *   $listing         Listing
@@ -38,7 +38,7 @@ $approvedMembers = array_filter($members, static fn($m) => !$m->pending);
   <?php endif; ?>
 </div>
 
-<!-- â”€â”€ Pending â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
+<!--  Pending  -->
 <div class="card" style="margin-bottom:1.5rem">
   <div class="card-head">
     <div class="card-head-title">Pending</div>
@@ -50,7 +50,7 @@ $approvedMembers = array_filter($members, static fn($m) => !$m->pending);
   <?php if (empty($pendingMembers)): ?>
     <div class="empty">
       <?= View::icon('check-badge', ['width' => '40', 'height' => '40']) ?>
-      No pending entries â€” all caught up.
+      No pending entries - all caught up.
     </div>
   <?php else: ?>
     <div class="table-wrap">
@@ -74,13 +74,13 @@ $approvedMembers = array_filter($members, static fn($m) => !$m->pending);
               <a href="<?= View::e($m->url) ?>" target="_blank" rel="noopener noreferrer"
                  class="link"><?= View::e($m->url) ?></a>
             <?php else: ?>
-              <span class="text-dim">â€”</span>
+              <span class="text-dim">-</span>
             <?php endif; ?>
           </td>
           <td class="text-dim nowrap"><?= View::e(date($admin_date_format, strtotime($m->addedAt))) ?></td>
           <td class="act-col">
             <a href="<?= $b ?>/admin/kim/<?= (int) $m->id ?>/edit"
-               class="btn btn-quaternary btn-sm">Edit</a>
+               class="btn btn-tertiary btn-sm">Edit</a>
             <form method="POST" action="<?= $b ?>/admin/kim/<?= (int) $m->id ?>/approve"
                   style="display:inline">
               <input type="hidden" name="_csrf"    value="<?= View::e($csrf_token) ?>">
@@ -103,7 +103,7 @@ $approvedMembers = array_filter($members, static fn($m) => !$m->pending);
   <?php endif; ?>
 </div>
 
-<!-- â”€â”€ Approved â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
+<!--  Approved  -->
 <div class="card">
   <div class="card-head">
     <div class="card-head-title">Approved</div>
@@ -139,13 +139,13 @@ $approvedMembers = array_filter($members, static fn($m) => !$m->pending);
               <a href="<?= View::e($m->url) ?>" target="_blank" rel="noopener noreferrer"
                  class="link"><?= View::e($m->url) ?></a>
             <?php else: ?>
-              <span class="text-dim">â€”</span>
+              <span class="text-dim">-</span>
             <?php endif; ?>
           </td>
           <td class="text-dim nowrap"><?= View::e(date($admin_date_format, strtotime($m->addedAt))) ?></td>
           <td class="act-col">
             <a href="<?= $b ?>/admin/kim/<?= (int) $m->id ?>/edit"
-               class="btn btn-quaternary btn-sm">Edit</a>
+               class="btn btn-tertiary btn-sm">Edit</a>
             <a href="<?= $b ?>/admin/kim/<?= (int) $m->id ?>/email-member"
                class="btn btn-quaternary btn-sm">Email</a>
             <form method="POST" action="<?= $b ?>/admin/kim/<?= (int) $m->id ?>/delete"

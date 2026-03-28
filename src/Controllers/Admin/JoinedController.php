@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Luster\Controllers\Admin;
 
-use Luster\Core\Application;
 use Luster\Core\Request;
 use Luster\Core\Response;
 use Luster\Core\Validator;
@@ -23,9 +22,8 @@ use Luster\Repositories\JoinedListingRepo;
  *   POST /admin/joined/{id}/delete  — delete
  *   POST /admin/joined/{id}/toggle  — toggle active/inactive
  */
-final class JoinedController
+final class JoinedController extends AdminController
 {
-    public function __construct(private readonly Application $app) {}
 
     // -----------------------------------------------------------------------
     // GET /admin/joined
@@ -86,7 +84,7 @@ final class JoinedController
         $session->remove('lstr_flash_success');
         $session->remove('lstr_flash_error');
 
-        return $this->layout('admin/joined/index.php', [
+        return $this->adminLayout('admin/joined/index.php', 'Joined Listings', 'joined', [
             'joined'             => $joined,
             'categories'         => $categories,
             'network_categories' => $networkCategories,
@@ -104,7 +102,7 @@ final class JoinedController
             'dir'                => $dir,
             'success'            => $success,
             'error'              => $error,
-        ], 'Joined Listings', 'joined');
+        ]);
     }
 
     // -----------------------------------------------------------------------
@@ -181,7 +179,7 @@ final class JoinedController
                     array_unshift($messages, $imageError);
                 }
 
-                return $this->layout('admin/joined/form.php', [
+                return $this->adminLayout('admin/joined/form.php', 'Add Joined FL', 'joined', [
                     'joined'          => null,
                     'error'           => implode(' ', $messages),
                     'field_errors'    => $v->errors(),
@@ -189,7 +187,7 @@ final class JoinedController
                     'tfl_cats'        => $categoryRepo->getBySource('tfl'),
                     'tafl_cats'       => $categoryRepo->getBySource('tafl'),
                     'custom_networks' => $categoryRepo->getCustomNetworks(),
-                ], 'Add Joined FL', 'joined');
+                ]);
             }
 
             // --- All valid: move upload, persist ---
@@ -219,14 +217,14 @@ final class JoinedController
             return Response::redirect($baseUrl . '/admin/joined');
         }
 
-        return $this->layout('admin/joined/form.php', [
+        return $this->adminLayout('admin/joined/form.php', 'Add Joined FL', 'joined', [
             'joined'          => null,
             'error'           => '',
             'old'             => [],
             'tfl_cats'        => $categoryRepo->getBySource('tfl'),
             'tafl_cats'       => $categoryRepo->getBySource('tafl'),
             'custom_networks' => $categoryRepo->getCustomNetworks(),
-        ], 'Add Joined FL', 'joined');
+        ]);
     }
 
     // -----------------------------------------------------------------------
@@ -314,7 +312,7 @@ final class JoinedController
                     array_unshift($messages, $imageError);
                 }
 
-                return $this->layout('admin/joined/form.php', [
+                return $this->adminLayout('admin/joined/form.php', 'Edit Joined FL', 'joined', [
                     'joined'          => $joined,
                     'error'           => implode(' ', $messages),
                     'field_errors'    => $v->errors(),
@@ -322,7 +320,7 @@ final class JoinedController
                     'tfl_cats'        => $categoryRepo->getBySource('tfl'),
                     'tafl_cats'       => $categoryRepo->getBySource('tafl'),
                     'custom_networks' => $categoryRepo->getCustomNetworks(),
-                ], 'Edit Joined FL', 'joined', 'Joined Listings › ' . $joined->name);
+                ], 'Joined Listings › ' . $joined->name);
             }
 
             // --- All valid: handle image, persist ---
@@ -367,14 +365,14 @@ final class JoinedController
             return Response::redirect($baseUrl . '/admin/joined');
         }
 
-        return $this->layout('admin/joined/form.php', [
+        return $this->adminLayout('admin/joined/form.php', 'Edit Joined FL', 'joined', [
             'joined'          => $joined,
             'error'           => '',
             'old'             => [],
             'tfl_cats'        => $categoryRepo->getBySource('tfl'),
             'tafl_cats'       => $categoryRepo->getBySource('tafl'),
             'custom_networks' => $categoryRepo->getCustomNetworks(),
-        ], 'Edit Joined FL', 'joined', 'Joined Listings › ' . $joined->name);
+        ], 'Joined Listings › ' . $joined->name);
     }
 
     // -----------------------------------------------------------------------
@@ -540,12 +538,12 @@ final class JoinedController
             return Response::redirect($baseUrl . '/admin/joined/settings');
         }
 
-        return $this->layout('admin/joined/settings.php', [
+        return $this->adminLayout('admin/joined/settings.php', 'Joined Settings', 'joined', [
             'display_mode' => (string) $config->get('joined_display_mode', 'all'),
             'per_page'     => (int) $config->get('joined_per_page', 10),
             'success'      => $success,
             'error'        => $error,
-        ], 'Joined Settings', 'joined');
+        ]);
     }
 
     // -----------------------------------------------------------------------
@@ -633,32 +631,4 @@ final class JoinedController
         }
     }
 
-    // -----------------------------------------------------------------------
-    // Shared render helper
-    // -----------------------------------------------------------------------
-
-    private function layout(string $template, array $data, string $pageTitle, string $section, string $pageSubtitle = ''): Response
-    {
-        $view      = $this->app->getView();
-        $config    = $this->app->getConfig();
-        $session   = $this->app->getSession();
-        $baseUrl   = $this->app->getBaseUrl();
-        $csrfToken = $this->app->getCSRF()->token();
-
-        $inner = $view->render($template, array_merge($data, [
-            'base_url'   => $baseUrl,
-            'csrf_token' => $csrfToken,
-        ]));
-
-        return Response::html($view->render('admin/layout.php', array_merge([
-            'page_title'      => $pageTitle,
-            'page_subtitle'   => $pageSubtitle,
-            'site_name'       => (string) $config->get('site_name', 'Luster'),
-            'admin_username'  => (string) $session->get('lstr_admin_username', ''),
-            'csrf_token'      => $csrfToken,
-            'current_section' => $section,
-            'base_url'        => $baseUrl,
-            'content'         => $inner,
-        ], $this->app->getAdminNavData())));
-    }
 }

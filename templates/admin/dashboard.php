@@ -220,9 +220,7 @@ $growthDiff          = $growth_this_month - $growth_last_month;
 <!-- ── Collective at a Glance ──────────────────────────────────────── -->
 <div class="card">
   <div class="card-head">
-      <div class="card-head-icon">
-        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6"/><path d="M8 5v3l2 2"/></svg>
-      </div>
+      <div class="card-head-icon"><?= View::icon('sparkles') ?></div>
       <span class="card-head-title">At a Glance</span>
   </div>
 
@@ -265,7 +263,7 @@ $growthDiff          = $growth_this_month - $growth_last_month;
   <div class="row-section">
     <div class="row-section-label">Collective</div>
     <div class="row">
-      <span class="row-label">Total Current Listings</span>
+      <span class="row-label">Total Active Listings</span>
       <span class="row-val"><?= (int) $fan_current ?></span>
     </div>
     <div class="row">
@@ -275,12 +273,6 @@ $growthDiff          = $growth_this_month - $growth_last_month;
         <?= (int) $listings_up_to_date ?> of <?= (int) $total_listings ?>
       </span>
     </div>
-    <?php if ($fan_pending > 0): ?>
-    <div class="row">
-      <span class="row-label">Listings Pending Approval</span>
-      <span class="row-val-warn"><?= (int) $fan_pending ?></span>
-    </div>
-    <?php endif; ?>
     <?php if ($opened_this_year > 0): ?>
     <div class="row">
       <span class="row-label">Opened This Year</span>
@@ -302,20 +294,14 @@ $growthDiff          = $growth_this_month - $growth_last_month;
       <span class="row-label">Total Members</span>
       <span class="row-val"><?= number_format((int) $total_members) ?></span>
     </div>
-    <?php if ($total_pending > 0): ?>
-    <div class="row">
-      <span class="row-label">Members Pending Review</span>
-      <span class="row-val row-val-warn"><?= (int) $total_pending ?></span>
-    </div>
-    <?php endif; ?>
     <div class="row">
       <span class="row-label">Growth This Month</span>
       <div style="display:flex;align-items:center;gap:.4rem">
         <span class="row-val"><?= (int) $growth_this_month ?></span>
-        <?php if ($growthDiff > 0): ?>
+        <?php if ($growth_this_month > 0): ?>
         <span class="growth-pill growth-pill--up">
           <svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M2 7l3-4 3 4"/></svg>
-          +<?= (int) $growthDiff ?> vs last month
+          +<?= (int) $growth_this_month ?> this month<?= $growthDiff > 0 ? ' (+' . (int) $growthDiff . ' vs last)' : '' ?>
         </span>
         <?php endif; ?>
       </div>

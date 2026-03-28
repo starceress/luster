@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Luster\Controllers\Admin;
 
-use Luster\Core\Application;
 use Luster\Core\Request;
 use Luster\Core\Response;
 use Luster\Repositories\AdminUserRepo;
@@ -12,7 +11,6 @@ use Luster\Repositories\EmailTemplateRepo;
 use Luster\Repositories\ListingRepo;
 use Luster\Repositories\MemberRepo;
 use Luster\Repositories\SavedEmailRepo;
-use Luster\Repositories\SiteSettingsRepo;
 
 /**
  * Unified Emails admin page.
@@ -26,11 +24,9 @@ use Luster\Repositories\SiteSettingsRepo;
  * All data for all tabs is loaded eagerly on every GET.
  * POST actions are handled by their original controllers.
  */
-final class EmailsController
+final class EmailsController extends AdminController
 {
     private const VALID_TABS = ['templates', 'bulk', 'custom', 'smtp'];
-
-    public function __construct(private readonly Application $app) {}
 
     // -----------------------------------------------------------------------
     // GET /admin/emails
@@ -191,7 +187,14 @@ final class EmailsController
         $adminUser = $adminRepo->getById($adminId);
 
         // ── Render ────────────────────────────────────────────────────────
-        return $this->layout([
+        $pageSubtitle = match ($tab) {
+            'bulk'   => 'Emails › Bulk Email',
+            'custom' => 'Emails › Custom Templates',
+            'smtp'   => 'Emails › SMTP Settings',
+            default  => 'Emails › Email Templates',
+        };
+
+        return $this->adminLayout('admin/emails/index.php', 'Emails', 'email-templates', [
             'active_tab'          => $tab,
             'success'             => $success,
             'error'               => $error,
@@ -220,45 +223,7 @@ final class EmailsController
             // SMTP tab
             'cfg'                 => $cfg,
             'admin_user'          => $adminUser,
-        ]);
+        ], $pageSubtitle);
     }
 
-    // -----------------------------------------------------------------------
-    // Internals
-    // -----------------------------------------------------------------------
-
-    private function layout(array $data): Response
-    {
-        $session  = $this->app->getSession();
-        $config   = $this->app->getConfig();
-        $baseUrl  = $this->app->getBaseUrl();
-        $csrf     = $this->app->getCSRF()->token();
-
-        $siteRepo = new SiteSettingsRepo($this->app->getDatabase());
-
-        $data['page_title']        = 'Emails';
-        $data['page_subtitle']     = match ($data['active_tab'] ?? 'templates') {
-            'bulk'   => 'Emails › Bulk Email',
-            'custom' => 'Emails › Custom Templates',
-            'smtp'   => 'Emails › SMTP Settings',
-            default  => 'Emails › Email Templates',
-        };
-        $data['current_section']   = 'email-templates';
-        $data['site_name']         = (string) $config->get('site_name', 'Luster');
-        $data['admin_username']    = (string) $session->get('lstr_admin_username', '');
-        $data['admin_date_format'] = $siteRepo->get('date_format', 'j M Y') ?? 'j M Y';
-        $data['admin_time_format'] = $siteRepo->get('time_format', 'H:i')   ?? 'H:i';
-        $data['csrf_token']        = $csrf;
-        $data['base_url']          = $baseUrl;
-
-        ob_start();
-        extract($data);
-        require \LUSTER_BASE . '/templates/admin/emails/index.php';
-        $content = ob_get_clean();
-
-        ob_start();
-        extract(array_merge(['content' => $content] + $data, $this->app->getAdminNavData()));
-        require \LUSTER_BASE . '/templates/admin/layout.php';
-        return Response::html((string) ob_get_clean());
-    }
 }

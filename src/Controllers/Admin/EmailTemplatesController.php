@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Luster\Controllers\Admin;
 
-use Luster\Core\Application;
 use Luster\Core\Request;
 use Luster\Core\Response;
 use Luster\Repositories\ActivityRepo;
@@ -19,9 +18,8 @@ use Luster\Repositories\ListingRepo;
  * POST /admin/email-templates/reset    — reset one type to next level
  * POST /admin/email-templates/toggle   — AJAX toggle enabled flag
  */
-final class EmailTemplatesController
+final class EmailTemplatesController extends AdminController
 {
-    public function __construct(private readonly Application $app) {}
 
     // -----------------------------------------------------------------------
     // GET /admin/email-templates — redirect to unified page
@@ -119,7 +117,7 @@ final class EmailTemplatesController
             ];
         }
 
-        return $this->layout([
+        return $this->adminLayout('admin/email-templates/index.php', 'Emails', 'email-templates', [
             'all_listings'        => $allListings,
             'scope'               => $scope,
             'listing'             => $listing,
@@ -129,7 +127,7 @@ final class EmailTemplatesController
             'site_name'           => (string) $config->get('site_name', 'Luster'),
             'success'             => $success,
             'error'               => $error,
-        ]);
+        ], 'Emails › Email Templates');
     }
 
     // -----------------------------------------------------------------------
@@ -270,28 +268,4 @@ final class EmailTemplatesController
     // Internals
     // -----------------------------------------------------------------------
 
-    private function layout(array $data): Response
-    {
-        $view      = $this->app->getView();
-        $config    = $this->app->getConfig();
-        $session   = $this->app->getSession();
-        $baseUrl   = $this->app->getBaseUrl();
-        $csrfToken = $this->app->getCSRF()->token();
-
-        $inner = $view->render('admin/email-templates/index.php', array_merge($data, [
-            'base_url'   => $baseUrl,
-            'csrf_token' => $csrfToken,
-        ]));
-
-        return Response::html($view->render('admin/layout.php', array_merge([
-            'page_title'      => 'Emails',
-            'page_subtitle'   => 'Emails › Email Templates',
-            'site_name'       => (string) $config->get('site_name', 'Luster'),
-            'admin_username'  => (string) $session->get('lstr_admin_username', ''),
-            'csrf_token'      => $csrfToken,
-            'current_section' => 'email-templates',
-            'base_url'        => $baseUrl,
-            'content'         => $inner,
-        ], $this->app->getAdminNavData())));
-    }
 }

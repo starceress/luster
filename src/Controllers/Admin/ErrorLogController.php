@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Luster\Controllers\Admin;
 
-use Luster\Core\Application;
 use Luster\Core\Request;
 use Luster\Core\Response;
 use Luster\Repositories\ErrorLogRepo;
@@ -16,9 +15,8 @@ use Luster\Repositories\ErrorLogRepo;
  *   GET  /admin/errorlog        — paginated list of log entries
  *   POST /admin/errorlog/flush  — delete all entries
  */
-final class ErrorLogController
+final class ErrorLogController extends AdminController
 {
-    public function __construct(private readonly Application $app) {}
 
     // -----------------------------------------------------------------------
     // GET /admin/errorlog
@@ -37,14 +35,14 @@ final class ErrorLogController
         $success = (string) $session->get('lstr_flash_success', '');
         $session->remove('lstr_flash_success');
 
-        return $this->layout('admin/errorlog/index.php', [
+        return $this->adminLayout('admin/errorlog/index.php', 'Error Log', 'errorlog', [
             'rows'    => $result['rows'],
             'total'   => $result['total'],
             'page'    => $page,
             'pages'   => $result['pages'],
             'per_page' => $perPage,
             'success' => $success,
-        ], 'Error Log', 'errorlog');
+        ]);
     }
 
     // -----------------------------------------------------------------------
@@ -90,31 +88,4 @@ final class ErrorLogController
         return Response::redirect($baseUrl . '/admin/errorlog');
     }
 
-    // -----------------------------------------------------------------------
-    // Shared render helper
-    // -----------------------------------------------------------------------
-
-    private function layout(string $template, array $data, string $pageTitle, string $section): Response
-    {
-        $view      = $this->app->getView();
-        $config    = $this->app->getConfig();
-        $session   = $this->app->getSession();
-        $baseUrl   = $this->app->getBaseUrl();
-        $csrfToken = $this->app->getCSRF()->token();
-
-        $inner = $view->render($template, array_merge($data, [
-            'base_url'   => $baseUrl,
-            'csrf_token' => $csrfToken,
-        ]));
-
-        return Response::html($view->render('admin/layout.php', array_merge([
-            'page_title'      => $pageTitle,
-            'site_name'       => (string) $config->get('site_name', 'Luster'),
-            'admin_username'  => (string) $session->get('lstr_admin_username', ''),
-            'csrf_token'      => $csrfToken,
-            'current_section' => $section,
-            'base_url'        => $baseUrl,
-            'content'         => $inner,
-        ], $this->app->getAdminNavData())));
-    }
 }

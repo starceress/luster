@@ -7,7 +7,7 @@ use Luster\Core\View;
 /** @var array                       $grouped          [{listing: Listing, members: Member[]}] */
 /** @var array                       $search_results   [{listing: Listing, member: Member}] */
 /** @var array                       $pending_updates  pending update objects */
-/** @var array                       $fl_by_id         listing id â†’ Listing */
+/** @var array                       $fl_by_id         listing id †’ Listing */
 /** @var \Luster\Models\Listing[]    $all_listings */
 /** @var string                      $search */
 /** @var string                      $success */
@@ -62,7 +62,7 @@ $pendingSortUrl = static function (string $col) use ($b, $sort, $dir): string {
 
 <?php if ($isSearch): ?>
 
-  <!-- â•â•â• Global search results â•â•â• -->
+  <!--  Global search results  -->
   <?php $total = count($search_results); ?>
   <p class="text-muted" style="font-size:.8rem;margin-bottom:.75rem">
     <?= $total ?> result<?= $total !== 1 ? 's' : '' ?> for
@@ -127,7 +127,7 @@ $pendingSortUrl = static function (string $col) use ($b, $sort, $dir): string {
                   </form>
                 <?php endif; ?>
                 <a href="<?= $b ?>/admin/members/<?= $flId ?>/edit?email=<?= urlencode($m->email) ?>"
-                   class="btn btn-primary btn-sm">Edit</a>
+                   class="btn btn-tertiary btn-sm">Edit</a>
                 <a href="<?= $b ?>/admin/members/<?= $flId ?>/emailmember?email=<?= urlencode($m->email) ?>"
                    class="btn btn-quaternary btn-sm">Email</a>
               </div>
@@ -142,7 +142,7 @@ $pendingSortUrl = static function (string $col) use ($b, $sort, $dir): string {
 
 <?php else: ?>
 
-  <!-- â•â•â• Pending new members by listing â•â•â• -->
+  <!--  Pending new members by listing  -->
   <div class="overview-section-head">
     <div>
       <div class="overview-section-title">
@@ -156,7 +156,7 @@ $pendingSortUrl = static function (string $col) use ($b, $sort, $dir): string {
     <div class="card">
       <div class="empty">
         <svg class="empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
-        No pending members â€” you're all caught up.
+        No pending members - you're all caught up.
       </div>
     </div>
   <?php else: ?>
@@ -230,7 +230,7 @@ $pendingSortUrl = static function (string $col) use ($b, $sort, $dir): string {
                   <button type="submit" class="btn btn-success btn-sm">Approve</button>
                 </form>
                 <a href="<?= $b ?>/admin/members/<?= $flId ?>/edit?email=<?= urlencode($m->email) ?>"
-                   class="btn btn-primary btn-sm">Edit</a>
+                   class="btn btn-tertiary btn-sm">Edit</a>
                 <a href="<?= $b ?>/admin/members/<?= $flId ?>/emailmember?email=<?= urlencode($m->email) ?>"
                    class="btn btn-quaternary btn-sm">Email</a>
                 <button type="submit" form="del-rej-<?= md5($m->email . $flId) ?>" class="btn btn-danger btn-sm">Reject</button>
@@ -256,7 +256,7 @@ $pendingSortUrl = static function (string $col) use ($b, $sort, $dir): string {
     <?php endforeach; ?>
   <?php endif; ?>
 
-  <!-- â•â•â• Pending info updates â•â•â• -->
+  <!--  Pending info updates  -->
   <div class="overview-section-divider"></div>
   <div class="overview-section-head">
     <div>
@@ -264,7 +264,7 @@ $pendingSortUrl = static function (string $col) use ($b, $sort, $dir): string {
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="15" height="15"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
         Pending Info Updates
       </div>
-      <div class="overview-section-sub">Members requesting changes to their details â€” review each diff and accept or reject.</div>
+      <div class="overview-section-sub">Members requesting changes to their details - review each diff and accept or reject.</div>
     </div>
   </div>
   <?php if (empty($pending_updates)): ?>
@@ -328,7 +328,7 @@ $pendingSortUrl = static function (string $col) use ($b, $sort, $dir): string {
                 <td data-label="Email"><?= View::e($pu->member_email) ?></td>
                 <td data-label="Changes">
                   <?php if ($puCount === 0): ?>
-                    <span class="text-dim">â€”</span>
+                    <span class="text-dim">-</span>
                   <?php else: ?>
                     <details style="cursor:pointer">
                       <summary style="list-style:none;display:inline-flex;align-items:center;gap:.3rem;font-size:.85rem;color:var(--text-muted)">
@@ -361,7 +361,7 @@ $pendingSortUrl = static function (string $col) use ($b, $sort, $dir): string {
                       <button type="submit" class="btn btn-success btn-sm">Approve</button>
                     </form>
                     <a href="<?= $b ?>/admin/members/<?= $puFlId ?>/edit?email=<?= urlencode($pu->member_email) ?>"
-                       class="btn btn-quaternary btn-sm">Edit</a>
+                       class="btn btn-tertiary btn-sm">Edit</a>
                     <button type="submit" form="del-pu-<?= (int) $pu->id ?>" class="btn btn-danger btn-sm">Reject</button>
                   </div>
                 </td>

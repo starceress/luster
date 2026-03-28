@@ -172,7 +172,7 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
                 </td>
                 <td class="act-col">
                   <div class="row-actions">
-                    <a href="<?= $b ?>/admin/admin-users/<?= $user->id ?>/edit" class="btn btn-primary btn-sm">Edit</a>
+                    <a href="<?= $b ?>/admin/admin-users/<?= $user->id ?>/edit" class="btn btn-tertiary btn-sm">Edit</a>
                     <?php if ($user->id !== ($current_admin_id ?? 0)): ?>
                       <form method="POST"
                             action="<?= $b ?>/admin/admin-users/<?= $user->id ?>/delete"

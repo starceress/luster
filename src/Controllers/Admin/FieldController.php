@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Luster\Controllers\Admin;
 
 use InvalidArgumentException;
-use Luster\Core\Application;
 use Luster\Core\Request;
 use Luster\Core\Response;
 use Luster\Core\Validator;
@@ -30,9 +29,8 @@ use Luster\Repositories\FieldRepo;
  *   new $class($this)
  * Changing the signature here would require updating the resolver closure.
  */
-final class FieldController
+final class FieldController extends AdminController
 {
-    public function __construct(private readonly Application $app) {}
 
     // -----------------------------------------------------------------------
     // GET /admin/listings/{fid}/fields
@@ -52,12 +50,12 @@ final class FieldController
         $success = (string) $req->query('success', '');
         $error   = (string) $req->query('error', '');
 
-        return $this->layout('admin/fields/index.php', [
+        return $this->adminLayout('admin/fields/index.php', 'Fields', 'listings', [
             'listing' => $listing,
             'fields'     => $fields,
             'success'    => $success,
             'error'      => $error,
-        ], 'Fields', 'listings', 'Owned › ' . $listing->name);
+        ], 'Owned › ' . $listing->name);
     }
 
     // -----------------------------------------------------------------------
@@ -226,12 +224,12 @@ final class FieldController
             return Response::redirect($indexUrl . '?error=' . urlencode('Field not found.'));
         }
 
-        return $this->layout('admin/fields/edit.php', [
+        return $this->adminLayout('admin/fields/edit.php', 'Edit Field', 'listings', [
             'listing' => $listing,
             'field'      => $current,
             'options'    => $current->options,
             'error'      => (string) $req->query('error', ''),
-        ], 'Edit Field', 'listings', 'Owned › ' . $listing->name);
+        ], 'Owned › ' . $listing->name);
     }
 
     // -----------------------------------------------------------------------
@@ -369,33 +367,4 @@ final class FieldController
         ], $fields);
     }
 
-    /**
-     * Renders an inner template wrapped in the admin layout.
-     *
-     * @param array<string, mixed> $data
-     */
-    private function layout(string $template, array $data, string $pageTitle, string $section, string $pageSubtitle = ''): Response
-    {
-        $view      = $this->app->getView();
-        $config    = $this->app->getConfig();
-        $session   = $this->app->getSession();
-        $baseUrl   = $this->app->getBaseUrl();
-        $csrfToken = $this->app->getCSRF()->token();
-
-        $inner = $view->render($template, array_merge($data, [
-            'base_url'   => $baseUrl,
-            'csrf_token' => $csrfToken,
-        ]));
-
-        return Response::html($view->render('admin/layout.php', array_merge([
-            'page_title'      => $pageTitle,
-            'page_subtitle'   => $pageSubtitle,
-            'site_name'       => (string) $config->get('site_name', 'Luster'),
-            'admin_username'  => (string) $session->get('lstr_admin_username', ''),
-            'csrf_token'      => $csrfToken,
-            'current_section' => $section,
-            'base_url'        => $baseUrl,
-            'content'         => $inner,
-        ], $this->app->getAdminNavData())));
-    }
 }

@@ -61,11 +61,11 @@ usort($allNetworks, static fn($a, $b) => strcasecmp($a, $b));
 $filtersActive = ($search ?? '') !== '' || ($filter_network ?? '') !== ''
               || ($filter_cat ?? '') !== '' || ($filter_type ?? '') !== '';
 
-// â”€â”€ Dynamic card-head title â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+//  Dynamic card-head title 
 // Combinations:
-//   network [: category] [ â€” type] [ â€” "search"]
+//   network [: category] [ - type] [ - "search"]
 //   type only, search only, or any subset thereof
-//   nothing â†’ "All Listings"
+//   nothing †’ "All Listings"
 $_fn  = $filter_network ?? '';
 $_fc  = $filter_cat     ?? '';
 $_ft  = $filter_type    ?? '';
@@ -197,7 +197,7 @@ $flSortUrl = static function (string $col) use ($b, $flSort, $flDir, $search, $f
     <label for="bulk-action">Bulk action:</label>
     <div class="toolbar-select-wrap">
     <select id="bulk-action" name="action" class="select">
-      <option value="" disabled selected>â€” Select â€”</option>
+      <option value="" disabled selected>- Select -</option>
       <option value="delete">Delete</option>
     </select>
     </div>
@@ -257,7 +257,7 @@ $flSortUrl = static function (string $col) use ($b, $flSort, $flDir, $search, $f
           </td>
 
           <!-- Category -->
-          <td class="text-muted" data-label="Category"><?= View::e($category_names[$fl->id] ?? 'â€”') ?></td>
+          <td class="text-muted" data-label="Category"><?= View::e($category_names[$fl->id] ?? '-') ?></td>
 
           <!-- Status -->
           <td data-label="Status">

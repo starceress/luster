@@ -24,7 +24,7 @@ $allOk = empty($failed);
     </div>
   <?php else: ?>
     <div class="alert alert-error" style="margin-bottom:1.25rem">
-      Send completed with errors â€” <?= count($failed) ?> message<?= count($failed) !== 1 ? 's' : '' ?> failed.
+      Send completed with errors - <?= count($failed) ?> message<?= count($failed) !== 1 ? 's' : '' ?> failed.
     </div>
   <?php endif; ?>
 

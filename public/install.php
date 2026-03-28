@@ -57,6 +57,41 @@ if (is_file(SENTINEL_PATH) || is_file(CONFIG_PATH)) {
 }
 
 // -------------------------------------------------------------------------
+// DB-level re-installation guard.
+// If the sentinel or config files were deleted but the database is already
+// populated, refuse to re-run the installer regardless. This is an
+// independent second lock so that file-system access alone cannot reopen
+// the wizard against an existing installation.
+// -------------------------------------------------------------------------
+
+if (!empty($_SESSION['lstr_install_data']['db'])) {
+    $_guard = $_SESSION['lstr_install_data']['db'];
+    try {
+        $_guardPdo = new PDO(
+            "mysql:host={$_guard['host']};port={$_guard['port']};dbname={$_guard['name']};charset=utf8mb4",
+            $_guard['user'],
+            $_guard['pass'],
+            [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION, PDO::ATTR_TIMEOUT => 3]
+        );
+        $_tableCheck = $_guardPdo->query(
+            "SELECT COUNT(*) FROM information_schema.TABLES
+             WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'lstr_admin_users'"
+        );
+        if ($_tableCheck !== false && (int) $_tableCheck->fetchColumn() > 0) {
+            $_countCheck = $_guardPdo->query('SELECT COUNT(*) FROM lstr_admin_users');
+            if ($_countCheck !== false && (int) $_countCheck->fetchColumn() > 0) {
+                renderAlreadyInstalled();
+                exit;
+            }
+        }
+        unset($_guardPdo, $_tableCheck, $_countCheck);
+    } catch (\PDOException $e) {
+        // Cannot connect yet — proceed; step 2 will re-validate credentials.
+    }
+    unset($_guard);
+}
+
+// -------------------------------------------------------------------------
 // CSRF token
 // -------------------------------------------------------------------------
 
@@ -205,6 +240,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             $db['pass'],
                             [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]
                         );
+
+                        // Hard DB guard: reject if lstr_admin_users already has rows.
+                        // Catches the case where both sentinel and config were deleted
+                        // but the database was untouched.
+                        $existingTable = $pdo->query(
+                            "SELECT COUNT(*) FROM information_schema.TABLES
+                             WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'lstr_admin_users'"
+                        );
+                        if ($existingTable !== false && (int) $existingTable->fetchColumn() > 0) {
+                            $existingAdmin = $pdo->query('SELECT COUNT(*) FROM lstr_admin_users');
+                            if ($existingAdmin !== false && (int) $existingAdmin->fetchColumn() > 0) {
+                                throw new \RuntimeException(
+                                    'Installation blocked: this database already contains admin accounts. ' .
+                                    'Drop the lstr_* tables first, or restore the missing installation files.'
+                                );
+                            }
+                        }
 
                         installTables($pdo);
                         installAdminUser($pdo, $adminUsername, $adminEmail, $adminPassword);

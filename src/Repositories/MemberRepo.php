@@ -451,7 +451,7 @@ final class MemberRepo
     {
         $p    = $this->resolveTable($prefix);
         $stmt = $this->db->prepare(
-            "SELECT * FROM {$p} ORDER BY added DESC LIMIT :limit"
+            "SELECT * FROM {$p} WHERE {$this->approvedWhere} ORDER BY added DESC LIMIT :limit"
         );
         $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
         $stmt->execute();

@@ -47,106 +47,128 @@ $dataCustom = json_encode($custom_networks ?? [], JSON_HEX_QUOT | JSON_HEX_AMP |
 $dataExist  = json_encode($existingCats,     JSON_HEX_QUOT | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_TAG);
 ?>
 
-<p class="page-back">
-  <a href="<?= $b ?>/admin/joined" class="link">&larr; Joined Listings</a>
-</p>
+<div class="page-topbar">
+  <a href="<?= $b ?>/admin/joined" class="back-link">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+    Joined Listings
+  </a>
+</div>
 
 <?php if ($error !== ''): ?>
   <div class="alert alert-error"><?= View::e($error) ?></div>
 <?php endif; ?>
 
-<div class="card card-padded">
-  <form method="POST" action="<?= $action ?>" enctype="multipart/form-data" class="js-warn-unsaved">
-    <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
+<form method="POST" action="<?= $action ?>" enctype="multipart/form-data" class="js-warn-unsaved">
+  <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
 
-    <!-- ① Category widget -->
-    <div class="form-group">
-      <label class="form-label">Category</label>
-      <div class="cat-widget"
-           id="cat-widget"
-           data-tfl='<?= $dataTfl ?>'
-           data-tafl='<?= $dataTafl ?>'
-           data-custom='<?= $dataCustom ?>'
-           data-existing='<?= $dataExist ?>'>
-        <div id="cat-rows"></div>
-        <a href="#" class="link" id="cat-add"
-           style="font-size:0.8125rem;display:inline-block;margin-top:0.4rem">+ Add another category</a>
+  <div class="card listing-field-card" style="margin-bottom:0">
+    <div class="listing-field-section">
+
+      <!-- Network & Category widget -->
+      <div class="listing-field-row listing-field-row--top">
+        <span class="listing-field-label">Network &amp; Category</span>
+        <div>
+          <div class="cat-widget"
+               id="cat-widget"
+               data-tfl='<?= $dataTfl ?>'
+               data-tafl='<?= $dataTafl ?>'
+               data-custom='<?= $dataCustom ?>'
+               data-existing='<?= $dataExist ?>'>
+            <div id="cat-rows"></div>
+            <a href="#" class="link" id="cat-add"
+               style="font-size:.8125rem;display:inline-block;margin-top:.5rem">+ Add another category</a>
+          </div>
+          <p class="form-hint">Assign to one or more networks (TFL, TAFL, custom).</p>
+        </div>
       </div>
-      <p class="form-hint">Assign to one or more networks (TFL, TAFL, custom).</p>
-    </div>
 
-    <div class="section-divider"></div>
+      <!-- URL -->
+      <div class="listing-field-row<?= !empty($fe['url']) ? ' has-error' : '' ?>">
+        <label class="listing-field-label" for="jf-url">URL <span class="req">*</span></label>
+        <div>
+          <input id="jf-url" type="url" name="url" class="form-input" maxlength="500"
+                 placeholder="https://" required
+                 value="<?= View::e($val('url', $joined, 'url')) ?>">
+          <?php if (!empty($fe['url'])): ?>
+            <p class="field-error"><?= View::e($fe['url'][0]) ?></p>
+          <?php endif; ?>
+        </div>
+      </div>
 
-    <!-- ② URL -->
-    <div class="form-group<?= !empty($fe['url']) ? ' has-error' : '' ?>">
-      <label class="form-label" for="jf-url">URL <span>*</span></label>
-      <input id="jf-url" type="url" name="url" class="form-input" maxlength="500"
-             placeholder="https://" required
-             value="<?= View::e($val('url', $joined, 'url')) ?>">
-      <?php if (!empty($fe['url'])): ?><p class="field-error"><?= View::e($fe['url'][0]) ?></p><?php endif; ?>
-    </div>
+      <!-- Subject -->
+      <div class="listing-field-row<?= !empty($fe['name']) ? ' has-error' : '' ?>">
+        <label class="listing-field-label" for="jf-name">Subject <span class="req">*</span></label>
+        <div>
+          <input id="jf-name" type="text" name="name" class="form-input" maxlength="255" required
+                 placeholder="e.g. Hunters: Voices Strong"
+                 value="<?= View::e($val('name', $joined, 'name')) ?>">
+          <?php if (!empty($fe['name'])): ?>
+            <p class="field-error"><?= View::e($fe['name'][0]) ?></p>
+          <?php endif; ?>
+        </div>
+      </div>
 
-    <!-- ③ Subject -->
-    <div class="form-group<?= !empty($fe['name']) ? ' has-error' : '' ?>">
-      <label class="form-label" for="jf-name">Subject <span>*</span></label>
-      <input id="jf-name" type="text" name="name" class="form-input" maxlength="255" required
-             value="<?= View::e($val('name', $joined, 'name')) ?>">
-      <?php if (!empty($fe['name'])): ?><p class="field-error"><?= View::e($fe['name'][0]) ?></p><?php endif; ?>
-    </div>
+      <!-- Date Joined -->
+      <div class="listing-field-row">
+        <label class="listing-field-label" for="jf-date">Date Joined</label>
+        <input id="jf-date" type="date" name="date_joined" class="form-input" style="max-width:200px"
+               value="<?= View::e($val('date_joined', $joined, 'dateJoined')) ?>">
+      </div>
 
-    <!-- ④ Date Joined -->
-    <div class="form-group">
-      <label class="form-label" for="jf-date">Date Joined</label>
-      <input id="jf-date" type="date" name="date_joined" class="form-input" style="max-width:200px"
-             value="<?= View::e($val('date_joined', $joined, 'dateJoined')) ?>">
-    </div>
+      <!-- Image -->
+      <div class="listing-field-row listing-field-row--top">
+        <span class="listing-field-label">Image</span>
+        <div>
+          <?php if ($isEdit && ($joined->image ?? '') !== ''): ?>
+            <div style="margin-bottom:.75rem">
+              <img src="<?= View::e($b . '/uploads/joined/' . $joined->image) ?>"
+                   alt="Current image"
+                   style="max-height:80px;max-width:200px;border:1px solid var(--border);border-radius:6px;display:block;margin-bottom:.5rem">
+              <label class="form-check" style="color:var(--danger)">
+                <input type="checkbox" id="jf-delete-img" name="delete_image" value="1">
+                <span class="form-check-label" style="color:var(--danger)">Delete current image</span>
+              </label>
+            </div>
+          <?php endif; ?>
+          <label class="file-drop-zone">
+            <input type="file" name="image" accept="image/jpeg,image/png,image/gif,image/webp">
+            <svg class="file-drop-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="2" width="12" height="12" rx="1.5"/><circle cx="5.5" cy="5.5" r="1"/><path d="M14 10l-3.5-3.5L6 11l-2-2-2 2"/></svg>
+            <span class="file-drop-label">Click to upload</span>
+            <span class="file-drop-sub">JPEG, PNG, GIF, WebP &mdash; max 2 MB</span>
+          </label>
+        </div>
+      </div>
 
-    <div class="section-divider"></div>
+      <!-- Status -->
+      <div class="listing-field-row listing-field-row--top">
+        <label class="listing-field-label" for="jf-status">Status</label>
+        <div>
+          <div class="select-wrap" style="max-width:200px">
+            <select id="jf-status" name="status" class="form-select">
+              <option value="joined"<?= $statusVal === 'joined'  ? ' selected' : '' ?>>Joined</option>
+              <option value="pending"<?= $statusVal === 'pending' ? ' selected' : '' ?>>Pending</option>
+            </select>
+          </div>
+        </div>
+      </div>
 
-    <!-- ⑤ Image -->
-    <div class="form-group">
-      <label class="form-label" for="jf-image">Image</label>
-      <?php if ($isEdit && $joined->image !== null && $joined->image !== ''): ?>
-        <img src="<?= View::e($b . '/uploads/joined/' . $joined->image) ?>"
-             alt="Current image" class="fl-image" style="max-height:80px;margin-bottom:.5rem">
-        <label class="form-check" style="margin-bottom:.4rem;color:var(--danger)">
-          <input type="checkbox" id="jf-delete-img" name="delete_image" value="1">
-          <span class="form-check-label" style="color:var(--danger)">Delete current image</span>
+      <!-- Visibility -->
+      <div class="listing-field-row">
+        <span class="listing-field-label">Visibility</span>
+        <label class="form-check">
+          <input id="jf-active" type="checkbox" name="active" value="1"
+                 <?= $activeVal ? 'checked' : '' ?>>
+          <span class="form-check-label">Active (visible on public site)</span>
         </label>
-        <p class="form-hint" style="margin-bottom:.4rem">Replace image:</p>
-      <?php endif; ?>
-      <input id="jf-image" type="file" name="image"
-             accept="image/jpeg,image/png,image/gif,image/webp">
-      <p class="form-hint">JPEG, PNG, GIF, or WebP &mdash; max&nbsp;2&nbsp;MB.</p>
-    </div>
-
-    <!-- ⑥ Status -->
-    <div class="form-group">
-      <label class="form-label" for="jf-status">Status</label>
-      <div class="select-wrap" style="max-width:200px">
-        <select id="jf-status" name="status" class="form-select">
-          <option value="joined"<?= $statusVal === 'joined'  ? ' selected' : '' ?>>Joined</option>
-          <option value="pending"<?= $statusVal === 'pending' ? ' selected' : '' ?>>Pending</option>
-        </select>
       </div>
-    </div>
 
-    <!-- ⑦ Visibility -->
-    <div class="form-group">
-      <label class="form-label">Visibility</label>
-      <label class="form-check">
-        <input id="jf-active" type="checkbox" name="active" value="1"
-               <?= $activeVal ? 'checked' : '' ?>>
-        <span class="form-check-label">Active (visible on public site)</span>
-      </label>
-    </div>
+    </div><!-- /.listing-field-section -->
 
-    <div class="btn-row">
+    <div class="composer-footer">
       <button type="submit" class="btn btn-primary"><?= $isEdit ? 'Save Changes' : 'Add Joined FL' ?></button>
-      <button type="button" class="btn btn-ghost" id="clear-form-btn">Clear Form</button>
-      <a href="<?= $b ?>/admin/joined" class="link">Cancel</a>
+      <button type="button" class="btn btn-ghost" id="clear-form-btn">Clear</button>
+      <a href="<?= $b ?>/admin/joined" class="btn btn-ghost">Cancel</a>
     </div>
+  </div>
 
-  </form>
-</div>
-
+</form>

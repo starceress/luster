@@ -67,7 +67,7 @@ $id = (int) $listing->id;
             </td>
             <td class="act-col">
               <a href="<?= $b ?>/admin/listings/<?= $id ?>/fields/<?= urlencode($field->name) ?>/edit"
-                 class="btn btn-primary btn-sm">Edit</a>
+                 class="btn btn-tertiary btn-sm">Edit</a>
 
               <form method="POST"
                     action="<?= $b ?>/admin/listings/<?= $id ?>/fields/<?= urlencode($field->name) ?>/delete"
