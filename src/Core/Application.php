@@ -183,7 +183,7 @@ final class Application
      * Returns global nav data for admin layout templates.
      * Lazily computed once per request and cached on the instance.
      *
-     * @return array{nav_pending_members: int, nav_site_url: string}
+     * @return array{nav_pending_members: int, nav_pending_kim: int, nav_site_url: string}
      */
     public function getAdminNavData(): array
     {
@@ -203,8 +203,15 @@ final class Application
             $pending += $memberRepo->countPending($fl->dbprefix);
         }
 
+        $pendingKim = 0;
+        if (in_array('Kim', $this->installedAddonKeys, true)) {
+            $kimRepo    = new \Luster\Addons\Kim\KimMemberRepo($this->database);
+            $pendingKim = array_sum($kimRepo->getPendingCounts());
+        }
+
         $cache = [
             'nav_pending_members'  => $pending,
+            'nav_pending_kim'      => $pendingKim,
             'nav_site_url'         => rtrim((string) $this->config->get('site_url', ''), '/'),
             'nav_installed_addons' => $this->installedAddonKeys,
         ];

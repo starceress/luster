@@ -6,15 +6,9 @@ $s = match ($current_section ?? '') {
     'blacklist'       => 'settings',
     'sysinfo'         => 'settings',
     'email-templates' => 'emails',
+    'import'          => 'import',
     default           => ($current_section ?? ''),
 };
-// Section identity attribute - shared by neb-card borders and active nav colour
-$_uri = $_SERVER['REQUEST_URI'] ?? '';
-$pageSection = '';
-if (preg_match('#/admin/(listings|joined|members|affiliates|categories|pending-updates)(?:/|$|\?)#', $_uri, $_m)) {
-    $pageSection = $_m[1];
-}
-
 if (!function_exists('navActive')) {
     function navActive(string $section, string $current): string {
         return $section === $current ? ' active' : '';
@@ -28,10 +22,11 @@ if (!function_exists('navActive')) {
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Luster &#10022; Fanlisting Management System  &mdash; <?= View::e($page_title) ?></title>
-  <link rel="stylesheet" href="<?= $b ?>/assets/css/admin.css">
+  <?php $assetV = filemtime(LUSTER_BASE . '/public/assets/css/admin.css') ?: 0; ?>
+  <link rel="stylesheet" href="<?= $b ?>/assets/css/admin.css?v=<?= $assetV ?>">
   <script>(function(){var t=localStorage.getItem('lstr_theme');if(t==='dark'||t==='light')document.documentElement.setAttribute('data-theme',t);})();</script>
 </head>
-<body<?= $pageSection !== '' ? ' data-section="' . $pageSection . '"' : '' ?>>
+<body>
 
 <!--  SIDEBAR  -->
 <aside class="sidebar">
@@ -65,7 +60,7 @@ if (!function_exists('navActive')) {
 
       <a href="<?= $b ?>/admin/members" class="nav-item<?= navActive('members', $s) ?>"><span class="nav-icon"><?= View::icon('members') ?></span> Members
         <?php if (($nav_pending_members ?? 0) > 0): ?>
-          <span class="nav-pending"><?= (int) $nav_pending_members ?></span>
+          <span class="badge badge-pending" style="margin-left: auto;"><?= (int) $nav_pending_members ?></span>
         <?php endif; ?>
       </a>
 
@@ -79,7 +74,7 @@ if (!function_exists('navActive')) {
 
       <?php $_navAddons = $nav_installed_addons ?? [];
       if (in_array('Kim', $_navAddons, true)): ?>
-      <a href="<?= $b ?>/admin/kim" class="nav-item<?= navActive('kim', $s) ?>"><span class="nav-icon"><?= View::icon('kim') ?></span> Keep In Mind</a>
+      <a href="<?= $b ?>/admin/kim" class="nav-item<?= navActive('kim', $s) ?>"><span class="nav-icon"><?= View::icon('kim') ?></span> Keep In Mind<?php if (($nav_pending_kim ?? 0) > 0): ?><span class="badge badge-pending" style="margin-left: auto;"><?= (int) $nav_pending_kim ?></span><?php endif; ?></a>
       <?php endif; ?>
 
       <?php if (in_array('Updates', $_navAddons, true)): ?>
@@ -92,6 +87,8 @@ if (!function_exists('navActive')) {
       <a href="<?= $b ?>/admin/addons" class="nav-item<?= navActive('addons', $s) ?>"><span class="nav-icon"><?= View::icon('addon') ?></span> Add-Ons</a>
       
       <a href="<?= $b ?>/admin/settings" class="nav-item<?= navActive('settings', $s) ?>"><span class="nav-icon"><?= View::icon('gear') ?></span> Settings</a>
+
+      <a href="<?= $b ?>/admin/import" class="nav-item<?= navActive('import', $s) ?>"><span class="nav-icon"><?= View::icon('import') ?></span> Import Data</a>
 
       <?php $logsOpen = in_array($s, ['activitylog', 'errorlog']); ?>
       <div class="nav-group">
@@ -145,20 +142,16 @@ if (!function_exists('navActive')) {
     <div class="topbar-right">
       <?php if (!empty($nav_site_url)): ?>
         <a href="<?= View::e($nav_site_url) ?>" target="_blank" rel="noopener noreferrer"
-           class="topbar-view-site" aria-label="View public site">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-            <circle cx="12" cy="12" r="10"/>
-            <path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
-          </svg>
+           class="btn btn-quaternary btn-sm" aria-label="View public site"><?= View::icon('www') ?>
           <span>View Site</span>
         </a>
       <?php endif; ?>
       <button class="theme-toggle" aria-label="Toggle theme">
-        <span class="theme-toggle-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="5"/><path d="M12 1v3M12 20v3M4.22 4.22l2.12 2.12M17.66 17.66l2.12 2.12M1 12h3M20 12h3M4.22 19.78l2.12-2.12M17.66 6.34l2.12-2.12"/></svg></span>
+        <span class="theme-toggle-icon"><?= View::icon('sun') ?></span>
         <div class="toggle-track">
           <div class="toggle-thumb"></div>
         </div>
-        <span class="theme-toggle-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg></span>
+        <span class="theme-toggle-icon"><?= View::icon('moon') ?></span>
       </button>
     </div>
   </div>
@@ -188,7 +181,8 @@ if (!function_exists('navActive')) {
   </div>
 </div>
 
-<script src="<?= $b ?>/assets/js/admin.js"></script>
+  <?php $jsV = filemtime(LUSTER_BASE . '/public/assets/js/admin.js') ?: 0; ?>
+<script src="<?= $b ?>/assets/js/admin.js?v=<?= $jsV ?>"></script>
 
 </body>
 </html>

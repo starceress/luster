@@ -105,10 +105,9 @@ $flSortUrl = static function (string $col) use ($b, $flSort, $flDir, $search, $f
 
 ?>
 
-<!-- Toolbar -->
 <div class="toolbar">
-  <div class="actions">
-    <button type="button" class="btn btn-quaternary btn-sm filter-toggle" id="fl-filter-toggle"
+  <div class="actions-row">
+    <button type="button" class="btn btn-preview btn-sm filter-toggle" id="fl-filter-toggle"
             aria-expanded="<?= $filtersActive ? 'true' : 'false' ?>"
             aria-controls="filter-panel">
       <?= View::icon('filter') ?>
@@ -116,16 +115,14 @@ $flSortUrl = static function (string $col) use ($b, $flSort, $flDir, $search, $f
     </button>
   </div>
   <div>
-    <a href="<?= $b ?>/admin/listings/add" class="btn btn-primary btn-sm">+ Add Listing</a>
+    <a href="<?= $b ?>/admin/listings/add" class="btn btn-primary btn-sm"><?= View::icon('add') ?> Add Listing</a>
     <a href="<?= $b ?>/admin/listings/collective-templates" class="btn btn-secondary btn-sm">Collective Templates</a>
     <a href="<?= $b ?>/admin/listings/settings" class="btn btn-ghost btn-sm">Display Settings</a>
   </div>
 </div>
 
-<!-- Collapsible filter panel -->
 <div class="filter-panel<?= $filtersActive ? ' is-open' : '' ?>" id="filter-panel">
   <form method="GET" action="" class="filter-row" id="fl-filter-form">
-
     <div class="toolbar-select-wrap">
     <select id="fl-net-sel" name="network" class="select">
       <option value="">All Networks</option>
@@ -156,10 +153,13 @@ $flSortUrl = static function (string $col) use ($b, $flSort, $flDir, $search, $f
     <div class="toolbar-select-wrap">
     <select name="type" class="select js-autosubmit">
       <option value="">All Types</option>
+      <?php
+        $_typeLabels = ['listing' => 'Fanlisting', 'clique' => 'Clique', 'collective' => 'Collective', 'shrine' => 'Shrine', 'webring' => 'Webring', 'other' => 'Other'];
+      ?>
       <?php foreach ($type_options ?? [] as $to): ?>
         <option value="<?= View::e($to) ?>"
                 <?= ($filter_type ?? '') === $to ? 'selected' : '' ?>>
-          <?= View::e(ucfirst($to)) ?>
+          <?= View::e($_typeLabels[$to] ?? ucfirst($to)) ?>
         </option>
       <?php endforeach; ?>
     </select>
@@ -173,7 +173,6 @@ $flSortUrl = static function (string $col) use ($b, $flSort, $flDir, $search, $f
   </form>
 </div>
 
-
 <?php if ($success !== ''): ?>
   <div class="alert alert-success"><?= View::e($success) ?></div>
 <?php endif; ?>
@@ -181,9 +180,9 @@ $flSortUrl = static function (string $col) use ($b, $flSort, $flDir, $search, $f
 <?php if (empty($listings)): ?>
   <div class="card">
     <div class="empty">
-      <svg class="empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01z"/></svg>
+      <span class="empty-icon"><?= View::icon('star', ['width' => 32, 'height' => 32]) ?></span>
       No listings yet.
-      <a href="<?= $b ?>/admin/listings/add" class="btn btn-primary btn-sm">+ Add Listing</a>
+      <a href="<?= $b ?>/admin/listings/add" class="btn btn-primary btn-sm"><?= View::icon('add') ?> Add Listing</a>
     </div>
   </div>
 <?php else: ?>
@@ -192,12 +191,11 @@ $flSortUrl = static function (string $col) use ($b, $flSort, $flDir, $search, $f
       data-del-bulk data-del-entity="listing">
   <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
 
-  <!-- Bulk action bar -->
   <div class="bulk">
-    <label for="bulk-action">Bulk action:</label>
+    <label for="bulk-action">Bulk Actions:</label>
     <div class="toolbar-select-wrap">
     <select id="bulk-action" name="action" class="select">
-      <option value="" disabled selected>- Select -</option>
+      <option value="" disabled selected>&mdash; Select &mdash;</option>
       <option value="delete">Delete</option>
     </select>
     </div>
@@ -217,7 +215,7 @@ $flSortUrl = static function (string $col) use ($b, $flSort, $flDir, $search, $f
     <table class="data-table mem-table">
       <thead>
         <tr>
-          <th class="cb-col"><input type="checkbox" id="select-all"></th>
+          <th class="cb-col"><input type="checkbox" id="fl-select-all"></th>
           <th><a href="<?= View::e($flSortUrl('id')) ?>" class="sort-th<?= $flSort === 'id' ? ' sort-active' : '' ?>"># <?= View::sortIcon('id', $flSort, $flDir) ?></a></th>
           <th><a href="<?= View::e($flSortUrl('subject')) ?>" class="sort-th<?= $flSort === 'subject' ? ' sort-active' : '' ?>">Subject <?= View::sortIcon('subject', $flSort, $flDir) ?></a></th>
           <th><a href="<?= View::e($flSortUrl('name')) ?>" class="sort-th<?= $flSort === 'name' ? ' sort-active' : '' ?>">Title <?= View::sortIcon('name', $flSort, $flDir) ?></a></th>
@@ -233,8 +231,7 @@ $flSortUrl = static function (string $col) use ($b, $flSort, $flDir, $search, $f
 
           <!-- Checkbox -->
           <td class="cb-col" data-label="">
-            <input type="checkbox" name="selected[]" value="<?= (int) $fl->id ?>" class="row-cb"
-                   data-name="<?= View::e($fl->name) ?>">
+            <input type="checkbox" name="selected[]" value="<?= (int) $fl->id ?>" class="fl-row-cb" data-name="<?= View::e($fl->name) ?>">
           </td>
 
           <!-- Listing # -->
@@ -243,8 +240,7 @@ $flSortUrl = static function (string $col) use ($b, $flSort, $flDir, $search, $f
           <!-- Subject -->
           <td data-label="Subject">
             <?php if ($fl->url !== ''): ?>
-              <a href="<?= View::e($fl->url) ?>" target="_blank" rel="noopener noreferrer"
-                 class="link"><?= View::e($fl->subject) ?></a>
+              <a href="<?= View::e($fl->url) ?>" target="_blank" rel="noopener noreferrer" class="link"><?= View::e($fl->subject) ?></a>
             <?php else: ?>
               <?= View::e($fl->subject) ?>
             <?php endif; ?>
@@ -252,8 +248,7 @@ $flSortUrl = static function (string $col) use ($b, $flSort, $flDir, $search, $f
 
           <!-- Title -->
           <td data-label="Title">
-            <a href="<?= $b ?>/admin/listings/<?= (int) $fl->id ?>/edit"
-               class="link"><?= View::e($fl->name) ?></a>
+            <a href="<?= $b ?>/admin/listings/<?= (int) $fl->id ?>/edit" class="link"><?= View::e($fl->name) ?></a>
           </td>
 
           <!-- Category -->
@@ -279,14 +274,14 @@ $flSortUrl = static function (string $col) use ($b, $flSort, $flDir, $search, $f
             <div><?= $app ?>
             <?php if ($pend > 0): ?>
                 <a href="<?= $b ?>/admin/members/<?= (int) $fl->id ?>?status=pending"
-                   class="link--pending">(+ <?= $pend ?>)</a>
+                   class="badge badge-pending" style="margin-left: .5rem;">+ <?= $pend ?></a>
             </div>
             <?php endif; ?>
           </td>
 
           <!-- Actions -->
           <td class="act-col" data-label="">
-            <div class="row-actions">
+            <div class="data-actions">
               <a href="<?= $b ?>/admin/listings/<?= (int) $fl->id ?>/edit"
                  class="btn btn-tertiary btn-sm">Edit</a>
               <a href="<?= $b ?>/admin/members/<?= (int) $fl->id ?>"
@@ -300,9 +295,7 @@ $flSortUrl = static function (string $col) use ($b, $flSort, $flDir, $search, $f
       </tbody>
     </table>
     </div>
-
-  </div><!-- /.neb-card -->
-
+  </div>
 </form>
 
 <?php foreach ($listings as $fl): ?>
@@ -346,6 +339,5 @@ $flSortUrl = static function (string $col) use ($b, $flSort, $flDir, $search, $f
      <?= $page >= $total_pages ? 'aria-disabled="true"' : '' ?>>Next &rsaquo;</a>
 </nav>
 <?php endif; ?>
-
 
 <?php endif; ?>

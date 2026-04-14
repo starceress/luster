@@ -82,7 +82,7 @@ $listingCount = count($listings) + 1; // +1 for collective
             <span class="update-count <?= $collective_cnt > 0 ? 'has-updates' : 'no-updates' ?>"><?= (int) $collective_cnt ?></span>
           </td>
           <td class="act-col">
-            <div class="row-actions">
+            <div class="data-actions">
               <a href="<?= $b ?>/admin/updates/collective" class="btn btn-quaternary btn-sm">View All</a>
               <a href="<?= $b ?>/admin/updates/collective/add" class="btn btn-primary btn-sm">+ Add Update</a>
             </div>
@@ -103,7 +103,7 @@ $listingCount = count($listings) + 1; // +1 for collective
               <span class="update-count <?= $cnt > 0 ? 'has-updates' : 'no-updates' ?>"><?= $cnt ?></span>
             </td>
             <td class="act-col">
-              <div class="row-actions">
+              <div class="data-actions">
                 <a href="<?= $b ?>/admin/updates/<?= $fid ?>" class="btn btn-quaternary btn-sm">View All</a>
                 <a href="<?= $b ?>/admin/updates/<?= $fid ?>/add" class="btn btn-primary btn-sm">+ Add Update</a>
               </div>

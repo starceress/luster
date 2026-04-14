@@ -29,7 +29,7 @@ $val = static function (string $key, $model, string $prop, string $default = '')
 };
 
 $activeVal = isset($old['active']) ? ($old['active'] === '1') : ($joined?->active ?? true);
-$statusVal = isset($old['status']) ? $old['status'] : ($joined?->status ?? 'joined');
+$statusVal = isset($old['status']) ? $old['status'] : ($joined?->status ?? 'approved');
 
 // Decode existing categories_json for JS pre-population
 $existingCats = [];
@@ -48,9 +48,8 @@ $dataExist  = json_encode($existingCats,     JSON_HEX_QUOT | JSON_HEX_AMP | JSON
 ?>
 
 <div class="page-topbar">
-  <a href="<?= $b ?>/admin/joined" class="back-link">
-    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
-    Joined Listings
+  <a href="<?= $b ?>/admin/joined" class="link">
+    &larr;Back to Joined Listings
   </a>
 </div>
 
@@ -75,8 +74,7 @@ $dataExist  = json_encode($existingCats,     JSON_HEX_QUOT | JSON_HEX_AMP | JSON
                data-custom='<?= $dataCustom ?>'
                data-existing='<?= $dataExist ?>'>
             <div id="cat-rows"></div>
-            <a href="#" class="link" id="cat-add"
-               style="font-size:.8125rem;display:inline-block;margin-top:.5rem">+ Add another category</a>
+            <a href="#" class="link" id="cat-add">+ Add another category</a>
           </div>
           <p class="form-hint">Assign to one or more networks (TFL, TAFL, custom).</p>
         </div>
@@ -131,8 +129,7 @@ $dataExist  = json_encode($existingCats,     JSON_HEX_QUOT | JSON_HEX_AMP | JSON
             </div>
           <?php endif; ?>
           <label class="file-drop-zone">
-            <input type="file" name="image" accept="image/jpeg,image/png,image/gif,image/webp">
-            <svg class="file-drop-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="2" width="12" height="12" rx="1.5"/><circle cx="5.5" cy="5.5" r="1"/><path d="M14 10l-3.5-3.5L6 11l-2-2-2 2"/></svg>
+            <input type="file" name="image" accept="image/jpeg,image/png,image/gif,image/webp"><?= View::icon('image') ?>
             <span class="file-drop-label">Click to upload</span>
             <span class="file-drop-sub">JPEG, PNG, GIF, WebP &mdash; max 2 MB</span>
           </label>
@@ -145,8 +142,8 @@ $dataExist  = json_encode($existingCats,     JSON_HEX_QUOT | JSON_HEX_AMP | JSON
         <div>
           <div class="select-wrap" style="max-width:200px">
             <select id="jf-status" name="status" class="form-select">
-              <option value="joined"<?= $statusVal === 'joined'  ? ' selected' : '' ?>>Joined</option>
-              <option value="pending"<?= $statusVal === 'pending' ? ' selected' : '' ?>>Pending</option>
+              <option value="approved"<?= $statusVal === 'approved' ? ' selected' : '' ?>>Approved</option>
+              <option value="pending"<?= $statusVal === 'pending'  ? ' selected' : '' ?>>Pending</option>
             </select>
           </div>
         </div>

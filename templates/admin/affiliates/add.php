@@ -40,9 +40,8 @@ $v = static function (string $key, $model, string $prop, string $default = '') u
 ?>
 
 <div class="page-topbar">
-  <a href="<?= $backUrl ?>" class="back-link">
-    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
-    <?= $backLabel ?>
+  <a href="<?= $backUrl ?>" class="link">
+    &larr; <?= $backLabel ?>
   </a>
 </div>
 

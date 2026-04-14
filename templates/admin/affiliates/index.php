@@ -113,7 +113,7 @@ $canReorder = ($search ?? '') === '' && ($filter_fid ?? 'collective') !== '';
     <button type="submit" class="btn btn-quaternary btn-sm">Search</button>
     <a href="?" class="btn btn-quaternary btn-sm">Reset</a>
   </form>
-  <div class="actions">
+  <div class="actions-row">
     <?php if ($canReorder && !empty($affiliates)): ?>
     <a href="<?= View::e($reorderEntryUrl) ?>" class="btn btn-quaternary btn-sm">Reorder</a>
     <?php endif; ?>
@@ -263,20 +263,37 @@ $canReorder = ($search ?? '') === '' && ($filter_fid ?? 'collective') !== '';
 
 <?php endif; ?>
 
-<?php if (!$reorderMode && ($total_pages ?? 1) > 1): ?>
+<?php if (!$reorderMode && ($total_pages ?? 1) > 1):
+  $window = 2;
+  $start  = max(2, $page - $window);
+  $end    = min($total_pages - 1, $page + $window);
+?>
 <nav class="pg" aria-label="Pagination">
   <a href="<?= View::e($pageUrl($page - 1)) ?>"
-     class="pg-link<?= $page <= 1 ? ' disabled' : '' ?>"
-     <?= $page <= 1 ? 'aria-disabled="true"' : '' ?>>&lsaquo; Prev</a>
+     class="pg-link<?= $page <= 1 ? ' disabled' : '' ?>" aria-label="Previous">&lsaquo;</a>
 
-  <?php for ($i = 1; $i <= $total_pages; $i++): ?>
+  <a href="<?= View::e($pageUrl(1)) ?>"
+     class="pg-link<?= $page === 1 ? ' active' : '' ?>">1</a>
+
+  <?php if ($start > 2): ?>
+    <span class="pg-link disabled">&hellip;</span>
+  <?php endif; ?>
+
+  <?php for ($i = $start; $i <= $end; $i++): ?>
     <a href="<?= View::e($pageUrl($i)) ?>"
-       class="pg-link<?= $i === $page ? ' active' : '' ?>"
-       <?= $i === $page ? 'aria-current="page"' : '' ?>><?= $i ?></a>
+       class="pg-link<?= $i === $page ? ' active' : '' ?>"><?= $i ?></a>
   <?php endfor; ?>
 
+  <?php if ($end < $total_pages - 1): ?>
+    <span class="pg-link disabled">&hellip;</span>
+  <?php endif; ?>
+
+  <?php if ($total_pages > 1): ?>
+    <a href="<?= View::e($pageUrl($total_pages)) ?>"
+       class="pg-link<?= $page === $total_pages ? ' active' : '' ?>"><?= $total_pages ?></a>
+  <?php endif; ?>
+
   <a href="<?= View::e($pageUrl($page + 1)) ?>"
-     class="pg-link<?= $page >= $total_pages ? ' disabled' : '' ?>"
-     <?= $page >= $total_pages ? 'aria-disabled="true"' : '' ?>>Next &rsaquo;</a>
+     class="pg-link<?= $page >= $total_pages ? ' disabled' : '' ?>" aria-label="Next">&rsaquo;</a>
 </nav>
 <?php endif; ?>

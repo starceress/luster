@@ -293,12 +293,14 @@ final class SettingsController extends AdminController
 
         $this->writeConfig($updated);
 
-        $activityRepo->log(
-            (int) $session->get('lstr_admin_id'),
-            'settings.save',
-            'Email/SMTP settings updated',
-            $request->ip(),
-        );
+        try {
+            $activityRepo->log(
+                (int) $session->get('lstr_admin_id'),
+                'settings.save',
+                'Email/SMTP settings updated',
+                $request->ip(),
+            );
+        } catch (\Throwable) {}
 
         $session->set('lstr_flash_success', 'Email settings saved.');
         return Response::redirect($baseUrl . '/admin/emails?tab=smtp');
@@ -556,6 +558,10 @@ final class SettingsController extends AdminController
         if (!rename($tmpPath, $configPath)) {
             unlink($tmpPath);
             throw new RuntimeException('Could not rename temp config file to: ' . $configPath);
+        }
+
+        if (function_exists('opcache_invalidate')) {
+            opcache_invalidate($configPath, true);
         }
     }
 

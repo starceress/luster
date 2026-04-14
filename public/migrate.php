@@ -261,13 +261,7 @@ function mig_page(string $title, string $content): string
       border: 1px solid var(--border-soft);
     }
   </style>
-  <script>
-    (function(){
-      var t = localStorage.getItem('lstr_theme');
-      if (t === 'dark' || t === 'light') document.documentElement.setAttribute('data-theme', t);
-      else document.documentElement.setAttribute('data-theme', 'dark');
-    })();
-  </script>
+  <script>(function(){var t=localStorage.getItem('lstr_theme');if(t==='dark'||t==='light')document.documentElement.setAttribute('data-theme',t);})();</script>
 </head>
 <body>
 
@@ -275,9 +269,7 @@ function mig_page(string $title, string $content): string
   <a class="mig-topbar-brand" href="./admin">Luster</a>
   <div class="mig-topbar-sep"></div>
   <span class="mig-topbar-title">Database Migrations</span>
-  <button class="mig-topbar-theme" onclick="(function(){var h=document.documentElement,t=h.getAttribute('data-theme')==='dark'?'light':'dark';h.setAttribute('data-theme',t);localStorage.setItem('lstr_theme',t);})()">
-    Toggle theme
-  </button>
+  <button class="mig-topbar-theme theme-toggle">Toggle theme</button>
 </div>
 
 <div class="mig-wrap">
@@ -286,6 +278,7 @@ function mig_page(string $title, string $content): string
   </div>
 </div>
 
+<script src="./assets/js/admin.js"></script>
 </body>
 </html>
 HTML;
@@ -1354,6 +1347,20 @@ try {
     }
 } catch (PDOException $e) {
     $errors[] = 'Contact form columns — ' . htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Migration 38: rename lstr_joined status 'joined' → 'approved'
+// ─────────────────────────────────────────────────────────────────────────────
+try {
+    if (!(int) $pdo->query('SELECT COUNT(*) FROM `lstr_migrations` WHERE migration_number = 38')->fetchColumn()) {
+        $pdo->exec("UPDATE `lstr_joined` SET `status` = 'approved' WHERE `status` = 'joined'");
+        $pdo->exec("ALTER TABLE `lstr_joined` MODIFY COLUMN `status` VARCHAR(20) NOT NULL DEFAULT 'approved'");
+        $pdo->exec('INSERT INTO `lstr_migrations` (migration_number) VALUES (38)');
+        $done[] = 'Renamed <code>lstr_joined.status</code> value <code>joined</code> → <code>approved</code>';
+    }
+} catch (PDOException $e) {
+    $errors[] = 'Migration 38 — ' . htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

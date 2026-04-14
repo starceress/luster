@@ -1272,8 +1272,10 @@ final class MemberController extends AdminController
             'selected_emails' => $selectedEmails,
             'member_names'    => $memberNames,
             'saved_emails'    => $savedEmails,
-            'from_name'       => (string) $config->get('smtp_from_name', 'Luster'),
+            'from_name'       => (string) $config->get('smtp_from_name', ''),
             'from_email'      => (string) $config->get('smtp_from', ''),
+            'owner_name'      => (string) $config->get('owner_name', ''),
+            'owner_email'     => (string) $config->get('owner_email', ''),
             'site_name'       => (string) $config->get('site_name', 'Luster'),
             'error'           => $error,
             'success'         => $success,
@@ -1316,27 +1318,30 @@ final class MemberController extends AdminController
             return Response::redirect($baseUrl . '/admin/members/' . $id);
         }
 
-        $memberRepo = new MemberRepo($db, $config);
-        $siteName   = (string) $config->get('site_name', 'Luster');
-        $mailer     = new Mailer($this->app->getConfig());
+        $memberRepo  = new MemberRepo($db, $config);
+        $siteName    = (string) $config->get('site_name', 'Luster');
+        $ownerName   = (string) $config->get('owner_name', '');
+        $ownerEmail  = (string) $config->get('owner_email', '');
+        $mailer      = new Mailer($this->app->getConfig());
 
         $sent   = 0;
         $failed = [];
 
         foreach ($emails as $email) {
             $member  = $memberRepo->getByEmail($listing->dbprefix, $email);
-            $name    = $member ? $member->name : '';
+            $name    = $member ? $member->name    : '';
+            $url     = $member ? $member->url     : '';
+            $country = $member ? $member->country : '';
 
-            $personalSubject = str_replace(
-                ['{name}', '{email}', '{listing_name}', '{site_name}'],
-                [$name,    $email,    $listing->name,    $siteName],
-                $subject,
-            );
-            $personalBody = str_replace(
-                ['{name}', '{email}', '{listing_name}', '{site_name}'],
-                [$name,    $email,    $listing->name,    $siteName],
-                $body,
-            );
+            $search  = ['{fan_name}', '{fan_email}', '{fan_url}', '{fan_country}',
+                        '{listing_name}', '{listing_subject}', '{listing_url}',
+                        '{site_name}', '{owner_name}', '{owner_email}'];
+            $replace = [$name,        $email,        $url,        $country,
+                        $listing->name, $listing->subject, $listing->url,
+                        $siteName,    $ownerName,    $ownerEmail];
+
+            $personalSubject = str_replace($search, $replace, $subject);
+            $personalBody    = str_replace($search, $replace, $body);
 
             try {
                 $mailer->send($email, $name, $personalSubject, $personalBody);

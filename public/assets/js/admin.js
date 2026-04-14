@@ -40,10 +40,10 @@ function togglePwd(btn) {
   if (btn) btn.addEventListener('click', toggleTheme);
 }());
 
-// ── 6. Password toggle buttons (event delegation on .input-icon-btn) ──────────
+// ── 6. Password toggle buttons (event delegation on [data-pw-toggle]) ─────────
 
 document.addEventListener('click', function (e) {
-  var btn = e.target.closest('.input-icon-btn');
+  var btn = e.target.closest('[data-pw-toggle]');
   if (btn) togglePwd(btn);
 });
 
@@ -229,23 +229,23 @@ document.addEventListener('click', function (e) {
   if (btn && btn.form) btn.form.reset();
 });
 
-// ── 13. Tab switching (.neb-tab-btn / .sidebar-nav-item / #tab-{tabId}) ───
+// ── 13. Tab switching (.tabs-btn / .sidebar-nav-item / #tab-{tabId}) ───
 //
 // Generic tab switcher used by listings/edit, settings, and anywhere else that
-// uses the .neb-tab-btn / .neb-tab-panel markup pattern. Also handles the
+// uses the .tabs-btn / .tabs-panel markup pattern. Also handles the
 // settings page vertical sidebar nav (.sidebar-nav-item).
 // Activates a tab by URL hash on load (e.g. settings redirects with #tab-email).
 
 (function () {
-  var tabs     = document.querySelectorAll('.neb-tab-btn');
+  var tabs     = document.querySelectorAll('.tabs-btn');
   var navItems = document.querySelectorAll('.sidebar-nav-item');
   if (!tabs.length && !navItems.length) return;
 
   function activateTab(tabId) {
-    document.querySelectorAll('.neb-tab-btn, .neb-tab-panel, .sidebar-nav-item').forEach(function (el) {
+    document.querySelectorAll('.tabs-btn, .tabs-panel, .sidebar-nav-item').forEach(function (el) {
       el.classList.remove('active');
     });
-    var btn     = document.querySelector('.neb-tab-btn[data-tab="' + tabId + '"]');
+    var btn     = document.querySelector('.tabs-btn[data-tab="' + tabId + '"]');
     var navItem = document.querySelector('.sidebar-nav-item[data-tab="' + tabId + '"]');
     var panel   = document.getElementById('tab-' + tabId);
     if (btn)     btn.classList.add('active');
@@ -253,40 +253,51 @@ document.addEventListener('click', function (e) {
     if (panel)   panel.classList.add('active');
   }
 
-  tabs.forEach(function (btn) {
-    btn.addEventListener('click', function () { activateTab(btn.dataset.tab); });
-  });
-  navItems.forEach(function (item) {
-    if (!item.dataset.tab) return; // skip items handled by their own switcher (e.g. data-et-tab)
-    item.addEventListener('click', function () { activateTab(item.dataset.tab); });
-  });
-
-  /* Keep select dropdowns in sync with tab state */
-  document.querySelectorAll('.neb-tabs-select').forEach(function (sel) {
-    sel.addEventListener('change', function () { activateTab(sel.value); });
-  });
-
-  /* Patch activateTab to also update the select value */
+  /* Patch activateTab to also update the select value and URL query string */
   var _origActivate = activateTab;
-  activateTab = function (tabId) {
+  activateTab = function (tabId, updateUrl) {
     _origActivate(tabId);
-    document.querySelectorAll('.neb-tabs-select').forEach(function (sel) {
+    document.querySelectorAll('.tabs-select').forEach(function (sel) {
       sel.value = tabId;
     });
+    if (updateUrl !== false && history.replaceState) {
+      var url = new URL(window.location.href);
+      url.searchParams.set('tab', tabId);
+      history.replaceState(null, '', url.toString());
+    }
   };
+
+  // Wire click handlers to pass updateUrl=true
+  tabs.forEach(function (btn) {
+    btn.addEventListener('click', function () { activateTab(btn.dataset.tab, true); });
+  });
+  navItems.forEach(function (item) {
+    if (!item.dataset.tab) return;
+    item.addEventListener('click', function () { activateTab(item.dataset.tab, true); });
+  });
+  document.querySelectorAll('.tabs-select').forEach(function (sel) {
+    sel.addEventListener('change', function () { activateTab(sel.value, true); });
+  });
 
   // Activate from URL hash (settings page: redirect with ?...#tab-email etc.)
   var hash = window.location.hash.replace('#tab-', '');
-  if (hash && (document.querySelector('.neb-tab-btn[data-tab="' + hash + '"]') ||
+  if (hash && (document.querySelector('.tabs-btn[data-tab="' + hash + '"]') ||
                document.querySelector('.sidebar-nav-item[data-tab="' + hash + '"]'))) {
     activateTab(hash);
+  } else {
+    // Activate from ?tab= query param (persists across page refreshes)
+    var tabParam = new URLSearchParams(window.location.search).get('tab');
+    if (tabParam && (document.querySelector('.tabs-btn[data-tab="' + tabParam + '"]') ||
+                     document.querySelector('.sidebar-nav-item[data-tab="' + tabParam + '"]'))) {
+      activateTab(tabParam, false);
+    }
   }
 }());
 
 // ── 13b. Tab bar scroll-fade indicator ────────────────────────────────────────
 (function () {
-  document.querySelectorAll('.neb-tabs-wrap').forEach(function (wrap) {
-    var tabs = wrap.querySelector('.neb-tabs');
+  document.querySelectorAll('.tabs-wrap').forEach(function (wrap) {
+    var tabs = wrap.querySelector('.tabs');
     if (!tabs) return;
     function update() {
       var atEnd = tabs.scrollLeft + tabs.clientWidth >= tabs.scrollWidth - 4;
@@ -319,7 +330,7 @@ document.addEventListener('click', function (e) {
   }
 
   function buildNetOpts(selected) {
-    var h = '<option value="">\u2014 select network \u2014</option>';
+    var h = '<option value="">\u2014 Select Network \u2014</option>';
     var nets = ['TFL', 'TAFL'].concat(customNets).sort(function (a, b) {
       return a.toLowerCase().localeCompare(b.toLowerCase());
     });
@@ -333,7 +344,7 @@ document.addEventListener('click', function (e) {
   }
 
   function buildCatOpts(cats, selected) {
-    var h = '<option value="">\u2014 select category \u2014</option>';
+    var h = '<option value="">\u2014 Select Category \u2014</option>';
     cats.forEach(function (c) {
       h += '<option value="' + esc(c.name) + '"' +
            (selected === c.name ? ' selected' : '') + '>' + esc(c.name) + '</option>';
@@ -379,7 +390,7 @@ document.addEventListener('click', function (e) {
           esc(otherNetVal) + '" placeholder="New network name" style="display:none">' +
       '<input type="text" name="cat_name[]" class="cat-name-txt" disabled ' +
           'style="display:none" placeholder="Category name">' +
-      '<button type="button" class="cat-remove-btn" title="Remove">&times;</button>';
+      '<button type="button" class="cat-remove-btn btn btn-danger btn-sm" title="Remove">x</button>';
     row.querySelector('.cat-net-sel').addEventListener('change', function () {
       syncRow(row, this.value, '');
     });
@@ -573,7 +584,7 @@ document.addEventListener('click', function (e) {
 // ── 24a. File-drop labels: forward clicks to the hidden file input ─────────────
 
 document.addEventListener('click', function (e) {
-  var label = e.target.closest('.file-drop');
+  var label = e.target.closest('.file-drop-zone');
   if (!label) return;
   var input = label.querySelector('input[type="file"]');
   if (!input || e.target === input) return;
@@ -853,10 +864,9 @@ document.addEventListener('click', function (e) {
 
 (function () {
   document.querySelectorAll('.et-enabled-cb').forEach(function (cb) {
-    var card   = cb.closest('.neb-card');
-    var banner = card ? card.querySelector('.et-disabled-banner') : null;
+    var card   = cb.closest('.gradient-card');
+    var banner = card ? card.querySelector('.modal-warning') : null;
     var label  = cb.parentElement ? cb.parentElement.querySelector('.et-toggle-label') : null;
-
     function sync() {
       var on = cb.checked;
       if (banner) banner.style.display = on ? 'none' : '';
@@ -1216,8 +1226,12 @@ document.addEventListener('click', function (e) {
   var qcCode  = document.getElementById('ec-qc-code');
   var qcCp    = document.getElementById('ec-qc-cp');
   var qcFile  = document.getElementById('ec-qc-file');
+  var qcHint  = document.getElementById('ec-qc-hint');
   var qcCust  = document.getElementById('ec-qc-cust');
   var qcItems = root.querySelectorAll('.ec-qc-item');
+
+  var NO_ID_ITEMS    = ['owned', 'joined', 'cstats', 'kim'];
+  var COL_AFF_ITEMS  = ['aff-col'];
 
   function selectQcItem(id) {
     qcItems.forEach(function (b) { b.classList.toggle('act', b.dataset.ecItem === id); });
@@ -1229,7 +1243,16 @@ document.addEventListener('click', function (e) {
     qcDesc.textContent  = item.desc  || '';
     qcCode.innerHTML    = highlight(item.code || '');
     qcCode.dataset.raw  = item.code  || '';
-    qcFile.textContent  = item.file  || '';
+    if (qcFile) qcFile.textContent = item.file || '';
+    if (qcHint) {
+      if (NO_ID_ITEMS.indexOf(id) !== -1) {
+        qcHint.innerHTML = 'No listing ID needed &mdash; collective embed.';
+      } else if (COL_AFF_ITEMS.indexOf(id) !== -1) {
+        qcHint.innerHTML = 'Uses <code>$luster_fanlisting_id = 0</code> for site-wide affiliates.';
+      } else {
+        qcHint.innerHTML = 'Set <code>$luster_fanlisting_id</code> to your listing\'s integer ID.';
+      }
+    }
     if (qcCust) qcCust.dataset.custType = item.custType || id;
   }
 
@@ -1263,11 +1286,6 @@ document.addEventListener('click', function (e) {
   var liveTa       = document.getElementById('ec-live-ta');
   var liveNote     = document.getElementById('ec-live-note');
   var liveCp       = document.getElementById('ec-live-cp');
-  var liveRst      = document.getElementById('ec-live-rst');
-  var previewBtn   = document.getElementById('ec-preview-btn');
-  var previewCard  = document.getElementById('ec-preview-card');
-  var previewClose = document.getElementById('ec-preview-close');
-  var previewBody  = document.getElementById('ec-preview-body');
 
   var liveCode = ''; // auto-generated code; reset restores textarea to this
 
@@ -1560,86 +1578,10 @@ document.addEventListener('click', function (e) {
     });
   }
 
-  // ── Preview example values ──────────────────────────────────────────────────
-  var STAT_EXAMPLES = {
-    '{stat_approved}':     '142',
-    '{stat_pending}':      '3',
-    '{stat_opened}':       'January 1st 2020',
-    '{stat_updated}':      'March 15th 2026',
-    '{stat_last_updated}': 'March 15th 2026',
-    '{stat_newmembers}':   'Alice, Bob, Carol, Dave, Eve',
-    '{stat_growth}':       '0.08',
-    '{listing_name}':      'My Fanlisting',
-    '{listing_url}':       'https://example.com/fanlisting/',
-  };
-
-  var CSTAT_EXAMPLES = {
-    'luster_owned_active':        '24',
-    'luster_owned_upcoming':      '2',
-    'luster_owned_trouble':       '1',
-    'luster_owned':               '27',
-    'luster_joined_active':       '150',
-    'luster_joined':              '155',
-    'luster_affiliates':          '8',
-    'luster_members_approved':    '3,842',
-    'luster_members_pending':     '12',
-    'luster_members_total':       '3,854',
-    'luster_owned_growth_rate':   '4.50',
-    'luster_joined_growth_rate':  '18.20',
-    'luster_members_growth_rate': '2.11',
-  };
-
-  function extractStatsTemplate(code) {
-    var start = code.indexOf('$luster_stats_template');
-    if (start === -1) return null;
-    var endIdx = code.indexOf(';', start);
-    if (endIdx === -1) return null;
-    var sub  = code.slice(start, endIdx + 1);
-    var re   = /'((?:[^'\\]|\\.)*)'/g;
-    var parts = [], m;
-    while ((m = re.exec(sub)) !== null) {
-      parts.push(m[1].replace(/\\'/g, "'").replace(/\\\\/g, '\\'));
-    }
-    return parts.length ? parts.join('') : null;
-  }
-
-  function renderPreview() {
-    if (!previewBody) return;
-    var code = liveTa ? liveTa.value : liveCode;
-
-    if (curCustType === 'stats') {
-      var tpl = extractStatsTemplate(code);
-      if (tpl === null) {
-        previewBody.innerHTML = '<p class="ec-preview-note">No <code>$luster_stats_template</code> in the code &mdash; the template from <strong>Admin → Listings → Edit</strong> will be used. Select tokens above to see a preview.</p>';
-        return;
-      }
-      Object.keys(STAT_EXAMPLES).forEach(function (tok) {
-        tpl = tpl.split(tok).join('<span class="ec-pv-ex">' + escHtml(STAT_EXAMPLES[tok]) + '</span>');
-      });
-      previewBody.innerHTML = '<div class="ec-preview-rendered">' + tpl + '</div>';
-
-    } else if (curCustType === 'cstats') {
-      var echoRe = /echo\s+\$(\w+)\s*;/g;
-      var rows = '', em;
-      while ((em = echoRe.exec(code)) !== null) {
-        var vn  = em[1];
-        var ex  = CSTAT_EXAMPLES[vn] !== undefined ? String(CSTAT_EXAMPLES[vn]) : '—';
-        rows += '<tr><td><code>$' + escHtml(vn) + '</code></td><td>' + escHtml(ex) + '</td></tr>';
-      }
-      previewBody.innerHTML = rows
-        ? '<table class="ec-preview-tbl"><thead><tr><th>Variable</th><th>Example value</th></tr></thead><tbody>' + rows + '</tbody></table>'
-        : '<p class="ec-preview-note">No <code>echo</code> lines found. Select variables in the options panel to see them here.</p>';
-
-    } else {
-      previewBody.innerHTML = '<p class="ec-preview-note">This embed fetches live data from your server (members, listings, forms) and can\'t be previewed here. To see it in action, paste the snippet into a PHP page on your site.</p>';
-    }
-  }
-
   function updateLive() {
     liveCode = generateCode(curCustType, custVals);
     if (liveTa)   liveTa.value = liveCode;
     if (liveNote) liveNote.innerHTML = (CUST[curCustType] || {}).note || '';
-    if (previewCard && !previewCard.hidden) renderPreview();
   }
 
   function selectCustType(type) {
@@ -1660,37 +1602,23 @@ document.addEventListener('click', function (e) {
     });
   }
 
-  if (liveRst) {
-    liveRst.addEventListener('click', function () {
-      if (liveTa) liveTa.value = liveCode;
-      if (previewCard && !previewCard.hidden) renderPreview();
-    });
+  // ── Variable reference nav ─────────────────────────────────────────────────
+
+  var refNavBtns = root.querySelectorAll('.ec-ref-nav-item');
+  var refPanels  = root.querySelectorAll('.ec-ref-panel');
+
+  function switchRefPanel(id) {
+    refNavBtns.forEach(function (b) { b.classList.toggle('act', b.dataset.ecRef === id); });
+    refPanels.forEach(function (p) { p.classList.toggle('act', p.id === id); });
   }
 
-  if (liveTa) {
-    liveTa.addEventListener('input', function () {
-      if (previewCard && !previewCard.hidden) renderPreview();
-    });
-  }
-
-  if (previewBtn) {
-    previewBtn.addEventListener('click', function () {
-      var open = previewCard && !previewCard.hidden;
-      if (previewCard) previewCard.hidden = open;
-      previewBtn.classList.toggle('active', !open);
-      if (!open) renderPreview();
-    });
-  }
-
-  if (previewClose) {
-    previewClose.addEventListener('click', function () {
-      if (previewCard) previewCard.hidden = true;
-      previewBtn.classList.remove('active');
-    });
-  }
+  refNavBtns.forEach(function (btn) {
+    btn.addEventListener('click', function () { switchRefPanel(btn.dataset.ecRef); });
+  });
 
   // Initialise
   selectCustType('join');
+  if (refNavBtns.length) switchRefPanel(refNavBtns[0].dataset.ecRef);
 }());
 
 // ── 32. Sidebar: collapsible nav groups ───────────────────────────────────────
@@ -2021,6 +1949,33 @@ document.addEventListener('click', function (e) {
   });
 }());
 
+// ── Codes drop-zone feedback ──────────────────────────────────────────────────
+// Updates the label when files are selected. Runs on both the standalone codes
+// page and the embedded Codes tab in edit.php.
+
+(function () {
+  var input = document.getElementById('codes-input');
+  if (!input) return;
+  var drop  = input.closest('.codes-drop');
+  var label = drop ? drop.querySelector('.codes-drop-label') : null;
+  var hint  = drop ? drop.querySelector('.codes-drop-hint')  : null;
+  if (!label) return;
+
+  var defaultLabel = label.textContent;
+  var defaultHint  = hint ? hint.textContent : '';
+
+  input.addEventListener('change', function () {
+    var n = input.files ? input.files.length : 0;
+    if (n === 0) {
+      label.textContent = defaultLabel;
+      if (hint) hint.textContent = defaultHint;
+    } else {
+      label.textContent = n === 1 ? input.files[0].name : n + ' files selected';
+      if (hint) hint.textContent = 'Ready to upload — click Upload below';
+    }
+  });
+}());
+
 // ── Codes management page ─────────────────────────────────────────────────────
 // Guards on .code-card so this block only activates on the codes admin page.
 
@@ -2281,7 +2236,7 @@ document.addEventListener('click', function (e) {
 
 // ── 35. Email template type left-nav (.sidebar-nav-item / .et-panel) ──────
 //
-// Standalone switcher so it does not conflict with the .neb-tab-btn switcher
+// Standalone switcher so it does not conflict with the .tabs-btn switcher
 // (which would clear the active sub-tab when a sidebar item is clicked).
 
 (function () {
@@ -2291,7 +2246,7 @@ document.addEventListener('click', function (e) {
   function activate(tabId) {
     items.forEach(function (el) { el.classList.remove('active'); });
     document.querySelectorAll('.et-panel').forEach(function (el) { el.classList.remove('active'); });
-    var item  = document.querySelector('.sidebar-nav-item[data-et-tab="' + tabId + '"]');
+    var item  = document.querySelector('.mini-nav-item[data-et-tab="' + tabId + '"]');
     var panel = document.getElementById('et-tab-' + tabId);
     if (item)  item.classList.add('active');
     if (panel) panel.classList.add('active');
@@ -2544,16 +2499,6 @@ document.addEventListener('click', function (e) {
 // ── 42. Collective Templates — token insert, accordion, preview modal ─────────
 
 (function () {
-  // Token accordion toggle
-  document.querySelectorAll('.tok-group-btn').forEach(function (btn) {
-    btn.addEventListener('click', function () {
-      var expanded = btn.getAttribute('aria-expanded') === 'true';
-      btn.setAttribute('aria-expanded', String(!expanded));
-      var body = btn.nextElementSibling;
-      if (body) body.classList.toggle('open', !expanded);
-    });
-  });
-
   // Token row: insert at cursor in target textarea (event delegation)
   document.addEventListener('click', function (e) {
     var row = e.target.closest('.tok-row[data-textarea]');
@@ -2673,6 +2618,241 @@ document.addEventListener('click', function (e) {
     });
 
     wrap.addEventListener('click', function () { textInput.focus(); });
+  });
+}());
+
+// ── 41. Import wizard — configure page ────────────────────────────────────────
+
+(function () {
+  // Image options toggle
+  var toggle = document.getElementById('js-images-toggle');
+  var opts   = document.getElementById('js-image-options');
+  if (toggle && opts) {
+    toggle.addEventListener('change', function () {
+      opts.classList.toggle('open', this.checked);
+    });
+  }
+
+  // Show/hide sub-fields based on image mode selection
+  var radios    = document.querySelectorAll('input[name="image_mode"]');
+  var pathField = document.getElementById('js-img-path-field');
+  var urlField  = document.getElementById('js-img-url-field');
+  function updateImageModeFields() {
+    var mode = document.querySelector('input[name="image_mode"]:checked');
+    if (!mode) return;
+    if (pathField) pathField.style.display = mode.value === 'path' ? '' : 'none';
+    if (urlField)  urlField.style.display  = mode.value === 'url'  ? '' : 'none';
+  }
+  radios.forEach(function (r) { r.addEventListener('change', updateImageModeFields); });
+
+  // Test connection button — URL passed via data-action attribute
+  var testBtn    = document.getElementById('js-test-conn');
+  var testResult = document.getElementById('js-test-result');
+  if (!testBtn || !testResult) return;
+
+  testBtn.addEventListener('click', function () {
+    var action = testBtn.dataset.action;
+    if (!action) return;
+
+    testResult.style.display = '';
+    testResult.className = 'conn-status';
+    testResult.textContent = 'Testing\u2026';
+
+    var fd = new FormData();
+    fd.append('_csrf',   (document.querySelector('input[name="_csrf"]') || {}).value || '');
+    fd.append('db_host', (document.getElementById('db_host') || {}).value || '');
+    fd.append('db_name', (document.getElementById('db_name') || {}).value || '');
+    fd.append('db_user', (document.getElementById('db_user') || {}).value || '');
+    fd.append('db_pass', (document.getElementById('db_pass') || {}).value || '');
+
+    fetch(action, { method: 'POST', body: fd })
+      .then(function (r) {
+        if (!r.ok) { throw new Error('HTTP ' + r.status); }
+        return r.json();
+      })
+      .then(function (d) {
+        testResult.textContent = d.ok
+          ? ('\u2713 ' + d.message + (d.schema ? ' \u2014 ' + d.schema : ''))
+          : ('\u2717 ' + d.message);
+        testResult.className = 'conn-status ' + (d.ok ? 'conn-status--ok' : 'conn-status--err');
+      })
+      .catch(function (err) {
+        testResult.textContent = '\u2717 ' + (err.message || 'Request failed.');
+        testResult.className = 'conn-status conn-status--err';
+      });
+  });
+}());
+
+// ── 41b. Mass email — recipient chips, template fill, preview modal ────────────
+
+(function () {
+  var form        = document.getElementById('es-form');
+  if (!form) return;
+
+  var chips       = document.getElementById('es-chip');
+  var emailInputs = document.getElementById('es-email-inputs');
+  var subjectEl   = document.getElementById('es-subject');
+  var bodyEl      = document.getElementById('es-body');
+  var sendBtn     = document.getElementById('es-send-btn');
+  var sendCount   = document.getElementById('es-send-count');
+  var countLabel  = document.getElementById('es-count-label');
+  var modal       = document.getElementById('es-preview-modal');
+  var previewData = document.getElementById('es-preview-data');
+
+  // ── Recipient chips ──────────────────────────────────────────────────────
+  function getRecipientCount() {
+    return chips.querySelectorAll('.es-chip-item:not(.es-chip-removed)').length;
+  }
+
+  function syncRecipientCount() {
+    var n = getRecipientCount();
+    if (sendCount)  sendCount.textContent  = n;
+    if (countLabel) countLabel.textContent = n + ' member' + (n !== 1 ? 's' : '');
+    if (sendBtn)    sendBtn.disabled       = (n === 0);
+  }
+
+  chips.addEventListener('click', function (e) {
+    var btn = e.target.closest('.es-chip-remove');
+    if (!btn) return;
+    var chip  = btn.closest('.es-chip-item');
+    var email = chip.dataset.email;
+    chip.classList.add('es-chip-removed');
+    chip.style.display = 'none';
+    emailInputs.querySelectorAll('input[name="emails[]"]').forEach(function (inp) {
+      if (inp.value === email) inp.remove();
+    });
+    syncRecipientCount();
+  });
+
+  // ── Template selector ────────────────────────────────────────────────────
+  var tplSelect = document.getElementById('es-tpl-select');
+  if (tplSelect) {
+    tplSelect.addEventListener('change', function () {
+      var opt = tplSelect.options[tplSelect.selectedIndex];
+      if (!opt || !opt.value) return;
+      subjectEl.value = opt.value;
+      bodyEl.value    = opt.dataset.body || '';
+      tplSelect.value = '';
+    });
+  }
+
+  // ── Save-as-template form ────────────────────────────────────────────────
+  var saveTplForm = document.getElementById('es-save-tpl-form');
+  var saveEmails  = document.getElementById('es-save-emails');
+  saveTplForm.addEventListener('submit', function () {
+    document.getElementById('es-save-subject').value = subjectEl.value;
+    document.getElementById('es-save-body').value    = bodyEl.value;
+    saveEmails.innerHTML = '';
+    emailInputs.querySelectorAll('input[name="emails[]"]').forEach(function (inp) {
+      var copy   = document.createElement('input');
+      copy.type  = 'hidden';
+      copy.name  = 'emails[]';
+      copy.value = inp.value;
+      saveEmails.appendChild(copy);
+    });
+  });
+
+  // ── Preview / Confirm modal ──────────────────────────────────────────────
+  var sampleName           = previewData.dataset.firstName      || 'Alex';
+  var sampleEmail          = previewData.dataset.firstEmail     || 'member@example.com';
+  var sampleListingName    = previewData.dataset.listingName    || '';
+  var sampleListingSubject = previewData.dataset.listingSubject || '';
+  var sampleListingUrl     = previewData.dataset.listingUrl     || '';
+  var sampleSite           = previewData.dataset.siteName       || '';
+  var sampleOwnerName      = previewData.dataset.ownerName      || '';
+  var sampleOwnerEmail     = previewData.dataset.ownerEmail     || '';
+
+  function substituteTokens(str) {
+    return str
+      .replace(/\{fan_name\}/g,        sampleName)
+      .replace(/\{fan_email\}/g,        sampleEmail)
+      .replace(/\{fan_url\}/g,          'https://example.com')
+      .replace(/\{fan_country\}/g,      'United States')
+      .replace(/\{listing_name\}/g,     sampleListingName)
+      .replace(/\{listing_subject\}/g,  sampleListingSubject)
+      .replace(/\{listing_url\}/g,      sampleListingUrl)
+      .replace(/\{site_name\}/g,        sampleSite)
+      .replace(/\{owner_name\}/g,       sampleOwnerName)
+      .replace(/\{owner_email\}/g,      sampleOwnerEmail);
+  }
+
+  function setModalMode(mode) {
+    var isConfirm = (mode === 'confirm');
+    document.getElementById('es-footer-preview').style.display = isConfirm ? 'none'  : 'flex';
+    document.getElementById('es-footer-confirm').style.display = isConfirm ? 'block' : 'none';
+  }
+
+  function openModal(mode) {
+    var n  = getRecipientCount();
+    var fn = document.getElementById('es-preview-from-name');
+    var fe = document.getElementById('es-preview-from-email');
+    if (fn) fn.textContent = sampleOwnerName;
+    if (fe) fe.textContent = sampleOwnerEmail ? '<' + sampleOwnerEmail + '>' : '';
+    document.getElementById('es-preview-to').textContent =
+      n + ' member' + (n !== 1 ? 's' : '') + ' selected';
+    document.getElementById('es-modal-subject').textContent =
+      substituteTokens(subjectEl.value) || '(no subject)';
+    document.getElementById('es-modal-body').textContent =
+      substituteTokens(bodyEl.value) || '(no message)';
+    setModalMode(mode);
+    modal.style.display = 'flex';
+  }
+
+  function closeModal() {
+    modal.style.display = 'none';
+    setModalMode('preview');
+  }
+
+  sendBtn.addEventListener('click', function () {
+    if (!form.reportValidity()) return;
+    openModal('confirm');
+  });
+
+  document.getElementById('es-preview-btn').addEventListener('click', function () {
+    openModal('preview');
+  });
+
+  document.getElementById('es-modal-close-preview').addEventListener('click', closeModal);
+  document.getElementById('es-modal-cancel').addEventListener('click', closeModal);
+  modal.addEventListener('click', function (e) { if (e.target === modal) closeModal(); });
+
+  document.getElementById('es-modal-send').addEventListener('click', function () {
+    form.submit();
+  });
+}());
+
+// ── Skip-detail row toggle (import result page) ──────────────────────────────
+
+document.addEventListener('click', function (e) {
+  var btn = e.target.closest('.skip-toggle');
+  if (!btn) return;
+  var targetId = btn.getAttribute('data-target');
+  if (!targetId) return;
+  var row = document.getElementById(targetId);
+  if (!row) return;
+  var isOpen = row.style.display !== 'none';
+  row.style.display = isOpen ? 'none' : '';
+  btn.classList.toggle('is-open', !isOpen);
+});
+
+// ── 43. Settings — scoped panel clear buttons ─────────────────────────────────
+
+(function () {
+  [['general-clear-btn', 'panel-general'], ['embed-clear-btn', 'panel-embed']].forEach(function (pair) {
+    var btn   = document.getElementById(pair[0]);
+    var panel = document.getElementById(pair[1]);
+    if (!btn || !panel) return;
+    btn.addEventListener('click', function () {
+      panel.querySelectorAll('input[type="text"], input[type="url"], input[type="password"], input[type="number"], textarea').forEach(function (el) {
+        el.value = '';
+      });
+      panel.querySelectorAll('input[type="checkbox"]').forEach(function (el) {
+        el.checked = false;
+      });
+      panel.querySelectorAll('select').forEach(function (el) {
+        el.selectedIndex = 0;
+      });
+    });
   });
 }());
 

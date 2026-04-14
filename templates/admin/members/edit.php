@@ -1,7 +1,7 @@
 <?php
 use Luster\Core\View;
-/** @var \Luster\Models\Listing          $listing */
-/** @var \Luster\Models\Member           $member */
+/** @var \Luster\Models\Listing           $listing */
+/** @var \Luster\Models\Member            $member */
 /** @var \Luster\Models\AdditionalField[] $fields */
 /** @var string $error */
 /** @var string $success */
@@ -15,9 +15,8 @@ $id = (int) $listing->id;
 ?>
 
 <div class="page-topbar">
-  <a href="<?= $b ?>/admin/members/<?= $id ?>" class="back-link">
-    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
-    Members &mdash; <?= View::e($listing->name) ?>
+  <a href="<?= $b ?>/admin/members/<?= $id ?>" class="link">
+    &larr; Back to Members: <?= View::e($listing->name) ?>
   </a>
 </div>
 
@@ -28,13 +27,14 @@ $id = (int) $listing->id;
   <div class="alert alert-error"><?= View::e($error) ?></div>
 <?php endif; ?>
 
-<form method="POST" action="<?= $b ?>/admin/members/<?= $id ?>/edit" class="js-warn-unsaved" style="margin-bottom:1rem">
+<form method="POST" action="<?= $b ?>/admin/members/<?= $id ?>/edit"
+      class="js-warn-unsaved" style="margin-bottom:1.25rem">
   <input type="hidden" name="_csrf"        value="<?= View::e($csrf_token ?? '') ?>">
   <input type="hidden" name="member_email" value="<?= View::e($member->email) ?>">
 
-  <div class="card listing-field-card" style="margin-bottom:0">
+  <div class="card listing-field-card">
 
-    <!-- General Information -->
+    <!-- ── Section: General Information ── -->
     <div class="listing-field-section">
       <div class="pc-section-label">General Information</div>
 
@@ -49,9 +49,12 @@ $id = (int) $listing->id;
 
       <!-- Name -->
       <div class="listing-field-row<?= !empty($fe['name']) ? ' has-error' : '' ?>">
-        <label class="listing-field-label" for="m-name">Name <span class="req">*</span></label>
+        <label class="listing-field-label" for="m-name">
+          Name <span class="req">*</span>
+        </label>
         <div>
-          <input id="m-name" type="text" name="name" class="form-input" maxlength="255" required
+          <input id="m-name" type="text" name="name" class="form-input"
+                 maxlength="255" required
                  value="<?= View::e($old['name'] ?? $member->name) ?>">
           <?php if (!empty($fe['name'])): ?>
             <p class="field-error"><?= View::e($fe['name'][0]) ?></p>
@@ -63,7 +66,8 @@ $id = (int) $listing->id;
       <div class="listing-field-row<?= !empty($fe['url']) ? ' has-error' : '' ?>">
         <label class="listing-field-label" for="m-url">Website URL</label>
         <div>
-          <input id="m-url" type="url" name="url" class="form-input" maxlength="500" placeholder="https://"
+          <input id="m-url" type="url" name="url" class="form-input"
+                 maxlength="500" placeholder="https://"
                  value="<?= View::e($old['url'] ?? $member->url) ?>">
           <?php if (!empty($fe['url'])): ?>
             <p class="field-error"><?= View::e($fe['url'][0]) ?></p>
@@ -89,7 +93,7 @@ $id = (int) $listing->id;
 
       <!-- Show URL -->
       <div class="listing-field-row listing-field-row--top">
-        <span class="listing-field-label">Show Website URL?</span>
+        <span class="listing-field-label">Show Website?</span>
         <div style="display:flex;gap:1.25rem;margin-top:.1rem">
           <label class="form-check">
             <input type="radio" name="showurl" value="1"
@@ -104,56 +108,61 @@ $id = (int) $listing->id;
         </div>
       </div>
 
-    </div><!-- /.listing-field-section -->
+    </div><!-- /.listing-field-section (general) -->
 
     <?php if (!empty($fields)): ?>
-    <!-- Additional Fields -->
-    <div class="listing-field-section" style="border-top:1px solid var(--border)">
+    <!-- ── Section: Additional Fields ── -->
+    <div class="listing-field-section">
       <div class="pc-section-label">Additional Fields</div>
 
-      <?php foreach ($fields as $field): ?>
-        <?php $fieldVal = $old['field_' . $field->name] ?? ($member->additionalFields[$field->name] ?? ''); ?>
-        <div class="listing-field-row<?= !empty($fe['field_' . $field->name]) ? ' has-error' : '' ?>">
+      <?php foreach ($fields as $field):
+        $fKey     = 'field_' . $field->name;
+        $fieldVal = $old[$fKey] ?? ($member->additionalFields[$field->name] ?? '');
+      ?>
+        <div class="listing-field-row listing-field-row--top<?= !empty($fe[$fKey]) ? ' has-error' : '' ?>">
           <label class="listing-field-label" for="field-<?= View::e($field->name) ?>">
             <?= View::e($field->label) ?>
           </label>
           <?php if ($field->type === 'textarea'): ?>
             <textarea id="field-<?= View::e($field->name) ?>"
-                      name="field_<?= View::e($field->name) ?>"
+                      name="<?= View::e($fKey) ?>"
                       class="form-textarea"
                       rows="3"><?= View::e((string) $fieldVal) ?></textarea>
           <?php else: ?>
             <input id="field-<?= View::e($field->name) ?>"
                    type="text"
-                   name="field_<?= View::e($field->name) ?>"
+                   name="<?= View::e($fKey) ?>"
                    class="form-input"
                    maxlength="500"
                    value="<?= View::e((string) $fieldVal) ?>">
           <?php endif; ?>
+          <?php if (!empty($fe[$fKey])): ?>
+            <p class="field-error"><?= View::e($fe[$fKey][0]) ?></p>
+          <?php endif; ?>
         </div>
       <?php endforeach; ?>
 
-    </div><!-- /.listing-field-section -->
+    </div><!-- /.listing-field-section (additional fields) -->
     <?php endif; ?>
 
     <div class="composer-footer">
-      <button type="submit" class="btn btn-primary">Save Changes</button>
-      <button type="button" class="btn btn-ghost js-form-reset">Clear Form</button>
-      <a href="<?= $b ?>/admin/members/<?= $id ?>" class="btn btn-ghost">Cancel</a>
+      <button type="submit" class="btn btn-primary btn-sm">Save Changes</button>
+      <a href="<?= $b ?>/admin/members/<?= $id ?>" class="btn btn-ghost btn-sm">Cancel</a>
     </div>
-  </div>
+
+  </div><!-- /.card.listing-field-card -->
 </form>
 
-<!-- Merge duplicate -->
+<!-- ── Merge duplicate — collapsible ── -->
 <details class="card form-details" style="margin-bottom:0">
   <summary>
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0"><circle cx="18" cy="18" r="3"/><circle cx="6" cy="6" r="3"/><path d="M13 6h3a2 2 0 0 1 2 2v7"/><line x1="6" y1="9" x2="6" y2="21"/></svg>
-    Merge duplicate member
+    <?= View::icon('merge') ?> Merge duplicate member
   </summary>
   <div class="form-details-body">
-    <p class="form-hint" style="margin-bottom:1rem">
-      If this member joined again under a different email, enter that email below to delete the duplicate.
-      <strong><?= View::e($member->email) ?></strong> will be kept; the duplicate will be permanently removed.
+    <p class="form-details-desc">
+      If this member joined again under a different email, enter that email below to delete the
+      duplicate. <strong><?= View::e($member->email) ?></strong> will be kept; the duplicate will
+      be permanently removed.
     </p>
     <form method="POST" action="<?= $b ?>/admin/members/<?= $id ?>/merge"
           data-del-modal data-del-entity="merge_member"
@@ -164,9 +173,9 @@ $id = (int) $listing->id;
         <div class="form-group" style="flex:1;min-width:200px;margin-bottom:0">
           <label class="form-label" for="merge-dupe-email">Duplicate email to delete</label>
           <input id="merge-dupe-email" type="email" name="duplicate_email" class="form-input"
-                 maxlength="255" placeholder="duplicate@example.com" required>
+                 maxlength="255" placeholder="duplicate&#64;example.com" required>
         </div>
-        <button type="submit" class="btn btn-danger btn-sm" style="margin-bottom:1px">Delete duplicate</button>
+        <button type="submit" class="btn btn-danger btn-sm">Delete Duplicate</button>
       </div>
     </form>
   </div>

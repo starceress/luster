@@ -3,23 +3,17 @@ use Luster\Core\View;
 /**
  * Admin — Owned Listings display settings.
  *
- * Variables provided by ListingController::indexSettings() via layout():
- * @var array  $cfg     Current config values
- * @var string $success Flash success message (empty when absent)
- * @var string $error   Flash error message (empty when absent)
+ * @var array  $cfg
+ * @var string $success
+ * @var string $error
  * @var string $base_url
  * @var string $csrf_token
  */
 $b = rtrim(View::e($base_url), '/');
-
 function flsCfgVal(array $cfg, string $key, $default = ''): string {
     return (string) ($cfg[$key] ?? $default);
 }
 ?>
-
-<p style="margin-bottom:1.25rem">
-  <a href="<?= $b ?>/admin/listings" class="link">&larr; Back to Owned Listings</a>
-</p>
 
 <?php if ($success !== ''): ?>
   <div class="alert alert-success"><?= View::e($success) ?></div>
@@ -28,51 +22,63 @@ function flsCfgVal(array $cfg, string $key, $default = ''): string {
   <div class="alert alert-error"><?= View::e($error) ?></div>
 <?php endif; ?>
 
+<div class="page-topbar">
+  <a href="<?= $b ?>/admin/listings" class="link">
+    &larr; Back to Owned Listings
+  </a>
+</div>
+
 <form method="POST" action="<?= $b ?>/admin/listings/settings">
   <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
 
-  <!-- Sort order -->
-  <div class="card" style="padding:1.25rem 1.5rem;margin-bottom:1.25rem">
-    <div class="card-head" style="margin:-1.25rem -1.5rem 1rem;padding:.75rem 1.5rem">Sort Order</div>
-    <div class="form-group" style="margin-bottom:0">
-      <label class="form-label" for="fl-sort">Sort listings by</label>
-      <div class="select-wrap" style="max-width:260px">
-        <select id="fl-sort" name="owned_sort" class="form-select">
-          <?php
-            $currentSort = flsCfgVal($cfg, 'owned_sort', 'id');
-            $sortOptions = [
-                'id'       => 'Listing # (default)',
-                'subject'  => 'Subject (A–Z)',
-                'category' => 'Category (A–Z)',
-                'status'   => 'Status (Current → Upcoming → Pending)',
-            ];
-            foreach ($sortOptions as $val => $lbl):
-          ?>
-            <option value="<?= View::e($val) ?>"
-              <?= $currentSort === $val ? 'selected' : '' ?>>
-              <?= View::e($lbl) ?>
-            </option>
-          <?php endforeach; ?>
-        </select>
+  <div class="card">
+    <div class="card-head">Display Settings</div>
+
+    <div class="listing-field-section">
+      <div class="pc-section-label">Sort Order</div>
+
+      <div class="listing-field-row">
+        <label class="listing-field-label" for="fl-sort">Sort listings by</label>
+        <div>
+          <div class="select-wrap" style="width:fit-content">
+            <select id="fl-sort" name="owned_sort" class="form-select">
+              <?php
+                $currentSort = flsCfgVal($cfg, 'owned_sort', 'id');
+                $sortOptions = [
+                    'id'       => 'Listing # (default)',
+                    'subject'  => 'Subject (A–Z)',
+                    'category' => 'Category (A–Z)',
+                    'status'   => 'Status (Current → Upcoming → Pending)',
+                ];
+                foreach ($sortOptions as $val => $lbl):
+              ?>
+                <option value="<?= View::e($val) ?>"
+                  <?= $currentSort === $val ? 'selected' : '' ?>>
+                  <?= View::e($lbl) ?>
+                </option>
+              <?php endforeach; ?>
+            </select>
+          </div>
+        </div>
       </div>
-      <p class="form-hint">Applies to the main Owned Listings table. Filters and search are applied first, then the selected sort.</p>
     </div>
-  </div>
 
-  <!-- Listings per page -->
-  <div class="card" style="padding:1.25rem 1.5rem;margin-bottom:1.25rem">
-    <div class="card-head" style="margin:-1.25rem -1.5rem 1rem;padding:.75rem 1.5rem">Pagination</div>
-    <div class="form-group" style="margin-bottom:0">
-      <label class="form-label" for="fl-per-page">Listings per page</label>
-      <input type="number" id="fl-per-page" name="owned_per_page" class="form-input"
-             min="5" max="200" style="max-width:100px"
-             value="<?= (int) ($cfg['owned_per_page'] ?? 10) ?>">
-      <p class="form-hint">How many listings to show per page on the Owned Listings table. Min 5, max 200. Default is 10.</p>
+    <div class="listing-field-section">
+      <div class="pc-section-label">Pagination</div>
+
+      <div class="listing-field-row">
+        <label class="listing-field-label" for="fl-per-page">Listings per page</label>
+        <div>
+          <input type="number" id="fl-per-page" name="owned_per_page" class="form-input" min="5" max="50" style="width:fit-content" value="<?= (int) ($cfg['owned_per_page'] ?? 10) ?>">
+          <p class="form-hint">How many listings to show per page. Min 5, max 50.</p>
+        </div>
+      </div>
     </div>
-  </div>
 
-  <div style="display:flex;gap:.75rem;align-items:center">
-    <button type="submit" class="btn btn-primary">Save Settings</button>
-    <a href="<?= $b ?>/admin/listings" class="btn btn-ghost">Cancel</a>
+    <div class="composer-footer">
+      <button type="submit" class="btn btn-primary">Save Settings</button>
+      <a href="<?= $b ?>/admin/listings" class="btn btn-ghost">Cancel</a>
+    </div>
+
   </div>
 </form>

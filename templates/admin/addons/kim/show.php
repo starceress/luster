@@ -30,13 +30,11 @@ $approvedMembers = array_filter($members, static fn($m) => !$m->pending);
   <div class="alert alert-error"><?= View::e($error) ?></div>
 <?php endif; ?>
 
-<div class="page-header">
-  <p class="page-back" style="margin:0"><a href="<?= $b ?>/admin/kim" class="link">&larr; Back to KIM List</a></p>
+  <p class="page-back" style="margin:0"><a href="<?= $b ?>/admin/kim" class="link">&larr; Back to KIM List Overview</a></p>
   <?php if ($approved_count > 0): ?>
     <a href="<?= $b ?>/admin/kim/<?= (int) $listing->id ?>/mass-email"
        class="btn btn-quaternary">Mass Email (<?= (int) $approved_count ?>)</a>
   <?php endif; ?>
-</div>
 
 <!--  Pending  -->
 <div class="card" style="margin-bottom:1.5rem">

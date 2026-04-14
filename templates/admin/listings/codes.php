@@ -53,9 +53,8 @@ if ($hasCats || $hasDonors) {
 
 <!-- ── Page topbar ──────────────────────────────────────────────────────── -->
 <div class="page-topbar">
-  <a href="<?= $b ?>/admin/listings/<?= $fid ?>/edit" class="back-link">
-    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
-    Back to <?= View::e($listing->name) ?>
+  <a href="<?= $b ?>/admin/listings/<?= $fid ?>/edit" class="link">
+    &larr; Back to <?= View::e($listing->name) ?>
   </a>
   <div class="topbar-actions">
     <span class="badge badge-muted"><?= $total_codes ?> code<?= $total_codes !== 1 ? 's' : '' ?></span>
@@ -77,19 +76,17 @@ if ($hasCats || $hasDonors) {
 
 <!-- ── Pending codes banner ─────────────────────────────────────────────── -->
 <?php if ($pendingCount > 0 && $status_filter !== 'pending'): ?>
-<div class="pending-banner" style="margin-bottom:1.25rem">
-  <div class="pending-banner-left">
-    <span class="pending-banner-icon">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="20" height="20">
-        <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
-      </svg>
-    </span>
-    <div>
-      <span class="pending-banner-title">Codes awaiting review</span>
-      <span class="pending-banner-msg"><?= $pendingCount ?> code<?= $pendingCount !== 1 ? 's are' : ' is' ?> pending approval</span>
+<div class="reminder-banner">
+  <div class="reminder-banner-head">
+    <div class="reminder-banner-left">
+      <span class="reminder-banner-icon"><?= View::icon('bell') ?></span>
+      <div>
+        <span class="reminder-banner-title">Codes awaiting review</span>
+        <span class="reminder-banner-msg"><?= $pendingCount ?> code<?= $pendingCount !== 1 ? 's are' : ' is' ?> pending approval</span>
+      </div>
     </div>
+    <a href="?status_filter=pending" class="btn btn-primary btn-sm">Review pending</a>
   </div>
-  <a href="?status_filter=pending" class="btn btn-primary btn-sm">Review pending</a>
 </div>
 <?php endif; ?>
 
@@ -511,10 +508,10 @@ if ($hasCats || $hasDonors) {
 
     <!-- Status tabs -->
     <div class="codes-tabs">
-      <a href="?" class="neb-tab-btn<?= $status_filter === '' ? ' active' : '' ?>">
+      <a href="?" class="tabs-btn<?= $status_filter === '' ? ' active' : '' ?>">
         All <span class="badge badge-muted" style="font-size:.55rem;padding:1px 6px;vertical-align:middle"><?= $total_codes ?></span>
       </a>
-      <a href="?status_filter=pending" class="neb-tab-btn<?= $status_filter === 'pending' ? ' active' : '' ?>">
+      <a href="?status_filter=pending" class="tabs-btn<?= $status_filter === 'pending' ? ' active' : '' ?>">
         Pending <span class="badge badge-<?= $pendingCount > 0 ? 'upcoming' : 'muted' ?>" style="font-size:.55rem;padding:1px 6px;vertical-align:middle"><?= $pendingCount ?></span>
       </a>
     </div>
@@ -558,8 +555,8 @@ if ($hasCats || $hasDonors) {
 
       <div class="card-section" style="text-align:center;padding:2.5rem">
         <div class="empty">
-          <svg class="empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
-          No codes yet &mdash; upload images using the panel on the left.
+          <span class="empty-icon"><?= View::icon('image', ['width' => 32, 'height' => 32]) ?></span>
+          No codes yet.
         </div>
       </div>
 
@@ -567,7 +564,7 @@ if ($hasCats || $hasDonors) {
 
       <div class="card-section" style="text-align:center;padding:2.5rem">
         <div class="empty">
-          <svg class="empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <span class="empty-icon"><?= View::icon('image', ['width' => 32, 'height' => 32]) ?></span>
           No codes match this filter &mdash; <a href="?" class="link">clear filter</a> to see all <?= $total_codes ?>.
         </div>
       </div>

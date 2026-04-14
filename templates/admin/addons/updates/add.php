@@ -45,11 +45,8 @@ $ctxDisplay = preg_replace('/^Owned\s*›\s*/u', '', (string) ($ctx_label ?? '')
   <div class="alert alert-error"><?= View::e($error) ?></div>
 <?php endif; ?>
 
-<div class="page-topbar" style="margin-bottom:1.25rem">
-  <a href="<?= View::e($back_url) ?>" class="back-link link">
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
-    Back
-  </a>
+<div class="page-topbar">
+  <a href="<?= View::e($back_url) ?>" class="link">&larr; Back to <?= View::e(str_replace('Owned › ', '', $ctx_label)) ?> Update Feed</a>
   <?php if ($is_edit): ?>
   <div class="topbar-actions">
     <form method="POST"
@@ -68,12 +65,12 @@ $ctxDisplay = preg_replace('/^Owned\s*›\s*/u', '', (string) ($ctx_label ?? '')
 <form method="POST" action="<?= View::e($formAction) ?>">
   <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
 
-  <div class="edit-layout">
+  <div class="composer-grid">
 
     <!-- ── Main card: title + body ── -->
     <div class="main-card">
       <div class="card-section">
-        <span class="neb-section-label">Content</span>
+        <span class="pc-section-label">Content</span>
         <div class="form-group">
           <label class="form-label" for="upd-title">
             Title <span class="req">*</span>
@@ -87,7 +84,7 @@ $ctxDisplay = preg_replace('/^Owned\s*›\s*/u', '', (string) ($ctx_label ?? '')
           <label class="form-label" for="upd-body">
             Body <span class="req">*</span>
           </label>
-          <textarea id="upd-body" name="body" class="body-textarea-large" required
+          <textarea id="upd-body" name="body" class="body-textarea" required
                     placeholder="Write your update here&hellip;"><?= $is_edit ? View::e($update->body) : '' ?></textarea>
         </div>
       </div>
@@ -111,12 +108,10 @@ $ctxDisplay = preg_replace('/^Owned\s*›\s*/u', '', (string) ($ctx_label ?? '')
                    value="<?= $is_edit ? View::e($editPostedAt) : $defaultPostedAt ?>">
             <div class="panel-hint">You can backdate or future-date entries.</div>
           </div>
-          <button type="submit" class="btn-publish" style="margin-top:.75rem">
+          <button type="submit" class="btn btn-primary btn-sm" style="width: 100%;">
             <?php if ($is_edit): ?>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v14a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
               Save Changes
             <?php else: ?>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
               Post Update
             <?php endif; ?>
           </button>
@@ -179,5 +174,5 @@ $ctxDisplay = preg_replace('/^Owned\s*›\s*/u', '', (string) ($ctx_label ?? '')
       </div>
 
     </div><!-- /.panel-col -->
-  </div><!-- /.edit-layout -->
+  </div><!-- /.composer-grid -->
 </form>

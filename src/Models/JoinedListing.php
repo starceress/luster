@@ -38,7 +38,7 @@ final class JoinedListing
             categoriesJson: isset($row['categories_json']) && $row['categories_json'] !== null ? (string) $row['categories_json'] : null,
             dateJoined:     isset($row['date_joined'])     && $row['date_joined']     !== null ? (string) $row['date_joined']     : null,
             active:         (bool)   ($row['active']       ?? true),
-            status:         (string) ($row['status']       ?? 'joined'),
+            status:         (string) ($row['status']       ?? 'approved'),
             createdAt:      (string) ($row['created_at']   ?? ''),
         );
     }

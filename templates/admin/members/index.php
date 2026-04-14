@@ -72,7 +72,7 @@ $memSortUrl = static function (string $col) use ($b, $id, $sort, $dir, $search, 
 
   </form>
 
-  <div class="actions">
+  <div class="actions-row">
     <a href="<?= $b ?>/admin/members/<?= $id ?>/import" class="btn btn-quaternary btn-sm">&#8593; Import CSV</a>
     <a href="<?= $b ?>/admin/members/<?= $id ?>/export" class="btn btn-quaternary btn-sm">&#8595; Export CSV</a>
   </div>
@@ -80,19 +80,19 @@ $memSortUrl = static function (string $col) use ($b, $id, $sort, $dir, $search, 
 
 
 <?php if (($pending_count ?? 0) > 0 && ($status ?? 'all') !== 'pending'): ?>
-<div class="action-banner">
-  <div class="action-banner-head">
-    <div class="action-banner-left">
-      <span class="action-banner-icon action-banner-icon--danger">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="18" height="18"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>
+<div class="reminder-banner">
+  <div class="reminder-banner-head">
+    <div class="reminder-banner-left">
+      <span class="reminder-banner-icon">
+        <span class="reminder-banner-icon"><?= View::icon('bell') ?></span>
       </span>
       <div>
-        <span class="action-banner-title action-banner-title--danger">Action Required!</span>
-        <span class="action-banner-msg"><?= (int) $pending_count ?> member<?= $pending_count !== 1 ? 's are' : ' is' ?> awaiting approval</span>
+        <span class="reminder-banner-title">Action Required!</span>
+        <span class="reminder-banner-msg"><?= (int) $pending_count ?> member<?= $pending_count !== 1 ? 's are' : ' is' ?> awaiting approval</span>
       </div>
     </div>
     <div style="display:flex;gap:.5rem;align-items:center">
-      <a href="?status=pending" class="btn-ghost-sm">View Pending &rarr;</a>
+      <a href="?status=pending" class="btn btn-tertiary btn-sm">View Pending &rarr;</a>
       <form method="POST" action="<?= $b ?>/admin/members/<?= $id ?>/approve-all-pending"
             data-confirm="Approve all <?= (int) $pending_count ?> pending member(s)?">
         <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
@@ -106,13 +106,13 @@ $memSortUrl = static function (string $col) use ($b, $id, $sort, $dir, $search, 
 <?php if (empty($members)): ?>
   <div class="card">
     <div class="empty">
-      <svg class="empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      <span class="empty-icon"><?= View::icon('members', ['width' => 32, 'height' => 32]) ?></span>
       <?php if (($search ?? '') !== '' || ($status ?? '') !== '' && $status !== 'all'): ?>
         No members match those filters.
-        <a href="?" class="btn btn-quaternary btn-sm">Clear Filters</a>
+        <a href="?" class="btn btn-tertiary btn-sm">Clear Filters</a>
       <?php else: ?>
         No members yet - they'll appear here after the first join.
-        <a href="<?= $b ?>/admin/members/<?= $id ?>/import" class="btn btn-quaternary btn-sm">&#8593; Import CSV</a>
+        <a href="<?= $b ?>/admin/members/<?= $id ?>/import" class="btn btn-tertiary btn-sm">&#8593; Import CSV</a>
       <?php endif; ?>
     </div>
   </div>
@@ -187,7 +187,7 @@ $memSortUrl = static function (string $col) use ($b, $id, $sort, $dir, $search, 
             </span>
           </td>
           <td class="act-col" data-label="">
-            <div class="row-actions">
+            <div class="data-actions">
               <?php if (!$m->approved): ?>
                 <form method="POST" action="<?= $b ?>/admin/members/<?= $id ?>/approve" style="display:contents">
                   <input type="hidden" name="_csrf"        value="<?= View::e($csrf_token ?? '') ?>">

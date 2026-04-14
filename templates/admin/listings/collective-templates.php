@@ -42,29 +42,26 @@ $statsVal  = $ct['collective_stats_template'] ?? $defaultStats;
   <div class="alert alert-error"><?= View::e($error) ?></div>
 <?php endif; ?>
 
-<div class="page-topbar" style="margin-bottom:1.25rem">
-  <a href="<?= $b ?>/admin/listings" class="back-link link">
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
-    Back to Listings
-  </a>
+<div class="page-topbar">
+  <a href="<?= $b ?>/admin/listings" class="link">&larr; Back to OwnedListings</a>
 </div>
 
-<div class="tpl-callout">
-  These templates control how each item looks in the <strong class="tpl-hl">Owned Listings</strong>,
-  <strong class="tpl-hl">Joined Listings</strong>, and <strong class="tpl-hl">Site Statistics</strong>
-  embeds on your collective page. Write plain HTML and drop in the tokens shown &mdash; Luster replaces them with real data automatically.
+<div class="callout">
+  These templates control how each item looks in the Owned Listings, Joined Listings, and Site Statistics embeds on your collective page. Write plain HTML and drop in the tokens shown; Luster replaces them with real data automatically.
 </div>
 
 <form method="POST" action="<?= $b ?>/admin/settings/templates">
   <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
 
-  <div class="tpl-layout">
+  <div class="composer-grid">
 
     <!-- ── Left: editor card ── -->
-    <div class="main-card">
-      <div class="tpl-card-head">
-        <div class="tpl-card-head-title">Collective HTML Templates</div>
-        <div class="tpl-card-head-sub">Controls how listings and stats render in your collective embeds.</div>
+    <div class="gradient-card">
+      <div class="pc-head">
+        <div class="pc-head-meta">
+          <div class="pc-head-title">Collective HTML Templates</div>
+          <div class="pc-head-sub">Controls how listings and stats render in your collective embeds.</div>
+        </div>
       </div>
 
       <!-- Owned Listings -->
@@ -79,7 +76,7 @@ $statsVal  = $ct['collective_stats_template'] ?? $defaultStats;
               <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
               Preview
             </button>
-            <button type="button" class="btn-reset" data-textarea="owned_template">Reset to default</button>
+            <button type="button" class="btn-ghost btn-sm" data-textarea="owned_template">Reset to default</button>
           </div>
         </div>
         <textarea name="owned_template" id="owned_template"
@@ -98,7 +95,7 @@ $statsVal  = $ct['collective_stats_template'] ?? $defaultStats;
               <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
               Preview
             </button>
-            <button type="button" class="btn-reset" data-textarea="joined_template">Reset to default</button>
+            <button type="button" class="btn-ghost btn-sm" data-textarea="joined_template">Reset to default</button>
           </div>
         </div>
         <textarea name="joined_template" id="joined_template"
@@ -117,7 +114,7 @@ $statsVal  = $ct['collective_stats_template'] ?? $defaultStats;
               <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
               Preview
             </button>
-            <button type="button" class="btn-reset" data-textarea="collective_stats_template">Reset to default</button>
+            <button type="button" class="btn-ghost btn-sm" data-textarea="collective_stats_template">Reset to default</button>
           </div>
         </div>
         <textarea name="collective_stats_template" id="collective_stats_template"
@@ -132,131 +129,109 @@ $statsVal  = $ct['collective_stats_template'] ?? $defaultStats;
       </div>
     </div><!-- /.main-card -->
 
-    <!-- ── Right: tokens sidebar ── -->
-    <div class="tpl-tokens-col">
-      <div class="tokens-card">
-        <div class="tokens-card-head">
-          <span class="tokens-card-title">Available Tokens</span>
-        </div>
-        <div class="tokens-tip">
-          <span class="tokens-tip-star">✦</span>
-          <span>Click any token to insert it at your cursor. Changes take effect after saving.</span>
-        </div>
+    <div class="composer-side">
 
-        <!-- Owned Listings group -->
-        <div class="tok-group">
-          <button type="button" class="tok-group-btn" aria-expanded="true">
-            <svg class="tok-group-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
-            Owned Listings
-            <svg class="tok-group-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
-          </button>
-          <div class="tok-body open">
-            <div class="tok-row" data-textarea="owned_template" data-token="{listing_name}">
-              <span class="tok-name">{listing_name}</span>
-              <span class="tok-desc">Fanlisting name</span>
-            </div>
-            <div class="tok-row" data-textarea="owned_template" data-token="{listing_url}">
-              <span class="tok-name">{listing_url}</span>
-              <span class="tok-desc">Fanlisting URL</span>
-            </div>
-            <div class="tok-row" data-textarea="owned_template" data-token="{listing_subject}">
-              <span class="tok-name">{listing_subject}</span>
-              <span class="tok-desc">Subject / fandom</span>
-            </div>
-            <div class="tok-row" data-textarea="owned_template" data-token="{listing_status}">
-              <span class="tok-name">{listing_status}</span>
-              <span class="tok-desc">Current, upcoming, etc.</span>
-            </div>
-          </div>
+      <!-- Owned Listings -->
+      <details class="card chevron" open>
+        <summary class="card-head">Owned Listings <?= View::icon('star') ?></summary>
+        <div class="card-body">
+          <table class="et-token-table">
+            <tbody>
+              <tr class="tok-row" data-textarea="owned_template" data-token="{listing_name}">
+                <td><code>{listing_name}</code></td><td>Fanlisting name</td>
+              </tr>
+              <tr class="tok-row" data-textarea="owned_template" data-token="{listing_url}">
+                <td><code>{listing_url}</code></td><td>Fanlisting URL</td>
+              </tr>
+              <tr class="tok-row" data-textarea="owned_template" data-token="{listing_subject}">
+                <td><code>{listing_subject}</code></td><td>Subject / fandom</td>
+              </tr>
+              <tr class="tok-row" data-textarea="owned_template" data-token="{listing_status}">
+                <td><code>{listing_status}</code></td><td>Current, upcoming, etc.</td>
+              </tr>
+            </tbody>
+          </table>
         </div>
+      </details>
 
-        <!-- Joined Listings group -->
-        <div class="tok-group">
-          <button type="button" class="tok-group-btn" aria-expanded="true">
-            <svg class="tok-group-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
-            Joined Listings
-            <svg class="tok-group-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
-          </button>
-          <div class="tok-body open">
-            <div class="tok-row" data-textarea="joined_template" data-token="{listing_name}">
-              <span class="tok-name">{listing_name}</span>
-              <span class="tok-desc">Fanlisting name</span>
-            </div>
-            <div class="tok-row" data-textarea="joined_template" data-token="{listing_url}">
-              <span class="tok-name">{listing_url}</span>
-              <span class="tok-desc">Fanlisting URL</span>
-            </div>
-            <div class="tok-row" data-textarea="joined_template" data-token="{listing_category}">
-              <span class="tok-name">{listing_category}</span>
-              <span class="tok-desc">TAFL category</span>
-            </div>
-            <div class="tok-row" data-textarea="joined_template" data-token="{listing_image}">
-              <span class="tok-name">{listing_image}</span>
-              <span class="tok-desc">Listing image tag</span>
-            </div>
-          </div>
+      <!-- Joined Listings -->
+      <details class="card chevron" open>
+        <summary class="chevron-head">
+          <svg class="chevron-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+          <span class="chevron-title">Joined Listings</span>
+          <svg class="chevron-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+        </summary>
+        <div class="chevron-body">
+          <table class="et-token-table">
+            <tbody>
+              <tr class="tok-row" data-textarea="joined_template" data-token="{listing_name}">
+                <td><code>{listing_name}</code></td><td>Fanlisting name</td>
+              </tr>
+              <tr class="tok-row" data-textarea="joined_template" data-token="{listing_url}">
+                <td><code>{listing_url}</code></td><td>Fanlisting URL</td>
+              </tr>
+              <tr class="tok-row" data-textarea="joined_template" data-token="{listing_category}">
+                <td><code>{listing_category}</code></td><td>TAFL category</td>
+              </tr>
+              <tr class="tok-row" data-textarea="joined_template" data-token="{listing_image}">
+                <td><code>{listing_image}</code></td><td>Listing image tag</td>
+              </tr>
+            </tbody>
+          </table>
         </div>
+      </details>
 
-        <!-- Statistics group -->
-        <div class="tok-group">
-          <button type="button" class="tok-group-btn" aria-expanded="true">
-            <svg class="tok-group-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
-            Statistics
-            <svg class="tok-group-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
-          </button>
-          <div class="tok-body open">
-            <div class="tok-row" data-textarea="collective_stats_template" data-token="{owned_active}">
-              <span class="tok-name">{owned_active}</span>
-              <span class="tok-desc">Active owned count</span>
-            </div>
-            <div class="tok-row" data-textarea="collective_stats_template" data-token="{owned_upcoming}">
-              <span class="tok-name">{owned_upcoming}</span>
-              <span class="tok-desc">Upcoming owned count</span>
-            </div>
-            <div class="tok-row" data-textarea="collective_stats_template" data-token="{owned_trouble}">
-              <span class="tok-name">{owned_trouble}</span>
-              <span class="tok-desc">On-hiatus count</span>
-            </div>
-            <div class="tok-row" data-textarea="collective_stats_template" data-token="{joined_active}">
-              <span class="tok-name">{joined_active}</span>
-              <span class="tok-desc">Active joined count</span>
-            </div>
-            <div class="tok-row" data-textarea="collective_stats_template" data-token="{affiliates}">
-              <span class="tok-name">{affiliates}</span>
-              <span class="tok-desc">Affiliate count</span>
-            </div>
-            <div class="tok-row" data-textarea="collective_stats_template" data-token="{members_total}">
-              <span class="tok-name">{members_total}</span>
-              <span class="tok-desc">Total members (all)</span>
-            </div>
-            <div class="tok-row" data-textarea="collective_stats_template" data-token="{members_approved}">
-              <span class="tok-name">{members_approved}</span>
-              <span class="tok-desc">Approved members</span>
-            </div>
-            <div class="tok-row" data-textarea="collective_stats_template" data-token="{members_pending}">
-              <span class="tok-name">{members_pending}</span>
-              <span class="tok-desc">Pending members</span>
-            </div>
-            <div class="tok-row" data-textarea="collective_stats_template" data-token="{owned_newest_name}">
-              <span class="tok-name">{owned_newest_name}</span>
-              <span class="tok-desc">Newest listing name</span>
-            </div>
-            <div class="tok-row" data-textarea="collective_stats_template" data-token="{owned_newest_url}">
-              <span class="tok-name">{owned_newest_url}</span>
-              <span class="tok-desc">Newest listing URL</span>
-            </div>
-            <div class="tok-row" data-textarea="collective_stats_template" data-token="{owned_random_name}">
-              <span class="tok-name">{owned_random_name}</span>
-              <span class="tok-desc">Random listing name</span>
-            </div>
-            <div class="tok-row" data-textarea="collective_stats_template" data-token="{owned_random_url}">
-              <span class="tok-name">{owned_random_url}</span>
-              <span class="tok-desc">Random listing URL</span>
-            </div>
-          </div>
+      <!-- Statistics -->
+      <details class="card chevron" open>
+        <summary class="chevron-head">
+          <svg class="chevron-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+          <span class="chevron-title">Statistics</span>
+          <svg class="chevron-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+        </summary>
+        <div class="chevron-body">
+          <table class="et-token-table">
+            <tbody>
+              <tr class="tok-row" data-textarea="collective_stats_template" data-token="{owned_active}">
+                <td><code>{owned_active}</code></td><td>Active owned count</td>
+              </tr>
+              <tr class="tok-row" data-textarea="collective_stats_template" data-token="{owned_upcoming}">
+                <td><code>{owned_upcoming}</code></td><td>Upcoming owned count</td>
+              </tr>
+              <tr class="tok-row" data-textarea="collective_stats_template" data-token="{owned_trouble}">
+                <td><code>{owned_trouble}</code></td><td>On-hiatus count</td>
+              </tr>
+              <tr class="tok-row" data-textarea="collective_stats_template" data-token="{joined_active}">
+                <td><code>{joined_active}</code></td><td>Active joined count</td>
+              </tr>
+              <tr class="tok-row" data-textarea="collective_stats_template" data-token="{affiliates}">
+                <td><code>{affiliates}</code></td><td>Affiliate count</td>
+              </tr>
+              <tr class="tok-row" data-textarea="collective_stats_template" data-token="{members_total}">
+                <td><code>{members_total}</code></td><td>Total members (all)</td>
+              </tr>
+              <tr class="tok-row" data-textarea="collective_stats_template" data-token="{members_approved}">
+                <td><code>{members_approved}</code></td><td>Approved members</td>
+              </tr>
+              <tr class="tok-row" data-textarea="collective_stats_template" data-token="{members_pending}">
+                <td><code>{members_pending}</code></td><td>Pending members</td>
+              </tr>
+              <tr class="tok-row" data-textarea="collective_stats_template" data-token="{owned_newest_name}">
+                <td><code>{owned_newest_name}</code></td><td>Newest listing name</td>
+              </tr>
+              <tr class="tok-row" data-textarea="collective_stats_template" data-token="{owned_newest_url}">
+                <td><code>{owned_newest_url}</code></td><td>Newest listing URL</td>
+              </tr>
+              <tr class="tok-row" data-textarea="collective_stats_template" data-token="{owned_random_name}">
+                <td><code>{owned_random_name}</code></td><td>Random listing name</td>
+              </tr>
+              <tr class="tok-row" data-textarea="collective_stats_template" data-token="{owned_random_url}">
+                <td><code>{owned_random_url}</code></td><td>Random listing URL</td>
+              </tr>
+            </tbody>
+          </table>
         </div>
+      </details>
 
-      </div><!-- /.tokens-card -->
     </div><!-- /.tpl-tokens-col -->
 
   </div><!-- /.tpl-layout -->

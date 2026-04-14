@@ -201,7 +201,7 @@ final class AffiliateController extends AdminController
             $siteName = (string) ($this->app->getConfig()->get('site_name', 'Collective'));
 
             if ($v->fails()) {
-                return $this->adminLayout('admin/affiliates/form.php', 'Add Affiliate', 'affiliates', [
+                return $this->adminLayout('admin/affiliates/add.php', 'Add Affiliate', 'affiliates', [
                     'listings'     => $listings,
                     'affiliate'    => null,
                     'error'        => implode(' ', $v->allErrors()),
@@ -239,7 +239,7 @@ final class AffiliateController extends AdminController
         // Prefill sort order: next available in the context scope (collective when no context)
         $nextSortOrder = $affiliateRepo->getNextSortOrder($contextFid > 0 ? $contextFid : null);
 
-        return $this->adminLayout('admin/affiliates/form.php', 'Add Affiliate', 'affiliates', [
+        return $this->adminLayout('admin/affiliates/add.php', 'Add Affiliate', 'affiliates', [
             'listings'       => $listings,
             'affiliate'      => null,
             'error'          => '',
@@ -323,7 +323,7 @@ final class AffiliateController extends AdminController
             $siteName = (string) ($this->app->getConfig()->get('site_name', 'Collective'));
 
             if ($v->fails()) {
-                return $this->adminLayout('admin/affiliates/form.php', 'Edit Affiliate', 'affiliates', [
+                return $this->adminLayout('admin/affiliates/add.php', 'Edit Affiliate', 'affiliates', [
                     'listings'     => $listings,
                     'affiliate'    => $affiliate,
                     'error'        => implode(' ', $v->allErrors()),
@@ -360,7 +360,7 @@ final class AffiliateController extends AdminController
 
         $siteName = (string) ($this->app->getConfig()->get('site_name', 'Collective'));
 
-        return $this->adminLayout('admin/affiliates/form.php', 'Edit Affiliate', 'affiliates', [
+        return $this->adminLayout('admin/affiliates/add.php', 'Edit Affiliate', 'affiliates', [
             'listings' => $listings,
             'affiliate'   => $affiliate,
             'error'       => '',

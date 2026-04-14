@@ -10,6 +10,9 @@ use Luster\Core\Validator;
 use Luster\Repositories\ActivityRepo;
 use Luster\Repositories\AffiliateRepo;
 use Luster\Repositories\CategoryRepo;
+use Luster\Repositories\CodeCategoriesRepo;
+use Luster\Repositories\CodeDonorsRepo;
+use Luster\Repositories\CodesRepo;
 use Luster\Repositories\FieldRepo;
 use Luster\Repositories\EmailTemplateRepo;
 use Luster\Repositories\ListingRepo;
@@ -433,6 +436,9 @@ final class ListingController extends AdminController
         $affiliateRepo  = new AffiliateRepo($db);
         $categoryRepo   = new CategoryRepo($db);
         $fieldRepo      = new FieldRepo($db, $config);
+        $codesRepo      = new CodesRepo($db);
+        $codeCatsRepo   = new CodeCategoriesRepo($db);
+        $codeDonorsRepo = new CodeDonorsRepo($db);
 
         $listing = $listingRepo->getById($id);
 
@@ -634,6 +640,50 @@ final class ListingController extends AdminController
         $templates          = $settingsRepo->getTemplates($id);
         $categories         = $categoryRepo->getAll();
         $currentCategoryId  = $listing->categoryId ?? null;
+
+        // Codes tab data
+        $codeStatusFilter = in_array((string) $request->query('status_filter', ''), array_merge([''], CodesRepo::STATUSES), true)
+            ? (string) $request->query('status_filter', '')
+            : '';
+        $codeEditCatId   = (int) $request->query('edit_cat',   '0');
+        $codeEditDonorId = (int) $request->query('edit_donor', '0');
+        $allCodes        = $codesRepo->getByListing($id);
+        $codeStatusCounts = ['approved' => 0, 'pending' => 0, 'rejected' => 0];
+        foreach ($allCodes as $c) {
+            $codeStatusCounts[$c->status] = ($codeStatusCounts[$c->status] ?? 0) + 1;
+        }
+        $codes       = $codeStatusFilter !== ''
+            ? array_values(array_filter($allCodes, fn($c) => $c->status === $codeStatusFilter))
+            : $allCodes;
+        $codeCats    = $codeCatsRepo->getByListing($id);
+        $codeDonors  = $codeDonorsRepo->getByListing($id);
+        $codeCategoryIds = $codeCatsRepo->getCategoryMapForListing($id);
+        $codeCatMap  = [];
+        foreach ($codeCats as $cat) { $codeCatMap[$cat->id] = $cat; }
+        $codeDonorMap = [];
+        foreach ($codeDonors as $donor) { $codeDonorMap[$donor->id] = $donor; }
+        $codeGrouped = [];
+        foreach ($codes as $code) {
+            if ($code->width > 0 && $code->height > 0) {
+                $gKey   = (int) $code->width . 'x' . (int) $code->height;
+                $gLabel = (int) $code->width . '×' . (int) $code->height . 'px';
+            } else {
+                $gKey   = 'unknown';
+                $gLabel = 'Unknown dimensions';
+            }
+            if (!isset($codeGrouped[$gKey])) {
+                $codeGrouped[$gKey] = ['label' => $gLabel, 'codes' => []];
+            }
+            $codeGrouped[$gKey]['codes'][] = $code;
+        }
+        uksort($codeGrouped, function (string $a, string $b): int {
+            if ($a === 'unknown') return 1;
+            if ($b === 'unknown') return -1;
+            [$aw, $ah] = explode('x', $a);
+            [$bw, $bh] = explode('x', $b);
+            return $aw !== $bw ? (int) $aw - (int) $bw : (int) $ah - (int) $bh;
+        });
+
         $success            = (string) $session->get('lstr_flash_success', '');
         $error              = (string) $session->get('lstr_flash_error', '');
         $session->remove('lstr_flash_success');
@@ -665,6 +715,19 @@ final class ListingController extends AdminController
             'embed_settings'      => $embedSettings,
             'contact_enabled'     => $contactSettings['enabled'],
             'contact_recipient'   => $contactSettings['recipient'] ?? '',
+            'codes'               => $codes,
+            'code_cats'           => $codeCats,
+            'code_donors'         => $codeDonors,
+            'code_grouped'        => $codeGrouped,
+            'code_category_ids'   => $codeCategoryIds,
+            'code_cat_map'        => $codeCatMap,
+            'code_donor_map'      => $codeDonorMap,
+            'code_edit_cat_id'    => $codeEditCatId,
+            'code_edit_donor_id'  => $codeEditDonorId,
+            'code_status_filter'  => $codeStatusFilter,
+            'code_status_counts'  => $codeStatusCounts,
+            'total_codes'         => count($allCodes),
+            'uploads_url'         => $this->app->getBaseUrl() . '/uploads/codes',
         ], 'Owned › ' . $listing->name);
     }
 

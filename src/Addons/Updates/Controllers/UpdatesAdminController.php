@@ -220,7 +220,7 @@ final class UpdatesAdminController extends AdminController
         $error = (string) $session->get('lstr_flash_error', '');
         $session->remove('lstr_flash_error');
 
-        return $this->adminLayout('admin/addons/updates/form.php', 'Edit Update', 'updates', [
+        return $this->adminLayout('admin/addons/updates/add.php', 'Edit Update', 'updates', [
             'update'           => $update,
             'fanlisting_id'    => $update->fanlistingId,
             'known_categories' => $updateRepo->getKnownCategories(),
@@ -338,7 +338,7 @@ final class UpdatesAdminController extends AdminController
             ? $baseUrl . '/admin/updates/' . $fanlistingId
             : $baseUrl . '/admin/updates/collective';
 
-        return $this->adminLayout('admin/addons/updates/form.php', 'Add Update', 'updates', [
+        return $this->adminLayout('admin/addons/updates/add.php', 'Add Update', 'updates', [
             'update'           => null,
             'fanlisting_id'    => $fanlistingId,
             'known_categories' => $updateRepo->getKnownCategories(),

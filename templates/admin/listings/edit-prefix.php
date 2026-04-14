@@ -1,70 +1,90 @@
 <?php
 use Luster\Core\View;
 /** @var \Luster\Models\Listing $listing */
-/** @var bool                      $table_exists */
-/** @var string                    $error */
-/** @var string                    $success */
-/** @var string                    $base_url */
-/** @var string                    $csrf_token */
+/** @var bool                   $table_exists */
+/** @var string                 $error */
+/** @var string                 $success */
+/** @var string                 $base_url */
+/** @var string                 $csrf_token */
 $b = rtrim(View::e($base_url), '/');
 ?>
 
-<p style="margin-bottom:1rem">
-  <a href="<?= $b ?>/admin/listings/<?= (int) $listing->id ?>/edit"
-     class="link">&larr; Back to <?= View::e($listing->name) ?></a>
-</p>
+<div class="page-topbar">
+  <a href="<?= $b ?>/admin/listings/<?= (int) $listing->id ?>/edit" class="link">
+    &larr; Back to <?= View::e($listing->name) ?>
+  </a>
+</div>
 
-<?php if ($error !== ''): ?>
+<?php if (($error ?? '') !== ''): ?>
   <div class="alert alert-error"><?= View::e($error) ?></div>
 <?php endif; ?>
 
-<div class="alert-warning">
-  <strong>&#9888; Destructive operation.</strong>
-  This renames the member table in your database. If anything goes wrong your member data may become
-  unreachable. There is no undo. Back up your database before proceeding.
-</div>
-
 <?php if (!$table_exists): ?>
-  <div class="alert alert-error">
+  <div class="alert alert-error" style="margin-bottom:1.25rem">
     <strong>Warning:</strong> the current member table
-    <code class="neb-code"><?= View::e($listing->dbprefix) ?></code>
-    does not exist in the database. Proceeding may cause errors.
+    <code><?= View::e($listing->dbprefix) ?></code>
+    does not exist in the database. Proceeding may cause further errors.
   </div>
 <?php endif; ?>
 
-<div class="card card-padded">
-  <form method="POST"
-        action="<?= $b ?>/admin/listings/<?= (int) $listing->id ?>/edit-prefix">
-    <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
+<form method="POST" action="<?= $b ?>/admin/listings/<?= (int) $listing->id ?>/edit-prefix">
+  <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
 
-    <div class="form-group">
-      <label class="form-label">Current Prefix</label>
-      <input type="text" class="form-input"
-             value="<?= View::e($listing->dbprefix) ?>" readonly
-             style="color:var(--text-muted);cursor:not-allowed">
-      <p class="form-hint">This is the existing member table name in the database.</p>
+  <div class="card listing-field-card">
+
+    <!-- Destructive-operation callout -->
+    <div class="callout" style="margin:1.25rem 1.25rem 0">
+      <strong>&#9888; Destructive operation.</strong>
+      This renames the member table in your database. If anything goes wrong your member
+      data may become unreachable. There is no undo — back up your database before proceeding.
     </div>
 
-    <div class="form-group">
-      <label class="form-label" for="ep-new-prefix">New Prefix</label>
-      <input id="ep-new-prefix" type="text" name="new_prefix" class="form-input"
-             pattern="[a-zA-Z0-9_]+"
-             placeholder="e.g. fl_music_"
-             required>
-      <p class="form-hint">Letters, numbers, and underscores only. Must not already exist as a table.</p>
-    </div>
+    <div class="listing-field-section">
+      <div class="pc-section-label">Rename Member Table</div>
 
-    <div class="form-group">
-      <label class="form-label" for="ep-confirm">Confirm New Prefix</label>
-      <input id="ep-confirm" type="text" name="confirm_prefix" class="form-input"
-             placeholder="Re-enter new prefix"
-             required>
-      <p class="form-hint">Re-enter the new prefix to confirm.</p>
-    </div>
+      <!-- Current prefix — read only -->
+      <div class="listing-field-row listing-field-row--top">
+        <span class="listing-field-label">Current Prefix</span>
+        <div>
+          <div class="ro-field"><?= View::e($listing->dbprefix) ?></div>
+          <p class="form-hint">The existing member table name in the database.</p>
+        </div>
+      </div>
 
-    <div class="btn-row">
+      <!-- New prefix -->
+      <div class="listing-field-row listing-field-row--top">
+        <label class="listing-field-label" for="ep-new-prefix">
+          New Prefix <span class="req">*</span>
+        </label>
+        <div>
+          <input id="ep-new-prefix" type="text" name="new_prefix" class="form-input"
+                 pattern="[a-zA-Z0-9_]+"
+                 placeholder="e.g. fl_music_"
+                 required>
+          <p class="form-hint">Letters, numbers, and underscores only. Must not already exist as a table.</p>
+        </div>
+      </div>
+
+      <!-- Confirm new prefix -->
+      <div class="listing-field-row listing-field-row--top">
+        <label class="listing-field-label" for="ep-confirm">
+          Confirm Prefix <span class="req">*</span>
+        </label>
+        <div>
+          <input id="ep-confirm" type="text" name="confirm_prefix" class="form-input"
+                 placeholder="Re-enter new prefix"
+                 required>
+          <p class="form-hint">Re-enter the new prefix to confirm the change.</p>
+        </div>
+      </div>
+
+    </div><!-- /.listing-field-section -->
+
+    <div class="composer-footer">
       <button type="submit" class="btn btn-danger">Rename Table</button>
-      <a href="<?= $b ?>/admin/listings/<?= (int) $listing->id ?>/edit" class="link">Cancel</a>
+      <a href="<?= $b ?>/admin/listings/<?= (int) $listing->id ?>/edit"
+         class="btn btn-ghost">Cancel</a>
     </div>
-  </form>
-</div>
+
+  </div><!-- /.card.listing-field-card -->
+</form>

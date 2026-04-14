@@ -84,8 +84,6 @@ $encName = urlencode($field->name);
       </label>
     </div>
 
-    <div class="section-divider"></div>
-
     <div class="btn-row">
       <button type="submit" class="btn btn-primary">Save Changes</button>
       <a href="<?= $b ?>/admin/listings/<?= $id ?>/fields" class="btn btn-ghost">Cancel</a>

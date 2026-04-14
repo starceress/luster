@@ -57,12 +57,15 @@ final class ErrorLogController extends AdminController
         $filename = 'error-log-' . date('Y-m-d') . '.csv';
 
         $out = fopen('php://temp', 'r+');
-        fputcsv($out, ['Date', 'Source', 'Message']);
+        fputcsv($out, ['Date', 'Time', 'Source', 'Message']);
         foreach ($rows as $row) {
+            $dt = $row['created_at'] ?? '';
+            [$date, $time] = str_contains($dt, ' ') ? explode(' ', $dt, 2) : [$dt, ''];
             fputcsv($out, [
-                $row['created_at'] ?? '',
-                $row['source']     ?? '',
-                $row['message']    ?? '',
+                $date,
+                $time,
+                $row['source']  ?? '',
+                $row['message'] ?? '',
             ]);
         }
         rewind($out);

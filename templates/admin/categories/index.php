@@ -59,7 +59,7 @@ $catSortUrl = static function (string $col) use ($b, $sort, $dir, $source, $sear
 
 <!-- Toolbar -->
 <div class="toolbar">
-  <div class="actions">
+  <div class="actions-row">
     <button type="button" class="btn btn-quaternary btn-sm fl-filter-toggle" id="fl-filter-toggle"
             aria-expanded="<?= $filtersActive ? 'true' : 'false' ?>"
             aria-controls="filter-panel">
@@ -67,7 +67,7 @@ $catSortUrl = static function (string $col) use ($b, $sort, $dir, $source, $sear
       Filter<?php if ($filtersActive): ?><span class="filter-dot" aria-hidden="true"></span><?php endif; ?>
     </button>
   </div>
-  <div class="actions">
+  <div class="actions-row">
     <a href="<?= $b ?>/admin/categories/add" class="btn btn-primary btn-sm">+ Add New Category</a>
   </div>
 </div>

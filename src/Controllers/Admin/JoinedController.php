@@ -71,7 +71,7 @@ final class JoinedController extends AdminController
                 $cmp = match ($sort) {
                     'category'   => strcasecmp($a->category ?? '', $b->category ?? '') ?: strcasecmp($a->name, $b->name),
                     'date_joined' => strcmp($a->dateJoined ?? '', $b->dateJoined ?? '') ?: strcasecmp($a->name, $b->name),
-                    'status'     => strcmp($a->status ?? 'joined', $b->status ?? 'joined') ?: strcasecmp($a->name, $b->name),
+                    'status'     => strcmp($a->status ?? 'approved', $b->status ?? 'approved') ?: strcasecmp($a->name, $b->name),
                     default      => strcasecmp($a->name, $b->name),
                 };
                 return $dir === 'desc' ? -$cmp : $cmp;
@@ -95,6 +95,7 @@ final class JoinedController extends AdminController
             'per_page'           => $perPage,
             'page'               => $page,
             'total_pages'        => $totalPages,
+            'group_counts'       => $repo->countByGroup($displayMode),
             'tfl_cats'           => $tflCats,
             'tafl_cats'          => $taflCats,
             'custom_networks'    => $customNetworks,
@@ -122,10 +123,10 @@ final class JoinedController extends AdminController
             $category   = trim((string) $request->post('category', ''));
             $dateJoined = trim((string) $request->post('date_joined', ''));
             $active     = $request->post('active') === '1';
-            $status     = trim((string) $request->post('status', 'joined'));
+            $status     = trim((string) $request->post('status', 'approved'));
 
-            if (!in_array($status, ['joined', 'pending'], true)) {
-                $status = 'joined';
+            if (!in_array($status, ['approved', 'pending'], true)) {
+                $status = 'approved';
             }
 
             $categoriesJson = $this->buildCategoriesJson($categoryRepo, $request);
@@ -179,7 +180,7 @@ final class JoinedController extends AdminController
                     array_unshift($messages, $imageError);
                 }
 
-                return $this->adminLayout('admin/joined/form.php', 'Add Joined FL', 'joined', [
+                return $this->adminLayout('admin/joined/add.php', 'Add Joined FL', 'joined', [
                     'joined'          => null,
                     'error'           => implode(' ', $messages),
                     'field_errors'    => $v->errors(),
@@ -217,7 +218,7 @@ final class JoinedController extends AdminController
             return Response::redirect($baseUrl . '/admin/joined');
         }
 
-        return $this->adminLayout('admin/joined/form.php', 'Add Joined FL', 'joined', [
+        return $this->adminLayout('admin/joined/add.php', 'Add Joined FL', 'joined', [
             'joined'          => null,
             'error'           => '',
             'old'             => [],
@@ -253,10 +254,10 @@ final class JoinedController extends AdminController
             $dateJoined = trim((string) $request->post('date_joined', ''));
             $active      = $request->post('active') === '1';
             $deleteImage = $request->post('delete_image') === '1';
-            $status      = trim((string) $request->post('status', 'joined'));
+            $status      = trim((string) $request->post('status', 'approved'));
 
-            if (!in_array($status, ['joined', 'pending'], true)) {
-                $status = 'joined';
+            if (!in_array($status, ['approved', 'pending'], true)) {
+                $status = 'approved';
             }
 
             $categoriesJson = $this->buildCategoriesJson($categoryRepo, $request);
@@ -312,7 +313,7 @@ final class JoinedController extends AdminController
                     array_unshift($messages, $imageError);
                 }
 
-                return $this->adminLayout('admin/joined/form.php', 'Edit Joined FL', 'joined', [
+                return $this->adminLayout('admin/joined/add.php', 'Edit Joined FL', 'joined', [
                     'joined'          => $joined,
                     'error'           => implode(' ', $messages),
                     'field_errors'    => $v->errors(),
@@ -365,7 +366,7 @@ final class JoinedController extends AdminController
             return Response::redirect($baseUrl . '/admin/joined');
         }
 
-        return $this->adminLayout('admin/joined/form.php', 'Edit Joined FL', 'joined', [
+        return $this->adminLayout('admin/joined/add.php', 'Edit Joined FL', 'joined', [
             'joined'          => $joined,
             'error'           => '',
             'old'             => [],
@@ -463,7 +464,7 @@ final class JoinedController extends AdminController
         if ($action === 'approve') {
             $stmt = $db->prepare('UPDATE lstr_joined SET status = :status WHERE id = :id');
             foreach ($ids as $id) {
-                $stmt->execute(['status' => 'joined', 'id' => $id]);
+                $stmt->execute(['status' => 'approved', 'id' => $id]);
                 ++$count;
             }
         } elseif ($action === 'pending') {

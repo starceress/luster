@@ -23,23 +23,23 @@ $dataTafl   = json_encode($tafl_cats     ?? [], JSON_HEX_QUOT | JSON_HEX_AMP | J
 $dataCustom = json_encode($custom_networks ?? [], JSON_HEX_QUOT | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_TAG);
 ?>
 
-<p class="page-back">
-  <a href="<?= $b ?>/admin/listings" class="back-link">&larr; Back to Owned Listings</a>
-</p>
+<div class="page-topbar">
+  <a href="<?= $b ?>/admin/listings" class="link">&larr; Back to Owned Listings</a>
+</div>
 
 <?php if ($error !== ''): ?>
   <div class="alert alert-error"><?= View::e($error) ?></div>
 <?php endif; ?>
 
-<div class="card listing-field-card">
+<div class="gradient-card">
   <form method="POST" action="<?= $b ?>/admin/listings/add" enctype="multipart/form-data" class="js-warn-unsaved">
     <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
 
     <div class="listing-field-section">
 
       <!-- ── Network & Category ── -->
-      <div class="listing-field-row listing-field-row--top">
-        <span class="listing-field-label">Network &amp; Category</span>
+      <div class="listing-field-row">
+        <span class="listing-field-label">Network & Category</span>
         <div>
           <div class="cat-widget" id="cat-widget"
                data-tfl='<?= $dataTfl ?>'
@@ -47,14 +47,14 @@ $dataCustom = json_encode($custom_networks ?? [], JSON_HEX_QUOT | JSON_HEX_AMP |
                data-custom='<?= $dataCustom ?>'
                data-existing='[]'>
             <div id="cat-rows"></div>
-            <a href="#" class="link" id="cat-add" style="font-size:.8125rem;display:inline-block;margin-top:.4rem">+ Add another category</a>
+            <a href="#" class="link" id="cat-add"><?= View::icon('add') ?> Add another category</a>
           </div>
           <p class="form-hint">The network(s) and category(ies) this listing is listed under.</p>
         </div>
       </div>
 
       <!-- ── Subject ── -->
-      <div class="listing-field-row listing-field-row--top<?= !empty($fe['subject']) ? ' has-error' : '' ?>">
+      <div class="listing-field-row<?= !empty($fe['subject']) ? ' has-error' : '' ?>">
         <label class="listing-field-label" for="fl-subject">Subject <span class="req">*</span></label>
         <div>
           <input id="fl-subject" type="text" name="subject" class="form-input" maxlength="255" required
@@ -65,7 +65,7 @@ $dataCustom = json_encode($custom_networks ?? [], JSON_HEX_QUOT | JSON_HEX_AMP |
       </div>
 
       <!-- ── Title ── -->
-      <div class="listing-field-row listing-field-row--top">
+      <div class="listing-field-row">
         <label class="listing-field-label" for="fl-title">Title</label>
         <div>
           <input id="fl-title" type="text" name="title" class="form-input" maxlength="255"
@@ -75,7 +75,7 @@ $dataCustom = json_encode($custom_networks ?? [], JSON_HEX_QUOT | JSON_HEX_AMP |
       </div>
 
       <!-- ── URL ── -->
-      <div class="listing-field-row listing-field-row--top<?= !empty($fe['url']) ? ' has-error' : '' ?>">
+      <div class="listing-field-row<?= !empty($fe['url']) ? ' has-error' : '' ?>">
         <label class="listing-field-label" for="fl-url">URL <span class="req">*</span></label>
         <div>
           <input id="fl-url" type="url" name="url" class="form-input" maxlength="500" placeholder="https://" required
@@ -85,7 +85,7 @@ $dataCustom = json_encode($custom_networks ?? [], JSON_HEX_QUOT | JSON_HEX_AMP |
       </div>
 
       <!-- ── Email ── -->
-      <div class="listing-field-row listing-field-row--top">
+      <div class="listing-field-row">
         <label class="listing-field-label" for="fl-email">Email</label>
         <div>
           <input id="fl-email" type="email" name="email" class="form-input" maxlength="255"
@@ -97,16 +97,9 @@ $dataCustom = json_encode($custom_networks ?? [], JSON_HEX_QUOT | JSON_HEX_AMP |
 
       <!-- ── Listing Image ── -->
       <div class="listing-field-row">
-        <span class="listing-field-label">Listing Image</span>
+        <span class="listing-field-label">Image</span>
         <label class="file-drop-zone">
-          <input type="file" name="image" accept="image/jpeg,image/png,image/gif,image/webp">
-          <svg class="file-drop-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
-            <rect x="2" y="2" width="12" height="12" rx="1.5"/>
-            <circle cx="5.5" cy="5.5" r="1"/>
-            <path d="M14 10l-3.5-3.5L6 11l-2-2-2 2"/>
-          </svg>
-          <span class="file-drop-label">Click to upload</span>
-          <span class="file-drop-sub">JPEG, PNG, GIF, WebP &mdash; max&nbsp;2&nbsp;MB</span>
+          <input type="file" name="image" accept="image/jpeg,image/png,image/gif,image/webp"><?= View::icon('image') ?> Click to Upload &mdash; JPEG, PNG, GIF, WebP; max 2MB</span>
         </label>
       </div>
 
@@ -136,7 +129,7 @@ $dataCustom = json_encode($custom_networks ?? [], JSON_HEX_QUOT | JSON_HEX_AMP |
           <input id="fl-opened" type="date" name="opened" class="form-input" style="max-width:180px"
                  value="<?= View::e($val('opened', $default_date)) ?>">
           <input type="hidden" id="fl-opened-tba" name="opened" value="TBA" disabled>
-          <span id="fl-opened-tba-text" style="display:none;font-size:.85rem;color:var(--text-muted);font-style:italic">TBA &mdash; date will be set when the listing opens.</span>
+          <span id="fl-opened-tba-text" class="text-dim">TBA &mdash; date will be set when the listing opens.</span>
         </div>
       </div>
 

@@ -53,7 +53,7 @@ $pendingSortUrl = static function (string $col) use ($b, $sort, $dir): string {
       <a href="<?= $b ?>/admin/members" class="btn btn-quaternary btn-sm">Clear</a>
     <?php endif; ?>
   </form>
-  <div class="actions">
+  <div class="actions-row">
     <a href="<?= $b ?>/admin/members/export-pending" class="btn btn-quaternary btn-sm">&#8595; Export CSV</a>
     <a href="<?= $b ?>/admin/emails?tab=bulk" class="btn btn-quaternary btn-sm">Bulk Email</a>
     <a href="<?= $b ?>/admin/members/settings" class="btn btn-quaternary btn-sm">Display Settings</a>
@@ -72,9 +72,9 @@ $pendingSortUrl = static function (string $col) use ($b, $sort, $dir): string {
   <?php if ($total === 0): ?>
     <div class="card">
       <div class="empty">
-        <svg class="empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <span class="empty-icon"><?= View::icon('members', ['width' => 32, 'height' => 32]) ?></span>
         No members found matching that search.
-        <a href="<?= $b ?>/admin/members" class="btn btn-quaternary btn-sm">Clear Search</a>
+        <a href="<?= $b ?>/admin/members" class="btn btn-tertiary btn-sm">Clear Search</a>
       </div>
     </div>
   <?php else: ?>
@@ -105,7 +105,7 @@ $pendingSortUrl = static function (string $col) use ($b, $sort, $dir): string {
               </a>
             </td>
             <td class="text-strong" data-label="Name"><?= View::e($m->name) ?></td>
-            <td class="td-mono" data-label="Email"><?= View::e($m->email) ?></td>
+            <td data-label="Email"><?= View::e($m->email) ?></td>
             <td data-label="Country"><?= View::e($m->country) ?></td>
             <td data-label="Status">
               <?php if ($m->approved): ?>
@@ -114,11 +114,11 @@ $pendingSortUrl = static function (string $col) use ($b, $sort, $dir): string {
                 <span class="badge badge-upcoming">Pending</span>
               <?php endif; ?>
             </td>
-            <td class="td-mono" data-label="Joined" style="white-space:nowrap;color:var(--text-muted)">
+            <td data-label="Joined" style="white-space:nowrap;color:var(--text-muted)">
               <?= View::e(($m->added ?? '') !== '' ? date($admin_date_format, strtotime($m->added)) : '') ?>
             </td>
             <td class="act-col" data-label="">
-              <div class="row-actions">
+              <div class="data-actions">
                 <?php if (!$m->approved): ?>
                   <form method="POST" action="<?= $b ?>/admin/members/<?= $flId ?>/approve" style="display:contents">
                     <input type="hidden" name="_csrf"        value="<?= View::e($csrf_token ?? '') ?>">
@@ -155,7 +155,7 @@ $pendingSortUrl = static function (string $col) use ($b, $sort, $dir): string {
   <?php if (empty($grouped)): ?>
     <div class="card">
       <div class="empty">
-        <svg class="empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+        <span class="empty-icon"><?= View::icon('check-badge', ['width' => 32, 'height' => 32]) ?></span>
         No pending members - you're all caught up.
       </div>
     </div>
@@ -223,7 +223,7 @@ $pendingSortUrl = static function (string $col) use ($b, $sort, $dir): string {
               <?php endif; ?>
             </td>
             <td class="act-col" data-label="">
-              <div class="row-actions">
+              <div class="data-actions">
                 <form method="POST" action="<?= $b ?>/admin/members/<?= $flId ?>/approve" style="display:contents">
                   <input type="hidden" name="_csrf"        value="<?= View::e($csrf_token ?? '') ?>">
                   <input type="hidden" name="member_email" value="<?= View::e($m->email) ?>">
@@ -262,7 +262,7 @@ $pendingSortUrl = static function (string $col) use ($b, $sort, $dir): string {
     <div>
       <div class="overview-section-title">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="15" height="15"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-        Pending Info Updates
+        Pending Member Updates
       </div>
       <div class="overview-section-sub">Members requesting changes to their details - review each diff and accept or reject.</div>
     </div>
@@ -270,8 +270,8 @@ $pendingSortUrl = static function (string $col) use ($b, $sort, $dir): string {
   <?php if (empty($pending_updates)): ?>
     <div class="card">
       <div class="empty">
-        <svg class="empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
-        No pending info updates.
+        <span class="empty-icon"><?= View::icon('check-badge', ['width' => 32, 'height' => 32]) ?></span>
+        No pending member updates - you're all caught up.
       </div>
     </div>
   <?php else: ?>
@@ -351,7 +351,7 @@ $pendingSortUrl = static function (string $col) use ($b, $sort, $dir): string {
                   <?= View::e($pu->submitted_at) ?>
                 </td>
                 <td class="act-col" data-label="" style="white-space:nowrap">
-                  <div class="row-actions">
+                  <div class="data-actions">
                     <form method="POST"
                           action="<?= $b ?>/admin/pending-updates/<?= (int) $pu->id ?>/approve"
                           style="display:contents"

@@ -23,8 +23,7 @@ $b = rtrim(View::e($base_url), '/');
 
 <?php if (empty($discovered)): ?>
   <div class="card">
-    <div class="empty">
-      <svg class="empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
+    <div class="empty"><span class="empty-icon"><?= View::icon('addon') ?></span>
       No add-ons found. Place add-on directories inside <code>src/Addons/</code> to make them appear here.
     </div>
   </div>
@@ -33,10 +32,10 @@ $b = rtrim(View::e($base_url), '/');
     <?php foreach ($discovered as $key => $addon):
       $isInstalled = isset($installed[$key]);
     ?>
-    <div class="addon-card<?= $isInstalled ? ' addon-card--installed' : '' ?>">
+    <div class="import-source-card<?= $isInstalled ? ' addon-card--installed' : '' ?>">
 
-      <div class="addon-card-header">
-        <span class="addon-name"><?= View::e($addon->getName()) ?></span>
+      <div class="import-source-header">
+        <span class="pc-head-title"><?= View::e($addon->getName()) ?></span>
         <?php if ($isInstalled): ?>
           <span class="badge badge-current">Installed</span>
         <?php else: ?>
@@ -44,35 +43,36 @@ $b = rtrim(View::e($base_url), '/');
         <?php endif; ?>
       </div>
 
-      <p class="addon-desc"><?= View::e($addon->getDescription()) ?></p>
+      <p class="addon-card-desc"><?= View::e($addon->getDescription()) ?></p>
 
-      <div class="addon-actions">
-        <?php if ($isInstalled): ?>
-          <?php if ($key === 'Kim'): ?>
-            <a href="<?= $b ?>/admin/kim" class="btn btn-primary btn-sm">Manage</a>
-          <?php elseif ($key === 'Updates'): ?>
-            <a href="<?= $b ?>/admin/updates" class="btn btn-primary btn-sm">Manage</a>
+      <div class="import-source-note">
+        <div style="display:flex;gap:.5rem;flex-wrap:wrap">
+          <?php if ($isInstalled): ?>
+            <?php if ($key === 'Kim'): ?>
+              <a href="<?= $b ?>/admin/kim" class="btn btn-primary btn-sm">Manage</a>
+            <?php elseif ($key === 'Updates'): ?>
+              <a href="<?= $b ?>/admin/updates" class="btn btn-primary btn-sm">Manage</a>
+            <?php endif; ?>
+            <form method="POST" action="<?= $b ?>/admin/addons/uninstall" class="js-uninstall-form"
+                  data-addon-name="<?= View::e($addon->getName()) ?>">
+              <input type="hidden" name="_csrf"      value="<?= View::e($csrf_token) ?>">
+              <input type="hidden" name="addon_key"  value="<?= View::e($key) ?>">
+              <button type="button" class="btn btn-danger btn-sm js-uninstall-btn">Uninstall</button>
+            </form>
+          <?php else: ?>
+            <form method="POST" action="<?= $b ?>/admin/addons/install">
+              <input type="hidden" name="_csrf"      value="<?= View::e($csrf_token) ?>">
+              <input type="hidden" name="addon_key"  value="<?= View::e($key) ?>">
+              <button type="submit" class="btn btn-primary btn-sm">Install</button>
+            </form>
           <?php endif; ?>
-          <form method="POST" action="<?= $b ?>/admin/addons/uninstall" class="js-uninstall-form"
-                data-addon-name="<?= View::e($addon->getName()) ?>">
-            <input type="hidden" name="_csrf"      value="<?= View::e($csrf_token) ?>">
-            <input type="hidden" name="addon_key"  value="<?= View::e($key) ?>">
-            <button type="button" class="btn btn-danger btn-sm js-uninstall-btn">Uninstall</button>
-          </form>
-        <?php else: ?>
-          <form method="POST" action="<?= $b ?>/admin/addons/install">
-            <input type="hidden" name="_csrf"      value="<?= View::e($csrf_token) ?>">
-            <input type="hidden" name="addon_key"  value="<?= View::e($key) ?>">
-            <button type="submit" class="btn btn-primary btn-sm">Install</button>
-          </form>
-        <?php endif; ?>
+        </div>
       </div>
 
     </div>
     <?php endforeach; ?>
   </div>
 
-  <!-- Uninstall confirmation modal -->
   <div id="addon-uninstall-modal" class="modal-backdrop" style="display:none" role="dialog" aria-modal="true" aria-labelledby="addon-modal-title">
     <div class="modal">
       <div class="modal-header">

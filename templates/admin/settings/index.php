@@ -32,7 +32,6 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
 
 <div class="mini-nav-layout">
 
-  <!-- ── Sidebar nav ─────────────────────────────────────────── -->
   <nav class="panel-card">
     <div class="card-head"><div class="card-head-title">Settings</div></div>
     <div class="panel-body">
@@ -47,10 +46,7 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
 
   <div class="settings-content">
 
-    <!-- ═══ PANEL: Admin Details ═══════════════════════════════ -->
     <div id="panel-admin" class="mini-nav-panel">
-
-      <!-- Account Details -->
       <div class="gradient-card">
         <div class="pc-head">
           <div class="pc-head-icon pc-head-icon-bg">
@@ -89,13 +85,15 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
             <div class="form-row">
               <div class="form-group<?= !empty($fe['admin_new_password']) ? ' has-error' : '' ?>">
                 <label class="form-label" for="p-new-pass">New Password <em class="opt">(optional)</em></label>
-                <div class="input-icon-wrap">
+                <div style="position:relative">
                   <input id="p-new-pass" type="password" name="admin_new_password" class="form-input"
-                         maxlength="255" autocomplete="new-password"
+                         style="padding-right:42px" maxlength="255" autocomplete="new-password"
                          placeholder="Leave blank to keep current">
-                  <button type="button" class="input-icon-btn" aria-label="Show password" tabindex="-1">
-                    <svg class="eye-on" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-                    <svg class="eye-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" style="display:none"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+                  <button type="button" data-pw-toggle aria-label="Show password" tabindex="-1"
+                          style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--text-dim);padding:4px;line-height:0"
+                          onmouseover="this.style.color='var(--accent)'" onmouseout="this.style.color='var(--text-dim)'">
+                    <?= View::icon('eye-on') ?>
+                    <?= View::icon('eye-off') ?>
                   </button>
                 </div>
                 <?php if (!empty($fe['admin_new_password'])): ?><p class="field-error"><?= View::e($fe['admin_new_password'][0]) ?></p><?php endif; ?>
@@ -107,8 +105,8 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
                          maxlength="255" autocomplete="new-password"
                          placeholder="Repeat new password">
                   <button type="button" class="input-icon-btn" aria-label="Show password" tabindex="-1">
-                    <svg class="eye-on" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-                    <svg class="eye-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" style="display:none"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+                    <?= View::icon('eye-on') ?>
+                    <?= View::icon('eye-off') ?>
                   </button>
                 </div>
                 <?php if (!empty($fe['admin_confirm_password'])): ?><p class="field-error"><?= View::e($fe['admin_confirm_password'][0]) ?></p><?php endif; ?>
@@ -116,30 +114,27 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
             </div>
           </div>
 
-          <div class="pc-footer">
+          <div class="composer-footer">
             <button type="submit" class="btn btn-primary">Save Settings</button>
+            <button type="reset" class="btn btn-ghost">Clear Form</button>
             <span class="text-dim">Changes apply immediately</span>
           </div>
         </form>
       </div>
-
-    </div><!-- /#panel-admin -->
-
-    <!-- ═══ PANEL: Admin Accounts ══════════════════════════════ -->
+    </div>
+    
     <div id="panel-accounts" class="mini-nav-panel">
-
       <div class="gradient-card gradient-card--plain">
         <div class="pc-head">
           <div class="pc-head-icon pc-head-icon-bg">
             <?= View::icon('admins') ?>
           </div>
           <div class="pc-head-meta">
-            <div class="pc-head-title">Admin Accounts (<?= count($users ?? []) ?>)</div>
+            <div class="pc-head-title">Admin Accounts <span class="badge badge-info-pink" style="font-family: 'DM Sans', sans-serif; margin-left: .5rem;"><?= count($users ?? []) ?> Total</span></div>
             <div class="pc-head-sub">All accounts with admin panel access. Each logs in independently.</div>
           </div>
-          <a href="<?= $b ?>/admin/admin-users/add" class="btn btn-primary btn-sm btn-end">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
-            Add Account
+          <a href="<?= $b ?>/admin/admin-users/add" class="btn btn-primary btn-sm" style="margin-left:auto; flex-shrink:0;">
+            <?= View::icon('add') ?> Add Account
           </a>
         </div>
 
@@ -160,7 +155,7 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
                 <td>
                   <?= View::e($user->username) ?>
                   <?php if ($user->id === ($current_admin_id ?? 0)): ?>
-                    <span class="badge badge-info">You</span>
+                    <span class="badge badge-info" style="margin-left: .5rem;">You</span>
                   <?php endif; ?>
                 </td>
                 <td><?= View::e($user->email) ?></td>
@@ -171,7 +166,7 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
                   <?= View::e(substr($user->createdAt, 0, 10)) ?>
                 </td>
                 <td class="act-col">
-                  <div class="row-actions">
+                  <div class="data-actions">
                     <a href="<?= $b ?>/admin/admin-users/<?= $user->id ?>/edit" class="btn btn-tertiary btn-sm">Edit</a>
                     <?php if ($user->id !== ($current_admin_id ?? 0)): ?>
                       <form method="POST"
@@ -290,8 +285,8 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
                     $commonTz['Other'] = [$currentTz];
                 }
               ?>
-              <div class="select-wrap">
-                <select id="s-timezone" name="timezone" class="form-select">
+              <div class="select-wrap" style="display:inline-block;max-width:100%">
+                <select id="s-timezone" name="timezone" class="form-select" style="width:auto;min-width:min-content;max-width:100%">
                   <?php foreach ($commonTz as $group => $tzList): ?>
                     <optgroup label="<?= View::e($group) ?>">
                       <?php foreach ($tzList as $tz): ?>
@@ -359,10 +354,9 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
             </div>
           </div>
 
-          <div class="pc-footer">
-            <button type="submit" class="btn btn-primary">
-              Save Settings
-            </button>
+          <div class="composer-footer">
+            <button type="submit" class="btn btn-primary">Save Settings</button>
+            <button type="button" class="btn btn-ghost" id="general-clear-btn">Clear Form</button>
           </div>
         </div>
       </div><!-- /#panel-general -->
@@ -381,7 +375,7 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
           </div>
 
           <div class="pc-section">
-            <div class="callout">
+            <div class="callout" style="margin-block: 0.25rem;">
               <strong>Heads up:</strong> These settings affect how Luster generates <code>require</code> and form action URLs.
               Set them before embedding forms on external pages.
             </div>
@@ -473,18 +467,15 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
           </div>
           <?php endif; ?>
 
-          <div class="pc-footer">
-            <button type="submit" class="btn btn-primary">Save Settings
-            </button>
+          <div class="composer-footer">
+            <button type="submit" class="btn btn-primary">Save Settings</button>
+            <button type="button" class="btn btn-ghost" id="embed-clear-btn">Clear Form</button>
           </div>
         </div>
-      </div><!-- /#panel-embed -->
+      </div>
+    </form>
 
-    </form><!-- /general + embed form -->
-
-    <!-- ═══ PANEL: Blacklist ════════════════════════════════════ -->
     <div id="panel-blacklist" class="mini-nav-panel">
-
       <div class="gradient-card">
         <div class="pc-head">
           <div class="pc-head-icon pc-head-icon-bg">
@@ -498,7 +489,7 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
 
         <div class="pc-section">
           <div class="pc-section-label">Add Pattern</div>
-          <form method="POST" action="<?= $b ?>/admin/blacklist/add">
+          <form id="blacklist-add-form" method="POST" action="<?= $b ?>/admin/blacklist/add">
             <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
             <div class="form-row">
               <div class="form-group">
@@ -514,15 +505,17 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
                 <p class="form-hint">Internal note — not shown to visitors.</p>
               </div>
             </div>
-            <button type="submit" class="btn btn-danger btn-sm">Add to Blacklist</button>
-          </form>
+        </div>
+        <div class="composer-footer">
+          <button type="submit" form="blacklist-add-form" class="btn btn-primary btn-sm">Add to Blacklist</button>
+          <button type="reset" form="blacklist-add-form" class="btn btn-ghost btn-sm">Clear Form</button>
         </div>
       </div>
 
       <?php if (empty($blacklist_entries)): ?>
         <div class="card">
           <div class="empty">
-            <?= View::icon('blacklist') ?>
+            <span class="empty-icon"><?= View::icon('blacklist', ['width' => 32, 'height' => 32]) ?></span>
             No blocked patterns yet — add email addresses or domains above to prevent them from joining.
           </div>
         </div>
@@ -530,13 +523,13 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
         <div class="card">
           <div class="card-head">
             <span class="card-head-title">Blocked Patterns</span>
-            <span class="row-sub"><?= count($blacklist_entries) ?> entr<?= count($blacklist_entries) === 1 ? 'y' : 'ies' ?></span>
+            <span class="row-sub">&mdash; <?= count($blacklist_entries) ?> entr<?= count($blacklist_entries) === 1 ? 'y' : 'ies' ?></span>
           </div>
           <div class="table-wrap">
             <table class="data-table">
               <thead>
                 <tr>
-                  <th>Blocked Pattern</th>
+                  <th>Pattern</th>
                   <th>Note</th>
                   <th class="act-col">Actions</th>
                 </tr>
@@ -563,12 +556,9 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
           </div>
         </div>
       <?php endif; ?>
+    </div>
 
-    </div><!-- /#panel-blacklist -->
-
-    <!-- ═══ PANEL: System Details ══════════════════════════════ -->
     <div id="panel-system" class="mini-nav-panel">
-
       <div class="gradient-card">
         <div class="pc-head">
           <div class="pc-head-icon pc-head-icon-bg">
@@ -628,9 +618,21 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
               </span>
             </div>
         </div>
+
+        <!-- Data Migration -->
+        <div class="pc-section">
+          <div class="pc-section-label">Data Migration</div>
+          <p style="margin:0 0 .75rem;color:var(--text-dim);font-size:.9rem">
+            Migrate data from Enthusiast, Listing Admin, or other fanlisting scripts into Luster.
+          </p>
+          <a href="<?= $b ?>/admin/import" class="btn btn-secondary btn-sm">
+            <?= View::icon('import') ?> Import Data Wizard
+          </a>
+        </div>
+
       </div>
 
-    </div><!-- /#panel-system -->
+    </div>
 
-  </div><!-- /.settings-content -->
-</div><!-- /.settings-layout -->
+  </div>
+</div>

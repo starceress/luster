@@ -13,6 +13,7 @@ use Luster\Core\Response;
 use Luster\Core\Validator;
 use Luster\Repositories\AdminPasswordResetRepo;
 use Luster\Repositories\AdminUserRepo;
+use Luster\Repositories\ErrorLogRepo;
 
 /**
  * Handles admin authentication: login, logout, remember-me,
@@ -297,8 +298,14 @@ final class AuthController
                     . "If you did not request this, you can safely ignore this email.\n\n"
                     . "— {$siteName}"
                 );
-            } catch (\Throwable) {
-                // Log silently; don't reveal email delivery failure to the user
+            } catch (\Throwable $e) {
+                try {
+                    (new ErrorLogRepo($db))->log(
+                        'Admin password reset email failed: ' . $e->getMessage(),
+                        'error',
+                        'AuthController::forgot'
+                    );
+                } catch (\Throwable) {}
             }
         }
 

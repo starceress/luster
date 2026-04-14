@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use Luster\Controllers\Admin\AddonsController;
+use Luster\Controllers\Admin\ImportController;
 use Luster\Controllers\Admin\ActivityLogController;
 use Luster\Controllers\Admin\EmailsController;
 use Luster\Controllers\Admin\MassEmailController;
@@ -201,8 +202,6 @@ return [
         // ── Codes for a specific listing ─────────────────────────
         //    Specific literal paths are registered before parameterised ones
         //    to prevent e.g. 'upload' or 'sizes' matching as {id}.
-        $router->get('/admin/listings/{fid}/codes',
-            CodesController::class, 'index');
         $router->post('/admin/listings/{fid}/codes/upload',
             CodesController::class, 'upload');
         $router->post('/admin/listings/{fid}/codes/sizes/add',
@@ -403,6 +402,27 @@ return [
             BlacklistController::class, 'add');
         $router->post('/admin/blacklist/{id}/delete',
             BlacklistController::class, 'delete');
+
+        // ── Import wizard ─────────────────────────────────────────────
+        // Literal sub-paths registered before parameterised {source} routes
+        $router->get('/admin/import',
+            ImportController::class, 'index');
+        $router->get('/admin/import/{source}/configure',
+            ImportController::class, 'configure');
+        $router->post('/admin/import/{source}/configure',
+            ImportController::class, 'configure');
+        $router->post('/admin/import/{source}/test-connection',
+            ImportController::class, 'testConnection');
+        $router->get('/admin/import/{source}/preview',
+            ImportController::class, 'preview');
+        $router->post('/admin/import/{source}/run',
+            ImportController::class, 'run');
+        $router->get('/admin/import/{source}/result',
+            ImportController::class, 'result');
+        $router->get('/admin/import/{source}/report',
+            ImportController::class, 'downloadReport');
+        $router->post('/admin/import/{source}/upload-images',
+            ImportController::class, 'uploadImages');
 
         // ── Embed codes reference ─────────────────────────────────────
         $router->get('/admin/embed-codes',

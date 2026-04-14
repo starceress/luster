@@ -34,8 +34,8 @@ $id = (int) $listing->id;
 <?php if (empty($fields)): ?>
   <div class="card">
     <div class="empty">
-      <svg class="empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 10h18M8 5v14"/></svg>
-      No additional fields defined yet. Use the form below to add one.
+      <span class="empty-icon"><?= View::icon('star', ['width' => 32, 'height' => 32]) ?></span>
+      No additional fields defined yet.
     </div>
   </div>
 <?php else: ?>

@@ -67,7 +67,6 @@ $_defaults = [
         </div>
       </div>
 
-      <div class="section-divider"></div>
       <div style="display:flex;gap:.75rem;align-items:center">
         <button type="submit" class="btn btn-primary">Save Settings</button>
         <a href="<?= $b ?>/admin/kim" class="btn btn-ghost">Cancel</a>

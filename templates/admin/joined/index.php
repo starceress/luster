@@ -8,6 +8,7 @@ use Luster\Core\View;
 /** @var int      $per_page */
 /** @var int      $page */
 /** @var int      $total_pages */
+/** @var array<string,int> $group_counts */
 /** @var array    $tfl_cats */
 /** @var array    $tafl_cats */
 /** @var string[] $custom_networks */
@@ -64,7 +65,7 @@ foreach ($joined as $jf) {
         foreach ($cats as $c) { if (!empty($c['name'])) { $key = $c['name']; break; } }
         if ($key === 'Uncategorised' && $jf->category !== '') { $key = $jf->category; }
     } elseif ($displayMode === 'status') {
-        $key = ucfirst($jf->status ?? 'joined');
+        $key = ucfirst($jf->status ?? 'approved');
     } else {
         $key = 'All Joined';
     }
@@ -86,7 +87,7 @@ if ($displayMode === 'category') {
 
 <!-- Toolbar -->
 <div class="toolbar">
-  <div class="actions">
+  <div class="actions-row">
     <button type="button" class="btn btn-quaternary btn-sm fl-filter-toggle" id="fl-filter-toggle"
             aria-expanded="<?= $filtersActive ? 'true' : 'false' ?>"
             aria-controls="filter-panel">
@@ -94,7 +95,7 @@ if ($displayMode === 'category') {
       Filter<?php if ($filtersActive): ?><span class="filter-dot" aria-hidden="true"></span><?php endif; ?>
     </button>
   </div>
-  <div class="actions">
+  <div class="actions-row">
     <a href="<?= $b ?>/admin/joined/add" class="btn btn-primary btn-sm">+ Add Joined FL</a>
     <a href="<?= $b ?>/admin/joined/settings" class="btn btn-quaternary btn-sm">Display Settings</a>
   </div>
@@ -141,13 +142,13 @@ if ($displayMode === 'category') {
 <?php if (empty($joined)): ?>
   <div class="card">
     <div class="empty">
-      <svg class="empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+      <span class="empty-icon"><?= View::icon('heart', ['width' => 32, 'height' => 32]) ?></span>
       <?php if (($search ?? '') !== '' || ($filter_network ?? '') !== '' || ($filter_cat ?? '') !== ''): ?>
         No joined listings match those filters.
-        <a href="<?= $b ?>/admin/joined" class="btn btn-quaternary btn-sm">Clear Filters</a>
+        <a href="<?= $b ?>/admin/joined" class="btn btn-tertiary btn-sm">Clear Filters</a>
       <?php else: ?>
         No joined listings yet.
-        <a href="<?= $b ?>/admin/joined/add" class="btn btn-primary btn-sm">+ Add a Listing</a>
+        <a href="<?= $b ?>/admin/joined/add" class="btn btn-primary btn-sm"><?= View::icon('add') ?> Add Joined Listing</a>
       <?php endif; ?>
     </div>
   </div>
@@ -174,7 +175,7 @@ if ($displayMode === 'category') {
   <?php $loop = 0; $firstGroup = true; foreach ($grouped as $catName => $items): ?>
   <div class="card" style="margin-bottom:1.25rem">
     <div class="card-head">
-      <span class="card-head-title"><?= View::e($catName) ?> (<?= count($items) ?>)</span>
+      <span class="card-head-title"><?= View::e($catName) ?> (<?= $group_counts[$catName] ?? count($items) ?>)</span>
     </div>
     <div class="table-wrap">
     <table class="data-table mem-table">
@@ -232,9 +233,9 @@ if ($displayMode === 'category') {
             <?= $jf->dateJoined !== null ? View::e(date($admin_date_format, strtotime($jf->dateJoined))) : '<span class="text-dim">&mdash;</span>' ?>
           </td>
           <td data-label="Status">
-            <?php $statusVal = $jf->status ?? 'joined'; ?>
+            <?php $statusVal = $jf->status ?? 'approved'; ?>
             <span class="badge <?= $statusVal === 'pending' ? 'badge-pending' : 'badge-current' ?>">
-              <?= $statusVal === 'pending' ? 'Pending' : 'Joined' ?>
+              <?= $statusVal === 'pending' ? 'Pending' : 'Approved' ?>
             </span>
           </td>
           <td class="act-col" data-label="">

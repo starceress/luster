@@ -26,15 +26,14 @@ $b = rtrim(View::e($base_url), '/');
 
 <div class="toolbar">
   <div class="toolbar-left"></div>
-  <div class="actions">
+  <div class="actions-row">
     <a href="<?= $b ?>/admin/kim/settings" class="btn btn-quaternary btn-sm">KIM Settings</a>
   </div>
 </div>
 
 <?php if (empty($fanlistings_data)): ?>
   <div class="card">
-    <div class="empty">
-      <svg class="empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01z"/></svg>
+    <div class="empty"><span class="empty-icon"><?= View::icon('kim') ?></span>
       No fanlistings found &mdash; add fanlistings first to use KIM List.
     </div>
   </div>

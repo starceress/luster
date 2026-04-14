@@ -531,7 +531,7 @@ function installTables(PDO $pdo): void
             `categories_json` TEXT          NULL,
             `date_joined`     DATE          NULL,
             `active`          TINYINT(1)    NOT NULL DEFAULT 1,
-            `status`          VARCHAR(20)   NOT NULL DEFAULT 'joined',
+            `status`          VARCHAR(20)   NOT NULL DEFAULT 'approved',
             `sort_order`      INT           NOT NULL DEFAULT 0,
             `category_id`     INT UNSIGNED  NULL,
             `created_at`      DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP,

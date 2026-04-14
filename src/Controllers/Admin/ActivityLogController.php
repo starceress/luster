@@ -57,10 +57,13 @@ final class ActivityLogController extends AdminController
         $filename = 'activity-log-' . date('Y-m-d') . '.csv';
 
         $out = fopen('php://temp', 'r+');
-        fputcsv($out, ['Date & Time', 'Action', 'User', 'IP']);
+        fputcsv($out, ['Date', 'Time', 'Action', 'User', 'IP']);
         foreach ($rows as $row) {
+            $dt = $row['created_at'] ?? '';
+            [$date, $time] = str_contains($dt, ' ') ? explode(' ', $dt, 2) : [$dt, ''];
             fputcsv($out, [
-                $row['created_at']  ?? '',
+                $date,
+                $time,
                 $row['description'] ?? '',
                 $row['username']    ?? '',
                 $row['ip_address']  ?? '',

@@ -1,10 +1,11 @@
+<?php use Luster\Core\View; ?>
 <!DOCTYPE html>
 <html lang="en" data-theme="dark">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Forgot Password &mdash; <?= \Luster\Core\View::e($site_name) ?></title>
-  <link rel="stylesheet" href="<?= rtrim(\Luster\Core\View::e($base_url ?? ''), '/') ?>/assets/css/admin.css">
+  <title>Luster &#10022; Fanlisting Management System &mdash; Forgot Password</title>
+  <link rel="stylesheet" href="<?= rtrim(View::e($base_url ?? ''), '/') ?>/assets/css/admin.css">
   <script>(function(){var t=localStorage.getItem('lstr_theme');if(t==='dark'||t==='light')document.documentElement.setAttribute('data-theme',t);})();</script>
 </head>
 <body class="login-page">
@@ -27,8 +28,10 @@
         <div class="brand-gem"></div>
         <div class="brand-gem-glow"></div>
       </div>
-      <span class="brand-name login-brand-name"><?= \Luster\Core\View::e($site_name) ?></span>
-      <span class="brand-sub login-brand-sub">Password Reset</span>
+      <div class="brand-text">
+        <span class="brand-name login-brand-name">Luster</span>
+        <span class="brand-sub login-brand-sub">Admin Panel</span>
+      </div>
     </div>
 
     <?php if ($success !== '') : ?>
@@ -46,23 +49,26 @@
     <form method="POST" action="" novalidate>
       <input type="hidden" name="_csrf" value="<?= \Luster\Core\View::e($csrf_token) ?>">
 
-      <div class="form-group" style="margin-bottom:0">
+      <div class="form-group">
         <label class="form-label" for="identifier">Username or Email</label>
         <input type="text" id="identifier" name="identifier" class="form-input"
                autocomplete="username email" autofocus required>
       </div>
 
-      <button type="submit" class="btn btn-primary login-submit">Send Reset Link</button>
+      <button type="submit" class="btn btn-primary" style="width: 100%;
+  justify-content: center;">Send Reset Link</button>
     </form>
     <?php endif; ?>
 
+  <p class="login-footer">
+    <a href="<?= rtrim(\Luster\Core\View::e($base_url ?? ''), '/') ?>/admin/login" class="link">&larr; Back to Log In</a>
+  </p>
   </div>
 
-  <p class="login-footer">
-    <a href="<?= rtrim(\Luster\Core\View::e($base_url ?? ''), '/') ?>/admin/login" class="login-forgot">&larr; Back to sign in</a>
-  </p>
+  <p class="login-footer"><b>Luster</b> &copy; <a href="https://dreamesque.net/contact/" target="_blank" title="Contact" class="link">Star</a>, <?= date('Y') === '2026' ? '2026' : '2026&#x2013;' . date('Y') ?>.
 </div>
 
-<script src="<?= rtrim(\Luster\Core\View::e($base_url ?? ''), '/') ?>/assets/js/admin.js"></script>
+<?php $jsV = filemtime(LUSTER_BASE . '/public/assets/js/admin.js') ?: 0; ?>
+<script src="<?= rtrim(\Luster\Core\View::e($base_url ?? ''), '/') ?>/assets/js/admin.js?v=<?= $jsV ?>"></script>
 </body>
 </html>

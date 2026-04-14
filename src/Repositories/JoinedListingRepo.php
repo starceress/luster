@@ -258,6 +258,63 @@ final class JoinedListingRepo
     }
 
     /**
+     * Returns the total count of ALL joined listings (not paginated) per
+     * display-mode group key. Mirrors the PHP grouping logic in the index template
+     * so the group header can show accurate totals regardless of the current page.
+     *
+     * @param  string $displayMode 'network'|'category'|'status'|'all'
+     * @return array<string, int>
+     */
+    public function countByGroup(string $displayMode): array
+    {
+        $stmt = $this->db->prepare(
+            'SELECT categories_json, category, status FROM lstr_joined'
+        );
+        $stmt->execute();
+
+        $counts = [];
+
+        foreach ($stmt->fetchAll() as $row) {
+            if ($displayMode === 'network') {
+                $key = $this->resolveGroupKey($row, 'network');
+            } elseif ($displayMode === 'category') {
+                $key = $this->resolveGroupKey($row, 'name');
+            } elseif ($displayMode === 'status') {
+                $key = ucfirst($row['status'] ?? 'approved');
+            } else {
+                $key = 'All Joined';
+            }
+            $counts[$key] = ($counts[$key] ?? 0) + 1;
+        }
+
+        return $counts;
+    }
+
+    /**
+     * Resolves the group key for a raw DB row using the same logic as the index
+     * template: checks categories_json entries for $field, falls back to the
+     * legacy category string, then to 'Uncategorised'.
+     */
+    private function resolveGroupKey(array $row, string $field): string
+    {
+        $json = $row['categories_json'] ?? null;
+        if ($json !== null && $json !== '') {
+            $decoded = json_decode($json, true);
+            if (is_array($decoded)) {
+                foreach ($decoded as $entry) {
+                    if (!empty($entry[$field])) {
+                        return (string) $entry[$field];
+                    }
+                }
+            }
+        }
+        if (($row['category'] ?? '') !== '') {
+            return (string) $row['category'];
+        }
+        return 'Uncategorised';
+    }
+
+    /**
      * Returns a single joined listing by primary key, or null if not found.
      */
     public function getById(int $id): ?JoinedListing
@@ -297,7 +354,7 @@ final class JoinedListingRepo
             'categories_json' => isset($data['categories_json']) && $data['categories_json'] !== null ? (string) $data['categories_json'] : null,
             'date_joined'     => isset($data['date_joined'])     && $data['date_joined']     !== null ? (string) $data['date_joined']     : null,
             'active'          => isset($data['active'])          ? (int) (bool) $data['active'] : 1,
-            'status'          => (string) ($data['status']          ?? 'joined'),
+            'status'          => (string) ($data['status']          ?? 'approved'),
         ]);
 
         return (int) $this->db->lastInsertId();
@@ -331,7 +388,7 @@ final class JoinedListingRepo
             'categories_json' => isset($data['categories_json']) && $data['categories_json'] !== null ? (string) $data['categories_json'] : null,
             'date_joined'     => isset($data['date_joined'])     && $data['date_joined']     !== null ? (string) $data['date_joined']     : null,
             'active'          => (int) (bool) ($data['active']   ?? true),
-            'status'          => (string) ($data['status']          ?? 'joined'),
+            'status'          => (string) ($data['status']          ?? 'approved'),
             'id'              => $id,
         ]);
     }

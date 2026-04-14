@@ -215,7 +215,11 @@ $imgHeight = $sizeMap[$sizeKey] ?? '100px';
   </div>
 
   <?php if (empty($affiliates)): ?>
-    <p class="text-muted" style="padding:1.25rem;font-size:.875rem">No affiliates for this listing yet.</p>
+    <div class="empty">
+      <svg class="empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+      No affiliates for this listing yet.
+      <a href="<?= $b ?>/admin/listings/<?= (int) $listing->id ?>/affiliates/add" class="btn btn-primary btn-sm">+ Add Affiliate</a>
+    </div>
   <?php else: ?>
     <div class="table-wrap">
     <table class="data-table">
