@@ -185,7 +185,7 @@ if (!function_exists('smtpVal')) {
 
     <div class="mini-nav-layout">
       <nav class="panel-card">
-        <div class="card-head"><div class="card-head-title">Template Name</div></div>
+        <div class="card-head">Template Name</div>
         <div class="panel-body">
           <?php foreach (EmailTemplateRepo::TYPES as $i => $type): ?>
             <button type="button"

@@ -97,9 +97,7 @@ $latestDate = !empty($updates) ? date('M Y', strtotime($updates[0]->postedAt)) :
   <!-- Timeline -->
   <div class="card">
     <div class="card-head">
-      <div class="card-head-title">
-        <?= $is_collective ? 'Collective Updates' : 'Updates &mdash; ' . View::e($listing->name) ?>
-      </div>
+      <span><?= $is_collective ? 'Collective Updates' : 'Updates &mdash; ' . View::e($listing->name) ?></span>
       <span style="font-size:.72rem;color:var(--text-dim)"><?= (int) $total ?> update<?= $total === 1 ? '' : 's' ?></span>
     </div>
     <div class="updates-timeline">

@@ -175,7 +175,7 @@ if ($displayMode === 'category') {
   <?php $loop = 0; $firstGroup = true; foreach ($grouped as $catName => $items): ?>
   <div class="card" style="margin-bottom:1.25rem">
     <div class="card-head">
-      <span class="card-head-title"><?= View::e($catName) ?> (<?= $group_counts[$catName] ?? count($items) ?>)</span>
+      <span><?= View::e($catName) ?> (<?= $group_counts[$catName] ?? count($items) ?>)</span>
     </div>
     <div class="table-wrap">
     <table class="data-table mem-table">

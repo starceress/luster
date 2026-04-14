@@ -83,9 +83,7 @@ $memSortUrl = static function (string $col) use ($b, $id, $sort, $dir, $search, 
 <div class="reminder-banner">
   <div class="reminder-banner-head">
     <div class="reminder-banner-left">
-      <span class="reminder-banner-icon">
-        <span class="reminder-banner-icon"><?= View::icon('bell') ?></span>
-      </span>
+      <span class="reminder-banner-icon"><?= View::icon('bell') ?></span>
       <div>
         <span class="reminder-banner-title">Action Required!</span>
         <span class="reminder-banner-msg"><?= (int) $pending_count ?> member<?= $pending_count !== 1 ? 's are' : ' is' ?> awaiting approval</span>

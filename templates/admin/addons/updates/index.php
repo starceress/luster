@@ -50,7 +50,7 @@ $listingCount = count($listings) + 1; // +1 for collective
 
 <div class="card">
   <div class="card-head">
-    <div class="card-head-title">All Listings</div>
+    <span>All Listings</span>
     <span class="text-dim"><?= $listingCount ?> listing<?= $listingCount === 1 ? '' : 's' ?> &middot; <?= $totalUpdates ?> update<?= $totalUpdates === 1 ? '' : 's' ?> total</span>
   </div>
   <div class="table-wrap">

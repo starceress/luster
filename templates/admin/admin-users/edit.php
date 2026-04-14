@@ -24,7 +24,7 @@ $fe = $field_errors ?? [];
   <div class="alert alert-error"><?= View::e($error) ?></div>
 <?php endif; ?>
 
-<div class="card card-padded">
+<div class="card">
   <form method="POST" action="<?= $b ?>/admin/admin-users/<?= (int) $user->id ?>/edit" class="js-warn-unsaved">
     <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
 

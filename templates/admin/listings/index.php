@@ -206,7 +206,7 @@ $flSortUrl = static function (string $col) use ($b, $flSort, $flDir, $search, $f
 
   <div class="card">
     <div class="card-head">
-      <span class="card-head-title"><?= $tableTitle ?></span>
+      <span><?= $tableTitle ?></span>
       <span class="row-sub">
         Showing <?= $flFrom ?>&#8211;<?= $flTo ?> of <?= number_format((int) $total) ?> listing<?= (int) $total !== 1 ? 's' : '' ?><?php if ($total_pages > 1): ?> &mdash; page <?= (int) $page ?> of <?= (int) $total_pages ?><?php endif; ?>
       </span>

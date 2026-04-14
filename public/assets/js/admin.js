@@ -1526,19 +1526,19 @@ document.addEventListener('click', function (e) {
       // ── Standard input types ───────────────────────────────────
       html += '<div class="ec-f"><label class="ec-f-label" for="ec-f-' + escHtml(f.id) + '">' + f.label + '</label>';
       if (f.type === 'listing' || f.type === 'listing_or_zero') {
-        html += '<select class="form-input" id="ec-f-' + escHtml(f.id) + '" data-fid="' + escHtml(f.id) + '">';
+        html += '<div class="select-wrap"><select class="form-select" id="ec-f-' + escHtml(f.id) + '" data-fid="' + escHtml(f.id) + '">';
         if (f.type === 'listing_or_zero') html += '<option value="0">0 — collective / site-wide</option>';
         listings.forEach(function (fl) {
           html += '<option value="' + parseInt(fl.id, 10) + '">' + escHtml(fl.name) + '</option>';
         });
         if (!listings.length) html += '<option value="1">1</option>';
-        html += '</select>';
+        html += '</select></div>';
       } else if (f.type === 'select') {
-        html += '<select class="form-input" id="ec-f-' + escHtml(f.id) + '" data-fid="' + escHtml(f.id) + '">';
+        html += '<div class="select-wrap"><select class="form-select" id="ec-f-' + escHtml(f.id) + '" data-fid="' + escHtml(f.id) + '">';
         (f.opts || []).forEach(function (o) {
           html += '<option value="' + escHtml(o[0]) + '">' + escHtml(o[1]) + '</option>';
         });
-        html += '</select>';
+        html += '</select></div>';
       } else {
         html += '<input class="form-input" type="' + (f.type === 'number' ? 'number' : 'text') + '"'
               + ' id="ec-f-' + escHtml(f.id) + '" data-fid="' + escHtml(f.id) + '"'

@@ -155,7 +155,7 @@ function importChecked(array $old, string $key, bool $default = true): string {
         <?php if (!empty($enth_networks)): ?>
         <div style="margin-left:1.75rem;margin-top:.25rem">
           <label class="form-label" for="category_parent_id" style="font-size:.8rem;margin-bottom:.3rem">Place top-level categories under network</label>
-          <select id="category_parent_id" name="category_parent_id" class="form-input" style="max-width:280px">
+          <div class="select-wrap" style="max-width:280px"><select id="category_parent_id" name="category_parent_id" class="form-select">
             <option value="">— Leave as top-level —</option>
             <?php foreach ($enth_networks as $net): ?>
               <option value="<?= View::e((string) $net['id']) ?>"
@@ -163,7 +163,7 @@ function importChecked(array $old, string $key, bool $default = true): string {
                 <?= View::e($net['name']) ?>
               </option>
             <?php endforeach; ?>
-          </select>
+          </select></div>
           <p class="field-hint-sm" style="margin-top:.3rem">Enthusiast has no network concept. Select a parent network (e.g. TFL) to import its categories as children rather than top-level entries.</p>
         </div>
         <?php endif; ?>

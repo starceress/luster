@@ -399,7 +399,7 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
   <!-- Right: token reference -->
   <div class="card" style="overflow:hidden;position:sticky;top:1rem">
     <div class="card-head">
-      <span class="card-head-title">Available Tokens</span>
+      <span>Available Tokens</span>
     </div>
     <details class="chevron" open>
       <summary class="chevron-head">Members List</summary>
@@ -457,7 +457,7 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
 <div id="tab-fields" class="tabs-panel">
 
   <?php if ($listing->dbprefix === ''): ?>
-  <div class="card card-padded">
+  <div class="card">
     <p class="text-muted">Additional fields require a member table. This listing has no database table configured yet.</p>
   </div>
   <?php else: ?>
@@ -957,7 +957,7 @@ $_settingsOpen = $_hasCats || $_hasDonors;
       </div>
       <?php if ($_hasCats): ?>
       <div id="bulk-cats-wrap" style="display:none">
-        <select id="bulk-cats-sel" name="bulk_cat_ids[]" multiple size="<?= min(4, count($code_cats)) ?>" class="form-input">
+        <select id="bulk-cats-sel" name="bulk_cat_ids[]" multiple size="<?= min(4, count($code_cats)) ?>" class="form-select">
           <?php foreach ($code_cats as $cat): ?>
             <option value="<?= (int)$cat->id ?>"><?= $cat->parentId !== null ? '  └ ' : '' ?><?= View::e($cat->name) ?></option>
           <?php endforeach; ?>
@@ -1042,7 +1042,7 @@ $_settingsOpen = $_hasCats || $_hasDonors;
 <div id="tab-affiliates" class="tabs-panel">
 <div class="card">
   <div class="card-head">
-    <span class="card-head-title">Affiliates</span>
+    <span>Affiliates</span>
     <a href="<?= $b ?>/admin/listings/<?= (int) $listing->id ?>/affiliates/add"
        class="btn btn-primary btn-sm"><?= View::icon('add') ?> Add Affiliate</a>
   </div>
@@ -1124,7 +1124,7 @@ $embedBaseUrl   = rtrim((string) ($cfg['embed_base_url'] ?? ''), '/') ?: rtrim((
 
 <div class="card">
   <div class="card-head">
-    <span class="card-head-title">Embed Settings</span>
+    <span>Embed Settings</span>
     <a href="<?= $b ?>/admin/embed-codes?listing=<?= (int) $listing->id ?>" class="btn btn-ghost btn-sm">
       Embed Codes &rarr;
     </a>
@@ -1224,7 +1224,7 @@ $embedBaseUrl   = rtrim((string) ($cfg['embed_base_url'] ?? ''), '/') ?: rtrim((
   <details class="card adv-collapsible" style="overflow:hidden;margin-bottom:1.25rem">
     <summary class="card-head">
       <div class="card-head-text">
-        <span class="card-head-title">Database Prefix</span>
+        <span>Database Prefix</span>
         <span class="card-head-sub">The member table name in your database. Most users never need to change this.</span>
       </div>
       <svg class="adv-chevron" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;transition:transform .2s"><polyline points="4 6 8 10 12 6"/></svg>
@@ -1243,7 +1243,7 @@ $embedBaseUrl   = rtrim((string) ($cfg['embed_base_url'] ?? ''), '/') ?: rtrim((
   <details class="card adv-collapsible" style="overflow:hidden">
     <summary class="card-head">
       <div class="card-head-text">
-        <span class="card-head-title">Per-listing Database Connection</span>
+        <span>Per-listing Database Connection</span>
         <span class="card-head-sub">Override the global database connection for this listing only. Leave all fields blank to use the global database.</span>
       </div>
       <svg class="adv-chevron" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;transition:transform .2s"><polyline points="4 6 8 10 12 6"/></svg>

@@ -95,9 +95,7 @@ $ctxDisplay = preg_replace('/^Owned\s*›\s*/u', '', (string) ($ctx_label ?? '')
 
       <!-- Publish panel -->
       <div class="panel-card">
-        <div class="card-head">
-          <div class="card-head-title">Publish</div>
-        </div>
+        <div class="card-head">Publish</div>
         <div class="panel-body">
           <div class="panel-field">
             <label class="panel-label" for="upd-posted-at">
@@ -124,9 +122,7 @@ $ctxDisplay = preg_replace('/^Owned\s*›\s*/u', '', (string) ($ctx_label ?? '')
 
       <!-- Categories panel -->
       <div class="panel-card">
-        <div class="card-head">
-          <div class="card-head-title">Categories</div>
-        </div>
+        <div class="card-head">Categories</div>
         <div class="panel-body">
           <input type="hidden" id="upd-category" name="category"
                  value="<?= $is_edit ? View::e($update->category) : '' ?>">
@@ -146,9 +142,7 @@ $ctxDisplay = preg_replace('/^Owned\s*›\s*/u', '', (string) ($ctx_label ?? '')
 
       <!-- Context panel -->
       <div class="panel-card">
-        <div class="card-head">
-          <div class="card-head-title">Context</div>
-        </div>
+        <div class="card-head">Context</div>
         <div class="panel-body">
           <div class="panel-field">
             <div style="display:flex;align-items:center;gap:.5rem;padding:.5rem .75rem;background:var(--bg-subtle);border:1px solid var(--border);border-radius:8px">

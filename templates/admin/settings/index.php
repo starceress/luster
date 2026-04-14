@@ -33,7 +33,7 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
 <div class="mini-nav-layout">
 
   <nav class="panel-card">
-    <div class="card-head"><div class="card-head-title">Settings</div></div>
+    <div class="card-head">Settings</div>
     <div class="panel-body">
       <a href="#panel-admin" class="mini-nav-item"><?= View::icon('account') ?> Account Details</a>
       <a href="#panel-accounts" class="mini-nav-item"><?= View::icon('admins') ?> Admin Accounts</a>
@@ -522,7 +522,7 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
       <?php else: ?>
         <div class="card">
           <div class="card-head">
-            <span class="card-head-title">Blocked Patterns</span>
+            <span>Blocked Patterns</span>
             <span class="row-sub">&mdash; <?= count($blacklist_entries) ?> entr<?= count($blacklist_entries) === 1 ? 'y' : 'ies' ?></span>
           </div>
           <div class="table-wrap">

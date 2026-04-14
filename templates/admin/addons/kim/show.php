@@ -39,7 +39,7 @@ $approvedMembers = array_filter($members, static fn($m) => !$m->pending);
 <!--  Pending  -->
 <div class="card" style="margin-bottom:1.5rem">
   <div class="card-head">
-    <div class="card-head-title">Pending</div>
+    <span>Pending</span>
     <?php if ($pending_count > 0): ?>
       <span class="badge badge-upcoming" style="margin-left:.4rem"><?= (int) $pending_count ?></span>
     <?php endif; ?>
@@ -104,7 +104,7 @@ $approvedMembers = array_filter($members, static fn($m) => !$m->pending);
 <!--  Approved  -->
 <div class="card">
   <div class="card-head">
-    <div class="card-head-title">Approved</div>
+    <span>Approved</span>
     <?php if ($approved_count > 0): ?>
       <span class="badge badge-current" style="margin-left:.4rem"><?= (int) $approved_count ?></span>
     <?php endif; ?>

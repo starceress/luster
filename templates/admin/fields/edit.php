@@ -28,7 +28,7 @@ $encName = urlencode($field->name);
   <div class="alert alert-error" role="alert"><?= View::e($error) ?></div>
 <?php endif; ?>
 
-<div class="card card-padded">
+<div class="card">
   <form method="POST"
         action="<?= $b ?>/admin/listings/<?= $id ?>/fields/<?= $encName ?>/edit">
     <input type="hidden" name="_csrf"      value="<?= View::e($csrf_token) ?>">

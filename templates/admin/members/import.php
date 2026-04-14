@@ -42,7 +42,7 @@ $id = (int) $listing->id;
     </div>
   <?php endif; ?>
 
-  <div class="card card-padded" style="margin-bottom:1.25rem">
+  <div class="card" style="margin-bottom:1.25rem">
     <div class="db-info-grid">
       <div>
         <div class="form-label" style="margin-bottom:.25rem">Imported</div>
@@ -62,7 +62,7 @@ $id = (int) $listing->id;
   </div>
 
   <?php if ($errCount > 0): ?>
-  <div class="card card-padded" style="margin-bottom:1.25rem">
+  <div class="card" style="margin-bottom:1.25rem">
     <div style="font-weight:600;margin-bottom:.75rem">Rows with errors</div>
     <div style="overflow-x:auto">
       <div class="table-wrap">
@@ -96,7 +96,7 @@ $id = (int) $listing->id;
 
 <?php else: ?>
   <!--  Upload form  -->
-  <div class="card card-padded">
+  <div class="card">
     <p style="margin:0 0 1.25rem;color:var(--text-muted);font-size:.9rem">
       Upload a CSV file to import members directly into <strong><?= View::e($listing->name) ?></strong>.
       All imported members are set to <strong>approved</strong> immediately.
@@ -122,7 +122,7 @@ $id = (int) $listing->id;
     </form>
   </div>
 
-  <div class="card card-padded" style="margin-top:1.25rem">
+  <div class="card" style="margin-top:1.25rem">
     <div style="font-weight:600;margin-bottom:.75rem">Expected CSV format</div>
     <p style="font-size:.875rem;color:var(--text-muted);margin:0 0 .75rem">
       The first row must be a header row. Column names are case-insensitive.
