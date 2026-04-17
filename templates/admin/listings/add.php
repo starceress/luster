@@ -33,12 +33,14 @@ $dataCustomCats = json_encode($custom_cats     ?? [], JSON_HEX_QUOT | JSON_HEX_A
 <?php endif; ?>
 
 <div class="gradient-card">
+  <div class="pc-head">
+    <div class="pc-head-icon pc-head-icon-bg"><?= View::icon('star') ?></div>
+    <div class="pc-head-title">Add New Listing</div>
+  </div>
   <form method="POST" action="<?= $b ?>/admin/listings/add" enctype="multipart/form-data" class="js-warn-unsaved">
     <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
 
     <div class="listing-field-section">
-
-      <!-- ── Network & Category ── -->
       <div class="listing-field-row">
         <span class="listing-field-label">Network & Category</span>
         <div>
@@ -49,13 +51,12 @@ $dataCustomCats = json_encode($custom_cats     ?? [], JSON_HEX_QUOT | JSON_HEX_A
                data-custom-cats='<?= $dataCustomCats ?>'
                data-existing='[]'>
             <div id="cat-rows"></div>
-            <a href="#" class="link" id="cat-add"><?= View::icon('add') ?> Add another category</a>
+            <a href="#" class="link btn btn-sm" id="cat-add" style="width: fit-content;"><?= View::icon('add') ?> Add another category</a>
           </div>
           <p class="form-hint">The network(s) and category(ies) this listing is listed under.</p>
         </div>
       </div>
 
-      <!-- ── Subject ── -->
       <div class="listing-field-row<?= !empty($fe['subject']) ? ' has-error' : '' ?>">
         <label class="listing-field-label" for="fl-subject">Subject <span class="req">*</span></label>
         <div>
@@ -66,19 +67,17 @@ $dataCustomCats = json_encode($custom_cats     ?? [], JSON_HEX_QUOT | JSON_HEX_A
         </div>
       </div>
 
-      <!-- ── Title ── -->
       <div class="listing-field-row">
         <label class="listing-field-label" for="fl-title">Title</label>
         <div>
           <input id="fl-title" type="text" name="title" class="form-input" maxlength="255"
                  value="<?= View::e($val('title')) ?>">
-          <p class="form-hint">Optional display name — defaults to Subject if left blank.</p>
+          <p class="form-hint">Optional name of your listing — defaults to "Subject" if left blank.</p>
         </div>
       </div>
 
-      <!-- ── URL ── -->
       <div class="listing-field-row<?= !empty($fe['url']) ? ' has-error' : '' ?>">
-        <label class="listing-field-label" for="fl-url">URL <span class="req">*</span></label>
+        <label class="listing-field-label" for="fl-url">Website URL <span class="req">*</span></label>
         <div>
           <input id="fl-url" type="url" name="url" class="form-input" maxlength="500" placeholder="https://" required
                  value="<?= View::e($val('url')) ?>">
@@ -86,18 +85,16 @@ $dataCustomCats = json_encode($custom_cats     ?? [], JSON_HEX_QUOT | JSON_HEX_A
         </div>
       </div>
 
-      <!-- ── Email ── -->
       <div class="listing-field-row">
         <label class="listing-field-label" for="fl-email">Email</label>
         <div>
           <input id="fl-email" type="email" name="email" class="form-input" maxlength="255"
                  placeholder="admin@example.com"
                  value="<?= View::e($val('email')) ?>">
-          <p class="form-hint">Address listing emails are sent from.</p>
+          <p class="form-hint">This is the email address that listing emails will be sent from.</p>
         </div>
       </div>
 
-      <!-- ── Listing Image ── -->
       <div class="listing-field-row">
         <span class="listing-field-label">Image</span>
         <label class="file-drop-zone">
@@ -105,7 +102,6 @@ $dataCustomCats = json_encode($custom_cats     ?? [], JSON_HEX_QUOT | JSON_HEX_A
         </label>
       </div>
 
-      <!-- ── Status ── -->
       <div class="listing-field-row">
         <span class="listing-field-label">Status</span>
         <div class="status-pill-row">
@@ -124,22 +120,21 @@ $dataCustomCats = json_encode($custom_cats     ?? [], JSON_HEX_QUOT | JSON_HEX_A
         </div>
       </div>
 
-      <!-- ── Opened On ── -->
       <div class="listing-field-row" id="opened-row">
         <label class="listing-field-label" for="fl-opened">Opened On</label>
         <div>
-          <input id="fl-opened" type="date" name="opened" class="form-input" style="max-width:180px"
+          <input id="fl-opened" type="date" name="opened" class="form-input" style="max-width:fit-content;"
                  value="<?= View::e($val('opened', $default_date)) ?>">
           <input type="hidden" id="fl-opened-tba" name="opened" value="TBA" disabled>
           <span id="fl-opened-tba-text" class="text-dim">TBA &mdash; date will be set when the listing opens.</span>
         </div>
       </div>
 
-    </div><!-- /.listing-field-section -->
+    </div>
 
     <div class="composer-footer">
       <button type="submit" class="btn btn-primary">Add Listing</button>
-      <button type="button" class="btn btn-ghost" id="clear-form-btn">Clear Form</button>
+      <button type="button" class="btn btn-ghost" id="clear-form-btn">Clear</button>
       <a href="<?= $b ?>/admin/listings" class="btn btn-ghost">Cancel</a>
     </div>
 

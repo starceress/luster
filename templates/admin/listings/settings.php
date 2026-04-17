@@ -31,14 +31,12 @@ function flsCfgVal(array $cfg, string $key, $default = ''): string {
 <form method="POST" action="<?= $b ?>/admin/listings/settings">
   <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
 
-  <div class="card">
-    <div class="card-head">Display Settings</div>
-    <div class="card-body">
+<div class="card">
+  <div class="card-head">Display Settings</div>
+    <div class="pc-section">
       <div class="pc-section-label">Sort Order</div>
-
       <div class="listing-field-row">
         <label class="listing-field-label" for="fl-sort">Sort listings by</label>
-        <div>
           <div class="select-wrap" style="width:fit-content">
             <select id="fl-sort" name="owned_sort" class="form-select">
               <?php
@@ -58,11 +56,11 @@ function flsCfgVal(array $cfg, string $key, $default = ''): string {
               <?php endforeach; ?>
             </select>
           </div>
-        </div>
+      </div>
       </div>
 
+    <div class="pc-section">
       <div class="pc-section-label">Pagination</div>
-
       <div class="listing-field-row">
         <label class="listing-field-label" for="fl-per-page">Listings per page</label>
         <div>
@@ -70,11 +68,11 @@ function flsCfgVal(array $cfg, string $key, $default = ''): string {
           <p class="form-hint">How many listings to show per page. Min 5, max 50.</p>
         </div>
       </div>
-    </div>
+      </div>
 
     <div class="composer-footer">
       <button type="submit" class="btn btn-primary">Save Settings</button>
-      <a href="<?= $b ?>/admin/listings" class="btn btn-ghost">Cancel</a>
+      <button type="reset" class="btn btn-ghost">Reset to Default</button>
     </div>
   </div>
 </form>

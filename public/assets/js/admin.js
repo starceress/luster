@@ -2606,6 +2606,37 @@ document.addEventListener('click', function (e) {
   }
   radios.forEach(function (r) { r.addEventListener('change', updateImageModeFields); });
 
+  // Connection method toggle (live DB vs SQL dump upload)
+  var cfgForm      = document.getElementById('import-configure-form');
+  var liveSection  = document.getElementById('js-live-db-section');
+  var dumpSection  = document.getElementById('js-dump-section');
+  var submitBtn    = document.getElementById('js-submit-btn');
+  var modeRadios   = document.querySelectorAll('input[name="_conn_mode"]');
+
+  if (cfgForm && liveSection && dumpSection && modeRadios.length) {
+    var liveActionUrl = cfgForm.getAttribute('data-live-url') || cfgForm.action;
+    var dumpActionUrl = cfgForm.getAttribute('data-dump-url') || cfgForm.action;
+
+    function applyConnMode(mode) {
+      if (mode === 'dump') {
+        liveSection.style.display = 'none';
+        dumpSection.style.display = 'block';
+        cfgForm.action = dumpActionUrl;
+        if (submitBtn) submitBtn.textContent = 'Upload & Preview \u2192';
+      } else {
+        liveSection.style.display = 'block';
+        dumpSection.style.display = 'none';
+        cfgForm.action = liveActionUrl;
+        if (submitBtn) submitBtn.textContent = 'Preview Import \u2192';
+      }
+    }
+
+    modeRadios.forEach(function (r) {
+      r.addEventListener('change', function () { applyConnMode(this.value); });
+      r.addEventListener('click',  function () { applyConnMode(this.value); });
+    });
+  }
+
   // Test connection button — URL passed via data-action attribute
   var testBtn    = document.getElementById('js-test-conn');
   var testResult = document.getElementById('js-test-result');

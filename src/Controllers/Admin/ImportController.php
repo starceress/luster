@@ -14,6 +14,7 @@ use Luster\Import\ImageMigrator;
 use Luster\Import\ListingAdminImportSource;
 use Luster\Import\ImportOptions;
 use Luster\Import\ImportSourceInterface;
+use Luster\Import\SqlDumpLoader;
 use Luster\Repositories\ActivityRepo;
 use ZipArchive;
 
@@ -35,10 +36,12 @@ use ZipArchive;
  */
 final class ImportController extends AdminController
 {
-    private const SESSION_CREDS    = 'lstr_import_credentials';
-    private const SESSION_OPTIONS  = 'lstr_import_options';
-    private const SESSION_RESULT   = 'lstr_import_result';
-    private const SESSION_IMAGE_MAP = 'lstr_import_image_map';
+    private const SESSION_CREDS      = 'lstr_import_credentials';
+    private const SESSION_OPTIONS    = 'lstr_import_options';
+    private const SESSION_RESULT     = 'lstr_import_result';
+    private const SESSION_IMAGE_MAP  = 'lstr_import_image_map';
+    private const SESSION_DUMP_PREFIX = 'lstr_import_dump_prefix';
+    private const SESSION_DUMP_TABLES = 'lstr_import_dump_tables';
 
     private const SUPPORTED_SOURCES = ['enthusiast', 'listing-admin', 'fanupdate', 'codesort'];
 
@@ -217,10 +220,11 @@ final class ImportController extends AdminController
             return Response::redirect($baseUrl . '/admin/import');
         }
 
+        $dumpPrefix  = $session->get(self::SESSION_DUMP_PREFIX);
         $credentials = $session->get(self::SESSION_CREDS);
         $optionsPost = (array) ($session->get(self::SESSION_OPTIONS) ?? []);
 
-        if (!is_array($credentials)) {
+        if ($dumpPrefix === null && !is_array($credentials)) {
             return Response::redirect($baseUrl . "/admin/import/{$source}/configure");
         }
 
@@ -231,12 +235,18 @@ final class ImportController extends AdminController
         $error       = '';
 
         try {
-            $guardError = $this->validateStoredCredentials($credentials);
-            if ($guardError !== null) {
-                throw new \RuntimeException($guardError);
+            if ($dumpPrefix !== null) {
+                // Dump mode: source is Luster's own DB; temp tables already loaded
+                $pdo         = $this->app->getDatabase()->pdo();
+                $previewData = $adapter->preview($pdo, $options);
+            } else {
+                $guardError = $this->validateStoredCredentials($credentials);
+                if ($guardError !== null) {
+                    throw new \RuntimeException($guardError);
+                }
+                $pdo         = $adapter->openConnection($credentials);
+                $previewData = $adapter->preview($pdo, $options);
             }
-            $pdo         = $adapter->openConnection($credentials);
-            $previewData = $adapter->preview($pdo, $options);
         } catch (\Throwable $e) {
             $error = 'Could not run preview: ' . $e->getMessage();
         }
@@ -267,10 +277,11 @@ final class ImportController extends AdminController
 
         // CSRF validated globally by CsrfMiddleware
 
+        $dumpPrefix  = $session->get(self::SESSION_DUMP_PREFIX);
         $credentials = $session->get(self::SESSION_CREDS);
         $optionsPost = (array) ($session->get(self::SESSION_OPTIONS) ?? []);
 
-        if (!is_array($credentials)) {
+        if ($dumpPrefix === null && !is_array($credentials)) {
             return Response::redirect($baseUrl . "/admin/import/{$source}/configure");
         }
 
@@ -281,14 +292,19 @@ final class ImportController extends AdminController
         $error  = '';
 
         try {
-            $guardError = $this->validateStoredCredentials($credentials);
-            if ($guardError !== null) {
-                throw new \RuntimeException($guardError);
+            if ($dumpPrefix !== null) {
+                // Dump mode: source and target are the same Luster DB
+                $targetPdo = $this->app->getDatabase()->pdo();
+                $result    = $adapter->run($targetPdo, $targetPdo, $options);
+            } else {
+                $guardError = $this->validateStoredCredentials($credentials);
+                if ($guardError !== null) {
+                    throw new \RuntimeException($guardError);
+                }
+                $sourcePdo = $adapter->openConnection($credentials);
+                $targetPdo = $this->app->getDatabase()->pdo();
+                $result    = $adapter->run($sourcePdo, $targetPdo, $options);
             }
-            $sourcePdo = $adapter->openConnection($credentials);
-            $targetPdo = $this->app->getDatabase()->pdo();
-
-            $result = $adapter->run($sourcePdo, $targetPdo, $options);
 
             // Log to activity log
             $activityRepo = new ActivityRepo($this->app->getDatabase());
@@ -314,6 +330,13 @@ final class ImportController extends AdminController
             }
         } catch (\Throwable $e) {
             $error = $e->getMessage();
+        } finally {
+            // Always drop temp tables after run (success or failure)
+            if ($dumpPrefix !== null) {
+                $this->cleanupDumpTables();
+                $session->remove(self::SESSION_DUMP_PREFIX);
+                $session->remove(self::SESSION_DUMP_TABLES);
+            }
         }
 
         if ($error !== '') {
@@ -507,6 +530,62 @@ final class ImportController extends AdminController
     }
 
     // -----------------------------------------------------------------------
+    // SQL dump upload
+    // POST /admin/import/{source}/upload-dump
+    // -----------------------------------------------------------------------
+
+    public function uploadDump(Request $request, array $params): Response
+    {
+        $source  = $this->resolveSource($params);
+        $session = $this->app->getSession();
+        $baseUrl = $this->app->getBaseUrl();
+
+        if ($source === null || !$request->isPost()) {
+            return Response::redirect($baseUrl . '/admin/import');
+        }
+
+        // CSRF validated globally by CsrfMiddleware
+
+        $fileInfo = $request->file('sql_dump') ?? [];
+        if (empty($fileInfo['tmp_name']) || ($fileInfo['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) {
+            $session->set('lstr_flash_error', 'No valid SQL file was uploaded.');
+            return Response::redirect($baseUrl . "/admin/import/{$source}/configure");
+        }
+
+        $tempPrefix = 'lstr_tmp_' . bin2hex(random_bytes(8)) . '_';
+        $pdo        = $this->app->getDatabase()->pdo();
+        $loader     = new SqlDumpLoader();
+
+        try {
+            $tables = $loader->load($fileInfo['tmp_name'], $pdo, $tempPrefix);
+        } catch (\RuntimeException $e) {
+            $session->set('lstr_flash_error', 'SQL dump error: ' . $e->getMessage());
+            return Response::redirect($baseUrl . "/admin/import/{$source}/configure");
+        }
+
+        if (empty($tables)) {
+            $session->set('lstr_flash_error', 'No tables could be loaded from the SQL file.');
+            return Response::redirect($baseUrl . "/admin/import/{$source}/configure");
+        }
+
+        $schemaVariant = SqlDumpLoader::inferSchemaVariant($tables);
+
+        // Store temp prefix + table list for cleanup after run()
+        $session->set(self::SESSION_DUMP_PREFIX, $tempPrefix);
+        $session->set(self::SESSION_DUMP_TABLES, $tables);
+
+        // Inject dump context into the stored POST data so ImportOptions picks it up
+        $postData                      = $request->postAll();
+        $postData['source']            = $source;
+        $postData['_dump_table_prefix']   = $tempPrefix;
+        $postData['_dump_schema_variant'] = $schemaVariant;
+        $session->set(self::SESSION_OPTIONS, $postData);
+        $session->remove(self::SESSION_CREDS); // dump mode never uses live credentials
+
+        return Response::redirect($baseUrl . "/admin/import/{$source}/preview");
+    }
+
+    // -----------------------------------------------------------------------
     // Internal helpers
     // -----------------------------------------------------------------------
 
@@ -545,6 +624,20 @@ final class ImportController extends AdminController
         $session->remove(self::SESSION_OPTIONS);
         $session->remove(self::SESSION_RESULT);
         $session->remove(self::SESSION_IMAGE_MAP);
+        $this->cleanupDumpTables();
+        $session->remove(self::SESSION_DUMP_PREFIX);
+        $session->remove(self::SESSION_DUMP_TABLES);
+    }
+
+    private function cleanupDumpTables(): void
+    {
+        $session = $this->app->getSession();
+        $prefix  = $session->get(self::SESSION_DUMP_PREFIX);
+        $tables  = (array) ($session->get(self::SESSION_DUMP_TABLES) ?? []);
+
+        if (is_string($prefix) && $prefix !== '' && !empty($tables)) {
+            (new SqlDumpLoader())->cleanup($tables, $prefix, $this->app->getDatabase()->pdo());
+        }
     }
 
     /**

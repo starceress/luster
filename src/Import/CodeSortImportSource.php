@@ -101,12 +101,12 @@ final class CodeSortImportSource implements ImportSourceInterface
 
     public function preview(PDO $source, ImportOptions $options): ImportPreview
     {
-        $schema = $this->detectSchema($source);
-        $p      = $this->tablePrefix($schema);
+        $schema = $options->schemaVariant !== '' ? $options->schemaVariant : $this->detectSchema($source);
+        $p      = $options->tablePrefix . $this->tablePrefix($schema);
         $rows   = [];
 
         if ($options->importCodeCategories) {
-            $rows[] = $this->previewTable($source, "{$p}cat", 'Code categories');
+            $rows[] = $this->previewCategories($source, $p);
         }
         if ($options->importCodeSizes) {
             $rows[] = $this->previewTable($source, "{$p}sizes", 'Code sizes');
@@ -131,8 +131,8 @@ final class CodeSortImportSource implements ImportSourceInterface
         ini_set('memory_limit', '256M');
 
         $start  = microtime(true);
-        $schema = $this->detectSchema($source);
-        $p      = $this->tablePrefix($schema);
+        $schema = $options->schemaVariant !== '' ? $options->schemaVariant : $this->detectSchema($source);
+        $p      = $options->tablePrefix . $this->tablePrefix($schema);
         $rows   = [];
         $imgRows = [];
 
@@ -206,7 +206,7 @@ final class CodeSortImportSource implements ImportSourceInterface
             rows:          $rows,
             imageRows:     $imgRows,
             duration:      microtime(true) - $start,
-            schemaVariant: $schema,
+            schemaVariant: $options->schemaVariant !== '' ? $options->schemaVariant : $schema,
         );
     }
 
@@ -226,6 +226,24 @@ final class CodeSortImportSource implements ImportSourceInterface
     }
 
     /** @return array{type:string,found:int,import:int,skip:int,warnings:string[]} */
+    private function previewCategories(PDO $source, string $p): array
+    {
+        $warns = [];
+        try {
+            $found = (int) $source->query("SELECT COUNT(*) FROM `{$p}cat`")->fetchColumn();
+        } catch (\Throwable) {
+            return ['type' => 'Code categories', 'found' => 0, 'import' => 0, 'skip' => 0, 'warnings' => []];
+        }
+        try {
+            $collective = (int) $source->query("SELECT COUNT(*) FROM `{$p}cat` WHERE cat_fl = 0")->fetchColumn();
+            if ($collective > 0) {
+                $warns[] = "{$collective} category/categories have CodeSort collective scope (cat_fl=0) and will be skipped — Luster's code categories are always per-listing.";
+            }
+        } catch (\Throwable) {}
+        return ['type' => 'Code categories', 'found' => $found, 'import' => $found - ($collective ?? 0), 'skip' => ($collective ?? 0), 'warnings' => $warns];
+    }
+
+    /** @return array{type:string,found:int,import:int,skip:int,warnings:string[]} */
     private function previewCodes(PDO $source, string $p, ImportOptions $options): array
     {
         $warns = [];
@@ -234,6 +252,13 @@ final class CodeSortImportSource implements ImportSourceInterface
         } catch (\Throwable) {
             $found = 0;
         }
+
+        try {
+            $collective = (int) $source->query("SELECT COUNT(*) FROM `{$p}codes` WHERE code_fl = 0")->fetchColumn();
+            if ($collective > 0) {
+                $warns[] = "{$collective} code(s) have CodeSort collective scope (code_fl=0) and will be skipped — Luster's codes are always per-listing.";
+            }
+        } catch (\Throwable) {}
 
         if ($options->imageMode === '') {
             $warns[] = 'Image migration is disabled — code image files will not be copied. Width/height will be taken from the mapped size record.';
@@ -268,7 +293,8 @@ final class CodeSortImportSource implements ImportSourceInterface
             'SELECT id FROM lstr_code_categories WHERE fanlisting_id = :fid AND name = :name LIMIT 1'
         );
 
-        $catMap = [];
+        $catMap           = [];
+        $collectiveSkipped = 0;
 
         try {
             $rows = $source->query("SELECT cat_id, cat_fl, cat_name FROM `{$p}cat` ORDER BY cat_id ASC")->fetchAll();
@@ -280,7 +306,14 @@ final class CodeSortImportSource implements ImportSourceInterface
         }
 
         foreach ($rows as $idx => $row) {
-            $lstrLid = $collectiveMap[(int) $row['cat_fl']] ?? null;
+            $csCatFl = (int) $row['cat_fl'];
+            if ($csCatFl === 0) {
+                // cat_fl=0 means "whole collective" scope in CodeSort — no per-listing equivalent in Luster
+                $collectiveSkipped++;
+                continue;
+            }
+
+            $lstrLid = $collectiveMap[$csCatFl] ?? null;
             if ($lstrLid === null) {
                 $skipped++;
                 continue;
@@ -308,12 +341,17 @@ final class CodeSortImportSource implements ImportSourceInterface
             }
         }
 
+        $warnings = [];
+        if ($collectiveSkipped > 0) {
+            $warnings[] = "{$collectiveSkipped} category/categories with CodeSort collective scope (cat_fl=0) were skipped — Luster's code categories are always per-listing.";
+        }
+
         return [
             'row' => [
                 'type'     => 'Code categories',
                 'imported' => $imported,
-                'skipped'  => $skipped,
-                'warnings' => [],
+                'skipped'  => $skipped + $collectiveSkipped,
+                'warnings' => $warnings,
                 'errors'   => $errors,
             ],
             'map' => $catMap,
@@ -533,14 +571,15 @@ final class CodeSortImportSource implements ImportSourceInterface
         ?ImageMigrator $migrator,
         string        $publicRoot,
     ): array {
-        $imported    = 0;
-        $skipped     = 0;
-        $errors      = 0;
-        $imgCopied   = 0;
-        $imgSkipped  = 0;
-        $imgErrors   = 0;
-        $warnings    = [];
-        $imageMap    = []; // for ZIP mode
+        $imported          = 0;
+        $skipped           = 0;
+        $collectiveSkipped = 0;
+        $errors            = 0;
+        $imgCopied         = 0;
+        $imgSkipped        = 0;
+        $imgErrors         = 0;
+        $warnings          = [];
+        $imageMap          = []; // for ZIP mode
 
         // Sort order counter per listing
         $sortCounters = [];
@@ -574,6 +613,13 @@ final class CodeSortImportSource implements ImportSourceInterface
 
             foreach ($chunk as $row) {
                 $csFlId  = (int) $row['code_fl'];
+
+                if ($csFlId === 0) {
+                    // code_fl=0 means "whole collective" scope in CodeSort — no per-listing equivalent in Luster
+                    $collectiveSkipped++;
+                    continue;
+                }
+
                 $lstrLid = $collectiveMap[$csFlId] ?? null;
 
                 if ($lstrLid === null) {
@@ -675,6 +721,10 @@ final class CodeSortImportSource implements ImportSourceInterface
             $offset += self::CHUNK;
         }
 
+        if ($collectiveSkipped > 0) {
+            $warnings[] = "{$collectiveSkipped} code(s) with CodeSort collective scope (code_fl=0) were skipped — Luster's codes are always per-listing.";
+        }
+
         if ($options->imageMode === '' && $imported > 0) {
             $warnings[] = 'Code image files were not migrated. Use the Codes admin panel to upload images, or re-run the import with image migration enabled.';
         }
@@ -682,7 +732,7 @@ final class CodeSortImportSource implements ImportSourceInterface
         $codeRow = [
             'type'      => 'Codes',
             'imported'  => $imported,
-            'skipped'   => $skipped,
+            'skipped'   => $skipped + $collectiveSkipped,
             'warnings'  => $warnings,
             'errors'    => $errors,
             'image_map' => $imageMap,

@@ -88,23 +88,23 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
   <div class="alert alert-error"><?= View::e($error) ?></div>
 <?php endif; ?>
 
-<div class="stats-row">
+<div class="stats-grid stats-grid-row">
 <?php $pl = View::e($b . '/admin/members/' . (int) $listing->id . '?status=pending'); ?>
-<div class="stat-mini">
-  <div class="val"><?= (int) $approved ?></div>
-  <div class="lbl">Total Members</div>
+<div class="stat-card">
+  <div class="stat-header">Total Members</div>
+  <div class="stat-value"><?= (int) $approved ?></div>
 </div>
-<div class="stat-mini">
-  <div class="val"><?= $pending > 0 ? '<a href="' . $pl . '" class="link" style="font-family:inherit;font-size:inherit;font-weight:inherit">' . $pending . '</a>' : $pending ?></div>
-  <div class="lbl">Pending</div>
+<div class="stat-card">
+  <div class="stat-header">Pending</div>
+  <div class="stat-value"><?= $pending > 0 ? '<a href="' . $pl . '" class="link" style="font-family:inherit;font-size:inherit;font-weight:inherit">' . $pending . '</a>' : $pending ?></div>
 </div>
-<div class="stat-mini">
-  <div class="val"><?= (int) ($countries ?? 0) ?></div>
-  <div class="lbl">Total Countries</div>
+<div class="stat-card">
+  <div class="stat-header">Total Countries</div>
+  <div class="stat-value"><?= (int) ($countries ?? 0) ?></div>
 </div>
-<div class="stat-mini">
-  <div class="val" style="font-size:1.2rem"><?= View::e(($fl_last_updated ?? '') !== '' ? date($admin_date_format, strtotime($fl_last_updated)) : '-') ?></div>
-  <div class="lbl">Date Last Updated</div>
+<div class="stat-card">
+  <div class="stat-header">Date Last Updated</div>
+  <div class="stat-value"><?= View::e(($fl_last_updated ?? '') !== '' ? date($admin_date_format, strtotime($fl_last_updated)) : '-') ?></div>
 </div>
 </div>
 
@@ -140,11 +140,8 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
     <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
 
     <div class="card">
-
-      <!-- Listing Details -->
-      <div class="listing-field-section">
+      <div class="pc-section">
         <div class="pc-section-label">Listing Details</div>
-
         <div class="listing-field-row listing-field-row--top">
           <label class="listing-field-label">Network &amp; Category</label>
           <div>
@@ -155,9 +152,9 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
                  data-custom-cats='<?= $dataCustomCats ?>'
                  data-existing='<?= $dataExisting ?>'>
               <div id="cat-rows"></div>
-              <a href="#" class="link" id="cat-add" style="font-size:.8125rem;display:inline-block;margin-top:.4rem">+ Add another category</a>
+              <a href="#" class="link btn btn-sm" id="cat-add" style="width: fit-content;"><?= View::icon('add') ?> Add another category</a>
             </div>
-            <p class="form-hint">Assign to one or more networks (TFL, TAFL, custom).</p>
+            <p class="form-hint">The network(s) and category(ies) this listing is listed under.</p>
           </div>
         </div>
 
@@ -166,7 +163,7 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
           <div>
             <input id="fl-subject" type="text" name="subject" class="form-input"
                    value="<?= View::e($listing->subject ?? '') ?>" maxlength="255">
-            <p class="form-hint">The subject of your listing (e.g. character name, show title).</p>
+            <span class="form-hint">The subject of your listing (e.g. character name, show title).</span>
           </div>
         </div>
 
@@ -176,6 +173,7 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
             <input id="fl-title" type="text" name="title" class="form-input"
                    value="<?= View::e((string) $oldTitle) ?>"
                    maxlength="255" required>
+            <span class="form-hint">Optional name of your listing — defaults to "Subject" if left blank.</span>
             <?php if (!empty($fe['title'])): ?><p class="field-error"><?= View::e($fe['title'][0]) ?></p><?php endif; ?>
           </div>
         </div>
@@ -185,7 +183,7 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
           <div>
             <input id="fl-url" type="url" name="url" class="form-input"
                    value="<?= View::e((string) $oldUrl) ?>"
-                   maxlength="500" placeholder="https://example.com" required>
+                   maxlength="500" placeholder="https://" required>
             <?php if (!empty($fe['url'])): ?><p class="field-error"><?= View::e($fe['url'][0]) ?></p><?php endif; ?>
           </div>
         </div>
@@ -196,7 +194,7 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
             <input id="fl-email" type="email" name="email" class="form-input"
                    value="<?= View::e((string) $oldEmail) ?>"
                    maxlength="255" required>
-            <p class="form-hint">Address listing emails are sent from.</p>
+            <span class="form-hint">This is the email address that listing emails will be sent from.</span>
             <?php if (!empty($fe['email'])): ?><p class="field-error"><?= View::e($fe['email'][0]) ?></p><?php endif; ?>
           </div>
         </div>
@@ -229,13 +227,11 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
             <span id="fl-opened-tba-text" style="display:none;font-size:.85rem;color:var(--text-muted);font-style:italic;margin-top:.35rem">TBA &mdash; date will be set when the listing opens.</span>
           </div>
         </div>
+      </div>
 
-      </div><!-- /.listing-field-section (details) -->
 
-      <!-- Listing Image -->
-      <div class="listing-field-section">
+      <div class="pc-section">
         <div class="pc-section-label">Listing Image</div>
-
         <div class="listing-field-row listing-field-row--top">
           <label class="listing-field-label">Image</label>
           <div>
@@ -262,13 +258,11 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
             </label>
           </div>
         </div>
+      </div>
 
-      </div><!-- /.listing-field-section (image) -->
 
-      <!-- Behaviour -->
-      <div class="listing-field-section">
+      <div class="pc-section">
         <div class="pc-section-label">Behaviour</div>
-
         <?php $lt = $listing_type ?? 'listing'; ?>
         <div class="listing-field-row">
           <label class="listing-field-label" for="fl-listing-type">Type</label>
@@ -313,13 +307,11 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
             <p class="form-hint">Override which email address receives contact messages for this listing. Leave blank to use the listing's email address.</p>
           </div>
         </div>
+      </div>
+      
 
-      </div><!-- /.listing-field-section (behaviour) -->
-
-      <!-- Maintenance -->
-      <div class="listing-field-section">
+      <div class="pc-section">
         <div class="pc-section-label">Maintenance</div>
-
         <div class="listing-field-row listing-field-row--top">
           <label class="listing-field-label" for="fl-last-updated">Last Updated</label>
           <div>
@@ -332,19 +324,18 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
             <p class="form-hint">Drives the staleness check on the dashboard.</p>
           </div>
         </div>
-
-      </div><!-- /.listing-field-section (maintenance) -->
+      </div>
 
       <div class="card-footer">
         <button type="submit" class="btn btn-primary">Save Changes</button>
+      <button type="reset" class="btn btn-ghost">Reset to Default</button>
         <a href="<?= $b ?>/admin/listings" class="btn btn-ghost">Cancel</a>
       </div>
-
-    </div><!-- /.card.listing-field-card -->
+    </div>
   </form>
-</div><!-- /#tab-general -->
+</div>
 
-<!--  TAB: TEMPLATES  -->
+
 <div id="tab-templates" class="tabs-panel">
 <div style="display:grid;grid-template-columns:1fr 260px;gap:1.25rem;align-items:start">
 

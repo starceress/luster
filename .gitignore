@@ -33,3 +33,4 @@ Thumbs.db
 
 # Environment file (if ever adopted)
 .env
+audit/

@@ -84,18 +84,53 @@ final class ListingAdminImportSource implements ImportSourceInterface
 
     public function detectSchema(PDO $source): string
     {
-        // Listing Admin has a `main` table with `fNiq` as foreign key alias
-        // and a `members` table with `mID`, `fNiq`, `mEmail`, `mExtra`
-        $stmt = $source->query("SHOW TABLES LIKE 'main'");
-        if (!$stmt || $stmt->fetchColumn() === false) {
+        $driver = $source->getAttribute(PDO::ATTR_DRIVER_NAME);
+
+        if ($driver === 'sqlite') {
+            // SQLite path (used in tests).
+            $allTables = $source->query("SELECT name FROM sqlite_master WHERE type='table'")->fetchAll(PDO::FETCH_COLUMN);
+            $tableSet  = array_flip($allTables);
+
+            if (isset($tableSet['main'])) {
+                $cols = array_column(
+                    $source->query("PRAGMA table_info(`main`)")->fetchAll(PDO::FETCH_ASSOC),
+                    'name'
+                );
+                if (in_array('fNiq', $cols, true) || in_array('dbtabl', $cols, true)) {
+                    return 'listing_admin_3x';
+                }
+            }
+
+            foreach ($allTables as $tbl) {
+                if (isset($tableSet[$tbl . '_members']) && isset($tableSet[$tbl . '_affiliates'])) {
+                    return 'listing_admin_3x';
+                }
+            }
+
             return 'unknown';
         }
 
-        // Confirm it looks like a Listing Admin `main` table
+        // MySQL / MariaDB path.
+        // Default LA install: registry table is `main`
         try {
-            $cols = $source->query("SHOW COLUMNS FROM `main`")->fetchAll(PDO::FETCH_COLUMN);
-            if (in_array('fNiq', $cols, true) || in_array('dbtabl', $cols, true)) {
-                return 'listing_admin_3x';
+            $stmt = $source->query("SHOW TABLES LIKE 'main'");
+            if ($stmt && $stmt->fetchColumn() !== false) {
+                $cols = $source->query("SHOW COLUMNS FROM `main`")->fetchAll(PDO::FETCH_COLUMN);
+                if (in_array('fNiq', $cols, true) || in_array('dbtabl', $cols, true)) {
+                    return 'listing_admin_3x';
+                }
+            }
+        } catch (\Throwable) {}
+
+        // Custom prefix: look for any table where tableName_members also exists.
+        // (e.g., with prefix 'trex_', the registry is 'trex' and 'trex_members' exists.)
+        try {
+            $allTables = $source->query('SHOW TABLES')->fetchAll(\PDO::FETCH_COLUMN);
+            $tableSet  = array_flip($allTables);
+            foreach ($allTables as $tbl) {
+                if (isset($tableSet[$tbl . '_members']) && isset($tableSet[$tbl . '_affiliates'])) {
+                    return 'listing_admin_3x';
+                }
             }
         } catch (\Throwable) {}
 
@@ -108,31 +143,38 @@ final class ListingAdminImportSource implements ImportSourceInterface
 
     public function preview(PDO $source, ImportOptions $options): ImportPreview
     {
-        $schema = $this->detectSchema($source);
+        $schema = $options->schemaVariant !== '' ? $options->schemaVariant : $this->detectSchema($source);
+        $tp     = $options->tablePrefix;
+        $laP    = $options->laTablePrefix;
+        // Registry table: custom prefix strips trailing underscores (e.g. 'trex_' → 'trex').
+        // Default (empty prefix) uses 'main'.
+        $laReg  = $laP !== '' ? str_replace('_', '', $laP) : 'main';
+        $sp     = $tp . $laP;    // full source prefix for non-registry tables
+        $sreg   = $tp . $laReg;  // full source registry table name
         $rows   = [];
 
         if ($options->importCategories) {
-            $rows[] = $this->previewTable($source, 'categories', 'Categories');
+            $rows[] = $this->previewTable($source, $sp . 'categories', 'Categories');
         }
         if ($options->importListings) {
-            $rows[] = $this->previewTable($source, 'main', 'Owned Listings');
+            $rows[] = $this->previewTable($source, $sreg, 'Owned Listings');
         }
         if ($options->importMembers) {
-            $rows[] = $this->previewTable($source, 'members', 'Members', [
+            $rows[] = $this->previewTable($source, $sp . 'members', 'Members', [
                 'LA stores members in a single central table. Each member row will be distributed to its listing\'s dedicated table.',
             ]);
         }
         if ($options->importAffiliates) {
-            $rows[] = $this->previewTable($source, 'affiliates', 'Affiliates', [
+            $rows[] = $this->previewTable($source, $sp . 'affiliates', 'Affiliates', [
                 'Per-listing affiliates (fNiq > 0) are linked to their listing. Multi-listing affiliates (fNiq format !1!!2!) produce one row per matched listing. Affiliates for unimported listings fall back to collective.',
             ]);
         }
         if ($options->importJoined) {
-            $rows[] = $this->previewTable($source, 'joined', 'Joined listings');
+            $rows[] = $this->previewTable($source, $sp . 'joined', 'Joined listings');
         }
         if ($options->importUpdates) {
             if ($this->updatesAddonInstalled($source)) {
-                $rows[] = $this->previewTable($source, 'updates', 'Updates', [
+                $rows[] = $this->previewTable($source, $sp . 'updates', 'Updates', [
                     'LA crossposting fields (uDW, uIJ, uLJ) will be dropped.',
                 ]);
             } else {
@@ -154,7 +196,12 @@ final class ListingAdminImportSource implements ImportSourceInterface
         ini_set('memory_limit', '256M');
 
         $start  = microtime(true);
-        $schema = $this->detectSchema($source);
+        $schema = $options->schemaVariant !== '' ? $options->schemaVariant : $this->detectSchema($source);
+        $tp     = $options->tablePrefix;
+        $laP    = $options->laTablePrefix;
+        $laReg  = $laP !== '' ? str_replace('_', '', $laP) : 'main';
+        $sp     = $tp . $laP;    // full source prefix for non-registry tables
+        $sreg   = $tp . $laReg;  // full source registry table name
         $rows   = [];
         $imageRows = [];
 
@@ -170,7 +217,7 @@ final class ListingAdminImportSource implements ImportSourceInterface
 
         // ── Step 1: Categories ────────────────────────────────────────────
         if ($options->importCategories) {
-            $rows[] = $this->runCategories($source, $target, $options);
+            $rows[] = $this->runCategories($source, $target, $options, $sp);
         }
 
         // Category name→id map for downstream use
@@ -180,7 +227,7 @@ final class ListingAdminImportSource implements ImportSourceInterface
         $listingIdMap = []; // LA main.id → new owned listingid
         if ($options->importListings) {
             ['row' => $listRow, 'idMap' => $listingIdMap, 'imageMap' => $lim] =
-                $this->runListings($source, $target, $targetSchema, $options, $catNameToId, $migrator);
+                $this->runListings($source, $target, $targetSchema, $options, $catNameToId, $migrator, $sp, $sreg);
             $rows[]   = $listRow;
             $imageMap = array_merge($imageMap, $lim);
             if ($listRow['image_copied'] > 0 || $listRow['image_skipped'] > 0) {
@@ -191,13 +238,13 @@ final class ListingAdminImportSource implements ImportSourceInterface
 
         // ── Step 3: Members ───────────────────────────────────────────────
         if ($options->importMembers && !empty($listingIdMap)) {
-            $rows[] = $this->runMembers($source, $target, $targetSchema, $options, $listingIdMap);
+            $rows[] = $this->runMembers($source, $target, $targetSchema, $options, $listingIdMap, $sp, $sreg);
         }
 
         // ── Step 4: Affiliates ────────────────────────────────────────────
         if ($options->importAffiliates) {
             ['row' => $affRow, 'imageMap' => $affMap] =
-                $this->runAffiliates($source, $target, $options, $migrator, $listingIdMap);
+                $this->runAffiliates($source, $target, $options, $migrator, $listingIdMap, $sp);
             $rows[]   = $affRow;
             $imageMap = array_merge($imageMap, $affMap);
             if ($affRow['image_copied'] > 0 || $affRow['image_skipped'] > 0) {
@@ -209,7 +256,7 @@ final class ListingAdminImportSource implements ImportSourceInterface
         // ── Step 5: Joined listings ───────────────────────────────────────
         if ($options->importJoined) {
             ['row' => $joinRow, 'imageMap' => $joinMap] =
-                $this->runJoined($source, $target, $options, $catNameToId, $migrator);
+                $this->runJoined($source, $target, $options, $catNameToId, $migrator, $sp);
             $rows[]   = $joinRow;
             $imageMap = array_merge($imageMap, $joinMap);
             if ($joinRow['image_copied'] > 0 || $joinRow['image_skipped'] > 0) {
@@ -220,7 +267,7 @@ final class ListingAdminImportSource implements ImportSourceInterface
 
         // ── Step 6: Updates ───────────────────────────────────────────────
         if ($options->importUpdates) {
-            $rows[] = $this->runUpdates($source, $target, $options, $listingIdMap);
+            $rows[] = $this->runUpdates($source, $target, $options, $listingIdMap, $sp);
         }
 
         // Store image map for ZIP upload
@@ -267,7 +314,7 @@ final class ListingAdminImportSource implements ImportSourceInterface
     // -----------------------------------------------------------------------
 
     /** @return array{type:string,imported:int,skipped:int,warnings:string[],errors:string[]} */
-    private function runCategories(PDO $source, PDO $target, ImportOptions $options): array
+    private function runCategories(PDO $source, PDO $target, ImportOptions $options, string $tp = ''): array
     {
         $imported     = 0;
         $skipped      = 0;
@@ -275,7 +322,7 @@ final class ListingAdminImportSource implements ImportSourceInterface
         $skippedItems = [];
 
         try {
-            $stmt    = $source->query("SELECT * FROM `categories` ORDER BY parent ASC, catid ASC");
+            $stmt    = $source->query("SELECT * FROM `{$tp}categories` ORDER BY parent ASC, catid ASC");
             $srcRows = $stmt->fetchAll();
         } catch (\Throwable $e) {
             return ['type' => 'Categories', 'imported' => 0, 'skipped' => 0,
@@ -342,7 +389,8 @@ final class ListingAdminImportSource implements ImportSourceInterface
      */
     private function runListings(
         PDO $source, PDO $target, string $targetSchema,
-        ImportOptions $options, array $catNameToId, ?ImageMigrator $migrator
+        ImportOptions $options, array $catNameToId, ?ImageMigrator $migrator,
+        string $tp = '', string $sreg = 'main'
     ): array {
         $imported     = 0;
         $skipped      = 0;
@@ -359,7 +407,7 @@ final class ListingAdminImportSource implements ImportSourceInterface
         $checkStmt = $target->prepare("SELECT {$idCol} FROM `{$regTable}` WHERE url = :url LIMIT 1");
 
         try {
-            $stmt    = $source->query("SELECT * FROM `main` ORDER BY id ASC");
+            $stmt    = $source->query("SELECT * FROM `{$sreg}` ORDER BY id ASC");
             $srcRows = $stmt->fetchAll();
         } catch (\Throwable $e) {
             return [
@@ -442,7 +490,8 @@ final class ListingAdminImportSource implements ImportSourceInterface
                 $idMap[$laId] = $newListingId;
 
                 // Create per-listing member table (DDL is idempotent via CREATE TABLE IF NOT EXISTS)
-                $this->createMemberTable($target, $dbtable, $faveFields);
+                $memberTable = $isOwned ? $dbtable : $dbtable . '_members';
+                $this->createMemberTable($target, $memberTable, $faveFields);
 
                 // Create lstr_fanlisting_settings row
                 $this->ensureListingSettings($target, $newListingId, $row);
@@ -481,7 +530,7 @@ final class ListingAdminImportSource implements ImportSourceInterface
     /** @return array{type:string,imported:int,skipped:int,warnings:string[],errors:string[],skipped_items:array<array{label:string,reason:string}>} */
     private function runMembers(
         PDO $source, PDO $target, string $targetSchema,
-        ImportOptions $options, array $listingIdMap
+        ImportOptions $options, array $listingIdMap, string $tp = '', string $sreg = 'main'
     ): array {
         $imported      = 0;
         $skipped       = 0;
@@ -498,7 +547,7 @@ final class ListingAdminImportSource implements ImportSourceInterface
         // Load fave_fields for each LA listing (for mExtra parsing)
         $faveMap = []; // LA id → field names array
         try {
-            $stmt = $source->query("SELECT id, fave_fields FROM `main`");
+            $stmt = $source->query("SELECT id, fave_fields FROM `{$sreg}`");
             foreach ($stmt->fetchAll() as $r) {
                 $faveMap[(int) $r['id']] = $this->parseFaveFields((string) ($r['fave_fields'] ?? ''));
             }
@@ -509,7 +558,7 @@ final class ListingAdminImportSource implements ImportSourceInterface
         do {
             try {
                 $stmt = $source->prepare(
-                    "SELECT * FROM `members` ORDER BY fNiq ASC, mID ASC LIMIT :lim OFFSET :off"
+                    "SELECT * FROM `{$tp}members` ORDER BY fNiq ASC, mID ASC LIMIT :lim OFFSET :off"
                 );
                 $stmt->bindValue(':lim', self::CHUNK, PDO::PARAM_INT);
                 $stmt->bindValue(':off', $offset, PDO::PARAM_INT);
@@ -620,7 +669,7 @@ final class ListingAdminImportSource implements ImportSourceInterface
      * @return array{row: array, imageMap: array}
      */
     private function runAffiliates(
-        PDO $source, PDO $target, ImportOptions $options, ?ImageMigrator $migrator, array $listingIdMap
+        PDO $source, PDO $target, ImportOptions $options, ?ImageMigrator $migrator, array $listingIdMap, string $tp = ''
     ): array {
         $imported     = 0;
         $skipped      = 0;
@@ -649,7 +698,7 @@ final class ListingAdminImportSource implements ImportSourceInterface
         );
 
         try {
-            $stmt    = $source->query("SELECT * FROM `affiliates` ORDER BY aID ASC");
+            $stmt    = $source->query("SELECT * FROM `{$tp}affiliates` ORDER BY aID ASC");
             $srcRows = $stmt->fetchAll();
         } catch (\Throwable $e) {
             return [
@@ -799,7 +848,7 @@ final class ListingAdminImportSource implements ImportSourceInterface
      */
     private function runJoined(
         PDO $source, PDO $target, ImportOptions $options,
-        array $catNameToId, ?ImageMigrator $migrator
+        array $catNameToId, ?ImageMigrator $migrator, string $tp = ''
     ): array {
         $imported     = 0;
         $skipped      = 0;
@@ -820,7 +869,7 @@ final class ListingAdminImportSource implements ImportSourceInterface
         );
 
         try {
-            $stmt    = $source->query("SELECT * FROM `joined` ORDER BY jID ASC");
+            $stmt    = $source->query("SELECT * FROM `{$tp}joined` ORDER BY jID ASC");
             $srcRows = $stmt->fetchAll();
         } catch (\Throwable $e) {
             return [
@@ -910,7 +959,7 @@ final class ListingAdminImportSource implements ImportSourceInterface
     // -----------------------------------------------------------------------
 
     /** @return array{type:string,imported:int,skipped:int,warnings:string[],errors:string[],skipped_items:array<array{label:string,reason:string}>} */
-    private function runUpdates(PDO $source, PDO $target, ImportOptions $options, array $listingIdMap): array
+    private function runUpdates(PDO $source, PDO $target, ImportOptions $options, array $listingIdMap, string $tp = ''): array
     {
         if (!$this->updatesAddonInstalled($target)) {
             return ['type' => 'Updates', 'imported' => 0, 'skipped' => 0,
@@ -932,7 +981,7 @@ final class ListingAdminImportSource implements ImportSourceInterface
         do {
             try {
                 $stmt = $source->prepare(
-                    "SELECT uID, fNiq, uTitle, uEntry, uAdded FROM `updates`
+                    "SELECT uID, fNiq, uTitle, uEntry, uAdded FROM `{$tp}updates`
                      ORDER BY uID ASC LIMIT :lim OFFSET :off"
                 );
                 $stmt->bindValue(':lim', self::CHUNK, PDO::PARAM_INT);
@@ -994,6 +1043,27 @@ final class ListingAdminImportSource implements ImportSourceInterface
             $extraCols .= "  `{$field}` TEXT NOT NULL DEFAULT '',\n";
         }
 
+        $driver = $target->getAttribute(PDO::ATTR_DRIVER_NAME);
+
+        if ($driver === 'sqlite') {
+            $target->exec(
+                "CREATE TABLE IF NOT EXISTS `{$dbtable}` (
+                  `email`     TEXT NOT NULL,
+                  `name`      TEXT NOT NULL DEFAULT '',
+                  `country`   TEXT NOT NULL DEFAULT '',
+                  `url`       TEXT NOT NULL DEFAULT '',
+                  `pending`   INTEGER NOT NULL DEFAULT 0,
+                  `password`  TEXT NOT NULL DEFAULT '',
+                  `showemail` INTEGER NOT NULL DEFAULT 1,
+                  `showurl`   INTEGER NOT NULL DEFAULT 1,
+                  `added`     TEXT NULL,
+                  {$extraCols}
+                  PRIMARY KEY (`email`)
+                )"
+            );
+            return;
+        }
+
         $target->exec(
             "CREATE TABLE IF NOT EXISTS `{$dbtable}` (
               `email`     VARCHAR(64)  NOT NULL,
@@ -1050,7 +1120,7 @@ final class ListingAdminImportSource implements ImportSourceInterface
                 'name'    => $title,
                 'subject' => $subject,
                 'url'     => $url,
-                'dbprefix' => $dbtable,
+                'dbprefix' => $dbtable . '_',
                 'catid'   => $catId ?? 0,
                 'catid2'  => $catId,
                 'opened'  => $opened,
@@ -1098,7 +1168,7 @@ final class ListingAdminImportSource implements ImportSourceInterface
             $stmt->execute([
                 'name'    => $title,
                 'subject' => $subject,
-                'dbprefix' => $dbtable,
+                'dbprefix' => $dbtable . '_',
                 'catid'   => $catId,
                 'opened'  => $opened,
                 'image'   => $image,
@@ -1148,6 +1218,16 @@ final class ListingAdminImportSource implements ImportSourceInterface
      */
     private function detectTargetSchema(PDO $target): string
     {
+        $driver = $target->getAttribute(PDO::ATTR_DRIVER_NAME);
+
+        if ($driver === 'sqlite') {
+            $stmt = $target->query("SELECT name FROM sqlite_master WHERE type='table' AND name='owned'");
+            if ($stmt->fetchColumn() !== false) {
+                return 'enthusiast_unprefixed';
+            }
+            return 'enthusiast_enth';
+        }
+
         $stmt = $target->query("SHOW TABLES LIKE 'owned'");
         if ($stmt && $stmt->fetchColumn() !== false) {
             return 'enthusiast_unprefixed';
@@ -1179,7 +1259,10 @@ final class ListingAdminImportSource implements ImportSourceInterface
         $stmt = $target->query("SELECT `{$col}` FROM `{$regTable}` WHERE `{$col}` != ''");
         $map  = [];
         foreach ($stmt->fetchAll(PDO::FETCH_COLUMN) as $v) {
-            $map[(string) $v] = true;
+            // For enth_ targets, dbprefix is stored with trailing underscore (e.g. "music_").
+            // Strip it so generateDbtable() collision detection works against the bare slug.
+            $key = $isOwned ? (string) $v : rtrim((string) $v, '_');
+            $map[$key] = true;
         }
         return $map;
     }
@@ -1203,9 +1286,12 @@ final class ListingAdminImportSource implements ImportSourceInterface
         );
         $stmt->execute(array_values($listingIds));
 
+        $isOwned = ($regTable === 'owned');
         $map = [];
         foreach ($stmt->fetchAll() as $row) {
-            $map[(int) $row[$pkCol]] = (string) $row[$col];
+            $raw   = (string) $row[$col];
+            // For enth_ targets, dbprefix (e.g. "music_") + "members" = physical table name.
+            $map[(int) $row[$pkCol]] = $isOwned ? $raw : $raw . 'members';
         }
         return $map;
     }

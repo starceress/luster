@@ -56,6 +56,9 @@ final class ImportOptions
         public readonly string $imagePath,
         public readonly string $imageUrl,
         public readonly ?int   $enthCategoryParentId = null,
+        public readonly string $tablePrefix          = '',
+        public readonly string $schemaVariant        = '',
+        public readonly string $laTablePrefix        = '',
     ) {}
 
     /**
@@ -116,6 +119,9 @@ final class ImportOptions
             enthCategoryParentId: ($post['category_parent_id'] ?? '') !== ''
                                     ? (int) $post['category_parent_id']
                                     : null,
+            tablePrefix:          (string) ($post['_dump_table_prefix']   ?? ''),
+            schemaVariant:        (string) ($post['_dump_schema_variant'] ?? ''),
+            laTablePrefix:        trim((string) ($post['la_table_prefix'] ?? '')),
         );
     }
 }

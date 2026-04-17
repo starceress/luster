@@ -15,7 +15,7 @@ use RuntimeException;
  *   'enthusiast_unprefixed'
  *     Registry table: `owned`
  *     Additional field columns in member tables: bare name (e.g. `favorite`)
- *     Categories/affiliates/joined: no prefix (e.g. `categories`, `affiliates`)
+ *     Categories/affiliates/joined: no prefix (e.g. `category`, `affiliates`)
  *
  *   'enthusiast_enth'
  *     Registry table: `enth_fanlistings`
@@ -95,7 +95,7 @@ final class EnthusiastImportSource implements ImportSourceInterface
             if ($stmt->fetchColumn() !== false) {
                 return 'enthusiast_enth';
             }
-            $stmt->execute(['categories']);
+            $stmt->execute(['category']);
             if ($stmt->fetchColumn() !== false) {
                 return 'enthusiast_unprefixed';
             }
@@ -109,11 +109,11 @@ final class EnthusiastImportSource implements ImportSourceInterface
             return 'enthusiast_enth';
         }
 
-        // Unprefixed Enthusiast: the definitive marker is the `categories` table.
-        // Luster never creates a `categories` table (it uses `lstr_categories`), so
+        // Unprefixed Enthusiast: the definitive marker is the `category` table.
+        // Luster never creates a `category` table (it uses `lstr_categories`), so
         // this distinguishes a real Enthusiast install from Luster's own `owned` table
         // when both share the same database.
-        $stmt = $source->query("SHOW TABLES LIKE 'categories'");
+        $stmt = $source->query("SHOW TABLES LIKE 'category'");
         if ($stmt && $stmt->fetchColumn() !== false) {
             return 'enthusiast_unprefixed';
         }
@@ -127,7 +127,8 @@ final class EnthusiastImportSource implements ImportSourceInterface
 
     public function preview(PDO $source, ImportOptions $options): ImportPreview
     {
-        $schema     = $this->detectSchema($source);
+        $schema     = $options->schemaVariant !== '' ? $options->schemaVariant : $this->detectSchema($source);
+        $tp         = $options->tablePrefix;
         $sameDb     = false; // determined by caller; passed through in run()
         $rows       = [];
 
@@ -144,7 +145,7 @@ final class EnthusiastImportSource implements ImportSourceInterface
             $rows[] = $this->previewOwnedListings($source, $schema, $options);
         }
         if ($options->importMembers) {
-            $rows[] = $this->previewMembers($source, $schema);
+            $rows[] = $this->previewMembers($source, $schema, $options);
         }
         if ($options->importSettings) {
             $rows[] = $this->previewSettings($source, $schema, $options);
@@ -166,7 +167,8 @@ final class EnthusiastImportSource implements ImportSourceInterface
         ini_set('memory_limit', '256M');
 
         $start    = microtime(true);
-        $schema   = $this->detectSchema($source);
+        $schema   = $options->schemaVariant !== '' ? $options->schemaVariant : $this->detectSchema($source);
+        $tp       = $options->tablePrefix;
         $rows     = [];
         $imageRows = [];
 
@@ -270,7 +272,8 @@ final class EnthusiastImportSource implements ImportSourceInterface
     /** @return array{type:string,found:int,import:int,skip:int,warnings:string[]} */
     private function previewCategories(PDO $source, string $schema, ImportOptions $options): array
     {
-        $table    = $schema === 'enthusiast_enth' ? 'enth_category' : 'categories';
+        $tp       = $options->tablePrefix;
+        $table    = $tp . ($schema === 'enthusiast_enth' ? 'enth_category' : 'category');
         $warnings = [];
         try {
             $stmt = $source->query("SELECT COUNT(*) FROM `{$table}`");
@@ -288,7 +291,8 @@ final class EnthusiastImportSource implements ImportSourceInterface
     /** @return array{type:string,found:int,import:int,skip:int,warnings:string[]} */
     private function previewAffiliates(PDO $source, string $schema, ImportOptions $options): array
     {
-        $table    = $schema === 'enthusiast_enth' ? 'enth_affiliates' : 'affiliates';
+        $tp       = $options->tablePrefix;
+        $table    = $tp . ($schema === 'enthusiast_enth' ? 'enth_affiliates' : 'affiliates');
         $warnings = [];
         try {
             $stmt = $source->query("SELECT COUNT(*) FROM `{$table}`");
@@ -306,7 +310,8 @@ final class EnthusiastImportSource implements ImportSourceInterface
     /** @return array{type:string,found:int,import:int,skip:int,warnings:string[]} */
     private function previewJoined(PDO $source, string $schema, ImportOptions $options): array
     {
-        $table = $schema === 'enthusiast_enth' ? 'enth_joined' : 'joined';
+        $tp    = $options->tablePrefix;
+        $table = $tp . ($schema === 'enthusiast_enth' ? 'enth_joined' : 'joined');
         try {
             $stmt  = $source->query("SELECT COUNT(*) FROM `{$table}`");
             $found = (int) $stmt->fetchColumn();
@@ -320,7 +325,8 @@ final class EnthusiastImportSource implements ImportSourceInterface
     /** @return array{type:string,found:int,import:int,skip:int,warnings:string[]} */
     private function previewSettings(PDO $source, string $schema, ImportOptions $options): array
     {
-        $table = $schema === 'enthusiast_enth' ? 'enth_fanlistings' : 'owned';
+        $tp    = $options->tablePrefix;
+        $table = $tp . ($schema === 'enthusiast_enth' ? 'enth_fanlistings' : 'owned');
         try {
             $stmt  = $source->query("SELECT COUNT(*) FROM `{$table}`");
             $found = (int) $stmt->fetchColumn();
@@ -345,7 +351,8 @@ final class EnthusiastImportSource implements ImportSourceInterface
     /** @return array{type:string,found:int,import:int,skip:int,warnings:string[]} */
     private function previewOwnedListings(PDO $source, string $schema, ImportOptions $options): array
     {
-        $srcTable = $schema === 'enthusiast_enth' ? 'enth_fanlistings' : 'owned';
+        $tp       = $options->tablePrefix;
+        $srcTable = $tp . ($schema === 'enthusiast_enth' ? 'enth_fanlistings' : 'owned');
         $warnings = [];
         try {
             $stmt  = $source->query("SELECT COUNT(*) FROM `{$srcTable}`");
@@ -366,7 +373,8 @@ final class EnthusiastImportSource implements ImportSourceInterface
     /** @return array{type:string,found:int,import:int,skip:int,warnings:string[]} */
     private function previewTemplates(PDO $source, string $schema, ImportOptions $options): array
     {
-        $table = $schema === 'enthusiast_enth' ? 'enth_fanlistings' : 'owned';
+        $tp    = $options->tablePrefix;
+        $table = $tp . ($schema === 'enthusiast_enth' ? 'enth_fanlistings' : 'owned');
         try {
             $stmt  = $source->query("SELECT COUNT(*) FROM `{$table}`");
             $listingCount = (int) $stmt->fetchColumn();
@@ -386,7 +394,8 @@ final class EnthusiastImportSource implements ImportSourceInterface
     /** @return array{type:string,imported:int,skipped:int,warnings:string[],errors:string[]} */
     private function runCategories(PDO $source, PDO $target, string $schema, ImportOptions $options): array
     {
-        $srcTable     = $schema === 'enthusiast_enth' ? 'enth_category' : 'categories';
+        $tp           = $options->tablePrefix;
+        $srcTable     = $tp . ($schema === 'enthusiast_enth' ? 'enth_category' : 'category');
         $imported     = 0;
         $skipped      = 0;
         $errors       = [];
@@ -487,7 +496,8 @@ final class EnthusiastImportSource implements ImportSourceInterface
     private function runAffiliates(
         PDO $source, PDO $target, string $schema, ImportOptions $options, ?ImageMigrator $migrator
     ): array {
-        $srcTable     = $schema === 'enthusiast_enth' ? 'enth_affiliates' : 'affiliates';
+        $tp           = $options->tablePrefix;
+        $srcTable     = $tp . ($schema === 'enthusiast_enth' ? 'enth_affiliates' : 'affiliates');
         $imported     = 0;
         $skipped      = 0;
         $unlinked     = 0;
@@ -658,8 +668,9 @@ final class EnthusiastImportSource implements ImportSourceInterface
         PDO $source, PDO $target, string $schema, ImportOptions $options,
         array $catNameToId, ?ImageMigrator $migrator
     ): array {
-        $srcTable     = $schema === 'enthusiast_enth' ? 'enth_joined' : 'joined';
-        $srcCatTable  = $schema === 'enthusiast_enth' ? 'enth_category' : 'categories';
+        $tp           = $options->tablePrefix;
+        $srcTable     = $tp . ($schema === 'enthusiast_enth' ? 'enth_joined' : 'joined');
+        $srcCatTable  = $tp . ($schema === 'enthusiast_enth' ? 'enth_category' : 'category');
         $imported     = 0;
         $skipped      = 0;
         $errors       = [];
@@ -842,7 +853,8 @@ final class EnthusiastImportSource implements ImportSourceInterface
     private function runSettings(
         PDO $source, PDO $target, string $schema, ImportOptions $options, ?ImageMigrator $migrator
     ): array {
-        $srcTable     = $schema === 'enthusiast_enth' ? 'enth_fanlistings' : 'owned';
+        $tp           = $options->tablePrefix;
+        $srcTable     = $tp . ($schema === 'enthusiast_enth' ? 'enth_fanlistings' : 'owned');
         $imported     = 0;
         $skipped      = 0;
         $errors       = [];
@@ -979,7 +991,8 @@ final class EnthusiastImportSource implements ImportSourceInterface
     /** @return array{type:string,imported:int,skipped:int,warnings:string[],errors:string[]} */
     private function runTemplates(PDO $source, PDO $target, string $schema, ImportOptions $options): array
     {
-        $srcTable     = $schema === 'enthusiast_enth' ? 'enth_fanlistings' : 'owned';
+        $tp           = $options->tablePrefix;
+        $srcTable     = $tp . ($schema === 'enthusiast_enth' ? 'enth_fanlistings' : 'owned');
         $idCol        = $schema === 'enthusiast_enth' ? 'id' : 'listingid';
         $imported     = 0;
         $skipped      = 0;
@@ -1077,7 +1090,8 @@ final class EnthusiastImportSource implements ImportSourceInterface
                     'skipped_items' => []];
         }
 
-        $srcTable     = $schema === 'enthusiast_enth' ? 'enth_fanlistings' : 'owned';
+        $tp           = $options->tablePrefix;
+        $srcTable     = $tp . ($schema === 'enthusiast_enth' ? 'enth_fanlistings' : 'owned');
         $idCol        = $schema === 'enthusiast_enth' ? 'id' : 'listingid';
         $imported     = 0;
         $skipped      = 0;
@@ -1260,9 +1274,10 @@ final class EnthusiastImportSource implements ImportSourceInterface
     // -----------------------------------------------------------------------
 
     /** @return array{type:string,found:int,import:int,skip:int,warnings:string[]} */
-    private function previewMembers(PDO $source, string $schema): array
+    private function previewMembers(PDO $source, string $schema, ImportOptions $options): array
     {
-        $regTable = $schema === 'enthusiast_enth' ? 'enth_fanlistings' : 'owned';
+        $tp       = $options->tablePrefix;
+        $regTable = $tp . ($schema === 'enthusiast_enth' ? 'enth_fanlistings' : 'owned');
         $dbCol    = $schema === 'enthusiast_enth' ? 'dbprefix'         : 'dbtable';
 
         $warnings = [
@@ -1281,7 +1296,7 @@ final class EnthusiastImportSource implements ImportSourceInterface
         $tablesMissing = 0;
 
         foreach ($listings as $rawPrefix) {
-            $dbtable = $schema === 'enthusiast_enth'
+            $dbtable    = $schema === 'enthusiast_enth'
                 ? trim((string) $rawPrefix) . 'members'
                 : trim((string) $rawPrefix);
 
@@ -1289,8 +1304,10 @@ final class EnthusiastImportSource implements ImportSourceInterface
                 continue;
             }
 
+            $srcDbtable = $tp . $dbtable;
+
             try {
-                $cnt = $source->query("SELECT COUNT(*) FROM `{$dbtable}`");
+                $cnt = $source->query("SELECT COUNT(*) FROM `{$srcDbtable}`");
                 $totalFound += (int) $cnt->fetchColumn();
             } catch (\Throwable) {
                 $tablesMissing++;
@@ -1315,7 +1332,8 @@ final class EnthusiastImportSource implements ImportSourceInterface
                     'errors'   => [], 'skipped_items' => []];
         }
 
-        $regTable     = $schema === 'enthusiast_enth' ? 'enth_fanlistings' : 'owned';
+        $tp           = $options->tablePrefix;
+        $regTable     = $tp . ($schema === 'enthusiast_enth' ? 'enth_fanlistings' : 'owned');
         $idCol        = $schema === 'enthusiast_enth' ? 'id'               : 'listingid';
         $dbCol        = $schema === 'enthusiast_enth' ? 'dbprefix'         : 'dbtable';
         $addCol       = $schema === 'enthusiast_enth' ? 'additional_info'  : 'additional';
@@ -1339,13 +1357,15 @@ final class EnthusiastImportSource implements ImportSourceInterface
         }
 
         foreach ($listings as $listing) {
-            $rawPrefix = trim((string) ($listing[$dbCol] ?? ''));
-            $dbtable   = $schema === 'enthusiast_enth' ? $rawPrefix . 'members' : $rawPrefix;
+            $rawPrefix  = trim((string) ($listing[$dbCol] ?? ''));
+            $dbtable    = $schema === 'enthusiast_enth' ? $rawPrefix . 'members' : $rawPrefix;
 
             if ($dbtable === '' || !preg_match('/^[a-zA-Z0-9_]+$/', $dbtable)) {
                 $errors[] = "Listing has invalid or empty dbtable '{$dbtable}' — skipped.";
                 continue;
             }
+
+            $srcDbtable = $tp . $dbtable;
 
             // Derive additional field column names for this listing.
             $addRaw     = (string) ($listing[$addCol] ?? '');
@@ -1364,14 +1384,14 @@ final class EnthusiastImportSource implements ImportSourceInterface
             do {
                 try {
                     $stmt = $source->prepare(
-                        "SELECT * FROM `{$dbtable}` LIMIT :lim OFFSET :off"
+                        "SELECT * FROM `{$srcDbtable}` LIMIT :lim OFFSET :off"
                     );
                     $stmt->bindValue(':lim', self::CHUNK, PDO::PARAM_INT);
                     $stmt->bindValue(':off', $offset,     PDO::PARAM_INT);
                     $stmt->execute();
                     $chunk = $stmt->fetchAll();
                 } catch (\Throwable $e) {
-                    $errors[] = "Could not read `{$dbtable}` at offset {$offset}: " . $e->getMessage();
+                    $errors[] = "Could not read `{$srcDbtable}` at offset {$offset}: " . $e->getMessage();
                     break;
                 }
 

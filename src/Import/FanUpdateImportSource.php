@@ -84,8 +84,8 @@ final class FanUpdateImportSource implements ImportSourceInterface
 
     public function preview(PDO $source, ImportOptions $options): ImportPreview
     {
-        $schema = $this->detectSchema($source);
-        $prefix = $options->fanUpdatePrefix;
+        $schema = $options->schemaVariant !== '' ? $options->schemaVariant : $this->detectSchema($source);
+        $prefix = $options->tablePrefix . $options->fanUpdatePrefix;
         $rows   = [];
 
         if ($options->importUpdates) {
@@ -105,7 +105,7 @@ final class FanUpdateImportSource implements ImportSourceInterface
         ini_set('memory_limit', '256M');
 
         $start  = microtime(true);
-        $prefix = $options->fanUpdatePrefix;
+        $prefix = $options->tablePrefix . $options->fanUpdatePrefix;
         $rows   = [];
 
         if ($options->importUpdates) {
@@ -116,7 +116,7 @@ final class FanUpdateImportSource implements ImportSourceInterface
             rows:          $rows,
             imageRows:     [],
             duration:      microtime(true) - $start,
-            schemaVariant: $this->detectSchema($source),
+            schemaVariant: $options->schemaVariant !== '' ? $options->schemaVariant : $this->detectSchema($source),
         );
     }
 

@@ -421,6 +421,8 @@ return [
             ImportController::class, 'result');
         $router->get('/admin/import/{source}/report',
             ImportController::class, 'downloadReport');
+        $router->post('/admin/import/{source}/upload-dump',
+            ImportController::class, 'uploadDump');
         $router->post('/admin/import/{source}/upload-images',
             ImportController::class, 'uploadImages');
 

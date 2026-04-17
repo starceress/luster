@@ -43,62 +43,110 @@ function importChecked(array $old, string $key, bool $default = true): string {
   <div class="alert alert-error" style="margin-bottom:1.25rem"><?= View::e($error) ?></div>
 <?php endif; ?>
 
-<form method="POST" action="<?= $b ?>/admin/import/<?= $src ?>/configure">
+<form id="import-configure-form" method="POST"
+      action="<?= $b ?>/admin/import/<?= $src ?>/configure"
+      data-live-url="<?= $b ?>/admin/import/<?= $src ?>/configure"
+      data-dump-url="<?= $b ?>/admin/import/<?= $src ?>/upload-dump"
+      enctype="multipart/form-data">
   <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
 
- 
   <div class="gradient-card">
     <div class="pc-head">
       <div class="pc-head-icon pc-head-icon-bg"><?= View::icon('database') ?></div>
       <div class="pc-head-meta">
-        <div class="pc-head-title">Source Database</div>
-        <div class="pc-head-sub"> 
-        Use <b>"Test Connection"</b> to confirm the correct database credentials before continuing.<br>
-      <?php if ($source === 'enthusiast'): ?>
-        If Enthusiast is installed in the <b>same MySQL database</b> as Luster, leave all fields blank. If it is in a <b>separate database</b>, enter those credentials here.<br>
-    <?php endif; ?></div>
+        <div class="pc-head-title">Connection Method</div>
+        <div class="pc-head-sub">Connect to the source database directly, or upload a <code>.sql</code> dump file.</div>
       </div>
     </div>
     <div class="pc-section">
-      <div class="form-row">
-        <div class="form-group">
-          <label class="form-label" for="db_host">Database Host</label>
-          <input id="db_host" type="text" name="db_host" class="form-input"
-                 placeholder="localhost (blank = use Luster's DB)"
-                 value="<?= importOld($old, 'db_host') ?>">
-        </div>
-        <div class="form-group">
-          <label class="form-label" for="db_name">Database Name</label>
-          <input id="db_name" type="text" name="db_name" class="form-input"
-                 value="<?= importOld($old, 'db_name') ?>">
-        </div>
+      <div style="display:flex;flex-direction:column;gap:.5rem;margin-left:1rem">
+        <label class="form-check">
+          <input type="radio" name="_conn_mode" value="live" id="js-mode-live" checked>
+          Live database &mdash; <span class="text-muted">Connect directly via credentials</span>
+        </label>
+        <label class="form-check">
+          <input type="radio" name="_conn_mode" value="dump" id="js-mode-dump">
+          Upload SQL dump &mdash; <span class="text-muted">Upload a <code>.sql</code> mysqldump file (max 50 MB)</span>
+        </label>
       </div>
-      <div class="form-row">
-        <div class="form-group">
-          <label class="form-label" for="db_user">Database User</label>
-          <input id="db_user" type="text" name="db_user" class="form-input"
-                 value="<?= importOld($old, 'db_user') ?>">
-        </div>
-        <div class="form-group">
-          <label class="form-label" for="db_pass">Database Password</label>
-          <div style="position:relative">
-            <input id="db_pass" type="password" name="db_pass" class="form-input"
-                   style="padding-right:42px" autocomplete="new-password">
-            <button type="button" data-pw-toggle aria-label="Show password" tabindex="-1"
-                    style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--text-dim);padding:4px;line-height:0"
-                    onmouseover="this.style.color='var(--accent)'" onmouseout="this.style.color='var(--text-dim)'">
-              <?= View::icon('eye-on') ?>
-              <?= View::icon('eye-off') ?>
-            </button>
+    </div>
+  </div>
+
+  <div id="js-live-db-section">
+    <div class="gradient-card">
+      <div class="pc-head">
+        <div class="pc-head-icon pc-head-icon-bg"><?= View::icon('database') ?></div>
+        <div class="pc-head-meta">
+          <div class="pc-head-title">Source Database</div>
+          <div class="pc-head-sub">
+            Use <b>"Test Connection"</b> to confirm the correct database credentials before continuing.<br>
+            <?php if ($source === 'enthusiast'): ?>
+            If Enthusiast is installed in the <b>same MySQL database</b> as Luster, leave all fields blank. If it is in a <b>separate database</b>, enter those credentials here.<br>
+            <?php endif; ?>
           </div>
         </div>
       </div>
+      <div class="pc-section">
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label" for="db_host">Database Host</label>
+            <input id="db_host" type="text" name="db_host" class="form-input"
+                   placeholder="localhost (blank = use Luster's DB)"
+                   value="<?= importOld($old, 'db_host') ?>">
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="db_name">Database Name</label>
+            <input id="db_name" type="text" name="db_name" class="form-input"
+                   value="<?= importOld($old, 'db_name') ?>">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label" for="db_user">Database User</label>
+            <input id="db_user" type="text" name="db_user" class="form-input"
+                   value="<?= importOld($old, 'db_user') ?>">
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="db_pass">Database Password</label>
+            <div style="position:relative">
+              <input id="db_pass" type="password" name="db_pass" class="form-input"
+                     style="padding-right:42px" autocomplete="new-password">
+              <button type="button" data-pw-toggle aria-label="Show password" tabindex="-1"
+                      style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--text-dim);padding:4px;line-height:0"
+                      onmouseover="this.style.color='var(--accent)'" onmouseout="this.style.color='var(--text-dim)'">
+                <?= View::icon('eye-on') ?>
+                <?= View::icon('eye-off') ?>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="composer-footer">
+        <button type="button" id="js-test-conn" class="btn btn-secondary"
+                data-action="<?= $b ?>/admin/import/<?= $src ?>/test-connection">Test Connection</button>
+        <button type="reset" class="btn btn-ghost" id="clear-form-btn">Clear Form</button>
+        <span id="js-test-result" style="display:none;font-size:var(--fs-base);font-weight:600"></span>
+      </div>
     </div>
-    <div class="composer-footer">
-      <button type="button" id="js-test-conn" class="btn btn-secondary"
-              data-action="<?= $b ?>/admin/import/<?= $src ?>/test-connection">Test Connection</button>
-      <button type="reset" class="btn btn-ghost" id="clear-form-btn">Clear Form</button>
-      <span id="js-test-result" style="display:none;font-size:var(--fs-base);font-weight:600"></span>
+  </div>
+
+  <div id="js-dump-section" style="display:none">
+    <div class="gradient-card">
+      <div class="pc-head">
+        <div class="pc-head-icon pc-head-icon-bg"><?= View::icon('import') ?></div>
+        <div class="pc-head-meta">
+          <div class="pc-head-title">Upload SQL Dump</div>
+          <div class="pc-head-sub">Upload a <code>.sql</code> file exported by <code>mysqldump</code>. Only <code>CREATE TABLE</code> and <code>INSERT INTO</code> statements are executed; all other SQL is ignored for safety.</div>
+        </div>
+      </div>
+      <div class="pc-section">
+        <div class="form-group">
+          <label class="form-label" for="sql_dump">SQL File <span class="text-muted">(max 50 MB)</span></label>
+          <input id="sql_dump" type="file" name="sql_dump" accept=".sql,text/plain,text/x-sql,application/sql"
+                 class="form-input" style="max-width:480px">
+          <p class="field-hint-sm">Export your source database with <code>mysqldump --no-tablespaces &lt;dbname&gt; &gt; export.sql</code> and upload the resulting file. The source schema is detected automatically.</p>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -120,6 +168,19 @@ function importChecked(array $old, string $key, bool $default = true): string {
                value="<?= importOld($old, 'fu_prefix', 'blog') ?>"
                style="max-width:320px">
         <p class="help-text">The base table name configured in <code>blog-config.php</code> (default: <code>blog</code>). Luster will look for <code>{name}</code>, <code>{name}_category</code>, and <code>{name}_catjoin</code>.</p>
+      </div>
+    </div>
+    <?php endif; ?>
+
+    <?php if ($source === 'listing-admin'): ?>
+    <div class="pc-section">
+      <div class="pc-section-label">Table Prefix</div>
+      <div class="form-group">
+        <input id="la_table_prefix" type="text" name="la_table_prefix" class="form-input"
+               placeholder="(leave blank for default install)"
+               value="<?= importOld($old, 'la_table_prefix') ?>"
+               style="max-width:320px">
+        <p class="help-text">Leave blank if LA uses default table names (<code>main</code>, <code>members</code>, etc.). If your LA install was configured with a prefix (e.g. <code>trex_</code>), enter it here. Luster will look for <code>{prefix}members</code>, <code>{prefix}categories</code>, and so on — the registry table is derived as the prefix without underscores (e.g. <code>trex_</code> &rarr; <code>trex</code>).</p>
       </div>
     </div>
     <?php endif; ?>
@@ -284,8 +345,9 @@ function importChecked(array $old, string $key, bool $default = true): string {
 
   <div class="btn-row" style="align-items:center;flex-wrap:wrap">
     <a href="<?= $b ?>/admin/import" class="btn btn-ghost">&#8592; Back</a>
-    <button type="submit" class="btn btn-primary">Preview Import &#8594;</button>
+    <button type="submit" id="js-submit-btn" class="btn btn-primary">Preview Import &#8594;</button>
   </div>
 
 </form>
+
 
