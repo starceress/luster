@@ -31,13 +31,13 @@ $imgHeight = $sizeMap[$sizeKey] ?? '100px';
 
 <!-- Stats row -->
 <div class="stat-row">
-  <div class="mini-stat">
-    <div class="v"><?= (int) $approved ?></div>
-    <div class="l">Approved</div>
+  <div class="stat-mini">
+    <div class="val"><?= (int) $approved ?></div>
+    <div class="lbl">Approved</div>
   </div>
-  <div class="mini-stat">
-    <div class="v<?= (int) $pending > 0 ? ' warn' : '' ?>"><?= (int) $pending ?></div>
-    <div class="l">Pending</div>
+  <div class="stat-mini">
+    <div class="val<?= (int) $pending > 0 ? ' warn' : '' ?>"><?= (int) $pending ?></div>
+    <div class="lbl">Pending</div>
   </div>
 </div>
 
@@ -152,7 +152,7 @@ $imgHeight = $sizeMap[$sizeKey] ?? '100px';
 </div>
 
 <?php if ((int) $pending > 0): ?>
-<div class="alert-warning" style="display:flex;align-items:center;gap:.75rem">
+<div class="alert alert-warning" style="display:flex;align-items:center;gap:.75rem">
   <strong>&#9888; <?= (int) $pending ?> member(s) awaiting approval.</strong>
   <a href="<?= $b ?>/admin/members/<?= (int) $listing->id ?>?status=pending" class="link" style="font-size:.875rem">Review now &rarr;</a>
 </div>

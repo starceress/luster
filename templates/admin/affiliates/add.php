@@ -55,7 +55,7 @@ $v = static function (string $key, $model, string $prop, string $default = '') u
     <input type="hidden" name="from_listing" value="<?= $contextFid ?>">
   <?php endif; ?>
 
-  <div class="card listing-field-card" style="margin-bottom:0">
+  <div class="gradient-card" style="margin-bottom:0">
     <div class="listing-field-section">
 
       <!-- Listing -->

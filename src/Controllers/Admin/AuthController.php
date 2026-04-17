@@ -159,7 +159,8 @@ final class AuthController
             )->execute(['uid' => $userId, 'hash' => $tokenHash, 'expires' => $expiresAt]);
 
             $isHttps = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
-                    || (int) ($_SERVER['SERVER_PORT'] ?? 80) === 443;
+                    || (int) ($_SERVER['SERVER_PORT'] ?? 80) === 443
+                    || strtolower((string) ($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '')) === 'https';
 
             setcookie('lstr_remember', $userId . ':' . $rawToken, [
                 'expires'  => time() + 86400 * 30,
@@ -199,7 +200,8 @@ final class AuthController
             }
 
             $isHttps = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
-                    || (int) ($_SERVER['SERVER_PORT'] ?? 80) === 443;
+                    || (int) ($_SERVER['SERVER_PORT'] ?? 80) === 443
+                    || strtolower((string) ($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '')) === 'https';
 
             setcookie('lstr_remember', '', [
                 'expires'  => time() - 3600,
@@ -377,8 +379,10 @@ final class AuthController
         $newPassword     = (string) $request->post('new_password', '');
         $confirmPassword = (string) $request->post('new_password_confirm', '');
 
-        if (strlen($newPassword) < 8) {
-            $session->set('lstr_flash_error', 'Password must be at least 8 characters.');
+        $vp = new Validator(['new_password' => $newPassword]);
+        $vp->field('new_password')->required()->minLength(12)->maxLength(255);
+        if ($vp->fails()) {
+            $session->set('lstr_flash_error', implode(' ', $vp->allErrors()));
             return Response::redirect($baseUrl . '/admin/reset/' . $rawToken);
         }
 

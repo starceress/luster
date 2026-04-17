@@ -57,7 +57,7 @@ $fe = $field_errors ?? [];
             <?= View::icon('eye-off') ?>
           </button>
         </div>
-        <p class="form-hint">Minimum 8 characters.</p>
+        <p class="form-hint">Minimum 12 characters.</p>
         <?php if (!empty($fe['password'])): ?><p class="field-error"><?= View::e($fe['password'][0]) ?></p><?php endif; ?>
       </div>
       <div class="form-group<?= !empty($fe['password_confirm']) ? ' has-error' : '' ?>">

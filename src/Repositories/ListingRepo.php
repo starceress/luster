@@ -403,22 +403,22 @@ final class ListingRepo
      * Status values:
      *   'current'  — active/open listings (status=2 or upcoming=0 AND trouble=0)
      *   'upcoming' — upcoming listings (status=1 or upcoming=1)
-     *   'trouble'  — trouble/inactive listings (status=0 or trouble=1)
-     *   'all'      — no status filter (combine with $excludeTrouble to omit broken listings)
+     *   'pending'  — pending/inactive listings (status=0 or trouble=1)
+     *   'all'      — no status filter (combine with $excludePending to omit pending listings)
      *
      * @param int|null $categoryId    Filter to a Luster category (lstr_categories.id), or null for all
-     * @param bool     $excludeTrouble When true and $status is 'all', trouble/inactive listings
+     * @param bool     $excludePending When true and $status is 'all', pending/inactive listings
      *                                 are silently omitted. Has no effect for other status values.
      * @return Listing[]
      */
-    public function getFiltered(string $status = 'current', ?int $categoryId = null, bool $excludeTrouble = false): array
+    public function getFiltered(string $status = 'current', ?int $categoryId = null, bool $excludePending = false): array
     {
         // These fragments are built from a controlled match on internal values — safe to interpolate
         $statusWhere = match (true) {
             $status === 'current'               => $this->isOwnedSchema ? 'status = 2'  : 'upcoming = 0 AND trouble = 0',
             $status === 'upcoming'              => $this->isOwnedSchema ? 'status = 1'  : 'upcoming = 1',
-            $status === 'trouble'               => $this->isOwnedSchema ? 'status = 0'  : 'trouble = 1',
-            $status === 'all' && $excludeTrouble => $this->isOwnedSchema ? 'status != 0' : 'trouble = 0',
+            $status === 'pending'               => $this->isOwnedSchema ? 'status = 0'  : 'trouble = 1',
+            $status === 'all' && $excludePending => $this->isOwnedSchema ? 'status != 0' : 'trouble = 0',
             default                             => '1 = 1',
         };
 
@@ -447,31 +447,35 @@ final class ListingRepo
      * Returns distinct Luster categories assigned to at least one fanlisting,
      * ordered parent-first then alphabetically.
      *
-     * Each entry includes parent_id and parent_name (null for top-level categories)
-     * so callers can build grouped <optgroup> selectors.
+     * Each entry includes parent_id, parent_name, and listing_count (active only).
      *
-     * @return array<int, array{id: int, name: string, source: string, parent_id: int|null, parent_name: string|null}>
+     * @return array<int, array{id: int, name: string, source: string, parent_id: int|null, parent_name: string|null, listing_count: int}>
      */
     public function getCategoryList(): array
     {
+        $activeWhere = $this->isOwnedSchema ? 'f.status = 2' : 'f.upcoming = 0 AND f.trouble = 0';
+
         $stmt = $this->db->prepare(
-            "SELECT DISTINCT c.id, c.name, c.source, c.parent_id,
-                    p.name AS parent_name
+            "SELECT c.id, c.name, c.source, c.parent_id,
+                    p.name AS parent_name,
+                    COUNT(f.{$this->pkCol}) AS listing_count
              FROM {$this->table} f
              JOIN lstr_categories c ON c.id = f.category_id
              LEFT JOIN lstr_categories p ON p.id = c.parent_id
-             WHERE f.category_id IS NOT NULL
+             WHERE f.category_id IS NOT NULL AND {$activeWhere}
+             GROUP BY c.id, c.name, c.source, c.parent_id, p.name
              ORDER BY COALESCE(p.name, c.name) ASC, c.name ASC"
         );
         $stmt->execute();
 
         return array_map(
             static fn(array $r) => [
-                'id'          => (int)    $r['id'],
-                'name'        => (string) $r['name'],
-                'source'      => (string) $r['source'],
-                'parent_id'   => $r['parent_id'] !== null ? (int) $r['parent_id'] : null,
-                'parent_name' => $r['parent_name'] !== null ? (string) $r['parent_name'] : null,
+                'id'            => (int)    $r['id'],
+                'name'          => (string) $r['name'],
+                'source'        => (string) $r['source'],
+                'parent_id'     => $r['parent_id'] !== null ? (int) $r['parent_id'] : null,
+                'parent_name'   => $r['parent_name'] !== null ? (string) $r['parent_name'] : null,
+                'listing_count' => (int) $r['listing_count'],
             ],
             $stmt->fetchAll()
         );

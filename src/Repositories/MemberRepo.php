@@ -197,6 +197,36 @@ final class MemberRepo
     }
 
     /**
+     * Returns approved member count and distinct non-empty country count for
+     * one listing in a single query. Safe to call even if the table is empty.
+     *
+     * Returns ['approved' => 0, 'country_count' => 0] on any error so that a
+     * missing or misconfigured member table never breaks the collective embed.
+     *
+     * @return array{approved: int, country_count: int}
+     */
+    public function getMemberStats(string $prefix): array
+    {
+        try {
+            $p    = $this->resolveTable($prefix);
+            $stmt = $this->db->prepare(
+                "SELECT COUNT(*) AS approved,
+                        COUNT(DISTINCT CASE WHEN country != '' THEN country END) AS country_count
+                 FROM `{$p}`
+                 WHERE {$this->approvedWhere}"
+            );
+            $stmt->execute();
+            $row = $stmt->fetch();
+            return [
+                'approved'      => (int) ($row['approved']      ?? 0),
+                'country_count' => (int) ($row['country_count'] ?? 0),
+            ];
+        } catch (\Exception) {
+            return ['approved' => 0, 'country_count' => 0];
+        }
+    }
+
+    /**
      * Counts approved members added on or after $since (Y-m-d or Y-m-d H:i:s).
      */
     public function countApprovedSince(string $prefix, string $since): int

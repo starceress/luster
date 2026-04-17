@@ -98,7 +98,7 @@ function importChecked(array $old, string $key, bool $default = true): string {
       <button type="button" id="js-test-conn" class="btn btn-secondary"
               data-action="<?= $b ?>/admin/import/<?= $src ?>/test-connection">Test Connection</button>
       <button type="reset" class="btn btn-ghost" id="clear-form-btn">Clear Form</button>
-      <span id="js-test-result" class="conn-status" style="display:none"></span>
+      <span id="js-test-result" style="display:none;font-size:var(--fs-base);font-weight:600"></span>
     </div>
   </div>
 
@@ -126,13 +126,13 @@ function importChecked(array $old, string $key, bool $default = true): string {
 
     <div class="pc-section">
       <div class="pc-section-label">Conflict Strategy</div>
-      <div class="options-group">
-        <label class="options-label">
+      <div style="display:flex;flex-direction:column;gap:.5rem;margin-left:1rem">
+        <label class="form-check">
           <input type="radio" name="conflict_strategy" value="skip"
                  <?= (($old['conflict_strategy'] ?? 'skip') === 'skip') ? 'checked' : '' ?>>
           Skip existing &mdash; <span class="text-muted">Do not overwrite records that are already in Luster</span>
         </label>
-        <label class="options-label">
+        <label class="form-check">
           <input type="radio" name="conflict_strategy" value="overwrite"
                  <?= (($old['conflict_strategy'] ?? '') === 'overwrite') ? 'checked' : '' ?>>
           Overwrite &mdash; <span class="text-muted">Update existing records with source values</span>
@@ -142,15 +142,15 @@ function importChecked(array $old, string $key, bool $default = true): string {
 
     <div class="pc-section">
       <div class="pc-section-label">Data to Import</div>
-      <div class="options-group">
+      <div style="display:flex;flex-direction:column;gap:.5rem;margin-left:1rem">
 
 
       <?php if ($source === 'enthusiast'): ?>
-        <label class="options-label">
+        <label class="form-check">
           <input type="checkbox" name="import_owned_listings" value="1" <?= importChecked($old, 'import_owned_listings') ?>>Owned listings</label>
-        <label class="options-label">
+        <label class="form-check">
           <input type="checkbox" name="import_joined" value="1" <?= importChecked($old, 'import_joined') ?>>Joined listings</label>
-        <label class="options-label">
+        <label class="form-check">
           <input type="checkbox" name="import_categories" value="1" <?= importChecked($old, 'import_categories') ?>>Assigned categories</label>
         <?php if (!empty($enth_networks)): ?>
         <div style="margin-left:1.75rem;margin-top:.25rem">
@@ -167,51 +167,51 @@ function importChecked(array $old, string $key, bool $default = true): string {
           <p class="field-hint-sm" style="margin-top:.3rem">Enthusiast has no network concept. Select a parent network (e.g. TFL) to import its categories as children rather than top-level entries.</p>
         </div>
         <?php endif; ?>
-        <label class="options-label">
+        <label class="form-check">
           <input type="checkbox" name="import_members" value="1" <?= importChecked($old, 'import_members') ?>>Members</label>
-        <label class="options-label">
+        <label class="form-check">
           <input type="checkbox" name="import_affiliates" value="1" <?= importChecked($old, 'import_affiliates') ?>>Affiliates</label>
-        <label class="options-label">
+        <label class="form-check">
           <input type="checkbox" name="import_settings" value="1" <?= importChecked($old, 'import_settings') ?>>Per-listing settings</label>
-        <label class="options-label">
+        <label class="form-check">
           <input type="checkbox" name="import_templates" value="1" <?= importChecked($old, 'import_templates') ?>>Email templates</label>
         <?php endif; ?>
 
         <?php if ($source === 'listing-admin'): ?>
-        <label class="options-label">
+        <label class="form-check">
           <input type="checkbox" name="import_listings" value="1" <?= importChecked($old, 'import_listings') ?>>
           Owned listings <span class="text-muted">(creates per-listing member tables in target DB)</span></label>
-        <label class="options-label">
+        <label class="form-check">
           <input type="checkbox" name="import_joined" value="1" <?= importChecked($old, 'import_joined') ?>>Joined listings</label>
-        <label class="options-label">
+        <label class="form-check">
           <input type="checkbox" name="import_categories" value="1" <?= importChecked($old, 'import_categories') ?>>Categories</label>
-        <label class="options-label">
+        <label class="form-check">
           <input type="checkbox" name="import_affiliates" value="1" <?= importChecked($old, 'import_affiliates') ?>>Affiliates</label>
-        <label class="options-label">
+        <label class="form-check">
           <input type="checkbox" name="import_members" value="1" <?= importChecked($old, 'import_members') ?>>Members <span class="text-muted">(requires owned listings to be imported first)</span></label>
-        <label class="options-label">
+        <label class="form-check">
           <input type="checkbox" name="import_updates" value="1" <?= importChecked($old, 'import_updates', false) ?>>Updates <span class="text-muted">(requires Updates Feed add-on to be installed)</span></label>
         <?php endif; ?>
         <?php if ($source === 'fanupdate'): ?>
-        <label class="options-label">
+        <label class="form-check">
           <input type="checkbox" name="import_updates" value="1" <?= importChecked($old, 'import_updates') ?>>
           Blog entries &rarr; Updates Feed (requires Updates Feed add-on)
         </label>
         <?php endif; ?>
         <?php if ($source === 'codesort'): ?>
-        <label class="options-label">
+        <label class="form-check">
           <input type="checkbox" name="import_code_categories" value="1" <?= importChecked($old, 'import_code_categories') ?>>
           Code categories
         </label>
-        <label class="options-label">
+        <label class="form-check">
           <input type="checkbox" name="import_code_sizes" value="1" <?= importChecked($old, 'import_code_sizes') ?>>
           Code sizes (created per-listing for each matched fanlisting)
         </label>
-        <label class="options-label">
+        <label class="form-check">
           <input type="checkbox" name="import_code_donors" value="1" <?= importChecked($old, 'import_code_donors') ?>>
           Code donors
         </label>
-        <label class="options-label">
+        <label class="form-check">
           <input type="checkbox" name="import_codes" value="1" <?= importChecked($old, 'import_codes') ?>>
           Codes (fan graphics)
         </label>
@@ -241,16 +241,16 @@ function importChecked(array $old, string $key, bool $default = true): string {
       </div>
     </div>
     <div class="pc-section">
-      <label class="options-label">
+      <label class="form-check">
         <input type="checkbox" name="import_images" value="1" id="js-images-toggle"
                <?= importChecked($old, 'import_images', true) ?>>Migrate image files
       </label>
-      <div id="js-image-options" class="img-options<?= (!empty($old['import_images']) || empty($old)) ? ' open' : '' ?>">
-        <label class="options-label">
+      <div id="js-image-options" style="border-left:2px solid var(--border);padding-left:1.25rem;margin-left:.25rem;margin-top:.5rem;display:<?= (!empty($old['import_images']) || empty($old)) ? 'flex' : 'none' ?>;flex-direction:column;gap:.5rem">
+        <label class="form-check">
           <input type="radio" name="image_mode" value="path" id="img-mode-path"
                  <?= (($old['image_mode'] ?? 'path') === 'path') ? 'checked' : '' ?>>Same-server path &mdash; <span class="text-muted">Luster will <code>copy()</code> files directly</span>
         </label>
-        <div id="js-img-path-field" class="img-sub-field" style="<?= (($old['image_mode'] ?? 'path') !== 'path') ? 'display:none' : '' ?>">
+        <div id="js-img-path-field" style="padding-left:1.375rem;margin-top:-.125rem;<?= (($old['image_mode'] ?? 'path') !== 'path') ? 'display:none' : '' ?>">
           <input type="text" name="image_path" class="form-input"
                  placeholder="/absolute/path/to/old-install"
                  value="<?= importOld($old, 'image_path') ?>"
@@ -259,12 +259,12 @@ function importChecked(array $old, string $key, bool $default = true): string {
             <?php if ($source === 'codesort'): ?>Code images are expected in the <code>codes/</code> subdirectory.<?php else: ?>Enthusiast images are expected under <code>images/</code>.<?php endif; ?>
           </p>
         </div>
-        <label class="options-label">
+        <label class="form-check">
           <input type="radio" name="image_mode" value="url" id="img-mode-url"
                  <?= (($old['image_mode'] ?? '') === 'url') ? 'checked' : '' ?>>
           Remote URL &mdash; <span class="text-muted">Luster will fetch files via HTTP</span>
         </label>
-        <div id="js-img-url-field" class="img-sub-field" style="<?= (($old['image_mode'] ?? '') !== 'url') ? 'display:none' : '' ?>">
+        <div id="js-img-url-field" style="padding-left:1.375rem;margin-top:-.125rem;<?= (($old['image_mode'] ?? '') !== 'url') ? 'display:none' : '' ?>">
           <input type="url" name="image_url" class="form-input"
                  placeholder="https://example.com/old-install"
                  value="<?= importOld($old, 'image_url') ?>"
@@ -272,7 +272,7 @@ function importChecked(array $old, string $key, bool $default = true): string {
           <p class="field-hint-sm">Base URL of your old installation (no trailing slash). Luster will append
             <?php if ($source === 'codesort'): ?><code>/codes/{filename}</code><?php else: ?>the standard image sub-paths<?php endif; ?>.</p>
         </div>
-        <label class="options-label">
+        <label class="form-check">
           <input type="radio" name="image_mode" value="zip"
                  <?= (($old['image_mode'] ?? '') === 'zip') ? 'checked' : '' ?>>
           Skip now &mdash; <span class="text-muted">I'll upload a ZIP after import</span>
@@ -282,7 +282,7 @@ function importChecked(array $old, string $key, bool $default = true): string {
   </div>
   <?php endif; ?>
 
-  <div class="import-action-row">
+  <div class="btn-row" style="align-items:center;flex-wrap:wrap">
     <a href="<?= $b ?>/admin/import" class="btn btn-ghost">&#8592; Back</a>
     <button type="submit" class="btn btn-primary">Preview Import &#8594;</button>
   </div>

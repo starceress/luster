@@ -100,6 +100,38 @@ final class KimMemberRepo
         $stmt->execute(['id' => $id]);
     }
 
+    /**
+     * Approves multiple KIM members by ID.
+     *
+     * @param int[] $ids
+     */
+    public function approveByIds(array $ids): void
+    {
+        if (empty($ids)) {
+            return;
+        }
+        $placeholders = implode(', ', array_fill(0, count($ids), '?'));
+        $this->db->prepare(
+            "UPDATE lstr_kim_members SET pending = 0 WHERE id IN ({$placeholders})"
+        )->execute(array_values($ids));
+    }
+
+    /**
+     * Deletes multiple KIM members by ID. Cascade deletes reset tokens via FK.
+     *
+     * @param int[] $ids
+     */
+    public function deleteByIds(array $ids): void
+    {
+        if (empty($ids)) {
+            return;
+        }
+        $placeholders = implode(', ', array_fill(0, count($ids), '?'));
+        $this->db->prepare(
+            "DELETE FROM lstr_kim_members WHERE id IN ({$placeholders})"
+        )->execute(array_values($ids));
+    }
+
     // -----------------------------------------------------------------------
     // Reads
     // -----------------------------------------------------------------------
@@ -209,6 +241,30 @@ final class KimMemberRepo
         $stmt->execute(['fanlisting_id' => $fanlistingId]);
 
         return (int) $stmt->fetchColumn();
+    }
+
+    /**
+     * Returns name + email for a specific set of member IDs.
+     * Used for bulk email-selected.
+     *
+     * @param  int[]  $ids
+     * @return array<int, array{name: string, email: string}>
+     */
+    public function getEmailsByIds(array $ids): array
+    {
+        if (empty($ids)) {
+            return [];
+        }
+        $placeholders = implode(', ', array_fill(0, count($ids), '?'));
+        $stmt = $this->db->prepare(
+            "SELECT name, email FROM lstr_kim_members WHERE id IN ({$placeholders}) ORDER BY name ASC"
+        );
+        $stmt->execute(array_values($ids));
+
+        return array_map(
+            static fn(array $row) => ['name' => (string) $row['name'], 'email' => (string) $row['email']],
+            $stmt->fetchAll()
+        );
     }
 
     /**

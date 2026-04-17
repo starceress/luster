@@ -79,7 +79,7 @@ $catSortUrl = static function (string $col) use ($b, $sort, $dir, $source, $sear
     <?php if ($dir !== 'asc'):    ?><input type="hidden" name="dir"  value="<?= View::e($dir) ?>"><?php endif; ?>
 
     <div class="toolbar-select-wrap">
-    <select name="source" class="select js-autosubmit">
+    <select name="source" class="form-select js-autosubmit">
       <option value="">All Networks</option>
       <option value="tfl"  <?= ($source ?? '') === 'tfl'  ? 'selected' : '' ?>>TFL</option>
       <option value="tafl" <?= ($source ?? '') === 'tafl' ? 'selected' : '' ?>>TAFL</option>
@@ -92,7 +92,7 @@ $catSortUrl = static function (string $col) use ($b, $sort, $dir, $source, $sear
     </select>
     </div>
 
-    <input type="text" name="search" class="input" placeholder="Search&hellip;"
+    <input type="text" name="search" class="form-input" placeholder="Search&hellip;"
            value="<?= View::e($search ?? '') ?>">
     <button type="submit" class="btn btn-quaternary btn-sm">Search</button>
     <a href="<?= $b ?>/admin/categories" class="btn btn-quaternary btn-sm">Reset</a>

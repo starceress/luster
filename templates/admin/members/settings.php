@@ -25,7 +25,7 @@ $b = rtrim(View::e($base_url), '/');
 <form method="POST" action="<?= $b ?>/admin/members/settings">
   <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
 
-  <div class="card listing-field-card" style="max-width:640px">
+  <div class="gradient-card" style="max-width:640px">
 
     <div class="listing-field-section">
       <div class="pc-section-label">Pagination</div>

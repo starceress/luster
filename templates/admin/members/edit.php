@@ -32,7 +32,7 @@ $id = (int) $listing->id;
   <input type="hidden" name="_csrf"        value="<?= View::e($csrf_token ?? '') ?>">
   <input type="hidden" name="member_email" value="<?= View::e($member->email) ?>">
 
-  <div class="card listing-field-card">
+  <div class="gradient-card">
 
     <!-- ── Section: General Information ── -->
     <div class="listing-field-section">

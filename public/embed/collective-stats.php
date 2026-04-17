@@ -43,9 +43,9 @@ use Luster\Repositories\SiteSettingsRepo;
  *
  *  Counts
  *   $luster_owned               int   Total owned listings
- *   $luster_owned_active        int   Open / active owned (not upcoming/trouble)
+ *   $luster_owned_active        int   Open / active owned (not upcoming/pending)
  *   $luster_owned_upcoming      int   Upcoming owned listings
- *   $luster_owned_trouble       int   Trouble / inactive owned listings
+ *   $luster_owned_pending       int   Pending / inactive owned listings
  *   $luster_joined              int   Total joined listings
  *   $luster_joined_active       int   Active joined listings
  *   $luster_joined_upcoming     int   Upcoming joined listings
@@ -207,7 +207,7 @@ $_lusterJoinedRandom = $_lusterStatsRepo->getRandomJoined();
 $luster_owned               = $_lusterOwnedCounts['total'];
 $luster_owned_active        = $_lusterOwnedCounts['active'];
 $luster_owned_upcoming      = $_lusterOwnedCounts['upcoming'];
-$luster_owned_trouble       = $_lusterOwnedCounts['trouble'];
+$luster_owned_pending       = $_lusterOwnedCounts['trouble'];
 
 $luster_joined              = $_lusterJoinedCounts['total'];
 $luster_joined_active       = $_lusterJoinedCounts['active'];
@@ -262,7 +262,7 @@ if ($_lusterCStatsTemplate !== null) {
         [
             '{owned_active}',
             '{owned_upcoming}',
-            '{owned_trouble}',
+            '{owned_pending}',
             '{joined_active}',
             '{affiliates}',
             '{members_total}',
@@ -276,7 +276,7 @@ if ($_lusterCStatsTemplate !== null) {
         [
             (string) $luster_owned_active,
             (string) $luster_owned_upcoming,
-            (string) $luster_owned_trouble,
+            (string) $luster_owned_pending,
             (string) $luster_joined_active,
             (string) $luster_affiliates,
             (string) $luster_members_total,

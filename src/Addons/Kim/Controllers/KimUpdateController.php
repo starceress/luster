@@ -210,19 +210,7 @@ final class KimUpdateController
                 ]);
                 return Response::redirect($baseUrl . '/kim/update');
             }
-            if (strlen($newPassword) < 8) {
-                $session->set('lstr_flash_error', 'New password must be at least 8 characters.');
-                $session->set('lstr_flash_old', [
-                    'name'          => $name,
-                    'current_email' => $currentEmail,
-                    'fanlisting_id' => (string) $fanlistingId,
-                    'new_email'     => $newEmail,
-                    'new_url'       => $newUrl,
-                    'send_copy'     => (string) $request->post('send_copy', ''),
-                ]);
-                return Response::redirect($baseUrl . '/kim/update');
-            }
-            $updateFields['password'] = password_hash($newPassword, PASSWORD_ARGON2ID);
+$updateFields['password'] = password_hash($newPassword, PASSWORD_ARGON2ID);
             $updatedFields[] = 'password';
         }
 
@@ -299,7 +287,7 @@ final class KimUpdateController
         $baseUrl = $this->app->getBaseUrl();
         $siteName = (string) $this->app->getConfig()->get('site_name', 'Luster');
 
-        $content = $view->render('addons/kim/' . $template, $data);
+        $content = $view->render('default/addons/kim/' . $template, $data);
 
         $layoutData = array_merge($data, [
             'content'      => $content,

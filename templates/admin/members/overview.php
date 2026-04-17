@@ -37,7 +37,7 @@ $pendingSortUrl = static function (string $col) use ($b, $sort, $dir): string {
 <div class="toolbar">
   <form method="GET" action="<?= $b ?>/admin/members" class="filter-row">
     <div class="toolbar-select-wrap">
-      <select class="select js-nav-select">
+      <select class="form-select js-nav-select">
         <option value="<?= $b ?>/admin/members">All pending members</option>
         <?php foreach ($all_listings as $fl): ?>
           <option value="<?= $b ?>/admin/members/<?= (int) $fl->id ?>?status=all">
@@ -47,7 +47,7 @@ $pendingSortUrl = static function (string $col) use ($b, $sort, $dir): string {
       </select>
     </div>
     <input type="text" name="search" value="<?= View::e($search ?? '') ?>"
-           placeholder="Search all listings&hellip;" class="input" style="max-width:240px">
+           placeholder="Search all listings&hellip;" class="form-input" style="max-width:240px">
     <button type="submit" class="btn btn-quaternary btn-sm">Search</button>
     <?php if ($isSearch): ?>
       <a href="<?= $b ?>/admin/members" class="btn btn-quaternary btn-sm">Clear</a>

@@ -9,6 +9,39 @@
 
 'use strict';
 
+// ── 0. Shared utilities ──────────────────────────────────────────────────────
+// Defined once at global scope so all IIFEs below can share them without
+// re-declaring.
+
+// HTML escaping — use esc() anywhere in this file.
+function esc(str) {
+  return String(str)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+// Token replacement — applies a {token}: value map to a string via split/join.
+// §29 (mass email preview) and §31 (custom templates preview) share this.
+function applyTokenReplacements(text, tokenMap) {
+  var result = text;
+  Object.keys(tokenMap).forEach(function (k) {
+    result = result.split(k).join(tokenMap[k]);
+  });
+  return result;
+}
+
+// Select-all checkbox helper — wires a master checkbox to check/uncheck all
+// elements matching rowSelector. §17, §18, §19 all share this.
+function wireSelectAll(masterId, rowSelector) {
+  var master = document.getElementById(masterId);
+  if (!master) return;
+  master.addEventListener('change', function () {
+    document.querySelectorAll(rowSelector).forEach(function (cb) {
+      cb.checked = master.checked;
+    });
+  });
+}
+
 // ── 1. Theme toggle ──────────────────────────────────────────────────────────
 
 function toggleTheme() {
@@ -321,13 +354,8 @@ document.addEventListener('click', function (e) {
   var tflCats    = JSON.parse(widget.dataset.tfl);
   var taflCats   = JSON.parse(widget.dataset.tafl);
   var customNets = JSON.parse(widget.dataset.custom);
+  var customCats = JSON.parse(widget.dataset.customCats || '{}'); // { "NetworkName": [{id,name}, ...] }
   var existing   = JSON.parse(widget.dataset.existing);
-
-  function esc(str) {
-    return String(str)
-      .replace(/&/g, '&amp;').replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-  }
 
   function buildNetOpts(selected) {
     var h = '<option value="">\u2014 Select Network \u2014</option>';
@@ -368,9 +396,18 @@ document.addEventListener('click', function (e) {
       if (catVal) catTxt.value = catVal;
       othTxt.style.display = '';
     } else if (netVal !== '') {
-      catSel.disabled      = true;  catSel.style.display = 'none';
-      catTxt.disabled      = false; catTxt.style.display = '';
-      if (catVal) catTxt.value = catVal;
+      // Known custom network with saved categories → show a dropdown
+      var knownCats = customCats[netVal];
+      if (knownCats && knownCats.length > 0) {
+        catSel.innerHTML     = buildCatOpts(knownCats, catVal);
+        catSel.disabled      = false; catSel.style.display = '';
+        catTxt.disabled      = true;  catTxt.style.display = 'none';
+      } else {
+        // Custom network with no saved categories → free-text input
+        catSel.disabled      = true;  catSel.style.display = 'none';
+        catTxt.disabled      = false; catTxt.style.display = '';
+        if (catVal) catTxt.value = catVal;
+      }
       othTxt.style.display = 'none';
     } else {
       catSel.disabled      = true;  catSel.style.display = 'none';
@@ -437,35 +474,16 @@ document.addEventListener('click', function (e) {
 
 // ── 17. Members index: select-all checkboxes ──────────────────────────────────
 
-(function () {
-  var checkAll = document.getElementById('check-all');
-  if (!checkAll) return;
-  checkAll.addEventListener('change', function () {
-    document.querySelectorAll('#bulk-form input[name="emails[]"]').forEach(function (cb) {
-      cb.checked = checkAll.checked;
-    });
-  });
-}());
+wireSelectAll('check-all', '#bulk-form input[name="emails[]"]');
 
 // ── 18. Listings codes: select-all checkboxes ────────────────────────────────
 
-(function () {
-  var all = document.getElementById('codes-select-all');
-  if (!all) return;
-  all.addEventListener('change', function () {
-    document.querySelectorAll('.code-check').forEach(function (cb) { cb.checked = all.checked; });
-  });
-}());
+wireSelectAll('codes-select-all', '.code-check');
 
 // ── 19. Listings index: select-all checkboxes ────────────────────────────────
 
-(function () {
-  var all = document.getElementById('fl-select-all');
-  if (!all) return;
-  all.addEventListener('change', function () {
-    document.querySelectorAll('.fl-row-cb').forEach(function (cb) { cb.checked = all.checked; });
-  });
-}());
+wireSelectAll('fl-select-all', '.fl-row-cb');
+
 
 // ── 20. Joined index: select-all with indeterminate state ────────────────────
 
@@ -509,12 +527,6 @@ document.addEventListener('click', function (e) {
   var tflCats   = JSON.parse(catSel.dataset.tfl);
   var taflCats  = JSON.parse(catSel.dataset.tafl);
   var customMap = JSON.parse(catSel.dataset.custom);
-
-  function esc(s) {
-    return String(s)
-      .replace(/&/g, '&amp;').replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-  }
 
   netSel.addEventListener('change', function () {
     var net = this.value;
@@ -739,6 +751,10 @@ document.addEventListener('click', function (e) {
       fan_url:         md.fanUrl         || '',
       fan_country:     md.fanCountry     || '',
       fan_password:    '',
+      name:            md.fanName        || '',
+      email:           md.fanEmail       || '',
+      url:             md.fanUrl         || '',
+      added_at:        '',
       listing_name:    md.listingName    || '',
       listing_subject: md.listingSubject || '',
       listing_url:     md.listingUrl     || '',
@@ -817,21 +833,13 @@ document.addEventListener('click', function (e) {
     '{owner_email}':     pd.dataset.ownerEmail     || 'admin@example.com',
   };
 
-  function applyTokens(text) {
-    var result = text;
-    Object.keys(tokens).forEach(function (k) {
-      result = result.split(k).join(tokens[k]);
-    });
-    return result;
-  }
-
   function updatePreview(type) {
     var subjInput = document.querySelector('.et-subject[data-type="' + type + '"]');
     var bodyInput = document.querySelector('.et-body[data-type="' + type + '"]');
     var pSubj     = document.querySelector('#et-preview-' + type + ' .et-preview-subject');
     var pBody     = document.querySelector('#et-preview-' + type + ' .et-preview-body');
-    if (subjInput && pSubj) pSubj.textContent = applyTokens(subjInput.value);
-    if (bodyInput && pBody) pBody.textContent = applyTokens(bodyInput.value);
+    if (subjInput && pSubj) pSubj.textContent = applyTokenReplacements(subjInput.value, tokens);
+    if (bodyInput && pBody) pBody.textContent = applyTokenReplacements(bodyInput.value, tokens);
   }
 
   // Wire preview toggle buttons
@@ -1078,15 +1086,9 @@ document.addEventListener('click', function (e) {
     '{email}':           'jane@example.com',
   };
 
-  function ctApplyTokens(text) {
-    var result = text;
-    Object.keys(CT_TOKENS).forEach(function (k) { result = result.split(k).join(CT_TOKENS[k]); });
-    return result;
-  }
-
   function updateCtPreview() {
-    if (previewSubj) previewSubj.textContent = ctApplyTokens(newSubjInp ? newSubjInp.value : '');
-    if (previewBody) previewBody.textContent = ctApplyTokens(newBodyInp ? newBodyInp.value : '');
+    if (previewSubj) previewSubj.textContent = applyTokenReplacements(newSubjInp ? newSubjInp.value : '', CT_TOKENS);
+    if (previewBody) previewBody.textContent = applyTokenReplacements(newBodyInp ? newBodyInp.value : '', CT_TOKENS);
   }
 
   if (previewBtn && previewPanel) {
@@ -1239,7 +1241,7 @@ document.addEventListener('click', function (e) {
     if (!item) return;
     qcTitle.textContent = item.label || id;
     qcBadge.textContent = item.badge ? item.badge.charAt(0).toUpperCase() + item.badge.slice(1) : '';
-    qcBadge.className   = 'ec-badge ec-badge--' + (item.badge || 'data');
+    qcBadge.className   = 'badge badge-' + ({'form':'info-pink','data':'info','stat':'info-gold','ext':'ext'}[item.badge] || 'info');
     qcDesc.textContent  = item.desc  || '';
     qcCode.innerHTML    = highlight(item.code || '');
     qcCode.dataset.raw  = item.code  || '';
@@ -1357,17 +1359,21 @@ document.addEventListener('click', function (e) {
     owned: {
       label: 'Owned listings',
       fields: [
-        { id: 'status',        label: 'Status filter',   type: 'select', opts: [['','Current only (default)'],['current','Current'],['upcoming','Upcoming'],['trouble','Trouble'],['all','All statuses']], hint: '' },
-        { id: 'hide_dropdown', label: 'Category filter', type: 'select', opts: [['','Shown (default)'],['true','Hidden']], hint: '' },
+        { id: 'browse_by_category', label: 'Browse mode',      type: 'select', opts: [['','Standard (selector / no filter)'],['true','Browse by category (index first)']], hint: 'When enabled, visitors first see a category list with counts; clicking a category shows its listings.' },
+        { id: 'status',             label: 'Status filter',    type: 'select', opts: [['','Current only (default)'],['current','Current'],['upcoming','Upcoming'],['pending','Pending'],['all','All statuses']], hint: '' },
+        { id: 'hide_dropdown',      label: 'Category filter',  type: 'select', opts: [['','Shown (default)'],['true','Hidden']], hint: 'Hide the selector to show a fixed category with no UI. Combine with a specific category ID in your page.' },
+        { id: 'show_list',          label: 'Selector style',   type: 'select', opts: [['','Dropdown (default)'],['true','Bulleted link list']], hint: '' },
       ],
-      note: '<strong>Owned listings</strong> — filter by status or show all. Hide the dropdown to split categories across separate pages.',
+      note: '<strong>Owned listings</strong> — browse-by-category shows a category index first; standard mode shows a dropdown or no filter.',
     },
     joined: {
       label: 'Joined listings',
       fields: [
-        { id: 'category', label: 'Category filter', type: 'text', ph: '', hint: "Blank = dropdown. 'all' = show all grouped. Or enter an exact category name." },
+        { id: 'browse_by_category', label: 'Browse mode',      type: 'select', opts: [['','Standard (dropdown / grouped)'],['true','Browse by category (index first)']], hint: 'When enabled, visitors first see a list of all categories; clicking one shows its listings.' },
+        { id: 'category',           label: 'Category filter',  type: 'text',   ph: '', hint: "Blank = dropdown. 'all' = show all grouped. Or enter an exact category name." },
+        { id: 'show_list',          label: 'Selector style',   type: 'select', opts: [['','Dropdown (default)'],['true','Bulleted link list']], hint: '' },
       ],
-      note: "<strong>Joined listings</strong> — blank shows a dropdown; 'all' shows everything grouped; a name shows just that category.",
+      note: "<strong>Joined listings</strong> — browse-by-category shows a category index first; or use blank/all/name for the classic selector/grouped modes.",
     },
     cstats: {
       label: 'Site statistics',
@@ -1377,7 +1383,7 @@ document.addEventListener('click', function (e) {
           vars: [
             { name: 'luster_owned_active',        label: 'Active owned listings',      desc: 'open fanlistings only' },
             { name: 'luster_owned_upcoming',      label: 'Upcoming owned',             desc: '' },
-            { name: 'luster_owned_trouble',       label: 'Trouble / inactive owned',   desc: '' },
+            { name: 'luster_owned_pending',       label: 'Pending / inactive owned',   desc: '' },
             { name: 'luster_owned',               label: 'Total owned (all)',           desc: '' },
             { name: 'luster_joined_active',       label: 'Active joined listings',     desc: '' },
             { name: 'luster_joined',              label: 'Total joined (all)',          desc: '' },
@@ -1405,9 +1411,6 @@ document.addEventListener('click', function (e) {
     },
   };
 
-  function escHtml(s) {
-    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-  }
   function phpStr(s) {
     return "'" + String(s).replace(/\\/g,'\\\\').replace(/'/g,"\'") + "'";
   }
@@ -1436,10 +1439,16 @@ document.addEventListener('click', function (e) {
     }
     if (type === 'reset' && vals.reset_step) lines.push('$luster_reset_step = ' + phpStr(vals.reset_step) + ';');
     if (type === 'owned') {
-      if (vals.status)                    lines.push('$luster_status        = ' + phpStr(vals.status) + ';');
-      if (vals.hide_dropdown === 'true')  lines.push('$luster_hide_dropdown = true;');
+      if (vals.browse_by_category === 'true') lines.push('$luster_browse_by_category = true;');
+      if (vals.status)                        lines.push('$luster_status             = ' + phpStr(vals.status) + ';');
+      if (vals.hide_dropdown === 'true')      lines.push('$luster_hide_dropdown      = true;');
+      if (vals.show_list === 'true')          lines.push('$luster_show_list          = true;');
     }
-    if (type === 'joined' && vals.category) lines.push('$luster_category = ' + phpStr(vals.category) + ';');
+    if (type === 'joined') {
+      if (vals.browse_by_category === 'true') lines.push('$luster_browse_by_category = true;');
+      if (vals.category)                      lines.push('$luster_category           = ' + phpStr(vals.category) + ';');
+      if (vals.show_list === 'true')          lines.push('$luster_show_list          = true;');
+    }
     // Stats template override — set before require so the embed can pick it up
     if (type === 'stats' && Array.isArray(vals.tpl) && vals.tpl.length > 0) {
       if (vals.tpl.length === 1) {
@@ -1491,11 +1500,11 @@ document.addEventListener('click', function (e) {
         html += '<div class="ec-token-grid">';
         (f.tokens || []).forEach(function (t) {
           html += '<label class="ec-token-item">'
-                + '<input type="checkbox" class="ec-tok-cb" data-tokfid="' + escHtml(f.id) + '"'
-                + ' data-tok="' + escHtml(t.token) + '" data-line="' + escHtml(t.line) + '">'
+                + '<input type="checkbox" class="ec-tok-cb" data-tokfid="' + esc(f.id) + '"'
+                + ' data-tok="' + esc(t.token) + '" data-line="' + esc(t.line) + '">'
                 + '<span class="ec-token-inner">'
-                + '<span class="ec-tok-name">' + escHtml(t.token) + '</span>'
-                + '<span class="ec-tok-desc">' + escHtml(t.label) + '</span>'
+                + '<span class="ec-tok-name">' + esc(t.token) + '</span>'
+                + '<span class="ec-tok-desc">' + esc(t.label) + '</span>'
                 + '</span></label>';
         });
         html += '</div>';
@@ -1509,13 +1518,13 @@ document.addEventListener('click', function (e) {
         html += '<div class="ec-f"><label class="ec-f-label">' + f.label + '</label>';
         html += '<div class="ec-token-grid">';
         (f.vars || []).forEach(function (v) {
-          var desc = v.desc ? ' <span class="ec-tok-desc">' + escHtml(v.desc) + '</span>' : '';
+          var desc = v.desc ? ' <span class="ec-tok-desc">' + esc(v.desc) + '</span>' : '';
           html += '<label class="ec-token-item">'
-                + '<input type="checkbox" class="ec-var-cb" data-varfid="' + escHtml(f.id) + '"'
-                + ' data-varname="' + escHtml(v.name) + '" data-varlabel="' + escHtml(v.label) + '">'
+                + '<input type="checkbox" class="ec-var-cb" data-varfid="' + esc(f.id) + '"'
+                + ' data-varname="' + esc(v.name) + '" data-varlabel="' + esc(v.label) + '">'
                 + '<span class="ec-token-inner">'
-                + '<span class="ec-tok-name">$' + escHtml(v.name) + '</span>'
-                + '<span class="ec-tok-desc">' + escHtml(v.label) + (v.desc ? ' — ' + escHtml(v.desc) : '') + '</span>'
+                + '<span class="ec-tok-name">$' + esc(v.name) + '</span>'
+                + '<span class="ec-tok-desc">' + esc(v.label) + (v.desc ? ' — ' + esc(v.desc) : '') + '</span>'
                 + '</span></label>';
         });
         html += '</div>';
@@ -1524,27 +1533,27 @@ document.addEventListener('click', function (e) {
         return;
       }
       // ── Standard input types ───────────────────────────────────
-      html += '<div class="ec-f"><label class="ec-f-label" for="ec-f-' + escHtml(f.id) + '">' + f.label + '</label>';
+      html += '<div class="ec-f"><label class="ec-f-label" for="ec-f-' + esc(f.id) + '">' + f.label + '</label>';
       if (f.type === 'listing' || f.type === 'listing_or_zero') {
-        html += '<div class="select-wrap"><select class="form-select" id="ec-f-' + escHtml(f.id) + '" data-fid="' + escHtml(f.id) + '">';
+        html += '<div class="select-wrap"><select class="form-select" id="ec-f-' + esc(f.id) + '" data-fid="' + esc(f.id) + '">';
         if (f.type === 'listing_or_zero') html += '<option value="0">0 — collective / site-wide</option>';
         listings.forEach(function (fl) {
-          html += '<option value="' + parseInt(fl.id, 10) + '">' + escHtml(fl.name) + '</option>';
+          html += '<option value="' + parseInt(fl.id, 10) + '">' + esc(fl.name) + '</option>';
         });
         if (!listings.length) html += '<option value="1">1</option>';
         html += '</select></div>';
       } else if (f.type === 'select') {
-        html += '<div class="select-wrap"><select class="form-select" id="ec-f-' + escHtml(f.id) + '" data-fid="' + escHtml(f.id) + '">';
+        html += '<div class="select-wrap"><select class="form-select" id="ec-f-' + esc(f.id) + '" data-fid="' + esc(f.id) + '">';
         (f.opts || []).forEach(function (o) {
-          html += '<option value="' + escHtml(o[0]) + '">' + escHtml(o[1]) + '</option>';
+          html += '<option value="' + esc(o[0]) + '">' + esc(o[1]) + '</option>';
         });
         html += '</select></div>';
       } else {
         html += '<input class="form-input" type="' + (f.type === 'number' ? 'number' : 'text') + '"'
-              + ' id="ec-f-' + escHtml(f.id) + '" data-fid="' + escHtml(f.id) + '"'
-              + (f.ph !== undefined ? ' placeholder="' + escHtml(f.ph) + '"' : '') + '>';
+              + ' id="ec-f-' + esc(f.id) + '" data-fid="' + esc(f.id) + '"'
+              + (f.ph !== undefined ? ' placeholder="' + esc(f.ph) + '"' : '') + '>';
       }
-      if (f.hint) html += '<p class="ec-f-hint">' + escHtml(f.hint) + '</p>';
+      if (f.hint) html += '<p class="ec-f-hint">' + esc(f.hint) + '</p>';
       html += '</div>';
     });
     optsBody.innerHTML = html;
@@ -2071,16 +2080,16 @@ document.addEventListener('click', function (e) {
         handle.addEventListener('dragstart', function (e) {
           dragSrc = handle.closest('.code-card');
           if (!dragSrc) { e.preventDefault(); return; }
-          dragSrc.style.opacity = '0.45';
+          dragSrc.classList.add('dnd-dragging');
           e.dataTransfer.effectAllowed = 'move';
           // Firefox requires at least one setData call for drag to proceed
           e.dataTransfer.setData('text/plain', dragSrc.dataset.codeId || '');
         });
 
         handle.addEventListener('dragend', function () {
-          if (dragSrc) { dragSrc.style.opacity = ''; }
+          if (dragSrc) { dragSrc.classList.remove('dnd-dragging'); }
           document.querySelectorAll('.code-card').forEach(function (c) {
-            c.style.outline = '';
+            c.classList.remove('dnd-over');
           });
           dragSrc = null;
         });
@@ -2091,19 +2100,19 @@ document.addEventListener('click', function (e) {
           if (!dragSrc || dragSrc === card) return;
           e.preventDefault();
           e.dataTransfer.dropEffect = 'move';
-          card.style.outline = '2px solid var(--accent, #6366f1)';
+          card.classList.add('dnd-over');
         });
 
         card.addEventListener('dragleave', function (e) {
-          // Only clear outline if leaving the card entirely (not entering a child)
+          // Only clear highlight if leaving the card entirely (not entering a child)
           if (!card.contains(e.relatedTarget)) {
-            card.style.outline = '';
+            card.classList.remove('dnd-over');
           }
         });
 
         card.addEventListener('drop', function (e) {
           e.preventDefault();
-          card.style.outline = '';
+          card.classList.remove('dnd-over');
           if (!dragSrc || dragSrc === card) return;
           var parent = card.parentNode;
           var nodes  = Array.from(parent.children);
@@ -2186,7 +2195,7 @@ document.addEventListener('click', function (e) {
     var row = e.target.closest('tr[data-id]');
     if (!row) return;
     dragged = row;
-    row.classList.add('dragging');
+    row.classList.add('dnd-dragging');
     e.dataTransfer.effectAllowed = 'move';
   });
 
@@ -2195,8 +2204,8 @@ document.addEventListener('click', function (e) {
     e.dataTransfer.dropEffect = 'move';
     var row = e.target.closest('tr[data-id]');
     if (!row || row === dragged) return;
-    tbody.querySelectorAll('tr').forEach(function (r) { r.classList.remove('drag-over'); });
-    row.classList.add('drag-over');
+    tbody.querySelectorAll('tr').forEach(function (r) { r.classList.remove('dnd-over'); });
+    row.classList.add('dnd-over');
     var rect = row.getBoundingClientRect();
     if (e.clientY < rect.top + rect.height / 2) {
       tbody.insertBefore(dragged, row);
@@ -2210,8 +2219,8 @@ document.addEventListener('click', function (e) {
   });
 
   tbody.addEventListener('dragend', function () {
-    if (dragged) dragged.classList.remove('dragging');
-    tbody.querySelectorAll('tr').forEach(function (r) { r.classList.remove('drag-over'); });
+    if (dragged) dragged.classList.remove('dnd-dragging');
+    tbody.querySelectorAll('tr').forEach(function (r) { r.classList.remove('dnd-over'); });
     dragged = null;
 
     // Update visible sort numbers and save via AJAX
@@ -2411,12 +2420,6 @@ document.addEventListener('click', function (e) {
     merge_member:          { title: 'Delete Duplicate Member', btn: 'Delete',      desc: 'You are about to delete the duplicate account for <strong>$$names$$</strong>.',      warn: 'This permanently deletes the duplicate account. This action cannot be undone.' }
   };
 
-  function esc(str) {
-    return String(str)
-      .replace(/&/g, '&amp;').replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-  }
-
   function show(cfg, names, context, warnOverride) {
     if (!cfg) return;
     titleEl.textContent    = cfg.title;
@@ -2496,7 +2499,7 @@ document.addEventListener('click', function (e) {
   });
 }());
 
-// ── 42. Collective Templates — token insert, accordion, preview modal ─────────
+// ── 42. Collective Templates — token insert, reset to default ─────────────────
 
 (function () {
   // Token row: insert at cursor in target textarea (event delegation)
@@ -2519,55 +2522,13 @@ document.addEventListener('click', function (e) {
     try { defaults = JSON.parse(defaultsEl.textContent); } catch (err) {}
   }
   document.addEventListener('click', function (e) {
-    var btn = e.target.closest('.btn-reset[data-textarea]');
+    var btn = e.target.closest('.btn-ghost[data-textarea]');
     if (!btn) return;
     var ta = document.getElementById(btn.dataset.textarea);
     if (ta && defaults[btn.dataset.textarea] !== undefined) {
       ta.value = defaults[btn.dataset.textarea];
       ta.focus();
     }
-  });
-
-  // Preview modal
-  var backdrop = document.getElementById('tpl-preview-modal-backdrop');
-  var titleEl  = document.getElementById('tpl-preview-modal-title');
-  var content  = document.getElementById('tpl-preview-modal-content');
-  var closeBtn = document.getElementById('tpl-preview-modal-close');
-  if (!backdrop) return;
-
-  var samplesEl = document.getElementById('luster-tpl-samples');
-  var samples = {};
-  if (samplesEl) {
-    try { samples = JSON.parse(samplesEl.textContent); } catch (err) {}
-  }
-
-  function openPreview(taId, modalTitle, kind) {
-    var ta = document.getElementById(taId);
-    if (!ta) return;
-    var html = ta.value;
-    var sampleMap = samples[kind] || {};
-    Object.keys(sampleMap).forEach(function (k) {
-      html = html.split(k).join(sampleMap[k]);
-    });
-    if (titleEl)  titleEl.textContent = modalTitle;
-    if (content)  content.innerHTML   = html;
-    backdrop.classList.add('open');
-  }
-
-  function closePreview() { backdrop.classList.remove('open'); }
-
-  document.addEventListener('click', function (e) {
-    var btn = e.target.closest('.btn-tpl-preview');
-    if (!btn) return;
-    openPreview(btn.dataset.textarea, btn.dataset.title, btn.dataset.kind);
-  });
-
-  closeBtn && closeBtn.addEventListener('click', closePreview);
-  backdrop.addEventListener('click', function (e) {
-    if (e.target === backdrop) closePreview();
-  });
-  document.addEventListener('keydown', function (e) {
-    if (e.key === 'Escape' && backdrop.classList.contains('open')) closePreview();
   });
 }());
 
@@ -2629,7 +2590,7 @@ document.addEventListener('click', function (e) {
   var opts   = document.getElementById('js-image-options');
   if (toggle && opts) {
     toggle.addEventListener('change', function () {
-      opts.classList.toggle('open', this.checked);
+      opts.style.display = this.checked ? 'flex' : 'none';
     });
   }
 
@@ -2655,7 +2616,7 @@ document.addEventListener('click', function (e) {
     if (!action) return;
 
     testResult.style.display = '';
-    testResult.className = 'conn-status';
+    testResult.style.color = 'inherit';
     testResult.textContent = 'Testing\u2026';
 
     var fd = new FormData();
@@ -2674,11 +2635,11 @@ document.addEventListener('click', function (e) {
         testResult.textContent = d.ok
           ? ('\u2713 ' + d.message + (d.schema ? ' \u2014 ' + d.schema : ''))
           : ('\u2717 ' + d.message);
-        testResult.className = 'conn-status ' + (d.ok ? 'conn-status--ok' : 'conn-status--err');
+        testResult.style.color = d.ok ? 'var(--success)' : 'var(--danger)';
       })
       .catch(function (err) {
         testResult.textContent = '\u2717 ' + (err.message || 'Request failed.');
-        testResult.className = 'conn-status conn-status--err';
+        testResult.style.color = 'var(--danger)';
       });
   });
 }());
@@ -2768,6 +2729,10 @@ document.addEventListener('click', function (e) {
       .replace(/\{fan_email\}/g,        sampleEmail)
       .replace(/\{fan_url\}/g,          'https://example.com')
       .replace(/\{fan_country\}/g,      'United States')
+      .replace(/\{name\}/g,             sampleName)
+      .replace(/\{email\}/g,            sampleEmail)
+      .replace(/\{url\}/g,              'https://example.com')
+      .replace(/\{added_at\}/g,         new Date().toLocaleDateString())
       .replace(/\{listing_name\}/g,     sampleListingName)
       .replace(/\{listing_subject\}/g,  sampleListingSubject)
       .replace(/\{listing_url\}/g,      sampleListingUrl)

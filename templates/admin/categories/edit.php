@@ -22,7 +22,7 @@ $currentSource = $cat->source ?? 'custom';
   <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
   <input type="hidden" name="current_source" value="<?= View::e($currentSource) ?>">
 
-  <div class="card listing-field-card" style="margin-bottom:1rem">
+  <div class="gradient-card" style="margin-bottom:1rem">
     <div class="listing-field-section">
 
       <!-- Category Name -->

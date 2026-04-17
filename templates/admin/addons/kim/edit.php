@@ -30,10 +30,9 @@ $b = rtrim(View::e($base_url), '/');
 <form method="POST" action="<?= $b ?>/admin/kim/<?= (int) $member->id ?>/edit">
   <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
 
-  <div class="card listing-field-card" style="margin-bottom:0">
+  <div class="gradient-card">
+    <div class="card-body">
 
-    <!-- Identity -->
-    <div class="listing-field-section">
       <div class="pc-section-label">Identity</div>
 
       <div class="listing-field-row">
@@ -67,13 +66,9 @@ $b = rtrim(View::e($base_url), '/');
               <?php endforeach; ?>
             </select>
           </div>
-          <p class="form-hint">Move this member to a different listing if needed.</p>
         </div>
       </div>
-    </div><!-- /.listing-field-section (identity) -->
 
-    <!-- Password -->
-    <div class="listing-field-section" style="border-top:1px solid var(--border)">
       <div class="pc-section-label">Password</div>
 
       <div class="listing-field-row listing-field-row--top">
@@ -107,12 +102,11 @@ $b = rtrim(View::e($base_url), '/');
           </button>
         </div>
       </div>
-    </div><!-- /.listing-field-section (password) -->
+    </div>
 
     <div class="composer-footer">
       <button type="submit" class="btn btn-primary">Save Changes</button>
       <a href="<?= $b ?>/admin/kim/<?= (int) $member->fanlistingId ?>/show" class="btn btn-ghost">Cancel</a>
     </div>
-
-  </div><!-- /.listing-field-card -->
+  </div>
 </form>

@@ -118,7 +118,7 @@ if (!function_exists('navActive')) {
     </div>
     <form method="POST" action="<?= $b ?>/admin/logout" style="margin-top:12px">
       <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
-      <button type="submit" class="btn-signout"><?= View::icon('signout') ?> Sign Out</button>
+      <button type="submit" class="btn btn-danger btn-sm" style="width:100%;justify-content:center"><?= View::icon('signout') ?> Sign Out</button>
     </form>
   </div>
 </aside>

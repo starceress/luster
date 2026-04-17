@@ -84,7 +84,7 @@ $ctxDisplay = preg_replace('/^Owned\s*›\s*/u', '', (string) ($ctx_label ?? '')
           <label class="form-label" for="upd-body">
             Body <span class="req">*</span>
           </label>
-          <textarea id="upd-body" name="body" class="body-textarea" required
+          <textarea id="upd-body" name="body" class="email-textarea" required
                     placeholder="Write your update here&hellip;"><?= $is_edit ? View::e($update->body) : '' ?></textarea>
         </div>
       </div>

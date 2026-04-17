@@ -180,6 +180,12 @@ final class JoinedController extends AdminController
                     array_unshift($messages, $imageError);
                 }
 
+                $customNetworksErr = $categoryRepo->getCustomNetworks();
+                $customCatsErr     = [];
+                foreach ($customNetworksErr as $cn) {
+                    $customCatsErr[$cn] = $categoryRepo->getBySource($cn);
+                }
+
                 return $this->adminLayout('admin/joined/add.php', 'Add Joined FL', 'joined', [
                     'joined'          => null,
                     'error'           => implode(' ', $messages),
@@ -187,7 +193,8 @@ final class JoinedController extends AdminController
                     'old'             => $request->postAll(),
                     'tfl_cats'        => $categoryRepo->getBySource('tfl'),
                     'tafl_cats'       => $categoryRepo->getBySource('tafl'),
-                    'custom_networks' => $categoryRepo->getCustomNetworks(),
+                    'custom_networks' => $customNetworksErr,
+                    'custom_cats'     => $customCatsErr,
                 ]);
             }
 
@@ -218,13 +225,20 @@ final class JoinedController extends AdminController
             return Response::redirect($baseUrl . '/admin/joined');
         }
 
+        $customNetworks = $categoryRepo->getCustomNetworks();
+        $customCats     = [];
+        foreach ($customNetworks as $cn) {
+            $customCats[$cn] = $categoryRepo->getBySource($cn);
+        }
+
         return $this->adminLayout('admin/joined/add.php', 'Add Joined FL', 'joined', [
             'joined'          => null,
             'error'           => '',
             'old'             => [],
             'tfl_cats'        => $categoryRepo->getBySource('tfl'),
             'tafl_cats'       => $categoryRepo->getBySource('tafl'),
-            'custom_networks' => $categoryRepo->getCustomNetworks(),
+            'custom_networks' => $customNetworks,
+            'custom_cats'     => $customCats,
         ]);
     }
 
@@ -313,6 +327,12 @@ final class JoinedController extends AdminController
                     array_unshift($messages, $imageError);
                 }
 
+                $customNetworksErr = $categoryRepo->getCustomNetworks();
+                $customCatsErr     = [];
+                foreach ($customNetworksErr as $cn) {
+                    $customCatsErr[$cn] = $categoryRepo->getBySource($cn);
+                }
+
                 return $this->adminLayout('admin/joined/add.php', 'Edit Joined FL', 'joined', [
                     'joined'          => $joined,
                     'error'           => implode(' ', $messages),
@@ -320,7 +340,8 @@ final class JoinedController extends AdminController
                     'old'             => $request->postAll(),
                     'tfl_cats'        => $categoryRepo->getBySource('tfl'),
                     'tafl_cats'       => $categoryRepo->getBySource('tafl'),
-                    'custom_networks' => $categoryRepo->getCustomNetworks(),
+                    'custom_networks' => $customNetworksErr,
+                    'custom_cats'     => $customCatsErr,
                 ], 'Joined Listings › ' . $joined->name);
             }
 
@@ -366,13 +387,20 @@ final class JoinedController extends AdminController
             return Response::redirect($baseUrl . '/admin/joined');
         }
 
+        $customNetworks = $categoryRepo->getCustomNetworks();
+        $customCats     = [];
+        foreach ($customNetworks as $cn) {
+            $customCats[$cn] = $categoryRepo->getBySource($cn);
+        }
+
         return $this->adminLayout('admin/joined/add.php', 'Edit Joined FL', 'joined', [
             'joined'          => $joined,
             'error'           => '',
             'old'             => [],
             'tfl_cats'        => $categoryRepo->getBySource('tfl'),
             'tafl_cats'       => $categoryRepo->getBySource('tafl'),
-            'custom_networks' => $categoryRepo->getCustomNetworks(),
+            'custom_networks' => $customNetworks,
+            'custom_cats'     => $customCats,
         ], 'Joined Listings › ' . $joined->name);
     }
 

@@ -298,16 +298,54 @@ final class KimAdminController extends AdminController
             return Response::notFound('Fanlisting not found.');
         }
 
-        $kimRepo     = new KimMemberRepo($db);
-        $recipients  = $kimRepo->getEmailsByFanlisting($fanlistingId);
+        $kimRepo    = new KimMemberRepo($db);
+        $selectedIds = (array) $session->get('lstr_kim_selected_ids', []);
+        $session->remove('lstr_kim_selected_ids');
 
-        $error = (string) $session->get('lstr_flash_error', '');
+        if (!empty($selectedIds)) {
+            $recipients   = $kimRepo->getEmailsByIds(array_map('intval', $selectedIds));
+            $selectedOnly = true;
+        } else {
+            $recipients   = $kimRepo->getEmailsByFanlisting($fanlistingId);
+            $selectedOnly = false;
+        }
+
+        $smtpFrom  = (string) $config->get('smtp_from', '');
+        $fromEmail = $smtpFrom !== '' ? $smtpFrom : (string) $config->get('owner_email', '');
+        $fromName  = (string) $config->get('smtp_from_name', '') !== ''
+            ? (string) $config->get('smtp_from_name', '')
+            : (string) $config->get('owner_name', '');
+
+        $savedEmails = (new \Luster\Repositories\SavedEmailRepo($db))->getAll();
+        $error   = (string) $session->get('lstr_flash_error',   '');
+        $success = (string) $session->get('lstr_flash_success', '');
+        $old     = (array)  $session->get('lstr_email_old',     []);
         $session->remove('lstr_flash_error');
+        $session->remove('lstr_flash_success');
+        $session->remove('lstr_email_old');
+
+        $selectedEmails = array_column($recipients, 'email');
+        $memberNames    = array_combine(
+            array_column($recipients, 'email'),
+            array_column($recipients, 'name'),
+        );
 
         return $this->adminLayout('admin/addons/kim/mass-email.php', 'Mass Email — KIM ' . $listing->subject, 'kim', [
             'listing'         => $listing,
+            'recipients'      => $recipients,
             'recipient_count' => count($recipients),
+            'selected_only'   => $selectedOnly,
+            'selected_emails' => $selectedEmails,
+            'member_names'    => $memberNames,
+            'from_name'       => $fromName,
+            'from_email'      => $fromEmail,
+            'owner_name'      => (string) $config->get('owner_name',  ''),
+            'owner_email'     => (string) $config->get('owner_email', ''),
+            'site_name'       => (string) $config->get('site_name',   ''),
+            'saved_emails'    => $savedEmails,
+            'old'             => $old,
             'error'           => $error,
+            'success'         => $success,
         ]);
     }
 
@@ -334,12 +372,23 @@ final class KimAdminController extends AdminController
         $body    = trim((string) $request->post('body',    ''));
 
         if ($subject === '' || $body === '') {
-            $session->set('lstr_flash_error', 'Subject and body are required.');
+            $session->set('lstr_flash_error', 'Please fill in both the subject and message before sending.');
+            $session->set('lstr_email_old', ['subject' => $subject, 'body' => $body]);
             return Response::redirect($baseUrl . '/admin/kim/' . $fanlistingId . '/mass-email');
         }
 
-        $kimRepo    = new KimMemberRepo($db);
-        $recipients = $kimRepo->getEmailsByFanlisting($fanlistingId);
+        $kimRepo = new KimMemberRepo($db);
+
+        $postedEmails = $request->post('emails', []);
+        if (is_array($postedEmails) && !empty($postedEmails)) {
+            $safeEmails = array_values(array_filter(
+                array_map('strval', $postedEmails),
+                static fn(string $e) => filter_var($e, FILTER_VALIDATE_EMAIL) !== false
+            ));
+            $recipients = array_map(static fn(string $e) => ['name' => '', 'email' => $e], $safeEmails);
+        } else {
+            $recipients = $kimRepo->getEmailsByFanlisting($fanlistingId);
+        }
 
         $mailer = new Mailer($this->app->getConfig());
         $sent   = 0;
@@ -380,6 +429,7 @@ final class KimAdminController extends AdminController
         $db       = $this->app->getDatabase();
         $config   = $this->app->getConfig();
         $session  = $this->app->getSession();
+        $baseUrl  = $this->app->getBaseUrl();
 
         $kimRepo = new KimMemberRepo($db);
         $member  = $kimRepo->findById($memberId);
@@ -391,13 +441,35 @@ final class KimAdminController extends AdminController
         $listingRepo = new ListingRepo($db, $config);
         $listing     = $listingRepo->getById($member->fanlistingId);
 
-        $error = (string) $session->get('lstr_flash_error', '');
+        $smtpFrom  = (string) $config->get('smtp_from', '');
+        $fromEmail = $smtpFrom !== '' ? $smtpFrom : (string) $config->get('owner_email', '');
+        $fromName  = (string) $config->get('smtp_from_name', '') !== ''
+            ? (string) $config->get('smtp_from_name', '')
+            : (string) $config->get('owner_name', '');
+
+        $savedEmails = (new \Luster\Repositories\SavedEmailRepo($db))->getAll();
+        $error   = (string) $session->get('lstr_flash_error',   '');
+        $success = (string) $session->get('lstr_flash_success', '');
+        $old     = (array)  $session->get('lstr_email_old',     []);
         $session->remove('lstr_flash_error');
+        $session->remove('lstr_flash_success');
+        $session->remove('lstr_email_old');
+
+        $referer = $request->header('referer') ?? $baseUrl . '/admin/kim/' . $member->fanlistingId . '/show';
 
         return $this->adminLayout('admin/addons/kim/email-member.php', 'Email ' . $member->name, 'kim', [
-            'member'          => $member,
-            'listing'         => $listing,
-            'error'           => $error,
+            'member'       => $member,
+            'listing'      => $listing,
+            'from_email'   => $fromEmail,
+            'from_name'    => $fromName,
+            'owner_name'   => (string) $config->get('owner_name',  ''),
+            'owner_email'  => (string) $config->get('owner_email', ''),
+            'site_name'    => (string) $config->get('site_name',   ''),
+            'saved_emails' => $savedEmails,
+            'old'          => $old,
+            'referer'      => $referer,
+            'error'        => $error,
+            'success'      => $success,
         ]);
     }
 
@@ -420,19 +492,32 @@ final class KimAdminController extends AdminController
             return Response::notFound('KIM member not found.');
         }
 
-        $subject = trim((string) $request->post('subject', ''));
-        $body    = trim((string) $request->post('body',    ''));
+        $suffix  = trim((string) $request->post('subject_suffix', ''));
+        $body    = trim((string) $request->post('body',           ''));
+
+        $config  = $this->app->getConfig();
+        $listingRepo = new ListingRepo($db, $config);
+        $listing     = $listingRepo->getById($member->fanlistingId);
+        $flSubject   = $listing ? $listing->subject : '';
+        $subject     = $flSubject !== '' ? $flSubject . ': ' . $suffix : $suffix;
+
+        $redirectBack = $baseUrl . '/admin/kim/' . $memberId . '/email-member';
 
         if ($subject === '' || $body === '') {
-            $session->set('lstr_flash_error', 'Subject and body are required.');
-            return Response::redirect($baseUrl . '/admin/kim/' . $memberId . '/email-member');
+            $session->set('lstr_flash_error', 'Please fill in both the subject and message before sending.');
+            $session->set('lstr_email_old', ['subject' => $suffix, 'body' => $body]);
+            return Response::redirect($redirectBack);
         }
 
         try {
             $mailer = new Mailer($this->app->getConfig());
             $mailer->send($member->email, $member->name, $subject, $body);
+            $session->set('lstr_flash_success', 'Email sent to ' . $member->name . '.');
         } catch (\Throwable $e) {
             error_log('[KIM] Email member failed for ' . $member->email . ': ' . $e->getMessage());
+            $session->set('lstr_flash_error', 'The email could not be sent. Please check your SMTP settings and try again.');
+            $session->set('lstr_email_old', ['subject' => $suffix, 'body' => $body]);
+            return Response::redirect($redirectBack);
         }
 
         $activityRepo = new ActivityRepo($db);
@@ -443,8 +528,61 @@ final class KimAdminController extends AdminController
             $request->ip(),
         );
 
-        $session->set('lstr_flash_success', 'Email sent to ' . $member->name . '.');
-        return Response::redirect($baseUrl . '/admin/kim/' . $member->fanlistingId . '/show');
+        return Response::redirect($redirectBack);
+    }
+
+    // -----------------------------------------------------------------------
+    // POST /admin/kim/{fid}/bulk
+    // -----------------------------------------------------------------------
+
+    public function bulk(Request $request, array $params): Response
+    {
+        $fanlistingId = (int) ($params['fid'] ?? 0);
+        $db           = $this->app->getDatabase();
+        $config       = $this->app->getConfig();
+        $session      = $this->app->getSession();
+        $baseUrl      = $this->app->getBaseUrl();
+
+        $listingRepo = new ListingRepo($db, $config);
+        if ($listingRepo->getById($fanlistingId) === null) {
+            return Response::notFound('Fanlisting not found.');
+        }
+
+        $action  = (string) $request->post('bulk_action', '');
+        $rawIds  = $request->post('ids', []);
+        $ids     = array_map('intval', is_array($rawIds) ? $rawIds : []);
+        $ids     = array_filter($ids, static fn(int $id) => $id > 0);
+
+        if (empty($ids)) {
+            $session->set('lstr_flash_error', 'No members selected.');
+            return Response::redirect($baseUrl . '/admin/kim/' . $fanlistingId . '/show');
+        }
+
+        $kimRepo      = new KimMemberRepo($db);
+        $activityRepo = new ActivityRepo($db);
+        $adminId      = (int) $session->get('lstr_admin_id');
+        $count        = count($ids);
+
+        if ($action === 'email_selected') {
+            $session->set('lstr_kim_selected_ids', array_values($ids));
+            return Response::redirect($baseUrl . '/admin/kim/' . $fanlistingId . '/mass-email');
+        }
+
+        match ($action) {
+            'approve' => (function () use ($kimRepo, $activityRepo, $ids, $fanlistingId, $adminId, $count, $request, $session): void {
+                $kimRepo->approveByIds($ids);
+                $activityRepo->log($adminId, 'kim.bulk_approve', "Bulk approved {$count} KIM member(s) for fanlisting {$fanlistingId}", $request->ip());
+                $session->set('lstr_flash_success', "Approved {$count} member(s).");
+            })(),
+            'delete' => (function () use ($kimRepo, $activityRepo, $ids, $fanlistingId, $adminId, $count, $request, $session): void {
+                $kimRepo->deleteByIds($ids);
+                $activityRepo->log($adminId, 'kim.bulk_delete', "Bulk deleted {$count} KIM member(s) for fanlisting {$fanlistingId}", $request->ip());
+                $session->set('lstr_flash_success', "Deleted {$count} member(s).");
+            })(),
+            default => $session->set('lstr_flash_error', 'Unknown bulk action.'),
+        };
+
+        return Response::redirect($baseUrl . '/admin/kim/' . $fanlistingId . '/show');
     }
 
     // -----------------------------------------------------------------------

@@ -117,12 +117,12 @@ $hasErr  = $result->hasErrors();
 <!-- Result table -->
 <div class="gradient-card" style="margin-bottom:1.25rem">
   <div style="overflow-x:auto">
-    <table class="data-table import-result-table">
+    <table class="data-table">
       <thead>
         <tr>
           <th>Data Type</th>
-          <th class="num-col">Imported</th>
-          <th class="num-col">Skipped</th>
+          <th style="text-align:right;white-space:nowrap">Imported</th>
+          <th style="text-align:right;white-space:nowrap">Skipped</th>
           <th>Notes / Errors</th>
         </tr>
       </thead>
@@ -137,10 +137,10 @@ $hasErr  = $result->hasErrors();
           $showItems     = array_slice($skipItems, 0, 50);
           $moreInArray   = $skipCount - count($showItems);
         ?>
-        <tr class="<?= $hasSkipDetail ? 'has-skip-detail' : '' ?>">
-          <td><?= View::e($row['type']) ?></td>
-          <td class="num-col"><?= number_format($row['imported']) ?></td>
-          <td class="num-col"><?= number_format($totalSkipped) ?></td>
+        <tr>
+          <td <?= $hasSkipDetail ? 'style="border-bottom:0"' : '' ?>><?= View::e($row['type']) ?></td>
+          <td style="text-align:right;white-space:nowrap<?= $hasSkipDetail ? ';border-bottom:0' : '' ?>"><?= number_format($row['imported']) ?></td>
+          <td style="text-align:right;white-space:nowrap<?= $hasSkipDetail ? ';border-bottom:0' : '' ?>"><?= number_format($totalSkipped) ?></td>
           <td style="font-size:.8rem">
             <?php foreach ($row['warnings'] as $w): ?>
               <span style="color:var(--text-muted)"><?= View::e($w) ?></span><br>
@@ -208,8 +208,8 @@ $hasErr  = $result->hasErrors();
         <?php foreach ($result->imageRows as $row): ?>
         <tr>
           <td><?= View::e($row['type']) ?></td>
-          <td class="num-col"><?= number_format($row['copied']) ?></td>
-          <td class="num-col"><?= number_format($row['skipped']) ?></td>
+          <td style="text-align:right;white-space:nowrap"><?= number_format($row['copied']) ?></td>
+          <td style="text-align:right;white-space:nowrap"><?= number_format($row['skipped']) ?></td>
           <td style="font-size:.8rem">
             <?php foreach ($row['errors'] as $e): ?>
               <span style="color:var(--danger)"><?= View::icon('alert') ?> <?= View::e($e) ?></span><br>
@@ -261,7 +261,7 @@ $hasErr  = $result->hasErrors();
 <?php endif; ?>
 
 <!-- Actions -->
-<div class="import-action-row">
+<div class="btn-row" style="align-items:center;flex-wrap:wrap">
   <a href="<?= $b ?>/admin" class="btn btn-primary">Go to Dashboard</a>
   <a href="<?= $b ?>/admin/import" class="btn btn-secondary">Run Another Import</a>
 </div>

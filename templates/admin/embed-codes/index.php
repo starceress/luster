@@ -77,15 +77,20 @@ $snippets = [
 
   'owned' => implode("\n", [
     '<?php',
-    "// \$luster_status        = 'current'; // current | upcoming | trouble | all",
-    "// \$luster_hide_dropdown = false;     // true = hide category filter",
+    "// \$luster_status             = 'current'; // current | upcoming | pending | all",
+    "// \$luster_browse_by_category = true;      // category index then filter",
+    "// \$luster_hide_dropdown      = false;     // true = hide category filter",
+    "// \$luster_show_list          = false;     // true = category links vs dropdown",
+    "// \$luster_exclude_pending    = true;      // hide pending when status = 'all'",
     "require('{$ep}/owned.php');",
     '?>',
   ]),
 
   'joined' => implode("\n", [
     '<?php',
-    "// \$luster_category = ''; // '' = dropdown | 'all' = all | or exact name",
+    "// \$luster_browse_by_category = true;  // category index then filter",
+    "// \$luster_category           = '';    // '' = dropdown | 'all' = all grouped | or exact name",
+    "// \$luster_show_list          = false; // true = category links vs dropdown",
     "require('{$ep}/joined.php');",
     '?>',
   ]),
@@ -172,14 +177,14 @@ $items = [
     'badge'    => 'data',
     'file'     => 'embed/owned.php',
     'custType' => 'owned',
-    'desc'     => 'Displays all your owned fanlistings with an optional category filter dropdown.',
+    'desc'     => 'Displays your owned fanlistings. Enable browse-by-category mode to show a category index first; clicking a category then lists its listings using your HTML template.',
   ],
   'joined' => [
     'label'    => 'Joined listings',
     'badge'    => 'data',
     'file'     => 'embed/joined.php',
     'custType' => 'joined',
-    'desc'     => 'Lists the fanlistings you have joined, grouped by category.',
+    'desc'     => 'Lists the fanlistings you have joined. Enable browse-by-category mode to show a category index first; clicking a category then lists its listings using your HTML template.',
   ],
   'cstats' => [
     'label'    => 'Site statistics',
@@ -241,12 +246,12 @@ $custGroups = [
      data-listings='<?= $listingsJson ?>'
      data-items='<?= $itemsJson ?>'>
 
-  <p class="ec-intro">
+  <p class="text-muted" style="margin-bottom:1.25rem">
     Add Luster forms and data to any PHP page on your site with a single snippet.
     The embed path is already filled in based on where Luster is installed on this server.
   </p>
 
-  <div class="ec-callout">
+  <div class="callout">
     <strong>Before you start:</strong> every snippet needs your
     <code>$luster_fanlisting_id</code> (the integer ID of the listing &mdash;
     find it in the URL when editing a listing in this admin panel).
@@ -288,7 +293,7 @@ $custGroups = [
       <div class="ec-qc-pane" id="ec-qc-pane">
         <div class="ec-qc-head">
           <span class="ec-qc-title" id="ec-qc-title">&nbsp;</span>
-          <span class="ec-badge" id="ec-qc-badge"></span>
+          <span class="badge" id="ec-qc-badge"></span>
         </div>
         <div class="ec-qc-desc" id="ec-qc-desc"></div>
         <div class="ec-code-wrap">
@@ -360,7 +365,7 @@ $custGroups = [
        ════════════════════════════════════════════════════════ -->
   <div class="tabs-panel" id="ec-panel-ref" role="tabpanel">
 
-    <p class="ec-ref-intro">
+    <p class="text-muted" style="line-height:1.65;margin-bottom:.875rem">
       Variables are PHP variables you set <em>before</em> the <code>require</code> line.
       Tokens like <code>{stat_approved}</code> go inside your stats or member row template strings
       &mdash; Luster replaces them with live data when the page loads.
@@ -384,8 +389,8 @@ $custGroups = [
       <div>
 
         <div class="ec-ref-panel" id="ec-ref-general">
-          <h3 class="ec-ref-title">General variables</h3>
-          <p class="ec-ref-sub">Set these PHP variables <em>before</em> the <code>require</code> line. They apply to most embeds.</p>
+          <h3 class="pc-head-title" style="margin-bottom:.25rem">General variables</h3>
+          <p class="text-muted" style="margin-bottom:.875rem;line-height:1.55">Set these PHP variables <em>before</em> the <code>require</code> line. They apply to most embeds.</p>
           <div class="ec-ref-card">
             <table class="ec-vt">
               <thead><tr><th>Variable</th><th>Description</th><th></th></tr></thead>
@@ -406,8 +411,8 @@ $custGroups = [
         </div>
 
         <div class="ec-ref-panel" id="ec-ref-members">
-          <h3 class="ec-ref-title">Members list options</h3>
-          <p class="ec-ref-sub">Options for <code>embed/members.php</code>.</p>
+          <h3 class="pc-head-title" style="margin-bottom:.25rem">Members list options</h3>
+          <p class="text-muted" style="margin-bottom:.875rem;line-height:1.55">Options for <code>embed/members.php</code>.</p>
           <div class="ec-ref-card">
             <table class="ec-vt">
               <thead><tr><th>Variable</th><th>Description</th><th></th></tr></thead>
@@ -438,8 +443,8 @@ $custGroups = [
         </div>
 
         <div class="ec-ref-panel" id="ec-ref-reset">
-          <h3 class="ec-ref-title">Password reset options</h3>
-          <p class="ec-ref-sub">Options for <code>embed/reset.php</code>.</p>
+          <h3 class="pc-head-title" style="margin-bottom:.25rem">Password reset options</h3>
+          <p class="text-muted" style="margin-bottom:.875rem;line-height:1.55">Options for <code>embed/reset.php</code>.</p>
           <div class="ec-ref-card">
             <table class="ec-vt">
               <thead><tr><th>Variable</th><th>Description</th><th></th></tr></thead>
@@ -455,20 +460,40 @@ $custGroups = [
         </div>
 
         <div class="ec-ref-panel" id="ec-ref-owned">
-          <h3 class="ec-ref-title">Owned listings options</h3>
-          <p class="ec-ref-sub">Options for <code>embed/owned.php</code>.</p>
+          <h3 class="pc-head-title" style="margin-bottom:.25rem">Owned listings options</h3>
+          <p class="text-muted" style="margin-bottom:.875rem;line-height:1.55">Options for <code>embed/owned.php</code>.</p>
           <div class="ec-ref-card">
             <table class="ec-vt">
               <thead><tr><th>Variable</th><th>Description</th><th></th></tr></thead>
               <tbody>
                 <tr>
+                  <td><code>$luster_browse_by_category</code></td>
+                  <td>Set to <code>true</code> to enable browse-by-category mode. The landing view shows a category index with listing counts. Clicking a category loads its listings formatted with your HTML template from Admin &rarr; Collective Templates.</td>
+                  <td><span class="ec-pill ec-pill--opt">Optional</span></td>
+                </tr>
+                <tr>
                   <td><code>$luster_status</code></td>
-                  <td>Filter by status: <code>'current'</code>, <code>'upcoming'</code>, <code>'trouble'</code>, or <code>'all'</code>. Defaults to current only.</td>
+                  <td>Filter by status: <code>'current'</code>, <code>'upcoming'</code>, <code>'pending'</code>, or <code>'all'</code>. Defaults to <code>'current'</code> only.</td>
+                  <td><span class="ec-pill ec-pill--opt">Optional</span></td>
+                </tr>
+                <tr>
+                  <td><code>$luster_category_id</code></td>
+                  <td>Pre-filter to a specific category by its integer ID. When <code>0</code> (default), reads <code>$_GET['cat']</code> automatically so the built-in selector works without extra PHP.</td>
                   <td><span class="ec-pill ec-pill--opt">Optional</span></td>
                 </tr>
                 <tr>
                   <td><code>$luster_hide_dropdown</code></td>
-                  <td>Set to <code>true</code> to hide the category filter dropdown. Useful when you want to show listings for one category per page.</td>
+                  <td>Set to <code>true</code> to hide the category filter entirely. Useful when combining with <code>$luster_category_id</code> to show a single fixed category with no selector.</td>
+                  <td><span class="ec-pill ec-pill--opt">Optional</span></td>
+                </tr>
+                <tr>
+                  <td><code>$luster_show_list</code></td>
+                  <td>Set to <code>true</code> to render categories as a bulleted link list instead of a <code>&lt;select&gt;</code> dropdown.</td>
+                  <td><span class="ec-pill ec-pill--opt">Optional</span></td>
+                </tr>
+                <tr>
+                  <td><code>$luster_exclude_pending</code></td>
+                  <td>When <code>true</code> (default) and <code>$luster_status</code> is <code>'all'</code>, pending listings are silently omitted. Has no effect for other status values.</td>
                   <td><span class="ec-pill ec-pill--opt">Optional</span></td>
                 </tr>
               </tbody>
@@ -477,15 +502,30 @@ $custGroups = [
         </div>
 
         <div class="ec-ref-panel" id="ec-ref-joined">
-          <h3 class="ec-ref-title">Joined listings options</h3>
-          <p class="ec-ref-sub">Options for <code>embed/joined.php</code>.</p>
+          <h3 class="pc-head-title" style="margin-bottom:.25rem">Joined listings options</h3>
+          <p class="text-muted" style="margin-bottom:.875rem;line-height:1.55">Options for <code>embed/joined.php</code>.</p>
           <div class="ec-ref-card">
             <table class="ec-vt">
               <thead><tr><th>Variable</th><th>Description</th><th></th></tr></thead>
               <tbody>
                 <tr>
+                  <td><code>$luster_browse_by_category</code></td>
+                  <td>Set to <code>true</code> to enable browse-by-category mode. The landing view shows all category names as links. Clicking a category loads its listings formatted with your HTML template from Admin &rarr; Collective Templates.</td>
+                  <td><span class="ec-pill ec-pill--opt">Optional</span></td>
+                </tr>
+                <tr>
                   <td><code>$luster_category</code></td>
-                  <td>Leave blank for a dropdown. Set to <code>'all'</code> to show all categories grouped. Or enter an exact category name to show only that category.</td>
+                  <td>Leave blank (<code>''</code>) for a dropdown selector. Set to <code>'all'</code> to show every listing grouped by category heading. Or enter an exact category name to show only that category&rsquo;s listings.</td>
+                  <td><span class="ec-pill ec-pill--opt">Optional</span></td>
+                </tr>
+                <tr>
+                  <td><code>$luster_show_list</code></td>
+                  <td>Set to <code>true</code> to render the category selector as a bulleted link list instead of a <code>&lt;select&gt;</code> dropdown. Has no effect when <code>$luster_category</code> is <code>'all'</code> or a fixed name.</td>
+                  <td><span class="ec-pill ec-pill--opt">Optional</span></td>
+                </tr>
+                <tr>
+                  <td><code>$luster_show_all_by_default</code></td>
+                  <td>Set to <code>true</code> to show the dropdown selector AND all listings grouped below it on the initial page load (no category needs to be selected first).</td>
                   <td><span class="ec-pill ec-pill--opt">Optional</span></td>
                 </tr>
               </tbody>
@@ -494,8 +534,8 @@ $custGroups = [
         </div>
 
         <div class="ec-ref-panel" id="ec-ref-stat-tokens">
-          <h3 class="ec-ref-title">Per-listing stat tokens &mdash; <code>{stat_*}</code></h3>
-          <p class="ec-ref-sub">Use these tokens inside the stats template in <strong>Edit Listing &rarr; Templates</strong>. The template is processed by <code>embed/stats.php</code>.</p>
+          <h3 class="pc-head-title" style="margin-bottom:.25rem">Per-listing stat tokens &mdash; <code>{stat_*}</code></h3>
+          <p class="text-muted" style="margin-bottom:.875rem;line-height:1.55">Use these tokens inside the stats template in <strong>Edit Listing &rarr; Templates</strong>. The template is processed by <code>embed/stats.php</code>.</p>
           <div class="ec-ref-card">
             <table class="ec-vt">
               <thead><tr><th>Token</th><th>Output</th></tr></thead>
@@ -515,8 +555,8 @@ $custGroups = [
         </div>
 
         <div class="ec-ref-panel" id="ec-ref-cstat-vars">
-          <h3 class="ec-ref-title">Collective stat variables &mdash; <code>$luster_*</code></h3>
-          <p class="ec-ref-sub">After <code>require()</code>-ing <code>collective-stats.php</code>, these PHP variables are exposed for you to use directly anywhere on your page.</p>
+          <h3 class="pc-head-title" style="margin-bottom:.25rem">Collective stat variables &mdash; <code>$luster_*</code></h3>
+          <p class="text-muted" style="margin-bottom:.875rem;line-height:1.55">After <code>require()</code>-ing <code>collective-stats.php</code>, these PHP variables are exposed for you to use directly anywhere on your page.</p>
           <div class="ec-ref-card">
             <table class="ec-vt">
               <thead><tr><th>Variable</th><th>Output</th></tr></thead>
@@ -524,7 +564,7 @@ $custGroups = [
                 <tr><td><code>$luster_owned</code></td><td>Total owned listings (all statuses).</td></tr>
                 <tr><td><code>$luster_owned_active</code></td><td>Open / active owned listings.</td></tr>
                 <tr><td><code>$luster_owned_upcoming</code></td><td>Upcoming owned listings.</td></tr>
-                <tr><td><code>$luster_owned_trouble</code></td><td>Trouble / inactive owned listings.</td></tr>
+                <tr><td><code>$luster_owned_pending</code></td><td>Pending / inactive owned listings.</td></tr>
                 <tr><td><code>$luster_joined</code></td><td>Total joined listings.</td></tr>
                 <tr><td><code>$luster_joined_active</code></td><td>Active joined listings.</td></tr>
                 <tr><td><code>$luster_members_approved</code></td><td>Approved members across all listings.</td></tr>
@@ -538,8 +578,8 @@ $custGroups = [
         </div>
 
         <div class="ec-ref-panel" id="ec-ref-row-tokens">
-          <h3 class="ec-ref-title">Member row template tokens &mdash; <code>{fan_*}</code></h3>
-          <p class="ec-ref-sub">Use these tokens in the member row template in <strong>Edit Listing &rarr; Templates</strong>. Each token is replaced per row when rendering the members list.</p>
+          <h3 class="pc-head-title" style="margin-bottom:.25rem">Member row template tokens &mdash; <code>{fan_*}</code></h3>
+          <p class="text-muted" style="margin-bottom:.875rem;line-height:1.55">Use these tokens in the member row template in <strong>Edit Listing &rarr; Templates</strong>. Each token is replaced per row when rendering the members list.</p>
           <div class="ec-ref-card">
             <table class="ec-vt">
               <thead><tr><th>Token</th><th>Output</th></tr></thead>

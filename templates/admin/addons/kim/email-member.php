@@ -1,66 +1,212 @@
 <?php
 /**
- * KIM List admin - email individual member form.
+ * KIM List admin - email individual member (composer layout).
  *
  * Variables:
- *   $member      KimMember
- *   $listing     Listing|null
- *   $base_url    string
- *   $csrf_token  string
- *   $error       string
+ *   $member        KimMember
+ *   $listing       Listing|null
+ *   $from_name     string
+ *   $from_email    string
+ *   $owner_name    string
+ *   $owner_email   string
+ *   $site_name     string
+ *   $saved_emails  object[]
+ *   $old           array{subject: string, body: string}
+ *   $referer       string
+ *   $base_url      string
+ *   $csrf_token    string
+ *   $error         string
+ *   $success       string
  */
 
 declare(strict_types=1);
 
 use Luster\Core\View;
 
-$b = rtrim(View::e($base_url), '/');
+$b          = rtrim(View::e($base_url), '/');
+$flSubject  = View::e($listing->subject ?? '');
+$oldSubject = View::e($old['subject'] ?? '');
+$oldBody    = htmlspecialchars($old['body'] ?? '', ENT_QUOTES, 'UTF-8');
+$backUrl    = $listing !== null
+    ? $b . '/admin/kim/' . (int) $listing->id . '/show'
+    : $b . '/admin/kim';
 ?>
+
+<p class="page-back">
+  <a href="<?= View::e($backUrl) ?>" class="link">&larr; Back to <?= $listing !== null ? View::e($listing->subject) : 'KIM List' ?></a>
+</p>
 
 <?php if ($error !== ''): ?>
   <div class="alert alert-error"><?= View::e($error) ?></div>
 <?php endif; ?>
+<?php if ($success !== ''): ?>
+  <div class="alert alert-success"><?= View::e($success) ?></div>
+<?php endif; ?>
 
-<p class="page-back">
-  <?php if ($listing !== null): ?>
-    <a href="<?= $b ?>/admin/kim/<?= (int) $listing->id ?>/show" class="link">
-      &larr; Back to <?= View::e($listing->subject) ?>
-    </a>
-  <?php else: ?>
-    <a href="<?= $b ?>/admin/kim" class="link">&larr; Back to KIM List</a>
-  <?php endif; ?>
-</p>
+<div class="composer-grid">
+  <div class="composer-side">
 
-<div class="card" style="padding:1.25rem">
-  <p style="margin-bottom:1.25rem;color:var(--text-muted);font-size:.875rem">
-    Sending to: <strong style="color:var(--text)"><?= View::e($member->name) ?></strong>
-    &lt;<a href="mailto:<?= View::e($member->email) ?>" class="link"><?= View::e($member->email) ?></a>&gt;
-  </p>
+    <?php if (!empty($saved_emails)): ?>
+    <div class="card">
+      <div class="card-head">Load Template</div>
+      <div class="card-body">
+        <div class="select-wrap">
+          <select id="em-template-select" class="form-select">
+            <option value="">&mdash; Select a Template &mdash;</option>
+            <?php foreach ($saved_emails as $t): ?>
+              <option value="<?= View::e($t->subject) ?>"
+                      data-body="<?= htmlspecialchars($t->body, ENT_QUOTES, 'UTF-8') ?>">
+                <?= View::e($t->name) ?>
+              </option>
+            <?php endforeach; ?>
+          </select>
+        </div>
+        <p class="form-hint">Loading a template will replace your current subject and message.</p>
+        <a href="<?= $b ?>/admin/emails?tab=custom" class="btn btn-tertiary btn-sm" style="width:100%;justify-content:center">Manage Templates</a>
+      </div>
+    </div>
+    <?php endif; ?>
 
-  <form method="POST"
-        action="<?= $b ?>/admin/kim/<?= (int) $member->id ?>/email-member">
-    <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
-
-    <div class="form-group">
-      <label class="form-label" for="em-subject">Subject <span>*</span></label>
-      <input class="form-input" type="text" id="em-subject" name="subject"
-             required maxlength="255">
+    <div class="card">
+      <div class="card-head">Save as Template</div>
+      <div class="card-body">
+        <form method="POST" action="<?= $b ?>/admin/new-email-template/save" id="em-save-tpl-form">
+          <input type="hidden" name="_csrf"       value="<?= View::e($csrf_token) ?>">
+          <input type="hidden" name="referer"     id="em-save-referer" value="<?= View::e($_SERVER['REQUEST_URI'] ?? '') ?>">
+          <input type="hidden" name="tpl_subject" id="em-save-subject">
+          <input type="hidden" name="tpl_body"    id="em-save-body">
+          <input type="text"   name="tpl_name"    id="em-save-name"
+                 class="form-input" placeholder="Template name&hellip;" maxlength="150">
+          <button type="submit" class="btn btn-secondary btn-sm" style="width:100%;justify-content:center; margin-top: 1rem;">Save Template</button>
+        </form>
+      </div>
     </div>
 
-    <div class="form-group">
-      <label class="form-label" for="em-body">Message <span>*</span></label>
-      <textarea class="form-textarea" id="em-body" name="body"
-                rows="10" required style="font-family:'DM Mono',monospace"></textarea>
-    </div>
+    <details class="card chevron" open>
+      <summary class="card-head">Available Tokens</summary>
+      <div class="card-body">
+        <table class="et-token-table">
+          <tbody>
+            <tr class="tok-row" data-textarea="body" data-token="{name}"            title="Click to insert"><td><code>{name}</code></td><td>Member's display name</td></tr>
+            <tr class="tok-row" data-textarea="body" data-token="{email}"           title="Click to insert"><td><code>{email}</code></td><td>Member's email address</td></tr>
+            <tr class="tok-row" data-textarea="body" data-token="{url}"             title="Click to insert"><td><code>{url}</code></td><td>Member's website URL</td></tr>
+            <tr class="tok-row" data-textarea="body" data-token="{added_at}"        title="Click to insert"><td><code>{added_at}</code></td><td>Sign-up date</td></tr>
+            <tr class="tok-row" data-textarea="body" data-token="{listing_subject}" title="Click to insert"><td><code>{listing_subject}</code></td><td>Subject or topic</td></tr>
+            <tr class="tok-row" data-textarea="body" data-token="{listing_url}"     title="Click to insert"><td><code>{listing_url}</code></td><td>URL of the listing</td></tr>
+            <tr class="tok-row" data-textarea="body" data-token="{site_name}"       title="Click to insert"><td><code>{site_name}</code></td><td>Collective or site name</td></tr>
+            <tr class="tok-row" data-textarea="body" data-token="{owner_name}"      title="Click to insert"><td><code>{owner_name}</code></td><td>Owner's display name</td></tr>
+            <tr class="tok-row" data-textarea="body" data-token="{owner_email}"     title="Click to insert"><td><code>{owner_email}</code></td><td>Owner's email address</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </details>
 
-    <div class="btn-row">
-      <button type="submit" class="btn btn-primary">Send Email</button>
-      <?php if ($listing !== null): ?>
-        <a href="<?= $b ?>/admin/kim/<?= (int) $listing->id ?>/show"
-           class="btn btn-quaternary">Cancel</a>
-      <?php else: ?>
-        <a href="<?= $b ?>/admin/kim" class="btn btn-quaternary">Cancel</a>
-      <?php endif; ?>
+  </div><!-- /.composer-side -->
+
+  <div class="gradient-card">
+    <form method="POST" id="email-form">
+      <input type="hidden" name="_csrf"          value="<?= View::e($csrf_token) ?>">
+      <input type="hidden" name="member_email"   value="<?= View::e($member->email) ?>">
+
+      <div class="pc-head">
+        <div class="pc-head-icon pc-head-icon-bg"><?= View::icon('email') ?></div>
+        <div class="pc-head-title">Compose New Email</div>
+        <?php if ($flSubject !== ''): ?>
+          <span class="badge badge-info-pink" style="margin-left:auto"><?= $flSubject ?></span>
+        <?php endif; ?>
+      </div>
+
+      <div class="composer-block">
+        <div class="composer-row">
+          <span class="composer-lbl">From</span>
+          <div>
+            <?php if ($from_name !== ''): ?>
+              <span class="composer-name"><?= View::e($from_name) ?></span>
+            <?php endif; ?>
+            <span class="composer-email">&lt;<?= View::e($from_email) ?>&gt;</span>
+          </div>
+        </div>
+        <div class="composer-row">
+          <span class="composer-lbl">To</span>
+          <div>
+            <span class="composer-name"><?= View::e($member->name) ?></span>
+            <span class="composer-email">&lt;<?= View::e($member->email) ?>&gt;</span>
+          </div>
+        </div>
+        <div class="composer-row">
+          <span class="composer-lbl">Subject</span>
+          <?php if ($flSubject !== ''): ?>
+            <span class="badge badge-info-pink"><?= $flSubject ?>:</span>
+          <?php endif; ?>
+          <input class="subj-input" type="text" name="subject_suffix" id="subject"
+                 value="<?= $oldSubject ?>" placeholder="Enter subject&hellip;">
+        </div>
+      </div>
+
+      <div>
+        <textarea class="email-textarea" name="body" id="body"
+                  placeholder="Write your message&hellip;"><?= $oldBody ?></textarea>
+      </div>
+
+      <div class="composer-footer">
+        <button type="button" class="btn btn-primary" id="em-send-btn"><?= View::icon('send') ?> Send</button>
+        <button type="button" class="btn btn-preview" id="preview-email-btn">Preview</button>
+        <button type="button" class="btn btn-ghost js-form-reset">Clear</button>
+        <div style="flex:1"></div>
+        <a href="<?= View::e($referer) ?>" class="btn btn-danger">Cancel</a>
+      </div>
+    </form>
+  </div><!-- /.gradient-card -->
+
+</div><!-- /.composer-grid -->
+
+<div class="modal-backdrop" id="preview-modal" style="display:none"
+     data-listing-name="<?= $flSubject ?>"
+     data-listing-subject="<?= $flSubject ?>"
+     data-listing-url="<?= View::e($listing->url ?? '') ?>"
+     data-fan-name="<?= View::e($member->name) ?>"
+     data-fan-email="<?= View::e($member->email) ?>"
+     data-fan-url="<?= View::e($member->url) ?>"
+     data-fan-country=""
+     data-site-name="<?= View::e($site_name) ?>"
+     data-owner-name="<?= View::e($owner_name) ?>"
+     data-owner-email="<?= View::e($owner_email) ?>">
+  <div class="modal modal--wide">
+    <div class="modal-header">
+      <h3 class="modal-title">Email Preview</h3>
     </div>
-  </form>
+    <div class="modal-body">
+      <div class="composer-block">
+        <div class="composer-row">
+          <span class="composer-lbl">From</span>
+          <div>
+            <span class="composer-name" id="em-preview-from-name"></span>
+            <span class="composer-email" id="em-preview-from-email"></span>
+          </div>
+        </div>
+        <div class="composer-row">
+          <span class="composer-lbl">To</span>
+          <div>
+            <span class="composer-name" id="em-preview-to-name"></span>
+            <span class="composer-email" id="em-preview-to-email"></span>
+          </div>
+        </div>
+        <div class="composer-row">
+          <span class="composer-lbl">Subject</span>
+          <span class="composer-val" id="preview-subject"></span>
+        </div>
+      </div>
+      <div id="preview-body" class="body-area"></div>
+    </div>
+    <div class="modal-footer" id="em-footer-preview">
+      <button class="btn btn-ghost" id="close-preview-btn">Close</button>
+    </div>
+    <div id="em-footer-confirm" style="display:none">
+      <div class="me-confirm-warning"><?= View::icon('caution') ?>Are you sure you want to send this email? This action cannot be undone.</div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-primary" id="em-confirm-send-btn"><?= View::icon('send') ?> Send</button>
+        <button type="button" class="btn btn-danger"  id="em-confirm-cancel-btn">Cancel</button>
+      </div>
+    </div>
+  </div>
 </div>

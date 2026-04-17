@@ -30,7 +30,7 @@ $b = rtrim(View::e($base_url), '/');
 <form method="POST" action="<?= $b ?>/admin/listings/<?= (int) $listing->id ?>/edit-prefix">
   <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
 
-  <div class="card listing-field-card">
+  <div class="gradient-card">
 
     <!-- Destructive-operation callout -->
     <div class="callout" style="margin:1.25rem 1.25rem 0">

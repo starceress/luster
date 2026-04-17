@@ -124,7 +124,7 @@ $flSortUrl = static function (string $col) use ($b, $flSort, $flDir, $search, $f
 <div class="filter-panel<?= $filtersActive ? ' is-open' : '' ?>" id="filter-panel">
   <form method="GET" action="" class="filter-row" id="fl-filter-form">
     <div class="toolbar-select-wrap">
-    <select id="fl-net-sel" name="network" class="select">
+    <select id="fl-net-sel" name="network" class="form-select">
       <option value="">All Networks</option>
       <?php foreach ($allNetworks as $net): ?>
         <option value="<?= View::e($net) ?>"
@@ -136,7 +136,7 @@ $flSortUrl = static function (string $col) use ($b, $flSort, $flDir, $search, $f
     </div>
 
     <div class="toolbar-select-wrap">
-    <select id="fl-cat-sel" name="category" class="select"
+    <select id="fl-cat-sel" name="category" class="form-select"
             data-tfl='<?= $dataTfl ?>'
             data-tafl='<?= $dataTafl ?>'
             data-custom='<?= $dataCustom ?>'>
@@ -151,7 +151,7 @@ $flSortUrl = static function (string $col) use ($b, $flSort, $flDir, $search, $f
     </div>
 
     <div class="toolbar-select-wrap">
-    <select name="type" class="select js-autosubmit">
+    <select name="type" class="form-select js-autosubmit">
       <option value="">All Types</option>
       <?php
         $_typeLabels = ['listing' => 'Fanlisting', 'clique' => 'Clique', 'collective' => 'Collective', 'shrine' => 'Shrine', 'webring' => 'Webring', 'other' => 'Other'];
@@ -165,7 +165,7 @@ $flSortUrl = static function (string $col) use ($b, $flSort, $flDir, $search, $f
     </select>
     </div>
 
-    <input type="text" name="search" class="input"
+    <input type="text" name="search" class="form-input"
            placeholder="Search&hellip;" value="<?= View::e($search ?? '') ?>">
     <button type="submit" class="btn btn-quaternary btn-sm">Search</button>
     <a href="?" class="btn btn-quaternary btn-sm">Reset</a>
@@ -194,7 +194,7 @@ $flSortUrl = static function (string $col) use ($b, $flSort, $flDir, $search, $f
   <div class="bulk">
     <label for="bulk-action">Bulk Actions:</label>
     <div class="toolbar-select-wrap">
-    <select id="bulk-action" name="action" class="select">
+    <select id="bulk-action" name="action" class="form-select">
       <option value="" disabled selected>&mdash; Select &mdash;</option>
       <option value="delete">Delete</option>
     </select>

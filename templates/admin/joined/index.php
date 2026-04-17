@@ -106,7 +106,7 @@ if ($displayMode === 'category') {
   <form method="GET" action="<?= $b ?>/admin/joined" class="filter-row">
 
     <div class="toolbar-select-wrap">
-    <select id="net-sel" name="network" class="select" data-net-cats='<?= json_encode($network_categories ?? [], JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS) ?>'>
+    <select id="net-sel" name="network" class="form-select" data-net-cats='<?= json_encode($network_categories ?? [], JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS) ?>'>
       <option value="">All Networks</option>
       <option value="TFL"<?= ($filter_network ?? '') === 'TFL'  ? ' selected' : '' ?>>TFL</option>
       <option value="TAFL"<?= ($filter_network ?? '') === 'TAFL' ? ' selected' : '' ?>>TAFL</option>
@@ -120,7 +120,7 @@ if ($displayMode === 'category') {
     </div>
 
     <div class="toolbar-select-wrap">
-    <select id="cat-sel" name="category" class="select">
+    <select id="cat-sel" name="category" class="form-select">
       <option value="">All Categories</option>
       <?php foreach ($categories as $cat): ?>
         <option value="<?= View::e($cat) ?>"
@@ -131,7 +131,7 @@ if ($displayMode === 'category') {
     </select>
     </div>
 
-    <input type="text" name="search" class="input" placeholder="Search&hellip;"
+    <input type="text" name="search" class="form-input" placeholder="Search&hellip;"
            value="<?= View::e($search ?? '') ?>">
     <button type="submit" class="btn btn-quaternary btn-sm">Search</button>
     <a href="?" class="btn btn-quaternary btn-sm">Reset</a>
@@ -162,7 +162,7 @@ if ($displayMode === 'category') {
   <div class="bulk">
     <label for="bulk-action-sel">Bulk action:</label>
     <div class="toolbar-select-wrap">
-    <select id="bulk-action-sel" name="bulk_action" class="select">
+    <select id="bulk-action-sel" name="bulk_action" class="form-select">
       <option value="" disabled selected>- Select -</option>
       <option value="approve">Approve</option>
       <option value="pending">Pending</option>

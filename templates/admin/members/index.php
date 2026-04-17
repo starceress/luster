@@ -45,7 +45,7 @@ $memSortUrl = static function (string $col) use ($b, $id, $sort, $dir, $search, 
   <form method="GET" action="<?= $b ?>/admin/members/<?= $id ?>" class="filter-row" id="mem-filter-form">
 
     <div class="toolbar-select-wrap">
-    <select class="select js-nav-select">
+    <select class="form-select js-nav-select">
       <option value="<?= $b ?>/admin/members"<?= !isset($listing) ? ' selected' : '' ?>>All pending members</option>
       <?php foreach ($all_listings as $fl): ?>
         <option value="<?= $b ?>/admin/members/<?= (int) $fl->id ?>?status=all"
@@ -56,11 +56,11 @@ $memSortUrl = static function (string $col) use ($b, $id, $sort, $dir, $search, 
     </select>
     </div>
 
-    <input type="text" name="search" class="input" placeholder="Search&hellip;"
+    <input type="text" name="search" class="form-input" placeholder="Search&hellip;"
            value="<?= View::e($search ?? '') ?>">
 
     <div class="toolbar-select-wrap">
-    <select name="status" class="select">
+    <select name="status" class="form-select">
       <option value="all"      <?= $status === 'all'      ? 'selected' : '' ?>>All</option>
       <option value="pending"  <?= $status === 'pending'  ? 'selected' : '' ?>>Pending</option>
       <option value="approved" <?= $status === 'approved' ? 'selected' : '' ?>>Approved</option>
@@ -130,7 +130,7 @@ $memSortUrl = static function (string $col) use ($b, $id, $sort, $dir, $search, 
   <div class="bulk">
     <label for="bulk-action-sel">Bulk action:</label>
     <div class="toolbar-select-wrap">
-    <select id="bulk-action-sel" name="bulk_action" class="select">
+    <select id="bulk-action-sel" name="bulk_action" class="form-select">
       <option value="" disabled selected>- Select -</option>
       <option value="approve">Approve</option>
       <option value="pending">Pending</option>

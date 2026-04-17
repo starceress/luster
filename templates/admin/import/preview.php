@@ -111,8 +111,9 @@ $src = View::e($source);
     </div>
   </div>
 
-  <div class="import-schema-tag"><?= View::icon('database') ?>
-    Schema detected: <strong><?= View::e($preview->schemaVariant) ?></strong>
+  <div style="display:inline-flex;align-items:center;gap:.4rem;font-size:var(--fs-base);color:var(--text-muted);margin-bottom:1.125rem">
+    <?= View::icon('database', ['style' => 'width:13px;height:13px;flex-shrink:0;color:var(--accent);opacity:.7']) ?>
+    Schema detected: <strong style="color:var(--text)"><?= View::e($preview->schemaVariant) ?></strong>
   </div>
 
   <div class="gradient-card">
@@ -156,7 +157,7 @@ $src = View::e($source);
 
   <form method="POST" action="<?= $b ?>/admin/import/<?= $src ?>/run">
     <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
-    <div class="import-action-row">
+    <div class="btn-row" style="align-items:center;flex-wrap:wrap">
       <a href="<?= $b ?>/admin/import/<?= $src ?>/configure" class="btn btn-ghost">&#8592; Back</a>
       <button type="submit" class="btn btn-primary">Proceed with Import &#8594;</button>
     </div>

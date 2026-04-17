@@ -27,14 +27,17 @@ $b = rtrim(View::e($base_url), '/');
 </div>
 
 <div class="callout">
-  <?= View::icon('alert') ?>
-  <span><strong>Images are not automatically migrated.</strong> Only database records are imported. You'll have the option to configure image migration on the next step.</span>
+  <?= View::icon('alert', ['width' => 24, 'height' => 24, 'style' => 'color:var(--warn)']) ?>
+  <div>
+    <strong>Images are not automatically migrated.</strong>
+    <span>Only database records are imported. You'll have the option to configure image migration on the next step.</span>
+  </div>
 </div>
 
 <div class="import-source-grid">
 
   <a href="<?= $b ?>/admin/import/enthusiast/configure" class="import-source-card import-source-card--enth">
-    <div class="import-source-header import-source-header-en">
+    <div class="import-source-header" style="border-bottom-color: var(--card-border-1)">
       <span class="pc-head-title">Enthusiast</span>
       <span class="badge badge-current">Supported</span>
     </div>
@@ -55,7 +58,7 @@ $b = rtrim(View::e($base_url), '/');
   </a>
 
   <a href="<?= $b ?>/admin/import/listing-admin/configure" class="import-source-card import-source-card--la">
-    <div class="import-source-header import-source-header-la">
+    <div class="import-source-header" style="border-bottom-color: var(--card-border-2)">
       <span class="pc-head-title">Listing Admin</span>
       <span class="badge badge-current">Supported</span>
     </div>
@@ -74,7 +77,7 @@ $b = rtrim(View::e($base_url), '/');
   </a>
 
   <a href="<?= $b ?>/admin/import/fanupdate/configure" class="import-source-card import-source-card--fu">
-    <div class="import-source-header import-source-header-fu">
+    <div class="import-source-header" style="border-bottom-color: var(--card-border-3)">
       <span class="pc-head-title">FanUpdate</span>
       <span class="badge badge-current">Supported</span>
     </div>
@@ -89,7 +92,7 @@ $b = rtrim(View::e($base_url), '/');
   </a>
 
   <a href="<?= $b ?>/admin/import/codesort/configure" class="import-source-card import-source-card--cs">
-    <div class="import-source-header import-source-header-cs">
+    <div class="import-source-header" style="border-bottom-color: var(--card-border-4)">
       <span class="pc-head-title">CodeSort</span>
       <span class="badge badge-current">Supported</span>
     </div>

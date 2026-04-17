@@ -22,7 +22,7 @@ $listingId  = (int) ($listing->id ?? 0);
       <div class="card-head">Load Template</div>
       <div class="card-body">
         <div class="select-wrap">
-          <select id="em-template-select" class="select">
+          <select id="em-template-select" class="form-select">
             <option value="">— Select a Template —</option>
             <?php foreach ($saved_emails as $t): ?>
               <option value="<?= View::e($t->subject) ?>"
@@ -47,7 +47,7 @@ $listingId  = (int) ($listing->id ?? 0);
           <input type="hidden" name="tpl_subject" id="em-save-subject">
           <input type="hidden" name="tpl_body"    id="em-save-body">
           <input type="text"   name="tpl_name"    id="em-save-name"
-                 class="input" placeholder="Template name&hellip;" maxlength="150">
+                 class="form-input" placeholder="Template name&hellip;" maxlength="150">
           <button type="submit" class="btn btn-secondary btn-sm" id="em-save-btn" style="width: 100%; justify-content: center;">Save Template</button>
         </form>
       </div>
@@ -112,7 +112,7 @@ $listingId  = (int) ($listing->id ?? 0);
       </div>
 
       <div>
-        <textarea class="body-textarea" name="body" id="body" placeholder="Write your message&hellip;"><?= $oldBody ?></textarea>
+        <textarea class="email-textarea" name="body" id="body" placeholder="Write your message&hellip;"><?= $oldBody ?></textarea>
       </div>
 
       <div class="composer-footer">

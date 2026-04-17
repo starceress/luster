@@ -162,6 +162,21 @@ final class ImportController extends AdminController
         $useLusterDb = ($credentials['host'] === '' && $credentials['name'] === ''
                         && $credentials['user'] === '' && $credentials['pass'] === '');
 
+        // Block private/loopback IP ranges to prevent SSRF probing of internal services.
+        // Applies only when an explicit host is supplied (the "use Luster's own DB" path
+        // is always safe since those credentials come from config, not user input).
+        if (!$useLusterDb && $credentials['host'] !== '') {
+            $host = $credentials['host'];
+            // Resolve hostname to IP for range-check; skip check if resolution fails
+            $ip = filter_var($host, FILTER_VALIDATE_IP) ? $host : (gethostbyname($host) ?: $host);
+            if (preg_match(
+                '/^(127\.|10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.|::1$|0\.0\.0\.0)/',
+                $ip
+            )) {
+                return Response::json(['ok' => false, 'message' => 'Connection to private or loopback addresses is not permitted.']);
+            }
+        }
+
         if ($useLusterDb) {
             $config      = $this->app->getConfig();
             $credentials = [
@@ -461,6 +476,20 @@ final class ImportController extends AdminController
                     $keyCol = (string) $entry['key'];
                     $valCol = (string) $entry['column'];
                     $keyVal = $entry['fanlisting_id'] ?? $entry['record_id'];
+
+                    // Whitelist identifiers before interpolation — defence-in-depth against
+                    // session-manipulation attacks (values are hardcoded by import adapters,
+                    // but we validate here regardless).
+                    static $allowedTables  = ['lstr_fanlisting_settings'];
+                    static $allowedColumns = ['image', 'fanlisting_id', 'id'];
+                    if (!in_array($table, $allowedTables, true)
+                        || !in_array($keyCol, $allowedColumns, true)
+                        || !in_array($valCol, $allowedColumns, true)
+                    ) {
+                        $errors[] = "Skipped {$basename}: image map contains an unexpected table or column reference.";
+                        $unmatched++;
+                        continue;
+                    }
                     $stmt   = $targetPdo->prepare(
                         "UPDATE `{$table}` SET `{$valCol}` = :v WHERE `{$keyCol}` = :k"
                     );

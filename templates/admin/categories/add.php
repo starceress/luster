@@ -20,7 +20,7 @@ $fe = $field_errors ?? [];
 <form method="POST" id="add-form" class="js-warn-unsaved">
   <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
 
-  <div class="card listing-field-card" style="margin-bottom:0">
+  <div class="gradient-card" style="margin-bottom:0">
     <div class="listing-field-section">
 
       <!-- Category Name -->

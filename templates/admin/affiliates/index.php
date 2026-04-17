@@ -97,7 +97,7 @@ $canReorder = ($search ?? '') === '' && ($filter_fid ?? 'collective') !== '';
     <?php endif; ?>
 
     <div class="toolbar-select-wrap">
-    <select name="fanlisting_id" class="select js-autosubmit">
+    <select name="fanlisting_id" class="form-select js-autosubmit">
       <option value="collective"<?= ($filter_fid ?? 'collective') === 'collective' ? ' selected' : '' ?>><?= View::e(($site_name ?? 'Collective') . ' (Collective) Affiliates') ?></option>
       <?php foreach ($listings as $fl): ?>
         <option value="<?= (int) $fl->id ?>"
@@ -108,7 +108,7 @@ $canReorder = ($search ?? '') === '' && ($filter_fid ?? 'collective') !== '';
     </select>
     </div>
 
-    <input type="text" name="search" class="input" placeholder="Search name, URL, email&hellip;"
+    <input type="text" name="search" class="form-input" placeholder="Search name, URL, email&hellip;"
            value="<?= View::e($search ?? '') ?>">
     <button type="submit" class="btn btn-quaternary btn-sm">Search</button>
     <a href="?" class="btn btn-quaternary btn-sm">Reset</a>

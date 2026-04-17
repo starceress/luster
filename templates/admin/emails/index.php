@@ -339,7 +339,7 @@ if (!function_exists('smtpVal')) {
         </div>
         <div class="card-body">
           <div class="select-wrap">
-            <select id="me-tpl-select" class="select">
+            <select id="me-tpl-select" class="form-select">
               <option value="">— Select a Template —</option>
               <?php if (!empty($global_email_templates)): ?>
                 <optgroup label="Email Templates">
@@ -378,7 +378,7 @@ if (!function_exists('smtpVal')) {
             <input type="hidden" name="tpl_subject" id="me-save-subject">
             <input type="hidden" name="tpl_body"    id="me-save-body">
             <input type="text"   name="tpl_name"    id="me-save-name"
-                   class="input" placeholder="Template name&hellip;" maxlength="150">
+                   class="form-input" placeholder="Template name&hellip;" maxlength="150">
             <button type="submit" class="btn btn-secondary btn-sm" id="me-save-btn"
                     style="width:100%;justify-content:center">Save Template</button>
           </form>
@@ -437,7 +437,7 @@ if (!function_exists('smtpVal')) {
           <div class="composer-row">
             <label class="composer-lbl" for="me-listing">Send To</label>
             <div class="select-wrap">
-              <select name="listing_id" id="me-listing" class="select">
+              <select name="listing_id" id="me-listing" class="form-select">
                 <option value="0"
                         data-count="<?= (int) ($deduplicated_total ?? 0) ?>"
                         data-label="All Listings"
@@ -466,7 +466,7 @@ if (!function_exists('smtpVal')) {
         </div>
 
         <div>
-          <textarea class="body-textarea" id="me-body" name="body"
+          <textarea class="email-textarea" id="me-body" name="body"
                     maxlength="50000" required
                     placeholder="Write your message&hellip;"><?= $oldBodyE ?></textarea>
         </div>
@@ -741,7 +741,7 @@ if (!function_exists('smtpVal')) {
   <form method="POST" action="<?= $b ?>/admin/emails/smtp-settings/save">
   <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
 
-  <div class="card listing-field-card" style="margin-bottom:1.25rem">
+  <div class="gradient-card">
 
     <!-- Server -->
     <div class="listing-field-section">

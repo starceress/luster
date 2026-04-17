@@ -62,7 +62,7 @@ final class AdminUsersController extends AdminController
         $v = new Validator(['username' => $username, 'email' => $email, 'password' => $password]);
         $v->field('username')->required()->maxLength(50);
         $v->field('email')->required()->email()->maxLength(255);
-        $v->field('password')->required()->minLength(8)->maxLength(255);
+        $v->field('password')->required()->minLength(12)->maxLength(255);
 
         if ($v->fails()) {
             $session->set('lstr_flash_error', implode(' ', $v->allErrors()));
@@ -146,7 +146,7 @@ final class AdminUsersController extends AdminController
         $v->field('username')->required()->maxLength(50);
         $v->field('email')->required()->email()->maxLength(255);
         if ($password !== '') {
-            $v->field('new_password')->minLength(8)->maxLength(255);
+            $v->field('new_password')->minLength(12)->maxLength(255);
         }
 
         if ($v->fails()) {

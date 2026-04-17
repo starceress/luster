@@ -41,10 +41,11 @@ if ($isEdit && $joined->categoriesJson !== null) {
 }
 
 // Safe JSON for data-* attributes (single-quoted HTML attribute)
-$dataTfl    = json_encode($tfl_cats      ?? [], JSON_HEX_QUOT | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_TAG);
-$dataTafl   = json_encode($tafl_cats     ?? [], JSON_HEX_QUOT | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_TAG);
-$dataCustom = json_encode($custom_networks ?? [], JSON_HEX_QUOT | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_TAG);
-$dataExist  = json_encode($existingCats,     JSON_HEX_QUOT | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_TAG);
+$dataTfl        = json_encode($tfl_cats       ?? [], JSON_HEX_QUOT | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_TAG);
+$dataTafl       = json_encode($tafl_cats      ?? [], JSON_HEX_QUOT | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_TAG);
+$dataCustom     = json_encode($custom_networks ?? [], JSON_HEX_QUOT | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_TAG);
+$dataCustomCats = json_encode($custom_cats     ?? [], JSON_HEX_QUOT | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_TAG);
+$dataExist      = json_encode($existingCats,         JSON_HEX_QUOT | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_TAG);
 ?>
 
 <div class="page-topbar">
@@ -60,7 +61,7 @@ $dataExist  = json_encode($existingCats,     JSON_HEX_QUOT | JSON_HEX_AMP | JSON
 <form method="POST" action="<?= $action ?>" enctype="multipart/form-data" class="js-warn-unsaved">
   <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
 
-  <div class="card listing-field-card" style="margin-bottom:0">
+  <div class="gradient-card" style="margin-bottom:0">
     <div class="listing-field-section">
 
       <!-- Network & Category widget -->
@@ -72,6 +73,7 @@ $dataExist  = json_encode($existingCats,     JSON_HEX_QUOT | JSON_HEX_AMP | JSON
                data-tfl='<?= $dataTfl ?>'
                data-tafl='<?= $dataTafl ?>'
                data-custom='<?= $dataCustom ?>'
+               data-custom-cats='<?= $dataCustomCats ?>'
                data-existing='<?= $dataExist ?>'>
             <div id="cat-rows"></div>
             <a href="#" class="link" id="cat-add">+ Add another category</a>

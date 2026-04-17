@@ -17,12 +17,11 @@ $pageUrl = static fn(int $p): string => $b . '/admin/activitylog?page=' . $p;
 
 <?php if (($total ?? 0) > 0): ?>
 <div class="toolbar">
-  <span class="result-count"><?= (int) $total ?> entr<?= $total === 1 ? 'y' : 'ies' ?> logged</span>
-  <div class="actions-row">
+  <div class="actions-row" style="margin-left: auto;">
     <a href="<?= $b ?>/admin/activitylog/export" class="btn btn-quaternary btn-sm"><?= View::icon('download') ?> Export CSV</a>
     <form method="POST" action="<?= $b ?>/admin/activitylog/flush" id="flush-activity-form">
       <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
-      <button type="button" class="btn btn-danger btn-sm" id="flush-activity-btn"><?= View::icon('delete') ?> Flush Log</button>
+      <button type="button" class="btn btn-danger btn-sm" id="flush-activity-btn"><?= View::icon('delete') ?> Flush Logs</button>
     </form>
   </div>
 </div>
@@ -31,14 +30,17 @@ $pageUrl = static fn(int $p): string => $b . '/admin/activitylog?page=' . $p;
 <?php if (empty($entries)): ?>
   <div class="card">
     <div class="empty">
-      <?= View::icon('check-badge', ['width' => '40', 'height' => '40']) ?>
-      <span>No activity logged yet.</span>
+      <span class="empty-icon"><?= View::icon('notes', ['width' => 32, 'height' => 32]) ?></span>
+      No activity logged yet.
     </div>
   </div>
 <?php else: ?>
 
 <div class="card">
   <div class="table-wrap">
+    <div class="card-head">Activity Log
+      <span class="row-sub">(Showing <?= count($entries) ?> of <?= (int) $total ?> entr<?= $total === 1 ? 'y' : 'ies' ?>)</span>
+    </div>
     <table class="data-table">
       <thead>
         <tr>

@@ -18,9 +18,10 @@ $val = static function (string $k, string $def = '') use ($old): string {
 
 $selStatus = isset($old['status']) ? (int) $old['status'] : 2;
 
-$dataTfl    = json_encode($tfl_cats      ?? [], JSON_HEX_QUOT | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_TAG);
-$dataTafl   = json_encode($tafl_cats     ?? [], JSON_HEX_QUOT | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_TAG);
-$dataCustom = json_encode($custom_networks ?? [], JSON_HEX_QUOT | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_TAG);
+$dataTfl        = json_encode($tfl_cats       ?? [], JSON_HEX_QUOT | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_TAG);
+$dataTafl       = json_encode($tafl_cats      ?? [], JSON_HEX_QUOT | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_TAG);
+$dataCustom     = json_encode($custom_networks ?? [], JSON_HEX_QUOT | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_TAG);
+$dataCustomCats = json_encode($custom_cats     ?? [], JSON_HEX_QUOT | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_TAG);
 ?>
 
 <div class="page-topbar">
@@ -45,6 +46,7 @@ $dataCustom = json_encode($custom_networks ?? [], JSON_HEX_QUOT | JSON_HEX_AMP |
                data-tfl='<?= $dataTfl ?>'
                data-tafl='<?= $dataTafl ?>'
                data-custom='<?= $dataCustom ?>'
+               data-custom-cats='<?= $dataCustomCats ?>'
                data-existing='[]'>
             <div id="cat-rows"></div>
             <a href="#" class="link" id="cat-add"><?= View::icon('add') ?> Add another category</a>

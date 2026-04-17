@@ -41,7 +41,7 @@ $flName     = View::e($listing->name ?? '');
       <div class="card-head">Load Template</div>
       <div class="card-body">
         <div class="select-wrap">
-          <select id="es-tpl-select" class="select">
+          <select id="es-tpl-select" class="form-select">
             <option value="">— Select a Template —</option>
             <?php foreach ($saved_emails as $t): ?>
               <option value="<?= View::e($t->subject) ?>"
@@ -68,7 +68,7 @@ $flName     = View::e($listing->name ?? '');
           <input type="hidden" name="tpl_body"    id="es-save-body">
           <div id="es-save-emails"></div>
           <input type="text" name="tpl_name" id="es-save-name"
-                 class="input" placeholder="Template name&hellip;" maxlength="150">
+                 class="form-input" placeholder="Template name&hellip;" maxlength="150">
           <button type="submit" class="btn btn-secondary btn-sm" style="width: 100%; justify-content: center;">Save Template</button>
         </form>
       </div>
@@ -154,7 +154,7 @@ $flName     = View::e($listing->name ?? '');
       </div>
 
       <div>
-        <textarea class="body-textarea" id="es-body" name="body"
+        <textarea class="email-textarea" id="es-body" name="body"
                   maxlength="50000" required
                   placeholder="Write your message&hellip;"><?= $oldBody ?></textarea>
       </div>

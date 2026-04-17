@@ -33,8 +33,7 @@ function flsCfgVal(array $cfg, string $key, $default = ''): string {
 
   <div class="card">
     <div class="card-head">Display Settings</div>
-
-    <div class="listing-field-section">
+    <div class="card-body">
       <div class="pc-section-label">Sort Order</div>
 
       <div class="listing-field-row">
@@ -61,9 +60,7 @@ function flsCfgVal(array $cfg, string $key, $default = ''): string {
           </div>
         </div>
       </div>
-    </div>
 
-    <div class="listing-field-section">
       <div class="pc-section-label">Pagination</div>
 
       <div class="listing-field-row">
@@ -79,6 +76,5 @@ function flsCfgVal(array $cfg, string $key, $default = ''): string {
       <button type="submit" class="btn btn-primary">Save Settings</button>
       <a href="<?= $b ?>/admin/listings" class="btn btn-ghost">Cancel</a>
     </div>
-
   </div>
 </form>

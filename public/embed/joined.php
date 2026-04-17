@@ -24,10 +24,15 @@ use Luster\Repositories\SiteSettingsRepo;
  *                               other — exact category name; show only that category's
  *                                       listings, selector suppressed
  *                               Default: '' (reads $_GET['cat'])
- *   $luster_show_list   bool    When the selector is visible, show category links as a
- *                               bulleted list instead of a <select> dropdown.
- *                               Has no effect when $luster_category is 'all' or a fixed name.
- *                               Default: false
+ *   $luster_show_list           bool    When the selector is visible, show category links as a
+ *                                       bulleted list instead of a <select> dropdown.
+ *                                       Has no effect when $luster_category is 'all' or a fixed name.
+ *                                       Default: false
+ *   $luster_browse_by_category  bool    Browse-by-category mode: when no category is selected,
+ *                                       shows a list of all category names as clickable links.
+ *                                       Clicking a link filters to that category and renders
+ *                                       listings via the admin-defined HTML template.
+ *                                       Default: false
  */
 
 // ---------------------------------------------------------------------------
@@ -54,8 +59,9 @@ $_lusterApp = require $_lusterRoot . '/bootstrap.php';
 // 2. Resolve parameters
 // ---------------------------------------------------------------------------
 
-$_lusterShowList        = (bool) ($luster_show_list         ?? false);
-$_lusterShowAllDefault  = (bool) ($luster_show_all_by_default ?? false);
+$_lusterShowList        = (bool) ($luster_show_list           ?? false);
+$_lusterShowAllDefault  = (bool) ($luster_show_all_by_default  ?? false);
+$_lusterBrowseByCat     = (bool) ($luster_browse_by_category   ?? false);
 
 // Category: prefer explicit $luster_category; fall back to $_GET['cat']
 $_lusterCategory = isset($luster_category) && (string) $luster_category !== ''
@@ -68,7 +74,9 @@ $_lusterCategory = isset($luster_category) && (string) $luster_category !== ''
 
 $_lusterRepo = new JoinedListingRepo($_lusterApp->getDatabase());
 
-$_lusterCategories = $_lusterRepo->getCategories();
+$_lusterCategories       = $_lusterRepo->getCategories();
+$_lusterCategoryCountMap = $_lusterRepo->getCategoryCountMap();
+$_lusterTotalCount       = $_lusterRepo->countActive();
 
 /**
  * Groups a flat result set of JoinedListings into [category => [...]] sorted by key.
@@ -112,9 +120,10 @@ if ($_lusterCategory === 'all') {
 // ---------------------------------------------------------------------------
 
 $_lusterSiteRepo       = new SiteSettingsRepo($_lusterApp->getDatabase());
-$_lusterJoinedTemplate = $_lusterSiteRepo->get('joined_template');
-if ($_lusterJoinedTemplate !== null && trim($_lusterJoinedTemplate) === '') {
-    $_lusterJoinedTemplate = null;
+$_lusterJoinedTemplate = $_lusterSiteRepo->get('joined_template')
+    ?? SiteSettingsRepo::collectiveDefaults()['joined_template'];
+if (trim($_lusterJoinedTemplate) === '') {
+    $_lusterJoinedTemplate = SiteSettingsRepo::collectiveDefaults()['joined_template'];
 }
 
 // Build per-listing HTML when a custom template is set.
@@ -122,14 +131,14 @@ if ($_lusterJoinedTemplate !== null && trim($_lusterJoinedTemplate) === '') {
 $_lusterListingHtml = null;
 if ($_lusterJoinedTemplate !== null) {
     $e          = static fn(string $v): string => htmlspecialchars($v, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
-    $_lusterUploadsUrl = $_lusterApp->getBaseUrl() . '/uploads';
+    $_lusterUploadsUrl = $_lusterApp->getBaseUrl() . '/uploads/joined';
     $renderRow  = static function (object $fl) use ($_lusterJoinedTemplate, $e, $_lusterUploadsUrl): string {
         $imageTag = ($fl->image !== null && $fl->image !== '')
-            ? '<img src="' . $e($_lusterUploadsUrl . '/' . $fl->image) . '" alt="' . $e($fl->name) . '">'
+            ? '<img src="' . $e($_lusterUploadsUrl . '/' . $fl->image) . '" alt="' . $e($fl->name) . '" title="' . $e($fl->name) . '">'
             : '';
         return str_replace(
-            ['{listing_name}', '{listing_url}', '{listing_category}', '{listing_image}'],
-            [$e($fl->name), $e($fl->url), $e($fl->category ?? ''), $imageTag],
+            ['{listing_name}', '{listing_url}', '{listing_category}', '{listing_image}', '{image}', '{date_joined}', '{listing_status}'],
+            [$e($fl->name), $e($fl->url), $e($fl->category ?? ''), $imageTag, $imageTag, $e($fl->dateJoined ?? ''), $e($fl->status)],
             $_lusterJoinedTemplate,
         );
     };
@@ -162,16 +171,19 @@ $_lusterFormAction = htmlspecialchars(
 // ---------------------------------------------------------------------------
 
 $_lusterHtml = $_lusterApp->getView()->renderFragment('joined.php', [
-    'listings'         => $_lusterListings,
-    'grouped'          => $_lusterGrouped,
-    'listing_html'     => $_lusterListingHtml,
-    'categories'       => $_lusterCategories,
-    'current_category' => $_lusterCategory,
-    'show_list'        => $_lusterShowList,
-    'uploads_url'      => $_lusterApp->getBaseUrl() . '/uploads',
-    'base_url'         => $_lusterApp->getBaseUrl(),
-    'form_action'      => $_lusterFormAction,
-    'theme_path'       => $_lusterApp->getBaseUrl() . '/assets/default/',
+    'listings'           => $_lusterListings,
+    'grouped'            => $_lusterGrouped,
+    'listing_html'       => $_lusterListingHtml,
+    'categories'         => $_lusterCategories,
+    'category_counts'    => $_lusterCategoryCountMap,
+    'total_count'        => $_lusterTotalCount,
+    'current_category'   => $_lusterCategory,
+    'show_list'          => $_lusterShowList,
+    'browse_by_category' => $_lusterBrowseByCat,
+    'uploads_url'        => $_lusterApp->getBaseUrl() . '/uploads/joined',
+    'base_url'           => $_lusterApp->getBaseUrl(),
+    'form_action'        => $_lusterFormAction,
+    'theme_path'         => $_lusterApp->getBaseUrl() . '/assets/default/',
 ]);
 
 if ($luster_return ?? false) {

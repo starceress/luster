@@ -197,6 +197,7 @@ final class ListingController extends AdminController
             'tafl_cats'       => $categoryRepo->getBySource('tafl'),
             'custom_networks' => $customNetworks,
             'custom_cats'     => $customCats,
+            'custom_cats'     => $customCats,
             'page'            => $page,
             'total_pages'     => $totalPages,
             'total'           => $totalItems,
@@ -231,14 +232,19 @@ final class ListingController extends AdminController
         $tflCats        = $categoryRepo->getBySource('tfl');
         $taflCats       = $categoryRepo->getBySource('tafl');
         $customNetworks = $categoryRepo->getCustomSources();
+        $customCats     = [];
+        foreach ($customNetworks as $cn) {
+            $customCats[$cn] = $categoryRepo->getBySource($cn);
+        }
 
         return $this->adminLayout('admin/listings/add.php', 'Add Listing', 'listings', [
-            'tfl_cats'       => $tflCats,
-            'tafl_cats'      => $taflCats,
+            'tfl_cats'        => $tflCats,
+            'tafl_cats'       => $taflCats,
             'custom_networks' => $customNetworks,
-            'old'            => [],
-            'error'          => '',
-            'default_date'   => date('Y-m-d'),
+            'custom_cats'     => $customCats,
+            'old'             => [],
+            'error'           => '',
+            'default_date'    => date('Y-m-d'),
         ]);
     }
 
@@ -266,6 +272,10 @@ final class ListingController extends AdminController
         $tflCats        = $categoryRepo->getBySource('tfl');
         $taflCats       = $categoryRepo->getBySource('tafl');
         $customNetworks = $categoryRepo->getCustomSources();
+        $customCats     = [];
+        foreach ($customNetworks as $cn) {
+            $customCats[$cn] = $categoryRepo->getBySource($cn);
+        }
 
         $networks = array_values((array) $request->post('cat_network', []));
         $names    = array_values((array) $request->post('cat_name', []));
@@ -292,6 +302,7 @@ final class ListingController extends AdminController
                 'tfl_cats'        => $tflCats,
                 'tafl_cats'       => $taflCats,
                 'custom_networks' => $customNetworks,
+            'custom_cats'     => $customCats,
                 'old'             => $request->post(),
                 'error'           => 'Subject and URL are required.',
                 'field_errors'    => $addFieldErrors,
@@ -313,6 +324,7 @@ final class ListingController extends AdminController
                     'tfl_cats'        => $tflCats,
                     'tafl_cats'       => $taflCats,
                     'custom_networks' => $customNetworks,
+            'custom_cats'     => $customCats,
                     'old'             => $request->post(),
                     'error'           => 'Image must be 2 MB or smaller.',
                     'default_date'    => date('Y-m-d'),
@@ -324,6 +336,7 @@ final class ListingController extends AdminController
                     'tfl_cats'        => $tflCats,
                     'tafl_cats'       => $taflCats,
                     'custom_networks' => $customNetworks,
+            'custom_cats'     => $customCats,
                     'old'             => $request->post(),
                     'error'           => 'Invalid image type.',
                     'default_date'    => date('Y-m-d'),
@@ -459,14 +472,18 @@ final class ListingController extends AdminController
             $opened      = $status !== 'current'
                 ? 'TBA'
                 : trim((string) $request->post('opened', ''));
-            $nets        = array_values((array) $request->post('cat_network', []));
-            $nms         = array_values((array) $request->post('cat_name', []));
-            $catids      = [];
+            $nets       = array_values((array) $request->post('cat_network', []));
+            $nms        = array_values((array) $request->post('cat_name', []));
+            $otherNets  = array_values((array) $request->post('cat_network_other', []));
+            $catids     = [];
             foreach ($nets as $i => $net) {
-                $nm = trim((string) ($nms[$i] ?? ''));
+                $net = trim((string) $net);
+                $nm  = trim((string) ($nms[$i] ?? ''));
+                if ($net === 'other') {
+                    $net = trim((string) ($otherNets[$i] ?? ''));
+                }
                 if ($nm === '' || $net === '') continue;
-                $cat = $categoryRepo->findBySourceAndName($net, $nm);
-                if ($cat) $catids[] = $cat->id;
+                $catids[] = $categoryRepo->findOrCreate($net, $nm);
             }
             $catidStr    = $catids ? '|' . implode('|', $catids) . '|' : '';
             $deleteImage = $request->post('delete_image') === '1';

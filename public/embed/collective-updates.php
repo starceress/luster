@@ -85,7 +85,7 @@ $_lusterFeedUrl = htmlspecialchars(
 // 5. Render fragment
 // ---------------------------------------------------------------------------
 
-$_lusterHtml = $_lusterApp->getView()->renderFragment('addons/updates/feed.php', [
+$_lusterHtml = $_lusterApp->getView()->renderFragment('default/addons/updates/feed.php', [
     'updates'       => $_lusterUpdates,
     'total'         => $_lusterTotal,
     'page'          => $_lusterPage,

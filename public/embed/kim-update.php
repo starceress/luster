@@ -98,7 +98,7 @@ $_lusterLinkList   = $luster_kim_list_url   ?? $_toKimLink($_lusterKimUrls["kim_
 
 $_lusterBaseUrl = $_lusterApp->getBaseUrl();
 
-$_lusterHtml = $_lusterApp->getView()->render('addons/kim/update.php', [
+$_lusterHtml = $_lusterApp->getView()->render('default/addons/kim/update.php', [
     'form_action'      => $_lusterBaseUrl . '/kim/update',
     'csrf_token'       => $_lusterApp->getCSRF()->token(),
     'errors'           => $_lusterError !== ''

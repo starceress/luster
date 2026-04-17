@@ -95,7 +95,7 @@ $_lusterLinkSignup = $luster_kim_signup_url ?? $_toKimLink($_lusterKimUrls["kim_
 
 $_lusterBaseUrl = $_lusterApp->getBaseUrl();
 
-$_lusterHtml = $_lusterApp->getView()->render('addons/kim/list.php', [
+$_lusterHtml = $_lusterApp->getView()->render('default/addons/kim/list.php', [
     'fanlistings_with_counts' => $_lusterFanlistingsWithCounts,
     'base_url'                => $_lusterBaseUrl,
     'theme_path'              => $_lusterBaseUrl . '/assets/default/',

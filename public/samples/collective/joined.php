@@ -6,7 +6,8 @@
  *   $luster_category            = '';    // '' = dropdown, 'all' = all grouped,
  *                                        // or a category name string
  *   $luster_show_list           = false; // categories as link list vs dropdown
- *   $luster_show_all_by_default = true;  // show all grouped below selector
+ *   $luster_show_all_by_default = false; // show all grouped below selector
+ *   $luster_browse_by_category  = true;  // show category index first, then filter
  */
 
 $_lusterRoot  = dirname(__DIR__, 3);
@@ -19,11 +20,9 @@ require 'header.php';
 
   <h1 class="page-heading">Joined listings</h1>
 
-  <p class="text-muted">Fanlistings I'm a member of.</p>
-
   <?php
   $luster_category            = '';
-  $luster_show_all_by_default = true;
+  $luster_browse_by_category  = true;
   $luster_return              = true;
   echo require $_embedPath . '/joined.php';
   ?>

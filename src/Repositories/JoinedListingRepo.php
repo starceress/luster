@@ -182,6 +182,19 @@ final class JoinedListingRepo
      *
      * @return string[]
      */
+    /**
+     * Returns the total number of active joined listings.
+     */
+    public function countActive(): int
+    {
+        $stmt = $this->db->prepare(
+            'SELECT COUNT(*) FROM lstr_joined WHERE active = 1'
+        );
+        $stmt->execute();
+
+        return (int) $stmt->fetchColumn();
+    }
+
     public function getCategories(): array
     {
         $stmt = $this->db->prepare(
@@ -212,6 +225,47 @@ final class JoinedListingRepo
         sort($names);
 
         return $names;
+    }
+
+    /**
+     * Returns a map of category name → count of active listings in that category.
+     * Only active listings are counted. Mirrors the logic in getCategories().
+     *
+     * @return array<string, int>
+     */
+    public function getCategoryCountMap(): array
+    {
+        $stmt = $this->db->prepare(
+            'SELECT categories_json, category, active FROM lstr_joined'
+        );
+        $stmt->execute();
+
+        $counts = [];
+
+        foreach ($stmt->fetchAll() as $row) {
+            if (!(bool) $row['active']) {
+                continue;
+            }
+
+            $json = $row['categories_json'] ?? null;
+
+            if ($json !== null && $json !== '') {
+                $decoded = json_decode($json, true);
+                if (is_array($decoded)) {
+                    foreach ($decoded as $entry) {
+                        if (isset($entry['name']) && $entry['name'] !== '') {
+                            $name          = (string) $entry['name'];
+                            $counts[$name] = ($counts[$name] ?? 0) + 1;
+                        }
+                    }
+                }
+            } elseif (isset($row['category']) && $row['category'] !== '') {
+                $name          = (string) $row['category'];
+                $counts[$name] = ($counts[$name] ?? 0) + 1;
+            }
+        }
+
+        return $counts;
     }
 
     /**

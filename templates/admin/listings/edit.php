@@ -39,9 +39,10 @@ if ($listing->upcoming) {
 $oldStatus = $old['status'] ?? $currentStatus;
 
 // Cat-widget JSON data
-$dataTfl    = json_encode($tfl_cats       ?? [], JSON_HEX_QUOT | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_TAG);
-$dataTafl   = json_encode($tafl_cats      ?? [], JSON_HEX_QUOT | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_TAG);
-$dataCustom = json_encode($custom_networks ?? [], JSON_HEX_QUOT | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_TAG);
+$dataTfl       = json_encode($tfl_cats       ?? [], JSON_HEX_QUOT | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_TAG);
+$dataTafl      = json_encode($tafl_cats      ?? [], JSON_HEX_QUOT | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_TAG);
+$dataCustom    = json_encode($custom_networks ?? [], JSON_HEX_QUOT | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_TAG);
+$dataCustomCats = json_encode($custom_cats   ?? [], JSON_HEX_QUOT | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_TAG);
 
 // Pre-populate existing categories from catid pipe-string
 $existingCats = [];
@@ -120,7 +121,7 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
 <div class="tabs-select-wrap">
   <span class="tabs-select-label">Navigation</span>
   <div class="select-wrap" style="flex:1">
-    <select class="tabs-select select">
+    <select class="tabs-select form-select">
       <option value="general">General</option>
       <option value="fields">Additional Fields</option>
       <option value="codes">Codes</option>
@@ -151,6 +152,7 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
                  data-tfl='<?= $dataTfl ?>'
                  data-tafl='<?= $dataTafl ?>'
                  data-custom='<?= $dataCustom ?>'
+                 data-custom-cats='<?= $dataCustomCats ?>'
                  data-existing='<?= $dataExisting ?>'>
               <div id="cat-rows"></div>
               <a href="#" class="link" id="cat-add" style="font-size:.8125rem;display:inline-block;margin-top:.4rem">+ Add another category</a>
@@ -464,7 +466,7 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
 
   <div class="card">
     <div class="card-head">Add New Field</div>
-    <div class="panel-content">
+    <div class="pc-section">
     <form method="POST" action="<?= $b ?>/admin/listings/<?= (int) $listing->id ?>/fields/add" id="fields-add-form">
       <input type="hidden" name="_csrf"     value="<?= View::e($csrf_token ?? '') ?>">
       <input type="hidden" name="from_edit" value="1">
@@ -627,7 +629,7 @@ $_settingsOpen = $_hasCats || $_hasDonors;
         </div>
         <?php if (!empty($_topLevelCats)): ?>
         <div class="toolbar-select-wrap" style="min-width:130px">
-          <select name="parent_id" class="select">
+          <select name="parent_id" class="form-select">
             <option value="">None (top-level)</option>
             <?php foreach ($_topLevelCats as $tlc): ?>
               <option value="<?= (int)$tlc->id ?>"><?= View::e($tlc->name) ?></option>
@@ -681,7 +683,7 @@ $_settingsOpen = $_hasCats || $_hasDonors;
                   </div>
                   <div>
                     <div class="toolbar-select-wrap">
-                      <select name="parent_id" class="select" style="font-size:.8rem">
+                      <select name="parent_id" class="form-select" style="font-size:.8rem">
                         <option value="">None (top-level)</option>
                         <?php foreach ($code_cats as $pcat): ?>
                           <?php if ($pcat->id === $cat->id || $pcat->parentId !== null) continue; ?>
@@ -786,14 +788,14 @@ $_settingsOpen = $_hasCats || $_hasDonors;
       data-del-name="<?= View::e($_dLabel !== null ? $_dLabel : 'Code #' . (int)$code->id) ?>">
   <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
 </form>
-<dialog id="edit-dialog-<?= (int)$code->id ?>" class="code-edit-dialog">
-  <div class="code-edit-dialog-header">
-    <span class="code-edit-dialog-title">
+<dialog id="edit-dialog-<?= (int)$code->id ?>" class="modal">
+  <div class="modal-header modal-header-sticky">
+    <span class="modal-title">
       Edit code<?= $_dLabel !== null ? ' &mdash; ' . View::e($_dLabel) : ' #' . (int)$code->id ?>
     </span>
-    <button type="button" class="code-edit-dialog-close" data-close-dialog aria-label="Close">&times;</button>
+    <button type="button" class="modal-close" data-close-dialog aria-label="Close">&times;</button>
   </div>
-  <div class="code-edit-dialog-body">
+  <div class="modal-body">
     <div style="text-align:center;margin-bottom:.875rem">
       <img src="<?= View::e($uploads_url . '/' . $code->filename) ?>"
            alt="Code #<?= (int)$code->id ?>"
@@ -813,7 +815,7 @@ $_settingsOpen = $_hasCats || $_hasDonors;
       <div>
         <label class="form-label" style="font-size:.8rem">Status</label>
         <div class="toolbar-select-wrap">
-          <select name="status" class="select" style="width:100%">
+          <select name="status" class="form-select" style="width:100%">
             <option value="approved" <?= $code->status === 'approved' ? 'selected' : '' ?>>&#10003; Live</option>
             <option value="pending"  <?= $code->status === 'pending'  ? 'selected' : '' ?>>&#8987; Pending</option>
           </select>
@@ -823,7 +825,7 @@ $_settingsOpen = $_hasCats || $_hasDonors;
       <div>
         <label class="form-label" style="font-size:.8rem">Donor</label>
         <div class="toolbar-select-wrap">
-          <select name="donor_id" class="select" style="width:100%">
+          <select name="donor_id" class="form-select" style="width:100%">
             <option value="">No donor</option>
             <?php foreach ($code_donors as $dn): ?>
               <option value="<?= (int)$dn->id ?>" <?= $code->donorId === $dn->id ? 'selected' : '' ?>><?= View::e($dn->name) ?></option>
@@ -836,7 +838,7 @@ $_settingsOpen = $_hasCats || $_hasDonors;
       <div>
         <label class="form-label" style="font-size:.8rem">Category</label>
         <div class="toolbar-select-wrap">
-          <select name="cat_ids[]" class="select" style="width:100%">
+          <select name="cat_ids[]" class="form-select" style="width:100%">
             <option value="">None</option>
             <?php
               $_dCatIds = $code_category_ids[$code->id] ?? [];
@@ -872,7 +874,7 @@ $_settingsOpen = $_hasCats || $_hasDonors;
   <div class="codes-panel-col">
     <div class="panel-card">
       <div class="card-head">Upload Codes</div>
-      <div class="panel-content">
+      <div class="pc-section">
         <form method="POST" action="<?= $b ?>/admin/listings/<?= $_fid ?>/codes/upload" enctype="multipart/form-data">
           <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
           <div class="codes-drop">
@@ -946,7 +948,7 @@ $_settingsOpen = $_hasCats || $_hasDonors;
       <label style="display:flex;align-items:center;gap:5px;font-size:.78rem;color:var(--text-dim);cursor:pointer;flex-shrink:0">
         <input type="checkbox" id="codes-select-all">Select all </label>
       <div class="toolbar-select-wrap">
-        <select id="bulk-action-sel" class="select">
+        <select id="bulk-action-sel" class="form-select">
           <option value="delete">Delete</option>
           <option value="approve">Approve</option>
           <option value="reject">Reject</option>
@@ -1130,7 +1132,7 @@ $embedBaseUrl   = rtrim((string) ($cfg['embed_base_url'] ?? ''), '/') ?: rtrim((
     </a>
   </div>
   
-    <div class="panel-content">
+    <div class="pc-section">
 
   <form method="POST" action="<?= $b ?>/admin/listings/<?= (int) $listing->id ?>/embed">
     <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">

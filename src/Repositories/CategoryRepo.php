@@ -106,11 +106,7 @@ final class CategoryRepo
 
     public function getCustomSources(): array
     {
-        $stmt = $this->db->pdo()->query(
-            "SELECT DISTINCT source FROM lstr_categories WHERE source NOT IN ('tfl', 'tafl') ORDER BY source"
-        );
-
-        return $stmt ? $stmt->fetchAll(\PDO::FETCH_COLUMN) : [];
+        return $this->getAllCustomNetworkNames();
     }
 
     public function update(int $id, string $name, ?int $parentId, string $source = 'custom'): void
@@ -148,14 +144,59 @@ final class CategoryRepo
      */
     public function getCustomNetworks(): array
     {
+        return $this->getAllCustomNetworkNames();
+    }
+
+    /**
+     * Returns every custom network name regardless of how it was created.
+     *
+     * Two storage patterns exist in lstr_categories:
+     *   A) Network registration rows: source='custom', name=<network name>
+     *      (created by the Categories admin page and JoinedController)
+     *   B) Category rows: source=<network name>, name=<category name>
+     *      (created by findOrCreate in ListingController)
+     *
+     * Both are unified here so callers always see the complete list.
+     *
+     * @return string[]
+     */
+    private function getAllCustomNetworkNames(): array
+    {
         $stmt = $this->db->prepare(
-            "SELECT DISTINCT name FROM lstr_categories
-             WHERE source = 'custom'
-             ORDER BY name ASC"
+            "SELECT DISTINCT net FROM (
+                SELECT name  AS net FROM lstr_categories WHERE source = 'custom'
+                UNION
+                SELECT source AS net FROM lstr_categories WHERE source NOT IN ('tfl', 'tafl', 'custom')
+             ) AS all_nets
+             ORDER BY net ASC"
         );
         $stmt->execute();
 
-        return array_column($stmt->fetchAll(), 'name');
+        return array_column($stmt->fetchAll(), 'net');
+    }
+
+    /**
+     * Returns all categories grouped by their custom network name.
+     * Result: ['NetworkName' => [['id' => int, 'name' => string], ...], ...]
+     * Only networks that have actual category rows (source = network name) are included.
+     *
+     * @return array<string, array<int, array{id: int, name: string}>>
+     */
+    public function getCustomCats(): array
+    {
+        $stmt = $this->db->prepare(
+            "SELECT source, id, name FROM lstr_categories
+             WHERE source NOT IN ('tfl', 'tafl', 'custom')
+             ORDER BY source ASC, name ASC"
+        );
+        $stmt->execute();
+
+        $result = [];
+        foreach ($stmt->fetchAll() as $row) {
+            $net = (string) $row['source'];
+            $result[$net][] = ['id' => (int) $row['id'], 'name' => (string) $row['name']];
+        }
+        return $result;
     }
 
     /**

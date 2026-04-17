@@ -453,9 +453,11 @@ final class SettingsController extends AdminController
         }
 
         if ($newPassword !== '') {
-            if (strlen($newPassword) < 8) {
-                $session->set('lstr_flash_error', 'New password must be at least 8 characters.');
-                $session->set('lstr_flash_field_errors', json_encode(['admin_new_password' => ['New password must be at least 8 characters.']]));
+            $vp = new Validator(['admin_new_password' => $newPassword]);
+            $vp->field('admin_new_password')->minLength(12)->maxLength(255);
+            if ($vp->fails()) {
+                $session->set('lstr_flash_error', implode(' ', $vp->allErrors()));
+                $session->set('lstr_flash_field_errors', json_encode($vp->errors()));
                 return Response::redirect($baseUrl . '/admin/settings#panel-admin');
             }
             if ($newPassword !== $confirmPassword) {

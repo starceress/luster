@@ -18,8 +18,7 @@ $pageUrl = static fn(int $p): string => $b . '/admin/errorlog?page=' . $p;
 
 <?php if ($total > 0): ?>
 <div class="toolbar">
-  <span class="result-count"><?= (int) $total ?> entr<?= $total === 1 ? 'y' : 'ies' ?> logged</span>
-  <div class="actions-row">
+  <div class="actions-row" style="margin-left: auto;">
     <a href="<?= $b ?>/admin/errorlog/export" class="btn btn-quaternary btn-sm"><?= View::icon('download') ?> Export CSV</a>
     <form method="POST" action="<?= $b ?>/admin/errorlog/flush" id="flush-logs-form">
       <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
@@ -29,13 +28,19 @@ $pageUrl = static fn(int $p): string => $b . '/admin/errorlog?page=' . $p;
 </div>
 <?php endif; ?>
 
-<div class="card">
   <?php if (empty($rows)): ?>
+  <div class="card">
     <div class="empty">
-      <?= View::icon('check-badge', ['width' => '40', 'height' => '40']) ?>
-      <span>All clear &mdash; no errors have been logged.</span>
+      <span class="empty-icon"><?= View::icon('caution', ['width' => 32, 'height' => 32]) ?></span>
+      No activity logged yet.
     </div>
+  </div>
   <?php else: ?>
+  
+  <div class="card">
+    <div class="card-head">Error Log
+      <span class="row-sub">(Showing <?= count($rows) ?> of <?= (int) $total ?> entr<?= $total === 1 ? 'y' : 'ies' ?>)</span>
+    </div>
     <div class="table-wrap">
       <table class="data-table">
         <thead>

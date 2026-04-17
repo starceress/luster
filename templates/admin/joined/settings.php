@@ -24,7 +24,7 @@ $b = rtrim(View::e($base_url), '/');
 <form method="POST" action="<?= $b ?>/admin/joined/settings">
   <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
 
-  <div class="card listing-field-card">
+  <div class="gradient-card">
 
     <div class="listing-field-section">
       <div class="pc-section-label">Display Preferences</div>

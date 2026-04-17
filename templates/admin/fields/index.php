@@ -95,29 +95,29 @@ $id = (int) $listing->id;
     <div class="add-grid">
 
       <!-- Field Name -->
-      <div class="fg">
-        <label for="af-name">
+      <div>
+        <label class="form-label-sm" for="af-name">
           Field Name
           <span class="form-hint" style="display:inline">(letters, numbers, underscores)</span>
         </label>
-        <input type="text" id="af-name" name="name"
+        <input type="text" class="form-input" id="af-name" name="name"
                maxlength="30" pattern="[a-zA-Z0-9_]+"
                placeholder="e.g. fave_song" required
                title="Letters, numbers and underscores only">
       </div>
 
       <!-- Label -->
-      <div class="fg">
-        <label for="af-label">Label</label>
-        <input type="text" id="af-label" name="label"
+      <div>
+        <label class="form-label-sm" for="af-label">Label</label>
+        <input type="text" class="form-input" id="af-label" name="label"
                maxlength="100" placeholder="e.g. Favourite Song" required>
       </div>
 
       <!-- Type -->
-      <div class="fg">
-        <label for="af-type">Type</label>
+      <div>
+        <label class="form-label-sm" for="af-type">Type</label>
         <div class="select-wrap">
-        <select id="af-type" name="type">
+        <select class="form-select" id="af-type" name="type">
           <option value="text">text</option>
           <option value="dropdown">Drop Down</option>
           <option value="checkbox">checkbox</option>
@@ -127,19 +127,19 @@ $id = (int) $listing->id;
 
       <!-- Options (shown only when type = dropdown/checkbox) -->
       <div id="af-options-row" style="display:none;grid-column:1 / -1">
-        <div class="fg">
-          <label for="af-options">
+        <div>
+          <label class="form-label-sm" for="af-options">
             Options
             <span class="form-hint" style="display:inline">(comma-separated, for select type only)</span>
           </label>
-          <textarea id="af-options" name="options" rows="2"
+          <textarea class="form-textarea" id="af-options" name="options" rows="2"
                     placeholder="e.g. Option A, Option B, Option C"></textarea>
         </div>
       </div>
 
       <!-- Required checkbox -->
-      <div class="fg-check">
-        <label for="af-required">Required</label>
+      <div>
+        <label class="form-label-sm" for="af-required">Required</label>
         <label class="form-check" style="margin-top:.15rem">
           <input type="checkbox" id="af-required" name="required" value="1">
           <span class="form-check-label">Yes</span>

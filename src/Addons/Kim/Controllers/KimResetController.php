@@ -309,7 +309,7 @@ final class KimResetController
         $baseUrl = $this->app->getBaseUrl();
         $siteName = (string) $this->app->getConfig()->get('site_name', 'Luster');
 
-        $content = $view->render('addons/kim/' . $template, $data);
+        $content = $view->render('default/addons/kim/' . $template, $data);
 
         $layoutData = array_merge($data, [
             'content'      => $content,

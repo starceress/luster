@@ -27,7 +27,7 @@ $b = rtrim(View::e($base_url), '/');
 <div class="toolbar">
   <div class="toolbar-left"></div>
   <div class="actions-row">
-    <a href="<?= $b ?>/admin/kim/settings" class="btn btn-quaternary btn-sm">KIM Settings</a>
+    <a href="<?= $b ?>/admin/kim/settings" class="btn btn-ghost btn-sm">Display Settings</a>
   </div>
 </div>
 
@@ -39,6 +39,7 @@ $b = rtrim(View::e($base_url), '/');
   </div>
 <?php else: ?>
   <div class="card">
+    <div class="card-head">Keep In Mind List</div>
     <div class="table-wrap">
     <table class="data-table">
       <thead>
@@ -74,10 +75,10 @@ $b = rtrim(View::e($base_url), '/');
           </td>
           <td class="act-col">
             <a href="<?= $b ?>/admin/kim/<?= (int) $listing->id ?>/show"
-               class="btn btn-quaternary btn-sm">View</a>
+               class="btn btn-primary btn-sm">View</a>
             <?php if ($approved > 0): ?>
               <a href="<?= $b ?>/admin/kim/<?= (int) $listing->id ?>/mass-email"
-                 class="btn btn-quaternary btn-sm">Mass Email</a>
+                 class="btn btn-quaternary btn-sm">Bulk Email</a>
             <?php endif; ?>
           </td>
         </tr>
