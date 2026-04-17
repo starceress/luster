@@ -7,6 +7,7 @@ namespace Luster\Controllers\Public;
 use Luster\Core\Application;
 use Luster\Core\Captcha;
 use Luster\Core\Countries;
+use Luster\Core\PasswordPolicy;
 use Luster\Core\RateLimit;
 use Luster\Core\Request;
 use Luster\Core\Response;
@@ -155,6 +156,9 @@ final class UpdateController
         }
         if ($country !== '') {
             $v->field('country')->maxLength(100);
+        }
+        if ($newPassword !== '') {
+            PasswordPolicy::applyOptional($v->field('new_password'), $newPassword);
         }
 
         foreach ($fields as $field) {

@@ -7,6 +7,7 @@ namespace Luster\Controllers\Public;
 use Luster\Core\Application;
 use Luster\Core\Captcha;
 use Luster\Core\Mailer;
+use Luster\Core\PasswordPolicy;
 use Luster\Core\RateLimit;
 use Luster\Core\Request;
 use Luster\Core\Response;
@@ -38,7 +39,7 @@ use Luster\Repositories\MemberRepo;
  *  - Token expiry: 1 hour
  *  - Email enumeration prevented: always redirects to /sent regardless of outcome
  *  - Only approved (non-pending) members can request a reset
- *  - New password validated for presence and maxLength(255) only
+ *  - New password validated against the shared password policy
  */
 final class ResetController
 {
@@ -285,7 +286,7 @@ final class ResetController
         $newPasswordConfirm = (string) $request->post('new_password_confirm', '');
 
         $v = new Validator(['new_password' => $newPassword]);
-        $v->field('new_password')->required()->maxLength(255);
+        PasswordPolicy::apply($v->field('new_password'));
 
         if ($v->fails()) {
             return $this->renderConfirmForm(

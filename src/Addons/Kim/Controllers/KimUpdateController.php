@@ -8,6 +8,7 @@ use Luster\Addons\Kim\KimMemberRepo;
 use Luster\Core\Application;
 use Luster\Core\Captcha;
 use Luster\Core\Mailer;
+use Luster\Core\PasswordPolicy;
 use Luster\Core\Request;
 use Luster\Core\Response;
 use Luster\Core\Validator;
@@ -198,6 +199,20 @@ final class KimUpdateController
         $newPasswordConfirm = (string) $request->post('new_password_confirm', '');
 
         if ($newPassword !== '') {
+            $passwordValidator = new Validator(['new_password' => $newPassword]);
+            PasswordPolicy::apply($passwordValidator->field('new_password'));
+            if ($passwordValidator->fails()) {
+                $session->set('lstr_flash_error', implode(' ', $passwordValidator->allErrors()));
+                $session->set('lstr_flash_old', [
+                    'name'          => $name,
+                    'current_email' => $currentEmail,
+                    'fanlisting_id' => (string) $fanlistingId,
+                    'new_email'     => $newEmail,
+                    'new_url'       => $newUrl,
+                    'send_copy'     => (string) $request->post('send_copy', ''),
+                ]);
+                return Response::redirect($baseUrl . '/kim/update');
+            }
             if ($newPassword !== $newPasswordConfirm) {
                 $session->set('lstr_flash_error', 'New passwords do not match.');
                 $session->set('lstr_flash_old', [
@@ -210,7 +225,7 @@ final class KimUpdateController
                 ]);
                 return Response::redirect($baseUrl . '/kim/update');
             }
-$updateFields['password'] = password_hash($newPassword, PASSWORD_ARGON2ID);
+            $updateFields['password'] = password_hash($newPassword, PASSWORD_ARGON2ID);
             $updatedFields[] = 'password';
         }
 

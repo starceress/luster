@@ -9,6 +9,7 @@ use Luster\Addons\Kim\KimPasswordResetRepo;
 use Luster\Core\Application;
 use Luster\Core\Captcha;
 use Luster\Core\Mailer;
+use Luster\Core\PasswordPolicy;
 use Luster\Core\Request;
 use Luster\Core\Response;
 use Luster\Core\Validator;
@@ -216,7 +217,7 @@ final class KimResetController
         $newPasswordConfirm = (string) $request->post('new_password_confirm', '');
 
         $v = new Validator(['new_password' => $newPassword]);
-        $v->field('new_password')->required()->maxLength(255);
+        PasswordPolicy::apply($v->field('new_password'));
 
         if ($v->fails()) {
             return $this->renderConfirmForm($rawToken, true, implode(' ', $v->allErrors()));
