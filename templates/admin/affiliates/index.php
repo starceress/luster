@@ -74,7 +74,7 @@ $canReorder = ($search ?? '') === '' && ($filter_fid ?? 'collective') !== '';
 
 <!--  Reorder mode banner  -->
 <div class="neb-reorder-banner">
-  <div style="display:flex;align-items:center;gap:.6rem">
+  <div class="reorder-banner-copy">
     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
     <strong>Reorder mode</strong> - drag rows to rearrange. Changes are saved automatically.
   </div>
@@ -141,20 +141,20 @@ $canReorder = ($search ?? '') === '' && ($filter_fid ?? 'collective') !== '';
   <table class="data-table mem-table" data-reorder-url="<?= View::e($reorder_url) ?>">
     <thead>
       <tr>
-        <th style="width:40px"></th>
+        <th class="table-col-xs"></th>
         <th>Name</th>
       </tr>
     </thead>
     <tbody>
       <?php foreach ($affiliates as $aff): ?>
       <tr draggable="true" data-id="<?= (int) $aff->id ?>">
-        <td style="width:40px;text-align:center">
+        <td class="table-col-xs table-cell-center">
           <span class="drag-handle" title="Drag to reorder"> ¿</span>
         </td>
         <td>
           <span class="text-strong"><?= View::e($aff->name) ?></span>
           <?php if (!$aff->active): ?>
-            <span class="badge badge-inactive" style="margin-left:.4rem;font-size:.7rem">Inactive</span>
+            <span class="badge badge-inactive badge-inline-sm">Inactive</span>
           <?php endif; ?>
         </td>
       </tr>
@@ -169,7 +169,7 @@ $canReorder = ($search ?? '') === '' && ($filter_fid ?? 'collective') !== '';
   <table class="data-table mem-table">
     <thead>
       <tr>
-        <th style="width:56px">
+        <th class="table-col-sm">
           <a href="<?= View::e($sortUrl('sort_order')) ?>" class="sort-th<?= $sort === 'sort_order' ? ' sort-active' : '' ?>">
             Sort # <?= View::sortIcon('sort_order', $sort, $dir) ?>
           </a>
@@ -203,14 +203,13 @@ $canReorder = ($search ?? '') === '' && ($filter_fid ?? 'collective') !== '';
       <tr>
         <td class="text-dim" data-label="Sort #"><?= (int) $aff->sortOrder ?></td>
         <td data-label="Name">
-          <div style="display:inline-flex;align-items:center;gap:.4rem">
+          <div class="inline-link-row">
             <a href="<?= $b ?>/admin/affiliates/<?= (int) $aff->id ?>/edit"
                class="link text-strong"><?= View::e($aff->name) ?></a>
             <?php if ($aff->url !== ''): ?>
             <a href="<?= View::e($aff->url) ?>" target="_blank" rel="noopener noreferrer"
-               class="text-dim" title="Visit site" style="display:inline-flex;align-items:center;line-height:1">
-              <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5"
-                   style="width:11px;height:11px;flex-shrink:0">
+               class="text-dim icon-link-inline" title="Visit site">
+              <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5">
                 <path d="M5 2H2a1 1 0 0 0-1 1v7a1 1 0 0 0 1 1h7a1 1 0 0 0 1-1V7M8 1h3m0 0v3m0-3L5 7"/>
               </svg>
             </a>
@@ -239,13 +238,13 @@ $canReorder = ($search ?? '') === '' && ($filter_fid ?? 'collective') !== '';
              class="btn btn-tertiary btn-sm">Edit</a>
 
           <form method="POST" action="<?= $b ?>/admin/affiliates/<?= (int) $aff->id ?>/toggle"
-                style="display:contents">
+                class="action-form-inline">
             <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
             <button type="submit" class="btn btn-quaternary btn-sm"><?= $aff->active ? 'Disable' : 'Enable' ?></button>
           </form>
 
           <form method="POST" action="<?= $b ?>/admin/affiliates/<?= (int) $aff->id ?>/delete"
-                style="display:contents"
+                class="action-form-inline"
                 data-del-modal data-del-entity="affiliate"
                 data-del-name="<?= View::e($aff->name) ?>">
             <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">

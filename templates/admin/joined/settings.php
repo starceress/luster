@@ -21,7 +21,7 @@ $b = rtrim(View::e($base_url), '/');
   <div class="alert alert-error"><?= View::e($error) ?></div>
 <?php endif; ?>
 
-<form method="POST" action="<?= $b ?>/admin/joined/settings">
+<form method="POST" action="<?= $b ?>/admin/joined/settings" class="js-warn-unsaved">
   <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
 
   <div class="gradient-card">
@@ -30,15 +30,18 @@ $b = rtrim(View::e($base_url), '/');
       <div class="pc-section-label">Display Preferences</div>
 
       <!-- Sort order -->
-      <div class="listing-field-row">
+      <div class="listing-field-row listing-field-row--top">
         <label class="listing-field-label" for="display_mode">Sort Listings By</label>
-        <div class="select-wrap">
-          <select id="display_mode" name="display_mode" class="form-select">
-            <option value="all"<?=      ($display_mode ?? 'all') === 'all'      ? ' selected' : '' ?>>Show All</option>
-            <option value="network"<?=  ($display_mode ?? 'all') === 'network'  ? ' selected' : '' ?>>Group by Network</option>
-            <option value="category"<?= ($display_mode ?? 'all') === 'category' ? ' selected' : '' ?>>Group by Category</option>
-            <option value="status"<?=   ($display_mode ?? 'all') === 'status'   ? ' selected' : '' ?>>Group by Status</option>
-          </select>
+        <div>
+          <div class="select-wrap">
+            <select id="display_mode" name="display_mode" class="form-select">
+              <option value="all"<?=      ($display_mode ?? 'all') === 'all'      ? ' selected' : '' ?>>Show All</option>
+              <option value="network"<?=  ($display_mode ?? 'all') === 'network'  ? ' selected' : '' ?>>Group by Network</option>
+              <option value="category"<?= ($display_mode ?? 'all') === 'category' ? ' selected' : '' ?>>Group by Category</option>
+              <option value="status"<?=   ($display_mode ?? 'all') === 'status'   ? ' selected' : '' ?>>Group by Status</option>
+            </select>
+          </div>
+          <p class="form-hint">Choose how the joined fanlistings table is grouped in the admin view.</p>
         </div>
       </div>
 
@@ -46,8 +49,8 @@ $b = rtrim(View::e($base_url), '/');
       <div class="listing-field-row listing-field-row--top">
         <label class="listing-field-label" for="per_page">Items Per Page</label>
         <div>
-          <input type="number" id="per_page" name="per_page" class="form-input"
-                 min="5" max="50" style="max-width:120px"
+          <input type="number" id="per_page" name="per_page" class="form-input form-input--compact"
+                 min="5" max="50"
                  value="<?= (int) ($per_page ?? 10) ?>">
           <p class="form-hint">How many joined listings to show per page in the table view. Min 5, max 50.</p>
         </div>

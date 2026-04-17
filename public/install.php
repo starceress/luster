@@ -745,6 +745,7 @@ function renderPage(string $view, array $errors, string $csrf, int $step, array 
 
 function renderHeader(string $title, int $step): void
 {
+    require_once __DIR__ . '/../templates/admin/_css_assets.php';
     ?>
 <!DOCTYPE html>
 <html lang="en" data-theme="dark">
@@ -755,7 +756,7 @@ function renderHeader(string $title, int $step): void
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=DM+Sans:wght@400;500;600&family=DM+Mono&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="./assets/css/admin.css">
+<?= lusterAdminCssLinks('./assets/css/admin', __DIR__ . '/assets/css/admin', null, true) . PHP_EOL ?>
 <script>
 (function(){
   var t=localStorage.getItem('lstr_theme')||'dark';

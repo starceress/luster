@@ -274,7 +274,7 @@ $flSortUrl = static function (string $col) use ($b, $flSort, $flDir, $search, $f
             <div><?= $app ?>
             <?php if ($pend > 0): ?>
                 <a href="<?= $b ?>/admin/members/<?= (int) $fl->id ?>?status=pending"
-                   class="badge badge-pending" style="margin-left: .5rem;">+ <?= $pend ?></a>
+                   class="badge badge-pending badge-inline-sm">+ <?= $pend ?></a>
             </div>
             <?php endif; ?>
           </td>
@@ -301,7 +301,7 @@ $flSortUrl = static function (string $col) use ($b, $flSort, $flDir, $search, $f
 <?php foreach ($listings as $fl): ?>
 <form id="del-fl-<?= (int) $fl->id ?>" method="POST"
       action="<?= $b ?>/admin/listings/<?= (int) $fl->id ?>/delete"
-      style="display:none"
+      class="is-hidden"
       data-del-modal data-del-entity="listing"
       data-del-name="<?= View::e($fl->name) ?>">
   <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">

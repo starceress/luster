@@ -63,9 +63,9 @@ $latestDate = !empty($updates) ? date('M Y', strtotime($updates[0]->postedAt)) :
   <div class="card">
     <div class="empty">
       <svg class="empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 11a9 9 0 0 1 9 9"/><path d="M4 4a16 16 0 0 1 16 16"/><circle cx="5" cy="19" r="1"/></svg>
-      <div style="font-weight:600;color:var(--text)">No updates posted yet</div>
+      <div class="empty-title">No updates posted yet</div>
       <div>Post your first update to let visitors know what&rsquo;s new.</div>
-      <a href="<?= View::e($addUrl) ?>" class="btn btn-primary btn-sm" style="margin-top:.5rem">
+      <a href="<?= View::e($addUrl) ?>" class="btn btn-primary btn-sm btn-spaced-top">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
         Add Update
       </a>
@@ -82,13 +82,13 @@ $latestDate = !empty($updates) ? date('M Y', strtotime($updates[0]->postedAt)) :
     </div>
     <?php if ($latestDate !== null): ?>
     <div class="ustat">
-      <div class="ustat-val" style="font-size:1.1rem;color:var(--accent)"><?= View::e($latestDate) ?></div>
+      <div class="ustat-val ustat-val-sm-accent"><?= View::e($latestDate) ?></div>
       <div class="ustat-lbl">Latest Month</div>
     </div>
     <?php endif; ?>
     <?php if ($pages > 1): ?>
     <div class="ustat">
-      <div class="ustat-val" style="font-size:1.1rem;color:var(--text-muted)"><?= (int) $page ?> / <?= (int) $pages ?></div>
+      <div class="ustat-val ustat-val-sm-muted"><?= (int) $page ?> / <?= (int) $pages ?></div>
       <div class="ustat-lbl">Page</div>
     </div>
     <?php endif; ?>
@@ -98,7 +98,7 @@ $latestDate = !empty($updates) ? date('M Y', strtotime($updates[0]->postedAt)) :
   <div class="card">
     <div class="card-head">
       <span><?= $is_collective ? 'Collective Updates' : 'Updates &mdash; ' . View::e($listing->name) ?></span>
-      <span style="font-size:.72rem;color:var(--text-dim)"><?= (int) $total ?> update<?= $total === 1 ? '' : 's' ?></span>
+      <span class="updates-head-count"><?= (int) $total ?> update<?= $total === 1 ? '' : 's' ?></span>
     </div>
     <div class="updates-timeline">
       <?php foreach ($updates as $u): ?>
@@ -127,7 +127,7 @@ $latestDate = !empty($updates) ? date('M Y', strtotime($updates[0]->postedAt)) :
                 </a>
                 <form method="POST"
                       action="<?= $b ?>/admin/updates/entry/<?= (int) $u->id ?>/delete"
-                      style="display:inline"
+                      class="action-form-inline"
                       data-confirm="<?= $confirmMsg($u->title) ?>">
                   <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
                   <button type="submit" class="btn btn-danger btn-sm">

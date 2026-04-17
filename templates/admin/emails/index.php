@@ -137,10 +137,10 @@ if (!function_exists('smtpVal')) {
 </div>
 
 <div id="tab-templates" class="tabs-panel<?= $active_tab === 'templates' ? ' active' : '' ?>">
-  <div style="display: flex; align-items:center;gap:.75rem; margin-bottom: .75rem;">
-    <form method="GET" action="<?= $b ?>/admin/emails" style="display:contents">
+  <div class="email-scope-row">
+    <form method="GET" action="<?= $b ?>/admin/emails" class="action-form-inline">
       <input type="hidden" name="tab" value="templates">
-      <div class="select-wrap" style="min-width: 0;">
+      <div class="select-wrap email-scope-select">
         <select name="listing" class="form-select js-autosubmit" >
           <option value="global"<?= $isGlobal ? ' selected' : '' ?>>Global Templates (default for all listings)</option>
           <?php if (!empty($all_listings)): ?>
@@ -176,7 +176,7 @@ if (!function_exists('smtpVal')) {
        data-listing-subject="<?= View::e($listing?->subject ?? 'Music') ?>"
        data-listing-url="<?= View::e($listing?->url ?? 'https://myfanlisting.com') ?>"
        data-is-global="<?= $isGlobal ? '1' : '0' ?>"
-       style="display:none"></div>
+       class="is-hidden"></div>
 
   <form id="et-save-form" method="POST" action="<?= $b ?>/admin/email-templates/save">
     <input type="hidden" name="_csrf"  value="<?= View::e($csrf_token) ?>">
@@ -192,7 +192,7 @@ if (!function_exists('smtpVal')) {
                     data-et-tab="<?= View::e($type) ?>">
               <?= View::e($navLabels[$type]) ?>
               <?php if (!$isGlobal && isset($cards[$type]) && $cards[$type]['isCustomised']): ?>
-                <span style="margin-left:auto;">&#x2726;</span>
+                <span class="pc-head-badge">&#x2726;</span>
               <?php endif; ?>
             </button>
           <?php endforeach; ?>
@@ -206,7 +206,7 @@ if (!function_exists('smtpVal')) {
         <div class="et-panel<?= $i === 0 ? ' active' : '' ?>"
              id="et-tab-<?= View::e($type) ?>">
 
-          <div class="gradient-card<?= !$card['isEnabled'] ? ' et-card-disabled' : '' ?>" style="overflow:hidden">
+          <div class="gradient-card<?= !$card['isEnabled'] ? ' et-card-disabled' : '' ?>">
 
             <!-- Card header -->
             <div class="pc-head">
@@ -214,7 +214,7 @@ if (!function_exists('smtpVal')) {
                 <div class="pc-head-title"><?= View::e($typeLabels[$type]) ?></div>
                 <div class="pc-head-sub"><?= View::e($typeHints[$type]) ?></div>
               </div>
-              <div style="display:flex; align-items:center; gap:.6rem; flex-shrink:0; margin-left: auto;">
+              <div class="pc-head-actions">
                 <?php if (!$isGlobal): ?>
                   <?php if ($card['isCustomised']): ?>
                     <span class="badge badge-info">Custom</span>
@@ -233,12 +233,12 @@ if (!function_exists('smtpVal')) {
               </div>
             </div>
 
-            <div class="modal-warning"<?= $card['isEnabled'] ? ' style="display:none"' : '' ?>><?= View::icon('alert') ?> This template is <b>disabled</b> - no email(s) will be sent for this event.
+            <div class="modal-warning<?= $card['isEnabled'] ? ' is-hidden' : '' ?>"><?= View::icon('alert') ?> This template is <b>disabled</b> - no email(s) will be sent for this event.
 </div>
 
             <!-- Fields -->
             <div class="pc-section">
-              <div class="form-group" style="margin-bottom:.875rem">
+              <div class="form-group form-group-preview-gap">
                 <label class="form-label" for="et-subject-<?= View::e($type) ?>">Subject</label>
                 <input class="form-input et-subject"
                        type="text"
@@ -256,19 +256,18 @@ if (!function_exists('smtpVal')) {
                           rows="9"
                           data-type="<?= View::e($type) ?>"><?= View::e($card['fillBody']) ?></textarea>
               </div>
-              <div class="et-preview-panel" id="et-preview-<?= View::e($type) ?>"
-                   style="display:none;margin-top:1rem;border:1px solid var(--border);border-radius:6px;overflow:hidden">
-                <div style="padding:.5rem .875rem;background:var(--surface-alt,var(--sidebar));border-bottom:1px solid var(--border);font-size:.72rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.04em">
-                  Preview <span style="font-weight:400;text-transform:none;letter-spacing:0">(example values)</span>
+              <div class="et-preview-panel email-preview-panel is-hidden" id="et-preview-<?= View::e($type) ?>">
+                <div class="email-preview-panel-head">
+                  Preview <span>(example values)</span>
                   <?php if ($isGlobal): ?>
-                    <span style="color:var(--text-dim);margin-left:.5rem">· listing tokens show generic placeholders</span>
+                    <span class="email-preview-note">· listing tokens show generic placeholders</span>
                   <?php endif; ?>
                 </div>
-                <div style="padding:.875rem 1rem">
-                  <div style="font-size:.8rem;color:var(--text-muted);margin-bottom:.35rem;font-weight:600">Subject</div>
-                  <div class="et-preview-subject" style="font-family:'DM Mono',monospace;font-size:.82rem;color:var(--text);margin-bottom:.875rem;padding:.4rem .6rem;background:var(--surface-alt,var(--sidebar));border-radius:4px"></div>
-                  <div style="font-size:.8rem;color:var(--text-muted);margin-bottom:.35rem;font-weight:600">Body</div>
-                  <pre class="et-preview-body" style="font-family:'DM Mono',monospace;font-size:.8rem;color:var(--text);white-space:pre-wrap;word-break:break-word;margin:0;padding:.6rem;background:var(--surface-alt,var(--sidebar));border-radius:4px;line-height:1.6"></pre>
+                <div class="email-preview-panel-body">
+                  <div class="email-preview-label">Subject</div>
+                  <div class="et-preview-subject email-preview-subject"></div>
+                  <div class="email-preview-label">Body</div>
+                  <pre class="et-preview-body email-preview-pre"></pre>
                 </div>
               </div>
             </div>
@@ -315,7 +314,7 @@ if (!function_exists('smtpVal')) {
         method="POST"
         action="<?= $b ?>/admin/email-templates/reset"
         data-confirm="<?= View::e($resetConfirm) ?>"
-        style="display:none">
+        class="is-hidden">
     <input type="hidden" name="_csrf"  value="<?= View::e($csrf_token) ?>">
     <input type="hidden" name="scope"  value="<?= View::e($scope) ?>">
     <input type="hidden" name="type"   value="<?= View::e($type) ?>">
@@ -363,7 +362,7 @@ if (!function_exists('smtpVal')) {
             </select>
           </div>
           <p class="form-hint">Selecting fills the subject and message fields. You can edit before sending.</p>
-          <a href="<?= $b ?>/admin/emails?tab=custom" class="btn btn-tertiary btn-sm" style="width: 100%; justify-content: center;">Manage Templates</a>
+          <a href="<?= $b ?>/admin/emails?tab=custom" class="btn btn-tertiary btn-sm btn-block-center">Manage Templates</a>
         </div>
       </div>
       <?php endif; ?>
@@ -378,8 +377,7 @@ if (!function_exists('smtpVal')) {
             <input type="hidden" name="tpl_body"    id="me-save-body">
             <input type="text"   name="tpl_name"    id="me-save-name"
                    class="form-input" placeholder="Template name&hellip;" maxlength="150">
-            <button type="submit" class="btn btn-secondary btn-sm" id="me-save-btn"
-                    style="width:100%;justify-content:center">Save Template</button>
+            <button type="submit" class="btn btn-secondary btn-sm btn-block-center" id="me-save-btn">Save Template</button>
           </form>
         </div>
       </div>
@@ -414,7 +412,7 @@ if (!function_exists('smtpVal')) {
         <div class="pc-head">
           <div class="pc-head-icon pc-head-icon-bg"><?= View::icon('email') ?></div>
           <div class="pc-head-title">Bulk Email</div>
-          <span class="badge badge-info-pink" style="margin-left:auto" id="me-listing-chip">
+          <span class="badge badge-info-pink pc-head-badge" id="me-listing-chip">
             <span id="me-chip-label">All Listings</span>
           </span>
         </div>
@@ -474,7 +472,7 @@ if (!function_exists('smtpVal')) {
           <button type="button" class="btn btn-primary" id="me-send-btn"><?= View::icon('send') ?> Send</button>
           <button type="button" class="btn btn-preview" id="me-preview-btn">Preview</button>
           <button type="button" class="btn btn-ghost js-form-reset">Clear</button>
-          <div style="flex:1"></div>
+          <div class="composer-footer-spacer"></div>
           <a href="<?= $b ?>/admin/members" class="btn btn-danger">Cancel</a>
         </div>
 
@@ -484,7 +482,7 @@ if (!function_exists('smtpVal')) {
   </div>
 
   <!-- Preview modal -->
-  <div class="modal-backdrop" id="me-preview-modal" style="display:none"
+  <div class="modal-backdrop is-hidden" id="me-preview-modal"
        data-site-name="<?= View::e($site_name_val ?? '') ?>"
        data-from-name="<?= View::e($from_name_val  ?? '') ?>"
        data-from-email="<?= View::e($from_email_val ?? '') ?>">
@@ -518,7 +516,7 @@ if (!function_exists('smtpVal')) {
       <div class="modal-footer" id="me-footer-preview">
         <button class="btn btn-ghost" id="me-close-preview-btn">Close</button>
       </div>
-      <div id="me-footer-confirm" style="display:none">
+      <div id="me-footer-confirm" class="is-hidden">
         <div class="me-confirm-warning"><?= View::icon('caution') ?>Are you sure you want to send this email? This action cannot be undone.</div>
         <div class="modal-footer">
           <button type="button" class="btn btn-primary" id="me-confirm-send-btn"><?= View::icon('send') ?> Send</button>
@@ -548,7 +546,7 @@ if (!function_exists('smtpVal')) {
         <input type="hidden" name="_csrf"   value="<?= View::e($csrf_token) ?>">
         <input type="hidden" name="referer" value="<?= View::e($b . '/admin/emails?tab=custom') ?>">
 
-        <div style="padding:1.25rem 1.5rem">
+        <div class="custom-template-body">
 
           <div class="form-group">
             <label class="form-label" for="new-tpl-name">Template Name <span class="req">*</span></label>
@@ -562,7 +560,7 @@ if (!function_exists('smtpVal')) {
                    maxlength="255" placeholder="(optional - leave blank to fill in when composing)">
           </div>
 
-          <div class="form-group" style="margin-bottom:0">
+          <div class="form-group form-group--compact">
             <label class="form-label" for="new-tpl-body">Body <span class="req">*</span></label>
             <textarea id="new-tpl-body" name="tpl_body" class="form-textarea"
                       rows="9" maxlength="50000" required></textarea>
@@ -570,15 +568,15 @@ if (!function_exists('smtpVal')) {
 
           <!-- Live preview panel -->
           <div id="ct-new-preview"
-               style="display:none;margin-top:1rem;border:1px solid var(--border);border-radius:6px;overflow:hidden">
-            <div style="padding:.5rem .875rem;background:var(--surface-alt,var(--sidebar));border-bottom:1px solid var(--border);font-size:.72rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.04em">
-              Preview <span style="font-weight:400;text-transform:none;letter-spacing:0">(example values)</span>
+               class="email-preview-panel is-hidden">
+            <div class="email-preview-panel-head">
+              Preview <span>(example values)</span>
             </div>
-            <div style="padding:.875rem 1rem">
-              <div style="font-size:.8rem;color:var(--text-muted);margin-bottom:.35rem;font-weight:600">Subject</div>
-              <div id="ct-preview-subject" style="font-family:'DM Mono',monospace;font-size:.82rem;color:var(--text);margin-bottom:.875rem;padding:.4rem .6rem;background:var(--surface-alt,var(--sidebar));border-radius:4px"></div>
-              <div style="font-size:.8rem;color:var(--text-muted);margin-bottom:.35rem;font-weight:600">Body</div>
-              <pre id="ct-preview-body" style="font-family:'DM Mono',monospace;font-size:.8rem;color:var(--text);white-space:pre-wrap;word-break:break-word;margin:0;padding:.6rem;background:var(--surface-alt,var(--sidebar));border-radius:4px;line-height:1.6"></pre>
+            <div class="email-preview-panel-body">
+              <div class="email-preview-label">Subject</div>
+              <div id="ct-preview-subject" class="email-preview-subject"></div>
+              <div class="email-preview-label">Body</div>
+              <pre id="ct-preview-body" class="email-preview-pre"></pre>
             </div>
           </div>
 
@@ -621,7 +619,7 @@ if (!function_exists('smtpVal')) {
   <!-- Divider -->
 
   <!-- Saved Templates table card -->
-  <div class="card" style="overflow:hidden">
+  <div class="card">
 
     <div class="card-head">
       <div class="card-title">Saved Templates</div>
@@ -648,7 +646,7 @@ if (!function_exists('smtpVal')) {
             <tr>
               <td class="text-strong"><?= View::e($t->name) ?></td>
               <td class="text-muted"><?= $t->subject !== '' ? View::e($t->subject) : '<span class="text-dim">-</span>' ?></td>
-              <td class="text-muted" style="white-space:nowrap">
+              <td class="text-muted cell-meta-nowrap">
                 <?= View::e(date($admin_date_format, strtotime($t->created_at))) ?>
               </td>
               <td class="act-col">
@@ -662,7 +660,7 @@ if (!function_exists('smtpVal')) {
                           data-body="<?= htmlspecialchars($t->body, ENT_QUOTES, 'UTF-8') ?>">Edit</button>
                   <form method="POST"
                         action="<?= $b ?>/admin/new-email-template/<?= (int) $t->id ?>/delete"
-                        style="display:contents"
+                        class="action-form-inline"
                         data-del-modal data-del-entity="email_template"
                         data-del-name="<?= View::e($t->name) ?>">
                     <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
@@ -680,7 +678,7 @@ if (!function_exists('smtpVal')) {
   </div><!-- /.card saved templates -->
 
   <!-- Edit Template modal -->
-  <div class="modal-backdrop" id="ct-edit-modal" style="display:none">
+  <div class="modal-backdrop is-hidden" id="ct-edit-modal">
     <div class="modal">
       <div class="modal-header">
         <h3 class="modal-title">Edit Template</h3>
@@ -700,11 +698,10 @@ if (!function_exists('smtpVal')) {
             <input type="text" id="ct-edit-subject" name="tpl_subject" class="form-input"
                    maxlength="255">
           </div>
-          <div class="form-group" style="margin-bottom:0">
+          <div class="form-group form-group--compact">
             <label class="form-label" for="ct-edit-body">Body <span class="req">*</span></label>
-            <textarea id="ct-edit-body" name="tpl_body" class="form-textarea"
-                      rows="9" maxlength="50000" required
-                      style="font-family:'DM Mono',monospace;font-size:.8125rem"></textarea>
+            <textarea id="ct-edit-body" name="tpl_body" class="form-textarea textarea-mono-sm"
+                      rows="9" maxlength="50000" required></textarea>
           </div>
         </div>
         <div class="modal-footer">
@@ -730,7 +727,7 @@ if (!function_exists('smtpVal')) {
   <?php endif; ?>
 
   <?php if (smtpVal($cfg, 'smtp_from') === '' && smtpVal($cfg, 'owner_email') === ''): ?>
-  <div class="alert alert-warning" style="margin-bottom:1.25rem">
+  <div class="alert alert-warning">
     <strong>From address not set.</strong>
     Outgoing emails have no sender address and will likely be rejected by your mail server.
     Set a From Address below, or set the Owner Email in <a href="<?= $b ?>/admin/settings" class="link">General settings</a>.
@@ -759,8 +756,8 @@ if (!function_exists('smtpVal')) {
       <div class="listing-field-row listing-field-row--top">
         <label class="listing-field-label" for="s-smtp-port">SMTP Port</label>
         <div>
-          <input id="s-smtp-port" type="number" name="smtp_port" class="form-input"
-                 min="1" max="65535" style="max-width:140px"
+          <input id="s-smtp-port" type="number" name="smtp_port" class="form-input smtp-port-input"
+                 min="1" max="65535"
                  value="<?= (int) ($cfg['smtp_port'] ?? 587) ?>">
           <p class="form-hint">Common ports: 25 (plain), 465 (SSL), 587 (STARTTLS).</p>
         </div>
@@ -769,7 +766,7 @@ if (!function_exists('smtpVal')) {
       <div class="listing-field-row listing-field-row--top">
         <label class="listing-field-label" for="s-smtp-secure">Encryption</label>
         <div>
-          <div class="select-wrap" style="max-width:260px">
+          <div class="select-wrap smtp-secure-wrap">
             <select id="s-smtp-secure" name="smtp_secure" class="form-select">
               <?php foreach (['tls' => 'TLS (STARTTLS)', 'ssl' => 'SSL', '' => 'None'] as $val => $lbl): ?>
                 <option value="<?= View::e($val) ?>"
@@ -781,8 +778,10 @@ if (!function_exists('smtpVal')) {
           </div>
           <p class="form-hint">Use TLS (STARTTLS) on port 587, SSL on port 465, or None on port 25.</p>
 
-          <br>
-          <button type="button" class="btn btn-secondary btn-sm" id="smtp-validate-btn" data-url="<?= $b ?>/admin/settings/validate-smtp">Test Connection</button> <span id="smtp-validate-result" style="font-size:.78rem; display:none; margin-left: 0.2rem;"></span>
+          <div class="smtp-validate-row">
+            <button type="button" class="btn btn-secondary btn-sm" id="smtp-validate-btn" data-url="<?= $b ?>/admin/settings/validate-smtp">Test Connection</button>
+            <span id="smtp-validate-result" class="smtp-validate-result"></span>
+          </div>
         </div>
       </div>
     </div>
@@ -801,13 +800,11 @@ if (!function_exists('smtpVal')) {
       <div class="listing-field-row listing-field-row--top">
         <label class="listing-field-label" for="s-smtp-pass">Password</label>
         <div>
-          <div style="position:relative">
+          <div class="input-icon-wrap">
             <input id="s-smtp-pass" type="password" name="smtp_pass" class="form-input"
-                   style="padding-right:42px" maxlength="500" autocomplete="new-password"
+                   maxlength="500" autocomplete="new-password"
                    placeholder="Leave blank to keep current">
-            <button type="button" data-pw-toggle aria-label="Show password" tabindex="-1"
-                    style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--text-dim);padding:4px;line-height:0"
-                    onmouseover="this.style.color='var(--accent)'" onmouseout="this.style.color='var(--text-dim)'">
+            <button type="button" data-pw-toggle aria-label="Show password" tabindex="-1" class="input-icon-btn">
               <?= View::icon('eye-on') ?>
               <?= View::icon('eye-off') ?>
             </button>
@@ -848,7 +845,7 @@ if (!function_exists('smtpVal')) {
       <button type="submit" class="btn btn-primary">Save Settings</button>
         <button type="submit" form="smtp-test-form" class="btn btn-tertiary">Send test email</button>
         <?php if (!empty($admin_user->email)): ?>
-          <span class="text-muted" style="margin-left: 0.2rem;">Test email will be sent to <code><?= View::e($admin_user->email) ?></code></span>
+          <span class="text-muted inline-note">Test email will be sent to <code><?= View::e($admin_user->email) ?></code></span>
         <?php endif; ?>
     </div>
 

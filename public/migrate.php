@@ -29,8 +29,10 @@ session_start();
  */
 function mig_page(string $title, string $content): string
 {
+    require_once __DIR__ . '/../templates/admin/_css_assets.php';
     $h = static fn(string $s): string => htmlspecialchars($s, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
     $titleSafe = $h($title);
+    $cssLinks = lusterAdminCssLinks('./assets/css/admin', __DIR__ . '/assets/css/admin', null, true);
 
     return <<<HTML
 <!DOCTYPE html>
@@ -39,7 +41,7 @@ function mig_page(string $title, string $content): string
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{$titleSafe} — Luster</title>
-  <link rel="stylesheet" href="./assets/css/admin.css">
+  {$cssLinks}
   <style>
     /* ── Migration runner — page-level overrides ─────────────── */
     body {

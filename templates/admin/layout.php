@@ -1,5 +1,6 @@
 <?php
 use Luster\Core\View;
+require_once __DIR__ . '/_css_assets.php';
 $b = rtrim(View::e($base_url), '/');
 // Treat 'blacklist' as part of Settings for nav highlighting
 $s = match ($current_section ?? '') {
@@ -22,8 +23,7 @@ if (!function_exists('navActive')) {
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Luster &#10022; Fanlisting Management System  &mdash; <?= View::e($page_title) ?></title>
-  <?php $assetV = filemtime(LUSTER_BASE . '/public/assets/css/admin.css') ?: 0; ?>
-  <link rel="stylesheet" href="<?= $b ?>/assets/css/admin.css?v=<?= $assetV ?>">
+  <?= lusterAdminCssLinks($b . '/assets/css/admin', LUSTER_BASE . '/public/assets/css/admin', $s) . PHP_EOL ?>
   <script>(function(){var t=localStorage.getItem('lstr_theme');if(t==='dark'||t==='light')document.documentElement.setAttribute('data-theme',t);})();</script>
 </head>
 <body>
@@ -60,7 +60,7 @@ if (!function_exists('navActive')) {
 
       <a href="<?= $b ?>/admin/members" class="nav-item<?= navActive('members', $s) ?>"><span class="nav-icon"><?= View::icon('members') ?></span> Members
         <?php if (($nav_pending_members ?? 0) > 0): ?>
-          <span class="badge badge-pending" style="margin-left: auto;"><?= (int) $nav_pending_members ?></span>
+          <span class="badge badge-pending nav-item-badge"><?= (int) $nav_pending_members ?></span>
         <?php endif; ?>
       </a>
 
@@ -74,7 +74,7 @@ if (!function_exists('navActive')) {
 
       <?php $_navAddons = $nav_installed_addons ?? [];
       if (in_array('Kim', $_navAddons, true)): ?>
-      <a href="<?= $b ?>/admin/kim" class="nav-item<?= navActive('kim', $s) ?>"><span class="nav-icon"><?= View::icon('kim') ?></span> Keep In Mind<?php if (($nav_pending_kim ?? 0) > 0): ?><span class="badge badge-pending" style="margin-left: auto;"><?= (int) $nav_pending_kim ?></span><?php endif; ?></a>
+      <a href="<?= $b ?>/admin/kim" class="nav-item<?= navActive('kim', $s) ?>"><span class="nav-icon"><?= View::icon('kim') ?></span> Keep In Mind<?php if (($nav_pending_kim ?? 0) > 0): ?><span class="badge badge-pending nav-item-badge"><?= (int) $nav_pending_kim ?></span><?php endif; ?></a>
       <?php endif; ?>
 
       <?php if (in_array('Updates', $_navAddons, true)): ?>
@@ -116,9 +116,9 @@ if (!function_exists('navActive')) {
         <span class="user-role"><?= View::e($site_name) ?></span>
       </div>
     </div>
-    <form method="POST" action="<?= $b ?>/admin/logout" style="margin-top:12px">
+    <form method="POST" action="<?= $b ?>/admin/logout" class="sidebar-footer-form">
       <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
-      <button type="submit" class="btn btn-danger btn-sm" style="width:100%;justify-content:center"><?= View::icon('signout') ?> Sign Out</button>
+      <button type="submit" class="btn btn-danger btn-sm btn-block-center"><?= View::icon('signout') ?> Sign Out</button>
     </form>
   </div>
 </aside>
@@ -163,13 +163,13 @@ if (!function_exists('navActive')) {
 </main>
 
 <!--  Global delete confirmation modal  -->
-<div id="del-confirm-modal" class="modal-backdrop" style="display:none" role="dialog" aria-modal="true" aria-labelledby="del-modal-title">
+<div id="del-confirm-modal" class="modal-backdrop is-hidden" role="dialog" aria-modal="true" aria-labelledby="del-modal-title">
   <div class="modal">
     <div class="modal-header">
       <h3 class="modal-title" id="del-modal-title">Confirm Deletion</h3>
     </div>
     <div class="modal-body">
-      <p id="del-modal-desc" style="margin-bottom:.75rem"></p>
+      <p id="del-modal-desc" class="modal-desc"></p>
       <div class="modal-warning">
         <strong>Warning:</strong> <span id="del-modal-warning-text">This action cannot be undone.</span>
       </div>

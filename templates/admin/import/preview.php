@@ -13,7 +13,7 @@ $src = View::e($source);
 
 <div class="wizard-steps">
   <div class="wizard-steps-line"></div>
-  <div class="wizard-steps-progress" style="width:66%"></div>
+  <div class="wizard-steps-progress wizard-steps-progress--preview"></div>
   <div class="wizard-step-node wizard-step-node--done">
     <div class="wizard-step-bubble">&#10003;</div>
     <div class="wizard-step-label">Choose Source</div>
@@ -33,15 +33,15 @@ $src = View::e($source);
 </div>
 
 <?php if ($error !== ''): ?>
-  <div class="alert alert-error" style="margin-bottom:1.25rem"><?= View::e($error) ?></div>
+  <div class="alert alert-error import-stack-gap"><?= View::e($error) ?></div>
   <a href="<?= $b ?>/admin/import/<?= $src ?>/configure" class="btn btn-secondary">&#8592; Back to Configure</a>
 <?php elseif ($preview === null): ?>
-  <div class="alert alert-error" style="margin-bottom:1.25rem">Preview data is unavailable.</div>
+  <div class="alert alert-error import-stack-gap">Preview data is unavailable.</div>
   <a href="<?= $b ?>/admin/import/<?= $src ?>/configure" class="btn btn-secondary">&#8592; Back to Configure</a>
 <?php else: ?>
 
   <?php if ($preview->sameDatabase): ?>
-    <div class="alert alert-info" style="margin-bottom:1.25rem">
+    <div class="alert alert-info import-stack-gap">
       <?= View::icon('alert') ?>
       Luster is already connected to this database. Member tables are already readable &mdash; no member data will be moved.
     </div>
@@ -49,9 +49,9 @@ $src = View::e($source);
 
   <?php $allWarnings = $preview->allWarnings(); ?>
   <?php if (!empty($allWarnings)): ?>
-    <div class="callout" style="margin-bottom:1.25rem">
+    <div class="callout import-stack-gap">
       <strong>Notices</strong>
-      <ul style="margin:.375rem 0 0;padding-left:1.25rem">
+      <ul class="list-spaced">
         <?php foreach ($allWarnings as $w): ?>
           <li><?= View::e($w) ?></li>
         <?php endforeach; ?>
@@ -64,7 +64,7 @@ $src = View::e($source);
     $totalImport = $preview->totalToImport();
     $totalSkip   = (int) array_sum(array_column($preview->rows, 'skip'));
   ?>
-  <div class="stats-grid stats-grid-row stats-grid--plain" style="margin-bottom:1.25rem">
+  <div class="stats-grid stats-grid-row stats-grid--plain import-stack-gap">
     <div class="stat-card">
       <div class="stat-header">
         <span class="stat-icon"><?= View::icon('database') ?></span>
@@ -111,9 +111,9 @@ $src = View::e($source);
     </div>
   </div>
 
-  <div style="display:inline-flex;align-items:center;gap:.4rem;font-size:var(--fs-base);color:var(--text-muted);margin-bottom:1.125rem">
-    <?= View::icon('database', ['style' => 'width:13px;height:13px;flex-shrink:0;color:var(--accent);opacity:.7']) ?>
-    Schema detected: <strong style="color:var(--text)"><?= View::e($preview->schemaVariant) ?></strong>
+  <div class="import-preview-schema">
+    <?= View::icon('database', ['class' => 'import-preview-schema-icon']) ?>
+    Schema detected: <strong><?= View::e($preview->schemaVariant) ?></strong>
   </div>
 
   <div class="gradient-card">
@@ -124,14 +124,14 @@ $src = View::e($source);
         <div class="pc-head-sub"><?= number_format($totalImport) ?> record(s) would be imported across <?= count($preview->rows) ?> data type(s).</div>
       </div>
     </div>
-    <div style="overflow-x:auto">
+    <div class="import-scroll-x">
       <table class="data-table">
         <thead>
           <tr>
             <th>Data Type</th>
-            <th style="text-align:right">Found</th>
-            <th style="text-align:right">Would Import</th>
-            <th style="text-align:right">Would Skip</th>
+            <th class="table-num--plain">Found</th>
+            <th class="table-num--plain">Would Import</th>
+            <th class="table-num--plain">Would Skip</th>
             <th>Notes</th>
           </tr>
         </thead>
@@ -139,10 +139,10 @@ $src = View::e($source);
           <?php foreach ($preview->rows as $row): ?>
           <tr>
             <td><?= View::e($row['type']) ?></td>
-            <td style="text-align:right"><?= number_format($row['found']) ?></td>
-            <td style="text-align:right"><?= number_format($row['import']) ?></td>
-            <td style="text-align:right"><?= number_format($row['skip']) ?></td>
-            <td style="font-size:.8rem;color:var(--text-dim)">
+            <td class="table-num--plain"><?= number_format($row['found']) ?></td>
+            <td class="table-num--plain"><?= number_format($row['import']) ?></td>
+            <td class="table-num--plain"><?= number_format($row['skip']) ?></td>
+            <td class="table-cell-notes">
               <?= implode('<br>', array_map([View::class, 'e'], $row['warnings'])) ?: '&mdash;' ?>
             </td>
           </tr>
@@ -150,14 +150,14 @@ $src = View::e($source);
         </tbody>
       </table>
     </div>
-    <div style="padding:.75rem 1.5rem;border-top:1px solid var(--border);font-size:.8rem;color:var(--text-muted);display:flex;align-items:center;gap:.5rem">
-      <span><span style="color: var(--warn)";><?= View::icon('alert') ?> <strong>Image files are copied by filename only.</strong></span> Original files remain in place on your old server. Luster assigns new randomised filenames to all copied images.</span>
+    <div class="import-preview-note-bar">
+      <span><span class="import-preview-note-accent"><?= View::icon('alert') ?> <strong>Image files are copied by filename only.</strong></span> Original files remain in place on your old server. Luster assigns new randomised filenames to all copied images.</span>
     </div>
   </div>
 
   <form method="POST" action="<?= $b ?>/admin/import/<?= $src ?>/run">
     <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
-    <div class="btn-row" style="align-items:center;flex-wrap:wrap">
+    <div class="btn-row import-action-row">
       <a href="<?= $b ?>/admin/import/<?= $src ?>/configure" class="btn btn-ghost">&#8592; Back</a>
       <button type="submit" class="btn btn-primary">Proceed with Import &#8594;</button>
     </div>

@@ -20,7 +20,7 @@ function importChecked(array $old, string $key, bool $default = true): string {
 
 <div class="wizard-steps">
   <div class="wizard-steps-line"></div>
-  <div class="wizard-steps-progress" style="width:33%"></div>
+  <div class="wizard-steps-progress wizard-steps-progress--configure"></div>
   <div class="wizard-step-node wizard-step-node--done">
     <div class="wizard-step-bubble">&#10003;</div>
     <div class="wizard-step-label">Choose Source</div>
@@ -40,7 +40,7 @@ function importChecked(array $old, string $key, bool $default = true): string {
 </div>
 
 <?php if ($error !== ''): ?>
-  <div class="alert alert-error" style="margin-bottom:1.25rem"><?= View::e($error) ?></div>
+  <div class="alert alert-error import-stack-gap"><?= View::e($error) ?></div>
 <?php endif; ?>
 
 <form id="import-configure-form" method="POST"
@@ -59,7 +59,7 @@ function importChecked(array $old, string $key, bool $default = true): string {
       </div>
     </div>
     <div class="pc-section">
-      <div style="display:flex;flex-direction:column;gap:.5rem;margin-left:1rem">
+      <div class="import-choice-list">
         <label class="form-check">
           <input type="radio" name="_conn_mode" value="live" id="js-mode-live" checked>
           Live database &mdash; <span class="text-muted">Connect directly via credentials</span>
@@ -108,12 +108,10 @@ function importChecked(array $old, string $key, bool $default = true): string {
           </div>
           <div class="form-group">
             <label class="form-label" for="db_pass">Database Password</label>
-            <div style="position:relative">
+            <div class="input-icon-wrap">
               <input id="db_pass" type="password" name="db_pass" class="form-input"
-                     style="padding-right:42px" autocomplete="new-password">
-              <button type="button" data-pw-toggle aria-label="Show password" tabindex="-1"
-                      style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--text-dim);padding:4px;line-height:0"
-                      onmouseover="this.style.color='var(--accent)'" onmouseout="this.style.color='var(--text-dim)'">
+                     autocomplete="new-password">
+              <button type="button" class="input-icon-btn" data-pw-toggle aria-label="Show password" tabindex="-1">
                 <?= View::icon('eye-on') ?>
                 <?= View::icon('eye-off') ?>
               </button>
@@ -125,12 +123,12 @@ function importChecked(array $old, string $key, bool $default = true): string {
         <button type="button" id="js-test-conn" class="btn btn-secondary"
                 data-action="<?= $b ?>/admin/import/<?= $src ?>/test-connection">Test Connection</button>
         <button type="reset" class="btn btn-ghost" id="clear-form-btn">Clear Form</button>
-        <span id="js-test-result" style="display:none;font-size:var(--fs-base);font-weight:600"></span>
+        <span id="js-test-result" class="form-label--tight is-hidden"></span>
       </div>
     </div>
   </div>
 
-  <div id="js-dump-section" style="display:none">
+  <div id="js-dump-section" class="is-hidden">
     <div class="gradient-card">
       <div class="pc-head">
         <div class="pc-head-icon pc-head-icon-bg"><?= View::icon('import') ?></div>
@@ -143,7 +141,7 @@ function importChecked(array $old, string $key, bool $default = true): string {
         <div class="form-group">
           <label class="form-label" for="sql_dump">SQL File <span class="text-muted">(max 50 MB)</span></label>
           <input id="sql_dump" type="file" name="sql_dump" accept=".sql,text/plain,text/x-sql,application/sql"
-                 class="form-input" style="max-width:480px">
+                 class="form-input import-input-wide">
           <p class="field-hint-sm">Export your source database with <code>mysqldump --no-tablespaces &lt;dbname&gt; &gt; export.sql</code> and upload the resulting file. The source schema is detected automatically.</p>
         </div>
       </div>
@@ -163,10 +161,9 @@ function importChecked(array $old, string $key, bool $default = true): string {
     <div class="pc-section">
       <div class="pc-section-label">Blog Table Name</div>
       <div class="form-group">
-        <input id="fu_prefix" type="text" name="fu_prefix" class="form-input"
+        <input id="fu_prefix" type="text" name="fu_prefix" class="form-input import-input-medium"
                placeholder="blog"
-               value="<?= importOld($old, 'fu_prefix', 'blog') ?>"
-               style="max-width:320px">
+               value="<?= importOld($old, 'fu_prefix', 'blog') ?>">
         <p class="help-text">The base table name configured in <code>blog-config.php</code> (default: <code>blog</code>). Luster will look for <code>{name}</code>, <code>{name}_category</code>, and <code>{name}_catjoin</code>.</p>
       </div>
     </div>
@@ -176,10 +173,9 @@ function importChecked(array $old, string $key, bool $default = true): string {
     <div class="pc-section">
       <div class="pc-section-label">Table Prefix</div>
       <div class="form-group">
-        <input id="la_table_prefix" type="text" name="la_table_prefix" class="form-input"
+        <input id="la_table_prefix" type="text" name="la_table_prefix" class="form-input import-input-medium"
                placeholder="(leave blank for default install)"
-               value="<?= importOld($old, 'la_table_prefix') ?>"
-               style="max-width:320px">
+               value="<?= importOld($old, 'la_table_prefix') ?>">
         <p class="help-text">Leave blank if LA uses default table names (<code>main</code>, <code>members</code>, etc.). If your LA install was configured with a prefix (e.g. <code>trex_</code>), enter it here. Luster will look for <code>{prefix}members</code>, <code>{prefix}categories</code>, and so on — the registry table is derived as the prefix without underscores (e.g. <code>trex_</code> &rarr; <code>trex</code>).</p>
       </div>
     </div>
@@ -187,7 +183,7 @@ function importChecked(array $old, string $key, bool $default = true): string {
 
     <div class="pc-section">
       <div class="pc-section-label">Conflict Strategy</div>
-      <div style="display:flex;flex-direction:column;gap:.5rem;margin-left:1rem">
+      <div class="import-choice-list">
         <label class="form-check">
           <input type="radio" name="conflict_strategy" value="skip"
                  <?= (($old['conflict_strategy'] ?? 'skip') === 'skip') ? 'checked' : '' ?>>
@@ -203,7 +199,7 @@ function importChecked(array $old, string $key, bool $default = true): string {
 
     <div class="pc-section">
       <div class="pc-section-label">Data to Import</div>
-      <div style="display:flex;flex-direction:column;gap:.5rem;margin-left:1rem">
+      <div class="import-choice-list">
 
 
       <?php if ($source === 'enthusiast'): ?>
@@ -214,9 +210,9 @@ function importChecked(array $old, string $key, bool $default = true): string {
         <label class="form-check">
           <input type="checkbox" name="import_categories" value="1" <?= importChecked($old, 'import_categories') ?>>Assigned categories</label>
         <?php if (!empty($enth_networks)): ?>
-        <div style="margin-left:1.75rem;margin-top:.25rem">
-          <label class="form-label" for="category_parent_id" style="font-size:.8rem;margin-bottom:.3rem">Place top-level categories under network</label>
-          <div class="select-wrap" style="max-width:280px"><select id="category_parent_id" name="category_parent_id" class="form-select">
+        <div class="import-choice-list--nested">
+          <label class="form-label import-label-compact" for="category_parent_id">Place top-level categories under network</label>
+          <div class="select-wrap import-select-narrow"><select id="category_parent_id" name="category_parent_id" class="form-select">
             <option value="">— Leave as top-level —</option>
             <?php foreach ($enth_networks as $net): ?>
               <option value="<?= View::e((string) $net['id']) ?>"
@@ -225,7 +221,7 @@ function importChecked(array $old, string $key, bool $default = true): string {
               </option>
             <?php endforeach; ?>
           </select></div>
-          <p class="field-hint-sm" style="margin-top:.3rem">Enthusiast has no network concept. Select a parent network (e.g. TFL) to import its categories as children rather than top-level entries.</p>
+          <p class="field-hint-sm import-hint-tight">Enthusiast has no network concept. Select a parent network (e.g. TFL) to import its categories as children rather than top-level entries.</p>
         </div>
         <?php endif; ?>
         <label class="form-check">
@@ -279,12 +275,12 @@ function importChecked(array $old, string $key, bool $default = true): string {
         <?php endif; ?>
       </div>
       <?php if ($source === 'listing-admin'): ?>
-      <div class="callout" style="margin-bottom: 0;">
+      <div class="callout import-callout-flush">
         <?= View::icon('alert', ['width' => 20, 'height' => 20, 'style' => 'color:var(--pending)']) ?>
         <strong>IMPORTANT:</strong> Listings must be imported <i><u>before</u></i> members &mdash; members are distributed to per-listing tables created during the listings import.
       </div>
       <?php elseif ($source === 'codesort'): ?>
-      <div class="callout" style="margin-top:1rem;margin-bottom:0">
+      <div class="callout import-callout-spaced">
         <?= View::icon('alert') ?>
         <span>Fanlistings are matched by title between CodeSort&rsquo;s <code>collective</code> table and Luster&rsquo;s listings. Codes for unmatched fanlistings are skipped.</span>
       </div>
@@ -297,7 +293,7 @@ function importChecked(array $old, string $key, bool $default = true): string {
     <div class="pc-head">
       <div class="pc-head-icon pc-head-icon-bg"><?= View::icon('image') ?></div>
       <div class="pc-head-meta">
-        <div class="pc-head-title">Image Migration <span class="badge badge-inactive" style="font-family: 'DM Sans', sans-serif; margin-left: 1rem;">Optional</span></div>
+        <div class="pc-head-title">Image Migration <span class="badge badge-inactive import-optional-badge">Optional</span></div>
         <div class="pc-head-sub"> Copy affiliate logos, joined listing images, and listing images to Luster&rsquo;s uploads directory. Original files are not deleted.</div>
       </div>
     </div>
@@ -306,16 +302,15 @@ function importChecked(array $old, string $key, bool $default = true): string {
         <input type="checkbox" name="import_images" value="1" id="js-images-toggle"
                <?= importChecked($old, 'import_images', true) ?>>Migrate image files
       </label>
-      <div id="js-image-options" style="border-left:2px solid var(--border);padding-left:1.25rem;margin-left:.25rem;margin-top:.5rem;display:<?= (!empty($old['import_images']) || empty($old)) ? 'flex' : 'none' ?>;flex-direction:column;gap:.5rem">
+      <div id="js-image-options" class="import-image-options<?= (!empty($old['import_images']) || empty($old)) ? '' : ' is-hidden' ?>">
         <label class="form-check">
           <input type="radio" name="image_mode" value="path" id="img-mode-path"
                  <?= (($old['image_mode'] ?? 'path') === 'path') ? 'checked' : '' ?>>Same-server path &mdash; <span class="text-muted">Luster will <code>copy()</code> files directly</span>
         </label>
-        <div id="js-img-path-field" style="padding-left:1.375rem;margin-top:-.125rem;<?= (($old['image_mode'] ?? 'path') !== 'path') ? 'display:none' : '' ?>">
-          <input type="text" name="image_path" class="form-input"
+        <div id="js-img-path-field" class="import-choice-list--indented<?= (($old['image_mode'] ?? 'path') !== 'path') ? ' is-hidden' : '' ?>">
+          <input type="text" name="image_path" class="form-input import-input-wide"
                  placeholder="/absolute/path/to/old-install"
-                 value="<?= importOld($old, 'image_path') ?>"
-                 style="max-width:480px">
+                 value="<?= importOld($old, 'image_path') ?>">
           <p class="field-hint-sm">Absolute server path to the root of your old installation (no trailing slash).
             <?php if ($source === 'codesort'): ?>Code images are expected in the <code>codes/</code> subdirectory.<?php else: ?>Enthusiast images are expected under <code>images/</code>.<?php endif; ?>
           </p>
@@ -325,11 +320,10 @@ function importChecked(array $old, string $key, bool $default = true): string {
                  <?= (($old['image_mode'] ?? '') === 'url') ? 'checked' : '' ?>>
           Remote URL &mdash; <span class="text-muted">Luster will fetch files via HTTP</span>
         </label>
-        <div id="js-img-url-field" style="padding-left:1.375rem;margin-top:-.125rem;<?= (($old['image_mode'] ?? '') !== 'url') ? 'display:none' : '' ?>">
-          <input type="url" name="image_url" class="form-input"
+        <div id="js-img-url-field" class="import-choice-list--indented<?= (($old['image_mode'] ?? '') !== 'url') ? ' is-hidden' : '' ?>">
+          <input type="url" name="image_url" class="form-input import-input-wide"
                  placeholder="https://example.com/old-install"
-                 value="<?= importOld($old, 'image_url') ?>"
-                 style="max-width:480px">
+                 value="<?= importOld($old, 'image_url') ?>">
           <p class="field-hint-sm">Base URL of your old installation (no trailing slash). Luster will append
             <?php if ($source === 'codesort'): ?><code>/codes/{filename}</code><?php else: ?>the standard image sub-paths<?php endif; ?>.</p>
         </div>
@@ -343,11 +337,9 @@ function importChecked(array $old, string $key, bool $default = true): string {
   </div>
   <?php endif; ?>
 
-  <div class="btn-row" style="align-items:center;flex-wrap:wrap">
+  <div class="btn-row import-action-row">
     <a href="<?= $b ?>/admin/import" class="btn btn-ghost">&#8592; Back</a>
     <button type="submit" id="js-submit-btn" class="btn btn-primary">Preview Import &#8594;</button>
   </div>
 
 </form>
-
-

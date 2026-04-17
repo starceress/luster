@@ -18,7 +18,7 @@ $pageUrl = static fn(int $p): string => $b . '/admin/errorlog?page=' . $p;
 
 <?php if ($total > 0): ?>
 <div class="toolbar">
-  <div class="actions-row" style="margin-left: auto;">
+  <div class="actions-row actions-row--push">
     <a href="<?= $b ?>/admin/errorlog/export" class="btn btn-quaternary btn-sm"><?= View::icon('download') ?> Export CSV</a>
     <form method="POST" action="<?= $b ?>/admin/errorlog/flush" id="flush-logs-form">
       <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
@@ -32,7 +32,7 @@ $pageUrl = static fn(int $p): string => $b . '/admin/errorlog?page=' . $p;
   <div class="card">
     <div class="empty">
       <span class="empty-icon"><?= View::icon('caution', ['width' => 32, 'height' => 32]) ?></span>
-      No activity logged yet.
+      No errors logged yet.
     </div>
   </div>
   <?php else: ?>
@@ -113,7 +113,7 @@ $pageUrl = static fn(int $p): string => $b . '/admin/errorlog?page=' . $p;
 </nav>
 <?php endif; ?>
 
-<div id="flush-logs-modal" class="modal-backdrop" style="display:none"
+<div id="flush-logs-modal" class="modal-backdrop is-hidden"
      role="dialog" aria-modal="true" aria-labelledby="flush-modal-title">
   <div class="modal">
     <div class="modal-header">

@@ -22,10 +22,10 @@ $b = rtrim(View::e($base_url), '/');
   <div class="alert alert-error"><?= View::e($error) ?></div>
 <?php endif; ?>
 
-<form method="POST" action="<?= $b ?>/admin/members/settings">
+<form method="POST" action="<?= $b ?>/admin/members/settings" class="js-warn-unsaved">
   <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
 
-  <div class="gradient-card" style="max-width:640px">
+  <div class="gradient-card">
 
     <div class="listing-field-section">
       <div class="pc-section-label">Pagination</div>
@@ -33,8 +33,8 @@ $b = rtrim(View::e($base_url), '/');
       <div class="listing-field-row listing-field-row--top">
         <label class="listing-field-label" for="m-per-page">Members Per Page</label>
         <div>
-          <input type="number" id="m-per-page" name="per_page" class="form-input"
-                 min="5" max="200" style="max-width:120px"
+          <input type="number" id="m-per-page" name="per_page" class="form-input form-input--compact"
+                 min="5" max="200"
                  value="<?= (int) ($cfg['per_page'] ?? 25) ?>">
           <p class="form-hint">How many members to show per page in the admin list view. Min 5, max 200.</p>
         </div>

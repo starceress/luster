@@ -173,7 +173,7 @@ if ($displayMode === 'category') {
   </div>
 
   <?php $loop = 0; $firstGroup = true; foreach ($grouped as $catName => $items): ?>
-  <div class="card" style="margin-bottom:1.25rem">
+  <div class="card">
     <div class="card-head">
       <span><?= View::e($catName) ?> (<?= $group_counts[$catName] ?? count($items) ?>)</span>
     </div>
@@ -182,8 +182,8 @@ if ($displayMode === 'category') {
       <thead>
         <tr>
           <th class="cb-col"><input type="checkbox" <?= $firstGroup ? 'id="sel-all"' : '' ?> title="Select all"><?php $firstGroup = false; ?></th>
-          <th style="width:70px">Image</th>
-          <th style="width:40px">#</th>
+          <th class="table-col-image">Image</th>
+          <th class="table-col-xs">#</th>
           <th><a href="<?= View::e($joinedSortUrl('name')) ?>" class="sort-th<?= $sort === 'name' ? ' sort-active' : '' ?>">Subject / URL <?= View::sortIcon('name', $sort, $dir) ?></a></th>
           <th><a href="<?= View::e($joinedSortUrl('category')) ?>" class="sort-th<?= $sort === 'category' ? ' sort-active' : '' ?>">Category <?= View::sortIcon('category', $sort, $dir) ?></a></th>
           <th><a href="<?= View::e($joinedSortUrl('date_joined')) ?>" class="sort-th<?= $sort === 'date_joined' ? ' sort-active' : '' ?>">Date Joined <?= View::sortIcon('date_joined', $sort, $dir) ?></a></th>
@@ -199,7 +199,7 @@ if ($displayMode === 'category') {
           <td data-label="Image">
             <?php if ($jf->image !== null && $jf->image !== ''): ?>
               <img src="<?= $b ?>/uploads/joined/<?= View::e($jf->image) ?>"
-                   alt="" class="fl-image" style="max-height:50px">
+                   alt="" class="fl-image fl-image--sm">
             <?php else: ?>
               <span class="text-dim">&mdash;</span>
             <?php endif; ?>
@@ -257,7 +257,7 @@ if ($displayMode === 'category') {
 <?php foreach ($joined as $jf): ?>
 <form id="del-jf-<?= (int) $jf->id ?>" method="POST"
       action="<?= $b ?>/admin/joined/<?= (int) $jf->id ?>/delete"
-      style="display:none"
+      class="is-hidden"
       data-del-modal data-del-entity="joined"
       data-del-name="<?= View::e($jf->name) ?>">
   <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">

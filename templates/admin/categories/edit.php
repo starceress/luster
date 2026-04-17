@@ -22,10 +22,8 @@ $currentSource = $cat->source ?? 'custom';
   <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
   <input type="hidden" name="current_source" value="<?= View::e($currentSource) ?>">
 
-  <div class="gradient-card" style="margin-bottom:1rem">
+  <div class="gradient-card">
     <div class="listing-field-section">
-
-      <!-- Category Name -->
       <div class="listing-field-row<?= !empty($fe['name']) ? ' has-error' : '' ?>">
         <label class="listing-field-label" for="cat-name">
           Category Name <span class="req">*</span>
@@ -39,7 +37,6 @@ $currentSource = $cat->source ?? 'custom';
         </div>
       </div>
 
-      <!-- Parent Category -->
       <div class="listing-field-row listing-field-row--top">
         <label class="listing-field-label" for="cat-parent">Parent Category</label>
         <div>
@@ -59,7 +56,6 @@ $currentSource = $cat->source ?? 'custom';
         </div>
       </div>
 
-      <!-- Change Network? -->
       <div class="listing-field-row listing-field-row--top">
         <label class="listing-field-label" for="add-network-toggle">Change Network?</label>
         <div>
@@ -69,23 +65,24 @@ $currentSource = $cat->source ?? 'custom';
               <option value="yes">Change network</option>
             </select>
           </div>
+          <p class="form-hint">Leave this set to keep the current network assignment.</p>
           <?php if ($currentSource !== 'custom'): ?>
-            <div style="display:flex;gap:.5rem;align-items:center;margin-top:.5rem">
+            <div class="current-network-row">
               <span class="badge badge-<?= View::e(strtolower($currentSource)) ?>"><?= View::e(strtoupper($currentSource)) ?></span>
-              <span style="font-size:.78rem;color:var(--text-dim)">Currently assigned to network: <?= View::e($currentSource) ?></span>
+              <span class="text-dim-copy-sm">Currently assigned to network: <?= View::e($currentSource) ?></span>
             </div>
           <?php endif; ?>
         </div>
       </div>
 
-      <!-- New Network Name (hidden until toggled) -->
-      <div class="listing-field-row" id="network-name-row" style="display:none">
+      <div class="listing-field-row listing-field-row--top is-hidden" id="network-name-row">
         <label class="listing-field-label" for="cat-network">New Network Name</label>
-        <input id="cat-network" type="text" name="network_name" class="form-input"
-               maxlength="50" placeholder="e.g. MyNetwork">
+        <div>
+          <input id="cat-network" type="text" name="network_name" class="form-input"
+                 maxlength="50" placeholder="e.g. MyNetwork">
+        </div>
       </div>
-
-    </div><!-- /.listing-field-section -->
+    </div>
 
     <div class="composer-footer">
       <button type="submit" class="btn btn-primary">Save Changes</button>

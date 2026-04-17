@@ -46,7 +46,7 @@ $b = rtrim(View::e($base_url), '/');
       <p class="addon-card-desc"><?= View::e($addon->getDescription()) ?></p>
 
       <div class="import-source-note">
-        <div style="display:flex;gap:.5rem;flex-wrap:wrap">
+        <div class="addon-card-actions">
           <?php if ($isInstalled): ?>
             <?php if ($key === 'Kim'): ?>
               <a href="<?= $b ?>/admin/kim" class="btn btn-primary btn-sm">Manage</a>
@@ -73,7 +73,7 @@ $b = rtrim(View::e($base_url), '/');
     <?php endforeach; ?>
   </div>
 
-  <div id="addon-uninstall-modal" class="modal-backdrop" style="display:none" role="dialog" aria-modal="true" aria-labelledby="addon-modal-title">
+  <div id="addon-uninstall-modal" class="modal-backdrop is-hidden" role="dialog" aria-modal="true" aria-labelledby="addon-modal-title">
     <div class="modal">
       <div class="modal-header">
         <h3 class="modal-title" id="addon-modal-title">Uninstall Add-on</h3>
@@ -91,5 +91,3 @@ $b = rtrim(View::e($base_url), '/');
     </div>
   </div>
 <?php endif; ?>
-
-

@@ -55,7 +55,7 @@ $v = static function (string $key, $model, string $prop, string $default = '') u
     <input type="hidden" name="from_listing" value="<?= $contextFid ?>">
   <?php endif; ?>
 
-  <div class="gradient-card" style="margin-bottom:0">
+  <div class="gradient-card">
     <div class="listing-field-section">
 
       <!-- Listing -->
@@ -115,17 +115,19 @@ $v = static function (string $key, $model, string $prop, string $default = '') u
       <!-- Email -->
       <div class="listing-field-row">
         <label class="listing-field-label" for="aff-email">Email</label>
-        <input id="aff-email" type="email" name="email" class="form-input"
-               maxlength="255" placeholder="owner@example.com"
-               value="<?= View::e($v('email', $affiliate, 'email')) ?>">
+        <div>
+          <input id="aff-email" type="email" name="email" class="form-input"
+                 maxlength="255" placeholder="owner@example.com"
+                 value="<?= View::e($v('email', $affiliate, 'email')) ?>">
+        </div>
       </div>
 
       <!-- Sort Order -->
       <div class="listing-field-row listing-field-row--top">
         <label class="listing-field-label" for="aff-sort-order">Sort Order</label>
         <div>
-          <input id="aff-sort-order" type="number" name="sort_order" class="form-input"
-                 min="1" max="9999" style="max-width:120px"
+          <input id="aff-sort-order" type="number" name="sort_order" class="form-input form-input--compact"
+                 min="1" max="9999"
                  value="<?= View::e($v('sort_order', $affiliate, 'sortOrder', (string) ($next_sort_order ?? 1))) ?>">
           <p class="form-hint">Lower numbers appear first. Same order = sorted alphabetically.</p>
         </div>
@@ -136,13 +138,12 @@ $v = static function (string $key, $model, string $prop, string $default = '') u
         <span class="listing-field-label">Image</span>
         <div>
           <?php if ($isEdit && ($affiliate->image ?? '') !== ''): ?>
-            <div style="margin-bottom:.75rem">
+            <div class="existing-upload-preview">
               <img src="<?= $b ?>/uploads/affiliates/<?= View::e($affiliate->image) ?>"
-                   alt="Current affiliate image"
-                   style="max-height:80px;max-width:200px;border:1px solid var(--border);border-radius:6px;display:block;margin-bottom:.5rem">
-              <label class="form-check" style="color:var(--danger)">
+                   alt="Current affiliate image">
+              <label class="del-img-check">
                 <input type="checkbox" name="delete_image" value="1">
-                <span class="form-check-label" style="color:var(--danger)">Delete current image</span>
+                <span class="form-check-label">Delete current image</span>
               </label>
             </div>
           <?php endif; ?>

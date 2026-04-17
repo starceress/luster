@@ -147,11 +147,11 @@ $catSortUrl = static function (string $col) use ($b, $sort, $dir, $source, $sear
         <td data-label="Network"><?= $sourceBadge($cat->source ?? 'custom') ?></td>
         <td data-label="Name">
           <?php if ($cat->parentId !== null): ?>
-            <span style="color:var(--text-dim);font-size:.8rem;margin-right:.25rem">””</span>
+            <span class="tree-prefix">””</span>
           <?php endif; ?>
           <?= View::e($cat->name ?? '') ?>
         </td>
-        <td class="text-dim" data-label="Parent" style="font-size:.85rem">
+        <td class="text-dim text-dim-sm" data-label="Parent">
           <?php if ($cat->parentId !== null && isset($catIndex[$cat->parentId])): ?>
             <?= View::e($catIndex[$cat->parentId]) ?>
           <?php else: ?>
@@ -163,7 +163,7 @@ $catSortUrl = static function (string $col) use ($b, $sort, $dir, $source, $sear
              class="btn btn-tertiary btn-sm">Edit</a>
           <?php if (!in_array($cat->source ?? '', ['tfl', 'tafl'], true)): ?>
             <form method="POST" action="<?= $b ?>/admin/categories/<?= (int) $cat->id ?>/delete"
-                  style="display:contents"
+                  class="action-form-inline"
                   data-del-modal data-del-entity="category"
                   data-del-name="<?= View::e($cat->name ?? '') ?>">
               <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">

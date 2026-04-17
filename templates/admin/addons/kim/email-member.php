@@ -32,9 +32,9 @@ $backUrl    = $listing !== null
     : $b . '/admin/kim';
 ?>
 
-<p class="page-back">
+<div class="page-topbar">
   <a href="<?= View::e($backUrl) ?>" class="link">&larr; Back to <?= $listing !== null ? View::e($listing->subject) : 'KIM List' ?></a>
-</p>
+</div>
 
 <?php if ($error !== ''): ?>
   <div class="alert alert-error"><?= View::e($error) ?></div>
@@ -62,7 +62,7 @@ $backUrl    = $listing !== null
           </select>
         </div>
         <p class="form-hint">Loading a template will replace your current subject and message.</p>
-        <a href="<?= $b ?>/admin/emails?tab=custom" class="btn btn-tertiary btn-sm" style="width:100%;justify-content:center">Manage Templates</a>
+        <a href="<?= $b ?>/admin/emails?tab=custom" class="btn btn-tertiary btn-sm btn-block-center">Manage Templates</a>
       </div>
     </div>
     <?php endif; ?>
@@ -77,7 +77,7 @@ $backUrl    = $listing !== null
           <input type="hidden" name="tpl_body"    id="em-save-body">
           <input type="text"   name="tpl_name"    id="em-save-name"
                  class="form-input" placeholder="Template name&hellip;" maxlength="150">
-          <button type="submit" class="btn btn-secondary btn-sm" style="width:100%;justify-content:center; margin-top: 1rem;">Save Template</button>
+          <button type="submit" class="btn btn-secondary btn-sm btn-block-center">Save Template</button>
         </form>
       </div>
     </div>
@@ -112,7 +112,7 @@ $backUrl    = $listing !== null
         <div class="pc-head-icon pc-head-icon-bg"><?= View::icon('email') ?></div>
         <div class="pc-head-title">Compose New Email</div>
         <?php if ($flSubject !== ''): ?>
-          <span class="badge badge-info-pink" style="margin-left:auto"><?= $flSubject ?></span>
+          <span class="badge badge-info-pink pc-head-badge"><?= $flSubject ?></span>
         <?php endif; ?>
       </div>
 
@@ -152,7 +152,7 @@ $backUrl    = $listing !== null
         <button type="button" class="btn btn-primary" id="em-send-btn"><?= View::icon('send') ?> Send</button>
         <button type="button" class="btn btn-preview" id="preview-email-btn">Preview</button>
         <button type="button" class="btn btn-ghost js-form-reset">Clear</button>
-        <div style="flex:1"></div>
+        <div class="composer-footer-spacer"></div>
         <a href="<?= View::e($referer) ?>" class="btn btn-danger">Cancel</a>
       </div>
     </form>
@@ -160,7 +160,7 @@ $backUrl    = $listing !== null
 
 </div><!-- /.composer-grid -->
 
-<div class="modal-backdrop" id="preview-modal" style="display:none"
+<div class="modal-backdrop is-hidden" id="preview-modal"
      data-listing-name="<?= $flSubject ?>"
      data-listing-subject="<?= $flSubject ?>"
      data-listing-url="<?= View::e($listing->url ?? '') ?>"
@@ -201,7 +201,7 @@ $backUrl    = $listing !== null
     <div class="modal-footer" id="em-footer-preview">
       <button class="btn btn-ghost" id="close-preview-btn">Close</button>
     </div>
-    <div id="em-footer-confirm" style="display:none">
+    <div id="em-footer-confirm" class="is-hidden">
       <div class="me-confirm-warning"><?= View::icon('caution') ?>Are you sure you want to send this email? This action cannot be undone.</div>
       <div class="modal-footer">
         <button type="button" class="btn btn-primary" id="em-confirm-send-btn"><?= View::icon('send') ?> Send</button>

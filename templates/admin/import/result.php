@@ -15,7 +15,7 @@ $hasErr  = $result->hasErrors();
 
 <div class="wizard-steps">
   <div class="wizard-steps-line"></div>
-  <div class="wizard-steps-progress" style="width:100%"></div>
+  <div class="wizard-steps-progress wizard-steps-progress--complete"></div>
   <div class="wizard-step-node wizard-step-node--done">
     <div class="wizard-step-bubble">&#10003;</div>
     <div class="wizard-step-label">Choose Source</div>
@@ -61,7 +61,7 @@ $hasErr  = $result->hasErrors();
 </div>
 
 <!-- Stat tiles -->
-<div class="stats-grid stats-grid-row stats-grid--plain" style="margin-bottom:1.25rem">
+<div class="stats-grid stats-grid-row stats-grid--plain import-stack-gap">
   <div class="stat-card">
     <div class="stat-header">
       <span class="stat-icon"><?= View::icon('import') ?></span>
@@ -115,14 +115,14 @@ $hasErr  = $result->hasErrors();
 </div>
 
 <!-- Result table -->
-<div class="gradient-card" style="margin-bottom:1.25rem">
-  <div style="overflow-x:auto">
+<div class="gradient-card import-stack-gap">
+  <div class="import-scroll-x">
     <table class="data-table">
       <thead>
         <tr>
           <th>Data Type</th>
-          <th style="text-align:right;white-space:nowrap">Imported</th>
-          <th style="text-align:right;white-space:nowrap">Skipped</th>
+          <th class="table-num">Imported</th>
+          <th class="table-num">Skipped</th>
           <th>Notes / Errors</th>
         </tr>
       </thead>
@@ -138,15 +138,15 @@ $hasErr  = $result->hasErrors();
           $moreInArray   = $skipCount - count($showItems);
         ?>
         <tr>
-          <td <?= $hasSkipDetail ? 'style="border-bottom:0"' : '' ?>><?= View::e($row['type']) ?></td>
-          <td style="text-align:right;white-space:nowrap<?= $hasSkipDetail ? ';border-bottom:0' : '' ?>"><?= number_format($row['imported']) ?></td>
-          <td style="text-align:right;white-space:nowrap<?= $hasSkipDetail ? ';border-bottom:0' : '' ?>"><?= number_format($totalSkipped) ?></td>
-          <td style="font-size:.8rem">
+          <td class="<?= $hasSkipDetail ? 'skip-summary-cell' : '' ?>"><?= View::e($row['type']) ?></td>
+          <td class="table-num<?= $hasSkipDetail ? ' skip-summary-cell' : '' ?>"><?= number_format($row['imported']) ?></td>
+          <td class="table-num<?= $hasSkipDetail ? ' skip-summary-cell' : '' ?>"><?= number_format($totalSkipped) ?></td>
+          <td class="table-cell-notes">
             <?php foreach ($row['warnings'] as $w): ?>
-              <span style="color:var(--text-muted)"><?= View::e($w) ?></span><br>
+              <span class="table-note-muted"><?= View::e($w) ?></span><br>
             <?php endforeach; ?>
             <?php foreach ($row['errors'] as $e): ?>
-              <span style="color:var(--danger)"><?= View::icon('alert') ?> <?= View::e($e) ?></span><br>
+              <span class="table-note-danger"><?= View::icon('alert') ?> <?= View::e($e) ?></span><br>
             <?php endforeach; ?>
             <?php if ($hasSkipDetail): ?>
               <?php if (!empty($row['warnings']) || !empty($row['errors'])): ?><br><?php endif; ?>
@@ -154,12 +154,12 @@ $hasErr  = $result->hasErrors();
                 View <?= number_format($totalSkipped) ?> skipped item<?= $totalSkipped !== 1 ? 's' : '' ?> <span class="skip-toggle-arrow">&#9658;</span>
               </button>
             <?php elseif (empty($row['warnings']) && empty($row['errors'])): ?>
-              <span style="color:var(--text-dim)">&mdash;</span>
+              <span class="table-note-empty">&mdash;</span>
             <?php endif; ?>
           </td>
         </tr>
         <?php if ($hasSkipDetail): ?>
-        <tr class="skip-detail-row" id="skip-<?= md5($row['type']) ?>" style="display:none">
+        <tr class="skip-detail-row table-row-hidden" id="skip-<?= md5($row['type']) ?>">
           <td colspan="4" class="skip-detail-cell">
             <div class="skip-detail-inner">
               <div class="skip-detail-head">
@@ -185,14 +185,14 @@ $hasErr  = $result->hasErrors();
                   <?php endforeach; ?>
                   <?php if ($moreInArray > 0): ?>
                   <tr>
-                    <td colspan="2" class="text-muted" style="font-style:italic">
+                    <td colspan="2" class="text-muted table-note-italic">
                       &hellip; and <?= number_format($moreInArray + $overflow) ?> more &mdash;
                       <a href="<?= $b ?>/admin/import/<?= $src ?>/report" class="link">download full report</a>
                     </td>
                   </tr>
                   <?php elseif ($overflow > 0): ?>
                   <tr>
-                    <td colspan="2" class="text-muted" style="font-style:italic">
+                    <td colspan="2" class="text-muted table-note-italic">
                       &hellip; and <?= number_format($overflow) ?> more &mdash;
                       <a href="<?= $b ?>/admin/import/<?= $src ?>/report" class="link">download full report</a>
                     </td>
@@ -208,14 +208,14 @@ $hasErr  = $result->hasErrors();
         <?php foreach ($result->imageRows as $row): ?>
         <tr>
           <td><?= View::e($row['type']) ?></td>
-          <td style="text-align:right;white-space:nowrap"><?= number_format($row['copied']) ?></td>
-          <td style="text-align:right;white-space:nowrap"><?= number_format($row['skipped']) ?></td>
-          <td style="font-size:.8rem">
+          <td class="table-num"><?= number_format($row['copied']) ?></td>
+          <td class="table-num"><?= number_format($row['skipped']) ?></td>
+          <td class="table-cell-notes">
             <?php foreach ($row['errors'] as $e): ?>
-              <span style="color:var(--danger)"><?= View::icon('alert') ?> <?= View::e($e) ?></span><br>
+              <span class="table-note-danger"><?= View::icon('alert') ?> <?= View::e($e) ?></span><br>
             <?php endforeach; ?>
             <?php if (empty($row['errors'])): ?>
-              <span style="color:var(--text-dim)">&mdash;</span>
+              <span class="table-note-empty">&mdash;</span>
             <?php endif; ?>
           </td>
         </tr>
@@ -227,7 +227,7 @@ $hasErr  = $result->hasErrors();
 
 <!-- ZIP image upload (optional, shown when image_mode=zip) -->
 <?php if ($show_zip_form): ?>
-<div class="gradient-card" style="margin-bottom:1.25rem">
+<div class="gradient-card import-stack-gap">
   <div class="pc-head">
     <div class="pc-head-icon pc-head-icon-bg"><?= View::icon('embed') ?></div>
     <div class="pc-head-meta">
@@ -236,14 +236,14 @@ $hasErr  = $result->hasErrors();
     </div>
   </div>
   <div class="pc-section">
-    <p style="margin-top:0;margin-bottom:1rem;font-size:.85rem;color:var(--text-muted)">
+    <p class="import-zip-intro">
       Create a ZIP containing all image files from your old installation (affiliate images,
       joined listing images, listing images). The ZIP may contain subdirectories &mdash; only filenames
       are used for matching. Maximum size: <strong>50 MB</strong>.
     </p>
     <form method="POST" action="<?= $b ?>/admin/import/<?= $src ?>/upload-images" enctype="multipart/form-data">
       <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
-      <div class="form-group" style="max-width:400px">
+      <div class="form-group import-input-zip">
         <label class="form-label" for="zip_file">ZIP Archive</label>
         <input id="zip_file" type="file" name="zip_file" accept=".zip" class="form-input" required>
       </div>
@@ -261,7 +261,7 @@ $hasErr  = $result->hasErrors();
 <?php endif; ?>
 
 <!-- Actions -->
-<div class="btn-row" style="align-items:center;flex-wrap:wrap">
+<div class="btn-row import-action-row">
   <a href="<?= $b ?>/admin" class="btn btn-primary">Go to Dashboard</a>
   <a href="<?= $b ?>/admin/import" class="btn btn-secondary">Run Another Import</a>
 </div>

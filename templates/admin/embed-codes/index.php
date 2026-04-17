@@ -246,7 +246,7 @@ $custGroups = [
      data-listings='<?= $listingsJson ?>'
      data-items='<?= $itemsJson ?>'>
 
-  <p class="text-muted" style="margin-bottom:1.25rem">
+  <p class="text-muted embed-code-intro">
     Add Luster forms and data to any PHP page on your site with a single snippet.
     The embed path is already filled in based on where Luster is installed on this server.
   </p>
@@ -365,7 +365,7 @@ $custGroups = [
        ════════════════════════════════════════════════════════ -->
   <div class="tabs-panel" id="ec-panel-ref" role="tabpanel">
 
-    <p class="text-muted" style="line-height:1.65;margin-bottom:.875rem">
+    <p class="text-muted embed-ref-intro">
       Variables are PHP variables you set <em>before</em> the <code>require</code> line.
       Tokens like <code>{stat_approved}</code> go inside your stats or member row template strings
       &mdash; Luster replaces them with live data when the page loads.
@@ -389,8 +389,8 @@ $custGroups = [
       <div>
 
         <div class="ec-ref-panel" id="ec-ref-general">
-          <h3 class="pc-head-title" style="margin-bottom:.25rem">General variables</h3>
-          <p class="text-muted" style="margin-bottom:.875rem;line-height:1.55">Set these PHP variables <em>before</em> the <code>require</code> line. They apply to most embeds.</p>
+          <h3 class="pc-head-title embed-ref-heading">General variables</h3>
+          <p class="text-muted embed-ref-copy">Set these PHP variables <em>before</em> the <code>require</code> line. They apply to most embeds.</p>
           <div class="ec-ref-card">
             <table class="ec-vt">
               <thead><tr><th>Variable</th><th>Description</th><th></th></tr></thead>
@@ -411,8 +411,8 @@ $custGroups = [
         </div>
 
         <div class="ec-ref-panel" id="ec-ref-members">
-          <h3 class="pc-head-title" style="margin-bottom:.25rem">Members list options</h3>
-          <p class="text-muted" style="margin-bottom:.875rem;line-height:1.55">Options for <code>embed/members.php</code>.</p>
+          <h3 class="pc-head-title embed-ref-heading">Members list options</h3>
+          <p class="text-muted embed-ref-copy">Options for <code>embed/members.php</code>.</p>
           <div class="ec-ref-card">
             <table class="ec-vt">
               <thead><tr><th>Variable</th><th>Description</th><th></th></tr></thead>
@@ -443,8 +443,8 @@ $custGroups = [
         </div>
 
         <div class="ec-ref-panel" id="ec-ref-reset">
-          <h3 class="pc-head-title" style="margin-bottom:.25rem">Password reset options</h3>
-          <p class="text-muted" style="margin-bottom:.875rem;line-height:1.55">Options for <code>embed/reset.php</code>.</p>
+          <h3 class="pc-head-title embed-ref-heading">Password reset options</h3>
+          <p class="text-muted embed-ref-copy">Options for <code>embed/reset.php</code>.</p>
           <div class="ec-ref-card">
             <table class="ec-vt">
               <thead><tr><th>Variable</th><th>Description</th><th></th></tr></thead>
@@ -460,8 +460,8 @@ $custGroups = [
         </div>
 
         <div class="ec-ref-panel" id="ec-ref-owned">
-          <h3 class="pc-head-title" style="margin-bottom:.25rem">Owned listings options</h3>
-          <p class="text-muted" style="margin-bottom:.875rem;line-height:1.55">Options for <code>embed/owned.php</code>.</p>
+          <h3 class="pc-head-title embed-ref-heading">Owned listings options</h3>
+          <p class="text-muted embed-ref-copy">Options for <code>embed/owned.php</code>.</p>
           <div class="ec-ref-card">
             <table class="ec-vt">
               <thead><tr><th>Variable</th><th>Description</th><th></th></tr></thead>
@@ -502,8 +502,8 @@ $custGroups = [
         </div>
 
         <div class="ec-ref-panel" id="ec-ref-joined">
-          <h3 class="pc-head-title" style="margin-bottom:.25rem">Joined listings options</h3>
-          <p class="text-muted" style="margin-bottom:.875rem;line-height:1.55">Options for <code>embed/joined.php</code>.</p>
+          <h3 class="pc-head-title embed-ref-heading">Joined listings options</h3>
+          <p class="text-muted embed-ref-copy">Options for <code>embed/joined.php</code>.</p>
           <div class="ec-ref-card">
             <table class="ec-vt">
               <thead><tr><th>Variable</th><th>Description</th><th></th></tr></thead>
@@ -534,8 +534,8 @@ $custGroups = [
         </div>
 
         <div class="ec-ref-panel" id="ec-ref-stat-tokens">
-          <h3 class="pc-head-title" style="margin-bottom:.25rem">Per-listing stat tokens &mdash; <code>{stat_*}</code></h3>
-          <p class="text-muted" style="margin-bottom:.875rem;line-height:1.55">Use these tokens inside the stats template in <strong>Edit Listing &rarr; Templates</strong>. The template is processed by <code>embed/stats.php</code>.</p>
+          <h3 class="pc-head-title embed-ref-heading">Per-listing stat tokens &mdash; <code>{stat_*}</code></h3>
+          <p class="text-muted embed-ref-copy">Use these tokens inside the stats template in <strong>Edit Listing &rarr; Templates</strong>. The template is processed by <code>embed/stats.php</code>.</p>
           <div class="ec-ref-card">
             <table class="ec-vt">
               <thead><tr><th>Token</th><th>Output</th></tr></thead>
@@ -555,8 +555,8 @@ $custGroups = [
         </div>
 
         <div class="ec-ref-panel" id="ec-ref-cstat-vars">
-          <h3 class="pc-head-title" style="margin-bottom:.25rem">Collective stat variables &mdash; <code>$luster_*</code></h3>
-          <p class="text-muted" style="margin-bottom:.875rem;line-height:1.55">After <code>require()</code>-ing <code>collective-stats.php</code>, these PHP variables are exposed for you to use directly anywhere on your page.</p>
+          <h3 class="pc-head-title embed-ref-heading">Collective stat variables &mdash; <code>$luster_*</code></h3>
+          <p class="text-muted embed-ref-copy">After <code>require()</code>-ing <code>collective-stats.php</code>, these PHP variables are exposed for you to use directly anywhere on your page.</p>
           <div class="ec-ref-card">
             <table class="ec-vt">
               <thead><tr><th>Variable</th><th>Output</th></tr></thead>
@@ -578,8 +578,8 @@ $custGroups = [
         </div>
 
         <div class="ec-ref-panel" id="ec-ref-row-tokens">
-          <h3 class="pc-head-title" style="margin-bottom:.25rem">Member row template tokens &mdash; <code>{fan_*}</code></h3>
-          <p class="text-muted" style="margin-bottom:.875rem;line-height:1.55">Use these tokens in the member row template in <strong>Edit Listing &rarr; Templates</strong>. Each token is replaced per row when rendering the members list.</p>
+          <h3 class="pc-head-title embed-ref-heading">Member row template tokens &mdash; <code>{fan_*}</code></h3>
+          <p class="text-muted embed-ref-copy">Use these tokens in the member row template in <strong>Edit Listing &rarr; Templates</strong>. Each token is replaced per row when rendering the members list.</p>
           <div class="ec-ref-card">
             <table class="ec-vt">
               <thead><tr><th>Token</th><th>Output</th></tr></thead>

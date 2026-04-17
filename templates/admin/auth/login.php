@@ -1,11 +1,14 @@
-<?php use Luster\Core\View; ?>
+<?php
+use Luster\Core\View;
+require_once __DIR__ . '/../_css_assets.php';
+?>
 <!DOCTYPE html>
 <html lang="en" data-theme="dark">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Luster &#10022; Fanlisting Management System &mdash; Sign in</title>
-  <link rel="stylesheet" href="<?= rtrim(View::e($base_url ?? ''), '/') ?>/assets/css/admin.css">
+  <?= lusterAdminCssLinks(rtrim(View::e($base_url ?? ''), '/') . '/assets/css/admin', LUSTER_BASE . '/public/assets/css/admin', null, true) . PHP_EOL ?>
   <script>(function(){var t=localStorage.getItem('lstr_theme');if(t==='dark'||t==='light')document.documentElement.setAttribute('data-theme',t);})();</script>
 </head>
 <body class="login-page">
@@ -48,14 +51,12 @@
                autocomplete="username" autofocus required>
       </div>
 
-      <div class="form-group" style="margin-bottom:0">
+      <div class="form-group form-group--compact">
         <label class="form-label" for="password">Password</label>
-        <div style="position:relative">
+        <div class="input-icon-wrap">
           <input type="password" id="password" name="password" class="form-input"
-                 style="padding-right:42px" autocomplete="current-password" required>
-          <button type="button" data-pw-toggle aria-label="Show password" tabindex="-1"
-                  style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--text-dim);padding:4px;line-height:0"
-                  onmouseover="this.style.color='var(--accent)'" onmouseout="this.style.color='var(--text-dim)'">
+                 autocomplete="current-password" required>
+          <button type="button" data-pw-toggle aria-label="Show password" tabindex="-1" class="input-icon-btn">
             <?= View::icon('eye-on') ?>
             <?= View::icon('eye-off') ?>
           </button>
@@ -70,7 +71,7 @@
         <a href="<?= rtrim(View::e($base_url ?? ''), '/') ?>/admin/forgot" class="link">Forgot password?</a>
       </div>
 
-      <button type="submit" class="btn btn-primary" style="width: 100%; justify-content: center;">Sign in</button>
+      <button type="submit" class="btn btn-primary btn-block-center">Sign in</button>
     </form>
 
   </div>

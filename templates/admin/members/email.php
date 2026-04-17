@@ -33,7 +33,7 @@ $listingId  = (int) ($listing->id ?? 0);
           </select>
         </div>
         <p class="form-hint">Loading a template will replace your current subject and message.</p>
-        <a href="<?= $b ?>/admin/emails?tab=custom" class="btn btn-tertiary btn-sm" style="width: 100%; justify-content: center;">Manage Templates</a>
+        <a href="<?= $b ?>/admin/emails?tab=custom" class="btn btn-tertiary btn-sm btn-block-center">Manage Templates</a>
       </div>
     </div>
     <?php endif; ?>
@@ -48,7 +48,7 @@ $listingId  = (int) ($listing->id ?? 0);
           <input type="hidden" name="tpl_body"    id="em-save-body">
           <input type="text"   name="tpl_name"    id="em-save-name"
                  class="form-input" placeholder="Template name&hellip;" maxlength="150">
-          <button type="submit" class="btn btn-secondary btn-sm" id="em-save-btn" style="width: 100%; justify-content: center;">Save Template</button>
+          <button type="submit" class="btn btn-secondary btn-sm btn-block-center" id="em-save-btn">Save Template</button>
         </form>
       </div>
     </div>
@@ -82,7 +82,7 @@ $listingId  = (int) ($listing->id ?? 0);
       <div class="pc-head">
         <div class="pc-head-icon pc-head-icon-bg"><?= View::icon('email') ?></div>
         <div class="pc-head-title">Compose New Email</div>
-        <span class="badge badge-info-pink" style="margin-left: auto;"><?= $flName ?></span>
+        <span class="badge badge-info-pink pc-head-badge"><?= $flName ?></span>
       </div>
 
       <div class="composer-block">
@@ -118,7 +118,7 @@ $listingId  = (int) ($listing->id ?? 0);
         <button type="button" class="btn btn-primary" id="em-send-btn"><?= View::icon('send') ?> Send</button>
         <button type="button" class="btn btn-preview" id="preview-email-btn">Preview</button>
         <button type="button" class="btn btn-ghost js-form-reset">Clear</button>
-        <div style="flex:1"></div>
+        <div class="composer-footer-spacer"></div>
         <a href="<?= View::e($referer ?? $b . '/admin/members/' . $listingId) ?>"
            class="btn btn-danger">Cancel</a>
       </div>
@@ -126,7 +126,7 @@ $listingId  = (int) ($listing->id ?? 0);
   </div>
 </div>
 
-<div class="modal-backdrop" id="preview-modal" style="display:none"
+<div class="modal-backdrop is-hidden" id="preview-modal"
      data-listing-name="<?= $flName ?>"
      data-listing-subject="<?= View::e($listing->subject ?? '') ?>"
      data-listing-url="<?= View::e($listing->url ?? '') ?>"
@@ -167,7 +167,7 @@ $listingId  = (int) ($listing->id ?? 0);
     <div class="modal-footer" id="em-footer-preview">
       <button class="btn btn-ghost" id="close-preview-btn">Close</button>
     </div>
-    <div id="em-footer-confirm" style="display:none">
+    <div id="em-footer-confirm" class="is-hidden">
       <div class="me-confirm-warning"><?= View::icon('caution') ?>Are you sure you want to send this email? This action cannot be undone.</div>
       <div class="modal-footer">
         <button type="button" class="btn btn-primary" id="em-confirm-send-btn"><?= View::icon('send') ?> Send</button>

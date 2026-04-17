@@ -20,10 +20,8 @@ $fe = $field_errors ?? [];
 <form method="POST" id="add-form" class="js-warn-unsaved">
   <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
 
-  <div class="gradient-card" style="margin-bottom:0">
+  <div class="gradient-card">
     <div class="listing-field-section">
-
-      <!-- Category Name -->
       <div class="listing-field-row listing-field-row--top<?= !empty($fe['name']) ? ' has-error' : '' ?>">
         <label class="listing-field-label" for="cat-name">
           Category Name <span class="req">*</span>
@@ -39,40 +37,44 @@ $fe = $field_errors ?? [];
         </div>
       </div>
 
-      <!-- Parent Category -->
-      <div class="listing-field-row">
+      <div class="listing-field-row listing-field-row--top">
         <label class="listing-field-label" for="cat-parent">Parent Category</label>
-        <div class="select-wrap">
-          <select id="cat-parent" name="parent_id" class="form-select">
-            <option value="">None</option>
-            <?php foreach ($all_cats ?? [] as $c): ?>
-              <?php if ($c->parent_id === null): ?>
-                <option value="<?= (int) $c->id ?>"><?= View::e($c->name ?? '') ?></option>
-              <?php endif; ?>
-            <?php endforeach; ?>
-          </select>
+        <div>
+          <div class="select-wrap">
+            <select id="cat-parent" name="parent_id" class="form-select">
+              <option value="">None</option>
+              <?php foreach ($all_cats ?? [] as $c): ?>
+                <?php if ($c->parent_id === null): ?>
+                  <option value="<?= (int) $c->id ?>"><?= View::e($c->name ?? '') ?></option>
+                <?php endif; ?>
+              <?php endforeach; ?>
+            </select>
+          </div>
+          <p class="form-hint">Optional. Select a parent to create a sub-category.</p>
         </div>
       </div>
 
-      <!-- Add to a Network? -->
-      <div class="listing-field-row">
+      <div class="listing-field-row listing-field-row--top">
         <label class="listing-field-label" for="add-network-toggle">Add to a Network?</label>
-        <div class="select-wrap">
-          <select id="add-network-toggle" name="add_network" class="form-select">
-            <option value="no">No — use Custom</option>
-            <option value="yes">Yes — specify network</option>
-          </select>
+        <div>
+          <div class="select-wrap">
+            <select id="add-network-toggle" name="add_network" class="form-select">
+              <option value="no">No - use Custom</option>
+              <option value="yes">Yes - specify network</option>
+            </select>
+          </div>
+          <p class="form-hint">Use Custom to keep this category outside the built-in networks.</p>
         </div>
       </div>
 
-      <!-- Network Name (hidden until toggled) -->
-      <div class="listing-field-row" id="network-name-row" style="display:none">
+      <div class="listing-field-row listing-field-row--top is-hidden" id="network-name-row">
         <label class="listing-field-label" for="cat-network">Network Name</label>
-        <input id="cat-network" type="text" name="network_name" class="form-input"
-               maxlength="50" placeholder="e.g. MyNetwork">
+        <div>
+          <input id="cat-network" type="text" name="network_name" class="form-input"
+                 maxlength="50" placeholder="e.g. MyNetwork">
+        </div>
       </div>
-
-    </div><!-- /.listing-field-section -->
+    </div>
 
     <div class="composer-footer">
       <button type="submit" class="btn btn-primary">Add Category</button>

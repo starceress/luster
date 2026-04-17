@@ -7,7 +7,7 @@ $b = rtrim(View::e($base_url), '/');
 
 <div class="wizard-steps">
   <div class="wizard-steps-line"></div>
-  <div class="wizard-steps-progress" style="width:0%"></div>
+  <div class="wizard-steps-progress wizard-steps-progress--start"></div>
   <div class="wizard-step-node wizard-step-node--active">
     <div class="wizard-step-bubble">1</div>
     <div class="wizard-step-label">Choose Source</div>
@@ -37,7 +37,7 @@ $b = rtrim(View::e($base_url), '/');
 <div class="import-source-grid">
 
   <a href="<?= $b ?>/admin/import/enthusiast/configure" class="import-source-card import-source-card--enth">
-    <div class="import-source-header" style="border-bottom-color: var(--card-border-1)">
+    <div class="import-source-header import-source-header--1">
       <span class="pc-head-title">Enthusiast</span>
       <span class="badge badge-current">Supported</span>
     </div>
@@ -58,7 +58,7 @@ $b = rtrim(View::e($base_url), '/');
   </a>
 
   <a href="<?= $b ?>/admin/import/listing-admin/configure" class="import-source-card import-source-card--la">
-    <div class="import-source-header" style="border-bottom-color: var(--card-border-2)">
+    <div class="import-source-header import-source-header--2">
       <span class="pc-head-title">Listing Admin</span>
       <span class="badge badge-current">Supported</span>
     </div>
@@ -77,7 +77,7 @@ $b = rtrim(View::e($base_url), '/');
   </a>
 
   <a href="<?= $b ?>/admin/import/fanupdate/configure" class="import-source-card import-source-card--fu">
-    <div class="import-source-header" style="border-bottom-color: var(--card-border-3)">
+    <div class="import-source-header import-source-header--3">
       <span class="pc-head-title">FanUpdate</span>
       <span class="badge badge-current">Supported</span>
     </div>
@@ -92,7 +92,7 @@ $b = rtrim(View::e($base_url), '/');
   </a>
 
   <a href="<?= $b ?>/admin/import/codesort/configure" class="import-source-card import-source-card--cs">
-    <div class="import-source-header" style="border-bottom-color: var(--card-border-4)">
+    <div class="import-source-header import-source-header--4">
       <span class="pc-head-title">CodeSort</span>
       <span class="badge badge-current">Supported</span>
     </div>

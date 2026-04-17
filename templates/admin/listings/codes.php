@@ -97,23 +97,23 @@ if ($hasCats || $hasDonors) {
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06A1.65 1.65 0 0 0 15 19.4a1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
     </div>
     <span>Code Settings</span>
-    <span class="badge badge-muted" style="font-size:.58rem"><?= $_settingsSummary ?></span>
+    <span class="badge badge-muted codes-settings-summary"><?= $_settingsSummary ?></span>
   </summary>
 
   <div class="settings-band-grid">
 
     <!-- ── Categories ── -->
     <div class="settings-band-col">
-      <div class="pc-section-label" style="margin-bottom:.875rem">Categories</div>
+      <div class="pc-section-label codes-section-label">Categories</div>
 
       <form method="POST" action="<?= $b ?>/admin/listings/<?= $fid ?>/codes/categories/add"
-            style="display:flex;gap:.5rem;align-items:flex-end;margin-bottom:.875rem;flex-wrap:wrap">
+            class="codes-form-inline">
         <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
-        <div style="flex:1;min-width:120px">
+        <div class="codes-form-grow">
           <input class="form-input" type="text" name="name" placeholder="Category name&hellip;" required>
         </div>
         <?php if (!empty($topLevelCats)): ?>
-        <div class="toolbar-select-wrap" style="min-width:130px">
+        <div class="toolbar-select-wrap codes-form-select-wrap">
           <select name="parent_id" class="form-select">
             <option value="">None (top-level)</option>
             <?php foreach ($topLevelCats as $tlc): ?>
@@ -122,7 +122,7 @@ if ($hasCats || $hasDonors) {
           </select>
         </div>
         <?php endif; ?>
-        <button type="submit" class="btn btn-quaternary btn-sm" style="flex-shrink:0">+ Add</button>
+        <button type="submit" class="btn btn-quaternary btn-sm">+ Add</button>
       </form>
 
       <?php if ($hasCats): ?>
@@ -139,7 +139,7 @@ if ($hasCats || $hasDonors) {
           <tbody>
             <?php foreach ($categories as $cat): ?>
             <?php $isCatEditing = $edit_cat_id === $cat->id; ?>
-            <tr <?= $isCatEditing ? 'style="display:none"' : '' ?>>
+            <tr<?= $isCatEditing ? ' class="table-row-hidden"' : '' ?>>
               <td class="text-strong"><?= View::e($cat->name) ?></td>
               <td>
                 <?php
@@ -157,7 +157,7 @@ if ($hasCats || $hasDonors) {
               <td class="act-col">
                 <a href="?edit_cat=<?= (int)$cat->id ?>" class="btn btn-tertiary btn-sm">Edit</a>
                 <form method="POST" action="<?= $b ?>/admin/listings/<?= $fid ?>/codes/categories/<?= (int)$cat->id ?>/delete"
-                      style="display:contents"
+                      class="action-form-inline"
                       data-del-modal data-del-entity="code_category"
                       data-del-name="<?= View::e($cat->name) ?>">
                   <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
@@ -165,17 +165,17 @@ if ($hasCats || $hasDonors) {
                 </form>
               </td>
             </tr>
-            <tr <?= !$isCatEditing ? 'style="display:none"' : '' ?>>
+            <tr<?= !$isCatEditing ? ' class="table-row-hidden"' : '' ?>>
               <td colspan="4">
                 <form method="POST" action="<?= $b ?>/admin/listings/<?= $fid ?>/codes/categories/<?= (int)$cat->id ?>/edit"
-                      style="display:flex;gap:.4rem;align-items:flex-end;flex-wrap:wrap">
+                      class="codes-form-actions">
                   <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
-                  <div style="flex:1;min-width:100px">
+                  <div class="codes-form-grow-sm">
                     <input class="form-input" type="text" name="name" value="<?= View::e($cat->name) ?>" required>
                   </div>
                   <div>
                     <div class="toolbar-select-wrap">
-                      <select name="parent_id" class="form-select" style="font-size:.8rem">
+                      <select name="parent_id" class="form-select codes-form-select-sm">
                         <option value="">None (top-level)</option>
                         <?php foreach ($categories as $pcat): ?>
                           <?php if ($pcat->id === $cat->id || $pcat->parentId !== null) continue; ?>
@@ -196,21 +196,21 @@ if ($hasCats || $hasDonors) {
         </table>
       </div>
       <?php else: ?>
-      <p style="font-size:.82rem;color:var(--text-dim)">No categories yet. Use these to tag codes by theme.</p>
+      <p class="text-dim-sm">No categories yet. Use these to tag codes by theme.</p>
       <?php endif; ?>
     </div>
 
     <!-- ── Donors ── -->
     <div class="settings-band-col">
-      <div class="pc-section-label" style="margin-bottom:.875rem">Donors</div>
+      <div class="pc-section-label codes-section-label">Donors</div>
 
       <form method="POST" action="<?= $b ?>/admin/listings/<?= $fid ?>/codes/donors/add"
-            style="display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:.5rem;align-items:end;margin-bottom:.875rem">
+            class="codes-form-inline">
         <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
-        <input type="text"  class="form-input" name="name"  placeholder="Display name&hellip;" required>
-        <input type="email" class="form-input" name="email" placeholder="Email (optional)">
-        <input type="url"   class="form-input" name="url"   placeholder="URL (optional)">
-        <button type="submit" class="btn btn-quaternary btn-sm" style="white-space:nowrap">+ Add</button>
+        <input type="text"  class="form-input codes-form-grow-sm" name="name"  placeholder="Display name&hellip;" required>
+        <input type="email" class="form-input codes-form-grow-sm" name="email" placeholder="Email (optional)">
+        <input type="url"   class="form-input codes-form-grow-sm" name="url"   placeholder="URL (optional)">
+        <button type="submit" class="btn btn-quaternary btn-sm">+ Add</button>
       </form>
 
       <?php if ($hasDonors): ?>
@@ -228,7 +228,7 @@ if ($hasCats || $hasDonors) {
           <tbody>
             <?php foreach ($donors as $dn): ?>
             <?php $isDnEditing = $edit_donor_id === $dn->id; ?>
-            <tr <?= $isDnEditing ? 'style="display:none"' : '' ?>>
+            <tr<?= $isDnEditing ? ' class="table-row-hidden"' : '' ?>>
               <td class="text-strong"><?= View::e($dn->name) ?></td>
               <td class="text-dim"><?= $dn->email !== null ? View::e($dn->email) : '&mdash;' ?></td>
               <td class="text-dim">
@@ -246,7 +246,7 @@ if ($hasCats || $hasDonors) {
               <td class="act-col">
                 <a href="?edit_donor=<?= (int)$dn->id ?>" class="btn btn-tertiary btn-sm">Edit</a>
                 <form method="POST" action="<?= $b ?>/admin/listings/<?= $fid ?>/codes/donors/<?= (int)$dn->id ?>/delete"
-                      style="display:contents"
+                      class="action-form-inline"
                       data-del-modal data-del-entity="code_donor"
                       data-del-name="<?= View::e($dn->name) ?>">
                   <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
@@ -254,18 +254,18 @@ if ($hasCats || $hasDonors) {
                 </form>
               </td>
             </tr>
-            <tr <?= !$isDnEditing ? 'style="display:none"' : '' ?>>
-              <td colspan="5" style="padding:.6rem .75rem;background:var(--bg-subtle)">
+            <tr<?= !$isDnEditing ? ' class="table-row-hidden"' : '' ?>>
+              <td colspan="5" class="table-edit-cell">
                 <form method="POST" action="<?= $b ?>/admin/listings/<?= $fid ?>/codes/donors/<?= (int)$dn->id ?>/edit"
-                      style="display:flex;gap:.4rem;align-items:flex-end;flex-wrap:wrap">
+                      class="codes-form-actions">
                   <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
-                  <div style="flex:1;min-width:100px">
+                  <div class="codes-form-grow-sm">
                     <input class="form-input" type="text" name="name" value="<?= View::e($dn->name) ?>" required>
                   </div>
-                  <div style="flex:1;min-width:100px">
+                  <div class="codes-form-grow-sm">
                     <input class="form-input" type="email" name="email" value="<?= View::e($dn->email ?? '') ?>" placeholder="Email">
                   </div>
-                  <div style="flex:1;min-width:100px">
+                  <div class="codes-form-grow-sm">
                     <input class="form-input" type="url" name="url" value="<?= View::e($dn->url ?? '') ?>" placeholder="URL">
                   </div>
                   <button class="btn btn-primary btn-sm">Save</button>
@@ -278,7 +278,7 @@ if ($hasCats || $hasDonors) {
         </table>
       </div>
       <?php else: ?>
-      <p style="font-size:.82rem;color:var(--text-dim)">No donors yet. Credit the people who made codes for this listing.</p>
+      <p class="text-dim-sm">No donors yet. Credit the people who made codes for this listing.</p>
       <?php endif; ?>
     </div>
 
@@ -321,12 +321,12 @@ if ($hasCats || $hasDonors) {
     <button type="button" class="modal-close" data-close-dialog aria-label="Close">&times;</button>
   </div>
   <div class="modal-body">
-    <div style="text-align:center;margin-bottom:.875rem">
+    <div class="code-preview">
       <img src="<?= View::e($uploads_url . '/' . $code->filename) ?>"
            alt="Code #<?= (int)$code->id ?>"
-           style="max-width:100%;max-height:120px;object-fit:contain;border-radius:6px">
+           class="code-preview-img">
       <?php if ($code->width > 0 && $code->height > 0): ?>
-      <div style="font-size:.7rem;color:var(--text-dim);margin-top:.3rem">
+      <div class="code-preview-meta">
         <?= (int)$code->width ?>&times;<?= (int)$code->height ?>px
       </div>
       <?php endif; ?>
@@ -334,20 +334,20 @@ if ($hasCats || $hasDonors) {
 
     <form method="POST"
           action="<?= $b ?>/admin/listings/<?= $fid ?>/codes/<?= (int)$code->id ?>/update"
-          style="display:flex;flex-direction:column;gap:.6rem">
+          class="codes-form-stack">
       <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
 
       <div>
-        <label class="form-label" style="font-size:.8rem">Label (optional)</label>
+        <label class="form-label form-label--tight">Label (optional)</label>
         <input class="form-input" type="text" name="name"
                value="<?= View::e($code->name ?? '') ?>"
                placeholder="e.g. Animated version">
       </div>
 
       <div>
-        <label class="form-label" style="font-size:.8rem">Status</label>
+        <label class="form-label form-label--tight">Status</label>
         <div class="toolbar-select-wrap">
-          <select name="status" class="form-select" style="width:100%">
+          <select name="status" class="form-select">
             <option value="approved" <?= $code->status === 'approved' ? 'selected' : '' ?>>&#10003; Live</option>
             <option value="pending"  <?= $code->status === 'pending'  ? 'selected' : '' ?>>&#8987; Pending</option>
           </select>
@@ -356,9 +356,9 @@ if ($hasCats || $hasDonors) {
 
       <?php if ($hasDonors): ?>
       <div>
-        <label class="form-label" style="font-size:.8rem">Donor</label>
+        <label class="form-label form-label--tight">Donor</label>
         <div class="toolbar-select-wrap">
-          <select name="donor_id" class="form-select" style="width:100%">
+          <select name="donor_id" class="form-select">
             <option value="">No donor</option>
             <?php foreach ($donors as $dn): ?>
               <option value="<?= (int)$dn->id ?>" <?= $code->donorId === $dn->id ? 'selected' : '' ?>>
@@ -372,9 +372,9 @@ if ($hasCats || $hasDonors) {
 
       <?php if ($hasCats): ?>
       <div>
-        <label class="form-label" style="font-size:.8rem">Category</label>
+        <label class="form-label form-label--tight">Category</label>
         <div class="toolbar-select-wrap">
-          <select name="cat_ids[]" class="form-select" style="width:100%">
+          <select name="cat_ids[]" class="form-select">
             <option value="">None</option>
             <?php
               $dCatIds = $code_categories[$code->id] ?? [];
@@ -391,19 +391,19 @@ if ($hasCats || $hasDonors) {
 
       <?php if ($code->submitterName !== null): ?>
       <div>
-        <label class="form-label" style="font-size:.8rem">Submitter website</label>
+        <label class="form-label form-label--tight">Submitter website</label>
         <input class="form-input" type="url" name="submitter_url"
                value="<?= View::e($code->submitterUrl ?? '') ?>"
                placeholder="https://example.com">
       </div>
       <?php endif; ?>
 
-      <button class="btn btn-primary" style="width:100%">Save changes</button>
+      <button class="btn btn-primary full-width-btn">Save changes</button>
     </form>
 
-    <div style="margin-top:.75rem;padding-top:.75rem;border-top:1px solid var(--border-soft)">
+    <div class="code-delete-block">
       <button type="submit" form="del-<?= (int)$code->id ?>"
-              class="btn btn-danger btn-sm" style="width:100%">
+              class="btn btn-danger btn-sm full-width-btn">
         Delete this code
       </button>
     </div>
@@ -430,7 +430,7 @@ if ($hasCats || $hasDonors) {
           <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
 
           <!-- Drop zone -->
-          <div class="codes-drop" style="margin-bottom:.875rem">
+          <div class="codes-drop codes-drop-spaced">
             <input type="file" id="codes-input" name="codes[]"
                    multiple accept="image/jpeg,image/png,image/gif,image/webp">
             <svg class="codes-drop-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/></svg>
@@ -439,8 +439,8 @@ if ($hasCats || $hasDonors) {
           </div>
 
           <!-- Donor + Status -->
-          <div class="field-row-2" style="margin-bottom:.625rem">
-            <div class="panel-field" style="margin-bottom:0">
+          <div class="field-row-2 upload-panel-row">
+            <div class="panel-field">
               <label class="panel-label" for="upload-donor">Donor</label>
               <div class="select-wrap">
                 <select id="upload-donor" name="donor_id" class="panel-select">
@@ -451,7 +451,7 @@ if ($hasCats || $hasDonors) {
                 </select>
               </div>
             </div>
-            <div class="panel-field" style="margin-bottom:0">
+            <div class="panel-field">
               <label class="panel-label" for="upload-status">Status</label>
               <div class="select-wrap">
                 <select id="upload-status" name="upload_status" class="panel-select">
@@ -479,22 +479,22 @@ if ($hasCats || $hasDonors) {
           </div>
           <?php endif; ?>
 
-          <button type="submit" class="btn btn-primary btn-sm" style="width:100%;justify-content:center;margin-top:.25rem">
+          <button type="submit" class="btn btn-primary btn-sm full-width-btn">
             Upload
           </button>
-          <p class="panel-hint" style="margin-top:.5rem">Dimensions are detected automatically. Attributes above apply to all files in this batch.</p>
+          <p class="panel-hint panel-hint-spaced">Dimensions are detected automatically. Attributes above apply to all files in this batch.</p>
         </form>
       </div>
     </div>
   </div><!-- /.codes-panel-col -->
 
   <!-- ── Right: Gallery ── -->
-  <div class="main-card" style="margin-bottom:0">
+  <div class="main-card">
 
     <!-- Info row -->
     <div class="codes-info-row">
-      <div style="font-size:.825rem;color:var(--text-muted)">
-        <strong style="color:var(--text)"><?= $approvedCount ?> approved code<?= $approvedCount !== 1 ? 's' : '' ?></strong>
+      <div class="codes-info-copy">
+        <strong><?= $approvedCount ?> approved code<?= $approvedCount !== 1 ? 's' : '' ?></strong>
         <?php if ($groupCount > 0): ?>
           across <?= $groupCount ?> size group<?= $groupCount !== 1 ? 's' : '' ?> &mdash; drag tiles to reorder.
         <?php endif; ?>
@@ -509,20 +509,20 @@ if ($hasCats || $hasDonors) {
     <!-- Status tabs -->
     <div class="codes-tabs">
       <a href="?" class="tabs-btn<?= $status_filter === '' ? ' active' : '' ?>">
-        All <span class="badge badge-muted" style="font-size:.55rem;padding:1px 6px;vertical-align:middle"><?= $total_codes ?></span>
+        All <span class="badge badge-muted code-badge-micro"><?= $total_codes ?></span>
       </a>
       <a href="?status_filter=pending" class="tabs-btn<?= $status_filter === 'pending' ? ' active' : '' ?>">
-        Pending <span class="badge badge-<?= $pendingCount > 0 ? 'upcoming' : 'muted' ?>" style="font-size:.55rem;padding:1px 6px;vertical-align:middle"><?= $pendingCount ?></span>
+        Pending <span class="badge badge-<?= $pendingCount > 0 ? 'upcoming' : 'muted' ?> code-badge-micro"><?= $pendingCount ?></span>
       </a>
     </div>
 
     <!-- Bulk toolbar -->
     <div class="codes-bulk">
-      <label style="display:flex;align-items:center;gap:5px;font-size:.78rem;color:var(--text-dim);cursor:pointer;flex-shrink:0">
-        <input type="checkbox" id="codes-select-all" style="accent-color:var(--va-pink);width:13px;height:13px"> Select all
+      <label class="codes-bulk-label">
+        <input type="checkbox" id="codes-select-all" class="code-bulk-checkbox"> Select all
       </label>
       <div class="toolbar-select-wrap">
-        <select id="bulk-action-sel" class="form-select" style="font-size:.78rem;padding:4px 28px 4px 9px">
+        <select id="bulk-action-sel" class="form-select codes-bulk-select">
           <option value="delete">Delete</option>
           <option value="approve">Approve</option>
           <option value="reject">Reject</option>
@@ -532,10 +532,9 @@ if ($hasCats || $hasDonors) {
         </select>
       </div>
       <?php if ($hasCats): ?>
-      <div id="bulk-cats-wrap" style="display:none">
+      <div id="bulk-cats-wrap" class="is-hidden">
         <select id="bulk-cats-sel" name="bulk_cat_ids[]" multiple
-                size="<?= min(4, count($categories)) ?>" class="form-input"
-                style="height:auto;font-size:.8rem;min-height:50px">
+                size="<?= min(4, count($categories)) ?>" class="form-input codes-bulk-cats">
           <?php foreach ($categories as $cat): ?>
             <option value="<?= (int)$cat->id ?>">
               <?= $cat->parentId !== null ? '  └ ' : '' ?><?= View::e($cat->name) ?>
@@ -546,14 +545,14 @@ if ($hasCats || $hasDonors) {
       <?php endif; ?>
       <button type="button" id="bulk-apply-btn" class="btn btn-quaternary btn-sm">Apply to selected</button>
       <div class="codes-bulk-right">
-        <button type="button" id="save-order-btn" class="btn btn-quaternary btn-sm" style="display:none">Save order</button>
+        <button type="button" id="save-order-btn" class="btn btn-quaternary btn-sm is-hidden">Save order</button>
       </div>
     </div>
 
     <!-- Gallery content -->
     <?php if ($total_codes === 0): ?>
 
-      <div class="card-section" style="text-align:center;padding:2.5rem">
+      <div class="card-section codes-empty-state">
         <div class="empty">
           <span class="empty-icon"><?= View::icon('image', ['width' => 32, 'height' => 32]) ?></span>
           No codes yet.
@@ -562,7 +561,7 @@ if ($hasCats || $hasDonors) {
 
     <?php elseif (empty($codes)): ?>
 
-      <div class="card-section" style="text-align:center;padding:2.5rem">
+      <div class="card-section codes-empty-state">
         <div class="empty">
           <span class="empty-icon"><?= View::icon('image', ['width' => 32, 'height' => 32]) ?></span>
           No codes match this filter &mdash; <a href="?" class="link">clear filter</a> to see all <?= $total_codes ?>.
@@ -592,9 +591,8 @@ if ($hasCats || $hasDonors) {
               $codeLabel  = ($code->name !== null && $code->name !== '') ? $code->name : null;
               $isDonated  = $codeDonor !== null || $code->submitterName !== null;
             ?>
-            <div class="code-tile code-card"
-                 data-code-id="<?= (int)$code->id ?>"
-                 <?= $isDonated ? 'style="border-color:rgba(249,115,22,.3)"' : '' ?>>
+            <div class="code-tile code-card<?= $isDonated ? ' donated-tile' : '' ?>"
+                 data-code-id="<?= (int)$code->id ?>">
 
               <input type="checkbox" form="codes-bulk-form" name="selected[]"
                      value="<?= (int)$code->id ?>"
@@ -604,11 +602,11 @@ if ($hasCats || $hasDonors) {
 
               <img src="<?= View::e($uploads_url . '/' . $code->filename) ?>"
                    alt="<?= (int)$code->width ?>&times;<?= (int)$code->height ?>px"
-                   style="max-width:100%;object-fit:contain"
+                   class="code-tile-img"
                    loading="lazy">
 
               <?php if ($codeLabel !== null): ?>
-              <div style="font-size:.68rem;font-weight:600;color:var(--text);text-align:center;word-break:break-word;line-height:1.3">
+              <div class="code-label">
                 <?= View::e($codeLabel) ?>
               </div>
               <?php endif; ?>
@@ -620,7 +618,7 @@ if ($hasCats || $hasDonors) {
               <?php endif; ?>
 
               <?php if ($code->status === 'pending'): ?>
-              <span class="badge badge-upcoming" style="font-size:.58rem;padding:1px 7px">Pending</span>
+              <span class="badge badge-upcoming code-status-badge">Pending</span>
               <?php endif; ?>
 
               <button type="button" class="btn btn-quaternary btn-sm code-tile-btn code-edit-btn"

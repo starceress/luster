@@ -47,7 +47,7 @@ $pendingSortUrl = static function (string $col) use ($b, $sort, $dir): string {
       </select>
     </div>
     <input type="text" name="search" value="<?= View::e($search ?? '') ?>"
-           placeholder="Search all listings&hellip;" class="form-input" style="max-width:240px">
+           placeholder="Search all listings&hellip;" class="form-input toolbar-input-sm">
     <button type="submit" class="btn btn-quaternary btn-sm">Search</button>
     <?php if ($isSearch): ?>
       <a href="<?= $b ?>/admin/members" class="btn btn-quaternary btn-sm">Clear</a>
@@ -64,7 +64,7 @@ $pendingSortUrl = static function (string $col) use ($b, $sort, $dir): string {
 
   <!--  Global search results  -->
   <?php $total = count($search_results); ?>
-  <p class="text-muted" style="font-size:.8rem;margin-bottom:.75rem">
+  <p class="result-count member-results-count">
     <?= $total ?> result<?= $total !== 1 ? 's' : '' ?> for
     &ldquo;<?= View::e($search) ?>&rdquo; across all listings
   </p>
@@ -78,7 +78,7 @@ $pendingSortUrl = static function (string $col) use ($b, $sort, $dir): string {
       </div>
     </div>
   <?php else: ?>
-    <div class="card" style="overflow-x:auto">
+    <div class="card">
       <div class="table-wrap">
       <table class="data-table mem-table">
         <thead>
@@ -114,13 +114,13 @@ $pendingSortUrl = static function (string $col) use ($b, $sort, $dir): string {
                 <span class="badge badge-upcoming">Pending</span>
               <?php endif; ?>
             </td>
-            <td data-label="Joined" style="white-space:nowrap;color:var(--text-muted)">
+            <td data-label="Joined" class="cell-meta-nowrap">
               <?= View::e(($m->added ?? '') !== '' ? date($admin_date_format, strtotime($m->added)) : '') ?>
             </td>
             <td class="act-col" data-label="">
               <div class="data-actions">
                 <?php if (!$m->approved): ?>
-                  <form method="POST" action="<?= $b ?>/admin/members/<?= $flId ?>/approve" style="display:contents">
+                  <form method="POST" action="<?= $b ?>/admin/members/<?= $flId ?>/approve" class="action-form-inline">
                     <input type="hidden" name="_csrf"        value="<?= View::e($csrf_token ?? '') ?>">
                     <input type="hidden" name="member_email" value="<?= View::e($m->email) ?>">
                     <button type="submit" class="btn btn-success btn-sm">Approve</button>
@@ -179,10 +179,10 @@ $pendingSortUrl = static function (string $col) use ($b, $sort, $dir): string {
             data-del-bulk data-del-entity="member_reject">
       <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
       <input type="hidden" name="from" value="overview">
-      <div class="bulk" style="margin:0 0 0 0;border-left:none;border-right:none;border-top:none;border-radius:0;border-bottom:1px solid var(--border)">
-        <span style="font-weight:600;margin-right:.25rem;color:var(--text)">Bulk:</span>
+      <div class="bulk bulk--flush">
+        <span class="bulk-label">Bulk:</span>
         <div class="select-wrap">
-          <select name="bulk_action" class="form-select" style="padding:.3rem 2rem .3rem .6rem;font-size:.8125rem">
+          <select name="bulk_action" class="form-select form-select--compact">
             <option value="approve">Approve</option>
             <option value="delete">Reject</option>
           </select>
@@ -217,14 +217,14 @@ $pendingSortUrl = static function (string $col) use ($b, $sort, $dir): string {
             <td data-label="URL">
               <?php if ($m->url !== ''): ?>
                 <a href="<?= View::e($m->url) ?>" target="_blank" rel="noopener noreferrer"
-                   class="link" style="word-break:break-all"><?= View::e($m->url) ?></a>
+                   class="link link-break"><?= View::e($m->url) ?></a>
               <?php else: ?>
                 <span class="text-dim">&mdash;</span>
               <?php endif; ?>
             </td>
             <td class="act-col" data-label="">
               <div class="data-actions">
-                <form method="POST" action="<?= $b ?>/admin/members/<?= $flId ?>/approve" style="display:contents">
+                <form method="POST" action="<?= $b ?>/admin/members/<?= $flId ?>/approve" class="action-form-inline">
                   <input type="hidden" name="_csrf"        value="<?= View::e($csrf_token ?? '') ?>">
                   <input type="hidden" name="member_email" value="<?= View::e($m->email) ?>">
                   <button type="submit" class="btn btn-success btn-sm">Approve</button>
@@ -245,7 +245,7 @@ $pendingSortUrl = static function (string $col) use ($b, $sort, $dir): string {
       <?php foreach ($pendingMembers as $m): ?>
       <form id="del-rej-<?= md5($m->email . $flId) ?>" method="POST"
             action="<?= $b ?>/admin/members/<?= $flId ?>/delete"
-            style="display:none"
+            class="is-hidden"
             data-del-modal data-del-entity="member_reject"
             data-del-name="<?= View::e($m->name) ?>">
         <input type="hidden" name="_csrf"        value="<?= View::e($csrf_token ?? '') ?>">
@@ -275,22 +275,21 @@ $pendingSortUrl = static function (string $col) use ($b, $sort, $dir): string {
       </div>
     </div>
   <?php else: ?>
-    <div class="card" style="overflow:hidden">
+    <div class="card">
       <form method="POST" action="<?= $b ?>/admin/pending-updates/bulk"
             data-del-bulk data-del-entity="pending_update_reject">
         <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
-        <div class="bulk" style="margin:0;border-left:none;border-right:none;border-top:none;border-radius:0;border-bottom:1px solid var(--border)">
-          <span style="font-weight:600;margin-right:.25rem;color:var(--text)">Bulk:</span>
+        <div class="bulk bulk--flush">
+          <span class="bulk-label">Bulk:</span>
           <div class="select-wrap">
-            <select name="bulk_action" class="form-select" style="padding:.3rem 2rem .3rem .6rem;font-size:.8125rem">
+            <select name="bulk_action" class="form-select form-select--compact">
               <option value="approve">Approve</option>
               <option value="reject">Reject</option>
             </select>
           </div>
           <button type="submit" class="btn btn-quaternary btn-sm">Apply</button>
         </div>
-        <div style="overflow-x:auto">
-          <div class="table-wrap">
+        <div class="table-wrap">
           <table class="data-table mem-table">
             <thead>
               <tr>
@@ -330,15 +329,15 @@ $pendingSortUrl = static function (string $col) use ($b, $sort, $dir): string {
                   <?php if ($puCount === 0): ?>
                     <span class="text-dim">-</span>
                   <?php else: ?>
-                    <details style="cursor:pointer">
-                      <summary style="list-style:none;display:inline-flex;align-items:center;gap:.3rem;font-size:.85rem;color:var(--text-muted)">
+                    <details class="changes-toggle">
+                      <summary class="changes-toggle-summary">
                         <?= $puCount ?> field<?= $puCount !== 1 ? 's' : '' ?>
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="11" height="11" style="flex-shrink:0;transition:transform .15s"><polyline points="6 9 12 15 18 9"/></svg>
+                        <svg class="changes-toggle-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="11" height="11"><polyline points="6 9 12 15 18 9"/></svg>
                       </summary>
-                      <div style="margin:.4rem 0 0;font-size:.78rem;line-height:1.8">
+                      <div class="changes-list">
                         <?php foreach ($pu->changes as $field => $val): ?>
-                          <div style="word-break:break-all">
-                            <span style="font-weight:600;color:var(--text-muted)"><?= View::e(ucfirst((string) $field)) ?>:</span>
+                          <div class="changes-list-item">
+                            <span class="changes-list-label"><?= View::e(ucfirst((string) $field)) ?>:</span>
                             <?= View::e((string) $val) ?>
                           </div>
                         <?php endforeach; ?>
@@ -346,15 +345,15 @@ $pendingSortUrl = static function (string $col) use ($b, $sort, $dir): string {
                     </details>
                   <?php endif; ?>
                 </td>
-                <td data-label="Submitted" style="white-space:nowrap;font-size:.8rem;color:var(--text-muted)"
+                <td data-label="Submitted" class="cell-meta-nowrap"
                     title="<?= View::e($pu->submitted_at) ?>">
                   <?= View::e($pu->submitted_at) ?>
                 </td>
-                <td class="act-col" data-label="" style="white-space:nowrap">
+                <td class="act-col" data-label="">
                   <div class="data-actions">
                     <form method="POST"
                           action="<?= $b ?>/admin/pending-updates/<?= (int) $pu->id ?>/approve"
-                          style="display:contents"
+                          class="action-form-inline"
                           data-confirm="Approve and apply this update?">
                       <input type="hidden" name="_csrf"  value="<?= View::e($csrf_token ?? '') ?>">
                       <input type="hidden" name="_from"  value="members">
@@ -369,13 +368,12 @@ $pendingSortUrl = static function (string $col) use ($b, $sort, $dir): string {
               <?php endforeach; ?>
             </tbody>
           </table>
-          </div>
         </div>
       </form>
       <?php foreach ($pending_updates as $pu): ?>
       <form id="del-pu-<?= (int) $pu->id ?>" method="POST"
             action="<?= $b ?>/admin/pending-updates/<?= (int) $pu->id ?>/reject"
-            style="display:none"
+            class="is-hidden"
             data-del-modal data-del-entity="pending_update_reject"
             data-del-name="<?= View::e($pu->member_email) ?>">
         <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
@@ -386,4 +384,3 @@ $pendingSortUrl = static function (string $col) use ($b, $sort, $dir): string {
   <?php endif; ?>
 
 <?php endif; ?>
-

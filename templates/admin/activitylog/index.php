@@ -17,7 +17,7 @@ $pageUrl = static fn(int $p): string => $b . '/admin/activitylog?page=' . $p;
 
 <?php if (($total ?? 0) > 0): ?>
 <div class="toolbar">
-  <div class="actions-row" style="margin-left: auto;">
+  <div class="actions-row actions-row--push">
     <a href="<?= $b ?>/admin/activitylog/export" class="btn btn-quaternary btn-sm"><?= View::icon('download') ?> Export CSV</a>
     <form method="POST" action="<?= $b ?>/admin/activitylog/flush" id="flush-activity-form">
       <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
@@ -65,7 +65,7 @@ $pageUrl = static fn(int $p): string => $b . '/admin/activitylog?page=' . $p;
           <td><?= View::e((string) ($entry['description'] ?? '')) ?></td>
           <td class="text-muted"><?= View::e((string) ($entry['username'] ?? '&mdash;')) ?></td>
           <td>
-            <span class="text-dim" style="font-family:'DM Mono',monospace;font-size:.75rem">
+            <span class="text-dim text-mono-xs">
               <?= View::e((string) ($entry['ip_address'] ?? '')) ?>
             </span>
           </td>
@@ -114,7 +114,7 @@ $pageUrl = static fn(int $p): string => $b . '/admin/activitylog?page=' . $p;
 <?php endif; ?>
 
 <!-- Flush activity log confirmation modal -->
-<div id="flush-activity-modal" class="modal-backdrop" style="display:none"
+<div id="flush-activity-modal" class="modal-backdrop is-hidden"
      role="dialog" aria-modal="true" aria-labelledby="flush-activity-modal-title">
   <div class="modal">
     <div class="modal-header">

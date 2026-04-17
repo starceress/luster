@@ -74,13 +74,11 @@ $b = rtrim(View::e($base_url), '/');
       <div class="listing-field-row listing-field-row--top">
         <label class="listing-field-label" for="kim-new-password">New Password</label>
         <div>
-          <div style="position:relative">
+          <div class="input-icon-wrap">
             <input id="kim-new-password" type="password" name="new_password" class="form-input"
-                   style="padding-right:42px" maxlength="255" autocomplete="new-password"
+                   maxlength="255" autocomplete="new-password"
                    placeholder="Leave blank to keep current">
-            <button type="button" data-pw-toggle aria-label="Show password" tabindex="-1"
-                    style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--text-dim);padding:4px;line-height:0"
-                    onmouseover="this.style.color='var(--accent)'" onmouseout="this.style.color='var(--text-dim)'">
+            <button type="button" data-pw-toggle aria-label="Show password" tabindex="-1" class="input-icon-btn">
               <?= View::icon('eye-on') ?>
               <?= View::icon('eye-off') ?>
             </button>
@@ -91,12 +89,10 @@ $b = rtrim(View::e($base_url), '/');
 
       <div class="listing-field-row">
         <label class="listing-field-label" for="kim-new-password-confirm">Confirm Password</label>
-        <div style="position:relative">
+        <div class="input-icon-wrap">
           <input id="kim-new-password-confirm" type="password" name="new_password_confirm"
-                 class="form-input" style="padding-right:42px" maxlength="255" autocomplete="new-password">
-          <button type="button" data-pw-toggle aria-label="Show password" tabindex="-1"
-                  style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--text-dim);padding:4px;line-height:0"
-                  onmouseover="this.style.color='var(--accent)'" onmouseout="this.style.color='var(--text-dim)'">
+                 class="form-input" maxlength="255" autocomplete="new-password">
+          <button type="button" data-pw-toggle aria-label="Show password" tabindex="-1" class="input-icon-btn">
             <?= View::icon('eye-on') ?>
             <?= View::icon('eye-off') ?>
           </button>

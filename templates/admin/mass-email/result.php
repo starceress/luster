@@ -17,42 +17,52 @@ $b = rtrim(View::e($base_url ?? ''), '/');
 $allOk = empty($failed);
 ?>
 
-<div class="card" style="padding:1.75rem 2rem">
+<div class="gradient-card summary-card">
   <?php if ($allOk): ?>
-    <div class="alert alert-success" style="margin-bottom:1.25rem">
+    <div class="alert alert-success">
       Mass email sent successfully.
     </div>
   <?php else: ?>
-    <div class="alert alert-error" style="margin-bottom:1.25rem">
+    <div class="alert alert-error">
       Send completed with errors - <?= count($failed) ?> message<?= count($failed) !== 1 ? 's' : '' ?> failed.
     </div>
   <?php endif; ?>
 
-  <div class="db-info-grid" style="margin-bottom:1.25rem">
+  <div class="pc-head">
+    <div class="pc-head-icon pc-head-icon-bg">
+      <?= View::icon($allOk ? 'check-badge' : 'caution') ?>
+    </div>
+    <div class="pc-head-meta">
+      <div class="pc-head-title">Bulk Email Result</div>
+      <div class="pc-head-sub">See how many emails were delivered and whether any addresses failed.</div>
+    </div>
+  </div>
+
+  <div class="db-info-grid summary-grid">
     <div>
-      <div class="form-label" style="margin-bottom:.25rem">Sent to</div>
+      <div class="form-label summary-label">Sent to</div>
       <div><?= View::e($listing_name) ?></div>
     </div>
     <div>
-      <div class="form-label" style="margin-bottom:.25rem">Subject</div>
+      <div class="form-label summary-label">Subject</div>
       <div><?= View::e($subject) ?></div>
     </div>
     <div>
-      <div class="form-label" style="margin-bottom:.25rem">Delivered</div>
+      <div class="form-label summary-label">Delivered</div>
       <div><strong><?= (int) $sent ?></strong> / <?= (int) $total ?></div>
     </div>
     <?php if (!$allOk): ?>
     <div>
-      <div class="form-label" style="margin-bottom:.25rem">Failed</div>
+      <div class="form-label summary-label">Failed</div>
       <div><?= count($failed) ?></div>
     </div>
     <?php endif; ?>
   </div>
 
   <?php if (!$allOk): ?>
-  <div style="margin-bottom:1.25rem">
-    <div class="form-label" style="margin-bottom:.5rem">Failed addresses</div>
-    <ul style="margin:0;padding-left:1.25rem;color:var(--text-muted);font-size:.875rem">
+  <div class="summary-stack">
+    <div class="form-label summary-label">Failed addresses</div>
+    <ul class="summary-list">
       <?php foreach ($failed as $addr): ?>
         <li><?= View::e($addr) ?></li>
       <?php endforeach; ?>
@@ -61,7 +71,7 @@ $allOk = empty($failed);
   </div>
   <?php endif; ?>
 
-  <div class="btn-row">
+  <div class="composer-footer">
     <a href="<?= $b ?>/admin/emails?tab=bulk" class="btn btn-primary">Compose another</a>
     <a href="<?= $b ?>/admin/activitylog" class="btn btn-quaternary">View activity log</a>
   </div>

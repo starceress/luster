@@ -34,9 +34,9 @@ $oldSubject = View::e($old['subject'] ?? '');
 $oldBody    = htmlspecialchars($old['body'] ?? '', ENT_QUOTES, 'UTF-8');
 ?>
 
-<p class="page-back">
+<div class="page-topbar">
   <a href="<?= $b ?>/admin/kim/<?= $fid ?>/show" class="link">&larr; Back to <?= $flSubject ?></a>
-</p>
+</div>
 
 <?php if ($error !== ''): ?>
   <div class="alert alert-error"><?= View::e($error) ?></div>
@@ -64,7 +64,7 @@ $oldBody    = htmlspecialchars($old['body'] ?? '', ENT_QUOTES, 'UTF-8');
           </select>
         </div>
         <p class="form-hint">Loading a template will replace your current subject and message.</p>
-        <a href="<?= $b ?>/admin/emails?tab=custom" class="btn btn-tertiary btn-sm" style="width:100%;justify-content:center">Manage Templates</a>
+        <a href="<?= $b ?>/admin/emails?tab=custom" class="btn btn-tertiary btn-sm btn-block-center">Manage Templates</a>
       </div>
     </div>
     <?php endif; ?>
@@ -80,7 +80,7 @@ $oldBody    = htmlspecialchars($old['body'] ?? '', ENT_QUOTES, 'UTF-8');
           <div id="es-save-emails"></div>
           <input type="text" name="tpl_name" id="es-save-name"
                  class="form-input" placeholder="Template name&hellip;" maxlength="150">
-          <button type="submit" class="btn btn-secondary btn-sm" style="width:100%;justify-content:center">Save Template</button>
+          <button type="submit" class="btn btn-secondary btn-sm btn-block-center">Save Template</button>
         </form>
       </div>
     </div>
@@ -120,7 +120,7 @@ $oldBody    = htmlspecialchars($old['body'] ?? '', ENT_QUOTES, 'UTF-8');
       <div class="pc-head">
         <div class="pc-head-icon pc-head-icon-bg"><?= View::icon('email') ?></div>
         <div class="pc-head-title"><?= $selected_only ? 'Email Selected Members' : 'Mass Email' ?></div>
-        <span class="badge badge-info-pink" style="margin-left:auto">
+        <span class="badge badge-info-pink pc-head-badge">
           <?= $flSubject ?> &middot; <span id="es-count-label"><?= $count ?> member<?= $count !== 1 ? 's' : '' ?></span>
         </span>
       </div>
@@ -179,7 +179,7 @@ $oldBody    = htmlspecialchars($old['body'] ?? '', ENT_QUOTES, 'UTF-8');
         </button>
         <button type="button" class="btn btn-preview" id="es-preview-btn">Preview</button>
         <button type="button" class="btn btn-ghost js-form-reset">Clear</button>
-        <div style="flex:1"></div>
+        <div class="composer-footer-spacer"></div>
         <a href="<?= $b ?>/admin/kim/<?= $fid ?>/show" class="btn btn-danger">Cancel</a>
       </div>
     </form>
@@ -188,7 +188,7 @@ $oldBody    = htmlspecialchars($old['body'] ?? '', ENT_QUOTES, 'UTF-8');
 </div><!-- /.composer-grid -->
 
 <!-- ── Preview / Confirm modal ── -->
-<div class="modal-backdrop" id="es-preview-modal" style="display:none">
+<div class="modal-backdrop is-hidden" id="es-preview-modal">
   <div class="modal modal--wide">
     <div class="modal-header">
       <h3 class="modal-title">Email Preview</h3>
@@ -213,7 +213,7 @@ $oldBody    = htmlspecialchars($old['body'] ?? '', ENT_QUOTES, 'UTF-8');
       </div>
       <div id="es-modal-body" class="body-area"></div>
     </div>
-    <div id="es-footer-confirm" style="display:none">
+    <div id="es-footer-confirm" class="is-hidden">
       <div class="me-confirm-warning"><?= View::icon('caution') ?>This will send to all listed recipients. This action cannot be undone.</div>
       <div class="modal-footer">
         <button type="button" class="btn btn-primary" id="es-modal-send">
@@ -237,4 +237,4 @@ $oldBody    = htmlspecialchars($old['body'] ?? '', ENT_QUOTES, 'UTF-8');
      data-site-name="<?= View::e($site_name) ?>"
      data-owner-name="<?= View::e($owner_name) ?>"
      data-owner-email="<?= View::e($owner_email) ?>"
-     style="display:none"></div>
+     class="is-hidden"></div>

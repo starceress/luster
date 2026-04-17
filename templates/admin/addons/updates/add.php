@@ -80,7 +80,7 @@ $ctxDisplay = preg_replace('/^Owned\s*›\s*/u', '', (string) ($ctx_label ?? '')
                  value="<?= $is_edit ? View::e($update->title) : '' ?>"
                  placeholder="What&rsquo;s new?">
         </div>
-        <div class="form-group" style="margin-bottom:0">
+        <div class="form-group panel-field--flush">
           <label class="form-label" for="upd-body">
             Body <span class="req">*</span>
           </label>
@@ -99,14 +99,14 @@ $ctxDisplay = preg_replace('/^Owned\s*›\s*/u', '', (string) ($ctx_label ?? '')
         <div class="panel-body">
           <div class="panel-field">
             <label class="panel-label" for="upd-posted-at">
-              Date &amp; Time <span style="color:var(--danger);margin-left:2px">*</span>
+              Date &amp; Time <span class="req-inline">*</span>
             </label>
             <input type="datetime-local" id="upd-posted-at" name="posted_at"
                    class="panel-input" required
                    value="<?= $is_edit ? View::e($editPostedAt) : $defaultPostedAt ?>">
             <div class="panel-hint">You can backdate or future-date entries.</div>
           </div>
-          <button type="submit" class="btn btn-primary btn-sm" style="width: 100%;">
+          <button type="submit" class="btn btn-primary btn-sm btn-block-center">
             <?php if ($is_edit): ?>
               Save Changes
             <?php else: ?>
@@ -114,7 +114,7 @@ $ctxDisplay = preg_replace('/^Owned\s*›\s*/u', '', (string) ($ctx_label ?? '')
             <?php endif; ?>
           </button>
           <a href="<?= View::e($back_url) ?>"
-             class="btn btn-ghost" style="width:100%;justify-content:center;margin-top:.375rem;font-size:.8rem">
+             class="btn btn-ghost btn-block-center text-dim-sm">
             Cancel
           </a>
         </div>
@@ -136,7 +136,7 @@ $ctxDisplay = preg_replace('/^Owned\s*›\s*/u', '', (string) ($ctx_label ?? '')
               <option value="<?= View::e($cat) ?>">
             <?php endforeach; ?>
           </datalist>
-          <div class="panel-hint" style="margin-top:.45rem">Press Enter or comma to add. Multiple categories allowed.</div>
+          <div class="panel-hint panel-hint-spaced">Press Enter or comma to add. Multiple categories allowed.</div>
         </div>
       </div>
 
@@ -145,22 +145,22 @@ $ctxDisplay = preg_replace('/^Owned\s*›\s*/u', '', (string) ($ctx_label ?? '')
         <div class="card-head">Context</div>
         <div class="panel-body">
           <div class="panel-field">
-            <div style="display:flex;align-items:center;gap:.5rem;padding:.5rem .75rem;background:var(--bg-subtle);border:1px solid var(--border);border-radius:8px">
+            <div class="panel-context-box">
               <?php if ($isCollective): ?>
-                <span class="badge badge-info" style="flex-shrink:0">Collective</span>
-                <span style="font-size:.825rem;font-weight:600;color:var(--text)">Site-wide</span>
+                <span class="badge badge-info">Collective</span>
+                <span class="panel-context-label">Site-wide</span>
               <?php else: ?>
-                <span style="font-size:.825rem;font-weight:600;color:var(--text)"><?= View::e($ctxDisplay) ?></span>
+                <span class="panel-context-label"><?= View::e($ctxDisplay) ?></span>
               <?php endif; ?>
             </div>
-            <div class="panel-hint" style="margin-top:.4rem">
+            <div class="panel-hint panel-hint-tight">
               <?= $isCollective ? 'This update will appear in the collective feed.' : 'This update will appear in this listing\'s feed.' ?>
             </div>
           </div>
           <?php if ($is_edit && $update->author !== ''): ?>
-          <div class="panel-field" style="border-top:1px solid var(--border-soft);padding-top:.625rem;margin-top:.25rem">
+          <div class="panel-field panel-field--split">
             <label class="panel-label">Posted by</label>
-            <span style="font-size:.825rem;color:var(--text)"><?= View::e($update->author) ?></span>
+            <span class="panel-context-label"><?= View::e($update->author) ?></span>
             <div class="panel-hint">Set at post time, not editable.</div>
           </div>
           <?php endif; ?>

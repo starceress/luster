@@ -161,7 +161,7 @@ $growthDiff          = $growth_this_month - $growth_last_month;
         <span class="reminder-banner-msg"><?= (int) $total_pending ?> member<?= $total_pending !== 1 ? 's are' : ' is' ?> awaiting approval</span>
       </div>
     </div>
-    <a href="<?= $b ?>/admin/members" class="btn btn-tertiary btn-sm" style="border-color:var(--border)">Review Now &rarr;</a>
+    <a href="<?= $b ?>/admin/members" class="btn btn-tertiary btn-sm btn-border-soft">Review Now &rarr;</a>
   </div>
 </div>
 <?php endif; ?>
@@ -185,12 +185,12 @@ $growthDiff          = $growth_this_month - $growth_last_month;
       <button type="submit" class="btn btn-tertiary btn-sm">Update Entire Collective &rarr;</button>
     </form>
   </div>
-  <div style="border-top: 1px solid var(--border); padding: .625rem 1.25rem .75rem 3.375rem;">
+  <div class="stale-list">
     <?php foreach ($stale_listings as $staleItem): ?>
-    <div style="display: flex; align-items: baseline; gap: .5rem; padding: .2rem 0;">
-      <span style="font-size: .7rem; color: var(--text); flex-shrink: 0;">✦</span> <a href="<?= $b ?>/admin/listings/<?= (int) $staleItem['listing']->id ?>/edit"
+    <div class="stale-item">
+      <span class="stale-mark">✦</span> <a href="<?= $b ?>/admin/listings/<?= (int) $staleItem['listing']->id ?>/edit"
          class="link"><?= View::e($staleItem['listing']->name) ?></a>
-      <span class="form-hint" style="margin-left: 0;">
+      <span class="form-hint stale-sub">
         <?php if ($staleItem['days_ago'] !== null): ?>
           (Last updated <?= (int) $staleItem['days_ago'] ?> day<?= $staleItem['days_ago'] !== 1 ? 's' : '' ?> ago)
         <?php else: ?>
@@ -275,7 +275,7 @@ $growthDiff          = $growth_this_month - $growth_last_month;
     </div>
     <div class="row">
       <span class="row-label">Growth This Month</span>
-      <div style="display:flex;align-items:center;gap:.4rem">
+      <div class="inline-link-row">
         <span class="row-val"><?= (int) $growth_this_month ?></span>
         <?php if ($growthDiff > 0): ?>
         <span class="growth-pill growth-pill--up">
@@ -307,7 +307,7 @@ $growthDiff          = $growth_this_month - $growth_last_month;
     <div class="row-country">
       <?= $rank++ ?>.
       <span class="row-label"><?= View::e($country) ?></span>
-      <span class="row-val"><?= (int) $count ?><?php if ($total_members > 0): ?> <span style="opacity:.65">(<?= round($count / $total_members * 100) ?>%)</span><?php endif; ?></span>
+      <span class="row-val"><?= (int) $count ?><?php if ($total_members > 0): ?> <span class="row-val-subtle">(<?= round($count / $total_members * 100) ?>%)</span><?php endif; ?></span>
     </div>
     <?php endforeach; ?>
   </div>

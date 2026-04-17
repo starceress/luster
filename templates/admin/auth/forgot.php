@@ -1,11 +1,14 @@
-<?php use Luster\Core\View; ?>
+<?php
+use Luster\Core\View;
+require_once __DIR__ . '/../_css_assets.php';
+?>
 <!DOCTYPE html>
 <html lang="en" data-theme="dark">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Luster &#10022; Fanlisting Management System &mdash; Forgot Password</title>
-  <link rel="stylesheet" href="<?= rtrim(View::e($base_url ?? ''), '/') ?>/assets/css/admin.css">
+  <?= lusterAdminCssLinks(rtrim(View::e($base_url ?? ''), '/') . '/assets/css/admin', LUSTER_BASE . '/public/assets/css/admin', null, true) . PHP_EOL ?>
   <script>(function(){var t=localStorage.getItem('lstr_theme');if(t==='dark'||t==='light')document.documentElement.setAttribute('data-theme',t);})();</script>
 </head>
 <body class="login-page">
@@ -42,7 +45,7 @@
     <?php endif; ?>
 
     <?php if ($success === '') : ?>
-    <p style="font-size:.875rem;color:var(--text-muted);margin-bottom:1.25rem;line-height:1.5">
+    <p class="text-dim-copy">
       Enter your username or email address and we&rsquo;ll send you a link to reset your password.
     </p>
 
@@ -55,8 +58,7 @@
                autocomplete="username email" autofocus required>
       </div>
 
-      <button type="submit" class="btn btn-primary" style="width: 100%;
-  justify-content: center;">Send Reset Link</button>
+      <button type="submit" class="btn btn-primary btn-block-center">Send Reset Link</button>
     </form>
     <?php endif; ?>
 

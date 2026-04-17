@@ -85,13 +85,11 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
             <div class="form-row">
               <div class="form-group<?= !empty($fe['admin_new_password']) ? ' has-error' : '' ?>">
                 <label class="form-label" for="p-new-pass">New Password <em class="opt">(optional)</em></label>
-                <div style="position:relative">
+                <div class="input-icon-wrap">
                   <input id="p-new-pass" type="password" name="admin_new_password" class="form-input"
-                         style="padding-right:42px" maxlength="255" autocomplete="new-password"
+                         maxlength="255" autocomplete="new-password"
                          placeholder="Leave blank to keep current">
-                  <button type="button" data-pw-toggle aria-label="Show password" tabindex="-1"
-                          style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--text-dim);padding:4px;line-height:0"
-                          onmouseover="this.style.color='var(--accent)'" onmouseout="this.style.color='var(--text-dim)'">
+                  <button type="button" data-pw-toggle aria-label="Show password" tabindex="-1" class="input-icon-btn">
                     <?= View::icon('eye-on') ?>
                     <?= View::icon('eye-off') ?>
                   </button>
@@ -129,11 +127,11 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
           <div class="pc-head-icon pc-head-icon-bg">
             <?= View::icon('admins') ?>
           </div>
-          <div class="pc-head-meta">
-            <div class="pc-head-title">Admin Accounts <span class="badge badge-info-pink" style="font-family: 'DM Sans', sans-serif; margin-left: .5rem;"><?= count($users ?? []) ?> Total</span></div>
+            <div class="pc-head-meta">
+            <div class="pc-head-title">Admin Accounts <span class="badge badge-info-pink badge-inline-gap"><?= count($users ?? []) ?> Total</span></div>
             <div class="pc-head-sub">All accounts with admin panel access. Each logs in independently.</div>
           </div>
-          <a href="<?= $b ?>/admin/admin-users/add" class="btn btn-primary btn-sm" style="margin-left:auto; flex-shrink:0;">
+          <a href="<?= $b ?>/admin/admin-users/add" class="btn btn-primary btn-sm pc-head-cta">
             <?= View::icon('add') ?> Add Account
           </a>
         </div>
@@ -155,7 +153,7 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
                 <td>
                   <?= View::e($user->username) ?>
                   <?php if ($user->id === ($current_admin_id ?? 0)): ?>
-                    <span class="badge badge-info" style="margin-left: .5rem;">You</span>
+                    <span class="badge badge-info badge-inline-gap">You</span>
                   <?php endif; ?>
                 </td>
                 <td><?= View::e($user->email) ?></td>
@@ -285,8 +283,8 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
                     $commonTz['Other'] = [$currentTz];
                 }
               ?>
-              <div class="select-wrap" style="display:inline-block;max-width:100%">
-                <select id="s-timezone" name="timezone" class="form-select" style="width:auto;min-width:min-content;max-width:100%">
+              <div class="select-wrap select-wrap-inline">
+                <select id="s-timezone" name="timezone" class="form-select form-select-auto">
                   <?php foreach ($commonTz as $group => $tzList): ?>
                     <optgroup label="<?= View::e($group) ?>">
                       <?php foreach ($tzList as $tz): ?>
@@ -300,7 +298,7 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
               </div>
               <p class="form-hint">Timezone for all date/time display throughout the admin panel.</p>
             </div>
-            <div class="form-row" style="max-width:440px">
+            <div class="form-row form-row-narrow">
               <div class="form-group">
                 <label class="form-label" for="s-date-format">Date Format</label>
                 <?php
@@ -375,7 +373,7 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
           </div>
 
           <div class="pc-section">
-            <div class="callout" style="margin-block: 0.25rem;">
+            <div class="callout callout-tight">
               <strong>Heads up:</strong> These settings affect how Luster generates <code>require</code> and form action URLs.
               Set them before embedding forms on external pages.
             </div>
@@ -542,7 +540,7 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
                   <td class="act-col">
                     <form method="POST"
                           action="<?= $b ?>/admin/blacklist/<?= (int) $entry['id'] ?>/delete"
-                          style="display:contents"
+                          class="action-form-inline"
                           data-del-modal data-del-entity="blacklist"
                           data-del-name="<?= View::e($entry['pattern']) ?>">
                       <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
@@ -608,10 +606,10 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
             </div>
             <div class="sysinfo-row">
               <span class="form-label">Debug</span>
-              <span style="display:flex;align-items:center;gap:.5rem">
+              <span class="status-inline">
                 <?php if ($cfg['app_debug'] ?? false): ?>
                   <span class="badge badge-error">Enabled</span>
-                  <span class="text-dim" style="font-size:.8rem">Disable in production</span>
+                  <span class="text-dim text-dim-sm">Disable in production</span>
                 <?php else: ?>
                   <span class="badge badge-inactive">Disabled</span>
                 <?php endif; ?>
@@ -622,7 +620,7 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
         <!-- Data Migration -->
         <div class="pc-section">
           <div class="pc-section-label">Data Migration</div>
-          <p style="margin:0 0 .75rem;color:var(--text-dim);font-size:.9rem">
+          <p class="text-dim text-dim-sm mb-section">
             Migrate data from Enthusiast, Listing Admin, or other fanlisting scripts into Luster.
           </p>
           <a href="<?= $b ?>/admin/import" class="btn btn-secondary btn-sm">

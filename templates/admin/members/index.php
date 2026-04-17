@@ -56,7 +56,7 @@ $memSortUrl = static function (string $col) use ($b, $id, $sort, $dir, $search, 
     </select>
     </div>
 
-    <input type="text" name="search" class="form-input" placeholder="Search&hellip;"
+    <input type="text" name="search" class="form-input toolbar-input-sm" placeholder="Search&hellip;"
            value="<?= View::e($search ?? '') ?>">
 
     <div class="toolbar-select-wrap">
@@ -89,7 +89,7 @@ $memSortUrl = static function (string $col) use ($b, $id, $sort, $dir, $search, 
         <span class="reminder-banner-msg"><?= (int) $pending_count ?> member<?= $pending_count !== 1 ? 's are' : ' is' ?> awaiting approval</span>
       </div>
     </div>
-    <div style="display:flex;gap:.5rem;align-items:center">
+    <div class="inline-actions-row">
       <a href="?status=pending" class="btn btn-tertiary btn-sm">View Pending &rarr;</a>
       <form method="POST" action="<?= $b ?>/admin/members/<?= $id ?>/approve-all-pending"
             data-confirm="Approve all <?= (int) $pending_count ?> pending member(s)?">
@@ -128,7 +128,7 @@ $memSortUrl = static function (string $col) use ($b, $id, $sort, $dir, $search, 
 
   <!-- Bulk action bar -->
   <div class="bulk">
-    <label for="bulk-action-sel">Bulk action:</label>
+    <label for="bulk-action-sel" class="bulk-label">Bulk Action:</label>
     <div class="toolbar-select-wrap">
     <select id="bulk-action-sel" name="bulk_action" class="form-select">
       <option value="" disabled selected>- Select -</option>
@@ -171,7 +171,7 @@ $memSortUrl = static function (string $col) use ($b, $id, $sort, $dir, $search, 
           <td data-label="URL">
             <?php if ($m->url): ?>
               <a href="<?= View::e($m->url) ?>" target="_blank" rel="noopener noreferrer"
-                 class="link text-dim"><?= View::e($m->url) ?></a>
+                 class="link text-dim link-break"><?= View::e($m->url) ?></a>
             <?php else: ?>
               <span class="text-dim">-</span>
             <?php endif; ?>
@@ -187,7 +187,7 @@ $memSortUrl = static function (string $col) use ($b, $id, $sort, $dir, $search, 
           <td class="act-col" data-label="">
             <div class="data-actions">
               <?php if (!$m->approved): ?>
-                <form method="POST" action="<?= $b ?>/admin/members/<?= $id ?>/approve" style="display:contents">
+                <form method="POST" action="<?= $b ?>/admin/members/<?= $id ?>/approve" class="action-form-inline">
                   <input type="hidden" name="_csrf"        value="<?= View::e($csrf_token ?? '') ?>">
                   <input type="hidden" name="member_email" value="<?= View::e($m->email) ?>">
                   <input type="hidden" name="_page"        value="<?= (int) $page ?>">
@@ -214,7 +214,7 @@ $memSortUrl = static function (string $col) use ($b, $id, $sort, $dir, $search, 
 <?php foreach ($members as $m): ?>
 <form id="del-mem-<?= md5($m->email) ?>" method="POST"
       action="<?= $b ?>/admin/members/<?= $id ?>/delete"
-      style="display:none"
+      class="is-hidden"
       data-del-modal data-del-entity="member"
       data-del-name="<?= View::e($m->name) ?>"
       data-del-context="<?= View::e($listing->name) ?>">
@@ -268,4 +268,3 @@ $memPageUrl = static function (int $p) use ($b, $id, $memFilterQs): string {
 <?php endif; ?>
 
 <?php endif; ?>
-

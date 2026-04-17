@@ -1,5 +1,7 @@
 <?php
+
 use Luster\Core\View;
+
 /** @var \Luster\Models\Listing           $listing */
 /** @var \Luster\Models\Member            $member */
 /** @var \Luster\Models\AdditionalField[] $fields */
@@ -9,6 +11,7 @@ use Luster\Core\View;
 /** @var array  $field_errors */
 /** @var string $base_url */
 /** @var string $csrf_token */
+
 $b  = rtrim(View::e($base_url), '/');
 $fe = $field_errors ?? [];
 $id = (int) $listing->id;
@@ -28,17 +31,14 @@ $id = (int) $listing->id;
 <?php endif; ?>
 
 <form method="POST" action="<?= $b ?>/admin/members/<?= $id ?>/edit"
-      class="js-warn-unsaved" style="margin-bottom:1.25rem">
+      class="js-warn-unsaved member-edit-form">
   <input type="hidden" name="_csrf"        value="<?= View::e($csrf_token ?? '') ?>">
   <input type="hidden" name="member_email" value="<?= View::e($member->email) ?>">
 
   <div class="gradient-card">
-
-    <!-- ── Section: General Information ── -->
     <div class="listing-field-section">
       <div class="pc-section-label">General Information</div>
 
-      <!-- Email — read only -->
       <div class="listing-field-row listing-field-row--top">
         <span class="listing-field-label">Email</span>
         <div>
@@ -47,7 +47,6 @@ $id = (int) $listing->id;
         </div>
       </div>
 
-      <!-- Name -->
       <div class="listing-field-row<?= !empty($fe['name']) ? ' has-error' : '' ?>">
         <label class="listing-field-label" for="m-name">
           Name <span class="req">*</span>
@@ -62,7 +61,6 @@ $id = (int) $listing->id;
         </div>
       </div>
 
-      <!-- URL -->
       <div class="listing-field-row<?= !empty($fe['url']) ? ' has-error' : '' ?>">
         <label class="listing-field-label" for="m-url">Website URL</label>
         <div>
@@ -75,12 +73,11 @@ $id = (int) $listing->id;
         </div>
       </div>
 
-      <!-- Country -->
       <div class="listing-field-row">
         <label class="listing-field-label" for="m-country">Country</label>
         <div class="select-wrap">
           <select id="m-country" name="country" class="form-select">
-            <option value="">— Select Country —</option>
+            <option value="">&mdash; Select Country &mdash;</option>
             <?php foreach (\Luster\Core\Countries::list() as $c): ?>
               <option value="<?= View::e($c) ?>"
                       <?= $c === ($old['country'] ?? ($member->country ?? '')) ? 'selected' : '' ?>>
@@ -91,10 +88,9 @@ $id = (int) $listing->id;
         </div>
       </div>
 
-      <!-- Show URL -->
       <div class="listing-field-row listing-field-row--top">
         <span class="listing-field-label">Show Website?</span>
-        <div style="display:flex;gap:1.25rem;margin-top:.1rem">
+        <div class="choice-inline-group">
           <label class="form-check">
             <input type="radio" name="showurl" value="1"
                    <?= ($old['showurl'] ?? ($member->showurl ? '1' : '0')) !== '0' ? 'checked' : '' ?>>
@@ -107,11 +103,9 @@ $id = (int) $listing->id;
           </label>
         </div>
       </div>
-
-    </div><!-- /.listing-field-section (general) -->
+    </div>
 
     <?php if (!empty($fields)): ?>
-    <!-- ── Section: Additional Fields ── -->
     <div class="listing-field-section">
       <div class="pc-section-label">Additional Fields</div>
 
@@ -141,20 +135,17 @@ $id = (int) $listing->id;
           <?php endif; ?>
         </div>
       <?php endforeach; ?>
-
-    </div><!-- /.listing-field-section (additional fields) -->
+    </div>
     <?php endif; ?>
 
     <div class="composer-footer">
       <button type="submit" class="btn btn-primary btn-sm">Save Changes</button>
       <a href="<?= $b ?>/admin/members/<?= $id ?>" class="btn btn-ghost btn-sm">Cancel</a>
     </div>
-
-  </div><!-- /.card.listing-field-card -->
+  </div>
 </form>
 
-<!-- ── Merge duplicate — collapsible ── -->
-<details class="card form-details" style="margin-bottom:0">
+<details class="card form-details form-details--flush">
   <summary>
     <?= View::icon('merge') ?> Merge duplicate member
   </summary>
@@ -169,8 +160,8 @@ $id = (int) $listing->id;
           data-del-name="<?= View::e($member->email) ?>">
       <input type="hidden" name="_csrf"        value="<?= View::e($csrf_token ?? '') ?>">
       <input type="hidden" name="member_email" value="<?= View::e($member->email) ?>">
-      <div style="display:flex;gap:.75rem;align-items:flex-end;flex-wrap:wrap">
-        <div class="form-group" style="flex:1;min-width:200px;margin-bottom:0">
+      <div class="inline-form-row">
+        <div class="form-group form-group--compact inline-form-grow">
           <label class="form-label" for="merge-dupe-email">Duplicate email to delete</label>
           <input id="merge-dupe-email" type="email" name="duplicate_email" class="form-input"
                  maxlength="255" placeholder="duplicate&#64;example.com" required>

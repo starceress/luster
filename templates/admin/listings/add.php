@@ -51,7 +51,7 @@ $dataCustomCats = json_encode($custom_cats     ?? [], JSON_HEX_QUOT | JSON_HEX_A
                data-custom-cats='<?= $dataCustomCats ?>'
                data-existing='[]'>
             <div id="cat-rows"></div>
-            <a href="#" class="link btn btn-sm" id="cat-add" style="width: fit-content;"><?= View::icon('add') ?> Add another category</a>
+            <a href="#" class="link btn btn-sm btn-fit-content" id="cat-add"><?= View::icon('add') ?> Add another category</a>
           </div>
           <p class="form-hint">The network(s) and category(ies) this listing is listed under.</p>
         </div>
@@ -98,7 +98,10 @@ $dataCustomCats = json_encode($custom_cats     ?? [], JSON_HEX_QUOT | JSON_HEX_A
       <div class="listing-field-row">
         <span class="listing-field-label">Image</span>
         <label class="file-drop-zone">
-          <input type="file" name="image" accept="image/jpeg,image/png,image/gif,image/webp"><?= View::icon('image') ?> Click to Upload &mdash; JPEG, PNG, GIF, WebP; max 2MB</span>
+          <input id="fl-image" type="file" name="image" accept="image/jpeg,image/png,image/gif,image/webp">
+          <span class="file-drop-icon"><?= View::icon('image') ?></span>
+          <span class="file-drop-label">Click to upload</span>
+          <span class="file-drop-sub">JPEG, PNG, GIF, WebP; max 2MB</span>
         </label>
       </div>
 
@@ -123,7 +126,7 @@ $dataCustomCats = json_encode($custom_cats     ?? [], JSON_HEX_QUOT | JSON_HEX_A
       <div class="listing-field-row" id="opened-row">
         <label class="listing-field-label" for="fl-opened">Opened On</label>
         <div>
-          <input id="fl-opened" type="date" name="opened" class="form-input" style="max-width:fit-content;"
+          <input id="fl-opened" type="date" name="opened" class="form-input form-input--compact"
                  value="<?= View::e($val('opened', $default_date)) ?>">
           <input type="hidden" id="fl-opened-tba" name="opened" value="TBA" disabled>
           <span id="fl-opened-tba-text" class="text-dim">TBA &mdash; date will be set when the listing opens.</span>

@@ -76,7 +76,7 @@ function togglePwd(btn) {
 // ── 6. Password toggle buttons (event delegation on [data-pw-toggle]) ─────────
 
 document.addEventListener('click', function (e) {
-  var btn = e.target.closest('[data-pw-toggle]');
+  var btn = e.target.closest('[data-pw-toggle], .input-icon-btn');
   if (btn) togglePwd(btn);
 });
 

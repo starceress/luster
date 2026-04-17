@@ -1,28 +1,31 @@
 <?php
+
+declare(strict_types=1);
+
 use Luster\Core\View;
+
 /**
- * Admin — Additional Fields index for one listing.
+ * Admin - Additional Fields index for one listing.
  *
  * Variables provided by FieldController::index() via layout():
- * @var \Luster\Models\Listing        $listing
+ * @var \Luster\Models\Listing $listing
  * @var \Luster\Models\AdditionalField[] $fields
- * @var string $success   Value of ?success= query param (empty when absent)
- * @var string $error     Value of ?error=   query param (empty when absent)
+ * @var string $success
+ * @var string $error
  * @var string $base_url
  * @var string $csrf_token
  */
+
 $b  = rtrim(View::e($base_url), '/');
 $id = (int) $listing->id;
 ?>
 
-<!-- Breadcrumb -->
-<p class="page-back">
+<div class="page-topbar">
   <a href="<?= $b ?>/admin/listings/<?= $id ?>" class="link">
     &larr; <?= View::e($listing->name) ?>
   </a>
-</p>
+</div>
 
-<!-- Flash messages -->
 <?php if ($success !== ''): ?>
   <div class="alert alert-success" role="status"><?= View::e($success) ?></div>
 <?php endif; ?>
@@ -30,128 +33,131 @@ $id = (int) $listing->id;
   <div class="alert alert-error" role="alert"><?= View::e($error) ?></div>
 <?php endif; ?>
 
-<!-- Fields table -->
-<?php if (empty($fields)): ?>
-  <div class="card">
+<div class="card">
+  <div class="card-head">Existing Fields</div>
+  <?php if (empty($fields)): ?>
     <div class="empty">
-      <span class="empty-icon"><?= View::icon('star', ['width' => 32, 'height' => 32]) ?></span>
+      <span class="empty-icon"><?= View::icon('tag', ['width' => 32, 'height' => 32]) ?></span>
       No additional fields defined yet.
     </div>
-  </div>
-<?php else: ?>
-  <div class="card">
+  <?php else: ?>
     <div class="table-wrap">
-    <table class="data-table">
-      <thead>
-        <tr>
-          <th>Label</th>
-          <th>Field Name</th>
-          <th>Type</th>
-          <th>Required</th>
-          <th class="act-col">Actions</th>
-        </tr>
-      </thead>
-      <tbody>
-        <?php foreach ($fields as $field): ?>
-          <?php $safeName = View::e($field->name); ?>
+      <table class="data-table">
+        <thead>
           <tr>
-            <td class="text-strong"><?= View::e($field->label) ?></td>
-            <td><code class="neb-code"><?= $safeName ?></code></td>
-            <td class="text-muted"><?= View::e($field->type) ?></td>
-            <td>
-              <?php if ($field->required): ?>
-                <span class="badge badge-current">Yes</span>
-              <?php else: ?>
-                <span class="badge badge-inactive">No</span>
-              <?php endif; ?>
-            </td>
-            <td class="act-col">
-              <a href="<?= $b ?>/admin/listings/<?= $id ?>/fields/<?= urlencode($field->name) ?>/edit"
-                 class="btn btn-tertiary btn-sm">Edit</a>
-
-              <form method="POST"
-                    action="<?= $b ?>/admin/listings/<?= $id ?>/fields/<?= urlencode($field->name) ?>/delete"
-                    style="display:inline;margin-left:.25rem"
-                    data-del-modal data-del-entity="field"
-                    data-del-name="<?= $safeName ?>">
-                <input type="hidden" name="_csrf"      value="<?= View::e($csrf_token) ?>">
-                <input type="hidden" name="field_name" value="<?= $safeName ?>">
-                <button type="submit" class="btn btn-danger btn-sm">Delete</button>
-              </form>
-            </td>
+            <th>Label</th>
+            <th>Field Name</th>
+            <th>Type</th>
+            <th>Required</th>
+            <th class="act-col">Actions</th>
           </tr>
-        <?php endforeach; ?>
-      </tbody>
-    </table>
+        </thead>
+        <tbody>
+          <?php foreach ($fields as $field): ?>
+            <?php $safeName = View::e($field->name); ?>
+            <tr>
+              <td class="text-strong"><?= View::e($field->label) ?></td>
+              <td><code class="neb-code"><?= $safeName ?></code></td>
+              <td class="text-muted"><?= View::e($field->type) ?></td>
+              <td>
+                <?php if ($field->required): ?>
+                  <span class="badge badge-current">Yes</span>
+                <?php else: ?>
+                  <span class="badge badge-inactive">No</span>
+                <?php endif; ?>
+              </td>
+              <td class="act-col">
+                <a href="<?= $b ?>/admin/listings/<?= $id ?>/fields/<?= urlencode($field->name) ?>/edit"
+                   class="btn btn-tertiary btn-sm">Edit</a>
+
+                <form method="POST"
+                      action="<?= $b ?>/admin/listings/<?= $id ?>/fields/<?= urlencode($field->name) ?>/delete"
+                      class="inline-form-gap"
+                      data-del-modal data-del-entity="field"
+                      data-del-name="<?= $safeName ?>">
+                  <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
+                  <input type="hidden" name="field_name" value="<?= $safeName ?>">
+                  <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+                </form>
+              </td>
+            </tr>
+          <?php endforeach; ?>
+        </tbody>
+      </table>
     </div>
-  </div>
-<?php endif; ?>
+  <?php endif; ?>
+</div>
 
-<!-- Add New Field form -->
-<div class="card" style="padding:1.25rem 1.5rem;margin-top:1.5rem">
-  <h3 class="card-title" style="margin-bottom:1rem">Add New Field</h3>
-  <form method="POST" action="<?= $b ?>/admin/listings/<?= $id ?>/fields/add">
-    <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
-    <div class="add-grid">
+<form method="POST" action="<?= $b ?>/admin/listings/<?= $id ?>/fields/add" class="js-warn-unsaved">
+  <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
 
-      <!-- Field Name -->
-      <div>
-        <label class="form-label-sm" for="af-name">
-          Field Name
-          <span class="form-hint" style="display:inline">(letters, numbers, underscores)</span>
-        </label>
-        <input type="text" class="form-input" id="af-name" name="name"
-               maxlength="30" pattern="[a-zA-Z0-9_]+"
-               placeholder="e.g. fave_song" required
-               title="Letters, numbers and underscores only">
+  <div class="gradient-card">
+    <div class="pc-head">
+      <div class="pc-head-icon pc-head-icon-bg"><?= View::icon('add') ?></div>
+      <div class="pc-head-meta">
+        <div class="pc-head-title">Add New Field</div>
+        <div class="pc-head-sub">Create an extra member field for this listing.</div>
       </div>
+    </div>
 
-      <!-- Label -->
-      <div>
-        <label class="form-label-sm" for="af-label">Label</label>
-        <input type="text" class="form-input" id="af-label" name="label"
-               maxlength="100" placeholder="e.g. Favourite Song" required>
-      </div>
-
-      <!-- Type -->
-      <div>
-        <label class="form-label-sm" for="af-type">Type</label>
-        <div class="select-wrap">
-        <select class="form-select" id="af-type" name="type">
-          <option value="text">text</option>
-          <option value="dropdown">Drop Down</option>
-          <option value="checkbox">checkbox</option>
-        </select>
+    <div class="listing-field-section">
+      <div class="listing-field-row listing-field-row--top">
+        <label class="listing-field-label" for="af-name">Field Name <span class="req">*</span></label>
+        <div>
+          <input type="text" class="form-input" id="af-name" name="name"
+                 maxlength="30" pattern="[a-zA-Z0-9_]+"
+                 placeholder="e.g. fave_song" required
+                 title="Letters, numbers and underscores only">
+          <p class="form-hint">Letters, numbers, and underscores only. This key is used to store the field data.</p>
         </div>
       </div>
 
-      <!-- Options (shown only when type = dropdown/checkbox) -->
-      <div id="af-options-row" style="display:none;grid-column:1 / -1">
+      <div class="listing-field-row listing-field-row--top">
+        <label class="listing-field-label" for="af-label">Label <span class="req">*</span></label>
         <div>
-          <label class="form-label-sm" for="af-options">
-            Options
-            <span class="form-hint" style="display:inline">(comma-separated, for select type only)</span>
-          </label>
+          <input type="text" class="form-input" id="af-label" name="label"
+                 maxlength="100" placeholder="e.g. Favourite Song" required>
+          <p class="form-hint">This is the text members will see on forms and profile pages.</p>
+        </div>
+      </div>
+
+      <div class="listing-field-row listing-field-row--top">
+        <label class="listing-field-label" for="af-type">Type</label>
+        <div>
+          <div class="select-wrap">
+            <select class="form-select" id="af-type" name="type">
+              <option value="text">Text</option>
+              <option value="dropdown">Drop Down</option>
+              <option value="checkbox">Checkbox</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div id="af-options-row" class="listing-field-row listing-field-row--top is-hidden">
+        <label class="listing-field-label" for="af-options">Options</label>
+        <div>
           <textarea class="form-textarea" id="af-options" name="options" rows="2"
                     placeholder="e.g. Option A, Option B, Option C"></textarea>
+          <p class="form-hint">Comma-separated values for drop down and checkbox fields.</p>
         </div>
       </div>
 
-      <!-- Required checkbox -->
-      <div>
-        <label class="form-label-sm" for="af-required">Required</label>
-        <label class="form-check" style="margin-top:.15rem">
-          <input type="checkbox" id="af-required" name="required" value="1">
-          <span class="form-check-label">Yes</span>
-        </label>
+      <div class="listing-field-row listing-field-row--top">
+        <span class="listing-field-label">Required</span>
+        <div>
+          <label class="form-check">
+            <input type="checkbox" id="af-required" name="required" value="1">
+            <span class="form-check-label">Members must fill in this field</span>
+          </label>
+        </div>
       </div>
+    </div>
 
-      <!-- Submit -->
-      <div>
-        <button type="submit" class="btn btn-primary btn-sm">Add Field</button>
-      </div>
-
-    </div><!-- /.add-grid -->
-  </form>
-</div><!-- /.card -->
-
+    <div class="composer-footer">
+      <button type="submit" class="btn btn-primary">Add Field</button>
+      <button type="button" class="btn btn-ghost js-form-reset">Clear</button>
+      <a href="<?= $b ?>/admin/listings/<?= $id ?>" class="btn btn-ghost">Cancel</a>
+    </div>
+  </div>
+</form>

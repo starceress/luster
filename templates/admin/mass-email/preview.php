@@ -18,33 +18,39 @@ use Luster\Core\View;
 $b = rtrim(View::e($base_url ?? ''), '/');
 ?>
 
-<div class="card" style="padding:1.75rem 2rem">
-  <h2 class="card-title" style="margin-bottom:1rem">Confirm send</h2>
+<div class="gradient-card summary-card">
+  <div class="pc-head">
+    <div class="pc-head-icon pc-head-icon-bg"><?= View::icon('send') ?></div>
+    <div class="pc-head-meta">
+      <div class="pc-head-title">Confirm Send</div>
+      <div class="pc-head-sub">Review the recipient count and email content before sending this bulk message.</div>
+    </div>
+  </div>
 
-  <div class="db-info-grid" style="margin-bottom:1.25rem">
+  <div class="db-info-grid summary-grid">
     <div>
-      <div class="form-label" style="margin-bottom:.25rem">Send to</div>
+      <div class="form-label summary-label">Send to</div>
       <div><?= View::e($listing_name) ?></div>
     </div>
     <div>
-      <div class="form-label" style="margin-bottom:.25rem">Recipients</div>
+      <div class="form-label summary-label">Recipients</div>
       <div><strong><?= (int) $total ?></strong> unique address<?= $total !== 1 ? 'es' : '' ?></div>
     </div>
-    <div style="grid-column:1/-1">
-      <div class="form-label" style="margin-bottom:.25rem">Subject</div>
+    <div class="summary-span-full">
+      <div class="form-label summary-label">Subject</div>
       <div><?= View::e($subject) ?></div>
     </div>
   </div>
 
   <?php if (!empty($sample)): ?>
-  <div style="margin-bottom:1.25rem">
-    <div class="form-label" style="margin-bottom:.5rem">Sample recipients</div>
-    <ul style="margin:0;padding-left:1.25rem;color:var(--text-muted);font-size:.875rem">
+  <div class="summary-stack">
+    <div class="form-label summary-label">Sample recipients</div>
+    <ul class="summary-list">
       <?php foreach ($sample as $addr): ?>
         <li><?= View::e($addr) ?></li>
       <?php endforeach; ?>
       <?php if ($total > count($sample)): ?>
-        <li style="list-style:none;margin-top:.25rem">
+        <li class="summary-list-more">
           &hellip; and <?= $total - count($sample) ?> more
         </li>
       <?php endif; ?>
@@ -53,26 +59,24 @@ $b = rtrim(View::e($base_url ?? ''), '/');
   <?php endif; ?>
 
   <?php if ($total === 0): ?>
-    <div class="alert alert-error" style="margin-bottom:1rem">
+    <div class="alert alert-error">
       No approved recipients found for this listing. Nothing will be sent.
     </div>
   <?php endif; ?>
 
-  <details style="margin-bottom:1.25rem">
-    <summary style="cursor:pointer;color:var(--text-muted);font-size:.875rem;user-select:none">
-      Preview message body
-    </summary>
-    <pre style="margin:.75rem 0 0;padding:.75rem;background:var(--bg);border:1px solid var(--border);border-radius:6px;white-space:pre-wrap;font-size:.8rem;color:var(--text);overflow-x:auto"><?= htmlspecialchars($body, ENT_QUOTES, 'UTF-8') ?></pre>
+  <details class="summary-preview">
+    <summary>Preview message body</summary>
+    <pre><?= htmlspecialchars($body, ENT_QUOTES, 'UTF-8') ?></pre>
   </details>
 
-  <div class="btn-row">
+  <div class="composer-footer">
     <?php if ($total > 0): ?>
     <form method="POST" action="<?= $b ?>/admin/emails/send" id="send-form">
       <input type="hidden" name="_csrf"       value="<?= View::e($csrf_token ?? '') ?>">
       <input type="hidden" name="listing_id"  value="<?= (int) $listing_id ?>">
       <input type="hidden" name="subject"     value="<?= View::e($subject) ?>">
       <input type="hidden" name="body"        value="<?= htmlspecialchars($body, ENT_QUOTES, 'UTF-8') ?>">
-      <button type="submit" class="btn btn-primary" data-once-submit="Sending€¦">
+      <button type="submit" class="btn btn-primary" data-once-submit="Sending...">
         Send to <?= (int) $total ?> recipient<?= $total !== 1 ? 's' : '' ?>
       </button>
     </form>

@@ -19,10 +19,14 @@ $b        = rtrim(View::e($base_url), '/');
 $ct       = $collective_templates ?? [];
 $defaults = SiteSettingsRepo::collectiveDefaults();
 
-$ownedVal  = $ct['owned_template']            ?? $defaults['owned_template'];
-$joinedVal = $ct['joined_template']           ?? $defaults['joined_template'];
+$ownedVal  = $ct['owned_template'] ?? $defaults['owned_template'];
+$joinedVal = $ct['joined_template'] ?? $defaults['joined_template'];
 $statsVal  = $ct['collective_stats_template'] ?? $defaults['collective_stats_template'];
 ?>
+
+<div class="page-topbar">
+  <a href="<?= $b ?>/admin/listings" class="link">&larr; Back to Owned Listings</a>
+</div>
 
 <?php if ($success !== ''): ?>
   <div class="alert alert-success"><?= View::e($success) ?></div>
@@ -31,53 +35,52 @@ $statsVal  = $ct['collective_stats_template'] ?? $defaults['collective_stats_tem
   <div class="alert alert-error"><?= View::e($error) ?></div>
 <?php endif; ?>
 
-<div class="page-topbar">
-  <a href="<?= $b ?>/admin/listings" class="link">&larr; Back to Owned Listings</a>
-</div>
-
-<form method="POST" action="<?= $b ?>/admin/settings/templates">
+<form method="POST" action="<?= $b ?>/admin/settings/templates" class="js-warn-unsaved">
   <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
 
   <div class="composer-grid">
     <div class="gradient-card">
       <div class="pc-head">
+        <div class="pc-head-icon pc-head-icon-bg"><?= View::icon('embed') ?></div>
         <div class="pc-head-meta">
           <div class="pc-head-title">Collective HTML Templates</div>
-          <div class="pc-head-sub">Controls how collective related embeds render on your website.</div>
+          <div class="pc-head-sub">Controls how collective-related embeds render across your owned listings, joined listings, and statistics snippets.</div>
         </div>
       </div>
 
-      <div class="card-body">
-        <span class="pc-section-label">Owned Listings</span>
-          
-          <div class="form-group"><textarea name="owned_template" id="owned_template"
-                  class="tpl-textarea" spellcheck="false"><?= View::e($ownedVal) ?></textarea>
-                
-          <div class="modal-footer">
-            <button type="button" class="btn btn-ghost btn-sm" data-textarea="owned_template">Reset to Default</button>
-          </div>
+      <div class="pc-section">
+        <div class="pc-section-label">Owned Listings</div>
+        <div class="form-group">
+          <textarea name="owned_template" id="owned_template" class="form-textarea tpl-textarea" spellcheck="false"><?= View::e($ownedVal) ?></textarea>
         </div>
-
-        <span class="pc-section-label">Joined Listings</span>
-          <div class="form-group"><textarea name="joined_template" id="joined_template"
-                  class="tpl-textarea" spellcheck="false"><?= View::e($joinedVal) ?></textarea>
-
-          <div class="modal-footer">
-            <button type="button" class="btn btn-ghost btn-sm" data-textarea="joined_template">Reset to Default</button>
-          </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-ghost btn-sm" data-textarea="owned_template">Reset to Default</button>
         </div>
+      </div>
 
-          <span class="pc-section-label">Statistics</span>
-            <div class="form-group"><textarea name="collective_stats_template" id="collective_stats_template" class="tpl-textarea tpl-textarea-lg" spellcheck="false"><?= View::e($statsVal) ?></textarea>
-            
-          <div class="modal-footer" style="padding-bottom: 0;">
-            <button type="button" class="btn btn-ghost btn-sm" data-textarea="collective_stats_template">Reset to Default</button>
-          </div>
+      <div class="pc-section">
+        <div class="pc-section-label">Joined Listings</div>
+        <div class="form-group">
+          <textarea name="joined_template" id="joined_template" class="form-textarea tpl-textarea" spellcheck="false"><?= View::e($joinedVal) ?></textarea>
         </div>
-    </div>  
+        <div class="modal-footer">
+          <button type="button" class="btn btn-ghost btn-sm" data-textarea="joined_template">Reset to Default</button>
+        </div>
+      </div>
+
+      <div class="pc-section">
+        <div class="pc-section-label">Statistics</div>
+        <div class="form-group">
+          <textarea name="collective_stats_template" id="collective_stats_template" class="form-textarea tpl-textarea tpl-textarea-lg" spellcheck="false"><?= View::e($statsVal) ?></textarea>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-ghost btn-sm" data-textarea="collective_stats_template">Reset to Default</button>
+        </div>
+      </div>
 
       <div class="composer-footer">
         <button type="submit" class="btn btn-primary">Save Templates</button>
+        <a href="<?= $b ?>/admin/listings" class="btn btn-ghost">Cancel</a>
       </div>
     </div>
 
@@ -129,7 +132,7 @@ $statsVal  = $ct['collective_stats_template'] ?? $defaults['collective_stats_tem
       </details>
 
       <details class="card chevron" open>
-        <summary class="chevron-head">Joined Listings Listings</summary>
+        <summary class="chevron-head">Joined Listings Tokens</summary>
         <div class="chevron-body">
           <table class="et-token-table">
             <tbody>
@@ -143,10 +146,10 @@ $statsVal  = $ct['collective_stats_template'] ?? $defaults['collective_stats_tem
                 <td><code>{listing_category}</code></td><td>Category</td>
               </tr>
               <tr class="tok-row" data-textarea="joined_template" data-token="{image}">
-                <td><code>{image}</code></td><td>Listing's image</td>
+                <td><code>{image}</code></td><td>Listing image</td>
               </tr>
               <tr class="tok-row" data-textarea="joined_template" data-token="{listing_image}">
-                <td><code>{listing_image}</code></td><td>Listing's image (alias)</td>
+                <td><code>{listing_image}</code></td><td>Listing image (alias)</td>
               </tr>
               <tr class="tok-row" data-textarea="joined_template" data-token="{listing_status}">
                 <td><code>{listing_status}</code></td><td>Status</td>
@@ -160,7 +163,7 @@ $statsVal  = $ct['collective_stats_template'] ?? $defaults['collective_stats_tem
       </details>
 
       <details class="card chevron" open>
-        <summary class="chevron-head">Statistics</summary>
+        <summary class="chevron-head">Statistics Tokens</summary>
         <div class="chevron-body">
           <table class="et-token-table">
             <tbody>
@@ -208,7 +211,6 @@ $statsVal  = $ct['collective_stats_template'] ?? $defaults['collective_stats_tem
   </div>
 </form>
 
-<!-- Default values for reset buttons (read by admin.js) -->
 <script type="application/json" id="luster-coltpl-defaults">
 <?= json_encode($defaults, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) ?>
 </script>
