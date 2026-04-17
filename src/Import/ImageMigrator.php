@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Luster\Import;
 
+use Luster\Core\NetworkAddressGuard;
+
 /**
  * Handles all three image migration modes for the import wizard.
  *
@@ -91,17 +93,32 @@ final class ImageMigrator
             return null;
         }
 
+        $parts = parse_url($url);
+        if (!is_array($parts)) {
+            return null;
+        }
+
+        $scheme = strtolower((string) ($parts['scheme'] ?? ''));
+        if (!in_array($scheme, ['http', 'https'], true)) {
+            return null;
+        }
+
+        $host = NetworkAddressGuard::normalizeHost((string) ($parts['host'] ?? ''));
+        if ($host === '' || NetworkAddressGuard::validatePublicHost($host) !== null) {
+            return null;
+        }
+
         $context = stream_context_create([
             'http' => [
                 'timeout'         => 10,
-                'follow_location' => true,
-                'max_redirects'   => 3,
+                'follow_location' => false,
+                'max_redirects'   => 0,
                 'user_agent'      => 'Luster-Import/1.0',
             ],
             'https' => [
                 'timeout'         => 10,
-                'follow_location' => true,
-                'max_redirects'   => 3,
+                'follow_location' => false,
+                'max_redirects'   => 0,
                 'user_agent'      => 'Luster-Import/1.0',
             ],
         ]);
