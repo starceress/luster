@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Luster\Controllers\Admin;
 
 use Luster\Core\Mailer;
+use Luster\Core\NetworkAddressGuard;
 use Luster\Core\Request;
 use Luster\Core\Response;
 use Luster\Core\Validator;
@@ -327,12 +328,20 @@ final class SettingsController extends AdminController
             return Response::json(['ok' => false, 'message' => 'SMTP host is empty.']);
         }
 
+        $hostError = NetworkAddressGuard::validatePublicHost($host);
+        if ($hostError !== null) {
+            return Response::json(['ok' => false, 'message' => $hostError]);
+        }
+
         $smtp = new \PHPMailer\PHPMailer\SMTP();
         $smtp->do_debug = \PHPMailer\PHPMailer\SMTP::DEBUG_OFF;
 
         try {
             if (!$smtp->connect($host, $port, 10)) {
-                return Response::json(['ok' => false, 'message' => "Could not connect to {$host}:{$port}. Check host and port."]);
+                return Response::json([
+                    'ok' => false,
+                    'message' => 'SMTP connection failed. Check the host, port, and encryption settings.',
+                ]);
             }
 
             $ehloHost = gethostname() ?: 'localhost';
@@ -366,7 +375,11 @@ final class SettingsController extends AdminController
 
         } catch (\Throwable $e) {
             try { $smtp->quit(); } catch (\Throwable) {}
-            return Response::json(['ok' => false, 'message' => $e->getMessage()]);
+            error_log('[Luster] SMTP validation failed for host ' . $host . ':' . $port . ' - ' . $e->getMessage());
+            return Response::json([
+                'ok' => false,
+                'message' => 'SMTP validation failed. Check the host, port, encryption settings, and credentials.',
+            ]);
         }
     }
 
