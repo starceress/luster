@@ -32,14 +32,11 @@ use Luster\Core\Database;
  *   {owner_name}        — site owner's display name (config: owner_name)
  *   {owner_email}       — site owner's contact email (config: owner_email)
  *
- * Deprecated join token:
- *   {fan_password}      — retained for backward compatibility, no longer populated
- *
  * Reset-only additional token:
  *   {reset_url}         — one-time password reset link
  *
  * Admin notification (notify_join) — sent to the listing's admin email:
- *   same tokens as join; {fan_password} is intentionally left blank.
+ *   same tokens as join.
  *
  * Requires Migration 23.
  */
@@ -329,7 +326,6 @@ final class EmailTemplateRepo
         string $fanEmail       = '',
         string $fanUrl         = '',
         string $fanCountry     = '',
-        string $fanPassword    = '',
         string $resetUrl       = '',
     ): array {
         return [
@@ -337,7 +333,6 @@ final class EmailTemplateRepo
             '{fan_email}'        => $fanEmail,
             '{fan_url}'          => $fanUrl,
             '{fan_country}'      => $fanCountry,
-            '{fan_password}'     => $fanPassword,
             '{reset_url}'        => $resetUrl,
             '{listing_name}'     => $listingName,
             '{listing_subject}'  => $listingSubject,

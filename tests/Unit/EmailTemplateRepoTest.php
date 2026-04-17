@@ -27,6 +27,6 @@ final class EmailTemplateRepoTest extends TestCase
         );
 
         self::assertSame('https://example.test/reset/token', $tokens['{reset_url}']);
-        self::assertSame('', $tokens['{fan_password}']);
+        self::assertArrayNotHasKey('{fan_password}', $tokens);
     }
 }

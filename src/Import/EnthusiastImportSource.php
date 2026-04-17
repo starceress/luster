@@ -375,7 +375,7 @@ final class EnthusiastImportSource implements ImportSourceInterface
         }
         $templateCount = $listingCount * 4; // 4 types per listing
         $warnings = [];
-        $warnings[] = 'Enthusiast\'s {password} token is not supported in Luster emails and will be left as-is; review imported templates.';
+        $warnings[] = 'Enthusiast\'s {password} token will be replaced with {reset_url} in all imported templates.';
         return ['type' => 'Email templates', 'found' => $templateCount, 'import' => $templateCount, 'skip' => 0, 'warnings' => $warnings];
     }
 
@@ -1028,6 +1028,7 @@ final class EnthusiastImportSource implements ImportSourceInterface
                 if ($body === '') {
                     continue;
                 }
+                $body = str_replace('{password}', '{reset_url}', $body);
 
                 $checkStmt->execute(['fid' => $listingId, 'type' => $lstrType]);
                 $exists = $checkStmt->fetchColumn() !== false;
@@ -1053,7 +1054,9 @@ final class EnthusiastImportSource implements ImportSourceInterface
             }
         }
 
-        $warnings = ['Enthusiast\'s {password} token is not supported in Luster — review imported templates and remove any {password} references.'];
+        $warnings = $imported > 0 || $skipped > 0
+            ? ['Enthusiast\'s {password} token has been replaced with {reset_url} in all imported templates.']
+            : [];
 
         return ['type' => 'Email templates', 'imported' => $imported, 'skipped' => $skipped,
                 'warnings' => $warnings, 'errors' => $errors, 'skipped_items' => $skippedItems];

@@ -306,13 +306,13 @@ final class MassEmailController extends AdminController
     ): string {
         return str_replace(
             [
-                '{fan_name}', '{fan_email}', '{fan_url}', '{fan_country}', '{fan_password}',
+                '{fan_name}', '{fan_email}', '{fan_url}', '{fan_country}',
                 '{name}',                    '{email}',
                 '{listing_name}',            '{listing_subject}',            '{listing_url}',
                 '{site_name}',  '{owner_name}', '{owner_email}',
             ],
             [
-                $recipient['name'], $recipient['email'], $recipient['url'], $recipient['country'], '',
+                $recipient['name'], $recipient['email'], $recipient['url'], $recipient['country'],
                 $recipient['name'],                      $recipient['email'],
                 $recipient['listing_name'], $recipient['listing_subject'], $recipient['listing_url'],
                 $siteName,      $ownerName,     $ownerEmail,

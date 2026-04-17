@@ -76,7 +76,6 @@ $allTokenDesc = [
     '{fan_email}'       => "Fan's email address",
     '{fan_url}'         => "Fan's website URL (may be empty)",
     '{fan_country}'     => "Fan's country",
-    '{fan_password}'    => "Deprecated token - kept for backward compatibility but no longer populated",
     '{reset_url}'       => "Password reset link - required in Reset emails",
     '{listing_name}'    => "Name of the fanlisting",
     '{listing_subject}' => "Subject or topic of the fanlisting",
@@ -86,7 +85,7 @@ $allTokenDesc = [
     '{owner_email}'     => "Admin's email address",
 ];
 
-$commonTokens = ['{fan_name}', '{fan_email}', '{fan_url}', '{fan_country}', '{fan_password}', '{listing_name}', '{listing_subject}', '{listing_url}', '{site_name}', '{owner_name}', '{owner_email}'];
+$commonTokens = ['{fan_name}', '{fan_email}', '{fan_url}', '{fan_country}', '{listing_name}', '{listing_subject}', '{listing_url}', '{site_name}', '{owner_name}', '{owner_email}'];
 $typeTokens   = array_fill_keys(EmailTemplateRepo::TYPES, $commonTokens);
 $typeTokens[EmailTemplateRepo::TYPE_RESET] = array_merge(
     ['{fan_name}', '{fan_email}', '{reset_url}'],
