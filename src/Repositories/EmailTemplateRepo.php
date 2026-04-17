@@ -32,8 +32,8 @@ use Luster\Core\Database;
  *   {owner_name}        — site owner's display name (config: owner_name)
  *   {owner_email}       — site owner's contact email (config: owner_email)
  *
- * Join-only additional token:
- *   {fan_password}      — member's raw password (shown when set during join)
+ * Deprecated join token:
+ *   {fan_password}      — retained for backward compatibility, no longer populated
  *
  * Reset-only additional token:
  *   {reset_url}         — one-time password reset link
@@ -90,9 +90,8 @@ final class EmailTemplateRepo
         . '  Name    : {fan_name}' . "\n"
         . '  Email   : {fan_email}' . "\n"
         . '  Website : {fan_url}' . "\n"
-        . '  Country : {fan_country}' . "\n"
-        . '  Password: {fan_password}' . "\n\n"
-        . 'Please keep this email for your records. You will need your password to update or remove your membership.' . "\n\n"
+        . '  Country : {fan_country}' . "\n\n"
+        . 'Please keep this email for your records. If you ever need to change your password, you can use the password reset form.' . "\n\n"
         . '-- {owner_name}' . "\n"
         . '{site_name}';
 

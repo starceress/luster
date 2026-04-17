@@ -62,7 +62,7 @@ $listingId  = (int) ($listing->id ?? 0);
             <tr class="tok-row" data-textarea="body" data-token="{fan_email}"      title="Click to insert"><td><code>{fan_email}</code></td><td>Fan's email address</td></tr>
             <tr class="tok-row" data-textarea="body" data-token="{fan_url}"        title="Click to insert"><td><code>{fan_url}</code></td><td>Fan's website URL</td></tr>
             <tr class="tok-row" data-textarea="body" data-token="{fan_country}"    title="Click to insert"><td><code>{fan_country}</code></td><td>Fan's country</td></tr>
-            <tr class="tok-row" data-textarea="body" data-token="{fan_password}"   title="Click to insert"><td><code>{fan_password}</code></td><td>Plain-text password (sign-up only)</td></tr>
+            <tr class="tok-row" data-textarea="body" data-token="{fan_password}"   title="Click to insert"><td><code>{fan_password}</code></td><td>Deprecated token; no longer populated</td></tr>
             <tr class="tok-row" data-textarea="body" data-token="{listing_name}"   title="Click to insert"><td><code>{listing_name}</code></td><td>Name of the listing</td></tr>
             <tr class="tok-row" data-textarea="body" data-token="{listing_subject}" title="Click to insert"><td><code>{listing_subject}</code></td><td>Subject or topic</td></tr>
             <tr class="tok-row" data-textarea="body" data-token="{listing_url}"    title="Click to insert"><td><code>{listing_url}</code></td><td>URL of the listing</td></tr>

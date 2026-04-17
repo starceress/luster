@@ -5,9 +5,11 @@ declare(strict_types=1);
 namespace Luster\Addons\Kim\Controllers;
 
 use Luster\Addons\Kim\KimMemberRepo;
+use Luster\Addons\Kim\KimPasswordResetRepo;
 use Luster\Core\Application;
 use Luster\Core\Captcha;
 use Luster\Core\Mailer;
+use Luster\Core\PasswordPolicy;
 use Luster\Core\Request;
 use Luster\Core\Response;
 use Luster\Core\Validator;
@@ -148,6 +150,22 @@ final class KimSignupController
             return Response::redirect($baseUrl . '/kim');
         }
 
+        if ($rawPassword !== '') {
+            $passwordValidator = new Validator(['password' => $rawPassword]);
+            PasswordPolicy::apply($passwordValidator->field('password'));
+            if ($passwordValidator->fails()) {
+                $session->set('lstr_flash_error', implode(' ', $passwordValidator->allErrors()));
+                $session->set('lstr_flash_old', [
+                    'name'         => $name,
+                    'email'        => $email,
+                    'url'          => $url,
+                    'fanlisting_id' => (string) $fanlistingId,
+                    'send_copy'    => (string) $request->post('send_copy', ''),
+                ]);
+                return Response::redirect($baseUrl . '/kim');
+            }
+        }
+
         if ($rawPassword === '') {
             $rawPassword  = bin2hex(random_bytes(8));
             $wasGenerated = true;
@@ -175,16 +193,25 @@ final class KimSignupController
             try {
                 $mailer  = new Mailer($this->app->getConfig());
                 $siteName = (string) $this->app->getConfig()->get('site_name', 'Luster');
+                $setupUrl = $wasGenerated ? $this->issuePasswordSetupUrl($kimRepo, $email, $fanlistingId) : '';
                 $subject = "KIM List Sign-Up — {$siteName}";
                 $body    = "Hi {$name},\n\n"
                          . "You have signed up for the KIM List for:\n"
                          . "  Fanlisting: " . ($selectedListing?->subject ?? "ID {$fanlistingId}") . "\n"
                          . "  Your name:  {$name}\n"
                          . "  Your email: {$email}\n"
-                         . "  Your URL:   {$url}\n"
-                         . "  Password:   {$rawPassword}\n\n"
+                         . "  Your URL:   {$url}\n\n"
                          . "Your entry is currently pending approval.\n\n"
                          . "-- {$siteName}";
+                if ($setupUrl !== '') {
+                    $body = str_replace(
+                        "-- {$siteName}",
+                        "Use the link below to set your password. This link expires in 1 hour.\n"
+                        . $setupUrl . "\n\n"
+                        . "-- {$siteName}",
+                        $body,
+                    );
+                }
                 $mailer->send($email, $name, $subject, $body);
             } catch (\Throwable $e) {
                 error_log('[KIM] Sign-up confirmation email failed: ' . $e->getMessage());
@@ -263,5 +290,26 @@ final class KimSignupController
         }
 
         return Response::html($html);
+    }
+
+    private function issuePasswordSetupUrl(KimMemberRepo $kimRepo, string $email, int $fanlistingId): string
+    {
+        $member = $kimRepo->findByEmailAndFanlisting($email, $fanlistingId);
+        if ($member === null) {
+            return '';
+        }
+
+        $resetRepo = new KimPasswordResetRepo($this->app->getDatabase());
+        $resetRepo->deleteByMember($member->id);
+
+        $rawToken  = bin2hex(random_bytes(32));
+        $tokenHash = hash('sha256', $rawToken);
+        $expiresAt = (new \DateTimeImmutable())
+            ->modify('+3600 seconds')
+            ->format('Y-m-d H:i:s');
+
+        $resetRepo->create($member->id, $tokenHash, $expiresAt);
+
+        return $this->app->getBaseUrl() . '/kim/reset/confirm?token=' . urlencode($rawToken);
     }
 }

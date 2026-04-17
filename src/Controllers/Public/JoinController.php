@@ -8,12 +8,14 @@ use Luster\Core\Application;
 use Luster\Core\Captcha;
 use Luster\Core\Countries;
 use Luster\Core\Mailer;
+use Luster\Core\PasswordPolicy;
 use Luster\Core\RateLimit;
 use Luster\Core\Request;
 use Luster\Core\Response;
 use Luster\Core\Validator;
 use Luster\Models\Listing;
 use Luster\Repositories\EmailTemplateRepo;
+use Luster\Repositories\FanPasswordResetRepo;
 use Luster\Repositories\ListingRepo;
 use Luster\Repositories\ListingSettingsRepo;
 use Luster\Repositories\FieldRepo;
@@ -203,6 +205,22 @@ final class JoinController
             return Response::redirect($formUrl);
         }
 
+        if ($rawPassword !== '') {
+            $passwordValidator = new Validator(['password' => $rawPassword]);
+            PasswordPolicy::apply($passwordValidator->field('password'));
+            if ($passwordValidator->fails()) {
+                $session->set('lstr_flash_error', implode(' ', $passwordValidator->allErrors()));
+                $session->set('lstr_flash_old', [
+                    'name'      => $name,
+                    'email'     => $email,
+                    'url'       => $url,
+                    'country'   => $country,
+                    'send_info' => (string) $request->post('send_info', ''),
+                ]);
+                return Response::redirect($formUrl);
+            }
+        }
+
         if ($rawPassword === '') {
             $rawPassword  = bin2hex(random_bytes(8));
             $wasGenerated = true;
@@ -259,6 +277,7 @@ final class JoinController
                 $cfg       = $this->app->getConfig();
                 $mailer    = new Mailer($cfg);
                 $emailRepo = new EmailTemplateRepo($this->app->getDatabase());
+                $resetUrl  = $wasGenerated ? $this->issuePasswordSetupUrl($listingId, $email) : '';
                 $tokens    = EmailTemplateRepo::buildTokens(
                     listingName:    $listing->name,
                     listingUrl:     $listing->url,
@@ -270,10 +289,19 @@ final class JoinController
                     fanEmail:       $email,
                     fanUrl:         $url,
                     fanCountry:     $country,
-                    fanPassword:    $rawPassword,
+                    resetUrl:       $resetUrl,
                 );
                 [$subject, $body] = $emailRepo->resolveForListing($listingId, EmailTemplateRepo::TYPE_JOIN, $tokens);
                 $mailer->send($email, $name, $subject, $body);
+
+                if ($wasGenerated && $resetUrl !== '') {
+                    [$resetSubject, $resetBody] = $emailRepo->resolveForListing(
+                        $listingId,
+                        EmailTemplateRepo::TYPE_RESET,
+                        $tokens,
+                    );
+                    $mailer->send($email, $name, $resetSubject, $resetBody);
+                }
             } catch (\Throwable $e) {
                 error_log('[Luster] Join email failed: ' . $e->getMessage());
             }
@@ -385,5 +413,21 @@ final class JoinController
         ]);
 
         return Response::html($html);
+    }
+
+    private function issuePasswordSetupUrl(int $listingId, string $email): string
+    {
+        $resetRepo = new FanPasswordResetRepo($this->app->getDatabase());
+        $resetRepo->deleteByEmail($listingId, $email);
+
+        $rawToken  = bin2hex(random_bytes(32));
+        $tokenHash = hash('sha256', $rawToken);
+        $expiresAt = (new \DateTimeImmutable())
+            ->modify('+3600 seconds')
+            ->format('Y-m-d H:i:s');
+
+        $resetRepo->create($listingId, $email, $tokenHash, $expiresAt);
+
+        return $this->app->getBaseUrl() . '/reset/' . $listingId . '/confirm?token=' . urlencode($rawToken);
     }
 }
