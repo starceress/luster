@@ -6,6 +6,7 @@ namespace Luster\Tests\Unit;
 
 use Luster\Import\EnthusiastImportSource;
 use Luster\Import\ImportOptions;
+use Luster\Core\NetworkAddressGuard;
 use PDO;
 use PHPUnit\Framework\TestCase;
 
@@ -52,6 +53,20 @@ final class EnthusiastMemberImportTest extends TestCase
     private function adapter(): EnthusiastImportSource
     {
         return new EnthusiastImportSource();
+    }
+
+    public function testNetworkAddressGuardRejectsLoopbackAndPrivateHosts(): void
+    {
+        $this->assertNotNull(NetworkAddressGuard::validatePublicHost('127.0.0.1'));
+        $this->assertNotNull(NetworkAddressGuard::validatePublicHost('::1'));
+        $this->assertNotNull(NetworkAddressGuard::validatePublicHost('localhost'));
+        $this->assertNotNull(NetworkAddressGuard::validatePublicHost('192.168.1.10'));
+    }
+
+    public function testNetworkAddressGuardAllowsPublicIpAddresses(): void
+    {
+        $this->assertNull(NetworkAddressGuard::validatePublicHost('8.8.8.8'));
+        $this->assertNull(NetworkAddressGuard::validatePublicHost('1.1.1.1'));
     }
 
     // -----------------------------------------------------------------------

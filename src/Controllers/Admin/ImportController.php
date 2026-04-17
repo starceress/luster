@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Luster\Controllers\Admin;
 
+use Luster\Core\NetworkAddressGuard;
 use Luster\Core\Request;
 use Luster\Core\Response;
 use Luster\Import\CodeSortImportSource;
@@ -76,41 +77,33 @@ final class ImportController extends AdminController
             // CSRF validated globally by CsrfMiddleware
 
             // Persist credentials in session (never written to DB)
-            $credentials = [
+            $submittedCredentials = [
                 'host' => trim((string) $request->post('db_host', '')),
                 'name' => trim((string) $request->post('db_name', '')),
                 'user' => trim((string) $request->post('db_user', '')),
                 'pass' => (string) $request->post('db_pass', ''),
             ];
 
-            // If all fields blank, use Luster's own DB
-            $useLusterDb = ($credentials['host'] === '' && $credentials['name'] === ''
-                            && $credentials['user'] === '' && $credentials['pass'] === '');
+            [$credentials, $guardError] = $this->resolveImportCredentials($submittedCredentials);
 
-            if ($useLusterDb) {
-                $config      = $this->app->getConfig();
-                $credentials = [
-                    'host' => (string) $config->get('db_host', 'localhost'),
-                    'name' => (string) $config->get('db_name', ''),
-                    'user' => (string) $config->get('db_user', ''),
-                    'pass' => (string) $config->get('db_pass', ''),
-                ];
-            }
-
-            // Quick connection test
-            $adapter = $this->getAdapter($source);
-            $connError = $adapter->testConnection($credentials);
-            if ($connError !== null) {
-                $error = 'Connection failed: ' . $connError;
+            if ($guardError !== null) {
+                $error = $guardError;
             } else {
-                $session->set(self::SESSION_CREDS, $credentials);
+                // Quick connection test
+                $adapter = $this->getAdapter($source);
+                $connError = $adapter->testConnection($credentials);
+                if ($connError !== null) {
+                    $error = 'Connection failed: ' . $connError;
+                } else {
+                    $session->set(self::SESSION_CREDS, $credentials);
 
-                // Stash the raw POST for options (reconstructed in preview/run)
-                $postData             = $request->postAll();
-                $postData['source']   = $source;
-                $session->set(self::SESSION_OPTIONS, $postData);
+                    // Stash the raw POST for options (reconstructed in preview/run)
+                    $postData             = $request->postAll();
+                    $postData['source']   = $source;
+                    $session->set(self::SESSION_OPTIONS, $postData);
 
-                return Response::redirect($baseUrl . "/admin/import/{$source}/preview");
+                    return Response::redirect($baseUrl . "/admin/import/{$source}/preview");
+                }
             }
         }
 
@@ -152,39 +145,16 @@ final class ImportController extends AdminController
 
         // CSRF validated globally by CsrfMiddleware
 
-        $credentials = [
+        $submittedCredentials = [
             'host' => trim((string) $request->post('db_host', '')),
             'name' => trim((string) $request->post('db_name', '')),
             'user' => trim((string) $request->post('db_user', '')),
             'pass' => (string) $request->post('db_pass', ''),
         ];
 
-        $useLusterDb = ($credentials['host'] === '' && $credentials['name'] === ''
-                        && $credentials['user'] === '' && $credentials['pass'] === '');
-
-        // Block private/loopback IP ranges to prevent SSRF probing of internal services.
-        // Applies only when an explicit host is supplied (the "use Luster's own DB" path
-        // is always safe since those credentials come from config, not user input).
-        if (!$useLusterDb && $credentials['host'] !== '') {
-            $host = $credentials['host'];
-            // Resolve hostname to IP for range-check; skip check if resolution fails
-            $ip = filter_var($host, FILTER_VALIDATE_IP) ? $host : (gethostbyname($host) ?: $host);
-            if (preg_match(
-                '/^(127\.|10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.|::1$|0\.0\.0\.0)/',
-                $ip
-            )) {
-                return Response::json(['ok' => false, 'message' => 'Connection to private or loopback addresses is not permitted.']);
-            }
-        }
-
-        if ($useLusterDb) {
-            $config      = $this->app->getConfig();
-            $credentials = [
-                'host' => (string) $config->get('db_host', 'localhost'),
-                'name' => (string) $config->get('db_name', ''),
-                'user' => (string) $config->get('db_user', ''),
-                'pass' => (string) $config->get('db_pass', ''),
-            ];
+        [$credentials, $guardError] = $this->resolveImportCredentials($submittedCredentials);
+        if ($guardError !== null) {
+            return Response::json(['ok' => false, 'message' => $guardError]);
         }
 
         $adapter = $this->getAdapter($source);
@@ -261,6 +231,10 @@ final class ImportController extends AdminController
         $error       = '';
 
         try {
+            $guardError = $this->validateStoredCredentials($credentials);
+            if ($guardError !== null) {
+                throw new \RuntimeException($guardError);
+            }
             $pdo         = $adapter->openConnection($credentials);
             $previewData = $adapter->preview($pdo, $options);
         } catch (\Throwable $e) {
@@ -307,6 +281,10 @@ final class ImportController extends AdminController
         $error  = '';
 
         try {
+            $guardError = $this->validateStoredCredentials($credentials);
+            if ($guardError !== null) {
+                throw new \RuntimeException($guardError);
+            }
             $sourcePdo = $adapter->openConnection($credentials);
             $targetPdo = $this->app->getDatabase()->pdo();
 
@@ -567,5 +545,59 @@ final class ImportController extends AdminController
         $session->remove(self::SESSION_OPTIONS);
         $session->remove(self::SESSION_RESULT);
         $session->remove(self::SESSION_IMAGE_MAP);
+    }
+
+    /**
+     * @param array{host:string,name:string,user:string,pass:string} $submittedCredentials
+     * @return array{array{host:string,name:string,user:string,pass:string}, ?string}
+     */
+    private function resolveImportCredentials(array $submittedCredentials): array
+    {
+        if ($this->shouldUsePrimaryDatabase($submittedCredentials)) {
+            return [$this->getPrimaryDatabaseCredentials(), null];
+        }
+
+        $guardError = $this->validateStoredCredentials($submittedCredentials);
+
+        return [$submittedCredentials, $guardError];
+    }
+
+    /**
+     * @param array{host:string,name:string,user:string,pass:string} $credentials
+     */
+    private function shouldUsePrimaryDatabase(array $credentials): bool
+    {
+        return $credentials['host'] === ''
+            && $credentials['name'] === ''
+            && $credentials['user'] === ''
+            && $credentials['pass'] === '';
+    }
+
+    /**
+     * @return array{host:string,name:string,user:string,pass:string}
+     */
+    private function getPrimaryDatabaseCredentials(): array
+    {
+        $config = $this->app->getConfig();
+
+        return [
+            'host' => (string) $config->get('db_host', 'localhost'),
+            'name' => (string) $config->get('db_name', ''),
+            'user' => (string) $config->get('db_user', ''),
+            'pass' => (string) $config->get('db_pass', ''),
+        ];
+    }
+
+    /**
+     * @param array{host:string,name:string,user:string,pass:string} $credentials
+     */
+    private function validateStoredCredentials(array $credentials): ?string
+    {
+        $host = trim((string) ($credentials['host'] ?? ''));
+        if ($host === '') {
+            return 'A database host is required.';
+        }
+
+        return NetworkAddressGuard::validatePublicHost($host);
     }
 }
