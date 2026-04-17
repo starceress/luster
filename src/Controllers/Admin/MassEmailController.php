@@ -7,6 +7,7 @@ namespace Luster\Controllers\Admin;
 use Luster\Core\Mailer;
 use Luster\Core\Request;
 use Luster\Core\Response;
+use Luster\Core\UrlGuard;
 use Luster\Core\Validator;
 use Luster\Repositories\ActivityRepo;
 use Luster\Repositories\ListingRepo;
@@ -158,7 +159,7 @@ final class MassEmailController extends AdminController
         $baseUrl = $this->app->getBaseUrl();
 
         $referer = trim((string) $request->post('referer', ''));
-        $redirect = ($referer !== '' && str_starts_with($referer, $baseUrl))
+        $redirect = ($referer !== '' && UrlGuard::isSameOriginUrl($referer, $baseUrl))
             ? $referer
             : $baseUrl . '/admin/emails?tab=custom';
 
