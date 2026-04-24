@@ -17,7 +17,7 @@ $pageUrl = static fn(int $p): string => $b . '/admin/activitylog?page=' . $p;
 
 <?php if (($total ?? 0) > 0): ?>
 <div class="toolbar">
-  <div class="actions-row actions-row--push">
+  <div class="actions-row">
     <a href="<?= $b ?>/admin/activitylog/export" class="btn btn-quaternary btn-sm"><?= View::icon('download') ?> Export CSV</a>
     <form method="POST" action="<?= $b ?>/admin/activitylog/flush" id="flush-activity-form">
       <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">

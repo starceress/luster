@@ -52,7 +52,7 @@ $id = (int) $listing->id;
           Name <span class="req">*</span>
         </label>
         <div>
-          <input id="m-name" type="text" name="name" class="form-input"
+          <input id="m-name" type="text" name="name" class="form"
                  maxlength="255" required
                  value="<?= View::e($old['name'] ?? $member->name) ?>">
           <?php if (!empty($fe['name'])): ?>
@@ -64,7 +64,7 @@ $id = (int) $listing->id;
       <div class="listing-field-row<?= !empty($fe['url']) ? ' has-error' : '' ?>">
         <label class="listing-field-label" for="m-url">Website URL</label>
         <div>
-          <input id="m-url" type="url" name="url" class="form-input"
+          <input id="m-url" type="url" name="url" class="form"
                  maxlength="500" placeholder="https://"
                  value="<?= View::e($old['url'] ?? $member->url) ?>">
           <?php if (!empty($fe['url'])): ?>
@@ -76,7 +76,7 @@ $id = (int) $listing->id;
       <div class="listing-field-row">
         <label class="listing-field-label" for="m-country">Country</label>
         <div class="select-wrap">
-          <select id="m-country" name="country" class="form-select">
+          <select id="m-country" name="country" >
             <option value="">&mdash; Select Country &mdash;</option>
             <?php foreach (\Luster\Core\Countries::list() as $c): ?>
               <option value="<?= View::e($c) ?>"
@@ -120,13 +120,13 @@ $id = (int) $listing->id;
           <?php if ($field->type === 'textarea'): ?>
             <textarea id="field-<?= View::e($field->name) ?>"
                       name="<?= View::e($fKey) ?>"
-                      class="form-textarea"
+                      class="form"
                       rows="3"><?= View::e((string) $fieldVal) ?></textarea>
           <?php else: ?>
             <input id="field-<?= View::e($field->name) ?>"
                    type="text"
                    name="<?= View::e($fKey) ?>"
-                   class="form-input"
+                   class="form"
                    maxlength="500"
                    value="<?= View::e((string) $fieldVal) ?>">
           <?php endif; ?>
@@ -163,7 +163,7 @@ $id = (int) $listing->id;
       <div class="inline-form-row">
         <div class="form-group form-group--compact inline-form-grow">
           <label class="form-label" for="merge-dupe-email">Duplicate email to delete</label>
-          <input id="merge-dupe-email" type="email" name="duplicate_email" class="form-input"
+          <input id="merge-dupe-email" type="email" name="duplicate_email" class="form"
                  maxlength="255" placeholder="duplicate&#64;example.com" required>
         </div>
         <button type="submit" class="btn btn-danger btn-sm">Delete Duplicate</button>

@@ -34,7 +34,7 @@ $fe = $field_errors ?? [];
       <div class="listing-field-row<?= !empty($fe['username']) ? ' has-error' : '' ?>">
         <label class="listing-field-label" for="au-username">Username <span class="req">*</span></label>
         <div>
-          <input id="au-username" type="text" name="username" class="form-input"
+          <input id="au-username" type="text" name="username" class="form"
                  maxlength="50" required autocomplete="off"
                  value="<?= View::e($user->username) ?>">
           <?php if (!empty($fe['username'])): ?><p class="field-error"><?= View::e($fe['username'][0]) ?></p><?php endif; ?>
@@ -44,7 +44,7 @@ $fe = $field_errors ?? [];
       <div class="listing-field-row<?= !empty($fe['email']) ? ' has-error' : '' ?>">
         <label class="listing-field-label" for="au-email">Email Address <span class="req">*</span></label>
         <div>
-          <input id="au-email" type="email" name="email" class="form-input"
+          <input id="au-email" type="email" name="email" class="form"
                  maxlength="255" required autocomplete="off"
                  value="<?= View::e($user->email) ?>">
           <?php if (!empty($fe['email'])): ?><p class="field-error"><?= View::e($fe['email'][0]) ?></p><?php endif; ?>
@@ -57,7 +57,7 @@ $fe = $field_errors ?? [];
         <label class="listing-field-label" for="au-pass">New Password</label>
         <div>
           <div class="input-icon-wrap">
-            <input id="au-pass" type="password" name="new_password" class="form-input"
+            <input id="au-pass" type="password" name="new_password" class="form"
                    maxlength="255" autocomplete="new-password"
                    placeholder="Leave blank to keep current">
             <button type="button" class="input-icon-btn" data-pw-toggle aria-label="Show password" tabindex="-1">
@@ -74,7 +74,7 @@ $fe = $field_errors ?? [];
         <label class="listing-field-label" for="au-confirm">Confirm New Password</label>
         <div>
           <div class="input-icon-wrap">
-            <input id="au-confirm" type="password" name="new_password_confirm" class="form-input"
+            <input id="au-confirm" type="password" name="new_password_confirm" class="form"
                    maxlength="255" autocomplete="new-password"
                    placeholder="Repeat new password">
             <button type="button" class="input-icon-btn" data-pw-toggle aria-label="Show password" tabindex="-1">

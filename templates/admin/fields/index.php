@@ -104,7 +104,7 @@ $id = (int) $listing->id;
       <div class="listing-field-row listing-field-row--top">
         <label class="listing-field-label" for="af-name">Field Name <span class="req">*</span></label>
         <div>
-          <input type="text" class="form-input" id="af-name" name="name"
+          <input type="text" class="form" id="af-name" name="name"
                  maxlength="30" pattern="[a-zA-Z0-9_]+"
                  placeholder="e.g. fave_song" required
                  title="Letters, numbers and underscores only">
@@ -115,7 +115,7 @@ $id = (int) $listing->id;
       <div class="listing-field-row listing-field-row--top">
         <label class="listing-field-label" for="af-label">Label <span class="req">*</span></label>
         <div>
-          <input type="text" class="form-input" id="af-label" name="label"
+          <input type="text" class="form" id="af-label" name="label"
                  maxlength="100" placeholder="e.g. Favourite Song" required>
           <p class="form-hint">This is the text members will see on forms and profile pages.</p>
         </div>
@@ -125,7 +125,7 @@ $id = (int) $listing->id;
         <label class="listing-field-label" for="af-type">Type</label>
         <div>
           <div class="select-wrap">
-            <select class="form-select" id="af-type" name="type">
+            <select  id="af-type" name="type">
               <option value="text">Text</option>
               <option value="dropdown">Drop Down</option>
               <option value="checkbox">Checkbox</option>
@@ -137,7 +137,7 @@ $id = (int) $listing->id;
       <div id="af-options-row" class="listing-field-row listing-field-row--top is-hidden">
         <label class="listing-field-label" for="af-options">Options</label>
         <div>
-          <textarea class="form-textarea" id="af-options" name="options" rows="2"
+          <textarea class="form" id="af-options" name="options" rows="2"
                     placeholder="e.g. Option A, Option B, Option C"></textarea>
           <p class="form-hint">Comma-separated values for drop down and checkbox fields.</p>
         </div>
@@ -146,10 +146,17 @@ $id = (int) $listing->id;
       <div class="listing-field-row listing-field-row--top">
         <span class="listing-field-label">Required</span>
         <div>
-          <label class="form-check">
-            <input type="checkbox" id="af-required" name="required" value="1">
-            <span class="form-check-label">Members must fill in this field</span>
-          </label>
+          <div style="display:flex;gap:1.25rem;">
+            <label class="form-check">
+              <input type="radio" name="required" value="1">
+              <span class="form-check-label">Yes</span>
+            </label>
+            <label class="form-check">
+              <input type="radio" name="required" value="0" checked>
+              <span class="form-check-label">No</span>
+            </label>
+          </div>
+          <p class="form-hint">If Yes, members must fill in this field to successfully submit the form.</p>
         </div>
       </div>
     </div>

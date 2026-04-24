@@ -29,7 +29,7 @@ $currentSource = $cat->source ?? 'custom';
           Category Name <span class="req">*</span>
         </label>
         <div>
-          <input id="cat-name" type="text" name="name" class="form-input"
+          <input id="cat-name" type="text" name="name" class="form"
                  value="<?= View::e($cat->name ?? '') ?>" required maxlength="150">
           <?php if (!empty($fe['name'])): ?>
             <p class="field-error"><?= View::e($fe['name'][0]) ?></p>
@@ -41,7 +41,7 @@ $currentSource = $cat->source ?? 'custom';
         <label class="listing-field-label" for="cat-parent">Parent Category</label>
         <div>
           <div class="select-wrap">
-            <select id="cat-parent" name="parent_id" class="form-select">
+            <select id="cat-parent" name="parent_id" >
               <option value="">None</option>
               <?php foreach ($all_cats ?? [] as $c): ?>
                 <?php if ($c->parent_id === null && $c->id !== ($cat->id ?? 0)): ?>
@@ -60,7 +60,7 @@ $currentSource = $cat->source ?? 'custom';
         <label class="listing-field-label" for="add-network-toggle">Change Network?</label>
         <div>
           <div class="select-wrap">
-            <select id="add-network-toggle" name="add_network" class="form-select">
+            <select id="add-network-toggle" name="add_network" >
               <option value="no">Keep current (<?= View::e($currentSource) ?>)</option>
               <option value="yes">Change network</option>
             </select>
@@ -78,7 +78,7 @@ $currentSource = $cat->source ?? 'custom';
       <div class="listing-field-row listing-field-row--top is-hidden" id="network-name-row">
         <label class="listing-field-label" for="cat-network">New Network Name</label>
         <div>
-          <input id="cat-network" type="text" name="network_name" class="form-input"
+          <input id="cat-network" type="text" name="network_name" class="form"
                  maxlength="50" placeholder="e.g. MyNetwork">
         </div>
       </div>

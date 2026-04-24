@@ -65,7 +65,7 @@ $filtersActive = ($search ?? '') !== '' || ($filter_network ?? '') !== ''
 // Combinations:
 //   network [: category] [ - type] [ - "search"]
 //   type only, search only, or any subset thereof
-//   nothing †’ "All Listings"
+//   nothing â€ â€™ "All Listings"
 $_fn  = $filter_network ?? '';
 $_fc  = $filter_cat     ?? '';
 $_ft  = $filter_type    ?? '';
@@ -117,14 +117,14 @@ $flSortUrl = static function (string $col) use ($b, $flSort, $flDir, $search, $f
   <div>
     <a href="<?= $b ?>/admin/listings/add" class="btn btn-primary btn-sm"><?= View::icon('add') ?> Add Listing</a>
     <a href="<?= $b ?>/admin/listings/collective-templates" class="btn btn-secondary btn-sm">Collective Templates</a>
-    <a href="<?= $b ?>/admin/listings/settings" class="btn btn-ghost btn-sm">Display Settings</a>
+    <a href="<?= $b ?>/admin/listings/settings" class="btn btn-quaternary btn-sm">Display Settings</a>
   </div>
 </div>
 
 <div class="filter-panel<?= $filtersActive ? ' is-open' : '' ?>" id="filter-panel">
   <form method="GET" action="" class="filter-row" id="fl-filter-form">
-    <div class="toolbar-select-wrap">
-    <select id="fl-net-sel" name="network" class="form-select">
+    <div class="select-wrap">
+    <select id="fl-net-sel" name="network" >
       <option value="">All Networks</option>
       <?php foreach ($allNetworks as $net): ?>
         <option value="<?= View::e($net) ?>"
@@ -135,8 +135,8 @@ $flSortUrl = static function (string $col) use ($b, $flSort, $flDir, $search, $f
     </select>
     </div>
 
-    <div class="toolbar-select-wrap">
-    <select id="fl-cat-sel" name="category" class="form-select"
+    <div class="select-wrap">
+    <select id="fl-cat-sel" name="category" 
             data-tfl='<?= $dataTfl ?>'
             data-tafl='<?= $dataTafl ?>'
             data-custom='<?= $dataCustom ?>'>
@@ -150,8 +150,8 @@ $flSortUrl = static function (string $col) use ($b, $flSort, $flDir, $search, $f
     </select>
     </div>
 
-    <div class="toolbar-select-wrap">
-    <select name="type" class="form-select js-autosubmit">
+    <div class="select-wrap">
+    <select name="type" class="js-autosubmit">
       <option value="">All Types</option>
       <?php
         $_typeLabels = ['listing' => 'Fanlisting', 'clique' => 'Clique', 'collective' => 'Collective', 'shrine' => 'Shrine', 'webring' => 'Webring', 'other' => 'Other'];
@@ -165,7 +165,7 @@ $flSortUrl = static function (string $col) use ($b, $flSort, $flDir, $search, $f
     </select>
     </div>
 
-    <input type="text" name="search" class="form-input"
+    <input type="text" name="search" class="form"
            placeholder="Search&hellip;" value="<?= View::e($search ?? '') ?>">
     <button type="submit" class="btn btn-quaternary btn-sm">Search</button>
     <a href="?" class="btn btn-quaternary btn-sm">Reset</a>
@@ -193,8 +193,8 @@ $flSortUrl = static function (string $col) use ($b, $flSort, $flDir, $search, $f
 
   <div class="bulk">
     <label for="bulk-action">Bulk Actions:</label>
-    <div class="toolbar-select-wrap">
-    <select id="bulk-action" name="action" class="form-select">
+    <div class="select-wrap">
+    <select id="bulk-action" name="action" >
       <option value="" disabled selected>&mdash; Select &mdash;</option>
       <option value="delete">Delete</option>
     </select>
@@ -286,7 +286,7 @@ $flSortUrl = static function (string $col) use ($b, $flSort, $flDir, $search, $f
                  class="btn btn-tertiary btn-sm">Edit</a>
               <a href="<?= $b ?>/admin/members/<?= (int) $fl->id ?>"
                  class="btn btn-quaternary btn-sm">Members</a>
-              <button type="submit" form="del-fl-<?= (int) $fl->id ?>" class="btn btn-danger btn-sm">Delete</button>
+              <button type="submit" form="del-listing-<?= (int) $fl->id ?>" class="btn btn-danger btn-sm">Delete</button>
             </div>
           </td>
 
@@ -297,16 +297,6 @@ $flSortUrl = static function (string $col) use ($b, $flSort, $flDir, $search, $f
     </div>
   </div>
 </form>
-
-<?php foreach ($listings as $fl): ?>
-<form id="del-fl-<?= (int) $fl->id ?>" method="POST"
-      action="<?= $b ?>/admin/listings/<?= (int) $fl->id ?>/delete"
-      class="is-hidden"
-      data-del-modal data-del-entity="listing"
-      data-del-name="<?= View::e($fl->name) ?>">
-  <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
-</form>
-<?php endforeach; ?>
 
 <?php if (($total_pages ?? 1) > 1): ?>
 <nav class="pg" aria-label="Pagination">

@@ -29,18 +29,18 @@ $_defaults = [
   <form method="post" action="<?= $b ?>/admin/kim/settings">
     <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
     <div class="card-body">
-      <p>Enter the <strong>page filename</strong> of each KIM page on your site, for example <code>kim.php</code>. The embed will prepend your site's base URL automatically. Leave blank to hide a link entirely.</p>
+      <p>Enter the <strong>page filename</strong> of each KIM page on your site. The embed will prepend your site's base URL automatically. Leave blank to hide a link entirely.</p>
 
       <div class="form-row">
         <div class="form-group">
           <label class="form-label-sm" for="kim-url-signup">Sign Up page</label>
-          <input id="kim-url-signup" type="text" name="signup" class="form-input"
+          <input id="kim-url-signup" type="text" name="signup" class="form"
                  maxlength="500"
                  value="<?= View::e(($kim_urls['kim_url_signup'] ?? '') !== '' ? $kim_urls['kim_url_signup'] : $_defaults['kim_url_signup']) ?>">
         </div>
         <div class="form-group">
           <label class="form-label-sm" for="kim-url-update">Update Info page</label>
-          <input id="kim-url-update" type="text" name="update" class="form-input"
+          <input id="kim-url-update" type="text" name="update" class="form"
                  maxlength="500"
                  value="<?= View::e(($kim_urls['kim_url_update'] ?? '') !== '' ? $kim_urls['kim_url_update'] : $_defaults['kim_url_update']) ?>">
         </div>
@@ -49,13 +49,13 @@ $_defaults = [
       <div class="form-row">
         <div class="form-group">
           <label class="form-label-sm" for="kim-url-reset">Password Reset page</label>
-          <input id="kim-url-reset" type="text" name="reset" class="form-input"
+          <input id="kim-url-reset" type="text" name="reset" class="form"
                  maxlength="500"
                  value="<?= View::e(($kim_urls['kim_url_reset'] ?? '') !== '' ? $kim_urls['kim_url_reset'] : $_defaults['kim_url_reset']) ?>">
         </div>
         <div class="form-group">
           <label class="form-label-sm" for="kim-url-list">Public KIM List page</label>
-          <input id="kim-url-list" type="text" name="list" class="form-input"
+          <input id="kim-url-list" type="text" name="list" class="form"
                  maxlength="500"
                  value="<?= View::e(($kim_urls['kim_url_list'] ?? '') !== '' ? $kim_urls['kim_url_list'] : $_defaults['kim_url_list']) ?>">
         </div>
@@ -64,7 +64,9 @@ $_defaults = [
 
     <div class="composer-footer">
       <button type="submit" class="btn btn-primary">Save Settings</button>
-      <button type="reset" class="btn btn-ghost">Clear Form</button>
+      <button type="submit" name="reset_defaults" value="1" class="btn btn-ghost">Reset to Default</button>
+      <button type="reset" class="btn btn-ghost">Clear</button>
+      <a href="<?= $b ?>/admin/kim" class="btn btn-ghost">Cancel</a>
     </div>
   </form>
 </div>

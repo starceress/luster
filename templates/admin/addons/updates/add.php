@@ -75,7 +75,7 @@ $ctxDisplay = preg_replace('/^Owned\s*›\s*/u', '', (string) ($ctx_label ?? '')
           <label class="form-label" for="upd-title">
             Title <span class="req">*</span>
           </label>
-          <input type="text" id="upd-title" name="title" class="form-input"
+          <input type="text" id="upd-title" name="title" class="form"
                  maxlength="255" required
                  value="<?= $is_edit ? View::e($update->title) : '' ?>"
                  placeholder="What&rsquo;s new?">
@@ -84,7 +84,7 @@ $ctxDisplay = preg_replace('/^Owned\s*›\s*/u', '', (string) ($ctx_label ?? '')
           <label class="form-label" for="upd-body">
             Body <span class="req">*</span>
           </label>
-          <textarea id="upd-body" name="body" class="email-textarea" required
+          <textarea class="form" id="upd-body" name="body" required
                     placeholder="Write your update here&hellip;"><?= $is_edit ? View::e($update->body) : '' ?></textarea>
         </div>
       </div>

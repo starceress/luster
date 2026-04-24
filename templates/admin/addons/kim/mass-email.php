@@ -8,7 +8,7 @@
  *   $recipient_count  int
  *   $selected_only    bool
  *   $selected_emails  string[]
- *   $member_names     array<string, string>   email → name
+ *   $member_names     array<string, string>   email â†’ name
  *   $from_name        string
  *   $from_email       string
  *   $owner_name       string
@@ -53,7 +53,7 @@ $oldBody    = htmlspecialchars($old['body'] ?? '', ENT_QUOTES, 'UTF-8');
       <div class="card-head">Load Template</div>
       <div class="card-body">
         <div class="select-wrap">
-          <select id="es-tpl-select" class="form-select">
+          <select id="es-tpl-select" >
             <option value="">&mdash; Select a Template &mdash;</option>
             <?php foreach ($saved_emails as $t): ?>
               <option value="<?= View::e($t->subject) ?>"
@@ -79,7 +79,7 @@ $oldBody    = htmlspecialchars($old['body'] ?? '', ENT_QUOTES, 'UTF-8');
           <input type="hidden" name="tpl_body"    id="es-save-body">
           <div id="es-save-emails"></div>
           <input type="text" name="tpl_name" id="es-save-name"
-                 class="form-input" placeholder="Template name&hellip;" maxlength="150">
+                 class="form" placeholder="Template name&hellip;" maxlength="150">
           <button type="submit" class="btn btn-secondary btn-sm btn-block-center">Save Template</button>
         </form>
       </div>
@@ -166,7 +166,7 @@ $oldBody    = htmlspecialchars($old['body'] ?? '', ENT_QUOTES, 'UTF-8');
       </div>
 
       <div>
-        <textarea class="email-textarea" id="es-body" name="body"
+        <textarea class="email" id="es-body" name="body"
                   maxlength="50000" required
                   placeholder="Write your message&hellip;"><?= $oldBody ?></textarea>
       </div>
@@ -187,7 +187,7 @@ $oldBody    = htmlspecialchars($old['body'] ?? '', ENT_QUOTES, 'UTF-8');
 
 </div><!-- /.composer-grid -->
 
-<!-- ── Preview / Confirm modal ── -->
+<!-- â”€â”€ Preview / Confirm modal â”€â”€ -->
 <div class="modal-backdrop is-hidden" id="es-preview-modal">
   <div class="modal modal--wide">
     <div class="modal-header">

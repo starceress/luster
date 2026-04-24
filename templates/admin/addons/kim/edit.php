@@ -31,25 +31,25 @@ $b = rtrim(View::e($base_url), '/');
   <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
 
   <div class="gradient-card">
-    <div class="card-body">
+    <div class="pc-section">
 
       <div class="pc-section-label">Identity</div>
 
       <div class="listing-field-row">
         <label class="listing-field-label" for="kim-name">Name <span class="req">*</span></label>
-        <input id="kim-name" type="text" name="name" class="form-input"
+        <input id="kim-name" type="text" name="name" class="form"
                value="<?= View::e($member->name) ?>" required maxlength="100">
       </div>
 
       <div class="listing-field-row">
         <label class="listing-field-label" for="kim-email">Email <span class="req">*</span></label>
-        <input id="kim-email" type="email" name="email" class="form-input"
+        <input id="kim-email" type="email" name="email" class="form"
                value="<?= View::e($member->email) ?>" required maxlength="255">
       </div>
 
       <div class="listing-field-row">
         <label class="listing-field-label" for="kim-url">URL</label>
-        <input id="kim-url" type="url" name="url" class="form-input"
+        <input id="kim-url" type="url" name="url" class="form"
                value="<?= View::e($member->url) ?>" maxlength="500" placeholder="https://">
       </div>
 
@@ -57,7 +57,7 @@ $b = rtrim(View::e($base_url), '/');
         <label class="listing-field-label" for="kim-fanlisting">Fanlisting <span class="req">*</span></label>
         <div>
           <div class="select-wrap">
-            <select id="kim-fanlisting" name="fanlisting_id" class="form-select" required>
+            <select id="kim-fanlisting" name="fanlisting_id"  required>
               <?php foreach ($fanlistings as $fl): ?>
                 <option value="<?= (int) $fl->id ?>"
                   <?= $fl->id === $member->fanlistingId ? 'selected' : '' ?>>
@@ -68,14 +68,18 @@ $b = rtrim(View::e($base_url), '/');
           </div>
         </div>
       </div>
+    </div>
 
+    
+    <div class="pc-section">
       <div class="pc-section-label">Password</div>
 
+      
       <div class="listing-field-row listing-field-row--top">
         <label class="listing-field-label" for="kim-new-password">New Password</label>
         <div>
           <div class="input-icon-wrap">
-            <input id="kim-new-password" type="password" name="new_password" class="form-input"
+            <input id="kim-new-password" type="password" name="new_password" class="form"
                    maxlength="255" autocomplete="new-password"
                    placeholder="Leave blank to keep current">
             <button type="button" data-pw-toggle aria-label="Show password" tabindex="-1" class="input-icon-btn">
@@ -83,7 +87,7 @@ $b = rtrim(View::e($base_url), '/');
               <?= View::icon('eye-off') ?>
             </button>
           </div>
-          <p class="form-hint">Minimum 8 characters. Leave blank to keep the current password.</p>
+          <p class="form-hint">Minimum 12 characters. Leave blank to keep the current password.</p>
         </div>
       </div>
 
@@ -91,7 +95,7 @@ $b = rtrim(View::e($base_url), '/');
         <label class="listing-field-label" for="kim-new-password-confirm">Confirm Password</label>
         <div class="input-icon-wrap">
           <input id="kim-new-password-confirm" type="password" name="new_password_confirm"
-                 class="form-input" maxlength="255" autocomplete="new-password">
+                 class="form" maxlength="255" autocomplete="new-password">
           <button type="button" data-pw-toggle aria-label="Show password" tabindex="-1" class="input-icon-btn">
             <?= View::icon('eye-on') ?>
             <?= View::icon('eye-off') ?>

@@ -88,7 +88,7 @@ if ($displayMode === 'category') {
 <!-- Toolbar -->
 <div class="toolbar">
   <div class="actions-row">
-    <button type="button" class="btn btn-quaternary btn-sm fl-filter-toggle" id="fl-filter-toggle"
+    <button type="button" class="btn btn-preview btn-sm filter-toggle" id="fl-filter-toggle"
             aria-expanded="<?= $filtersActive ? 'true' : 'false' ?>"
             aria-controls="filter-panel">
       <?= View::icon('filter') ?>
@@ -105,8 +105,8 @@ if ($displayMode === 'category') {
 <div class="filter-panel<?= $filtersActive ? ' is-open' : '' ?>" id="filter-panel">
   <form method="GET" action="<?= $b ?>/admin/joined" class="filter-row">
 
-    <div class="toolbar-select-wrap">
-    <select id="net-sel" name="network" class="form-select" data-net-cats='<?= json_encode($network_categories ?? [], JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS) ?>'>
+    <div class="select-wrap">
+    <select id="net-sel" name="network"  data-net-cats='<?= json_encode($network_categories ?? [], JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS) ?>'>
       <option value="">All Networks</option>
       <option value="TFL"<?= ($filter_network ?? '') === 'TFL'  ? ' selected' : '' ?>>TFL</option>
       <option value="TAFL"<?= ($filter_network ?? '') === 'TAFL' ? ' selected' : '' ?>>TAFL</option>
@@ -119,8 +119,8 @@ if ($displayMode === 'category') {
     </select>
     </div>
 
-    <div class="toolbar-select-wrap">
-    <select id="cat-sel" name="category" class="form-select">
+    <div class="select-wrap">
+    <select id="cat-sel" name="category" >
       <option value="">All Categories</option>
       <?php foreach ($categories as $cat): ?>
         <option value="<?= View::e($cat) ?>"
@@ -131,7 +131,7 @@ if ($displayMode === 'category') {
     </select>
     </div>
 
-    <input type="text" name="search" class="form-input" placeholder="Search&hellip;"
+    <input type="text" name="search" class="form" placeholder="Search&hellip;"
            value="<?= View::e($search ?? '') ?>">
     <button type="submit" class="btn btn-quaternary btn-sm">Search</button>
     <a href="?" class="btn btn-quaternary btn-sm">Reset</a>
@@ -160,10 +160,10 @@ if ($displayMode === 'category') {
 
   <!-- Bulk action bar -->
   <div class="bulk">
-    <label for="bulk-action-sel">Bulk action:</label>
-    <div class="toolbar-select-wrap">
-    <select id="bulk-action-sel" name="bulk_action" class="form-select">
-      <option value="" disabled selected>- Select -</option>
+    <label for="bulk-action-sel">Bulk Actions:</label>
+    <div class="select-wrap">
+    <select id="bulk-action-sel" name="bulk_action" >
+      <option value="" disabled selected>&mdash; Select &mdash;</option>
       <option value="approve">Approve</option>
       <option value="pending">Pending</option>
       <option value="delete">Delete</option>
@@ -239,9 +239,11 @@ if ($displayMode === 'category') {
             </span>
           </td>
           <td class="act-col" data-label="">
-            <a href="<?= $b ?>/admin/joined/<?= (int) $jf->id ?>/edit"
-               class="btn btn-tertiary btn-sm">Edit</a>
-            <button type="submit" form="del-jf-<?= (int) $jf->id ?>" class="btn btn-danger btn-sm">Delete</button>
+            <div class="data-actions">
+              <a href="<?= $b ?>/admin/joined/<?= (int) $jf->id ?>/edit"
+                 class="btn btn-tertiary btn-sm">Edit</a>
+              <button type="submit" form="del-joined-<?= (int) $jf->id ?>" class="btn btn-danger btn-sm">Delete</button>
+            </div>
           </td>
         </tr>
         <?php endforeach; ?>
@@ -255,9 +257,8 @@ if ($displayMode === 'category') {
 </form>
 
 <?php foreach ($joined as $jf): ?>
-<form id="del-jf-<?= (int) $jf->id ?>" method="POST"
+<form id="del-joined-<?= (int) $jf->id ?>" method="POST"
       action="<?= $b ?>/admin/joined/<?= (int) $jf->id ?>/delete"
-      class="is-hidden"
       data-del-modal data-del-entity="joined"
       data-del-name="<?= View::e($jf->name) ?>">
   <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">

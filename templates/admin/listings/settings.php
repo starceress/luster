@@ -36,21 +36,21 @@ function flsCfgVal(array $cfg, string $key, $default = ''): string {
       <div class="pc-head-icon pc-head-icon-bg"><?= View::icon('gear') ?></div>
       <div class="pc-head-meta">
         <div class="pc-head-title">Display Settings</div>
-        <div class="pc-head-sub">Controls how owned listings are sorted and paginated in the admin and public views.</div>
+        <div class="pc-head-sub">Controls how owned listings are sorted and paginated within the admin panel.</div>
       </div>
     </div>
 
-    <div class="listing-field-section">
+    <div class="pc-section">
       <div class="pc-section-label">Sort Order</div>
       <div class="listing-field-row">
         <label class="listing-field-label" for="fl-sort">Sort listings by</label>
         <div>
-          <div class="select-wrap form-select--compact">
-            <select id="fl-sort" name="owned_sort" class="form-select">
+          <div class="select-wrap select-auto">
+            <select id="fl-sort" name="owned_sort" >
               <?php
                 $currentSort = flsCfgVal($cfg, 'owned_sort', 'id');
                 $sortOptions = [
-                    'id'       => 'Listing # (default)',
+                    'id'       => 'Listing #',
                     'subject'  => 'Subject (A-Z)',
                     'category' => 'Category (A-Z)',
                     'status'   => 'Status (Current -> Upcoming -> Pending)',
@@ -67,12 +67,12 @@ function flsCfgVal(array $cfg, string $key, $default = ''): string {
       </div>
     </div>
 
-    <div class="listing-field-section">
+    <div class="pc-section">
       <div class="pc-section-label">Pagination</div>
       <div class="listing-field-row">
         <label class="listing-field-label" for="fl-per-page">Listings per page</label>
         <div>
-          <input type="number" id="fl-per-page" name="owned_per_page" class="form-input form-input--compact" min="5" max="50" value="<?= (int) ($cfg['owned_per_page'] ?? 10) ?>">
+          <input type="number" id="fl-per-page" name="owned_per_page" class="form form--compact" min="5" max="50" value="<?= (int) ($cfg['owned_per_page'] ?? 10) ?>">
           <p class="form-hint">How many listings to show per page. Min 5, max 50.</p>
         </div>
       </div>
@@ -80,7 +80,7 @@ function flsCfgVal(array $cfg, string $key, $default = ''): string {
 
     <div class="composer-footer">
       <button type="submit" class="btn btn-primary">Save Settings</button>
-      <button type="button" class="btn btn-ghost js-form-reset">Reset</button>
+      <button type="button" class="btn btn-ghost js-form-reset">Reset to Default</button>
       <a href="<?= $b ?>/admin/listings" class="btn btn-ghost">Cancel</a>
     </div>
   </div>

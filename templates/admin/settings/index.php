@@ -65,14 +65,14 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
             <div class="form-row">
               <div class="form-group<?= !empty($fe['username']) ? ' has-error' : '' ?>">
                 <label class="form-label" for="p-username">Username <span class="req">*</span></label>
-                <input id="p-username" type="text" name="admin_username" class="form-input"
+                <input id="p-username" type="text" name="admin_username" class="form"
                        maxlength="50" required
                        value="<?= View::e($admin_user->username ?? '') ?>">
                 <?php if (!empty($fe['username'])): ?><p class="field-error"><?= View::e($fe['username'][0]) ?></p><?php endif; ?>
               </div>
               <div class="form-group<?= !empty($fe['email']) ? ' has-error' : '' ?>">
                 <label class="form-label" for="p-email">Email Address <span class="req">*</span></label>
-                <input id="p-email" type="email" name="admin_email" class="form-input"
+                <input id="p-email" type="email" name="admin_email" class="form"
                        maxlength="255" required
                        value="<?= View::e($admin_user->email ?? '') ?>">
                 <?php if (!empty($fe['email'])): ?><p class="field-error"><?= View::e($fe['email'][0]) ?></p><?php endif; ?>
@@ -86,7 +86,7 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
               <div class="form-group<?= !empty($fe['admin_new_password']) ? ' has-error' : '' ?>">
                 <label class="form-label" for="p-new-pass">New Password <em class="opt">(optional)</em></label>
                 <div class="input-icon-wrap">
-                  <input id="p-new-pass" type="password" name="admin_new_password" class="form-input"
+                  <input id="p-new-pass" type="password" name="admin_new_password" class="form"
                          maxlength="255" autocomplete="new-password"
                          placeholder="Leave blank to keep current">
                   <button type="button" data-pw-toggle aria-label="Show password" tabindex="-1" class="input-icon-btn">
@@ -99,7 +99,7 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
               <div class="form-group<?= !empty($fe['admin_confirm_password']) ? ' has-error' : '' ?>">
                 <label class="form-label" for="p-confirm-pass">Confirm New Password</label>
                 <div class="input-icon-wrap">
-                  <input id="p-confirm-pass" type="password" name="admin_confirm_password" class="form-input"
+                  <input id="p-confirm-pass" type="password" name="admin_confirm_password" class="form"
                          maxlength="255" autocomplete="new-password"
                          placeholder="Repeat new password">
                   <button type="button" class="input-icon-btn" aria-label="Show password" tabindex="-1">
@@ -158,7 +158,7 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
                 </td>
                 <td><?= View::e($user->email) ?></td>
                 <td>
-                  <?= $user->lastLogin !== null ? View::e(substr($user->lastLogin, 0, 16)) : '—' ?>
+                  <?= $user->lastLogin !== null ? View::e(substr($user->lastLogin, 0, 16)) : 'â€”' ?>
                 </td>
                 <td>
                   <?= View::e(substr($user->createdAt, 0, 10)) ?>
@@ -185,11 +185,11 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
       </div><!-- /.gradient-card -->
     </div><!-- /#panel-accounts -->
 
-    <!-- ═══ General + Embed in one form (both POST to /admin/settings) ═══ -->
+    <!-- â•â•â• General + Embed in one form (both POST to /admin/settings) â•â•â• -->
     <form method="POST" action="<?= $b ?>/admin/settings" class="js-warn-unsaved">
       <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
 
-      <!-- ═══ PANEL: General ══════════════════════════════════════ -->
+      <!-- â•â•â• PANEL: General â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
       <div id="panel-general" class="mini-nav-panel">
         <div class="gradient-card">
           <div class="pc-head">
@@ -206,7 +206,7 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
             <div class="pc-section-label">Site Identity</div>
             <div class="form-group<?= !empty($fe['site_name']) ? ' has-error' : '' ?>">
               <label class="form-label" for="s-site-name">Site Name <span class="req">*</span></label>
-              <input id="s-site-name" type="text" name="site_name" class="form-input"
+              <input id="s-site-name" type="text" name="site_name" class="form"
                      maxlength="100" required
                      value="<?= View::e(cfgVal($cfg, 'site_name', 'Luster')) ?>">
               <p class="form-hint">Shown in the browser tab and welcome block.</p>
@@ -214,7 +214,7 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
             </div>
             <div class="form-group<?= !empty($fe['site_url']) ? ' has-error' : '' ?>">
               <label class="form-label" for="s-site-url">Base URL</label>
-              <input id="s-site-url" type="url" name="site_url" class="form-input" maxlength="500" required
+              <input id="s-site-url" type="url" name="site_url" class="form" maxlength="500" required
                      value="<?= View::e(cfgVal($cfg, 'site_url')) ?>">
               <p class="form-hint"><b>No trailing slash.</b> Example: <code class="neb-code">http://localhost/luster/public</code></p>
               <?php if (!empty($fe['site_url'])): ?><p class="field-error"><?= View::e($fe['site_url'][0]) ?></p><?php endif; ?>
@@ -226,14 +226,14 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
             <div class="form-row">
               <div class="form-group">
                 <label class="form-label" for="s-owner-name">Owner Name</label>
-                <input id="s-owner-name" type="text" name="owner_name" class="form-input"
+                <input id="s-owner-name" type="text" name="owner_name" class="form"
                        maxlength="100"
                        value="<?= View::e(cfgVal($cfg, 'owner_name')) ?>">
                 <p class="form-hint">Used publically, such as in email correspondence.</p>
               </div>
               <div class="form-group">
                 <label class="form-label" for="s-owner-email">Owner Email</label>
-                <input id="s-owner-email" type="email" name="owner_email" class="form-input" maxlength="255"
+                <input id="s-owner-email" type="email" name="owner_email" class="form" maxlength="255"
                        value="<?= View::e(cfgVal($cfg, 'owner_email')) ?>">
                 <p class="form-hint">Used publically, such as in email correspondence.<br> May differ from your admin login email.</p>
               </div>
@@ -284,7 +284,7 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
                 }
               ?>
               <div class="select-wrap select-wrap-inline">
-                <select id="s-timezone" name="timezone" class="form-select form-select-auto">
+                <select id="s-timezone" name="timezone" class="select-auto">
                   <?php foreach ($commonTz as $group => $tzList): ?>
                     <optgroup label="<?= View::e($group) ?>">
                       <?php foreach ($tzList as $tz): ?>
@@ -307,7 +307,7 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
                   $curDateFmt = $admin_date_format ?? 'j M Y';
                 ?>
                 <div class="select-wrap">
-                  <select id="s-date-format" name="date_format" class="form-select">
+                  <select id="s-date-format" name="date_format" >
                     <?php foreach ($dateFmtOptions as $fmt => $example): ?>
                       <option value="<?= View::e($fmt) ?>"<?= $fmt === $curDateFmt ? ' selected' : '' ?>><?= View::e($example) ?></option>
                     <?php endforeach; ?>
@@ -322,7 +322,7 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
                   $curTimeFmt = $admin_time_format ?? 'H:i';
                 ?>
                 <div class="select-wrap">
-                  <select id="s-time-format" name="time_format" class="form-select">
+                  <select id="s-time-format" name="time_format" >
                     <?php foreach ($timeFmtOptions as $fmt => $example): ?>
                       <option value="<?= View::e($fmt) ?>"<?= $fmt === $curTimeFmt ? ' selected' : '' ?>><?= View::e($example) ?></option>
                     <?php endforeach; ?>
@@ -345,7 +345,7 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
             <div class="form-group">
               <label class="form-label" for="s-collective-contact-recipient">Recipient email</label>
               <input id="s-collective-contact-recipient" type="email"
-                     name="collective_contact_recipient" class="form-input" maxlength="255"
+                     name="collective_contact_recipient" class="form" maxlength="255"
                      placeholder="Defaults to Owner Email"
                      value="<?= View::e($site_settings['collective_contact_recipient'] ?? '') ?>">
               <p class="form-hint">Override which email address receives collective contact messages. Leave blank to use the Owner Email above.</p>
@@ -359,7 +359,7 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
         </div>
       </div><!-- /#panel-general -->
 
-      <!-- ═══ PANEL: Embed & Paths ════════════════════════════════ -->
+      <!-- â•â•â• PANEL: Embed & Paths â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
       <div id="panel-embed" class="mini-nav-panel">
         <div class="gradient-card">
           <div class="pc-head">
@@ -383,14 +383,14 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
             <div class="pc-section-label">Server Paths</div>
             <div class="form-group">
               <label class="form-label" for="s-install-path">Installation Path <em class="opt">(absolute, with trailing slash)</em></label>
-              <input id="s-install-path" type="text" name="install_path" class="form-input" maxlength="500"
+              <input id="s-install-path" type="text" name="install_path" class="form" maxlength="500"
                      placeholder="/home/user/yourdomain.com/luster/"
                      value="<?= View::e(cfgVal($cfg, 'install_path')) ?>">
               <p class="form-hint">Used to generate embed include lines below.</p>
             </div>
             <div class="form-group">
               <label class="form-label" for="s-embed-url">Embed Base URL</label>
-              <input id="s-embed-url" type="url" name="embed_base_url" class="form-input" maxlength="500"
+              <input id="s-embed-url" type="url" name="embed_base_url" class="form" maxlength="500"
                      placeholder="https://yourdomain.com/luster/public"
                      value="<?= View::e(cfgVal($cfg, 'embed_base_url')) ?>">
               <p class="form-hint">The public URL for form submissions (no trailing slash). Leave blank to use the Base URL from General.</p>
@@ -401,7 +401,7 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
             <div class="pc-section-label">Session Cookie Domain</div>
             <div class="form-group">
               <label class="form-label" for="s-cookie-domain">Cookie Domain</label>
-              <input id="s-cookie-domain" type="text" name="session_cookie_domain" class="form-input" maxlength="255"
+              <input id="s-cookie-domain" type="text" name="session_cookie_domain" class="form" maxlength="255"
                      placeholder=".yourdomain.com"
                      value="<?= View::e(cfgVal($cfg, 'session_cookie_domain')) ?>">
               <p class="form-hint">
@@ -485,36 +485,39 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
           </div>
         </div>
 
-        <div class="pc-section">
-          <div class="pc-section-label">Add Pattern</div>
-          <form id="blacklist-add-form" method="POST" action="<?= $b ?>/admin/blacklist/add">
-            <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
+        <form method="POST" action="<?= $b ?>/admin/blacklist/add">
+          <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
+
+          <div class="pc-section">
+            <div class="pc-section-label">Add Pattern</div>
             <div class="form-row">
               <div class="form-group">
                 <label class="form-label" for="bl-pattern">Email Pattern <span class="req">*</span></label>
-                <input id="bl-pattern" type="text" name="pattern" class="form-input" maxlength="255" required
+                <input id="bl-pattern" type="text" name="pattern" class="form" maxlength="255" required
                        placeholder="spam@example.com  or  @spam.com">
                 <p class="form-hint">Full email for exact block, or start with <code class="neb-code">@</code> to block an entire domain.</p>
               </div>
               <div class="form-group">
                 <label class="form-label" for="bl-note">Note <em class="opt">(optional)</em></label>
-                <input id="bl-note" type="text" name="note" class="form-input"
+                <input id="bl-note" type="text" name="note" class="form"
                        maxlength="500" placeholder="Why this address was blocked">
-                <p class="form-hint">Internal note — not shown to visitors.</p>
+                <p class="form-hint">Internal note â€” not shown to visitors.</p>
               </div>
             </div>
-        </div>
-        <div class="composer-footer">
-          <button type="submit" form="blacklist-add-form" class="btn btn-primary btn-sm">Add to Blacklist</button>
-          <button type="reset" form="blacklist-add-form" class="btn btn-ghost btn-sm">Clear Form</button>
-        </div>
+          </div>
+
+          <div class="composer-footer">
+            <button type="submit" class="btn btn-primary btn-sm">Add to Blacklist</button>
+            <button type="reset" class="btn btn-ghost btn-sm">Clear Form</button>
+          </div>
+        </form>
       </div>
 
       <?php if (empty($blacklist_entries)): ?>
         <div class="card">
           <div class="empty">
             <span class="empty-icon"><?= View::icon('blacklist', ['width' => 32, 'height' => 32]) ?></span>
-            No blocked patterns yet — add email addresses or domains above to prevent them from joining.
+            No blocked patterns yet â€” add email addresses or domains above to prevent them from joining.
           </div>
         </div>
       <?php else: ?>
@@ -536,7 +539,7 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
                 <?php foreach ($blacklist_entries as $entry): ?>
                 <tr>
                   <td><code><?= View::e($entry['pattern']) ?></code></td>
-                  <td><?= $entry['note'] !== '' ? View::e($entry['note']) : '—' ?></td>
+                  <td><?= $entry['note'] !== '' ? View::e($entry['note']) : 'â€”' ?></td>
                   <td class="act-col">
                     <form method="POST"
                           action="<?= $b ?>/admin/blacklist/<?= (int) $entry['id'] ?>/delete"

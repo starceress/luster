@@ -58,7 +58,7 @@ $encName = urlencode($field->name);
       <div class="listing-field-row listing-field-row--top">
         <label class="listing-field-label" for="ef-label">Label <span class="req">*</span></label>
         <div>
-          <input type="text" id="ef-label" name="label" class="form-input"
+          <input type="text" id="ef-label" name="label" class="form"
                  maxlength="100" required
                  value="<?= View::e($field->label) ?>">
         </div>
@@ -68,11 +68,11 @@ $encName = urlencode($field->name);
         <label class="listing-field-label" for="ef-type">Type</label>
         <div>
           <div class="select-wrap">
-            <select id="ef-type" name="type" class="form-select">
-              <option value="text"     <?= $field->type === 'text' ? 'selected' : '' ?>>Text</option>
-              <option value="dropdown" <?= $field->type === 'dropdown' ? 'selected' : '' ?>>Drop Down</option>
+            <select id="ef-type" name="type" >
+              <option value="text"     <?= $field->type === 'text' ? 'selected' : '' ?>>Text Field</option>
+              <option value="dropdown" <?= $field->type === 'dropdown' ? 'selected' : '' ?>>Dropdown</option>
               <option value="checkbox" <?= $field->type === 'checkbox' ? 'selected' : '' ?>>Checkbox</option>
-              <option value="radio"    <?= $field->type === 'radio' ? 'selected' : '' ?>>Radio Buttons</option>
+              <option value="radio"    <?= $field->type === 'radio' ? 'selected' : '' ?>>Radio Button</option>
             </select>
           </div>
         </div>
@@ -81,7 +81,7 @@ $encName = urlencode($field->name);
       <div id="ef-options-row" class="listing-field-row listing-field-row--top is-hidden">
         <label class="listing-field-label" for="ef-options">Options</label>
         <div>
-          <textarea id="ef-options" name="options" class="form-textarea" rows="3"
+          <textarea id="ef-options" name="options" class="form" rows="3"
                     placeholder="e.g. Option A, Option B, Option C"><?= View::e($options) ?></textarea>
           <p class="form-hint">Comma-separated values for drop down, checkbox, and radio button fields.</p>
         </div>
@@ -90,11 +90,17 @@ $encName = urlencode($field->name);
       <div class="listing-field-row listing-field-row--top">
         <span class="listing-field-label">Required</span>
         <div>
-          <label class="form-check">
-            <input type="checkbox" id="ef-required" name="required" value="1"
-                   <?= $field->required ? 'checked' : '' ?>>
-            <span class="form-check-label">Members must fill in this field</span>
-          </label>
+          <div style="display:flex;gap:1.25rem;">
+            <label class="form-check">
+              <input type="radio" name="required" value="1" <?= $field->required ? 'checked' : '' ?>>
+              <span class="form-check-label">Yes</span>
+            </label>
+            <label class="form-check">
+              <input type="radio" name="required" value="0" <?= !$field->required ? 'checked' : '' ?>>
+              <span class="form-check-label">No</span>
+            </label>
+          </div>
+          <p class="form-hint">If Yes, members must fill in this field to successfully submit the form.</p>
         </div>
       </div>
     </div>

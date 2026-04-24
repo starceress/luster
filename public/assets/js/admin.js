@@ -270,12 +270,12 @@ document.addEventListener('click', function (e) {
 // Activates a tab by URL hash on load (e.g. settings redirects with #tab-email).
 
 (function () {
-  var tabs     = document.querySelectorAll('.tabs-btn');
+  var tabs     = document.querySelectorAll('.tabs-btn[data-tab]');
   var navItems = document.querySelectorAll('.sidebar-nav-item');
   if (!tabs.length && !navItems.length) return;
 
   function activateTab(tabId) {
-    document.querySelectorAll('.tabs-btn, .tabs-panel, .sidebar-nav-item').forEach(function (el) {
+    document.querySelectorAll('.tabs-btn[data-tab], .tabs-panel, .sidebar-nav-item').forEach(function (el) {
       el.classList.remove('active');
     });
     var btn     = document.querySelector('.tabs-btn[data-tab="' + tabId + '"]');
@@ -381,17 +381,20 @@ document.addEventListener('click', function (e) {
   }
 
   function syncRow(row, netVal, catVal) {
-    var catSel = row.querySelector('.cat-name-sel');
-    var catTxt = row.querySelector('.cat-name-txt');
-    var othTxt = row.querySelector('.cat-other-net');
+    var catSel = row.querySelector('[data-role="cat-category"]');
+    var catSelWrap = row.querySelector('[data-role="cat-category-wrap"]');
+    var catTxt = row.querySelector('[data-role="cat-name-text"]');
+    var othTxt = row.querySelector('[data-role="cat-network-other"]');
     catVal = catVal || '';
     if (netVal === 'TFL' || netVal === 'TAFL') {
       catSel.innerHTML     = buildCatOpts(netVal === 'TFL' ? tflCats : taflCats, catVal);
       catSel.disabled      = false; catSel.style.display = '';
+      if (catSelWrap) catSelWrap.style.display = '';
       catTxt.disabled      = true;  catTxt.style.display = 'none';
       othTxt.style.display = 'none';
     } else if (netVal === 'other') {
       catSel.disabled      = true;  catSel.style.display = 'none';
+      if (catSelWrap) catSelWrap.style.display = 'none';
       catTxt.disabled      = false; catTxt.style.display = '';
       if (catVal) catTxt.value = catVal;
       othTxt.style.display = '';
@@ -401,16 +404,19 @@ document.addEventListener('click', function (e) {
       if (knownCats && knownCats.length > 0) {
         catSel.innerHTML     = buildCatOpts(knownCats, catVal);
         catSel.disabled      = false; catSel.style.display = '';
+        if (catSelWrap) catSelWrap.style.display = '';
         catTxt.disabled      = true;  catTxt.style.display = 'none';
       } else {
         // Custom network with no saved categories → free-text input
         catSel.disabled      = true;  catSel.style.display = 'none';
+        if (catSelWrap) catSelWrap.style.display = 'none';
         catTxt.disabled      = false; catTxt.style.display = '';
         if (catVal) catTxt.value = catVal;
       }
       othTxt.style.display = 'none';
     } else {
       catSel.disabled      = true;  catSel.style.display = 'none';
+      if (catSelWrap) catSelWrap.style.display = 'none';
       catTxt.disabled      = true;  catTxt.style.display = 'none';
       othTxt.style.display = 'none';
     }
@@ -421,14 +427,18 @@ document.addEventListener('click', function (e) {
     var row = document.createElement('div');
     row.className = 'cat-row';
     row.innerHTML =
-      '<select name="cat_network[]" class="cat-net-sel">' + buildNetOpts(netVal) + '</select>' +
-      '<select name="cat_name[]" class="cat-name-sel" disabled style="display:none"></select>' +
-      '<input type="text" name="cat_network_other[]" class="cat-other-net" value="' +
+      '<div class="select-wrap" data-role="cat-network-wrap">' +
+        '<select name="cat_network[]" data-role="cat-network">' + buildNetOpts(netVal) + '</select>' +
+      '</div>' +
+      '<div class="select-wrap" data-role="cat-category-wrap" style="display:none">' +
+        '<select name="cat_name[]" data-role="cat-category" disabled style="display:none"></select>' +
+      '</div>' +
+      '<input type="text" name="cat_network_other[]" data-role="cat-network-other" value="' +
           esc(otherNetVal) + '" placeholder="New network name" style="display:none">' +
-      '<input type="text" name="cat_name[]" class="cat-name-txt" disabled ' +
+      '<input type="text" name="cat_name[]" data-role="cat-name-text" disabled ' +
           'style="display:none" placeholder="Category name">' +
       '<button type="button" class="cat-remove-btn btn btn-danger btn-sm" title="Remove">x</button>';
-    row.querySelector('.cat-net-sel').addEventListener('change', function () {
+    row.querySelector('[data-role="cat-network"]').addEventListener('change', function () {
       syncRow(row, this.value, '');
     });
     row.querySelector('.cat-remove-btn').addEventListener('click', function () {
@@ -477,8 +487,6 @@ document.addEventListener('click', function (e) {
 wireSelectAll('check-all', '#bulk-form input[name="emails[]"]');
 
 // ── 18. Listings codes: select-all checkboxes ────────────────────────────────
-
-wireSelectAll('codes-select-all', '.code-check');
 
 // ── 19. Listings index: select-all checkboxes ────────────────────────────────
 
@@ -633,7 +641,9 @@ document.addEventListener('click', function (e) {
   var r = document.getElementById('af-options-row');
   if (!s || !r) return;
   function toggle() {
-    r.style.display = (s.value === 'dropdown' || s.value === 'checkbox') ? '' : 'none';
+    var show = (s.value === 'dropdown' || s.value === 'checkbox' || s.value === 'radio');
+    r.classList.toggle('is-hidden', !show);
+    r.style.display = show ? '' : 'none';
   }
   s.addEventListener('change', toggle);
   toggle();
@@ -647,8 +657,9 @@ document.addEventListener('click', function (e) {
   var r1 = document.getElementById('fields-options-row');
   if (s1 && r1) {
     function toggle1() {
-      r1.style.display =
-        (s1.value === 'dropdown' || s1.value === 'checkbox' || s1.value === 'radio') ? '' : 'none';
+      var show = (s1.value === 'dropdown' || s1.value === 'checkbox' || s1.value === 'radio');
+      r1.classList.toggle('is-hidden', !show);
+      r1.style.display = show ? '' : 'none';
     }
     s1.addEventListener('change', toggle1);
     toggle1();
@@ -659,8 +670,9 @@ document.addEventListener('click', function (e) {
   var r2 = document.getElementById('ef-options-row');
   if (s2 && r2) {
     function toggle2() {
-      r2.style.display =
-        (s2.value === 'dropdown' || s2.value === 'checkbox' || s2.value === 'radio') ? '' : 'none';
+      var show = (s2.value === 'dropdown' || s2.value === 'checkbox' || s2.value === 'radio');
+      r2.classList.toggle('is-hidden', !show);
+      r2.style.display = show ? '' : 'none';
     }
     s2.addEventListener('change', toggle2);
     toggle2();
@@ -1535,7 +1547,7 @@ document.addEventListener('click', function (e) {
       // ── Standard input types ───────────────────────────────────
       html += '<div class="ec-f"><label class="ec-f-label" for="ec-f-' + esc(f.id) + '">' + f.label + '</label>';
       if (f.type === 'listing' || f.type === 'listing_or_zero') {
-        html += '<div class="select-wrap"><select class="form-select" id="ec-f-' + esc(f.id) + '" data-fid="' + esc(f.id) + '">';
+        html += '<div class="select-wrap"><select id="ec-f-' + esc(f.id) + '" data-fid="' + esc(f.id) + '">';
         if (f.type === 'listing_or_zero') html += '<option value="0">0 — collective / site-wide</option>';
         listings.forEach(function (fl) {
           html += '<option value="' + parseInt(fl.id, 10) + '">' + esc(fl.name) + '</option>';
@@ -1543,13 +1555,13 @@ document.addEventListener('click', function (e) {
         if (!listings.length) html += '<option value="1">1</option>';
         html += '</select></div>';
       } else if (f.type === 'select') {
-        html += '<div class="select-wrap"><select class="form-select" id="ec-f-' + esc(f.id) + '" data-fid="' + esc(f.id) + '">';
+        html += '<div class="select-wrap"><select id="ec-f-' + esc(f.id) + '" data-fid="' + esc(f.id) + '">';
         (f.opts || []).forEach(function (o) {
           html += '<option value="' + esc(o[0]) + '">' + esc(o[1]) + '</option>';
         });
         html += '</select></div>';
       } else {
-        html += '<input class="form-input" type="' + (f.type === 'number' ? 'number' : 'text') + '"'
+        html += '<input class="form" type="' + (f.type === 'number' ? 'number' : 'text') + '"'
               + ' id="ec-f-' + esc(f.id) + '" data-fid="' + esc(f.id) + '"'
               + (f.ph !== undefined ? ' placeholder="' + esc(f.ph) + '"' : '') + '>';
       }
@@ -1989,17 +2001,119 @@ document.addEventListener('click', function (e) {
 // Guards on .code-card so this block only activates on the codes admin page.
 
 (function () {
-  if (!document.querySelector('.code-card')) return;
+  function initCodesManager() {
+    if (!document.querySelector('.code-card')) return;
 
   // ── Select-all checkbox ──────────────────────────────────────────────────
-  var selAll = document.getElementById('codes-select-all');
-  if (selAll) {
-    selAll.addEventListener('change', function () {
-      document.querySelectorAll('.code-check').forEach(function (cb) {
-        cb.checked = selAll.checked;
-      });
+  var root          = document.querySelector('.codes-browser');
+  var scope         = root || document;
+  var filterEmpty   = scope.querySelector('#codes-filter-empty');
+  var pendingBanner = scope.querySelector('[data-codes-pending-banner]');
+  var pendingTitle  = scope.querySelector('[data-codes-pending-title]');
+  var pendingMsg    = scope.querySelector('[data-codes-pending-msg]');
+  var pendingAction = scope.querySelector('[data-codes-pending-action]');
+  var filterLinks   = Array.from(scope.querySelectorAll('[data-code-filter]'));
+  var groups        = Array.from(scope.querySelectorAll('[data-code-group]'));
+  var activeFilter  = root && (root.getAttribute('data-initial-code-filter') || '').trim() === 'pending' ? 'pending' : '';
+  var selAll        = document.getElementById('codes-select-all');
+
+  function getVisibleChecks() {
+    return Array.from(scope.querySelectorAll('.code-check')).filter(function (cb) {
+      var card = cb.closest('.code-card');
+      return card && !card.classList.contains('is-hidden');
     });
   }
+
+  function syncSelectAllState() {
+    if (!selAll) return;
+    var visible = getVisibleChecks();
+    var checked = visible.filter(function (cb) { return cb.checked; });
+    selAll.checked = visible.length > 0 && checked.length === visible.length;
+    selAll.indeterminate = checked.length > 0 && checked.length < visible.length;
+  }
+
+  function applyCodeFilter(nextFilter, updateUrl) {
+    activeFilter = nextFilter === 'pending' ? 'pending' : '';
+
+    filterLinks.forEach(function (link) {
+      if (!link.classList.contains('tabs-btn')) return;
+      link.classList.toggle('active', (link.getAttribute('data-code-filter') || '').trim() === activeFilter);
+    });
+
+    var totalVisible = 0;
+    groups.forEach(function (group) {
+      var visibleCount = 0;
+      group.querySelectorAll('.code-card').forEach(function (card) {
+        var show = activeFilter === '' || card.getAttribute('data-code-status') === activeFilter;
+        card.classList.toggle('is-hidden', !show);
+        if (!show) {
+          var cb = card.querySelector('.code-check');
+          if (cb) cb.checked = false;
+        } else {
+          visibleCount += 1;
+        }
+      });
+
+      group.classList.toggle('is-hidden', visibleCount === 0);
+      totalVisible += visibleCount;
+
+      var countEl = group.querySelector('[data-code-group-count]');
+      if (countEl) {
+        countEl.textContent = visibleCount + ' code' + (visibleCount !== 1 ? 's' : '');
+      }
+    });
+
+    if (filterEmpty) {
+      filterEmpty.classList.toggle('is-hidden', totalVisible > 0 || activeFilter === '');
+    }
+    if (pendingBanner && pendingAction) {
+      if (activeFilter === 'pending') {
+        if (pendingTitle) pendingTitle.textContent = 'Showing pending codes';
+        if (pendingMsg) pendingMsg.textContent = 'Only pending codes are visible right now.';
+        pendingAction.textContent = '\u2190 Show all codes';
+        pendingAction.setAttribute('data-code-filter', '');
+        pendingAction.setAttribute('href', '?tab=codes');
+      } else {
+        if (pendingTitle) pendingTitle.textContent = 'Codes awaiting review';
+        if (pendingMsg) pendingMsg.textContent = 'Review pending codes without leaving this page.';
+        pendingAction.textContent = 'Review pending \u2192';
+        pendingAction.setAttribute('data-code-filter', 'pending');
+        pendingAction.setAttribute('href', '?tab=codes&status_filter=pending');
+      }
+    }
+
+    syncSelectAllState();
+
+    if (updateUrl !== false && window.history && history.replaceState) {
+      var url = new URL(window.location.href);
+      url.searchParams.set('tab', 'codes');
+      if (activeFilter === '') url.searchParams.delete('status_filter');
+      else url.searchParams.set('status_filter', activeFilter);
+      history.replaceState(null, '', url.toString());
+    }
+  }
+
+  if (selAll) {
+    selAll.addEventListener('change', function () {
+      getVisibleChecks().forEach(function (cb) {
+        cb.checked = selAll.checked;
+      });
+      syncSelectAllState();
+    });
+  }
+
+  scope.querySelectorAll('.code-check').forEach(function (cb) {
+    cb.addEventListener('change', syncSelectAllState);
+  });
+
+  filterLinks.forEach(function (link) {
+    link.addEventListener('click', function (e) {
+      if (link.tagName === 'A') e.preventDefault();
+      applyCodeFilter(link.getAttribute('data-code-filter') || '', true);
+    });
+  });
+
+  applyCodeFilter(activeFilter, false);
 
   // ── Bulk action toolbar ──────────────────────────────────────────────────
   var bulkSel    = document.getElementById('bulk-action-sel');
@@ -2153,6 +2267,14 @@ document.addEventListener('click', function (e) {
       if (e.target === dlg) { dlg.close(); }
     });
   });
+
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initCodesManager, { once: true });
+  } else {
+    initCodesManager();
+  }
 }());
 
 // ── 33. Listings index: filter panel toggle ───────────────────────────────────
@@ -2417,7 +2539,8 @@ document.addEventListener('click', function (e) {
     code_donor:            { title: 'Delete Code Donor',       btn: 'Delete',      desc: 'You are about to delete donor <strong>$$names$$</strong>. Their codes will be unattributed.', warn: 'This action cannot be undone.' },
     kim_member:            { title: 'Delete KIM Entry',        btn: 'Delete',      desc: 'You are about to delete the KIM entry for <strong>$$names$$</strong>.',              warn: 'This action cannot be undone.' },
     pending_update_reject: { title: 'Reject Update',           btn: 'Reject',      desc: 'You are about to reject the update for <strong>$$names$$</strong>.',                 warn: 'The pending update will be discarded. This action cannot be undone.' },
-    merge_member:          { title: 'Delete Duplicate Member', btn: 'Delete',      desc: 'You are about to delete the duplicate account for <strong>$$names$$</strong>.',      warn: 'This permanently deletes the duplicate account. This action cannot be undone.' }
+    merge_member:          { title: 'Delete Duplicate Member', btn: 'Delete',      desc: 'You are about to delete the duplicate account for <strong>$$names$$</strong>.',      warn: 'This permanently deletes the duplicate account. This action cannot be undone.' },
+    rename_prefix:         { title: 'Rename Member Table',     btn: 'Rename Table', desc: 'You are about to rename the member table from <strong>$$names$$</strong> to <strong>$$context$$</strong>.', warn: 'This renames the table directly in your database. If anything goes wrong, member data may become unreachable. This action cannot be undone.' }
   };
 
   function show(cfg, names, context, warnOverride) {
@@ -2475,7 +2598,9 @@ document.addEventListener('click', function (e) {
       if (!cfg) return;
       e.preventDefault();
       pending = form;
-      show(cfg, form.dataset.delName || '', form.dataset.delContext || '', form.dataset.delWarning || '');
+      var ctxFrom = form.dataset.delContextFrom;
+      var ctx = ctxFrom ? (form.querySelector('[name="' + ctxFrom + '"]') || {}).value || '' : form.dataset.delContext || '';
+      show(cfg, form.dataset.delName || '', ctx, form.dataset.delWarning || '');
       return;
     }
 

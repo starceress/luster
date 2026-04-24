@@ -4,7 +4,7 @@ use Luster\Core\View;
 /**
  * @var \Luster\Models\Listing  $listing
  * @var string[]                $selected_emails
- * @var array<string,string>    $member_names      email → name
+ * @var array<string,string>    $member_names      email â†’ name
  * @var object[]                $saved_emails
  * @var string                  $from_name
  * @var string                  $from_email
@@ -41,8 +41,8 @@ $flName     = View::e($listing->name ?? '');
       <div class="card-head">Load Template</div>
       <div class="card-body">
         <div class="select-wrap">
-          <select id="es-tpl-select" class="form-select">
-            <option value="">— Select a Template —</option>
+          <select id="es-tpl-select" >
+            <option value="">â€” Select a Template â€”</option>
             <?php foreach ($saved_emails as $t): ?>
               <option value="<?= View::e($t->subject) ?>"
                       data-body="<?= htmlspecialchars($t->body, ENT_QUOTES, 'UTF-8') ?>">
@@ -68,7 +68,7 @@ $flName     = View::e($listing->name ?? '');
           <input type="hidden" name="tpl_body"    id="es-save-body">
           <div id="es-save-emails"></div>
           <input type="text" name="tpl_name" id="es-save-name"
-                 class="form-input" placeholder="Template name&hellip;" maxlength="150">
+                 class="form" placeholder="Template name&hellip;" maxlength="150">
           <button type="submit" class="btn btn-secondary btn-sm btn-block-center">Save Template</button>
         </form>
       </div>
@@ -96,7 +96,7 @@ $flName     = View::e($listing->name ?? '');
 
   </div>
 
-  <!-- ── Main compose area ── -->
+  <!-- â”€â”€ Main compose area â”€â”€ -->
   <div class="gradient-card">
     <form method="POST" action="<?= $b ?>/admin/members/<?= $listingId ?>/email-selected/send"
           id="es-form">
@@ -154,7 +154,7 @@ $flName     = View::e($listing->name ?? '');
       </div>
 
       <div>
-        <textarea class="email-textarea" id="es-body" name="body"
+        <textarea class="email" id="es-body" name="body"
                   maxlength="50000" required
                   placeholder="Write your message&hellip;"><?= $oldBody ?></textarea>
       </div>
@@ -176,7 +176,7 @@ $flName     = View::e($listing->name ?? '');
 
 </div><!-- /.composer-grid -->
 
-<!-- ── Preview / Confirm modal ── -->
+<!-- â”€â”€ Preview / Confirm modal â”€â”€ -->
 <div class="modal-backdrop is-hidden" id="es-preview-modal">
   <div class="modal modal--wide">
     <div class="modal-header">

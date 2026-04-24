@@ -91,7 +91,7 @@ $dataExist      = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON
       <div class="listing-field-row<?= !empty($fe['url']) ? ' has-error' : '' ?>">
         <label class="listing-field-label" for="jf-url">Website URL <span class="req">*</span></label>
         <div>
-          <input id="jf-url" type="url" name="url" class="form-input" maxlength="500" placeholder="https://" required value="<?= View::e($val('url', $joined, 'url')) ?>">
+          <input id="jf-url" type="url" name="url" class="form" maxlength="500" placeholder="https://" required value="<?= View::e($val('url', $joined, 'url')) ?>">
           <?php if (!empty($fe['url'])): ?>
             <p class="field-error"><?= View::e($fe['url'][0]) ?></p>
           <?php endif; ?>
@@ -101,7 +101,7 @@ $dataExist      = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON
       <div class="listing-field-row<?= !empty($fe['name']) ? ' has-error' : '' ?>">
         <label class="listing-field-label" for="jf-name">Subject <span class="req">*</span></label>
         <div>
-          <input id="jf-name" type="text" name="name" class="form-input" maxlength="255" required placeholder="e.g. Hunters: Voices Strong" value="<?= View::e($val('name', $joined, 'name')) ?>">
+          <input id="jf-name" type="text" name="name" class="form" maxlength="255" required placeholder="e.g. Hunters: Voices Strong" value="<?= View::e($val('name', $joined, 'name')) ?>">
           <?php if (!empty($fe['name'])): ?>
             <p class="field-error"><?= View::e($fe['name'][0]) ?></p>
           <?php endif; ?>
@@ -111,7 +111,7 @@ $dataExist      = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON
       <div class="listing-field-row">
         <label class="listing-field-label" for="jf-date">Date Joined</label>
         <div>
-          <input id="jf-date" type="date" name="date_joined" class="form-input form-input--compact" value="<?= View::e($val('date_joined', $joined, 'dateJoined')) ?>">
+          <input id="jf-date" type="date" name="date_joined" class="form form--compact" value="<?= View::e($val('date_joined', $joined, 'dateJoined')) ?>">
         </div>
       </div>
 
@@ -131,8 +131,8 @@ $dataExist      = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON
           <label class="file-drop-zone">
             <input id="jf-image" type="file" name="image" accept="image/jpeg,image/png,image/gif,image/webp">
             <span class="file-drop-icon"><?= View::icon('image') ?></span>
-            <span class="file-drop-label">Click to upload</span>
-            <span class="file-drop-sub">JPEG, PNG, GIF, WebP; max 2MB</span>
+              <strong>Click to upload</strong>
+              <span class="form-hint">JPEG, PNG, GIF, WebP &mdash; max 2 MB</span>
           </label>
         </div>
       </div>
@@ -140,8 +140,8 @@ $dataExist      = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON
       <div class="listing-field-row listing-field-row--top">
         <label class="listing-field-label" for="jf-status">Status</label>
         <div>
-          <div class="select-wrap form-select--compact">
-            <select id="jf-status" name="status" class="form-select">
+          <div class="select-wrap">
+            <select id="jf-status" name="status">
               <option value="approved"<?= $statusVal === 'approved' ? ' selected' : '' ?>>Approved</option>
               <option value="pending"<?= $statusVal === 'pending' ? ' selected' : '' ?>>Pending</option>
             </select>

@@ -42,10 +42,10 @@ $memSortUrl = static function (string $col) use ($b, $id, $sort, $dir, $search, 
 
 <!-- Toolbar -->
 <div class="toolbar">
-  <form method="GET" action="<?= $b ?>/admin/members/<?= $id ?>" class="filter-row" id="mem-filter-form">
+  <form method="GET" action="<?= $b ?>/admin/members/<?= $id ?>" id="mem-filter-form" class="filter-row member-toolbar-form">
 
-    <div class="toolbar-select-wrap">
-    <select class="form-select js-nav-select">
+    <div class="select-wrap">
+    <select class="js-nav-select">
       <option value="<?= $b ?>/admin/members"<?= !isset($listing) ? ' selected' : '' ?>>All pending members</option>
       <?php foreach ($all_listings as $fl): ?>
         <option value="<?= $b ?>/admin/members/<?= (int) $fl->id ?>?status=all"
@@ -56,11 +56,11 @@ $memSortUrl = static function (string $col) use ($b, $id, $sort, $dir, $search, 
     </select>
     </div>
 
-    <input type="text" name="search" class="form-input toolbar-input-sm" placeholder="Search&hellip;"
+    <input type="text" name="search" class="form toolbar-input-sm" placeholder="Search&hellip;"
            value="<?= View::e($search ?? '') ?>">
 
-    <div class="toolbar-select-wrap">
-    <select name="status" class="form-select">
+    <div class="select-wrap">
+    <select name="status" >
       <option value="all"      <?= $status === 'all'      ? 'selected' : '' ?>>All</option>
       <option value="pending"  <?= $status === 'pending'  ? 'selected' : '' ?>>Pending</option>
       <option value="approved" <?= $status === 'approved' ? 'selected' : '' ?>>Approved</option>
@@ -126,12 +126,11 @@ $memSortUrl = static function (string $col) use ($b, $id, $sort, $dir, $search, 
       data-del-context="<?= View::e($listing->name) ?>">
   <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
 
-  <!-- Bulk action bar -->
   <div class="bulk">
-    <label for="bulk-action-sel" class="bulk-label">Bulk Action:</label>
-    <div class="toolbar-select-wrap">
-    <select id="bulk-action-sel" name="bulk_action" class="form-select">
-      <option value="" disabled selected>- Select -</option>
+    <label for="bulk-action-sel">Bulk Actions:</label>
+    <div class="select-wrap">
+    <select id="bulk-action-sel" name="bulk_action" >
+      <option value="" disabled selected>&mdash; Select &mdash;</option>
       <option value="approve">Approve</option>
       <option value="pending">Pending</option>
       <option value="delete">Delete</option>
@@ -187,18 +186,13 @@ $memSortUrl = static function (string $col) use ($b, $id, $sort, $dir, $search, 
           <td class="act-col" data-label="">
             <div class="data-actions">
               <?php if (!$m->approved): ?>
-                <form method="POST" action="<?= $b ?>/admin/members/<?= $id ?>/approve" class="action-form-inline">
-                  <input type="hidden" name="_csrf"        value="<?= View::e($csrf_token ?? '') ?>">
-                  <input type="hidden" name="member_email" value="<?= View::e($m->email) ?>">
-                  <input type="hidden" name="_page"        value="<?= (int) $page ?>">
-                  <button type="submit" class="btn btn-success btn-sm">Approve</button>
-                </form>
+                <button type="submit" form="approve-member-<?= md5($m->email) ?>" class="btn btn-success btn-sm">Approve</button>
               <?php endif; ?>
               <a href="<?= $b ?>/admin/members/<?= $id ?>/edit?email=<?= urlencode($m->email) ?>"
                  class="btn btn-tertiary btn-sm">Edit</a>
               <a href="<?= $b ?>/admin/members/<?= $id ?>/emailmember?email=<?= urlencode($m->email) ?>"
                  class="btn btn-quaternary btn-sm">Email</a>
-              <button type="submit" form="del-mem-<?= md5($m->email) ?>" class="btn btn-danger btn-sm">Delete</button>
+              <button type="submit" form="del-member-<?= md5($m->email) ?>" class="btn btn-danger btn-sm">Delete</button>
             </div>
           </td>
         </tr>
@@ -212,16 +206,23 @@ $memSortUrl = static function (string $col) use ($b, $id, $sort, $dir, $search, 
 </form>
 
 <?php foreach ($members as $m): ?>
-<form id="del-mem-<?= md5($m->email) ?>" method="POST"
-      action="<?= $b ?>/admin/members/<?= $id ?>/delete"
-      class="is-hidden"
-      data-del-modal data-del-entity="member"
-      data-del-name="<?= View::e($m->name) ?>"
-      data-del-context="<?= View::e($listing->name) ?>">
-  <input type="hidden" name="_csrf"        value="<?= View::e($csrf_token ?? '') ?>">
-  <input type="hidden" name="member_email" value="<?= View::e($m->email) ?>">
-  <input type="hidden" name="_page"        value="<?= (int) $page ?>">
-</form>
+  <?php if (!$m->approved): ?>
+  <form id="approve-member-<?= md5($m->email) ?>" method="POST"
+        action="<?= $b ?>/admin/members/<?= $id ?>/approve" class="action-form-inline">
+    <input type="hidden" name="_csrf"        value="<?= View::e($csrf_token ?? '') ?>">
+    <input type="hidden" name="member_email" value="<?= View::e($m->email) ?>">
+    <input type="hidden" name="_page"        value="<?= (int) $page ?>">
+  </form>
+  <?php endif; ?>
+  <form id="del-member-<?= md5($m->email) ?>" method="POST"
+        action="<?= $b ?>/admin/members/<?= $id ?>/delete"
+        data-del-modal data-del-entity="member"
+        data-del-name="<?= View::e($m->name) ?>"
+        data-del-context="<?= View::e($listing->name) ?>">
+    <input type="hidden" name="_csrf"        value="<?= View::e($csrf_token ?? '') ?>">
+    <input type="hidden" name="member_email" value="<?= View::e($m->email) ?>">
+    <input type="hidden" name="_page"        value="<?= (int) $page ?>">
+  </form>
 <?php endforeach; ?>
 
 <!-- Pagination -->

@@ -41,16 +41,14 @@ $approvedMembers = array_values(array_filter($members, static fn($m) => !$m->pen
   <?php endif; ?>
 </div>
 
-<!-- ── Pending Sign-Ups ────────────────────────────────────────────────────── -->
+<!-- â”€â”€ Pending Sign-Ups â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
 
 <div class="overview-section-head">
-  <div>
     <div class="overview-section-title">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="15" height="15"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M19 8v6m3-3h-6"/></svg>
       Pending Sign-Ups
     </div>
     <div class="overview-section-sub">New sign-up requests awaiting your approval decision.</div>
-  </div>
 </div>
 
 <?php if (empty($pendingMembers)): ?>
@@ -71,9 +69,9 @@ $approvedMembers = array_values(array_filter($members, static fn($m) => !$m->pen
           data-del-context="<?= View::e($listing->subject) ?>">
       <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
       <div class="bulk bulk--flush">
-        <span class="bulk-label">Bulk:</span>
+        Bulk Actions:
         <div class="select-wrap">
-          <select name="bulk_action" class="form-select form-select-xs">
+          <select name="bulk_action" class="select-xs">
             <option value="" disabled selected>&mdash; Select &mdash;</option>
             <option value="approve">Approve</option>
             <option value="email_selected">Email</option>
@@ -83,7 +81,7 @@ $approvedMembers = array_values(array_filter($members, static fn($m) => !$m->pen
         <button type="submit" class="btn btn-quaternary btn-sm">Apply</button>
       </div>
       <div class="table-wrap">
-      <table class="data-table">
+      <table class="data-table mem-table">
         <thead>
           <tr>
             <th class="cb-col"><input type="checkbox" class="sel-all" data-fid="kim-p-<?= $fid ?>"></th>
@@ -100,9 +98,9 @@ $approvedMembers = array_values(array_filter($members, static fn($m) => !$m->pen
             <td class="cb-col">
               <input type="checkbox" class="row-cb-kim-p-<?= $fid ?>" name="ids[]" value="<?= (int) $m->id ?>">
             </td>
-            <td class="text-strong"><?= View::e($m->name) ?></td>
-            <td class="text-muted"><?= View::e($m->email) ?></td>
-            <td>
+            <td class="text-strong" data-label="Name"><?= View::e($m->name) ?></td>
+            <td class="text-muted" data-label="Email"><?= View::e($m->email) ?></td>
+            <td data-label="URL">
               <?php if ($m->url !== ''): ?>
                 <a href="<?= View::e($m->url) ?>" target="_blank" rel="noopener noreferrer"
                    class="link link-break"><?= View::e($m->url) ?></a>
@@ -110,17 +108,13 @@ $approvedMembers = array_values(array_filter($members, static fn($m) => !$m->pen
                 <span class="text-dim">&mdash;</span>
               <?php endif; ?>
             </td>
-            <td class="text-dim nowrap"><?= View::e(date($admin_date_format, strtotime($m->addedAt))) ?></td>
-            <td class="act-col">
+            <td class="text-dim nowrap" data-label="Date"><?= View::e(date($admin_date_format, strtotime($m->addedAt))) ?></td>
+            <td class="act-col" data-label="">
               <div class="data-actions">
-                <form method="POST" action="<?= $b ?>/admin/kim/<?= (int) $m->id ?>/approve" class="action-form-inline">
-                  <input type="hidden" name="_csrf"    value="<?= View::e($csrf_token) ?>">
-                  <input type="hidden" name="from_fid" value="<?= $fid ?>">
-                  <button type="submit" class="btn btn-success btn-sm">Approve</button>
-                </form>
+                <button type="submit" form="approve-kim-<?= (int) $m->id ?>" class="btn btn-success btn-sm">Approve</button>
                 <a href="<?= $b ?>/admin/kim/<?= (int) $m->id ?>/edit" class="btn btn-tertiary btn-sm">Edit</a>
                 <a href="<?= $b ?>/admin/kim/<?= (int) $m->id ?>/email-member" class="btn btn-quaternary btn-sm">Email</a>
-                <button type="submit" form="kim-del-p-<?= (int) $m->id ?>" class="btn btn-danger btn-sm">Delete</button>
+                <button type="submit" form="del-kim-<?= (int) $m->id ?>" class="btn btn-danger btn-sm">Delete</button>
               </div>
             </td>
           </tr>
@@ -129,29 +123,31 @@ $approvedMembers = array_values(array_filter($members, static fn($m) => !$m->pen
       </table>
       </div>
     </form>
-    <?php foreach ($pendingMembers as $m): ?>
-    <form id="kim-del-p-<?= (int) $m->id ?>" method="POST"
-          action="<?= $b ?>/admin/kim/<?= (int) $m->id ?>/delete"
-          class="is-hidden"
-          data-del-modal data-del-entity="kim_member"
-          data-del-name="<?= View::e($m->name) ?>">
-      <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
-    </form>
-    <?php endforeach; ?>
   </div>
+<?php foreach ($pendingMembers as $m): ?>
+<form id="approve-kim-<?= (int) $m->id ?>" method="POST"
+      action="<?= $b ?>/admin/kim/<?= (int) $m->id ?>/approve" class="action-form-inline">
+  <input type="hidden" name="_csrf"    value="<?= View::e($csrf_token) ?>">
+  <input type="hidden" name="from_fid" value="<?= $fid ?>">
+</form>
+<form id="del-kim-<?= (int) $m->id ?>" method="POST"
+      action="<?= $b ?>/admin/kim/<?= (int) $m->id ?>/delete"
+      data-del-modal data-del-entity="kim_member"
+      data-del-name="<?= View::e($m->name) ?>">
+  <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
+</form>
+<?php endforeach; ?>
 <?php endif; ?>
 
-<!-- ── Approved Sign-Ups ───────────────────────────────────────────────────── -->
+<!-- â”€â”€ Approved Sign-Ups â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
 
 <div class="overview-section-divider"></div>
 <div class="overview-section-head">
-  <div>
     <div class="overview-section-title">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="15" height="15"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
       Approved Sign-Ups
     </div>
     <div class="overview-section-sub">Members who have been approved and are on the list.</div>
-  </div>
 </div>
 
 <?php if (empty($approvedMembers)): ?>
@@ -172,9 +168,9 @@ $approvedMembers = array_values(array_filter($members, static fn($m) => !$m->pen
           data-del-context="<?= View::e($listing->subject) ?>">
       <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
       <div class="bulk bulk--flush">
-        <span class="bulk-label">Bulk:</span>
+        Bulk Actions:
         <div class="select-wrap">
-          <select name="bulk_action" class="form-select form-select-xs">
+          <select name="bulk_action" class="select-xs">
             <option value="" disabled selected>&mdash; Select &mdash;</option>
             <option value="email_selected">Email</option>
             <option value="delete">Delete</option>
@@ -183,7 +179,7 @@ $approvedMembers = array_values(array_filter($members, static fn($m) => !$m->pen
         <button type="submit" class="btn btn-quaternary btn-sm">Apply</button>
       </div>
       <div class="table-wrap">
-      <table class="data-table">
+      <table class="data-table mem-table">
         <thead>
           <tr>
             <th class="cb-col"><input type="checkbox" class="sel-all" data-fid="kim-a-<?= $fid ?>"></th>
@@ -200,9 +196,9 @@ $approvedMembers = array_values(array_filter($members, static fn($m) => !$m->pen
             <td class="cb-col">
               <input type="checkbox" class="row-cb-kim-a-<?= $fid ?>" name="ids[]" value="<?= (int) $m->id ?>">
             </td>
-            <td class="text-strong"><?= View::e($m->name) ?></td>
-            <td class="text-muted"><?= View::e($m->email) ?></td>
-            <td>
+            <td class="text-strong" data-label="Name"><?= View::e($m->name) ?></td>
+            <td class="text-muted" data-label="Email"><?= View::e($m->email) ?></td>
+            <td data-label="URL">
               <?php if ($m->url !== ''): ?>
                 <a href="<?= View::e($m->url) ?>" target="_blank" rel="noopener noreferrer"
                    class="link link-break"><?= View::e($m->url) ?></a>
@@ -210,12 +206,12 @@ $approvedMembers = array_values(array_filter($members, static fn($m) => !$m->pen
                 <span class="text-dim">&mdash;</span>
               <?php endif; ?>
             </td>
-            <td class="text-dim nowrap"><?= View::e(date($admin_date_format, strtotime($m->addedAt))) ?></td>
-            <td class="act-col">
+            <td class="text-dim nowrap" data-label="Date"><?= View::e(date($admin_date_format, strtotime($m->addedAt))) ?></td>
+            <td class="act-col" data-label="">
               <div class="data-actions">
                 <a href="<?= $b ?>/admin/kim/<?= (int) $m->id ?>/edit" class="btn btn-tertiary btn-sm">Edit</a>
                 <a href="<?= $b ?>/admin/kim/<?= (int) $m->id ?>/email-member" class="btn btn-quaternary btn-sm">Email</a>
-                <button type="submit" form="kim-del-a-<?= (int) $m->id ?>" class="btn btn-danger btn-sm">Delete</button>
+                <button type="submit" form="del-kim-<?= (int) $m->id ?>" class="btn btn-danger btn-sm">Delete</button>
               </div>
             </td>
           </tr>
@@ -224,14 +220,13 @@ $approvedMembers = array_values(array_filter($members, static fn($m) => !$m->pen
       </table>
       </div>
     </form>
-    <?php foreach ($approvedMembers as $m): ?>
-    <form id="kim-del-a-<?= (int) $m->id ?>" method="POST"
-          action="<?= $b ?>/admin/kim/<?= (int) $m->id ?>/delete"
-          class="is-hidden"
-          data-del-modal data-del-entity="kim_member"
-          data-del-name="<?= View::e($m->name) ?>">
-      <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
-    </form>
-    <?php endforeach; ?>
   </div>
+<?php foreach ($approvedMembers as $m): ?>
+<form id="del-kim-<?= (int) $m->id ?>" method="POST"
+      action="<?= $b ?>/admin/kim/<?= (int) $m->id ?>/delete"
+      data-del-modal data-del-entity="kim_member"
+      data-del-name="<?= View::e($m->name) ?>">
+  <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
+</form>
+<?php endforeach; ?>
 <?php endif; ?>

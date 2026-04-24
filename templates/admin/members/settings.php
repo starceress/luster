@@ -33,7 +33,7 @@ $b = rtrim(View::e($base_url), '/');
       <div class="listing-field-row listing-field-row--top">
         <label class="listing-field-label" for="m-per-page">Members Per Page</label>
         <div>
-          <input type="number" id="m-per-page" name="per_page" class="form-input form-input--compact"
+          <input type="number" id="m-per-page" name="per_page" class="form form--compact"
                  min="5" max="200"
                  value="<?= (int) ($cfg['per_page'] ?? 25) ?>">
           <p class="form-hint">How many members to show per page in the admin list view. Min 5, max 200.</p>

@@ -132,7 +132,7 @@ $id = (int) $listing->id;
           </label>
           <div>
             <input id="csv-file" type="file" name="csv" accept=".csv,text/csv"
-                   class="form-input" required>
+                   class="form" required>
             <p class="form-hint">Maximum 2 MB. Include at least the <code>name</code> and <code>email</code> header columns.</p>
           </div>
         </div>

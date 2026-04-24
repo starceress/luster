@@ -26,7 +26,7 @@ $b = rtrim(View::e($base_url), '/');
   </div>
 </div>
 
-<div class="callout">
+<div class="callout callout-inline">
   <?= View::icon('alert', ['width' => 24, 'height' => 24, 'style' => 'color:var(--warn)']) ?>
   <div>
     <strong>Images are not automatically migrated.</strong>

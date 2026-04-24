@@ -51,7 +51,7 @@ $dataCustomCats = json_encode($custom_cats     ?? [], JSON_HEX_QUOT | JSON_HEX_A
                data-custom-cats='<?= $dataCustomCats ?>'
                data-existing='[]'>
             <div id="cat-rows"></div>
-            <a href="#" class="link btn btn-sm btn-fit-content" id="cat-add"><?= View::icon('add') ?> Add another category</a>
+            <a href="#" class="link" id="cat-add"><?= View::icon('add') ?> Add another category</a>
           </div>
           <p class="form-hint">The network(s) and category(ies) this listing is listed under.</p>
         </div>
@@ -60,7 +60,7 @@ $dataCustomCats = json_encode($custom_cats     ?? [], JSON_HEX_QUOT | JSON_HEX_A
       <div class="listing-field-row<?= !empty($fe['subject']) ? ' has-error' : '' ?>">
         <label class="listing-field-label" for="fl-subject">Subject <span class="req">*</span></label>
         <div>
-          <input id="fl-subject" type="text" name="subject" class="form-input" maxlength="255" required
+          <input id="fl-subject" type="text" name="subject" class="form" maxlength="255" required
                  value="<?= View::e($val('subject')) ?>">
           <p class="form-hint">The subject of your listing (e.g. character name, show title).</p>
           <?php if (!empty($fe['subject'])): ?><p class="field-error"><?= View::e($fe['subject'][0]) ?></p><?php endif; ?>
@@ -70,7 +70,7 @@ $dataCustomCats = json_encode($custom_cats     ?? [], JSON_HEX_QUOT | JSON_HEX_A
       <div class="listing-field-row">
         <label class="listing-field-label" for="fl-title">Title</label>
         <div>
-          <input id="fl-title" type="text" name="title" class="form-input" maxlength="255"
+          <input id="fl-title" type="text" name="title" class="form" maxlength="255"
                  value="<?= View::e($val('title')) ?>">
           <p class="form-hint">Optional name of your listing — defaults to "Subject" if left blank.</p>
         </div>
@@ -79,7 +79,7 @@ $dataCustomCats = json_encode($custom_cats     ?? [], JSON_HEX_QUOT | JSON_HEX_A
       <div class="listing-field-row<?= !empty($fe['url']) ? ' has-error' : '' ?>">
         <label class="listing-field-label" for="fl-url">Website URL <span class="req">*</span></label>
         <div>
-          <input id="fl-url" type="url" name="url" class="form-input" maxlength="500" placeholder="https://" required
+          <input id="fl-url" type="url" name="url" class="form" maxlength="500" placeholder="https://" required
                  value="<?= View::e($val('url')) ?>">
           <?php if (!empty($fe['url'])): ?><p class="field-error"><?= View::e($fe['url'][0]) ?></p><?php endif; ?>
         </div>
@@ -88,7 +88,7 @@ $dataCustomCats = json_encode($custom_cats     ?? [], JSON_HEX_QUOT | JSON_HEX_A
       <div class="listing-field-row">
         <label class="listing-field-label" for="fl-email">Email</label>
         <div>
-          <input id="fl-email" type="email" name="email" class="form-input" maxlength="255"
+          <input id="fl-email" type="email" name="email" class="form" maxlength="255"
                  placeholder="admin@example.com"
                  value="<?= View::e($val('email')) ?>">
           <p class="form-hint">This is the email address that listing emails will be sent from.</p>
@@ -100,8 +100,8 @@ $dataCustomCats = json_encode($custom_cats     ?? [], JSON_HEX_QUOT | JSON_HEX_A
         <label class="file-drop-zone">
           <input id="fl-image" type="file" name="image" accept="image/jpeg,image/png,image/gif,image/webp">
           <span class="file-drop-icon"><?= View::icon('image') ?></span>
-          <span class="file-drop-label">Click to upload</span>
-          <span class="file-drop-sub">JPEG, PNG, GIF, WebP; max 2MB</span>
+              <strong>Click to upload</strong>
+              <span class="form-hint">JPEG, PNG, GIF, WebP &mdash; max 2 MB</span>
         </label>
       </div>
 
@@ -126,7 +126,7 @@ $dataCustomCats = json_encode($custom_cats     ?? [], JSON_HEX_QUOT | JSON_HEX_A
       <div class="listing-field-row" id="opened-row">
         <label class="listing-field-label" for="fl-opened">Opened On</label>
         <div>
-          <input id="fl-opened" type="date" name="opened" class="form-input form-input--compact"
+          <input id="fl-opened" type="date" name="opened" class="form form--compact"
                  value="<?= View::e($val('opened', $default_date)) ?>">
           <input type="hidden" id="fl-opened-tba" name="opened" value="TBA" disabled>
           <span id="fl-opened-tba-text" class="text-dim">TBA &mdash; date will be set when the listing opens.</span>

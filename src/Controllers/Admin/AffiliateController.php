@@ -18,8 +18,7 @@ use Luster\Repositories\ListingSettingsRepo;
  *   GET  /admin/affiliates                           — list all affiliates
  *   GET  /admin/affiliates/add                       — add form (global context)
  *   POST /admin/affiliates/add                       — insert (global context)
- *   GET  /admin/listings/{fid}/affiliates/add     — add form (fanlisting context)
- *   POST /admin/listings/{fid}/affiliates/add     — insert (fanlisting context)
+ *   POST /admin/listings/{fid}/affiliates/add        — insert (listing context; form is inline in the listing edit tab)
  *   GET  /admin/affiliates/{id}/edit                 — edit form
  *   POST /admin/affiliates/{id}/edit                 — update
  *   POST /admin/affiliates/{id}/toggle               — toggle active/inactive
@@ -167,13 +166,13 @@ final class AffiliateController extends AdminController
         $addSubtitle = $contextListing !== null ? 'Owned › ' . $contextListing->name : '';
 
         if ($request->isPost()) {
-            $listingId = (int) $request->post('listing_id', 0);
-            $name         = trim((string) $request->post('name', ''));
-            $url          = trim((string) $request->post('url', ''));
-            $email        = trim((string) $request->post('email', ''));
-            $sortOrder    = (int) $request->post('sort_order', 0);
-            // Re-read context from hidden field in case it was a listing-routed form
-            $postContextFid = (int) $request->post('context_fid', $contextFid);
+            // When routed through /listings/{fid}/affiliates/add the listing ID
+            // comes from the route param; for global add it comes from the form field.
+            $fanlistingId   = $contextFid > 0 ? $contextFid : (int) $request->post('fanlisting_id', 0);
+            $name           = trim((string) $request->post('name', ''));
+            $url            = trim((string) $request->post('url', ''));
+            $email          = trim((string) $request->post('email', ''));
+            $sortOrder      = (int) $request->post('sort_order', 0);
 
             // Image upload
             $image     = '';
@@ -201,19 +200,24 @@ final class AffiliateController extends AdminController
             $siteName = (string) ($this->app->getConfig()->get('site_name', 'Collective'));
 
             if ($v->fails()) {
+                if ($contextFid > 0) {
+                    // Inline form in listing edit tab — flash and redirect back
+                    $session->set('lstr_flash_error', implode(' ', $v->allErrors()));
+                    return Response::redirect($baseUrl . '/admin/listings/' . $contextFid . '?tab=affiliates');
+                }
                 return $this->adminLayout('admin/affiliates/add.php', 'Add Affiliate', 'affiliates', [
                     'listings'     => $listings,
                     'affiliate'    => null,
                     'error'        => implode(' ', $v->allErrors()),
                     'field_errors' => $v->errors(),
                     'old'          => $request->postAll(),
-                    'context_fid'  => $postContextFid,
+                    'context_fid'  => 0,
                     'site_name'    => $siteName,
                 ], $addSubtitle);
             }
 
             $affiliateRepo->insert([
-                'fanlisting_id' => $listingId > 0 ? $listingId : null,
+                'fanlisting_id' => $fanlistingId > 0 ? $fanlistingId : null,
                 'name'          => $name,
                 'url'           => $url,
                 'email'         => $email !== '' ? $email : null,
@@ -221,14 +225,14 @@ final class AffiliateController extends AdminController
                 'sort_order'    => $sortOrder,
             ]);
 
-            if ($postContextFid > 0) {
-                (new ListingSettingsRepo($db))->touchLastUpdated($postContextFid);
+            if ($contextFid > 0) {
+                (new ListingSettingsRepo($db))->touchLastUpdated($contextFid);
             }
 
             $session->set('lstr_flash_success', 'Affiliate added.');
 
-            $redirect = $postContextFid > 0
-                ? $baseUrl . '/admin/listings/' . $postContextFid
+            $redirect = $contextFid > 0
+                ? $baseUrl . '/admin/listings/' . $contextFid . '?tab=affiliates'
                 : $baseUrl . '/admin/affiliates';
 
             return Response::redirect($redirect);

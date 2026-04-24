@@ -75,6 +75,10 @@ details.chevron:not([open]) > summary { border-bottom: none; }
 
 .composer-grid { display: grid; grid-template-columns: 1fr 325px; gap: 1rem; align-items: start; }
 
+@media (max-width: 1080px) {
+  .composer-grid { grid-template-columns: 1fr; }
+}
+
 .composer-side { display: flex; flex-direction: column; gap: .25rem; order: 2; }
 
 .composer-block { border-bottom: 1px solid var(--border); }

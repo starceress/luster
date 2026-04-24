@@ -127,7 +127,7 @@ if (!function_exists('smtpVal')) {
     <button class="tabs-btn<?= $active_tab === 'smtp'      ? ' active' : '' ?>" data-tab="smtp">SMTP Settings</button>
   </div>
   <div class="select-wrap tabs-select-wrap">
-    <select class="tabs-select select">
+    <select class="tabs-select">
       <option value="templates"<?= $active_tab === 'templates' ? ' selected' : '' ?>>Email Templates</option>
       <option value="bulk"<?=      $active_tab === 'bulk'      ? ' selected' : '' ?>>Bulk Email</option>
       <option value="custom"<?=    $active_tab === 'custom'    ? ' selected' : '' ?>>Custom Templates</option>
@@ -141,7 +141,7 @@ if (!function_exists('smtpVal')) {
     <form method="GET" action="<?= $b ?>/admin/emails" class="action-form-inline">
       <input type="hidden" name="tab" value="templates">
       <div class="select-wrap email-scope-select">
-        <select name="listing" class="form-select js-autosubmit" >
+        <select name="listing" class="js-autosubmit" >
           <option value="global"<?= $isGlobal ? ' selected' : '' ?>>Global Templates (default for all listings)</option>
           <?php if (!empty($all_listings)): ?>
             <option disabled></option>
@@ -240,7 +240,7 @@ if (!function_exists('smtpVal')) {
             <div class="pc-section">
               <div class="form-group form-group-preview-gap">
                 <label class="form-label" for="et-subject-<?= View::e($type) ?>">Subject</label>
-                <input class="form-input et-subject"
+                <input class="form et-subject"
                        type="text"
                        id="et-subject-<?= View::e($type) ?>"
                        name="email_subject_<?= View::e($type) ?>"
@@ -250,7 +250,7 @@ if (!function_exists('smtpVal')) {
               </div>
               <div class="form-group">
                 <label class="form-label" for="et-body-<?= View::e($type) ?>">Body</label>
-                <textarea class="form-textarea"
+                <textarea class="form"
                           id="et-body-<?= View::e($type) ?>"
                           name="email_body_<?= View::e($type) ?>"
                           rows="9"
@@ -260,7 +260,7 @@ if (!function_exists('smtpVal')) {
                 <div class="email-preview-panel-head">
                   Preview <span>(example values)</span>
                   <?php if ($isGlobal): ?>
-                    <span class="email-preview-note">· listing tokens show generic placeholders</span>
+                    <span class="email-preview-note">Â· listing tokens show generic placeholders</span>
                   <?php endif; ?>
                 </div>
                 <div class="email-preview-panel-body">
@@ -337,8 +337,8 @@ if (!function_exists('smtpVal')) {
         </div>
         <div class="card-body">
           <div class="select-wrap">
-            <select id="me-tpl-select" class="form-select">
-              <option value="">— Select a Template —</option>
+            <select id="me-tpl-select" >
+              <option value="">â€” Select a Template â€”</option>
               <?php if (!empty($global_email_templates)): ?>
                 <optgroup label="Email Templates">
                   <?php foreach ($global_email_templates as $t): ?>
@@ -376,7 +376,7 @@ if (!function_exists('smtpVal')) {
             <input type="hidden" name="tpl_subject" id="me-save-subject">
             <input type="hidden" name="tpl_body"    id="me-save-body">
             <input type="text"   name="tpl_name"    id="me-save-name"
-                   class="form-input" placeholder="Template name&hellip;" maxlength="150">
+                   class="form" placeholder="Template name&hellip;" maxlength="150">
             <button type="submit" class="btn btn-secondary btn-sm btn-block-center" id="me-save-btn">Save Template</button>
           </form>
         </div>
@@ -434,7 +434,7 @@ if (!function_exists('smtpVal')) {
           <div class="composer-row">
             <label class="composer-lbl" for="me-listing">Send To</label>
             <div class="select-wrap">
-              <select name="listing_id" id="me-listing" class="form-select">
+              <select name="listing_id" id="me-listing" >
                 <option value="0"
                         data-count="<?= (int) ($deduplicated_total ?? 0) ?>"
                         data-label="All Listings"
@@ -463,7 +463,7 @@ if (!function_exists('smtpVal')) {
         </div>
 
         <div>
-          <textarea class="email-textarea" id="me-body" name="body"
+          <textarea id="me-body" name="body"
                     maxlength="50000" required
                     placeholder="Write your message&hellip;"><?= $oldBodyE ?></textarea>
         </div>
@@ -550,19 +550,19 @@ if (!function_exists('smtpVal')) {
 
           <div class="form-group">
             <label class="form-label" for="new-tpl-name">Template Name <span class="req">*</span></label>
-            <input id="new-tpl-name" type="text" name="tpl_name" class="form-input"
+            <input id="new-tpl-name" type="text" name="tpl_name" class="form"
                    maxlength="150" required placeholder="e.g. Welcome note, Monthly update&hellip;">
           </div>
 
           <div class="form-group">
             <label class="form-label" for="new-tpl-subject">Subject</label>
-            <input id="new-tpl-subject" type="text" name="tpl_subject" class="form-input"
+            <input id="new-tpl-subject" type="text" name="tpl_subject" class="form"
                    maxlength="255" placeholder="(optional - leave blank to fill in when composing)">
           </div>
 
           <div class="form-group form-group--compact">
             <label class="form-label" for="new-tpl-body">Body <span class="req">*</span></label>
-            <textarea id="new-tpl-body" name="tpl_body" class="form-textarea"
+            <textarea id="new-tpl-body" name="tpl_body" class="form"
                       rows="9" maxlength="50000" required></textarea>
           </div>
 
@@ -690,17 +690,17 @@ if (!function_exists('smtpVal')) {
         <div class="modal-body">
           <div class="form-group">
             <label class="form-label" for="ct-edit-name">Template Name <span class="req">*</span></label>
-            <input type="text" id="ct-edit-name" name="tpl_name" class="form-input"
+            <input type="text" id="ct-edit-name" name="tpl_name" class="form"
                    maxlength="150" required>
           </div>
           <div class="form-group">
             <label class="form-label" for="ct-edit-subject">Subject</label>
-            <input type="text" id="ct-edit-subject" name="tpl_subject" class="form-input"
+            <input type="text" id="ct-edit-subject" name="tpl_subject" class="form"
                    maxlength="255">
           </div>
           <div class="form-group form-group--compact">
             <label class="form-label" for="ct-edit-body">Body <span class="req">*</span></label>
-            <textarea id="ct-edit-body" name="tpl_body" class="form-textarea textarea-mono-sm"
+            <textarea id="ct-edit-body" name="tpl_body" class="form"
                       rows="9" maxlength="50000" required></textarea>
           </div>
         </div>
@@ -746,7 +746,7 @@ if (!function_exists('smtpVal')) {
         
         <label class="listing-field-label" for="s-smtp-host">SMTP Host</label>
         <div>
-          <input id="s-smtp-host" type="text" name="smtp_host" class="form-input"
+          <input id="s-smtp-host" type="text" name="smtp_host" class="form"
                  maxlength="255" placeholder="smtp.example.com"
                  value="<?= View::e(smtpVal($cfg, 'smtp_host')) ?>">
           <p class="form-hint">Leave blank to use PHP&rsquo;s native <code>mail()</code> function.</p>
@@ -756,7 +756,7 @@ if (!function_exists('smtpVal')) {
       <div class="listing-field-row listing-field-row--top">
         <label class="listing-field-label" for="s-smtp-port">SMTP Port</label>
         <div>
-          <input id="s-smtp-port" type="number" name="smtp_port" class="form-input smtp-port-input"
+          <input id="s-smtp-port" type="number" name="smtp_port" class="form smtp-port-input"
                  min="1" max="65535"
                  value="<?= (int) ($cfg['smtp_port'] ?? 587) ?>">
           <p class="form-hint">Common ports: 25 (plain), 465 (SSL), 587 (STARTTLS).</p>
@@ -767,7 +767,7 @@ if (!function_exists('smtpVal')) {
         <label class="listing-field-label" for="s-smtp-secure">Encryption</label>
         <div>
           <div class="select-wrap smtp-secure-wrap">
-            <select id="s-smtp-secure" name="smtp_secure" class="form-select">
+            <select id="s-smtp-secure" name="smtp_secure" >
               <?php foreach (['tls' => 'TLS (STARTTLS)', 'ssl' => 'SSL', '' => 'None'] as $val => $lbl): ?>
                 <option value="<?= View::e($val) ?>"
                   <?= smtpVal($cfg, 'smtp_secure', 'tls') === $val ? 'selected' : '' ?>>
@@ -792,7 +792,7 @@ if (!function_exists('smtpVal')) {
 
       <div class="listing-field-row">
         <label class="listing-field-label" for="s-smtp-user">Username</label>
-        <input id="s-smtp-user" type="text" name="smtp_user" class="form-input"
+        <input id="s-smtp-user" type="text" name="smtp_user" class="form"
                maxlength="255" autocomplete="off" placeholder="your@email.com"
                value="<?= View::e(smtpVal($cfg, 'smtp_user')) ?>">
       </div>
@@ -801,7 +801,7 @@ if (!function_exists('smtpVal')) {
         <label class="listing-field-label" for="s-smtp-pass">Password</label>
         <div>
           <div class="input-icon-wrap">
-            <input id="s-smtp-pass" type="password" name="smtp_pass" class="form-input"
+            <input id="s-smtp-pass" type="password" name="smtp_pass" class="form"
                    maxlength="500" autocomplete="new-password"
                    placeholder="Leave blank to keep current">
             <button type="button" data-pw-toggle aria-label="Show password" tabindex="-1" class="input-icon-btn">
@@ -823,7 +823,7 @@ if (!function_exists('smtpVal')) {
       <div class="listing-field-row listing-field-row--top">
         <label class="listing-field-label" for="s-smtp-from">From Address</label>
         <div>
-          <input id="s-smtp-from" type="email" name="smtp_from" class="form-input"
+          <input id="s-smtp-from" type="email" name="smtp_from" class="form"
                  maxlength="255" placeholder="noreply@yoursite.com"
                  value="<?= View::e(smtpVal($cfg, 'smtp_from')) ?>">
           <p class="form-hint">The "From" email on all outgoing messages. Defaults to Owner Email if left blank.</p>
@@ -833,7 +833,7 @@ if (!function_exists('smtpVal')) {
       <div class="listing-field-row listing-field-row--top">
         <label class="listing-field-label" for="s-smtp-from-name">From Name</label>
         <div>
-          <input id="s-smtp-from-name" type="text" name="smtp_from_name" class="form-input"
+          <input id="s-smtp-from-name" type="text" name="smtp_from_name" class="form"
                  maxlength="255" placeholder="Your Site Name"
                  value="<?= View::e(smtpVal($cfg, 'smtp_from_name')) ?>">
           <p class="form-hint">The display name shown alongside the From Address in mail clients.</p>

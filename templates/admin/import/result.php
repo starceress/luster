@@ -245,7 +245,7 @@ $hasErr  = $result->hasErrors();
       <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
       <div class="form-group import-input-zip">
         <label class="form-label" for="zip_file">ZIP Archive</label>
-        <input id="zip_file" type="file" name="zip_file" accept=".zip" class="form-input" required>
+        <input id="zip_file" type="file" name="zip_file" accept=".zip" class="form" required>
       </div>
       <button type="submit" class="btn btn-primary">Upload &amp; Apply Images</button>
     </form>

@@ -90,26 +90,26 @@ function importChecked(array $old, string $key, bool $default = true): string {
         <div class="form-row">
           <div class="form-group">
             <label class="form-label" for="db_host">Database Host</label>
-            <input id="db_host" type="text" name="db_host" class="form-input"
+            <input id="db_host" type="text" name="db_host" class="form"
                    placeholder="localhost (blank = use Luster's DB)"
                    value="<?= importOld($old, 'db_host') ?>">
           </div>
           <div class="form-group">
             <label class="form-label" for="db_name">Database Name</label>
-            <input id="db_name" type="text" name="db_name" class="form-input"
+            <input id="db_name" type="text" name="db_name" class="form"
                    value="<?= importOld($old, 'db_name') ?>">
           </div>
         </div>
         <div class="form-row">
           <div class="form-group">
             <label class="form-label" for="db_user">Database User</label>
-            <input id="db_user" type="text" name="db_user" class="form-input"
+            <input id="db_user" type="text" name="db_user" class="form"
                    value="<?= importOld($old, 'db_user') ?>">
           </div>
           <div class="form-group">
             <label class="form-label" for="db_pass">Database Password</label>
             <div class="input-icon-wrap">
-              <input id="db_pass" type="password" name="db_pass" class="form-input"
+              <input id="db_pass" type="password" name="db_pass" class="form"
                      autocomplete="new-password">
               <button type="button" class="input-icon-btn" data-pw-toggle aria-label="Show password" tabindex="-1">
                 <?= View::icon('eye-on') ?>
@@ -141,7 +141,7 @@ function importChecked(array $old, string $key, bool $default = true): string {
         <div class="form-group">
           <label class="form-label" for="sql_dump">SQL File <span class="text-muted">(max 50 MB)</span></label>
           <input id="sql_dump" type="file" name="sql_dump" accept=".sql,text/plain,text/x-sql,application/sql"
-                 class="form-input import-input-wide">
+                 class="form import-input-wide">
           <p class="field-hint-sm">Export your source database with <code>mysqldump --no-tablespaces &lt;dbname&gt; &gt; export.sql</code> and upload the resulting file. The source schema is detected automatically.</p>
         </div>
       </div>
@@ -161,7 +161,7 @@ function importChecked(array $old, string $key, bool $default = true): string {
     <div class="pc-section">
       <div class="pc-section-label">Blog Table Name</div>
       <div class="form-group">
-        <input id="fu_prefix" type="text" name="fu_prefix" class="form-input import-input-medium"
+        <input id="fu_prefix" type="text" name="fu_prefix" class="form import-input-medium"
                placeholder="blog"
                value="<?= importOld($old, 'fu_prefix', 'blog') ?>">
         <p class="help-text">The base table name configured in <code>blog-config.php</code> (default: <code>blog</code>). Luster will look for <code>{name}</code>, <code>{name}_category</code>, and <code>{name}_catjoin</code>.</p>
@@ -173,10 +173,10 @@ function importChecked(array $old, string $key, bool $default = true): string {
     <div class="pc-section">
       <div class="pc-section-label">Table Prefix</div>
       <div class="form-group">
-        <input id="la_table_prefix" type="text" name="la_table_prefix" class="form-input import-input-medium"
+        <input id="la_table_prefix" type="text" name="la_table_prefix" class="form import-input-medium"
                placeholder="(leave blank for default install)"
                value="<?= importOld($old, 'la_table_prefix') ?>">
-        <p class="help-text">Leave blank if LA uses default table names (<code>main</code>, <code>members</code>, etc.). If your LA install was configured with a prefix (e.g. <code>trex_</code>), enter it here. Luster will look for <code>{prefix}members</code>, <code>{prefix}categories</code>, and so on — the registry table is derived as the prefix without underscores (e.g. <code>trex_</code> &rarr; <code>trex</code>).</p>
+        <p class="help-text">Leave blank if LA uses default table names (<code>main</code>, <code>members</code>, etc.). If your LA install was configured with a prefix (e.g. <code>trex_</code>), enter it here. Luster will look for <code>{prefix}members</code>, <code>{prefix}categories</code>, and so on â€” the registry table is derived as the prefix without underscores (e.g. <code>trex_</code> &rarr; <code>trex</code>).</p>
       </div>
     </div>
     <?php endif; ?>
@@ -212,8 +212,8 @@ function importChecked(array $old, string $key, bool $default = true): string {
         <?php if (!empty($enth_networks)): ?>
         <div class="import-choice-list--nested">
           <label class="form-label import-label-compact" for="category_parent_id">Place top-level categories under network</label>
-          <div class="select-wrap import-select-narrow"><select id="category_parent_id" name="category_parent_id" class="form-select">
-            <option value="">— Leave as top-level —</option>
+          <div class="select-wrap import-select-narrow"><select id="category_parent_id" name="category_parent_id" >
+            <option value="">â€” Leave as top-level â€”</option>
             <?php foreach ($enth_networks as $net): ?>
               <option value="<?= View::e((string) $net['id']) ?>"
                 <?= (string) ($old['category_parent_id'] ?? '') === (string) $net['id'] ? 'selected' : '' ?>>
@@ -275,12 +275,12 @@ function importChecked(array $old, string $key, bool $default = true): string {
         <?php endif; ?>
       </div>
       <?php if ($source === 'listing-admin'): ?>
-      <div class="callout import-callout-flush">
+      <div class="callout callout-inline import-callout-flush">
         <?= View::icon('alert', ['width' => 20, 'height' => 20, 'style' => 'color:var(--pending)']) ?>
         <strong>IMPORTANT:</strong> Listings must be imported <i><u>before</u></i> members &mdash; members are distributed to per-listing tables created during the listings import.
       </div>
       <?php elseif ($source === 'codesort'): ?>
-      <div class="callout import-callout-spaced">
+      <div class="callout callout-inline import-callout-spaced">
         <?= View::icon('alert') ?>
         <span>Fanlistings are matched by title between CodeSort&rsquo;s <code>collective</code> table and Luster&rsquo;s listings. Codes for unmatched fanlistings are skipped.</span>
       </div>
@@ -308,7 +308,7 @@ function importChecked(array $old, string $key, bool $default = true): string {
                  <?= (($old['image_mode'] ?? 'path') === 'path') ? 'checked' : '' ?>>Same-server path &mdash; <span class="text-muted">Luster will <code>copy()</code> files directly</span>
         </label>
         <div id="js-img-path-field" class="import-choice-list--indented<?= (($old['image_mode'] ?? 'path') !== 'path') ? ' is-hidden' : '' ?>">
-          <input type="text" name="image_path" class="form-input import-input-wide"
+          <input type="text" name="image_path" class="form import-input-wide"
                  placeholder="/absolute/path/to/old-install"
                  value="<?= importOld($old, 'image_path') ?>">
           <p class="field-hint-sm">Absolute server path to the root of your old installation (no trailing slash).
@@ -321,7 +321,7 @@ function importChecked(array $old, string $key, bool $default = true): string {
           Remote URL &mdash; <span class="text-muted">Luster will fetch files via HTTP</span>
         </label>
         <div id="js-img-url-field" class="import-choice-list--indented<?= (($old['image_mode'] ?? '') !== 'url') ? ' is-hidden' : '' ?>">
-          <input type="url" name="image_url" class="form-input import-input-wide"
+          <input type="url" name="image_url" class="form import-input-wide"
                  placeholder="https://example.com/old-install"
                  value="<?= importOld($old, 'image_url') ?>">
           <p class="field-hint-sm">Base URL of your old installation (no trailing slash). Luster will append

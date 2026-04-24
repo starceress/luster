@@ -27,7 +27,7 @@ $b = rtrim(View::e($base_url), '/');
 <div class="toolbar">
   <div class="toolbar-left"></div>
   <div class="actions-row">
-    <a href="<?= $b ?>/admin/kim/settings" class="btn btn-ghost btn-sm">Display Settings</a>
+    <a href="<?= $b ?>/admin/kim/settings" class="btn btn-quaternary btn-sm">Display Settings</a>
   </div>
 </div>
 
@@ -41,7 +41,7 @@ $b = rtrim(View::e($base_url), '/');
   <div class="card">
     <div class="card-head">Keep In Mind List</div>
     <div class="table-wrap">
-    <table class="data-table">
+    <table class="data-table mem-table">
       <thead>
         <tr>
           <th>Listing</th>
@@ -58,22 +58,22 @@ $b = rtrim(View::e($base_url), '/');
           $approved = (int) $entry['approved'];
         ?>
         <tr>
-          <td class="text-strong"><?= View::e($listing->subject) ?></td>
-          <td>
+          <td data-label="Listing"><?= View::e($listing->subject) ?></td>
+          <td data-label="Pending">
             <?php if ($pending > 0): ?>
               <span class="badge badge-upcoming"><?= (int) $pending ?></span>
             <?php else: ?>
               <span class="text-dim">0</span>
             <?php endif; ?>
           </td>
-          <td>
+          <td data-label="Approved">
             <?php if ($approved > 0): ?>
               <span class="badge badge-current"><?= (int) $approved ?></span>
             <?php else: ?>
               <span class="text-dim">0</span>
             <?php endif; ?>
           </td>
-          <td class="act-col">
+          <td class="act-col" data-label="">
             <a href="<?= $b ?>/admin/kim/<?= (int) $listing->id ?>/show"
                class="btn btn-primary btn-sm">View</a>
             <?php if ($approved > 0): ?>

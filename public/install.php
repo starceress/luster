@@ -597,7 +597,7 @@ function writeConfig(array $db, string $siteName, string $siteUrl, string $timez
         'inactive_threshold_days' => 60,
         'last_updated_fallback'   => 'Never',
         // Embed & Paths
-        'install_path'          => '',
+        'install_path'          => LUSTER_BASE,
         'session_cookie_domain' => '',
         'embed_base_url'        => '',
     ];
@@ -1013,12 +1013,12 @@ function renderStep2(string $csrf, array $stored): void
     <div class="form-row">
       <div class="form-group">
         <label class="form-label" for="db_host">Database Host</label>
-        <input type="text" id="db_host" name="db_host" class="form-input"
+        <input type="text" id="db_host" name="db_host" class="form"
                value="<?= e((string) ($db['host'] ?? 'localhost')) ?>" required>
       </div>
       <div class="form-group">
         <label class="form-label" for="db_port">Port</label>
-        <input type="number" id="db_port" name="db_port" class="form-input"
+        <input type="number" id="db_port" name="db_port" class="form"
                min="1" max="65535"
                value="<?= e((string) ($db['port'] ?? '3306')) ?>" required>
       </div>
@@ -1026,20 +1026,20 @@ function renderStep2(string $csrf, array $stored): void
 
     <div class="form-group">
       <label class="form-label" for="db_name">Database Name</label>
-      <input type="text" id="db_name" name="db_name" class="form-input"
+      <input type="text" id="db_name" name="db_name" class="form"
              value="<?= e((string) ($db['name'] ?? '')) ?>" required>
       <p class="form-hint">The database must already exist. It can be your existing Enthusiast database or a fresh empty one.</p>
     </div>
 
     <div class="form-group">
       <label class="form-label" for="db_user">Database Username</label>
-      <input type="text" id="db_user" name="db_user" class="form-input"
+      <input type="text" id="db_user" name="db_user" class="form"
              value="<?= e((string) ($db['user'] ?? '')) ?>" required autocomplete="username">
     </div>
 
     <div class="form-group">
       <label class="form-label" for="db_pass">Database Password</label>
-      <input type="password" id="db_pass" name="db_pass" class="form-input"
+      <input type="password" id="db_pass" name="db_pass" class="form"
              autocomplete="current-password">
       <p class="form-hint">Leave blank if your database user has no password.</p>
     </div>
@@ -1077,13 +1077,13 @@ function renderStep3(string $csrf, array $stored): void
 
     <div class="form-group">
       <label class="form-label" for="site_name">Site Name</label>
-      <input type="text" id="site_name" name="site_name" class="form-input"
+      <input type="text" id="site_name" name="site_name" class="form"
              value="Luster" required>
     </div>
 
     <div class="form-group">
       <label class="form-label" for="site_url">Site URL</label>
-      <input type="url" id="site_url" name="site_url" class="form-input"
+      <input type="url" id="site_url" name="site_url" class="form"
              value="<?= e($guessedUrl) ?>" required
              placeholder="https://yoursite.example.com">
       <p class="form-hint">No trailing slash. This is the base URL where Luster is installed (e.g. <code>https://example.com/luster/public</code>).</p>
@@ -1106,13 +1106,13 @@ function renderStep3(string $csrf, array $stored): void
     <div class="form-row">
       <div class="form-group">
         <label class="form-label" for="owner_name">Owner Name</label>
-        <input type="text" id="owner_name" name="owner_name" class="form-input"
+        <input type="text" id="owner_name" name="owner_name" class="form"
                maxlength="100" placeholder="Jiji">
         <p class="form-hint">Your display name used in outgoing fan emails (e.g. <em>Jiji</em>). Can be changed later in Settings.</p>
       </div>
       <div class="form-group">
         <label class="form-label" for="owner_email">Owner Email <em style="font-weight:400">(optional)</em></label>
-        <input type="email" id="owner_email" name="owner_email" class="form-input"
+        <input type="email" id="owner_email" name="owner_email" class="form"
                maxlength="255" placeholder="you@example.com">
         <p class="form-hint">Contact email shown in fan emails. Defaults to your admin email if left blank.</p>
       </div>
@@ -1122,7 +1122,7 @@ function renderStep3(string $csrf, array $stored): void
 
     <div class="form-group">
       <label class="form-label" for="admin_username">Username</label>
-      <input type="text" id="admin_username" name="admin_username" class="form-input"
+      <input type="text" id="admin_username" name="admin_username" class="form"
              required autocomplete="username"
              pattern="[a-zA-Z0-9_\-]{3,50}">
       <p class="form-hint">3–50 characters: letters, numbers, underscores, hyphens.</p>
@@ -1130,20 +1130,20 @@ function renderStep3(string $csrf, array $stored): void
 
     <div class="form-group">
       <label class="form-label" for="admin_email">Email Address</label>
-      <input type="email" id="admin_email" name="admin_email" class="form-input"
+      <input type="email" id="admin_email" name="admin_email" class="form"
              required autocomplete="email">
     </div>
 
     <div class="form-row">
       <div class="form-group">
         <label class="form-label" for="admin_password">Password</label>
-        <input type="password" id="admin_password" name="admin_password" class="form-input"
+        <input type="password" id="admin_password" name="admin_password" class="form"
                required autocomplete="new-password" minlength="12">
         <p class="form-hint">Minimum 12 characters.</p>
       </div>
       <div class="form-group">
         <label class="form-label" for="admin_password_confirm">Confirm Password</label>
-        <input type="password" id="admin_password_confirm" name="admin_password_confirm" class="form-input"
+        <input type="password" id="admin_password_confirm" name="admin_password_confirm" class="form"
                required autocomplete="new-password" minlength="12">
       </div>
     </div>

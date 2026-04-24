@@ -17,7 +17,6 @@ use Luster\Repositories\ListingRepo;
  * Admin CRUD for per-fanlisting codes and code sizes.
  *
  * Routes:
- *   GET  /admin/listings/{fid}/codes                           — list + upload form
  *   POST /admin/listings/{fid}/codes/upload                    — multi-file upload
  *   POST /admin/listings/{fid}/codes/sizes/add                 — add a size group
  *   POST /admin/listings/{fid}/codes/sizes/{sid}/edit          — update a size group
@@ -46,116 +45,6 @@ final class CodesController extends AdminController
 
     /** Maximum upload size per file (500 KB). */
     private const MAX_SIZE = 512_000;
-
-    // -----------------------------------------------------------------------
-    // GET /admin/listings/{fid}/codes
-    // -----------------------------------------------------------------------
-
-    public function index(Request $request, array $params): Response
-    {
-        $listingId   = (int) ($params['fid'] ?? 0);
-        $editSizeId  = (int) ($request->query('edit_size',  '0'));
-        $editCatId   = (int) ($request->query('edit_cat',   '0'));
-        $editDonorId = (int) ($request->query('edit_donor', '0'));
-
-        // Validate status filter against the allowed set
-        $rawFilter    = (string) $request->query('status_filter', '');
-        $statusFilter = in_array($rawFilter, array_merge([''], CodesRepo::STATUSES), true)
-            ? $rawFilter
-            : '';
-
-        $db     = $this->app->getDatabase();
-        $config = $this->app->getConfig();
-
-        $listingRepo = new ListingRepo($db, $config);
-        $listing     = $listingRepo->getById($listingId);
-
-        if ($listing === null) {
-            return Response::notFound('Listing not found.');
-        }
-
-        $session    = $this->app->getSession();
-        $codesRepo  = new CodesRepo($db);
-        $catsRepo   = new CodeCategoriesRepo($db);
-        $donorsRepo = new CodeDonorsRepo($db);
-
-        // Load all codes for status counts, then optionally filter for display
-        $allCodes     = $codesRepo->getByListing($listingId);
-        $statusCounts = ['approved' => 0, 'pending' => 0, 'rejected' => 0];
-        foreach ($allCodes as $c) {
-            $statusCounts[$c->status] = ($statusCounts[$c->status] ?? 0) + 1;
-        }
-
-        $codes = $statusFilter !== ''
-            ? array_values(array_filter($allCodes, fn($c) => $c->status === $statusFilter))
-            : $allCodes;
-
-        $categories = $catsRepo->getByListing($listingId);
-        $donors     = $donorsRepo->getByListing($listingId);
-
-        // code_id → [category_id, ...] — loaded in one query
-        $codeCategories = $catsRepo->getCategoryMapForListing($listingId);
-
-        // Quick-lookup maps
-        $categoryMap = [];
-        foreach ($categories as $cat) {
-            $categoryMap[$cat->id] = $cat;
-        }
-        $donorMap = [];
-        foreach ($donors as $donor) {
-            $donorMap[$donor->id] = $donor;
-        }
-
-        // Auto-group display codes by detected dimensions (width × height).
-        // Codes with no dimension data fall into an 'unknown' bucket shown last.
-        $grouped = [];
-        foreach ($codes as $code) {
-            if ($code->width > 0 && $code->height > 0) {
-                $key   = (int) $code->width . 'x' . (int) $code->height;
-                $label = (int) $code->width . '×' . (int) $code->height . 'px';
-            } else {
-                $key   = 'unknown';
-                $label = 'Unknown dimensions';
-            }
-            if (!isset($grouped[$key])) {
-                $grouped[$key] = ['label' => $label, 'codes' => []];
-            }
-            $grouped[$key]['codes'][] = $code;
-        }
-
-        // Sort groups: smallest width first, then height; unknown last
-        uksort($grouped, function (string $a, string $b): int {
-            if ($a === 'unknown') return 1;
-            if ($b === 'unknown') return -1;
-            [$aw, $ah] = explode('x', $a);
-            [$bw, $bh] = explode('x', $b);
-            return $aw !== $bw ? (int) $aw - (int) $bw : (int) $ah - (int) $bh;
-        });
-
-        $success = (string) $session->get('lstr_flash_success', '');
-        $error   = (string) $session->get('lstr_flash_error', '');
-        $session->remove('lstr_flash_success');
-        $session->remove('lstr_flash_error');
-
-        return $this->adminLayout('admin/listings/codes.php', 'Codes', 'listings', [
-            'listing'         => $listing,
-            'codes'           => $codes,
-            'categories'      => $categories,
-            'donors'          => $donors,
-            'grouped'         => $grouped,
-            'code_categories' => $codeCategories,
-            'category_map'    => $categoryMap,
-            'donor_map'       => $donorMap,
-            'edit_cat_id'     => $editCatId,
-            'edit_donor_id'   => $editDonorId,
-            'status_filter'   => $statusFilter,
-            'status_counts'   => $statusCounts,
-            'total_codes'     => count($allCodes),
-            'uploads_url'     => $this->app->getBaseUrl() . '/uploads/codes',
-            'success'         => $success,
-            'error'           => $error,
-        ], 'Owned › ' . $listing->name);
-    }
 
     // -----------------------------------------------------------------------
     // POST /admin/listings/{fid}/codes/upload
@@ -1286,6 +1175,10 @@ final class CodesController extends AdminController
 
     public function export(Request $request, array $params): Response
     {
+        if (!class_exists('ZipArchive')) {
+            return Response::html('<p>The PHP <code>zip</code> extension is not enabled. Enable <code>extension=zip</code> in your <code>php.ini</code> and restart your web server.</p>', 500);
+        }
+
         $listingId = (int) ($params['fid'] ?? 0);
 
         $db     = $this->app->getDatabase();

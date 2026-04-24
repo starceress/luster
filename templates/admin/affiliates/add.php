@@ -64,7 +64,7 @@ $v = static function (string $key, $model, string $prop, string $default = '') u
         <label class="listing-field-label" for="aff-listing">Listing</label>
         <div>
           <div class="select-wrap">
-            <select id="aff-listing" name="fanlisting_id" class="form-select">
+            <select id="aff-listing" name="fanlisting_id" >
               <option value="0"><?= View::e(($site_name ?? 'Collective') . ' (Collective)') ?></option>
               <?php foreach ($listings as $fl): ?>
                 <?php $selId = (int) ($old['fanlisting_id'] ?? ($affiliate?->listingId ?? 0)); ?>
@@ -87,7 +87,7 @@ $v = static function (string $key, $model, string $prop, string $default = '') u
           Affiliate Name <span class="req">*</span>
         </label>
         <div>
-          <input id="aff-name" type="text" name="name" class="form-input"
+          <input id="aff-name" type="text" name="name" class="form"
                  maxlength="255" required
                  placeholder="e.g. Starlight Fanlisting"
                  value="<?= View::e($v('name', $affiliate, 'name')) ?>">
@@ -103,7 +103,7 @@ $v = static function (string $key, $model, string $prop, string $default = '') u
           URL <span class="req">*</span>
         </label>
         <div>
-          <input id="aff-url" type="url" name="url" class="form-input"
+          <input id="aff-url" type="url" name="url" class="form"
                  maxlength="500" placeholder="https://" required
                  value="<?= View::e($v('url', $affiliate, 'url')) ?>">
           <?php if (!empty($fe['url'])): ?>
@@ -116,7 +116,7 @@ $v = static function (string $key, $model, string $prop, string $default = '') u
       <div class="listing-field-row">
         <label class="listing-field-label" for="aff-email">Email</label>
         <div>
-          <input id="aff-email" type="email" name="email" class="form-input"
+          <input id="aff-email" type="email" name="email" class="form"
                  maxlength="255" placeholder="owner@example.com"
                  value="<?= View::e($v('email', $affiliate, 'email')) ?>">
         </div>
@@ -126,7 +126,7 @@ $v = static function (string $key, $model, string $prop, string $default = '') u
       <div class="listing-field-row listing-field-row--top">
         <label class="listing-field-label" for="aff-sort-order">Sort Order</label>
         <div>
-          <input id="aff-sort-order" type="number" name="sort_order" class="form-input form-input--compact"
+          <input id="aff-sort-order" type="number" name="sort_order" class="form form--compact"
                  min="1" max="9999"
                  value="<?= View::e($v('sort_order', $affiliate, 'sortOrder', (string) ($next_sort_order ?? 1))) ?>">
           <p class="form-hint">Lower numbers appear first. Same order = sorted alphabetically.</p>
@@ -149,9 +149,9 @@ $v = static function (string $key, $model, string $prop, string $default = '') u
           <?php endif; ?>
           <label class="file-drop-zone">
             <input type="file" name="image" accept="image/jpeg,image/png,image/gif,image/webp">
-            <svg class="file-drop-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="2" width="12" height="12" rx="1.5"/><circle cx="5.5" cy="5.5" r="1"/><path d="M14 10l-3.5-3.5L6 11l-2-2-2 2"/></svg>
-            <span class="file-drop-label">Click to upload</span>
-            <span class="file-drop-sub">JPEG, PNG, GIF, WebP &mdash; max 2 MB</span>
+            <span class="file-drop-icon"><?= View::icon('image') ?></span>
+              <strong>Click to upload</strong>
+              <span class="form-hint">JPEG, PNG, GIF, WebP &mdash; max 2 MB</span>
           </label>
         </div>
       </div>

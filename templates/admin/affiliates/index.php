@@ -96,8 +96,8 @@ $canReorder = ($search ?? '') === '' && ($filter_fid ?? 'collective') !== '';
       <input type="hidden" name="dir" value="<?= View::e($dir) ?>">
     <?php endif; ?>
 
-    <div class="toolbar-select-wrap">
-    <select name="fanlisting_id" class="form-select js-autosubmit">
+    <div class="select-wrap">
+    <select name="fanlisting_id" class="js-autosubmit">
       <option value="collective"<?= ($filter_fid ?? 'collective') === 'collective' ? ' selected' : '' ?>><?= View::e(($site_name ?? 'Collective') . ' (Collective) Affiliates') ?></option>
       <?php foreach ($listings as $fl): ?>
         <option value="<?= (int) $fl->id ?>"
@@ -108,7 +108,7 @@ $canReorder = ($search ?? '') === '' && ($filter_fid ?? 'collective') !== '';
     </select>
     </div>
 
-    <input type="text" name="search" class="form-input" placeholder="Search name, URL, email&hellip;"
+    <input type="text" name="search" class="form" placeholder="Search name, URL, email&hellip;"
            value="<?= View::e($search ?? '') ?>">
     <button type="submit" class="btn btn-quaternary btn-sm">Search</button>
     <a href="?" class="btn btn-quaternary btn-sm">Reset</a>
@@ -149,7 +149,7 @@ $canReorder = ($search ?? '') === '' && ($filter_fid ?? 'collective') !== '';
       <?php foreach ($affiliates as $aff): ?>
       <tr draggable="true" data-id="<?= (int) $aff->id ?>">
         <td class="table-col-xs table-cell-center">
-          <span class="drag-handle" title="Drag to reorder"> ¿</span>
+          <span class="drag-handle" title="Drag to reorder">Â Â¿</span>
         </td>
         <td>
           <span class="text-strong"><?= View::e($aff->name) ?></span>
@@ -240,7 +240,7 @@ $canReorder = ($search ?? '') === '' && ($filter_fid ?? 'collective') !== '';
           <form method="POST" action="<?= $b ?>/admin/affiliates/<?= (int) $aff->id ?>/toggle"
                 class="action-form-inline">
             <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
-            <button type="submit" class="btn btn-quaternary btn-sm"><?= $aff->active ? 'Disable' : 'Enable' ?></button>
+            <button type="submit" class="btn btn-sm <?= $aff->active ? 'btn-warn' : 'btn-quaternary' ?>"><?= $aff->active ? 'Deactivate' : 'Activate' ?></button>
           </form>
 
           <form method="POST" action="<?= $b ?>/admin/affiliates/<?= (int) $aff->id ?>/delete"

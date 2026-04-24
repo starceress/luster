@@ -51,7 +51,7 @@ $backUrl    = $listing !== null
       <div class="card-head">Load Template</div>
       <div class="card-body">
         <div class="select-wrap">
-          <select id="em-template-select" class="form-select">
+          <select id="em-template-select" >
             <option value="">&mdash; Select a Template &mdash;</option>
             <?php foreach ($saved_emails as $t): ?>
               <option value="<?= View::e($t->subject) ?>"
@@ -76,7 +76,7 @@ $backUrl    = $listing !== null
           <input type="hidden" name="tpl_subject" id="em-save-subject">
           <input type="hidden" name="tpl_body"    id="em-save-body">
           <input type="text"   name="tpl_name"    id="em-save-name"
-                 class="form-input" placeholder="Template name&hellip;" maxlength="150">
+                 class="form" placeholder="Template name&hellip;" maxlength="150">
           <button type="submit" class="btn btn-secondary btn-sm btn-block-center">Save Template</button>
         </form>
       </div>
@@ -144,7 +144,7 @@ $backUrl    = $listing !== null
       </div>
 
       <div>
-        <textarea class="email-textarea" name="body" id="body"
+        <textarea class="email" name="body" id="body"
                   placeholder="Write your message&hellip;"><?= $oldBody ?></textarea>
       </div>
 

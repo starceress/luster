@@ -60,7 +60,7 @@ $catSortUrl = static function (string $col) use ($b, $sort, $dir, $source, $sear
 <!-- Toolbar -->
 <div class="toolbar">
   <div class="actions-row">
-    <button type="button" class="btn btn-quaternary btn-sm fl-filter-toggle" id="fl-filter-toggle"
+    <button type="button" class="btn btn-preview btn-sm filter-toggle" id="fl-filter-toggle"
             aria-expanded="<?= $filtersActive ? 'true' : 'false' ?>"
             aria-controls="filter-panel">
       <?= View::icon('filter') ?>
@@ -78,8 +78,8 @@ $catSortUrl = static function (string $col) use ($b, $sort, $dir, $source, $sear
     <?php if ($sort !== 'source'): ?><input type="hidden" name="sort" value="<?= View::e($sort) ?>"><?php endif; ?>
     <?php if ($dir !== 'asc'):    ?><input type="hidden" name="dir"  value="<?= View::e($dir) ?>"><?php endif; ?>
 
-    <div class="toolbar-select-wrap">
-    <select name="source" class="form-select js-autosubmit">
+    <div class="select-wrap">
+    <select name="source" class="js-autosubmit">
       <option value="">All Networks</option>
       <option value="tfl"  <?= ($source ?? '') === 'tfl'  ? 'selected' : '' ?>>TFL</option>
       <option value="tafl" <?= ($source ?? '') === 'tafl' ? 'selected' : '' ?>>TAFL</option>
@@ -92,7 +92,7 @@ $catSortUrl = static function (string $col) use ($b, $sort, $dir, $source, $sear
     </select>
     </div>
 
-    <input type="text" name="search" class="form-input" placeholder="Search&hellip;"
+    <input type="text" name="search" class="form" placeholder="Search&hellip;"
            value="<?= View::e($search ?? '') ?>">
     <button type="submit" class="btn btn-quaternary btn-sm">Search</button>
     <a href="<?= $b ?>/admin/categories" class="btn btn-quaternary btn-sm">Reset</a>
@@ -137,7 +137,7 @@ $catSortUrl = static function (string $col) use ($b, $sort, $dir, $source, $sear
     </thead>
     <tbody>
       <?php
-      // Build a quick id†’name lookup for parent display
+      // Build a quick idâ€ â€™name lookup for parent display
       $catIndex = [];
       foreach ($all_cats ?? [] as $_ac) { $catIndex[$_ac->id] = $_ac->name; }
       ?>
@@ -147,7 +147,7 @@ $catSortUrl = static function (string $col) use ($b, $sort, $dir, $source, $sear
         <td data-label="Network"><?= $sourceBadge($cat->source ?? 'custom') ?></td>
         <td data-label="Name">
           <?php if ($cat->parentId !== null): ?>
-            <span class="tree-prefix">””</span>
+            <span class="tree-prefix">&#x2514;&#x2514;</span>
           <?php endif; ?>
           <?= View::e($cat->name ?? '') ?>
         </td>

@@ -27,7 +27,11 @@ $b = rtrim(View::e($base_url), '/');
   </div>
 <?php endif; ?>
 
-<form method="POST" action="<?= $b ?>/admin/listings/<?= (int) $listing->id ?>/edit-prefix" class="js-warn-unsaved">
+<form method="POST" action="<?= $b ?>/admin/listings/<?= (int) $listing->id ?>/edit-prefix" class="js-warn-unsaved"
+      data-del-modal
+      data-del-entity="rename_prefix"
+      data-del-name="<?= View::e($listing->dbprefix) ?>"
+      data-del-context-from="new_prefix">
   <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
 
   <div class="gradient-card">
@@ -39,14 +43,13 @@ $b = rtrim(View::e($base_url), '/');
       </div>
     </div>
 
-    <div class="callout callout-tight">
-      <strong>&#9888; Destructive operation.</strong>
-      This renames the member table in your database. If anything goes wrong your member
-      data may become unreachable. There is no undo - back up your database before proceeding.
+    <div class="card-body">
+      <div class="callout callout-inline">
+        <?= View::icon('alert', ['width' => 24, 'height' => 24, 'style' => 'color:var(--warn)']) ?>
+        <div><strong>Destructive Operation.</strong> This renames the member table in your database. If anything goes wrong your member
+        data may become unreachable. There is no undo - back up your database before proceeding.
+      </div>
     </div>
-
-    <div class="listing-field-section">
-      <div class="pc-section-label">Rename Details</div>
 
       <div class="listing-field-row listing-field-row--top">
         <span class="listing-field-label">Current Prefix</span>
@@ -61,7 +64,7 @@ $b = rtrim(View::e($base_url), '/');
           New Prefix <span class="req">*</span>
         </label>
         <div>
-          <input id="ep-new-prefix" type="text" name="new_prefix" class="form-input" pattern="[a-zA-Z0-9_]+" placeholder="e.g. fl_music_" required>
+          <input id="ep-new-prefix" type="text" name="new_prefix" class="form" pattern="[a-zA-Z0-9_]+" placeholder="e.g. fl_music_" required>
           <p class="form-hint">Letters, numbers, and underscores only. Must not already exist as a table.</p>
         </div>
       </div>
@@ -71,7 +74,7 @@ $b = rtrim(View::e($base_url), '/');
           Confirm Prefix <span class="req">*</span>
         </label>
         <div>
-          <input id="ep-confirm" type="text" name="confirm_prefix" class="form-input" placeholder="Re-enter new prefix" required>
+          <input id="ep-confirm" type="text" name="confirm_prefix" class="form" placeholder="Re-enter new prefix" required>
           <p class="form-hint">Re-enter the new prefix to confirm the change.</p>
         </div>
       </div>

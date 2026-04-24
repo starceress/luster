@@ -27,7 +27,7 @@ $fe = $field_errors ?? [];
           Category Name <span class="req">*</span>
         </label>
         <div>
-          <input id="cat-name" type="text" name="name" class="form-input"
+          <input id="cat-name" type="text" name="name" class="form"
                  maxlength="150" required
                  placeholder="e.g. Anime"
                  value="<?= View::e($old['name'] ?? '') ?>">
@@ -41,7 +41,7 @@ $fe = $field_errors ?? [];
         <label class="listing-field-label" for="cat-parent">Parent Category</label>
         <div>
           <div class="select-wrap">
-            <select id="cat-parent" name="parent_id" class="form-select">
+            <select id="cat-parent" name="parent_id" >
               <option value="">None</option>
               <?php foreach ($all_cats ?? [] as $c): ?>
                 <?php if ($c->parent_id === null): ?>
@@ -58,7 +58,7 @@ $fe = $field_errors ?? [];
         <label class="listing-field-label" for="add-network-toggle">Add to a Network?</label>
         <div>
           <div class="select-wrap">
-            <select id="add-network-toggle" name="add_network" class="form-select">
+            <select id="add-network-toggle" name="add_network" >
               <option value="no">No - use Custom</option>
               <option value="yes">Yes - specify network</option>
             </select>
@@ -70,7 +70,7 @@ $fe = $field_errors ?? [];
       <div class="listing-field-row listing-field-row--top is-hidden" id="network-name-row">
         <label class="listing-field-label" for="cat-network">Network Name</label>
         <div>
-          <input id="cat-network" type="text" name="network_name" class="form-input"
+          <input id="cat-network" type="text" name="network_name" class="form"
                  maxlength="50" placeholder="e.g. MyNetwork">
         </div>
       </div>

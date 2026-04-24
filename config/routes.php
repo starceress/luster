@@ -255,10 +255,7 @@ return [
         $router->post('/admin/listings/{fid}/fields/{name}/delete',
             FieldController::class, 'delete');
 
-        // ── Per-listing affiliate add (must be before /affiliates routes
-        //    to avoid route ordering issues, and before /listings/{id}) ──
-        $router->get('/admin/listings/{fid}/affiliates/add',
-            AffiliateController::class, 'add');
+        // ── Per-listing affiliate add — POST only (form is now inline in the listing edit tab)
         $router->post('/admin/listings/{fid}/affiliates/add',
             AffiliateController::class, 'add');
 

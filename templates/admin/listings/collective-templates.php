@@ -48,30 +48,26 @@ $statsVal  = $ct['collective_stats_template'] ?? $defaults['collective_stats_tem
         </div>
       </div>
 
-      <div class="pc-section">
+      <div class="card-body">
         <div class="pc-section-label">Owned Listings</div>
         <div class="form-group">
-          <textarea name="owned_template" id="owned_template" class="form-textarea tpl-textarea" spellcheck="false"><?= View::e($ownedVal) ?></textarea>
+          <textarea name="owned_template" id="owned_template" class="form tpl-textarea" spellcheck="false"><?= View::e($ownedVal) ?></textarea>
         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-ghost btn-sm" data-textarea="owned_template">Reset to Default</button>
         </div>
-      </div>
 
-      <div class="pc-section">
         <div class="pc-section-label">Joined Listings</div>
         <div class="form-group">
-          <textarea name="joined_template" id="joined_template" class="form-textarea tpl-textarea" spellcheck="false"><?= View::e($joinedVal) ?></textarea>
+          <textarea name="joined_template" id="joined_template" class="form tpl-textarea" spellcheck="false"><?= View::e($joinedVal) ?></textarea>
         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-ghost btn-sm" data-textarea="joined_template">Reset to Default</button>
         </div>
-      </div>
 
-      <div class="pc-section">
         <div class="pc-section-label">Statistics</div>
         <div class="form-group">
-          <textarea name="collective_stats_template" id="collective_stats_template" class="form-textarea tpl-textarea tpl-textarea-lg" spellcheck="false"><?= View::e($statsVal) ?></textarea>
+          <textarea name="collective_stats_template" id="collective_stats_template" class="form tpl-textarea tpl-textarea-lg" spellcheck="false"><?= View::e($statsVal) ?></textarea>
         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-ghost btn-sm" data-textarea="collective_stats_template">Reset to Default</button>

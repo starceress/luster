@@ -67,15 +67,15 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
     &larr; Back to Owned Listings
   </a>
   <div class="topbar-actions">
-    <a href="<?= $b ?>/admin/members/<?= (int) $listing->id ?>" class="btn btn-quaternary btn-sm">Members</a>
-    <a href="<?= $b ?>/admin/emails?tab=templates&listing=<?= (int) $listing->id ?>" class="btn btn-quaternary btn-sm">Emails</a>
+    <a href="<?= $b ?>/admin/members/<?= (int) $listing->id ?>" class="btn btn-quaternary btn-sm">Member List</a>
+    <a href="<?= $b ?>/admin/emails?tab=templates&listing=<?= (int) $listing->id ?>" class="btn btn-quaternary btn-sm">Bulk Email</a>
     <form method="post"
           action="<?= $b ?>/admin/listings/<?= (int) $listing->id ?>/delete"
           class="action-form-inline"
           data-del-modal data-del-entity="listing"
           data-del-name="<?= View::e($listing->name) ?>">
       <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
-      <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+      <button type="submit" class="btn btn-danger btn-sm"><?= View::icon('delete') ?> Delete Listing</button>
     </form>
   </div>
 </div>
@@ -119,9 +119,9 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
   <button class="tabs-btn" data-tab="advanced">Advanced</button>
 </div>
 <div class="tabs-select-wrap">
-  <span class="tabs-select-label">Navigation</span>
+  <span class="overview-section-title">Section</span>
   <div class="select-wrap flex-fill">
-    <select class="tabs-select form-select">
+    <select class="tabs-select">
       <option value="general">General</option>
       <option value="fields">Additional Fields</option>
       <option value="codes">Codes</option>
@@ -158,7 +158,7 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
                  data-custom='<?= $dataCustom ?>'
                  data-custom-cats='<?= $dataCustomCats ?>'
                  data-existing='<?= $dataExisting ?>'>
-              <div id="cat-rows"></div>
+              <div id="cat-rows" class="select-auto"></div>
               <a href="#" class="link btn btn-sm" id="cat-add"><?= View::icon('add') ?> Add another category</a>
             </div>
             <p class="form-hint">The network(s) and category(ies) this listing is listed under.</p>
@@ -168,7 +168,7 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
         <div class="listing-field-row listing-field-row--top">
           <label class="listing-field-label" for="fl-subject">Subject</label>
           <div>
-            <input id="fl-subject" type="text" name="subject" class="form-input"
+            <input id="fl-subject" type="text" name="subject" class="form"
                    value="<?= View::e($listing->subject ?? '') ?>" maxlength="255">
             <p class="form-hint form-hint-inline">The subject of your listing (e.g. character name, show title).</p>
           </div>
@@ -177,10 +177,10 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
         <div class="listing-field-row<?= !empty($fe['title']) ? ' has-error' : '' ?>">
           <label class="listing-field-label" for="fl-title">Title</label>
           <div>
-            <input id="fl-title" type="text" name="title" class="form-input"
+            <input id="fl-title" type="text" name="title" class="form"
                    value="<?= View::e((string) $oldTitle) ?>"
                    maxlength="255" required>
-            <span class="form-hint">Optional name of your listing — defaults to "Subject" if left blank.</span>
+            <span class="form-hint">Optional name of your listing, &mdash; defaults to "Subject" if left blank.</span>
             <?php if (!empty($fe['title'])): ?><p class="field-error"><?= View::e($fe['title'][0]) ?></p><?php endif; ?>
           </div>
         </div>
@@ -188,7 +188,7 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
         <div class="listing-field-row<?= !empty($fe['url']) ? ' has-error' : '' ?>">
           <label class="listing-field-label" for="fl-url">Website URL <span class="req">*</span></label>
           <div>
-            <input id="fl-url" type="url" name="url" class="form-input"
+            <input id="fl-url" type="url" name="url" class="form"
                    value="<?= View::e((string) $oldUrl) ?>"
                    maxlength="500" placeholder="https://" required>
             <?php if (!empty($fe['url'])): ?><p class="field-error"><?= View::e($fe['url'][0]) ?></p><?php endif; ?>
@@ -198,7 +198,7 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
         <div class="listing-field-row listing-field-row--top<?= !empty($fe['email']) ? ' has-error' : '' ?>">
           <label class="listing-field-label" for="fl-email">Contact Email</label>
           <div>
-            <input id="fl-email" type="email" name="email" class="form-input"
+            <input id="fl-email" type="email" name="email" class="form"
                    value="<?= View::e((string) $oldEmail) ?>"
                    maxlength="255" required>
             <p class="form-hint form-hint-inline">This is the email address that listing emails will be sent from.</p>
@@ -228,7 +228,7 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
               $openedRaw = (string) ($listing->opened ?? '');
               $openedDateVal = strlen($openedRaw) >= 10 ? substr($openedRaw, 0, 10) : '';
             ?>
-            <input id="fl-opened" type="date" name="opened" class="form-input form-input--compact"
+            <input id="fl-opened" type="date" name="opened" class="form form--compact"
                    value="<?= View::e($openedDateVal) ?>">
             <input type="hidden" id="fl-opened-tba" name="opened" value="TBA" disabled>
             <span id="fl-opened-tba-text" class="tba-note">TBA &mdash; date will be set when the listing opens.</span>
@@ -260,8 +260,8 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
             <?php endif; ?>
             <label class="file-drop-zone">
               <input type="file" id="fl-image" name="image" accept="image/jpeg,image/png,image/gif,image/webp"><span class="file-drop-icon"><?= View::icon('image') ?></span>
-              <span class="file-drop-label">Click to upload</span>
-              <span class="file-drop-sub">JPEG, PNG, GIF, WebP &mdash; max 2 MB</span>
+              <strong>Click to upload</strong>
+              <span class="form-hint">JPEG, PNG, GIF, WebP &mdash; max 2 MB</span>
             </label>
           </div>
         </div>
@@ -273,8 +273,8 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
         <?php $lt = $listing_type ?? 'listing'; ?>
         <div class="listing-field-row">
           <label class="listing-field-label" for="fl-listing-type">Type</label>
-          <div class="select-wrap form-select--compact">
-            <select id="fl-listing-type" name="listing_type" class="form-select">
+          <div class="select-wrap select-auto">
+            <select id="fl-listing-type" name="listing_type" >
               <option value="listing"    <?= $lt === 'listing'    ? 'selected' : '' ?>>Fanlisting</option>
               <option value="clique"     <?= $lt === 'clique'     ? 'selected' : '' ?>>Clique</option>
               <option value="collective" <?= $lt === 'collective' ? 'selected' : '' ?>>Collective</option>
@@ -288,7 +288,7 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
         <div class="listing-field-row listing-field-row--top">
           <label class="listing-field-label" for="fl-members-per-page">Members per page</label>
           <div>
-            <input id="fl-members-per-page" type="number" name="members_per_page" class="form-input form-input--compact"
+            <input id="fl-members-per-page" type="number" name="members_per_page" class="form form--compact"
                    min="5" max="200" value="<?= (int) ($members_per_page ?? 25) ?>">
             <p class="form-hint">Admin list view (5&ndash;200).</p>
           </div>
@@ -308,25 +308,24 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
         <div class="listing-field-row listing-field-row--top">
           <label class="listing-field-label" for="fl-contact-recipient">Contact recipient</label>
           <div>
-            <input id="fl-contact-recipient" type="email" name="contact_recipient" class="form-input"
+            <input id="fl-contact-recipient" type="email" name="contact_recipient" class="form"
                    maxlength="255" placeholder="Defaults to listing email"
                    value="<?= View::e($contact_recipient ?? '') ?>">
             <p class="form-hint">Override which email address receives contact messages for this listing. Leave blank to use the listing's email address.</p>
           </div>
         </div>
       </div>
-      
 
       <div class="pc-section">
         <div class="pc-section-label">Maintenance</div>
         <div class="listing-field-row listing-field-row--top">
           <label class="listing-field-label" for="fl-last-updated">Last Updated</label>
           <div>
-            <input id="fl-last-updated" type="date" name="fl_last_updated" class="form-input form-input--compact"
-                   value="<?= View::e($fl_last_updated ?? '') ?>">
             <div class="compact-actions">
-              <button type="button" class="btn btn-quaternary btn-sm" id="set-today-btn">Today</button>
-              <button type="button" class="btn btn-ghost btn-sm" id="clear-date-btn">Clear</button>
+              <input id="fl-last-updated" type="date" name="fl_last_updated" class="form form--compact"
+                     value="<?= View::e($fl_last_updated ?? '') ?>">
+              <button type="button" class="btn btn-tertiary btn-sm" id="set-today-btn">Set Today's Date</button>
+              <button type="button" class="btn btn-ghost btn-sm" id="clear-date-btn">Reset to Default</button>
             </div>
             <p class="form-hint">Drives the staleness check on the dashboard.</p>
           </div>
@@ -344,118 +343,108 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
 
 
 <div id="tab-templates" class="tabs-panel">
-<div class="edit-tab-grid">
+<form method="POST" action="<?= $b ?>/admin/listings/<?= (int) $listing->id ?>/templates" class="js-warn-unsaved">
+  <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
 
-  <!-- Left: template editor -->
-  <div class="gradient-card">
-    <div class="pc-head">
-      <div class="pc-head-icon pc-head-icon-bg"><?= View::icon('embed') ?></div>
-      <div class="pc-head-meta">
-        <div class="pc-head-title">HTML Templates</div>
-        <div class="pc-head-sub">Controls how members, affiliates, and stats render on your site.</div>
-      </div>
-    </div>
+  <div class="composer-grid">
 
-    <div class="tpl-field">
-      <div class="tpl-label">Stats URL</div>
-      <div class="ro-field ro-field-sm"><?= $b ?>/stats/<?= (int) $listing->id ?></div>
-    </div>
-
-    <form method="POST" action="<?= $b ?>/admin/listings/<?= (int) $listing->id ?>/templates" class="js-warn-unsaved">
-      <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
-
-      <div class="tpl-field">
-        <div class="tpl-label split-label">
-          Members List
-          <button type="button" class="btn-tpl-reset" data-target="members_template">Reset to default</button>
+    <!-- Left: template editors -->
+    <div class="gradient-card">
+      <div class="pc-head">
+        <div class="pc-head-icon pc-head-icon-bg"><?= View::icon('embed') ?></div>
+        <div class="pc-head-meta">
+          <div class="pc-head-title">HTML Templates</div>
+          <div class="pc-head-sub">Controls how members, affiliates, and stats render on your site.</div>
         </div>
-        <textarea id="members_template" name="members_template" class="form-textarea" rows="6"><?= View::e($templates['members_template'] ?? '<li><a href="{fan_url}">{fan_name}</a> - {fan_country}</li>') ?></textarea>
       </div>
 
-      <div class="tpl-field">
-        <div class="tpl-label split-label">
-          Affiliates
-          <button type="button" class="btn-tpl-reset" data-target="affiliates_template">Reset to default</button>
+      <div class="card-body">
+        <div class="pc-section-label">Members List</div>
+        <div class="form-group">
+          <textarea id="members_template" name="members_template" class="form tpl-textarea" spellcheck="false"><?= View::e($templates['members_template'] ?? '<li><a href="{fan_url}">{fan_name}</a> &mdash; {fan_country}</li>') ?></textarea>
         </div>
-        <textarea id="affiliates_template" name="affiliates_template" class="form-textarea" rows="6"><?= View::e($templates['affiliates_template'] ?? '<a href="{aff_url}" target="_blank" title="{aff_name}">{aff_image}</a>') ?></textarea>
-      </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-ghost btn-sm btn-tpl-reset" data-target="members_template">Reset to Default</button>
+        </div>
 
-      <div class="tpl-field">
-        <div class="tpl-label split-label">
-          Statistics
-          <button type="button" class="btn-tpl-reset" data-target="stats_template">Reset to default</button>
+        <div class="pc-section-label">Affiliates</div>
+        <div class="form-group">
+          <textarea id="affiliates_template" name="affiliates_template" class="form tpl-textarea" spellcheck="false"><?= View::e($templates['affiliates_template'] ?? '<a href="{aff_url}" target="_blank" title="{aff_name}">{aff_image}</a>') ?></textarea>
         </div>
-        <textarea id="stats_template" name="stats_template" class="form-textarea" rows="6"><?= View::e($templates['stats_template'] ?? '<div><b>Opened:</b> {stat_opened}<br>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-ghost btn-sm btn-tpl-reset" data-target="affiliates_template">Reset to Default</button>
+        </div>
+
+        <div class="pc-section-label">Statistics</div>
+        <div class="form-group">
+          <textarea id="stats_template" name="stats_template" class="form tpl-textarea tpl-textarea-lg" spellcheck="false"><?= View::e($templates['stats_template'] ?? '<div><b>Opened:</b> {stat_opened}<br>
 <b>Updated:</b> {stat_last_updated}<br>
 <b>Fans:</b> {stat_approved} (+ {stat_pending} pending)<br>
 <b>Newest Fan:</b> {stat_newmembers}<br>
 <b>Growth:</b> {stat_growth}</div>') ?></textarea>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-ghost btn-sm btn-tpl-reset" data-target="stats_template">Reset to Default</button>
+        </div>
       </div>
 
       <div class="composer-footer">
         <button type="submit" class="btn btn-primary">Save Templates</button>
         <a href="<?= $b ?>/admin/listings" class="btn btn-ghost">Cancel</a>
       </div>
-    </form>
-
-    <script type="application/json" id="luster-tpl-defaults">{"members_template":"<li><a href=\"{fan_url}\">{fan_name}<\/a> \u2014 {fan_country}<\/li>","affiliates_template":"<a href=\"{aff_url}\" target=\"_blank\" title=\"{aff_name}\">{aff_image}<\/a>","stats_template":"<div>\n<b>Opened:<\/b> {stat_opened}<br>\n<b>Updated:<\/b> {stat_last_updated}<br>\n<b>Fans:<\/b> {stat_approved} (+ {stat_pending} pending)<br>\n<b>Newest Fan:<\/b> {stat_newmembers}<br>\n<b>Growth:<\/b> {stat_growth}\n<\/div>"}</script>
-  </div>
-
-  <!-- Right: token reference -->
-  <div class="card edit-side-card">
-    <div class="card-head">
-      <span>Available Tokens</span>
     </div>
-    <details class="chevron" open>
-      <summary class="chevron-head">Members List</summary>
-      <div class="chevron-body">
-        <table class="et-token-table">
-          <tbody>
-            <tr class="tok-row" data-textarea="members_template" data-token="{fan_name}"    title="Click to insert"><td><code>{fan_name}</code></td><td>Fan&rsquo;s display name</td></tr>
-            <tr class="tok-row" data-textarea="members_template" data-token="{fan_email}"   title="Click to insert"><td><code>{fan_email}</code></td><td>Fan&rsquo;s email address</td></tr>
-            <tr class="tok-row" data-textarea="members_template" data-token="{fan_url}"     title="Click to insert"><td><code>{fan_url}</code></td><td>Fan&rsquo;s website URL</td></tr>
-            <tr class="tok-row" data-textarea="members_template" data-token="{fan_country}" title="Click to insert"><td><code>{fan_country}</code></td><td>Fan&rsquo;s country</td></tr>
-          </tbody>
-        </table>
-      </div>
-    </details>
 
-    <details class="chevron" open>
-      <summary class="chevron-head">
-        <span class="chevron-title">Affiliates</span>
-      </summary>
-      <div class="chevron-body">
-        <table class="et-token-table">
-          <tbody>
-            <tr class="tok-row" data-textarea="affiliates_template" data-token="{aff_url}"   title="Click to insert"><td><code>{aff_url}</code></td><td>Affiliate URL</td></tr>
-            <tr class="tok-row" data-textarea="affiliates_template" data-token="{aff_image}" title="Click to insert"><td><code>{aff_image}</code></td><td>Affiliate image tag</td></tr>
-            <tr class="tok-row" data-textarea="affiliates_template" data-token="{aff_name}"  title="Click to insert"><td><code>{aff_name}</code></td><td>Affiliate name</td></tr>
-          </tbody>
-        </table>
-      </div>
-    </details>
+    <!-- Right: token reference -->
+    <div class="composer-side">
+      <details class="card chevron" open>
+        <summary class="chevron-head">Members List Tokens</summary>
+        <div class="chevron-body">
+          <table class="et-token-table">
+            <tbody>
+              <tr class="tok-row" data-textarea="members_template" data-token="{fan_name}"><td><code>{fan_name}</code></td><td>Fan&rsquo;s display name</td></tr>
+              <tr class="tok-row" data-textarea="members_template" data-token="{fan_email}"><td><code>{fan_email}</code></td><td>Fan&rsquo;s email address</td></tr>
+              <tr class="tok-row" data-textarea="members_template" data-token="{fan_url}"><td><code>{fan_url}</code></td><td>Fan&rsquo;s website URL</td></tr>
+              <tr class="tok-row" data-textarea="members_template" data-token="{fan_country}"><td><code>{fan_country}</code></td><td>Fan&rsquo;s country</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </details>
 
-    <details class="chevron" open>
-      <summary class="chevron-head">
-        <span class="chevron-title">Statistics</span>
-      </summary>
-      <div class="chevron-body">
-        <table class="et-token-table">
-          <tbody>
-            <tr class="tok-row" data-textarea="stats_template" data-token="{stat_opened}"       title="Click to insert"><td><code>{stat_opened}</code></td><td>Date opened</td></tr>
-            <tr class="tok-row" data-textarea="stats_template" data-token="{stat_updated}"      title="Click to insert"><td><code>{stat_updated}</code></td><td>Last updated (formatted)</td></tr>
-            <tr class="tok-row" data-textarea="stats_template" data-token="{stat_last_updated}" title="Click to insert"><td><code>{stat_last_updated}</code></td><td>Last updated (raw date)</td></tr>
-            <tr class="tok-row" data-textarea="stats_template" data-token="{stat_approved}"     title="Click to insert"><td><code>{stat_approved}</code></td><td>Approved member count</td></tr>
-            <tr class="tok-row" data-textarea="stats_template" data-token="{stat_pending}"      title="Click to insert"><td><code>{stat_pending}</code></td><td>Pending member count</td></tr>
-            <tr class="tok-row" data-textarea="stats_template" data-token="{stat_newmembers}"   title="Click to insert"><td><code>{stat_newmembers}</code></td><td>Newest member name</td></tr>
-            <tr class="tok-row" data-textarea="stats_template" data-token="{stat_growth}"       title="Click to insert"><td><code>{stat_growth}</code></td><td>Average members per day since opening (e.g. 1.23 members/day)</td></tr>
-          </tbody>
-        </table>
-      </div>
-    </details>
+      <details class="card chevron" open>
+        <summary class="chevron-head">Affiliates Tokens</summary>
+        <div class="chevron-body">
+          <table class="et-token-table">
+            <tbody>
+              <tr class="tok-row" data-textarea="affiliates_template" data-token="{aff_url}"><td><code>{aff_url}</code></td><td>Affiliate URL</td></tr>
+              <tr class="tok-row" data-textarea="affiliates_template" data-token="{aff_image}"><td><code>{aff_image}</code></td><td>Affiliate image tag</td></tr>
+              <tr class="tok-row" data-textarea="affiliates_template" data-token="{aff_name}"><td><code>{aff_name}</code></td><td>Affiliate name</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </details>
+
+      <details class="card chevron" open>
+        <summary class="chevron-head">Statistics Tokens</summary>
+        <div class="chevron-body">
+          <table class="et-token-table">
+            <tbody>
+              <tr class="tok-row" data-textarea="stats_template" data-token="{stat_opened}"><td><code>{stat_opened}</code></td><td>Date opened</td></tr>
+              <tr class="tok-row" data-textarea="stats_template" data-token="{stat_updated}"><td><code>{stat_updated}</code></td><td>Last updated (formatted)</td></tr>
+              <tr class="tok-row" data-textarea="stats_template" data-token="{stat_last_updated}"><td><code>{stat_last_updated}</code></td><td>Last updated (raw date)</td></tr>
+              <tr class="tok-row" data-textarea="stats_template" data-token="{stat_approved}"><td><code>{stat_approved}</code></td><td>Approved member count</td></tr>
+              <tr class="tok-row" data-textarea="stats_template" data-token="{stat_pending}"><td><code>{stat_pending}</code></td><td>Pending member count</td></tr>
+              <tr class="tok-row" data-textarea="stats_template" data-token="{stat_newmembers}"><td><code>{stat_newmembers}</code></td><td>Newest member name</td></tr>
+              <tr class="tok-row" data-textarea="stats_template" data-token="{stat_growth}"><td><code>{stat_growth}</code></td><td>Average members/day since opening</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </details>
+    </div>
+
   </div>
+</form>
 
-</div>
+<script type="application/json" id="luster-tpl-defaults">{"members_template":"<li><a href=\"{fan_url}\">{fan_name}<\/a> \u2014 {fan_country}<\/li>","affiliates_template":"<a href=\"{aff_url}\" target=\"_blank\" title=\"{aff_name}\">{aff_image}<\/a>","stats_template":"<div>\n<b>Opened:<\/b> {stat_opened}<br>\n<b>Updated:<\/b> {stat_last_updated}<br>\n<b>Fans:<\/b> {stat_approved} (+ {stat_pending} pending)<br>\n<b>Newest Fan:<\/b> {stat_newmembers}<br>\n<b>Growth:<\/b> {stat_growth}\n<\/div>"}</script>
 </div><!-- /#tab-templates -->
 
 <!--  TAB: ADDITIONAL FIELDS  -->
@@ -467,101 +456,140 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
   </div>
   <?php else: ?>
 
-  <div class="card">
-    <div class="card-head">Add New Field</div>
-    <div class="pc-section">
-    <form method="POST" action="<?= $b ?>/admin/listings/<?= (int) $listing->id ?>/fields/add" id="fields-add-form">
-      <input type="hidden" name="_csrf"     value="<?= View::e($csrf_token ?? '') ?>">
-      <input type="hidden" name="from_edit" value="1">
-      <div class="fields-add-grid">
-        <div class="form-group">
-          <label class="form-label">Field Name</label>
-          <input type="text" name="name" class="form-input" maxlength="30" pattern="[a-zA-Z0-9_]+"
-                 placeholder="e.g. fave_song" required
-                 title="Letters, numbers and underscores only">
-          <p class="form-hint">Letters (a-z, A-Z) and numbers (0-9) only. NO SPACES — use underscores in place of spaces.<br>
-          Max 30 characters. Must be unique per listing and per additional field.</p>
+  <form method="POST" action="<?= $b ?>/admin/listings/<?= (int) $listing->id ?>/fields/add" id="fields-add-form" class="js-warn-unsaved">
+    <input type="hidden" name="_csrf"     value="<?= View::e($csrf_token ?? '') ?>">
+    <input type="hidden" name="from_edit" value="1">
+    <div class="gradient-card">
+      <div class="pc-head">
+        <div class="pc-head-icon pc-head-icon-bg"><?= View::icon('add') ?></div>
+        <div class="pc-head-meta">
+          <div class="pc-head-title">Add New Field</div>
+          <div class="pc-head-sub">Create an extra member field for this listing.</div>
         </div>
-        <div class="form-group">
-          <label class="form-label">Label</label>
-          <input type="text" name="label" class="form-input" maxlength="100" placeholder="e.g. Favourite Song" required>
+      </div>
+      <div class="listing-field-section">
+        <div class="callout"><strong>Rules:</strong> Letters (a-z, A-Z) and numbers (0-9) only. <u>NO SPACES</u> — use underscores in place of spaces. Max 30 characters. Must be unique per listing and per additional field.</div>
+
+        <div class="listing-field-row listing-field-row--top">
+          <label class="listing-field-label" for="af-name">Field Name <span class="req">*</span></label>
+          <div>
+            <input type="text" class="form" id="af-name" name="name"
+                   maxlength="30" pattern="[a-zA-Z0-9_]+"
+                   placeholder="e.g. fave_song" required
+                   title="Letters, numbers and underscores only">
+            <p class="form-hint">Database field name. Please refer to the rules highlighted above..</p>
+          </div>
         </div>
-        <div class="form-group">
-          <label class="form-label">Type</label>
-          <div class="select-wrap">
-            <select name="type" id="fields-type-sel" class="form-select">
-              <option value="text">Text Field</option>
-              <option value="dropdown">Dropdown List</option>
-              <option value="checkbox">Checkbox</option>
-              <option value="radio">Radio Button</option>
-            </select>
+        <div class="listing-field-row listing-field-row--top">
+          <label class="listing-field-label" for="af-label">Label <span class="req">*</span></label>
+          <div>
+            <input type="text" class="form" id="af-label" name="label"
+                   maxlength="100" placeholder="e.g. Favourite Song" required>
+            <p class="form-hint">The associatedlabel members will see on your join form and members pages.</p>
+          </div>
+        </div>
+        <div class="listing-field-row listing-field-row--top">
+          <label class="listing-field-label" for="af-type">Type</label>
+          <div>
+            <div class="select-wrap">
+              <select class="form" id="af-type" name="type">
+                <option value="text">Text Field</option>
+                <option value="dropdown">Dropdown</option>
+                <option value="checkbox">Checkbox</option>
+                <option value="radio">Radio Button</option>
+              </select>
+            </div>
+          </div>
+        </div>
+        <div id="af-options-row" class="listing-field-row listing-field-row--top is-hidden">
+          <label class="listing-field-label" for="af-options">Options</label>
+          <div>
+            <textarea class="form" id="af-options" name="options" rows="2"
+                      placeholder="e.g. Option A, Option B, Option C"></textarea>
+            <p class="form-hint">Comma-separated values for drop down, checkbox, and radio button fields.</p>
+          </div>
+        </div>
+        <div class="listing-field-row listing-field-row--top">
+          <span class="listing-field-label">Required</span>
+          <div>
+            <div style="display:flex;gap:1.25rem;">
+              <label class="form-check">
+                <input type="radio" name="required" value="1">
+                <span class="form-check-label">Yes</span>
+              </label>
+              <label class="form-check">
+                <input type="radio" name="required" value="0" checked>
+                <span class="form-check-label">No</span>
+              </label>
+            </div>
+            <p class="form-hint">If Yes, members must fill in this field to successfully submit the form.</p>
           </div>
         </div>
       </div>
-      <div id="fields-options-row" class="is-hidden">
-        <div class="form-group">
-          <label class="form-label">Options</label>
-          <textarea name="options" class="form-textarea" rows="2"
-                    placeholder="e.g. Option A, Option B, Option C"></textarea>
-          <p class="form-hint">Separate options with commas.</p>
-        </div>
+      <div class="composer-footer">
+        <button type="submit" class="btn btn-primary">Add Field</button>
+        <button type="button" class="btn btn-ghost js-form-reset">Clear</button>
       </div>
-    </form>
     </div>
-    <div class="composer-footer">
-      <button type="submit" form="fields-add-form" class="btn btn-primary">Add Field</button>
-      <button type="reset" form="fields-add-form" class="btn btn-ghost">Clear Form</button>
-    </div>
-  </div>
+  </form>
 
   <div class="card">
     <div class="card-head">Current Fields</div>
     <?php if (empty($fields)): ?>
-      <p class="text-muted">No additional fields defined yet.</p>
+      <div class="empty">
+        <span class="empty-icon"><?= View::icon('tag', ['width' => 32, 'height' => 32]) ?></span>
+        No additional fields defined yet.
+      </div>
     <?php else: ?>
       <div class="table-wrap">
-      <table class="data-table">
-        <thead>
-          <tr>
-            <th>Form Label</th>
-            <th>Field Name</th>
-            <th>Type</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          <?php foreach ($fields as $field): ?>
-          <tr>
-            <td><?= View::e($field->label) ?></td>
-            <td>
-              <code><?= View::e($field->name) ?></code>
-            </td>
-            <?php $_typeLabels = ['text' => 'Text Field', 'dropdown' => 'Dropdown List', 'checkbox' => 'Checkbox', 'radio' => 'Radio Button']; ?>
-            <td><?= View::e($_typeLabels[$field->type] ?? ucfirst($field->type)) ?></td>
-            <td class="act-col">
-              <div class="data-actions">
-                <a href="<?= $b ?>/admin/listings/<?= (int) $listing->id ?>/fields/<?= urlencode($field->name) ?>/edit"
-                   class="btn btn-tertiary btn-sm">Edit</a>
-                <form method="POST"
-                      action="<?= $b ?>/admin/listings/<?= (int) $listing->id ?>/fields/<?= urlencode($field->name) ?>/delete"
-                      class="action-form-inline"
-                      data-del-modal data-del-entity="field"
-                      data-del-name="<?= View::e($field->name) ?>">
-                  <input type="hidden" name="_csrf"     value="<?= View::e($csrf_token ?? '') ?>">
-                  <input type="hidden" name="from_edit" value="1">
-                  <button type="submit" class="btn btn-danger btn-sm">Delete</button>
-                </form>
-              </div>
-            </td>
-          </tr>
-          <?php endforeach; ?>
-        </tbody>
-      </table>
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Label</th>
+              <th>Field Name</th>
+              <th>Type</th>
+              <th>Required</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <?php foreach ($fields as $field): ?>
+            <?php $_typeLabels = ['text' => 'Text Field', 'dropdown' => 'Dropdown', 'checkbox' => 'Checkbox', 'radio' => 'Radio Button']; ?>
+            <tr>
+              <td class="text-strong"><?= View::e($field->label) ?></td>
+              <td><code class="neb-code"><?= View::e($field->name) ?></code></td>
+              <td class="text-muted"><?= View::e($_typeLabels[$field->type] ?? ucfirst($field->type)) ?></td>
+              <td>
+                <?php if ($field->required): ?>
+                  <span class="badge badge-current">Yes</span>
+                <?php else: ?>
+                  <span class="badge badge-inactive">No</span>
+                <?php endif; ?>
+              </td>
+              <td class="act-col">
+                <div class="data-actions">
+                  <a href="<?= $b ?>/admin/listings/<?= (int) $listing->id ?>/fields/<?= urlencode($field->name) ?>/edit"
+                     class="btn btn-tertiary btn-sm">Edit</a>
+                  <form method="POST"
+                        action="<?= $b ?>/admin/listings/<?= (int) $listing->id ?>/fields/<?= urlencode($field->name) ?>/delete"
+                        class="action-form-inline"
+                        data-del-modal data-del-entity="field"
+                        data-del-name="<?= View::e($field->name) ?>">
+                    <input type="hidden" name="_csrf"     value="<?= View::e($csrf_token ?? '') ?>">
+                    <input type="hidden" name="from_edit" value="1">
+                    <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+                  </form>
+                </div>
+              </td>
+            </tr>
+            <?php endforeach; ?>
+          </tbody>
+        </table>
       </div>
     <?php endif; ?>
   </div>
+  </form>
   <?php endif; ?>
-
 </div>
 
 <!--  TAB: CODES  -->
@@ -586,40 +614,23 @@ if ($_hasCats || $_hasDonors) {
 $_settingsOpen = $_hasCats || $_hasDonors;
 ?>
 
-<!-- Topbar row -->
-<div class="codes-topbar">
-  <div></div>
-  <div class="codes-topbar-right">
-    <span class="badge badge-muted"><?= $total_codes ?> code<?= $total_codes !== 1 ? 's' : '' ?></span>
-    <?php if ($_approvedCount > 0): ?>
-    <a href="<?= $b ?>/admin/listings/<?= $_fid ?>/codes/export" class="btn btn-quaternary btn-sm">
-      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="8 17 12 21 16 17"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.88 18.09A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.29"/></svg>
-      Export ZIP
-    </a>
-    <?php endif; ?>
-  </div>
-</div>
-
-<!-- Pending codes banner -->
-<?php if ($_pendingCount > 0 && $code_status_filter !== 'pending'): ?>
-<div class="reminder-banner banner-spaced">
+<?php if ($_pendingCount > 0): ?>
+<div class="reminder-banner banner-spaced" data-codes-pending-banner>
   <div class="reminder-banner-head">
     <div class="reminder-banner-left">
       <span class="reminder-banner-icon"><?= View::icon('bell') ?></span>
       <div>
-        <span class="reminder-banner-title">Codes awaiting review</span>
-        <span class="reminder-banner-msg"><?= $_pendingCount ?> code<?= $_pendingCount !== 1 ? 's are' : ' is' ?> pending approval</span>
+        <span class="reminder-banner-title" data-codes-pending-title><?= $code_status_filter === 'pending' ? 'Showing pending codes' : 'Codes awaiting review' ?></span>
+        <span class="reminder-banner-msg" data-codes-pending-msg"><?= $_pendingCount ?> code<?= $_pendingCount !== 1 ? 's are' : ' is' ?> pending approval</span>
       </div>
     </div>
-    <a href="<?= $_tabBase ?>&status_filter=pending" class="btn btn-primary btn-sm">Review pending</a>
+    <a href="<?= $code_status_filter === 'pending' ? $_tabBase : $_tabBase . '&status_filter=pending' ?>" class="btn btn-tertiary btn-sm" data-code-filter="<?= $code_status_filter === 'pending' ? '' : 'pending' ?>" data-codes-pending-action><?= $code_status_filter === 'pending' ? '&larr; Show all codes' : 'Review pending &rarr;' ?></a>
   </div>
 </div>
 <?php endif; ?>
 
-<!-- Code Settings collapsible -->
-<details class="card chevron codes-settings-band" <?= $_settingsOpen ? 'open' : '' ?> id="settingsBand" open>
-  <summary class="card-head">Code Categories & Donors
-  </summary>
+<details class="card chevron" <?= $_settingsOpen ? 'open' : '' ?> id="settingsBand" open>
+  <summary class="card-head">Code Categories & Donors</summary>
 
   <div class="settings-band-grid">
     <div class="settings-band-col">
@@ -627,11 +638,11 @@ $_settingsOpen = $_hasCats || $_hasDonors;
       <form method="POST" action="<?= $b ?>/admin/listings/<?= $_fid ?>/codes/categories/add" class="codes-form-inline">
         <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
         <div class="codes-form-grow">
-          <input class="form-input" type="text" name="name" placeholder="Category name&hellip;" required>
+          <input class="form" type="text" name="name" placeholder="Category name&hellip;" required>
         </div>
         <?php if (!empty($_topLevelCats)): ?>
-        <div class="toolbar-select-wrap codes-form-select-wrap">
-          <select name="parent_id" class="form-select">
+        <div class="select-wrap codes-select-wrap">
+          <select name="parent_id" >
             <option value="">None (top-level)</option>
             <?php foreach ($_topLevelCats as $tlc): ?>
               <option value="<?= (int)$tlc->id ?>"><?= View::e($tlc->name) ?></option>
@@ -639,7 +650,7 @@ $_settingsOpen = $_hasCats || $_hasDonors;
           </select>
         </div>
         <?php endif; ?>
-        <button type="submit" class="btn btn-secondary btn-sm"><?= View::icon('add') ?> Add</button>
+        <button type="submit" class="btn btn-primary"><?= View::icon('add') ?> Add</button>
       </form>
       <?php if ($_hasCats): ?>
       <div class="table-wrap">
@@ -680,11 +691,11 @@ $_settingsOpen = $_hasCats || $_hasDonors;
                 <form method="POST" action="<?= $b ?>/admin/listings/<?= $_fid ?>/codes/categories/<?= (int)$cat->id ?>/edit" class="codes-form-actions">
                   <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
                   <div class="codes-form-grow-sm">
-                    <input class="form-input" type="text" name="name" value="<?= View::e($cat->name) ?>" required>
+                    <input class="form" type="text" name="name" value="<?= View::e($cat->name) ?>" required>
                   </div>
                   <div>
-                    <div class="toolbar-select-wrap">
-                      <select name="parent_id" class="form-select codes-form-select-sm">
+                    <div class="select-wrap">
+                      <select name="parent_id" class="select-xs">
                         <option value="">None (top-level)</option>
                         <?php foreach ($code_cats as $pcat): ?>
                           <?php if ($pcat->id === $cat->id || $pcat->parentId !== null) continue; ?>
@@ -704,8 +715,6 @@ $_settingsOpen = $_hasCats || $_hasDonors;
           </tbody>
         </table>
       </div>
-      <?php else: ?>
-      <p class="text-dim">No categories yet. Use these to tag codes by theme.</p>
       <?php endif; ?>
     </div>
 
@@ -713,10 +722,10 @@ $_settingsOpen = $_hasCats || $_hasDonors;
       <div class="pc-section-label codes-section-label">Donors</div>
       <form method="POST" action="<?= $b ?>/admin/listings/<?= $_fid ?>/codes/donors/add" class="codes-form-inline">
         <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
-        <div class="codes-form-grow-sm"><input type="text" class="form-input" name="name" placeholder="Display name&hellip;" required></div>
-        <div class="codes-form-grow-sm"><input type="email" class="form-input" name="email" placeholder="Email (optional)"></div>
-        <div class="codes-form-grow-sm"><input type="url" class="form-input" name="url" placeholder="URL (optional)"></div>
-        <button type="submit" class="btn btn-quaternary btn-sm"><?= View::icon('add') ?> Add</button>
+        <div class="codes-form-grow-sm"><input type="text" class="form" name="name" placeholder="Display name&hellip;" required></div>
+        <div class="codes-form-grow-sm"><input type="email" class="form" name="email" placeholder="Email (optional)"></div>
+        <div class="codes-form-grow-sm"><input type="url" class="form" name="url" placeholder="URL (optional)"></div>
+        <button type="submit" class="btn btn-primary"><?= View::icon('add') ?> Add</button>
       </form>
       <?php if ($_hasDonors): ?>
       <div class="table-wrap">
@@ -748,9 +757,9 @@ $_settingsOpen = $_hasCats || $_hasDonors;
               <td colspan="5" class="table-edit-cell">
                 <form method="POST" action="<?= $b ?>/admin/listings/<?= $_fid ?>/codes/donors/<?= (int)$dn->id ?>/edit" class="codes-form-actions">
                   <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
-                  <div class="codes-form-grow-sm"><input class="form-input" type="text" name="name" value="<?= View::e($dn->name) ?>" required></div>
-                  <div class="codes-form-grow-sm"><input class="form-input" type="email" name="email" value="<?= View::e($dn->email ?? '') ?>" placeholder="Email"></div>
-                  <div class="codes-form-grow-sm"><input class="form-input" type="url" name="url" value="<?= View::e($dn->url ?? '') ?>" placeholder="URL"></div>
+                  <div class="codes-form-grow-sm"><input class="form" type="text" name="name" value="<?= View::e($dn->name) ?>" required></div>
+                  <div class="codes-form-grow-sm"><input class="form" type="email" name="email" value="<?= View::e($dn->email ?? '') ?>" placeholder="Email"></div>
+                  <div class="codes-form-grow-sm"><input class="form" type="url" name="url" value="<?= View::e($dn->url ?? '') ?>" placeholder="URL"></div>
                   <button class="btn btn-primary btn-sm">Save</button>
                   <a href="<?= $_tabBase ?>" class="btn btn-quaternary btn-sm">Cancel</a>
                 </form>
@@ -760,14 +769,11 @@ $_settingsOpen = $_hasCats || $_hasDonors;
           </tbody>
         </table>
       </div>
-      <?php else: ?>
-      <p class="text-dim">No donors yet. Credit the people who made codes for this listing.</p>
       <?php endif; ?>
     </div>
   </div>
 </details>
 
-<!-- Out-of-flow forms -->
 <form id="codes-bulk-form" method="POST" action="<?= $b ?>/admin/listings/<?= $_fid ?>/codes/bulk">
   <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
 </form>
@@ -776,18 +782,11 @@ $_settingsOpen = $_hasCats || $_hasDonors;
   <input type="hidden" id="reorder-ids" name="ordered_ids" value="">
 </form>
 
-<!-- Per-code delete forms + edit dialogs -->
 <?php foreach ($codes as $code): ?>
 <?php
   $_dDonor = ($code->donorId !== null && isset($code_donor_map[$code->donorId])) ? $code_donor_map[$code->donorId] : null;
   $_dLabel = ($code->name !== null && $code->name !== '') ? $code->name : null;
 ?>
-<form id="del-<?= (int)$code->id ?>" method="POST"
-      action="<?= $b ?>/admin/listings/<?= $_fid ?>/codes/<?= (int)$code->id ?>/delete"
-      data-del-modal data-del-entity="code"
-      data-del-name="<?= View::e($_dLabel !== null ? $_dLabel : 'Code #' . (int)$code->id) ?>">
-  <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
-</form>
 <dialog id="edit-dialog-<?= (int)$code->id ?>" class="modal">
   <div class="modal-header modal-header-sticky">
     <span class="modal-title">
@@ -810,12 +809,12 @@ $_settingsOpen = $_hasCats || $_hasDonors;
       <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
       <div>
         <label class="form-label code-modal-label">Label (optional)</label>
-        <input class="form-input" type="text" name="name" value="<?= View::e($code->name ?? '') ?>" placeholder="e.g. Animated version">
+        <input class="form" type="text" name="name" value="<?= View::e($code->name ?? '') ?>" placeholder="e.g. Animated version">
       </div>
       <div>
         <label class="form-label code-modal-label">Status</label>
-        <div class="toolbar-select-wrap">
-          <select name="status" class="form-select">
+        <div class="select-wrap">
+          <select name="status" >
             <option value="approved" <?= $code->status === 'approved' ? 'selected' : '' ?>>&#10003; Live</option>
             <option value="pending"  <?= $code->status === 'pending'  ? 'selected' : '' ?>>&#8987; Pending</option>
           </select>
@@ -824,8 +823,8 @@ $_settingsOpen = $_hasCats || $_hasDonors;
       <?php if ($_hasDonors): ?>
       <div>
         <label class="form-label code-modal-label">Donor</label>
-        <div class="toolbar-select-wrap">
-          <select name="donor_id" class="form-select">
+        <div class="select-wrap">
+          <select name="donor_id" >
             <option value="">No donor</option>
             <?php foreach ($code_donors as $dn): ?>
               <option value="<?= (int)$dn->id ?>" <?= $code->donorId === $dn->id ? 'selected' : '' ?>><?= View::e($dn->name) ?></option>
@@ -837,15 +836,15 @@ $_settingsOpen = $_hasCats || $_hasDonors;
       <?php if ($_hasCats): ?>
       <div>
         <label class="form-label code-modal-label">Category</label>
-        <div class="toolbar-select-wrap">
-          <select name="cat_ids[]" class="form-select">
+        <div class="select-wrap">
+          <select name="cat_ids[]" >
             <option value="">None</option>
             <?php
               $_dCatIds = $code_category_ids[$code->id] ?? [];
               foreach ($code_cats as $cat):
             ?>
               <option value="<?= (int)$cat->id ?>" <?= in_array($cat->id, $_dCatIds, true) ? 'selected' : '' ?>>
-                <?= $cat->parentId !== null ? '└ ' : '' ?><?= View::e($cat->name) ?>
+                <?= $cat->parentId !== null ? '&#x2514; ' : '' ?><?= View::e($cat->name) ?>
               </option>
             <?php endforeach; ?>
           </select>
@@ -855,113 +854,107 @@ $_settingsOpen = $_hasCats || $_hasDonors;
       <?php if ($code->submitterName !== null): ?>
       <div>
         <label class="form-label code-modal-label">Submitter website</label>
-        <input class="form-input" type="url" name="submitter_url" value="<?= View::e($code->submitterUrl ?? '') ?>" placeholder="https://example.com">
+        <input class="form" type="url" name="submitter_url" value="<?= View::e($code->submitterUrl ?? '') ?>" placeholder="https://example.com">
       </div>
       <?php endif; ?>
       <button class="btn btn-primary full-width-btn">Save changes</button>
     </form>
     <div class="code-modal-footer">
-      <button type="submit" form="del-<?= (int)$code->id ?>" class="btn btn-danger btn-sm full-width-btn">Delete this code</button>
+      <form method="POST"
+            action="<?= $b ?>/admin/listings/<?= $_fid ?>/codes/<?= (int)$code->id ?>/delete"
+            data-del-modal data-del-entity="code"
+            data-del-name="<?= View::e($_dLabel !== null ? $_dLabel : 'Code #' . (int)$code->id) ?>">
+        <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
+        <button type="submit" class="btn btn-danger btn-sm full-width-btn">Delete this code</button>
+      </form>
     </div>
   </div>
 </dialog>
 <?php endforeach; ?>
 
-<!-- Split layout -->
-<div class="codes-split">
-
-  <!-- Left: Upload panel -->
-  <div class="codes-panel-col">
+<div class="mini-nav-layout">
+    <div class="panel-col">
     <div class="panel-card">
       <div class="card-head">Upload Codes</div>
       <div class="pc-section">
         <form method="POST" action="<?= $b ?>/admin/listings/<?= $_fid ?>/codes/upload" enctype="multipart/form-data">
           <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
-          <div class="codes-drop">
+          <div class="file-drop-zone">
             <input type="file" id="codes-input" name="codes[]" multiple accept="image/jpeg,image/png,image/gif,image/webp">
-            <svg class="codes-drop-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/></svg>
-            <span class="codes-drop-label">Click or drop images</span>
-            <span class="codes-drop-hint">JPEG, PNG, GIF, WebP &mdash; max 500 KB each</span>
-          </div>
-          <div class="field-row-2 upload-panel-row">
-            <div class="panel-field">
-              <label class="panel-label" for="upload-donor">Donor</label>
-              <div class="select-wrap">
-                <select id="upload-donor" name="donor_id" class="panel-select">
-                  <option value="">None</option>
-                  <?php foreach ($code_donors as $dn): ?>
-                    <option value="<?= (int)$dn->id ?>"><?= View::e($dn->name) ?></option>
-                  <?php endforeach; ?>
-                </select>
-              </div>
-            </div>
-            <div class="panel-field">
-              <label class="panel-label" for="upload-status">Status</label>
-              <div class="select-wrap">
-                <select id="upload-status" name="upload_status" class="panel-select">
-                  <option value="approved">Live</option>
-                  <option value="pending">Pending</option>
-                </select>
-              </div>
-            </div>
+            <span class="file-drop-icon"><?= View::icon('image') ?></span>
+            <strong>Click or drop images</strong>
+            <span class="form-hint">JPEG, PNG, GIF, WebP &mdash; max 500 KB each</span>
           </div>
           <?php if ($_hasCats): ?>
-          <div class="panel-field">
-            <label class="panel-label">Category</label>
+          <div class="panel-field upload-panel-row">
+            <label class="panel-label" for="upload-category">Category</label>
             <div class="select-wrap">
-              <select name="cat_ids[]" class="panel-select">
+              <select id="upload-category" name="cat_ids[]">
                 <option value="">None</option>
                 <?php foreach ($code_cats as $cat): ?>
-                  <option value="<?= (int)$cat->id ?>"><?= $cat->parentId !== null ? '└ ' : '' ?><?= View::e($cat->name) ?></option>
+                  <option value="<?= (int)$cat->id ?>"><?= $cat->parentId !== null ? '&#x2514; ' : '' ?><?= View::e($cat->name) ?></option>
                 <?php endforeach; ?>
               </select>
             </div>
           </div>
           <?php endif; ?>
-          <button type="submit" class="btn btn-primary full-width-btn mt-quarter">Upload</button>
+          <div class="panel-field upload-panel-row">
+            <label class="panel-label" for="upload-donor">Donor</label>
+            <div class="select-wrap">
+              <select id="upload-donor" name="donor_id">
+                <option value="">None</option>
+                <?php foreach ($code_donors as $dn): ?>
+                  <option value="<?= (int)$dn->id ?>"><?= View::e($dn->name) ?></option>
+                <?php endforeach; ?>
+              </select>
+            </div>
+          </div>
+          <button type="submit" class="btn btn-primary btn-full">Upload</button>
           <p class="panel-hint panel-hint-spaced">Dimensions are detected automatically. Settings above apply to all files in this batch.</p>
         </form>
       </div>
     </div>
-  </div>
+    <?php if ($_approvedCount > 0): ?>
+    <a href="<?= $b ?>/admin/listings/<?= $_fid ?>/codes/export" class="btn btn-quaternary btn-full btn-col"><span><?= View::icon('download') ?> Export ZIP</span><span class="card-head-sub">Download all approved codes in a ZIP file.</span></a>
+    <?php endif; ?>
+    </div>
 
-  <div class="main-card">
-    <div class="card-head"><?= $_approvedCount ?> approved code<?= $_approvedCount !== 1 ? 's' : '' ?>
-        <?php if ($_groupCount > 0): ?> &mdash; drag tiles to reorder.<?php endif; ?>
-      <?php if ($total_codes > 0 && $_pendingCount === 0): ?>
-        <span class="badge badge-current">All Live</span>
-      <?php elseif ($_pendingCount > 0): ?>
-        <span class="badge badge-upcoming"><?= $_pendingCount ?> Pending</span>
+  <div class="gradient-card codes-browser" data-initial-code-filter="<?= View::e($code_status_filter) ?>">
+    <div class="card-head">Current Codes <span class="badge badge-inactive"><?= $_approvedCount ?> Approved</span>
+      <?php if ($_pendingCount > 0): ?>
+        <span class="badge badge-pending"><?= $_pendingCount ?> Pending</span>
       <?php endif; ?>
+      <?php if ($_groupCount > 0): ?><span class="card-head-sub">Click and drag the top left corner to reorder codes &mdash; changes are effective immediately.</span><?php endif; ?>
     </div>
 
     <div class="codes-tabs">
-      <a href="<?= $_tabBase ?>" class="tabs-btn<?= $code_status_filter === '' ? ' active' : '' ?>">
-        All <span class="badge badge-info code-badge-micro"><?= $total_codes ?></span>
+      <a href="<?= $_tabBase ?>" class="tabs-btn<?= $code_status_filter === '' ? ' active' : '' ?>" data-code-filter="">
+        All <span class="badge badge-current"><?= $total_codes ?></span>
       </a>
-      <a href="<?= $_tabBase ?>&status_filter=pending" class="tabs-btn<?= $code_status_filter === 'pending' ? ' active' : '' ?>">
-        Pending <span class="badge badge-<?= $_pendingCount > 0 ? 'pending' : 'inactive' ?> code-badge-micro"><?= $_pendingCount ?></span>
+      <a href="<?= $_tabBase ?>&status_filter=pending" class="tabs-btn<?= $code_status_filter === 'pending' ? ' active' : '' ?>" data-code-filter="pending">
+        Pending <span class="badge badge-<?= $_pendingCount > 0 ? 'pending' : 'inactive' ?>"><?= $_pendingCount ?></span>
       </a>
     </div>
 
     <div class="codes-bulk">
       <label class="codes-bulk-label">
         <input type="checkbox" id="codes-select-all">Select all </label>
-      <div class="toolbar-select-wrap">
-        <select id="bulk-action-sel" class="form-select">
+      <div class="select-wrap">
+        <select id="bulk-action-sel" class="select-xs">
+          <option value="" disabled selected>&mdash; Select &mdash;</option>
           <option value="delete">Delete</option>
           <option value="approve">Approve</option>
           <option value="reject">Reject</option>
           <?php if ($_hasCats): ?>
-            <option value="categorize">Add to categories&hellip;</option>
+            <option value="categorize">Add to Categories&hellip;</option>
           <?php endif; ?>
         </select>
       </div>
       <?php if ($_hasCats): ?>
       <div id="bulk-cats-wrap" class="is-hidden">
-        <select id="bulk-cats-sel" name="bulk_cat_ids[]" multiple size="<?= min(4, count($code_cats)) ?>" class="form-select">
+        <select id="bulk-cats-sel" name="bulk_cat_ids[]" multiple size="<?= min(4, count($code_cats)) ?>" >
           <?php foreach ($code_cats as $cat): ?>
-            <option value="<?= (int)$cat->id ?>"><?= $cat->parentId !== null ? '  └ ' : '' ?><?= View::e($cat->name) ?></option>
+            <option value="<?= (int)$cat->id ?>"><?= $cat->parentId !== null ? '  &#x2514; ' : '' ?><?= View::e($cat->name) ?></option>
           <?php endforeach; ?>
         </select>
       </div>
@@ -979,26 +972,24 @@ $_settingsOpen = $_hasCats || $_hasDonors;
           No codes yet.
         </div>
       </div>
-    <?php elseif (empty($codes)): ?>
-      <div class="card-section card-empty-state">
+    <?php else: ?>
+      <div class="card-section card-empty-state<?= $code_status_filter === 'pending' && $_pendingCount === 0 ? '' : ' is-hidden' ?>" id="codes-filter-empty">
         <div class="empty">
           <span class="empty-icon"><?= View::icon('image', ['width' => 32, 'height' => 32]) ?></span>
-          No codes match this filter &mdash; <a href="<?= $_tabBase ?>" class="link">clear filter</a> to see all <?= $total_codes ?>.
+          No codes match this filter &mdash; <a href="<?= $_tabBase ?>" class="link" data-code-filter="">clear filter</a> to see all <?= $total_codes ?>.
         </div>
       </div>
-    <?php else: ?>
-      <div class="card-section">
         <?php foreach ($code_grouped as $group): ?>
           <?php if (empty($group['codes'])) continue; ?>
           <?php
             $firstCode = reset($group['codes']);
             $gridMin   = max((int)$firstCode->width + 32, 80) . 'px';
           ?>
-          <div class="dim-head">
-            <span class="dim-label"><?= View::e($group['label']) ?></span>
-            <span class="dim-count"><?= count($group['codes']) ?> code<?= count($group['codes']) !== 1 ? 's' : '' ?></span>
-          </div>
-          <div class="code-grid" style="grid-template-columns:repeat(auto-fill,minmax(<?= $gridMin ?>,1fr))">
+          <div class="pc-section" data-code-group>
+            <div class="pc-section-label"><?= View::e($group['label']) ?>
+              <span class="badge badge-inactive" data-code-group-count data-total-count="<?= count($group['codes']) ?>"><?= count($group['codes']) ?> code<?= count($group['codes']) !== 1 ? 's' : '' ?></span>
+            </div>
+            <div class="code-grid" data-code-group-grid style="grid-template-columns:repeat(auto-fill,minmax(<?= $gridMin ?>,1fr))">
             <?php foreach ($group['codes'] as $code): ?>
             <?php
               $_codeCatIds = $code_category_ids[$code->id] ?? [];
@@ -1006,7 +997,8 @@ $_settingsOpen = $_hasCats || $_hasDonors;
               $_codeLabel  = ($code->name !== null && $code->name !== '') ? $code->name : null;
               $_isDonated  = $_codeDonor !== null || $code->submitterName !== null;
             ?>
-            <div class="code-tile code-card<?= $_isDonated ? ' donated-tile' : '' ?>"
+            <div class="code-tile code-card<?= $_isDonated ? : '' ?>"
+                 data-code-status="<?= View::e($code->status) ?>"
                  data-code-id="<?= (int)$code->id ?>">
               <input type="checkbox" form="codes-bulk-form" name="selected[]" value="<?= (int)$code->id ?>" class="code-tile-cb code-check">
               <span class="code-drag-handle drag-handle" title="Drag to reorder">&#8942;&#8942;</span>
@@ -1014,68 +1006,124 @@ $_settingsOpen = $_hasCats || $_hasDonors;
                    alt="<?= (int)$code->width ?>&times;<?= (int)$code->height ?>px"
                    class="code-tile-img" loading="lazy">
               <?php if ($_codeLabel !== null): ?>
-              <div class="code-label"><?= View::e($_codeLabel) ?></div>
+              <div class="text-muted"><?= View::e($_codeLabel) ?></div>
               <?php endif; ?>
               <?php if ($_codeDonor !== null): ?>
-              <div class="code-tile-donor">&hearts; <?= View::e($_codeDonor->name) ?></div>
+              <div class="badge badge-info-pink">&hearts; <?= View::e($_codeDonor->name) ?></div>
               <?php elseif ($code->submitterName !== null): ?>
-              <div class="code-tile-donor">&hearts; <?= View::e($code->submitterName) ?></div>
+              <div class="badge badge-info-pink">&hearts; <?= View::e($code->submitterName) ?></div>
               <?php endif; ?>
               <?php if ($code->status === 'pending'): ?>
-              <span class="badge badge-upcoming code-status-badge">Pending</span>
+              <span class="badge badge-pending">Pending</span>
               <?php endif; ?>
-              <button type="button" class="btn btn-quaternary btn-sm code-tile-btn code-edit-btn" data-dialog="edit-dialog-<?= (int)$code->id ?>">
-                &#9881; Edit
+              <button type="button" class="btn btn-quaternary btn-sm" data-dialog="edit-dialog-<?= (int)$code->id ?>">
+                Edit
               </button>
             </div>
             <?php endforeach; ?>
+            </div>
           </div>
         <?php endforeach; ?>
-      </div><!-- /.card-section -->
     <?php endif; ?>
+  </div>
+</div>
+</div>
 
-  </div><!-- /.main-card -->
-
-</div><!-- /.codes-split -->
-</div><!-- /#tab-codes -->
 
 <!--  TAB: AFFILIATES  -->
 <div id="tab-affiliates" class="tabs-panel">
-<div class="gradient-card">
-  <div class="pc-head">
-    <div class="pc-head-icon pc-head-icon-bg"><?= View::icon('link') ?></div>
-    <div class="pc-head-meta">
-      <div class="pc-head-title">Affiliates</div>
-      <div class="pc-head-sub">Review and manage the affiliates connected to this listing.</div>
-    </div>
-    <a href="<?= $b ?>/admin/listings/<?= (int) $listing->id ?>/affiliates/add" class="btn btn-primary btn-sm tab-head-action"><?= View::icon('add') ?> Add Affiliate</a>
-  </div>
+<?php $_affFid = (int) $listing->id; ?>
+<?php $_nextAffSort = empty($affiliates) ? 1 : max(array_map(fn($a) => $a->sortOrder ?? 0, $affiliates)) + 1; ?>
 
+<form method="POST" action="<?= $b ?>/admin/listings/<?= $_affFid ?>/affiliates/add" enctype="multipart/form-data" class="js-warn-unsaved">
+  <input type="hidden" name="_csrf"        value="<?= View::e($csrf_token ?? '') ?>">
+  <input type="hidden" name="fanlisting_id" value="<?= $_affFid ?>">
+  <div class="gradient-card">
+    <div class="pc-head">
+      <div class="pc-head-icon pc-head-icon-bg"><?= View::icon('link') ?></div>
+      <div class="pc-head-meta">
+        <div class="pc-head-title">Add Affiliate</div>
+        <div class="pc-head-sub">Add a new affiliate to this listing.</div>
+      </div>
+    </div>
+    <div class="listing-field-section">
+      <div class="listing-field-row">
+        <label class="listing-field-label" for="aff-name">Affiliate Name <span class="req">*</span></label>
+        <div>
+          <input id="aff-name" type="text" name="name" class="form"
+                 maxlength="255" required placeholder="e.g. Starlight Fanlisting">
+        </div>
+      </div>
+      <div class="listing-field-row">
+        <label class="listing-field-label" for="aff-url">URL <span class="req">*</span></label>
+        <div>
+          <input id="aff-url" type="url" name="url" class="form"
+                 maxlength="500" placeholder="https://" required>
+        </div>
+      </div>
+      <div class="listing-field-row">
+        <label class="listing-field-label" for="aff-email">Email</label>
+        <div>
+          <input id="aff-email" type="email" name="email" class="form"
+                 maxlength="255" placeholder="owner@example.com">
+        </div>
+      </div>
+      <div class="listing-field-row listing-field-row--top">
+        <label class="listing-field-label" for="aff-sort">Sort Order</label>
+        <div>
+          <input id="aff-sort" type="number" name="sort_order" class="form form--compact"
+                 min="1" max="9999" value="<?= $_nextAffSort ?>">
+          <p class="form-hint">Lower numbers appear first. Same order = sorted alphabetically.</p>
+        </div>
+      </div>
+      <div class="listing-field-row listing-field-row--top">
+        <span class="listing-field-label">Image</span>
+        <div>
+          <label class="file-drop-zone">
+            <input type="file" name="image" accept="image/jpeg,image/png,image/gif,image/webp">
+            <span class="file-drop-icon"><?= View::icon('image') ?></span>
+            <strong>Click to upload</strong>
+            <span class="form-hint">JPEG, PNG, GIF, WebP &mdash; max 2 MB</span>
+          </label>
+        </div>
+      </div>
+    </div>
+    <div class="composer-footer">
+      <button type="submit" class="btn btn-primary">Add Affiliate</button>
+      <button type="reset" class="btn btn-ghost">Clear</button>
+    </div>
+  </div>
+</form>
+
+<div class="card">
+  <div class="card-head">Current Affiliates</div>
   <?php if (empty($affiliates)): ?>
-    <div class="card-section card-empty-state">
-      <div class="empty">
+    <div class="empty">
       <svg class="empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
       No affiliates for this listing yet.
-      <a href="<?= $b ?>/admin/listings/<?= (int) $listing->id ?>/affiliates/add" class="btn btn-primary btn-sm"><?= View::icon('add') ?> Add Affiliate</a>
-      </div>
     </div>
   <?php else: ?>
     <div class="table-wrap">
     <table class="data-table">
       <thead>
         <tr>
+          <th>Sort #</th>
           <th>Name</th>
+          <th>Email</th>
           <th>Status</th>
-          <th>Actions</th>
+          <th class="act-col">Actions</th>
         </tr>
       </thead>
       <tbody>
         <?php foreach ($affiliates as $aff): ?>
         <tr>
+          <td class="text-dim"><?= (int) $aff->sortOrder ?></td>
           <td>
-            <a href="<?= View::e($aff->url ?? '') ?>" target="_blank" rel="noopener noreferrer"
-               class="link"><?= View::e($aff->name ?? '') ?></a>
+            <a href="<?= View::e($aff->url) ?>" target="_blank" rel="noopener noreferrer"
+               class="link text-strong"><?= View::e($aff->name) ?></a>
+            <?= View::icon('external-link') ?>
           </td>
+          <td class="text-muted"><?= $aff->email !== null ? View::e($aff->email) : '&mdash;' ?></td>
           <td>
             <?php if ($aff->active): ?>
               <span class="badge badge-current">Active</span>
@@ -1085,26 +1133,24 @@ $_settingsOpen = $_hasCats || $_hasDonors;
           </td>
           <td class="act-col">
             <div class="data-actions">
-              <a href="<?= $b ?>/admin/affiliates/<?= (int) $aff->id ?>/edit?from_listing=<?= (int) $listing->id ?>"
+              <a href="<?= $b ?>/admin/affiliates/<?= (int) $aff->id ?>/edit?from_listing=<?= $_affFid ?>"
                  class="btn btn-tertiary btn-sm">Edit</a>
-
               <form method="POST"
                     action="<?= $b ?>/admin/affiliates/<?= (int) $aff->id ?>/toggle"
                     class="action-form-inline">
                 <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
-                <input type="hidden" name="from_listing" value="<?= (int) $listing->id ?>">
+                <input type="hidden" name="from_listing" value="<?= $_affFid ?>">
                 <button type="submit" class="btn btn-sm <?= $aff->active ? 'btn-warn' : 'btn-quaternary' ?>">
                   <?= $aff->active ? 'Deactivate' : 'Activate' ?>
                 </button>
               </form>
-
               <form method="POST"
                     action="<?= $b ?>/admin/affiliates/<?= (int) $aff->id ?>/delete"
                     class="action-form-inline"
                     data-del-modal data-del-entity="affiliate"
                     data-del-name="<?= View::e($aff->name ?? '') ?>">
                 <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
-                <input type="hidden" name="from_listing" value="<?= (int) $listing->id ?>">
+                <input type="hidden" name="from_listing" value="<?= $_affFid ?>">
                 <button type="submit" class="btn btn-danger btn-sm">Delete</button>
               </form>
             </div>
@@ -1116,7 +1162,8 @@ $_settingsOpen = $_hasCats || $_hasDonors;
     </div>
   <?php endif; ?>
 </div>
-</div><!-- /#tab-affiliates -->
+</div>
+
 
 <!--  TAB: EMBED  -->
 <div id="tab-embed" class="tabs-panel">
@@ -1135,129 +1182,126 @@ $embedBaseUrl   = rtrim((string) ($cfg['embed_base_url'] ?? ''), '/') ?: rtrim((
       <div class="pc-head-title">Embed Settings</div>
       <div class="pc-head-sub">Configure the external page filenames and generated snippets used to embed this listing on your site.</div>
     </div>
-    <a href="<?= $b ?>/admin/embed-codes?listing=<?= (int) $listing->id ?>" class="btn btn-ghost btn-sm tab-head-action">
-      Embed Codes &rarr;
-    </a>
   </div>
   
     <div class="pc-section">
+    <form method="POST" action="<?= $b ?>/admin/listings/<?= (int) $listing->id ?>/embed" class="js-warn-unsaved">
+      <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
 
-  <form method="POST" action="<?= $b ?>/admin/listings/<?= (int) $listing->id ?>/embed" class="js-warn-unsaved">
-    <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
-        <div class="pc-section-label">Form Page URLs</div>
-      <p >
-        Enter the <strong>page filename</strong> on your site containing each embedded form (e.g. <code>join.php</code>)
-      </p>
+      <div class="pc-section-label">Form Page URLs</div>
 
-      <div class="form-row">
-        <div class="form-group">
-          <label class="form-label-sm" for="fl-form-join">Join page</label>
-          <input id="fl-form-join" type="text" name="form_url_join" class="form-input"
+      <div class="listing-field-row">
+        <label class="listing-field-label" for="fl-form-join">Join Form</label>
+        <div>
+          <input id="fl-form-join" type="text" name="form_url_join" class="form"
                  maxlength="200"
                  value="<?= View::e($embedSettings['form_url_join'] !== '' ? $embedSettings['form_url_join'] : 'join.php') ?>">
+          <p class="form-hint">Filename of the page on your site containing the join embed.</p>
         </div>
-        <div class="form-group">
-          <label class="form-label-sm" for="fl-form-update">Update page</label>
-          <input id="fl-form-update" type="text" name="form_url_update" class="form-input"
+      </div>
+
+      <div class="listing-field-row">
+        <label class="listing-field-label" for="fl-form-update">Update Membership</label>
+        <div>
+          <input id="fl-form-update" type="text" name="form_url_update" class="form"
                  maxlength="200"
                  value="<?= View::e($embedSettings['form_url_update'] !== '' ? $embedSettings['form_url_update'] : 'update.php') ?>">
         </div>
       </div>
 
-      <div class="form-row">
-        <div class="form-group">
-          <label class="form-label-sm" for="fl-form-remove">Remove page</label>
-          <input id="fl-form-remove" type="text" name="form_url_remove" class="form-input"
+      <div class="listing-field-row">
+        <label class="listing-field-label" for="fl-form-remove">Remove Membership</label>
+        <div>
+          <input id="fl-form-remove" type="text" name="form_url_remove" class="form"
                  maxlength="200"
                  value="<?= View::e($embedSettings['form_url_remove'] !== '' ? $embedSettings['form_url_remove'] : 'remove.php') ?>">
         </div>
-        <div class="form-group">
-          <label class="form-label-sm" for="fl-form-reset">Password reset page</label>
-          <input id="fl-form-reset" type="text" name="form_url_reset" class="form-input"
+      </div>
+
+      <div class="listing-field-row">
+        <label class="listing-field-label" for="fl-form-reset">Password Reset</label>
+        <div>
+          <input id="fl-form-reset" type="text" name="form_url_reset" class="form"
                  maxlength="200"
                  value="<?= View::e($embedSettings['form_url_reset'] !== '' ? $embedSettings['form_url_reset'] : 'reset.php') ?>">
         </div>
       </div>
 
-      <div class="form-row">
-        <div class="form-group">
-          <label class="form-label-sm" for="fl-form-codes-submit">Code submission page</label>
-          <input id="fl-form-codes-submit" type="text" name="form_url_codes_submit" class="form-input"
+      <div class="listing-field-row">
+        <label class="listing-field-label" for="fl-form-codes-submit">Code Donation</label>
+        <div>
+          <input id="fl-form-codes-submit" type="text" name="form_url_codes_submit" class="form"
                  maxlength="200"
                  value="<?= View::e($embedSettings['form_url_codes_submit'] !== '' ? $embedSettings['form_url_codes_submit'] : 'codes-submit.php') ?>">
         </div>
       </div>
+    </div>
 
-      <div class="section-label">Embed Snippets</div>
+    <div class="pc-section">
+      <div class="pc-section-label">Embed Snippets</div>
+
       <?php if ($installPath !== ''): ?>
-        <p class="text-dim-copy-sm text-dim-copy-sm--spaced">
-          Paste these lines into your own site&rsquo;s pages to embed this listing&rsquo;s forms.
-        </p>
         <?php foreach (['join', 'members', 'update', 'remove'] as $page): ?>
-        <div class="form-group">
-          <label class="form-label-sm heading-capitalize"><?= View::e($page) ?> page</label>
-          <div class="ro-field embed-snippet">
-            $luster_fanlisting_id = <?= (int) $listing->id ?>;<br>
-            require '<?= View::e($installPath) ?>/public/embed/<?= View::e($page) ?>.php';
+        <div class="listing-field-row listing-field-row--top">
+          <span class="listing-field-label"><?= ucfirst(View::e($page)) ?> page</span>
+          <div>
+            <div class="ro-field embed-snippet">
+              $luster_fanlisting_id = <?= (int) $listing->id ?>;<br>
+              require '<?= View::e($installPath) ?>/public/embed/<?= View::e($page) ?>.php';
+            </div>
           </div>
         </div>
         <?php endforeach; ?>
       <?php else: ?>
-        <p class="text-dim-copy-sm">
-          Set the <strong class="text-muted-strong">Installation Path</strong> in
-          <a href="<?= $b ?>/admin/settings" class="link">Settings &rarr; Embed &amp; Paths</a>
-          to generate embed snippets here.
-        </p>
+        <div class="listing-field-row listing-field-row--top">
+          <span class="listing-field-label">Snippets</span>
+          <div>
+            <p class="form-hint">
+              Set the <strong>Installation Path</strong> in
+              <a href="<?= $b ?>/admin/settings" class="link">Settings &rarr; Embed &amp; Paths</a>
+              to generate embed snippets here.
+            </p>
+          </div>
+        </div>
       <?php endif; ?>
-
     </div>
-    <div class="composer-footer">
-      <button type="submit" class="btn btn-primary">Save Embed Settings</button>
-      <a href="<?= $b ?>/admin/listings" class="btn btn-ghost">Cancel</a>
-    </div>
+  <div class="composer-footer">
+    <button type="submit" class="btn btn-primary">Save Embed Settings</button>
+    <a href="<?= $b ?>/admin/listings" class="btn btn-ghost">Cancel</a>
+  </div>
   </form>
+  </div>
 </div>
-</div><!-- /#tab-embed -->
+
 
 <!--  TAB: ADVANCED  -->
 <div id="tab-advanced" class="tabs-panel">
 
-  <!-- Warning banner -->
-  <div class="warning-banner">
-    <span class="warning-banner-icon"><?= View::icon('caution', ['width' => '16', 'height' => '16']) ?></span>
+  <div class="callout callout-inline">
+    <?= View::icon('alert', ['width' => 24, 'height' => 24, 'style' => 'color:var(--warn)']) ?>
     <div>
-      <strong class="warning-banner-title">Advanced settings - proceed with caution</strong>
-      <span class="warning-banner-text">Only modify these settings if you know what you are doing. Incorrect values can break your listing or prevent members from being found.</span>
+      <strong>Advanced settings - proceed with caution!</strong>
+      <span>Only modify these settings if you know what you are doing. Incorrect values can break your listing or prevent members from being found.</span>
     </div>
   </div>
 
-  <!-- Database Prefix (collapsible, collapsed by default) -->
-  <details class="card adv-collapsible adv-card adv-card-spaced">
-    <summary class="card-head">
-      <div class="card-head-text">
-        <span>Database Prefix</span>
-        <span class="card-head-sub">The member table name in your database. Most users never need to change this.</span>
-      </div>
-      <svg class="adv-chevron" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 6 8 10 12 6"/></svg>
+  <details class="card chevron">
+    <summary class="card-head">Database Prefix
+      <div class="card-head-sub">The member table name in your database. Most users never need to change this.</siv>
     </summary>
-    <div class="adv-body">
-      <div class="adv-prefix-row">
-        <input type="text" class="form-input ro-input-inline" value="<?= View::e($listing->dbprefix) ?>"
+    <div class="card-body">
+      <div class="listining-field-row">
+        <input type="text" class="form mono" value="<?= View::e($listing->dbprefix) ?>"
                readonly>
         <a href="<?= $b ?>/admin/listings/<?= (int) $listing->id ?>/edit-prefix"
-           class="btn btn-tertiary btn-sm btn-nowrap">Edit</a>
+           class="btn btn-danger">Edit</a>
       </div>
     </div>
   </details>
 
-  <!-- Per-listing Database Connection (collapsible, collapsed by default) -->
-  <details class="card adv-collapsible adv-card">
-    <summary class="card-head">
-      <div class="card-head-text">
-        <span>Per-listing Database Connection</span>
-        <span class="card-head-sub">Override the global database connection for this listing only. Leave all fields blank to use the global database.</span>
-      </div>
-      <svg class="adv-chevron" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 6 8 10 12 6"/></svg>
+  <details class="card chevron">
+    <summary class="card-head">Per-listing Database Connection
+      <div class="card-head-sub">Override the global database connection for this listing only. Leave all fields blank to use the global database.</div>
     </summary>
     <form method="POST" action="<?= $b ?>/admin/listings/<?= (int) $listing->id ?>/embed" class="js-warn-unsaved">
       <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
@@ -1266,32 +1310,36 @@ $embedBaseUrl   = rtrim((string) ($cfg['embed_base_url'] ?? ''), '/') ?: rtrim((
       /** @var array $cfg */
       $advEmbedSettings = $embed_settings ?? [];
       ?>
-      <div class="adv-body">
-        <div class="form-row">
-          <div class="form-group">
-            <label class="form-label-sm" for="adv-db-host">DB Host</label>
-            <input id="adv-db-host" type="text" name="db_host" class="form-input"
+      <div class="listing-field-section">
+        <div class="listing-field-row listing-field-row--top">
+          <label class="listing-field-label" for="adv-db-host">DB Host</label>
+          <div>
+            <input id="adv-db-host" type="text" name="db_host" class="form"
                    maxlength="255" placeholder="localhost"
                    value="<?= View::e($advEmbedSettings['db_host'] ?? '') ?>">
           </div>
-          <div class="form-group">
-            <label class="form-label-sm" for="adv-db-name">DB Name</label>
-            <input id="adv-db-name" type="text" name="db_name" class="form-input"
+        </div>
+        <div class="listing-field-row listing-field-row--top">
+          <label class="listing-field-label" for="adv-db-name">DB Name</label>
+          <div>
+            <input id="adv-db-name" type="text" name="db_name" class="form"
                    maxlength="255" placeholder="my_database"
                    value="<?= View::e($advEmbedSettings['db_name'] ?? '') ?>">
           </div>
         </div>
-        <div class="form-row">
-          <div class="form-group">
-            <label class="form-label-sm" for="adv-db-user">DB User</label>
-            <input id="adv-db-user" type="text" name="db_user" class="form-input"
+        <div class="listing-field-row listing-field-row--top">
+          <label class="listing-field-label" for="adv-db-user">DB User</label>
+          <div>
+            <input id="adv-db-user" type="text" name="db_user" class="form"
                    maxlength="255" autocomplete="off"
                    value="<?= View::e($advEmbedSettings['db_user'] ?? '') ?>">
           </div>
-          <div class="form-group">
-            <label class="form-label-sm" for="adv-db-pass">DB Password</label>
+        </div>
+        <div class="listing-field-row listing-field-row--top">
+          <label class="listing-field-label" for="adv-db-pass">DB Password</label>
+          <div>
             <div class="input-icon-wrap">
-              <input id="adv-db-pass" type="password" name="db_pass" class="form-input"
+              <input id="adv-db-pass" type="password" name="db_pass" class="form"
                      maxlength="500" autocomplete="new-password"
                      placeholder="Leave blank to keep current">
               <button type="button" data-pw-toggle aria-label="Show password" tabindex="-1" class="input-icon-btn">
@@ -1299,15 +1347,16 @@ $embedBaseUrl   = rtrim((string) ($cfg['embed_base_url'] ?? ''), '/') ?: rtrim((
                 <?= View::icon('eye-off') ?>
               </button>
             </div>
-            <p class="form-hint-sm">Only fill in to change the stored password.</p>
+            <p class="form-hint">Only fill in to change the stored password.</p>
           </div>
         </div>
       </div>
       <div class="composer-footer">
-        <button type="submit" class="btn btn-primary">Save Database Settings</button>
+        <button type="submit" class="btn btn-primary">Save Settings</button>
+        <button type="reset" class="btn btn-ghost">Reset to Default</button>
         <a href="<?= $b ?>/admin/listings" class="btn btn-ghost">Cancel</a>
       </div>
     </form>
   </details>
 
-</div><!-- /#tab-advanced -->
+</div>

@@ -669,9 +669,7 @@ final class ListingController extends AdminController
         foreach ($allCodes as $c) {
             $codeStatusCounts[$c->status] = ($codeStatusCounts[$c->status] ?? 0) + 1;
         }
-        $codes       = $codeStatusFilter !== ''
-            ? array_values(array_filter($allCodes, fn($c) => $c->status === $codeStatusFilter))
-            : $allCodes;
+        $codes       = $allCodes;
         $codeCats    = $codeCatsRepo->getByListing($id);
         $codeDonors  = $codeDonorsRepo->getByListing($id);
         $codeCategoryIds = $codeCatsRepo->getCategoryMapForListing($id);
@@ -680,7 +678,7 @@ final class ListingController extends AdminController
         $codeDonorMap = [];
         foreach ($codeDonors as $donor) { $codeDonorMap[$donor->id] = $donor; }
         $codeGrouped = [];
-        foreach ($codes as $code) {
+        foreach ($allCodes as $code) {
             if ($code->width > 0 && $code->height > 0) {
                 $gKey   = (int) $code->width . 'x' . (int) $code->height;
                 $gLabel = (int) $code->width . '×' . (int) $code->height . 'px';

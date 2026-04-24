@@ -7,7 +7,7 @@ use Luster\Core\View;
 /** @var array                       $grouped          [{listing: Listing, members: Member[]}] */
 /** @var array                       $search_results   [{listing: Listing, member: Member}] */
 /** @var array                       $pending_updates  pending update objects */
-/** @var array                       $fl_by_id         listing id †’ Listing */
+/** @var array                       $fl_by_id         listing id â€ â€™ Listing */
 /** @var \Luster\Models\Listing[]    $all_listings */
 /** @var string                      $search */
 /** @var string                      $success */
@@ -35,9 +35,9 @@ $pendingSortUrl = static function (string $col) use ($b, $sort, $dir): string {
 <?php endif; ?>
 
 <div class="toolbar">
-  <form method="GET" action="<?= $b ?>/admin/members" class="filter-row">
-    <div class="toolbar-select-wrap">
-      <select class="form-select js-nav-select">
+  <form method="GET" action="<?= $b ?>/admin/members" class="filter-row member-toolbar-form">
+    <div class="select-wrap">
+      <select class="js-nav-select">
         <option value="<?= $b ?>/admin/members">All pending members</option>
         <?php foreach ($all_listings as $fl): ?>
           <option value="<?= $b ?>/admin/members/<?= (int) $fl->id ?>?status=all">
@@ -47,7 +47,7 @@ $pendingSortUrl = static function (string $col) use ($b, $sort, $dir): string {
       </select>
     </div>
     <input type="text" name="search" value="<?= View::e($search ?? '') ?>"
-           placeholder="Search all listings&hellip;" class="form-input toolbar-input-sm">
+           placeholder="Search all listings&hellip;" class="form toolbar-input-sm">
     <button type="submit" class="btn btn-quaternary btn-sm">Search</button>
     <?php if ($isSearch): ?>
       <a href="<?= $b ?>/admin/members" class="btn btn-quaternary btn-sm">Clear</a>
@@ -144,13 +144,11 @@ $pendingSortUrl = static function (string $col) use ($b, $sort, $dir): string {
 
   <!--  Pending new members by listing  -->
   <div class="overview-section-head">
-    <div>
-      <div class="overview-section-title">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="15" height="15"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M19 8v6m3-3h-6"/></svg>
-        Pending New Members
-      </div>
-      <div class="overview-section-sub">New join requests awaiting your approval decision.</div>
+    <div class="overview-section-title">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="15" height="15"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M19 8v6m3-3h-6"/></svg>
+      Pending New Members
     </div>
+    <div class="overview-section-sub">New join requests awaiting your approval decision.</div>
   </div>
   <?php if (empty($grouped)): ?>
     <div class="card">
@@ -180,9 +178,10 @@ $pendingSortUrl = static function (string $col) use ($b, $sort, $dir): string {
       <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
       <input type="hidden" name="from" value="overview">
       <div class="bulk bulk--flush">
-        <span class="bulk-label">Bulk:</span>
+        Bulk Actions:
         <div class="select-wrap">
-          <select name="bulk_action" class="form-select form-select--compact">
+          <select name="bulk_action" class="select-compact">
+            <option value="" disabled selected>&mdash; Select &mdash;</option>
             <option value="approve">Approve</option>
             <option value="delete">Reject</option>
           </select>
@@ -233,7 +232,14 @@ $pendingSortUrl = static function (string $col) use ($b, $sort, $dir): string {
                    class="btn btn-tertiary btn-sm">Edit</a>
                 <a href="<?= $b ?>/admin/members/<?= $flId ?>/emailmember?email=<?= urlencode($m->email) ?>"
                    class="btn btn-quaternary btn-sm">Email</a>
-                <button type="submit" form="del-rej-<?= md5($m->email . $flId) ?>" class="btn btn-danger btn-sm">Reject</button>
+                <form method="POST"
+                      action="<?= $b ?>/admin/members/<?= $flId ?>/delete"
+                      data-del-modal data-del-entity="member_reject"
+                      data-del-name="<?= View::e($m->name) ?>">
+                  <input type="hidden" name="_csrf"        value="<?= View::e($csrf_token ?? '') ?>">
+                  <input type="hidden" name="member_email" value="<?= View::e($m->email) ?>">
+                  <button type="submit" class="btn btn-danger btn-sm">Reject</button>
+                </form>
               </div>
             </td>
           </tr>
@@ -242,16 +248,6 @@ $pendingSortUrl = static function (string $col) use ($b, $sort, $dir): string {
       </table>
       </div>
       </form>
-      <?php foreach ($pendingMembers as $m): ?>
-      <form id="del-rej-<?= md5($m->email . $flId) ?>" method="POST"
-            action="<?= $b ?>/admin/members/<?= $flId ?>/delete"
-            class="is-hidden"
-            data-del-modal data-del-entity="member_reject"
-            data-del-name="<?= View::e($m->name) ?>">
-        <input type="hidden" name="_csrf"        value="<?= View::e($csrf_token ?? '') ?>">
-        <input type="hidden" name="member_email" value="<?= View::e($m->email) ?>">
-      </form>
-      <?php endforeach; ?>
     </div>
     <?php endforeach; ?>
   <?php endif; ?>
@@ -259,13 +255,11 @@ $pendingSortUrl = static function (string $col) use ($b, $sort, $dir): string {
   <!--  Pending info updates  -->
   <div class="overview-section-divider"></div>
   <div class="overview-section-head">
-    <div>
-      <div class="overview-section-title">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="15" height="15"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-        Pending Member Updates
-      </div>
-      <div class="overview-section-sub">Members requesting changes to their details - review each diff and accept or reject.</div>
+    <div class="overview-section-title">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="15" height="15"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+      Pending Member Updates
     </div>
+    <div class="overview-section-sub">Members requesting changes to their details - review each diff and accept or reject.</div>
   </div>
   <?php if (empty($pending_updates)): ?>
     <div class="card">
@@ -280,9 +274,10 @@ $pendingSortUrl = static function (string $col) use ($b, $sort, $dir): string {
             data-del-bulk data-del-entity="pending_update_reject">
         <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
         <div class="bulk bulk--flush">
-          <span class="bulk-label">Bulk:</span>
+          Bulk Actions:
           <div class="select-wrap">
-            <select name="bulk_action" class="form-select form-select--compact">
+            <select name="bulk_action" class="select-compact">
+              <option value="" disabled selected>&mdash; Select &mdash;</option>
               <option value="approve">Approve</option>
               <option value="reject">Reject</option>
             </select>
@@ -361,7 +356,14 @@ $pendingSortUrl = static function (string $col) use ($b, $sort, $dir): string {
                     </form>
                     <a href="<?= $b ?>/admin/members/<?= $puFlId ?>/edit?email=<?= urlencode($pu->member_email) ?>"
                        class="btn btn-tertiary btn-sm">Edit</a>
-                    <button type="submit" form="del-pu-<?= (int) $pu->id ?>" class="btn btn-danger btn-sm">Reject</button>
+                    <form method="POST"
+                          action="<?= $b ?>/admin/pending-updates/<?= (int) $pu->id ?>/reject"
+                          data-del-modal data-del-entity="pending_update_reject"
+                          data-del-name="<?= View::e($pu->member_email) ?>">
+                      <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
+                      <input type="hidden" name="_from" value="members">
+                      <button type="submit" class="btn btn-danger btn-sm">Reject</button>
+                    </form>
                   </div>
                 </td>
               </tr>
@@ -370,16 +372,6 @@ $pendingSortUrl = static function (string $col) use ($b, $sort, $dir): string {
           </table>
         </div>
       </form>
-      <?php foreach ($pending_updates as $pu): ?>
-      <form id="del-pu-<?= (int) $pu->id ?>" method="POST"
-            action="<?= $b ?>/admin/pending-updates/<?= (int) $pu->id ?>/reject"
-            class="is-hidden"
-            data-del-modal data-del-entity="pending_update_reject"
-            data-del-name="<?= View::e($pu->member_email) ?>">
-        <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
-        <input type="hidden" name="_from" value="members">
-      </form>
-      <?php endforeach; ?>
     </div>
   <?php endif; ?>
 

@@ -17,9 +17,9 @@ require_once __DIR__ . '/../_css_assets.php';
 
 <div class="login-theme-corner">
   <button class="theme-toggle" aria-label="Toggle theme">
-    <span class="theme-toggle-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="5"/><path d="M12 1v3M12 20v3M4.22 4.22l2.12 2.12M17.66 17.66l2.12 2.12M1 12h3M20 12h3M4.22 19.78l2.12-2.12M17.66 6.34l2.12-2.12"/></svg></span>
+    <span class="theme-toggle-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="5"/><path d="M12 1v3M12 20v3M4.22 4.22l2.12 2.12M17.66 17.66l2.12 2.12M1 12h3M20 12h3M4.22 19.78l2.12-2.12M17.66 6.34l2.12-2.12"/></svg></span>
     <div class="toggle-track"><div class="toggle-thumb"></div></div>
-    <span class="theme-toggle-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg></span>
+    <span class="theme-toggle-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg></span>
   </button>
 </div>
 
@@ -47,7 +47,7 @@ require_once __DIR__ . '/../_css_assets.php';
       <div class="form-group">
         <label class="form-label" for="new_password">New Password <span>*</span></label>
         <div class="input-icon-wrap">
-          <input type="password" id="new_password" name="new_password" class="form-input"
+          <input type="password" id="new_password" name="new_password" class="form"
                  maxlength="255" required autocomplete="new-password" autofocus>
           <button type="button" data-pw-toggle aria-label="Show password" tabindex="-1" class="input-icon-btn">
             <?= View::icon('eye-on') ?>
@@ -59,7 +59,7 @@ require_once __DIR__ . '/../_css_assets.php';
       <div class="form-group">
         <label class="form-label" for="new_password_confirm">Confirm New Password <span>*</span></label>
         <div class="input-icon-wrap">
-          <input type="password" id="new_password_confirm" name="new_password_confirm" class="form-input"
+          <input type="password" id="new_password_confirm" name="new_password_confirm" class="form"
                  maxlength="255" required autocomplete="new-password">
           <button type="button" class="input-icon-btn" aria-label="Show password" tabindex="-1">
             <?= View::icon('eye-on') ?>

@@ -623,6 +623,14 @@ final class KimAdminController extends AdminController
 
         $siteSettings = new SiteSettingsRepo($db);
 
+        if ($request->post('reset_defaults') === '1') {
+            foreach (['kim_url_signup', 'kim_url_update', 'kim_url_reset', 'kim_url_list'] as $key) {
+                $siteSettings->set($key, null);
+            }
+            $session->set('lstr_flash_success', 'KIM page URLs reset to defaults.');
+            return Response::redirect($baseUrl . '/admin/kim/settings');
+        }
+
         foreach (['kim_url_signup', 'kim_url_update', 'kim_url_reset', 'kim_url_list'] as $key) {
             $field = str_replace('kim_url_', '', $key); // 'signup', 'update', etc.
             $value = trim((string) $request->post($field, ''));
