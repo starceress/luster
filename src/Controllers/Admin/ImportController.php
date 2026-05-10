@@ -125,13 +125,16 @@ final class ImportController extends AdminController
             } catch (\Throwable) {}
         }
 
-        return $this->adminLayout('admin/import/configure.php', 'Import Data', 'import', [
+        return $this->adminLayout('admin/import/configure.php', 'Configure Import', 'import', [
             'source'        => $source,
             'source_name'   => $this->sourceName($source),
             'error'         => $error,
             'old'           => $savedPost,
             'enth_networks' => $enthNetworks,
-        ], 'Import › Configure');
+        ], '', [
+            $this->crumb('Import Data', $this->adminUrl('/admin/import')),
+            $this->crumb($this->sourceName($source)),
+        ]);
     }
 
     // -----------------------------------------------------------------------
@@ -251,13 +254,16 @@ final class ImportController extends AdminController
             $error = 'Could not run preview: ' . $e->getMessage();
         }
 
-        return $this->adminLayout('admin/import/preview.php', 'Import Data', 'import', [
+        return $this->adminLayout('admin/import/preview.php', 'Preview Import', 'import', [
             'source'      => $source,
             'source_name' => $this->sourceName($source),
             'preview'     => $previewData,
             'options'     => $options,
             'error'       => $error,
-        ], 'Import › Preview');
+        ], '', [
+            $this->crumb('Import Data', $this->adminUrl('/admin/import')),
+            $this->crumb($this->sourceName($source), $this->adminUrl('/admin/import/' . $source . '/configure')),
+        ]);
     }
 
     // -----------------------------------------------------------------------
@@ -371,12 +377,15 @@ final class ImportController extends AdminController
         $options     = ImportOptions::fromPost($optionsPost);
         $hasImageMap = !empty($session->get(self::SESSION_IMAGE_MAP));
 
-        return $this->adminLayout('admin/import/result.php', 'Import Data', 'import', [
+        return $this->adminLayout('admin/import/result.php', 'Import Result', 'import', [
             'source'        => $source,
             'source_name'   => $this->sourceName($source),
             'result'        => $result,
             'show_zip_form' => $options->imageMode === 'zip' && $hasImageMap,
-        ], 'Import › Result');
+        ], '', [
+            $this->crumb('Import Data', $this->adminUrl('/admin/import')),
+            $this->crumb($this->sourceName($source)),
+        ]);
     }
 
     // -----------------------------------------------------------------------

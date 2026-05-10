@@ -278,15 +278,20 @@ $flSortUrl = static function (string $col) use ($b, $flSort, $flDir, $search, $f
             </div>
             <?php endif; ?>
           </td>
-
-          <!-- Actions -->
+<!-- ──── ACTIONS ────────────────────────────────────────────────────── -->
           <td class="act-col" data-label="">
             <div class="data-actions">
               <a href="<?= $b ?>/admin/listings/<?= (int) $fl->id ?>/edit"
                  class="btn btn-tertiary btn-sm">Edit</a>
               <a href="<?= $b ?>/admin/members/<?= (int) $fl->id ?>"
                  class="btn btn-quaternary btn-sm">Members</a>
-              <button type="submit" form="del-listing-<?= (int) $fl->id ?>" class="btn btn-danger btn-sm">Delete</button>
+              <form method="POST"
+                    action="<?= $b ?>/admin/listings/<?= (int) $fl->id ?>/delete"
+                    data-del-modal data-del-entity="listing"
+                    data-del-name="<?= View::e($fl->name) ?>">
+                <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
+                <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+              </form>
             </div>
           </td>
 
@@ -298,36 +303,7 @@ $flSortUrl = static function (string $col) use ($b, $flSort, $flDir, $search, $f
   </div>
 </form>
 
-<?php if (($total_pages ?? 1) > 1): ?>
-<nav class="pg" aria-label="Pagination">
-  <a href="<?= View::e($flPageUrl($page - 1)) ?>"
-     class="pg-link<?= $page <= 1 ? ' disabled' : '' ?>"
-     <?= $page <= 1 ? 'aria-disabled="true"' : '' ?>>&lsaquo; Prev</a>
-
-  <?php
-    $window = 2;
-    $start  = max(1, $page - $window);
-    $end    = min($total_pages, $page + $window);
-    if ($start > 1): ?>
-      <a href="<?= View::e($flPageUrl(1)) ?>" class="pg-link">1</a>
-      <?php if ($start > 2): ?><span class="pg-link disabled">&hellip;</span><?php endif; ?>
-  <?php endif; ?>
-
-  <?php for ($i = $start; $i <= $end; $i++): ?>
-    <a href="<?= View::e($flPageUrl($i)) ?>"
-       class="pg-link<?= $i === $page ? ' active' : '' ?>"
-       <?= $i === $page ? 'aria-current="page"' : '' ?>><?= $i ?></a>
-  <?php endfor; ?>
-
-  <?php if ($end < $total_pages): ?>
-    <?php if ($end < $total_pages - 1): ?><span class="pg-link disabled">&hellip;</span><?php endif; ?>
-    <a href="<?= View::e($flPageUrl($total_pages)) ?>" class="pg-link"><?= $total_pages ?></a>
-  <?php endif; ?>
-
-  <a href="<?= View::e($flPageUrl($page + 1)) ?>"
-     class="pg-link<?= $page >= $total_pages ? ' disabled' : '' ?>"
-     <?= $page >= $total_pages ? 'aria-disabled="true"' : '' ?>>Next &rsaquo;</a>
-</nav>
-<?php endif; ?>
+<?php $pg_current = $page; $pg_total = $total_pages; $pg_url = $flPageUrl;
+include LUSTER_BASE . '/templates/admin/_pagination.php'; ?>
 
 <?php endif; ?>

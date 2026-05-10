@@ -68,7 +68,13 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
   </a>
   <div class="topbar-actions">
     <a href="<?= $b ?>/admin/members/<?= (int) $listing->id ?>" class="btn btn-quaternary btn-sm">Member List</a>
-    <a href="<?= $b ?>/admin/emails?tab=templates&listing=<?= (int) $listing->id ?>" class="btn btn-quaternary btn-sm">Bulk Email</a>
+    <a href="<?= $b ?>/admin/emails?tab=bulk&listing=<?= (int) $listing->id ?>" class="btn btn-quaternary btn-sm">Bulk Email</a>
+    <?php if (in_array('Kim', $nav_installed_addons ?? [], true)): ?>
+      <a href="<?= $b ?>/admin/kim/<?= (int) $listing->id ?>/show" class="btn btn-quaternary btn-sm">KIM List</a>
+    <?php endif; ?>
+    <?php if (in_array('Updates', $nav_installed_addons ?? [], true)): ?>
+      <a href="<?= $b ?>/admin/updates/<?= (int) $listing->id ?>" class="btn btn-quaternary btn-sm">Updates Feed</a>
+    <?php endif; ?>
     <form method="post"
           action="<?= $b ?>/admin/listings/<?= (int) $listing->id ?>/delete"
           class="action-form-inline"
@@ -133,8 +139,7 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
   </div>
 </div>
 </div>
-
-<!--  TAB: GENERAL  -->
+<!-- ──── TAB: GENERAL ───────────────────────────────────────────────── -->
 <div id="tab-general" class="tabs-panel active">
   <form method="POST" action="<?= $b ?>/admin/listings/<?= (int) $listing->id ?>/edit" enctype="multipart/form-data" class="js-warn-unsaved">
     <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
@@ -259,7 +264,7 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
               <p class="replace-note">Replace with new image</p>
             <?php endif; ?>
             <label class="file-drop-zone">
-              <input type="file" id="fl-image" name="image" accept="image/jpeg,image/png,image/gif,image/webp"><span class="file-drop-icon"><?= View::icon('image') ?></span>
+              <input type="file" id="thumbnail" name="image" accept="image/jpeg,image/png,image/gif,image/webp"><span class="file-drop-icon"><?= View::icon('image') ?></span>
               <strong>Click to upload</strong>
               <span class="form-hint">JPEG, PNG, GIF, WebP &mdash; max 2 MB</span>
             </label>
@@ -446,8 +451,7 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
 
 <script type="application/json" id="luster-tpl-defaults">{"members_template":"<li><a href=\"{fan_url}\">{fan_name}<\/a> \u2014 {fan_country}<\/li>","affiliates_template":"<a href=\"{aff_url}\" target=\"_blank\" title=\"{aff_name}\">{aff_image}<\/a>","stats_template":"<div>\n<b>Opened:<\/b> {stat_opened}<br>\n<b>Updated:<\/b> {stat_last_updated}<br>\n<b>Fans:<\/b> {stat_approved} (+ {stat_pending} pending)<br>\n<b>Newest Fan:<\/b> {stat_newmembers}<br>\n<b>Growth:<\/b> {stat_growth}\n<\/div>"}</script>
 </div><!-- /#tab-templates -->
-
-<!--  TAB: ADDITIONAL FIELDS  -->
+<!-- ──── TAB: ADDITIONAL FIELDS ─────────────────────────────────────── -->
 <div id="tab-fields" class="tabs-panel">
 
   <?php if ($listing->dbprefix === ''): ?>
@@ -512,7 +516,7 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
         <div class="listing-field-row listing-field-row--top">
           <span class="listing-field-label">Required</span>
           <div>
-            <div style="display:flex;gap:1.25rem;">
+            <div class="flex-row">
               <label class="form-check">
                 <input type="radio" name="required" value="1">
                 <span class="form-check-label">Yes</span>
@@ -591,8 +595,7 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
   </form>
   <?php endif; ?>
 </div>
-
-<!--  TAB: CODES  -->
+<!-- ──── TAB: CODES ─────────────────────────────────────────────────── -->
 <div id="tab-codes" class="tabs-panel">
 <?php
 // Unpack code variables for convenience
@@ -1028,9 +1031,7 @@ $_settingsOpen = $_hasCats || $_hasDonors;
   </div>
 </div>
 </div>
-
-
-<!--  TAB: AFFILIATES  -->
+<!-- ──── TAB: AFFILIATES ────────────────────────────────────────────── -->
 <div id="tab-affiliates" class="tabs-panel">
 <?php $_affFid = (int) $listing->id; ?>
 <?php $_nextAffSort = empty($affiliates) ? 1 : max(array_map(fn($a) => $a->sortOrder ?? 0, $affiliates)) + 1; ?>
@@ -1099,7 +1100,7 @@ $_settingsOpen = $_hasCats || $_hasDonors;
   <div class="card-head">Current Affiliates</div>
   <?php if (empty($affiliates)): ?>
     <div class="empty">
-      <svg class="empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+    <div class="empty-icon"><?= View::icon('link', ['width' => 32, 'height' => 32]) ?></div>
       No affiliates for this listing yet.
     </div>
   <?php else: ?>
@@ -1163,9 +1164,7 @@ $_settingsOpen = $_hasCats || $_hasDonors;
   <?php endif; ?>
 </div>
 </div>
-
-
-<!--  TAB: EMBED  -->
+<!-- ──── TAB: EMBED ─────────────────────────────────────────────────── -->
 <div id="tab-embed" class="tabs-panel">
 <?php
 /** @var array  $embed_settings */
@@ -1272,9 +1271,7 @@ $embedBaseUrl   = rtrim((string) ($cfg['embed_base_url'] ?? ''), '/') ?: rtrim((
   </form>
   </div>
 </div>
-
-
-<!--  TAB: ADVANCED  -->
+<!-- ──── TAB: ADVANCED ──────────────────────────────────────────────── -->
 <div id="tab-advanced" class="tabs-panel">
 
   <div class="callout callout-inline">

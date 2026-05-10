@@ -66,23 +66,23 @@ $_linkList  = ($link_list  !== null && $link_list  !== '') ? $link_list  : null;
       </select>
     </div>
 
-    <fieldset style="border:1px solid var(--border,#ccc);padding:.75rem 1rem;border-radius:4px;margin:.5rem 0">
-      <legend style="padding:0 .5rem;font-weight:600">Optional Updates</legend>
+    <fieldset class="fl-fieldset">
+      <legend>Optional Updates</legend>
 
       <div class="fl-field">
-        <label class="fl-label" for="kim-new-email">New Email <span style="font-weight:400">(leave blank to keep current)</span></label>
+        <label class="fl-label" for="kim-new-email">New Email <span class="fl-opt">(leave blank to keep current)</span></label>
         <input class="fl-input" type="email" id="kim-new-email" name="new_email"
                value="<?= View::e($old['new_email'] ?? '') ?>" maxlength="255" autocomplete="off">
       </div>
 
       <div class="fl-field">
-        <label class="fl-label" for="kim-new-url">New Collective / Website URL <span style="font-weight:400">(leave blank to keep current)</span></label>
+        <label class="fl-label" for="kim-new-url">New Collective / Website URL <span class="fl-opt">(leave blank to keep current)</span></label>
         <input class="fl-input" type="url" id="kim-new-url" name="new_url"
                value="<?= View::e($old['new_url'] ?? '') ?>" maxlength="500" placeholder="https://">
       </div>
 
       <div class="fl-field">
-        <label class="fl-label" for="kim-new-password">New Password <span style="font-weight:400">(min 8 chars; leave blank to keep current)</span></label>
+        <label class="fl-label" for="kim-new-password">New Password <span class="fl-opt">(min 8 chars; leave blank to keep current)</span></label>
         <input class="fl-input" type="password" id="kim-new-password" name="new_password"
                maxlength="255" autocomplete="new-password">
       </div>
@@ -127,7 +127,7 @@ $_linkList  = ($link_list  !== null && $link_list  !== '') ? $link_list  : null;
   if ($_linkList  !== null) $_metaLinks[] = '<a href="' . View::e($_linkList)  . '">View the KIM list</a>';
   ?>
   <?php if (!empty($_metaLinks)): ?>
-  <p class="fl-meta" style="margin-top:1.5rem">
+  <p class="fl-meta">
     <?= implode(' &middot; ', $_metaLinks) ?>
   </p>
   <?php endif; ?>

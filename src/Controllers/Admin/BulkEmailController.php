@@ -15,7 +15,7 @@ use Luster\Repositories\MemberRepo;
 use Luster\Repositories\SavedEmailRepo;
 
 /**
- * Mass email — send an announcement to approved members of one or all listings.
+ * Bulk email — send an announcement to approved members of one or all listings.
  *
  * POST /admin/emails/preview             → preview()        — validate + show recipient count
  * POST /admin/emails/send                → send()           — perform the send loop + results
@@ -35,7 +35,7 @@ use Luster\Repositories\SavedEmailRepo;
  *   {listing_name} → name of the listing they are a member of (or app name for all-listing sends)
  *   {site_name}    → site/collective name from config
  */
-final class MassEmailController extends AdminController
+final class BulkEmailController extends AdminController
 {
 
     // -----------------------------------------------------------------------
@@ -67,14 +67,17 @@ final class MassEmailController extends AdminController
 
         $sample = array_slice(array_keys($recipients), 0, 5, true);
 
-        return $this->adminLayout('admin/mass-email/preview.php', 'Emails', 'emails', [
+        return $this->adminLayout('admin/bulk-email/preview.php', 'Emails', 'emails', [
             'listing_id'   => $listingId,
             'listing_name' => $listingName,
             'subject'      => $subject,
             'body'         => $body,
             'total'        => count($recipients),
             'sample'       => $sample,
-        ], 'Emails › Bulk Email');
+        ], '', [
+            $this->crumb('Emails', $this->adminUrl('/admin/emails')),
+            $this->crumb('Bulk Email'),
+        ]);
     }
 
     // -----------------------------------------------------------------------
@@ -115,7 +118,7 @@ final class MassEmailController extends AdminController
                 $sent++;
             } catch (\Throwable $e) {
                 $failed[] = $email;
-                error_log('[Luster] Mass email failed for ' . $email . ': ' . $e->getMessage());
+                error_log('[Luster] Bulk email failed for ' . $email . ': ' . $e->getMessage());
             }
         }
 
@@ -123,17 +126,20 @@ final class MassEmailController extends AdminController
         $scope    = $listingId === 0 ? 'all listings' : "listing #{$listingId} ({$listingName})";
         (new ActivityRepo($this->app->getDatabase()))->log(
             $adminId,
-            'mass_email.send',
-            "Sent mass email to {$sent} member(s) across {$scope}. Subject: {$subject}",
+            'bulk_email.send',
+            "Sent bulk email to {$sent} member(s) across {$scope}. Subject: {$subject}",
         );
 
-        return $this->adminLayout('admin/mass-email/result.php', 'Emails', 'emails', [
+        return $this->adminLayout('admin/bulk-email/result.php', 'Emails', 'emails', [
             'listing_name' => $listingName,
             'subject'      => $subject,
             'sent'         => $sent,
             'total'        => count($recipients),
             'failed'       => $failed,
-        ], 'Emails › Bulk Email');
+        ], '', [
+            $this->crumb('Emails', $this->adminUrl('/admin/emails')),
+            $this->crumb('Bulk Email'),
+        ]);
     }
 
     // -----------------------------------------------------------------------

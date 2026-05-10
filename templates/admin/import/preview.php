@@ -64,7 +64,7 @@ $src = View::e($source);
     $totalImport = $preview->totalToImport();
     $totalSkip   = (int) array_sum(array_column($preview->rows, 'skip'));
   ?>
-  <div class="stats-grid stats-grid-row stats-grid--plain import-stack-gap">
+  <div class="stats-grid stats-grid-row stats-grid-plain import-stack-gap">
     <div class="stat-card">
       <div class="stat-header">
         <span class="stat-icon"><?= View::icon('database') ?></span>

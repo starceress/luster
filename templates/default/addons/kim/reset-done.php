@@ -17,7 +17,7 @@ $b = rtrim(View::e($base_url), '/');
   <p>Your KIM List password has been updated successfully.</p>
   <p>You can now use it to update or manage your entry.</p>
 
-  <p class="fl-meta" style="margin-top:1.5rem">
+  <p class="fl-meta">
     <a href="<?= $b ?>/kim/update">Update your KIM entry</a> &middot;
     <a href="<?= $b ?>/kim/list">View the KIM list</a>
   </p>

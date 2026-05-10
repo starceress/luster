@@ -22,7 +22,7 @@ $b = rtrim(View::e($base_url), '/');
     If you do not receive an email within a few minutes, please check your spam folder.
   </p>
 
-  <p class="fl-meta" style="margin-top:1.5rem">
+  <p class="fl-meta">
     <a href="<?= $b ?>/kim/reset">&larr; Back to Reset</a>
   </p>
 </div>

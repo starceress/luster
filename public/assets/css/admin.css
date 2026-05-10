@@ -1,11 +1,4 @@
-/* Compatibility shim: primary admin entrypoints now load split CSS assets from /assets/css/admin/. */
-@import url("./admin/base.css");
 @import url("./admin/layout.css");
 @import url("./admin/components.css");
 @import url("./admin/forms.css");
-@import url("./admin/compose.css");
-@import url("./admin/codes.css");
-@import url("./admin/embed.css");
-@import url("./admin/import.css");
-@import url("./admin/auth.css");
-
+@import url("./admin/features.css");

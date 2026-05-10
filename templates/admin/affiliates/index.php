@@ -71,8 +71,7 @@ $canReorder = ($search ?? '') === '' && ($filter_fid ?? 'collective') !== '';
 <?php endif; ?>
 
 <?php if ($reorderMode): ?>
-
-<!--  Reorder mode banner  -->
+<!-- ──── REORDER MODE BANNER ────────────────────────────────────────── -->
 <div class="neb-reorder-banner">
   <div class="reorder-banner-copy">
     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
@@ -85,8 +84,7 @@ $canReorder = ($search ?? '') === '' && ($filter_fid ?? 'collective') !== '';
 <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
 
 <?php else: ?>
-
-<!--  Normal mode toolbar  -->
+<!-- ──── NORMAL MODE TOOLBAR ────────────────────────────────────────── -->
 <div class="toolbar">
   <form method="GET" action="<?= $b ?>/admin/affiliates" class="filter-row">
     <?php if ($sort !== 'sort_order'): ?>
@@ -136,7 +134,7 @@ $canReorder = ($search ?? '') === '' && ($filter_fid ?? 'collective') !== '';
 <div class="card">
 
 <?php if ($reorderMode): ?>
-  <!--  Reorder table  -->
+<!-- ──── REORDER TABLE ──────────────────────────────────────────────── -->
   <div class="table-wrap">
   <table class="data-table mem-table" data-reorder-url="<?= View::e($reorder_url) ?>">
     <thead>
@@ -164,7 +162,7 @@ $canReorder = ($search ?? '') === '' && ($filter_fid ?? 'collective') !== '';
   </div>
 
 <?php else: ?>
-  <!--  Normal table  -->
+<!-- ──── NORMAL TABLE ───────────────────────────────────────────────── -->
   <div class="table-wrap">
   <table class="data-table mem-table">
     <thead>
@@ -262,37 +260,7 @@ $canReorder = ($search ?? '') === '' && ($filter_fid ?? 'collective') !== '';
 
 <?php endif; ?>
 
-<?php if (!$reorderMode && ($total_pages ?? 1) > 1):
-  $window = 2;
-  $start  = max(2, $page - $window);
-  $end    = min($total_pages - 1, $page + $window);
-?>
-<nav class="pg" aria-label="Pagination">
-  <a href="<?= View::e($pageUrl($page - 1)) ?>"
-     class="pg-link<?= $page <= 1 ? ' disabled' : '' ?>" aria-label="Previous">&lsaquo;</a>
-
-  <a href="<?= View::e($pageUrl(1)) ?>"
-     class="pg-link<?= $page === 1 ? ' active' : '' ?>">1</a>
-
-  <?php if ($start > 2): ?>
-    <span class="pg-link disabled">&hellip;</span>
-  <?php endif; ?>
-
-  <?php for ($i = $start; $i <= $end; $i++): ?>
-    <a href="<?= View::e($pageUrl($i)) ?>"
-       class="pg-link<?= $i === $page ? ' active' : '' ?>"><?= $i ?></a>
-  <?php endfor; ?>
-
-  <?php if ($end < $total_pages - 1): ?>
-    <span class="pg-link disabled">&hellip;</span>
-  <?php endif; ?>
-
-  <?php if ($total_pages > 1): ?>
-    <a href="<?= View::e($pageUrl($total_pages)) ?>"
-       class="pg-link<?= $page === $total_pages ? ' active' : '' ?>"><?= $total_pages ?></a>
-  <?php endif; ?>
-
-  <a href="<?= View::e($pageUrl($page + 1)) ?>"
-     class="pg-link<?= $page >= $total_pages ? ' disabled' : '' ?>" aria-label="Next">&rsaquo;</a>
-</nav>
+<?php if (!$reorderMode): ?>
+<?php $pg_current = $page; $pg_total = $total_pages; $pg_url = $pageUrl;
+include LUSTER_BASE . '/templates/admin/_pagination.php'; ?>
 <?php endif; ?>

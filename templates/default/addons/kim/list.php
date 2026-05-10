@@ -47,7 +47,7 @@ $_linkSignup = ($link_signup !== null && $link_signup !== '') ? $link_signup : n
   <?php endif; ?>
 
   <?php if ($_linkSignup !== null): ?>
-  <p class="fl-meta" style="margin-top:1.5rem">
+  <p class="fl-meta">
     <a href="<?= View::e($_linkSignup) ?>">Sign up for the KIM list</a>
   </p>
   <?php endif; ?>

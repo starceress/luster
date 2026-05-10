@@ -3,14 +3,18 @@
  * KIM List admin - show members for one fanlisting.
  *
  * Variables:
- *   $listing         Listing
- *   $members         KimMember[]
- *   $pending_count   int
- *   $approved_count  int
- *   $base_url        string
- *   $csrf_token      string
- *   $success         string
- *   $error           string
+ *   $listing           Listing
+ *   $pending_members   KimMember[]
+ *   $approved_members  KimMember[]
+ *   $pending_count     int
+ *   $approved_count    int
+ *   $page              int
+ *   $total_pages       int
+ *   $page_url          callable
+ *   $base_url          string
+ *   $csrf_token        string
+ *   $success           string
+ *   $error             string
  */
 
 declare(strict_types=1);
@@ -19,9 +23,6 @@ use Luster\Core\View;
 
 $b   = rtrim(View::e($base_url), '/');
 $fid = (int) $listing->id;
-
-$pendingMembers  = array_values(array_filter($members, static fn($m) =>  $m->pending));
-$approvedMembers = array_values(array_filter($members, static fn($m) => !$m->pending));
 ?>
 
 <?php if ($success !== ''): ?>
@@ -35,26 +36,23 @@ $approvedMembers = array_values(array_filter($members, static fn($m) => !$m->pen
   <a href="<?= $b ?>/admin/kim" class="link">&larr; Back to KIM List</a>
   <?php if ($approved_count > 0): ?>
   <div class="topbar-actions">
-    <a href="<?= $b ?>/admin/kim/<?= $fid ?>/mass-email"
+    <a href="<?= $b ?>/admin/kim/<?= $fid ?>/bulk-email"
        class="btn btn-quaternary btn-sm">Bulk Email All (<?= (int) $approved_count ?>)</a>
   </div>
   <?php endif; ?>
 </div>
-
-<!-- â”€â”€ Pending Sign-Ups â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
-
+<!-- ──── PENDING SIGN-UPS ───────────────────────────────────────────── -->
 <div class="overview-section-head">
     <div class="overview-section-title">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="15" height="15"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M19 8v6m3-3h-6"/></svg>
-      Pending Sign-Ups
+      <?= View::icon('pending') ?> Pending Sign-Ups
     </div>
     <div class="overview-section-sub">New sign-up requests awaiting your approval decision.</div>
 </div>
 
-<?php if (empty($pendingMembers)): ?>
+<?php if (empty($pending_members)): ?>
   <div class="card">
     <div class="empty">
-      <?= View::icon('check-badge', ['width' => '40', 'height' => '40']) ?>
+      <span class="empty-icon"><?= View::icon('check-badge', ['width' => 32, 'height' => 32]) ?></span>
       No pending sign-ups - all caught up.
     </div>
   </div>
@@ -80,6 +78,8 @@ $approvedMembers = array_values(array_filter($members, static fn($m) => !$m->pen
         </div>
         <button type="submit" class="btn btn-quaternary btn-sm">Apply</button>
       </div>
+
+
       <div class="table-wrap">
       <table class="data-table mem-table">
         <thead>
@@ -93,7 +93,7 @@ $approvedMembers = array_values(array_filter($members, static fn($m) => !$m->pen
           </tr>
         </thead>
         <tbody>
-          <?php foreach ($pendingMembers as $m): ?>
+          <?php foreach ($pending_members as $m): ?>
           <tr>
             <td class="cb-col">
               <input type="checkbox" class="row-cb-kim-p-<?= $fid ?>" name="ids[]" value="<?= (int) $m->id ?>">
@@ -124,7 +124,7 @@ $approvedMembers = array_values(array_filter($members, static fn($m) => !$m->pen
       </div>
     </form>
   </div>
-<?php foreach ($pendingMembers as $m): ?>
+<?php foreach ($pending_members as $m): ?>
 <form id="approve-kim-<?= (int) $m->id ?>" method="POST"
       action="<?= $b ?>/admin/kim/<?= (int) $m->id ?>/approve" class="action-form-inline">
   <input type="hidden" name="_csrf"    value="<?= View::e($csrf_token) ?>">
@@ -138,22 +138,19 @@ $approvedMembers = array_values(array_filter($members, static fn($m) => !$m->pen
 </form>
 <?php endforeach; ?>
 <?php endif; ?>
-
-<!-- â”€â”€ Approved Sign-Ups â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
-
+<!-- ──── APPROVED SIGN-UPS ──────────────────────────────────────────── -->
 <div class="overview-section-divider"></div>
 <div class="overview-section-head">
     <div class="overview-section-title">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="15" height="15"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-      Approved Sign-Ups
+      <?= View::icon('approved') ?> Approved Sign-Ups
     </div>
     <div class="overview-section-sub">Members who have been approved and are on the list.</div>
 </div>
 
-<?php if (empty($approvedMembers)): ?>
+<?php if (empty($approved_members)): ?>
   <div class="card">
     <div class="empty">
-      <?= View::icon('check-badge', ['width' => '40', 'height' => '40']) ?>
+      <span class="empty-icon"><?= View::icon('check-badge', ['width' => '32', 'height' => '32']) ?></span>
       No approved sign-ups yet.
     </div>
   </div>
@@ -191,7 +188,7 @@ $approvedMembers = array_values(array_filter($members, static fn($m) => !$m->pen
           </tr>
         </thead>
         <tbody>
-          <?php foreach ($approvedMembers as $m): ?>
+          <?php foreach ($approved_members as $m): ?>
           <tr>
             <td class="cb-col">
               <input type="checkbox" class="row-cb-kim-a-<?= $fid ?>" name="ids[]" value="<?= (int) $m->id ?>">
@@ -220,8 +217,10 @@ $approvedMembers = array_values(array_filter($members, static fn($m) => !$m->pen
       </table>
       </div>
     </form>
+    <?php $pg_current = $page; $pg_total = $total_pages; $pg_url = $page_url;
+    include LUSTER_BASE . '/templates/admin/_pagination.php'; ?>
   </div>
-<?php foreach ($approvedMembers as $m): ?>
+<?php foreach ($approved_members as $m): ?>
 <form id="del-kim-<?= (int) $m->id ?>" method="POST"
       action="<?= $b ?>/admin/kim/<?= (int) $m->id ?>/delete"
       data-del-modal data-del-entity="kim_member"

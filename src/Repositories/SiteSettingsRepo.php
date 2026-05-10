@@ -18,7 +18,7 @@ use Luster\Core\Database;
  *   joined_template          — per-row HTML template for embed/joined.php
  *   collective_stats_template — HTML template for embed/collective-stats.php
  */
-final class SiteSettingsRepo
+class SiteSettingsRepo
 {
     public function __construct(private readonly Database $db) {}
 

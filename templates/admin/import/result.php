@@ -33,8 +33,7 @@ $hasErr  = $result->hasErrors();
     <div class="wizard-step-label">Import</div>
   </div>
 </div>
-
-<!-- Result banner -->
+<!-- ──── RESULT BANNER ──────────────────────────────────────────────── -->
 <div class="import-result-banner import-result-banner--<?= $hasErr ? 'error' : 'success' ?>">
   <div class="import-result-banner-inner">
     <div class="import-result-icon import-result-icon--<?= $hasErr ? 'error' : 'success' ?>">
@@ -59,9 +58,8 @@ $hasErr  = $result->hasErrors();
     </div>
   </div>
 </div>
-
-<!-- Stat tiles -->
-<div class="stats-grid stats-grid-row stats-grid--plain import-stack-gap">
+<!-- ──── STAT TILES ─────────────────────────────────────────────────── -->
+<div class="stats-grid stats-grid-row stats-grid-plain import-stack-gap">
   <div class="stat-card">
     <div class="stat-header">
       <span class="stat-icon"><?= View::icon('import') ?></span>
@@ -113,8 +111,7 @@ $hasErr  = $result->hasErrors();
     <div class="stat-pills"><span class="badge badge-inactive">Seconds elapsed</span></div>
   </div>
 </div>
-
-<!-- Result table -->
+<!-- ──── RESULT TABLE ───────────────────────────────────────────────── -->
 <div class="gradient-card import-stack-gap">
   <div class="import-scroll-x">
     <table class="data-table">
@@ -259,8 +256,7 @@ $hasErr  = $result->hasErrors();
     with image migration enabled.
   </div>
 <?php endif; ?>
-
-<!-- Actions -->
+<!-- ──── ACTIONS ────────────────────────────────────────────────────── -->
 <div class="btn-row import-action-row">
   <a href="<?= $b ?>/admin" class="btn btn-primary">Go to Dashboard</a>
   <a href="<?= $b ?>/admin/import" class="btn btn-secondary">Run Another Import</a>

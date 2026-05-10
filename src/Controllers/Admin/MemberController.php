@@ -219,7 +219,7 @@ final class MemberController extends AdminController
             'dir'             => $dir,
             'success'         => $success,
             'error'           => $error,
-        ], 'Owned › ' . $listing->name);
+        ], '', $this->memberBreadcrumbs($listing, null, false));
     }
 
     // -----------------------------------------------------------------------
@@ -284,7 +284,7 @@ final class MemberController extends AdminController
                     'success'         => '',
                     'old'             => $request->postAll(),
                     'all_listings' => $allListings,
-                ], 'Owned › ' . $listing->name);
+                ], '', $this->memberBreadcrumbs($listing, $member->name));
             }
 
             $updateData = [
@@ -340,7 +340,7 @@ final class MemberController extends AdminController
             'success'         => $flashSuccess,
             'old'             => [],
             'all_listings' => $allListings,
-        ], 'Owned › ' . $listing->name);
+        ], '', $this->memberBreadcrumbs($listing, $member->name));
     }
 
     // -----------------------------------------------------------------------
@@ -644,7 +644,7 @@ final class MemberController extends AdminController
             'listing' => $listing,
             'results' => null,
             'error'   => '',
-        ], 'Owned › ' . $listing->name);
+        ], '', $this->memberBreadcrumbs($listing));
     }
 
     public function importTemplate(Request $request, array $params): Response
@@ -715,7 +715,7 @@ final class MemberController extends AdminController
                 'listing' => $listing,
                 'results' => null,
                 'error'   => 'Please select a CSV file to upload.',
-            ], 'Owned › ' . $listing->name);
+            ], '', $this->memberBreadcrumbs($listing));
         }
 
         if (($upload['error'] ?? 0) !== UPLOAD_ERR_OK) {
@@ -723,7 +723,7 @@ final class MemberController extends AdminController
                 'listing' => $listing,
                 'results' => null,
                 'error'   => 'File upload failed (error code ' . (int) $upload['error'] . ').',
-            ], 'Owned › ' . $listing->name);
+            ], '', $this->memberBreadcrumbs($listing));
         }
 
         if ((int) ($upload['size'] ?? 0) > 2 * 1024 * 1024) {
@@ -731,7 +731,7 @@ final class MemberController extends AdminController
                 'listing' => $listing,
                 'results' => null,
                 'error'   => 'File exceeds the 2 MB size limit.',
-            ], 'Owned › ' . $listing->name);
+            ], '', $this->memberBreadcrumbs($listing));
         }
 
         $tmpPath = (string) ($upload['tmp_name'] ?? '');
@@ -745,7 +745,7 @@ final class MemberController extends AdminController
                 'listing' => $listing,
                 'results' => null,
                 'error'   => 'Only CSV files are accepted (detected: ' . htmlspecialchars($mimeType, ENT_QUOTES, 'UTF-8') . ').',
-            ], 'Owned › ' . $listing->name);
+            ], '', $this->memberBreadcrumbs($listing));
         }
 
         // ------------------------------------------------------------------
@@ -759,7 +759,7 @@ final class MemberController extends AdminController
                 'listing' => $listing,
                 'results' => null,
                 'error'   => 'Could not open uploaded file for reading.',
-            ], 'Owned › ' . $listing->name);
+            ], '', $this->memberBreadcrumbs($listing));
         }
 
         // Read + normalise header row
@@ -771,7 +771,7 @@ final class MemberController extends AdminController
                 'listing' => $listing,
                 'results' => null,
                 'error'   => 'The file appears to be empty or could not be read.',
-            ], 'Owned › ' . $listing->name);
+            ], '', $this->memberBreadcrumbs($listing));
         }
 
         $headerMap = []; // column name (lowercase) → column index
@@ -785,7 +785,7 @@ final class MemberController extends AdminController
                 'listing' => $listing,
                 'results' => null,
                 'error'   => 'The CSV must have at least a "name" column and an "email" column in the header row.',
-            ], 'Owned › ' . $listing->name);
+            ], '', $this->memberBreadcrumbs($listing));
         }
 
         // Build set of valid additional field names for this listing
@@ -905,7 +905,7 @@ final class MemberController extends AdminController
                 'errors'   => $errors,
             ],
             'error' => '',
-        ], 'Owned › ' . $listing->name);
+        ], '', $this->memberBreadcrumbs($listing));
     }
 
     // -----------------------------------------------------------------------
@@ -1098,6 +1098,8 @@ final class MemberController extends AdminController
             'cfg'     => $this->app->getConfig()->all(),
             'success' => $success,
             'error'   => $error,
+        ], '', [
+            $this->crumb('Members', $this->adminUrl('/admin/members')),
         ]);
     }
 
@@ -1183,7 +1185,7 @@ final class MemberController extends AdminController
             'success'        => $flash_success,
             'old'            => $old,
             'referer'        => $referer,
-        ], 'Owned › ' . $listing->name);
+        ], '', $this->memberBreadcrumbs($listing, $member ? $member->name : $email));
     }
 
     public function emailMemberSend(Request $request, array $params): Response
@@ -1280,7 +1282,7 @@ final class MemberController extends AdminController
             'error'           => $error,
             'success'         => $success,
             'old'             => $old,
-        ], 'Owned › ' . $listing->name);
+        ], '', $this->memberBreadcrumbs($listing));
     }
 
     // -----------------------------------------------------------------------
@@ -1411,6 +1413,32 @@ final class MemberController extends AdminController
     }
 
     // -----------------------------------------------------------------------
+
+    /**
+     * @return array<int,array{label:string,url?:string|null}>
+     */
+    private function memberBreadcrumbs(object $listing, ?string $memberLabel = null, bool $includeMembers = true): array
+    {
+        if (!$includeMembers) {
+            return [
+                $this->crumb('Owned Listings', $this->adminUrl('/admin/listings')),
+                $this->crumb($listing->subject),
+            ];
+        }
+
+        $crumbs = [
+            $this->crumb($listing->subject, $this->adminUrl('/admin/listings/' . $listing->id . '/edit')),
+        ];
+
+        if ($memberLabel !== null && trim($memberLabel) !== '') {
+            $crumbs[] = $this->crumb('Members', $this->adminUrl('/admin/members/' . $listing->id));
+            $crumbs[] = $this->crumb($memberLabel);
+        } else {
+            $crumbs[] = $this->crumb('Members');
+        }
+
+        return $crumbs;
+    }
 
     private function writeConfig(array $config): void
     {

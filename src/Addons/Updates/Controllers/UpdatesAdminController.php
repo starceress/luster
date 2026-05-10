@@ -53,21 +53,31 @@ final class UpdatesAdminController extends AdminController
             return $dir === 'asc' ? $diff : -$diff;
         });
 
+        $totalListings = count($listings);
+        $perPage       = max(1, (int) $config->get('per_page', 10));
+        $pages         = $totalListings > 0 ? (int) ceil($totalListings / $perPage) : 1;
+        $page          = min(max(1, (int) $request->query('page', 1)), $pages);
+        $listings      = array_slice($listings, ($page - 1) * $perPage, $perPage);
+
         $success = (string) $session->get('lstr_flash_success', '');
         $error   = (string) $session->get('lstr_flash_error',   '');
         $session->remove('lstr_flash_success');
         $session->remove('lstr_flash_error');
 
-        return $this->adminLayout('admin/addons/updates/index.php', 'Updates', 'updates', [
-            'listings'       => $listings,
-            'latest_per_fl'  => $latestPerFl,
-            'latest_coll'    => $latestColl,
-            'collective_cnt' => $collectiveCnt,
-            'site_name'      => (string) $config->get('site_name', 'Luster'),
-            'sort'           => $sort,
-            'dir'            => $dir,
-            'success'        => $success,
-            'error'          => $error,
+        return $this->adminLayout('admin/addons/updates/index.php', 'Updates Feed', 'updates', [
+            'listings'        => $listings,
+            'latest_per_fl'   => $latestPerFl,
+            'latest_coll'     => $latestColl,
+            'collective_cnt'  => $collectiveCnt,
+            'site_name'       => (string) $config->get('site_name', 'Luster'),
+            'sort'            => $sort,
+            'dir'             => $dir,
+            'page'            => $page,
+            'pages'           => $pages,
+            'per_page'        => $perPage,
+            'total_listings'  => $totalListings,
+            'success'         => $success,
+            'error'           => $error,
         ]);
     }
 
@@ -81,29 +91,40 @@ final class UpdatesAdminController extends AdminController
         $session = $this->app->getSession();
         $config  = $this->app->getConfig();
 
-        $perPage = max(1, (int) $config->get('per_page', 20));
-        $page    = max(1, (int) ($request->query('page', 1)));
+        $perPage         = max(1, (int) $config->get('per_page', 10));
+        $page            = max(1, (int) ($request->query('page', 1)));
+        $search          = trim((string) $request->query('search', ''));
+        $filterCategory  = trim((string) $request->query('category', ''));
 
         $updateRepo = new UpdateRepo($db);
-        $updates    = $updateRepo->getCollective($page, $perPage);
-        $total      = $updateRepo->countCollective();
+        $updates    = $updateRepo->getFiltered(null, $search, $filterCategory, $page, $perPage);
+        $total      = $updateRepo->countFiltered(null, $search, $filterCategory);
         $pages      = max(1, (int) ceil($total / $perPage));
+
+        $siteName = (string) $config->get('site_name', 'Luster');
 
         $success = (string) $session->get('lstr_flash_success', '');
         $error   = (string) $session->get('lstr_flash_error',   '');
         $session->remove('lstr_flash_success');
         $session->remove('lstr_flash_error');
 
-        return $this->adminLayout('admin/addons/updates/list.php', 'Updates — Collective', 'updates', [
-            'updates'       => $updates,
-            'total'         => $total,
-            'page'          => $page,
-            'pages'         => $pages,
-            'is_collective' => true,
-            'listing'       => null,
-            'success'       => $success,
-            'error'         => $error,
-        ], 'Collective');
+        return $this->adminLayout('admin/addons/updates/list.php', 'Updates Feed', 'updates', [
+            'updates'          => $updates,
+            'total'            => $total,
+            'page'             => $page,
+            'pages'            => $pages,
+            'per_page'         => $perPage,
+            'is_collective'    => true,
+            'listing'          => null,
+            'search'           => $search,
+            'filter_category'  => $filterCategory,
+            'known_categories' => $updateRepo->getKnownCategories(),
+            'success'          => $success,
+            'error'            => $error,
+        ], '', [
+            $this->crumb('Updates Feed', $this->adminUrl('/admin/updates')),
+            $this->crumb($siteName),
+        ]);
     }
 
     // -----------------------------------------------------------------------
@@ -139,12 +160,14 @@ final class UpdatesAdminController extends AdminController
             return Response::notFound('Listing not found.');
         }
 
-        $perPage = max(1, (int) $config->get('per_page', 20));
-        $page    = max(1, (int) ($request->query('page', 1)));
+        $perPage         = max(1, (int) $config->get('per_page', 10));
+        $page            = max(1, (int) ($request->query('page', 1)));
+        $search          = trim((string) $request->query('search', ''));
+        $filterCategory  = trim((string) $request->query('category', ''));
 
         $updateRepo = new UpdateRepo($db);
-        $updates    = $updateRepo->getForFanlisting($fid, $page, $perPage);
-        $total      = $updateRepo->countForFanlisting($fid);
+        $updates    = $updateRepo->getFiltered($fid, $search, $filterCategory, $page, $perPage);
+        $total      = $updateRepo->countFiltered($fid, $search, $filterCategory);
         $pages      = max(1, (int) ceil($total / $perPage));
 
         $success = (string) $session->get('lstr_flash_success', '');
@@ -152,16 +175,23 @@ final class UpdatesAdminController extends AdminController
         $session->remove('lstr_flash_success');
         $session->remove('lstr_flash_error');
 
-        return $this->adminLayout('admin/addons/updates/list.php', 'Updates — ' . $listing->name, 'updates', [
-            'updates'       => $updates,
-            'total'         => $total,
-            'page'          => $page,
-            'pages'         => $pages,
-            'is_collective' => false,
-            'listing'       => $listing,
-            'success'       => $success,
-            'error'         => $error,
-        ], 'Owned › ' . $listing->name);
+        return $this->adminLayout('admin/addons/updates/list.php', 'Updates Feed', 'updates', [
+            'updates'          => $updates,
+            'total'            => $total,
+            'page'             => $page,
+            'pages'            => $pages,
+            'per_page'         => $perPage,
+            'is_collective'    => false,
+            'listing'          => $listing,
+            'search'           => $search,
+            'filter_category'  => $filterCategory,
+            'known_categories' => $updateRepo->getKnownCategories(),
+            'success'          => $success,
+            'error'            => $error,
+        ], '', [
+            $this->crumb('Updates Feed', $this->adminUrl('/admin/updates')),
+            $this->crumb($listing->subject),
+        ]);
     }
 
     // -----------------------------------------------------------------------
@@ -179,7 +209,7 @@ final class UpdatesAdminController extends AdminController
             return Response::notFound('Listing not found.');
         }
 
-        return $this->renderAddForm($request, $fid, 'Owned › ' . $listing->name);
+        return $this->renderAddForm($request, $fid, $listing->subject);
     }
 
     public function add(Request $request, array $params): Response
@@ -193,7 +223,7 @@ final class UpdatesAdminController extends AdminController
             return Response::notFound('Listing not found.');
         }
 
-        return $this->handleAdd($request, $fid, 'Owned › ' . $listing->name);
+        return $this->handleAdd($request, $fid, $listing->subject);
     }
 
     // -----------------------------------------------------------------------
@@ -215,7 +245,7 @@ final class UpdatesAdminController extends AdminController
             return Response::notFound('Update not found.');
         }
 
-        [$subtitle, $backUrl] = $this->subtitleAndBack($update, $config, $db);
+        [$contextLabel, $backUrl, $breadcrumbs] = $this->subtitleAndBack($update, $config, $db);
 
         $error = (string) $session->get('lstr_flash_error', '');
         $session->remove('lstr_flash_error');
@@ -225,10 +255,11 @@ final class UpdatesAdminController extends AdminController
             'fanlisting_id'    => $update->fanlistingId,
             'known_categories' => $updateRepo->getKnownCategories(),
             'back_url'         => $backUrl,
-            'ctx_label'        => $subtitle,
+            'ctx_label'        => $contextLabel,
+            'back_label'       => $contextLabel,
             'is_edit'          => true,
             'error'            => $error,
-        ], $subtitle);
+        ], '', $breadcrumbs);
     }
 
     public function edit(Request $request, array $params): Response
@@ -247,7 +278,7 @@ final class UpdatesAdminController extends AdminController
             return Response::notFound('Update not found.');
         }
 
-        [$subtitle, $backUrl] = $this->subtitleAndBack($update, $config, $db);
+        [, $backUrl] = $this->subtitleAndBack($update, $config, $db);
 
         $title    = trim((string) $request->post('title',     ''));
         $body     = trim((string) $request->post('body',      ''));
@@ -272,10 +303,11 @@ final class UpdatesAdminController extends AdminController
             (int) $session->get('lstr_admin_id'),
             'update_edited',
             'Edited update "' . $title . '"',
+            $request->ip(),
         );
 
         $session->set('lstr_flash_success', 'Update saved.');
-        return Response::redirect($baseUrl . $backUrl);
+        return Response::redirect($backUrl);
     }
 
     // -----------------------------------------------------------------------
@@ -310,10 +342,11 @@ final class UpdatesAdminController extends AdminController
             (int) $session->get('lstr_admin_id'),
             'update_deleted',
             'Deleted update "' . $update->title . '" for ' . $context,
+            $request->ip(),
         );
 
         $session->set('lstr_flash_success', 'Update deleted.');
-        return Response::redirect($baseUrl . $backUrl);
+        return Response::redirect($backUrl);
     }
 
     // -----------------------------------------------------------------------
@@ -323,7 +356,7 @@ final class UpdatesAdminController extends AdminController
     /**
      * Shared GET form renderer for add (both collective and per-fanlisting).
      */
-    private function renderAddForm(Request $request, ?int $fanlistingId, string $subtitle): Response
+    private function renderAddForm(Request $request, ?int $fanlistingId, string $contextLabel): Response
     {
         $db      = $this->app->getDatabase();
         $session = $this->app->getSession();
@@ -343,16 +376,21 @@ final class UpdatesAdminController extends AdminController
             'fanlisting_id'    => $fanlistingId,
             'known_categories' => $updateRepo->getKnownCategories(),
             'back_url'         => $backUrl,
-            'ctx_label'        => $subtitle,
+            'ctx_label'        => $contextLabel,
+            'back_label'       => $contextLabel,
             'is_edit'          => false,
+            'author'           => (string) $session->get('lstr_admin_username', ''),
             'error'            => $error,
-        ], $subtitle);
+        ], '', [
+            $this->crumb('Updates Feed', $this->adminUrl('/admin/updates')),
+            $this->crumb($contextLabel),
+        ]);
     }
 
     /**
      * Shared POST handler for add (both collective and per-fanlisting).
      */
-    private function handleAdd(Request $request, ?int $fanlistingId, string $subtitle): Response
+    private function handleAdd(Request $request, ?int $fanlistingId, string $contextLabel): Response
     {
         $db      = $this->app->getDatabase();
         $config  = $this->app->getConfig();
@@ -397,6 +435,7 @@ final class UpdatesAdminController extends AdminController
             (int) $session->get('lstr_admin_id'),
             'update_added',
             'Added update "' . $title . '" for ' . $context,
+            $request->ip(),
         );
 
         $session->set('lstr_flash_success', 'Update posted.');
@@ -434,22 +473,33 @@ final class UpdatesAdminController extends AdminController
     }
 
     /**
-     * Derives page subtitle and back URL for an existing update (edit/delete).
+     * Derives context label, back URL, and breadcrumbs for an existing update.
      *
-     * @return array{0: string, 1: string}  [subtitle, backUrl (relative to baseUrl)]
+     * @return array{0: string, 1: string, 2: array<int,array{label:string,url?:string|null}>}
      */
     private function subtitleAndBack(Update $update, mixed $config, mixed $db): array
     {
         if ($update->fanlistingId === null) {
-            return ['Collective', '/admin/updates/collective'];
+            return [
+                'Collective',
+                $this->adminUrl('/admin/updates/collective'),
+                [
+                    $this->crumb('Updates Feed', $this->adminUrl('/admin/updates')),
+                    $this->crumb('Collective'),
+                ],
+            ];
         }
 
         $listing = (new ListingRepo($db, $config))->getById($update->fanlistingId);
-        $name    = $listing?->name ?? ('Listing #' . $update->fanlistingId);
+        $name    = $listing?->subject ?? ('Listing #' . $update->fanlistingId);
 
         return [
-            'Owned › ' . $name,
-            '/admin/updates/' . $update->fanlistingId,
+            $name,
+            $this->adminUrl('/admin/updates/' . $update->fanlistingId),
+            [
+                $this->crumb('Updates Feed', $this->adminUrl('/admin/updates')),
+                $this->crumb($name),
+            ],
         ];
     }
 

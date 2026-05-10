@@ -195,6 +195,8 @@ final class JoinedController extends AdminController
                     'tafl_cats'       => $categoryRepo->getBySource('tafl'),
                     'custom_networks' => $customNetworksErr,
                     'custom_cats'     => $customCatsErr,
+                ], '', [
+                    $this->crumb('Joined Listings', $this->adminUrl('/admin/joined')),
                 ]);
             }
 
@@ -239,6 +241,8 @@ final class JoinedController extends AdminController
             'tafl_cats'       => $categoryRepo->getBySource('tafl'),
             'custom_networks' => $customNetworks,
             'custom_cats'     => $customCats,
+        ], '', [
+            $this->crumb('Joined Listings', $this->adminUrl('/admin/joined')),
         ]);
     }
 
@@ -342,7 +346,10 @@ final class JoinedController extends AdminController
                     'tafl_cats'       => $categoryRepo->getBySource('tafl'),
                     'custom_networks' => $customNetworksErr,
                     'custom_cats'     => $customCatsErr,
-                ], 'Joined Listings › ' . $joined->name);
+                ], '', [
+                    $this->crumb('Joined Listings', $this->adminUrl('/admin/joined')),
+                    $this->crumb($joined->name),
+                ]);
             }
 
             // --- All valid: handle image, persist ---
@@ -401,7 +408,10 @@ final class JoinedController extends AdminController
             'tafl_cats'       => $categoryRepo->getBySource('tafl'),
             'custom_networks' => $customNetworks,
             'custom_cats'     => $customCats,
-        ], 'Joined Listings › ' . $joined->name);
+        ], '', [
+            $this->crumb('Joined Listings', $this->adminUrl('/admin/joined')),
+            $this->crumb($joined->name),
+        ]);
     }
 
     // -----------------------------------------------------------------------
@@ -572,6 +582,8 @@ final class JoinedController extends AdminController
             'per_page'     => (int) $config->get('joined_per_page', 10),
             'success'      => $success,
             'error'        => $error,
+        ], '', [
+            $this->crumb('Joined Listings', $this->adminUrl('/admin/joined')),
         ]);
     }
 

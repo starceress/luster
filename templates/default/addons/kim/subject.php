@@ -39,7 +39,7 @@ $b = rtrim(View::e($base_url), '/');
     </ul>
   <?php endif; ?>
 
-  <p class="fl-meta" style="margin-top:1.5rem">
+  <p class="fl-meta">
     <a href="<?= $b ?>/kim">Sign up to be on this list</a>
   </p>
 </div>

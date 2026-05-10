@@ -48,7 +48,7 @@ final class AffiliateController extends AdminController
         // Build listing lookup map for display
         $fanMap = [];
         foreach ($listings as $fl) {
-            $fanMap[$fl->id] = $fl->name;
+            $fanMap[$fl->id] = $fl->subject;
         }
 
         $filterFid   = trim((string) $request->query('fanlisting_id', 'collective'));
@@ -114,10 +114,13 @@ final class AffiliateController extends AdminController
 
         $baseUrl = $this->app->getBaseUrl();
 
-        // Subtitle: show the listing name when filtered to a specific listing
-        $indexSubtitle = ($filterFid !== '' && $filterFid !== 'collective' && isset($fanMap[(int) $filterFid]))
-            ? 'Owned › ' . $fanMap[(int) $filterFid]
-            : '';
+        $indexBreadcrumbs = [];
+        if ($filterFid !== '' && $filterFid !== 'collective' && isset($fanMap[(int) $filterFid])) {
+            $indexBreadcrumbs = [
+                $this->crumb('Affiliates', $this->adminUrl('/admin/affiliates')),
+                $this->crumb($fanMap[(int) $filterFid]),
+            ];
+        }
 
         return $this->adminLayout('admin/affiliates/index.php', 'Affiliates', 'affiliates', [
             'affiliates'   => $affiliates,
@@ -136,7 +139,7 @@ final class AffiliateController extends AdminController
             'reorder_mode' => $reorderMode,
             'success'      => $success,
             'error'        => $error,
-        ], $indexSubtitle);
+        ], '', $indexBreadcrumbs);
     }
 
     // -----------------------------------------------------------------------
@@ -159,11 +162,10 @@ final class AffiliateController extends AdminController
         // Listing context — comes from route {fid} or query param
         $contextFid = (int) ($params['fid'] ?? $request->query('context_fid', 0));
 
-        // Subtitle helper: "Owned › Listing Name" when in listing context
         $contextListing = $contextFid > 0
             ? (static function (array $ls, int $fid): ?object { foreach ($ls as $l) { if ((int) $l->id === $fid) return $l; } return null; })($listings, $contextFid)
             : null;
-        $addSubtitle = $contextListing !== null ? 'Owned › ' . $contextListing->name : '';
+        $addBreadcrumbs = $this->affiliateBreadcrumbs($contextListing);
 
         if ($request->isPost()) {
             // When routed through /listings/{fid}/affiliates/add the listing ID
@@ -213,7 +215,7 @@ final class AffiliateController extends AdminController
                     'old'          => $request->postAll(),
                     'context_fid'  => 0,
                     'site_name'    => $siteName,
-                ], $addSubtitle);
+                ], '', $addBreadcrumbs);
             }
 
             $affiliateRepo->insert([
@@ -251,7 +253,7 @@ final class AffiliateController extends AdminController
             'context_fid'    => $contextFid,
             'site_name'      => $siteName,
             'next_sort_order' => $nextSortOrder,
-        ], $addSubtitle);
+        ], '', $addBreadcrumbs);
     }
 
     // -----------------------------------------------------------------------
@@ -275,11 +277,10 @@ final class AffiliateController extends AdminController
             return Response::notFound('Affiliate not found.');
         }
 
-        // Subtitle: "Owned › Listing Name" when affiliate belongs to a specific listing
         $editListingObj = $affiliate->listingId !== null
             ? (static function (array $ls, int $fid): ?object { foreach ($ls as $l) { if ((int) $l->id === $fid) return $l; } return null; })($listings, $affiliate->listingId)
             : null;
-        $editSubtitle = $editListingObj !== null ? 'Owned › ' . $editListingObj->name : '';
+        $editBreadcrumbs = $this->affiliateBreadcrumbs($editListingObj, $affiliate->name);
 
         $session = $this->app->getSession();
         $baseUrl = $this->app->getBaseUrl();
@@ -335,7 +336,7 @@ final class AffiliateController extends AdminController
                     'old'          => $request->postAll(),
                     'context_fid'  => $fromFl,
                     'site_name'    => $siteName,
-                ], $editSubtitle);
+                ], '', $editBreadcrumbs);
             }
 
             $affiliateRepo->update($id, [
@@ -371,7 +372,7 @@ final class AffiliateController extends AdminController
             'old'         => [],
             'context_fid' => $fromFl,
             'site_name'   => $siteName,
-        ], $editSubtitle);
+        ], '', $editBreadcrumbs);
     }
 
     // -----------------------------------------------------------------------
@@ -463,6 +464,29 @@ final class AffiliateController extends AdminController
             : $baseUrl . '/admin/affiliates';
 
         return Response::redirect($redirect);
+    }
+
+    /**
+     * @return array<int,array{label:string,url?:string|null}>
+     */
+    private function affiliateBreadcrumbs(?object $listing, ?string $affiliateName = null): array
+    {
+        if ($listing === null) {
+            $crumbs = [
+                $this->crumb('Affiliates', $this->adminUrl('/admin/affiliates')),
+            ];
+        } else {
+            $crumbs = [
+                $this->crumb($listing->subject, $this->adminUrl('/admin/listings/' . $listing->id . '/edit')),
+                $this->crumb('Affiliates', $this->adminUrl('/admin/affiliates?fanlisting_id=' . $listing->id)),
+            ];
+        }
+
+        if ($affiliateName !== null && trim($affiliateName) !== '') {
+            $crumbs[] = $this->crumb($affiliateName);
+        }
+
+        return $crumbs;
     }
 
 }

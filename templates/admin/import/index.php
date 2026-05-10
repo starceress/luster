@@ -26,14 +26,6 @@ $b = rtrim(View::e($base_url), '/');
   </div>
 </div>
 
-<div class="callout callout-inline">
-  <?= View::icon('alert', ['width' => 24, 'height' => 24, 'style' => 'color:var(--warn)']) ?>
-  <div>
-    <strong>Images are not automatically migrated.</strong>
-    <span>Only database records are imported. You'll have the option to configure image migration on the next step.</span>
-  </div>
-</div>
-
 <div class="import-source-grid">
 
   <a href="<?= $b ?>/admin/import/enthusiast/configure" class="import-source-card import-source-card--enth">

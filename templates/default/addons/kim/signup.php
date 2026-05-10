@@ -72,7 +72,7 @@ $_linkList   = ($link_list   !== null && $link_list   !== '') ? $link_list   : n
     <div class="fl-field">
       <label class="fl-label" for="kim-password">
         Password
-        <span style="font-weight:400"> — leave blank to auto-generate; you'll receive it by email</span>
+        <span class="fl-opt"> — leave blank to auto-generate; you'll receive it by email</span>
       </label>
       <input class="fl-input" type="password" id="kim-password" name="password"
              maxlength="255" autocomplete="new-password">
@@ -118,7 +118,7 @@ $_linkList   = ($link_list   !== null && $link_list   !== '') ? $link_list   : n
   if ($_linkList   !== null) $_metaLinks[] = '<a href="' . View::e($_linkList)   . '">View the KIM list</a>';
   ?>
   <?php if (!empty($_metaLinks)): ?>
-  <p class="fl-meta" style="margin-top:1.5rem">
+  <p class="fl-meta">
     Already signed up? <?= implode(' &middot; ', $_metaLinks) ?>
   </p>
   <?php endif; ?>

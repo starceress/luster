@@ -23,7 +23,7 @@ $listingId  = (int) ($listing->id ?? 0);
       <div class="card-body">
         <div class="select-wrap">
           <select id="em-template-select" >
-            <option value="">â€” Select a Template â€”</option>
+            <option value="">&mdash; Select a Template &mdash;</option>
             <?php foreach ($saved_emails as $t): ?>
               <option value="<?= View::e($t->subject) ?>"
                       data-body="<?= htmlspecialchars($t->body, ENT_QUOTES, 'UTF-8') ?>">
@@ -140,6 +140,7 @@ $listingId  = (int) ($listing->id ?? 0);
   <div class="modal modal--wide">
     <div class="modal-header">
       <h3 class="modal-title">Email Preview</h3>
+      <button type="button" class="modal-close" aria-label="Close">&times;</button>
     </div>
     <div class="modal-body">
       <div class="composer-block">
@@ -165,13 +166,13 @@ $listingId  = (int) ($listing->id ?? 0);
       <div id="preview-body" class="body-area"></div>
     </div>
     <div class="modal-footer" id="em-footer-preview">
-      <button class="btn btn-ghost" id="close-preview-btn">Close</button>
+      <button class="btn btn-quaternary" id="close-preview-btn">Close</button>
     </div>
     <div id="em-footer-confirm" class="is-hidden">
       <div class="me-confirm-warning"><?= View::icon('caution') ?>Are you sure you want to send this email? This action cannot be undone.</div>
       <div class="modal-footer">
         <button type="button" class="btn btn-primary" id="em-confirm-send-btn"><?= View::icon('send') ?> Send</button>
-        <button type="button" class="btn btn-danger" id="em-confirm-cancel-btn">Cancel</button>
+        <button type="button" class="btn btn-quaternary" id="em-confirm-cancel-btn">Cancel</button>
       </div>
     </div>
   </div>

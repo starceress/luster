@@ -13,6 +13,14 @@
 // Defined once at global scope so all IIFEs below can share them without
 // re-declaring.
 
+// Global: .modal-close buttons auto-dismiss their parent .modal-backdrop.
+document.addEventListener('click', function (e) {
+  var btn = e.target.closest('.modal-close');
+  if (!btn) return;
+  var backdrop = btn.closest('.modal-backdrop');
+  if (backdrop) backdrop.style.display = 'none';
+});
+
 // HTML escaping — use esc() anywhere in this file.
 function esc(str) {
   return String(str)
@@ -21,7 +29,7 @@ function esc(str) {
 }
 
 // Token replacement — applies a {token}: value map to a string via split/join.
-// §29 (mass email preview) and §31 (custom templates preview) share this.
+// §29 (bulk email preview) and §31 (custom templates preview) share this.
 function applyTokenReplacements(text, tokenMap) {
   var result = text;
   Object.keys(tokenMap).forEach(function (k) {
@@ -1771,7 +1779,7 @@ document.addEventListener('click', function (e) {
   });
 }());
 
-// ── Mass email compose page ───────────────────────────────────────────────────
+// ── Bulk email compose page ───────────────────────────────────────────────────
 
 (function () {
   if (!document.getElementById('compose-form')) return;
@@ -2540,7 +2548,8 @@ document.addEventListener('click', function (e) {
     kim_member:            { title: 'Delete KIM Entry',        btn: 'Delete',      desc: 'You are about to delete the KIM entry for <strong>$$names$$</strong>.',              warn: 'This action cannot be undone.' },
     pending_update_reject: { title: 'Reject Update',           btn: 'Reject',      desc: 'You are about to reject the update for <strong>$$names$$</strong>.',                 warn: 'The pending update will be discarded. This action cannot be undone.' },
     merge_member:          { title: 'Delete Duplicate Member', btn: 'Delete',      desc: 'You are about to delete the duplicate account for <strong>$$names$$</strong>.',      warn: 'This permanently deletes the duplicate account. This action cannot be undone.' },
-    rename_prefix:         { title: 'Rename Member Table',     btn: 'Rename Table', desc: 'You are about to rename the member table from <strong>$$names$$</strong> to <strong>$$context$$</strong>.', warn: 'This renames the table directly in your database. If anything goes wrong, member data may become unreachable. This action cannot be undone.' }
+    rename_prefix:         { title: 'Rename Member Table',     btn: 'Rename Table', desc: 'You are about to rename the member table from <strong>$$names$$</strong> to <strong>$$context$$</strong>.', warn: 'This renames the table directly in your database. If anything goes wrong, member data may become unreachable. This action cannot be undone.' },
+    update:                { title: 'Delete Update',           btn: 'Delete',      desc: 'You are about to delete the update <strong>$$names$$</strong>.',                       warn: 'This action cannot be undone.' }
   };
 
   function show(cfg, names, context, warnOverride) {
@@ -2660,15 +2669,18 @@ document.addEventListener('click', function (e) {
 // ── 40. Updates add-on — category tag widget ──────────────────────────────────
 
 (function () {
-  document.querySelectorAll('.tag-input-wrap[data-tag-hidden]').forEach(function (wrap) {
+  document.querySelectorAll('[data-tag-hidden]').forEach(function (wrap) {
     var hiddenId  = wrap.getAttribute('data-tag-hidden');
     var hidden    = document.getElementById(hiddenId);
     if (!hidden) return;
-    var textInput = wrap.querySelector('.tag-input-field');
+    var textInput = wrap.querySelector('.tag-input-field, input:not([type="hidden"])');
     if (!textInput) return;
+    var chipsId        = wrap.getAttribute('data-tag-chips');
+    var chipsContainer = chipsId ? (document.getElementById(chipsId) || wrap) : wrap;
+    var chipClass      = wrap.getAttribute('data-tag-chip-class') || 'badge badge-info-gold';
 
     function syncHidden() {
-      var chips = wrap.querySelectorAll('.tag-chip');
+      var chips = chipsContainer.querySelectorAll('[data-value]');
       var vals  = [];
       chips.forEach(function (c) { vals.push(c.dataset.value); });
       hidden.value = vals.join(', ');
@@ -2678,7 +2690,7 @@ document.addEventListener('click', function (e) {
       value = value.trim().replace(/,+$/, '').trim();
       if (!value) return;
       var chip = document.createElement('span');
-      chip.className      = 'tag-chip';
+      chip.className      = chipClass;
       chip.dataset.value  = value;
       chip.innerHTML      = '<span>' + value.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;') + '</span>'
                           + '<button type="button" class="tag-chip-remove" aria-label="Remove">&times;</button>';
@@ -2686,7 +2698,7 @@ document.addEventListener('click', function (e) {
         chip.remove();
         syncHidden();
       });
-      wrap.insertBefore(chip, textInput);
+      chipsContainer === wrap ? wrap.insertBefore(chip, textInput) : chipsContainer.appendChild(chip);
     }
 
     // Initialise from existing hidden value
@@ -2800,7 +2812,7 @@ document.addEventListener('click', function (e) {
   });
 }());
 
-// ── 41b. Mass email — recipient chips, template fill, preview modal ────────────
+// ── 41b. Bulk email — recipient chips, template fill, preview modal ────────────
 
 (function () {
   var form        = document.getElementById('es-form');
@@ -2977,7 +2989,66 @@ document.addEventListener('click', function (e) {
   });
 }());
 
-// ── 41. Flush error-log confirmation modal ─────────────────────────────────────
+// ── 41. Dashboard: To Do List collapse + per-row Mark Updated ─────────────────
+
+(function () {
+  // Collapsible section toggles
+  document.querySelectorAll('.todo-toggle').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var body = document.getElementById(btn.dataset.target || '');
+      var chev = btn.querySelector('.todo-chev');
+      if (!body) return;
+      var nowHidden = body.classList.toggle('todo-body--hidden');
+      if (chev) chev.classList.toggle('todo-chev--collapsed', nowHidden);
+    });
+  });
+
+  // Per-row "Mark Updated" — fetch POST, update UI without reload
+  document.querySelectorAll('.todo-mark-form').forEach(function (form) {
+    form.addEventListener('submit', function (e) {
+      e.preventDefault();
+      var btn = form.querySelector('.btn-mark-updated');
+      if (btn && btn.disabled) return;
+      if (btn) { btn.disabled = true; btn.textContent = '…'; }
+
+      var params = new URLSearchParams(new FormData(form));
+      fetch(form.action, {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body:    params.toString(),
+      })
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+          if (!data.ok) { throw new Error(data.error || 'Failed'); }
+
+          // Update row UI
+          var row  = form.closest('.todo-mrow');
+          var days = row && row.querySelector('.todo-mrow-days');
+          if (days) { days.textContent = 'Just now'; }
+          if (btn)  { btn.textContent = 'Updated ✓'; }
+
+          // Decrement section badge
+          var maintBadge = document.getElementById('todo-maint-badge');
+          if (maintBadge) {
+            var n = parseInt(maintBadge.textContent, 10);
+            if (!isNaN(n) && n > 0) maintBadge.textContent = String(n - 1);
+          }
+          // Decrement header badge
+          var totalBadge = document.getElementById('todo-total-badge');
+          if (totalBadge) {
+            var t = parseInt(totalBadge.textContent, 10);
+            if (!isNaN(t) && t > 0) totalBadge.textContent = String(t - 1);
+          }
+        })
+        .catch(function () {
+          if (btn) { btn.disabled = false; btn.textContent = 'Mark Updated'; }
+          if (window.lstrToast) window.lstrToast('error', 'Could not update listing.');
+        });
+    });
+  });
+}());
+
+// ── 42. Flush error-log confirmation modal ─────────────────────────────────────
 
 (function () {
   var modal      = document.getElementById('flush-logs-modal');
@@ -3001,5 +3072,113 @@ document.addEventListener('click', function (e) {
 
   document.addEventListener('keydown', function (e) {
     if (e.key === 'Escape' && modal.style.display !== 'none') closeModal();
+  });
+}());
+
+// ── 43. Updates add/edit: preview modal ───────────────────────────────────────
+
+(function () {
+  var previewBtn = document.getElementById('upd-preview-btn');
+  if (!previewBtn) return;
+
+  var modal    = document.getElementById('upd-preview-modal');
+  if (!modal) return;
+
+  var closeX   = document.getElementById('upd-preview-close');
+  var closeBtn = document.getElementById('upd-preview-close-btn');
+
+  var MONTHS_SHORT = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  var MONTHS_LONG  = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+
+  function phpDate(fmt, d) {
+    var h24 = d.getHours(), h12 = h24 % 12 || 12;
+    var map = {
+      'd': String(d.getDate()).padStart(2, '0'),
+      'j': String(d.getDate()),
+      'm': String(d.getMonth() + 1).padStart(2, '0'),
+      'n': String(d.getMonth() + 1),
+      'M': MONTHS_SHORT[d.getMonth()],
+      'F': MONTHS_LONG[d.getMonth()],
+      'Y': String(d.getFullYear()),
+      'y': String(d.getFullYear()).slice(-2),
+      'H': String(h24).padStart(2, '0'),
+      'G': String(h24),
+      'h': String(h12).padStart(2, '0'),
+      'g': String(h12),
+      'i': String(d.getMinutes()).padStart(2, '0'),
+      's': String(d.getSeconds()).padStart(2, '0'),
+      'A': h24 < 12 ? 'AM' : 'PM',
+      'a': h24 < 12 ? 'am' : 'pm',
+    };
+    return fmt.replace(/[djmMnFYyHGhgisAa]/g, function (c) { return map[c] !== undefined ? map[c] : c; });
+  }
+
+  function openPreview() {
+    var titleEl    = document.getElementById('upd-title');
+    var bodyEl     = document.getElementById('upd-body');
+    var postedAtEl = document.getElementById('upd-posted-at');
+    var categoryEl = document.getElementById('upd-category');
+
+    var pvTitle  = document.getElementById('upd-preview-title');
+    var pvDate   = document.getElementById('upd-preview-date');
+    var pvCats   = document.getElementById('upd-preview-cats');
+    var pvCatRow = document.getElementById('upd-preview-cats-row');
+    var pvBody   = document.getElementById('upd-preview-body');
+
+    if (pvTitle) pvTitle.textContent = titleEl ? titleEl.value : '';
+
+    if (pvDate && postedAtEl && postedAtEl.value) {
+      var d = new Date(postedAtEl.value);
+      if (!isNaN(d.getTime())) {
+        var dateFmt = modal.dataset.dateFormat || 'j M Y';
+        var timeFmt = modal.dataset.timeFormat || 'H:i';
+        pvDate.textContent = phpDate(dateFmt, d) + ', ' + phpDate(timeFmt, d);
+      } else {
+        pvDate.textContent = postedAtEl.value;
+      }
+    } else if (pvDate) {
+      pvDate.textContent = '';
+    }
+
+    if (pvCats && categoryEl) {
+      var cats = categoryEl.value.split(',').map(function (s) { return s.trim(); }).filter(Boolean);
+      pvCats.innerHTML = '';
+      cats.forEach(function (cat) {
+        var chip = document.createElement('span');
+        chip.className = 'badge badge-inactive';
+        chip.style.marginRight = '4px';
+        chip.textContent = cat;
+        pvCats.appendChild(chip);
+      });
+      if (pvCatRow) pvCatRow.style.display = cats.length ? '' : 'none';
+    }
+
+    if (pvBody) pvBody.textContent = bodyEl ? bodyEl.value : '';
+
+    modal.style.display = 'flex';
+  }
+
+  function closePreview() { modal.style.display = 'none'; }
+
+  previewBtn.addEventListener('click', openPreview);
+  if (closeX)   closeX.addEventListener('click',   closePreview);
+  if (closeBtn) closeBtn.addEventListener('click', closePreview);
+  modal.addEventListener('click', function (e) { if (e.target === modal) closePreview(); });
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && modal.style.display !== 'none') closePreview();
+  });
+}());
+
+// ── 44. Updates list: filter panel toggle ─────────────────────────────────────
+
+(function () {
+  var btn   = document.getElementById('upd-filter-toggle');
+  var panel = document.getElementById('upd-filter-panel');
+  if (!btn || !panel) return;
+
+  btn.addEventListener('click', function () {
+    var open = panel.classList.contains('is-open');
+    panel.classList.toggle('is-open', !open);
+    btn.setAttribute('aria-expanded', String(!open));
   });
 }());

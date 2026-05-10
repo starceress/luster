@@ -10,7 +10,7 @@ use Luster\Core\Database;
  * Data access for the lstr_saved_emails table.
  *
  * Stores admin-saved reusable email templates for composing single-member
- * and mass emails. These are distinct from the transactional templates in
+ * and bulk emails. These are distinct from the transactional templates in
  * lstr_email_templates.
  *
  * Requires Migration 29.

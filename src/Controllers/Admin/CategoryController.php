@@ -87,6 +87,8 @@ final class CategoryController extends AdminController
             'success'      => $success,
             'error'        => $error,
             'field_errors' => is_array($fieldErrors) ? $fieldErrors : [],
+        ], '', [
+            $this->crumb('Categories', $this->adminUrl('/admin/categories')),
         ]);
     }
 
@@ -160,6 +162,9 @@ final class CategoryController extends AdminController
             'success'      => $success,
             'error'        => $error,
             'field_errors' => is_array($fieldErrors) ? $fieldErrors : [],
+        ], '', [
+            $this->crumb('Categories', $this->adminUrl('/admin/categories')),
+            $this->crumb($cat->name),
         ]);
     }
 

@@ -64,6 +64,38 @@ final class Mailer
     }
 
     /**
+     * Sends a plain-text email with an optional Reply-To header.
+     *
+     * Use this when the sender address belongs to the mail transport (SMTP/owner)
+     * but replies should go to a different address (e.g. a feedback reporter).
+     *
+     * @throws RuntimeException if PHPMailer reports an error.
+     */
+    public function sendWithReplyTo(
+        string $toEmail,
+        string $toName,
+        string $subject,
+        string $body,
+        string $replyEmail = '',
+        string $replyName  = '',
+    ): void {
+        $mail = $this->buildMailer();
+
+        $mail->addAddress($toEmail, $toName);
+        $mail->Subject = $subject;
+        $mail->Body    = $body;
+        $mail->isHTML(false);
+
+        if ($replyEmail !== '') {
+            $mail->addReplyTo($replyEmail, $replyName);
+        }
+
+        if (!$mail->send()) {
+            throw new RuntimeException('Mailer error: ' . $mail->ErrorInfo);
+        }
+    }
+
+    /**
      * Sends an HTML email (with a plain-text fallback).
      *
      * @throws RuntimeException if PHPMailer reports an error.

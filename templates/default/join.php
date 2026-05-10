@@ -46,7 +46,7 @@ use Luster\Core\View;
     </div>
 
     <div>
-      <label for="join-url">Website URL <span style="font-weight:400">(optional)</span></label>
+      <label for="join-url">Website URL <span class="fl-opt">(optional)</span></label>
       <input type="url" id="join-url" name="url"
              value="<?= View::e($field_url) ?>" maxlength="500" placeholder="https://" autocomplete="url">
     </div>
@@ -126,14 +126,14 @@ use Luster\Core\View;
 
     <div>
       <label for="join-password">
-        Password <span style="font-weight:400">(optional — one will be emailed to you if left blank)</span>
+        Password <span class="fl-opt">(optional — one will be emailed to you if left blank)</span>
       </label>
       <input type="password" id="join-password" name="password"
              maxlength="255" autocomplete="new-password">
     </div>
 
     <div>
-      <label for="join-password-confirm">Confirm Password <span style="font-weight:400">(optional)</span></label>
+      <label for="join-password-confirm">Confirm Password <span class="fl-opt">(optional)</span></label>
       <input type="password" id="join-password-confirm" name="password_confirm"
              maxlength="255" autocomplete="new-password">
     </div>
@@ -163,7 +163,7 @@ use Luster\Core\View;
 
     <div>
       <button type="submit">Join Fanlisting</button>
-      <button type="reset">Clear Form</button>
+      <button type="reset">Clear</button>
     </div>
   </form>
 </div>

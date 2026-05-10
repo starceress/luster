@@ -8,30 +8,11 @@ if (!function_exists('lusterAdminCssFiles')) {
      */
     function lusterAdminCssFiles(?string $section = null, bool $authOnly = false): array
     {
-        $files = ['base.css', 'layout.css', 'components.css', 'forms.css'];
-
         if ($authOnly) {
-            return ['base.css', 'components.css', 'forms.css', 'auth.css'];
+            return ['layout.css', 'components.css', 'forms.css'];
         }
 
-        if (in_array($section, ['addons', 'import'], true)) {
-            $files[] = 'import.css';
-        }
-
-        if (in_array($section, ['emails', 'members', 'kim'], true)) {
-            $files[] = 'compose.css';
-        }
-
-        if ($section === 'listings') {
-            $files[] = 'compose.css';
-            $files[] = 'embed.css';
-            $files[] = 'codes.css';
-        }
-
-        if ($section === 'embed-codes') {
-            $files[] = 'embed.css';
-        }
-        return array_values(array_unique($files));
+        return ['layout.css', 'components.css', 'forms.css', 'features.css'];
     }
 }
 

@@ -1,6 +1,6 @@
 <?php
 /**
- * KIM List admin - mass email / email-selected compose form.
+ * KIM List admin - bulk email / email-selected compose form.
  *
  * Variables:
  *   $listing          Listing
@@ -107,7 +107,7 @@ $oldBody    = htmlspecialchars($old['body'] ?? '', ENT_QUOTES, 'UTF-8');
   </div><!-- /.composer-side -->
 
   <div class="gradient-card">
-    <form method="POST" action="<?= $b ?>/admin/kim/<?= $fid ?>/mass-email" id="es-form">
+    <form method="POST" action="<?= $b ?>/admin/kim/<?= $fid ?>/bulk-email" id="es-form">
       <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
       <div id="es-email-inputs">
         <?php if ($selected_only): ?>
@@ -119,7 +119,7 @@ $oldBody    = htmlspecialchars($old['body'] ?? '', ENT_QUOTES, 'UTF-8');
 
       <div class="pc-head">
         <div class="pc-head-icon pc-head-icon-bg"><?= View::icon('email') ?></div>
-        <div class="pc-head-title"><?= $selected_only ? 'Email Selected Members' : 'Mass Email' ?></div>
+        <div class="pc-head-title"><?= $selected_only ? 'Email Selected Members' : 'Bulk Email' ?></div>
         <span class="badge badge-info-pink pc-head-badge">
           <?= $flSubject ?> &middot; <span id="es-count-label"><?= $count ?> member<?= $count !== 1 ? 's' : '' ?></span>
         </span>
@@ -186,12 +186,12 @@ $oldBody    = htmlspecialchars($old['body'] ?? '', ENT_QUOTES, 'UTF-8');
   </div><!-- /.gradient-card -->
 
 </div><!-- /.composer-grid -->
-
-<!-- â”€â”€ Preview / Confirm modal â”€â”€ -->
+<!-- ──── PREVIEW / CONFIRM MODAL ────────────────────────────────────── -->
 <div class="modal-backdrop is-hidden" id="es-preview-modal">
   <div class="modal modal--wide">
     <div class="modal-header">
       <h3 class="modal-title">Email Preview</h3>
+      <button type="button" class="modal-close" aria-label="Close">&times;</button>
     </div>
     <div class="modal-body">
       <div class="composer-block">
@@ -219,11 +219,11 @@ $oldBody    = htmlspecialchars($old['body'] ?? '', ENT_QUOTES, 'UTF-8');
         <button type="button" class="btn btn-primary" id="es-modal-send">
           <?= View::icon('send') ?> Confirm &amp; Send
         </button>
-        <button type="button" class="btn btn-danger" id="es-modal-cancel">Cancel</button>
+        <button type="button" class="btn btn-quaternary" id="es-modal-cancel">Cancel</button>
       </div>
     </div>
     <div class="modal-footer" id="es-footer-preview">
-      <button type="button" class="btn btn-ghost" id="es-modal-close-preview">Close</button>
+      <button type="button" class="btn btn-quaternary" id="es-modal-close-preview">Close</button>
     </div>
   </div>
 </div>

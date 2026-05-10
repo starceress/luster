@@ -50,7 +50,7 @@ $dataCustomCats = json_encode($custom_cats     ?? [], JSON_HEX_QUOT | JSON_HEX_A
                data-custom='<?= $dataCustom ?>'
                data-custom-cats='<?= $dataCustomCats ?>'
                data-existing='[]'>
-            <div id="cat-rows"></div>
+            <div class="select-auto"id="cat-rows"></div>
             <a href="#" class="link" id="cat-add"><?= View::icon('add') ?> Add another category</a>
           </div>
           <p class="form-hint">The network(s) and category(ies) this listing is listed under.</p>
@@ -98,7 +98,7 @@ $dataCustomCats = json_encode($custom_cats     ?? [], JSON_HEX_QUOT | JSON_HEX_A
       <div class="listing-field-row">
         <span class="listing-field-label">Image</span>
         <label class="file-drop-zone">
-          <input id="fl-image" type="file" name="image" accept="image/jpeg,image/png,image/gif,image/webp">
+          <input id="thumbnail" type="file" name="image" accept="image/jpeg,image/png,image/gif,image/webp">
           <span class="file-drop-icon"><?= View::icon('image') ?></span>
               <strong>Click to upload</strong>
               <span class="form-hint">JPEG, PNG, GIF, WebP &mdash; max 2 MB</span>

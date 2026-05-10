@@ -34,7 +34,7 @@ use Luster\Core\View;
   <form method="POST" action="<?= View::e($form_action) ?>">
     <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
 
-    <p style="font-size:.875rem">
+    <p class="fl-hint">
       Enter your email and password to authenticate, then fill in only the fields you want to change. Leave a field blank to keep your current value.
     </p>
 
@@ -183,6 +183,6 @@ use Luster\Core\View;
     </div>
 
     <button type="submit">Update Information</button>
-    <button type="reset">Clear Form</button>
+    <button type="reset">Clear</button>
   </form>
 </div>

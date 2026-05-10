@@ -122,7 +122,7 @@ function importChecked(array $old, string $key, bool $default = true): string {
       <div class="composer-footer">
         <button type="button" id="js-test-conn" class="btn btn-secondary"
                 data-action="<?= $b ?>/admin/import/<?= $src ?>/test-connection">Test Connection</button>
-        <button type="reset" class="btn btn-ghost" id="clear-form-btn">Clear Form</button>
+        <button type="reset" class="btn btn-ghost" id="clear-form-btn">Clear</button>
         <span id="js-test-result" class="form-label--tight is-hidden"></span>
       </div>
     </div>
@@ -176,7 +176,7 @@ function importChecked(array $old, string $key, bool $default = true): string {
         <input id="la_table_prefix" type="text" name="la_table_prefix" class="form import-input-medium"
                placeholder="(leave blank for default install)"
                value="<?= importOld($old, 'la_table_prefix') ?>">
-        <p class="help-text">Leave blank if LA uses default table names (<code>main</code>, <code>members</code>, etc.). If your LA install was configured with a prefix (e.g. <code>trex_</code>), enter it here. Luster will look for <code>{prefix}members</code>, <code>{prefix}categories</code>, and so on â€” the registry table is derived as the prefix without underscores (e.g. <code>trex_</code> &rarr; <code>trex</code>).</p>
+        <p class="help-text">Leave blank if LA uses default table names (<code>main</code>, <code>members</code>, etc.). If your LA install was configured with a prefix (e.g. <code>trex_</code>), enter it here. Luster will look for <code>{prefix}members</code>, <code>{prefix}categories</code>, and so on &mdash; the registry table is derived as the prefix without underscores (e.g. <code>trex_</code> &rarr; <code>trex</code>).</p>
       </div>
     </div>
     <?php endif; ?>
@@ -213,7 +213,7 @@ function importChecked(array $old, string $key, bool $default = true): string {
         <div class="import-choice-list--nested">
           <label class="form-label import-label-compact" for="category_parent_id">Place top-level categories under network</label>
           <div class="select-wrap import-select-narrow"><select id="category_parent_id" name="category_parent_id" >
-            <option value="">â€” Leave as top-level â€”</option>
+            <option value="">&mdash; Leave as top-level &mdash;</option>
             <?php foreach ($enth_networks as $net): ?>
               <option value="<?= View::e((string) $net['id']) ?>"
                 <?= (string) ($old['category_parent_id'] ?? '') === (string) $net['id'] ? 'selected' : '' ?>>

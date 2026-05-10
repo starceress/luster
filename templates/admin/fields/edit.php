@@ -90,7 +90,7 @@ $encName = urlencode($field->name);
       <div class="listing-field-row listing-field-row--top">
         <span class="listing-field-label">Required</span>
         <div>
-          <div style="display:flex;gap:1.25rem;">
+          <div class="flex-row">
             <label class="form-check">
               <input type="radio" name="required" value="1" <?= $field->required ? 'checked' : '' ?>>
               <span class="form-check-label">Yes</span>

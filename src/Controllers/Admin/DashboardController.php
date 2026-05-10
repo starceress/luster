@@ -7,12 +7,14 @@ namespace Luster\Controllers\Admin;
 use Luster\Core\Application;
 use Luster\Core\Request;
 use Luster\Core\Response;
+use Luster\Core\UpdateChecker;
 use Luster\Repositories\ActivityRepo;
 use Luster\Repositories\CategoryRepo;
 use Luster\Repositories\ListingRepo;
 use Luster\Repositories\ListingSettingsRepo;
 use Luster\Repositories\JoinedListingRepo;
 use Luster\Repositories\MemberRepo;
+use Luster\Repositories\SiteSettingsRepo;
 
 /**
  * Admin dashboard — shows aggregate stats and recent activity.
@@ -27,29 +29,74 @@ final class DashboardController
      * Sets last_updated to today for every listing — useful when first
      * enabling the staleness check on an existing install.
      */
+    /**
+     * POST /admin/dismiss-update
+     *
+     * Stores the dismissed version in session so the update banner is hidden
+     * for the rest of the session. Re-appears if a newer version is released.
+     */
+    public function dismissUpdate(Request $request, array $params): Response
+    {
+        $version = trim((string) $request->post('version', ''));
+        if ($version !== '') {
+            $this->app->getSession()->set('lstr_update_dismissed', $version);
+        }
+        return Response::redirect($this->app->getBaseUrl() . '/admin');
+    }
+
+    /**
+     * POST /admin/listings/{id}/touch-updated  (JSON — called via fetch)
+     *
+     * Sets last_updated to today for a single listing.
+     */
+    public function touchListing(Request $request, array $params): Response
+    {
+        $id = (int) ($params['id'] ?? 0);
+        if ($id <= 0) {
+            return Response::json(['ok' => false, 'error' => 'Invalid ID'], 400);
+        }
+
+        $db           = $this->app->getDatabase();
+        $settingsRepo = new ListingSettingsRepo($db);
+        $activityRepo = new ActivityRepo($db);
+        $session      = $this->app->getSession();
+
+        $settingsRepo->touchLastUpdated($id);
+
+        $activityRepo->log(
+            (int) $session->get('lstr_admin_id'),
+            'maintenance.touch_updated',
+            "Touched last_updated for listing #$id",
+            $request->ip(),
+        );
+
+        return Response::json(['ok' => true]);
+    }
+
     public function touchAllUpdated(Request $request, array $params): Response
     {
         $db     = $this->app->getDatabase();
         $config = $this->app->getConfig();
 
-        $listingRepo = new ListingRepo($db, $config);
-        $settingsRepo   = new ListingSettingsRepo($db);
-        $activityRepo   = new ActivityRepo($db);
-        $session        = $this->app->getSession();
+        $settingsRepo = new ListingSettingsRepo($db);
+        $activityRepo = new ActivityRepo($db);
+        $session      = $this->app->getSession();
 
-        $listings = $listingRepo->getAll();
-        foreach ($listings as $fl) {
-            $settingsRepo->touchLastUpdated($fl->id);
+        $thresholdDays = (int) $config->get('inactive_threshold_days', 60);
+        $staleIds      = $settingsRepo->getStaleIds($thresholdDays);
+
+        foreach ($staleIds as $id) {
+            $settingsRepo->touchLastUpdated($id);
         }
 
         $activityRepo->log(
             (int) $session->get('lstr_admin_id'),
             'maintenance.touch_all_updated',
-            'Bulk-touched last_updated to today for all ' . count($listings) . ' listings',
+            'Bulk-touched last_updated to today for ' . count($staleIds) . ' neglected listing(s)',
             $request->ip(),
         );
 
-        $session->set('lstr_flash_success', 'Last Updated date set to today for all listings.');
+        $session->set('lstr_flash_success', 'Last Updated date set to today for ' . count($staleIds) . ' neglected listing(s).');
         return Response::redirect($this->app->getBaseUrl() . '/admin');
     }
 
@@ -184,6 +231,13 @@ final class DashboardController
         // ── Recent activity ──────────────────────────────────────────────
         $recentActivity = $activityRepo->getRecent(10);
 
+        // ── Update status (read cache only — no network on dashboard load) ──
+        $siteRepo      = new SiteSettingsRepo($db);
+        $updateStatus  = (new UpdateChecker($siteRepo))->getStatus();
+        $dismissedVer  = (string) $session->get('lstr_update_dismissed', '');
+        $showUpdateBanner = $updateStatus->updateAvailable
+            && ($dismissedVer === '' || $dismissedVer !== $updateStatus->latest);
+
         // ── Staleness detection ───────────────────────────────────────────
         $thresholdDays = (int) $config->get('inactive_threshold_days', 60);
         $staleIds      = $settingsRepo->getStaleIds($thresholdDays);
@@ -251,6 +305,8 @@ final class DashboardController
             'recent_activity'            => $recentActivity,
             'stale_listings'             => $staleListings,
             'inactive_threshold_days'    => $thresholdDays,
+            'update_status'              => $updateStatus,
+            'show_update_banner'         => $showUpdateBanner,
             'base_url'                   => $baseUrl,
         ]);
 

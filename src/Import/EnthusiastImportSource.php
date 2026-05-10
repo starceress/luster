@@ -40,12 +40,16 @@ final class EnthusiastImportSource implements ImportSourceInterface
     private const CHUNK    = 500;
     private const SKIP_CAP = 500;
 
-    // Image subdirectory paths relative to the Enthusiast install root.
-    // Enthusiast stores all images under images/ with sub-dirs:
-    private const IMG_DIRS = [
-        'affiliates' => 'images/affiliates',
-        'joined'     => 'images/joined',
-        'listings'   => 'images',
+    // Default image subdirectory names relative to the Enthusiast install root.
+    // These are the Enthusiast defaults seeded by its install script:
+    //   affiliates_dir  → {install_root}/affiliates/
+    //   joined_images_dir → {install_root}/joined/
+    //   owned_images_dir  → {install_root}/owned/
+    // Used only as a fallback when the settings table cannot be queried.
+    private const IMG_SUBDIRS = [
+        'affiliates' => 'affiliates',
+        'joined'     => 'joined',
+        'listings'   => 'owned',
     ];
 
     // -----------------------------------------------------------------------
@@ -181,6 +185,14 @@ final class EnthusiastImportSource implements ImportSourceInterface
             ? new ImageMigrator(dirname(__DIR__, 2) . '/public')
             : null;
 
+        // Read image directory/URL configuration from the Enthusiast settings table.
+        // This gives us the actual configured paths rather than hardcoded guesses.
+        // Returns [] if the settings table is absent or unreadable (SQL dump mode,
+        // permissions issue, etc.) — sub-methods fall back to user-provided root.
+        $imageSettings = $migrator !== null
+            ? $this->readImageSettings($source, $schema, $tp)
+            : [];
+
         // Session image map: original filename => ['type' => subdir, 'record_id' => int]
         // Written for Mode 3 (ZIP) post-import step.
         $imageMap = [];
@@ -194,7 +206,7 @@ final class EnthusiastImportSource implements ImportSourceInterface
 
         if ($options->importAffiliates) {
             ['row' => $affRow, 'imageMap' => $affMap] = $this->runAffiliates(
-                $source, $target, $schema, $options, $migrator
+                $source, $target, $schema, $options, $migrator, $imageSettings
             );
             $rows[]   = $affRow;
             $imageMap = array_merge($imageMap, $affMap);
@@ -210,7 +222,7 @@ final class EnthusiastImportSource implements ImportSourceInterface
 
         if ($options->importJoined) {
             ['row' => $joinRow, 'imageMap' => $joinMap] = $this->runJoined(
-                $source, $target, $schema, $options, $catNameToId, $migrator
+                $source, $target, $schema, $options, $catNameToId, $migrator, $imageSettings
             );
             $rows[]   = $joinRow;
             $imageMap = array_merge($imageMap, $joinMap);
@@ -234,7 +246,7 @@ final class EnthusiastImportSource implements ImportSourceInterface
 
         if ($options->importSettings) {
             ['row' => $settRow, 'imageMap' => $settMap] = $this->runSettings(
-                $source, $target, $schema, $options, $migrator
+                $source, $target, $schema, $options, $migrator, $imageSettings
             );
             $rows[]   = $settRow;
             $imageMap = array_merge($imageMap, $settMap);
@@ -494,7 +506,8 @@ final class EnthusiastImportSource implements ImportSourceInterface
      * @return array{row: array{type:string,imported:int,skipped:int,warnings:string[],errors:string[],image_copied:int,image_skipped:int,image_errors:string[]}, imageMap: array}
      */
     private function runAffiliates(
-        PDO $source, PDO $target, string $schema, ImportOptions $options, ?ImageMigrator $migrator
+        PDO $source, PDO $target, string $schema, ImportOptions $options,
+        ?ImageMigrator $migrator, array $imageSettings
     ): array {
         $tp           = $options->tablePrefix;
         $srcTable     = $tp . ($schema === 'enthusiast_enth' ? 'enth_affiliates' : 'affiliates');
@@ -571,6 +584,9 @@ final class EnthusiastImportSource implements ImportSourceInterface
                 continue;
             }
 
+            // Extract image filename early so it is available in the retry branch.
+            $imageFilename = trim((string) ($row['imagefile'] ?? ''));
+
             // Determine fanlisting_id: 0 / missing means collective (NULL in Luster).
             $srcFid   = (int) ($row['listingid'] ?? ($row['aListingId'] ?? 0));
             $fid      = $srcFid > 0 ? $srcFid : null;
@@ -586,6 +602,29 @@ final class EnthusiastImportSource implements ImportSourceInterface
 
             if (isset($existingKeys[$conflictKey])) {
                 if ($options->conflictStrategy === 'skip') {
+                    // Re-run: if the existing record has image = NULL (first-run copy
+                    // failed), retry the image migration now and update the column.
+                    if ($migrator !== null && $imageFilename !== '' && $options->imageMode !== 'zip') {
+                        $rSql = $fid === null
+                            ? 'SELECT id, image FROM lstr_affiliates WHERE url = :url AND fanlisting_id IS NULL LIMIT 1'
+                            : 'SELECT id, image FROM lstr_affiliates WHERE url = :url AND fanlisting_id = :fid LIMIT 1';
+                        $rStmt = $target->prepare($rSql);
+                        $rParams = ['url' => $url];
+                        if ($fid !== null) { $rParams['fid'] = $fid; }
+                        $rStmt->execute($rParams);
+                        $rRec = $rStmt->fetch(\PDO::FETCH_ASSOC);
+                        if ($rRec !== false && $rRec['image'] === null) {
+                            $dummyMap = [];
+                            $retried  = $this->migrateImage(
+                                $migrator, $imageFilename, 'affiliates', 'af_',
+                                $options, $imageSettings, $dummyMap, $imgCopied, $imgSkipped, $imgErrors
+                            );
+                            if ($retried !== null) {
+                                $target->prepare('UPDATE lstr_affiliates SET image = :img WHERE id = :id')
+                                       ->execute(['img' => $retried, 'id' => $rRec['id']]);
+                            }
+                        }
+                    }
                     $skipped++;
                     if (count($skippedItems) < self::SKIP_CAP) {
                         $skippedItems[] = ['label' => $name . ' — ' . $url, 'reason' => 'Already exists (same URL)'];
@@ -607,13 +646,12 @@ final class EnthusiastImportSource implements ImportSourceInterface
                 continue;
             }
 
-            // Image migration
-            $imageFilename = trim((string) ($row['imagefile'] ?? ($row['aImage'] ?? '')));
+            // Image migration for new records
             $newImage = null;
             if ($imageFilename !== '' && $migrator !== null) {
                 $newImage = $this->migrateImage(
-                    $migrator, $imageFilename, 'affiliates', 'af_', $options, $imageMap,
-                    $imgCopied, $imgSkipped, $imgErrors
+                    $migrator, $imageFilename, 'affiliates', 'af_', $options, $imageSettings,
+                    $imageMap, $imgCopied, $imgSkipped, $imgErrors
                 );
             }
 
@@ -666,7 +704,7 @@ final class EnthusiastImportSource implements ImportSourceInterface
      */
     private function runJoined(
         PDO $source, PDO $target, string $schema, ImportOptions $options,
-        array $catNameToId, ?ImageMigrator $migrator
+        array $catNameToId, ?ImageMigrator $migrator, array $imageSettings
     ): array {
         $tp           = $options->tablePrefix;
         $srcTable     = $tp . ($schema === 'enthusiast_enth' ? 'enth_joined' : 'joined');
@@ -754,8 +792,30 @@ final class EnthusiastImportSource implements ImportSourceInterface
                 continue;
             }
 
+            // Extract early so the retry branch can use it.
+            $imageFilename = trim((string) ($row['imagefile'] ?? ''));
+
             if (isset($existingUrls[$url])) {
                 if ($options->conflictStrategy === 'skip') {
+                    // Re-run: retry image if the existing record has image = NULL.
+                    if ($migrator !== null && $imageFilename !== '' && $options->imageMode !== 'zip') {
+                        $rStmt = $target->prepare(
+                            'SELECT id, image FROM lstr_joined WHERE url = :url LIMIT 1'
+                        );
+                        $rStmt->execute(['url' => $url]);
+                        $rRec = $rStmt->fetch(\PDO::FETCH_ASSOC);
+                        if ($rRec !== false && $rRec['image'] === null) {
+                            $dummyMap = [];
+                            $retried  = $this->migrateImage(
+                                $migrator, $imageFilename, 'joined', 'jn_',
+                                $options, $imageSettings, $dummyMap, $imgCopied, $imgSkipped, $imgErrors
+                            );
+                            if ($retried !== null) {
+                                $target->prepare('UPDATE lstr_joined SET image = :img WHERE id = :id')
+                                       ->execute(['img' => $retried, 'id' => $rRec['id']]);
+                            }
+                        }
+                    }
                     $skipped++;
                     if (count($skippedItems) < self::SKIP_CAP) {
                         $skippedItems[] = ['label' => $name . ' — ' . $url, 'reason' => 'Already exists (same URL)'];
@@ -798,13 +858,12 @@ final class EnthusiastImportSource implements ImportSourceInterface
             // Date
             $dateJoined = !empty($row['added']) ? $row['added'] : null;
 
-            // Image migration
-            $imageFilename = trim((string) ($row['imagefile'] ?? ''));
+            // Image migration for new records
             $newImage = null;
             if ($imageFilename !== '' && $migrator !== null) {
                 $newImage = $this->migrateImage(
-                    $migrator, $imageFilename, 'joined', 'jn_', $options, $imageMap,
-                    $imgCopied, $imgSkipped, $imgErrors
+                    $migrator, $imageFilename, 'joined', 'jn_', $options, $imageSettings,
+                    $imageMap, $imgCopied, $imgSkipped, $imgErrors
                 );
             }
 
@@ -851,7 +910,8 @@ final class EnthusiastImportSource implements ImportSourceInterface
      * @return array{row: array, imageMap: array}
      */
     private function runSettings(
-        PDO $source, PDO $target, string $schema, ImportOptions $options, ?ImageMigrator $migrator
+        PDO $source, PDO $target, string $schema, ImportOptions $options,
+        ?ImageMigrator $migrator, array $imageSettings
     ): array {
         $tp           = $options->tablePrefix;
         $srcTable     = $tp . ($schema === 'enthusiast_enth' ? 'enth_fanlistings' : 'owned');
@@ -880,7 +940,7 @@ final class EnthusiastImportSource implements ImportSourceInterface
             ];
         }
 
-        $checkStmt  = $target->prepare('SELECT fanlisting_id FROM lstr_fanlisting_settings WHERE fanlisting_id = :fid');
+        $checkStmt  = $target->prepare('SELECT fanlisting_id, image FROM lstr_fanlisting_settings WHERE fanlisting_id = :fid');
         $insertStmt = $target->prepare(
             'INSERT INTO lstr_fanlisting_settings
                (fanlisting_id, members_per_page, queue_updates, members_template, affiliates_template, stats_template, image)
@@ -915,13 +975,14 @@ final class EnthusiastImportSource implements ImportSourceInterface
             $newImage = null;
             if ($imageFilename !== '' && $migrator !== null) {
                 $newImage = $this->migrateImage(
-                    $migrator, $imageFilename, 'listings', 'fl_', $options, $imageMap,
-                    $imgCopied, $imgSkipped, $imgErrors
+                    $migrator, $imageFilename, 'listings', 'fl_', $options, $imageSettings,
+                    $imageMap, $imgCopied, $imgSkipped, $imgErrors
                 );
             }
 
             $checkStmt->execute(['fid' => $listingId]);
-            $exists = $checkStmt->fetchColumn() !== false;
+            $existsRec = $checkStmt->fetch(\PDO::FETCH_ASSOC);
+            $exists    = $existsRec !== false;
 
             $listingLabel = trim(self::decodeEnth((string) ($row[$schema === 'enthusiast_enth' ? 'name' : 'title'] ?? '')));
             if ($listingLabel === '') {
@@ -931,6 +992,21 @@ final class EnthusiastImportSource implements ImportSourceInterface
             try {
                 if ($exists) {
                     if ($options->conflictStrategy === 'skip') {
+                        // Re-run: if the existing settings row has image = NULL, retry now.
+                        if ($newImage === null && $migrator !== null && $imageFilename !== ''
+                            && $options->imageMode !== 'zip' && $existsRec['image'] === null
+                        ) {
+                            $dummyMap = [];
+                            $retried  = $this->migrateImage(
+                                $migrator, $imageFilename, 'listings', 'fl_',
+                                $options, $imageSettings, $dummyMap, $imgCopied, $imgSkipped, $imgErrors
+                            );
+                            if ($retried !== null) {
+                                $target->prepare(
+                                    'UPDATE lstr_fanlisting_settings SET image = :img WHERE fanlisting_id = :fid'
+                                )->execute(['img' => $retried, 'fid' => $listingId]);
+                            }
+                        }
                         $skipped++;
                         if (count($skippedItems) < self::SKIP_CAP) {
                             $skippedItems[] = ['label' => $listingLabel, 'reason' => 'Settings already exist for this listing'];
@@ -1617,9 +1693,15 @@ final class EnthusiastImportSource implements ImportSourceInterface
     }
 
     /**
-     * Migrates a single image file using the appropriate mode.
-     * Updates the shared counters by reference.
-     * Returns the new filename, or null if migration was not possible.
+     * Migrates a single image file using the configured mode.
+     *
+     * Path/URL resolution priority:
+     *   1. Use the directory/URL read from the Enthusiast settings table
+     *      ($imageSettings['affiliates_dir'], 'joined_dir', 'listings_dir', etc.)
+     *   2. Fall back to the user-supplied install root + correct default subdirectory
+     *      (affiliates/, joined/, owned/ — the Enthusiast defaults)
+     *
+     * @param array<string,string> $imageSettings  From readImageSettings(); may be empty.
      */
     private function migrateImage(
         ImageMigrator $migrator,
@@ -1627,6 +1709,7 @@ final class EnthusiastImportSource implements ImportSourceInterface
         string $targetSubDir,
         string $prefix,
         ImportOptions $options,
+        array $imageSettings,
         array &$imageMap,
         int &$copied,
         int &$skipped,
@@ -1634,8 +1717,23 @@ final class EnthusiastImportSource implements ImportSourceInterface
     ): ?string {
         $newFilename = null;
 
-        if ($options->imageMode === 'path' && $options->imagePath !== '') {
-            $srcPath   = $options->imagePath . '/' . self::IMG_DIRS[$targetSubDir] . '/' . $imageFilename;
+        if ($options->imageMode === 'path') {
+            $settingsKey = match ($targetSubDir) {
+                'affiliates' => 'affiliates_dir',
+                'joined'     => 'joined_dir',
+                default      => 'listings_dir',
+            };
+            $configuredDir = $imageSettings[$settingsKey] ?? '';
+
+            if ($configuredDir !== '') {
+                $srcPath = $configuredDir . '/' . $imageFilename;
+            } elseif ($options->imagePath !== '') {
+                $srcPath = $options->imagePath . '/' . self::IMG_SUBDIRS[$targetSubDir] . '/' . $imageFilename;
+            } else {
+                $skipped++;
+                return null;
+            }
+
             $newFilename = $migrator->copyFromPath($srcPath, $targetSubDir, $prefix);
             if ($newFilename !== null) {
                 $copied++;
@@ -1643,8 +1741,23 @@ final class EnthusiastImportSource implements ImportSourceInterface
                 $skipped++;
                 $errors[] = "Image not found or invalid: {$imageFilename}";
             }
-        } elseif ($options->imageMode === 'url' && $options->imageUrl !== '') {
-            $srcUrl    = $options->imageUrl . '/' . self::IMG_DIRS[$targetSubDir] . '/' . $imageFilename;
+        } elseif ($options->imageMode === 'url') {
+            $settingsKey = match ($targetSubDir) {
+                'affiliates' => 'affiliates_url',
+                'joined'     => 'joined_url',
+                default      => 'listings_url',
+            };
+            $configuredUrl = $imageSettings[$settingsKey] ?? '';
+
+            if ($configuredUrl !== '') {
+                $srcUrl = $configuredUrl . '/' . rawurlencode($imageFilename);
+            } elseif ($options->imageUrl !== '') {
+                $srcUrl = $options->imageUrl . '/' . self::IMG_SUBDIRS[$targetSubDir] . '/' . rawurlencode($imageFilename);
+            } else {
+                $skipped++;
+                return null;
+            }
+
             $newFilename = $migrator->fetchFromUrl($srcUrl, $targetSubDir, $prefix);
             if ($newFilename !== null) {
                 $copied++;
@@ -1653,13 +1766,55 @@ final class EnthusiastImportSource implements ImportSourceInterface
                 $errors[] = "Could not fetch image: {$imageFilename}";
             }
         } elseif ($options->imageMode === 'zip') {
-            // ZIP mode: defer — image map is populated by the caller
+            // ZIP mode: defer — image map is populated by the caller.
             $skipped++;
         } else {
             $skipped++;
         }
 
         return $newFilename;
+    }
+
+    /**
+     * Reads image directory paths and web URLs from the Enthusiast settings table.
+     *
+     * Returns an associative array with keys:
+     *   affiliates_dir, joined_dir, listings_dir  (absolute filesystem paths)
+     *   affiliates_url, joined_url, listings_url  (web-accessible URLs)
+     *
+     * All values are rtrim'd (no trailing slash). Returns [] on any failure so
+     * callers fall back to the user-provided install root + default subdirectories.
+     *
+     * @param  string $schema  'enthusiast_enth' | 'enthusiast_unprefixed'
+     * @param  string $tp      Table prefix from ImportOptions (e.g. '' or 'tmp_x_')
+     * @return array<string,string>
+     */
+    private function readImageSettings(PDO $source, string $schema, string $tp): array
+    {
+        $table = $tp . ($schema === 'enthusiast_enth' ? 'enth_settings' : 'settings');
+
+        try {
+            $stmt = $source->prepare(
+                "SELECT setting_name, setting_value FROM `{$table}`
+                  WHERE setting_name IN (
+                      'affiliates_dir', 'joined_images_dir', 'owned_images_dir',
+                      'affiliates_url', 'joined_images_url', 'owned_images_url'
+                  )"
+            );
+            $stmt->execute();
+            $rows = $stmt->fetchAll(\PDO::FETCH_KEY_PAIR);
+        } catch (\Throwable) {
+            return [];
+        }
+
+        return [
+            'affiliates_dir' => rtrim((string) ($rows['affiliates_dir']    ?? ''), '/\\'),
+            'joined_dir'     => rtrim((string) ($rows['joined_images_dir'] ?? ''), '/\\'),
+            'listings_dir'   => rtrim((string) ($rows['owned_images_dir']  ?? ''), '/\\'),
+            'affiliates_url' => rtrim((string) ($rows['affiliates_url']    ?? ''), '/'),
+            'joined_url'     => rtrim((string) ($rows['joined_images_url'] ?? ''), '/'),
+            'listings_url'   => rtrim((string) ($rows['owned_images_url']  ?? ''), '/'),
+        ];
     }
 
     /**

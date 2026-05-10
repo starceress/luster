@@ -22,8 +22,8 @@ declare(strict_types=1);
  *
  * CSS classes available (from style.css):
  *   .fl-wrap, .fl-title, .fl-field, .fl-label, .fl-input, .fl-select,
- *   .fl-textarea, .fl-btn, .fl-errors, .fl-member-list, .fl-member,
- *   .fl-pagination, .fl-page-link, .fl-page-current, .fl-message, .fl-empty
+ *   .fl-btn, .fl-errors, .fl-member, .fl-pagination, .fl-page-link,
+ *   .fl-page-current, .fl-empty
  */
 
 use Luster\Core\View;

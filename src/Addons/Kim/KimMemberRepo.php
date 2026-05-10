@@ -187,6 +187,51 @@ final class KimMemberRepo
     }
 
     /**
+     * Returns all pending members for a fanlisting (unpaginated — pending lists are small).
+     *
+     * @return KimMember[]
+     */
+    public function getPendingByFanlisting(int $fanlistingId): array
+    {
+        $stmt = $this->db->prepare(
+            'SELECT * FROM lstr_kim_members
+             WHERE fanlisting_id = :fanlisting_id AND pending = 1
+             ORDER BY added_at ASC'
+        );
+        $stmt->execute(['fanlisting_id' => $fanlistingId]);
+
+        return array_map(
+            static fn(array $row) => KimMember::fromRow($row),
+            $stmt->fetchAll()
+        );
+    }
+
+    /**
+     * Returns a page of approved members for a fanlisting.
+     *
+     * @return KimMember[]
+     */
+    public function getApprovedByFanlistingPaged(int $fanlistingId, int $page, int $perPage): array
+    {
+        $offset = ($page - 1) * $perPage;
+        $stmt   = $this->db->prepare(
+            'SELECT * FROM lstr_kim_members
+             WHERE fanlisting_id = :fanlisting_id AND pending = 0
+             ORDER BY name ASC
+             LIMIT :limit OFFSET :offset'
+        );
+        $stmt->bindValue('fanlisting_id', $fanlistingId, \PDO::PARAM_INT);
+        $stmt->bindValue('limit',         $perPage,      \PDO::PARAM_INT);
+        $stmt->bindValue('offset',        $offset,       \PDO::PARAM_INT);
+        $stmt->execute();
+
+        return array_map(
+            static fn(array $row) => KimMember::fromRow($row),
+            $stmt->fetchAll()
+        );
+    }
+
+    /**
      * Returns all KIM members for a fanlisting — pending first, then approved.
      *
      * @return KimMember[]
@@ -269,7 +314,7 @@ final class KimMemberRepo
 
     /**
      * Returns name + email for approved members of a fanlisting.
-     * Used for mass email.
+     * Used for bulk email.
      *
      * @return array<int, array{name: string, email: string}>
      */

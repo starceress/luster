@@ -231,6 +231,35 @@ final class UpdateRepo
     }
 
     // -----------------------------------------------------------------------
+    // Filtered reads (search + category)
+    // -----------------------------------------------------------------------
+
+    /** @return Update[] */
+    public function getFiltered(?int $fanlistingId, string $search, string $category, int $page, int $perPage): array
+    {
+        $offset = ($page - 1) * $perPage;
+        [$where, $params] = $this->filterWhere($fanlistingId, $search, $category);
+        $stmt = $this->db->prepare(
+            "SELECT * FROM `lstr_updates` WHERE {$where} ORDER BY `posted_at` DESC LIMIT :limit OFFSET :offset",
+        );
+        foreach ($params as $k => $v) {
+            $stmt->bindValue($k, $v);
+        }
+        $stmt->bindValue(':limit',  $perPage, \PDO::PARAM_INT);
+        $stmt->bindValue(':offset', $offset,  \PDO::PARAM_INT);
+        $stmt->execute();
+        return array_map([$this, 'hydrate'], $stmt->fetchAll(\PDO::FETCH_ASSOC));
+    }
+
+    public function countFiltered(?int $fanlistingId, string $search, string $category): int
+    {
+        [$where, $params] = $this->filterWhere($fanlistingId, $search, $category);
+        $stmt = $this->db->prepare("SELECT COUNT(*) FROM `lstr_updates` WHERE {$where}");
+        $stmt->execute($params);
+        return (int) $stmt->fetchColumn();
+    }
+
+    // -----------------------------------------------------------------------
     // Writes
     // -----------------------------------------------------------------------
 
@@ -281,6 +310,33 @@ final class UpdateRepo
     // -----------------------------------------------------------------------
     // Private helpers
     // -----------------------------------------------------------------------
+
+    /** @return array{0: string, 1: array<string,mixed>} */
+    private function filterWhere(?int $fanlistingId, string $search, string $category): array
+    {
+        $conds  = [];
+        $params = [];
+
+        if ($fanlistingId !== null) {
+            $conds[]          = '`fanlisting_id` = :fid';
+            $params[':fid']   = $fanlistingId;
+        } else {
+            $conds[] = '`fanlisting_id` IS NULL';
+        }
+
+        if ($search !== '') {
+            $conds[]            = '(`title` LIKE :search OR `body` LIKE :search)';
+            $params[':search']  = '%' . $search . '%';
+        }
+
+        if ($category !== '') {
+            // FIND_IN_SET after normalising ", " → "," handles all spacing variants
+            $conds[]          = 'FIND_IN_SET(:cat, REPLACE(`category`, \', \', \',\')) > 0';
+            $params[':cat']   = $category;
+        }
+
+        return [implode(' AND ', $conds), $params];
+    }
 
     /** @return Update[] */
     private function fetchAllByFanlisting(int $fanlistingId): array

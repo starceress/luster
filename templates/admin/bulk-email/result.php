@@ -20,7 +20,7 @@ $allOk = empty($failed);
 <div class="gradient-card summary-card">
   <?php if ($allOk): ?>
     <div class="alert alert-success">
-      Mass email sent successfully.
+      Bulk email sent successfully.
     </div>
   <?php else: ?>
     <div class="alert alert-error">

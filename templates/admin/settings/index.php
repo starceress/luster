@@ -12,7 +12,10 @@
 /** @var string $php_version */
 /** @var string $db_version */
 /** @var int    $error_log_count */
+/** @var \Luster\Core\UpdateStatus $update_status */
 
+use Luster\Core\UpdateStatus;
+use Luster\Core\Version;
 use Luster\Core\View;
 
 $b  = rtrim(View::e($base_url), '/');
@@ -111,10 +114,9 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
               </div>
             </div>
           </div>
-
           <div class="composer-footer">
             <button type="submit" class="btn btn-primary">Save Settings</button>
-            <button type="reset" class="btn btn-ghost">Clear Form</button>
+            <button type="reset" class="btn btn-ghost">Clear</button>
             <span class="text-dim">Changes apply immediately</span>
           </div>
         </form>
@@ -158,7 +160,7 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
                 </td>
                 <td><?= View::e($user->email) ?></td>
                 <td>
-                  <?= $user->lastLogin !== null ? View::e(substr($user->lastLogin, 0, 16)) : 'â€”' ?>
+                  <?= $user->lastLogin !== null ? View::e(substr($user->lastLogin, 0, 16)) : '&mdash;' ?>
                 </td>
                 <td>
                   <?= View::e(substr($user->createdAt, 0, 10)) ?>
@@ -184,12 +186,10 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
         </div>
       </div><!-- /.gradient-card -->
     </div><!-- /#panel-accounts -->
-
-    <!-- â•â•â• General + Embed in one form (both POST to /admin/settings) â•â•â• -->
+<!-- ──── GENERAL + EMBED IN ONE FORM (BOTH POST TO /ADMIN/SETTINGS) ──────── -->
     <form method="POST" action="<?= $b ?>/admin/settings" class="js-warn-unsaved">
       <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
-
-      <!-- â•â•â• PANEL: General â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
+<!-- ──── PANEL: GENERAL ─────────────────────────────────────────────── -->
       <div id="panel-general" class="mini-nav-panel">
         <div class="gradient-card">
           <div class="pc-head">
@@ -212,7 +212,7 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
               <p class="form-hint">Shown in the browser tab and welcome block.</p>
               <?php if (!empty($fe['site_name'])): ?><p class="field-error"><?= View::e($fe['site_name'][0]) ?></p><?php endif; ?>
             </div>
-            <div class="form-group<?= !empty($fe['site_url']) ? ' has-error' : '' ?>">
+            <div class="form-group<?= !empty($fe['site_url']) ? ' has-error' : '' ?>s">
               <label class="form-label" for="s-site-url">Base URL</label>
               <input id="s-site-url" type="url" name="site_url" class="form" maxlength="500" required
                      value="<?= View::e(cfgVal($cfg, 'site_url')) ?>">
@@ -242,63 +242,63 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
 
           <div class="pc-section">
             <div class="pc-section-label">Display & Locale</div>
-            <div class="form-group">
-              <label class="form-label" for="s-timezone">Timezone</label>
-              <?php
-                $currentTz = cfgVal($cfg, 'timezone', 'UTC');
-                $commonTz  = [
-                    'UTC'        => ['UTC'],
-                    'America'    => [
-                        'America/New_York', 'America/Chicago', 'America/Denver',
-                        'America/Los_Angeles', 'America/Anchorage', 'America/Halifax',
-                        'America/Toronto', 'America/Vancouver', 'America/Phoenix',
-                        'America/Mexico_City', 'America/Bogota', 'America/Lima',
-                        'America/Santiago', 'America/Sao_Paulo', 'America/Buenos_Aires',
-                    ],
-                    'Europe'     => [
-                        'Europe/London', 'Europe/Dublin', 'Europe/Lisbon',
-                        'Europe/Paris', 'Europe/Berlin', 'Europe/Amsterdam',
-                        'Europe/Rome', 'Europe/Madrid', 'Europe/Stockholm',
-                        'Europe/Warsaw', 'Europe/Athens', 'Europe/Helsinki',
-                        'Europe/Istanbul', 'Europe/Moscow',
-                    ],
-                    'Asia'       => [
-                        'Asia/Dubai', 'Asia/Karachi', 'Asia/Kolkata',
-                        'Asia/Dhaka', 'Asia/Bangkok', 'Asia/Singapore',
-                        'Asia/Hong_Kong', 'Asia/Shanghai', 'Asia/Tokyo',
-                        'Asia/Seoul',
-                    ],
-                    'Pacific'    => ['Pacific/Auckland', 'Pacific/Fiji', 'Pacific/Honolulu'],
-                    'Australia'  => [
-                        'Australia/Perth', 'Australia/Adelaide',
-                        'Australia/Sydney', 'Australia/Brisbane',
-                    ],
-                    'Africa'     => [
-                        'Africa/Cairo', 'Africa/Johannesburg', 'Africa/Lagos',
-                        'Africa/Nairobi',
-                    ],
-                ];
-                $allListed = array_merge(...array_values($commonTz));
-                if (!in_array($currentTz, $allListed, true)) {
-                    $commonTz['Other'] = [$currentTz];
-                }
-              ?>
-              <div class="select-wrap select-wrap-inline">
-                <select id="s-timezone" name="timezone" class="select-auto">
-                  <?php foreach ($commonTz as $group => $tzList): ?>
-                    <optgroup label="<?= View::e($group) ?>">
-                      <?php foreach ($tzList as $tz): ?>
-                        <option value="<?= View::e($tz) ?>"<?= $tz === $currentTz ? ' selected' : '' ?>>
-                          <?= View::e(str_replace('_', ' ', $tz)) ?>
-                        </option>
-                      <?php endforeach; ?>
-                    </optgroup>
-                  <?php endforeach; ?>
-                </select>
+            <div class="form-row form-row--3">
+              <div class="form-group">
+                <label class="form-label" for="s-timezone">Timezone</label>
+                <?php
+                  $currentTz = cfgVal($cfg, 'timezone', 'UTC');
+                  $commonTz  = [
+                      'UTC'        => ['UTC'],
+                      'America'    => [
+                          'America/New_York', 'America/Chicago', 'America/Denver',
+                          'America/Los_Angeles', 'America/Anchorage', 'America/Halifax',
+                          'America/Toronto', 'America/Vancouver', 'America/Phoenix',
+                          'America/Mexico_City', 'America/Bogota', 'America/Lima',
+                          'America/Santiago', 'America/Sao_Paulo', 'America/Buenos_Aires',
+                      ],
+                      'Europe'     => [
+                          'Europe/London', 'Europe/Dublin', 'Europe/Lisbon',
+                          'Europe/Paris', 'Europe/Berlin', 'Europe/Amsterdam',
+                          'Europe/Rome', 'Europe/Madrid', 'Europe/Stockholm',
+                          'Europe/Warsaw', 'Europe/Athens', 'Europe/Helsinki',
+                          'Europe/Istanbul', 'Europe/Moscow',
+                      ],
+                      'Asia'       => [
+                          'Asia/Dubai', 'Asia/Karachi', 'Asia/Kolkata',
+                          'Asia/Dhaka', 'Asia/Bangkok', 'Asia/Singapore',
+                          'Asia/Hong_Kong', 'Asia/Shanghai', 'Asia/Tokyo',
+                          'Asia/Seoul',
+                      ],
+                      'Pacific'    => ['Pacific/Auckland', 'Pacific/Fiji', 'Pacific/Honolulu'],
+                      'Australia'  => [
+                          'Australia/Perth', 'Australia/Adelaide',
+                          'Australia/Sydney', 'Australia/Brisbane',
+                      ],
+                      'Africa'     => [
+                          'Africa/Cairo', 'Africa/Johannesburg', 'Africa/Lagos',
+                          'Africa/Nairobi',
+                      ],
+                  ];
+                  $allListed = array_merge(...array_values($commonTz));
+                  if (!in_array($currentTz, $allListed, true)) {
+                      $commonTz['Other'] = [$currentTz];
+                  }
+                ?>
+                <div class="select-wrap">
+                  <select id="s-timezone" name="timezone">
+                    <?php foreach ($commonTz as $group => $tzList): ?>
+                      <optgroup label="<?= View::e($group) ?>">
+                        <?php foreach ($tzList as $tz): ?>
+                          <option value="<?= View::e($tz) ?>"<?= $tz === $currentTz ? ' selected' : '' ?>>
+                            <?= View::e(str_replace('_', ' ', $tz)) ?>
+                          </option>
+                        <?php endforeach; ?>
+                      </optgroup>
+                    <?php endforeach; ?>
+                  </select>
+                </div>
+                <p class="form-hint">Timezone for all date/time display throughout the admin panel.</p>
               </div>
-              <p class="form-hint">Timezone for all date/time display throughout the admin panel.</p>
-            </div>
-            <div class="form-row form-row-narrow">
               <div class="form-group">
                 <label class="form-label" for="s-date-format">Date Format</label>
                 <?php
@@ -307,7 +307,7 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
                   $curDateFmt = $admin_date_format ?? 'j M Y';
                 ?>
                 <div class="select-wrap">
-                  <select id="s-date-format" name="date_format" >
+                  <select id="s-date-format" name="date_format">
                     <?php foreach ($dateFmtOptions as $fmt => $example): ?>
                       <option value="<?= View::e($fmt) ?>"<?= $fmt === $curDateFmt ? ' selected' : '' ?>><?= View::e($example) ?></option>
                     <?php endforeach; ?>
@@ -322,7 +322,7 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
                   $curTimeFmt = $admin_time_format ?? 'H:i';
                 ?>
                 <div class="select-wrap">
-                  <select id="s-time-format" name="time_format" >
+                  <select id="s-time-format" name="time_format">
                     <?php foreach ($timeFmtOptions as $fmt => $example): ?>
                       <option value="<?= View::e($fmt) ?>"<?= $fmt === $curTimeFmt ? ' selected' : '' ?>><?= View::e($example) ?></option>
                     <?php endforeach; ?>
@@ -354,12 +354,11 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
 
           <div class="composer-footer">
             <button type="submit" class="btn btn-primary">Save Settings</button>
-            <button type="button" class="btn btn-ghost" id="general-clear-btn">Clear Form</button>
+            <button type="button" class="btn btn-ghost" id="general-clear-btn">Clear</button>
           </div>
         </div>
       </div><!-- /#panel-general -->
-
-      <!-- â•â•â• PANEL: Embed & Paths â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
+<!-- ──── PANEL: EMBED & PATHS ───────────────────────────────────────── -->
       <div id="panel-embed" class="mini-nav-panel">
         <div class="gradient-card">
           <div class="pc-head">
@@ -467,7 +466,7 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
 
           <div class="composer-footer">
             <button type="submit" class="btn btn-primary">Save Settings</button>
-            <button type="button" class="btn btn-ghost" id="embed-clear-btn">Clear Form</button>
+            <button type="button" class="btn btn-ghost" id="embed-clear-btn">Clear</button>
           </div>
         </div>
       </div>
@@ -501,14 +500,14 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
                 <label class="form-label" for="bl-note">Note <em class="opt">(optional)</em></label>
                 <input id="bl-note" type="text" name="note" class="form"
                        maxlength="500" placeholder="Why this address was blocked">
-                <p class="form-hint">Internal note â€” not shown to visitors.</p>
+                <p class="form-hint">Internal note &mdash; not shown to visitors.</p>
               </div>
             </div>
           </div>
 
           <div class="composer-footer">
-            <button type="submit" class="btn btn-primary btn-sm">Add to Blacklist</button>
-            <button type="reset" class="btn btn-ghost btn-sm">Clear Form</button>
+            <button type="submit" class="btn btn-primary">Add to Blacklist</button>
+            <button type="reset" class="btn btn-ghost">Clear</button>
           </div>
         </form>
       </div>
@@ -517,7 +516,7 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
         <div class="card">
           <div class="empty">
             <span class="empty-icon"><?= View::icon('blacklist', ['width' => 32, 'height' => 32]) ?></span>
-            No blocked patterns yet â€” add email addresses or domains above to prevent them from joining.
+            No blocked patterns yet &mdash; add email addresses or domains above to prevent them from joining.
           </div>
         </div>
       <?php else: ?>
@@ -539,7 +538,7 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
                 <?php foreach ($blacklist_entries as $entry): ?>
                 <tr>
                   <td><code><?= View::e($entry['pattern']) ?></code></td>
-                  <td><?= $entry['note'] !== '' ? View::e($entry['note']) : 'â€”' ?></td>
+                  <td><?= $entry['note'] !== '' ? View::e($entry['note']) : '&mdash;' ?></td>
                   <td class="act-col">
                     <form method="POST"
                           action="<?= $b ?>/admin/blacklist/<?= (int) $entry['id'] ?>/delete"
@@ -577,9 +576,69 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
             <div class="sysinfo-row">
               <span class="form-label">Name</span> Luster
             </div>
-            <div class="sysinfo-row">
-              <span class="form-label">Version</span> beta
-            </div>
+
+          <?php
+            $us          = $update_status;
+            $checkedStr  = $us->checkedAt !== null
+                ? date('j M Y, H:i', $us->checkedAt)
+                : null;
+          ?>
+
+          <div class="sysinfo-row">
+            <span class="form-label">Installed Version</span>
+            <?= View::e(Version::CURRENT) ?>
+          </div>
+
+          <?php if (!$us->neverChecked): ?>
+          <div class="sysinfo-row">
+            <span class="form-label">Latest Version</span>
+            <?php if ($us->latest !== null): ?>
+              <?= View::e($us->latest) ?>
+            <?php elseif (!$us->checkFailed): ?>
+              No releases published yet
+            <?php else: ?>
+              Unknown
+            <?php endif; ?>
+          </div>
+          <div class="sysinfo-row">
+            <span class="form-label">Release Status</span>
+            <span class="status-inline">
+              <?php if ($us->checkFailed): ?>
+                <span class="badge badge-inactive">Check failed</span>
+                <?php if ($us->error !== null): ?>
+                  <?= View::e($us->error) ?>
+                <?php endif; ?>
+              <?php elseif ($us->latest === null): ?>
+                <span class="badge badge-inactive">No releases yet</span>
+              <?php elseif ($us->updateAvailable): ?>
+                <span class="badge badge-error">Update available</span>
+                <?php if ($us->releaseUrl !== null): ?>
+                  <a href="<?= View::e($us->releaseUrl) ?>" class="link" target="_blank" rel="noopener noreferrer">
+                    Download &rarr;
+                  </a>
+                <?php endif; ?>
+              <?php else: ?>
+                <span class="badge badge-current">Up to date</span>
+              <?php endif; ?>
+            </span>
+          </div>
+          <div class="sysinfo-row">
+            <span class="form-label">Last Checked</span>
+           <?= View::e($checkedStr ?? '') ?>
+          </div>
+          <?php endif; ?>
+
+          <div class="mt-sm">
+            <form method="POST" action="<?= $b ?>/admin/settings/check-update" class="action-form-inline">
+              <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
+              <button type="submit" class="btn btn-secondary btn-sm">
+                <?= View::icon('refresh') ?> Check for Updates
+              </button>
+            </form>
+            <?php if ($us->neverChecked): ?>
+              No update check has been run yet
+            <?php endif; ?>
+          </div>
         </div>
 
         <!-- Server -->
@@ -596,8 +655,11 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
         <!-- Database Connection -->
         <div class="pc-section">
           <div class="pc-section-label">
-            Database Connection (from <code>config/app.php</code>)</span>
+            Database Connection
           </div>
+          <p class="mb-section text-dim">
+            Details pulled from <code>config/app.php</code>
+          </p>
             <div class="sysinfo-row">
               <span class="form-label">Host</span> <?= View::e(cfgVal($cfg, 'db_host', 'localhost')) ?>
             </div>
@@ -612,7 +674,7 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
               <span class="status-inline">
                 <?php if ($cfg['app_debug'] ?? false): ?>
                   <span class="badge badge-error">Enabled</span>
-                  <span class="text-dim text-dim-sm">Disable in production</span>
+                  <span class="text-dim">Disable in production</span>
                 <?php else: ?>
                   <span class="badge badge-inactive">Disabled</span>
                 <?php endif; ?>
@@ -623,17 +685,14 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
         <!-- Data Migration -->
         <div class="pc-section">
           <div class="pc-section-label">Data Migration</div>
-          <p class="text-dim text-dim-sm mb-section">
+          <p class="mb-section text-dim">
             Migrate data from Enthusiast, Listing Admin, or other fanlisting scripts into Luster.
           </p>
           <a href="<?= $b ?>/admin/import" class="btn btn-secondary btn-sm">
             <?= View::icon('import') ?> Import Data Wizard
           </a>
         </div>
-
       </div>
-
     </div>
-
   </div>
 </div>

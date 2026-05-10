@@ -24,7 +24,6 @@ $pendingSortUrl = static function (string $col) use ($b, $sort, $dir): string {
     $newDir = ($sort === $col && $dir === 'asc') ? 'desc' : 'asc';
     return $b . '/admin/members?' . http_build_query(['sort' => $col, 'dir' => $newDir]);
 };
-
 ?>
 
 <?php if (($success ?? '') !== ''): ?>
@@ -54,15 +53,13 @@ $pendingSortUrl = static function (string $col) use ($b, $sort, $dir): string {
     <?php endif; ?>
   </form>
   <div class="actions-row">
-    <a href="<?= $b ?>/admin/members/export-pending" class="btn btn-quaternary btn-sm">&#8595; Export CSV</a>
-    <a href="<?= $b ?>/admin/emails?tab=bulk" class="btn btn-quaternary btn-sm">Bulk Email</a>
+    <a href="<?= $b ?>/admin/members/export-pending" class="btn btn-quaternary btn-sm">&#8593; Export CSV</a>
     <a href="<?= $b ?>/admin/members/settings" class="btn btn-quaternary btn-sm">Display Settings</a>
   </div>
 </div>
-
 <?php if ($isSearch): ?>
 
-  <!--  Global search results  -->
+<!-- ──── GLOBAL SEARCH RESULTS ──────────────────────────────────────── -->
   <?php $total = count($search_results); ?>
   <p class="result-count member-results-count">
     <?= $total ?> result<?= $total !== 1 ? 's' : '' ?> for
@@ -137,23 +134,21 @@ $pendingSortUrl = static function (string $col) use ($b, $sort, $dir): string {
         </tbody>
       </table>
       </div>
-    </div><!-- /.card -->
+    </div>
   <?php endif; ?>
-
 <?php else: ?>
 
-  <!--  Pending new members by listing  -->
+<!-- ──── PENDING NEW MEMBERS BY LISTING ─────────────────────────────── -->
   <div class="overview-section-head">
     <div class="overview-section-title">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="15" height="15"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M19 8v6m3-3h-6"/></svg>
-      Pending New Members
+      <?= View::icon('pending') ?> Pending New Members
     </div>
     <div class="overview-section-sub">New join requests awaiting your approval decision.</div>
   </div>
   <?php if (empty($grouped)): ?>
     <div class="card">
       <div class="empty">
-        <span class="empty-icon"><?= View::icon('check-badge', ['width' => 32, 'height' => 32]) ?></span>
+        <span class="empty-icon"><?= View::icon('pending', ['width' => 32, 'height' => 32]) ?></span>
         No pending members - you're all caught up.
       </div>
     </div>
@@ -252,19 +247,18 @@ $pendingSortUrl = static function (string $col) use ($b, $sort, $dir): string {
     <?php endforeach; ?>
   <?php endif; ?>
 
-  <!--  Pending info updates  -->
+<!-- ──── PENDING INFO UPDATES ───────────────────────────────────────── -->
   <div class="overview-section-divider"></div>
   <div class="overview-section-head">
     <div class="overview-section-title">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="15" height="15"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-      Pending Member Updates
+      <?= View::icon('pendinginfo') ?> Pending Member Updates
     </div>
     <div class="overview-section-sub">Members requesting changes to their details - review each diff and accept or reject.</div>
   </div>
   <?php if (empty($pending_updates)): ?>
     <div class="card">
       <div class="empty">
-        <span class="empty-icon"><?= View::icon('check-badge', ['width' => 32, 'height' => 32]) ?></span>
+        <span class="empty-icon"><?= View::icon('pendinginfo', ['width' => 32, 'height' => 32]) ?></span>
         No pending member updates - you're all caught up.
       </div>
     </div>
@@ -327,7 +321,7 @@ $pendingSortUrl = static function (string $col) use ($b, $sort, $dir): string {
                     <details class="changes-toggle">
                       <summary class="changes-toggle-summary">
                         <?= $puCount ?> field<?= $puCount !== 1 ? 's' : '' ?>
-                        <svg class="changes-toggle-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="11" height="11"><polyline points="6 9 12 15 18 9"/></svg>
+                        <?= View::icon('chevrondown') ?>
                       </summary>
                       <div class="changes-list">
                         <?php foreach ($pu->changes as $field => $val): ?>
@@ -374,5 +368,4 @@ $pendingSortUrl = static function (string $col) use ($b, $sort, $dir): string {
       </form>
     </div>
   <?php endif; ?>
-
 <?php endif; ?>

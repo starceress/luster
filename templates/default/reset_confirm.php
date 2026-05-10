@@ -28,7 +28,7 @@ use Luster\Core\View;
       <a href="<?= View::e($reset_url) ?>">Request a new one.</a>
     </p>
   <?php else: ?>
-    <p style="font-size:.875rem">
+    <p class="fl-hint">
       Choose a new password.
     </p>
 

@@ -213,6 +213,14 @@ final class ListingAdminImportSource implements ImportSourceInterface
             ? new ImageMigrator(dirname(__DIR__, 2) . '/public')
             : null;
 
+        // Read actual image paths/URLs from the Listing Admin options table.
+        // These are the paths configured by the site owner (can be anything).
+        // Returns [] if the table is absent or values are blank — callers fall
+        // back to $options->imagePath / $options->imageUrl directly.
+        $imageSettings = $migrator !== null
+            ? $this->readImageSettings($source, $laP)
+            : [];
+
         $imageMap = [];
 
         // ── Step 1: Categories ────────────────────────────────────────────
@@ -227,7 +235,7 @@ final class ListingAdminImportSource implements ImportSourceInterface
         $listingIdMap = []; // LA main.id → new owned listingid
         if ($options->importListings) {
             ['row' => $listRow, 'idMap' => $listingIdMap, 'imageMap' => $lim] =
-                $this->runListings($source, $target, $targetSchema, $options, $catNameToId, $migrator, $sp, $sreg);
+                $this->runListings($source, $target, $targetSchema, $options, $catNameToId, $migrator, $imageSettings, $sp, $sreg);
             $rows[]   = $listRow;
             $imageMap = array_merge($imageMap, $lim);
             if ($listRow['image_copied'] > 0 || $listRow['image_skipped'] > 0) {
@@ -244,7 +252,7 @@ final class ListingAdminImportSource implements ImportSourceInterface
         // ── Step 4: Affiliates ────────────────────────────────────────────
         if ($options->importAffiliates) {
             ['row' => $affRow, 'imageMap' => $affMap] =
-                $this->runAffiliates($source, $target, $options, $migrator, $listingIdMap, $sp);
+                $this->runAffiliates($source, $target, $options, $migrator, $imageSettings, $listingIdMap, $sp);
             $rows[]   = $affRow;
             $imageMap = array_merge($imageMap, $affMap);
             if ($affRow['image_copied'] > 0 || $affRow['image_skipped'] > 0) {
@@ -256,7 +264,7 @@ final class ListingAdminImportSource implements ImportSourceInterface
         // ── Step 5: Joined listings ───────────────────────────────────────
         if ($options->importJoined) {
             ['row' => $joinRow, 'imageMap' => $joinMap] =
-                $this->runJoined($source, $target, $options, $catNameToId, $migrator, $sp);
+                $this->runJoined($source, $target, $options, $catNameToId, $migrator, $imageSettings, $sp);
             $rows[]   = $joinRow;
             $imageMap = array_merge($imageMap, $joinMap);
             if ($joinRow['image_copied'] > 0 || $joinRow['image_skipped'] > 0) {
@@ -390,7 +398,7 @@ final class ListingAdminImportSource implements ImportSourceInterface
     private function runListings(
         PDO $source, PDO $target, string $targetSchema,
         ImportOptions $options, array $catNameToId, ?ImageMigrator $migrator,
-        string $tp = '', string $sreg = 'main'
+        array $imageSettings, string $tp = '', string $sreg = 'main'
     ): array {
         $imported     = 0;
         $skipped      = 0;
@@ -432,12 +440,35 @@ final class ListingAdminImportSource implements ImportSourceInterface
                 continue;
             }
 
+            // Extract early for use in the retry branch.
+            $imgFilename = trim((string) ($row['image'] ?? ''));
+
             // Skip if URL already exists in target
             $checkStmt->execute(['url' => $url]);
             $existId = $checkStmt->fetchColumn();
             if ($existId !== false) {
                 if ($options->conflictStrategy === 'skip') {
                     $idMap[$laId] = (int) $existId;
+                    // Re-run: if the settings row for this listing has image = NULL, retry.
+                    if ($migrator !== null && $imgFilename !== '' && $options->imageMode !== 'zip') {
+                        $rStmt = $target->prepare(
+                            'SELECT image FROM lstr_fanlisting_settings WHERE fanlisting_id = :fid LIMIT 1'
+                        );
+                        $rStmt->execute(['fid' => (int) $existId]);
+                        $curImg = $rStmt->fetchColumn();
+                        if ($curImg === null || $curImg === false) {
+                            $dummyMap = [];
+                            $retried  = $this->migrateImage(
+                                $migrator, $imgFilename, 'listings', 'fl_',
+                                $options, $imageSettings, $dummyMap, $imgCopied, $imgSkipped, $imgErrors
+                            );
+                            if ($retried !== null) {
+                                $target->prepare(
+                                    'UPDATE lstr_fanlisting_settings SET image = :img WHERE fanlisting_id = :fid'
+                                )->execute(['img' => $retried, 'fid' => (int) $existId]);
+                            }
+                        }
+                    }
                     $skipped++;
                     if (count($skippedItems) < self::SKIP_CAP) {
                         $skippedItems[] = ['label' => ($title !== '' ? $title : $url) . ' — ' . $url, 'reason' => 'Already exists (same URL)'];
@@ -460,12 +491,11 @@ final class ListingAdminImportSource implements ImportSourceInterface
             // Opened date
             $opened = !empty($row['date']) ? $row['date'] : null;
 
-            // Image migration
-            $imgFilename = trim((string) ($row['image'] ?? ''));
-            $newImage    = null;
+            // Image migration for new records
+            $newImage = null;
             if ($imgFilename !== '' && $migrator !== null) {
                 $newImage = $this->migrateImage(
-                    $migrator, $imgFilename, 'listings', 'fl_', $options,
+                    $migrator, $imgFilename, 'listings', 'fl_', $options, $imageSettings,
                     $imageMap, $imgCopied, $imgSkipped, $imgErrors
                 );
             }
@@ -669,7 +699,8 @@ final class ListingAdminImportSource implements ImportSourceInterface
      * @return array{row: array, imageMap: array}
      */
     private function runAffiliates(
-        PDO $source, PDO $target, ImportOptions $options, ?ImageMigrator $migrator, array $listingIdMap, string $tp = ''
+        PDO $source, PDO $target, ImportOptions $options, ?ImageMigrator $migrator,
+        array $imageSettings, array $listingIdMap, string $tp = ''
     ): array {
         $imported     = 0;
         $skipped      = 0;
@@ -720,6 +751,7 @@ final class ListingAdminImportSource implements ImportSourceInterface
             // Resolve fNiq → array of Luster fanlisting IDs (null = collective)
             $flIds = $this->parseFNiq((string) ($row['fNiq'] ?? '0'), $listingIdMap);
 
+            // Extract early so the retry branch can use it.
             $imgFilename   = trim((string) ($row['aImage'] ?? ''));
             $newImage      = null;
             $imageMigrated = false;
@@ -729,6 +761,31 @@ final class ListingAdminImportSource implements ImportSourceInterface
 
                 if (isset($existPairs[$pairKey])) {
                     if ($options->conflictStrategy === 'skip') {
+                        // Re-run: retry image if existing record has image = NULL.
+                        if ($migrator !== null && $imgFilename !== '' && $options->imageMode !== 'zip') {
+                            $rSql = $flId === null
+                                ? 'SELECT id, image FROM lstr_affiliates WHERE url = :url AND fanlisting_id IS NULL LIMIT 1'
+                                : 'SELECT id, image FROM lstr_affiliates WHERE url = :url AND fanlisting_id = :fid LIMIT 1';
+                            $rStmt = $target->prepare($rSql);
+                            $rParams = ['url' => $url];
+                            if ($flId !== null) { $rParams['fid'] = $flId; }
+                            $rStmt->execute($rParams);
+                            $rRec = $rStmt->fetch(\PDO::FETCH_ASSOC);
+                            if ($rRec !== false && $rRec['image'] === null) {
+                                if (!$imageMigrated) {
+                                    $dummyMap    = [];
+                                    $newImage     = $this->migrateImage(
+                                        $migrator, $imgFilename, 'affiliates', 'af_',
+                                        $options, $imageSettings, $dummyMap, $imgCopied, $imgSkipped, $imgErrors
+                                    );
+                                    $imageMigrated = true;
+                                }
+                                if ($newImage !== null) {
+                                    $target->prepare('UPDATE lstr_affiliates SET image = :img WHERE id = :id')
+                                           ->execute(['img' => $newImage, 'id' => $rRec['id']]);
+                                }
+                            }
+                        }
                         $skipped++;
                         if (count($skippedItems) < self::SKIP_CAP) {
                             $skippedItems[] = ['label' => $name . ' — ' . $url, 'reason' => 'Already exists (same URL)'];
@@ -757,7 +814,7 @@ final class ListingAdminImportSource implements ImportSourceInterface
                 // Migrate image once; reuse new filename for subsequent per-listing rows
                 if (!$imageMigrated && $imgFilename !== '' && $migrator !== null) {
                     $newImage      = $this->migrateImage(
-                        $migrator, $imgFilename, 'affiliates', 'af_', $options,
+                        $migrator, $imgFilename, 'affiliates', 'af_', $options, $imageSettings,
                         $imageMap, $imgCopied, $imgSkipped, $imgErrors
                     );
                     $imageMigrated = true;
@@ -848,7 +905,7 @@ final class ListingAdminImportSource implements ImportSourceInterface
      */
     private function runJoined(
         PDO $source, PDO $target, ImportOptions $options,
-        array $catNameToId, ?ImageMigrator $migrator, string $tp = ''
+        array $catNameToId, ?ImageMigrator $migrator, array $imageSettings, string $tp = ''
     ): array {
         $imported     = 0;
         $skipped      = 0;
@@ -888,8 +945,30 @@ final class ListingAdminImportSource implements ImportSourceInterface
                 continue;
             }
 
+            // Extract early for the retry branch.
+            $imgFilename = trim((string) ($row['jImage'] ?? ''));
+
             if (isset($existingUrls[$url])) {
                 if ($options->conflictStrategy === 'skip') {
+                    // Re-run: retry image if existing record has image = NULL.
+                    if ($migrator !== null && $imgFilename !== '' && $options->imageMode !== 'zip') {
+                        $rStmt = $target->prepare(
+                            'SELECT id, image FROM lstr_joined WHERE url = :url LIMIT 1'
+                        );
+                        $rStmt->execute(['url' => $url]);
+                        $rRec = $rStmt->fetch(\PDO::FETCH_ASSOC);
+                        if ($rRec !== false && $rRec['image'] === null) {
+                            $dummyMap = [];
+                            $retried  = $this->migrateImage(
+                                $migrator, $imgFilename, 'joined', 'jn_',
+                                $options, $imageSettings, $dummyMap, $imgCopied, $imgSkipped, $imgErrors
+                            );
+                            if ($retried !== null) {
+                                $target->prepare('UPDATE lstr_joined SET image = :img WHERE id = :id')
+                                       ->execute(['img' => $retried, 'id' => $rRec['id']]);
+                            }
+                        }
+                    }
                     $skipped++;
                     if (count($skippedItems) < self::SKIP_CAP) {
                         $skippedItems[] = ['label' => $name . ' — ' . $url, 'reason' => 'Already exists (same URL)'];
@@ -910,11 +989,11 @@ final class ListingAdminImportSource implements ImportSourceInterface
             $newCatId = $catName !== '' && isset($catNameToId[$catName]) ? $catNameToId[$catName] : null;
             $active   = ((int) ($row['jStatus'] ?? 1)) === 1 ? 1 : 0;
 
-            $imgFilename = trim((string) ($row['jImage'] ?? ''));
-            $newImage    = null;
+            // Image migration for new records
+            $newImage = null;
             if ($imgFilename !== '' && $migrator !== null) {
                 $newImage = $this->migrateImage(
-                    $migrator, $imgFilename, 'joined', 'jn_', $options,
+                    $migrator, $imgFilename, 'joined', 'jn_', $options, $imageSettings,
                     $imageMap, $imgCopied, $imgSkipped, $imgErrors
                 );
             }
@@ -1407,32 +1486,124 @@ final class ListingAdminImportSource implements ImportSourceInterface
 
     /**
      * Migrates a single image file using the configured mode.
+     *
+     * Path/URL resolution priority for Listing Admin:
+     *   1. Use the path/URL read directly from the la_options table
+     *      ($imageSettings['affiliates_dir'], 'listings_dir', 'joined_dir',
+     *       'affiliates_url', 'listings_url', 'joined_url')
+     *   2. Fall back to the user-supplied path/URL as the direct image directory
+     *      (no subdirectory appended — LA has no fixed structure, so if the
+     *      options table had no configured path, the user must provide it directly)
+     *
+     * @param array<string,string> $imageSettings  From readImageSettings(); may be empty.
      */
     private function migrateImage(
         ImageMigrator $migrator, string $imageFilename, string $targetSubDir, string $prefix,
-        ImportOptions $options, array &$imageMap, int &$copied, int &$skipped, array &$errors
+        ImportOptions $options, array $imageSettings, array &$imageMap, int &$copied,
+        int &$skipped, array &$errors
     ): ?string {
-        $imgDirs = [
-            'affiliates' => 'images/affiliates',
-            'joined'     => 'images/joined',
-            'listings'   => 'images',
-        ];
+        if ($options->imageMode === 'path') {
+            $settingsKey   = match ($targetSubDir) {
+                'affiliates' => 'affiliates_dir',
+                'joined'     => 'joined_dir',
+                default      => 'listings_dir',
+            };
+            $configuredDir = $imageSettings[$settingsKey] ?? '';
 
-        if ($options->imageMode === 'path' && $options->imagePath !== '') {
-            $srcPath     = $options->imagePath . '/' . $imgDirs[$targetSubDir] . '/' . $imageFilename;
+            // Priority 1: path from la_options table (complete, authoritative)
+            // Priority 2: user-provided path used directly (no subdir — LA has no fixed structure)
+            if ($configuredDir !== '') {
+                $srcPath = $configuredDir . '/' . $imageFilename;
+            } elseif ($options->imagePath !== '') {
+                $srcPath = rtrim($options->imagePath, '/\\') . '/' . $imageFilename;
+            } else {
+                $skipped++;
+                return null;
+            }
+
             $newFilename = $migrator->copyFromPath($srcPath, $targetSubDir, $prefix);
-            if ($newFilename !== null) { $copied++; } else { $skipped++; $errors[] = "Image not found: {$imageFilename}"; }
+            if ($newFilename !== null) {
+                $copied++;
+            } else {
+                $skipped++;
+                $errors[] = "Image not found: {$imageFilename}";
+            }
             return $newFilename;
         }
 
-        if ($options->imageMode === 'url' && $options->imageUrl !== '') {
-            $srcUrl      = $options->imageUrl . '/' . $imgDirs[$targetSubDir] . '/' . $imageFilename;
+        if ($options->imageMode === 'url') {
+            $settingsKey   = match ($targetSubDir) {
+                'affiliates' => 'affiliates_url',
+                'joined'     => 'joined_url',
+                default      => 'listings_url',
+            };
+            $configuredUrl = $imageSettings[$settingsKey] ?? '';
+
+            if ($configuredUrl !== '') {
+                $srcUrl = $configuredUrl . '/' . rawurlencode($imageFilename);
+            } elseif ($options->imageUrl !== '') {
+                $srcUrl = rtrim($options->imageUrl, '/') . '/' . rawurlencode($imageFilename);
+            } else {
+                $skipped++;
+                return null;
+            }
+
             $newFilename = $migrator->fetchFromUrl($srcUrl, $targetSubDir, $prefix);
-            if ($newFilename !== null) { $copied++; } else { $skipped++; $errors[] = "Could not fetch: {$imageFilename}"; }
+            if ($newFilename !== null) {
+                $copied++;
+            } else {
+                $skipped++;
+                $errors[] = "Could not fetch: {$imageFilename}";
+            }
             return $newFilename;
         }
 
         $skipped++;
         return null;
+    }
+
+    /**
+     * Reads configured image directory paths and web URLs from the Listing Admin
+     * options table (la_options or {prefix}options).
+     *
+     * Returns an associative array with keys:
+     *   affiliates_dir, joined_dir, listings_dir  (absolute filesystem paths)
+     *   affiliates_url, joined_url, listings_url  (web-accessible URLs)
+     *
+     * All values are rtrim'd. Returns [] on any failure.
+     *
+     * @param  string $laPrefix  The LA table prefix (e.g. 'la_', 'trex_', or '')
+     * @return array<string,string>
+     */
+    private function readImageSettings(PDO $source, string $laPrefix): array
+    {
+        // The options table follows the same prefix as other LA tables.
+        // e.g. '' → 'options', 'la_' → 'la_options', 'trex_' → 'trex_options'
+        // LA itself derives its table names this way.
+        $table = $laPrefix !== '' ? $laPrefix . 'options' : 'options';
+
+        try {
+            $stmt = $source->prepare(
+                "SELECT `name`, `text` FROM `{$table}`
+                  WHERE `name` IN (
+                      'aff_path',  'aff_http',
+                      'img_path',  'img_http',
+                      'jnd_path',  'jnd_http'
+                  )"
+            );
+            $stmt->execute();
+            $rows = $stmt->fetchAll(\PDO::FETCH_KEY_PAIR);
+        } catch (\Throwable) {
+            return [];
+        }
+
+        return [
+            'affiliates_dir' => rtrim((string) ($rows['aff_path'] ?? ''), '/\\'),
+            'affiliates_url' => rtrim((string) ($rows['aff_http'] ?? ''), '/'),
+            'listings_dir'   => rtrim((string) ($rows['img_path'] ?? ''), '/\\'),
+            'listings_url'   => rtrim((string) ($rows['img_http'] ?? ''), '/'),
+            'joined_dir'     => rtrim((string) ($rows['jnd_path'] ?? ''), '/\\'),
+            'joined_url'     => rtrim((string) ($rows['jnd_http'] ?? ''), '/'),
+        ];
     }
 }

@@ -10,10 +10,14 @@ declare(strict_types=1);
  * @var string[]                           $known_categories for datalist
  * @var string                             $back_url         absolute URL
  * @var string                             $ctx_label        context label for panel
+ * @var string                             $back_label       context label for back link
  * @var bool                               $is_edit
  * @var string                             $error
  * @var string                             $base_url
  * @var string                             $csrf_token
+ * @var string                             $author
+ * @var string                             $admin_date_format
+ * @var string                             $admin_time_format
  */
 
 use Luster\Core\View;
@@ -37,8 +41,8 @@ $formAction = $is_edit
 
 $isCollective = $fanlisting_id === null;
 
-// Strip "Owned › " prefix for display; leave "Collective" as-is
-$ctxDisplay = preg_replace('/^Owned\s*›\s*/u', '', (string) ($ctx_label ?? '')) ?: 'Collective';
+$ctxDisplay = trim((string) ($ctx_label ?? '')) ?: 'Collective';
+$backLabel  = trim((string) ($back_label ?? $ctxDisplay)) ?: 'Collective';
 ?>
 
 <?php if ($error !== ''): ?>
@@ -46,20 +50,7 @@ $ctxDisplay = preg_replace('/^Owned\s*›\s*/u', '', (string) ($ctx_label ?? '')
 <?php endif; ?>
 
 <div class="page-topbar">
-  <a href="<?= View::e($back_url) ?>" class="link">&larr; Back to <?= View::e(str_replace('Owned › ', '', $ctx_label)) ?> Update Feed</a>
-  <?php if ($is_edit): ?>
-  <div class="topbar-actions">
-    <form method="POST"
-          action="<?= $b ?>/admin/updates/entry/<?= (int) $update->id ?>/delete"
-          data-confirm="Delete this update? This cannot be undone.">
-      <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
-      <button type="submit" class="btn btn-danger btn-sm">
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
-        Delete Update
-      </button>
-    </form>
-  </div>
-  <?php endif; ?>
+  <a href="<?= View::e($back_url) ?>" class="link">&larr; Back to <?= View::e($backLabel) ?> Update Feed</a>
 </div>
 
 <form method="POST" action="<?= View::e($formAction) ?>">
@@ -67,106 +58,129 @@ $ctxDisplay = preg_replace('/^Owned\s*›\s*/u', '', (string) ($ctx_label ?? '')
 
   <div class="composer-grid">
 
-    <!-- ── Main card: title + body ── -->
-    <div class="main-card">
-      <div class="card-section">
-        <span class="pc-section-label">Content</span>
-        <div class="form-group">
-          <label class="form-label" for="upd-title">
-            Title <span class="req">*</span>
-          </label>
-          <input type="text" id="upd-title" name="title" class="form"
-                 maxlength="255" required
-                 value="<?= $is_edit ? View::e($update->title) : '' ?>"
-                 placeholder="What&rsquo;s new?">
+<!-- ──── MAIN CARD ────────────────────────────────────────────────────── -->
+    <div class="gradient-card">
+      <div class="pc-head">
+        <div class="pc-head-icon pc-head-icon-bg"><?= View::icon('updates') ?></div>
+        <div class="pc-head-meta">
+          <div class="pc-head-title"><?= $is_edit ? 'Edit Update' : 'Post Update' ?></div>
         </div>
-        <div class="form-group panel-field--flush">
-          <label class="form-label" for="upd-body">
-            Body <span class="req">*</span>
-          </label>
-          <textarea class="form" id="upd-body" name="body" required
+        <span class="badge badge-info-pink pc-head-badge"><?= View::e($ctxDisplay) ?></span>
+      </div>
+
+      <div class="listing-field-section">
+        <div class="listing-field-row">
+          <label class="listing-field-label" for="upd-title">Title <span class="req">*</span></label>
+          <div>
+            <input type="text" id="upd-title" name="title" class="form"
+                   maxlength="255" required
+                   value="<?= $is_edit ? View::e($update->title) : '' ?>"
+                   placeholder="What&rsquo;s new?">
+          </div>
+        </div>
+        <div class="listing-field-row">
+          <label class="listing-field-label" for="upd-posted-at">Date<span class="req">*</span></label>
+          <div>
+            <input type="datetime-local" id="upd-posted-at" name="posted_at"
+                   class="form" style="width:auto" required
+                   value="<?= $is_edit ? View::e($editPostedAt) : $defaultPostedAt ?>">
+            <p class="form-hint">You can backdate or future-date entries.</p>
+          </div>
+        </div>
+
+        <div class="form-group form-group--compact">
+          <textarea id="upd-body" name="body" class="form"
+                    rows="9" required
                     placeholder="Write your update here&hellip;"><?= $is_edit ? View::e($update->body) : '' ?></textarea>
         </div>
       </div>
-    </div>
 
-    <!-- ── Panel column ── -->
-    <div class="panel-col">
-
-      <!-- Publish panel -->
-      <div class="panel-card">
-        <div class="card-head">Publish</div>
-        <div class="panel-body">
-          <div class="panel-field">
-            <label class="panel-label" for="upd-posted-at">
-              Date &amp; Time <span class="req-inline">*</span>
-            </label>
-            <input type="datetime-local" id="upd-posted-at" name="posted_at"
-                   class="panel-input" required
-                   value="<?= $is_edit ? View::e($editPostedAt) : $defaultPostedAt ?>">
-            <div class="panel-hint">You can backdate or future-date entries.</div>
+      <div class="listing-field-section">
+        <div class="listing-field-row">
+          <label class="listing-field-label">Posted by</label>
+          <div>
+            <span style="font-size:var(--fs-md);font-weight:600;color:var(--text)"><?= View::e($is_edit ? $update->author : $author) ?></span>
+            <p class="form-hint">The admin account posting this entry. Not displayed publicly &mdash; stored for record-keeping only.</p>
           </div>
-          <button type="submit" class="btn btn-primary btn-sm btn-block-center">
-            <?php if ($is_edit): ?>
-              Save Changes
-            <?php else: ?>
-              Post Update
-            <?php endif; ?>
-          </button>
-          <a href="<?= View::e($back_url) ?>"
-             class="btn btn-ghost btn-block-center text-dim-sm">
-            Cancel
-          </a>
         </div>
       </div>
 
-      <!-- Categories panel -->
-      <div class="panel-card">
+      <div class="composer-footer">
+        <button type="submit" class="btn btn-primary">
+          <?= $is_edit ? 'Save Changes' : 'Post Update' ?>
+        </button>
+        <button type="button" class="btn btn-preview" id="upd-preview-btn"><?= View::icon('eye-on') ?> Preview</button>
+        <button type="button" class="btn btn-ghost js-form-reset"><?= $is_edit ? 'Reset' : 'Clear' ?></button>
+        
+        <?php if ($is_edit): ?>
+          <div class="composer-footer-spacer"></div>
+          <form method="POST"
+                action="<?= $b ?>/admin/updates/entry/<?= (int) $update->id ?>/delete"
+                class="action-form-inline"
+                data-del-modal
+                data-del-entity="update"
+                data-del-name="<?= View::e($update->title) ?>">
+            <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
+            <button type="submit" class="btn btn-danger">Delete</button>
+          </form>
+        <?php endif; ?>
+      </div>
+    </div>
+    
+<!-- ──── SIDEBAR ─────────────────────────────────────────────────────── -->
+    <div class="composer-side">
+      <div class="card">
         <div class="card-head">Categories</div>
-        <div class="panel-body">
+        <div class="card-body">
+          
+          <p class="form-hint">Press Enter or comma to add. Multiple categories allowed. Start typing to see existing category names as suggestions.</p>
           <input type="hidden" id="upd-category" name="category"
                  value="<?= $is_edit ? View::e($update->category) : '' ?>">
-          <div class="tag-input-wrap" data-tag-hidden="upd-category">
-            <input type="text" class="tag-input-field"
+          <div data-tag-hidden="upd-category" data-tag-chips="upd-chips" data-tag-chip-class="badge badge-info-gold">
+            <input type="text" class="form"
                    placeholder="Add category&hellip;"
                    list="upd-category-list">
           </div>
+          <div id="upd-chips" class="tag-chips-list"></div>
           <datalist id="upd-category-list">
             <?php foreach ($known_categories as $cat): ?>
               <option value="<?= View::e($cat) ?>">
             <?php endforeach; ?>
           </datalist>
-          <div class="panel-hint panel-hint-spaced">Press Enter or comma to add. Multiple categories allowed.</div>
         </div>
       </div>
-
-      <!-- Context panel -->
-      <div class="panel-card">
-        <div class="card-head">Context</div>
-        <div class="panel-body">
-          <div class="panel-field">
-            <div class="panel-context-box">
-              <?php if ($isCollective): ?>
-                <span class="badge badge-info">Collective</span>
-                <span class="panel-context-label">Site-wide</span>
-              <?php else: ?>
-                <span class="panel-context-label"><?= View::e($ctxDisplay) ?></span>
-              <?php endif; ?>
-            </div>
-            <div class="panel-hint panel-hint-tight">
-              <?= $isCollective ? 'This update will appear in the collective feed.' : 'This update will appear in this listing\'s feed.' ?>
-            </div>
-          </div>
-          <?php if ($is_edit && $update->author !== ''): ?>
-          <div class="panel-field panel-field--split">
-            <label class="panel-label">Posted by</label>
-            <span class="panel-context-label"><?= View::e($update->author) ?></span>
-            <div class="panel-hint">Set at post time, not editable.</div>
-          </div>
-          <?php endif; ?>
-        </div>
-      </div>
-
-    </div><!-- /.panel-col -->
-  </div><!-- /.composer-grid -->
+    </div>
+  </div>
 </form>
+
+<!-- ──── PREVIEW ─────────────────────────────────────────────────────── -->
+<div class="modal-backdrop is-hidden" id="upd-preview-modal"
+     data-date-format="<?= View::e($admin_date_format) ?>"
+     data-time-format="<?= View::e($admin_time_format) ?>">
+  <div class="modal modal--wide">
+    <div class="modal-header">
+      <h3 class="modal-title">Update Preview</h3>
+      <button type="button" class="modal-close" id="upd-preview-close" aria-label="Close">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div class="composer-block">
+        <div class="composer-row">
+          <span class="composer-lbl">Title</span>
+          <span id="upd-preview-title"></span>
+        </div>
+        <div class="composer-row">
+          <span class="composer-lbl">Date</span>
+          <span id="upd-preview-date" class="composer-email"></span>
+        </div>
+        <div class="composer-row" id="upd-preview-cats-row">
+          <span class="composer-lbl">Categories</span>
+          <span id="upd-preview-cats"></span>
+        </div>
+      </div>
+      <div id="upd-preview-body" class="body-area" style="padding:.875rem 1.25rem;border-top:1px solid var(--border)"></div>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn btn-quaternary" id="upd-preview-close-btn">Close</button>
+    </div>
+  </div>
+</div>

@@ -1,10 +1,15 @@
 .req { color: var(--danger); margin-left: 2px; }
 
-textarea { width: 100%; max-height: 300px; min-height: 200px; padding: 0.625rem 0.875rem; background: #07040f; border: 1px solid var(--border); border-radius: 10px; color: var(--text); font-family: var(--font-mono); font-size: var(--fs-base); line-height: 1.6; resize: vertical; outline: none; transition: border-color .2s, box-shadow .2s; tab-size: 2; margin-bottom: .25rem;}
+textarea { width: 100%; max-height: 300px; min-height: 200px; padding: 0.625rem 0.875rem; background: #07040f; border: 1px solid var(--border); border-radius: 10px; color: var(--text); font-family: var(--font-sans); font-size: var(--fs-base); line-height: 1.6; resize: vertical; outline: none; transition: border-color .2s, box-shadow .2s; tab-size: 2; margin-bottom: .25rem;}
 
 [data-theme="light"] textarea { background: var(--bg-subtle); }
 
 textarea::placeholder { color: var(--text-dim); }
+
+textarea::-webkit-scrollbar { width: 13px; }
+textarea::-webkit-scrollbar-track { background: transparent; }
+textarea::-webkit-scrollbar-thumb { background: rgb(var(--ch-pink)/.25); border-radius: 99px; }
+textarea::-webkit-scrollbar-thumb:hover { background: rgb(var(--ch-pink)/.5); }
 
 textarea:focus { border-color: var(--accent); box-shadow: var(--glow); color: var(--text); }
 
@@ -29,10 +34,6 @@ input.mono { color: var(--text-dim); cursor: not-allowed; font-family: var(--fon
 .select-auto { width: max-content; }
 
 .select-xs { font-size: .8125rem; padding: .3rem 2rem .3rem .6rem; }
-
-.select-wrap-inline { display: inline-block; max-width: 100%; }
-
-.heading-capitalize { text-transform: capitalize; }
 
 select:not([multiple]):not([size]) { padding-right: 32px; -webkit-appearance: none; appearance: none; }
 
@@ -60,6 +61,8 @@ input[type="checkbox"], input[type="radio"] { width: 15px; height: 15px; accent-
 
 .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
 
+.form-row--3 { grid-template-columns: 2fr 1fr 1fr; }
+
 .form-check { display: flex; align-items: center; gap: 0.625rem; cursor: pointer; }
 
 .form-check input { width: 16px; height: 16px; accent-color: var(--accent); cursor: pointer; }
@@ -80,12 +83,11 @@ input[type="checkbox"], input[type="radio"] { width: 15px; height: 15px; accent-
 
 .input-icon-btn:hover { color: var(--accent); }
 
-
 .form-hint { font-size: var(--fs-sm); color: var(--text-dim); margin: 5px auto 10px; }
 
-.form-hint-sm, .field-hint-sm, .help-text { color: var(--text-dim); line-height: 1.5; margin-top: .35rem; }
+.field-hint-sm, .help-text { color: var(--text-dim); line-height: 1.5; margin-top: .35rem; }
 
-.form-hint-sm, .field-hint-sm { font-size: var(--fs-sm); }
+.field-hint-sm { font-size: var(--fs-sm); }
 
 .help-text { font-size: var(--fs-base); }
 
@@ -117,13 +119,9 @@ input[type="checkbox"], input[type="radio"] { width: 15px; height: 15px; accent-
 
 .form-details-desc { font-size: var(--fs-base); color: var(--text-muted); line-height: 1.55; margin-bottom: .65rem; }
 
+code { display: inline; background: var(--bg); border-radius: 10px; padding: 0.3rem 0.3rem; font-family: var(--font-mono); color: var(--text); font-size: var(--fs-sm); letter-spacing: 0.02rem; }
 
-code { display: inline; background: var(--bg); border-radius: 10px; padding: 0.3rem 0.3rem; font-family: var(--font-mono); color: var(--accent); font-size: var(--fs-sm); letter-spacing: 0.02rem; }
-
-
-
-/* Listing image upload components ══════════════════════════════════════ */
-
+/* ──── UPLOAD PLACEHOLDERS ───────────────────────────────────────────── */
 .existing-image-row { display: flex; align-items: center; gap: .875rem; padding: .5rem .875rem; background: var(--bg-subtle); border: 1px solid var(--border); border-radius: 9px; }
 
 .existing-img-placeholder { background: rgb(var(--ch-pink)/.12); border-radius: 6px; display: flex; align-items: center; justify-content: center; border: 1px solid rgb(var(--ch-pink)/.2); flex-shrink: 0; overflow: hidden; }
@@ -140,26 +138,15 @@ code { display: inline; background: var(--bg); border-radius: 10px; padding: 0.3
 
 .existing-upload-preview .del-img-check { color: var(--danger); }
 
-/* ══════ >>> Template fields (Templates tab) ══════════════════════════════════════ */
-
-.tpl-field { padding: 1rem 1.25rem; border-bottom: 1px solid var(--border-soft); }
-
-.tpl-field:last-of-type { border-bottom: none; }
-
-.tpl-label { font-size: var(--fs-base); font-weight: 700; color: var(--text); margin-bottom: .25rem; }
-
 .btn-tpl-reset { font-size: var(--fs-sm); font-weight: 500; color: var(--text-dim); background: none; border: none; padding: 0; cursor: pointer; letter-spacing: .01em; }
 
 .btn-tpl-reset:hover { color: var(--accent); }
 
-/* ══════ >>> Read-only field display ══════════════════════════════════════ */
 .ro-field { background: var(--bg-subtle); border: 1px solid var(--border); border-radius: 8px; padding: 10px 14px; font-size: var(--fs-md); color: var(--text-muted); font-family: var(--font-mono); overflow-x: auto; word-break: break-all; }
 
-/* ══════ >>> Database info grid (Settings → Database tab) ══════════════════════════════════════ */
 .db-info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: .75rem 1rem; }
 
-
-/* ══════ >>> Category widget (add/edit forms) ══════════════════════════════════════ */
+/* ──── CATEGORY WIDGET ───────────────────────────────────────────────── */
 .cat-widget { display: flex; flex-direction: column; gap: 8px; }
 
 .cat-row { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
@@ -180,8 +167,7 @@ code { display: inline; background: var(--bg); border-radius: 10px; padding: 0.3
 
 .cat-remove-btn { flex-shrink: 0; }
 
-
-/* ══════ >>> Add/Edit listing — single-card inline-field layout ══════════════════════════════════════ */
+/* ──── ADD/EDIT LISTING — SINGLE-CARD INLINE-FIELD LAYOUT ────────────── */
 .listing-field-section { padding: 1.125rem 1.5rem; }
 
 .listing-field-section + .listing-field-section { border-top: 1px solid var(--border); }
@@ -193,8 +179,6 @@ code { display: inline; background: var(--bg); border-radius: 10px; padding: 0.3
 .listing-field-row--top { align-items: flex-start; padding-top: .75rem; }
 
 .listing-field-label { font-size: var(--fs-base); font-weight: 600; color: var(--text-muted); line-height: 1.4; align-self: start; padding-top: .45rem; }
-
-/* Status radio pills */
 
 .status-pill-row { display: flex; gap: .5rem; flex-wrap: wrap; }
 
@@ -208,8 +192,7 @@ code { display: inline; background: var(--bg); border-radius: 10px; padding: 0.3
 
 .status-pill--pending:has(input:checked) { background: rgba(249,115,22,.12); border-color: rgba(249,115,22,.3); color: #f97316; }
 
-
-/* ══════ >>> FILE DROP ZONE ══════════════════════════════════════ */
+/* ──── FILE DROP ZONE ────────────────────────────────────────────────── */
 .file-drop-zone { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .3rem; width: 100%; padding: .875rem 1rem; background: var(--bg-subtle); border: 1px dashed var(--border); border-radius: 9px; cursor: pointer; transition: border-color .2s, background .2s; font-size: var(--fs-base); color: var(--text-dim); text-align: center; }
 
 .file-drop-zone:hover { border-color: var(--accent); background: rgb(var(--ch-teal)/.04); }
@@ -223,6 +206,7 @@ code { display: inline; background: var(--bg); border-radius: 10px; padding: 0.3
 .file-drop-zone .form-hint { color: var(--text-dim); white-space: normal; font-size: var(--fs-sm); margin: 0; }
 
 @media (max-width: 768px) {
+  .form-row--3 { grid-template-columns: 1fr; }
   .existing-image-row { flex-direction: column; align-items: flex-start; }
 }
 
@@ -236,25 +220,3 @@ code { display: inline; background: var(--bg); border-radius: 10px; padding: 0.3
   .existing-image-row > div { min-width: 0; overflow: hidden; }
   .file-meta-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
 }
-
-
-/* ══════ >>> Inline add-field grid (fields/index) ══════════════════════════════════════ */
-
-.add-grid { display: grid; grid-template-columns: 1fr 1fr 140px auto auto; gap: 12px; align-items: end; }
-
-@media (max-width: 820px) {
-  .add-grid { grid-template-columns: 1fr 1fr; }
-}
-
-
-/* ══════ >>> Stat row (fanlisting show page) ══════════════════════════════════════ */
-
-.stat-row { display: flex; gap: 1rem; margin-bottom: 1.25rem; flex-wrap: wrap; }
-
-/* ══════ >>> Detail grid (fanlisting show info) ══════════════════════════════════════ */
-
-.detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem 1.5rem; }
-
-.detail-row > label { font-size: var(--fs-sm); font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em; display: block; margin-bottom: 0.1rem; }
-
-.detail-row > span { font-size: var(--fs-lg); color: var(--text); }

@@ -30,7 +30,6 @@ $memSortUrl = static function (string $col) use ($b, $id, $sort, $dir, $search, 
     ], static fn(string $v): bool => $v !== ''));
     return $b . '/admin/members/' . $id . ($qs !== '' ? '?' . $qs : '');
 };
-
 ?>
 
 <?php if ($success !== ''): ?>
@@ -40,7 +39,7 @@ $memSortUrl = static function (string $col) use ($b, $id, $sort, $dir, $search, 
   <div class="alert alert-error"><?= View::e($error) ?></div>
 <?php endif; ?>
 
-<!-- Toolbar -->
+<!-- ──── TOOLBAR ────────────────────────────────────────────────────── -->
 <div class="toolbar">
   <form method="GET" action="<?= $b ?>/admin/members/<?= $id ?>" id="mem-filter-form" class="filter-row member-toolbar-form">
 
@@ -73,11 +72,10 @@ $memSortUrl = static function (string $col) use ($b, $id, $sort, $dir, $search, 
   </form>
 
   <div class="actions-row">
-    <a href="<?= $b ?>/admin/members/<?= $id ?>/import" class="btn btn-quaternary btn-sm">&#8593; Import CSV</a>
-    <a href="<?= $b ?>/admin/members/<?= $id ?>/export" class="btn btn-quaternary btn-sm">&#8595; Export CSV</a>
+    <a href="<?= $b ?>/admin/members/<?= $id ?>/import" class="btn btn-quaternary btn-sm">&#8595; Import CSV</a>
+    <a href="<?= $b ?>/admin/members/<?= $id ?>/export" class="btn btn-quaternary btn-sm">&#8593; Export CSV</a>
   </div>
 </div>
-
 
 <?php if (($pending_count ?? 0) > 0 && ($status ?? 'all') !== 'pending'): ?>
 <div class="reminder-banner">
@@ -90,7 +88,7 @@ $memSortUrl = static function (string $col) use ($b, $id, $sort, $dir, $search, 
       </div>
     </div>
     <div class="inline-actions-row">
-      <a href="?status=pending" class="btn btn-tertiary btn-sm">View Pending &rarr;</a>
+      <a href="?status=pending" class="btn btn-preview btn-sm">View Pending &rarr;</a>
       <form method="POST" action="<?= $b ?>/admin/members/<?= $id ?>/approve-all-pending"
             data-confirm="Approve all <?= (int) $pending_count ?> pending member(s)?">
         <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
@@ -200,9 +198,7 @@ $memSortUrl = static function (string $col) use ($b, $id, $sort, $dir, $search, 
       </tbody>
     </table>
     </div>
-
-  </div><!-- /.card -->
-
+  </div>
 </form>
 
 <?php foreach ($members as $m): ?>
@@ -225,7 +221,6 @@ $memSortUrl = static function (string $col) use ($b, $id, $sort, $dir, $search, 
   </form>
 <?php endforeach; ?>
 
-<!-- Pagination -->
 <?php
 $memFilterQs = http_build_query(array_filter([
     'search' => $search ?? '',
@@ -236,36 +231,7 @@ $memPageUrl = static function (int $p) use ($b, $id, $memFilterQs): string {
     return $b . '/admin/members/' . $id . '?' . $qs;
 };
 ?>
-<?php if ($pages > 1): ?>
-<nav class="pg" aria-label="Pagination">
-  <a href="<?= View::e($memPageUrl($page - 1)) ?>"
-     class="pg-link<?= $page <= 1 ? ' disabled' : '' ?>"
-     <?= $page <= 1 ? 'aria-disabled="true"' : '' ?>>&lsaquo; Prev</a>
-
-  <?php
-    $window = 2;
-    $start  = max(1, $page - $window);
-    $end    = min($pages, $page + $window);
-    if ($start > 1): ?>
-      <a href="<?= View::e($memPageUrl(1)) ?>" class="pg-link">1</a>
-      <?php if ($start > 2): ?><span class="pg-link disabled">&hellip;</span><?php endif; ?>
-  <?php endif; ?>
-
-  <?php for ($i = $start; $i <= $end; $i++): ?>
-    <a href="<?= View::e($memPageUrl($i)) ?>"
-       class="pg-link<?= $i === $page ? ' active' : '' ?>"
-       <?= $i === $page ? 'aria-current="page"' : '' ?>><?= $i ?></a>
-  <?php endfor; ?>
-
-  <?php if ($end < $pages): ?>
-    <?php if ($end < $pages - 1): ?><span class="pg-link disabled">&hellip;</span><?php endif; ?>
-    <a href="<?= View::e($memPageUrl($pages)) ?>" class="pg-link"><?= $pages ?></a>
-  <?php endif; ?>
-
-  <a href="<?= View::e($memPageUrl($page + 1)) ?>"
-     class="pg-link<?= $page >= $pages ? ' disabled' : '' ?>"
-     <?= $page >= $pages ? 'aria-disabled="true"' : '' ?>>Next &rsaquo;</a>
-</nav>
-<?php endif; ?>
+<?php $pg_current = $page; $pg_total = $pages; $pg_url = $memPageUrl;
+include LUSTER_BASE . '/templates/admin/_pagination.php'; ?>
 
 <?php endif; ?>

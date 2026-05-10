@@ -42,7 +42,7 @@ $flName     = View::e($listing->name ?? '');
       <div class="card-body">
         <div class="select-wrap">
           <select id="es-tpl-select" >
-            <option value="">â€” Select a Template â€”</option>
+            <option value="">&mdash; Select a Template &mdash;</option>
             <?php foreach ($saved_emails as $t): ?>
               <option value="<?= View::e($t->subject) ?>"
                       data-body="<?= htmlspecialchars($t->body, ENT_QUOTES, 'UTF-8') ?>">
@@ -93,10 +93,9 @@ $flName     = View::e($listing->name ?? '');
         </table>
       </div>
     </details>
-
   </div>
 
-  <!-- â”€â”€ Main compose area â”€â”€ -->
+<!-- ──── MAIN COMPOSE AREA ──────────────────────────────────────────── -->
   <div class="gradient-card">
     <form method="POST" action="<?= $b ?>/admin/members/<?= $listingId ?>/email-selected/send"
           id="es-form">
@@ -170,17 +169,16 @@ $flName     = View::e($listing->name ?? '');
         <div class="composer-footer-spacer"></div>
         <a href="<?= $b ?>/admin/members/<?= $listingId ?>" class="btn btn-danger">Cancel</a>
       </div>
-
     </form>
-  </div><!-- /.gradient-card -->
+  </div>
+</div>
 
-</div><!-- /.composer-grid -->
-
-<!-- â”€â”€ Preview / Confirm modal â”€â”€ -->
+<!-- ──── PREVIEW / CONFIRM MODAL ────────────────────────────────────── -->
 <div class="modal-backdrop is-hidden" id="es-preview-modal">
   <div class="modal modal--wide">
     <div class="modal-header">
       <h3 class="modal-title">Email Preview</h3>
+      <button type="button" class="modal-close" aria-label="Close">&times;</button>
     </div>
     <div class="modal-body">
       <div class="composer-block">
@@ -208,16 +206,15 @@ $flName     = View::e($listing->name ?? '');
         <button type="button" class="btn btn-primary" id="es-modal-send">
           <?= View::icon('send') ?> Confirm &amp; Send
         </button>
-        <button type="button" class="btn btn-danger" id="es-modal-cancel">Cancel</button>
+        <button type="button" class="btn btn-quaternary" id="es-modal-cancel">Cancel</button>
       </div>
     </div>
     <div class="modal-footer" id="es-footer-preview">
-      <button type="button" class="btn btn-ghost" id="es-modal-close-preview">Close</button>
+      <button type="button" class="btn btn-quaternary" id="es-modal-close-preview">Close</button>
     </div>
   </div>
 </div>
 
-<!-- Preview sample data -->
 <div id="es-preview-data"
      data-first-name="<?= View::e(reset($member_names) ?: '') ?>"
      data-first-email="<?= View::e(array_key_first($member_names) ?? '') ?>"

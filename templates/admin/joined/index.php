@@ -84,8 +84,7 @@ if ($displayMode === 'category') {
 <?php if ($error !== ''): ?>
   <div class="alert alert-error"><?= View::e($error) ?></div>
 <?php endif; ?>
-
-<!-- Toolbar -->
+<!-- ──── TOOLBAR ────────────────────────────────────────────────────── -->
 <div class="toolbar">
   <div class="actions-row">
     <button type="button" class="btn btn-preview btn-sm filter-toggle" id="fl-filter-toggle"
@@ -96,12 +95,11 @@ if ($displayMode === 'category') {
     </button>
   </div>
   <div class="actions-row">
-    <a href="<?= $b ?>/admin/joined/add" class="btn btn-primary btn-sm">+ Add Joined FL</a>
+    <a href="<?= $b ?>/admin/joined/add" class="btn btn-primary btn-sm"><?= View::icon('add') ?> Add Joined Listing</a>
     <a href="<?= $b ?>/admin/joined/settings" class="btn btn-quaternary btn-sm">Display Settings</a>
   </div>
 </div>
-
-<!-- Collapsible filter panel -->
+<!-- ──── COLLAPSIBLE FILTER PANEL ───────────────────────────────────── -->
 <div class="filter-panel<?= $filtersActive ? ' is-open' : '' ?>" id="filter-panel">
   <form method="GET" action="<?= $b ?>/admin/joined" class="filter-row">
 
@@ -157,8 +155,7 @@ if ($displayMode === 'category') {
 <form method="POST" action="<?= $b ?>/admin/joined/bulk" id="bulk-form"
       data-del-bulk data-del-entity="joined">
   <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
-
-  <!-- Bulk action bar -->
+<!-- ──── BULK ACTION BAR ────────────────────────────────────────────── -->
   <div class="bulk">
     <label for="bulk-action-sel">Bulk Actions:</label>
     <div class="select-wrap">
@@ -199,7 +196,7 @@ if ($displayMode === 'category') {
           <td data-label="Image">
             <?php if ($jf->image !== null && $jf->image !== ''): ?>
               <img src="<?= $b ?>/uploads/joined/<?= View::e($jf->image) ?>"
-                   alt="" class="fl-image fl-image--sm">
+                   alt="" class="thumbnail">
             <?php else: ?>
               <span class="text-dim">&mdash;</span>
             <?php endif; ?>
@@ -268,20 +265,5 @@ if ($displayMode === 'category') {
 <?php endif; ?>
 
 
-<?php if (($total_pages ?? 1) > 1): ?>
-<nav class="pg" aria-label="Pagination">
-  <a href="<?= View::e($pageUrl($page - 1)) ?>"
-     class="pg-link<?= $page <= 1 ? ' disabled' : '' ?>"
-     <?= $page <= 1 ? 'aria-disabled="true"' : '' ?>>&lsaquo; Prev</a>
-
-  <?php for ($i = 1; $i <= $total_pages; $i++): ?>
-    <a href="<?= View::e($pageUrl($i)) ?>"
-       class="pg-link<?= $i === $page ? ' active' : '' ?>"
-       <?= $i === $page ? 'aria-current="page"' : '' ?>><?= $i ?></a>
-  <?php endfor; ?>
-
-  <a href="<?= View::e($pageUrl($page + 1)) ?>"
-     class="pg-link<?= $page >= $total_pages ? ' disabled' : '' ?>"
-     <?= $page >= $total_pages ? 'aria-disabled="true"' : '' ?>>Next &rsaquo;</a>
-</nav>
-<?php endif; ?>
+<?php $pg_current = $page; $pg_total = $total_pages; $pg_url = $pageUrl;
+include LUSTER_BASE . '/templates/admin/_pagination.php'; ?>

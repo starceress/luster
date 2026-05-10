@@ -28,7 +28,7 @@ if (!function_exists('navActive')) {
 </head>
 <body>
 
-<!--  SIDEBAR  -->
+<!-- ──── SIDEBAR ────────────────────────────────────────────────────── -->
 <aside class="sidebar">
   <div class="sidebar-dots" aria-hidden="true"></div>
 
@@ -104,6 +104,8 @@ if (!function_exists('navActive')) {
           <a href="<?= $b ?>/admin/activitylog" class="nav-item nav-sub-item<?= navActive('activitylog', $s) ?>"><span class="nav-icon"><?= View::icon('notes') ?></span> Activity Log</a>
         </div>
       </div>
+
+      <a href="<?= $b ?>/admin/feedback" class="nav-item<?= navActive('feedback', $s) ?>"><span class="nav-icon"><?= View::icon('report') ?></span> Send a Report</a>
     </div>
 
   </nav>
@@ -123,7 +125,7 @@ if (!function_exists('navActive')) {
   </div>
 </aside>
 
-<!--  SIDEBAR OVERLAY (mobile)  -->
+<!-- ──── SIDEBAR OVERLAY (MOBILE) ───────────────────────────────────── -->
 <div class="sidebar-overlay" id="sidebarOverlay"></div>
 
 <main>
@@ -134,8 +136,21 @@ if (!function_exists('navActive')) {
       </button>
       <div class="topbar-title-group">
         <span class="topbar-page"><?= View::e($page_title) ?></span>
-        <?php if (!empty($page_subtitle)): ?>
-          <span class="topbar-sub"><?= View::e($page_subtitle) ?></span>
+        <?php if (!empty($page_breadcrumbs)): ?>
+          <nav class="topbar-breadcrumbs" aria-label="Breadcrumb">
+            <?php $crumbCount = count($page_breadcrumbs); ?>
+            <?php foreach ($page_breadcrumbs as $i => $crumb): ?>
+              <?php $isLast = $i === $crumbCount - 1; ?>
+              <?php if ((!$isLast || $crumbCount === 1) && !empty($crumb['url'])): ?>
+                <a href="<?= View::e($crumb['url']) ?>" class="topbar-crumb"><?= View::e($crumb['label']) ?></a>
+              <?php else: ?>
+                <span class="topbar-crumb<?= $isLast ? ' is-current' : '' ?>"><?= View::e($crumb['label']) ?></span>
+              <?php endif; ?>
+              <?php if (!$isLast): ?>
+                <span class="topbar-crumb-sep" aria-hidden="true">&rsaquo;</span>
+              <?php endif; ?>
+            <?php endforeach; ?>
+          </nav>
         <?php endif; ?>
       </div>
     </div>
@@ -159,14 +174,14 @@ if (!function_exists('navActive')) {
   <div class="page-content">
     <?= $content ?>
   </div>
-
 </main>
 
-<!--  Global delete confirmation modal  -->
+<!-- ──── GLOBAL DELETE CONFIRMATION MODAL ───────────────────────────── -->
 <div id="del-confirm-modal" class="modal-backdrop is-hidden" role="dialog" aria-modal="true" aria-labelledby="del-modal-title">
   <div class="modal">
     <div class="modal-header">
       <h3 class="modal-title" id="del-modal-title">Confirm Deletion</h3>
+      <button type="button" class="modal-close" aria-label="Close">&times;</button>
     </div>
     <div class="modal-body">
       <p id="del-modal-desc" class="modal-desc"></p>

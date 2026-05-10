@@ -22,7 +22,7 @@ use Luster\Core\View;
     <div><?= $errors ?></div>
   <?php endif; ?>
 
-  <p style="font-size:.875rem">
+  <p class="fl-hint">
     Enter your email address and we'll send you a link to reset your password.
     The link expires in 1 hour.
   </p>

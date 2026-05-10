@@ -55,7 +55,10 @@ final class FieldController extends AdminController
             'fields'     => $fields,
             'success'    => $success,
             'error'      => $error,
-        ], 'Owned › ' . $listing->name);
+        ], '', [
+            $this->crumb('Owned Listings', $this->adminUrl('/admin/listings')),
+            $this->crumb($listing->subject, $this->adminUrl('/admin/listings/' . $listing->id . '/edit')),
+        ]);
     }
 
     // -----------------------------------------------------------------------
@@ -229,7 +232,11 @@ final class FieldController extends AdminController
             'field'      => $current,
             'options'    => $current->options,
             'error'      => (string) $req->query('error', ''),
-        ], 'Owned › ' . $listing->name);
+        ], '', [
+            $this->crumb($listing->subject, $this->adminUrl('/admin/listings/' . $listing->id . '/edit')),
+            $this->crumb('Fields', $this->adminUrl('/admin/listings/' . $listing->id . '/fields')),
+            $this->crumb($current->label),
+        ]);
     }
 
     // -----------------------------------------------------------------------

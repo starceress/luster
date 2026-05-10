@@ -34,8 +34,7 @@
 }
 
 .fl-input,
-.fl-select,
-.fl-textarea {
+.fl-select {
   width: 100%;
   box-sizing: border-box;
   border: 1px solid var(--fl-border);
@@ -47,8 +46,7 @@
 }
 
 .fl-input:focus,
-.fl-select:focus,
-.fl-textarea:focus {
+.fl-select:focus {
   outline: 2px solid var(--fl-accent);
   outline-offset: 2px;
 }
@@ -82,12 +80,6 @@
   margin-bottom: 1rem;
 }
 
-.fl-member-list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-}
-
 .fl-member {
   padding: .5rem 0;
   border-bottom: 1px solid var(--fl-border);
@@ -118,14 +110,42 @@
   font-weight: 700;
 }
 
-.fl-message {
-  background: var(--fl-surface);
-  border: 1px solid var(--fl-border);
-  border-radius: var(--fl-radius);
-  padding: 1rem .75rem;
-}
-
 .fl-empty {
   color: var(--fl-muted);
   font-style: italic;
 }
+
+.fl-meta {
+  font-size: .875rem;
+  color: var(--fl-muted);
+  margin-top: 1.5rem;
+}
+
+.fl-hint {
+  font-size: .875rem;
+  color: var(--fl-muted);
+}
+
+.fl-field-hint {
+  font-size: .8rem;
+  margin: .2rem 0 0;
+  opacity: .75;
+}
+
+.fl-opt {
+  font-weight: 400;
+}
+
+.fl-fieldset {
+  border: 1px solid var(--fl-border);
+  padding: .75rem 1rem;
+  border-radius: var(--fl-radius);
+  margin: .5rem 0;
+}
+
+.fl-fieldset legend {
+  padding: 0 .5rem;
+  font-weight: 600;
+}
+
+.fl-msg-tight { margin: .2em 0; }

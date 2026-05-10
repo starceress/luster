@@ -3,10 +3,11 @@
 declare(strict_types=1);
 
 use Luster\Controllers\Admin\AddonsController;
+use Luster\Controllers\Admin\FeedbackController;
 use Luster\Controllers\Admin\ImportController;
 use Luster\Controllers\Admin\ActivityLogController;
 use Luster\Controllers\Admin\EmailsController;
-use Luster\Controllers\Admin\MassEmailController;
+use Luster\Controllers\Admin\BulkEmailController;
 use Luster\Controllers\Admin\AdminUsersController;
 use Luster\Controllers\Admin\BlacklistController;
 use Luster\Controllers\Admin\EmailTemplatesController;
@@ -114,6 +115,10 @@ return [
         // ── Maintenance ──────────────────────────────────────────────
         $router->post('/admin/maintenance/touch-all-updated',
             DashboardController::class, 'touchAllUpdated');
+        $router->post('/admin/listings/{id}/touch-updated',
+            DashboardController::class, 'touchListing');
+        $router->post('/admin/dismiss-update',
+            DashboardController::class, 'dismissUpdate');
 
         // ── Listings ────────────────────────────────────────────────
         $router->get('/admin/listings',
@@ -312,6 +317,8 @@ return [
             SettingsController::class, 'validateSmtp');
         $router->post('/admin/settings/test-email',
             SettingsController::class, 'testEmail');
+        $router->post('/admin/settings/check-update',
+            SettingsController::class, 'checkUpdate');
 
         // ── Email/SMTP Settings (under Emails nav) ───────────────────
         // Old URL → redirect to unified Emails page SMTP tab
@@ -384,6 +391,10 @@ return [
         $router->get('/admin/sysinfo',
             SysInfoController::class, 'index');
 
+        // ── Feedback ──────────────────────────────────────────────────
+        $router->get('/admin/feedback',  FeedbackController::class, 'showForm');
+        $router->post('/admin/feedback', FeedbackController::class, 'submit');
+
         // ── Pending update approvals (list + detail live in Members overview) ──
         $router->post('/admin/pending-updates/bulk',
             PendingUpdateController::class, 'bulk');
@@ -431,19 +442,19 @@ return [
         $router->get('/admin/emails',
             EmailsController::class, 'index');
         $router->post('/admin/emails/preview',
-            MassEmailController::class, 'preview');
+            BulkEmailController::class, 'preview');
         $router->post('/admin/emails/send',
-            MassEmailController::class, 'send');
+            BulkEmailController::class, 'send');
 
         // ── Saved email templates (old URL → redirect) ────────────────
         $router->get('/admin/new-email-template',
-            MassEmailController::class, 'savedEmailsRedirect');
+            BulkEmailController::class, 'savedEmailsRedirect');
         $router->post('/admin/new-email-template/save',
-            MassEmailController::class, 'saveTemplate');
+            BulkEmailController::class, 'saveTemplate');
         $router->post('/admin/new-email-template/{id}/delete',
-            MassEmailController::class, 'deleteTemplate');
+            BulkEmailController::class, 'deleteTemplate');
         $router->post('/admin/new-email-template/{id}/update',
-            MassEmailController::class, 'updateTemplate');
+            BulkEmailController::class, 'updateTemplate');
     },
 
 ];

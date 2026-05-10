@@ -18,7 +18,7 @@ $b = rtrim(View::e($base_url), '/');
   <h2 class="fl-title"><?= View::e($heading) ?></h2>
   <p><?= View::e($message) ?></p>
 
-  <p class="fl-meta" style="margin-top:1.5rem">
+  <p class="fl-meta">
     <a href="<?= $b ?>/kim">Sign up for another fanlisting</a> &middot;
     <a href="<?= $b ?>/kim/list">View the KIM list</a>
   </p>

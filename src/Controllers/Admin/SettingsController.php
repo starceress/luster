@@ -8,6 +8,7 @@ use Luster\Core\Mailer;
 use Luster\Core\NetworkAddressGuard;
 use Luster\Core\Request;
 use Luster\Core\Response;
+use Luster\Core\UpdateChecker;
 use Luster\Core\Validator;
 use Luster\Repositories\ActivityRepo;
 use Luster\Repositories\AdminUserRepo;
@@ -77,6 +78,8 @@ final class SettingsController extends AdminController
             'collective_templates' => $collectiveTemplates,
             'success'              => $success,
             'error'                => $error,
+        ], '', [
+            $this->crumb('Owned Listings', $this->adminUrl('/admin/listings')),
         ]);
     }
 
@@ -114,6 +117,8 @@ final class SettingsController extends AdminController
             'collective_contact_recipient',
         ]);
 
+        $updateStatus = (new UpdateChecker($siteRepo))->getStatus();
+
         return $this->adminLayout('admin/settings/index.php', 'Settings', 'settings', [
             'cfg'                  => $this->app->getConfig()->all(),
             'admin_user'           => $adminUser,
@@ -127,6 +132,7 @@ final class SettingsController extends AdminController
             'php_version'          => PHP_VERSION,
             'db_version'           => $dbVersion,
             'error_log_count'      => $errorLogCount,
+            'update_status'        => $updateStatus,
         ]);
     }
 
@@ -260,7 +266,10 @@ final class SettingsController extends AdminController
             'admin_user' => $adminUser,
             'success'    => $success,
             'error'      => $error,
-        ], 'Emails › Email / SMTP Settings');
+        ], '', [
+            $this->crumb('Emails', $this->adminUrl('/admin/emails')),
+            $this->crumb('SMTP Settings'),
+        ]);
     }
 
     // -----------------------------------------------------------------------
@@ -549,6 +558,32 @@ final class SettingsController extends AdminController
         $session->set('lstr_flash_success', 'Collective templates saved.');
         return Response::redirect($baseUrl . '/admin/listings/collective-templates');
     }
+
+    // -----------------------------------------------------------------------
+    // POST /admin/settings/check-update
+    // -----------------------------------------------------------------------
+
+    public function checkUpdate(Request $request, array $params): Response
+    {
+        $session  = $this->app->getSession();
+        $baseUrl  = $this->app->getBaseUrl();
+        $siteRepo = new SiteSettingsRepo($this->app->getDatabase());
+        $status   = (new UpdateChecker($siteRepo))->getStatus(force: true);
+
+        if ($status->checkFailed) {
+            $session->set('lstr_flash_error', 'Update check failed: ' . ($status->error ?? 'Unknown error.'));
+        } elseif ($status->updateAvailable) {
+            $session->set('lstr_flash_success', 'A new version is available: ' . $status->latest . '.');
+        } else {
+            $session->set('lstr_flash_success', 'Luster is up to date (version ' . $status->installed . ').');
+        }
+
+        return Response::redirect($baseUrl . '/admin/settings#panel-system');
+    }
+
+    // -----------------------------------------------------------------------
+    // Internals
+    // -----------------------------------------------------------------------
 
     /**
      * Writes the config array to config/app.php via a safe temp-file pattern.

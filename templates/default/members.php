@@ -41,7 +41,7 @@ use Luster\Core\View;
   <?php endif; ?>
   <?php endif; ?>
 
-  <p style="font-size:.875rem"><?= View::e($stats_line) ?></p>
+  <p class="fl-hint"><?= View::e($stats_line) ?></p>
 
   <?php if (!empty($country_summary)): ?>
     <!-- Country summary view -->

@@ -102,8 +102,8 @@ final class KimAddon implements AddonInterface
         $router->get('/admin/kim',                      KimAdminController::class, 'index');
         $router->get('/admin/kim/settings',             KimAdminController::class, 'showSettings');
         $router->post('/admin/kim/settings',            KimAdminController::class, 'saveSettings');
-        $router->get('/admin/kim/{fid}/mass-email',     KimAdminController::class, 'massEmailForm');
-        $router->post('/admin/kim/{fid}/mass-email',    KimAdminController::class, 'massEmail');
+        $router->get('/admin/kim/{fid}/bulk-email',     KimAdminController::class, 'massEmailForm');
+        $router->post('/admin/kim/{fid}/bulk-email',    KimAdminController::class, 'massEmail');
         $router->get('/admin/kim/{fid}/show',           KimAdminController::class, 'show');
         $router->get('/admin/kim/{id}/edit',            KimAdminController::class, 'edit');
         $router->post('/admin/kim/{id}/edit',           KimAdminController::class, 'edit');

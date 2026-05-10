@@ -15,9 +15,7 @@ use Luster\Core\View;
 $b  = rtrim(View::e($base_url ?? ''), '/');
 $ep = rtrim($embed_path ?? '/path/to/luster/public/embed', '/');
 $id = max(1, (int) ($example_id ?? 1));
-
-// ── Quick Copy snippet code strings (raw PHP, JSON-encoded for JS) ────────────
-
+// ──── QUICK COPY SNIPPET CODE STRINGS (RAW PHP, JSON-ENCODED FOR JS) ────────
 $snippets = [
 
   'join' => implode("\n", [
@@ -119,9 +117,7 @@ $snippets = [
   ]),
 
 ];
-
-// ── Item metadata (label, badge, desc, file, custType) ────────────────────────
-
+// ──── ITEM METADATA (LABEL, BADGE, DESC, FILE, CUSTTYPE) ─────────────────
 $items = [
   'join' => [
     'label'    => 'Join form',
@@ -257,8 +253,7 @@ $custGroups = [
     find it in the URL when editing a listing in this admin panel).
     Collective embeds like owned listings and site statistics do not need a listing ID.
   </div>
-
-  <!-- Tab bar (reuses Nebula .tabs-btn / .tabs-panel) -->
+<!-- ──── TAB BAR (REUSES NEBULA .TABS-BTN / .TABS-PANEL) ────────────── -->
   <div class="tabs-wrap" id="ec-tabs-wrap">
     <div class="tabs" id="ec-tabs" role="tablist" aria-label="Embed codes sections">
       <button class="tabs-btn active" data-ec-tab="qc"   role="tab" aria-selected="true"  aria-controls="ec-panel-qc">Quick copy</button>
@@ -266,14 +261,10 @@ $custGroups = [
       <button class="tabs-btn"        data-ec-tab="ref"  role="tab" aria-selected="false" aria-controls="ec-panel-ref">Variable reference</button>
     </div>
   </div>
-
-  <!-- ════════════════════════════════════════════════════════
-       QUICK COPY
-       ════════════════════════════════════════════════════════ -->
+<!-- ──── QUICK COPY ─────────────────────────────────────────────────── -->
   <div class="tabs-panel active" id="ec-panel-qc" role="tabpanel">
     <div class="ec-qc-layout">
-
-      <!-- Sidebar nav -->
+<!-- ──── SIDEBAR NAV ────────────────────────────────────────────────── -->
       <nav class="ec-qc-nav" aria-label="Embed types">
         <div class="ec-qc-nav-head">Embed Types</div>
         <?php foreach ($navGroups as $group): ?>
@@ -288,8 +279,7 @@ $custGroups = [
           </div>
         <?php endforeach; ?>
       </nav>
-
-      <!-- Content pane (populated by JS) -->
+<!-- ──── CONTENT PANE (POPULATED BY JS) ─────────────────────────────── -->
       <div class="ec-qc-pane" id="ec-qc-pane">
         <div class="ec-qc-head">
           <span class="ec-qc-title" id="ec-qc-title">&nbsp;</span>
@@ -314,14 +304,10 @@ $custGroups = [
 
     </div>
   </div><!-- /#ec-panel-qc -->
-
-  <!-- ════════════════════════════════════════════════════════
-       CUSTOMIZER
-       ════════════════════════════════════════════════════════ -->
+<!-- ──── CUSTOMIZER ─────────────────────────────────────────────────── -->
   <div class="tabs-panel" id="ec-panel-cust" role="tabpanel">
     <div class="ec-cust-layout">
-
-      <!-- Left column: type picker + options -->
+<!-- ──── LEFT COLUMN: TYPE PICKER + OPTIONS ─────────────────────────── -->
       <div class="ec-cust-left">
         <?php foreach ($custGroups as $group): ?>
           <div class="ec-type-sec">
@@ -342,8 +328,7 @@ $custGroups = [
           <div class="ec-opts-body" id="ec-opts-body"></div>
         </div>
       </div>
-
-      <!-- Right column: generated code -->
+<!-- ──── RIGHT COLUMN: GENERATED CODE ───────────────────────────────── -->
       <div class="ec-cust-right">
         <div class="ec-live-card">
           <div class="ec-live-head">
@@ -359,10 +344,7 @@ $custGroups = [
 
     </div>
   </div><!-- /#ec-panel-cust -->
-
-  <!-- ════════════════════════════════════════════════════════
-       VARIABLE REFERENCE
-       ════════════════════════════════════════════════════════ -->
+<!-- ──── VARIABLE REFERENCE ─────────────────────────────────────────── -->
   <div class="tabs-panel" id="ec-panel-ref" role="tabpanel">
 
     <p class="text-muted embed-ref-intro">
@@ -372,8 +354,7 @@ $custGroups = [
     </p>
 
     <div class="ec-ref-layout">
-
-      <!-- Ref nav -->
+<!-- ──── REF NAV ────────────────────────────────────────────────────── -->
       <nav class="ec-ref-nav" aria-label="Reference sections">
         <button class="ec-ref-nav-item" data-ec-ref="ec-ref-general">General variables</button>
         <button class="ec-ref-nav-item" data-ec-ref="ec-ref-members">Members list</button>
@@ -384,8 +365,7 @@ $custGroups = [
         <button class="ec-ref-nav-item" data-ec-ref="ec-ref-cstat-vars">Collective stat vars</button>
         <button class="ec-ref-nav-item" data-ec-ref="ec-ref-row-tokens">Member row tokens</button>
       </nav>
-
-      <!-- Ref panels -->
+<!-- ──── REF PANELS ─────────────────────────────────────────────────── -->
       <div>
 
         <div class="ec-ref-panel" id="ec-ref-general">

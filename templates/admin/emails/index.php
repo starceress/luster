@@ -117,8 +117,7 @@ if (!function_exists('smtpVal')) {
     <div class="alert alert-error"><?= View::e($error) ?></div>
   <?php endif; ?>
 <?php endif; ?>
-
-<!--  Tab bar  -->
+<!-- ──── TAB BAR ────────────────────────────────────────────────────── -->
 <div class="tabs-wrap">
   <div class="tabs">
     <button class="tabs-btn<?= $active_tab === 'templates' ? ' active' : '' ?>" data-tab="templates">Email Templates</button>
@@ -326,8 +325,7 @@ if (!function_exists('smtpVal')) {
 <div id="tab-bulk" class="tabs-panel<?= $active_tab === 'bulk' ? ' active' : '' ?>">
 
   <div class="composer-grid">
-
-    <!-- Sidebar -->
+<!-- ──── SIDEBAR ────────────────────────────────────────────────────── -->
     <div class="composer-side">
 
       <?php if (!empty($saved_emails) || !empty($global_email_templates)): ?>
@@ -338,7 +336,7 @@ if (!function_exists('smtpVal')) {
         <div class="card-body">
           <div class="select-wrap">
             <select id="me-tpl-select" >
-              <option value="">â€” Select a Template â€”</option>
+              <option value="">&mdash; Select a Template &mdash;</option>
               <?php if (!empty($global_email_templates)): ?>
                 <optgroup label="Email Templates">
                   <?php foreach ($global_email_templates as $t): ?>
@@ -403,8 +401,7 @@ if (!function_exists('smtpVal')) {
       </details>
 
     </div><!-- /.composer-side -->
-
-    <!-- Main compose area -->
+<!-- ──── MAIN COMPOSE AREA ──────────────────────────────────────────── -->
     <div class="gradient-card ">
       <form method="POST" action="<?= $b ?>/admin/emails/preview" id="compose-form">
         <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
@@ -463,7 +460,7 @@ if (!function_exists('smtpVal')) {
         </div>
 
         <div>
-          <textarea id="me-body" name="body"
+          <textarea class="email" id="me-body" name="body"
                     maxlength="50000" required
                     placeholder="Write your message&hellip;"><?= $oldBodyE ?></textarea>
         </div>
@@ -480,8 +477,7 @@ if (!function_exists('smtpVal')) {
     </div>
 
   </div>
-
-  <!-- Preview modal -->
+<!-- ──── PREVIEW MODAL ──────────────────────────────────────────────── -->
   <div class="modal-backdrop is-hidden" id="me-preview-modal"
        data-site-name="<?= View::e($site_name_val ?? '') ?>"
        data-from-name="<?= View::e($from_name_val  ?? '') ?>"
@@ -489,6 +485,7 @@ if (!function_exists('smtpVal')) {
     <div class="modal modal--wide">
       <div class="modal-header">
         <h3 class="modal-title">Bulk Email Preview</h3>
+        <button type="button" class="modal-close" aria-label="Close">&times;</button>
       </div>
       <div class="modal-body">
         <div class="composer-block">
@@ -514,13 +511,13 @@ if (!function_exists('smtpVal')) {
         <div id="me-preview-body" class="body-area"></div>
       </div>
       <div class="modal-footer" id="me-footer-preview">
-        <button class="btn btn-ghost" id="me-close-preview-btn">Close</button>
+        <button class="btn btn-quaternary" id="me-close-preview-btn">Close</button>
       </div>
       <div id="me-footer-confirm" class="is-hidden">
         <div class="me-confirm-warning"><?= View::icon('caution') ?>Are you sure you want to send this email? This action cannot be undone.</div>
         <div class="modal-footer">
           <button type="button" class="btn btn-primary" id="me-confirm-send-btn"><?= View::icon('send') ?> Send</button>
-          <button type="button" class="btn btn-danger" id="me-confirm-cancel-btn">Cancel</button>
+          <button type="button" class="btn btn-quaternary" id="me-confirm-cancel-btn">Cancel</button>
         </div>
       </div>
     </div>
@@ -590,8 +587,7 @@ if (!function_exists('smtpVal')) {
 
       </form>
     </div><!-- /.composer-card -->
-
-    <!-- Sidebar: Available Tokens -->
+<!-- ──── SIDEBAR: AVAILABLE TOKENS ──────────────────────────────────── -->
     <div class="composer-side">
       <details class="card chevron" open>
         <summary class="chevron-head">Available Tokens</summary>
@@ -617,8 +613,7 @@ if (!function_exists('smtpVal')) {
   </div><!-- /.composer-grid -->
 
   <!-- Divider -->
-
-  <!-- Saved Templates table card -->
+<!-- ──── SAVED TEMPLATES TABLE CARD ─────────────────────────────────── -->
   <div class="card">
 
     <div class="card-head">
@@ -676,8 +671,7 @@ if (!function_exists('smtpVal')) {
     <?php endif; ?>
 
   </div><!-- /.card saved templates -->
-
-  <!-- Edit Template modal -->
+<!-- ──── EDIT TEMPLATE MODAL ────────────────────────────────────────── -->
   <div class="modal-backdrop is-hidden" id="ct-edit-modal">
     <div class="modal">
       <div class="modal-header">
@@ -705,7 +699,7 @@ if (!function_exists('smtpVal')) {
           </div>
         </div>
         <div class="modal-footer">
-          <button type="button" class="btn btn-ghost" id="ct-edit-cancel">Cancel</button>
+          <button type="button" class="btn btn-quaternary" id="ct-edit-cancel">Cancel</button>
           <button type="submit" class="btn btn-primary">Save Changes</button>
         </div>
       </form>
@@ -713,10 +707,7 @@ if (!function_exists('smtpVal')) {
   </div>
 
 </div><!-- /#tab-custom -->
-
-<!--  -->
-<!-- TAB: SMTP SETTINGS                                                    -->
-<!--  -->
+<!-- ──── TAB: SMTP SETTINGS ─────────────────────────────────────────── -->
 <div id="tab-smtp" class="tabs-panel<?= $active_tab === 'smtp' ? ' active' : '' ?>">
 
   <?php if ($success !== ''): ?>

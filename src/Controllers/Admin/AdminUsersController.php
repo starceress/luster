@@ -47,6 +47,9 @@ final class AdminUsersController extends AdminController
             'error'        => $error,
             'old'          => $old,
             'field_errors' => is_array($fieldErrors) ? $fieldErrors : [],
+        ], '', [
+            $this->crumb('Settings', $this->adminUrl('/admin/settings')),
+            $this->crumb('Admin Accounts'),
         ]);
     }
 
@@ -122,6 +125,10 @@ final class AdminUsersController extends AdminController
             'user'         => $user,
             'error'        => $error,
             'field_errors' => is_array($fieldErrors) ? $fieldErrors : [],
+        ], '', [
+            $this->crumb('Settings', $this->adminUrl('/admin/settings')),
+            $this->crumb('Admin Accounts'),
+            $this->crumb($user->username),
         ]);
     }
 

@@ -63,21 +63,21 @@ $submitted = $submitted ?? false;
         <label for="sub-email">Email: (optional)</label>
         <input type="email" id="sub-email" name="submitter_email" maxlength="255"
                value="<?= View::e($old['submitter_email'] ?? '') ?>">
-        <p style="font-size:.8rem;margin:.2rem 0 0;opacity:.75">Used only to notify you if your code is approved.</p>
+        <p class="fl-field-hint">Used only to notify you if your code is approved.</p>
       </div>
 
       <div>
         <label for="sub-url">Website: (optional)</label>
         <input type="url" id="sub-url" name="submitter_url" maxlength="255"
                placeholder="https://" value="<?= View::e($old['submitter_url'] ?? '') ?>">
-        <p style="font-size:.8rem;margin:.2rem 0 0;opacity:.75">Displayed as a link on your donated code.</p>
+        <p class="fl-field-hint">Displayed as a link on your donated code.</p>
       </div>
 
       <?php if ($captcha_question !== ''): ?>
       <div>
         <label for="captcha">Captcha: * <?= View::e($captcha_question) ?></label>
         <?php if ($captcha_error !== ''): ?>
-          <p style="margin:.2em 0"><?= View::e($captcha_error) ?></p>
+          <p class="fl-msg-tight"><?= View::e($captcha_error) ?></p>
         <?php endif; ?>
         <input type="text" id="captcha" name="captcha" required autocomplete="off">
       </div>

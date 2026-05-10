@@ -48,13 +48,39 @@ final class KimAdminController extends AdminController
             ];
         }
 
+        $sort = trim((string) $request->query('sort', 'id'));
+        $dir  = trim((string) $request->query('dir',  'asc'));
+        if (!in_array($sort, ['id', 'subject'], true)) { $sort = 'id'; }
+        if (!in_array($dir,  ['asc', 'desc'], true))   { $dir  = 'asc'; }
+
+        usort($fanlistingsData, static function (array $a, array $b) use ($sort, $dir): int {
+            if ($sort === 'subject') {
+                $cmp = strcasecmp($a['listing']->subject, $b['listing']->subject);
+                return $dir === 'asc' ? $cmp : -$cmp;
+            }
+            $diff = $a['listing']->id - $b['listing']->id;
+            return $dir === 'asc' ? $diff : -$diff;
+        });
+
+        $totalListings   = count($fanlistingsData);
+        $perPage         = max(1, (int) $config->get('per_page', 10));
+        $pages           = $totalListings > 0 ? (int) ceil($totalListings / $perPage) : 1;
+        $page            = min(max(1, (int) $request->query('page', 1)), $pages);
+        $fanlistingsData = array_slice($fanlistingsData, ($page - 1) * $perPage, $perPage);
+
         $success = (string) $session->get('lstr_flash_success', '');
         $error   = (string) $session->get('lstr_flash_error',   '');
         $session->remove('lstr_flash_success');
         $session->remove('lstr_flash_error');
 
-        return $this->adminLayout('admin/addons/kim/index.php', 'KIM List', 'kim', [
+        return $this->adminLayout('admin/addons/kim/index.php', 'Keep In Mind', 'kim', [
             'fanlistings_data' => $fanlistingsData,
+            'total_listings'   => $totalListings,
+            'sort'             => $sort,
+            'dir'              => $dir,
+            'page'             => $page,
+            'pages'            => $pages,
+            'per_page'         => $perPage,
             'success'          => $success,
             'error'            => $error,
         ]);
@@ -78,31 +104,39 @@ final class KimAdminController extends AdminController
             return Response::notFound('Fanlisting not found.');
         }
 
-        $kimRepo = new KimMemberRepo($db);
-        $members = $kimRepo->getAllByFanlisting($fanlistingId);
+        $kimRepo  = new KimMemberRepo($db);
+        $perPage  = max(1, (int) $config->get('per_page', 10));
+        $page     = max(1, (int) ($request->query('page', 1)));
+        $baseUrl  = $this->app->getBaseUrl();
 
-        $pendingCount  = 0;
-        $approvedCount = 0;
-        foreach ($members as $m) {
-            if ($m->pending) {
-                $pendingCount++;
-            } else {
-                $approvedCount++;
-            }
-        }
+        $pendingMembers = $kimRepo->getPendingByFanlisting($fanlistingId);
+        $approvedCount  = $kimRepo->countApprovedByFanlisting($fanlistingId);
+        $totalPages     = max(1, (int) ceil($approvedCount / $perPage));
+        $page           = min($page, $totalPages);
+        $approvedMembers = $kimRepo->getApprovedByFanlistingPaged($fanlistingId, $page, $perPage);
+
+        $pageUrl = static fn(int $p): string =>
+            $baseUrl . '/admin/kim/' . $fanlistingId . '?page=' . $p;
 
         $success = (string) $session->get('lstr_flash_success', '');
         $error   = (string) $session->get('lstr_flash_error',   '');
         $session->remove('lstr_flash_success');
         $session->remove('lstr_flash_error');
 
-        return $this->adminLayout('admin/addons/kim/show.php', 'KIM — ' . $listing->subject, 'kim', [
-            'listing'         => $listing,
-            'members'         => $members,
-            'pending_count'   => $pendingCount,
-            'approved_count'  => $approvedCount,
-            'success'         => $success,
-            'error'           => $error,
+        return $this->adminLayout('admin/addons/kim/show.php', 'Keep In Mind', 'kim', [
+            'listing'          => $listing,
+            'pending_members'  => $pendingMembers,
+            'approved_members' => $approvedMembers,
+            'pending_count'    => count($pendingMembers),
+            'approved_count'   => $approvedCount,
+            'page'             => $page,
+            'total_pages'      => $totalPages,
+            'page_url'         => $pageUrl,
+            'success'          => $success,
+            'error'            => $error,
+        ], '', [
+            $this->crumb('Keep In Mind', $this->adminUrl('/admin/kim')),
+            $this->crumb($listing->subject),
         ]);
     }
 
@@ -141,12 +175,16 @@ final class KimAdminController extends AdminController
             $error = (string) $session->get('lstr_flash_error', '');
             $session->remove('lstr_flash_error');
 
-            return $this->adminLayout('admin/addons/kim/edit.php', 'Edit KIM Member', 'kim', [
+            return $this->adminLayout('admin/addons/kim/edit.php', 'Edit Keep In Mind Member', 'kim', [
                 'member'          => $member,
                 'fanlistings'     => $fanlistings,
                 'fanlisting_name' => $fanlistingName,
                 'error'           => $error,
-            ]);
+            ], '', array_values(array_filter([
+                $this->crumb('Keep In Mind', $this->adminUrl('/admin/kim')),
+                $fanlistingName !== '' ? $this->crumb($fanlistingName, $this->adminUrl('/admin/kim/' . $member->fanlistingId . '/show')) : null,
+                $this->crumb($member->name),
+            ])));
         }
 
         // POST — validate and update
@@ -281,7 +319,7 @@ final class KimAdminController extends AdminController
     }
 
     // -----------------------------------------------------------------------
-    // GET /admin/kim/{fid}/mass-email
+    // GET /admin/kim/{fid}/bulk-email
     // -----------------------------------------------------------------------
 
     public function massEmailForm(Request $request, array $params): Response
@@ -330,7 +368,7 @@ final class KimAdminController extends AdminController
             array_column($recipients, 'name'),
         );
 
-        return $this->adminLayout('admin/addons/kim/mass-email.php', 'Mass Email — KIM ' . $listing->subject, 'kim', [
+        return $this->adminLayout('admin/addons/kim/bulk-email.php', 'Bulk Email', 'kim', [
             'listing'         => $listing,
             'recipients'      => $recipients,
             'recipient_count' => count($recipients),
@@ -346,11 +384,14 @@ final class KimAdminController extends AdminController
             'old'             => $old,
             'error'           => $error,
             'success'         => $success,
+        ], '', [
+            $this->crumb('Keep In Mind', $this->adminUrl('/admin/kim')),
+            $this->crumb($listing->subject, $this->adminUrl('/admin/kim/' . $listing->id . '/show')),
         ]);
     }
 
     // -----------------------------------------------------------------------
-    // POST /admin/kim/{fid}/mass-email
+    // POST /admin/kim/{fid}/bulk-email
     // -----------------------------------------------------------------------
 
     public function massEmail(Request $request, array $params): Response
@@ -374,7 +415,7 @@ final class KimAdminController extends AdminController
         if ($subject === '' || $body === '') {
             $session->set('lstr_flash_error', 'Please fill in both the subject and message before sending.');
             $session->set('lstr_email_old', ['subject' => $subject, 'body' => $body]);
-            return Response::redirect($baseUrl . '/admin/kim/' . $fanlistingId . '/mass-email');
+            return Response::redirect($baseUrl . '/admin/kim/' . $fanlistingId . '/bulk-email');
         }
 
         $kimRepo = new KimMemberRepo($db);
@@ -400,21 +441,21 @@ final class KimAdminController extends AdminController
                 $sent++;
             } catch (\Throwable $e) {
                 $failed++;
-                error_log('[KIM] Mass email failed for ' . $r['email'] . ': ' . $e->getMessage());
+                error_log('[KIM] Bulk email failed for ' . $r['email'] . ': ' . $e->getMessage());
             }
         }
 
         $activityRepo = new ActivityRepo($db);
         $activityRepo->log(
             (int) $session->get('lstr_admin_id'),
-            'kim.mass_email',
-            "Sent mass email to KIM members for fanlisting {$fanlistingId}: {$sent} sent, {$failed} failed",
+            'kim.bulk_email',
+            "Sent bulk email to KIM members for fanlisting {$fanlistingId}: {$sent} sent, {$failed} failed",
             $request->ip(),
         );
 
         $session->set(
             'lstr_flash_success',
-            "Mass email sent: {$sent} delivered" . ($failed > 0 ? ", {$failed} failed" : '') . '.'
+            "Bulk email sent: {$sent} delivered" . ($failed > 0 ? ", {$failed} failed" : '') . '.'
         );
         return Response::redirect($baseUrl . '/admin/kim/' . $fanlistingId . '/show');
     }
@@ -457,7 +498,7 @@ final class KimAdminController extends AdminController
 
         $referer = $request->header('referer') ?? $baseUrl . '/admin/kim/' . $member->fanlistingId . '/show';
 
-        return $this->adminLayout('admin/addons/kim/email-member.php', 'Email ' . $member->name, 'kim', [
+        return $this->adminLayout('admin/addons/kim/email-member.php', 'Email Keep In Mind Member', 'kim', [
             'member'       => $member,
             'listing'      => $listing,
             'from_email'   => $fromEmail,
@@ -470,7 +511,11 @@ final class KimAdminController extends AdminController
             'referer'      => $referer,
             'error'        => $error,
             'success'      => $success,
-        ]);
+        ], '', array_values(array_filter([
+            $this->crumb('Keep In Mind', $this->adminUrl('/admin/kim')),
+            $listing !== null ? $this->crumb($listing->subject, $this->adminUrl('/admin/kim/' . $listing->id . '/show')) : null,
+            $this->crumb($member->name),
+        ])));
     }
 
     // -----------------------------------------------------------------------
@@ -565,7 +610,7 @@ final class KimAdminController extends AdminController
 
         if ($action === 'email_selected') {
             $session->set('lstr_kim_selected_ids', array_values($ids));
-            return Response::redirect($baseUrl . '/admin/kim/' . $fanlistingId . '/mass-email');
+            return Response::redirect($baseUrl . '/admin/kim/' . $fanlistingId . '/bulk-email');
         }
 
         match ($action) {
@@ -604,10 +649,12 @@ final class KimAdminController extends AdminController
         $session->remove('lstr_flash_success');
         $session->remove('lstr_flash_error');
 
-        return $this->adminLayout('admin/addons/kim/settings.php', 'KIM Settings', 'kim', [
+        return $this->adminLayout('admin/addons/kim/settings.php', 'Keep In Mind Settings', 'kim', [
             'kim_urls'        => $kimUrls,
             'success'         => $success,
             'error'           => $error,
+        ], '', [
+            $this->crumb('Keep In Mind', $this->adminUrl('/admin/kim')),
         ]);
     }
 

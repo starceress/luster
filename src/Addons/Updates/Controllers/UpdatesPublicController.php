@@ -37,7 +37,7 @@ final class UpdatesPublicController
             return Response::notFound('Listing not found.');
         }
 
-        $perPage = max(1, (int) ($config->get('per_page', 20)));
+        $perPage = max(1, (int) ($config->get('per_page', 10)));
         $page    = max(1, (int) ($request->query('page', 1)));
         $cat     = trim((string) $request->query('cat', ''));
 
@@ -86,7 +86,7 @@ final class UpdatesPublicController
         $db     = $this->app->getDatabase();
         $config = $this->app->getConfig();
 
-        $perPage = max(1, (int) ($config->get('per_page', 20)));
+        $perPage = max(1, (int) ($config->get('per_page', 10)));
         $page    = max(1, (int) ($request->query('page', 1)));
         $cat     = trim((string) $request->query('cat', ''));
 

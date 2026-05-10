@@ -72,7 +72,7 @@ $_linkUpdate = ($link_update !== null && $link_update !== '') ? $link_update : n
   </form>
 
   <?php if ($_linkUpdate !== null): ?>
-  <p class="fl-meta" style="margin-top:1.5rem">
+  <p class="fl-meta">
     <a href="<?= View::e($_linkUpdate) ?>">&larr; Back to Update</a>
   </p>
   <?php endif; ?>

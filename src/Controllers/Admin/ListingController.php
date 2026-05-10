@@ -245,6 +245,8 @@ final class ListingController extends AdminController
             'old'             => [],
             'error'           => '',
             'default_date'    => date('Y-m-d'),
+        ], '', [
+            $this->crumb('Owned Listings', $this->adminUrl('/admin/listings')),
         ]);
     }
 
@@ -307,6 +309,8 @@ final class ListingController extends AdminController
                 'error'           => 'Subject and URL are required.',
                 'field_errors'    => $addFieldErrors,
                 'default_date'    => date('Y-m-d'),
+            ], '', [
+                $this->crumb('Owned Listings', $this->adminUrl('/admin/listings')),
             ]);
         }
 
@@ -328,6 +332,8 @@ final class ListingController extends AdminController
                     'old'             => $request->post(),
                     'error'           => 'Image must be 2 MB or smaller.',
                     'default_date'    => date('Y-m-d'),
+                ], '', [
+                    $this->crumb('Owned Listings', $this->adminUrl('/admin/listings')),
                 ]);
             }
 
@@ -340,6 +346,8 @@ final class ListingController extends AdminController
                     'old'             => $request->post(),
                     'error'           => 'Invalid image type.',
                     'default_date'    => date('Y-m-d'),
+                ], '', [
+                    $this->crumb('Owned Listings', $this->adminUrl('/admin/listings')),
                 ]);
             }
             $ext      = ['image/jpeg' => 'jpg', 'image/png' => 'png', 'image/gif' => 'gif', 'image/webp' => 'webp'][$mime];
@@ -572,7 +580,10 @@ final class ListingController extends AdminController
                     'members_per_page'    => $membersPerPage,
                     'contact_enabled'     => $contactEnabled,
                     'contact_recipient'   => $contactRecipient,
-                ], 'Owned › ' . $listing->name);
+                ], '', [
+                    $this->crumb('Owned Listings', $this->adminUrl('/admin/listings')),
+                    $this->crumb($listing->subject),
+                ]);
             }
 
             // --- All valid: persist ---
@@ -743,7 +754,10 @@ final class ListingController extends AdminController
             'code_status_counts'  => $codeStatusCounts,
             'total_codes'         => count($allCodes),
             'uploads_url'         => $this->app->getBaseUrl() . '/uploads/codes',
-        ], 'Owned › ' . $listing->name);
+        ], '', [
+            $this->crumb('Owned Listings', $this->adminUrl('/admin/listings')),
+            $this->crumb($listing->subject),
+        ]);
     }
 
     // -----------------------------------------------------------------------
@@ -889,7 +903,10 @@ final class ListingController extends AdminController
                     'listing'   => $listing,
                     'table_exists' => $tableExists,
                     'error'        => $error,
-                ], 'Owned › ' . $listing->name);
+                ], '', [
+                    $this->crumb('Owned Listings', $this->adminUrl('/admin/listings')),
+                    $this->crumb($listing->subject, $this->adminUrl('/admin/listings/' . $listing->id . '/edit')),
+                ]);
             }
 
             $oldPrefix = $listing->dbprefix;
@@ -911,7 +928,10 @@ final class ListingController extends AdminController
             'listing'   => $listing,
             'table_exists' => $tableExists,
             'error'        => '',
-        ], 'Owned › ' . $listing->name);
+        ], '', [
+            $this->crumb('Owned Listings', $this->adminUrl('/admin/listings')),
+            $this->crumb($listing->subject, $this->adminUrl('/admin/listings/' . $listing->id . '/edit')),
+        ]);
     }
 
     // -----------------------------------------------------------------------
@@ -1083,6 +1103,8 @@ final class ListingController extends AdminController
             'cfg'     => $this->app->getConfig()->all(),
             'success' => $success,
             'error'   => $error,
+        ], '', [
+            $this->crumb('Owned Listings', $this->adminUrl('/admin/listings')),
         ]);
     }
 
@@ -1165,7 +1187,10 @@ final class ListingController extends AdminController
         return $this->adminLayout('admin/listings/email-templates.php', 'Email Templates', 'listings', [
             'listing' => $listing,
             'templates'  => $templates,
-        ], 'Owned › ' . $listing->name);
+        ], '', [
+            $this->crumb('Owned Listings', $this->adminUrl('/admin/listings')),
+            $this->crumb($listing->subject, $this->adminUrl('/admin/listings/' . $listing->id . '/edit')),
+        ]);
     }
 
     // -----------------------------------------------------------------------

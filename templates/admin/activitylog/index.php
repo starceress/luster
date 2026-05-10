@@ -17,7 +17,7 @@ $pageUrl = static fn(int $p): string => $b . '/admin/activitylog?page=' . $p;
 
 <?php if (($total ?? 0) > 0): ?>
 <div class="toolbar">
-  <div class="actions-row">
+  <div class="actions-row actions-row--right">
     <a href="<?= $b ?>/admin/activitylog/export" class="btn btn-quaternary btn-sm"><?= View::icon('download') ?> Export CSV</a>
     <form method="POST" action="<?= $b ?>/admin/activitylog/flush" id="flush-activity-form">
       <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
@@ -38,8 +38,12 @@ $pageUrl = static fn(int $p): string => $b . '/admin/activitylog?page=' . $p;
 
 <div class="card">
   <div class="table-wrap">
+    <?php
+      $rangeFirst = $total === 0 ? 0 : ($page - 1) * $per_page + 1;
+      $rangeLast  = min($page * $per_page, $total);
+    ?>
     <div class="card-head">Activity Log
-      <span class="row-sub">(Showing <?= count($entries) ?> of <?= (int) $total ?> entr<?= $total === 1 ? 'y' : 'ies' ?>)</span>
+      <span class="row-sub">Showing <?= $rangeFirst ?>-<?= $rangeLast ?> of <?= (int) $total ?> entr<?= $total === 1 ? 'y' : 'ies' ?></span>
     </div>
     <table class="data-table">
       <thead>
@@ -65,9 +69,9 @@ $pageUrl = static fn(int $p): string => $b . '/admin/activitylog?page=' . $p;
           <td><?= View::e((string) ($entry['description'] ?? '')) ?></td>
           <td class="text-muted"><?= View::e((string) ($entry['username'] ?? '&mdash;')) ?></td>
           <td>
-            <span class="text-dim text-mono-xs">
+            <code>
               <?= View::e((string) ($entry['ip_address'] ?? '')) ?>
-            </span>
+        </code>
           </td>
         </tr>
         <?php endforeach; ?>
@@ -76,40 +80,8 @@ $pageUrl = static fn(int $p): string => $b . '/admin/activitylog?page=' . $p;
   </div>
 </div>
 
-<?php if ($pages > 1):
-  $window = 2;
-  $start  = max(2, $page - $window);
-  $end    = min($pages - 1, $page + $window);
-?>
-<nav class="pg" aria-label="Pagination">
-  <a href="<?= View::e($pageUrl($page - 1)) ?>"
-     class="pg-link<?= $page <= 1 ? ' disabled' : '' ?>" aria-label="Previous">&lsaquo;</a>
-
-  <a href="<?= View::e($pageUrl(1)) ?>"
-     class="pg-link<?= $page === 1 ? ' active' : '' ?>">1</a>
-
-  <?php if ($start > 2): ?>
-    <span class="pg-link disabled">&hellip;</span>
-  <?php endif; ?>
-
-  <?php for ($i = $start; $i <= $end; $i++): ?>
-    <a href="<?= View::e($pageUrl($i)) ?>"
-       class="pg-link<?= $i === $page ? ' active' : '' ?>"><?= $i ?></a>
-  <?php endfor; ?>
-
-  <?php if ($end < $pages - 1): ?>
-    <span class="pg-link disabled">&hellip;</span>
-  <?php endif; ?>
-
-  <?php if ($pages > 1): ?>
-    <a href="<?= View::e($pageUrl($pages)) ?>"
-       class="pg-link<?= $page === $pages ? ' active' : '' ?>"><?= $pages ?></a>
-  <?php endif; ?>
-
-  <a href="<?= View::e($pageUrl($page + 1)) ?>"
-     class="pg-link<?= $page >= $pages ? ' disabled' : '' ?>" aria-label="Next">&rsaquo;</a>
-</nav>
-<?php endif; ?>
+<?php $pg_current = $page; $pg_total = $pages; $pg_url = $pageUrl;
+include LUSTER_BASE . '/templates/admin/_pagination.php'; ?>
 
 <?php endif; ?>
 
@@ -119,6 +91,7 @@ $pageUrl = static fn(int $p): string => $b . '/admin/activitylog?page=' . $p;
   <div class="modal">
     <div class="modal-header">
       <h3 class="modal-title" id="flush-activity-modal-title">Flush Activity Log</h3>
+      <button type="button" class="modal-close" aria-label="Close">&times;</button>
     </div>
     <div class="modal-body">
       <p>You are about to permanently delete all activity log entries.</p>

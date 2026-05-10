@@ -23,7 +23,7 @@ use Luster\Core\View;
     <div><?= $errors ?></div>
   <?php endif; ?>
 
-  <p style="font-size:.875rem">
+  <p class="fl-hint">
     Enter your email address and password to permanently remove your membership.
     This action cannot be undone.
   </p>
@@ -63,6 +63,6 @@ use Luster\Core\View;
     </div>
 
     <button type="submit">Remove Information</button>
-    <button type="reset">Clear Form</button>
+    <button type="reset">Clear</button>
   </form>
 </div>

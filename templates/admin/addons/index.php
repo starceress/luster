@@ -77,6 +77,7 @@ $b = rtrim(View::e($base_url), '/');
     <div class="modal">
       <div class="modal-header">
         <h3 class="modal-title" id="addon-modal-title">Uninstall Add-on</h3>
+        <button type="button" class="modal-close" aria-label="Close">&times;</button>
       </div>
       <div class="modal-body">
         <p>You are about to uninstall <strong id="addon-modal-name"></strong>.</p>

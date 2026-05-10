@@ -58,7 +58,7 @@ final class EmailsController extends AdminController
         $emailRepo       = new EmailTemplateRepo($db);
         $globalTemplates = $emailRepo->getAllGlobal();
 
-        $scope    = $request->query('listing', 'global');
+        $scope    = $tab === 'templates' ? $request->query('listing', 'global') : 'global';
         $listing  = null;
         $perListingTemplates = [];
 
@@ -157,6 +157,8 @@ final class EmailsController extends AdminController
                 $preSubject = $tpl->subject;
                 $preBody    = $tpl->body;
             }
+        } elseif ($tab === 'bulk') {
+            $preListingId = (int) $request->query('listing', 0);
         }
 
         // Per-listing approved member counts + deduplicated total
@@ -187,12 +189,22 @@ final class EmailsController extends AdminController
         $adminUser = $adminRepo->getById($adminId);
 
         // ── Render ────────────────────────────────────────────────────────
-        $pageSubtitle = match ($tab) {
-            'bulk'   => 'Emails › Bulk Email',
-            'custom' => 'Emails › Custom Templates',
-            'smtp'   => 'Emails › SMTP Settings',
-            default  => 'Emails › Email Templates',
+        $tabLabel = match ($tab) {
+            'bulk'   => 'Bulk Email',
+            'custom' => 'Saved Templates',
+            'smtp'   => 'SMTP Settings',
+            default  => 'Email Templates',
         };
+        $breadcrumbs = [];
+        if ($tab !== 'templates' || $listing !== null) {
+            $breadcrumbs = [
+                $this->crumb('Emails', $this->adminUrl('/admin/emails')),
+                $this->crumb($tabLabel, $tab !== 'templates' ? $this->adminUrl('/admin/emails?tab=' . $tab) : null),
+            ];
+            if ($listing !== null) {
+                $breadcrumbs[] = $this->crumb($listing->subject);
+            }
+        }
 
         return $this->adminLayout('admin/emails/index.php', 'Emails', 'email-templates', [
             'active_tab'          => $tab,
@@ -223,7 +235,7 @@ final class EmailsController extends AdminController
             // SMTP tab
             'cfg'                 => $cfg,
             'admin_user'          => $adminUser,
-        ], $pageSubtitle);
+        ], '', $breadcrumbs);
     }
 
 }

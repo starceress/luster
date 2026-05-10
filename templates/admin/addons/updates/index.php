@@ -16,6 +16,10 @@ declare(strict_types=1);
  * @var string                                                                      $error
  * @var string                                                                      $base_url
  * @var string                                                                      $csrf_token
+ * @var int                                                                         $page
+ * @var int                                                                         $pages
+ * @var int                                                                         $per_page
+ * @var int                                                                         $total_listings
  */
 
 use Luster\Core\View;
@@ -34,11 +38,17 @@ $sortUrl = static function (string $col) use ($b, $sort, $dir): string {
     return $b . '/admin/updates' . ($qs !== '' ? '?' . $qs : '');
 };
 
-$totalUpdates = (int) $collective_cnt;
-foreach ($latest_per_fl as $entry) {
-    $totalUpdates += (int) ($entry['count'] ?? 0);
-}
-$listingCount = count($listings) + 1; // +1 for collective
+$pageUrl = static function (int $p) use ($b, $sort, $dir): string {
+    $qs = http_build_query(array_filter([
+        'sort' => $sort !== 'id' ? $sort : '',
+        'dir'  => $dir !== 'asc' ? $dir : '',
+        'page' => $p > 1 ? $p : 0,
+    ], static fn($v): bool => (string) $v !== '' && $v !== 0));
+    return $b . '/admin/updates' . ($qs !== '' ? '?' . $qs : '');
+};
+
+$rangeFirst = $total_listings === 0 ? 0 : ($page - 1) * $per_page + 1;
+$rangeLast  = min($page * $per_page, $total_listings);
 ?>
 
 <?php if ($success !== ''): ?>
@@ -49,9 +59,8 @@ $listingCount = count($listings) + 1; // +1 for collective
 <?php endif; ?>
 
 <div class="card">
-  <div class="card-head">
-    <span>All Listings</span>
-    <span class="text-dim"><?= $listingCount ?> listing<?= $listingCount === 1 ? '' : 's' ?> &middot; <?= $totalUpdates ?> update<?= $totalUpdates === 1 ? '' : 's' ?> total</span>
+  <div class="card-head">Listing Updates
+    <span class="row-sub">Showing <?= $rangeFirst ?>-<?= $rangeLast ?> of <?= $total_listings ?> Listing<?= $total_listings === 1 ? '' : 's' ?></span>
   </div>
   <div class="table-wrap">
     <table class="data-table">
@@ -68,28 +77,29 @@ $listingCount = count($listings) + 1; // +1 for collective
         </tr>
       </thead>
       <tbody>
-
-        <!-- Collective row -->
+<!-- ──── COLLECTIVE ROW ─────────────────────────────────────────────── -->
         <tr>
           <td class="text-dim">0</td>
           <td>
             <div class="ctx-cell">
-              <span class="badge badge-info">Collective</span>
               <span><?= View::e($site_name) ?></span>
+              <span class="badge badge-info">Collective</span>
             </div>
           </td>
           <td>
-            <span class="update-count <?= $collective_cnt > 0 ? 'has-updates' : 'no-updates' ?>"><?= (int) $collective_cnt ?></span>
+            <?php if ($collective_cnt > 0): ?>
+              <span><?= (int) $collective_cnt ?></span>
+            <?php else: ?>
+              <span class="text-dim">&mdash;</span>
+            <?php endif; ?>
           </td>
           <td class="act-col">
             <div class="data-actions">
-              <a href="<?= $b ?>/admin/updates/collective" class="btn btn-quaternary btn-sm">View All</a>
-              <a href="<?= $b ?>/admin/updates/collective/add" class="btn btn-primary btn-sm">+ Add Update</a>
+              <a href="<?= $b ?>/admin/updates/collective" class="btn btn-primary btn-sm">View</a>
             </div>
           </td>
         </tr>
-
-        <!-- Per-fanlisting rows -->
+<!-- ──── PER-FANLISTING ROWS ────────────────────────────────────────── -->
         <?php foreach ($listings as $listing): ?>
           <?php
             $fid   = (int) $listing->id;
@@ -98,14 +108,17 @@ $listingCount = count($listings) + 1; // +1 for collective
           ?>
           <tr>
             <td class="text-dim"><?= $fid ?></td>
-            <td class="<?= $cnt === 0 ? 'text-muted' : '' ?>"><?= View::e($listing->name) ?></td>
+            <td class="<?= $cnt === 0 ? 'text-muted' : '' ?>"><a href="<?= $b ?>/admin/listings/<?= $fid ?>/edit" class="link"><?= View::e($listing->name) ?></a></td>
             <td>
-              <span class="update-count <?= $cnt > 0 ? 'has-updates' : 'no-updates' ?>"><?= $cnt ?></span>
+              <?php if ($cnt > 0): ?>
+                <span><?= $cnt ?></span>
+              <?php else: ?>
+                <span class="text-dim">&mdash;</span>
+              <?php endif; ?>
             </td>
             <td class="act-col">
               <div class="data-actions">
-                <a href="<?= $b ?>/admin/updates/<?= $fid ?>" class="btn btn-quaternary btn-sm">View All</a>
-                <a href="<?= $b ?>/admin/updates/<?= $fid ?>/add" class="btn btn-primary btn-sm">+ Add Update</a>
+                <a href="<?= $b ?>/admin/updates/<?= $fid ?>" class="btn btn-primary btn-sm">View</a>
               </div>
             </td>
           </tr>
@@ -115,7 +128,7 @@ $listingCount = count($listings) + 1; // +1 for collective
           <tr>
             <td colspan="4">
               <div class="empty">
-                <svg class="empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 11a9 9 0 0 1 9 9"/><path d="M4 4a16 16 0 0 1 16 16"/><circle cx="5" cy="19" r="1"/></svg>
+                <div class="empty-icon"><?= View::icon('updates', ['width' => 32, 'height' => 32]) ?></div>
                 No listings found. Add a listing first to post per-listing updates.
               </div>
             </td>
@@ -125,4 +138,6 @@ $listingCount = count($listings) + 1; // +1 for collective
       </tbody>
     </table>
   </div>
+  <?php $pg_current = $page; $pg_total = $pages; $pg_url = $pageUrl;
+        require __DIR__ . '/../../_pagination.php'; ?>
 </div>

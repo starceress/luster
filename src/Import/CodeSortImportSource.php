@@ -589,9 +589,10 @@ final class CodeSortImportSource implements ImportSourceInterface
              (fanlisting_id, name, filename, width, height, size_id, donor_id, sort_order, status, submitter_name, submitter_email, submitter_url)
              VALUES (:fid, NULL, :filename, :width, :height, :size_id, :donor_id, :sort, :status, NULL, NULL, NULL)'
         );
-        $insertCatMap = $target->prepare(
-            'INSERT IGNORE INTO lstr_code_category_map (code_id, category_id) VALUES (:code_id, :cat_id)'
-        );
+        // Prepared lazily on first use so that databases without the junction
+        // table (or test DBs that don't support INSERT IGNORE) don't fail before
+        // any codes are processed.
+        $insertCatMap = null;
 
         $offset = 0;
 
@@ -650,10 +651,14 @@ final class CodeSortImportSource implements ImportSourceInterface
 
                 if ($migrator !== null && $csFilename !== '') {
                     if ($options->imageMode === 'path' && $options->imagePath !== '') {
-                        $srcPath = $options->imagePath . '/codes/' . $csFilename;
+                        // $options->imagePath is the value of images_folder from codes-config.php —
+                        // the full path to the image directory, not the install root.
+                        // No subdirectory is appended; filenames live directly in that folder.
+                        $srcPath = rtrim($options->imagePath, '/\\') . '/' . $csFilename;
                         $newFilename = $migrator->copyFromPath($srcPath, 'codes', 'cs');
                     } elseif ($options->imageMode === 'url' && $options->imageUrl !== '') {
-                        $srcUrl = $options->imageUrl . '/codes/' . rawurlencode($csFilename);
+                        // $options->imageUrl is the value of images_url from codes-config.php.
+                        $srcUrl = rtrim($options->imageUrl, '/') . '/' . rawurlencode($csFilename);
                         $newFilename = $migrator->fetchFromUrl($srcUrl, 'codes', 'cs');
                     } elseif ($options->imageMode === 'zip') {
                         // Record for post-import ZIP step
@@ -705,8 +710,13 @@ final class CodeSortImportSource implements ImportSourceInterface
                     $newCodeId = (int) $target->lastInsertId();
                     $imported++;
 
-                    // Assign category via junction table
+                    // Assign category via junction table (lazy-prepare on first use)
                     if ($lstrCatId !== null) {
+                        if ($insertCatMap === null) {
+                            $insertCatMap = $target->prepare(
+                                'INSERT IGNORE INTO lstr_code_category_map (code_id, category_id) VALUES (:code_id, :cat_id)'
+                            );
+                        }
                         $insertCatMap->execute(['code_id' => $newCodeId, 'cat_id' => $lstrCatId]);
                     }
                 } catch (\Throwable) {
@@ -799,6 +809,42 @@ final class CodeSortImportSource implements ImportSourceInterface
      */
     private function buildListingMap(PDO $target): array
     {
+        $driver = $target->getAttribute(\PDO::ATTR_DRIVER_NAME);
+
+        if ($driver === 'sqlite') {
+            // SQLite: use sqlite_master instead of SHOW TABLES
+            try {
+                $chk = $target->query(
+                    "SELECT name FROM sqlite_master WHERE type='table' AND name='owned'"
+                );
+                if ($chk && $chk->fetchColumn() !== false) {
+                    $stmt = $target->query("SELECT listingid, title FROM `owned`");
+                    $map  = [];
+                    foreach ($stmt->fetchAll() as $row) {
+                        $map[strtolower(trim((string) $row['title']))] = (int) $row['listingid'];
+                    }
+                    return $map;
+                }
+            } catch (\Throwable) {}
+
+            try {
+                $chk = $target->query(
+                    "SELECT name FROM sqlite_master WHERE type='table' AND name='enth_fanlistings'"
+                );
+                if ($chk && $chk->fetchColumn() !== false) {
+                    $stmt = $target->query("SELECT id, name FROM `enth_fanlistings`");
+                    $map  = [];
+                    foreach ($stmt->fetchAll() as $row) {
+                        $map[strtolower(trim((string) $row['name']))] = (int) $row['id'];
+                    }
+                    return $map;
+                }
+            } catch (\Throwable) {}
+
+            return [];
+        }
+
+        // MySQL / MariaDB
         try {
             $chk = $target->query("SHOW TABLES LIKE 'owned'");
             if ($chk && $chk->fetchColumn() !== false) {
