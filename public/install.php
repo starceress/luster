@@ -359,6 +359,28 @@ function installTables(PDO $pdo): void
             UNIQUE KEY `uk_identifier_action` (`identifier`, `action`)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
 
+        // Admin remember-me tokens (M26).
+        "CREATE TABLE IF NOT EXISTS `lstr_admin_remember_tokens` (
+            `id`            INT UNSIGNED NOT NULL AUTO_INCREMENT,
+            `admin_user_id` INT UNSIGNED NOT NULL,
+            `token_hash`    VARCHAR(64)  NOT NULL,
+            `expires_at`    DATETIME     NOT NULL,
+            `created_at`    DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (`id`),
+            UNIQUE KEY `uk_token_hash` (`token_hash`),
+            KEY `idx_user` (`admin_user_id`),
+            CONSTRAINT `fk_rt_admin_user`
+                FOREIGN KEY (`admin_user_id`) REFERENCES `lstr_admin_users` (`id`)
+                ON DELETE CASCADE
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
+
+        // Installed add-on registry (M27).
+        "CREATE TABLE IF NOT EXISTS `lstr_addons` (
+            `addon_key`    VARCHAR(50) NOT NULL,
+            `installed_at` DATETIME    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (`addon_key`)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
+
         // ------------------------------------------------------------------
         // Audit
         // ------------------------------------------------------------------
@@ -400,64 +422,155 @@ function installTables(PDO $pdo): void
         // Listing data
         // ------------------------------------------------------------------
 
-        // Affiliates: fanlisting_id nullable (NULL = collective/site-wide),
-        //             active flag included from the start.
+        // Global key/value store for collective templates and site settings (M28).
+        "CREATE TABLE IF NOT EXISTS `lstr_site_settings` (
+            `setting_key`   VARCHAR(100) NOT NULL,
+            `setting_value` TEXT         NULL,
+            `updated_at`    DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP
+                                         ON UPDATE CURRENT_TIMESTAMP,
+            PRIMARY KEY (`setting_key`)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
+
+        // Admin-saved reusable email draft templates (M29).
+        "CREATE TABLE IF NOT EXISTS `lstr_saved_emails` (
+            `id`         INT UNSIGNED NOT NULL AUTO_INCREMENT,
+            `name`       VARCHAR(150) NOT NULL,
+            `subject`    VARCHAR(255) NOT NULL DEFAULT '',
+            `body`       TEXT         NOT NULL,
+            `created_at` TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (`id`)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
+
+        // Affiliates: fanlisting_id nullable (NULL = collective/site-wide).
+        // Full column set including M40 link-check and M41 application fields.
         "CREATE TABLE IF NOT EXISTS `lstr_affiliates` (
-            `id`             INT UNSIGNED  NOT NULL AUTO_INCREMENT,
-            `fanlisting_id`  INT UNSIGNED  NULL DEFAULT NULL,
-            `name`           VARCHAR(255)  NOT NULL,
-            `url`            VARCHAR(500)  NOT NULL,
-            `email`          VARCHAR(255)  NULL,
-            `image`          VARCHAR(255)  NULL,
-            `sort_order`     INT UNSIGNED  NOT NULL DEFAULT 0,
-            `active`         TINYINT(1)    NOT NULL DEFAULT 1,
-            `created_at`     DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP,
-            `updated_at`     DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            `id`                    INT UNSIGNED  NOT NULL AUTO_INCREMENT,
+            `fanlisting_id`         INT UNSIGNED  NULL DEFAULT NULL,
+            `name`                  VARCHAR(255)  NOT NULL,
+            `url`                   VARCHAR(500)  NOT NULL,
+            `email`                 VARCHAR(255)  NULL,
+            `image`                 VARCHAR(255)  NULL,
+            `sort_order`            INT UNSIGNED  NOT NULL DEFAULT 0,
+            `active`                TINYINT(1)    NOT NULL DEFAULT 1,
+            `created_at`            DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            `updated_at`            DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            `link_status`           ENUM('unchecked','ok','dead','redirect') NOT NULL DEFAULT 'unchecked',
+            `link_checked_at`       DATETIME      NULL,
+            `link_redirect_url`     VARCHAR(500)  NULL,
+            `reciprocal_status`     ENUM('unchecked','found','missing')      NOT NULL DEFAULT 'unchecked',
+            `reciprocal_checked_at` DATETIME      NULL,
+            `pending`               TINYINT(1)    NOT NULL DEFAULT 0,
+            `application_message`   TEXT          NULL,
             PRIMARY KEY (`id`),
             KEY `idx_fanlisting_id` (`fanlisting_id`)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
 
-        // Per-listing Luster settings — full column set (all migrations merged).
+        // Per-listing Luster settings — full column set (all migrations merged through 42).
         "CREATE TABLE IF NOT EXISTS `lstr_fanlisting_settings` (
-            `fanlisting_id`           INT UNSIGNED     NOT NULL,
-            `auto_approve`            TINYINT(1)       NOT NULL DEFAULT 0,
-            `stats_template`          TEXT             NULL DEFAULT NULL,
-            `members_template`        TEXT             NULL DEFAULT NULL,
-            `affiliates_template`     TEXT             NULL DEFAULT NULL,
-            `image`                   VARCHAR(255)     NULL DEFAULT NULL,
-            `listing_type`            VARCHAR(50)      NULL DEFAULT NULL,
-            `members_per_page`        TINYINT UNSIGNED NULL DEFAULT NULL,
-            `country_field_enabled`   TINYINT(1)       NOT NULL DEFAULT 1,
-            `redirect_url_join`       VARCHAR(500)     NOT NULL DEFAULT '',
-            `redirect_url_update`     VARCHAR(500)     NOT NULL DEFAULT '',
-            `redirect_url_remove`     VARCHAR(500)     NOT NULL DEFAULT '',
-            `form_url_join`           VARCHAR(500)     NOT NULL DEFAULT '',
-            `form_url_update`         VARCHAR(500)     NOT NULL DEFAULT '',
-            `form_url_remove`         VARCHAR(500)     NOT NULL DEFAULT '',
-            `form_url_reset`          VARCHAR(500)     NOT NULL DEFAULT '',
-            `redirect_url_reset`      VARCHAR(500)     NOT NULL DEFAULT '',
-            `last_updated`            DATE             NULL DEFAULT NULL,
-            `queue_updates`           TINYINT(1)       NOT NULL DEFAULT 0,
-            `db_host`                 VARCHAR(255)     NOT NULL DEFAULT '',
-            `db_name`                 VARCHAR(255)     NOT NULL DEFAULT '',
-            `db_user`                 VARCHAR(255)     NOT NULL DEFAULT '',
-            `db_pass`                 VARCHAR(500)     NOT NULL DEFAULT '',
-            `updated_at`              DATETIME         NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            `fanlisting_id`                INT UNSIGNED          NOT NULL,
+            `auto_approve`                 TINYINT(1)            NOT NULL DEFAULT 0,
+            `stats_template`               TEXT                  NULL DEFAULT NULL,
+            `members_template`             TEXT                  NULL DEFAULT NULL,
+            `affiliates_template`          TEXT                  NULL DEFAULT NULL,
+            `image`                        VARCHAR(255)          NULL DEFAULT NULL,
+            `listing_type`                 VARCHAR(50)           NULL DEFAULT NULL,
+            `members_per_page`             TINYINT UNSIGNED      NULL DEFAULT NULL,
+            `country_field_enabled`        TINYINT(1)            NOT NULL DEFAULT 1,
+            `redirect_url_join`            VARCHAR(500)          NOT NULL DEFAULT '',
+            `redirect_url_update`          VARCHAR(500)          NOT NULL DEFAULT '',
+            `redirect_url_remove`          VARCHAR(500)          NOT NULL DEFAULT '',
+            `form_url_join`                VARCHAR(500)          NOT NULL DEFAULT '',
+            `form_url_update`              VARCHAR(500)          NOT NULL DEFAULT '',
+            `form_url_remove`              VARCHAR(500)          NOT NULL DEFAULT '',
+            `form_url_reset`               VARCHAR(500)          NOT NULL DEFAULT '',
+            `redirect_url_reset`           VARCHAR(500)          NOT NULL DEFAULT '',
+            `last_updated`                 DATE                  NULL DEFAULT NULL,
+            `queue_updates`                TINYINT(1)            NOT NULL DEFAULT 0,
+            `contact_enabled`              TINYINT(1)            NOT NULL DEFAULT 1,
+            `contact_recipient`            VARCHAR(255)          NULL DEFAULT NULL,
+            `form_url_codes_submit`        VARCHAR(200)          NOT NULL DEFAULT '',
+            `approved_by`                  ENUM('','tfl','tafl') NOT NULL DEFAULT '',
+            `affiliate_apply_enabled`      TINYINT(1)            NOT NULL DEFAULT 0,
+            `form_url_affiliate_apply`     VARCHAR(500)          NOT NULL DEFAULT '',
+            `redirect_url_affiliate_apply` VARCHAR(500)          NOT NULL DEFAULT '',
+            `db_host`                      VARCHAR(255)          NOT NULL DEFAULT '',
+            `db_name`                      VARCHAR(255)          NOT NULL DEFAULT '',
+            `db_user`                      VARCHAR(255)          NOT NULL DEFAULT '',
+            `db_pass`                      VARCHAR(500)          NOT NULL DEFAULT '',
+            `updated_at`                   DATETIME              NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
             PRIMARY KEY (`fanlisting_id`)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
 
-        // Codes (button images members use to link back to a listing).
-        "CREATE TABLE IF NOT EXISTS `lstr_codes` (
+        // Codes subsystem — lstr_code_sizes and lstr_code_donors must precede
+        // lstr_codes because lstr_codes carries FK constraints to both.
+
+        "CREATE TABLE IF NOT EXISTS `lstr_code_sizes` (
             `id`            INT UNSIGNED      NOT NULL AUTO_INCREMENT,
             `fanlisting_id` INT UNSIGNED      NOT NULL,
-            `filename`      VARCHAR(255)      NOT NULL,
-            `width`         SMALLINT UNSIGNED NOT NULL DEFAULT 0,
-            `height`        SMALLINT UNSIGNED NOT NULL DEFAULT 0,
+            `label`         VARCHAR(100)      NOT NULL,
+            `width`         SMALLINT UNSIGNED NULL,
+            `height`        SMALLINT UNSIGNED NULL,
             `sort_order`    SMALLINT UNSIGNED NOT NULL DEFAULT 0,
-            `created_at`    DATETIME          NOT NULL DEFAULT CURRENT_TIMESTAMP,
             PRIMARY KEY (`id`),
-            INDEX `idx_fanlisting`      (`fanlisting_id`),
-            INDEX `idx_fanlisting_sort` (`fanlisting_id`, `sort_order`, `id`)
+            INDEX `idx_fanlisting` (`fanlisting_id`)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
+
+        "CREATE TABLE IF NOT EXISTS `lstr_code_donors` (
+            `id`            INT UNSIGNED  NOT NULL AUTO_INCREMENT,
+            `fanlisting_id` INT UNSIGNED  NOT NULL,
+            `name`          VARCHAR(150)  NOT NULL,
+            `email`         VARCHAR(255)  NULL,
+            `url`           VARCHAR(500)  NULL,
+            PRIMARY KEY (`id`),
+            INDEX `idx_fanlisting` (`fanlisting_id`)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
+
+        // Codes (button images) — full column set through M36.
+        "CREATE TABLE IF NOT EXISTS `lstr_codes` (
+            `id`              INT UNSIGNED      NOT NULL AUTO_INCREMENT,
+            `fanlisting_id`   INT UNSIGNED      NOT NULL,
+            `filename`        VARCHAR(255)      NOT NULL,
+            `name`            VARCHAR(150)      NULL DEFAULT NULL,
+            `width`           SMALLINT UNSIGNED NOT NULL DEFAULT 0,
+            `height`          SMALLINT UNSIGNED NOT NULL DEFAULT 0,
+            `size_id`         INT UNSIGNED      NULL,
+            `donor_id`        INT UNSIGNED      NULL,
+            `status`          ENUM('approved','pending','rejected') NOT NULL DEFAULT 'approved',
+            `submitter_name`  VARCHAR(150)      NULL DEFAULT NULL,
+            `submitter_email` VARCHAR(255)      NULL DEFAULT NULL,
+            `submitter_url`   VARCHAR(255)      NULL DEFAULT NULL,
+            `sort_order`      SMALLINT UNSIGNED NOT NULL DEFAULT 0,
+            `created_at`      DATETIME          NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (`id`),
+            INDEX `idx_fanlisting`        (`fanlisting_id`),
+            INDEX `idx_fanlisting_sort`   (`fanlisting_id`, `sort_order`, `id`),
+            INDEX `idx_lstr_codes_status` (`fanlisting_id`, `status`),
+            CONSTRAINT `fk_lstr_codes_size`
+                FOREIGN KEY (`size_id`)  REFERENCES `lstr_code_sizes`  (`id`) ON DELETE SET NULL,
+            CONSTRAINT `fk_lstr_codes_donor`
+                FOREIGN KEY (`donor_id`) REFERENCES `lstr_code_donors` (`id`) ON DELETE SET NULL
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
+
+        "CREATE TABLE IF NOT EXISTS `lstr_code_categories` (
+            `id`            INT UNSIGNED      NOT NULL AUTO_INCREMENT,
+            `fanlisting_id` INT UNSIGNED      NOT NULL,
+            `name`          VARCHAR(100)      NOT NULL,
+            `parent_id`     INT UNSIGNED      NULL,
+            `sort_order`    SMALLINT UNSIGNED NOT NULL DEFAULT 0,
+            PRIMARY KEY (`id`),
+            INDEX `idx_fanlisting` (`fanlisting_id`),
+            CONSTRAINT `fk_lstr_cat_parent`
+                FOREIGN KEY (`parent_id`) REFERENCES `lstr_code_categories` (`id`) ON DELETE SET NULL
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
+
+        "CREATE TABLE IF NOT EXISTS `lstr_code_category_map` (
+            `code_id`     INT UNSIGNED NOT NULL,
+            `category_id` INT UNSIGNED NOT NULL,
+            PRIMARY KEY (`code_id`, `category_id`),
+            CONSTRAINT `fk_lstr_ccmap_code`
+                FOREIGN KEY (`code_id`)     REFERENCES `lstr_codes`           (`id`) ON DELETE CASCADE,
+            CONSTRAINT `fk_lstr_ccmap_cat`
+                FOREIGN KEY (`category_id`) REFERENCES `lstr_code_categories` (`id`) ON DELETE CASCADE
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
 
         // Per-listing transactional email templates.
@@ -521,20 +634,23 @@ function installTables(PDO $pdo): void
             UNIQUE KEY `uq_pattern` (`pattern`)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
 
-        // Joined listings tracker — all columns from migrations 4, 7, 15.
+        // Joined listings tracker — all columns from migrations 4, 7, 15, 38, 40.
         "CREATE TABLE IF NOT EXISTS `lstr_joined` (
-            `id`              INT UNSIGNED  NOT NULL AUTO_INCREMENT,
-            `name`            VARCHAR(255)  NOT NULL,
-            `url`             VARCHAR(500)  NOT NULL,
-            `image`           VARCHAR(255)  NULL,
-            `category`        VARCHAR(100)  NOT NULL DEFAULT '',
-            `categories_json` TEXT          NULL,
-            `date_joined`     DATE          NULL,
-            `active`          TINYINT(1)    NOT NULL DEFAULT 1,
-            `status`          VARCHAR(20)   NOT NULL DEFAULT 'approved',
-            `sort_order`      INT           NOT NULL DEFAULT 0,
-            `category_id`     INT UNSIGNED  NULL,
-            `created_at`      DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            `id`               INT UNSIGNED  NOT NULL AUTO_INCREMENT,
+            `name`             VARCHAR(255)  NOT NULL,
+            `url`              VARCHAR(500)  NOT NULL,
+            `image`            VARCHAR(255)  NULL,
+            `category`         VARCHAR(100)  NOT NULL DEFAULT '',
+            `categories_json`  TEXT          NULL,
+            `date_joined`      DATE          NULL,
+            `active`           TINYINT(1)    NOT NULL DEFAULT 1,
+            `status`           VARCHAR(20)   NOT NULL DEFAULT 'approved',
+            `sort_order`       INT           NOT NULL DEFAULT 0,
+            `category_id`      INT UNSIGNED  NULL,
+            `created_at`       DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            `link_status`      ENUM('unchecked','ok','dead','redirect') NOT NULL DEFAULT 'unchecked',
+            `link_checked_at`  DATETIME      NULL,
+            `link_redirect_url` VARCHAR(500) NULL,
             PRIMARY KEY (`id`)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
 
