@@ -1065,9 +1065,6 @@ function renderHeader(string $title, int $step): void
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title><?= e($title) ?> &mdash; Luster Installer</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=DM+Sans:wght@400;500;600&family=DM+Mono&display=swap" rel="stylesheet">
 <?= lusterAdminCssLinks('./assets/css/admin', __DIR__ . '/assets/css/admin', null, true) . PHP_EOL ?>
 <script>
 (function(){
@@ -1251,6 +1248,26 @@ function renderHeader(string $title, int $step): void
 .install-helper-body p { margin: .55rem 0; }
 .install-helper-body p:first-child { margin-top: .65rem; }
 .install-helper-body code { background: var(--bg-subtle); padding: .1rem .35rem; border-radius: 4px; font-size: .88em; }
+/* Reduced motion: disable gem float animation */
+@media (prefers-reduced-motion: reduce) {
+  .install-gem { animation: none; }
+}
+/* Narrow screens: hide stepper labels; progress text remains visible */
+@media (max-width: 640px) {
+  .i-step-label { display: none; }
+  .i-connector  { margin: 0 4px; }
+}
+/* Wide card for Steps 3 and 4 */
+@media (min-width: 700px) {
+  .install-wrap--wide { max-width: 680px; }
+}
+/* Focus indicators for installer-specific interactive elements */
+.install-theme-btn:focus-visible,
+.install-helper > summary:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
 </style>
 </head>
 <body class="install-page">
@@ -1259,7 +1276,7 @@ function renderHeader(string $title, int $step): void
   <span id="installThemeIcon">&#9728;</span>
 </button>
 
-<div class="install-wrap">
+<div class="install-wrap<?= ($step === 3 || $step === 4) ? ' install-wrap--wide' : '' ?>">
 
   <div class="install-brand">
     <div class="install-gem"></div>
