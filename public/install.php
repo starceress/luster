@@ -12,7 +12,8 @@ declare(strict_types=1);
  * Steps:
  *   1. System requirements check
  *   2. Database configuration (tests connection live)
- *   3. Site settings + first admin account → runs install → success
+ *   3. Site settings + admin account (validates; computes password hash; no writes)
+ *   4. Review → confirm → runs install → success
  *
  * Security:
  *   - CSRF via a per-session nonce in $_SESSION['lstr_install_token']
@@ -128,6 +129,30 @@ $errors = [];
 $stored = $_SESSION['lstr_install_data'] ?? [];
 
 // -------------------------------------------------------------------------
+// Back navigation (GET ?back=N)
+// Must follow state setup so $stored is populated before editing it.
+// -------------------------------------------------------------------------
+
+if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['back'])) {
+    $targetStep = (int) $_GET['back'];
+    if ($targetStep === 2) {
+        // Back to DB step: force re-validation and clear any stale password hash.
+        unset($stored['db'], $stored['site']['admin_password_hash']);
+        $_SESSION['lstr_install_data'] = $stored;
+        $_SESSION['lstr_install_step'] = 2;
+        header('Location: install.php');
+        exit;
+    } elseif ($targetStep === 3) {
+        // Back to Site & Admin: keep validated DB, require password re-entry.
+        unset($stored['site']['admin_password_hash']);
+        $_SESSION['lstr_install_data'] = $stored;
+        $_SESSION['lstr_install_step'] = 3;
+        header('Location: install.php');
+        exit;
+    }
+}
+
+// -------------------------------------------------------------------------
 // Handle POST submissions
 // -------------------------------------------------------------------------
 
@@ -225,10 +250,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 break;
 
             // ----------------------------------------------------------------
-            // Step 3: site config + admin account → run install
+            // Step 3: validate site config + admin account; compute password
+            // hash; advance to Review. No database or filesystem writes here.
             // ----------------------------------------------------------------
             case 3:
-                $siteUrl               = rtrim(trim((string) ($_POST['site_url'] ?? '')), '/');
+                $appUrl                = rtrim(trim((string) ($_POST['app_url'] ?? '')), '/');
                 $siteName              = trim((string) ($_POST['site_name'] ?? ''));
                 $timezone              = trim((string) ($_POST['timezone'] ?? 'UTC'));
                 $ownerName             = trim((string) ($_POST['owner_name']  ?? ''));
@@ -241,7 +267,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 // Store non-password fields immediately for repopulation on failure.
                 $stored['site'] = [
                     'site_name'      => $siteName,
-                    'site_url'       => $siteUrl,
+                    'app_url'        => $appUrl,
                     'timezone'       => $timezone,
                     'owner_name'     => $ownerName,
                     'owner_email'    => $ownerEmail,
@@ -250,8 +276,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 ];
                 $_SESSION['lstr_install_data'] = $stored;
 
-                if ($siteUrl === '') {
-                    $errors[] = 'Site URL is required.';
+                if ($appUrl === '') {
+                    $errors[] = 'Luster Install URL is required.';
                 }
                 if ($siteName === '') {
                     $errors[] = 'Site name is required.';
@@ -275,9 +301,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
 
                 if (empty($errors)) {
-                    $db = $stored['db'] ?? null;
-
-                    if ($db === null) {
+                    if (empty($stored['db'])) {
                         $errors[] = 'Session expired. Please start over.';
                         $_SESSION['lstr_install_step'] = 1;
                         unset($_SESSION['lstr_install_data']);
@@ -285,60 +309,94 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         break;
                     }
 
-                    try {
-                        $pdo = new PDO(
-                            "mysql:host={$db['host']};port={$db['port']};dbname={$db['name']};charset=utf8mb4",
-                            $db['user'],
-                            $db['pass'],
-                            [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]
-                        );
-
-                        // Hard DB guard: reject if lstr_admin_users already has rows.
-                        // Catches the case where both sentinel and config were deleted
-                        // but the database was untouched.
-                        $existingTable = $pdo->query(
-                            "SELECT COUNT(*) FROM information_schema.TABLES
-                             WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'lstr_admin_users'"
-                        );
-                        if ($existingTable !== false && (int) $existingTable->fetchColumn() > 0) {
-                            $existingAdmin = $pdo->query('SELECT COUNT(*) FROM lstr_admin_users');
-                            if ($existingAdmin !== false && (int) $existingAdmin->fetchColumn() > 0) {
-                                throw new \RuntimeException(
-                                    'Installation blocked: this database already contains admin accounts. ' .
-                                    'Drop the lstr_* tables first, or restore the missing installation files.'
-                                );
-                            }
-                        }
-
-                        installTables($pdo);
-                        installAdminUser($pdo, $adminUsername, $adminEmail, $adminPassword);
-                        writeConfig($db, $siteName, $siteUrl, $timezone, $adminEmail, $ownerName, $ownerEmail); // $siteUrl renamed to $appUrl in Phase 2
-
-                        // Write installation sentinel — prevents the installer from
-                        // re-opening even if config/app.php is later deleted.
-                        if (file_put_contents(SENTINEL_PATH, date('Y-m-d H:i:s') . "\n") === false) {
-                            throw new \RuntimeException(
-                                'Could not write storage/.installed sentinel. '
-                                . 'Ensure the web server has write permission on the storage/ directory.'
-                            );
-                        }
-
-                        // Clear install session
-                        unset(
-                            $_SESSION['lstr_install_step'],
-                            $_SESSION['lstr_install_data'],
-                            $_SESSION['lstr_install_token']
-                        );
-
-                        $_SESSION['lstr_install_complete'] = true;
-                        header('Location: install.php?done=1');
-                        exit;
-                    } catch (\Throwable $e) {
-                        $errors[] = 'Installation failed: ' . $e->getMessage();
-                    }
+                    // Compute hash here; raw password never leaves this handler.
+                    $stored['site']['admin_password_hash'] = password_hash($adminPassword, PASSWORD_ARGON2ID);
+                    $_SESSION['lstr_install_data'] = $stored;
+                    $_SESSION['lstr_install_step'] = 4;
+                    header('Location: install.php');
+                    exit;
                 }
 
                 $step = 3;
+                break;
+
+            // ----------------------------------------------------------------
+            // Step 4: confirm review → run all install writes
+            // ----------------------------------------------------------------
+            case 4:
+                $db   = $stored['db']   ?? null;
+                $site = $stored['site'] ?? null;
+                $hash = $site['admin_password_hash'] ?? null;
+
+                if ($db === null || $site === null || $hash === null) {
+                    $errors[] = 'Session expired or incomplete. Please start over.';
+                    $_SESSION['lstr_install_step'] = 1;
+                    unset($_SESSION['lstr_install_data']);
+                    $step = 1;
+                    break;
+                }
+
+                try {
+                    $pdo = new PDO(
+                        "mysql:host={$db['host']};port={$db['port']};dbname={$db['name']};charset=utf8mb4",
+                        $db['user'],
+                        $db['pass'],
+                        [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]
+                    );
+
+                    // Hard DB guard: reject if lstr_admin_users already has rows.
+                    $existingTable = $pdo->query(
+                        "SELECT COUNT(*) FROM information_schema.TABLES
+                         WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'lstr_admin_users'"
+                    );
+                    if ($existingTable !== false && (int) $existingTable->fetchColumn() > 0) {
+                        $existingAdmin = $pdo->query('SELECT COUNT(*) FROM lstr_admin_users');
+                        if ($existingAdmin !== false && (int) $existingAdmin->fetchColumn() > 0) {
+                            throw new \RuntimeException(
+                                'Installation blocked: this database already contains admin accounts. ' .
+                                'Drop the lstr_* tables first, or restore the missing installation files.'
+                            );
+                        }
+                    }
+
+                    installTables($pdo);
+                    installAdminUser(
+                        $pdo,
+                        (string) ($site['admin_username'] ?? ''),
+                        (string) ($site['admin_email']    ?? ''),
+                        $hash
+                    );
+                    writeConfig(
+                        $db,
+                        (string) ($site['site_name']   ?? ''),
+                        (string) ($site['app_url']     ?? ''),
+                        (string) ($site['timezone']    ?? 'UTC'),
+                        (string) ($site['admin_email'] ?? ''),
+                        (string) ($site['owner_name']  ?? ''),
+                        (string) ($site['owner_email'] ?? '')
+                    );
+
+                    if (file_put_contents(SENTINEL_PATH, date('Y-m-d H:i:s') . "\n") === false) {
+                        throw new \RuntimeException(
+                            'Could not write storage/.installed sentinel. '
+                            . 'Ensure the web server has write permission on the storage/ directory.'
+                        );
+                    }
+
+                    unset(
+                        $_SESSION['lstr_install_step'],
+                        $_SESSION['lstr_install_data'],
+                        $_SESSION['lstr_install_token']
+                    );
+
+                    $_SESSION['lstr_install_complete'] = true;
+                    header('Location: install.php?done=1');
+                    exit;
+                } catch (\Throwable $e) {
+                    $errors[] = 'Installation failed: ' . $e->getMessage();
+                }
+
+                $step = 4;
                 break;
         }
     }
@@ -742,14 +800,12 @@ function installTables(PDO $pdo): void
     );
 }
 
-function installAdminUser(PDO $pdo, string $username, string $email, string $password): void
+function installAdminUser(PDO $pdo, string $username, string $email, string $passwordHash): void
 {
-    $hash = password_hash($password, PASSWORD_ARGON2ID);
-
     $stmt = $pdo->prepare(
         'INSERT INTO `lstr_admin_users` (`username`, `email`, `password`) VALUES (:username, :email, :password)'
     );
-    $stmt->execute(['username' => $username, 'email' => $email, 'password' => $hash]);
+    $stmt->execute(['username' => $username, 'email' => $email, 'password' => $passwordHash]);
 }
 
 function writeConfig(array $db, string $siteName, string $appUrl, string $timezone, string $adminEmail, string $ownerName = '', string $ownerEmail = ''): void
@@ -909,6 +965,7 @@ function renderPage(string $view, array $errors, string $csrf, int $step, array 
         'req'  => 'Step 1: Requirements',
         '2'    => 'Step 2: Database',
         '3'    => 'Step 3: Site &amp; Admin',
+        '4'    => 'Step 4: Review &amp; Install',
         'done' => 'Installation Complete',
     ];
     $title = $titles[$view] ?? 'Luster Installer';
@@ -938,6 +995,7 @@ function renderPage(string $view, array $errors, string $csrf, int $step, array 
         'req'  => renderStep1($csrf),
         '2'    => renderStep2($csrf, $stored),
         '3'    => renderStep3($csrf, $stored),
+        '4'    => renderStep4($csrf, $stored),
         'done' => renderDone(),
         default => null,
     };
@@ -1091,6 +1149,17 @@ function renderHeader(string $title, int $step): void
   font-size: 0.78rem; color: var(--text-dim);
   text-align: center; margin-top: 0.75rem; line-height: 1.5;
 }
+/* Step progress text */
+.i-progress {
+  font-size: 0.74rem; color: var(--text-dim);
+  text-align: center; margin: -1rem 0 1.25rem;
+}
+/* Review table */
+.review-table { width: 100%; border-collapse: collapse; font-size: .87rem; }
+.review-table tr { border-bottom: 1px solid var(--border-soft); }
+.review-table tr:last-child { border-bottom: none; }
+.review-table td { padding: 7px 0; vertical-align: top; }
+.review-table td.rtl { width: 42%; color: var(--text-dim); font-weight: 500; padding-right: 1rem; }
 /* Theme toggle (fixed) */
 .install-theme-btn {
   position: fixed; top: 16px; right: 16px;
@@ -1118,29 +1187,35 @@ function renderHeader(string $title, int $step): void
     <div class="install-brand-sub">Installation Wizard</div>
   </div>
 
-<?php if ($step >= 1 && $step <= 3):
+<?php if ($step >= 1 && $step <= 4):
     $s = static function (int $current, int $n): string {
         if ($n < $current) return 'done';
         if ($n === $current) return 'active';
         return '';
     };
 ?>
-<div class="install-steps">
-  <div class="i-step <?= $s($step, 1) ?>">
+<nav class="install-steps" aria-label="Installation progress">
+  <div class="i-step <?= $s($step, 1) ?>" <?= $step === 1 ? 'aria-current="step"' : '' ?>>
     <div class="i-step-num"><?= $step > 1 ? '&#10003;' : '1' ?></div>
     <div class="i-step-label">Requirements</div>
   </div>
   <div class="i-connector"></div>
-  <div class="i-step <?= $s($step, 2) ?>">
+  <div class="i-step <?= $s($step, 2) ?>" <?= $step === 2 ? 'aria-current="step"' : '' ?>>
     <div class="i-step-num"><?= $step > 2 ? '&#10003;' : '2' ?></div>
     <div class="i-step-label">Database</div>
   </div>
   <div class="i-connector"></div>
-  <div class="i-step <?= $s($step, 3) ?>">
-    <div class="i-step-num">3</div>
+  <div class="i-step <?= $s($step, 3) ?>" <?= $step === 3 ? 'aria-current="step"' : '' ?>>
+    <div class="i-step-num"><?= $step > 3 ? '&#10003;' : '3' ?></div>
     <div class="i-step-label">Site &amp; Admin</div>
   </div>
-</div>
+  <div class="i-connector"></div>
+  <div class="i-step <?= $s($step, 4) ?>" <?= $step === 4 ? 'aria-current="step"' : '' ?>>
+    <div class="i-step-num">4</div>
+    <div class="i-step-label">Review</div>
+  </div>
+</nav>
+<p class="i-progress">Step <?= $step ?> of 4</p>
 <?php endif; ?>
     <?php
 }
@@ -1277,7 +1352,7 @@ function renderStep3(string $csrf, array $stored): void
     unset($_protocol, $_host, $_uriPath);
 
     // If a previous Step 3 submission is in session, prefer that over the guess.
-    $currentSiteUrl  = (string) ($site['site_url']  ?? $guessedUrl);
+    $currentAppUrl   = (string) ($site['app_url']   ?? $guessedUrl);
     $currentSiteName = (string) ($site['site_name'] ?? 'Luster');
     $currentTimezone = (string) ($site['timezone']  ?? date_default_timezone_get());
     ?>
@@ -1302,9 +1377,9 @@ function renderStep3(string $csrf, array $stored): void
     </div>
 
     <div class="form-group">
-      <label class="form-label" for="site_url">Site URL</label>
-      <input type="url" id="site_url" name="site_url" class="form"
-             value="<?= e($currentSiteUrl) ?>" required
+      <label class="form-label" for="app_url">Luster Install URL</label>
+      <input type="url" id="app_url" name="app_url" class="form"
+             value="<?= e($currentAppUrl) ?>" required
              placeholder="https://example.com/luster/public">
       <p class="form-hint">No trailing slash. The base URL where Luster is installed (e.g. <code>https://example.com/luster/public</code>).</p>
     </div>
@@ -1369,10 +1444,65 @@ function renderStep3(string $csrf, array $stored): void
       </div>
     </div>
 
-    <div class="btn-row">
-      <button type="submit" class="btn btn-primary">Install Luster &rarr;</button>
+    <div class="btn-row" style="display:flex;gap:10px;align-items:center">
+      <button type="submit" class="btn btn-primary">Continue to Review &rarr;</button>
+      <a href="install.php?back=2" class="btn btn-ghost">&larr; Back to Database</a>
     </div>
   </form>
+</div>
+    <?php
+}
+
+function renderStep4(string $csrf, array $stored): void
+{
+    $db   = $stored['db']   ?? [];
+    $site = $stored['site'] ?? [];
+    ?>
+<div class="install-card">
+  <h2>Review &amp; Install</h2>
+  <p style="color:var(--text-muted);margin-bottom:1.5rem;font-size:.9rem;line-height:1.6">
+    Review your settings below. Nothing has been written yet. Click
+    <strong>Install Luster</strong> to create the database tables and your admin account.
+  </p>
+
+  <div class="install-section">Database</div>
+  <table class="review-table">
+    <tr><td class="rtl">Host</td><td><?= e((string) ($db['host'] ?? '')) ?></td></tr>
+    <tr><td class="rtl">Port</td><td><?= e((string) ($db['port'] ?? '')) ?></td></tr>
+    <tr><td class="rtl">Database</td><td><?= e((string) ($db['name'] ?? '')) ?></td></tr>
+    <tr><td class="rtl">Username</td><td><?= e((string) ($db['user'] ?? '')) ?></td></tr>
+    <tr><td class="rtl">Password</td><td><em style="color:var(--text-dim)">saved for this install — not shown</em></td></tr>
+  </table>
+  <p style="margin-top:.6rem"><a href="install.php?back=2" style="font-size:.82rem;color:var(--accent)">Edit database details</a></p>
+
+  <div class="install-section">Site</div>
+  <table class="review-table">
+    <tr><td class="rtl">Site Name</td><td><?= e((string) ($site['site_name'] ?? '')) ?></td></tr>
+    <tr><td class="rtl">Luster Install URL</td><td><?= e((string) ($site['app_url'] ?? '')) ?></td></tr>
+    <tr><td class="rtl">Timezone</td><td><?= e((string) ($site['timezone'] ?? '')) ?></td></tr>
+    <?php if ((string) ($site['owner_name'] ?? '') !== ''): ?>
+    <tr><td class="rtl">Owner Name</td><td><?= e((string) $site['owner_name']) ?></td></tr>
+    <?php endif; ?>
+    <?php if ((string) ($site['owner_email'] ?? '') !== ''): ?>
+    <tr><td class="rtl">Owner Email</td><td><?= e((string) $site['owner_email']) ?></td></tr>
+    <?php endif; ?>
+  </table>
+
+  <div class="install-section">Administrator Account</div>
+  <table class="review-table">
+    <tr><td class="rtl">Username</td><td><?= e((string) ($site['admin_username'] ?? '')) ?></td></tr>
+    <tr><td class="rtl">Email</td><td><?= e((string) ($site['admin_email'] ?? '')) ?></td></tr>
+    <tr><td class="rtl">Password</td><td><em style="color:var(--text-dim)">set — not shown</em></td></tr>
+  </table>
+
+  <div class="btn-row" style="display:flex;gap:10px;align-items:center;margin-top:1.75rem">
+    <form method="post" action="install.php" style="display:contents">
+      <input type="hidden" name="lstr_install_token" value="<?= e($csrf) ?>">
+      <input type="hidden" name="install_step" value="4">
+      <button type="submit" class="btn btn-primary">Install Luster &rarr;</button>
+    </form>
+    <a href="install.php?back=3" class="btn btn-ghost">&larr; Back to Site &amp; Admin</a>
+  </div>
 </div>
     <?php
 }
