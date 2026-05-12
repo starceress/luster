@@ -12,8 +12,7 @@ declare(strict_types=1);
  * Steps:
  *   1. System requirements check
  *   2. Database configuration (tests connection live)
- *   3. Site settings + admin account (validates and stores; no writes)
- *   4. Review → confirm → runs install → success
+ *   3. Site settings + first admin account → runs install → success
  *
  * Security:
  *   - CSRF via a per-session nonce in $_SESSION['lstr_install_token']
