@@ -974,18 +974,37 @@ function renderAlreadyInstalled(): void
 {
     renderHeader('Already Installed', 0);
     ?>
-<div class="install-card" style="text-align:center">
-  <div style="font-size:2.5rem;margin-bottom:1rem;color:var(--warn)">&#9888;</div>
-  <h2>Already Installed</h2>
-  <p style="color:var(--text-muted);margin:.5rem 0 1.75rem">
-    Luster is already installed. To reinstall from scratch, delete both
-    <code style="background:var(--bg-subtle);padding:.1rem .4rem;border-radius:5px;font-size:.85em">storage/.installed</code>
-    and
-    <code style="background:var(--bg-subtle);padding:.1rem .4rem;border-radius:5px;font-size:.85em">config/app.php</code>.
+<div class="install-card">
+  <div style="font-size:2.5rem;margin-bottom:1rem;color:var(--warn);text-align:center">&#9888;</div>
+  <h2 style="text-align:center">Already Installed</h2>
+  <p style="color:var(--text-muted);margin:.5rem 0 1.25rem;line-height:1.6">
+    Luster is already installed on this server. The admin panel is available at
+    <a href="./admin.php" style="color:var(--accent)">admin.php</a>.
   </p>
-  <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
-    <a href="./" class="btn btn-ghost">Home</a>
+
+  <div class="install-section">Updating the schema after an upgrade?</div>
+  <p style="color:var(--text-muted);font-size:.88rem;line-height:1.6;margin-bottom:1rem">
+    Use <a href="./migrate.php" style="color:var(--accent)">migrate.php</a> to apply missing
+    database changes. It only runs migrations that have not been applied yet and does not
+    affect your existing data.
+  </p>
+
+  <div class="install-section">Reinstalling from scratch?</div>
+  <p style="color:var(--text-muted);font-size:.88rem;line-height:1.6;margin-bottom:.75rem">
+    A full reinstall requires all three of the following steps. Back up your data first.
+  </p>
+  <ol style="color:var(--text-muted);font-size:.88rem;line-height:1.85;margin-left:1.4rem">
+    <li>Drop all <code style="background:var(--bg-subtle);padding:.1rem .35rem;border-radius:4px;font-size:.9em">lstr_*</code> tables from the database.</li>
+    <li>Delete <code style="background:var(--bg-subtle);padding:.1rem .35rem;border-radius:4px;font-size:.9em">config/app.php</code>.</li>
+    <li>Delete <code style="background:var(--bg-subtle);padding:.1rem .35rem;border-radius:4px;font-size:.9em">storage/.installed</code>.</li>
+  </ol>
+  <p style="color:var(--text-dim);font-size:.83rem;line-height:1.6;margin-top:.75rem">
+    After completing all three steps, reload this page to start the installer again.
+  </p>
+
+  <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:1.5rem">
     <a href="./admin.php" class="btn btn-primary">Go to Admin Panel &rarr;</a>
+    <a href="./migrate.php" class="btn btn-ghost">Run Migrations</a>
   </div>
 </div>
     <?php
@@ -1204,6 +1223,34 @@ function renderHeader(string $title, int $step): void
   z-index: 200;
 }
 .install-theme-btn:hover { border-color: var(--accent); color: var(--accent); }
+/* Requirements fix hint */
+.req-hint {
+  margin-left: auto; font-size: .75rem;
+  font-family: 'DM Mono', monospace;
+  background: var(--bg-subtle); color: var(--text-dim);
+  padding: 2px 8px; border-radius: 5px; flex-shrink: 0;
+}
+/* Collapsible helper panel */
+.install-helper {
+  margin-top: 1.25rem;
+  border: 1px solid var(--border-soft);
+  border-radius: 10px;
+}
+.install-helper > summary {
+  padding: 9px 14px;
+  font-size: .81rem; font-weight: 600;
+  color: var(--accent);
+  cursor: pointer; list-style: none;
+}
+.install-helper > summary::-webkit-details-marker { display: none; }
+.install-helper-body {
+  padding: 0 14px 12px;
+  font-size: .82rem; color: var(--text-muted);
+  line-height: 1.65; border-top: 1px solid var(--border-soft);
+}
+.install-helper-body p { margin: .55rem 0; }
+.install-helper-body p:first-child { margin-top: .65rem; }
+.install-helper-body code { background: var(--bg-subtle); padding: .1rem .35rem; border-radius: 4px; font-size: .88em; }
 </style>
 </head>
 <body class="install-page">
@@ -1285,11 +1332,18 @@ function renderStep1(string $csrf): void
     ?>
 <div class="install-card">
   <h2>System Requirements</h2>
+  <p style="color:var(--text-muted);font-size:.88rem;line-height:1.6;margin-bottom:1.25rem">
+    Luster needs the following to be in place before installation can begin.
+    Items marked <strong>FAIL</strong> must be resolved before you can continue.
+  </p>
   <ul class="req-list">
     <?php foreach ($checks as $c): ?>
     <li>
       <span class="req-badge <?= e($c['status']) ?>"><?= strtoupper(e($c['status'])) ?></span>
       <?= e($c['label']) ?>
+      <?php if ($c['status'] === 'fail' && !empty($c['hint'])): ?>
+      <code class="req-hint"><?= e($c['hint']) ?></code>
+      <?php endif; ?>
     </li>
     <?php endforeach; ?>
   </ul>
@@ -1356,6 +1410,16 @@ function renderStep2(string $csrf, array $stored): void
              autocomplete="current-password">
       <p class="form-hint">Leave blank if your database user has no password.</p>
     </div>
+
+    <details class="install-helper">
+      <summary>Where do I find these?</summary>
+      <div class="install-helper-body">
+        <p><strong>Host</strong> — Usually <code>localhost</code> for shared hosting and local installs. Check your hosting control panel if you are unsure.</p>
+        <p><strong>Port</strong> — Default is <code>3306</code>. Only change this if your host specifies a non-standard port.</p>
+        <p><strong>Database Name</strong> — The name of an existing MySQL database. Create one in phpMyAdmin or your hosting panel if needed. You can use an existing Enthusiast database.</p>
+        <p><strong>Username / Password</strong> — Credentials for a MySQL user with full privileges on that database. Often found in your hosting panel under <em>MySQL Users</em> or <em>Databases</em>.</p>
+      </div>
+    </details>
 
     <div class="btn-row" style="display:flex;gap:10px;align-items:center">
       <button type="submit" class="btn btn-primary">Test &amp; Continue &rarr;</button>
@@ -1447,6 +1511,10 @@ function renderStep3(string $csrf, array $stored): void
     </div>
 
     <div class="install-section">Administrator Account</div>
+    <p style="color:var(--text-muted);font-size:.84rem;line-height:1.6;margin-bottom:1.25rem">
+      This account is for logging into the Luster admin panel — separate from your
+      hosting account. You can add more admin users after installation.
+    </p>
 
     <div class="form-group">
       <label class="form-label" for="admin_username">Username</label>
@@ -1548,8 +1616,7 @@ function renderDone(): void
   <div class="install-success-icon">&#10003;</div>
   <h2>Installation Complete!</h2>
   <p style="color:var(--text-muted);margin:.5rem 0 1.75rem;line-height:1.6">
-    Luster has been installed successfully. All database tables have been created
-    and your admin account is ready.
+    Luster has been installed. Your database tables are ready and your admin account is active.
   </p>
   <a href="./admin.php" class="btn btn-primary btn-full">Go to Admin Panel &rarr;</a>
 </div>
@@ -1560,22 +1627,26 @@ function renderDone(): void
   now that installation is complete.
 </div>
 
-<div style="margin-top:1.5rem">
-  <h3 style="margin-bottom:.875rem;font-size:1rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.04em">Next Steps</h3>
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:.875rem">
-    <a href="./admin/listings/add" class="install-card" style="text-align:left;text-decoration:none;color:var(--text);padding:1rem 1.125rem;border:1px solid var(--border-soft);border-radius:12px;display:block">
-      <div style="font-weight:600;margin-bottom:.3rem">&#43; Add your first listing</div>
-      <div style="font-size:.82rem;color:var(--text-muted);line-height:1.45">Create a new fanlisting manually from the admin panel.</div>
-    </a>
-    <a href="./admin/import" class="install-card" style="text-align:left;text-decoration:none;color:var(--text);padding:1rem 1.125rem;border:1px solid var(--border-soft);border-radius:12px;display:block">
-      <div style="font-weight:600;margin-bottom:.3rem">&#8679; Import from Enthusiast or Listing Admin</div>
-      <div style="font-size:.82rem;color:var(--text-muted);line-height:1.45">Migrate your existing data using the built-in import wizard. Same-database Enthusiast installs require no credentials.</div>
-    </a>
-  </div>
+<div class="install-card" style="margin-top:1.25rem">
+  <h3 style="font-size:.8rem;font-weight:700;color:var(--text-dim);text-transform:uppercase;letter-spacing:.1em;margin-bottom:1rem">What to do next</h3>
+  <ul style="list-style:none;display:flex;flex-direction:column;gap:.9rem">
+    <li style="display:flex;gap:10px;font-size:.88rem;color:var(--text-muted);line-height:1.55">
+      <span style="color:var(--success);flex-shrink:0;font-weight:700">&#10003;</span>
+      <span>Open the <a href="./admin.php" style="color:var(--accent)">admin panel</a> and add your first listing under <strong>Listings</strong>.</span>
+    </li>
+    <li style="display:flex;gap:10px;font-size:.88rem;color:var(--text-muted);line-height:1.55">
+      <span style="color:var(--success);flex-shrink:0;font-weight:700">&#10003;</span>
+      <span>Migrating from Enthusiast or another script? Use <strong>Import Data</strong>, linked from the <a href="./admin.php" style="color:var(--accent)">System Info</a> page in the admin panel.</span>
+    </li>
+    <li style="display:flex;gap:10px;font-size:.88rem;color:var(--text-muted);line-height:1.55">
+      <span style="color:var(--success);flex-shrink:0;font-weight:700">&#10003;</span>
+      <span>Enable outgoing email in <strong>Settings &rarr; SMTP</strong> in the admin panel so join confirmations and password resets work.</span>
+    </li>
+    <li style="display:flex;gap:10px;font-size:.88rem;color:var(--text-muted);line-height:1.55">
+      <span style="color:var(--success);flex-shrink:0;font-weight:700">&#10003;</span>
+      <span>Review <strong>Settings &rarr; General</strong> in the admin panel to confirm your collective URL, timezone, and owner contact details.</span>
+    </li>
+  </ul>
 </div>
-
-<p class="install-footer">
-  Also: configure SMTP in <code>config/app.php</code> to enable outgoing email.
-</p>
     <?php
 }
