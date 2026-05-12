@@ -12,12 +12,14 @@ declare(strict_types=1);
  * Steps:
  *   1. System requirements check
  *   2. Database configuration (tests connection live)
- *   3. Site settings + first admin account → runs install → success
+ *   3. Site settings + admin account (validates and stores; no writes)
+ *   4. Review → confirm → runs install → success
  *
  * Security:
  *   - CSRF via a per-session nonce in $_SESSION['lstr_install_token']
  *   - All user input validated before use
- *   - Passwords hashed with Argon2id
+ *   - Passwords hashed with Argon2id; hash computed at Step 3, raw password
+ *     never stored in session or written to disk
  *   - config/app.php written with var_export() — no code injection possible
  *   - File is not deleted after install (access blocked via "already installed"
  *     check); instruct users to delete install.php after completing setup.
@@ -35,8 +37,14 @@ ini_set('display_errors', '0');
 ini_set('log_errors', '1');
 error_reporting(E_ALL);
 
+// Set cookie_secure only on HTTPS. On plain HTTP (local XAMPP, staging)
+// a Secure cookie is rejected by the browser, silently breaking session state.
+$_lstr_https = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on')
+            || (isset($_SERVER['HTTP_X_FORWARDED_PROTO'])
+                && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https');
+
 ini_set('session.cookie_httponly', '1');
-ini_set('session.cookie_secure', '1');
+ini_set('session.cookie_secure',   $_lstr_https ? '1' : '0');
 ini_set('session.cookie_samesite', 'Strict');
 ini_set('session.use_strict_mode', '1');
 session_start();
@@ -44,6 +52,17 @@ session_start();
 define('LUSTER_BASE', dirname(__DIR__));
 define('CONFIG_PATH',   LUSTER_BASE . '/config/app.php');
 define('SENTINEL_PATH', LUSTER_BASE . '/storage/.installed');
+
+// -------------------------------------------------------------------------
+// Done page — must precede installed-state guards so the completion screen
+// renders on the first visit after install (when sentinel and config exist).
+// -------------------------------------------------------------------------
+
+if (isset($_GET['done']) && !empty($_SESSION['lstr_install_complete'])) {
+    unset($_SESSION['lstr_install_complete']);
+    renderPage('done', [], '', 0);
+    exit;
+}
 
 // -------------------------------------------------------------------------
 // Already installed?
@@ -142,6 +161,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $dbUser = trim((string) ($_POST['db_user'] ?? ''));
                 $dbPass = (string) ($_POST['db_pass'] ?? '');
 
+                // Capture form values (no password) for repopulation on failure.
+                // db_form ≠ db: this key holds whatever was typed, validated or not.
+                $stored['db_form'] = [
+                    'host' => $dbHost,
+                    'port' => $dbPort,
+                    'name' => $dbName,
+                    'user' => $dbUser,
+                ];
+                $_SESSION['lstr_install_data'] = $stored;
+
                 if ($dbHost === '') {
                     $errors[] = 'Database host is required.';
                 }
@@ -177,7 +206,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         header('Location: install.php');
                         exit;
                     } catch (\PDOException $e) {
-                        $errors[] = 'Database connection failed: ' . $e->getMessage();
+                        $rawMessage = $e->getMessage();
+                        $userMessage = 'Could not connect to the database.';
+                        if (str_contains($rawMessage, 'Access denied')) {
+                            $userMessage = 'Access denied — check your username and password.';
+                        } elseif (str_contains($rawMessage, 'Unknown database')) {
+                            $userMessage = 'Database not found — make sure the database exists before installing.';
+                        } elseif (str_contains($rawMessage, 'Connection refused') || str_contains($rawMessage, 'No such file')) {
+                            $userMessage = 'Could not reach the database server — check the host and port.';
+                        } elseif (str_contains($rawMessage, "Can't connect")) {
+                            $userMessage = 'Could not connect — check that the database server is running and the host is correct.';
+                        }
+                        $errors[] = $userMessage;
+                        $errors[] = '__pdo_detail__' . htmlspecialchars($rawMessage, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
                     }
                 }
 
@@ -189,14 +230,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             // ----------------------------------------------------------------
             case 3:
                 $siteUrl               = rtrim(trim((string) ($_POST['site_url'] ?? '')), '/');
-                $siteName              = trim((string) ($_POST['site_name'] ?? 'Luster'));
-                $timezone             = trim((string) ($_POST['timezone'] ?? 'UTC'));
-                $ownerName            = trim((string) ($_POST['owner_name']  ?? ''));
-                $ownerEmail           = trim((string) ($_POST['owner_email'] ?? ''));
-                $adminUsername        = trim((string) ($_POST['admin_username'] ?? ''));
-                $adminEmail           = trim((string) ($_POST['admin_email'] ?? ''));
-                $adminPassword        = (string) ($_POST['admin_password'] ?? '');
-                $adminPasswordConfirm = (string) ($_POST['admin_password_confirm'] ?? '');
+                $siteName              = trim((string) ($_POST['site_name'] ?? ''));
+                $timezone              = trim((string) ($_POST['timezone'] ?? 'UTC'));
+                $ownerName             = trim((string) ($_POST['owner_name']  ?? ''));
+                $ownerEmail            = trim((string) ($_POST['owner_email'] ?? ''));
+                $adminUsername         = trim((string) ($_POST['admin_username'] ?? ''));
+                $adminEmail            = trim((string) ($_POST['admin_email'] ?? ''));
+                $adminPassword         = (string) ($_POST['admin_password'] ?? '');
+                $adminPasswordConfirm  = (string) ($_POST['admin_password_confirm'] ?? '');
+
+                // Store non-password fields immediately for repopulation on failure.
+                $stored['site'] = [
+                    'site_name'      => $siteName,
+                    'site_url'       => $siteUrl,
+                    'timezone'       => $timezone,
+                    'owner_name'     => $ownerName,
+                    'owner_email'    => $ownerEmail,
+                    'admin_username' => $adminUsername,
+                    'admin_email'    => $adminEmail,
+                ];
+                $_SESSION['lstr_install_data'] = $stored;
 
                 if ($siteUrl === '') {
                     $errors[] = 'Site URL is required.';
@@ -260,11 +313,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                         installTables($pdo);
                         installAdminUser($pdo, $adminUsername, $adminEmail, $adminPassword);
-                        writeConfig($db, $siteName, $siteUrl, $timezone, $adminEmail, $ownerName, $ownerEmail);
+                        writeConfig($db, $siteName, $siteUrl, $timezone, $adminEmail, $ownerName, $ownerEmail); // $siteUrl renamed to $appUrl in Phase 2
 
                         // Write installation sentinel — prevents the installer from
                         // re-opening even if config/app.php is later deleted.
-                        file_put_contents(SENTINEL_PATH, date('Y-m-d H:i:s') . "\n");
+                        if (file_put_contents(SENTINEL_PATH, date('Y-m-d H:i:s') . "\n") === false) {
+                            throw new \RuntimeException(
+                                'Could not write storage/.installed sentinel. '
+                                . 'Ensure the web server has write permission on the storage/ directory.'
+                            );
+                        }
 
                         // Clear install session
                         unset(
@@ -285,16 +343,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 break;
         }
     }
-}
-
-// -------------------------------------------------------------------------
-// Done page (after redirect)
-// -------------------------------------------------------------------------
-
-if (isset($_GET['done']) && !empty($_SESSION['lstr_install_complete'])) {
-    unset($_SESSION['lstr_install_complete']);
-    renderPage('done', [], $csrfToken, $step);
-    exit;
 }
 
 // -------------------------------------------------------------------------
@@ -705,7 +753,7 @@ function installAdminUser(PDO $pdo, string $username, string $email, string $pas
     $stmt->execute(['username' => $username, 'email' => $email, 'password' => $hash]);
 }
 
-function writeConfig(array $db, string $siteName, string $siteUrl, string $timezone, string $adminEmail, string $ownerName = '', string $ownerEmail = ''): void
+function writeConfig(array $db, string $siteName, string $appUrl, string $timezone, string $adminEmail, string $ownerName = '', string $ownerEmail = ''): void
 {
     $config = [
         // Database
@@ -717,7 +765,8 @@ function writeConfig(array $db, string $siteName, string $siteUrl, string $timez
         'db_charset' => 'utf8mb4',
         // Application
         'site_name'  => $siteName,
-        'site_url'   => $siteUrl,
+        'app_url'    => $appUrl,         // Luster install URL — used for routing and admin links
+        'site_url'   => $appUrl,         // Collective homepage — defaults to app_url on first install
         'app_debug'  => false,
         // Site owner identity (shown in email templates)
         'owner_name'  => $ownerName,
@@ -734,12 +783,12 @@ function writeConfig(array $db, string $siteName, string $siteUrl, string $timez
         'enth_table_prefix' => '',
         // Miscellaneous
         'timezone' => $timezone,
-        'per_page' => 25,
+        'per_page' => 10,
         // Staleness detection
         'inactive_threshold_days' => 60,
         'last_updated_fallback'   => 'Never',
         // Embed & Paths
-        'install_path'          => LUSTER_BASE,
+        'install_path'          => LUSTER_BASE . DIRECTORY_SEPARATOR,
         'session_cookie_domain' => '',
         'embed_base_url'        => '',
     ];
@@ -799,13 +848,15 @@ function checkRequirements(): array
     $storageDir = LUSTER_BASE . '/storage';
     $checks[] = [
         'label'  => 'storage/ directory is writable',
-        'status' => is_writable($storageDir) ? 'ok' : 'warn',
+        'status' => is_writable($storageDir) ? 'ok' : 'fail',
+        'hint'   => 'chmod 755 storage/',
     ];
 
     // Composer autoloader present
     $checks[] = [
         'label'  => 'Composer dependencies installed (vendor/autoload.php)',
-        'status' => is_file(LUSTER_BASE . '/vendor/autoload.php') ? 'ok' : 'warn',
+        'status' => is_file(LUSTER_BASE . '/vendor/autoload.php') ? 'ok' : 'fail',
+        'hint'   => 'composer install',
     ];
 
     return $checks;
@@ -868,10 +919,20 @@ function renderPage(string $view, array $errors, string $csrf, int $step, array 
     // Error list
     if (!empty($errors)) {
         echo '<div class="alert alert-error" role="alert"><strong>Please fix the following:</strong><ul style="margin:.5rem 0 0 1.2rem">';
+        $techDetail = null;
         foreach ($errors as $err) {
-            echo '<li>' . e($err) . '</li>';
+            if (str_starts_with($err, '__pdo_detail__')) {
+                $techDetail = substr($err, strlen('__pdo_detail__'));
+            } else {
+                echo '<li>' . e($err) . '</li>';
+            }
         }
-        echo '</ul></div>';
+        echo '</ul>';
+        if ($techDetail !== null) {
+            echo '<details style="margin-top:.5rem"><summary style="font-size:.8rem;cursor:pointer;color:var(--text-dim)">Technical detail</summary>';
+            echo '<pre style="font-size:.75rem;margin:.5rem 0 0;overflow:auto;white-space:pre-wrap;color:var(--text-dim)">' . $techDetail . '</pre></details>';
+        }
+        echo '</div>';
     }
 
     match ($view) {
@@ -1144,7 +1205,10 @@ function renderStep1(string $csrf): void
 
 function renderStep2(string $csrf, array $stored): void
 {
-    $db = $stored['db'] ?? [];
+    // db_form holds the last-typed values (set on every Step 2 POST, no password).
+    // Fall back to db (validated connection) so back-navigation from Step 3
+    // still repopulates with the confirmed values.
+    $db = $stored['db_form'] ?? $stored['db'] ?? [];
     ?>
 <div class="install-card">
   <h2>Database Configuration</h2>
@@ -1196,12 +1260,27 @@ function renderStep2(string $csrf, array $stored): void
 
 function renderStep3(string $csrf, array $stored): void
 {
-    $db = $stored['db'] ?? [];
-    // Detect current URL base as a helpful default
-    $guessedUrl = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : 'http')
-        . '://' . ($_SERVER['HTTP_HOST'] ?? 'localhost');
-    // Strip /install.php or /public if present
-    $guessedUrl = rtrim(preg_replace('#/install\.php.*$#i', '', $guessedUrl) ?? $guessedUrl, '/');
+    $db   = $stored['db']   ?? [];
+    $site = $stored['site'] ?? [];
+
+    // Build the guessed URL from REQUEST_URI so subdirectory installs resolve
+    // correctly (e.g. http://localhost/luster/public, not just http://localhost).
+    // Use the same two-condition HTTPS check as the session cookie fix so
+    // reverse-proxy installs (HTTP_X_FORWARDED_PROTO=https) get https:// URLs.
+    $_protocol  = ((isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on')
+                || (isset($_SERVER['HTTP_X_FORWARDED_PROTO'])
+                    && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https'))
+                ? 'https' : 'http';
+    $_host      = $_SERVER['HTTP_HOST'] ?? 'localhost';
+    $_uriPath   = strtok($_SERVER['REQUEST_URI'] ?? '/install.php', '?');
+    $_uriPath   = preg_replace('#/install\.php$#i', '', $_uriPath) ?? $_uriPath;
+    $guessedUrl = rtrim($_protocol . '://' . $_host . $_uriPath, '/');
+    unset($_protocol, $_host, $_uriPath);
+
+    // If a previous Step 3 submission is in session, prefer that over the guess.
+    $currentSiteUrl  = (string) ($site['site_url']  ?? $guessedUrl);
+    $currentSiteName = (string) ($site['site_name'] ?? 'Luster');
+    $currentTimezone = (string) ($site['timezone']  ?? date_default_timezone_get());
     ?>
 <div class="alert alert-success">
   &#10003; Database connection successful &mdash;
@@ -1220,26 +1299,23 @@ function renderStep3(string $csrf, array $stored): void
     <div class="form-group">
       <label class="form-label" for="site_name">Site Name</label>
       <input type="text" id="site_name" name="site_name" class="form"
-             value="Luster" required>
+             value="<?= e($currentSiteName) ?>" required>
     </div>
 
     <div class="form-group">
       <label class="form-label" for="site_url">Site URL</label>
       <input type="url" id="site_url" name="site_url" class="form"
-             value="<?= e($guessedUrl) ?>" required
-             placeholder="https://yoursite.example.com">
-      <p class="form-hint">No trailing slash. This is the base URL where Luster is installed (e.g. <code>https://example.com/luster/public</code>).</p>
+             value="<?= e($currentSiteUrl) ?>" required
+             placeholder="https://example.com/luster/public">
+      <p class="form-hint">No trailing slash. The base URL where Luster is installed (e.g. <code>https://example.com/luster/public</code>).</p>
     </div>
 
     <div class="form-group">
       <label class="form-label" for="timezone">Timezone</label>
       <div class="select-wrap">
         <select id="timezone" name="timezone" class="form-select">
-          <?php
-          $current = date_default_timezone_get();
-          foreach (timezone_identifiers_list() as $tz):
-          ?>
-          <option value="<?= e($tz) ?>"<?= $tz === $current ? ' selected' : '' ?>><?= e($tz) ?></option>
+          <?php foreach (timezone_identifiers_list() as $tz): ?>
+          <option value="<?= e($tz) ?>"<?= $tz === $currentTimezone ? ' selected' : '' ?>><?= e($tz) ?></option>
           <?php endforeach; ?>
         </select>
       </div>
@@ -1247,15 +1323,17 @@ function renderStep3(string $csrf, array $stored): void
 
     <div class="form-row">
       <div class="form-group">
-        <label class="form-label" for="owner_name">Owner Name</label>
+        <label class="form-label" for="owner_name">Owner Name <em style="font-weight:400">(optional)</em></label>
         <input type="text" id="owner_name" name="owner_name" class="form"
-               maxlength="100" placeholder="Jiji">
+               maxlength="100" placeholder="Jiji"
+               value="<?= e((string) ($site['owner_name'] ?? '')) ?>">
         <p class="form-hint">Your display name used in outgoing fan emails (e.g. <em>Jiji</em>). Can be changed later in Settings.</p>
       </div>
       <div class="form-group">
         <label class="form-label" for="owner_email">Owner Email <em style="font-weight:400">(optional)</em></label>
         <input type="email" id="owner_email" name="owner_email" class="form"
-               maxlength="255" placeholder="you@example.com">
+               maxlength="255" placeholder="you@example.com"
+               value="<?= e((string) ($site['owner_email'] ?? '')) ?>">
         <p class="form-hint">Contact email shown in fan emails. Defaults to your admin email if left blank.</p>
       </div>
     </div>
@@ -1266,14 +1344,16 @@ function renderStep3(string $csrf, array $stored): void
       <label class="form-label" for="admin_username">Username</label>
       <input type="text" id="admin_username" name="admin_username" class="form"
              required autocomplete="username"
-             pattern="[a-zA-Z0-9_\-]{3,50}">
+             pattern="[a-zA-Z0-9_\-]{3,50}"
+             value="<?= e((string) ($site['admin_username'] ?? '')) ?>">
       <p class="form-hint">3–50 characters: letters, numbers, underscores, hyphens.</p>
     </div>
 
     <div class="form-group">
       <label class="form-label" for="admin_email">Email Address</label>
       <input type="email" id="admin_email" name="admin_email" class="form"
-             required autocomplete="email">
+             required autocomplete="email"
+             value="<?= e((string) ($site['admin_email'] ?? '')) ?>">
     </div>
 
     <div class="form-row">
