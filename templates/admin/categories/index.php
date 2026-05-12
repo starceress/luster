@@ -11,6 +11,7 @@ use Luster\Core\View;
 /** @var string $error */
 /** @var string $base_url */
 /** @var string $csrf_token */
+/** @var array  $seed_health */
 $b = rtrim(View::e($base_url ?? ''), '/');
 
 $sourceBadge = static function (string $s): string {
@@ -56,6 +57,43 @@ $catSortUrl = static function (string $col) use ($b, $sort, $dir, $source, $sear
 <?php if (($error ?? '') !== ''): ?>
   <div class="alert alert-error"><?= View::e($error ?? '') ?></div>
 <?php endif; ?>
+<?php
+$sh      = $seed_health ?? ['tfl_expected' => 0, 'tfl_present' => 0, 'tafl_expected' => 0, 'tafl_present' => 0];
+$tflOk   = $sh['tfl_present']  >= $sh['tfl_expected'];
+$taflOk  = $sh['tafl_present'] >= $sh['tafl_expected'];
+?>
+<div class="gradient-card" style="margin-bottom:var(--sp-4)">
+  <div class="listing-field-section">
+    <div class="listing-field-row listing-field-row--top">
+      <span class="listing-field-label">TFL categories</span>
+      <div>
+        <span class="badge <?= $tflOk ? 'badge-current' : 'badge-pending' ?>">
+          <?= (int) $sh['tfl_present'] ?>&thinsp;/&thinsp;<?= (int) $sh['tfl_expected'] ?>
+          <?php if (!$tflOk): ?>&mdash; <?= (int) ($sh['tfl_expected'] - $sh['tfl_present']) ?> missing<?php endif; ?>
+        </span>
+        <p class="form-hint">The Fanlistings Network &mdash; <?= (int) $sh['tfl_expected'] ?> official categories.</p>
+      </div>
+    </div>
+    <div class="listing-field-row">
+      <span class="listing-field-label">TAFL categories</span>
+      <div>
+        <span class="badge <?= $taflOk ? 'badge-current' : 'badge-pending' ?>">
+          <?= (int) $sh['tafl_present'] ?>&thinsp;/&thinsp;<?= (int) $sh['tafl_expected'] ?>
+          <?php if (!$taflOk): ?>&mdash; <?= (int) ($sh['tafl_expected'] - $sh['tafl_present']) ?> missing<?php endif; ?>
+        </span>
+        <p class="form-hint">The Anime Fanlistings Network &mdash; <?= (int) $sh['tafl_expected'] ?> official categories.</p>
+      </div>
+    </div>
+  </div>
+  <div class="composer-footer">
+    <form method="POST" action="<?= $b ?>/admin/categories/seed" style="display:flex;gap:var(--sp-2)">
+      <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
+      <button type="submit" name="include_tafl" value="0" class="btn btn-secondary">Seed TFL</button>
+      <button type="submit" name="include_tafl" value="1" class="btn btn-primary">Seed TFL + TAFL</button>
+    </form>
+  </div>
+</div>
+
 <!-- ──── TOOLBAR ────────────────────────────────────────────────────── -->
 <div class="toolbar">
   <div class="actions-row">

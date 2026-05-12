@@ -842,4 +842,238 @@ final class ImportAdapterRegressionTest extends TestCase
         $found = $chk->fetchColumn();
         $this->assertNotFalse($found, "Physical member table `{$dbtable}` must exist in target");
     }
+
+    // -----------------------------------------------------------------------
+    // categories_json — joined import
+    // -----------------------------------------------------------------------
+
+    /**
+     * Helper: creates a minimal lstr_joined table in a target PDO.
+     */
+    private function createJoinedTable(PDO $pdo): void
+    {
+        $pdo->exec(
+            "CREATE TABLE IF NOT EXISTS lstr_joined (
+                id              INTEGER PRIMARY KEY AUTOINCREMENT,
+                name            TEXT NOT NULL DEFAULT '',
+                url             TEXT NOT NULL DEFAULT '',
+                image           TEXT NULL,
+                category        TEXT NOT NULL DEFAULT '',
+                categories_json TEXT NULL,
+                category_id     INTEGER NULL,
+                date_joined     TEXT NULL,
+                active          INTEGER NOT NULL DEFAULT 1,
+                status          TEXT NOT NULL DEFAULT 'approved',
+                sort_order      INTEGER NOT NULL DEFAULT 0
+            )"
+        );
+    }
+
+    /**
+     * When LA's jCategory contains a pipe-delimited ID string (e.g. '|12|'),
+     * the import must resolve it through the source categories table and:
+     *   - store the category name in lstr_joined.category
+     *   - store a Luster category ID in lstr_joined.category_id
+     *   - populate lstr_joined.categories_json
+     */
+    public function testListingAdminJoinedImportResolvesPipeDelimitedCategoryId(): void
+    {
+        $src = $this->makePdo();
+        $src->exec(
+            "CREATE TABLE `categories` (
+                catid   INTEGER PRIMARY KEY,
+                parent  INTEGER NOT NULL DEFAULT 0,
+                catname TEXT    NOT NULL
+            )"
+        );
+        $src->exec("INSERT INTO `categories` VALUES (12, 0, 'Movies')");
+
+        $src->exec(
+            "CREATE TABLE `joined` (
+                jID       INTEGER PRIMARY KEY,
+                jSubject  TEXT NOT NULL DEFAULT '',
+                jURL      TEXT NOT NULL DEFAULT '',
+                jImage    TEXT NULL,
+                jCategory TEXT NOT NULL DEFAULT '',
+                jStatus   INTEGER NOT NULL DEFAULT 1,
+                jAdd      TEXT NULL
+            )"
+        );
+        $src->exec("INSERT INTO `joined` VALUES (1, 'A Movie FL', 'http://movies.example.com', NULL, '|12|', 1, '2025-01-01')");
+
+        $tgt = $this->makePdo();
+        $tgt->exec("CREATE TABLE IF NOT EXISTS lstr_categories (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, parent_id INTEGER NULL, source TEXT NOT NULL DEFAULT 'custom')");
+        $tgt->exec("INSERT INTO lstr_categories (name, source) VALUES ('Movies', 'tfl')");
+        $this->createJoinedTable($tgt);
+
+        $opts = ImportOptions::fromPost([
+            'source'               => 'listing-admin',
+            'conflict_strategy'    => 'skip',
+            'import_joined'        => '1',
+            '_dump_schema_variant' => 'listing_admin_3x',
+        ]);
+
+        $result = $this->laAdapter()->run($src, $tgt, $opts);
+
+        $joinRow = null;
+        foreach ($result->rows as $row) {
+            if ($row['type'] === 'Joined listings') {
+                $joinRow = $row;
+                break;
+            }
+        }
+        $this->assertNotNull($joinRow);
+        $this->assertSame(1, $joinRow['imported']);
+        $this->assertEmpty($joinRow['errors']);
+
+        $row = $tgt->query(
+            "SELECT category, categories_json, category_id FROM lstr_joined WHERE url = 'http://movies.example.com'"
+        )->fetch();
+
+        $this->assertSame('Movies', $row['category'],
+            'category must be the resolved name, not the raw pipe-delimited ID string');
+        $this->assertNotNull($row['categories_json'],
+            'categories_json must be populated for imported joined listings');
+        $decoded = json_decode((string) $row['categories_json'], true);
+        $this->assertSame('Movies', $decoded[0]['name'] ?? '',
+            'categories_json must contain the resolved category name');
+        $this->assertSame(1, (int) $row['category_id'],
+            'category_id must be the Luster ID for Movies');
+    }
+
+    /**
+     * When the source joined.catid contains a pipe-delimited multi-value string
+     * (e.g. |3|9|), all resolved category names must appear in categories_json.
+     * The primary category/category_id fields hold the first resolved entry only.
+     */
+    public function testEnthusiastJoinedImportPreservesMultipleCategories(): void
+    {
+        $src = $this->makePdo();
+        $src->exec(
+            "CREATE TABLE `category` (
+                catid   INTEGER PRIMARY KEY,
+                parent  INTEGER NOT NULL DEFAULT 0,
+                catname TEXT    NOT NULL
+            )"
+        );
+        $src->exec("INSERT INTO `category` VALUES (3, 0, 'Movies')");
+        $src->exec("INSERT INTO `category` VALUES (9, 0, 'Relationships: TV')");
+
+        $src->exec(
+            "CREATE TABLE `joined` (
+                joinedid  INTEGER PRIMARY KEY,
+                subject   TEXT NOT NULL DEFAULT '',
+                url       TEXT NOT NULL DEFAULT '',
+                catid     TEXT NOT NULL DEFAULT '',
+                imagefile TEXT NULL,
+                pending   INTEGER NOT NULL DEFAULT 0,
+                added     TEXT NULL
+            )"
+        );
+        // Pipe-delimited multi-category: |3|9|
+        $src->exec("INSERT INTO `joined` VALUES (1, 'Multi-Cat FL', 'http://multi.example.com', '|3|9|', NULL, 0, '2025-06-01')");
+
+        $tgt = $this->makePdo();
+        $tgt->exec("CREATE TABLE IF NOT EXISTS lstr_categories (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, parent_id INTEGER NULL, source TEXT NOT NULL DEFAULT 'custom')");
+        $tgt->exec("INSERT INTO lstr_categories (name, source) VALUES ('Movies', 'tfl')");
+        $tgt->exec("INSERT INTO lstr_categories (name, source) VALUES ('Relationships: TV', 'tfl')");
+        $this->createJoinedTable($tgt);
+
+        $opts = ImportOptions::fromPost([
+            'source'               => 'enthusiast',
+            'conflict_strategy'    => 'skip',
+            'import_joined'        => '1',
+            '_dump_schema_variant' => 'enthusiast_unprefixed',
+        ]);
+
+        $result = $this->enthAdapter()->run($src, $tgt, $opts);
+
+        $joinRow = null;
+        foreach ($result->rows as $row) {
+            if ($row['type'] === 'Joined listings') { $joinRow = $row; break; }
+        }
+        $this->assertNotNull($joinRow);
+        $this->assertSame(1, $joinRow['imported']);
+        $this->assertEmpty($joinRow['errors']);
+
+        $row = $tgt->query(
+            "SELECT category, categories_json, category_id FROM lstr_joined WHERE url = 'http://multi.example.com'"
+        )->fetch();
+
+        $this->assertSame('Movies', $row['category'],
+            'primary category must be the first resolved name');
+        $this->assertSame(1, (int) $row['category_id'],
+            'category_id must point to Movies (id=1)');
+        $this->assertNotNull($row['categories_json']);
+        $decoded = json_decode((string) $row['categories_json'], true);
+        $names = array_column($decoded, 'name');
+        $this->assertContains('Movies', $names);
+        $this->assertContains('Relationships: TV', $names,
+            'categories_json must contain all resolved category names');
+    }
+
+    /**
+     * Enthusiast joined import must populate lstr_joined.categories_json
+     * with the single resolved category name.
+     */
+    public function testEnthusiastJoinedImportPopulatesCategoriesJson(): void
+    {
+        $src = $this->makePdo();
+        $src->exec(
+            "CREATE TABLE `category` (
+                catid   INTEGER PRIMARY KEY,
+                parent  INTEGER NOT NULL DEFAULT 0,
+                catname TEXT    NOT NULL
+            )"
+        );
+        $src->exec("INSERT INTO `category` VALUES (3, 0, 'TV Shows')");
+
+        $src->exec(
+            "CREATE TABLE `joined` (
+                joinedid  INTEGER PRIMARY KEY,
+                subject   TEXT NOT NULL DEFAULT '',
+                url       TEXT NOT NULL DEFAULT '',
+                catid     INTEGER NOT NULL DEFAULT 0,
+                imagefile TEXT NULL,
+                pending   INTEGER NOT NULL DEFAULT 0,
+                added     TEXT NULL
+            )"
+        );
+        $src->exec("INSERT INTO `joined` VALUES (1, 'Best TV FL', 'http://tv.example.com', 3, NULL, 0, '2025-03-01')");
+
+        $tgt = $this->makePdo();
+        $tgt->exec("CREATE TABLE IF NOT EXISTS lstr_categories (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, parent_id INTEGER NULL, source TEXT NOT NULL DEFAULT 'custom')");
+        $tgt->exec("INSERT INTO lstr_categories (name, source) VALUES ('TV Shows', 'tfl')");
+        $this->createJoinedTable($tgt);
+
+        $opts = ImportOptions::fromPost([
+            'source'               => 'enthusiast',
+            'conflict_strategy'    => 'skip',
+            'import_joined'        => '1',
+            '_dump_schema_variant' => 'enthusiast_unprefixed',
+        ]);
+
+        $result = $this->enthAdapter()->run($src, $tgt, $opts);
+
+        $joinRow = null;
+        foreach ($result->rows as $row) {
+            if ($row['type'] === 'Joined listings') {
+                $joinRow = $row;
+                break;
+            }
+        }
+        $this->assertNotNull($joinRow);
+        $this->assertSame(1, $joinRow['imported']);
+        $this->assertEmpty($joinRow['errors']);
+
+        $row = $tgt->query(
+            "SELECT category, categories_json, category_id FROM lstr_joined WHERE url = 'http://tv.example.com'"
+        )->fetch();
+
+        $this->assertSame('TV Shows', $row['category']);
+        $this->assertNotNull($row['categories_json']);
+        $decoded = json_decode((string) $row['categories_json'], true);
+        $this->assertSame('TV Shows', $decoded[0]['name'] ?? '');
+        $this->assertSame(1, (int) $row['category_id']);
+    }
 }

@@ -46,7 +46,8 @@ final class CategoryController extends AdminController
         $session->remove('lstr_flash_success');
         $session->remove('lstr_flash_error');
 
-        $all = $repo->getAll();
+        $all        = $repo->getAll();
+        $seedHealth = $repo->seedHealth();
 
         return $this->adminLayout('admin/categories/index.php', 'Categories', 'categories', [
             'items'          => $result['items'],
@@ -60,6 +61,7 @@ final class CategoryController extends AdminController
             'dir'            => $dir,
             'custom_sources' => $customSources,
             'all_cats'       => $all,
+            'seed_health'    => $seedHealth,
             'success'        => $success,
             'error'          => $error,
         ]);
@@ -220,6 +222,27 @@ final class CategoryController extends AdminController
 
         $session->set('lstr_flash_success', 'Category updated successfully.');
         return Response::redirect($baseUrl . '/admin/categories/' . $id . '/edit');
+    }
+
+    // -----------------------------------------------------------------------
+    // POST /admin/categories/seed
+    // -----------------------------------------------------------------------
+
+    public function seed(Request $request, array $params): Response
+    {
+        $includeTafl = (bool) (int) ($request->post('include_tafl', '0'));
+        $repo        = new CategoryRepo($this->app->getDatabase());
+        $inserted    = $repo->backfillSeeds($includeTafl);
+        $session     = $this->app->getSession();
+
+        $label = $includeTafl ? 'TFL + TAFL' : 'TFL';
+        if ($inserted > 0) {
+            $session->set('lstr_flash_success', "Added {$inserted} missing {$label} categor" . ($inserted === 1 ? 'y' : 'ies') . '.');
+        } else {
+            $session->set('lstr_flash_success', "{$label} categories are already complete — nothing to add.");
+        }
+
+        return Response::redirect($this->app->getBaseUrl() . '/admin/categories');
     }
 
     // -----------------------------------------------------------------------

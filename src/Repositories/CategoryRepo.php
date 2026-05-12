@@ -352,4 +352,75 @@ final class CategoryRepo
         $stmt->execute(['name' => $name, 'source' => $source]);
         return (int) $this->db->lastInsertId();
     }
+
+    // -----------------------------------------------------------------------
+    // Seed health
+    // -----------------------------------------------------------------------
+
+    /**
+     * Returns expected vs. present counts for TFL and TAFL seed categories.
+     *
+     * @return array{tfl_expected: int, tfl_present: int, tafl_expected: int, tafl_present: int}
+     */
+    public function seedHealth(): array
+    {
+        $tflNames  = \Luster\Support\CategorySeedCatalog::tfl();
+        $taflNames = \Luster\Support\CategorySeedCatalog::tafl();
+
+        $checkStmt = $this->db->prepare(
+            'SELECT COUNT(*) FROM lstr_categories WHERE source = :source AND name = :name'
+        );
+
+        $tflPresent = 0;
+        foreach ($tflNames as $name) {
+            $checkStmt->execute(['source' => 'tfl', 'name' => $name]);
+            if ((int) $checkStmt->fetchColumn() > 0) {
+                $tflPresent++;
+            }
+        }
+
+        $taflPresent = 0;
+        foreach ($taflNames as $name) {
+            $checkStmt->execute(['source' => 'tafl', 'name' => $name]);
+            if ((int) $checkStmt->fetchColumn() > 0) {
+                $taflPresent++;
+            }
+        }
+
+        return [
+            'tfl_expected'  => count($tflNames),
+            'tfl_present'   => $tflPresent,
+            'tafl_expected' => count($taflNames),
+            'tafl_present'  => $taflPresent,
+        ];
+    }
+
+    /**
+     * Inserts any missing TFL and optionally TAFL seed rows.
+     *
+     * Safe to call repeatedly — never overwrites existing rows.
+     *
+     * @return int Number of rows inserted
+     */
+    public function backfillSeeds(bool $includeTafl = true): int
+    {
+        $seeds = ['tfl' => \Luster\Support\CategorySeedCatalog::tfl()];
+        if ($includeTafl) {
+            $seeds['tafl'] = \Luster\Support\CategorySeedCatalog::tafl();
+        }
+
+        $stmt = $this->db->prepare(
+            'INSERT IGNORE INTO lstr_categories (name, source, parent_id) VALUES (:name, :source, NULL)'
+        );
+
+        $inserted = 0;
+        foreach ($seeds as $source => $names) {
+            foreach ($names as $name) {
+                $stmt->execute(['name' => $name, 'source' => $source]);
+                $inserted += $stmt->rowCount();
+            }
+        }
+
+        return $inserted;
+    }
 }

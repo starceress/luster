@@ -375,6 +375,8 @@ return [
             CategoryController::class, 'addForm');
         $router->post('/admin/categories/add',
             CategoryController::class, 'add');
+        $router->post('/admin/categories/seed',
+            CategoryController::class, 'seed');
         $router->get('/admin/categories/{id}/edit',
             CategoryController::class, 'editForm');
         $router->post('/admin/categories/{id}/edit',

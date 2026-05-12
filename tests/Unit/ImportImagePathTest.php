@@ -103,7 +103,8 @@ final class ImportImagePathTest extends TestCase
         $pdo->exec("CREATE TABLE IF NOT EXISTS lstr_joined
             (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL DEFAULT '',
              url TEXT NOT NULL DEFAULT '', image TEXT NULL,
-             category TEXT NOT NULL DEFAULT '', category_id INTEGER NULL,
+             category TEXT NOT NULL DEFAULT '', categories_json TEXT NULL,
+             category_id INTEGER NULL,
              date_joined TEXT NULL, active INTEGER NOT NULL DEFAULT 1,
              status TEXT NOT NULL DEFAULT 'approved', sort_order INTEGER NOT NULL DEFAULT 0)");
         $pdo->exec("CREATE TABLE IF NOT EXISTS lstr_fanlisting_settings

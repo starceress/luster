@@ -233,6 +233,9 @@ final class ListingAdminImportSource implements ImportSourceInterface
 
         $imageMap = [];
 
+        // Source category ID→name map for resolving pipe-delimited category IDs
+        $srcCatIdToName = $this->buildSourceCategoryMap($source, $sp);
+
         // ── Step 1: Categories ────────────────────────────────────────────
         if ($options->importCategories) {
             $rows[] = $this->runCategories($source, $target, $options, $sp);
@@ -245,7 +248,7 @@ final class ListingAdminImportSource implements ImportSourceInterface
         $listingIdMap = []; // LA main.id → new owned listingid
         if ($options->importListings) {
             ['row' => $listRow, 'idMap' => $listingIdMap, 'imageMap' => $lim] =
-                $this->runListings($source, $target, $targetSchema, $options, $catNameToId, $migrator, $imageSettings, $sp, $sreg);
+                $this->runListings($source, $target, $targetSchema, $options, $catNameToId, $srcCatIdToName, $migrator, $imageSettings, $sp, $sreg);
             $rows[]   = $listRow;
             $imageMap = array_merge($imageMap, $lim);
             if ($listRow['image_copied'] > 0 || $listRow['image_skipped'] > 0) {
@@ -274,7 +277,7 @@ final class ListingAdminImportSource implements ImportSourceInterface
         // ── Step 5: Joined listings ───────────────────────────────────────
         if ($options->importJoined) {
             ['row' => $joinRow, 'imageMap' => $joinMap] =
-                $this->runJoined($source, $target, $options, $catNameToId, $migrator, $imageSettings, $sp);
+                $this->runJoined($source, $target, $options, $catNameToId, $srcCatIdToName, $migrator, $imageSettings, $sp);
             $rows[]   = $joinRow;
             $imageMap = array_merge($imageMap, $joinMap);
             if ($joinRow['image_copied'] > 0 || $joinRow['image_skipped'] > 0) {
@@ -411,8 +414,8 @@ final class ListingAdminImportSource implements ImportSourceInterface
      */
     private function runListings(
         PDO $source, PDO $target, string $targetSchema,
-        ImportOptions $options, array $catNameToId, ?ImageMigrator $migrator,
-        array $imageSettings, string $tp = '', string $sreg = 'main'
+        ImportOptions $options, array $catNameToId, array $srcCatIdToName,
+        ?ImageMigrator $migrator, array $imageSettings, string $tp = '', string $sreg = 'main'
     ): array {
         $imported     = 0;
         $skipped      = 0;
@@ -495,9 +498,17 @@ final class ListingAdminImportSource implements ImportSourceInterface
             $dbtable = $this->generateDbtable($subject, $existingDbtables);
             $existingDbtables[$dbtable] = true;
 
-            // Resolve category
-            $catName  = trim((string) ($row['category'] ?? ''));
-            $catId    = $catName !== '' && isset($catNameToId[$catName]) ? $catNameToId[$catName] : null;
+            // Resolve category — handles pipe-delimited IDs (|12|) and plain names.
+            $catRaw      = trim((string) ($row['category'] ?? ''));
+            $parsedCatIds = self::parseLegacyCategoryIds($catRaw);
+            $catName     = '';
+            if (!empty($parsedCatIds) && !empty($srcCatIdToName)) {
+                $catName = $srcCatIdToName[$parsedCatIds[0]] ?? '';
+            }
+            if ($catName === '' && $catRaw !== '' && empty($parsedCatIds)) {
+                $catName = $catRaw; // plain text name — use directly
+            }
+            $catId = ($catName !== '' && isset($catNameToId[$catName])) ? $catNameToId[$catName] : null;
 
             // Status: LA has no exact equivalent; assume active
             $status = 2; // active in owned schema
@@ -919,7 +930,8 @@ final class ListingAdminImportSource implements ImportSourceInterface
      */
     private function runJoined(
         PDO $source, PDO $target, ImportOptions $options,
-        array $catNameToId, ?ImageMigrator $migrator, array $imageSettings, string $tp = ''
+        array $catNameToId, array $srcCatIdToName, ?ImageMigrator $migrator,
+        array $imageSettings, string $tp = ''
     ): array {
         $imported     = 0;
         $skipped      = 0;
@@ -935,8 +947,8 @@ final class ListingAdminImportSource implements ImportSourceInterface
         $existingUrls = array_flip($existStmt->fetchAll(PDO::FETCH_COLUMN));
 
         $insertStmt = $target->prepare(
-            'INSERT INTO lstr_joined (name, url, image, category, category_id, date_joined, active, status, sort_order)
-             VALUES (:name, :url, :image, :category, :category_id, :date_joined, :active, :status, 0)'
+            'INSERT INTO lstr_joined (name, url, image, category, categories_json, category_id, date_joined, active, status, sort_order)
+             VALUES (:name, :url, :image, :category, :categories_json, :category_id, :date_joined, :active, :status, 0)'
         );
 
         try {
@@ -999,9 +1011,25 @@ final class ListingAdminImportSource implements ImportSourceInterface
                 continue;
             }
 
-            $catName  = trim((string) ($row['jCategory'] ?? ''));
-            $newCatId = $catName !== '' && isset($catNameToId[$catName]) ? $catNameToId[$catName] : null;
-            $active   = ((int) ($row['jStatus'] ?? 1)) === 1 ? 1 : 0;
+            // Resolve all categories — handles pipe-delimited IDs (|12|) and plain names.
+            $jCatRaw    = trim((string) ($row['jCategory'] ?? ''));
+            $parsedIds  = self::parseLegacyCategoryIds($jCatRaw);
+            $catNames   = [];
+            if (!empty($parsedIds) && !empty($srcCatIdToName)) {
+                foreach ($parsedIds as $srcId) {
+                    $n = $srcCatIdToName[$srcId] ?? '';
+                    if ($n !== '') {
+                        $catNames[] = $n;
+                    }
+                }
+            } elseif ($jCatRaw !== '' && empty($parsedIds)) {
+                $catNames = [$jCatRaw]; // plain text name
+            }
+            $firstCatName   = $catNames[0] ?? '';
+            $newCatId       = ($firstCatName !== '' && isset($catNameToId[$firstCatName])) ? $catNameToId[$firstCatName] : null;
+            $catJsonEntries = array_map(static fn(string $n) => ['network' => 'Imported', 'name' => $n], $catNames);
+            $categoriesJson = !empty($catJsonEntries) ? json_encode($catJsonEntries) : null;
+            $active         = ((int) ($row['jStatus'] ?? 1)) === 1 ? 1 : 0;
 
             // Image migration for new records
             $newImage = null;
@@ -1014,14 +1042,15 @@ final class ListingAdminImportSource implements ImportSourceInterface
 
             try {
                 $insertStmt->execute([
-                    'name'        => $name,
-                    'url'         => $url,
-                    'image'       => $newImage,
-                    'category'    => $catName,
-                    'category_id' => $newCatId,
-                    'date_joined' => !empty($row['jAdd']) ? $row['jAdd'] : null,
-                    'active'      => $active,
-                    'status'      => $active === 1 ? 'approved' : 'pending',
+                    'name'            => $name,
+                    'url'             => $url,
+                    'image'           => $newImage,
+                    'category'        => $firstCatName,
+                    'categories_json' => $categoriesJson,
+                    'category_id'     => $newCatId,
+                    'date_joined'     => !empty($row['jAdd']) ? $row['jAdd'] : null,
+                    'active'          => $active,
+                    'status'          => $active === 1 ? 'approved' : 'pending',
                 ]);
                 $existingUrls[$url] = true;
                 $imported++;
@@ -1587,6 +1616,60 @@ final class ListingAdminImportSource implements ImportSourceInterface
 
         $skipped++;
         return null;
+    }
+
+    /**
+     * Parses legacy category ID strings used by Enthusiast and Listing Admin.
+     *
+     * Handled formats:
+     *   '12'       → [12]
+     *   '|12|'     → [12]
+     *   '|12|34|'  → [12, 34]
+     *   '!12!'     → [12]
+     *   '!12!!34!' → [12, 34]
+     *
+     * Returns empty array for blank input or non-numeric strings (plain names).
+     *
+     * @return int[]
+     */
+    private static function parseLegacyCategoryIds(string $raw): array
+    {
+        $raw = trim($raw);
+        if ($raw === '') {
+            return [];
+        }
+        if (str_starts_with($raw, '|')) {
+            preg_match_all('/\|(\d+)(?=\|)/', $raw, $m);
+            return array_map('intval', $m[1]);
+        }
+        if (str_starts_with($raw, '!')) {
+            preg_match_all('/!(\d+)!/', $raw, $m);
+            return array_map('intval', $m[1]);
+        }
+        if (ctype_digit($raw)) {
+            return [(int) $raw];
+        }
+        return [];
+    }
+
+    /**
+     * Loads a source catid → catname map from the LA categories table.
+     * Returns [] if the table is absent or unreadable.
+     *
+     * @return array<int,string>
+     */
+    private function buildSourceCategoryMap(PDO $source, string $tp): array
+    {
+        try {
+            $stmt = $source->query("SELECT catid, catname FROM `{$tp}categories`");
+            $map  = [];
+            foreach ($stmt->fetchAll() as $r) {
+                $map[(int) $r['catid']] = trim((string) $r['catname']);
+            }
+            return $map;
+        } catch (\Throwable) {
+            return [];
+        }
     }
 
     /**

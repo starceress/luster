@@ -779,8 +779,8 @@ final class EnthusiastImportSource implements ImportSourceInterface
         $existingUrls = array_flip($existStmt->fetchAll(PDO::FETCH_COLUMN));
 
         $insertStmt = $target->prepare(
-            'INSERT INTO lstr_joined (name, url, image, category, category_id, date_joined, active, status, sort_order)
-             VALUES (:name, :url, :image, :category, :category_id, :date_joined, :active, :status, 0)'
+            'INSERT INTO lstr_joined (name, url, image, category, categories_json, category_id, date_joined, active, status, sort_order)
+             VALUES (:name, :url, :image, :category, :categories_json, :category_id, :date_joined, :active, :status, 0)'
         );
 
         // ORDER BY the PK — try joinedid first (standard Enthusiast), fall back to id.
@@ -854,17 +854,26 @@ final class EnthusiastImportSource implements ImportSourceInterface
                     continue;
                 }
                 try {
-                    // Resolve category for overwrite path too
-                    $ovSrcCatId = (int) ($row['catid'] ?? 0);
-                    $ovCatName  = $ovSrcCatId > 0 ? ($srcCatMap[$ovSrcCatId] ?? '') : '';
-                    if ($ovCatName === '') {
-                        $ovCatName = trim(self::decodeEnth((string) ($row['catname'] ?? $row['category'] ?? '')));
+                    // Resolve all categories for overwrite path (handles pipe-delimited catid)
+                    $ovParsedIds = self::parseLegacyCategoryIds(trim((string) ($row['catid'] ?? '')));
+                    $ovCatNames  = [];
+                    foreach ($ovParsedIds as $sid) {
+                        $n = $srcCatMap[$sid] ?? '';
+                        if ($n !== '') { $ovCatNames[] = $n; }
                     }
-                    $ovCatId = ($ovCatName !== '' && isset($catNameToId[$ovCatName])) ? $catNameToId[$ovCatName] : null;
+                    if (empty($ovCatNames)) {
+                        $inline = trim(self::decodeEnth((string) ($row['catname'] ?? $row['category'] ?? '')));
+                        if ($inline !== '') { $ovCatNames = [$inline]; }
+                    }
+                    $ovCatName = $ovCatNames[0] ?? '';
+                    $ovCatId   = ($ovCatName !== '' && isset($catNameToId[$ovCatName])) ? $catNameToId[$ovCatName] : null;
+                    $ovCatJson = !empty($ovCatNames)
+                        ? json_encode(array_map(static fn(string $n) => ['network' => 'Imported', 'name' => $n], $ovCatNames))
+                        : null;
                     $updStmt = $target->prepare(
-                        'UPDATE lstr_joined SET name = :name, category = :category, category_id = :category_id WHERE url = :url'
+                        'UPDATE lstr_joined SET name = :name, category = :category, categories_json = :categories_json, category_id = :category_id WHERE url = :url'
                     );
-                    $updStmt->execute(['name' => $name, 'category' => $ovCatName, 'category_id' => $ovCatId, 'url' => $url]);
+                    $updStmt->execute(['name' => $name, 'category' => $ovCatName, 'categories_json' => $ovCatJson, 'category_id' => $ovCatId, 'url' => $url]);
                     $skipped++;
                 } catch (\Throwable $e) {
                     $errors[] = "Joined '{$url}': " . $e->getMessage();
@@ -872,16 +881,24 @@ final class EnthusiastImportSource implements ImportSourceInterface
                 continue;
             }
 
-            // Resolve category.
-            // Primary path: catid FK → name via srcCatMap (standard Enthusiast).
-            // Fallback: if catid is 0/absent but a catname/category text column exists,
-            // use it directly (some Erin's Fork installs store the name inline).
-            $srcCatId = (int) ($row['catid'] ?? 0);
-            $catName  = $srcCatId > 0 ? ($srcCatMap[$srcCatId] ?? '') : '';
-            if ($catName === '') {
-                $catName = trim((string) ($row['catname'] ?? $row['category'] ?? ''));
+            // Resolve all categories — standard Enthusiast stores a single integer catid;
+            // some forks store pipe-delimited values (|4|18|). Handle both.
+            $parsedCatIds = self::parseLegacyCategoryIds(trim((string) ($row['catid'] ?? '')));
+            $catNames     = [];
+            foreach ($parsedCatIds as $srcId) {
+                $n = $srcCatMap[$srcId] ?? '';
+                if ($n !== '') { $catNames[] = $n; }
             }
-            $newCatId = ($catName !== '' && isset($catNameToId[$catName])) ? $catNameToId[$catName] : null;
+            if (empty($catNames)) {
+                // Fallback: inline catname/category text (Erin's Fork and similar)
+                $inline = trim(self::decodeEnth((string) ($row['catname'] ?? $row['category'] ?? '')));
+                if ($inline !== '') { $catNames = [$inline]; }
+            }
+            $catName        = $catNames[0] ?? '';
+            $newCatId       = ($catName !== '' && isset($catNameToId[$catName])) ? $catNameToId[$catName] : null;
+            $categoriesJson = !empty($catNames)
+                ? json_encode(array_map(static fn(string $n) => ['network' => 'Imported', 'name' => $n], $catNames))
+                : null;
 
             // Invert pending flag: Enthusiast pending=0 means approved → active=1
             $active = ((int) ($row['pending'] ?? 0)) === 0 ? 1 : 0;
@@ -900,14 +917,15 @@ final class EnthusiastImportSource implements ImportSourceInterface
 
             try {
                 $insertStmt->execute([
-                    'name'        => $name,
-                    'url'         => $url,
-                    'image'       => $newImage,
-                    'category'    => $catName,
-                    'category_id' => $newCatId,
-                    'date_joined' => $dateJoined,
-                    'active'      => $active,
-                    'status'      => $active === 1 ? 'approved' : 'pending',
+                    'name'           => $name,
+                    'url'            => $url,
+                    'image'          => $newImage,
+                    'category'       => $catName,
+                    'categories_json' => $categoriesJson,
+                    'category_id'    => $newCatId,
+                    'date_joined'    => $dateJoined,
+                    'active'         => $active,
+                    'status'         => $active === 1 ? 'approved' : 'pending',
                 ]);
                 $existingUrls[$url] = true;
                 $imported++;
@@ -1777,6 +1795,40 @@ final class EnthusiastImportSource implements ImportSourceInterface
     // -----------------------------------------------------------------------
     // Shared utilities
     // -----------------------------------------------------------------------
+
+    /**
+     * Parses legacy category ID strings used by Enthusiast and Listing Admin.
+     *
+     * Handled formats:
+     *   '12'       → [12]
+     *   '|12|'     → [12]
+     *   '|12|34|'  → [12, 34]
+     *   '!12!'     → [12]
+     *   '!12!!34!' → [12, 34]
+     *
+     * Returns empty array for blank input or non-numeric strings (plain names).
+     *
+     * @return int[]
+     */
+    private static function parseLegacyCategoryIds(string $raw): array
+    {
+        $raw = trim($raw);
+        if ($raw === '') {
+            return [];
+        }
+        if (str_starts_with($raw, '|')) {
+            preg_match_all('/\|(\d+)(?=\|)/', $raw, $m);
+            return array_map('intval', $m[1]);
+        }
+        if (str_starts_with($raw, '!')) {
+            preg_match_all('/!(\d+)!/', $raw, $m);
+            return array_map('intval', $m[1]);
+        }
+        if (ctype_digit($raw)) {
+            return [(int) $raw];
+        }
+        return [];
+    }
 
     /**
      * Builds a category name → Luster id map from the target DB.
