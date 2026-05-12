@@ -1191,8 +1191,13 @@ function renderHeader(string $title, int $step): void
 .req-badge.ok   { background: var(--success-bg); color: var(--success); border-color: rgba(52,211,153,.2); }
 .req-badge.fail { background: var(--danger-bg);  color: var(--danger);  border-color: rgba(248,113,113,.2); }
 .req-badge.warn { background: var(--warn-bg);    color: var(--warn);    border-color: rgba(251,191,36,.2); }
-/* Success / done */
-.install-success-icon { font-size: 3rem; color: var(--success); margin-bottom: 1rem; }
+/* Completion gem */
+.install-success-gem {
+  width: 56px; height: 56px; margin: 0 auto 1.25rem;
+  background: linear-gradient(135deg, #ff7eb3 0%, #78e8d8 35%, #ffd166 65%, #70e098 100%);
+  clip-path: polygon(50% 0%, 100% 35%, 80% 100%, 20% 100%, 0% 35%);
+  animation: iGemFloat 4s ease-in-out infinite;
+}
 /* Footer hint */
 .install-footer {
   font-size: 0.78rem; color: var(--text-dim);
@@ -1248,9 +1253,10 @@ function renderHeader(string $title, int $step): void
 .install-helper-body p { margin: .55rem 0; }
 .install-helper-body p:first-child { margin-top: .65rem; }
 .install-helper-body code { background: var(--bg-subtle); padding: .1rem .35rem; border-radius: 4px; font-size: .88em; }
-/* Reduced motion: disable gem float animation */
+/* Reduced motion: disable gem float animations */
 @media (prefers-reduced-motion: reduce) {
-  .install-gem { animation: none; }
+  .install-gem,
+  .install-success-gem { animation: none; }
 }
 /* Narrow screens: hide stepper labels; progress text remains visible */
 @media (max-width: 640px) {
@@ -1630,7 +1636,7 @@ function renderDone(): void
 {
     ?>
 <div class="install-card" style="text-align:center">
-  <div class="install-success-icon">&#10003;</div>
+  <div class="install-success-gem" role="img" aria-label="Luster gem"></div>
   <h2>Installation Complete!</h2>
   <p style="color:var(--text-muted);margin:.5rem 0 1.75rem;line-height:1.6">
     Luster has been installed. Your database tables are ready and your admin account is active.
@@ -1661,7 +1667,7 @@ function renderDone(): void
     </li>
     <li style="display:flex;gap:10px;font-size:.88rem;color:var(--text-muted);line-height:1.55">
       <span style="color:var(--success);flex-shrink:0;font-weight:700">&#10003;</span>
-      <span>Review <strong>Settings &rarr; General</strong> in the admin panel to confirm your collective URL, timezone, and owner contact details.</span>
+      <span>Review <strong>Settings</strong> in the admin panel to confirm your site URL, timezone, and owner contact details.</span>
     </li>
   </ul>
 </div>
