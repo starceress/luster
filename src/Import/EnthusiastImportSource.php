@@ -208,8 +208,13 @@ final class EnthusiastImportSource implements ImportSourceInterface
         // but no longer stored in session when a pre-uploaded ZIP is used.
         $imageMap = [];
 
+        // $catIdMap holds source-catid → Luster-category-id, built from runCategories().
+        // Passed to runOwnedListings() so imported listings' catid column is remapped
+        // to the correct ID in the target rather than being copied verbatim.
+        $catIdMap = [];
         if ($options->importCategories) {
-            $rows[] = $this->runCategories($source, $target, $schema, $options);
+            ['row' => $catRow, 'idMap' => $catIdMap] = $this->runCategories($source, $target, $schema, $options);
+            $rows[] = $catRow;
         }
 
         // Build category name→new-id map for joined listings
@@ -248,7 +253,7 @@ final class EnthusiastImportSource implements ImportSourceInterface
         }
 
         if ($options->importOwnedListings) {
-            $rows[] = $this->runOwnedListings($source, $target, $schema, $options, $sameDb);
+            $rows[] = $this->runOwnedListings($source, $target, $schema, $options, $sameDb, $catIdMap);
         }
 
         if ($options->importMembers) {
@@ -418,7 +423,12 @@ final class EnthusiastImportSource implements ImportSourceInterface
     // Run helpers — Categories
     // -----------------------------------------------------------------------
 
-    /** @return array{type:string,imported:int,skipped:int,warnings:string[],errors:string[]} */
+    /**
+     * @return array{
+     *   row: array{type:string,imported:int,skipped:int,warnings:string[],errors:string[],skipped_items:array<int,array{label:string,reason:string}>},
+     *   idMap: array<int,int>
+     * }
+     */
     private function runCategories(PDO $source, PDO $target, string $schema, ImportOptions $options): array
     {
         $tp           = $options->tablePrefix;
@@ -433,9 +443,12 @@ final class EnthusiastImportSource implements ImportSourceInterface
             $stmt = $source->query("SELECT * FROM `{$srcTable}` ORDER BY parent ASC, catid ASC");
             $srcRows = $stmt->fetchAll();
         } catch (\Throwable $e) {
-            return ['type' => 'Categories', 'imported' => 0, 'skipped' => 0,
-                    'warnings' => [], 'errors' => ['Could not read source categories: ' . $e->getMessage()],
-                    'skipped_items' => []];
+            return [
+                'row'   => ['type' => 'Categories', 'imported' => 0, 'skipped' => 0,
+                            'warnings' => [], 'errors' => ['Could not read source categories: ' . $e->getMessage()],
+                            'skipped_items' => []],
+                'idMap' => [],
+            ];
         }
 
         // Load existing category names in target to detect conflicts
@@ -509,8 +522,11 @@ final class EnthusiastImportSource implements ImportSourceInterface
             }
         }
 
-        return ['type' => 'Categories', 'imported' => $imported, 'skipped' => $skipped,
-                'warnings' => [], 'errors' => $errors, 'skipped_items' => $skippedItems];
+        return [
+            'row'   => ['type' => 'Categories', 'imported' => $imported, 'skipped' => $skipped,
+                        'warnings' => [], 'errors' => $errors, 'skipped_items' => $skippedItems],
+            'idMap' => $srcIdToNewId,
+        ];
     }
 
     // -----------------------------------------------------------------------
@@ -1177,8 +1193,13 @@ final class EnthusiastImportSource implements ImportSourceInterface
     // -----------------------------------------------------------------------
 
     /** @return array{type:string,imported:int,skipped:int,warnings:string[],errors:string[]} */
+    /**
+     * @param array<int,int> $catIdMap  Source catid → Luster lstr_categories.id, built by runCategories().
+     *                                   Empty when categories were not imported in this run.
+     */
     private function runOwnedListings(
-        PDO $source, PDO $target, string $schema, ImportOptions $options, bool $sameDb
+        PDO $source, PDO $target, string $schema, ImportOptions $options, bool $sameDb,
+        array $catIdMap = []
     ): array {
         // Same DB + unprefixed: the `owned` table in source IS the target table — nothing to copy.
         if ($sameDb && $schema === 'enthusiast_unprefixed') {
@@ -1264,6 +1285,14 @@ final class EnthusiastImportSource implements ImportSourceInterface
                 $catid      = trim((string) ($row['catid'] ?? ''));
                 $additional = trim((string) ($row['additional'] ?? ''));
                 $status     = (int) ($row['status'] ?? 2);
+            }
+
+            // Remap the source category ID to the Luster lstr_categories ID assigned
+            // during this import run.  Without this, a source catid=4 would be stored
+            // verbatim even if the target assigned that category a different ID.
+            $srcCatInt = (int) $catid;
+            if ($srcCatInt > 0 && isset($catIdMap[$srcCatInt])) {
+                $catid = (string) $catIdMap[$srcCatInt];
             }
 
             $params = [

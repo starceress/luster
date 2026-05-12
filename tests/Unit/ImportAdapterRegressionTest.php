@@ -639,6 +639,145 @@ final class ImportAdapterRegressionTest extends TestCase
     }
 
     // -----------------------------------------------------------------------
+    // Category ID remapping — owned listings catid
+    // -----------------------------------------------------------------------
+
+    /**
+     * When categories and owned listings are imported together, the catid stored
+     * in owned must be the Luster lstr_categories.id assigned during this import
+     * run — NOT the raw source catid.
+     *
+     * Scenario: source has catid=4 → "Music".  Target already has "Music" at
+     * id=7 (pre-existing rows pushed the auto-increment past 4).  After import
+     * the owned row must store catid='7', not '4'.
+     */
+    public function testRunOwnedListingsRemapsCatidViaImportedCategoryMap(): void
+    {
+        $src = $this->makePdo();
+        $src->exec(
+            "CREATE TABLE `category` (
+                catid   INTEGER PRIMARY KEY,
+                parent  INTEGER NOT NULL DEFAULT 0,
+                catname TEXT    NOT NULL
+            )"
+        );
+        $src->exec("INSERT INTO `category` VALUES (4, 0, 'Music')");
+
+        $src->exec(
+            "CREATE TABLE `owned` (
+                listingid INTEGER PRIMARY KEY,
+                dbtable   TEXT NOT NULL DEFAULT '',
+                title     TEXT NOT NULL DEFAULT '',
+                subject   TEXT NOT NULL DEFAULT '',
+                email     TEXT NOT NULL DEFAULT '',
+                url       TEXT NOT NULL DEFAULT '',
+                catid     TEXT NOT NULL DEFAULT '',
+                additional TEXT NOT NULL DEFAULT '',
+                status    INTEGER NOT NULL DEFAULT 2
+            )"
+        );
+        $src->exec(
+            "INSERT INTO `owned` VALUES (1, 'music_fans', 'Music Fans', 'Music', 'owner@test.com', 'https://music.example.com', '4', '', 2)"
+        );
+
+        $tgt = $this->makePdo();
+        $this->seedOwnedTarget($tgt);
+
+        // Pre-populate target lstr_categories so that auto-increment assigns
+        // id=7 to "Music" (not id=1, which would hide the remapping bug).
+        for ($i = 1; $i <= 6; $i++) {
+            $tgt->exec("INSERT INTO lstr_categories (name, source) VALUES ('Filler{$i}', 'custom')");
+        }
+        $tgt->exec("INSERT INTO lstr_categories (name, source, parent_id) VALUES ('Music', 'custom', NULL)");
+        // Music is now at id=7 in the target.
+
+        $opts = ImportOptions::fromPost([
+            'source'                => 'enthusiast',
+            'conflict_strategy'     => 'skip',
+            'import_categories'     => '1',
+            'import_owned_listings' => '1',
+            '_dump_schema_variant'  => 'enthusiast_unprefixed',
+        ]);
+
+        $result = $this->enthAdapter()->run($src, $tgt, $opts);
+
+        $ownedRow = null;
+        foreach ($result->rows as $row) {
+            if ($row['type'] === 'Owned listings') {
+                $ownedRow = $row;
+                break;
+            }
+        }
+
+        $this->assertNotNull($ownedRow, 'Run result must include an Owned listings row');
+        $this->assertSame(1, $ownedRow['imported']);
+        $this->assertEmpty($ownedRow['errors']);
+
+        $storedCatid = (string) $tgt->query(
+            "SELECT catid FROM owned WHERE url = 'https://music.example.com'"
+        )->fetchColumn();
+
+        $this->assertSame('7', $storedCatid,
+            'catid must be remapped to the Luster category ID (7), not the raw source ID (4)');
+    }
+
+    /**
+     * When owned listings are imported WITHOUT importing categories first
+     * (no catIdMap), the catid must be stored verbatim from the source.
+     * This guards the no-map path against an unintended no-op change.
+     */
+    public function testRunOwnedListingsPassesCatidThroughWhenCategoriesNotImported(): void
+    {
+        $src = $this->makePdo();
+        $src->exec(
+            "CREATE TABLE `owned` (
+                listingid INTEGER PRIMARY KEY,
+                dbtable   TEXT NOT NULL DEFAULT '',
+                title     TEXT NOT NULL DEFAULT '',
+                subject   TEXT NOT NULL DEFAULT '',
+                email     TEXT NOT NULL DEFAULT '',
+                url       TEXT NOT NULL DEFAULT '',
+                catid     TEXT NOT NULL DEFAULT '',
+                additional TEXT NOT NULL DEFAULT '',
+                status    INTEGER NOT NULL DEFAULT 2
+            )"
+        );
+        $src->exec(
+            "INSERT INTO `owned` VALUES (1, 'games_fans', 'Games Fans', 'Games', 'owner@test.com', 'https://games.example.com', '12', '', 2)"
+        );
+
+        $tgt = $this->makePdo();
+        $this->seedOwnedTarget($tgt);
+
+        $opts = ImportOptions::fromPost([
+            'source'                => 'enthusiast',
+            'conflict_strategy'     => 'skip',
+            'import_owned_listings' => '1',   // categories intentionally NOT imported
+            '_dump_schema_variant'  => 'enthusiast_unprefixed',
+        ]);
+
+        $result = $this->enthAdapter()->run($src, $tgt, $opts);
+
+        $ownedRow = null;
+        foreach ($result->rows as $row) {
+            if ($row['type'] === 'Owned listings') {
+                $ownedRow = $row;
+                break;
+            }
+        }
+
+        $this->assertNotNull($ownedRow);
+        $this->assertSame(1, $ownedRow['imported']);
+
+        $storedCatid = (string) $tgt->query(
+            "SELECT catid FROM owned WHERE url = 'https://games.example.com'"
+        )->fetchColumn();
+
+        $this->assertSame('12', $storedCatid,
+            'catid must pass through unchanged when no category map is available');
+    }
+
+    // -----------------------------------------------------------------------
     // Fix 3 + Fix 4 combined — custom LA prefix into owned target
     // -----------------------------------------------------------------------
 

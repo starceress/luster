@@ -381,6 +381,8 @@ HTML);
 
 $config = require $configPath;
 
+require_once __DIR__ . '/../src/Support/CategorySeedCatalog.php';
+
 $dsn = sprintf(
     'mysql:host=%s;port=%d;dbname=%s;charset=%s',
     $config['db_host']    ?? 'localhost',
@@ -623,23 +625,7 @@ try {
             'ALTER TABLE `lstr_joined`
              ADD COLUMN IF NOT EXISTS `category_id` INT UNSIGNED NULL'
         );
-        $tflCategories = [
-            'Academia','Actors','Actresses','Adult','Advertising/TV Channels','Albums',
-            'Animals','Animation','Anime/Manga','Arts and Design','Authors/Writers',
-            'Calendar Events','Characters: Book/Movie','Characters: TV','Comics',
-            'Companies','Computer Miscellany and Internet','Directors/Producers',
-            'Episodes','Fan Works','Fashion/Beauty','Food/Drinks','Games',
-            'History/Royalty','Hobbies and Recreation','Literature','Miscellaneous',
-            'Models','Movies','Music Miscellany','Musicians: Bands/Groups',
-            'Musicians: Female','Musicians: Male','Mythology/Religion','Nature',
-            'Objects','People Miscellany','Personalities','Places',
-            'Politics and Organisations','Relationships: Book/Movie',
-            'Relationships: Real Life','Relationships: TV',
-            'Songs: Bands/Groups 0-M','Songs: Bands/Groups N-Z',
-            'Songs: Female Solo','Songs: Male Solo','Songs: Various','Sports',
-            'Sports Entertainment','Stage/Theatre','Toys/Collectibles',
-            'Transportation','TV Shows','TV/Movie/Book Miscellany','Webmasters','Websites',
-        ];
+        $tflCategories = \Luster\Support\CategorySeedCatalog::tfl();
         $pdo->exec("DELETE FROM `lstr_categories` WHERE source = 'tfl'");
         $stmt = $pdo->prepare("INSERT IGNORE INTO `lstr_categories` (name, source, parent_id) VALUES (:name, 'tfl', NULL)");
         foreach ($tflCategories as $catName) {
@@ -678,14 +664,7 @@ try {
 // ─────────────────────────────────────────────────────────────────────────────
 try {
     if (!(int) $pdo->query('SELECT COUNT(*) FROM `lstr_migrations` WHERE migration_number = 9')->fetchColumn()) {
-        $taflCategories = [
-            'Anime/Manga: Adult','Anime/Manga: Characters 0-M','Anime/Manga: Characters N-Z',
-            'Anime/Manga: Episodes','Anime/Manga: Fanstuff','Anime/Manga: General',
-            'Anime/Manga: Items/Locations','Anime/Manga: Manga-ka & Directors',
-            'Anime/Manga: Movies/OVAs','Anime/Manga: Music & Songs',
-            'Anime/Manga: Relationships','Anime/Manga: Rivalries',
-            'Anime/Manga: Seiyuu','Anime/Manga: Series',
-        ];
+        $taflCategories = \Luster\Support\CategorySeedCatalog::tafl();
         $pdo->exec("DELETE FROM `lstr_categories` WHERE source = 'tafl'");
         $stmt = $pdo->prepare("INSERT IGNORE INTO `lstr_categories` (name, parent_id, source) VALUES (:name, NULL, 'tafl')");
         foreach ($taflCategories as $catName) {
@@ -1450,6 +1429,49 @@ try {
     }
 } catch (PDOException $e) {
     $errors[] = 'Migration 41 — ' . htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Migration 42: backfill any missing TFL/TAFL seed rows in lstr_categories.
+//
+// Fresh installs via install.php now seed these rows directly, but any install
+// that went through migrations 7 and 9 before the CategorySeedCatalog was
+// introduced has the correct data already.  This migration is intentionally
+// INSERT-only — it never deletes or renames existing rows.
+// ─────────────────────────────────────────────────────────────────────────────
+try {
+    if (!(int) $pdo->query('SELECT COUNT(*) FROM `lstr_migrations` WHERE migration_number = 42')->fetchColumn()) {
+        $tableExists = (bool) $pdo->query("SHOW TABLES LIKE 'lstr_categories'")->fetchColumn();
+        if ($tableExists) {
+            $checkStmt  = $pdo->prepare(
+                "SELECT COUNT(*) FROM lstr_categories WHERE source = :source AND name = :name"
+            );
+            $insertStmt = $pdo->prepare(
+                "INSERT INTO lstr_categories (name, source, parent_id) VALUES (:name, :source, NULL)"
+            );
+            $seeded = 0;
+            $seeds  = [
+                'tfl'  => \Luster\Support\CategorySeedCatalog::tfl(),
+                'tafl' => \Luster\Support\CategorySeedCatalog::tafl(),
+            ];
+            foreach ($seeds as $src => $names) {
+                foreach ($names as $catName) {
+                    $checkStmt->execute(['source' => $src, 'name' => $catName]);
+                    if (!(int) $checkStmt->fetchColumn()) {
+                        $insertStmt->execute(['name' => $catName, 'source' => $src]);
+                        $seeded++;
+                    }
+                }
+            }
+        }
+        $pdo->exec('INSERT INTO `lstr_migrations` (migration_number) VALUES (42)');
+        $msg = $tableExists
+            ? 'Backfilled ' . $seeded . ' missing TFL/TAFL category row(s) into <code>lstr_categories</code>'
+            : 'Skipped TFL/TAFL seed — <code>lstr_categories</code> table not found';
+        $done[] = $msg;
+    }
+} catch (PDOException $e) {
+    $errors[] = 'Migration 42 — ' . htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

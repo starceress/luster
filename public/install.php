@@ -544,12 +544,37 @@ function installTables(PDO $pdo): void
         $pdo->exec($statement);
     }
 
-    // Mark all current migrations as already run so that migrate.php
-    // treats this as a fully up-to-date install.
+    // Seed the official TFL and TAFL category lists so fresh installs have a
+    // populated category table without needing to run migrate.php.
+    require_once __DIR__ . '/../src/Support/CategorySeedCatalog.php';
+    $catCheck  = $pdo->prepare(
+        "SELECT COUNT(*) FROM lstr_categories WHERE source = :source AND name = :name"
+    );
+    $catInsert = $pdo->prepare(
+        "INSERT INTO lstr_categories (name, source, parent_id) VALUES (:name, :source, NULL)"
+    );
+    $seedData = [
+        'tfl'  => \Luster\Support\CategorySeedCatalog::tfl(),
+        'tafl' => \Luster\Support\CategorySeedCatalog::tafl(),
+    ];
+    foreach ($seedData as $src => $names) {
+        foreach ($names as $catName) {
+            $catCheck->execute(['source' => $src, 'name' => $catName]);
+            if (!(int) $catCheck->fetchColumn()) {
+                $catInsert->execute(['name' => $catName, 'source' => $src]);
+            }
+        }
+    }
+
+    // Mark all migrations as already run so that migrate.php treats this
+    // install as fully up-to-date.  The schema created above already
+    // incorporates every column and table added by migrations 1–42.
     $pdo->exec(
         'INSERT IGNORE INTO `lstr_migrations` (migration_number) VALUES
          (1),(2),(3),(4),(5),(6),(7),(8),(9),(10),(11),(12),(13),
-         (14),(15),(16),(17),(18),(19),(20),(21),(22),(23),(24)'
+         (14),(15),(16),(17),(18),(19),(20),(21),(22),(23),(24),
+         (25),(26),(27),(28),(29),(30),(31),(32),(33),(34),(35),
+         (36),(37),(38),(39),(40),(41),(42)'
     );
 }
 
