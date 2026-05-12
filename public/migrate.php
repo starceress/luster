@@ -1475,6 +1475,82 @@ try {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Migration 43: UNIQUE(source, name) index on lstr_categories.
+//
+// Prevents duplicate seed rows from multiple migrate.php runs or concurrent
+// admin seeding.  Remaps FK references to the MIN(id) survivor before deleting
+// duplicates, then adds the constraint via ALTER TABLE ... ADD UNIQUE KEY.
+// ─────────────────────────────────────────────────────────────────────────────
+try {
+    if (!(int) $pdo->query('SELECT COUNT(*) FROM `lstr_migrations` WHERE migration_number = 43')->fetchColumn()) {
+        $tableExists = (bool) $pdo->query("SHOW TABLES LIKE 'lstr_categories'")->fetchColumn();
+        if ($tableExists) {
+            // Derived table: one row per (source, name) group that has duplicates,
+            // holding the MIN(id) that will survive.  Every remap below joins
+            // against this subquery so that with N duplicates all non-MIN ids are
+            // unconditionally updated to the single surviving id — no ambiguity.
+            $survivorSub = "SELECT source, name, MIN(id) AS min_id
+                            FROM lstr_categories
+                            GROUP BY source, name
+                            HAVING COUNT(*) > 1";
+
+            $pdo->exec("
+                UPDATE lstr_joined j
+                INNER JOIN lstr_categories dup ON j.category_id = dup.id
+                INNER JOIN ({$survivorSub}) survivors
+                    ON survivors.source  = dup.source
+                   AND survivors.name    = dup.name
+                   AND survivors.min_id != dup.id
+                SET j.category_id = survivors.min_id
+            ");
+
+            if ((bool) $pdo->query("SHOW TABLES LIKE 'owned'")->fetchColumn()) {
+                $pdo->exec("
+                    UPDATE owned o
+                    INNER JOIN lstr_categories dup ON o.category_id = dup.id
+                    INNER JOIN ({$survivorSub}) survivors
+                        ON survivors.source  = dup.source
+                       AND survivors.name    = dup.name
+                       AND survivors.min_id != dup.id
+                    SET o.category_id = survivors.min_id
+                ");
+            }
+
+            if ((bool) $pdo->query("SHOW TABLES LIKE 'enth_fanlistings'")->fetchColumn()) {
+                $pdo->exec("
+                    UPDATE enth_fanlistings e
+                    INNER JOIN lstr_categories dup ON e.category_id = dup.id
+                    INNER JOIN ({$survivorSub}) survivors
+                        ON survivors.source  = dup.source
+                       AND survivors.name    = dup.name
+                       AND survivors.min_id != dup.id
+                    SET e.category_id = survivors.min_id
+                ");
+            }
+
+            // Delete all non-surviving duplicates, keeping the lowest id per (source, name).
+            $pdo->exec("
+                DELETE c1 FROM lstr_categories c1
+                INNER JOIN lstr_categories c2
+                WHERE c1.id > c2.id
+                  AND c1.source = c2.source
+                  AND c1.name   = c2.name
+            ");
+
+            $pdo->exec(
+                "ALTER TABLE lstr_categories ADD UNIQUE KEY uq_categories_source_name (source, name)"
+            );
+        }
+        $pdo->exec('INSERT INTO `lstr_migrations` (migration_number) VALUES (43)');
+        $done[] = $tableExists
+            ? 'Added UNIQUE(source, name) index to <code>lstr_categories</code>'
+            : 'Skipped — <code>lstr_categories</code> table not found';
+    }
+} catch (PDOException $e) {
+    $errors[] = 'Migration 43 — ' . htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Build results HTML
 // ─────────────────────────────────────────────────────────────────────────────
 

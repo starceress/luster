@@ -621,7 +621,8 @@ function installTables(PDO $pdo): void
             `parent_id`  INT UNSIGNED NULL,
             `source`     VARCHAR(50)  NOT NULL DEFAULT 'custom',
             `created_at` DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
-            PRIMARY KEY (`id`)
+            PRIMARY KEY (`id`),
+            UNIQUE KEY `uq_categories_source_name` (`source`, `name`)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
 
         // Spam / email blacklist.
@@ -684,13 +685,13 @@ function installTables(PDO $pdo): void
 
     // Mark all migrations as already run so that migrate.php treats this
     // install as fully up-to-date.  The schema created above already
-    // incorporates every column and table added by migrations 1–42.
+    // incorporates every column and table added by migrations 1–43.
     $pdo->exec(
         'INSERT IGNORE INTO `lstr_migrations` (migration_number) VALUES
          (1),(2),(3),(4),(5),(6),(7),(8),(9),(10),(11),(12),(13),
          (14),(15),(16),(17),(18),(19),(20),(21),(22),(23),(24),
          (25),(26),(27),(28),(29),(30),(31),(32),(33),(34),(35),
-         (36),(37),(38),(39),(40),(41),(42)'
+         (36),(37),(38),(39),(40),(41),(42),(43)'
     );
 }
 
