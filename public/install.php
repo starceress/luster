@@ -135,7 +135,12 @@ $stored = $_SESSION['lstr_install_data'] ?? [];
 
 if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['back'])) {
     $targetStep = (int) $_GET['back'];
-    if ($targetStep === 2) {
+    if ($targetStep === 1) {
+        // Back to Requirements: no data to clear.
+        $_SESSION['lstr_install_step'] = 1;
+        header('Location: install.php');
+        exit;
+    } elseif ($targetStep === 2) {
         // Back to DB step: force re-validation and clear any stale password hash.
         unset($stored['db'], $stored['site']['admin_password_hash']);
         $_SESSION['lstr_install_data'] = $stored;
@@ -328,12 +333,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $site = $stored['site'] ?? null;
                 $hash = $site['admin_password_hash'] ?? null;
 
-                if ($db === null || $site === null || $hash === null) {
-                    $errors[] = 'Session expired or incomplete. Please start over.';
-                    $_SESSION['lstr_install_step'] = 1;
-                    unset($_SESSION['lstr_install_data']);
-                    $step = 1;
-                    break;
+                if ($db === null) {
+                    // DB session missing — re-validate credentials.
+                    $_SESSION['lstr_install_step'] = 2;
+                    header('Location: install.php');
+                    exit;
+                }
+
+                if ($site === null || $hash === null) {
+                    // Safe site data may still exist; preserve it and require
+                    // password re-entry rather than wiping the whole session.
+                    unset($stored['site']['admin_password_hash']);
+                    $_SESSION['lstr_install_data'] = $stored;
+                    $_SESSION['lstr_install_step'] = 3;
+                    header('Location: install.php');
+                    exit;
                 }
 
                 try {
@@ -399,6 +413,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $step = 4;
                 break;
         }
+    }
+}
+
+// -------------------------------------------------------------------------
+// Prerequisite guards — prevent rendering a step whose session data is
+// incomplete (stale lstr_install_step, tampered session, partial expiry).
+// Only redirect on GET; POST handlers own their own error paths.
+// -------------------------------------------------------------------------
+
+if ($_SERVER['REQUEST_METHOD'] === 'GET') {
+    if ($step >= 3 && empty($stored['db'])) {
+        $_SESSION['lstr_install_step'] = 2;
+        header('Location: install.php');
+        exit;
+    }
+    if ($step >= 4 && empty($stored['site']['admin_password_hash'])) {
+        $_SESSION['lstr_install_step'] = 3;
+        header('Location: install.php');
+        exit;
     }
 }
 
@@ -1324,8 +1357,9 @@ function renderStep2(string $csrf, array $stored): void
       <p class="form-hint">Leave blank if your database user has no password.</p>
     </div>
 
-    <div class="btn-row">
+    <div class="btn-row" style="display:flex;gap:10px;align-items:center">
       <button type="submit" class="btn btn-primary">Test &amp; Continue &rarr;</button>
+      <a href="install.php?back=1" class="btn btn-ghost">&larr; Back to Requirements</a>
     </div>
   </form>
 </div>
