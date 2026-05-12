@@ -12,6 +12,8 @@ use Luster\Core\View;
 /** @var \Luster\Models\JoinedListing[]  $dead_joined */
 /** @var array{ok:int,dead:int,redirect:int,unchecked:int} $aff_stats */
 /** @var array{ok:int,dead:int,redirect:int,unchecked:int} $joined_stats */
+/** @var \Luster\Models\Listing[]        $listings */
+/** @var ?int                            $listing_id_filter */
 /** @var string $owner_url */
 /** @var string $csrf_token */
 /** @var string $base_url */
@@ -22,6 +24,16 @@ $b = rtrim(View::e($base_url), '/');
 
 $totalMoved = count($moved_affiliates) + count($moved_joined);
 $totalDead  = count($dead_affiliates)  + count($dead_joined);
+
+$listingNameMap = [];
+foreach ($listings ?? [] as $_lst) {
+    $listingNameMap[$_lst->id] = $_lst->name;
+}
+$filterLabel = match (true) {
+    $listing_id_filter === 0    => 'Collective',
+    $listing_id_filter !== null => $listingNameMap[$listing_id_filter] ?? '',
+    default                     => null,
+};
 
 $statusLabel = static function (string $s): string {
     return match ($s) {
@@ -45,7 +57,12 @@ $statusLabel = static function (string $s): string {
 <!-- ── Summary strip ───────────────────────────────────────────────────────── -->
 <div class="lc-summary-grid">
   <div class="gradient-card lc-summary-card">
-    <div class="lc-summary-title">Affiliates <span class="lc-summary-total"><?= count($affiliates) ?></span></div>
+    <div class="lc-summary-title">
+      Affiliates <span class="lc-summary-total"><?= count($affiliates) ?></span>
+      <?php if ($filterLabel !== null): ?>
+        <span class="badge badge-inactive lc-filter-badge"><?= View::e($filterLabel) ?></span>
+      <?php endif; ?>
+    </div>
     <div class="lc-summary-stats">
       <span class="lc-badge lc-ok"><?= $aff_stats['ok'] ?> OK</span>
       <span class="lc-badge lc-dead"><?= $aff_stats['dead'] ?> Dead</span>
@@ -84,6 +101,22 @@ $statusLabel = static function (string $s): string {
   <!-- ── Affiliates panel ─────────────────────────────────────────────────── -->
   <div id="lc-panel-affiliates" class="lc-tab-panel" role="tabpanel">
     <div class="lc-controls">
+      <?php if (!empty($listings)): ?>
+      <form method="GET" action="<?= $b ?>/admin/link-checker" class="lc-filter-form">
+        <div class="select-wrap">
+          <select name="listing_id" class="js-autosubmit" aria-label="Filter by listing">
+            <option value="">All listings</option>
+            <option value="0" <?= $listing_id_filter === 0 ? 'selected' : '' ?>>Collective</option>
+            <?php foreach ($listings as $lst): ?>
+              <option value="<?= (int) $lst->id ?>"
+                      <?= $listing_id_filter === $lst->id ? 'selected' : '' ?>>
+                <?= View::e($lst->name) ?>
+              </option>
+            <?php endforeach; ?>
+          </select>
+        </div>
+      </form>
+      <?php endif; ?>
       <button class="btn btn-primary btn-sm" id="lc-check-affiliates"
               data-csrf="<?= View::e($csrf_token) ?>"
               data-endpoint="<?= $b ?>/admin/link-checker/check-affiliate"

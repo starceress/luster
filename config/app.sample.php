@@ -26,10 +26,20 @@ return [
 
     // ------------------------------------------------------------------
     // Application
+    //
+    // app_url  — URL to this Luster install, no trailing slash.
+    //            Used for routing, redirects, and all admin links.
+    //            e.g. https://example.com/luster/public
+    //
+    // site_url — Public collective homepage URL, no trailing slash.
+    //            Shown in outgoing emails and public pages. Can differ
+    //            from app_url when Luster lives in a subdirectory.
+    //            e.g. https://example.com
     // ------------------------------------------------------------------
     'site_name'  => 'Luster',
-    'site_url'  => 'http://localhost',   // No trailing slash
-    'app_debug' => false,                // Set true only in development
+    'app_url'    => 'http://localhost/luster/public',  // Luster install URL, no trailing slash
+    'site_url'   => 'http://localhost',                // Collective homepage, no trailing slash
+    'app_debug'  => false,                             // Set true only in development
 
     // ------------------------------------------------------------------
     // Site owner identity

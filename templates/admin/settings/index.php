@@ -680,6 +680,10 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
                 <?php endif; ?>
               </span>
             </div>
+            <div class="sysinfo-row">
+              <span class="form-label">Install URL</span>
+              <span class="text-mono text-dim"><?= View::e(cfgVal($cfg, 'app_url')) ?></span>
+            </div>
         </div>
 
         <!-- Migration Tool Visibility -->

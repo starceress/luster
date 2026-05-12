@@ -293,6 +293,8 @@
 
 .text-muted { color: var(--text-muted); }
 
+.text-mono { font-family: var(--font-mono, monospace); font-size: .875rem; }
+
 .cell-meta-nowrap { white-space: nowrap; font-size: .8rem; color: var(--text-muted); }
 
 .link-break { word-break: break-all; }

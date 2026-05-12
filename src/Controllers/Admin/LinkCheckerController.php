@@ -10,6 +10,7 @@ use Luster\Core\Response;
 use Luster\Repositories\AffiliateRepo;
 use Luster\Repositories\JoinedListingRepo;
 use Luster\Repositories\ActivityRepo;
+use Luster\Repositories\ListingRepo;
 
 final class LinkCheckerController extends AdminController
 {
@@ -29,7 +30,10 @@ final class LinkCheckerController extends AdminController
         $affRepo    = new AffiliateRepo($db);
         $joinedRepo = new JoinedListingRepo($db);
 
-        $affiliates = $affRepo->getAllForLinkCheck();
+        $listingIdRaw  = (string) $request->query('listing_id', '');
+        $listingFilter = ($listingIdRaw !== '' && ctype_digit($listingIdRaw)) ? (int) $listingIdRaw : null;
+
+        $affiliates = $affRepo->getAllForLinkCheck($listingFilter);
         $joined     = $joinedRepo->getAllForLinkCheck();
 
         $affStats    = $this->summarise($affiliates, 'link');
@@ -40,17 +44,19 @@ final class LinkCheckerController extends AdminController
             'Link Checker',
             'link-checker',
             [
-                'affiliates'       => $affiliates,
-                'joined'           => $joined,
-                'aff_stats'        => $affStats,
-                'joined_stats'     => $joinedStats,
-                'moved_affiliates' => $affRepo->getByLinkStatus('redirect'),
-                'moved_joined'     => $joinedRepo->getByLinkStatus('redirect'),
-                'dead_affiliates'  => $affRepo->getByLinkStatus('dead'),
-                'dead_joined'      => $joinedRepo->getByLinkStatus('dead'),
-                'owner_url'        => rtrim((string) $this->app->getConfig()->get('app_url', ''), '/'),
-                'success'          => $success,
-                'error'            => $error,
+                'affiliates'        => $affiliates,
+                'joined'            => $joined,
+                'aff_stats'         => $affStats,
+                'joined_stats'      => $joinedStats,
+                'moved_affiliates'  => $affRepo->getByLinkStatus('redirect', $listingFilter),
+                'moved_joined'      => $joinedRepo->getByLinkStatus('redirect'),
+                'dead_affiliates'   => $affRepo->getByLinkStatus('dead', $listingFilter),
+                'dead_joined'       => $joinedRepo->getByLinkStatus('dead'),
+                'owner_url'         => rtrim((string) $this->app->getConfig()->get('app_url', ''), '/'),
+                'listings'          => (new ListingRepo($db, $this->app->getConfig()))->getAll(),
+                'listing_id_filter' => $listingFilter,
+                'success'           => $success,
+                'error'             => $error,
             ],
         );
     }

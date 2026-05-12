@@ -557,36 +557,62 @@ final class AffiliateRepo
     // -----------------------------------------------------------------------
 
     /**
-     * Returns every affiliate row, ordered by listing scope then name.
-     * Used by the link-checker page which never paginates.
+     * Returns affiliate rows for the link-checker page, ordered collective-first then name.
+     *
+     * $listingId = null  → all affiliates (no fanlisting_id filter)
+     * $listingId = 0     → collective only (fanlisting_id IS NULL)
+     * $listingId > 0     → specific listing only
      *
      * @return Affiliate[]
      */
-    public function getAllForLinkCheck(): array
+    public function getAllForLinkCheck(?int $listingId = null): array
     {
+        [$where, $params] = $this->buildListingFilter('pending = 0', $listingId);
+
         $stmt = $this->db->prepare(
-            'SELECT * FROM lstr_affiliates WHERE pending = 0 ORDER BY (fanlisting_id IS NULL) DESC, name ASC'
+            "SELECT * FROM lstr_affiliates WHERE {$where} ORDER BY (fanlisting_id IS NULL) DESC, name ASC"
         );
-        $stmt->execute();
+        $stmt->execute($params);
 
         return array_map(static fn(array $r) => Affiliate::fromRow($r), $stmt->fetchAll());
     }
 
     /**
-     * Returns all affiliates with a given link_status, ordered collective-first then name.
+     * Returns all affiliates with a given link_status, optionally scoped to a listing.
+     *
+     * $listingId = null  → all affiliates
+     * $listingId = 0     → collective only (fanlisting_id IS NULL)
+     * $listingId > 0     → specific listing only
      *
      * @return Affiliate[]
      */
-    public function getByLinkStatus(string $status): array
+    public function getByLinkStatus(string $status, ?int $listingId = null): array
     {
+        [$where, $params] = $this->buildListingFilter('link_status = :status', $listingId);
+        $params['status'] = $status;
+
         $stmt = $this->db->prepare(
-            'SELECT * FROM lstr_affiliates
-             WHERE link_status = :status
-             ORDER BY (fanlisting_id IS NULL) DESC, name ASC'
+            "SELECT * FROM lstr_affiliates WHERE {$where} ORDER BY (fanlisting_id IS NULL) DESC, name ASC"
         );
-        $stmt->execute(['status' => $status]);
+        $stmt->execute($params);
 
         return array_map(static fn(array $r) => Affiliate::fromRow($r), $stmt->fetchAll());
+    }
+
+    /**
+     * Builds a WHERE fragment + params array for an optional fanlisting_id scope.
+     *
+     * @return array{0: string, 1: array<string, mixed>}
+     */
+    private function buildListingFilter(string $base, ?int $listingId): array
+    {
+        if ($listingId === 0) {
+            return [$base . ' AND fanlisting_id IS NULL', []];
+        }
+        if ($listingId !== null) {
+            return [$base . ' AND fanlisting_id = :fid', ['fid' => $listingId]];
+        }
+        return [$base, []];
     }
 
     /**
