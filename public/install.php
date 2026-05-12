@@ -1636,11 +1636,11 @@ function renderDone(): void
     </li>
     <li style="display:flex;gap:10px;font-size:.88rem;color:var(--text-muted);line-height:1.55">
       <span style="color:var(--success);flex-shrink:0;font-weight:700">&#10003;</span>
-      <span>Migrating from Enthusiast or another script? Use <strong>Import Data</strong>, linked from the <a href="./admin.php" style="color:var(--accent)">System Info</a> page in the admin panel.</span>
+      <span>Migrating from Enthusiast or another script? Use <strong>Import Data &rarr; Import Wizard</strong> in the <a href="./admin.php" style="color:var(--accent)">admin panel</a> sidebar.</span>
     </li>
     <li style="display:flex;gap:10px;font-size:.88rem;color:var(--text-muted);line-height:1.55">
       <span style="color:var(--success);flex-shrink:0;font-weight:700">&#10003;</span>
-      <span>Enable outgoing email in <strong>Settings &rarr; SMTP</strong> in the admin panel so join confirmations and password resets work.</span>
+      <span>Enable outgoing email under <strong>Emails &rarr; SMTP Settings</strong> in the admin panel so join confirmations and password resets work.</span>
     </li>
     <li style="display:flex;gap:10px;font-size:.88rem;color:var(--text-muted);line-height:1.55">
       <span style="color:var(--success);flex-shrink:0;font-weight:700">&#10003;</span>
