@@ -64,11 +64,15 @@ $growthDiff          = $growth_this_month - $growth_last_month;
     <div class="welcome-sub" id="live-datetime"></div>
     <div class="welcome-title">Hey there, <?= View::e($admin_username) ?>!</div>
     <div class="welcome-sub">
-      <?php if ($total_pending > 0 || !empty($stale_listings)): ?>
+      <?php if ($total_pending > 0 || !empty($stale_listings) || ($pending_affiliates ?? 0) > 0): ?>
         <?php
           $parts = [];
           if ($total_pending > 0) {
               $parts[] = '<strong>' . (int) $total_pending . ' pending member' . ($total_pending !== 1 ? 's' : '') . '</strong>';
+          }
+          if (($pending_affiliates ?? 0) > 0) {
+              $pa = (int) $pending_affiliates;
+              $parts[] = '<strong>' . $pa . ' affiliate application' . ($pa !== 1 ? 's' : '') . '</strong>';
           }
           if (!empty($stale_listings)) {
               $n = count($stale_listings);
@@ -90,6 +94,28 @@ $growthDiff          = $growth_this_month - $growth_last_month;
     </a>
   </div>
 </div>
+
+
+<?php if ($no_listings ?? false): ?>
+<!-- ──── FIRST-TIME IMPORT CALLOUT ───────────────────────────────────── -->
+<div class="onboard-callout">
+  <div class="onboard-callout__inner">
+    <div class="onboard-callout__heading">
+      <span class="onboard-callout__sparkle">&#10022;</span>
+      Getting Started
+    </div>
+    <p class="onboard-callout__body">
+      Migrating from Enthusiast or Listing Admin? The Import Wizard brings in your listings, members,
+      affiliates, and images in minutes. Same-database Enthusiast installs are already readable &mdash;
+      no migration needed.
+    </p>
+    <div class="onboard-callout__actions">
+      <a href="<?= $b ?>/admin/import" class="btn btn-primary btn-sm">Open Import Wizard &rarr;</a>
+      <a href="<?= $b ?>/admin/listings/add" class="btn btn-ghost btn-sm">Add first listing manually</a>
+    </div>
+  </div>
+</div>
+<?php endif; ?>
 
 <!-- ──── STAT CARDS ──────────────────────────────────────────────────── -->
 <div class="stats-grid stats-grid-row">

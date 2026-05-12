@@ -290,6 +290,21 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
           </div>
         </div>
 
+        <?php $ab = $approved_by ?? ''; ?>
+        <div class="listing-field-row listing-field-row--top">
+          <label class="listing-field-label" for="fl-approved-by">Directory Approval</label>
+          <div>
+            <div class="select-wrap select-auto">
+              <select id="fl-approved-by" name="approved_by">
+                <option value=""     <?= $ab === ''     ? 'selected' : '' ?>>Not approved / N/A</option>
+                <option value="tfl"  <?= $ab === 'tfl'  ? 'selected' : '' ?>>Approved by TFL</option>
+                <option value="tafl" <?= $ab === 'tafl' ? 'selected' : '' ?>>Approved by TAFL</option>
+              </select>
+            </div>
+            <p class="form-hint">Mark whether this fanlisting is officially approved by The Fanlistings Network (TFL) or The Anime Fanlistings Network (TAFL).</p>
+          </div>
+        </div>
+
         <div class="listing-field-row listing-field-row--top">
           <label class="listing-field-label" for="fl-members-per-page">Members per page</label>
           <div>
@@ -317,6 +332,61 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
                    maxlength="255" placeholder="Defaults to listing email"
                    value="<?= View::e($contact_recipient ?? '') ?>">
             <p class="form-hint">Override which email address receives contact messages for this listing. Leave blank to use the listing's email address.</p>
+          </div>
+        </div>
+
+        <?php if ($adoption_addon_installed ?? false): ?>
+        <div class="listing-field-row listing-field-row--top">
+          <label class="listing-field-label">Adoption</label>
+          <div>
+            <label class="toggle-wrap">
+              <input type="checkbox" name="for_adoption" value="1" id="fl-for-adoption"
+                     <?= ($for_adoption ?? false) ? 'checked' : '' ?>>
+              <span class="toggle-label">Accept adoption applications</span>
+            </label>
+            <p class="form-hint">Show a public adoption form for this listing and collect applications in the admin panel.</p>
+            <?php if (($for_adoption ?? false) && ($adoption_count ?? 0) > 0): ?>
+            <p class="form-hint">
+              <a href="<?= $b ?>/admin/adoptions/<?= (int) $listing->id ?>" class="link">
+                View <?= (int) $adoption_count ?> application<?= $adoption_count !== 1 ? 's' : '' ?> &rarr;
+              </a>
+            </p>
+            <?php endif; ?>
+          </div>
+        </div>
+        <?php endif; ?>
+
+        <div class="listing-field-row listing-field-row--top">
+          <label class="listing-field-label">Affiliate Applications</label>
+          <div>
+            <label class="toggle-wrap">
+              <input type="checkbox" name="affiliate_apply_enabled" value="1" id="fl-affiliate-apply-enabled"
+                     <?= ($affiliate_apply_enabled ?? false) ? 'checked' : '' ?>>
+              <span class="toggle-label">Accept affiliate applications for this listing</span>
+            </label>
+            <p class="form-hint">Enables a public application form. Submissions appear in
+              <a href="<?= $b ?>/admin/affiliates/pending" class="link">Affiliates &rarr; Pending</a>.
+            </p>
+          </div>
+        </div>
+
+        <div class="listing-field-row">
+          <label class="listing-field-label" for="fl-form-url-aff-apply">Application form URL</label>
+          <div>
+            <input id="fl-form-url-aff-apply" type="text" name="form_url_affiliate_apply" class="form"
+                   maxlength="500" placeholder="e.g. affiliate-apply.php"
+                   value="<?= View::e($form_url_affiliate_apply ?? '') ?>">
+            <p class="form-hint">Path within your listing URL that hosts the embed. Leave blank to use the built-in route <code>/affiliate-apply/<?= (int) $listing->id ?></code>.</p>
+          </div>
+        </div>
+
+        <div class="listing-field-row">
+          <label class="listing-field-label" for="fl-redirect-url-aff-apply">After-submit redirect</label>
+          <div>
+            <input id="fl-redirect-url-aff-apply" type="text" name="redirect_url_affiliate_apply" class="form"
+                   maxlength="500" placeholder="e.g. affiliate-apply.php?sent=1"
+                   value="<?= View::e($redirect_url_affiliate_apply ?? '') ?>">
+            <p class="form-hint">Where to send the applicant after they submit. Leave blank to use the built-in success page.</p>
           </div>
         </div>
       </div>
@@ -1271,6 +1341,94 @@ $embedBaseUrl   = rtrim((string) ($cfg['embed_base_url'] ?? ''), '/') ?: rtrim((
   </form>
   </div>
 </div>
+
+<!-- ──── COMPAT WRAPPERS ──────────────────────────────────────────── -->
+<details class="chevron card" style="margin-bottom:1.75rem" id="compat-wrappers">
+  <summary class="card-head">Compatibility Wrappers</summary>
+  <div class="card-body">
+    <p class="form-hint" style="margin-bottom:1rem">
+      Use these wrapper files to keep existing Enthusiast or Listing Admin include paths working
+      while serving content from Luster. Copy the file into your legacy install directory, then
+      add the two lines shown at the top of your fanlisting page (before the include).
+    </p>
+
+    <?php
+    $compatInstallPath = rtrim((string) ($cfg['install_path'] ?? ''), '/');
+    $compatTabs = [
+        'Enthusiast' => [
+            ['file' => 'show_join.php',     'label' => 'Join form'],
+            ['file' => 'show_members.php',  'label' => 'Members list'],
+            ['file' => 'show_update.php',   'label' => 'Update membership'],
+            ['file' => 'show_lostpass.php', 'label' => 'Lost password'],
+            ['file' => 'show_stats.php',    'label' => 'Stats'],
+        ],
+        'Listing Admin' => [
+            ['file' => 'show-join.php',     'label' => 'Join form'],
+            ['file' => 'show-members.php',  'label' => 'Members list'],
+            ['file' => 'show-update.php',   'label' => 'Update membership'],
+            ['file' => 'show-remove.php',   'label' => 'Remove membership'],
+            ['file' => 'show-stats.php',    'label' => 'Stats'],
+        ],
+    ];
+    $compatSubDirs = ['Enthusiast' => 'enthusiast', 'Listing Admin' => 'listing-admin'];
+    $compatTabId   = 'compat-' . (int) $listing->id;
+    ?>
+
+    <div class="tab-nav" style="margin-bottom:1rem">
+      <a href="#<?= $compatTabId ?>-enth"  class="tab-link tab-link--active" data-target="<?= $compatTabId ?>-enth">Enthusiast</a>
+      <a href="#<?= $compatTabId ?>-la"    class="tab-link"                  data-target="<?= $compatTabId ?>-la">Listing Admin</a>
+    </div>
+
+    <?php foreach ($compatTabs as $network => $files): ?>
+    <?php $subDir = $compatSubDirs[$network]; $panelId = $compatTabId . '-' . ($network === 'Enthusiast' ? 'enth' : 'la'); ?>
+    <div id="<?= $panelId ?>" class="compat-panel" <?= $network !== 'Enthusiast' ? 'style="display:none"' : '' ?>>
+      <?php foreach ($files as $entry): ?>
+      <div class="listing-field-row listing-field-row--top" style="margin-bottom:1rem">
+        <span class="listing-field-label"><?= View::e($entry['label']) ?></span>
+        <div>
+          <p class="form-hint" style="margin-bottom:.35rem">
+            Copy <code>public/compat/<?= View::e($subDir) ?>/<?= View::e($entry['file']) ?></code>
+            into your <?= View::e($network) ?> directory, then add to your page:
+          </p>
+          <div class="ro-field embed-snippet">
+            $luster_listing_id = <?= (int) $listing->id ?>;<?php if ($compatInstallPath !== ''): ?><br>
+            $luster_path = '<?= View::e($compatInstallPath) ?>';<?php endif; ?>
+          </div>
+        </div>
+      </div>
+      <?php endforeach; ?>
+
+      <?php if ($compatInstallPath !== ''): ?>
+      <div style="margin-top:1rem">
+        <a href="<?= $b ?>/admin/listings/<?= (int) $listing->id ?>/compat-zip/<?= View::e($subDir) ?>"
+           class="btn btn-ghost btn-sm">
+          <?= View::icon('download') ?> Download pre-configured <?= View::e($network) ?> wrappers (ZIP)
+        </a>
+      </div>
+      <?php endif; ?>
+    </div>
+    <?php endforeach; ?>
+
+    <script>
+    (function () {
+      var section = document.getElementById('compat-wrappers');
+      if (!section) return;
+      section.querySelectorAll('.tab-link').forEach(function (link) {
+        link.addEventListener('click', function (e) {
+          e.preventDefault();
+          var target = this.dataset.target;
+          section.querySelectorAll('.tab-link').forEach(function (l) { l.classList.remove('tab-link--active'); });
+          section.querySelectorAll('.compat-panel').forEach(function (p) { p.style.display = 'none'; });
+          this.classList.add('tab-link--active');
+          var panel = document.getElementById(target);
+          if (panel) panel.style.display = '';
+        });
+      });
+    }());
+    </script>
+  </div>
+</details>
+
 <!-- ──── TAB: ADVANCED ──────────────────────────────────────────────── -->
 <div id="tab-advanced" class="tabs-panel">
 

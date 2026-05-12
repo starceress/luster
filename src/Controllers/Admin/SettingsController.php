@@ -115,6 +115,10 @@ final class SettingsController extends AdminController
             'collective_stats_template',
             'collective_contact_enabled',
             'collective_contact_recipient',
+            'import_show_enthusiast',
+            'import_show_listing_admin',
+            'import_show_fanupdate',
+            'import_show_codesort',
         ]);
 
         $updateStatus = (new UpdateChecker($siteRepo))->getStatus();
@@ -578,6 +582,32 @@ final class SettingsController extends AdminController
             $session->set('lstr_flash_success', 'Luster is up to date (version ' . $status->installed . ').');
         }
 
+        return Response::redirect($baseUrl . '/admin/settings#panel-system');
+    }
+
+    // -----------------------------------------------------------------------
+    // POST /admin/settings/import-visibility
+    // -----------------------------------------------------------------------
+
+    public function saveImportVisibility(Request $request, array $params): Response
+    {
+        $session      = $this->app->getSession();
+        $baseUrl      = $this->app->getBaseUrl();
+        $siteSettings = new SiteSettingsRepo($this->app->getDatabase());
+
+        $siteSettings->set('import_show_enthusiast',    $request->post('import_show_enthusiast')    === '1' ? '1' : '0');
+        $siteSettings->set('import_show_listing_admin', $request->post('import_show_listing_admin') === '1' ? '1' : '0');
+        $siteSettings->set('import_show_fanupdate',     $request->post('import_show_fanupdate')     === '1' ? '1' : '0');
+        $siteSettings->set('import_show_codesort',      $request->post('import_show_codesort')      === '1' ? '1' : '0');
+
+        (new ActivityRepo($this->app->getDatabase()))->log(
+            (int) $session->get('lstr_admin_id'),
+            'settings.save',
+            'Import tool visibility updated',
+            $request->ip(),
+        );
+
+        $session->set('lstr_flash_success', 'Import visibility settings saved.');
         return Response::redirect($baseUrl . '/admin/settings#panel-system');
     }
 

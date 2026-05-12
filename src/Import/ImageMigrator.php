@@ -190,6 +190,48 @@ final class ImageMigrator
     }
 
     // -----------------------------------------------------------------------
+    // Mode 3b — ZIP lookup by basename (pre-uploaded ZIP)
+    // -----------------------------------------------------------------------
+
+    /**
+     * Searches an open ZipArchive for a file matching $originalName by basename
+     * (case-insensitive). Ignores internal directory paths inside the ZIP.
+     *
+     * Call this during run() when the user pre-uploaded a ZIP in the Scope step.
+     * Unlike matchFromZipEntry(), which requires the caller to know the entry
+     * index, this method searches the entire archive by filename.
+     *
+     * Returns the new Luster filename on success, null if no matching entry is
+     * found or the matched file fails MIME validation.
+     *
+     * @param \ZipArchive $zip          Open archive.
+     * @param string      $originalName Source filename to search for.
+     * @param string      $targetSubDir Subdirectory under uploads/
+     * @param string      $prefix       Filename prefix for the new Luster filename
+     */
+    public function copyFromZip(\ZipArchive $zip, string $originalName, string $targetSubDir, string $prefix): ?string
+    {
+        $needle = strtolower(basename($originalName));
+        if ($needle === '') {
+            return null;
+        }
+
+        $count = $zip->count();
+        for ($i = 0; $i < $count; $i++) {
+            $entryName = $zip->getNameIndex($i);
+            if ($entryName === false) {
+                continue;
+            }
+            if (strtolower(basename($entryName)) !== $needle) {
+                continue;
+            }
+            return $this->matchFromZipEntry($zip, $i, $targetSubDir, $prefix);
+        }
+
+        return null;
+    }
+
+    // -----------------------------------------------------------------------
     // Internal helpers
     // -----------------------------------------------------------------------
 

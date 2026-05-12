@@ -9,6 +9,7 @@ use Luster\Core\Request;
 use Luster\Core\Response;
 use Luster\Core\UpdateChecker;
 use Luster\Repositories\ActivityRepo;
+use Luster\Repositories\AffiliateRepo;
 use Luster\Repositories\CategoryRepo;
 use Luster\Repositories\ListingRepo;
 use Luster\Repositories\ListingSettingsRepo;
@@ -216,14 +217,20 @@ final class DashboardController
         }
 
         // ── Affiliates ───────────────────────────────────────────────────
+        $pendingColStmt = $db->prepare("SHOW COLUMNS FROM `lstr_affiliates` LIKE 'pending'");
+        $pendingColStmt->execute();
+        $affiliateWhere = $pendingColStmt->fetch() ? 'WHERE pending = 0' : '';
         $stmt = $db->prepare(
-            'SELECT COUNT(*) AS total, SUM(fanlisting_id IS NULL) AS collective FROM lstr_affiliates'
+            "SELECT COUNT(*) AS total, SUM(fanlisting_id IS NULL) AS collective FROM lstr_affiliates {$affiliateWhere}"
         );
         $stmt->execute();
         $affRow                    = $stmt->fetch();
         $totalAffiliates           = (int) ($affRow['total']      ?? 0);
         $totalAffiliatesCollective = (int) ($affRow['collective'] ?? 0);
         $totalAffiliatesPerFl      = $totalAffiliates - $totalAffiliatesCollective;
+
+        $affiliateRepo    = new AffiliateRepo($db);
+        $pendingAffiliates = $affiliateRepo->getPendingCount();
 
         // ── Categories ───────────────────────────────────────────────────
         $totalCategories = count($categoryRepo->getAll());
@@ -267,7 +274,8 @@ final class DashboardController
         }
 
         // ── Render ───────────────────────────────────────────────────────
-        $csrfToken = $this->app->getCSRF()->token();
+        $csrfToken  = $this->app->getCSRF()->token();
+        $noListings = (int) $fanStats['total'] === 0;
 
         $inner = $view->render('admin/dashboard.php', [
             'admin_username'              => (string) $session->get('lstr_admin_username', ''),
@@ -287,6 +295,7 @@ final class DashboardController
             'total_affiliates'           => $totalAffiliates,
             'total_affiliates_collective' => $totalAffiliatesCollective,
             'total_affiliates_per_fl'    => $totalAffiliatesPerFl,
+            'pending_affiliates'         => $pendingAffiliates,
             'total_categories'           => $totalCategories,
             'newest_owned_name'          => $newestOwnedName,
             'newest_owned_opened'        => $newestOwnedOpened,
@@ -307,6 +316,7 @@ final class DashboardController
             'inactive_threshold_days'    => $thresholdDays,
             'update_status'              => $updateStatus,
             'show_update_banner'         => $showUpdateBanner,
+            'no_listings'                => $noListings,
             'base_url'                   => $baseUrl,
         ]);
 

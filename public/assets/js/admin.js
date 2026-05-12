@@ -2719,62 +2719,73 @@ document.addEventListener('click', function (e) {
   });
 }());
 
-// ── 41. Import wizard — configure page ────────────────────────────────────────
+// ── 41. Import wizard — connect + scope pages ─────────────────────────────────
 
 (function () {
-  // Image options toggle
-  var toggle = document.getElementById('js-images-toggle');
-  var opts   = document.getElementById('js-image-options');
-  if (toggle && opts) {
-    toggle.addEventListener('change', function () {
-      opts.style.display = this.checked ? 'flex' : 'none';
+  // Helper: show/hide element using is-hidden class
+  function setVisible(el, visible) {
+    if (!el) return;
+    el.classList.toggle('is-hidden', !visible);
+  }
+
+  // Image options enable/disable toggle
+  var imgToggle = document.getElementById('js-images-toggle');
+  var imgOpts   = document.getElementById('js-image-options');
+  if (imgToggle && imgOpts) {
+    imgToggle.addEventListener('change', function () {
+      setVisible(imgOpts, this.checked);
     });
   }
 
-  // Show/hide sub-fields based on image mode selection
-  var radios    = document.querySelectorAll('input[name="image_mode"]');
+  // Image mode sub-panel show/hide (path / url / zip)
+  var imgRadios = document.querySelectorAll('input[name="image_mode"]');
   var pathField = document.getElementById('js-img-path-field');
   var urlField  = document.getElementById('js-img-url-field');
+  var zipField  = document.getElementById('js-img-zip-field');
+
   function updateImageModeFields() {
     var mode = document.querySelector('input[name="image_mode"]:checked');
     if (!mode) return;
-    if (pathField) pathField.style.display = mode.value === 'path' ? '' : 'none';
-    if (urlField)  urlField.style.display  = mode.value === 'url'  ? '' : 'none';
+    setVisible(pathField, mode.value === 'path');
+    setVisible(urlField,  mode.value === 'url');
+    setVisible(zipField,  mode.value === 'zip');
   }
-  radios.forEach(function (r) { r.addEventListener('change', updateImageModeFields); });
+  imgRadios.forEach(function (r) { r.addEventListener('change', updateImageModeFields); });
+  updateImageModeFields(); // run once on load to match PHP-rendered checked state
 
   // Connection method toggle (live DB vs SQL dump upload)
-  var cfgForm      = document.getElementById('import-configure-form');
-  var liveSection  = document.getElementById('js-live-db-section');
-  var dumpSection  = document.getElementById('js-dump-section');
-  var submitBtn    = document.getElementById('js-submit-btn');
-  var modeRadios   = document.querySelectorAll('input[name="_conn_mode"]');
+  var cfgForm    = document.getElementById('import-configure-form');
+  var liveSec    = document.getElementById('js-live-db-section');
+  var dumpSec    = document.getElementById('js-dump-section');
+  var submitBtn  = document.getElementById('js-submit-btn');
+  var connRadios = document.querySelectorAll('input[name="_conn_mode"]');
 
-  if (cfgForm && liveSection && dumpSection && modeRadios.length) {
-    var liveActionUrl = cfgForm.getAttribute('data-live-url') || cfgForm.action;
-    var dumpActionUrl = cfgForm.getAttribute('data-dump-url') || cfgForm.action;
-
+  if (cfgForm && liveSec && dumpSec && connRadios.length) {
     function applyConnMode(mode) {
-      if (mode === 'dump') {
-        liveSection.style.display = 'none';
-        dumpSection.style.display = 'block';
-        cfgForm.action = dumpActionUrl;
-        if (submitBtn) submitBtn.textContent = 'Upload & Preview \u2192';
-      } else {
-        liveSection.style.display = 'block';
-        dumpSection.style.display = 'none';
-        cfgForm.action = liveActionUrl;
-        if (submitBtn) submitBtn.textContent = 'Preview Import \u2192';
-      }
+      setVisible(liveSec, mode !== 'dump');
+      setVisible(dumpSec, mode === 'dump');
+      if (submitBtn) submitBtn.textContent =
+        mode === 'dump' ? 'Upload & Continue →' : 'Continue to Options →';
     }
-
-    modeRadios.forEach(function (r) {
+    connRadios.forEach(function (r) {
       r.addEventListener('change', function () { applyConnMode(this.value); });
-      r.addEventListener('click',  function () { applyConnMode(this.value); });
     });
   }
 
-  // Test connection button — URL passed via data-action attribute
+  // Listing Admin: Members-depends-on-Listings dependency warning
+  var listingsCb = document.getElementById('ck-listings');
+  var membersCb  = document.getElementById('ck-members');
+  var memWarn    = document.getElementById('js-mem-dep-warn');
+
+  if (listingsCb && membersCb && memWarn) {
+    function checkMemDep() {
+      memWarn.classList.toggle('is-visible', membersCb.checked && !listingsCb.checked);
+    }
+    listingsCb.addEventListener('change', checkMemDep);
+    membersCb.addEventListener('change', checkMemDep);
+  }
+
+  // Test connection button
   var testBtn    = document.getElementById('js-test-conn');
   var testResult = document.getElementById('js-test-result');
   if (!testBtn || !testResult) return;
@@ -2784,8 +2795,8 @@ document.addEventListener('click', function (e) {
     if (!action) return;
 
     testResult.style.display = '';
-    testResult.style.color = 'inherit';
-    testResult.textContent = 'Testing\u2026';
+    testResult.style.color = 'var(--text-muted)';
+    testResult.textContent = 'Testing…';
 
     var fd = new FormData();
     fd.append('_csrf',   (document.querySelector('input[name="_csrf"]') || {}).value || '');
@@ -2801,17 +2812,16 @@ document.addEventListener('click', function (e) {
       })
       .then(function (d) {
         testResult.textContent = d.ok
-          ? ('\u2713 ' + d.message + (d.schema ? ' \u2014 ' + d.schema : ''))
-          : ('\u2717 ' + d.message);
+          ? ('✓ Connected — ' + (d.schema || d.message))
+          : ('✗ ' + d.message);
         testResult.style.color = d.ok ? 'var(--success)' : 'var(--danger)';
       })
       .catch(function (err) {
-        testResult.textContent = '\u2717 ' + (err.message || 'Request failed.');
+        testResult.textContent = '✗ ' + (err.message || 'Request failed.');
         testResult.style.color = 'var(--danger)';
       });
   });
 }());
-
 // ── 41b. Bulk email — recipient chips, template fill, preview modal ────────────
 
 (function () {
@@ -3181,4 +3191,253 @@ document.addEventListener('click', function (e) {
     panel.classList.toggle('is-open', !open);
     btn.setAttribute('aria-expanded', String(!open));
   });
+}());
+
+// ── 45. Import scope: ZIP upload button ───────────────────────────────────────
+
+(function () {
+  var btn = document.getElementById('js-zip-upload-btn');
+  if (!btn) return;
+
+  btn.addEventListener('click', function () {
+    var fileInput = document.getElementById('js-zip-file-input');
+    var result    = document.getElementById('js-zip-upload-result');
+    if (!fileInput || !fileInput.files || !fileInput.files[0]) {
+      if (result) { result.textContent = 'Please select a ZIP file first.'; result.classList.remove('is-hidden'); }
+      return;
+    }
+
+    var fd = new FormData();
+    fd.append('_csrf',      btn.dataset.csrf  || '');
+    fd.append('import_zip', fileInput.files[0]);
+
+    btn.disabled    = true;
+    btn.textContent = 'Uploading…';
+    if (result) { result.classList.add('is-hidden'); }
+
+    fetch(btn.dataset.uploadUrl || '', { method: 'POST', body: fd })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        btn.disabled    = false;
+        btn.textContent = 'Upload ZIP';
+        if (result) {
+          result.classList.remove('is-hidden');
+          if (data.ok) {
+            result.textContent = '✓ ZIP uploaded (' + (data.files || 0) + ' files). Images will be processed during import.';
+            result.style.color = 'var(--success)';
+          } else {
+            result.textContent = 'Error: ' + (data.error || 'Upload failed.');
+            result.style.color = 'var(--danger)';
+          }
+        }
+      })
+      .catch(function () {
+        btn.disabled    = false;
+        btn.textContent = 'Upload ZIP';
+        if (result) { result.textContent = 'Upload failed. Please try again.'; result.classList.remove('is-hidden'); result.style.color = 'var(--danger)'; }
+      });
+  });
+}());
+
+// ── 46. Generic active toggle — .lstr-toggle-form ─────────────────────────────
+//
+// Any <form class="lstr-toggle-form"> whose submit button has class .toggle-pill
+// will be intercepted: the form POSTs via fetch, the JSON {ok, active} response
+// flips the pill label/class and dims/undims the enclosing <tr>.
+
+(function () {
+  document.querySelectorAll('.lstr-toggle-form').forEach(function (form) {
+    form.addEventListener('submit', function (e) {
+      e.preventDefault();
+      var pill = form.querySelector('.toggle-pill');
+      if (pill && pill.disabled) return;
+      if (pill) { pill.disabled = true; }
+
+      var params = new URLSearchParams(new FormData(form));
+      fetch(form.action, {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body:    params.toString(),
+      })
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+          if (!data.ok) { throw new Error(data.error || 'Failed'); }
+          var active = !!data.active;
+          if (pill) {
+            pill.disabled = false;
+            pill.textContent = active ? 'Yes' : 'No';
+            pill.classList.toggle('toggle-pill--on', active);
+            pill.title = active ? 'Click to hide' : 'Click to show';
+          }
+          var row = form.closest('tr');
+          if (row) { row.classList.toggle('row-inactive', !active); }
+        })
+        .catch(function () {
+          if (pill) { pill.disabled = false; }
+        });
+    });
+  });
+}());
+
+
+// ── 47. Wishlist: filter panel toggle ─────────────────────────────────────────
+
+(function () {
+  var btn   = document.getElementById('wl-filter-toggle');
+  var panel = document.getElementById('wl-filter-panel');
+  if (!btn || !panel) return;
+
+  btn.addEventListener('click', function () {
+    var open = panel.classList.contains('is-open');
+    panel.classList.toggle('is-open', !open);
+    btn.setAttribute('aria-expanded', String(!open));
+  });
+}());
+
+
+// ── 48. Link Checker ──────────────────────────────────────────────────────────
+
+(function () {
+
+  // ── Tab switching ─────────────────────────────────────────────────────────
+  var tabBtns = document.querySelectorAll('.lc-tab-btn');
+  if (!tabBtns.length) return;
+
+  tabBtns.forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      tabBtns.forEach(function (b) {
+        b.classList.remove('active');
+        b.setAttribute('aria-selected', 'false');
+      });
+      btn.classList.add('active');
+      btn.setAttribute('aria-selected', 'true');
+
+      var target = btn.dataset.tab;
+      document.querySelectorAll('.lc-tab-panel').forEach(function (panel) {
+        panel.classList.toggle('is-hidden', panel.id !== 'lc-panel-' + target);
+      });
+    });
+  });
+
+  // ── Shared batch check logic ──────────────────────────────────────────────
+
+  function statusLabel(s) {
+    var map = { ok: 'OK', dead: 'Dead', redirect: 'Redirect', found: 'Found', missing: 'Missing', unchecked: 'Unchecked' };
+    return map[s] || s;
+  }
+
+  function applyResult(row, data, type) {
+    var linkBadge  = row.querySelector('[data-lc-link-badge]');
+    var recipBadge = row.querySelector('[data-lc-recip-badge]');
+    var checkedCell = row.querySelector('[data-lc-checked]');
+
+    var statusClasses = ['lc-ok', 'lc-dead', 'lc-redirect', 'lc-unchecked'];
+
+    if (linkBadge) {
+      statusClasses.forEach(function (c) { linkBadge.classList.remove(c); });
+      linkBadge.classList.add('lc-' + data.link_status);
+      linkBadge.textContent = statusLabel(data.link_status);
+    }
+    if (recipBadge && data.reciprocal_status !== undefined) {
+      ['lc-found', 'lc-missing', 'lc-unchecked'].forEach(function (c) { recipBadge.classList.remove(c); });
+      recipBadge.classList.add('lc-' + data.reciprocal_status);
+      recipBadge.textContent = statusLabel(data.reciprocal_status);
+    }
+    if (checkedCell) {
+      checkedCell.textContent = data.checked_at || '';
+    }
+
+    row.classList.remove('lc-busy');
+  }
+
+  function checkOne(endpoint, csrf, id, row, onDone) {
+    row.classList.add('lc-busy');
+    var body = '_csrf=' + encodeURIComponent(csrf) + '&id=' + encodeURIComponent(id);
+    fetch(endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: body,
+    })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        applyResult(row, data);
+        if (onDone) onDone();
+      })
+      .catch(function () {
+        row.classList.remove('lc-busy');
+        if (onDone) onDone();
+      });
+  }
+
+  function runBatch(startBtn, panelId) {
+    var panel       = document.getElementById('lc-panel-' + panelId);
+    var progWrap    = document.getElementById('lc-prog-' + panelId);
+    var progBar     = document.getElementById('lc-prog-bar-' + panelId);
+    var progLabel   = document.getElementById('lc-prog-label-' + panelId);
+    var rows        = panel ? Array.from(panel.querySelectorAll('tbody tr')) : [];
+    var endpoint    = startBtn.dataset.endpoint;
+    var csrf        = startBtn.dataset.csrf;
+    var total       = rows.length;
+    var done        = 0;
+
+    if (!total) return;
+
+    startBtn.disabled = true;
+    if (progWrap)  { progWrap.classList.remove('is-hidden'); }
+
+    function next() {
+      if (done >= total) {
+        startBtn.disabled = false;
+        return;
+      }
+      var row = rows[done];
+      var id  = row.id.replace(/^lc-(aff|joined)-/, '');
+      done++;
+      var pct = Math.round((done / total) * 100);
+      if (progBar)   progBar.style.width = pct + '%';
+      if (progLabel) progLabel.textContent = done + ' / ' + total;
+
+      checkOne(endpoint, csrf, id, row, function () {
+        setTimeout(next, 200);
+      });
+    }
+
+    next();
+  }
+
+  // ── "Check All" buttons ───────────────────────────────────────────────────
+  var checkAffBtn    = document.getElementById('lc-check-affiliates');
+  var checkJoinedBtn = document.getElementById('lc-check-joined');
+
+  if (checkAffBtn) {
+    checkAffBtn.addEventListener('click', function () {
+      runBatch(checkAffBtn, 'affiliates');
+    });
+  }
+  if (checkJoinedBtn) {
+    checkJoinedBtn.addEventListener('click', function () {
+      runBatch(checkJoinedBtn, 'joined');
+    });
+  }
+
+  // ── Individual "Check" buttons ────────────────────────────────────────────
+  document.addEventListener('click', function (e) {
+    var btn = e.target.closest('.js-lc-single');
+    if (!btn) return;
+
+    var id       = btn.dataset.id;
+    var endpoint = btn.dataset.endpoint;
+    var csrf     = btn.dataset.csrf;
+    var type     = btn.dataset.type;
+    var rowId    = 'lc-' + (type === 'affiliate' ? 'aff' : 'joined') + '-' + id;
+    var row      = document.getElementById(rowId);
+
+    if (!row) return;
+
+    btn.disabled = true;
+    checkOne(endpoint, csrf, id, row, function () {
+      btn.disabled = false;
+    });
+  });
+
 }());

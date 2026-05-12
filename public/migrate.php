@@ -1366,6 +1366,93 @@ try {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Migration 39: approved_by (TFL/AFL) on lstr_fanlisting_settings
+// ─────────────────────────────────────────────────────────────────────────────
+try {
+    if (!(int) $pdo->query('SELECT COUNT(*) FROM `lstr_migrations` WHERE migration_number = 39')->fetchColumn()) {
+
+        $colCheck = $pdo->query("SHOW COLUMNS FROM `lstr_fanlisting_settings` LIKE 'approved_by'")->fetchAll();
+        if (empty($colCheck)) {
+            $pdo->exec(
+                "ALTER TABLE `lstr_fanlisting_settings`
+                 ADD COLUMN `approved_by` ENUM('','tfl','tafl') NOT NULL DEFAULT ''"
+            );
+        }
+
+        $pdo->exec('INSERT INTO `lstr_migrations` (migration_number) VALUES (39)');
+        $done[] = 'Added <code>approved_by</code> column to <code>lstr_fanlisting_settings</code> (TFL/AFL approval tracking)';
+    }
+} catch (PDOException $e) {
+    $errors[] = 'Migration 39 — ' . htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Migration 40: link-check columns on lstr_affiliates and lstr_joined
+// ─────────────────────────────────────────────────────────────────────────────
+try {
+    if (!(int) $pdo->query('SELECT COUNT(*) FROM `lstr_migrations` WHERE migration_number = 40')->fetchColumn()) {
+
+        $affCols = $pdo->query("SHOW COLUMNS FROM `lstr_affiliates` LIKE 'link_status'")->fetchAll();
+        if (empty($affCols)) {
+            $pdo->exec(
+                "ALTER TABLE `lstr_affiliates`
+                 ADD COLUMN `link_status`           ENUM('unchecked','ok','dead','redirect') NOT NULL DEFAULT 'unchecked',
+                 ADD COLUMN `link_checked_at`       DATETIME NULL,
+                 ADD COLUMN `link_redirect_url`     VARCHAR(500) NULL,
+                 ADD COLUMN `reciprocal_status`     ENUM('unchecked','found','missing') NOT NULL DEFAULT 'unchecked',
+                 ADD COLUMN `reciprocal_checked_at` DATETIME NULL"
+            );
+        }
+
+        $joinedCols = $pdo->query("SHOW COLUMNS FROM `lstr_joined` LIKE 'link_status'")->fetchAll();
+        if (empty($joinedCols)) {
+            $pdo->exec(
+                "ALTER TABLE `lstr_joined`
+                 ADD COLUMN `link_status`       ENUM('unchecked','ok','dead','redirect') NOT NULL DEFAULT 'unchecked',
+                 ADD COLUMN `link_checked_at`   DATETIME NULL,
+                 ADD COLUMN `link_redirect_url` VARCHAR(500) NULL"
+            );
+        }
+
+        $pdo->exec('INSERT INTO `lstr_migrations` (migration_number) VALUES (40)');
+        $done[] = 'Added link-check columns to <code>lstr_affiliates</code> and <code>lstr_joined</code>';
+    }
+} catch (PDOException $e) {
+    $errors[] = 'Migration 40 — ' . htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+}
+
+// Migration 41: affiliate application columns + per-listing apply settings
+// ─────────────────────────────────────────────────────────────────────────────
+try {
+    if (!(int) $pdo->query('SELECT COUNT(*) FROM `lstr_migrations` WHERE migration_number = 41')->fetchColumn()) {
+
+        $pendingCol = $pdo->query("SHOW COLUMNS FROM `lstr_affiliates` LIKE 'pending'")->fetchAll();
+        if (empty($pendingCol)) {
+            $pdo->exec(
+                "ALTER TABLE `lstr_affiliates`
+                 ADD COLUMN `pending`             TINYINT(1) NOT NULL DEFAULT 0,
+                 ADD COLUMN `application_message` TEXT NULL"
+            );
+        }
+
+        $applyCol = $pdo->query("SHOW COLUMNS FROM `lstr_fanlisting_settings` LIKE 'affiliate_apply_enabled'")->fetchAll();
+        if (empty($applyCol)) {
+            $pdo->exec(
+                "ALTER TABLE `lstr_fanlisting_settings`
+                 ADD COLUMN `affiliate_apply_enabled`      TINYINT(1)   NOT NULL DEFAULT 0,
+                 ADD COLUMN `form_url_affiliate_apply`     VARCHAR(500) NOT NULL DEFAULT '',
+                 ADD COLUMN `redirect_url_affiliate_apply` VARCHAR(500) NOT NULL DEFAULT ''"
+            );
+        }
+
+        $pdo->exec('INSERT INTO `lstr_migrations` (migration_number) VALUES (41)');
+        $done[] = 'Added affiliate application columns to <code>lstr_affiliates</code> and <code>lstr_fanlisting_settings</code>';
+    }
+} catch (PDOException $e) {
+    $errors[] = 'Migration 41 — ' . htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Build results HTML
 // ─────────────────────────────────────────────────────────────────────────────
 

@@ -196,6 +196,7 @@ $flSortUrl = static function (string $col) use ($b, $flSort, $flDir, $search, $f
     <div class="select-wrap">
     <select id="bulk-action" name="action" >
       <option value="" disabled selected>&mdash; Select &mdash;</option>
+      <option value="mark_updated">Mark as Updated</option>
       <option value="delete">Delete</option>
     </select>
     </div>
@@ -262,6 +263,9 @@ $flSortUrl = static function (string $col) use ($b, $flSort, $flDir, $search, $f
               <span class="badge badge-pending">Pending</span>
             <?php else: ?>
               <span class="badge badge-current">Current</span>
+            <?php endif; ?>
+            <?php $ab = $approved_by_map[$fl->id] ?? ''; if ($ab !== ''): ?>
+              <span class="badge badge-info"><?= strtoupper(View::e($ab)) ?></span>
             <?php endif; ?>
           </td>
 

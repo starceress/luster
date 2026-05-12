@@ -1175,8 +1175,22 @@ function renderDone(): void
   now that installation is complete.
 </div>
 
+<div style="margin-top:1.5rem">
+  <h3 style="margin-bottom:.875rem;font-size:1rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.04em">Next Steps</h3>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:.875rem">
+    <a href="./admin/listings/add" class="install-card" style="text-align:left;text-decoration:none;color:var(--text);padding:1rem 1.125rem;border:1px solid var(--border-soft);border-radius:12px;display:block">
+      <div style="font-weight:600;margin-bottom:.3rem">&#43; Add your first listing</div>
+      <div style="font-size:.82rem;color:var(--text-muted);line-height:1.45">Create a new fanlisting manually from the admin panel.</div>
+    </a>
+    <a href="./admin/import" class="install-card" style="text-align:left;text-decoration:none;color:var(--text);padding:1rem 1.125rem;border:1px solid var(--border-soft);border-radius:12px;display:block">
+      <div style="font-weight:600;margin-bottom:.3rem">&#8679; Import from Enthusiast or Listing Admin</div>
+      <div style="font-size:.82rem;color:var(--text-muted);line-height:1.45">Migrate your existing data using the built-in import wizard. Same-database Enthusiast installs require no credentials.</div>
+    </a>
+  </div>
+</div>
+
 <p class="install-footer">
-  Next: configure SMTP in <code>config/app.php</code>, then visit the admin panel to add your first listing.
+  Also: configure SMTP in <code>config/app.php</code> to enable outgoing email.
 </p>
     <?php
 }

@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 namespace Luster\Controllers\Admin;
 
+use Luster\Core\Mailer;
 use Luster\Core\Request;
 use Luster\Core\Response;
 use Luster\Core\Validator;
 use Luster\Repositories\AffiliateRepo;
+use Luster\Repositories\EmailTemplateRepo;
 use Luster\Repositories\ListingRepo;
 use Luster\Repositories\ListingSettingsRepo;
 
@@ -123,22 +125,23 @@ final class AffiliateController extends AdminController
         }
 
         return $this->adminLayout('admin/affiliates/index.php', 'Affiliates', 'affiliates', [
-            'affiliates'   => $affiliates,
-            'fan_map'      => $fanMap,
-            'listings'     => $listings,
-            'filter_fid'   => $filterFid,
-            'search'       => $search,
-            'page'         => $page,
-            'per_page'     => $perPage,
-            'total_pages'  => $totalPages,
-            'total'        => $total,
-            'site_name'    => $siteName,
-            'sort'         => $sortParam,
-            'dir'          => strtolower($sortDir),
-            'reorder_url'  => $baseUrl . '/admin/affiliates/reorder',
-            'reorder_mode' => $reorderMode,
-            'success'      => $success,
-            'error'        => $error,
+            'affiliates'    => $affiliates,
+            'fan_map'       => $fanMap,
+            'listings'      => $listings,
+            'filter_fid'    => $filterFid,
+            'search'        => $search,
+            'page'          => $page,
+            'per_page'      => $perPage,
+            'total_pages'   => $totalPages,
+            'total'         => $total,
+            'site_name'     => $siteName,
+            'sort'          => $sortParam,
+            'dir'           => strtolower($sortDir),
+            'reorder_url'   => $baseUrl . '/admin/affiliates/reorder',
+            'reorder_mode'  => $reorderMode,
+            'pending_count' => $affiliateRepo->getPendingCount(),
+            'success'       => $success,
+            'error'         => $error,
         ], '', $indexBreadcrumbs);
     }
 
@@ -464,6 +467,178 @@ final class AffiliateController extends AdminController
             : $baseUrl . '/admin/affiliates';
 
         return Response::redirect($redirect);
+    }
+
+    // -----------------------------------------------------------------------
+    // GET /admin/affiliates/pending
+    // -----------------------------------------------------------------------
+
+    public function pending(Request $request, array $params): Response
+    {
+        $db     = $this->app->getDatabase();
+        $config = $this->app->getConfig();
+
+        $affiliateRepo = new AffiliateRepo($db);
+        $listingRepo   = new ListingRepo($db, $config);
+
+        $pending  = $affiliateRepo->getPending();
+        $listings = $listingRepo->getAll();
+
+        $listingMap = [];
+        foreach ($listings as $fl) {
+            $listingMap[$fl->id] = $fl;
+        }
+
+        $session = $this->app->getSession();
+        $success = (string) $session->get('lstr_flash_success', '');
+        $error   = (string) $session->get('lstr_flash_error',   '');
+        $session->remove('lstr_flash_success');
+        $session->remove('lstr_flash_error');
+
+        return $this->layout('admin/affiliates/pending.php', [
+            'page_title'      => 'Pending Affiliate Applications',
+            'current_section' => 'affiliates',
+            'breadcrumbs'     => [
+                $this->crumb('Affiliates', $this->adminUrl('/admin/affiliates')),
+                $this->crumb('Pending Applications'),
+            ],
+            'pending'         => $pending,
+            'listing_map'     => $listingMap,
+            'success'         => $success,
+            'error'           => $error,
+            'csrf_token'      => $this->app->getCsrf()->getToken(),
+            'base_url'        => $this->app->getBaseUrl(),
+        ]);
+    }
+
+    // -----------------------------------------------------------------------
+    // POST /admin/affiliates/{id}/approve
+    // -----------------------------------------------------------------------
+
+    public function approve(Request $request, array $params): Response
+    {
+        $id      = (int) ($params['id'] ?? 0);
+        $db      = $this->app->getDatabase();
+        $session = $this->app->getSession();
+        $baseUrl = $this->app->getBaseUrl();
+
+        $affiliateRepo = new AffiliateRepo($db);
+        $affiliate     = $affiliateRepo->getById($id);
+
+        if ($affiliate === null || !$affiliate->pending) {
+            return Response::notFound('Pending application not found.');
+        }
+
+        $affiliateRepo->approve($id);
+
+        if ($affiliate->listingId !== null) {
+            (new ListingSettingsRepo($db))->touchLastUpdated($affiliate->listingId);
+        }
+
+        $this->logActivity('affiliate.approve', [
+            'affiliate_id' => $id,
+            'name'         => $affiliate->name,
+            'url'          => $affiliate->url,
+            'listing_id'   => $affiliate->listingId,
+        ]);
+
+        // Send approval email if the applicant supplied one
+        if ($affiliate->email !== null && $affiliate->email !== '' && $affiliate->listingId !== null) {
+            $this->sendAffiliateEmail($affiliate, EmailTemplateRepo::TYPE_AFFILIATE_APPROVED);
+        }
+
+        $session->set('lstr_flash_success', 'Affiliate application approved.');
+
+        $fromPending = (string) $request->post('from_pending', '');
+        return Response::redirect(
+            $fromPending === '1'
+                ? $baseUrl . '/admin/affiliates/pending'
+                : $baseUrl . '/admin/affiliates'
+        );
+    }
+
+    // -----------------------------------------------------------------------
+    // POST /admin/affiliates/{id}/reject
+    // -----------------------------------------------------------------------
+
+    public function reject(Request $request, array $params): Response
+    {
+        $id      = (int) ($params['id'] ?? 0);
+        $db      = $this->app->getDatabase();
+        $session = $this->app->getSession();
+        $baseUrl = $this->app->getBaseUrl();
+
+        $affiliateRepo = new AffiliateRepo($db);
+        $affiliate     = $affiliateRepo->getById($id);
+
+        if ($affiliate === null || !$affiliate->pending) {
+            return Response::notFound('Pending application not found.');
+        }
+
+        // Send rejection email before deleting the row
+        if ($affiliate->email !== null && $affiliate->email !== '' && $affiliate->listingId !== null) {
+            $this->sendAffiliateEmail($affiliate, EmailTemplateRepo::TYPE_AFFILIATE_REJECTED);
+        }
+
+        $affiliateRepo->reject($id);
+
+        $this->logActivity('affiliate.reject', [
+            'affiliate_id' => $id,
+            'name'         => $affiliate->name,
+            'url'          => $affiliate->url,
+            'listing_id'   => $affiliate->listingId,
+        ]);
+
+        $session->set('lstr_flash_success', 'Affiliate application rejected.');
+
+        $fromPending = (string) $request->post('from_pending', '');
+        return Response::redirect(
+            $fromPending === '1'
+                ? $baseUrl . '/admin/affiliates/pending'
+                : $baseUrl . '/admin/affiliates'
+        );
+    }
+
+    // -----------------------------------------------------------------------
+    // Private: send affiliate email
+    // -----------------------------------------------------------------------
+
+    private function sendAffiliateEmail(object $affiliate, string $type): void
+    {
+        if ($affiliate->listingId === null || $affiliate->email === null || $affiliate->email === '') {
+            return;
+        }
+
+        $db     = $this->app->getDatabase();
+        $config = $this->app->getConfig();
+
+        $listingRepo = new ListingRepo($db, $config);
+        $listing     = $listingRepo->getById($affiliate->listingId);
+        if ($listing === null) {
+            return;
+        }
+
+        $emailRepo = new EmailTemplateRepo($db);
+        $tokens    = EmailTemplateRepo::buildAffiliateTokens(
+            listingName: $listing->name,
+            listingUrl:  $listing->url,
+            siteName:    (string) ($config->get('app_name', '') ?: $config->get('site_url', '')),
+            ownerName:   (string) ($config->get('owner_name', '')),
+            ownerEmail:  (string) ($config->get('owner_email', '')),
+            affName:     $affiliate->name,
+            affUrl:      $affiliate->url,
+            affEmail:    $affiliate->email,
+            affMessage:  $affiliate->applicationMessage ?? '',
+        );
+
+        [$subject, $body] = $emailRepo->resolveForListing($affiliate->listingId, $type, $tokens);
+
+        try {
+            $mailer = new Mailer($config);
+            $mailer->send($affiliate->email, $subject, $body);
+        } catch (\Exception) {
+            // Email failure is non-fatal
+        }
     }
 
     /**

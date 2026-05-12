@@ -22,6 +22,9 @@ final class JoinedListing
         public readonly bool    $active,
         public readonly string  $status,
         public readonly string  $createdAt,
+        public readonly string  $linkStatus,
+        public readonly ?string $linkCheckedAt,
+        public readonly ?string $linkRedirectUrl,
     ) {}
 
     /**
@@ -30,16 +33,19 @@ final class JoinedListing
     public static function fromRow(array $row): self
     {
         return new self(
-            id:             (int)    $row['id'],
-            name:           (string) $row['name'],
-            url:            (string) $row['url'],
-            image:          isset($row['image'])           && $row['image']           !== null ? (string) $row['image']           : null,
-            category:       (string) ($row['category']     ?? ''),
-            categoriesJson: isset($row['categories_json']) && $row['categories_json'] !== null ? (string) $row['categories_json'] : null,
-            dateJoined:     isset($row['date_joined'])     && $row['date_joined']     !== null ? (string) $row['date_joined']     : null,
-            active:         (bool)   ($row['active']       ?? true),
-            status:         (string) ($row['status']       ?? 'approved'),
-            createdAt:      (string) ($row['created_at']   ?? ''),
+            id:              (int)    $row['id'],
+            name:            (string) $row['name'],
+            url:             (string) $row['url'],
+            image:           isset($row['image'])           && $row['image']           !== null ? (string) $row['image']           : null,
+            category:        (string) ($row['category']     ?? ''),
+            categoriesJson:  isset($row['categories_json']) && $row['categories_json'] !== null ? (string) $row['categories_json'] : null,
+            dateJoined:      isset($row['date_joined'])     && $row['date_joined']     !== null ? (string) $row['date_joined']     : null,
+            active:          (bool)   ($row['active']       ?? true),
+            status:          (string) ($row['status']       ?? 'approved'),
+            createdAt:       (string) ($row['created_at']   ?? ''),
+            linkStatus:      (string) ($row['link_status']       ?? 'unchecked'),
+            linkCheckedAt:   isset($row['link_checked_at'])   && $row['link_checked_at']   !== null ? (string) $row['link_checked_at']   : null,
+            linkRedirectUrl: isset($row['link_redirect_url']) && $row['link_redirect_url'] !== null ? (string) $row['link_redirect_url'] : null,
         );
     }
 }

@@ -29,6 +29,7 @@ Thumbs.db
 
 # Test artefacts
 /.phpunit.cache/
+/.phpunit.result.cache
 /coverage/
 
 # Environment file (if ever adopted)

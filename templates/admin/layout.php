@@ -8,6 +8,7 @@ $s = match ($current_section ?? '') {
     'sysinfo'         => 'settings',
     'email-templates' => 'emails',
     'import'          => 'import',
+    'adoptions'       => 'adoptions',
     default           => ($current_section ?? ''),
 };
 if (!function_exists('navActive')) {
@@ -48,7 +49,6 @@ if (!function_exists('navActive')) {
   <nav class="sidebar-nav">
 
     <div class="sidebar-section">
-      <div class="sidebar-label">Main</div>
       <a href="<?= $b ?>/admin" class="nav-item<?= navActive('dashboard', $s) ?>"><span class="nav-icon"><?= View::icon('home') ?></span> Dashboard</a>
     </div>
 
@@ -71,7 +71,10 @@ if (!function_exists('navActive')) {
       <a href="<?= $b ?>/admin/embed-codes" class="nav-item<?= navActive('embed-codes', $s) ?>"><span class="nav-icon"><?= View::icon('embed') ?></span> Embed Codes</a>
 
       <a href="<?= $b ?>/admin/emails" class="nav-item<?= navActive('emails', $s) ?>"><span class="nav-icon"><?= View::icon('email') ?></span> Emails</a>
-
+    </div>
+      
+    <div class="sidebar-section">
+      <div class="sidebar-label">Extras</div>
       <?php $_navAddons = $nav_installed_addons ?? [];
       if (in_array('Kim', $_navAddons, true)): ?>
       <a href="<?= $b ?>/admin/kim" class="nav-item<?= navActive('kim', $s) ?>"><span class="nav-icon"><?= View::icon('kim') ?></span> Keep In Mind<?php if (($nav_pending_kim ?? 0) > 0): ?><span class="badge badge-pending nav-item-badge"><?= (int) $nav_pending_kim ?></span><?php endif; ?></a>
@@ -80,15 +83,41 @@ if (!function_exists('navActive')) {
       <?php if (in_array('Updates', $_navAddons, true)): ?>
       <a href="<?= $b ?>/admin/updates" class="nav-item<?= navActive('updates', $s) ?>"><span class="nav-icon"><?= View::icon('updates') ?></span> Updates Feed</a>
       <?php endif; ?>
+
+      <?php if (in_array('Wishlist', $_navAddons, true)): ?>
+      <a href="<?= $b ?>/admin/wishlist" class="nav-item<?= navActive('wishlist', $s) ?>"><span class="nav-icon"><?= View::icon('wishlist') ?></span> Wishlist</a>
+      <?php endif; ?>
+
+      <?php if (in_array('Adoption', $_navAddons, true)): ?>
+      <a href="<?= $b ?>/admin/adoptions" class="nav-item<?= navActive('adoptions', $s) ?>"><span class="nav-icon"><?= View::icon('adoptions') ?></span> Adoptions<?php if (($nav_pending_adoptions ?? 0) > 0): ?><span class="badge badge-pending nav-item-badge"><?= (int) $nav_pending_adoptions ?></span><?php endif; ?></a>
+      <?php endif; ?>
+      
+      <a href="<?= $b ?>/admin/addons" class="nav-item<?= navActive('addons', $s) ?>"><span class="nav-icon"><?= View::icon('addon') ?></span> Manage Add-Ons</a>
+
+      <a href="<?= $b ?>/admin/link-checker" class="nav-item<?= navActive('link-checker', $s) ?>"><span class="nav-icon"><?= View::icon('link') ?></span> Link Checker</a>
     </div>
 
     <div class="sidebar-section">
-      <div class="sidebar-label">System</div>
-      <a href="<?= $b ?>/admin/addons" class="nav-item<?= navActive('addons', $s) ?>"><span class="nav-icon"><?= View::icon('addon') ?></span> Add-Ons</a>
+      <div class="sidebar-label">Admin</div>
       
       <a href="<?= $b ?>/admin/settings" class="nav-item<?= navActive('settings', $s) ?>"><span class="nav-icon"><?= View::icon('gear') ?></span> Settings</a>
 
-      <a href="<?= $b ?>/admin/import" class="nav-item<?= navActive('import', $s) ?>"><span class="nav-icon"><?= View::icon('import') ?></span> Import Data</a>
+      <?php $importOpen = in_array($s, ['import', 'import-members', 'legacy-source']); ?>
+      <div class="nav-group">
+        <button class="nav-group-toggle"
+                aria-expanded="<?= $importOpen ? 'true' : 'false' ?>"
+                data-group="import">
+          <span class="nav-icon"><?= View::icon('import') ?></span> Import Data
+          <span class="nav-icon nav-group-chevron"><?= View::icon('chevrondown') ?></span>
+        </button>
+        <div class="nav-group-panel<?= $importOpen ? ' open' : '' ?>" id="nav-group-import">
+          <a href="<?= $b ?>/admin/import" class="nav-item nav-sub-item<?= navActive('import', $s) ?>"><span class="nav-icon"><?= View::icon('import') ?></span> Import Wizard</a>
+
+          <a href="<?= $b ?>/admin/import-members" class="nav-item nav-sub-item<?= navActive('import-members', $s) ?>"><span class="nav-icon"><?= View::icon('members') ?></span> Import Members</a>
+
+          <a href="<?= $b ?>/admin/legacy-source" class="nav-item nav-sub-item<?= navActive('legacy-source', $s) ?>"><span class="nav-icon"><?= View::icon('notes') ?></span> Legacy Browser</a>
+        </div>
+      </div>
 
       <?php $logsOpen = in_array($s, ['activitylog', 'errorlog']); ?>
       <div class="nav-group">

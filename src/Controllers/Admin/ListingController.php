@@ -109,6 +109,7 @@ final class ListingController extends AdminController
         $images        = [];
         $listingTypes  = [];
         $categoryNames = [];
+        $approvedByMap = $settingsRepo->getAllApprovedBy();
         foreach ($listings as $fl) {
             $memberCounts[$fl->id]  = $fl->dbprefix !== '' ? $memberRepo->countApproved($fl->dbprefix) : 0;
             $pendingCounts[$fl->id] = $fl->dbprefix !== '' ? $memberRepo->countPending($fl->dbprefix) : 0;
@@ -181,12 +182,13 @@ final class ListingController extends AdminController
         $session->remove('lstr_flash_error');
 
         return $this->adminLayout('admin/listings/index.php', 'Owned Listings', 'listings', [
-            'listings'     => $listings,
+            'listings'        => $listings,
             'member_counts'   => $memberCounts,
             'pending_counts'  => $pendingCounts,
             'images'          => $images,
             'listing_types'   => $listingTypes,
             'category_names'  => $categoryNames,
+            'approved_by_map' => $approvedByMap,
             'cfg'             => $config->all(),
             'search'          => $search,
             'filter_network'  => $filterNetwork,
@@ -390,6 +392,32 @@ final class ListingController extends AdminController
         $action   = (string) $request->post('action', '');
         $selected = array_filter(array_map('intval', (array) $request->post('selected', [])));
 
+        if ($action === 'mark_updated' && !empty($selected)) {
+            $listingRepo  = new ListingRepo($db, $config);
+            $settingsRepo = new ListingSettingsRepo($db);
+            $activityRepo = new ActivityRepo($db);
+            $updated      = 0;
+
+            foreach ($selected as $id) {
+                $listing = $listingRepo->getById($id);
+                if ($listing === null) {
+                    continue;
+                }
+
+                $settingsRepo->touchLastUpdated($id);
+                $updated++;
+            }
+
+            $activityRepo->log(
+                (int) $session->get('lstr_admin_id'),
+                'listing.mark_updated',
+                "Bulk-marked {$updated} listing(s) as updated",
+                $request->ip(),
+            );
+
+            $session->set('lstr_flash_success', "Last Updated date set to today for {$updated} listing(s).");
+        }
+
         if ($action === 'delete' && !empty($selected)) {
             $listingRepo = new ListingRepo($db, $config);
             $settingsRepo   = new ListingSettingsRepo($db);
@@ -412,6 +440,38 @@ final class ListingController extends AdminController
                    ->execute(['id' => $id]);
                 $db->prepare('DELETE FROM lstr_affiliates WHERE fanlisting_id = :id')
                    ->execute(['id' => $id]);
+                $db->prepare('DELETE FROM lstr_pending_updates WHERE fanlisting_id = :id')
+                   ->execute(['id' => $id]);
+                $db->prepare('DELETE FROM lstr_email_templates WHERE fanlisting_id = :id')
+                   ->execute(['id' => $id]);
+
+                // Codes cascade: map → codes → categories/sizes/donors
+                $db->prepare('DELETE lstr_code_category_map FROM lstr_code_category_map
+                              INNER JOIN lstr_codes ON lstr_code_category_map.code_id = lstr_codes.id
+                              WHERE lstr_codes.fanlisting_id = :id')
+                   ->execute(['id' => $id]);
+                $db->prepare('DELETE FROM lstr_codes WHERE fanlisting_id = :id')
+                   ->execute(['id' => $id]);
+                $db->prepare('DELETE FROM lstr_code_categories WHERE fanlisting_id = :id')
+                   ->execute(['id' => $id]);
+                $db->prepare('DELETE FROM lstr_code_sizes WHERE fanlisting_id = :id')
+                   ->execute(['id' => $id]);
+                $db->prepare('DELETE FROM lstr_code_donors WHERE fanlisting_id = :id')
+                   ->execute(['id' => $id]);
+
+                // Updates Feed addon — silent if not installed
+                try {
+                    $db->prepare('DELETE FROM lstr_updates WHERE fanlisting_id = :id')
+                       ->execute(['id' => $id]);
+                } catch (\Throwable) {}
+
+                // KIM addon — silent if not installed
+                try {
+                    $db->prepare('DELETE FROM lstr_kim_password_resets WHERE kim_member_id IN (SELECT id FROM lstr_kim_members WHERE fanlisting_id = :id)')
+                       ->execute(['id' => $id]);
+                    $db->prepare('DELETE FROM lstr_kim_members WHERE fanlisting_id = :id')
+                       ->execute(['id' => $id]);
+                } catch (\Throwable) {}
 
                 $imageFilename = $settingsRepo->getImage($id);
                 if ($imageFilename !== null) {
@@ -502,12 +562,24 @@ final class ListingController extends AdminController
                 $listingType = 'listing';
             }
 
+            $approvedByInput = (string) $request->post('approved_by', '');
+            if (!in_array($approvedByInput, ['tfl', 'tafl'], true)) {
+                $approvedByInput = '';
+            }
+
+            $forAdoptionInput = $this->app->isAddonInstalled('Adoption')
+                             && $request->post('for_adoption') === '1';
+
             $membersPerPage   = max(5, min(200, (int) $request->post('members_per_page', 25)));
             $contactEnabled   = $request->post('contact_enabled') === '1';
             $contactRecipient = trim((string) $request->post('contact_recipient', ''));
             if ($contactRecipient !== '' && !filter_var($contactRecipient, FILTER_VALIDATE_EMAIL)) {
                 $contactRecipient = '';
             }
+
+            $affiliateApplyEnabled = $request->post('affiliate_apply_enabled') === '1';
+            $affiliateApplyFormUrl = trim((string) $request->post('form_url_affiliate_apply', ''));
+            $affiliateApplyRedirectUrl = trim((string) $request->post('redirect_url_affiliate_apply', ''));
 
             // --- Image upload validation (before moving any file) ---
             $imageError  = '';
@@ -601,6 +673,11 @@ final class ListingController extends AdminController
             $settingsRepo->saveListingType($id, $listingType);
             $settingsRepo->saveMembersPerPage($id, $membersPerPage);
             $settingsRepo->saveContactSettings($id, $contactEnabled, $contactRecipient !== '' ? $contactRecipient : null);
+            $settingsRepo->saveApprovedBy($id, $approvedByInput);
+            if ($this->app->isAddonInstalled('Adoption')) {
+                $settingsRepo->saveForAdoption($id, $forAdoptionInput);
+            }
+            $settingsRepo->saveAffiliateApplySettings($id, $affiliateApplyEnabled, $affiliateApplyFormUrl, $affiliateApplyRedirectUrl);
             if ($lastUpdatedInput !== '' || $request->post('fl_last_updated') !== null) {
                 $settingsRepo->setLastUpdated($id, $lastUpdatedInput !== '' ? $lastUpdatedInput : null);
             }
@@ -652,6 +729,13 @@ final class ListingController extends AdminController
         $flLastUpdated      = $settingsRepo->getLastUpdated($id);
         $embedSettings      = $settingsRepo->getEmbedSettings($id);
         $contactSettings    = $settingsRepo->getContactSettings($id);
+        $approvedBy         = $settingsRepo->getApprovedBy($id);
+        $affiliateApplySettings = $settingsRepo->getAffiliateApplySettings($id);
+        $adoptionAddonInstalled = $this->app->isAddonInstalled('Adoption');
+        $forAdoption            = $adoptionAddonInstalled && $settingsRepo->getForAdoption($id);
+        $adoptionCount          = $adoptionAddonInstalled
+            ? (new \Luster\Addons\Adoption\AdoptionRepo($db))->countForListing($id, 'all')
+            : 0;
         $approved           = $listing->dbprefix !== '' ? $memberRepo->countApproved($listing->dbprefix) : 0;
         $pending            = $listing->dbprefix !== '' ? $memberRepo->countPending($listing->dbprefix) : 0;
         $countries          = $listing->dbprefix !== '' ? $memberRepo->countUniqueCountries($listing->dbprefix) : 0;
@@ -741,6 +825,13 @@ final class ListingController extends AdminController
             'embed_settings'      => $embedSettings,
             'contact_enabled'     => $contactSettings['enabled'],
             'contact_recipient'   => $contactSettings['recipient'] ?? '',
+            'approved_by'         => $approvedBy,
+            'adoption_addon_installed'       => $adoptionAddonInstalled,
+            'for_adoption'                   => $forAdoption,
+            'adoption_count'                 => $adoptionCount,
+            'affiliate_apply_enabled'        => $affiliateApplySettings['enabled'],
+            'form_url_affiliate_apply'       => $affiliateApplySettings['form_url'],
+            'redirect_url_affiliate_apply'   => $affiliateApplySettings['redirect_url'],
             'codes'               => $codes,
             'code_cats'           => $codeCats,
             'code_donors'         => $codeDonors,
@@ -794,9 +885,40 @@ final class ListingController extends AdminController
         // 2. Delete Luster rows that reference this listing
         $db->prepare('DELETE FROM lstr_fanlisting_settings WHERE fanlisting_id = :id')
            ->execute(['id' => $id]);
-
         $db->prepare('DELETE FROM lstr_affiliates WHERE fanlisting_id = :id')
            ->execute(['id' => $id]);
+        $db->prepare('DELETE FROM lstr_pending_updates WHERE fanlisting_id = :id')
+           ->execute(['id' => $id]);
+        $db->prepare('DELETE FROM lstr_email_templates WHERE fanlisting_id = :id')
+           ->execute(['id' => $id]);
+
+        // Codes cascade: map → codes → categories/sizes/donors
+        $db->prepare('DELETE lstr_code_category_map FROM lstr_code_category_map
+                      INNER JOIN lstr_codes ON lstr_code_category_map.code_id = lstr_codes.id
+                      WHERE lstr_codes.fanlisting_id = :id')
+           ->execute(['id' => $id]);
+        $db->prepare('DELETE FROM lstr_codes WHERE fanlisting_id = :id')
+           ->execute(['id' => $id]);
+        $db->prepare('DELETE FROM lstr_code_categories WHERE fanlisting_id = :id')
+           ->execute(['id' => $id]);
+        $db->prepare('DELETE FROM lstr_code_sizes WHERE fanlisting_id = :id')
+           ->execute(['id' => $id]);
+        $db->prepare('DELETE FROM lstr_code_donors WHERE fanlisting_id = :id')
+           ->execute(['id' => $id]);
+
+        // Updates Feed addon — silent if not installed
+        try {
+            $db->prepare('DELETE FROM lstr_updates WHERE fanlisting_id = :id')
+               ->execute(['id' => $id]);
+        } catch (\Throwable) {}
+
+        // KIM addon — silent if not installed
+        try {
+            $db->prepare('DELETE FROM lstr_kim_password_resets WHERE kim_member_id IN (SELECT id FROM lstr_kim_members WHERE fanlisting_id = :id)')
+               ->execute(['id' => $id]);
+            $db->prepare('DELETE FROM lstr_kim_members WHERE fanlisting_id = :id')
+               ->execute(['id' => $id]);
+        } catch (\Throwable) {}
 
         // 3. Delete the image file if one exists
         $imageFilename = $settingsRepo->getImage($id);
@@ -1226,6 +1348,81 @@ final class ListingController extends AdminController
         return Response::redirect(
             $this->app->getBaseUrl() . '/admin/listings/' . $id . '/email-templates'
         );
+    }
+
+    // -----------------------------------------------------------------------
+    // GET /admin/listings/{id}/compat-zip/{set}
+    // -----------------------------------------------------------------------
+
+    public function compatZip(Request $request, array $params): Response
+    {
+        $id  = (int) ($params['id']  ?? 0);
+        $set = (string) ($params['set'] ?? '');
+
+        if (!in_array($set, ['enthusiast', 'listing-admin'], true)) {
+            return Response::notFound('Unknown wrapper set.');
+        }
+
+        $db          = $this->app->getDatabase();
+        $config      = $this->app->getConfig();
+        $listingRepo = new ListingRepo($db, $config);
+        $listing     = $listingRepo->getById($id);
+
+        if ($listing === null) {
+            return Response::notFound('Listing not found.');
+        }
+
+        $installPath = rtrim((string) $config->get('install_path', ''), '/');
+        $sourceDir   = $this->app->getBasePath() . '/public/compat/' . $set;
+
+        if (!is_dir($sourceDir)) {
+            return Response::notFound('Wrapper source directory not found.');
+        }
+
+        $zip = new \ZipArchive();
+        $tmp = sys_get_temp_dir() . '/luster_compat_' . $id . '_' . $set . '_' . bin2hex(random_bytes(4)) . '.zip';
+
+        if ($zip->open($tmp, \ZipArchive::CREATE | \ZipArchive::OVERWRITE) !== true) {
+            return Response::plain('Could not create ZIP archive.', 500);
+        }
+
+        foreach (new \DirectoryIterator($sourceDir) as $file) {
+            if (!$file->isFile() || $file->getExtension() !== 'php') {
+                continue;
+            }
+
+            $source  = file_get_contents($file->getPathname());
+            if ($source === false) {
+                continue;
+            }
+
+            // Inject listing ID and install path as a header comment block
+            $header  = "<?php\n";
+            $header .= "// Pre-configured by Luster for listing #{$id}: " . $listing->name . "\n";
+            $header .= '$luster_listing_id = ' . $id . ";\n";
+            if ($installPath !== '') {
+                $header .= '$luster_path = \'' . addslashes($installPath) . "';\n";
+            }
+            $header .= "\n";
+
+            // Strip the opening PHP tag from the original source since we're prepending our own
+            $body = preg_replace('/^<\?php\s*/', '', $source, 1) ?? $source;
+
+            $zip->addFromString($file->getFilename(), $header . $body);
+        }
+
+        $zip->close();
+
+        $zipContents = file_get_contents($tmp);
+        @unlink($tmp);
+
+        if ($zipContents === false) {
+            return Response::plain('Could not read generated ZIP.', 500);
+        }
+
+        $filename = 'luster-compat-listing-' . $id . '-' . $set . '.zip';
+
+        return Response::download($zipContents, $filename, 'application/zip');
     }
 
     /**

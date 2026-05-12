@@ -212,11 +212,11 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
               <p class="form-hint">Shown in the browser tab and welcome block.</p>
               <?php if (!empty($fe['site_name'])): ?><p class="field-error"><?= View::e($fe['site_name'][0]) ?></p><?php endif; ?>
             </div>
-            <div class="form-group<?= !empty($fe['site_url']) ? ' has-error' : '' ?>s">
-              <label class="form-label" for="s-site-url">Base URL</label>
+            <div class="form-group<?= !empty($fe['site_url']) ? ' has-error' : '' ?>">
+              <label class="form-label" for="s-site-url">Collective Public URL <span class="req">*</span></label>
               <input id="s-site-url" type="url" name="site_url" class="form" maxlength="500" required
                      value="<?= View::e(cfgVal($cfg, 'site_url')) ?>">
-              <p class="form-hint"><b>No trailing slash.</b> Example: <code class="neb-code">http://localhost/luster/public</code></p>
+              <p class="form-hint">Your collective&rsquo;s public homepage URL. Shown as the &ldquo;Visit site&rdquo; link in the admin nav, and used as a fallback for embed form submissions when Embed Form Submission URL is blank. <b>No trailing slash.</b></p>
               <?php if (!empty($fe['site_url'])): ?><p class="field-error"><?= View::e($fe['site_url'][0]) ?></p><?php endif; ?>
             </div>
           </div>
@@ -381,18 +381,18 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
           <div class="pc-section">
             <div class="pc-section-label">Server Paths</div>
             <div class="form-group">
-              <label class="form-label" for="s-install-path">Installation Path <em class="opt">(absolute, with trailing slash)</em></label>
+              <label class="form-label" for="s-install-path">Server Install Path</label>
               <input id="s-install-path" type="text" name="install_path" class="form" maxlength="500"
                      placeholder="/home/user/yourdomain.com/luster/"
                      value="<?= View::e(cfgVal($cfg, 'install_path')) ?>">
-              <p class="form-hint">Used to generate embed include lines below.</p>
+              <p class="form-hint">Absolute filesystem path to the Luster root, with trailing slash (e.g. <code class="neb-code">/home/user/example.com/luster/</code>). Used only to generate the embed code snippets below.</p>
             </div>
             <div class="form-group">
-              <label class="form-label" for="s-embed-url">Embed Base URL</label>
+              <label class="form-label" for="s-embed-url">Embed Form Submission URL</label>
               <input id="s-embed-url" type="url" name="embed_base_url" class="form" maxlength="500"
                      placeholder="https://yourdomain.com/luster/public"
                      value="<?= View::e(cfgVal($cfg, 'embed_base_url')) ?>">
-              <p class="form-hint">The public URL for form submissions (no trailing slash). Leave blank to use the Base URL from General.</p>
+              <p class="form-hint">URL used for form submissions inside embeds (no trailing slash). Only needed when Luster is on a different domain from the embedding page. Leave blank to use the Collective Public URL.</p>
             </div>
           </div>
 
@@ -680,6 +680,46 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
                 <?php endif; ?>
               </span>
             </div>
+        </div>
+
+        <!-- Migration Tool Visibility -->
+        <div class="pc-section">
+          <div class="pc-section-label">Migration Tool Visibility</div>
+          <p class="form-hint mb-section">After completing a migration, hide source cards you no longer need. Routes remain intact &mdash; only the card is hidden from the wizard.</p>
+          <form method="POST" action="<?= $b ?>/admin/settings/import-visibility">
+            <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
+            <div class="form-group">
+              <label class="toggle-wrap">
+                <input type="checkbox" name="import_show_enthusiast" value="1"
+                       <?= ($site_settings['import_show_enthusiast'] ?? '1') === '1' ? 'checked' : '' ?>>
+                <span class="toggle-label">Show Enthusiast card</span>
+              </label>
+            </div>
+            <div class="form-group">
+              <label class="toggle-wrap">
+                <input type="checkbox" name="import_show_listing_admin" value="1"
+                       <?= ($site_settings['import_show_listing_admin'] ?? '1') === '1' ? 'checked' : '' ?>>
+                <span class="toggle-label">Show Listing Admin card</span>
+              </label>
+            </div>
+            <div class="form-group">
+              <label class="toggle-wrap">
+                <input type="checkbox" name="import_show_fanupdate" value="1"
+                       <?= ($site_settings['import_show_fanupdate'] ?? '1') === '1' ? 'checked' : '' ?>>
+                <span class="toggle-label">Show FanUpdate card</span>
+              </label>
+            </div>
+            <div class="form-group">
+              <label class="toggle-wrap">
+                <input type="checkbox" name="import_show_codesort" value="1"
+                       <?= ($site_settings['import_show_codesort'] ?? '1') === '1' ? 'checked' : '' ?>>
+                <span class="toggle-label">Show CodeSort card</span>
+              </label>
+            </div>
+            <div class="composer-footer">
+              <button type="submit" class="btn btn-primary">Save Visibility</button>
+            </div>
+          </form>
         </div>
 
         <!-- Data Migration -->

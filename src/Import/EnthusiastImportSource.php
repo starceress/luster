@@ -40,6 +40,8 @@ final class EnthusiastImportSource implements ImportSourceInterface
     private const CHUNK    = 500;
     private const SKIP_CAP = 500;
 
+    private ?\ZipArchive $activeZip = null;
+
     // Default image subdirectory names relative to the Enthusiast install root.
     // These are the Enthusiast defaults seeded by its install script:
     //   affiliates_dir  → {install_root}/affiliates/
@@ -185,6 +187,15 @@ final class EnthusiastImportSource implements ImportSourceInterface
             ? new ImageMigrator(dirname(__DIR__, 2) . '/public')
             : null;
 
+        // Open a pre-uploaded ZIP archive (Phase 3 ZIP mode).
+        // When a ZIP was uploaded in the Scope step, process images inline during run().
+        if ($options->imageMode === 'zip' && $options->zipPath !== '' && $migrator !== null) {
+            $this->activeZip = new \ZipArchive();
+            if ($this->activeZip->open($options->zipPath) !== true) {
+                $this->activeZip = null;
+            }
+        }
+
         // Read image directory/URL configuration from the Enthusiast settings table.
         // This gives us the actual configured paths rather than hardcoded guesses.
         // Returns [] if the settings table is absent or unreadable (SQL dump mode,
@@ -193,8 +204,8 @@ final class EnthusiastImportSource implements ImportSourceInterface
             ? $this->readImageSettings($source, $schema, $tp)
             : [];
 
-        // Session image map: original filename => ['type' => subdir, 'record_id' => int]
-        // Written for Mode 3 (ZIP) post-import step.
+        // Legacy image map (ZIP deferred mode) — kept for backward compatibility
+        // but no longer stored in session when a pre-uploaded ZIP is used.
         $imageMap = [];
 
         if ($options->importCategories) {
@@ -264,9 +275,13 @@ final class EnthusiastImportSource implements ImportSourceInterface
             $rows[] = $this->runTemplates($source, $target, $schema, $options);
         }
 
-        // Store image map in session for ZIP mode
-        if ($options->imageMode === 'zip' && !empty($imageMap)) {
-            $_SESSION['lstr_import_image_map'] = $imageMap;
+        // Close and clean up pre-uploaded ZIP if one was opened.
+        if ($this->activeZip !== null) {
+            $this->activeZip->close();
+            $this->activeZip = null;
+            if ($options->zipPath !== '') {
+                @unlink($options->zipPath);
+            }
         }
 
         return new ImportResult(
@@ -941,21 +956,27 @@ final class EnthusiastImportSource implements ImportSourceInterface
         }
 
         $checkStmt  = $target->prepare('SELECT fanlisting_id, image FROM lstr_fanlisting_settings WHERE fanlisting_id = :fid');
+        $hasLastUpdated = $this->tableHasColumn($target, 'lstr_fanlisting_settings', 'last_updated');
+        $insertColumns = $hasLastUpdated
+            ? 'fanlisting_id, members_per_page, queue_updates, members_template, affiliates_template, stats_template, image, last_updated'
+            : 'fanlisting_id, members_per_page, queue_updates, members_template, affiliates_template, stats_template, image';
+        $insertValues = $hasLastUpdated
+            ? ':fanlisting_id, :members_per_page, :queue_updates, :members_template, :affiliates_template, :stats_template, :image, CURRENT_DATE'
+            : ':fanlisting_id, :members_per_page, :queue_updates, :members_template, :affiliates_template, :stats_template, :image';
+        $lastUpdatedAssignment = $hasLastUpdated ? ', last_updated = CURRENT_DATE' : '';
         $insertStmt = $target->prepare(
-            'INSERT INTO lstr_fanlisting_settings
-               (fanlisting_id, members_per_page, queue_updates, members_template, affiliates_template, stats_template, image)
-             VALUES
-               (:fanlisting_id, :members_per_page, :queue_updates, :members_template, :affiliates_template, :stats_template, :image)'
+            "INSERT INTO lstr_fanlisting_settings ({$insertColumns}) VALUES ({$insertValues})"
         );
         $updateStmt = $target->prepare(
-            'UPDATE lstr_fanlisting_settings
+            "UPDATE lstr_fanlisting_settings
              SET members_per_page = :members_per_page,
                  queue_updates = :queue_updates,
-                 members_template = COALESCE(NULLIF(:members_template, \'\'), members_template),
-                 affiliates_template = COALESCE(NULLIF(:affiliates_template, \'\'), affiliates_template),
-                 stats_template = COALESCE(NULLIF(:stats_template, \'\'), stats_template),
+                 members_template = COALESCE(NULLIF(:members_template, ''), members_template),
+                 affiliates_template = COALESCE(NULLIF(:affiliates_template, ''), affiliates_template),
+                 stats_template = COALESCE(NULLIF(:stats_template, ''), stats_template),
                  image = COALESCE(:image, image)
-             WHERE fanlisting_id = :fanlisting_id'
+                 {$lastUpdatedAssignment}
+             WHERE fanlisting_id = :fanlisting_id"
         );
 
         foreach ($srcRows as $row) {
@@ -1174,6 +1195,7 @@ final class EnthusiastImportSource implements ImportSourceInterface
         $errors       = [];
         $skippedItems = [];
         $warnings     = [];
+        $touchedIds   = [];
 
         try {
             $stmt    = $source->query("SELECT * FROM `{$srcTable}` ORDER BY `{$idCol}` ASC");
@@ -1185,9 +1207,15 @@ final class EnthusiastImportSource implements ImportSourceInterface
         }
 
         // Load existing URLs for conflict detection.
-        $existUrlStmt = $target->prepare('SELECT url FROM owned');
+        $existUrlStmt = $target->prepare('SELECT listingid, url FROM owned');
         $existUrlStmt->execute();
-        $existingUrls = array_flip($existUrlStmt->fetchAll(PDO::FETCH_COLUMN));
+        $existingUrls = [];
+        foreach ($existUrlStmt->fetchAll() as $existingRow) {
+            $existingUrl = (string) ($existingRow['url'] ?? '');
+            if ($existingUrl !== '') {
+                $existingUrls[$existingUrl] = (int) ($existingRow['listingid'] ?? 0);
+            }
+        }
 
         // Load existing listingids so we know whether to preserve the source ID.
         $existIdStmt = $target->prepare('SELECT listingid FROM owned');
@@ -1260,6 +1288,9 @@ final class EnthusiastImportSource implements ImportSourceInterface
                 }
                 try {
                     $updateStmt->execute(array_merge($params, ['url' => $url]));
+                    if (($existingUrls[$url] ?? 0) > 0 && !$options->importSettings) {
+                        $touchedIds[] = (int) $existingUrls[$url];
+                    }
                     $skipped++;
                 } catch (\Throwable $e) {
                     $errors[] = "Listing '{$url}': " . $e->getMessage();
@@ -1280,11 +1311,16 @@ final class EnthusiastImportSource implements ImportSourceInterface
                 if ($srcId > 0 && !$idTaken) {
                     $insertWithIdStmt->execute(array_merge(['listingid' => $srcId], $params));
                     $existingIds[$srcId] = true;
+                    $newListingId = $srcId;
                 } else {
                     $insertAutoStmt->execute($params);
-                    $existingIds[(int) $target->lastInsertId()] = true;
+                    $newListingId = (int) $target->lastInsertId();
+                    $existingIds[$newListingId] = true;
                 }
-                $existingUrls[$url] = true;
+                $existingUrls[$url] = $newListingId;
+                if (!$options->importSettings) {
+                    $touchedIds[] = $newListingId;
+                }
                 $imported++;
             } catch (\Throwable $e) {
                 $errors[] = "Listing '{$url}': " . $e->getMessage();
@@ -1295,8 +1331,70 @@ final class EnthusiastImportSource implements ImportSourceInterface
             $warnings[] = 'Member tables are not copied — also check "Members" in the import options, or migrate per-listing member tables separately (e.g. via mysqldump).';
         }
 
+        if ($touchedIds !== []) {
+            $this->touchImportedListingSettings($target, $touchedIds);
+        }
+
         return ['type' => 'Owned listings', 'imported' => $imported, 'skipped' => $skipped,
                 'warnings' => array_unique($warnings), 'errors' => $errors, 'skipped_items' => $skippedItems];
+    }
+
+    /**
+     * Seeds the admin-controlled Last Updated date for freshly imported listings.
+     * This keeps a new Enthusiast import from immediately appearing in the
+     * dashboard's neglected-listing maintenance queue.
+     *
+     * @param int[] $listingIds
+     */
+    private function touchImportedListingSettings(PDO $target, array $listingIds): void
+    {
+        $listingIds = array_values(array_unique(array_filter(array_map('intval', $listingIds))));
+        if ($listingIds === []) {
+            return;
+        }
+
+        try {
+            if ($target->getAttribute(PDO::ATTR_DRIVER_NAME) === 'mysql') {
+                $stmt = $target->prepare(
+                    'INSERT INTO lstr_fanlisting_settings (fanlisting_id, last_updated)
+                     VALUES (:id, CURRENT_DATE)
+                     ON DUPLICATE KEY UPDATE last_updated = CURRENT_DATE'
+                );
+            } else {
+                $stmt = $target->prepare(
+                    'INSERT INTO lstr_fanlisting_settings (fanlisting_id, last_updated)
+                     VALUES (:id, CURRENT_DATE)
+                     ON CONFLICT(fanlisting_id) DO UPDATE SET last_updated = CURRENT_DATE'
+                );
+            }
+
+            foreach ($listingIds as $listingId) {
+                $stmt->execute(['id' => $listingId]);
+            }
+        } catch (\Throwable) {
+            // Older installs/tests may not have lstr_fanlisting_settings.last_updated yet.
+        }
+    }
+
+    private function tableHasColumn(PDO $pdo, string $table, string $column): bool
+    {
+        try {
+            if ($pdo->getAttribute(PDO::ATTR_DRIVER_NAME) === 'sqlite') {
+                $stmt = $pdo->query("PRAGMA table_info(`{$table}`)");
+                foreach ($stmt ? $stmt->fetchAll() : [] as $row) {
+                    if (($row['name'] ?? '') === $column) {
+                        return true;
+                    }
+                }
+                return false;
+            }
+
+            $stmt = $pdo->prepare("SHOW COLUMNS FROM `{$table}` LIKE :column");
+            $stmt->execute(['column' => $column]);
+            return $stmt->fetchColumn() !== false;
+        } catch (\Throwable) {
+            return false;
+        }
     }
 
     /**
@@ -1766,8 +1864,19 @@ final class EnthusiastImportSource implements ImportSourceInterface
                 $errors[] = "Could not fetch image: {$imageFilename}";
             }
         } elseif ($options->imageMode === 'zip') {
-            // ZIP mode: defer — image map is populated by the caller.
-            $skipped++;
+            if ($this->activeZip !== null) {
+                // Pre-uploaded ZIP: extract image inline during run().
+                $newFilename = $migrator->copyFromZip($this->activeZip, $imageFilename, $targetSubDir, $prefix);
+                if ($newFilename !== null) {
+                    $copied++;
+                } else {
+                    $skipped++;
+                    $errors[] = "Image not found in ZIP: {$imageFilename}";
+                }
+            } else {
+                // No ZIP opened — skip (legacy deferred mode or ZIP could not be opened).
+                $skipped++;
+            }
         } else {
             $skipped++;
         }

@@ -41,6 +41,8 @@ final class CodeSortImportSource implements ImportSourceInterface
 {
     private const CHUNK = 500;
 
+    private ?\ZipArchive $activeZip = null;
+
     // -----------------------------------------------------------------------
     // ImportSourceInterface
     // -----------------------------------------------------------------------
@@ -142,6 +144,14 @@ final class CodeSortImportSource implements ImportSourceInterface
             : null;
         $publicRoot = dirname(__DIR__, 2) . '/public';
 
+        // Open a pre-uploaded ZIP archive (Phase 3 ZIP mode).
+        if ($options->imageMode === 'zip' && $options->zipPath !== '' && $migrator !== null) {
+            $this->activeZip = new \ZipArchive();
+            if ($this->activeZip->open($options->zipPath) !== true) {
+                $this->activeZip = null;
+            }
+        }
+
         // Build Luster listing map: lowercase(title) → listing_id
         $listingMap = $this->buildListingMap($target);
 
@@ -185,12 +195,14 @@ final class CodeSortImportSource implements ImportSourceInterface
                 $imgRows[] = $imgRow;
             }
 
-            // Store image map in session for ZIP mode
-            if ($options->imageMode === 'zip' && !empty($codeRow['image_map'])) {
-                $_SESSION['lstr_import_image_map'] = array_merge(
-                    $_SESSION['lstr_import_image_map'] ?? [],
-                    $codeRow['image_map']
-                );
+        }
+
+        // Close and clean up pre-uploaded ZIP if one was opened.
+        if ($this->activeZip !== null) {
+            $this->activeZip->close();
+            $this->activeZip = null;
+            if ($options->zipPath !== '') {
+                @unlink($options->zipPath);
             }
         }
 
@@ -661,9 +673,13 @@ final class CodeSortImportSource implements ImportSourceInterface
                         $srcUrl = rtrim($options->imageUrl, '/') . '/' . rawurlencode($csFilename);
                         $newFilename = $migrator->fetchFromUrl($srcUrl, 'codes', 'cs');
                     } elseif ($options->imageMode === 'zip') {
-                        // Record for post-import ZIP step
-                        $imageMap[$csFilename] = ['type' => 'codes', 'listing_id' => $lstrLid];
-                        $newFilename = null; // filled in later
+                        if ($this->activeZip !== null) {
+                            // Pre-uploaded ZIP: extract image inline during run().
+                            $newFilename = $migrator->copyFromZip($this->activeZip, $csFilename, 'codes', 'cs');
+                        } else {
+                            // Legacy deferred / ZIP could not be opened.
+                            $imageMap[$csFilename] = ['type' => 'codes', 'listing_id' => $lstrLid];
+                        }
                     }
 
                     if ($newFilename !== null) {
@@ -675,7 +691,7 @@ final class CodeSortImportSource implements ImportSourceInterface
                             $width  = (int) $imgInfo[0];
                             $height = (int) $imgInfo[1];
                         }
-                    } elseif ($options->imageMode !== 'zip') {
+                    } elseif ($options->imageMode !== 'zip' || $this->activeZip !== null) {
                         $imgErrors++;
                     }
                 }
@@ -693,8 +709,7 @@ final class CodeSortImportSource implements ImportSourceInterface
                     }
                 }
 
-                // Use placeholder filename in ZIP mode
-                $filename = $newFilename ?? ($options->imageMode === 'zip' ? $csFilename : $csFilename);
+                $filename = $newFilename ?? $csFilename;
 
                 try {
                     $insertCode->execute([

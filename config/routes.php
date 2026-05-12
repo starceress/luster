@@ -3,8 +3,11 @@
 declare(strict_types=1);
 
 use Luster\Controllers\Admin\AddonsController;
+use Luster\Controllers\Admin\LinkCheckerController;
 use Luster\Controllers\Admin\FeedbackController;
 use Luster\Controllers\Admin\ImportController;
+use Luster\Controllers\Admin\ImportMembersController;
+use Luster\Controllers\Admin\LegacySourceController;
 use Luster\Controllers\Admin\ActivityLogController;
 use Luster\Controllers\Admin\EmailsController;
 use Luster\Controllers\Admin\BulkEmailController;
@@ -25,6 +28,7 @@ use Luster\Controllers\Admin\FieldController;
 use Luster\Controllers\Admin\JoinedController;
 use Luster\Controllers\Admin\MemberController;
 use Luster\Controllers\Admin\SettingsController;
+use Luster\Controllers\Public\AffiliateApplyController;
 use Luster\Controllers\Public\AffiliatesController;
 use Luster\Controllers\Public\JoinController;
 use Luster\Controllers\Public\MembersController;
@@ -87,6 +91,11 @@ return [
         $router->get('/contact/{id}/sent',   ContactController::class, 'listingSent');
         $router->get('/contact/{id}',        ContactController::class, 'listingForm');
         $router->post('/contact/{id}',       ContactController::class, 'listingSubmit');
+
+        // Affiliate applications — /success before base /{id}
+        $router->get('/affiliate-apply/{id}/success', AffiliateApplyController::class, 'success');
+        $router->get('/affiliate-apply/{id}',         AffiliateApplyController::class, 'show');
+        $router->post('/affiliate-apply/{id}',        AffiliateApplyController::class, 'submit');
 
         // Password reset — specific sub-paths registered before the base route
         $router->get('/reset/{id}/sent',      ResetController::class,   'sent');
@@ -267,10 +276,15 @@ return [
         // ── Affiliates ──────────────────────────────────────────────
         $router->get('/admin/affiliates',
             AffiliateController::class, 'index');
+        // Literal sub-paths registered before parameterised {id} routes
+        $router->get('/admin/affiliates/pending',
+            AffiliateController::class, 'pending');
         $router->get('/admin/affiliates/add',
             AffiliateController::class, 'add');
         $router->post('/admin/affiliates/add',
             AffiliateController::class, 'add');
+        $router->post('/admin/affiliates/reorder',
+            AffiliateController::class, 'reorder');
         $router->get('/admin/affiliates/{id}/edit',
             AffiliateController::class, 'editAffiliate');
         $router->post('/admin/affiliates/{id}/edit',
@@ -279,8 +293,10 @@ return [
             AffiliateController::class, 'toggle');
         $router->post('/admin/affiliates/{id}/delete',
             AffiliateController::class, 'deleteAffiliate');
-        $router->post('/admin/affiliates/reorder',
-            AffiliateController::class, 'reorder');
+        $router->post('/admin/affiliates/{id}/approve',
+            AffiliateController::class, 'approve');
+        $router->post('/admin/affiliates/{id}/reject',
+            AffiliateController::class, 'reject');
 
         // ── Admin user management (list lives in Settings › Admin Details) ──
         $router->get('/admin/admin-users/add',
@@ -319,6 +335,8 @@ return [
             SettingsController::class, 'testEmail');
         $router->post('/admin/settings/check-update',
             SettingsController::class, 'checkUpdate');
+        $router->post('/admin/settings/import-visibility',
+            SettingsController::class, 'saveImportVisibility');
 
         // ── Email/SMTP Settings (under Emails nav) ───────────────────
         // Old URL → redirect to unified Emails page SMTP tab
@@ -326,6 +344,7 @@ return [
             SettingsController::class, 'emailSettingsRedirect');
         $router->post('/admin/emails/smtp-settings/save',
             SettingsController::class, 'saveEmailSettings');
+
 
         // ── Joined listings ───────────────────────────────────────
         $router->get('/admin/joined',
@@ -391,6 +410,22 @@ return [
         $router->get('/admin/sysinfo',
             SysInfoController::class, 'index');
 
+        // ── Link Checker ─────────────────────────────────────────────────
+        $router->get('/admin/link-checker',
+            LinkCheckerController::class, 'index');
+        $router->post('/admin/link-checker/check-affiliate',
+            LinkCheckerController::class, 'checkAffiliate');
+        $router->post('/admin/link-checker/check-joined',
+            LinkCheckerController::class, 'checkJoined');
+        $router->post('/admin/link-checker/reset-affiliates',
+            LinkCheckerController::class, 'resetAffiliates');
+        $router->post('/admin/link-checker/reset-joined',
+            LinkCheckerController::class, 'resetJoined');
+        $router->post('/admin/link-checker/apply-affiliate-redirect',
+            LinkCheckerController::class, 'applyRedirectAffiliate');
+        $router->post('/admin/link-checker/apply-joined-redirect',
+            LinkCheckerController::class, 'applyRedirectJoined');
+
         // ── Feedback ──────────────────────────────────────────────────
         $router->get('/admin/feedback',  FeedbackController::class, 'showForm');
         $router->post('/admin/feedback', FeedbackController::class, 'submit');
@@ -415,28 +450,75 @@ return [
         // Literal sub-paths registered before parameterised {source} routes
         $router->get('/admin/import',
             ImportController::class, 'index');
+        // Step 2: Connect (credentials)
+        $router->get('/admin/import/{source}/connect',
+            ImportController::class, 'connect');
+        $router->post('/admin/import/{source}/connect',
+            ImportController::class, 'connect');
+        // configure → connect redirect (backward compatibility)
         $router->get('/admin/import/{source}/configure',
             ImportController::class, 'configure');
         $router->post('/admin/import/{source}/configure',
             ImportController::class, 'configure');
+        // AJAX test connection
         $router->post('/admin/import/{source}/test-connection',
             ImportController::class, 'testConnection');
+        // Step 3: Scope (options + image mode + ZIP upload)
+        $router->get('/admin/import/{source}/scope',
+            ImportController::class, 'scope');
+        $router->post('/admin/import/{source}/scope',
+            ImportController::class, 'scope');
+        $router->post('/admin/import/{source}/zip-upload',
+            ImportController::class, 'uploadZip');
+        // Step 4: Preview (GET = browser followed redirect from scope POST; POST = back-compat)
         $router->get('/admin/import/{source}/preview',
             ImportController::class, 'preview');
+        $router->post('/admin/import/{source}/preview',
+            ImportController::class, 'preview');
+        // Step 5: Run + result
         $router->post('/admin/import/{source}/run',
             ImportController::class, 'run');
         $router->get('/admin/import/{source}/result',
             ImportController::class, 'result');
         $router->get('/admin/import/{source}/report',
             ImportController::class, 'downloadReport');
+        // SQL dump upload (called from connect step)
         $router->post('/admin/import/{source}/upload-dump',
             ImportController::class, 'uploadDump');
-        $router->post('/admin/import/{source}/upload-images',
-            ImportController::class, 'uploadImages');
 
-        // ── Embed codes reference ─────────────────────────────────────
+        // ── Embed codes + compat test ─────────────────────────────────
         $router->get('/admin/embed-codes',
             EmbedCodesController::class, 'index');
+        $router->get('/admin/compat-test',
+            EmbedCodesController::class, 'compatTest');
+        $router->post('/admin/compat-test',
+            EmbedCodesController::class, 'compatTest');
+
+        // ── Compat wrapper ZIP download ───────────────────────────────
+        $router->get('/admin/listings/{id}/compat-zip/{set}',
+            ListingController::class, 'compatZip');
+
+        // ── Import members (targeted SQL member import) ───────────────
+        $router->get('/admin/import-members',
+            ImportMembersController::class, 'landing');
+        $router->post('/admin/import-members/upload',
+            ImportMembersController::class, 'upload');
+        $router->get('/admin/import-members/preview',
+            ImportMembersController::class, 'preview');
+        $router->post('/admin/import-members/run',
+            ImportMembersController::class, 'run');
+        $router->get('/admin/import-members/result',
+            ImportMembersController::class, 'result');
+
+        // ── Legacy source browser ─────────────────────────────────────
+        $router->get('/admin/legacy-source',
+            LegacySourceController::class, 'index');
+        $router->post('/admin/legacy-source/connect',
+            LegacySourceController::class, 'connect');
+        $router->get('/admin/legacy-source/listings',
+            LegacySourceController::class, 'listings');
+        $router->get('/admin/legacy-source/listing/{id}',
+            LegacySourceController::class, 'listingDetail');
 
         // ── Unified Emails page ───────────────────────────────────────
         $router->get('/admin/emails',

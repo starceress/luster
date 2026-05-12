@@ -175,6 +175,66 @@ a.topbar-crumb:hover { color: var(--accent2); }
 
 .welcome-title { font-family: var(--font-serif); font-size: 1.6rem; font-weight: 700; color: var(--text); line-height: 1.2; margin-block: 0.5rem; }
 
+/* ──── ONBOARDING CALLOUT ──────────────────────────────────────────── */
+/*
+ * Outer wrapper: gradient background with asymmetric padding creates
+ * the border effect — 5px on left (thick bar), 2px on top/right/bottom.
+ * Box-shadow glow sits on the outer element so it layers below the card.
+ */
+.onboard-callout {
+  margin-bottom: 1.5rem;
+  background: linear-gradient(160deg, var(--va-pink), var(--va-teal) 55%, var(--va-gold));
+  border-radius: var(--radius);
+  padding: 2px 2px 2px 5px;
+  box-shadow: var(--shadow),
+    0 0 28px rgba(var(--ch-pink) / 0.18),
+    0 0 28px rgba(var(--ch-teal) / 0.12);
+}
+
+/* Inner card: tinted gradient background, slightly inset border-radius */
+.onboard-callout__inner {
+  background:
+    linear-gradient(135deg,
+      rgba(var(--ch-pink) / 0.07) 0%,
+      rgba(var(--ch-teal)  / 0.05) 50%,
+      rgba(var(--ch-gold)  / 0.05) 100%),
+    var(--bg-card);
+  border-radius: 12px;
+  padding: 1.375rem 1.75rem;
+}
+
+.onboard-callout__heading {
+  font-family: var(--font-serif);
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  gap: .55rem;
+  margin-bottom: .625rem;
+  line-height: 1.2;
+}
+
+.onboard-callout__sparkle {
+  background: linear-gradient(90deg, var(--va-pink), var(--va-teal), var(--va-gold));
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  font-size: 1.375rem;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.onboard-callout__body {
+  margin: 0 0 1.125rem;
+  font-size: .9rem;
+  color: var(--text-muted);
+  line-height: 1.65;
+  width: 100%;
+}
+
+.onboard-callout__actions { display: flex; gap: .625rem; flex-wrap: wrap; }
+
 .welcome-sub { font-size: var(--fs-md); color: var(--text-muted); line-height: 1.5; }
 
 .welcome-actions { display: flex; gap: .5rem; align-items: center; flex-shrink: 0; position: relative; z-index: 1; padding-top: .2rem; }

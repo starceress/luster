@@ -73,7 +73,7 @@ final class ImportAdapterRegressionTest extends TestCase
             )"
         );
         $pdo->exec("CREATE TABLE IF NOT EXISTS lstr_categories (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, parent_id INTEGER NULL, source TEXT NOT NULL DEFAULT 'custom')");
-        $pdo->exec("CREATE TABLE IF NOT EXISTS lstr_fanlisting_settings (fanlisting_id INTEGER PRIMARY KEY, members_per_page INTEGER NOT NULL DEFAULT 25, queue_updates INTEGER NOT NULL DEFAULT 0, members_template TEXT NULL, affiliates_template TEXT NULL, stats_template TEXT NULL, image TEXT NULL)");
+        $pdo->exec("CREATE TABLE IF NOT EXISTS lstr_fanlisting_settings (fanlisting_id INTEGER PRIMARY KEY, members_per_page INTEGER NOT NULL DEFAULT 25, queue_updates INTEGER NOT NULL DEFAULT 0, members_template TEXT NULL, affiliates_template TEXT NULL, stats_template TEXT NULL, image TEXT NULL, last_updated TEXT NULL)");
     }
 
     /**
@@ -105,7 +105,7 @@ final class ImportAdapterRegressionTest extends TestCase
             )"
         );
         $pdo->exec("CREATE TABLE IF NOT EXISTS lstr_categories (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, parent_id INTEGER NULL, source TEXT NOT NULL DEFAULT 'custom')");
-        $pdo->exec("CREATE TABLE IF NOT EXISTS lstr_fanlisting_settings (fanlisting_id INTEGER PRIMARY KEY, members_per_page INTEGER NOT NULL DEFAULT 25, queue_updates INTEGER NOT NULL DEFAULT 0, members_template TEXT NULL, affiliates_template TEXT NULL, stats_template TEXT NULL, image TEXT NULL)");
+        $pdo->exec("CREATE TABLE IF NOT EXISTS lstr_fanlisting_settings (fanlisting_id INTEGER PRIMARY KEY, members_per_page INTEGER NOT NULL DEFAULT 25, queue_updates INTEGER NOT NULL DEFAULT 0, members_template TEXT NULL, affiliates_template TEXT NULL, stats_template TEXT NULL, image TEXT NULL, last_updated TEXT NULL)");
     }
 
     // -----------------------------------------------------------------------
@@ -258,6 +258,106 @@ final class ImportAdapterRegressionTest extends TestCase
         $this->assertNotNull($catRow);
         $this->assertSame(1, $catRow['imported'], 'Should import from the temp-prefixed source table');
         $this->assertEmpty($catRow['errors']);
+    }
+
+    public function testEnthOwnedImportSeedsLastUpdatedWhenSettingsAreNotImported(): void
+    {
+        $src = $this->makePdo();
+        $src->exec(
+            "CREATE TABLE `owned` (
+                listingid INTEGER PRIMARY KEY,
+                dbtable TEXT NOT NULL DEFAULT '',
+                title TEXT NOT NULL DEFAULT '',
+                subject TEXT NOT NULL DEFAULT '',
+                email TEXT NOT NULL DEFAULT '',
+                url TEXT NOT NULL DEFAULT '',
+                catid TEXT NOT NULL DEFAULT '',
+                additional TEXT NOT NULL DEFAULT '',
+                status INTEGER NOT NULL DEFAULT 2
+            )"
+        );
+        $src->exec("INSERT INTO `owned` VALUES (7, 'demo', 'Demo', 'Demo', 'owner@test.com', 'https://demo.example.com', '', '', 2)");
+
+        $tgt = $this->makePdo();
+        $this->seedOwnedTarget($tgt);
+
+        $opts = ImportOptions::fromPost([
+            'source'                => 'enthusiast',
+            'conflict_strategy'     => 'skip',
+            'import_owned_listings' => '1',
+            '_dump_schema_variant'  => 'enthusiast_unprefixed',
+        ]);
+
+        $result = $this->enthAdapter()->run($src, $tgt, $opts);
+
+        $ownedRow = null;
+        foreach ($result->rows as $row) {
+            if ($row['type'] === 'Owned listings') {
+                $ownedRow = $row;
+                break;
+            }
+        }
+
+        $this->assertNotNull($ownedRow);
+        $this->assertSame(1, $ownedRow['imported']);
+        $this->assertSame(
+            $tgt->query('SELECT CURRENT_DATE')->fetchColumn(),
+            $tgt->query('SELECT last_updated FROM lstr_fanlisting_settings WHERE fanlisting_id = 7')->fetchColumn()
+        );
+    }
+
+    public function testEnthSettingsImportSeedsLastUpdatedWithoutBlockingSettings(): void
+    {
+        $src = $this->makePdo();
+        $src->exec(
+            "CREATE TABLE `owned` (
+                listingid INTEGER PRIMARY KEY,
+                dbtable TEXT NOT NULL DEFAULT '',
+                title TEXT NOT NULL DEFAULT '',
+                subject TEXT NOT NULL DEFAULT '',
+                email TEXT NOT NULL DEFAULT '',
+                url TEXT NOT NULL DEFAULT '',
+                catid TEXT NOT NULL DEFAULT '',
+                additional TEXT NOT NULL DEFAULT '',
+                status INTEGER NOT NULL DEFAULT 2,
+                perpage INTEGER NOT NULL DEFAULT 25,
+                holdupdate INTEGER NOT NULL DEFAULT 0,
+                listtemplate TEXT NOT NULL DEFAULT '',
+                affiliatestemplate TEXT NOT NULL DEFAULT '',
+                statstemplate TEXT NOT NULL DEFAULT '',
+                imagefile TEXT NOT NULL DEFAULT ''
+            )"
+        );
+        $src->exec("INSERT INTO `owned` VALUES (8, 'demo2', 'Demo 2', 'Demo 2', 'owner@test.com', 'https://demo2.example.com', '', '', 2, 42, 1, '<li>{name}</li>', '<a>{name}</a>', '<b>{count}</b>', '')");
+
+        $tgt = $this->makePdo();
+        $this->seedOwnedTarget($tgt);
+
+        $opts = ImportOptions::fromPost([
+            'source'                => 'enthusiast',
+            'conflict_strategy'     => 'skip',
+            'import_owned_listings' => '1',
+            'import_settings'       => '1',
+            '_dump_schema_variant'  => 'enthusiast_unprefixed',
+        ]);
+
+        $result = $this->enthAdapter()->run($src, $tgt, $opts);
+
+        $settingsRow = null;
+        foreach ($result->rows as $row) {
+            if ($row['type'] === 'Listing settings') {
+                $settingsRow = $row;
+                break;
+            }
+        }
+
+        $this->assertNotNull($settingsRow);
+        $this->assertSame(1, $settingsRow['imported']);
+
+        $row = $tgt->query('SELECT members_per_page, queue_updates, last_updated FROM lstr_fanlisting_settings WHERE fanlisting_id = 8')->fetch();
+        $this->assertSame(42, (int) $row['members_per_page']);
+        $this->assertSame(1, (int) $row['queue_updates']);
+        $this->assertSame($tgt->query('SELECT CURRENT_DATE')->fetchColumn(), $row['last_updated']);
     }
 
     /**

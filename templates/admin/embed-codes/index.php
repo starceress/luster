@@ -51,6 +51,14 @@ $snippets = [
     '?>',
   ]),
 
+  'aff-apply' => implode("\n", [
+    '<?php',
+    '// Enable affiliate applications in Admin → Listings → Edit → Affiliates',
+    "\$luster_fanlisting_id = {$id};",
+    "require('{$ep}/affiliate-apply.php');",
+    '?>',
+  ]),
+
   'update' => implode("\n", [
     '<?php',
     "\$luster_fanlisting_id = {$id};",
@@ -147,6 +155,13 @@ $items = [
     'custType' => 'affiliates',
     'desc'     => 'Displays this listing affiliates using the template from Edit Listing → Templates.',
   ],
+  'aff-apply' => [
+    'label'    => 'Affiliate application',
+    'badge'    => 'form',
+    'file'     => 'embed/affiliate-apply.php',
+    'custType' => 'aff-apply',
+    'desc'     => 'Affiliate application form — must be enabled per-listing in Edit Listing → Affiliates. Applicants submit their site name, URL, and optional message; you review them in Admin → Affiliates → Pending.',
+  ],
   'update' => [
     'label'    => 'Update details',
     'badge'    => 'form',
@@ -225,13 +240,13 @@ $epSafe = View::e($ep);
 
 // Nav item groups
 $navGroups = [
-  ['label' => 'For a fanlisting page', 'keys' => ['join', 'members', 'stats', 'affiliates', 'update', 'remove', 'reset']],
+  ['label' => 'For a fanlisting page', 'keys' => ['join', 'members', 'stats', 'affiliates', 'aff-apply', 'update', 'remove', 'reset']],
   ['label' => 'For a collective page',  'keys' => ['owned', 'joined', 'cstats', 'aff-col', 'kim']],
 ];
 
 // Customizer type groups (mirror nav groups)
 $custGroups = [
-  ['label' => 'For a fanlisting page', 'keys' => ['join', 'members', 'stats', 'affiliates', 'update', 'remove', 'reset']],
+  ['label' => 'For a fanlisting page', 'keys' => ['join', 'members', 'stats', 'affiliates', 'aff-apply', 'update', 'remove', 'reset']],
   ['label' => 'For a collective page',  'keys' => ['owned', 'joined', 'cstats', 'aff-col', 'kim']],
 ];
 

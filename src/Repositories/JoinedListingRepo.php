@@ -470,4 +470,89 @@ final class JoinedListingRepo
 
         return $stmt->execute(['id' => $id]);
     }
+
+    // -----------------------------------------------------------------------
+    // Link checking
+    // -----------------------------------------------------------------------
+
+    /**
+     * Returns every joined listing row, ordered by name.
+     * Used by the link-checker page which never paginates.
+     *
+     * @return JoinedListing[]
+     */
+    public function getAllForLinkCheck(): array
+    {
+        $stmt = $this->db->prepare(
+            'SELECT * FROM lstr_joined ORDER BY name ASC'
+        );
+        $stmt->execute();
+
+        return array_map(static fn(array $r) => JoinedListing::fromRow($r), $stmt->fetchAll());
+    }
+
+    /**
+     * Returns all joined listings with a given link_status, ordered by name.
+     *
+     * @return JoinedListing[]
+     */
+    public function getByLinkStatus(string $status): array
+    {
+        $stmt = $this->db->prepare(
+            'SELECT * FROM lstr_joined WHERE link_status = :status ORDER BY name ASC'
+        );
+        $stmt->execute(['status' => $status]);
+
+        return array_map(static fn(array $r) => JoinedListing::fromRow($r), $stmt->fetchAll());
+    }
+
+    /**
+     * Applies the stored redirect URL to the joined listing's url field and resets
+     * link-check state so the new URL is re-validated on the next check run.
+     *
+     * Only acts on records with link_status = 'redirect' and a non-empty
+     * link_redirect_url — the new URL comes entirely from the DB, never from
+     * a browser-supplied value.
+     *
+     * @return bool  true if a row was updated, false if nothing matched.
+     */
+    public function applyRedirectUrl(int $id): bool
+    {
+        $stmt = $this->db->prepare(
+            "UPDATE lstr_joined
+             SET url               = link_redirect_url,
+                 link_status       = 'unchecked',
+                 link_redirect_url = NULL,
+                 link_checked_at   = NULL
+             WHERE id              = :id
+               AND link_status     = 'redirect'
+               AND link_redirect_url IS NOT NULL
+               AND link_redirect_url <> ''"
+        );
+        $stmt->execute(['id' => $id]);
+
+        return $stmt->rowCount() > 0;
+    }
+
+    public function updateLinkStatus(int $id, string $status, ?string $redirectUrl, ?string $now = null): void
+    {
+        $stmt = $this->db->prepare(
+            'UPDATE lstr_joined
+             SET link_status       = :status,
+                 link_redirect_url = :redir,
+                 link_checked_at   = :now
+             WHERE id = :id'
+        );
+        $stmt->execute(['status' => $status, 'redir' => $redirectUrl, 'now' => $now ?? date('Y-m-d H:i:s'), 'id' => $id]);
+    }
+
+    public function resetLinkStatus(): void
+    {
+        $this->db->prepare(
+            "UPDATE lstr_joined
+             SET link_status       = 'unchecked',
+                 link_checked_at   = NULL,
+                 link_redirect_url = NULL"
+        )->execute();
+    }
 }

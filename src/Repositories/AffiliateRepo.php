@@ -31,12 +31,12 @@ final class AffiliateRepo
     {
         $offset = ($page - 1) * $perPage;
 
-        $countStmt = $this->db->prepare('SELECT COUNT(*) FROM lstr_affiliates');
+        $countStmt = $this->db->prepare('SELECT COUNT(*) FROM lstr_affiliates WHERE pending = 0');
         $countStmt->execute();
         $total = (int) $countStmt->fetchColumn();
 
         $stmt = $this->db->prepare(
-            "SELECT * FROM lstr_affiliates ORDER BY {$orderBy} LIMIT :limit OFFSET :offset"
+            "SELECT * FROM lstr_affiliates WHERE pending = 0 ORDER BY {$orderBy} LIMIT :limit OFFSET :offset"
         );
         $stmt->bindValue(':limit',  $perPage, \PDO::PARAM_INT);
         $stmt->bindValue(':offset', $offset,  \PDO::PARAM_INT);
@@ -74,14 +74,14 @@ final class AffiliateRepo
         $offset = ($page - 1) * $perPage;
 
         $countStmt = $this->db->prepare(
-            'SELECT COUNT(*) FROM lstr_affiliates WHERE fanlisting_id IS NULL'
+            'SELECT COUNT(*) FROM lstr_affiliates WHERE fanlisting_id IS NULL AND pending = 0'
         );
         $countStmt->execute();
         $total = (int) $countStmt->fetchColumn();
 
         $stmt = $this->db->prepare(
             "SELECT * FROM lstr_affiliates
-             WHERE fanlisting_id IS NULL
+             WHERE fanlisting_id IS NULL AND pending = 0
              ORDER BY {$orderBy}
              LIMIT :limit OFFSET :offset"
         );
@@ -107,14 +107,14 @@ final class AffiliateRepo
         $offset = ($page - 1) * $perPage;
 
         $countStmt = $this->db->prepare(
-            'SELECT COUNT(*) FROM lstr_affiliates WHERE fanlisting_id = :fid'
+            'SELECT COUNT(*) FROM lstr_affiliates WHERE fanlisting_id = :fid AND pending = 0'
         );
         $countStmt->execute(['fid' => $listingId]);
         $total = (int) $countStmt->fetchColumn();
 
         $stmt = $this->db->prepare(
             "SELECT * FROM lstr_affiliates
-             WHERE fanlisting_id = :fid
+             WHERE fanlisting_id = :fid AND pending = 0
              ORDER BY {$orderBy}
              LIMIT :limit OFFSET :offset"
         );
@@ -141,14 +141,14 @@ final class AffiliateRepo
         $offset = ($page - 1) * $perPage;
 
         $countStmt = $this->db->prepare(
-            'SELECT COUNT(*) FROM lstr_affiliates WHERE fanlisting_id = :fid AND active = 1'
+            'SELECT COUNT(*) FROM lstr_affiliates WHERE fanlisting_id = :fid AND active = 1 AND pending = 0'
         );
         $countStmt->execute(['fid' => $listingId]);
         $total = (int) $countStmt->fetchColumn();
 
         $stmt = $this->db->prepare(
             'SELECT * FROM lstr_affiliates
-             WHERE fanlisting_id = :fid AND active = 1
+             WHERE fanlisting_id = :fid AND active = 1 AND pending = 0
              ORDER BY sort_order ASC, name ASC
              LIMIT :limit OFFSET :offset'
         );
@@ -175,14 +175,14 @@ final class AffiliateRepo
         $offset = ($page - 1) * $perPage;
 
         $countStmt = $this->db->prepare(
-            'SELECT COUNT(*) FROM lstr_affiliates WHERE fanlisting_id IS NULL AND active = 1'
+            'SELECT COUNT(*) FROM lstr_affiliates WHERE fanlisting_id IS NULL AND active = 1 AND pending = 0'
         );
         $countStmt->execute();
         $total = (int) $countStmt->fetchColumn();
 
         $stmt = $this->db->prepare(
             'SELECT * FROM lstr_affiliates
-             WHERE fanlisting_id IS NULL AND active = 1
+             WHERE fanlisting_id IS NULL AND active = 1 AND pending = 0
              ORDER BY sort_order ASC, name ASC
              LIMIT :limit OFFSET :offset'
         );
@@ -220,7 +220,7 @@ final class AffiliateRepo
             $fidClause = ' AND fanlisting_id = :fid';
         }
 
-        $where = '(name LIKE :q1 OR url LIKE :q2 OR email LIKE :q3)' . $fidClause;
+        $where = '(name LIKE :q1 OR url LIKE :q2 OR email LIKE :q3) AND pending = 0' . $fidClause;
 
         $countStmt = $this->db->prepare("SELECT COUNT(*) FROM lstr_affiliates WHERE {$where}");
         $countStmt->bindValue(':q1', $pattern, \PDO::PARAM_STR);
@@ -420,5 +420,239 @@ final class AffiliateRepo
         );
 
         return $stmt->execute(['id' => $id]);
+    }
+
+    // -----------------------------------------------------------------------
+    // Affiliate applications (pending queue)
+    // -----------------------------------------------------------------------
+
+    /**
+     * Returns all pending applications, optionally scoped to one listing.
+     * Pass null to get all pending across every listing.
+     *
+     * @return Affiliate[]
+     */
+    public function getPending(?int $listingId = null): array
+    {
+        if ($listingId === null) {
+            $stmt = $this->db->prepare(
+                'SELECT * FROM lstr_affiliates WHERE pending = 1
+                 ORDER BY fanlisting_id ASC, created_at ASC'
+            );
+            $stmt->execute();
+        } else {
+            $stmt = $this->db->prepare(
+                'SELECT * FROM lstr_affiliates WHERE pending = 1 AND fanlisting_id = :fid
+                 ORDER BY created_at ASC'
+            );
+            $stmt->execute(['fid' => $listingId]);
+        }
+
+        return array_map(static fn(array $r) => Affiliate::fromRow($r), $stmt->fetchAll());
+    }
+
+    /**
+     * Returns the total number of pending affiliate applications across all listings.
+     * Used by the dashboard to surface the attention banner.
+     */
+    public function getPendingCount(): int
+    {
+        $stmt = $this->db->prepare('SELECT COUNT(*) FROM lstr_affiliates WHERE pending = 1');
+        $stmt->execute();
+
+        return (int) $stmt->fetchColumn();
+    }
+
+    /**
+     * Inserts a new affiliate application (pending = 1, active = 0).
+     * Returns the new primary key.
+     *
+     * @param array{fanlisting_id: int, name: string, url: string, email?: ?string, image?: ?string, application_message?: ?string} $data
+     */
+    public function insertPending(array $data): int
+    {
+        $stmt = $this->db->prepare(
+            'INSERT INTO lstr_affiliates
+                (fanlisting_id, name, url, email, image, sort_order, active, pending, application_message)
+             VALUES
+                (:fanlisting_id, :name, :url, :email, :image, 1, 0, 1, :application_message)'
+        );
+
+        $stmt->execute([
+            'fanlisting_id'       => (int) $data['fanlisting_id'],
+            'name'                => (string) $data['name'],
+            'url'                 => (string) $data['url'],
+            'email'               => isset($data['email'])               ? (string) $data['email']               : null,
+            'image'               => isset($data['image'])               ? (string) $data['image']               : null,
+            'application_message' => isset($data['application_message']) ? (string) $data['application_message'] : null,
+        ]);
+
+        return (int) $this->db->lastInsertId();
+    }
+
+    /**
+     * Approves a pending application: clears pending flag, activates the row,
+     * and assigns the next sort_order in its scope.
+     */
+    public function approve(int $id): bool
+    {
+        $aff = $this->getById($id);
+        if ($aff === null || !$aff->pending) {
+            return false;
+        }
+
+        $sortOrder = $this->getNextSortOrder($aff->listingId);
+
+        $stmt = $this->db->prepare(
+            'UPDATE lstr_affiliates
+             SET pending    = 0,
+                 active     = 1,
+                 sort_order = :sort
+             WHERE id = :id AND pending = 1'
+        );
+
+        return $stmt->execute(['sort' => $sortOrder, 'id' => $id]);
+    }
+
+    /**
+     * Rejects a pending application by deleting the row.
+     * Only removes the row if it is still pending.
+     */
+    public function reject(int $id): bool
+    {
+        $stmt = $this->db->prepare(
+            'DELETE FROM lstr_affiliates WHERE id = :id AND pending = 1'
+        );
+        $stmt->execute(['id' => $id]);
+
+        return $stmt->rowCount() > 0;
+    }
+
+    /**
+     * Checks whether an affiliate application for this listing already exists
+     * (either as a live affiliate or an in-queue pending application) by URL or email.
+     * Used to prevent duplicate applications before inserting.
+     */
+    public function isDuplicateApplication(int $listingId, string $url, string $email): bool
+    {
+        if ($email !== '') {
+            $stmt = $this->db->prepare(
+                'SELECT COUNT(*) FROM lstr_affiliates
+                 WHERE fanlisting_id = :fid AND (url = :url OR email = :email)'
+            );
+            $stmt->execute(['fid' => $listingId, 'url' => $url, 'email' => $email]);
+        } else {
+            $stmt = $this->db->prepare(
+                'SELECT COUNT(*) FROM lstr_affiliates
+                 WHERE fanlisting_id = :fid AND url = :url'
+            );
+            $stmt->execute(['fid' => $listingId, 'url' => $url]);
+        }
+
+        return (int) $stmt->fetchColumn() > 0;
+    }
+
+    // -----------------------------------------------------------------------
+    // Link checking
+    // -----------------------------------------------------------------------
+
+    /**
+     * Returns every affiliate row, ordered by listing scope then name.
+     * Used by the link-checker page which never paginates.
+     *
+     * @return Affiliate[]
+     */
+    public function getAllForLinkCheck(): array
+    {
+        $stmt = $this->db->prepare(
+            'SELECT * FROM lstr_affiliates WHERE pending = 0 ORDER BY (fanlisting_id IS NULL) DESC, name ASC'
+        );
+        $stmt->execute();
+
+        return array_map(static fn(array $r) => Affiliate::fromRow($r), $stmt->fetchAll());
+    }
+
+    /**
+     * Returns all affiliates with a given link_status, ordered collective-first then name.
+     *
+     * @return Affiliate[]
+     */
+    public function getByLinkStatus(string $status): array
+    {
+        $stmt = $this->db->prepare(
+            'SELECT * FROM lstr_affiliates
+             WHERE link_status = :status
+             ORDER BY (fanlisting_id IS NULL) DESC, name ASC'
+        );
+        $stmt->execute(['status' => $status]);
+
+        return array_map(static fn(array $r) => Affiliate::fromRow($r), $stmt->fetchAll());
+    }
+
+    /**
+     * Applies the stored redirect URL to the affiliate's url field and resets
+     * link-check state so the new URL is re-validated on the next check run.
+     *
+     * Only acts on records with link_status = 'redirect' and a non-empty
+     * link_redirect_url — the new URL comes entirely from the DB, never from
+     * a browser-supplied value.
+     *
+     * reciprocal_status and reciprocal_checked_at are intentionally left
+     * untouched: the affiliate likely still links back; the next check run
+     * will update reciprocal state for the new URL if needed.
+     *
+     * @return bool  true if a row was updated, false if nothing matched.
+     */
+    public function applyRedirectUrl(int $id): bool
+    {
+        $stmt = $this->db->prepare(
+            "UPDATE lstr_affiliates
+             SET url               = link_redirect_url,
+                 link_status       = 'unchecked',
+                 link_redirect_url = NULL,
+                 link_checked_at   = NULL
+             WHERE id              = :id
+               AND link_status     = 'redirect'
+               AND link_redirect_url IS NOT NULL
+               AND link_redirect_url <> ''"
+        );
+        $stmt->execute(['id' => $id]);
+
+        return $stmt->rowCount() > 0;
+    }
+
+    public function updateLinkStatus(int $id, string $status, ?string $redirectUrl, ?string $now = null): void
+    {
+        $stmt = $this->db->prepare(
+            'UPDATE lstr_affiliates
+             SET link_status       = :status,
+                 link_redirect_url = :redir,
+                 link_checked_at   = :now
+             WHERE id = :id'
+        );
+        $stmt->execute(['status' => $status, 'redir' => $redirectUrl, 'now' => $now ?? date('Y-m-d H:i:s'), 'id' => $id]);
+    }
+
+    public function updateReciprocalStatus(int $id, string $status, ?string $now = null): void
+    {
+        $stmt = $this->db->prepare(
+            'UPDATE lstr_affiliates
+             SET reciprocal_status     = :status,
+                 reciprocal_checked_at = :now
+             WHERE id = :id'
+        );
+        $stmt->execute(['status' => $status, 'now' => $now ?? date('Y-m-d H:i:s'), 'id' => $id]);
+    }
+
+    public function resetLinkStatus(): void
+    {
+        $this->db->prepare(
+            "UPDATE lstr_affiliates
+             SET link_status           = 'unchecked',
+                 link_checked_at       = NULL,
+                 link_redirect_url     = NULL,
+                 reciprocal_status     = 'unchecked',
+                 reciprocal_checked_at = NULL"
+        )->execute();
     }
 }

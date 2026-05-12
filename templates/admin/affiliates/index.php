@@ -70,6 +70,13 @@ $canReorder = ($search ?? '') === '' && ($filter_fid ?? 'collective') !== '';
   <div class="alert alert-error"><?= View::e($error) ?></div>
 <?php endif; ?>
 
+<?php if (!empty($pending_count)): ?>
+  <div class="alert alert-warning">
+    <?= (int) $pending_count ?> pending affiliate application<?= (int) $pending_count !== 1 ? 's' : '' ?> await<?= (int) $pending_count === 1 ? 's' : '' ?> review.
+    <a href="<?= $b ?>/admin/affiliates/pending" class="btn btn-sm btn-quaternary" style="margin-left:.5rem">Review</a>
+  </div>
+<?php endif; ?>
+
 <?php if ($reorderMode): ?>
 <!-- ──── REORDER MODE BANNER ────────────────────────────────────────── -->
 <div class="neb-reorder-banner">

@@ -42,6 +42,8 @@ final class ListingAdminImportSource implements ImportSourceInterface
     private const CHUNK    = 500;
     private const SKIP_CAP = 500;
 
+    private ?\ZipArchive $activeZip = null;
+
     private const IMG_DIRS = [
         'affiliates' => 'images/affiliates',
         'joined'     => 'images/joined',
@@ -213,6 +215,14 @@ final class ListingAdminImportSource implements ImportSourceInterface
             ? new ImageMigrator(dirname(__DIR__, 2) . '/public')
             : null;
 
+        // Open a pre-uploaded ZIP archive (Phase 3 ZIP mode).
+        if ($options->imageMode === 'zip' && $options->zipPath !== '' && $migrator !== null) {
+            $this->activeZip = new \ZipArchive();
+            if ($this->activeZip->open($options->zipPath) !== true) {
+                $this->activeZip = null;
+            }
+        }
+
         // Read actual image paths/URLs from the Listing Admin options table.
         // These are the paths configured by the site owner (can be anything).
         // Returns [] if the table is absent or values are blank — callers fall
@@ -278,9 +288,13 @@ final class ListingAdminImportSource implements ImportSourceInterface
             $rows[] = $this->runUpdates($source, $target, $options, $listingIdMap, $sp);
         }
 
-        // Store image map for ZIP upload
-        if ($options->imageMode === 'zip' && !empty($imageMap)) {
-            $_SESSION['lstr_import_image_map'] = $imageMap;
+        // Close and clean up pre-uploaded ZIP if one was opened.
+        if ($this->activeZip !== null) {
+            $this->activeZip->close();
+            $this->activeZip = null;
+            if ($options->zipPath !== '') {
+                @unlink($options->zipPath);
+            }
         }
 
         return new ImportResult(
@@ -1556,6 +1570,19 @@ final class ListingAdminImportSource implements ImportSourceInterface
                 $errors[] = "Could not fetch: {$imageFilename}";
             }
             return $newFilename;
+        }
+
+        if ($options->imageMode === 'zip') {
+            if ($this->activeZip !== null) {
+                $newFilename = $migrator->copyFromZip($this->activeZip, $imageFilename, $targetSubDir, $prefix);
+                if ($newFilename !== null) {
+                    $copied++;
+                } else {
+                    $skipped++;
+                    $errors[] = "Image not found in ZIP: {$imageFilename}";
+                }
+                return $newFilename;
+            }
         }
 
         $skipped++;

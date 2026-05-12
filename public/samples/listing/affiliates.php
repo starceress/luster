@@ -16,4 +16,6 @@ require 'header.php';
   echo require $_embedPath . '/affiliates.php';
   ?>
 
+  <p><a href="affiliate-apply.php">Want to affiliate? Apply here.</a></p>
+
 <?php require 'footer.php'; ?>

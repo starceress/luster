@@ -4,7 +4,6 @@ use Luster\Import\ImportResult;
 /** @var string       $source */
 /** @var string       $source_name */
 /** @var ImportResult $result */
-/** @var bool         $show_zip_form */
 /** @var string       $base_url */
 /** @var string       $csrf_token */
 $b       = rtrim(View::e($base_url), '/');
@@ -13,24 +12,30 @@ $srcName = View::e($source_name);
 $hasErr  = $result->hasErrors();
 ?>
 
+<div class="import-wizard">
+
 <div class="wizard-steps">
   <div class="wizard-steps-line"></div>
   <div class="wizard-steps-progress wizard-steps-progress--complete"></div>
   <div class="wizard-step-node wizard-step-node--done">
-    <div class="wizard-step-bubble">&#10003;</div>
-    <div class="wizard-step-label">Choose Source</div>
+    <div class="wizard-step-bubble"><?= View::icon('check') ?></div>
+    <div class="wizard-step-label" data-step-sub="Pick an import source">Source</div>
   </div>
   <div class="wizard-step-node wizard-step-node--done">
-    <div class="wizard-step-bubble">&#10003;</div>
-    <div class="wizard-step-label">Configure</div>
+    <div class="wizard-step-bubble"><?= View::icon('check') ?></div>
+    <div class="wizard-step-label" data-step-sub="Connect or upload data">Connect</div>
   </div>
   <div class="wizard-step-node wizard-step-node--done">
-    <div class="wizard-step-bubble">&#10003;</div>
-    <div class="wizard-step-label">Preview</div>
+    <div class="wizard-step-bubble"><?= View::icon('check') ?></div>
+    <div class="wizard-step-label" data-step-sub="Choose what to import">Options</div>
+  </div>
+  <div class="wizard-step-node wizard-step-node--done">
+    <div class="wizard-step-bubble"><?= View::icon('check') ?></div>
+    <div class="wizard-step-label" data-step-sub="Review the dry run">Preview</div>
   </div>
   <div class="wizard-step-node wizard-step-node--active">
-    <div class="wizard-step-bubble">4</div>
-    <div class="wizard-step-label">Import</div>
+    <div class="wizard-step-bubble">5</div>
+    <div class="wizard-step-label" data-step-sub="Results and summary">Done</div>
   </div>
 </div>
 <!-- ──── RESULT BANNER ──────────────────────────────────────────────── -->
@@ -113,6 +118,13 @@ $hasErr  = $result->hasErrors();
 </div>
 <!-- ──── RESULT TABLE ───────────────────────────────────────────────── -->
 <div class="gradient-card import-stack-gap">
+  <div class="pc-head">
+    <div class="pc-head-icon pc-head-icon-bg"><?= View::icon('filter') ?></div>
+    <div class="pc-head-meta">
+      <div class="pc-head-title">Import Details</div>
+      <div class="pc-head-sub">Review imported records, skipped records, image migration, and any warnings from this run.</div>
+    </div>
+  </div>
   <div class="import-scroll-x">
     <table class="data-table">
       <thead>
@@ -222,42 +234,16 @@ $hasErr  = $result->hasErrors();
   </div>
 </div>
 
-<!-- ZIP image upload (optional, shown when image_mode=zip) -->
-<?php if ($show_zip_form): ?>
-<div class="gradient-card import-stack-gap">
-  <div class="pc-head">
-    <div class="pc-head-icon pc-head-icon-bg"><?= View::icon('embed') ?></div>
-    <div class="pc-head-meta">
-      <div class="pc-head-title">Upload Image Archive</div>
-      <div class="pc-head-sub">Upload a ZIP containing your image files. Luster will match them to the imported records by filename.</div>
-    </div>
-  </div>
-  <div class="pc-section">
-    <p class="import-zip-intro">
-      Create a ZIP containing all image files from your old installation (affiliate images,
-      joined listing images, listing images). The ZIP may contain subdirectories &mdash; only filenames
-      are used for matching. Maximum size: <strong>50 MB</strong>.
-    </p>
-    <form method="POST" action="<?= $b ?>/admin/import/<?= $src ?>/upload-images" enctype="multipart/form-data">
-      <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
-      <div class="form-group import-input-zip">
-        <label class="form-label" for="zip_file">ZIP Archive</label>
-        <input id="zip_file" type="file" name="zip_file" accept=".zip" class="form" required>
-      </div>
-      <button type="submit" class="btn btn-primary">Upload &amp; Apply Images</button>
-    </form>
-  </div>
-</div>
-<?php elseif (empty($result->imageRows)): ?>
+<?php if (empty($result->imageRows) && $result->totalImported() > 0): ?>
   <div class="callout">
     <?= View::icon('alert', ['width' => 18, 'height' => 18, 'style' => 'color:var(--warn)']) ?>
-    No images were migrated. If you need to migrate images, you can
-    <a href="<?= $b ?>/admin/import/<?= $src ?>/configure" class="link">re-run the import</a>
-    with image migration enabled.
+    No images were migrated. To migrate images, <a href="<?= $b ?>/admin/import/<?= $src ?>/connect" class="link">re-run the import</a> and choose an image migration mode in the Options step.
   </div>
 <?php endif; ?>
 <!-- ──── ACTIONS ────────────────────────────────────────────────────── -->
 <div class="btn-row import-action-row">
   <a href="<?= $b ?>/admin" class="btn btn-primary">Go to Dashboard</a>
   <a href="<?= $b ?>/admin/import" class="btn btn-secondary">Run Another Import</a>
+</div>
+
 </div>

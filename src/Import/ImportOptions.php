@@ -59,6 +59,8 @@ final class ImportOptions
         public readonly string $tablePrefix          = '',
         public readonly string $schemaVariant        = '',
         public readonly string $laTablePrefix        = '',
+        /** Absolute path to a pre-uploaded ZIP file (mode=zip). Empty when not used. */
+        public readonly string $zipPath              = '',
     ) {}
 
     /**
@@ -122,6 +124,7 @@ final class ImportOptions
             tablePrefix:          (string) ($post['_dump_table_prefix']   ?? ''),
             schemaVariant:        (string) ($post['_dump_schema_variant'] ?? ''),
             laTablePrefix:        trim((string) ($post['la_table_prefix'] ?? '')),
+            zipPath:              (string) ($post['_zip_path']            ?? ''),
         );
     }
 }

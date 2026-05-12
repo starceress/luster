@@ -23,17 +23,21 @@ final class RateLimit
     public const ACTION_PUBLIC_UPDATE = 'public_update';
     public const ACTION_PUBLIC_REMOVE = 'public_remove';
     public const ACTION_PUBLIC_RESET  = 'public_reset';
-    public const ACTION_ADMIN_FORGOT    = 'admin_forgot';
-    public const ACTION_PUBLIC_CONTACT  = 'public_contact';
+    public const ACTION_ADMIN_FORGOT             = 'admin_forgot';
+    public const ACTION_PUBLIC_CONTACT           = 'public_contact';
+    public const ACTION_PUBLIC_ADOPT             = 'public_adopt';
+    public const ACTION_PUBLIC_AFFILIATE_APPLY   = 'public_affiliate_apply';
 
     private const DEFAULTS = [
-        self::ACTION_ADMIN_LOGIN    => ['max' => 5,  'window' => 900],
-        self::ACTION_PUBLIC_JOIN    => ['max' => 10, 'window' => 3600],
-        self::ACTION_PUBLIC_UPDATE  => ['max' => 10, 'window' => 3600],
-        self::ACTION_PUBLIC_REMOVE  => ['max' => 10, 'window' => 3600],
-        self::ACTION_PUBLIC_RESET   => ['max' => 5,  'window' => 3600],
-        self::ACTION_ADMIN_FORGOT   => ['max' => 3,  'window' => 3600],
-        self::ACTION_PUBLIC_CONTACT => ['max' => 5,  'window' => 3600],
+        self::ACTION_ADMIN_LOGIN              => ['max' => 5,  'window' => 900],
+        self::ACTION_PUBLIC_JOIN              => ['max' => 10, 'window' => 3600],
+        self::ACTION_PUBLIC_UPDATE            => ['max' => 10, 'window' => 3600],
+        self::ACTION_PUBLIC_REMOVE            => ['max' => 10, 'window' => 3600],
+        self::ACTION_PUBLIC_RESET             => ['max' => 5,  'window' => 3600],
+        self::ACTION_ADMIN_FORGOT             => ['max' => 3,  'window' => 3600],
+        self::ACTION_PUBLIC_CONTACT           => ['max' => 5,  'window' => 3600],
+        self::ACTION_PUBLIC_ADOPT             => ['max' => 5,  'window' => 3600],
+        self::ACTION_PUBLIC_AFFILIATE_APPLY   => ['max' => 5,  'window' => 3600],
     ];
 
     public function __construct(private readonly Database $db) {}

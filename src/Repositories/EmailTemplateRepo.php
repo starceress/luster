@@ -38,6 +38,13 @@ use Luster\Core\Database;
  * Admin notification (notify_join) — sent to the listing's admin email:
  *   same tokens as join.
  *
+ * Affiliate application tokens (affiliate_applied / affiliate_approved / affiliate_rejected):
+ *   {aff_name}          — applicant's site name
+ *   {aff_url}           — applicant's site URL
+ *   {aff_email}         — applicant's contact email
+ *   {aff_message}       — optional message from the applicant (blank if not provided)
+ *   plus {listing_name}, {listing_url}, {site_name}, {owner_name}, {owner_email}
+ *
  * Requires Migration 23.
  */
 final class EmailTemplateRepo
@@ -46,12 +53,15 @@ final class EmailTemplateRepo
     // Type constants
     // -----------------------------------------------------------------------
 
-    public const TYPE_JOIN         = 'join';
-    public const TYPE_APPROVE      = 'approve';
-    public const TYPE_UPDATE       = 'update';
-    public const TYPE_REMOVE       = 'remove';
-    public const TYPE_RESET        = 'reset';
-    public const TYPE_NOTIFY_JOIN  = 'notify_join';
+    public const TYPE_JOIN               = 'join';
+    public const TYPE_APPROVE            = 'approve';
+    public const TYPE_UPDATE             = 'update';
+    public const TYPE_REMOVE             = 'remove';
+    public const TYPE_RESET              = 'reset';
+    public const TYPE_NOTIFY_JOIN        = 'notify_join';
+    public const TYPE_AFFILIATE_APPLIED  = 'affiliate_applied';
+    public const TYPE_AFFILIATE_APPROVED = 'affiliate_approved';
+    public const TYPE_AFFILIATE_REJECTED = 'affiliate_rejected';
 
     /** All valid type values in display order. */
     public const TYPES = [
@@ -61,6 +71,9 @@ final class EmailTemplateRepo
         self::TYPE_REMOVE,
         self::TYPE_RESET,
         self::TYPE_NOTIFY_JOIN,
+        self::TYPE_AFFILIATE_APPLIED,
+        self::TYPE_AFFILIATE_APPROVED,
+        self::TYPE_AFFILIATE_REJECTED,
     ];
 
     // -----------------------------------------------------------------------
@@ -68,12 +81,15 @@ final class EmailTemplateRepo
     // -----------------------------------------------------------------------
 
     private const DEFAULT_SUBJECTS = [
-        self::TYPE_JOIN        => 'Welcome to the {listing_name} listing!',
-        self::TYPE_APPROVE     => 'Your {listing_name} membership has been approved',
-        self::TYPE_UPDATE      => 'Your {listing_name} membership has been updated',
-        self::TYPE_REMOVE      => 'You have been removed from the {listing_name} listing',
-        self::TYPE_RESET       => 'Reset your {listing_name} password',
-        self::TYPE_NOTIFY_JOIN => 'New member joined {listing_name}',
+        self::TYPE_JOIN               => 'Welcome to the {listing_name} listing!',
+        self::TYPE_APPROVE            => 'Your {listing_name} membership has been approved',
+        self::TYPE_UPDATE             => 'Your {listing_name} membership has been updated',
+        self::TYPE_REMOVE             => 'You have been removed from the {listing_name} listing',
+        self::TYPE_RESET              => 'Reset your {listing_name} password',
+        self::TYPE_NOTIFY_JOIN        => 'New member joined {listing_name}',
+        self::TYPE_AFFILIATE_APPLIED  => 'New affiliate application for {listing_name}',
+        self::TYPE_AFFILIATE_APPROVED => 'Your affiliate application for {listing_name} has been approved',
+        self::TYPE_AFFILIATE_REJECTED => 'Your affiliate application for {listing_name}',
     ];
 
     // -----------------------------------------------------------------------
@@ -126,6 +142,30 @@ final class EmailTemplateRepo
         . '  Email  : {fan_email}' . "\n"
         . '  Website: {fan_url}' . "\n"
         . '  Country: {fan_country}' . "\n\n"
+        . '-- {owner_name}' . "\n"
+        . '{site_name}';
+
+    private const DEFAULT_BODY_AFFILIATE_APPLIED =
+        'A new affiliate application has been received for the {listing_name} listing.' . "\n\n"
+        . '  Site name: {aff_name}' . "\n"
+        . '  URL      : {aff_url}' . "\n"
+        . '  Email    : {aff_email}' . "\n\n"
+        . '{aff_message}'
+        . 'Review and approve or reject this application from your admin panel.' . "\n\n"
+        . '-- {site_name}';
+
+    private const DEFAULT_BODY_AFFILIATE_APPROVED =
+        'Hello {aff_name},' . "\n\n"
+        . 'Your affiliate application for the {listing_name} listing has been approved!' . "\n\n"
+        . 'Your site is now listed as an affiliate at: {listing_url}' . "\n\n"
+        . 'Thank you for affiliating with us.' . "\n\n"
+        . '-- {owner_name}' . "\n"
+        . '{site_name}';
+
+    private const DEFAULT_BODY_AFFILIATE_REJECTED =
+        'Hello {aff_name},' . "\n\n"
+        . 'Thank you for applying to affiliate with the {listing_name} listing.' . "\n\n"
+        . 'Unfortunately, we are not able to approve your application at this time.' . "\n\n"
         . '-- {owner_name}' . "\n"
         . '{site_name}';
 
@@ -290,13 +330,16 @@ final class EmailTemplateRepo
     public static function defaultBody(string $type): string
     {
         return match ($type) {
-            self::TYPE_JOIN        => self::DEFAULT_BODY_JOIN,
-            self::TYPE_APPROVE     => self::DEFAULT_BODY_APPROVE,
-            self::TYPE_UPDATE      => self::DEFAULT_BODY_UPDATE,
-            self::TYPE_REMOVE      => self::DEFAULT_BODY_REMOVE,
-            self::TYPE_RESET       => self::DEFAULT_BODY_RESET,
-            self::TYPE_NOTIFY_JOIN => self::DEFAULT_BODY_NOTIFY_JOIN,
-            default                => '',
+            self::TYPE_JOIN               => self::DEFAULT_BODY_JOIN,
+            self::TYPE_APPROVE            => self::DEFAULT_BODY_APPROVE,
+            self::TYPE_UPDATE             => self::DEFAULT_BODY_UPDATE,
+            self::TYPE_REMOVE             => self::DEFAULT_BODY_REMOVE,
+            self::TYPE_RESET              => self::DEFAULT_BODY_RESET,
+            self::TYPE_NOTIFY_JOIN        => self::DEFAULT_BODY_NOTIFY_JOIN,
+            self::TYPE_AFFILIATE_APPLIED  => self::DEFAULT_BODY_AFFILIATE_APPLIED,
+            self::TYPE_AFFILIATE_APPROVED => self::DEFAULT_BODY_AFFILIATE_APPROVED,
+            self::TYPE_AFFILIATE_REJECTED => self::DEFAULT_BODY_AFFILIATE_REJECTED,
+            default                       => '',
         };
     }
 
@@ -340,6 +383,40 @@ final class EmailTemplateRepo
             '{site_name}'        => $siteName,
             '{owner_name}'       => $ownerName,
             '{owner_email}'      => $ownerEmail,
+        ];
+    }
+
+    /**
+     * Builds the affiliate-application token map for use with applyTokens().
+     * Used for affiliate_applied, affiliate_approved, and affiliate_rejected emails.
+     *
+     * @return array<string, string>
+     */
+    public static function buildAffiliateTokens(
+        string $listingName,
+        string $listingUrl,
+        string $siteName,
+        string $ownerName    = '',
+        string $ownerEmail   = '',
+        string $affName      = '',
+        string $affUrl       = '',
+        string $affEmail     = '',
+        string $affMessage   = '',
+    ): array {
+        $messageBlock = $affMessage !== ''
+            ? 'Message: ' . $affMessage . "\n\n"
+            : '';
+
+        return [
+            '{listing_name}'  => $listingName,
+            '{listing_url}'   => $listingUrl,
+            '{site_name}'     => $siteName,
+            '{owner_name}'    => $ownerName,
+            '{owner_email}'   => $ownerEmail,
+            '{aff_name}'      => $affName,
+            '{aff_url}'       => $affUrl,
+            '{aff_email}'     => $affEmail,
+            '{aff_message}'   => $messageBlock,
         ];
     }
 

@@ -383,6 +383,83 @@ final class ListingSettingsRepo
     }
 
     /**
+     * Returns the TFL/AFL approval status for a listing.
+     * Returns '' (not approved/N/A), 'tfl', or 'afl'.
+     * Defaults to '' if the row doesn't exist or Migration 39 hasn't run.
+     *
+     * Requires Migration 39.
+     */
+    public function getApprovedBy(int $listingId): string
+    {
+        try {
+            $stmt = $this->db->prepare(
+                'SELECT approved_by FROM lstr_fanlisting_settings WHERE fanlisting_id = :id'
+            );
+            $stmt->execute(['id' => $listingId]);
+            $row = $stmt->fetch();
+        } catch (\Exception) {
+            return '';
+        }
+
+        if ($row === false || !in_array($row['approved_by'], ['tfl', 'tafl'], true)) {
+            return '';
+        }
+
+        return (string) $row['approved_by'];
+    }
+
+    /**
+     * Saves (upserts) the TFL/AFL approval status for a listing.
+     * Accepts '' (none), 'tfl', or 'afl'; anything else is coerced to ''.
+     *
+     * Requires Migration 39.
+     */
+    public function saveApprovedBy(int $listingId, string $value): void
+    {
+        if (!in_array($value, ['tfl', 'tafl'], true)) {
+            $value = '';
+        }
+
+        try {
+            $stmt = $this->db->prepare(
+                'INSERT INTO lstr_fanlisting_settings (fanlisting_id, approved_by)
+                 VALUES (:id, :val)
+                 ON DUPLICATE KEY UPDATE approved_by = VALUES(approved_by)'
+            );
+            $stmt->execute(['id' => $listingId, 'val' => $value]);
+        } catch (\Exception) {
+            // Migration 39 not run yet
+        }
+    }
+
+    /**
+     * Returns a map of [listingId => 'tfl'|'afl'|''] for all listings that
+     * have a settings row. Used by the listing list to show approval badges
+     * without N+1 queries.
+     *
+     * Requires Migration 39.
+     *
+     * @return array<int, string>
+     */
+    public function getAllApprovedBy(): array
+    {
+        try {
+            $stmt = $this->db->prepare(
+                "SELECT fanlisting_id, approved_by FROM lstr_fanlisting_settings
+                  WHERE approved_by IN ('tfl', 'afl')"
+            );
+            $stmt->execute();
+            $result = [];
+            foreach ($stmt->fetchAll() as $row) {
+                $result[(int) $row['fanlisting_id']] = (string) $row['approved_by'];
+            }
+            return $result;
+        } catch (\Exception) {
+            return [];
+        }
+    }
+
+    /**
      * Returns embed-related settings for a listing.
      *
      * Requires Migration 17 (redirect URLs, DB override) and Migration 19
@@ -508,5 +585,129 @@ final class ListingSettingsRepo
             'user'              => $dbUser,
             'pass'              => $dbPass,
         ]);
+    }
+
+    /**
+     * Returns whether a listing is marked available for adoption.
+     * Defaults to false if the row doesn't exist or Migration 40 hasn't run.
+     *
+     * Requires Migration 40.
+     */
+    public function getForAdoption(int $listingId): bool
+    {
+        try {
+            $stmt = $this->db->prepare(
+                'SELECT for_adoption FROM lstr_fanlisting_settings WHERE fanlisting_id = :id'
+            );
+            $stmt->execute(['id' => $listingId]);
+            $row = $stmt->fetch();
+        } catch (\Exception) {
+            return false;
+        }
+
+        return $row !== false && (bool) $row['for_adoption'];
+    }
+
+    /**
+     * Saves (upserts) the for_adoption flag for a listing.
+     *
+     * Requires Migration 40.
+     */
+    public function saveForAdoption(int $listingId, bool $value): void
+    {
+        try {
+            $stmt = $this->db->prepare(
+                'INSERT INTO lstr_fanlisting_settings (fanlisting_id, for_adoption)
+                 VALUES (:id, :val)
+                 ON DUPLICATE KEY UPDATE for_adoption = VALUES(for_adoption)'
+            );
+            $stmt->execute(['id' => $listingId, 'val' => (int) $value]);
+        } catch (\Exception) {
+            // Migration 40 not run yet
+        }
+    }
+
+    /**
+     * Returns a map of [listingId => bool] for all listings that have for_adoption = 1.
+     * Used to drive the Adoptions nav badge and listing list indicators.
+     *
+     * Requires Migration 40.
+     *
+     * @return int[]  Listing IDs marked for adoption
+     */
+    public function getAdoptionListingIds(): array
+    {
+        try {
+            $stmt = $this->db->prepare(
+                'SELECT fanlisting_id FROM lstr_fanlisting_settings WHERE for_adoption = 1'
+            );
+            $stmt->execute();
+            return array_map(static fn(array $r) => (int) $r['fanlisting_id'], $stmt->fetchAll());
+        } catch (\Exception) {
+            return [];
+        }
+    }
+
+    /**
+     * Returns the affiliate application settings for a listing.
+     * Defaults to disabled with empty URL overrides if the row doesn't exist
+     * or Migration 41 hasn't run.
+     *
+     * Requires Migration 41.
+     *
+     * @return array{enabled: bool, form_url: string, redirect_url: string}
+     */
+    public function getAffiliateApplySettings(int $listingId): array
+    {
+        try {
+            $stmt = $this->db->prepare(
+                'SELECT affiliate_apply_enabled, form_url_affiliate_apply, redirect_url_affiliate_apply
+                 FROM lstr_fanlisting_settings
+                 WHERE fanlisting_id = :id'
+            );
+            $stmt->execute(['id' => $listingId]);
+            $row = $stmt->fetch();
+        } catch (\Exception) {
+            return ['enabled' => false, 'form_url' => '', 'redirect_url' => ''];
+        }
+
+        if ($row === false) {
+            return ['enabled' => false, 'form_url' => '', 'redirect_url' => ''];
+        }
+
+        return [
+            'enabled'      => (bool) $row['affiliate_apply_enabled'],
+            'form_url'     => (string) ($row['form_url_affiliate_apply']     ?? ''),
+            'redirect_url' => (string) ($row['redirect_url_affiliate_apply'] ?? ''),
+        ];
+    }
+
+    /**
+     * Saves (upserts) affiliate application settings for a listing.
+     *
+     * Requires Migration 41.
+     */
+    public function saveAffiliateApplySettings(int $listingId, bool $enabled, string $formUrl, string $redirectUrl): void
+    {
+        try {
+            $stmt = $this->db->prepare(
+                'INSERT INTO lstr_fanlisting_settings
+                    (fanlisting_id, affiliate_apply_enabled, form_url_affiliate_apply, redirect_url_affiliate_apply)
+                 VALUES
+                    (:id, :enabled, :form_url, :redirect_url)
+                 ON DUPLICATE KEY UPDATE
+                    affiliate_apply_enabled      = VALUES(affiliate_apply_enabled),
+                    form_url_affiliate_apply     = VALUES(form_url_affiliate_apply),
+                    redirect_url_affiliate_apply = VALUES(redirect_url_affiliate_apply)'
+            );
+            $stmt->execute([
+                'id'           => $listingId,
+                'enabled'      => (int) $enabled,
+                'form_url'     => $formUrl,
+                'redirect_url' => $redirectUrl,
+            ]);
+        } catch (\Exception) {
+            // Migration 41 not run yet
+        }
     }
 }
