@@ -1,0 +1,285 @@
+/* =============================================================
+   Luster — Design Tokens
+   Loaded on every page: admin panel, login, install, migrate.
+
+   Contains ONLY variable definitions — no rules, no selectors
+   beyond :root and [data-theme]. All hardcoded colour values
+   in admin.css, install.css, and migrate.css are candidates
+   for migration here during the token audit (Phase B).
+
+   Future skin overrides go at the bottom of this file:
+     [data-skin="my-skin"] { --accent: ...; }
+   ============================================================= */
+
+/* ── Self-hosted fonts ─────────────────────────────────────── */
+/* Path: ../fonts/ resolves to public/assets/fonts/            */
+
+@font-face {
+  font-family: 'Playfair Display';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('../fonts/playfair-700-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA,
+    U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193,
+    U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: 'DM Sans';
+  font-style: normal;
+  font-weight: 300 500;
+  font-display: swap;
+  src: url('../fonts/dm-sans-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA,
+    U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193,
+    U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: 'DM Mono';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('../fonts/dm-mono-400-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA,
+    U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193,
+    U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+/* ── Base tokens (all themes) ──────────────────────────────── */
+
+:root {
+  --va-pink: #ff7eb3;
+  --va-teal: #78e8d8;
+  --va-gold: #ffd166;
+  --pending: #f97316;
+  --gradient: #ff7eb3, #78e8d8, #ffd166;
+  --radius: 16px;
+  --radius-md: 12px;
+  --radius-sm: 6px;
+  --fs-xs: 0.625rem;
+  --fs-sm: 0.72rem;
+  --fs-base: 0.8rem;
+  --fs-md: 0.875rem;
+  --fs-lg: 1rem;
+  --gradient-bar: linear-gradient(90deg, var(--va-pink), var(--va-teal), var(--va-gold));
+  --font-sans: 'DM Sans', sans-serif;
+  --font-serif: 'Playfair Display', serif;
+  --font-mono: 'DM Mono', monospace;
+  /* ── Palette channel tokens (R G B, no commas) ───────────────
+     Used with modern rgb(var(--ch-foo)/alpha) syntax so skins
+     can change the base hue and all alpha variants update too.  */
+  --ch-pink: 255 126 179;   /* Nebula pink — primary accent family  */
+  --ch-teal: 120 232 216;   /* Nebula teal — secondary accent family */
+  --ch-gold: 255 209 102;   /* Nebula gold — tertiary accent family  */
+  --ch-preview: 129 140 248;/* Indigo — embed-codes preview accent   */
+  --ch-sky: 125 211 252;    /* Sky blue — nav hover, badge-tfl       */
+  --ch-indigo: 99 102 241;  /* Purple-indigo — badge-upcoming        */
+  --ch-pink-pale: 255 170 204; /* Pale pink — sidebar brand/role text */
+  --ch-pending: 249 115 22; /* Orange — pending badge, status pill   */
+}
+
+/* ── Light theme ───────────────────────────────────────────── */
+
+[data-theme="light"] {
+  --bg: #f0edf8;
+  --bg-card: #faf9ff;
+  --bg-sidebar: #121020;
+  --bg-subtle: #e2ddf0;
+  --bg-elevated: #f0ecfa;         /* table headers, elevated surfaces   */
+  --bg-code: var(--bg-subtle);    /* textarea / code block background   */
+  --border: #d0c8e8;
+  --border-soft: #dcd8f0;
+  --hairline: rgba(0,0,0,0.05);
+  --text: #372c70;
+  --text-muted: #64599b;
+  --text-dim: #8878b8;
+  --text-sidebar: #b8b0d8;
+  --accent: #d4006a;
+  --ch-accent: 212 0 106;         /* accent channel — rgb(var(--ch-accent)/alpha) */
+  --accent-glow: rgb(var(--ch-accent)/0.1);
+  --accent2: #27b1a5;
+  --accent3: #c9580a;
+  --accent3-glow: rgba(201,88,10,0.15);
+  --success: #27ae60;
+  --ch-success: 5 150 105;        /* success green channel (light)      */
+  --success-bg: rgb(var(--ch-success)/0.08);
+  --danger: #dc2626;
+  --ch-danger: 220 38 38;         /* danger red channel (light)         */
+  --danger-bg: rgb(var(--ch-danger)/0.08);
+  --warn: #c9580a;
+  --warn-bg: rgba(201,88,10,0.08);
+  --shadow: 0 4px 24px rgba(0,0,0,0.1);
+  --shadow-lg: 0 16px 56px rgba(0,0,0,0.13);
+  --glow: 0 0 0 3px rgb(var(--ch-accent)/0.1);
+  --blush: radial-gradient(ellipse at 110% -10%, rgb(var(--ch-accent)/0.06) 0%, transparent 60%);
+  --card-border-1: #d4006a;
+  --card-border-2: #008b80;
+  --card-border-3: #1d6fe8;
+  --card-border-4: #fb923c;
+  --ch-preview: 79 70 229;
+  --c-gradient-start: #160f2a;    /* dark stop of brand text gradient   */
+  --c-preview-hover: #1e1a70;     /* preview button hover/focus text    */
+}
+
+/* ── Dark theme ────────────────────────────────────────────── */
+
+[data-theme="dark"] {
+  --bg: #121020;
+  --bg-card: #1a1830;
+  --bg-sidebar: #0c0b1c;
+  --bg-subtle: #211e38;
+  --bg-elevated: #1d1b34;         /* table headers, elevated surfaces   */
+  --bg-code: #07040f;             /* textarea / code block background   */
+  --border: #2a2648;
+  --border-soft: #1e1c40;
+  --hairline: rgba(255,255,255,0.04);
+  --text: #e7deff;
+  --text-muted: #9587c4;
+  --text-dim: #675e8b;
+  --text-sidebar: #b8b0d8;
+  --accent: #8fdcff;
+  --ch-accent: 143 220 255;       /* accent channel — rgb(var(--ch-accent)/alpha) */
+  --accent-glow: rgb(var(--ch-pink)/0.15);
+  --accent2: #b34774;
+  --accent3: #ffd166;
+  --accent3-glow: rgb(var(--ch-gold)/0.2);
+  --success: #2ecc71;
+  --ch-success: 52 211 153;       /* success green channel (dark)       */
+  --success-bg: rgb(var(--ch-success)/0.1);
+  --danger: #f87171;
+  --ch-danger: 248 113 113;       /* danger red channel (dark)          */
+  --danger-bg: rgb(var(--ch-danger)/0.1);
+  --warn: #ffd166;
+  --warn-bg: rgb(var(--ch-gold)/0.1);
+  --warn-text: #1a1005;
+  --shadow: 0 4px 24px rgba(0,0,0,0.55);
+  --shadow-lg: 0 16px 56px rgba(0,0,0,0.65);
+  --glow: 0 0 0 3px rgb(var(--ch-pink)/0.15);
+  --blush: radial-gradient(ellipse at 110% -10%, rgb(var(--ch-pink)/0.06) 0%, transparent 60%);
+  --card-border-1: var(--va-pink);
+  --card-border-2: var(--va-teal);
+  --card-border-3: #60a5fa;
+  --card-border-4: #fb923c;
+  --c-gradient-start: #f4f0ff;    /* light stop of brand text gradient  */
+  --c-preview-hover: #c7d2fe;     /* preview button hover/focus text    */
+}
+
+/* =============================================================
+   Bundled skins — Phase C
+   Each skin overrides only the tokens that differ from the
+   default Nebula theme. Blocks are ordered:
+     [data-skin="x"]                     — palette (theme-independent)
+     [data-skin="x"][data-theme="dark"]  — dark-specific accents
+     [data-skin="x"][data-theme="light"] — light-specific accents
+     [data-skin="x"][data-theme="light"] .sidebar — sidebar overrides
+       (the sidebar is always dark; its tokens are locked to their
+        dark-mode values in [data-theme="light"] .sidebar, so each
+        skin must mirror those overrides here)
+   ============================================================= */
+
+/* ── Aurora — Northern Lights (cyan · sage · pale-sky) ──────── */
+
+[data-skin="aurora"] {
+  --va-pink:    #79e8ff;
+  --va-teal:    #6bcfa0;
+  --va-gold:    #b3e5fc;
+  --ch-pink:    121 232 255;
+  --ch-teal:    107 207 160;
+  --ch-gold:    179 229 252;
+  --gradient:   #79e8ff, #6bcfa0, #b3e5fc;
+  --gradient-bar: linear-gradient(90deg, #79e8ff, #6bcfa0, #b3e5fc);
+}
+
+[data-skin="aurora"][data-theme="dark"] {
+  --accent:        #79e8ff;
+  --accent-glow:   rgb(121 232 255 / 0.15);
+  --accent2:       #6bcfa0;
+  --accent3:       #b3e5fc;
+  --accent3-glow:  rgb(179 229 252 / 0.2);
+  --card-border-1: #79e8ff;
+  --card-border-2: #6bcfa0;
+  --card-border-3: #5ba0ff;
+  --glow:          0 0 0 3px rgb(121 232 255 / 0.15);
+  --blush:         radial-gradient(ellipse at 110% -10%, rgb(121 232 255 / 0.06) 0%, transparent 60%);
+  --c-gradient-start: #f0faff;
+  --c-preview-hover:  #b3e5fc;
+}
+
+[data-skin="aurora"][data-theme="light"] {
+  --accent:        #006699;
+  --ch-accent:     0 102 153;
+  --accent-glow:   rgb(0 102 153 / 0.1);
+  --accent2:       #1a7a5e;
+  --accent3:       #006699;
+  --accent3-glow:  rgba(0,102,153,0.15);
+  --card-border-1: #006699;
+  --card-border-2: #1a7a5e;
+  --card-border-3: #1d6fe8;
+  --glow:          0 0 0 3px rgb(0 102 153 / 0.1);
+  --blush:         radial-gradient(ellipse at 110% -10%, rgb(0 102 153 / 0.06) 0%, transparent 60%);
+  --c-gradient-start: #00111a;
+  --c-preview-hover:  #003c66;
+}
+
+[data-skin="aurora"][data-theme="light"] .sidebar {
+  --accent:           #79e8ff;
+  --accent3:          #b3e5fc;
+  --c-gradient-start: #f0faff;
+}
+
+/* ── Sol — Sunrise (amber · rose · bright-gold) ─────────────── */
+
+[data-skin="sol"] {
+  --va-pink:    #ffb06a;
+  --va-teal:    #ff8fa8;
+  --va-gold:    #ffe066;
+  --ch-pink:    255 176 106;
+  --ch-teal:    255 143 168;
+  --ch-gold:    255 224 102;
+  --gradient:   #ffb06a, #ff8fa8, #ffe066;
+  --gradient-bar: linear-gradient(90deg, #ffb06a, #ff8fa8, #ffe066);
+}
+
+[data-skin="sol"][data-theme="dark"] {
+  --accent:        #ffb06a;
+  --accent-glow:   rgb(255 176 106 / 0.15);
+  --accent2:       #ff8fa8;
+  --accent3:       #ffe066;
+  --accent3-glow:  rgb(255 224 102 / 0.2);
+  --card-border-1: #ffb06a;
+  --card-border-2: #ff8fa8;
+  --card-border-3: #82b4ff;
+  --glow:          0 0 0 3px rgb(255 176 106 / 0.15);
+  --blush:         radial-gradient(ellipse at 110% -10%, rgb(255 176 106 / 0.06) 0%, transparent 60%);
+  --c-gradient-start: #fff5f0;
+  --c-preview-hover:  #ffe066;
+}
+
+[data-skin="sol"][data-theme="light"] {
+  --accent:        #b84d00;
+  --ch-accent:     184 77 0;
+  --accent-glow:   rgb(184 77 0 / 0.1);
+  --accent2:       #9b1b3a;
+  --accent3:       #8a6200;
+  --accent3-glow:  rgba(138,98,0,0.15);
+  --card-border-1: #b84d00;
+  --card-border-2: #9b1b3a;
+  --card-border-3: #1d6fe8;
+  --glow:          0 0 0 3px rgb(184 77 0 / 0.1);
+  --blush:         radial-gradient(ellipse at 110% -10%, rgb(184 77 0 / 0.06) 0%, transparent 60%);
+  --c-gradient-start: #1a0800;
+  --c-preview-hover:  #5a2800;
+}
+
+[data-skin="sol"][data-theme="light"] .sidebar {
+  --accent:           #ffb06a;
+  --accent3:          #ffe066;
+  --c-gradient-start: #fff5f0;
+}
+
+/* ── Community skins ─────────────────────────────────────────── */
+/* Drop a .css file into public/assets/css/skins/ containing
+   [data-skin="slug"] { } variable overrides. The skin picker
+   auto-detects files in that directory. */
