@@ -129,7 +129,8 @@ $rangeLast  = min($page * $per_page, $total_listings);
             <td colspan="4">
               <div class="empty">
                 <div class="empty-icon"><?= View::icon('updates', ['width' => 32, 'height' => 32]) ?></div>
-                No listings found. Add a listing first to post per-listing updates.
+                <div class="empty-title">No listings found.</div>
+                <div>Add a listing first to post per-listing updates.</div>
               </div>
             </td>
           </tr>

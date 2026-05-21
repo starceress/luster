@@ -39,9 +39,9 @@ final class EmailsController extends AdminController
         $session = $this->app->getSession();
 
         // Determine active tab
-        $tab = $request->query('tab', 'templates');
+        $tab = $request->query('tab', 'bulk');
         if (!in_array($tab, self::VALID_TABS, true)) {
-            $tab = 'templates';
+            $tab = 'bulk';
         }
 
         // Flash messages (consumed once)

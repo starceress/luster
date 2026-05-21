@@ -22,14 +22,14 @@ final class CategoryRepo
     // -----------------------------------------------------------------------
 
     /**
-     * Returns all categories, parents before children, then alphabetically.
+     * Returns all categories ordered alphabetically.
      *
      * @return Category[]
      */
     public function getAll(): array
     {
         $stmt = $this->db->prepare(
-            'SELECT * FROM lstr_categories ORDER BY parent_id ASC, name ASC'
+            'SELECT * FROM lstr_categories ORDER BY name ASC'
         );
         $stmt->execute();
 
@@ -55,7 +55,7 @@ final class CategoryRepo
         return $row !== false ? $row : null;
     }
 
-    public function paginate(int $perPage, int $page, string $source = '', string $search = '', string $sort = 'source', string $dir = 'asc'): array
+    public function paginate(int $perPage, int $page, string $source = '', string $search = '', string $sort = 'source', string $dir = 'asc', string $catName = ''): array
     {
         $where  = '1=1';
         $params = [];
@@ -65,7 +65,10 @@ final class CategoryRepo
             $params['source']  = $source;
         }
 
-        if ($search !== '') {
+        if ($catName !== '') {
+            $where             .= ' AND name = :cat_name';
+            $params['cat_name'] = $catName;
+        } elseif ($search !== '') {
             $where            .= ' AND name LIKE :search';
             $params['search']  = '%' . $search . '%';
         }
@@ -109,12 +112,12 @@ final class CategoryRepo
         return $this->getAllCustomNetworkNames();
     }
 
-    public function update(int $id, string $name, ?int $parentId, string $source = 'custom'): void
+    public function update(int $id, string $name, string $source = 'custom'): void
     {
         $stmt = $this->db->pdo()->prepare(
-            'UPDATE lstr_categories SET name = :name, parent_id = :pid, source = :source WHERE id = :id'
+            'UPDATE lstr_categories SET name = :name, source = :source WHERE id = :id'
         );
-        $stmt->execute(['name' => $name, 'pid' => $parentId, 'source' => $source, 'id' => $id]);
+        $stmt->execute(['name' => $name, 'source' => $source, 'id' => $id]);
     }
 
     /**
@@ -223,89 +226,23 @@ final class CategoryRepo
     /**
      * Inserts a new category and returns its auto-incremented id.
      */
-    public function add(string $name, ?int $parentId, string $source): int
+    public function add(string $name, string $source): int
     {
         $stmt = $this->db->prepare(
-            'INSERT INTO lstr_categories (name, parent_id, source)
-             VALUES (:name, :parent_id, :source)'
+            'INSERT INTO lstr_categories (name, source) VALUES (:name, :source)'
         );
-        $stmt->execute([
-            'name'      => $name,
-            'parent_id' => $parentId,
-            'source'    => $source,
-        ]);
+        $stmt->execute(['name' => $name, 'source' => $source]);
 
         return (int) $this->db->lastInsertId();
-    }
-
-    // -----------------------------------------------------------------------
-    // Hierarchy helpers
-    // -----------------------------------------------------------------------
-
-    /**
-     * Returns all top-level categories (parent_id IS NULL), ordered by name.
-     *
-     * @return Category[]
-     */
-    public function getTopLevel(): array
-    {
-        $stmt = $this->db->prepare(
-            'SELECT * FROM lstr_categories WHERE parent_id IS NULL ORDER BY name ASC'
-        );
-        $stmt->execute();
-
-        return array_map(
-            static fn(array $r) => Category::fromRow($r),
-            $stmt->fetchAll(),
-        );
-    }
-
-    /**
-     * Returns all direct children of a given parent, ordered by name.
-     *
-     * @return Category[]
-     */
-    public function getChildren(int $parentId): array
-    {
-        $stmt = $this->db->prepare(
-            'SELECT * FROM lstr_categories WHERE parent_id = :pid ORDER BY name ASC'
-        );
-        $stmt->execute(['pid' => $parentId]);
-
-        return array_map(
-            static fn(array $r) => Category::fromRow($r),
-            $stmt->fetchAll(),
-        );
-    }
-
-    /**
-     * Returns true if the given category has at least one child.
-     */
-    public function hasChildren(int $id): bool
-    {
-        $stmt = $this->db->prepare(
-            'SELECT COUNT(*) FROM lstr_categories WHERE parent_id = :id'
-        );
-        $stmt->execute(['id' => $id]);
-
-        return (int) $stmt->fetchColumn() > 0;
     }
 
     /**
      * Deletes a category by id.
      *
-     * Child categories are promoted to top-level (parent_id set to NULL).
      * Any lstr_joined rows that reference the deleted category are also nulled.
      */
     public function delete(int $id): void
     {
-        // Promote children to top-level
-        $stmtPromote = $this->db->prepare(
-            'UPDATE lstr_categories SET parent_id = NULL WHERE parent_id = :id'
-        );
-        $stmtPromote->execute(['id' => $id]);
-
-        // Unlink joined listings referencing this category
         $stmtNull = $this->db->prepare(
             'UPDATE lstr_joined SET category_id = NULL WHERE category_id = :id'
         );
@@ -402,15 +339,18 @@ final class CategoryRepo
      *
      * @return int Number of rows inserted
      */
-    public function backfillSeeds(bool $includeTafl = true): int
+    public function backfillSeeds(bool $includeTfl = true, bool $includeTafl = true): int
     {
-        $seeds = ['tfl' => \Luster\Support\CategorySeedCatalog::tfl()];
+        $seeds = [];
+        if ($includeTfl) {
+            $seeds['tfl'] = \Luster\Support\CategorySeedCatalog::tfl();
+        }
         if ($includeTafl) {
             $seeds['tafl'] = \Luster\Support\CategorySeedCatalog::tafl();
         }
 
         $stmt = $this->db->prepare(
-            'INSERT IGNORE INTO lstr_categories (name, source, parent_id) VALUES (:name, :source, NULL)'
+            'INSERT IGNORE INTO lstr_categories (name, source) VALUES (:name, :source)'
         );
 
         $inserted = 0;

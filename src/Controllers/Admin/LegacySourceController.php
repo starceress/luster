@@ -39,7 +39,7 @@ final class LegacySourceController
         $error    = (string) $session->get('lstr_flash_error', '');
         $session->remove('lstr_flash_error');
 
-        return $this->layout('admin/legacy-source/index.php', 'Legacy Source Browser', [
+        return $this->layout('admin/import/legacy-source/index.php', 'Legacy Source Browser', [
             'error' => $error,
         ]);
     }
@@ -108,7 +108,7 @@ final class LegacySourceController
             return Response::redirect($this->app->getBaseUrl() . '/admin/legacy-source');
         }
 
-        return $this->layout('admin/legacy-source/listings.php', 'Legacy Source — Listings', [
+        return $this->layout('admin/import/legacy-source/listings.php', 'Legacy Source — Listings', [
             'source'   => $source,
             'schema'   => $schema,
             'listings' => $rows,
@@ -145,7 +145,7 @@ final class LegacySourceController
             return Response::notFound('Listing not found in source.');
         }
 
-        return $this->layout('admin/legacy-source/listing.php', 'Legacy Source — ' . ($detail['title'] ?? 'Listing'), [
+        return $this->layout('admin/import/legacy-source/listing.php', 'Legacy Source — ' . ($detail['title'] ?? 'Listing'), [
             'source'  => $source,
             'detail'  => $detail,
         ]);

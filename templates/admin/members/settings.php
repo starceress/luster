@@ -27,8 +27,15 @@ $b = rtrim(View::e($base_url), '/');
 
   <div class="gradient-card">
 
+    <div class="pc-head">
+      <div class="pc-head-icon pc-head-icon-bg"><?= View::icon('gear') ?></div>
+      <div class="pc-head-meta">
+        <div class="pc-head-title">Display Settings</div>
+        <div class="pc-head-sub">Controls how members are paginated in the admin list view.</div>
+      </div>
+    </div>
+
     <div class="listing-field-section">
-      <div class="pc-section-label">Pagination</div>
 
       <div class="listing-field-row listing-field-row--top">
         <label class="listing-field-label" for="m-per-page">Members Per Page</label>
@@ -44,6 +51,7 @@ $b = rtrim(View::e($base_url), '/');
 
     <div class="composer-footer">
       <button type="submit" class="btn btn-primary">Save Settings</button>
+      <button type="submit" name="reset_defaults" value="1" class="btn btn-quaternary">Reset to Default</button>
       <a href="<?= $b ?>/admin/members" class="btn btn-ghost">Cancel</a>
     </div>
 

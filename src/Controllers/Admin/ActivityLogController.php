@@ -36,7 +36,7 @@ final class ActivityLogController extends AdminController
         $success = (string) $session->get('lstr_flash_success', '');
         $session->remove('lstr_flash_success');
 
-        return $this->adminLayout('admin/activitylog/index.php', 'Activity Log', 'activitylog', [
+        return $this->adminLayout('admin/logs/activitylog/index.php', 'Activity Log', 'activitylog', [
             'entries'  => $result['entries'],
             'total'    => $result['total'],
             'page'     => $page,

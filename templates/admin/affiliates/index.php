@@ -92,7 +92,24 @@ $canReorder = ($search ?? '') === '' && ($filter_fid ?? 'collective') !== '';
 
 <?php else: ?>
 <!-- ──── NORMAL MODE TOOLBAR ────────────────────────────────────────── -->
+<?php $filtersActive = ($search ?? '') !== '' || ($filter_fid ?? 'collective') !== 'collective'; ?>
 <div class="toolbar">
+  <div class="actions-row">
+    <button type="button" class="btn btn-preview btn-sm filter-toggle" id="fl-filter-toggle"
+            aria-expanded="<?= $filtersActive ? 'true' : 'false' ?>"
+            aria-controls="filter-panel">
+      <?= View::icon('filter') ?>
+      Filter<?php if ($filtersActive): ?><span class="filter-dot" aria-hidden="true"></span><?php endif; ?>
+    </button>
+  </div>
+  <div class="actions-row">
+    <?php if ($canReorder && !empty($affiliates)): ?>
+    <a href="<?= View::e($reorderEntryUrl) ?>" class="btn btn-quaternary btn-sm">Reorder</a>
+    <?php endif; ?>
+    <a href="<?= $b ?>/admin/affiliates/add" class="btn btn-primary btn-sm">+ Add Affiliate</a>
+  </div>
+</div>
+<div class="filter-panel<?= $filtersActive ? ' is-open' : '' ?>" id="filter-panel">
   <form method="GET" action="<?= $b ?>/admin/affiliates" class="filter-row">
     <?php if ($sort !== 'sort_order'): ?>
       <input type="hidden" name="sort" value="<?= View::e($sort) ?>">
@@ -100,7 +117,6 @@ $canReorder = ($search ?? '') === '' && ($filter_fid ?? 'collective') !== '';
     <?php if ($dir !== 'asc'): ?>
       <input type="hidden" name="dir" value="<?= View::e($dir) ?>">
     <?php endif; ?>
-
     <div class="select-wrap">
     <select name="fanlisting_id" class="js-autosubmit">
       <option value="collective"<?= ($filter_fid ?? 'collective') === 'collective' ? ' selected' : '' ?>><?= View::e(($site_name ?? 'Collective') . ' (Collective) Affiliates') ?></option>
@@ -112,18 +128,14 @@ $canReorder = ($search ?? '') === '' && ($filter_fid ?? 'collective') !== '';
       <?php endforeach; ?>
     </select>
     </div>
-
-    <input type="text" name="search" class="form" placeholder="Search name, URL, email&hellip;"
-           value="<?= View::e($search ?? '') ?>">
-    <button type="submit" class="btn btn-quaternary btn-sm">Search</button>
-    <a href="?" class="btn btn-quaternary btn-sm">Reset</a>
+    <div class="search-field-wrap">
+      <?= View::icon('search', ['class' => 'search-field-icon', 'aria-hidden' => 'true']) ?>
+      <input type="text" name="search" class="form" placeholder="Search name, URL, email&hellip;"
+             value="<?= View::e($search ?? '') ?>">
+    </div>
+    <button type="submit" class="btn btn-secondary btn-sm">Search</button>
+    <a href="<?= $b ?>/admin/affiliates" class="btn btn-ghost btn-sm">Reset</a>
   </form>
-  <div class="actions-row">
-    <?php if ($canReorder && !empty($affiliates)): ?>
-    <a href="<?= View::e($reorderEntryUrl) ?>" class="btn btn-quaternary btn-sm">Reorder</a>
-    <?php endif; ?>
-    <a href="<?= $b ?>/admin/affiliates/add" class="btn btn-primary btn-sm">+ Add Affiliate</a>
-  </div>
 </div>
 
 <?php endif; ?>
@@ -131,9 +143,10 @@ $canReorder = ($search ?? '') === '' && ($filter_fid ?? 'collective') !== '';
 <?php if (empty($affiliates)): ?>
   <div class="card">
     <div class="empty">
-      <svg class="empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
-      No affiliates yet.
-      <a href="<?= $b ?>/admin/affiliates/add" class="btn btn-primary btn-sm">+ Add Affiliate</a>
+      <div class="empty-icon"><?= View::icon('link', ['width' => 32, 'height' => 32]) ?></div>
+      <div class="empty-title">No affiliates yet.</div>
+      <div>Add your first affiliate to display them on your site.</div>
+      <a href="<?= $b ?>/admin/affiliates/add" class="btn btn-primary btn-sm"><?= View::icon('add') ?> Add Affiliate</a>
     </div>
   </div>
 <?php else: ?>

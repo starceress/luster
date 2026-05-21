@@ -1,0 +1,191 @@
+/* =============================================================
+   Luster — Migration Runner Styles
+   Page-specific CSS for public/migrate/index.php.
+   Loaded after tokens.css + admin.css; overrides that apply
+   only to the migration runner (body layout, mig-* components).
+   ============================================================= */
+
+body { display: block; min-height: 100vh; padding: 0; margin: 0; }
+
+/* ── Topbar ──────────────────────────────────────────────── */
+.mig-topbar {
+  position: sticky; top: 0; z-index: 50;
+  display: flex; align-items: center; gap: 12px;
+  padding: 0 24px; height: 54px;
+  background: var(--bg-sidebar);
+  border-bottom: 1px solid rgb(var(--ch-pink)/.15);
+  box-shadow: 0 2px 16px rgba(0,0,0,.4);
+}
+.mig-tb-gem {
+  width: 22px; height: 22px; flex-shrink: 0;
+  background: linear-gradient(135deg, var(--va-pink), var(--va-teal), var(--va-gold));
+  clip-path: polygon(50% 0%, 100% 35%, 80% 100%, 20% 100%, 0% 35%);
+}
+.mig-tb-brand {
+  font-family: var(--font-serif); font-size: 1.15rem; font-weight: 700;
+  background: linear-gradient(135deg, var(--c-gradient-start), var(--va-pink) 55%, var(--va-teal));
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+  text-decoration: none;
+}
+.mig-tb-sep { width: 1px; height: 18px; background: rgba(255,255,255,.08); flex-shrink: 0; }
+.mig-tb-sub {
+  font-size: var(--fs-xs); color: rgba(255,255,255,.3);
+  text-transform: uppercase; letter-spacing: .08em;
+}
+.mig-tb-right { margin-left: auto; display: flex; align-items: center; }
+.mig-tb-theme { padding: 6px; }
+
+/* ── Page layout ─────────────────────────────────────────── */
+.mig-wrap { max-width: 680px; margin: 44px auto; padding: 0 20px 60px; }
+
+/* ── Page header banner ──────────────────────────────────── */
+.mig-ph { display: flex; align-items: center; gap: 14px; margin-bottom: 28px; }
+.mig-ph-gem {
+  width: 44px; height: 44px; flex-shrink: 0;
+  background: linear-gradient(135deg, var(--va-pink), var(--va-teal), var(--va-gold));
+  clip-path: polygon(50% 0%, 100% 35%, 80% 100%, 20% 100%, 0% 35%);
+  animation: migGemFloat 6s ease-in-out infinite;
+}
+@keyframes migGemFloat {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  33%       { transform: translateY(-5px) rotate(4deg); }
+  66%       { transform: translateY(-2px) rotate(-2deg); }
+}
+.mig-ph-title {
+  font-family: var(--font-serif); font-size: 1.6rem; font-weight: 700;
+  color: var(--text); line-height: 1.15;
+}
+.mig-ph-sub { font-size: var(--fs-md); color: var(--text-muted); margin-top: 3px; }
+
+/* ── Card shell ──────────────────────────────────────────── */
+.mig-card {
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: var(--radius); box-shadow: var(--shadow);
+  position: relative; overflow: hidden;
+}
+.mig-card::before {
+  content: ''; position: absolute; top: 0; left: 0;
+  width: 3px; height: 100%;
+  background: linear-gradient(180deg, var(--va-pink), var(--va-teal), var(--va-gold));
+  border-radius: 3px 0 0 3px;
+}
+.mig-card-head {
+  display: flex; align-items: center; gap: 12px;
+  padding: 20px 24px 18px 28px;
+  border-bottom: 1px solid var(--border);
+}
+.mig-card-head-icon {
+  width: 36px; height: 36px; border-radius: 10px; flex-shrink: 0;
+  background: linear-gradient(135deg, rgb(var(--ch-pink)/.15), rgb(var(--ch-teal)/.1));
+  border: 1px solid rgb(var(--ch-pink)/.2);
+  display: flex; align-items: center; justify-content: center; font-size: 1rem;
+}
+.mig-card-head-title {
+  font-family: var(--font-serif); font-size: 1.1rem; font-weight: 700;
+  color: var(--text); line-height: 1.2;
+}
+.mig-card-head-sub { font-size: var(--fs-sm); color: var(--text-muted); margin-top: 2px; }
+.mig-card-body { padding: 24px 24px 20px 28px; }
+.mig-card-footer {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 16px 24px 16px 28px;
+  border-top: 1px solid var(--border);
+  gap: 12px;
+}
+.mig-card-footer--center { justify-content: center; }
+
+/* ── Callouts ────────────────────────────────────────────── */
+.mig-callout {
+  display: flex; align-items: flex-start; gap: 12px;
+  border-radius: 10px; padding: 14px 16px; margin-bottom: 20px; border: 1px solid;
+}
+.mig-callout--warn { background: var(--warn-bg); border-color: rgb(var(--ch-gold)/.3); }
+.mig-callout--err  { background: var(--danger-bg); border-color: rgb(var(--ch-danger)/.25); }
+.mig-callout-icon { font-size: .95rem; flex-shrink: 0; line-height: 1.5; }
+.mig-callout--warn .mig-callout-icon { color: var(--warn); }
+.mig-callout--err  .mig-callout-icon { color: var(--danger); }
+.mig-callout-text { font-size: var(--fs-md); color: var(--text); line-height: 1.5; }
+.mig-callout-text strong { color: var(--warn); }
+.mig-callout--err .mig-callout-text strong { color: var(--danger); }
+
+/* ── Section labels ──────────────────────────────────────── */
+.mig-section-label {
+  display: flex; align-items: center; gap: 10px;
+  font-size: var(--fs-xs); font-weight: 700; text-transform: uppercase; letter-spacing: .1em;
+  margin-bottom: 10px; margin-top: 20px;
+}
+.mig-section-label:first-child { margin-top: 0; }
+.mig-section-label::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+.mig-section-label--ok  { color: var(--success); }
+.mig-section-label--err { color: var(--danger); }
+
+/* ── Migration items ─────────────────────────────────────── */
+.mig-list { display: flex; flex-direction: column; gap: 6px; }
+.mig-item {
+  display: flex; align-items: flex-start; gap: 11px;
+  padding: 11px 14px; border-radius: 10px; border: 1px solid transparent;
+  font-size: var(--fs-md); line-height: 1.45;
+  animation: migFadeIn .3s ease both;
+}
+@keyframes migFadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: none; }
+}
+.mig-item--ok  { background: var(--success-bg); border-color: rgba(46,204,113,.18); }
+.mig-item--err { background: var(--danger-bg);  border-color: rgb(var(--ch-danger)/.18); }
+.mig-icon {
+  width: 20px; height: 20px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: .7rem; font-weight: 700; flex-shrink: 0; margin-top: 1px;
+}
+.mig-item--ok  .mig-icon { background: rgba(46,204,113,.2);  color: var(--success); }
+.mig-item--err .mig-icon { background: rgb(var(--ch-danger)/.2); color: var(--danger); }
+.mig-text { color: var(--text); }
+
+/* ── Empty state ─────────────────────────────────────────── */
+.mig-empty { text-align: center; padding: 36px 20px; }
+.mig-empty-ring {
+  width: 56px; height: 56px; border-radius: 50%;
+  margin: 0 auto 12px;
+  border: 2px solid var(--success);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.4rem; color: var(--success);
+  background: var(--success-bg);
+}
+.mig-empty-title { font-size: var(--fs-lg); font-weight: 600; color: var(--text); margin-bottom: 4px; }
+.mig-empty-sub   { font-size: var(--fs-md); color: var(--text-muted); }
+
+/* ── Summary pills ───────────────────────────────────────── */
+.mig-summary {
+  display: flex; gap: 10px; flex-wrap: wrap;
+  margin-top: 20px; padding-top: 18px;
+  border-top: 1px solid var(--border);
+}
+.mig-badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 5px 12px; border-radius: 100px;
+  font-size: var(--fs-sm); font-weight: 500;
+}
+.mig-badge--ok  { background: var(--success-bg); color: var(--success); }
+.mig-badge--err { background: var(--danger-bg);  color: var(--danger); }
+
+/* ── Back link & footer btn ──────────────────────────────── */
+.mig-back-link {
+  font-size: var(--fs-md); color: var(--accent); text-decoration: none;
+  display: inline-flex; align-items: center; gap: 6px;
+  transition: opacity .15s; white-space: nowrap;
+}
+.mig-back-link:hover { opacity: .7; }
+
+/* ── Code ────────────────────────────────────────────────── */
+code {
+  font-family: var(--font-mono);
+  font-size: .82em;
+  background: var(--bg-subtle); color: var(--accent);
+  padding: 1px 5px; border-radius: 4px; border: 1px solid var(--border-soft);
+}
+
+@media (max-width: 640px) {
+  .mig-wrap { padding: 0 14px 40px; }
+  .mig-card-head, .mig-card-body, .mig-card-footer { padding-left: 18px; padding-right: 18px; }
+}

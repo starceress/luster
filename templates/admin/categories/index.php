@@ -25,26 +25,29 @@ $sourceBadge = static function (string $s): string {
 $sort = $sort ?? 'source';
 $dir  = $dir  ?? 'asc';
 
-$filtersActive = ($source ?? '') !== '' || ($search ?? '') !== '';
+$catName       = $cat_name ?? '';
+$filtersActive = ($source ?? '') !== '' || ($search ?? '') !== '' || $catName !== '';
 
 $catFilterQs = http_build_query(array_filter([
-    'source' => $source ?? '',
-    'search' => $search ?? '',
-    'sort'   => $sort !== 'source' ? $sort : '',
-    'dir'    => $dir  !== 'asc'   ? $dir  : '',
+    'source'   => $source   ?? '',
+    'search'   => $search   ?? '',
+    'cat_name' => $catName,
+    'sort'     => $sort !== 'source' ? $sort : '',
+    'dir'      => $dir  !== 'asc'   ? $dir  : '',
 ], static fn(string $v): bool => $v !== ''));
 $catPageUrl = static function (int $p) use ($b, $catFilterQs): string {
     $qs = $catFilterQs !== '' ? $catFilterQs . '&page=' . $p : 'page=' . $p;
     return $b . '/admin/categories?' . $qs;
 };
 
-$catSortUrl = static function (string $col) use ($b, $sort, $dir, $source, $search): string {
+$catSortUrl = static function (string $col) use ($b, $sort, $dir, $source, $search, $catName): string {
     $newDir = ($sort === $col && $dir === 'asc') ? 'desc' : 'asc';
     $qs = http_build_query(array_filter([
-        'source' => $source ?? '',
-        'search' => $search ?? '',
-        'sort'   => $col,
-        'dir'    => $newDir,
+        'source'   => $source ?? '',
+        'search'   => $search ?? '',
+        'cat_name' => $catName,
+        'sort'     => $col,
+        'dir'      => $newDir,
     ], static fn(string $v): bool => $v !== ''));
     return $b . '/admin/categories?' . $qs;
 };
@@ -57,43 +60,6 @@ $catSortUrl = static function (string $col) use ($b, $sort, $dir, $source, $sear
 <?php if (($error ?? '') !== ''): ?>
   <div class="alert alert-error"><?= View::e($error ?? '') ?></div>
 <?php endif; ?>
-<?php
-$sh      = $seed_health ?? ['tfl_expected' => 0, 'tfl_present' => 0, 'tafl_expected' => 0, 'tafl_present' => 0];
-$tflOk   = $sh['tfl_present']  >= $sh['tfl_expected'];
-$taflOk  = $sh['tafl_present'] >= $sh['tafl_expected'];
-?>
-<div class="gradient-card" style="margin-bottom:var(--sp-4)">
-  <div class="listing-field-section">
-    <div class="listing-field-row listing-field-row--top">
-      <span class="listing-field-label">TFL categories</span>
-      <div>
-        <span class="badge <?= $tflOk ? 'badge-current' : 'badge-pending' ?>">
-          <?= (int) $sh['tfl_present'] ?>&thinsp;/&thinsp;<?= (int) $sh['tfl_expected'] ?>
-          <?php if (!$tflOk): ?>&mdash; <?= (int) ($sh['tfl_expected'] - $sh['tfl_present']) ?> missing<?php endif; ?>
-        </span>
-        <p class="form-hint">The Fanlistings Network &mdash; <?= (int) $sh['tfl_expected'] ?> official categories.</p>
-      </div>
-    </div>
-    <div class="listing-field-row">
-      <span class="listing-field-label">TAFL categories</span>
-      <div>
-        <span class="badge <?= $taflOk ? 'badge-current' : 'badge-pending' ?>">
-          <?= (int) $sh['tafl_present'] ?>&thinsp;/&thinsp;<?= (int) $sh['tafl_expected'] ?>
-          <?php if (!$taflOk): ?>&mdash; <?= (int) ($sh['tafl_expected'] - $sh['tafl_present']) ?> missing<?php endif; ?>
-        </span>
-        <p class="form-hint">The Anime Fanlistings Network &mdash; <?= (int) $sh['tafl_expected'] ?> official categories.</p>
-      </div>
-    </div>
-  </div>
-  <div class="composer-footer">
-    <form method="POST" action="<?= $b ?>/admin/categories/seed" style="display:flex;gap:var(--sp-2)">
-      <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
-      <button type="submit" name="include_tafl" value="0" class="btn btn-secondary">Seed TFL</button>
-      <button type="submit" name="include_tafl" value="1" class="btn btn-primary">Seed TFL + TAFL</button>
-    </form>
-  </div>
-</div>
-
 <!-- ──── TOOLBAR ────────────────────────────────────────────────────── -->
 <div class="toolbar">
   <div class="actions-row">
@@ -106,6 +72,12 @@ $taflOk  = $sh['tafl_present'] >= $sh['tafl_expected'];
   </div>
   <div class="actions-row">
     <a href="<?= $b ?>/admin/categories/add" class="btn btn-primary btn-sm">+ Add New Category</a>
+    <form method="POST" action="<?= $b ?>/admin/categories/seed" class="action-form-inline">
+      <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
+      <button type="submit" name="include_tafl" value="0" class="btn btn-secondary btn-sm">Seed TFL</button>
+      <button type="submit" name="include_tafl" value="1" class="btn btn-secondary btn-sm">Seed TAFL</button>
+    </form>
+    <a href="<?= $b ?>/admin/categories/settings" class="btn btn-quaternary btn-sm">Display Settings</a>
   </div>
 </div>
 <!-- ──── COLLAPSIBLE FILTER PANEL ───────────────────────────────────── -->
@@ -115,7 +87,7 @@ $taflOk  = $sh['tafl_present'] >= $sh['tafl_expected'];
     <?php if ($dir !== 'asc'):    ?><input type="hidden" name="dir"  value="<?= View::e($dir) ?>"><?php endif; ?>
 
     <div class="select-wrap">
-    <select name="source" class="js-autosubmit">
+    <select id="cat-net-sel" name="source">
       <option value="">All Networks</option>
       <option value="tfl"  <?= ($source ?? '') === 'tfl'  ? 'selected' : '' ?>>TFL</option>
       <option value="tafl" <?= ($source ?? '') === 'tafl' ? 'selected' : '' ?>>TAFL</option>
@@ -128,9 +100,24 @@ $taflOk  = $sh['tafl_present'] >= $sh['tafl_expected'];
     </select>
     </div>
 
-    <input type="text" name="search" class="form" placeholder="Search&hellip;"
-           value="<?= View::e($search ?? '') ?>">
-    <button type="submit" class="btn btn-quaternary btn-sm">Search</button>
+    <div class="select-wrap">
+    <select id="cat-cat-sel" name="cat_name"
+            data-tfl='<?= $tfl_json ?? '[]' ?>'
+            data-tafl='<?= $tafl_json ?? '[]' ?>'
+            data-custom='<?= $custom_json ?? '{}' ?>'>
+      <option value="">All Categories</option>
+      <?php if ($catName !== ''): ?>
+        <option value="<?= View::e($catName) ?>" selected><?= View::e($catName) ?></option>
+      <?php endif; ?>
+    </select>
+    </div>
+
+    <div class="search-field-wrap">
+      <?= View::icon('search', ['class' => 'search-field-icon', 'aria-hidden' => 'true']) ?>
+      <input type="text" name="search" class="form" placeholder="Search by name&hellip;"
+             value="<?= View::e($search ?? '') ?>">
+    </div>
+    <button type="submit" class="btn btn-secondary btn-sm">Search</button>
     <a href="<?= $b ?>/admin/categories" class="btn btn-quaternary btn-sm">Reset</a>
 
   </form>
@@ -141,12 +128,13 @@ $taflOk  = $sh['tafl_present'] >= $sh['tafl_expected'];
   <div class="empty">
     <?php if (($search ?? '') !== '' || ($source ?? '') !== ''): ?>
       <div class="empty-icon"><?= View::icon('tag', ['width' => 32, 'height' => 32]) ?></div>
-      No categories match your search.
-      <a href="<?= $b ?>/admin/categories" class="btn btn-quaternary btn-sm">Reset</a>
+      <div class="empty-title">No categories match your search.</div>
+      <a href="<?= $b ?>/admin/categories" class="btn btn-ghost btn-sm">Clear Search</a>
     <?php else: ?>
       <div class="empty-icon"><?= View::icon('tag', ['width' => 32, 'height' => 32]) ?></div>
-      No categories yet. Add your first to start organising fanlistings.
-      <a href="<?= $b ?>/admin/categories/add" class="btn btn-primary btn-sm">+ Add New Category</a>
+      <div class="empty-title">No categories yet.</div>
+      <div>Add your first to start organising listings.</div>
+      <a href="<?= $b ?>/admin/categories/add" class="btn btn-primary btn-sm"><?= View::icon('add') ?> Add Category</a>
     <?php endif; ?>
   </div>
 </div>
@@ -159,45 +147,44 @@ $taflOk  = $sh['tafl_present'] >= $sh['tafl_expected'];
   <?php endif; ?>
 </p>
 
-<div class="card">
-  <div class="table-wrap">
-  <table class="data-table mem-table">
-    <thead>
-      <tr>
-        <th><a href="<?= View::e($catSortUrl('id')) ?>" class="sort-th<?= $sort === 'id' ? ' sort-active' : '' ?>">ID <?= View::sortIcon('id', $sort, $dir) ?></a></th>
-        <th><a href="<?= View::e($catSortUrl('source')) ?>" class="sort-th<?= $sort === 'source' ? ' sort-active' : '' ?>">Network <?= View::sortIcon('source', $sort, $dir) ?></a></th>
-        <th><a href="<?= View::e($catSortUrl('name')) ?>" class="sort-th<?= $sort === 'name' ? ' sort-active' : '' ?>">Category Name <?= View::sortIcon('name', $sort, $dir) ?></a></th>
-        <th>Parent</th>
-        <th class="act-col">Actions</th>
-      </tr>
-    </thead>
-    <tbody>
-      <?php
-      // Build a quick idâ€ â€™name lookup for parent display
-      $catIndex = [];
-      foreach ($all_cats ?? [] as $_ac) { $catIndex[$_ac->id] = $_ac->name; }
-      ?>
-      <?php foreach ($items ?? [] as $cat): ?>
-      <tr>
-        <td class="text-dim" data-label="ID"><?= (int) $cat->id ?></td>
-        <td data-label="Network"><?= $sourceBadge($cat->source ?? 'custom') ?></td>
-        <td data-label="Name">
-          <?php if ($cat->parentId !== null): ?>
-            <span class="tree-prefix">&#x2514;&#x2514;</span>
-          <?php endif; ?>
-          <?= View::e($cat->name ?? '') ?>
-        </td>
-        <td class="text-dim text-dim-sm" data-label="Parent">
-          <?php if ($cat->parentId !== null && isset($catIndex[$cat->parentId])): ?>
-            <?= View::e($catIndex[$cat->parentId]) ?>
-          <?php else: ?>
-            -
-          <?php endif; ?>
-        </td>
-        <td class="act-col" data-label="">
-          <a href="<?= $b ?>/admin/categories/<?= (int) $cat->id ?>/edit"
-             class="btn btn-tertiary btn-sm">Edit</a>
-          <?php if (!in_array($cat->source ?? '', ['tfl', 'tafl'], true)): ?>
+<form method="POST" action="<?= $b ?>/admin/categories/bulk" id="bulk-form"
+      data-del-bulk data-del-entity="category">
+  <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
+
+  <div class="bulk">
+    <label for="bulk-action-sel">Bulk Actions:</label>
+    <div class="select-wrap">
+      <select id="bulk-action-sel" name="bulk_action">
+        <option value="" disabled selected>&mdash; Select &mdash;</option>
+        <option value="delete">Delete</option>
+      </select>
+    </div>
+    <button type="submit" class="btn btn-quaternary btn-sm">Apply</button>
+  </div>
+
+  <div class="card">
+    <div class="table-wrap">
+    <table class="data-table mem-table">
+      <thead>
+        <tr>
+          <th class="cb-col"><input type="checkbox" id="sel-all" title="Select all"></th>
+          <th><a href="<?= View::e($catSortUrl('id')) ?>" class="sort-th<?= $sort === 'id' ? ' sort-active' : '' ?>">ID <?= View::sortIcon('id', $sort, $dir) ?></a></th>
+          <th><a href="<?= View::e($catSortUrl('source')) ?>" class="sort-th<?= $sort === 'source' ? ' sort-active' : '' ?>">Network <?= View::sortIcon('source', $sort, $dir) ?></a></th>
+          <th><a href="<?= View::e($catSortUrl('name')) ?>" class="sort-th<?= $sort === 'name' ? ' sort-active' : '' ?>">Category Name <?= View::sortIcon('name', $sort, $dir) ?></a></th>
+          <th class="act-col">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <?php foreach ($items ?? [] as $cat): ?>
+        <tr>
+          <td class="cb-col" data-label=""><input type="checkbox" name="ids[]" value="<?= (int) $cat->id ?>"
+               data-name="<?= View::e($cat->name ?? '') ?>"></td>
+          <td class="text-dim" data-label="ID"><?= (int) $cat->id ?></td>
+          <td data-label="Network"><?= $sourceBadge($cat->source ?? 'custom') ?></td>
+          <td data-label="Name"><?= View::e($cat->name ?? '') ?></td>
+          <td class="act-col" data-label="">
+            <a href="<?= $b ?>/admin/categories/<?= (int) $cat->id ?>/edit"
+               class="btn btn-tertiary btn-sm">Edit</a>
             <form method="POST" action="<?= $b ?>/admin/categories/<?= (int) $cat->id ?>/delete"
                   class="action-form-inline"
                   data-del-modal data-del-entity="category"
@@ -205,14 +192,14 @@ $taflOk  = $sh['tafl_present'] >= $sh['tafl_expected'];
               <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
               <button type="submit" class="btn btn-danger btn-sm">Delete</button>
             </form>
-          <?php endif; ?>
-        </td>
-      </tr>
-      <?php endforeach; ?>
-    </tbody>
-  </table>
+          </td>
+        </tr>
+        <?php endforeach; ?>
+      </tbody>
+    </table>
+    </div>
   </div>
-</div>
+</form>
 <?php endif; ?>
 
 <?php $pg_current = $page; $pg_total = $total_pages; $pg_url = $catPageUrl;

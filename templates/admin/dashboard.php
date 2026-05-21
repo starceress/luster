@@ -81,7 +81,7 @@ $growthDiff          = $growth_this_month - $growth_last_month;
         ?>
         You have <?= implode(' and ', $parts) ?><?= count($parts) === 1 ? ' that needs' : ' that need' ?> attention.
       <?php else: ?>
-        Everything is up to date &mdash; <?= number_format((int) $total_members) ?> member<?= $total_members !== 1 ? 's' : '' ?> across <?= (int) $total_listings ?> listing<?= $total_listings !== 1 ? 's' : '' ?>.
+        Everything is up to date!
       <?php endif; ?>
     </div>
   </div>
@@ -95,6 +95,75 @@ $growthDiff          = $growth_this_month - $growth_last_month;
   </div>
 </div>
 
+<!-- ──── STAT CARDS ──────────────────────────────────────────────────── -->
+<div class="stats-grid stats-grid-row">
+
+  <a href="<?= $b ?>/admin/listings" class="stat-card stat-card--link">
+    <div class="stat-header"><span class="stat-icon"><?= View::icon('star') ?></span> Total Owned</div>
+    <div class="stat-value"><?= (int) $total_listings ?></div>
+    <div class="stat-pills">
+      <?php if ($total_listings === 0): ?>
+        <span class="badge badge-inactive">None yet</span>
+      <?php else: ?>
+        <?php if ($fan_pending > 0): ?>
+          <span class="badge badge-pending"><?= (int) $fan_pending ?> Pending</span>
+        <?php endif; ?>
+        <?php if ($fan_upcoming > 0): ?>
+          <span class="badge badge-upcoming"><?= (int) $fan_upcoming ?> Upcoming</span>
+        <?php endif; ?>
+        <?php if ($fan_pending === 0 && $fan_upcoming === 0): ?>
+          <span class="badge badge-current">All Current</span>
+        <?php endif; ?>
+      <?php endif; ?>
+    </div>
+  </a>
+
+  <a href="<?= $b ?>/admin/joined" class="stat-card stat-card--link">
+    <div class="stat-header"><span class="stat-icon"><?= View::icon('heart') ?></span> Total Joined</div>
+    <div class="stat-value"><?= (int) $total_joined ?></div>
+    <div class="stat-pills">
+      <?php if ($total_joined_categories > 0): ?>
+        <span class="badge badge-inactive"><?= (int) $total_joined_categories ?> <?= $total_joined_categories === 1 ? 'Category' : 'Categories' ?></span>
+      <?php endif; ?>
+      <?php if ($total_joined_inactive > 0): ?>
+        <span class="badge badge-pending"><?= (int) $total_joined_inactive ?> Pending</span>
+      <?php endif; ?>
+      <?php if ($total_joined === 0): ?>
+        <span class="badge badge-inactive">None yet</span>
+      <?php endif; ?>
+    </div>
+  </a>
+
+  <a href="<?= $b ?>/admin/members" class="stat-card stat-card--link">
+    <div class="stat-header"><span class="stat-icon"><?= View::icon('members') ?></span> Total Members</div>
+    <div class="stat-value"><?= number_format((int) $total_members) ?></div>
+    <div class="stat-pills">
+      <?php if ($total_members === 0): ?>
+        <span class="badge badge-inactive">None yet</span>
+      <?php elseif ($member_countries > 0): ?>
+        <span class="badge badge-inactive"><?= (int) $member_countries ?> <?= $member_countries === 1 ? 'Country' : 'Countries' ?></span>
+      <?php endif; ?>
+    </div>
+  </a>
+
+  <a href="<?= $b ?>/admin/affiliates" class="stat-card stat-card--link">
+    <div class="stat-header"><span class="stat-icon"><?= View::icon('link') ?></span> Total Affiliates</div>
+    <div class="stat-value"><?= (int) $total_affiliates ?></div>
+    <div class="stat-pills">
+      <?php if ($total_affiliates_collective > 0): ?>
+        <span class="badge badge-info"><?= (int) $total_affiliates_collective ?> Collective</span>
+      <?php endif; ?>
+      <?php if ($total_affiliates_per_fl > 0): ?>
+        <span class="badge badge-info-pink"><?= (int) $total_affiliates_per_fl ?> Per-FL</span>
+      <?php endif; ?>
+      <?php if ($total_affiliates === 0): ?>
+        <span class="badge badge-inactive">None yet</span>
+      <?php endif; ?>
+    </div>
+  </a>
+</div>
+
+<div class="overview-section-divider" aria-hidden="true"></div>
 
 <?php if ($no_listings ?? false): ?>
 <!-- ──── FIRST-TIME IMPORT CALLOUT ───────────────────────────────────── -->
@@ -109,77 +178,11 @@ $growthDiff          = $growth_this_month - $growth_last_month;
       affiliates, and images in minutes. Same-database Enthusiast installs are already readable &mdash;
       no migration needed.
     </p>
-    <div class="onboard-callout__actions">
-      <a href="<?= $b ?>/admin/import" class="btn btn-primary btn-sm">Open Import Wizard &rarr;</a>
-      <a href="<?= $b ?>/admin/listings/add" class="btn btn-ghost btn-sm">Add first listing manually</a>
-    </div>
+      <a href="<?= $b ?>/admin/import" class="btn btn-primary btn-sm">Open Import Wizard &rarr;</a> 
+      <a href="<?= $b ?>/admin/listings/add" class="btn btn-quaternary btn-sm">Add First LIsting Manually&rarr;</a>
   </div>
 </div>
 <?php endif; ?>
-
-<!-- ──── STAT CARDS ──────────────────────────────────────────────────── -->
-<div class="stats-grid stats-grid-row">
-
-  <div class="stat-card">
-    <div class="stat-header"><span class="stat-icon"><?= View::icon('star') ?></span> Total Owned</div>
-    <div class="stat-value"><?= (int) $total_listings ?></div>
-    <div class="stat-pills">
-      <?php if ($fan_pending > 0): ?>
-        <span class="badge badge-pending"><?= (int) $fan_pending ?> Pending</span>
-      <?php endif; ?>
-      <?php if ($fan_upcoming > 0): ?>
-        <span class="badge badge-upcoming"><?= (int) $fan_upcoming ?> Upcoming</span>
-      <?php endif; ?>
-      <?php if ($fan_pending === 0 && $fan_upcoming === 0): ?>
-        <span class="badge badge-current">All Current</span>
-      <?php endif; ?>
-    </div>
-  </div>
-
-  <div class="stat-card">
-    <div class="stat-header"><span class="stat-icon"><?= View::icon('heart') ?></span> Total Joined</div>
-    <div class="stat-value"><?= (int) $total_joined ?></div>
-    <div class="stat-pills">
-      <?php if ($total_joined_categories > 0): ?>
-        <span class="badge badge-inactive"><?= (int) $total_joined_categories ?> <?= $total_joined_categories === 1 ? 'Category' : 'Categories' ?></span>
-      <?php endif; ?>
-      <?php if ($total_joined_inactive > 0): ?>
-        <span class="badge badge-pending"><?= (int) $total_joined_inactive ?> Pending</span>
-      <?php endif; ?>
-      <?php if ($total_joined === 0): ?>
-        <span class="badge badge-inactive">None yet</span>
-      <?php endif; ?>
-    </div>
-  </div>
-
-  <div class="stat-card">
-    <div class="stat-header"><span class="stat-icon"><?= View::icon('members') ?></span> Total Members</div>
-    <div class="stat-value"><?= number_format((int) $total_members) ?></div>
-    <div class="stat-pills">
-      <?php if ($member_countries > 0): ?>
-        <span class="badge badge-inactive"><?= (int) $member_countries ?> <?= $member_countries === 1 ? 'Country' : 'Countries' ?></span>
-      <?php endif; ?>
-    </div>
-  </div>
-
-  <div class="stat-card">
-    <div class="stat-header"><span class="stat-icon"><?= View::icon('link') ?></span> Total Affiliates</div>
-    <div class="stat-value"><?= (int) $total_affiliates ?></div>
-    <div class="stat-pills">
-      <?php if ($total_affiliates_collective > 0): ?>
-        <span class="badge badge-info"><?= (int) $total_affiliates_collective ?> Collective</span>
-      <?php endif; ?>
-      <?php if ($total_affiliates_per_fl > 0): ?>
-        <span class="badge badge-info-pink"><?= (int) $total_affiliates_per_fl ?> Per-FL</span>
-      <?php endif; ?>
-      <?php if ($total_affiliates === 0): ?>
-        <span class="badge badge-inactive">None yet</span>
-      <?php endif; ?>
-    </div>
-  </div>
-</div>
-
-<div class="overview-section-divider" aria-hidden="true"></div>
 
 <!-- ──── LUSTER UPDATES ──────────────────────────────────────────────── -->
 <?php if ($show_update_banner): ?>
@@ -190,7 +193,7 @@ $growthDiff          = $growth_this_month - $growth_last_month;
       <div>
         <span class="reminder-banner-title">New Luster Version Available</span>
         <span class="reminder-banner-msg">
-          Version <?= View::e($update_status->latest ?? '') ?> is available
+          <strong>Version <?= View::e($update_status->latest ?? '') ?></strong> is available
           <?php if ($update_status->releaseTitle !== null): ?>
             &mdash; <?= View::e($update_status->releaseTitle) ?>
           <?php endif; ?>
@@ -293,6 +296,7 @@ $growthDiff          = $growth_this_month - $growth_last_month;
   <?php endif; ?>
 
 <!-- ──── AT A GLANCE ─────────────────────────────────────────────────── -->
+  <?php if ($total_listings > 0 || $total_joined > 0 || $total_members > 0 || $total_affiliates > 0): ?>
   <div class="card<?= $hasTodo ? '' : ' dash-glance-full' ?>">
     <div class="card-head"><?= View::icon('sparkles') ?> At a Glance</div>
     <div class="row-section">
@@ -401,4 +405,5 @@ $growthDiff          = $growth_this_month - $growth_last_month;
     </div>
     <?php endif; ?>
   </div>
+  <?php endif; ?>
 </div>

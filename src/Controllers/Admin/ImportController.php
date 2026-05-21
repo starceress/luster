@@ -6,6 +6,7 @@ namespace Luster\Controllers\Admin;
 
 use Luster\Core\Request;
 use Luster\Core\Response;
+use Luster\Import\BellaBuffsImportSource;
 use Luster\Import\CodeSortImportSource;
 use Luster\Import\EnthusiastImportSource;
 use Luster\Import\FanUpdateImportSource;
@@ -45,8 +46,11 @@ final class ImportController extends AdminController
     private const SESSION_ZIP_PATH    = 'lstr_import_zip_path';
     private const SESSION_DUMP_PREFIX = 'lstr_import_dump_prefix';
     private const SESSION_DUMP_TABLES = 'lstr_import_dump_tables';
+    // BellaBuffs flat-file upload session keys
+    private const SESSION_BB_APPROVED = 'lstr_import_bb_approved';
+    private const SESSION_BB_PENDING  = 'lstr_import_bb_pending';
 
-    private const SUPPORTED_SOURCES = ['enthusiast', 'listing-admin', 'fanupdate', 'codesort'];
+    private const SUPPORTED_SOURCES = ['enthusiast', 'listing-admin', 'fanupdate', 'codesort', 'bellabuffs'];
 
     // -----------------------------------------------------------------------
     // Step 1 — Source selection
@@ -63,14 +67,16 @@ final class ImportController extends AdminController
             'import_show_listing_admin',
             'import_show_fanupdate',
             'import_show_codesort',
+            'import_show_bellabuffs',
         ]);
 
-        return $this->adminLayout('admin/import/index.php', 'Import Data', 'import', [
+        return $this->adminLayout('admin/import/import-wizard/index.php', 'Import Data', 'import', [
             'base_url'                  => $this->app->getBaseUrl(),
             'import_show_enthusiast'    => ($visibility['import_show_enthusiast']    ?? '1') === '1',
             'import_show_listing_admin' => ($visibility['import_show_listing_admin'] ?? '1') === '1',
             'import_show_fanupdate'     => ($visibility['import_show_fanupdate']     ?? '1') === '1',
             'import_show_codesort'      => ($visibility['import_show_codesort']      ?? '1') === '1',
+            'import_show_bellabuffs'    => ($visibility['import_show_bellabuffs']    ?? '1') === '1',
         ]);
     }
 
@@ -85,6 +91,10 @@ final class ImportController extends AdminController
         $source = $this->resolveSource($params);
         if ($source === null) {
             return Response::redirect($this->app->getBaseUrl() . '/admin/import');
+        }
+
+        if ($source === 'bellabuffs') {
+            return $this->connectBellaBuffs($request);
         }
 
         $session = $this->app->getSession();
@@ -131,13 +141,13 @@ final class ImportController extends AdminController
         if ($source === 'enthusiast') {
             try {
                 $stmt = $this->app->getDatabase()->pdo()->query(
-                    'SELECT id, name FROM lstr_categories WHERE parent_id IS NULL ORDER BY name ASC'
+                    'SELECT id, name FROM lstr_categories ORDER BY name ASC'
                 );
                 $enthNetworks = $stmt ? $stmt->fetchAll(\PDO::FETCH_ASSOC) : [];
             } catch (\Throwable) {}
         }
 
-        return $this->adminLayout('admin/import/connect.php', 'Connect to Source', 'import', [
+        return $this->adminLayout('admin/import/import-wizard/connect.php', 'Connect to Source', 'import', [
             'source'        => $source,
             'source_name'   => $this->sourceName($source),
             'error'         => $error,
@@ -243,6 +253,10 @@ final class ImportController extends AdminController
             return Response::redirect($baseUrl . '/admin/import');
         }
 
+        if ($source === 'bellabuffs') {
+            return $this->scopeBellaBuffs($request);
+        }
+
         // Must have gone through connect step first
         $hasCreds = is_array($session->get(self::SESSION_CREDS));
         $hasDump  = $session->get(self::SESSION_DUMP_PREFIX) !== null;
@@ -278,13 +292,13 @@ final class ImportController extends AdminController
         if ($source === 'enthusiast') {
             try {
                 $stmt = $this->app->getDatabase()->pdo()->query(
-                    'SELECT id, name FROM lstr_categories WHERE parent_id IS NULL ORDER BY name ASC'
+                    'SELECT id, name FROM lstr_categories ORDER BY name ASC'
                 );
                 $enthNetworks = $stmt ? $stmt->fetchAll(\PDO::FETCH_ASSOC) : [];
             } catch (\Throwable) {}
         }
 
-        return $this->adminLayout('admin/import/scope.php', 'Import Options', 'import', [
+        return $this->adminLayout('admin/import/import-wizard/scope.php', 'Import Options', 'import', [
             'source'        => $source,
             'source_name'   => $this->sourceName($source),
             'old'           => $savedScope,
@@ -374,14 +388,29 @@ final class ImportController extends AdminController
             return Response::redirect($baseUrl . "/admin/import/{$source}/connect");
         }
 
-        $options = ImportOptions::fromPost($scopePost);
-        $adapter = $this->getAdapter($source);
-
+        $adapter     = $this->getAdapter($source);
         $previewData = null;
         $error       = '';
 
+        // BellaBuffs: no SQL source — use target PDO, inject session file paths
+        if ($source === 'bellabuffs') {
+            $approvedPath = (string) ($session->get(self::SESSION_BB_APPROVED) ?? '');
+            $pendingPath  = (string) ($session->get(self::SESSION_BB_PENDING)  ?? '');
+            if ($approvedPath !== '') {
+                $scopePost['_bb_approved_path'] = $approvedPath;
+            }
+            if ($pendingPath !== '') {
+                $scopePost['_bb_pending_path'] = $pendingPath;
+            }
+        }
+
+        $options = ImportOptions::fromPost($scopePost);
+
         try {
-            if ($dumpPrefix !== null) {
+            if ($source === 'bellabuffs') {
+                $targetPdo   = $this->app->getDatabase()->pdo();
+                $previewData = $adapter->preview($targetPdo, $options);
+            } elseif ($dumpPrefix !== null) {
                 $pdo         = $this->app->getDatabase()->pdo();
                 $previewData = $adapter->preview($pdo, $options);
             } else {
@@ -397,23 +426,32 @@ final class ImportController extends AdminController
         }
 
         // Build summary data for the summary card
-        $isSameDb = $this->shouldUsePrimaryDatabase($credentials ?? []);
-        $connType = $dumpPrefix !== null ? 'SQL dump'
-            : ($isSameDb ? 'Same database' : 'Live connection');
+        $isSameDb = $source !== 'bellabuffs' && $this->shouldUsePrimaryDatabase($credentials ?? []);
 
+        $connType = 'bellabuffs';
         $connHost = '';
         $connDb   = '';
-        if ($dumpPrefix !== null) {
+
+        if ($source === 'bellabuffs') {
+            $bbCreds  = (array) ($session->get(self::SESSION_CREDS) ?? []);
+            $connType = ($bbCreds['bb_mode'] ?? '') === 'upload' ? 'File upload' : 'Server path';
+            $connHost = ($bbCreds['bb_mode'] ?? '') === 'upload'
+                ? '(uploaded files)'
+                : ($bbCreds['bb_path'] ?? '');
+        } elseif ($dumpPrefix !== null) {
+            $connType = 'SQL dump';
             $connHost = 'SQL dump';
         } elseif ($isSameDb) {
+            $connType = 'Same database';
             $connHost = (string) $this->app->getConfig()->get('db_host', 'localhost');
             $connDb   = (string) $this->app->getConfig()->get('db_name', '');
         } elseif (is_array($credentials)) {
+            $connType = 'Live connection';
             $connHost = (string) ($credentials['host'] ?? '');
             $connDb   = (string) ($credentials['name'] ?? '');
         }
 
-        return $this->adminLayout('admin/import/preview.php', 'Preview Import', 'import', [
+        return $this->adminLayout('admin/import/import-wizard/preview.php', 'Preview Import', 'import', [
             'source'      => $source,
             'source_name' => $this->sourceName($source),
             'preview'     => $previewData,
@@ -451,14 +489,30 @@ final class ImportController extends AdminController
             return Response::redirect($baseUrl . "/admin/import/{$source}/connect");
         }
 
-        $options = ImportOptions::fromPost($scopePost);
         $adapter = $this->getAdapter($source);
+
+        // BellaBuffs: inject session file paths before building ImportOptions
+        if ($source === 'bellabuffs') {
+            $approvedPath = (string) ($session->get(self::SESSION_BB_APPROVED) ?? '');
+            $pendingPath  = (string) ($session->get(self::SESSION_BB_PENDING)  ?? '');
+            if ($approvedPath !== '') {
+                $scopePost['_bb_approved_path'] = $approvedPath;
+            }
+            if ($pendingPath !== '') {
+                $scopePost['_bb_pending_path'] = $pendingPath;
+            }
+        }
+
+        $options = ImportOptions::fromPost($scopePost);
 
         $result = null;
         $error  = '';
 
         try {
-            if ($dumpPrefix !== null) {
+            if ($source === 'bellabuffs') {
+                $targetPdo = $this->app->getDatabase()->pdo();
+                $result    = $adapter->run($targetPdo, $targetPdo, $options);
+            } elseif ($dumpPrefix !== null) {
                 $targetPdo = $this->app->getDatabase()->pdo();
                 $result    = $adapter->run($targetPdo, $targetPdo, $options);
             } else {
@@ -488,6 +542,7 @@ final class ImportController extends AdminController
             $session->remove(self::SESSION_CREDS);
             $session->remove(self::SESSION_SCOPE);
             $session->remove(self::SESSION_ZIP_PATH);
+            $this->cleanupBbTempFiles();
         } catch (\Throwable $e) {
             $error = $e->getMessage();
         } finally {
@@ -526,7 +581,7 @@ final class ImportController extends AdminController
             return Response::redirect($baseUrl . '/admin/import');
         }
 
-        return $this->adminLayout('admin/import/result.php', 'Import Complete', 'import', [
+        return $this->adminLayout('admin/import/import-wizard/result.php', 'Import Complete', 'import', [
             'source'      => $source,
             'source_name' => $this->sourceName($source),
             'result'      => $result,
@@ -596,6 +651,14 @@ final class ImportController extends AdminController
             return Response::redirect($baseUrl . "/admin/import/{$source}/connect");
         }
 
+        // Clean up any leftover state from a previous run before starting fresh.
+        $this->cleanupDumpTables();
+        $session->remove(self::SESSION_SCOPE);
+        $session->remove(self::SESSION_ZIP_PATH);
+        $session->remove(self::SESSION_RESULT);
+
+        set_time_limit(0); // dump parsing + bulk inserts can be slow on large files
+
         $tempPrefix = 'lstr_tmp_' . bin2hex(random_bytes(8)) . '_';
         $pdo        = $this->app->getDatabase()->pdo();
         $loader     = new SqlDumpLoader();
@@ -635,6 +698,7 @@ final class ImportController extends AdminController
             'listing-admin' => new ListingAdminImportSource(),
             'fanupdate'     => new FanUpdateImportSource(),
             'codesort'      => new CodeSortImportSource(),
+            'bellabuffs'    => new BellaBuffsImportSource(),
             default         => throw new \RuntimeException("Unknown import source: {$source}"),
         };
     }
@@ -646,8 +710,173 @@ final class ImportController extends AdminController
             'listing-admin' => 'Listing Admin',
             'fanupdate'     => 'FanUpdate',
             'codesort'      => 'CodeSort',
+            'bellabuffs'    => 'BellaBuffs',
             default         => $source,
         };
+    }
+
+    // -----------------------------------------------------------------------
+    // BellaBuffs-specific flow
+    // -----------------------------------------------------------------------
+
+    private function connectBellaBuffs(Request $request): Response
+    {
+        $session = $this->app->getSession();
+        $baseUrl = $this->app->getBaseUrl();
+        $error   = '';
+
+        if ($request->isPost()) {
+            // Start fresh — discard any previous BB temp files / state
+            $this->cleanupBbTempFiles();
+            $session->remove(self::SESSION_CREDS);
+            $session->remove(self::SESSION_SCOPE);
+
+            $connMode = (string) $request->post('bb_conn_mode', 'path');
+
+            if ($connMode === 'upload') {
+                // ── File upload mode ─────────────────────────────────────
+                $membersFile = $request->file('members_file') ?? [];
+                if (empty($membersFile['tmp_name']) || ($membersFile['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) {
+                    $error = 'Please upload a members.txt file.';
+                } elseif (strtolower(pathinfo((string) ($membersFile['name'] ?? ''), PATHINFO_EXTENSION)) !== 'txt') {
+                    $error = 'The approved members file must be a .txt file.';
+                } else {
+                    $approvedDest = LUSTER_BASE . '/storage/cache/import_bb_approved_' . bin2hex(random_bytes(8)) . '.txt';
+                    if (!move_uploaded_file($membersFile['tmp_name'], $approvedDest)) {
+                        $error = 'Could not save uploaded members.txt.';
+                    } else {
+                        $session->set(self::SESSION_BB_APPROVED, $approvedDest);
+
+                        // Optional newbies.txt upload
+                        $newbiesFile = $request->file('newbies_file') ?? [];
+                        if (!empty($newbiesFile['tmp_name']) && ($newbiesFile['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_OK) {
+                            $ext2 = strtolower(pathinfo((string) ($newbiesFile['name'] ?? ''), PATHINFO_EXTENSION));
+                            if ($ext2 === 'txt') {
+                                $pendingDest = LUSTER_BASE . '/storage/cache/import_bb_pending_' . bin2hex(random_bytes(8)) . '.txt';
+                                if (move_uploaded_file($newbiesFile['tmp_name'], $pendingDest)) {
+                                    $session->set(self::SESSION_BB_PENDING, $pendingDest);
+                                }
+                            }
+                        } else {
+                            $session->remove(self::SESSION_BB_PENDING);
+                        }
+
+                        $session->set(self::SESSION_CREDS, ['bb_mode' => 'upload']);
+                        return Response::redirect($baseUrl . '/admin/import/bellabuffs/scope');
+                    }
+                }
+            } else {
+                // ── Server path mode ─────────────────────────────────────
+                $folderPath = rtrim(trim((string) $request->post('bb_folder_path', '')), '/\\');
+                $adapter    = new BellaBuffsImportSource();
+                $connError  = $adapter->testConnection(['bb_path' => $folderPath, 'bb_mode' => 'path']);
+                if ($connError !== null) {
+                    $error = $connError;
+                } else {
+                    $session->set(self::SESSION_CREDS, [
+                        'bb_mode'    => 'path',
+                        'bb_path'    => $folderPath,
+                    ]);
+                    return Response::redirect($baseUrl . '/admin/import/bellabuffs/scope');
+                }
+            }
+        }
+
+        return $this->adminLayout(
+            'admin/import/import-wizard/connect-bellabuffs.php',
+            'Connect to BellaBuffs',
+            'import',
+            [
+                'source'      => 'bellabuffs',
+                'source_name' => 'BellaBuffs',
+                'error'       => $error,
+            ],
+            '',
+            [
+                $this->crumb('Import Data', $this->adminUrl('/admin/import')),
+                $this->crumb('BellaBuffs'),
+            ]
+        );
+    }
+
+    private function scopeBellaBuffs(Request $request): Response
+    {
+        $session = $this->app->getSession();
+        $baseUrl = $this->app->getBaseUrl();
+
+        $bbCreds = $session->get(self::SESSION_CREDS);
+        if (!is_array($bbCreds)) {
+            return Response::redirect($baseUrl . '/admin/import/bellabuffs/connect');
+        }
+
+        $bbMode = (string) ($bbCreds['bb_mode'] ?? 'path');
+
+        if ($request->isPost()) {
+            $scopePost = $request->postAll();
+            $scopePost['source']          = 'bellabuffs';
+            $scopePost['bb_mode']         = $bbMode;
+            $scopePost['bb_folder_path']  = (string) ($bbCreds['bb_path'] ?? '');
+            $session->set(self::SESSION_SCOPE, $scopePost);
+            return Response::redirect($baseUrl . '/admin/import/bellabuffs/preview');
+        }
+
+        // Fetch listings for the selector
+        $listings = [];
+        try {
+            $stmt = $this->app->getDatabase()->pdo()->query(
+                "SELECT listingid, dbtable, COALESCE(NULLIF(subject,''), title, dbtable) AS label
+                 FROM owned ORDER BY label ASC"
+            );
+            $listings = $stmt ? $stmt->fetchAll(\PDO::FETCH_ASSOC) : [];
+        } catch (\Throwable) {}
+
+        // What optional files are present (server-path mode)
+        $hasNewbies    = false;
+        $hasAffiliates = false;
+        $hasButtons    = false;
+        if ($bbMode === 'path') {
+            $folder        = rtrim((string) ($bbCreds['bb_path'] ?? ''), '/\\');
+            $hasNewbies    = $folder !== '' && is_readable($folder . '/newbies.txt');
+            $hasAffiliates = $folder !== '' && is_readable($folder . '/affiliates.txt');
+            $hasButtons    = $folder !== '' && is_readable($folder . '/buttons.txt');
+        } elseif ($bbMode === 'upload') {
+            $hasNewbies = $session->get(self::SESSION_BB_PENDING) !== null;
+        }
+
+        $old = (array) ($session->get(self::SESSION_SCOPE) ?? []);
+
+        return $this->adminLayout(
+            'admin/import/import-wizard/scope-bellabuffs.php',
+            'Import Options',
+            'import',
+            [
+                'source'         => 'bellabuffs',
+                'source_name'    => 'BellaBuffs',
+                'listings'       => $listings,
+                'bb_mode'        => $bbMode,
+                'has_newbies'    => $hasNewbies,
+                'has_affiliates' => $hasAffiliates,
+                'has_buttons'    => $hasButtons,
+                'old'            => $old,
+            ],
+            '',
+            [
+                $this->crumb('Import Data', $this->adminUrl('/admin/import')),
+                $this->crumb('BellaBuffs', $this->adminUrl('/admin/import/bellabuffs/connect')),
+            ]
+        );
+    }
+
+    private function cleanupBbTempFiles(): void
+    {
+        $session = $this->app->getSession();
+        foreach ([self::SESSION_BB_APPROVED, self::SESSION_BB_PENDING] as $key) {
+            $path = (string) ($session->get($key) ?? '');
+            if ($path !== '' && is_file($path)) {
+                @unlink($path);
+            }
+            $session->remove($key);
+        }
     }
 
     private function clearImportSession(): void
@@ -660,6 +889,7 @@ final class ImportController extends AdminController
         $this->cleanupDumpTables();
         $session->remove(self::SESSION_DUMP_PREFIX);
         $session->remove(self::SESSION_DUMP_TABLES);
+        $this->cleanupBbTempFiles();
     }
 
     private function cleanupDumpTables(): void
@@ -675,17 +905,24 @@ final class ImportController extends AdminController
         }
     }
 
-    /** Removes stale pre-import ZIP files from storage/cache/ (older than 24 h). */
+    /** Removes stale pre-import ZIP and BellaBuffs temp files from storage/cache/ (older than 24 h). */
     private function cleanupStaleZips(): void
     {
         $cacheDir = LUSTER_BASE . '/storage/cache';
         if (!is_dir($cacheDir)) {
             return;
         }
-        $cutoff = time() - 86400;
-        foreach (glob($cacheDir . '/import_zip_*.zip') ?: [] as $file) {
-            if (filemtime($file) < $cutoff) {
-                @unlink($file);
+        $cutoff  = time() - 86400;
+        $patterns = [
+            $cacheDir . '/import_zip_*.zip',
+            $cacheDir . '/import_bb_approved_*.txt',
+            $cacheDir . '/import_bb_pending_*.txt',
+        ];
+        foreach ($patterns as $pattern) {
+            foreach (glob($pattern) ?: [] as $file) {
+                if (filemtime($file) < $cutoff) {
+                    @unlink($file);
+                }
             }
         }
     }

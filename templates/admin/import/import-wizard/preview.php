@@ -70,6 +70,11 @@ $src = View::e($source);
         if ($options->importUpdates)    $importChips[] = 'Updates';
     } elseif ($options->source === 'fanupdate') {
         if ($options->importUpdates) $importChips[] = 'Updates';
+    } elseif ($options->source === 'bellabuffs') {
+        if ($options->bbImportApproved)   $importChips[] = 'Members (approved)';
+        if ($options->bbImportPending)    $importChips[] = 'Members (pending)';
+        if ($options->bbImportAffiliates) $importChips[] = 'Affiliates';
+        if ($options->bbImportCodes)      $importChips[] = 'Codes / Buttons';
     } elseif ($options->source === 'codesort') {
         if ($options->importCodeCategories) $importChips[] = 'Categories';
         if ($options->importCodeSizes)      $importChips[] = 'Sizes';

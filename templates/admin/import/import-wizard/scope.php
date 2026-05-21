@@ -20,9 +20,6 @@ function scopeChecked(array $old, string $key, bool $default = true): string {
 }
 
 $conflictMode = $old['conflict_strategy'] ?? 'skip';
-// On first visit, default to same-server path mode. On return visits, restore the
-// previously chosen mode.
-$imageMode    = empty($old) ? 'path' : ($old['image_mode'] ?? 'path');
 $imagesOn     = !empty($old['import_images']) || empty($old);
 ?>
 
@@ -148,23 +145,6 @@ $imagesOn     = !empty($old['import_images']) || empty($old);
             <input type="checkbox" name="import_categories" value="1" <?= scopeChecked($old, 'import_categories') ?>>
             <div class="import-chk-body">
               <label class="import-chk-lbl">Assigned categories</label>
-              <?php if (!empty($enth_networks)): ?>
-              <div style="margin-top:.5rem;display:flex;flex-direction:column;gap:.3rem">
-                <label class="form-label" for="category_parent_id" style="font-size:var(--fs-sm)">Place top-level categories under network</label>
-                <div class="select-wrap import-select-narrow">
-                  <select id="category_parent_id" name="category_parent_id">
-                    <option value="">&mdash; Leave as top-level &mdash;</option>
-                    <?php foreach ($enth_networks as $net): ?>
-                      <option value="<?= View::e((string) $net['id']) ?>"
-                        <?= (string) ($old['category_parent_id'] ?? '') === (string) $net['id'] ? 'selected' : '' ?>>
-                        <?= View::e($net['name']) ?>
-                      </option>
-                    <?php endforeach; ?>
-                  </select>
-                </div>
-                <p class="field-hint-sm import-hint-tight">Enthusiast has no network concept. Choose a parent to import categories as children instead of top-level entries.</p>
-              </div>
-              <?php endif; ?>
             </div>
           </div>
           <div class="import-chk">
@@ -177,11 +157,21 @@ $imagesOn     = !empty($old['import_images']) || empty($old);
           </div>
           <div class="import-chk">
             <input type="checkbox" name="import_settings" value="1" <?= scopeChecked($old, 'import_settings') ?>>
-            <div class="import-chk-body"><label class="import-chk-lbl">Per-listing settings</label></div>
+            <div class="import-chk-body">
+              <label class="import-chk-lbl">Per-listing settings</label>
+              <div class="import-chk-sub">Includes listing banner images — required for owned image migration.</div>
+            </div>
           </div>
           <div class="import-chk">
             <input type="checkbox" name="import_templates" value="1" <?= scopeChecked($old, 'import_templates') ?>>
             <div class="import-chk-body"><label class="import-chk-lbl">Email templates</label></div>
+          </div>
+          <div class="import-chk">
+            <input type="checkbox" name="import_saved_templates" value="1" <?= scopeChecked($old, 'import_saved_templates', false) ?>>
+            <div class="import-chk-body">
+              <label class="import-chk-lbl">Saved email templates</label>
+              <div class="import-chk-sub">Imports the reusable template library (<code>emailtemplate</code> table). Only present in Erin&rsquo;s fork of Enthusiast.</div>
+            </div>
           </div>
         <?php endif; ?>
 
@@ -222,6 +212,20 @@ $imagesOn     = !empty($old['import_images']) || empty($old);
               <div class="import-chk-sub">Requires the Updates Feed add-on to be installed.</div>
             </div>
           </div>
+          <div class="import-chk">
+            <input type="checkbox" name="import_wishlist" value="1" <?= scopeChecked($old, 'import_wishlist', false) ?>>
+            <div class="import-chk-body">
+              <label class="import-chk-lbl">Wishlist</label>
+              <div class="import-chk-sub">Owner&rsquo;s personal wishlist of fanlistings to open. Requires the Wishlist add-on.</div>
+            </div>
+          </div>
+          <div class="import-chk">
+            <input type="checkbox" name="import_kim" value="1" <?= scopeChecked($old, 'import_kim', false) ?>>
+            <div class="import-chk-body">
+              <label class="import-chk-lbl">KIM List</label>
+              <div class="import-chk-sub">Fan adoption-interest registries. Requires the KIM add-on.</div>
+            </div>
+          </div>
         <?php endif; ?>
 
         <?php if ($source === 'fanupdate'): ?>
@@ -259,101 +263,75 @@ $imagesOn     = !empty($old['import_images']) || empty($old);
 
   <!-- ── Image Migration ──────────────────────────────────────────── -->
   <?php if ($source !== 'fanupdate'): ?>
+    <?php $alwaysAuto = in_array($source, ['enthusiast', 'listing-admin']); ?>
     <div class="pc-section import-image-section">
-      <div class="import-section-topline">
-        <div>
-          <div class="pc-section-label import-section-label-inline">
-            Image Migration
-            <span class="badge badge-inactive import-optional-badge">Optional</span>
-          </div>
-          <div class="import-section-sub">Copy affiliate logos, joined listing images, and listing images into Luster&rsquo;s uploads directory. Original files are never deleted.</div>
+
+      <?php if ($alwaysAuto): ?>
+        <div class="pc-section-label import-section-label-inline">
+          Image Migration
+          <span class="badge badge-current import-optional-badge">Automatic</span>
         </div>
-        <label class="import-section-toggle">
-          <input type="checkbox" name="import_images" value="1" id="js-images-toggle"
-                 <?= $imagesOn ? 'checked' : '' ?>>
-          Migrate images
-        </label>
-      </div>
+        <div class="import-section-sub" style="margin-bottom:.75rem">
+          Images are always migrated. Paths are read from
+          <?= $source === 'enthusiast' ? "Enthusiast&rsquo;s <code>settings</code>" : "Listing Admin&rsquo;s options" ?>
+          table automatically &mdash; no input needed in most cases.
+          If you&rsquo;re importing from a remote server, enter your live site URL as the fallback
+          and Luster will fetch images over HTTP. If outbound HTTP is blocked on your host,
+          upload a ZIP of your image folder below instead &mdash; any ZIP structure works,
+          files are matched by filename only.
+        </div>
+        <div style="display:flex;flex-direction:column;gap:.5rem">
+          <input type="text" name="image_path" class="form import-input-wide"
+                 placeholder="Server path (optional) — e.g. /home/user/old-install"
+                 value="<?= scopeOld($old, 'image_path') ?>">
+          <input type="url" name="image_url" class="form import-input-wide"
+                 placeholder="Live site URL (optional) — e.g. https://example.com/old-install"
+                 value="<?= scopeOld($old, 'image_url') ?>">
+        </div>
 
-      <div id="js-image-options"<?= $imagesOn ? '' : ' class="is-hidden"' ?>>
-        <div class="import-choice import-choice--stacked">
-
-          <div class="import-choice-option">
-          <label class="import-choice-item">
-            <input type="radio" name="image_mode" value="path" id="img-mode-path"
-                   <?= $imageMode === 'path' ? 'checked' : '' ?>>
-            <div>
-              <div class="import-choice-title">Same server</div>
-              <div class="import-choice-sub">Copy files via absolute path on this server.</div>
+      <?php else: ?>
+        <div class="import-section-topline">
+          <div>
+            <div class="pc-section-label import-section-label-inline">
+              Image Migration
+              <span class="badge badge-inactive import-optional-badge">Optional</span>
             </div>
+            <div class="import-section-sub">Copy code images into Luster&rsquo;s uploads directory. Original files are never deleted.</div>
+          </div>
+          <label class="import-section-toggle">
+            <input type="checkbox" name="import_images" value="1" id="js-images-toggle"
+                   <?= $imagesOn ? 'checked' : '' ?>>
+            Migrate images
           </label>
-          <div id="js-img-path-field" class="import-mode-panel<?= $imageMode === 'path' ? '' : ' is-hidden' ?>">
+        </div>
+        <div id="js-image-options"<?= $imagesOn ? '' : ' class="is-hidden"' ?>>
+          <div style="display:flex;flex-direction:column;gap:.5rem;margin-top:.625rem">
             <input type="text" name="image_path" class="form import-input-wide"
-                   placeholder="/absolute/path/to/old-install"
+                   placeholder="images_folder from codes-config.php — e.g. /home/user/codesort/images"
                    value="<?= scopeOld($old, 'image_path') ?>">
-            <p class="field-hint-sm">
-              <?php if ($source === 'enthusiast'): ?>
-                Luster reads image paths from Enthusiast&rsquo;s <code>settings</code> table automatically.
-                Enter your Enthusiast install root only as a fallback if those settings are blank.
-                Leave blank if Luster and Enthusiast share the same database.
-              <?php elseif ($source === 'listing-admin'): ?>
-                Luster reads image paths from Listing Admin&rsquo;s options table automatically (<code>aff_path</code>, <code>img_path</code>, <code>jnd_path</code>).
-                If those options are blank, enter the direct image folder path here &mdash; not the install root.
-              <?php elseif ($source === 'codesort'): ?>
-                Enter the value of <code>images_folder</code> from <code>codes-config.php</code> &mdash;
-                the direct folder where code images are stored. Do <strong>not</strong> enter the install root.
-              <?php endif; ?>
-            </p>
-          </div>
-          </div>
-
-          <div class="import-choice-option">
-          <label class="import-choice-item">
-            <input type="radio" name="image_mode" value="url" id="img-mode-url"
-                   <?= $imageMode === 'url' ? 'checked' : '' ?>>
-            <div>
-              <div class="import-choice-title">Remote URL</div>
-              <div class="import-choice-sub">Fetch files over HTTP. Useful when Luster is on a different server.</div>
-            </div>
-          </label>
-          <div id="js-img-url-field" class="import-mode-panel<?= $imageMode === 'url' ? '' : ' is-hidden' ?>">
             <input type="url" name="image_url" class="form import-input-wide"
-                   placeholder="https://example.com/old-install"
+                   placeholder="Base URL fallback (optional) — e.g. https://example.com/codesort/images"
                    value="<?= scopeOld($old, 'image_url') ?>">
-            <p class="field-hint-sm">Base URL of your old installation (no trailing slash). Luster appends standard image sub-paths.</p>
           </div>
-          </div>
+          <p class="field-hint-sm" style="margin-top:.375rem">Enter <code>images_folder</code> as the path (not the install root). Luster tries the path first, then the URL.</p>
+        </div>
+      <?php endif; ?>
 
-          <div class="import-choice-option">
-          <label class="import-choice-item">
-            <input type="radio" name="image_mode" value="zip" id="img-mode-zip"
-                   <?= $imageMode === 'zip' ? 'checked' : '' ?>>
-            <div>
-              <div class="import-choice-title">Upload ZIP</div>
-              <div class="import-choice-sub">Upload a ZIP of your image directories before the import runs. Files are matched by filename &mdash; subdirectory paths inside the ZIP are ignored.</div>
-            </div>
-          </label>
-          <div id="js-img-zip-field" class="import-mode-panel<?= $imageMode === 'zip' ? '' : ' is-hidden' ?>">
-            <?php if ($zip_ready): ?>
-              <div class="alert alert-info" style="margin-bottom:.5rem">
-                <?= View::icon('check') ?> ZIP already uploaded &mdash; images will be extracted during the import run.
-              </div>
-            <?php endif; ?>
-            <div style="display:flex;gap:.75rem;align-items:center;flex-wrap:wrap">
-              <input id="js-zip-file-input" type="file" accept=".zip" class="form" style="flex:1;min-width:180px">
-              <button type="button" id="js-zip-upload-btn" class="btn btn-secondary btn-sm"
-                      data-upload-url="<?= View::e($zip_url) ?>"
-                      data-csrf="<?= View::e($csrf_token) ?>">
-                Upload ZIP
-              </button>
-              <span id="js-zip-upload-result" style="font-size:var(--fs-sm);display:none"></span>
-            </div>
-            <p class="field-hint-sm" style="margin-top:.4rem">Max 50 MB · .zip only. Subdirectory paths inside the ZIP are ignored.</p>
-          </div>
-          </div>
+      <div style="display:flex;gap:.625rem;align-items:center;flex-wrap:wrap;margin-top:.75rem">
+        <input id="js-zip-file-input" type="file" accept=".zip" class="form" style="flex:1;min-width:0">
+        <button type="button" id="js-zip-upload-btn" class="btn btn-quaternary btn-sm"
+                data-upload-url="<?= View::e($zip_url) ?>"
+                data-csrf="<?= View::e($csrf_token) ?>">
+          Upload ZIP
+        </button>
+        <span id="js-zip-upload-result" style="font-size:var(--fs-sm);display:none"></span>
+      </div>
+      <?php if ($zip_ready): ?>
+        <p class="field-hint-sm" style="margin-top:.25rem;color:var(--success)"><?= View::icon('check') ?> ZIP uploaded — takes precedence over path and URL.</p>
+      <?php else: ?>
+        <p class="field-hint-sm" style="margin-top:.25rem">Or upload a ZIP of your image folder (max 50&thinsp;MB). You can zip the entire admin folder &mdash; no need to separate subdirectories. Files are matched by filename only.</p>
+      <?php endif; ?>
 
-        </div><!-- /.import-choice -->
-      </div><!-- /#js-image-options -->
     </div>
   <?php endif; ?>
 

@@ -79,19 +79,75 @@ final class CodeSortImportSource implements ImportSourceInterface
 
     public function detectSchema(PDO $source): string
     {
-        // Bare table names (default install)
-        $stmt = $source->query("SHOW TABLES LIKE 'codes'");
-        if ($stmt && $stmt->fetchColumn() !== false) {
-            try {
-                $source->query("SELECT code_id FROM `codes` LIMIT 0");
-                return 'codesort_bare';
-            } catch (\Throwable) {}
+        $driver = $source->getAttribute(PDO::ATTR_DRIVER_NAME);
+
+        if ($driver === 'sqlite') {
+            return $this->detectSchemaSqlite($source);
         }
 
-        // Prefixed variant (codes_codes, codes_cat, …)
+        // MySQL / MariaDB path.
+
+        // 'codes' table is the codes table in both 'default' and 'bare' layouts.
+        $stmt = $source->query("SHOW TABLES LIKE 'codes'");
+        if ($stmt && $stmt->fetchColumn() !== false) {
+            $hasCodeId = false;
+            try {
+                $source->query("SELECT code_id FROM `codes` LIMIT 0");
+                $hasCodeId = true;
+            } catch (\Throwable) {}
+
+            if ($hasCodeId) {
+                // Distinguish real default install (codes_cat companion) from the legacy
+                // bare layout (cat companion).  Default is more common in practice.
+                $s = $source->query("SHOW TABLES LIKE 'codes_cat'");
+                if ($s && $s->fetchColumn() !== false) {
+                    return 'codesort_default';
+                }
+                $s = $source->query("SHOW TABLES LIKE 'cat'");
+                if ($s && $s->fetchColumn() !== false) {
+                    return 'codesort_bare';
+                }
+                // codes table exists but no recognised companion — default is safest assumption.
+                return 'codesort_default';
+            }
+        }
+
+        // Prefixed variant: codes_codes, codes_cat, codes_sizes, codes_donors, codes_collective
         $stmt = $source->query("SHOW TABLES LIKE 'codes_codes'");
         if ($stmt && $stmt->fetchColumn() !== false) {
             return 'codesort_prefixed';
+        }
+
+        return 'unknown';
+    }
+
+    private function detectSchemaSqlite(PDO $source): string
+    {
+        $tables = array_flip(
+            $source->query("SELECT name FROM sqlite_master WHERE type='table'")->fetchAll(PDO::FETCH_COLUMN)
+        );
+
+        // Prefixed variant first (codes_codes is unambiguous)
+        if (isset($tables['codes_codes'])) {
+            return 'codesort_prefixed';
+        }
+
+        if (isset($tables['codes'])) {
+            $hasCodeId = false;
+            try {
+                $source->query("SELECT code_id FROM `codes` LIMIT 0");
+                $hasCodeId = true;
+            } catch (\Throwable) {}
+
+            if ($hasCodeId) {
+                if (isset($tables['codes_cat'])) {
+                    return 'codesort_default';
+                }
+                if (isset($tables['cat'])) {
+                    return 'codesort_bare';
+                }
+                return 'codesort_default';
+            }
         }
 
         return 'unknown';
@@ -105,16 +161,17 @@ final class CodeSortImportSource implements ImportSourceInterface
     {
         $schema = $options->schemaVariant !== '' ? $options->schemaVariant : $this->detectSchema($source);
         $p      = $options->tablePrefix . $this->tablePrefix($schema);
+        $compP  = $options->tablePrefix . $this->companionPrefix($schema);
         $rows   = [];
 
         if ($options->importCodeCategories) {
-            $rows[] = $this->previewCategories($source, $p);
+            $rows[] = $this->previewCategories($source, $compP);
         }
         if ($options->importCodeSizes) {
-            $rows[] = $this->previewTable($source, "{$p}sizes", 'Code sizes');
+            $rows[] = $this->previewTable($source, "{$compP}sizes", 'Code sizes');
         }
         if ($options->importCodeDonors) {
-            $rows[] = $this->previewTable($source, "{$p}donors", 'Code donors');
+            $rows[] = $this->previewTable($source, "{$compP}donors", 'Code donors');
         }
         if ($options->importCodes) {
             $rows[] = $this->previewCodes($source, $p, $options);
@@ -135,6 +192,7 @@ final class CodeSortImportSource implements ImportSourceInterface
         $start  = microtime(true);
         $schema = $options->schemaVariant !== '' ? $options->schemaVariant : $this->detectSchema($source);
         $p      = $options->tablePrefix . $this->tablePrefix($schema);
+        $compP  = $options->tablePrefix . $this->companionPrefix($schema);
         $rows   = [];
         $imgRows = [];
 
@@ -156,7 +214,9 @@ final class CodeSortImportSource implements ImportSourceInterface
         $listingMap = $this->buildListingMap($target);
 
         // Build CodeSort collective map: cs_fl_id → lstr_listing_id (null = unmatched)
-        [$collectiveMap, $unmatchedSubjects] = $this->buildCollectiveMap($source, $p, $listingMap);
+        [$collectiveMap, $unmatchedSubjects] = $this->buildCollectiveMap(
+            $source, $p, $compP, $schema, $listingMap
+        );
         $matchedListingIds = array_values(array_unique(array_filter(array_values($collectiveMap))));
 
         // Maps built during sub-imports and consumed by importCodes
@@ -166,28 +226,28 @@ final class CodeSortImportSource implements ImportSourceInterface
 
         if ($options->importCodeCategories) {
             ['row' => $catRow, 'map' => $catMap] = $this->runCategories(
-                $source, $target, $p, $collectiveMap, $options
+                $source, $target, $compP, $collectiveMap, $options
             );
             $rows[] = $catRow;
         }
 
         if ($options->importCodeSizes) {
             ['row' => $sizeRow, 'map' => $sizeMap] = $this->runSizes(
-                $source, $target, $p, $matchedListingIds, $options
+                $source, $target, $compP, $matchedListingIds, $options
             );
             $rows[] = $sizeRow;
         }
 
         if ($options->importCodeDonors) {
             ['row' => $donorRow, 'map' => $donorMap] = $this->runDonors(
-                $source, $target, $p, $collectiveMap, $options
+                $source, $target, $p, $compP, $collectiveMap, $options
             );
             $rows[] = $donorRow;
         }
 
         if ($options->importCodes) {
             ['row' => $codeRow, 'imageRow' => $imgRow] = $this->runCodes(
-                $source, $target, $p, $collectiveMap, $catMap, $sizeMap, $donorMap,
+                $source, $target, $p, $compP, $collectiveMap, $catMap, $sizeMap, $donorMap,
                 $options, $migrator, $publicRoot
             );
             $rows[] = $codeRow;
@@ -238,16 +298,16 @@ final class CodeSortImportSource implements ImportSourceInterface
     }
 
     /** @return array{type:string,found:int,import:int,skip:int,warnings:string[]} */
-    private function previewCategories(PDO $source, string $p): array
+    private function previewCategories(PDO $source, string $compP): array
     {
         $warns = [];
         try {
-            $found = (int) $source->query("SELECT COUNT(*) FROM `{$p}cat`")->fetchColumn();
+            $found = (int) $source->query("SELECT COUNT(*) FROM `{$compP}cat`")->fetchColumn();
         } catch (\Throwable) {
             return ['type' => 'Code categories', 'found' => 0, 'import' => 0, 'skip' => 0, 'warnings' => []];
         }
         try {
-            $collective = (int) $source->query("SELECT COUNT(*) FROM `{$p}cat` WHERE cat_fl = 0")->fetchColumn();
+            $collective = (int) $source->query("SELECT COUNT(*) FROM `{$compP}cat` WHERE cat_fl = 0")->fetchColumn();
             if ($collective > 0) {
                 $warns[] = "{$collective} category/categories have CodeSort collective scope (cat_fl=0) and will be skipped — Luster's code categories are always per-listing.";
             }
@@ -289,7 +349,7 @@ final class CodeSortImportSource implements ImportSourceInterface
     private function runCategories(
         PDO    $source,
         PDO    $target,
-        string $p,
+        string $compP,
         array  $collectiveMap,
         ImportOptions $options,
     ): array {
@@ -309,7 +369,7 @@ final class CodeSortImportSource implements ImportSourceInterface
         $collectiveSkipped = 0;
 
         try {
-            $rows = $source->query("SELECT cat_id, cat_fl, cat_name FROM `{$p}cat` ORDER BY cat_id ASC")->fetchAll();
+            $rows = $source->query("SELECT cat_id, cat_fl, cat_name FROM `{$compP}cat` ORDER BY cat_id ASC")->fetchAll();
         } catch (\Throwable) {
             return [
                 'row' => ['type' => 'Code categories', 'imported' => 0, 'skipped' => 0, 'warnings' => ['Table not found.'], 'errors' => 1],
@@ -380,7 +440,7 @@ final class CodeSortImportSource implements ImportSourceInterface
     private function runSizes(
         PDO    $source,
         PDO    $target,
-        string $p,
+        string $compP,
         array  $matchedListingIds,
         ImportOptions $options,
     ): array {
@@ -407,7 +467,7 @@ final class CodeSortImportSource implements ImportSourceInterface
 
         try {
             $csSizes = $source->query(
-                "SELECT size_id, size_order, size_size FROM `{$p}sizes` ORDER BY size_order ASC, size_id ASC"
+                "SELECT size_id, size_order, size_size FROM `{$compP}sizes` ORDER BY size_order ASC, size_id ASC"
             )->fetchAll();
         } catch (\Throwable) {
             return [
@@ -472,6 +532,7 @@ final class CodeSortImportSource implements ImportSourceInterface
         PDO    $source,
         PDO    $target,
         string $p,
+        string $compP,
         array  $collectiveMap,
         ImportOptions $options,
     ): array {
@@ -491,7 +552,7 @@ final class CodeSortImportSource implements ImportSourceInterface
 
         try {
             $donors = $source->query(
-                "SELECT donor_id, donor_name, donor_url FROM `{$p}donors` ORDER BY donor_id ASC"
+                "SELECT donor_id, donor_name, donor_url FROM `{$compP}donors` ORDER BY donor_id ASC"
             )->fetchAll();
         } catch (\Throwable) {
             return [
@@ -575,6 +636,7 @@ final class CodeSortImportSource implements ImportSourceInterface
         PDO           $source,
         PDO           $target,
         string        $p,
+        string        $compP,
         array         $collectiveMap,
         array         $catMap,
         array         $sizeMap,
@@ -592,6 +654,28 @@ final class CodeSortImportSource implements ImportSourceInterface
         $imgErrors         = 0;
         $warnings          = [];
         $imageMap          = []; // for ZIP mode
+
+        // Resolve effective image path/URL: user-supplied values take precedence;
+        // fall back to values read from the codes_options table when both are absent.
+        $effectivePath = $options->imagePath;
+        $effectiveUrl  = $options->imageUrl;
+        if ($migrator !== null && $effectivePath === '' && $effectiveUrl === '') {
+            ['path' => $effectivePath, 'url' => $effectiveUrl] =
+                $this->readCodeSortImageSettings($source, $compP);
+        }
+
+        // Pre-load existing (fanlisting_id, filename) pairs for deduplication.
+        // This allows the 'skip' strategy to avoid re-inserting codes on re-runs.
+        // Note: after image migration the stored filename is randomised, so this
+        // check only catches codes whose filename was stored verbatim (no migration,
+        // or migration failed).  It is still useful for the common retry scenario.
+        $existingCodePairs = [];
+        try {
+            $stmt = $target->query('SELECT fanlisting_id, filename FROM lstr_codes');
+            foreach ($stmt->fetchAll() as $er) {
+                $existingCodePairs[(int) $er['fanlisting_id'] . '|' . $er['filename']] = true;
+            }
+        } catch (\Throwable) {}
 
         // Sort order counter per listing
         $sortCounters = [];
@@ -646,6 +730,14 @@ final class CodeSortImportSource implements ImportSourceInterface
                 $csDonorId  = (int) $row['code_donor'];
                 $approved   = (string) $row['code_approved'];
 
+                // Deduplication: skip this code if (listing, source filename) already exists.
+                if ($options->conflictStrategy === 'skip'
+                    && isset($existingCodePairs[$lstrLid . '|' . $csFilename])
+                ) {
+                    $skipped++;
+                    continue;
+                }
+
                 // Resolve IDs
                 $lstrSizeId  = ($csSizeId > 0) ? ($sizeMap[$csSizeId][$lstrLid] ?? null) : null;
                 $lstrCatId   = ($csCatId  > 0) ? ($catMap[$csCatId]   ?? null) : null;
@@ -656,22 +748,26 @@ final class CodeSortImportSource implements ImportSourceInterface
                 $sortCounters[$lstrLid] = ($sortCounters[$lstrLid] ?? -1) + 1;
                 $sortOrder = $sortCounters[$lstrLid];
 
-                // Migrate image
+                // Migrate image — use effective path/URL (auto-resolved from codes_options
+                // or user-supplied, whichever is present).
                 $newFilename = null;
                 $width       = 0;
                 $height      = 0;
 
                 if ($migrator !== null && $csFilename !== '') {
-                    if ($options->imageMode === 'path' && $options->imagePath !== '') {
-                        // $options->imagePath is the value of images_folder from codes-config.php —
-                        // the full path to the image directory, not the install root.
-                        // No subdirectory is appended; filenames live directly in that folder.
-                        $srcPath = rtrim($options->imagePath, '/\\') . '/' . $csFilename;
-                        $newFilename = $migrator->copyFromPath($srcPath, 'codes', 'cs');
-                    } elseif ($options->imageMode === 'url' && $options->imageUrl !== '') {
-                        // $options->imageUrl is the value of images_url from codes-config.php.
-                        $srcUrl = rtrim($options->imageUrl, '/') . '/' . rawurlencode($csFilename);
-                        $newFilename = $migrator->fetchFromUrl($srcUrl, 'codes', 'cs');
+                    if ($options->imageMode === 'auto') {
+                        // Try server path first (images_folder; no subdir appended).
+                        if ($effectivePath !== '') {
+                            $newFilename = $migrator->copyFromPath(
+                                rtrim($effectivePath, '/\\') . '/' . $csFilename, 'codes', 'cs'
+                            );
+                        }
+                        // Fall back to URL
+                        if ($newFilename === null && $effectiveUrl !== '') {
+                            $newFilename = $migrator->fetchFromUrl(
+                                rtrim($effectiveUrl, '/') . '/' . rawurlencode($csFilename), 'codes', 'cs'
+                            );
+                        }
                     } elseif ($options->imageMode === 'zip') {
                         if ($this->activeZip !== null) {
                             // Pre-uploaded ZIP: extract image inline during run().
@@ -691,7 +787,7 @@ final class CodeSortImportSource implements ImportSourceInterface
                             $width  = (int) $imgInfo[0];
                             $height = (int) $imgInfo[1];
                         }
-                    } elseif ($options->imageMode !== 'zip' || $this->activeZip !== null) {
+                    } elseif ($options->imageMode === 'auto' || ($options->imageMode === 'zip' && $this->activeZip !== null)) {
                         $imgErrors++;
                     }
                 }
@@ -701,7 +797,7 @@ final class CodeSortImportSource implements ImportSourceInterface
                     // Look up parsed size dimensions from source
                     if ($csSizeId > 0) {
                         try {
-                            $s = $source->prepare("SELECT size_size FROM `{$p}sizes` WHERE size_id = :id LIMIT 1");
+                            $s = $source->prepare("SELECT size_size FROM `{$compP}sizes` WHERE size_id = :id LIMIT 1");
                             $s->execute(['id' => $csSizeId]);
                             $sizeStr = (string) $s->fetchColumn();
                             [$width, $height] = $this->parseSizeString($sizeStr);
@@ -724,6 +820,8 @@ final class CodeSortImportSource implements ImportSourceInterface
                     ]);
                     $newCodeId = (int) $target->lastInsertId();
                     $imported++;
+                    // Register in the dedup set so within-run duplicates are also caught.
+                    $existingCodePairs[$lstrLid . '|' . $csFilename] = true;
 
                     // Assign category via junction table (lazy-prepare on first use)
                     if ($lstrCatId !== null) {
@@ -778,9 +876,45 @@ final class CodeSortImportSource implements ImportSourceInterface
     // -----------------------------------------------------------------------
 
     /**
-     * Returns the table prefix string for the detected schema variant.
-     * 'codesort_bare' → ''   (tables: codes, cat, sizes, donors, collective)
-     * 'codesort_prefixed' → 'codes_'  (tables: codes_codes, codes_cat, …)
+     * Reads configured image paths and URLs from the CodeSort options table
+     * ({$compP}options, e.g. codes_options for the default layout).
+     *
+     * Returns ['path' => ..., 'url' => ...] with empty strings when the table
+     * is absent or the relevant keys are not set.
+     *
+     * @return array{path: string, url: string}
+     */
+    private function readCodeSortImageSettings(PDO $source, string $compP): array
+    {
+        $table = $compP . 'options';
+        $empty = ['path' => '', 'url' => ''];
+
+        // Try common CodeSort column layouts: name/value, then name/option_value.
+        foreach (['value', 'option_value'] as $valCol) {
+            try {
+                $stmt = $source->prepare(
+                    "SELECT `name`, `{$valCol}` FROM `{$table}`
+                      WHERE `name` IN ('images_folder', 'images_url')"
+                );
+                $stmt->execute();
+                $rows = $stmt->fetchAll(\PDO::FETCH_KEY_PAIR);
+                if (!empty($rows)) {
+                    return [
+                        'path' => rtrim((string) ($rows['images_folder'] ?? ''), '/\\'),
+                        'url'  => rtrim((string) ($rows['images_url']    ?? ''), '/'),
+                    ];
+                }
+            } catch (\Throwable) {}
+        }
+
+        return $empty;
+    }
+
+    /**
+     * Prefix for the codes table itself.
+     *   codesort_prefixed → 'codes_'  (table is codes_codes)
+     *   codesort_default  → ''        (table is codes)
+     *   codesort_bare     → ''        (table is codes)
      */
     private function tablePrefix(string $schema): string
     {
@@ -788,19 +922,71 @@ final class CodeSortImportSource implements ImportSourceInterface
     }
 
     /**
-     * Loads CodeSort's collective table and builds cs_fl_id → lstr_listing_id map.
-     * Returns [$collectiveMap, $unmatchedSubjects].
+     * Prefix for companion tables (cat, sizes, donors, options, collective).
+     *   codesort_default  → 'codes_'  (tables: codes_cat, codes_sizes, codes_donors, codes_options)
+     *   codesort_prefixed → 'codes_'  (tables: codes_cat, codes_sizes, codes_donors, codes_collective)
+     *   codesort_bare     → ''        (tables: cat, sizes, donors, collective)
+     */
+    private function companionPrefix(string $schema): string
+    {
+        return in_array($schema, ['codesort_default', 'codesort_prefixed'], true) ? 'codes_' : '';
+    }
+
+    /**
+     * Builds cs_fl_id → lstr_listing_id map, using the appropriate strategy for
+     * the detected schema variant.
+     *
+     * codesort_default — no collective table exists; code_fl is a direct FK into
+     *   the fanlisting registry (owned.listingid or enth_fanlistings.id).  We match
+     *   by ID first (direct passthrough when the ID exists in the Luster registry),
+     *   falling back to "unmatched" for any code_fl that has no corresponding Luster
+     *   listing.
+     *
+     * codesort_bare / codesort_prefixed — a dedicated collective table exists; match
+     *   by fl_subject (case-insensitive title match against the Luster registry).
      *
      * @param array<string,int> $listingMap  lowercase(title) → lstr listing id
      * @return array{array<int,int|null>, string[]}
      */
-    private function buildCollectiveMap(PDO $source, string $p, array $listingMap): array
-    {
-        $collectiveMap    = [];
+    private function buildCollectiveMap(
+        PDO $source, string $p, string $compP, string $schema, array $listingMap
+    ): array {
+        $collectiveMap     = [];
         $unmatchedSubjects = [];
 
+        if ($schema === 'codesort_default') {
+            // For the default layout, code_fl / cat_fl / donor references are direct FKs
+            // into the Luster listing registry (owned.listingid).  Pre-populate the map
+            // with every valid Luster listing ID so that categories, sizes, and donors
+            // import correctly even when the codes table is empty or imported separately.
+            $validIds = array_flip(array_values($listingMap)); // [listingid => 0, ...]
+            foreach ($validIds as $lstrId => $_) {
+                $collectiveMap[(int) $lstrId] = (int) $lstrId;
+            }
+
+            // Also scan the codes table for code_fl values that have no matching Luster
+            // listing and add them to the map as null so they produce a warning later.
+            try {
+                $stmt = $source->query(
+                    "SELECT DISTINCT code_fl FROM `{$p}codes` WHERE code_fl > 0 ORDER BY code_fl ASC"
+                );
+                foreach ($stmt->fetchAll(PDO::FETCH_COLUMN) as $raw) {
+                    $csFlId = (int) $raw;
+                    if (!isset($validIds[$csFlId])) {
+                        $collectiveMap[$csFlId] = null;
+                        $unmatchedSubjects[]    = "CodeSort listing #{$csFlId}";
+                    }
+                }
+            } catch (\Throwable) {}
+
+            return [$collectiveMap, $unmatchedSubjects];
+        }
+
+        // codesort_bare / codesort_prefixed: title-match via collective table.
         try {
-            $stmt = $source->query("SELECT fl_id, fl_subject FROM `{$p}collective` ORDER BY fl_id ASC");
+            $stmt = $source->query(
+                "SELECT fl_id, fl_subject FROM `{$compP}collective` ORDER BY fl_id ASC"
+            );
             foreach ($stmt->fetchAll() as $row) {
                 $csId   = (int) $row['fl_id'];
                 $key    = strtolower(trim((string) $row['fl_subject']));

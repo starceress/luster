@@ -46,6 +46,11 @@ final class ImportResult
         return (int) array_sum(array_column($this->imageRows, 'copied'));
     }
 
+    public function totalImagesFailed(): int
+    {
+        return (int) array_sum(array_column($this->imageRows, 'skipped'));
+    }
+
     public function hasErrors(): bool
     {
         foreach ($this->rows as $row) {

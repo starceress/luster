@@ -38,25 +38,6 @@ $currentSource = $cat->source ?? 'custom';
       </div>
 
       <div class="listing-field-row listing-field-row--top">
-        <label class="listing-field-label" for="cat-parent">Parent Category</label>
-        <div>
-          <div class="select-wrap">
-            <select id="cat-parent" name="parent_id" >
-              <option value="">None</option>
-              <?php foreach ($all_cats ?? [] as $c): ?>
-                <?php if ($c->parent_id === null && $c->id !== ($cat->id ?? 0)): ?>
-                  <option value="<?= (int) $c->id ?>" <?= (int) ($cat->parent_id ?? 0) === (int) $c->id ? 'selected' : '' ?>>
-                    <?= View::e($c->name ?? '') ?>
-                  </option>
-                <?php endif; ?>
-              <?php endforeach; ?>
-            </select>
-          </div>
-          <p class="form-hint">Optional. Select a parent to nest this as a sub-category.</p>
-        </div>
-      </div>
-
-      <div class="listing-field-row listing-field-row--top">
         <label class="listing-field-label" for="add-network-toggle">Change Network?</label>
         <div>
           <div class="select-wrap">
@@ -92,11 +73,9 @@ $currentSource = $cat->source ?? 'custom';
   </div>
 </form>
 
-<?php if (!in_array($currentSource, ['tfl', 'tafl'], true)): ?>
-  <form method="POST" action="<?= $b ?>/admin/categories/<?= (int) ($cat->id ?? 0) ?>/delete"
-        data-del-modal data-del-entity="category"
-        data-del-name="<?= View::e($cat->name ?? '') ?>">
-    <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
-    <button type="submit" class="btn btn-danger">Delete Category</button>
-  </form>
-<?php endif; ?>
+<form method="POST" action="<?= $b ?>/admin/categories/<?= (int) ($cat->id ?? 0) ?>/delete"
+      data-del-modal data-del-entity="category"
+      data-del-name="<?= View::e($cat->name ?? '') ?>">
+  <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
+  <button type="submit" class="btn btn-danger">Delete Category</button>
+</form>

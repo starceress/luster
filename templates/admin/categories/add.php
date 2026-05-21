@@ -38,23 +38,6 @@ $fe = $field_errors ?? [];
       </div>
 
       <div class="listing-field-row listing-field-row--top">
-        <label class="listing-field-label" for="cat-parent">Parent Category</label>
-        <div>
-          <div class="select-wrap">
-            <select id="cat-parent" name="parent_id" >
-              <option value="">None</option>
-              <?php foreach ($all_cats ?? [] as $c): ?>
-                <?php if ($c->parent_id === null): ?>
-                  <option value="<?= (int) $c->id ?>"><?= View::e($c->name ?? '') ?></option>
-                <?php endif; ?>
-              <?php endforeach; ?>
-            </select>
-          </div>
-          <p class="form-hint">Optional. Select a parent to create a sub-category.</p>
-        </div>
-      </div>
-
-      <div class="listing-field-row listing-field-row--top">
         <label class="listing-field-label" for="add-network-toggle">Add to a Network?</label>
         <div>
           <div class="select-wrap">

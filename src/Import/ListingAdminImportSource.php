@@ -184,6 +184,12 @@ final class ListingAdminImportSource implements ImportSourceInterface
                            'warnings' => ['Updates Feed add-on is not installed — updates will be skipped.']];
             }
         }
+        if ($options->importWishlist) {
+            $rows[] = $this->previewWishlist($source, $source, $sp);
+        }
+        if ($options->importKim) {
+            $rows[] = $this->previewKim($source, $source, $sp);
+        }
 
         return new ImportPreview($rows, $schema, false);
     }
@@ -227,8 +233,10 @@ final class ListingAdminImportSource implements ImportSourceInterface
         // These are the paths configured by the site owner (can be anything).
         // Returns [] if the table is absent or values are blank — callers fall
         // back to $options->imagePath / $options->imageUrl directly.
+        // In dump mode $tp holds the temp-table prefix, so the options table lives at
+        // "{$tp}{$laP}options" — pass $sp (= $tp.$laP) so readImageSettings() finds it.
         $imageSettings = $migrator !== null
-            ? $this->readImageSettings($source, $laP)
+            ? $this->readImageSettings($source, $sp)
             : [];
 
         $imageMap = [];
@@ -241,8 +249,9 @@ final class ListingAdminImportSource implements ImportSourceInterface
             $rows[] = $this->runCategories($source, $target, $options, $sp);
         }
 
-        // Category name→id map for downstream use
-        $catNameToId = $this->buildCategoryNameMap($target);
+        // Category name→id and name→network maps for downstream use
+        $catNameToId      = $this->buildCategoryNameMap($target);
+        $catNameToNetwork = $this->buildCategoryNetworkMap($target);
 
         // ── Step 2: Listings + member tables ─────────────────────────────
         $listingIdMap = []; // LA main.id → new owned listingid
@@ -277,7 +286,7 @@ final class ListingAdminImportSource implements ImportSourceInterface
         // ── Step 5: Joined listings ───────────────────────────────────────
         if ($options->importJoined) {
             ['row' => $joinRow, 'imageMap' => $joinMap] =
-                $this->runJoined($source, $target, $options, $catNameToId, $srcCatIdToName, $migrator, $imageSettings, $sp);
+                $this->runJoined($source, $target, $options, $catNameToId, $catNameToNetwork, $srcCatIdToName, $migrator, $imageSettings, $sp);
             $rows[]   = $joinRow;
             $imageMap = array_merge($imageMap, $joinMap);
             if ($joinRow['image_copied'] > 0 || $joinRow['image_skipped'] > 0) {
@@ -289,6 +298,16 @@ final class ListingAdminImportSource implements ImportSourceInterface
         // ── Step 6: Updates ───────────────────────────────────────────────
         if ($options->importUpdates) {
             $rows[] = $this->runUpdates($source, $target, $options, $listingIdMap, $sp);
+        }
+
+        // ── Step 7: Wishlist (owner's personal wishlist) ─────────────────
+        if ($options->importWishlist) {
+            $rows[] = $this->runWishlist($source, $target, $options, $migrator, $imageSettings, $sp);
+        }
+
+        // ── Step 8: KIM List (fan adoption interest) ──────────────────────
+        if ($options->importKim) {
+            $rows[] = $this->runKim($source, $target, $options, $listingIdMap, $sp);
         }
 
         // Close and clean up pre-uploaded ZIP if one was opened.
@@ -367,6 +386,9 @@ final class ListingAdminImportSource implements ImportSourceInterface
             'INSERT INTO lstr_categories (name, parent_id, source) VALUES (:name, :parent_id, :source)'
         );
 
+        $tflLookup  = array_flip(array_map('strtolower', \Luster\Support\CategorySeedCatalog::tfl()));
+        $taflLookup = array_flip(array_map('strtolower', \Luster\Support\CategorySeedCatalog::tafl()));
+
         foreach ($srcRows as $row) {
             $name = trim((string) ($row['catname'] ?? ''));
             if ($name === '') {
@@ -389,7 +411,9 @@ final class ListingAdminImportSource implements ImportSourceInterface
             }
 
             try {
-                $insertStmt->execute(['name' => $name, 'parent_id' => $parentId, 'source' => 'custom']);
+                $catLower = strtolower($name);
+                $source   = isset($tflLookup[$catLower]) ? 'tfl' : (isset($taflLookup[$catLower]) ? 'tafl' : 'custom');
+                $insertStmt->execute(['name' => $name, 'parent_id' => $parentId, 'source' => $source]);
                 $newId = (int) $target->lastInsertId();
                 $srcIdToNewId[(int) $row['catid']] = $newId;
                 $existingNames[$name]              = $newId;
@@ -510,8 +534,11 @@ final class ListingAdminImportSource implements ImportSourceInterface
             }
             $catId = ($catName !== '' && isset($catNameToId[$catName])) ? $catNameToId[$catName] : null;
 
-            // Status: LA has no exact equivalent; assume active
-            $status = 2; // active in owned schema
+            // Map LA's trouble/upcoming flags — same convention as Enthusiast:
+            //   trouble=1 → status 0 (trouble), upcoming=1 → status 1 (upcoming), else 2 (active).
+            $trouble  = (int) ($row['trouble']  ?? 0);
+            $upcoming = (int) ($row['upcoming'] ?? 0);
+            $status   = $trouble ? 0 : ($upcoming ? 1 : 2);
 
             // Opened date
             $opened = !empty($row['date']) ? $row['date'] : null;
@@ -548,8 +575,21 @@ final class ListingAdminImportSource implements ImportSourceInterface
                 $memberTable = $isOwned ? $dbtable : $dbtable . '_members';
                 $this->createMemberTable($target, $memberTable, $faveFields);
 
+                // Derive last_updated from the most recent member join date for this listing.
+                $lastUpdated = null;
+                try {
+                    $luStmt = $source->prepare(
+                        "SELECT MAX(mAdd) FROM `{$tp}members` WHERE fNiq = :laId"
+                    );
+                    $luStmt->execute(['laId' => $laId]);
+                    $maxDate = (string) $luStmt->fetchColumn();
+                    if (strlen($maxDate) >= 8 && !str_starts_with($maxDate, '0000')) {
+                        $lastUpdated = substr($maxDate, 0, 10);
+                    }
+                } catch (\Throwable) {}
+
                 // Create lstr_fanlisting_settings row
-                $this->ensureListingSettings($target, $newListingId, $row);
+                $this->ensureListingSettings($target, $newListingId, $row, $lastUpdated);
 
                 // ZIP image map entry
                 if ($imgFilename !== '' && $newImage === null && $options->imageMode === 'zip') {
@@ -930,8 +970,8 @@ final class ListingAdminImportSource implements ImportSourceInterface
      */
     private function runJoined(
         PDO $source, PDO $target, ImportOptions $options,
-        array $catNameToId, array $srcCatIdToName, ?ImageMigrator $migrator,
-        array $imageSettings, string $tp = ''
+        array $catNameToId, array $catNameToNetwork, array $srcCatIdToName,
+        ?ImageMigrator $migrator, array $imageSettings, string $tp = ''
     ): array {
         $imported     = 0;
         $skipped      = 0;
@@ -1027,9 +1067,10 @@ final class ListingAdminImportSource implements ImportSourceInterface
             }
             $firstCatName   = $catNames[0] ?? '';
             $newCatId       = ($firstCatName !== '' && isset($catNameToId[$firstCatName])) ? $catNameToId[$firstCatName] : null;
-            $catJsonEntries = array_map(static fn(string $n) => ['network' => 'Imported', 'name' => $n], $catNames);
+            $catJsonEntries = array_map(fn(string $n) => ['network' => $catNameToNetwork[strtolower($n)] ?? 'Custom', 'name' => $n], $catNames);
             $categoriesJson = !empty($catJsonEntries) ? json_encode($catJsonEntries) : null;
-            $active         = ((int) ($row['jStatus'] ?? 1)) === 1 ? 1 : 0;
+            // LA: jStatus=0 means current/active; jStatus=1 means pending.
+            $active         = ((int) ($row['jStatus'] ?? 0)) === 0 ? 1 : 0;
 
             // Image migration for new records
             $newImage = null;
@@ -1146,6 +1187,302 @@ final class ListingAdminImportSource implements ImportSourceInterface
     }
 
     // -----------------------------------------------------------------------
+    // Run helpers — KIM List (wishlist)
+    // -----------------------------------------------------------------------
+
+    // -----------------------------------------------------------------------
+    // Run helpers — KIM List (fan adoption interest, LA kim table)
+    // -----------------------------------------------------------------------
+
+    /** @return array{type:string,found:int,import:int,skip:int,warnings:string[]} */
+    private function previewKim(PDO $source, PDO $target, string $tp): array
+    {
+        if (!$this->kimAddonInstalled($target)) {
+            return ['type' => 'KIM List', 'found' => 0, 'import' => 0, 'skip' => 0,
+                    'warnings' => ['Keep In Mind add-on is not installed — KIM entries will be skipped.']];
+        }
+        return $this->previewTable($source, $tp . 'kim', 'KIM List', [
+            'Fan adoption-interest entries import as pending KIM members.',
+        ]);
+    }
+
+    /** @return array{type:string,imported:int,skipped:int,warnings:string[],errors:string[],skipped_items:array} */
+    private function runKim(
+        PDO $source, PDO $target, ImportOptions $options,
+        array $listingIdMap, string $tp
+    ): array {
+        if (!$this->kimAddonInstalled($target)) {
+            return ['type' => 'KIM List', 'imported' => 0, 'skipped' => 0,
+                    'warnings' => ['Keep In Mind add-on is not installed — KIM entries were skipped.'],
+                    'errors' => [], 'skipped_items' => []];
+        }
+
+        try {
+            $stmt    = $source->query("SELECT * FROM `{$tp}kim` ORDER BY mID ASC");
+            $srcRows = $stmt->fetchAll();
+        } catch (\Throwable $e) {
+            return ['type' => 'KIM List', 'imported' => 0, 'skipped' => 0,
+                    'warnings' => [], 'errors' => ['Could not read kim table: ' . $e->getMessage()],
+                    'skipped_items' => []];
+        }
+
+        // Conflict detection: composite key = "{fanlisting_id}|{email}"
+        $existingPairs = [];
+        try {
+            $existStmt = $target->query('SELECT fanlisting_id, email FROM lstr_kim_members');
+            foreach ($existStmt->fetchAll() as $r) {
+                $existingPairs[(int) $r['fanlisting_id'] . '|' . strtolower((string) $r['email'])] = true;
+            }
+        } catch (\Throwable) {}
+
+        $insertStmt = $target->prepare(
+            'INSERT INTO lstr_kim_members
+               (fanlisting_id, name, email, url, password, pending, added_at)
+             VALUES (:fanlisting_id, :name, :email, :url, :password, :pending, :added_at)'
+        );
+        $updateStmt = $target->prepare(
+            'UPDATE lstr_kim_members SET name = :name, url = :url
+             WHERE fanlisting_id = :fid AND email = :email'
+        );
+
+        $imported     = 0;
+        $skipped      = 0;
+        $errors       = [];
+        $skippedItems = [];
+        $unlinked     = 0;
+
+        foreach ($srcRows as $row) {
+            $email = strtolower(trim((string) ($row['mEmail'] ?? '')));
+            if ($email === '') {
+                continue;
+            }
+
+            $fNiq  = (string) ($row['fNiq'] ?? '0');
+            $flIds = $this->parseFNiq($fNiq, $listingIdMap);
+
+            foreach ($flIds as $flId) {
+                if ($flId === null) {
+                    $unlinked++;
+                    continue;
+                }
+
+                $pairKey = $flId . '|' . $email;
+
+                if (isset($existingPairs[$pairKey])) {
+                    if ($options->conflictStrategy === 'skip') {
+                        $skipped++;
+                        if (count($skippedItems) < self::SKIP_CAP) {
+                            $skippedItems[] = ['label' => $email, 'reason' => 'Already exists'];
+                        }
+                        continue;
+                    }
+                    try {
+                        $updateStmt->execute([
+                            'name'  => trim((string) ($row['mName'] ?? '')),
+                            'url'   => trim((string) ($row['mURL']  ?? '')),
+                            'fid'   => $flId,
+                            'email' => $email,
+                        ]);
+                        $skipped++;
+                    } catch (\Throwable $e) {
+                        $errors[] = "KIM {$email}: " . $e->getMessage();
+                    }
+                    continue;
+                }
+
+                try {
+                    $insertStmt->execute([
+                        'fanlisting_id' => $flId,
+                        'name'          => trim((string) ($row['mName']     ?? '')),
+                        'email'         => $email,
+                        'url'           => trim((string) ($row['mURL']      ?? '')),
+                        'password'      => (string) ($row['mPassword']      ?? ''),
+                        'pending'       => (int)    ($row['mPending']       ?? 1),
+                        'added_at'      => !empty($row['mAdd']) ? $row['mAdd'] : date('Y-m-d'),
+                    ]);
+                    $existingPairs[$pairKey] = true;
+                    $imported++;
+                } catch (\Throwable $e) {
+                    $errors[] = "KIM {$email}: " . $e->getMessage();
+                }
+            }
+        }
+
+        $warnings = ['Imported entries preserve their pending/approved status from LA.',
+                     'MD5-hashed passwords are kept as-is — Luster upgrades them to Argon2id on next login.'];
+        if ($unlinked > 0) {
+            $warnings[] = "{$unlinked} KIM entry/entries had no linked listing in this import and were skipped.";
+        }
+
+        return ['type' => 'KIM List', 'imported' => $imported, 'skipped' => $skipped,
+                'warnings' => $warnings, 'errors' => $errors, 'skipped_items' => $skippedItems];
+    }
+
+    private function kimAddonInstalled(PDO $target): bool
+    {
+        $driver = $target->getAttribute(PDO::ATTR_DRIVER_NAME);
+        try {
+            if ($driver === 'sqlite') {
+                $stmt = $target->prepare(
+                    "SELECT name FROM sqlite_master WHERE type='table' AND name='lstr_kim_members'"
+                );
+                $stmt->execute();
+                return $stmt->fetchColumn() !== false;
+            }
+            $stmt = $target->query("SHOW TABLES LIKE 'lstr_kim_members'");
+            return $stmt && $stmt->fetchColumn() !== false;
+        } catch (\Throwable) {
+            return false;
+        }
+    }
+
+    // -----------------------------------------------------------------------
+    // Run helpers — Wishlist (owner's personal wishlist, LA wishlist table)
+    // -----------------------------------------------------------------------
+
+    /** @return array{type:string,found:int,import:int,skip:int,warnings:string[]} */
+    private function previewWishlist(PDO $source, PDO $target, string $tp): array
+    {
+        if (!$this->wishlistAddonInstalled($target)) {
+            return ['type' => 'Wishlist', 'found' => 0, 'import' => 0, 'skip' => 0,
+                    'warnings' => ['Wishlist add-on is not installed — wishlist entries will be skipped.']];
+        }
+        return $this->previewTable($source, $tp . 'wishlist', 'Wishlist', [
+            'Owner\'s fanlisting wishlist entries. wType values are mapped to Luster\'s wanted/top/granted/upcoming types.',
+        ]);
+    }
+
+    /** @return array{type:string,imported:int,skipped:int,warnings:string[],errors:string[],skipped_items:array} */
+    private function runWishlist(
+        PDO $source, PDO $target, ImportOptions $options,
+        ?ImageMigrator $migrator, array $imageSettings, string $tp
+    ): array {
+        if (!$this->wishlistAddonInstalled($target)) {
+            return ['type' => 'Wishlist', 'imported' => 0, 'skipped' => 0,
+                    'warnings' => ['Wishlist add-on is not installed — wishlist entries were skipped.'],
+                    'errors' => [], 'skipped_items' => []];
+        }
+
+        try {
+            $stmt    = $source->query("SELECT * FROM `{$tp}wishlist` ORDER BY wID ASC");
+            $srcRows = $stmt->fetchAll();
+        } catch (\Throwable $e) {
+            return ['type' => 'Wishlist', 'imported' => 0, 'skipped' => 0,
+                    'warnings' => [], 'errors' => ['Could not read wishlist table: ' . $e->getMessage()],
+                    'skipped_items' => []];
+        }
+
+        // Conflict detection by URL
+        $existingUrls = [];
+        try {
+            $existStmt = $target->query('SELECT url FROM lstr_wishlist');
+            $existingUrls = array_flip($existStmt->fetchAll(\PDO::FETCH_COLUMN));
+        } catch (\Throwable) {}
+
+        $insertStmt = $target->prepare(
+            'INSERT INTO lstr_wishlist (subject, url, image, category, type, description, sort_order, active)
+             VALUES (:subject, :url, :image, :category, :type, :description, 0, 1)'
+        );
+        $updateStmt = $target->prepare(
+            'UPDATE lstr_wishlist SET subject = :subject, category = :category,
+             type = :type, description = :description WHERE url = :url'
+        );
+
+        // LA wType → Luster type mapping
+        $typeMap = ['custom' => 'wanted', 'granted' => 'granted', 'list' => 'wanted', 'top' => 'top'];
+
+        $imported     = 0;
+        $skipped      = 0;
+        $errors       = [];
+        $skippedItems = [];
+        $imgCopied    = 0;
+        $imgSkipped   = 0;
+        $imgErrors    = [];
+        $imageMap     = []; // unused for wishlist but required by migrateImage() signature
+
+        foreach ($srcRows as $row) {
+            $url     = trim((string) ($row['wURL']     ?? ''));
+            $subject = trim((string) ($row['wSubject'] ?? ''));
+            if ($url === '') {
+                continue;
+            }
+
+            $type        = $typeMap[trim((string) ($row['wType'] ?? ''))] ?? 'wanted';
+            $category    = trim((string) ($row['wCategory'] ?? ''));
+            $description = trim((string) ($row['wDesc']     ?? '')) ?: null;
+            $imgFilename = trim((string) ($row['wImage']    ?? ''));
+
+            // Migrate image if available
+            $newImage = null;
+            if ($imgFilename !== '' && $migrator !== null) {
+                $newImage = $this->migrateImage(
+                    $migrator, $imgFilename, 'wishlist', 'wl_',
+                    $options, $imageSettings, $imageMap, $imgCopied, $imgSkipped, $imgErrors
+                );
+            }
+
+            if (isset($existingUrls[$url])) {
+                if ($options->conflictStrategy === 'skip') {
+                    $skipped++;
+                    if (count($skippedItems) < self::SKIP_CAP) {
+                        $skippedItems[] = ['label' => ($subject ?: $url), 'reason' => 'Already exists'];
+                    }
+                    continue;
+                }
+                try {
+                    $updateStmt->execute([
+                        'subject'     => $subject,
+                        'category'    => $category,
+                        'type'        => $type,
+                        'description' => $description,
+                        'url'         => $url,
+                    ]);
+                    $skipped++;
+                } catch (\Throwable $e) {
+                    $errors[] = "Wishlist '{$url}': " . $e->getMessage();
+                }
+                continue;
+            }
+
+            try {
+                $insertStmt->execute([
+                    'subject'     => $subject,
+                    'url'         => $url,
+                    'image'       => $newImage,
+                    'category'    => $category,
+                    'type'        => $type,
+                    'description' => $description,
+                ]);
+                $existingUrls[$url] = true;
+                $imported++;
+            } catch (\Throwable $e) {
+                $errors[] = "Wishlist '{$url}': " . $e->getMessage();
+            }
+        }
+
+        return ['type' => 'Wishlist', 'imported' => $imported, 'skipped' => $skipped,
+                'warnings' => [], 'errors' => $errors, 'skipped_items' => $skippedItems];
+    }
+
+    private function wishlistAddonInstalled(PDO $target): bool
+    {
+        $driver = $target->getAttribute(PDO::ATTR_DRIVER_NAME);
+        try {
+            if ($driver === 'sqlite') {
+                $stmt = $target->prepare(
+                    "SELECT name FROM sqlite_master WHERE type='table' AND name='lstr_wishlist'"
+                );
+                $stmt->execute();
+                return $stmt->fetchColumn() !== false;
+            }
+            $stmt = $target->query("SHOW TABLES LIKE 'lstr_wishlist'");
+            return $stmt && $stmt->fetchColumn() !== false;
+        } catch (\Throwable) {
+            return false;
+        }
+    }
+
+    // -----------------------------------------------------------------------
     // DDL helpers
     // -----------------------------------------------------------------------
 
@@ -1216,8 +1553,8 @@ final class ListingAdminImportSource implements ImportSourceInterface
                 "INSERT INTO `{$regTable}`
                  (title, subject, url, dbtable, catid, category_id, opened, status, imagefile,
                   email, dbserver, dbuser, dbpassword, dbdatabase, additional)
-                 VALUES (:title, :subject, :url, :dbtable, '', :catid, :opened, :status, :image,
-                         '', '', '', '', '', '')"
+                 VALUES (:title, :subject, :url, :dbtable, '', :catid, :opened, :status,
+                         COALESCE(:image, ''), '', '', '', '', '', '')"
             );
             $stmt->execute([
                 'title'   => $title,
@@ -1230,23 +1567,27 @@ final class ListingAdminImportSource implements ImportSourceInterface
                 'image'   => $image,
             ]);
         } else {
-            // enth_fanlistings schema
+            // enth_fanlistings schema: derive trouble/upcoming from the unified $status value.
+            $enthTrouble  = $status === 0 ? 1 : 0;
+            $enthUpcoming = $status === 1 ? 1 : 0;
             $stmt = $target->prepare(
                 "INSERT INTO `{$regTable}`
                  (name, subject, url, dbprefix, category, category_id, opened, upcoming, trouble,
                   imagefile, email, dbserver, dbuser, dbpassword, dbdatabase, additional_info)
-                 VALUES (:name, :subject, :url, :dbprefix, :catid, :catid2, :opened, 0, 0,
+                 VALUES (:name, :subject, :url, :dbprefix, :catid, :catid2, :opened, :upcoming, :trouble,
                          :image, '', '', '', '', '', '')"
             );
             $stmt->execute([
-                'name'    => $title,
-                'subject' => $subject,
-                'url'     => $url,
+                'name'     => $title,
+                'subject'  => $subject,
+                'url'      => $url,
                 'dbprefix' => $dbtable . '_',
-                'catid'   => $catId ?? 0,
-                'catid2'  => $catId,
-                'opened'  => $opened,
-                'image'   => $image,
+                'catid'    => $catId ?? 0,
+                'catid2'   => $catId,
+                'opened'   => $opened,
+                'upcoming' => $enthUpcoming,
+                'trouble'  => $enthTrouble,
+                'image'    => $image,
             ]);
         }
 
@@ -1280,30 +1621,38 @@ final class ListingAdminImportSource implements ImportSourceInterface
                 'id'      => $listingId,
             ]);
         } else {
+            $enthTrouble  = $status === 0 ? 1 : 0;
+            $enthUpcoming = $status === 1 ? 1 : 0;
             $stmt = $target->prepare(
                 "UPDATE `{$regTable}`
                  SET name = :name, subject = :subject, dbprefix = :dbprefix,
                      category = COALESCE(:catid, category), opened = COALESCE(:opened, opened),
+                     upcoming = :upcoming, trouble = :trouble,
                      imagefile = COALESCE(:image, imagefile)
                  WHERE {$idCol} = :id"
             );
             $stmt->execute([
-                'name'    => $title,
-                'subject' => $subject,
+                'name'     => $title,
+                'subject'  => $subject,
                 'dbprefix' => $dbtable . '_',
-                'catid'   => $catId,
-                'opened'  => $opened,
-                'image'   => $image,
-                'id'      => $listingId,
+                'catid'    => $catId,
+                'opened'   => $opened,
+                'upcoming' => $enthUpcoming,
+                'trouble'  => $enthTrouble,
+                'image'    => $image,
+                'id'       => $listingId,
             ]);
         }
     }
 
     /**
      * Creates or skips the lstr_fanlisting_settings row for a newly imported listing.
+     *
+     * @param string|null $lastUpdated  Most recent member join date (YYYY-MM-DD); null = use today.
      */
-    private function ensureListingSettings(PDO $target, int $listingId, array $mainRow): void
-    {
+    private function ensureListingSettings(
+        PDO $target, int $listingId, array $mainRow, ?string $lastUpdated = null
+    ): void {
         $chk = $target->prepare(
             'SELECT fanlisting_id FROM lstr_fanlisting_settings WHERE fanlisting_id = :fid'
         );
@@ -1317,18 +1666,26 @@ final class ListingAdminImportSource implements ImportSourceInterface
         $affsTpl     = '';
         $statsTpl    = '';
 
+        $hasLastUpdated = $this->tableHasColumn($target, 'lstr_fanlisting_settings', 'last_updated');
+        $luCol = $hasLastUpdated ? ', last_updated' : '';
+        $luVal = $hasLastUpdated ? ', :last_updated' : '';
+
         $ins = $target->prepare(
-            'INSERT INTO lstr_fanlisting_settings
-               (fanlisting_id, members_per_page, members_template, affiliates_template, stats_template)
-             VALUES (:fid, :perpage, :mtpl, :atpl, :stpl)'
+            "INSERT INTO lstr_fanlisting_settings
+               (fanlisting_id, members_per_page, members_template, affiliates_template, stats_template{$luCol})
+             VALUES (:fid, :perpage, :mtpl, :atpl, :stpl{$luVal})"
         );
-        $ins->execute([
+        $params = [
             'fid'    => $listingId,
             'perpage' => $perPage,
             'mtpl'   => $membersTpl ?: null,
             'atpl'   => $affsTpl    ?: null,
             'stpl'   => $statsTpl   ?: null,
-        ]);
+        ];
+        if ($hasLastUpdated) {
+            $params['last_updated'] = $lastUpdated ?? date('Y-m-d');
+        }
+        $ins->execute($params);
     }
 
     // -----------------------------------------------------------------------
@@ -1432,6 +1789,51 @@ final class ListingAdminImportSource implements ImportSourceInterface
             $map[(string) $row['name']] = (int) $row['id'];
         }
         return $map;
+    }
+
+    /**
+     * Builds a lowercase(name) → network-label map from the target lstr_categories.
+     *
+     * @return array<string, string>  lowercase name → 'TFL' | 'TAFL' | 'Custom'
+     */
+    private function buildCategoryNetworkMap(PDO $target): array
+    {
+        try {
+            $stmt = $target->prepare('SELECT name, source FROM lstr_categories');
+            $stmt->execute();
+            $map = [];
+            foreach ($stmt->fetchAll() as $row) {
+                $map[strtolower((string) $row['name'])] = match ((string) $row['source']) {
+                    'tfl'  => 'TFL',
+                    'tafl' => 'TAFL',
+                    default => 'Custom',
+                };
+            }
+            return $map;
+        } catch (\PDOException) {
+            return [];
+        }
+    }
+
+    /** Returns true when $column exists on $table in $pdo (MySQL + SQLite aware). */
+    private function tableHasColumn(PDO $pdo, string $table, string $column): bool
+    {
+        try {
+            if ($pdo->getAttribute(PDO::ATTR_DRIVER_NAME) === 'sqlite') {
+                $stmt = $pdo->query("PRAGMA table_info(`{$table}`)");
+                foreach ($stmt ? $stmt->fetchAll() : [] as $row) {
+                    if (($row['name'] ?? '') === $column) {
+                        return true;
+                    }
+                }
+                return false;
+            }
+            $stmt = $pdo->prepare("SHOW COLUMNS FROM `{$table}` LIKE :column");
+            $stmt->execute(['column' => $column]);
+            return $stmt->fetchColumn() !== false;
+        } catch (\Throwable) {
+            return false;
+        }
     }
 
     /**
@@ -1545,58 +1947,43 @@ final class ListingAdminImportSource implements ImportSourceInterface
         ImportOptions $options, array $imageSettings, array &$imageMap, int &$copied,
         int &$skipped, array &$errors
     ): ?string {
-        if ($options->imageMode === 'path') {
-            $settingsKey   = match ($targetSubDir) {
+        if ($options->imageMode === 'auto') {
+            $dirKey = match ($targetSubDir) {
                 'affiliates' => 'affiliates_dir',
                 'joined'     => 'joined_dir',
                 default      => 'listings_dir',
             };
-            $configuredDir = $imageSettings[$settingsKey] ?? '';
-
-            // Priority 1: path from la_options table (complete, authoritative)
-            // Priority 2: user-provided path used directly (no subdir — LA has no fixed structure)
-            if ($configuredDir !== '') {
-                $srcPath = $configuredDir . '/' . $imageFilename;
-            } elseif ($options->imagePath !== '') {
-                $srcPath = rtrim($options->imagePath, '/\\') . '/' . $imageFilename;
-            } else {
-                $skipped++;
-                return null;
-            }
-
-            $newFilename = $migrator->copyFromPath($srcPath, $targetSubDir, $prefix);
-            if ($newFilename !== null) {
-                $copied++;
-            } else {
-                $skipped++;
-                $errors[] = "Image not found: {$imageFilename}";
-            }
-            return $newFilename;
-        }
-
-        if ($options->imageMode === 'url') {
-            $settingsKey   = match ($targetSubDir) {
+            $urlKey = match ($targetSubDir) {
                 'affiliates' => 'affiliates_url',
                 'joined'     => 'joined_url',
                 default      => 'listings_url',
             };
-            $configuredUrl = $imageSettings[$settingsKey] ?? '';
+            $configuredDir = $imageSettings[$dirKey] ?? '';
+            $configuredUrl = $imageSettings[$urlKey] ?? '';
 
-            if ($configuredUrl !== '') {
-                $srcUrl = $configuredUrl . '/' . rawurlencode($imageFilename);
-            } elseif ($options->imageUrl !== '') {
-                $srcUrl = rtrim($options->imageUrl, '/') . '/' . rawurlencode($imageFilename);
-            } else {
-                $skipped++;
-                return null;
+            $newFilename = null;
+
+            // Try server path first (LA has no fixed subdir — path used directly)
+            if ($configuredDir !== '') {
+                $newFilename = $migrator->copyFromPath($configuredDir . '/' . $imageFilename, $targetSubDir, $prefix);
+            } elseif ($options->imagePath !== '') {
+                $newFilename = $migrator->copyFromPath(rtrim($options->imagePath, '/\\') . '/' . $imageFilename, $targetSubDir, $prefix);
             }
 
-            $newFilename = $migrator->fetchFromUrl($srcUrl, $targetSubDir, $prefix);
+            // Fall back to URL
+            if ($newFilename === null) {
+                if ($configuredUrl !== '') {
+                    $newFilename = $migrator->fetchFromUrl($configuredUrl . '/' . rawurlencode($imageFilename), $targetSubDir, $prefix);
+                } elseif ($options->imageUrl !== '') {
+                    $newFilename = $migrator->fetchFromUrl(rtrim($options->imageUrl, '/') . '/' . rawurlencode($imageFilename), $targetSubDir, $prefix);
+                }
+            }
+
             if ($newFilename !== null) {
                 $copied++;
             } else {
                 $skipped++;
-                $errors[] = "Could not fetch: {$imageFilename}";
+                $errors[] = "Image not copied: {$imageFilename}";
             }
             return $newFilename;
         }

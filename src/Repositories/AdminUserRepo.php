@@ -113,16 +113,17 @@ final class AdminUserRepo
      *
      * @throws \PDOException on duplicate username or email
      */
-    public function insert(string $username, string $email, string $passwordHash): int
+    public function insert(string $username, string $email, string $passwordHash, ?string $displayName = null): int
     {
         $stmt = $this->db->prepare(
-            'INSERT INTO lstr_admin_users (username, email, password)
-             VALUES (:username, :email, :password)'
+            'INSERT INTO lstr_admin_users (username, email, display_name, password)
+             VALUES (:username, :email, :display_name, :password)'
         );
         $stmt->execute([
-            'username' => $username,
-            'email'    => $email,
-            'password' => $passwordHash,
+            'username'   => $username,
+            'email'      => $email,
+            'display_name' => $displayName !== '' ? $displayName : null,
+            'password'   => $passwordHash,
         ]);
 
         return (int) $this->db->lastInsertId();
@@ -142,13 +143,18 @@ final class AdminUserRepo
     /**
      * Updates the username and email for an admin user.
      */
-    public function updateProfile(int $id, string $username, string $email): bool
+    public function updateProfile(int $id, string $username, string $email, ?string $displayName = null): bool
     {
         $stmt = $this->db->prepare(
-            'UPDATE lstr_admin_users SET username = :username, email = :email WHERE id = :id'
+            'UPDATE lstr_admin_users SET username = :username, email = :email, display_name = :display_name WHERE id = :id'
         );
 
-        return $stmt->execute(['username' => $username, 'email' => $email, 'id' => $id]);
+        return $stmt->execute([
+            'username'   => $username,
+            'email'      => $email,
+            'display_name' => $displayName !== '' ? $displayName : null,
+            'id'         => $id,
+        ]);
     }
 
     /**

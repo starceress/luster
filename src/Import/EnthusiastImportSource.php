@@ -141,14 +141,14 @@ final class EnthusiastImportSource implements ImportSourceInterface
         if ($options->importCategories) {
             $rows[] = $this->previewCategories($source, $schema, $options);
         }
+        if ($options->importOwnedListings) {
+            $rows[] = $this->previewOwnedListings($source, $schema, $options);
+        }
         if ($options->importAffiliates) {
             $rows[] = $this->previewAffiliates($source, $schema, $options);
         }
         if ($options->importJoined) {
             $rows[] = $this->previewJoined($source, $schema, $options);
-        }
-        if ($options->importOwnedListings) {
-            $rows[] = $this->previewOwnedListings($source, $schema, $options);
         }
         if ($options->importMembers) {
             $rows[] = $this->previewMembers($source, $schema, $options);
@@ -158,6 +158,9 @@ final class EnthusiastImportSource implements ImportSourceInterface
         }
         if ($options->importTemplates) {
             $rows[] = $this->previewTemplates($source, $schema, $options);
+        }
+        if ($options->importSavedTemplates) {
+            $rows[] = $this->previewSavedTemplates($source, $tp);
         }
 
         return new ImportPreview($rows, $schema, false);
@@ -180,7 +183,9 @@ final class EnthusiastImportSource implements ImportSourceInterface
 
         // Determine if source and target are the same physical database.
         // We compare DSN strings extracted from PDO attributes.
-        $sameDb = $this->isSameDatabase($source, $target);
+        // Exception: SQL dump mode uses prefixed temp tables in Luster's own database,
+        // so even though PDOs are identical, the data still needs to be copied.
+        $sameDb = $tp === '' && $this->isSameDatabase($source, $target);
 
         // Build image migrator if needed
         $migrator = $options->imageMode !== ''
@@ -217,8 +222,21 @@ final class EnthusiastImportSource implements ImportSourceInterface
             $rows[] = $catRow;
         }
 
-        // Build category name→new-id map for joined listings
-        $catNameToId = $this->buildCategoryNameMap($target);
+        // Owned listings run before affiliates and joined so their inserted IDs are
+        // available when per-listing affiliate/joined rows need to resolve fanlisting_id.
+        // $listingIdMap maps source listingid → target listingid for use by settings and
+        // templates phases, which reference listing rows by FK.
+        $listingIdMap = [];
+        if ($options->importOwnedListings) {
+            ['row' => $ownedRow, 'listingIdMap' => $listingIdMap] = $this->runOwnedListings(
+                $source, $target, $schema, $options, $sameDb, $catIdMap
+            );
+            $rows[] = $ownedRow;
+        }
+
+        // Build category name→new-id map for joined listings (after listings are settled).
+        $catNameToId      = $this->buildCategoryNameMap($target);
+        $catNameToNetwork = $this->buildCategoryNetworkMap($target);
 
         if ($options->importAffiliates) {
             ['row' => $affRow, 'imageMap' => $affMap] = $this->runAffiliates(
@@ -238,7 +256,7 @@ final class EnthusiastImportSource implements ImportSourceInterface
 
         if ($options->importJoined) {
             ['row' => $joinRow, 'imageMap' => $joinMap] = $this->runJoined(
-                $source, $target, $schema, $options, $catNameToId, $migrator, $imageSettings
+                $source, $target, $schema, $options, $catNameToId, $catNameToNetwork, $migrator, $imageSettings
             );
             $rows[]   = $joinRow;
             $imageMap = array_merge($imageMap, $joinMap);
@@ -252,17 +270,13 @@ final class EnthusiastImportSource implements ImportSourceInterface
             }
         }
 
-        if ($options->importOwnedListings) {
-            $rows[] = $this->runOwnedListings($source, $target, $schema, $options, $sameDb, $catIdMap);
-        }
-
         if ($options->importMembers) {
             $rows[] = $this->runMembers($source, $target, $schema, $options, $sameDb);
         }
 
         if ($options->importSettings) {
             ['row' => $settRow, 'imageMap' => $settMap] = $this->runSettings(
-                $source, $target, $schema, $options, $migrator, $imageSettings
+                $source, $target, $schema, $options, $migrator, $imageSettings, $listingIdMap
             );
             $rows[]   = $settRow;
             $imageMap = array_merge($imageMap, $settMap);
@@ -277,7 +291,11 @@ final class EnthusiastImportSource implements ImportSourceInterface
         }
 
         if ($options->importTemplates) {
-            $rows[] = $this->runTemplates($source, $target, $schema, $options);
+            $rows[] = $this->runTemplates($source, $target, $schema, $options, $listingIdMap);
+        }
+
+        if ($options->importSavedTemplates) {
+            $rows[] = $this->runSavedTemplates($source, $target, $tp, $options);
         }
 
         // Close and clean up pre-uploaded ZIP if one was opened.
@@ -332,9 +350,6 @@ final class EnthusiastImportSource implements ImportSourceInterface
         } catch (\Throwable) {
             $found      = 0;
             $warnings[] = "Table `{$table}` not found — you may be connected to the wrong database, or the schema variant was mis-detected.";
-        }
-        if ($options->imageMode === 'url' && $options->imageUrl === '') {
-            $warnings[] = 'Image URL not set — affiliate images will be skipped.';
         }
         return ['type' => 'Affiliates', 'found' => $found, 'import' => $found, 'skip' => 0, 'warnings' => $warnings];
     }
@@ -415,7 +430,7 @@ final class EnthusiastImportSource implements ImportSourceInterface
         }
         $templateCount = $listingCount * 4; // 4 types per listing
         $warnings = [];
-        $warnings[] = 'Enthusiast\'s {password} token will be replaced with {reset_url} in all imported templates.';
+        $warnings[] = 'Enthusiast email tokens ($$fan_name$$, $$fanlisting_title$$, etc.) will be translated to Luster\'s token format ({fan_name}, {listing_name}, etc.).';
         return ['type' => 'Email templates', 'found' => $templateCount, 'import' => $templateCount, 'skip' => 0, 'warnings' => $warnings];
     }
 
@@ -451,6 +466,10 @@ final class EnthusiastImportSource implements ImportSourceInterface
             ];
         }
 
+        // Build TFL/TAFL lookup sets so imported categories get the correct source.
+        $tflLookup  = array_flip(array_map('strtolower', \Luster\Support\CategorySeedCatalog::tfl()));
+        $taflLookup = array_flip(array_map('strtolower', \Luster\Support\CategorySeedCatalog::tafl()));
+
         // Load existing category names in target to detect conflicts
         $existStmt = $target->prepare('SELECT name FROM lstr_categories');
         $existStmt->execute();
@@ -470,6 +489,10 @@ final class EnthusiastImportSource implements ImportSourceInterface
                 continue;
             }
 
+            $nameLower = strtolower($name);
+            $catSource = isset($tflLookup[$nameLower]) ? 'tfl'
+                       : (isset($taflLookup[$nameLower]) ? 'tafl' : 'custom');
+
             if (isset($existingNames[$name])) {
                 if ($options->conflictStrategy === 'skip') {
                     $skipped++;
@@ -488,7 +511,7 @@ final class EnthusiastImportSource implements ImportSourceInterface
                 // overwrite: update
                 try {
                     $updStmt = $target->prepare('UPDATE lstr_categories SET source = :source WHERE name = :name');
-                    $updStmt->execute(['source' => 'custom', 'name' => $name]);
+                    $updStmt->execute(['source' => $catSource, 'name' => $name]);
                     $idStmt = $target->prepare('SELECT id FROM lstr_categories WHERE name = :name LIMIT 1');
                     $idStmt->execute(['name' => $name]);
                     $srcIdToNewId[(int) $row['catid']] = (int) $idStmt->fetchColumn();
@@ -511,7 +534,7 @@ final class EnthusiastImportSource implements ImportSourceInterface
                 $insertStmt->execute([
                     'name'      => $name,
                     'parent_id' => $parentId,
-                    'source'    => 'custom',
+                    'source'    => $catSource,
                 ]);
                 $newId = (int) $target->lastInsertId();
                 $srcIdToNewId[(int) $row['catid']] = $newId;
@@ -714,7 +737,10 @@ final class EnthusiastImportSource implements ImportSourceInterface
 
         $warnings = [];
         if ($unlinked > 0) {
-            $warnings[] = "{$unlinked} affiliate(s) skipped — their source listing was not found in the target database. Import owned listings first to resolve this.";
+            $warnings[] = "{$unlinked} affiliate(s) were not imported because their source listing ID had no "
+                . 'corresponding entry in the target `owned` table. This happens when the source listing was '
+                . 'excluded from the import scope, already existed under a different URL, or was skipped due '
+                . 'to a conflict. Re-run with "Owned listings" enabled to import them.';
         }
 
         return [
@@ -735,7 +761,7 @@ final class EnthusiastImportSource implements ImportSourceInterface
      */
     private function runJoined(
         PDO $source, PDO $target, string $schema, ImportOptions $options,
-        array $catNameToId, ?ImageMigrator $migrator, array $imageSettings
+        array $catNameToId, array $catNameToNetwork, ?ImageMigrator $migrator, array $imageSettings
     ): array {
         $tp           = $options->tablePrefix;
         $srcTable     = $tp . ($schema === 'enthusiast_enth' ? 'enth_joined' : 'joined');
@@ -868,7 +894,7 @@ final class EnthusiastImportSource implements ImportSourceInterface
                     $ovCatName = $ovCatNames[0] ?? '';
                     $ovCatId   = ($ovCatName !== '' && isset($catNameToId[$ovCatName])) ? $catNameToId[$ovCatName] : null;
                     $ovCatJson = !empty($ovCatNames)
-                        ? json_encode(array_map(static fn(string $n) => ['network' => 'Imported', 'name' => $n], $ovCatNames))
+                        ? json_encode(array_map(fn(string $n) => ['network' => $catNameToNetwork[strtolower($n)] ?? 'Custom', 'name' => $n], $ovCatNames))
                         : null;
                     $updStmt = $target->prepare(
                         'UPDATE lstr_joined SET name = :name, category = :category, categories_json = :categories_json, category_id = :category_id WHERE url = :url'
@@ -897,7 +923,7 @@ final class EnthusiastImportSource implements ImportSourceInterface
             $catName        = $catNames[0] ?? '';
             $newCatId       = ($catName !== '' && isset($catNameToId[$catName])) ? $catNameToId[$catName] : null;
             $categoriesJson = !empty($catNames)
-                ? json_encode(array_map(static fn(string $n) => ['network' => 'Imported', 'name' => $n], $catNames))
+                ? json_encode(array_map(fn(string $n) => ['network' => $catNameToNetwork[strtolower($n)] ?? 'Custom', 'name' => $n], $catNames))
                 : null;
 
             // Invert pending flag: Enthusiast pending=0 means approved → active=1
@@ -956,11 +982,14 @@ final class EnthusiastImportSource implements ImportSourceInterface
     // -----------------------------------------------------------------------
 
     /**
+     * @param array<int,int> $listingIdMap  Source listingid → target listingid, from runOwnedListings().
+     *                                       Used to attach settings rows to the correct target FK when
+     *                                       source and target IDs diverged due to a collision.
      * @return array{row: array, imageMap: array}
      */
     private function runSettings(
         PDO $source, PDO $target, string $schema, ImportOptions $options,
-        ?ImageMigrator $migrator, array $imageSettings
+        ?ImageMigrator $migrator, array $imageSettings, array $listingIdMap = []
     ): array {
         $tp           = $options->tablePrefix;
         $srcTable     = $tp . ($schema === 'enthusiast_enth' ? 'enth_fanlistings' : 'owned');
@@ -995,9 +1024,9 @@ final class EnthusiastImportSource implements ImportSourceInterface
             ? 'fanlisting_id, members_per_page, queue_updates, members_template, affiliates_template, stats_template, image, last_updated'
             : 'fanlisting_id, members_per_page, queue_updates, members_template, affiliates_template, stats_template, image';
         $insertValues = $hasLastUpdated
-            ? ':fanlisting_id, :members_per_page, :queue_updates, :members_template, :affiliates_template, :stats_template, :image, CURRENT_DATE'
+            ? ':fanlisting_id, :members_per_page, :queue_updates, :members_template, :affiliates_template, :stats_template, :image, :last_updated'
             : ':fanlisting_id, :members_per_page, :queue_updates, :members_template, :affiliates_template, :stats_template, :image';
-        $lastUpdatedAssignment = $hasLastUpdated ? ', last_updated = CURRENT_DATE' : '';
+        $lastUpdatedAssignment = $hasLastUpdated ? ', last_updated = :last_updated' : '';
         $insertStmt = $target->prepare(
             "INSERT INTO lstr_fanlisting_settings ({$insertColumns}) VALUES ({$insertValues})"
         );
@@ -1018,12 +1047,33 @@ final class EnthusiastImportSource implements ImportSourceInterface
             if ($listingId === 0) {
                 continue;
             }
+            // Translate source ID → target ID in case runOwnedListings() had to reassign it.
+            $targetListingId = $listingIdMap[$listingId] ?? $listingId;
 
             $perPage      = max(1, min(200, (int) ($row['perpage'] ?? 25)));
             $holdUpdate   = (int) ($row['holdupdate'] ?? 0);
             $membersTpl   = trim((string) ($row['listtemplate'] ?? ''));
             $affiliatesTpl = trim((string) ($row['affiliatestemplate'] ?? ''));
             $statsTpl     = trim((string) ($row['statstemplate'] ?? ''));
+
+            // Derive last_updated from the most recent member join date in this listing's
+            // member table.  Falls back to today when the table is absent or empty.
+            $lastUpdated = date('Y-m-d');
+            if ($hasLastUpdated) {
+                $dbtable = $schema === 'enthusiast_enth'
+                    ? $tp . trim((string) ($row['dbprefix'] ?? '')) . 'members'
+                    : $tp . trim((string) ($row['dbtable'] ?? ''));
+                if ($dbtable !== $tp && preg_match('/^[a-zA-Z0-9_]+$/', ltrim($dbtable, $tp))) {
+                    try {
+                        $luStmt = $source->prepare("SELECT MAX(added) FROM `{$dbtable}`");
+                        $luStmt->execute();
+                        $maxDate = (string) $luStmt->fetchColumn();
+                        if (strlen($maxDate) >= 8 && !str_starts_with($maxDate, '0000')) {
+                            $lastUpdated = substr($maxDate, 0, 10);
+                        }
+                    } catch (\Throwable) {}
+                }
+            }
 
             // Image migration for listing image
             $imageFilename = trim((string) ($row['imagefile'] ?? ''));
@@ -1035,7 +1085,7 @@ final class EnthusiastImportSource implements ImportSourceInterface
                 );
             }
 
-            $checkStmt->execute(['fid' => $listingId]);
+            $checkStmt->execute(['fid' => $targetListingId]);
             $existsRec = $checkStmt->fetch(\PDO::FETCH_ASSOC);
             $exists    = $existsRec !== false;
 
@@ -1047,19 +1097,23 @@ final class EnthusiastImportSource implements ImportSourceInterface
             try {
                 if ($exists) {
                     if ($options->conflictStrategy === 'skip') {
-                        // Re-run: if the existing settings row has image = NULL, retry now.
-                        if ($newImage === null && $migrator !== null && $imageFilename !== ''
-                            && $options->imageMode !== 'zip' && $existsRec['image'] === null
-                        ) {
-                            $dummyMap = [];
-                            $retried  = $this->migrateImage(
-                                $migrator, $imageFilename, 'listings', 'fl_',
-                                $options, $imageSettings, $dummyMap, $imgCopied, $imgSkipped, $imgErrors
-                            );
-                            if ($retried !== null) {
+                        // Backfill image if this run migrated it but the stored row still has NULL.
+                        if ($existsRec['image'] === null) {
+                            $imageToStore = $newImage;
+                            if ($imageToStore === null && $migrator !== null && $imageFilename !== ''
+                                && $options->imageMode !== 'zip'
+                            ) {
+                                // Retry for cases where first attempt was deferred (legacy path).
+                                $dummyMap    = [];
+                                $imageToStore = $this->migrateImage(
+                                    $migrator, $imageFilename, 'listings', 'fl_',
+                                    $options, $imageSettings, $dummyMap, $imgCopied, $imgSkipped, $imgErrors
+                                );
+                            }
+                            if ($imageToStore !== null) {
                                 $target->prepare(
                                     'UPDATE lstr_fanlisting_settings SET image = :img WHERE fanlisting_id = :fid'
-                                )->execute(['img' => $retried, 'fid' => $listingId]);
+                                )->execute(['img' => $imageToStore, 'fid' => $targetListingId]);
                             }
                         }
                         $skipped++;
@@ -1068,41 +1122,45 @@ final class EnthusiastImportSource implements ImportSourceInterface
                         }
                         continue;
                     }
-                    $updateStmt->execute([
-                        'fanlisting_id'      => $listingId,
+                    $updateParams = [
+                        'fanlisting_id'      => $targetListingId,
                         'members_per_page'   => $perPage,
                         'queue_updates'      => $holdUpdate,
                         'members_template'   => $membersTpl,
                         'affiliates_template' => $affiliatesTpl,
                         'stats_template'     => $statsTpl,
                         'image'              => $newImage,
-                    ]);
+                    ];
+                    if ($hasLastUpdated) { $updateParams['last_updated'] = $lastUpdated; }
+                    $updateStmt->execute($updateParams);
                     $skipped++;
                 } else {
-                    $insertStmt->execute([
-                        'fanlisting_id'      => $listingId,
+                    $insertParams = [
+                        'fanlisting_id'      => $targetListingId,
                         'members_per_page'   => $perPage,
                         'queue_updates'      => $holdUpdate,
                         'members_template'   => $membersTpl ?: null,
                         'affiliates_template' => $affiliatesTpl ?: null,
                         'stats_template'     => $statsTpl ?: null,
                         'image'              => $newImage,
-                    ]);
+                    ];
+                    if ($hasLastUpdated) { $insertParams['last_updated'] = $lastUpdated; }
+                    $insertStmt->execute($insertParams);
                     $imported++;
                 }
 
                 if ($imageFilename !== '' && $newImage === null && $options->imageMode === 'zip') {
                     $imageMap[$imageFilename] = [
-                        'type'       => 'listings',
-                        'fanlisting_id' => $listingId,
-                        'prefix'     => 'fl_',
-                        'column'     => 'image',
-                        'table'      => 'lstr_fanlisting_settings',
-                        'key'        => 'fanlisting_id',
+                        'type'          => 'listings',
+                        'fanlisting_id' => $targetListingId,
+                        'prefix'        => 'fl_',
+                        'column'        => 'image',
+                        'table'         => 'lstr_fanlisting_settings',
+                        'key'           => 'fanlisting_id',
                     ];
                 }
             } catch (\Throwable $e) {
-                $errors[] = "Listing #{$listingId}: " . $e->getMessage();
+                $errors[] = "Listing #{$listingId} (target #{$targetListingId}): " . $e->getMessage();
             }
         }
 
@@ -1119,9 +1177,13 @@ final class EnthusiastImportSource implements ImportSourceInterface
     // Run helpers — Email templates
     // -----------------------------------------------------------------------
 
-    /** @return array{type:string,imported:int,skipped:int,warnings:string[],errors:string[]} */
-    private function runTemplates(PDO $source, PDO $target, string $schema, ImportOptions $options): array
-    {
+    /**
+     * @param array<int,int> $listingIdMap  Source listingid → target listingid, from runOwnedListings().
+     * @return array{type:string,imported:int,skipped:int,warnings:string[],errors:string[]}
+     */
+    private function runTemplates(
+        PDO $source, PDO $target, string $schema, ImportOptions $options, array $listingIdMap = []
+    ): array {
         $tp           = $options->tablePrefix;
         $srcTable     = $tp . ($schema === 'enthusiast_enth' ? 'enth_fanlistings' : 'owned');
         $idCol        = $schema === 'enthusiast_enth' ? 'id' : 'listingid';
@@ -1161,20 +1223,54 @@ final class EnthusiastImportSource implements ImportSourceInterface
             'UPDATE lstr_email_templates SET body = :body WHERE fanlisting_id = :fanlisting_id AND type = :type'
         );
 
+        // Comprehensive Enthusiast → Luster token translation table.
+        // Enthusiast uses $$double_dollar$$ delimiters; Luster uses {single_brace}.
+        // The {password} single-brace form appears in some Erin's-fork template fields.
+        $tokenSearch  = [
+            '$$fan_name$$',
+            '$$fan_email$$',
+            '$$fan_url$$',
+            '$$fan_country$$',
+            '$$fanlisting_title$$',
+            '$$fanlisting_subject$$',
+            '$$fanlisting_url$$',
+            '$$owner_name$$',
+            '$$owner_email$$',
+            '$$fan_password$$',
+            '$$password$$',
+            '{password}',
+        ];
+        $tokenReplace = [
+            '{fan_name}',
+            '{fan_email}',
+            '{fan_url}',
+            '{fan_country}',
+            '{listing_name}',
+            '{listing_subject}',
+            '{listing_url}',
+            '{owner_name}',
+            '{owner_email}',
+            '{reset_url}',
+            '{reset_url}',
+            '{reset_url}',
+        ];
+
         foreach ($srcRows as $row) {
             $listingId = (int) ($row[$idCol] ?? 0);
             if ($listingId === 0) {
                 continue;
             }
+            // Translate source ID → target ID in case runOwnedListings() had to reassign it.
+            $targetListingId = $listingIdMap[$listingId] ?? $listingId;
 
             foreach ($typeMap as $srcCol => $lstrType) {
                 $body = trim((string) ($row[$srcCol] ?? ''));
                 if ($body === '') {
                     continue;
                 }
-                $body = str_replace('{password}', '{reset_url}', $body);
+                $body = str_replace($tokenSearch, $tokenReplace, $body);
 
-                $checkStmt->execute(['fid' => $listingId, 'type' => $lstrType]);
+                $checkStmt->execute(['fid' => $targetListingId, 'type' => $lstrType]);
                 $exists = $checkStmt->fetchColumn() !== false;
 
                 try {
@@ -1186,23 +1282,128 @@ final class EnthusiastImportSource implements ImportSourceInterface
                             }
                             continue;
                         }
-                        $updateStmt->execute(['body' => $body, 'fanlisting_id' => $listingId, 'type' => $lstrType]);
+                        $updateStmt->execute(['body' => $body, 'fanlisting_id' => $targetListingId, 'type' => $lstrType]);
                         $skipped++;
                     } else {
-                        $insertStmt->execute(['fanlisting_id' => $listingId, 'type' => $lstrType, 'body' => $body]);
+                        $insertStmt->execute(['fanlisting_id' => $targetListingId, 'type' => $lstrType, 'body' => $body]);
                         $imported++;
                     }
                 } catch (\Throwable $e) {
-                    $errors[] = "Template listing#{$listingId}/{$lstrType}: " . $e->getMessage();
+                    $errors[] = "Template listing#{$listingId} (target#{$targetListingId})/{$lstrType}: " . $e->getMessage();
                 }
             }
         }
 
         $warnings = $imported > 0 || $skipped > 0
-            ? ['Enthusiast\'s {password} token has been replaced with {reset_url} in all imported templates.']
+            ? ['Enthusiast email tokens ($$fan_name$$, $$fanlisting_title$$, etc.) have been translated to Luster\'s token format ({fan_name}, {listing_name}, etc.).']
             : [];
 
         return ['type' => 'Email templates', 'imported' => $imported, 'skipped' => $skipped,
+                'warnings' => $warnings, 'errors' => $errors, 'skipped_items' => $skippedItems];
+    }
+
+    // -----------------------------------------------------------------------
+    // Run helpers — Saved/reusable email templates (Erin's fork: emailtemplate table)
+    // -----------------------------------------------------------------------
+
+    /** @return array{type:string,found:int,import:int,skip:int,warnings:string[]} */
+    private function previewSavedTemplates(PDO $source, string $tp): array
+    {
+        try {
+            $found = (int) $source->query("SELECT COUNT(*) FROM `{$tp}emailtemplate`")->fetchColumn();
+        } catch (\Throwable) {
+            return ['type' => 'Saved email templates', 'found' => 0, 'import' => 0, 'skip' => 0,
+                    'warnings' => ['`emailtemplate` table not found — this table is only present in Erin\'s fork of Enthusiast.']];
+        }
+        return ['type' => 'Saved email templates', 'found' => $found, 'import' => $found, 'skip' => 0,
+                'warnings' => ['Enthusiast tokens will be translated to Luster\'s token format.']];
+    }
+
+    /** @return array{type:string,imported:int,skipped:int,warnings:string[],errors:string[],skipped_items:array} */
+    private function runSavedTemplates(PDO $source, PDO $target, string $tp, ImportOptions $options): array
+    {
+        $tp = $tp; // already resolved by caller
+
+        try {
+            $stmt    = $source->query("SELECT templateid, templatename, subject, content FROM `{$tp}emailtemplate` ORDER BY templateid ASC");
+            $srcRows = $stmt->fetchAll();
+        } catch (\Throwable $e) {
+            return ['type' => 'Saved email templates', 'imported' => 0, 'skipped' => 0,
+                    'warnings' => ['`emailtemplate` table not found — skipped. This table only exists in Erin\'s fork of Enthusiast.'],
+                    'errors' => [], 'skipped_items' => []];
+        }
+
+        // Conflict detection: match by name
+        $existingNames = [];
+        try {
+            $existStmt = $target->query('SELECT name FROM lstr_saved_emails');
+            $existingNames = array_flip($existStmt->fetchAll(\PDO::FETCH_COLUMN));
+        } catch (\Throwable) {}
+
+        $insertStmt = $target->prepare(
+            'INSERT INTO lstr_saved_emails (name, subject, body) VALUES (:name, :subject, :body)'
+        );
+        $updateStmt = $target->prepare(
+            'UPDATE lstr_saved_emails SET subject = :subject, body = :body WHERE name = :name'
+        );
+
+        // Reuse the same token translation table as per-listing templates.
+        $tokenSearch  = [
+            '$$fan_name$$', '$$fan_email$$', '$$fan_url$$', '$$fan_country$$',
+            '$$fanlisting_title$$', '$$fanlisting_subject$$', '$$fanlisting_url$$',
+            '$$owner_name$$', '$$owner_email$$', '$$fan_password$$', '$$password$$', '{password}',
+        ];
+        $tokenReplace = [
+            '{fan_name}', '{fan_email}', '{fan_url}', '{fan_country}',
+            '{listing_name}', '{listing_subject}', '{listing_url}',
+            '{owner_name}', '{owner_email}', '{reset_url}', '{reset_url}', '{reset_url}',
+        ];
+
+        $imported     = 0;
+        $skipped      = 0;
+        $errors       = [];
+        $skippedItems = [];
+
+        foreach ($srcRows as $row) {
+            $name    = trim((string) ($row['templatename'] ?? ''));
+            $subject = trim((string) ($row['subject']      ?? ''));
+            $body    = str_replace($tokenSearch, $tokenReplace, trim((string) ($row['content'] ?? '')));
+
+            if ($name === '') {
+                continue;
+            }
+
+            if (isset($existingNames[$name])) {
+                if ($options->conflictStrategy === 'skip') {
+                    $skipped++;
+                    if (count($skippedItems) < self::SKIP_CAP) {
+                        $skippedItems[] = ['label' => $name, 'reason' => 'Already exists'];
+                    }
+                    continue;
+                }
+                try {
+                    $updateStmt->execute(['name' => $name, 'subject' => $subject, 'body' => $body]);
+                    $skipped++;
+                } catch (\Throwable $e) {
+                    $errors[] = "Saved template '{$name}': " . $e->getMessage();
+                }
+                continue;
+            }
+
+            try {
+                $insertStmt->execute(['name' => $name, 'subject' => $subject, 'body' => $body]);
+                $existingNames[$name] = true;
+                $imported++;
+            } catch (\Throwable $e) {
+                $errors[] = "Saved template '{$name}': " . $e->getMessage();
+            }
+        }
+
+        $warnings = $imported > 0 || $skipped > 0
+            ? ['Enthusiast email tokens have been translated to Luster\'s token format.']
+            : [];
+
+        return ['type' => 'Saved email templates', 'imported' => $imported, 'skipped' => $skipped,
                 'warnings' => $warnings, 'errors' => $errors, 'skipped_items' => $skippedItems];
     }
 
@@ -1215,15 +1416,23 @@ final class EnthusiastImportSource implements ImportSourceInterface
      * @param array<int,int> $catIdMap  Source catid → Luster lstr_categories.id, built by runCategories().
      *                                   Empty when categories were not imported in this run.
      */
+    /**
+     * @return array{row: array, listingIdMap: array<int,int>}
+     *   listingIdMap maps each source listingid to its final target listingid so that
+     *   subsequent phases (settings, templates) can attach rows to the correct target FK.
+     */
     private function runOwnedListings(
         PDO $source, PDO $target, string $schema, ImportOptions $options, bool $sameDb,
         array $catIdMap = []
     ): array {
         // Same DB + unprefixed: the `owned` table in source IS the target table — nothing to copy.
         if ($sameDb && $schema === 'enthusiast_unprefixed') {
-            return ['type' => 'Owned listings', 'imported' => 0, 'skipped' => 0,
-                    'warnings' => ['Same database — owned table is already accessible in Luster.'], 'errors' => [],
-                    'skipped_items' => []];
+            return [
+                'row' => ['type' => 'Owned listings', 'imported' => 0, 'skipped' => 0,
+                          'warnings' => ['Same database — owned table is already accessible in Luster.'],
+                          'errors' => [], 'skipped_items' => []],
+                'listingIdMap' => [],
+            ];
         }
 
         $tp           = $options->tablePrefix;
@@ -1235,6 +1444,8 @@ final class EnthusiastImportSource implements ImportSourceInterface
         $skippedItems = [];
         $warnings     = [];
         $touchedIds   = [];
+        // Maps source listingid → target listingid for all processed listings.
+        $listingIdMap = [];
 
         try {
             $stmt    = $source->query("SELECT * FROM `{$srcTable}` ORDER BY `{$idCol}` ASC");
@@ -1244,6 +1455,10 @@ final class EnthusiastImportSource implements ImportSourceInterface
                     'warnings' => [], 'errors' => ['Could not read source listings: ' . $e->getMessage()],
                     'skipped_items' => []];
         }
+
+        // Check whether the target owned table has an `opened` column (added by Luster migrations).
+        // Older or minimal installs may not have it yet; we degrade gracefully.
+        $hasOpened = $this->tableHasColumn($target, 'owned', 'opened');
 
         // Load existing URLs for conflict detection.
         $existUrlStmt = $target->prepare('SELECT listingid, url FROM owned');
@@ -1262,18 +1477,22 @@ final class EnthusiastImportSource implements ImportSourceInterface
         $existingIds = array_flip($existIdStmt->fetchAll(PDO::FETCH_COLUMN));
 
         // Two INSERT variants: one preserving the source ID, one letting MySQL auto-assign.
+        $openedCol    = $hasOpened ? ', opened'   : '';
+        $openedVal    = $hasOpened ? ', :opened'  : '';
+        $openedUpdate = $hasOpened ? ', opened = COALESCE(:opened, opened)' : '';
         $insertWithIdStmt = $target->prepare(
-            'INSERT INTO owned (listingid, dbtable, title, subject, email, url, catid, additional, status)
-             VALUES (:listingid, :dbtable, :title, :subject, :email, :url, :catid, :additional, :status)'
+            "INSERT INTO owned (listingid, dbtable, title, subject, email, url, catid, additional, status{$openedCol})
+             VALUES (:listingid, :dbtable, :title, :subject, :email, :url, :catid, :additional, :status{$openedVal})"
         );
         $insertAutoStmt = $target->prepare(
-            'INSERT INTO owned (dbtable, title, subject, email, url, catid, additional, status)
-             VALUES (:dbtable, :title, :subject, :email, :url, :catid, :additional, :status)'
+            "INSERT INTO owned (dbtable, title, subject, email, url, catid, additional, status{$openedCol})
+             VALUES (:dbtable, :title, :subject, :email, :url, :catid, :additional, :status{$openedVal})"
         );
         $updateStmt = $target->prepare(
-            'UPDATE owned SET title = :title, subject = :subject, email = :email,
+            "UPDATE owned SET title = :title, subject = :subject, email = :email,
                               catid = :catid, additional = :additional, status = :status
-             WHERE url = :url'
+                              {$openedUpdate}
+             WHERE url = :url"
         );
 
         foreach ($srcRows as $row) {
@@ -1305,6 +1524,10 @@ final class EnthusiastImportSource implements ImportSourceInterface
                 $status     = (int) ($row['status'] ?? 2);
             }
 
+            // opened date — stored as `opened` in Erin's fork; gracefully null in older installs.
+            $rawOpened = trim((string) ($row['opened'] ?? ($row['date'] ?? '')));
+            $opened    = ($rawOpened !== '' && $rawOpened !== '0000-00-00') ? $rawOpened : null;
+
             // Remap the source category ID to the Luster lstr_categories ID assigned
             // during this import run.  Without this, a source catid=4 would be stored
             // verbatim even if the target assigned that category a different ID.
@@ -1323,10 +1546,17 @@ final class EnthusiastImportSource implements ImportSourceInterface
                 'additional' => $additional,
                 'status'     => $status,
             ];
+            if ($hasOpened) {
+                $params['opened'] = $opened;
+            }
 
             // URL conflict → skip or overwrite.
             if (isset($existingUrls[$url])) {
+                $targetId = (int) $existingUrls[$url];
                 if ($options->conflictStrategy === 'skip') {
+                    if ($srcId > 0) {
+                        $listingIdMap[$srcId] = $targetId;
+                    }
                     $skipped++;
                     if (count($skippedItems) < self::SKIP_CAP) {
                         $skippedItems[] = ['label' => ($title !== '' ? $title : $url), 'reason' => 'Already exists (same URL)'];
@@ -1334,9 +1564,15 @@ final class EnthusiastImportSource implements ImportSourceInterface
                     continue;
                 }
                 try {
-                    $updateStmt->execute(array_merge($params, ['url' => $url]));
-                    if (($existingUrls[$url] ?? 0) > 0 && !$options->importSettings) {
-                        $touchedIds[] = (int) $existingUrls[$url];
+                    // dbtable is not updated (renaming member tables could break existing data).
+                    $updateParams = $params;
+                    unset($updateParams['dbtable']);
+                    $updateStmt->execute($updateParams);
+                    if ($targetId > 0 && !$options->importSettings) {
+                        $touchedIds[] = $targetId;
+                    }
+                    if ($srcId > 0) {
+                        $listingIdMap[$srcId] = $targetId;
                     }
                     $skipped++;
                 } catch (\Throwable $e) {
@@ -1347,11 +1583,11 @@ final class EnthusiastImportSource implements ImportSourceInterface
 
             // Try to preserve the source listingid so that linked settings/templates
             // rows keep their fanlisting_id references intact.  If the ID is already
-            // taken in the target, fall back to auto-increment and warn the user.
+            // taken in the target, fall back to auto-increment; the listingIdMap will
+            // carry the correct source→target translation to downstream phases.
             $idTaken = $srcId > 0 && isset($existingIds[$srcId]);
             if ($idTaken) {
-                $warnings[] = "Listing #{$srcId} ({$url}): ID already in use — auto-assigned a new ID. "
-                    . 'Per-listing settings and email templates linked to this listing may need correction.';
+                $warnings[] = "Listing #{$srcId} ({$url}): ID already in use in target — auto-assigned a new ID.";
             }
 
             try {
@@ -1365,6 +1601,9 @@ final class EnthusiastImportSource implements ImportSourceInterface
                     $existingIds[$newListingId] = true;
                 }
                 $existingUrls[$url] = $newListingId;
+                if ($srcId > 0) {
+                    $listingIdMap[$srcId] = $newListingId;
+                }
                 if (!$options->importSettings) {
                     $touchedIds[] = $newListingId;
                 }
@@ -1382,8 +1621,20 @@ final class EnthusiastImportSource implements ImportSourceInterface
             $this->touchImportedListingSettings($target, $touchedIds);
         }
 
-        return ['type' => 'Owned listings', 'imported' => $imported, 'skipped' => $skipped,
-                'warnings' => array_unique($warnings), 'errors' => $errors, 'skipped_items' => $skippedItems];
+        // Reset the owned table AUTO_INCREMENT so future listing creation cannot collide
+        // with IDs that were just explicitly inserted.  MySQL treats AUTO_INCREMENT=1 as
+        // "use MAX(id)+1", so this is safe even when no explicit IDs were inserted.
+        if ($imported > 0 && $target->getAttribute(PDO::ATTR_DRIVER_NAME) === 'mysql') {
+            try {
+                $target->exec('ALTER TABLE `owned` AUTO_INCREMENT = 1');
+            } catch (\Throwable) {}
+        }
+
+        return [
+            'row' => ['type' => 'Owned listings', 'imported' => $imported, 'skipped' => $skipped,
+                      'warnings' => array_unique($warnings), 'errors' => $errors, 'skipped_items' => $skippedItems],
+            'listingIdMap' => $listingIdMap,
+        ];
     }
 
     /**
@@ -1852,6 +2103,31 @@ final class EnthusiastImportSource implements ImportSourceInterface
     }
 
     /**
+     * Builds a lowercase(name) → network-label map from the target lstr_categories.
+     * Used to populate the `network` field in categories_json for joined listings.
+     *
+     * @return array<string, string>  lowercase name → 'TFL' | 'TAFL' | 'Custom'
+     */
+    private function buildCategoryNetworkMap(PDO $target): array
+    {
+        try {
+            $stmt = $target->prepare('SELECT name, source FROM lstr_categories');
+            $stmt->execute();
+            $map = [];
+            foreach ($stmt->fetchAll() as $row) {
+                $map[strtolower((string) $row['name'])] = match ((string) $row['source']) {
+                    'tfl'  => 'TFL',
+                    'tafl' => 'TAFL',
+                    default => 'Custom',
+                };
+            }
+            return $map;
+        } catch (\PDOException) {
+            return [];
+        }
+    }
+
+    /**
      * Checks whether two PDO connections point to the same database.
      * Used to decide whether to show the "same DB — members already accessible" note.
      */
@@ -1896,53 +2172,49 @@ final class EnthusiastImportSource implements ImportSourceInterface
     ): ?string {
         $newFilename = null;
 
-        if ($options->imageMode === 'path') {
-            $settingsKey = match ($targetSubDir) {
+        if ($options->imageMode === 'auto') {
+            $dirKey = match ($targetSubDir) {
                 'affiliates' => 'affiliates_dir',
                 'joined'     => 'joined_dir',
                 default      => 'listings_dir',
             };
-            $configuredDir = $imageSettings[$settingsKey] ?? '';
-
-            if ($configuredDir !== '') {
-                $srcPath = $configuredDir . '/' . $imageFilename;
-            } elseif ($options->imagePath !== '') {
-                $srcPath = $options->imagePath . '/' . self::IMG_SUBDIRS[$targetSubDir] . '/' . $imageFilename;
-            } else {
-                $skipped++;
-                return null;
-            }
-
-            $newFilename = $migrator->copyFromPath($srcPath, $targetSubDir, $prefix);
-            if ($newFilename !== null) {
-                $copied++;
-            } else {
-                $skipped++;
-                $errors[] = "Image not found or invalid: {$imageFilename}";
-            }
-        } elseif ($options->imageMode === 'url') {
-            $settingsKey = match ($targetSubDir) {
+            $urlKey = match ($targetSubDir) {
                 'affiliates' => 'affiliates_url',
                 'joined'     => 'joined_url',
                 default      => 'listings_url',
             };
-            $configuredUrl = $imageSettings[$settingsKey] ?? '';
+            $configuredDir = $imageSettings[$dirKey] ?? '';
+            $configuredUrl = $imageSettings[$urlKey] ?? '';
 
-            if ($configuredUrl !== '') {
-                $srcUrl = $configuredUrl . '/' . rawurlencode($imageFilename);
-            } elseif ($options->imageUrl !== '') {
-                $srcUrl = $options->imageUrl . '/' . self::IMG_SUBDIRS[$targetSubDir] . '/' . rawurlencode($imageFilename);
-            } else {
-                $skipped++;
-                return null;
+            $newFilename = null;
+
+            // Try server path first
+            if ($configuredDir !== '') {
+                $newFilename = $migrator->copyFromPath($configuredDir . '/' . $imageFilename, $targetSubDir, $prefix);
+            } elseif ($options->imagePath !== '') {
+                $newFilename = $migrator->copyFromPath(
+                    $options->imagePath . '/' . self::IMG_SUBDIRS[$targetSubDir] . '/' . $imageFilename,
+                    $targetSubDir, $prefix
+                );
             }
 
-            $newFilename = $migrator->fetchFromUrl($srcUrl, $targetSubDir, $prefix);
+            // Fall back to URL
+            if ($newFilename === null) {
+                if ($configuredUrl !== '') {
+                    $newFilename = $migrator->fetchFromUrl($configuredUrl . '/' . rawurlencode($imageFilename), $targetSubDir, $prefix);
+                } elseif ($options->imageUrl !== '') {
+                    $newFilename = $migrator->fetchFromUrl(
+                        $options->imageUrl . '/' . self::IMG_SUBDIRS[$targetSubDir] . '/' . rawurlencode($imageFilename),
+                        $targetSubDir, $prefix
+                    );
+                }
+            }
+
             if ($newFilename !== null) {
                 $copied++;
             } else {
                 $skipped++;
-                $errors[] = "Could not fetch image: {$imageFilename}";
+                $errors[] = "Image not copied: {$imageFilename}";
             }
         } elseif ($options->imageMode === 'zip') {
             if ($this->activeZip !== null) {
@@ -1984,9 +2256,13 @@ final class EnthusiastImportSource implements ImportSourceInterface
         $table = $tp . ($schema === 'enthusiast_enth' ? 'enth_settings' : 'settings');
 
         try {
+            // Enthusiast unprefixed uses columns `setting`/`value`;
+            // the enth_ variant uses `setting_name`/`setting_value`.
+            $nameCol  = $schema === 'enthusiast_enth' ? 'setting_name' : 'setting';
+            $valueCol = $schema === 'enthusiast_enth' ? 'setting_value' : 'value';
             $stmt = $source->prepare(
-                "SELECT setting_name, setting_value FROM `{$table}`
-                  WHERE setting_name IN (
+                "SELECT `{$nameCol}`, `{$valueCol}` FROM `{$table}`
+                  WHERE `{$nameCol}` IN (
                       'affiliates_dir', 'joined_images_dir', 'owned_images_dir',
                       'affiliates_url', 'joined_images_url', 'owned_images_url'
                   )"

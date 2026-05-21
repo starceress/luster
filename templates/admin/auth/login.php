@@ -3,12 +3,12 @@ use Luster\Core\View;
 require_once __DIR__ . '/../_css_assets.php';
 ?>
 <!DOCTYPE html>
-<html lang="en" data-theme="dark">
+<html lang="en" data-theme="dark"<?= ($selected_skin ?? '') !== '' ? ' data-skin="' . View::e($selected_skin) . '"' : '' ?>>
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Luster &#10022; Fanlisting Management System &mdash; Sign in</title>
-  <?= lusterAdminCssLinks(rtrim(View::e($base_url ?? ''), '/') . '/assets/css/admin', LUSTER_BASE . '/public/assets/css/admin', null, true) . PHP_EOL ?>
+  <?= lusterAdminCssLinks(rtrim(View::e($base_url ?? ''), '/') . '/assets/css', LUSTER_BASE . '/public/assets/css', $selected_skin ?? '') . PHP_EOL ?>
   <script>(function(){var t=localStorage.getItem('lstr_theme');if(t==='dark'||t==='light')document.documentElement.setAttribute('data-theme',t);})();</script>
 </head>
 <body class="login-page">

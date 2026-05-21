@@ -70,7 +70,7 @@ final class BlacklistController
             $request->ip(),
         );
 
-        $session->set('lstr_flash_success', "Pattern <strong>" . htmlspecialchars($pattern, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . "</strong> added to blacklist.");
+        $session->set('lstr_flash_success', "Pattern \"{$pattern}\" added to blacklist.");
         return Response::redirect($baseUrl . '/admin/settings#panel-blacklist');
     }
 

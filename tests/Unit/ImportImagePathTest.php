@@ -342,8 +342,9 @@ final class ImportImagePathTest extends TestCase
         $this->makeTestPng($customDir . '/99_icon.png');
 
         $src = $this->makePdo();
+        // Unprefixed Enthusiast uses `setting` / `value` column names.
         $src->exec("CREATE TABLE `settings` (
-            setting_name TEXT PRIMARY KEY, setting_value TEXT NOT NULL DEFAULT '')");
+            setting TEXT PRIMARY KEY, value TEXT NOT NULL DEFAULT '')");
         $src->exec("INSERT INTO settings VALUES ('affiliates_dir', '{$customDir}')");
         $src->exec("INSERT INTO settings VALUES ('joined_images_dir', '')");
         $src->exec("INSERT INTO settings VALUES ('owned_images_dir', '')");

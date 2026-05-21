@@ -137,8 +137,10 @@ $statusLabel = static function (string $s): string {
 
     <?php if (empty($affiliates)): ?>
       <div class="empty">
-        <span class="empty-icon"><?= View::icon('link') ?></span>
-        No affiliates found. Add some affiliates to start checking links.
+        <div class="empty-icon"><?= View::icon('link', ['width' => 32, 'height' => 32]) ?></div>
+        <div class="empty-title">No affiliates found.</div>
+        <div>Add some affiliates to start checking links.</div>
+        <a href="<?= $b ?>/admin/affiliates/add" class="btn btn-primary btn-sm"><?= View::icon('add') ?> Add Affiliate</a>
       </div>
     <?php else: ?>
       <div class="table-wrap">
@@ -220,8 +222,10 @@ $statusLabel = static function (string $s): string {
 
     <?php if (empty($joined)): ?>
       <div class="empty">
-        <span class="empty-icon"><?= View::icon('heart') ?></span>
-        No joined listings found. Add some joined listings to start checking links.
+        <div class="empty-icon"><?= View::icon('heart', ['width' => 32, 'height' => 32]) ?></div>
+        <div class="empty-title">No joined listings found.</div>
+        <div>Add some joined listings to start checking links.</div>
+        <a href="<?= $b ?>/admin/joined/add" class="btn btn-primary btn-sm"><?= View::icon('add') ?> Add Joined Listing</a>
       </div>
     <?php else: ?>
       <div class="table-wrap">
@@ -278,8 +282,9 @@ $statusLabel = static function (string $s): string {
   <div id="lc-panel-moved" class="lc-tab-panel is-hidden" role="tabpanel">
     <?php if ($totalMoved === 0): ?>
       <div class="empty">
-        <span class="empty-icon"><?= View::icon('link') ?></span>
-        No moved links found. Run the checker on the Affiliates or Joined Listings tabs first.
+        <div class="empty-icon"><?= View::icon('link', ['width' => 32, 'height' => 32]) ?></div>
+        <div class="empty-title">No moved links found.</div>
+        <div>Run the checker on the Affiliates or Joined Listings tabs first.</div>
       </div>
     <?php else: ?>
       <p class="lc-panel-hint">
@@ -369,8 +374,9 @@ $statusLabel = static function (string $s): string {
   <div id="lc-panel-dead" class="lc-tab-panel is-hidden" role="tabpanel">
     <?php if ($totalDead === 0): ?>
       <div class="empty">
-        <span class="empty-icon"><?= View::icon('caution') ?></span>
-        No dead links found. Run the checker on the Affiliates or Joined Listings tabs first.
+        <div class="empty-icon"><?= View::icon('caution', ['width' => 32, 'height' => 32]) ?></div>
+        <div class="empty-title">No dead links found.</div>
+        <div>Run the checker on the Affiliates or Joined Listings tabs first.</div>
       </div>
     <?php else: ?>
       <p class="lc-panel-hint">

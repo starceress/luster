@@ -669,4 +669,920 @@ final class EnthusiastMemberImportTest extends TestCase
         $this->assertSame(1, (int) $tgt->query('SELECT COUNT(*) FROM `huntrix`')->fetchColumn());
         $this->assertSame(2, (int) $tgt->query('SELECT COUNT(*) FROM `gachia`')->fetchColumn());
     }
+
+    // -----------------------------------------------------------------------
+    // Category source detection (TFL / TAFL / custom)
+    // -----------------------------------------------------------------------
+
+    /** Creates a minimal source + target setup for category + joined-listing tests. */
+    private function seedForCategoryTests(PDO $src, PDO $tgt): void
+    {
+        // Source: unprefixed Enthusiast schema — note singular 'category' table name
+        // and 'parent' (not 'catparent') as the hierarchy column
+        $src->exec('CREATE TABLE IF NOT EXISTS category (catid INTEGER PRIMARY KEY, catname TEXT NOT NULL, parent INTEGER NOT NULL DEFAULT 0)');
+        $src->exec("CREATE TABLE IF NOT EXISTS `owned` (listingid INTEGER PRIMARY KEY, dbtable TEXT NOT NULL DEFAULT '', title TEXT NOT NULL DEFAULT '', subject TEXT NOT NULL DEFAULT '', email TEXT NOT NULL DEFAULT '', url TEXT NOT NULL DEFAULT '', catid TEXT NOT NULL DEFAULT '', additional TEXT NOT NULL DEFAULT '', status INTEGER NOT NULL DEFAULT 2)");
+        $src->exec("CREATE TABLE IF NOT EXISTS joined (joinedid INTEGER PRIMARY KEY, url TEXT NOT NULL, subject TEXT NOT NULL DEFAULT '', catid TEXT NOT NULL DEFAULT '', pending INTEGER NOT NULL DEFAULT 0, added TEXT NULL, imagefile TEXT NOT NULL DEFAULT '')");
+
+        // Target: needs lstr_categories + lstr_joined
+        $tgt->exec('CREATE TABLE IF NOT EXISTS lstr_categories (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, parent_id INTEGER NULL, source TEXT NOT NULL DEFAULT \'custom\')');
+        $tgt->exec('CREATE TABLE IF NOT EXISTS lstr_joined (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL DEFAULT \'\', url TEXT NOT NULL DEFAULT \'\', image TEXT NULL, category TEXT NOT NULL DEFAULT \'\', categories_json TEXT NULL, category_id INTEGER NULL, date_joined TEXT NULL, active INTEGER NOT NULL DEFAULT 1, status TEXT NOT NULL DEFAULT \'approved\', sort_order INTEGER NOT NULL DEFAULT 0)');
+    }
+
+    public function testRunCategoriesAssignsTflSourceToKnownTflCategories(): void
+    {
+        $src = $this->makePdo();
+        $tgt = $this->makePdo();
+        $this->seedForCategoryTests($src, $tgt);
+
+        $src->exec("INSERT INTO category (catid, catname) VALUES (1, 'Academia'), (2, 'Actors'), (3, 'Animals')");
+
+        $result = $this->adapter()->run($src, $tgt, ImportOptions::fromPost([
+            'source'             => 'enthusiast',
+            'conflict_strategy'  => 'skip',
+            'import_categories'  => '1',
+        ]));
+
+        $rows = $tgt->query("SELECT name, source FROM lstr_categories ORDER BY id")->fetchAll();
+        $this->assertCount(3, $rows);
+        foreach ($rows as $r) {
+            $this->assertSame('tfl', $r['source'], "'{$r['name']}' should be source=tfl");
+        }
+    }
+
+    public function testRunCategoriesAssignsTaflSourceToKnownTaflCategories(): void
+    {
+        $src = $this->makePdo();
+        $tgt = $this->makePdo();
+        $this->seedForCategoryTests($src, $tgt);
+
+        $src->exec("INSERT INTO category (catid, catname) VALUES (1, 'Anime/Manga: Series'), (2, 'Anime/Manga: Characters 0-M')");
+
+        $this->adapter()->run($src, $tgt, ImportOptions::fromPost([
+            'source'            => 'enthusiast',
+            'conflict_strategy' => 'skip',
+            'import_categories' => '1',
+        ]));
+
+        $rows = $tgt->query("SELECT source FROM lstr_categories")->fetchAll();
+        foreach ($rows as $r) {
+            $this->assertSame('tafl', $r['source']);
+        }
+    }
+
+    public function testRunCategoriesAssignsCustomSourceToUnknownCategories(): void
+    {
+        $src = $this->makePdo();
+        $tgt = $this->makePdo();
+        $this->seedForCategoryTests($src, $tgt);
+
+        $src->exec("INSERT INTO category (catid, catname) VALUES (1, 'My Site Categories'), (2, 'Fanfiction')");
+
+        $this->adapter()->run($src, $tgt, ImportOptions::fromPost([
+            'source'            => 'enthusiast',
+            'conflict_strategy' => 'skip',
+            'import_categories' => '1',
+        ]));
+
+        $rows = $tgt->query("SELECT source FROM lstr_categories")->fetchAll();
+        foreach ($rows as $r) {
+            $this->assertSame('custom', $r['source']);
+        }
+    }
+
+    public function testRunJoinedUsesCorrectNetworkInCategoriesJson(): void
+    {
+        $src = $this->makePdo();
+        $tgt = $this->makePdo();
+        $this->seedForCategoryTests($src, $tgt);
+
+        // Pre-seed a TFL category in target (simulating categories already imported)
+        $tgt->exec("INSERT INTO lstr_categories (name, source) VALUES ('Actors', 'tfl')");
+        $tgt->exec("INSERT INTO lstr_categories (name, source) VALUES ('Anime/Manga: Series', 'tafl')");
+        $tgt->exec("INSERT INTO lstr_categories (name, source) VALUES ('My Custom', 'custom')");
+
+        // Source joined listings referencing each category by name
+        $src->exec("INSERT INTO category (catid, catname) VALUES (1, 'Actors'), (2, 'Anime/Manga: Series'), (3, 'My Custom')");
+        $src->exec("INSERT INTO joined (joinedid, url, subject, catid) VALUES (1, 'http://a.com', 'A', '1')");
+        $src->exec("INSERT INTO joined (joinedid, url, subject, catid) VALUES (2, 'http://b.com', 'B', '2')");
+        $src->exec("INSERT INTO joined (joinedid, url, subject, catid) VALUES (3, 'http://c.com', 'C', '3')");
+
+        $this->adapter()->run($src, $tgt, ImportOptions::fromPost([
+            'source'            => 'enthusiast',
+            'conflict_strategy' => 'skip',
+            'import_joined'     => '1',
+        ]));
+
+        $rows = $tgt->query(
+            "SELECT url, categories_json FROM lstr_joined ORDER BY url ASC"
+        )->fetchAll();
+
+        $byUrl = array_column($rows, 'categories_json', 'url');
+
+        $aJson = json_decode($byUrl['http://a.com'], true);
+        $bJson = json_decode($byUrl['http://b.com'], true);
+        $cJson = json_decode($byUrl['http://c.com'], true);
+
+        $this->assertSame('TFL',    $aJson[0]['network'], 'TFL category should use TFL network');
+        $this->assertSame('TAFL',   $bJson[0]['network'], 'TAFL category should use TAFL network');
+        $this->assertSame('Custom', $cJson[0]['network'], 'Unknown category should use Custom network');
+    }
+
+    public function testRunJoinedFullPipelineCategoriesToNetwork(): void
+    {
+        // Import categories AND joined in one run — network detection must work end-to-end
+        $src = $this->makePdo();
+        $tgt = $this->makePdo();
+        $this->seedForCategoryTests($src, $tgt);
+
+        $src->exec("INSERT INTO category (catid, catname) VALUES (1, 'Albums')");
+        $src->exec("INSERT INTO joined (joinedid, url, subject, catid) VALUES (1, 'http://fl.com', 'Test FL', '1')");
+
+        $this->adapter()->run($src, $tgt, ImportOptions::fromPost([
+            'source'            => 'enthusiast',
+            'conflict_strategy' => 'skip',
+            'import_categories' => '1',
+            'import_joined'     => '1',
+        ]));
+
+        // Category must have source=tfl
+        $src_ = $tgt->query("SELECT source FROM lstr_categories WHERE name='Albums'")->fetchColumn();
+        $this->assertSame('tfl', $src_);
+
+        // Joined listing must have network=TFL in categories_json
+        $json = json_decode(
+            $tgt->query("SELECT categories_json FROM lstr_joined WHERE url='http://fl.com'")->fetchColumn(),
+            true
+        );
+        $this->assertSame('TFL', $json[0]['network']);
+        $this->assertSame('Albums', $json[0]['name']);
+    }
+
+    // -----------------------------------------------------------------------
+    // Helpers for settings / templates / affiliates tests
+    // -----------------------------------------------------------------------
+
+    /** Creates the lstr_fanlisting_settings table in $pdo (simplified for SQLite). */
+    private function createSettingsTable(PDO $pdo): void
+    {
+        $pdo->exec(
+            'CREATE TABLE IF NOT EXISTS lstr_fanlisting_settings (
+                fanlisting_id INTEGER PRIMARY KEY,
+                members_per_page INTEGER NOT NULL DEFAULT 25,
+                queue_updates INTEGER NOT NULL DEFAULT 0,
+                members_template TEXT NULL,
+                affiliates_template TEXT NULL,
+                stats_template TEXT NULL,
+                image TEXT NULL,
+                last_updated DATE NULL
+            )'
+        );
+    }
+
+    /** Creates the lstr_email_templates table in $pdo. */
+    private function createEmailTemplatesTable(PDO $pdo): void
+    {
+        $pdo->exec(
+            'CREATE TABLE IF NOT EXISTS lstr_email_templates (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                fanlisting_id INTEGER NOT NULL,
+                type TEXT NOT NULL,
+                enabled INTEGER NOT NULL DEFAULT 1,
+                subject TEXT NOT NULL DEFAULT \'\',
+                body TEXT NOT NULL DEFAULT \'\'
+            )'
+        );
+    }
+
+    /** Creates the lstr_affiliates table in $pdo. */
+    private function createAffiliatesTable(PDO $pdo): void
+    {
+        $pdo->exec(
+            'CREATE TABLE IF NOT EXISTS lstr_affiliates (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                fanlisting_id INTEGER NULL,
+                name TEXT NOT NULL DEFAULT \'\',
+                url TEXT NOT NULL DEFAULT \'\',
+                email TEXT NOT NULL DEFAULT \'\',
+                image TEXT NULL,
+                sort_order INTEGER NOT NULL DEFAULT 0,
+                active INTEGER NOT NULL DEFAULT 1
+            )'
+        );
+    }
+
+    /** Creates the owned table in $pdo (target). */
+    private function createOwnedTable(PDO $pdo): void
+    {
+        $pdo->exec(
+            'CREATE TABLE IF NOT EXISTS owned (
+                listingid INTEGER PRIMARY KEY AUTOINCREMENT,
+                dbtable TEXT NOT NULL DEFAULT \'\',
+                title TEXT NOT NULL DEFAULT \'\',
+                subject TEXT NOT NULL DEFAULT \'\',
+                email TEXT NOT NULL DEFAULT \'\',
+                url TEXT NOT NULL DEFAULT \'\',
+                catid TEXT NOT NULL DEFAULT \'\',
+                additional TEXT NOT NULL DEFAULT \'\',
+                status INTEGER NOT NULL DEFAULT 2
+            )'
+        );
+    }
+
+    /** Seed an Enthusiast unprefixed source with the named listing and email template columns. */
+    private function seedUnprefixedSourceWithTemplates(
+        PDO $pdo,
+        int $listingId,
+        string $dbtable,
+        string $url,
+        string $emailsignup   = '',
+        string $emailapproved = '',
+        string $emailupdate   = '',
+        string $emaillostpass = ''
+    ): void {
+        $pdo->exec("CREATE TABLE IF NOT EXISTS categories (catid INTEGER PRIMARY KEY, catname TEXT)");
+        $pdo->exec(
+            'CREATE TABLE IF NOT EXISTS owned (
+                listingid INTEGER PRIMARY KEY,
+                dbtable TEXT NOT NULL DEFAULT \'\',
+                title TEXT NOT NULL DEFAULT \'\',
+                subject TEXT NOT NULL DEFAULT \'\',
+                email TEXT NOT NULL DEFAULT \'\',
+                url TEXT NOT NULL DEFAULT \'\',
+                catid TEXT NOT NULL DEFAULT \'\',
+                additional TEXT NOT NULL DEFAULT \'\',
+                status INTEGER NOT NULL DEFAULT 2,
+                emailsignup TEXT NOT NULL DEFAULT \'\',
+                emailapproved TEXT NOT NULL DEFAULT \'\',
+                emailupdate TEXT NOT NULL DEFAULT \'\',
+                emaillostpass TEXT NOT NULL DEFAULT \'\',
+                perpage INTEGER NOT NULL DEFAULT 25,
+                holdupdate INTEGER NOT NULL DEFAULT 0
+            )'
+        );
+        $pdo->exec(
+            "CREATE TABLE IF NOT EXISTS `{$dbtable}` (
+                email TEXT PRIMARY KEY, name TEXT NOT NULL DEFAULT '', country TEXT NOT NULL DEFAULT '',
+                url TEXT NOT NULL DEFAULT '', pending INTEGER NOT NULL DEFAULT 0,
+                password TEXT NOT NULL DEFAULT '', showemail INTEGER NOT NULL DEFAULT 1,
+                showurl INTEGER NOT NULL DEFAULT 1, added TEXT NULL
+            )"
+        );
+        $stmt = $pdo->prepare(
+            'INSERT INTO owned (listingid, dbtable, url, emailsignup, emailapproved, emailupdate, emaillostpass)
+             VALUES (:id, :dbtable, :url, :es, :ea, :eu, :el)'
+        );
+        $stmt->execute([
+            'id' => $listingId, 'dbtable' => $dbtable, 'url' => $url,
+            'es' => $emailsignup, 'ea' => $emailapproved, 'eu' => $emailupdate, 'el' => $emaillostpass,
+        ]);
+    }
+
+    // -----------------------------------------------------------------------
+    // Fix 1: Run order — per-listing affiliates imported when listings run first
+    // -----------------------------------------------------------------------
+
+    public function testRunAffiliatesImportsPerListingAffiliatesWhenListingsRunFirst(): void
+    {
+        $src = $this->makePdo();
+        $tgt = $this->makePdo();
+
+        // Source: one listing + two affiliates (one per-listing, one collective)
+        $this->seedUnprefixedSource($src, 'huntrix');
+        $src->exec(
+            'CREATE TABLE affiliates (
+                affiliateid INTEGER PRIMARY KEY AUTOINCREMENT,
+                listingid INTEGER NOT NULL DEFAULT 0,
+                title TEXT NOT NULL DEFAULT \'\',
+                url TEXT NOT NULL DEFAULT \'\',
+                email TEXT NOT NULL DEFAULT \'\',
+                imagefile TEXT NOT NULL DEFAULT \'\'
+            )'
+        );
+        $src->exec("INSERT INTO affiliates (listingid, title, url) VALUES (1, 'Per-listing Aff', 'http://aff1.com')");
+        $src->exec("INSERT INTO affiliates (listingid, title, url) VALUES (0, 'Collective Aff', 'http://aff2.com')");
+
+        // Target: needs owned + lstr_affiliates tables
+        $this->createOwnedTable($tgt);
+        $this->createAffiliatesTable($tgt);
+
+        $result = $this->adapter()->run($src, $tgt, ImportOptions::fromPost([
+            'source'               => 'enthusiast',
+            'conflict_strategy'    => 'skip',
+            'import_owned_listings' => '1',
+            'import_affiliates'    => '1',
+        ]));
+
+        $affRow = null;
+        foreach ($result->rows as $row) {
+            if ($row['type'] === 'Affiliates') { $affRow = $row; break; }
+        }
+
+        $this->assertNotNull($affRow);
+        $this->assertSame(2, $affRow['imported'], 'Both affiliates should be imported');
+        $this->assertSame(0, $affRow['skipped']);
+        $this->assertEmpty($affRow['errors']);
+
+        // The per-listing affiliate must reference listing 1 in target
+        $stmt = $tgt->query("SELECT fanlisting_id FROM lstr_affiliates WHERE url = 'http://aff1.com'");
+        $this->assertSame(1, (int) $stmt->fetchColumn());
+
+        // The collective affiliate must have NULL fanlisting_id
+        $stmt = $tgt->query("SELECT fanlisting_id FROM lstr_affiliates WHERE url = 'http://aff2.com'");
+        $this->assertNull($stmt->fetchColumn());
+    }
+
+    // -----------------------------------------------------------------------
+    // Fix 2: listingIdMap — settings attach to mapped target ID on ID collision
+    // -----------------------------------------------------------------------
+
+    public function testRunSettingsUsesListingIdMapWhenIdCollides(): void
+    {
+        $src = $this->makePdo();
+        $tgt = $this->makePdo();
+
+        // Source has listing at id=5
+        $this->seedUnprefixedSource($src, 'huntrix');
+        $src->exec(
+            'ALTER TABLE owned RENAME TO owned_old; CREATE TABLE owned AS SELECT * FROM owned_old;
+             DROP TABLE owned_old;'
+        );
+        // Easier: just re-create with explicit id
+        $src->exec('DROP TABLE IF EXISTS owned');
+        $src->exec(
+            'CREATE TABLE owned (
+                listingid INTEGER PRIMARY KEY, dbtable TEXT NOT NULL DEFAULT \'\',
+                title TEXT NOT NULL DEFAULT \'\', subject TEXT NOT NULL DEFAULT \'\',
+                email TEXT NOT NULL DEFAULT \'\', url TEXT NOT NULL DEFAULT \'\',
+                catid TEXT NOT NULL DEFAULT \'\', additional TEXT NOT NULL DEFAULT \'\',
+                status INTEGER NOT NULL DEFAULT 2,
+                perpage INTEGER NOT NULL DEFAULT 25, holdupdate INTEGER NOT NULL DEFAULT 0
+            )'
+        );
+        $src->exec("INSERT INTO owned (listingid, dbtable, url) VALUES (5, 'huntrix', 'http://src5.com')");
+
+        // Target: pre-existing listing at id=5 with a DIFFERENT URL so new listing gets auto-ID
+        $this->createOwnedTable($tgt);
+        $tgt->exec("INSERT INTO owned (listingid, dbtable, url) VALUES (5, 'existing', 'http://other.com')");
+        $this->createSettingsTable($tgt);
+
+        $result = $this->adapter()->run($src, $tgt, ImportOptions::fromPost([
+            'source'               => 'enthusiast',
+            'conflict_strategy'    => 'skip',
+            'import_owned_listings' => '1',
+            'import_settings'      => '1',
+        ]));
+
+        $ownedRow = null;
+        $settRow  = null;
+        foreach ($result->rows as $row) {
+            if ($row['type'] === 'Owned listings')   { $ownedRow = $row; }
+            if ($row['type'] === 'Listing settings') { $settRow  = $row; }
+        }
+
+        $this->assertNotNull($ownedRow);
+        $this->assertSame(1, $ownedRow['imported'], 'New listing should be imported');
+        $this->assertNotEmpty($ownedRow['warnings'], 'Should warn about ID reassignment');
+
+        // Find the auto-assigned target ID
+        $stmt     = $tgt->query("SELECT listingid FROM owned WHERE url = 'http://src5.com'");
+        $targetId = (int) $stmt->fetchColumn();
+        $this->assertNotSame(5, $targetId, 'New listing should have received a different ID');
+
+        $this->assertNotNull($settRow);
+        $this->assertSame(1, $settRow['imported']);
+
+        // Settings must be attached to the NEW (auto-assigned) target ID, not the source ID 5
+        $stmt = $tgt->query("SELECT fanlisting_id FROM lstr_fanlisting_settings WHERE fanlisting_id = {$targetId}");
+        $this->assertSame($targetId, (int) $stmt->fetchColumn(), 'Settings row must use the mapped target ID');
+
+        $stmt = $tgt->query('SELECT COUNT(*) FROM lstr_fanlisting_settings WHERE fanlisting_id = 5');
+        $this->assertSame(0, (int) $stmt->fetchColumn(), 'No settings row should reference the old source ID 5');
+    }
+
+    // -----------------------------------------------------------------------
+    // Fix 2: listingIdMap — templates attach to mapped target ID on ID collision
+    // -----------------------------------------------------------------------
+
+    public function testRunTemplatesUsesListingIdMapWhenIdCollides(): void
+    {
+        $src = $this->makePdo();
+        $tgt = $this->makePdo();
+
+        // Source listing at id=7 with a join email template
+        $src->exec('CREATE TABLE IF NOT EXISTS categories (catid INTEGER PRIMARY KEY, catname TEXT)');
+        $src->exec(
+            'CREATE TABLE owned (
+                listingid INTEGER PRIMARY KEY, dbtable TEXT NOT NULL DEFAULT \'\',
+                title TEXT NOT NULL DEFAULT \'\', subject TEXT NOT NULL DEFAULT \'\',
+                email TEXT NOT NULL DEFAULT \'\', url TEXT NOT NULL DEFAULT \'\',
+                catid TEXT NOT NULL DEFAULT \'\', additional TEXT NOT NULL DEFAULT \'\',
+                status INTEGER NOT NULL DEFAULT 2,
+                emailsignup TEXT NOT NULL DEFAULT \'\', emailapproved TEXT NOT NULL DEFAULT \'\',
+                emailupdate TEXT NOT NULL DEFAULT \'\', emaillostpass TEXT NOT NULL DEFAULT \'\'
+            )'
+        );
+        $src->exec("INSERT INTO owned (listingid, dbtable, url, emailsignup)
+                    VALUES (7, 't1', 'http://src7.com', 'Welcome to the listing!')");
+        $src->exec('CREATE TABLE t1 (email TEXT PRIMARY KEY)');
+
+        // Target: pre-existing listing at id=7 with a different URL
+        $this->createOwnedTable($tgt);
+        $tgt->exec("INSERT INTO owned (listingid, dbtable, url) VALUES (7, 'other', 'http://other7.com')");
+        $this->createEmailTemplatesTable($tgt);
+
+        $result = $this->adapter()->run($src, $tgt, ImportOptions::fromPost([
+            'source'               => 'enthusiast',
+            'conflict_strategy'    => 'skip',
+            'import_owned_listings' => '1',
+            'import_templates'     => '1',
+        ]));
+
+        // Find the auto-assigned target ID
+        $stmt     = $tgt->query("SELECT listingid FROM owned WHERE url = 'http://src7.com'");
+        $targetId = (int) $stmt->fetchColumn();
+        $this->assertNotSame(7, $targetId);
+
+        // Template must be attached to the new target ID
+        $stmt = $tgt->query("SELECT fanlisting_id, body FROM lstr_email_templates WHERE type = 'join'");
+        $tplRow = $stmt->fetch();
+        $this->assertNotFalse($tplRow, 'Template should have been imported');
+        $this->assertSame($targetId, (int) $tplRow['fanlisting_id'], 'Template must use mapped target ID');
+
+        $stmt = $tgt->query('SELECT COUNT(*) FROM lstr_email_templates WHERE fanlisting_id = 7');
+        $this->assertSame(0, (int) $stmt->fetchColumn(), 'No template should reference old source ID 7');
+    }
+
+    // -----------------------------------------------------------------------
+    // Fix 3: Enthusiast $$token$$ translation in email templates
+    // -----------------------------------------------------------------------
+
+    public function testRunTemplatesTranslatesEnthusiastDoubledollarTokens(): void
+    {
+        $src = $this->makePdo();
+        $tgt = $this->makePdo();
+
+        $body = 'Hi $$fan_name$$, welcome to $$fanlisting_title$$ at $$fanlisting_url$$. '
+              . 'Your email is $$fan_email$$. Reset: $$fan_password$$. Owner: $$owner_name$$.';
+
+        $this->seedUnprefixedSourceWithTemplates(
+            $src, 1, 'huntrix', 'http://test.com', emailsignup: $body
+        );
+        $this->createOwnedTable($tgt);
+        $this->createEmailTemplatesTable($tgt);
+
+        $result = $this->adapter()->run($src, $tgt, ImportOptions::fromPost([
+            'source'               => 'enthusiast',
+            'conflict_strategy'    => 'skip',
+            'import_owned_listings' => '1',
+            'import_templates'     => '1',
+        ]));
+
+        $stmt = $tgt->query("SELECT body FROM lstr_email_templates WHERE type = 'join' LIMIT 1");
+        $imported = $stmt->fetchColumn();
+
+        $this->assertStringContainsString('{fan_name}',       $imported);
+        $this->assertStringContainsString('{listing_name}',   $imported);
+        $this->assertStringContainsString('{listing_url}',    $imported);
+        $this->assertStringContainsString('{fan_email}',      $imported);
+        $this->assertStringContainsString('{reset_url}',      $imported);
+        $this->assertStringContainsString('{owner_name}',     $imported);
+
+        $this->assertStringNotContainsString('$$fan_name$$',       $imported);
+        $this->assertStringNotContainsString('$$fanlisting_title$$', $imported);
+        $this->assertStringNotContainsString('$$fan_password$$',   $imported);
+    }
+
+    public function testRunTemplatesTranslatesAllTokenVariants(): void
+    {
+        $src = $this->makePdo();
+        $tgt = $this->makePdo();
+
+        // Covers every mapping in the translation table, including legacy {password}
+        $body = '$$fan_url$$ $$fan_country$$ $$fanlisting_subject$$ $$owner_email$$ $$password$$';
+
+        $this->seedUnprefixedSourceWithTemplates(
+            $src, 1, 'huntrix', 'http://test.com', emailsignup: $body
+        );
+        $this->createOwnedTable($tgt);
+        $this->createEmailTemplatesTable($tgt);
+
+        $this->adapter()->run($src, $tgt, ImportOptions::fromPost([
+            'source'               => 'enthusiast',
+            'conflict_strategy'    => 'skip',
+            'import_owned_listings' => '1',
+            'import_templates'     => '1',
+        ]));
+
+        $stmt     = $tgt->query("SELECT body FROM lstr_email_templates WHERE type = 'join' LIMIT 1");
+        $imported = $stmt->fetchColumn();
+
+        $this->assertStringContainsString('{fan_url}',          $imported);
+        $this->assertStringContainsString('{fan_country}',      $imported);
+        $this->assertStringContainsString('{listing_subject}',  $imported);
+        $this->assertStringContainsString('{owner_email}',      $imported);
+        $this->assertStringContainsString('{reset_url}',        $imported);
+
+        // No raw Enthusiast tokens remain
+        $this->assertStringNotContainsString('$$', $imported);
+    }
+
+    public function testRunTemplatesTranslatesLegacyCurlyPasswordToken(): void
+    {
+        $src = $this->makePdo();
+        $tgt = $this->makePdo();
+
+        $this->seedUnprefixedSourceWithTemplates(
+            $src, 1, 'huntrix', 'http://test.com',
+            emailsignup: 'Your password is {password}.'
+        );
+        $this->createOwnedTable($tgt);
+        $this->createEmailTemplatesTable($tgt);
+
+        $this->adapter()->run($src, $tgt, ImportOptions::fromPost([
+            'source'               => 'enthusiast',
+            'conflict_strategy'    => 'skip',
+            'import_owned_listings' => '1',
+            'import_templates'     => '1',
+        ]));
+
+        $stmt     = $tgt->query("SELECT body FROM lstr_email_templates WHERE type = 'join' LIMIT 1");
+        $imported = $stmt->fetchColumn();
+
+        $this->assertStringContainsString('{reset_url}', $imported);
+        $this->assertStringNotContainsString('{password}', $imported);
+    }
+
+    // -----------------------------------------------------------------------
+    // Fix 1 regression: unlinked affiliate warning text is clear
+    // -----------------------------------------------------------------------
+
+    public function testRunAffiliatesReportsUnlinkedCountWithClearMessage(): void
+    {
+        $src = $this->makePdo();
+        $tgt = $this->makePdo();
+
+        // Source: affiliate pointing to listing 99 which does NOT exist in target
+        $src->exec('CREATE TABLE IF NOT EXISTS categories (catid INTEGER PRIMARY KEY, catname TEXT)');
+        $src->exec(
+            'CREATE TABLE owned (listingid INTEGER PRIMARY KEY, dbtable TEXT NOT NULL DEFAULT \'\',
+             title TEXT NOT NULL DEFAULT \'\', subject TEXT NOT NULL DEFAULT \'\',
+             email TEXT NOT NULL DEFAULT \'\', url TEXT NOT NULL DEFAULT \'\',
+             catid TEXT NOT NULL DEFAULT \'\', additional TEXT NOT NULL DEFAULT \'\',
+             status INTEGER NOT NULL DEFAULT 2)'
+        );
+        $src->exec(
+            'CREATE TABLE affiliates (
+                affiliateid INTEGER PRIMARY KEY AUTOINCREMENT,
+                listingid INTEGER NOT NULL DEFAULT 0,
+                title TEXT NOT NULL DEFAULT \'\',
+                url TEXT NOT NULL DEFAULT \'\',
+                email TEXT NOT NULL DEFAULT \'\',
+                imagefile TEXT NOT NULL DEFAULT \'\'
+            )'
+        );
+        $src->exec("INSERT INTO affiliates (listingid, title, url) VALUES (99, 'Orphan', 'http://orphan.com')");
+
+        $this->createOwnedTable($tgt);
+        $this->createAffiliatesTable($tgt);
+
+        $result = $this->adapter()->run($src, $tgt, ImportOptions::fromPost([
+            'source'            => 'enthusiast',
+            'conflict_strategy' => 'skip',
+            'import_affiliates' => '1',
+        ]));
+
+        $affRow = null;
+        foreach ($result->rows as $row) {
+            if ($row['type'] === 'Affiliates') { $affRow = $row; break; }
+        }
+
+        $this->assertNotNull($affRow);
+        $this->assertSame(0, $affRow['imported']);
+        $this->assertNotEmpty($affRow['warnings']);
+        $warningText = implode(' ', $affRow['warnings']);
+        $this->assertStringContainsString('1', $warningText);
+        $this->assertStringNotContainsString('Import owned listings first', $warningText);
+    }
+
+    // -----------------------------------------------------------------------
+    // Saved email templates (Erin's fork emailtemplate table)
+    // -----------------------------------------------------------------------
+
+    /** Creates the lstr_saved_emails table and the source emailtemplate table. */
+    private function seedForSavedTemplateTests(PDO $src, PDO $tgt): void
+    {
+        $src->exec('CREATE TABLE IF NOT EXISTS category (catid INTEGER PRIMARY KEY, catname TEXT NOT NULL, parent INTEGER NOT NULL DEFAULT 0)');
+        $src->exec("CREATE TABLE IF NOT EXISTS `owned` (listingid INTEGER PRIMARY KEY, dbtable TEXT NOT NULL DEFAULT '')");
+        $src->exec(
+            'CREATE TABLE emailtemplate (
+                templateid   INTEGER PRIMARY KEY AUTOINCREMENT,
+                templatename TEXT    NOT NULL DEFAULT \'\',
+                subject      TEXT    NOT NULL DEFAULT \'\',
+                content      TEXT    NOT NULL DEFAULT \'\',
+                deletable    INTEGER NOT NULL DEFAULT 1
+            )'
+        );
+        $tgt->exec(
+            'CREATE TABLE lstr_saved_emails (
+                id         INTEGER PRIMARY KEY AUTOINCREMENT,
+                name       TEXT    NOT NULL DEFAULT \'\',
+                subject    TEXT    NOT NULL DEFAULT \'\',
+                body       TEXT    NOT NULL DEFAULT \'\',
+                created_at TEXT    NOT NULL DEFAULT CURRENT_TIMESTAMP
+            )'
+        );
+    }
+
+    public function testSavedTemplatesImportedFromEmailtemplateTable(): void
+    {
+        $src = $this->makePdo();
+        $tgt = $this->makePdo();
+        $this->seedForSavedTemplateTests($src, $tgt);
+
+        $src->exec("INSERT INTO emailtemplate (templatename, subject, content)
+                    VALUES ('Welcome', 'Welcome!', 'Hi \$\$fan_name\$\$, welcome to \$\$fanlisting_title\$\$.')");
+        $src->exec("INSERT INTO emailtemplate (templatename, subject, content)
+                    VALUES ('Reminder', 'Just a reminder', 'Your listing is \$\$fanlisting_url\$\$.')");
+
+        $result = $this->adapter()->run($src, $tgt, ImportOptions::fromPost([
+            'source'                  => 'enthusiast',
+            'conflict_strategy'       => 'skip',
+            'import_saved_templates'  => '1',
+        ]));
+
+        $savedRow = null;
+        foreach ($result->rows as $r) {
+            if ($r['type'] === 'Saved email templates') { $savedRow = $r; break; }
+        }
+        $this->assertNotNull($savedRow);
+        $this->assertSame(2, $savedRow['imported']);
+        $this->assertSame(0, $savedRow['skipped']);
+        $this->assertEmpty($savedRow['errors']);
+
+        $rows = $tgt->query('SELECT name, subject, body FROM lstr_saved_emails ORDER BY id')->fetchAll();
+        $this->assertCount(2, $rows);
+        $this->assertSame('Welcome',  $rows[0]['name']);
+        $this->assertSame('Welcome!', $rows[0]['subject']);
+        // Tokens should be translated
+        $this->assertStringContainsString('{fan_name}',    $rows[0]['body']);
+        $this->assertStringContainsString('{listing_name}', $rows[0]['body']);
+        $this->assertStringNotContainsString('$$fan_name$$',       $rows[0]['body']);
+        $this->assertStringNotContainsString('$$fanlisting_title$$', $rows[0]['body']);
+    }
+
+    public function testSavedTemplatesSkipsExistingNameOnSkipStrategy(): void
+    {
+        $src = $this->makePdo();
+        $tgt = $this->makePdo();
+        $this->seedForSavedTemplateTests($src, $tgt);
+
+        $src->exec("INSERT INTO emailtemplate (templatename, subject, content) VALUES ('Existing', 'Subj', 'Body')");
+        $tgt->exec("INSERT INTO lstr_saved_emails (name, subject, body) VALUES ('Existing', 'Old Subj', 'Old Body')");
+
+        $result = $this->adapter()->run($src, $tgt, ImportOptions::fromPost([
+            'source'                 => 'enthusiast',
+            'conflict_strategy'      => 'skip',
+            'import_saved_templates' => '1',
+        ]));
+
+        $savedRow = null;
+        foreach ($result->rows as $r) {
+            if ($r['type'] === 'Saved email templates') { $savedRow = $r; break; }
+        }
+        $this->assertSame(0, $savedRow['imported']);
+        $this->assertSame(1, $savedRow['skipped']);
+
+        // Name should be unchanged
+        $subj = $tgt->query("SELECT subject FROM lstr_saved_emails WHERE name='Existing'")->fetchColumn();
+        $this->assertSame('Old Subj', $subj);
+    }
+
+    public function testSavedTemplatesGracefullySkipsWhenTableMissing(): void
+    {
+        // Standard Enthusiast without the emailtemplate table — should not crash
+        $src = $this->makePdo();
+        $tgt = $this->makePdo();
+        // Do NOT create emailtemplate table in source
+        $src->exec('CREATE TABLE IF NOT EXISTS category (catid INTEGER PRIMARY KEY, catname TEXT NOT NULL, parent INTEGER NOT NULL DEFAULT 0)');
+        $src->exec("CREATE TABLE IF NOT EXISTS `owned` (listingid INTEGER PRIMARY KEY, dbtable TEXT NOT NULL DEFAULT '')");
+        $tgt->exec('CREATE TABLE lstr_saved_emails (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL DEFAULT \'\', subject TEXT NOT NULL DEFAULT \'\', body TEXT NOT NULL DEFAULT \'\', created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)');
+
+        $result = $this->adapter()->run($src, $tgt, ImportOptions::fromPost([
+            'source'                 => 'enthusiast',
+            'conflict_strategy'      => 'skip',
+            'import_saved_templates' => '1',
+        ]));
+
+        $savedRow = null;
+        foreach ($result->rows as $r) {
+            if ($r['type'] === 'Saved email templates') { $savedRow = $r; break; }
+        }
+        $this->assertNotNull($savedRow);
+        $this->assertSame(0, $savedRow['imported']);
+        $this->assertEmpty($savedRow['errors']);
+        $this->assertNotEmpty($savedRow['warnings'], 'Should warn that table was not found');
+    }
+
+    public function testSavedTemplatesTranslatesAllEnthusiastTokens(): void
+    {
+        $src = $this->makePdo();
+        $tgt = $this->makePdo();
+        $this->seedForSavedTemplateTests($src, $tgt);
+
+        $body = '$$fan_name$$ $$fan_email$$ $$fan_url$$ $$fan_country$$ '
+              . '$$fanlisting_title$$ $$fanlisting_subject$$ $$fanlisting_url$$ '
+              . '$$owner_name$$ $$owner_email$$ $$fan_password$$ $$password$$ {password}';
+
+        $src->exec("INSERT INTO emailtemplate (templatename, subject, content) VALUES ('All Tokens', 'Sub', " . $src->quote($body) . ")");
+
+        $this->adapter()->run($src, $tgt, ImportOptions::fromPost([
+            'source'                 => 'enthusiast',
+            'conflict_strategy'      => 'skip',
+            'import_saved_templates' => '1',
+        ]));
+
+        $imported = $tgt->query("SELECT body FROM lstr_saved_emails WHERE name='All Tokens'")->fetchColumn();
+        $this->assertStringContainsString('{fan_name}',       $imported);
+        $this->assertStringContainsString('{fan_email}',      $imported);
+        $this->assertStringContainsString('{fan_url}',        $imported);
+        $this->assertStringContainsString('{fan_country}',    $imported);
+        $this->assertStringContainsString('{listing_name}',   $imported);
+        $this->assertStringContainsString('{listing_subject}', $imported);
+        $this->assertStringContainsString('{listing_url}',    $imported);
+        $this->assertStringContainsString('{owner_name}',     $imported);
+        $this->assertStringContainsString('{owner_email}',    $imported);
+        $this->assertStringContainsString('{reset_url}',      $imported);
+        $this->assertStringNotContainsString('$$', $imported);
+        $this->assertStringNotContainsString('{password}', $imported);
+    }
+
+    // -----------------------------------------------------------------------
+    // opened date and last_updated import
+    // -----------------------------------------------------------------------
+
+    /** Creates a target owned table that includes the Luster-extended `opened` column. */
+    private function makeTargetWithOpened(): PDO
+    {
+        $tgt = $this->makePdo();
+        $tgt->exec(
+            'CREATE TABLE owned (
+                listingid  INTEGER PRIMARY KEY AUTOINCREMENT,
+                dbtable    TEXT    NOT NULL DEFAULT \'\',
+                title      TEXT    NOT NULL DEFAULT \'\',
+                subject    TEXT    NOT NULL DEFAULT \'\',
+                email      TEXT    NOT NULL DEFAULT \'\',
+                url        TEXT    NOT NULL DEFAULT \'\',
+                catid      TEXT    NOT NULL DEFAULT \'\',
+                additional TEXT    NOT NULL DEFAULT \'\',
+                status     INTEGER NOT NULL DEFAULT 2,
+                opened     DATE    NULL
+            )'
+        );
+        $tgt->exec('CREATE TABLE IF NOT EXISTS lstr_categories (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, parent_id INTEGER NULL, source TEXT NOT NULL DEFAULT \'custom\')');
+        $tgt->exec('CREATE TABLE IF NOT EXISTS lstr_fanlisting_settings (fanlisting_id INTEGER PRIMARY KEY, members_per_page INTEGER NOT NULL DEFAULT 25, queue_updates INTEGER NOT NULL DEFAULT 0, members_template TEXT NULL, affiliates_template TEXT NULL, stats_template TEXT NULL, image TEXT NULL, last_updated DATE NULL)');
+        return $tgt;
+    }
+
+    public function testRunOwnedListingsImportsOpenedDate(): void
+    {
+        $src = $this->makePdo();
+        $tgt = $this->makeTargetWithOpened();
+
+        // Seed source with unprefixed Enthusiast schema including opened date
+        $src->exec('CREATE TABLE IF NOT EXISTS category (catid INTEGER PRIMARY KEY, catname TEXT NOT NULL, parent INTEGER NOT NULL DEFAULT 0)');
+        $src->exec(
+            'CREATE TABLE owned (
+                listingid INTEGER PRIMARY KEY,
+                dbtable   TEXT    NOT NULL DEFAULT \'\',
+                title     TEXT    NOT NULL DEFAULT \'\',
+                subject   TEXT    NOT NULL DEFAULT \'\',
+                email     TEXT    NOT NULL DEFAULT \'\',
+                url       TEXT    NOT NULL DEFAULT \'\',
+                catid     TEXT    NOT NULL DEFAULT \'\',
+                additional TEXT   NOT NULL DEFAULT \'\',
+                status    INTEGER NOT NULL DEFAULT 2,
+                opened    DATE    NULL
+            )'
+        );
+        $src->exec("INSERT INTO owned (listingid, dbtable, url, title, subject, opened)
+                    VALUES (1, 'huntrix', 'http://huntrix.example.com', 'HxH', 'HxH', '2019-04-01')");
+        $src->exec("CREATE TABLE huntrix (email TEXT PRIMARY KEY)");
+
+        $result = $this->adapter()->run($src, $tgt, ImportOptions::fromPost([
+            'source'               => 'enthusiast',
+            'conflict_strategy'    => 'skip',
+            'import_owned_listings' => '1',
+        ]));
+
+        $ownedRow = null;
+        foreach ($result->rows as $r) {
+            if ($r['type'] === 'Owned listings') { $ownedRow = $r; break; }
+        }
+        $this->assertNotNull($ownedRow);
+        $this->assertSame(1, $ownedRow['imported']);
+
+        $stmt = $tgt->query("SELECT opened FROM owned WHERE url = 'http://huntrix.example.com'");
+        $this->assertSame('2019-04-01', $stmt->fetchColumn(), 'opened date must be imported');
+    }
+
+    public function testRunOwnedListingsNullOpenedWhenSourceHasNone(): void
+    {
+        $src = $this->makePdo();
+        $tgt = $this->makeTargetWithOpened();
+
+        // Source table without an opened column (standard Enthusiast)
+        $src->exec('CREATE TABLE IF NOT EXISTS category (catid INTEGER PRIMARY KEY, catname TEXT NOT NULL, parent INTEGER NOT NULL DEFAULT 0)');
+        $src->exec(
+            'CREATE TABLE owned (
+                listingid INTEGER PRIMARY KEY, dbtable TEXT NOT NULL DEFAULT \'\',
+                title TEXT NOT NULL DEFAULT \'\', subject TEXT NOT NULL DEFAULT \'\',
+                email TEXT NOT NULL DEFAULT \'\', url TEXT NOT NULL DEFAULT \'\',
+                catid TEXT NOT NULL DEFAULT \'\', additional TEXT NOT NULL DEFAULT \'\',
+                status INTEGER NOT NULL DEFAULT 2
+            )'
+        );
+        $src->exec("INSERT INTO owned (listingid, dbtable, url, title, subject)
+                    VALUES (1, 'fl', 'http://fl.example.com', 'FL', 'FL')");
+        $src->exec("CREATE TABLE fl (email TEXT PRIMARY KEY)");
+
+        $this->adapter()->run($src, $tgt, ImportOptions::fromPost([
+            'source'               => 'enthusiast',
+            'conflict_strategy'    => 'skip',
+            'import_owned_listings' => '1',
+        ]));
+
+        $stmt = $tgt->query("SELECT opened FROM owned WHERE url = 'http://fl.example.com'");
+        $this->assertNull($stmt->fetchColumn(), 'opened must be NULL when source has no date');
+    }
+
+    public function testRunSettingsDerivesLastUpdatedFromMemberTable(): void
+    {
+        $src = $this->makePdo();
+        $tgt = $this->makeTargetWithOpened();
+
+        // Source: one listing with member whose most recent join date is 2023-06-15
+        $src->exec('CREATE TABLE IF NOT EXISTS category (catid INTEGER PRIMARY KEY, catname TEXT NOT NULL, parent INTEGER NOT NULL DEFAULT 0)');
+        $src->exec(
+            'CREATE TABLE owned (
+                listingid INTEGER PRIMARY KEY, dbtable TEXT NOT NULL DEFAULT \'\',
+                title TEXT NOT NULL DEFAULT \'\', subject TEXT NOT NULL DEFAULT \'\',
+                email TEXT NOT NULL DEFAULT \'\', url TEXT NOT NULL DEFAULT \'\',
+                catid TEXT NOT NULL DEFAULT \'\', additional TEXT NOT NULL DEFAULT \'\',
+                status INTEGER NOT NULL DEFAULT 2,
+                perpage INTEGER NOT NULL DEFAULT 25, holdupdate INTEGER NOT NULL DEFAULT 0
+            )'
+        );
+        $src->exec("INSERT INTO owned (listingid, dbtable, url, title, subject) VALUES (1, 'fl', 'http://fl.example.com', 'FL', 'FL')");
+        $src->exec("CREATE TABLE fl (email TEXT PRIMARY KEY, name TEXT NOT NULL DEFAULT '', added DATE NULL)");
+        $src->exec("INSERT INTO fl (email, added) VALUES ('early@test.com', '2021-01-10')");
+        $src->exec("INSERT INTO fl (email, added) VALUES ('recent@test.com', '2023-06-15')");
+
+        // Pre-seed a listing in the target so settings can attach to it
+        $tgt->exec("INSERT INTO owned (listingid, dbtable, url, title, subject, status)
+                    VALUES (1, 'fl', 'http://fl.example.com', 'FL', 'FL', 2)");
+
+        $this->adapter()->run($src, $tgt, ImportOptions::fromPost([
+            'source'            => 'enthusiast',
+            'conflict_strategy' => 'skip',
+            'import_settings'   => '1',
+        ]));
+
+        $stmt = $tgt->query('SELECT last_updated FROM lstr_fanlisting_settings WHERE fanlisting_id = 1');
+        $lastUpdated = $stmt->fetchColumn();
+        $this->assertSame('2023-06-15', $lastUpdated, 'last_updated must be the most recent member join date');
+    }
+
+    public function testRunSettingsFallsBackToTodayWhenMemberTableEmpty(): void
+    {
+        $src = $this->makePdo();
+        $tgt = $this->makeTargetWithOpened();
+
+        $src->exec('CREATE TABLE IF NOT EXISTS category (catid INTEGER PRIMARY KEY, catname TEXT NOT NULL, parent INTEGER NOT NULL DEFAULT 0)');
+        $src->exec(
+            'CREATE TABLE owned (
+                listingid INTEGER PRIMARY KEY, dbtable TEXT NOT NULL DEFAULT \'\',
+                url TEXT NOT NULL DEFAULT \'\', title TEXT NOT NULL DEFAULT \'\',
+                subject TEXT NOT NULL DEFAULT \'\', email TEXT NOT NULL DEFAULT \'\',
+                catid TEXT NOT NULL DEFAULT \'\', additional TEXT NOT NULL DEFAULT \'\',
+                status INTEGER NOT NULL DEFAULT 2,
+                perpage INTEGER NOT NULL DEFAULT 25, holdupdate INTEGER NOT NULL DEFAULT 0
+            )'
+        );
+        $src->exec("INSERT INTO owned (listingid, dbtable, url, title, subject) VALUES (1, 'empty_fl', 'http://empty.example.com', 'FL', 'FL')");
+        $src->exec("CREATE TABLE empty_fl (email TEXT PRIMARY KEY, added DATE NULL)"); // empty table
+
+        $tgt->exec("INSERT INTO owned (listingid, dbtable, url, title, subject, status)
+                    VALUES (1, 'empty_fl', 'http://empty.example.com', 'FL', 'FL', 2)");
+
+        $this->adapter()->run($src, $tgt, ImportOptions::fromPost([
+            'source'            => 'enthusiast',
+            'conflict_strategy' => 'skip',
+            'import_settings'   => '1',
+        ]));
+
+        $stmt        = $tgt->query('SELECT last_updated FROM lstr_fanlisting_settings WHERE fanlisting_id = 1');
+        $lastUpdated = $stmt->fetchColumn();
+        $this->assertNotNull($lastUpdated, 'last_updated must not be NULL — should fall back to today');
+        $this->assertMatchesRegularExpression('/^\d{4}-\d{2}-\d{2}$/', (string) $lastUpdated);
+    }
 }

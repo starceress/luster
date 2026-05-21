@@ -52,7 +52,7 @@ final class ImportMembersController
         $error = (string) $session->get('lstr_flash_error', '');
         $session->remove('lstr_flash_error');
 
-        return $this->layout('admin/import-members/landing.php', 'Import Members', [
+        return $this->layout('admin/import/import-members/index.php', 'Import Members', [
             'listings' => array_values($listings),
             'error'    => $error,
         ]);
@@ -179,7 +179,7 @@ final class ImportMembersController
             return Response::redirect($this->app->getBaseUrl() . '/admin/import-members');
         }
 
-        return $this->layout('admin/import-members/preview.php', 'Import Members — Preview', [
+        return $this->layout('admin/import/import-members/preview.php', 'Import Members — Preview', [
             'listing' => $listing,
             'format'  => (string) $session->get(self::SESS_FORMAT, 'unknown'),
             'mapping' => (array)  $session->get(self::SESS_MAPPING, []),
@@ -317,7 +317,7 @@ final class ImportMembersController
             return Response::redirect($this->app->getBaseUrl() . '/admin/import-members');
         }
 
-        return $this->layout('admin/import-members/result.php', 'Import Members — Done', [
+        return $this->layout('admin/import/import-members/result.php', 'Import Members — Done', [
             'result' => $result,
         ]);
     }

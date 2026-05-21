@@ -43,7 +43,7 @@ final class AdminUsersController extends AdminController
         $session->remove('lstr_flash_old');
         $session->remove('lstr_flash_field_errors');
 
-        return $this->adminLayout('admin/admin-users/add.php', 'Admin Accounts', 'settings', [
+        return $this->adminLayout('admin/settings/add.php', 'Admin Accounts', 'settings', [
             'error'        => $error,
             'old'          => $old,
             'field_errors' => is_array($fieldErrors) ? $fieldErrors : [],
@@ -57,26 +57,28 @@ final class AdminUsersController extends AdminController
     {
         $baseUrl  = $this->app->getBaseUrl();
         $session  = $this->app->getSession();
-        $username = trim((string) $request->post('username', ''));
-        $email    = trim((string) $request->post('email',    ''));
-        $password = (string) $request->post('password',         '');
-        $confirm  = (string) $request->post('password_confirm', '');
+        $username  = trim((string) $request->post('username',   ''));
+        $email     = trim((string) $request->post('email',      ''));
+        $displayName = trim((string) $request->post('display_name', ''));
+        $password  = (string) $request->post('password',         '');
+        $confirm   = (string) $request->post('password_confirm', '');
 
-        $v = new Validator(['username' => $username, 'email' => $email, 'password' => $password]);
+        $v = new Validator(['username' => $username, 'email' => $email, 'password' => $password, 'display_name' => $displayName]);
         $v->field('username')->required()->maxLength(50);
         $v->field('email')->required()->email()->maxLength(255);
         $v->field('password')->required()->minLength(12)->maxLength(255);
+        $v->field('display_name')->required()->maxLength(100);
 
         if ($v->fails()) {
             $session->set('lstr_flash_error', implode(' ', $v->allErrors()));
-            $session->set('lstr_flash_old', ['username' => $username, 'email' => $email]);
+            $session->set('lstr_flash_old', ['username' => $username, 'email' => $email, 'display_name' => $displayName]);
             $session->set('lstr_flash_field_errors', json_encode($v->errors()));
             return Response::redirect($baseUrl . '/admin/admin-users/add');
         }
 
         if ($password !== $confirm) {
             $session->set('lstr_flash_error', 'Passwords do not match.');
-            $session->set('lstr_flash_old', ['username' => $username, 'email' => $email]);
+            $session->set('lstr_flash_old', ['username' => $username, 'email' => $email, 'display_name' => $displayName]);
             $session->set('lstr_flash_field_errors', json_encode(['password_confirm' => ['Passwords do not match.']]));
             return Response::redirect($baseUrl . '/admin/admin-users/add');
         }
@@ -84,10 +86,10 @@ final class AdminUsersController extends AdminController
         $repo = new AdminUserRepo($this->app->getDatabase());
 
         try {
-            $repo->insert($username, $email, password_hash($password, PASSWORD_ARGON2ID));
+            $repo->insert($username, $email, password_hash($password, PASSWORD_ARGON2ID), $displayName ?: null);
         } catch (\PDOException) {
             $session->set('lstr_flash_error', 'That username or email address is already in use.');
-            $session->set('lstr_flash_old', ['username' => $username, 'email' => $email]);
+            $session->set('lstr_flash_old', ['username' => $username, 'email' => $email, 'display_name' => $displayName]);
             return Response::redirect($baseUrl . '/admin/admin-users/add');
         }
 
@@ -97,7 +99,7 @@ final class AdminUsersController extends AdminController
             "Created admin account: {$username}",
         );
 
-        $session->set('lstr_flash_success', "Admin account <strong>" . htmlspecialchars($username, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . "</strong> created.");
+        $session->set('lstr_flash_success', "Admin account \"{$username}\" created.");
         return Response::redirect($baseUrl . '/admin/settings#panel-accounts');
     }
 
@@ -121,7 +123,7 @@ final class AdminUsersController extends AdminController
         $session->remove('lstr_flash_error');
         $session->remove('lstr_flash_field_errors');
 
-        return $this->adminLayout('admin/admin-users/edit.php', 'Admin Accounts', 'settings', [
+        return $this->adminLayout('admin/settings/edit.php', 'Admin Accounts', 'settings', [
             'user'         => $user,
             'error'        => $error,
             'field_errors' => is_array($fieldErrors) ? $fieldErrors : [],
@@ -144,14 +146,16 @@ final class AdminUsersController extends AdminController
             return Response::notFound('Admin user not found.');
         }
 
-        $username = trim((string) $request->post('username', ''));
-        $email    = trim((string) $request->post('email',    ''));
-        $password = (string) $request->post('new_password',         '');
-        $confirm  = (string) $request->post('new_password_confirm', '');
+        $username  = trim((string) $request->post('username',   ''));
+        $email     = trim((string) $request->post('email',      ''));
+        $displayName = trim((string) $request->post('display_name', ''));
+        $password  = (string) $request->post('new_password',         '');
+        $confirm   = (string) $request->post('new_password_confirm', '');
 
-        $v = new Validator(['username' => $username, 'email' => $email]);
+        $v = new Validator(['username' => $username, 'email' => $email, 'display_name' => $displayName]);
         $v->field('username')->required()->maxLength(50);
         $v->field('email')->required()->email()->maxLength(255);
+        $v->field('display_name')->required()->maxLength(100);
         if ($password !== '') {
             $v->field('new_password')->minLength(12)->maxLength(255);
         }
@@ -169,7 +173,7 @@ final class AdminUsersController extends AdminController
         }
 
         try {
-            $repo->updateProfile($id, $username, $email);
+            $repo->updateProfile($id, $username, $email, $displayName ?: null);
         } catch (\PDOException) {
             $session->set('lstr_flash_error', 'That username or email address is already in use.');
             return Response::redirect($baseUrl . '/admin/admin-users/' . $id . '/edit');
@@ -194,7 +198,7 @@ final class AdminUsersController extends AdminController
             "Edited admin account: {$username}",
         );
 
-        $session->set('lstr_flash_success', "Account <strong>" . htmlspecialchars($username, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . "</strong> updated.");
+        $session->set('lstr_flash_success', "Account \"{$username}\" updated.");
         return Response::redirect($baseUrl . '/admin/settings#panel-accounts');
     }
 
@@ -236,7 +240,7 @@ final class AdminUsersController extends AdminController
             "Deleted admin account: {$user->username}",
         );
 
-        $session->set('lstr_flash_success', "Account <strong>" . htmlspecialchars($user->username, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . "</strong> deleted.");
+        $session->set('lstr_flash_success', "Account \"{$user->username}\" deleted.");
         return Response::redirect($baseUrl . '/admin/settings#panel-accounts');
     }
 

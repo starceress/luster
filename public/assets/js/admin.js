@@ -565,7 +565,50 @@ wireSelectAll('fl-select-all', '.fl-row-cb');
   });
 }());
 
-// ── 23. Joined index: network → category filter ───────────────────────────────
+// ── 23. Categories index: network filter → category name select ───────────────
+
+(function () {
+  var catSel = document.getElementById('cat-cat-sel');
+  var netSel = document.getElementById('cat-net-sel');
+  if (!catSel || !netSel) return;
+
+  var tflCats   = JSON.parse(catSel.dataset.tfl   || '[]');
+  var taflCats  = JSON.parse(catSel.dataset.tafl  || '[]');
+  var customMap = JSON.parse(catSel.dataset.custom || '{}');
+  var selected  = catSel.querySelector('option[selected]');
+  var currentVal = selected ? selected.value : '';
+
+  function populate(cats) {
+    var html = '<option value="">All Categories</option>';
+    cats.forEach(function (c) {
+      var sel = c.name === currentVal ? ' selected' : '';
+      html += '<option value="' + esc(c.name) + '"' + sel + '>' + esc(c.name) + '</option>';
+    });
+    catSel.innerHTML = html;
+  }
+
+  function catsForNet(net) {
+    if (net === 'TFL')       return tflCats;
+    if (net === 'TAFL')      return taflCats;
+    if (net !== '')          return customMap[net] || [];
+    var all = tflCats.concat(taflCats);
+    Object.values(customMap).forEach(function (arr) { all = all.concat(arr); });
+    return all.sort(function (a, b) { return a.name.localeCompare(b.name); });
+  }
+
+  populate(catsForNet(netSel.value));
+
+  netSel.addEventListener('change', function () {
+    currentVal = '';
+    populate(catsForNet(this.value));
+  });
+
+  catSel.addEventListener('change', function () {
+    catSel.closest('form').submit();
+  });
+}());
+
+// ── 24. Joined index: network → category filter ───────────────────────────────
 // Data stored as JSON in data-net-cats attribute on #net-sel.
 
 (function () {
@@ -690,10 +733,10 @@ document.addEventListener('click', function (e) {
 // ── 28. Categories add/edit: custom network name row toggle ───────────────────
 
 (function () {
-  var sel = document.querySelector('select[name="custom_network"]');
+  var sel = document.querySelector('select[name="add_network"]');
   var row = document.getElementById('network-name-row');
   if (!sel || !row) return;
-  function toggle() { row.style.display = sel.value === 'yes' ? 'block' : 'none'; }
+  function toggle() { row.classList.toggle('is-hidden', sel.value !== 'yes'); }
   sel.addEventListener('change', toggle);
   toggle();
 }());
@@ -2737,21 +2780,7 @@ document.addEventListener('click', function (e) {
     });
   }
 
-  // Image mode sub-panel show/hide (path / url / zip)
-  var imgRadios = document.querySelectorAll('input[name="image_mode"]');
-  var pathField = document.getElementById('js-img-path-field');
-  var urlField  = document.getElementById('js-img-url-field');
-  var zipField  = document.getElementById('js-img-zip-field');
-
-  function updateImageModeFields() {
-    var mode = document.querySelector('input[name="image_mode"]:checked');
-    if (!mode) return;
-    setVisible(pathField, mode.value === 'path');
-    setVisible(urlField,  mode.value === 'url');
-    setVisible(zipField,  mode.value === 'zip');
-  }
-  imgRadios.forEach(function (r) { r.addEventListener('change', updateImageModeFields); });
-  updateImageModeFields(); // run once on load to match PHP-rendered checked state
+  // Image options fields are shown/hidden by the toggle only (no mode radio).
 
   // Connection method toggle (live DB vs SQL dump upload)
   var cfgForm    = document.getElementById('import-configure-form');
@@ -2973,9 +3002,8 @@ document.addEventListener('click', function (e) {
   if (!targetId) return;
   var row = document.getElementById(targetId);
   if (!row) return;
-  var isOpen = row.style.display !== 'none';
-  row.style.display = isOpen ? 'none' : '';
-  btn.classList.toggle('is-open', !isOpen);
+  var opening = row.classList.toggle('table-row-hidden');
+  btn.classList.toggle('is-open', !opening);
 });
 
 // ── 43. Settings — scoped panel clear buttons ─────────────────────────────────
@@ -3440,4 +3468,174 @@ document.addEventListener('click', function (e) {
     });
   });
 
+}());
+
+// ── Nav search ───────────────────────────────────────────────────────────────
+
+(function () {
+  var input     = document.getElementById('nav-search-input');
+  var clearBtn  = document.getElementById('nav-search-clear');
+  var noResults = document.getElementById('nav-search-no-results');
+  var extrasEl  = document.getElementById('nav-search-extras');
+  if (!input) return;
+
+  var base = (input.dataset.base || '').replace(/\/$/, '');
+
+  // Static index of sub-pages and tabs not represented in the sidebar nav
+  var EXTRAS = [
+    { label: 'Email Templates',    hint: 'Emails',   url: base + '/admin/emails?tab=templates' },
+    { label: 'Bulk Email',         hint: 'Emails',   url: base + '/admin/emails?tab=bulk' },
+    { label: 'Custom Templates',   hint: 'Emails',   url: base + '/admin/emails?tab=custom' },
+    { label: 'SMTP Settings',      hint: 'Emails',   url: base + '/admin/emails?tab=smtp' },
+    { label: 'Account Details',    hint: 'Settings', url: base + '/admin/settings#panel-admin' },
+    { label: 'Admin Accounts',     hint: 'Settings', url: base + '/admin/settings#panel-accounts' },
+    { label: 'General Settings',   hint: 'Settings', url: base + '/admin/settings#panel-general' },
+    { label: 'Server Paths',       hint: 'Settings', url: base + '/admin/settings#panel-embed' },
+    { label: 'Blacklist',          hint: 'Settings', url: base + '/admin/settings#panel-blacklist' },
+    { label: 'System Details',     hint: 'Settings', url: base + '/admin/settings#panel-system' },
+    { label: 'System Info',        hint: 'Admin',    url: base + '/admin/sysinfo' },
+    { label: 'Members Settings',   hint: 'Members',  url: base + '/admin/members/settings' },
+    { label: 'Collective Templates', hint: 'Listings', url: base + '/admin/listings/collective-templates' },
+  ];
+
+  function navLabel(el) {
+    return Array.from(el.childNodes)
+      .filter(function (n) { return n.nodeType === 3; })
+      .map(function (n) { return n.textContent; })
+      .join('').trim().toLowerCase();
+  }
+
+  function renderExtras(q) {
+    if (!extrasEl) return false;
+    extrasEl.innerHTML = '';
+    if (q === '') return false;
+
+    var matches = EXTRAS.filter(function (e) {
+      return e.label.toLowerCase().includes(q);
+    });
+
+    if (matches.length === 0) return false;
+
+    var label = document.createElement('div');
+    label.className = 'sidebar-label';
+    label.textContent = 'Jump to';
+    extrasEl.appendChild(label);
+
+    matches.forEach(function (e) {
+      var a = document.createElement('a');
+      a.href = e.url;
+      a.className = 'nav-item nav-item--extra';
+      a.innerHTML = e.label + '<span class="nav-extra-hint">' + e.hint + '</span>';
+      extrasEl.appendChild(a);
+    });
+
+    return true;
+  }
+
+  function setClear(show) {
+    if (clearBtn) clearBtn.classList.toggle('is-visible', show);
+  }
+
+  function run(query) {
+    var q        = query.trim().toLowerCase();
+    var items    = document.querySelectorAll('.sidebar-nav .nav-item:not(.nav-item--extra)');
+    var groups   = document.querySelectorAll('.nav-group');
+    var sections = document.querySelectorAll('.sidebar-section');
+    var anyVisible = false;
+
+    setClear(query !== '');
+
+    if (q === '') {
+      items.forEach(function (el) { el.style.display = ''; });
+      groups.forEach(function (g) {
+        g.style.display = '';
+        var toggle = g.querySelector('.nav-group-toggle');
+        var panel  = g.querySelector('.nav-group-panel');
+        if (toggle && panel) {
+          panel.classList.toggle('open', toggle.getAttribute('aria-expanded') === 'true');
+          panel.style.maxHeight = '';
+        }
+      });
+      sections.forEach(function (s) { s.style.display = ''; });
+      if (noResults) noResults.classList.remove('is-visible');
+      renderExtras('');
+      return;
+    }
+
+    items.forEach(function (el) {
+      el.style.display = navLabel(el).includes(q) ? '' : 'none';
+    });
+
+    groups.forEach(function (g) {
+      var panel = g.querySelector('.nav-group-panel');
+      if (!panel) return;
+      var matched = Array.from(panel.querySelectorAll('.nav-item'))
+        .some(function (el) { return el.style.display !== 'none'; });
+      if (matched) {
+        g.style.display = '';
+        panel.classList.add('open');
+        panel.style.maxHeight = '999px';
+        anyVisible = true;
+      } else {
+        g.style.display = 'none';
+      }
+    });
+
+    sections.forEach(function (s) {
+      var hasItem  = Array.from(s.querySelectorAll('.nav-item:not(.nav-item--extra)')).some(function (el) { return el.style.display !== 'none'; });
+      var hasGroup = Array.from(s.querySelectorAll('.nav-group')).some(function (g) { return g.style.display !== 'none'; });
+      s.style.display = (hasItem || hasGroup) ? '' : 'none';
+      if (hasItem || hasGroup) anyVisible = true;
+    });
+
+    var hasExtras = renderExtras(q);
+    if (hasExtras) anyVisible = true;
+    if (noResults) noResults.classList.toggle('is-visible', !anyVisible);
+  }
+
+  if (clearBtn) {
+    clearBtn.addEventListener('click', function () {
+      input.value = '';
+      run('');
+      input.focus();
+    });
+  }
+
+  input.addEventListener('input', function () { run(this.value); });
+
+  input.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') { this.value = ''; run(''); this.blur(); }
+  });
+
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'k' && (e.ctrlKey || e.metaKey)) {
+      e.preventDefault();
+      input.focus();
+      input.select();
+      return;
+    }
+    if (e.key === '/' && !['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement.tagName)) {
+      e.preventDefault();
+      input.focus();
+      input.select();
+    }
+  });
+}());
+
+// ── Settings page mini-nav dropdown (mobile ≤ 820px) ─────────────────────────
+(function () {
+  var sel = document.getElementById('settings-nav-select');
+  if (!sel) return;
+
+  function sync() {
+    var h = location.hash.replace('#', '') || 'panel-admin';
+    if (sel.querySelector('option[value="' + h + '"]')) sel.value = h;
+  }
+
+  sel.addEventListener('change', function () {
+    location.href = '#' + this.value;
+  });
+
+  window.addEventListener('hashchange', sync);
+  sync();
 }());

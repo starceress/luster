@@ -129,9 +129,12 @@ if ($displayMode === 'category') {
     </select>
     </div>
 
-    <input type="text" name="search" class="form" placeholder="Search&hellip;"
-           value="<?= View::e($search ?? '') ?>">
-    <button type="submit" class="btn btn-quaternary btn-sm">Search</button>
+    <div class="search-field-wrap">
+      <?= View::icon('search', ['class' => 'search-field-icon', 'aria-hidden' => 'true']) ?>
+      <input type="text" name="search" class="form" placeholder="Search&hellip;"
+             value="<?= View::e($search ?? '') ?>">
+    </div>
+    <button type="submit" class="btn btn-secondary btn-sm">Search</button>
     <a href="?" class="btn btn-quaternary btn-sm">Reset</a>
 
   </form>
@@ -140,12 +143,13 @@ if ($displayMode === 'category') {
 <?php if (empty($joined)): ?>
   <div class="card">
     <div class="empty">
-      <span class="empty-icon"><?= View::icon('heart', ['width' => 32, 'height' => 32]) ?></span>
+      <div class="empty-icon"><?= View::icon('heart', ['width' => 32, 'height' => 32]) ?></div>
       <?php if (($search ?? '') !== '' || ($filter_network ?? '') !== '' || ($filter_cat ?? '') !== ''): ?>
-        No joined listings match those filters.
-        <a href="<?= $b ?>/admin/joined" class="btn btn-tertiary btn-sm">Clear Filters</a>
+        <div class="empty-title">No joined listings match those filters.</div>
+        <a href="<?= $b ?>/admin/joined" class="btn btn-ghost btn-sm">Clear Filters</a>
       <?php else: ?>
-        No joined listings yet.
+        <div class="empty-title">No joined listings yet.</div>
+        <div>Track the listings you're a member of.</div>
         <a href="<?= $b ?>/admin/joined/add" class="btn btn-primary btn-sm"><?= View::icon('add') ?> Add Joined Listing</a>
       <?php endif; ?>
     </div>

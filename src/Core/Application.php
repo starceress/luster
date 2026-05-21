@@ -183,7 +183,7 @@ final class Application
      * Returns global nav data for admin layout templates.
      * Lazily computed once per request and cached on the instance.
      *
-     * @return array{nav_pending_members: int, nav_pending_kim: int, nav_pending_adoptions: int, nav_site_url: string, nav_installed_addons: array}
+     * @return array{nav_pending_members: int, nav_pending_kim: int, nav_pending_adoptions: int, nav_site_url: string, nav_installed_addons: array, selected_skin: string}
      */
     public function getAdminNavData(): array
     {
@@ -214,12 +214,19 @@ final class Application
             $pendingAdoptions = (new \Luster\Addons\Adoption\AdoptionRepo($this->database))->countNew();
         }
 
+        $selectedSkin = '';
+        try {
+            $selectedSkin = (new \Luster\Repositories\SiteSettingsRepo($this->database))
+                ->get('selected_skin', '');
+        } catch (\Throwable) {}
+
         $cache = [
             'nav_pending_members'   => $pending,
             'nav_pending_kim'       => $pendingKim,
             'nav_pending_adoptions' => $pendingAdoptions,
             'nav_site_url'          => rtrim((string) $this->config->get('site_url', ''), '/'),
             'nav_installed_addons'  => $this->installedAddonKeys,
+            'selected_skin'         => $selectedSkin,
         ];
         return $cache;
     }

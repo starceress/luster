@@ -1112,7 +1112,13 @@ final class MemberController extends AdminController
         $session = $this->app->getSession();
         $baseUrl = $this->app->getBaseUrl();
 
-        $perPage = max(5, min(200, (int) $request->post('per_page', 25)));
+        if ($request->post('reset_defaults') === '1') {
+            $perPage = 25;
+            $msg     = 'Settings reset to defaults.';
+        } else {
+            $perPage = max(5, min(200, (int) $request->post('per_page', 25)));
+            $msg     = 'Settings saved successfully.';
+        }
 
         $updated             = $this->app->getConfig()->all();
         $updated['per_page'] = $perPage;
@@ -1132,7 +1138,7 @@ final class MemberController extends AdminController
             $request->ip(),
         );
 
-        $session->set('lstr_flash_success', 'Settings saved successfully.');
+        $session->set('lstr_flash_success', $msg);
         return Response::redirect($baseUrl . '/admin/members/settings');
     }
 
@@ -1458,6 +1464,10 @@ final class MemberController extends AdminController
         if (!rename($tmpPath, $configPath)) {
             unlink($tmpPath);
             throw new \RuntimeException('Could not rename temp config file to: ' . $configPath);
+        }
+
+        if (function_exists('opcache_invalidate')) {
+            opcache_invalidate($configPath, true);
         }
     }
 }

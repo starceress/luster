@@ -13,9 +13,9 @@ $_defaults = [
 ];
 ?>
 
-<p class="mb-section">
+<div class="page-topbar">
   <a href="<?= $b ?>/admin/kim" class="link">&larr; Back to KIM List</a>
-</p>
+</div>
 
 <?php if (($success ?? '') !== ''): ?>
   <div class="alert alert-success"><?= View::e($success) ?></div>
@@ -24,12 +24,18 @@ $_defaults = [
   <div class="alert alert-error"><?= View::e($error) ?></div>
 <?php endif; ?>
 
-<div class="card">
-  <div class="card-head">KIM Page URLs</div>
+<div class="gradient-card">
+  <div class="pc-head">
+    <div class="pc-head-icon pc-head-icon-bg"><?= View::icon('gear') ?></div>
+    <div class="pc-head-meta">
+      <div class="pc-head-title">Display Settings</div>
+      <div class="pc-head-sub">Configure the public page URLs used by the KIM List embed.</div>
+    </div>
+  </div>
   <form method="post" action="<?= $b ?>/admin/kim/settings">
     <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
-    <div class="card-body">
-      <p>Enter the <strong>page filename</strong> of each KIM page on your site. The embed will prepend your site's base URL automatically. Leave blank to hide a link entirely.</p>
+    <div class="pc-section">
+      <p class="form-hint mb-section">Enter the <strong>page filename</strong> of each KIM page on your site. The embed will prepend your site's base URL automatically. Leave blank to hide a link entirely.</p>
 
       <div class="form-row">
         <div class="form-group">
@@ -64,7 +70,7 @@ $_defaults = [
 
     <div class="composer-footer">
       <button type="submit" class="btn btn-primary">Save Settings</button>
-      <button type="submit" name="reset_defaults" value="1" class="btn btn-ghost">Reset to Default</button>
+      <button type="submit" name="reset_defaults" value="1" class="btn btn-quaternary">Reset to Default</button>
       <button type="reset" class="btn btn-ghost">Clear</button>
       <a href="<?= $b ?>/admin/kim" class="btn btn-ghost">Cancel</a>
     </div>

@@ -560,12 +560,16 @@ final class JoinedController extends AdminController
                 return Response::redirect($baseUrl . '/admin/joined/settings');
             }
 
-            $mode = (string) $request->post('display_mode', 'all');
-            if (!in_array($mode, ['all', 'network', 'category', 'status'], true)) {
+            if ($request->post('reset_defaults') === '1') {
                 $mode = 'all';
+                $pp   = 10;
+            } else {
+                $mode = (string) $request->post('display_mode', 'all');
+                if (!in_array($mode, ['all', 'network', 'category', 'status'], true)) {
+                    $mode = 'all';
+                }
+                $pp = max(5, min(100, (int) $request->post('per_page', 10)));
             }
-
-            $pp = max(5, min(100, (int) $request->post('per_page', 10)));
 
             $updated = $config->all();
             $updated['joined_display_mode'] = $mode;
@@ -573,7 +577,8 @@ final class JoinedController extends AdminController
 
             $this->writeConfig($updated);
 
-            $session->set('lstr_flash_success', 'Joined settings saved.');
+            $msg = $request->post('reset_defaults') === '1' ? 'Settings reset to defaults.' : 'Joined settings saved.';
+            $session->set('lstr_flash_success', $msg);
             return Response::redirect($baseUrl . '/admin/joined/settings');
         }
 
@@ -669,6 +674,10 @@ final class JoinedController extends AdminController
         if (!rename($tmpPath, $configPath)) {
             unlink($tmpPath);
             throw new \RuntimeException('Could not rename temp config file to: ' . $configPath);
+        }
+
+        if (function_exists('opcache_invalidate')) {
+            opcache_invalidate($configPath, true);
         }
     }
 

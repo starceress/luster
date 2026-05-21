@@ -15,17 +15,8 @@ composer.lock
 /public/uploads/*
 !/public/uploads/.htaccess
 
-# Developer utilities — not part of the deployable application
-/public/theme-preview.html
-/public/assets/js/theme-preview.js
-
-# OS / editor noise
-.DS_Store
-Thumbs.db
-.idea/
-.vscode/
-*.swp
-*.swo
+# Installer sentinel — created at runtime, not committed
+/storage/.installed
 
 # Test artefacts
 /.phpunit.cache/
@@ -34,4 +25,3 @@ Thumbs.db
 
 # Environment file (if ever adopted)
 .env
-audit/

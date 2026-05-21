@@ -45,30 +45,39 @@ $b = rtrim(View::e($base_url), '/');
 
 //  Email Templates tab helpers 
 $typeLabels = [
-    EmailTemplateRepo::TYPE_JOIN        => 'Join Confirmation',
-    EmailTemplateRepo::TYPE_APPROVE     => 'Membership Approved',
-    EmailTemplateRepo::TYPE_UPDATE      => 'Update Confirmation',
-    EmailTemplateRepo::TYPE_REMOVE      => 'Removal Confirmation',
-    EmailTemplateRepo::TYPE_RESET       => 'Password Reset',
-    EmailTemplateRepo::TYPE_NOTIFY_JOIN => 'Admin - New Member Notification',
+    EmailTemplateRepo::TYPE_JOIN               => 'Join Confirmation',
+    EmailTemplateRepo::TYPE_APPROVE            => 'Membership Approved',
+    EmailTemplateRepo::TYPE_UPDATE             => 'Update Confirmation',
+    EmailTemplateRepo::TYPE_REMOVE             => 'Removal Confirmation',
+    EmailTemplateRepo::TYPE_RESET              => 'Password Reset',
+    EmailTemplateRepo::TYPE_NOTIFY_JOIN        => 'Admin - New Member Notification',
+    EmailTemplateRepo::TYPE_AFFILIATE_APPLIED  => 'Affiliate Application Notification',
+    EmailTemplateRepo::TYPE_AFFILIATE_APPROVED => 'Affiliate Approved',
+    EmailTemplateRepo::TYPE_AFFILIATE_REJECTED => 'Affiliate Rejected',
 ];
 
 $navLabels = [
-    EmailTemplateRepo::TYPE_JOIN        => 'Join',
-    EmailTemplateRepo::TYPE_APPROVE     => 'Approved',
-    EmailTemplateRepo::TYPE_UPDATE      => 'Update',
-    EmailTemplateRepo::TYPE_REMOVE      => 'Remove',
-    EmailTemplateRepo::TYPE_RESET       => 'Password Reset',
-    EmailTemplateRepo::TYPE_NOTIFY_JOIN => 'Admin Notify',
+    EmailTemplateRepo::TYPE_JOIN               => 'Join',
+    EmailTemplateRepo::TYPE_APPROVE            => 'Approved',
+    EmailTemplateRepo::TYPE_UPDATE             => 'Update',
+    EmailTemplateRepo::TYPE_REMOVE             => 'Remove',
+    EmailTemplateRepo::TYPE_RESET              => 'Password Reset',
+    EmailTemplateRepo::TYPE_NOTIFY_JOIN        => 'Admin Notify',
+    EmailTemplateRepo::TYPE_AFFILIATE_APPLIED  => 'Affiliate Applied',
+    EmailTemplateRepo::TYPE_AFFILIATE_APPROVED => 'Affiliate Approved',
+    EmailTemplateRepo::TYPE_AFFILIATE_REJECTED => 'Affiliate Rejected',
 ];
 
 $typeHints = [
-    EmailTemplateRepo::TYPE_JOIN        => 'Sent to the fan after they successfully join.',
-    EmailTemplateRepo::TYPE_APPROVE     => 'Sent when an admin approves a pending membership.',
-    EmailTemplateRepo::TYPE_UPDATE      => 'Sent to the fan after they update their details.',
-    EmailTemplateRepo::TYPE_REMOVE      => 'Sent to the fan after their membership is removed.',
-    EmailTemplateRepo::TYPE_RESET       => 'Sent when a fan requests a password reset. Must include {reset_url}.',
-    EmailTemplateRepo::TYPE_NOTIFY_JOIN => 'Sent to this listing\'s admin email when a new fan joins.',
+    EmailTemplateRepo::TYPE_JOIN               => 'Sent to the fan after they successfully join.',
+    EmailTemplateRepo::TYPE_APPROVE            => 'Sent when an admin approves a pending membership.',
+    EmailTemplateRepo::TYPE_UPDATE             => 'Sent to the fan after they update their details.',
+    EmailTemplateRepo::TYPE_REMOVE             => 'Sent to the fan after their membership is removed.',
+    EmailTemplateRepo::TYPE_RESET              => 'Sent when a fan requests a password reset. Must include {reset_url}.',
+    EmailTemplateRepo::TYPE_NOTIFY_JOIN        => 'Sent to this listing\'s admin email when a new fan joins.',
+    EmailTemplateRepo::TYPE_AFFILIATE_APPLIED  => 'Sent to the listing admin when a new affiliate application is submitted.',
+    EmailTemplateRepo::TYPE_AFFILIATE_APPROVED => 'Sent to the applicant when an affiliate application is approved.',
+    EmailTemplateRepo::TYPE_AFFILIATE_REJECTED => 'Sent to the applicant when an affiliate application is rejected.',
 ];
 
 $allTokenDesc = [
@@ -83,6 +92,10 @@ $allTokenDesc = [
     '{site_name}'       => "Collective or site name",
     '{owner_name}'      => "Admin's display name",
     '{owner_email}'     => "Admin's email address",
+    '{aff_name}'        => "Affiliate applicant's site name",
+    '{aff_url}'         => "Affiliate applicant's site URL",
+    '{aff_email}'       => "Affiliate applicant's email address",
+    '{aff_message}'     => "Affiliate applicant's message, if provided",
 ];
 
 $commonTokens = ['{fan_name}', '{fan_email}', '{fan_url}', '{fan_country}', '{listing_name}', '{listing_subject}', '{listing_url}', '{site_name}', '{owner_name}', '{owner_email}'];
@@ -91,6 +104,10 @@ $typeTokens[EmailTemplateRepo::TYPE_RESET] = array_merge(
     ['{fan_name}', '{fan_email}', '{reset_url}'],
     array_slice($commonTokens, 2)
 );
+$affiliateTokens = ['{aff_name}', '{aff_url}', '{aff_email}', '{aff_message}', '{listing_name}', '{listing_url}', '{site_name}', '{owner_name}', '{owner_email}'];
+$typeTokens[EmailTemplateRepo::TYPE_AFFILIATE_APPLIED]  = $affiliateTokens;
+$typeTokens[EmailTemplateRepo::TYPE_AFFILIATE_APPROVED] = $affiliateTokens;
+$typeTokens[EmailTemplateRepo::TYPE_AFFILIATE_REJECTED] = $affiliateTokens;
 
 $isGlobal     = ($scope === 'global');
 $resetConfirm = $isGlobal
@@ -120,17 +137,17 @@ if (!function_exists('smtpVal')) {
 <!-- ──── TAB BAR ────────────────────────────────────────────────────── -->
 <div class="tabs-wrap">
   <div class="tabs">
-    <button class="tabs-btn<?= $active_tab === 'templates' ? ' active' : '' ?>" data-tab="templates">Email Templates</button>
     <button class="tabs-btn<?= $active_tab === 'bulk'      ? ' active' : '' ?>" data-tab="bulk">Bulk Email</button>
-    <button class="tabs-btn<?= $active_tab === 'custom'    ? ' active' : '' ?>" data-tab="custom">Custom Templates</button>
     <button class="tabs-btn<?= $active_tab === 'smtp'      ? ' active' : '' ?>" data-tab="smtp">SMTP Settings</button>
+    <button class="tabs-btn<?= $active_tab === 'templates' ? ' active' : '' ?>" data-tab="templates">Email Templates</button>
+    <button class="tabs-btn<?= $active_tab === 'custom'    ? ' active' : '' ?>" data-tab="custom">Custom Templates</button>
   </div>
   <div class="select-wrap tabs-select-wrap">
     <select class="tabs-select">
-      <option value="templates"<?= $active_tab === 'templates' ? ' selected' : '' ?>>Email Templates</option>
       <option value="bulk"<?=      $active_tab === 'bulk'      ? ' selected' : '' ?>>Bulk Email</option>
-      <option value="custom"<?=    $active_tab === 'custom'    ? ' selected' : '' ?>>Custom Templates</option>
       <option value="smtp"<?=      $active_tab === 'smtp'      ? ' selected' : '' ?>>SMTP Settings</option>
+      <option value="templates"<?= $active_tab === 'templates' ? ' selected' : '' ?>>Email Templates</option>
+      <option value="custom"<?=    $active_tab === 'custom'    ? ' selected' : '' ?>>Custom Templates</option>
     </select>
   </div>
 </div>
@@ -622,8 +639,9 @@ if (!function_exists('smtpVal')) {
 
     <?php if (empty($saved_emails)): ?>
       <div class="empty">
-        <span class="empty-icon"><?= View::icon('email', ['width' => 32, 'height' => 32]) ?></span>
-        No saved templates yet. Use the form above to create one.
+        <div class="empty-icon"><?= View::icon('email', ['width' => 32, 'height' => 32]) ?></div>
+        <div class="empty-title">No saved templates yet.</div>
+        <div>Use the form above to create one.</div>
       </div>
     <?php else: ?>
       <div class="table-wrap">

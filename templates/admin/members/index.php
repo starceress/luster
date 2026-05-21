@@ -55,8 +55,11 @@ $memSortUrl = static function (string $col) use ($b, $id, $sort, $dir, $search, 
     </select>
     </div>
 
-    <input type="text" name="search" class="form toolbar-input-sm" placeholder="Search&hellip;"
-           value="<?= View::e($search ?? '') ?>">
+    <div class="search-field-wrap">
+      <?= View::icon('search', ['class' => 'search-field-icon', 'aria-hidden' => 'true']) ?>
+      <input type="text" name="search" class="form toolbar-input-sm" placeholder="Search&hellip;"
+             value="<?= View::e($search ?? '') ?>">
+    </div>
 
     <div class="select-wrap">
     <select name="status" >
@@ -66,7 +69,7 @@ $memSortUrl = static function (string $col) use ($b, $id, $sort, $dir, $search, 
     </select>
     </div>
 
-    <button type="submit" class="btn btn-quaternary btn-sm">Filter</button>
+    <button type="submit" class="btn btn-secondary btn-sm">Filter</button>
     <a href="?" class="btn btn-quaternary btn-sm">Reset</a>
 
   </form>
@@ -102,13 +105,14 @@ $memSortUrl = static function (string $col) use ($b, $id, $sort, $dir, $search, 
 <?php if (empty($members)): ?>
   <div class="card">
     <div class="empty">
-      <span class="empty-icon"><?= View::icon('members', ['width' => 32, 'height' => 32]) ?></span>
+      <div class="empty-icon"><?= View::icon('members', ['width' => 32, 'height' => 32]) ?></div>
       <?php if (($search ?? '') !== '' || ($status ?? '') !== '' && $status !== 'all'): ?>
-        No members match those filters.
-        <a href="?" class="btn btn-tertiary btn-sm">Clear Filters</a>
+        <div class="empty-title">No members match those filters.</div>
+        <a href="?" class="btn btn-ghost btn-sm">Clear Filters</a>
       <?php else: ?>
-        No members yet - they'll appear here after the first join.
-        <a href="<?= $b ?>/admin/members/<?= $id ?>/import" class="btn btn-tertiary btn-sm">&#8593; Import CSV</a>
+        <div class="empty-title">No members yet.</div>
+        <div>They'll appear here after the first fan joins.</div>
+        <a href="<?= $b ?>/admin/members/<?= $id ?>/import" class="btn btn-primary btn-sm"><?= View::icon('import') ?> Import CSV</a>
       <?php endif; ?>
     </div>
   </div>

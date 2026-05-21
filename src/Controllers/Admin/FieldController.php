@@ -50,7 +50,7 @@ final class FieldController extends AdminController
         $success = (string) $req->query('success', '');
         $error   = (string) $req->query('error', '');
 
-        return $this->adminLayout('admin/fields/index.php', 'Fields', 'listings', [
+        return $this->adminLayout('admin/listings/fields/index.php', 'Fields', 'listings', [
             'listing' => $listing,
             'fields'     => $fields,
             'success'    => $success,
@@ -227,7 +227,7 @@ final class FieldController extends AdminController
             return Response::redirect($indexUrl . '?error=' . urlencode('Field not found.'));
         }
 
-        return $this->adminLayout('admin/fields/edit.php', 'Edit Field', 'listings', [
+        return $this->adminLayout('admin/listings/fields/edit.php', 'Edit Field', 'listings', [
             'listing' => $listing,
             'field'      => $current,
             'options'    => $current->options,

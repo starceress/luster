@@ -35,7 +35,7 @@ final class ErrorLogController extends AdminController
         $success = (string) $session->get('lstr_flash_success', '');
         $session->remove('lstr_flash_success');
 
-        return $this->adminLayout('admin/errorlog/index.php', 'Error Log', 'errorlog', [
+        return $this->adminLayout('admin/logs/errorlog/index.php', 'Error Log', 'errorlog', [
             'rows'    => $result['rows'],
             'total'   => $result['total'],
             'page'    => $page,

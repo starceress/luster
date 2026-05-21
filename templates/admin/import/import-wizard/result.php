@@ -105,6 +105,9 @@ $hasErr  = $result->hasErrors();
       <?php else: ?>
         <span class="badge badge-inactive">None</span>
       <?php endif; ?>
+      <?php if ($result->totalImagesFailed() > 0): ?>
+        <span class="badge badge-error"><?= number_format($result->totalImagesFailed()) ?> failed</span>
+      <?php endif; ?>
     </div>
   </div>
   <div class="stat-card">
@@ -237,7 +240,7 @@ $hasErr  = $result->hasErrors();
 <?php if (empty($result->imageRows) && $result->totalImported() > 0): ?>
   <div class="callout">
     <?= View::icon('alert', ['width' => 18, 'height' => 18, 'style' => 'color:var(--warn)']) ?>
-    No images were migrated. To migrate images, <a href="<?= $b ?>/admin/import/<?= $src ?>/connect" class="link">re-run the import</a> and choose an image migration mode in the Options step.
+    No images were migrated. To migrate images, <a href="<?= $b ?>/admin/import/<?= $src ?>/connect" class="link">re-run the import</a> and enable image migration in the Options step. You can provide a server path, a base URL, or upload a ZIP.
   </div>
 <?php endif; ?>
 <!-- ──── ACTIONS ────────────────────────────────────────────────────── -->

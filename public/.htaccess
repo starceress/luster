@@ -65,6 +65,10 @@ Options -Indexes -MultiViews
     RewriteCond %{REQUEST_FILENAME} -d
     RewriteRule ^ - [L]
 
+    # Redirect old standalone scripts to their new subdirectory locations
+    RewriteRule ^install\.php$ /luster/public/install/ [R=301,L]
+    RewriteRule ^migrate\.php$ /luster/public/migrate/ [R=301,L]
+
     # Redirect old display-codes URL to embed-codes (permanent, preserves query string)
     RewriteRule ^admin/display-codes$ /luster/public/admin/embed-codes [R=301,L,QSA]
 

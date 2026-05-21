@@ -165,9 +165,12 @@ $flSortUrl = static function (string $col) use ($b, $flSort, $flDir, $search, $f
     </select>
     </div>
 
-    <input type="text" name="search" class="form"
-           placeholder="Search&hellip;" value="<?= View::e($search ?? '') ?>">
-    <button type="submit" class="btn btn-quaternary btn-sm">Search</button>
+    <div class="search-field-wrap">
+      <?= View::icon('search', ['class' => 'search-field-icon', 'aria-hidden' => 'true']) ?>
+      <input type="text" name="search" class="form"
+             placeholder="Search&hellip;" value="<?= View::e($search ?? '') ?>">
+    </div>
+    <button type="submit" class="btn btn-secondary btn-sm">Search</button>
     <a href="?" class="btn btn-quaternary btn-sm">Reset</a>
 
   </form>
@@ -180,8 +183,9 @@ $flSortUrl = static function (string $col) use ($b, $flSort, $flDir, $search, $f
 <?php if (empty($listings)): ?>
   <div class="card">
     <div class="empty">
-      <span class="empty-icon"><?= View::icon('star', ['width' => 32, 'height' => 32]) ?></span>
-      No listings yet.
+      <div class="empty-icon"><?= View::icon('star', ['width' => 32, 'height' => 32]) ?></div>
+      <div class="empty-title">No listings yet.</div>
+      <div>Add your first listing to get started.</div>
       <a href="<?= $b ?>/admin/listings/add" class="btn btn-primary btn-sm"><?= View::icon('add') ?> Add Listing</a>
     </div>
   </div>

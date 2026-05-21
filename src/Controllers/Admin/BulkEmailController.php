@@ -67,7 +67,7 @@ final class BulkEmailController extends AdminController
 
         $sample = array_slice(array_keys($recipients), 0, 5, true);
 
-        return $this->adminLayout('admin/bulk-email/preview.php', 'Emails', 'emails', [
+        return $this->adminLayout('admin/emails/preview.php', 'Emails', 'emails', [
             'listing_id'   => $listingId,
             'listing_name' => $listingName,
             'subject'      => $subject,
@@ -130,7 +130,7 @@ final class BulkEmailController extends AdminController
             "Sent bulk email to {$sent} member(s) across {$scope}. Subject: {$subject}",
         );
 
-        return $this->adminLayout('admin/bulk-email/result.php', 'Emails', 'emails', [
+        return $this->adminLayout('admin/emails/result.php', 'Emails', 'emails', [
             'listing_name' => $listingName,
             'subject'      => $subject,
             'sent'         => $sent,

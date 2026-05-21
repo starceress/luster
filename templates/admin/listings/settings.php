@@ -41,7 +41,6 @@ function flsCfgVal(array $cfg, string $key, $default = ''): string {
     </div>
 
     <div class="pc-section">
-      <div class="pc-section-label">Sort Order</div>
       <div class="listing-field-row">
         <label class="listing-field-label" for="fl-sort">Sort listings by</label>
         <div>
@@ -68,7 +67,6 @@ function flsCfgVal(array $cfg, string $key, $default = ''): string {
     </div>
 
     <div class="pc-section">
-      <div class="pc-section-label">Pagination</div>
       <div class="listing-field-row">
         <label class="listing-field-label" for="fl-per-page">Listings per page</label>
         <div>
@@ -80,7 +78,7 @@ function flsCfgVal(array $cfg, string $key, $default = ''): string {
 
     <div class="composer-footer">
       <button type="submit" class="btn btn-primary">Save Settings</button>
-      <button type="button" class="btn btn-ghost js-form-reset">Reset to Default</button>
+      <button type="button" class="btn btn-quaternary js-form-reset">Reset to Default</button>
       <a href="<?= $b ?>/admin/listings" class="btn btn-ghost">Cancel</a>
     </div>
   </div>

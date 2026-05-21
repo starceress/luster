@@ -56,6 +56,14 @@ $v = static function (string $key, $model, string $prop, string $default = '') u
   <?php endif; ?>
 
   <div class="gradient-card">
+    <div class="pc-head">
+      <div class="pc-head-icon pc-head-icon-bg"><?= View::icon('wrench') ?></div>
+        <div class="pc-head-meta">
+        <div class="pc-head-title"><?= $isEdit ? View::e($affiliate->name) : 'Add New Affiliate' ?></div>
+        <div class="pc-head-sub"><?= $isEdit ? 'Update this affiliate\'s details.' : 'Add a site to your affiliates list.' ?></div>
+      </div>
+    </div>
+
     <div class="listing-field-section">
 
       <!-- Listing -->
@@ -74,7 +82,6 @@ $v = static function (string $key, $model, string $prop, string $default = '') u
               <?php endforeach; ?>
             </select>
           </div>
-          <p class="form-hint">Leave as &ldquo;Collective&rdquo; if this affiliate belongs to all listings.</p>
         </div>
       </div>
       <?php else: ?>

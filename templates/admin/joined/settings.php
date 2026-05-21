@@ -26,6 +26,14 @@ $b = rtrim(View::e($base_url), '/');
 
   <div class="gradient-card">
 
+    <div class="pc-head">
+      <div class="pc-head-icon pc-head-icon-bg"><?= View::icon('gear') ?></div>
+      <div class="pc-head-meta">
+        <div class="pc-head-title">Display Settings</div>
+        <div class="pc-head-sub">Controls how joined fanlistings are grouped and paginated in the admin table.</div>
+      </div>
+    </div>
+
     <div class="listing-field-section">
       <div class="pc-section-label">Display Preferences</div>
 
@@ -60,6 +68,7 @@ $b = rtrim(View::e($base_url), '/');
 
     <div class="composer-footer">
       <button type="submit" class="btn btn-primary">Save Settings</button>
+      <button type="submit" name="reset_defaults" value="1" class="btn btn-quaternary">Reset to Default</button>
       <a href="<?= $b ?>/admin/joined" class="btn btn-ghost">Cancel</a>
     </div>
 

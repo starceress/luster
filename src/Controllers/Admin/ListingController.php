@@ -1449,5 +1449,9 @@ final class ListingController extends AdminController
             unlink($tmpPath);
             throw new \RuntimeException('Could not rename temp config file to: ' . $configPath);
         }
+
+        if (function_exists('opcache_invalidate')) {
+            opcache_invalidate($configPath, true);
+        }
     }
 }

@@ -17,9 +17,9 @@ use Luster\Repositories\ActivityRepo;
  *
  * Routes (registered by AdoptionAddon::registerRoutes()):
  *   GET  /admin/adoptions                    index()
- *   GET  /admin/adoptions/{listingId}        forListing()
- *   POST /admin/adoptions/{id}/status        setStatus()
- *   POST /admin/adoptions/{id}/delete        delete()
+ *   GET  /admin/addons/adoptions/{listingId}        forListing()
+ *   POST /admin/addons/adoptions/{id}/status        setStatus()
+ *   POST /admin/addons/adoptions/{id}/delete        delete()
  */
 final class AdoptionAdminController
 {
@@ -54,13 +54,13 @@ final class AdoptionAdminController
 
         usort($adoptionListings, static fn($a, $b) => $b['count_new'] <=> $a['count_new']);
 
-        return $this->layout('admin/adoptions/index.php', 'Adoptions', [
+        return $this->layout('admin/addons/adoptions/index.php', 'Adoptions', [
             'adoption_listings' => $adoptionListings,
         ]);
     }
 
     // -----------------------------------------------------------------------
-    // GET /admin/adoptions/{listingId}
+    // GET /admin/addons/adoptions/{listingId}
     // -----------------------------------------------------------------------
 
     public function forListing(Request $request, array $params): Response
@@ -89,7 +89,7 @@ final class AdoptionAdminController
         $success = (string) $session->get('lstr_flash_success', '');
         $session->remove('lstr_flash_success');
 
-        return $this->layout('admin/adoptions/listing.php', 'Adoptions — ' . $listing->name, [
+        return $this->layout('admin/addons/adoptions/listing.php', 'Adoptions — ' . $listing->name, [
             'listing'        => $listing,
             'applications'   => $applications,
             'status_filter'  => $statusFilter,
@@ -103,7 +103,7 @@ final class AdoptionAdminController
     }
 
     // -----------------------------------------------------------------------
-    // POST /admin/adoptions/{id}/status
+    // POST /admin/addons/adoptions/{id}/status
     // -----------------------------------------------------------------------
 
     public function setStatus(Request $request, array $params): Response
@@ -131,11 +131,11 @@ final class AdoptionAdminController
         );
 
         $session->set('lstr_flash_success', 'Application status updated.');
-        return Response::redirect($baseUrl . '/admin/adoptions/' . (int) $application['fanlisting_id']);
+        return Response::redirect($baseUrl . '/admin/addons/adoptions/' . (int) $application['fanlisting_id']);
     }
 
     // -----------------------------------------------------------------------
-    // POST /admin/adoptions/{id}/delete
+    // POST /admin/addons/adoptions/{id}/delete
     // -----------------------------------------------------------------------
 
     public function delete(Request $request, array $params): Response
@@ -163,7 +163,7 @@ final class AdoptionAdminController
         );
 
         $session->set('lstr_flash_success', 'Application deleted.');
-        return Response::redirect($baseUrl . '/admin/adoptions/' . $listingId);
+        return Response::redirect($baseUrl . '/admin/addons/adoptions/' . $listingId);
     }
 
     // -----------------------------------------------------------------------

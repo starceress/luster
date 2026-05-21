@@ -2,7 +2,7 @@
 use Luster\Core\View;
 require_once __DIR__ . '/_css_assets.php';
 $b = rtrim(View::e($base_url), '/');
-// Treat 'blacklist' as part of Settings for nav highlighting
+
 $s = match ($current_section ?? '') {
     'blacklist'       => 'settings',
     'sysinfo'         => 'settings',
@@ -19,12 +19,12 @@ if (!function_exists('navActive')) {
 
 ?>
 <!DOCTYPE html>
-<html lang="en" data-theme="light">
+<html lang="en" data-theme="light"<?= ($selected_skin ?? '') !== '' ? ' data-skin="' . View::e($selected_skin) . '"' : '' ?>>
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Luster &#10022; Fanlisting Management System  &mdash; <?= View::e($page_title) ?></title>
-  <?= lusterAdminCssLinks($b . '/assets/css/admin', LUSTER_BASE . '/public/assets/css/admin', $s) . PHP_EOL ?>
+  <title><?= View::e($page_title) ?> &#10022; Luster</title>
+  <?= lusterAdminCssLinks($b . '/assets/css', LUSTER_BASE . '/public/assets/css', $selected_skin ?? '') . PHP_EOL ?>
   <script>(function(){var t=localStorage.getItem('lstr_theme');if(t==='dark'||t==='light')document.documentElement.setAttribute('data-theme',t);})();</script>
 </head>
 <body>
@@ -46,7 +46,17 @@ if (!function_exists('navActive')) {
     </div>
   </div>
 
+  <div class="nav-search-wrap">
+    <?= View::icon('search', ['class' => 'nav-search-icon', 'aria-hidden' => 'true']) ?>
+    <input type="search" id="nav-search-input" class="nav-search-input"
+           placeholder="Search&hellip;" autocomplete="off" spellcheck="false" aria-label="Search navigation"
+           data-base="<?= $b ?>">
+    <button type="button" class="nav-search-clear" id="nav-search-clear" aria-label="Clear search">&times;</button>
+  </div>
+
   <nav class="sidebar-nav">
+    <p class="nav-search-no-results" id="nav-search-no-results">No pages found.</p>
+    <div id="nav-search-extras"></div>
 
     <div class="sidebar-section">
       <a href="<?= $b ?>/admin" class="nav-item<?= navActive('dashboard', $s) ?>"><span class="nav-icon"><?= View::icon('home') ?></span> Dashboard</a>
@@ -74,9 +84,13 @@ if (!function_exists('navActive')) {
     </div>
       
     <div class="sidebar-section">
-      <div class="sidebar-label">Extras</div>
+      <div class="sidebar-label">Tools & Extras</div>
       <?php $_navAddons = $nav_installed_addons ?? [];
-      if (in_array('Kim', $_navAddons, true)): ?>
+      if (in_array('Adoption', $_navAddons, true)): ?>
+      <a href="<?= $b ?>/admin/adoptions" class="nav-item<?= navActive('adoptions', $s) ?>"><span class="nav-icon"><?= View::icon('adoptions') ?></span> Adoptions<?php if (($nav_pending_adoptions ?? 0) > 0): ?><span class="badge badge-pending nav-item-badge"><?= (int) $nav_pending_adoptions ?></span><?php endif; ?></a>
+      <?php endif; ?>
+
+      <?php if (in_array('Kim', $_navAddons, true)): ?>
       <a href="<?= $b ?>/admin/kim" class="nav-item<?= navActive('kim', $s) ?>"><span class="nav-icon"><?= View::icon('kim') ?></span> Keep In Mind<?php if (($nav_pending_kim ?? 0) > 0): ?><span class="badge badge-pending nav-item-badge"><?= (int) $nav_pending_kim ?></span><?php endif; ?></a>
       <?php endif; ?>
 
@@ -87,14 +101,10 @@ if (!function_exists('navActive')) {
       <?php if (in_array('Wishlist', $_navAddons, true)): ?>
       <a href="<?= $b ?>/admin/wishlist" class="nav-item<?= navActive('wishlist', $s) ?>"><span class="nav-icon"><?= View::icon('wishlist') ?></span> Wishlist</a>
       <?php endif; ?>
-
-      <?php if (in_array('Adoption', $_navAddons, true)): ?>
-      <a href="<?= $b ?>/admin/adoptions" class="nav-item<?= navActive('adoptions', $s) ?>"><span class="nav-icon"><?= View::icon('adoptions') ?></span> Adoptions<?php if (($nav_pending_adoptions ?? 0) > 0): ?><span class="badge badge-pending nav-item-badge"><?= (int) $nav_pending_adoptions ?></span><?php endif; ?></a>
-      <?php endif; ?>
       
       <a href="<?= $b ?>/admin/addons" class="nav-item<?= navActive('addons', $s) ?>"><span class="nav-icon"><?= View::icon('addon') ?></span> Manage Add-Ons</a>
 
-      <a href="<?= $b ?>/admin/link-checker" class="nav-item<?= navActive('link-checker', $s) ?>"><span class="nav-icon"><?= View::icon('link') ?></span> Link Checker</a>
+      <a href="<?= $b ?>/admin/link-checker" class="nav-item<?= navActive('link-checker', $s) ?>"><span class="nav-icon"><?= View::icon('linkcheck') ?></span> Link Checker</a>
     </div>
 
     <div class="sidebar-section">
@@ -104,24 +114,24 @@ if (!function_exists('navActive')) {
 
       <?php $importOpen = in_array($s, ['import', 'import-members', 'legacy-source']); ?>
       <div class="nav-group">
-        <button class="nav-group-toggle"
+        <button class="nav-group-toggle<?= $importOpen ? ' active' : '' ?>"
                 aria-expanded="<?= $importOpen ? 'true' : 'false' ?>"
                 data-group="import">
           <span class="nav-icon"><?= View::icon('import') ?></span> Import Data
           <span class="nav-icon nav-group-chevron"><?= View::icon('chevrondown') ?></span>
         </button>
         <div class="nav-group-panel<?= $importOpen ? ' open' : '' ?>" id="nav-group-import">
-          <a href="<?= $b ?>/admin/import" class="nav-item nav-sub-item<?= navActive('import', $s) ?>"><span class="nav-icon"><?= View::icon('import') ?></span> Import Wizard</a>
+          <a href="<?= $b ?>/admin/import" class="nav-item nav-sub-item<?= navActive('import', $s) ?>"><span class="nav-icon"><?= View::icon('wand') ?></span> Import Wizard</a>
 
-          <a href="<?= $b ?>/admin/import-members" class="nav-item nav-sub-item<?= navActive('import-members', $s) ?>"><span class="nav-icon"><?= View::icon('members') ?></span> Import Members</a>
+          <a href="<?= $b ?>/admin/import-members" class="nav-item nav-sub-item<?= navActive('import-members', $s) ?>"><span class="nav-icon"><?= View::icon('importmembers') ?></span> Import Members</a>
 
-          <a href="<?= $b ?>/admin/legacy-source" class="nav-item nav-sub-item<?= navActive('legacy-source', $s) ?>"><span class="nav-icon"><?= View::icon('notes') ?></span> Legacy Browser</a>
+          <a href="<?= $b ?>/admin/legacy-source" class="nav-item nav-sub-item<?= navActive('legacy-source', $s) ?>"><span class="nav-icon"><?= View::icon('browser') ?></span> Legacy Browser</a>
         </div>
       </div>
 
       <?php $logsOpen = in_array($s, ['activitylog', 'errorlog']); ?>
       <div class="nav-group">
-        <button class="nav-group-toggle"
+        <button class="nav-group-toggle<?= $logsOpen ? ' active' : '' ?>"
                 aria-expanded="<?= $logsOpen ? 'true' : 'false' ?>"
                 data-group="logs">
           <span class="nav-icon"><?= View::icon('logs') ?></span> Logs

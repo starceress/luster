@@ -49,7 +49,6 @@ final class SettingsController extends AdminController
         'joined_display_mode',
         'joined_per_page',
         'install_path',
-        'session_cookie_domain',
         'embed_base_url',
         'owner_name',
         'owner_email',
@@ -119,7 +118,21 @@ final class SettingsController extends AdminController
             'import_show_listing_admin',
             'import_show_fanupdate',
             'import_show_codesort',
+            'import_show_bellabuffs',
+            'selected_skin',
         ]);
+
+        // Detect community skin files in public/assets/css/skins/
+        $skinsDir      = LUSTER_BASE . '/public/assets/css/skins';
+        $communitySkins = [];
+        if (is_dir($skinsDir)) {
+            foreach (glob($skinsDir . '/*.css') ?: [] as $file) {
+                $slug = basename($file, '.css');
+                if (preg_match('/^[a-z0-9][a-z0-9-]*$/', $slug)) {
+                    $communitySkins[] = $slug;
+                }
+            }
+        }
 
         $updateStatus = (new UpdateChecker($siteRepo))->getStatus();
 
@@ -130,6 +143,7 @@ final class SettingsController extends AdminController
             'current_admin_id'     => $adminId,
             'blacklist_entries'    => $blacklistEntries,
             'site_settings'        => $siteSettings,
+            'community_skins'      => $communitySkins,
             'success'              => $success,
             'error'                => $error,
             'field_errors'         => is_array($fieldErrors) ? $fieldErrors : [],
@@ -196,7 +210,6 @@ final class SettingsController extends AdminController
         // Embed & Paths
         $installPath = rtrim(trim((string) $request->post('install_path', '')), '/\\');
         $updated['install_path']          = $installPath !== '' ? $installPath . '/' : '';
-        $updated['session_cookie_domain'] = trim((string) $request->post('session_cookie_domain', ''));
         $updated['embed_base_url']        = rtrim(trim((string) $request->post('embed_base_url', '')), '/');
 
         // Site owner identity (used in email templates)
@@ -463,14 +476,16 @@ final class SettingsController extends AdminController
         $adminRepo    = new AdminUserRepo($db);
         $activityRepo = new ActivityRepo($db);
 
-        $username        = trim((string) $request->post('admin_username', ''));
-        $email           = trim((string) $request->post('admin_email', ''));
-        $newPassword     = (string) $request->post('admin_new_password', '');
+        $username        = trim((string) $request->post('admin_username',   ''));
+        $email           = trim((string) $request->post('admin_email',      ''));
+        $displayName       = trim((string) $request->post('admin_display_name', ''));
+        $newPassword     = (string) $request->post('admin_new_password',     '');
         $confirmPassword = (string) $request->post('admin_confirm_password', '');
 
-        $v = new Validator(['username' => $username, 'email' => $email]);
+        $v = new Validator(['username' => $username, 'email' => $email, 'owner_name' => $displayName]);
         $v->field('username')->required()->maxLength(50);
         $v->field('email')->required()->email()->maxLength(255);
+        $v->field('owner_name')->required()->maxLength(100);
 
         if ($v->fails()) {
             $session->set('lstr_flash_error', implode(' ', $v->allErrors()));
@@ -508,7 +523,7 @@ final class SettingsController extends AdminController
             return Response::redirect($baseUrl . '/admin/settings#panel-admin');
         }
 
-        $adminRepo->updateProfile($adminId, $username, $email);
+        $adminRepo->updateProfile($adminId, $username, $email, $displayName ?: null);
 
         // Reflect changes in session so the topbar updates immediately
         $session->set('lstr_admin_username', $username);
@@ -599,6 +614,7 @@ final class SettingsController extends AdminController
         $siteSettings->set('import_show_listing_admin', $request->post('import_show_listing_admin') === '1' ? '1' : '0');
         $siteSettings->set('import_show_fanupdate',     $request->post('import_show_fanupdate')     === '1' ? '1' : '0');
         $siteSettings->set('import_show_codesort',      $request->post('import_show_codesort')      === '1' ? '1' : '0');
+        $siteSettings->set('import_show_bellabuffs',    $request->post('import_show_bellabuffs')    === '1' ? '1' : '0');
 
         (new ActivityRepo($this->app->getDatabase()))->log(
             (int) $session->get('lstr_admin_id'),
@@ -609,6 +625,44 @@ final class SettingsController extends AdminController
 
         $session->set('lstr_flash_success', 'Import visibility settings saved.');
         return Response::redirect($baseUrl . '/admin/settings#panel-system');
+    }
+
+    // -----------------------------------------------------------------------
+    // POST /admin/settings/skin
+    // -----------------------------------------------------------------------
+
+    public function saveSkin(Request $request, array $params): Response
+    {
+        $session  = $this->app->getSession();
+        $baseUrl  = $this->app->getBaseUrl();
+        $slug     = trim((string) $request->post('skin', ''));
+
+        // Validate: empty string (default/Nebula) or lowercase alphanumeric-with-hyphens
+        if ($slug !== '' && !preg_match('/^[a-z0-9][a-z0-9-]*$/', $slug)) {
+            $session->set('lstr_flash_error', 'Invalid skin name.');
+            return Response::redirect($baseUrl . '/admin/settings#panel-appearance');
+        }
+
+        // Verify the slug is a known bundled skin or an existing community skin file
+        $bundled = ['aurora', 'sol'];
+        $skinsDir = LUSTER_BASE . '/public/assets/css/skins';
+        $communityFile = $skinsDir . '/' . $slug . '.css';
+        if ($slug !== '' && !in_array($slug, $bundled, true) && !is_file($communityFile)) {
+            $session->set('lstr_flash_error', 'Skin not found.');
+            return Response::redirect($baseUrl . '/admin/settings#panel-appearance');
+        }
+
+        (new SiteSettingsRepo($this->app->getDatabase()))->set('selected_skin', $slug);
+
+        (new ActivityRepo($this->app->getDatabase()))->log(
+            (int) $session->get('lstr_admin_id'),
+            'settings.save',
+            'Skin changed to: ' . ($slug === '' ? 'Nebula (default)' : $slug),
+            $request->ip(),
+        );
+
+        $session->set('lstr_flash_success', 'Skin updated.');
+        return Response::redirect($baseUrl . '/admin/settings#panel-appearance');
     }
 
     // -----------------------------------------------------------------------

@@ -357,7 +357,7 @@ final class ImportAdapterRegressionTest extends TestCase
         $row = $tgt->query('SELECT members_per_page, queue_updates, last_updated FROM lstr_fanlisting_settings WHERE fanlisting_id = 8')->fetch();
         $this->assertSame(42, (int) $row['members_per_page']);
         $this->assertSame(1, (int) $row['queue_updates']);
-        $this->assertSame($tgt->query('SELECT CURRENT_DATE')->fetchColumn(), $row['last_updated']);
+        $this->assertSame(date('Y-m-d'), $row['last_updated']);
     }
 
     /**

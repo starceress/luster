@@ -70,9 +70,12 @@ $tabs = [
     </div>
     <?php endif; ?>
 
-    <input type="text" name="search" class="form" placeholder="Search subject&hellip;"
-           value="<?= View::e($search ?? '') ?>">
-    <button type="submit" class="btn btn-quaternary btn-sm">Search</button>
+    <div class="search-field-wrap">
+      <?= View::icon('search', ['class' => 'search-field-icon', 'aria-hidden' => 'true']) ?>
+      <input type="text" name="search" class="form" placeholder="Search subject&hellip;"
+             value="<?= View::e($search ?? '') ?>">
+    </div>
+    <button type="submit" class="btn btn-secondary btn-sm">Search</button>
     <a href="<?= $b ?>/admin/wishlist<?= $typeQs ?>" class="btn btn-quaternary btn-sm">Reset</a>
   </form>
 </div>
@@ -96,13 +99,14 @@ $tabs = [
 <?php if (empty($entries)): ?>
 <div class="card">
   <div class="empty">
-    <span class="empty-icon"><?= View::icon('wishlist', ['width' => 32, 'height' => 32]) ?></span>
+    <div class="empty-icon"><?= View::icon('wishlist', ['width' => 32, 'height' => 32]) ?></div>
     <?php if (($filters_active ?? false) || $filter_type !== 'all'): ?>
-      No entries match those filters.
-      <a href="<?= $b ?>/admin/wishlist" class="btn btn-tertiary btn-sm">Clear filters</a>
+      <div class="empty-title">No entries match those filters.</div>
+      <a href="<?= $b ?>/admin/wishlist" class="btn btn-ghost btn-sm">Clear Filters</a>
     <?php else: ?>
-      Your wishlist is empty.
-      <a href="<?= $b ?>/admin/wishlist/add" class="btn btn-primary btn-sm"><?= View::icon('add') ?> Add an entry</a>
+      <div class="empty-title">Your wishlist is empty.</div>
+      <div>Add a listing to your wishlist to track what you want next.</div>
+      <a href="<?= $b ?>/admin/wishlist/add" class="btn btn-primary btn-sm"><?= View::icon('add') ?> Add an Entry</a>
     <?php endif; ?>
   </div>
 </div>

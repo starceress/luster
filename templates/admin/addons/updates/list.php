@@ -87,9 +87,12 @@ $latestDate = !empty($updates) ? date($admin_date_format, strtotime($updates[0]-
     </div>
     <?php endif; ?>
 
-    <input type="text" name="search" class="form" placeholder="Search title or body&hellip;"
-           value="<?= View::e($search) ?>">
-    <button type="submit" class="btn btn-quaternary btn-sm">Search</button>
+    <div class="search-field-wrap">
+      <?= View::icon('search', ['class' => 'search-field-icon', 'aria-hidden' => 'true']) ?>
+      <input type="text" name="search" class="form" placeholder="Search title or body&hellip;"
+             value="<?= View::e($search) ?>">
+    </div>
+    <button type="submit" class="btn btn-secondary btn-sm">Search</button>
     <?php if ($filtersActive): ?>
       <a href="<?= View::e($listBase) ?>" class="btn btn-quaternary btn-sm">Reset</a>
     <?php endif; ?>
@@ -104,7 +107,7 @@ $latestDate = !empty($updates) ? date($admin_date_format, strtotime($updates[0]-
       <div class="empty-icon"><?= View::icon('updates', ['width' => 32, 'height' => 32]) ?></div>
       <?php if ($filtersActive): ?>
         <div class="empty-title">No updates match those filters.</div>
-        <a href="<?= View::e($listBase) ?>" class="btn btn-tertiary btn-sm">Clear Filters</a>
+        <a href="<?= View::e($listBase) ?>" class="btn btn-ghost btn-sm">Clear Filters</a>
       <?php else: ?>
         <div class="empty-title">No updates posted yet.</div>
         <div>Post your first update to let visitors know what&rsquo;s new.</div>

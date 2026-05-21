@@ -66,7 +66,6 @@ $dataExist      = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON
       <div class="pc-head-icon pc-head-icon-bg"><?= View::icon('add') ?></div>
       <div class="pc-head-meta">
         <div class="pc-head-title"><?= $isEdit ? 'Edit Joined Listing' : 'Add Joined Listing' ?></div>
-        <div class="pc-head-sub">Track the joined listings in your collective with the same structure used for owned listings.</div>
       </div>
     </div>
 

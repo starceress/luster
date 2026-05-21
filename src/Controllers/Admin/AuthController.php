@@ -14,6 +14,7 @@ use Luster\Core\Validator;
 use Luster\Repositories\AdminPasswordResetRepo;
 use Luster\Repositories\AdminUserRepo;
 use Luster\Repositories\ErrorLogRepo;
+use Luster\Repositories\SiteSettingsRepo;
 
 /**
  * Handles admin authentication: login, logout, remember-me,
@@ -52,11 +53,12 @@ final class AuthController
         $session->remove('lstr_flash_username');
 
         $html = $this->app->getView()->render('admin/auth/login.php', [
-            'csrf_token' => $this->app->getCSRF()->token(),
-            'error'      => $error,
-            'username'   => $username,
-            'site_name'  => (string) $this->app->getConfig()->get('site_name', 'Luster'),
-            'base_url'   => $this->app->getBaseUrl(),
+            'csrf_token'    => $this->app->getCSRF()->token(),
+            'error'         => $error,
+            'username'      => $username,
+            'site_name'     => (string) $this->app->getConfig()->get('site_name', 'Luster'),
+            'base_url'      => $this->app->getBaseUrl(),
+            'selected_skin' => $this->selectedSkin(),
         ]);
 
         return Response::html($html);
@@ -229,11 +231,12 @@ final class AuthController
         $session->remove('lstr_flash_error');
 
         $html = $this->app->getView()->render('admin/auth/forgot.php', [
-            'csrf_token' => $this->app->getCSRF()->token(),
-            'success'    => $success,
-            'error'      => $error,
-            'site_name'  => (string) $this->app->getConfig()->get('site_name', 'Luster'),
-            'base_url'   => $this->app->getBaseUrl(),
+            'csrf_token'    => $this->app->getCSRF()->token(),
+            'success'       => $success,
+            'error'         => $error,
+            'site_name'     => (string) $this->app->getConfig()->get('site_name', 'Luster'),
+            'base_url'      => $this->app->getBaseUrl(),
+            'selected_skin' => $this->selectedSkin(),
         ]);
 
         return Response::html($html);
@@ -342,11 +345,12 @@ final class AuthController
         $session->remove('lstr_flash_error');
 
         $html = $this->app->getView()->render('admin/auth/reset.php', [
-            'csrf_token' => $this->app->getCSRF()->token(),
-            'error'      => $error,
-            'raw_token'  => $rawToken,
-            'site_name'  => (string) $this->app->getConfig()->get('site_name', 'Luster'),
-            'base_url'   => $baseUrl,
+            'csrf_token'    => $this->app->getCSRF()->token(),
+            'error'         => $error,
+            'raw_token'     => $rawToken,
+            'site_name'     => (string) $this->app->getConfig()->get('site_name', 'Luster'),
+            'base_url'      => $baseUrl,
+            'selected_skin' => $this->selectedSkin(),
         ]);
 
         return Response::html($html);
@@ -404,5 +408,14 @@ final class AuthController
 
         $session->set('lstr_flash_success', 'Your password has been reset. Please sign in with your new password.');
         return Response::redirect($baseUrl . '/admin/login');
+    }
+
+    private function selectedSkin(): string
+    {
+        try {
+            return (new SiteSettingsRepo($this->app->getDatabase()))->get('selected_skin', '');
+        } catch (\Throwable) {
+            return '';
+        }
     }
 }

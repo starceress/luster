@@ -337,6 +337,8 @@ return [
             SettingsController::class, 'checkUpdate');
         $router->post('/admin/settings/import-visibility',
             SettingsController::class, 'saveImportVisibility');
+        $router->post('/admin/settings/skin',
+            SettingsController::class, 'saveSkin');
 
         // ── Email/SMTP Settings (under Emails nav) ───────────────────
         // Old URL → redirect to unified Emails page SMTP tab
@@ -383,6 +385,12 @@ return [
             CategoryController::class, 'edit');
         $router->post('/admin/categories/{id}/delete',
             CategoryController::class, 'delete');
+        $router->post('/admin/categories/bulk',
+            CategoryController::class, 'bulk');
+        $router->get('/admin/categories/settings',
+            CategoryController::class, 'settingsForm');
+        $router->post('/admin/categories/settings',
+            CategoryController::class, 'saveSettings');
 
         // ── Add-ons ───────────────────────────────────────────────────
         $router->get('/admin/addons',

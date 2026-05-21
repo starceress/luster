@@ -34,7 +34,21 @@ $pendingSortUrl = static function (string $col) use ($b, $sort, $dir): string {
 <?php endif; ?>
 
 <div class="toolbar">
-  <form method="GET" action="<?= $b ?>/admin/members" class="filter-row member-toolbar-form">
+  <div class="actions-row">
+    <button type="button" class="btn btn-preview btn-sm filter-toggle" id="fl-filter-toggle"
+            aria-expanded="<?= $isSearch ? 'true' : 'false' ?>"
+            aria-controls="filter-panel">
+      <?= View::icon('filter') ?>
+      Filter<?php if ($isSearch): ?><span class="filter-dot" aria-hidden="true"></span><?php endif; ?>
+    </button>
+  </div>
+  <div class="actions-row">
+    <a href="<?= $b ?>/admin/members/export-pending" class="btn btn-quaternary btn-sm">&#8593; Export CSV</a>
+    <a href="<?= $b ?>/admin/members/settings" class="btn btn-quaternary btn-sm">Display Settings</a>
+  </div>
+</div>
+<div class="filter-panel<?= $isSearch ? ' is-open' : '' ?>" id="filter-panel">
+  <form method="GET" action="<?= $b ?>/admin/members" class="filter-row">
     <div class="select-wrap">
       <select class="js-nav-select">
         <option value="<?= $b ?>/admin/members">All pending members</option>
@@ -45,17 +59,14 @@ $pendingSortUrl = static function (string $col) use ($b, $sort, $dir): string {
         <?php endforeach; ?>
       </select>
     </div>
-    <input type="text" name="search" value="<?= View::e($search ?? '') ?>"
-           placeholder="Search all listings&hellip;" class="form toolbar-input-sm">
-    <button type="submit" class="btn btn-quaternary btn-sm">Search</button>
-    <?php if ($isSearch): ?>
-      <a href="<?= $b ?>/admin/members" class="btn btn-quaternary btn-sm">Clear</a>
-    <?php endif; ?>
+    <div class="search-field-wrap">
+      <?= View::icon('search', ['class' => 'search-field-icon', 'aria-hidden' => 'true']) ?>
+      <input type="text" name="search" value="<?= View::e($search ?? '') ?>"
+             placeholder="Search all listings&hellip;" class="form">
+    </div>
+    <button type="submit" class="btn btn-secondary btn-sm">Search</button>
+    <a href="<?= $b ?>/admin/members" class="btn btn-quaternary btn-sm">Reset</a>
   </form>
-  <div class="actions-row">
-    <a href="<?= $b ?>/admin/members/export-pending" class="btn btn-quaternary btn-sm">&#8593; Export CSV</a>
-    <a href="<?= $b ?>/admin/members/settings" class="btn btn-quaternary btn-sm">Display Settings</a>
-  </div>
 </div>
 <?php if ($isSearch): ?>
 
@@ -69,9 +80,9 @@ $pendingSortUrl = static function (string $col) use ($b, $sort, $dir): string {
   <?php if ($total === 0): ?>
     <div class="card">
       <div class="empty">
-        <span class="empty-icon"><?= View::icon('members', ['width' => 32, 'height' => 32]) ?></span>
-        No members found matching that search.
-        <a href="<?= $b ?>/admin/members" class="btn btn-tertiary btn-sm">Clear Search</a>
+        <div class="empty-icon"><?= View::icon('members', ['width' => 32, 'height' => 32]) ?></div>
+        <div class="empty-title">No members found matching that search.</div>
+        <a href="<?= $b ?>/admin/members" class="btn btn-ghost btn-sm">Clear Search</a>
       </div>
     </div>
   <?php else: ?>
@@ -148,8 +159,9 @@ $pendingSortUrl = static function (string $col) use ($b, $sort, $dir): string {
   <?php if (empty($grouped)): ?>
     <div class="card">
       <div class="empty">
-        <span class="empty-icon"><?= View::icon('pending', ['width' => 32, 'height' => 32]) ?></span>
-        No pending members - you're all caught up.
+        <div class="empty-icon"><?= View::icon('pending', ['width' => 32, 'height' => 32]) ?></div>
+        <div class="empty-title">No pending members.</div>
+        <div>You're all caught up.</div>
       </div>
     </div>
   <?php else: ?>
@@ -258,8 +270,9 @@ $pendingSortUrl = static function (string $col) use ($b, $sort, $dir): string {
   <?php if (empty($pending_updates)): ?>
     <div class="card">
       <div class="empty">
-        <span class="empty-icon"><?= View::icon('pendinginfo', ['width' => 32, 'height' => 32]) ?></span>
-        No pending member updates - you're all caught up.
+        <div class="empty-icon"><?= View::icon('pendinginfo', ['width' => 32, 'height' => 32]) ?></div>
+        <div class="empty-title">No pending member updates.</div>
+        <div>You're all caught up.</div>
       </div>
     </div>
   <?php else: ?>

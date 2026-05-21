@@ -40,10 +40,22 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
     <div class="panel-body">
       <a href="#panel-admin" class="mini-nav-item"><?= View::icon('account') ?> Account Details</a>
       <a href="#panel-accounts" class="mini-nav-item"><?= View::icon('admins') ?> Admin Accounts</a>
+      <a href="#panel-appearance" class="mini-nav-item"><?= View::icon('palette') ?> Appearance</a>
       <a href="#panel-general" class="mini-nav-item"><?= View::icon('general') ?> General</a>
       <a href="#panel-embed" class="mini-nav-item"><?= View::icon('paths') ?> Server Paths</a>
       <a href="#panel-blacklist" class="mini-nav-item"><?= View::icon('blacklist') ?> Blacklist</a>
       <a href="#panel-system" class="mini-nav-item"><?= View::icon('wrench') ?> System Details</a>
+      <div class="select-wrap settings-nav-select-wrap">
+        <select id="settings-nav-select">
+          <option value="panel-admin">Account Details</option>
+          <option value="panel-accounts">Admin Accounts</option>
+          <option value="panel-appearance">Appearance</option>
+          <option value="panel-general">General</option>
+          <option value="panel-embed">Server Paths</option>
+          <option value="panel-blacklist">Blacklist</option>
+          <option value="panel-system">System Details</option>
+        </select>
+      </div>
     </div>
   </nav>
 
@@ -57,7 +69,7 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
           </div>
           <div class="pc-head-meta">
             <div class="pc-head-title">Account Details</div>
-            <div class="pc-head-sub">Update your login credentials and password.</div>
+            <div class="pc-head-sub">Update your login credentials and password. Changes apply immediately upon saving.</div>
           </div>
         </div>
 
@@ -65,6 +77,7 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
           <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
 
           <div class="pc-section">
+            <div class="pc-section-label">Login Details</div>
             <div class="form-row">
               <div class="form-group<?= !empty($fe['username']) ? ' has-error' : '' ?>">
                 <label class="form-label" for="p-username">Username <span class="req">*</span></label>
@@ -79,6 +92,15 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
                        maxlength="255" required
                        value="<?= View::e($admin_user->email ?? '') ?>">
                 <?php if (!empty($fe['email'])): ?><p class="field-error"><?= View::e($fe['email'][0]) ?></p><?php endif; ?>
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label" for="p-owner-name">Owner Name <span class="req">*</span></label>
+                <input id="p-owner-name" type="text" name="admin_display_name" class="form"
+                       maxlength="100" required
+                       value="<?= View::e($admin_user->displayName ?? '') ?>">
+                <p class="form-hint">Your public name used in outgoing emails and communications.</p>
               </div>
             </div>
           </div>
@@ -117,7 +139,6 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
           <div class="composer-footer">
             <button type="submit" class="btn btn-primary">Save Settings</button>
             <button type="reset" class="btn btn-ghost">Clear</button>
-            <span class="text-dim">Changes apply immediately</span>
           </div>
         </form>
       </div>
@@ -143,6 +164,7 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
             <thead>
               <tr>
                 <th>Username</th>
+                <th>Display Name</th>
                 <th>Email</th>
                 <th>Last Login</th>
                 <th>Created</th>
@@ -152,17 +174,18 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
             <tbody>
               <?php foreach (($users ?? []) as $user): ?>
               <tr>
-                <td>
+                <td data-label="Username">
                   <?= View::e($user->username) ?>
                   <?php if ($user->id === ($current_admin_id ?? 0)): ?>
                     <span class="badge badge-info badge-inline-gap">You</span>
                   <?php endif; ?>
                 </td>
-                <td><?= View::e($user->email) ?></td>
-                <td>
+                <td data-label="Display Name"><?= $user->displayName !== null && $user->displayName !== '' ? View::e($user->displayName) : '<span class="text-dim">&mdash;</span>' ?></td>
+                <td data-label="Email"><?= View::e($user->email) ?></td>
+                <td data-label="Last Login">
                   <?= $user->lastLogin !== null ? View::e(substr($user->lastLogin, 0, 16)) : '&mdash;' ?>
                 </td>
-                <td>
+                <td data-label="Created">
                   <?= View::e(substr($user->createdAt, 0, 10)) ?>
                 </td>
                 <td class="act-col">
@@ -186,6 +209,86 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
         </div>
       </div><!-- /.gradient-card -->
     </div><!-- /#panel-accounts -->
+
+<!-- ──── PANEL: APPEARANCE ──────────────────────────────────────────── -->
+    <div id="panel-appearance" class="mini-nav-panel">
+      <div class="gradient-card">
+        <div class="pc-head">
+          <div class="pc-head-icon pc-head-icon-bg"><?= View::icon('palette') ?></div>
+          <div class="pc-head-meta">
+            <div class="pc-head-title">Appearance</div>
+            <div class="pc-head-sub">Choose a colour skin for the admin panel. The skin applies to all admin pages.</div>
+          </div>
+        </div>
+
+        <div class="pc-section">
+          <div class="pc-section-label">Active Skin</div>
+          <?php
+            $activeSkin = $site_settings['selected_skin'] ?? '';
+            $bundledSkins = [
+              '' => [
+                'name'     => 'Nebula',
+                'desc'     => 'Default — pink, teal & gold',
+                'colors'   => ['#ff7eb3', '#78e8d8', '#ffd166'],
+              ],
+              'aurora' => [
+                'name'     => 'Aurora',
+                'desc'     => 'Northern lights — cyan, sage & pale sky',
+                'colors'   => ['#79e8ff', '#6bcfa0', '#b3e5fc'],
+              ],
+              'sol' => [
+                'name'     => 'Sol',
+                'desc'     => 'Sunrise — amber, rose & bright gold',
+                'colors'   => ['#ffb06a', '#ff8fa8', '#ffe066'],
+              ],
+            ];
+            $allSlugs = array_merge(array_keys($bundledSkins), $community_skins ?? []);
+          ?>
+          <div class="skin-picker">
+            <?php foreach ($bundledSkins as $slug => $skin): ?>
+              <form method="POST" action="<?= $b ?>/admin/settings/skin" style="display:contents">
+                <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
+                <input type="hidden" name="skin" value="<?= View::e($slug) ?>">
+                <button type="submit" class="skin-card<?= $activeSkin === $slug ? ' skin-card--active' : '' ?>">
+                  <div class="skin-swatch">
+                    <?php foreach ($skin['colors'] as $c): ?>
+                      <span class="skin-swatch-dot" style="background:<?= View::e($c) ?>"></span>
+                    <?php endforeach; ?>
+                  </div>
+                  <div class="skin-card-name"><?= View::e($skin['name']) ?></div>
+                  <div class="skin-card-desc"><?= View::e($skin['desc']) ?></div>
+                  <?php if ($activeSkin === $slug): ?>
+                    <div class="skin-card-active-badge"><?= View::icon('check') ?> Active</div>
+                  <?php endif; ?>
+                </button>
+              </form>
+            <?php endforeach; ?>
+
+            <?php foreach (($community_skins ?? []) as $slug): ?>
+              <form method="POST" action="<?= $b ?>/admin/settings/skin" style="display:contents">
+                <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
+                <input type="hidden" name="skin" value="<?= View::e($slug) ?>">
+                <button type="submit" class="skin-card<?= $activeSkin === $slug ? ' skin-card--active' : '' ?>">
+                  <div class="skin-swatch skin-swatch--community">
+                    <span class="skin-swatch-label"><?= View::e(strtoupper(substr($slug, 0, 2))) ?></span>
+                  </div>
+                  <div class="skin-card-name"><?= View::e(ucwords(str_replace('-', ' ', $slug))) ?></div>
+                  <div class="skin-card-desc">Community skin</div>
+                  <?php if ($activeSkin === $slug): ?>
+                    <div class="skin-card-active-badge"><?= View::icon('check') ?> Active</div>
+                  <?php endif; ?>
+                </button>
+              </form>
+            <?php endforeach; ?>
+          </div>
+          <p class="form-hint" style="margin-top:1rem">
+            Drop a <code>.css</code> file into <code>public/assets/css/skins/</code> to add a community skin.
+            File name becomes the skin slug (e.g. <code>myskin.css</code> → <code>[data-skin="myskin"]</code>).
+          </p>
+        </div>
+      </div>
+    </div><!-- /#panel-appearance -->
+
 <!-- ──── GENERAL + EMBED IN ONE FORM (BOTH POST TO /ADMIN/SETTINGS) ──────── -->
     <form method="POST" action="<?= $b ?>/admin/settings" class="js-warn-unsaved">
       <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
@@ -203,7 +306,7 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
           </div>
 
           <div class="pc-section">
-            <div class="pc-section-label">Site Identity</div>
+            <div class="pc-section-label">Site Information</div>
             <div class="form-group<?= !empty($fe['site_name']) ? ' has-error' : '' ?>">
               <label class="form-label" for="s-site-name">Site Name <span class="req">*</span></label>
               <input id="s-site-name" type="text" name="site_name" class="form"
@@ -222,7 +325,7 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
           </div>
 
           <div class="pc-section">
-            <div class="pc-section-label">Owner Info</div>
+            <div class="pc-section-label">Owner Information</div>
             <div class="form-row">
               <div class="form-group">
                 <label class="form-label" for="s-owner-name">Owner Name</label>
@@ -232,7 +335,7 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
                 <p class="form-hint">Used publically, such as in email correspondence.</p>
               </div>
               <div class="form-group">
-                <label class="form-label" for="s-owner-email">Owner Email</label>
+                <label class="form-label" for="s-owner-email">Contact Email</label>
                 <input id="s-owner-email" type="email" name="owner_email" class="form" maxlength="255"
                        value="<?= View::e(cfgVal($cfg, 'owner_email')) ?>">
                 <p class="form-hint">Used publically, such as in email correspondence.<br> May differ from your admin login email.</p>
@@ -357,7 +460,8 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
             <button type="button" class="btn btn-ghost" id="general-clear-btn">Clear</button>
           </div>
         </div>
-      </div><!-- /#panel-general -->
+      </div>
+      
 <!-- ──── PANEL: EMBED & PATHS ───────────────────────────────────────── -->
       <div id="panel-embed" class="mini-nav-panel">
         <div class="gradient-card">
@@ -367,7 +471,7 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
             </div>
             <div class="pc-head-meta">
               <div class="pc-head-title">Server Paths</div>
-              <div class="pc-head-sub">Paths and session settings for embed codes and forms on external pages.</div>
+              <div class="pc-head-sub">Paths for embed codes and forms on external pages.</div>
             </div>
           </div>
 
@@ -393,20 +497,6 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
                      placeholder="https://yourdomain.com/luster/public"
                      value="<?= View::e(cfgVal($cfg, 'embed_base_url')) ?>">
               <p class="form-hint">URL used for form submissions inside embeds (no trailing slash). Only needed when Luster is on a different domain from the embedding page. Leave blank to use the Collective Public URL.</p>
-            </div>
-          </div>
-
-          <div class="pc-section">
-            <div class="pc-section-label">Session Cookie Domain</div>
-            <div class="form-group">
-              <label class="form-label" for="s-cookie-domain">Cookie Domain</label>
-              <input id="s-cookie-domain" type="text" name="session_cookie_domain" class="form" maxlength="255"
-                     placeholder=".yourdomain.com"
-                     value="<?= View::e(cfgVal($cfg, 'session_cookie_domain')) ?>">
-              <p class="form-hint">
-                Include the leading dot for all subdomains (e.g. <code class="neb-code">.yourdomain.com</code>).
-                Leave blank for single-domain installs.
-              </p>
             </div>
           </div>
 
@@ -488,7 +578,6 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
           <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
 
           <div class="pc-section">
-            <div class="pc-section-label">Add Pattern</div>
             <div class="form-row">
               <div class="form-group">
                 <label class="form-label" for="bl-pattern">Email Pattern <span class="req">*</span></label>
@@ -516,7 +605,8 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
         <div class="card">
           <div class="empty">
             <span class="empty-icon"><?= View::icon('blacklist', ['width' => 32, 'height' => 32]) ?></span>
-            No blocked patterns yet &mdash; add email addresses or domains above to prevent them from joining.
+            <div class="empty-title">No blocked patterns found.</div>
+            <div>Add email addresses or domains above to prevent them from joining.</div>
           </div>
         </div>
       <?php else: ?>
@@ -718,6 +808,13 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
                 <input type="checkbox" name="import_show_codesort" value="1"
                        <?= ($site_settings['import_show_codesort'] ?? '1') === '1' ? 'checked' : '' ?>>
                 <span class="toggle-label">Show CodeSort card</span>
+              </label>
+            </div>
+            <div class="form-group">
+              <label class="toggle-wrap">
+                <input type="checkbox" name="import_show_bellabuffs" value="1"
+                       <?= ($site_settings['import_show_bellabuffs'] ?? '1') === '1' ? 'checked' : '' ?>>
+                <span class="toggle-label">Show BellaBuffs card</span>
               </label>
             </div>
             <div class="composer-footer">

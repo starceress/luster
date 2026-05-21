@@ -209,21 +209,6 @@ function importChecked(array $old, string $key, bool $default = true): string {
           <input type="checkbox" name="import_joined" value="1" <?= importChecked($old, 'import_joined') ?>>Joined listings</label>
         <label class="form-check">
           <input type="checkbox" name="import_categories" value="1" <?= importChecked($old, 'import_categories') ?>>Assigned categories</label>
-        <?php if (!empty($enth_networks)): ?>
-        <div class="import-choice-list--nested">
-          <label class="form-label import-label-compact" for="category_parent_id">Place top-level categories under network</label>
-          <div class="select-wrap import-select-narrow"><select id="category_parent_id" name="category_parent_id" >
-            <option value="">&mdash; Leave as top-level &mdash;</option>
-            <?php foreach ($enth_networks as $net): ?>
-              <option value="<?= View::e((string) $net['id']) ?>"
-                <?= (string) ($old['category_parent_id'] ?? '') === (string) $net['id'] ? 'selected' : '' ?>>
-                <?= View::e($net['name']) ?>
-              </option>
-            <?php endforeach; ?>
-          </select></div>
-          <p class="field-hint-sm import-hint-tight">Enthusiast has no network concept. Select a parent network (e.g. TFL) to import its categories as children rather than top-level entries.</p>
-        </div>
-        <?php endif; ?>
         <label class="form-check">
           <input type="checkbox" name="import_members" value="1" <?= importChecked($old, 'import_members') ?>>Members</label>
         <label class="form-check">
