@@ -8,6 +8,7 @@ use Luster\Core\Mailer;
 use Luster\Core\NetworkAddressGuard;
 use Luster\Core\Request;
 use Luster\Core\Response;
+use Luster\Core\SkinCatalog;
 use Luster\Core\UpdateChecker;
 use Luster\Core\Validator;
 use Luster\Repositories\ActivityRepo;
@@ -644,10 +645,9 @@ final class SettingsController extends AdminController
         }
 
         // Verify the slug is a known bundled skin or an existing community skin file
-        $bundled = ['aurora', 'sol'];
         $skinsDir = LUSTER_BASE . '/public/assets/css/skins';
         $communityFile = $skinsDir . '/' . $slug . '.css';
-        if ($slug !== '' && !in_array($slug, $bundled, true) && !is_file($communityFile)) {
+        if ($slug !== '' && !SkinCatalog::isBundled($slug) && !is_file($communityFile)) {
             $session->set('lstr_flash_error', 'Skin not found.');
             return Response::redirect($baseUrl . '/admin/settings#panel-appearance');
         }

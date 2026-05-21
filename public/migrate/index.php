@@ -21,20 +21,21 @@ session_name('luster_session');
 session_start();
 
 // ─── Shared page shell ────────────────────────────────────────────────────
-function mig_page(string $pageTitle, string $phTitle, string $phSub, string $content, bool $dimGem = false): string
+function mig_page(string $pageTitle, string $phTitle, string $phSub, string $content, bool $dimGem = false, string $selectedSkin = ''): string
 {
     require_once __DIR__ . '/../../templates/admin/_css_assets.php';
     $h = static fn(string $s): string => htmlspecialchars($s, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
-    $titleSafe  = $h($pageTitle);
+    $titleSafe   = $h($pageTitle);
     $phTitleSafe = $h($phTitle);
     $phSubSafe   = $h($phSub);
     $gemStyle    = $dimGem ? ' style="opacity:.45"' : '';
-    $cssLinks = lusterAdminCssLinks('../assets/css', __DIR__ . '/../assets/css');
-    $migCssV  = is_file(__DIR__ . '/migrate.css') ? (string) (filemtime(__DIR__ . '/migrate.css') ?: 0) : '0';
+    $skinAttr    = $selectedSkin !== '' ? ' data-skin="' . $h($selectedSkin) . '"' : '';
+    $cssLinks    = lusterAdminCssLinks('../assets/css', __DIR__ . '/../assets/css', $selectedSkin);
+    $migCssV     = is_file(__DIR__ . '/migrate.css') ? (string) (filemtime(__DIR__ . '/migrate.css') ?: 0) : '0';
 
     return <<<HTML
 <!DOCTYPE html>
-<html lang="en" data-theme="dark">
+<html lang="en" data-theme="dark"{$skinAttr}>
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -117,6 +118,35 @@ if (empty($_SESSION['lstr_migrate_token'])) {
 $migrateToken = (string) $_SESSION['lstr_migrate_token'];
 $tokenSafe    = htmlspecialchars($migrateToken, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 
+// ─── Skin (lightweight pre-read, non-fatal) ───────────────────────────────
+// Reads selected_skin from lstr_site_settings before any handler fires so
+// the GET confirmation page and POST result page both pick up the active skin.
+$migSelectedSkin = '';
+(static function () use (&$migSelectedSkin): void {
+    $cfgPath = dirname(dirname(__DIR__)) . '/config/app.php';
+    if (!is_file($cfgPath)) {
+        return;
+    }
+    $cfg = require $cfgPath;
+    try {
+        $p = new PDO(
+            sprintf('mysql:host=%s;port=%d;dbname=%s;charset=utf8mb4',
+                $cfg['db_host'] ?? 'localhost',
+                (int) ($cfg['db_port'] ?? 3306),
+                $cfg['db_name']   ?? ''),
+            (string) ($cfg['db_user'] ?? ''),
+            (string) ($cfg['db_pass'] ?? ''),
+            [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION, PDO::ATTR_TIMEOUT => 2]
+        );
+        $s = $p->query("SELECT value FROM lstr_site_settings WHERE `key` = 'selected_skin' LIMIT 1");
+        if ($s !== false) {
+            $row = $s->fetch(PDO::FETCH_ASSOC);
+            $migSelectedSkin = ($row !== false && isset($row['value'])) ? (string) $row['value'] : '';
+        }
+    } catch (\Throwable) {}
+})();
+// ─────────────────────────────────────────────────────────────────────────────
+
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     // Show confirmation page — nothing runs on GET.
     echo mig_page('Run Migrations', 'Run Migrations', 'Apply pending database schema updates', <<<HTML
@@ -139,7 +169,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     <button type="submit" class="btn btn-primary">Run migrations &rarr;</button>
   </form>
 </div>
-HTML);
+HTML, false, $migSelectedSkin);
     exit;
 }
 
@@ -1498,4 +1528,4 @@ if ($totalCount === 0): ?>
 <?php endif;
 
 $resultsHtml = ob_get_clean();
-echo mig_page('Migration Results', 'Migration Results', 'All migrations have been processed.', $resultsHtml);
+echo mig_page('Migration Results', 'Migration Results', 'All migrations have been processed.', $resultsHtml, false, $migSelectedSkin);

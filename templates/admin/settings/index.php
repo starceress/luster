@@ -14,6 +14,7 @@
 /** @var int    $error_log_count */
 /** @var \Luster\Core\UpdateStatus $update_status */
 
+use Luster\Core\SkinCatalog;
 use Luster\Core\UpdateStatus;
 use Luster\Core\Version;
 use Luster\Core\View;
@@ -224,28 +225,13 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
         <div class="pc-section">
           <div class="pc-section-label">Active Skin</div>
           <?php
-            $activeSkin = $site_settings['selected_skin'] ?? '';
-            $bundledSkins = [
-              '' => [
-                'name'     => 'Nebula',
-                'desc'     => 'Default — pink, teal & gold',
-                'colors'   => ['#ff7eb3', '#78e8d8', '#ffd166'],
-              ],
-              'aurora' => [
-                'name'     => 'Aurora',
-                'desc'     => 'Northern lights — cyan, sage & pale sky',
-                'colors'   => ['#79e8ff', '#6bcfa0', '#b3e5fc'],
-              ],
-              'sol' => [
-                'name'     => 'Sol',
-                'desc'     => 'Sunrise — amber, rose & bright gold',
-                'colors'   => ['#ffb06a', '#ff8fa8', '#ffe066'],
-              ],
-            ];
-            $allSlugs = array_merge(array_keys($bundledSkins), $community_skins ?? []);
+            $activeSkin   = $site_settings['selected_skin'] ?? '';
+            $bundledSkins = SkinCatalog::all();
           ?>
           <div class="skin-picker">
-            <?php foreach ($bundledSkins as $slug => $skin): ?>
+            <?php foreach ($bundledSkins as $skin):
+                $slug = $skin['slug'];
+            ?>
               <form method="POST" action="<?= $b ?>/admin/settings/skin" style="display:contents">
                 <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
                 <input type="hidden" name="skin" value="<?= View::e($slug) ?>">

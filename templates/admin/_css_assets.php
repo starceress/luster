@@ -2,39 +2,41 @@
 
 declare(strict_types=1);
 
-/** Slugs that ship inside tokens.css — their CSS is already bundled. */
-if (!defined('LUSTER_BUNDLED_SKINS')) {
-    define('LUSTER_BUNDLED_SKINS', ['aurora', 'sol']);
-}
-
 if (!function_exists('lusterAdminCssFiles')) {
     /**
      * Returns the ordered list of admin CSS filenames to load.
      *
      * tokens.css            — fonts, :root variables, [data-theme] and bundled
      *                          [data-skin] blocks. Always first.
-     * skins/{slug}.css      — community skin (if $selectedSkin is a community file,
-     *                          not one of the bundled skins). Loaded after tokens.css
-     *                          so community token overrides can win over bundled ones
-     *                          sharing the same specificity, and before admin.css so
-     *                          component rules see the correct token values.
+     * skins/{slug}.css      — community skin only (if $selectedSkin names a
+     *                          community drop-in, not a bundled skin). Loaded after
+     *                          tokens.css so community overrides win at equal
+     *                          specificity, and before admin.css so component rules
+     *                          see the correct token values.
      * admin.css             — all layout, component, form, and feature rules.
      *
-     * @param  string        $selectedSkin  Active skin slug, or '' for default Nebula.
+     * Bundled-skin detection uses SkinCatalog when the autoloader is available
+     * (all admin/auth pages). Standalone pages (install, migrate) call this
+     * function with $selectedSkin='' so the check never fires; the inline
+     * fallback is a safety net only.
+     *
+     * @param  string        $selectedSkin  Active skin slug, or '' for Nebula default.
      * @return list<string>
      */
     function lusterAdminCssFiles(string $selectedSkin = ''): array
     {
         $files = ['tokens.css'];
 
-        // Only inject the extra link for community (drop-in) skins.
-        // Bundled skins (aurora, sol) live inside tokens.css already.
-        if (
-            $selectedSkin !== ''
-            && !in_array($selectedSkin, LUSTER_BUNDLED_SKINS, true)
-            && preg_match('/^[a-z0-9][a-z0-9-]*$/', $selectedSkin)
-        ) {
-            $files[] = 'skins/' . $selectedSkin . '.css';
+        if ($selectedSkin !== '' && preg_match('/^[a-z0-9][a-z0-9-]*$/', $selectedSkin)) {
+            // Use SkinCatalog when autoloader is available; fall back to known slugs.
+            $catalogClass = 'Luster\Core\SkinCatalog';
+            $isBundled = class_exists($catalogClass, false)
+                ? $catalogClass::isBundled($selectedSkin)
+                : in_array($selectedSkin, ['aurora', 'sol'], true);
+
+            if (!$isBundled) {
+                $files[] = 'skins/' . $selectedSkin . '.css';
+            }
         }
 
         $files[] = 'admin.css';
