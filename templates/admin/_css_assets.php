@@ -16,10 +16,9 @@ if (!function_exists('lusterAdminCssFiles')) {
      * admin.css             — all layout, component, form, and feature rules.
      *
      * Bundled-skin detection uses SkinCatalog when the autoloader is available
-     * (all admin/auth pages). On standalone pages without an autoloader (install),
-     * class_exists() returns false and the inline slug list acts as a fallback.
-     * The migrate page does pass a real skin slug — it bootstraps its own DB
-     * connection to read selected_skin, and the autoloader is not required there.
+     * (admin, auth, and migrate pages). On the install page, which is truly
+     * standalone and does not load vendor/autoload.php, class_exists() returns
+     * false and the inline slug list acts as a safety-net fallback.
      *
      * @param  string        $selectedSkin  Active skin slug, or '' for Nebula default.
      * @return list<string>
