@@ -12,6 +12,15 @@ declare(strict_types=1);
  * is tracked in lstr_migrations and skipped if already applied.
  */
 
+// Composer autoloader — makes Luster classes (e.g. SkinCatalog) available
+// to _css_assets.php so bundled-skin detection uses the live catalog rather
+// than the inline fallback slug list.
+$_migAutoload = dirname(dirname(__DIR__)) . '/vendor/autoload.php';
+if (is_file($_migAutoload)) {
+    require_once $_migAutoload;
+}
+unset($_migAutoload);
+
 // Session guard — must be logged in as admin
 ini_set('session.cookie_httponly', '1');
 ini_set('session.cookie_secure', '1');
