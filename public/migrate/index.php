@@ -194,7 +194,7 @@ if (!hash_equals($migrateToken, $submittedToken)) {
 <div class="mig-card-footer">
   <a href="./" class="mig-back-link">&#8592; Back to migration page</a>
 </div>
-HTML);
+HTML, false, $migSelectedSkin);
     exit;
 }
 
@@ -222,7 +222,7 @@ if (!is_file($configPath)) {
 <div class="mig-card-footer">
   <a href="../install/" class="mig-back-link">&#8594; Go to installer</a>
 </div>
-HTML);
+HTML, false, $migSelectedSkin);
     exit;
 }
 
@@ -263,7 +263,7 @@ try {
 <div class="mig-card-footer">
   <a href="./" class="mig-back-link">&#8592; Try again</a>
 </div>
-HTML);
+HTML, false, $migSelectedSkin);
     exit;
 }
 
