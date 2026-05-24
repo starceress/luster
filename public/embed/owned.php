@@ -125,17 +125,17 @@ if (trim($_lusterOwnedTemplate) === '') {
 
 // Build per-listing HTML when a custom template is set
 $_lusterListingHtml = null;
+$_lusterSectionsMode = false;
 if ($_lusterOwnedTemplate !== null) {
     $e = static fn(string $v): string => htmlspecialchars($v, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
     $_lusterUploadsUrl = $_lusterApp->getBaseUrl() . '/uploads/listings';
     $statusLabels = ['current' => 'Current', 'upcoming' => 'Upcoming', 'pending' => 'Pending'];
 
     // Batch-fetch settings (image, last_updated) and category names for all listings
-    $_lusterListingIds  = array_map(static fn($fl) => $fl->id, $_lusterListings);
-    $_lusterCategoryIds = array_filter(array_unique(array_map(static fn($fl) => $fl->categoryId, $_lusterListings)));
+    $_lusterListingIds = array_map(static fn($fl) => $fl->id, $_lusterListings);
 
-    $_lusterSettingsMap  = [];   // listingId → ['image' => ..., 'last_updated' => ...]
-    $_lusterCategoryMap  = [];   // categoryId → name
+    $_lusterSettingsMap       = [];   // listingId → ['image' => ..., 'last_updated' => ...]
+    $_lusterListingCategoryMap = [];  // listingId → comma-separated category names
 
     if (!empty($_lusterListingIds)) {
         try {
@@ -147,17 +147,51 @@ if ($_lusterOwnedTemplate !== null) {
                 $_lusterSettingsMap[(int) $_row['fanlisting_id']] = $_row;
             }
         } catch (\Exception) {}
-    }
-    if (!empty($_lusterCategoryIds)) {
+
+        // Batch-fetch all category names via junction table (returns all assigned categories)
         try {
             $_db  = $_db ?? $_lusterApp->getDatabase();
-            $_phs = implode(',', array_fill(0, count($_lusterCategoryIds), '?'));
-            $_st  = $_db->prepare("SELECT id, name FROM lstr_categories WHERE id IN ({$_phs})");
-            $_st->execute(array_values($_lusterCategoryIds));
+            $_phs = implode(',', array_fill(0, count($_lusterListingIds), '?'));
+            $_st  = $_db->prepare(
+                "SELECT lc.fanlisting_id, c.name
+                 FROM lstr_listing_categories lc
+                 JOIN lstr_categories c ON c.id = lc.category_id
+                 WHERE lc.fanlisting_id IN ({$_phs})
+                 ORDER BY lc.fanlisting_id, c.name"
+            );
+            $_st->execute(array_values($_lusterListingIds));
+            $_lcRaw = [];
             foreach ($_st->fetchAll() as $_row) {
-                $_lusterCategoryMap[(int) $_row['id']] = (string) $_row['name'];
+                $_lcRaw[(int) $_row['fanlisting_id']][] = (string) $_row['name'];
             }
-        } catch (\Exception) {}
+            foreach ($_lcRaw as $_lcId => $_lcNames) {
+                $_lusterListingCategoryMap[$_lcId] = implode(', ', $_lcNames);
+            }
+        } catch (\Exception) {
+            // Junction table absent (pre-migration 51): fall back to primary category_id
+            foreach ($_lusterListings as $_fl) {
+                if (($_fl->categoryId ?? null) !== null) {
+                    $_lusterListingCategoryMap[$_fl->id] = '';  // resolved below
+                }
+            }
+            $_fallbackCatIds = array_filter(array_unique(array_map(static fn($fl) => $fl->categoryId, $_lusterListings)));
+            if (!empty($_fallbackCatIds)) {
+                try {
+                    $_phs = implode(',', array_fill(0, count($_fallbackCatIds), '?'));
+                    $_st  = $_db->prepare("SELECT id, name FROM lstr_categories WHERE id IN ({$_phs})");
+                    $_st->execute(array_values($_fallbackCatIds));
+                    $_fallbackMap = [];
+                    foreach ($_st->fetchAll() as $_row) {
+                        $_fallbackMap[(int) $_row['id']] = (string) $_row['name'];
+                    }
+                    foreach ($_lusterListings as $_fl) {
+                        if (($_fl->categoryId ?? null) !== null && isset($_fallbackMap[$_fl->categoryId])) {
+                            $_lusterListingCategoryMap[$_fl->id] = $_fallbackMap[$_fl->categoryId];
+                        }
+                    }
+                } catch (\Exception) {}
+            }
+        }
     }
 
     // Fetch member stats (one query per listing) only when the template uses them
@@ -171,16 +205,18 @@ if ($_lusterOwnedTemplate !== null) {
         }
     }
 
-    $rows = '';
-    foreach ($_lusterListings as $_fl) {
-        $statusLabel = $statusLabels[$_fl->trouble ? 'pending' : ($_fl->upcoming ? 'upcoming' : 'current')] ?? 'Current';
-        $_flSettings    = $_lusterSettingsMap[$_fl->id] ?? [];
-        $_flImage       = (string) ($_flSettings['image'] ?? '');
-        $_flImageTag    = $_flImage !== ''
+    $renderOwnedRow = static function (object $_fl) use (
+        $e, $_lusterOwnedTemplate, $_lusterUploadsUrl,
+        $statusLabels, $_lusterSettingsMap, $_lusterListingCategoryMap, $_lusterMemberStatsMap
+    ): string {
+        $statusLabel  = $statusLabels[$_fl->trouble ? 'pending' : ($_fl->upcoming ? 'upcoming' : 'current')] ?? 'Current';
+        $_flSettings  = $_lusterSettingsMap[$_fl->id] ?? [];
+        $_flImage     = (string) ($_flSettings['image'] ?? '');
+        $_flImageTag  = $_flImage !== ''
             ? '<img src="' . $e($_lusterUploadsUrl . '/' . $_flImage) . '" alt="' . $e($_fl->name) . '" title="' . $e($_fl->subject) . '">'
             : '';
-        $_flStats       = $_lusterMemberStatsMap[$_fl->id] ?? ['approved' => 0, 'country_count' => 0];
-        $rows .= str_replace(
+        $_flStats = $_lusterMemberStatsMap[$_fl->id] ?? ['approved' => 0, 'country_count' => 0];
+        return str_replace(
             [
                 '{listing_name}', '{listing_url}', '{listing_subject}', '{listing_status}',
                 '{listing_email}', '{listing_type}', '{listing_category}',
@@ -189,14 +225,67 @@ if ($_lusterOwnedTemplate !== null) {
             ],
             [
                 $e($_fl->name), $e($_fl->url), $e($_fl->subject ?? ''), $e($statusLabel),
-                $e($_fl->email), $e($_fl->listingtype), $e($_lusterCategoryMap[$_fl->categoryId ?? 0] ?? ''),
+                $e($_fl->email), $e($_fl->listingtype), $e($_lusterListingCategoryMap[$_fl->id] ?? ''),
                 $_flImageTag, $e($_fl->opened ?? ''), $e((string) ($_flSettings['last_updated'] ?? '')),
                 (string) $_flStats['approved'], (string) $_flStats['country_count'],
             ],
             $_lusterOwnedTemplate,
         );
+    };
+
+    $_lusterListingHtml = implode('', array_map($renderOwnedRow, $_lusterListings));
+
+    // Sections mode: null (never saved) = use built-in default; '' (explicitly cleared) = off.
+    $_lusterSectionsTplRaw = $_lusterSiteRepo->get('owned_sections_template');
+    $_lusterSectionsTpl    = $_lusterSectionsTplRaw === null
+        ? SiteSettingsRepo::collectiveDefaults()['owned_sections_template']
+        : $_lusterSectionsTplRaw;
+
+    if ($_lusterStatus === 'all' && trim($_lusterSectionsTpl) !== '') {
+        $_lusterSectionsMode = true;
+        $_lcCurrent  = [];
+        $_lcUpcoming = [];
+        $_lcPending  = [];
+        foreach ($_lusterListings as $_fl) {
+            if ($_fl->trouble) {
+                $_lcPending[] = $_fl;
+            } elseif ($_fl->upcoming) {
+                $_lcUpcoming[] = $_fl;
+            } else {
+                $_lcCurrent[] = $_fl;
+            }
+        }
+        $_lcCurrentHtml  = implode('', array_map($renderOwnedRow, $_lcCurrent));
+        $_lcUpcomingHtml = implode('', array_map($renderOwnedRow, $_lcUpcoming));
+        $_lcPendingHtml  = implode('', array_map($renderOwnedRow, $_lcPending));
+
+        $_lusterSectionsOut = (string) preg_replace(
+            '/\{if_current_listings\}(.*?)\{\/if_current_listings\}/s',
+            $_lcCurrentHtml !== '' ? '$1' : '',
+            $_lusterSectionsTpl,
+        );
+        $_lusterSectionsOut = (string) preg_replace(
+            '/\{if_upcoming_listings\}(.*?)\{\/if_upcoming_listings\}/s',
+            $_lcUpcomingHtml !== '' ? '$1' : '',
+            $_lusterSectionsOut,
+        );
+        $_lusterSectionsOut = (string) preg_replace(
+            '/\{if_pending_listings\}(.*?)\{\/if_pending_listings\}/s',
+            $_lcPendingHtml !== '' ? '$1' : '',
+            $_lusterSectionsOut,
+        );
+        $_lusterSectionsOut = str_replace(
+            ['{current_content}', '{upcoming_content}', '{pending_content}',
+             '{current_count}', '{upcoming_count}', '{pending_count}', '{total_count}'],
+            [$_lcCurrentHtml, $_lcUpcomingHtml, $_lcPendingHtml,
+             (string) count($_lcCurrent), (string) count($_lcUpcoming), (string) count($_lcPending),
+             (string) count($_lusterListings)],
+            $_lusterSectionsOut,
+        );
+        // Empty string when all conditional blocks were stripped — lets the template
+        // fall through to the "No listings to display" path correctly.
+        $_lusterListingHtml = trim($_lusterSectionsOut) !== '' ? $_lusterSectionsOut : '';
     }
-    $_lusterListingHtml = $rows;
 }
 
 // ---------------------------------------------------------------------------
@@ -214,8 +303,9 @@ $_lusterFormAction = htmlspecialchars(
 // ---------------------------------------------------------------------------
 
 $_lusterHtml = $_lusterApp->getView()->renderFragment('owned.php', [
-    'listings'      => $_lusterListings,
-    'listing_html'  => $_lusterListingHtml,
+    'listings'            => $_lusterListings,
+    'listing_html'        => $_lusterListingHtml,
+    'sections_mode'       => $_lusterSectionsMode,
     'categories'          => $_lusterCategories,
     'current_category'    => $_lusterCatId,
     'status'              => $_lusterStatus,

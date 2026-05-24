@@ -108,7 +108,8 @@ if ($displayMode === 'category') {
       <option value="">All Networks</option>
       <option value="TFL"<?= ($filter_network ?? '') === 'TFL'  ? ' selected' : '' ?>>TFL</option>
       <option value="TAFL"<?= ($filter_network ?? '') === 'TAFL' ? ' selected' : '' ?>>TAFL</option>
-      <?php foreach ($custom_networks ?? [] as $net): ?>
+      <?php foreach (array_keys($network_categories ?? []) as $net):
+            if ($net === 'TFL' || $net === 'TAFL') { continue; } ?>
         <option value="<?= View::e($net) ?>"
                 <?= ($filter_network ?? '') === $net ? ' selected' : '' ?>>
           <?= View::e($net) ?>
@@ -118,14 +119,35 @@ if ($displayMode === 'category') {
     </div>
 
     <div class="select-wrap">
-    <select id="cat-sel" name="category" >
+    <select id="cat-sel" name="category">
       <option value="">All Categories</option>
-      <?php foreach ($categories as $cat): ?>
-        <option value="<?= View::e($cat) ?>"
-                <?= ($filter_cat ?? '') === $cat ? ' selected' : '' ?>>
-          <?= View::e($cat) ?>
-        </option>
-      <?php endforeach; ?>
+      <?php if (($filter_network ?? '') === ''): ?>
+        <?php foreach (['TFL', 'TAFL'] as $fixedNet): ?>
+          <?php $netCatList = $network_categories[$fixedNet] ?? []; ?>
+          <?php if (!empty($netCatList)): ?>
+            <optgroup label="<?= View::e($fixedNet) ?>">
+              <?php foreach ($netCatList as $cat): ?>
+                <option value="<?= View::e($cat) ?>"
+                        <?= ($filter_cat ?? '') === $cat ? 'selected' : '' ?>><?= View::e($cat) ?></option>
+              <?php endforeach; ?>
+            </optgroup>
+          <?php endif; ?>
+        <?php endforeach; ?>
+        <?php foreach ($network_categories ?? [] as $net => $netCatList): ?>
+          <?php if ($net === 'TFL' || $net === 'TAFL' || empty($netCatList)) { continue; } ?>
+          <optgroup label="<?= View::e($net) ?>">
+            <?php foreach ($netCatList as $cat): ?>
+              <option value="<?= View::e($cat) ?>"
+                      <?= ($filter_cat ?? '') === $cat ? 'selected' : '' ?>><?= View::e($cat) ?></option>
+            <?php endforeach; ?>
+          </optgroup>
+        <?php endforeach; ?>
+      <?php else: ?>
+        <?php foreach ($categories as $cat): ?>
+          <option value="<?= View::e($cat) ?>"
+                  <?= ($filter_cat ?? '') === $cat ? 'selected' : '' ?>><?= View::e($cat) ?></option>
+        <?php endforeach; ?>
+      <?php endif; ?>
     </select>
     </div>
 
@@ -210,7 +232,7 @@ if ($displayMode === 'category') {
             <a href="<?= View::e($jf->url) ?>" target="_blank" rel="noopener noreferrer"
                class="link"><?= View::e($jf->name) ?></a>
           </td>
-          <td class="text-muted" data-label="Category">
+          <td data-label="Category">
             <?php
               $cats = ($jf->categoriesJson !== null && $jf->categoriesJson !== '')
                 ? json_decode($jf->categoriesJson, true)
@@ -218,11 +240,22 @@ if ($displayMode === 'category') {
               if (!empty($cats) && is_array($cats)):
                 $parts = [];
                 foreach ($cats as $c) {
-                    if (isset($c['network'], $c['name']) && $c['network'] !== '' && $c['name'] !== '') {
-                        $parts[] = View::e($c['network']) . ': ' . View::e($c['name']);
-                    }
+                    if (!isset($c['network'], $c['name']) || $c['network'] === '' || $c['name'] === '') { continue; }
+                    $netClass = match (strtolower($c['network'])) {
+                        'tfl'  => 'badge-tfl',
+                        'tafl' => 'badge-tafl',
+                        default => 'badge-info',
+                    };
+                    $parts[] = '<span class="cat-net-item"><span class="badge ' . $netClass . '">'
+                             . View::e($c['network']) . '</span>' . View::e($c['name']) . '</span>';
                 }
-                echo $parts !== [] ? implode(', ', $parts) : View::e($jf->category);
+                if ($parts !== []):
+                    echo implode('<span class="text-muted">, </span>', $parts);
+                elseif ($jf->category !== ''):
+                    echo View::e($jf->category);
+                else:
+                    echo '<span class="text-dim">&mdash;</span>';
+                endif;
               elseif ($jf->category !== ''):
                 echo View::e($jf->category);
               else:

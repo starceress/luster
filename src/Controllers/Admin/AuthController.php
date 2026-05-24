@@ -413,7 +413,21 @@ final class AuthController
     private function selectedSkin(): string
     {
         try {
-            return (new SiteSettingsRepo($this->app->getDatabase()))->get('selected_skin', '');
+            $siteRepo = new SiteSettingsRepo($this->app->getDatabase());
+            $settings = $siteRepo->getMany(['selected_skin', 'selected_skin_hash']);
+            $slug     = $settings['selected_skin'] ?? '';
+
+            if ($slug !== '' && !\Luster\Core\SkinCatalog::isBundled($slug)) {
+                $skinFile    = $this->app->getBasePath() . '/public/assets/css/skins/' . $slug . '.css';
+                $currentHash = is_file($skinFile) ? hash_file('sha256', $skinFile) : false;
+                $storedHash  = $settings['selected_skin_hash'] ?? null;
+
+                if ($currentHash === false || ($storedHash !== null && $currentHash !== $storedHash)) {
+                    return '';
+                }
+            }
+
+            return $slug;
         } catch (\Throwable) {
             return '';
         }

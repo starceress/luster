@@ -44,19 +44,43 @@ $dataTafl      = json_encode($tafl_cats      ?? [], JSON_HEX_QUOT | JSON_HEX_AMP
 $dataCustom    = json_encode($custom_networks ?? [], JSON_HEX_QUOT | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_TAG);
 $dataCustomCats = json_encode($custom_cats   ?? [], JSON_HEX_QUOT | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_TAG);
 
-// Pre-populate existing categories from catid pipe-string
+// Build category lookup from all available sources
+$catLookup = [];
+foreach ($tfl_cats  ?? [] as $c) { $catLookup[(int) $c['id']] = ['network' => 'TFL',  'name' => $c['name']]; }
+foreach ($tafl_cats ?? [] as $c) { $catLookup[(int) $c['id']] = ['network' => 'TAFL', 'name' => $c['name']]; }
+foreach ($custom_cats ?? [] as $net => $cats) {
+    foreach ($cats as $c) { $catLookup[(int) $c['id']] = ['network' => $net, 'name' => $c['name']]; }
+}
+
+// Pre-populate cat-widget: posted arrays (validation error) → junction table → catid fallback
 $existingCats = [];
-$catidRaw     = (string) ($listing->catid ?? '');
-$catIds       = array_filter(explode('|', $catidRaw), static fn($v) => $v !== '');
-if (!empty($catIds)) {
-    $catLookup = [];
-    foreach ($tfl_cats  ?? [] as $c) { $catLookup[(int) $c['id']] = ['network' => 'TFL',  'name' => $c['name']]; }
-    foreach ($tafl_cats ?? [] as $c) { $catLookup[(int) $c['id']] = ['network' => 'TAFL', 'name' => $c['name']]; }
-    foreach ($custom_cats ?? [] as $net => $cats) {
-        foreach ($cats as $c) { $catLookup[(int) $c['id']] = ['network' => $net, 'name' => $c['name']]; }
+$oldNets  = $old['cat_network']       ?? null;
+$oldNames = $old['cat_name']          ?? null;
+$oldOther = $old['cat_network_other'] ?? [];
+if (is_array($oldNets) && is_array($oldNames)) {
+    foreach ($oldNets as $i => $net) {
+        $net = trim((string) $net);
+        $nm  = trim((string) ($oldNames[$i] ?? ''));
+        if ($net === 'other') {
+            $net = trim((string) ($oldOther[$i] ?? ''));
+        }
+        if ($net !== '' && $nm !== '') {
+            $existingCats[] = ['network' => $net, 'name' => $nm];
+        }
     }
+} elseif (!empty($current_category_ids ?? [])) {
+    foreach ($current_category_ids as $cid) {
+        if (isset($catLookup[(int) $cid])) {
+            $existingCats[] = $catLookup[(int) $cid];
+        }
+    }
+} else {
+    $catidRaw = (string) ($listing->catid ?? '');
+    $catIds   = array_filter(explode('|', $catidRaw), static fn($v) => $v !== '');
     foreach ($catIds as $cid) {
-        if (isset($catLookup[(int) $cid])) { $existingCats[] = $catLookup[(int) $cid]; }
+        if (isset($catLookup[(int) $cid])) {
+            $existingCats[] = $catLookup[(int) $cid];
+        }
     }
 }
 $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_TAG);
@@ -67,7 +91,7 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
     &larr; Back to Owned Listings
   </a>
   <div class="topbar-actions">
-    <a href="<?= $b ?>/admin/members/<?= (int) $listing->id ?>" class="btn btn-quaternary btn-sm">Member List</a>
+    <a href="<?= $b ?>/admin/members?listing_id=<?= (int) $listing->id ?>&status=all" class="btn btn-quaternary btn-sm">Member List</a>
     <a href="<?= $b ?>/admin/emails?tab=bulk&listing=<?= (int) $listing->id ?>" class="btn btn-quaternary btn-sm">Bulk Email</a>
     <?php if (in_array('Kim', $nav_installed_addons ?? [], true)): ?>
       <a href="<?= $b ?>/admin/kim/<?= (int) $listing->id ?>/show" class="btn btn-quaternary btn-sm">KIM List</a>
@@ -95,7 +119,7 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
 <?php endif; ?>
 
 <div class="stats-grid stats-grid-row">
-<?php $pl = View::e($b . '/admin/members/' . (int) $listing->id . '?status=pending'); ?>
+<?php $pl = View::e($b . '/admin/members?listing_id=' . (int) $listing->id . '&status=pending'); ?>
 <div class="stat-card">
   <div class="stat-header">Total Members</div>
   <div class="stat-value"><?= (int) $approved ?></div>
@@ -389,6 +413,30 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
             <p class="form-hint">Where to send the applicant after they submit. Leave blank to use the built-in success page.</p>
           </div>
         </div>
+
+        <div class="listing-field-row listing-field-row--top">
+          <label class="listing-field-label">Join Settings</label>
+          <div>
+            <?php
+              $jce    = $join_confirmation_email ?? null;
+              $jceVal = $jce === null ? '' : ($jce ? '1' : '0');
+            ?>
+            <div class="select-wrap select-auto" style="margin-bottom:.75rem">
+              <select name="join_confirmation_email">
+                <option value=""  <?= $jceVal === ''  ? 'selected' : '' ?>>Inherit &mdash; follow member&rsquo;s preference</option>
+                <option value="1" <?= $jceVal === '1' ? 'selected' : '' ?>>Always send join confirmation email</option>
+                <option value="0" <?= $jceVal === '0' ? 'selected' : '' ?>>Never send join confirmation email</option>
+              </select>
+            </div>
+            <p class="form-hint" style="margin-bottom:.75rem">Password setup emails are always sent when a password is auto-generated, regardless of this setting.</p>
+            <label class="toggle-wrap">
+              <input type="checkbox" name="auto_approve_joins" value="1" id="fl-auto-approve-joins"
+                     <?= ($auto_approve_joins ?? false) ? 'checked' : '' ?>>
+              <span class="toggle-label">Auto-approve new joins for this listing</span>
+            </label>
+            <p class="form-hint">New joins are held for manual approval by default. Enable to approve them automatically for this listing only.</p>
+          </div>
+        </div>
       </div>
 
       <div class="pc-section">
@@ -456,7 +504,8 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
 <b>Updated:</b> {stat_last_updated}<br>
 <b>Fans:</b> {stat_approved} (+ {stat_pending} pending)<br>
 <b>Newest Fan:</b> {stat_newmembers}<br>
-<b>Growth:</b> {stat_growth}</div>') ?></textarea>
+<b>Growth:</b> {stat_growth}{if_approved_by}<br>
+<b>Approved by:</b> {approved_by}{/if_approved_by}</div>') ?></textarea>
         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-ghost btn-sm btn-tpl-reset" data-target="stats_template">Reset to Default</button>
@@ -510,6 +559,8 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
               <tr class="tok-row" data-textarea="stats_template" data-token="{stat_pending}"><td><code>{stat_pending}</code></td><td>Pending member count</td></tr>
               <tr class="tok-row" data-textarea="stats_template" data-token="{stat_newmembers}"><td><code>{stat_newmembers}</code></td><td>Newest member name</td></tr>
               <tr class="tok-row" data-textarea="stats_template" data-token="{stat_growth}"><td><code>{stat_growth}</code></td><td>Average members/day since opening</td></tr>
+              <tr class="tok-row" data-textarea="stats_template" data-token="{approved_by}"><td><code>{approved_by}</code></td><td>Linked network name (TFL or TAFL), or empty</td></tr>
+              <tr class="tok-row" data-textarea="stats_template" data-token="{if_approved_by}"><td><code>{if_approved_by}&hellip;{/if_approved_by}</code></td><td>Block shown only when approved by a network</td></tr>
             </tbody>
           </table>
         </div>
@@ -519,7 +570,7 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
   </div>
 </form>
 
-<script type="application/json" id="luster-tpl-defaults">{"members_template":"<li><a href=\"{fan_url}\">{fan_name}<\/a> \u2014 {fan_country}<\/li>","affiliates_template":"<a href=\"{aff_url}\" target=\"_blank\" title=\"{aff_name}\">{aff_image}<\/a>","stats_template":"<div>\n<b>Opened:<\/b> {stat_opened}<br>\n<b>Updated:<\/b> {stat_last_updated}<br>\n<b>Fans:<\/b> {stat_approved} (+ {stat_pending} pending)<br>\n<b>Newest Fan:<\/b> {stat_newmembers}<br>\n<b>Growth:<\/b> {stat_growth}\n<\/div>"}</script>
+<script type="application/json" id="luster-tpl-defaults">{"members_template":"<li><a href=\"{fan_url}\">{fan_name}<\/a> \u2014 {fan_country}<\/li>","affiliates_template":"<a href=\"{aff_url}\" target=\"_blank\" title=\"{aff_name}\">{aff_image}<\/a>","stats_template":"<div>\n<b>Opened:<\/b> {stat_opened}<br>\n<b>Updated:<\/b> {stat_last_updated}<br>\n<b>Fans:<\/b> {stat_approved} (+ {stat_pending} pending)<br>\n<b>Newest Fan:<\/b> {stat_newmembers}<br>\n<b>Growth:<\/b> {stat_growth}{if_approved_by}<br>\n<b>Approved by:<\/b> {approved_by}{\/if_approved_by}\n<\/div>"}</script>
 </div><!-- /#tab-templates -->
 <!-- ──── TAB: ADDITIONAL FIELDS ─────────────────────────────────────── -->
 <div id="tab-fields" class="tabs-panel">

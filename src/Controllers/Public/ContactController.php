@@ -150,9 +150,7 @@ final class ContactController
               . $message;
 
         try {
-            $mailer = new Mailer($this->app->getConfig());
-            $mail   = $this->buildMailer($mailer, $recipient, $listing->name, $subject, $body, $email, $name);
-            $mail->send();
+            (new Mailer($this->app->getConfig()))->sendWithReplyTo($recipient, $listing->name, $subject, $body, $email, $name);
         } catch (\RuntimeException) {
             $session->set('lstr_flash_error', 'Your message could not be sent. Please try again later.');
             $session->set('lstr_flash_old', $this->collectOld($request));
@@ -292,9 +290,7 @@ final class ContactController
               . $message;
 
         try {
-            $mailer = new Mailer($config);
-            $mail   = $this->buildMailer($mailer, $recipient, $siteName, $subject, $body, $email, $name);
-            $mail->send();
+            (new Mailer($config))->sendWithReplyTo($recipient, $siteName, $subject, $body, $email, $name);
         } catch (\RuntimeException) {
             $session->set('lstr_flash_error', 'Your message could not be sent. Please try again later.');
             $session->set('lstr_flash_old', $this->collectOld($request));
@@ -372,22 +368,6 @@ final class ContactController
         ];
     }
 
-    /**
-     * Builds a PHPMailer instance via the Mailer wrapper, with Reply-To set to the fan.
-     * We need direct access to the PHPMailer object to set Reply-To, so we use reflection.
-     */
-    private function buildMailer(
-        Mailer $mailer,
-        string $toEmail,
-        string $toName,
-        string $subject,
-        string $body,
-        string $replyToEmail,
-        string $replyToName,
-    ): MailerContactWrapper {
-        return new MailerContactWrapper($mailer, $toEmail, $toName, $subject, $body, $replyToEmail, $replyToName);
-    }
-
     private function renderPublic(string $template, array $data): Response
     {
         $view    = $this->app->getView();
@@ -400,42 +380,5 @@ final class ContactController
             'base_url'   => $baseUrl,
             'theme_path' => $themePath,
         ])));
-    }
-}
-
-/**
- * Thin wrapper that sends a contact email with Reply-To via PHPMailer directly.
- */
-final class MailerContactWrapper
-{
-    public function __construct(
-        private readonly Mailer $mailer,
-        private readonly string $toEmail,
-        private readonly string $toName,
-        private readonly string $subject,
-        private readonly string $body,
-        private readonly string $replyToEmail,
-        private readonly string $replyToName,
-    ) {}
-
-    public function send(): void
-    {
-        // Use reflection to access the private buildMailer method from Mailer
-        $ref    = new \ReflectionClass($this->mailer);
-        $method = $ref->getMethod('buildMailer');
-        $method->setAccessible(true);
-
-        /** @var \PHPMailer\PHPMailer\PHPMailer $mail */
-        $mail = $method->invoke($this->mailer);
-
-        $mail->addAddress($this->toEmail, $this->toName);
-        $mail->addReplyTo($this->replyToEmail, $this->replyToName);
-        $mail->Subject = $this->subject;
-        $mail->Body    = $this->body;
-        $mail->isHTML(false);
-
-        if (!$mail->send()) {
-            throw new \RuntimeException('Mailer error: ' . $mail->ErrorInfo);
-        }
     }
 }

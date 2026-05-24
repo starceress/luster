@@ -635,7 +635,7 @@ final class AffiliateController extends AdminController
 
         try {
             $mailer = new Mailer($config);
-            $mailer->send($affiliate->email, $subject, $body);
+            $mailer->send($affiliate->email, $affiliate->name, $subject, $body);
         } catch (\Exception) {
             // Email failure is non-fatal
         }

@@ -8,7 +8,7 @@ $b = rtrim(View::e($base_url), '/');
 
 <div class="gradient-card">
   <div class="pc-head">
-    <div class="pc-head-icon pc-head-icon-bg"><?= View::icon('heart') ?></div>
+    <div class="pc-head-icon pc-head-icon-bg"><?= View::icon('adoptions') ?></div>
     <div class="pc-head-meta">
       <div class="pc-head-title">Adoption Applications</div>
       <div class="pc-head-sub">

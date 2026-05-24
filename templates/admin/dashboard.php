@@ -35,7 +35,7 @@ use Luster\Core\View;
  * @var array[]       $recent_members       [{member: Member, listing_name: string, listing_id: int}]
  * @var array[]       $recent_activity
  * @var array[]       $stale_listings
- * @var int           $inactive_threshold_days
+ * @var int           $stale_threshold_days
  * @var string             $base_url
  * @var string             $csrf_token
  * @var \Luster\Core\UpdateStatus $update_status
@@ -261,18 +261,38 @@ $growthDiff          = $growth_this_month - $growth_last_month;
         <span class="todo-chev">&#9650;</span>
       </button>
       <div class="todo-body" id="todo-maint">
+        <?php /* Bulk-select form sits outside the per-row forms so no nesting occurs.
+                  Checkboxes and "Mark Selected" use form="bulk-maint-form" to associate. */ ?>
+        <form method="POST" action="<?= $b ?>/admin/maintenance/bulk-touch-updated"
+              id="bulk-maint-form">
+          <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
+        </form>
+        <div class="todo-maint-header">
+          <label class="todo-select-all">
+            <input type="checkbox" id="bulk-select-all" aria-label="Select all neglected listings">
+            <span>Select all</span>
+          </label>
+        </div>
         <?php foreach ($stale_listings as $staleItem): ?>
         <div class="todo-mrow">
           <div class="todo-mrow-left">
+            <label class="todo-mrow-check">
+              <input type="checkbox" name="listing_ids[]"
+                     value="<?= (int) $staleItem['listing']->id ?>"
+                     form="bulk-maint-form"
+                     aria-label="Select <?= View::e($staleItem['listing']->name) ?>">
+            </label>
             <a href="<?= $b ?>/admin/listings/<?= (int) $staleItem['listing']->id ?>/edit"
                class="link"><?= View::e($staleItem['listing']->name) ?></a>
           </div>
           <div class="todo-mrow-right">
+            <span class="todo-mrow-days">
               <?php if ($staleItem['days_ago'] !== null): ?>
                 <?= (int) $staleItem['days_ago'] ?> day<?= $staleItem['days_ago'] !== 1 ? 's' : '' ?> ago
               <?php else: ?>
                 Never updated
               <?php endif; ?>
+            </span>
             <form method="POST"
                   action="<?= $b ?>/admin/listings/<?= (int) $staleItem['listing']->id ?>/touch-updated"
                   class="todo-mark-form">
@@ -283,10 +303,14 @@ $growthDiff          = $growth_this_month - $growth_last_month;
         </div>
         <?php endforeach; ?>
         <div class="todo-bulk">
+          <button type="submit" form="bulk-maint-form"
+                  class="btn btn-secondary btn-sm" id="bulk-mark-btn" disabled>
+            Mark Selected as Updated
+          </button>
           <form method="POST" action="<?= $b ?>/admin/maintenance/touch-all-updated"
                 data-confirm="Mark all <?= count($stale_listings) ?> neglected listing(s) as updated today?">
             <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
-            <button type="submit" class="btn btn-ghost btn-sm">Mark All Neglected as Updated &rarr;</button>
+            <button type="submit" class="btn btn-ghost btn-sm">Mark All &rarr;</button>
           </form>
         </div>
       </div>
@@ -325,7 +349,7 @@ $growthDiff          = $growth_this_month - $growth_last_month;
       <div class="row">
         <span class="row-label">Most Active Listing</span>
         <span class="row-val">
-          <a href="<?= $b ?>/admin/members/<?= (int) $most_active_listing_id ?>" class="link"><?= View::e($most_active_listing_name) ?></a>
+          <a href="<?= $b ?>/admin/members?listing_id=<?= (int) $most_active_listing_id ?>&status=all" class="link"><?= View::e($most_active_listing_name) ?></a>
           (<?= number_format($most_active_listing_count) ?> member<?= $most_active_listing_count !== 1 ? 's' : '' ?>)
         </span>
       </div>
@@ -340,9 +364,9 @@ $growthDiff          = $growth_this_month - $growth_last_month;
       </div>
       <div class="row">
         <span class="row-label">Up to Date Listings</span>
-        <?php $allUpToDate = $listings_up_to_date >= (int) $total_listings; ?>
+        <?php $allUpToDate = $listings_up_to_date >= (int) $fan_current; ?>
         <span class="row-val <?= $allUpToDate ? 'row-val--success' : 'row-val--warn' ?>">
-          <?= (int) $listings_up_to_date ?> of <?= (int) $total_listings ?>
+          <?= (int) $listings_up_to_date ?> of <?= (int) $fan_current ?>
         </span>
       </div>
       <?php if ($opened_this_year > 0): ?>
@@ -381,7 +405,7 @@ $growthDiff          = $growth_this_month - $growth_last_month;
       <div class="row">
         <span class="row-label">Newest Member</span>
         <span class="row-val">
-          <a href="<?= $b ?>/admin/members/<?= (int) $newestMember['listing_id'] ?>?search=<?= urlencode($newestMember['member']->email) ?>"
+          <a href="<?= $b ?>/admin/members?listing_id=<?= (int) $newestMember['listing_id'] ?>&status=all&search=<?= urlencode($newestMember['member']->email) ?>"
              class="link"><?= View::e($newestMember['member']->name) ?></a>
           (<?= View::e($newestMember['listing_name']) ?>)
           <?php if (!empty($newestMember['member']->added)): ?>

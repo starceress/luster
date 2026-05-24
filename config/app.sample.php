@@ -50,18 +50,6 @@ return [
     'owner_email' => '',
 
     // ------------------------------------------------------------------
-    // Email (PHPMailer / SMTP)
-    // Leave smtp_host empty to disable outgoing email.
-    // ------------------------------------------------------------------
-    'smtp_host'      => '',
-    'smtp_port'      => 587,
-    'smtp_user'      => '',
-    'smtp_pass'      => '',
-    'smtp_from'      => '',
-    'smtp_from_name' => '',
-    'smtp_secure'    => 'tls',   // 'tls', 'ssl', or ''
-
-    // ------------------------------------------------------------------
     // Enthusiast database compatibility
     //
     // enth_table_prefix controls the naming convention of your Enthusiast
@@ -87,18 +75,10 @@ return [
     'per_page' => 10,
 
     // ------------------------------------------------------------------
-    // Staleness detection
-    //
-    // inactive_threshold_days — a listing whose last_updated date is
-    //   older than this many days (or has never been set) will appear on
-    //   the dashboard maintenance card as potentially stale.
-    //   Set to 0 to disable the staleness check entirely.
-    //
     // last_updated_fallback — string shown in public stats when no
     //   last_updated date has been stored (e.g. "Never", "Unknown").
     // ------------------------------------------------------------------
-    'inactive_threshold_days' => 60,
-    'last_updated_fallback'   => 'Never',
+    'last_updated_fallback' => 'Never',
 
     // ------------------------------------------------------------------
     // Embed & Paths

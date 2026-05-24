@@ -2,18 +2,11 @@
    Luster — Design Tokens
    Loaded on every page: admin panel, login, install, migrate.
 
-   Contains ONLY variable definitions — no rules, no selectors
-   beyond :root and [data-theme]. All hardcoded colour values
-   in admin.css, install.css, and migrate.css are candidates
-   for migration here during the token audit (Phase B).
-
    Future skin overrides go at the bottom of this file:
      [data-skin="my-skin"] { --accent: ...; }
    ============================================================= */
 
 /* ── Self-hosted fonts ─────────────────────────────────────── */
-/* Path: ../fonts/ resolves to public/assets/fonts/            */
-
 @font-face {
   font-family: 'Playfair Display';
   font-style: normal;
@@ -48,7 +41,6 @@
 }
 
 /* ── Base tokens (all themes) ──────────────────────────────── */
-
 :root {
   --va-pink: #ff7eb3;
   --va-teal: #78e8d8;
@@ -70,9 +62,9 @@
   /* ── Palette channel tokens (R G B, no commas) ───────────────
      Used with modern rgb(var(--ch-foo)/alpha) syntax so skins
      can change the base hue and all alpha variants update too.  */
-  --ch-pink: 255 126 179;   /* Nebula pink — primary accent family  */
-  --ch-teal: 120 232 216;   /* Nebula teal — secondary accent family */
-  --ch-gold: 255 209 102;   /* Nebula gold — tertiary accent family  */
+  --ch-pink: 255 126 179;   /* Velvet Geode pink - primary accent family  */
+  --ch-teal: 120 232 216;   /* Velvet Geode teal - secondary accent family */
+  --ch-gold: 255 209 102;   /* Velvet Geode gold - tertiary accent family  */
   --ch-preview: 129 140 248;/* Indigo — embed-codes preview accent   */
   --ch-sky: 125 211 252;    /* Sky blue — nav hover, badge-tfl       */
   --ch-indigo: 99 102 241;  /* Purple-indigo — badge-upcoming        */
@@ -81,7 +73,6 @@
 }
 
 /* ── Light theme ───────────────────────────────────────────── */
-
 [data-theme="light"] {
   --bg: #f0edf8;
   --bg-card: #faf9ff;
@@ -124,7 +115,6 @@
 }
 
 /* ── Dark theme ────────────────────────────────────────────── */
-
 [data-theme="dark"] {
   --bg: #121020;
   --bg-card: #1a1830;
@@ -166,117 +156,868 @@
   --c-preview-hover: #c7d2fe;     /* preview button hover/focus text    */
 }
 
-/* =============================================================
-   Bundled skins — Phase C
-   Each skin overrides only the tokens that differ from the
-   default Nebula theme. Blocks are ordered:
-     [data-skin="x"]                     — palette (theme-independent)
-     [data-skin="x"][data-theme="dark"]  — dark-specific accents
-     [data-skin="x"][data-theme="light"] — light-specific accents
-     [data-skin="x"][data-theme="light"] .sidebar — sidebar overrides
-       (the sidebar is always dark; its tokens are locked to their
-        dark-mode values in [data-theme="light"] .sidebar, so each
-        skin must mirror those overrides here)
-   ============================================================= */
 
-/* ── Aurora — Northern Lights (cyan · sage · pale-sky) ──────── */
+/* ── Prism Power - Princess Serenity / Sailor Moon ───────────────────── */
 
-[data-skin="aurora"] {
-  --va-pink:    #79e8ff;
-  --va-teal:    #6bcfa0;
-  --va-gold:    #b3e5fc;
-  --ch-pink:    121 232 255;
-  --ch-teal:    107 207 160;
-  --ch-gold:    179 229 252;
-  --gradient:   #79e8ff, #6bcfa0, #b3e5fc;
-  --gradient-bar: linear-gradient(90deg, #79e8ff, #6bcfa0, #b3e5fc);
+[data-skin="prism-power"] {
+  --va-pink:      #ee5e9e;
+  --va-teal:      #4a6dd6;
+  --va-gold:      #f7d440;
+  --ch-pink:      238 94 158;
+  --ch-teal:      74 109 214;
+  --ch-gold:      247 212 64;
+  --gradient:     #ee5e9e, #4a6dd6, #f7d440;
+  --gradient-bar: linear-gradient(90deg, #ee5e9e, #4a6dd6, #f7d440);
 }
 
-[data-skin="aurora"][data-theme="dark"] {
-  --accent:        #79e8ff;
-  --accent-glow:   rgb(121 232 255 / 0.15);
-  --accent2:       #6bcfa0;
-  --accent3:       #b3e5fc;
-  --accent3-glow:  rgb(179 229 252 / 0.2);
-  --card-border-1: #79e8ff;
-  --card-border-2: #6bcfa0;
-  --card-border-3: #5ba0ff;
-  --glow:          0 0 0 3px rgb(121 232 255 / 0.15);
-  --blush:         radial-gradient(ellipse at 110% -10%, rgb(121 232 255 / 0.06) 0%, transparent 60%);
-  --c-gradient-start: #f0faff;
-  --c-preview-hover:  #b3e5fc;
+[data-skin="prism-power"][data-theme="light"] {
+  --bg:            #d8e4f5;
+  --bg-card:       #ffffff;
+  --bg-sidebar:    #1c3478;
+  --bg-subtle:     #f5e0e8;
+  --bg-elevated:   #ecf0fa;
+  --bg-code:       #f0e2ea;
+  --border:        #c8d8ec;
+  --border-soft:   #dde6f1;
+  --hairline:      rgba(74, 109, 214, 0.08);
+  --text:          #1c1d4a;
+  --text-muted:    #4a5d8a;
+  --text-dim:      #7a8ab5;
+  --text-sidebar:  #e0e0f5;
+  --accent:        #d83e8a;
+  --ch-accent:     216 62 138;
+  --accent-glow:   rgb(216 62 138 / 0.1);
+  --accent2:       #2a3ba8;
+  --accent3:       #c8950a;
+  --accent3-glow:  rgba(200, 149, 10, 0.2);
+  --success:       #2e7d4f;
+  --ch-success:    46 125 79;
+  --success-bg:    rgb(46 125 79 / 0.08);
+  --danger:        #c43030;
+  --ch-danger:     196 48 48;
+  --danger-bg:     rgb(196 48 48 / 0.08);
+  --warn:          #c8950a;
+  --warn-bg:       rgba(200, 149, 10, 0.1);
+  --shadow:        0 4px 24px rgba(216, 62, 138, 0.1), 0 1px 4px rgba(28, 29, 74, 0.06);
+  --shadow-lg:     0 16px 56px rgba(216, 62, 138, 0.14), 0 4px 12px rgba(28, 29, 74, 0.08);
+  --glow:          0 0 0 3px rgb(216 62 138 / 0.14);
+  --card-border-1: #d83e8a;
+  --card-border-2: #2a3ba8;
+  --card-border-3: #c8950a;
+  --card-border-4: #f0a8c8;
+  --blush:         radial-gradient(ellipse at 110% -10%, rgb(216 62 138 / 0.12) 0%, rgb(74 109 214 / 0.06) 50%, transparent 70%);
+  --c-gradient-start: #1c1d4a;
+  --c-preview-hover:  #2c3784;
+  --ch-preview:       74 109 214;
 }
 
-[data-skin="aurora"][data-theme="light"] {
-  --accent:        #006699;
-  --ch-accent:     0 102 153;
-  --accent-glow:   rgb(0 102 153 / 0.1);
-  --accent2:       #1a7a5e;
-  --accent3:       #006699;
-  --accent3-glow:  rgba(0,102,153,0.15);
-  --card-border-1: #006699;
-  --card-border-2: #1a7a5e;
-  --card-border-3: #1d6fe8;
-  --glow:          0 0 0 3px rgb(0 102 153 / 0.1);
-  --blush:         radial-gradient(ellipse at 110% -10%, rgb(0 102 153 / 0.06) 0%, transparent 60%);
-  --c-gradient-start: #00111a;
-  --c-preview-hover:  #003c66;
+[data-skin="prism-power"][data-theme="light"] .sidebar {
+  --accent:           #f7d440;
+  --accent3:          #c8b8e8;
+  --c-gradient-start: #f5f0ff;
+  --text-sidebar:     #e0e0f5;
+  --text-dim:         #9b8db8;
+  --danger:           #ffb3c1;
+  --danger-bg:        rgba(255, 179, 193, 0.1);
+  --ch-danger:        255 179 193;
 }
 
-[data-skin="aurora"][data-theme="light"] .sidebar {
-  --accent:           #79e8ff;
-  --accent3:          #b3e5fc;
-  --c-gradient-start: #f0faff;
+[data-skin="prism-power"][data-theme="light"] .card-head {
+  background: linear-gradient(180deg, #faecf2 0%, #f5dde7 100%);
 }
 
-/* ── Sol — Sunrise (amber · rose · bright-gold) ─────────────── */
-
-[data-skin="sol"] {
-  --va-pink:    #ffb06a;
-  --va-teal:    #ff8fa8;
-  --va-gold:    #ffe066;
-  --ch-pink:    255 176 106;
-  --ch-teal:    255 143 168;
-  --ch-gold:    255 224 102;
-  --gradient:   #ffb06a, #ff8fa8, #ffe066;
-  --gradient-bar: linear-gradient(90deg, #ffb06a, #ff8fa8, #ffe066);
+[data-skin="prism-power"][data-theme="light"] .topbar {
+  background: linear-gradient(180deg, #ffffff 0%, #e2ebf7 100%);
+  box-shadow: 0 4px 16px rgba(42, 59, 168, 0.1), 0 1px 0 rgba(216, 62, 138, 0.22);
 }
 
-[data-skin="sol"][data-theme="dark"] {
-  --accent:        #ffb06a;
-  --accent-glow:   rgb(255 176 106 / 0.15);
-  --accent2:       #ff8fa8;
-  --accent3:       #ffe066;
-  --accent3-glow:  rgb(255 224 102 / 0.2);
-  --card-border-1: #ffb06a;
-  --card-border-2: #ff8fa8;
-  --card-border-3: #82b4ff;
-  --glow:          0 0 0 3px rgb(255 176 106 / 0.15);
-  --blush:         radial-gradient(ellipse at 110% -10%, rgb(255 176 106 / 0.06) 0%, transparent 60%);
-  --c-gradient-start: #fff5f0;
-  --c-preview-hover:  #ffe066;
+[data-skin="prism-power"][data-theme="light"] .welcome-block {
+  background: linear-gradient(135deg, #ffffff 0%, #fce6ee 100%);
+  border-color: #f0c8d9;
+}
+[data-skin="prism-power"][data-theme="light"] .welcome-block::after {
+  background: radial-gradient(circle at top right,
+    rgb(216 62 138 / 0.16) 0%, rgb(74 109 214 / 0.1) 50%, transparent 70%);
 }
 
-[data-skin="sol"][data-theme="light"] {
-  --accent:        #b84d00;
-  --ch-accent:     184 77 0;
-  --accent-glow:   rgb(184 77 0 / 0.1);
-  --accent2:       #9b1b3a;
-  --accent3:       #8a6200;
-  --accent3-glow:  rgba(138,98,0,0.15);
-  --card-border-1: #b84d00;
-  --card-border-2: #9b1b3a;
-  --card-border-3: #1d6fe8;
-  --glow:          0 0 0 3px rgb(184 77 0 / 0.1);
-  --blush:         radial-gradient(ellipse at 110% -10%, rgb(184 77 0 / 0.06) 0%, transparent 60%);
-  --c-gradient-start: #1a0800;
-  --c-preview-hover:  #5a2800;
+[data-skin="prism-power"][data-theme="light"] .brand-name,
+[data-skin="prism-power"][data-theme="light"] .login-brand-name,
+[data-skin="prism-power"][data-theme="light"] .reminder-banner--update .reminder-banner-title {
+  background: linear-gradient(135deg, #1c1d4a 0%, #d83e8a 50%, #4a6dd6 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
 }
 
-[data-skin="sol"][data-theme="light"] .sidebar {
-  --accent:           #ffb06a;
-  --accent3:          #ffe066;
-  --c-gradient-start: #fff5f0;
+[data-skin="prism-power"][data-theme="dark"] {
+  --bg:            #18254a;
+  --bg-card:       #1d2c54;
+  --bg-sidebar:    #0a0e1e;
+  --bg-subtle:     #15223f;
+  --bg-elevated:   #243466;
+  --bg-code:       #0c0a18;
+  --border:        #2a3a68;
+  --border-soft:   #213056;
+  --hairline:      rgba(238, 94, 158, 0.06);
+  --text:          #fce0ed;
+  --text-muted:    #b8a8c8;
+  --text-dim:      #6e5d80;
+  --text-sidebar:  #f0c8e0;
+  --accent:        #ee5e9e;
+  --ch-accent:     238 94 158;
+  --accent-glow:   rgb(238 94 158 / 0.22);
+  --accent2:       #d63152;
+  --accent3:       #f7d440;
+  --accent3-glow:  rgb(247 212 64 / 0.22);
+  --success:       #5dd599;
+  --ch-success:    93 213 153;
+  --success-bg:    rgb(93 213 153 / 0.1);
+  --danger:        #ff7090;
+  --ch-danger:     255 112 144;
+  --danger-bg:     rgb(255 112 144 / 0.12);
+  --warn:          #f7d440;
+  --warn-bg:       rgb(247 212 64 / 0.12);
+  --warn-text:     #1a0a05;
+  --shadow:        0 4px 24px rgba(0, 0, 0, 0.65), 0 0 28px rgb(238 94 158 / 0.08);
+  --shadow-lg:     0 16px 56px rgba(0, 0, 0, 0.75), 0 0 48px rgb(238 94 158 / 0.1), 0 0 32px rgb(74 109 214 / 0.06);
+  --glow:          0 0 0 3px rgb(238 94 158 / 0.25);
+  --card-border-1: #ee5e9e;
+  --card-border-2: #4a6dd6;
+  --card-border-3: #d63152;
+  --card-border-4: #f7d440;
+  --blush:         radial-gradient(ellipse at 110% -10%, rgb(238 94 158 / 0.16) 0%, rgb(214 49 82 / 0.08) 50%, transparent 70%);
+  --c-gradient-start: #ffd6e8;
+  --c-preview-hover:  #f0a8c5;
+  --ch-preview:       238 94 158;
+}
+
+[data-skin="prism-power"][data-theme="dark"] .sidebar {
+  --accent:  #4a6dd6;
+  --accent3: #ee5e9e;
+}
+
+[data-skin="prism-power"][data-theme="dark"] .card-head {
+  background: linear-gradient(180deg, #243466 0%, #1d2c54 100%);
+}
+
+[data-skin="prism-power"][data-theme="dark"] .topbar {
+  background: linear-gradient(180deg, #243466 0%, #18254a 100%);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.6), 0 1px 0 rgb(238 94 158 / 0.35);
+}
+
+[data-skin="prism-power"][data-theme="dark"] .welcome-block {
+  background: linear-gradient(135deg, #243466 0%, #1d2c54 100%);
+  border-color: #2a3a68;
+}
+[data-skin="prism-power"][data-theme="dark"] .welcome-block::after {
+  background: radial-gradient(circle at top right,
+    rgb(238 94 158 / 0.22) 0%, rgb(214 49 82 / 0.14) 50%, transparent 70%);
+}
+
+[data-skin="prism-power"][data-theme="dark"] .brand-name,
+[data-skin="prism-power"][data-theme="dark"] .login-brand-name,
+[data-skin="prism-power"][data-theme="dark"] .reminder-banner--update .reminder-banner-title {
+  background: linear-gradient(135deg, #ffd6e8 0%, #ee5e9e 35%, #4a6dd6 70%, #d63152 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+[data-skin="prism-power"][data-theme="dark"] .sidebar .nav-item.active::before {
+  background: linear-gradient(180deg, #ee5e9e 0%, #d63152 50%, #4a6dd6 100%);
+}
+
+[data-skin="prism-power"][data-theme="dark"] .stat-card:hover {
+  box-shadow: 0 16px 56px rgba(0, 0, 0, 0.75), 0 0 32px rgb(238 94 158 / 0.2), 0 0 48px rgb(74 109 214 / 0.12);
+}
+
+[data-skin="prism-power"][data-theme="dark"] .btn-primary {
+  background: #ee5e9e;
+  color: #fff;
+}
+[data-skin="prism-power"][data-theme="dark"] .btn-primary:hover {
+  background: color-mix(in srgb, #ee5e9e 78%, #fff);
+}
+
+/* ── Victory Road - Pokemon Center / Elite Four ──────────────────────── */
+[data-skin="victory-road"] {
+  --va-pink:      #e3350d;
+  --va-teal:      #4dad5b;
+  --va-gold:      #316cd9;
+  --ch-pink:      227 53 13;
+  --ch-teal:      77 173 91;
+  --ch-gold:      49 108 217;
+  --gradient:     #e3350d, #4dad5b, #316cd9;
+  --gradient-bar: linear-gradient(90deg, #e3350d, #4dad5b, #316cd9);
+}
+
+[data-skin="victory-road"][data-theme="dark"] {
+  --bg:            #11141a;
+  --bg-card:       #191d26;
+  --bg-sidebar:    #0a0d12;
+  --bg-subtle:     #222836;
+  --bg-elevated:   #1f2430;
+  --bg-code:       #141821;
+  --border:        #2c3445;
+  --border-soft:   #222838;
+  --hairline:      rgba(227, 53, 13, 0.06);
+  --text:          #e8edf5;
+  --text-muted:    #90a0b8;
+  --text-dim:      #5f728f;
+  --text-sidebar:  #cbd6e6;
+  --accent:        #e3350d;
+  --ch-accent:     227 53 13;
+  --accent-glow:   rgb(227 53 13 / 0.22);
+  --accent2:       #316cd9;
+  --accent3:       #ffcb05;
+  --accent3-glow:  rgb(255 203 5 / 0.22);
+  --success:       #4dad5b;
+  --ch-success:    77 173 91;
+  --success-bg:    rgb(77 173 91 / 0.1);
+  --danger:        #f87171;
+  --ch-danger:     248 113 113;
+  --danger-bg:     rgb(248 113 113 / 0.1);
+  --warn:          #ffcb05;
+  --warn-bg:       rgb(255 203 5 / 0.12);
+  --warn-text:     #1a1005;
+  --shadow:        0 4px 24px rgba(0, 0, 0, 0.6), 0 0 28px rgb(227 53 13 / 0.08);
+  --shadow-lg:     0 16px 56px rgba(0, 0, 0, 0.7), 0 0 48px rgb(227 53 13 / 0.1), 0 0 32px rgb(49 108 217 / 0.06);
+  --glow:          0 0 0 3px rgb(227 53 13 / 0.25);
+  --card-border-1: #e3350d;
+  --card-border-2: #4dad5b;
+  --card-border-3: #316cd9;
+  --card-border-4: #ffcb05;
+  --blush:         radial-gradient(ellipse at 110% -10%, rgb(227 53 13 / 0.15) 0%, transparent 60%);
+  --c-gradient-start: #f0f4fa;
+  --c-preview-hover:  #c8d6f5;
+  --ch-preview:       49 108 217;
+}
+
+[data-skin="victory-road"][data-theme="light"] {
+  --bg:            #f0f3f7;
+  --bg-card:       #ffffff;
+  --bg-sidebar:    #7a0d0d;
+  --bg-subtle:     #e4e9f2;
+  --bg-elevated:   #e4e9f2;
+  --bg-code:       #e9edf5;
+  --border:        #c9d3e2;
+  --border-soft:   #d5dce8;
+  --hairline:      rgba(0, 0, 0, 0.05);
+  --text:          #161d2b;
+  --text-muted:    #495b7a;
+  --text-dim:      #7b8ea8;
+  --text-sidebar:  #ffffff;
+  --accent:        #d12b08;
+  --ch-accent:     209 43 8;
+  --accent-glow:   rgb(209 43 8 / 0.1);
+  --accent2:       #265bb8;
+  --accent3:       #b38c00;
+  --accent3-glow:  rgba(179, 140, 0, 0.15);
+  --success:       #228c39;
+  --ch-success:    34 140 57;
+  --success-bg:    rgb(34 140 57 / 0.08);
+  --danger:        #c43030;
+  --ch-danger:     196 48 48;
+  --danger-bg:     rgb(196 48 48 / 0.08);
+  --warn:          #d18e00;
+  --warn-bg:       rgb(209 142 0 / 0.1);
+  --shadow:        0 4px 24px rgba(209, 43, 8, 0.1), 0 1px 4px rgba(22, 29, 43, 0.06);
+  --shadow-lg:     0 16px 56px rgba(209, 43, 8, 0.12), 0 4px 12px rgba(22, 29, 43, 0.08);
+  --glow:          0 0 0 3px rgb(209 43 8 / 0.12);
+  --card-border-1: #e3350d;
+  --card-border-2: #4dad5b;
+  --card-border-3: #316cd9;
+  --card-border-4: #ffcb05;
+  --blush:         radial-gradient(ellipse at 110% -10%, rgb(209 43 8 / 0.08) 0%, transparent 60%);
+  --c-gradient-start: #ffffff;
+  --c-preview-hover:  #1e3d8a;
+  --ch-preview:       49 108 217;
+}
+
+[data-skin="victory-road"][data-theme="light"] .sidebar {
+  --accent:           #ffcb05;
+  --c-gradient-start: #ffffff;
+  --text-dim:         #cc9999;
+  --danger:           #ffb3c1;
+  --danger-bg:        rgba(255, 179, 193, 0.1);
+  --ch-danger:        255 179 193;
+}
+
+[data-skin="victory-road"][data-theme="dark"] .card-head {
+  background: linear-gradient(180deg, #1f2430 0%, #191d26 100%);
+}
+[data-skin="victory-road"][data-theme="light"] .card-head {
+  background: linear-gradient(180deg, #e9edf5 0%, #e4e9f2 100%);
+}
+
+[data-skin="victory-road"][data-theme="dark"] .topbar {
+  background: linear-gradient(180deg, #1f2430 0%, #11141a 100%);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.6), 0 1px 0 rgb(227 53 13 / 0.3);
+}
+[data-skin="victory-road"][data-theme="light"] .topbar {
+  background: linear-gradient(180deg, #ffffff 0%, #f0f3f7 100%);
+  box-shadow: 0 4px 16px rgba(22, 29, 43, 0.1), 0 1px 0 rgba(227, 53, 13, 0.2);
+}
+
+[data-skin="victory-road"][data-theme="dark"] .welcome-block {
+  background: linear-gradient(135deg, #1f2430 0%, #191d26 100%);
+  border-color: #2c3445;
+}
+[data-skin="victory-road"][data-theme="dark"] .welcome-block::after {
+  background: radial-gradient(circle at top right,
+    rgb(227 53 13 / 0.2) 0%, rgb(49 108 217 / 0.1) 50%, transparent 70%);
+}
+[data-skin="victory-road"][data-theme="light"] .welcome-block {
+  background: linear-gradient(135deg, #ffffff 0%, #f0f3f7 100%);
+  border-color: #c9d3e2;
+}
+[data-skin="victory-road"][data-theme="light"] .welcome-block::after {
+  background: radial-gradient(circle at top right,
+    rgb(227 53 13 / 0.12) 0%, rgb(49 108 217 / 0.06) 50%, transparent 70%);
+}
+
+[data-skin="victory-road"][data-theme="dark"] .brand-name,
+[data-skin="victory-road"][data-theme="dark"] .login-brand-name,
+[data-skin="victory-road"][data-theme="dark"] .reminder-banner--update .reminder-banner-title {
+  background: linear-gradient(135deg, #f0f4fa 0%, #e3350d 55%, #4dad5b 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+[data-skin="victory-road"][data-theme="light"] .brand-name,
+[data-skin="victory-road"][data-theme="light"] .login-brand-name,
+[data-skin="victory-road"][data-theme="light"] .reminder-banner--update .reminder-banner-title {
+  background: linear-gradient(135deg, #ffffff 0%, #e3350d 55%, #316cd9 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+[data-skin="victory-road"][data-theme="dark"] .stat-card:hover {
+  box-shadow: 0 16px 56px rgba(0, 0, 0, 0.7), 0 0 32px rgb(227 53 13 / 0.2), 0 0 48px rgb(49 108 217 / 0.1);
+}
+
+[data-skin="victory-road"][data-theme="dark"] .btn-primary {
+  background: #e3350d;
+  color: #fff;
+}
+[data-skin="victory-road"][data-theme="dark"] .btn-primary:hover {
+  background: color-mix(in srgb, #e3350d 78%, #fff);
+}
+
+/* ── The Force - Luke Skywalker / Darth Vader ────────────────────────── */
+[data-skin="the-force"] {
+  --va-pink:      #ff2a2a;
+  --va-teal:      #990000;
+  --va-gold:      #444444;
+  --ch-pink:      255 42 42;
+  --ch-teal:      153 0 0;
+  --ch-gold:      68 68 68;
+  --gradient:     #ff2a2a, #990000, #444444;
+  --gradient-bar: linear-gradient(90deg, #ff2a2a, #990000, #444444);
+}
+
+[data-skin="the-force"][data-theme="dark"] {
+  --bg:            #0a0a0c;
+  --bg-card:       #121214;
+  --bg-sidebar:    #000000;
+  --bg-subtle:     #1f1010;
+  --bg-elevated:   #1a1a1c;
+  --bg-code:       #050505;
+  --border:        #331515;
+  --border-soft:   #251010;
+  --hairline:      rgba(255, 42, 42, 0.06);
+  --text:          #f0e6e6;
+  --text-muted:    #a69999;
+  --text-dim:      #736666;
+  --text-sidebar:  #d9cccc;
+  --accent:        #ff2a2a;
+  --ch-accent:     255 42 42;
+  --accent-glow:   rgb(255 42 42 / 0.25);
+  --accent2:       #d91c1c;
+  --accent3:       #ffffff;
+  --accent3-glow:  rgb(255 255 255 / 0.12);
+  --success:       #5dd599;
+  --ch-success:    93 213 153;
+  --success-bg:    rgb(93 213 153 / 0.1);
+  --danger:        #f87171;
+  --ch-danger:     248 113 113;
+  --danger-bg:     rgb(248 113 113 / 0.1);
+  --warn:          #ff6600;
+  --warn-bg:       rgb(255 102 0 / 0.12);
+  --warn-text:     #0a0a0c;
+  --shadow:        0 4px 24px rgba(0, 0, 0, 0.85), 0 0 28px rgb(255 42 42 / 0.06);
+  --shadow-lg:     0 16px 56px rgba(0, 0, 0, 0.9), 0 0 48px rgb(255 42 42 / 0.1);
+  --glow:          0 0 0 3px rgb(255 42 42 / 0.28);
+  --card-border-1: #ff2a2a;
+  --card-border-2: #b30000;
+  --card-border-3: #666666;
+  --card-border-4: #ff2a2a;
+  --blush:         radial-gradient(ellipse at 110% -10%, rgb(255 42 42 / 0.1) 0%, transparent 60%);
+  --c-gradient-start: #fff0f0;
+  --c-preview-hover:  #aaaaaa;
+  --ch-preview:       150 150 150;
+}
+
+[data-skin="the-force"][data-theme="light"] {
+  --va-pink:       #0077ff;
+  --va-teal:       #15b053;
+  --va-gold:       #e0a843;
+  --ch-pink:       0 119 255;
+  --ch-teal:       21 176 83;
+  --ch-gold:       224 168 67;
+  --gradient:      #0077ff, #15b053, #e0a843;
+  --gradient-bar:  linear-gradient(90deg, #0077ff, #15b053, #e0a843);
+  --bg:            #eceadd;
+  --bg-card:       #ffffff;
+  --bg-sidebar:    #3d312a;
+  --bg-subtle:     #f5f4ef;
+  --bg-elevated:   #f5f4ef;
+  --bg-code:       #eceadd;
+  --border:        #d6cfc1;
+  --border-soft:   #e0dbd3;
+  --hairline:      rgba(0, 0, 0, 0.05);
+  --text:          #2b2521;
+  --text-muted:    #61554c;
+  --text-dim:      #8a7a6e;
+  --text-sidebar:  #e0dcd9;
+  --accent:        #0077ff;
+  --ch-accent:     0 119 255;
+  --accent-glow:   rgb(0 119 255 / 0.12);
+  --accent2:       #15b053;
+  --accent3:       #b87a14;
+  --accent3-glow:  rgba(184, 122, 20, 0.15);
+  --success:       #228c39;
+  --ch-success:    34 140 57;
+  --success-bg:    rgb(34 140 57 / 0.08);
+  --danger:        #c43030;
+  --ch-danger:     196 48 48;
+  --danger-bg:     rgb(196 48 48 / 0.08);
+  --warn:          #e0a843;
+  --warn-bg:       rgb(224 168 67 / 0.12);
+  --shadow:        0 4px 24px rgba(43, 37, 33, 0.1), 0 1px 4px rgba(43, 37, 33, 0.06);
+  --shadow-lg:     0 16px 56px rgba(43, 37, 33, 0.14), 0 4px 12px rgba(43, 37, 33, 0.08);
+  --glow:          0 0 0 3px rgb(0 119 255 / 0.12);
+  --card-border-1: #0077ff;
+  --card-border-2: #15b053;
+  --card-border-3: #e0a843;
+  --card-border-4: #8bc34a;
+  --blush:         radial-gradient(ellipse at 110% -10%, rgb(0 119 255 / 0.08) 0%, transparent 60%);
+  --c-gradient-start: #0a111a;
+  --c-preview-hover:  #1e3d8a;
+  --ch-preview:       0 119 255;
+}
+
+[data-skin="the-force"][data-theme="light"] .sidebar {
+  --accent:           #66b3ff;
+  --accent3:          #e0a843;
+  --c-gradient-start: #f0f8ff;
+  --text-dim:         #9b8878;
+  --danger:           #ffb3c1;
+  --danger-bg:        rgba(255, 179, 193, 0.1);
+  --ch-danger:        255 179 193;
+}
+
+[data-skin="the-force"][data-theme="dark"] .card-head {
+  background: linear-gradient(180deg, #1a1a1c 0%, #121214 100%);
+}
+[data-skin="the-force"][data-theme="light"] .card-head {
+  background: linear-gradient(180deg, #f5f4ef 0%, #eceadd 100%);
+}
+
+[data-skin="the-force"][data-theme="dark"] .topbar {
+  background: linear-gradient(180deg, #1a1a1c 0%, #0a0a0c 100%);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.9), 0 1px 0 rgb(255 42 42 / 0.4);
+}
+[data-skin="the-force"][data-theme="light"] .topbar {
+  background: linear-gradient(180deg, #ffffff 0%, #eceadd 100%);
+  box-shadow: 0 4px 16px rgba(43, 37, 33, 0.1), 0 1px 0 rgba(0, 119, 255, 0.2);
+}
+
+[data-skin="the-force"][data-theme="dark"] .welcome-block {
+  background: linear-gradient(135deg, #1a1a1c 0%, #121214 100%);
+  border-color: #331515;
+}
+[data-skin="the-force"][data-theme="dark"] .welcome-block::after {
+  background: radial-gradient(circle at top right,
+    rgb(255 42 42 / 0.2) 0%, rgb(179 0 0 / 0.1) 50%, transparent 70%);
+}
+[data-skin="the-force"][data-theme="light"] .welcome-block {
+  background: linear-gradient(135deg, #ffffff 0%, #f5f4ef 100%);
+  border-color: #d6cfc1;
+}
+[data-skin="the-force"][data-theme="light"] .welcome-block::after {
+  background: radial-gradient(circle at top right,
+    rgb(0 119 255 / 0.12) 0%, rgb(21 176 83 / 0.06) 50%, transparent 70%);
+}
+
+[data-skin="the-force"][data-theme="dark"] .brand-name,
+[data-skin="the-force"][data-theme="dark"] .login-brand-name,
+[data-skin="the-force"][data-theme="dark"] .reminder-banner--update .reminder-banner-title {
+  background: linear-gradient(135deg, #fff0f0 0%, #ff2a2a 45%, #990000 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+[data-skin="the-force"][data-theme="light"] .brand-name,
+[data-skin="the-force"][data-theme="light"] .login-brand-name,
+[data-skin="the-force"][data-theme="light"] .reminder-banner--update .reminder-banner-title {
+  background: linear-gradient(135deg, #0a111a 0%, #0077ff 50%, #15b053 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+[data-skin="the-force"][data-theme="dark"] .stat-card:hover {
+  box-shadow: 0 16px 56px rgba(0, 0, 0, 0.9), 0 0 32px rgb(255 42 42 / 0.25), 0 0 64px rgb(179 0 0 / 0.1);
+}
+
+[data-skin="the-force"][data-theme="dark"] .btn-primary {
+  background: #ff2a2a;
+  color: #fff;
+}
+[data-skin="the-force"][data-theme="dark"] .btn-primary:hover {
+  background: color-mix(in srgb, #ff2a2a 78%, #fff);
+}
+
+/* ── Floating Lights - Rapunzel Gleam / Flynn Glow ───────────────────── */
+[data-skin="floating-lights"] {
+  --va-pink:      #ffca28;
+  --va-teal:      #d884cb;
+  --va-gold:      #ff77a8;
+  --ch-pink:      255 202 40;
+  --ch-teal:      216 132 203;
+  --ch-gold:      255 119 168;
+  --gradient:     #ffca28, #d884cb, #ff77a8;
+  --gradient-bar: linear-gradient(90deg, #ffca28, #d884cb, #ff77a8);
+}
+
+[data-skin="floating-lights"][data-theme="dark"] {
+  --bg:            #0d0a17;
+  --bg-card:       #15112a;
+  --bg-sidebar:    #1a1433;
+  --bg-subtle:     #221940;
+  --bg-elevated:   #1c1835;
+  --bg-code:       #0f0c1f;
+  --border:        #2e2550;
+  --border-soft:   #231c3f;
+  --hairline:      rgba(255, 202, 40, 0.06);
+  --text:          #f5e8f8;
+  --text-muted:    #bda8cc;
+  --text-dim:      #8070a0;
+  --text-sidebar:  #e0d0ec;
+  --accent:        #ffca28;
+  --ch-accent:     255 202 40;
+  --accent-glow:   rgb(255 202 40 / 0.22);
+  --accent2:       #d884cb;
+  --accent3:       #ff77a8;
+  --accent3-glow:  rgb(255 119 168 / 0.22);
+  --success:       #6dd896;
+  --ch-success:    109 216 150;
+  --success-bg:    rgb(109 216 150 / 0.1);
+  --danger:        #f87171;
+  --ch-danger:     248 113 113;
+  --danger-bg:     rgb(248 113 113 / 0.1);
+  --warn:          #ffca28;
+  --warn-bg:       rgb(255 202 40 / 0.12);
+  --warn-text:     #1a0d00;
+  --shadow:        0 4px 24px rgba(0, 0, 0, 0.7), 0 0 28px rgb(255 202 40 / 0.08);
+  --shadow-lg:     0 16px 56px rgba(0, 0, 0, 0.8), 0 0 48px rgb(255 202 40 / 0.1), 0 0 32px rgb(216 132 203 / 0.06);
+  --glow:          0 0 0 3px rgb(255 202 40 / 0.25);
+  --card-border-1: #ffca28;
+  --card-border-2: #d884cb;
+  --card-border-3: #ff77a8;
+  --card-border-4: #8a65c9;
+  --blush:         radial-gradient(ellipse at 110% -10%, rgb(255 202 40 / 0.12) 0%, transparent 60%);
+  --c-gradient-start: #fdf8e8;
+  --c-preview-hover:  #c060b8;
+  --ch-preview:       216 132 203;
+}
+
+[data-skin="floating-lights"][data-theme="light"] {
+  --bg:            #fcf9f2;
+  --bg-card:       #ffffff;
+  --bg-sidebar:    #6a3b79;
+  --bg-subtle:     #f5effe;
+  --bg-elevated:   #f5effe;
+  --bg-code:       #ede0f8;
+  --border:        #d9c8e6;
+  --border-soft:   #e6d8f0;
+  --hairline:      rgba(0, 0, 0, 0.05);
+  --text:          #1e0a2e;
+  --text-muted:    #63476e;
+  --text-dim:      #9472a0;
+  --text-sidebar:  #f0e0ff;
+  --accent:        #d64a78;
+  --ch-accent:     214 74 120;
+  --accent-glow:   rgb(214 74 120 / 0.12);
+  --accent2:       #8a3b9e;
+  --accent3:       #c8860a;
+  --accent3-glow:  rgba(200, 134, 10, 0.15);
+  --success:       #228c39;
+  --ch-success:    34 140 57;
+  --success-bg:    rgb(34 140 57 / 0.08);
+  --danger:        #c43030;
+  --ch-danger:     196 48 48;
+  --danger-bg:     rgb(196 48 48 / 0.08);
+  --warn:          #b38c00;
+  --warn-bg:       rgb(179 140 0 / 0.1);
+  --shadow:        0 4px 24px rgba(30, 10, 46, 0.1), 0 1px 4px rgba(30, 10, 46, 0.06);
+  --shadow-lg:     0 16px 56px rgba(30, 10, 46, 0.14), 0 4px 12px rgba(30, 10, 46, 0.08);
+  --glow:          0 0 0 3px rgb(214 74 120 / 0.12);
+  --card-border-1: #d64a78;
+  --card-border-2: #8a65c9;
+  --card-border-3: #fca311;
+  --card-border-4: #4caf50;
+  --blush:         radial-gradient(ellipse at 110% -10%, rgb(214 74 120 / 0.08) 0%, transparent 60%);
+  --c-gradient-start: #ffffff;
+  --c-preview-hover:  #5a2a70;
+  --ch-preview:       106 59 121;
+}
+
+[data-skin="floating-lights"][data-theme="light"] .sidebar {
+  --accent:           #ffd166;
+  --c-gradient-start: #f0e8ff;
+  --text-dim:         #c8a0d4;
+  --danger:           #ffb3c1;
+  --danger-bg:        rgba(255, 179, 193, 0.1);
+  --ch-danger:        255 179 193;
+}
+
+[data-skin="floating-lights"][data-theme="dark"] .card-head {
+  background: linear-gradient(180deg, #1c1835 0%, #15112a 100%);
+}
+[data-skin="floating-lights"][data-theme="light"] .card-head {
+  background: linear-gradient(180deg, #f5effe 0%, #fcf9f2 100%);
+}
+
+[data-skin="floating-lights"][data-theme="dark"] .topbar {
+  background: linear-gradient(180deg, #1c1835 0%, #0d0a17 100%);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.7), 0 1px 0 rgb(255 202 40 / 0.3);
+}
+[data-skin="floating-lights"][data-theme="light"] .topbar {
+  background: linear-gradient(180deg, #ffffff 0%, #fcf9f2 100%);
+  box-shadow: 0 4px 16px rgba(30, 10, 46, 0.1), 0 1px 0 rgba(214, 74, 120, 0.2);
+}
+
+[data-skin="floating-lights"][data-theme="dark"] .welcome-block {
+  background: linear-gradient(135deg, #1c1835 0%, #15112a 100%);
+  border-color: #2e2550;
+}
+[data-skin="floating-lights"][data-theme="dark"] .welcome-block::after {
+  background: radial-gradient(circle at top right,
+    rgb(255 202 40 / 0.18) 0%, rgb(216 132 203 / 0.1) 50%, transparent 70%);
+}
+[data-skin="floating-lights"][data-theme="light"] .welcome-block {
+  background: linear-gradient(135deg, #ffffff 0%, #fcf9f2 100%);
+  border-color: #d9c8e6;
+}
+[data-skin="floating-lights"][data-theme="light"] .welcome-block::after {
+  background: radial-gradient(circle at top right,
+    rgb(214 74 120 / 0.1) 0%, rgb(138 59 158 / 0.06) 50%, transparent 70%);
+}
+
+[data-skin="floating-lights"][data-theme="dark"] .brand-name,
+[data-skin="floating-lights"][data-theme="dark"] .login-brand-name,
+[data-skin="floating-lights"][data-theme="dark"] .reminder-banner--update .reminder-banner-title {
+  background: linear-gradient(135deg, #fdf8e8 0%, #ffca28 50%, #d884cb 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+[data-skin="floating-lights"][data-theme="light"] .brand-name,
+[data-skin="floating-lights"][data-theme="light"] .login-brand-name,
+[data-skin="floating-lights"][data-theme="light"] .reminder-banner--update .reminder-banner-title {
+  background: linear-gradient(135deg, #1e0a2e 0%, #d64a78 55%, #fca311 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+[data-skin="floating-lights"][data-theme="dark"] .stat-card:hover {
+  box-shadow: 0 16px 56px rgba(0, 0, 0, 0.8), 0 0 32px rgb(255 202 40 / 0.2), 0 0 48px rgb(216 132 203 / 0.1);
+}
+
+[data-skin="floating-lights"][data-theme="dark"] .btn-primary {
+  background: #ffca28;
+  color: #1a0d00;
+}
+[data-skin="floating-lights"][data-theme="dark"] .btn-primary:hover {
+  background: color-mix(in srgb, #ffca28 85%, #fff);
+}
+
+/* ── Moving Castle - Flower Field / Star Lake ────────────────────────── */
+[data-skin="moving-castle"] {
+  --va-pink:      #00e5ff;
+  --va-teal:      #ffb703;
+  --va-gold:      #fb8500;
+  --ch-pink:      0 229 255;
+  --ch-teal:      255 183 3;
+  --ch-gold:      251 133 0;
+  --gradient:     #00e5ff, #ffb703, #fb8500;
+  --gradient-bar: linear-gradient(90deg, #00e5ff, #ffb703, #fb8500);
+}
+
+[data-skin="moving-castle"][data-theme="dark"] {
+  --bg:            #0c1222;
+  --bg-card:       #111a2e;
+  --bg-sidebar:    #060913;
+  --bg-subtle:     #162038;
+  --bg-elevated:   #141c30;
+  --bg-code:       #080f1c;
+  --border:        #1e2d45;
+  --border-soft:   #162035;
+  --hairline:      rgba(0, 229, 255, 0.06);
+  --text:          #e0eeff;
+  --text-muted:    #8aadcc;
+  --text-dim:      #526b8a;
+  --text-sidebar:  #c0d8f0;
+  --accent:        #ffb703;
+  --ch-accent:     255 183 3;
+  --accent-glow:   rgb(255 183 3 / 0.22);
+  --accent2:       #00e5ff;
+  --accent3:       #fb8500;
+  --accent3-glow:  rgb(251 133 0 / 0.22);
+  --success:       #4dad5b;
+  --ch-success:    77 173 91;
+  --success-bg:    rgb(77 173 91 / 0.1);
+  --danger:        #f87171;
+  --ch-danger:     248 113 113;
+  --danger-bg:     rgb(248 113 113 / 0.1);
+  --warn:          #ffb703;
+  --warn-bg:       rgb(255 183 3 / 0.12);
+  --warn-text:     #0a0800;
+  --shadow:        0 4px 24px rgba(0, 0, 0, 0.7), 0 0 28px rgb(0 229 255 / 0.08);
+  --shadow-lg:     0 16px 56px rgba(0, 0, 0, 0.8), 0 0 48px rgb(255 183 3 / 0.1), 0 0 32px rgb(0 229 255 / 0.08);
+  --glow:          0 0 0 3px rgb(0 229 255 / 0.25);
+  --card-border-1: #00e5ff;
+  --card-border-2: #ffb703;
+  --card-border-3: #fb8500;
+  --card-border-4: #8a2be2;
+  --blush:         radial-gradient(ellipse at 110% -10%, rgb(0 229 255 / 0.12) 0%, transparent 60%);
+  --c-gradient-start: #e8f8ff;
+  --c-preview-hover:  #0099bb;
+  --ch-preview:       0 229 255;
+}
+
+[data-skin="moving-castle"][data-theme="light"] {
+  --va-pink:       #ff6b6b;
+  --va-teal:       #ff8c00;
+  --va-gold:       #4caf50;
+  --ch-pink:       255 107 107;
+  --ch-teal:       255 140 0;
+  --ch-gold:       76 175 80;
+  --gradient:      #ff6b6b, #ff8c00, #4caf50;
+  --gradient-bar:  linear-gradient(90deg, #ff6b6b, #ff8c00, #4caf50);
+  --bg:            #e1f5fe;
+  --bg-card:       #ffffff;
+  --bg-sidebar:    #4caf50;
+  --bg-subtle:     #d0ecfb;
+  --bg-elevated:   #d0ecfb;
+  --bg-code:       #c5e4f7;
+  --border:        #9bc8e4;
+  --border-soft:   #b8d8ef;
+  --hairline:      rgba(0, 0, 0, 0.05);
+  --text:          #0a1e2c;
+  --text-muted:    #2d5970;
+  --text-dim:      #5a8499;
+  --text-sidebar:  #ffffff;
+  --accent:        #ff8c00;
+  --ch-accent:     255 140 0;
+  --accent-glow:   rgb(255 140 0 / 0.15);
+  --accent2:       #0277bd;
+  --accent3:       #b35900;
+  --accent3-glow:  rgba(179, 89, 0, 0.15);
+  --success:       #1b7c30;
+  --ch-success:    27 124 48;
+  --success-bg:    rgb(27 124 48 / 0.08);
+  --danger:        #c43030;
+  --ch-danger:     196 48 48;
+  --danger-bg:     rgb(196 48 48 / 0.08);
+  --warn:          #b35900;
+  --warn-bg:       rgb(179 89 0 / 0.1);
+  --shadow:        0 4px 24px rgba(10, 30, 44, 0.1), 0 1px 4px rgba(10, 30, 44, 0.06);
+  --shadow-lg:     0 16px 56px rgba(10, 30, 44, 0.14), 0 4px 12px rgba(10, 30, 44, 0.08);
+  --glow:          0 0 0 3px rgb(255 140 0 / 0.15);
+  --card-border-1: #ff6b6b;
+  --card-border-2: #ff8c00;
+  --card-border-3: #4caf50;
+  --card-border-4: #0288d1;
+  --blush:         radial-gradient(ellipse at 110% -10%, rgb(255 140 0 / 0.1) 0%, transparent 60%);
+  --c-gradient-start: #001220;
+  --c-preview-hover:  #1565c0;
+  --ch-preview:       21 101 192;
+}
+
+[data-skin="moving-castle"][data-theme="light"] .sidebar {
+  --accent:           #ffeb3b;
+  --c-gradient-start: #e8fff0;
+  --text-dim:         #80cc90;
+  --danger:           #ffb3c1;
+  --danger-bg:        rgba(255, 179, 193, 0.1);
+  --ch-danger:        255 179 193;
+}
+
+[data-skin="moving-castle"][data-theme="dark"] .card-head {
+  background: linear-gradient(180deg, #141c30 0%, #111a2e 100%);
+}
+[data-skin="moving-castle"][data-theme="light"] .card-head {
+  background: linear-gradient(180deg, #d0ecfb 0%, #e1f5fe 100%);
+}
+
+[data-skin="moving-castle"][data-theme="dark"] .topbar {
+  background: linear-gradient(180deg, #141c30 0%, #0c1222 100%);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.7), 0 1px 0 rgb(0 229 255 / 0.3);
+}
+[data-skin="moving-castle"][data-theme="light"] .topbar {
+  background: linear-gradient(180deg, #ffffff 0%, #e1f5fe 100%);
+  box-shadow: 0 4px 16px rgba(10, 30, 44, 0.1), 0 1px 0 rgba(255, 140, 0, 0.2);
+}
+
+[data-skin="moving-castle"][data-theme="dark"] .welcome-block {
+  background: linear-gradient(135deg, #141c30 0%, #111a2e 100%);
+  border-color: #1e2d45;
+}
+[data-skin="moving-castle"][data-theme="dark"] .welcome-block::after {
+  background: radial-gradient(circle at top right,
+    rgb(0 229 255 / 0.15) 0%, rgb(255 183 3 / 0.08) 50%, transparent 70%);
+}
+[data-skin="moving-castle"][data-theme="light"] .welcome-block {
+  background: linear-gradient(135deg, #ffffff 0%, #e1f5fe 100%);
+  border-color: #9bc8e4;
+}
+[data-skin="moving-castle"][data-theme="light"] .welcome-block::after {
+  background: radial-gradient(circle at top right,
+    rgb(255 140 0 / 0.12) 0%, rgb(76 175 80 / 0.06) 50%, transparent 70%);
+}
+
+[data-skin="moving-castle"][data-theme="dark"] .brand-name,
+[data-skin="moving-castle"][data-theme="dark"] .login-brand-name,
+[data-skin="moving-castle"][data-theme="dark"] .reminder-banner--update .reminder-banner-title {
+  background: linear-gradient(135deg, #e8f8ff 0%, #00e5ff 45%, #ffb703 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+[data-skin="moving-castle"][data-theme="light"] .brand-name,
+[data-skin="moving-castle"][data-theme="light"] .login-brand-name,
+[data-skin="moving-castle"][data-theme="light"] .reminder-banner--update .reminder-banner-title {
+  background: linear-gradient(135deg, #001220 0%, #ff6b6b 50%, #ff8c00 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+[data-skin="moving-castle"][data-theme="dark"] .stat-card:hover {
+  box-shadow: 0 16px 56px rgba(0, 0, 0, 0.8), 0 0 32px rgb(0 229 255 / 0.2), 0 0 48px rgb(255 183 3 / 0.1);
+}
+
+[data-skin="moving-castle"][data-theme="dark"] .btn-primary {
+  background: #ffb703;
+  color: #0a0800;
+}
+[data-skin="moving-castle"][data-theme="dark"] .btn-primary:hover {
+  background: color-mix(in srgb, #ffb703 85%, #fff);
 }
 
 /* ── Community skins ─────────────────────────────────────────── */

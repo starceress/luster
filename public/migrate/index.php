@@ -147,10 +147,10 @@ $migSelectedSkin = '';
             (string) ($cfg['db_pass'] ?? ''),
             [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION, PDO::ATTR_TIMEOUT => 2]
         );
-        $s = $p->query("SELECT value FROM lstr_site_settings WHERE `key` = 'selected_skin' LIMIT 1");
+        $s = $p->query("SELECT setting_value FROM lstr_site_settings WHERE setting_key = 'selected_skin' LIMIT 1");
         if ($s !== false) {
             $row = $s->fetch(PDO::FETCH_ASSOC);
-            $migSelectedSkin = ($row !== false && isset($row['value'])) ? (string) $row['value'] : '';
+            $migSelectedSkin = ($row !== false && isset($row['setting_value'])) ? (string) $row['setting_value'] : '';
         }
     } catch (\Throwable) {}
 })();
@@ -508,11 +508,19 @@ try {
 // ─────────────────────────────────────────────────────────────────────────────
 try {
     if (!(int) $pdo->query('SELECT COUNT(*) FROM `lstr_migrations` WHERE migration_number = 8')->fetchColumn()) {
-        // Unprefixed Enthusiast 3 schema
-        $pdo->exec('ALTER TABLE `owned` ADD COLUMN IF NOT EXISTS `category_id` INT UNSIGNED NULL');
+        // Unprefixed Enthusiast 3 schema — use check-then-alter (IF NOT EXISTS is MariaDB-only).
+        if (!empty($pdo->query("SHOW TABLES LIKE 'owned'")->fetchAll())) {
+            if (empty($pdo->query("SHOW COLUMNS FROM `owned` LIKE 'category_id'")->fetchAll())) {
+                $pdo->exec('ALTER TABLE `owned` ADD COLUMN `category_id` INT UNSIGNED NULL');
+            }
+        }
         if (!empty($config['enth_table_prefix'])) {
             // Standard prefixed Enthusiast schema only
-            $pdo->exec('ALTER TABLE `enth_fanlistings` ADD COLUMN IF NOT EXISTS `category_id` INT UNSIGNED NULL');
+            if (!empty($pdo->query("SHOW TABLES LIKE 'enth_fanlistings'")->fetchAll())) {
+                if (empty($pdo->query("SHOW COLUMNS FROM `enth_fanlistings` LIKE 'category_id'")->fetchAll())) {
+                    $pdo->exec('ALTER TABLE `enth_fanlistings` ADD COLUMN `category_id` INT UNSIGNED NULL');
+                }
+            }
         }
         $pdo->exec('INSERT INTO `lstr_migrations` (migration_number) VALUES (8)');
         $done[] = 'Added <code>category_id</code> column to listing registry table';
@@ -1471,6 +1479,311 @@ try {
     }
 } catch (PDOException $e) {
     $errors[] = 'Migration 47 — ' . htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+}
+
+// Migration 48: normalize legacy alias names and fix source='custom' for known TFL/TAFL categories
+// ─────────────────────────────────────────────────────────────────────────────
+try {
+    if (!(int) $pdo->query('SELECT COUNT(*) FROM `lstr_migrations` WHERE migration_number = 48')->fetchColumn()) {
+        $fixed = 0;
+
+        if (class_exists('\\Luster\\Support\\CategorySeedCatalog')) {
+            $legacyAliases = \Luster\Support\CategorySeedCatalog::legacyAliases();
+            $tflLookup     = array_flip(array_map('strtolower', \Luster\Support\CategorySeedCatalog::tfl()));
+            $taflLookup    = array_flip(array_map('strtolower', \Luster\Support\CategorySeedCatalog::tafl()));
+
+            // Step 1: fix rows whose name matches a legacy alias — rename to canonical + correct source
+            foreach ($legacyAliases as $oldLower => $canonicalName) {
+                $findStmt = $pdo->prepare(
+                    "SELECT id FROM lstr_categories WHERE LOWER(name) = :n AND source = 'custom'"
+                );
+                $findStmt->execute(['n' => $oldLower]);
+                $ids = $findStmt->fetchAll(PDO::FETCH_COLUMN);
+
+                $canonicalLower  = strtolower($canonicalName);
+                $correctSource   = isset($tflLookup[$canonicalLower]) ? 'tfl' : 'tafl';
+
+                foreach ($ids as $rowId) {
+                    $existStmt = $pdo->prepare(
+                        "SELECT id FROM lstr_categories WHERE name = :name AND source = :source LIMIT 1"
+                    );
+                    $existStmt->execute(['name' => $canonicalName, 'source' => $correctSource]);
+                    if ($existStmt->fetchColumn()) {
+                        $pdo->prepare('DELETE FROM lstr_categories WHERE id = :id')->execute(['id' => $rowId]);
+                    } else {
+                        $pdo->prepare(
+                            'UPDATE lstr_categories SET name = :name, source = :source WHERE id = :id'
+                        )->execute(['name' => $canonicalName, 'source' => $correctSource, 'id' => $rowId]);
+                    }
+                    $fixed++;
+                }
+            }
+
+            // Step 2: fix rows whose name exactly matches a canonical TFL/TAFL name but has source='custom'
+            $allCanonical = array_merge(
+                array_map(fn($n) => [$n, 'tfl'],  \Luster\Support\CategorySeedCatalog::tfl()),
+                array_map(fn($n) => [$n, 'tafl'], \Luster\Support\CategorySeedCatalog::tafl()),
+            );
+            foreach ($allCanonical as [$canonicalName, $correctSource]) {
+                $findStmt = $pdo->prepare(
+                    "SELECT id FROM lstr_categories WHERE name = :name AND source = 'custom'"
+                );
+                $findStmt->execute(['name' => $canonicalName]);
+                $ids = $findStmt->fetchAll(PDO::FETCH_COLUMN);
+
+                foreach ($ids as $rowId) {
+                    $existStmt = $pdo->prepare(
+                        "SELECT id FROM lstr_categories WHERE name = :name AND source = :source LIMIT 1"
+                    );
+                    $existStmt->execute(['name' => $canonicalName, 'source' => $correctSource]);
+                    if ($existStmt->fetchColumn()) {
+                        $pdo->prepare('DELETE FROM lstr_categories WHERE id = :id')->execute(['id' => $rowId]);
+                    } else {
+                        $pdo->prepare(
+                            'UPDATE lstr_categories SET source = :source WHERE id = :id'
+                        )->execute(['source' => $correctSource, 'id' => $rowId]);
+                    }
+                    $fixed++;
+                }
+            }
+        }
+
+        $pdo->exec('INSERT INTO `lstr_migrations` (migration_number) VALUES (48)');
+        $msg    = 'Normalized TFL/TAFL category sources in <code>lstr_categories</code>';
+        $done[] = $fixed > 0 ? $msg . " ({$fixed} rows corrected)" : $msg . ' (nothing to fix)';
+    }
+} catch (PDOException $e) {
+    $errors[] = 'Migration 48 — ' . htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+}
+
+// Migration 49: strip "Anime/Manga: " prefix from lstr_categories + update lstr_joined
+// ─────────────────────────────────────────────────────────────────────────────
+try {
+    if (!(int) $pdo->query('SELECT COUNT(*) FROM `lstr_migrations` WHERE migration_number = 49')->fetchColumn()) {
+        $fixed = 0;
+
+        if (class_exists('\\Luster\\Support\\CategorySeedCatalog')) {
+            $taflCatalog = \Luster\Support\CategorySeedCatalog::tafl();
+            $taflLookup  = array_flip(array_map('strtolower', $taflCatalog));
+
+            // Step 1: Fix lstr_categories rows whose name starts with "Anime/Manga: "
+            $stmt = $pdo->query("SELECT id, name FROM lstr_categories WHERE name LIKE 'Anime/Manga: %'");
+            foreach ($stmt->fetchAll() as $row) {
+                $id        = (int) $row['id'];
+                $bareName  = substr((string) $row['name'], 13);
+                $bareLower = strtolower($bareName);
+                $canonical = isset($taflLookup[$bareLower]) ? $taflCatalog[$taflLookup[$bareLower]] : $bareName;
+
+                // Check if a canonical tafl row already exists to avoid UNIQUE conflict
+                $chk = $pdo->prepare(
+                    "SELECT id FROM lstr_categories WHERE name = :name AND source = 'tafl' LIMIT 1"
+                );
+                $chk->execute(['name' => $canonical]);
+                $existId = $chk->fetchColumn();
+
+                if ($existId !== false && (int) $existId !== $id) {
+                    $pdo->prepare('DELETE FROM lstr_categories WHERE id = :id')->execute(['id' => $id]);
+                } else {
+                    $pdo->prepare("UPDATE lstr_categories SET name = :name, source = 'tafl' WHERE id = :id")
+                        ->execute(['name' => $canonical, 'id' => $id]);
+                }
+                $fixed++;
+            }
+
+            // Step 2: Fix source='custom' rows whose bare name matches a TAFL canonical name
+            $stmt = $pdo->query("SELECT id, name FROM lstr_categories WHERE source = 'custom'");
+            foreach ($stmt->fetchAll() as $row) {
+                $id        = (int) $row['id'];
+                $nameLower = strtolower((string) $row['name']);
+                if (!isset($taflLookup[$nameLower])) {
+                    continue;
+                }
+                $canonical = $taflCatalog[$taflLookup[$nameLower]];
+
+                $chk = $pdo->prepare(
+                    "SELECT id FROM lstr_categories WHERE name = :name AND source = 'tafl' LIMIT 1"
+                );
+                $chk->execute(['name' => $canonical]);
+                $existId = $chk->fetchColumn();
+
+                if ($existId !== false && (int) $existId !== $id) {
+                    $pdo->prepare('DELETE FROM lstr_categories WHERE id = :id')->execute(['id' => $id]);
+                } else {
+                    $pdo->prepare("UPDATE lstr_categories SET name = :name, source = 'tafl' WHERE id = :id")
+                        ->execute(['name' => $canonical, 'id' => $id]);
+                }
+                $fixed++;
+            }
+
+            // Step 3: Fix lstr_joined.category column — strip "Anime/Manga: " prefix
+            $stmt = $pdo->query("SELECT id, category FROM lstr_joined WHERE category LIKE 'Anime/Manga: %'");
+            foreach ($stmt->fetchAll() as $row) {
+                $bareName  = substr((string) $row['category'], 13);
+                $bareLower = strtolower($bareName);
+                $canonical = isset($taflLookup[$bareLower]) ? $taflCatalog[$taflLookup[$bareLower]] : $bareName;
+                $pdo->prepare('UPDATE lstr_joined SET category = :cat WHERE id = :id')
+                    ->execute(['cat' => $canonical, 'id' => (int) $row['id']]);
+                $fixed++;
+            }
+
+            // Step 4: Fix categories_json in lstr_joined — strip prefix from name fields
+            $stmt = $pdo->query(
+                "SELECT id, categories_json FROM lstr_joined
+                  WHERE categories_json IS NOT NULL AND categories_json != ''
+                    AND categories_json LIKE '%Anime/Manga: %'"
+            );
+            foreach ($stmt->fetchAll() as $row) {
+                $cats = json_decode((string) $row['categories_json'], true);
+                if (!is_array($cats)) {
+                    continue;
+                }
+                $changed = false;
+                foreach ($cats as &$c) {
+                    if (!isset($c['name'])) {
+                        continue;
+                    }
+                    $catName = (string) $c['name'];
+                    if (stripos($catName, 'Anime/Manga: ') !== 0) {
+                        continue;
+                    }
+                    $bareName  = substr($catName, 13);
+                    $bareLower = strtolower($bareName);
+                    $canonical = isset($taflLookup[$bareLower]) ? $taflCatalog[$taflLookup[$bareLower]] : $bareName;
+                    $c['name']    = $canonical;
+                    $c['network'] = 'TAFL';
+                    $changed      = true;
+                }
+                unset($c);
+                if ($changed) {
+                    $pdo->prepare('UPDATE lstr_joined SET categories_json = :json WHERE id = :id')
+                        ->execute(['json' => json_encode($cats), 'id' => (int) $row['id']]);
+                    $fixed++;
+                }
+            }
+        }
+
+        $pdo->exec('INSERT INTO `lstr_migrations` (migration_number) VALUES (49)');
+        $msg    = 'Stripped <code>Anime/Manga: </code> prefix from TAFL categories in <code>lstr_categories</code> and <code>lstr_joined</code>';
+        $done[] = $fixed > 0 ? $msg . " ({$fixed} rows corrected)" : $msg . ' (nothing to fix)';
+    }
+} catch (PDOException $e) {
+    $errors[] = 'Migration 49 — ' . htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Migration 50: per-listing join confirmation email + auto-approve joins
+// ─────────────────────────────────────────────────────────────────────────────
+try {
+    if (!(int) $pdo->query('SELECT COUNT(*) FROM `lstr_migrations` WHERE migration_number = 50')->fetchColumn()) {
+        $pdo->exec(
+            "ALTER TABLE lstr_fanlisting_settings
+                ADD COLUMN join_confirmation_email TINYINT(1) NULL DEFAULT NULL AFTER approved_by,
+                ADD COLUMN auto_approve_joins      TINYINT(1) NOT NULL DEFAULT 0 AFTER join_confirmation_email"
+        );
+        $pdo->exec('INSERT INTO `lstr_migrations` (migration_number) VALUES (50)');
+        $done[] = 'Added <code>join_confirmation_email</code> and <code>auto_approve_joins</code> columns to <code>lstr_fanlisting_settings</code>';
+    }
+} catch (PDOException $e) {
+    $errors[] = 'Migration 50 — ' . htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Migration 51: lstr_listing_categories junction table
+// ─────────────────────────────────────────────────────────────────────────────
+try {
+    if (!(int) $pdo->query('SELECT COUNT(*) FROM `lstr_migrations` WHERE migration_number = 51')->fetchColumn()) {
+        $pdo->exec(
+            "CREATE TABLE lstr_listing_categories (
+              fanlisting_id INT NOT NULL,
+              category_id   INT NOT NULL,
+              PRIMARY KEY (fanlisting_id, category_id),
+              KEY idx_lc_category (category_id)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci"
+        );
+
+        // Seed from existing primary category_id values (handles both schemas)
+        $enthPrefix = (string) ($config['enth_table_prefix'] ?? '');
+        if ($enthPrefix === '') {
+            $pdo->exec(
+                "INSERT IGNORE INTO lstr_listing_categories (fanlisting_id, category_id)
+                 SELECT listingid, category_id FROM owned WHERE category_id IS NOT NULL"
+            );
+
+            // Also seed secondary categories from the pipe-delimited catid column.
+            // owned.catid is dual-namespace: old Enthusiast installs store legacy category.catid
+            // values; Luster-edited listings store lstr_categories.id values directly.
+            // LegacyCatidMapper probes both legacy table variants and builds the translation map.
+            $validCatSet    = array_flip(array_map('intval',
+                $pdo->query('SELECT id FROM lstr_categories')->fetchAll(PDO::FETCH_COLUMN)
+            ));
+            $legacyCatIdMap = \Luster\Support\LegacyCatidMapper::buildMap($pdo);
+
+            $catidRows = $pdo->query(
+                "SELECT listingid, catid FROM owned WHERE catid IS NOT NULL AND catid != ''"
+            )->fetchAll(PDO::FETCH_ASSOC);
+
+            $catidStmt = $pdo->prepare(
+                'INSERT IGNORE INTO lstr_listing_categories (fanlisting_id, category_id) VALUES (:fid, :cid)'
+            );
+            foreach ($catidRows as $row) {
+                $parts = array_filter(explode('|', (string) $row['catid']));
+                foreach ($parts as $part) {
+                    $rawCid = (int) trim($part);
+                    if ($rawCid <= 0) {
+                        continue;
+                    }
+                    if ($legacyCatIdMap !== null) {
+                        // Legacy namespace: translate old catid to lstr_categories.id via name match
+                        $lstrId = $legacyCatIdMap[$rawCid] ?? null;
+                        if ($lstrId !== null) {
+                            $catidStmt->execute(['fid' => (int) $row['listingid'], 'cid' => $lstrId]);
+                        }
+                    } else {
+                        // No legacy table: treat catid directly as lstr_categories.id
+                        if (isset($validCatSet[$rawCid])) {
+                            $catidStmt->execute(['fid' => (int) $row['listingid'], 'cid' => $rawCid]);
+                        }
+                    }
+                }
+            }
+        } else {
+            $enthTable = $enthPrefix . 'listings';
+            $pdo->exec(
+                "INSERT IGNORE INTO lstr_listing_categories (fanlisting_id, category_id)
+                 SELECT id, category_id FROM `{$enthTable}` WHERE category_id IS NOT NULL"
+            );
+            // The standard Enthusiast schema has no catid column — category_id is the only source
+        }
+
+        $pdo->exec('INSERT INTO `lstr_migrations` (migration_number) VALUES (51)');
+        $done[] = 'Created <code>lstr_listing_categories</code> junction table and seeded from existing category assignments';
+    }
+} catch (PDOException $e) {
+    $errors[] = 'Migration 51 — ' . htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Migration 52: Add opened column to owned table (unprefixed Enthusiast schema)
+// ─────────────────────────────────────────────────────────────────────────────
+try {
+    if (!(int) $pdo->query('SELECT COUNT(*) FROM `lstr_migrations` WHERE migration_number = 52')->fetchColumn()) {
+        // Only alter `owned` when it exists — enth_-prefixed installs use enth_fanlistings instead.
+        // Do NOT mark migration as done if owned is absent; it will be retried after the first import
+        // creates the table. Use check-then-alter instead of IF NOT EXISTS (MariaDB-only syntax).
+        $ownedExists = !empty($pdo->query("SHOW TABLES LIKE 'owned'")->fetchAll());
+        if ($ownedExists) {
+            $hasOpenedCol = !empty($pdo->query("SHOW COLUMNS FROM `owned` LIKE 'opened'")->fetchAll());
+            if (!$hasOpenedCol) {
+                $pdo->exec("ALTER TABLE `owned` ADD COLUMN `opened` DATE NULL");
+            }
+            $pdo->exec('INSERT INTO `lstr_migrations` (migration_number) VALUES (52)');
+            $done[] = 'Added <code>opened</code> date column to <code>owned</code> (unprefixed Enthusiast schema)';
+        }
+        // If owned does not exist yet, skip silently — migration stays pending and
+        // will run again the next time the migration runner is opened.
+    }
+} catch (PDOException $e) {
+    $errors[] = 'Migration 52 — ' . htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

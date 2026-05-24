@@ -240,16 +240,21 @@ final class JoinController
             'added'    => date('Y-m-d H:i:s'),
         ];
 
+        // Per-listing join settings (auto-approve + email override).
+        $joinSettings = $settingsRepo->getJoinSettings($listingId);
+        $autoApprove  = $joinSettings['auto_approve'];
+
         // Determine approved/pending column based on schema variant.
-        // All new members start as pending — admin must approve manually.
+        // Default: new members are pending (manual approval required).
+        // Per-listing auto_approve opts this listing into immediate approval.
         $prefix = (string) $this->app->getConfig()->get('enth_table_prefix', '');
 
         if ($prefix === '') {
-            // Unprefixed schema: pending=1 means queued for approval
-            $insertData['pending'] = 1;
+            // Unprefixed schema: pending=0 = approved, pending=1 = queued
+            $insertData['pending'] = $autoApprove ? 0 : 1;
         } else {
-            // Standard schema: approved=0 means pending
-            $insertData['approved'] = 0;
+            // Standard schema: approved=1 = approved, approved=0 = pending
+            $insertData['approved'] = $autoApprove ? 1 : 0;
             $insertData['updated']  = date('Y-m-d H:i:s');
         }
 
@@ -265,14 +270,23 @@ final class JoinController
 
         $memberRepo->insert($listing->dbprefix, $insertData);
         $rateLimit->clear($ip, RateLimit::ACTION_PUBLIC_JOIN);
-        $settingsRepo->touchLastUpdated($listingId);
+        // Only reset the stale clock when the join is immediately approved.
+        // Pending joins wait for admin approval, which will touch it via MemberController.
+        if ($autoApprove) {
+            $settingsRepo->touchLastUpdated($listingId);
+        }
 
         $sendInfo = ($request->post('send_info') === '1');
 
+        // Determine whether to send the optional join confirmation email.
+        // Password-generated joins always trigger mail (member needs the password).
+        // A non-null per-listing override takes precedence over the fan's checkbox.
+        $confirmEmailOverride = $joinSettings['confirmation_email'];
+        $sendConfirmation = $wasGenerated
+            || ($confirmEmailOverride !== null ? $confirmEmailOverride : $sendInfo);
+
         // Confirmation email (best-effort — do not abort on failure)
-        // Send when the member requested it OR when a password was auto-generated
-        // (they need the password regardless of their preference).
-        if ($sendInfo || $wasGenerated) {
+        if ($sendConfirmation) {
             try {
                 $cfg       = $this->app->getConfig();
                 $mailer    = new Mailer($cfg);

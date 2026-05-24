@@ -129,10 +129,11 @@ if (trim($_lusterJoinedTemplate) === '') {
 // Build per-listing HTML when a custom template is set.
 // Applied to both flat ($listings) and grouped ($grouped) modes.
 $_lusterListingHtml = null;
+$_lusterSectionsMode = false;
 if ($_lusterJoinedTemplate !== null) {
-    $e          = static fn(string $v): string => htmlspecialchars($v, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+    $e                 = static fn(string $v): string => htmlspecialchars($v, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
     $_lusterUploadsUrl = $_lusterApp->getBaseUrl() . '/uploads/joined';
-    $renderRow  = static function (object $fl) use ($_lusterJoinedTemplate, $e, $_lusterUploadsUrl): string {
+    $renderRow         = static function (object $fl) use ($_lusterJoinedTemplate, $e, $_lusterUploadsUrl): string {
         $imageTag = ($fl->image !== null && $fl->image !== '')
             ? '<img src="' . $e($_lusterUploadsUrl . '/' . $fl->image) . '" alt="' . $e($fl->name) . '" title="' . $e($fl->name) . '">'
             : '';
@@ -143,7 +144,34 @@ if ($_lusterJoinedTemplate !== null) {
         );
     };
 
-    if (!empty($_lusterGrouped)) {
+    // Sections mode: null (never saved) = use built-in default; '' (explicitly cleared) = off.
+    // Only active listings are included — inactive (active=0) are hidden and never exposed publicly.
+    $_ljSectionsTplRaw = $_lusterSiteRepo->get('joined_sections_template');
+    $_ljSectionsTpl    = $_ljSectionsTplRaw === null
+        ? SiteSettingsRepo::collectiveDefaults()['joined_sections_template']
+        : $_ljSectionsTplRaw;
+
+    if ($_lusterCategory === 'all' && trim($_ljSectionsTpl) !== '' && isset($result)) {
+        $_lusterSectionsMode = true;
+        $_ljActive = array_values(array_filter($result['items'], static fn($fl) => $fl->active));
+
+        $_ljActiveHtml = implode('', array_map($renderRow, $_ljActive));
+
+        $_ljOut = (string) preg_replace(
+            '/\{if_current_listings\}(.*?)\{\/if_current_listings\}/s',
+            $_ljActiveHtml !== '' ? '$1' : '',
+            $_ljSectionsTpl,
+        );
+        $_ljOut = str_replace(
+            ['{current_content}', '{pending_content}',
+             '{current_count}', '{pending_count}', '{total_count}'],
+            [$_ljActiveHtml, '',
+             (string) count($_ljActive), '0',
+             (string) count($_ljActive)],
+            $_ljOut,
+        );
+        $_lusterListingHtml = trim($_ljOut) !== '' ? $_ljOut : '';
+    } elseif (!empty($_lusterGrouped)) {
         $rows = '';
         foreach ($_lusterGrouped as $catName => $items) {
             foreach ($items as $fl) {
@@ -174,6 +202,7 @@ $_lusterHtml = $_lusterApp->getView()->renderFragment('joined.php', [
     'listings'           => $_lusterListings,
     'grouped'            => $_lusterGrouped,
     'listing_html'       => $_lusterListingHtml,
+    'sections_mode'      => $_lusterSectionsMode,
     'categories'         => $_lusterCategories,
     'category_counts'    => $_lusterCategoryCountMap,
     'total_count'        => $_lusterTotalCount,

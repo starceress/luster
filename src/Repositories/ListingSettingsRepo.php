@@ -383,8 +383,8 @@ final class ListingSettingsRepo
     }
 
     /**
-     * Returns the TFL/AFL approval status for a listing.
-     * Returns '' (not approved/N/A), 'tfl', or 'afl'.
+     * Returns the TFL/TAFL approval status for a listing.
+     * Returns '' (not approved/N/A), 'tfl', or 'tafl'.
      * Defaults to '' if the row doesn't exist or Migration 39 hasn't run.
      *
      * Requires Migration 39.
@@ -409,8 +409,8 @@ final class ListingSettingsRepo
     }
 
     /**
-     * Saves (upserts) the TFL/AFL approval status for a listing.
-     * Accepts '' (none), 'tfl', or 'afl'; anything else is coerced to ''.
+     * Saves (upserts) the TFL/TAFL approval status for a listing.
+     * Accepts '' (none), 'tfl', or 'tafl'; anything else is coerced to ''.
      *
      * Requires Migration 39.
      */
@@ -433,7 +433,7 @@ final class ListingSettingsRepo
     }
 
     /**
-     * Returns a map of [listingId => 'tfl'|'afl'|''] for all listings that
+     * Returns a map of [listingId => 'tfl'|'tafl'] for all listings that
      * have a settings row. Used by the listing list to show approval badges
      * without N+1 queries.
      *
@@ -446,7 +446,7 @@ final class ListingSettingsRepo
         try {
             $stmt = $this->db->prepare(
                 "SELECT fanlisting_id, approved_by FROM lstr_fanlisting_settings
-                  WHERE approved_by IN ('tfl', 'afl')"
+                  WHERE approved_by IN ('tfl', 'tafl')"
             );
             $stmt->execute();
             $result = [];
@@ -456,6 +456,74 @@ final class ListingSettingsRepo
             return $result;
         } catch (\Exception) {
             return [];
+        }
+    }
+
+    /**
+     * Returns per-listing join settings.
+     *
+     * confirmation_email: null = inherit (follow fan's send_info preference),
+     *                     true = always send optional confirmation,
+     *                     false = suppress optional confirmation.
+     * auto_approve: false = manual approval required (default), true = auto-approve.
+     *
+     * Requires Migration 50.
+     *
+     * @return array{confirmation_email: bool|null, auto_approve: bool}
+     */
+    public function getJoinSettings(int $listingId): array
+    {
+        try {
+            $stmt = $this->db->prepare(
+                'SELECT join_confirmation_email, auto_approve_joins
+                 FROM lstr_fanlisting_settings
+                 WHERE fanlisting_id = :id'
+            );
+            $stmt->execute(['id' => $listingId]);
+            $row = $stmt->fetch();
+        } catch (\Exception) {
+            return ['confirmation_email' => null, 'auto_approve' => false];
+        }
+
+        if ($row === false) {
+            return ['confirmation_email' => null, 'auto_approve' => false];
+        }
+
+        $confirmEmail = $row['join_confirmation_email'] !== null
+            ? (bool) $row['join_confirmation_email']
+            : null;
+
+        return [
+            'confirmation_email' => $confirmEmail,
+            'auto_approve'       => (bool) $row['auto_approve_joins'],
+        ];
+    }
+
+    /**
+     * Saves (upserts) per-listing join settings.
+     *
+     * Pass null for $confirmEmail to inherit the fan's send_info preference.
+     * Does not touch other columns on existing rows.
+     *
+     * Requires Migration 50.
+     */
+    public function saveJoinSettings(int $listingId, ?bool $confirmEmail, bool $autoApprove): void
+    {
+        try {
+            $stmt = $this->db->prepare(
+                'INSERT INTO lstr_fanlisting_settings (fanlisting_id, join_confirmation_email, auto_approve_joins)
+                 VALUES (:id, :confirm, :auto)
+                 ON DUPLICATE KEY UPDATE
+                     join_confirmation_email = VALUES(join_confirmation_email),
+                     auto_approve_joins      = VALUES(auto_approve_joins)'
+            );
+            $stmt->execute([
+                'id'      => $listingId,
+                'confirm' => $confirmEmail !== null ? (int) $confirmEmail : null,
+                'auto'    => (int) $autoApprove,
+            ]);
+        } catch (\Exception) {
+            // Migration 50 not run yet
         }
     }
 

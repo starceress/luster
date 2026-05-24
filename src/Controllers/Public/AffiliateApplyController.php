@@ -336,7 +336,7 @@ final class AffiliateApplyController
         $config     = $this->app->getConfig();
         $adminEmail = (string) $listing->email;
         if ($adminEmail === '') {
-            $adminEmail = (string) ($config->get('owner_email', '') ?: $config->get('smtp_from', ''));
+            $adminEmail = (string) $config->get('owner_email', '');
         }
         if ($adminEmail === '') {
             return;
@@ -363,7 +363,7 @@ final class AffiliateApplyController
 
         try {
             $mailer = new Mailer($config);
-            $mailer->send($adminEmail, $subject, $body);
+            $mailer->send($adminEmail, '', $subject, $body);
         } catch (\Exception) {
             // Email failure is non-fatal — the application was already saved
         }

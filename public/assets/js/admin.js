@@ -544,23 +544,36 @@ wireSelectAll('fl-select-all', '.fl-row-cb');
   var taflCats  = JSON.parse(catSel.dataset.tafl);
   var customMap = JSON.parse(catSel.dataset.custom);
 
-  netSel.addEventListener('change', function () {
-    var net = this.value;
-    var cats;
-    if (net === 'TFL')       cats = tflCats;
-    else if (net === 'TAFL') cats = taflCats;
-    else if (net !== '') {
-      cats = customMap[net] || [];
-    } else {
-      cats = tflCats.concat(taflCats);
-      Object.values(customMap).forEach(function (arr) { cats = cats.concat(arr); });
-      cats.sort(function (a, b) { return a.name.localeCompare(b.name); });
-    }
+  function buildCatOptions(net) {
     var html = '<option value="">All Categories</option>';
-    cats.forEach(function (c) {
-      html += '<option value="' + esc(c.name) + '">' + esc(c.name) + '</option>';
-    });
-    catSel.innerHTML = html;
+    if (net === '') {
+      if (tflCats.length) {
+        html += '<optgroup label="TFL">';
+        tflCats.forEach(function (c) { html += '<option value="' + esc(c.name) + '">' + esc(c.name) + '</option>'; });
+        html += '</optgroup>';
+      }
+      if (taflCats.length) {
+        html += '<optgroup label="TAFL">';
+        taflCats.forEach(function (c) { html += '<option value="' + esc(c.name) + '">' + esc(c.name) + '</option>'; });
+        html += '</optgroup>';
+      }
+      Object.keys(customMap).forEach(function (n) {
+        var arr = customMap[n];
+        if (arr.length) {
+          html += '<optgroup label="' + esc(n) + '">';
+          arr.forEach(function (c) { html += '<option value="' + esc(c.name) + '">' + esc(c.name) + '</option>'; });
+          html += '</optgroup>';
+        }
+      });
+    } else {
+      var cats = net === 'TFL' ? tflCats : net === 'TAFL' ? taflCats : (customMap[net] || []);
+      cats.forEach(function (c) { html += '<option value="' + esc(c.name) + '">' + esc(c.name) + '</option>'; });
+    }
+    return html;
+  }
+
+  netSel.addEventListener('change', function () {
+    catSel.innerHTML = buildCatOptions(this.value);
     document.getElementById('fl-filter-form').submit();
   });
 }());
@@ -615,17 +628,37 @@ wireSelectAll('fl-select-all', '.fl-row-cb');
   var netSel = document.getElementById('net-sel');
   if (!netSel || !netSel.dataset.netCats) return;
   var netCats = JSON.parse(netSel.dataset.netCats);
-  netSel.addEventListener('change', function () {
-    var net    = this.value;
-    var catSel = document.getElementById('cat-sel');
-    catSel.innerHTML = '<option value="">All Categories</option>';
-    if (net && netCats[net]) {
+
+  function buildJoinedCatOptions(net) {
+    var html = '<option value="">All Categories</option>';
+    if (net === '') {
+      ['TFL', 'TAFL'].forEach(function (n) {
+        var arr = netCats[n];
+        if (arr && arr.length) {
+          html += '<optgroup label="' + esc(n) + '">';
+          arr.forEach(function (c) { html += '<option value="' + esc(c) + '">' + esc(c) + '</option>'; });
+          html += '</optgroup>';
+        }
+      });
+      Object.keys(netCats).forEach(function (n) {
+        if (n === 'TFL' || n === 'TAFL') { return; }
+        var arr = netCats[n];
+        if (arr && arr.length) {
+          html += '<optgroup label="' + esc(n) + '">';
+          arr.forEach(function (c) { html += '<option value="' + esc(c) + '">' + esc(c) + '</option>'; });
+          html += '</optgroup>';
+        }
+      });
+    } else if (netCats[net]) {
       netCats[net].forEach(function (c) {
-        var o = document.createElement('option');
-        o.value = c; o.textContent = c;
-        catSel.appendChild(o);
+        html += '<option value="' + esc(c) + '">' + esc(c) + '</option>';
       });
     }
+    return html;
+  }
+
+  netSel.addEventListener('change', function () {
+    document.getElementById('cat-sel').innerHTML = buildJoinedCatOptions(this.value);
     this.form.submit();
   });
 }());
@@ -1766,62 +1799,6 @@ document.addEventListener('click', function (e) {
   if (ta) { ta.value = def; ta.focus(); }
 });
 
-// ── Settings page: SMTP validate connection ───────────────────────────────────
-
-(function () {
-  var btn    = document.getElementById('smtp-validate-btn');
-  var result = document.getElementById('smtp-validate-result');
-  if (!btn) return;
-
-  btn.addEventListener('click', function () {
-    var host   = (document.getElementById('s-smtp-host')   || {}).value || '';
-    var port   = (document.getElementById('s-smtp-port')   || {}).value || '';
-    var user   = (document.getElementById('s-smtp-user')   || {}).value || '';
-    var pass   = (document.getElementById('s-smtp-pass')   || {}).value || '';
-    var secure = (document.getElementById('s-smtp-secure') || {}).value || '';
-
-    if (host.trim() === '') {
-      if (result) { result.style.display = ''; result.style.color = 'var(--danger)'; result.textContent = 'Enter an SMTP host first.'; }
-      return;
-    }
-
-    btn.disabled = true;
-    btn.textContent = 'Connecting\u2026';
-    if (result) result.style.display = 'none';
-
-    var csrf = document.querySelector('input[name="_csrf"]');
-    var body = new URLSearchParams({
-      _csrf: csrf ? csrf.value : '',
-      smtp_host: host, smtp_port: port, smtp_user: user, smtp_pass: pass, smtp_secure: secure,
-    });
-
-    fetch(btn.dataset.url || '', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: body.toString(),
-    })
-    .then(function (r) { return r.json(); })
-    .then(function (data) {
-      if (result) {
-        result.style.display = '';
-        result.style.color   = data.ok ? 'var(--success, #2a9d5c)' : 'var(--danger)';
-        result.textContent   = (data.ok ? '\u2713 ' : '\u2717 ') + data.message;
-      }
-    })
-    .catch(function () {
-      if (result) {
-        result.style.display = '';
-        result.style.color   = 'var(--danger)';
-        result.textContent   = '\u2717 Request failed \u2014 check browser console.';
-      }
-    })
-    .finally(function () {
-      btn.disabled = false;
-      btn.textContent = 'Validate connection';
-    });
-  });
-}());
-
 // ── Bulk email compose page ───────────────────────────────────────────────────
 
 (function () {
@@ -2351,7 +2328,52 @@ document.addEventListener('click', function (e) {
   });
 }());
 
-// ── 34. Affiliate drag-and-drop row reorder ───────────────────────────────────
+// ── 34. Members index: filter panel toggle + auto-submit selects ──────────────
+
+(function () {
+  var btn   = document.getElementById('mem-filter-toggle');
+  var panel = document.getElementById('mem-filter-panel');
+  if (!btn || !panel) return;
+
+  var LS_KEY = 'lstr_mem_filter_open';
+
+  if (!panel.classList.contains('is-open') && localStorage.getItem(LS_KEY) === '1') {
+    panel.classList.add('is-open');
+    btn.setAttribute('aria-expanded', 'true');
+  }
+
+  btn.addEventListener('click', function () {
+    var open = panel.classList.contains('is-open');
+    panel.classList.toggle('is-open', !open);
+    btn.setAttribute('aria-expanded', String(!open));
+    localStorage.setItem(LS_KEY, !open ? '1' : '0');
+  });
+}());
+
+(function () {
+  var form      = document.getElementById('mem-filter-form');
+  var listingSel = document.getElementById('mem-listing-sel');
+  var statusSel  = document.getElementById('mem-status-sel');
+  if (!form || !listingSel || !statusSel) return;
+
+  listingSel.addEventListener('change', function () {
+    var lid = parseInt(listingSel.value, 10);
+    if (lid > 0) {
+      statusSel.disabled = false;
+      statusSel.value = 'all';
+    } else {
+      statusSel.disabled = true;
+      statusSel.value = 'all';
+    }
+    form.submit();
+  });
+
+  statusSel.addEventListener('change', function () {
+    form.submit();
+  });
+}());
+
+// ── 35. Affiliate drag-and-drop row reorder ───────────────────────────────────
 //
 // Requires: <table data-reorder-url="..."> with <tr data-id="N"> rows
 // and a .drag-handle element inside each row. Sends ordered IDs via AJAX.
@@ -2828,11 +2850,12 @@ document.addEventListener('click', function (e) {
     testResult.textContent = 'Testing…';
 
     var fd = new FormData();
-    fd.append('_csrf',   (document.querySelector('input[name="_csrf"]') || {}).value || '');
-    fd.append('db_host', (document.getElementById('db_host') || {}).value || '');
-    fd.append('db_name', (document.getElementById('db_name') || {}).value || '');
-    fd.append('db_user', (document.getElementById('db_user') || {}).value || '');
-    fd.append('db_pass', (document.getElementById('db_pass') || {}).value || '');
+    fd.append('_csrf',          (document.querySelector('input[name="_csrf"]') || {}).value || '');
+    fd.append('db_host',        (document.getElementById('db_host')        || {}).value || '');
+    fd.append('db_name',        (document.getElementById('db_name')        || {}).value || '');
+    fd.append('db_user',        (document.getElementById('db_user')        || {}).value || '');
+    fd.append('db_pass',        (document.getElementById('db_pass')        || {}).value || '');
+    fd.append('fn_table_prefix',(document.getElementById('fn_table_prefix')|| {}).value || '');
 
     fetch(action, { method: 'POST', body: fd })
       .then(function (r) {
@@ -3082,6 +3105,34 @@ document.addEventListener('click', function (e) {
           if (btn) { btn.disabled = false; btn.textContent = 'Mark Updated'; }
           if (window.lstrToast) window.lstrToast('error', 'Could not update listing.');
         });
+    });
+  });
+
+  // Select-all + enable/disable "Mark Selected" for bulk maintenance form
+  var selectAll  = document.getElementById('bulk-select-all');
+  var bulkBtn    = document.getElementById('bulk-mark-btn');
+  var bulkChecks = document.querySelectorAll('[form="bulk-maint-form"][name="listing_ids[]"]');
+
+  function syncBulkBtn() {
+    if (!bulkBtn) return;
+    var any = Array.prototype.some.call(bulkChecks, function (c) { return c.checked; });
+    bulkBtn.disabled = !any;
+  }
+
+  if (selectAll) {
+    selectAll.addEventListener('change', function () {
+      bulkChecks.forEach(function (c) { c.checked = selectAll.checked; });
+      syncBulkBtn();
+    });
+  }
+
+  bulkChecks.forEach(function (c) {
+    c.addEventListener('change', function () {
+      if (selectAll && !c.checked) selectAll.checked = false;
+      if (selectAll && Array.prototype.every.call(bulkChecks, function (x) { return x.checked; })) {
+        selectAll.checked = true;
+      }
+      syncBulkBtn();
     });
   });
 }());
@@ -3486,7 +3537,6 @@ document.addEventListener('click', function (e) {
     { label: 'Email Templates',    hint: 'Emails',   url: base + '/admin/emails?tab=templates' },
     { label: 'Bulk Email',         hint: 'Emails',   url: base + '/admin/emails?tab=bulk' },
     { label: 'Custom Templates',   hint: 'Emails',   url: base + '/admin/emails?tab=custom' },
-    { label: 'SMTP Settings',      hint: 'Emails',   url: base + '/admin/emails?tab=smtp' },
     { label: 'Account Details',    hint: 'Settings', url: base + '/admin/settings#panel-admin' },
     { label: 'Admin Accounts',     hint: 'Settings', url: base + '/admin/settings#panel-accounts' },
     { label: 'General Settings',   hint: 'Settings', url: base + '/admin/settings#panel-general' },
@@ -3638,4 +3688,86 @@ document.addEventListener('click', function (e) {
 
   window.addEventListener('hashchange', sync);
   sync();
+}());
+
+// ── Skin card preview popup ────────────────────────────────────────────────
+(function () {
+  var cards = document.querySelectorAll('[data-skin-preview]');
+  if (!cards.length) return;
+
+  var PANEL =
+    '<div class="sp-side">' +
+      '<div class="sp-rail"></div>' +
+      '<div class="sp-gem"></div>' +
+      '<div class="sp-nav">' +
+        '<div class="sp-item"></div>' +
+        '<div class="sp-item"></div>' +
+        '<div class="sp-item sp-item--active"></div>' +
+        '<div class="sp-item"></div>' +
+      '</div>' +
+    '</div>' +
+    '<div class="sp-body">' +
+      '<div class="sp-bar"><div class="sp-bar-title"></div><div class="sp-bar-btn"></div></div>' +
+      '<div class="sp-main">' +
+        '<div class="sp-card">' +
+          '<div class="sp-ch"></div>' +
+          '<div class="sp-rows">' +
+            '<div class="sp-row"></div>' +
+            '<div class="sp-row sp-row--short"></div>' +
+            '<div class="sp-row"></div>' +
+          '</div>' +
+        '</div>' +
+      '</div>' +
+    '</div>';
+
+  var pop = document.createElement('div');
+  pop.className = 'skin-pop';
+  pop.setAttribute('aria-hidden', 'true');
+  pop.innerHTML =
+    '<div class="sp-panel" data-theme="light">' + PANEL + '</div>' +
+    '<div class="sp-sep"></div>' +
+    '<div class="sp-panel" data-theme="dark">'  + PANEL + '</div>';
+  document.body.appendChild(pop);
+
+  var POP_W = 340;
+  var POP_H = 158;
+  var GAP   = 8;
+  var timer = null;
+
+  function show(card) {
+    clearTimeout(timer);
+    var slug   = card.dataset.skinPreview;
+    var panels = pop.querySelectorAll('.sp-panel');
+    panels.forEach(function (panel) {
+      if (slug === '') {
+        panel.removeAttribute('data-skin');
+        panel.style.setProperty('--va-pink',      '#ff7eb3');
+        panel.style.setProperty('--ch-pink',      '255 126 179');
+        panel.style.setProperty('--gradient-bar', 'linear-gradient(90deg, #ff7eb3, #78e8d8, #ffd166)');
+      } else {
+        panel.dataset.skin = slug;
+        panel.style.removeProperty('--va-pink');
+        panel.style.removeProperty('--ch-pink');
+        panel.style.removeProperty('--gradient-bar');
+      }
+    });
+    var r = card.getBoundingClientRect();
+    var x = Math.max(8, Math.min(r.left + r.width / 2 - POP_W / 2, window.innerWidth - POP_W - 8));
+    var y = r.top - POP_H - GAP;
+    if (y < 8) y = r.bottom + GAP;
+    pop.style.left = x + 'px';
+    pop.style.top  = y + 'px';
+    pop.classList.add('skin-pop--visible');
+  }
+
+  function hide() {
+    timer = setTimeout(function () { pop.classList.remove('skin-pop--visible'); }, 60);
+  }
+
+  cards.forEach(function (card) {
+    card.addEventListener('mouseenter', function () { show(card); });
+    card.addEventListener('mouseleave', hide);
+    card.addEventListener('focus',      function () { show(card); });
+    card.addEventListener('blur',       hide);
+  });
 }());

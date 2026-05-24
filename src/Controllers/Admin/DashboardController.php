@@ -74,30 +74,76 @@ final class DashboardController
         return Response::json(['ok' => true]);
     }
 
+    /**
+     * POST /admin/maintenance/bulk-touch-updated
+     *
+     * Marks a selected subset of neglected listings as updated today.
+     */
+    public function bulkTouchUpdated(Request $request, array $params): Response
+    {
+        $db      = $this->app->getDatabase();
+        $session = $this->app->getSession();
+
+        $rawIds = $request->post('listing_ids', []);
+        if (!is_array($rawIds)) {
+            $rawIds = [];
+        }
+
+        $settingsRepo = new ListingSettingsRepo($db);
+        $activityRepo = new ActivityRepo($db);
+
+        $updated = [];
+        foreach ($rawIds as $raw) {
+            $id = (int) $raw;
+            if ($id > 0) {
+                $settingsRepo->touchLastUpdated($id);
+                $updated[] = $id;
+            }
+        }
+
+        if (!empty($updated)) {
+            $activityRepo->log(
+                (int) $session->get('lstr_admin_id'),
+                'maintenance.bulk_touch_updated',
+                'Bulk-touched last_updated for ' . count($updated) . ' selected listing(s): IDs ' . implode(', ', $updated),
+                $request->ip(),
+            );
+            $n = count($updated);
+            $session->set('lstr_flash_success', $n . ' listing' . ($n !== 1 ? 's' : '') . ' marked as updated.');
+        } else {
+            $session->set('lstr_flash_error', 'No listings selected.');
+        }
+
+        return Response::redirect($this->app->getBaseUrl() . '/admin');
+    }
+
     public function touchAllUpdated(Request $request, array $params): Response
     {
         $db     = $this->app->getDatabase();
         $config = $this->app->getConfig();
 
+        $listingRepo  = new ListingRepo($db, $config);
         $settingsRepo = new ListingSettingsRepo($db);
         $activityRepo = new ActivityRepo($db);
         $session      = $this->app->getSession();
 
-        $thresholdDays = (int) $config->get('inactive_threshold_days', 60);
-        $staleIds      = $settingsRepo->getStaleIds($thresholdDays);
+        $siteRepo      = new SiteSettingsRepo($db);
+        $staleDays     = max(1, (int) ($siteRepo->get('stale_days') ?: '45'));
+        $staleListings = $listingRepo->getStaleListings($staleDays);
 
-        foreach ($staleIds as $id) {
-            $settingsRepo->touchLastUpdated($id);
+        foreach ($staleListings as $fl) {
+            $settingsRepo->touchLastUpdated($fl->id);
         }
 
+        $count = count($staleListings);
         $activityRepo->log(
             (int) $session->get('lstr_admin_id'),
             'maintenance.touch_all_updated',
-            'Bulk-touched last_updated to today for ' . count($staleIds) . ' neglected listing(s)',
+            'Bulk-touched last_updated to today for ' . $count . ' neglected listing(s)',
             $request->ip(),
         );
 
-        $session->set('lstr_flash_success', 'Last Updated date set to today for ' . count($staleIds) . ' neglected listing(s).');
+        $session->set('lstr_flash_success', 'Last Updated date set to today for ' . $count . ' neglected listing(s).');
         return Response::redirect($this->app->getBaseUrl() . '/admin');
     }
 
@@ -246,30 +292,31 @@ final class DashboardController
             && ($dismissedVer === '' || $dismissedVer !== $updateStatus->latest);
 
         // ── Staleness detection ───────────────────────────────────────────
-        $thresholdDays = (int) $config->get('inactive_threshold_days', 60);
-        $staleIds      = $settingsRepo->getStaleIds($thresholdDays);
+        // Uses ListingRepo::getStaleListings() — LEFT JOIN on lstr_fanlisting_settings,
+        // so active listings without a settings row are correctly included.
+        $staleDays     = max(1, (int) ($siteRepo->get('stale_days') ?: '45'));
+        $staleObjs     = $listingRepo->getStaleListings($staleDays);
         $staleListings = [];
-        if (!empty($staleIds)) {
-            // Fetch last_updated dates for stale listings in one query
-            $placeholders   = implode(',', array_fill(0, count($staleIds), '?'));
-            $stmt           = $db->prepare(
+        if (!empty($staleObjs)) {
+            // Fetch last_updated dates in one query so dashboard can show days-ago
+            $staleIds     = array_map(static fn($fl) => $fl->id, $staleObjs);
+            $placeholders = implode(',', array_fill(0, count($staleIds), '?'));
+            $stmt         = $db->prepare(
                 "SELECT fanlisting_id, last_updated FROM lstr_fanlisting_settings
                   WHERE fanlisting_id IN ($placeholders)"
             );
-            $stmt->execute($staleIds);
+            $stmt->execute(array_values($staleIds));
             $lastUpdatedMap = [];
             foreach ($stmt->fetchAll() as $luRow) {
                 $lastUpdatedMap[(int) $luRow['fanlisting_id']] = $luRow['last_updated'];
             }
 
-            foreach ($listings as $fl) {
-                if (in_array($fl->id, $staleIds, true)) {
-                    $lu      = $lastUpdatedMap[$fl->id] ?? null;
-                    $daysAgo = ($lu !== null && $lu !== '')
-                        ? (int) floor((time() - (int) strtotime($lu)) / 86400)
-                        : null;
-                    $staleListings[] = ['listing' => $fl, 'days_ago' => $daysAgo];
-                }
+            foreach ($staleObjs as $fl) {
+                $lu      = $lastUpdatedMap[$fl->id] ?? null;
+                $daysAgo = ($lu !== null && $lu !== '')
+                    ? (int) floor((time() - (int) strtotime($lu)) / 86400)
+                    : null;
+                $staleListings[] = ['listing' => $fl, 'days_ago' => $daysAgo];
             }
         }
 
@@ -309,11 +356,11 @@ final class DashboardController
             'growth_last_month'          => $growthLastMonth,
             'opened_this_year'           => $openedThisYear,
             'joined_this_year'           => $joinedThisYear,
-            'listings_up_to_date'        => max(0, (int) $fanStats['total'] - count($staleListings)),
+            'listings_up_to_date'        => max(0, $fanCurrent - count($staleListings)),
             'recent_members'             => $recentMembers,
             'recent_activity'            => $recentActivity,
             'stale_listings'             => $staleListings,
-            'inactive_threshold_days'    => $thresholdDays,
+            'stale_threshold_days'       => $staleDays,
             'update_status'              => $updateStatus,
             'show_update_banner'         => $showUpdateBanner,
             'no_listings'                => $noListings,

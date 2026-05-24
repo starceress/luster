@@ -15,36 +15,66 @@ namespace Luster\Core;
  *   2. Add one entry to self::all() below.
  *
  * Community (drop-in) skins live in public/assets/css/skins/ and are
- * detected at runtime by SettingsController — they do not appear here.
+ * detected at runtime by SettingsController; they do not appear here.
  */
 final class SkinCatalog
 {
     /**
      * Every bundled skin, in display order.
-     * The first entry (slug = '') is the default Nebula theme.
+     * The first entry (slug = '') is the default Velvet Geode theme.
      *
-     * @return list<array{slug:string,name:string,desc:string,colors:list<string>}>
+     * @return list<array{slug:string,name:string,light:string,dark:string,desc:string,colors:list<string>}>
      */
     public static function all(): array
     {
         return [
             [
                 'slug'   => '',
-                'name'   => 'Nebula',
-                'desc'   => 'Default — pink, teal & gold',
+                'name'   => 'Velvet Geode',
+                'light'  => 'Opal Shard',
+                'dark'   => 'Iolite Cavern',
+                'desc'   => 'Default crystal palette - pink, teal & gold',
                 'colors' => ['#ff7eb3', '#78e8d8', '#ffd166'],
             ],
             [
-                'slug'   => 'aurora',
-                'name'   => 'Aurora',
-                'desc'   => 'Northern lights — cyan, sage & pale sky',
-                'colors' => ['#79e8ff', '#6bcfa0', '#b3e5fc'],
+                'slug'   => 'prism-power',
+                'name'   => 'Prism Power',
+                'light'  => 'Princess Serenity',
+                'dark'   => 'Sailor Moon',
+                'desc'   => 'Moon prism palette - ribbon pink, cobalt & gold',
+                'colors' => ['#ee5e9e', '#4a6dd6', '#f7d440'],
             ],
             [
-                'slug'   => 'sol',
-                'name'   => 'Sol',
-                'desc'   => 'Sunrise — amber, rose & bright gold',
-                'colors' => ['#ffb06a', '#ff8fa8', '#ffe066'],
+                'slug'   => 'victory-road',
+                'name'   => 'Victory Road',
+                'light'  => 'Pokemon Center',
+                'dark'   => 'Elite Four',
+                'desc'   => 'Pokemon palette - red, nature green & blue',
+                'colors' => ['#e3350d', '#4dad5b', '#316cd9'],
+            ],
+            [
+                'slug'   => 'the-force',
+                'name'   => 'The Force',
+                'light'  => 'Luke Skywalker',
+                'dark'   => 'Darth Vader',
+                'desc'   => 'Galactic palette - Jedi blue and Sith red',
+                'colors' => ['#ff2a2a', '#990000', '#444444'],
+            ],
+            [
+                'slug'   => 'floating-lights',
+                'name'   => 'Floating Lights',
+                'light'  => 'Rapunzel Gleam',
+                'dark'   => 'Flynn Glow',
+                'desc'   => 'Lantern palette - golden amber, wisteria & rose',
+                'colors' => ['#ffca28', '#d884cb', '#ff77a8'],
+            ],
+            [
+                'slug'   => 'moving-castle',
+                'name'   => 'Moving Castle',
+                'light'  => 'Flower Field',
+                'dark'   => 'Star Lake',
+                'desc'   => 'Storybook palette - sky green, ember and night blue',
+                'colors' => ['#00e5ff', '#ffb703', '#fb8500'],
             ],
         ];
     }

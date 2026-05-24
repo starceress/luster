@@ -14,9 +14,11 @@ use Luster\Core\Database;
  * pages load normally before the migration has been run.
  *
  * Keys in use:
- *   owned_template           — per-row HTML template for embed/owned.php
- *   joined_template          — per-row HTML template for embed/joined.php
+ *   owned_template            — per-row HTML template for embed/owned.php
+ *   joined_template           — per-row HTML template for embed/joined.php
  *   collective_stats_template — HTML template for embed/collective-stats.php
+ *   owned_sections_template   — sections-mode wrapper for embed/owned.php ($luster_status='all')
+ *   joined_sections_template  — sections-mode wrapper for embed/joined.php ($luster_category='all')
  */
 class SiteSettingsRepo
 {
@@ -63,7 +65,7 @@ class SiteSettingsRepo
      * Shared by the admin collective-templates page and the embed files so
      * both always show the same fallback markup.
      *
-     * @return array{owned_template: string, joined_template: string, collective_stats_template: string}
+     * @return array{owned_template: string, joined_template: string, collective_stats_template: string, owned_sections_template: string, joined_sections_template: string}
      */
     public static function collectiveDefaults(): array
     {
@@ -74,6 +76,22 @@ class SiteSettingsRepo
                                          . 'Joined Listings: {joined_active}</br>' . "\n"
                                          . 'Total Members: {members_approved} approved (+ {members_pending} pending)</br>' . "\n"
                                          . 'Featured Listing: <a href="{owned_random_url}" target="_blank">{owned_random_name}</a></br>',
+            'owned_sections_template'   => '{if_current_listings}' . "\n"
+                                         . '<h3>Current ({current_count})</h3>' . "\n"
+                                         . '<ul>{current_content}</ul>' . "\n"
+                                         . '{/if_current_listings}' . "\n"
+                                         . '{if_upcoming_listings}' . "\n"
+                                         . '<h3>Upcoming ({upcoming_count})</h3>' . "\n"
+                                         . '<ul>{upcoming_content}</ul>' . "\n"
+                                         . '{/if_upcoming_listings}' . "\n"
+                                         . '{if_pending_listings}' . "\n"
+                                         . '<h3>Pending ({pending_count})</h3>' . "\n"
+                                         . '<ul>{pending_content}</ul>' . "\n"
+                                         . '{/if_pending_listings}',
+            'joined_sections_template'  => '{if_current_listings}' . "\n"
+                                         . '<h3>Joined Listings ({current_count})</h3>' . "\n"
+                                         . '<ul>{current_content}</ul>' . "\n"
+                                         . '{/if_current_listings}',
         ];
     }
 

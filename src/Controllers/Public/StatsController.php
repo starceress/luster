@@ -33,13 +33,17 @@ use Luster\Repositories\MemberRepo;
  *   {stat_growth}       — average members per day since opened, e.g. "1.23 members/day"
  *   {listing_name}      — listing name (HTML-escaped)
  *   {listing_url}       — listing URL (HTML-escaped)
+ *   {approved_by}       — linked network name ("The Fanlistings Network" or
+ *                         "The Anime Fanlistings Network"), or '' if not approved
+ *   {if_approved_by}...{/if_approved_by}  — rendered only when approved_by is set
  */
 final class StatsController
 {
     private const DEFAULT_TEMPLATE =
-        '<p>Opened: {stat_opened}<br>Last updated: {stat_updated}<br>'
+        '<p>Opened: {stat_opened}<br>Last updated: {stat_last_updated}<br>'
         . 'Members: {stat_approved} ({stat_pending} pending)<br>'
-        . 'Newest: {stat_newmembers}</p>';
+        . 'Newest: {stat_newmembers}{if_approved_by}<br>'
+        . 'Approved by: {approved_by}{/if_approved_by}</p>';
 
     public function __construct(private readonly Application $app) {}
 
@@ -70,16 +74,31 @@ final class StatsController
 
         // ── Load template ───────────────────────────────────────────────────
 
-        $settingsRepo = new ListingSettingsRepo($this->app->getDatabase());
-        $templates    = $settingsRepo->getTemplates($listingId);
-        $template     = ($templates['stats_template'] !== null && trim($templates['stats_template']) !== '')
+        $settingsRepo   = new ListingSettingsRepo($this->app->getDatabase());
+        $templates      = $settingsRepo->getTemplates($listingId);
+        $template       = ($templates['stats_template'] !== null && trim($templates['stats_template']) !== '')
             ? $templates['stats_template']
             : self::DEFAULT_TEMPLATE;
 
+        // Admin-controlled "last updated" date; fallback from config
+        $adminLastUpdated    = $settingsRepo->getLastUpdated($listingId);
+        $lastUpdatedFallback = (string) $this->app->getConfig()->get('last_updated_fallback', 'Never');
+        $adminUpdatedStr     = $adminLastUpdated !== null
+            ? $this->formatDate($adminLastUpdated)
+            : $lastUpdatedFallback;
+
+        // Approval status
+        $approvedBy     = $settingsRepo->getApprovedBy($listingId);
+        $approvedByHtml = match ($approvedBy) {
+            'tfl'   => '<a href="https://thefanlistings.org">The Fanlistings Network</a>',
+            'tafl'  => '<a href="https://animefanlistings.org">The Anime Fanlistings Network</a>',
+            default => '',
+        };
+
         // ── Build token values ──────────────────────────────────────────────
 
-        $opened  = $listing->joined !== null ? $this->formatDate($listing->joined)  : 'Unknown';
-        $updated = $lastUpdated        !== null ? $this->formatDate($lastUpdated)          : 'Never';
+        $opened  = $listing->joined !== null ? $this->formatDate($listing->joined) : 'Unknown';
+        $updated = $lastUpdated     !== null ? $this->formatDate($lastUpdated)      : 'Never';
 
         $newMembersStr = implode(', ', array_map(
             static fn(string $name) => htmlspecialchars($name, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),
@@ -98,26 +117,37 @@ final class StatsController
 
         // ── Replace tokens ──────────────────────────────────────────────────
 
+        // Conditional block — must run before flat str_replace
+        $template = (string) preg_replace(
+            '/\{if_approved_by\}(.*?)\{\/if_approved_by\}/s',
+            $approvedBy !== '' ? '$1' : '',
+            $template,
+        );
+
         $output = str_replace(
             [
                 '{stat_opened}',
                 '{stat_updated}',
+                '{stat_last_updated}',
                 '{stat_approved}',
                 '{stat_pending}',
                 '{stat_newmembers}',
                 '{stat_growth}',
                 '{listing_name}',
                 '{listing_url}',
+                '{approved_by}',
             ],
             [
                 $opened,
                 $updated,
+                $adminUpdatedStr,
                 (string) $approved,
                 (string) $pending,
                 $newMembersStr,
                 $growth . ' members/day',
                 htmlspecialchars($listing->name, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),
                 htmlspecialchars($listing->url,  ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),
+                $approvedByHtml,
             ],
             $template,
         );

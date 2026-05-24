@@ -166,12 +166,9 @@ final class CategoryRepo
     private function getAllCustomNetworkNames(): array
     {
         $stmt = $this->db->prepare(
-            "SELECT DISTINCT net FROM (
-                SELECT name  AS net FROM lstr_categories WHERE source = 'custom'
-                UNION
-                SELECT source AS net FROM lstr_categories WHERE source NOT IN ('tfl', 'tafl', 'custom')
-             ) AS all_nets
-             ORDER BY net ASC"
+            "SELECT DISTINCT source AS net FROM lstr_categories
+              WHERE source NOT IN ('tfl', 'tafl', 'custom')
+              ORDER BY source ASC"
         );
         $stmt->execute();
 
@@ -208,8 +205,8 @@ final class CategoryRepo
     public function addCustomNetwork(string $name): void
     {
         $stmt = $this->db->prepare(
-            "INSERT INTO lstr_categories (name, source, parent_id)
-             SELECT :name, 'custom', NULL
+            "INSERT INTO lstr_categories (name, source)
+             SELECT :name, 'custom'
              FROM DUAL
              WHERE NOT EXISTS (
                  SELECT 1 FROM lstr_categories
@@ -284,7 +281,7 @@ final class CategoryRepo
             return $existing->id;
         }
         $stmt = $this->db->prepare(
-            'INSERT INTO lstr_categories (name, parent_id, source) VALUES (:name, NULL, :source)'
+            'INSERT INTO lstr_categories (name, source) VALUES (:name, :source)'
         );
         $stmt->execute(['name' => $name, 'source' => $source]);
         return (int) $this->db->lastInsertId();

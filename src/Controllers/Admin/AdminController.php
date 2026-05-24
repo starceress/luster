@@ -11,7 +11,7 @@ use Luster\Core\Response;
  * Abstract base for all admin controllers.
  *
  * Provides adminLayout() — the single shared method for rendering an admin
- * page inside the Nebula shell (layout.php).
+ * page inside the Velvet Geode shell (layout.php).
  *
  * Usage in subclasses:
  *   return $this->adminLayout('admin/foo/index.php', 'Page Title', 'section', $data);
@@ -25,7 +25,7 @@ abstract class AdminController
     public function __construct(protected readonly Application $app) {}
 
     /**
-     * Renders an admin page inside the Nebula layout shell.
+     * Renders an admin page inside the Velvet Geode layout shell.
      *
      * @param string $template     Path relative to templates/ (e.g. 'admin/foo/index.php')
      * @param string $pageTitle    Value of $page_title in the layout

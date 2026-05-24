@@ -124,6 +124,8 @@ return [
         // ── Maintenance ──────────────────────────────────────────────
         $router->post('/admin/maintenance/touch-all-updated',
             DashboardController::class, 'touchAllUpdated');
+        $router->post('/admin/maintenance/bulk-touch-updated',
+            DashboardController::class, 'bulkTouchUpdated');
         $router->post('/admin/listings/{id}/touch-updated',
             DashboardController::class, 'touchListing');
         $router->post('/admin/dismiss-update',
@@ -170,6 +172,9 @@ return [
             MemberController::class, 'indexSettings');
         $router->post('/admin/members/settings',
             MemberController::class, 'saveSettings');
+
+        $router->post('/admin/members/approve-all-overview',
+            MemberController::class, 'approveAllOverview');
 
         // ── Members for a specific listing ───────────────────────
         $router->get('/admin/members/{id}',
@@ -329,8 +334,6 @@ return [
             SettingsController::class, 'updateTemplates');
         $router->post('/admin/settings/profile',
             SettingsController::class, 'updateProfile');
-        $router->post('/admin/settings/validate-smtp',
-            SettingsController::class, 'validateSmtp');
         $router->post('/admin/settings/test-email',
             SettingsController::class, 'testEmail');
         $router->post('/admin/settings/check-update',
@@ -339,14 +342,6 @@ return [
             SettingsController::class, 'saveImportVisibility');
         $router->post('/admin/settings/skin',
             SettingsController::class, 'saveSkin');
-
-        // ── Email/SMTP Settings (under Emails nav) ───────────────────
-        // Old URL → redirect to unified Emails page SMTP tab
-        $router->get('/admin/emails/smtp-settings',
-            SettingsController::class, 'emailSettingsRedirect');
-        $router->post('/admin/emails/smtp-settings/save',
-            SettingsController::class, 'saveEmailSettings');
-
 
         // ── Joined listings ───────────────────────────────────────
         $router->get('/admin/joined',

@@ -18,7 +18,7 @@ $id = (int) $listing->id;
 ?>
 
 <div class="page-topbar">
-  <a href="<?= $b ?>/admin/members/<?= $id ?>" class="link">
+  <a href="<?= $b ?>/admin/members?listing_id=<?= (int) $id ?>&status=all" class="link">
     &larr; Back to Members: <?= View::e($listing->name) ?>
   </a>
 </div>
@@ -140,7 +140,7 @@ $id = (int) $listing->id;
 
     <div class="composer-footer">
       <button type="submit" class="btn btn-primary btn-sm">Save Changes</button>
-      <a href="<?= $b ?>/admin/members/<?= $id ?>" class="btn btn-ghost btn-sm">Cancel</a>
+      <a href="<?= $b ?>/admin/members?listing_id=<?= (int) $id ?>&status=all" class="btn btn-ghost btn-sm">Cancel</a>
     </div>
   </div>
 </form>

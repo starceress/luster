@@ -9,13 +9,8 @@ use Luster\Core\View;
 
 <?php if ($sender_warning === 'strong'): ?>
 <div class="alert alert-warning">
-  <?= View::icon('alert') ?> <strong>Email is not configured.</strong>
-  Your report may not be delivered. If sending fails, use the copy fallback below the form.
-</div>
-<?php elseif ($sender_warning === 'soft'): ?>
-<div class="alert alert-warning">
-  <?= View::icon('alert') ?> Luster will use your server's mail function — delivery is not guaranteed.
-  Consider configuring SMTP under <a href="<?= View::e($base_url) ?>/admin/emails" class="link">Emails &rsaquo; SMTP Settings</a>.
+  <?= View::icon('alert') ?> <strong>Owner Email is not set.</strong>
+  Your report may not be delivered. Set it in <a href="<?= View::e($base_url) ?>/admin/settings#panel-general" class="link">Settings &rsaquo; General</a>, or use the copy fallback below the form.
 </div>
 <?php endif; ?>
 

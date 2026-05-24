@@ -200,17 +200,9 @@ final class FeedbackController extends AdminController
             }, $errorLogRows);
         } catch (\Throwable) {}
 
-        // Sender warning tier — mirrors Mailer's resolution path
-        $smtpFrom   = (string) $config->get('smtp_from',   '');
         $ownerEmail = (string) $config->get('owner_email', '');
-        $smtpHost   = (string) $config->get('smtp_host',   '');
-        $fromEmail  = $smtpFrom !== '' ? $smtpFrom : $ownerEmail;
 
-        $senderWarning = match (true) {
-            $fromEmail === '' => 'strong',
-            $smtpHost === ''  => 'soft',
-            default           => '',
-        };
+        $senderWarning = $ownerEmail === '' ? 'strong' : '';
 
         $sysinfoData = [
             'luster_version'   => Version::CURRENT,
@@ -219,7 +211,7 @@ final class FeedbackController extends AdminController
             'php_version'      => PHP_VERSION,
             'db_version'       => $dbVersion,
             'debug_enabled'    => (bool) $config->get('app_debug', false),
-            'smtp_configured'  => $smtpHost !== '',
+            'mail_configured'  => $ownerEmail !== '',
             'admin_username'   => (string) $session->get('lstr_admin_username', ''),
             'addons'           => $addons,
             'migration_level'  => $migrationLevel,

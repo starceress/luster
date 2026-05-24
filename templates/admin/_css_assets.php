@@ -20,7 +20,7 @@ if (!function_exists('lusterAdminCssFiles')) {
      * standalone and does not load vendor/autoload.php, class_exists() returns
      * false and the inline slug list acts as a safety-net fallback.
      *
-     * @param  string        $selectedSkin  Active skin slug, or '' for Nebula default.
+     * @param  string        $selectedSkin  Active skin slug, or '' for Velvet Geode default.
      * @return list<string>
      */
     function lusterAdminCssFiles(string $selectedSkin = ''): array
@@ -34,7 +34,7 @@ if (!function_exists('lusterAdminCssFiles')) {
             $catalogClass = 'Luster\Core\SkinCatalog';
             $isBundled = class_exists($catalogClass)
                 ? $catalogClass::isBundled($selectedSkin)
-                : in_array($selectedSkin, ['aurora', 'sol'], true);
+                : in_array($selectedSkin, ['prism-power', 'victory-road', 'the-force', 'floating-lights', 'moving-castle'], true);
 
             if (!$isBundled) {
                 $files[] = 'skins/' . $selectedSkin . '.css';
@@ -55,7 +55,7 @@ if (!function_exists('lusterAdminCssLinks')) {
      *                             e.g. '../assets/css'               (migrate page)
      * @param string $diskBase     Absolute filesystem path to the same directory.
      *                             Used only for filemtime(); never exposed to the browser.
-     * @param string $selectedSkin Active skin slug ('' = default Nebula).
+     * @param string $selectedSkin Active skin slug ('' = default Velvet Geode).
      *                             Passed through to lusterAdminCssFiles().
      */
     function lusterAdminCssLinks(string $hrefBase, string $diskBase, string $selectedSkin = ''): string

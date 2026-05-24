@@ -18,7 +18,7 @@ namespace Luster\Core;
  * Expected formatSysInfo() keys:
  *   luster_version (string), base_url (string — path only, e.g. "luster/public"),
  *   report_timestamp (string), php_version (string), db_version (string), debug_enabled (bool),
- *   smtp_configured (bool), admin_username (string),
+ *   mail_configured (bool), admin_username (string),
  *   addons (string[]), migration_level (?int)
  *
  * Expected compose() form keys:
@@ -48,7 +48,7 @@ final class FeedbackReport
             . self::row('PHP',            $data['php_version']    ?? 'unknown')
             . self::row('Database',       $data['db_version']     ?? 'unknown')
             . self::row('Debug mode',     ($data['debug_enabled']  ?? false) ? 'Yes' : 'No')
-            . self::row('SMTP',           ($data['smtp_configured'] ?? false) ? 'Configured' : 'Not configured')
+            . self::row('Mail',           ($data['mail_configured'] ?? false) ? 'Owner email set' : 'Owner email not set')
             . self::row('Migration',      $migration)
             . self::row('Base URL',       $data['base_url']       ?? 'unknown')
             . self::row('Reported by',    $data['admin_username'] ?? 'unknown')

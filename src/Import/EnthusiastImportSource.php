@@ -466,21 +466,21 @@ final class EnthusiastImportSource implements ImportSourceInterface
             ];
         }
 
-        // Build TFL/TAFL lookup sets so imported categories get the correct source.
-        $tflLookup  = array_flip(array_map('strtolower', \Luster\Support\CategorySeedCatalog::tfl()));
-        $taflLookup = array_flip(array_map('strtolower', \Luster\Support\CategorySeedCatalog::tafl()));
-
-        // Load existing category names in target to detect conflicts
-        $existStmt = $target->prepare('SELECT name FROM lstr_categories');
+        // Load existing category names in target to detect conflicts.
+        // Keyed by "source:lowercase_name" for source-aware deduplication.
+        $existStmt = $target->prepare('SELECT id, name, source FROM lstr_categories');
         $existStmt->execute();
-        $existingNames = array_flip($existStmt->fetchAll(PDO::FETCH_COLUMN));
+        $existingNames = [];
+        foreach ($existStmt->fetchAll() as $er) {
+            $existingNames[(string) $er['source'] . ':' . strtolower((string) $er['name'])] = (int) $er['id'];
+            $existingNames['any:' . strtolower((string) $er['name'])]                       = (int) $er['id'];
+        }
 
-        // Two-pass: first insert parents (parent=0), then children.
-        // We track srcId → new Luster id for parent resolution.
+        // Track srcId → new Luster id so runOwnedListings() can remap catid FKs.
         $srcIdToNewId = [];
 
         $insertStmt = $target->prepare(
-            'INSERT INTO lstr_categories (name, parent_id, source) VALUES (:name, :parent_id, :source)'
+            'INSERT INTO lstr_categories (name, source) VALUES (:name, :source)'
         );
 
         foreach ($srcRows as $row) {
@@ -489,32 +489,24 @@ final class EnthusiastImportSource implements ImportSourceInterface
                 continue;
             }
 
-            $nameLower = strtolower($name);
-            $catSource = isset($tflLookup[$nameLower]) ? 'tfl'
-                       : (isset($taflLookup[$nameLower]) ? 'tafl' : 'custom');
+            [$name, $catSource] = \Luster\Support\CategorySeedCatalog::normalizeImportName($name);
 
-            if (isset($existingNames[$name])) {
+            $existKey = $catSource . ':' . strtolower($name);
+            if (isset($existingNames[$existKey])) {
+                $existId = $existingNames[$existKey];
                 if ($options->conflictStrategy === 'skip') {
                     $skipped++;
                     if (count($skippedItems) < self::SKIP_CAP) {
                         $skippedItems[] = ['label' => $name, 'reason' => 'Already exists in Luster'];
                     }
-                    // Still record the new id for parent resolution
-                    $idStmt = $target->prepare('SELECT id FROM lstr_categories WHERE name = :name LIMIT 1');
-                    $idStmt->execute(['name' => $name]);
-                    $existId = $idStmt->fetchColumn();
-                    if ($existId !== false) {
-                        $srcIdToNewId[(int) $row['catid']] = (int) $existId;
-                    }
+                    $srcIdToNewId[(int) $row['catid']] = $existId;
                     continue;
                 }
-                // overwrite: update
+                // overwrite: update source if it changed
                 try {
-                    $updStmt = $target->prepare('UPDATE lstr_categories SET source = :source WHERE name = :name');
-                    $updStmt->execute(['source' => $catSource, 'name' => $name]);
-                    $idStmt = $target->prepare('SELECT id FROM lstr_categories WHERE name = :name LIMIT 1');
-                    $idStmt->execute(['name' => $name]);
-                    $srcIdToNewId[(int) $row['catid']] = (int) $idStmt->fetchColumn();
+                    $target->prepare('UPDATE lstr_categories SET source = :source WHERE id = :id')
+                           ->execute(['source' => $catSource, 'id' => $existId]);
+                    $srcIdToNewId[(int) $row['catid']] = $existId;
                     $skipped++;
                 } catch (\Throwable $e) {
                     $errors[] = "Category '{$name}': " . $e->getMessage();
@@ -522,23 +514,15 @@ final class EnthusiastImportSource implements ImportSourceInterface
                 continue;
             }
 
-            $parentId = null;
-            $srcParent = (int) ($row['parent'] ?? 0);
-            if ($srcParent > 0 && isset($srcIdToNewId[$srcParent])) {
-                $parentId = $srcIdToNewId[$srcParent];
-            } elseif ($srcParent === 0 && $options->enthCategoryParentId !== null) {
-                $parentId = $options->enthCategoryParentId;
-            }
-
             try {
                 $insertStmt->execute([
-                    'name'      => $name,
-                    'parent_id' => $parentId,
-                    'source'    => $catSource,
+                    'name'   => $name,
+                    'source' => $catSource,
                 ]);
                 $newId = (int) $target->lastInsertId();
-                $srcIdToNewId[(int) $row['catid']] = $newId;
-                $existingNames[$name] = true;
+                $srcIdToNewId[(int) $row['catid']]       = $newId;
+                $existingNames[$existKey]                 = $newId;
+                $existingNames['any:' . strtolower($name)] = $newId;
                 $imported++;
             } catch (\Throwable $e) {
                 $errors[] = "Category '{$name}': " . $e->getMessage();
@@ -891,11 +875,20 @@ final class EnthusiastImportSource implements ImportSourceInterface
                         $inline = trim(self::decodeEnth((string) ($row['catname'] ?? $row['category'] ?? '')));
                         if ($inline !== '') { $ovCatNames = [$inline]; }
                     }
-                    $ovCatName = $ovCatNames[0] ?? '';
-                    $ovCatId   = ($ovCatName !== '' && isset($catNameToId[$ovCatName])) ? $catNameToId[$ovCatName] : null;
-                    $ovCatJson = !empty($ovCatNames)
-                        ? json_encode(array_map(fn(string $n) => ['network' => $catNameToNetwork[strtolower($n)] ?? 'Custom', 'name' => $n], $ovCatNames))
-                        : null;
+                    $ovJsonEntries = [];
+                    $ovCatName     = '';
+                    $ovCatId       = null;
+                    foreach ($ovCatNames as $rawOvCat) {
+                        [$ovNormName, $ovCatSrc] = \Luster\Support\CategorySeedCatalog::normalizeImportName($rawOvCat);
+                        if ($ovCatName === '') { $ovCatName = $ovNormName; }
+                        $ovNetwork = match ($ovCatSrc) { 'tfl' => 'TFL', 'tafl' => 'TAFL', default => 'Custom' };
+                        $ovJsonEntries[] = ['network' => $ovNetwork, 'name' => $ovNormName];
+                        if ($ovCatId === null) {
+                            $ovIdKey = $ovCatSrc !== 'custom' ? $ovCatSrc . ':' . strtolower($ovNormName) : strtolower($ovNormName);
+                            $ovCatId = $catNameToId[$ovIdKey] ?? $catNameToId[$ovNormName] ?? null;
+                        }
+                    }
+                    $ovCatJson = !empty($ovJsonEntries) ? json_encode($ovJsonEntries) : null;
                     $updStmt = $target->prepare(
                         'UPDATE lstr_joined SET name = :name, category = :category, categories_json = :categories_json, category_id = :category_id WHERE url = :url'
                     );
@@ -920,11 +913,20 @@ final class EnthusiastImportSource implements ImportSourceInterface
                 $inline = trim(self::decodeEnth((string) ($row['catname'] ?? $row['category'] ?? '')));
                 if ($inline !== '') { $catNames = [$inline]; }
             }
-            $catName        = $catNames[0] ?? '';
-            $newCatId       = ($catName !== '' && isset($catNameToId[$catName])) ? $catNameToId[$catName] : null;
-            $categoriesJson = !empty($catNames)
-                ? json_encode(array_map(fn(string $n) => ['network' => $catNameToNetwork[strtolower($n)] ?? 'Custom', 'name' => $n], $catNames))
-                : null;
+            $catJsonEntries = [];
+            $catName        = '';
+            $newCatId       = null;
+            foreach ($catNames as $rawCat) {
+                [$normalizedName, $catSource] = \Luster\Support\CategorySeedCatalog::normalizeImportName($rawCat);
+                if ($catName === '') { $catName = $normalizedName; }
+                $network = match ($catSource) { 'tfl' => 'TFL', 'tafl' => 'TAFL', default => 'Custom' };
+                $catJsonEntries[] = ['network' => $network, 'name' => $normalizedName];
+                if ($newCatId === null) {
+                    $idKey    = $catSource !== 'custom' ? $catSource . ':' . strtolower($normalizedName) : strtolower($normalizedName);
+                    $newCatId = $catNameToId[$idKey] ?? $catNameToId[$normalizedName] ?? null;
+                }
+            }
+            $categoriesJson = !empty($catJsonEntries) ? json_encode($catJsonEntries) : null;
 
             // Invert pending flag: Enthusiast pending=0 means approved → active=1
             $active = ((int) ($row['pending'] ?? 0)) === 0 ? 1 : 0;
@@ -1018,15 +1020,19 @@ final class EnthusiastImportSource implements ImportSourceInterface
             ];
         }
 
-        $checkStmt  = $target->prepare('SELECT fanlisting_id, image FROM lstr_fanlisting_settings WHERE fanlisting_id = :fid');
         $hasLastUpdated = $this->tableHasColumn($target, 'lstr_fanlisting_settings', 'last_updated');
+        $checkSelect = $hasLastUpdated
+            ? 'SELECT fanlisting_id, image, last_updated FROM lstr_fanlisting_settings WHERE fanlisting_id = :fid'
+            : 'SELECT fanlisting_id, image FROM lstr_fanlisting_settings WHERE fanlisting_id = :fid';
+        $checkStmt  = $target->prepare($checkSelect);
         $insertColumns = $hasLastUpdated
             ? 'fanlisting_id, members_per_page, queue_updates, members_template, affiliates_template, stats_template, image, last_updated'
             : 'fanlisting_id, members_per_page, queue_updates, members_template, affiliates_template, stats_template, image';
         $insertValues = $hasLastUpdated
             ? ':fanlisting_id, :members_per_page, :queue_updates, :members_template, :affiliates_template, :stats_template, :image, :last_updated'
             : ':fanlisting_id, :members_per_page, :queue_updates, :members_template, :affiliates_template, :stats_template, :image';
-        $lastUpdatedAssignment = $hasLastUpdated ? ', last_updated = :last_updated' : '';
+        // COALESCE preserves existing last_updated when the source has no real date.
+        $lastUpdatedAssignment = $hasLastUpdated ? ', last_updated = COALESCE(:last_updated, last_updated)' : '';
         $insertStmt = $target->prepare(
             "INSERT INTO lstr_fanlisting_settings ({$insertColumns}) VALUES ({$insertValues})"
         );
@@ -1056,10 +1062,12 @@ final class EnthusiastImportSource implements ImportSourceInterface
             $affiliatesTpl = trim((string) ($row['affiliatestemplate'] ?? ''));
             $statsTpl     = trim((string) ($row['statstemplate'] ?? ''));
 
-            // Derive last_updated from the most recent member join date in this listing's
-            // member table.  Falls back to today when the table is absent or empty.
-            $lastUpdated = date('Y-m-d');
-            if ($hasLastUpdated) {
+            // Derive last_updated: try explicit source columns first, fall back to MAX(member.added).
+            // Never invent today's date when no real source date exists.
+            $lastUpdated = self::normalizeImportDate(
+                $row['date_updated'] ?? ($row['last_updated'] ?? ($row['updated'] ?? null))
+            );
+            if ($lastUpdated === null && $hasLastUpdated) {
                 $dbtable = $schema === 'enthusiast_enth'
                     ? $tp . trim((string) ($row['dbprefix'] ?? '')) . 'members'
                     : $tp . trim((string) ($row['dbtable'] ?? ''));
@@ -1116,6 +1124,16 @@ final class EnthusiastImportSource implements ImportSourceInterface
                                 )->execute(['img' => $imageToStore, 'fid' => $targetListingId]);
                             }
                         }
+                        // Backfill last_updated only when the target row has none yet.
+                        // Use the source date when available; fall back to today so the
+                        // dashboard's staleness queue is never confused by a NULL.
+                        if ($hasLastUpdated
+                            && ($existsRec['last_updated'] === null || $existsRec['last_updated'] === '')
+                        ) {
+                            $target->prepare(
+                                'UPDATE lstr_fanlisting_settings SET last_updated = :lu WHERE fanlisting_id = :fid'
+                            )->execute(['lu' => $lastUpdated ?? date('Y-m-d'), 'fid' => $targetListingId]);
+                        }
                         $skipped++;
                         if (count($skippedItems) < self::SKIP_CAP) {
                             $skippedItems[] = ['label' => $listingLabel, 'reason' => 'Settings already exist for this listing'];
@@ -1131,7 +1149,7 @@ final class EnthusiastImportSource implements ImportSourceInterface
                         'stats_template'     => $statsTpl,
                         'image'              => $newImage,
                     ];
-                    if ($hasLastUpdated) { $updateParams['last_updated'] = $lastUpdated; }
+                    if ($hasLastUpdated) { $updateParams['last_updated'] = $lastUpdated ?? date('Y-m-d'); }
                     $updateStmt->execute($updateParams);
                     $skipped++;
                 } else {
@@ -1144,7 +1162,7 @@ final class EnthusiastImportSource implements ImportSourceInterface
                         'stats_template'     => $statsTpl ?: null,
                         'image'              => $newImage,
                     ];
-                    if ($hasLastUpdated) { $insertParams['last_updated'] = $lastUpdated; }
+                    if ($hasLastUpdated) { $insertParams['last_updated'] = $lastUpdated ?? date('Y-m-d'); }
                     $insertStmt->execute($insertParams);
                     $imported++;
                 }
@@ -1425,16 +1443,6 @@ final class EnthusiastImportSource implements ImportSourceInterface
         PDO $source, PDO $target, string $schema, ImportOptions $options, bool $sameDb,
         array $catIdMap = []
     ): array {
-        // Same DB + unprefixed: the `owned` table in source IS the target table — nothing to copy.
-        if ($sameDb && $schema === 'enthusiast_unprefixed') {
-            return [
-                'row' => ['type' => 'Owned listings', 'imported' => 0, 'skipped' => 0,
-                          'warnings' => ['Same database — owned table is already accessible in Luster.'],
-                          'errors' => [], 'skipped_items' => []],
-                'listingIdMap' => [],
-            ];
-        }
-
         $tp           = $options->tablePrefix;
         $srcTable     = $tp . ($schema === 'enthusiast_enth' ? 'enth_fanlistings' : 'owned');
         $idCol        = $schema === 'enthusiast_enth' ? 'id' : 'listingid';
@@ -1447,6 +1455,10 @@ final class EnthusiastImportSource implements ImportSourceInterface
         // Maps source listingid → target listingid for all processed listings.
         $listingIdMap = [];
 
+        if ($sameDb && $schema === 'enthusiast_unprefixed') {
+            $warnings[] = 'Same database - owned listings already exist; checked existing rows for category/date backfills.';
+        }
+
         try {
             $stmt    = $source->query("SELECT * FROM `{$srcTable}` ORDER BY `{$idCol}` ASC");
             $srcRows = $stmt->fetchAll();
@@ -1456,9 +1468,50 @@ final class EnthusiastImportSource implements ImportSourceInterface
                     'skipped_items' => []];
         }
 
+        // Migrations 8, 51, and 52 add category_id / opened to `owned` and create
+        // lstr_listing_categories.  If migrations ran before the owned table existed
+        // (e.g. on a fresh install where the dump is the first thing imported),
+        // those steps were skipped but the migration numbers were still recorded.
+        // Ensure the schema is complete now so the import can write to these columns.
+        // Note: ADD COLUMN IF NOT EXISTS is MariaDB-only; use tableHasColumn first
+        // so this works on both MySQL and MariaDB.
+        // Errors are surfaced as warnings so the user can see exactly what failed.
+        if ($target->getAttribute(PDO::ATTR_DRIVER_NAME) === 'mysql') {
+            if (!$this->tableHasColumn($target, 'owned', 'category_id')) {
+                try {
+                    $target->exec("ALTER TABLE `owned` ADD COLUMN `category_id` INT UNSIGNED NULL");
+                } catch (\Throwable $e) {
+                    $warnings[] = 'Schema bootstrap (category_id): ' . $e->getMessage();
+                }
+            }
+            if (!$this->tableHasColumn($target, 'owned', 'opened')) {
+                try {
+                    $target->exec("ALTER TABLE `owned` ADD COLUMN `opened` DATE NULL");
+                } catch (\Throwable $e) {
+                    $warnings[] = 'Schema bootstrap (opened): ' . $e->getMessage();
+                }
+            }
+            try {
+                $target->exec(
+                    "CREATE TABLE IF NOT EXISTS `lstr_listing_categories` (
+                        `fanlisting_id` INT UNSIGNED NOT NULL,
+                        `category_id`   INT UNSIGNED NOT NULL,
+                        PRIMARY KEY (`fanlisting_id`, `category_id`)
+                    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci"
+                );
+            } catch (\Throwable $e) {
+                $warnings[] = 'Schema bootstrap (lstr_listing_categories): ' . $e->getMessage();
+            }
+        }
+
         // Check whether the target owned table has an `opened` column (added by Luster migrations).
         // Older or minimal installs may not have it yet; we degrade gracefully.
-        $hasOpened = $this->tableHasColumn($target, 'owned', 'opened');
+        $hasOpened      = $this->tableHasColumn($target, 'owned', 'opened');
+        // Migration 8 adds owned.category_id; Migration 51 creates lstr_listing_categories.
+        $hasCategoryId  = $this->tableHasColumn($target, 'owned', 'category_id');
+        $hasJunction    = $this->tableHasColumn($target, 'lstr_listing_categories', 'fanlisting_id');
+        $openedFoundInSource  = 0; // rows where source had a real date
+        $openedMissingInSource = 0; // rows where source had no date at all
 
         // Load existing URLs for conflict detection.
         $existUrlStmt = $target->prepare('SELECT listingid, url FROM owned');
@@ -1477,21 +1530,24 @@ final class EnthusiastImportSource implements ImportSourceInterface
         $existingIds = array_flip($existIdStmt->fetchAll(PDO::FETCH_COLUMN));
 
         // Two INSERT variants: one preserving the source ID, one letting MySQL auto-assign.
-        $openedCol    = $hasOpened ? ', opened'   : '';
-        $openedVal    = $hasOpened ? ', :opened'  : '';
-        $openedUpdate = $hasOpened ? ', opened = COALESCE(:opened, opened)' : '';
+        $openedCol    = $hasOpened     ? ', opened'        : '';
+        $openedVal    = $hasOpened     ? ', :opened'       : '';
+        $openedUpdate = $hasOpened     ? ', opened = COALESCE(:opened, opened)' : '';
+        $catIdCol     = $hasCategoryId ? ', category_id'   : '';
+        $catIdVal     = $hasCategoryId ? ', :category_id'  : '';
+        $catIdUpdate  = $hasCategoryId ? ', category_id = :category_id' : '';
         $insertWithIdStmt = $target->prepare(
-            "INSERT INTO owned (listingid, dbtable, title, subject, email, url, catid, additional, status{$openedCol})
-             VALUES (:listingid, :dbtable, :title, :subject, :email, :url, :catid, :additional, :status{$openedVal})"
+            "INSERT INTO owned (listingid, dbtable, title, subject, email, url, catid, additional, status{$openedCol}{$catIdCol})
+             VALUES (:listingid, :dbtable, :title, :subject, :email, :url, :catid, :additional, :status{$openedVal}{$catIdVal})"
         );
         $insertAutoStmt = $target->prepare(
-            "INSERT INTO owned (dbtable, title, subject, email, url, catid, additional, status{$openedCol})
-             VALUES (:dbtable, :title, :subject, :email, :url, :catid, :additional, :status{$openedVal})"
+            "INSERT INTO owned (dbtable, title, subject, email, url, catid, additional, status{$openedCol}{$catIdCol})
+             VALUES (:dbtable, :title, :subject, :email, :url, :catid, :additional, :status{$openedVal}{$catIdVal})"
         );
         $updateStmt = $target->prepare(
             "UPDATE owned SET title = :title, subject = :subject, email = :email,
                               catid = :catid, additional = :additional, status = :status
-                              {$openedUpdate}
+                              {$openedUpdate}{$catIdUpdate}
              WHERE url = :url"
         );
 
@@ -1524,16 +1580,27 @@ final class EnthusiastImportSource implements ImportSourceInterface
                 $status     = (int) ($row['status'] ?? 2);
             }
 
-            // opened date — stored as `opened` in Erin's fork; gracefully null in older installs.
-            $rawOpened = trim((string) ($row['opened'] ?? ($row['date'] ?? '')));
-            $opened    = ($rawOpened !== '' && $rawOpened !== '0000-00-00') ? $rawOpened : null;
+            // opened date — column name varies by Enthusiast fork.
+            // Standard Erin's fork: 'opened'. Fanatically fork: 'opened_date'. Older: 'date'.
+            $rawOpened = $row['opened'] ?? ($row['opened_date'] ?? ($row['date'] ?? null));
+            $opened    = self::normalizeImportDate($rawOpened);
+            if ($opened !== null) {
+                $openedFoundInSource++;
+            } elseif (array_key_exists('opened', $row) || array_key_exists('opened_date', $row) || array_key_exists('date', $row)) {
+                $openedMissingInSource++; // column exists but value is blank/sentinel
+            } else {
+                $openedMissingInSource++; // column absent from source entirely
+            }
 
-            // Remap the source category ID to the Luster lstr_categories ID assigned
-            // during this import run.  Without this, a source catid=4 would be stored
-            // verbatim even if the target assigned that category a different ID.
-            $srcCatInt = (int) $catid;
-            if ($srcCatInt > 0 && isset($catIdMap[$srcCatInt])) {
-                $catid = (string) $catIdMap[$srcCatInt];
+            // Remap source category ID(s) to the Luster lstr_categories ID assigned
+            // during this import run.  owned.catid may be a bare integer ("12"),
+            // pipe-delimited ("|8|31|"), or bang-delimited ("!8!31!") depending on
+            // the Enthusiast fork.  Use the first resolved ID as the primary category
+            // (owned.catid is a single FK integer in Luster's schema).
+            $resolvedCategoryIds = self::resolveImportedCategoryIds($catid, $catIdMap);
+            $primaryCategoryId   = $resolvedCategoryIds[0] ?? null;
+            if ($resolvedCategoryIds !== []) {
+                $catid = self::formatLusterCatid($resolvedCategoryIds);
             }
 
             $params = [
@@ -1549,6 +1616,9 @@ final class EnthusiastImportSource implements ImportSourceInterface
             if ($hasOpened) {
                 $params['opened'] = $opened;
             }
+            if ($hasCategoryId) {
+                $params['category_id'] = $primaryCategoryId;
+            }
 
             // URL conflict → skip or overwrite.
             if (isset($existingUrls[$url])) {
@@ -1556,6 +1626,44 @@ final class EnthusiastImportSource implements ImportSourceInterface
                 if ($options->conflictStrategy === 'skip') {
                     if ($srcId > 0) {
                         $listingIdMap[$srcId] = $targetId;
+                    }
+                    // Backfill opened date only when source has one and target is still blank.
+                    if ($hasOpened && $opened !== null) {
+                        $target->prepare(
+                            "UPDATE owned SET opened = :opened WHERE url = :url AND (opened IS NULL OR opened = '' OR opened = '0000-00-00')"
+                        )->execute(['opened' => $opened, 'url' => $url]);
+                    }
+                    // Backfill catid / category_id / junction when the existing row has an
+                    // unmapped or invalid value (pipe-/bang-delimited from a prior failed import).
+                    if ($resolvedCategoryIds !== []) {
+                        try {
+                            $curCatStmt = $target->prepare(
+                                'SELECT listingid, catid' . ($hasCategoryId ? ', category_id' : '') . ' FROM owned WHERE url = :url LIMIT 1'
+                            );
+                            $curCatStmt->execute(['url' => $url]);
+                            $curRow = $curCatStmt->fetch(PDO::FETCH_ASSOC);
+                            $jFid = (int) ($curRow['listingid'] ?? 0);
+                            $currentPrimary = null;
+                            if ($hasCategoryId && $curRow !== false && array_key_exists('category_id', $curRow) && $curRow['category_id'] !== null) {
+                                $currentPrimary = (int) $curRow['category_id'];
+                            }
+                            if ($this->categoryBackfillNeeded(
+                                $target,
+                                $jFid,
+                                $currentPrimary,
+                                (string) ($curRow['catid'] ?? ''),
+                                $resolvedCategoryIds,
+                                $hasJunction
+                            )) {
+                                $updateSql = 'UPDATE owned SET catid = :catid' . ($hasCategoryId ? ', category_id = :category_id' : '') . ' WHERE url = :url';
+                                $updateP   = ['catid' => self::formatLusterCatid($resolvedCategoryIds), 'url' => $url];
+                                if ($hasCategoryId) {
+                                    $updateP['category_id'] = $primaryCategoryId;
+                                }
+                                $target->prepare($updateSql)->execute($updateP);
+                                $this->replaceListingCategories($target, $jFid, $resolvedCategoryIds, $hasJunction);
+                            }
+                        } catch (\Throwable) {}
                     }
                     $skipped++;
                     if (count($skippedItems) < self::SKIP_CAP) {
@@ -1573,6 +1681,10 @@ final class EnthusiastImportSource implements ImportSourceInterface
                     }
                     if ($srcId > 0) {
                         $listingIdMap[$srcId] = $targetId;
+                    }
+                    // Overwrite: replace junction row for this listing.
+                    if ($resolvedCategoryIds !== []) {
+                        $this->replaceListingCategories($target, $targetId, $resolvedCategoryIds, $hasJunction);
                     }
                     $skipped++;
                 } catch (\Throwable $e) {
@@ -1604,6 +1716,10 @@ final class EnthusiastImportSource implements ImportSourceInterface
                 if ($srcId > 0) {
                     $listingIdMap[$srcId] = $newListingId;
                 }
+                // Write junction rows so the admin UI and public filters can see every category.
+                if ($resolvedCategoryIds !== []) {
+                    $this->replaceListingCategories($target, $newListingId, $resolvedCategoryIds, $hasJunction);
+                }
                 if (!$options->importSettings) {
                     $touchedIds[] = $newListingId;
                 }
@@ -1615,6 +1731,15 @@ final class EnthusiastImportSource implements ImportSourceInterface
 
         if (!$options->importMembers) {
             $warnings[] = 'Member tables are not copied — also check "Members" in the import options, or migrate per-listing member tables separately (e.g. via mysqldump).';
+        }
+
+        // Diagnostic: tell the admin whether opened dates were found and stored.
+        if (!$hasOpened) {
+            $warnings[] = '"Opened On" date: the owned table does not have an opened column — run the Luster migration runner (public/migrate/) to add it, then re-run the import.';
+        } elseif ($openedFoundInSource === 0 && $openedMissingInSource > 0) {
+            $warnings[] = '"Opened On" date: your Enthusiast source has no opened, opened_date, or date column in the owned table — the date cannot be imported from this dump.';
+        } elseif ($openedFoundInSource > 0) {
+            $warnings[] = '"Opened On" date: imported dates for ' . $openedFoundInSource . ' of ' . ($openedFoundInSource + $openedMissingInSource) . ' listing(s).';
         }
 
         if ($touchedIds !== []) {
@@ -1652,17 +1777,18 @@ final class EnthusiastImportSource implements ImportSourceInterface
         }
 
         try {
+            // INSERT IGNORE / OR IGNORE: only create the row when it doesn't already exist.
+            // Never overwrite an existing last_updated with today's date — real source dates
+            // are written by runSettings(); this function only seeds brand-new rows.
             if ($target->getAttribute(PDO::ATTR_DRIVER_NAME) === 'mysql') {
                 $stmt = $target->prepare(
-                    'INSERT INTO lstr_fanlisting_settings (fanlisting_id, last_updated)
-                     VALUES (:id, CURRENT_DATE)
-                     ON DUPLICATE KEY UPDATE last_updated = CURRENT_DATE'
+                    'INSERT IGNORE INTO lstr_fanlisting_settings (fanlisting_id, last_updated)
+                     VALUES (:id, CURRENT_DATE)'
                 );
             } else {
                 $stmt = $target->prepare(
-                    'INSERT INTO lstr_fanlisting_settings (fanlisting_id, last_updated)
-                     VALUES (:id, CURRENT_DATE)
-                     ON CONFLICT(fanlisting_id) DO UPDATE SET last_updated = CURRENT_DATE'
+                    'INSERT OR IGNORE INTO lstr_fanlisting_settings (fanlisting_id, last_updated)
+                     VALUES (:id, CURRENT_DATE)'
                 );
             }
 
@@ -1671,6 +1797,131 @@ final class EnthusiastImportSource implements ImportSourceInterface
             }
         } catch (\Throwable) {
             // Older installs/tests may not have lstr_fanlisting_settings.last_updated yet.
+        }
+    }
+
+    /**
+     * Returns a YYYY-MM-DD string from $raw, or null for empty/sentinel/invalid values.
+     * Rejects '', '0000-00-00', '1970-01-01', and anything not matching YYYY-MM-DD.
+     */
+    private static function normalizeImportDate(mixed $raw): ?string
+    {
+        if ($raw === null) {
+            return null;
+        }
+        $s = trim((string) $raw);
+        if ($s === '' || $s === '0000-00-00' || $s === '1970-01-01') {
+            return null;
+        }
+        if (preg_match('/^\d{4}-\d{2}-\d{2}/', $s)) {
+            return substr($s, 0, 10);
+        }
+        return null;
+    }
+
+    /**
+     * @param array<int,int> $catIdMap Source Enthusiast catid => Luster category id.
+     * @return int[]
+     */
+    private static function resolveImportedCategoryIds(string $raw, array $catIdMap): array
+    {
+        if ($catIdMap === []) {
+            return [];
+        }
+
+        $resolved = [];
+        foreach (self::parseLegacyCategoryIds($raw) as $srcCatId) {
+            $targetId = (int) ($catIdMap[$srcCatId] ?? 0);
+            if ($targetId > 0) {
+                $resolved[] = $targetId;
+            }
+        }
+
+        return array_values(array_unique($resolved));
+    }
+
+    /**
+     * @param int[] $categoryIds Luster category ids.
+     */
+    private static function formatLusterCatid(array $categoryIds): string
+    {
+        $ids = array_values(array_unique(array_filter(array_map('intval', $categoryIds), static fn(int $id): bool => $id > 0)));
+        return $ids === [] ? '' : '|' . implode('|', $ids) . '|';
+    }
+
+    /**
+     * @param int[] $categoryIds Luster category ids.
+     */
+    private function replaceListingCategories(PDO $target, int $listingId, array $categoryIds, bool $hasJunction): void
+    {
+        if (!$hasJunction || $listingId <= 0) {
+            return;
+        }
+
+        $ids = array_values(array_unique(array_filter(array_map('intval', $categoryIds), static fn(int $id): bool => $id > 0)));
+
+        try {
+            $target->prepare('DELETE FROM lstr_listing_categories WHERE fanlisting_id = :fid')
+                   ->execute(['fid' => $listingId]);
+
+            if ($ids === []) {
+                return;
+            }
+
+            $stmt = $target->prepare(
+                'INSERT INTO lstr_listing_categories (fanlisting_id, category_id) VALUES (:fid, :cid)'
+            );
+            foreach ($ids as $categoryId) {
+                $stmt->execute(['fid' => $listingId, 'cid' => $categoryId]);
+            }
+        } catch (\Throwable) {
+            // Category assignment backfill should never abort the rest of the import.
+        }
+    }
+
+    /**
+     * @param int[] $expectedIds Luster category ids.
+     */
+    private function categoryBackfillNeeded(
+        PDO $target,
+        int $listingId,
+        ?int $currentPrimary,
+        string $currentCatid,
+        array $expectedIds,
+        bool $hasJunction
+    ): bool {
+        $expectedIds = array_values(array_unique(array_filter(array_map('intval', $expectedIds), static fn(int $id): bool => $id > 0)));
+        if ($expectedIds === []) {
+            return false;
+        }
+
+        $expectedCatid = self::formatLusterCatid($expectedIds);
+        $currentCatid  = trim($currentCatid);
+
+        if ($currentPrimary === null || $currentPrimary <= 0 || $currentPrimary !== $expectedIds[0]) {
+            return true;
+        }
+
+        if ($currentCatid === '' || $currentCatid === '0' || $currentCatid !== $expectedCatid) {
+            return true;
+        }
+
+        if (!$hasJunction || $listingId <= 0) {
+            return false;
+        }
+
+        try {
+            $stmt = $target->prepare(
+                'SELECT category_id FROM lstr_listing_categories WHERE fanlisting_id = :fid ORDER BY category_id ASC'
+            );
+            $stmt->execute(['fid' => $listingId]);
+            $currentIds = array_values(array_map('intval', $stmt->fetchAll(PDO::FETCH_COLUMN)));
+            sort($currentIds);
+            $sortedExpected = $expectedIds;
+            sort($sortedExpected);
+            return $currentIds !== $sortedExpected;
+        } catch (\Throwable) {
+            return true;
         }
     }
 
@@ -1687,8 +1938,18 @@ final class EnthusiastImportSource implements ImportSourceInterface
                 return false;
             }
 
-            $stmt = $pdo->prepare("SHOW COLUMNS FROM `{$table}` LIKE :column");
-            $stmt->execute(['column' => $column]);
+            if (!preg_match('/^[A-Za-z0-9_]+$/', $table) || !preg_match('/^[A-Za-z0-9_]+$/', $column)) {
+                return false;
+            }
+            $stmt = $pdo->prepare(
+                'SELECT 1
+                 FROM INFORMATION_SCHEMA.COLUMNS
+                 WHERE TABLE_SCHEMA = DATABASE()
+                   AND TABLE_NAME = :table
+                   AND COLUMN_NAME = :column
+                 LIMIT 1'
+            );
+            $stmt->execute(['table' => $table, 'column' => $column]);
             return $stmt->fetchColumn() !== false;
         } catch (\Throwable) {
             return false;
@@ -2083,18 +2344,25 @@ final class EnthusiastImportSource implements ImportSourceInterface
 
     /**
      * Builds a category name → Luster id map from the target DB.
-     * Used when populating category_id on joined listings.
+     * Stores two keys per row: plain name ("Adult" → id) and source-keyed
+     * ("tfl:adult" → id, "tafl:adult" → id) so that runJoined() can resolve
+     * the five ambiguous same-name TFL/TAFL categories (Adult, Companies, etc.)
+     * correctly when the source is known from normalizeImportName().
      *
      * @return array<string, int>
      */
     private function buildCategoryNameMap(PDO $target): array
     {
         try {
-            $stmt = $target->prepare('SELECT id, name FROM lstr_categories');
+            $stmt = $target->prepare('SELECT id, name, source FROM lstr_categories');
             $stmt->execute();
             $map = [];
             foreach ($stmt->fetchAll() as $row) {
-                $map[(string) $row['name']] = (int) $row['id'];
+                $id     = (int)    $row['id'];
+                $name   = (string) $row['name'];
+                $source = (string) $row['source'];
+                $map[$name]                             = $id;
+                $map[$source . ':' . strtolower($name)] = $id;
             }
             return $map;
         } catch (\PDOException) {
@@ -2103,10 +2371,12 @@ final class EnthusiastImportSource implements ImportSourceInterface
     }
 
     /**
-     * Builds a lowercase(name) → network-label map from the target lstr_categories.
-     * Used to populate the `network` field in categories_json for joined listings.
+     * Builds a name → network-label map from the target lstr_categories.
+     * Uses the `source` column as authoritative. Stores two keys per row:
+     * plain lowercase name (last wins for ambiguous) and source-keyed
+     * ("tfl:adult" → "TFL", "tafl:adult" → "TAFL") for precise disambiguation.
      *
-     * @return array<string, string>  lowercase name → 'TFL' | 'TAFL' | 'Custom'
+     * @return array<string, string>
      */
     private function buildCategoryNetworkMap(PDO $target): array
     {
@@ -2115,11 +2385,11 @@ final class EnthusiastImportSource implements ImportSourceInterface
             $stmt->execute();
             $map = [];
             foreach ($stmt->fetchAll() as $row) {
-                $map[strtolower((string) $row['name'])] = match ((string) $row['source']) {
-                    'tfl'  => 'TFL',
-                    'tafl' => 'TAFL',
-                    default => 'Custom',
-                };
+                $nameLower = strtolower((string) $row['name']);
+                $source    = (string) $row['source'];
+                $network   = match ($source) { 'tfl' => 'TFL', 'tafl' => 'TAFL', default => 'Custom' };
+                $map[$nameLower]                 = $network;
+                $map[$source . ':' . $nameLower] = $network;
             }
             return $map;
         } catch (\PDOException) {

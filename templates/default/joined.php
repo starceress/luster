@@ -66,9 +66,13 @@ $_renderItem = static function ($fl) use ($uploads_url): void {
 
       <?php if (($listing_html ?? null) !== null && $listing_html !== ''): ?>
         <!-- Custom DB template listing rows -->
-        <ul>
+        <?php if ($sections_mode ?? false): ?>
           <?= $listing_html ?>
-        </ul>
+        <?php else: ?>
+          <ul>
+            <?= $listing_html ?>
+          </ul>
+        <?php endif; ?>
       <?php elseif (empty($listings)): ?>
         <p>No listings in this category.</p>
       <?php else: ?>
@@ -91,7 +95,12 @@ $_renderItem = static function ($fl) use ($uploads_url): void {
     $_showSelector    = ($current_category === '' || $_hasCategory) && !empty($categories);
     ?>
 
-    <?php if (($listing_html ?? null) !== null && $listing_html !== ''): ?>
+    <?php if ($sections_mode ?? false): ?>
+      <!-- Sections mode is authoritative: render exactly what the sections template produced -->
+      <!-- (may be intentionally empty when all conditional blocks were suppressed)          -->
+      <?= $listing_html ?? '' ?>
+
+    <?php elseif (($listing_html ?? null) !== null && $listing_html !== ''): ?>
       <!-- Custom DB template listing rows -->
       <ul>
         <?= $listing_html ?>

@@ -117,6 +117,10 @@ use Luster\Core\View;
 
     <?php if (empty($listings)): ?>
       <p>No listings to display.</p>
+    <?php elseif ($sections_mode ?? false): ?>
+      <!-- Sections mode is authoritative: render exactly what the sections template produced -->
+      <!-- (may be intentionally empty when all conditional blocks were suppressed)          -->
+      <?= $listing_html ?? '' ?>
     <?php elseif (($listing_html ?? null) !== null && $listing_html !== ''): ?>
       <!-- Custom DB template listing rows -->
       <ul>

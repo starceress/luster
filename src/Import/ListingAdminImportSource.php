@@ -374,20 +374,20 @@ final class ListingAdminImportSource implements ImportSourceInterface
                     'skipped_items' => []];
         }
 
-        $existStmt = $target->prepare('SELECT id, name FROM lstr_categories');
+        // Load existing categories: source-aware map ("source:lowercase_name" → id)
+        // plus "any:lowercase_name" entries for plain-name backward compat.
+        $existStmt = $target->prepare('SELECT id, name, source FROM lstr_categories');
         $existStmt->execute();
         $existingNames = [];
-        foreach ($existStmt->fetchAll() as $r) {
-            $existingNames[$r['name']] = (int) $r['id'];
+        foreach ($existStmt->fetchAll() as $er) {
+            $existingNames[(string) $er['source'] . ':' . strtolower((string) $er['name'])] = (int) $er['id'];
+            $existingNames['any:' . strtolower((string) $er['name'])]                       = (int) $er['id'];
         }
 
         $srcIdToNewId = [];
         $insertStmt   = $target->prepare(
-            'INSERT INTO lstr_categories (name, parent_id, source) VALUES (:name, :parent_id, :source)'
+            'INSERT INTO lstr_categories (name, source) VALUES (:name, :source)'
         );
-
-        $tflLookup  = array_flip(array_map('strtolower', \Luster\Support\CategorySeedCatalog::tfl()));
-        $taflLookup = array_flip(array_map('strtolower', \Luster\Support\CategorySeedCatalog::tafl()));
 
         foreach ($srcRows as $row) {
             $name = trim((string) ($row['catname'] ?? ''));
@@ -395,28 +395,37 @@ final class ListingAdminImportSource implements ImportSourceInterface
                 continue;
             }
 
-            if (isset($existingNames[$name])) {
-                $skipped++;
-                if (count($skippedItems) < self::SKIP_CAP) {
-                    $skippedItems[] = ['label' => $name, 'reason' => 'Already exists in Luster'];
+            [$name, $catSource] = \Luster\Support\CategorySeedCatalog::normalizeImportName($name);
+
+            $existKey = $catSource . ':' . strtolower($name);
+            if (isset($existingNames[$existKey])) {
+                $existId = $existingNames[$existKey];
+                if ($options->conflictStrategy === 'skip') {
+                    $skipped++;
+                    if (count($skippedItems) < self::SKIP_CAP) {
+                        $skippedItems[] = ['label' => $name, 'reason' => 'Already exists in Luster'];
+                    }
+                    $srcIdToNewId[(int) $row['catid']] = $existId;
+                    continue;
                 }
-                $srcIdToNewId[(int) $row['catid']] = $existingNames[$name];
+                // overwrite: update source if it changed
+                try {
+                    $target->prepare('UPDATE lstr_categories SET source = :source WHERE id = :id')
+                           ->execute(['source' => $catSource, 'id' => $existId]);
+                    $srcIdToNewId[(int) $row['catid']] = $existId;
+                    $skipped++;
+                } catch (\Throwable $e) {
+                    $errors[] = "Category '{$name}': " . $e->getMessage();
+                }
                 continue;
             }
 
-            $parentId  = null;
-            $srcParent = (int) ($row['parent'] ?? 0);
-            if ($srcParent > 0 && isset($srcIdToNewId[$srcParent])) {
-                $parentId = $srcIdToNewId[$srcParent];
-            }
-
             try {
-                $catLower = strtolower($name);
-                $source   = isset($tflLookup[$catLower]) ? 'tfl' : (isset($taflLookup[$catLower]) ? 'tafl' : 'custom');
-                $insertStmt->execute(['name' => $name, 'parent_id' => $parentId, 'source' => $source]);
+                $insertStmt->execute(['name' => $name, 'source' => $catSource]);
                 $newId = (int) $target->lastInsertId();
-                $srcIdToNewId[(int) $row['catid']] = $newId;
-                $existingNames[$name]              = $newId;
+                $srcIdToNewId[(int) $row['catid']]         = $newId;
+                $existingNames[$existKey]                   = $newId;
+                $existingNames['any:' . strtolower($name)]  = $newId;
                 $imported++;
             } catch (\Throwable $e) {
                 $errors[] = "Category '{$name}': " . $e->getMessage();
@@ -489,13 +498,29 @@ final class ListingAdminImportSource implements ImportSourceInterface
             $existId = $checkStmt->fetchColumn();
             if ($existId !== false) {
                 if ($options->conflictStrategy === 'skip') {
-                    $idMap[$laId] = (int) $existId;
+                    $existingId = (int) $existId;
+                    $idMap[$laId] = $existingId;
+                    // Ensure a settings row exists even for skipped listings — it may be absent
+                    // if the listing row existed but settings were never created (e.g. manual add
+                    // before the first import).  ensureListingSettings() is a no-op when present.
+                    $luSkip = null;
+                    try {
+                        $luStmt = $source->prepare(
+                            "SELECT MAX(mAdd) FROM `{$tp}members` WHERE fNiq = :laId"
+                        );
+                        $luStmt->execute(['laId' => $laId]);
+                        $maxDate = (string) $luStmt->fetchColumn();
+                        if (strlen($maxDate) >= 8 && !str_starts_with($maxDate, '0000')) {
+                            $luSkip = substr($maxDate, 0, 10);
+                        }
+                    } catch (\Throwable) {}
+                    $this->ensureListingSettings($target, $existingId, $row, $luSkip);
                     // Re-run: if the settings row for this listing has image = NULL, retry.
                     if ($migrator !== null && $imgFilename !== '' && $options->imageMode !== 'zip') {
                         $rStmt = $target->prepare(
                             'SELECT image FROM lstr_fanlisting_settings WHERE fanlisting_id = :fid LIMIT 1'
                         );
-                        $rStmt->execute(['fid' => (int) $existId]);
+                        $rStmt->execute(['fid' => $existingId]);
                         $curImg = $rStmt->fetchColumn();
                         if ($curImg === null || $curImg === false) {
                             $dummyMap = [];
@@ -506,7 +531,7 @@ final class ListingAdminImportSource implements ImportSourceInterface
                             if ($retried !== null) {
                                 $target->prepare(
                                     'UPDATE lstr_fanlisting_settings SET image = :img WHERE fanlisting_id = :fid'
-                                )->execute(['img' => $retried, 'fid' => (int) $existId]);
+                                )->execute(['img' => $retried, 'fid' => $existingId]);
                             }
                         }
                     }
@@ -540,8 +565,8 @@ final class ListingAdminImportSource implements ImportSourceInterface
             $upcoming = (int) ($row['upcoming'] ?? 0);
             $status   = $trouble ? 0 : ($upcoming ? 1 : 2);
 
-            // Opened date
-            $opened = !empty($row['date']) ? $row['date'] : null;
+            // Opened date — main.since is the real column; fall back to main.opened for schema variants.
+            $opened = self::normalizeImportDate($row['since'] ?? ($row['opened'] ?? null));
 
             // Image migration for new records
             $newImage = null;
@@ -575,18 +600,21 @@ final class ListingAdminImportSource implements ImportSourceInterface
                 $memberTable = $isOwned ? $dbtable : $dbtable . '_members';
                 $this->createMemberTable($target, $memberTable, $faveFields);
 
-                // Derive last_updated from the most recent member join date for this listing.
-                $lastUpdated = null;
-                try {
-                    $luStmt = $source->prepare(
-                        "SELECT MAX(mAdd) FROM `{$tp}members` WHERE fNiq = :laId"
-                    );
-                    $luStmt->execute(['laId' => $laId]);
-                    $maxDate = (string) $luStmt->fetchColumn();
-                    if (strlen($maxDate) >= 8 && !str_starts_with($maxDate, '0000')) {
-                        $lastUpdated = substr($maxDate, 0, 10);
-                    }
-                } catch (\Throwable) {}
+                // Derive last_updated: prefer main.updated, fall back to MAX(member mAdd).
+                // Never invent today when no real source date exists.
+                $lastUpdated = self::normalizeImportDate($row['updated'] ?? null);
+                if ($lastUpdated === null) {
+                    try {
+                        $luStmt = $source->prepare(
+                            "SELECT MAX(mAdd) FROM `{$tp}members` WHERE fNiq = :laId"
+                        );
+                        $luStmt->execute(['laId' => $laId]);
+                        $maxDate = (string) $luStmt->fetchColumn();
+                        if (strlen($maxDate) >= 8 && !str_starts_with($maxDate, '0000')) {
+                            $lastUpdated = substr($maxDate, 0, 10);
+                        }
+                    } catch (\Throwable) {}
+                }
 
                 // Create lstr_fanlisting_settings row
                 $this->ensureListingSettings($target, $newListingId, $row, $lastUpdated);
@@ -1065,9 +1093,19 @@ final class ListingAdminImportSource implements ImportSourceInterface
             } elseif ($jCatRaw !== '' && empty($parsedIds)) {
                 $catNames = [$jCatRaw]; // plain text name
             }
-            $firstCatName   = $catNames[0] ?? '';
-            $newCatId       = ($firstCatName !== '' && isset($catNameToId[$firstCatName])) ? $catNameToId[$firstCatName] : null;
-            $catJsonEntries = array_map(fn(string $n) => ['network' => $catNameToNetwork[strtolower($n)] ?? 'Custom', 'name' => $n], $catNames);
+            $catJsonEntries = [];
+            $firstCatName   = '';
+            $newCatId       = null;
+            foreach ($catNames as $rawCat) {
+                [$normalizedName, $catSource] = \Luster\Support\CategorySeedCatalog::normalizeImportName($rawCat);
+                if ($firstCatName === '') { $firstCatName = $normalizedName; }
+                $network = match ($catSource) { 'tfl' => 'TFL', 'tafl' => 'TAFL', default => 'Custom' };
+                $catJsonEntries[] = ['network' => $network, 'name' => $normalizedName];
+                if ($newCatId === null) {
+                    $idKey    = $catSource !== 'custom' ? $catSource . ':' . strtolower($normalizedName) : strtolower($normalizedName);
+                    $newCatId = $catNameToId[$idKey] ?? $catNameToId[$normalizedName] ?? null;
+                }
+            }
             $categoriesJson = !empty($catJsonEntries) ? json_encode($catJsonEntries) : null;
             // LA: jStatus=0 means current/active; jStatus=1 means pending.
             $active         = ((int) ($row['jStatus'] ?? 0)) === 0 ? 1 : 0;
@@ -1648,7 +1686,7 @@ final class ListingAdminImportSource implements ImportSourceInterface
     /**
      * Creates or skips the lstr_fanlisting_settings row for a newly imported listing.
      *
-     * @param string|null $lastUpdated  Most recent member join date (YYYY-MM-DD); null = use today.
+     * @param string|null $lastUpdated  Real source date (YYYY-MM-DD); null = leave column NULL.
      */
     private function ensureListingSettings(
         PDO $target, int $listingId, array $mainRow, ?string $lastUpdated = null
@@ -1683,7 +1721,7 @@ final class ListingAdminImportSource implements ImportSourceInterface
             'stpl'   => $statsTpl   ?: null,
         ];
         if ($hasLastUpdated) {
-            $params['last_updated'] = $lastUpdated ?? date('Y-m-d');
+            $params['last_updated'] = $lastUpdated;
         }
         $ins->execute($params);
     }
@@ -1777,24 +1815,36 @@ final class ListingAdminImportSource implements ImportSourceInterface
 
     /**
      * Builds a category name → Luster id map from the target DB.
+     * Stores two keys per row: plain name and source-keyed ("tfl:adult" → id)
+     * for disambiguation of same-name TFL/TAFL categories.
      *
      * @return array<string,int>
      */
     private function buildCategoryNameMap(PDO $target): array
     {
-        $stmt = $target->prepare('SELECT id, name FROM lstr_categories');
-        $stmt->execute();
-        $map = [];
-        foreach ($stmt->fetchAll() as $row) {
-            $map[(string) $row['name']] = (int) $row['id'];
+        try {
+            $stmt = $target->prepare('SELECT id, name, source FROM lstr_categories');
+            $stmt->execute();
+            $map = [];
+            foreach ($stmt->fetchAll() as $row) {
+                $id     = (int)    $row['id'];
+                $name   = (string) $row['name'];
+                $source = (string) $row['source'];
+                $map[$name]                             = $id;
+                $map[$source . ':' . strtolower($name)] = $id;
+            }
+            return $map;
+        } catch (\PDOException) {
+            return [];
         }
-        return $map;
     }
 
     /**
-     * Builds a lowercase(name) → network-label map from the target lstr_categories.
+     * Builds a name → network-label map from the target lstr_categories.
+     * Uses the `source` column as authoritative. Stores plain and source-keyed
+     * entries for precise disambiguation of same-name TFL/TAFL categories.
      *
-     * @return array<string, string>  lowercase name → 'TFL' | 'TAFL' | 'Custom'
+     * @return array<string, string>
      */
     private function buildCategoryNetworkMap(PDO $target): array
     {
@@ -1803,16 +1853,35 @@ final class ListingAdminImportSource implements ImportSourceInterface
             $stmt->execute();
             $map = [];
             foreach ($stmt->fetchAll() as $row) {
-                $map[strtolower((string) $row['name'])] = match ((string) $row['source']) {
-                    'tfl'  => 'TFL',
-                    'tafl' => 'TAFL',
-                    default => 'Custom',
-                };
+                $nameLower = strtolower((string) $row['name']);
+                $source    = (string) $row['source'];
+                $network   = match ($source) { 'tfl' => 'TFL', 'tafl' => 'TAFL', default => 'Custom' };
+                $map[$nameLower]                 = $network;
+                $map[$source . ':' . $nameLower] = $network;
             }
             return $map;
         } catch (\PDOException) {
             return [];
         }
+    }
+
+    /**
+     * Returns a YYYY-MM-DD string from $raw, or null for empty/sentinel/invalid values.
+     * Rejects '', '0000-00-00', '1970-01-01', and anything not matching YYYY-MM-DD.
+     */
+    private static function normalizeImportDate(mixed $raw): ?string
+    {
+        if ($raw === null) {
+            return null;
+        }
+        $s = trim((string) $raw);
+        if ($s === '' || $s === '0000-00-00' || $s === '1970-01-01') {
+            return null;
+        }
+        if (preg_match('/^\d{4}-\d{2}-\d{2}/', $s)) {
+            return substr($s, 0, 10);
+        }
+        return null;
     }
 
     /** Returns true when $column exists on $table in $pdo (MySQL + SQLite aware). */
@@ -1828,8 +1897,18 @@ final class ListingAdminImportSource implements ImportSourceInterface
                 }
                 return false;
             }
-            $stmt = $pdo->prepare("SHOW COLUMNS FROM `{$table}` LIKE :column");
-            $stmt->execute(['column' => $column]);
+            if (!preg_match('/^[A-Za-z0-9_]+$/', $table) || !preg_match('/^[A-Za-z0-9_]+$/', $column)) {
+                return false;
+            }
+            $stmt = $pdo->prepare(
+                'SELECT 1
+                 FROM INFORMATION_SCHEMA.COLUMNS
+                 WHERE TABLE_SCHEMA = DATABASE()
+                   AND TABLE_NAME = :table
+                   AND COLUMN_NAME = :column
+                 LIMIT 1'
+            );
+            $stmt->execute(['table' => $table, 'column' => $column]);
             return $stmt->fetchColumn() !== false;
         } catch (\Throwable) {
             return false;

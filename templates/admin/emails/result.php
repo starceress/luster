@@ -67,7 +67,7 @@ $allOk = empty($failed);
         <li><?= View::e($addr) ?></li>
       <?php endforeach; ?>
     </ul>
-    <p class="form-hint">Check your SMTP configuration or the error log for details.</p>
+    <p class="form-hint">Check the error log for details.</p>
   </div>
   <?php endif; ?>
 

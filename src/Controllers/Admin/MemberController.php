@@ -36,7 +36,8 @@ final class MemberController extends AdminController
 {
 
     // -----------------------------------------------------------------------
-    // GET /admin/members
+    // GET /admin/members          — unified listing+overview page
+    // GET /admin/members/{id}     — redirects here with listing_id={id}
     // -----------------------------------------------------------------------
 
     public function overview(Request $request, array $params): Response
@@ -46,21 +47,25 @@ final class MemberController extends AdminController
 
         $listingRepo       = new ListingRepo($db, $config);
         $memberRepo        = new MemberRepo($db, $config);
+        $fieldRepo         = new FieldRepo($db, $config);
         $pendingUpdateRepo = new PendingUpdateRepo($db);
         $allListings       = $listingRepo->getAll();
 
-        // Build listing-id → Listing map for use in both render paths.
         $flById = [];
         foreach ($allListings as $fl) {
             $flById[(int) $fl->id] = $fl;
         }
 
-        $pendingUpdates = $pendingUpdateRepo->getAll();
+        $listingId = (int) $request->query('listing_id', 0);
+        $search    = trim((string) $request->query('search', ''));
+        $status    = trim((string) $request->query('status', $listingId > 0 ? 'all' : 'pending'));
+        $sort      = trim((string) $request->query('sort', 'name'));
+        $dir       = trim((string) $request->query('dir', 'asc'));
+        $page      = max(1, (int) $request->query('page', 1));
+        $perPage   = max(5, min(200, (int) $config->get('per_page', 25)));
 
-        $search = trim((string) $request->query('search', ''));
-        $sort   = trim((string) $request->query('sort', 'name'));
-        $dir    = trim((string) $request->query('dir', 'asc'));
-        if (!in_array($sort, ['name', 'email', 'country'], true)) { $sort = 'name'; }
+        if (!in_array($status, ['all', 'pending', 'approved'], true)) { $status = 'all'; }
+        if (!in_array($sort, ['name', 'email', 'country', 'status'], true)) { $sort = 'name'; }
         if (!in_array($dir, ['asc', 'desc'], true)) { $dir = 'asc'; }
 
         $session = $this->app->getSession();
@@ -70,156 +75,132 @@ final class MemberController extends AdminController
         $session->remove('lstr_flash_error');
 
         // ------------------------------------------------------------------
-        // Global search — return results across all listings
+        // Per-listing view: a specific listing was selected
         // ------------------------------------------------------------------
-        if ($search !== '') {
-            $searchResults = []; // [{listing, member}]
+        if ($listingId > 0) {
+            $listing = $flById[$listingId] ?? null;
+            if ($listing !== null && $listing->dbprefix !== '') {
+                $fields       = $fieldRepo->getFieldsForListing($listingId);
+                $pendingCount = $memberRepo->countPending($listing->dbprefix);
 
-            foreach ($allListings as $fl) {
-                if ($fl->dbprefix === '') {
-                    continue;
+                if ($search !== '') {
+                    $allMatches = $memberRepo->search($listing->dbprefix, $search);
+                    usort($allMatches, static function ($a, $b) use ($sort, $dir): int {
+                        $cmp = match ($sort) {
+                            'email'   => strcasecmp($a->email,   $b->email),
+                            'country' => strcasecmp($a->country,  $b->country) ?: strcasecmp($a->name, $b->name),
+                            'status'  => ($a->approved <=> $b->approved) ?: strcasecmp($a->name, $b->name),
+                            default   => strcasecmp($a->name,    $b->name),
+                        };
+                        return $dir === 'desc' ? -$cmp : $cmp;
+                    });
+                    $total   = count($allMatches);
+                    $pages   = $total > 0 ? (int) ceil($total / $perPage) : 0;
+                    $members = array_slice($allMatches, ($page - 1) * $perPage, $perPage);
+                } else {
+                    $result  = $memberRepo->paginateByStatus($listing->dbprefix, $status, $page, $perPage, $sort, $dir);
+                    $members = $result['members'];
+                    $total   = $result['total'];
+                    $pages   = $result['pages'];
                 }
+
+                return $this->adminLayout('admin/members/index.php', 'Members', 'members', [
+                    'view_mode'    => 'listing',
+                    'listing'      => $listing,
+                    'listing_id'   => $listingId,
+                    'members'      => $members,
+                    'fields'       => $fields,
+                    'total'        => $total,
+                    'page'         => $page,
+                    'pages'        => $pages,
+                    'per_page'     => $perPage,
+                    'search'       => $search,
+                    'status'       => $status,
+                    'all_listings' => $allListings,
+                    'pending_count'=> $pendingCount,
+                    'sort'         => $sort,
+                    'dir'          => $dir,
+                    'success'      => $success,
+                    'error'        => $error,
+                ], '', $this->memberBreadcrumbs($listing, null, false));
+            }
+            // Listing not found — fall through to overview
+            $listingId = 0;
+        }
+
+        // ------------------------------------------------------------------
+        // Cross-listing search
+        // ------------------------------------------------------------------
+        $pendingUpdates = $pendingUpdateRepo->getAll();
+
+        if ($search !== '') {
+            $searchResults = [];
+            foreach ($allListings as $fl) {
+                if ($fl->dbprefix === '') { continue; }
                 foreach ($memberRepo->search($fl->dbprefix, $search) as $member) {
                     $searchResults[] = ['listing' => $fl, 'member' => $member];
                 }
             }
-
-            // Sort by listing name, then member name
             usort($searchResults, fn($a, $b) =>
                 strcmp($a['listing']->name, $b['listing']->name) ?:
                 strcmp($a['member']->name,  $b['member']->name)
             );
 
-            return $this->adminLayout('admin/members/overview.php', 'Members', 'members', [
-                'grouped'         => [],
-                'all_listings'    => $allListings,
-                'search_results'  => $searchResults,
-                'pending_updates' => $pendingUpdates,
-                'fl_by_id'        => $flById,
-                'success'         => $success,
-                'error'           => $error,
-                'search'          => $search,
+            return $this->adminLayout('admin/members/index.php', 'Members', 'members', [
+                'view_mode'      => 'search',
+                'listing'        => null,
+                'listing_id'     => 0,
+                'search_results' => $searchResults,
+                'pending_updates'=> $pendingUpdates,
+                'fl_by_id'       => $flById,
+                'all_listings'   => $allListings,
+                'success'        => $success,
+                'error'          => $error,
+                'search'         => $search,
+                'status'         => $status,
             ]);
         }
 
         // ------------------------------------------------------------------
-        // Default view — pending members grouped by listing
+        // Default overview: pending members grouped by listing
         // ------------------------------------------------------------------
         $grouped = [];
         foreach ($allListings as $fl) {
-            if ($fl->dbprefix === '') {
-                continue;
-            }
+            if ($fl->dbprefix === '') { continue; }
             $pending = $memberRepo->getPending($fl->dbprefix, $sort, $dir);
             if (count($pending) > 0) {
-                $grouped[] = ['listing' => $fl, 'members' => $pending];
+                $grouped[] = [
+                    'listing'        => $fl,
+                    'members'        => $pending,
+                    'approved_count' => $memberRepo->countApproved($fl->dbprefix),
+                ];
             }
         }
 
-        return $this->adminLayout('admin/members/overview.php', 'Members', 'members', [
-            'grouped'         => $grouped,
-            'all_listings'    => $allListings,
-            'search_results'  => [],
-            'pending_updates' => $pendingUpdates,
-            'fl_by_id'        => $flById,
-            'sort'            => $sort,
-            'dir'             => $dir,
-            'success'         => $success,
-            'error'           => $error,
-            'search'          => $search,
+        return $this->adminLayout('admin/members/index.php', 'Members', 'members', [
+            'view_mode'      => 'overview',
+            'listing'        => null,
+            'listing_id'     => 0,
+            'grouped'        => $grouped,
+            'search_results' => [],
+            'pending_updates'=> $pendingUpdates,
+            'fl_by_id'       => $flById,
+            'all_listings'   => $allListings,
+            'sort'           => $sort,
+            'dir'            => $dir,
+            'success'        => $success,
+            'error'          => $error,
+            'search'         => $search,
+            'status'         => $status,
         ]);
     }
 
-    // -----------------------------------------------------------------------
-    // GET /admin/members/{id}
-    // -----------------------------------------------------------------------
-
+    // GET /admin/members/{id} — redirect to unified page
     public function index(Request $request, array $params): Response
     {
         $listingId = (int) ($params['id'] ?? 0);
-
-        $db     = $this->app->getDatabase();
-        $config = $this->app->getConfig();
-
-        $listingRepo = new ListingRepo($db, $config);
-        $memberRepo     = new MemberRepo($db, $config);
-        $fieldRepo      = new FieldRepo($db, $config);
-        $settingsRepo   = new ListingSettingsRepo($db);
-
-        $listing = $listingRepo->getById($listingId);
-
-        if ($listing === null) {
-            return Response::notFound('Listing not found.');
-        }
-
-        $page    = max(1, (int) $request->query('page', 1));
-        $perPage = max(5, min(200, (int) $config->get('per_page', 25)));
-        $search  = trim((string) $request->query('search', ''));
-        $status  = trim((string) $request->query('status', 'all'));
-        $sort    = trim((string) $request->query('sort', 'name'));
-        $dir     = trim((string) $request->query('dir', 'asc'));
-
-        if (!in_array($status, ['approved', 'pending', 'all'], true)) {
-            $status = 'all';
-        }
-        if (!in_array($sort, ['name', 'email', 'country', 'status'], true)) {
-            $sort = 'name';
-        }
-        if (!in_array($dir, ['asc', 'desc'], true)) {
-            $dir = 'asc';
-        }
-
-        $allListings = (new ListingRepo($db, $config))->getAll();
-
-        $fields = $fieldRepo->getFieldsForListing($listingId);
-
-        if ($search !== '') {
-            // Search ignores status filter; sort applied in PHP
-            $allMatches = $memberRepo->search($listing->dbprefix, $search);
-            usort($allMatches, static function ($a, $b) use ($sort, $dir): int {
-                $cmp = match ($sort) {
-                    'email'   => strcasecmp($a->email,   $b->email),
-                    'country' => strcasecmp($a->country,  $b->country) ?: strcasecmp($a->name, $b->name),
-                    'status'  => ($a->approved <=> $b->approved) ?: strcasecmp($a->name, $b->name),
-                    default   => strcasecmp($a->name,    $b->name),
-                };
-                return $dir === 'desc' ? -$cmp : $cmp;
-            });
-            $total   = count($allMatches);
-            $pages   = $total > 0 ? (int) ceil($total / $perPage) : 0;
-            $members = array_slice($allMatches, ($page - 1) * $perPage, $perPage);
-        } else {
-            $result  = $memberRepo->paginateByStatus($listing->dbprefix, $status, $page, $perPage, $sort, $dir);
-            $members = $result['members'];
-            $total   = $result['total'];
-            $pages   = $result['pages'];
-        }
-
-        $pendingCount = $listing->dbprefix !== '' ? $memberRepo->countPending($listing->dbprefix) : 0;
-
-        $session = $this->app->getSession();
-        $success = (string) $session->get('lstr_flash_success', '');
-        $error   = (string) $session->get('lstr_flash_error', '');
-        $session->remove('lstr_flash_success');
-        $session->remove('lstr_flash_error');
-
-        return $this->adminLayout('admin/members/index.php', 'Members', 'members', [
-            'listing'         => $listing,
-            'members'         => $members,
-            'fields'          => $fields,
-            'total'           => $total,
-            'page'            => $page,
-            'pages'           => $pages,
-            'per_page'        => $perPage,
-            'search'          => $search,
-            'status'          => $status,
-            'all_listings'    => $allListings,
-            'pending_count'   => $pendingCount,
-            'sort'            => $sort,
-            'dir'             => $dir,
-            'success'         => $success,
-            'error'           => $error,
-        ], '', $this->memberBreadcrumbs($listing, null, false));
+        $baseUrl   = $this->app->getBaseUrl();
+        return Response::redirect($baseUrl . '/admin/members?listing_id=' . $listingId . '&status=all');
     }
 
     // -----------------------------------------------------------------------
@@ -311,7 +292,7 @@ final class MemberController extends AdminController
             );
 
             $session->set('lstr_flash_success', 'Member updated.');
-            return Response::redirect($baseUrl . '/admin/members/' . $listingId);
+            return Response::redirect($baseUrl . '/admin/members?listing_id=' . $listingId . '&status=all');
         }
 
         // ---- GET: show form ----
@@ -482,7 +463,7 @@ final class MemberController extends AdminController
 
         if (empty($emails) || !in_array($action, ['approve', 'pending', 'reject', 'delete', 'email_selected'], true)) {
             $session->set('lstr_flash_error', 'No members selected or invalid action.');
-            return Response::redirect($baseUrl . '/admin/members/' . $listingId);
+            return Response::redirect($baseUrl . '/admin/members?listing_id=' . $listingId . '&status=all');
         }
 
         if ($action === 'email_selected') {
@@ -548,7 +529,10 @@ final class MemberController extends AdminController
 
         $session->set('lstr_flash_success', "Bulk {$action}: {$count} member(s) processed.");
         $from = (string) $request->post('from', '');
-        return Response::redirect($baseUrl . '/admin/members/' . ($from === 'overview' ? '' : $listingId));
+        if ($from === 'overview') {
+            return Response::redirect($baseUrl . '/admin/members');
+        }
+        return Response::redirect($baseUrl . '/admin/members?listing_id=' . $listingId . '&status=all');
     }
 
     // -----------------------------------------------------------------------
@@ -579,7 +563,7 @@ final class MemberController extends AdminController
 
         if (empty($pending)) {
             $session->set('lstr_flash_error', 'No pending members to approve.');
-            return Response::redirect($baseUrl . '/admin/members/' . $listingId);
+            return Response::redirect($baseUrl . '/admin/members?listing_id=' . $listingId . '&status=all');
         }
 
         $mailer = new Mailer($config);
@@ -620,7 +604,137 @@ final class MemberController extends AdminController
         );
 
         $session->set('lstr_flash_success', "Approved {$count} pending member" . ($count !== 1 ? 's' : '') . '.');
-        return Response::redirect($baseUrl . '/admin/members/' . $listingId);
+        return Response::redirect($baseUrl . '/admin/members?listing_id=' . $listingId . '&status=all');
+    }
+
+    // -----------------------------------------------------------------------
+    // POST /admin/members/approve-all-overview
+    //
+    // Approves every pending new member across all listings AND every pending
+    // member update. Sends approval/update emails best-effort for each.
+    // -----------------------------------------------------------------------
+
+    public function approveAllOverview(Request $request, array $params): Response
+    {
+        $db     = $this->app->getDatabase();
+        $config = $this->app->getConfig();
+
+        $listingRepo       = new ListingRepo($db, $config);
+        $memberRepo        = new MemberRepo($db, $config);
+        $settingsRepo      = new ListingSettingsRepo($db);
+        $pendingUpdateRepo = new PendingUpdateRepo($db);
+        $emailTemplateRepo = new EmailTemplateRepo($db);
+        $activityRepo      = new ActivityRepo($db);
+        $mailer            = new Mailer($config);
+
+        $session = $this->app->getSession();
+        $baseUrl = $this->app->getBaseUrl();
+
+        $approvedMembers = 0;
+        $approvedUpdates = 0;
+
+        // ── 1. Approve all pending new members ─────────────────────────────
+        foreach ($listingRepo->getAll() as $fl) {
+            if ($fl->dbprefix === '') {
+                continue;
+            }
+
+            $pending     = $memberRepo->getPending($fl->dbprefix);
+            $listingCount = 0;
+
+            foreach ($pending as $member) {
+                $memberRepo->approve($fl->dbprefix, $member->email);
+                $listingCount++;
+
+                try {
+                    $tokens = EmailTemplateRepo::buildTokens(
+                        listingName:    $fl->name,
+                        listingUrl:     $fl->url,
+                        siteName:       (string) $config->get('site_name', 'Luster'),
+                        listingSubject: $fl->subject,
+                        ownerName:      (string) $config->get('owner_name', ''),
+                        ownerEmail:     (string) $config->get('owner_email', ''),
+                        fanName:        $member->name,
+                        fanEmail:       $member->email,
+                    );
+                    [$subject, $body] = $emailTemplateRepo->resolveForListing(
+                        (int) $fl->id,
+                        EmailTemplateRepo::TYPE_APPROVE,
+                        $tokens,
+                    );
+                    $mailer->send($member->email, $member->name, $subject, $body);
+                } catch (\Throwable $e) {
+                    error_log('[Luster] approve-all-overview email failed for ' . $member->email . ': ' . $e->getMessage());
+                }
+            }
+
+            if ($listingCount > 0) {
+                $settingsRepo->touchLastUpdated((int) $fl->id);
+                $approvedMembers += $listingCount;
+            }
+        }
+
+        // ── 2. Approve all pending member updates ──────────────────────────
+        foreach ($pendingUpdateRepo->getAll() as $pu) {
+            $listing = $listingRepo->getById($pu->fanlisting_id);
+
+            if ($listing === null) {
+                $pendingUpdateRepo->delete($pu->id);
+                continue;
+            }
+
+            $member = $memberRepo->getByEmail($listing->dbprefix, $pu->member_email);
+
+            if ($member === null) {
+                $pendingUpdateRepo->delete($pu->id);
+                continue;
+            }
+
+            $memberRepo->update($listing->dbprefix, $pu->member_email, $pu->changes);
+            $pendingUpdateRepo->delete($pu->id);
+
+            try {
+                $tokens = EmailTemplateRepo::buildTokens(
+                    listingName:    $listing->name,
+                    listingUrl:     $listing->url,
+                    siteName:       (string) $config->get('site_name', 'Luster'),
+                    listingSubject: $listing->subject,
+                    ownerName:      (string) $config->get('owner_name', ''),
+                    ownerEmail:     (string) $config->get('owner_email', ''),
+                    fanName:        $member->name,
+                    fanEmail:       $member->email,
+                );
+                [$subject, $body] = $emailTemplateRepo->resolveForListing(
+                    $pu->fanlisting_id,
+                    EmailTemplateRepo::TYPE_UPDATE,
+                    $tokens,
+                );
+                $mailer->send($member->email, $member->name, $subject, $body);
+            } catch (\Throwable $e) {
+                error_log('[Luster] approve-all-overview update email failed for ' . $pu->member_email . ': ' . $e->getMessage());
+            }
+
+            $approvedUpdates++;
+        }
+
+        $activityRepo->log(
+            (int) $session->get('lstr_admin_id'),
+            'member.approve_all_overview',
+            "Approved all pending across all listings: {$approvedMembers} new member(s), {$approvedUpdates} update(s)",
+            $request->ip(),
+        );
+
+        $parts = [];
+        if ($approvedMembers > 0) {
+            $parts[] = "{$approvedMembers} new member" . ($approvedMembers !== 1 ? 's' : '');
+        }
+        if ($approvedUpdates > 0) {
+            $parts[] = "{$approvedUpdates} pending update" . ($approvedUpdates !== 1 ? 's' : '');
+        }
+        $msg = empty($parts) ? 'Nothing pending to approve.' : 'Approved: ' . implode(' and ', $parts) . '.';
+
+        $session->set('lstr_flash_success', $msg);
+        return Response::redirect($baseUrl . '/admin/members');
     }
 
     // -----------------------------------------------------------------------
@@ -1023,7 +1137,7 @@ final class MemberController extends AdminController
 
         if ($email === '') {
             $session->set('lstr_flash_error', 'No member email provided.');
-            return Response::redirect($baseUrl . '/admin/members/' . $listingId);
+            return Response::redirect($baseUrl . '/admin/members?listing_id=' . $listingId . '&status=all');
         }
 
         match ($action) {
@@ -1077,9 +1191,15 @@ final class MemberController extends AdminController
 
         $session->set('lstr_flash_success', $label);
 
-        $page    = max(1, (int) $request->post('_page', 1));
-        $pageQs  = $page > 1 ? '?page=' . $page : '';
-        return Response::redirect($baseUrl . '/admin/members/' . $listingId . $pageQs);
+        $page   = max(1, (int) $request->post('_page', 1));
+        $status = (string) $request->post('_status', 'all');
+        if (!in_array($status, ['all', 'pending', 'approved'], true)) {
+            $status = 'all';
+        }
+        $qs = ['listing_id' => $listingId];
+        if ($status !== 'all') { $qs['status'] = $status; }
+        if ($page > 1) { $qs['page'] = $page; }
+        return Response::redirect($baseUrl . '/admin/members?' . http_build_query($qs));
     }
 
     // -----------------------------------------------------------------------
@@ -1161,11 +1281,8 @@ final class MemberController extends AdminController
         $baseUrl     = $this->app->getBaseUrl();
         $session       = $this->app->getSession();
         $csrf          = $this->app->getCSRF()->token();
-        $smtpFrom  = (string) $config->get('smtp_from', '');
-        $fromEmail = $smtpFrom !== '' ? $smtpFrom : $listing->email;
-        $fromName  = (string) $config->get('smtp_from_name', '') !== ''
-            ? (string) $config->get('smtp_from_name', '')
-            : (string) $config->get('owner_name', '');
+        $fromEmail = (string) $config->get('owner_email', '');
+        $fromName  = (string) $config->get('owner_name',  '');
         $flash_error   = $session->get('lstr_flash_error', '');
         $flash_success = $session->get('lstr_flash_success', '');
         $old           = (array) $session->get('lstr_email_old', []);
@@ -1173,7 +1290,7 @@ final class MemberController extends AdminController
         $session->remove('lstr_flash_success');
         $session->remove('lstr_email_old');
 
-        $referer = $request->header('referer') ?? $baseUrl . '/admin/members/' . $id;
+        $referer = $request->header('referer') ?? $baseUrl . '/admin/members?listing_id=' . $id . '&status=all';
 
         return $this->adminLayout('admin/members/email.php', 'Email Member', 'members', [
             'listing'        => $listing,
@@ -1222,7 +1339,7 @@ final class MemberController extends AdminController
             $mailer->send($toEmail, '', $subject, $body);
             $session->set('lstr_flash_success', 'Email sent successfully!');
         } catch (\RuntimeException $e) {
-            $session->set('lstr_flash_error', 'The email could not be sent. Please check your SMTP settings in Settings and try again.');
+            $session->set('lstr_flash_error', 'The email could not be sent. Check that Owner Email is set in Settings and that your server supports outgoing mail.');
             $session->set('lstr_email_old', ['subject' => $suffix, 'body' => $body]);
         }
 
@@ -1256,7 +1373,7 @@ final class MemberController extends AdminController
 
         if (empty($selectedEmails)) {
             $session->set('lstr_flash_error', 'No members selected for email.');
-            return Response::redirect($baseUrl . '/admin/members/' . $id);
+            return Response::redirect($baseUrl . '/admin/members?listing_id=' . $id . '&status=all');
         }
 
         $savedEmails = (new \Luster\Repositories\SavedEmailRepo($db))->getAll();
@@ -1280,8 +1397,8 @@ final class MemberController extends AdminController
             'selected_emails' => $selectedEmails,
             'member_names'    => $memberNames,
             'saved_emails'    => $savedEmails,
-            'from_name'       => (string) $config->get('smtp_from_name', ''),
-            'from_email'      => (string) $config->get('smtp_from', ''),
+            'from_name'       => (string) $config->get('owner_name',  ''),
+            'from_email'      => (string) $config->get('owner_email', ''),
             'owner_name'      => (string) $config->get('owner_name', ''),
             'owner_email'     => (string) $config->get('owner_email', ''),
             'site_name'       => (string) $config->get('site_name', 'Luster'),
@@ -1323,7 +1440,7 @@ final class MemberController extends AdminController
 
         if (empty($emails)) {
             $session->set('lstr_flash_error', 'No recipients found.');
-            return Response::redirect($baseUrl . '/admin/members/' . $id);
+            return Response::redirect($baseUrl . '/admin/members?listing_id=' . $id . '&status=all');
         }
 
         $memberRepo  = new MemberRepo($db, $config);
@@ -1373,7 +1490,7 @@ final class MemberController extends AdminController
             $session->set('lstr_flash_success', "Email sent to {$sent} member(s).");
         }
 
-        return Response::redirect($baseUrl . '/admin/members/' . $id);
+        return Response::redirect($baseUrl . '/admin/members?listing_id=' . $id . '&status=all');
     }
 
     // -----------------------------------------------------------------------
@@ -1437,7 +1554,7 @@ final class MemberController extends AdminController
         ];
 
         if ($memberLabel !== null && trim($memberLabel) !== '') {
-            $crumbs[] = $this->crumb('Members', $this->adminUrl('/admin/members/' . $listing->id));
+            $crumbs[] = $this->crumb('Members', $this->adminUrl('/admin/members?listing_id=' . $listing->id . '&status=all'));
             $crumbs[] = $this->crumb($memberLabel);
         } else {
             $crumbs[] = $this->crumb('Members');

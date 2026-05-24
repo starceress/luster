@@ -64,7 +64,8 @@ final class ListingAdminImportTest extends TestCase
                 subject  TEXT    NOT NULL DEFAULT \'\',
                 url      TEXT    NOT NULL DEFAULT \'\',
                 category TEXT    NOT NULL DEFAULT \'\',
-                date     TEXT    NULL,
+                since    TEXT    NULL,
+                updated  TEXT    NULL,
                 fave_fields TEXT NOT NULL DEFAULT \'\',
                 trouble  INTEGER NOT NULL DEFAULT 0,
                 upcoming INTEGER NOT NULL DEFAULT 0,
@@ -426,7 +427,8 @@ final class ListingAdminImportTest extends TestCase
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 title TEXT NOT NULL DEFAULT \'\', subject TEXT NOT NULL DEFAULT \'\',
                 url TEXT NOT NULL DEFAULT \'\', category TEXT NOT NULL DEFAULT \'\',
-                date TEXT NULL, fave_fields TEXT NOT NULL DEFAULT \'\', image TEXT NOT NULL DEFAULT \'\'
+                since TEXT NULL, updated TEXT NULL,
+                fave_fields TEXT NOT NULL DEFAULT \'\', image TEXT NOT NULL DEFAULT \'\'
             )'
         );
         $src->exec('CREATE TABLE IF NOT EXISTS categories (catid INTEGER PRIMARY KEY, catname TEXT NOT NULL DEFAULT \'\', parent INTEGER NOT NULL DEFAULT 0)');
@@ -478,7 +480,8 @@ final class ListingAdminImportTest extends TestCase
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             title TEXT NOT NULL DEFAULT '', subject TEXT NOT NULL DEFAULT '',
             url TEXT NOT NULL DEFAULT '', category TEXT NOT NULL DEFAULT '',
-            date TEXT NULL, fave_fields TEXT NOT NULL DEFAULT '',
+            since TEXT NULL, updated TEXT NULL,
+            fave_fields TEXT NOT NULL DEFAULT '',
             trouble INTEGER NOT NULL DEFAULT 0, upcoming INTEGER NOT NULL DEFAULT 0,
             image TEXT NOT NULL DEFAULT ''
         )");
@@ -1024,7 +1027,7 @@ final class ListingAdminImportTest extends TestCase
             'last_updated must equal the most recent member join date');
     }
 
-    public function testLaRunListingsFallsBackToTodayWhenNoMembers(): void
+    public function testLaRunListingsLeavesLastUpdatedNullWhenNoSourceDate(): void
     {
         $src = $this->makePdo();
         $tgt = $this->makePdo();
@@ -1033,7 +1036,7 @@ final class ListingAdminImportTest extends TestCase
         $this->seedTargetWithLastUpdated($tgt);
 
         $this->insertSourceListing($src, 'http://test.com');
-        // No members inserted for this listing
+        // No members inserted and no updated column value — no real source date
 
         $this->adapter()->run($src, $tgt, $this->makeOptions([
             'import_listings' => '1',
@@ -1041,8 +1044,8 @@ final class ListingAdminImportTest extends TestCase
 
         $stmt        = $tgt->query('SELECT last_updated FROM lstr_fanlisting_settings LIMIT 1');
         $lastUpdated = $stmt->fetchColumn();
-        $this->assertNotNull($lastUpdated, 'last_updated must not be NULL');
-        $this->assertMatchesRegularExpression('/^\d{4}-\d{2}-\d{2}$/', (string) $lastUpdated);
+        $this->assertNull($lastUpdated !== false ? $lastUpdated : null,
+            'last_updated must remain NULL when no real source date exists');
     }
 
     public function testLaOpenedDateIsImportedFromMainTable(): void
@@ -1053,8 +1056,8 @@ final class ListingAdminImportTest extends TestCase
         $this->seedLaSource($src);
         $this->seedTargetWithLastUpdated($tgt);
 
-        // LA stores opened date in main.date
-        $src->exec("INSERT INTO main (title, subject, url, date) VALUES ('Test', 'Test', 'http://opened.com', '2018-11-05')");
+        // LA stores opened date in main.since
+        $src->exec("INSERT INTO main (title, subject, url, since) VALUES ('Test', 'Test', 'http://opened.com', '2018-11-05')");
 
         $this->adapter()->run($src, $tgt, $this->makeOptions([
             'import_listings' => '1',
@@ -1062,6 +1065,6 @@ final class ListingAdminImportTest extends TestCase
 
         $stmt = $tgt->query("SELECT opened FROM owned WHERE url = 'http://opened.com'");
         $this->assertSame('2018-11-05', $stmt->fetchColumn(),
-            'opened date from main.date must be stored in owned.opened');
+            'opened date from main.since must be stored in owned.opened');
     }
 }

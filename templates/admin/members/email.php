@@ -119,7 +119,7 @@ $listingId  = (int) ($listing->id ?? 0);
         <button type="button" class="btn btn-preview" id="preview-email-btn">Preview</button>
         <button type="button" class="btn btn-ghost js-form-reset">Clear</button>
         <div class="composer-footer-spacer"></div>
-        <a href="<?= View::e($referer ?? $b . '/admin/members/' . $listingId) ?>"
+        <a href="<?= View::e($referer ?? $b . '/admin/members?listing_id=' . (int) ($listingId ?? 0) . '&status=all') ?>"
            class="btn btn-danger">Cancel</a>
       </div>
     </form>

@@ -6,6 +6,7 @@ use Luster\Core\View;
 /** @var array<int,string|null> $images */
 /** @var array<int,string>      $listing_types */
 /** @var array<int,string>      $category_names */
+/** @var array<int,array<array{network:string,name:string}>> $category_data */
 /** @var array                  $cfg */
 /** @var string                 $base_url */
 /** @var string                 $csrf_token */
@@ -136,17 +137,52 @@ $flSortUrl = static function (string $col) use ($b, $flSort, $flDir, $search, $f
     </div>
 
     <div class="select-wrap">
-    <select id="fl-cat-sel" name="category" 
+    <select id="fl-cat-sel" name="category"
             data-tfl='<?= $dataTfl ?>'
             data-tafl='<?= $dataTafl ?>'
             data-custom='<?= $dataCustom ?>'>
       <option value="">All Categories</option>
-      <?php foreach ($activeCats as $c): ?>
-        <option value="<?= View::e($c['name']) ?>"
-                <?= ($filter_cat ?? '') === $c['name'] ? 'selected' : '' ?>>
-          <?= View::e($c['name']) ?>
-        </option>
-      <?php endforeach; ?>
+      <?php if ($fn === ''): ?>
+        <?php if (!empty($tfl_cats)): ?>
+          <optgroup label="TFL">
+            <?php foreach ($tfl_cats as $c): ?>
+              <option value="<?= View::e($c['name']) ?>"
+                      <?= ($filter_cat ?? '') === $c['name'] ? 'selected' : '' ?>>
+                <?= View::e($c['name']) ?>
+              </option>
+            <?php endforeach; ?>
+          </optgroup>
+        <?php endif; ?>
+        <?php if (!empty($tafl_cats)): ?>
+          <optgroup label="TAFL">
+            <?php foreach ($tafl_cats as $c): ?>
+              <option value="<?= View::e($c['name']) ?>"
+                      <?= ($filter_cat ?? '') === $c['name'] ? 'selected' : '' ?>>
+                <?= View::e($c['name']) ?>
+              </option>
+            <?php endforeach; ?>
+          </optgroup>
+        <?php endif; ?>
+        <?php foreach ($custom_cats ?? [] as $netName => $netCats): ?>
+          <?php if (!empty($netCats)): ?>
+            <optgroup label="<?= View::e($netName) ?>">
+              <?php foreach ($netCats as $c): ?>
+                <option value="<?= View::e($c['name']) ?>"
+                        <?= ($filter_cat ?? '') === $c['name'] ? 'selected' : '' ?>>
+                  <?= View::e($c['name']) ?>
+                </option>
+              <?php endforeach; ?>
+            </optgroup>
+          <?php endif; ?>
+        <?php endforeach; ?>
+      <?php else: ?>
+        <?php foreach ($activeCats as $c): ?>
+          <option value="<?= View::e($c['name']) ?>"
+                  <?= ($filter_cat ?? '') === $c['name'] ? 'selected' : '' ?>>
+            <?= View::e($c['name']) ?>
+          </option>
+        <?php endforeach; ?>
+      <?php endif; ?>
     </select>
     </div>
 
@@ -222,8 +258,7 @@ $flSortUrl = static function (string $col) use ($b, $flSort, $flDir, $search, $f
         <tr>
           <th class="cb-col"><input type="checkbox" id="fl-select-all"></th>
           <th><a href="<?= View::e($flSortUrl('id')) ?>" class="sort-th<?= $flSort === 'id' ? ' sort-active' : '' ?>"># <?= View::sortIcon('id', $flSort, $flDir) ?></a></th>
-          <th><a href="<?= View::e($flSortUrl('subject')) ?>" class="sort-th<?= $flSort === 'subject' ? ' sort-active' : '' ?>">Subject <?= View::sortIcon('subject', $flSort, $flDir) ?></a></th>
-          <th><a href="<?= View::e($flSortUrl('name')) ?>" class="sort-th<?= $flSort === 'name' ? ' sort-active' : '' ?>">Title <?= View::sortIcon('name', $flSort, $flDir) ?></a></th>
+          <th><a href="<?= View::e($flSortUrl('subject')) ?>" class="sort-th<?= $flSort === 'subject' ? ' sort-active' : '' ?>">Subject / Title <?= View::sortIcon('subject', $flSort, $flDir) ?></a></th>
           <th><a href="<?= View::e($flSortUrl('category')) ?>" class="sort-th<?= $flSort === 'category' ? ' sort-active' : '' ?>">Category <?= View::sortIcon('category', $flSort, $flDir) ?></a></th>
           <th><a href="<?= View::e($flSortUrl('status')) ?>" class="sort-th<?= $flSort === 'status' ? ' sort-active' : '' ?>">Status <?= View::sortIcon('status', $flSort, $flDir) ?></a></th>
           <th>Members</th>
@@ -242,22 +277,35 @@ $flSortUrl = static function (string $col) use ($b, $flSort, $flDir, $search, $f
           <!-- Listing # -->
           <td class="text-dim" data-label="ID"><?= (int) $fl->id ?></td>
 
-          <!-- Subject -->
-          <td data-label="Subject">
+          <!-- Subject / Title -->
+          <td class="text-strong" data-label="Subject / Title">
             <?php if ($fl->url !== ''): ?>
               <a href="<?= View::e($fl->url) ?>" target="_blank" rel="noopener noreferrer" class="link"><?= View::e($fl->subject) ?></a>
             <?php else: ?>
               <?= View::e($fl->subject) ?>
             <?php endif; ?>
-          </td>
-
-          <!-- Title -->
-          <td data-label="Title">
-            <a href="<?= $b ?>/admin/listings/<?= (int) $fl->id ?>/edit" class="link"><?= View::e($fl->name) ?></a>
+            <span class="mem-url"><?= View::e($fl->name) ?></span>
           </td>
 
           <!-- Category -->
-          <td class="text-muted" data-label="Category"><?= View::e($category_names[$fl->id] ?? '-') ?></td>
+          <td data-label="Category">
+            <?php $catItems = $category_data[$fl->id] ?? []; ?>
+            <?php if (empty($catItems)): ?>
+              <span class="text-muted">—</span>
+            <?php else: ?>
+              <?php foreach ($catItems as $i => $cat): ?>
+                <?php if ($i > 0): ?><span class="text-muted">, </span><?php endif; ?>
+                <?php
+                  $netClass = match (strtolower($cat['network'])) {
+                      'tfl'  => 'badge-tfl',
+                      'tafl' => 'badge-tafl',
+                      default => 'badge-info',
+                  };
+                ?>
+                <span class="cat-net-item"><span class="badge <?= $netClass ?>"><?= View::e($cat['network']) ?></span><?= View::e($cat['name']) ?></span>
+              <?php endforeach; ?>
+            <?php endif; ?>
+          </td>
 
           <!-- Status -->
           <td data-label="Status">
@@ -281,7 +329,7 @@ $flSortUrl = static function (string $col) use ($b, $flSort, $flDir, $search, $f
             ?>
             <div><?= $app ?>
             <?php if ($pend > 0): ?>
-                <a href="<?= $b ?>/admin/members/<?= (int) $fl->id ?>?status=pending"
+                <a href="<?= $b ?>/admin/members?listing_id=<?= (int) $fl->id ?>&status=pending"
                    class="badge badge-pending badge-inline-sm">+ <?= $pend ?></a>
             </div>
             <?php endif; ?>
@@ -291,7 +339,7 @@ $flSortUrl = static function (string $col) use ($b, $flSort, $flDir, $search, $f
             <div class="data-actions">
               <a href="<?= $b ?>/admin/listings/<?= (int) $fl->id ?>/edit"
                  class="btn btn-tertiary btn-sm">Edit</a>
-              <a href="<?= $b ?>/admin/members/<?= (int) $fl->id ?>"
+              <a href="<?= $b ?>/admin/members?listing_id=<?= (int) $fl->id ?>&status=all"
                  class="btn btn-quaternary btn-sm">Members</a>
               <form method="POST"
                     action="<?= $b ?>/admin/listings/<?= (int) $fl->id ?>/delete"

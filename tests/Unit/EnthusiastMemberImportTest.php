@@ -1552,7 +1552,7 @@ final class EnthusiastMemberImportTest extends TestCase
         $this->assertSame('2023-06-15', $lastUpdated, 'last_updated must be the most recent member join date');
     }
 
-    public function testRunSettingsFallsBackToTodayWhenMemberTableEmpty(): void
+    public function testRunSettingsUsesTodayWhenNoSourceDate(): void
     {
         $src = $this->makePdo();
         $tgt = $this->makeTargetWithOpened();
@@ -1580,9 +1580,52 @@ final class EnthusiastMemberImportTest extends TestCase
             'import_settings'   => '1',
         ]));
 
-        $stmt        = $tgt->query('SELECT last_updated FROM lstr_fanlisting_settings WHERE fanlisting_id = 1');
-        $lastUpdated = $stmt->fetchColumn();
-        $this->assertNotNull($lastUpdated, 'last_updated must not be NULL — should fall back to today');
-        $this->assertMatchesRegularExpression('/^\d{4}-\d{2}-\d{2}$/', (string) $lastUpdated);
+        $lastUpdated = $tgt->query('SELECT last_updated FROM lstr_fanlisting_settings WHERE fanlisting_id = 1')->fetchColumn();
+        // No source date available — must fall back to today so the dashboard staleness
+        // queue is never confused by a NULL.
+        $this->assertSame(date('Y-m-d'), $lastUpdated,
+            'last_updated must be today when no real source date exists (never NULL after import)');
+    }
+
+    /**
+     * Re-import in skip mode must preserve an existing last_updated value — it should
+     * only backfill when the target row has no date at all.
+     */
+    public function testRunSettingsSkipPreservesExistingDate(): void
+    {
+        $src = $this->makePdo();
+        $tgt = $this->makeTargetWithOpened();
+
+        $src->exec('CREATE TABLE IF NOT EXISTS category (catid INTEGER PRIMARY KEY, catname TEXT NOT NULL, parent INTEGER NOT NULL DEFAULT 0)');
+        $src->exec(
+            'CREATE TABLE owned (
+                listingid INTEGER PRIMARY KEY, dbtable TEXT NOT NULL DEFAULT \'\',
+                title TEXT NOT NULL DEFAULT \'\', subject TEXT NOT NULL DEFAULT \'\',
+                email TEXT NOT NULL DEFAULT \'\', url TEXT NOT NULL DEFAULT \'\',
+                catid TEXT NOT NULL DEFAULT \'\', additional TEXT NOT NULL DEFAULT \'\',
+                status INTEGER NOT NULL DEFAULT 2,
+                perpage INTEGER NOT NULL DEFAULT 25, holdupdate INTEGER NOT NULL DEFAULT 0
+            )'
+        );
+        $src->exec("INSERT INTO owned (listingid, dbtable, url, title, subject) VALUES (1, 'fl', 'http://fl.example.com', 'FL', 'FL')");
+        $src->exec("CREATE TABLE fl (email TEXT PRIMARY KEY, added DATE NULL)");
+        $src->exec("INSERT INTO fl (email, added) VALUES ('fan@test.com', '2022-09-01')");
+
+        $tgt->exec("INSERT INTO owned (listingid, dbtable, url, title, subject, status)
+                    VALUES (1, 'fl', 'http://fl.example.com', 'FL', 'FL', 2)");
+        // Pre-seed a settings row with an existing date (e.g. set by admin or a prior import).
+        $tgt->exec("INSERT INTO lstr_fanlisting_settings (fanlisting_id, members_per_page, queue_updates, last_updated)
+                    VALUES (1, 25, 0, '2024-05-24')");
+
+        $this->adapter()->run($src, $tgt, ImportOptions::fromPost([
+            'source'            => 'enthusiast',
+            'conflict_strategy' => 'skip',
+            'import_settings'   => '1',
+        ]));
+
+        $lastUpdated = $tgt->query('SELECT last_updated FROM lstr_fanlisting_settings WHERE fanlisting_id = 1')->fetchColumn();
+        // Skip mode must not overwrite an existing date — the existing value is preserved.
+        $this->assertSame('2024-05-24', $lastUpdated,
+            'Skip mode must preserve an existing last_updated; only backfill when target is NULL');
     }
 }

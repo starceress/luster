@@ -21,7 +21,7 @@ final class FeedbackReportTest extends TestCase
         $this->assertStringContainsString('8.2.0',            $out);
         $this->assertStringContainsString('8.0.31',           $out);
         $this->assertStringContainsString('No',               $out);
-        $this->assertStringContainsString('Configured',       $out);
+        $this->assertStringContainsString('Owner email set',  $out);
         $this->assertStringContainsString('36',               $out);
         $this->assertStringContainsString('luster/public',    $out);
         $this->assertStringContainsString('testadmin',        $out);
@@ -52,12 +52,12 @@ final class FeedbackReportTest extends TestCase
         $this->assertStringContainsString('Yes', $out);
     }
 
-    public function testSysInfoSmtpNotConfiguredRendersNotConfigured(): void
+    public function testSysInfoMailNotConfiguredRendersNotSet(): void
     {
-        $data = $this->sysInfoData(['smtp_configured' => false]);
+        $data = $this->sysInfoData(['mail_configured' => false]);
         $out  = FeedbackReport::formatSysInfo($data);
 
-        $this->assertStringContainsString('Not configured', $out);
+        $this->assertStringContainsString('Owner email not set', $out);
     }
 
     // -----------------------------------------------------------------------
@@ -187,7 +187,7 @@ final class FeedbackReportTest extends TestCase
             'php_version'      => '8.2.0',
             'db_version'       => '8.0.31',
             'debug_enabled'    => false,
-            'smtp_configured'  => true,
+            'mail_configured'  => true,
             'admin_username'   => 'testadmin',
             'addons'           => ['Kim', 'Updates'],
             'migration_level'  => 36,

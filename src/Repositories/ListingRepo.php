@@ -187,21 +187,30 @@ final class ListingRepo
      * Writes to the category_id column added by Migration 8.
      * Pass null to clear the assignment.
      */
-    public function update(int $id, ?int $categoryId, string $subject = '', string $opened = '', string $catid = ''): void
+    /**
+     * Updates the Luster category assignment for a listing.
+     *
+     * Writes to the category_id column (primary, backward-compat) and, when
+     * $categoryIds is provided, replaces all rows in lstr_listing_categories.
+     * Pass null to leave the junction table untouched.
+     */
+    public function update(int $id, ?int $categoryId, string $subject = '', string $opened = '', string $catid = '', ?array $categoryIds = null): void
     {
-        // The 'owned' schema has no 'opened' column; the standard schema does not
-        // have 'catid'. Build the SET clause based on the active schema.
+        // The standard schema (enth_fanlistings) has no catid column.
+        // The owned schema (unprefixed) has opened added by Migration 52.
         if ($this->isOwnedSchema) {
             $stmt = $this->db->prepare(
                 "UPDATE {$this->table}
                  SET category_id = :category_id,
                      subject     = :subject,
+                     opened      = :opened,
                      catid       = :catid
                  WHERE {$this->pkCol} = :id"
             );
             $stmt->execute([
                 'category_id' => $categoryId,
                 'subject'     => $subject,
+                'opened'      => $opened,
                 'catid'       => $catid,
                 'id'          => $id,
             ]);
@@ -219,6 +228,14 @@ final class ListingRepo
                 'opened'      => $opened,
                 'id'          => $id,
             ]);
+        }
+
+        if ($categoryIds !== null) {
+            try {
+                $this->saveCategories($id, $categoryIds);
+            } catch (\PDOException) {
+                // Junction table not yet created (pre-migration 51) — skip
+            }
         }
     }
 
@@ -324,23 +341,49 @@ final class ListingRepo
         };
     }
 
-    public function getCatNames(string $catid, ?int $categoryId = null): string
+    /**
+     * Returns structured category items for display (network badge + name).
+     * Each item: ['network' => 'TFL'|'TAFL'|custom, 'name' => string]
+     *
+     * @return array<int,array{network:string,name:string}>
+     */
+    public function getCatItems(string $catid, ?int $categoryId = null): array
     {
         $ids = array_filter(explode('|', $catid), fn($v) => $v !== '');
         if (!empty($ids)) {
             $ph = implode(',', array_fill(0, count($ids), '?'));
 
-            // Try legacy Enthusiast category table first; silently skip if it doesn't exist
             try {
                 $s = $this->db->prepare("SELECT catname FROM category WHERE catid IN ({$ph})");
                 $s->execute(array_values($ids));
-                $n = $s->fetchAll(\PDO::FETCH_COLUMN);
-                if ($n) {
-                    return implode(', ', $n);
+                $rawNames = $s->fetchAll(\PDO::FETCH_COLUMN);
+                if ($rawNames) {
+                    // Strip legacy Enthusiast "Anime/Manga: " subcategory prefix for display
+                    $normalized = array_map(
+                        fn($n) => (string) preg_replace('/^Anime\/Manga:\s*/i', '', (string) $n),
+                        $rawNames
+                    );
+                    // Look up by both stripped and original names to handle pre/post-migration states
+                    $lookupNames = array_values(array_unique(
+                        array_merge($normalized, array_map('strval', $rawNames))
+                    ));
+                    $ph2 = implode(',', array_fill(0, count($lookupNames), '?'));
+                    $ns  = $this->db->prepare(
+                        "SELECT name, source FROM lstr_categories WHERE name IN ({$ph2}) ORDER BY source"
+                    );
+                    $ns->execute($lookupNames);
+                    $srcMap = [];
+                    foreach ($ns->fetchAll(\PDO::FETCH_ASSOC) as $sr) {
+                        $srcMap[(string) $sr['name']] ??= self::formatSource((string) $sr['source']);
+                    }
+                    return array_map(static function (string $norm, $raw) use ($srcMap): array {
+                        return [
+                            'network' => $srcMap[$norm] ?? $srcMap[(string) $raw] ?? 'Custom',
+                            'name'    => $norm,
+                        ];
+                    }, $normalized, $rawNames);
                 }
-            } catch (\PDOException) {
-                // Table doesn't exist in this install — fall through to lstr_categories
-            }
+            } catch (\PDOException) {}
 
             $s2 = $this->db->prepare(
                 "SELECT source, name FROM lstr_categories WHERE id IN ({$ph}) ORDER BY name"
@@ -348,10 +391,10 @@ final class ListingRepo
             $s2->execute(array_values($ids));
             $rows = $s2->fetchAll(\PDO::FETCH_ASSOC);
             if ($rows) {
-                return implode(', ', array_map(
-                    fn($r) => self::formatSource($r['source']) . ' - ' . $r['name'],
+                return array_map(
+                    fn($r) => ['network' => self::formatSource((string) $r['source']), 'name' => (string) $r['name']],
                     $rows
-                ));
+                );
             }
         }
 
@@ -359,13 +402,25 @@ final class ListingRepo
             $s = $this->db->prepare('SELECT source, name FROM lstr_categories WHERE id = :id');
             $s->execute(['id' => $categoryId]);
             $r = $s->fetch();
-            return $r ? (self::formatSource($r['source']) . ' - ' . $r['name']) : '—';
+            if ($r) {
+                return [['network' => self::formatSource((string) $r['source']), 'name' => (string) $r['name']]];
+            }
         }
 
-        return '—';
+        return [];
     }
 
-    public function insert(string $title, string $subject, string $url, string $email, int $status, ?string $image, ?int $categoryId, ?string $opened, string $catid = ''): int {
+    public function getCatNames(string $catid, ?int $categoryId = null): string
+    {
+        $items = $this->getCatItems($catid, $categoryId);
+        if (empty($items)) {
+            return '—';
+        }
+        return implode(', ', array_map(fn($c) => $c['name'], $items));
+    }
+
+    public function insert(string $title, string $subject, string $url, string $email, int $status, ?string $image, ?int $categoryId, ?string $opened, string $catid = '', ?array $categoryIds = null): int
+    {
         $stmt = $this->db->prepare(
             "INSERT INTO {$this->table}
              (title,subject,url,email,status,imagefile,category_id,opened,catid,dbtable,dbserver,dbuser,dbpassword,dbdatabase)
@@ -382,7 +437,17 @@ final class ListingRepo
             'opened'  => $opened,
             'catid'   => $catid,
         ]);
-        return (int) $this->db->lastInsertId();
+        $newId = (int) $this->db->lastInsertId();
+
+        if ($categoryIds !== null && !empty($categoryIds)) {
+            try {
+                $this->saveCategories($newId, $categoryIds);
+            } catch (\PDOException) {
+                // Junction table not yet created (pre-migration 51) — skip
+            }
+        }
+
+        return $newId;
     }
 
     public function search(string $query): array
@@ -422,7 +487,11 @@ final class ListingRepo
             default                             => '1 = 1',
         };
 
-        $catWhere = $categoryId !== null ? ' AND category_id = :category_id' : '';
+        $t        = $this->table;
+        $pk       = $this->pkCol;
+        $catWhere = $categoryId !== null
+            ? " AND EXISTS (SELECT 1 FROM lstr_listing_categories lc WHERE lc.fanlisting_id = {$t}.{$pk} AND lc.category_id = :category_id)"
+            : '';
         $params   = [];
         if ($categoryId !== null) {
             $params['category_id'] = $categoryId;
@@ -444,6 +513,186 @@ final class ListingRepo
     }
 
     /**
+     * Returns active listings whose admin-controlled last_updated date is older
+     * than $days days, or has never been set. Used for the overdue email notification.
+     *
+     * @return Listing[]
+     */
+    public function getStaleListings(int $days): array
+    {
+        if ($days <= 0) {
+            return [];
+        }
+
+        $t           = $this->table;
+        $pk          = $this->pkCol;
+        $activeWhere = $this->isOwnedSchema
+            ? "{$t}.status = 2"
+            : "{$t}.upcoming = 0 AND {$t}.trouble = 0";
+        $orderCol    = $this->isOwnedSchema ? "{$t}.listingid" : "{$t}.name";
+
+        // Compute threshold in PHP so the query stays portable (no MySQL-specific DATE_SUB).
+        $threshold = date('Y-m-d', (int) strtotime("-{$days} days"));
+
+        $stmt = $this->db->prepare(
+            "SELECT {$t}.*
+             FROM {$t}
+             LEFT JOIN lstr_fanlisting_settings s ON s.fanlisting_id = {$t}.{$pk}
+             WHERE {$activeWhere}
+               AND (s.last_updated IS NULL OR s.last_updated < :threshold)
+             ORDER BY {$orderCol} ASC"
+        );
+        $stmt->execute(['threshold' => $threshold]);
+
+        return array_map(
+            static fn(array $row) => Listing::fromRow($row),
+            $stmt->fetchAll(),
+        );
+    }
+
+    /**
+     * Returns the N most recently opened active listings ordered by open date DESC.
+     *
+     * For both schemas, orders by `opened DESC, pk DESC`. The `opened` column
+     * exists in enth_fanlistings and is added to `owned` by Luster migrations;
+     * if it is absent (raw pre-migration Enthusiast install), falls back to
+     * insertion order (pk DESC) via a caught PDOException.
+     *
+     * @return Listing[]
+     */
+    public function getLatestOpened(int $limit = 1): array
+    {
+        if ($limit <= 0) {
+            return [];
+        }
+
+        $activeWhere = $this->isOwnedSchema
+            ? 'status = 2'
+            : 'upcoming = 0 AND trouble = 0';
+
+        try {
+            $stmt = $this->db->prepare(
+                "SELECT * FROM {$this->table}
+                 WHERE {$activeWhere} AND opened IS NOT NULL AND opened != ''
+                 ORDER BY opened DESC, {$this->pkCol} DESC
+                 LIMIT :lim"
+            );
+            $stmt->bindValue(':lim', $limit, \PDO::PARAM_INT);
+            $stmt->execute();
+        } catch (\PDOException) {
+            // opened column absent (pre-migration owned table) — fall back to PK order
+            $stmt = $this->db->prepare(
+                "SELECT * FROM {$this->table}
+                 WHERE {$activeWhere}
+                 ORDER BY {$this->pkCol} DESC
+                 LIMIT :lim"
+            );
+            $stmt->bindValue(':lim', $limit, \PDO::PARAM_INT);
+            $stmt->execute();
+        }
+
+        return array_map(
+            static fn(array $row) => Listing::fromRow($row),
+            $stmt->fetchAll(),
+        );
+    }
+
+    /**
+     * Batch-fetches structured category data for multiple listings from the junction table.
+     *
+     * Returns listingId → [['network' => 'TFL', 'name' => '...'], ...].
+     * Every requested ID is present as a key (empty array = no categories assigned).
+     * Returns null when the junction table does not yet exist (pre-migration 51),
+     * so callers can fall back to getCatItems() without a separate existence check.
+     *
+     * @param  int[]  $listingIds
+     * @return array<int,list<array{network:string,name:string}>>|null
+     */
+    public function getCategoryDataByListingIds(array $listingIds): ?array
+    {
+        if (empty($listingIds)) {
+            return [];
+        }
+        try {
+            $ph   = implode(',', array_fill(0, count($listingIds), '?'));
+            $stmt = $this->db->prepare(
+                "SELECT lc.fanlisting_id, c.source, c.name
+                 FROM lstr_listing_categories lc
+                 JOIN lstr_categories c ON c.id = lc.category_id
+                 WHERE lc.fanlisting_id IN ({$ph})
+                 ORDER BY lc.fanlisting_id, c.name"
+            );
+            $stmt->execute(array_values($listingIds));
+            $result = array_fill_keys(array_map('intval', $listingIds), []);
+            foreach ($stmt->fetchAll(\PDO::FETCH_ASSOC) as $row) {
+                $fid = (int) $row['fanlisting_id'];
+                $result[$fid][] = [
+                    'network' => self::formatSource((string) $row['source']),
+                    'name'    => (string) $row['name'],
+                ];
+            }
+            return $result;
+        } catch (\PDOException) {
+            return null; // Junction table absent (pre-migration 51)
+        }
+    }
+
+    /**
+     * Returns all Luster category IDs assigned to a listing via the junction table.
+     *
+     * @return int[]
+     */
+    public function getCategoryIdsForListing(int $listingId): array
+    {
+        try {
+            $stmt = $this->db->prepare(
+                'SELECT category_id FROM lstr_listing_categories WHERE fanlisting_id = :id ORDER BY category_id ASC'
+            );
+            $stmt->execute(['id' => $listingId]);
+            return array_map('intval', $stmt->fetchAll(\PDO::FETCH_COLUMN));
+        } catch (\PDOException) {
+            return [];
+        }
+    }
+
+    /**
+     * Replaces all junction-table category assignments for a listing.
+     *
+     * Deduplicates and validates input, then runs DELETE + INSERT atomically.
+     */
+    public function saveCategories(int $listingId, array $categoryIds): void
+    {
+        $unique = array_values(array_unique(
+            array_filter(
+                array_map('intval', $categoryIds),
+                static fn(int $id): bool => $id > 0
+            )
+        ));
+
+        $pdo = $this->db->pdo();
+        $pdo->beginTransaction();
+        try {
+            $pdo->prepare(
+                'DELETE FROM lstr_listing_categories WHERE fanlisting_id = :id'
+            )->execute(['id' => $listingId]);
+
+            if ($unique !== []) {
+                $stmt = $pdo->prepare(
+                    'INSERT INTO lstr_listing_categories (fanlisting_id, category_id) VALUES (:fid, :cid)'
+                );
+                foreach ($unique as $catId) {
+                    $stmt->execute(['fid' => $listingId, 'cid' => $catId]);
+                }
+            }
+
+            $pdo->commit();
+        } catch (\PDOException $e) {
+            $pdo->rollBack();
+            throw $e;
+        }
+    }
+
+    /**
      * Returns distinct Luster categories assigned to at least one fanlisting,
      * ordered parent-first then alphabetically.
      *
@@ -454,18 +703,30 @@ final class ListingRepo
     public function getCategoryList(): array
     {
         $activeWhere = $this->isOwnedSchema ? 'f.status = 2' : 'f.upcoming = 0 AND f.trouble = 0';
+        $hasParentId = $this->categoryParentColumnExists();
 
-        $stmt = $this->db->prepare(
-            "SELECT c.id, c.name, c.source, c.parent_id,
-                    p.name AS parent_name,
-                    COUNT(f.{$this->pkCol}) AS listing_count
-             FROM {$this->table} f
-             JOIN lstr_categories c ON c.id = f.category_id
-             LEFT JOIN lstr_categories p ON p.id = c.parent_id
-             WHERE f.category_id IS NOT NULL AND {$activeWhere}
-             GROUP BY c.id, c.name, c.source, c.parent_id, p.name
-             ORDER BY COALESCE(p.name, c.name) ASC, c.name ASC"
-        );
+        $sql = $hasParentId
+            ? "SELECT c.id, c.name, c.source, c.parent_id,
+                      p.name AS parent_name,
+                      COUNT(DISTINCT f.{$this->pkCol}) AS listing_count
+               FROM lstr_listing_categories lc
+               JOIN {$this->table} f ON f.{$this->pkCol} = lc.fanlisting_id
+               JOIN lstr_categories c ON c.id = lc.category_id
+               LEFT JOIN lstr_categories p ON p.id = c.parent_id
+               WHERE {$activeWhere}
+               GROUP BY c.id, c.name, c.source, c.parent_id, p.name
+               ORDER BY COALESCE(p.name, c.name) ASC, c.name ASC"
+            : "SELECT c.id, c.name, c.source, NULL AS parent_id,
+                      NULL AS parent_name,
+                      COUNT(DISTINCT f.{$this->pkCol}) AS listing_count
+               FROM lstr_listing_categories lc
+               JOIN {$this->table} f ON f.{$this->pkCol} = lc.fanlisting_id
+               JOIN lstr_categories c ON c.id = lc.category_id
+               WHERE {$activeWhere}
+               GROUP BY c.id, c.name, c.source
+               ORDER BY c.name ASC";
+
+        $stmt = $this->db->prepare($sql);
         $stmt->execute();
 
         return array_map(
@@ -479,5 +740,34 @@ final class ListingRepo
             ],
             $stmt->fetchAll()
         );
+    }
+
+    private function categoryParentColumnExists(): bool
+    {
+        try {
+            $pdo = $this->db->pdo();
+            if ($pdo->getAttribute(\PDO::ATTR_DRIVER_NAME) === 'sqlite') {
+                $stmt = $pdo->query('PRAGMA table_info(lstr_categories)');
+                foreach ($stmt ? $stmt->fetchAll() : [] as $row) {
+                    if (($row['name'] ?? '') === 'parent_id') {
+                        return true;
+                    }
+                }
+                return false;
+            }
+
+            $stmt = $pdo->prepare(
+                'SELECT 1
+                 FROM INFORMATION_SCHEMA.COLUMNS
+                 WHERE TABLE_SCHEMA = DATABASE()
+                   AND TABLE_NAME = :table
+                   AND COLUMN_NAME = :column
+                 LIMIT 1'
+            );
+            $stmt->execute(['table' => 'lstr_categories', 'column' => 'parent_id']);
+            return $stmt->fetchColumn() !== false;
+        } catch (\Throwable) {
+            return false;
+        }
     }
 }

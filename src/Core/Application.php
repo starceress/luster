@@ -6,9 +6,11 @@ namespace Luster\Core;
 
 use Luster\Middleware\AuthMiddleware;
 use Luster\Middleware\CsrfMiddleware;
+use Luster\Repositories\ActivityRepo;
 use Luster\Repositories\ErrorLogRepo;
 use Luster\Repositories\ListingRepo;
 use Luster\Repositories\MemberRepo;
+use Luster\Repositories\SiteSettingsRepo;
 use Throwable;
 
 /**
@@ -216,8 +218,49 @@ final class Application
 
         $selectedSkin = '';
         try {
-            $selectedSkin = (new \Luster\Repositories\SiteSettingsRepo($this->database))
-                ->get('selected_skin', '');
+            $siteRepo     = new \Luster\Repositories\SiteSettingsRepo($this->database);
+            $skinSettings = $siteRepo->getMany(['selected_skin', 'selected_skin_hash']);
+            $selectedSkin = $skinSettings['selected_skin'] ?? '';
+            $storedHash   = $skinSettings['selected_skin_hash'] ?? null;
+
+            // Verify community skin file integrity on every request.
+            if ($selectedSkin !== '' && !\Luster\Core\SkinCatalog::isBundled($selectedSkin)) {
+                $skinFile    = $this->basePath . '/public/assets/css/skins/' . $selectedSkin . '.css';
+                $currentHash = is_file($skinFile) ? hash_file('sha256', $skinFile) : false;
+
+                if ($currentHash === false) {
+                    // File is gone — clear before anything else so a logging failure
+                    // cannot leave the tampered skin active for this request.
+                    $tamperedName = $selectedSkin;
+                    $selectedSkin = '';
+                    $siteRepo->set('selected_skin', null);
+                    $siteRepo->set('selected_skin_hash', null);
+                    try {
+                        (new \Luster\Repositories\ActivityRepo($this->database))->log(
+                            null,
+                            'security.skin_tampered',
+                            'Community skin "' . $tamperedName . '" deactivated: skin file missing.',
+                        );
+                    } catch (\Throwable) {}
+                } elseif ($storedHash === null) {
+                    // Skin was saved before hash tracking existed — store the hash now
+                    // so subsequent loads can detect future tampering.
+                    $siteRepo->set('selected_skin_hash', $currentHash);
+                } elseif ($currentHash !== $storedHash) {
+                    // Hash changed since activation — clear before anything else.
+                    $tamperedName = $selectedSkin;
+                    $selectedSkin = '';
+                    $siteRepo->set('selected_skin', null);
+                    $siteRepo->set('selected_skin_hash', null);
+                    try {
+                        (new \Luster\Repositories\ActivityRepo($this->database))->log(
+                            null,
+                            'security.skin_tampered',
+                            'Community skin "' . $tamperedName . '" deactivated: file hash mismatch (possible tampering).',
+                        );
+                    } catch (\Throwable) {}
+                }
+            }
         } catch (\Throwable) {}
 
         $cache = [
@@ -264,7 +307,7 @@ final class Application
         // Share admin-wide template variables before route dispatch so every
         // inner template receives them without each controller needing to pass them.
         try {
-            $siteRepo = new \Luster\Repositories\SiteSettingsRepo($this->database);
+            $siteRepo = new SiteSettingsRepo($this->database);
             $dateFmt  = $siteRepo->get('date_format', 'j M Y') ?? 'j M Y';
             $timeFmt  = $siteRepo->get('time_format', 'H:i')   ?? 'H:i';
         } catch (\Throwable) {
@@ -272,6 +315,13 @@ final class Application
             $timeFmt = 'H:i';
         }
         $this->view->share(['admin_date_format' => $dateFmt, 'admin_time_format' => $timeFmt]);
+
+        // Fire overdue listing notification for authenticated admins (at most once per 24h).
+        // Start the session early — Session::start() is idempotent.
+        $this->session->start();
+        if ($this->session->has('lstr_admin_id')) {
+            $this->runOverdueCheck();
+        }
 
         $loginUrl = $this->getBaseUrl() . '/admin/login';
 
@@ -284,6 +334,84 @@ final class Application
     // -----------------------------------------------------------------------
     // Internals
     // -----------------------------------------------------------------------
+
+    /**
+     * Sends the overdue listing notification email if enabled and the 24-hour
+     * throttle has elapsed. Fires silently — any exception is swallowed so
+     * a mail failure never breaks admin page loads.
+     */
+    private function runOverdueCheck(): void
+    {
+        try {
+            $siteRepo = new SiteSettingsRepo($this->database);
+
+            if ($siteRepo->get('overdue_notify_enabled', '0') !== '1') {
+                return;
+            }
+
+            $lastSent = (int) ($siteRepo->get('overdue_notify_last_sent', '0') ?? '0');
+            if ((time() - $lastSent) < 86400) {
+                return;
+            }
+
+            $days         = max(1, (int) ($siteRepo->get('overdue_days', '55') ?? '55'));
+            $listingRepo  = new ListingRepo($this->database, $this->config);
+            $stale        = $listingRepo->getStaleListings($days);
+
+            // Update the timestamp first — even if stale is empty we reset the 24h window.
+            $siteRepo->set('overdue_notify_last_sent', (string) time());
+
+            if (empty($stale)) {
+                return;
+            }
+
+            $ownerEmail = (string) ($this->config->get('owner_email', '') ?? '');
+            if ($ownerEmail === '') {
+                return;
+            }
+
+            $siteName = (string) ($this->config->get('site_name', 'your collective') ?? '');
+            $adminUrl = rtrim((string) ($this->config->get('app_url', '') ?? ''), '/') . '/admin';
+
+            $lines = array_map(
+                static fn($l) => '- ' . $l->name . ' (' . $l->url . ')',
+                $stale,
+            );
+
+            $tplPath = LUSTER_BASE . '/templates/email/admin-overdue-listings.txt';
+            if (is_file($tplPath)) {
+                $body = str_replace(
+                    ['{listings}', '{collective_name}', '{admin_url}', '{days}'],
+                    [implode("\n", $lines), $siteName, $adminUrl, (string) $days],
+                    (string) file_get_contents($tplPath),
+                );
+            } else {
+                $body = "The following fanlistings on {$siteName} haven't been updated in {$days}+ days:\n\n"
+                      . implode("\n", $lines)
+                      . "\n\nLog in to mark them updated: {$adminUrl}";
+            }
+
+            $mailer = new Mailer($this->config);
+            $mailer->send($ownerEmail, '', '[' . $siteName . '] Overdue fanlistings', $body);
+
+            $adminId = (int) $this->session->get('lstr_admin_id', 0);
+            (new ActivityRepo($this->database))->log(
+                $adminId > 0 ? $adminId : null,
+                'overdue_notification',
+                'Overdue notification sent for ' . count($stale) . ' listing(s)',
+            );
+        } catch (\Throwable $e) {
+            try {
+                (new ErrorLogRepo($this->database))->log(
+                    'Overdue notification failed: ' . $e->getMessage(),
+                    'error',
+                    'Application::runOverdueCheck',
+                );
+            } catch (\Throwable) {
+                // DB unavailable too — truly silent fallback
+            }
+        }
+    }
 
     /**
      * @param list<CsrfMiddleware|AuthMiddleware> $middlewares

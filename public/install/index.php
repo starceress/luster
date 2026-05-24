@@ -956,22 +956,12 @@ function writeConfig(array $db, string $siteName, string $appUrl, string $siteUr
         // Site owner identity (shown in email templates)
         'owner_name'  => $ownerName,
         'owner_email' => $ownerEmail !== '' ? $ownerEmail : $adminEmail,
-        // Email (SMTP)
-        'smtp_host'      => '',
-        'smtp_port'      => 587,
-        'smtp_user'      => '',
-        'smtp_pass'      => '',
-        'smtp_from'      => $adminEmail,
-        'smtp_from_name' => $siteName,
-        'smtp_secure'    => 'tls',
         // Enthusiast compatibility
         'enth_table_prefix' => '',
         // Miscellaneous
         'timezone' => $timezone,
         'per_page' => 10,
-        // Staleness detection
-        'inactive_threshold_days' => 60,
-        'last_updated_fallback'   => 'Never',
+        'last_updated_fallback' => 'Never',
         // Embed & Paths
         'install_path'          => LUSTER_BASE . DIRECTORY_SEPARATOR,
         'session_cookie_domain' => '',
@@ -1604,7 +1594,7 @@ function renderDone(): void
         <ul class="star-list" style="margin-bottom: 1.25rem;">
           <li>Open the <a href="../admin.php" class="link">admin panel</a> and add your first listing under <a href="../admin/listings" class="link"><strong>Listings</strong></a>.</li>
           <li>Migrating from another script? Use <a href="../admin/import" class="link"><strong>Import Data &rarr; Import Wizard</strong></a> in the admin panel sidebar.</li>
-          <li>Enable outgoing email under <a href="../admin/emails/smtp-settings" class="link"><strong>Emails &rarr; SMTP Settings</strong></a> in the admin panel so join confirmations and password resets work.</li>
+          <li>Confirm your <strong>Owner Email</strong> is set under <a href="../admin/settings#panel-general" class="link"><strong>Settings &rarr; General</strong></a> so join confirmations and password resets work.</li>
           <li>Review <a href="../admin/settings" class="link"><strong>Settings</strong></a> in the admin panel to confirm your site URL and contact details.</li>
         </ul>
         <div class="onboard-callout__actions" style="justify-content: center;">

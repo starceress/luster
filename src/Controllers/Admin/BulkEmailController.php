@@ -98,9 +98,9 @@ final class BulkEmailController extends AdminController
         [$recipients, $listingName] = $this->collectRecipients($listingId);
 
         $config     = $this->app->getConfig();
-        $siteName   = (string) $config->get('site_name',      'Luster');
-        $ownerName  = (string) ($config->get('smtp_from_name', '') ?: $config->get('owner_name',  ''));
-        $ownerEmail = (string) ($config->get('smtp_from',      '') ?: $config->get('owner_email', ''));
+        $siteName   = (string) $config->get('site_name',    'Luster');
+        $ownerName  = (string) $config->get('owner_name',  '');
+        $ownerEmail = (string) $config->get('owner_email', '');
         $mailer     = new Mailer($config);
 
         // Allow long-running send without hitting the default 30 s limit

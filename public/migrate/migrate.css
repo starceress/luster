@@ -11,7 +11,7 @@ body { display: block; min-height: 100vh; padding: 0; margin: 0; }
 .mig-topbar {
   position: sticky; top: 0; z-index: 50;
   display: flex; align-items: center; gap: 12px;
-  padding: 0 24px; height: 54px;
+  padding: 0 24px; height: 60px;
   background: var(--bg-sidebar);
   border-bottom: 1px solid rgb(var(--ch-pink)/.15);
   box-shadow: 0 2px 16px rgba(0,0,0,.4);

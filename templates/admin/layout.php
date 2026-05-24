@@ -1,5 +1,6 @@
 <?php
 use Luster\Core\View;
+use Luster\Core\SkinCatalog;
 require_once __DIR__ . '/_css_assets.php';
 $b = rtrim(View::e($base_url), '/');
 

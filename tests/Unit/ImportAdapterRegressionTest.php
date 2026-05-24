@@ -74,6 +74,7 @@ final class ImportAdapterRegressionTest extends TestCase
         );
         $pdo->exec("CREATE TABLE IF NOT EXISTS lstr_categories (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, parent_id INTEGER NULL, source TEXT NOT NULL DEFAULT 'custom')");
         $pdo->exec("CREATE TABLE IF NOT EXISTS lstr_fanlisting_settings (fanlisting_id INTEGER PRIMARY KEY, members_per_page INTEGER NOT NULL DEFAULT 25, queue_updates INTEGER NOT NULL DEFAULT 0, members_template TEXT NULL, affiliates_template TEXT NULL, stats_template TEXT NULL, image TEXT NULL, last_updated TEXT NULL)");
+        $pdo->exec("CREATE TABLE IF NOT EXISTS lstr_listing_categories (fanlisting_id INTEGER NOT NULL, category_id INTEGER NOT NULL, PRIMARY KEY (fanlisting_id, category_id))");
     }
 
     /**
@@ -106,6 +107,7 @@ final class ImportAdapterRegressionTest extends TestCase
         );
         $pdo->exec("CREATE TABLE IF NOT EXISTS lstr_categories (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, parent_id INTEGER NULL, source TEXT NOT NULL DEFAULT 'custom')");
         $pdo->exec("CREATE TABLE IF NOT EXISTS lstr_fanlisting_settings (fanlisting_id INTEGER PRIMARY KEY, members_per_page INTEGER NOT NULL DEFAULT 25, queue_updates INTEGER NOT NULL DEFAULT 0, members_template TEXT NULL, affiliates_template TEXT NULL, stats_template TEXT NULL, image TEXT NULL, last_updated TEXT NULL)");
+        $pdo->exec("CREATE TABLE IF NOT EXISTS lstr_listing_categories (fanlisting_id INTEGER NOT NULL, category_id INTEGER NOT NULL, PRIMARY KEY (fanlisting_id, category_id))");
     }
 
     // -----------------------------------------------------------------------
@@ -357,6 +359,7 @@ final class ImportAdapterRegressionTest extends TestCase
         $row = $tgt->query('SELECT members_per_page, queue_updates, last_updated FROM lstr_fanlisting_settings WHERE fanlisting_id = 8')->fetch();
         $this->assertSame(42, (int) $row['members_per_page']);
         $this->assertSame(1, (int) $row['queue_updates']);
+        // No member table and no explicit date column → falls back to today (never NULL after import).
         $this->assertSame(date('Y-m-d'), $row['last_updated']);
     }
 
@@ -649,7 +652,7 @@ final class ImportAdapterRegressionTest extends TestCase
      *
      * Scenario: source has catid=4 → "Music".  Target already has "Music" at
      * id=7 (pre-existing rows pushed the auto-increment past 4).  After import
-     * the owned row must store catid='7', not '4'.
+     * the owned row must store catid='|7|', not '|4|'.
      */
     public function testRunOwnedListingsRemapsCatidViaImportedCategoryMap(): void
     {
@@ -717,7 +720,7 @@ final class ImportAdapterRegressionTest extends TestCase
             "SELECT catid FROM owned WHERE url = 'https://music.example.com'"
         )->fetchColumn();
 
-        $this->assertSame('7', $storedCatid,
+        $this->assertSame('|7|', $storedCatid,
             'catid must be remapped to the Luster category ID (7), not the raw source ID (4)');
     }
 
@@ -775,6 +778,456 @@ final class ImportAdapterRegressionTest extends TestCase
 
         $this->assertSame('12', $storedCatid,
             'catid must pass through unchanged when no category map is available');
+    }
+
+    /**
+     * When owned.catid contains a pipe-delimited ID (e.g. '|45|'), the import
+     * must still remap it correctly.  Before the fix, (int)'|45|' = 0 so the
+     * catIdMap lookup was silently skipped and the listing was left uncategorized.
+     */
+    public function testRunOwnedListingsRemapsPipeDelimitedCatid(): void
+    {
+        $src = $this->makePdo();
+        $src->exec(
+            "CREATE TABLE `category` (
+                catid   INTEGER PRIMARY KEY,
+                parent  INTEGER NOT NULL DEFAULT 0,
+                catname TEXT    NOT NULL
+            )"
+        );
+        $src->exec("INSERT INTO `category` VALUES (45, 0, 'Anime')");
+
+        $src->exec(
+            "CREATE TABLE `owned` (
+                listingid INTEGER PRIMARY KEY,
+                dbtable   TEXT NOT NULL DEFAULT '',
+                title     TEXT NOT NULL DEFAULT '',
+                subject   TEXT NOT NULL DEFAULT '',
+                email     TEXT NOT NULL DEFAULT '',
+                url       TEXT NOT NULL DEFAULT '',
+                catid     TEXT NOT NULL DEFAULT '',
+                additional TEXT NOT NULL DEFAULT '',
+                status    INTEGER NOT NULL DEFAULT 2
+            )"
+        );
+        // Source stores catid as '|45|' (pipe-delimited, common in some Enthusiast forks)
+        $src->exec(
+            "INSERT INTO `owned` VALUES (1, 'anime_fans', 'Anime Fans', 'Anime', 'owner@test.com', 'https://anime.example.com', '|45|', '', 2)"
+        );
+
+        $tgt = $this->makePdo();
+        $this->seedOwnedTarget($tgt);
+
+        // Pre-populate so that Anime gets id=3 in the target (not 45)
+        $tgt->exec("INSERT INTO lstr_categories (name, source) VALUES ('Filler1', 'custom')");
+        $tgt->exec("INSERT INTO lstr_categories (name, source) VALUES ('Filler2', 'custom')");
+        $tgt->exec("INSERT INTO lstr_categories (name, source) VALUES ('Anime', 'custom')");
+        // Anime is at id=3.
+
+        $opts = ImportOptions::fromPost([
+            'source'                => 'enthusiast',
+            'conflict_strategy'     => 'skip',
+            'import_categories'     => '1',
+            'import_owned_listings' => '1',
+            '_dump_schema_variant'  => 'enthusiast_unprefixed',
+        ]);
+
+        $result = $this->enthAdapter()->run($src, $tgt, $opts);
+
+        $ownedRow = null;
+        foreach ($result->rows as $row) {
+            if ($row['type'] === 'Owned listings') { $ownedRow = $row; break; }
+        }
+
+        $this->assertNotNull($ownedRow);
+        $this->assertSame(1, $ownedRow['imported']);
+        $this->assertEmpty($ownedRow['errors']);
+
+        $storedCatid = (string) $tgt->query(
+            "SELECT catid FROM owned WHERE url = 'https://anime.example.com'"
+        )->fetchColumn();
+
+        $this->assertSame('|3|', $storedCatid,
+            'Pipe-delimited source catid |45| must be resolved and remapped to Luster ID 3');
+    }
+
+    /**
+     * On re-run (skip strategy), a listing whose catid is still pipe-delimited
+     * (from a previous failed import) must have its catid backfilled with the
+     * resolved Luster category ID.
+     */
+    public function testRunOwnedListingsSkipPathBackfillsPipeDelimitedCatid(): void
+    {
+        $src = $this->makePdo();
+        $src->exec(
+            "CREATE TABLE `category` (
+                catid   INTEGER PRIMARY KEY,
+                parent  INTEGER NOT NULL DEFAULT 0,
+                catname TEXT    NOT NULL
+            )"
+        );
+        $src->exec("INSERT INTO `category` VALUES (45, 0, 'Anime')");
+
+        $src->exec(
+            "CREATE TABLE `owned` (
+                listingid INTEGER PRIMARY KEY,
+                dbtable   TEXT NOT NULL DEFAULT '',
+                title     TEXT NOT NULL DEFAULT '',
+                subject   TEXT NOT NULL DEFAULT '',
+                email     TEXT NOT NULL DEFAULT '',
+                url       TEXT NOT NULL DEFAULT '',
+                catid     TEXT NOT NULL DEFAULT '',
+                additional TEXT NOT NULL DEFAULT '',
+                status    INTEGER NOT NULL DEFAULT 2
+            )"
+        );
+        $src->exec(
+            "INSERT INTO `owned` VALUES (1, 'anime_fans', 'Anime Fans', 'Anime', 'owner@test.com', 'https://anime.example.com', '|45|', '', 2)"
+        );
+
+        $tgt = $this->makePdo();
+        $this->seedOwnedTarget($tgt);
+        $tgt->exec("INSERT INTO lstr_categories (name, source) VALUES ('Anime', 'custom')");
+        // Anime is at id=1.
+
+        // Pre-insert the listing as if a previous import stored the raw catid verbatim
+        $tgt->exec("INSERT INTO owned (listingid, dbtable, title, subject, email, url, catid, additional, status) VALUES (1, 'anime_fans', 'Anime Fans', 'Anime', 'owner@test.com', 'https://anime.example.com', '|45|', '', 2)");
+
+        $opts = ImportOptions::fromPost([
+            'source'                => 'enthusiast',
+            'conflict_strategy'     => 'skip',
+            'import_categories'     => '1',
+            'import_owned_listings' => '1',
+            '_dump_schema_variant'  => 'enthusiast_unprefixed',
+        ]);
+
+        $this->enthAdapter()->run($src, $tgt, $opts);
+
+        $storedCatid = (string) $tgt->query(
+            "SELECT catid FROM owned WHERE url = 'https://anime.example.com'"
+        )->fetchColumn();
+
+        $this->assertSame('|1|', $storedCatid,
+            'Skip-path backfill must replace pipe-delimited catid with the resolved Luster ID');
+    }
+
+    /**
+     * When categories are imported and a listing is freshly inserted, the import
+     * must also write a row into lstr_listing_categories so the admin UI can see
+     * the category (it reads from the junction table, not from owned.catid).
+     */
+    public function testRunOwnedListingsWritesJunctionTableOnFreshInsert(): void
+    {
+        $src = $this->makePdo();
+        $src->exec(
+            "CREATE TABLE `category` (
+                catid   INTEGER PRIMARY KEY,
+                parent  INTEGER NOT NULL DEFAULT 0,
+                catname TEXT    NOT NULL
+            )"
+        );
+        $src->exec("INSERT INTO `category` VALUES (4, 0, 'Music')");
+        $src->exec(
+            "CREATE TABLE `owned` (
+                listingid INTEGER PRIMARY KEY,
+                dbtable   TEXT NOT NULL DEFAULT '',
+                title     TEXT NOT NULL DEFAULT '',
+                subject   TEXT NOT NULL DEFAULT '',
+                email     TEXT NOT NULL DEFAULT '',
+                url       TEXT NOT NULL DEFAULT '',
+                catid     TEXT NOT NULL DEFAULT '',
+                additional TEXT NOT NULL DEFAULT '',
+                status    INTEGER NOT NULL DEFAULT 2
+            )"
+        );
+        $src->exec(
+            "INSERT INTO `owned` VALUES (1, 'music_fans', 'Music Fans', 'Music', 'owner@test.com', 'https://music.example.com', '4', '', 2)"
+        );
+
+        $tgt = $this->makePdo();
+        $this->seedOwnedTarget($tgt);
+        // Do NOT pre-insert Music — let the import create it so the catIdMap is accurate.
+
+        $opts = ImportOptions::fromPost([
+            'source'                => 'enthusiast',
+            'conflict_strategy'     => 'skip',
+            'import_categories'     => '1',
+            'import_owned_listings' => '1',
+            '_dump_schema_variant'  => 'enthusiast_unprefixed',
+        ]);
+
+        $result = $this->enthAdapter()->run($src, $tgt, $opts);
+
+        $ownedRow = null;
+        foreach ($result->rows as $row) {
+            if ($row['type'] === 'Owned listings') { $ownedRow = $row; break; }
+        }
+        $this->assertNotNull($ownedRow);
+        $this->assertSame(1, $ownedRow['imported']);
+        $this->assertEmpty($ownedRow['errors']);
+
+        // Verify category_id on owned row matches the Luster category that was inserted.
+        $musicLstrId = (int) $tgt->query("SELECT id FROM lstr_categories WHERE name = 'Music'")->fetchColumn();
+        $this->assertGreaterThan(0, $musicLstrId, 'Category must have been imported');
+
+        $junctionCatId = (int) $tgt->query(
+            "SELECT category_id FROM lstr_listing_categories WHERE fanlisting_id = 1"
+        )->fetchColumn();
+        $this->assertSame($musicLstrId, $junctionCatId,
+            'Fresh insert must write a lstr_listing_categories row so the admin UI shows the category');
+
+        $storedCategoryId = (int) $tgt->query(
+            "SELECT category_id FROM owned WHERE listingid = 1"
+        )->fetchColumn();
+        $this->assertSame($musicLstrId, $storedCategoryId,
+            'Fresh insert must also set owned.category_id');
+
+        $storedCatid = (string) $tgt->query(
+            "SELECT catid FROM owned WHERE listingid = 1"
+        )->fetchColumn();
+        $this->assertSame('|' . $musicLstrId . '|', $storedCatid,
+            'Fresh insert must store owned.catid in Luster pipe-delimited ID format');
+    }
+
+    /**
+     * On re-run (skip strategy), a listing whose catid is pipe-delimited from a
+     * prior failed import must have lstr_listing_categories written so the admin
+     * UI shows the category after the backfill.
+     */
+    public function testRunOwnedListingsSkipPathBackfillsJunctionTable(): void
+    {
+        $src = $this->makePdo();
+        $src->exec(
+            "CREATE TABLE `category` (
+                catid   INTEGER PRIMARY KEY,
+                parent  INTEGER NOT NULL DEFAULT 0,
+                catname TEXT    NOT NULL
+            )"
+        );
+        $src->exec("INSERT INTO `category` VALUES (45, 0, 'Anime')");
+        $src->exec(
+            "CREATE TABLE `owned` (
+                listingid INTEGER PRIMARY KEY,
+                dbtable   TEXT NOT NULL DEFAULT '',
+                title     TEXT NOT NULL DEFAULT '',
+                subject   TEXT NOT NULL DEFAULT '',
+                email     TEXT NOT NULL DEFAULT '',
+                url       TEXT NOT NULL DEFAULT '',
+                catid     TEXT NOT NULL DEFAULT '',
+                additional TEXT NOT NULL DEFAULT '',
+                status    INTEGER NOT NULL DEFAULT 2
+            )"
+        );
+        $src->exec(
+            "INSERT INTO `owned` VALUES (1, 'anime_fans', 'Anime Fans', 'Anime', 'owner@test.com', 'https://anime.example.com', '|45|', '', 2)"
+        );
+
+        $tgt = $this->makePdo();
+        $this->seedOwnedTarget($tgt);
+        // Do NOT pre-insert Anime — let the import create it so the catIdMap maps 45 → correct id.
+
+        // Pre-insert listing with unmapped catid, no junction row (simulates a prior failed import).
+        $tgt->exec(
+            "INSERT INTO owned (listingid, dbtable, title, subject, email, url, catid, category_id, additional, status)
+             VALUES (1, 'anime_fans', 'Anime Fans', 'Anime', 'owner@test.com', 'https://anime.example.com', '|45|', NULL, '', 2)"
+        );
+
+        $opts = ImportOptions::fromPost([
+            'source'                => 'enthusiast',
+            'conflict_strategy'     => 'skip',
+            'import_categories'     => '1',
+            'import_owned_listings' => '1',
+            '_dump_schema_variant'  => 'enthusiast_unprefixed',
+        ]);
+
+        $this->enthAdapter()->run($src, $tgt, $opts);
+
+        $animeLstrId = (int) $tgt->query("SELECT id FROM lstr_categories WHERE name = 'Anime'")->fetchColumn();
+        $this->assertGreaterThan(0, $animeLstrId, 'Category must have been imported');
+
+        $junctionCatId = (int) $tgt->query(
+            "SELECT category_id FROM lstr_listing_categories WHERE fanlisting_id = 1"
+        )->fetchColumn();
+        $this->assertSame($animeLstrId, $junctionCatId,
+            'Skip-path backfill must write lstr_listing_categories so the admin UI shows the category');
+
+        $storedCategoryId = (int) $tgt->query(
+            "SELECT category_id FROM owned WHERE listingid = 1"
+        )->fetchColumn();
+        $this->assertSame($animeLstrId, $storedCategoryId,
+            'Skip-path backfill must also set owned.category_id');
+
+        $storedCatid = (string) $tgt->query(
+            "SELECT catid FROM owned WHERE listingid = 1"
+        )->fetchColumn();
+        $this->assertSame('|' . $animeLstrId . '|', $storedCatid,
+            'Skip-path backfill must store owned.catid in Luster pipe-delimited ID format');
+    }
+
+    public function testRunOwnedListingsImportsEveryPipeDelimitedCategory(): void
+    {
+        $src = $this->makePdo();
+        $src->exec(
+            "CREATE TABLE `category` (
+                catid   INTEGER PRIMARY KEY,
+                parent  INTEGER NOT NULL DEFAULT 0,
+                catname TEXT    NOT NULL
+            )"
+        );
+        $src->exec("INSERT INTO `category` VALUES (8, 0, 'Animation')");
+        $src->exec("INSERT INTO `category` VALUES (31, 0, 'Comics')");
+        $src->exec(
+            "CREATE TABLE `owned` (
+                listingid INTEGER PRIMARY KEY,
+                dbtable   TEXT NOT NULL DEFAULT '',
+                title     TEXT NOT NULL DEFAULT '',
+                subject   TEXT NOT NULL DEFAULT '',
+                email     TEXT NOT NULL DEFAULT '',
+                url       TEXT NOT NULL DEFAULT '',
+                catid     TEXT NOT NULL DEFAULT '',
+                additional TEXT NOT NULL DEFAULT '',
+                status    INTEGER NOT NULL DEFAULT 2
+            )"
+        );
+        $src->exec(
+            "INSERT INTO `owned` VALUES (9, 'multi_fans', 'Animated Comics', 'Subject', 'owner@test.com', 'https://multi.example.com', '|8|31|', '', 2)"
+        );
+
+        $tgt = $this->makePdo();
+        $this->seedOwnedTarget($tgt);
+
+        $opts = ImportOptions::fromPost([
+            'source'                => 'enthusiast',
+            'conflict_strategy'     => 'skip',
+            'import_categories'     => '1',
+            'import_owned_listings' => '1',
+            '_dump_schema_variant'  => 'enthusiast_unprefixed',
+        ]);
+
+        $this->enthAdapter()->run($src, $tgt, $opts);
+
+        $animationId = (int) $tgt->query("SELECT id FROM lstr_categories WHERE name = 'Animation' AND source = 'tfl'")->fetchColumn();
+        $comicsId    = (int) $tgt->query("SELECT id FROM lstr_categories WHERE name = 'Comics' AND source = 'tfl'")->fetchColumn();
+
+        $stored = $tgt->query("SELECT catid, category_id FROM owned WHERE listingid = 9")->fetch(PDO::FETCH_ASSOC);
+        $this->assertSame('|' . $animationId . '|' . $comicsId . '|', (string) $stored['catid']);
+        $this->assertSame($animationId, (int) $stored['category_id']);
+
+        $junctionIds = array_map('intval', $tgt->query(
+            "SELECT category_id FROM lstr_listing_categories WHERE fanlisting_id = 9 ORDER BY category_id ASC"
+        )->fetchAll(PDO::FETCH_COLUMN));
+        sort($junctionIds);
+        $expected = [$animationId, $comicsId];
+        sort($expected);
+        $this->assertSame($expected, $junctionIds);
+    }
+
+    public function testRunOwnedListingsSkipPathRepairsEveryPipeDelimitedCategory(): void
+    {
+        $src = $this->makePdo();
+        $src->exec(
+            "CREATE TABLE `category` (
+                catid   INTEGER PRIMARY KEY,
+                parent  INTEGER NOT NULL DEFAULT 0,
+                catname TEXT    NOT NULL
+            )"
+        );
+        $src->exec("INSERT INTO `category` VALUES (8, 0, 'Animation')");
+        $src->exec("INSERT INTO `category` VALUES (31, 0, 'Comics')");
+        $src->exec(
+            "CREATE TABLE `owned` (
+                listingid INTEGER PRIMARY KEY,
+                dbtable   TEXT NOT NULL DEFAULT '',
+                title     TEXT NOT NULL DEFAULT '',
+                subject   TEXT NOT NULL DEFAULT '',
+                email     TEXT NOT NULL DEFAULT '',
+                url       TEXT NOT NULL DEFAULT '',
+                catid     TEXT NOT NULL DEFAULT '',
+                additional TEXT NOT NULL DEFAULT '',
+                status    INTEGER NOT NULL DEFAULT 2
+            )"
+        );
+        $src->exec(
+            "INSERT INTO `owned` VALUES (9, 'multi_fans', 'Animated Comics', 'Subject', 'owner@test.com', 'https://multi.example.com', '|8|31|', '', 2)"
+        );
+
+        $tgt = $this->makePdo();
+        $this->seedOwnedTarget($tgt);
+        $tgt->exec(
+            "INSERT INTO owned (listingid, dbtable, title, subject, email, url, catid, category_id, additional, status)
+             VALUES (9, 'multi_fans', 'Animated Comics', 'Subject', 'owner@test.com', 'https://multi.example.com', '|8|31|', NULL, '', 2)"
+        );
+
+        $opts = ImportOptions::fromPost([
+            'source'                => 'enthusiast',
+            'conflict_strategy'     => 'skip',
+            'import_categories'     => '1',
+            'import_owned_listings' => '1',
+            '_dump_schema_variant'  => 'enthusiast_unprefixed',
+        ]);
+
+        $this->enthAdapter()->run($src, $tgt, $opts);
+
+        $animationId = (int) $tgt->query("SELECT id FROM lstr_categories WHERE name = 'Animation' AND source = 'tfl'")->fetchColumn();
+        $comicsId    = (int) $tgt->query("SELECT id FROM lstr_categories WHERE name = 'Comics' AND source = 'tfl'")->fetchColumn();
+
+        $stored = $tgt->query("SELECT catid, category_id FROM owned WHERE listingid = 9")->fetch(PDO::FETCH_ASSOC);
+        $this->assertSame('|' . $animationId . '|' . $comicsId . '|', (string) $stored['catid']);
+        $this->assertSame($animationId, (int) $stored['category_id']);
+
+        $this->assertSame(2, (int) $tgt->query(
+            "SELECT COUNT(*) FROM lstr_listing_categories WHERE fanlisting_id = 9"
+        )->fetchColumn());
+    }
+
+    public function testRunOwnedListingsMapsAnimeMangaPrefixToTaflCategory(): void
+    {
+        $src = $this->makePdo();
+        $src->exec(
+            "CREATE TABLE `category` (
+                catid   INTEGER PRIMARY KEY,
+                parent  INTEGER NOT NULL DEFAULT 0,
+                catname TEXT    NOT NULL
+            )"
+        );
+        $src->exec("INSERT INTO `category` VALUES (23, 0, 'Anime/Manga: Series')");
+        $src->exec(
+            "CREATE TABLE `owned` (
+                listingid INTEGER PRIMARY KEY,
+                dbtable   TEXT NOT NULL DEFAULT '',
+                title     TEXT NOT NULL DEFAULT '',
+                subject   TEXT NOT NULL DEFAULT '',
+                email     TEXT NOT NULL DEFAULT '',
+                url       TEXT NOT NULL DEFAULT '',
+                catid     TEXT NOT NULL DEFAULT '',
+                additional TEXT NOT NULL DEFAULT '',
+                status    INTEGER NOT NULL DEFAULT 2
+            )"
+        );
+        $src->exec(
+            "INSERT INTO `owned` VALUES (6, 'series_fans', 'A Series', 'Subject', 'owner@test.com', 'https://series.example.com', '|23|', '', 2)"
+        );
+
+        $tgt = $this->makePdo();
+        $this->seedOwnedTarget($tgt);
+        $tgt->exec("INSERT INTO lstr_categories (name, source) VALUES ('Series', 'tfl')");
+        $tgt->exec("INSERT INTO lstr_categories (name, source) VALUES ('Series', 'tafl')");
+
+        $opts = ImportOptions::fromPost([
+            'source'                => 'enthusiast',
+            'conflict_strategy'     => 'skip',
+            'import_categories'     => '1',
+            'import_owned_listings' => '1',
+            '_dump_schema_variant'  => 'enthusiast_unprefixed',
+        ]);
+
+        $this->enthAdapter()->run($src, $tgt, $opts);
+
+        $taflSeriesId = (int) $tgt->query("SELECT id FROM lstr_categories WHERE name = 'Series' AND source = 'tafl'")->fetchColumn();
+        $stored = $tgt->query("SELECT catid, category_id FROM owned WHERE listingid = 6")->fetch(PDO::FETCH_ASSOC);
+
+        $this->assertSame('|' . $taflSeriesId . '|', (string) $stored['catid']);
+        $this->assertSame($taflSeriesId, (int) $stored['category_id']);
     }
 
     // -----------------------------------------------------------------------

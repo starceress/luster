@@ -124,6 +124,20 @@ $snippets = [
     '?>',
   ]),
 
+  'random' => implode("\n", [
+    '<?php',
+    "// \$luster_status = 'current'; // current | upcoming | all",
+    "require('{$ep}/random-listing.php');",
+    '?>',
+  ]),
+
+  'latest' => implode("\n", [
+    '<?php',
+    "// Renders the listing with the most recent open date.",
+    "require('{$ep}/latest-listing.php');",
+    '?>',
+  ]),
+
 ];
 // ──── ITEM METADATA (LABEL, BADGE, DESC, FILE, CUSTTYPE) ─────────────────
 $items = [
@@ -218,6 +232,20 @@ $items = [
     'custType' => 'kim',
     'desc'     => 'Embeds the KIM List sign-up form. The KIM List add-on must be installed and active. If the add-on is not active, a short error appears instead.',
   ],
+  'random' => [
+    'label'    => 'Random listing',
+    'badge'    => 'data',
+    'file'     => 'embed/random-listing.php',
+    'custType' => 'random',
+    'desc'     => 'Picks one active listing at random and renders it using the owned-listings row template from Admin &rarr; Collective Templates. Use <code>$luster_status</code> to control which pool to draw from.',
+  ],
+  'latest' => [
+    'label'    => 'Latest listing',
+    'badge'    => 'data',
+    'file'     => 'embed/latest-listing.php',
+    'custType' => 'latest',
+    'desc'     => 'Renders the most recently opened active listing using the owned-listings row template from Admin &rarr; Collective Templates.',
+  ],
 ];
 
 // Attach snippets to item metadata for a single data attribute
@@ -241,13 +269,13 @@ $epSafe = View::e($ep);
 // Nav item groups
 $navGroups = [
   ['label' => 'For a fanlisting page', 'keys' => ['join', 'members', 'stats', 'affiliates', 'aff-apply', 'update', 'remove', 'reset']],
-  ['label' => 'For a collective page',  'keys' => ['owned', 'joined', 'cstats', 'aff-col', 'kim']],
+  ['label' => 'For a collective page',  'keys' => ['owned', 'joined', 'cstats', 'aff-col', 'random', 'latest', 'kim']],
 ];
 
 // Customizer type groups (mirror nav groups)
 $custGroups = [
   ['label' => 'For a fanlisting page', 'keys' => ['join', 'members', 'stats', 'affiliates', 'aff-apply', 'update', 'remove', 'reset']],
-  ['label' => 'For a collective page',  'keys' => ['owned', 'joined', 'cstats', 'aff-col', 'kim']],
+  ['label' => 'For a collective page',  'keys' => ['owned', 'joined', 'cstats', 'aff-col', 'random', 'latest', 'kim']],
 ];
 
 ?>
@@ -268,7 +296,7 @@ $custGroups = [
     find it in the URL when editing a listing in this admin panel).
     Collective embeds like owned listings and site statistics do not need a listing ID.
   </div>
-<!-- ──── TAB BAR (REUSES NEBULA .TABS-BTN / .TABS-PANEL) ────────────── -->
+  
   <div class="tabs-wrap" id="ec-tabs-wrap">
     <div class="tabs" id="ec-tabs" role="tablist" aria-label="Embed codes sections">
       <button class="tabs-btn active" data-ec-tab="qc"   role="tab" aria-selected="true"  aria-controls="ec-panel-qc">Quick copy</button>

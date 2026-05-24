@@ -50,22 +50,43 @@ final class ListingController extends AdminController
         $filterNetwork = trim((string) $request->query('network', ''));
         $filterCat     = trim((string) $request->query('category', ''));
 
-        // Text search via SQL; network/category filtering done in PHP below.
+        // Text search via SQL; network/category/type filtering done in PHP below.
         $listings = $search !== ''
             ? $listingRepo->search($search)
             : $listingRepo->getAll();
 
-        // Network filter — keep only listings whose catid pipe-string contains
-        // at least one ID belonging to the selected network source.
+        // First pass: resolve category network+name and listing type for all listings.
+        // Primary source: junction table (lstr_listing_categories) via batch query.
+        // Fallback: getCatItems() for pre-migration-51 installs where the junction table
+        // doesn't exist yet.
+        $allCategoryData  = [];
+        $allCategoryNames = [];
+        $allListingTypes  = [];
+        $approvedByMap    = $settingsRepo->getAllApprovedBy();
+
+        $allListingIds = array_map(static fn($fl) => $fl->id, $listings);
+        $junctionData  = $listingRepo->getCategoryDataByListingIds($allListingIds);
+
+        foreach ($listings as $fl) {
+            if ($junctionData !== null) {
+                $catItems = $junctionData[$fl->id] ?? [];
+            } else {
+                // Pre-migration 51: fall back to catid pipe-string resolution
+                $catItems = $listingRepo->getCatItems((string) ($fl->catid ?? ''), $fl->categoryId);
+            }
+            $allCategoryData[$fl->id]  = $catItems;
+            $allCategoryNames[$fl->id] = $catItems !== [] ? implode(', ', array_map(fn($c) => $c['name'], $catItems)) : '—';
+            $allListingTypes[$fl->id]  = $settingsRepo->getListingType($fl->id);
+        }
+
+        // Network filter — name-based via resolved category data.
         if ($filterNetwork !== '') {
-            $netCats   = $categoryRepo->getBySource($filterNetwork);
-            $netCatIds = array_column($netCats, 'id');
+            $netUpper = strtoupper($filterNetwork);
             $listings = array_values(array_filter(
                 $listings,
-                static function ($fl) use ($netCatIds): bool {
-                    $catid = (string) ($fl->catid ?? '');
-                    foreach ($netCatIds as $cid) {
-                        if (str_contains($catid, '|' . $cid . '|')) {
+                static function ($fl) use ($allCategoryData, $netUpper): bool {
+                    foreach ($allCategoryData[$fl->id] as $cat) {
+                        if (strtoupper($cat['network']) === $netUpper) {
                             return true;
                         }
                     }
@@ -74,55 +95,29 @@ final class ListingController extends AdminController
             ));
         }
 
-        // Category filter — narrow to a specific category.
-        // Works with or without a network selected.
+        // Category filter — name-based, optionally scoped to selected network.
         if ($filterCat !== '') {
-            if ($filterNetwork !== '') {
-                // Scoped to the selected network — find the single matching ID.
-                $cat    = $categoryRepo->findBySourceAndName($filterNetwork, $filterCat);
-                $catIds = $cat !== null ? [$cat->id] : [];
-            } else {
-                // No network selected — match the category name across all sources.
-                $catIds = $categoryRepo->findIdsByName($filterCat);
-            }
-
-            if (!empty($catIds)) {
-                $listings = array_values(array_filter(
-                    $listings,
-                    static function ($fl) use ($catIds): bool {
-                        $catid = (string) ($fl->catid ?? '');
-                        foreach ($catIds as $cid) {
-                            if (str_contains($catid, '|' . $cid . '|')) {
+            $netUpper = strtoupper($filterNetwork);
+            $listings = array_values(array_filter(
+                $listings,
+                static function ($fl) use ($allCategoryData, $filterCat, $netUpper): bool {
+                    foreach ($allCategoryData[$fl->id] as $cat) {
+                        if (strcasecmp($cat['name'], $filterCat) === 0) {
+                            if ($netUpper === '' || strtoupper($cat['network']) === $netUpper) {
                                 return true;
                             }
                         }
-                        return false;
                     }
-                ));
-            } else {
-                $listings = [];
-            }
-        }
-
-        $memberCounts  = [];
-        $pendingCounts = [];
-        $images        = [];
-        $listingTypes  = [];
-        $categoryNames = [];
-        $approvedByMap = $settingsRepo->getAllApprovedBy();
-        foreach ($listings as $fl) {
-            $memberCounts[$fl->id]  = $fl->dbprefix !== '' ? $memberRepo->countApproved($fl->dbprefix) : 0;
-            $pendingCounts[$fl->id] = $fl->dbprefix !== '' ? $memberRepo->countPending($fl->dbprefix) : 0;
-            $images[$fl->id]        = $settingsRepo->getImage($fl->id);
-            $listingTypes[$fl->id]  = $settingsRepo->getListingType($fl->id);
-            $categoryNames[$fl->id] = $listingRepo->getCatNames((string) ($fl->catid ?? ''), $fl->categoryId);
+                    return false;
+                }
+            ));
         }
 
         $filterType  = trim((string) $request->query('type', ''));
-        $typeOptions = array_unique(array_values($listingTypes));
+        $typeOptions = array_unique(array_map(fn($fl) => $allListingTypes[$fl->id] ?? 'listing', $listings));
         sort($typeOptions);
         if ($filterType !== '') {
-            $listings = array_values(array_filter($listings, fn($fl) => ($listingTypes[$fl->id] ?? 'listing') === $filterType));
+            $listings = array_values(array_filter($listings, fn($fl) => ($allListingTypes[$fl->id] ?? 'listing') === $filterType));
         }
 
         // Column-header sort (URL param) overrides the configured display sort.
@@ -145,8 +140,8 @@ final class ListingController extends AdminController
                 return $activeDir === 'desc' ? -$cmp : $cmp;
             });
         } elseif ($activeSort === 'category') {
-            usort($listings, static function ($a, $b) use ($activeDir, $categoryNames): int {
-                $cmp = strcasecmp($categoryNames[$a->id] ?? '', $categoryNames[$b->id] ?? '');
+            usort($listings, static function ($a, $b) use ($activeDir, $allCategoryNames): int {
+                $cmp = strcasecmp($allCategoryNames[$a->id] ?? '', $allCategoryNames[$b->id] ?? '');
                 return $activeDir === 'desc' ? -$cmp : $cmp;
             });
         } elseif ($activeSort === 'status') {
@@ -169,6 +164,22 @@ final class ListingController extends AdminController
         $page       = max(1, min($totalPages, (int) $request->query('page', 1)));
         $listings = array_slice($listings, ($page - 1) * $perPage, $perPage);
 
+        // Second pass — only the paged slice: member counts and images (one query per listing).
+        $memberCounts  = [];
+        $pendingCounts = [];
+        $images        = [];
+        $listingTypes  = [];
+        $categoryData  = [];
+        $categoryNames = [];
+        foreach ($listings as $fl) {
+            $memberCounts[$fl->id]  = $fl->dbprefix !== '' ? $memberRepo->countApproved($fl->dbprefix) : 0;
+            $pendingCounts[$fl->id] = $fl->dbprefix !== '' ? $memberRepo->countPending($fl->dbprefix) : 0;
+            $images[$fl->id]        = $settingsRepo->getImage($fl->id);
+            $listingTypes[$fl->id]  = $allListingTypes[$fl->id];
+            $categoryData[$fl->id]  = $allCategoryData[$fl->id];
+            $categoryNames[$fl->id] = $allCategoryNames[$fl->id];
+        }
+
         $customNetworks = $categoryRepo->getCustomSources();
         $customCats     = [];
         foreach ($customNetworks as $cn) {
@@ -188,6 +199,7 @@ final class ListingController extends AdminController
             'images'          => $images,
             'listing_types'   => $listingTypes,
             'category_names'  => $categoryNames,
+            'category_data'   => $categoryData,
             'approved_by_map' => $approvedByMap,
             'cfg'             => $config->all(),
             'search'          => $search,
@@ -362,7 +374,7 @@ final class ListingController extends AdminController
             $image    = $filename;
         }
 
-        $newId = $listingRepo->insert($title, $subject, $url, $email, $status, $image, null, $opened, $catidStr);
+        $newId = $listingRepo->insert($title, $subject, $url, $email, $status, $image, !empty($catIds) ? $catIds[0] : null, $opened, $catidStr, $catIds);
 
         // Pre-fill default embed page names for the new listing.
         $settingsRepo = new ListingSettingsRepo($db);
@@ -444,6 +456,10 @@ final class ListingController extends AdminController
                    ->execute(['id' => $id]);
                 $db->prepare('DELETE FROM lstr_email_templates WHERE fanlisting_id = :id')
                    ->execute(['id' => $id]);
+                try {
+                    $db->prepare('DELETE FROM lstr_listing_categories WHERE fanlisting_id = :id')
+                       ->execute(['id' => $id]);
+                } catch (\Throwable) {}
 
                 // Codes cascade: map → codes → categories/sizes/donors
                 $db->prepare('DELETE lstr_code_category_map FROM lstr_code_category_map
@@ -581,6 +597,14 @@ final class ListingController extends AdminController
             $affiliateApplyFormUrl = trim((string) $request->post('form_url_affiliate_apply', ''));
             $affiliateApplyRedirectUrl = trim((string) $request->post('redirect_url_affiliate_apply', ''));
 
+            $jceRaw = $request->post('join_confirmation_email', '');
+            $joinConfirmEmail = match ($jceRaw) {
+                '1'     => true,
+                '0'     => false,
+                default => null,
+            };
+            $autoApproveJoins = $request->post('auto_approve_joins') === '1';
+
             // --- Image upload validation (before moving any file) ---
             $imageError  = '';
             $newFilename = null;
@@ -634,24 +658,47 @@ final class ListingController extends AdminController
                     array_unshift($messages, $imageError);
                 }
 
+                $tflCatsErr     = $categoryRepo->getBySource('tfl');
+                $taflCatsErr    = $categoryRepo->getBySource('tafl');
+                $customNetsErr  = $categoryRepo->getCustomSources();
+                $customCatsErr  = [];
+                foreach ($customNetsErr as $cn) {
+                    $customCatsErr[$cn] = $categoryRepo->getBySource($cn);
+                }
+
                 return $this->adminLayout('admin/listings/edit.php', 'Edit Listing', 'listings', [
                     'listing'          => $listing,
                     'error'               => implode(' ', $messages),
                     'field_errors'        => $v->errors(),
-                    'old'                 => ['title' => $title, 'url' => $url, 'email' => $email, 'status' => $status],
-                    'current_image'       => $settingsRepo->getImage($id),
-                    'cfg'                 => $config->all(),
-                    'approved'            => $memberRepo->countApproved($listing->dbprefix),
-                    'pending'             => $memberRepo->countPending($listing->dbprefix),
-                    'affiliates'          => $affiliateRepo->getByListing($id)['items'],
-                    'fields'              => $fieldRepo->getFieldsForListing($id),
-                    'templates'           => $settingsRepo->getTemplates($id),
-                    'categories'          => $categoryRepo->getAll(),
-                    'current_category_id' => $listing->categoryId ?? null,
-                    'listing_type'        => $listingType,
-                    'members_per_page'    => $membersPerPage,
-                    'contact_enabled'     => $contactEnabled,
-                    'contact_recipient'   => $contactRecipient,
+                    'old'                 => [
+                        'title'              => $title,
+                        'url'                => $url,
+                        'email'              => $email,
+                        'status'             => $status,
+                        'cat_network'        => (array) $request->post('cat_network', []),
+                        'cat_name'           => (array) $request->post('cat_name', []),
+                        'cat_network_other'  => (array) $request->post('cat_network_other', []),
+                    ],
+                    'current_image'           => $settingsRepo->getImage($id),
+                    'cfg'                     => $config->all(),
+                    'approved'                => $memberRepo->countApproved($listing->dbprefix),
+                    'pending'                 => $memberRepo->countPending($listing->dbprefix),
+                    'affiliates'              => $affiliateRepo->getByListing($id)['items'],
+                    'fields'                  => $fieldRepo->getFieldsForListing($id),
+                    'templates'               => $settingsRepo->getTemplates($id),
+                    'categories'              => $categoryRepo->getAll(),
+                    'current_category_id'     => $listing->categoryId ?? null,
+                    'current_category_ids'    => $listingRepo->getCategoryIdsForListing($id),
+                    'tfl_cats'                => $tflCatsErr,
+                    'tafl_cats'               => $taflCatsErr,
+                    'custom_networks'         => $customNetsErr,
+                    'custom_cats'             => $customCatsErr,
+                    'listing_type'            => $listingType,
+                    'members_per_page'        => $membersPerPage,
+                    'contact_enabled'         => $contactEnabled,
+                    'contact_recipient'       => $contactRecipient,
+                    'join_confirmation_email' => $joinConfirmEmail,
+                    'auto_approve_joins'      => $autoApproveJoins,
                 ], '', [
                     $this->crumb('Owned Listings', $this->adminUrl('/admin/listings')),
                     $this->crumb($listing->subject),
@@ -669,7 +716,7 @@ final class ListingController extends AdminController
             }
 
             $listingRepo->updateMeta($id, $title, $url, $email, $upcoming, $trouble);
-            $listingRepo->update($id, !empty($catids) ? $catids[0] : null, $subject, $opened, $catidStr);
+            $listingRepo->update($id, !empty($catids) ? $catids[0] : null, $subject, $opened, $catidStr, $catids);
             $settingsRepo->saveListingType($id, $listingType);
             $settingsRepo->saveMembersPerPage($id, $membersPerPage);
             $settingsRepo->saveContactSettings($id, $contactEnabled, $contactRecipient !== '' ? $contactRecipient : null);
@@ -678,6 +725,7 @@ final class ListingController extends AdminController
                 $settingsRepo->saveForAdoption($id, $forAdoptionInput);
             }
             $settingsRepo->saveAffiliateApplySettings($id, $affiliateApplyEnabled, $affiliateApplyFormUrl, $affiliateApplyRedirectUrl);
+            $settingsRepo->saveJoinSettings($id, $joinConfirmEmail, $autoApproveJoins);
             if ($lastUpdatedInput !== '' || $request->post('fl_last_updated') !== null) {
                 $settingsRepo->setLastUpdated($id, $lastUpdatedInput !== '' ? $lastUpdatedInput : null);
             }
@@ -731,6 +779,7 @@ final class ListingController extends AdminController
         $contactSettings    = $settingsRepo->getContactSettings($id);
         $approvedBy         = $settingsRepo->getApprovedBy($id);
         $affiliateApplySettings = $settingsRepo->getAffiliateApplySettings($id);
+        $joinSettings           = $settingsRepo->getJoinSettings($id);
         $adoptionAddonInstalled = $this->app->isAddonInstalled('Adoption');
         $forAdoption            = $adoptionAddonInstalled && $settingsRepo->getForAdoption($id);
         $adoptionCount          = $adoptionAddonInstalled
@@ -747,11 +796,12 @@ final class ListingController extends AdminController
         foreach ($customNetworks as $cn) {
             $customCats[$cn] = $categoryRepo->getBySource($cn);
         }
-        $affiliates         = $affiliateRepo->getByListing($id)['items'];
-        $fields             = $fieldRepo->getFieldsForListing($id);
-        $templates          = $settingsRepo->getTemplates($id);
-        $categories         = $categoryRepo->getAll();
-        $currentCategoryId  = $listing->categoryId ?? null;
+        $affiliates           = $affiliateRepo->getByListing($id)['items'];
+        $fields               = $fieldRepo->getFieldsForListing($id);
+        $templates            = $settingsRepo->getTemplates($id);
+        $categories           = $categoryRepo->getAll();
+        $currentCategoryId    = $listing->categoryId ?? null;
+        $currentCategoryIds   = $listingRepo->getCategoryIdsForListing($id);
 
         // Codes tab data
         $codeStatusFilter = in_array((string) $request->query('status_filter', ''), array_merge([''], CodesRepo::STATUSES), true)
@@ -819,7 +869,8 @@ final class ListingController extends AdminController
             'fields'              => $fields,
             'templates'           => $templates,
             'categories'          => $categories,
-            'current_category_id' => $currentCategoryId,
+            'current_category_id'  => $currentCategoryId,
+            'current_category_ids' => $currentCategoryIds,
             'listing_type'        => $listingType,
             'members_per_page'    => $membersPerPage,
             'embed_settings'      => $embedSettings,
@@ -832,6 +883,8 @@ final class ListingController extends AdminController
             'affiliate_apply_enabled'        => $affiliateApplySettings['enabled'],
             'form_url_affiliate_apply'       => $affiliateApplySettings['form_url'],
             'redirect_url_affiliate_apply'   => $affiliateApplySettings['redirect_url'],
+            'join_confirmation_email'        => $joinSettings['confirmation_email'],
+            'auto_approve_joins'             => $joinSettings['auto_approve'],
             'codes'               => $codes,
             'code_cats'           => $codeCats,
             'code_donors'         => $codeDonors,
@@ -891,6 +944,10 @@ final class ListingController extends AdminController
            ->execute(['id' => $id]);
         $db->prepare('DELETE FROM lstr_email_templates WHERE fanlisting_id = :id')
            ->execute(['id' => $id]);
+        try {
+            $db->prepare('DELETE FROM lstr_listing_categories WHERE fanlisting_id = :id')
+               ->execute(['id' => $id]);
+        } catch (\Throwable) {}
 
         // Codes cascade: map → codes → categories/sizes/donors
         $db->prepare('DELETE lstr_code_category_map FROM lstr_code_category_map
@@ -1202,7 +1259,8 @@ final class ListingController extends AdminController
         $rawCategoryId = (int) $request->post('category_id', 0);
         $categoryId    = $rawCategoryId > 0 ? $rawCategoryId : null;
 
-        $listingRepo->update($id, $categoryId, $listing->subject, (string) ($listing->joined ?? ''), (string) ($listing->catid ?? ''));
+        $allCatIds = $categoryId !== null ? [$categoryId] : [];
+        $listingRepo->update($id, $categoryId, $listing->subject, (string) ($listing->joined ?? ''), (string) ($listing->catid ?? ''), $allCatIds);
 
         $this->app->getSession()->set('lstr_flash_success', 'Category updated.');
 

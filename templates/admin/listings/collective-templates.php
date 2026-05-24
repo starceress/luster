@@ -19,9 +19,11 @@ $b        = rtrim(View::e($base_url), '/');
 $ct       = $collective_templates ?? [];
 $defaults = SiteSettingsRepo::collectiveDefaults();
 
-$ownedVal  = $ct['owned_template'] ?? $defaults['owned_template'];
-$joinedVal = $ct['joined_template'] ?? $defaults['joined_template'];
-$statsVal  = $ct['collective_stats_template'] ?? $defaults['collective_stats_template'];
+$ownedVal         = $ct['owned_template']            ?? $defaults['owned_template'];
+$joinedVal        = $ct['joined_template']           ?? $defaults['joined_template'];
+$statsVal         = $ct['collective_stats_template'] ?? $defaults['collective_stats_template'];
+$ownedSectionsVal = $ct['owned_sections_template']   ?? $defaults['owned_sections_template'];
+$joinedSectionsVal= $ct['joined_sections_template']  ?? $defaults['joined_sections_template'];
 ?>
 
 <div class="page-topbar">
@@ -57,12 +59,30 @@ $statsVal  = $ct['collective_stats_template'] ?? $defaults['collective_stats_tem
           <button type="button" class="btn btn-ghost btn-sm" data-textarea="owned_template">Reset to Default</button>
         </div>
 
+        <div class="pc-section-label">Owned Listings — Sections Layout</div>
+        <p class="form-hint" style="margin-bottom:.75rem">Used when <code>$luster_status = 'all'</code>. Wraps the row template output in sections by listing status. Omit a conditional block to hide that status. <strong>Clear this field to disable sections mode</strong> and fall back to flat output. Note: pending/trouble listings are excluded by default — set <code>$luster_exclude_pending = false</code> to include them in <code>{pending_content}</code>.</p>
+        <div class="form-group">
+          <textarea name="owned_sections_template" id="owned_sections_template" class="form tpl-textarea tpl-textarea-lg" spellcheck="false"><?= View::e($ownedSectionsVal) ?></textarea>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-ghost btn-sm" data-textarea="owned_sections_template">Reset to Default</button>
+        </div>
+
         <div class="pc-section-label">Joined Listings</div>
         <div class="form-group">
           <textarea name="joined_template" id="joined_template" class="form tpl-textarea" spellcheck="false"><?= View::e($joinedVal) ?></textarea>
         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-ghost btn-sm" data-textarea="joined_template">Reset to Default</button>
+        </div>
+
+        <div class="pc-section-label">Joined Listings — Sections Layout</div>
+        <p class="form-hint" style="margin-bottom:.75rem">Used when <code>$luster_category = 'all'</code>. Wraps the row template output in a structured header block. Only active listings are shown. <strong>Clear this field to disable sections mode</strong> and fall back to the standard grouped-by-category output.</p>
+        <div class="form-group">
+          <textarea name="joined_sections_template" id="joined_sections_template" class="form tpl-textarea tpl-textarea-lg" spellcheck="false"><?= View::e($joinedSectionsVal) ?></textarea>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-ghost btn-sm" data-textarea="joined_sections_template">Reset to Default</button>
         </div>
 
         <div class="pc-section-label">Statistics</div>
@@ -127,6 +147,26 @@ $statsVal  = $ct['collective_stats_template'] ?? $defaults['collective_stats_tem
         </div>
       </details>
 
+      <details class="card chevron">
+        <summary class="chevron-head">Owned Sections Tokens</summary>
+        <div class="chevron-body">
+          <table class="et-token-table">
+            <tbody>
+              <tr><td><code>{current_content}</code></td><td>Rendered current rows</td></tr>
+              <tr><td><code>{upcoming_content}</code></td><td>Rendered upcoming rows</td></tr>
+              <tr><td><code>{pending_content}</code></td><td>Rendered pending rows</td></tr>
+              <tr><td><code>{current_count}</code></td><td>Number of current listings</td></tr>
+              <tr><td><code>{upcoming_count}</code></td><td>Number of upcoming listings</td></tr>
+              <tr><td><code>{pending_count}</code></td><td>Number of pending listings</td></tr>
+              <tr><td><code>{total_count}</code></td><td>Total listings shown</td></tr>
+              <tr><td><code>{if_current_listings}&hellip;{/if_current_listings}</code></td><td>Show block only when current listings exist</td></tr>
+              <tr><td><code>{if_upcoming_listings}&hellip;{/if_upcoming_listings}</code></td><td>Show block only when upcoming listings exist</td></tr>
+              <tr><td><code>{if_pending_listings}&hellip;{/if_pending_listings}</code></td><td>Show block only when pending listings exist</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </details>
+
       <details class="card chevron" open>
         <summary class="chevron-head">Joined Listings Tokens</summary>
         <div class="chevron-body">
@@ -155,6 +195,21 @@ $statsVal  = $ct['collective_stats_template'] ?? $defaults['collective_stats_tem
               </tr>
             </tbody>
           </table>
+        </div>
+      </details>
+
+      <details class="card chevron">
+        <summary class="chevron-head">Joined Sections Tokens</summary>
+        <div class="chevron-body">
+          <table class="et-token-table">
+            <tbody>
+              <tr><td><code>{current_content}</code></td><td>Rendered active listing rows</td></tr>
+              <tr><td><code>{current_count}</code></td><td>Number of active listings</td></tr>
+              <tr><td><code>{total_count}</code></td><td>Total active listings</td></tr>
+              <tr><td><code>{if_current_listings}&hellip;{/if_current_listings}</code></td><td>Show block only when active listings exist</td></tr>
+            </tbody>
+          </table>
+          <p class="form-hint" style="margin-top:.5rem">Only active listings are included. Inactive joined listings are never exposed publicly.</p>
         </div>
       </details>
 

@@ -31,6 +31,9 @@ use Luster\Repositories\MemberRepo;
  *   {stat_growth}       — average members per day since opened, e.g. "1.23 members/day"
  *   {listing_name}      — listing name (HTML-escaped)
  *   {listing_url}       — listing URL (HTML-escaped)
+ *   {approved_by}       — linked network name ("The Fanlistings Network" or
+ *                         "The Anime Fanlistings Network"), or '' if not approved
+ *   {if_approved_by}...{/if_approved_by}  — rendered only when approved_by is set
  */
 
 // ---------------------------------------------------------------------------
@@ -115,6 +118,7 @@ $_lusterTemplate     = ($_lusterTemplates['stats_template'] !== null
     . '<tr><td>Last updated</td><td>{stat_last_updated}</td></tr>'
     . '<tr><td>Members</td><td>{stat_approved} ({stat_pending} pending)</td></tr>'
     . '<tr><td>Newest</td><td>{stat_newmembers}</td></tr>'
+    . '{if_approved_by}<tr><td>Approved by</td><td>{approved_by}</td></tr>{/if_approved_by}'
     . '</table>';
 
 // Allow an inline override set before require (e.g. from the customizer-generated code).
@@ -175,6 +179,20 @@ $_lusterAdminUpdatedStr = $_lusterAdminLastUpdated !== null
     ? $_lusterFormatDate($_lusterAdminLastUpdated)
     : $_lusterLastUpdatedFallback;
 
+$_lusterApprovedBy     = $_lusterSettingsRepo->getApprovedBy($_lusterListingId);
+$_lusterApprovedByHtml = match ($_lusterApprovedBy) {
+    'tfl'   => '<a href="https://thefanlistings.org">The Fanlistings Network</a>',
+    'tafl'  => '<a href="https://animefanlistings.org">The Anime Fanlistings Network</a>',
+    default => '',
+};
+
+// Conditional block — must run before flat str_replace
+$_lusterTemplate = (string) preg_replace(
+    '/\{if_approved_by\}(.*?)\{\/if_approved_by\}/s',
+    $_lusterApprovedBy !== '' ? '$1' : '',
+    $_lusterTemplate,
+);
+
 $_lusterHtml = str_replace(
     [
         '{stat_opened}',
@@ -186,6 +204,7 @@ $_lusterHtml = str_replace(
         '{stat_growth}',
         '{listing_name}',
         '{listing_url}',
+        '{approved_by}',
     ],
     [
         $_lusterOpened,
@@ -197,6 +216,7 @@ $_lusterHtml = str_replace(
         $_lusterGrowth . ' members/day',
         htmlspecialchars($_lusterListing->name, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),
         htmlspecialchars($_lusterListing->url,  ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),
+        $_lusterApprovedByHtml,
     ],
     $_lusterTemplate,
 );

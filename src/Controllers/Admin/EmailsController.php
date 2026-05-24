@@ -6,7 +6,6 @@ namespace Luster\Controllers\Admin;
 
 use Luster\Core\Request;
 use Luster\Core\Response;
-use Luster\Repositories\AdminUserRepo;
 use Luster\Repositories\EmailTemplateRepo;
 use Luster\Repositories\ListingRepo;
 use Luster\Repositories\MemberRepo;
@@ -19,14 +18,13 @@ use Luster\Repositories\SavedEmailRepo;
  *   ?tab=templates   — Email Templates
  *   ?tab=bulk        — Bulk Email (compose form)
  *   ?tab=custom      — Custom Templates (saved email templates)
- *   ?tab=smtp        — SMTP Settings
  *
  * All data for all tabs is loaded eagerly on every GET.
  * POST actions are handled by their original controllers.
  */
 final class EmailsController extends AdminController
 {
-    private const VALID_TABS = ['templates', 'bulk', 'custom', 'smtp'];
+    private const VALID_TABS = ['templates', 'bulk', 'custom'];
 
     // -----------------------------------------------------------------------
     // GET /admin/emails
@@ -38,7 +36,7 @@ final class EmailsController extends AdminController
         $config  = $this->app->getConfig();
         $session = $this->app->getSession();
 
-        // Determine active tab
+        // Determine active tab ('smtp' was removed; redirect legacy links to bulk)
         $tab = $request->query('tab', 'bulk');
         if (!in_array($tab, self::VALID_TABS, true)) {
             $tab = 'bulk';
@@ -176,23 +174,13 @@ final class EmailsController extends AdminController
         }
         $deduplicatedTotal = count($allEmails);
 
-        $smtpFrom     = (string) $config->get('smtp_from',      '');
-        $smtpFromName = (string) $config->get('smtp_from_name', '');
-        $fromEmail    = $smtpFrom     !== '' ? $smtpFrom     : (string) $config->get('owner_email', '');
-        $fromName     = $smtpFromName !== '' ? $smtpFromName : (string) $config->get('owner_name',  '');
-
-        // ── SMTP tab ──────────────────────────────────────────────────────
-        $cfg = $config->all();
-
-        $adminId   = (int) $session->get('lstr_admin_id');
-        $adminRepo = new AdminUserRepo($db);
-        $adminUser = $adminRepo->getById($adminId);
+        $fromEmail = (string) $config->get('owner_email', '');
+        $fromName  = (string) $config->get('owner_name',  '');
 
         // ── Render ────────────────────────────────────────────────────────
         $tabLabel = match ($tab) {
             'bulk'   => 'Bulk Email',
             'custom' => 'Saved Templates',
-            'smtp'   => 'SMTP Settings',
             default  => 'Email Templates',
         };
         $breadcrumbs = [];
@@ -231,10 +219,6 @@ final class EmailsController extends AdminController
             'old_body'            => $preBody,
             'from_name_val'       => $fromName,
             'from_email_val'      => $fromEmail,
-
-            // SMTP tab
-            'cfg'                 => $cfg,
-            'admin_user'          => $adminUser,
         ], '', $breadcrumbs);
     }
 
