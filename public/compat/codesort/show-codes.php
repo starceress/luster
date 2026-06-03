@@ -42,12 +42,25 @@ $_lusterCodesListingId = 0;
 if (isset($luster_fanlisting_id) && (int) $luster_fanlisting_id > 0) {
     $_lusterCodesListingId = (int) $luster_fanlisting_id;
 
-// 2. CodeSort $listing variable — treat as direct Luster listing ID.
-//    This is correct only when CodeSort and Luster listing IDs align (e.g. a
-//    fresh Luster install). If IDs diverge after import, set $luster_fanlisting_id
-//    explicitly to avoid routing to the wrong listing.
+// 2. CodeSort $listing variable — resolve via lstr_listing_external_refs first
+//    so the mapping survives imports where CodeSort and Luster listing IDs diverge.
+//    Falls back to treating $listing as a direct Luster ID only when no external
+//    ref exists (e.g. the CodeSort import has not been run yet).
 } elseif (isset($listing) && (int) $listing > 0) {
-    $_lusterCodesListingId = (int) $listing;
+    try {
+        $_lusterExtStmt = $_lusterCompatDb->prepare(
+            'SELECT listing_id FROM lstr_listing_external_refs
+             WHERE source = \'codesort\' AND external_id = :eid
+             LIMIT 1'
+        );
+        $_lusterExtStmt->execute(['eid' => (string) (int) $listing]);
+        $_lusterExtRow = $_lusterExtStmt->fetch();
+        $_lusterCodesListingId = $_lusterExtRow !== false
+            ? (int) $_lusterExtRow['listing_id']
+            : (int) $listing;  // safe fallback when no external ref
+    } catch (\Throwable) {
+        $_lusterCodesListingId = (int) $listing;
+    }
 
 // 3. URL-based fallback — match current page URL against lstr_fanlisting_settings
 //    and the owned listing URL. Codes pages typically live in the listing directory,

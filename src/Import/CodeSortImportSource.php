@@ -219,6 +219,22 @@ final class CodeSortImportSource implements ImportSourceInterface
         );
         $matchedListingIds = array_values(array_unique(array_filter(array_values($collectiveMap))));
 
+        // Store cs_fl_id → Luster listing_id in lstr_listing_external_refs so that
+        // the CodeSort compat shim can resolve $listing by external ref rather than
+        // assuming CodeSort and Luster listing IDs are identical.
+        // Plain INSERT — duplicate key errors caught individually so one failure
+        // does not abort the remaining mappings.
+        foreach ($collectiveMap as $csFlId => $lstrId) {
+            if ($lstrId !== null) {
+                try {
+                    $target->prepare(
+                        'INSERT INTO lstr_listing_external_refs (listing_id, source, external_id)
+                         VALUES (:lid, \'codesort\', :eid)'
+                    )->execute(['lid' => $lstrId, 'eid' => (string) $csFlId]);
+                } catch (\Throwable) {}
+            }
+        }
+
         // Maps built during sub-imports and consumed by importCodes
         $catMap   = []; // cs_cat_id  → lstr_cat_id
         $sizeMap  = []; // cs_size_id → [lstr_lid => lstr_size_id]

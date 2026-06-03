@@ -166,6 +166,16 @@ final class CodeSortImportTest extends TestCase
                 category_id INTEGER NOT NULL
             )'
         );
+        $pdo->exec(
+            'CREATE TABLE IF NOT EXISTS lstr_listing_external_refs (
+                id          INTEGER PRIMARY KEY AUTOINCREMENT,
+                listing_id  INTEGER NOT NULL,
+                source      TEXT    NOT NULL,
+                external_id TEXT    NOT NULL,
+                external_slug_or_url TEXT NOT NULL DEFAULT \'\',
+                UNIQUE (source, external_id)
+            )'
+        );
     }
 
     // -----------------------------------------------------------------------
@@ -556,5 +566,39 @@ final class CodeSortImportTest extends TestCase
             if ($r['type'] === 'Codes') { $codeRow = $r; break; }
         }
         $this->assertSame(1, $codeRow['imported']);
+    }
+
+    // -----------------------------------------------------------------------
+    // Phase 3 — external ref storage
+    // -----------------------------------------------------------------------
+
+    public function testCollectiveMapStoresExternalRefs(): void
+    {
+        $src = $this->makePdo();
+        $tgt = $this->makePdo();
+
+        // codesort_prefixed: fl_id=7 → Luster listing 5 (title match)
+        $src->exec('CREATE TABLE codes_collective (fl_id INTEGER PRIMARY KEY, fl_subject TEXT NOT NULL DEFAULT \'\')');
+        $src->exec("INSERT INTO codes_collective VALUES (7, 'My Fanlisting')");
+        $src->exec('CREATE TABLE codes_cat    (cat_id INTEGER PRIMARY KEY, cat_name TEXT, cat_fl INTEGER)');
+        $src->exec('CREATE TABLE codes_sizes  (size_id INTEGER PRIMARY KEY, size_size TEXT, size_order INTEGER)');
+        $src->exec('CREATE TABLE codes_donors (donor_id INTEGER PRIMARY KEY, donor_name TEXT, donor_url TEXT)');
+        $src->exec('CREATE TABLE codes_codes  (code_id INTEGER PRIMARY KEY, code_fl INTEGER, code_cat INTEGER,
+                    code_size INTEGER, code_image TEXT, code_donor INTEGER, code_approved TEXT)');
+
+        $this->seedTarget($tgt, listingId: 5, title: 'My Fanlisting');
+
+        $this->adapter()->run($src, $tgt, $this->makeOptions([
+            '_dump_schema_variant' => 'codesort_prefixed',
+        ]));
+
+        $ref = $tgt->query(
+            "SELECT listing_id, external_id FROM lstr_listing_external_refs
+             WHERE source = 'codesort'"
+        )->fetch();
+
+        self::assertNotFalse($ref, 'CodeSort external ref should be stored for matched listings');
+        self::assertSame('5', (string) $ref['listing_id'],  'Should link to Luster listing 5');
+        self::assertSame('7', (string) $ref['external_id'], 'Should record CodeSort fl_id 7');
     }
 }
