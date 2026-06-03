@@ -60,7 +60,7 @@ final class NetworkDirectoryServiceTest extends TestCase
     {
         // Write a cache entry directly
         $svc  = $this->svc();
-        $file = $this->cacheDir . '/netdir_' . md5('tfl|https://example.com/fl/') . '.json';
+        $file = $this->cacheDir . '/netdir_' . md5('tfl|example.com/fl') . '.json';
         file_put_contents($file, json_encode([
             'found'      => true,
             'http_code'  => 200,
@@ -76,7 +76,7 @@ final class NetworkDirectoryServiceTest extends TestCase
     public function testGetCachedReturnsNullWhenExpired(): void
     {
         $svc  = $this->svc();
-        $file = $this->cacheDir . '/netdir_' . md5('tfl|https://example.com/fl/') . '.json';
+        $file = $this->cacheDir . '/netdir_' . md5('tfl|example.com/fl') . '.json';
         file_put_contents($file, json_encode([
             'found'      => true,
             'http_code'  => 200,
@@ -90,7 +90,7 @@ final class NetworkDirectoryServiceTest extends TestCase
     public function testClearCacheRemovesFile(): void
     {
         $svc  = $this->svc();
-        $file = $this->cacheDir . '/netdir_' . md5('tfl|https://example.com/fl/') . '.json';
+        $file = $this->cacheDir . '/netdir_' . md5('tfl|example.com/fl') . '.json';
         file_put_contents($file, json_encode(['found' => false, 'http_code' => 0, 'checked_at' => time(), 'error' => null]));
 
         self::assertTrue(is_file($file));
@@ -111,7 +111,7 @@ final class NetworkDirectoryServiceTest extends TestCase
     public function testLookupReturnsCachedResultWhenFresh(): void
     {
         $svc  = $this->svc();
-        $file = $this->cacheDir . '/netdir_' . md5('tfl|https://example.com/fl/') . '.json';
+        $file = $this->cacheDir . '/netdir_' . md5('tfl|example.com/fl') . '.json';
         file_put_contents($file, json_encode([
             'found'      => true,
             'http_code'  => 200,
@@ -142,20 +142,21 @@ final class NetworkDirectoryServiceTest extends TestCase
     // -----------------------------------------------------------------------
 
     /**
-     * Exercises the exact logic the production fetch() uses: extract href values,
-     * normalize each with UrlNormalizer::normalizeUrlForSearch(), compare exact strings.
-     */
-    /**
-     * Mirrors the production normalizeForDirectory + href-extraction logic.
-     * Both the target URL and each href are normalized by stripping scheme and
-     * www, lower-casing, and trimming trailing slashes — query strings preserved.
+     * Mirrors the production normalizeForDirectory + href-extraction logic:
+     * scheme and www stripped, fragment stripped, host lowercased (only),
+     * path/query kept as-is, trailing slash trimmed.
      */
     private function matchesHref(string $listingUrl, string $bodyHtml): bool
     {
         $normalize = static function (string $url): string {
-            $url = preg_replace('#^https?://#i', '', trim($url)) ?? '';
-            $url = preg_replace('#^www\.#i', '', $url)           ?? $url;
-            return strtolower(rtrim($url, '/'));
+            $url = preg_replace('#^(?:https?:)?//#i', '', trim($url)) ?? '';
+            $url = preg_replace('#^www\.#i', '', $url)                ?? $url;
+            $hashPos = strpos($url, '#');
+            if ($hashPos !== false) {
+                $url = substr($url, 0, $hashPos);
+            }
+            $hostEnd = strcspn($url, '/?');
+            return rtrim(strtolower(substr($url, 0, $hostEnd)) . substr($url, $hostEnd), '/');
         };
         $needle = $normalize($listingUrl);
         if ($needle === '') {
@@ -163,7 +164,8 @@ final class NetworkDirectoryServiceTest extends TestCase
         }
         preg_match_all('/href=["\']([^"\']+)["\']/i', $bodyHtml, $m);
         foreach ($m[1] ?? [] as $href) {
-            if ($normalize((string) $href) === $needle) {
+            $href = html_entity_decode((string) $href, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+            if ($normalize($href) === $needle) {
                 return true;
             }
         }
@@ -217,6 +219,35 @@ final class NetworkDirectoryServiceTest extends TestCase
     {
         $body = '<a href="https://example.com/index.php?id=1">FL 1</a>';
         self::assertTrue($this->matchesHref('https://example.com/index.php?id=1', $body));
+    }
+
+    public function testFragmentIsStripped(): void
+    {
+        // href with a fragment must match the same URL without one
+        $body = '<a href="https://example.com/fl/#section">Visit</a>';
+        self::assertTrue($this->matchesHref('https://example.com/fl/', $body));
+    }
+
+    public function testPathCaseIsPreserved(): void
+    {
+        // /FL/ (upper-case path) must NOT match /fl/ — paths are case-sensitive
+        $body = '<a href="https://example.com/fl/">Visit</a>';
+        self::assertFalse($this->matchesHref('https://EXAMPLE.COM/FL/', $body),
+            'Path case is significant — /FL/ and /fl/ are different pages');
+    }
+
+    public function testHtmlEntitiesInHrefAreDecoded(): void
+    {
+        // Search-result pages encode & as &amp; in href attributes
+        $body = '<a href="https://example.com/index.php?id=1&amp;view=members">FL</a>';
+        self::assertTrue($this->matchesHref('https://example.com/index.php?id=1&view=members', $body));
+    }
+
+    public function testProtocolRelativeHrefIsFound(): void
+    {
+        // TFL/TAFL may emit //example.com/fl/ (no scheme) in search results
+        $body = '<a href="//example.com/fl/">Visit</a>';
+        self::assertTrue($this->matchesHref('https://example.com/fl/', $body));
     }
 
     // -----------------------------------------------------------------------

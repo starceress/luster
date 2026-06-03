@@ -133,14 +133,15 @@ final class NetworkDirectoryController extends AdminController
         $skipped = 0;
         foreach ($listings as $listing) {
             foreach (NetworkDirectoryService::networks() as $network) {
-                // Guard: reserve enough time for the worst-case lookup
-                // (TIMEOUT × (MAX_HOPS + 1) seconds across all redirect hops).
-                if (microtime(true) + NetworkDirectoryService::maxLookupSeconds() >= $deadline) {
+                // Cached entries cost nothing — only apply the deadline guard when a
+                // live HTTP fetch would actually be needed (cache missing or expired).
+                // Guard threshold: one TIMEOUT period; if less time remains we can't
+                // reliably complete even a single hop before the PHP deadline fires.
+                if ($svc->getCached($listing->url, $network) === null
+                    && ($deadline - microtime(true)) < NetworkDirectoryService::TIMEOUT) {
                     $skipped++;
                     continue;
                 }
-                // lookup() uses cache when fresh — only makes a live HTTP request
-                // when the cached result is missing or older than 7 days.
                 $svc->lookup($listing->url, $network);
                 $checked++;
             }

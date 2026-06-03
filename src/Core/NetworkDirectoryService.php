@@ -157,7 +157,10 @@ final class NetworkDirectoryService
             if ($needle !== '' && $code >= 200 && $code < 300) {
                 preg_match_all('/href=["\']([^"\']+)["\']/i', $body, $hrefMatches);
                 foreach ($hrefMatches[1] ?? [] as $href) {
-                    if (self::normalizeForDirectory((string) $href) === $needle) {
+                    // Decode HTML entities before normalizing: search-result pages
+                    // often encode & as &amp; in href attributes.
+                    $href = html_entity_decode((string) $href, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+                    if (self::normalizeForDirectory($href) === $needle) {
                         $found = true;
                         break;
                     }
@@ -253,19 +256,30 @@ final class NetworkDirectoryService
      * Unlike UrlNormalizer::normalizeUrlForSearch() (which drops the query string
      * for scheme/www-tolerant reciprocal-link detection), this preserves the query
      * string so that listing URLs like index.php?id=1 and index.php?id=2 are
-     * treated as distinct. Only scheme and leading "www." are stripped; the path,
-     * query string, and fragment are kept as-is so the comparison is exact.
+     * treated as distinct. Scheme (including protocol-relative //), leading "www.",
+     * and fragment are stripped. The host is lowercased (hostnames are
+     * case-insensitive); path and query string are kept as-is (both are
+     * case-sensitive in practice).
      */
     private static function normalizeForDirectory(string $url): string
     {
-        $url = preg_replace('#^https?://#i', '', trim($url)) ?? '';
-        $url = preg_replace('#^www\.#i', '', $url)           ?? $url;
-        return strtolower(rtrim($url, '/'));
+        $url = preg_replace('#^(?:https?:)?//#i', '', trim($url)) ?? '';
+        $url = preg_replace('#^www\.#i', '', $url)                ?? $url;
+        // Strip fragment — registered URLs never identify a page section.
+        $hashPos = strpos($url, '#');
+        if ($hashPos !== false) {
+            $url = substr($url, 0, $hashPos);
+        }
+        // Lowercase the host only; URL paths and query values are case-sensitive.
+        $hostEnd = strcspn($url, '/?');
+        return rtrim(strtolower(substr($url, 0, $hostEnd)) . substr($url, $hostEnd), '/');
     }
 
     private function cacheFile(string $listingUrl, string $network): string
     {
-        $key = md5($network . '|' . strtolower(trim($listingUrl)));
+        // Delegate to normalizeForDirectory so the cache key can never drift from
+        // the matcher's definition of "same URL".
+        $key = md5($network . '|' . self::normalizeForDirectory($listingUrl));
         return rtrim($this->cacheDir, '/') . '/netdir_' . $key . '.json';
     }
 
