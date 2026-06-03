@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Luster\Tests\Unit;
 
 use Luster\Core\LinkChecker;
+use Luster\Core\UrlNormalizer;
 use PHPUnit\Framework\TestCase;
 use ReflectionMethod;
 
@@ -73,104 +74,113 @@ final class LinkCheckerTest extends TestCase
     }
 
     // -----------------------------------------------------------------------
-    // resolveLocation
+    // UrlNormalizer::resolveLocation
     // -----------------------------------------------------------------------
 
     public function testResolveAbsoluteUrlPassedThrough(): void
     {
-        $result = self::call('resolveLocation', 'https://origin.com/page', 'https://dest.com/new');
-        self::assertSame('https://dest.com/new', $result);
+        self::assertSame(
+            'https://dest.com/new',
+            UrlNormalizer::resolveLocation('https://origin.com/page', 'https://dest.com/new'),
+        );
     }
 
     public function testResolveHttpAbsoluteUrlPassedThrough(): void
     {
-        $result = self::call('resolveLocation', 'http://origin.com/page', 'http://dest.com/new');
-        self::assertSame('http://dest.com/new', $result);
+        self::assertSame(
+            'http://dest.com/new',
+            UrlNormalizer::resolveLocation('http://origin.com/page', 'http://dest.com/new'),
+        );
     }
 
     public function testResolveProtocolRelativeAddsSchemeFromRequest(): void
     {
-        $result = self::call('resolveLocation', 'https://origin.com/page', '//dest.com/new');
-        self::assertSame('https://dest.com/new', $result);
-
-        $result = self::call('resolveLocation', 'http://origin.com/page', '//dest.com/new');
-        self::assertSame('http://dest.com/new', $result);
+        self::assertSame(
+            'https://dest.com/new',
+            UrlNormalizer::resolveLocation('https://origin.com/page', '//dest.com/new'),
+        );
+        self::assertSame(
+            'http://dest.com/new',
+            UrlNormalizer::resolveLocation('http://origin.com/page', '//dest.com/new'),
+        );
     }
 
     public function testResolveRootRelativePrependOrigin(): void
     {
-        $result = self::call('resolveLocation', 'https://example.com/old/page', '/new-path');
-        self::assertSame('https://example.com/new-path', $result);
+        self::assertSame(
+            'https://example.com/new-path',
+            UrlNormalizer::resolveLocation('https://example.com/old/page', '/new-path'),
+        );
     }
 
     public function testResolveRootRelativePreservesPort(): void
     {
-        $result = self::call('resolveLocation', 'https://example.com:8080/old', '/new');
-        self::assertSame('https://example.com:8080/new', $result);
+        self::assertSame(
+            'https://example.com:8080/new',
+            UrlNormalizer::resolveLocation('https://example.com:8080/old', '/new'),
+        );
     }
 
     public function testResolveRelativePathAgainstDirectory(): void
     {
-        $result = self::call('resolveLocation', 'https://example.com/dir/page.php', 'other.php');
-        self::assertSame('https://example.com/dir/other.php', $result);
+        self::assertSame(
+            'https://example.com/dir/other.php',
+            UrlNormalizer::resolveLocation('https://example.com/dir/page.php', 'other.php'),
+        );
     }
 
     // -----------------------------------------------------------------------
-    // normalizeUrlForSearch
+    // UrlNormalizer::normalizeUrlForSearch
     // -----------------------------------------------------------------------
 
     public function testNormalizeStripsHttpScheme(): void
     {
-        $result = self::call('normalizeUrlForSearch', 'http://example.com/path');
-        self::assertSame('example.com/path', $result);
+        self::assertSame('example.com/path', UrlNormalizer::normalizeUrlForSearch('http://example.com/path'));
     }
 
     public function testNormalizeStripsHttpsScheme(): void
     {
-        $result = self::call('normalizeUrlForSearch', 'https://example.com/path');
-        self::assertSame('example.com/path', $result);
+        self::assertSame('example.com/path', UrlNormalizer::normalizeUrlForSearch('https://example.com/path'));
     }
 
     public function testNormalizeStripsWwwPrefix(): void
     {
-        $result = self::call('normalizeUrlForSearch', 'https://www.example.com/path');
-        self::assertSame('example.com/path', $result);
+        self::assertSame('example.com/path', UrlNormalizer::normalizeUrlForSearch('https://www.example.com/path'));
     }
 
     public function testNormalizeStripsTrailingSlash(): void
     {
-        $result = self::call('normalizeUrlForSearch', 'https://example.com/path/');
-        self::assertSame('example.com/path', $result);
+        self::assertSame('example.com/path', UrlNormalizer::normalizeUrlForSearch('https://example.com/path/'));
     }
 
     public function testNormalizeRootUrlProducesJustHost(): void
     {
-        self::assertSame('example.com', self::call('normalizeUrlForSearch', 'https://example.com/'));
-        self::assertSame('example.com', self::call('normalizeUrlForSearch', 'https://example.com'));
+        self::assertSame('example.com', UrlNormalizer::normalizeUrlForSearch('https://example.com/'));
+        self::assertSame('example.com', UrlNormalizer::normalizeUrlForSearch('https://example.com'));
     }
 
     public function testNormalizeLowercasesHost(): void
     {
-        $result = self::call('normalizeUrlForSearch', 'https://WWW.EXAMPLE.COM/path');
-        self::assertSame('example.com/path', $result);
+        self::assertSame('example.com/path', UrlNormalizer::normalizeUrlForSearch('https://WWW.EXAMPLE.COM/path'));
     }
 
     public function testNormalizePreservesNestedPath(): void
     {
-        $result = self::call('normalizeUrlForSearch', 'https://example.com/luster/public');
-        self::assertSame('example.com/luster/public', $result);
+        self::assertSame(
+            'example.com/luster/public',
+            UrlNormalizer::normalizeUrlForSearch('https://example.com/luster/public'),
+        );
     }
 
     public function testNormalizeMatchesHttpAndHttpsVariants(): void
     {
-        // Both variants normalize to the same needle, ensuring reciprocal
-        // check succeeds regardless of which scheme the affiliate uses.
-        $http  = self::call('normalizeUrlForSearch', 'http://example.com/base');
-        $https = self::call('normalizeUrlForSearch', 'https://example.com/base');
-        self::assertSame($http, $https);
-
-        $www    = self::call('normalizeUrlForSearch', 'https://www.example.com/base');
-        $nonwww = self::call('normalizeUrlForSearch', 'https://example.com/base');
-        self::assertSame($www, $nonwww);
+        self::assertSame(
+            UrlNormalizer::normalizeUrlForSearch('http://example.com/base'),
+            UrlNormalizer::normalizeUrlForSearch('https://example.com/base'),
+        );
+        self::assertSame(
+            UrlNormalizer::normalizeUrlForSearch('https://www.example.com/base'),
+            UrlNormalizer::normalizeUrlForSearch('https://example.com/base'),
+        );
     }
 }

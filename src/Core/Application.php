@@ -216,6 +216,15 @@ final class Application
             $pendingAdoptions = (new \Luster\Addons\Adoption\AdoptionRepo($this->database))->countNew();
         }
 
+        $navLcDead     = 0;
+        $navLcRedirect = 0;
+        try {
+            $affStats    = (new \Luster\Repositories\AffiliateRepo($this->database))->getLinkStats();
+            $joinedStats = (new \Luster\Repositories\JoinedListingRepo($this->database))->getLinkStats();
+            $navLcDead     = ($affStats['dead']     ?? 0) + ($joinedStats['dead']     ?? 0);
+            $navLcRedirect = ($affStats['redirect']  ?? 0) + ($joinedStats['redirect']  ?? 0);
+        } catch (\Throwable) {}
+
         $selectedSkin = '';
         try {
             $siteRepo     = new \Luster\Repositories\SiteSettingsRepo($this->database);
@@ -267,6 +276,8 @@ final class Application
             'nav_pending_members'   => $pending,
             'nav_pending_kim'       => $pendingKim,
             'nav_pending_adoptions' => $pendingAdoptions,
+            'nav_lc_dead'           => $navLcDead,
+            'nav_lc_redirect'       => $navLcRedirect,
             'nav_site_url'          => rtrim((string) $this->config->get('site_url', ''), '/'),
             'nav_installed_addons'  => $this->installedAddonKeys,
             'selected_skin'         => $selectedSkin,
@@ -421,6 +432,10 @@ final class Application
         try {
             $this->applyTimezone();
             $this->session->start();
+            // Apply security headers before any response path (middleware
+            // short-circuits, normal dispatch, and the exception handler all
+            // need them — applying early is idempotent via headers_sent()).
+            SecurityHeaders::apply();
             $this->loadInstalledAddons();
             $this->loadRoutes($context);
             $this->loadAddonRoutes();
@@ -507,6 +522,11 @@ final class Application
 
     private function handleException(Throwable $e): void
     {
+        // Ensure security headers are sent even when an exception escaped before
+        // the normal SecurityHeaders::apply() call in boot() (e.g. session start
+        // failure). apply() is idempotent — it checks headers_sent() first.
+        SecurityHeaders::apply();
+
         // CSRF token failure → 403 Forbidden
         if ($e instanceof CsrfException) {
             http_response_code(403);

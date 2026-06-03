@@ -24,7 +24,7 @@ final class KimAdminController extends AdminController
 {
 
     // -----------------------------------------------------------------------
-    // GET /admin/kim
+    // GET /admin/kim  — unified tabbed member view
     // -----------------------------------------------------------------------
 
     public function index(Request $request, array $params): Response
@@ -33,37 +33,142 @@ final class KimAdminController extends AdminController
         $config  = $this->app->getConfig();
         $session = $this->app->getSession();
 
+        $kimRepo     = new KimMemberRepo($db);
+        $listingRepo = new ListingRepo($db, $config);
+        $settings    = new SiteSettingsRepo($db);
+
+        // Honour the default-landing preference when hitting /admin/kim bare (no params)
+        $isBareNavigation = $request->query('tab', null) === null
+                         && $request->query('listing_id', null) === null
+                         && $request->query('search', null) === null
+                         && $request->query('sort', null) === null
+                         && $request->query('page', null) === null;
+
+        if ($isBareNavigation && $settings->get('kim_default_landing', 'members') === 'listings') {
+            return Response::redirect($this->app->getBaseUrl() . '/admin/kim/listings');
+        }
+
+        $perPage   = max(5, min(25, (int) ($settings->get('kim_per_page', '10') ?? '10')));
+        $listingId = max(0, (int) $request->query('listing_id', 0));
+        $search    = trim((string) $request->query('search', ''));
+
+        $sortParam = trim((string) $request->query('sort', 'added_at'));
+        $dirParam  = trim((string) $request->query('dir',  'desc'));
+        if (!in_array($sortParam, ['name', 'status', 'listing', 'added_at'], true)) {
+            $sortParam = 'added_at';
+        }
+        if (!in_array($dirParam, ['asc', 'desc'], true)) {
+            $dirParam = 'desc';
+        }
+
+        // Tab counts (no tab filter, just listing + search context)
+        $counts = $kimRepo->getTabCounts($listingId, $search);
+
+        // Global pending count for module nav badge (avoid extra query when unfiltered)
+        $globalPending = ($listingId === 0 && $search === '')
+            ? $counts['pending']
+            : $kimRepo->getTabCounts(0, '')['pending'];
+
+        // Resolve active tab — only auto-default to 'pending' when no tab param provided
+        $tabParam = trim((string) $request->query('tab', ''));
+        if ($tabParam === '') {
+            $tab = $counts['pending'] > 0 ? 'pending' : 'all';
+        } elseif (in_array($tabParam, ['all', 'approved', 'pending', 'granted'], true)) {
+            $tab = $tabParam;
+        } else {
+            $tab = 'all';
+        }
+
+        $total      = $counts[$tab];
+        $totalPages = max(1, (int) ceil($total / $perPage));
+        $page       = min(max(1, (int) $request->query('page', 1)), $totalPages);
+        $offset     = ($page - 1) * $perPage;
+
+        $members     = $kimRepo->getFiltered($listingId, $tab, $search, $perPage, $offset, $sortParam, $dirParam);
+        $fanlistings = $listingRepo->getAll();
+
+        $listingMap      = [];
+        $selectedListing = null;
+        foreach ($fanlistings as $fl) {
+            $listingMap[$fl->id] = $fl->subject;
+            if ($fl->id === $listingId) {
+                $selectedListing = $fl;
+            }
+        }
+
+        $success = (string) $session->get('lstr_flash_success', '');
+        $error   = (string) $session->get('lstr_flash_error',   '');
+        $session->remove('lstr_flash_success');
+        $session->remove('lstr_flash_error');
+
+        return $this->adminLayout('admin/addons/kim/index.php', 'Keep In Mind', 'kim', [
+            'members'          => $members,
+            'fanlistings'      => $fanlistings,
+            'listing_map'      => $listingMap,
+            'selected_listing' => $selectedListing,
+            'listing_id'       => $listingId,
+            'tab'              => $tab,
+            'counts'           => $counts,
+            'search'           => $search,
+            'filters_active'   => $search !== '' || $listingId > 0,
+            'page'             => $page,
+            'total_pages'      => $totalPages,
+            'total'            => $total,
+            'per_page'         => $perPage,
+            'sort'             => $sortParam,
+            'dir'              => $dirParam,
+            'global_pending'   => $globalPending,
+            'kim_section'      => 'members',
+            'success'          => $success,
+            'error'            => $error,
+        ]);
+    }
+
+    // -----------------------------------------------------------------------
+    // GET /admin/kim/listings  — per-listing overview table
+    // -----------------------------------------------------------------------
+
+    public function listings(Request $request, array $params): Response
+    {
+        $db      = $this->app->getDatabase();
+        $config  = $this->app->getConfig();
+        $session = $this->app->getSession();
+
         $listingRepo = new ListingRepo($db, $config);
         $kimRepo     = new KimMemberRepo($db);
+        $settings    = new SiteSettingsRepo($db);
 
-        $fanlistings   = $listingRepo->getAll();
-        $pendingCounts = $kimRepo->getPendingCounts();
+        $fanlistings        = $listingRepo->getAll();
+        $countsByFanlisting = $kimRepo->getAllCountsByFanlisting();
+        $globalPending      = $kimRepo->getTabCounts(0, '')['pending'];
 
         $fanlistingsData = [];
         foreach ($fanlistings as $fl) {
+            $c = $countsByFanlisting[$fl->id] ?? ['pending' => 0, 'approved' => 0, 'granted' => 0];
             $fanlistingsData[] = [
                 'listing'  => $fl,
-                'pending'  => $pendingCounts[$fl->id] ?? 0,
-                'approved' => $kimRepo->countApprovedByFanlisting($fl->id),
+                'pending'  => $c['pending'],
+                'approved' => $c['approved'],
+                'granted'  => $c['granted'],
             ];
         }
 
-        $sort = trim((string) $request->query('sort', 'id'));
+        $sort = trim((string) $request->query('sort', 'subject'));
         $dir  = trim((string) $request->query('dir',  'asc'));
-        if (!in_array($sort, ['id', 'subject'], true)) { $sort = 'id'; }
-        if (!in_array($dir,  ['asc', 'desc'], true))   { $dir  = 'asc'; }
+        if (!in_array($sort, ['subject', 'pending'], true)) { $sort = 'subject'; }
+        if (!in_array($dir,  ['asc', 'desc'], true))        { $dir  = 'asc'; }
 
         usort($fanlistingsData, static function (array $a, array $b) use ($sort, $dir): int {
-            if ($sort === 'subject') {
-                $cmp = strcasecmp($a['listing']->subject, $b['listing']->subject);
-                return $dir === 'asc' ? $cmp : -$cmp;
+            if ($sort === 'pending') {
+                $diff = $a['pending'] - $b['pending'];
+                return $dir === 'asc' ? $diff : -$diff;
             }
-            $diff = $a['listing']->id - $b['listing']->id;
-            return $dir === 'asc' ? $diff : -$diff;
+            $cmp = strcasecmp($a['listing']->subject, $b['listing']->subject);
+            return $dir === 'asc' ? $cmp : -$cmp;
         });
 
         $totalListings   = count($fanlistingsData);
-        $perPage         = max(1, (int) $config->get('per_page', 10));
+        $perPage         = max(5, min(25, (int) ($settings->get('kim_per_page', '10') ?? '10')));
         $pages           = $totalListings > 0 ? (int) ceil($totalListings / $perPage) : 1;
         $page            = min(max(1, (int) $request->query('page', 1)), $pages);
         $fanlistingsData = array_slice($fanlistingsData, ($page - 1) * $perPage, $perPage);
@@ -73,7 +178,7 @@ final class KimAdminController extends AdminController
         $session->remove('lstr_flash_success');
         $session->remove('lstr_flash_error');
 
-        return $this->adminLayout('admin/addons/kim/index.php', 'Keep In Mind', 'kim', [
+        return $this->adminLayout('admin/addons/kim/listings.php', 'Keep In Mind — Listings', 'kim', [
             'fanlistings_data' => $fanlistingsData,
             'total_listings'   => $totalListings,
             'sort'             => $sort,
@@ -81,9 +186,61 @@ final class KimAdminController extends AdminController
             'page'             => $page,
             'pages'            => $pages,
             'per_page'         => $perPage,
+            'global_pending'   => $globalPending,
+            'kim_section'      => 'listings',
             'success'          => $success,
             'error'            => $error,
         ]);
+    }
+
+    // -----------------------------------------------------------------------
+    // POST /admin/kim/bulk  — cross-listing bulk actions
+    // -----------------------------------------------------------------------
+
+    public function bulkGlobal(Request $request, array $params): Response
+    {
+        $db      = $this->app->getDatabase();
+        $session = $this->app->getSession();
+        $baseUrl = $this->app->getBaseUrl();
+
+        $action = (string) $request->post('bulk_action', '');
+        $rawIds = $request->post('ids', []);
+        $ids    = array_values(array_filter(
+            array_map('intval', is_array($rawIds) ? $rawIds : []),
+            static fn(int $id) => $id > 0
+        ));
+
+        // Validated return URL — must stay within the KIM admin area
+        $returnTo = trim((string) $request->post('_return', ''));
+        if ($returnTo === '' || !str_starts_with($returnTo, $baseUrl . '/admin/kim')) {
+            $returnTo = $baseUrl . '/admin/kim';
+        }
+
+        if (empty($ids)) {
+            $session->set('lstr_flash_error', 'No members selected.');
+            return Response::redirect($returnTo);
+        }
+
+        $kimRepo      = new KimMemberRepo($db);
+        $activityRepo = new ActivityRepo($db);
+        $adminId      = (int) $session->get('lstr_admin_id');
+        $count        = count($ids);
+
+        match ($action) {
+            'approve' => (function () use ($kimRepo, $activityRepo, $ids, $adminId, $count, $request, $session): void {
+                $kimRepo->approveByIds($ids);
+                $activityRepo->log($adminId, 'kim.bulk_approve', "Bulk approved {$count} KIM member(s)", $request->ip());
+                $session->set('lstr_flash_success', "Approved {$count} member(s).");
+            })(),
+            'delete' => (function () use ($kimRepo, $activityRepo, $ids, $adminId, $count, $request, $session): void {
+                $kimRepo->deleteByIds($ids);
+                $activityRepo->log($adminId, 'kim.bulk_delete', "Bulk deleted {$count} KIM member(s)", $request->ip());
+                $session->set('lstr_flash_success', "Deleted {$count} member(s).");
+            })(),
+            default => $session->set('lstr_flash_error', 'Unknown bulk action.'),
+        };
+
+        return Response::redirect($returnTo);
     }
 
     // -----------------------------------------------------------------------
@@ -93,51 +250,7 @@ final class KimAdminController extends AdminController
     public function show(Request $request, array $params): Response
     {
         $fanlistingId = (int) ($params['fid'] ?? 0);
-        $db           = $this->app->getDatabase();
-        $config       = $this->app->getConfig();
-        $session      = $this->app->getSession();
-
-        $listingRepo = new ListingRepo($db, $config);
-        $listing     = $listingRepo->getById($fanlistingId);
-
-        if ($listing === null) {
-            return Response::notFound('Fanlisting not found.');
-        }
-
-        $kimRepo  = new KimMemberRepo($db);
-        $perPage  = max(1, (int) $config->get('per_page', 10));
-        $page     = max(1, (int) ($request->query('page', 1)));
-        $baseUrl  = $this->app->getBaseUrl();
-
-        $pendingMembers = $kimRepo->getPendingByFanlisting($fanlistingId);
-        $approvedCount  = $kimRepo->countApprovedByFanlisting($fanlistingId);
-        $totalPages     = max(1, (int) ceil($approvedCount / $perPage));
-        $page           = min($page, $totalPages);
-        $approvedMembers = $kimRepo->getApprovedByFanlistingPaged($fanlistingId, $page, $perPage);
-
-        $pageUrl = static fn(int $p): string =>
-            $baseUrl . '/admin/kim/' . $fanlistingId . '?page=' . $p;
-
-        $success = (string) $session->get('lstr_flash_success', '');
-        $error   = (string) $session->get('lstr_flash_error',   '');
-        $session->remove('lstr_flash_success');
-        $session->remove('lstr_flash_error');
-
-        return $this->adminLayout('admin/addons/kim/show.php', 'Keep In Mind', 'kim', [
-            'listing'          => $listing,
-            'pending_members'  => $pendingMembers,
-            'approved_members' => $approvedMembers,
-            'pending_count'    => count($pendingMembers),
-            'approved_count'   => $approvedCount,
-            'page'             => $page,
-            'total_pages'      => $totalPages,
-            'page_url'         => $pageUrl,
-            'success'          => $success,
-            'error'            => $error,
-        ], '', [
-            $this->crumb('Keep In Mind', $this->adminUrl('/admin/kim')),
-            $this->crumb($listing->subject),
-        ]);
+        return Response::redirect($this->app->getBaseUrl() . '/admin/kim?listing_id=' . $fanlistingId);
     }
 
     // -----------------------------------------------------------------------
@@ -182,7 +295,7 @@ final class KimAdminController extends AdminController
                 'error'           => $error,
             ], '', array_values(array_filter([
                 $this->crumb('Keep In Mind', $this->adminUrl('/admin/kim')),
-                $fanlistingName !== '' ? $this->crumb($fanlistingName, $this->adminUrl('/admin/kim/' . $member->fanlistingId . '/show')) : null,
+                $fanlistingName !== '' ? $this->crumb($fanlistingName, $this->adminUrl('/admin/kim?listing_id=' . $member->fanlistingId)) : null,
                 $this->crumb($member->name),
             ])));
         }
@@ -216,11 +329,14 @@ final class KimAdminController extends AdminController
             return Response::redirect($baseUrl . '/admin/kim/' . $memberId . '/edit');
         }
 
+        $granted = $request->post('granted', '0') === '1' ? 1 : 0;
+
         $updateFields = [
-            'name'         => $name,
-            'email'        => $email,
-            'url'          => $url,
+            'name'          => $name,
+            'email'         => $email,
+            'url'           => $url,
             'fanlisting_id' => $fanlistingId,
+            'granted'       => $granted,
         ];
 
         $newPassword        = (string) $request->post('new_password',         '');
@@ -249,7 +365,7 @@ final class KimAdminController extends AdminController
         );
 
         $session->set('lstr_flash_success', 'KIM member updated.');
-        return Response::redirect($baseUrl . '/admin/kim/' . $fanlistingId . '/show');
+        return Response::redirect($baseUrl . '/admin/kim?listing_id=' . $fanlistingId);
     }
 
     // -----------------------------------------------------------------------
@@ -282,7 +398,7 @@ final class KimAdminController extends AdminController
 
         $fromFid = (int) $request->post('from_fid', $member->fanlistingId);
         $session->set('lstr_flash_success', 'KIM member approved.');
-        return Response::redirect($baseUrl . '/admin/kim/' . $fromFid . '/show');
+        return Response::redirect($baseUrl . '/admin/kim?listing_id=' . $fromFid . '&tab=pending');
     }
 
     // -----------------------------------------------------------------------
@@ -315,7 +431,7 @@ final class KimAdminController extends AdminController
         );
 
         $session->set('lstr_flash_success', 'KIM member deleted.');
-        return Response::redirect($baseUrl . '/admin/kim/' . $fanlistingId . '/show');
+        return Response::redirect($baseUrl . '/admin/kim?listing_id=' . $fanlistingId);
     }
 
     // -----------------------------------------------------------------------
@@ -383,7 +499,7 @@ final class KimAdminController extends AdminController
             'success'         => $success,
         ], '', [
             $this->crumb('Keep In Mind', $this->adminUrl('/admin/kim')),
-            $this->crumb($listing->subject, $this->adminUrl('/admin/kim/' . $listing->id . '/show')),
+            $this->crumb($listing->subject, $this->adminUrl('/admin/kim?listing_id=' . $listing->id)),
         ]);
     }
 
@@ -454,7 +570,7 @@ final class KimAdminController extends AdminController
             'lstr_flash_success',
             "Bulk email sent: {$sent} delivered" . ($failed > 0 ? ", {$failed} failed" : '') . '.'
         );
-        return Response::redirect($baseUrl . '/admin/kim/' . $fanlistingId . '/show');
+        return Response::redirect($baseUrl . '/admin/kim?listing_id=' . $fanlistingId);
     }
 
     // -----------------------------------------------------------------------
@@ -507,7 +623,7 @@ final class KimAdminController extends AdminController
             'success'      => $success,
         ], '', array_values(array_filter([
             $this->crumb('Keep In Mind', $this->adminUrl('/admin/kim')),
-            $listing !== null ? $this->crumb($listing->subject, $this->adminUrl('/admin/kim/' . $listing->id . '/show')) : null,
+            $listing !== null ? $this->crumb($listing->subject, $this->adminUrl('/admin/kim?listing_id=' . $listing->id)) : null,
             $this->crumb($member->name),
         ])));
     }
@@ -594,7 +710,7 @@ final class KimAdminController extends AdminController
 
         if (empty($ids)) {
             $session->set('lstr_flash_error', 'No members selected.');
-            return Response::redirect($baseUrl . '/admin/kim/' . $fanlistingId . '/show');
+            return Response::redirect($baseUrl . '/admin/kim?listing_id=' . $fanlistingId);
         }
 
         $kimRepo      = new KimMemberRepo($db);
@@ -621,7 +737,7 @@ final class KimAdminController extends AdminController
             default => $session->set('lstr_flash_error', 'Unknown bulk action.'),
         };
 
-        return Response::redirect($baseUrl . '/admin/kim/' . $fanlistingId . '/show');
+        return Response::redirect($baseUrl . '/admin/kim?listing_id=' . $fanlistingId);
     }
 
     // -----------------------------------------------------------------------
@@ -637,16 +753,26 @@ final class KimAdminController extends AdminController
         $kimUrls = $siteSettings->getMany([
             'kim_url_signup', 'kim_url_update', 'kim_url_reset', 'kim_url_list',
         ]);
+        $kimPerPage       = max(5, min(25, (int) ($siteSettings->get('kim_per_page', '10') ?? '10')));
+        $kimDefaultLanding = in_array($siteSettings->get('kim_default_landing', 'members'), ['members', 'listings'], true)
+            ? $siteSettings->get('kim_default_landing', 'members')
+            : 'members';
 
         $success = (string) $session->get('lstr_flash_success', '');
         $error   = (string) $session->get('lstr_flash_error',   '');
         $session->remove('lstr_flash_success');
         $session->remove('lstr_flash_error');
 
+        $globalPending = (new KimMemberRepo($db))->getTabCounts(0, '')['pending'];
+
         return $this->adminLayout('admin/addons/kim/settings.php', 'Keep In Mind Settings', 'kim', [
-            'kim_urls'        => $kimUrls,
-            'success'         => $success,
-            'error'           => $error,
+            'kim_urls'              => $kimUrls,
+            'kim_per_page'          => $kimPerPage,
+            'kim_default_landing'   => $kimDefaultLanding,
+            'global_pending'        => $globalPending,
+            'kim_section'           => 'settings',
+            'success'               => $success,
+            'error'                 => $error,
         ], '', [
             $this->crumb('Keep In Mind', $this->adminUrl('/admin/kim')),
         ]);
@@ -668,17 +794,24 @@ final class KimAdminController extends AdminController
             foreach (['kim_url_signup', 'kim_url_update', 'kim_url_reset', 'kim_url_list'] as $key) {
                 $siteSettings->set($key, null);
             }
-            $session->set('lstr_flash_success', 'KIM page URLs reset to defaults.');
+            $siteSettings->set('kim_per_page', '10');
+            $siteSettings->set('kim_default_landing', 'members');
+            $session->set('lstr_flash_success', 'KIM settings reset to defaults.');
             return Response::redirect($baseUrl . '/admin/kim/settings');
         }
 
         foreach (['kim_url_signup', 'kim_url_update', 'kim_url_reset', 'kim_url_list'] as $key) {
-            $field = str_replace('kim_url_', '', $key); // 'signup', 'update', etc.
+            $field = str_replace('kim_url_', '', $key);
             $value = trim((string) $request->post($field, ''));
             $siteSettings->set($key, $value !== '' ? $value : null);
         }
 
-        $session->set('lstr_flash_success', 'KIM page URLs saved.');
+        $siteSettings->set('kim_per_page', (string) max(5, min(25, (int) $request->post('kim_per_page', 10))));
+
+        $landing = $request->post('kim_default_landing', 'members');
+        $siteSettings->set('kim_default_landing', $landing === 'listings' ? 'listings' : 'members');
+
+        $session->set('lstr_flash_success', 'KIM settings saved.');
         return Response::redirect($baseUrl . '/admin/kim/settings');
     }
 

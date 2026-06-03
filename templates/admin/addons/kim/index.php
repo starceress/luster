@@ -1,43 +1,85 @@
 <?php
 /**
- * KIM List admin index — all fanlistings with KIM counts.
+ * KIM List admin — unified tabbed member view.
  *
  * Variables:
- *   $fanlistings_data  array   [{listing: Listing, pending: int, approved: int}]
- *   $base_url          string
- *   $csrf_token        string
- *   $success           string
- *   $error             string
+ *   $members          KimMember[]
+ *   $fanlistings      Listing[]
+ *   $listing_map      array<int, string>   id => subject
+ *   $selected_listing ?Listing
+ *   $listing_id       int                  0 = all listings
+ *   $tab              string               all|pending|approved|granted
+ *   $counts           array{all:int, pending:int, approved:int, granted:int}
+ *   $search           string
+ *   $filters_active   bool
+ *   $sort             string               name|status|listing|added_at
+ *   $dir              string               asc|desc
+ *   $page             int
+ *   $total_pages      int
+ *   $total            int
+ *   $per_page         int
+ *   $global_pending   int
+ *   $kim_section      string
+ *   $success          string
+ *   $error            string
+ *   $base_url         string
+ *   $csrf_token       string
  */
 
 declare(strict_types=1);
 
 use Luster\Core\View;
 
-$b    = rtrim(View::e($base_url), '/');
-$sort = $sort ?? 'id';
-$dir  = $dir  ?? 'asc';
+$b = rtrim(View::e($base_url), '/');
 
-$rangeFirst = ($total_listings ?? 0) === 0 ? 0 : (($page ?? 1) - 1) * ($per_page ?? 10) + 1;
-$rangeLast  = min(($page ?? 1) * ($per_page ?? 10), $total_listings ?? 0);
+$statusTabs = [
+    'all'      => ['label' => 'All',      'badge' => 'badge-inactive'],
+    'pending'  => ['label' => 'Pending',  'badge' => 'badge-pending'],
+    'approved' => ['label' => 'Approved', 'badge' => 'badge-current'],
+    'granted'  => ['label' => 'Granted',  'badge' => 'badge-redirect'],
+];
 
-$sortUrl = static function (string $col) use ($b, $sort, $dir): string {
+// Always include tab in URL so 'all' is honoured explicitly
+$buildUrl = static function (array $overrides) use ($b, $tab, $listing_id, $search, $sort, $dir): string {
+    $p = [
+        'tab'        => $tab,
+        'listing_id' => $listing_id > 0 ? $listing_id : '',
+        'search'     => $search,
+        'sort'       => $sort !== 'added_at' ? $sort : '',
+        'dir'        => $dir  !== 'desc'     ? $dir  : '',
+    ];
+    $merged = array_merge($p, $overrides);
+    $qs = http_build_query(array_filter(
+        $merged,
+        static fn($v) => $v !== '' && $v !== 0 && $v !== null
+    ));
+    return $b . '/admin/kim' . ($qs !== '' ? '?' . $qs : '');
+};
+
+// tabUrl always writes an explicit tab= so the controller doesn't auto-default
+$tabUrl  = static fn(string $t) => $buildUrl(['tab' => $t, 'page' => '']);
+$pageUrl = static fn(int $p)    => $buildUrl(['page' => $p > 1 ? $p : '']);
+$resetUrl = $b . '/admin/kim?tab=' . View::e($tab);
+
+// Sort header URL: flip direction if already sorted by this column
+$sortUrl = static function (string $col) use ($buildUrl, $sort, $dir): string {
     $newDir = ($sort === $col && $dir === 'asc') ? 'desc' : 'asc';
-    $qs = http_build_query(array_filter([
-        'sort' => $col !== 'id' ? $col : '',
-        'dir'  => $newDir !== 'asc' ? $newDir : '',
-    ], static fn(string $v): bool => $v !== ''));
-    return $b . '/admin/kim' . ($qs !== '' ? '?' . $qs : '');
+    return $buildUrl(['sort' => $col !== 'added_at' ? $col : '', 'dir' => $newDir !== 'desc' ? $newDir : '', 'page' => '']);
 };
 
-$pageUrl = static function (int $p) use ($b, $sort, $dir): string {
-    $qs = http_build_query(array_filter([
-        'sort' => $sort !== 'id' ? $sort : '',
-        'dir'  => $dir !== 'asc' ? $dir : '',
-        'page' => $p > 1 ? $p : 0,
-    ], static fn($v): bool => (string) $v !== '' && $v !== 0));
-    return $b . '/admin/kim' . ($qs !== '' ? '?' . $qs : '');
-};
+$hasBulkApprove  = in_array($tab, ['all', 'pending'], true);
+$nonPendingCount = ($counts['approved'] ?? 0) + ($counts['granted'] ?? 0);
+$showEmailBulk   = $listing_id > 0;
+
+// Bulk form action + return URL
+$bulkAction = $listing_id > 0
+    ? $b . '/admin/kim/' . $listing_id . '/bulk'
+    : $b . '/admin/kim/bulk';
+$returnUrl  = $buildUrl([]);
+
+$rangeStart = $total > 0 ? ($page - 1) * $per_page + 1 : 0;
+$rangeEnd   = min($total, $page * $per_page);
+$dateFmt    = $admin_date_format ?? 'm-d-Y';
 ?>
 
 <?php if ($success !== ''): ?>
@@ -47,81 +89,261 @@ $pageUrl = static function (int $p) use ($b, $sort, $dir): string {
   <div class="alert alert-error"><?= View::e($error) ?></div>
 <?php endif; ?>
 
+<!-- ──── TOOLBAR ────────────────────────────────────────────────── -->
 <div class="toolbar">
-  <div class="toolbar-left"></div>
   <div class="actions-row">
+    <button type="button" class="btn btn-preview btn-sm filter-toggle"
+            id="kim-filter-toggle"
+            aria-expanded="true"
+            aria-controls="kim-filter-panel">
+      <?= View::icon('filter') ?>
+      Filter<?php if ($filters_active): ?><span class="filter-dot" aria-hidden="true"></span><?php endif; ?>
+    </button>
+  </div>
+  <div class="actions-row actions-row--right">
+    <a href="<?= $b ?>/admin/kim/listings" class="btn btn-primary btn-sm">Listing View</a>
     <a href="<?= $b ?>/admin/kim/settings" class="btn btn-quaternary btn-sm">Display Settings</a>
   </div>
 </div>
 
-<?php if (empty($fanlistings_data)): ?>
-  <div class="card">
-    <div class="empty">
-      <div class="empty-icon"><?= View::icon('kim', ['width' => 32, 'height' => 32]) ?></div>
-      <div class="empty-title">No listings found.</div>
-      <div>Add a listing first to use the KIM list.</div>
-      <a href="<?= $b ?>/admin/listings/add" class="btn btn-primary btn-sm"><?= View::icon('add') ?> Add Listing</a>
+<!-- ──── FILTER PANEL ────────────────────────────────────────────── -->
+<div class="filter-panel" id="kim-filter-panel">
+  <form method="GET" action="<?= $b ?>/admin/kim" class="filter-row" id="kim-filter-form">
+    <input type="hidden" name="tab" value="<?= View::e($tab) ?>">
+    <?php if ($sort !== 'added_at'): ?><input type="hidden" name="sort" value="<?= View::e($sort) ?>"><?php endif; ?>
+    <?php if ($dir !== 'desc'):      ?><input type="hidden" name="dir"  value="<?= View::e($dir) ?>"><?php endif; ?>
+
+    <?php if (!empty($fanlistings)): ?>
+    <div class="select-wrap">
+      <select name="listing_id" id="kim-listing-sel">
+        <option value="0">All Listings</option>
+        <?php foreach ($fanlistings as $fl): ?>
+          <option value="<?= (int) $fl->id ?>"
+                  <?= $listing_id === $fl->id ? 'selected' : '' ?>>
+            <?= View::e($fl->subject) ?>
+          </option>
+        <?php endforeach; ?>
+      </select>
+    </div>
+    <?php endif; ?>
+
+    <div class="search-field-wrap">
+      <?= View::icon('search', ['class' => 'search-field-icon', 'aria-hidden' => 'true']) ?>
+      <input type="text" name="search" class="form" placeholder="Search by name&hellip;"
+             value="<?= View::e($search) ?>">
+    </div>
+    <button type="submit" class="btn btn-secondary btn-sm">Search</button>
+    <a href="<?= View::e($resetUrl) ?>" class="btn btn-quaternary btn-sm">Reset</a>
+  </form>
+</div>
+
+<!-- ──── STATUS TABS ─────────────────────────────────────────────── -->
+<div class="tabs-wrap">
+  <div class="tabs">
+    <?php foreach ($statusTabs as $key => $tabData): ?>
+      <a href="<?= View::e($tabUrl($key)) ?>"
+         class="tabs-btn<?= $tab === $key ? ' active' : '' ?>">
+        <?= View::e($tabData['label']) ?>
+        <?php if ($counts[$key] > 0): ?>
+          <span class="badge <?= $tabData['badge'] ?> badge-inline-sm"><?= (int) $counts[$key] ?></span>
+        <?php endif; ?>
+      </a>
+    <?php endforeach; ?>
+  </div>
+  <div class="tabs-select-wrap">
+    <span class="overview-section-title">Status</span>
+    <div class="select-wrap flex-fill">
+      <select onchange="window.location.href=this.value">
+        <?php foreach ($statusTabs as $key => $tabData): ?>
+          <option value="<?= View::e($tabUrl($key)) ?>"
+                  <?= $tab === $key ? 'selected' : '' ?>>
+            <?= View::e($tabData['label']) ?><?= $counts[$key] > 0 ? ' (' . (int) $counts[$key] . ')' : '' ?>
+          </option>
+        <?php endforeach; ?>
+      </select>
     </div>
   </div>
+</div>
+
+<!-- ──── TABLE ───────────────────────────────────────────────────── -->
+<?php if (empty($members)): ?>
+<div class="card">
+  <div class="empty">
+    <div class="empty-icon"><?= View::icon('kim', ['width' => 32, 'height' => 32]) ?></div>
+    <?php if ($filters_active || $tab !== 'all'): ?>
+      <div class="empty-title">No members found for this filter.</div>
+    <?php else: ?>
+      <div class="empty-title">No KIM members yet.</div>
+      <div>Members who sign up via the KIM form will appear here for review.</div>
+    <?php endif; ?>
+  </div>
+</div>
 <?php else: ?>
 
-  <div class="card">
-    <div class="card-head">Keep In Mind List
-      <span class="row-sub">Showing <?= $rangeFirst ?>-<?= $rangeLast ?> of <?= $total_listings ?> Listing<?= $total_listings === 1 ? '' : 's' ?></span>
-    </div>
-    <div class="table-wrap">
-    <table class="data-table mem-table">
-      <thead>
-        <tr>
-          <th>
-            <a href="<?= View::e($sortUrl('id')) ?>" class="sort-th<?= $sort === 'id' ? ' sort-active' : '' ?>"># <?= View::sortIcon('id', $sort, $dir) ?></a>
-          </th>
-          <th>
-            <a href="<?= View::e($sortUrl('subject')) ?>" class="sort-th<?= $sort === 'subject' ? ' sort-active' : '' ?>">Listing Subject <?= View::sortIcon('subject', $sort, $dir) ?></a>
-          </th>
-          <th>Pending</th>
-          <th>Approved</th>
-          <th class="act-col"></th>
-        </tr>
-      </thead>
-      <tbody>
-        <?php foreach ($fanlistings_data as $entry):
-          /** @var \Luster\Models\Listing $listing */
-          $listing  = $entry['listing'];
-          $pending  = (int) $entry['pending'];
-          $approved = (int) $entry['approved'];
-        ?>
-        <tr>
-          <td class="text-dim" data-label="#"><?= (int) $listing->id ?></td>
-          <td data-label="Listing Subject"><a href="<?= $b ?>/admin/listings/<?= (int) $listing->id ?>/edit" class="link"><?= View::e($listing->subject) ?></a></td>
-          <td data-label="Pending">
-            <?php if ($pending > 0): ?>
-              <span class="badge badge-pending"><?= (int) $pending ?></span>
-            <?php else: ?>
-              <span class="text-dim">&mdash;</span>
-            <?php endif; ?>
-          </td>
-          <td data-label="Approved">
-            <?php if ($approved > 0): ?>
-              <span class="badge badge-current"><?= (int) $approved ?></span>
-            <?php else: ?>
-              <span class="text-dim">&mdash;</span>
-            <?php endif; ?>
-          </td>
-          <td class="act-col" data-label="">
-            <a href="<?= $b ?>/admin/kim/<?= (int) $listing->id ?>/show"
-               class="btn btn-primary btn-sm">View</a>
-            <?php if ($approved > 0): ?>
-              <a href="<?= $b ?>/admin/kim/<?= (int) $listing->id ?>/bulk-email"
-                 class="btn btn-quaternary btn-sm">Bulk Email</a>
-            <?php endif; ?>
-          </td>
-        </tr>
-        <?php endforeach; ?>
-      </tbody>
-    </table>
-    </div>
-  <?php $pg_current = $page ?? 1; $pg_total = $pages ?? 1; $pg_url = $pageUrl;
-        require __DIR__ . '/../../_pagination.php'; ?>
+<form method="POST" action="<?= View::e($bulkAction) ?>"
+      data-del-bulk data-del-entity="kim_member"
+      data-del-context="<?= $selected_listing !== null ? View::e($selected_listing->subject) : 'selected members' ?>">
+  <input type="hidden" name="_csrf"   value="<?= View::e($csrf_token) ?>">
+  <input type="hidden" name="_return" value="<?= View::e($returnUrl) ?>">
+
+<div class="card">
+  <div class="card-head">
+    <?php if ($tab === 'all'): ?>All Members
+    <?php elseif ($tab === 'pending'): ?>Pending Sign-Ups
+    <?php elseif ($tab === 'approved'): ?>Approved Members
+    <?php else: ?>Granted Members
+    <?php endif; ?>
+    <?php if ($selected_listing !== null): ?>&mdash; <?= View::e($selected_listing->subject) ?><?php endif; ?>
+    <span class="row-sub">Showing <?= $rangeStart ?>&ndash;<?= $rangeEnd ?> of <?= $total ?></span>
+    <?php if ($listing_id > 0 && $nonPendingCount > 0): ?>
+      <a href="<?= $b ?>/admin/kim/<?= $listing_id ?>/bulk-email"
+         class="btn btn-secondary btn-sm actions-row--right">
+        Email All (<?= $nonPendingCount ?>)
+      </a>
+    <?php endif; ?>
   </div>
+
+  <div class="bulk bulk--flush">
+    Bulk Actions:
+    <div class="select-wrap">
+      <select name="bulk_action" class="select-xs" id="kim-bulk-action">
+        <option value="" disabled selected>&mdash; Select &mdash;</option>
+        <?php if ($hasBulkApprove): ?>
+          <option value="approve">Approve</option>
+        <?php endif; ?>
+        <?php if ($showEmailBulk): ?>
+          <option value="email_selected">Email</option>
+        <?php endif; ?>
+        <option value="delete">Delete</option>
+      </select>
+    </div>
+    <button type="submit" class="btn btn-quaternary btn-sm">Apply to Selected</button>
+  </div>
+
+  <div class="table-wrap">
+  <table class="data-table mem-table">
+    <thead>
+      <tr>
+        <th class="cb-col">
+          <input type="checkbox" class="sel-all" data-fid="kim-members">
+        </th>
+        <th>
+          <a href="<?= View::e($sortUrl('name')) ?>"
+             class="sort-th<?= $sort === 'name' ? ' sort-active' : '' ?>">
+            Name <?= View::sortIcon('name', $sort, $dir) ?>
+          </a>
+        </th>
+        <th>Email</th>
+        <th>
+          <?php if ($tab === 'all'): ?>
+          <a href="<?= View::e($sortUrl('status')) ?>"
+             class="sort-th<?= $sort === 'status' ? ' sort-active' : '' ?>">
+            Status <?= View::sortIcon('status', $sort, $dir) ?>
+          </a>
+          <?php else: ?>Status<?php endif; ?>
+        </th>
+        <?php if ($listing_id === 0): ?>
+        <th>
+          <a href="<?= View::e($sortUrl('listing')) ?>"
+             class="sort-th<?= $sort === 'listing' ? ' sort-active' : '' ?>">
+            Listing <?= View::sortIcon('listing', $sort, $dir) ?>
+          </a>
+        </th>
+        <?php endif; ?>
+        <th>
+          <a href="<?= View::e($sortUrl('added_at')) ?>"
+             class="sort-th<?= $sort === 'added_at' ? ' sort-active' : '' ?>">
+            Signed Up <?= View::sortIcon('added_at', $sort, $dir) ?>
+          </a>
+        </th>
+        <th class="act-col">Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      <?php foreach ($members as $m): ?>
+      <tr>
+        <td class="cb-col">
+          <input type="checkbox" class="row-cb-kim-members"
+                 name="ids[]" value="<?= (int) $m->id ?>"
+                 data-name="<?= View::e($m->name) ?>">
+        </td>
+
+        <td data-label="Name">
+          <span class="text-strong"><?= View::e($m->name) ?></span>
+          <?php if ($m->url !== ''): ?>
+            <a href="<?= View::e($m->url) ?>" target="_blank" rel="noopener noreferrer"
+               class="mem-url link"><?= View::e($m->url) ?></a>
+          <?php endif; ?>
+        </td>
+
+        <td data-label="Email" class="text-muted">
+          <?= View::emailWrap($m->email) ?>
+        </td>
+
+        <td data-label="Status">
+          <?php if ($m->pending): ?>
+            <span class="badge badge-pending">Pending</span>
+          <?php elseif ($m->granted): ?>
+            <span class="badge badge-redirect">Granted</span>
+          <?php else: ?>
+            <span class="badge badge-current">Approved</span>
+          <?php endif; ?>
+        </td>
+
+        <?php if ($listing_id === 0): ?>
+        <td data-label="Listing" class="text-muted">
+          <?= View::e($listing_map[$m->fanlistingId] ?? '—') ?>
+        </td>
+        <?php endif; ?>
+
+        <td class="text-dim nowrap" data-label="Signed Up">
+          <?= View::e(date($dateFmt, strtotime($m->addedAt))) ?>
+        </td>
+
+        <td class="act-col" data-label="">
+          <div class="data-actions">
+            <?php if ($m->pending): ?>
+              <button type="submit" form="approve-kim-<?= (int) $m->id ?>"
+                      class="btn btn-success btn-xs">Approve</button>
+            <?php endif; ?>
+            <a href="<?= $b ?>/admin/kim/<?= (int) $m->id ?>/edit"
+               class="btn btn-tertiary btn-xs">Edit</a>
+            <a href="<?= $b ?>/admin/kim/<?= (int) $m->id ?>/email-member"
+               class="btn btn-secondary btn-xs">Email</a>
+            <button type="submit" form="del-kim-<?= (int) $m->id ?>"
+                    class="btn btn-danger btn-xs">Delete</button>
+          </div>
+        </td>
+      </tr>
+      <?php endforeach; ?>
+    </tbody>
+  </table>
+  </div>
+
+</div>
+
+</form>
+
+<?php if ($total_pages > 1):
+    $pg_current = $page; $pg_total = $total_pages; $pg_url = $pageUrl;
+    include LUSTER_BASE . '/templates/admin/_pagination.php';
+endif; ?>
+
+<?php foreach ($members as $m): ?>
+  <?php if ($m->pending): ?>
+  <form id="approve-kim-<?= (int) $m->id ?>" method="POST"
+        action="<?= $b ?>/admin/kim/<?= (int) $m->id ?>/approve"
+        class="action-form-inline">
+    <input type="hidden" name="_csrf"    value="<?= View::e($csrf_token) ?>">
+    <input type="hidden" name="from_fid" value="<?= (int) $m->fanlistingId ?>">
+  </form>
+  <?php endif; ?>
+  <form id="del-kim-<?= (int) $m->id ?>" method="POST"
+        action="<?= $b ?>/admin/kim/<?= (int) $m->id ?>/delete"
+        data-del-modal data-del-entity="kim_member"
+        data-del-name="<?= View::e($m->name) ?>">
+    <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
+  </form>
+<?php endforeach; ?>
+
 <?php endif; ?>

@@ -8,6 +8,7 @@ require_once __DIR__ . '/../_css_assets.php';
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Luster &#10022; Fanlisting Management System &mdash; Forgot Password</title>
+  <link rel="icon" type="image/svg+xml" href="<?= rtrim(View::e($base_url ?? ''), '/') ?>/assets/images/logo16.svg">
   <?= lusterAdminCssLinks(rtrim(View::e($base_url ?? ''), '/') . '/assets/css', LUSTER_BASE . '/public/assets/css', $selected_skin ?? '') . PHP_EOL ?>
   <script>(function(){var t=localStorage.getItem('lstr_theme');if(t==='dark'||t==='light')document.documentElement.setAttribute('data-theme',t);})();</script>
 </head>
@@ -24,17 +25,14 @@ require_once __DIR__ . '/../_css_assets.php';
 </div>
 
 <div class="login-wrapper">
+  <div class="login-logo-wrap">
+    <img src="<?= rtrim(View::e($base_url ?? ''), '/') ?>/assets/images/logo.svg" alt="Luster Logo">
+  </div>
   <div class="login-card">
 
     <div class="login-brand">
-      <div class="brand-gem-wrap login-gem-wrap">
-        <div class="brand-gem"></div>
-        <div class="brand-gem-glow"></div>
-      </div>
-      <div class="brand-text">
-        <span class="brand-name login-brand-name">Luster</span>
-        <span class="brand-sub login-brand-sub">Admin Panel</span>
-      </div>
+      <span class="login-brand-name">Luster</span>
+      <span class="login-brand-sub">Admin Panel</span>
     </div>
 
     <?php if ($success !== '') : ?>
@@ -46,7 +44,7 @@ require_once __DIR__ . '/../_css_assets.php';
 
     <?php if ($success === '') : ?>
     <p class="text-dim-copy">
-      Enter your username or email address and we&rsquo;ll send you a link to reset your password.
+      Enter your username or email address and we'll send you a link to reset your password.
     </p>
 
     <form method="POST" action="" novalidate>

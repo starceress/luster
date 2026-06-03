@@ -25,37 +25,22 @@ session_start();
 define('LUSTER_BASE', dirname(dirname(__DIR__)));
 define('CONFIG_PATH',   LUSTER_BASE . '/config/app.php');
 define('SENTINEL_PATH', LUSTER_BASE . '/storage/.installed');
-// TEMPORARY DESIGN PREVIEW: set to false after reviewing failed requirements.
-define('LUSTER_INSTALL_FORCE_REQUIREMENT_FAILURES', false);
 
-// Local-only visual preview mode. This is for installer styling work: it lets
-// the wizard advance without touching the database, config/app.php, or sentinel.
-$_lstr_host = strtolower((string) ($_SERVER['HTTP_HOST'] ?? $_SERVER['SERVER_NAME'] ?? ''));
-$_lstr_host = preg_replace('/:\d+$/', '', $_lstr_host) ?? $_lstr_host;
-$_lstr_remote = $_SERVER['REMOTE_ADDR'] ?? '';
-$_lstr_local_preview_allowed = in_array($_lstr_host, ['localhost', '127.0.0.1', '::1'], true)
-    || in_array($_lstr_remote, ['127.0.0.1', '::1'], true);
-
-if (isset($_GET['demo'])) {
-    if ($_GET['demo'] === '1' && $_lstr_local_preview_allowed) {
-        $_SESSION['lstr_install_demo'] = true;
-    } elseif ($_GET['demo'] === '0') {
-        unset($_SESSION['lstr_install_demo']);
-    }
-    header('Location: ./');
+// Legacy demo URLs were removed. Do not let old debug query strings fall
+// through to the normal installer or already-installed page.
+if (array_key_exists('demo', $_GET)) {
+    http_response_code(404);
+    header('Content-Type: text/plain; charset=UTF-8');
+    echo 'Not Found';
     exit;
 }
-
-$isDemo = $_lstr_local_preview_allowed && !empty($_SESSION['lstr_install_demo']);
-define('LUSTER_INSTALL_DEMO', $isDemo);
-unset($_lstr_host, $_lstr_remote, $_lstr_local_preview_allowed);
 
 // -------------------------------------------------------------------------
 // Done page — must precede installed-state guards so the completion screen
 // renders on the first visit after install (when sentinel and config exist).
 // -------------------------------------------------------------------------
 
-if (isset($_GET['done']) && (!empty($_SESSION['lstr_install_complete']) || $isDemo)) {
+if (isset($_GET['done']) && !empty($_SESSION['lstr_install_complete'])) {
     unset($_SESSION['lstr_install_complete']);
     renderPage('done', [], '', 5);
     exit;
@@ -67,7 +52,7 @@ if (isset($_GET['done']) && (!empty($_SESSION['lstr_install_complete']) || $isDe
 // alone cannot re-open the installer and allow a takeover.
 // -------------------------------------------------------------------------
 
-if (!$isDemo && (is_file(SENTINEL_PATH) || is_file(CONFIG_PATH))) {
+if (is_file(SENTINEL_PATH) || is_file(CONFIG_PATH)) {
     renderAlreadyInstalled();
     exit;
 }
@@ -80,7 +65,7 @@ if (!$isDemo && (is_file(SENTINEL_PATH) || is_file(CONFIG_PATH))) {
 // the wizard against an existing installation.
 // -------------------------------------------------------------------------
 
-if (!$isDemo && !empty($_SESSION['lstr_install_data']['db'])) {
+if (!empty($_SESSION['lstr_install_data']['db'])) {
     $_guard = $_SESSION['lstr_install_data']['db'];
     try {
         $_guardPdo = new PDO(
@@ -213,28 +198,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
                 if ($dbPass === '') {
                     $errors[] = 'Database password is required.';
-                }
-
-                if (empty($errors) && LUSTER_INSTALL_DEMO) {
-                    $stored['db'] = [
-                        'host' => $dbHost,
-                        'port' => $dbPort,
-                        'name' => $dbName,
-                        'user' => $dbUser,
-                        'pass' => $dbPass,
-                    ];
-                    $stored['db_check'] = [
-                        'is_error'      => false,
-                        'message'       => 'Database connection successful! Connected to <strong>' . e($dbName) . '</strong> on <strong>' . e($dbHost) . '</strong>.',
-                        'detail'        => '',
-                        'schema_status' => 'fresh',
-                        'table_count'   => 0,
-                    ];
-                    $_SESSION['lstr_install_data'] = $stored;
-                    $_SESSION['lstr_install_db_check_pending'] = true;
-                    $_SESSION['lstr_install_step'] = 3;
-                    header('Location: ./');
-                    exit;
                 }
 
                 if (empty($errors)) {
@@ -430,18 +393,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     exit;
                 }
 
-                if (LUSTER_INSTALL_DEMO) {
-                    unset(
-                        $_SESSION['lstr_install_step'],
-                        $_SESSION['lstr_install_data'],
-                        $_SESSION['lstr_install_token']
-                    );
-
-                    $_SESSION['lstr_install_complete'] = true;
-                    header('Location: ./?done=1');
-                    exit;
-                }
-
                 try {
                     $pdo = new PDO(
                         "mysql:host={$db['host']};port={$db['port']};dbname={$db['name']};charset=utf8mb4",
@@ -558,6 +509,7 @@ function installTables(PDO $pdo): void
             `id`              INT UNSIGNED    NOT NULL AUTO_INCREMENT,
             `username`        VARCHAR(50)     NOT NULL,
             `email`           VARCHAR(255)    NOT NULL,
+            `display_name`    VARCHAR(100)    NULL,
             `password`        VARCHAR(255)    NOT NULL,
             `failed_attempts` INT UNSIGNED    NOT NULL DEFAULT 0,
             `last_login`      DATETIME        NULL DEFAULT NULL,
@@ -725,6 +677,8 @@ function installTables(PDO $pdo): void
             `contact_recipient`            VARCHAR(255)          NULL DEFAULT NULL,
             `form_url_codes_submit`        VARCHAR(200)          NOT NULL DEFAULT '',
             `approved_by`                  ENUM('','tfl','tafl') NOT NULL DEFAULT '',
+            `join_confirmation_email`      TINYINT(1)            NULL DEFAULT NULL,
+            `auto_approve_joins`           TINYINT(1)            NOT NULL DEFAULT 0,
             `affiliate_apply_enabled`      TINYINT(1)            NOT NULL DEFAULT 0,
             `form_url_affiliate_apply`     VARCHAR(500)          NOT NULL DEFAULT '',
             `redirect_url_affiliate_apply` VARCHAR(500)          NOT NULL DEFAULT '',
@@ -849,11 +803,10 @@ function installTables(PDO $pdo): void
         // Collective data
         // ------------------------------------------------------------------
 
-        // Categories (TFL/TAFL/custom) — source VARCHAR(50) from the start.
+        // Categories (TFL/TAFL/custom) — source VARCHAR(50) from the start; parent_id absent (M47).
         "CREATE TABLE IF NOT EXISTS `lstr_categories` (
             `id`         INT UNSIGNED NOT NULL AUTO_INCREMENT,
             `name`       VARCHAR(150) NOT NULL,
-            `parent_id`  INT UNSIGNED NULL,
             `source`     VARCHAR(50)  NOT NULL DEFAULT 'custom',
             `created_at` DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
             PRIMARY KEY (`id`),
@@ -868,6 +821,14 @@ function installTables(PDO $pdo): void
             `created_at` DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP,
             PRIMARY KEY (`id`),
             UNIQUE KEY `uq_pattern` (`pattern`)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
+
+        // Multi-category junction table for listings (M51).
+        "CREATE TABLE IF NOT EXISTS `lstr_listing_categories` (
+            `fanlisting_id` INT NOT NULL,
+            `category_id`   INT NOT NULL,
+            PRIMARY KEY (`fanlisting_id`, `category_id`),
+            KEY `idx_lc_category` (`category_id`)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
 
         // Joined listings tracker — all columns from migrations 4, 7, 15, 38, 40.
@@ -903,7 +864,7 @@ function installTables(PDO $pdo): void
         "SELECT COUNT(*) FROM lstr_categories WHERE source = :source AND name = :name"
     );
     $catInsert = $pdo->prepare(
-        "INSERT INTO lstr_categories (name, source, parent_id) VALUES (:name, :source, NULL)"
+        "INSERT INTO lstr_categories (name, source) VALUES (:name, :source)"
     );
     $seedData = [
         'tfl'  => \Luster\Support\CategorySeedCatalog::tfl(),
@@ -920,13 +881,18 @@ function installTables(PDO $pdo): void
 
     // Mark all migrations as already run so that migrate.php treats this
     // install as fully up-to-date.  The schema created above already
-    // incorporates every column and table added by migrations 1–43.
+    // incorporates every column and table added by migrations 1–51.
+    // Migration 52 (adds `opened` to `owned`) is intentionally omitted: the
+    // installer does not create the `owned` table, so that migration stays
+    // pending and will apply the next time migrate.php is opened after `owned`
+    // exists.
     $pdo->exec(
         'INSERT IGNORE INTO `lstr_migrations` (migration_number) VALUES
          (1),(2),(3),(4),(5),(6),(7),(8),(9),(10),(11),(12),(13),
          (14),(15),(16),(17),(18),(19),(20),(21),(22),(23),(24),
          (25),(26),(27),(28),(29),(30),(31),(32),(33),(34),(35),
-         (36),(37),(38),(39),(40),(41),(42),(43)'
+         (36),(37),(38),(39),(40),(41),(42),(43),(44),(45),(46),
+         (47),(48),(49),(50),(51)'
     );
 }
 
@@ -989,12 +955,8 @@ function checkRequirements(): array
     $storageDirWritable = is_writable(LUSTER_BASE . '/storage');
     $rootWritable = $configDirWritable && $storageDirWritable;
     $phpOk = version_compare(PHP_VERSION, '8.2.0', '>=');
-    $forceFailures = defined('LUSTER_INSTALL_FORCE_REQUIREMENT_FAILURES')
-        && LUSTER_INSTALL_FORCE_REQUIREMENT_FAILURES;
-    $status = static fn(bool $ok): string => ($forceFailures || !$ok) ? 'fail' : 'ok';
-    $detail = static fn(bool $ok, string $okDetail, string $failDetail): string => ($forceFailures || !$ok)
-        ? $failDetail
-        : $okDetail;
+    $status = static fn(bool $ok): string => $ok ? 'ok' : 'fail';
+    $detail = static fn(bool $ok, string $okDetail, string $failDetail): string => $ok ? $okDetail : $failDetail;
 
     return [
         [
@@ -1040,50 +1002,34 @@ function e(string $v): string
     return htmlspecialchars($v, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 }
 
+
 function renderAlreadyInstalled(): void
 {
     renderHeader('Already Installed', 0);
     ?>
-<div class="main-card">
-  <div class="pc-head">
-    <div class="pc-head-icon pc-head-icon-bg"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg></div>
-    <div class="pc-head-meta">
-      <div class="pc-head-title">Already Installed!</div>
-    </div>
-  </div>
-  
-  <div class="pc-section" style="padding-bottom:0">
-    <p class="text-dim-copy">
-      Luster is already installed on this server. The admin panel is available <a href="../admin.php" class="link">here</a>.
-    </p>
-  </div>
+<div class="onboard-callout">
+  <div class="onboard-callout__inner">
+    <div class="onboard-callout__heading" style="justify-content: center; margin-bottom: 2rem;"><span class="onboard-callout__sparkle">&#10022;</span> Already Installed!</div>
 
-  <div class="pc-section">
+    <div class="alert alert-warning" style="margin-bottom: 2rem;">Luster is already installed on this server. The admin panel is available <a href="../admin.php" class="link">here</a>.</div>
+
     <div class="pc-section-label">Updating to a new version?</div>
-    <p class="text-dim-copy-sm">
-      Use the <a href="../migrate/" class="link">migration wizard</a> to apply missing
-      database changes. It only runs migrations that have not been applied yet and does not
-      affect your existing data.
-    </p>
-  </div>
-  
-    <div class="pc-section">
+    <p class="onboard-callout__body">Use the <a href="../migrate/" class="link">migration wizard</a> to apply missing database changes. It only runs migrations that have not been applied yet and does not affect your existing data.</p>
+
     <div class="pc-section-label">Reinstalling from scratch?</div>
-    <p class="text-dim-copy-sm">
-      A full reinstall requires all three of the following steps. <strong>Back up your data first!</strong>
-    </p>
+    <p class="onboard-callout__body">A full reinstall requires all three of the following steps. <strong>Back up your data first!</strong> After completing all three steps, reload this page to start the installer again.</p>
     <ul class="star-list">
       <li>Drop all <code>lstr_*</code> tables from the database.</li>
       <li>Delete <code>config/app.php</code>.</li>
       <li>Delete <code>storage/.installed</code>.</li>
     </ul>
-    <p class="text-dim-copy-sm mt-sm">
-      After completing all three steps, reload this page to start the installer again.
-    </p>
-  </div>
-  <div class="composer-footer">
-    <a href="../migrate/" class="btn btn-ghost">Run Migrations</a>
-    <a href="../admin.php" class="btn btn-primary">Go to Admin Panel &rarr;</a>
+
+    <div class="overview-section-divider"></div>
+    <div style="display: flex; align-items: center; gap: 1rem;">
+      <a href="../migrate/" class="btn btn-secondary">Migrations &rarr;</a>
+      <span style="flex: 1; text-align: center; color: var(--text-dim); font-size: var(--fs-sm);">or</span>
+      <a href="../admin.php" class="btn btn-primary">Admin Panel &rarr;</a>
+    </div>
   </div>
 </div>
     <?php
@@ -1104,8 +1050,8 @@ function renderPage(string $view, array $errors, string $csrf, int $step, array 
 
     renderHeader($title, $step);
 
-    // Error list
-    if (!empty($errors)) {
+    // Error list (step 2 renders its own errors inside the form)
+    if (!empty($errors) && $view !== '2') {
         echo '<div class="alert alert-error" role="alert"><strong>Please fix the following:</strong><ul class="install-error-list">';
         foreach ($errors as $err) {
             echo '<li>' . e($err) . '</li>';
@@ -1115,7 +1061,7 @@ function renderPage(string $view, array $errors, string $csrf, int $step, array 
 
     match ($view) {
         'req'  => renderStep1($csrf),
-        '2'    => renderStep2($csrf, $stored),
+        '2'    => renderStep2($csrf, $stored, $errors),
         'db-check' => renderDatabaseCheck($csrf, $stored),
         '3'    => renderStep3($csrf, $stored),
         '4'    => renderStep4($csrf, $stored),
@@ -1130,6 +1076,7 @@ function renderHeader(string $title, int $step): void
 {
     $tokensCssV  = (string) (filemtime(__DIR__ . '/../assets/css/tokens.css') ?: 0);
     $adminCssV   = (string) (filemtime(__DIR__ . '/../assets/css/admin.css')  ?: 0);
+    $skinsCssV   = (string) (filemtime(__DIR__ . '/../assets/css/skins.css')  ?: 0);
     $installCssV = (string) (filemtime(__DIR__ . '/install.css') ?: 0);
     ?>
 <!DOCTYPE html>
@@ -1138,8 +1085,10 @@ function renderHeader(string $title, int $step): void
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title><?= e($title) ?> &#10022; Luster Installation Wizard</title>
+<link rel="icon" type="image/svg+xml" href="../assets/images/logo16.svg">
 <link rel="stylesheet" href="../assets/css/tokens.css?v=<?= $tokensCssV ?>">
 <link rel="stylesheet" href="../assets/css/admin.css?v=<?= $adminCssV ?>">
+<link rel="stylesheet" href="../assets/css/skins.css?v=<?= $skinsCssV ?>">
 <link rel="stylesheet" href="install.css?v=<?= $installCssV ?>">
 <script>(function(){var t=localStorage.getItem('lstr_theme');if(t==='dark'||t==='light')document.documentElement.setAttribute('data-theme',t);})();</script>
 </head>
@@ -1153,22 +1102,14 @@ function renderHeader(string $title, int $step): void
   </button>
 </div>
 
-<?php if (defined('LUSTER_INSTALL_DEMO') && LUSTER_INSTALL_DEMO): ?>
-<div class="install-demo-banner">
-  <strong>Preview mode:</strong> database checks and final writes are bypassed.
-  Nothing will be written to your database, <code>config/app.php</code>, or <code>storage/.installed</code>.
-  <a href="./?demo=0">Exit preview</a>.
-</div>
-<?php endif; ?>
-
 <div class="install-wrap<?= ($step === 3 || $step === 4) ? ' install-wrap--wide' : '' ?>">
 
   <div class="install-brand">
-    <div class="install-gem-wrap">
-      <div class="install-gem"></div>
-      <div class="install-gem-glow"></div>
-    </div>
-    <h1 class="install-brand-name">Welcome to Luster</h1>
+    <picture>
+      <source media="(max-width: 640px)" srcset="../assets/images/logo50.svg">
+      <img src="../assets/images/logo.svg" alt="" class="install-logo">
+    </picture>
+    <h1 class="install-brand-name"><span class="install-brand-plain">Welcome to </span><span class="install-brand-gradient">Luster</span></h1>
     <p class="install-brand-sub">A few questions and we'll have your collective up and running! This should take a few minutes.</p>
   </div>
 
@@ -1176,7 +1117,7 @@ function renderHeader(string $title, int $step): void
     $steps = [
         1 => ['Requirements', 'System checks'],
         2 => ['Database', 'Connection check'],
-        3 => ['Setup', 'Site & admin details'],
+        3 => ['Settings', 'Site & admin details'],
         4 => ['Review', 'Confirm & install'],
         5 => ['Complete', 'All set!'],
     ];
@@ -1208,6 +1149,8 @@ function renderFooter(): void
     ?>
 </div>
 
+<p class="login-footer"><b>Luster</b> &copy; <a href="https://dreamesque.net/contact/" target="_blank" title="Contact" class="link">Star</a>, <?= date('Y') === '2026' ? '2026' : '2026&#x2013;' . date('Y') ?>.
+
 <?php $installJsV = filemtime(__DIR__ . '/assets/js/install.js') ?: ''; ?>
 <script src="../assets/js/install.js?v=<?= $installJsV ?>"></script>
 </body>
@@ -1224,7 +1167,7 @@ function renderStep1(string $csrf): void
   <div class="pc-head">
     <div class="pc-head-icon pc-head-icon-bg" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11.017 2.814a1 1 0 0 1 1.966 0l1.051 5.558a2 2 0 0 0 1.594 1.594l5.558 1.051a1 1 0 0 1 0 1.966l-5.558 1.051a2 2 0 0 0-1.594 1.594l-1.051 5.558a1 1 0 0 1-1.966 0l-1.051-5.558a2 2 0 0 0-1.594-1.594l-5.558-1.051a1 1 0 0 1 0-1.966l5.558-1.051a2 2 0 0 0 1.594-1.594z"/><path d="M20 2v4"/><path d="M22 4h-4"/><circle cx="4" cy="20" r="2"/></svg></div>
     <div class="pc-head-meta">
-      <h2 class="pc-head-title">1 &mdash; System Requirements</h2>
+      <h2 class="pc-head-title">System Requirements</h2>
       <div class="pc-head-sub">Luster needs these checks to pass before installation can begin.</div>
     </div>
   </div>
@@ -1236,7 +1179,7 @@ function renderStep1(string $csrf): void
       <?php foreach ($checks as $c): ?>
       <li class="install-req-row install-req-row--<?= e($c['status']) ?>">
         <span class="install-req-name"><?= e($c['label']) ?></span>
-        <span class="install-req-status" aria-label="<?= $c['status'] === 'ok' ? 'Ready' : 'Needs attention' ?>"><?= $c['status'] === 'ok' ? '&#10003;' : '&#10007;' ?></span>
+        <span class="results-icon <?= $c['status'] === 'ok' ? 'results-icon-success' : 'results-icon-err' ?>" aria-label="<?= $c['status'] === 'ok' ? 'Ready' : 'Needs attention' ?>"><?= $c['status'] === 'ok' ? '&#10003;' : '&#10005;' ?></span>
         <span class="install-req-detail">
           <?= e((string) ($c['detail'] ?? '')) ?>
           <?php if ($c['status'] === 'fail' && !empty($c['hint'])): ?>
@@ -1247,21 +1190,24 @@ function renderStep1(string $csrf): void
       <?php endforeach; ?>
     </ul>
     <?php if ($canContinue): ?>
-    <div class="alert alert-success" style="margin-top: 2rem; margin-bottom: 0;">All requirements met! Click <strong>Continue</strong> below to proceed.</div>
+    <div class="alert alert-success" style="margin-top: 2rem; margin-bottom: 0;"><span class="results-icon results-icon-success" aria-label="Ready">&#10003;</span> &nbsp; All requirements met! Click <strong>Continue</strong> below to proceed.</div>
     <?php else: ?>
-    <div class="alert alert-error" style="margin-top: 2rem; margin-bottom: 0;">Fix the highlighted items marked with <strong>&#10007;</strong> above, then refresh this page.</div>
+    <div class="alert alert-error" style="margin-top: 2rem; margin-bottom: 0;"><span class="results-icon results-icon-err" aria-label="Needs attention">&#10005;</span> &nbsp; Please fix the highlighted items above, then click <strong>Refresh</strong> below to try the installer again.</div>
     <?php endif; ?>
   </div>
-  <form method="post" action="./" class="composer-footer">
+  <form method="post" action="./" class="composer-footer <?= $canContinue ? 'composer-footer--center' : 'composer-footer--row' ?>">
     <input type="hidden" name="lstr_install_token" value="<?= e($csrf) ?>">
     <input type="hidden" name="install_step" value="1">
+    <?php if (!$canContinue): ?>
+    <button type="button" class="btn btn-secondary" onclick="location.reload()">Refresh</button>
+    <?php endif; ?>
     <button type="submit" class="btn btn-primary" <?= !$canContinue ? 'disabled aria-disabled="true"' : '' ?>>Continue &rarr;</button>
   </form>
 </div>
     <?php
 }
 
-function renderStep2(string $csrf, array $stored): void
+function renderStep2(string $csrf, array $stored, array $errors = []): void
 {
     // db_form holds the last-typed values (set on every Step 2 POST, no password).
     // Fall back to db (validated connection) so back-navigation from Step 3
@@ -1275,11 +1221,14 @@ function renderStep2(string $csrf, array $stored): void
   <div class="pc-head">
     <div class="pc-head-icon pc-head-icon-bg" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-database-icon lucide-database"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5V19A9 3 0 0 0 21 19V5"/><path d="M3 12A9 3 0 0 0 21 12"/></svg></div>
     <div class="pc-head-meta">
-      <h2 class="pc-head-title">2 &mdash; Database Configuration</h2>
+      <h2 class="pc-head-title">Database Configuration</h2>
       <div class="pc-head-sub">Luster will test the connection before continuing.</div>
     </div>
   </div>
   <div class="pc-section">
+    <?php if (!empty($errors)): ?>
+    <div class="alert alert-error" role="alert"><strong>Please fix the following:</strong><ul class="star-list" style="color: var(--danger)"><?php foreach ($errors as $err): ?><li><?= e($err) ?></li><?php endforeach; ?></ul></div>
+    <?php endif; ?>
     <div class="form-row">
       <div class="form-group">
         <label class="form-label" for="db_host">Database Host <span class="req">*</span></label>
@@ -1321,9 +1270,9 @@ function renderStep2(string $csrf, array $stored): void
     </details>
 
   </div>
-  <div class="composer-footer">
-    <a href="./?back=1" class="btn btn-quaternary">&larr; Back to Requirements</a>
-    <button type="submit" class="btn btn-primary">Test Database Connection &rarr;</button>
+  <div class="composer-footer composer-footer--row">
+    <a href="./?back=1" class="btn btn-quaternary">&larr; Back</a>
+    <button type="submit" class="btn btn-primary">Test Connection &rarr;</button>
   </div>
 </form>
     <?php
@@ -1341,17 +1290,19 @@ function renderDatabaseCheck(string $csrf, array $stored): void
   <div class="pc-head">
     <div class="pc-head-icon pc-head-icon-bg" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5V19A9 3 0 0 0 21 19V5"/><path d="M3 12A9 3 0 0 0 21 12"/></svg></div>
     <div class="pc-head-meta">
-      <h2 class="pc-head-title">2 &mdash; Database Configuration</h2>
+      <h2 class="pc-head-title">Database Configuration</h2>
       <div class="pc-head-sub">Results of your database connection.</div>
     </div>
   </div>
   <div class="pc-section">
     <div class="alert <?= $isError ? 'alert-error' : 'alert-success' ?>" style="margin-bottom: <?= ($isError && $detail !== '') ? '1rem' : '0' ?>;">
-      <?= $isError ? '&#10007; ' : '&#10003; ' ?><?= $message ?>
+      <?= $isError
+          ? '<span class="results-icon results-icon-err" aria-label="Needs attention">&#10005;</span> &nbsp;  '
+          : '<span class="results-icon results-icon-success" aria-label="Ready">&#10003;</span> &nbsp;  ' ?><?= $message ?>
     </div>
     <?php if ($isError && $detail !== ''): ?>
     <details class="form-details">
-      <summary>Technical detail</summary>
+      <summary>Error Report</summary>
       <div class="form-details-body">
         <p><code><?= $detail ?></code></p>
       </div>
@@ -1372,21 +1323,21 @@ function renderDatabaseCheck(string $csrf, array $stored): void
       <div class="alert alert-warning" style="margin-top: 1rem; margin-bottom: 0;">
         <strong>An existing Luster installation was detected in this database.</strong>
         The installer will be blocked at the final step.
-        <ul class="star-list">
-          <li>To update your schema, <a href="../migrate/" class="link">click here to migrate instead.</a></li>
-          <li>To reinstall from scratch, remove all <code>lstr_*</code> tables first.</li>
+        <ul class="star-list" style="color: var(--warn)">
+          <li> To <u>update</u> your database, <a href="../migrate/" class="link">click here to run migrations instead.</a></li>
+          <li>To <u>reinstall</u> from scratch, remove all <code>lstr_*</code> tables first, delete <code>config/app.php</code> and <code>storage/.installed</code>, then refresh this page to start the installer again.</li>
         </ul>
       </div>
       <?php endif; ?>
     <?php endif; ?>
   </div>
-  <div class="composer-footer">
-    <a href="./?back=2" class="btn btn-quaternary">&larr; Back to Database</a>
+  <div class="composer-footer <?= (!$isError && $schemaStatus !== 'exists') ? 'composer-footer--row' : 'composer-footer--center' ?>">
+    <a href="./?back=2" class="btn btn-quaternary">&larr; Back</a>
     <?php if (!$isError && $schemaStatus !== 'exists'): ?>
     <form method="post" action="./" class="action-form-inline">
       <input type="hidden" name="lstr_install_token" value="<?= e($csrf) ?>">
       <input type="hidden" name="install_step" value="23">
-      <button type="submit" class="btn btn-primary">Continue to Setup &rarr;</button>
+      <button type="submit" class="btn btn-primary">Continue &rarr;</button>
     </form>
     <?php endif; ?>
   </div>
@@ -1425,7 +1376,7 @@ function renderStep3(string $csrf, array $stored): void
   <div class="pc-head">
     <div class="pc-head-icon pc-head-icon-bg" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9.671 4.136a2.34 2.34 0 0 1 4.659 0 2.34 2.34 0 0 0 3.319 1.915 2.34 2.34 0 0 1 2.33 4.033 2.34 2.34 0 0 0 0 3.831 2.34 2.34 0 0 1-2.33 4.033 2.34 2.34 0 0 0-3.319 1.915 2.34 2.34 0 0 1-4.659 0 2.34 2.34 0 0 0-3.32-1.915 2.34 2.34 0 0 1-2.33-4.033 2.34 2.34 0 0 0 0-3.831A2.34 2.34 0 0 1 6.35 6.051a2.34 2.34 0 0 0 3.319-1.915"/><circle cx="12" cy="12" r="3"/></svg></div>
     <div class="pc-head-meta">
-      <h2 class="pc-head-title">3 &mdash; Site Settings & Admin Account</h2>
+      <h2 class="pc-head-title">Site Settings & Admin Account</h2>
       <div class="pc-head-sub">Set your public site details and create the first administrator.</div>
     </div>
   </div>
@@ -1523,9 +1474,9 @@ function renderStep3(string $csrf, array $stored): void
     </div>
 
   </div>
-  <div class="composer-footer">
-    <a href="./?back=2" class="btn btn-quaternary">&larr; Back to Database</a>
-    <button type="submit" class="btn btn-primary">Continue to Review &rarr;</button>
+  <div class="composer-footer composer-footer--row">
+    <a href="./?back=2" class="btn btn-quaternary">&larr; Back </a>
+    <button type="submit" class="btn btn-primary">Continue &rarr;</button>
   </div>
 </form>
     <?php
@@ -1546,8 +1497,10 @@ function renderStep4(string $csrf, array $stored): void
   </div>
 
   <div class="pc-section">
+    <p class="text-dim-copy">Please confirm the details below. If you need to change anything, click the <strong>Back</strong> button. Otherwise, click <strong>Install Luster</strong> to proceed with the installation.</p>
+
     <div class="pc-section-label">Site</div>
-    <div class="sysinfo-row"><span class="form-label">Install URL</span><span class="text-dim"><?= e((string) ($site['app_url'] ?? '')) ?></span></div>
+    <div class="sysinfo-row"><span class="form-label">Luster Install URL</span><span class="text-dim"><?= e((string) ($site['app_url'] ?? '')) ?></span></div>
     <div class="sysinfo-row"><span class="form-label">Site Name</span><?= e((string) ($site['site_name'] ?? '')) ?></div>
     <div class="sysinfo-row"><span class="form-label">Site URL</span><span class="text-dim"><?= e((string) ($site['site_url'] ?? $site['app_url'] ?? '')) ?></span></div>
     <?php if ((string) ($site['owner_name'] ?? '') !== ''): ?>
@@ -1564,8 +1517,8 @@ function renderStep4(string $csrf, array $stored): void
     <div class="sysinfo-row"><span class="form-label">Email</span><?= e((string) ($site['admin_email'] ?? '')) ?></div>
   </div>
 
-  <div class="composer-footer">
-    <a href="./?back=3" class="btn btn-quaternary">&larr; Back to Setup</a>
+  <div class="composer-footer composer-footer--row">
+    <a href="./?back=3" class="btn btn-quaternary">&larr; Back</a>
     <form method="post" action="./" class="action-form-inline">
       <input type="hidden" name="lstr_install_token" value="<?= e($csrf) ?>">
       <input type="hidden" name="install_step" value="4">
@@ -1581,24 +1534,22 @@ function renderDone(): void
     ?>
     <div class="onboard-callout">
       <div class="onboard-callout__inner">
-        <div style="text-align:center; margin-bottom: 1.125rem;">
-          <svg xmlns="http://www.w3.org/2000/svg" width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="url(#partyGrad)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><defs><linearGradient id="partyGrad" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#ff7eb3"/><stop offset="50%" stop-color="#78e8d8"/><stop offset="100%" stop-color="#ffd166"/></linearGradient></defs><path d="M5.8 11.3 2 22l10.7-3.79"/><path d="M4 3h.01"/><path d="M22 8h.01"/><path d="M15 2h.01"/><path d="M22 20h.01"/><path d="m22 2-2.24.75a2.9 2.9 0 0 0-1.96 3.12c.1.86-.57 1.63-1.45 1.63h-.38c-.86 0-1.6.6-1.76 1.44L14 10"/><path d="m22 13-.82-.33c-.86-.34-1.82.2-1.98 1.11c-.11.7-.72 1.22-1.43 1.22H17"/><path d="m11 2 .33.82c.34.86-.2 1.82-1.11 1.98C9.52 4.9 9 5.52 9 6.23V7"/><path d="M11 13c1.93 1.93 2.83 4.17 2 5-.83.83-3.07-.07-5-2-1.93-1.93-2.83-4.17-2-5 .83-.83 3.07.07 5 2Z"/></svg>
-        </div>
-        <div class="onboard-callout__heading">
+        <div class="onboard-callout__heading" style="justify-content: center; margin-bottom: 1.5rem;">
           <span class="onboard-callout__sparkle">&#10022;</span>
-          Installation Complete!
+          Installation Complete! <svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="url(#partyGrad)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><defs><linearGradient id="partyGrad" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#ff7eb3"/><stop offset="50%" stop-color="#78e8d8"/><stop offset="100%" stop-color="#ffd166"/></linearGradient></defs><path d="M5.8 11.3 2 22l10.7-3.79"/><path d="M4 3h.01"/><path d="M22 8h.01"/><path d="M15 2h.01"/><path d="M22 20h.01"/><path d="m22 2-2.24.75a2.9 2.9 0 0 0-1.96 3.12c.1.86-.57 1.63-1.45 1.63h-.38c-.86 0-1.6.6-1.76 1.44L14 10"/><path d="m22 13-.82-.33c-.86-.34-1.82.2-1.98 1.11c-.11.7-.72 1.22-1.43 1.22H17"/><path d="m11 2 .33.82c.34.86-.2 1.82-1.11 1.98C9.52 4.9 9 5.52 9 6.23V7"/><path d="M11 13c1.93 1.93 2.83 4.17 2 5-.83.83-3.07-.07-5-2-1.93-1.93-2.83-4.17-2-5 .83-.83 3.07.07 5 2Z"/></svg>
         </div>
-        <p class="onboard-callout__body">Luster has been installed successfully and is ready for your first listing!</p>
-        <div class="alert alert-warning" style="margin-bottom: 2rem;"><strong>Security:</strong> Delete <code>public/install/</code> now that installation is complete.</div>
+
+        <p class="onboard-callout__body">Luster has been installed successfully and is ready for your first listing! <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" x2="9.01" y1="9" y2="9"/><line x1="15" x2="15.01" y1="9" y2="9"/></svg></p>
+        <div class="alert alert-warning" style="margin-bottom: 2rem;"><strong>ATTENTION:</strong> For your security, delete <code>public/install/</code> now that installation is complete.</div>
         <div class="pc-section-label">Next Steps</div>
         <ul class="star-list" style="margin-bottom: 1.25rem;">
           <li>Open the <a href="../admin.php" class="link">admin panel</a> and add your first listing under <a href="../admin/listings" class="link"><strong>Listings</strong></a>.</li>
-          <li>Migrating from another script? Use <a href="../admin/import" class="link"><strong>Import Data &rarr; Import Wizard</strong></a> in the admin panel sidebar.</li>
-          <li>Confirm your <strong>Owner Email</strong> is set under <a href="../admin/settings#panel-general" class="link"><strong>Settings &rarr; General</strong></a> so join confirmations and password resets work.</li>
-          <li>Review <a href="../admin/settings" class="link"><strong>Settings</strong></a> in the admin panel to confirm your site URL and contact details.</li>
+          <li>Migrating from another script? Use <a href="../admin/import" class="link"><strong>Import Data</strong></a> in the admin panel sidebar.</li>
+          <li>Confirm your email <a href="../admin/settings#panel-general" class="link"><strong>Settings &rarr; General</strong></a> so email notifications and password resets work.</li>
         </ul>
-        <div class="onboard-callout__actions" style="justify-content: center;">
-          <a href="../admin.php" class="btn btn-primary">Go to Admin Panel &rarr;</a>
+        <div class="overview-section-divider"></div>
+        <div class="onboard-callout__actions" style="text-align: center;">
+          <a href="../admin.php" class="btn btn-primary">Proceed to Admin Panel &rarr;</a>
         </div>
       </div>
     </div>

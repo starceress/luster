@@ -68,7 +68,7 @@ final class KimMemberRepo
      */
     public function update(int $id, array $fields): void
     {
-        $allowed = ['name', 'email', 'url', 'password', 'fanlisting_id'];
+        $allowed = ['name', 'email', 'url', 'password', 'fanlisting_id', 'granted'];
         $setClauses = [];
         $params = ['id' => $id];
 
@@ -331,5 +331,180 @@ final class KimMemberRepo
             static fn(array $row) => ['name' => (string) $row['name'], 'email' => (string) $row['email']],
             $stmt->fetchAll()
         );
+    }
+
+    // -----------------------------------------------------------------------
+    // Filtered queries (unified tabbed index)
+    // -----------------------------------------------------------------------
+
+    /**
+     * Returns a filtered, paginated list of KIM members.
+     *
+     * @param  int    $listingId  0 = all fanlistings
+     * @param  string $tab        'all' | 'approved' | 'pending' | 'granted'
+     * @param  string $search     Partial name match
+     * @param  int    $perPage
+     * @param  int    $offset
+     * @return KimMember[]
+     */
+    public function getFiltered(
+        int $listingId,
+        string $tab,
+        string $search,
+        int $perPage,
+        int $offset,
+        string $sort = 'added_at',
+        string $dir  = 'desc'
+    ): array {
+        [$where, $params] = $this->buildFilterConditions($listingId, $tab, $search);
+        $orderBy = $this->resolveOrderBy($sort, $dir);
+
+        $stmt = $this->db->prepare(
+            "SELECT * FROM lstr_kim_members
+             WHERE {$where}
+             ORDER BY {$orderBy}
+             LIMIT :limit OFFSET :offset"
+        );
+        foreach ($params as $key => $value) {
+            $type = is_int($value) ? \PDO::PARAM_INT : \PDO::PARAM_STR;
+            $stmt->bindValue($key, $value, $type);
+        }
+        $stmt->bindValue('limit',  $perPage, \PDO::PARAM_INT);
+        $stmt->bindValue('offset', $offset,  \PDO::PARAM_INT);
+        $stmt->execute();
+
+        return array_map(
+            static fn(array $row) => KimMember::fromRow($row),
+            $stmt->fetchAll()
+        );
+    }
+
+    /**
+     * Resolves the ORDER BY clause for getFiltered().
+     * All column names are hardcoded — no user input is interpolated directly.
+     */
+    private function resolveOrderBy(string $sort, string $dir): string
+    {
+        $d = $dir === 'asc' ? 'ASC' : 'DESC';
+        return match ($sort) {
+            'name'    => "name {$d}, added_at DESC",
+            'status'  => $d === 'ASC'
+                             ? 'pending DESC, granted DESC, name ASC'
+                             : 'pending ASC, granted ASC, name ASC',
+            'listing' => "fanlisting_id {$d}, name ASC",
+            default   => "added_at {$d}, name ASC",
+        };
+    }
+
+    /**
+     * Counts KIM members matching the given filters.
+     */
+    public function countFiltered(int $listingId, string $tab, string $search): int
+    {
+        [$where, $params] = $this->buildFilterConditions($listingId, $tab, $search);
+
+        $stmt = $this->db->prepare(
+            "SELECT COUNT(*) FROM lstr_kim_members WHERE {$where}"
+        );
+        $stmt->execute($params);
+
+        return (int) $stmt->fetchColumn();
+    }
+
+    /**
+     * Returns tab counts (all / approved / pending / granted) in one query.
+     * Applies listing and search filters but ignores tab.
+     *
+     * @return array{all: int, approved: int, pending: int, granted: int}
+     */
+    public function getTabCounts(int $listingId, string $search): array
+    {
+        [$where, $params] = $this->buildFilterConditions($listingId, 'all', $search);
+
+        $stmt = $this->db->prepare(
+            "SELECT
+               COUNT(*)                                                      AS cnt_all,
+               SUM(CASE WHEN pending = 1                THEN 1 ELSE 0 END)  AS cnt_pending,
+               SUM(CASE WHEN pending = 0 AND granted = 0 THEN 1 ELSE 0 END) AS cnt_approved,
+               SUM(CASE WHEN pending = 0 AND granted = 1 THEN 1 ELSE 0 END) AS cnt_granted
+             FROM lstr_kim_members
+             WHERE {$where}"
+        );
+        $stmt->execute($params);
+        $row = $stmt->fetch() ?: [];
+
+        return [
+            'all'      => (int) ($row['cnt_all']      ?? 0),
+            'approved' => (int) ($row['cnt_approved']  ?? 0),
+            'pending'  => (int) ($row['cnt_pending']   ?? 0),
+            'granted'  => (int) ($row['cnt_granted']   ?? 0),
+        ];
+    }
+
+    /**
+     * Returns pending/approved/granted counts grouped by fanlisting in one query.
+     * Used by the Listings overview page to avoid N+1 queries.
+     *
+     * @return array<int, array{pending: int, approved: int, granted: int}>
+     */
+    public function getAllCountsByFanlisting(): array
+    {
+        $stmt = $this->db->prepare(
+            "SELECT
+               fanlisting_id,
+               SUM(CASE WHEN pending = 1                THEN 1 ELSE 0 END)  AS pending_cnt,
+               SUM(CASE WHEN pending = 0 AND granted = 0 THEN 1 ELSE 0 END) AS approved_cnt,
+               SUM(CASE WHEN pending = 0 AND granted = 1 THEN 1 ELSE 0 END) AS granted_cnt
+             FROM lstr_kim_members
+             GROUP BY fanlisting_id"
+        );
+        $stmt->execute();
+
+        $result = [];
+        foreach ($stmt->fetchAll() as $row) {
+            $result[(int) $row['fanlisting_id']] = [
+                'pending'  => (int) $row['pending_cnt'],
+                'approved' => (int) $row['approved_cnt'],
+                'granted'  => (int) $row['granted_cnt'],
+            ];
+        }
+
+        return $result;
+    }
+
+    /**
+     * Builds the WHERE clause and params for filtered KIM queries.
+     *
+     * @return array{0: string, 1: array<string, mixed>}
+     */
+    private function buildFilterConditions(
+        int $listingId,
+        string $tab,
+        string $search
+    ): array {
+        $conditions = [];
+        $params     = [];
+
+        if ($listingId > 0) {
+            $conditions[]            = 'fanlisting_id = :fanlisting_id';
+            $params['fanlisting_id'] = $listingId;
+        }
+
+        if ($tab === 'pending') {
+            $conditions[] = 'pending = 1';
+        } elseif ($tab === 'approved') {
+            $conditions[] = '(pending = 0 AND granted = 0)';
+        } elseif ($tab === 'granted') {
+            $conditions[] = '(pending = 0 AND granted = 1)';
+        }
+
+        if ($search !== '') {
+            $conditions[]     = 'name LIKE :search';
+            $params['search'] = '%' . $search . '%';
+        }
+
+        $where = $conditions !== [] ? implode(' AND ', $conditions) : '1=1';
+
+        return [$where, $params];
     }
 }

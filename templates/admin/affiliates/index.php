@@ -22,24 +22,31 @@ $b = rtrim(View::e($base_url), '/');
 
 $sort = $sort ?? 'sort_order';
 $dir  = $dir  ?? 'asc';
-$reorderMode = (bool) ($reorder_mode ?? false);
+$reorderMode  = (bool) ($reorder_mode ?? false);
+$fid          = $filter_fid ?? 'all';
+$isAllView    = $fid === 'all' || $fid === '';
+$showSortCol  = !$isAllView;
+$defaultSort  = $isAllView ? 'name' : 'sort_order';
+
+// Omit fanlisting_id from URL only when it equals the default ('all').
+$fidForUrl = static fn(string $f): string => ($f !== 'all' && $f !== '') ? $f : '';
 
 // URL to return to normal view (same scope, no reorder flag)
 $normalUrl = $b . '/admin/affiliates?' . http_build_query(array_filter([
-    'fanlisting_id' => ($filter_fid ?? 'collective') !== 'collective' ? ($filter_fid ?? '') : '',
+    'fanlisting_id' => $fidForUrl($fid),
 ], static fn(string $v): bool => $v !== ''));
 
 // URL to enter reorder mode (same scope + reorder=1)
 $reorderEntryUrl = $b . '/admin/affiliates?' . http_build_query(array_filter([
-    'fanlisting_id' => ($filter_fid ?? 'collective') !== 'collective' ? ($filter_fid ?? '') : '',
+    'fanlisting_id' => $fidForUrl($fid),
     'reorder'       => '1',
 ], static fn(string $v): bool => $v !== ''));
 
 // Pagination + sort URL builder (normal mode only)
 $filterQs = http_build_query(array_filter([
-    'fanlisting_id' => ($filter_fid ?? 'collective') !== 'collective' ? ($filter_fid ?? '') : '',
+    'fanlisting_id' => $fidForUrl($fid),
     'search'        => $search ?? '',
-    'sort'          => $sort !== 'sort_order' ? $sort : '',
+    'sort'          => $sort !== $defaultSort ? $sort : '',
     'dir'           => $dir  !== 'asc'        ? $dir  : '',
 ], static fn(string $v): bool => $v !== ''));
 
@@ -48,19 +55,19 @@ $pageUrl = static function (int $p) use ($b, $filterQs): string {
     return $b . '/admin/affiliates?' . $qs;
 };
 
-$sortUrl = static function (string $col) use ($b, $filter_fid, $search, $sort, $dir): string {
+$sortUrl = static function (string $col) use ($b, $fid, $fidForUrl, $search, $sort, $dir, $defaultSort): string {
     $newDir = ($sort === $col && $dir === 'asc') ? 'desc' : 'asc';
     $qs = http_build_query(array_filter([
-        'fanlisting_id' => ($filter_fid ?? 'collective') !== 'collective' ? ($filter_fid ?? '') : '',
+        'fanlisting_id' => $fidForUrl($fid),
         'search'        => $search ?? '',
-        'sort'          => $col,
+        'sort'          => $col !== $defaultSort ? $col : '',
         'dir'           => $newDir,
     ], static fn(string $v): bool => $v !== ''));
     return $b . '/admin/affiliates?' . $qs;
 };
 
 // Reorder mode is only meaningful for collective or a specific listing - not cross-scope.
-$canReorder = ($search ?? '') === '' && ($filter_fid ?? 'collective') !== '';
+$canReorder = ($search ?? '') === '' && !$isAllView && $fid !== '';
 ?>
 
 <?php if (($success ?? '') !== ''): ?>
@@ -92,11 +99,11 @@ $canReorder = ($search ?? '') === '' && ($filter_fid ?? 'collective') !== '';
 
 <?php else: ?>
 <!-- ──── NORMAL MODE TOOLBAR ────────────────────────────────────────── -->
-<?php $filtersActive = ($search ?? '') !== '' || ($filter_fid ?? 'collective') !== 'collective'; ?>
+<?php $filtersActive = ($search ?? '') !== '' || !$isAllView; ?>
 <div class="toolbar">
   <div class="actions-row">
     <button type="button" class="btn btn-preview btn-sm filter-toggle" id="fl-filter-toggle"
-            aria-expanded="<?= $filtersActive ? 'true' : 'false' ?>"
+            aria-expanded="true"
             aria-controls="filter-panel">
       <?= View::icon('filter') ?>
       Filter<?php if ($filtersActive): ?><span class="filter-dot" aria-hidden="true"></span><?php endif; ?>
@@ -106,10 +113,11 @@ $canReorder = ($search ?? '') === '' && ($filter_fid ?? 'collective') !== '';
     <?php if ($canReorder && !empty($affiliates)): ?>
     <a href="<?= View::e($reorderEntryUrl) ?>" class="btn btn-quaternary btn-sm">Reorder</a>
     <?php endif; ?>
+    <a href="<?= $b ?>/admin/affiliates/email" class="btn btn-secondary btn-sm">Email Affiliates</a>
     <a href="<?= $b ?>/admin/affiliates/add" class="btn btn-primary btn-sm">+ Add Affiliate</a>
   </div>
 </div>
-<div class="filter-panel<?= $filtersActive ? ' is-open' : '' ?>" id="filter-panel">
+<div class="filter-panel" id="filter-panel">
   <form method="GET" action="<?= $b ?>/admin/affiliates" class="filter-row">
     <?php if ($sort !== 'sort_order'): ?>
       <input type="hidden" name="sort" value="<?= View::e($sort) ?>">
@@ -119,10 +127,11 @@ $canReorder = ($search ?? '') === '' && ($filter_fid ?? 'collective') !== '';
     <?php endif; ?>
     <div class="select-wrap">
     <select name="fanlisting_id" class="js-autosubmit">
-      <option value="collective"<?= ($filter_fid ?? 'collective') === 'collective' ? ' selected' : '' ?>><?= View::e(($site_name ?? 'Collective') . ' (Collective) Affiliates') ?></option>
+      <option value="all"<?= $fid === 'all' || $fid === '' ? ' selected' : '' ?>>All Affiliates</option>
+      <option value="collective"<?= $fid === 'collective' ? ' selected' : '' ?>><?= View::e(($site_name ?? 'Collective') . ' (Collective) Affiliates') ?></option>
       <?php foreach ($listings as $fl): ?>
         <option value="<?= (int) $fl->id ?>"
-                <?= ($filter_fid ?? '') === (string) $fl->id ? ' selected' : '' ?>>
+                <?= $fid === (string) $fl->id ? ' selected' : '' ?>>
           <?= View::e($fl->name) ?>
         </option>
       <?php endforeach; ?>
@@ -149,12 +158,10 @@ $canReorder = ($search ?? '') === '' && ($filter_fid ?? 'collective') !== '';
       <a href="<?= $b ?>/admin/affiliates/add" class="btn btn-primary btn-sm"><?= View::icon('add') ?> Add Affiliate</a>
     </div>
   </div>
-<?php else: ?>
 
-<div class="card">
-
-<?php if ($reorderMode): ?>
+<?php elseif ($reorderMode): ?>
 <!-- ──── REORDER TABLE ──────────────────────────────────────────────── -->
+<div class="card">
   <div class="table-wrap">
   <table class="data-table mem-table" data-reorder-url="<?= View::e($reorder_url) ?>">
     <thead>
@@ -167,7 +174,7 @@ $canReorder = ($search ?? '') === '' && ($filter_fid ?? 'collective') !== '';
       <?php foreach ($affiliates as $aff): ?>
       <tr draggable="true" data-id="<?= (int) $aff->id ?>">
         <td class="table-col-xs table-cell-center">
-          <span class="drag-handle" title="Drag to reorder">Â Â¿</span>
+          <span class="drag-handle" title="Drag to reorder"><?= View::icon('grip') ?></span>
         </td>
         <td>
           <span class="text-strong"><?= View::e($aff->name) ?></span>
@@ -180,103 +187,144 @@ $canReorder = ($search ?? '') === '' && ($filter_fid ?? 'collective') !== '';
     </tbody>
   </table>
   </div>
+</div>
 
 <?php else: ?>
-<!-- ──── NORMAL TABLE ───────────────────────────────────────────────── -->
-  <div class="table-wrap">
-  <table class="data-table mem-table">
-    <thead>
-      <tr>
-        <th class="table-col-sm">
-          <a href="<?= View::e($sortUrl('sort_order')) ?>" class="sort-th<?= $sort === 'sort_order' ? ' sort-active' : '' ?>">
-            Sort # <?= View::sortIcon('sort_order', $sort, $dir) ?>
-          </a>
-        </th>
-        <th>
-          <a href="<?= View::e($sortUrl('name')) ?>" class="sort-th<?= $sort === 'name' ? ' sort-active' : '' ?>">
-            Name <?= View::sortIcon('name', $sort, $dir) ?>
-          </a>
-        </th>
-        <th>Scope</th>
-        <th>
-          <a href="<?= View::e($sortUrl('email')) ?>" class="sort-th<?= $sort === 'email' ? ' sort-active' : '' ?>">
-            Email <?= View::sortIcon('email', $sort, $dir) ?>
-          </a>
-        </th>
-        <th>
-          <a href="<?= View::e($sortUrl('status')) ?>" class="sort-th<?= $sort === 'status' ? ' sort-active' : '' ?>">
-            Status <?= View::sortIcon('status', $sort, $dir) ?>
-          </a>
-        </th>
-        <th class="act-col">Actions</th>
-      </tr>
-    </thead>
-    <tbody>
-      <?php foreach ($affiliates as $aff): ?>
-      <?php
-        $scopeLabel = ($aff->listingId !== null && isset($fan_map[$aff->listingId]))
-            ? View::e($fan_map[$aff->listingId])
-            : View::e($site_name ?? 'Collective');
-      ?>
-      <tr>
-        <td class="text-dim" data-label="Sort #"><?= (int) $aff->sortOrder ?></td>
-        <td data-label="Name">
-          <div class="inline-link-row">
-            <a href="<?= $b ?>/admin/affiliates/<?= (int) $aff->id ?>/edit"
-               class="link text-strong"><?= View::e($aff->name) ?></a>
-            <?php if ($aff->url !== ''): ?>
-            <a href="<?= View::e($aff->url) ?>" target="_blank" rel="noopener noreferrer"
-               class="text-dim icon-link-inline" title="Visit site">
-              <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5">
-                <path d="M5 2H2a1 1 0 0 0-1 1v7a1 1 0 0 0 1 1h7a1 1 0 0 0 1-1V7M8 1h3m0 0v3m0-3L5 7"/>
-              </svg>
+<!-- ──── NORMAL TABLE (with bulk form) ──────────────────────────────── -->
+<?php
+$_affLabel = $isAllView ? 'All Affiliates' : ($fid === 'collective' ? (View::e($site_name ?? 'Collective') . ' Affiliates') : (($fan_map[(int) $fid] ?? '') !== '' ? View::e($fan_map[(int) $fid]) . ' Affiliates' : 'Affiliates'));
+$_affFrom  = ($page - 1) * $per_page + 1;
+$_affTo    = ($page - 1) * $per_page + count($affiliates);
+?>
+<form method="POST" action="<?= $b ?>/admin/affiliates/bulk" id="bulk-form"
+      data-del-bulk data-del-entity="affiliate">
+  <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
+  <input type="hidden" name="scope" value="<?= View::e($filter_fid ?? 'collective') ?>">
+  <input type="hidden" name="select_all" value="0">
+  <input type="hidden" name="sa_filter_search" value="<?= View::e($search ?? '') ?>">
+
+  <div class="card">
+    <div class="card-head">
+      <span><?= $_affLabel ?></span>
+      <span class="row-sub">
+        Showing <?= $_affFrom ?>&#8211;<?= $_affTo ?> of <?= number_format((int) ($total ?? 0)) ?> affiliate<?= (int) ($total ?? 0) !== 1 ? 's' : '' ?><?php if (($total_pages ?? 1) > 1): ?> &mdash; page <?= (int) $page ?> of <?= (int) $total_pages ?><?php endif; ?>
+      </span>
+    </div>
+    <div class="bulk bulk--flush">
+      Bulk Actions:
+      <div class="select-wrap">
+        <select id="aff-bulk-action" name="action">
+          <option value="" disabled selected>&mdash; Select &mdash;</option>
+          <option value="activate">Activate</option>
+          <option value="deactivate">Deactivate</option>
+          <option value="delete">Delete</option>
+        </select>
+      </div>
+      <button type="submit" class="btn btn-quaternary btn-sm">Apply to Selected</button>
+    </div>
+    <div class="select-all-banner" id="aff-select-all-sa-banner" data-total="<?= (int) ($total ?? 0) ?>" style="display:none">
+      <span class="sa-page">All <strong class="sa-page-count">0</strong> items on this page are selected.&ensp;<button type="button" class="link sa-select-all-btn">Select all <strong class="sa-total-count">0</strong> affiliates</button></span>
+      <span class="sa-all" style="display:none">All <strong class="sa-total-count">0</strong> affiliates are selected.&ensp;<button type="button" class="link sa-clear-btn">Clear selection</button></span>
+    </div>
+    <div class="table-wrap">
+    <table class="data-table mem-table">
+      <thead>
+        <tr>
+          <th class="cb-col"><input type="checkbox" id="aff-select-all"></th>
+          <?php if ($showSortCol): ?>
+          <th class="table-col-sm">
+            <a href="<?= View::e($sortUrl('sort_order')) ?>" class="sort-th<?= $sort === 'sort_order' ? ' sort-active' : '' ?>">
+              Sort # <?= View::sortIcon('sort_order', $sort, $dir) ?>
             </a>
+          </th>
+          <?php endif; ?>
+          <th>
+            <a href="<?= View::e($sortUrl('name')) ?>" class="sort-th<?= $sort === 'name' ? ' sort-active' : '' ?>">
+              Name <?= View::sortIcon('name', $sort, $dir) ?>
+            </a>
+          </th>
+          <th>Scope</th>
+          <th>
+            <a href="<?= View::e($sortUrl('email')) ?>" class="sort-th<?= $sort === 'email' ? ' sort-active' : '' ?>">
+              Email <?= View::sortIcon('email', $sort, $dir) ?>
+            </a>
+          </th>
+          <th>
+            <a href="<?= View::e($sortUrl('status')) ?>" class="sort-th<?= $sort === 'status' ? ' sort-active' : '' ?>">
+              Status <?= View::sortIcon('status', $sort, $dir) ?>
+            </a>
+          </th>
+          <th class="act-col">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <?php foreach ($affiliates as $aff): ?>
+        <?php
+          $scopeLabel = ($aff->listingId !== null && isset($fan_map[$aff->listingId]))
+              ? View::e($fan_map[$aff->listingId])
+              : View::e($site_name ?? 'Collective');
+        ?>
+        <tr>
+          <td class="cb-col" data-label="">
+            <input type="checkbox" name="selected[]" value="<?= (int) $aff->id ?>"
+                   class="aff-row-cb" data-name="<?= View::e($aff->name) ?>">
+          </td>
+          <?php if ($showSortCol): ?>
+          <td class="text-dim" data-label="Sort #"><?= (int) $aff->sortOrder ?></td>
+          <?php endif; ?>
+          <td data-label="Name">
+            <div class="subject-title-stack">
+              <?= View::e($aff->name) ?>
+              <?php if ($aff->url !== ''): ?>
+                <a href="<?= View::e($aff->url) ?>" target="_blank" rel="noopener noreferrer"
+                   class="link text-dim mem-url"><?= View::e($aff->url) ?></a>
+              <?php endif; ?>
+            </div>
+          </td>
+          <td class="text-muted" data-label="Scope">
+            <?php if ($aff->listingId !== null): ?>
+              <span class="badge badge-info-pink">Fanlisting</span>
+              <span class="badge-sub"><?= $scopeLabel ?></span>
+            <?php else: ?>
+              <span class="badge badge-info">Collective</span>
             <?php endif; ?>
-          </div>
-        </td>
-        <td class="text-muted" data-label="Scope">
-          <?php if ($aff->listingId !== null): ?>
-            <span class="badge badge-current"><?= $scopeLabel ?></span>
-          <?php else: ?>
-            <span class="badge badge-pending">Collective</span>
-          <?php endif; ?>
-        </td>
-        <td class="text-muted" data-label="Email">
-          <?= ($aff->email !== null && $aff->email !== '') ? View::e($aff->email) : '<span class="text-dim">&mdash;</span>' ?>
-        </td>
-        <td data-label="Status">
-          <?php if ($aff->active): ?>
-            <span class="badge badge-current">Active</span>
-          <?php else: ?>
-            <span class="badge badge-inactive">Inactive</span>
-          <?php endif; ?>
-        </td>
-        <td class="act-col" data-label="">
-          <a href="<?= $b ?>/admin/affiliates/<?= (int) $aff->id ?>/edit"
-             class="btn btn-tertiary btn-sm">Edit</a>
+          </td>
+          <td class="text-muted" data-label="Email">
+            <?= ($aff->email !== null && $aff->email !== '') ? View::emailWrap($aff->email) : '<span class="text-dim">&mdash;</span>' ?>
+          </td>
+          <td data-label="Status">
+            <?php if ($aff->active): ?>
+              <span class="badge badge-current">Active</span>
+            <?php else: ?>
+              <span class="badge badge-inactive">Inactive</span>
+            <?php endif; ?>
+          </td>
+          <td class="act-col" data-label="">
+            <a href="<?= $b ?>/admin/affiliates/<?= (int) $aff->id ?>/edit"
+               class="btn btn-tertiary btn-sm">Edit</a>
 
-          <form method="POST" action="<?= $b ?>/admin/affiliates/<?= (int) $aff->id ?>/toggle"
-                class="action-form-inline">
-            <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
-            <button type="submit" class="btn btn-sm <?= $aff->active ? 'btn-warn' : 'btn-quaternary' ?>"><?= $aff->active ? 'Deactivate' : 'Activate' ?></button>
-          </form>
+            <form method="POST" action="<?= $b ?>/admin/affiliates/<?= (int) $aff->id ?>/toggle"
+                  class="action-form-inline">
+              <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
+              <button type="submit" class="btn btn-sm <?= $aff->active ? 'btn-warn' : 'btn-success' ?>"><?= $aff->active ? 'Deactivate' : 'Activate' ?></button>
+            </form>
 
-          <form method="POST" action="<?= $b ?>/admin/affiliates/<?= (int) $aff->id ?>/delete"
-                class="action-form-inline"
-                data-del-modal data-del-entity="affiliate"
-                data-del-name="<?= View::e($aff->name) ?>">
-            <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
-            <button type="submit" class="btn btn-danger btn-sm">Delete</button>
-          </form>
-        </td>
-      </tr>
-      <?php endforeach; ?>
-    </tbody>
-  </table>
-  </div>
-<?php endif; ?>
+            <form method="POST" action="<?= $b ?>/admin/affiliates/<?= (int) $aff->id ?>/delete"
+                  class="action-form-inline"
+                  data-del-modal data-del-entity="affiliate"
+                  data-del-name="<?= View::e($aff->name) ?>">
+              <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
+              <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+            </form>
+          </td>
+        </tr>
+        <?php endforeach; ?>
+      </tbody>
+    </table>
+    </div>
+  </div><!-- /.card -->
 
-</div><!-- /.card -->
+</form>
 
 <?php endif; ?>
 

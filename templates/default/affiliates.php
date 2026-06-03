@@ -12,6 +12,7 @@
  *   $join_url         string   URL of the join form (empty for collective view)
  *   $uploads_url      string   base URL for affiliate images (e.g. /luster/public/uploads)
  *   $base_url         string
+ *   $section_html     string|null  pre-rendered section from page-level template (null = use default output)
  */
 
 declare(strict_types=1);
@@ -20,7 +21,12 @@ use Luster\Core\View;
 ?>
 <div>
 
-  <?php if (empty($affiliates)): ?>
+  <?php if (($section_html ?? null) !== null): ?>
+    <?= $section_html ?>
+    <?php if (($pagination ?? '') !== ''): ?>
+      <div><?= $pagination ?></div>
+    <?php endif; ?>
+  <?php elseif (empty($affiliates)): ?>
     <p>No affiliates to display yet.</p>
   <?php elseif (($affiliates_html ?? null) !== null && $affiliates_html !== ''): ?>
     <!-- Custom DB template affiliate rows -->

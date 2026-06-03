@@ -181,4 +181,60 @@ final class AdoptionRepo
         );
         $stmt->execute(['id' => $id]);
     }
+
+    /**
+     * Returns counts for all statuses for a single listing in one query.
+     *
+     * @return array{all: int, new: int, reviewed: int, approved: int, rejected: int}
+     */
+    public function getCountsForListing(int $listingId): array
+    {
+        $stmt = $this->db->prepare(
+            "SELECT
+                COUNT(*)               AS total,
+                SUM(status = 'new')      AS cnt_new,
+                SUM(status = 'reviewed') AS cnt_reviewed,
+                SUM(status = 'approved') AS cnt_approved,
+                SUM(status = 'rejected') AS cnt_rejected
+             FROM `" . self::TABLE . "` WHERE fanlisting_id = :lid"
+        );
+        $stmt->execute(['lid' => $listingId]);
+        $row = $stmt->fetch(\PDO::FETCH_ASSOC);
+        return [
+            'all'      => (int) ($row['total']         ?? 0),
+            'new'      => (int) ($row['cnt_new']        ?? 0),
+            'reviewed' => (int) ($row['cnt_reviewed']   ?? 0),
+            'approved' => (int) ($row['cnt_approved']   ?? 0),
+            'rejected' => (int) ($row['cnt_rejected']   ?? 0),
+        ];
+    }
+
+    /**
+     * Returns new/approved/total counts per listing in one query.
+     * Used by the admin listings tab overview.
+     *
+     * @return array<int, array{all: int, new: int, approved: int}>
+     */
+    public function getAllListingCounts(): array
+    {
+        $stmt = $this->db->prepare(
+            "SELECT
+                fanlisting_id,
+                COUNT(*)               AS total,
+                SUM(status = 'new')      AS cnt_new,
+                SUM(status = 'approved') AS cnt_approved
+             FROM `" . self::TABLE . "`
+             GROUP BY fanlisting_id"
+        );
+        $stmt->execute();
+        $result = [];
+        foreach ($stmt->fetchAll(\PDO::FETCH_ASSOC) as $row) {
+            $result[(int) $row['fanlisting_id']] = [
+                'all'      => (int) $row['total'],
+                'new'      => (int) $row['cnt_new'],
+                'approved' => (int) $row['cnt_approved'],
+            ];
+        }
+        return $result;
+    }
 }

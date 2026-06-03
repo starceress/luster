@@ -65,13 +65,13 @@ class SiteSettingsRepo
      * Shared by the admin collective-templates page and the embed files so
      * both always show the same fallback markup.
      *
-     * @return array{owned_template: string, joined_template: string, collective_stats_template: string, owned_sections_template: string, joined_sections_template: string}
+     * @return array{owned_template: string, joined_template: string, collective_stats_template: string, owned_sections_template: string, joined_sections_template: string, collective_affiliates_section_template: string}
      */
     public static function collectiveDefaults(): array
     {
         return [
-            'owned_template'            => '<a href="{listing_url}" target="_blank">{listing_name}</a> — {listing_subject}',
-            'joined_template'           => '<a href="{listing_url}" target="_blank">{listing_name}</a> — {listing_category}',
+            'owned_template'                       => '<a href="{listing_url}" target="_blank">{listing_name}</a> — {listing_subject}',
+            'joined_template'                      => '<a href="{listing_url}" target="_blank">{listing_name}</a> — {listing_category}',
             'collective_stats_template' => 'Owned Listings: {owned_active} open, {owned_upcoming} upcoming<br>' . "\n"
                                          . 'Joined Listings: {joined_active}</br>' . "\n"
                                          . 'Total Members: {members_approved} approved (+ {members_pending} pending)</br>' . "\n"
@@ -88,10 +88,11 @@ class SiteSettingsRepo
                                          . '<h3>Pending ({pending_count})</h3>' . "\n"
                                          . '<ul>{pending_content}</ul>' . "\n"
                                          . '{/if_pending_listings}',
-            'joined_sections_template'  => '{if_current_listings}' . "\n"
-                                         . '<h3>Joined Listings ({current_count})</h3>' . "\n"
-                                         . '<ul>{current_content}</ul>' . "\n"
-                                         . '{/if_current_listings}',
+            'joined_sections_template'              => '{if_current_listings}' . "\n"
+                                                   . '<h3>Joined Listings ({current_count})</h3>' . "\n"
+                                                   . '<ul>{current_content}</ul>' . "\n"
+                                                   . '{/if_current_listings}',
+            'collective_affiliates_section_template' => '',
         ];
     }
 

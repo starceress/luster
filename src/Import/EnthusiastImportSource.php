@@ -430,7 +430,7 @@ final class EnthusiastImportSource implements ImportSourceInterface
         }
         $templateCount = $listingCount * 4; // 4 types per listing
         $warnings = [];
-        $warnings[] = 'Enthusiast email tokens ($$fan_name$$, $$fanlisting_title$$, etc.) will be translated to Luster\'s token format ({fan_name}, {listing_name}, etc.).';
+        $warnings[] = 'Enthusiast email tokens ($$fan_name$$, $$fanlisting_title$$, $$site_owner$$, $$site_name$$, etc.) will be translated to Luster\'s token format ({fan_name}, {listing_name}, {owner_name}, {site_name}, etc.).';
         return ['type' => 'Email templates', 'found' => $templateCount, 'import' => $templateCount, 'skip' => 0, 'warnings' => $warnings];
     }
 
@@ -1021,16 +1021,17 @@ final class EnthusiastImportSource implements ImportSourceInterface
         }
 
         $hasLastUpdated = $this->tableHasColumn($target, 'lstr_fanlisting_settings', 'last_updated');
+        $hasAffApply    = $this->tableHasColumn($target, 'lstr_fanlisting_settings', 'affiliate_apply_enabled');
         $checkSelect = $hasLastUpdated
             ? 'SELECT fanlisting_id, image, last_updated FROM lstr_fanlisting_settings WHERE fanlisting_id = :fid'
             : 'SELECT fanlisting_id, image FROM lstr_fanlisting_settings WHERE fanlisting_id = :fid';
         $checkStmt  = $target->prepare($checkSelect);
-        $insertColumns = $hasLastUpdated
-            ? 'fanlisting_id, members_per_page, queue_updates, members_template, affiliates_template, stats_template, image, last_updated'
-            : 'fanlisting_id, members_per_page, queue_updates, members_template, affiliates_template, stats_template, image';
-        $insertValues = $hasLastUpdated
-            ? ':fanlisting_id, :members_per_page, :queue_updates, :members_template, :affiliates_template, :stats_template, :image, :last_updated'
-            : ':fanlisting_id, :members_per_page, :queue_updates, :members_template, :affiliates_template, :stats_template, :image';
+        $insertColumns = 'fanlisting_id, members_per_page, queue_updates, members_template, affiliates_template, stats_template, image'
+            . ($hasLastUpdated ? ', last_updated'            : '')
+            . ($hasAffApply    ? ', affiliate_apply_enabled' : '');
+        $insertValues  = ':fanlisting_id, :members_per_page, :queue_updates, :members_template, :affiliates_template, :stats_template, :image'
+            . ($hasLastUpdated ? ', :last_updated' : '')
+            . ($hasAffApply    ? ', 1'             : '');
         // COALESCE preserves existing last_updated when the source has no real date.
         $lastUpdatedAssignment = $hasLastUpdated ? ', last_updated = COALESCE(:last_updated, last_updated)' : '';
         $insertStmt = $target->prepare(
@@ -1058,9 +1059,9 @@ final class EnthusiastImportSource implements ImportSourceInterface
 
             $perPage      = max(1, min(200, (int) ($row['perpage'] ?? 25)));
             $holdUpdate   = (int) ($row['holdupdate'] ?? 0);
-            $membersTpl   = trim((string) ($row['listtemplate'] ?? ''));
-            $affiliatesTpl = trim((string) ($row['affiliatestemplate'] ?? ''));
-            $statsTpl     = trim((string) ($row['statstemplate'] ?? ''));
+            $membersTpl   = self::translateDisplayTokens(trim((string) ($row['listtemplate'] ?? '')));
+            $affiliatesTpl = self::translateDisplayTokens(trim((string) ($row['affiliatestemplate'] ?? '')));
+            $statsTpl     = self::translateDisplayTokens(trim((string) ($row['statstemplate'] ?? '')));
 
             // Derive last_updated: try explicit source columns first, fall back to MAX(member.added).
             // Never invent today's date when no real source date exists.
@@ -1244,6 +1245,8 @@ final class EnthusiastImportSource implements ImportSourceInterface
         // Comprehensive Enthusiast → Luster token translation table.
         // Enthusiast uses $$double_dollar$$ delimiters; Luster uses {single_brace}.
         // The {password} single-brace form appears in some Erin's-fork template fields.
+        // Variant/alias forms ($$site_owner$$, $$site_name$$, etc.) appear in some
+        // customised Enthusiast installs and are normalised to their Luster equivalents.
         $tokenSearch  = [
             '$$fan_name$$',
             '$$fan_email$$',
@@ -1254,8 +1257,13 @@ final class EnthusiastImportSource implements ImportSourceInterface
             '$$fanlisting_url$$',
             '$$owner_name$$',
             '$$owner_email$$',
+            '$$site_owner$$',
+            '$$site_email$$',
+            '$$site_name$$',
+            '$$site_url$$',
             '$$fan_password$$',
             '$$password$$',
+            '$$lostpass_link$$',
             '{password}',
         ];
         $tokenReplace = [
@@ -1268,6 +1276,11 @@ final class EnthusiastImportSource implements ImportSourceInterface
             '{listing_url}',
             '{owner_name}',
             '{owner_email}',
+            '{owner_name}',
+            '{owner_email}',
+            '{site_name}',
+            '{listing_url}',
+            '{reset_url}',
             '{reset_url}',
             '{reset_url}',
             '{reset_url}',
@@ -1313,7 +1326,7 @@ final class EnthusiastImportSource implements ImportSourceInterface
         }
 
         $warnings = $imported > 0 || $skipped > 0
-            ? ['Enthusiast email tokens ($$fan_name$$, $$fanlisting_title$$, etc.) have been translated to Luster\'s token format ({fan_name}, {listing_name}, etc.).']
+            ? ['Enthusiast email tokens ($$fan_name$$, $$fanlisting_title$$, $$site_owner$$, $$site_name$$, etc.) have been translated to Luster\'s token format ({fan_name}, {listing_name}, {owner_name}, {site_name}, etc.).']
             : [];
 
         return ['type' => 'Email templates', 'imported' => $imported, 'skipped' => $skipped,
@@ -1369,12 +1382,16 @@ final class EnthusiastImportSource implements ImportSourceInterface
         $tokenSearch  = [
             '$$fan_name$$', '$$fan_email$$', '$$fan_url$$', '$$fan_country$$',
             '$$fanlisting_title$$', '$$fanlisting_subject$$', '$$fanlisting_url$$',
-            '$$owner_name$$', '$$owner_email$$', '$$fan_password$$', '$$password$$', '{password}',
+            '$$owner_name$$', '$$owner_email$$',
+            '$$site_owner$$', '$$site_email$$', '$$site_name$$', '$$site_url$$',
+            '$$fan_password$$', '$$password$$', '$$lostpass_link$$', '{password}',
         ];
         $tokenReplace = [
             '{fan_name}', '{fan_email}', '{fan_url}', '{fan_country}',
             '{listing_name}', '{listing_subject}', '{listing_url}',
-            '{owner_name}', '{owner_email}', '{reset_url}', '{reset_url}', '{reset_url}',
+            '{owner_name}', '{owner_email}',
+            '{owner_name}', '{owner_email}', '{site_name}', '{listing_url}',
+            '{reset_url}', '{reset_url}', '{reset_url}', '{reset_url}',
         ];
 
         $imported     = 0;
@@ -1418,7 +1435,7 @@ final class EnthusiastImportSource implements ImportSourceInterface
         }
 
         $warnings = $imported > 0 || $skipped > 0
-            ? ['Enthusiast email tokens have been translated to Luster\'s token format.']
+            ? ['Enthusiast email tokens ($$fan_name$$, $$site_owner$$, $$site_name$$, etc.) have been translated to Luster\'s token format ({fan_name}, {owner_name}, {site_name}, etc.).']
             : [];
 
         return ['type' => 'Saved email templates', 'imported' => $imported, 'skipped' => $skipped,
@@ -1780,15 +1797,18 @@ final class EnthusiastImportSource implements ImportSourceInterface
             // INSERT IGNORE / OR IGNORE: only create the row when it doesn't already exist.
             // Never overwrite an existing last_updated with today's date — real source dates
             // are written by runSettings(); this function only seeds brand-new rows.
+            $hasAffApply = $this->tableHasColumn($target, 'lstr_fanlisting_settings', 'affiliate_apply_enabled');
+            $affCol = $hasAffApply ? ', affiliate_apply_enabled' : '';
+            $affVal = $hasAffApply ? ', 1'                       : '';
             if ($target->getAttribute(PDO::ATTR_DRIVER_NAME) === 'mysql') {
                 $stmt = $target->prepare(
-                    'INSERT IGNORE INTO lstr_fanlisting_settings (fanlisting_id, last_updated)
-                     VALUES (:id, CURRENT_DATE)'
+                    "INSERT IGNORE INTO lstr_fanlisting_settings (fanlisting_id, last_updated{$affCol})
+                     VALUES (:id, CURRENT_DATE{$affVal})"
                 );
             } else {
                 $stmt = $target->prepare(
-                    'INSERT OR IGNORE INTO lstr_fanlisting_settings (fanlisting_id, last_updated)
-                     VALUES (:id, CURRENT_DATE)'
+                    "INSERT OR IGNORE INTO lstr_fanlisting_settings (fanlisting_id, last_updated{$affCol})
+                     VALUES (:id, CURRENT_DATE{$affVal})"
                 );
             }
 
@@ -1923,6 +1943,64 @@ final class EnthusiastImportSource implements ImportSourceInterface
         } catch (\Throwable) {
             return true;
         }
+    }
+
+    /**
+     * Translates Enthusiast $$token$$ placeholders in display templates
+     * (stats, members, affiliates) to Luster's {token} format.
+     */
+    private static function translateDisplayTokens(string $tpl): string
+    {
+        if ($tpl === '') {
+            return $tpl;
+        }
+        return str_replace(
+            [
+                // Stats tokens
+                '$$stat_opened$$',
+                '$$stat_updated$$',
+                '$$stat_lastupdated$$',
+                '$$stat_approved$$',
+                '$$stat_pending$$',
+                '$$stat_newmembers$$',
+                '$$stat_growth$$',
+                // Member row tokens (generic variants first — longest match wins)
+                '$$fan_email_generic$$',
+                '$$fan_url_generic$$',
+                '$$fan_name$$',
+                '$$fan_email$$',
+                '$$fan_url$$',
+                '$$fan_country$$',
+                // Affiliate row tokens
+                '$$aff_name$$',
+                '$$aff_url$$',
+                '$$aff_image$$',
+                // Listing info (may appear in any template)
+                '$$fanlisting_title$$',
+                '$$fanlisting_url$$',
+            ],
+            [
+                '{stat_opened}',
+                '{stat_updated}',
+                '{stat_last_updated}',
+                '{stat_approved}',
+                '{stat_pending}',
+                '{stat_newmembers}',
+                '{stat_growth}',
+                '{fan_email}',
+                '{fan_url}',
+                '{fan_name}',
+                '{fan_email}',
+                '{fan_url}',
+                '{fan_country}',
+                '{aff_name}',
+                '{aff_url}',
+                '{aff_image_tag}',
+                '{listing_name}',
+                '{listing_url}',
+            ],
+            $tpl,
+        );
     }
 
     private function tableHasColumn(PDO $pdo, string $table, string $column): bool

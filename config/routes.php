@@ -7,7 +7,6 @@ use Luster\Controllers\Admin\LinkCheckerController;
 use Luster\Controllers\Admin\FeedbackController;
 use Luster\Controllers\Admin\ImportController;
 use Luster\Controllers\Admin\ImportMembersController;
-use Luster\Controllers\Admin\LegacySourceController;
 use Luster\Controllers\Admin\ActivityLogController;
 use Luster\Controllers\Admin\EmailsController;
 use Luster\Controllers\Admin\BulkEmailController;
@@ -92,7 +91,10 @@ return [
         $router->get('/contact/{id}',        ContactController::class, 'listingForm');
         $router->post('/contact/{id}',       ContactController::class, 'listingSubmit');
 
-        // Affiliate applications — /success before base /{id}
+        // Affiliate applications — collective literal paths before parameterised {id} routes
+        $router->get('/affiliate-apply/collective/success', AffiliateApplyController::class, 'collectiveSuccess');
+        $router->get('/affiliate-apply/collective',         AffiliateApplyController::class, 'collectiveShow');
+        $router->post('/affiliate-apply/collective',        AffiliateApplyController::class, 'collectiveSubmit');
         $router->get('/affiliate-apply/{id}/success', AffiliateApplyController::class, 'success');
         $router->get('/affiliate-apply/{id}',         AffiliateApplyController::class, 'show');
         $router->post('/affiliate-apply/{id}',        AffiliateApplyController::class, 'submit');
@@ -288,8 +290,14 @@ return [
             AffiliateController::class, 'add');
         $router->post('/admin/affiliates/add',
             AffiliateController::class, 'add');
+        $router->post('/admin/affiliates/bulk',
+            AffiliateController::class, 'bulk');
         $router->post('/admin/affiliates/reorder',
             AffiliateController::class, 'reorder');
+        $router->get('/admin/affiliates/email',
+            AffiliateController::class, 'emailCompose');
+        $router->post('/admin/affiliates/email',
+            AffiliateController::class, 'emailSend');
         $router->get('/admin/affiliates/{id}/edit',
             AffiliateController::class, 'editAffiliate');
         $router->post('/admin/affiliates/{id}/edit',
@@ -418,6 +426,12 @@ return [
         // ── Link Checker ─────────────────────────────────────────────────
         $router->get('/admin/link-checker',
             LinkCheckerController::class, 'index');
+        $router->get('/admin/link-checker/settings',
+            LinkCheckerController::class, 'settings');
+        $router->get('/admin/link-checker/all-ids',
+            LinkCheckerController::class, 'allIds');
+        $router->post('/admin/link-checker/settings',
+            LinkCheckerController::class, 'settings');
         $router->post('/admin/link-checker/check-affiliate',
             LinkCheckerController::class, 'checkAffiliate');
         $router->post('/admin/link-checker/check-joined',
@@ -426,10 +440,14 @@ return [
             LinkCheckerController::class, 'resetAffiliates');
         $router->post('/admin/link-checker/reset-joined',
             LinkCheckerController::class, 'resetJoined');
+        $router->post('/admin/link-checker/reset-all',
+            LinkCheckerController::class, 'resetAll');
         $router->post('/admin/link-checker/apply-affiliate-redirect',
             LinkCheckerController::class, 'applyRedirectAffiliate');
         $router->post('/admin/link-checker/apply-joined-redirect',
             LinkCheckerController::class, 'applyRedirectJoined');
+        $router->post('/admin/link-checker/save-cron-settings',
+            LinkCheckerController::class, 'saveCronSettings');
 
         // ── Feedback ──────────────────────────────────────────────────
         $router->get('/admin/feedback',  FeedbackController::class, 'showForm');
@@ -468,10 +486,10 @@ return [
         // AJAX test connection
         $router->post('/admin/import/{source}/test-connection',
             ImportController::class, 'testConnection');
-        // Step 3: Scope (options + image mode + ZIP upload)
-        $router->get('/admin/import/{source}/scope',
+        // Step 3: Options (data types + image mode + ZIP upload)
+        $router->get('/admin/import/{source}/options',
             ImportController::class, 'scope');
-        $router->post('/admin/import/{source}/scope',
+        $router->post('/admin/import/{source}/options',
             ImportController::class, 'scope');
         $router->post('/admin/import/{source}/zip-upload',
             ImportController::class, 'uploadZip');
@@ -494,6 +512,8 @@ return [
         // ── Embed codes + compat test ─────────────────────────────────
         $router->get('/admin/embed-codes',
             EmbedCodesController::class, 'index');
+        $router->get('/admin/embed-codes/preview',
+            EmbedCodesController::class, 'preview');
         $router->get('/admin/compat-test',
             EmbedCodesController::class, 'compatTest');
         $router->post('/admin/compat-test',
@@ -515,17 +535,7 @@ return [
         $router->get('/admin/import-members/result',
             ImportMembersController::class, 'result');
 
-        // ── Legacy source browser ─────────────────────────────────────
-        $router->get('/admin/legacy-source',
-            LegacySourceController::class, 'index');
-        $router->post('/admin/legacy-source/connect',
-            LegacySourceController::class, 'connect');
-        $router->get('/admin/legacy-source/listings',
-            LegacySourceController::class, 'listings');
-        $router->get('/admin/legacy-source/listing/{id}',
-            LegacySourceController::class, 'listingDetail');
-
-        // ── Unified Emails page ───────────────────────────────────────
+// ── Unified Emails page ───────────────────────────────────────
         $router->get('/admin/emails',
             EmailsController::class, 'index');
         $router->post('/admin/emails/preview',

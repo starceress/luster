@@ -159,8 +159,27 @@ $dataExist      = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON
 
     <div class="composer-footer">
       <button type="submit" class="btn btn-primary"><?= $isEdit ? 'Save Changes' : 'Add Joined Listing' ?></button>
+      <?php if ($isEdit): ?>
+        <button type="reset" class="btn btn-ghost">Reset to Original</button>
+      <?php endif; ?>
       <button type="button" class="btn btn-ghost" id="clear-form-btn">Clear</button>
-      <a href="<?= $b ?>/admin/joined" class="btn btn-ghost">Cancel</a>
+      <?php if ($isEdit): ?>
+        <span class="composer-footer-spacer"></span>
+        <button type="submit" form="del-joined-<?= (int) $joined->id ?>" class="btn btn-danger">Delete</button>
+      <?php endif; ?>
     </div>
   </div>
 </form>
+
+<?php if ($isEdit): ?>
+  <form
+    id="del-joined-<?= (int) $joined->id ?>"
+    method="POST"
+    action="<?= $b ?>/admin/joined/<?= (int) $joined->id ?>/delete"
+    data-del-modal
+    data-del-entity="joined"
+    data-del-name="<?= View::e($joined->name) ?>"
+  >
+    <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
+  </form>
+<?php endif; ?>

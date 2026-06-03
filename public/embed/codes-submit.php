@@ -14,13 +14,9 @@ use Luster\Repositories\ListingRepo;
  *   $luster_return        = true;  // true = return string, false/omit = echo
  *   echo require '/path/to/luster/public/embed/codes-submit.php';
  *
- * Optional overrides:
- *   $luster_return_url  — URL to redirect to after a successful submission
- *                         (default: same URL with ?submitted=1 appended)
- *
- * The form POSTs to Luster's public /codes/submit/{id} route, which processes
- * the upload and redirects to /codes/submit/{id}/thanks on success.
- * The thank-you state is shown in the embed by passing ?submitted=1.
+ * The form POSTs to Luster's public /codes/submit/{id} route. On success,
+ * Luster redirects back to this page and the embed automatically shows the
+ * confirmation message from the session flash.
  */
 
 // ---------------------------------------------------------------------------
@@ -91,18 +87,27 @@ $_lusterFormAction = $_lusterEmbedBase . '/codes/submit/' . $_lusterListingId;
 // 4. Consume flash
 // ---------------------------------------------------------------------------
 
-$_lusterError = (string) $_lusterSession->get('lstr_flash_error', '');
-$_lusterOld   = (array)  $_lusterSession->get('lstr_flash_old',   []);
+$_lusterSuccess = (string) $_lusterSession->get('lstr_flash_success', '');
+$_lusterError   = (string) $_lusterSession->get('lstr_flash_error',   '');
+$_lusterOld     = (array)  $_lusterSession->get('lstr_flash_old',     []);
+$_lusterSession->remove('lstr_flash_success');
 $_lusterSession->remove('lstr_flash_error');
 $_lusterSession->remove('lstr_flash_old');
 
+if ($_lusterSuccess !== '') {
+    $_lusterHtml = '<div class="fl-success"><p>'
+        . htmlspecialchars($_lusterSuccess, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8')
+        . '</p></div>';
+    if ($luster_return ?? false) { return $_lusterHtml; }
+    echo $_lusterHtml;
+    return;
+}
+
 // ---------------------------------------------------------------------------
-// 5. Detect submitted state (after redirect back with ?submitted=1)
+// 5. Build captcha for the form
 // ---------------------------------------------------------------------------
 
-$_lusterSubmitted = isset($_GET['submitted']) && (string) $_GET['submitted'] === '1';
-
-$_lusterCaptchaQuestion = $_lusterSubmitted ? '' : Captcha::getQuestion('code_submit');
+$_lusterCaptchaQuestion = Captcha::getQuestion('code_submit');
 
 // ---------------------------------------------------------------------------
 // 6. Render fragment
@@ -118,7 +123,7 @@ $_lusterHtml = $_lusterApp->getView()->renderFragment('codes-submit.php', [
     'old'              => $_lusterOld,
     'captcha_question' => $_lusterCaptchaQuestion,
     'captcha_error'    => '',
-    'submitted'        => $_lusterSubmitted,
+    'submitted'        => false,
     'base_url'         => $_lusterBaseUrl,
 ]);
 

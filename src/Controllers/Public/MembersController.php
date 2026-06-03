@@ -57,7 +57,7 @@ final class MembersController
 
         // Whitelist $sort; fall back to 'country'
         $rawSort = (string) $request->query('sort', 'country');
-        $sort    = in_array($rawSort, ['name', 'country'], true) ? $rawSort : 'country';
+        $sort    = in_array($rawSort, ['name', 'country', 'added'], true) ? $rawSort : 'country';
         $country = trim((string) $request->query('country', ''));
 
         $memberRepo = new MemberRepo($this->app->getDatabase(), $this->app->getConfig());
@@ -113,7 +113,7 @@ final class MembersController
         // Path B: country summary (sort=country, no filter)
         // -----------------------------------------------------------------------
 
-        if ($sort === 'country') {
+        if ($sort === 'country' || ($sort !== 'name' && $sort !== 'added')) {
             $countries = $memberRepo->getCountrySummary($listing->dbprefix);
 
             $countrySummary = [];
@@ -144,11 +144,11 @@ final class MembersController
         // Path C: alphabetical by name (sort=name)
         // -----------------------------------------------------------------------
 
-        $result = $memberRepo->paginate($listing->dbprefix, $page, $perPage, true, 'name');
+        $result = $memberRepo->paginate($listing->dbprefix, $page, $perPage, true, $sort);
 
         $statsLine      = $result['total'] . ' member(s) — page ' . $page . ' of ' . $result['pages'];
         $paginationHtml = $this->buildPagination(
-            $page, $result['pages'], $membersBase, ['sort' => 'name'],
+            $page, $result['pages'], $membersBase, ['sort' => $sort],
         );
 
         $membersHtml = $membersTemplate !== null && !empty($result['members'])

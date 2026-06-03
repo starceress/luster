@@ -300,19 +300,30 @@ final class EmailTemplateRepo
     // -----------------------------------------------------------------------
 
     /**
-     * Full inheritance-chain resolution for sending an email.
+     * Resolves subject and body for the given listing (or collective when $listingId is null).
      *
-     * Loads the per-listing template and global template, then applies
-     * token replacement on whichever level wins:
-     *   per-listing (enabled) → global (enabled) → built-in default
+     * For collective (null) + TYPE_AFFILIATE_APPLIED: if no global template is active,
+     * replaces the built-in default subject with a collective-specific phrase while
+     * keeping the standard body. A configured global template is always respected.
      *
-     * @param  array<string, string>  $tokens  From buildTokens()
      * @return array{string, string}  [subject, body]
      */
-    public function resolveForListing(int $listingId, string $type, array $tokens): array
+    public function resolveForListing(?int $listingId, string $type, array $tokens): array
     {
-        $perListing = $this->get($listingId, $type);
+        $perListing = $listingId !== null ? $this->get($listingId, $type) : null;
         $global     = $this->getGlobal($type);
+
+        // Collective affiliate_applied: substitute a clearer subject when no custom template wins
+        if ($listingId === null && $type === self::TYPE_AFFILIATE_APPLIED) {
+            $globalActive = $global !== null && $global->enabled && trim($global->subject) !== '';
+            if (!$globalActive) {
+                return [
+                    'New collective affiliate application',
+                    self::applyTokens(self::defaultBody($type), $tokens),
+                ];
+            }
+        }
+
         return self::resolve($perListing, $type, $tokens, $global);
     }
 

@@ -93,16 +93,28 @@ if ($_lusterListingId > 0) {
 }
 
 // ---------------------------------------------------------------------------
-// 3b. Load affiliate row template from DB (per-listing mode only)
+// 3b. Load affiliate row template + section template from DB
 // ---------------------------------------------------------------------------
 
 $_lusterAffiliateTemplate = null;
+$_lusterSectionTemplate   = null;
 if ($_lusterListingId > 0) {
-    $_lusterSettingsRepo      = new ListingSettingsRepo($_lusterApp->getDatabase());
-    $_lusterTpls              = $_lusterSettingsRepo->getTemplates($_lusterListingId);
+    $_lusterSettingsRepo = new ListingSettingsRepo($_lusterApp->getDatabase());
+    $_lusterTpls         = $_lusterSettingsRepo->getTemplates($_lusterListingId);
     if ($_lusterTpls['affiliates_template'] !== null
         && trim($_lusterTpls['affiliates_template']) !== '') {
         $_lusterAffiliateTemplate = $_lusterTpls['affiliates_template'];
+    }
+    if (($_lusterTpls['affiliates_section_template'] ?? null) !== null
+        && trim($_lusterTpls['affiliates_section_template']) !== '') {
+        $_lusterSectionTemplate = $_lusterTpls['affiliates_section_template'];
+    }
+} else {
+    // Collective mode — load section template from lstr_site_settings
+    $_lusterSiteRepo    = new \Luster\Repositories\SiteSettingsRepo($_lusterApp->getDatabase());
+    $_lusterSectTplRaw  = (string) ($_lusterSiteRepo->getMany(['collective_affiliates_section_template'])['collective_affiliates_section_template'] ?? '');
+    if (trim($_lusterSectTplRaw) !== '') {
+        $_lusterSectionTemplate = $_lusterSectTplRaw;
     }
 }
 
@@ -139,22 +151,71 @@ $_lusterPagination = $_lusterBuildPagination($_lusterPage, $_lusterResult['pages
 // 5. Render fragment
 // ---------------------------------------------------------------------------
 
-// Build per-row HTML when a custom template is set
+// Build per-row HTML when a custom row template is set
 $_lusterAffiliatesHtml = null;
 if ($_lusterAffiliateTemplate !== null) {
     $e = static fn(string $v): string => htmlspecialchars($v, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
     $rows = '';
     foreach ($_lusterResult['items'] as $_aff) {
-        $imageTag = ($_aff->image !== null && $_aff->image !== '')
-            ? '<img src="' . $e($_lusterUploadsUrl . '/' . $_aff->image) . '" alt="' . $e($_aff->name) . '">'
+        $imageFilename = $_aff->image ?? '';
+        $imageUrl      = ($imageFilename !== '') ? $_lusterUploadsUrl . '/' . $imageFilename : '';
+        $imageTag      = ($imageUrl !== '')
+            ? '<img src="' . $e($imageUrl) . '" alt="' . $e($_aff->name) . '">'
             : '';
         $rows .= str_replace(
-            ['{aff_name}', '{aff_url}', '{aff_image}'],
-            [$e($_aff->name), $e($_aff->url), $imageTag],
+            ['{aff_name}', '{aff_url}', '{aff_image}', '{aff_image_url}', '{aff_image_tag}'],
+            [$e($_aff->name), $e($_aff->url), $e($imageFilename), $e($imageUrl), $imageTag],
             $_lusterAffiliateTemplate,
         );
     }
     $_lusterAffiliatesHtml = $rows;
+}
+
+// Apply page-level section template when set
+$_lusterSectionHtml = null;
+if ($_lusterSectionTemplate !== null) {
+    $e = static fn(string $v): string => htmlspecialchars($v, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+
+    // Build {affiliates} content from row template or simple fallback
+    if ($_lusterAffiliatesHtml !== null) {
+        $_lusterRowsHtml = $_lusterAffiliatesHtml;
+    } else {
+        $rowParts = [];
+        foreach ($_lusterResult['items'] as $_aff) {
+            $imageUrl = ($_aff->image !== null && $_aff->image !== '') ? $_lusterUploadsUrl . '/' . $_aff->image : '';
+            if ($imageUrl !== '') {
+                $rowParts[] = '<a href="' . $e($_aff->url) . '" target="_blank" rel="noopener noreferrer">'
+                    . '<img src="' . $e($imageUrl) . '" alt="' . $e($_aff->name) . '"></a>';
+            } else {
+                $rowParts[] = '<a href="' . $e($_aff->url) . '" target="_blank" rel="noopener noreferrer">'
+                    . $e($_aff->name) . '</a>';
+            }
+        }
+        $_lusterRowsHtml = implode("\n", $rowParts);
+    }
+
+    // Build {affiliates_list}
+    $listParts = [];
+    foreach ($_lusterResult['items'] as $_aff) {
+        $listParts[] = '<a href="' . $e($_aff->url) . '">' . $e($_aff->name) . '</a>';
+    }
+    $plainList = implode(', ', $listParts);
+
+    // Process conditionals
+    $total = $_lusterResult['total'];
+    if ($total > 0) {
+        $_lusterSectionHtml = preg_replace('/\{if_no_affiliates\}.*?\{\/if_no_affiliates\}/s', '', $_lusterSectionTemplate) ?? $_lusterSectionTemplate;
+        $_lusterSectionHtml = str_replace(['{if_affiliates}', '{/if_affiliates}'], '', $_lusterSectionHtml);
+    } else {
+        $_lusterSectionHtml = preg_replace('/\{if_affiliates\}.*?\{\/if_affiliates\}/s', '', $_lusterSectionTemplate) ?? $_lusterSectionTemplate;
+        $_lusterSectionHtml = str_replace(['{if_no_affiliates}', '{/if_no_affiliates}'], '', $_lusterSectionHtml);
+    }
+
+    $_lusterSectionHtml = str_replace(
+        ['{affiliates}', '{affiliates_count}', '{affiliates_list}'],
+        [$_lusterRowsHtml, (string) $total, $plainList],
+        $_lusterSectionHtml,
+    );
 }
 
 $_lusterHtml = $_lusterApp->getView()->renderFragment('affiliates.php', [
@@ -164,6 +225,7 @@ $_lusterHtml = $_lusterApp->getView()->renderFragment('affiliates.php', [
     'page_title'      => $_lusterIsCollective ? 'Affiliates' : 'Affiliates — ' . $_lusterTitle,
     'affiliates'      => $_lusterResult['items'],
     'affiliates_html' => $_lusterAffiliatesHtml,
+    'section_html'    => $_lusterSectionHtml,
     'total'           => $_lusterResult['total'],
     'pagination'      => $_lusterPagination,
     'is_collective'   => $_lusterIsCollective,

@@ -70,7 +70,7 @@ $pendingSortUrl = static function (string $col) use ($b, $sort, $dir): string {
 <div class="toolbar">
   <div class="actions-row">
     <button type="button" class="btn btn-preview btn-sm filter-toggle" id="mem-filter-toggle"
-            aria-expanded="<?= $filtersActive ? 'true' : 'false' ?>"
+            aria-expanded="true"
             aria-controls="mem-filter-panel">
       <?= View::icon('filter') ?>
       Filter<?php if ($filtersActive): ?><span class="filter-dot" aria-hidden="true"></span><?php endif; ?>
@@ -87,7 +87,7 @@ $pendingSortUrl = static function (string $col) use ($b, $sort, $dir): string {
   </div>
 </div>
 
-<div class="filter-panel<?= $filtersActive ? ' is-open' : '' ?>" id="mem-filter-panel">
+<div class="filter-panel" id="mem-filter-panel">
   <form method="GET" action="<?= $b ?>/admin/members" id="mem-filter-form" class="filter-row">
 
     <div class="select-wrap">
@@ -166,31 +166,39 @@ $pendingSortUrl = static function (string $col) use ($b, $sort, $dir): string {
 <?php else: ?>
 
 <?php $from = ($page - 1) * $per_page + 1; $to = ($page - 1) * $per_page + count($members); ?>
-<p class="result-count">
-  Showing <?= $from ?>&#8211;<?= $to ?> of <?= number_format((int) $total) ?> members
-  <?php if (($pages ?? 1) > 1): ?>&mdash; page <?= (int) $page ?> of <?= (int) $pages ?><?php endif; ?>
-</p>
 
 <form method="POST" id="bulk-form" action="<?= $b ?>/admin/members/<?= $lid ?>/bulk"
       data-del-bulk data-del-entity="member"
       data-del-context="<?= View::e($listing->name) ?>">
   <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
-
-  <div class="bulk">
-    <label for="bulk-action-sel">Bulk Actions:</label>
-    <div class="select-wrap">
-    <select id="bulk-action-sel" name="bulk_action">
-      <option value="" disabled selected>&mdash; Select &mdash;</option>
-      <option value="approve">Approve</option>
-      <option value="pending">Pending</option>
-      <option value="delete">Delete</option>
-      <option value="email_selected">Email</option>
-    </select>
-    </div>
-    <button type="submit" class="btn btn-quaternary btn-sm">Apply</button>
-  </div>
+  <input type="hidden" name="select_all" value="0">
+  <input type="hidden" name="sa_filter_status" value="<?= View::e($status ?? 'all') ?>">
+  <input type="hidden" name="sa_filter_search" value="<?= View::e($search ?? '') ?>">
 
   <div class="card">
+    <div class="card-head">
+      Members
+      <span class="row-sub">
+        Showing <?= $from ?>&#8211;<?= $to ?> of <?= number_format((int) $total) ?> member<?= (int) $total !== 1 ? 's' : '' ?><?php if (($pages ?? 1) > 1): ?> &mdash; page <?= (int) $page ?> of <?= (int) $pages ?><?php endif; ?>
+      </span>
+    </div>
+    <div class="bulk bulk--flush">
+      Bulk Actions:
+      <div class="select-wrap">
+      <select id="bulk-action-sel" name="bulk_action">
+        <option value="" disabled selected>&mdash; Select &mdash;</option>
+        <option value="approve">Approve</option>
+        <option value="pending">Pending</option>
+        <option value="delete">Delete</option>
+        <option value="email_selected">Email</option>
+      </select>
+      </div>
+      <button type="submit" class="btn btn-quaternary btn-sm">Apply to Selected</button>
+    </div>
+    <div class="select-all-banner" id="check-all-sa-banner" data-total="<?= (int) ($total ?? 0) ?>" style="display:none">
+      <span class="sa-page">All <strong class="sa-page-count">0</strong> items on this page are selected.&ensp;<button type="button" class="link sa-select-all-btn">Select all <strong class="sa-total-count">0</strong> members</button></span>
+      <span class="sa-all" style="display:none">All <strong class="sa-total-count">0</strong> members are selected.&ensp;<button type="button" class="link sa-clear-btn">Clear selection</button></span>
+    </div>
     <div class="table-wrap">
     <table class="data-table mem-table">
       <thead>
@@ -213,14 +221,16 @@ $pendingSortUrl = static function (string $col) use ($b, $sort, $dir): string {
             <input type="checkbox" name="emails[]" value="<?= View::e($m->email) ?>"
                    data-name="<?= View::e($m->name) ?>">
           </td>
-          <td class="text-strong" data-label="Name">
-            <?= View::e($m->name) ?>
-            <?php if ($m->url): ?>
-              <br><a href="<?= View::e($m->url) ?>" target="_blank" rel="noopener noreferrer"
-                     class="link text-dim link-break mem-url"><?= View::e($m->url) ?></a>
-            <?php endif; ?>
+          <td data-label="Name">
+            <div class="subject-title-stack">
+              <?= View::e($m->name) ?>
+              <?php if ($m->url): ?>
+                <a href="<?= View::e($m->url) ?>" target="_blank" rel="noopener noreferrer"
+                   class="link text-dim mem-url"><?= View::e($m->url) ?></a>
+              <?php endif; ?>
+            </div>
           </td>
-          <td data-label="Email"><?= View::e($m->email) ?></td>
+          <td data-label="Email"><?= View::emailWrap($m->email) ?></td>
           <td class="text-muted" data-label="Country"><?= View::e($m->country) ?></td>
           <?php foreach ($fields as $field): ?>
             <td class="text-muted" data-label="<?= View::e($field->label) ?>"><?= View::e($m->additionalFields[$field->name] ?? '') ?></td>
@@ -333,14 +343,16 @@ include LUSTER_BASE . '/templates/admin/_pagination.php';
               <?= View::e($fl->name) ?>
             </a>
           </td>
-          <td class="text-strong" data-label="Name">
-            <?= View::e($m->name) ?>
-            <?php if ($m->url !== ''): ?>
-              <a href="<?= View::e($m->url) ?>" target="_blank" rel="noopener noreferrer"
-                 class="link text-dim link-break mem-url"><?= View::e($m->url) ?></a>
-            <?php endif; ?>
+          <td data-label="Name">
+            <div class="subject-title-stack">
+              <?= View::e($m->name) ?>
+              <?php if ($m->url !== ''): ?>
+                <a href="<?= View::e($m->url) ?>" target="_blank" rel="noopener noreferrer"
+                   class="link text-dim mem-url"><?= View::e($m->url) ?></a>
+              <?php endif; ?>
+            </div>
           </td>
-          <td data-label="Email"><?= View::e($m->email) ?></td>
+          <td data-label="Email"><?= View::emailWrap($m->email) ?></td>
           <td data-label="Country"><?= View::e($m->country) ?></td>
           <td data-label="Status">
             <?php if ($m->approved): ?>
@@ -478,14 +490,16 @@ $_totalPending     = $_totalNewMembers + $_totalUpdates;
                    value="<?= View::e($m->email) ?>"
                    data-name="<?= View::e($m->name) ?>">
           </td>
-          <td class="text-strong" data-label="Name">
-            <?= View::e($m->name) ?>
-            <?php if ($m->url !== ''): ?>
-              <a href="<?= View::e($m->url) ?>" target="_blank" rel="noopener noreferrer"
-                 class="link text-dim link-break mem-url"><?= View::e($m->url) ?></a>
-            <?php endif; ?>
+          <td class="" data-label="Name">
+            <div class="subject-title-stack">
+              <?= View::e($m->name) ?>
+              <?php if ($m->url !== ''): ?>
+                <a href="<?= View::e($m->url) ?>" target="_blank" rel="noopener noreferrer"
+                   class="link text-dim mem-url"><?= View::e($m->url) ?></a>
+              <?php endif; ?>
+            </div>
           </td>
-          <td data-label="Email"><?= View::e($m->email) ?></td>
+          <td data-label="Email"><?= View::emailWrap($m->email) ?></td>
           <td data-label="Country"><?= View::e($m->country) ?></td>
           <td class="act-col" data-label="">
             <div class="data-actions">

@@ -1,50 +1,41 @@
 <?php
-/**
- * header.php — shared page header.
- *
- * Set these variables BEFORE including this file:
- *   string $_siteName   — listing name (loaded from DB)
- *   string $_navActive  — key matching one of the nav entries below
- *   string $_pageTitle  — short page title shown in <title> tag
- */
+// ── Edit these three lines ────────────────────────────────────────────────────
+$listing_id   = 1;               // your listing's ID (Admin → Listings)
+$site_name    = 'My Fanlisting'; // your listing's name
+$site_subject = 'Subject Name';  // what your fanlisting is about
 
-$_e = fn(string $v): string => htmlspecialchars($v, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+// ── Everything else comes from your Luster installation automatically ─────────
+$luster_root = dirname(__DIR__, 3);
+$_cfg        = require $luster_root . '/config/app.php';
+$owner_name  = $_cfg['owner_name']  ?? '';
+$owner_email = $_cfg['owner_email'] ?? '';
+unset($_cfg);
 
-$_fullTitle = isset($_pageTitle)
-    ? $_e($_siteName) . ' &mdash; ' . $_e($_pageTitle)
-    : $_e($_siteName);
-
-$_navLinks = [
-    'home'       => ['href' => 'index.php',       'label' => 'Home'],
-    'join'       => ['href' => 'join.php',         'label' => 'Join'],
-    'update'     => ['href' => 'update.php',       'label' => 'Update'],
-    'remove'     => ['href' => 'remove.php',       'label' => 'Remove'],
-    'members'    => ['href' => 'members.php',      'label' => 'Members'],
-    'codes'      => ['href' => 'codes.php',        'label' => 'Codes'],
-    'affiliates' => ['href' => 'affiliates.php',   'label' => 'Affiliates'],
-    'contact'    => ['href' => 'contact.php',      'label' => 'Contact'],
-];
+$e = fn(string $v): string => htmlspecialchars($v, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 ?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title><?= $_fullTitle ?></title>
+  <title><?= $e($site_name) ?><?= isset($page_title) ? ' &mdash; ' . $e($page_title) : '' ?></title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
 <header>
   <p class="title">
-    <a href="index.php"><?= $_e($_siteName) ?></a>
+    <a href="index.php"><?= $e($site_name) ?></a>
   </p>
   <nav aria-label="Listing navigation">
-    <?php foreach ($_navLinks as $key => $link): ?>
-      <a href="<?= $link['href'] ?>"<?= ($_navActive === $key ? ' class="active"' : '') ?>>
-        <?= $link['label'] ?>
-      </a>
-    <?php endforeach; ?>
+    <a href="index.php">Home</a>
+    <a href="join.php">Join</a>
+    <a href="update.php">Update</a>
+    <a href="remove.php">Remove</a>
+    <a href="members.php">Members</a>
+    <a href="codes.php">Codes</a>
+    <a href="affiliates.php">Affiliates</a>
+    <a href="contact.php">Contact</a>
   </nav>
   <hr class="divider">
 </header>

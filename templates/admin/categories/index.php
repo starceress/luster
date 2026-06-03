@@ -64,7 +64,7 @@ $catSortUrl = static function (string $col) use ($b, $sort, $dir, $source, $sear
 <div class="toolbar">
   <div class="actions-row">
     <button type="button" class="btn btn-preview btn-sm filter-toggle" id="fl-filter-toggle"
-            aria-expanded="<?= $filtersActive ? 'true' : 'false' ?>"
+            aria-expanded="true"
             aria-controls="filter-panel">
       <?= View::icon('filter') ?>
       Filter<?php if ($filtersActive): ?><span class="filter-dot" aria-hidden="true"></span><?php endif; ?>
@@ -81,7 +81,7 @@ $catSortUrl = static function (string $col) use ($b, $sort, $dir, $source, $sear
   </div>
 </div>
 <!-- ──── COLLAPSIBLE FILTER PANEL ───────────────────────────────────── -->
-<div class="filter-panel<?= $filtersActive ? ' is-open' : '' ?>" id="filter-panel">
+<div class="filter-panel" id="filter-panel">
   <form method="GET" action="<?= $b ?>/admin/categories" class="filter-row">
     <?php if ($sort !== 'source'): ?><input type="hidden" name="sort" value="<?= View::e($sort) ?>"><?php endif; ?>
     <?php if ($dir !== 'asc'):    ?><input type="hidden" name="dir"  value="<?= View::e($dir) ?>"><?php endif; ?>
@@ -140,29 +140,38 @@ $catSortUrl = static function (string $col) use ($b, $sort, $dir, $source, $sear
 </div>
 <?php else: ?>
 
-<p class="result-count">
-  Showing <?= count($items ?? []) ?> of <?= (int) ($total ?? 0) ?> categor<?= (int) ($total ?? 0) === 1 ? 'y' : 'ies' ?>
-  <?php if (($source ?? '') !== ''): ?>
-    in <strong><?= View::e(strtoupper($source ?? '')) ?></strong>
-  <?php endif; ?>
-</p>
-
 <form method="POST" action="<?= $b ?>/admin/categories/bulk" id="bulk-form"
       data-del-bulk data-del-entity="category">
   <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
-
-  <div class="bulk">
-    <label for="bulk-action-sel">Bulk Actions:</label>
-    <div class="select-wrap">
-      <select id="bulk-action-sel" name="bulk_action">
-        <option value="" disabled selected>&mdash; Select &mdash;</option>
-        <option value="delete">Delete</option>
-      </select>
-    </div>
-    <button type="submit" class="btn btn-quaternary btn-sm">Apply</button>
-  </div>
+  <input type="hidden" name="select_all" value="0">
+  <input type="hidden" name="sa_filter_source" value="<?= View::e($source ?? '') ?>">
+  <input type="hidden" name="sa_filter_search" value="<?= View::e($search ?? '') ?>">
 
   <div class="card">
+    <div class="card-head">
+      <?php if (($source ?? '') !== ''): ?>
+        <?= View::e(strtoupper($source ?? '')) ?> Categories
+      <?php else: ?>
+        Categories
+      <?php endif; ?>
+      <span class="row-sub">
+        Showing <?= count($items ?? []) ?> of <?= (int) ($total ?? 0) ?> categor<?= (int) ($total ?? 0) === 1 ? 'y' : 'ies' ?>
+      </span>
+    </div>
+    <div class="bulk bulk--flush">
+      Bulk Actions:
+      <div class="select-wrap">
+        <select id="bulk-action-sel" name="bulk_action">
+          <option value="" disabled selected>&mdash; Select &mdash;</option>
+          <option value="delete">Delete</option>
+        </select>
+      </div>
+      <button type="submit" class="btn btn-quaternary btn-sm">Apply to Selected</button>
+    </div>
+    <div class="select-all-banner" id="sel-all-sa-banner" data-total="<?= (int) ($total ?? 0) ?>" style="display:none">
+      <span class="sa-page">All <strong class="sa-page-count">0</strong> items on this page are selected.&ensp;<button type="button" class="link sa-select-all-btn">Select all <strong class="sa-total-count">0</strong> categories</button></span>
+      <span class="sa-all" style="display:none">All <strong class="sa-total-count">0</strong> categories are selected.&ensp;<button type="button" class="link sa-clear-btn">Clear selection</button></span>
+    </div>
     <div class="table-wrap">
     <table class="data-table mem-table">
       <thead>

@@ -45,10 +45,10 @@ $src = View::e($source);
 
 <?php if ($error !== ''): ?>
   <div class="alert alert-error import-stack-gap"><?= View::e($error) ?></div>
-  <a href="<?= $b ?>/admin/import/<?= $src ?>/scope" class="btn btn-secondary">&#8592; Back to Options</a>
+  <a href="<?= $b ?>/admin/import/<?= $src ?>/options" class="btn btn-secondary">&#8592; Back to Options</a>
 <?php elseif ($preview === null): ?>
   <div class="alert alert-error import-stack-gap">Preview data is unavailable.</div>
-  <a href="<?= $b ?>/admin/import/<?= $src ?>/scope" class="btn btn-secondary">&#8592; Back to Options</a>
+  <a href="<?= $b ?>/admin/import/<?= $src ?>/options" class="btn btn-secondary">&#8592; Back to Options</a>
 <?php else: ?>
 
   <?php
@@ -87,85 +87,8 @@ $src = View::e($source);
     $totalSkip   = (int) array_sum(array_column($preview->rows, 'skip'));
   ?>
 
-  <div class="import-review-card">
-    <div class="import-review-hero">
-      <div class="import-review-hero-icon"><?= View::icon('check') ?></div>
-      <div class="import-review-hero-copy">
-        <div class="import-review-hero-title">Ready to Import</div>
-        <div class="import-review-hero-sub">
-          <?= View::e($source_name) ?>
-          <?php if ($preview->schemaVariant !== ''): ?>
-            &middot; <?= View::e($preview->schemaVariant) ?>
-          <?php endif; ?>
-          &middot; <?= number_format($totalImport) ?> would import, <?= number_format($totalSkip) ?> would skip
-        </div>
-      </div>
-    </div>
-    <div class="import-review-list">
-      <div class="import-review-list-label">Source</div>
-      <div class="import-review-list-value">
-        <?= View::e($source_name) ?>
-        <?php if ($preview->schemaVariant !== ''): ?>
-          <span class="badge badge-inactive import-review-badge"><?= View::e(strtoupper($preview->schemaVariant)) ?></span>
-        <?php endif; ?>
-      </div>
 
-      <div class="import-review-list-label">Connection</div>
-      <div class="import-review-list-value">
-        <?php if ($conn_type === 'SQL dump'): ?>
-          SQL dump
-        <?php elseif ($conn_host !== ''): ?>
-          <?= View::e($conn_host) ?>
-          <?php if ($conn_db !== ''): ?>
-            <span class="import-review-sep">&middot;</span>
-            <span class="import-sum-code"><?= View::e($conn_db) ?></span>
-          <?php endif; ?>
-        <?php else: ?>
-          <?= View::e($conn_type) ?>
-        <?php endif; ?>
-      </div>
-
-      <?php if (!empty($importChips)): ?>
-        <div class="import-review-list-label">Importing</div>
-        <div class="import-review-list-value">
-          <?php foreach ($importChips as $chip): ?>
-            <span class="import-sum-chip"><?= View::e($chip) ?></span>
-          <?php endforeach; ?>
-        </div>
-      <?php endif; ?>
-
-      <div class="import-review-list-label">Conflicts</div>
-      <div class="import-review-list-value"><?= $options->conflictStrategy === 'overwrite' ? 'Overwrite existing records' : 'Skip existing records' ?></div>
-
-      <div class="import-review-list-label">Images</div>
-      <div class="import-review-list-value">
-        <?php if ($options->imageMode === 'path'): ?>
-          Same-server path
-          <?php if ($options->imagePath !== ''): ?>
-            <span class="import-review-sep">&middot;</span>
-            <span class="import-sum-code"><?= View::e($options->imagePath) ?></span>
-          <?php endif; ?>
-        <?php elseif ($options->imageMode === 'url'): ?>
-          Remote URL
-          <?php if ($options->imageUrl !== ''): ?>
-            <span class="import-review-sep">&middot;</span>
-            <span class="import-sum-code"><?= View::e($options->imageUrl) ?></span>
-          <?php endif; ?>
-        <?php elseif ($options->imageMode === 'zip'): ?>
-          Pre-uploaded ZIP
-        <?php else: ?>
-          <span class="text-dim">None</span>
-        <?php endif; ?>
-      </div>
-
-      <?php if ($preview->sameDatabase): ?>
-        <div class="import-review-list-label">Same database</div>
-        <div class="import-review-list-value">Member tables are already readable, so no member data will be moved.</div>
-      <?php endif; ?>
-    </div>
-  </div>
-
-  <div class="stats-grid stats-grid-row stats-grid-plain import-preview-stat-row">
+  <div class="stats-grid stats-grid-plain">
     <div class="stat-card">
       <div class="stat-header">
         <span class="stat-icon"><?= View::icon('database') ?></span>
@@ -204,20 +127,92 @@ $src = View::e($source);
     </div>
   </div>
 
+  <div class="card">
+    <div class="card-head">Ready to Import</div>
+    <div class="card-body">
+    <div class="listing-field-row listing-field-row--top">
+      <div class="listing-field-label">Source</div>
+      <div class="import-review-list-value">
+        <?= View::e($source_name) ?> &mdash; 
+        <?php if ($preview->schemaVariant !== ''): ?>
+          <code><?= View::e(strtoupper($preview->schemaVariant)) ?></code>
+        <?php endif; ?>
+      </div>
+
+      <div class="listing-field-label">Connection</div>
+      <div class="import-review-list-value">
+        <?php if ($conn_type === 'SQL dump'): ?>
+          SQL dump
+        <?php elseif ($conn_host !== ''): ?>
+          <?= View::e($conn_host) ?>
+          <?php if ($conn_db !== ''): ?>
+            <span class="import-review-sep">&mdash;</span>
+            <code><?= View::e($conn_db) ?></code>
+          <?php endif; ?>
+        <?php else: ?>
+          <?= View::e($conn_type) ?>
+        <?php endif; ?>
+      </div>
+
+      <?php if (!empty($importChips)): ?>
+        <div class="listing-field-label">Importing</div>
+        <div class="import-review-list-value">
+          <?php foreach ($importChips as $chip): ?>
+            <span class="badge badge-inactive"><?= View::e($chip) ?></span>
+          <?php endforeach; ?>
+        </div>
+      <?php endif; ?>
+
+      <div class="listing-field-label">Conflicts</div>
+      <div class="import-review-list-value"><?= $options->conflictStrategy === 'overwrite' ? 'Overwrite existing records' : 'Skip existing records' ?></div>
+
+      <div class="listing-field-label">Images</div>
+      <div class="import-review-list-value">
+        <?php if ($options->imageMode === 'path'): ?>
+          Same-server path
+          <?php if ($options->imagePath !== ''): ?>
+            <span class="import-review-sep">&mdash;</span>
+            <code><?= View::e($options->imagePath) ?></code>
+          <?php endif; ?>
+        <?php elseif ($options->imageMode === 'url'): ?>
+          Remote URL
+          <?php if ($options->imageUrl !== ''): ?>
+            <span class="import-review-sep">&mdash;</span>
+            <code><?= View::e($options->imageUrl) ?></code>
+          <?php endif; ?>
+        <?php elseif ($options->imageMode === 'zip'): ?>
+          Pre-uploaded ZIP
+        <?php else: ?>
+          <span class="text-dim">None</span>
+        <?php endif; ?>
+      </div>
+
+      <?php if ($preview->sameDatabase): ?>
+        <div class="listing-field-label">Same database</div>
+        <div class="import-review-list-value">Member tables are already readable, so no member data will be moved.</div>
+      <?php endif; ?>
+    </div>
+  </div>
+      </div>
+
+      <div class="overview-section-divider"></div>
+
+
   <div class="gradient-card import-preview-results-card">
     <div class="pc-head">
-      <div class="pc-head-icon pc-head-icon-bg"><?= View::icon('filter') ?></div>
+      <div class="pc-head-icon pc-head-icon-bg"><?= View::icon('import') ?></div>
       <div class="pc-head-meta">
         <div class="pc-head-title">Dry Run Results</div>
         <div class="pc-head-sub"><?= number_format($totalImport) ?> record(s) would be imported across <?= count($preview->rows) ?> data type(s).</div>
       </div>
     </div>
+    
 
     <div class="import-scroll-x">
       <table class="data-table">
         <thead>
           <tr>
-            <th>Data Type</th>
+            <th style="min-width:160px">Data Type</th>
             <th class="table-num--plain">Found</th>
             <th class="table-num--plain">Would Import</th>
             <th class="table-num--plain">Would Skip</th>
@@ -227,27 +222,27 @@ $src = View::e($source);
         <tbody>
           <?php foreach ($preview->rows as $row): ?>
           <tr>
-            <td><?= View::e($row['type']) ?></td>
-            <td class="table-num--plain"><?= number_format($row['found']) ?></td>
-            <td class="table-num--plain"><?= number_format($row['import']) ?></td>
-            <td class="table-num--plain"><?= number_format($row['skip']) ?></td>
+            <td style="font-weight:600"><?= View::e($row['type']) ?></td>
+            <td class="table-num--plain"><?= (int)$row['found']  === 0 ? '<span class="text-dim">' . number_format($row['found'])  . '</span>' : number_format($row['found']) ?></td>
+            <td class="table-num--plain"><?= (int)$row['import'] === 0 ? '<span class="text-dim">' . number_format($row['import']) . '</span>' : number_format($row['import']) ?></td>
+            <td class="table-num--plain"><?= (int)$row['skip']   === 0 ? '<span class="text-dim">' . number_format($row['skip'])   . '</span>' : number_format($row['skip']) ?></td>
             <td class="table-cell-notes">
-              <?= implode('<br>', array_map([View::class, 'e'], $row['warnings'])) ?: '&mdash;' ?>
+              <span class="text-muted"><?= implode('<br>', array_map([View::class, 'e'], $row['warnings'])) ?: '&mdash;' ?></span>
             </td>
           </tr>
           <?php endforeach; ?>
         </tbody>
       </table>
     </div>
-    <div class="import-preview-note-bar import-preview-note-bar--inset">
+    <div class="pc-section"><div class="callout callout-warn">
       <?= View::icon('alert') ?>
       <span>This will write <strong><?= number_format($totalImport) ?> record(s)</strong> to your Luster database. Original source files are never modified or deleted.</span>
-    </div>
+    </div></div>
 
     <form method="POST" action="<?= $b ?>/admin/import/<?= $src ?>/run">
       <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
       <div class="composer-footer">
-        <a href="<?= $b ?>/admin/import/<?= $src ?>/scope" class="btn btn-ghost">&#8592; Back</a>
+        <a href="<?= $b ?>/admin/import/<?= $src ?>/options" class="btn btn-quaternary">&#8592; Back</a>
         <button type="submit" class="btn btn-primary">Run Import &#8594;</button>
       </div>
     </form>

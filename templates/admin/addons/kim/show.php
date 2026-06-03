@@ -37,16 +37,16 @@ $fid = (int) $listing->id;
   <?php if ($approved_count > 0): ?>
   <div class="topbar-actions">
     <a href="<?= $b ?>/admin/kim/<?= $fid ?>/bulk-email"
-       class="btn btn-quaternary btn-sm">Bulk Email All (<?= (int) $approved_count ?>)</a>
+       class="btn btn-primary btn-sm">Bulk Email All (<?= (int) $approved_count ?>)</a>
   </div>
   <?php endif; ?>
 </div>
 <!-- ──── PENDING SIGN-UPS ───────────────────────────────────────────── -->
 <div class="overview-section-head">
-    <div class="overview-section-title">
-      <?= View::icon('pending') ?> Pending Sign-Ups
-    </div>
-    <div class="overview-section-sub">New sign-up requests awaiting your approval decision.</div>
+  <div class="overview-section-title">
+    <?= View::icon('pending') ?> Pending Sign-Ups
+  </div>
+  <div class="overview-section-sub">New sign-up requests awaiting your approval decision.</div>
 </div>
 
 <?php if (empty($pending_members)): ?>
@@ -61,7 +61,7 @@ $fid = (int) $listing->id;
   <div class="card">
     <div class="card-head">
       <span><?= View::e($listing->subject) ?></span>
-      <span class="text-dim">&mdash; <?= (int) $pending_count ?> pending</span>
+     <div class="row-sub"><span class="badge badge-pending"><?= (int) $pending_count ?> pending</span></div>
     </div>
     <form method="POST" action="<?= $b ?>/admin/kim/<?= $fid ?>/bulk"
           data-del-bulk data-del-entity="kim_member"
@@ -77,7 +77,7 @@ $fid = (int) $listing->id;
             <option value="delete">Delete</option>
           </select>
         </div>
-        <button type="submit" class="btn btn-quaternary btn-sm">Apply</button>
+        <button type="submit" class="btn btn-quaternary btn-sm">Apply to Selected</button>
       </div>
 
 
@@ -100,7 +100,7 @@ $fid = (int) $listing->id;
               <input type="checkbox" class="row-cb-kim-p-<?= $fid ?>" name="ids[]" value="<?= (int) $m->id ?>">
             </td>
             <td class="text-strong" data-label="Name"><?= View::e($m->name) ?></td>
-            <td class="text-muted" data-label="Email"><?= View::e($m->email) ?></td>
+            <td class="text-muted" data-label="Email"><?= View::emailWrap($m->email) ?></td>
             <td data-label="URL">
               <?php if ($m->url !== ''): ?>
                 <a href="<?= View::e($m->url) ?>" target="_blank" rel="noopener noreferrer"
@@ -112,10 +112,10 @@ $fid = (int) $listing->id;
             <td class="text-dim nowrap" data-label="Date"><?= View::e(date($admin_date_format, strtotime($m->addedAt))) ?></td>
             <td class="act-col" data-label="">
               <div class="data-actions">
-                <button type="submit" form="approve-kim-<?= (int) $m->id ?>" class="btn btn-success btn-sm">Approve</button>
-                <a href="<?= $b ?>/admin/kim/<?= (int) $m->id ?>/edit" class="btn btn-tertiary btn-sm">Edit</a>
-                <a href="<?= $b ?>/admin/kim/<?= (int) $m->id ?>/email-member" class="btn btn-quaternary btn-sm">Email</a>
-                <button type="submit" form="del-kim-<?= (int) $m->id ?>" class="btn btn-danger btn-sm">Delete</button>
+                <button type="submit" form="approve-kim-<?= (int) $m->id ?>" class="btn btn-success btn-xs">Approve</button>
+                <a href="<?= $b ?>/admin/kim/<?= (int) $m->id ?>/edit" class="btn btn-tertiary btn-xs">Edit</a>
+                <a href="<?= $b ?>/admin/kim/<?= (int) $m->id ?>/email-member" class="btn btn-secondary btn-xs">Email</a>
+                <button type="submit" form="del-kim-<?= (int) $m->id ?>" class="btn btn-danger btn-xs">Delete</button>
               </div>
             </td>
           </tr>
@@ -160,7 +160,11 @@ $fid = (int) $listing->id;
   <div class="card">
     <div class="card-head">
       <span><?= View::e($listing->subject) ?></span>
-      <span class="text-dim">&mdash; <?= (int) $approved_count ?> approved</span>
+      <?php $granted_count = count(array_filter((array) $approved_members, fn($m) => $m->granted)); ?>
+      <div class="row-sub"><span class="badge badge-current"><?= (int) $approved_count ?> approved</span>
+      <?php if ($granted_count > 0): ?>
+        <span class="badge badge-redirect"><?= $granted_count ?> Granted</span></div>
+      <?php endif; ?>
     </div>
     <form method="POST" action="<?= $b ?>/admin/kim/<?= $fid ?>/bulk"
           data-del-bulk data-del-entity="kim_member"
@@ -175,7 +179,7 @@ $fid = (int) $listing->id;
             <option value="delete">Delete</option>
           </select>
         </div>
-        <button type="submit" class="btn btn-quaternary btn-sm">Apply</button>
+        <button type="submit" class="btn btn-quaternary btn-sm">Apply to Selected</button>
       </div>
       <div class="table-wrap">
       <table class="data-table mem-table">
@@ -195,8 +199,13 @@ $fid = (int) $listing->id;
             <td class="cb-col">
               <input type="checkbox" class="row-cb-kim-a-<?= $fid ?>" name="ids[]" value="<?= (int) $m->id ?>">
             </td>
-            <td class="text-strong" data-label="Name"><?= View::e($m->name) ?></td>
-            <td class="text-muted" data-label="Email"><?= View::e($m->email) ?></td>
+            <td class="text-strong" data-label="Name">
+              <?= View::e($m->name) ?>
+              <?php if ($m->granted): ?>
+                <span class="badge badge-redirect badge-inline-sm">Granted</span>
+              <?php endif; ?>
+            </td>
+            <td class="text-muted" data-label="Email"><?= View::emailWrap($m->email) ?></td>
             <td data-label="URL">
               <?php if ($m->url !== ''): ?>
                 <a href="<?= View::e($m->url) ?>" target="_blank" rel="noopener noreferrer"
@@ -208,9 +217,9 @@ $fid = (int) $listing->id;
             <td class="text-dim nowrap" data-label="Date"><?= View::e(date($admin_date_format, strtotime($m->addedAt))) ?></td>
             <td class="act-col" data-label="">
               <div class="data-actions">
-                <a href="<?= $b ?>/admin/kim/<?= (int) $m->id ?>/edit" class="btn btn-tertiary btn-sm">Edit</a>
-                <a href="<?= $b ?>/admin/kim/<?= (int) $m->id ?>/email-member" class="btn btn-quaternary btn-sm">Email</a>
-                <button type="submit" form="del-kim-<?= (int) $m->id ?>" class="btn btn-danger btn-sm">Delete</button>
+                <a href="<?= $b ?>/admin/kim/<?= (int) $m->id ?>/edit" class="btn btn-tertiary btn-xs">Edit</a>
+                <a href="<?= $b ?>/admin/kim/<?= (int) $m->id ?>/email-member" class="btn btn-secondary btn-xs">Email</a>
+                <button type="submit" form="del-kim-<?= (int) $m->id ?>" class="btn btn-danger btn-xs">Delete</button>
               </div>
             </td>
           </tr>

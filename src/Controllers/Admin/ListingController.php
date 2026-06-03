@@ -41,8 +41,6 @@ final class ListingController extends AdminController
         $memberRepo     = new MemberRepo($db, $config);
         $settingsRepo   = new ListingSettingsRepo($db);
 
-        $categoryRepo  = new CategoryRepo($db);
-
         $cfgAll    = $config->all();
         $ownedSort = (string) ($cfgAll['owned_sort'] ?? 'id');
 
@@ -78,6 +76,36 @@ final class ListingController extends AdminController
             $allCategoryNames[$fl->id] = $catItems !== [] ? implode(', ', array_map(fn($c) => $c['name'], $catItems)) : '—';
             $allListingTypes[$fl->id]  = $settingsRepo->getListingType($fl->id);
         }
+
+        // Derive in-use categories for filter dropdowns from the resolved listing data.
+        // Only shows networks/categories actually assigned to owned listings, grouped
+        // and sorted alphabetically, matching the shape the template and JS expect.
+        $usedByNetwork = [];
+        foreach ($allCategoryData as $catItems) {
+            foreach ($catItems as $cat) {
+                $net  = strtoupper((string) ($cat['network'] ?? ''));
+                $name = (string) ($cat['name'] ?? '');
+                if ($name === '' || $net === '') { continue; }
+                $usedByNetwork[$net][$name] = true;
+            }
+        }
+        $tflCats        = [];
+        $taflCats       = [];
+        $customCats     = [];
+        $customNetworks = [];
+        foreach ($usedByNetwork as $net => $names) {
+            ksort($names);
+            $cats = array_map(static fn(string $n): array => ['name' => $n], array_keys($names));
+            if ($net === 'TFL') {
+                $tflCats = $cats;
+            } elseif ($net === 'TAFL') {
+                $taflCats = $cats;
+            } else {
+                $customCats[$net]  = $cats;
+                $customNetworks[]  = $net;
+            }
+        }
+        sort($customNetworks);
 
         // Network filter — name-based via resolved category data.
         if ($filterNetwork !== '') {
@@ -180,12 +208,6 @@ final class ListingController extends AdminController
             $categoryNames[$fl->id] = $allCategoryNames[$fl->id];
         }
 
-        $customNetworks = $categoryRepo->getCustomSources();
-        $customCats     = [];
-        foreach ($customNetworks as $cn) {
-            $customCats[$cn] = $categoryRepo->getBySource($cn);
-        }
-
         $session = $this->app->getSession();
         $success = (string) $session->get('lstr_flash_success', '');
         $error   = (string) $session->get('lstr_flash_error', '');
@@ -207,10 +229,9 @@ final class ListingController extends AdminController
             'filter_cat'      => $filterCat,
             'filter_type'     => $filterType,
             'type_options'    => $typeOptions,
-            'tfl_cats'        => $categoryRepo->getBySource('tfl'),
-            'tafl_cats'       => $categoryRepo->getBySource('tafl'),
+            'tfl_cats'        => $tflCats,
+            'tafl_cats'       => $taflCats,
             'custom_networks' => $customNetworks,
-            'custom_cats'     => $customCats,
             'custom_cats'     => $customCats,
             'page'            => $page,
             'total_pages'     => $totalPages,
@@ -277,7 +298,7 @@ final class ListingController extends AdminController
 
         $title    = trim((string) $request->post('title', ''));
         $subject  = trim((string) $request->post('subject', ''));
-        $url      = trim((string) $request->post('url', ''));
+        $url      = self::httpsify(trim((string) $request->post('url', '')));
         $email    = trim((string) $request->post('email', ''));
         $statusRaw = (int) $request->post('status', 2);
         $status   = in_array($statusRaw, [0, 1, 2], true) ? $statusRaw : 2;
@@ -401,8 +422,52 @@ final class ListingController extends AdminController
         $session = $this->app->getSession();
         $baseUrl = $this->app->getBaseUrl();
 
-        $action   = (string) $request->post('action', '');
-        $selected = array_filter(array_map('intval', (array) $request->post('selected', [])));
+        $action    = (string) $request->post('action', '');
+        $selectAll = $request->post('select_all', '0') === '1';
+
+        if ($selectAll) {
+            $saSearch  = trim((string) $request->post('sa_filter_search', ''));
+            $saNetwork = trim((string) $request->post('sa_filter_network', ''));
+            $saCat     = trim((string) $request->post('sa_filter_cat', ''));
+            $saType    = trim((string) $request->post('sa_filter_type', ''));
+
+            $listingRepoAll  = new ListingRepo($db, $config);
+            $settingsRepoAll = new ListingSettingsRepo($db);
+            $allListings     = $saSearch !== '' ? $listingRepoAll->search($saSearch) : $listingRepoAll->getAll();
+            $allCatData      = [];
+            $allListingIds   = array_map(static fn($fl) => $fl->id, $allListings);
+            $junctionData    = $listingRepoAll->getCategoryDataByListingIds($allListingIds);
+
+            foreach ($allListings as $fl) {
+                $allCatData[$fl->id] = $junctionData !== null ? ($junctionData[$fl->id] ?? []) : $listingRepoAll->getCatItems((string) ($fl->catid ?? ''), $fl->categoryId);
+            }
+
+            if ($saNetwork !== '') {
+                $netUpper   = strtoupper($saNetwork);
+                $allListings = array_values(array_filter($allListings, static function ($fl) use ($allCatData, $netUpper): bool {
+                    foreach ($allCatData[$fl->id] as $cat) {
+                        if (strtoupper($cat['network']) === $netUpper) { return true; }
+                    }
+                    return false;
+                }));
+            }
+            if ($saCat !== '') {
+                $netUpper   = strtoupper($saNetwork);
+                $allListings = array_values(array_filter($allListings, static function ($fl) use ($allCatData, $saCat, $netUpper): bool {
+                    foreach ($allCatData[$fl->id] as $cat) {
+                        if (strcasecmp($cat['name'], $saCat) === 0 && ($netUpper === '' || strtoupper($cat['network']) === $netUpper)) { return true; }
+                    }
+                    return false;
+                }));
+            }
+            if ($saType !== '') {
+                $allListings = array_values(array_filter($allListings, static fn($fl): bool => ($settingsRepoAll->getListingType($fl->id)) === $saType));
+            }
+
+            $selected = array_map(static fn($fl): int => $fl->id, $allListings);
+        } else {
+            $selected = array_filter(array_map('intval', (array) $request->post('selected', [])));
+        }
 
         if ($action === 'mark_updated' && !empty($selected)) {
             $listingRepo  = new ListingRepo($db, $config);
@@ -549,7 +614,7 @@ final class ListingController extends AdminController
         // ---- POST: save ----
         if ($request->isPost()) {
             $title       = trim((string) $request->post('title', ''));
-            $url         = trim((string) $request->post('url', ''));
+            $url         = self::httpsify(trim((string) $request->post('url', '')));
             $email       = trim((string) $request->post('email', ''));
             $status      = (string) $request->post('status', 'current');
             $subject     = trim((string) $request->post('subject', ''));
@@ -613,14 +678,18 @@ final class ListingController extends AdminController
 
             $uploadErr = (int) ($imageFile['error'] ?? UPLOAD_ERR_NO_FILE);
 
-            if (!$deleteImage && $uploadErr !== UPLOAD_ERR_NO_FILE) {
+            if ($uploadErr !== UPLOAD_ERR_NO_FILE) {
                 if ($uploadErr !== UPLOAD_ERR_OK) {
                     $imageError = 'Image upload failed (error code ' . $uploadErr . ').';
                 } else {
                     $tmpPath  = (string) ($imageFile['tmp_name'] ?? '');
                     $fileSize = (int) ($imageFile['size'] ?? 0);
 
-                    if ($fileSize > 2 * 1024 * 1024) {
+                    if ($tmpPath === '' || !is_uploaded_file($tmpPath)) {
+                        $imageError = 'Invalid image upload. Please try again.';
+                    } elseif ($fileSize <= 0) {
+                        $imageError = 'Image file is empty.';
+                    } elseif ($fileSize > 2 * 1024 * 1024) {
                         $imageError = 'Image must be 2 MB or smaller.';
                     } else {
                         $allowedMimes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
@@ -629,6 +698,8 @@ final class ListingController extends AdminController
 
                         if ($mime === false || !in_array($mime, $allowedMimes, true)) {
                             $imageError = 'Image must be JPEG, PNG, GIF, or WebP.';
+                        } elseif (@getimagesize($tmpPath) === false) {
+                            $imageError = 'The uploaded file is not a valid image.';
                         } else {
                             $extMap = [
                                 'image/jpeg' => 'jpg',
@@ -636,7 +707,7 @@ final class ListingController extends AdminController
                                 'image/gif'  => 'gif',
                                 'image/webp' => 'webp',
                             ];
-                            $newFilename = uniqid('fl_', true) . '.' . $extMap[$mime];
+                            $newFilename = 'fl_' . bin2hex(random_bytes(8)) . '.' . $extMap[$mime];
                         }
                     }
                 }
@@ -730,22 +801,13 @@ final class ListingController extends AdminController
                 $settingsRepo->setLastUpdated($id, $lastUpdatedInput !== '' ? $lastUpdatedInput : null);
             }
 
-            if ($deleteImage) {
-                $oldFilename = $settingsRepo->getImage($id);
-                if ($oldFilename !== null && $oldFilename !== '') {
-                    $uploadDir = $this->ensureUploadDirectory();
-                    $oldPath   = $uploadDir . '/' . $oldFilename;
-                    if (is_file($oldPath)) {
-                        unlink($oldPath);
-                    }
-                    $settingsRepo->saveImage($id, '');
-                }
-            } elseif ($newFilename !== null) {
+            if ($newFilename !== null) {
                 $uploadDir = $this->ensureUploadDirectory();
                 $destPath  = $uploadDir . '/' . $newFilename;
 
                 if (!move_uploaded_file($tmpPath, $destPath)) {
-                    throw new \RuntimeException("Failed to move uploaded image to {$destPath}.");
+                    $session->set('lstr_flash_error', 'Could not save the uploaded image. Please try again.');
+                    return Response::redirect($baseUrl . '/admin/listings/' . $id . '/edit');
                 }
 
                 $oldFilename = $settingsRepo->getImage($id);
@@ -757,6 +819,16 @@ final class ListingController extends AdminController
                 }
 
                 $settingsRepo->saveImage($id, $newFilename);
+            } elseif ($deleteImage) {
+                $oldFilename = $settingsRepo->getImage($id);
+                if ($oldFilename !== null && $oldFilename !== '') {
+                    $uploadDir = $this->ensureUploadDirectory();
+                    $oldPath   = $uploadDir . '/' . $oldFilename;
+                    if (is_file($oldPath)) {
+                        unlink($oldPath);
+                    }
+                    $settingsRepo->saveImage($id, '');
+                }
             }
 
             $activityRepo->log(
@@ -1156,21 +1228,23 @@ final class ListingController extends AdminController
             return Response::notFound('Listing not found.');
         }
 
-        $statsRaw      = (string) $request->post('stats_template',      '');
-        $membersRaw    = (string) $request->post('members_template',    '');
-        $affiliatesRaw = (string) $request->post('affiliates_template', '');
+        $statsRaw               = (string) $request->post('stats_template',               '');
+        $membersRaw             = (string) $request->post('members_template',             '');
+        $affiliatesRaw          = (string) $request->post('affiliates_template',          '');
+        $affiliatesSectionRaw   = (string) $request->post('affiliates_section_template',  '');
 
         // Treat blank / whitespace-only input as null (use built-in default)
-        $statsTemplate      = trim($statsRaw)      !== '' ? $statsRaw      : null;
-        $membersTemplate    = trim($membersRaw)    !== '' ? $membersRaw    : null;
-        $affiliatesTemplate = trim($affiliatesRaw) !== '' ? $affiliatesRaw : null;
+        $statsTemplate             = trim($statsRaw)             !== '' ? $statsRaw             : null;
+        $membersTemplate           = trim($membersRaw)           !== '' ? $membersRaw           : null;
+        $affiliatesTemplate        = trim($affiliatesRaw)        !== '' ? $affiliatesRaw        : null;
+        $affiliatesSectionTemplate = trim($affiliatesSectionRaw) !== '' ? $affiliatesSectionRaw : null;
 
         $settingsRepo = new ListingSettingsRepo($db);
-        $settingsRepo->saveTemplates($id, $statsTemplate, $membersTemplate, $affiliatesTemplate);
+        $settingsRepo->saveTemplates($id, $statsTemplate, $membersTemplate, $affiliatesTemplate, $affiliatesSectionTemplate);
 
         $this->app->getSession()->set('lstr_flash_success', 'Templates saved successfully.');
 
-        return Response::redirect($this->app->getBaseUrl() . '/admin/listings/' . $id);
+        return Response::redirect($this->app->getBaseUrl() . '/admin/listings/' . $id . '#tab-templates');
     }
 
     // -----------------------------------------------------------------------

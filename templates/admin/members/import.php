@@ -95,7 +95,7 @@ $id = (int) $listing->id;
             <?php foreach ($results['errors'] as $e): ?>
             <tr>
               <td><?= (int) $e['row'] ?></td>
-              <td><?= View::e($e['email']) ?></td>
+              <td><?= View::emailWrap($e['email']) ?></td>
               <td><?= View::e($e['reason']) ?></td>
             </tr>
             <?php endforeach; ?>

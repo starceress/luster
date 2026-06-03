@@ -23,7 +23,7 @@ $listingName = (string) ($result['listing_name'] ?? '');
   </div>
 
   <div class="pc-section">
-    <div class="stat-row" style="display:flex;gap:1.25rem;flex-wrap:wrap">
+    <div class="stat-row">
       <div class="stat-tile stat-tile--success">
         <span class="stat-label">Imported</span>
         <div class="stat-value"><?= number_format($imported) ?></div>

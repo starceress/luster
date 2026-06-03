@@ -56,8 +56,6 @@ $backLabel  = trim((string) ($back_label ?? $ctxDisplay)) ?: 'Collective';
 <form method="POST" action="<?= View::e($formAction) ?>">
   <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
 
-  <div class="composer-grid">
-
 <!-- ──── MAIN CARD ────────────────────────────────────────────────────── -->
     <div class="gradient-card">
       <div class="pc-head">
@@ -75,20 +73,39 @@ $backLabel  = trim((string) ($back_label ?? $ctxDisplay)) ?: 'Collective';
             <input type="text" id="upd-title" name="title" class="form"
                    maxlength="255" required
                    value="<?= $is_edit ? View::e($update->title) : '' ?>"
-                   placeholder="What&rsquo;s new?">
+                   placeholder="What's new?">
           </div>
         </div>
         <div class="listing-field-row">
           <label class="listing-field-label" for="upd-posted-at">Date<span class="req">*</span></label>
           <div>
             <input type="datetime-local" id="upd-posted-at" name="posted_at"
-                   class="form" style="width:auto" required
+                   class="form form--auto" required
                    value="<?= $is_edit ? View::e($editPostedAt) : $defaultPostedAt ?>">
             <p class="form-hint">You can backdate or future-date entries.</p>
           </div>
         </div>
+        <div class="listing-field-row">
+          <label class="listing-field-label">Category</label>
+          <div>
+            <input type="hidden" id="upd-category" name="category"
+                   value="<?= $is_edit ? View::e($update->category) : '' ?>">
+            <div data-tag-hidden="upd-category" data-tag-chips="upd-chips" data-tag-chip-class="badge badge-inactive">
+              <input type="text" class="form"
+                     placeholder="Add category&hellip;"
+                     list="upd-category-list">
+            </div>
+            <datalist id="upd-category-list">
+              <?php foreach ($known_categories as $cat): ?>
+                <option value="<?= View::e($cat) ?>">
+              <?php endforeach; ?>
+            </datalist>
+            <p class="form-hint">Press Enter or comma to add. Multiple categories allowed. Start typing to see suggestions.</p>
+            <div id="upd-chips" class="tag-chips-list"></div>
+          </div>
+        </div>
 
-        <div class="form-group form-group--compact">
+        <div class="form-group form-group--compact" style="margin-top:1.25rem">
           <textarea id="upd-body" name="body" class="form"
                     rows="9" required
                     placeholder="Write your update here&hellip;"><?= $is_edit ? View::e($update->body) : '' ?></textarea>
@@ -99,7 +116,7 @@ $backLabel  = trim((string) ($back_label ?? $ctxDisplay)) ?: 'Collective';
         <div class="listing-field-row">
           <label class="listing-field-label">Posted by</label>
           <div>
-            <span style="font-size:var(--fs-md);font-weight:600;color:var(--text)"><?= View::e($is_edit ? $update->author : $author) ?></span>
+            <span class="field-value"><?= View::e($is_edit ? $update->author : $author) ?></span>
             <p class="form-hint">The admin account posting this entry. Not displayed publicly &mdash; stored for record-keeping only.</p>
           </div>
         </div>
@@ -110,7 +127,7 @@ $backLabel  = trim((string) ($back_label ?? $ctxDisplay)) ?: 'Collective';
           <?= $is_edit ? 'Save Changes' : 'Post Update' ?>
         </button>
         <button type="button" class="btn btn-preview" id="upd-preview-btn"><?= View::icon('eye-on') ?> Preview</button>
-        <button type="button" class="btn btn-ghost js-form-reset"><?= $is_edit ? 'Reset' : 'Clear' ?></button>
+        <button type="button" class="btn btn-ghost js-form-reset"><?= $is_edit ? ' Reset to Original' : 'Clear' ?></button>
         
         <?php if ($is_edit): ?>
           <div class="composer-footer-spacer"></div>
@@ -127,30 +144,6 @@ $backLabel  = trim((string) ($back_label ?? $ctxDisplay)) ?: 'Collective';
       </div>
     </div>
     
-<!-- ──── SIDEBAR ─────────────────────────────────────────────────────── -->
-    <div class="composer-side">
-      <div class="card">
-        <div class="card-head">Categories</div>
-        <div class="card-body">
-          
-          <p class="form-hint">Press Enter or comma to add. Multiple categories allowed. Start typing to see existing category names as suggestions.</p>
-          <input type="hidden" id="upd-category" name="category"
-                 value="<?= $is_edit ? View::e($update->category) : '' ?>">
-          <div data-tag-hidden="upd-category" data-tag-chips="upd-chips" data-tag-chip-class="badge badge-info-gold">
-            <input type="text" class="form"
-                   placeholder="Add category&hellip;"
-                   list="upd-category-list">
-          </div>
-          <div id="upd-chips" class="tag-chips-list"></div>
-          <datalist id="upd-category-list">
-            <?php foreach ($known_categories as $cat): ?>
-              <option value="<?= View::e($cat) ?>">
-            <?php endforeach; ?>
-          </datalist>
-        </div>
-      </div>
-    </div>
-  </div>
 </form>
 
 <!-- ──── PREVIEW ─────────────────────────────────────────────────────── -->
@@ -166,18 +159,18 @@ $backLabel  = trim((string) ($back_label ?? $ctxDisplay)) ?: 'Collective';
       <div class="composer-block">
         <div class="composer-row">
           <span class="composer-lbl">Title</span>
-          <span id="upd-preview-title"></span>
+          <span id="upd-preview-title" class="composer-name"></span>
         </div>
         <div class="composer-row">
           <span class="composer-lbl">Date</span>
-          <span id="upd-preview-date" class="composer-email"></span>
+          <span id="upd-preview-date" class="composer-line"></span>
         </div>
         <div class="composer-row" id="upd-preview-cats-row">
-          <span class="composer-lbl">Categories</span>
+          <span class="composer-lbl">Category</span>
           <span id="upd-preview-cats"></span>
         </div>
       </div>
-      <div id="upd-preview-body" class="body-area" style="padding:.875rem 1.25rem;border-top:1px solid var(--border)"></div>
+      <div id="upd-preview-body" class="body-area"></div>
     </div>
     <div class="modal-footer">
       <button type="button" class="btn btn-quaternary" id="upd-preview-close-btn">Close</button>

@@ -11,6 +11,7 @@ use Luster\Core\Request;
 use Luster\Core\Response;
 use Luster\Repositories\ActivityRepo;
 use Luster\Repositories\ListingRepo;
+use Luster\Repositories\SiteSettingsRepo;
 
 /**
  * Admin controller for the Updates add-on.
@@ -39,14 +40,29 @@ final class UpdatesAdminController extends AdminController
         $latestColl    = $updateRepo->getLatestCollective();
         $collectiveCnt = $updateRepo->countCollective();
 
-        $sort = trim((string) $request->query('sort', 'id'));
-        $dir  = trim((string) $request->query('dir',  'asc'));
-        if (!in_array($sort, ['id', 'name'], true)) { $sort = 'id'; }
-        if (!in_array($dir,  ['asc', 'desc'], true)) { $dir  = 'asc'; }
+        $search = trim((string) $request->query('search', ''));
+        $sort   = trim((string) $request->query('sort', 'id'));
+        $dir    = trim((string) $request->query('dir',  'asc'));
+        if (!in_array($sort, ['id', 'subject', 'latest'], true)) { $sort = 'id'; }
+        if (!in_array($dir,  ['asc', 'desc'], true))              { $dir  = 'asc'; }
 
-        usort($listings, static function ($a, $b) use ($sort, $dir): int {
-            if ($sort === 'name') {
-                $cmp = strcasecmp($a->name, $b->name);
+        if ($search !== '') {
+            $needle   = mb_strtolower($search);
+            $listings = array_values(array_filter(
+                $listings,
+                static fn($l) => str_contains(mb_strtolower($l->subject), $needle),
+            ));
+        }
+
+        usort($listings, static function ($a, $b) use ($sort, $dir, $latestPerFl): int {
+            if ($sort === 'subject') {
+                $cmp = strcasecmp($a->subject, $b->subject);
+                return $dir === 'asc' ? $cmp : -$cmp;
+            }
+            if ($sort === 'latest') {
+                $aDate = $latestPerFl[$a->id]['latest']?->postedAt ?? '';
+                $bDate = $latestPerFl[$b->id]['latest']?->postedAt ?? '';
+                $cmp   = strcmp($aDate, $bDate);
                 return $dir === 'asc' ? $cmp : -$cmp;
             }
             $diff = $a->id - $b->id;
@@ -54,7 +70,7 @@ final class UpdatesAdminController extends AdminController
         });
 
         $totalListings = count($listings);
-        $perPage       = max(1, (int) $config->get('per_page', 10));
+        $perPage       = max(5, min(25, (int) ((new SiteSettingsRepo($db))->get('updates_per_page', '10') ?? '10')));
         $pages         = $totalListings > 0 ? (int) ceil($totalListings / $perPage) : 1;
         $page          = min(max(1, (int) $request->query('page', 1)), $pages);
         $listings      = array_slice($listings, ($page - 1) * $perPage, $perPage);
@@ -70,6 +86,7 @@ final class UpdatesAdminController extends AdminController
             'latest_coll'     => $latestColl,
             'collective_cnt'  => $collectiveCnt,
             'site_name'       => (string) $config->get('site_name', 'Luster'),
+            'search'          => $search,
             'sort'            => $sort,
             'dir'             => $dir,
             'page'            => $page,
@@ -78,6 +95,45 @@ final class UpdatesAdminController extends AdminController
             'total_listings'  => $totalListings,
             'success'         => $success,
             'error'           => $error,
+        ]);
+    }
+
+    // -----------------------------------------------------------------------
+    // GET|POST /admin/updates/settings
+    // -----------------------------------------------------------------------
+
+    public function settings(Request $request, array $params): Response
+    {
+        $db           = $this->app->getDatabase();
+        $session      = $this->app->getSession();
+        $settingsRepo = new SiteSettingsRepo($db);
+
+        $success = (string) $session->get('lstr_flash_success', '');
+        $error   = (string) $session->get('lstr_flash_error',   '');
+        $session->remove('lstr_flash_success');
+        $session->remove('lstr_flash_error');
+
+        if ($request->isPost()) {
+            if (!$this->validCsrf($request)) {
+                $session->set('lstr_flash_error', 'Invalid security token.');
+                return Response::redirect($this->app->getBaseUrl() . '/admin/updates/settings');
+            }
+
+            $perPage = max(5, min(25, (int) $request->post('updates_per_page', 10)));
+            $settingsRepo->set('updates_per_page', (string) $perPage);
+
+            $session->set('lstr_flash_success', 'Updates display settings saved.');
+            return Response::redirect($this->app->getBaseUrl() . '/admin/updates/settings');
+        }
+
+        $perPage = max(1, min(100, (int) ($settingsRepo->get('updates_per_page', '10') ?? '10')));
+
+        return $this->adminLayout('admin/addons/updates/settings.php', 'Updates Settings', 'updates', [
+            'updates_per_page' => $perPage,
+            'success'          => $success,
+            'error'            => $error,
+        ], '', [
+            $this->crumb('Updates Feed', $this->adminUrl('/admin/updates')),
         ]);
     }
 
@@ -91,7 +147,7 @@ final class UpdatesAdminController extends AdminController
         $session = $this->app->getSession();
         $config  = $this->app->getConfig();
 
-        $perPage         = max(1, (int) $config->get('per_page', 10));
+        $perPage         = max(5, min(25, (int) ((new SiteSettingsRepo($db))->get('updates_per_page', '10') ?? '10')));
         $page            = max(1, (int) ($request->query('page', 1)));
         $search          = trim((string) $request->query('search', ''));
         $filterCategory  = trim((string) $request->query('category', ''));
@@ -116,6 +172,7 @@ final class UpdatesAdminController extends AdminController
             'per_page'         => $perPage,
             'is_collective'    => true,
             'listing'          => null,
+            'ctx_name'         => $siteName,
             'search'           => $search,
             'filter_category'  => $filterCategory,
             'known_categories' => $updateRepo->getKnownCategories(),
@@ -160,7 +217,7 @@ final class UpdatesAdminController extends AdminController
             return Response::notFound('Listing not found.');
         }
 
-        $perPage         = max(1, (int) $config->get('per_page', 10));
+        $perPage         = max(5, min(25, (int) ((new SiteSettingsRepo($db))->get('updates_per_page', '10') ?? '10')));
         $page            = max(1, (int) ($request->query('page', 1)));
         $search          = trim((string) $request->query('search', ''));
         $filterCategory  = trim((string) $request->query('category', ''));
@@ -183,6 +240,7 @@ final class UpdatesAdminController extends AdminController
             'per_page'         => $perPage,
             'is_collective'    => false,
             'listing'          => $listing,
+            'ctx_name'         => $listing->subject,
             'search'           => $search,
             'filter_category'  => $filterCategory,
             'known_categories' => $updateRepo->getKnownCategories(),
@@ -347,6 +405,60 @@ final class UpdatesAdminController extends AdminController
 
         $session->set('lstr_flash_success', 'Update deleted.');
         return Response::redirect($backUrl);
+    }
+
+    // -----------------------------------------------------------------------
+    // POST /admin/updates/bulk  — bulk delete across any page/listing
+    // -----------------------------------------------------------------------
+
+    public function bulkDelete(Request $request, array $params): Response
+    {
+        $db      = $this->app->getDatabase();
+        $session = $this->app->getSession();
+        $baseUrl = $this->app->getBaseUrl();
+
+        $action = (string) $request->post('bulk_action', '');
+        $rawIds = $request->post('ids', []);
+        $ids    = array_values(array_filter(
+            array_map('intval', is_array($rawIds) ? $rawIds : []),
+            static fn(int $id) => $id > 0
+        ));
+
+        $returnTo = trim((string) $request->post('_return', ''));
+        if ($returnTo === '' || !str_starts_with($returnTo, $baseUrl . '/admin/updates')) {
+            $returnTo = $baseUrl . '/admin/updates';
+        }
+
+        if (empty($ids)) {
+            $session->set('lstr_flash_error', 'No updates selected.');
+            return Response::redirect($returnTo);
+        }
+
+        if ($action !== 'delete') {
+            $session->set('lstr_flash_error', 'Unknown bulk action.');
+            return Response::redirect($returnTo);
+        }
+
+        $updateRepo   = new UpdateRepo($db);
+        $activityRepo = new ActivityRepo($db);
+        $count        = 0;
+
+        foreach ($ids as $id) {
+            if ($updateRepo->getById($id) !== null) {
+                $updateRepo->delete($id);
+                $count++;
+            }
+        }
+
+        $activityRepo->log(
+            (int) $session->get('lstr_admin_id'),
+            'update_bulk_deleted',
+            "Bulk deleted {$count} update(s)",
+            $request->ip(),
+        );
+
+        $session->set('lstr_flash_success', "Deleted {$count} update(s).");
+        return Response::redirect($returnTo);
     }
 
     // -----------------------------------------------------------------------

@@ -36,6 +36,13 @@ $id = (int) $listing->id;
   <input type="hidden" name="member_email" value="<?= View::e($member->email) ?>">
 
   <div class="gradient-card">
+    <div class="pc-head">
+      <div class="pc-head-icon pc-head-icon-bg"><?= View::icon('members') ?></div>
+      <div class="pc-head-meta">
+        <div class="pc-head-title"><?= View::e($member->name) ?></div>
+        <div class="pc-head-sub">Editing member &mdash; <?= View::e($listing->subject) ?></div>
+      </div>
+    </div>
     <div class="listing-field-section">
       <div class="pc-section-label">General Information</div>
 

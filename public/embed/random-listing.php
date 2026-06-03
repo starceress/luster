@@ -11,7 +11,7 @@ use Luster\Support\ListingRowRenderer;
  * Luster embed — random single owned listing.
  *
  * Picks one active listing at random from the selected pool and renders it
- * using the owned-listings row template from Admin → Collective Templates.
+ * using the owned-listings row template from Admin → Collective.
  * Outputs an HTML comment when the pool is empty so the host page never breaks.
  *
  * Usage:

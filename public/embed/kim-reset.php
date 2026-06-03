@@ -61,11 +61,22 @@ $_lusterFanlistings = $_lusterListingRepo->getAll();
 // 4. Consume flash data
 // ---------------------------------------------------------------------------
 
-$_lusterSession = $_lusterApp->getSession();
-$_lusterError   = (string) $_lusterSession->get('lstr_flash_error',     '');
+$_lusterSession  = $_lusterApp->getSession();
+$_lusterSuccess  = (string) $_lusterSession->get('lstr_flash_success',   '');
+$_lusterError    = (string) $_lusterSession->get('lstr_flash_error',     '');
 $_lusterOldEmail = (string) $_lusterSession->get('lstr_flash_old_email', '');
+$_lusterSession->remove('lstr_flash_success');
 $_lusterSession->remove('lstr_flash_error');
 $_lusterSession->remove('lstr_flash_old_email');
+
+if ($_lusterSuccess !== '') {
+    $_lusterHtml = '<div class="fl-success"><p>'
+        . htmlspecialchars($_lusterSuccess, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8')
+        . '</p></div>';
+    if ($luster_return ?? false) { return $_lusterHtml; }
+    echo $_lusterHtml;
+    return;
+}
 
 // ---------------------------------------------------------------------------
 // Load KIM page URLs from settings (allow host-page override)

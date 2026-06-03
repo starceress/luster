@@ -157,6 +157,23 @@ final class JoinedListingRepo
     }
 
     /**
+     * Returns all joined listing IDs matching the given search/network/cat filters.
+     * Used by the bulk handler when "select all across pages" is triggered.
+     *
+     * @return int[]
+     */
+    public function getAllIdsByFilter(string $search, string $network, string $cat): array
+    {
+        if ($search !== '' || $network !== '') {
+            $result = $this->search($search, $network, PHP_INT_MAX, 1, $cat);
+        } else {
+            $result = $this->getAll(PHP_INT_MAX, 1, $cat);
+        }
+
+        return array_map(static fn(JoinedListing $j): int => $j->id, $result['items']);
+    }
+
+    /**
      * Returns joined listings filtered by category.
      *
      * @return JoinedListing[]
@@ -489,6 +506,65 @@ final class JoinedListingRepo
         $stmt->execute();
 
         return array_map(static fn(array $r) => JoinedListing::fromRow($r), $stmt->fetchAll());
+    }
+
+    /**
+     * @param string  $orderBy      Pre-validated "col DIR[, col DIR]" fragment.
+     * @param ?string $statusFilter 'ok'|'redirect'|'dead'|'unchecked'|null (null = all)
+     * @param ?string $search       Name substring filter (null = all)
+     * @return array{items: JoinedListing[], total: int}
+     */
+    public function paginateForLinkCheck(int $perPage, int $page, string $orderBy = 'name ASC', ?string $statusFilter = null, ?string $search = null): array
+    {
+        $where  = '1=1';
+        $params = [];
+
+        if ($statusFilter === 'unchecked') {
+            $where = "link_status = 'unchecked'";
+        } elseif (in_array($statusFilter, ['ok', 'redirect', 'dead'], true)) {
+            $where = 'link_status = :ls_filter';
+            $params[':ls_filter'] = $statusFilter;
+        }
+
+        if ($search !== null && $search !== '') {
+            $where .= ' AND name LIKE :lc_search';
+            $params[':lc_search'] = '%' . $search . '%';
+        }
+
+        $countStmt = $this->db->prepare("SELECT COUNT(*) FROM lstr_joined WHERE {$where}");
+        $countStmt->execute($params);
+        $total = (int) $countStmt->fetchColumn();
+
+        $stmt = $this->db->prepare("SELECT * FROM lstr_joined WHERE {$where} ORDER BY {$orderBy} LIMIT :lim OFFSET :off");
+        foreach ($params as $k => $v) {
+            $stmt->bindValue($k, $v);
+        }
+        $stmt->bindValue(':lim', $perPage, \PDO::PARAM_INT);
+        $stmt->bindValue(':off', ($page - 1) * $perPage, \PDO::PARAM_INT);
+        $stmt->execute();
+
+        return [
+            'items' => array_map(static fn(array $r) => JoinedListing::fromRow($r), $stmt->fetchAll()),
+            'total' => $total,
+        ];
+    }
+
+    /**
+     * @return array{ok:int,dead:int,redirect:int,unchecked:int}
+     */
+    public function getLinkStats(): array
+    {
+        $stmt = $this->db->prepare(
+            "SELECT COALESCE(link_status, 'unchecked') AS s, COUNT(*) AS cnt FROM lstr_joined GROUP BY s"
+        );
+        $stmt->execute();
+        $out = ['ok' => 0, 'dead' => 0, 'redirect' => 0, 'unchecked' => 0];
+        foreach ($stmt->fetchAll() as $row) {
+            $s = $row['s'];
+            if (isset($out[$s])) { $out[$s] = (int) $row['cnt']; }
+            else { $out['unchecked'] += (int) $row['cnt']; }
+        }
+        return $out;
     }
 
     /**

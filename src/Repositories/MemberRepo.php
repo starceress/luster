@@ -267,6 +267,32 @@ final class MemberRepo
     }
 
     /**
+     * Returns all emails for a listing matching the given status and optional search term.
+     * Used by the bulk handler when "select all across pages" is triggered.
+     *
+     * @return string[]
+     */
+    public function getAllEmailsByFilter(string $prefix, string $status, string $search): array
+    {
+        if ($search !== '') {
+            $members = $this->search($prefix, $search);
+            return array_map(static fn(Member $m): string => $m->email, $members);
+        }
+
+        $p     = $this->resolveTable($prefix);
+        $where = match ($status) {
+            'pending' => "WHERE {$this->pendingWhere}",
+            'all'     => '',
+            default   => "WHERE {$this->approvedWhere}",
+        };
+
+        $stmt = $this->db->prepare("SELECT email FROM {$p} {$where}");
+        $stmt->execute();
+
+        return $stmt->fetchAll(\PDO::FETCH_COLUMN, 0);
+    }
+
+    /**
      * Returns a paginated slice of members filtered by status.
      *
      * @param string $status  'approved' | 'pending' | 'all'
@@ -349,7 +375,11 @@ final class MemberRepo
         $p      = $this->resolveTable($prefix);
         $offset = max(0, ($page - 1) * $perPage);
         $where  = $approvedOnly ? "WHERE {$this->approvedWhere}" : '';
-        $order  = $sort === 'country' ? 'country ASC, name ASC' : 'name ASC';
+        $order  = match ($sort) {
+            'country' => 'country ASC, name ASC',
+            'added'   => 'added ASC',
+            default   => 'name ASC',
+        };
 
         $countStmt = $this->db->prepare(
             "SELECT COUNT(*) FROM {$p} {$where}"

@@ -12,6 +12,7 @@ use Luster\Core\Request;
 use Luster\Core\Response;
 use Luster\Core\Validator;
 use Luster\Core\View;
+use Luster\Repositories\BlacklistRepo;
 use Luster\Repositories\ListingRepo;
 use Luster\Repositories\ListingSettingsRepo;
 use Luster\Repositories\SiteSettingsRepo;
@@ -117,6 +118,14 @@ final class ContactController
         $url     = trim((string) $request->post('url',     ''));
         $subject = trim((string) $request->post('subject', ''));
         $message = trim((string) $request->post('message', ''));
+
+        // Blacklist check on submitted email
+        if ($email !== '' && (new BlacklistRepo($this->app->getDatabase()))->isBlocked($email)) {
+            $rateLimit->hitDefault($ip, RateLimit::ACTION_PUBLIC_CONTACT);
+            $session->set('lstr_flash_error', 'This email address cannot be used to send messages.');
+            $session->set('lstr_flash_old', $this->collectOld($request));
+            return Response::redirect($baseUrl . '/contact/' . $listingId);
+        }
 
         $v = new Validator($request->postAll());
         $v->field('name')->required()->maxLength(100);
@@ -250,6 +259,14 @@ final class ContactController
         $url     = trim((string) $request->post('url',     ''));
         $subject = trim((string) $request->post('subject', ''));
         $message = trim((string) $request->post('message', ''));
+
+        // Blacklist check on submitted email
+        if ($email !== '' && (new BlacklistRepo($this->app->getDatabase()))->isBlocked($email)) {
+            $rateLimit->hitDefault($ip, RateLimit::ACTION_PUBLIC_CONTACT);
+            $session->set('lstr_flash_error', 'This email address cannot be used to send messages.');
+            $session->set('lstr_flash_old', $this->collectOld($request));
+            return Response::redirect($baseUrl . '/contact');
+        }
 
         $v = new Validator($request->postAll());
         $v->field('name')->required()->maxLength(100);

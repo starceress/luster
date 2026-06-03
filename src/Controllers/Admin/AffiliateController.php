@@ -8,10 +8,12 @@ use Luster\Core\Mailer;
 use Luster\Core\Request;
 use Luster\Core\Response;
 use Luster\Core\Validator;
+use Luster\Repositories\ActivityRepo;
 use Luster\Repositories\AffiliateRepo;
 use Luster\Repositories\EmailTemplateRepo;
 use Luster\Repositories\ListingRepo;
 use Luster\Repositories\ListingSettingsRepo;
+use Luster\Repositories\SavedEmailRepo;
 
 /**
  * Manages affiliates across all listings.
@@ -34,6 +36,60 @@ final class AffiliateController extends AdminController
 {
 
     // -----------------------------------------------------------------------
+    // POST /admin/affiliates/bulk
+    // -----------------------------------------------------------------------
+
+    public function bulk(Request $request, array $params): Response
+    {
+        $db      = $this->app->getDatabase();
+        $session = $this->app->getSession();
+        $baseUrl = $this->app->getBaseUrl();
+
+        $action        = (string) $request->post('action', '');
+        $scope         = trim((string) $request->post('scope', ''));
+        $selectAll     = $request->post('select_all', '0') === '1';
+        $affiliateRepo = new AffiliateRepo($db);
+        $redirect      = $baseUrl . '/admin/affiliates';
+        if ($scope !== '') {
+            $redirect .= '?' . http_build_query(['fanlisting_id' => $scope]);
+        }
+
+        if ($selectAll) {
+            $saSearch = trim((string) $request->post('sa_filter_search', ''));
+            $selected = $affiliateRepo->getAllIdsByFilter($scope, $saSearch);
+        } else {
+            $selected = array_values(array_filter(
+                array_map('intval', (array) $request->post('selected', [])),
+                fn(int $id) => $id > 0
+            ));
+        }
+
+        if (empty($selected)) {
+            $session->set('lstr_flash_error', 'No affiliates selected.');
+            return Response::redirect($redirect);
+        }
+
+        $count = count($selected);
+
+        match ($action) {
+            'activate'   => $affiliateRepo->bulkSetActive($selected, true),
+            'deactivate' => $affiliateRepo->bulkSetActive($selected, false),
+            'delete'     => $affiliateRepo->bulkDelete($selected),
+            default      => null,
+        };
+
+        $msg = match ($action) {
+            'activate'   => "Activated {$count} affiliate(s).",
+            'deactivate' => "Deactivated {$count} affiliate(s).",
+            'delete'     => "Deleted {$count} affiliate(s).",
+            default      => 'Action applied.',
+        };
+
+        $session->set('lstr_flash_success', $msg);
+        return Response::redirect($redirect);
+    }
+
+    // -----------------------------------------------------------------------
     // GET /admin/affiliates
     // -----------------------------------------------------------------------
 
@@ -53,7 +109,7 @@ final class AffiliateController extends AdminController
             $fanMap[$fl->id] = $fl->subject;
         }
 
-        $filterFid   = trim((string) $request->query('fanlisting_id', 'collective'));
+        $filterFid   = trim((string) $request->query('fanlisting_id', 'all'));
         $search      = trim((string) $request->query('search', ''));
         $page        = max(1, (int) $request->query('page', 1));
         $perPage     = 10;
@@ -65,10 +121,10 @@ final class AffiliateController extends AdminController
             $orderBy = 'sort_order ASC, name ASC';
             if ($filterFid === 'collective') {
                 $result = $affiliateRepo->getCollective(PHP_INT_MAX, 1, $orderBy);
-            } elseif ($filterFid !== '') {
-                $result = $affiliateRepo->getByListing((int) $filterFid, PHP_INT_MAX, 1, $orderBy);
-            } else {
+            } elseif ($filterFid === '' || $filterFid === 'all') {
                 $result = $affiliateRepo->getAll(PHP_INT_MAX, 1, $orderBy);
+            } else {
+                $result = $affiliateRepo->getByListing((int) $filterFid, PHP_INT_MAX, 1, $orderBy);
             }
             $sortParam  = 'sort_order';
             $sortDir    = 'ASC';
@@ -78,27 +134,32 @@ final class AffiliateController extends AdminController
             if ($search === '') {
                 if ($filterFid === 'collective') {
                     $affiliateRepo->repackSortOrder(null);
-                } elseif ($filterFid !== '') {
+                } elseif ($filterFid !== '' && $filterFid !== 'all') {
                     $affiliateRepo->repackSortOrder((int) $filterFid);
                 }
             }
 
             $allowedCols = ['sort_order' => 'sort_order', 'name' => 'name', 'email' => 'email', 'status' => 'active'];
-            $sortParam   = (string) $request->query('sort', 'sort_order');
+            $defaultSort = ($filterFid === 'all' || $filterFid === '') ? 'name' : 'sort_order';
+            $sortParam   = (string) $request->query('sort', $defaultSort);
             $dirParam    = strtolower(trim((string) $request->query('dir', 'asc')));
             $sortCol     = $allowedCols[$sortParam] ?? 'sort_order';
             $sortDir     = $dirParam === 'desc' ? 'DESC' : 'ASC';
             $orderBy     = $sortCol . ' ' . $sortDir . ($sortCol !== 'name' ? ', name ASC' : '');
 
             if ($search !== '') {
-                $fid    = $filterFid === 'collective' ? null : ($filterFid === '' ? -1 : (int) $filterFid);
+                $fid    = match(true) {
+                    $filterFid === 'collective'              => null,
+                    $filterFid === '' || $filterFid === 'all' => -1,
+                    default                                 => (int) $filterFid,
+                };
                 $result = $affiliateRepo->search($search, $fid, $perPage, $page, $orderBy);
             } elseif ($filterFid === 'collective') {
                 $result = $affiliateRepo->getCollective($perPage, $page, $orderBy);
-            } elseif ($filterFid !== '') {
-                $result = $affiliateRepo->getByListing((int) $filterFid, $perPage, $page, $orderBy);
-            } else {
+            } elseif ($filterFid === '' || $filterFid === 'all') {
                 $result = $affiliateRepo->getAll($perPage, $page, $orderBy);
+            } else {
+                $result = $affiliateRepo->getByListing((int) $filterFid, $perPage, $page, $orderBy);
             }
             $totalPages = $result['pages'];
         }
@@ -117,7 +178,7 @@ final class AffiliateController extends AdminController
         $baseUrl = $this->app->getBaseUrl();
 
         $indexBreadcrumbs = [];
-        if ($filterFid !== '' && $filterFid !== 'collective' && isset($fanMap[(int) $filterFid])) {
+        if ($filterFid !== '' && $filterFid !== 'collective' && $filterFid !== 'all' && isset($fanMap[(int) $filterFid])) {
             $indexBreadcrumbs = [
                 $this->crumb('Affiliates', $this->adminUrl('/admin/affiliates')),
                 $this->crumb($fanMap[(int) $filterFid]),
@@ -175,50 +236,84 @@ final class AffiliateController extends AdminController
             // comes from the route param; for global add it comes from the form field.
             $fanlistingId   = $contextFid > 0 ? $contextFid : (int) $request->post('fanlisting_id', 0);
             $name           = trim((string) $request->post('name', ''));
-            $url            = trim((string) $request->post('url', ''));
+            $url            = self::httpsify(trim((string) $request->post('url', '')));
             $email          = trim((string) $request->post('email', ''));
             $sortOrder      = (int) $request->post('sort_order', 0);
 
-            // Image upload
-            $image     = '';
-            $imageFile = $request->file('image') ?? [];
-            if (!empty($imageFile['tmp_name'])) {
-                $finfo   = new \finfo(FILEINFO_MIME_TYPE);
-                $mime    = $finfo->file($imageFile['tmp_name']);
-                $allowed = ['image/jpeg' => 'jpg', 'image/png' => 'png', 'image/gif' => 'gif', 'image/webp' => 'webp'];
-                if (!isset($allowed[$mime]) || $imageFile['size'] > 2097152) {
-                    throw new \RuntimeException('Invalid image: must be JPEG, PNG, GIF, or WebP and under 2 MB.');
+            // Image upload — validate only; file is NOT moved here.
+            // move_uploaded_file() runs after ALL validation passes to prevent orphaned files.
+            $image       = '';
+            $imageError  = '';
+            $pendingMove = null; // set when image is valid but not yet stored
+            $imageFile   = $request->file('image') ?? [];
+            if (!empty($imageFile['name']) && (int) ($imageFile['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_NO_FILE) {
+                if ((int) $imageFile['error'] !== UPLOAD_ERR_OK) {
+                    $imageError = 'File upload failed. Please try again.';
+                } elseif (!is_uploaded_file((string) $imageFile['tmp_name'])) {
+                    $imageError = 'Invalid upload. Please try again.';
+                } else {
+                    $finfo   = new \finfo(FILEINFO_MIME_TYPE);
+                    $mime    = $finfo->file((string) $imageFile['tmp_name']);
+                    $allowed = ['image/jpeg' => 'jpg', 'image/png' => 'png', 'image/gif' => 'gif', 'image/webp' => 'webp'];
+                    if (!isset($allowed[$mime])) {
+                        $imageError = 'Image must be a JPEG, PNG, GIF, or WebP file.';
+                    } elseif ((int) $imageFile['size'] > 2097152) {
+                        $imageError = 'Image must be under 2 MB.';
+                    } elseif (getimagesize((string) $imageFile['tmp_name']) === false) {
+                        $imageError = 'The uploaded file is not a valid image.';
+                    } else {
+                        $pendingMove = [
+                            'tmp'      => (string) $imageFile['tmp_name'],
+                            'filename' => 'af_' . bin2hex(random_bytes(8)) . '.' . $allowed[$mime],
+                        ];
+                    }
                 }
-                $dir = dirname(__DIR__, 3) . '/public/uploads/affiliates/';
-                if (!is_dir($dir)) {
-                    mkdir($dir, 0755, true);
-                    file_put_contents($dir . '.htaccess', "deny from all\n<FilesMatch \"\.(jpg|jpeg|png|gif|webp)$\">\nAllow from all\n</FilesMatch>");
-                }
-                $image = uniqid('af_', true) . '.' . $allowed[$mime];
-                move_uploaded_file($imageFile['tmp_name'], $dir . $image);
             }
 
             $v = new Validator(['name' => $name, 'url' => $url]);
             $v->field('name')->required()->maxLength(255);
             $v->field('url')->required()->url()->maxLength(500);
 
-            $siteName = (string) ($this->app->getConfig()->get('site_name', 'Collective'));
+            $siteName  = (string) ($this->app->getConfig()->get('site_name', 'Collective'));
+            $allErrors = $v->fails() ? $v->allErrors() : [];
+            if ($imageError !== '') {
+                $allErrors[] = $imageError;
+            }
 
-            if ($v->fails()) {
+            if (!empty($allErrors)) {
+                // tmp file was never moved — PHP cleans it up automatically
                 if ($contextFid > 0) {
-                    // Inline form in listing edit tab — flash and redirect back
-                    $session->set('lstr_flash_error', implode(' ', $v->allErrors()));
+                    $session->set('lstr_flash_error', implode(' ', $allErrors));
                     return Response::redirect($baseUrl . '/admin/listings/' . $contextFid . '?tab=affiliates');
                 }
                 return $this->adminLayout('admin/affiliates/add.php', 'Add Affiliate', 'affiliates', [
                     'listings'     => $listings,
                     'affiliate'    => null,
-                    'error'        => implode(' ', $v->allErrors()),
+                    'error'        => implode(' ', $allErrors),
                     'field_errors' => $v->errors(),
                     'old'          => $request->postAll(),
                     'context_fid'  => 0,
                     'site_name'    => $siteName,
                 ], '', $addBreadcrumbs);
+            }
+
+            // All validation passed — now commit the image to disk
+            if ($pendingMove !== null) {
+                $dir = dirname(__DIR__, 3) . '/public/uploads/affiliates/';
+                if (!is_dir($dir)) {
+                    mkdir($dir, 0755, true);
+                    file_put_contents($dir . '.htaccess',
+                        "<FilesMatch \"\\.(?i:jpg|jpeg|png|gif|webp)$\">\n    Require all granted\n</FilesMatch>\n<FilesMatch \".\">\n    Require all denied\n</FilesMatch>\n"
+                    );
+                }
+                if (!move_uploaded_file($pendingMove['tmp'], $dir . $pendingMove['filename'])) {
+                    $session->set('lstr_flash_error', 'Could not save the uploaded image. Please try again.');
+                    if ($contextFid > 0) {
+                        return Response::redirect($baseUrl . '/admin/listings/' . $contextFid . '?tab=affiliates');
+                    }
+                    return Response::redirect($baseUrl . '/admin/affiliates/add');
+                }
+                $image = $pendingMove['filename'];
             }
 
             $affiliateRepo->insert([
@@ -290,56 +385,89 @@ final class AffiliateController extends AdminController
 
         if ($request->isPost()) {
             $name      = trim((string) $request->post('name', ''));
-            $url       = trim((string) $request->post('url', ''));
+            $url       = self::httpsify(trim((string) $request->post('url', '')));
             $email     = trim((string) $request->post('email', ''));
             $sortOrder = (int) $request->post('sort_order', 0);
             $fromFl    = (int) $request->post('from_listing', 0);
 
-            // Image upload — start from current stored filename
-            $image     = $affiliate->image ?? '';
-            $imageFile = $request->file('image') ?? [];
-            if (!empty($imageFile['tmp_name'])) {
-                $finfo   = new \finfo(FILEINFO_MIME_TYPE);
-                $mime    = $finfo->file($imageFile['tmp_name']);
-                $allowed = ['image/jpeg' => 'jpg', 'image/png' => 'png', 'image/gif' => 'gif', 'image/webp' => 'webp'];
-                if (!isset($allowed[$mime]) || $imageFile['size'] > 2097152) {
-                    throw new \RuntimeException('Invalid image: must be JPEG, PNG, GIF, or WebP and under 2 MB.');
+            // Image upload — validate only; file is NOT moved here.
+            // move_uploaded_file() and old-image deletion run after ALL validation
+            // passes to prevent orphaned files and loss of the previous image.
+            $image       = $affiliate->image ?? '';
+            $imageError  = '';
+            $pendingMove = null;
+            $deleteImage = (bool) $request->post('delete_image');
+            $imageFile   = $request->file('image') ?? [];
+            if (!empty($imageFile['name']) && (int) ($imageFile['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_NO_FILE) {
+                if ((int) $imageFile['error'] !== UPLOAD_ERR_OK) {
+                    $imageError = 'File upload failed. Please try again.';
+                } elseif (!is_uploaded_file((string) $imageFile['tmp_name'])) {
+                    $imageError = 'Invalid upload. Please try again.';
+                } else {
+                    $finfo   = new \finfo(FILEINFO_MIME_TYPE);
+                    $mime    = $finfo->file((string) $imageFile['tmp_name']);
+                    $allowed = ['image/jpeg' => 'jpg', 'image/png' => 'png', 'image/gif' => 'gif', 'image/webp' => 'webp'];
+                    if (!isset($allowed[$mime])) {
+                        $imageError = 'Image must be a JPEG, PNG, GIF, or WebP file.';
+                    } elseif ((int) $imageFile['size'] > 2097152) {
+                        $imageError = 'Image must be under 2 MB.';
+                    } elseif (getimagesize((string) $imageFile['tmp_name']) === false) {
+                        $imageError = 'The uploaded file is not a valid image.';
+                    } else {
+                        $pendingMove = [
+                            'tmp'      => (string) $imageFile['tmp_name'],
+                            'filename' => 'af_' . bin2hex(random_bytes(8)) . '.' . $allowed[$mime],
+                        ];
+                    }
                 }
-                $dir = dirname(__DIR__, 3) . '/public/uploads/affiliates/';
-                if (!is_dir($dir)) {
-                    mkdir($dir, 0755, true);
-                    file_put_contents($dir . '.htaccess', "deny from all\n<FilesMatch \"\.(jpg|jpeg|png|gif|webp)$\">\nAllow from all\n</FilesMatch>");
-                }
-                if ($image !== '' && file_exists($dir . $image)) {
-                    unlink($dir . $image);
-                }
-                $image = uniqid('af_', true) . '.' . $allowed[$mime];
-                move_uploaded_file($imageFile['tmp_name'], $dir . $image);
-            }
-            if ($request->post('delete_image') && $image !== '') {
-                $dir = dirname(__DIR__, 3) . '/public/uploads/affiliates/';
-                if (file_exists($dir . $image)) {
-                    unlink($dir . $image);
-                }
-                $image = '';
             }
 
             $v = new Validator(['name' => $name, 'url' => $url]);
             $v->field('name')->required()->maxLength(255);
             $v->field('url')->required()->url()->maxLength(500);
 
-            $siteName = (string) ($this->app->getConfig()->get('site_name', 'Collective'));
+            $siteName  = (string) ($this->app->getConfig()->get('site_name', 'Collective'));
+            $allErrors = $v->fails() ? $v->allErrors() : [];
+            if ($imageError !== '') {
+                $allErrors[] = $imageError;
+            }
 
-            if ($v->fails()) {
+            if (!empty($allErrors)) {
+                // tmp file was never moved — PHP cleans it up automatically
                 return $this->adminLayout('admin/affiliates/add.php', 'Edit Affiliate', 'affiliates', [
                     'listings'     => $listings,
                     'affiliate'    => $affiliate,
-                    'error'        => implode(' ', $v->allErrors()),
+                    'error'        => implode(' ', $allErrors),
                     'field_errors' => $v->errors(),
                     'old'          => $request->postAll(),
                     'context_fid'  => $fromFl,
                     'site_name'    => $siteName,
                 ], '', $editBreadcrumbs);
+            }
+
+            // All validation passed — now commit image changes to disk
+            $dir = dirname(__DIR__, 3) . '/public/uploads/affiliates/';
+            if ($pendingMove !== null) {
+                if (!is_dir($dir)) {
+                    mkdir($dir, 0755, true);
+                    file_put_contents($dir . '.htaccess',
+                        "<FilesMatch \"\\.(?i:jpg|jpeg|png|gif|webp)$\">\n    Require all granted\n</FilesMatch>\n<FilesMatch \".\">\n    Require all denied\n</FilesMatch>\n"
+                    );
+                }
+                if (!move_uploaded_file($pendingMove['tmp'], $dir . $pendingMove['filename'])) {
+                    $session->set('lstr_flash_error', 'Could not save the uploaded image. Please try again.');
+                    return Response::redirect($baseUrl . '/admin/affiliates/' . $id . '/edit');
+                }
+                // New file is on disk — now safe to delete the old one
+                if ($image !== '' && file_exists($dir . $image)) {
+                    unlink($dir . $image);
+                }
+                $image = $pendingMove['filename'];
+            } elseif ($deleteImage && $image !== '') {
+                if (file_exists($dir . $image)) {
+                    unlink($dir . $image);
+                }
+                $image = '';
             }
 
             $affiliateRepo->update($id, [
@@ -481,7 +609,8 @@ final class AffiliateController extends AdminController
         $affiliateRepo = new AffiliateRepo($db);
         $listingRepo   = new ListingRepo($db, $config);
 
-        $pending  = $affiliateRepo->getPending();
+        $scope    = trim((string) $request->query('scope', 'all'));
+        $pending  = $affiliateRepo->getPendingForScope($scope);
         $listings = $listingRepo->getAll();
 
         $listingMap = [];
@@ -489,25 +618,26 @@ final class AffiliateController extends AdminController
             $listingMap[$fl->id] = $fl;
         }
 
+        // Build a set of pending IDs that already have an active affiliate with the same URL
+        $conflictIds = array_flip($affiliateRepo->getPendingIdsWithUrlConflict());
+
         $session = $this->app->getSession();
         $success = (string) $session->get('lstr_flash_success', '');
         $error   = (string) $session->get('lstr_flash_error',   '');
         $session->remove('lstr_flash_success');
         $session->remove('lstr_flash_error');
 
-        return $this->layout('admin/affiliates/pending.php', [
-            'page_title'      => 'Pending Affiliate Applications',
-            'current_section' => 'affiliates',
-            'breadcrumbs'     => [
-                $this->crumb('Affiliates', $this->adminUrl('/admin/affiliates')),
-                $this->crumb('Pending Applications'),
-            ],
-            'pending'         => $pending,
-            'listing_map'     => $listingMap,
-            'success'         => $success,
-            'error'           => $error,
-            'csrf_token'      => $this->app->getCsrf()->getToken(),
-            'base_url'        => $this->app->getBaseUrl(),
+        return $this->adminLayout('admin/affiliates/pending.php', 'Pending Affiliate Applications', 'affiliates', [
+            'pending'      => $pending,
+            'listing_map'  => $listingMap,
+            'listings'     => $listings,
+            'scope'        => $scope,
+            'conflict_ids' => $conflictIds,
+            'success'      => $success,
+            'error'        => $error,
+        ], '', [
+            $this->crumb('Affiliates', $this->adminUrl('/admin/affiliates')),
+            $this->crumb('Pending Applications'),
         ]);
     }
 
@@ -535,24 +665,28 @@ final class AffiliateController extends AdminController
             (new ListingSettingsRepo($db))->touchLastUpdated($affiliate->listingId);
         }
 
-        $this->logActivity('affiliate.approve', [
-            'affiliate_id' => $id,
-            'name'         => $affiliate->name,
-            'url'          => $affiliate->url,
-            'listing_id'   => $affiliate->listingId,
-        ]);
+        (new ActivityRepo($db))->log(
+            (int) $session->get('lstr_admin_id'),
+            'affiliate.approve',
+            "Approved affiliate application #{$id}: {$affiliate->name} ({$affiliate->url})",
+        );
 
         // Send approval email if the applicant supplied one
-        if ($affiliate->email !== null && $affiliate->email !== '' && $affiliate->listingId !== null) {
-            $this->sendAffiliateEmail($affiliate, EmailTemplateRepo::TYPE_AFFILIATE_APPROVED);
+        $emailNote = '';
+        if ($affiliate->email !== null && $affiliate->email !== '') {
+            if ($this->sendAffiliateEmail($affiliate, EmailTemplateRepo::TYPE_AFFILIATE_APPROVED)) {
+                $emailNote = ' Email sent to ' . $affiliate->email . '.';
+            }
         }
 
-        $session->set('lstr_flash_success', 'Affiliate application approved.');
+        $session->set('lstr_flash_success', 'Affiliate application approved.' . $emailNote);
 
-        $fromPending = (string) $request->post('from_pending', '');
+        $fromPending  = (string) $request->post('from_pending', '');
+        $pendingScope = trim((string) $request->post('pending_scope', 'all'));
+        $scopeQuery   = ($pendingScope !== '' && $pendingScope !== 'all') ? '?scope=' . urlencode($pendingScope) : '';
         return Response::redirect(
             $fromPending === '1'
-                ? $baseUrl . '/admin/affiliates/pending'
+                ? $baseUrl . '/admin/affiliates/pending' . $scopeQuery
                 : $baseUrl . '/admin/affiliates'
         );
     }
@@ -576,55 +710,226 @@ final class AffiliateController extends AdminController
         }
 
         // Send rejection email before deleting the row
-        if ($affiliate->email !== null && $affiliate->email !== '' && $affiliate->listingId !== null) {
-            $this->sendAffiliateEmail($affiliate, EmailTemplateRepo::TYPE_AFFILIATE_REJECTED);
+        $emailNote = '';
+        if ($affiliate->email !== null && $affiliate->email !== '') {
+            if ($this->sendAffiliateEmail($affiliate, EmailTemplateRepo::TYPE_AFFILIATE_REJECTED)) {
+                $emailNote = ' Email sent to ' . $affiliate->email . '.';
+            }
         }
 
         $affiliateRepo->reject($id);
 
-        $this->logActivity('affiliate.reject', [
-            'affiliate_id' => $id,
-            'name'         => $affiliate->name,
-            'url'          => $affiliate->url,
-            'listing_id'   => $affiliate->listingId,
-        ]);
+        (new ActivityRepo($db))->log(
+            (int) $session->get('lstr_admin_id'),
+            'affiliate.reject',
+            "Rejected affiliate application #{$id}: {$affiliate->name} ({$affiliate->url})",
+        );
 
-        $session->set('lstr_flash_success', 'Affiliate application rejected.');
+        $session->set('lstr_flash_success', 'Affiliate application rejected.' . $emailNote);
 
-        $fromPending = (string) $request->post('from_pending', '');
+        $fromPending  = (string) $request->post('from_pending', '');
+        $pendingScope = trim((string) $request->post('pending_scope', 'all'));
+        $scopeQuery   = ($pendingScope !== '' && $pendingScope !== 'all') ? '?scope=' . urlencode($pendingScope) : '';
         return Response::redirect(
             $fromPending === '1'
-                ? $baseUrl . '/admin/affiliates/pending'
+                ? $baseUrl . '/admin/affiliates/pending' . $scopeQuery
                 : $baseUrl . '/admin/affiliates'
         );
+    }
+
+    // -----------------------------------------------------------------------
+    // -----------------------------------------------------------------------
+    // GET /admin/affiliates/email
+    // -----------------------------------------------------------------------
+
+    public function emailCompose(Request $request, array $params): Response
+    {
+        $db      = $this->app->getDatabase();
+        $config  = $this->app->getConfig();
+        $session = $this->app->getSession();
+
+        $affiliateRepo = new AffiliateRepo($db);
+        $listingRepo   = new ListingRepo($db, $config);
+        $listings      = $listingRepo->getAll();
+
+        // Pre-compute recipient counts for each scope option
+        $scopeCounts = [
+            'all'        => count($affiliateRepo->getEmailRecipients('all')),
+            'collective' => count($affiliateRepo->getEmailRecipients('collective')),
+        ];
+        foreach ($listings as $fl) {
+            $scopeCounts[(string) $fl->id] = count($affiliateRepo->getEmailRecipients($fl->id));
+        }
+
+        $savedEmails = (new SavedEmailRepo($db))->getAll();
+        $selectedScope = trim((string) $request->query('scope', 'all'));
+
+        $error   = (string) $session->get('lstr_flash_error',   '');
+        $success = (string) $session->get('lstr_flash_success', '');
+        $old     = (array)  $session->get('lstr_email_old',     []);
+        $session->remove('lstr_flash_error');
+        $session->remove('lstr_flash_success');
+        $session->remove('lstr_email_old');
+
+        $fromEmail = (string) $config->get('smtp_from', '') ?: (string) $config->get('owner_email', '');
+        $fromName  = (string) $config->get('smtp_from_name', '') ?: (string) $config->get('owner_name', '');
+
+        return $this->adminLayout('admin/affiliates/email.php', 'Email Affiliates', 'affiliates', [
+            'listings'      => $listings,
+            'scope_counts'  => $scopeCounts,
+            'selected_scope'=> $selectedScope,
+            'saved_emails'  => $savedEmails,
+            'from_name'     => $fromName,
+            'from_email'    => $fromEmail,
+            'owner_name'    => (string) $config->get('owner_name',  ''),
+            'owner_email'   => (string) $config->get('owner_email', ''),
+            'site_name'     => (string) $config->get('site_name',   ''),
+            'site_url'      => (string) $config->get('app_url',     ''),
+            'old'           => $old,
+            'error'         => $error,
+            'success'       => $success,
+        ], '', [
+            $this->crumb('Affiliates', $this->adminUrl('/admin/affiliates')),
+        ]);
+    }
+
+    // -----------------------------------------------------------------------
+    // POST /admin/affiliates/email
+    // -----------------------------------------------------------------------
+
+    public function emailSend(Request $request, array $params): Response
+    {
+        $db      = $this->app->getDatabase();
+        $config  = $this->app->getConfig();
+        $session = $this->app->getSession();
+        $baseUrl = $this->app->getBaseUrl();
+
+        $subject = trim((string) $request->post('subject', ''));
+        $body    = trim((string) $request->post('body',    ''));
+        $scope   = trim((string) $request->post('scope',   'all'));
+
+        if ($subject === '' || $body === '') {
+            $session->set('lstr_flash_error', 'Please fill in both the subject and message before sending.');
+            $session->set('lstr_email_old', ['subject' => $subject, 'body' => $body, 'scope' => $scope]);
+            return Response::redirect($baseUrl . '/admin/affiliates/email?scope=' . urlencode($scope));
+        }
+
+        $affiliateRepo = new AffiliateRepo($db);
+        $listingRepo   = new ListingRepo($db, $config);
+
+        // Resolve scope value
+        $resolvedScope = match (true) {
+            $scope === 'all'        => 'all',
+            $scope === 'collective' => 'collective',
+            ctype_digit($scope)     => (int) $scope,
+            default                 => 'all',
+        };
+
+        $recipients = $affiliateRepo->getEmailRecipients($resolvedScope);
+
+        if (empty($recipients)) {
+            $session->set('lstr_flash_error', 'No affiliates with email addresses found for the selected scope.');
+            $session->set('lstr_email_old', ['subject' => $subject, 'body' => $body, 'scope' => $scope]);
+            return Response::redirect($baseUrl . '/admin/affiliates/email?scope=' . urlencode($scope));
+        }
+
+        // Pre-load listings for token resolution
+        $listingMap = [];
+        foreach ($listingRepo->getAll() as $fl) {
+            $listingMap[$fl->id] = $fl;
+        }
+
+        $siteName  = (string) $config->get('site_name',   '');
+        $siteUrl   = (string) $config->get('app_url',     '');
+        $ownerName = (string) $config->get('owner_name',  '');
+        $ownerEmail= (string) $config->get('owner_email', '');
+
+        $mailer = new Mailer($config);
+        $sent   = 0;
+        $failed = 0;
+
+        foreach ($recipients as $r) {
+            $fl           = $r['listing_id'] !== null ? ($listingMap[$r['listing_id']] ?? null) : null;
+            $listingName  = $fl !== null ? $fl->name : $siteName;
+            $listingUrl   = $fl !== null ? $fl->url  : $siteUrl;
+
+            $finalSubject = str_replace(
+                ['{aff_name}', '{aff_email}', '{aff_url}', '{listing_name}', '{listing_url}', '{site_name}', '{owner_name}', '{owner_email}'],
+                [$r['name'],   $r['email'],   $r['url'],   $listingName,     $listingUrl,      $siteName,     $ownerName,     $ownerEmail],
+                $subject,
+            );
+            $finalBody = str_replace(
+                ['{aff_name}', '{aff_email}', '{aff_url}', '{listing_name}', '{listing_url}', '{site_name}', '{owner_name}', '{owner_email}'],
+                [$r['name'],   $r['email'],   $r['url'],   $listingName,     $listingUrl,      $siteName,     $ownerName,     $ownerEmail],
+                $body,
+            );
+
+            try {
+                $mailer->send($r['email'], $r['name'], $finalSubject, $finalBody);
+                $sent++;
+            } catch (\Throwable $e) {
+                $failed++;
+                error_log('[Affiliate] Bulk email failed for ' . $r['email'] . ': ' . $e->getMessage());
+            }
+        }
+
+        $scopeLabel = match (true) {
+            $resolvedScope === 'all'        => 'all affiliates',
+            $resolvedScope === 'collective' => 'collective affiliates',
+            default                         => 'listing #' . $resolvedScope . ' affiliates',
+        };
+
+        (new ActivityRepo($db))->log(
+            (int) $session->get('lstr_admin_id'),
+            'affiliate.bulk_email',
+            "Sent bulk email to {$scopeLabel}: {$sent} sent" . ($failed > 0 ? ", {$failed} failed" : ''),
+            $request->ip(),
+        );
+
+        if ($sent === 0) {
+            $session->set('lstr_flash_error', "Bulk email failed: all {$failed} send(s) could not be delivered.");
+        } else {
+            $session->set(
+                'lstr_flash_success',
+                "Bulk email sent: {$sent} delivered" . ($failed > 0 ? ", {$failed} failed" : '') . '.'
+            );
+        }
+        return Response::redirect($baseUrl . '/admin/affiliates');
     }
 
     // -----------------------------------------------------------------------
     // Private: send affiliate email
     // -----------------------------------------------------------------------
 
-    private function sendAffiliateEmail(object $affiliate, string $type): void
+    private function sendAffiliateEmail(object $affiliate, string $type): bool
     {
-        if ($affiliate->listingId === null || $affiliate->email === null || $affiliate->email === '') {
-            return;
+        if ($affiliate->email === null || $affiliate->email === '') {
+            return false;
         }
 
         $db     = $this->app->getDatabase();
         $config = $this->app->getConfig();
 
-        $listingRepo = new ListingRepo($db, $config);
-        $listing     = $listingRepo->getById($affiliate->listingId);
-        if ($listing === null) {
-            return;
+        if ($affiliate->listingId !== null) {
+            $listingRepo = new ListingRepo($db, $config);
+            $listing     = $listingRepo->getById($affiliate->listingId);
+            if ($listing === null) {
+                return false;
+            }
+            $listingName = $listing->name;
+            $listingUrl  = $listing->url;
+        } else {
+            $listingName = (string) $config->get('site_name', '');
+            $listingUrl  = (string) ($config->get('site_url', '') ?: $config->get('app_url', '') . '/affiliates');
         }
 
         $emailRepo = new EmailTemplateRepo($db);
         $tokens    = EmailTemplateRepo::buildAffiliateTokens(
-            listingName: $listing->name,
-            listingUrl:  $listing->url,
-            siteName:    (string) ($config->get('app_name', '') ?: $config->get('site_url', '')),
-            ownerName:   (string) ($config->get('owner_name', '')),
-            ownerEmail:  (string) ($config->get('owner_email', '')),
+            listingName: $listingName,
+            listingUrl:  $listingUrl,
+            siteName:    (string) $config->get('site_name', ''),
+            ownerName:   (string) $config->get('owner_name', ''),
+            ownerEmail:  (string) $config->get('owner_email', ''),
             affName:     $affiliate->name,
             affUrl:      $affiliate->url,
             affEmail:    $affiliate->email,
@@ -636,8 +941,9 @@ final class AffiliateController extends AdminController
         try {
             $mailer = new Mailer($config);
             $mailer->send($affiliate->email, $affiliate->name, $subject, $body);
+            return true;
         } catch (\Exception) {
-            // Email failure is non-fatal
+            return false;
         }
     }
 

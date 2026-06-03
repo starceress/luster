@@ -3,7 +3,7 @@
 declare(strict_types=1);
 
 /**
- * Collective Templates admin page.
+ * Collective admin page.
  *
  * @var array  $collective_templates
  * @var string $success
@@ -19,11 +19,12 @@ $b        = rtrim(View::e($base_url), '/');
 $ct       = $collective_templates ?? [];
 $defaults = SiteSettingsRepo::collectiveDefaults();
 
-$ownedVal         = $ct['owned_template']            ?? $defaults['owned_template'];
-$joinedVal        = $ct['joined_template']           ?? $defaults['joined_template'];
-$statsVal         = $ct['collective_stats_template'] ?? $defaults['collective_stats_template'];
-$ownedSectionsVal = $ct['owned_sections_template']   ?? $defaults['owned_sections_template'];
-$joinedSectionsVal= $ct['joined_sections_template']  ?? $defaults['joined_sections_template'];
+$ownedVal                = $ct['owned_template']                           ?? $defaults['owned_template'];
+$joinedVal               = $ct['joined_template']                          ?? $defaults['joined_template'];
+$statsVal                = $ct['collective_stats_template']                 ?? $defaults['collective_stats_template'];
+$ownedSectionsVal        = $ct['owned_sections_template']                  ?? $defaults['owned_sections_template'];
+$joinedSectionsVal       = $ct['joined_sections_template']                 ?? $defaults['joined_sections_template'];
+$collAffSectionVal       = $ct['collective_affiliates_section_template']   ?? $defaults['collective_affiliates_section_template'];
 ?>
 
 <div class="page-topbar">
@@ -50,47 +51,56 @@ $joinedSectionsVal= $ct['joined_sections_template']  ?? $defaults['joined_sectio
         </div>
       </div>
 
-      <div class="card-body">
+      <div class="pc-section">
         <div class="pc-section-label">Owned Listings</div>
         <div class="form-group">
           <textarea name="owned_template" id="owned_template" class="form tpl-textarea" spellcheck="false"><?= View::e($ownedVal) ?></textarea>
         </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-ghost btn-sm" data-textarea="owned_template">Reset to Default</button>
+        <div class="tpl-reset-row">
+          <button type="button" class="btn btn-ghost btn-sm btn-tpl-reset" data-textarea="owned_template">Reset to Default</button>
         </div>
 
         <div class="pc-section-label">Owned Listings — Sections Layout</div>
-        <p class="form-hint" style="margin-bottom:.75rem">Used when <code>$luster_status = 'all'</code>. Wraps the row template output in sections by listing status. Omit a conditional block to hide that status. <strong>Clear this field to disable sections mode</strong> and fall back to flat output. Note: pending/trouble listings are excluded by default — set <code>$luster_exclude_pending = false</code> to include them in <code>{pending_content}</code>.</p>
+        <p class="form-hint mb-sm">Used when <code>$luster_status = 'all'</code>. Wraps the row template output in sections by listing status. Omit a conditional block to hide that status. <strong>Clear this field to disable sections mode</strong> and fall back to flat output. Note: pending/trouble listings are excluded by default — set <code>$luster_exclude_pending = false</code> to include them in <code>{pending_content}</code>.</p>
         <div class="form-group">
           <textarea name="owned_sections_template" id="owned_sections_template" class="form tpl-textarea tpl-textarea-lg" spellcheck="false"><?= View::e($ownedSectionsVal) ?></textarea>
         </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-ghost btn-sm" data-textarea="owned_sections_template">Reset to Default</button>
+        <div class="tpl-reset-row">
+          <button type="button" class="btn btn-ghost btn-sm btn-tpl-reset" data-textarea="owned_sections_template">Reset to Default</button>
         </div>
 
         <div class="pc-section-label">Joined Listings</div>
         <div class="form-group">
           <textarea name="joined_template" id="joined_template" class="form tpl-textarea" spellcheck="false"><?= View::e($joinedVal) ?></textarea>
         </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-ghost btn-sm" data-textarea="joined_template">Reset to Default</button>
+        <div class="tpl-reset-row">
+          <button type="button" class="btn btn-ghost btn-sm btn-tpl-reset" data-textarea="joined_template">Reset to Default</button>
         </div>
 
         <div class="pc-section-label">Joined Listings — Sections Layout</div>
-        <p class="form-hint" style="margin-bottom:.75rem">Used when <code>$luster_category = 'all'</code>. Wraps the row template output in a structured header block. Only active listings are shown. <strong>Clear this field to disable sections mode</strong> and fall back to the standard grouped-by-category output.</p>
+        <p class="form-hint mb-sm">Used when <code>$luster_category = 'all'</code>. Wraps the row template output in a structured header block. Only active listings are shown. <strong>Clear this field to disable sections mode</strong> and fall back to the standard grouped-by-category output.</p>
         <div class="form-group">
           <textarea name="joined_sections_template" id="joined_sections_template" class="form tpl-textarea tpl-textarea-lg" spellcheck="false"><?= View::e($joinedSectionsVal) ?></textarea>
         </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-ghost btn-sm" data-textarea="joined_sections_template">Reset to Default</button>
+        <div class="tpl-reset-row">
+          <button type="button" class="btn btn-ghost btn-sm btn-tpl-reset" data-textarea="joined_sections_template">Reset to Default</button>
+        </div>
+
+        <div class="pc-section-label">Collective Affiliates — Section Layout</div>
+        <p class="form-hint mb-sm">Controls the full affiliates section on <code>/affiliates</code> and the collective affiliates embed. Use <code>{affiliates}</code> to place the rendered rows. <strong>Leave blank to use the built-in layout.</strong></p>
+        <div class="form-group">
+          <textarea name="collective_affiliates_section_template" id="collective_affiliates_section_template" class="form tpl-textarea tpl-textarea-lg" spellcheck="false"><?= View::e($collAffSectionVal) ?></textarea>
+        </div>
+        <div class="tpl-reset-row">
+          <button type="button" class="btn btn-ghost btn-sm btn-tpl-reset" data-textarea="collective_affiliates_section_template">Clear</button>
         </div>
 
         <div class="pc-section-label">Statistics</div>
         <div class="form-group">
           <textarea name="collective_stats_template" id="collective_stats_template" class="form tpl-textarea tpl-textarea-lg" spellcheck="false"><?= View::e($statsVal) ?></textarea>
         </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-ghost btn-sm" data-textarea="collective_stats_template">Reset to Default</button>
+        <div class="tpl-reset-row">
+          <button type="button" class="btn btn-ghost btn-sm btn-tpl-reset" data-textarea="collective_stats_template">Reset to Default</button>
         </div>
       </div>
 
@@ -209,7 +219,22 @@ $joinedSectionsVal= $ct['joined_sections_template']  ?? $defaults['joined_sectio
               <tr><td><code>{if_current_listings}&hellip;{/if_current_listings}</code></td><td>Show block only when active listings exist</td></tr>
             </tbody>
           </table>
-          <p class="form-hint" style="margin-top:.5rem">Only active listings are included. Inactive joined listings are never exposed publicly.</p>
+          <p class="form-hint mt-sm">Only active listings are included. Inactive joined listings are never exposed publicly.</p>
+        </div>
+      </details>
+
+      <details class="card chevron">
+        <summary class="chevron-head">Affiliates Section Tokens</summary>
+        <div class="chevron-body">
+          <table class="et-token-table">
+            <tbody>
+              <tr class="tok-row" data-textarea="collective_affiliates_section_template" data-token="{affiliates}"><td><code>{affiliates}</code></td><td>Rendered affiliate rows</td></tr>
+              <tr class="tok-row" data-textarea="collective_affiliates_section_template" data-token="{affiliates_count}"><td><code>{affiliates_count}</code></td><td>Total affiliate count</td></tr>
+              <tr class="tok-row" data-textarea="collective_affiliates_section_template" data-token="{affiliates_list}"><td><code>{affiliates_list}</code></td><td>Comma-separated link list</td></tr>
+              <tr><td><code>{if_affiliates}&hellip;{/if_affiliates}</code></td><td>Shown when count &gt; 0</td></tr>
+              <tr><td><code>{if_no_affiliates}&hellip;{/if_no_affiliates}</code></td><td>Shown when count = 0</td></tr>
+            </tbody>
+          </table>
         </div>
       </details>
 

@@ -260,14 +260,14 @@ function importChecked(array $old, string $key, bool $default = true): string {
         <?php endif; ?>
       </div>
       <?php if ($source === 'listing-admin'): ?>
-      <div class="callout callout-inline import-callout-flush">
-        <?= View::icon('alert', ['width' => 20, 'height' => 20, 'style' => 'color:var(--pending)']) ?>
-        <strong>IMPORTANT:</strong> Listings must be imported <i><u>before</u></i> members &mdash; members are distributed to per-listing tables created during the listings import.
+      <div class="callout callout-warn" style="margin-top: 0;">
+        <?= View::icon('alert') ?>
+        <div><strong>IMPORTANT:</strong> Listings must be imported <i><u>before</u></i> members &mdash; members are distributed to per-listing tables created during the listings import.</div>
       </div>
       <?php elseif ($source === 'codesort'): ?>
-      <div class="callout callout-inline import-callout-spaced">
-        <?= View::icon('alert') ?>
-        <span>Fanlistings are matched by title between CodeSort&rsquo;s <code>collective</code> table and Luster&rsquo;s listings. Codes for unmatched fanlistings are skipped.</span>
+      <div class="callout callout-info" style="margin-top: 1rem;">
+        <?= View::icon('notes') ?>
+        <div>Fanlistings are matched by title between CodeSort's <code>collective</code> table and Luster's listings. Codes for unmatched fanlistings are skipped.</div>
       </div>
       <?php endif; ?>
     </div>
@@ -279,7 +279,7 @@ function importChecked(array $old, string $key, bool $default = true): string {
       <div class="pc-head-icon pc-head-icon-bg"><?= View::icon('image') ?></div>
       <div class="pc-head-meta">
         <div class="pc-head-title">Image Migration <span class="badge badge-inactive import-optional-badge">Optional</span></div>
-        <div class="pc-head-sub"> Copy affiliate logos, joined listing images, and listing images to Luster&rsquo;s uploads directory. Original files are not deleted.</div>
+        <div class="pc-head-sub"> Copy affiliate logos, joined listing images, and listing images to Luster's uploads directory. Original files are not deleted.</div>
       </div>
     </div>
     <div class="pc-section">

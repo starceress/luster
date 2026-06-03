@@ -43,7 +43,10 @@ final class AuthController
     {
         $session = $this->app->getSession();
 
-        if ($session->has('lstr_admin_id')) {
+        $isLocalDemo = ($request->query('demo') === '1')
+            && in_array($request->ip(), ['127.0.0.1', '::1'], true);
+
+        if (!$isLocalDemo && $session->has('lstr_admin_id')) {
             return Response::redirect($this->app->getBaseUrl() . '/admin');
         }
 

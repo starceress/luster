@@ -51,6 +51,7 @@ $v = static function (string $key, $model, string $prop, string $default = '') u
 
 <form method="POST" action="<?= $action ?>" enctype="multipart/form-data" class="js-warn-unsaved">
   <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
+  <input type="hidden" name="sort_order" value="<?= View::e($v('sort_order', $affiliate, 'sortOrder', (string) ($next_sort_order ?? 1))) ?>">
   <?php if ($isEdit && $contextFid > 0): ?>
     <input type="hidden" name="from_listing" value="<?= $contextFid ?>">
   <?php endif; ?>
@@ -68,22 +69,44 @@ $v = static function (string $key, $model, string $prop, string $default = '') u
 
       <!-- Listing -->
       <?php if ($contextFid === 0): ?>
-      <div class="listing-field-row listing-field-row--top">
-        <label class="listing-field-label" for="aff-listing">Listing</label>
-        <div>
-          <div class="select-wrap">
-            <select id="aff-listing" name="fanlisting_id" >
-              <option value="0"><?= View::e(($site_name ?? 'Collective') . ' (Collective)') ?></option>
-              <?php foreach ($listings as $fl): ?>
-                <?php $selId = (int) ($old['fanlisting_id'] ?? ($affiliate?->listingId ?? 0)); ?>
-                <option value="<?= (int) $fl->id ?>" <?= (int) $fl->id === $selId ? 'selected' : '' ?>>
-                  <?= View::e($fl->name) ?>
-                </option>
-              <?php endforeach; ?>
-            </select>
+        <?php if ($isEdit): ?>
+          <?php
+            $scopeLabel = (string) ($site_name ?? 'Collective') . ' (Collective)';
+            if ($affiliate->listingId !== null) {
+                foreach ($listings as $fl) {
+                    if ((int) $fl->id === $affiliate->listingId) {
+                        $scopeLabel = $fl->name;
+                        break;
+                    }
+                }
+            }
+          ?>
+          <div class="listing-field-row listing-field-row--top">
+            <label class="listing-field-label">Listing</label>
+            <div>
+              <p class="text-strong"><?= View::e($scopeLabel) ?></p>
+              <p class="form-hint">Listing assignment cannot be changed after creation.</p>
+              <input type="hidden" name="fanlisting_id" value="<?= (int) ($affiliate->listingId ?? 0) ?>">
+            </div>
           </div>
-        </div>
-      </div>
+        <?php else: ?>
+          <div class="listing-field-row listing-field-row--top">
+            <label class="listing-field-label" for="aff-listing">Listing</label>
+            <div>
+              <div class="select-wrap">
+                <select id="aff-listing" name="fanlisting_id">
+                  <option value="0"><?= View::e(($site_name ?? 'Collective') . ' (Collective)') ?></option>
+                  <?php foreach ($listings as $fl): ?>
+                    <?php $selId = (int) ($old['fanlisting_id'] ?? 0); ?>
+                    <option value="<?= (int) $fl->id ?>" <?= (int) $fl->id === $selId ? 'selected' : '' ?>>
+                      <?= View::e($fl->name) ?>
+                    </option>
+                  <?php endforeach; ?>
+                </select>
+              </div>
+            </div>
+          </div>
+        <?php endif; ?>
       <?php else: ?>
         <input type="hidden" name="fanlisting_id" value="<?= $contextFid ?>">
       <?php endif; ?>
@@ -129,17 +152,6 @@ $v = static function (string $key, $model, string $prop, string $default = '') u
         </div>
       </div>
 
-      <!-- Sort Order -->
-      <div class="listing-field-row listing-field-row--top">
-        <label class="listing-field-label" for="aff-sort-order">Sort Order</label>
-        <div>
-          <input id="aff-sort-order" type="number" name="sort_order" class="form form--compact"
-                 min="1" max="9999"
-                 value="<?= View::e($v('sort_order', $affiliate, 'sortOrder', (string) ($next_sort_order ?? 1))) ?>">
-          <p class="form-hint">Lower numbers appear first. Same order = sorted alphabetically.</p>
-        </div>
-      </div>
-
       <!-- Image -->
       <div class="listing-field-row listing-field-row--top">
         <span class="listing-field-label">Image</span>
@@ -167,7 +179,30 @@ $v = static function (string $key, $model, string $prop, string $default = '') u
 
     <div class="composer-footer">
       <button type="submit" class="btn btn-primary"><?= $isEdit ? 'Save Changes' : 'Add Affiliate' ?></button>
-      <a href="<?= $backUrl ?>" class="btn btn-ghost">Cancel</a>
+      <?php if ($isEdit): ?>
+        <button type="reset" class="btn btn-quaternary">Reset to Original</button>
+      <?php endif; ?>
+      <button type="button" class="btn btn-ghost js-form-clear">Clear</button>
+      <?php if ($isEdit): ?>
+        <span class="composer-footer-spacer"></span>
+        <button type="submit"
+                form="del-affiliate-<?= (int) $affiliate->id ?>"
+                class="btn btn-danger">Delete</button>
+      <?php endif; ?>
     </div>
   </div>
 </form>
+
+<?php if ($isEdit): ?>
+<form id="del-affiliate-<?= (int) $affiliate->id ?>"
+      method="POST"
+      action="<?= $b ?>/admin/affiliates/<?= (int) $affiliate->id ?>/delete"
+      data-del-modal
+      data-del-entity="affiliate"
+      data-del-name="<?= View::e($affiliate->name) ?>">
+  <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
+  <?php if ($contextFid > 0): ?>
+    <input type="hidden" name="from_listing" value="<?= $contextFid ?>">
+  <?php endif; ?>
+</form>
+<?php endif; ?>

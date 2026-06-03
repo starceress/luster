@@ -457,9 +457,17 @@ final class MemberController extends AdminController
         $session = $this->app->getSession();
         $baseUrl = $this->app->getBaseUrl();
 
-        $action = (string) $request->post('bulk_action', '');
-        $emails = (array) $request->post('emails', []);
-        $emails = array_filter(array_map('trim', $emails));
+        $action    = (string) $request->post('bulk_action', '');
+        $selectAll = $request->post('select_all', '0') === '1';
+
+        if ($selectAll) {
+            $saStatus = trim((string) $request->post('sa_filter_status', 'all'));
+            $saSearch = trim((string) $request->post('sa_filter_search', ''));
+            $emails   = $memberRepo->getAllEmailsByFilter($listing->dbprefix, $saStatus, $saSearch);
+        } else {
+            $emails = (array) $request->post('emails', []);
+            $emails = array_filter(array_map('trim', $emails));
+        }
 
         if (empty($emails) || !in_array($action, ['approve', 'pending', 'reject', 'delete', 'email_selected'], true)) {
             $session->set('lstr_flash_error', 'No members selected or invalid action.');

@@ -25,15 +25,14 @@ use Luster\Core\View;
   <?php if ($show_search ?? true): ?>
   <p>
     Sort by:
-    <?php $nameUrl    = View::e($members_base . '?sort=name'); ?>
-    <?php $countryUrl = View::e($members_base . '?sort=country'); ?>
-    <?php if ($sort === 'name'): ?>
-      <strong>Name</strong> |
-      <a href="<?= $countryUrl ?>">Country</a>
-    <?php else: ?>
-      <a href="<?= $nameUrl ?>">Name</a> |
-      <strong>Country</strong>
-    <?php endif; ?>
+    <?php
+      $allUrl     = View::e($members_base . '?sort=added');
+      $nameUrl    = View::e($members_base . '?sort=name');
+      $countryUrl = View::e($members_base . '?sort=country');
+    ?>
+    <?= $sort === 'added'   ? '<strong>View All</strong>' : '<a href="' . $allUrl    . '">View All</a>' ?> /
+    <?= $sort === 'name'    ? '<strong>Name</strong>'     : '<a href="' . $nameUrl   . '">Name</a>'    ?> /
+    <?= $sort === 'country' ? '<strong>Country</strong>'  : '<a href="' . $countryUrl . '">Country</a>' ?>
   </p>
 
   <?php if ($country !== ''): ?>

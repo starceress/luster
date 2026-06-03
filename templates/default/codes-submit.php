@@ -46,6 +46,10 @@ $submitted = $submitted ?? false;
 
     <form method="POST" action="<?= View::e($form_action) ?>" enctype="multipart/form-data">
       <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
+      <div aria-hidden="true" style="display:none">
+        <label for="website-confirm">Website (do not fill in)</label>
+        <input type="text" id="website-confirm" name="website_confirm" tabindex="-1" autocomplete="off">
+      </div>
 
       <div>
         <label for="code-image">Upload Code: *</label>

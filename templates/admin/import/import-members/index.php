@@ -8,11 +8,11 @@ $b = rtrim(View::e($base_url), '/');
 ?>
 
 <div class="page-topbar">
-  <a href="<?= $b ?>/admin/import" class="link">&larr; Back to Import</a>
+  <a href="<?= $b ?>/admin/import" class="link">&larr; Back to Import Data Wizard</a>
 </div>
 
 <?php if ($error !== ''): ?>
-<div class="callout callout-error" style="margin-bottom:1.25rem">
+<div class="alert alert-error">
   <?= View::icon('alert') ?>
   <div><?= View::e($error) ?></div>
 </div>
@@ -20,29 +20,35 @@ $b = rtrim(View::e($base_url), '/');
 
 <div class="gradient-card">
   <div class="pc-head">
-    <div class="pc-head-icon pc-head-icon-bg"><?= View::icon('import') ?></div>
+    <div class="pc-head-icon pc-head-icon-bg"><?= View::icon('importmembers') ?></div>
     <div class="pc-head-meta">
       <div class="pc-head-title">Import Members Only</div>
       <div class="pc-head-sub">
         Supplemental tool — use this when you only need to import members into
-        an existing Luster listing (e.g. after running the main Import Wizard,
+        an existing Luster listing (e.g. after running the main Import Data Wizard,
         or to merge a standalone member table export). For a full site migration,
-        use <a href="<?= $b ?>/admin/import" class="link">Import Data</a> instead.
+        use the <a href="<?= $b ?>/admin/import" class="link">Import Data Wizard</a> instead.
       </div>
     </div>
   </div>
 
-  <form id="im-upload-form" method="POST" action="<?= $b ?>/admin/import-members/upload"
-        enctype="multipart/form-data">
+  <form id="im-upload-form" method="POST" action="<?= $b ?>/admin/import-members/upload" enctype="multipart/form-data">
     <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
 
     <div class="listing-field-section">
-      <div class="listing-field-row">
-        <label class="listing-field-label" for="im-listing">
-          Destination Listing <span class="req">*</span>
-        </label>
+      <div class="callout callout-info">
+        <?= View::icon('notes') ?>
         <div>
-          <div class="select-wrap">
+          <strong>How duplicates are handled:</strong> members with an email address already
+          present in the target table are silently skipped (no overwrite). Re-running the
+          import on the same dump is safe.
+        </div>
+      </div>
+
+      <div class="listing-field-row">
+        <label class="listing-field-label" for="im-listing">Destination Listing <span class="req">*</span></label>
+        <div>
+          <div class="select-wrap select-auto">
             <select id="im-listing" name="listing_id" required>
               <option value="">— Select —</option>
               <?php foreach ($listings as $fl): ?>
@@ -73,14 +79,5 @@ $b = rtrim(View::e($base_url), '/');
   <div class="composer-footer">
     <button type="submit" form="im-upload-form" class="btn btn-primary">Upload &amp; Analyse</button>
     <a href="<?= $b ?>/admin/import" class="btn btn-ghost">Cancel</a>
-  </div>
-</div>
-
-<div class="callout callout-inline" style="margin-top:1rem">
-  <?= View::icon('notes') ?>
-  <div>
-    <strong>How duplicates are handled:</strong> members with an email address already
-    present in the target table are silently skipped (no overwrite). Re-running the
-    import on the same dump is safe.
   </div>
 </div>

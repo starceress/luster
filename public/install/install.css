@@ -1,4 +1,10 @@
-.install-page {
+/* =============================================================
+   Luster — Installation Wizard CSS
+   Loaded after tokens.css + admin.css; overrides that apply
+   only to the installation wizard.
+   ============================================================= */
+
+   .install-page {
   display: block;
   min-height: 100vh;
   padding: 5.5rem 1.5rem 4rem;
@@ -17,41 +23,23 @@
 .install-page .theme-toggle:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; border-radius: 999px; }
 
 .install-wrap { max-width: 720px; margin: 0 auto; position: relative; z-index: 1; }
-@media (min-width: 700px) { .install-wrap--wide { max-width: 720px; } }
 
-.install-brand { text-align: center; margin-bottom: 2.5rem; }
-.install-gem-wrap { position: relative; width: 64px; height: 64px; margin: 0 auto 1.1rem; }
-.install-gem {
-  width: 64px; height: 64px; margin: 0; position: relative; z-index: 1;
-  background: linear-gradient(135deg, var(--va-pink) 0%, var(--va-teal) 50%, var(--va-gold) 100%);
-  clip-path: polygon(50% 0%, 100% 35%, 80% 100%, 20% 100%, 0% 35%);
-  animation: iGemFloat 6s ease-in-out infinite;
-}
-.install-gem-glow {
-  position: absolute; inset: -12px; z-index: 0; border-radius: 50%;
-  background: radial-gradient(circle, rgb(var(--ch-pink)/.45) 0%, rgb(var(--ch-teal)/.2) 50%, transparent 70%);
-  opacity: .4;
-}
+.install-brand { text-align: center; margin-bottom: 2.5rem; position: relative; }
+.install-brand::before { content: ''; position: absolute; top: 50px; left: 50%; width: 220px; height: 220px; border-radius: 50%; transform: translate(-50%, -50%); background: radial-gradient(circle, rgb(var(--ch-pink)/0.28) 0%, rgb(var(--ch-teal)/0.1) 45%, transparent 70%); pointer-events: none; }
+[data-theme="light"] .install-brand::before { background: radial-gradient(circle, rgb(var(--ch-pink)/0.55) 0%, rgb(var(--ch-teal)/0.2) 45%, transparent 70%); }
+.install-logo { width: 100px; height: 100px; display: block; margin: 0 auto 1.1rem; position: relative; }
+
 .install-brand-name {
   font-family: var(--font-serif); font-weight: 700;
   font-size: clamp(2rem, 4vw + 1rem, 2.8rem); margin: 0 0 .55rem;
-  background: linear-gradient(135deg, var(--text) 0%, var(--accent) 60%, var(--accent2) 100%);
+}
+.install-brand-plain    { color: var(--text); }
+.install-brand-gradient {
+  background: linear-gradient(90deg, #ff7eb3 0%, #78e8d8 50%, #ffd166 100%);
   -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
 }
+[data-theme="light"] .install-brand-gradient { background: linear-gradient(90deg, var(--gradient-light)); -webkit-background-clip: text; background-clip: text; }
 .install-brand-sub { max-width: 32rem; margin: 0 auto; font-size: var(--fs-lg); line-height: 1.55; color: var(--text-muted); }
-
-/* ── Demo banner ───────────────────────────────────────────────────── */
-.install-demo-banner {
-  position: relative; z-index: 1; max-width: 720px; margin: 0 auto 1.25rem;
-  padding: .7rem .95rem;
-  border: 1px solid color-mix(in srgb, var(--accent) 30%, var(--border));
-  border-radius: 10px;
-  background: color-mix(in srgb, var(--accent) 10%, var(--bg-card));
-  color: var(--text-muted); font-size: var(--fs-md); line-height: 1.5;
-  text-align: center; box-shadow: var(--shadow);
-}
-.install-demo-banner strong { color: var(--accent); }
-.install-demo-banner a { color: var(--accent); }
 
 /* ── Wizard stepper — installer overrides ──────────────────────────── */
 
@@ -92,70 +80,57 @@
 .install-req-row::before { content: '\2726'; color: var(--accent); flex-shrink: 0; font-size: var(--fs-sm); }
 .install-req-row:last-child { border-bottom: none; }
 .install-req-row--fail { background: color-mix(in srgb, var(--danger) 8%, transparent); border-radius: 6px; padding-left: .6rem; padding-right: .6rem; margin-left: -.6rem; margin-right: -.6rem; }
-.install-req-row--fail .install-req-status { color: var(--danger); }
 .install-req-name,
-.install-req-detail,
-.install-req-status { color: var(--text-muted); font-size: var(--fs-md); line-height: 1.45; }
+.install-req-detail { color: var(--text-muted); font-size: var(--fs-md); line-height: 1.45; }
 .install-req-name { color: var(--text); font-weight: 700; }
 .install-req-detail { color: var(--success); }
 .install-req-row--fail .install-req-detail { color: var(--danger); }
-.install-req-status { color: var(--success); font-size: var(--fs-lg); font-weight: 700; line-height: 1; text-align: center; white-space: nowrap; }
-.install-req-callout { margin-top: 1rem; padding: .75rem .9rem; border: 1px solid var(--border-soft); border-radius: 10px; font-size: var(--fs-md); line-height: 1.45; }
-.install-req-callout--success { background: var(--success-bg); border-color: color-mix(in srgb, var(--success) 28%, var(--border-soft)); color: var(--success); }
 .req-hint { margin-left: 0; background: rgb(var(--ch-pink)/.08); font-size: var(--fs-sm); font-family: var(--font-mono); padding: 2px 8px; border-radius: 5px; color: var(--text-dim); flex-shrink: 0; }
 
-/* ── Completion gem ────────────────────────────────────────────────── */
-.install-success-gem {
-  width: 70px; height: 70px; margin: 0 auto 1.25rem;
-  background: linear-gradient(135deg, var(--va-pink) 0%, var(--va-teal) 35%, var(--va-gold) 65%, var(--wizard-done-2) 100%);
-  clip-path: polygon(50% 0%, 100% 35%, 80% 100%, 20% 100%, 0% 35%);
-  animation: iGemFloat 4s ease-in-out infinite;
-  box-shadow: 0 0 60px rgb(var(--ch-pink)/.35);
-}
-
-/* ── Done page ─────────────────────────────────────────────────────── */
-.done-list { list-style: none; display: flex; flex-direction: column; gap: .9rem; }
-.done-list-item { display: flex; gap: 10px; font-size: var(--fs-md); color: var(--text-muted); line-height: 1.55; }
-.done-list-item::before { content: '\2726'; color: var(--accent); flex-shrink: 0; font-size: var(--fs-sm); line-height: 1.55; }
-.install-ol { color: var(--text-muted); font-size: var(--fs-md); line-height: 1.85; margin-left: 1.4rem; }
-.install-mt { margin-top: 1.75rem; }
-.install-done-btn { max-width: 340px; justify-content: center; margin-left: auto; margin-right: auto; }
-
-/* ── Keyframes ─────────────────────────────────────────────────────── */
-@keyframes iGemFloat {
-  0%,100% { transform: translateY(0) rotate(0deg); }
-  33%     { transform: translateY(-5px) rotate(5deg); }
-  66%     { transform: translateY(-2px) rotate(-3deg); }
-}
 
 /* ── Text utilities ────────────────────────────────────────────────── */
-.text-center { text-align: center; }
 .fw-normal { font-weight: 400; }
 
-/* ── Completion page intro text ────────────────────────────────────── */
-.install-done-intro { color: var(--text-muted); margin: .5rem auto 0; line-height: 1.6; max-width: 34rem; }
-
-/* ── Error block detail (collapsible PDO detail) ───────────────────── */
+/* ── Error block detail ─────────────────────────────────────────────── */
 .install-error-list { margin: .5rem 0 0 1.2rem; }
-.install-error-detail { margin-top: .5rem; }
-.install-error-detail summary { font-size: .8rem; cursor: pointer; color: var(--text-dim); }
-.install-error-pre { font-size: .75rem; margin: .5rem 0 0; overflow: auto; white-space: pre-wrap; color: var(--text-dim); }
+
+code { font-family: var(--font-mono); font-size: .82em; background: var(--bg-subtle); color: var(--accent); padding: 1px 5px; border-radius: 4px; border: 1px solid var(--border-soft); }
 
 /* ── Reduced motion ────────────────────────────────────────────────── */
 @media (prefers-reduced-motion: reduce) {
   .theme-transition .install-page { animation: none; }
-  .install-gem, .install-success-gem { animation: none; }
+  .install-logo { animation: none; }
 }
 
 /* ── Mobile ────────────────────────────────────────────────────────── */
+
+
+@media (max-width: 1024px) {
+  .install-page { padding: calc(70px + 3.5rem) 1rem 3rem; }
+  .install-page .login-theme-corner {
+    top: 0; left: 0; right: 0;
+    display: flex; justify-content: flex-end; align-items: center;
+    height: 52px; padding: 0 1rem;
+    background: color-mix(in srgb, var(--bg) 85%, transparent);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+  }
+  .install-page .login-theme-corner::after {
+    content: ''; position: absolute; bottom: 0; left: 0; width: 100%; height: 1px;
+    background: linear-gradient(90deg, transparent 0%, rgb(var(--ch-pink)/0.4) 40%, rgb(var(--ch-teal)/0.25) 70%, transparent 100%);
+    pointer-events: none;
+  }
+  [data-theme="light"] .install-page .login-theme-corner::after {
+    content: ''; position: absolute; bottom: 0; left: 0; width: 100%; height: 1px;
+    background: linear-gradient(90deg, transparent 0%, color-mix(in srgb, #fd4fb0 40%, transparent) 40%, color-mix(in srgb, #19ded9 25%, transparent) 70%, transparent 100%);
+    pointer-events: none;
+  }
+}
+
 @media (max-width: 640px) {
-  .install-page { padding: 4.25rem 1rem 3rem; }
   .install-brand { margin-bottom: 1.75rem; }
-  .install-gem-wrap { width: 52px; height: 52px; }
-  .install-gem { width: 52px; height: 52px; }
-  .install-req-row { grid-template-columns: auto 1fr auto; align-items: flex-start; }
-  .install-req-detail { grid-column: 2 / -1; }
-  .install-req-status { grid-column: 3; grid-row: 1; }
+  .install-logo { width: 52px; height: 52px; }
+  .install-brand::before { width: 160px; height: 160px; top: 26px; }
   .pc-head,
   .pc-section,
   .composer-footer { padding-left: 1rem; padding-right: 1rem; }
@@ -164,6 +139,11 @@
   .composer-footer .btn,
   .composer-footer .btn-primary:last-child,
   .composer-footer button.btn-primary:last-child { width: 100%; margin-left: 0; }
-  .composer-footer .install-done-btn { margin-left: auto; margin-right: auto; }
+  .composer-footer.composer-footer--row { flex-direction: row; align-items: center; }
+  .composer-footer.composer-footer--row .action-form-inline { width: auto; flex-shrink: 1; }
+  .composer-footer.composer-footer--row .btn,
+  .composer-footer.composer-footer--row button.btn-primary { width: auto; margin-left: 0; }
+  .composer-footer.composer-footer--center .btn,
+  .composer-footer.composer-footer--center button.btn-primary { width: auto; }
   .install-footer-note { width: 100%; margin-right: 0; }
 }

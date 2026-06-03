@@ -133,7 +133,7 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
   <div class="stat-value"><?= (int) ($countries ?? 0) ?></div>
 </div>
 <div class="stat-card">
-  <div class="stat-header">Date Last Updated</div>
+  <div class="stat-header">Last Updated</div>
   <div class="stat-value"><?= View::e(($fl_last_updated ?? '') !== '' ? date($admin_date_format, strtotime($fl_last_updated)) : '-') ?></div>
 </div>
 </div>
@@ -172,7 +172,7 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
       <div class="pc-head">
         <div class="pc-head-icon pc-head-icon-bg"><?= View::icon('star') ?></div>
         <div class="pc-head-meta">
-          <div class="pc-head-title">Listing Details</div>
+          <div class="pc-head-title">General Details</div>
           <div class="pc-head-sub">Manage the core profile, image, behaviour, and maintenance settings for this listing.</div>
         </div>
       </div>
@@ -209,7 +209,7 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
             <input id="fl-title" type="text" name="title" class="form"
                    value="<?= View::e((string) $oldTitle) ?>"
                    maxlength="255" required>
-            <span class="form-hint">Optional name of your listing, &mdash; defaults to "Subject" if left blank.</span>
+            <p class="form-hint">Optional name of your listing, &mdash; defaults to "Subject" if left blank.</p>
             <?php if (!empty($fe['title'])): ?><p class="field-error"><?= View::e($fe['title'][0]) ?></p><?php endif; ?>
           </div>
         </div>
@@ -261,6 +261,18 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
                    value="<?= View::e($openedDateVal) ?>">
             <input type="hidden" id="fl-opened-tba" name="opened" value="TBA" disabled>
             <span id="fl-opened-tba-text" class="tba-note">TBA &mdash; date will be set when the listing opens.</span>
+          </div>
+        </div>
+
+        <div class="listing-field-row listing-field-row--top">
+          <label class="listing-field-label" for="fl-last-updated">Last Updated</label>
+          <div>
+            <div class="compact-actions">
+              <input id="fl-last-updated" type="date" name="fl_last_updated" class="form form--compact"
+                     value="<?= View::e($fl_last_updated ?? '') ?>">
+              <button type="button" class="btn btn-tertiary btn-sm" id="set-today-btn">Set Today's Date</button>
+              <button type="button" class="btn btn-quaternary btn-sm" id="clear-date-btn">Reset</button>
+            </div>
           </div>
         </div>
       </div>
@@ -338,7 +350,7 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
           </div>
         </div>
 
-        <div class="listing-field-row listing-field-row--top">
+        <div class="listing-field-row">
           <label class="listing-field-label">Contact Form</label>
           <div>
             <label class="toggle-wrap">
@@ -421,36 +433,20 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
               $jce    = $join_confirmation_email ?? null;
               $jceVal = $jce === null ? '' : ($jce ? '1' : '0');
             ?>
-            <div class="select-wrap select-auto" style="margin-bottom:.75rem">
+            <div class="select-wrap select-auto mb-sm">
               <select name="join_confirmation_email">
-                <option value=""  <?= $jceVal === ''  ? 'selected' : '' ?>>Inherit &mdash; follow member&rsquo;s preference</option>
+                <option value=""  <?= $jceVal === ''  ? 'selected' : '' ?>>Inherit &mdash; follow member's preference</option>
                 <option value="1" <?= $jceVal === '1' ? 'selected' : '' ?>>Always send join confirmation email</option>
                 <option value="0" <?= $jceVal === '0' ? 'selected' : '' ?>>Never send join confirmation email</option>
               </select>
             </div>
-            <p class="form-hint" style="margin-bottom:.75rem">Password setup emails are always sent when a password is auto-generated, regardless of this setting.</p>
+            <p class="form-hint mb-sm">Password setup emails are always sent when a password is auto-generated, regardless of this setting.</p>
             <label class="toggle-wrap">
               <input type="checkbox" name="auto_approve_joins" value="1" id="fl-auto-approve-joins"
                      <?= ($auto_approve_joins ?? false) ? 'checked' : '' ?>>
               <span class="toggle-label">Auto-approve new joins for this listing</span>
             </label>
             <p class="form-hint">New joins are held for manual approval by default. Enable to approve them automatically for this listing only.</p>
-          </div>
-        </div>
-      </div>
-
-      <div class="pc-section">
-        <div class="pc-section-label">Maintenance</div>
-        <div class="listing-field-row listing-field-row--top">
-          <label class="listing-field-label" for="fl-last-updated">Last Updated</label>
-          <div>
-            <div class="compact-actions">
-              <input id="fl-last-updated" type="date" name="fl_last_updated" class="form form--compact"
-                     value="<?= View::e($fl_last_updated ?? '') ?>">
-              <button type="button" class="btn btn-tertiary btn-sm" id="set-today-btn">Set Today's Date</button>
-              <button type="button" class="btn btn-ghost btn-sm" id="clear-date-btn">Reset to Default</button>
-            </div>
-            <p class="form-hint">Drives the staleness check on the dashboard.</p>
           </div>
         </div>
       </div>
@@ -481,21 +477,30 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
         </div>
       </div>
 
-      <div class="card-body">
+      <div class="pc-section">
         <div class="pc-section-label">Members List</div>
         <div class="form-group">
           <textarea id="members_template" name="members_template" class="form tpl-textarea" spellcheck="false"><?= View::e($templates['members_template'] ?? '<li><a href="{fan_url}">{fan_name}</a> &mdash; {fan_country}</li>') ?></textarea>
         </div>
-        <div class="modal-footer">
+        <div class="tpl-reset-row">
           <button type="button" class="btn btn-ghost btn-sm btn-tpl-reset" data-target="members_template">Reset to Default</button>
         </div>
 
-        <div class="pc-section-label">Affiliates</div>
+        <div class="pc-section-label">Affiliates — Row Template</div>
         <div class="form-group">
-          <textarea id="affiliates_template" name="affiliates_template" class="form tpl-textarea" spellcheck="false"><?= View::e($templates['affiliates_template'] ?? '<a href="{aff_url}" target="_blank" title="{aff_name}">{aff_image}</a>') ?></textarea>
+          <textarea id="affiliates_template" name="affiliates_template" class="form tpl-textarea" spellcheck="false"><?= View::e($templates['affiliates_template'] ?? '<a href="{aff_url}" target="_blank" title="{aff_name}">{aff_image_tag}</a>') ?></textarea>
         </div>
-        <div class="modal-footer">
+        <div class="tpl-reset-row">
           <button type="button" class="btn btn-ghost btn-sm btn-tpl-reset" data-target="affiliates_template">Reset to Default</button>
+        </div>
+
+        <div class="pc-section-label">Affiliates — Section Layout</div>
+        <p class="form-hint mb-sm">Controls the full affiliates section. Use <code>{affiliates}</code> to place the rendered row output. <strong>Leave blank to use the built-in layout.</strong></p>
+        <div class="form-group">
+          <textarea id="affiliates_section_template" name="affiliates_section_template" class="form tpl-textarea tpl-textarea-lg" spellcheck="false"><?= View::e($templates['affiliates_section_template'] ?? '') ?></textarea>
+        </div>
+        <div class="tpl-reset-row">
+          <button type="button" class="btn btn-ghost btn-sm btn-tpl-reset" data-target="affiliates_section_template">Clear</button>
         </div>
 
         <div class="pc-section-label">Statistics</div>
@@ -507,7 +512,7 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
 <b>Growth:</b> {stat_growth}{if_approved_by}<br>
 <b>Approved by:</b> {approved_by}{/if_approved_by}</div>') ?></textarea>
         </div>
-        <div class="modal-footer">
+        <div class="tpl-reset-row">
           <button type="button" class="btn btn-ghost btn-sm btn-tpl-reset" data-target="stats_template">Reset to Default</button>
         </div>
       </div>
@@ -525,23 +530,40 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
         <div class="chevron-body">
           <table class="et-token-table">
             <tbody>
-              <tr class="tok-row" data-textarea="members_template" data-token="{fan_name}"><td><code>{fan_name}</code></td><td>Fan&rsquo;s display name</td></tr>
-              <tr class="tok-row" data-textarea="members_template" data-token="{fan_email}"><td><code>{fan_email}</code></td><td>Fan&rsquo;s email address</td></tr>
-              <tr class="tok-row" data-textarea="members_template" data-token="{fan_url}"><td><code>{fan_url}</code></td><td>Fan&rsquo;s website URL</td></tr>
-              <tr class="tok-row" data-textarea="members_template" data-token="{fan_country}"><td><code>{fan_country}</code></td><td>Fan&rsquo;s country</td></tr>
+              <tr class="tok-row" data-textarea="members_template" data-token="{fan_name}"><td><code>{fan_name}</code></td><td>Fan's display name</td></tr>
+              <tr class="tok-row" data-textarea="members_template" data-token="{fan_email}"><td><code>{fan_email}</code></td><td>Fan's email address</td></tr>
+              <tr class="tok-row" data-textarea="members_template" data-token="{fan_url}"><td><code>{fan_url}</code></td><td>Fan's website URL</td></tr>
+              <tr class="tok-row" data-textarea="members_template" data-token="{fan_country}"><td><code>{fan_country}</code></td><td>Fan's country</td></tr>
             </tbody>
           </table>
         </div>
       </details>
 
       <details class="card chevron" open>
-        <summary class="chevron-head">Affiliates Tokens</summary>
+        <summary class="chevron-head">Affiliates Row Tokens</summary>
         <div class="chevron-body">
           <table class="et-token-table">
             <tbody>
-              <tr class="tok-row" data-textarea="affiliates_template" data-token="{aff_url}"><td><code>{aff_url}</code></td><td>Affiliate URL</td></tr>
-              <tr class="tok-row" data-textarea="affiliates_template" data-token="{aff_image}"><td><code>{aff_image}</code></td><td>Affiliate image tag</td></tr>
               <tr class="tok-row" data-textarea="affiliates_template" data-token="{aff_name}"><td><code>{aff_name}</code></td><td>Affiliate name</td></tr>
+              <tr class="tok-row" data-textarea="affiliates_template" data-token="{aff_url}"><td><code>{aff_url}</code></td><td>Affiliate URL</td></tr>
+              <tr class="tok-row" data-textarea="affiliates_template" data-token="{aff_image_tag}"><td><code>{aff_image_tag}</code></td><td>Rendered image tag (or empty)</td></tr>
+              <tr class="tok-row" data-textarea="affiliates_template" data-token="{aff_image_url}"><td><code>{aff_image_url}</code></td><td>Full image URL, src-ready</td></tr>
+              <tr class="tok-row" data-textarea="affiliates_template" data-token="{aff_image}"><td><code>{aff_image}</code></td><td>Image filename only</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </details>
+
+      <details class="card chevron">
+        <summary class="chevron-head">Affiliates Section Tokens</summary>
+        <div class="chevron-body">
+          <table class="et-token-table">
+            <tbody>
+              <tr class="tok-row" data-textarea="affiliates_section_template" data-token="{affiliates}"><td><code>{affiliates}</code></td><td>Rendered affiliate rows</td></tr>
+              <tr class="tok-row" data-textarea="affiliates_section_template" data-token="{affiliates_count}"><td><code>{affiliates_count}</code></td><td>Total affiliate count</td></tr>
+              <tr class="tok-row" data-textarea="affiliates_section_template" data-token="{affiliates_list}"><td><code>{affiliates_list}</code></td><td>Comma-separated link list</td></tr>
+              <tr><td><code>{if_affiliates}&hellip;{/if_affiliates}</code></td><td>Shown when count &gt; 0</td></tr>
+              <tr><td><code>{if_no_affiliates}&hellip;{/if_no_affiliates}</code></td><td>Shown when count = 0</td></tr>
             </tbody>
           </table>
         </div>
@@ -570,7 +592,7 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
   </div>
 </form>
 
-<script type="application/json" id="luster-tpl-defaults">{"members_template":"<li><a href=\"{fan_url}\">{fan_name}<\/a> \u2014 {fan_country}<\/li>","affiliates_template":"<a href=\"{aff_url}\" target=\"_blank\" title=\"{aff_name}\">{aff_image}<\/a>","stats_template":"<div>\n<b>Opened:<\/b> {stat_opened}<br>\n<b>Updated:<\/b> {stat_last_updated}<br>\n<b>Fans:<\/b> {stat_approved} (+ {stat_pending} pending)<br>\n<b>Newest Fan:<\/b> {stat_newmembers}<br>\n<b>Growth:<\/b> {stat_growth}{if_approved_by}<br>\n<b>Approved by:<\/b> {approved_by}{\/if_approved_by}\n<\/div>"}</script>
+<script type="application/json" id="luster-tpl-defaults">{"members_template":"<li><a href=\"{fan_url}\">{fan_name}<\/a> \u2014 {fan_country}<\/li>","affiliates_template":"<a href=\"{aff_url}\" target=\"_blank\" title=\"{aff_name}\">{aff_image_tag}<\/a>","affiliates_section_template":"","stats_template":"<div>\n<b>Opened:<\/b> {stat_opened}<br>\n<b>Updated:<\/b> {stat_last_updated}<br>\n<b>Fans:<\/b> {stat_approved} (+ {stat_pending} pending)<br>\n<b>Newest Fan:<\/b> {stat_newmembers}<br>\n<b>Growth:<\/b> {stat_growth}{if_approved_by}<br>\n<b>Approved by:<\/b> {approved_by}{\/if_approved_by}\n<\/div>"}</script>
 </div><!-- /#tab-templates -->
 <!-- ──── TAB: ADDITIONAL FIELDS ─────────────────────────────────────── -->
 <div id="tab-fields" class="tabs-panel">
@@ -593,7 +615,7 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
         </div>
       </div>
       <div class="listing-field-section">
-        <div class="callout"><strong>Rules:</strong> Letters (a-z, A-Z) and numbers (0-9) only. <u>NO SPACES</u> — use underscores in place of spaces. Max 30 characters. Must be unique per listing and per additional field.</div>
+        <div class="callout callout-info"><?= View::icon('notes') ?><div><strong>Rules:</strong> Letters (a-z, A-Z) and numbers (0-9) only. <b>No spaces</b> — use underscores in place of spaces. Max 30 characters. Must be unique per listing and per additional field.</div></div>
 
         <div class="listing-field-row listing-field-row--top">
           <label class="listing-field-label" for="af-name">Field Name <span class="req">*</span></label>
@@ -860,7 +882,7 @@ $_settingsOpen = $_hasCats || $_hasDonors;
             <?php $_isDnEditing = $code_edit_donor_id === $dn->id; ?>
             <tr<?= $_isDnEditing ? ' class="table-row-hidden"' : '' ?>>
               <td class="text-strong"><?= View::e($dn->name) ?></td>
-              <td class="text-dim"><?= $dn->email !== null ? View::e($dn->email) : '&mdash;' ?></td>
+              <td class="text-dim"><?= $dn->email !== null ? View::emailWrap($dn->email) : '&mdash;' ?></td>
               <td class="text-dim">
                 <?php if ($dn->url !== null): ?>
                   <?php $_dnHost = parse_url($dn->url, PHP_URL_HOST) ?? $dn->url; ?>
@@ -981,7 +1003,7 @@ $_settingsOpen = $_hasCats || $_hasDonors;
         <input class="form" type="url" name="submitter_url" value="<?= View::e($code->submitterUrl ?? '') ?>" placeholder="https://example.com">
       </div>
       <?php endif; ?>
-      <button class="btn btn-primary full-width-btn">Save changes</button>
+      <button class="btn btn-primary btn-block-center">Save changes</button>
     </form>
     <div class="code-modal-footer">
       <form method="POST"
@@ -989,7 +1011,7 @@ $_settingsOpen = $_hasCats || $_hasDonors;
             data-del-modal data-del-entity="code"
             data-del-name="<?= View::e($_dLabel !== null ? $_dLabel : 'Code #' . (int)$code->id) ?>">
         <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
-        <button type="submit" class="btn btn-danger btn-sm full-width-btn">Delete this code</button>
+        <button type="submit" class="btn btn-danger btn-sm btn-block-center">Delete this code</button>
       </form>
     </div>
   </div>
@@ -1039,7 +1061,7 @@ $_settingsOpen = $_hasCats || $_hasDonors;
       </div>
     </div>
     <?php if ($_approvedCount > 0): ?>
-    <a href="<?= $b ?>/admin/listings/<?= $_fid ?>/codes/export" class="btn btn-quaternary btn-full btn-col"><span><?= View::icon('download') ?> Export ZIP</span><span class="card-head-sub">Download all approved codes in a ZIP file.</span></a>
+    <a href="<?= $b ?>/admin/listings/<?= $_fid ?>/codes/export" class="btn btn-quaternary btn-full"><span><?= View::icon('download') ?> Export ZIP</span><span class="card-head-sub">Download all approved codes in a ZIP file.</span></a>
     <?php endif; ?>
     </div>
 
@@ -1090,14 +1112,14 @@ $_settingsOpen = $_hasCats || $_hasDonors;
     </div>
 
     <?php if ($total_codes === 0): ?>
-      <div class="card-section card-empty-state">
+      <div class="card-empty-state">
         <div class="empty">
           <span class="empty-icon"><?= View::icon('image', ['width' => 32, 'height' => 32]) ?></span>
           No codes yet.
         </div>
       </div>
     <?php else: ?>
-      <div class="card-section card-empty-state<?= $code_status_filter === 'pending' && $_pendingCount === 0 ? '' : ' is-hidden' ?>" id="codes-filter-empty">
+      <div class="card-empty-state<?= $code_status_filter === 'pending' && $_pendingCount === 0 ? '' : ' is-hidden' ?>" id="codes-filter-empty">
         <div class="empty">
           <span class="empty-icon"><?= View::icon('image', ['width' => 32, 'height' => 32]) ?></span>
           No codes match this filter &mdash; <a href="<?= $_tabBase ?>" class="link" data-code-filter="">clear filter</a> to see all <?= $total_codes ?>.
@@ -1173,7 +1195,7 @@ $_settingsOpen = $_hasCats || $_hasDonors;
         <label class="listing-field-label" for="aff-name">Affiliate Name <span class="req">*</span></label>
         <div>
           <input id="aff-name" type="text" name="name" class="form"
-                 maxlength="255" required placeholder="e.g. Starlight Fanlisting">
+                 maxlength="255" required>
         </div>
       </div>
       <div class="listing-field-row">
@@ -1187,7 +1209,7 @@ $_settingsOpen = $_hasCats || $_hasDonors;
         <label class="listing-field-label" for="aff-email">Email</label>
         <div>
           <input id="aff-email" type="email" name="email" class="form"
-                 maxlength="255" placeholder="owner@example.com">
+                 maxlength="255">
         </div>
       </div>
       <div class="listing-field-row listing-field-row--top">
@@ -1245,7 +1267,7 @@ $_settingsOpen = $_hasCats || $_hasDonors;
                class="link text-strong"><?= View::e($aff->name) ?></a>
             <?= View::icon('external-link') ?>
           </td>
-          <td class="text-muted"><?= $aff->email !== null ? View::e($aff->email) : '&mdash;' ?></td>
+          <td class="text-muted"><?= $aff->email !== null ? View::emailWrap($aff->email) : '&mdash;' ?></td>
           <td>
             <?php if ($aff->active): ?>
               <span class="badge badge-current">Active</span>
@@ -1397,7 +1419,7 @@ $embedBaseUrl   = rtrim((string) ($cfg['embed_base_url'] ?? ''), '/') ?: rtrim((
 <details class="chevron card" style="margin-bottom:1.75rem" id="compat-wrappers">
   <summary class="card-head">Compatibility Wrappers</summary>
   <div class="card-body">
-    <p class="form-hint" style="margin-bottom:1rem">
+    <p class="form-hint mb-md">
       Use these wrapper files to keep existing Enthusiast or Listing Admin include paths working
       while serving content from Luster. Copy the file into your legacy install directory, then
       add the two lines shown at the top of your fanlisting page (before the include).
@@ -1425,7 +1447,7 @@ $embedBaseUrl   = rtrim((string) ($cfg['embed_base_url'] ?? ''), '/') ?: rtrim((
     $compatTabId   = 'compat-' . (int) $listing->id;
     ?>
 
-    <div class="tab-nav" style="margin-bottom:1rem">
+    <div class="tab-nav">
       <a href="#<?= $compatTabId ?>-enth"  class="tab-link tab-link--active" data-target="<?= $compatTabId ?>-enth">Enthusiast</a>
       <a href="#<?= $compatTabId ?>-la"    class="tab-link"                  data-target="<?= $compatTabId ?>-la">Listing Admin</a>
     </div>
@@ -1434,10 +1456,10 @@ $embedBaseUrl   = rtrim((string) ($cfg['embed_base_url'] ?? ''), '/') ?: rtrim((
     <?php $subDir = $compatSubDirs[$network]; $panelId = $compatTabId . '-' . ($network === 'Enthusiast' ? 'enth' : 'la'); ?>
     <div id="<?= $panelId ?>" class="compat-panel" <?= $network !== 'Enthusiast' ? 'style="display:none"' : '' ?>>
       <?php foreach ($files as $entry): ?>
-      <div class="listing-field-row listing-field-row--top" style="margin-bottom:1rem">
+      <div class="listing-field-row listing-field-row--top mb-md">
         <span class="listing-field-label"><?= View::e($entry['label']) ?></span>
         <div>
-          <p class="form-hint" style="margin-bottom:.35rem">
+          <p class="form-hint mb-xs">
             Copy <code>public/compat/<?= View::e($subDir) ?>/<?= View::e($entry['file']) ?></code>
             into your <?= View::e($network) ?> directory, then add to your page:
           </p>
@@ -1450,7 +1472,7 @@ $embedBaseUrl   = rtrim((string) ($cfg['embed_base_url'] ?? ''), '/') ?: rtrim((
       <?php endforeach; ?>
 
       <?php if ($compatInstallPath !== ''): ?>
-      <div style="margin-top:1rem">
+      <div class="mt-md">
         <a href="<?= $b ?>/admin/listings/<?= (int) $listing->id ?>/compat-zip/<?= View::e($subDir) ?>"
            class="btn btn-ghost btn-sm">
           <?= View::icon('download') ?> Download pre-configured <?= View::e($network) ?> wrappers (ZIP)
@@ -1483,11 +1505,11 @@ $embedBaseUrl   = rtrim((string) ($cfg['embed_base_url'] ?? ''), '/') ?: rtrim((
 <!-- ──── TAB: ADVANCED ──────────────────────────────────────────────── -->
 <div id="tab-advanced" class="tabs-panel">
 
-  <div class="callout callout-inline">
-    <?= View::icon('alert', ['width' => 24, 'height' => 24, 'style' => 'color:var(--warn)']) ?>
+  <div class="callout callout-err">
+    <?= View::icon('alert') ?>
     <div>
       <strong>Advanced settings - proceed with caution!</strong>
-      <span>Only modify these settings if you know what you are doing. Incorrect values can break your listing or prevent members from being found.</span>
+      <span>Only modify these settings <b>if you know what you are doing</b>. Incorrect values can break your listing or prevent members from being found.</span>
     </div>
   </div>
 

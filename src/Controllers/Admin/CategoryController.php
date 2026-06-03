@@ -254,17 +254,24 @@ final class CategoryController extends AdminController
         $baseUrl = $this->app->getBaseUrl();
         $session = $this->app->getSession();
 
-        $ids = array_filter(
-            array_map('intval', (array) $request->post('ids', [])),
-            static fn(int $i): bool => $i > 0,
-        );
+        $repo      = new CategoryRepo($this->app->getDatabase());
+        $selectAll = $request->post('select_all', '0') === '1';
+
+        if ($selectAll) {
+            $saSource = trim((string) $request->post('sa_filter_source', ''));
+            $saSearch = trim((string) $request->post('sa_filter_search', ''));
+            $ids      = $repo->getAllIdsByFilter($saSource, $saSearch);
+        } else {
+            $ids = array_filter(
+                array_map('intval', (array) $request->post('ids', [])),
+                static fn(int $i): bool => $i > 0,
+            );
+        }
 
         if ($ids === [] || $request->post('bulk_action') !== 'delete') {
             $session->set('lstr_flash_error', 'No items selected or invalid action.');
             return Response::redirect($baseUrl . '/admin/categories');
         }
-
-        $repo  = new CategoryRepo($this->app->getDatabase());
         $count = 0;
         foreach ($ids as $id) {
             if ($repo->getById($id) !== null) {

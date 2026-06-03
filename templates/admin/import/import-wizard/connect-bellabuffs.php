@@ -3,9 +3,11 @@ use Luster\Core\View;
 /** @var string $source */
 /** @var string $source_name */
 /** @var string $error */
+/** @var string $conn_mode */
 /** @var string $base_url */
 /** @var string $csrf_token */
-$b = rtrim(View::e($base_url), '/');
+$b       = rtrim(View::e($base_url), '/');
+$bbMode  = ($conn_mode ?? 'path') === 'upload' ? 'upload' : 'path';
 ?>
 
 <div class="import-wizard">
@@ -55,16 +57,17 @@ $b = rtrim(View::e($base_url), '/');
 
     <!-- ── Source mode selection ─────────────────────────────────────── -->
     <div class="pc-section">
-      <div class="import-choice">
+      <p>BellaBuffs data files are read-only &mdash; nothing in your BellaBuffs installation will be modified.</p>
+      <div class="import-choice pc-section">
         <label class="import-choice-item">
-          <input type="radio" name="bb_conn_mode" value="path" id="js-bb-mode-path" checked>
+          <input type="radio" name="bb_conn_mode" value="path" id="js-bb-mode-path"<?= $bbMode === 'path' ? ' checked' : '' ?>>
           <div>
             <div class="import-choice-title">Server folder path</div>
             <div class="import-choice-sub">Enter the absolute path to the BellaBuffs installation folder on this server. Supports members, affiliates, codes, and image migration.</div>
           </div>
         </label>
         <label class="import-choice-item">
-          <input type="radio" name="bb_conn_mode" value="upload" id="js-bb-mode-upload">
+          <input type="radio" name="bb_conn_mode" value="upload" id="js-bb-mode-upload"<?= $bbMode === 'upload' ? ' checked' : '' ?>>
           <div>
             <div class="import-choice-title">Upload files</div>
             <div class="import-choice-sub">Upload <code>members.txt</code> directly. Useful when BellaBuffs is on a different server. Members and pending members only &mdash; affiliate and code import require a folder path.</div>
@@ -74,70 +77,61 @@ $b = rtrim(View::e($base_url), '/');
     </div>
 
     <!-- ── Server path section ─────────────────────────────────────── -->
-    <div id="js-bb-path-section" class="pc-section">
+    <div id="js-bb-path-section" class="pc-section<?= $bbMode === 'upload' ? ' is-hidden' : '' ?>">
       <div class="pc-section-label">BellaBuffs Folder Path</div>
-      <div class="form-group">
-        <input id="bb_folder_path" type="text" name="bb_folder_path" class="form import-input-wide"
-               placeholder="/home/user/public_html/myfanlisting">
-        <p class="field-hint-sm">
-          Absolute server path to the BellaBuffs installation root — the folder containing
-          <code>members.txt</code>, <code>affiliates.txt</code>, <code>buttons.txt</code>,
-          and the <code>buttons/</code> image directory.
-        </p>
+      <div class="pc-section">
+      <div class="listing-field-row listing-field-row--top">
+        <label class="listing-field-label" for="bb_folder_path">Folder Path</label>
+        <div>
+          <input id="bb_folder_path" type="text" name="bb_folder_path" class="form"
+                 placeholder="/home/user/public_html/myfanlisting">
+          <p class="form-hint">Absolute server path to the BellaBuffs installation root — the folder containing
+            <code>members.txt</code>, <code>affiliates.txt</code>, <code>buttons.txt</code>,
+            and the <code>buttons/</code> image directory.</p>
+        </div>
       </div>
+    </div>
     </div>
 
     <!-- ── File upload section ─────────────────────────────────────── -->
-    <div id="js-bb-upload-section" class="pc-section is-hidden">
+    <div id="js-bb-upload-section" class="pc-section<?= $bbMode === 'upload' ? '' : ' is-hidden' ?>">
       <div class="pc-section-label">Upload BellaBuffs Files</div>
-      <div class="form-group">
-        <label class="form-label" for="members_file">
-          <code>members.txt</code> <span class="req">*</span>
-        </label>
-        <input id="members_file" type="file" name="members_file" accept=".txt"
-               class="form import-input-wide">
-        <p class="field-hint-sm">Approved members file. Required.</p>
+      <div class="pc-section">
+            <div class="callout callout-warn">
+        <?= View::icon('alert') ?>
+        <div><strong>Upload mode imports members only.</strong> To migrate affiliates and fan codes, use the server folder path instead.</div>
       </div>
-      <div class="form-group" style="margin-top:.75rem">
-        <label class="form-label" for="newbies_file">
-          <code>newbies.txt</code> <span class="text-dim">(optional)</span>
-        </label>
-        <input id="newbies_file" type="file" name="newbies_file" accept=".txt"
-               class="form import-input-wide">
-        <p class="field-hint-sm">Pending members awaiting approval. Leave empty to skip.</p>
+
+      <div class="listing-field-row listing-field-row--top">
+        <label class="listing-field-label" for="members_file"><code>members.txt</code> <span class="req">*</span></label>
+        <div>
+          <label class="file-drop-zone" for="members_file">
+            <input id="members_file" type="file" name="members_file" accept=".txt">
+            <span class="file-drop-icon"><?= View::icon('import') ?></span>
+            <strong>Click to upload</strong>
+            <span class="form-hint">.TXT &mdash; approved members</span>
+          </label>
+        </div>
       </div>
-      <div class="callout callout-inline" style="margin-top:.75rem">
-        <?= View::icon('alert', ['width' => 16, 'height' => 16, 'style' => 'color:var(--warn);flex-shrink:0']) ?>
-        <span>Upload mode imports members only. To migrate affiliates and fan codes, use the server folder path instead.</span>
+      <div class="listing-field-row listing-field-row--top" style="margin-top:.5rem">
+        <label class="listing-field-label" for="newbies_file"><code>newbies.txt</code> <span class="text-dim">(optional)</span></label>
+        <div>
+          <label class="file-drop-zone" for="newbies_file">
+            <input id="newbies_file" type="file" name="newbies_file" accept=".txt">
+            <span class="file-drop-icon"><?= View::icon('import') ?></span>
+            <strong>Click to upload</strong>
+            <span class="form-hint">.TXT &mdash; pending members, leave empty to skip</span>
+          </label>
+        </div>
       </div>
     </div>
+</div>
 
     <div class="composer-footer">
-      <a href="<?= $b ?>/admin/import" class="btn btn-ghost">&#8592; Back</a>
+      <a href="<?= $b ?>/admin/import" class="btn btn-quaternary">&#8592; Back</a>
       <button type="submit" class="btn btn-primary">Continue to Options &#8594;</button>
     </div>
   </div>
 </form>
 
-<p class="field-hint-sm import-stack-gap" style="text-align:center;color:var(--text-dim)">
-  BellaBuffs data files are read-only &mdash; nothing in your BellaBuffs installation will be modified.
-</p>
-
 </div>
-
-<script>
-(function () {
-  var pathSection   = document.getElementById('js-bb-path-section');
-  var uploadSection = document.getElementById('js-bb-upload-section');
-  var radios        = document.querySelectorAll('[name="bb_conn_mode"]');
-
-  function update() {
-    var upload = document.getElementById('js-bb-mode-upload').checked;
-    pathSection.classList.toggle('is-hidden', upload);
-    uploadSection.classList.toggle('is-hidden', !upload);
-  }
-
-  radios.forEach(function (r) { r.addEventListener('change', update); });
-  update();
-}());
-</script>

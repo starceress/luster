@@ -107,6 +107,36 @@ final class CategoryRepo
         ];
     }
 
+    /**
+     * Returns all category IDs matching an optional source and search term.
+     * Used by the bulk handler when "select all across pages" is triggered.
+     *
+     * @return int[]
+     */
+    public function getAllIdsByFilter(string $source, string $search): array
+    {
+        $where  = '1=1';
+        $params = [];
+
+        if ($source !== '') {
+            $where           .= ' AND source = :source';
+            $params['source'] = $source;
+        }
+
+        if ($search !== '') {
+            $where           .= ' AND name LIKE :search';
+            $params['search'] = '%' . $search . '%';
+        }
+
+        $stmt = $this->db->pdo()->prepare("SELECT id FROM lstr_categories WHERE {$where}");
+        foreach ($params as $k => $v) {
+            $stmt->bindValue($k, $v);
+        }
+        $stmt->execute();
+
+        return array_map('intval', $stmt->fetchAll(\PDO::FETCH_COLUMN, 0));
+    }
+
     public function getCustomSources(): array
     {
         return $this->getAllCustomNetworkNames();

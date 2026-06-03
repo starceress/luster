@@ -84,6 +84,11 @@ abstract class AdminController
         return $crumb;
     }
 
+    protected static function httpsify(string $url): string
+    {
+        return str_starts_with($url, 'http://') ? 'https://' . substr($url, 7) : $url;
+    }
+
     protected function adminUrl(string $path = ''): string
     {
         $base = rtrim($this->app->getBaseUrl(), '/');

@@ -11,6 +11,7 @@ use Luster\Models\Affiliate;
 use Luster\Repositories\AffiliateRepo;
 use Luster\Repositories\ListingRepo;
 use Luster\Repositories\ListingSettingsRepo;
+use Luster\Repositories\SiteSettingsRepo;
 
 /**
  * Public affiliates page.
@@ -62,6 +63,15 @@ final class AffiliatesController
             ? $this->buildAffiliateRows($affiliatesTemplate, $result['items'], $uploadsUrl)
             : null;
 
+        $sectionTemplate = ($templates['affiliates_section_template'] !== null
+            && trim($templates['affiliates_section_template']) !== '')
+            ? $templates['affiliates_section_template']
+            : null;
+
+        $sectionHtml = $sectionTemplate !== null
+            ? $this->applySectionTemplate($sectionTemplate, $result['items'], $result['total'], $uploadsUrl, $affiliatesTemplate)
+            : null;
+
         $html = $this->app->getView()->renderPublic('affiliates.php', [
             'listing'       => $listing,
             'listing_name'  => $listing->name,
@@ -69,6 +79,7 @@ final class AffiliatesController
             'page_title'       => 'Affiliates — ' . $listing->name,
             'affiliates'       => $result['items'],
             'affiliates_html'  => $affiliatesHtml,
+            'section_html'     => $sectionHtml,
             'total'            => $result['total'],
             'pagination'       => $pagination,
             'is_collective'    => false,
@@ -95,8 +106,16 @@ final class AffiliatesController
         $baseUrl    = $this->app->getBaseUrl();
         $baseHref   = $baseUrl . '/affiliates';
         $pagination = $this->buildPagination($page, $result['pages'], $baseHref);
+        $uploadsUrl = $baseUrl . '/uploads/affiliates';
 
-        $siteName = (string) $this->app->getConfig()->get('site_name', 'Luster');
+        $siteRepo     = new SiteSettingsRepo($this->app->getDatabase());
+        $siteName     = (string) $this->app->getConfig()->get('site_name', 'Luster');
+        $sectTplRaw   = (string) ($siteRepo->getMany(['collective_affiliates_section_template'])['collective_affiliates_section_template'] ?? '');
+        $sectionTemplate = trim($sectTplRaw) !== '' ? $sectTplRaw : null;
+
+        $sectionHtml = $sectionTemplate !== null
+            ? $this->applySectionTemplate($sectionTemplate, $result['items'], $result['total'], $uploadsUrl, null)
+            : null;
 
         $html = $this->app->getView()->renderPublic('affiliates.php', [
             'listing'      => null,
@@ -105,12 +124,13 @@ final class AffiliatesController
             'page_title'      => 'Affiliates',
             'affiliates'      => $result['items'],
             'affiliates_html' => null,
+            'section_html'    => $sectionHtml,
             'total'           => $result['total'],
             'pagination'      => $pagination,
             'is_collective'   => true,
             'join_url'        => '',
             'base_url'        => $baseUrl,
-            'uploads_url'     => $baseUrl . '/uploads/affiliates',
+            'uploads_url'     => $uploadsUrl,
             'theme_path'      => $baseUrl . '/assets/default/',
         ]);
 
@@ -129,6 +149,7 @@ final class AffiliatesController
      *   {aff_url}       — affiliate URL (HTML-escaped)
      *   {aff_image}     — image filename only (HTML-escaped), or empty string
      *   {aff_image_url} — full src-ready URL including uploads path (HTML-escaped)
+     *   {aff_image_tag} — rendered <img> tag, or empty string when no image
      *
      * @param Affiliate[] $affiliates
      */
@@ -141,19 +162,89 @@ final class AffiliatesController
                 ? $uploadsUrl . '/' . $affiliate->image
                 : '';
 
+            $imageTag = ($imageUrl !== '')
+                ? '<img src="' . htmlspecialchars($imageUrl,         ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '"'
+                . ' alt="'     . htmlspecialchars($affiliate->name,  ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '">'
+                : '';
+
             $rows[] = str_replace(
-                ['{aff_name}', '{aff_url}', '{aff_image}', '{aff_image_url}'],
+                ['{aff_name}', '{aff_url}', '{aff_image}', '{aff_image_url}', '{aff_image_tag}'],
                 [
                     htmlspecialchars($affiliate->name,         ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),
                     htmlspecialchars($affiliate->url,          ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),
                     htmlspecialchars($affiliate->image ?? '',  ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),
                     htmlspecialchars($imageUrl,                ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),
+                    $imageTag,
                 ],
                 $template,
             );
         }
 
         return implode("\n", $rows);
+    }
+
+    /**
+     * Applies a page-level section template for the affiliates block.
+     *
+     * Supported tokens:
+     *   {affiliates}        — rendered affiliate rows (from row template or simple fallback)
+     *   {affiliates_count}  — total active affiliate count
+     *   {affiliates_list}   — comma-separated <a href>name</a> list
+     *   {if_affiliates}...{/if_affiliates}           — shown when count > 0
+     *   {if_no_affiliates}...{/if_no_affiliates}     — shown when count = 0
+     *
+     * @param Affiliate[]  $affiliates
+     * @param int          $total       total active count (may differ from $affiliates on paginated pages)
+     * @param string|null  $rowTemplate per-row template, or null to use the simple link fallback
+     */
+    private function applySectionTemplate(
+        string  $template,
+        array   $affiliates,
+        int     $total,
+        string  $uploadsUrl,
+        ?string $rowTemplate,
+    ): string {
+        $e = static fn(string $v): string => htmlspecialchars($v, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+
+        // Build {affiliates} content
+        if ($rowTemplate !== null && $affiliates !== []) {
+            $rows = $this->buildAffiliateRows($rowTemplate, $affiliates, $uploadsUrl);
+        } else {
+            $rowParts = [];
+            foreach ($affiliates as $aff) {
+                $imageUrl = ($aff->image !== null && $aff->image !== '') ? $uploadsUrl . '/' . $aff->image : '';
+                if ($imageUrl !== '') {
+                    $rowParts[] = '<a href="' . $e($aff->url) . '" target="_blank" rel="noopener noreferrer">'
+                        . '<img src="' . $e($imageUrl) . '" alt="' . $e($aff->name) . '"></a>';
+                } else {
+                    $rowParts[] = '<a href="' . $e($aff->url) . '" target="_blank" rel="noopener noreferrer">'
+                        . $e($aff->name) . '</a>';
+                }
+            }
+            $rows = implode("\n", $rowParts);
+        }
+
+        // Build {affiliates_list} — comma-separated plain links
+        $listParts = [];
+        foreach ($affiliates as $aff) {
+            $listParts[] = '<a href="' . $e($aff->url) . '">' . $e($aff->name) . '</a>';
+        }
+        $plainList = implode(', ', $listParts);
+
+        // Process conditional blocks
+        if ($total > 0) {
+            $output = preg_replace('/\{if_no_affiliates\}.*?\{\/if_no_affiliates\}/s', '', $template) ?? $template;
+            $output = str_replace(['{if_affiliates}', '{/if_affiliates}'], '', $output);
+        } else {
+            $output = preg_replace('/\{if_affiliates\}.*?\{\/if_affiliates\}/s', '', $template) ?? $template;
+            $output = str_replace(['{if_no_affiliates}', '{/if_no_affiliates}'], '', $output);
+        }
+
+        return str_replace(
+            ['{affiliates}', '{affiliates_count}', '{affiliates_list}'],
+            [$rows, (string) $total, $plainList],
+            $output,
+        );
     }
 
     private function buildPagination(int $current, int $total, string $baseHref): string

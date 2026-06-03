@@ -65,6 +65,7 @@ final class JoinedController extends AdminController
 
         $joined     = $result['items'];
         $totalPages = $result['pages'];
+        $totalCount = $result['total'];
 
         if ($sort !== '') {
             usort($joined, static function ($a, $b) use ($sort, $dir): int {
@@ -95,6 +96,7 @@ final class JoinedController extends AdminController
             'per_page'           => $perPage,
             'page'               => $page,
             'total_pages'        => $totalPages,
+            'total'              => $totalCount,
             'group_counts'       => $repo->countByGroup($displayMode),
             'tfl_cats'           => $tflCats,
             'tafl_cats'          => $taflCats,
@@ -119,7 +121,7 @@ final class JoinedController extends AdminController
 
         if ($request->isPost()) {
             $name       = trim((string) $request->post('name', ''));
-            $url        = trim((string) $request->post('url', ''));
+            $url        = self::httpsify(trim((string) $request->post('url', '')));
             $category   = trim((string) $request->post('category', ''));
             $dateJoined = trim((string) $request->post('date_joined', ''));
             $active     = $request->post('active') === '1';
@@ -267,7 +269,7 @@ final class JoinedController extends AdminController
 
         if ($request->isPost()) {
             $name       = trim((string) $request->post('name', ''));
-            $url        = trim((string) $request->post('url', ''));
+            $url        = self::httpsify(trim((string) $request->post('url', '')));
             $category   = trim((string) $request->post('category', ''));
             $dateJoined = trim((string) $request->post('date_joined', ''));
             $active      = $request->post('active') === '1';
@@ -484,19 +486,27 @@ final class JoinedController extends AdminController
             return Response::redirect($baseUrl . '/admin/joined');
         }
 
-        $action = (string) $request->post('bulk_action', '');
-        $ids    = array_filter(
-            array_map('intval', (array) $request->post('ids', [])),
-            static fn(int $i): bool => $i > 0,
-        );
+        $action    = (string) $request->post('bulk_action', '');
+        $db        = $this->app->getDatabase();
+        $repo      = new JoinedListingRepo($db);
+        $selectAll = $request->post('select_all', '0') === '1';
+
+        if ($selectAll) {
+            $saSearch  = trim((string) $request->post('sa_filter_search', ''));
+            $saNetwork = trim((string) $request->post('sa_filter_network', ''));
+            $saCat     = trim((string) $request->post('sa_filter_cat', ''));
+            $ids       = $repo->getAllIdsByFilter($saSearch, $saNetwork, $saCat);
+        } else {
+            $ids = array_filter(
+                array_map('intval', (array) $request->post('ids', [])),
+                static fn(int $i): bool => $i > 0,
+            );
+        }
 
         if ($ids === [] || !in_array($action, ['approve', 'pending', 'delete'], true)) {
             $session->set('lstr_flash_error', 'No items selected or invalid action.');
             return Response::redirect($baseUrl . '/admin/joined');
         }
-
-        $db    = $this->app->getDatabase();
-        $repo  = new JoinedListingRepo($db);
         $count = 0;
 
         if ($action === 'approve') {

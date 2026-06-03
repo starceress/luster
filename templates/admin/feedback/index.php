@@ -99,11 +99,10 @@ use Luster\Core\View;
             Attach system information to this report
           </label>
           <p class="form-hint">Includes Luster version, PHP version, database version, and installed add-ons. Recommended for bug reports.</p>
-          <details class="form-details" style="margin-top: 0.5rem;">
+          <details class="form-details">
             <summary>Preview system info</summary>
             <div class="form-details-body">
-              <textarea class="form" rows="12" readonly
-                        style="font-family: var(--font-mono); font-size: var(--fs-sm);"><?= View::e($sysinfo_text) ?></textarea>
+              <textarea class="form form-mono" rows="12" readonly><?= View::e($sysinfo_text) ?></textarea>
             </div>
           </details>
         </div>
@@ -120,11 +119,10 @@ use Luster\Core\View;
             Attach the last 10 error log entries
           </label>
           <p class="form-hint">Recent technical errors from your install. Useful for diagnosing bugs. May include internal file paths.</p>
-          <details class="form-details" style="margin-top: 0.5rem;">
+          <details class="form-details">
             <summary>Preview error log</summary>
             <div class="form-details-body">
-              <textarea class="form" rows="12" readonly
-                        style="font-family: var(--font-mono); font-size: var(--fs-sm);"><?= View::e($errorlog_text) ?></textarea>
+              <textarea class="form form-mono" rows="12" readonly><?= View::e($errorlog_text) ?></textarea>
             </div>
           </details>
         </div>
@@ -141,13 +139,12 @@ use Luster\Core\View;
 </form>
 
 <?php if ($send_failed && $composed_body !== ''): ?>
-<div class="gradient-card" style="margin-top: 1.5rem;">
+<div class="gradient-card mt-lg">
   <div class="listing-field-section">
     <div class="listing-field-row listing-field-row--top">
       <label class="listing-field-label">Copy report</label>
       <div>
-        <textarea id="lstr-composed-body" class="form" rows="20" readonly
-                  style="font-family: var(--font-mono); font-size: var(--fs-sm);"><?= View::e($composed_body) ?></textarea>
+        <textarea id="lstr-composed-body" class="form form-mono" rows="20" readonly><?= View::e($composed_body) ?></textarea>
         <p class="form-hint">
           Copy this and email it manually to <strong><?= View::e(Version::SUPPORT_EMAIL) ?></strong>.
         </p>

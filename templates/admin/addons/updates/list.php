@@ -10,6 +10,7 @@ declare(strict_types=1);
  * @var int                             $page
  * @var int                             $pages
  * @var bool                            $is_collective
+ * @var string                          $ctx_name
  * @var \Luster\Models\Listing|null     $listing
  * @var string                          $success
  * @var string                          $error
@@ -40,7 +41,14 @@ $pageUrl = static function (int $p) use ($listBase, $search, $filter_category): 
     return $listBase . '?' . http_build_query($q);
 };
 
-$latestDate = !empty($updates) ? date($admin_date_format, strtotime($updates[0]->postedAt)) : null;
+$latestDate = !empty($updates) ? date($admin_date_format ?? 'm-d-Y', strtotime($updates[0]->postedAt)) : null;
+
+$returnQuery = array_filter([
+    'page'     => $page > 1 ? $page : 0,
+    'search'   => $search,
+    'category' => $filter_category,
+], static fn($v): bool => (string) $v !== '' && $v !== 0);
+$returnUrl = $listBase . ($returnQuery !== [] ? '?' . http_build_query($returnQuery) : '');
 ?>
 
 <?php if ($success !== ''): ?>
@@ -52,9 +60,6 @@ $latestDate = !empty($updates) ? date($admin_date_format, strtotime($updates[0]-
 
 <div class="page-topbar">
   <a href="<?= $b ?>/admin/updates" class="link">&larr; Back to Updates Feed</a>
-  <div class="topbar-actions">
-    <a href="<?= View::e($addUrl) ?>" class="btn btn-primary btn-sm"><?= View::icon('add') ?>Add Update</a>
-  </div>
 </div>
 
 <!-- ──── TOOLBAR ─────────────────────────────────────────────────────── -->
@@ -62,16 +67,19 @@ $latestDate = !empty($updates) ? date($admin_date_format, strtotime($updates[0]-
   <div class="actions-row">
     <button type="button" class="btn btn-preview btn-sm filter-toggle"
             id="upd-filter-toggle"
-            aria-expanded="<?= $filtersActive ? 'true' : 'false' ?>"
+            aria-expanded="true"
             aria-controls="upd-filter-panel">
       <?= View::icon('filter') ?>
       Filter<?php if ($filtersActive): ?><span class="filter-dot" aria-hidden="true"></span><?php endif; ?>
     </button>
   </div>
+  <div class="actions-row actions-row--right">
+    <a href="<?= View::e($addUrl) ?>" class="btn btn-primary btn-sm"><?= View::icon('add') ?> Add Update</a>
+  </div>
 </div>
 
 <!-- ──── FILTER PANEL ────────────────────────────────────────────────── -->
-<div class="filter-panel<?= $filtersActive ? ' is-open' : '' ?>" id="upd-filter-panel">
+<div class="filter-panel" id="upd-filter-panel">
   <form method="GET" action="<?= View::e($listBase) ?>" class="filter-row">
 
     <?php if (!empty($known_categories)): ?>
@@ -93,16 +101,14 @@ $latestDate = !empty($updates) ? date($admin_date_format, strtotime($updates[0]-
              value="<?= View::e($search) ?>">
     </div>
     <button type="submit" class="btn btn-secondary btn-sm">Search</button>
-    <?php if ($filtersActive): ?>
       <a href="<?= View::e($listBase) ?>" class="btn btn-quaternary btn-sm">Reset</a>
-    <?php endif; ?>
 
   </form>
 </div>
 
 <?php if (empty($updates)): ?>
 
-  <div class="card">
+<div class="card">
     <div class="empty">
       <div class="empty-icon"><?= View::icon('updates', ['width' => 32, 'height' => 32]) ?></div>
       <?php if ($filtersActive): ?>
@@ -110,7 +116,7 @@ $latestDate = !empty($updates) ? date($admin_date_format, strtotime($updates[0]-
         <a href="<?= View::e($listBase) ?>" class="btn btn-ghost btn-sm">Clear Filters</a>
       <?php else: ?>
         <div class="empty-title">No updates posted yet.</div>
-        <div>Post your first update to let visitors know what&rsquo;s new.</div>
+        <div>Post your first update to let visitors know what's new.</div>
         <a href="<?= View::e($addUrl) ?>" class="btn btn-primary btn-sm">
           <?= View::icon('add') ?> Add Update
         </a>
@@ -120,9 +126,9 @@ $latestDate = !empty($updates) ? date($admin_date_format, strtotime($updates[0]-
 
 <?php else: ?>
 
-<!-- ──── STATS STRIP ────────────────────────────────────────────────── -->
+<!-- ──── STATS STRIP ─────────────────────────────────────────────────── -->
 <?php if (!$filtersActive): ?>
-  <div class="stats-grid stats-grid--compact">
+  <div class="stats-grid stats-grid-plain stats-grid--compact">
     <div class="stat-card">
       <div class="stat-header">Total Updates</div>
       <div class="stat-value-sm"><?= (int) $total ?></div>
@@ -142,55 +148,87 @@ $latestDate = !empty($updates) ? date($admin_date_format, strtotime($updates[0]-
   </div>
 <?php endif; ?>
 
+<div class="overview-section-divider"></div>
+
 <!-- ──── COMPACT ROWS ───────────────────────────────────────────────── -->
+<form method="POST" action="<?= $b ?>/admin/updates/bulk"
+      data-del-bulk data-del-entity="update">
+  <input type="hidden" name="_csrf"   value="<?= View::e($csrf_token) ?>">
+  <input type="hidden" name="_return" value="<?= View::e($returnUrl) ?>">
+
   <div class="card">
-    <div class="card-head"><?= $is_collective ? 'Collective Updates' : 'Updates &mdash; ' . View::e($listing->name) ?>
-    <?php $range_start = $total === 0 ? 0 : ($page - 1) * $per_page + 1; $range_end = min($page * $per_page, $total); ?>
-    <span class="row-sub">Showing <?= $range_start ?>–<?= $range_end ?> of <?= $total ?> <?= $total === 1 ? 'entry' : 'entries' ?></span>
+    <?php $range_start = $total === 0 ? 0 : ($page - 1) * $per_page + 1;
+          $range_end   = min($page * $per_page, $total); ?>
+    <div class="card-head"><?= View::e($ctx_name) ?>
+      <span class="row-sub">Showing <?= $range_start ?>–<?= $range_end ?> of <?= $total ?> <?= $total === 1 ? 'entry' : 'entries' ?></span>
     </div>
+
+    <div class="bulk bulk--flush">
+      <input type="checkbox" class="sel-all" data-fid="upd-list" title="Select all">
+      Bulk Actions:
+      <div class="select-wrap">
+        <select name="bulk_action" class="select-xs">
+          <option value="" disabled selected>&mdash; Select &mdash;</option>
+          <option value="delete">Delete</option>
+        </select>
+      </div>
+      <button type="submit" class="btn btn-quaternary btn-sm">Apply to Selected</button>
+    </div>
+
+    <?php
+      $grouped = [];
+      foreach ($updates as $u) {
+          $grouped[date('F Y', strtotime($u->postedAt))][] = $u;
+      }
+    ?>
     <div class="updates-timeline">
-      <?php foreach ($updates as $u): ?>
-        <?php
-          $dt        = strtotime($u->postedAt);
-          $dateLabel = date($admin_date_format, $dt);
-          $time      = date($admin_time_format, $dt);
-          $snip      = mb_strimwidth(str_replace(["\r\n", "\r", "\n"], ' ', $u->body), 0, 280, '…');
-        ?>
-        <div class="update-row">
-          <div class="update-date">
-            <strong><?= View::e($dateLabel) ?></strong>
-            <?= View::e($time) ?>
+      <?php foreach ($grouped as $monthYear => $monthUpdates): ?>
+        <div class="timeline-month-header"><?= View::e($monthYear) ?></div>
+        <?php foreach ($monthUpdates as $u): ?>
+          <?php
+            $dt   = strtotime($u->postedAt);
+            $dateStr = date($admin_date_format ?? 'm-d-Y', $dt);
+            $timeStr = date($admin_time_format ?? 'g:i A', $dt);
+            $snip = mb_strimwidth(str_replace(["\r\n", "\r", "\n"], ' ', $u->body), 0, 280, '…');
+          ?>
+          <div class="update-row">
+            <div>
+              <input type="checkbox" class="row-cb-upd-list" name="ids[]"
+                     value="<?= (int) $u->id ?>" data-name="<?= View::e($u->title) ?>">
+            </div>
+            <div class="update-date"><?= View::e($dateStr) ?> &mdash; <?= View::e($timeStr) ?></div>
+            <div>
+              <div class="update-title"><?= View::e($u->title) ?></div>
+              <div class="update-snip"><?= View::e($snip) ?></div>
+              <?php if (!empty($u->categories())): ?>
+                <div class="update-cats">
+                  <?php foreach ($u->categories() as $cat): ?>
+                    <span class="badge badge-inactive"><?= View::e($cat) ?></span>
+                  <?php endforeach; ?>
+                </div>
+              <?php endif; ?>
+            </div>
+            <div class="data-actions">
+              <a href="<?= $b ?>/admin/updates/entry/<?= (int) $u->id ?>/edit"
+                 class="btn btn-tertiary btn-xs">Edit</a>
+              <form method="POST"
+                    action="<?= $b ?>/admin/updates/entry/<?= (int) $u->id ?>/delete"
+                    class="action-form-inline"
+                    data-del-modal
+                    data-del-entity="update"
+                    data-del-name="<?= View::e($u->title) ?>">
+                <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
+                <button type="submit" class="btn btn-danger btn-xs">Delete</button>
+              </form>
+            </div>
           </div>
-          <div>
-            <div class="update-title"><?= View::e($u->title) ?></div>
-            <div class="update-snip"><?= View::e($snip) ?></div>
-            <?php if (!empty($u->categories())): ?>
-              <div class="update-cats">
-                <?php foreach ($u->categories() as $cat): ?>
-                  <span class="badge badge-info-gold"><?= View::e($cat) ?></span>
-                <?php endforeach; ?>
-              </div>
-            <?php endif; ?>
-          </div>
-          <div class="data-actions">
-            <a href="<?= $b ?>/admin/updates/entry/<?= (int) $u->id ?>/edit"
-               class="btn btn-tertiary btn-sm">Edit</a>
-            <form method="POST"
-                  action="<?= $b ?>/admin/updates/entry/<?= (int) $u->id ?>/delete"
-                  class="action-form-inline"
-                  data-del-modal
-                  data-del-entity="update"
-                  data-del-name="<?= View::e($u->title) ?>">
-              <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
-              <button type="submit" class="btn btn-danger btn-sm">Delete</button>
-            </form>
-          </div>
-        </div>
+        <?php endforeach; ?>
       <?php endforeach; ?>
     </div>
   </div>
+</form>
 
-  <?php $pg_current = $page; $pg_total = $pages; $pg_url = $pageUrl;
-  include LUSTER_BASE . '/templates/admin/_pagination.php'; ?>
+<?php $pg_current = $page; $pg_total = $pages; $pg_url = $pageUrl;
+include LUSTER_BASE . '/templates/admin/_pagination.php'; ?>
 
 <?php endif; ?>

@@ -6,8 +6,10 @@ namespace Luster\Controllers\Public;
 
 use Luster\Core\Application;
 use Luster\Core\Captcha;
+use Luster\Core\RateLimit;
 use Luster\Core\Request;
 use Luster\Core\Response;
+use Luster\Repositories\BlacklistRepo;
 use Luster\Repositories\CodesRepo;
 use Luster\Repositories\ListingRepo;
 use Luster\Repositories\ListingSettingsRepo;
@@ -103,6 +105,20 @@ final class CodesSubmitController
             ? rtrim((string) $listing->url, '/') . '/' . ltrim($codesSubmitPage, '/')
             : $baseUrl . '/codes/submit/' . $listingId;
 
+        $ip        = (string) ($request->server('REMOTE_ADDR') ?? '');
+        $rateLimit = new RateLimit($db);
+
+        // Rate limiting
+        if ($rateLimit->isBlocked($ip, RateLimit::ACTION_PUBLIC_CODE_SUBMIT)) {
+            $session->set('lstr_flash_error', 'Too many submissions. Please wait a while before trying again.');
+            return Response::redirect($submitUrl);
+        }
+
+        // Honeypot — bots fill the hidden field; humans leave it blank
+        if ((string) $request->post('website_confirm', '') !== '') {
+            return Response::redirect($baseUrl . '/codes/submit/' . $listingId . '/thanks');
+        }
+
         // Validate captcha
         $captchaAnswer = (string) $request->post('captcha', '');
         if (!Captcha::validate($captchaAnswer, 'code_submit')) {
@@ -134,6 +150,20 @@ final class CodesSubmitController
             return Response::redirect($submitUrl);
         }
 
+        // Blacklist check on optional email
+        if ($submitterEmail !== null) {
+            $blacklistRepo = new BlacklistRepo($db);
+            if ($blacklistRepo->isBlocked($submitterEmail)) {
+                $session->set('lstr_flash_error', 'This email address cannot be used to submit codes.');
+                $session->set('lstr_flash_old', [
+                    'submitter_name'  => $submitterName  ?? '',
+                    'submitter_email' => $submitterEmail ?? '',
+                    'submitter_url'   => $submitterUrl   ?? '',
+                ]);
+                return Response::redirect($submitUrl);
+            }
+        }
+
         // Validate URL if provided
         if ($submitterUrl !== null && filter_var($submitterUrl, FILTER_VALIDATE_URL) === false) {
             $session->set('lstr_flash_error', 'Please enter a valid website URL (e.g. https://example.com).');
@@ -159,6 +189,16 @@ final class CodesSubmitController
 
         if ((int) $fileData['error'] !== UPLOAD_ERR_OK) {
             $session->set('lstr_flash_error', 'File upload failed. Please try again.');
+            $session->set('lstr_flash_old', [
+                'submitter_name'  => $submitterName  ?? '',
+                'submitter_email' => $submitterEmail ?? '',
+                'submitter_url'   => $submitterUrl   ?? '',
+            ]);
+            return Response::redirect($submitUrl);
+        }
+
+        if (!is_uploaded_file((string) $fileData['tmp_name'])) {
+            $session->set('lstr_flash_error', 'Invalid upload. Please try again.');
             $session->set('lstr_flash_old', [
                 'submitter_name'  => $submitterName  ?? '',
                 'submitter_email' => $submitterEmail ?? '',
@@ -248,6 +288,8 @@ final class CodesSubmitController
             $submitterEmail,
             $submitterUrl,
         );
+
+        $rateLimit->hitDefault($ip, RateLimit::ACTION_PUBLIC_CODE_SUBMIT);
 
         return Response::redirect($baseUrl . '/codes/submit/' . $listingId . '/thanks');
     }

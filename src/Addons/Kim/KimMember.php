@@ -14,6 +14,7 @@ final class KimMember
         public readonly string $url,
         public readonly string $password,
         public readonly bool   $pending,
+        public readonly bool   $granted,
         public readonly string $addedAt,
     ) {}
 
@@ -27,6 +28,7 @@ final class KimMember
             url:          (string) ($row['url'] ?? ''),
             password:     (string) $row['password'],
             pending:      (bool)   $row['pending'],
+            granted:      (bool)   ($row['granted'] ?? false),
             addedAt:      (string) ($row['added_at'] ?? ''),
         );
     }

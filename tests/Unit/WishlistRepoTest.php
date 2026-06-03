@@ -130,6 +130,18 @@ SQL;
         self::assertSame('Visible', $active[0]->subject);
     }
 
+    public function testPaginateCanFilterHiddenEntries(): void
+    {
+        $this->repo->insert(['subject' => 'Visible', 'type' => 'wanted', 'active' => true]);
+        $this->repo->insert(['subject' => 'Hidden',  'type' => 'top',    'active' => false]);
+
+        $hidden = $this->repo->paginate(null, false, '', '', 'subject', 'asc', 10, 1, false);
+
+        self::assertSame(1, $hidden['total']);
+        self::assertCount(1, $hidden['items']);
+        self::assertSame('Hidden', $hidden['items'][0]->subject);
+    }
+
     public function testGetAllOrderedBySortOrderThenId(): void
     {
         $this->repo->insert(['subject' => 'Z', 'type' => 'wanted', 'sort_order' => 10]);
@@ -167,6 +179,14 @@ SQL;
         self::assertSame(1, $counts['top']);
         self::assertSame(0, $counts['granted']);
         self::assertSame(0, $counts['upcoming']);
+    }
+
+    public function testCountHidden(): void
+    {
+        $this->repo->insert(['subject' => 'Visible', 'type' => 'wanted', 'active' => true]);
+        $this->repo->insert(['subject' => 'Hidden',  'type' => 'wanted', 'active' => false]);
+
+        self::assertSame(1, $this->repo->countHidden());
     }
 
     // -----------------------------------------------------------------------

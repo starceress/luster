@@ -69,6 +69,10 @@ final class UpdatesAddon implements AddonInterface
         // Overview
         $router->get('/admin/updates', UpdatesAdminController::class, 'index');
 
+        // Settings — before {fid} to avoid collision
+        $router->get('/admin/updates/settings',  UpdatesAdminController::class, 'settings');
+        $router->post('/admin/updates/settings', UpdatesAdminController::class, 'settings');
+
         // Collective — specific paths first
         $router->get('/admin/updates/collective/add',  UpdatesAdminController::class, 'collectiveAddForm');
         $router->post('/admin/updates/collective/add', UpdatesAdminController::class, 'collectiveAdd');
@@ -78,6 +82,8 @@ final class UpdatesAddon implements AddonInterface
         $router->get('/admin/updates/entry/{id}/edit',  UpdatesAdminController::class, 'editForm');
         $router->post('/admin/updates/entry/{id}/edit',  UpdatesAdminController::class, 'edit');
         $router->post('/admin/updates/entry/{id}/delete', UpdatesAdminController::class, 'delete');
+
+        $router->post('/admin/updates/bulk', UpdatesAdminController::class, 'bulkDelete');
 
         // Per-fanlisting — add before list so 'add' is not matched as {fid}
         $router->get('/admin/updates/{fid}/add',  UpdatesAdminController::class, 'addForm');

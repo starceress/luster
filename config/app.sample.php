@@ -69,6 +69,31 @@ return [
     'enth_table_prefix' => '',
 
     // ------------------------------------------------------------------
+    // Email / SMTP
+    //
+    // smtp_enabled  — '1' to send via SMTP; leave blank or '0' to use
+    //                 the server's mail() function (default).
+    //
+    // smtp_from     — Envelope From address. Falls back to owner_email if blank.
+    // smtp_from_name— Display name. Falls back to owner_name if blank.
+    //
+    // smtp_secure   — 'tls' (STARTTLS, port 587 — recommended)
+    //                 'ssl' (SMTPS,    port 465)
+    //                 'none' (no encryption — not recommended)
+    //
+    // smtp_pass     — Leave blank in this file; set via the admin Settings panel.
+    //                 A blank value on save keeps the stored password unchanged.
+    // ------------------------------------------------------------------
+    'smtp_enabled'    => '',
+    'smtp_host'       => '',
+    'smtp_port'       => 587,
+    'smtp_user'       => '',
+    'smtp_pass'       => '',
+    'smtp_secure'     => 'tls',
+    'smtp_from'       => '',
+    'smtp_from_name'  => '',
+
+    // ------------------------------------------------------------------
     // Miscellaneous
     // ------------------------------------------------------------------
     'timezone' => 'UTC',
@@ -96,9 +121,15 @@ return [
     // embed_base_url — the public URL where Luster's form submissions
     //   go (e.g. https://nebuluna.com/luster/public). Leave blank to
     //   use site_url above.
+    //
+    // reciprocal_url — the URL the Link Checker looks for in affiliate
+    //   pages to confirm a back-link. Leave blank to use app_url.
+    //   Useful when your collective lives at a different domain than
+    //   individual listings expect to see linked back.
     // ------------------------------------------------------------------
     'install_path'          => '',
     'session_cookie_domain' => '',
     'embed_base_url'        => '',
+    'reciprocal_url'        => '',
 
 ];

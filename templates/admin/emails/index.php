@@ -121,6 +121,7 @@ $oldBodyE    = htmlspecialchars($old_body ?? '', ENT_QUOTES, 'UTF-8');
 <?php if ($error !== ''): ?>
   <div class="alert alert-error"><?= View::e($error) ?></div>
 <?php endif; ?>
+
 <!-- ──── TAB BAR ────────────────────────────────────────────────────── -->
 <div class="tabs-wrap">
   <div class="tabs">
@@ -251,7 +252,7 @@ $oldBodyE    = htmlspecialchars($old_body ?? '', ENT_QUOTES, 'UTF-8');
               </div>
               <div class="form-group">
                 <label class="form-label" for="et-body-<?= View::e($type) ?>">Body</label>
-                <textarea class="form"
+                <textarea class="form et-body"
                           id="et-body-<?= View::e($type) ?>"
                           name="email_body_<?= View::e($type) ?>"
                           rows="9"
@@ -261,7 +262,7 @@ $oldBodyE    = htmlspecialchars($old_body ?? '', ENT_QUOTES, 'UTF-8');
                 <div class="email-preview-panel-head">
                   Preview <span>(example values)</span>
                   <?php if ($isGlobal): ?>
-                    <span class="email-preview-note">Â· listing tokens show generic placeholders</span>
+                    <span class="email-preview-note">&middot; listing tokens show generic placeholders</span>
                   <?php endif; ?>
                 </div>
                 <div class="email-preview-panel-body">
@@ -275,7 +276,7 @@ $oldBodyE    = htmlspecialchars($old_body ?? '', ENT_QUOTES, 'UTF-8');
 
             <div class="composer-footer">
               <button type="submit" class="btn btn-primary">Save Template</button>
-              <button type="button" class="btn btn-preview"
+              <button type="button" class="btn btn-preview et-preview-toggle"
                       data-type="<?= View::e($type) ?>"><?= View::icon('eye-on') ?> Preview</button>
               <button type="submit"
                       form="et-reset-<?= View::e($type) ?>"
@@ -307,7 +308,6 @@ $oldBodyE    = htmlspecialchars($old_body ?? '', ENT_QUOTES, 'UTF-8');
         </div>
         <?php endforeach; ?>
       </div>
-
     </div>
   </form>
   <?php foreach (EmailTemplateRepo::TYPES as $type): ?>
@@ -321,11 +321,9 @@ $oldBodyE    = htmlspecialchars($old_body ?? '', ENT_QUOTES, 'UTF-8');
     <input type="hidden" name="type"   value="<?= View::e($type) ?>">
   </form>
   <?php endforeach; ?>
-
 </div>
 
 <div id="tab-bulk" class="tabs-panel<?= $active_tab === 'bulk' ? ' active' : '' ?>">
-
   <div class="composer-grid">
 <!-- ──── SIDEBAR ────────────────────────────────────────────────────── -->
     <div class="composer-side">
@@ -401,8 +399,8 @@ $oldBodyE    = htmlspecialchars($old_body ?? '', ENT_QUOTES, 'UTF-8');
           </table>
         </div>
       </details>
-
-    </div><!-- /.composer-side -->
+    </div>
+    
 <!-- ──── MAIN COMPOSE AREA ──────────────────────────────────────────── -->
     <div class="gradient-card ">
       <form method="POST" action="<?= $b ?>/admin/emails/preview" id="compose-form">
@@ -477,8 +475,8 @@ $oldBodyE    = htmlspecialchars($old_body ?? '', ENT_QUOTES, 'UTF-8');
 
       </form>
     </div>
-
   </div>
+  
 <!-- ──── PREVIEW MODAL ──────────────────────────────────────────────── -->
   <div class="modal-backdrop is-hidden" id="me-preview-modal"
        data-site-name="<?= View::e($site_name_val ?? '') ?>"
@@ -524,10 +522,7 @@ $oldBodyE    = htmlspecialchars($old_body ?? '', ENT_QUOTES, 'UTF-8');
       </div>
     </div>
   </div>
-
 </div>
-
-
 
 <div id="tab-custom" class="tabs-panel<?= $active_tab === 'custom' ? ' active' : '' ?>">
   <div class="composer-grid">
@@ -588,7 +583,8 @@ $oldBodyE    = htmlspecialchars($old_body ?? '', ENT_QUOTES, 'UTF-8');
         </div>
 
       </form>
-    </div><!-- /.composer-card -->
+    </div>
+    
 <!-- ──── SIDEBAR: AVAILABLE TOKENS ──────────────────────────────────── -->
     <div class="composer-side">
       <details class="card chevron" open>
@@ -610,17 +606,13 @@ $oldBodyE    = htmlspecialchars($old_body ?? '', ENT_QUOTES, 'UTF-8');
           </table>
         </div>
       </details>
-    </div><!-- /.composer-side -->
-
-  </div><!-- /.composer-grid -->
-
-  <!-- Divider -->
+    </div>
+  </div>
+  
 <!-- ──── SAVED TEMPLATES TABLE CARD ─────────────────────────────────── -->
   <div class="card">
 
-    <div class="card-head">
-      <div class="card-title">Saved Templates</div>
-    </div>
+    <div class="card-head">Saved Templates</div>
 
     <?php if (empty($saved_emails)): ?>
       <div class="empty">
@@ -673,7 +665,8 @@ $oldBodyE    = htmlspecialchars($old_body ?? '', ENT_QUOTES, 'UTF-8');
       </div>
     <?php endif; ?>
 
-  </div><!-- /.card saved templates -->
+  </div>
+  
 <!-- ──── EDIT TEMPLATE MODAL ────────────────────────────────────────── -->
   <div class="modal-backdrop is-hidden" id="ct-edit-modal">
     <div class="modal">
@@ -709,4 +702,4 @@ $oldBodyE    = htmlspecialchars($old_body ?? '', ENT_QUOTES, 'UTF-8');
     </div>
   </div>
 
-</div><!-- /#tab-custom -->
+</div>

@@ -88,7 +88,7 @@ if ($displayMode === 'category') {
 <div class="toolbar">
   <div class="actions-row">
     <button type="button" class="btn btn-preview btn-sm filter-toggle" id="fl-filter-toggle"
-            aria-expanded="<?= $filtersActive ? 'true' : 'false' ?>"
+            aria-expanded="true"
             aria-controls="filter-panel">
       <?= View::icon('filter') ?>
       Filter<?php if ($filtersActive): ?><span class="filter-dot" aria-hidden="true"></span><?php endif; ?>
@@ -100,7 +100,7 @@ if ($displayMode === 'category') {
   </div>
 </div>
 <!-- ──── COLLAPSIBLE FILTER PANEL ───────────────────────────────────── -->
-<div class="filter-panel<?= $filtersActive ? ' is-open' : '' ?>" id="filter-panel">
+<div class="filter-panel" id="filter-panel">
   <form method="GET" action="<?= $b ?>/admin/joined" class="filter-row">
 
     <div class="select-wrap">
@@ -181,18 +181,33 @@ if ($displayMode === 'category') {
 <form method="POST" action="<?= $b ?>/admin/joined/bulk" id="bulk-form"
       data-del-bulk data-del-entity="joined">
   <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
+  <input type="hidden" name="select_all" value="0">
+  <input type="hidden" name="sa_filter_search" value="<?= View::e($search ?? '') ?>">
+  <input type="hidden" name="sa_filter_network" value="<?= View::e($filter_network ?? '') ?>">
+  <input type="hidden" name="sa_filter_cat" value="<?= View::e($filter_cat ?? '') ?>">
+
 <!-- ──── BULK ACTION BAR ────────────────────────────────────────────── -->
-  <div class="bulk">
-    <label for="bulk-action-sel">Bulk Actions:</label>
-    <div class="select-wrap">
-    <select id="bulk-action-sel" name="bulk_action" >
-      <option value="" disabled selected>&mdash; Select &mdash;</option>
-      <option value="approve">Approve</option>
-      <option value="pending">Pending</option>
-      <option value="delete">Delete</option>
-    </select>
+  <div class="card">
+    <div class="card-head">
+      Joined Listings
+      <span class="row-sub"><?= (int) ($total ?? 0) ?> total</span>
     </div>
-    <button type="submit" class="btn btn-quaternary btn-sm">Apply</button>
+    <div class="bulk bulk--flush">
+      Bulk Actions:
+      <div class="select-wrap">
+        <select id="bulk-action-sel" name="bulk_action">
+          <option value="" disabled selected>&mdash; Select &mdash;</option>
+          <option value="approve">Approve</option>
+          <option value="pending">Pending</option>
+          <option value="delete">Delete</option>
+        </select>
+      </div>
+      <button type="submit" class="btn btn-quaternary btn-sm">Apply to Selected</button>
+    </div>
+    <div class="select-all-banner" id="sel-all-sa-banner" data-total="<?= (int) ($total ?? 0) ?>" style="display:none">
+      <span class="sa-page">All <strong class="sa-page-count">0</strong> items on this page are selected.&ensp;<button type="button" class="link sa-select-all-btn">Select all <strong class="sa-total-count">0</strong> items</button></span>
+      <span class="sa-all" style="display:none">All <strong class="sa-total-count">0</strong> items are selected.&ensp;<button type="button" class="link sa-clear-btn">Clear selection</button></span>
+    </div>
   </div>
 
   <?php $loop = 0; $firstGroup = true; foreach ($grouped as $catName => $items): ?>

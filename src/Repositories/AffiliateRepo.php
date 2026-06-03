@@ -255,6 +255,41 @@ final class AffiliateRepo
         ];
     }
 
+    /**
+     * Returns all affiliate IDs matching a scope and optional search term.
+     * Used by the bulk handler when "select all across pages" is triggered.
+     *
+     * $scope: 'collective' | 'all' | '{listingId}'
+     *
+     * @return int[]
+     */
+    public function getAllIdsByFilter(string $scope, string $search): array
+    {
+        $fid = match (true) {
+            $scope === 'collective'             => null,
+            $scope === '' || $scope === 'all'   => -1,
+            default                             => (int) $scope,
+        };
+
+        if ($search !== '') {
+            $result = $this->search($search, $fid, PHP_INT_MAX, 1);
+            return array_map(static fn(Affiliate $a): int => $a->id, $result['items']);
+        }
+
+        if ($fid === null) {
+            $stmt = $this->db->prepare('SELECT id FROM lstr_affiliates WHERE fanlisting_id IS NULL AND pending = 0');
+            $stmt->execute();
+        } elseif ($fid === -1) {
+            $stmt = $this->db->prepare('SELECT id FROM lstr_affiliates WHERE pending = 0');
+            $stmt->execute();
+        } else {
+            $stmt = $this->db->prepare('SELECT id FROM lstr_affiliates WHERE fanlisting_id = :fid AND pending = 0');
+            $stmt->execute(['fid' => $fid]);
+        }
+
+        return array_map('intval', $stmt->fetchAll(\PDO::FETCH_COLUMN, 0));
+    }
+
     // -----------------------------------------------------------------------
     // Writes
     // -----------------------------------------------------------------------
@@ -422,6 +457,38 @@ final class AffiliateRepo
         return $stmt->execute(['id' => $id]);
     }
 
+    /**
+     * Sets active = 1 or 0 for multiple affiliates by ID.
+     */
+    public function bulkSetActive(array $ids, bool $active): int
+    {
+        if (empty($ids)) {
+            return 0;
+        }
+        $placeholders = implode(',', array_fill(0, count($ids), '?'));
+        $stmt = $this->db->prepare(
+            "UPDATE lstr_affiliates SET active = ? WHERE id IN ({$placeholders})"
+        );
+        $stmt->execute(array_merge([$active ? 1 : 0], array_values($ids)));
+        return $stmt->rowCount();
+    }
+
+    /**
+     * Deletes multiple affiliates by ID.
+     */
+    public function bulkDelete(array $ids): int
+    {
+        if (empty($ids)) {
+            return 0;
+        }
+        $placeholders = implode(',', array_fill(0, count($ids), '?'));
+        $stmt = $this->db->prepare(
+            "DELETE FROM lstr_affiliates WHERE id IN ({$placeholders})"
+        );
+        $stmt->execute(array_values($ids));
+        return $stmt->rowCount();
+    }
+
     // -----------------------------------------------------------------------
     // Affiliate applications (pending queue)
     // -----------------------------------------------------------------------
@@ -452,6 +519,71 @@ final class AffiliateRepo
     }
 
     /**
+     * Returns pending affiliates filtered by scope.
+     *
+     * 'all'         — all pending applications (same as getPending())
+     * 'collective'  — only collective scope (fanlisting_id IS NULL)
+     * '{int}'       — only applications for listing #{int}
+     *
+     * @return Affiliate[]
+     */
+    public function getPendingForScope(string $scope): array
+    {
+        if ($scope === 'collective') {
+            $stmt = $this->db->prepare(
+                'SELECT * FROM lstr_affiliates
+                 WHERE pending = 1 AND fanlisting_id IS NULL
+                 ORDER BY created_at ASC'
+            );
+            $stmt->execute();
+        } elseif ($scope !== '' && $scope !== 'all' && ctype_digit($scope)) {
+            $stmt = $this->db->prepare(
+                'SELECT * FROM lstr_affiliates
+                 WHERE pending = 1 AND fanlisting_id = :lid
+                 ORDER BY created_at ASC'
+            );
+            $stmt->execute(['lid' => (int) $scope]);
+        } else {
+            $stmt = $this->db->prepare(
+                'SELECT * FROM lstr_affiliates WHERE pending = 1
+                 ORDER BY fanlisting_id ASC, created_at ASC'
+            );
+            $stmt->execute();
+        }
+
+        return array_map(static fn(array $r) => Affiliate::fromRow($r), $stmt->fetchAll());
+    }
+
+    /**
+     * Returns the IDs of pending affiliate applications that share a URL with an
+     * already-active affiliate in the same scope.
+     *
+     * Used to surface duplicate-URL warnings on the pending review page.
+     *
+     * @return int[]
+     */
+    public function getPendingIdsWithUrlConflict(): array
+    {
+        $stmt = $this->db->prepare(
+            'SELECT DISTINCT p.id
+             FROM lstr_affiliates p
+             JOIN lstr_affiliates a
+                ON a.url     = p.url
+               AND a.pending = 0
+               AND a.active  = 1
+               AND (
+                   (p.fanlisting_id IS NULL     AND a.fanlisting_id IS NULL)
+                   OR
+                   (p.fanlisting_id IS NOT NULL AND a.fanlisting_id = p.fanlisting_id)
+               )
+             WHERE p.pending = 1'
+        );
+        $stmt->execute();
+
+        return array_map(static fn(array $r) => (int) $r['id'], $stmt->fetchAll());
+    }
+
+    /**
      * Returns the total number of pending affiliate applications across all listings.
      * Used by the dashboard to surface the attention banner.
      */
@@ -467,7 +599,7 @@ final class AffiliateRepo
      * Inserts a new affiliate application (pending = 1, active = 0).
      * Returns the new primary key.
      *
-     * @param array{fanlisting_id: int, name: string, url: string, email?: ?string, image?: ?string, application_message?: ?string} $data
+     * @param array{fanlisting_id: ?int, name: string, url: string, email?: ?string, image?: ?string, application_message?: ?string} $data
      */
     public function insertPending(array $data): int
     {
@@ -479,7 +611,7 @@ final class AffiliateRepo
         );
 
         $stmt->execute([
-            'fanlisting_id'       => (int) $data['fanlisting_id'],
+            'fanlisting_id'       => $data['fanlisting_id'] !== null ? (int) $data['fanlisting_id'] : null,
             'name'                => (string) $data['name'],
             'url'                 => (string) $data['url'],
             'email'               => isset($data['email'])               ? (string) $data['email']               : null,
@@ -529,13 +661,29 @@ final class AffiliateRepo
     }
 
     /**
-     * Checks whether an affiliate application for this listing already exists
-     * (either as a live affiliate or an in-queue pending application) by URL or email.
+     * Checks whether an affiliate application for this listing/collective scope
+     * already exists (either as a live affiliate or a pending application) by URL or email.
+     *
+     * Pass null for $listingId to check the collective scope (fanlisting_id IS NULL).
      * Used to prevent duplicate applications before inserting.
      */
-    public function isDuplicateApplication(int $listingId, string $url, string $email): bool
+    public function isDuplicateApplication(?int $listingId, string $url, string $email): bool
     {
-        if ($email !== '') {
+        if ($listingId === null) {
+            if ($email !== '') {
+                $stmt = $this->db->prepare(
+                    'SELECT COUNT(*) FROM lstr_affiliates
+                     WHERE fanlisting_id IS NULL AND (url = :url OR email = :email)'
+                );
+                $stmt->execute(['url' => $url, 'email' => $email]);
+            } else {
+                $stmt = $this->db->prepare(
+                    'SELECT COUNT(*) FROM lstr_affiliates
+                     WHERE fanlisting_id IS NULL AND url = :url'
+                );
+                $stmt->execute(['url' => $url]);
+            }
+        } elseif ($email !== '') {
             $stmt = $this->db->prepare(
                 'SELECT COUNT(*) FROM lstr_affiliates
                  WHERE fanlisting_id = :fid AND (url = :url OR email = :email)'
@@ -575,6 +723,69 @@ final class AffiliateRepo
         $stmt->execute($params);
 
         return array_map(static fn(array $r) => Affiliate::fromRow($r), $stmt->fetchAll());
+    }
+
+    /**
+     * @param string  $orderBy      Pre-validated "col DIR[, col DIR]" fragment.
+     * @param ?string $statusFilter 'ok'|'redirect'|'dead'|'unchecked'|null (null = all)
+     * @param ?string $search       Name substring filter (null = all)
+     * @return array{items: Affiliate[], total: int}
+     */
+    public function paginateForLinkCheck(?int $listingId, int $perPage, int $page, string $orderBy = 'name ASC', ?string $statusFilter = null, ?string $search = null): array
+    {
+        [$where, $params] = $this->buildListingFilter('pending = 0', $listingId);
+
+        if ($statusFilter === 'unchecked') {
+            $where .= " AND link_status = 'unchecked'";
+        } elseif (in_array($statusFilter, ['ok', 'redirect', 'dead'], true)) {
+            $where .= ' AND link_status = :ls_filter';
+            $params[':ls_filter'] = $statusFilter;
+        }
+
+        if ($search !== null && $search !== '') {
+            $where .= ' AND name LIKE :lc_search';
+            $params[':lc_search'] = '%' . $search . '%';
+        }
+
+        $offset = ($page - 1) * $perPage;
+
+        $countStmt = $this->db->prepare("SELECT COUNT(*) FROM lstr_affiliates WHERE {$where}");
+        $countStmt->execute($params);
+        $total = (int) $countStmt->fetchColumn();
+
+        $stmt = $this->db->prepare(
+            "SELECT * FROM lstr_affiliates WHERE {$where} ORDER BY {$orderBy} LIMIT :lim OFFSET :off"
+        );
+        foreach ($params as $k => $v) {
+            $stmt->bindValue($k, $v);
+        }
+        $stmt->bindValue(':lim', $perPage, \PDO::PARAM_INT);
+        $stmt->bindValue(':off', $offset,  \PDO::PARAM_INT);
+        $stmt->execute();
+
+        return [
+            'items' => array_map(static fn(array $r) => Affiliate::fromRow($r), $stmt->fetchAll()),
+            'total' => $total,
+        ];
+    }
+
+    /**
+     * @return array{ok:int,dead:int,redirect:int,unchecked:int}
+     */
+    public function getLinkStats(?int $listingId = null): array
+    {
+        [$where, $params] = $this->buildListingFilter('pending = 0', $listingId);
+        $stmt = $this->db->prepare(
+            "SELECT COALESCE(link_status, 'unchecked') AS s, COUNT(*) AS cnt FROM lstr_affiliates WHERE {$where} GROUP BY s"
+        );
+        $stmt->execute($params);
+        $out = ['ok' => 0, 'dead' => 0, 'redirect' => 0, 'unchecked' => 0];
+        foreach ($stmt->fetchAll() as $row) {
+            $s = $row['s'];
+            if (isset($out[$s])) { $out[$s] = (int) $row['cnt']; }
+            else { $out['unchecked'] += (int) $row['cnt']; }
+        }
+        return $out;
     }
 
     /**
@@ -680,5 +891,70 @@ final class AffiliateRepo
                  reciprocal_status     = 'unchecked',
                  reciprocal_checked_at = NULL"
         )->execute();
+    }
+
+    // -----------------------------------------------------------------------
+    // Bulk email recipients
+    // -----------------------------------------------------------------------
+
+    /**
+     * Returns active non-pending affiliates that have an email address, for
+     * the given scope. Deduplicates by email (first row wins, ordered by id).
+     *
+     * @param 'all'|'collective'|int $scope
+     * @return array<int, array{name: string, email: string, url: string, listing_id: int|null}>
+     */
+    public function getEmailRecipients(string|int $scope): array
+    {
+        if ($scope === 'all') {
+            $stmt = $this->db->prepare(
+                "SELECT name, email, url, fanlisting_id
+                 FROM lstr_affiliates
+                 WHERE active = 1 AND pending = 0
+                   AND email IS NOT NULL AND TRIM(email) != ''
+                 ORDER BY id ASC"
+            );
+            $stmt->execute();
+        } elseif ($scope === 'collective') {
+            $stmt = $this->db->prepare(
+                "SELECT name, email, url, fanlisting_id
+                 FROM lstr_affiliates
+                 WHERE active = 1 AND pending = 0
+                   AND email IS NOT NULL AND TRIM(email) != ''
+                   AND fanlisting_id IS NULL
+                 ORDER BY id ASC"
+            );
+            $stmt->execute();
+        } else {
+            $stmt = $this->db->prepare(
+                "SELECT name, email, url, fanlisting_id
+                 FROM lstr_affiliates
+                 WHERE active = 1 AND pending = 0
+                   AND email IS NOT NULL AND TRIM(email) != ''
+                   AND fanlisting_id = :fid
+                 ORDER BY id ASC"
+            );
+            $stmt->execute(['fid' => (int) $scope]);
+        }
+
+        $rows   = $stmt->fetchAll();
+        $seen   = [];
+        $result = [];
+
+        foreach ($rows as $row) {
+            $emailKey = strtolower(trim((string) $row['email']));
+            if (isset($seen[$emailKey])) {
+                continue;
+            }
+            $seen[$emailKey] = true;
+            $result[] = [
+                'name'       => (string) $row['name'],
+                'email'      => trim((string) $row['email']),
+                'url'        => (string) $row['url'],
+                'listing_id' => $row['fanlisting_id'] !== null ? (int) $row['fanlisting_id'] : null,
+            ];
+        }
+
+        return $result;
     }
 }

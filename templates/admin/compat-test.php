@@ -69,7 +69,7 @@ $b = rtrim(View::e($base_url), '/');
 </div>
 
 <?php if ($error !== null): ?>
-<div class="callout callout-error" style="margin-bottom:1.5rem">
+<div class="callout callout-err">
   <?= View::icon('alert') ?>
   <div><?= $error ?></div>
 </div>

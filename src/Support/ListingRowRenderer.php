@@ -8,7 +8,7 @@ use Luster\Models\Listing;
 
 /**
  * Renders a single owned-listing row by substituting tokens in the
- * owned_template string from Admin → Collective Templates.
+ * owned_template string from Admin → Collective.
  *
  * Shared by owned.php (multiple rows), random-listing.php,
  * and latest-listing.php to keep token/escaping logic in one place.

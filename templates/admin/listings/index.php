@@ -109,7 +109,7 @@ $flSortUrl = static function (string $col) use ($b, $flSort, $flDir, $search, $f
 <div class="toolbar">
   <div class="actions-row">
     <button type="button" class="btn btn-preview btn-sm filter-toggle" id="fl-filter-toggle"
-            aria-expanded="<?= $filtersActive ? 'true' : 'false' ?>"
+            aria-expanded="true"
             aria-controls="filter-panel">
       <?= View::icon('filter') ?>
       Filter<?php if ($filtersActive): ?><span class="filter-dot" aria-hidden="true"></span><?php endif; ?>
@@ -117,12 +117,11 @@ $flSortUrl = static function (string $col) use ($b, $flSort, $flDir, $search, $f
   </div>
   <div>
     <a href="<?= $b ?>/admin/listings/add" class="btn btn-primary btn-sm"><?= View::icon('add') ?> Add Listing</a>
-    <a href="<?= $b ?>/admin/listings/collective-templates" class="btn btn-secondary btn-sm">Collective Templates</a>
     <a href="<?= $b ?>/admin/listings/settings" class="btn btn-quaternary btn-sm">Display Settings</a>
   </div>
 </div>
 
-<div class="filter-panel<?= $filtersActive ? ' is-open' : '' ?>" id="filter-panel">
+<div class="filter-panel" id="filter-panel">
   <form method="GET" action="" class="filter-row" id="fl-filter-form">
     <div class="select-wrap">
     <select id="fl-net-sel" name="network" >
@@ -230,18 +229,11 @@ $flSortUrl = static function (string $col) use ($b, $flSort, $flDir, $search, $f
 <form method="POST" action="<?= $b ?>/admin/listings/bulk" id="bulk-form"
       data-del-bulk data-del-entity="listing">
   <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
-
-  <div class="bulk">
-    <label for="bulk-action">Bulk Actions:</label>
-    <div class="select-wrap">
-    <select id="bulk-action" name="action" >
-      <option value="" disabled selected>&mdash; Select &mdash;</option>
-      <option value="mark_updated">Mark as Updated</option>
-      <option value="delete">Delete</option>
-    </select>
-    </div>
-    <button type="submit" class="btn btn-quaternary btn-sm">Apply</button>
-  </div>
+  <input type="hidden" name="select_all" value="0">
+  <input type="hidden" name="sa_filter_search" value="<?= View::e($search ?? '') ?>">
+  <input type="hidden" name="sa_filter_network" value="<?= View::e($filter_network ?? '') ?>">
+  <input type="hidden" name="sa_filter_cat" value="<?= View::e($filter_cat ?? '') ?>">
+  <input type="hidden" name="sa_filter_type" value="<?= View::e($filter_type ?? '') ?>">
 
   <?php $flFrom = ($page - 1) * $per_page + 1; $flTo = ($page - 1) * $per_page + count($listings); ?>
 
@@ -251,6 +243,21 @@ $flSortUrl = static function (string $col) use ($b, $flSort, $flDir, $search, $f
       <span class="row-sub">
         Showing <?= $flFrom ?>&#8211;<?= $flTo ?> of <?= number_format((int) $total) ?> listing<?= (int) $total !== 1 ? 's' : '' ?><?php if ($total_pages > 1): ?> &mdash; page <?= (int) $page ?> of <?= (int) $total_pages ?><?php endif; ?>
       </span>
+    </div>
+    <div class="bulk bulk--flush">
+      Bulk Actions:
+      <div class="select-wrap">
+      <select id="bulk-action" name="action" class="select-xs">
+        <option value="" disabled selected>&mdash; Select &mdash;</option>
+        <option value="mark_updated">Mark as Updated</option>
+        <option value="delete">Delete</option>
+      </select>
+      </div>
+      <button type="submit" class="btn btn-quaternary btn-sm">Apply to Selected</button>
+    </div>
+    <div class="select-all-banner" id="fl-select-all-sa-banner" data-total="<?= (int) ($total ?? 0) ?>" style="display:none">
+      <span class="sa-page">All <strong class="sa-page-count">0</strong> items on this page are selected.&ensp;<button type="button" class="link sa-select-all-btn">Select all <strong class="sa-total-count">0</strong> listings</button></span>
+      <span class="sa-all" style="display:none">All <strong class="sa-total-count">0</strong> listings are selected.&ensp;<button type="button" class="link sa-clear-btn">Clear selection</button></span>
     </div>
     <div class="table-wrap">
     <table class="data-table mem-table">
@@ -278,13 +285,15 @@ $flSortUrl = static function (string $col) use ($b, $flSort, $flDir, $search, $f
           <td class="text-dim" data-label="ID"><?= (int) $fl->id ?></td>
 
           <!-- Subject / Title -->
-          <td class="text-strong" data-label="Subject / Title">
-            <?php if ($fl->url !== ''): ?>
-              <a href="<?= View::e($fl->url) ?>" target="_blank" rel="noopener noreferrer" class="link"><?= View::e($fl->subject) ?></a>
-            <?php else: ?>
-              <?= View::e($fl->subject) ?>
-            <?php endif; ?>
-            <span class="mem-url"><?= View::e($fl->name) ?></span>
+          <td data-label="Subject / Title">
+            <div class="subject-title-stack">
+              <?php if ($fl->url !== ''): ?>
+                <a href="<?= View::e($fl->url) ?>" target="_blank" rel="noopener noreferrer" class="link"><?= View::e($fl->subject) ?></a>
+              <?php else: ?>
+                <?= View::e($fl->subject) ?>
+              <?php endif; ?>
+              <span class="mem-url"><?= View::e($fl->name) ?></span>
+            </div>
           </td>
 
           <!-- Category -->
@@ -316,9 +325,6 @@ $flSortUrl = static function (string $col) use ($b, $flSort, $flDir, $search, $f
             <?php else: ?>
               <span class="badge badge-current">Current</span>
             <?php endif; ?>
-            <?php $ab = $approved_by_map[$fl->id] ?? ''; if ($ab !== ''): ?>
-              <span class="badge badge-info"><?= strtoupper(View::e($ab)) ?></span>
-            <?php endif; ?>
           </td>
 
           <!-- Members -->
@@ -341,13 +347,7 @@ $flSortUrl = static function (string $col) use ($b, $flSort, $flDir, $search, $f
                  class="btn btn-tertiary btn-sm">Edit</a>
               <a href="<?= $b ?>/admin/members?listing_id=<?= (int) $fl->id ?>&status=all"
                  class="btn btn-quaternary btn-sm">Members</a>
-              <form method="POST"
-                    action="<?= $b ?>/admin/listings/<?= (int) $fl->id ?>/delete"
-                    data-del-modal data-del-entity="listing"
-                    data-del-name="<?= View::e($fl->name) ?>">
-                <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
-                <button type="submit" class="btn btn-danger btn-sm">Delete</button>
-              </form>
+              <button type="submit" form="del-listing-<?= (int) $fl->id ?>" class="btn btn-danger btn-sm">Delete</button>
             </div>
           </td>
 
@@ -358,6 +358,15 @@ $flSortUrl = static function (string $col) use ($b, $flSort, $flDir, $search, $f
     </div>
   </div>
 </form>
+
+<?php foreach ($listings as $fl): ?>
+<form id="del-listing-<?= (int) $fl->id ?>" method="POST"
+      action="<?= $b ?>/admin/listings/<?= (int) $fl->id ?>/delete"
+      data-del-modal data-del-entity="listing"
+      data-del-name="<?= View::e($fl->name) ?>">
+  <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
+</form>
+<?php endforeach; ?>
 
 <?php $pg_current = $page; $pg_total = $total_pages; $pg_url = $flPageUrl;
 include LUSTER_BASE . '/templates/admin/_pagination.php'; ?>

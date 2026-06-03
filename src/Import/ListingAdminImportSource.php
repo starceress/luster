@@ -1705,13 +1705,16 @@ final class ListingAdminImportSource implements ImportSourceInterface
         $statsTpl    = '';
 
         $hasLastUpdated = $this->tableHasColumn($target, 'lstr_fanlisting_settings', 'last_updated');
-        $luCol = $hasLastUpdated ? ', last_updated' : '';
-        $luVal = $hasLastUpdated ? ', :last_updated' : '';
+        $hasAffApply    = $this->tableHasColumn($target, 'lstr_fanlisting_settings', 'affiliate_apply_enabled');
+        $luCol  = $hasLastUpdated ? ', last_updated'            : '';
+        $luVal  = $hasLastUpdated ? ', :last_updated'           : '';
+        $affCol = $hasAffApply    ? ', affiliate_apply_enabled' : '';
+        $affVal = $hasAffApply    ? ', 1'                      : '';
 
         $ins = $target->prepare(
             "INSERT INTO lstr_fanlisting_settings
-               (fanlisting_id, members_per_page, members_template, affiliates_template, stats_template{$luCol})
-             VALUES (:fid, :perpage, :mtpl, :atpl, :stpl{$luVal})"
+               (fanlisting_id, members_per_page, members_template, affiliates_template, stats_template{$luCol}{$affCol})
+             VALUES (:fid, :perpage, :mtpl, :atpl, :stpl{$luVal}{$affVal})"
         );
         $params = [
             'fid'    => $listingId,

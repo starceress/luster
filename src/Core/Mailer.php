@@ -4,12 +4,18 @@ declare(strict_types=1);
 
 namespace Luster\Core;
 
+use PHPMailer\PHPMailer\PHPMailer;
+use PHPMailer\PHPMailer\Exception as PHPMailerException;
 use RuntimeException;
 
 /**
- * Thin wrapper around PHP's native mail() for transactional email.
+ * Transactional email wrapper backed by PHPMailer.
  *
- * From address: owner_email / owner_name from General settings.
+ * When smtp_enabled = '1' in config, sends via SMTP with the configured
+ * credentials. Otherwise falls back to PHP's mail() via PHPMailer::isMail().
+ *
+ * Public API is unchanged from the previous mail() implementation —
+ * all call sites remain unmodified.
  *
  * Usage:
  *   $mailer = new Mailer($app->getConfig());
@@ -22,14 +28,19 @@ final class Mailer
 
     public function __construct(private readonly Config $config)
     {
-        $this->fromEmail = $this->stripCrlf((string) $this->config->get('owner_email', ''));
-        $this->fromName  = $this->stripCrlf((string) $this->config->get('owner_name',  ''));
+        // From address: smtp_from first, falling back to owner_email.
+        $this->fromEmail = $this->stripCrlf(
+            (string) ($this->config->get('smtp_from', '') ?: $this->config->get('owner_email', ''))
+        );
+        $this->fromName = $this->stripCrlf(
+            (string) ($this->config->get('smtp_from_name', '') ?: $this->config->get('owner_name', ''))
+        );
     }
 
     /**
      * Sends a plain-text email.
      *
-     * @throws RuntimeException if mail() fails.
+     * @throws RuntimeException if sending fails.
      */
     public function send(string $toEmail, string $toName, string $subject, string $body): void
     {
@@ -39,7 +50,7 @@ final class Mailer
     /**
      * Sends a plain-text email with an optional Reply-To header.
      *
-     * @throws RuntimeException if mail() fails.
+     * @throws RuntimeException if sending fails.
      */
     public function sendWithReplyTo(
         string $toEmail,
@@ -70,61 +81,68 @@ final class Mailer
         $replyEmail = $this->stripCrlf($replyEmail);
         $replyName  = $this->stripCrlf($replyName);
 
-        $to      = $this->formatAddress($toName, $toEmail);
-        $headers = $this->buildHeaders($replyEmail, $replyName);
+        try {
+            $mail = new PHPMailer(true);
+            $mail->CharSet  = 'UTF-8';
+            $mail->Encoding = '8bit';
+            $mail->isHTML(false);
 
-        if (!mail($to, $this->encodeHeader($subject), $body, implode("\r\n", $headers))) {
-            throw new RuntimeException('mail() returned false — check server mail configuration.');
+            if ($this->isSmtpEnabled()) {
+                $this->configureSMTP($mail);
+            } else {
+                $mail->isMail();
+            }
+
+            if ($this->fromEmail !== '') {
+                $mail->setFrom($this->fromEmail, $this->fromName);
+            }
+
+            $mail->addAddress($toEmail, $toName);
+
+            if ($replyEmail !== '') {
+                $mail->addReplyTo($replyEmail, $replyName);
+            }
+
+            $mail->Subject = $subject;
+            $mail->Body    = $body;
+
+            $mail->send();
+        } catch (PHPMailerException $e) {
+            throw new RuntimeException('Email send failed: ' . $e->getMessage(), 0, $e);
         }
     }
 
-    /** @return list<string> */
-    private function buildHeaders(string $replyEmail, string $replyName): array
+    private function isSmtpEnabled(): bool
     {
-        $headers   = [];
-        $headers[] = 'MIME-Version: 1.0';
-        $headers[] = 'Content-Type: text/plain; charset=UTF-8';
-        $headers[] = 'Content-Transfer-Encoding: 8bit';
-
-        if ($this->fromEmail !== '') {
-            $headers[] = 'From: ' . $this->formatAddress($this->fromName, $this->fromEmail);
-        }
-
-        if ($replyEmail !== '') {
-            $headers[] = 'Reply-To: ' . $this->formatAddress($replyName, $replyEmail);
-        }
-
-        return $headers;
+        return (string) $this->config->get('smtp_enabled', '') === '1';
     }
 
-    private function formatAddress(string $name, string $email): string
+    private function configureSMTP(PHPMailer $mail): void
     {
-        if ($name === '') {
-            return $email;
-        }
+        $mail->isSMTP();
+        $mail->Host     = (string) $this->config->get('smtp_host', '');
+        $mail->Port     = (int)    $this->config->get('smtp_port', 587);
+        $mail->Username = (string) $this->config->get('smtp_user', '');
+        $mail->Password = (string) $this->config->get('smtp_pass', '');
+        $mail->SMTPAuth = $mail->Username !== '' || $mail->Password !== '';
 
-        // RFC 2047 encode display names with non-ASCII characters
-        if (preg_match('/[^\x20-\x7E]/', $name)) {
-            return '=?UTF-8?B?' . base64_encode($name) . '?= <' . $email . '>';
-        }
+        $secure          = $this->resolveSmtpSecure((string) $this->config->get('smtp_secure', 'tls'));
+        $mail->SMTPSecure = $secure;
 
-        // Quote display names that contain RFC 2822 special characters
-        if (preg_match('/[",;:<>()@\\\\]/', $name)) {
-            $name = '"' . str_replace(['\\', '"'], ['\\\\', '\\"'], $name) . '"';
+        // When no encryption is requested, disable opportunistic STARTTLS too
+        // so the "None" setting means truly unencrypted, not "try TLS if offered".
+        if ($secure === '') {
+            $mail->SMTPAutoTLS = false;
         }
-
-        return $name . ' <' . $email . '>';
     }
 
-    private function encodeHeader(string $value): string
+    private function resolveSmtpSecure(string $value): string
     {
-        $value = $this->stripCrlf($value);
-
-        if (!preg_match('/[^\x20-\x7E]/', $value)) {
-            return $value;
-        }
-
-        return '=?UTF-8?B?' . base64_encode($value) . '?=';
+        return match ($value) {
+            'ssl'  => PHPMailer::ENCRYPTION_SMTPS,
+            'none' => '',
+            default => PHPMailer::ENCRYPTION_STARTTLS, // 'tls' or anything unrecognised
+        };
     }
 
     private function stripCrlf(string $value): string

@@ -9,6 +9,7 @@ $s = match ($current_section ?? '') {
     'sysinfo'         => 'settings',
     'email-templates' => 'emails',
     'import'          => 'import',
+    'import-members'  => 'import',
     'adoptions'       => 'adoptions',
     default           => ($current_section ?? ''),
 };
@@ -18,15 +19,73 @@ if (!function_exists('navActive')) {
     }
 }
 
+$filterBootPath = parse_url((string) ($_SERVER['REQUEST_URI'] ?? ''), PHP_URL_PATH) ?: '';
+$filterBootMap = [
+    ['~/admin/(?:listings|affiliates|joined|categories)(?:/|$)~', 'filter-panel', 'fp-fl'],
+    ['~/admin/members(?:/|$)~', 'mem-filter-panel', 'fp-mem'],
+    ['~/admin/link-checker(?:/|$)~', 'lc-filter-panel', 'fp-lc'],
+    ['~/admin/wishlist(?:/|$)~', 'wl-filter-panel', 'fp-wl'],
+    ['~/admin/kim(?:/|$)~', 'kim-filter-panel', 'fp-kim'],
+    ['~/admin/updates(?:/|$)~', 'upd-filter-panel', 'fp-upd'],
+];
+$filterBootStates = json_decode((string) ($_COOKIE['lstr_fp'] ?? ''), true);
+if (!is_array($filterBootStates)) {
+    $filterBootStates = json_decode(rawurldecode((string) ($_COOKIE['lstr_fp'] ?? '')), true);
+}
+if (!is_array($filterBootStates)) {
+    $filterBootStates = [];
+}
+$htmlClasses = [];
+foreach ($filterBootMap as [$pattern, $panelId, $className]) {
+    if (preg_match($pattern, $filterBootPath) !== 1) {
+        continue;
+    }
+    $stateKey = 'fp:' . $filterBootPath . ':' . $panelId;
+    if (($filterBootStates[$stateKey] ?? null) !== '0') {
+        $htmlClasses[] = $className;
+    }
+}
+$htmlClassAttr = $htmlClasses === [] ? '' : ' class="' . View::e(implode(' ', $htmlClasses)) . '"';
+
 ?>
 <!DOCTYPE html>
-<html lang="en" data-theme="light"<?= ($selected_skin ?? '') !== '' ? ' data-skin="' . View::e($selected_skin) . '"' : '' ?>>
+<html lang="en"<?= $htmlClassAttr ?> data-theme="light"<?= ($selected_skin ?? '') !== '' ? ' data-skin="' . View::e($selected_skin) . '"' : '' ?>>
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title><?= View::e($page_title) ?> &#10022; Luster</title>
-  <?= lusterAdminCssLinks($b . '/assets/css', LUSTER_BASE . '/public/assets/css', $selected_skin ?? '') . PHP_EOL ?>
   <script>(function(){var t=localStorage.getItem('lstr_theme');if(t==='dark'||t==='light')document.documentElement.setAttribute('data-theme',t);})();</script>
+  <script>
+    (function(){
+      var h=document.documentElement;
+      var p=window.location.pathname;
+      var m=[
+        [/\/admin\/(?:listings|affiliates|joined|categories)(?:\/|$)/,'filter-panel','fp-fl'],
+        [/\/admin\/members(?:\/|$)/,'mem-filter-panel','fp-mem'],
+        [/\/admin\/link-checker(?:\/|$)/,'lc-filter-panel','fp-lc'],
+        [/\/admin\/wishlist(?:\/|$)/,'wl-filter-panel','fp-wl'],
+        [/\/admin\/kim(?:\/|$)/,'kim-filter-panel','fp-kim'],
+        [/\/admin\/updates(?:\/|$)/,'upd-filter-panel','fp-upd']
+      ];
+      function cookieMap(){var m=document.cookie.match(/(?:^|; )lstr_fp=([^;]*)/);if(!m)return {};try{return JSON.parse(decodeURIComponent(m[1]));}catch(e){return {};}}
+      function writeCookie(map){document.cookie='lstr_fp='+encodeURIComponent(JSON.stringify(map))+'; path=/; SameSite=Lax';}
+      var cm=cookieMap();
+      var dirty=false;
+      function state(id){var k='fp:'+p+':'+id;if(Object.prototype.hasOwnProperty.call(cm,k))return cm[k];try{var s=sessionStorage.getItem(k);if(s!==null){cm[k]=s;dirty=true;}return s;}catch(e){return null;}}
+      for(var i=0;i<m.length;i++){if(!m[i][0].test(p))continue;var st=state(m[i][1]);h.classList.toggle(m[i][2],st!=='0');}
+      if(dirty)writeCookie(cm);
+    }());
+  </script>
+  <style>
+    html.fp-fl #filter-panel,
+    html.fp-mem #mem-filter-panel,
+    html.fp-lc #lc-filter-panel,
+    html.fp-wl #wl-filter-panel,
+    html.fp-kim #kim-filter-panel,
+    html.fp-upd #upd-filter-panel { display: block; }
+  </style>
+  <link rel="icon" type="image/svg+xml" href="<?= $b ?>/assets/images/logo16.svg">
+  <?= lusterAdminCssLinks($b . '/assets/css', LUSTER_BASE . '/public/assets/css', $selected_skin ?? '') . PHP_EOL ?>
 </head>
 <body>
 
@@ -36,10 +95,7 @@ if (!function_exists('navActive')) {
 
   <div class="sidebar-brand">
     <div class="brand-lockup">
-      <div class="brand-gem-wrap">
-        <div class="brand-gem"></div>
-        <div class="brand-gem-glow"></div>
-      </div>
+      <img src="<?= $b ?>/assets/images/logo50.svg" alt="" class="brand-logo">
       <div class="brand-text">
         <span class="brand-name">Luster</span>
         <span class="brand-sub">Admin Panel</span>
@@ -65,6 +121,8 @@ if (!function_exists('navActive')) {
 
     <div class="sidebar-section">
       <div class="sidebar-label">Manage</div>
+      <a href="<?= $b ?>/admin/listings/collective-templates" class="nav-item<?= navActive('collective-templates', $s) ?>"><span class="nav-icon"><?= View::icon('collective') ?></span> Collective</a>
+
       <a href="<?= $b ?>/admin/listings" class="nav-item<?= navActive('listings', $s) ?>"><span class="nav-icon"><?= View::icon('star') ?></span> Owned</a>
 
       <a href="<?= $b ?>/admin/joined" class="nav-item<?= navActive('joined', $s) ?>"><span class="nav-icon"><?= View::icon('heart') ?></span> Joined</a>
@@ -78,14 +136,12 @@ if (!function_exists('navActive')) {
       <a href="<?= $b ?>/admin/affiliates" class="nav-item<?= navActive('affiliates', $s) ?>"><span class="nav-icon"><?= View::icon('link') ?></span> Affiliates</a>
 
       <a href="<?= $b ?>/admin/categories" class="nav-item<?= navActive('categories', $s) ?>"><span class="nav-icon"><?= View::icon('tag') ?></span> Categories</a>
-      
-      <a href="<?= $b ?>/admin/embed-codes" class="nav-item<?= navActive('embed-codes', $s) ?>"><span class="nav-icon"><?= View::icon('embed') ?></span> Embed Codes</a>
 
       <a href="<?= $b ?>/admin/emails" class="nav-item<?= navActive('emails', $s) ?>"><span class="nav-icon"><?= View::icon('email') ?></span> Emails</a>
     </div>
       
     <div class="sidebar-section">
-      <div class="sidebar-label">Tools & Extras</div>
+      <div class="sidebar-label">Tools</div>
       <?php $_navAddons = $nav_installed_addons ?? [];
       if (in_array('Adoption', $_navAddons, true)): ?>
       <a href="<?= $b ?>/admin/adoptions" class="nav-item<?= navActive('adoptions', $s) ?>"><span class="nav-icon"><?= View::icon('adoptions') ?></span> Adoptions<?php if (($nav_pending_adoptions ?? 0) > 0): ?><span class="badge badge-pending nav-item-badge"><?= (int) $nav_pending_adoptions ?></span><?php endif; ?></a>
@@ -102,10 +158,13 @@ if (!function_exists('navActive')) {
       <?php if (in_array('Wishlist', $_navAddons, true)): ?>
       <a href="<?= $b ?>/admin/wishlist" class="nav-item<?= navActive('wishlist', $s) ?>"><span class="nav-icon"><?= View::icon('wishlist') ?></span> Wishlist</a>
       <?php endif; ?>
-      
-      <a href="<?= $b ?>/admin/addons" class="nav-item<?= navActive('addons', $s) ?>"><span class="nav-icon"><?= View::icon('addon') ?></span> Manage Add-Ons</a>
 
-      <a href="<?= $b ?>/admin/link-checker" class="nav-item<?= navActive('link-checker', $s) ?>"><span class="nav-icon"><?= View::icon('linkcheck') ?></span> Link Checker</a>
+      <a href="<?= $b ?>/admin/embed-codes" class="nav-item<?= navActive('embed-codes', $s) ?>"><span class="nav-icon"><?= View::icon('embed') ?></span> Embed Wizard</a>
+
+      <?php $_lcIssues = ($nav_lc_dead ?? 0) + ($nav_lc_redirect ?? 0); ?>
+      <a href="<?= $b ?>/admin/link-checker" class="nav-item<?= navActive('link-checker', $s) ?>"><span class="nav-icon"><?= View::icon('linkcheck') ?></span> Link Checker<?php if ($_lcIssues > 0): ?><span class="badge badge-pending nav-item-badge"><?= $_lcIssues ?></span><?php endif; ?></a>
+
+      <a href="<?= $b ?>/admin/addons" class="nav-item<?= navActive('addons', $s) ?>"><span class="nav-icon"><?= View::icon('addon') ?></span> Manage Add-Ons</a>
     </div>
 
     <div class="sidebar-section">
@@ -113,22 +172,7 @@ if (!function_exists('navActive')) {
       
       <a href="<?= $b ?>/admin/settings" class="nav-item<?= navActive('settings', $s) ?>"><span class="nav-icon"><?= View::icon('gear') ?></span> Settings</a>
 
-      <?php $importOpen = in_array($s, ['import', 'import-members', 'legacy-source']); ?>
-      <div class="nav-group">
-        <button class="nav-group-toggle<?= $importOpen ? ' active' : '' ?>"
-                aria-expanded="<?= $importOpen ? 'true' : 'false' ?>"
-                data-group="import">
-          <span class="nav-icon"><?= View::icon('import') ?></span> Import Data
-          <span class="nav-icon nav-group-chevron"><?= View::icon('chevrondown') ?></span>
-        </button>
-        <div class="nav-group-panel<?= $importOpen ? ' open' : '' ?>" id="nav-group-import">
-          <a href="<?= $b ?>/admin/import" class="nav-item nav-sub-item<?= navActive('import', $s) ?>"><span class="nav-icon"><?= View::icon('wand') ?></span> Import Wizard</a>
-
-          <a href="<?= $b ?>/admin/import-members" class="nav-item nav-sub-item<?= navActive('import-members', $s) ?>"><span class="nav-icon"><?= View::icon('importmembers') ?></span> Import Members</a>
-
-          <a href="<?= $b ?>/admin/legacy-source" class="nav-item nav-sub-item<?= navActive('legacy-source', $s) ?>"><span class="nav-icon"><?= View::icon('browser') ?></span> Legacy Browser</a>
-        </div>
-      </div>
+      <a href="<?= $b ?>/admin/import" class="nav-item<?= navActive('import', $s) ?>"><span class="nav-icon"><?= View::icon('import') ?></span> Import Data</a>
 
       <?php $logsOpen = in_array($s, ['activitylog', 'errorlog']); ?>
       <div class="nav-group">
@@ -187,7 +231,7 @@ if (!function_exists('navActive')) {
                 <span class="topbar-crumb<?= $isLast ? ' is-current' : '' ?>"><?= View::e($crumb['label']) ?></span>
               <?php endif; ?>
               <?php if (!$isLast): ?>
-                <span class="topbar-crumb-sep" aria-hidden="true">&rsaquo;</span>
+                <span class="topbar-crumb-sep" aria-hidden="true">&#10022;</span>
               <?php endif; ?>
             <?php endforeach; ?>
           </nav>

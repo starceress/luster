@@ -13,6 +13,7 @@ use Luster\Core\Request;
 use Luster\Core\Response;
 use Luster\Core\Validator;
 use Luster\Models\Listing;
+use Luster\Repositories\BlacklistRepo;
 use Luster\Repositories\EmailTemplateRepo;
 use Luster\Repositories\ListingRepo;
 use Luster\Repositories\ListingSettingsRepo;
@@ -128,6 +129,12 @@ final class ResetController
         }
 
         $rateLimit->hitDefault($ip, RateLimit::ACTION_PUBLIC_RESET);
+
+        // Blacklist check — silently skip sending if this address is blocked.
+        // We still redirect to /sent so the block is not revealed.
+        if ((new BlacklistRepo($this->app->getDatabase()))->isBlocked($email)) {
+            return Response::redirect($baseUrl . '/reset/' . $listingId . '/sent');
+        }
 
         // Look up the member — only send email if they exist AND are approved
         $memberRepo = new MemberRepo($this->app->getDatabase(), $this->app->getConfig());

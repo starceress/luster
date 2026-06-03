@@ -147,6 +147,26 @@ final class DashboardController
         return Response::redirect($this->app->getBaseUrl() . '/admin');
     }
 
+    private static function dailyGreeting(string $username): string
+    {
+        $messages = [
+            "Hey there, %s! 😀",
+            "Let's make something shine today, %s! ✨",
+            "Good to see you, %s. 🌈",
+            "Welcome back, %s! 😄",
+            "There you are, %s. 😊",
+            "Glad you're here, %s. 💖",
+            "Luster missed you, %s. 🧡",
+            "You're right on time, %s. 🌠",
+            "Luster feels brighter with you, %s. 🌟",
+            "Ready to work some magic, %s? ⭐",
+            "A little magic awaits, %s. 🔮",
+        ];
+
+        $index = (int) date('Ymd') % count($messages);
+        return sprintf($messages[$index], $username);
+    }
+
     public function index(Request $request, array $params): Response
     {
         $db      = $this->app->getDatabase();
@@ -321,11 +341,29 @@ final class DashboardController
         }
 
         // ── Render ───────────────────────────────────────────────────────
-        $csrfToken  = $this->app->getCSRF()->token();
-        $noListings = (int) $fanStats['total'] === 0;
+        $csrfToken      = $this->app->getCSRF()->token();
+        $noListings     = (int) $fanStats['total'] === 0;
+        $appUrl = (string) $config->get('app_url', '');
+        $showHttpWarning = false;
+        if (str_starts_with($appUrl, 'http://')) {
+            $host = strtolower((string) (parse_url($appUrl, PHP_URL_HOST) ?? ''));
+            $isLocal = $host === 'localhost'
+                || $host === '127.0.0.1'
+                || $host === '::1'
+                || str_ends_with($host, '.local')
+                || str_ends_with($host, '.test')
+                || preg_match('/^192\.168\./', $host) === 1
+                || preg_match('/^10\./', $host) === 1
+                || preg_match('/^172\.(1[6-9]|2\d|3[01])\./', $host) === 1;
+            $showHttpWarning = !$isLocal;
+        }
+
+        $adminUsername = (string) $session->get('lstr_admin_username', '');
 
         $inner = $view->render('admin/dashboard.php', [
-            'admin_username'              => (string) $session->get('lstr_admin_username', ''),
+            'admin_username'              => $adminUsername,
+            'welcome_greeting'            => self::dailyGreeting($adminUsername),
+            'show_http_warning'           => $showHttpWarning,
             'site_name'                   => (string) $config->get('site_name', 'Luster'),
             'csrf_token'                  => $csrfToken,
             'total_listings'              => $fanStats['total'],

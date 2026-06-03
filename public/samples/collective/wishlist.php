@@ -1,26 +1,22 @@
 <?php
 /**
  * Sample collective — wishlist.
+ * Requires the Wishlist add-on to be installed.
  *
- * Options (set before the embed require):
- *   $luster_wishlist_type = 'all';   // 'all', 'wanted', 'top', 'granted', 'upcoming'
+ * Options:
+ *   $luster_wishlist_type = 'all';  // all | wanted | top | granted | upcoming
  */
 
-$_lusterRoot  = dirname(__DIR__, 3);
-$_siteTagline = 'A fanlisting collective';  // ← your tagline
-$_navActive   = 'wishlist';
-$_pageTitle   = 'Wishlist';
-require __DIR__ . '/_setup.php';
+$page_title = 'Wishlist';
 require 'header.php';
 ?>
 
-  <h1 class="page-heading">Wishlist</h1>
-  <p class="page-sub">Fanlistings I would love to own one day.</p>
+  <h1>Wishlist</h1>
+  <p>Fanlistings I would love to own one day.</p>
 
   <?php
   $luster_wishlist_type = 'all';
-  $luster_return        = true;
-  echo require $_embedPath . '/wishlist.php';
+  require $luster_root . '/public/embed/wishlist.php';
   ?>
 
 <?php require 'footer.php'; ?>

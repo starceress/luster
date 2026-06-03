@@ -80,6 +80,10 @@ final class AdoptionAddon implements AddonInterface
         $router->post('/adopt/{id}',      AdoptPublicController::class, 'submit');
 
         // Admin routes — specific action paths before parameterised {listingId}
+        $router->post('/admin/adoptions/{id}/approve',
+            AdoptionAdminController::class, 'approve');
+        $router->post('/admin/adoptions/{id}/reject',
+            AdoptionAdminController::class, 'reject');
         $router->post('/admin/adoptions/{id}/status',
             AdoptionAdminController::class, 'setStatus');
         $router->post('/admin/adoptions/{id}/delete',

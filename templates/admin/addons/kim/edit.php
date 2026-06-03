@@ -19,8 +19,7 @@ $b = rtrim(View::e($base_url), '/');
 ?>
 
 <div class="page-topbar">
-  <a href="<?= $b ?>/admin/kim/<?= (int) $member->fanlistingId ?>/show" class="link">&larr; Back to KIM: <?= View::e($fanlisting_name) ?>
-  </a>
+  <a href="<?= $b ?>/admin/kim?listing_id=<?= (int) $member->fanlistingId ?>" class="link">&larr; Back to KIM: <?= View::e($fanlisting_name) ?></a>
 </div>
 
 <?php if ($error !== ''): ?>
@@ -31,9 +30,16 @@ $b = rtrim(View::e($base_url), '/');
   <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
 
   <div class="gradient-card">
+    <div class="pc-head">
+      <div class="pc-head-icon pc-head-icon-bg"><?= View::icon('kim') ?></div>
+      <div class="pc-head-meta">
+        <div class="pc-head-title"><?= View::e($member->name) ?></div>
+        <div class="pc-head-sub">Editing Keep In Mind member &mdash; <?= View::e($fanlisting_name) ?></div>
+      </div>
+    </div>
     <div class="pc-section">
 
-      <div class="pc-section-label">Identity</div>
+      <div class="pc-section-label">Information</div>
 
       <div class="listing-field-row">
         <label class="listing-field-label" for="kim-name">Name <span class="req">*</span></label>
@@ -68,9 +74,19 @@ $b = rtrim(View::e($base_url), '/');
           </div>
         </div>
       </div>
+      <div class="listing-field-row">
+        <label class="listing-field-label">Granted</label>
+        <div class="radio-group">
+          <label class="radio-label">
+            <input type="radio" name="granted" value="1" <?= $member->granted ? 'checked' : '' ?>> Yes
+          </label>
+          <label class="radio-label">
+            <input type="radio" name="granted" value="0" <?= !$member->granted ? 'checked' : '' ?>> No
+          </label>
+        </div>
+      </div>
     </div>
 
-    
     <div class="pc-section">
       <div class="pc-section-label">Password</div>
 
@@ -106,7 +122,7 @@ $b = rtrim(View::e($base_url), '/');
 
     <div class="composer-footer">
       <button type="submit" class="btn btn-primary">Save Changes</button>
-      <a href="<?= $b ?>/admin/kim/<?= (int) $member->fanlistingId ?>/show" class="btn btn-ghost">Cancel</a>
+      <button type="reset" class="btn btn-quaternary js-form-reset">Reset to Original</button>
     </div>
   </div>
 </form>

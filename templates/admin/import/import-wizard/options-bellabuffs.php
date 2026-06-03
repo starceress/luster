@@ -51,7 +51,7 @@ function bbScopeChecked(array $old, string $key, bool $default = true): string {
 </div>
 
 <form id="import-bb-scope-form" method="POST"
-      action="<?= $b ?>/admin/import/bellabuffs/scope">
+      action="<?= $b ?>/admin/import/bellabuffs/options">
   <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
 
   <div class="gradient-card">
@@ -66,10 +66,12 @@ function bbScopeChecked(array $old, string $key, bool $default = true): string {
     <!-- ── Target listing ───────────────────────────────────────────── -->
     <div class="pc-section">
       <div class="pc-section-label">Target Luster Listing <span class="req">*</span></div>
+      
+      <div class="pc-section">
       <div class="form-group">
         <div class="select-wrap">
           <select name="bb_target_listing_id" id="bb-target-listing" required>
-            <option value="">— select a listing —</option>
+            <option value="">— Select Listing —</option>
             <?php foreach ($listings as $lst): ?>
               <option value="<?= (int) $lst['listingid'] ?>"
                       <?= $oldListingId === (int) $lst['listingid'] ? 'selected' : '' ?>>
@@ -81,27 +83,28 @@ function bbScopeChecked(array $old, string $key, bool $default = true): string {
         </div>
         <p class="field-hint-sm">
           BellaBuffs manages one fanlisting per install. All imported members will be placed
-          in this listing&rsquo;s member table.
+          in this listing's member table.
         </p>
       </div>
     </div>
+            </div>
 
     <!-- ── Data to import ──────────────────────────────────────────── -->
     <div class="pc-section">
       <div class="pc-section-label">Data to Import</div>
 
       <?php if ($bb_mode === 'upload'): ?>
-      <div class="callout callout-inline" style="margin-bottom:.875rem">
-        <?= View::icon('alert', ['width' => 16, 'height' => 16, 'style' => 'color:var(--warn);flex-shrink:0']) ?>
-        <span>Upload mode: only member data can be imported. Affiliates and codes require a server folder path.</span>
+      <div class="callout callout-warn">
+        <?= View::icon('alert') ?>
+        <div><strong>Upload mode: only member data can be imported.</strong> Affiliates and codes require a server folder path.</div>
       </div>
       <?php endif; ?>
 
-      <div class="import-chk-list">
+      <div class="import-chk-list pc-section">
 
         <div class="import-chk">
           <input type="checkbox" name="bb_import_pending" value="1" id="ck-bb-pending"
-                 <?= bbScopeChecked($old, 'bb_import_pending', false) ?>
+                 <?= bbScopeChecked($old, 'bb_import_pending') ?>
                  <?= !$has_newbies ? 'disabled' : '' ?>>
           <div class="import-chk-body">
             <label class="import-chk-lbl" for="ck-bb-pending">
@@ -159,7 +162,7 @@ function bbScopeChecked(array $old, string $key, bool $default = true): string {
     </div>
 
     <div class="composer-footer">
-      <a href="<?= $b ?>/admin/import/bellabuffs/connect" class="btn btn-ghost">&#8592; Back</a>
+      <a href="<?= $b ?>/admin/import/bellabuffs/connect" class="btn btn-quaternary">&#8592; Back</a>
       <button type="submit" class="btn btn-primary">Preview Import &#8594;</button>
     </div>
   </div>

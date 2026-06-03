@@ -34,6 +34,7 @@ use Luster\Core\View;
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title><?= View::e($page_title . ' — ' . ($listing->name ?? $listing_name ?? '')) ?></title>
+  <link rel="icon" type="image/svg+xml" href="<?= View::e(rtrim($base_url ?? '', '/')) ?>/assets/images/logo16.svg">
   <link rel="stylesheet" href="<?= View::e($theme_path) ?>style.css">
 </head>
 <body>

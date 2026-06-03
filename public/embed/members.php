@@ -106,10 +106,10 @@ $_lusterPerPage = (isset($luster_per_page) && (int) $luster_per_page > 0)
 $_lusterPage    = max(1, (int) ($_GET['page'] ?? 1));
 
 // $luster_sort_by — force a default sort, ignoring $_GET['sort'] when set
-$_lusterRawSort = (isset($luster_sort_by) && in_array($luster_sort_by, ['name', 'country'], true))
+$_lusterRawSort = (isset($luster_sort_by) && in_array($luster_sort_by, ['name', 'country', 'added'], true))
     ? (string) $luster_sort_by
     : (string) ($_GET['sort'] ?? 'country');
-$_lusterSort    = in_array($_lusterRawSort, ['name', 'country'], true) ? $_lusterRawSort : 'country';
+$_lusterSort    = in_array($_lusterRawSort, ['name', 'country', 'added'], true) ? $_lusterRawSort : 'country';
 $_lusterCountry = trim((string) ($_GET['country'] ?? ''));
 
 // $luster_show_search — whether to render sort/filter controls in the template
@@ -240,7 +240,7 @@ if ($_lusterCountry !== '') {
         'stats_line'      => $_lusterStatsLine,
         'pagination'      => $_lusterPagination,
     ]));
-} elseif ($_lusterSort === 'country') {
+} elseif ($_lusterSort === 'country' || ($_lusterSort !== 'name' && $_lusterSort !== 'added')) {
     // Path B: country summary
     $_lusterCountries      = $_lusterMemberRepo->getCountrySummary($_lusterListing->dbprefix);
     $_lusterCountrySummary = [];
@@ -265,12 +265,12 @@ if ($_lusterCountry !== '') {
 } else {
     // Path C: alphabetical by name
     $_lusterResult     = $_lusterMemberRepo->paginate(
-        $_lusterListing->dbprefix, $_lusterPage, $_lusterPerPage, true, 'name',
+        $_lusterListing->dbprefix, $_lusterPage, $_lusterPerPage, true, $_lusterSort,
     );
     $_lusterStatsLine  = $_lusterResult['total'] . ' member(s) — page '
         . $_lusterPage . ' of ' . $_lusterResult['pages'];
     $_lusterPagination = $_lusterBuildPagination(
-        $_lusterPage, $_lusterResult['pages'], $_lusterMembersBase, ['sort' => 'name'],
+        $_lusterPage, $_lusterResult['pages'], $_lusterMembersBase, ['sort' => $_lusterSort],
     );
 
     $_lusterMembersHtml = null;

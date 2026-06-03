@@ -87,10 +87,21 @@ if (!$_lusterSettingsRepo->getForAdoption($_lusterListingId)) {
 // ---------------------------------------------------------------------------
 
 $_lusterSession = $_lusterApp->getSession();
-$_lusterError   = (string) $_lusterSession->get('lstr_flash_error', '');
-$_lusterOld     = (array)  $_lusterSession->get('lstr_flash_old',   []);
+$_lusterSuccess = (string) $_lusterSession->get('lstr_flash_success', '');
+$_lusterError   = (string) $_lusterSession->get('lstr_flash_error',   '');
+$_lusterOld     = (array)  $_lusterSession->get('lstr_flash_old',     []);
+$_lusterSession->remove('lstr_flash_success');
 $_lusterSession->remove('lstr_flash_error');
 $_lusterSession->remove('lstr_flash_old');
+
+if ($_lusterSuccess !== '') {
+    $_lusterHtml = '<div class="fl-success"><p>'
+        . htmlspecialchars($_lusterSuccess, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8')
+        . '</p></div>';
+    if ($luster_return ?? false) { return $_lusterHtml; }
+    echo $_lusterHtml;
+    return;
+}
 
 // ---------------------------------------------------------------------------
 // 5. Render fragment

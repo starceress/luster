@@ -41,6 +41,9 @@ function mig_page(string $pageTitle, string $phTitle, string $phSub, string $con
     $skinAttr    = $selectedSkin !== '' ? ' data-skin="' . $h($selectedSkin) . '"' : '';
     $cssLinks    = lusterAdminCssLinks('../assets/css', __DIR__ . '/../assets/css', $selectedSkin);
     $migCssV     = is_file(__DIR__ . '/migrate.css') ? (string) (filemtime(__DIR__ . '/migrate.css') ?: 0) : '0';
+    $innerHtml   = "<div class=\"mig-card\">\n    {$content}\n  </div>";
+    $year        = (int) date('Y');
+    $copyrightYear = $year === 2026 ? '2026' : '2026&ndash;' . $year;
 
     return <<<HTML
 <!DOCTYPE html>
@@ -49,6 +52,7 @@ function mig_page(string $pageTitle, string $phTitle, string $phSub, string $con
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{$titleSafe} &#10022; Luster</title>
+  <link rel="icon" type="image/svg+xml" href="../assets/images/logo16.svg">
   {$cssLinks}
   <link rel="stylesheet" href="migrate.css?v={$migCssV}">
 
@@ -58,10 +62,12 @@ function mig_page(string $pageTitle, string $phTitle, string $phSub, string $con
 <body>
 
 <div class="mig-topbar">
-  <div class="mig-tb-gem"></div>
-  <a class="mig-tb-brand" href="../admin">Luster</a>
-  <div class="mig-tb-sep"></div>
-  <span class="mig-tb-sub">Migrations</span>
+  <div class="mig-tb-left">
+    <span class="mig-tb-logo" aria-hidden="true">&#x2726;</span>
+    <a class="mig-tb-brand" href="../admin">Luster</a>
+    <div class="mig-tb-sep"></div>
+    <span class="mig-tb-sub">Migration Runner</span>
+  </div>
   <div class="mig-tb-right">
     <button type="button" class="mig-tb-theme theme-toggle" aria-label="Toggle theme">
       <span class="theme-toggle-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="5"/><path d="M12 1v3M12 20v3M4.22 4.22l2.12 2.12M17.66 17.66l2.12 2.12M1 12h3M20 12h3M4.22 19.78l2.12-2.12M17.66 6.34l2.12-2.12"/></svg></span>
@@ -73,16 +79,16 @@ function mig_page(string $pageTitle, string $phTitle, string $phSub, string $con
 
 <div class="mig-wrap">
   <div class="mig-ph">
-    <div class="mig-ph-gem"{$gemStyle}></div>
+    <img src="../assets/images/logo50.svg" alt="" class="mig-ph-logo"{$gemStyle} width="50" height="50">
     <div>
       <div class="mig-ph-title">{$phTitleSafe}</div>
       <div class="mig-ph-sub">{$phSubSafe}</div>
     </div>
   </div>
 
-  <div class="mig-card">
-    {$content}
-  </div>
+  {$innerHtml}
+
+<p class="login-footer"><b>Luster</b> &copy; <a href="https://dreamesque.net/contact/" target="_blank" title="Contact" class="link">Star</a>, {$copyrightYear}.</p>
 </div>
 
 <script src="../assets/js/admin.js"></script>
@@ -91,25 +97,114 @@ function mig_page(string $pageTitle, string $phTitle, string $phSub, string $con
 HTML;
 }
 
+// ─── Card renderers ───────────────────────────────────────────────────────
+function mig_render_confirm(string $tokenSafe): string
+{
+    return <<<HTML
+<div class="pc-head">
+  <div class="pc-head-icon pc-head-icon-bg"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 12a9 3 0 0 0 5 2.69"/><path d="M21 9.3V5"/><path d="M3 5v14a9 3 0 0 0 6.47 2.88"/><path d="M12 12v4h4"/><path d="M13 20a5 5 0 0 0 9-3 4.5 4.5 0 0 0-4.5-4.5c-1.33 0-2.54.54-3.41 1.41L12 16"/></svg></div>
+  <div class="pc-head-meta">
+    <div class="pc-head-title">Run Migrations</div>
+    <div class="pc-head-sub">Safe to re-run &mdash; no duplicate operations.</div>
+  </div>
+</div>
+<div class="mig-card-body">
+<div class="callout callout-warn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
+<div><strong>Always back up your database before continuing.</strong> While each migration is designed to be safe, a backup ensures you can recover if anything goes wrong.</div>
+</div>
+</div>
+<div class="mig-card-footer">
+  <a href="../admin" class="btn btn-quaternary">&larr; Back to Admin Panel</a>
+  <form method="POST" action="" style="display:contents">
+    <input type="hidden" name="_csrf" value="{$tokenSafe}">
+    <button type="submit" class="btn btn-primary">Run Migrations &rarr;</button>
+  </form>
+</div>
+HTML;
+}
+
+function mig_render_results(array $done, array $errors): string
+{
+    $doneCount  = count($done);
+    $errorCount = count($errors);
+    $totalCount = $doneCount + $errorCount;
+    ob_start();
+    if ($totalCount === 0): ?>
+<div class="mig-card-body">
+  <div class="mig-empty">
+    <div class="mig-empty-ring">&#10003;</div>
+    <div class="mig-empty-title">Migrations are up to date!</div>
+    <div class="mig-empty-sub">Nothing to migrate &mdash; all migrations have already been applied.</div>
+  </div>
+</div>
+<div class="mig-card-footer mig-card-footer--center">
+  <a href="../admin" class="btn btn-primary">Return to Admin Panel</a>
+</div>
+<?php else: ?>
+<div class="pc-head">
+  <div class="pc-head-icon pc-head-icon-bg"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 12a9 3 0 0 0 5 2.69"/><path d="M21 9.3V5"/><path d="M3 5v14a9 3 0 0 0 6.47 2.88"/><path d="M12 12v4h4"/><path d="M13 20a5 5 0 0 0 9-3 4.5 4.5 0 0 0-4.5-4.5c-1.33 0-2.54.54-3.41 1.41L12 16"/></svg></div>
+  <div class="pc-head-meta">
+    <div class="pc-head-title">Run Log</div>
+    <div class="pc-head-sub"><span class="badge badge-current">&#10003; <?= $doneCount ?> applied</span> <span class="badge badge-error">&#10005; <?= $errorCount ?> failed</span></div>
+  </div>
+</div>
+<div class="mig-card-body">
+  <?php if (!empty($errors)): ?>
+    <div class="mig-section-label mig-section-label--err">&#10005;&nbsp; Errors</div>
+    <div class="mig-list">
+      <?php foreach ($errors as $i => $msg): ?>
+        <div class="mig-item mig-item--err" style="animation-delay:<?= $i * .05 ?>s">
+          <div class="mig-icon">&#10005;</div>
+          <div class="mig-text"><?= $msg ?></div>
+        </div>
+      <?php endforeach; ?>
+    </div>
+  <?php endif; ?>
+
+  <?php if (!empty($done)): ?>
+    <div class="mig-section-label mig-section-label--ok">&#10003;&nbsp; Applied</div>
+    <div class="mig-list">
+      <?php foreach ($done as $i => $msg): ?>
+        <div class="mig-item mig-item--ok" style="animation-delay:<?= ($i + count($errors)) * .05 ?>s">
+          <div class="mig-icon">&#10003;</div>
+          <div class="mig-text"><?= $msg ?></div>
+        </div>
+      <?php endforeach; ?>
+    </div>
+  <?php endif; ?>
+
+  <div class="mig-summary"><strong>Migration Results:</strong> 
+    <?php if ($doneCount > 0): ?><span class="badge badge-current">&#10003; <?= $doneCount ?> applied</span><?php endif; ?>
+    <?php if ($errorCount > 0): ?><span class="badge badge-error">&#10005; <?= $errorCount ?> failed</span><?php endif; ?>
+  </div>
+</div>
+
+<div class="mig-card-footer">
+	<a href="./" class="btn btn-quaternary">&larr; Back</a>
+	<a href="../admin" class="btn btn-primary">Continue to Admin Panel &rarr;</a>
+</div>
+<?php endif;
+    return (string) ob_get_clean();
+}
+
 // ─── Access denied ────────────────────────────────────────────────────────
 if (empty($_SESSION['lstr_admin_id'])) {
     http_response_code(403);
     echo mig_page('Access Denied', 'Access Denied', 'Authentication required.', <<<HTML
-<div class="mig-card-head">
-  <div class="mig-card-head-icon">&#128274;</div>
-  <div>
-    <div class="mig-card-head-title">Access Denied</div>
-    <div class="mig-card-head-sub">No active admin session detected.</div>
+<div class="pc-head">
+  <div class="pc-head-icon pc-head-icon-bg"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="m15 9-6 6"/><path d="M2.586 16.726A2 2 0 0 1 2 15.312V8.688a2 2 0 0 1 .586-1.414l4.688-4.688A2 2 0 0 1 8.688 2h6.624a2 2 0 0 1 1.414.586l4.688 4.688A2 2 0 0 1 22 8.688v6.624a2 2 0 0 1-.586 1.414l-4.688 4.688a2 2 0 0 1-1.414.586H8.688a2 2 0 0 1-1.414-.586z"/><path d="m9 9 6 6"/></svg></div>
+  <div class="pc-head-meta">
+    <div class="pc-head-title">Access Denied</div>
+    <div class="pc-head-sub">No active admin session detected.</div>
   </div>
 </div>
 <div class="mig-card-body">
-  <div class="mig-callout mig-callout--err">
-    <div class="mig-callout-icon">&#128683;</div>
-    <div class="mig-callout-text"><strong>No active admin session.</strong> You must be logged into the admin panel to run migrations. Please log in first, then return to this page.</div>
+  <div class="callout callout-err"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M4.929 4.929 19.07 19.071"/></svg>
+    <div><strong>No active admin session.</strong> You must be logged into the admin panel to run migrations. Please log in first, then return to this page.</div>
   </div>
 </div>
-<div class="mig-card-footer">
-  <a href="../admin" class="mig-back-link">&#8592; Go to admin login</a>
+<div class="mig-card-footer mig-card-footer--center">
+  <a href="../admin" class="btn btn-primary">Go to Admin Login</a>
 </div>
 HTML, true);
     exit;
@@ -158,27 +253,7 @@ $migSelectedSkin = '';
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     // Show confirmation page — nothing runs on GET.
-    echo mig_page('Run Migrations', 'Run Migrations', 'Apply pending database schema updates', <<<HTML
-<div class="pc-head">
-  <div class="pc-head-icon pc-head-icon-bg">&#128260;</div>
-  <div class="pc-head-meta">
-    <div class="pc-head-title">Run Migrations</div>
-    <div class="pc-head-sub">Safe to re-run &mdash; no duplicate operations.</div>
-  </div>
-</div>
-<div class="mig-card-body">
-<div class="callout callout-inline"><svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#ffd166" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
-<div><strong>Always back up your database before continuing.</strong> While each migration is designed to be safe, a backup ensures you can recover if anything goes wrong.</div>
-</div>
-</div>
-<div class="mig-card-footer">
-  <a href="../admin" class="btn btn-quaternary">&larr; Cancel</a>
-  <form method="POST" action="" style="display:contents">
-    <input type="hidden" name="_csrf" value="{$tokenSafe}">
-    <button type="submit" class="btn btn-primary">Run migrations &rarr;</button>
-  </form>
-</div>
-HTML, false, $migSelectedSkin);
+    echo mig_page('Run Migrations', 'Migration Runner', 'Apply pending database updates to your current installed version of Luster.', mig_render_confirm($tokenSafe), false, $migSelectedSkin);
     exit;
 }
 
@@ -187,21 +262,20 @@ $submittedToken = (string) ($_POST['_csrf'] ?? '');
 if (!hash_equals($migrateToken, $submittedToken)) {
     http_response_code(403);
     echo mig_page('Invalid Token', 'Invalid Token', 'Security token missing or expired.', <<<HTML
-<div class="mig-card-head">
-  <div class="mig-card-head-icon">&#128683;</div>
-  <div>
-    <div class="mig-card-head-title">Invalid Token</div>
-    <div class="mig-card-head-sub">The CSRF token was missing or has expired.</div>
+<div class="pc-head">
+  <div class="pc-head-icon pc-head-icon-bg"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="m15 9-6 6"/><path d="M2.586 16.726A2 2 0 0 1 2 15.312V8.688a2 2 0 0 1 .586-1.414l4.688-4.688A2 2 0 0 1 8.688 2h6.624a2 2 0 0 1 1.414.586l4.688 4.688A2 2 0 0 1 22 8.688v6.624a2 2 0 0 1-.586 1.414l-4.688 4.688a2 2 0 0 1-1.414.586H8.688a2 2 0 0 1-1.414-.586z"/><path d="m9 9 6 6"/></svg></div>
+  <div class="pc-head-meta">
+    <div class="pc-head-title">Invalid Token</div>
+    <div class="pc-head-sub">The CSRF token was missing or has expired.</div>
   </div>
 </div>
 <div class="mig-card-body">
-  <div class="mig-callout mig-callout--err">
-    <div class="mig-callout-icon">&#9888;</div>
-    <div class="mig-callout-text"><strong>Token validation failed.</strong> Please go back to the migration page and try again. Tokens are single-use and expire with your session.</div>
+  <div class="callout callout-err"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M4.929 4.929 19.07 19.071"/></svg>
+    <div><strong>Token validation failed.</strong> Please go back to the migration page and try again. Tokens are single-use and expire with your session.</div>
   </div>
 </div>
-<div class="mig-card-footer">
-  <a href="./" class="mig-back-link">&#8592; Back to migration page</a>
+<div class="mig-card-footer mig-card-footer--center">
+  <a href="./" class="btn btn-primary">Back to Migration Page</a>
 </div>
 HTML, false, $migSelectedSkin);
     exit;
@@ -215,21 +289,20 @@ $configPath = dirname(dirname(__DIR__)) . '/config/app.php';
 if (!is_file($configPath)) {
     http_response_code(500);
     echo mig_page('Configuration Missing', 'Configuration Missing', 'Luster is not yet installed.', <<<HTML
-<div class="mig-card-head">
-  <div class="mig-card-head-icon">&#128462;</div>
-  <div>
-    <div class="mig-card-head-title">Configuration Missing</div>
-    <div class="mig-card-head-sub"><code>config/app.php</code> was not found.</div>
+<div class="pc-head">
+  <div class="pc-head-icon pc-head-icon-bg"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/></svg></div>
+  <div class="pc-head-meta">
+    <div class="pc-head-title">Configuration Missing</div>
+    <div class="pc-head-sub"><code>config/app.php</code> was not found.</div>
   </div>
 </div>
 <div class="mig-card-body">
-  <div class="mig-callout mig-callout--err">
-    <div class="mig-callout-icon">&#9888;</div>
-    <div class="mig-callout-text"><strong>Luster is not configured.</strong> Run the installer first, then return to this page.</div>
+  <div class="callout callout-err"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M4.929 4.929 19.07 19.071"/></svg>
+    <div><strong>Luster is not configured.</strong> Run the installer first, then return to this page.</div>
   </div>
 </div>
-<div class="mig-card-footer">
-  <a href="../install/" class="mig-back-link">&#8594; Go to installer</a>
+<div class="mig-card-footer mig-card-footer--center">
+  <a href="../install/" class="btn btn-primary">Go to Installer</a>
 </div>
 HTML, false, $migSelectedSkin);
     exit;
@@ -256,21 +329,20 @@ try {
     $errMsg = htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
     http_response_code(500);
     echo mig_page('Database Error', 'Database Error', 'Could not connect to the database.', <<<HTML
-<div class="mig-card-head">
-  <div class="mig-card-head-icon">&#128268;</div>
-  <div>
-    <div class="mig-card-head-title">Database Connection Failed</div>
-    <div class="mig-card-head-sub">Check your <code>config/app.php</code> credentials.</div>
+<div class="pc-head">
+  <div class="pc-head-icon pc-head-icon-bg"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14a9 3 0 0 0 18 0V5"/><path d="M3 12a9 3 0 0 0 18 0"/></svg></div>
+  <div class="pc-head-meta">
+    <div class="pc-head-title">Database Connection Failed</div>
+    <div class="pc-head-sub">Check your <code>config/app.php</code> credentials.</div>
   </div>
 </div>
 <div class="mig-card-body">
-  <div class="mig-callout mig-callout--err">
-    <div class="mig-callout-icon">&#9888;</div>
-    <div class="mig-callout-text"><strong>Connection error.</strong> {$errMsg}</div>
+  <div class="callout callout-err"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M4.929 4.929 19.07 19.071"/></svg>
+    <div><strong>Connection error.</strong> {$errMsg}</div>
   </div>
 </div>
-<div class="mig-card-footer">
-  <a href="./" class="mig-back-link">&#8592; Try again</a>
+<div class="mig-card-footer mig-card-footer--center">
+  <a href="./" class="btn btn-primary">Try Again</a>
 </div>
 HTML, false, $migSelectedSkin);
     exit;
@@ -1787,67 +1859,39 @@ try {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Migration 53: affiliates_section_template column in lstr_fanlisting_settings
+// ─────────────────────────────────────────────────────────────────────────────
+try {
+    if (!(int) $pdo->query('SELECT COUNT(*) FROM `lstr_migrations` WHERE migration_number = 53')->fetchColumn()) {
+        $pdo->exec(
+            "ALTER TABLE lstr_fanlisting_settings
+                ADD COLUMN affiliates_section_template TEXT NULL DEFAULT NULL
+                AFTER affiliates_template"
+        );
+        $pdo->exec('INSERT INTO `lstr_migrations` (migration_number) VALUES (53)');
+        $done[] = 'Added <code>affiliates_section_template</code> column to <code>lstr_fanlisting_settings</code>';
+    }
+} catch (PDOException $e) {
+    $errors[] = 'Migration 53 — ' . htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+}
+
+// Migration 54: expand lstr_wishlist.category to varchar(500) for multi-category
+// ─────────────────────────────────────────────────────────────────────────────
+try {
+    if (!(int) $pdo->query('SELECT COUNT(*) FROM `lstr_migrations` WHERE migration_number = 54')->fetchColumn()) {
+        $pdo->exec(
+            "ALTER TABLE lstr_wishlist
+                MODIFY COLUMN category VARCHAR(500) NOT NULL DEFAULT ''"
+        );
+        $pdo->exec('INSERT INTO `lstr_migrations` (migration_number) VALUES (54)');
+        $done[] = 'Expanded <code>lstr_wishlist.category</code> to <code>VARCHAR(500)</code> for multi-category support';
+    }
+} catch (PDOException $e) {
+    $errors[] = 'Migration 54 — ' . htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Build results HTML
 // ─────────────────────────────────────────────────────────────────────────────
 
-$doneCount   = count($done);
-$errorCount  = count($errors);
-$totalCount  = $doneCount + $errorCount;
-
-ob_start();
-if ($totalCount === 0): ?>
-<div class="mig-card-body">
-  <div class="mig-empty">
-    <div class="mig-empty-ring">&#10003;</div>
-    <div class="mig-empty-title">Schema is up to date</div>
-    <div class="mig-empty-sub">Nothing to migrate &mdash; all migrations have already been applied.</div>
-  </div>
-</div>
-<div class="mig-card-footer mig-card-footer--center">
-  <a href="../admin" class="mig-back-link">&#8592; Return to admin panel</a>
-</div>
-<?php else: ?>
-<div class="mig-card-head">
-  <div class="mig-card-head-icon">&#128202;</div>
-  <div>
-    <div class="mig-card-head-title">Run Log</div>
-    <div class="mig-card-head-sub"><?= $doneCount ?> applied &middot; <?= $errorCount ?> error<?= $errorCount !== 1 ? 's' : '' ?></div>
-  </div>
-</div>
-<div class="mig-card-body">
-  <?php if (!empty($errors)): ?>
-    <div class="mig-section-label mig-section-label--err">&#9888;&nbsp; Errors</div>
-    <div class="mig-list">
-      <?php foreach ($errors as $i => $msg): ?>
-        <div class="mig-item mig-item--err" style="animation-delay:<?= $i * .05 ?>s">
-          <div class="mig-icon">&#10005;</div>
-          <div class="mig-text"><?= $msg ?></div>
-        </div>
-      <?php endforeach; ?>
-    </div>
-  <?php endif; ?>
-
-  <?php if (!empty($done)): ?>
-    <div class="mig-section-label mig-section-label--ok">&#10003;&nbsp; Applied</div>
-    <div class="mig-list">
-      <?php foreach ($done as $i => $msg): ?>
-        <div class="mig-item mig-item--ok" style="animation-delay:<?= ($i + count($errors)) * .05 ?>s">
-          <div class="mig-icon">&#10003;</div>
-          <div class="mig-text"><?= $msg ?></div>
-        </div>
-      <?php endforeach; ?>
-    </div>
-  <?php endif; ?>
-
-  <div class="mig-summary">
-    <?php if ($doneCount > 0): ?><span class="mig-badge mig-badge--ok">&#10003; <?= $doneCount ?> applied</span><?php endif; ?>
-    <?php if ($errorCount > 0): ?><span class="mig-badge mig-badge--err">&#9888; <?= $errorCount ?> failed</span><?php endif; ?>
-  </div>
-</div>
-<div class="mig-card-footer">
-  <a href="../admin" class="mig-back-link">&#8592; Return to admin panel</a>
-</div>
-<?php endif;
-
-$resultsHtml = ob_get_clean();
-echo mig_page('Migration Results', 'Migration Results', 'All migrations have been processed.', $resultsHtml, false, $migSelectedSkin);
+echo mig_page('Migration Results', 'Migration Results', 'All migrations have been processed.', mig_render_results($done, $errors), false, $migSelectedSkin);

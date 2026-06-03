@@ -119,10 +119,14 @@ $hasErr  = $result->hasErrors();
     <div class="stat-pills"><span class="badge badge-inactive">Seconds elapsed</span></div>
   </div>
 </div>
+
+
+<div class="overview-section-divider"></div>
+
 <!-- ──── RESULT TABLE ───────────────────────────────────────────────── -->
 <div class="gradient-card import-stack-gap">
   <div class="pc-head">
-    <div class="pc-head-icon pc-head-icon-bg"><?= View::icon('filter') ?></div>
+    <div class="pc-head-icon pc-head-icon-bg"><?= View::icon('import') ?></div>
     <div class="pc-head-meta">
       <div class="pc-head-title">Import Details</div>
       <div class="pc-head-sub">Review imported records, skipped records, image migration, and any warnings from this run.</div>
@@ -132,7 +136,7 @@ $hasErr  = $result->hasErrors();
     <table class="data-table">
       <thead>
         <tr>
-          <th>Data Type</th>
+          <th style="min-width:160px">Data Type</th>
           <th class="table-num">Imported</th>
           <th class="table-num">Skipped</th>
           <th>Notes / Errors</th>
@@ -150,9 +154,9 @@ $hasErr  = $result->hasErrors();
           $moreInArray   = $skipCount - count($showItems);
         ?>
         <tr>
-          <td class="<?= $hasSkipDetail ? 'skip-summary-cell' : '' ?>"><?= View::e($row['type']) ?></td>
-          <td class="table-num<?= $hasSkipDetail ? ' skip-summary-cell' : '' ?>"><?= number_format($row['imported']) ?></td>
-          <td class="table-num<?= $hasSkipDetail ? ' skip-summary-cell' : '' ?>"><?= number_format($totalSkipped) ?></td>
+          <td class="<?= $hasSkipDetail ? 'skip-summary-cell' : '' ?>" style="font-weight:600"><?= View::e($row['type']) ?></td>
+          <td class="table-num<?= $hasSkipDetail ? ' skip-summary-cell' : '' ?>"><?= (int)$row['imported'] === 0 ? '<span class="text-dim">' . number_format($row['imported']) . '</span>' : number_format($row['imported']) ?></td>
+          <td class="table-num<?= $hasSkipDetail ? ' skip-summary-cell' : '' ?>"><?= (int)$totalSkipped  === 0 ? '<span class="text-dim">' . number_format($totalSkipped)  . '</span>' : number_format($totalSkipped) ?></td>
           <td class="table-cell-notes">
             <?php foreach ($row['warnings'] as $w): ?>
               <span class="table-note-muted"><?= View::e($w) ?></span><br>
@@ -162,7 +166,7 @@ $hasErr  = $result->hasErrors();
             <?php endforeach; ?>
             <?php if ($hasSkipDetail): ?>
               <?php if (!empty($row['warnings']) || !empty($row['errors'])): ?><br><?php endif; ?>
-              <button type="button" class="skip-toggle link" data-target="skip-<?= md5($row['type']) ?>">
+              <button type="button" class="skip-toggle btn btn-xs btn-quaternary" data-target="skip-<?= md5($row['type']) ?>">
                 View <?= number_format($totalSkipped) ?> skipped item<?= $totalSkipped !== 1 ? 's' : '' ?> <span class="skip-toggle-arrow">&#9658;</span>
               </button>
             <?php elseif (empty($row['warnings']) && empty($row['errors'])): ?>
@@ -177,8 +181,8 @@ $hasErr  = $result->hasErrors();
               <div class="skip-detail-head">
                 Skipped <?= View::e($row['type']) ?>
                 <?php if ($totalSkipped > 50 || $overflow > 0): ?>
-                  &mdash; showing <?= count($showItems) ?> of <?= number_format($totalSkipped) ?>
-                  &middot; <a href="<?= $b ?>/admin/import/<?= $src ?>/report" class="link">Download full report</a> for complete list
+                  <span style="font-weight:400;text-transform:none;letter-spacing:0">&mdash; Showing <?= count($showItems) ?> of <?= number_format($totalSkipped) ?><br>
+                  <a href="<?= $b ?>/admin/import/<?= $src ?>/report" class="link">Download full report</a> for complete list</span>
                 <?php endif; ?>
               </div>
               <table class="skip-inner-table">
@@ -238,15 +242,15 @@ $hasErr  = $result->hasErrors();
 </div>
 
 <?php if (empty($result->imageRows) && $result->totalImported() > 0): ?>
-  <div class="callout">
-    <?= View::icon('alert', ['width' => 18, 'height' => 18, 'style' => 'color:var(--warn)']) ?>
-    No images were migrated. To migrate images, <a href="<?= $b ?>/admin/import/<?= $src ?>/connect" class="link">re-run the import</a> and enable image migration in the Options step. You can provide a server path, a base URL, or upload a ZIP.
+  <div class="callout callout-warn">
+    <?= View::icon('alert') ?>
+    <div><strong>No images were migrated.</strong> To migrate images, <a href="<?= $b ?>/admin/import/<?= $src ?>/connect" class="link">re-run the import</a> and provide either a server path, a URL to your live site, or upload a ZIP of your image folder.</div>
   </div>
 <?php endif; ?>
 <!-- ──── ACTIONS ────────────────────────────────────────────────────── -->
 <div class="btn-row import-action-row">
-  <a href="<?= $b ?>/admin" class="btn btn-primary">Go to Dashboard</a>
-  <a href="<?= $b ?>/admin/import" class="btn btn-secondary">Run Another Import</a>
+  <a href="<?= $b ?>/admin/import" class="btn btn-secondary">&larr; Run Another Import </a>
+  <a href="<?= $b ?>/admin" class="btn btn-primary">Go to Dashboard &rarr;</a>
 </div>
 
 </div>

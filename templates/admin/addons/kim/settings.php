@@ -14,7 +14,7 @@ $_defaults = [
 ?>
 
 <div class="page-topbar">
-  <a href="<?= $b ?>/admin/kim" class="link">&larr; Back to KIM List</a>
+  <a href="<?= $b ?>/admin/kim" class="link">&larr; Back to Keep In Mind</a>
 </div>
 
 <?php if (($success ?? '') !== ''): ?>
@@ -28,14 +28,44 @@ $_defaults = [
   <div class="pc-head">
     <div class="pc-head-icon pc-head-icon-bg"><?= View::icon('gear') ?></div>
     <div class="pc-head-meta">
-      <div class="pc-head-title">Display Settings</div>
-      <div class="pc-head-sub">Configure the public page URLs used by the KIM List embed.</div>
+      <div class="pc-head-title">Display & Embed Settings</div>
+      <div class="pc-head-sub">Configure the display settings of the admin panel & the public page URLs used by the KIM List embed.</div>
     </div>
   </div>
   <form method="post" action="<?= $b ?>/admin/kim/settings">
     <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
     <div class="pc-section">
-      <p class="form-hint mb-section">Enter the <strong>page filename</strong> of each KIM page on your site. The embed will prepend your site's base URL automatically. Leave blank to hide a link entirely.</p>
+      <div class="pc-section-label">Display Settings</div>
+      <div class="listing-field-row listing-field-row--top">
+        <label class="listing-field-label">Default View</label>
+        <div>
+          <div class="radio-group">
+            <label class="radio-label">
+              <input type="radio" name="kim_default_landing" value="members"
+                     <?= ($kim_default_landing ?? 'members') === 'members' ? 'checked' : '' ?>> Member View
+            </label>
+            <label class="radio-label">
+              <input type="radio" name="kim_default_landing" value="listings"
+                     <?= ($kim_default_landing ?? 'members') === 'listings' ? 'checked' : '' ?>> Listing View
+            </label>
+          </div>
+          <p class="form-hint">Which view opens when you click Keep In Mind in the sidebar.</p>
+        </div>
+      </div>
+      <div class="listing-field-row">
+        <label class="listing-field-label" for="kim-per-page">Entries Per Page</label>
+        <div>
+          <input id="kim-per-page" type="number" name="kim_per_page"
+                 class="form form--compact" min="5" max="25"
+                 value="<?= (int) ($kim_per_page ?? 10) ?>">
+          <p class="form-hint">How many listings to show per page on the KIM index and per-listing member list. Min 5, max 25, default 10.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="pc-section">
+      <div class="pc-section-label">Embed URLs</div>
+      <p class="text-dim">Enter the <strong>page filename</strong> of each KIM page on your site. The embed will prepend your site's base URL automatically. Leave blank to hide a link entirely.</p>
 
       <div class="form-row">
         <div class="form-group">
@@ -72,7 +102,6 @@ $_defaults = [
       <button type="submit" class="btn btn-primary">Save Settings</button>
       <button type="submit" name="reset_defaults" value="1" class="btn btn-quaternary">Reset to Default</button>
       <button type="reset" class="btn btn-ghost">Clear</button>
-      <a href="<?= $b ?>/admin/kim" class="btn btn-ghost">Cancel</a>
     </div>
   </form>
 </div>

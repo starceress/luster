@@ -6,14 +6,15 @@ if (!function_exists('lusterAdminCssFiles')) {
     /**
      * Returns the ordered list of admin CSS filenames to load.
      *
-     * tokens.css            — fonts, :root variables, [data-theme] and bundled
-     *                          [data-skin] blocks. Always first.
-     * skins/{slug}.css      — community skin only (if $selectedSkin names a
-     *                          community drop-in, not a bundled skin). Loaded after
-     *                          tokens.css so community overrides win at equal
-     *                          specificity, and before admin.css so component rules
-     *                          see the correct token values.
+     * tokens.css            — @font-face declarations, :root variables, and
+     *                          [data-theme] overrides. No skin blocks.
      * admin.css             — all layout, component, form, and feature rules.
+     * skins.css             — bundled [data-skin] variable and class overrides.
+     *                          Loads after admin.css so skin class overrides
+     *                          (.topbar, .card-head, etc.) behave predictably.
+     * skins/{slug}.css      — community skin only (if $selectedSkin names a
+     *                          community drop-in, not a bundled skin). Loads last
+     *                          so community overrides win at equal specificity.
      *
      * Bundled-skin detection uses SkinCatalog when the autoloader is available
      * (admin, auth, and migrate pages). On the install page, which is truly
@@ -25,7 +26,7 @@ if (!function_exists('lusterAdminCssFiles')) {
      */
     function lusterAdminCssFiles(string $selectedSkin = ''): array
     {
-        $files = ['tokens.css'];
+        $files = ['tokens.css', 'admin.css', 'skins.css'];
 
         if ($selectedSkin !== '' && preg_match('/^[a-z0-9][a-z0-9-]*$/', $selectedSkin)) {
             // Allow autoloading so admin pages always use the live SkinCatalog.
@@ -41,7 +42,6 @@ if (!function_exists('lusterAdminCssFiles')) {
             }
         }
 
-        $files[] = 'admin.css';
         return $files;
     }
 }

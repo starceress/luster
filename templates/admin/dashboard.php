@@ -3,6 +3,7 @@ use Luster\Core\UpdateStatus;
 use Luster\Core\View;
 /**
  * @var string        $admin_username
+ * @var string        $welcome_greeting
  * @var string        $site_name
  * @var int           $total_listings
  * @var int           $fan_current
@@ -40,6 +41,7 @@ use Luster\Core\View;
  * @var string             $csrf_token
  * @var \Luster\Core\UpdateStatus $update_status
  * @var bool               $show_update_banner
+ * @var bool               $show_http_warning
  */
 $b = rtrim(View::e($base_url), '/');
 
@@ -62,7 +64,7 @@ $growthDiff          = $growth_this_month - $growth_last_month;
 <div class="welcome-block">
   <div>
     <div class="welcome-sub" id="live-datetime"></div>
-    <div class="welcome-title">Hey there, <?= View::e($admin_username) ?>!</div>
+    <div class="welcome-title"><?= View::e($welcome_greeting) ?></div>
     <div class="welcome-sub">
       <?php if ($total_pending > 0 || !empty($stale_listings) || ($pending_affiliates ?? 0) > 0): ?>
         <?php
@@ -174,12 +176,30 @@ $growthDiff          = $growth_this_month - $growth_last_month;
       Getting Started
     </div>
     <p class="onboard-callout__body">
-      Migrating from Enthusiast or Listing Admin? The Import Wizard brings in your listings, members,
+      Migrating from Enthusiast or Listing Admin? Use the Import Data Wizard brings in your listings, members,
       affiliates, and images in minutes. Same-database Enthusiast installs are already readable &mdash;
       no migration needed.
     </p>
-      <a href="<?= $b ?>/admin/import" class="btn btn-primary btn-sm">Open Import Wizard &rarr;</a> 
-      <a href="<?= $b ?>/admin/listings/add" class="btn btn-quaternary btn-sm">Add First LIsting Manually&rarr;</a>
+      <a href="<?= $b ?>/admin/import" class="btn btn-primary btn-sm">Open Import Data Wizard &rarr;</a> 
+      <a href="<?= $b ?>/admin/listings/add" class="btn btn-quaternary btn-sm">Add First Listing Manually&rarr;</a>
+  </div>
+</div>
+<?php endif; ?>
+
+<!-- ──── HTTP APP URL WARNING ────────────────────────────────────────── -->
+<?php if ($show_http_warning ?? false): ?>
+<div class="reminder-banner">
+  <div class="reminder-banner-head">
+    <div class="reminder-banner-left">
+      <span class="reminder-banner-icon"><?= View::icon('caution') ?></span>
+      <div>
+        <span class="reminder-banner-title">Your site URL uses http://</span>
+        <span class="reminder-banner-msg">
+          That's fine for local testing, but logins won't work correctly on a live site without HTTPS.
+          <a href="<?= $b ?>/admin/settings#panel-general" class="link">Update your App URL before going live &rarr;</a>
+        </span>
+      </div>
+    </div>
   </div>
 </div>
 <?php endif; ?>

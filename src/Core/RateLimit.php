@@ -27,6 +27,7 @@ final class RateLimit
     public const ACTION_PUBLIC_CONTACT           = 'public_contact';
     public const ACTION_PUBLIC_ADOPT             = 'public_adopt';
     public const ACTION_PUBLIC_AFFILIATE_APPLY   = 'public_affiliate_apply';
+    public const ACTION_PUBLIC_CODE_SUBMIT       = 'public_code_submit';
 
     private const DEFAULTS = [
         self::ACTION_ADMIN_LOGIN              => ['max' => 5,  'window' => 900],
@@ -38,6 +39,7 @@ final class RateLimit
         self::ACTION_PUBLIC_CONTACT           => ['max' => 5,  'window' => 3600],
         self::ACTION_PUBLIC_ADOPT             => ['max' => 5,  'window' => 3600],
         self::ACTION_PUBLIC_AFFILIATE_APPLY   => ['max' => 5,  'window' => 3600],
+        self::ACTION_PUBLIC_CODE_SUBMIT       => ['max' => 5,  'window' => 3600],
     ];
 
     public function __construct(private readonly Database $db) {}
@@ -56,38 +58,64 @@ final class RateLimit
         $now    = new DateTimeImmutable();
         $nowStr = $now->format('Y-m-d H:i:s');
 
-        // Upsert: insert with attempts=1, or increment on duplicate key
-        $stmt = $this->db->prepare(
-            'INSERT INTO lstr_rate_limits (identifier, action, attempts, last_attempt, blocked_until)
-             VALUES (:identifier, :action, 1, :now, NULL)
-             ON DUPLICATE KEY UPDATE
-               attempts     = attempts + 1,
-               last_attempt = :now2'
-        );
-
-        $stmt->execute([
-            'identifier' => $identifier,
-            'action'     => $action,
-            'now'        => $nowStr,
-            'now2'       => $nowStr,
-        ]);
-
-        // Fetch the updated count to decide whether to set a block
-        $stmt2 = $this->db->prepare(
-            'SELECT attempts FROM lstr_rate_limits
+        // Fetch any existing row for this identifier+action
+        $sel = $this->db->prepare(
+            'SELECT attempts, last_attempt FROM lstr_rate_limits
              WHERE identifier = :identifier AND action = :action'
         );
-        $stmt2->execute(['identifier' => $identifier, 'action' => $action]);
-        $row = $stmt2->fetch();
+        $sel->execute(['identifier' => $identifier, 'action' => $action]);
+        $existing = $sel->fetch();
 
-        if ($row !== false && (int) $row['attempts'] >= $maxAttempts) {
+        if ($existing === false) {
+            // No row yet — insert with attempts=1
+            $ins = $this->db->prepare(
+                'INSERT INTO lstr_rate_limits (identifier, action, attempts, last_attempt, blocked_until)
+                 VALUES (:identifier, :action, 1, :now, NULL)'
+            );
+            $ins->execute(['identifier' => $identifier, 'action' => $action, 'now' => $nowStr]);
+            $currentAttempts = 1;
+        } else {
+            // Compare last_attempt to the window boundary in PHP so the logic
+            // works on both MySQL and SQLite (avoids DB-dialect-specific SQL).
+            $lastAttempt = new DateTimeImmutable((string) $existing['last_attempt']);
+            $windowStart = $now->modify("-{$windowSeconds} seconds");
+
+            if ($lastAttempt < $windowStart) {
+                // Stale row — outside the window; reset counter and clear any
+                // expired block so the next isBlocked() call sees a clean slate.
+                $upd = $this->db->prepare(
+                    'UPDATE lstr_rate_limits
+                     SET attempts = 1, last_attempt = :now, blocked_until = NULL
+                     WHERE identifier = :identifier AND action = :action'
+                );
+                $upd->execute(['now' => $nowStr, 'identifier' => $identifier, 'action' => $action]);
+                $currentAttempts = 1;
+            } else {
+                // Within the window — increment
+                $newAttempts = (int) $existing['attempts'] + 1;
+                $upd = $this->db->prepare(
+                    'UPDATE lstr_rate_limits
+                     SET attempts = :attempts, last_attempt = :now
+                     WHERE identifier = :identifier AND action = :action'
+                );
+                $upd->execute([
+                    'attempts'   => $newAttempts,
+                    'now'        => $nowStr,
+                    'identifier' => $identifier,
+                    'action'     => $action,
+                ]);
+                $currentAttempts = $newAttempts;
+            }
+        }
+
+        // Block the identifier once the threshold is reached
+        if ($currentAttempts >= $maxAttempts) {
             $blockedUntil = $now->modify("+{$windowSeconds} seconds")->format('Y-m-d H:i:s');
-
-            $stmt3 = $this->db->prepare(
+            $blk = $this->db->prepare(
                 'UPDATE lstr_rate_limits SET blocked_until = :blocked_until
                  WHERE identifier = :identifier AND action = :action'
             );
-            $stmt3->execute([
+            $blk->execute([
                 'blocked_until' => $blockedUntil,
                 'identifier'    => $identifier,
                 'action'        => $action,

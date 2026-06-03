@@ -15,6 +15,7 @@ use Luster\Core\Database;
  * Requires lstr_fanlisting_settings to exist — run public/migrate.php first.
  * Migration 5 adds stats_template and members_template columns.
  * Migration 6 adds affiliates_template column.
+ * Migration 53 adds affiliates_section_template column.
  */
 final class ListingSettingsRepo
 {
@@ -160,31 +161,106 @@ final class ListingSettingsRepo
     }
 
     /**
-     * Returns the stats, members, and affiliates template overrides for a listing.
+     * Returns the stats, members, affiliates, and affiliates-section template overrides for a listing.
      *
      * All values are null when no override has been saved.
      *
-     * @return array{stats_template: string|null, members_template: string|null, affiliates_template: string|null}
+     * @return array{stats_template: string|null, members_template: string|null, affiliates_template: string|null, affiliates_section_template: string|null}
      */
     public function getTemplates(int $listingId): array
     {
-        $stmt = $this->db->prepare(
-            'SELECT stats_template, members_template, affiliates_template
-             FROM lstr_fanlisting_settings
-             WHERE fanlisting_id = :id'
-        );
-        $stmt->execute(['id' => $listingId]);
-        $row = $stmt->fetch();
+        $defaults = [
+            'stats_template'              => null,
+            'members_template'            => null,
+            'affiliates_template'         => null,
+            'affiliates_section_template' => null,
+        ];
 
-        if ($row === false) {
-            return ['stats_template' => null, 'members_template' => null, 'affiliates_template' => null];
+        try {
+            $stmt = $this->db->prepare(
+                'SELECT stats_template, members_template, affiliates_template, affiliates_section_template
+                 FROM lstr_fanlisting_settings
+                 WHERE fanlisting_id = :id'
+            );
+            $stmt->execute(['id' => $listingId]);
+            $row = $stmt->fetch();
+        } catch (\Exception) {
+            // affiliates_section_template absent — Migration 53 not run; fall back to 3-column query
+            $stmt = $this->db->prepare(
+                'SELECT stats_template, members_template, affiliates_template
+                 FROM lstr_fanlisting_settings
+                 WHERE fanlisting_id = :id'
+            );
+            $stmt->execute(['id' => $listingId]);
+            $row = $stmt->fetch();
         }
 
+        if ($row === false) {
+            return $defaults;
+        }
+
+        $tr = static fn(?string $v): ?string => $v !== null ? self::translateLegacyTokens($v) : null;
+
         return [
-            'stats_template'      => $row['stats_template']      !== null ? (string) $row['stats_template']      : null,
-            'members_template'    => $row['members_template']    !== null ? (string) $row['members_template']    : null,
-            'affiliates_template' => $row['affiliates_template'] !== null ? (string) $row['affiliates_template'] : null,
+            'stats_template'              => $tr($row['stats_template']              !== null ? (string) $row['stats_template']              : null),
+            'members_template'            => $tr($row['members_template']            !== null ? (string) $row['members_template']            : null),
+            'affiliates_template'         => $tr($row['affiliates_template']         !== null ? (string) $row['affiliates_template']         : null),
+            'affiliates_section_template' => $tr(($row['affiliates_section_template'] ?? null) !== null ? (string) $row['affiliates_section_template'] : null),
         ];
+    }
+
+    /**
+     * Translates legacy Enthusiast $$token$$ placeholders to Luster's {token} format.
+     * Applied transparently at read time so imported templates work without manual editing.
+     */
+    private static function translateLegacyTokens(string $tpl): string
+    {
+        if (!str_contains($tpl, '$$')) {
+            return $tpl;
+        }
+        return str_replace(
+            [
+                '$$stat_opened$$',
+                '$$stat_updated$$',
+                '$$stat_lastupdated$$',
+                '$$stat_approved$$',
+                '$$stat_pending$$',
+                '$$stat_newmembers$$',
+                '$$stat_growth$$',
+                '$$fan_email_generic$$',
+                '$$fan_url_generic$$',
+                '$$fan_name$$',
+                '$$fan_email$$',
+                '$$fan_url$$',
+                '$$fan_country$$',
+                '$$aff_name$$',
+                '$$aff_url$$',
+                '$$aff_image$$',
+                '$$fanlisting_title$$',
+                '$$fanlisting_url$$',
+            ],
+            [
+                '{stat_opened}',
+                '{stat_updated}',
+                '{stat_last_updated}',
+                '{stat_approved}',
+                '{stat_pending}',
+                '{stat_newmembers}',
+                '{stat_growth}',
+                '{fan_email}',
+                '{fan_url}',
+                '{fan_name}',
+                '{fan_email}',
+                '{fan_url}',
+                '{fan_country}',
+                '{aff_name}',
+                '{aff_url}',
+                '{aff_image_tag}',
+                '{listing_name}',
+                '{listing_url}',
+            ],
+            $tpl,
+        );
     }
 
     /**
@@ -197,7 +273,32 @@ final class ListingSettingsRepo
         ?string $statsTemplate,
         ?string $membersTemplate,
         ?string $affiliatesTemplate,
+        ?string $affiliatesSectionTemplate = null,
     ): void {
+        // Try the full 4-column upsert first (Migration 53 present).
+        try {
+            $stmt = $this->db->prepare(
+                'INSERT INTO lstr_fanlisting_settings
+                     (fanlisting_id, stats_template, members_template, affiliates_template, affiliates_section_template)
+                 VALUES (:id, :stats, :members, :affiliates, :section)
+                 ON DUPLICATE KEY UPDATE
+                     stats_template              = VALUES(stats_template),
+                     members_template            = VALUES(members_template),
+                     affiliates_template         = VALUES(affiliates_template),
+                     affiliates_section_template = VALUES(affiliates_section_template)'
+            );
+            $stmt->execute([
+                'id'         => $listingId,
+                'stats'      => $statsTemplate,
+                'members'    => $membersTemplate,
+                'affiliates' => $affiliatesTemplate,
+                'section'    => $affiliatesSectionTemplate,
+            ]);
+            return;
+        } catch (\Exception) {
+            // affiliates_section_template column absent (Migration 53 not run) — fall back.
+        }
+
         $stmt = $this->db->prepare(
             'INSERT INTO lstr_fanlisting_settings (fanlisting_id, stats_template, members_template, affiliates_template)
              VALUES (:id, :stats, :members, :affiliates)
@@ -212,6 +313,26 @@ final class ListingSettingsRepo
             'members'    => $membersTemplate,
             'affiliates' => $affiliatesTemplate,
         ]);
+    }
+
+    /**
+     * Saves (upserts) the affiliates section template override for a listing.
+     *
+     * Pass null to clear. Does not touch other columns on existing rows.
+     * Requires Migration 53.
+     */
+    public function saveAffiliatesSectionTemplate(int $listingId, ?string $template): void
+    {
+        try {
+            $stmt = $this->db->prepare(
+                'INSERT INTO lstr_fanlisting_settings (fanlisting_id, affiliates_section_template)
+                 VALUES (:id, :tpl)
+                 ON DUPLICATE KEY UPDATE affiliates_section_template = VALUES(affiliates_section_template)'
+            );
+            $stmt->execute(['id' => $listingId, 'tpl' => $template]);
+        } catch (\Exception) {
+            // Migration 53 not run yet
+        }
     }
 
     /**
@@ -740,7 +861,7 @@ final class ListingSettingsRepo
         }
 
         if ($row === false) {
-            return ['enabled' => false, 'form_url' => '', 'redirect_url' => ''];
+            return ['enabled' => true, 'form_url' => '', 'redirect_url' => ''];
         }
 
         return [

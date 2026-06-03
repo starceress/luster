@@ -32,7 +32,7 @@ $formatLabel  = $formatLabels[$format] ?? 'Unknown';
   <div class="pc-section">
     <div class="pc-section-label">Summary</div>
 
-    <div class="stat-row" style="display:flex;gap:1.25rem;flex-wrap:wrap;margin-bottom:1rem">
+    <div class="stat-row">
       <div class="stat-tile">
         <span class="stat-label">Total rows</span>
         <div class="stat-value"><?= number_format($total) ?></div>

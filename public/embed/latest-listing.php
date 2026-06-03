@@ -11,7 +11,7 @@ use Luster\Support\ListingRowRenderer;
  * Luster embed — most recently opened owned listing.
  *
  * Returns the listing with the latest open date, rendered using the
- * owned-listings row template from Admin → Collective Templates.
+ * owned-listings row template from Admin → Collective.
  * Outputs an HTML comment when no listings are found so the host page never breaks.
  *
  * For the unprefixed (Enthusiast-compatible) schema, which has no `opened`

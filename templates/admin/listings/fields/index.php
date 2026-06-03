@@ -57,7 +57,7 @@ $id = (int) $listing->id;
           <?php foreach ($fields as $field): ?>
             <?php $safeName = View::e($field->name); ?>
             <tr>
-              <td class="text-strong"><?= View::e($field->label) ?></td>
+              <td><?= View::e($field->label) ?></td>
               <td><code class="neb-code"><?= $safeName ?></code></td>
               <td class="text-muted"><?= View::e($field->type) ?></td>
               <td>

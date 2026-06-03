@@ -48,6 +48,7 @@ final class KimAddon implements AddonInterface
                 `url`           VARCHAR(500) NOT NULL DEFAULT '',
                 `password`      VARCHAR(255) NOT NULL,
                 `pending`       TINYINT(1)   NOT NULL DEFAULT 1,
+                `granted`       TINYINT(1)   NOT NULL DEFAULT 0,
                 `added_at`      DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
                 PRIMARY KEY (`id`),
                 UNIQUE KEY `uk_email_fanlisting` (`email`, `fanlisting_id`),
@@ -100,8 +101,10 @@ final class KimAddon implements AddonInterface
 
         // ── Admin routes ──────────────────────────────────────────────────
         $router->get('/admin/kim',                      KimAdminController::class, 'index');
+        $router->get('/admin/kim/listings',             KimAdminController::class, 'listings');
         $router->get('/admin/kim/settings',             KimAdminController::class, 'showSettings');
         $router->post('/admin/kim/settings',            KimAdminController::class, 'saveSettings');
+        $router->post('/admin/kim/bulk',                KimAdminController::class, 'bulkGlobal');
         $router->get('/admin/kim/{fid}/bulk-email',     KimAdminController::class, 'massEmailForm');
         $router->post('/admin/kim/{fid}/bulk-email',    KimAdminController::class, 'massEmail');
         $router->get('/admin/kim/{fid}/show',           KimAdminController::class, 'show');

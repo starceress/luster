@@ -44,11 +44,8 @@ $b = rtrim(View::e($base_url), '/');
     </div>
 
     <div class="card-body">
-      <div class="callout callout-inline">
-        <?= View::icon('alert', ['width' => 24, 'height' => 24, 'style' => 'color:var(--warn)']) ?>
-        <div><strong>Destructive Operation.</strong> This renames the member table in your database. If anything goes wrong your member
-        data may become unreachable. There is no undo - back up your database before proceeding.
-      </div>
+      <div class="callout callout-err"><?= View::icon('alert') ?>
+        <div><strong>Destructive Operation.</strong> This renames the member table in your database. If anything goes wrong your member data may become unreachable. There is no undo - <b>back up your database before proceeding.</b></div>
     </div>
 
       <div class="listing-field-row listing-field-row--top">
