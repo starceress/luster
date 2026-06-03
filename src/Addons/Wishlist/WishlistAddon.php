@@ -41,7 +41,7 @@ final class WishlistAddon implements AddonInterface
                 `subject`     VARCHAR(255) NOT NULL DEFAULT '',
                 `url`         VARCHAR(255) NOT NULL DEFAULT '',
                 `image`       VARCHAR(255) NULL,
-                `category`    VARCHAR(100) NOT NULL DEFAULT '',
+                `category`    VARCHAR(500) NOT NULL DEFAULT '',
                 `type`        ENUM('wanted','top','granted','upcoming') NOT NULL DEFAULT 'wanted',
                 `description` TEXT NULL,
                 `added_at`    DATE NULL,

@@ -659,6 +659,7 @@ function installTables(PDO $pdo): void
             `stats_template`               TEXT                  NULL DEFAULT NULL,
             `members_template`             TEXT                  NULL DEFAULT NULL,
             `affiliates_template`          TEXT                  NULL DEFAULT NULL,
+            `affiliates_section_template`  TEXT                  NULL DEFAULT NULL,
             `image`                        VARCHAR(255)          NULL DEFAULT NULL,
             `listing_type`                 VARCHAR(50)           NULL DEFAULT NULL,
             `members_per_page`             TINYINT UNSIGNED      NULL DEFAULT NULL,
@@ -899,19 +900,20 @@ function installTables(PDO $pdo): void
 
     // Mark all migrations as already run so that migrate.php treats this
     // install as fully up-to-date. The schema created above incorporates
-    // every column and table added by migrations 1–56, with one exception:
-    // Migration 52 (adds `opened` to `owned`) is intentionally omitted —
-    // the installer does not create the `owned` table, so that migration
-    // stays pending and applies the next time migrate.php runs after `owned`
-    // exists. Migrations 55 (slug) and 56 (parent_id) are marked done
-    // because the installer now creates lstr_categories with both columns.
+    // every column and table added by each numbered migration, with two
+    // intentional omissions:
+    //   52 — adds `opened` to `owned`; installer does not create `owned`
+    //   54 — widens lstr_wishlist.category; installer does not create
+    //         lstr_wishlist (Wishlist add-on owns that table). The add-on's
+    //         install() now creates category VARCHAR(500) directly, so the
+    //         migration is a no-op for new add-on installs.
     $pdo->exec(
         'INSERT IGNORE INTO `lstr_migrations` (migration_number) VALUES
          (1),(2),(3),(4),(5),(6),(7),(8),(9),(10),(11),(12),(13),
          (14),(15),(16),(17),(18),(19),(20),(21),(22),(23),(24),
          (25),(26),(27),(28),(29),(30),(31),(32),(33),(34),(35),
          (36),(37),(38),(39),(40),(41),(42),(43),(44),(45),(46),
-         (47),(48),(49),(50),(51),(53),(54),(55),(56)'
+         (47),(48),(49),(50),(51),(53),(55),(56)'
     );
 }
 
