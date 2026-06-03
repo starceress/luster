@@ -1879,12 +1879,19 @@ try {
 // ─────────────────────────────────────────────────────────────────────────────
 try {
     if (!(int) $pdo->query('SELECT COUNT(*) FROM `lstr_migrations` WHERE migration_number = 54')->fetchColumn()) {
-        $pdo->exec(
-            "ALTER TABLE lstr_wishlist
-                MODIFY COLUMN category VARCHAR(500) NOT NULL DEFAULT ''"
-        );
-        $pdo->exec('INSERT INTO `lstr_migrations` (migration_number) VALUES (54)');
-        $done[] = 'Expanded <code>lstr_wishlist.category</code> to <code>VARCHAR(500)</code> for multi-category support';
+        // Only alter lstr_wishlist when it exists — Wishlist add-on may not be installed.
+        // Do NOT mark done if the table is absent; migration stays pending and will run
+        // once the add-on is installed. Mirrors the Migration 52 / owned pattern.
+        $wishlistExists = !empty($pdo->query("SHOW TABLES LIKE 'lstr_wishlist'")->fetchAll());
+        if ($wishlistExists) {
+            $pdo->exec(
+                "ALTER TABLE lstr_wishlist
+                    MODIFY COLUMN category VARCHAR(500) NOT NULL DEFAULT ''"
+            );
+            $pdo->exec('INSERT INTO `lstr_migrations` (migration_number) VALUES (54)');
+            $done[] = 'Expanded <code>lstr_wishlist.category</code> to <code>VARCHAR(500)</code> for multi-category support';
+        }
+        // If lstr_wishlist does not exist, skip silently — migration stays pending.
     }
 } catch (PDOException $e) {
     $errors[] = 'Migration 54 — ' . htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
