@@ -256,7 +256,11 @@ final class CollectiveStatsRepo
                 $s->execute();
 
                 foreach ($s->fetchAll(\PDO::FETCH_COLUMN) as $country) {
-                    $countries[strtolower(trim((string) $country))] = true;
+                    $country = trim((string) $country);
+                    if ($country === '') {
+                        continue;
+                    }
+                    $countries[strtolower($country)] = true;
                 }
             } catch (\Throwable) {
                 // Member table missing or inaccessible — skip silently

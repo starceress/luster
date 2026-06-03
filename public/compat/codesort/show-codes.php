@@ -78,14 +78,21 @@ if (isset($luster_fanlisting_id) && (int) $luster_fanlisting_id > 0) {
 
             // Also try matching against the listing URL in the owned table — more
             // likely to match a codes page that lives in the listing directory.
+            // Three-way match avoids the sibling-path ambiguity of a bare LIKE prefix
+            // (e.g. /foo matching /foo-bar). Note: JOINs the unprefixed 'owned' table;
+            // enth_fanlistings installs will not benefit from this fallback.
             $_lusterCodesStmt2 = $_lusterCompatDb->prepare(
                 'SELECT lfs.fanlisting_id
                  FROM lstr_fanlisting_settings lfs
                  JOIN owned o ON o.listingid = lfs.fanlisting_id
-                 WHERE o.url LIKE :url
+                 WHERE o.url = :url OR o.url = :url_slash OR o.url LIKE :url_prefix
                  LIMIT 1'
             );
-            $_lusterCodesStmt2->execute(['url' => $_lusterCodesUrl . '%']);
+            $_lusterCodesStmt2->execute([
+                'url'        => $_lusterCodesUrl,
+                'url_slash'  => $_lusterCodesUrl . '/',
+                'url_prefix' => $_lusterCodesUrl . '/%',
+            ]);
             $_lusterCodesRow2 = $_lusterCodesStmt2->fetch();
             if ($_lusterCodesRow2 !== false) {
                 $_lusterCodesListingId = (int) $_lusterCodesRow2['fanlisting_id'];

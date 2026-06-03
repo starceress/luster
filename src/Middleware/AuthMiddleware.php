@@ -89,11 +89,24 @@ final class AuthMiddleware
         $newTokenHash = hash('sha256', $newRawToken);
         $newExpiresAt = date('Y-m-d H:i:s', time() + 86400 * 30);
 
-        $this->db->prepare(
+        // Compare-and-swap: include the old hash so a concurrent request that
+        // already rotated (rowCount = 0) does not silently succeed here.
+        $updateStmt = $this->db->prepare(
             'UPDATE lstr_admin_remember_tokens
              SET token_hash = :hash, expires_at = :expires
-             WHERE id = :id'
-        )->execute(['hash' => $newTokenHash, 'expires' => $newExpiresAt, 'id' => (int) $row['id']]);
+             WHERE id = :id AND token_hash = :old_hash'
+        );
+        $updateStmt->execute([
+            'hash'     => $newTokenHash,
+            'expires'  => $newExpiresAt,
+            'id'       => (int) $row['id'],
+            'old_hash' => $tokenHash,
+        ]);
+
+        if ($updateStmt->rowCount() === 0) {
+            // A concurrent request rotated the token first; this cookie is stale.
+            return false;
+        }
 
         $isHttps = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
                 || (int) ($_SERVER['SERVER_PORT'] ?? 80) === 443
