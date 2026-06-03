@@ -197,7 +197,9 @@ if ($_lusterOwnedTemplate !== null) {
     // Fetch member stats (one query per listing) only when the template uses them
     $_lusterMemberStatsMap = [];
     $_lusterNeedsMemberStats = str_contains($_lusterOwnedTemplate, '{member_count}')
-                            || str_contains($_lusterOwnedTemplate, '{country_count}');
+                            || str_contains($_lusterOwnedTemplate, '{country_count}')
+                            || str_contains($_lusterOwnedTemplate, '{countries_count}')
+                            || str_contains($_lusterOwnedTemplate, '{if_countries}');
     if ($_lusterNeedsMemberStats) {
         $_lusterMemberRepo = new MemberRepo($_lusterApp->getDatabase(), $_lusterApp->getConfig());
         foreach ($_lusterListings as $_fl) {
@@ -215,21 +217,30 @@ if ($_lusterOwnedTemplate !== null) {
         $_flImageTag  = $_flImage !== ''
             ? '<img src="' . $e($_lusterUploadsUrl . '/' . $_flImage) . '" alt="' . $e($_fl->name) . '" title="' . $e($_fl->subject) . '">'
             : '';
-        $_flStats = $_lusterMemberStatsMap[$_fl->id] ?? ['approved' => 0, 'country_count' => 0];
+        $_flStats        = $_lusterMemberStatsMap[$_fl->id] ?? ['approved' => 0, 'country_count' => 0];
+        $_flCountryCount = (int) $_flStats['country_count'];
+
+        // Resolve {if_countries}...{/if_countries} before flat token substitution
+        $_flTemplate = (string) preg_replace(
+            '/\{if_countries\}(.*?)\{\/if_countries\}/s',
+            $_flCountryCount > 0 ? '$1' : '',
+            $_lusterOwnedTemplate,
+        );
+
         return str_replace(
             [
                 '{listing_name}', '{listing_url}', '{listing_subject}', '{listing_status}',
                 '{listing_email}', '{listing_type}', '{listing_category}',
                 '{listing_image}', '{date_opened}', '{date_updated}',
-                '{member_count}', '{country_count}',
+                '{member_count}', '{country_count}', '{countries_count}',
             ],
             [
                 $e($_fl->name), $e($_fl->url), $e($_fl->subject ?? ''), $e($statusLabel),
                 $e($_fl->email), $e($_fl->listingtype), $e($_lusterListingCategoryMap[$_fl->id] ?? ''),
                 $_flImageTag, $e($_fl->opened ?? ''), $e((string) ($_flSettings['last_updated'] ?? '')),
-                (string) $_flStats['approved'], (string) $_flStats['country_count'],
+                (string) $_flStats['approved'], (string) $_flCountryCount, (string) $_flCountryCount,
             ],
-            $_lusterOwnedTemplate,
+            $_flTemplate,
         );
     };
 

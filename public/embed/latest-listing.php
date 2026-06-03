@@ -114,7 +114,10 @@ try {
 
 // Optional member stats (only fetched when template uses them)
 $_flStats = ['approved' => 0, 'country_count' => 0];
-if (str_contains($_lusterOwnedTemplate, '{member_count}') || str_contains($_lusterOwnedTemplate, '{country_count}')) {
+if (str_contains($_lusterOwnedTemplate, '{member_count}')
+    || str_contains($_lusterOwnedTemplate, '{country_count}')
+    || str_contains($_lusterOwnedTemplate, '{countries_count}')
+    || str_contains($_lusterOwnedTemplate, '{if_countries}')) {
     try {
         $_flStats = (new MemberRepo($_lusterApp->getDatabase(), $_lusterApp->getConfig()))
             ->getMemberStats($_lusterListing->dbprefix);

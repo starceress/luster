@@ -44,12 +44,21 @@ final class ListingRowRenderer
               . ' title="' . $e($listing->subject) . '">'
             : '';
 
+        $countryCount = (int) ($memberStats['country_count'] ?? 0);
+
+        // Resolve {if_countries}...{/if_countries} before flat token substitution
+        $template = (string) preg_replace(
+            '/\{if_countries\}(.*?)\{\/if_countries\}/s',
+            $countryCount > 0 ? '$1' : '',
+            $template,
+        );
+
         return str_replace(
             [
                 '{listing_name}', '{listing_url}', '{listing_subject}', '{listing_status}',
                 '{listing_email}', '{listing_type}', '{listing_category}',
                 '{listing_image}', '{date_opened}', '{date_updated}',
-                '{member_count}', '{country_count}',
+                '{member_count}', '{country_count}', '{countries_count}',
             ],
             [
                 $e($listing->name),
@@ -62,8 +71,9 @@ final class ListingRowRenderer
                 $imageTag,
                 $e($listing->opened ?? ''),
                 $e((string) ($settings['last_updated'] ?? '')),
-                (string) ($memberStats['approved']      ?? 0),
-                (string) ($memberStats['country_count'] ?? 0),
+                (string) ($memberStats['approved'] ?? 0),
+                (string) $countryCount,
+                (string) $countryCount,   // {countries_count} — Fanatically-compatible alias
             ],
             $template,
         );

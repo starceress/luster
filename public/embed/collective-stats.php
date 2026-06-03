@@ -162,33 +162,36 @@ if ($_lusterCacheTtl > 0 && is_file($_lusterCacheFile)) {
 
 if ($_lusterCached !== null) {
     // Restore scalar data from cache
-    $_lusterOwnedCounts  = $_lusterCached['owned_counts'];
-    $_lusterJoinedCounts = $_lusterCached['joined_counts'];
-    $_lusterAffiliates   = (int) $_lusterCached['affiliates'];
-    $_lusterMembers      = $_lusterCached['members'];
-    $_lusterGrowthRates  = $_lusterCached['growth_rates'];
-    $_lusterCategories   = $_lusterCached['categories'];
+    $_lusterOwnedCounts    = $_lusterCached['owned_counts'];
+    $_lusterJoinedCounts   = $_lusterCached['joined_counts'];
+    $_lusterAffiliates     = (int) $_lusterCached['affiliates'];
+    $_lusterMembers        = $_lusterCached['members'];
+    $_lusterGrowthRates    = $_lusterCached['growth_rates'];
+    $_lusterCategories     = $_lusterCached['categories'];
+    $_lusterCountriesCount = (int) ($_lusterCached['countries_count'] ?? 0);
 } else {
-    $_lusterOwnedCounts  = $_lusterStatsRepo->getOwnedCounts();
-    $_lusterJoinedCounts = $_lusterStatsRepo->getJoinedCounts();
-    $_lusterAffiliates   = $_lusterStatsRepo->getAffiliateCount();
-    $_lusterMembers      = $_lusterStatsRepo->getMemberTotals();
-    $_lusterGrowthRates  = $_lusterStatsRepo->getGrowthRates(
+    $_lusterOwnedCounts    = $_lusterStatsRepo->getOwnedCounts();
+    $_lusterJoinedCounts   = $_lusterStatsRepo->getJoinedCounts();
+    $_lusterAffiliates     = $_lusterStatsRepo->getAffiliateCount();
+    $_lusterMembers        = $_lusterStatsRepo->getMemberTotals();
+    $_lusterGrowthRates    = $_lusterStatsRepo->getGrowthRates(
         $_lusterMembers['approved'],
         $_lusterOwnedCounts['active'],
         $_lusterJoinedCounts['active'],
     );
-    $_lusterCategories   = $_lusterStatsRepo->getOwnedCategoryBreakdown();
+    $_lusterCategories     = $_lusterStatsRepo->getOwnedCategoryBreakdown();
+    $_lusterCountriesCount = $_lusterStatsRepo->getDistinctCountryCount();
 
     // Write cache
     if ($_lusterCacheTtl > 0 && is_dir($_lusterCacheDir) && is_writable($_lusterCacheDir)) {
         file_put_contents($_lusterCacheFile, json_encode([
-            'owned_counts'  => $_lusterOwnedCounts,
-            'joined_counts' => $_lusterJoinedCounts,
-            'affiliates'    => $_lusterAffiliates,
-            'members'       => $_lusterMembers,
-            'growth_rates'  => $_lusterGrowthRates,
-            'categories'    => $_lusterCategories,
+            'owned_counts'   => $_lusterOwnedCounts,
+            'joined_counts'  => $_lusterJoinedCounts,
+            'affiliates'     => $_lusterAffiliates,
+            'members'        => $_lusterMembers,
+            'growth_rates'   => $_lusterGrowthRates,
+            'categories'     => $_lusterCategories,
+            'countries_count' => $_lusterCountriesCount,
         ], JSON_THROW_ON_ERROR));
     }
 }
@@ -233,6 +236,9 @@ $luster_joined_random       = $_lusterJoinedRandom;
 // Category breakdown
 $luster_categories          = $_lusterCategories;
 
+// Countries across all listings (distinct, case-insensitive)
+$luster_countries_count     = $_lusterCountriesCount;
+
 // Convenience aliases (Enthusiast-compatible naming)
 $luster_total_cats          = count($_lusterCategories);
 $luster_owned_current       = $_lusterOwnedCounts['active'];
@@ -258,6 +264,13 @@ if ($_lusterCStatsTemplate !== null) {
     $_lusterE = static fn(string $v): string =>
         htmlspecialchars($v, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 
+    // Resolve {if_countries}...{/if_countries} before flat token substitution
+    $_lusterCStatsTemplate = (string) preg_replace(
+        '/\{if_countries\}(.*?)\{\/if_countries\}/s',
+        $_lusterCountriesCount > 0 ? '$1' : '',
+        $_lusterCStatsTemplate,
+    );
+
     $_lusterHtml = str_replace(
         [
             '{owned_active}',
@@ -268,6 +281,7 @@ if ($_lusterCStatsTemplate !== null) {
             '{members_total}',
             '{members_approved}',
             '{members_pending}',
+            '{countries_count}',
             '{owned_newest_name}',
             '{owned_newest_url}',
             '{owned_random_name}',
@@ -282,6 +296,7 @@ if ($_lusterCStatsTemplate !== null) {
             (string) $luster_members_total,
             (string) $luster_members_approved,
             (string) $luster_members_pending,
+            (string) $_lusterCountriesCount,
             $_lusterE(!empty($_lusterOwnedNewest) ? $_lusterOwnedNewest[0]->name : ''),
             $_lusterE(!empty($_lusterOwnedNewest) ? $_lusterOwnedNewest[0]->url  : ''),
             $_lusterE($_lusterOwnedRandom !== null ? $_lusterOwnedRandom->name : ''),

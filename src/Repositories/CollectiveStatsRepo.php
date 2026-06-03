@@ -216,6 +216,57 @@ final class CollectiveStatsRepo
     }
 
     // -----------------------------------------------------------------------
+    // Distinct country count across all listings
+    // -----------------------------------------------------------------------
+
+    /**
+     * Returns the number of distinct countries represented across all approved
+     * members in every owned listing's member table.
+     *
+     * Countries are compared case-insensitively so "USA" and "usa" count once.
+     * Silently skips inaccessible member tables (same behaviour as getMemberTotals).
+     */
+    public function getDistinctCountryCount(): int
+    {
+        $stmt = $this->db->prepare(
+            "SELECT {$this->ownedPrefixCol} AS prefix FROM {$this->ownedTable}"
+        );
+        $stmt->execute();
+        $prefixes = $stmt->fetchAll(\PDO::FETCH_COLUMN);
+
+        $countries = [];
+
+        foreach ($prefixes as $rawPrefix) {
+            $rawPrefix = (string) $rawPrefix;
+            if ($rawPrefix === '') {
+                continue;
+            }
+
+            try {
+                $tableName = $this->appendMembers
+                    ? $rawPrefix . 'members'
+                    : $rawPrefix;
+
+                $table = $this->db->validatePrefix($tableName);
+
+                $s = $this->db->prepare(
+                    "SELECT DISTINCT country FROM {$table}
+                     WHERE {$this->approvedExpr} AND country != '' AND country IS NOT NULL"
+                );
+                $s->execute();
+
+                foreach ($s->fetchAll(\PDO::FETCH_COLUMN) as $country) {
+                    $countries[strtolower((string) $country)] = true;
+                }
+            } catch (\Throwable) {
+                // Member table missing or inaccessible — skip silently
+            }
+        }
+
+        return count($countries);
+    }
+
+    // -----------------------------------------------------------------------
     // Newest N listings
     // -----------------------------------------------------------------------
 

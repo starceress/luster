@@ -83,6 +83,30 @@ final class AuthMiddleware
             return false;
         }
 
+        // Rotate the token — invalidates the old cookie immediately so a copied
+        // cookie cannot be reused. One active token per admin is intentional.
+        $newRawToken  = bin2hex(random_bytes(32));
+        $newTokenHash = hash('sha256', $newRawToken);
+        $newExpiresAt = date('Y-m-d H:i:s', time() + 86400 * 30);
+
+        $this->db->prepare(
+            'UPDATE lstr_admin_remember_tokens
+             SET token_hash = :hash, expires_at = :expires
+             WHERE admin_user_id = :uid'
+        )->execute(['hash' => $newTokenHash, 'expires' => $newExpiresAt, 'uid' => $userId]);
+
+        $isHttps = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
+                || (int) ($_SERVER['SERVER_PORT'] ?? 80) === 443
+                || strtolower((string) ($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '')) === 'https';
+
+        setcookie('lstr_remember', $userId . ':' . $newRawToken, [
+            'expires'  => time() + 86400 * 30,
+            'path'     => '/',
+            'httponly' => true,
+            'secure'   => $isHttps,
+            'samesite' => 'Strict',
+        ]);
+
         $this->session->regenerate();
         $this->session->set('lstr_admin_id',       $userId);
         $this->session->set('lstr_admin_username', (string) $row['username']);

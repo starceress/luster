@@ -181,6 +181,88 @@ final class ListingRowRendererTest extends TestCase
         self::assertSame('0/0', $html);
     }
 
+    public function testCountriesCountAliasMatchesCountryCount(): void
+    {
+        $html = ListingRowRenderer::render(
+            $this->makeListing(),
+            '{countries_count}',
+            [],
+            'https://example.com/uploads/listings',
+            '',
+            ['approved' => 42, 'country_count' => 7],
+        );
+
+        self::assertSame('7', $html);
+    }
+
+    public function testCountriesCountAliasPresentAlongsideOriginal(): void
+    {
+        $html = ListingRowRenderer::render(
+            $this->makeListing(),
+            '{country_count}/{countries_count}',
+            [],
+            'https://example.com/uploads/listings',
+            '',
+            ['approved' => 0, 'country_count' => 12],
+        );
+
+        self::assertSame('12/12', $html);
+    }
+
+    public function testIfCountriesConditionalRendersWhenCountAboveZero(): void
+    {
+        $html = ListingRowRenderer::render(
+            $this->makeListing(),
+            '{if_countries}has countries{/if_countries}',
+            [],
+            'https://example.com/uploads/listings',
+            '',
+            ['approved' => 5, 'country_count' => 3],
+        );
+
+        self::assertSame('has countries', $html);
+    }
+
+    public function testIfCountriesConditionalRemovedWhenCountIsZero(): void
+    {
+        $html = ListingRowRenderer::render(
+            $this->makeListing(),
+            '{if_countries}has countries{/if_countries}',
+            [],
+            'https://example.com/uploads/listings',
+            '',
+            ['approved' => 5, 'country_count' => 0],
+        );
+
+        self::assertSame('', $html);
+    }
+
+    public function testIfCountriesConditionalDefaultsToRemovedWhenStatsOmitted(): void
+    {
+        $html = ListingRowRenderer::render(
+            $this->makeListing(),
+            '{if_countries}has countries{/if_countries}',
+            [],
+            'https://example.com/uploads/listings',
+        );
+
+        self::assertSame('', $html);
+    }
+
+    public function testIfCountriesConditionalCanContainTokens(): void
+    {
+        $html = ListingRowRenderer::render(
+            $this->makeListing(),
+            '{if_countries}({countries_count} countries){/if_countries}',
+            [],
+            'https://example.com/uploads/listings',
+            '',
+            ['approved' => 10, 'country_count' => 4],
+        );
+
+        self::assertSame('(4 countries)', $html);
+    }
+
     // -----------------------------------------------------------------------
     // Scalar token escaping
     // -----------------------------------------------------------------------
