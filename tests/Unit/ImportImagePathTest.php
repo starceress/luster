@@ -94,7 +94,7 @@ final class ImportImagePathTest extends TestCase
         )");
         $pdo->exec("CREATE TABLE IF NOT EXISTS lstr_categories
             (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL,
-             parent_id INTEGER NULL, source TEXT NOT NULL DEFAULT 'custom')");
+             slug TEXT NOT NULL DEFAULT '', parent_id INTEGER NULL, source TEXT NOT NULL DEFAULT 'custom')");
         $pdo->exec("CREATE TABLE IF NOT EXISTS lstr_affiliates
             (id INTEGER PRIMARY KEY AUTOINCREMENT, fanlisting_id INTEGER NULL,
              name TEXT NOT NULL DEFAULT '', url TEXT NOT NULL DEFAULT '',

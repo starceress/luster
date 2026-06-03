@@ -1923,8 +1923,19 @@ try {
             $upStmt->execute(['slug' => $slug, 'id' => $row['id']]);
         }
 
-        // 4. Add unique index now that every slug is non-empty and source-unique
-        $pdo->exec("ALTER TABLE `lstr_categories` ADD UNIQUE KEY `uq_cat_slug` (source, slug)");
+        // 4. Add unique index now that every slug is non-empty and source-unique.
+        //    Guard with INFORMATION_SCHEMA so a re-run (migration already recorded)
+        //    never hits this path, but an interrupted run (column added, recording
+        //    failed) can recover without a duplicate-key error.
+        $keyExists = (bool) $pdo->query(
+            "SELECT COUNT(*) FROM information_schema.STATISTICS
+             WHERE TABLE_SCHEMA = DATABASE()
+               AND TABLE_NAME = 'lstr_categories'
+               AND INDEX_NAME = 'uq_cat_slug'"
+        )->fetchColumn();
+        if (!$keyExists) {
+            $pdo->exec("ALTER TABLE `lstr_categories` ADD UNIQUE KEY `uq_cat_slug` (source, slug)");
+        }
 
         $pdo->exec('INSERT INTO `lstr_migrations` (migration_number) VALUES (55)');
         $done[] = 'Added <code>slug</code> column to <code>lstr_categories</code>, backfilled ' . count($rows) . ' slug(s), added unique index';

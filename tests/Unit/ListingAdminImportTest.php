@@ -175,6 +175,7 @@ final class ListingAdminImportTest extends TestCase
             'CREATE TABLE IF NOT EXISTS lstr_categories (
                 id        INTEGER PRIMARY KEY AUTOINCREMENT,
                 name      TEXT    NOT NULL DEFAULT \'\',
+                slug      TEXT    NOT NULL DEFAULT \'\',
                 parent_id INTEGER NULL,
                 source    TEXT    NOT NULL DEFAULT \'custom\'
             )'
@@ -841,7 +842,7 @@ final class ListingAdminImportTest extends TestCase
 
     private function addLaCategoryTable(PDO $pdo): void
     {
-        $pdo->exec('CREATE TABLE IF NOT EXISTS lstr_categories (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, parent_id INTEGER NULL, source TEXT NOT NULL DEFAULT \'custom\')');
+        $pdo->exec('CREATE TABLE IF NOT EXISTS lstr_categories (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, slug TEXT NOT NULL DEFAULT \'\', parent_id INTEGER NULL, source TEXT NOT NULL DEFAULT \'custom\')');
     }
 
     private function addLaJoinedTable(PDO $pdo): void

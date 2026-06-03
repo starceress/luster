@@ -36,6 +36,7 @@ CREATE TABLE owned (
 CREATE TABLE lstr_categories (
     id        INTEGER PRIMARY KEY AUTOINCREMENT,
     name      TEXT    NOT NULL DEFAULT '',
+    slug      TEXT    NOT NULL DEFAULT '',
     source    TEXT    NOT NULL DEFAULT 'tfl',
     parent_id INTEGER NULL
 );
@@ -275,6 +276,7 @@ CREATE TABLE owned (
 CREATE TABLE lstr_categories (
     id        INTEGER PRIMARY KEY AUTOINCREMENT,
     name      TEXT    NOT NULL DEFAULT '',
+    slug      TEXT    NOT NULL DEFAULT '',
     source    TEXT    NOT NULL DEFAULT 'tfl'
 );
 CREATE TABLE lstr_listing_categories (

@@ -243,19 +243,11 @@ final class CategoryRepo
 
     /**
      * Inserts a custom network name if it does not already exist.
+     * Uses findOrCreate semantics so a slug is always generated.
      */
     public function addCustomNetwork(string $name): void
     {
-        $stmt = $this->db->prepare(
-            "INSERT INTO lstr_categories (name, source)
-             SELECT :name, 'custom'
-             FROM DUAL
-             WHERE NOT EXISTS (
-                 SELECT 1 FROM lstr_categories
-                 WHERE name = :name AND source = 'custom'
-             )"
-        );
-        $stmt->execute(['name' => $name]);
+        $this->findOrCreate('custom', $name);
     }
 
     /**
@@ -480,8 +472,11 @@ final class CategoryRepo
     /**
      * Converts a display name to a URL-safe slug.
      * Non-alphanumeric runs become hyphens; result is lowercase, max 90 chars.
+     *
+     * Public and static so import sources and other write paths can generate
+     * slugs without needing a full CategoryRepo instance.
      */
-    private function slugify(string $name): string
+    public static function slugify(string $name): string
     {
         $slug = strtolower(trim((string) preg_replace('/[^a-zA-Z0-9]+/', '-', $name), '-'));
         return substr($slug !== '' ? $slug : 'category', 0, 90);

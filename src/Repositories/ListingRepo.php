@@ -487,14 +487,25 @@ final class ListingRepo
             default                             => '1 = 1',
         };
 
-        $t        = $this->table;
-        $pk       = $this->pkCol;
-        $catWhere = $categoryId !== null
-            ? " AND EXISTS (SELECT 1 FROM lstr_listing_categories lc WHERE lc.fanlisting_id = {$t}.{$pk} AND lc.category_id = :category_id)"
-            : '';
-        $params   = [];
+        $t      = $this->table;
+        $pk     = $this->pkCol;
+        $params = [];
+
         if ($categoryId !== null) {
-            $params['category_id'] = $categoryId;
+            // Expand to include child categories (max depth=1) so clicking a parent
+            // shows all listings in the parent and in any of its direct children.
+            $catWhere = " AND EXISTS (
+                SELECT 1 FROM lstr_listing_categories lc
+                WHERE lc.fanlisting_id = {$t}.{$pk}
+                  AND lc.category_id IN (
+                      SELECT id FROM lstr_categories
+                      WHERE id = :category_id OR parent_id = :category_id2
+                  )
+            )";
+            $params['category_id']  = $categoryId;
+            $params['category_id2'] = $categoryId;
+        } else {
+            $catWhere = '';
         }
 
         $orderCol = $this->isOwnedSchema ? 'title' : 'name';
@@ -702,27 +713,53 @@ final class ListingRepo
      */
     public function getCategoryList(): array
     {
-        $activeWhere = $this->isOwnedSchema ? 'f.status = 2' : 'f.upcoming = 0 AND f.trouble = 0';
+        $active      = $this->isOwnedSchema ? 'f.status = 2' : 'f.upcoming = 0 AND f.trouble = 0';
         $hasParentId = $this->categoryColumnExists('parent_id');
         $hasSlug     = $this->categoryColumnExists('slug');
+        $tbl         = $this->table;
+        $pk          = $this->pkCol;
 
-        $slugSel    = $hasSlug     ? 'c.slug,'                                  : "'' AS slug,";
-        $parentSel  = $hasParentId ? 'c.parent_id, p.name AS parent_name,'      : 'NULL AS parent_id, NULL AS parent_name,';
-        $joinClause = $hasParentId ? "LEFT JOIN lstr_categories p ON p.id = c.parent_id" : '';
-        $groupExtra = $hasParentId ? ', c.parent_id, p.name'                    : '';
-        $orderBy    = $hasParentId
-            ? 'ORDER BY COALESCE(p.name, c.name) ASC, c.name ASC'
-            : 'ORDER BY c.name ASC';
+        $slugSel   = $hasSlug ? 'c.slug,'  : "'' AS slug,";
+        $slugGroup = $hasSlug ? ', c.slug' : '';
 
-        $sql = "SELECT c.id, c.name, {$slugSel} c.source, {$parentSel}
-                       COUNT(DISTINCT f.{$this->pkCol}) AS listing_count
-                FROM lstr_listing_categories lc
-                JOIN {$this->table} f ON f.{$this->pkCol} = lc.fanlisting_id
-                JOIN lstr_categories c ON c.id = lc.category_id
-                {$joinClause}
-                WHERE {$activeWhere}
-                GROUP BY c.id, c.name, c.source{$groupExtra}
-                {$orderBy}";
+        if ($hasParentId) {
+            // UNION ALL derived table: counts include parent's own listings PLUS listings
+            // assigned to any of the parent's direct children (max depth=1). This means
+            // a parent category appears in the nav even if it has no direct listings,
+            // and its count covers the full child set.
+            $sql = "SELECT c.id, c.name, {$slugSel} c.source, c.parent_id,
+                           p.name AS parent_name,
+                           COUNT(DISTINCT t.fid) AS listing_count
+                    FROM (
+                        SELECT lc.category_id AS id, lc.fanlisting_id AS fid
+                        FROM lstr_listing_categories lc
+                        JOIN {$tbl} f ON f.{$pk} = lc.fanlisting_id
+                        WHERE {$active}
+
+                        UNION ALL
+
+                        SELECT par.id AS id, lc.fanlisting_id AS fid
+                        FROM lstr_categories par
+                        JOIN lstr_categories chi ON chi.parent_id = par.id
+                        JOIN lstr_listing_categories lc ON lc.category_id = chi.id
+                        JOIN {$tbl} f ON f.{$pk} = lc.fanlisting_id
+                        WHERE {$active}
+                    ) t
+                    JOIN lstr_categories c ON c.id = t.id
+                    LEFT JOIN lstr_categories p ON p.id = c.parent_id
+                    GROUP BY c.id, c.name{$slugGroup}, c.source, c.parent_id, p.name
+                    HAVING COUNT(DISTINCT t.fid) > 0
+                    ORDER BY COALESCE(p.name, c.name) ASC, c.name ASC";
+        } else {
+            $sql = "SELECT c.id, c.name, {$slugSel} c.source,
+                           NULL AS parent_id, NULL AS parent_name,
+                           COUNT(DISTINCT f.{$pk}) AS listing_count
+                    FROM lstr_listing_categories lc
+                    JOIN {$tbl} f ON f.{$pk} = lc.fanlisting_id AND {$active}
+                    JOIN lstr_categories c ON c.id = lc.category_id
+                    GROUP BY c.id, c.name{$slugGroup}, c.source
+                    ORDER BY c.name ASC";
+        }
 
         $stmt = $this->db->prepare($sql);
         $stmt->execute();

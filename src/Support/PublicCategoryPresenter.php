@@ -70,8 +70,12 @@ final class PublicCategoryPresenter
 
     private static function categoryUrl(array $cat, string $formAction): string
     {
-        $key = ($cat['slug'] ?? '') !== '' ? $cat['slug'] : (string) $cat['id'];
-        return $formAction . '?cat=' . $key;
+        // Slug links use the dedicated ?category= param so numeric IDs never ambiguously
+        // collide with numeric-looking slugs (e.g. slug "1984" vs ID 1984).
+        if (($cat['slug'] ?? '') !== '') {
+            return $formAction . '?category=' . rawurlencode($cat['slug']);
+        }
+        return $formAction . '?cat=' . $cat['id'];
     }
 
     /**
@@ -85,8 +89,7 @@ final class PublicCategoryPresenter
 
         $html  = '<nav class="fl-category-nav">';
         $html .= '<ul class="fl-category-list">';
-        $html .= '<li><a href="' . $e($formAction . '?cat=all') . '">';
-        $html .= 'All Categories</a></li>';
+        $html .= '<li><a href="' . $e($formAction . '?cat=all') . '">All Categories</a></li>';
 
         foreach ($categories as $cat) {
             $count = (int) $cat['listing_count'];
@@ -182,33 +185,35 @@ final class PublicCategoryPresenter
         $html .= '<select id="fl-owned-cat" name="cat" onchange="this.form.submit()">';
         $html .= '<option value="0"' . ($currentId === 0 ? ' selected' : '') . '>All</option>';
 
+        // Option value encodes either the slug (for ?category=) or the ID (for ?cat=).
+        // The select's onchange submits the form, so the browser builds the URL from the value.
+        // We prefix slug values with 'slug:' to distinguish them from raw numeric IDs.
+        $optVal = static function (array $c): string {
+            return ($c['slug'] ?? '') !== '' ? 'slug:' . $c['slug'] : (string) $c['id'];
+        };
+        $isSel = static function (array $c, int $currentId): string {
+            return $currentId === (int) $c['id'] ? ' selected' : '';
+        };
+
         foreach ($topLevel as $cat) {
             $kids = $children[(int) $cat['id']] ?? [];
             if (!empty($kids)) {
                 $html .= '<optgroup label="' . $e($cat['name']) . '">';
-                // Make the parent itself selectable as the first option inside the group
-                $selParent = $currentId === (int) $cat['id'] ? ' selected' : '';
-                $html .= '<option value="' . $e(self::categoryUrl($cat, '') === '' ? (string) $cat['id'] : (($cat['slug'] ?? '') ?: (string) $cat['id'])) . '"' . $selParent . '>' . $e($cat['name']) . ' (all)</option>';
+                $html .= '<option value="' . $e($optVal($cat)) . '"' . $isSel($cat, $currentId) . '>' . $e($cat['name']) . ' (all)</option>';
                 foreach ($kids as $child) {
-                    $sel   = $currentId === (int) $child['id'] ? ' selected' : '';
-                    $val   = ($child['slug'] ?? '') !== '' ? $child['slug'] : (string) $child['id'];
-                    $html .= '<option value="' . $e($val) . '"' . $sel . '>' . $e($child['name']) . '</option>';
+                    $html .= '<option value="' . $e($optVal($child)) . '"' . $isSel($child, $currentId) . '>' . $e($child['name']) . '</option>';
                 }
                 $html .= '</optgroup>';
             } else {
-                $sel  = $currentId === (int) $cat['id'] ? ' selected' : '';
-                $val  = ($cat['slug'] ?? '') !== '' ? $cat['slug'] : (string) $cat['id'];
-                $html .= '<option value="' . $e($val) . '"' . $sel . '>' . $e($cat['name']) . '</option>';
+                $html .= '<option value="' . $e($optVal($cat)) . '"' . $isSel($cat, $currentId) . '>' . $e($cat['name']) . '</option>';
             }
         }
 
-        // Orphan children
+        // Orphan children (parent not in the category list returned for this status)
         foreach ($children as $parentId => $kids) {
             if (!isset(array_column($topLevel, 'id', 'id')[$parentId])) {
                 foreach ($kids as $child) {
-                    $sel  = $currentId === (int) $child['id'] ? ' selected' : '';
-                    $val  = ($child['slug'] ?? '') !== '' ? $child['slug'] : (string) $child['id'];
-                    $html .= '<option value="' . $e($val) . '"' . $sel . '>' . $e($child['name']) . '</option>';
+                    $html .= '<option value="' . $e($optVal($child)) . '"' . $isSel($child, $currentId) . '>' . $e($child['name']) . '</option>';
                 }
             }
         }

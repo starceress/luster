@@ -386,8 +386,15 @@ final class ListingAdminImportSource implements ImportSourceInterface
 
         $srcIdToNewId = [];
         $insertStmt   = $target->prepare(
-            'INSERT INTO lstr_categories (name, source) VALUES (:name, :source)'
+            'INSERT INTO lstr_categories (name, slug, source) VALUES (:name, :slug, :source)'
         );
+
+        $seenSlugs = [];
+        try {
+            foreach ($target->query("SELECT source, slug FROM lstr_categories WHERE slug != ''")->fetchAll() as $sr) {
+                $seenSlugs[(string) $sr['source']][(string) $sr['slug']] = true;
+            }
+        } catch (\Throwable) {}
 
         foreach ($srcRows as $row) {
             $name = trim((string) ($row['catname'] ?? ''));
@@ -420,8 +427,16 @@ final class ListingAdminImportSource implements ImportSourceInterface
                 continue;
             }
 
+            $baseSlug = \Luster\Repositories\CategoryRepo::slugify($name);
+            $slug     = $baseSlug;
+            $n = 2;
+            while (isset($seenSlugs[$catSource][$slug])) {
+                $slug = $baseSlug . '-' . $n++;
+            }
+            $seenSlugs[$catSource][$slug] = true;
+
             try {
-                $insertStmt->execute(['name' => $name, 'source' => $catSource]);
+                $insertStmt->execute(['name' => $name, 'slug' => $slug, 'source' => $catSource]);
                 $newId = (int) $target->lastInsertId();
                 $srcIdToNewId[(int) $row['catid']]         = $newId;
                 $existingNames[$existKey]                   = $newId;

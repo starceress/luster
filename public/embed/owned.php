@@ -71,22 +71,32 @@ $_lusterHideDropdown    = (bool) ($luster_hide_dropdown    ?? false);
 $_lusterShowList        = (bool) ($luster_show_list        ?? false);
 $_lusterBrowseByCat     = (bool) ($luster_browse_by_category ?? false);
 
-// Category ID: prefer explicit $luster_category_id; otherwise resolve $_GET['cat']
-// which may be a numeric ID or a slug (e.g. ?cat=anime-manga).
+// Category ID resolution order:
+//   1. $luster_category_id (explicit integer) — bypasses URL params entirely
+//   2. $_GET['category'] (slug) — new dedicated slug param, avoids numeric ambiguity
+//   3. $_GET['cat'] with 'slug:' prefix — dropdown-posted slug value
+//   4. $_GET['cat'] with 'all' value — browse-show-all mode
+//   5. $_GET['cat'] numeric — legacy ID-based link
 $_lusterBrowseShowAll = false;
 if (isset($luster_category_id) && (int) $luster_category_id > 0) {
     $_lusterCatId = (int) $luster_category_id;
+} elseif (isset($_GET['category']) && (string) $_GET['category'] !== '') {
+    // Dedicated slug param (links from PublicCategoryPresenter list/browse modes)
+    $_lusterCatSlug = (string) $_GET['category'];
+    $_lusterCatId   = 0;
 } else {
     $_lusterRawCat = (string) ($_GET['cat'] ?? '');
-    if ($_lusterRawCat === 'all') {
+    if (str_starts_with($_lusterRawCat, 'slug:')) {
+        // Dropdown-posted value: "slug:<slug>" → resolve as slug
+        $_lusterCatSlug = substr($_lusterRawCat, 5);
+        $_lusterCatId   = 0;
+    } elseif ($_lusterRawCat === 'all') {
         $_lusterCatId         = 0;
         $_lusterBrowseShowAll = true;
     } elseif (is_numeric($_lusterRawCat)) {
         $_lusterCatId = max(0, (int) $_lusterRawCat);
     } else {
-        // Treat as slug; resolved against category list after it's loaded below
-        $_lusterCatId    = 0;
-        $_lusterCatSlug  = $_lusterRawCat;
+        $_lusterCatId = 0;
     }
 }
 

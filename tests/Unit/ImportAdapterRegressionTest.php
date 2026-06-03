@@ -72,7 +72,7 @@ final class ImportAdapterRegressionTest extends TestCase
                 dbdatabase  TEXT NOT NULL DEFAULT ''
             )"
         );
-        $pdo->exec("CREATE TABLE IF NOT EXISTS lstr_categories (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, parent_id INTEGER NULL, source TEXT NOT NULL DEFAULT 'custom')");
+        $pdo->exec("CREATE TABLE IF NOT EXISTS lstr_categories (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, slug TEXT NOT NULL DEFAULT '', parent_id INTEGER NULL, source TEXT NOT NULL DEFAULT 'custom')");
         $pdo->exec("CREATE TABLE IF NOT EXISTS lstr_fanlisting_settings (fanlisting_id INTEGER PRIMARY KEY, members_per_page INTEGER NOT NULL DEFAULT 25, queue_updates INTEGER NOT NULL DEFAULT 0, members_template TEXT NULL, affiliates_template TEXT NULL, stats_template TEXT NULL, image TEXT NULL, last_updated TEXT NULL)");
         $pdo->exec("CREATE TABLE IF NOT EXISTS lstr_listing_categories (fanlisting_id INTEGER NOT NULL, category_id INTEGER NOT NULL, PRIMARY KEY (fanlisting_id, category_id))");
     }
@@ -105,7 +105,7 @@ final class ImportAdapterRegressionTest extends TestCase
                 dbdatabase      TEXT NOT NULL DEFAULT ''
             )"
         );
-        $pdo->exec("CREATE TABLE IF NOT EXISTS lstr_categories (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, parent_id INTEGER NULL, source TEXT NOT NULL DEFAULT 'custom')");
+        $pdo->exec("CREATE TABLE IF NOT EXISTS lstr_categories (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, slug TEXT NOT NULL DEFAULT '', parent_id INTEGER NULL, source TEXT NOT NULL DEFAULT 'custom')");
         $pdo->exec("CREATE TABLE IF NOT EXISTS lstr_fanlisting_settings (fanlisting_id INTEGER PRIMARY KEY, members_per_page INTEGER NOT NULL DEFAULT 25, queue_updates INTEGER NOT NULL DEFAULT 0, members_template TEXT NULL, affiliates_template TEXT NULL, stats_template TEXT NULL, image TEXT NULL, last_updated TEXT NULL)");
         $pdo->exec("CREATE TABLE IF NOT EXISTS lstr_listing_categories (fanlisting_id INTEGER NOT NULL, category_id INTEGER NOT NULL, PRIMARY KEY (fanlisting_id, category_id))");
     }
@@ -159,7 +159,7 @@ final class ImportAdapterRegressionTest extends TestCase
         $src->exec("INSERT INTO `category` VALUES (2, 0, 'Anime')");
 
         $tgt = $this->makePdo();
-        $tgt->exec("CREATE TABLE IF NOT EXISTS lstr_categories (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, parent_id INTEGER NULL, source TEXT NOT NULL DEFAULT 'custom')");
+        $tgt->exec("CREATE TABLE IF NOT EXISTS lstr_categories (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, slug TEXT NOT NULL DEFAULT '', parent_id INTEGER NULL, source TEXT NOT NULL DEFAULT 'custom')");
 
         $opts = ImportOptions::fromPost([
             'source'              => 'enthusiast',
@@ -237,7 +237,7 @@ final class ImportAdapterRegressionTest extends TestCase
         $src->exec("INSERT INTO `tmp_y_category` VALUES (1, 0, 'Games')");
 
         $tgt = $this->makePdo();
-        $tgt->exec("CREATE TABLE IF NOT EXISTS lstr_categories (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, parent_id INTEGER NULL, source TEXT NOT NULL DEFAULT 'custom')");
+        $tgt->exec("CREATE TABLE IF NOT EXISTS lstr_categories (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, slug TEXT NOT NULL DEFAULT '', parent_id INTEGER NULL, source TEXT NOT NULL DEFAULT 'custom')");
 
         $opts = ImportOptions::fromPost([
             'source'               => 'enthusiast',
@@ -1355,7 +1355,7 @@ final class ImportAdapterRegressionTest extends TestCase
         $src->exec("INSERT INTO `joined` VALUES (1, 'A Movie FL', 'http://movies.example.com', NULL, '|12|', 1, '2025-01-01')");
 
         $tgt = $this->makePdo();
-        $tgt->exec("CREATE TABLE IF NOT EXISTS lstr_categories (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, parent_id INTEGER NULL, source TEXT NOT NULL DEFAULT 'custom')");
+        $tgt->exec("CREATE TABLE IF NOT EXISTS lstr_categories (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, slug TEXT NOT NULL DEFAULT '', parent_id INTEGER NULL, source TEXT NOT NULL DEFAULT 'custom')");
         $tgt->exec("INSERT INTO lstr_categories (name, source) VALUES ('Movies', 'tfl')");
         $this->createJoinedTable($tgt);
 
@@ -1427,7 +1427,7 @@ final class ImportAdapterRegressionTest extends TestCase
         $src->exec("INSERT INTO `joined` VALUES (1, 'Multi-Cat FL', 'http://multi.example.com', '|3|9|', NULL, 0, '2025-06-01')");
 
         $tgt = $this->makePdo();
-        $tgt->exec("CREATE TABLE IF NOT EXISTS lstr_categories (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, parent_id INTEGER NULL, source TEXT NOT NULL DEFAULT 'custom')");
+        $tgt->exec("CREATE TABLE IF NOT EXISTS lstr_categories (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, slug TEXT NOT NULL DEFAULT '', parent_id INTEGER NULL, source TEXT NOT NULL DEFAULT 'custom')");
         $tgt->exec("INSERT INTO lstr_categories (name, source) VALUES ('Movies', 'tfl')");
         $tgt->exec("INSERT INTO lstr_categories (name, source) VALUES ('Relationships: TV', 'tfl')");
         $this->createJoinedTable($tgt);
@@ -1495,7 +1495,7 @@ final class ImportAdapterRegressionTest extends TestCase
         $src->exec("INSERT INTO `joined` VALUES (1, 'Best TV FL', 'http://tv.example.com', 3, NULL, 0, '2025-03-01')");
 
         $tgt = $this->makePdo();
-        $tgt->exec("CREATE TABLE IF NOT EXISTS lstr_categories (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, parent_id INTEGER NULL, source TEXT NOT NULL DEFAULT 'custom')");
+        $tgt->exec("CREATE TABLE IF NOT EXISTS lstr_categories (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, slug TEXT NOT NULL DEFAULT '', parent_id INTEGER NULL, source TEXT NOT NULL DEFAULT 'custom')");
         $tgt->exec("INSERT INTO lstr_categories (name, source) VALUES ('TV Shows', 'tfl')");
         $this->createJoinedTable($tgt);
 

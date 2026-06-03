@@ -684,7 +684,7 @@ final class EnthusiastMemberImportTest extends TestCase
         $src->exec("CREATE TABLE IF NOT EXISTS joined (joinedid INTEGER PRIMARY KEY, url TEXT NOT NULL, subject TEXT NOT NULL DEFAULT '', catid TEXT NOT NULL DEFAULT '', pending INTEGER NOT NULL DEFAULT 0, added TEXT NULL, imagefile TEXT NOT NULL DEFAULT '')");
 
         // Target: needs lstr_categories + lstr_joined
-        $tgt->exec('CREATE TABLE IF NOT EXISTS lstr_categories (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, parent_id INTEGER NULL, source TEXT NOT NULL DEFAULT \'custom\')');
+        $tgt->exec('CREATE TABLE IF NOT EXISTS lstr_categories (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, slug TEXT NOT NULL DEFAULT \'\', parent_id INTEGER NULL, source TEXT NOT NULL DEFAULT \'custom\')');
         $tgt->exec('CREATE TABLE IF NOT EXISTS lstr_joined (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL DEFAULT \'\', url TEXT NOT NULL DEFAULT \'\', image TEXT NULL, category TEXT NOT NULL DEFAULT \'\', categories_json TEXT NULL, category_id INTEGER NULL, date_joined TEXT NULL, active INTEGER NOT NULL DEFAULT 1, status TEXT NOT NULL DEFAULT \'approved\', sort_order INTEGER NOT NULL DEFAULT 0)');
     }
 
@@ -1438,7 +1438,7 @@ final class EnthusiastMemberImportTest extends TestCase
                 opened     DATE    NULL
             )'
         );
-        $tgt->exec('CREATE TABLE IF NOT EXISTS lstr_categories (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, parent_id INTEGER NULL, source TEXT NOT NULL DEFAULT \'custom\')');
+        $tgt->exec('CREATE TABLE IF NOT EXISTS lstr_categories (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, slug TEXT NOT NULL DEFAULT \'\', parent_id INTEGER NULL, source TEXT NOT NULL DEFAULT \'custom\')');
         $tgt->exec('CREATE TABLE IF NOT EXISTS lstr_fanlisting_settings (fanlisting_id INTEGER PRIMARY KEY, members_per_page INTEGER NOT NULL DEFAULT 25, queue_updates INTEGER NOT NULL DEFAULT 0, members_template TEXT NULL, affiliates_template TEXT NULL, stats_template TEXT NULL, image TEXT NULL, last_updated DATE NULL)');
         return $tgt;
     }

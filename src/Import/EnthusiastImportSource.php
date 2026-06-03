@@ -480,8 +480,21 @@ final class EnthusiastImportSource implements ImportSourceInterface
         $srcIdToNewId = [];
 
         $insertStmt = $target->prepare(
-            'INSERT INTO lstr_categories (name, source) VALUES (:name, :source)'
+            'INSERT INTO lstr_categories (name, slug, source) VALUES (:name, :slug, :source)'
         );
+
+        // Track slugs seen in this batch to avoid within-batch (source, slug) collisions.
+        $seenSlugs = [];
+        foreach ($existStmt->fetchAll() as $r) {  // reload would be needed — use existing load
+            // $existingNames already loaded; populate seenSlugs from current DB slugs.
+        }
+        // Re-query slugs from target for collision tracking within this import run.
+        try {
+            $slugRows = $target->query("SELECT source, slug FROM lstr_categories WHERE slug != ''")->fetchAll();
+            foreach ($slugRows as $sr) {
+                $seenSlugs[(string) $sr['source']][(string) $sr['slug']] = true;
+            }
+        } catch (\Throwable) {}
 
         foreach ($srcRows as $row) {
             $name = trim(self::decodeEnth((string) ($row['catname'] ?? '')));
@@ -514,9 +527,19 @@ final class EnthusiastImportSource implements ImportSourceInterface
                 continue;
             }
 
+            // Generate a slug unique within this source in the target DB + this batch.
+            $baseSlug = \Luster\Repositories\CategoryRepo::slugify($name);
+            $slug     = $baseSlug;
+            $n = 2;
+            while (isset($seenSlugs[$catSource][$slug])) {
+                $slug = $baseSlug . '-' . $n++;
+            }
+            $seenSlugs[$catSource][$slug] = true;
+
             try {
                 $insertStmt->execute([
                     'name'   => $name,
+                    'slug'   => $slug,
                     'source' => $catSource,
                 ]);
                 $newId = (int) $target->lastInsertId();

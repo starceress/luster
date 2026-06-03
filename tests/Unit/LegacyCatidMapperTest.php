@@ -27,6 +27,7 @@ final class LegacyCatidMapperTest extends TestCase
             "CREATE TABLE lstr_categories (
                 id     INTEGER PRIMARY KEY AUTOINCREMENT,
                 name   TEXT NOT NULL DEFAULT '',
+                slug   TEXT NOT NULL DEFAULT '',
                 source TEXT NOT NULL DEFAULT ''
             )"
         );

@@ -95,7 +95,28 @@ final class MemberStatsService
                     }
                 }
             } catch (\Throwable) {
-                // On error fall back to zeros for any listing in this chunk not yet resolved
+                // UNION ALL failed — at least one table in the chunk is inaccessible.
+                // Retry each table individually so one missing table doesn't zero the rest.
+                foreach ($idMap as $tableName => $listingId) {
+                    if (isset($result[$listingId])) {
+                        continue;  // already resolved by a previous successful chunk
+                    }
+                    try {
+                        $singleSql = "SELECT COUNT(*) AS approved,
+                                             COUNT(DISTINCT CASE WHEN country != '' AND country IS NOT NULL THEN country END) AS country_count
+                                      FROM `{$tableName}` WHERE {$this->approvedWhere}";
+                        $singleRow = $this->db->pdo()->query($singleSql);
+                        if ($singleRow !== false) {
+                            $r = $singleRow->fetch(\PDO::FETCH_ASSOC);
+                            $result[$listingId] = [
+                                'approved'      => (int) ($r['approved'] ?? 0),
+                                'country_count' => (int) ($r['country_count'] ?? 0),
+                            ];
+                        }
+                    } catch (\Throwable) {
+                        $result[$listingId] = ['approved' => 0, 'country_count' => 0];
+                    }
+                }
             }
 
             // Fill any chunk listings that had errors
