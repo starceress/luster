@@ -133,10 +133,9 @@ final class NetworkDirectoryController extends AdminController
         $skipped = 0;
         foreach ($listings as $listing) {
             foreach (NetworkDirectoryService::networks() as $network) {
-                // Guard: stop if there is not enough time left to complete one full
-                // request (up to TIMEOUT seconds per hop).  Checking after the fact
-                // would allow one lookup to run well past the budget.
-                if (microtime(true) + NetworkDirectoryService::TIMEOUT >= $deadline) {
+                // Guard: reserve enough time for the worst-case lookup
+                // (TIMEOUT × (MAX_HOPS + 1) seconds across all redirect hops).
+                if (microtime(true) + NetworkDirectoryService::maxLookupSeconds() >= $deadline) {
                     $skipped++;
                     continue;
                 }

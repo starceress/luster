@@ -36,7 +36,14 @@ final class NetworkDirectoryService
         'tafl' => 'https://animefanlistings.com/?s=%s',
     ];
 
-    public const TIMEOUT        = 10;   // seconds per HTTP request hop
+    public const TIMEOUT  = 10;   // seconds per HTTP request hop
+    public const MAX_HOPS = 3;    // maximum redirect hops
+
+    /** Maximum seconds one lookup() call can consume (worst case: all hops at TIMEOUT). */
+    public static function maxLookupSeconds(): int
+    {
+        return self::TIMEOUT * (self::MAX_HOPS + 1);
+    }
     private const MAX_BODY_BYTES = 524288;  // 512 KB
 
     public function __construct(private readonly string $cacheDir) {}
@@ -140,16 +147,17 @@ final class NetworkDirectoryService
         if ($code === 0) {
             $result = $this->result(false, 0, 'HTTP request failed');
         } else {
-            // Normalise the target URL, then extract and normalise every href value
-            // in the body and compare exact strings. A regex substring match would
-            // produce false positives for prefix URLs (e.g. example.com/fl matching
-            // example.com/fl2/) and for URLs echoed in the search box or page title.
-            $needle = UrlNormalizer::normalizeUrlForSearch($listingUrl);
+            // Normalise the target URL, then extract and normalise every href in the
+            // body and compare exact strings.  We use a stricter normalizer than
+            // UrlNormalizer::normalizeUrlForSearch() because that helper strips query
+            // strings (intentional for reciprocal-link detection, wrong here).
+            // example.com/index.php?id=1 and example.com/index.php?id=2 must not match.
+            $needle = self::normalizeForDirectory($listingUrl);
             $found  = false;
             if ($needle !== '' && $code >= 200 && $code < 300) {
                 preg_match_all('/href=["\']([^"\']+)["\']/i', $body, $hrefMatches);
                 foreach ($hrefMatches[1] ?? [] as $href) {
-                    if (UrlNormalizer::normalizeUrlForSearch((string) $href) === $needle) {
+                    if (self::normalizeForDirectory((string) $href) === $needle) {
                         $found = true;
                         break;
                     }
@@ -171,7 +179,7 @@ final class NetworkDirectoryService
      *
      * @return array{int, string} [http_code, body]
      */
-    private function get(string $url, int $hopsLeft = 3): array
+    private function get(string $url, int $hopsLeft = self::MAX_HOPS): array
     {
         // Validate this hop's host before fetching
         $host = strtolower((string) parse_url($url, PHP_URL_HOST));
@@ -237,6 +245,22 @@ final class NetworkDirectoryService
             'checked_at' => time(),
             'error'      => $error,
         ];
+    }
+
+    /**
+     * Strict URL normalizer for network-directory href comparison.
+     *
+     * Unlike UrlNormalizer::normalizeUrlForSearch() (which drops the query string
+     * for scheme/www-tolerant reciprocal-link detection), this preserves the query
+     * string so that listing URLs like index.php?id=1 and index.php?id=2 are
+     * treated as distinct. Only scheme and leading "www." are stripped; the path,
+     * query string, and fragment are kept as-is so the comparison is exact.
+     */
+    private static function normalizeForDirectory(string $url): string
+    {
+        $url = preg_replace('#^https?://#i', '', trim($url)) ?? '';
+        $url = preg_replace('#^www\.#i', '', $url)           ?? $url;
+        return strtolower(rtrim($url, '/'));
     }
 
     private function cacheFile(string $listingUrl, string $network): string

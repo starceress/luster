@@ -145,15 +145,25 @@ final class NetworkDirectoryServiceTest extends TestCase
      * Exercises the exact logic the production fetch() uses: extract href values,
      * normalize each with UrlNormalizer::normalizeUrlForSearch(), compare exact strings.
      */
+    /**
+     * Mirrors the production normalizeForDirectory + href-extraction logic.
+     * Both the target URL and each href are normalized by stripping scheme and
+     * www, lower-casing, and trimming trailing slashes — query strings preserved.
+     */
     private function matchesHref(string $listingUrl, string $bodyHtml): bool
     {
-        $needle = \Luster\Core\UrlNormalizer::normalizeUrlForSearch($listingUrl);
+        $normalize = static function (string $url): string {
+            $url = preg_replace('#^https?://#i', '', trim($url)) ?? '';
+            $url = preg_replace('#^www\.#i', '', $url)           ?? $url;
+            return strtolower(rtrim($url, '/'));
+        };
+        $needle = $normalize($listingUrl);
         if ($needle === '') {
             return false;
         }
         preg_match_all('/href=["\']([^"\']+)["\']/i', $bodyHtml, $m);
         foreach ($m[1] ?? [] as $href) {
-            if (\Luster\Core\UrlNormalizer::normalizeUrlForSearch((string) $href) === $needle) {
+            if ($normalize((string) $href) === $needle) {
                 return true;
             }
         }
@@ -190,8 +200,33 @@ final class NetworkDirectoryServiceTest extends TestCase
 
     public function testSchemeDifferenceIsIgnored(): void
     {
-        // http and https should normalise to the same needle
+        // http and https normalise to the same needle
         $body = '<a href="http://example.com/fl/">Visit</a>';
         self::assertTrue($this->matchesHref('https://example.com/fl/', $body));
+    }
+
+    public function testQueryStringsArePreserved(): void
+    {
+        // index.php?id=1 and index.php?id=2 must not match each other
+        $body = '<a href="https://example.com/index.php?id=2">FL 2</a>';
+        self::assertFalse($this->matchesHref('https://example.com/index.php?id=1', $body),
+            'Query-string differences must not be collapsed');
+    }
+
+    public function testQueryStringMatchIsFound(): void
+    {
+        $body = '<a href="https://example.com/index.php?id=1">FL 1</a>';
+        self::assertTrue($this->matchesHref('https://example.com/index.php?id=1', $body));
+    }
+
+    // -----------------------------------------------------------------------
+    // maxLookupSeconds
+    // -----------------------------------------------------------------------
+
+    public function testMaxLookupSecondsCoversAllHops(): void
+    {
+        // Must be at least TIMEOUT × (MAX_HOPS + 1)
+        $expected = NetworkDirectoryService::TIMEOUT * (NetworkDirectoryService::MAX_HOPS + 1);
+        self::assertSame($expected, NetworkDirectoryService::maxLookupSeconds());
     }
 }
