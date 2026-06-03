@@ -863,39 +863,55 @@ function installTables(PDO $pdo): void
     // Seed the official TFL and TAFL category lists so fresh installs have a
     // populated category table without needing to run migrate.php.
     require_once __DIR__ . '/../../src/Support/CategorySeedCatalog.php';
+
+    // Inline slugify — same logic as CategoryRepo::slugify(), no autoloader needed.
+    $catSlugify = static function (string $name): string {
+        $s = strtolower(trim((string) preg_replace('/[^a-zA-Z0-9]+/', '-', $name), '-'));
+        return substr($s !== '' ? $s : 'category', 0, 90);
+    };
+
     $catCheck  = $pdo->prepare(
         "SELECT COUNT(*) FROM lstr_categories WHERE source = :source AND name = :name"
     );
     $catInsert = $pdo->prepare(
-        "INSERT INTO lstr_categories (name, source) VALUES (:name, :source)"
+        "INSERT INTO lstr_categories (name, slug, source) VALUES (:name, :slug, :source)"
     );
-    $seedData = [
+    $seedData  = [
         'tfl'  => \Luster\Support\CategorySeedCatalog::tfl(),
         'tafl' => \Luster\Support\CategorySeedCatalog::tafl(),
     ];
+    $seenSlugs = [];
     foreach ($seedData as $src => $names) {
         foreach ($names as $catName) {
             $catCheck->execute(['source' => $src, 'name' => $catName]);
             if (!(int) $catCheck->fetchColumn()) {
-                $catInsert->execute(['name' => $catName, 'source' => $src]);
+                $base = $catSlugify($catName);
+                $slug = $base;
+                $n    = 2;
+                while (isset($seenSlugs[$src][$slug])) {
+                    $slug = $base . '-' . $n++;
+                }
+                $seenSlugs[$src][$slug] = true;
+                $catInsert->execute(['name' => $catName, 'slug' => $slug, 'source' => $src]);
             }
         }
     }
 
     // Mark all migrations as already run so that migrate.php treats this
-    // install as fully up-to-date.  The schema created above already
-    // incorporates every column and table added by migrations 1–51.
-    // Migration 52 (adds `opened` to `owned`) is intentionally omitted: the
-    // installer does not create the `owned` table, so that migration stays
-    // pending and will apply the next time migrate.php is opened after `owned`
-    // exists.
+    // install as fully up-to-date. The schema created above incorporates
+    // every column and table added by migrations 1–56, with one exception:
+    // Migration 52 (adds `opened` to `owned`) is intentionally omitted —
+    // the installer does not create the `owned` table, so that migration
+    // stays pending and applies the next time migrate.php runs after `owned`
+    // exists. Migrations 55 (slug) and 56 (parent_id) are marked done
+    // because the installer now creates lstr_categories with both columns.
     $pdo->exec(
         'INSERT IGNORE INTO `lstr_migrations` (migration_number) VALUES
          (1),(2),(3),(4),(5),(6),(7),(8),(9),(10),(11),(12),(13),
          (14),(15),(16),(17),(18),(19),(20),(21),(22),(23),(24),
          (25),(26),(27),(28),(29),(30),(31),(32),(33),(34),(35),
          (36),(37),(38),(39),(40),(41),(42),(43),(44),(45),(46),
-         (47),(48),(49),(50),(51)'
+         (47),(48),(49),(50),(51),(53),(54),(55),(56)'
     );
 }
 
