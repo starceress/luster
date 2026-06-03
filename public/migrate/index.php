@@ -1895,11 +1895,11 @@ try {
 // ─────────────────────────────────────────────────────────────────────────────
 try {
     if (!(int) $pdo->query('SELECT COUNT(*) FROM `lstr_migrations` WHERE migration_number = 55')->fetchColumn()) {
-        // 1. Add slug column (default '' so no existing row is broken)
-        $pdo->exec(
-            "ALTER TABLE `lstr_categories`
-             ADD COLUMN IF NOT EXISTS `slug` VARCHAR(100) NOT NULL DEFAULT '' AFTER `name`"
-        );
+        // 1. Add slug column (default '' so no existing row is broken).
+        //    Check-then-alter: ADD COLUMN IF NOT EXISTS is MariaDB-only.
+        if (empty($pdo->query("SHOW COLUMNS FROM `lstr_categories` LIKE 'slug'")->fetchAll())) {
+            $pdo->exec("ALTER TABLE `lstr_categories` ADD COLUMN `slug` VARCHAR(100) NOT NULL DEFAULT '' AFTER `name`");
+        }
 
         // 2. Preload any slugs already set (defensive: handles partial runs)
         $seenSlugs = [];
@@ -1942,6 +1942,24 @@ try {
     }
 } catch (PDOException $e) {
     $errors[] = 'Migration 55 — ' . htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Migration 56: Re-add parent_id to lstr_categories
+//
+// Migration 47 dropped parent_id. Phase 2 of Luster re-introduces one-level
+// category nesting and needs the column back. Check-then-alter for compat.
+// ─────────────────────────────────────────────────────────────────────────────
+try {
+    if (!(int) $pdo->query('SELECT COUNT(*) FROM `lstr_migrations` WHERE migration_number = 56')->fetchColumn()) {
+        if (empty($pdo->query("SHOW COLUMNS FROM `lstr_categories` LIKE 'parent_id'")->fetchAll())) {
+            $pdo->exec("ALTER TABLE `lstr_categories` ADD COLUMN `parent_id` INT UNSIGNED NULL");
+        }
+        $pdo->exec('INSERT INTO `lstr_migrations` (migration_number) VALUES (56)');
+        $done[] = 'Re-added <code>parent_id</code> column to <code>lstr_categories</code>';
+    }
+} catch (PDOException $e) {
+    $errors[] = 'Migration 56 — ' . htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

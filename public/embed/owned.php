@@ -106,7 +106,9 @@ if (isset($luster_category_id) && (int) $luster_category_id > 0) {
 
 $_lusterListingRepo = new ListingRepo($_lusterApp->getDatabase(), $_lusterApp->getConfig());
 
-$_lusterCategories = $_lusterListingRepo->getCategoryList();
+// Pass the same status filter so the category nav (nav pool) only shows
+// categories that actually have listings in the same pool as the content.
+$_lusterCategories = $_lusterListingRepo->getCategoryList($_lusterStatus, $_lusterExcludePending);
 
 // Slug resolution: find the ID for $_lusterCatSlug in the already-loaded list
 if (isset($_lusterCatSlug) && $_lusterCatSlug !== '') {

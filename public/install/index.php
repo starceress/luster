@@ -803,14 +803,17 @@ function installTables(PDO $pdo): void
         // Collective data
         // ------------------------------------------------------------------
 
-        // Categories (TFL/TAFL/custom) — source VARCHAR(50) from the start; parent_id absent (M47).
+        // Categories (TFL/TAFL/custom) — slug added M55, parent_id re-added M56.
         "CREATE TABLE IF NOT EXISTS `lstr_categories` (
             `id`         INT UNSIGNED NOT NULL AUTO_INCREMENT,
             `name`       VARCHAR(150) NOT NULL,
+            `slug`       VARCHAR(100) NOT NULL DEFAULT '',
+            `parent_id`  INT UNSIGNED NULL,
             `source`     VARCHAR(50)  NOT NULL DEFAULT 'custom',
             `created_at` DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
             PRIMARY KEY (`id`),
-            UNIQUE KEY `uq_categories_source_name` (`source`, `name`)
+            UNIQUE KEY `uq_categories_source_name` (`source`, `name`),
+            UNIQUE KEY `uq_cat_slug` (`source`, `slug`)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
 
         // Spam / email blacklist.

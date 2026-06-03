@@ -709,11 +709,21 @@ final class ListingRepo
      *
      * Each entry includes parent_id, parent_name, and listing_count (active only).
      *
+     * @param string $status         Same values as getFiltered(): 'current','upcoming','pending','all'
+     * @param bool   $excludePending When status='all', exclude pending/trouble listings
      * @return array<int, array{id: int, name: string, slug: string, source: string, parent_id: int|null, parent_name: string|null, listing_count: int}>
      */
-    public function getCategoryList(): array
+    public function getCategoryList(string $status = 'current', bool $excludePending = false): array
     {
-        $active      = $this->isOwnedSchema ? 'f.status = 2' : 'f.upcoming = 0 AND f.trouble = 0';
+        // Mirror the getFiltered() status logic so the nav pool and content pool
+        // always come from the same set of listings.
+        $active = match (true) {
+            $status === 'current'                => $this->isOwnedSchema ? 'f.status = 2'  : 'f.upcoming = 0 AND f.trouble = 0',
+            $status === 'upcoming'              => $this->isOwnedSchema ? 'f.status = 1'  : 'f.upcoming = 1',
+            $status === 'pending'               => $this->isOwnedSchema ? 'f.status = 0'  : 'f.trouble = 1',
+            $status === 'all' && $excludePending => $this->isOwnedSchema ? 'f.status != 0' : 'f.trouble = 0',
+            default                             => '1 = 1',
+        };
         $hasParentId = $this->categoryColumnExists('parent_id');
         $hasSlug     = $this->categoryColumnExists('slug');
         $tbl         = $this->table;
