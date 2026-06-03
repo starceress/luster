@@ -496,6 +496,9 @@ return [
         // AJAX test connection
         $router->post('/admin/import/{source}/test-connection',
             ImportController::class, 'testConnection');
+        // AJAX auto-detect legacy config credentials (opt-in, disabled by default)
+        $router->post('/admin/import/{source}/detect-config',
+            ImportController::class, 'detectConfig');
         // Step 3: Options (data types + image mode + ZIP upload)
         $router->get('/admin/import/{source}/options',
             ImportController::class, 'scope');
