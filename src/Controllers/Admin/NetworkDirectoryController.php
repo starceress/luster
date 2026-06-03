@@ -122,15 +122,30 @@ final class NetworkDirectoryController extends AdminController
         $baseUrl  = $this->app->getBaseUrl();
         $session  = $this->app->getSession();
 
-        $checked  = 0;
+        // Leave 5 s headroom so we return before PHP / web-server kills the request.
+        $limit    = max(15, (int) ini_get('max_execution_time') - 5);
+        $deadline = microtime(true) + $limit;
+
+        $checked = 0;
+        $skipped = 0;
         foreach ($listings as $listing) {
             foreach (NetworkDirectoryService::networks() as $network) {
-                $svc->refresh($listing->url, $network);
+                if (microtime(true) >= $deadline) {
+                    $skipped++;
+                    continue;
+                }
+                // lookup() uses cache when fresh — only makes a live HTTP request
+                // when the cached result is missing or older than 7 days.
+                $svc->lookup($listing->url, $network);
                 $checked++;
             }
         }
 
-        $session->set('lstr_flash_success', "Checked {$checked} network registration(s) for " . count($listings) . ' listing(s).');
+        $msg = "Checked {$checked} network registration(s) for " . count($listings) . ' listing(s).';
+        if ($skipped > 0) {
+            $msg .= " {$skipped} skipped (time limit) — run again to continue.";
+        }
+        $session->set('lstr_flash_success', $msg);
         return Response::redirect($baseUrl . '/admin/network-directory');
     }
 }

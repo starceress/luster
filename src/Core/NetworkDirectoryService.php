@@ -140,10 +140,15 @@ final class NetworkDirectoryService
         if ($code === 0) {
             $result = $this->result(false, 0, 'HTTP request failed');
         } else {
-            // "found" = the listing URL (or a normalised variant) appears in the body
+            // Look for the listing URL specifically inside href attributes.
+            // A plain stripos() on the full body produces false positives because
+            // search pages echo the submitted query in the search box or page title.
             $needle = UrlNormalizer::normalizeUrlForSearch($listingUrl);
             $found  = $needle !== '' && $code >= 200 && $code < 300
-                   && stripos($body, $needle) !== false;
+                   && preg_match(
+                          '/href=["\'][^"\']*' . preg_quote($needle, '/') . '/i',
+                          $body
+                      ) === 1;
             $result = $this->result($found, $code, null);
         }
 
@@ -151,15 +156,31 @@ final class NetworkDirectoryService
         return $result;
     }
 
-    /** @return array{int, string} [http_code, body] */
-    private function get(string $url): array
+    /**
+     * Fetches $url, following redirects manually so each hop is re-validated
+     * against ALLOWED_HOSTS and NetworkAddressGuard before the next request.
+     * Automatic redirect following (follow_location=1) is deliberately disabled
+     * to prevent open-redirect SSRF where an allowed host redirects to a
+     * private or non-allowed destination.
+     *
+     * @return array{int, string} [http_code, body]
+     */
+    private function get(string $url, int $hopsLeft = 3): array
     {
+        // Validate this hop's host before fetching
+        $host = strtolower((string) parse_url($url, PHP_URL_HOST));
+        if (!in_array($host, self::ALLOWED_HOSTS, true)) {
+            return [0, ''];
+        }
+        if (NetworkAddressGuard::validatePublicHost($host) !== null) {
+            return [0, ''];
+        }
+
         $context = stream_context_create([
             'http' => [
                 'method'          => 'GET',
                 'timeout'         => self::TIMEOUT,
-                'follow_location' => 1,
-                'max_redirects'   => 3,
+                'follow_location' => 0,  // manual redirect handling with host re-validation
                 'ignore_errors'   => true,
                 'header'          => "User-Agent: Mozilla/5.0 (compatible; LusterNetworkDir/1.0)\r\n",
             ],
@@ -180,6 +201,21 @@ final class NetworkDirectoryService
         $statusLine = $http_response_header[0] ?? '';
         preg_match('/HTTP\/[\d.]+\s+(\d+)/', $statusLine, $m);
         $code = isset($m[1]) ? (int) $m[1] : 0;
+
+        // Follow 3xx redirects — re-validate each hop
+        if ($code >= 300 && $code < 400 && $hopsLeft > 0) {
+            $location = null;
+            foreach ($http_response_header as $header) {
+                if (preg_match('/^Location:\s*(.+)$/i', $header, $lm)) {
+                    $location = trim($lm[1]);
+                    break;
+                }
+            }
+            if ($location !== null) {
+                $resolved = UrlNormalizer::resolveLocation($url, $location);
+                return $this->get($resolved, $hopsLeft - 1);
+            }
+        }
 
         return [$code, $body];
     }
