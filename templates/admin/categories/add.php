@@ -22,6 +22,7 @@ $fe = $field_errors ?? [];
 
   <div class="gradient-card">
     <div class="listing-field-section">
+
       <div class="listing-field-row listing-field-row--top<?= !empty($fe['name']) ? ' has-error' : '' ?>">
         <label class="listing-field-label" for="cat-name">
           Category Name <span class="req">*</span>
@@ -38,10 +39,41 @@ $fe = $field_errors ?? [];
       </div>
 
       <div class="listing-field-row listing-field-row--top">
+        <label class="listing-field-label" for="cat-slug">URL Slug</label>
+        <div>
+          <input id="cat-slug" type="text" name="slug" class="form"
+                 maxlength="100"
+                 placeholder="auto-generated from name if left blank"
+                 value="<?= View::e($old['slug'] ?? '') ?>">
+          <p class="form-hint">Used in <code>?cat=slug</code> links. Auto-generated from the name if left blank. <strong>Do not change after publishing.</strong></p>
+        </div>
+      </div>
+
+      <div class="listing-field-row listing-field-row--top">
+        <label class="listing-field-label" for="cat-parent">Parent Category</label>
+        <div>
+          <div class="select-wrap">
+            <select id="cat-parent" name="parent_id">
+              <option value="">None (top-level)</option>
+              <?php foreach ($indented_list ?? [] as $cat): ?>
+                <?php if ($cat['depth'] === 0): ?>
+                  <option value="<?= (int) $cat['id'] ?>"
+                          <?= (string) ($old['parent_id'] ?? '') === (string) $cat['id'] ? 'selected' : '' ?>>
+                    <?= View::e($cat['indent_name']) ?>
+                  </option>
+                <?php endif; ?>
+              <?php endforeach; ?>
+            </select>
+          </div>
+          <p class="form-hint">Max depth is one level. Only top-level categories are available as parents.</p>
+        </div>
+      </div>
+
+      <div class="listing-field-row listing-field-row--top">
         <label class="listing-field-label" for="add-network-toggle">Add to a Network?</label>
         <div>
           <div class="select-wrap">
-            <select id="add-network-toggle" name="add_network" >
+            <select id="add-network-toggle" name="add_network">
               <option value="no">No - use Custom</option>
               <option value="yes">Yes - specify network</option>
             </select>
@@ -57,6 +89,7 @@ $fe = $field_errors ?? [];
                  maxlength="50" placeholder="e.g. MyNetwork">
         </div>
       </div>
+
     </div>
 
     <div class="composer-footer">

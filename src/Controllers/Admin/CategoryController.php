@@ -99,10 +99,14 @@ final class CategoryController extends AdminController
         $session->remove('lstr_flash_error');
         $session->remove('lstr_flash_field_errors');
 
+        $repo         = new CategoryRepo($this->app->getDatabase());
+        $indentedList = $repo->buildIndentedList();
+
         return $this->adminLayout('admin/categories/add.php', 'Add Category', 'categories', [
-            'success'      => $success,
-            'error'        => $error,
-            'field_errors' => is_array($fieldErrors) ? $fieldErrors : [],
+            'success'       => $success,
+            'error'         => $error,
+            'field_errors'  => is_array($fieldErrors) ? $fieldErrors : [],
+            'indented_list' => $indentedList,
         ], '', [
             $this->crumb('Categories', $this->adminUrl('/admin/categories')),
         ]);
@@ -130,7 +134,19 @@ final class CategoryController extends AdminController
         $categoryRepo = new CategoryRepo($this->app->getDatabase());
         $networkName  = trim((string) $request->post('network_name', ''));
         $source       = $networkName !== '' ? strtolower($networkName) : 'custom';
-        $categoryRepo->add($name, $source);
+        $slugInput    = trim((string) $request->post('slug', ''));
+        $parentIdRaw  = trim((string) $request->post('parent_id', ''));
+        $parentId     = $parentIdRaw !== '' ? (int) $parentIdRaw : null;
+
+        try {
+            $newId = $categoryRepo->add($name, $source, $parentId);
+            if ($slugInput !== '') {
+                $categoryRepo->update($newId, $name, $source, $slugInput, $parentId);
+            }
+        } catch (\InvalidArgumentException $ex) {
+            $session->set('lstr_flash_error', $ex->getMessage());
+            return Response::redirect($baseUrl . '/admin/categories/add');
+        }
 
         $session->set('lstr_flash_success', 'Category added.');
         return Response::redirect($baseUrl . '/admin/categories/add');
@@ -158,11 +174,14 @@ final class CategoryController extends AdminController
         $session->remove('lstr_flash_error');
         $session->remove('lstr_flash_field_errors');
 
+        $indentedList = $repo->buildIndentedList();
+
         return $this->adminLayout('admin/categories/edit.php', 'Edit Category', 'categories', [
-            'cat'          => $cat,
-            'success'      => $success,
-            'error'        => $error,
-            'field_errors' => is_array($fieldErrors) ? $fieldErrors : [],
+            'cat'           => $cat,
+            'success'       => $success,
+            'error'         => $error,
+            'field_errors'  => is_array($fieldErrors) ? $fieldErrors : [],
+            'indented_list' => $indentedList,
         ], '', [
             $this->crumb('Categories', $this->adminUrl('/admin/categories')),
             $this->crumb($cat->name),
@@ -194,7 +213,16 @@ final class CategoryController extends AdminController
         $networkName   = trim((string) $request->post('network_name', ''));
         $currentSource = trim((string) $request->post('current_source', 'custom'));
         $source        = ($addNetwork === 'yes' && $networkName !== '') ? strtolower($networkName) : $currentSource;
-        $repo->update($id, $name, $source);
+        $slugInput     = trim((string) $request->post('slug', ''));
+        $parentIdRaw   = trim((string) $request->post('parent_id', ''));
+        $parentId      = $parentIdRaw !== '' ? (int) $parentIdRaw : null;
+
+        try {
+            $repo->update($id, $name, $source, $slugInput !== '' ? $slugInput : null, $parentId);
+        } catch (\InvalidArgumentException $ex) {
+            $session->set('lstr_flash_error', $ex->getMessage());
+            return Response::redirect($baseUrl . '/admin/categories/' . $id . '/edit');
+        }
 
         $session->set('lstr_flash_success', 'Category updated successfully.');
         return Response::redirect($baseUrl . '/admin/categories/' . $id . '/edit');

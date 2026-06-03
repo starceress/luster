@@ -1,0 +1,116 @@
+/*
+ * Luster — public fl-* utility classes
+ *
+ * Loaded by: templates/default/layout.php (via $theme_path reference)
+ * These classes are available for site owners to target in their own CSS.
+ * They are intentionally minimal; all visual styling belongs in the site's
+ * own stylesheet.
+ */
+
+/* ── Category navigator ───────────────────────────────────────────────────── */
+
+.fl-category-nav {
+    margin-bottom: 1em;
+}
+
+.fl-category-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25em 0.75em;
+}
+
+.fl-category-list li {
+    display: inline;
+}
+
+.fl-category-list a[aria-current="page"] {
+    font-weight: bold;
+    text-decoration: none;
+}
+
+/* Child categories nested under a parent in list mode */
+.fl-category-list-children {
+    list-style: none;
+    margin: 0.25em 0 0 1em;
+    padding: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25em 0.75em;
+}
+
+/* Count badge next to each category name */
+.fl-category-count {
+    font-size: 0.85em;
+    opacity: 0.7;
+}
+
+/* Dropdown form container */
+.fl-category-dropdown {
+    display: flex;
+    align-items: center;
+    gap: 0.5em;
+    flex-wrap: wrap;
+}
+
+/* Back link in browse-by-category mode */
+.fl-category-back {
+    display: inline-block;
+    margin-bottom: 0.5em;
+}
+
+/* ── Pagination ───────────────────────────────────────────────────────────── */
+
+.fl-pagination {
+    display: flex;
+    gap: 0.25em;
+    list-style: none;
+    margin: 1em 0 0;
+    padding: 0;
+}
+
+.fl-pagination a,
+.fl-pagination span {
+    display: inline-block;
+    padding: 0.2em 0.5em;
+}
+
+/* ── Forms ────────────────────────────────────────────────────────────────── */
+
+.fl-field {
+    margin-bottom: 0.75em;
+}
+
+.fl-label {
+    display: block;
+    margin-bottom: 0.25em;
+}
+
+.fl-input,
+.fl-select,
+.fl-textarea {
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.fl-errors {
+    color: #c00;
+}
+
+/* ── Collective stats ─────────────────────────────────────────────────────── */
+
+.fl-collective-stats {}
+
+.fl-stats-grid {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 0.25em 1em;
+}
+
+.fl-newest-owned,
+.fl-random-owned,
+.fl-categories {
+    margin-top: 1em;
+}

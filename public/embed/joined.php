@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use Luster\Repositories\JoinedListingRepo;
 use Luster\Repositories\SiteSettingsRepo;
+use Luster\Support\PublicCategoryPresenter;
 
 /**
  * Luster embed — joined listings list.
@@ -18,20 +19,14 @@ use Luster\Repositories\SiteSettingsRepo;
  * Optional variables:
  *   $luster_category    string  Controls what is displayed:
  *                               ''    — show the category selector; visitor picks a category
- *                                       (reads $_GET['cat'] automatically, no PHP needed)
  *                               'all' — show ALL active listings grouped by category
- *                                       heading, no selector rendered (best for small lists)
- *                               other — exact category name; show only that category's
- *                                       listings, selector suppressed
+ *                               other — exact category name; show only that category's listings
  *                               Default: '' (reads $_GET['cat'])
- *   $luster_show_list           bool    When the selector is visible, show category links as a
- *                                       bulleted list instead of a <select> dropdown.
- *                                       Has no effect when $luster_category is 'all' or a fixed name.
+ *   $luster_show_list           bool    Show category selector as bulleted list vs <select>.
  *                                       Default: false
- *   $luster_browse_by_category  bool    Browse-by-category mode: when no category is selected,
- *                                       shows a list of all category names as clickable links.
- *                                       Clicking a link filters to that category and renders
- *                                       listings via the admin-defined HTML template.
+ *   $luster_browse_by_category  bool    Browse-by-category mode: index view when no category selected.
+ *                                       Default: false
+ *   $luster_show_all_by_default bool    Show grouped listings AND the selector initially.
  *                                       Default: false
  */
 
@@ -95,28 +90,53 @@ $_lusterGroupByCategory = static function (array $items): array {
 };
 
 if ($_lusterCategory === 'all') {
-    // Show-all mode: load every active listing and group by category (no selector shown)
     $result          = $_lusterRepo->getAll(perPage: 9999, page: 1);
     $_lusterGrouped  = $_lusterGroupByCategory($result['items']);
     $_lusterListings = [];
 } elseif ($_lusterCategory !== '') {
-    // Single-category mode: filter by the chosen category
     $result          = $_lusterRepo->getAll(perPage: 9999, page: 1, filterCat: $_lusterCategory);
     $_lusterListings = array_values(array_filter($result['items'], static fn($fl) => $fl->active));
     $_lusterGrouped  = [];
 } elseif ($_lusterShowAllDefault) {
-    // Selector mode with show-all-by-default: show grouped listings AND the selector
     $result          = $_lusterRepo->getAll(perPage: 9999, page: 1);
     $_lusterGrouped  = $_lusterGroupByCategory($result['items']);
     $_lusterListings = [];
 } else {
-    // Selector mode: no category chosen yet — show only the selector
     $_lusterListings = [];
     $_lusterGrouped  = [];
 }
 
 // ---------------------------------------------------------------------------
-// 3b. Load joined listing row template from DB (if set)
+// 3b. Build the category navigator HTML via PublicCategoryPresenter
+// ---------------------------------------------------------------------------
+
+$_lusterFormAction = htmlspecialchars(
+    strtok($_SERVER['REQUEST_URI'] ?? '', '?') ?: '/',
+    ENT_QUOTES | ENT_SUBSTITUTE,
+    'UTF-8'
+);
+
+// Only render the navigator in selector mode (not in show-all or fixed-category mode)
+$_lusterShowCategoryNav = ($_lusterCategory === '' || ($_lusterShowAllDefault && $_lusterCategory === ''));
+$_lusterShowListings    = true;
+$_lusterCategoryHtml    = '';
+
+if ($_lusterShowCategoryNav) {
+    $_ljPresenter = PublicCategoryPresenter::renderJoined(
+        $_lusterCategories,
+        $_lusterCategoryCountMap,
+        $_lusterTotalCount,
+        $_lusterCategory,
+        $_lusterFormAction,
+        $_lusterShowList,
+        $_lusterBrowseByCat,
+    );
+    $_lusterCategoryHtml = $_ljPresenter['html'];
+    $_lusterShowListings = $_ljPresenter['show_listings'];
+}
+
+// ---------------------------------------------------------------------------
+// 3c. Load joined listing row template from DB (if set)
 // ---------------------------------------------------------------------------
 
 $_lusterSiteRepo       = new SiteSettingsRepo($_lusterApp->getDatabase());
@@ -126,8 +146,6 @@ if (trim($_lusterJoinedTemplate) === '') {
     $_lusterJoinedTemplate = SiteSettingsRepo::collectiveDefaults()['joined_template'];
 }
 
-// Build per-listing HTML when a custom template is set.
-// Applied to both flat ($listings) and grouped ($grouped) modes.
 $_lusterListingHtml = null;
 $_lusterSectionsMode = false;
 if ($_lusterJoinedTemplate !== null) {
@@ -144,8 +162,6 @@ if ($_lusterJoinedTemplate !== null) {
         );
     };
 
-    // Sections mode: null (never saved) = use built-in default; '' (explicitly cleared) = off.
-    // Only active listings are included — inactive (active=0) are hidden and never exposed publicly.
     $_ljSectionsTplRaw = $_lusterSiteRepo->get('joined_sections_template');
     $_ljSectionsTpl    = $_ljSectionsTplRaw === null
         ? SiteSettingsRepo::collectiveDefaults()['joined_sections_template']
@@ -185,17 +201,7 @@ if ($_lusterJoinedTemplate !== null) {
 }
 
 // ---------------------------------------------------------------------------
-// 4. Build form action URL (current page so the selector posts back here)
-// ---------------------------------------------------------------------------
-
-$_lusterFormAction = htmlspecialchars(
-    strtok($_SERVER['REQUEST_URI'] ?? '', '?') ?: '/',
-    ENT_QUOTES | ENT_SUBSTITUTE,
-    'UTF-8'
-);
-
-// ---------------------------------------------------------------------------
-// 5. Render fragment
+// 4. Render fragment
 // ---------------------------------------------------------------------------
 
 $_lusterHtml = $_lusterApp->getView()->renderFragment('joined.php', [
@@ -203,6 +209,8 @@ $_lusterHtml = $_lusterApp->getView()->renderFragment('joined.php', [
     'grouped'            => $_lusterGrouped,
     'listing_html'       => $_lusterListingHtml,
     'sections_mode'      => $_lusterSectionsMode,
+    'category_html'      => $_lusterCategoryHtml,
+    'show_listings'      => $_lusterShowListings,
     'categories'         => $_lusterCategories,
     'category_counts'    => $_lusterCategoryCountMap,
     'total_count'        => $_lusterTotalCount,

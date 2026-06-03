@@ -698,33 +698,31 @@ final class ListingRepo
      *
      * Each entry includes parent_id, parent_name, and listing_count (active only).
      *
-     * @return array<int, array{id: int, name: string, source: string, parent_id: int|null, parent_name: string|null, listing_count: int}>
+     * @return array<int, array{id: int, name: string, slug: string, source: string, parent_id: int|null, parent_name: string|null, listing_count: int}>
      */
     public function getCategoryList(): array
     {
         $activeWhere = $this->isOwnedSchema ? 'f.status = 2' : 'f.upcoming = 0 AND f.trouble = 0';
-        $hasParentId = $this->categoryParentColumnExists();
+        $hasParentId = $this->categoryColumnExists('parent_id');
+        $hasSlug     = $this->categoryColumnExists('slug');
 
-        $sql = $hasParentId
-            ? "SELECT c.id, c.name, c.source, c.parent_id,
-                      p.name AS parent_name,
-                      COUNT(DISTINCT f.{$this->pkCol}) AS listing_count
-               FROM lstr_listing_categories lc
-               JOIN {$this->table} f ON f.{$this->pkCol} = lc.fanlisting_id
-               JOIN lstr_categories c ON c.id = lc.category_id
-               LEFT JOIN lstr_categories p ON p.id = c.parent_id
-               WHERE {$activeWhere}
-               GROUP BY c.id, c.name, c.source, c.parent_id, p.name
-               ORDER BY COALESCE(p.name, c.name) ASC, c.name ASC"
-            : "SELECT c.id, c.name, c.source, NULL AS parent_id,
-                      NULL AS parent_name,
-                      COUNT(DISTINCT f.{$this->pkCol}) AS listing_count
-               FROM lstr_listing_categories lc
-               JOIN {$this->table} f ON f.{$this->pkCol} = lc.fanlisting_id
-               JOIN lstr_categories c ON c.id = lc.category_id
-               WHERE {$activeWhere}
-               GROUP BY c.id, c.name, c.source
-               ORDER BY c.name ASC";
+        $slugSel    = $hasSlug     ? 'c.slug,'                                  : "'' AS slug,";
+        $parentSel  = $hasParentId ? 'c.parent_id, p.name AS parent_name,'      : 'NULL AS parent_id, NULL AS parent_name,';
+        $joinClause = $hasParentId ? "LEFT JOIN lstr_categories p ON p.id = c.parent_id" : '';
+        $groupExtra = $hasParentId ? ', c.parent_id, p.name'                    : '';
+        $orderBy    = $hasParentId
+            ? 'ORDER BY COALESCE(p.name, c.name) ASC, c.name ASC'
+            : 'ORDER BY c.name ASC';
+
+        $sql = "SELECT c.id, c.name, {$slugSel} c.source, {$parentSel}
+                       COUNT(DISTINCT f.{$this->pkCol}) AS listing_count
+                FROM lstr_listing_categories lc
+                JOIN {$this->table} f ON f.{$this->pkCol} = lc.fanlisting_id
+                JOIN lstr_categories c ON c.id = lc.category_id
+                {$joinClause}
+                WHERE {$activeWhere}
+                GROUP BY c.id, c.name, c.source{$groupExtra}
+                {$orderBy}";
 
         $stmt = $this->db->prepare($sql);
         $stmt->execute();
@@ -733,6 +731,7 @@ final class ListingRepo
             static fn(array $r) => [
                 'id'            => (int)    $r['id'],
                 'name'          => (string) $r['name'],
+                'slug'          => (string) ($r['slug'] ?? ''),
                 'source'        => (string) $r['source'],
                 'parent_id'     => $r['parent_id'] !== null ? (int) $r['parent_id'] : null,
                 'parent_name'   => $r['parent_name'] !== null ? (string) $r['parent_name'] : null,
@@ -742,14 +741,14 @@ final class ListingRepo
         );
     }
 
-    private function categoryParentColumnExists(): bool
+    private function categoryColumnExists(string $column): bool
     {
         try {
             $pdo = $this->db->pdo();
             if ($pdo->getAttribute(\PDO::ATTR_DRIVER_NAME) === 'sqlite') {
                 $stmt = $pdo->query('PRAGMA table_info(lstr_categories)');
                 foreach ($stmt ? $stmt->fetchAll() : [] as $row) {
-                    if (($row['name'] ?? '') === 'parent_id') {
+                    if (($row['name'] ?? '') === $column) {
                         return true;
                     }
                 }
@@ -764,7 +763,7 @@ final class ListingRepo
                    AND COLUMN_NAME = :column
                  LIMIT 1'
             );
-            $stmt->execute(['table' => 'lstr_categories', 'column' => 'parent_id']);
+            $stmt->execute(['table' => 'lstr_categories', 'column' => $column]);
             return $stmt->fetchColumn() !== false;
         } catch (\Throwable) {
             return false;

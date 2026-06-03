@@ -11,7 +11,7 @@ use Luster\Models\Category;
  * Data access for the lstr_categories table.
  *
  * Requires lstr_categories to exist — run public/migrate.php (Migration 7) first.
- * Migration 7 also adds category_id to lstr_joined.
+ * Migration 55 added the slug column and unique index on (source, slug).
  */
 final class CategoryRepo
 {
@@ -42,7 +42,7 @@ final class CategoryRepo
     /**
      * Returns a single category by primary key, or null if not found.
      *
-     * @return array<string, mixed>|null
+     * @return object|null  stdClass with all DB columns
      */
     public function getById(int $id): ?object
     {
@@ -142,12 +142,34 @@ final class CategoryRepo
         return $this->getAllCustomNetworkNames();
     }
 
-    public function update(int $id, string $name, string $source = 'custom'): void
+    /**
+     * Updates a category's name and source. The slug is only updated when
+     * explicitly provided — it is never auto-derived from the new name on edit,
+     * so existing links continue to work after a rename.
+     *
+     * To set a parent or change the slug, pass the optional parameters.
+     * Max depth is 1: parentId must itself have parent_id = NULL.
+     *
+     * @throws \InvalidArgumentException when parentId would exceed max depth
+     */
+    public function update(int $id, string $name, string $source = 'custom', ?string $slug = null, ?int $parentId = null): void
     {
-        $stmt = $this->db->pdo()->prepare(
-            'UPDATE lstr_categories SET name = :name, source = :source WHERE id = :id'
-        );
-        $stmt->execute(['name' => $name, 'source' => $source, 'id' => $id]);
+        if ($parentId !== null && !$this->isValidParent($parentId)) {
+            throw new \InvalidArgumentException('Parent category must be a top-level category (max depth 1).');
+        }
+
+        if ($slug !== null) {
+            $slug = $this->uniqueSlug($this->slugify($slug), $source, $id);
+            $stmt = $this->db->pdo()->prepare(
+                'UPDATE lstr_categories SET name = :name, source = :source, slug = :slug, parent_id = :pid WHERE id = :id'
+            );
+            $stmt->execute(['name' => $name, 'source' => $source, 'slug' => $slug, 'pid' => $parentId, 'id' => $id]);
+        } else {
+            $stmt = $this->db->pdo()->prepare(
+                'UPDATE lstr_categories SET name = :name, source = :source, parent_id = :pid WHERE id = :id'
+            );
+            $stmt->execute(['name' => $name, 'source' => $source, 'pid' => $parentId, 'id' => $id]);
+        }
     }
 
     /**
@@ -183,14 +205,6 @@ final class CategoryRepo
     /**
      * Returns every custom network name regardless of how it was created.
      *
-     * Two storage patterns exist in lstr_categories:
-     *   A) Network registration rows: source='custom', name=<network name>
-     *      (created by the Categories admin page and JoinedController)
-     *   B) Category rows: source=<network name>, name=<category name>
-     *      (created by findOrCreate in ListingController)
-     *
-     * Both are unified here so callers always see the complete list.
-     *
      * @return string[]
      */
     private function getAllCustomNetworkNames(): array
@@ -207,8 +221,6 @@ final class CategoryRepo
 
     /**
      * Returns all categories grouped by their custom network name.
-     * Result: ['NetworkName' => [['id' => int, 'name' => string], ...], ...]
-     * Only networks that have actual category rows (source = network name) are included.
      *
      * @return array<string, array<int, array{id: int, name: string}>>
      */
@@ -246,19 +258,82 @@ final class CategoryRepo
         $stmt->execute(['name' => $name]);
     }
 
+    /**
+     * Returns a flat, depth-aware list of all custom categories suitable for
+     * populating a <select>. Top-level categories appear first; their children
+     * immediately follow with an em-dash prefix and depth=1.
+     *
+     * Only custom-source categories (source = 'custom') are included, since
+     * TFL/TAFL categories are network-managed and do not support nesting.
+     *
+     * @return array<int, array{id: int, name: string, indent_name: string, depth: int, parent_id: int|null}>
+     */
+    public function buildIndentedList(): array
+    {
+        $stmt = $this->db->prepare(
+            "SELECT id, name, parent_id FROM lstr_categories
+             WHERE source = 'custom'
+             ORDER BY COALESCE(parent_id, id) ASC, parent_id IS NOT NULL ASC, name ASC"
+        );
+        $stmt->execute();
+        $rows = $stmt->fetchAll();
+
+        $topLevel = [];
+        $children = [];
+        foreach ($rows as $r) {
+            if ($r['parent_id'] === null) {
+                $topLevel[] = $r;
+            } else {
+                $children[(int) $r['parent_id']][] = $r;
+            }
+        }
+
+        $result = [];
+        foreach ($topLevel as $parent) {
+            $pid = (int) $parent['id'];
+            $result[] = [
+                'id'          => $pid,
+                'name'        => (string) $parent['name'],
+                'indent_name' => (string) $parent['name'],
+                'depth'       => 0,
+                'parent_id'   => null,
+            ];
+            foreach ($children[$pid] ?? [] as $child) {
+                $result[] = [
+                    'id'          => (int) $child['id'],
+                    'name'        => (string) $child['name'],
+                    'indent_name' => '— ' . $child['name'],
+                    'depth'       => 1,
+                    'parent_id'   => $pid,
+                ];
+            }
+        }
+
+        return $result;
+    }
+
     // -----------------------------------------------------------------------
     // Writes
     // -----------------------------------------------------------------------
 
     /**
-     * Inserts a new category and returns its auto-incremented id.
+     * Inserts a new category. Auto-generates a unique slug from the name.
+     * Max depth is 1: parentId must itself have parent_id = NULL.
+     *
+     * @throws \InvalidArgumentException when parentId would exceed max depth
      */
-    public function add(string $name, string $source): int
+    public function add(string $name, string $source, ?int $parentId = null): int
     {
+        if ($parentId !== null && !$this->isValidParent($parentId)) {
+            throw new \InvalidArgumentException('Parent category must be a top-level category (max depth 1).');
+        }
+
+        $slug = $this->uniqueSlug($this->slugify($name), $source);
+
         $stmt = $this->db->prepare(
-            'INSERT INTO lstr_categories (name, source) VALUES (:name, :source)'
+            'INSERT INTO lstr_categories (name, slug, source, parent_id) VALUES (:name, :slug, :source, :pid)'
         );
-        $stmt->execute(['name' => $name, 'source' => $source]);
+        $stmt->execute(['name' => $name, 'slug' => $slug, 'source' => $source, 'pid' => $parentId]);
 
         return (int) $this->db->lastInsertId();
     }
@@ -296,24 +371,31 @@ final class CategoryRepo
         return array_map('intval', $stmt->fetchAll(\PDO::FETCH_COLUMN));
     }
 
-    public function findBySourceAndName(string $source, string $name): ?object {
+    public function findBySourceAndName(string $source, string $name): ?object
+    {
         $stmt = $this->db->prepare(
-            'SELECT * FROM lstr_categories WHERE source=:source AND name=:name LIMIT 1'
+            'SELECT * FROM lstr_categories WHERE source = :source AND name = :name LIMIT 1'
         );
-        $stmt->execute(['source'=>$source,'name'=>$name]);
+        $stmt->execute(['source' => $source, 'name' => $name]);
         $row = $stmt->fetch();
-        return $row ? Category::fromRow((array)$row) : null;
+        return $row ? Category::fromRow((array) $row) : null;
     }
 
-    public function findOrCreate(string $source, string $name): int {
+    /**
+     * Finds an existing category by source+name or creates one with an auto slug.
+     */
+    public function findOrCreate(string $source, string $name): int
+    {
         $existing = $this->findBySourceAndName($source, $name);
         if ($existing !== null) {
             return $existing->id;
         }
+
+        $slug = $this->uniqueSlug($this->slugify($name), $source);
         $stmt = $this->db->prepare(
-            'INSERT INTO lstr_categories (name, source) VALUES (:name, :source)'
+            'INSERT INTO lstr_categories (name, slug, source) VALUES (:name, :slug, :source)'
         );
-        $stmt->execute(['name' => $name, 'source' => $source]);
+        $stmt->execute(['name' => $name, 'slug' => $slug, 'source' => $source]);
         return (int) $this->db->lastInsertId();
     }
 
@@ -376,18 +458,85 @@ final class CategoryRepo
             $seeds['tafl'] = \Luster\Support\CategorySeedCatalog::tafl();
         }
 
-        $stmt = $this->db->prepare(
-            'INSERT IGNORE INTO lstr_categories (name, source) VALUES (:name, :source)'
-        );
-
         $inserted = 0;
         foreach ($seeds as $source => $names) {
             foreach ($names as $name) {
-                $stmt->execute(['name' => $name, 'source' => $source]);
+                $slug  = $this->uniqueSlug($this->slugify($name), $source);
+                $stmt  = $this->db->prepare(
+                    'INSERT IGNORE INTO lstr_categories (name, slug, source) VALUES (:name, :slug, :source)'
+                );
+                $stmt->execute(['name' => $name, 'slug' => $slug, 'source' => $source]);
                 $inserted += $stmt->rowCount();
             }
         }
 
         return $inserted;
+    }
+
+    // -----------------------------------------------------------------------
+    // Private helpers
+    // -----------------------------------------------------------------------
+
+    /**
+     * Converts a display name to a URL-safe slug.
+     * Non-alphanumeric runs become hyphens; result is lowercase, max 90 chars.
+     */
+    private function slugify(string $name): string
+    {
+        $slug = strtolower(trim((string) preg_replace('/[^a-zA-Z0-9]+/', '-', $name), '-'));
+        return substr($slug !== '' ? $slug : 'category', 0, 90);
+    }
+
+    /**
+     * Returns a slug that is unique within (source, slug) for lstr_categories.
+     * If $base already exists for the source, appends -2, -3, … until unique.
+     * Pass $excludeId to allow the current row's own slug without triggering a collision.
+     */
+    private function uniqueSlug(string $base, string $source, ?int $excludeId = null): string
+    {
+        try {
+            $sql    = 'SELECT id FROM lstr_categories WHERE source = :source AND slug = :slug';
+            $params = ['source' => $source, 'slug' => $base];
+            if ($excludeId !== null) {
+                $sql .= ' AND id != :eid';
+                $params['eid'] = $excludeId;
+            }
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute($params);
+            if ($stmt->fetch() === false) {
+                return $base;
+            }
+            $n = 2;
+            do {
+                $candidate    = $base . '-' . $n++;
+                $params['slug'] = $candidate;
+                $stmt->execute($params);
+            } while ($stmt->fetch() !== false);
+            return $candidate;
+        } catch (\Throwable) {
+            // slug column may not exist pre-migration-55; return base as best-effort
+            return $base;
+        }
+    }
+
+    /**
+     * Returns true when $parentId refers to a top-level category (parent_id IS NULL).
+     * This enforces max depth = 1.
+     */
+    private function isValidParent(int $parentId): bool
+    {
+        try {
+            $stmt = $this->db->prepare(
+                'SELECT parent_id FROM lstr_categories WHERE id = :id LIMIT 1'
+            );
+            $stmt->execute(['id' => $parentId]);
+            $row = $stmt->fetch();
+            if ($row === false) {
+                return false;  // proposed parent doesn't exist
+            }
+            return $row['parent_id'] === null;
+        } catch (\Throwable) {
+            return true;  // column absent pre-migration; allow
+        }
     }
 }

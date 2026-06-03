@@ -8,23 +8,25 @@ use Luster\Core\View;
  * Joined listings list — content fragment.
  *
  * Variables injected by embed/joined.php:
+ *   $category_html       string      pre-rendered category navigator (from PublicCategoryPresenter)
+ *   $show_listings       bool        false when browse-index is rendered (no listing rows)
  *   $listings            JoinedListing[]              flat list (single-category or selector mode)
- *   $grouped             array<string, JoinedListing[]>  category-keyed list (show-all mode, sorted)
- *                        When non-empty, $listings is unused.
+ *   $grouped             array<string, JoinedListing[]>  category-keyed list (show-all mode)
  *   $listing_html        string|null  pre-rendered rows via admin HTML template (null = fallback)
- *   $categories          string[]              all available category names (for the selector / browse index)
- *   $category_counts     array<string, int>    map of category name → active listing count
- *   $total_count         int                  total number of active joined listings
- *   $current_category    string                '' = no category chosen | 'all' = grouped | other = filter
- *   $show_list           bool         show category selector as bulleted list (vs dropdown)
- *   $browse_by_category  bool         browse-by-category mode: index view when no category selected
- *   $uploads_url         string       base URL for listing images
- *   $form_action         string       URL the category filter form/links point to
+ *   $sections_mode       bool         true when joined_sections_template produced the output
+ *   $categories          string[]     all available category names
+ *   $category_counts     array<string, int>
+ *   $total_count         int
+ *   $current_category    string       '' | 'all' | exact name
+ *   $show_list           bool
+ *   $browse_by_category  bool
+ *   $uploads_url         string
+ *   $form_action         string
  *   $base_url            string
  *   $theme_path          string
  */
 
-/** Renders one JoinedListing item — shared by both display modes */
+/** Renders one JoinedListing item */
 $_renderItem = static function ($fl) use ($uploads_url): void {
     if ($fl->image !== null && $fl->image !== '') {
         echo '<a href="' . View::e($fl->url) . '" target="_blank" rel="noopener noreferrer">';
@@ -39,65 +41,12 @@ $_renderItem = static function ($fl) use ($uploads_url): void {
 ?>
 <div>
 
-  <?php if ($browse_by_category): ?>
-    <?php /* Browse-by-category mode */ ?>
+  <?= $category_html ?? '' ?>
 
-    <?php if ($current_category === ''): ?>
-      <?php /* Index: show list of all categories as links */ ?>
-      <?php if (empty($categories)): ?>
-        <p>No categories to display.</p>
-      <?php else: ?>
-        <ul>
-          <li>
-            <a href="<?= View::e($form_action . '?cat=all') ?>">All Categories</a>
-            (<?= (int) ($total_count ?? 0) ?>)
-          </li>
-          <?php foreach ($categories as $catName): ?>
-            <li>
-              <a href="<?= View::e($form_action . '?cat=' . urlencode($catName)) ?>"><?= View::e($catName) ?></a> (<?= (int) (($category_counts ?? [])[$catName] ?? 0) ?>)
-            </li>
-          <?php endforeach; ?>
-        </ul>
-      <?php endif; ?>
+  <?php if ($show_listings ?? true): ?>
 
-    <?php else: ?>
-      <?php /* Category selected: show listings + back link */ ?>
-      <p><a href="<?= View::e($form_action) ?>">&larr; All categories</a></p>
-
-      <?php if (($listing_html ?? null) !== null && $listing_html !== ''): ?>
-        <!-- Custom DB template listing rows -->
-        <?php if ($sections_mode ?? false): ?>
-          <?= $listing_html ?>
-        <?php else: ?>
-          <ul>
-            <?= $listing_html ?>
-          </ul>
-        <?php endif; ?>
-      <?php elseif (empty($listings)): ?>
-        <p>No listings in this category.</p>
-      <?php else: ?>
-        <ul>
-          <?php foreach ($listings as $fl): ?>
-            <li><?php $_renderItem($fl); ?></li>
-          <?php endforeach; ?>
-        </ul>
-      <?php endif; ?>
-
-    <?php endif; ?>
-
-  <?php else: ?>
-    <?php /* Standard selector / grouped mode */ ?>
-    <?php
-    // Grouped mode = 'all' keyword (no selector) OR show-all-by-default with no category picked
-    $_isGroupedMode   = !empty($grouped) && $current_category === 'all';
-    $_selectorWithAll = !empty($grouped) && $current_category === '';  // dropdown + grouped below
-    $_hasCategory     = $current_category !== '' && $current_category !== 'all' && !$_isGroupedMode;
-    $_showSelector    = ($current_category === '' || $_hasCategory) && !empty($categories);
-    ?>
-
-    <?php if ($sections_mode ?? false): ?>
-      <!-- Sections mode is authoritative: render exactly what the sections template produced -->
-      <!-- (may be intentionally empty when all conditional blocks were suppressed)          -->
+    <?php if (($sections_mode ?? false)): ?>
+      <!-- Sections mode: output is authoritative from the sections template -->
       <?= $listing_html ?? '' ?>
 
     <?php elseif (($listing_html ?? null) !== null && $listing_html !== ''): ?>
@@ -106,8 +55,8 @@ $_renderItem = static function ($fl) use ($uploads_url): void {
         <?= $listing_html ?>
       </ul>
 
-    <?php elseif ($_isGroupedMode): ?>
-      <?php /* 'all' mode: grouped by category, no selector */ ?>
+    <?php elseif ($current_category === 'all' || (!empty($grouped) && $current_category === '')): ?>
+      <?php /* show-all mode: grouped by category */ ?>
       <?php if (empty($grouped)): ?>
         <p>No listings to display.</p>
       <?php else: ?>
@@ -121,71 +70,20 @@ $_renderItem = static function ($fl) use ($uploads_url): void {
         <?php endforeach; ?>
       <?php endif; ?>
 
-    <?php else: ?>
-      <?php /* Selector + results mode */ ?>
-
-      <?php if ($_showSelector): ?>
-        <?php $_selector = static function () use ($categories, $current_category, $form_action, $show_list): void { ?>
-          <div>
-            <?php if ($show_list): ?>
-              <ul>
-                <?php foreach ($categories as $catName): ?>
-                  <li>
-                    <a <?= $current_category === $catName ? 'aria-current="true"' : '' ?>
-                       href="<?= View::e($form_action . '?cat=' . urlencode($catName)) ?>">
-                      <?= View::e($catName) ?>
-                    </a>
-                  </li>
-                <?php endforeach; ?>
-              </ul>
-            <?php else: ?>
-              <form method="GET" action="<?= View::e($form_action) ?>">
-                <label for="fl-joined-cat">Category:</label>
-                <select id="fl-joined-cat" name="cat"
-                        onchange="this.form.submit()">
-                  <option value="">All categories&hellip;</option>
-                  <?php foreach ($categories as $catName): ?>
-                    <option value="<?= View::e($catName) ?>"
-                      <?= $current_category === $catName ? 'selected' : '' ?>>
-                      <?= View::e($catName) ?>
-                    </option>
-                  <?php endforeach; ?>
-                </select>
-                <noscript><button type="submit">Go</button></noscript>
-              </form>
-            <?php endif; ?>
-          </div>
-        <?php }; $_selector(); ?>
-      <?php endif; ?>
-
-      <?php if ($_selectorWithAll): ?>
-        <?php /* show-all-by-default: grouped listings below the selector */ ?>
-        <?php if (empty($grouped)): ?>
-          <p>No listings to display.</p>
-        <?php else: ?>
-          <?php foreach ($grouped as $catName => $items): ?>
-            <h3><?= View::e($catName) ?></h3>
-            <ul>
-              <?php foreach ($items as $fl): ?>
-                <li><?php $_renderItem($fl); ?></li>
-              <?php endforeach; ?>
-            </ul>
+    <?php elseif ($current_category !== '' && $current_category !== 'all'): ?>
+      <?php /* Single-category mode */ ?>
+      <?php if (empty($listings)): ?>
+        <p>No listings in this category.</p>
+      <?php else: ?>
+        <ul>
+          <?php foreach ($listings as $fl): ?>
+            <li><?php $_renderItem($fl); ?></li>
           <?php endforeach; ?>
-        <?php endif; ?>
-      <?php elseif ($_hasCategory): ?>
-        <?php if (empty($listings)): ?>
-          <p>No listings in this category.</p>
-        <?php else: ?>
-          <ul>
-            <?php foreach ($listings as $fl): ?>
-              <li><?php $_renderItem($fl); ?></li>
-            <?php endforeach; ?>
-          </ul>
-        <?php endif; ?>
-      <?php elseif (!$_showSelector): ?>
-        <p>No listings to display.</p>
+        </ul>
       <?php endif; ?>
 
+    <?php else: ?>
+      <p>No listings to display.</p>
     <?php endif; ?>
 
   <?php endif; ?>

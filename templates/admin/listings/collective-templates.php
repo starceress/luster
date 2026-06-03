@@ -279,6 +279,12 @@ $collAffSectionVal       = $ct['collective_affiliates_section_template']   ?? $d
               <tr class="tok-row" data-textarea="collective_stats_template" data-token="{owned_random_url}">
                 <td><code>{owned_random_url}</code></td><td>Random listing URL</td>
               </tr>
+              <tr class="tok-row" data-textarea="collective_stats_template" data-token="{countries_count}">
+                <td><code>{countries_count}</code></td><td>Distinct countries across all members</td>
+              </tr>
+              <tr>
+                <td><code>{if_countries}&hellip;{/if_countries}</code></td><td>Show block only when countries count &gt; 0</td>
+              </tr>
             </tbody>
           </table>
         </div>

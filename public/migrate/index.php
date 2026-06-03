@@ -1891,6 +1891,49 @@ try {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Migration 55: Add slug column to lstr_categories, backfill, add unique index
+// ─────────────────────────────────────────────────────────────────────────────
+try {
+    if (!(int) $pdo->query('SELECT COUNT(*) FROM `lstr_migrations` WHERE migration_number = 55')->fetchColumn()) {
+        // 1. Add slug column (default '' so no existing row is broken)
+        $pdo->exec(
+            "ALTER TABLE `lstr_categories`
+             ADD COLUMN IF NOT EXISTS `slug` VARCHAR(100) NOT NULL DEFAULT '' AFTER `name`"
+        );
+
+        // 2. Preload any slugs already set (defensive: handles partial runs)
+        $seenSlugs = [];
+        foreach ($pdo->query("SELECT source, slug FROM `lstr_categories` WHERE slug != ''")->fetchAll(\PDO::FETCH_ASSOC) as $r) {
+            $seenSlugs[(string) $r['source']][(string) $r['slug']] = true;
+        }
+
+        // 3. Backfill slugs for every row that still has slug = ''
+        $rows   = $pdo->query("SELECT id, name, source FROM `lstr_categories` WHERE slug = '' ORDER BY id ASC")->fetchAll(\PDO::FETCH_ASSOC);
+        $upStmt = $pdo->prepare('UPDATE `lstr_categories` SET slug = :slug WHERE id = :id');
+        foreach ($rows as $row) {
+            $base   = strtolower(trim((string) preg_replace('/[^a-zA-Z0-9]+/', '-', (string) $row['name']), '-'));
+            $base   = substr($base !== '' ? $base : 'category', 0, 90);
+            $source = (string) $row['source'];
+            $slug   = $base;
+            $n = 2;
+            while (isset($seenSlugs[$source][$slug])) {
+                $slug = $base . '-' . $n++;
+            }
+            $seenSlugs[$source][$slug] = true;
+            $upStmt->execute(['slug' => $slug, 'id' => $row['id']]);
+        }
+
+        // 4. Add unique index now that every slug is non-empty and source-unique
+        $pdo->exec("ALTER TABLE `lstr_categories` ADD UNIQUE KEY `uq_cat_slug` (source, slug)");
+
+        $pdo->exec('INSERT INTO `lstr_migrations` (migration_number) VALUES (55)');
+        $done[] = 'Added <code>slug</code> column to <code>lstr_categories</code>, backfilled ' . count($rows) . ' slug(s), added unique index';
+    }
+} catch (PDOException $e) {
+    $errors[] = 'Migration 55 — ' . htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Build results HTML
 // ─────────────────────────────────────────────────────────────────────────────
 

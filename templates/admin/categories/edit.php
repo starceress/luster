@@ -3,6 +3,8 @@ use Luster\Core\View;
 $b  = rtrim(View::e($base_url ?? ''), '/');
 $fe = $field_errors ?? [];
 $currentSource = $cat->source ?? 'custom';
+$currentSlug   = $cat->slug ?? '';
+$currentParent = isset($cat->parent_id) && $cat->parent_id !== null ? (int) $cat->parent_id : null;
 ?>
 
 <div class="page-topbar">
@@ -24,6 +26,7 @@ $currentSource = $cat->source ?? 'custom';
 
   <div class="gradient-card">
     <div class="listing-field-section">
+
       <div class="listing-field-row<?= !empty($fe['name']) ? ' has-error' : '' ?>">
         <label class="listing-field-label" for="cat-name">
           Category Name <span class="req">*</span>
@@ -37,11 +40,40 @@ $currentSource = $cat->source ?? 'custom';
         </div>
       </div>
 
+      <div class="listing-field-row">
+        <label class="listing-field-label" for="cat-slug">URL Slug</label>
+        <div>
+          <input id="cat-slug" type="text" name="slug" class="form"
+                 value="<?= View::e($currentSlug) ?>" maxlength="100">
+          <p class="form-hint"><strong>Warning:</strong> changing the slug breaks existing <code>?cat=<?= View::e($currentSlug ?: 'slug') ?></code> links. Leave blank to keep the current slug.</p>
+        </div>
+      </div>
+
+      <div class="listing-field-row listing-field-row--top">
+        <label class="listing-field-label" for="cat-parent">Parent Category</label>
+        <div>
+          <div class="select-wrap">
+            <select id="cat-parent" name="parent_id">
+              <option value="">None (top-level)</option>
+              <?php foreach ($indented_list ?? [] as $item): ?>
+                <?php if ($item['depth'] === 0 && (int) $item['id'] !== (int) ($cat->id ?? 0)): ?>
+                  <option value="<?= (int) $item['id'] ?>"
+                          <?= $currentParent === (int) $item['id'] ? 'selected' : '' ?>>
+                    <?= View::e($item['indent_name']) ?>
+                  </option>
+                <?php endif; ?>
+              <?php endforeach; ?>
+            </select>
+          </div>
+          <p class="form-hint">Max depth is one level. Only top-level categories can be parents.</p>
+        </div>
+      </div>
+
       <div class="listing-field-row listing-field-row--top">
         <label class="listing-field-label" for="add-network-toggle">Change Network?</label>
         <div>
           <div class="select-wrap">
-            <select id="add-network-toggle" name="add_network" >
+            <select id="add-network-toggle" name="add_network">
               <option value="no">Keep current (<?= View::e($currentSource) ?>)</option>
               <option value="yes">Change network</option>
             </select>
@@ -63,6 +95,7 @@ $currentSource = $cat->source ?? 'custom';
                  maxlength="50" placeholder="e.g. MyNetwork">
         </div>
       </div>
+
     </div>
 
     <div class="composer-footer">
