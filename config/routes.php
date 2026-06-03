@@ -483,6 +483,10 @@ return [
         // Literal sub-paths registered before parameterised {source} routes
         $router->get('/admin/import',
             ImportController::class, 'index');
+        $router->get('/admin/import/settings',
+            ImportController::class, 'settings');
+        $router->post('/admin/import/settings',
+            ImportController::class, 'settings');
         // Step 2: Connect (credentials)
         $router->get('/admin/import/{source}/connect',
             ImportController::class, 'connect');

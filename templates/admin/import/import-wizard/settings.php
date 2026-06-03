@@ -1,0 +1,27 @@
+# Composer
+/vendor/
+composer.lock
+
+# Live config — never commit
+/config/app.php
+
+# Runtime storage
+/storage/logs/*
+!/storage/logs/.gitkeep
+/storage/cache/*
+!/storage/cache/.gitkeep
+
+# User uploads — keep the directory and its .htaccess, not the files
+/public/uploads/*
+!/public/uploads/.htaccess
+
+# Installer sentinel — created at runtime, not committed
+/storage/.installed
+
+# Test artefacts
+/.phpunit.cache/
+/.phpunit.result.cache
+/coverage/
+
+# Environment file (if ever adopted)
+.env
