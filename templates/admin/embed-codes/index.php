@@ -450,6 +450,64 @@ $epSafe = View::e($ep);
             </table>
             </div>
           </div>
+          <p class="text-muted embed-ref-copy" style="margin-top:.875rem">Options for <code>embed/update.php</code> and <code>embed/remove.php</code>.</p>
+          <div class="ec-ref-card">
+            <div class="table-wrap">
+            <table class="data-table">
+              <thead><tr><th class="act-col">Variable</th><th>Description</th></tr></thead>
+              <tbody>
+                <tr><td class="act-col"><code>$luster_lost_password_url</code></td><td>Override the &ldquo;Forgot your password?&rdquo; link URL. Useful when the embed is on a different page than the listing&rsquo;s own <code>reset.php</code>.</td></tr>
+              </tbody>
+            </table>
+            </div>
+          </div>
+          <p class="text-muted embed-ref-copy" style="margin-top:.875rem">Options for <code>embed/stats.php</code>.</p>
+          <div class="ec-ref-card">
+            <div class="table-wrap">
+            <table class="data-table">
+              <thead><tr><th class="act-col">Variable</th><th>Description</th></tr></thead>
+              <tbody>
+                <tr><td class="act-col"><code>$luster_stats_template</code></td><td>Inline template string. When non-empty, overrides the stats template stored in the database for this listing.</td></tr>
+              </tbody>
+            </table>
+            </div>
+          </div>
+          <p class="text-muted embed-ref-copy" style="margin-top:.875rem">Options for <code>embed/affiliates.php</code>.</p>
+          <div class="ec-ref-card">
+            <div class="table-wrap">
+            <table class="data-table">
+              <thead><tr><th class="act-col">Variable</th><th>Description</th></tr></thead>
+              <tbody>
+                <tr><td class="act-col"><code>$luster_affiliates_base</code></td><td>Base URL for pagination links &mdash; keeps visitors on your page instead of the Luster install URL.</td></tr>
+                <tr><td class="act-col"><code>$luster_per_page</code></td><td>Affiliates per page. Default 50.</td></tr>
+                <tr><td class="act-col"><code>$luster_page</code></td><td>Current page number. Defaults to <code>$_GET['page']</code>, then 1.</td></tr>
+              </tbody>
+            </table>
+            </div>
+          </div>
+          <p class="text-muted embed-ref-copy" style="margin-top:.875rem">Options for <code>embed/updates.php</code> and <code>embed/collective-updates.php</code>.</p>
+          <div class="ec-ref-card">
+            <div class="table-wrap">
+            <table class="data-table">
+              <thead><tr><th class="act-col">Variable</th><th>Description</th></tr></thead>
+              <tbody>
+                <tr><td class="act-col"><code>$luster_per_page</code></td><td>Items per page. Defaults to the site-wide setting.</td></tr>
+                <tr><td class="act-col"><code>$luster_show_cats</code></td><td>Set to <code>false</code> to hide the category tags on each update entry. Defaults to <code>true</code>.</td></tr>
+              </tbody>
+            </table>
+            </div>
+          </div>
+          <p class="text-muted embed-ref-copy" style="margin-top:.875rem">Options for <code>embed/contact.php</code> and <code>embed/collective-contact.php</code>.</p>
+          <div class="ec-ref-card">
+            <div class="table-wrap">
+            <table class="data-table">
+              <thead><tr><th class="act-col">Variable</th><th>Description</th></tr></thead>
+              <tbody>
+                <tr><td class="act-col"><code>$luster_contact_action</code></td><td>Override the form&rsquo;s POST action URL. Useful when the form and its processor live at different paths.</td></tr>
+              </tbody>
+            </table>
+            </div>
+          </div>
         </div>
 
         <div class="ec-ref-panel" id="ec-ref-listings">
@@ -480,6 +538,54 @@ $epSafe = View::e($ep);
                 <tr><td class="act-col"><code>$luster_show_list</code></td><td>Set to <code>true</code> to render the category selector as a bulleted link list instead of a <code>&lt;select&gt;</code> dropdown. Has no effect when <code>$luster_category</code> is <code>'all'</code> or a fixed name.</td></tr>
                 <tr><td class="act-col"><code>$luster_show_all_by_default</code></td><td>Set to <code>true</code> to show the dropdown selector AND all listings grouped below it on the initial page load (no category needs to be selected first).</td></tr>
                 <tr><td class="act-col"><code>$luster_browse_by_category</code></td><td>Set to <code>true</code> to enable browse-by-category mode. The landing view shows all category names as links. Clicking a category loads its listings formatted with your HTML template from Admin &rarr; Collective.</td></tr>
+              </tbody>
+            </table>
+            </div>
+          </div>
+          <p class="text-muted embed-ref-copy" style="margin-top:.875rem">Options for <code>embed/random-listing.php</code>.</p>
+          <div class="ec-ref-card">
+            <div class="table-wrap">
+            <table class="data-table">
+              <thead><tr><th class="act-col">Variable</th><th>Description</th></tr></thead>
+              <tbody>
+                <tr><td class="act-col"><code>$luster_status</code></td><td>Pool to draw from: <code>'current'</code> (default), <code>'upcoming'</code>, or <code>'all'</code>.</td></tr>
+              </tbody>
+            </table>
+            </div>
+          </div>
+          <p class="text-muted embed-ref-copy" style="margin-top:.875rem">Options for <code>embed/wishlist.php</code>.</p>
+          <div class="ec-ref-card">
+            <div class="table-wrap">
+            <table class="data-table">
+              <thead><tr><th class="act-col">Variable</th><th>Description</th></tr></thead>
+              <tbody>
+                <tr><td class="act-col"><code>$luster_wishlist_type</code></td><td>Filter by type: <code>'all'</code> (default), <code>'wanted'</code>, <code>'top'</code>, <code>'granted'</code>, or <code>'upcoming'</code>.</td></tr>
+              </tbody>
+            </table>
+            </div>
+          </div>
+          <p class="text-muted embed-ref-copy" style="margin-top:.875rem">Options for the KIM List embeds (<code>kim-signup</code>, <code>kim-list</code>, <code>kim-update</code>, <code>kim-reset</code>).</p>
+          <div class="ec-ref-card">
+            <div class="table-wrap">
+            <table class="data-table">
+              <thead><tr><th class="act-col">Variable</th><th>Description</th></tr></thead>
+              <tbody>
+                <tr><td class="act-col"><code>$luster_kim_signup_url</code></td><td>Override the KIM sign-up page URL.</td></tr>
+                <tr><td class="act-col"><code>$luster_kim_update_url</code></td><td>Override the KIM update-details page URL.</td></tr>
+                <tr><td class="act-col"><code>$luster_kim_reset_url</code></td><td>Override the KIM password-reset page URL.</td></tr>
+                <tr><td class="act-col"><code>$luster_kim_list_url</code></td><td>Override the KIM public-list page URL.</td></tr>
+              </tbody>
+            </table>
+            </div>
+          </div>
+          <p class="text-muted embed-ref-copy" style="margin-top:.875rem">Input options for <code>embed/collective-stats.php</code>.</p>
+          <div class="ec-ref-card">
+            <div class="table-wrap">
+            <table class="data-table">
+              <thead><tr><th class="act-col">Variable</th><th>Description</th></tr></thead>
+              <tbody>
+                <tr><td class="act-col"><code>$luster_count</code></td><td>How many listings to fetch for the newest/random arrays. Default 3.</td></tr>
+                <tr><td class="act-col"><code>$luster_cache_ttl</code></td><td>Stat cache lifetime in seconds. <code>0</code> (default) disables caching. Newest/random are always fetched fresh.</td></tr>
               </tbody>
             </table>
             </div>
@@ -525,6 +631,7 @@ $epSafe = View::e($ep);
                 <tr><td class="act-col"><code class="ec-tk">{fan_url}</code></td><td>Member's website URL.</td></tr>
                 <tr><td class="act-col"><code class="ec-tk">{fan_email}</code></td><td>Member's email address &mdash; visible on the page, use with care.</td></tr>
                 <tr><td class="act-col"><code class="ec-tk">{fan_country}</code></td><td>Country name. <span class="ec-ex">e.g. <em>Philippines</em></span></td></tr>
+                <tr><td class="act-col"><code class="ec-tk">{fan_<em>fieldname</em>}</code></td><td>Value of a custom additional field, where <em>fieldname</em> is the field&rsquo;s machine name as defined under <strong>Edit Listing &rarr; Fields</strong>. <span class="ec-ex">e.g. <code>{fan_favorite}</code></span></td></tr>
               </tbody>
             </table>
             </div>
@@ -552,6 +659,8 @@ $epSafe = View::e($ep);
                 <tr><td class="act-col"><code class="ec-tk">{date_updated}</code></td><td>Date last updated (admin-set).</td></tr>
                 <tr><td class="act-col"><code class="ec-tk">{member_count}</code></td><td>Approved member count. Triggers a DB query per listing only when present in the template.</td></tr>
                 <tr><td class="act-col"><code class="ec-tk">{country_count}</code></td><td>Distinct countries represented. Same lazy-load behaviour as <code>{member_count}</code>.</td></tr>
+                <tr><td class="act-col"><code class="ec-tk">{countries_count}</code></td><td>Alias for <code>{country_count}</code>.</td></tr>
+                <tr><td class="act-col"><code class="ec-tk">{if_countries}&hellip;{/if_countries}</code></td><td>Block shown only when the country count is greater than zero.</td></tr>
               </tbody>
             </table>
             </div>
@@ -670,6 +779,8 @@ $epSafe = View::e($ep);
                 <tr><td class="act-col"><code class="ec-tk">{owned_newest_url}</code></td><td>URL of the newest active owned listing, or empty.</td></tr>
                 <tr><td class="act-col"><code class="ec-tk">{owned_random_name}</code></td><td>Name of a random active owned listing, or empty.</td></tr>
                 <tr><td class="act-col"><code class="ec-tk">{owned_random_url}</code></td><td>URL of a random active owned listing, or empty.</td></tr>
+                <tr><td class="act-col"><code class="ec-tk">{countries_count}</code></td><td>Distinct countries across all approved members, collective-wide.</td></tr>
+                <tr><td class="act-col"><code class="ec-tk">{if_countries}&hellip;{/if_countries}</code></td><td>Block shown only when the collective countries count is greater than zero.</td></tr>
               </tbody>
             </table>
             </div>
