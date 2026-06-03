@@ -6,6 +6,8 @@ use Luster\Controllers\Admin\AddonsController;
 use Luster\Controllers\Admin\LinkCheckerController;
 use Luster\Controllers\Admin\FeedbackController;
 use Luster\Controllers\Admin\ImportController;
+use Luster\Controllers\Admin\ImportRepairController;
+use Luster\Controllers\Admin\NetworkDirectoryController;
 use Luster\Controllers\Admin\ImportMembersController;
 use Luster\Controllers\Admin\ActivityLogController;
 use Luster\Controllers\Admin\EmailsController;
@@ -469,6 +471,14 @@ return [
         $router->post('/admin/blacklist/{id}/delete',
             BlacklistController::class, 'delete');
 
+        // ── Network Directory ─────────────────────────────────────────
+        $router->get('/admin/network-directory',
+            NetworkDirectoryController::class, 'index');
+        $router->post('/admin/network-directory/refresh',
+            NetworkDirectoryController::class, 'refresh');
+        $router->post('/admin/network-directory/refresh-all',
+            NetworkDirectoryController::class, 'refreshAll');
+
         // ── Import wizard ─────────────────────────────────────────────
         // Literal sub-paths registered before parameterised {source} routes
         $router->get('/admin/import',
@@ -508,6 +518,14 @@ return [
         // SQL dump upload (called from connect step)
         $router->post('/admin/import/{source}/upload-dump',
             ImportController::class, 'uploadDump');
+
+        // ── Import Repair Centre ──────────────────────────────────────
+        $router->get('/admin/import/repair',
+            ImportRepairController::class, 'index');
+        $router->post('/admin/import/repair/clear-ref',
+            ImportRepairController::class, 'clearRef');
+        $router->post('/admin/import/repair/clear-all',
+            ImportRepairController::class, 'clearAll');
 
         // ── Embed codes + compat test ─────────────────────────────────
         $router->get('/admin/embed-codes',
