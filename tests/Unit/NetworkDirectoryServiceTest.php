@@ -138,37 +138,60 @@ final class NetworkDirectoryServiceTest extends TestCase
     }
 
     // -----------------------------------------------------------------------
-    // P1 fix — href-only matching
+    // Href matching logic (production normalization)
     // -----------------------------------------------------------------------
 
     /**
-     * The service must NOT mark "found" when the URL appears only in a search
-     * box value= or page title, which is what search pages echo back.
-     * Only href="...url..." occurrences count as a result link.
+     * Exercises the exact logic the production fetch() uses: extract href values,
+     * normalize each with UrlNormalizer::normalizeUrlForSearch(), compare exact strings.
      */
-    public function testBodyMatchRequiresHrefContext(): void
+    private function matchesHref(string $listingUrl, string $bodyHtml): bool
     {
-        // Simulate a search-results page that echoes the query in the <input>
-        // but has no actual result link pointing to the listing.
-        $bodyWithEcho = '<html><body>'
-            . '<input value="example.com/fl/">'      // query echo — must NOT match
-            . '<p>No results found for example.com/fl/</p>'  // text echo — must NOT match
+        $needle = \Luster\Core\UrlNormalizer::normalizeUrlForSearch($listingUrl);
+        if ($needle === '') {
+            return false;
+        }
+        preg_match_all('/href=["\']([^"\']+)["\']/i', $bodyHtml, $m);
+        foreach ($m[1] ?? [] as $href) {
+            if (\Luster\Core\UrlNormalizer::normalizeUrlForSearch((string) $href) === $needle) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public function testQueryEchoInSearchBoxDoesNotMatch(): void
+    {
+        $body = '<html><body>'
+            . '<input value="example.com/fl/">'
+            . '<p>No results for example.com/fl/</p>'
             . '</body></html>';
 
-        $bodyWithResult = '<html><body>'
-            . '<a href="https://thefanlistings.org/view/123/">My FL</a>'
-            . '<a href="http://example.com/fl/">Visit</a>'   // result link — MUST match
-            . '</body></html>';
+        self::assertFalse($this->matchesHref('https://example.com/fl/', $body));
+    }
 
-        // Use reflection to call the private method, or test via the cache approach.
-        // We verify indirectly: write a "found" cache entry manually and check getCached.
-        // The actual href-matching logic is exercised in the fetch() code path;
-        // here we document the expected regex behaviour.
-        $pattern = '/href=["\'][^"\']*' . preg_quote('example.com/fl/', '/') . '/i';
+    public function testExactHrefMatchIsFound(): void
+    {
+        $body = '<a href="https://thefanlistings.org/view/1/">TFL page</a>'
+              . '<a href="http://example.com/fl/">Visit listing</a>';
 
-        self::assertSame(0, preg_match($pattern, $bodyWithEcho),
-            'URL in query echo / plain text must NOT match the href pattern');
-        self::assertSame(1, preg_match($pattern, $bodyWithResult),
-            'URL in href attribute MUST match the href pattern');
+        self::assertTrue($this->matchesHref('https://example.com/fl/', $body));
+    }
+
+    public function testPrefixUrlDoesNotFalsePositive(): void
+    {
+        // example.com/fl must NOT match example.com/fl2/ or example.com/fl-old/
+        $body = '<a href="https://example.com/fl2/">FL 2</a>'
+              . '<a href="https://example.com/fl-old/">Old FL</a>';
+
+        self::assertFalse($this->matchesHref('https://example.com/fl/', $body),
+            'Prefix URLs must not trigger a false positive');
+    }
+
+    public function testSchemeDifferenceIsIgnored(): void
+    {
+        // http and https should normalise to the same needle
+        $body = '<a href="http://example.com/fl/">Visit</a>';
+        self::assertTrue($this->matchesHref('https://example.com/fl/', $body));
     }
 }

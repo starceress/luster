@@ -122,15 +122,21 @@ final class NetworkDirectoryController extends AdminController
         $baseUrl  = $this->app->getBaseUrl();
         $session  = $this->app->getSession();
 
-        // Leave 5 s headroom so we return before PHP / web-server kills the request.
-        $limit    = max(15, (int) ini_get('max_execution_time') - 5);
-        $deadline = microtime(true) + $limit;
+        // Compute a wall-clock budget.  When max_execution_time is 0 (unlimited),
+        // we cap at 20 s so the browser does not wait indefinitely; this is the
+        // intended behaviour — "Check All" is a lightweight incremental tool.
+        $maxExec  = (int) ini_get('max_execution_time');
+        $budget   = $maxExec > 0 ? $maxExec - 5 : 20;
+        $deadline = microtime(true) + max(15, $budget);
 
         $checked = 0;
         $skipped = 0;
         foreach ($listings as $listing) {
             foreach (NetworkDirectoryService::networks() as $network) {
-                if (microtime(true) >= $deadline) {
+                // Guard: stop if there is not enough time left to complete one full
+                // request (up to TIMEOUT seconds per hop).  Checking after the fact
+                // would allow one lookup to run well past the budget.
+                if (microtime(true) + NetworkDirectoryService::TIMEOUT >= $deadline) {
                     $skipped++;
                     continue;
                 }

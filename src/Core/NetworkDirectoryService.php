@@ -36,7 +36,7 @@ final class NetworkDirectoryService
         'tafl' => 'https://animefanlistings.com/?s=%s',
     ];
 
-    private const TIMEOUT        = 10;
+    public const TIMEOUT        = 10;   // seconds per HTTP request hop
     private const MAX_BODY_BYTES = 524288;  // 512 KB
 
     public function __construct(private readonly string $cacheDir) {}
@@ -140,15 +140,21 @@ final class NetworkDirectoryService
         if ($code === 0) {
             $result = $this->result(false, 0, 'HTTP request failed');
         } else {
-            // Look for the listing URL specifically inside href attributes.
-            // A plain stripos() on the full body produces false positives because
-            // search pages echo the submitted query in the search box or page title.
+            // Normalise the target URL, then extract and normalise every href value
+            // in the body and compare exact strings. A regex substring match would
+            // produce false positives for prefix URLs (e.g. example.com/fl matching
+            // example.com/fl2/) and for URLs echoed in the search box or page title.
             $needle = UrlNormalizer::normalizeUrlForSearch($listingUrl);
-            $found  = $needle !== '' && $code >= 200 && $code < 300
-                   && preg_match(
-                          '/href=["\'][^"\']*' . preg_quote($needle, '/') . '/i',
-                          $body
-                      ) === 1;
+            $found  = false;
+            if ($needle !== '' && $code >= 200 && $code < 300) {
+                preg_match_all('/href=["\']([^"\']+)["\']/i', $body, $hrefMatches);
+                foreach ($hrefMatches[1] ?? [] as $href) {
+                    if (UrlNormalizer::normalizeUrlForSearch((string) $href) === $needle) {
+                        $found = true;
+                        break;
+                    }
+                }
+            }
             $result = $this->result($found, $code, null);
         }
 
