@@ -92,8 +92,8 @@ final class AuthMiddleware
         $this->db->prepare(
             'UPDATE lstr_admin_remember_tokens
              SET token_hash = :hash, expires_at = :expires
-             WHERE admin_user_id = :uid'
-        )->execute(['hash' => $newTokenHash, 'expires' => $newExpiresAt, 'uid' => $userId]);
+             WHERE id = :id'
+        )->execute(['hash' => $newTokenHash, 'expires' => $newExpiresAt, 'id' => (int) $row['id']]);
 
         $isHttps = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
                 || (int) ($_SERVER['SERVER_PORT'] ?? 80) === 443

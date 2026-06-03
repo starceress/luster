@@ -160,6 +160,12 @@ if ($_lusterCacheTtl > 0 && is_file($_lusterCacheFile)) {
     }
 }
 
+// Old caches written before countries_count was added report 0 silently.
+// Treat their absence as a miss so the live value is fetched instead.
+if ($_lusterCached !== null && !array_key_exists('countries_count', $_lusterCached)) {
+    $_lusterCached = null;
+}
+
 if ($_lusterCached !== null) {
     // Restore scalar data from cache
     $_lusterOwnedCounts    = $_lusterCached['owned_counts'];

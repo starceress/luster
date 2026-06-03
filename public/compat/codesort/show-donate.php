@@ -45,11 +45,16 @@ $_lusterDonateListingId = 0;
 if (isset($luster_fanlisting_id) && (int) $luster_fanlisting_id > 0) {
     $_lusterDonateListingId = (int) $luster_fanlisting_id;
 
-// 2. CodeSort $listing variable — treat as direct Luster listing ID
+// 2. CodeSort $listing variable — treat as direct Luster listing ID.
+//    This is correct only when CodeSort and Luster listing IDs align (e.g. a
+//    fresh Luster install). If IDs diverge after import, set $luster_fanlisting_id
+//    explicitly to avoid routing to the wrong listing.
 } elseif (isset($listing) && (int) $listing > 0) {
     $_lusterDonateListingId = (int) $listing;
 
 // 3. URL-based fallback — match current page URL against lstr_fanlisting_settings
+//    and the owned listing URL. Codes pages typically live in the listing directory,
+//    so matching against owned.url is more reliable than form_url_join/update.
 } else {
     $_lusterDonateHost    = $_SERVER['HTTP_HOST'] ?? '';
     $_lusterDonateIsHttps = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
@@ -61,6 +66,7 @@ if (isset($luster_fanlisting_id) && (int) $luster_fanlisting_id > 0) {
         ($_lusterDonateIsHttps ? 'http'  : 'https') . '://' . $_lusterDonateHost . $_lusterDonateDir,
     ] as $_lusterDonateUrl) {
         try {
+            // Try form URLs first (set explicitly by site owner via Luster settings)
             $_lusterDonateStmt = $_lusterDonateDb->prepare(
                 'SELECT fanlisting_id FROM lstr_fanlisting_settings
                  WHERE form_url_join LIKE :url OR form_url_update LIKE :url2
@@ -70,6 +76,22 @@ if (isset($luster_fanlisting_id) && (int) $luster_fanlisting_id > 0) {
             $_lusterDonateRow = $_lusterDonateStmt->fetch();
             if ($_lusterDonateRow !== false) {
                 $_lusterDonateListingId = (int) $_lusterDonateRow['fanlisting_id'];
+                break;
+            }
+
+            // Also try matching against the listing URL in the owned table — more
+            // likely to match a codes page that lives in the listing directory.
+            $_lusterDonateStmt2 = $_lusterDonateDb->prepare(
+                'SELECT lfs.fanlisting_id
+                 FROM lstr_fanlisting_settings lfs
+                 JOIN owned o ON o.listingid = lfs.fanlisting_id
+                 WHERE o.url LIKE :url
+                 LIMIT 1'
+            );
+            $_lusterDonateStmt2->execute(['url' => $_lusterDonateUrl . '%']);
+            $_lusterDonateRow2 = $_lusterDonateStmt2->fetch();
+            if ($_lusterDonateRow2 !== false) {
+                $_lusterDonateListingId = (int) $_lusterDonateRow2['fanlisting_id'];
                 break;
             }
         } catch (\Throwable) {}
