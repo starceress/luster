@@ -38,10 +38,9 @@ final class Wishlist
     public function typeLabel(): string
     {
         return match ($this->type) {
-            'top'      => 'Top Wanted',
-            'granted'  => 'Granted',
-            'upcoming' => 'Upcoming',
-            default    => 'Wanted',
+            'top'     => 'Top Wanted',
+            'granted' => 'Granted',
+            default   => 'Wanted',
         };
     }
 }

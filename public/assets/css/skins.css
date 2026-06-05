@@ -95,8 +95,8 @@
     rgb(216 62 138 / 0.16) 0%, rgb(74 109 214 / 0.1) 50%, transparent 70%);
 }
 
-[data-skin="prism-power"][data-theme="light"] .brand-name,
-[data-skin="prism-power"][data-theme="light"] .login-brand-name,
+[data-skin="prism-power"][data-theme="light"] .wordmark,
+[data-skin="prism-power"][data-theme="light"] .login-wordmark,
 [data-skin="prism-power"][data-theme="light"] .reminder-banner--update .reminder-banner-title {
   background: linear-gradient(135deg, #1c1d4a 0%, #d83e8a 50%, #4a6dd6 100%);
   -webkit-background-clip: text;
@@ -169,8 +169,8 @@
     rgb(238 94 158 / 0.22) 0%, rgb(214 49 82 / 0.14) 50%, transparent 70%);
 }
 
-[data-skin="prism-power"][data-theme="dark"] .brand-name,
-[data-skin="prism-power"][data-theme="dark"] .login-brand-name,
+[data-skin="prism-power"][data-theme="dark"] .wordmark,
+[data-skin="prism-power"][data-theme="dark"] .login-wordmark,
 [data-skin="prism-power"][data-theme="dark"] .reminder-banner--update .reminder-banner-title {
   background: linear-gradient(135deg, #ffd6e8 0%, #ee5e9e 35%, #4a6dd6 70%, #d63152 100%);
   -webkit-background-clip: text;
@@ -332,16 +332,16 @@
     rgb(227 53 13 / 0.12) 0%, rgb(49 108 217 / 0.06) 50%, transparent 70%);
 }
 
-[data-skin="victory-road"][data-theme="dark"] .brand-name,
-[data-skin="victory-road"][data-theme="dark"] .login-brand-name,
+[data-skin="victory-road"][data-theme="dark"] .wordmark,
+[data-skin="victory-road"][data-theme="dark"] .login-wordmark,
 [data-skin="victory-road"][data-theme="dark"] .reminder-banner--update .reminder-banner-title {
   background: linear-gradient(135deg, #f0f4fa 0%, #e3350d 55%, #4dad5b 100%);
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
 }
-[data-skin="victory-road"][data-theme="light"] .brand-name,
-[data-skin="victory-road"][data-theme="light"] .login-brand-name,
+[data-skin="victory-road"][data-theme="light"] .wordmark,
+[data-skin="victory-road"][data-theme="light"] .login-wordmark,
 [data-skin="victory-road"][data-theme="light"] .reminder-banner--update .reminder-banner-title {
   background: linear-gradient(135deg, #ffffff 0%, #e3350d 55%, #316cd9 100%);
   -webkit-background-clip: text;
@@ -508,16 +508,16 @@
     rgb(0 119 255 / 0.12) 0%, rgb(21 176 83 / 0.06) 50%, transparent 70%);
 }
 
-[data-skin="the-force"][data-theme="dark"] .brand-name,
-[data-skin="the-force"][data-theme="dark"] .login-brand-name,
+[data-skin="the-force"][data-theme="dark"] .wordmark,
+[data-skin="the-force"][data-theme="dark"] .login-wordmark,
 [data-skin="the-force"][data-theme="dark"] .reminder-banner--update .reminder-banner-title {
   background: linear-gradient(135deg, #fff0f0 0%, #ff2a2a 45%, #990000 100%);
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
 }
-[data-skin="the-force"][data-theme="light"] .brand-name,
-[data-skin="the-force"][data-theme="light"] .login-brand-name,
+[data-skin="the-force"][data-theme="light"] .wordmark,
+[data-skin="the-force"][data-theme="light"] .login-wordmark,
 [data-skin="the-force"][data-theme="light"] .reminder-banner--update .reminder-banner-title {
   background: linear-gradient(135deg, #0a111a 0%, #0077ff 50%, #15b053 100%);
   -webkit-background-clip: text;
@@ -675,16 +675,16 @@
     rgb(214 74 120 / 0.1) 0%, rgb(138 59 158 / 0.06) 50%, transparent 70%);
 }
 
-[data-skin="floating-lights"][data-theme="dark"] .brand-name,
-[data-skin="floating-lights"][data-theme="dark"] .login-brand-name,
+[data-skin="floating-lights"][data-theme="dark"] .wordmark,
+[data-skin="floating-lights"][data-theme="dark"] .login-wordmark,
 [data-skin="floating-lights"][data-theme="dark"] .reminder-banner--update .reminder-banner-title {
   background: linear-gradient(135deg, #fdf8e8 0%, #ffca28 50%, #d884cb 100%);
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
 }
-[data-skin="floating-lights"][data-theme="light"] .brand-name,
-[data-skin="floating-lights"][data-theme="light"] .login-brand-name,
+[data-skin="floating-lights"][data-theme="light"] .wordmark,
+[data-skin="floating-lights"][data-theme="light"] .login-wordmark,
 [data-skin="floating-lights"][data-theme="light"] .reminder-banner--update .reminder-banner-title {
   background: linear-gradient(135deg, #1e0a2e 0%, #d64a78 55%, #fca311 100%);
   -webkit-background-clip: text;
@@ -850,16 +850,16 @@
     rgb(255 140 0 / 0.12) 0%, rgb(76 175 80 / 0.06) 50%, transparent 70%);
 }
 
-[data-skin="moving-castle"][data-theme="dark"] .brand-name,
-[data-skin="moving-castle"][data-theme="dark"] .login-brand-name,
+[data-skin="moving-castle"][data-theme="dark"] .wordmark,
+[data-skin="moving-castle"][data-theme="dark"] .login-wordmark,
 [data-skin="moving-castle"][data-theme="dark"] .reminder-banner--update .reminder-banner-title {
   background: linear-gradient(135deg, #e8f8ff 0%, #00e5ff 45%, #ffb703 100%);
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
 }
-[data-skin="moving-castle"][data-theme="light"] .brand-name,
-[data-skin="moving-castle"][data-theme="light"] .login-brand-name,
+[data-skin="moving-castle"][data-theme="light"] .wordmark,
+[data-skin="moving-castle"][data-theme="light"] .login-wordmark,
 [data-skin="moving-castle"][data-theme="light"] .reminder-banner--update .reminder-banner-title {
   background: linear-gradient(135deg, #001220 0%, #ff6b6b 50%, #ff8c00 100%);
   -webkit-background-clip: text;

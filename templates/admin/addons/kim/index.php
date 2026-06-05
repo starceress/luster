@@ -102,7 +102,7 @@ $dateFmt    = $admin_date_format ?? 'm-d-Y';
   </div>
   <div class="actions-row actions-row--right">
     <a href="<?= $b ?>/admin/kim/listings" class="btn btn-primary btn-sm">Listing View</a>
-    <a href="<?= $b ?>/admin/kim/settings" class="btn btn-quaternary btn-sm">Display Settings</a>
+    <a href="<?= $b ?>/admin/kim/settings" class="btn btn-quaternary btn-sm"><?= View::icon('gear') ?>KIM Settings</a>
   </div>
 </div>
 
@@ -116,11 +116,13 @@ $dateFmt    = $admin_date_format ?? 'm-d-Y';
     <?php if (!empty($fanlistings)): ?>
     <div class="select-wrap">
       <select name="listing_id" id="kim-listing-sel">
-        <option value="0">All Listings</option>
+        <?php $_kimCounts = $kim_listing_counts ?? []; $_kimTotal = array_sum($_kimCounts); ?>
+        <option value="0"><?= $_kimTotal > 0 ? 'All Listings (' . $_kimTotal . ')' : 'All Listings' ?></option>
         <?php foreach ($fanlistings as $fl): ?>
+          <?php $_kimN = (int) ($_kimCounts[(int) $fl->id] ?? 0); ?>
           <option value="<?= (int) $fl->id ?>"
                   <?= $listing_id === $fl->id ? 'selected' : '' ?>>
-            <?= View::e($fl->subject) ?>
+            <?= View::e($fl->subject) ?><?= $_kimN > 0 ? ' (' . $_kimN . ')' : '' ?>
           </option>
         <?php endforeach; ?>
       </select>
@@ -129,7 +131,7 @@ $dateFmt    = $admin_date_format ?? 'm-d-Y';
 
     <div class="search-field-wrap">
       <?= View::icon('search', ['class' => 'search-field-icon', 'aria-hidden' => 'true']) ?>
-      <input type="text" name="search" class="form" placeholder="Search by name&hellip;"
+      <input type="text" name="search" class="form" placeholder="Search by name or email&hellip;"
              value="<?= View::e($search) ?>">
     </div>
     <button type="submit" class="btn btn-secondary btn-sm">Search</button>
@@ -157,7 +159,7 @@ $dateFmt    = $admin_date_format ?? 'm-d-Y';
         <?php foreach ($statusTabs as $key => $tabData): ?>
           <option value="<?= View::e($tabUrl($key)) ?>"
                   <?= $tab === $key ? 'selected' : '' ?>>
-            <?= View::e($tabData['label']) ?><?= $counts[$key] > 0 ? ' (' . (int) $counts[$key] . ')' : '' ?>
+            <?= View::e($tabData['label']) ?> (<?= (int) $counts[$key] ?>)
           </option>
         <?php endforeach; ?>
       </select>
@@ -188,13 +190,13 @@ $dateFmt    = $admin_date_format ?? 'm-d-Y';
 
 <div class="card">
   <div class="card-head">
-    <?php if ($tab === 'all'): ?>All Members
+    <?php if ($tab === 'all'): ?>All Sign-Ups
     <?php elseif ($tab === 'pending'): ?>Pending Sign-Ups
-    <?php elseif ($tab === 'approved'): ?>Approved Members
-    <?php else: ?>Granted Members
+    <?php elseif ($tab === 'approved'): ?>Approved Sign-Ups
+    <?php else: ?>Granted Sign-Ups
     <?php endif; ?>
     <?php if ($selected_listing !== null): ?>&mdash; <?= View::e($selected_listing->subject) ?><?php endif; ?>
-    <span class="row-sub">Showing <?= $rangeStart ?>&ndash;<?= $rangeEnd ?> of <?= $total ?></span>
+    <span class="row-sub">Showing <?= $rangeStart ?>&ndash;<?= $rangeEnd ?> of <?= $total ?> Sign-Up<?= $total !== 1 ? 's' : '' ?></span>
     <?php if ($listing_id > 0 && $nonPendingCount > 0): ?>
       <a href="<?= $b ?>/admin/kim/<?= $listing_id ?>/bulk-email"
          class="btn btn-secondary btn-sm actions-row--right">
@@ -233,14 +235,11 @@ $dateFmt    = $admin_date_format ?? 'm-d-Y';
             Name <?= View::sortIcon('name', $sort, $dir) ?>
           </a>
         </th>
-        <th>Email</th>
         <th>
-          <?php if ($tab === 'all'): ?>
-          <a href="<?= View::e($sortUrl('status')) ?>"
-             class="sort-th<?= $sort === 'status' ? ' sort-active' : '' ?>">
-            Status <?= View::sortIcon('status', $sort, $dir) ?>
+          <a href="<?= View::e($sortUrl('email')) ?>"
+             class="sort-th<?= $sort === 'email' ? ' sort-active' : '' ?>">
+            Email <?= View::sortIcon('email', $sort, $dir) ?>
           </a>
-          <?php else: ?>Status<?php endif; ?>
         </th>
         <?php if ($listing_id === 0): ?>
         <th>
@@ -250,6 +249,14 @@ $dateFmt    = $admin_date_format ?? 'm-d-Y';
           </a>
         </th>
         <?php endif; ?>
+        <th>
+          <?php if ($tab === 'all'): ?>
+          <a href="<?= View::e($sortUrl('status')) ?>"
+             class="sort-th<?= $sort === 'status' ? ' sort-active' : '' ?>">
+            Status <?= View::sortIcon('status', $sort, $dir) ?>
+          </a>
+          <?php else: ?>Status<?php endif; ?>
+        </th>
         <th>
           <a href="<?= View::e($sortUrl('added_at')) ?>"
              class="sort-th<?= $sort === 'added_at' ? ' sort-active' : '' ?>">
@@ -280,6 +287,12 @@ $dateFmt    = $admin_date_format ?? 'm-d-Y';
           <?= View::emailWrap($m->email) ?>
         </td>
 
+        <?php if ($listing_id === 0): ?>
+        <td data-label="Listing" class="text-muted">
+          <?= View::e($listing_map[$m->fanlistingId] ?? '—') ?>
+        </td>
+        <?php endif; ?>
+
         <td data-label="Status">
           <?php if ($m->pending): ?>
             <span class="badge badge-pending">Pending</span>
@@ -289,12 +302,6 @@ $dateFmt    = $admin_date_format ?? 'm-d-Y';
             <span class="badge badge-current">Approved</span>
           <?php endif; ?>
         </td>
-
-        <?php if ($listing_id === 0): ?>
-        <td data-label="Listing" class="text-muted">
-          <?= View::e($listing_map[$m->fanlistingId] ?? '—') ?>
-        </td>
-        <?php endif; ?>
 
         <td class="text-dim nowrap" data-label="Signed Up">
           <?= View::e(date($dateFmt, strtotime($m->addedAt))) ?>

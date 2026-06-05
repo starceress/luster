@@ -6,8 +6,6 @@ use Luster\Controllers\Admin\AddonsController;
 use Luster\Controllers\Admin\LinkCheckerController;
 use Luster\Controllers\Admin\FeedbackController;
 use Luster\Controllers\Admin\ImportController;
-use Luster\Controllers\Admin\ImportRepairController;
-use Luster\Controllers\Admin\NetworkDirectoryController;
 use Luster\Controllers\Admin\ImportMembersController;
 use Luster\Controllers\Admin\ActivityLogController;
 use Luster\Controllers\Admin\EmailsController;
@@ -143,8 +141,12 @@ return [
         $router->get('/admin/listings/settings', ListingController::class, 'indexSettings');
         $router->post('/admin/listings/settings', ListingController::class, 'saveSettings');
         $router->post('/admin/listings/bulk', ListingController::class, 'bulk');
-        $router->get('/admin/listings/collective-templates',
+        $router->get('/admin/collective',
             SettingsController::class, 'collectiveTemplates');
+        $router->get('/admin/collective/settings',
+            SettingsController::class, 'collectiveSettings');
+        $router->post('/admin/collective/settings',
+            SettingsController::class, 'saveCollectiveSettings');
         $router->get('/admin/listings/{id}',
             ListingController::class, 'show');
         $router->get('/admin/listings/{id}/edit',
@@ -179,6 +181,9 @@ return [
 
         $router->post('/admin/members/approve-all-overview',
             MemberController::class, 'approveAllOverview');
+
+        $router->post('/admin/members/pending-bulk',
+            MemberController::class, 'pendingBulk');
 
         // ── Members for a specific listing ───────────────────────
         $router->get('/admin/members/{id}',
@@ -312,6 +317,8 @@ return [
             AffiliateController::class, 'approve');
         $router->post('/admin/affiliates/{id}/reject',
             AffiliateController::class, 'reject');
+        $router->post('/admin/affiliates/{id}/re-approve',
+            AffiliateController::class, 'reApprove');
 
         // ── Admin user management (list lives in Settings › Admin Details) ──
         $router->get('/admin/admin-users/add',
@@ -374,6 +381,18 @@ return [
             JoinedController::class, 'settings');
         $router->post('/admin/joined/settings',
             JoinedController::class, 'settings');
+
+        // ── Global Codes ─────────────────────────────────────────────
+        $router->get('/admin/codes',
+            \Luster\Controllers\Admin\GlobalCodesController::class, 'index');
+        $router->post('/admin/codes/approve-all',
+            \Luster\Controllers\Admin\GlobalCodesController::class, 'approveAll');
+        $router->post('/admin/codes/bulk',
+            \Luster\Controllers\Admin\GlobalCodesController::class, 'bulk');
+        $router->post('/admin/codes/{id}/approve',
+            \Luster\Controllers\Admin\GlobalCodesController::class, 'approve');
+        $router->post('/admin/codes/{id}/reject',
+            \Luster\Controllers\Admin\GlobalCodesController::class, 'reject');
 
         // ── Categories ───────────────────────────────────────────────
         $router->get('/admin/categories',
@@ -456,6 +475,8 @@ return [
         $router->post('/admin/feedback', FeedbackController::class, 'submit');
 
         // ── Pending update approvals (list + detail live in Members overview) ──
+        $router->post('/admin/pending-updates/approve-all',
+            PendingUpdateController::class, 'approveAll');
         $router->post('/admin/pending-updates/bulk',
             PendingUpdateController::class, 'bulk');
         $router->post('/admin/pending-updates/{id}/approve',
@@ -471,13 +492,6 @@ return [
         $router->post('/admin/blacklist/{id}/delete',
             BlacklistController::class, 'delete');
 
-        // ── Network Directory ─────────────────────────────────────────
-        $router->get('/admin/network-directory',
-            NetworkDirectoryController::class, 'index');
-        $router->post('/admin/network-directory/refresh',
-            NetworkDirectoryController::class, 'refresh');
-        $router->post('/admin/network-directory/refresh-all',
-            NetworkDirectoryController::class, 'refreshAll');
 
         // ── Import wizard ─────────────────────────────────────────────
         // Literal sub-paths registered before parameterised {source} routes
@@ -526,13 +540,6 @@ return [
         $router->post('/admin/import/{source}/upload-dump',
             ImportController::class, 'uploadDump');
 
-        // ── Import Repair Centre ──────────────────────────────────────
-        $router->get('/admin/import/repair',
-            ImportRepairController::class, 'index');
-        $router->post('/admin/import/repair/clear-ref',
-            ImportRepairController::class, 'clearRef');
-        $router->post('/admin/import/repair/clear-all',
-            ImportRepairController::class, 'clearAll');
 
         // ── Embed codes + compat test ─────────────────────────────────
         $router->get('/admin/embed-codes',

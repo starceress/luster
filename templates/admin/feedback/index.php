@@ -34,6 +34,31 @@ use Luster\Core\View;
     </div>
     <div class="listing-field-section">
 
+      <!-- Contact name -->
+      <div class="listing-field-row<?= isset($field_errors['contact_name']) ? ' has-error' : '' ?>">
+        <label class="listing-field-label" for="f-contact-name">Name <span class="req">*</span></label>
+        <div>
+          <input type="text" id="f-contact-name" name="contact_name" class="form" required
+                 value="<?= View::e($old['contact_name'] ?? $owner_name) ?>" maxlength="200">
+          <?php if (isset($field_errors['contact_name'])): ?>
+          <p class="field-error"><?= View::e($field_errors['contact_name']) ?></p>
+          <?php endif; ?>
+        </div>
+      </div>
+
+      <!-- Contact email -->
+      <div class="listing-field-row<?= isset($field_errors['contact_email']) ? ' has-error' : '' ?>">
+        <label class="listing-field-label" for="f-contact">Email <span class="req">*</span></label>
+        <div>
+          <input type="email" id="f-contact" name="contact_email" class="form" required
+                 value="<?= View::e($old['contact_email'] ?? $admin_email) ?>" maxlength="254">
+          <p class="form-hint">By default, the report is sent using the email registered with your admin account. If you'd like to use another email, type it above.</p>
+          <?php if (isset($field_errors['contact_email'])): ?>
+          <p class="field-error"><?= View::e($field_errors['contact_email']) ?></p>
+          <?php endif; ?>
+        </div>
+      </div>
+
       <!-- Report type -->
       <div class="listing-field-row<?= isset($field_errors['type']) ? ' has-error' : '' ?>">
         <label class="listing-field-label" for="f-type">Report type <span class="req">*</span></label>
@@ -72,19 +97,6 @@ use Luster\Core\View;
           <p class="form-hint">Describe your issue, question, or suggestion in as much detail as possible.</p>
           <?php if (isset($field_errors['message'])): ?>
           <p class="field-error"><?= View::e($field_errors['message']) ?></p>
-          <?php endif; ?>
-        </div>
-      </div>
-
-      <!-- Contact email -->
-      <div class="listing-field-row<?= isset($field_errors['contact_email']) ? ' has-error' : '' ?>">
-        <label class="listing-field-label" for="f-contact">Your Email <span class="req">*</span></label>
-        <div>
-          <input type="email" id="f-contact" name="contact_email" class="form" required
-                 value="<?= View::e($old['contact_email'] ?? $admin_email) ?>" maxlength="254">
-          <p class="form-hint">By default, the report is sent using the email registered with your admin account. If you'd like to use another email, type it above.</p>
-          <?php if (isset($field_errors['contact_email'])): ?>
-          <p class="field-error"><?= View::e($field_errors['contact_email']) ?></p>
           <?php endif; ?>
         </div>
       </div>

@@ -165,7 +165,6 @@ SQL;
 
         self::assertSame(2, $this->repo->countAll());
         self::assertSame(1, $this->repo->countAll('wanted'));
-        self::assertSame(0, $this->repo->countAll('upcoming'));
     }
 
     public function testCountByType(): void
@@ -178,7 +177,6 @@ SQL;
         self::assertSame(2, $counts['wanted']);
         self::assertSame(1, $counts['top']);
         self::assertSame(0, $counts['granted']);
-        self::assertSame(0, $counts['upcoming']);
     }
 
     public function testCountHidden(): void
@@ -287,9 +285,6 @@ SQL;
 
         $id = $this->repo->insert(['subject' => 'B', 'type' => 'granted']);
         self::assertSame('Granted', $this->repo->getById($id)?->typeLabel());
-
-        $id = $this->repo->insert(['subject' => 'C', 'type' => 'upcoming']);
-        self::assertSame('Upcoming', $this->repo->getById($id)?->typeLabel());
 
         $id = $this->repo->insert(['subject' => 'D', 'type' => 'wanted']);
         self::assertSame('Wanted', $this->repo->getById($id)?->typeLabel());

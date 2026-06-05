@@ -337,24 +337,51 @@ final class AffiliateRepo
      */
     public function update(int $id, array $data): bool
     {
-        $stmt = $this->db->prepare(
-            'UPDATE lstr_affiliates
-             SET name       = :name,
-                 url        = :url,
-                 email      = :email,
-                 image      = :image,
-                 sort_order = :sort_order
-             WHERE id = :id'
-        );
+        $status  = in_array($data['status'] ?? '', ['pending', 'approved', 'rejected'], true)
+            ? $data['status']
+            : null;
+        $pending = $status === 'pending' ? 1 : 0;
+        $active  = $status === 'rejected' ? 0 : ($status === 'pending' ? 0 : null);
 
-        return $stmt->execute([
+        $setClauses = [
+            'name       = :name',
+            'url        = :url',
+            'email      = :email',
+            'image      = :image',
+            'sort_order = :sort_order',
+        ];
+        $params = [
             'name'       => (string) $data['name'],
             'url'        => (string) $data['url'],
             'email'      => isset($data['email']) ? (string) $data['email'] : null,
             'image'      => isset($data['image']) ? (string) $data['image'] : null,
             'sort_order' => max(1, (int) ($data['sort_order'] ?? 1)),
             'id'         => $id,
-        ]);
+        ];
+
+        if ($status !== null) {
+            $setClauses[] = 'status  = :status';
+            $setClauses[] = 'pending = :pending';
+            $params['status']  = $status;
+            $params['pending'] = $pending;
+        }
+
+        // Explicit active override — forced off for rejected/pending; otherwise use supplied value
+        $activeOverride = isset($data['active']) ? (int) (bool) $data['active'] : null;
+        if ($active !== null) {
+            // Status rule takes precedence (rejected/pending always inactive)
+            $setClauses[] = 'active = :active';
+            $params['active'] = $active;
+        } elseif ($activeOverride !== null) {
+            $setClauses[] = 'active = :active';
+            $params['active'] = $activeOverride;
+        }
+
+        $stmt = $this->db->prepare(
+            'UPDATE lstr_affiliates SET ' . implode(', ', $setClauses) . ' WHERE id = :id'
+        );
+
+        return $stmt->execute($params);
     }
 
     /**
@@ -414,6 +441,46 @@ final class AffiliateRepo
         foreach ($ids as $i => $id) {
             $upd->execute(['pos' => $i + 1, 'id' => (int) $id]);
         }
+    }
+
+    /**
+     * Returns all affiliate IDs for a scope+status, ordered by sort_order ASC, name ASC.
+     * Used by the reorder endpoint to splice a page slice into the global order.
+     *
+     * Pass $listingId = null for collective (fanlisting_id IS NULL),
+     * or a positive int for a specific listing, or -1 to include all scopes.
+     *
+     * @return int[]
+     */
+    public function getIdsByScope(?int $listingId, string $status): array
+    {
+        $conditions = [];
+        $params     = [];
+
+        if ($listingId === null) {
+            $conditions[] = 'fanlisting_id IS NULL';
+        } elseif ($listingId > 0) {
+            $conditions[] = 'fanlisting_id = :fid';
+            $params['fid'] = $listingId;
+        }
+
+        $statusMap = [
+            'approved' => "status = 'approved' AND active = 1",
+            'inactive' => "status = 'approved' AND active = 0",
+            'rejected' => "status = 'rejected'",
+            'pending'  => "status = 'pending'",
+            'all'      => "status != 'rejected'",
+        ];
+        if (isset($statusMap[$status])) {
+            $conditions[] = $statusMap[$status];
+        }
+
+        $where = $conditions !== [] ? 'WHERE ' . implode(' AND ', $conditions) : '';
+        $stmt  = $this->db->prepare(
+            "SELECT id FROM lstr_affiliates {$where} ORDER BY sort_order ASC, name ASC"
+        );
+        $stmt->execute($params);
+        return array_map('intval', array_column($stmt->fetchAll(\PDO::FETCH_ASSOC), 'id'));
     }
 
     /**
@@ -484,6 +551,56 @@ final class AffiliateRepo
         $placeholders = implode(',', array_fill(0, count($ids), '?'));
         $stmt = $this->db->prepare(
             "DELETE FROM lstr_affiliates WHERE id IN ({$placeholders})"
+        );
+        $stmt->execute(array_values($ids));
+        return $stmt->rowCount();
+    }
+
+    /**
+     * Bulk-approves pending applications by looping through each ID so that
+     * each affiliate receives a correct next sort_order in its scope.
+     * Returns the number of rows successfully approved.
+     */
+    public function bulkApprove(array $ids): int
+    {
+        $count = 0;
+        foreach ($ids as $id) {
+            if ($this->approve((int) $id)) {
+                $count++;
+            }
+        }
+        return $count;
+    }
+
+    /**
+     * Bulk re-approves rejected affiliates by looping through each ID so that
+     * each receives a correct next sort_order in its scope.
+     */
+    public function bulkReApprove(array $ids): int
+    {
+        $count = 0;
+        foreach ($ids as $id) {
+            if ($this->reApprove((int) $id)) {
+                $count++;
+            }
+        }
+        return $count;
+    }
+
+    /**
+     * Bulk-rejects pending applications in a single UPDATE.
+     * Returns the number of rows affected.
+     */
+    public function bulkReject(array $ids): int
+    {
+        if (empty($ids)) {
+            return 0;
+        }
+        $placeholders = implode(',', array_fill(0, count($ids), '?'));
+        $stmt = $this->db->prepare(
+            "UPDATE lstr_affiliates
+             SET status = 'rejected', pending = 0, active = 0
+             WHERE id IN ({$placeholders}) AND status = 'pending'"
         );
         $stmt->execute(array_values($ids));
         return $stmt->rowCount();
@@ -589,14 +706,14 @@ final class AffiliateRepo
      */
     public function getPendingCount(): int
     {
-        $stmt = $this->db->prepare('SELECT COUNT(*) FROM lstr_affiliates WHERE pending = 1');
+        $stmt = $this->db->prepare("SELECT COUNT(*) FROM lstr_affiliates WHERE status = 'pending'");
         $stmt->execute();
 
         return (int) $stmt->fetchColumn();
     }
 
     /**
-     * Inserts a new affiliate application (pending = 1, active = 0).
+     * Inserts a new affiliate application (pending = 1, status = 'pending', active = 0).
      * Returns the new primary key.
      *
      * @param array{fanlisting_id: ?int, name: string, url: string, email?: ?string, image?: ?string, application_message?: ?string} $data
@@ -604,10 +721,10 @@ final class AffiliateRepo
     public function insertPending(array $data): int
     {
         $stmt = $this->db->prepare(
-            'INSERT INTO lstr_affiliates
-                (fanlisting_id, name, url, email, image, sort_order, active, pending, application_message)
+            "INSERT INTO lstr_affiliates
+                (fanlisting_id, name, url, email, image, sort_order, active, status, pending, application_message)
              VALUES
-                (:fanlisting_id, :name, :url, :email, :image, 1, 0, 1, :application_message)'
+                (:fanlisting_id, :name, :url, :email, :image, 1, 0, 'pending', 1, :application_message)"
         );
 
         $stmt->execute([
@@ -623,41 +740,206 @@ final class AffiliateRepo
     }
 
     /**
-     * Approves a pending application: clears pending flag, activates the row,
-     * and assigns the next sort_order in its scope.
+     * Approves a pending application: sets status='approved', clears pending flag,
+     * activates the row, and assigns the next sort_order in its scope.
      */
     public function approve(int $id): bool
     {
         $aff = $this->getById($id);
-        if ($aff === null || !$aff->pending) {
+        if ($aff === null || $aff->status !== 'pending') {
             return false;
         }
 
         $sortOrder = $this->getNextSortOrder($aff->listingId);
 
         $stmt = $this->db->prepare(
-            'UPDATE lstr_affiliates
-             SET pending    = 0,
+            "UPDATE lstr_affiliates
+             SET status     = 'approved',
+                 pending    = 0,
                  active     = 1,
                  sort_order = :sort
-             WHERE id = :id AND pending = 1'
+             WHERE id = :id AND status = 'pending'"
         );
 
         return $stmt->execute(['sort' => $sortOrder, 'id' => $id]);
     }
 
     /**
-     * Rejects a pending application by deleting the row.
-     * Only removes the row if it is still pending.
+     * Rejects a pending application: sets status='rejected', clears pending flag,
+     * deactivates the row. The row is retained for record-keeping.
      */
     public function reject(int $id): bool
     {
         $stmt = $this->db->prepare(
-            'DELETE FROM lstr_affiliates WHERE id = :id AND pending = 1'
+            "UPDATE lstr_affiliates
+             SET status  = 'rejected',
+                 pending = 0,
+                 active  = 0
+             WHERE id = :id AND status = 'pending'"
         );
         $stmt->execute(['id' => $id]);
 
         return $stmt->rowCount() > 0;
+    }
+
+    /**
+     * Re-approves a previously rejected affiliate: sets status='approved', active=1.
+     */
+    public function reApprove(int $id): bool
+    {
+        $aff = $this->getById($id);
+        if ($aff === null || $aff->status !== 'rejected') {
+            return false;
+        }
+
+        $sortOrder = $this->getNextSortOrder($aff->listingId);
+
+        $stmt = $this->db->prepare(
+            "UPDATE lstr_affiliates
+             SET status     = 'approved',
+                 active     = 1,
+                 sort_order = :sort
+             WHERE id = :id AND status = 'rejected'"
+        );
+
+        return $stmt->execute(['sort' => $sortOrder, 'id' => $id]);
+    }
+
+    /**
+     * Returns paginated affiliates for the admin tabbed view.
+     * $tab: 'all' | 'pending' | 'approved' | 'rejected'
+     * $scope: 'all' | 'collective' | listing ID as string
+     */
+    public function getAdminPaginated(
+        string $tab,
+        string $scope,
+        string $search,
+        int    $perPage,
+        int    $page,
+        string $orderBy = 'name ASC'
+    ): array {
+        $conditions = [];
+        $params     = [];
+
+        if ($tab === 'inactive') {
+            $conditions[]    = "status = 'approved'";
+            $conditions[]    = 'active = 0';
+        } elseif ($tab === 'approved') {
+            $conditions[]    = "status = 'approved'";
+            $conditions[]    = 'active = 1';
+        } elseif ($tab !== 'all') {
+            $conditions[]    = 'status = :status';
+            $params['status'] = $tab;
+        }
+
+        if ($scope === 'collective') {
+            $conditions[] = 'fanlisting_id IS NULL';
+        } elseif ($scope !== '' && $scope !== 'all' && ctype_digit($scope)) {
+            $conditions[] = 'fanlisting_id = :fid';
+            $params['fid'] = (int) $scope;
+        }
+
+        if ($search !== '') {
+            $conditions[] = '(name LIKE :s1 OR url LIKE :s2 OR email LIKE :s3)';
+            $params['s1'] = '%' . $search . '%';
+            $params['s2'] = '%' . $search . '%';
+            $params['s3'] = '%' . $search . '%';
+        }
+
+        $where = $conditions !== [] ? 'WHERE ' . implode(' AND ', $conditions) : '';
+
+        $countStmt = $this->db->prepare("SELECT COUNT(*) FROM lstr_affiliates {$where}");
+        $countStmt->execute($params);
+        $total = (int) $countStmt->fetchColumn();
+
+        $pages  = $total > 0 ? (int) ceil($total / $perPage) : 1;
+        $offset = ($page - 1) * $perPage;
+
+        $stmt = $this->db->prepare(
+            "SELECT * FROM lstr_affiliates {$where} ORDER BY {$orderBy} LIMIT :limit OFFSET :offset"
+        );
+        foreach ($params as $k => $v) {
+            $stmt->bindValue($k, $v);
+        }
+        $stmt->bindValue(':limit',  $perPage, \PDO::PARAM_INT);
+        $stmt->bindValue(':offset', $offset,  \PDO::PARAM_INT);
+        $stmt->execute();
+
+        return [
+            'items' => array_map([Affiliate::class, 'fromRow'], $stmt->fetchAll(\PDO::FETCH_ASSOC)),
+            'total' => $total,
+            'pages' => $pages,
+        ];
+    }
+
+    /**
+     * Returns per-status counts for the admin tab badges.
+     * Optionally scoped to a listing (scope = 'all'|'collective'|listing ID string).
+     */
+    public function getAdminTabCounts(string $scope, string $search): array
+    {
+        $conditions = [];
+        $params     = [];
+
+        if ($scope === 'collective') {
+            $conditions[] = 'fanlisting_id IS NULL';
+        } elseif ($scope !== '' && $scope !== 'all' && ctype_digit($scope)) {
+            $conditions[] = 'fanlisting_id = :fid';
+            $params['fid'] = (int) $scope;
+        }
+
+        if ($search !== '') {
+            $conditions[] = '(name LIKE :s1 OR url LIKE :s2 OR email LIKE :s3)';
+            $params['s1'] = '%' . $search . '%';
+            $params['s2'] = '%' . $search . '%';
+            $params['s3'] = '%' . $search . '%';
+        }
+
+        $where = $conditions !== [] ? 'WHERE ' . implode(' AND ', $conditions) : '';
+
+        $stmt = $this->db->prepare(
+            "SELECT
+                COUNT(*)                                           AS total,
+                SUM(status = 'pending')                           AS cnt_pending,
+                SUM(status = 'approved' AND active = 1)           AS cnt_approved,
+                SUM(status = 'approved' AND active = 0)           AS cnt_inactive,
+                SUM(status = 'rejected')                          AS cnt_rejected
+             FROM lstr_affiliates {$where}"
+        );
+        $stmt->execute($params);
+        $row = $stmt->fetch(\PDO::FETCH_ASSOC);
+
+        return [
+            'all'      => (int) ($row['total']        ?? 0),
+            'pending'  => (int) ($row['cnt_pending']   ?? 0),
+            'approved' => (int) ($row['cnt_approved']  ?? 0),
+            'inactive' => (int) ($row['cnt_inactive']  ?? 0),
+            'rejected' => (int) ($row['cnt_rejected']  ?? 0),
+        ];
+    }
+
+    /**
+     * Returns a map of scope → total affiliate count (all statuses).
+     * Keys: 0 = collective (fanlisting_id IS NULL), or a listing ID int.
+     * Used to show counts next to scope filter options.
+     *
+     * @return array<int, int>
+     */
+    public function getScopeCounts(): array
+    {
+        $stmt = $this->db->prepare(
+            'SELECT COALESCE(fanlisting_id, 0) AS scope_id, COUNT(*) AS cnt
+             FROM lstr_affiliates
+             GROUP BY fanlisting_id'
+        );
+        $stmt->execute();
+
+        $counts = [];
+        foreach ($stmt->fetchAll(\PDO::FETCH_ASSOC) as $row) {
+            $counts[(int) $row['scope_id']] = (int) $row['cnt'];
+        }
+
+        return $counts;
     }
 
     /**

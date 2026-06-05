@@ -216,6 +216,11 @@ final class Application
             $pendingAdoptions = (new \Luster\Addons\Adoption\AdoptionRepo($this->database))->countNew();
         }
 
+        $pendingCodes = 0;
+        try {
+            $pendingCodes = (new \Luster\Repositories\CodesRepo($this->database))->countPendingAll();
+        } catch (\Throwable) {}
+
         $navLcDead     = 0;
         $navLcRedirect = 0;
         try {
@@ -276,11 +281,15 @@ final class Application
             'nav_pending_members'   => $pending,
             'nav_pending_kim'       => $pendingKim,
             'nav_pending_adoptions' => $pendingAdoptions,
+            'nav_pending_codes'      => $pendingCodes,
             'nav_lc_dead'           => $navLcDead,
             'nav_lc_redirect'       => $navLcRedirect,
             'nav_site_url'          => rtrim((string) $this->config->get('site_url', ''), '/'),
             'nav_installed_addons'  => $this->installedAddonKeys,
             'selected_skin'         => $selectedSkin,
+            'app_name'              => (string) ($this->config->get('app_name', '') ?? ''),
+            'owner_name'            => (string) ($this->config->get('owner_name', '') ?? ''),
+            'nav_display_name'      => (string) ($this->session->get('lstr_admin_display_name', '') ?? ''),
         ];
         return $cache;
     }
@@ -385,7 +394,7 @@ final class Application
             $adminUrl = rtrim((string) ($this->config->get('app_url', '') ?? ''), '/') . '/admin';
 
             $lines = array_map(
-                static fn($l) => '- ' . $l->name . ' (' . $l->url . ')',
+                static fn($l) => '- ' . $l->title . ' (' . $l->url . ')',
                 $stale,
             );
 

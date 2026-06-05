@@ -24,7 +24,7 @@ $sizeKey   = (string) ($cfg['image_preview_size'] ?? 'medium');
 $imgHeight = $sizeMap[$sizeKey] ?? '100px';
 
 // Resolve display values: prefer $old (re-populates on validation fail) then model
-$oldTitle  = $old['title']  ?? $listing->name;
+$oldTitle  = $old['title']  ?? $listing->title;
 $oldUrl    = $old['url']    ?? $listing->url;
 $oldEmail  = $old['email']  ?? $listing->email;
 
@@ -103,7 +103,7 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
           action="<?= $b ?>/admin/listings/<?= (int) $listing->id ?>/delete"
           class="action-form-inline"
           data-del-modal data-del-entity="listing"
-          data-del-name="<?= View::e($listing->name) ?>">
+          data-del-name="<?= View::e($listing->title) ?>">
       <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
       <button type="submit" class="btn btn-danger btn-sm"><?= View::icon('delete') ?> Delete Listing</button>
     </form>
@@ -143,7 +143,7 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
   <button class="tabs-btn active" data-tab="general">General</button>
   <button class="tabs-btn" data-tab="fields">Additional Fields</button>
   <button class="tabs-btn" data-tab="codes">Codes</button>
-  <button class="tabs-btn" data-tab="affiliates">Affiliates</button>
+  <button class="tabs-btn" data-tab="affiliates">Affiliates<?php if (!empty($affiliates)): ?> <span class="badge badge-inactive badge-inline-sm"><?= count($affiliates) ?></span><?php endif; ?></button>
   <button class="tabs-btn" data-tab="templates">Templates</button>
   <button class="tabs-btn" data-tab="embed">Embed</button>
   <button class="tabs-btn" data-tab="advanced">Advanced</button>
@@ -155,7 +155,7 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
       <option value="general">General</option>
       <option value="fields">Additional Fields</option>
       <option value="codes">Codes</option>
-      <option value="affiliates">Affiliates</option>
+      <option value="affiliates">Affiliates<?= !empty($affiliates) ? ' (' . count($affiliates) . ')' : '' ?></option>
       <option value="templates">Templates</option>
       <option value="embed">Embed</option>
       <option value="advanced">Advanced</option>
@@ -177,7 +177,7 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
         </div>
       </div>
       <div class="pc-section">
-        <div class="pc-section-label">Listing Details</div>
+        <div class="pc-section-label">Details</div>
         <div class="listing-field-row listing-field-row--top">
           <label class="listing-field-label">Network &amp; Category</label>
           <div>
@@ -310,7 +310,7 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
 
 
       <div class="pc-section">
-        <div class="pc-section-label">Behaviour</div>
+        <div class="pc-section-label">Preferences</div>
         <?php $lt = $listing_type ?? 'listing'; ?>
         <div class="listing-field-row">
           <label class="listing-field-label" for="fl-listing-type">Type</label>
@@ -361,15 +361,6 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
           </div>
         </div>
 
-        <div class="listing-field-row listing-field-row--top">
-          <label class="listing-field-label" for="fl-contact-recipient">Contact recipient</label>
-          <div>
-            <input id="fl-contact-recipient" type="email" name="contact_recipient" class="form"
-                   maxlength="255" placeholder="Defaults to listing email"
-                   value="<?= View::e($contact_recipient ?? '') ?>">
-            <p class="form-hint">Override which email address receives contact messages for this listing. Leave blank to use the listing's email address.</p>
-          </div>
-        </div>
 
         <?php if ($adoption_addon_installed ?? false): ?>
         <div class="listing-field-row listing-field-row--top">
@@ -393,6 +384,34 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
         <?php endif; ?>
 
         <div class="listing-field-row listing-field-row--top">
+          <label class="listing-field-label">Code Donations</label>
+          <div>
+            <label class="toggle-wrap">
+              <input type="checkbox" name="codes_submit_enabled" value="1" id="fl-codes-submit-enabled"
+                     <?= ($embed_settings['codes_submit_enabled'] ?? true) ? 'checked' : '' ?>>
+              <span class="toggle-label">Allow fans to donate codes for this listing</span>
+            </label>
+            <p class="form-hint">Enables the public code submission form. Submissions appear in the Codes tab for review.</p>
+            <?php if ($embed_settings['codes_submit_enabled'] ?? true): ?>
+            <div style="margin-top:.75rem">
+              <?php
+                $_cae = $code_approval_email ?? null;
+                $_caeVal = $_cae === null ? '' : ($_cae ? '1' : '0');
+              ?>
+              <div class="select-wrap select-auto">
+                <select name="code_approval_email">
+                  <option value=""  <?= $_caeVal === ''  ? 'selected' : '' ?>>Follow global setting (email donor on approval)</option>
+                  <option value="1" <?= $_caeVal === '1' ? 'selected' : '' ?>>Always email donor on approval</option>
+                  <option value="0" <?= $_caeVal === '0' ? 'selected' : '' ?>>Never email donor on approval</option>
+                </select>
+              </div>
+              <p class="form-hint">Controls the <em>Code Donation Approved</em> email for this listing. The global setting is configured in Settings &rarr; General.</p>
+            </div>
+            <?php endif; ?>
+          </div>
+        </div>
+
+        <div class="listing-field-row listing-field-row--top">
           <label class="listing-field-label">Affiliate Applications</label>
           <div>
             <label class="toggle-wrap">
@@ -406,41 +425,9 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
           </div>
         </div>
 
-        <div class="listing-field-row">
-          <label class="listing-field-label" for="fl-form-url-aff-apply">Application form URL</label>
-          <div>
-            <input id="fl-form-url-aff-apply" type="text" name="form_url_affiliate_apply" class="form"
-                   maxlength="500" placeholder="e.g. affiliate-apply.php"
-                   value="<?= View::e($form_url_affiliate_apply ?? '') ?>">
-            <p class="form-hint">Path within your listing URL that hosts the embed. Leave blank to use the built-in route <code>/affiliate-apply/<?= (int) $listing->id ?></code>.</p>
-          </div>
-        </div>
-
-        <div class="listing-field-row">
-          <label class="listing-field-label" for="fl-redirect-url-aff-apply">After-submit redirect</label>
-          <div>
-            <input id="fl-redirect-url-aff-apply" type="text" name="redirect_url_affiliate_apply" class="form"
-                   maxlength="500" placeholder="e.g. affiliate-apply.php?sent=1"
-                   value="<?= View::e($redirect_url_affiliate_apply ?? '') ?>">
-            <p class="form-hint">Where to send the applicant after they submit. Leave blank to use the built-in success page.</p>
-          </div>
-        </div>
-
         <div class="listing-field-row listing-field-row--top">
           <label class="listing-field-label">Join Settings</label>
           <div>
-            <?php
-              $jce    = $join_confirmation_email ?? null;
-              $jceVal = $jce === null ? '' : ($jce ? '1' : '0');
-            ?>
-            <div class="select-wrap select-auto mb-sm">
-              <select name="join_confirmation_email">
-                <option value=""  <?= $jceVal === ''  ? 'selected' : '' ?>>Inherit &mdash; follow member's preference</option>
-                <option value="1" <?= $jceVal === '1' ? 'selected' : '' ?>>Always send join confirmation email</option>
-                <option value="0" <?= $jceVal === '0' ? 'selected' : '' ?>>Never send join confirmation email</option>
-              </select>
-            </div>
-            <p class="form-hint mb-sm">Password setup emails are always sent when a password is auto-generated, regardless of this setting.</p>
             <label class="toggle-wrap">
               <input type="checkbox" name="auto_approve_joins" value="1" id="fl-auto-approve-joins"
                      <?= ($auto_approve_joins ?? false) ? 'checked' : '' ?>>
@@ -483,7 +470,7 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
           <textarea id="members_template" name="members_template" class="form tpl-textarea" spellcheck="false"><?= View::e($templates['members_template'] ?? '<li><a href="{fan_url}">{fan_name}</a> &mdash; {fan_country}</li>') ?></textarea>
         </div>
         <div class="tpl-reset-row">
-          <button type="button" class="btn btn-ghost btn-sm btn-tpl-reset" data-target="members_template">Reset to Default</button>
+          <button type="button" class="btn btn-quaternary btn-sm btn-tpl-reset" data-target="members_template">Reset to Default</button>
         </div>
 
         <div class="pc-section-label">Affiliates — Row Template</div>
@@ -1176,136 +1163,42 @@ $_settingsOpen = $_hasCats || $_hasDonors;
 </div>
 <!-- ──── TAB: AFFILIATES ────────────────────────────────────────────── -->
 <div id="tab-affiliates" class="tabs-panel">
-<?php $_affFid = (int) $listing->id; ?>
-<?php $_nextAffSort = empty($affiliates) ? 1 : max(array_map(fn($a) => $a->sortOrder ?? 0, $affiliates)) + 1; ?>
-
-<form method="POST" action="<?= $b ?>/admin/listings/<?= $_affFid ?>/affiliates/add" enctype="multipart/form-data" class="js-warn-unsaved">
-  <input type="hidden" name="_csrf"        value="<?= View::e($csrf_token ?? '') ?>">
-  <input type="hidden" name="fanlisting_id" value="<?= $_affFid ?>">
-  <div class="gradient-card">
-    <div class="pc-head">
-      <div class="pc-head-icon pc-head-icon-bg"><?= View::icon('link') ?></div>
-      <div class="pc-head-meta">
-        <div class="pc-head-title">Add Affiliate</div>
-        <div class="pc-head-sub">Add a new affiliate to this listing.</div>
-      </div>
-    </div>
-    <div class="listing-field-section">
-      <div class="listing-field-row">
-        <label class="listing-field-label" for="aff-name">Affiliate Name <span class="req">*</span></label>
-        <div>
-          <input id="aff-name" type="text" name="name" class="form"
-                 maxlength="255" required>
-        </div>
-      </div>
-      <div class="listing-field-row">
-        <label class="listing-field-label" for="aff-url">URL <span class="req">*</span></label>
-        <div>
-          <input id="aff-url" type="url" name="url" class="form"
-                 maxlength="500" placeholder="https://" required>
-        </div>
-      </div>
-      <div class="listing-field-row">
-        <label class="listing-field-label" for="aff-email">Email</label>
-        <div>
-          <input id="aff-email" type="email" name="email" class="form"
-                 maxlength="255">
-        </div>
-      </div>
-      <div class="listing-field-row listing-field-row--top">
-        <label class="listing-field-label" for="aff-sort">Sort Order</label>
-        <div>
-          <input id="aff-sort" type="number" name="sort_order" class="form form--compact"
-                 min="1" max="9999" value="<?= $_nextAffSort ?>">
-          <p class="form-hint">Lower numbers appear first. Same order = sorted alphabetically.</p>
-        </div>
-      </div>
-      <div class="listing-field-row listing-field-row--top">
-        <span class="listing-field-label">Image</span>
-        <div>
-          <label class="file-drop-zone">
-            <input type="file" name="image" accept="image/jpeg,image/png,image/gif,image/webp">
-            <span class="file-drop-icon"><?= View::icon('image') ?></span>
-            <strong>Click to upload</strong>
-            <span class="form-hint">JPEG, PNG, GIF, WebP &mdash; max 2 MB</span>
-          </label>
-        </div>
-      </div>
-    </div>
-    <div class="composer-footer">
-      <button type="submit" class="btn btn-primary">Add Affiliate</button>
-      <button type="reset" class="btn btn-ghost">Clear</button>
-    </div>
-  </div>
-</form>
-
-<div class="card">
-  <div class="card-head">Current Affiliates</div>
-  <?php if (empty($affiliates)): ?>
-    <div class="empty">
-    <div class="empty-icon"><?= View::icon('link', ['width' => 32, 'height' => 32]) ?></div>
-      No affiliates for this listing yet.
-    </div>
-  <?php else: ?>
-    <div class="table-wrap">
-    <table class="data-table">
-      <thead>
-        <tr>
-          <th>Sort #</th>
-          <th>Name</th>
-          <th>Email</th>
-          <th>Status</th>
-          <th class="act-col">Actions</th>
-        </tr>
-      </thead>
-      <tbody>
-        <?php foreach ($affiliates as $aff): ?>
-        <tr>
-          <td class="text-dim"><?= (int) $aff->sortOrder ?></td>
-          <td>
-            <a href="<?= View::e($aff->url) ?>" target="_blank" rel="noopener noreferrer"
-               class="link text-strong"><?= View::e($aff->name) ?></a>
-            <?= View::icon('external-link') ?>
-          </td>
-          <td class="text-muted"><?= $aff->email !== null ? View::emailWrap($aff->email) : '&mdash;' ?></td>
-          <td>
-            <?php if ($aff->active): ?>
-              <span class="badge badge-current">Active</span>
-            <?php else: ?>
-              <span class="badge badge-pending">Inactive</span>
-            <?php endif; ?>
-          </td>
-          <td class="act-col">
-            <div class="data-actions">
-              <a href="<?= $b ?>/admin/affiliates/<?= (int) $aff->id ?>/edit?from_listing=<?= $_affFid ?>"
-                 class="btn btn-tertiary btn-sm">Edit</a>
-              <form method="POST"
-                    action="<?= $b ?>/admin/affiliates/<?= (int) $aff->id ?>/toggle"
-                    class="action-form-inline">
-                <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
-                <input type="hidden" name="from_listing" value="<?= $_affFid ?>">
-                <button type="submit" class="btn btn-sm <?= $aff->active ? 'btn-warn' : 'btn-quaternary' ?>">
-                  <?= $aff->active ? 'Deactivate' : 'Activate' ?>
-                </button>
-              </form>
-              <form method="POST"
-                    action="<?= $b ?>/admin/affiliates/<?= (int) $aff->id ?>/delete"
-                    class="action-form-inline"
-                    data-del-modal data-del-entity="affiliate"
-                    data-del-name="<?= View::e($aff->name ?? '') ?>">
-                <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
-                <input type="hidden" name="from_listing" value="<?= $_affFid ?>">
-                <button type="submit" class="btn btn-danger btn-sm">Delete</button>
-              </form>
-            </div>
-          </td>
-        </tr>
-        <?php endforeach; ?>
-      </tbody>
-    </table>
-    </div>
-  <?php endif; ?>
+<div class="toolbar" style="justify-content:flex-end;margin-bottom:1rem">
+  <a href="<?= $b ?>/admin/listings/<?= (int) $listing->id ?>/affiliates/add"
+     class="btn btn-primary btn-sm"><?= View::icon('add') ?> Add New Affiliate</a>
 </div>
+
+<?php
+  $_affFid       = (int) $listing->id;
+  // Filter out rejected affiliates for the embedded table
+  $_affFiltered  = array_values(array_filter($affiliates, fn($a) => $a->status !== 'rejected'));
+  // Variables expected by affiliates/index.php
+  $affiliates         = $_affFiltered;
+  $tab                = 'all';
+  $scope              = (string) $_affFid;
+  $search             = '';
+  $sort               = 'sort_order';
+  $dir                = 'asc';
+  $page               = 1;
+  $per_page           = max(1, count($affiliates));
+  $total              = count($affiliates);
+  $total_pages        = 1;
+  $rangeStart         = $total > 0 ? 1 : 0;
+  $rangeEnd           = $total;
+  $counts             = ['all' => $total, 'pending' => 0, 'approved' => 0, 'inactive' => 0, 'rejected' => 0];
+  $conflict_ids       = [];
+  $listing_map        = [$_affFid => $listing];
+  $listings           = [];
+  $filters_active     = false;
+  $scope_counts       = [];
+  $returnUrl          = $b . '/admin/listings/' . $_affFid . '?tab=affiliates';
+  $_aff_table_only    = true;
+  include LUSTER_BASE . '/templates/admin/affiliates/index.php';
+  unset($affiliates, $tab, $scope, $search, $sort, $dir, $page, $per_page, $total, $total_pages,
+        $rangeStart, $rangeEnd, $counts, $conflict_ids, $listing_map, $listings,
+        $filters_active, $scope_counts, $returnUrl, $_aff_table_only, $_affFiltered, $_tableOnly);
+  $affiliates = $affiliates ?? [];  // restore for any subsequent use
+?>
 </div>
 <!-- ──── TAB: EMBED ─────────────────────────────────────────────────── -->
 <div id="tab-embed" class="tabs-panel">
@@ -1369,7 +1262,19 @@ $embedBaseUrl   = rtrim((string) ($cfg['embed_base_url'] ?? ''), '/') ?: rtrim((
         </div>
       </div>
 
-      <div class="listing-field-row">
+      <div class="listing-field-row" id="fl-aff-form-url-row"
+           <?= ($affiliate_apply_enabled ?? false) ? '' : 'style="display:none"' ?>>
+        <label class="listing-field-label" for="fl-form-url-aff-apply">Affiliate Applications</label>
+        <div>
+          <input id="fl-form-url-aff-apply" type="text" name="form_url_affiliate_apply" class="form"
+                 maxlength="500"
+                 value="<?= View::e(($form_url_affiliate_apply ?? '') !== '' ? $form_url_affiliate_apply : 'affiliate-apply.php') ?>">
+          <p class="form-hint">Path within your listing URL that hosts the embed. Leave blank to use the built-in route <code>/affiliate-apply/<?= (int) $listing->id ?></code>.</p>
+        </div>
+      </div>
+
+      <div class="listing-field-row" id="fl-codes-submit-embed-row"
+           <?= ($embedSettings['codes_submit_enabled'] ?? true) ? '' : 'style="display:none"' ?>>
         <label class="listing-field-label" for="fl-form-codes-submit">Code Donation</label>
         <div>
           <input id="fl-form-codes-submit" type="text" name="form_url_codes_submit" class="form"
@@ -1379,41 +1284,85 @@ $embedBaseUrl   = rtrim((string) ($cfg['embed_base_url'] ?? ''), '/') ?: rtrim((
       </div>
     </div>
 
-    <div class="pc-section">
-      <div class="pc-section-label">Embed Snippets</div>
-
-      <?php if ($installPath !== ''): ?>
-        <?php foreach (['join', 'members', 'update', 'remove'] as $page): ?>
-        <div class="listing-field-row listing-field-row--top">
-          <span class="listing-field-label"><?= ucfirst(View::e($page)) ?> page</span>
-          <div>
-            <div class="ro-field embed-snippet">
-              $luster_fanlisting_id = <?= (int) $listing->id ?>;<br>
-              require '<?= View::e($installPath) ?>/public/embed/<?= View::e($page) ?>.php';
-            </div>
-          </div>
-        </div>
-        <?php endforeach; ?>
-      <?php else: ?>
-        <div class="listing-field-row listing-field-row--top">
-          <span class="listing-field-label">Snippets</span>
-          <div>
-            <p class="form-hint">
-              Set the <strong>Installation Path</strong> in
-              <a href="<?= $b ?>/admin/settings" class="link">Settings &rarr; Embed &amp; Paths</a>
-              to generate embed snippets here.
-            </p>
-          </div>
-        </div>
-      <?php endif; ?>
-    </div>
   <div class="composer-footer">
     <button type="submit" class="btn btn-primary">Save Embed Settings</button>
     <a href="<?= $b ?>/admin/listings" class="btn btn-ghost">Cancel</a>
   </div>
   </form>
   </div>
-</div>
+
+<!-- ──── EMBED SNIPPETS ───────────────────────────────────────────── -->
+<details class="chevron card" style="margin-bottom:1.75rem">
+  <summary class="card-head">Embed Snippets</summary>
+  <div class="card-body">
+    <?php if ($installPath !== ''): ?>
+      <?php
+        $_es = $embedSettings ?? [];
+        $_snipPath = View::e($installPath);
+        $_snipId   = (int) $listing->id;
+        // Helper to render one snippet row
+        $snip = static function (string $label, string $file) use ($_snipPath, $_snipId, $b): void {
+            echo '<div class="listing-field-row listing-field-row--top">';
+            echo '<span class="listing-field-label">' . htmlspecialchars($label, ENT_QUOTES, 'UTF-8') . '</span>';
+            echo '<div><div class="ro-field embed-snippet">';
+            echo '$luster_fanlisting_id = ' . $_snipId . ';<br>';
+            echo "require '" . $_snipPath . '/public/embed/' . htmlspecialchars($file, ENT_QUOTES, 'UTF-8') . "';";
+            echo '</div></div></div>';
+        };
+      ?>
+
+      <details class="snip-section" open>
+        <summary class="pc-section-label snip-section-summary">Member Pages</summary>
+        <?php $snip('Join', 'join.php') ?>
+        <?php $snip('Members list', 'members.php') ?>
+        <?php $snip('Update membership', 'update.php') ?>
+        <?php $snip('Remove membership', 'remove.php') ?>
+        <?php $snip('Password reset', 'reset.php') ?>
+      </details>
+
+      <details class="snip-section" open>
+        <summary class="pc-section-label snip-section-summary">Stats &amp; Extras</summary>
+        <?php $snip('Stats', 'stats.php') ?>
+        <?php $snip('Codes', 'codes.php') ?>
+        <?php $snip('Affiliates', 'affiliates.php') ?>
+        <?php if ($contact_enabled ?? false): ?>
+          <?php $snip('Contact form', 'contact.php') ?>
+        <?php endif; ?>
+      </details>
+
+      <?php if (in_array('Updates', $nav_installed_addons ?? [], true)): ?>
+      <details class="snip-section" open>
+        <summary class="pc-section-label snip-section-summary">Updates Feed</summary>
+        <?php $snip('Updates feed', 'updates.php') ?>
+      </details>
+      <?php endif; ?>
+
+      <?php if (in_array('Adoption', $nav_installed_addons ?? [], true) && ($adoption_addon_installed ?? false)): ?>
+      <details class="snip-section" open>
+        <summary class="pc-section-label snip-section-summary">Adoption</summary>
+        <?php $snip('Adoption form', 'adopt.php') ?>
+      </details>
+      <?php endif; ?>
+
+      <?php if (in_array('Kim', $nav_installed_addons ?? [], true)): ?>
+      <details class="snip-section" open>
+        <summary class="pc-section-label snip-section-summary">Keep In Mind</summary>
+        <?php $snip('KIM sign-up', 'kim-signup.php') ?>
+        <?php $snip('KIM member list', 'kim-list.php') ?>
+        <?php $snip('KIM update', 'kim-update.php') ?>
+        <?php $snip('KIM password reset', 'kim-reset.php') ?>
+      </details>
+      <?php endif; ?>
+
+    <?php else: ?>
+      <p class="form-hint">
+        Set the <strong>Installation Path</strong> in
+        <a href="<?= $b ?>/admin/settings" class="link">Settings &rarr; Server Paths</a>
+        to generate embed snippets here.
+      </p>
+    <?php endif; ?>
+  </div>
+</details>
 
 <!-- ──── COMPAT WRAPPERS ──────────────────────────────────────────── -->
 <details class="chevron card" style="margin-bottom:1.75rem" id="compat-wrappers">
@@ -1482,25 +1431,9 @@ $embedBaseUrl   = rtrim((string) ($cfg['embed_base_url'] ?? ''), '/') ?: rtrim((
     </div>
     <?php endforeach; ?>
 
-    <script>
-    (function () {
-      var section = document.getElementById('compat-wrappers');
-      if (!section) return;
-      section.querySelectorAll('.tab-link').forEach(function (link) {
-        link.addEventListener('click', function (e) {
-          e.preventDefault();
-          var target = this.dataset.target;
-          section.querySelectorAll('.tab-link').forEach(function (l) { l.classList.remove('tab-link--active'); });
-          section.querySelectorAll('.compat-panel').forEach(function (p) { p.style.display = 'none'; });
-          this.classList.add('tab-link--active');
-          var panel = document.getElementById(target);
-          if (panel) panel.style.display = '';
-        });
-      });
-    }());
-    </script>
   </div>
 </details>
+</div>
 
 <!-- ──── TAB: ADVANCED ──────────────────────────────────────────────── -->
 <div id="tab-advanced" class="tabs-panel">

@@ -46,23 +46,17 @@ final class AffiliateController extends AdminController
         $baseUrl = $this->app->getBaseUrl();
 
         $action        = (string) $request->post('action', '');
-        $scope         = trim((string) $request->post('scope', ''));
-        $selectAll     = $request->post('select_all', '0') === '1';
         $affiliateRepo = new AffiliateRepo($db);
-        $redirect      = $baseUrl . '/admin/affiliates';
-        if ($scope !== '') {
-            $redirect .= '?' . http_build_query(['fanlisting_id' => $scope]);
-        }
 
-        if ($selectAll) {
-            $saSearch = trim((string) $request->post('sa_filter_search', ''));
-            $selected = $affiliateRepo->getAllIdsByFilter($scope, $saSearch);
-        } else {
-            $selected = array_values(array_filter(
-                array_map('intval', (array) $request->post('selected', [])),
-                fn(int $id) => $id > 0
-            ));
-        }
+        $returnTo = trim((string) $request->post('_return', ''));
+        $redirect = ($returnTo !== '' && str_starts_with($returnTo, $baseUrl . '/admin/affiliates'))
+            ? $returnTo
+            : $baseUrl . '/admin/affiliates';
+
+        $selected = array_values(array_filter(
+            array_map('intval', (array) $request->post('selected', [])),
+            fn(int $id) => $id > 0
+        ));
 
         if (empty($selected)) {
             $session->set('lstr_flash_error', 'No affiliates selected.');
@@ -71,14 +65,20 @@ final class AffiliateController extends AdminController
 
         $count = count($selected);
 
-        match ($action) {
+        $affected = match ($action) {
+            'approve'    => $affiliateRepo->bulkApprove($selected),
+            'reject'     => $affiliateRepo->bulkReject($selected),
+            're-approve' => $affiliateRepo->bulkReApprove($selected),
             'activate'   => $affiliateRepo->bulkSetActive($selected, true),
             'deactivate' => $affiliateRepo->bulkSetActive($selected, false),
             'delete'     => $affiliateRepo->bulkDelete($selected),
-            default      => null,
+            default      => 0,
         };
 
         $msg = match ($action) {
+            'approve'    => "Approved {$affected} affiliate application(s).",
+            'reject'     => "Rejected {$affected} affiliate application(s).",
+            're-approve' => "Re-approved {$affected} affiliate(s).",
             'activate'   => "Activated {$count} affiliate(s).",
             'deactivate' => "Deactivated {$count} affiliate(s).",
             'delete'     => "Deleted {$count} affiliate(s).",
@@ -98,112 +98,88 @@ final class AffiliateController extends AdminController
         $db     = $this->app->getDatabase();
         $config = $this->app->getConfig();
 
-        $affiliateRepo  = new AffiliateRepo($db);
-        $listingRepo = new ListingRepo($db, $config);
+        $affiliateRepo = new AffiliateRepo($db);
+        $listingRepo   = new ListingRepo($db, $config);
+        $listings      = $listingRepo->getAll();
 
-        $listings = $listingRepo->getAll();
-
-        // Build listing lookup map for display
-        $fanMap = [];
+        $listingMap = [];
         foreach ($listings as $fl) {
-            $fanMap[$fl->id] = $fl->subject;
+            $listingMap[$fl->id] = $fl;
         }
 
-        $filterFid   = trim((string) $request->query('fanlisting_id', 'all'));
-        $search      = trim((string) $request->query('search', ''));
-        $page        = max(1, (int) $request->query('page', 1));
-        $perPage     = 10;
-        $reorderMode = $request->query('reorder', '') === '1' && $search === '';
+        $tabParam = $request->query('tab', null);
+        $isBareNavigation = $tabParam === null
+                         && $request->query('scope',  null) === null
+                         && $request->query('search', null) === null
+                         && $request->query('page',   null) === null;
 
-        if ($reorderMode) {
-            // Reorder mode: load every affiliate for the current scope in
-            // sort_order ASC, no pagination, and skip the repack step.
-            $orderBy = 'sort_order ASC, name ASC';
-            if ($filterFid === 'collective') {
-                $result = $affiliateRepo->getCollective(PHP_INT_MAX, 1, $orderBy);
-            } elseif ($filterFid === '' || $filterFid === 'all') {
-                $result = $affiliateRepo->getAll(PHP_INT_MAX, 1, $orderBy);
-            } else {
-                $result = $affiliateRepo->getByListing((int) $filterFid, PHP_INT_MAX, 1, $orderBy);
-            }
-            $sortParam  = 'sort_order';
-            $sortDir    = 'ASC';
-            $totalPages = 1;
-        } else {
-            // Normal mode: repack gaps, then paginate/sort as requested.
-            if ($search === '') {
-                if ($filterFid === 'collective') {
-                    $affiliateRepo->repackSortOrder(null);
-                } elseif ($filterFid !== '' && $filterFid !== 'all') {
-                    $affiliateRepo->repackSortOrder((int) $filterFid);
-                }
-            }
-
-            $allowedCols = ['sort_order' => 'sort_order', 'name' => 'name', 'email' => 'email', 'status' => 'active'];
-            $defaultSort = ($filterFid === 'all' || $filterFid === '') ? 'name' : 'sort_order';
-            $sortParam   = (string) $request->query('sort', $defaultSort);
-            $dirParam    = strtolower(trim((string) $request->query('dir', 'asc')));
-            $sortCol     = $allowedCols[$sortParam] ?? 'sort_order';
-            $sortDir     = $dirParam === 'desc' ? 'DESC' : 'ASC';
-            $orderBy     = $sortCol . ' ' . $sortDir . ($sortCol !== 'name' ? ', name ASC' : '');
-
-            if ($search !== '') {
-                $fid    = match(true) {
-                    $filterFid === 'collective'              => null,
-                    $filterFid === '' || $filterFid === 'all' => -1,
-                    default                                 => (int) $filterFid,
-                };
-                $result = $affiliateRepo->search($search, $fid, $perPage, $page, $orderBy);
-            } elseif ($filterFid === 'collective') {
-                $result = $affiliateRepo->getCollective($perPage, $page, $orderBy);
-            } elseif ($filterFid === '' || $filterFid === 'all') {
-                $result = $affiliateRepo->getAll($perPage, $page, $orderBy);
-            } else {
-                $result = $affiliateRepo->getByListing((int) $filterFid, $perPage, $page, $orderBy);
-            }
-            $totalPages = $result['pages'];
+        if ($isBareNavigation) {
+            $affiliateRepo  = new AffiliateRepo($this->app->getDatabase());
+            $pendingCount   = $affiliateRepo->getPendingCount();
+            $landingTab     = $pendingCount > 0 ? 'pending' : 'all';
+            return Response::redirect($this->app->getBaseUrl() . '/admin/affiliates?tab=' . $landingTab);
         }
 
+        $tab = trim((string) ($tabParam ?? 'all'));
+        if (!in_array($tab, ['all', 'pending', 'approved', 'inactive', 'rejected'], true)) {
+            $tab = 'all';
+        }
+        $scope   = trim((string) $request->query('scope', 'all'));
+        $search  = trim((string) $request->query('search', ''));
+        $page    = max(1, (int) $request->query('page', 1));
+        $perPage = 10;
+
+        $allowedCols = [
+            'name'       => 'name',
+            'listing'    => 'COALESCE(fanlisting_id, 0)',
+            'email'      => 'email',
+            'status'     => 'status',
+            'activity'   => 'active',
+            'sort_order' => 'sort_order',
+        ];
+        $sortParam   = (string) $request->query('sort', 'name');
+        $dirParam    = strtolower(trim((string) $request->query('dir', 'asc')));
+        $sortCol     = $allowedCols[$sortParam] ?? 'name';
+        $sortDir     = $dirParam === 'desc' ? 'DESC' : 'ASC';
+        $orderBy     = $sortCol . ' ' . $sortDir . ($sortCol !== 'name' ? ', name ASC' : '');
+
+        $result      = $affiliateRepo->getAdminPaginated($tab, $scope, $search, $perPage, $page, $orderBy);
+        $counts      = $affiliateRepo->getAdminTabCounts($scope, $search);
+        $scopeCounts = $affiliateRepo->getScopeCounts();
         $affiliates = $result['items'];
         $total      = $result['total'];
+        $totalPages = $result['pages'];
+
+        $conflictIds = $tab === 'pending'
+            ? array_flip($affiliateRepo->getPendingIdsWithUrlConflict())
+            : [];
 
         $session = $this->app->getSession();
         $success = (string) $session->get('lstr_flash_success', '');
-        $error   = (string) $session->get('lstr_flash_error', '');
+        $error   = (string) $session->get('lstr_flash_error',   '');
         $session->remove('lstr_flash_success');
         $session->remove('lstr_flash_error');
 
-        $siteName = (string) ($this->app->getConfig()->get('site_name', 'Collective'));
-
-        $baseUrl = $this->app->getBaseUrl();
-
-        $indexBreadcrumbs = [];
-        if ($filterFid !== '' && $filterFid !== 'collective' && $filterFid !== 'all' && isset($fanMap[(int) $filterFid])) {
-            $indexBreadcrumbs = [
-                $this->crumb('Affiliates', $this->adminUrl('/admin/affiliates')),
-                $this->crumb($fanMap[(int) $filterFid]),
-            ];
-        }
-
         return $this->adminLayout('admin/affiliates/index.php', 'Affiliates', 'affiliates', [
             'affiliates'    => $affiliates,
-            'fan_map'       => $fanMap,
+            'listing_map'   => $listingMap,
             'listings'      => $listings,
-            'filter_fid'    => $filterFid,
+            'tab'           => $tab,
+            'scope'         => $scope,
             'search'        => $search,
             'page'          => $page,
             'per_page'      => $perPage,
             'total_pages'   => $totalPages,
             'total'         => $total,
-            'site_name'     => $siteName,
+            'counts'        => $counts,
+            'scope_counts'  => $scopeCounts,
             'sort'          => $sortParam,
             'dir'           => strtolower($sortDir),
-            'reorder_url'   => $baseUrl . '/admin/affiliates/reorder',
-            'reorder_mode'  => $reorderMode,
-            'pending_count' => $affiliateRepo->getPendingCount(),
+            'conflict_ids'  => $conflictIds,
+            'filters_active' => $scope !== 'all' || $search !== '',
             'success'       => $success,
             'error'         => $error,
-        ], '', $indexBreadcrumbs);
+        ]);
     }
 
     // -----------------------------------------------------------------------
@@ -389,6 +365,8 @@ final class AffiliateController extends AdminController
             $email     = trim((string) $request->post('email', ''));
             $sortOrder = (int) $request->post('sort_order', 0);
             $fromFl    = (int) $request->post('from_listing', 0);
+            $statusVal = trim((string) $request->post('status', ''));
+            $activeVal = $request->post('active', null);
 
             // Image upload — validate only; file is NOT moved here.
             // move_uploaded_file() and old-image deletion run after ALL validation
@@ -476,6 +454,8 @@ final class AffiliateController extends AdminController
                 'email'      => $email !== '' ? $email : null,
                 'image'      => $image !== '' ? $image : null,
                 'sort_order' => $sortOrder,
+                'status'     => in_array($statusVal, ['pending', 'approved', 'rejected'], true) ? $statusVal : null,
+                'active'     => $activeVal !== null ? (int) $activeVal : null,
             ]);
 
             if ($fromFl > 0) {
@@ -522,7 +502,26 @@ final class AffiliateController extends AdminController
             return Response::json(['ok' => false, 'error' => 'No IDs provided.']);
         }
 
-        $repo->setSortOrders($ids);
+        // Splice the page slice into the full ordered list so cross-page sort_order
+        // values are consistent — same approach as the wishlist reorder.
+        $scopeRaw  = trim((string) $request->post('scope', 'all'));
+        $status    = trim((string) $request->post('tab',   'approved'));
+        $page      = max(1, (int) $request->post('page',     1));
+        $perPage   = max(1, min(200, (int) $request->post('per_page', 10)));
+
+        $listingId = match (true) {
+            $scopeRaw === 'collective'  => null,
+            ctype_digit($scopeRaw) && (int) $scopeRaw > 0 => (int) $scopeRaw,
+            default => -1,
+        };
+
+        $allIds  = $repo->getIdsByScope($listingId, $status);
+        $offset  = ($page - 1) * $perPage;
+        $before  = array_slice($allIds, 0, $offset);
+        $after   = array_slice($allIds, $offset + count($ids));
+        $reordered = array_merge($before, $ids, $after);
+
+        $repo->setSortOrders($reordered);
 
         return Response::json(['ok' => true]);
     }
@@ -603,42 +602,7 @@ final class AffiliateController extends AdminController
 
     public function pending(Request $request, array $params): Response
     {
-        $db     = $this->app->getDatabase();
-        $config = $this->app->getConfig();
-
-        $affiliateRepo = new AffiliateRepo($db);
-        $listingRepo   = new ListingRepo($db, $config);
-
-        $scope    = trim((string) $request->query('scope', 'all'));
-        $pending  = $affiliateRepo->getPendingForScope($scope);
-        $listings = $listingRepo->getAll();
-
-        $listingMap = [];
-        foreach ($listings as $fl) {
-            $listingMap[$fl->id] = $fl;
-        }
-
-        // Build a set of pending IDs that already have an active affiliate with the same URL
-        $conflictIds = array_flip($affiliateRepo->getPendingIdsWithUrlConflict());
-
-        $session = $this->app->getSession();
-        $success = (string) $session->get('lstr_flash_success', '');
-        $error   = (string) $session->get('lstr_flash_error',   '');
-        $session->remove('lstr_flash_success');
-        $session->remove('lstr_flash_error');
-
-        return $this->adminLayout('admin/affiliates/pending.php', 'Pending Affiliate Applications', 'affiliates', [
-            'pending'      => $pending,
-            'listing_map'  => $listingMap,
-            'listings'     => $listings,
-            'scope'        => $scope,
-            'conflict_ids' => $conflictIds,
-            'success'      => $success,
-            'error'        => $error,
-        ], '', [
-            $this->crumb('Affiliates', $this->adminUrl('/admin/affiliates')),
-            $this->crumb('Pending Applications'),
-        ]);
+        return Response::redirect($this->app->getBaseUrl() . '/admin/affiliates?tab=pending');
     }
 
     // -----------------------------------------------------------------------
@@ -655,7 +619,7 @@ final class AffiliateController extends AdminController
         $affiliateRepo = new AffiliateRepo($db);
         $affiliate     = $affiliateRepo->getById($id);
 
-        if ($affiliate === null || !$affiliate->pending) {
+        if ($affiliate === null || $affiliate->status !== 'pending') {
             return Response::notFound('Pending application not found.');
         }
 
@@ -671,7 +635,6 @@ final class AffiliateController extends AdminController
             "Approved affiliate application #{$id}: {$affiliate->name} ({$affiliate->url})",
         );
 
-        // Send approval email if the applicant supplied one
         $emailNote = '';
         if ($affiliate->email !== null && $affiliate->email !== '') {
             if ($this->sendAffiliateEmail($affiliate, EmailTemplateRepo::TYPE_AFFILIATE_APPROVED)) {
@@ -680,15 +643,7 @@ final class AffiliateController extends AdminController
         }
 
         $session->set('lstr_flash_success', 'Affiliate application approved.' . $emailNote);
-
-        $fromPending  = (string) $request->post('from_pending', '');
-        $pendingScope = trim((string) $request->post('pending_scope', 'all'));
-        $scopeQuery   = ($pendingScope !== '' && $pendingScope !== 'all') ? '?scope=' . urlencode($pendingScope) : '';
-        return Response::redirect(
-            $fromPending === '1'
-                ? $baseUrl . '/admin/affiliates/pending' . $scopeQuery
-                : $baseUrl . '/admin/affiliates'
-        );
+        return Response::redirect($this->redirectAfterStatusChange($request, $baseUrl, 'pending'));
     }
 
     // -----------------------------------------------------------------------
@@ -705,16 +660,8 @@ final class AffiliateController extends AdminController
         $affiliateRepo = new AffiliateRepo($db);
         $affiliate     = $affiliateRepo->getById($id);
 
-        if ($affiliate === null || !$affiliate->pending) {
+        if ($affiliate === null || $affiliate->status !== 'pending') {
             return Response::notFound('Pending application not found.');
-        }
-
-        // Send rejection email before deleting the row
-        $emailNote = '';
-        if ($affiliate->email !== null && $affiliate->email !== '') {
-            if ($this->sendAffiliateEmail($affiliate, EmailTemplateRepo::TYPE_AFFILIATE_REJECTED)) {
-                $emailNote = ' Email sent to ' . $affiliate->email . '.';
-            }
         }
 
         $affiliateRepo->reject($id);
@@ -725,16 +672,38 @@ final class AffiliateController extends AdminController
             "Rejected affiliate application #{$id}: {$affiliate->name} ({$affiliate->url})",
         );
 
-        $session->set('lstr_flash_success', 'Affiliate application rejected.' . $emailNote);
+        $session->set('lstr_flash_success', 'Affiliate application rejected.');
+        return Response::redirect($this->redirectAfterStatusChange($request, $baseUrl, 'pending'));
+    }
 
-        $fromPending  = (string) $request->post('from_pending', '');
-        $pendingScope = trim((string) $request->post('pending_scope', 'all'));
-        $scopeQuery   = ($pendingScope !== '' && $pendingScope !== 'all') ? '?scope=' . urlencode($pendingScope) : '';
-        return Response::redirect(
-            $fromPending === '1'
-                ? $baseUrl . '/admin/affiliates/pending' . $scopeQuery
-                : $baseUrl . '/admin/affiliates'
+    // -----------------------------------------------------------------------
+    // POST /admin/affiliates/{id}/re-approve
+    // -----------------------------------------------------------------------
+
+    public function reApprove(Request $request, array $params): Response
+    {
+        $id      = (int) ($params['id'] ?? 0);
+        $db      = $this->app->getDatabase();
+        $session = $this->app->getSession();
+        $baseUrl = $this->app->getBaseUrl();
+
+        $affiliateRepo = new AffiliateRepo($db);
+        $affiliate     = $affiliateRepo->getById($id);
+
+        if ($affiliate === null || $affiliate->status !== 'rejected') {
+            return Response::notFound('Rejected application not found.');
+        }
+
+        $affiliateRepo->reApprove($id);
+
+        (new ActivityRepo($db))->log(
+            (int) $session->get('lstr_admin_id'),
+            'affiliate.re_approve',
+            "Re-approved affiliate #{$id}: {$affiliate->name} ({$affiliate->url})",
         );
+
+        $session->set('lstr_flash_success', 'Affiliate re-approved.');
+        return Response::redirect($this->redirectAfterStatusChange($request, $baseUrl, 'rejected'));
     }
 
     // -----------------------------------------------------------------------
@@ -850,16 +819,16 @@ final class AffiliateController extends AdminController
 
         foreach ($recipients as $r) {
             $fl           = $r['listing_id'] !== null ? ($listingMap[$r['listing_id']] ?? null) : null;
-            $listingName  = $fl !== null ? $fl->name : $siteName;
+            $listingName  = $fl !== null ? $fl->title : $siteName;
             $listingUrl   = $fl !== null ? $fl->url  : $siteUrl;
 
             $finalSubject = str_replace(
-                ['{aff_name}', '{aff_email}', '{aff_url}', '{listing_name}', '{listing_url}', '{site_name}', '{owner_name}', '{owner_email}'],
+                ['{aff_name}', '{aff_email}', '{aff_url}', '{listing_title}', '{listing_url}', '{site_name}', '{owner_name}', '{owner_email}'],
                 [$r['name'],   $r['email'],   $r['url'],   $listingName,     $listingUrl,      $siteName,     $ownerName,     $ownerEmail],
                 $subject,
             );
             $finalBody = str_replace(
-                ['{aff_name}', '{aff_email}', '{aff_url}', '{listing_name}', '{listing_url}', '{site_name}', '{owner_name}', '{owner_email}'],
+                ['{aff_name}', '{aff_email}', '{aff_url}', '{listing_title}', '{listing_url}', '{site_name}', '{owner_name}', '{owner_email}'],
                 [$r['name'],   $r['email'],   $r['url'],   $listingName,     $listingUrl,      $siteName,     $ownerName,     $ownerEmail],
                 $body,
             );
@@ -898,6 +867,16 @@ final class AffiliateController extends AdminController
     }
 
     // -----------------------------------------------------------------------
+    // Private helpers
+    // -----------------------------------------------------------------------
+
+    private function redirectAfterStatusChange(Request $request, string $baseUrl, string $defaultTab): string
+    {
+        $tab = (new AffiliateRepo($this->app->getDatabase()))->getPendingCount() > 0 ? 'pending' : 'all';
+        return $baseUrl . '/admin/affiliates?tab=' . $tab;
+    }
+
+    // -----------------------------------------------------------------------
     // Private: send affiliate email
     // -----------------------------------------------------------------------
 
@@ -916,7 +895,7 @@ final class AffiliateController extends AdminController
             if ($listing === null) {
                 return false;
             }
-            $listingName = $listing->name;
+            $listingName = $listing->title;
             $listingUrl  = $listing->url;
         } else {
             $listingName = (string) $config->get('site_name', '');

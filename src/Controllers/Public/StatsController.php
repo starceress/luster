@@ -31,7 +31,7 @@ use Luster\Repositories\MemberRepo;
  *   {stat_pending}      — pending member count
  *   {stat_newmembers}   — comma-separated list of newest 5 approved member names
  *   {stat_growth}       — average members per day since opened, e.g. "1.23 members/day"
- *   {listing_name}      — listing name (HTML-escaped)
+ *   {listing_title}      — listing name (HTML-escaped)
  *   {listing_url}       — listing URL (HTML-escaped)
  *   {approved_by}       — linked network name ("The Fanlistings Network" or
  *                         "The Anime Fanlistings Network"), or '' if not approved
@@ -133,7 +133,7 @@ final class StatsController
                 '{stat_pending}',
                 '{stat_newmembers}',
                 '{stat_growth}',
-                '{listing_name}',
+                '{listing_title}',
                 '{listing_url}',
                 '{approved_by}',
             ],
@@ -145,7 +145,7 @@ final class StatsController
                 (string) $pending,
                 $newMembersStr,
                 $growth . ' members/day',
-                htmlspecialchars($listing->name, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),
+                htmlspecialchars($listing->title, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),
                 htmlspecialchars($listing->url,  ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),
                 $approvedByHtml,
             ],

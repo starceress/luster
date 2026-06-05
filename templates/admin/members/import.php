@@ -18,7 +18,7 @@ $id = (int) $listing->id;
 
 <div class="page-topbar">
   <a href="<?= $b ?>/admin/members?listing_id=<?= (int) $id ?>&status=all" class="link">
-    &larr; Back to Members: <?= View::e($listing->name) ?>
+    &larr; Back to Members: <?= View::e($listing->title) ?>
   </a>
 </div>
 
@@ -117,7 +117,7 @@ $id = (int) $listing->id;
         <div class="pc-head-icon pc-head-icon-bg"><?= View::icon('members') ?></div>
         <div class="pc-head-meta">
           <div class="pc-head-title">Import Members</div>
-          <div class="pc-head-sub">Upload a CSV file to add approved members directly to <?= View::e($listing->name) ?>.</div>
+          <div class="pc-head-sub">Upload a CSV file to add approved members directly to <?= View::e($listing->title) ?>.</div>
         </div>
       </div>
 

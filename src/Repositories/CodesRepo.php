@@ -124,6 +124,103 @@ final class CodesRepo
     }
 
     /**
+     * Returns a map of fanlisting_id → pending code count for all listings.
+     *
+     * @return array<int, int>
+     */
+    public function countPendingPerListing(): array
+    {
+        $stmt = $this->db->prepare(
+            "SELECT fanlisting_id, COUNT(*) AS cnt FROM lstr_codes WHERE status = 'pending' GROUP BY fanlisting_id"
+        );
+        $stmt->execute();
+        $counts = [];
+        foreach ($stmt->fetchAll(\PDO::FETCH_ASSOC) as $row) {
+            $counts[(int) $row['fanlisting_id']] = (int) $row['cnt'];
+        }
+        return $counts;
+    }
+
+    /**
+     * Returns total pending code count across ALL listings.
+     * Used for the sidebar badge and the global Codes page.
+     */
+    public function countPendingAll(): int
+    {
+        $stmt = $this->db->prepare("SELECT COUNT(*) FROM lstr_codes WHERE status = 'pending'");
+        $stmt->execute();
+        return (int) $stmt->fetchColumn();
+    }
+
+    /**
+     * Returns a paginated slice of pending codes across all listings,
+     * newest first, with their listing ID for display.
+     *
+     * @return array{items: object[], total: int, pages: int}
+     */
+    public function getPendingAllPaginated(int $perPage, int $page): array
+    {
+        $total  = $this->countPendingAll();
+        $pages  = max(1, (int) ceil($total / $perPage));
+        $page   = min($page, $pages);
+        $offset = ($page - 1) * $perPage;
+
+        $stmt = $this->db->prepare(
+            "SELECT * FROM lstr_codes WHERE status = 'pending'
+             ORDER BY created_at DESC, id DESC
+             LIMIT :limit OFFSET :offset"
+        );
+        $stmt->bindValue(':limit',  $perPage, \PDO::PARAM_INT);
+        $stmt->bindValue(':offset', $offset,  \PDO::PARAM_INT);
+        $stmt->execute();
+
+        return [
+            'items' => array_map(static fn(array $r) => (object) $r, $stmt->fetchAll()),
+            'total' => $total,
+            'pages' => $pages,
+        ];
+    }
+
+    /**
+     * Approves all pending codes — optionally scoped to one listing.
+     * Returns the count of rows updated.
+     */
+    public function approveAllPending(?int $listingId = null): int
+    {
+        if ($listingId !== null) {
+            $stmt = $this->db->prepare(
+                "UPDATE lstr_codes SET status = 'approved'
+                 WHERE status = 'pending' AND fanlisting_id = :fid"
+            );
+            $stmt->execute(['fid' => $listingId]);
+        } else {
+            $stmt = $this->db->prepare("UPDATE lstr_codes SET status = 'approved' WHERE status = 'pending'");
+            $stmt->execute();
+        }
+        return (int) $stmt->rowCount();
+    }
+
+    /**
+     * Sets status on multiple codes by ID array.
+     *
+     * @param int[]  $ids
+     * @param string $status  'approved'|'pending'|'rejected'
+     */
+    public function bulkStatus(array $ids, string $status): int
+    {
+        if (empty($ids) || !in_array($status, self::STATUSES, true)) {
+            return 0;
+        }
+        $placeholders = implode(',', array_fill(0, count($ids), '?'));
+        $params       = array_merge([$status], array_map('intval', $ids));
+        $stmt = $this->db->prepare(
+            "UPDATE lstr_codes SET status = ? WHERE id IN ({$placeholders})"
+        );
+        $stmt->execute($params);
+        return (int) $stmt->rowCount();
+    }
+
+    /**
      * Returns the highest sort_order value for a listing (0 if none exist).
      */
     public function getMaxSortOrder(int $listingId): int

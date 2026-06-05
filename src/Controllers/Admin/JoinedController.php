@@ -44,8 +44,10 @@ final class JoinedController extends AdminController
         $page          = max(1, (int) $request->query('page', 1));
         $sort          = trim((string) $request->query('sort', ''));
         $dir           = trim((string) $request->query('dir', 'asc'));
+        $statusTab     = trim((string) $request->query('status_tab', 'all'));
         if (!in_array($sort, ['name', 'category', 'date_joined', 'status'], true)) { $sort = ''; }
         if (!in_array($dir, ['asc', 'desc'], true)) { $dir = 'asc'; }
+        if (!in_array($statusTab, ['all', 'approved', 'pending', 'hidden'], true)) { $statusTab = 'all'; }
 
         $networkCategories = $repo->getNetworkCategories();
         if ($filterNetwork !== '' && isset($networkCategories[$filterNetwork])) {
@@ -57,10 +59,14 @@ final class JoinedController extends AdminController
         $taflCats        = $categoryRepo->getBySource('tafl');
         $customNetworks  = $categoryRepo->getCustomNetworks();
 
+        $tabCounts      = $repo->countAllByStatusTab();
+        $networkCounts  = $repo->getNetworkCounts();
+        $categoryCounts = $repo->getCategoryCountMap(false);
+
         if ($search !== '' || $filterNetwork !== '') {
-            $result = $repo->search($search, $filterNetwork, $perPage, $page, $filterCat);
+            $result = $repo->search($search, $filterNetwork, $perPage, $page, $filterCat, $statusTab);
         } else {
-            $result = $repo->getAll($perPage, $page, $filterCat);
+            $result = $repo->getAll($perPage, $page, $filterCat, $statusTab);
         }
 
         $joined     = $result['items'];
@@ -89,15 +95,17 @@ final class JoinedController extends AdminController
             'joined'             => $joined,
             'categories'         => $categories,
             'network_categories' => $networkCategories,
+            'network_counts'     => $networkCounts,
+            'category_counts'    => $categoryCounts,
             'filter_cat'         => $filterCat,
             'filter_network'     => $filterNetwork,
-            'display_mode'       => $displayMode,
             'search'             => $search,
             'per_page'           => $perPage,
             'page'               => $page,
             'total_pages'        => $totalPages,
             'total'              => $totalCount,
-            'group_counts'       => $repo->countByGroup($displayMode),
+            'status_tab'         => $statusTab,
+            'tab_counts'         => $tabCounts,
             'tfl_cats'           => $tflCats,
             'tafl_cats'          => $taflCats,
             'custom_networks'    => $customNetworks,
@@ -486,16 +494,23 @@ final class JoinedController extends AdminController
             return Response::redirect($baseUrl . '/admin/joined');
         }
 
+        $validTabs  = ['all', 'approved', 'pending', 'hidden'];
+        $statusTab  = trim((string) $request->post('_status_tab', 'all'));
+        if (!in_array($statusTab, $validTabs, true)) { $statusTab = 'all'; }
+        $redirectUrl = $baseUrl . '/admin/joined' . ($statusTab !== 'all' ? '?status_tab=' . urlencode($statusTab) : '');
+
         $action    = (string) $request->post('bulk_action', '');
         $db        = $this->app->getDatabase();
         $repo      = new JoinedListingRepo($db);
         $selectAll = $request->post('select_all', '0') === '1';
 
         if ($selectAll) {
-            $saSearch  = trim((string) $request->post('sa_filter_search', ''));
-            $saNetwork = trim((string) $request->post('sa_filter_network', ''));
-            $saCat     = trim((string) $request->post('sa_filter_cat', ''));
-            $ids       = $repo->getAllIdsByFilter($saSearch, $saNetwork, $saCat);
+            $saSearch    = trim((string) $request->post('sa_filter_search', ''));
+            $saNetwork   = trim((string) $request->post('sa_filter_network', ''));
+            $saCat       = trim((string) $request->post('sa_filter_cat', ''));
+            $saStatusTab = trim((string) $request->post('sa_filter_status_tab', 'all'));
+            if (!in_array($saStatusTab, $validTabs, true)) { $saStatusTab = 'all'; }
+            $ids = $repo->getAllIdsByFilter($saSearch, $saNetwork, $saCat, $saStatusTab);
         } else {
             $ids = array_filter(
                 array_map('intval', (array) $request->post('ids', [])),
@@ -503,9 +518,9 @@ final class JoinedController extends AdminController
             );
         }
 
-        if ($ids === [] || !in_array($action, ['approve', 'pending', 'delete'], true)) {
+        if ($ids === [] || !in_array($action, ['approve', 'pending', 'hide', 'unhide', 'delete'], true)) {
             $session->set('lstr_flash_error', 'No items selected or invalid action.');
-            return Response::redirect($baseUrl . '/admin/joined');
+            return Response::redirect($redirectUrl);
         }
         $count = 0;
 
@@ -519,6 +534,18 @@ final class JoinedController extends AdminController
             $stmt = $db->prepare('UPDATE lstr_joined SET status = :status WHERE id = :id');
             foreach ($ids as $id) {
                 $stmt->execute(['status' => 'pending', 'id' => $id]);
+                ++$count;
+            }
+        } elseif ($action === 'hide') {
+            $stmt = $db->prepare('UPDATE lstr_joined SET active = 0 WHERE id = :id');
+            foreach ($ids as $id) {
+                $stmt->execute(['id' => $id]);
+                ++$count;
+            }
+        } elseif ($action === 'unhide') {
+            $stmt = $db->prepare('UPDATE lstr_joined SET active = 1 WHERE id = :id');
+            foreach ($ids as $id) {
+                $stmt->execute(['id' => $id]);
                 ++$count;
             }
         } else {
@@ -542,9 +569,17 @@ final class JoinedController extends AdminController
         }
 
         $noun = $count === 1 ? 'item' : 'items';
-        $session->set('lstr_flash_success', ucfirst($action) . "d {$count} {$noun}.");
+        $msg  = match ($action) {
+            'approve' => "Approved {$count} {$noun}.",
+            'pending' => "Marked {$count} {$noun} as pending.",
+            'hide'    => "Hidden {$count} {$noun}.",
+            'unhide'  => "Unhidden {$count} {$noun}.",
+            'delete'  => "Deleted {$count} {$noun}.",
+            default   => ucfirst($action) . "d {$count} {$noun}.",
+        };
+        $session->set('lstr_flash_success', $msg);
 
-        return Response::redirect($baseUrl . '/admin/joined');
+        return Response::redirect($redirectUrl);
     }
 
     // -----------------------------------------------------------------------

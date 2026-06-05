@@ -125,11 +125,13 @@ $flSortUrl = static function (string $col) use ($b, $flSort, $flDir, $search, $f
   <form method="GET" action="" class="filter-row" id="fl-filter-form">
     <div class="select-wrap">
     <select id="fl-net-sel" name="network" >
-      <option value="">All Networks</option>
+      <?php $_netCounts = $network_counts ?? []; $_netTotal = array_sum($_netCounts); ?>
+      <option value=""><?= $_netTotal > 0 ? 'All Networks' : 'All Networks' ?></option>
       <?php foreach ($allNetworks as $net): ?>
+        <?php $_nc = (int) ($_netCounts[strtoupper($net)] ?? 0); ?>
         <option value="<?= View::e($net) ?>"
                 <?= ($filter_network ?? '') === $net ? 'selected' : '' ?>>
-          <?= View::e($net) ?>
+          <?= View::e($net) ?><?= $_nc > 0 ? ' (' . $_nc . ')' : '' ?>
         </option>
       <?php endforeach; ?>
     </select>
@@ -140,14 +142,16 @@ $flSortUrl = static function (string $col) use ($b, $flSort, $flDir, $search, $f
             data-tfl='<?= $dataTfl ?>'
             data-tafl='<?= $dataTafl ?>'
             data-custom='<?= $dataCustom ?>'>
+      <?php $_catCounts = $category_counts ?? []; ?>
       <option value="">All Categories</option>
       <?php if ($fn === ''): ?>
         <?php if (!empty($tfl_cats)): ?>
           <optgroup label="TFL">
             <?php foreach ($tfl_cats as $c): ?>
+              <?php $_ccc = (int) ($_catCounts[$c['name']] ?? 0); ?>
               <option value="<?= View::e($c['name']) ?>"
                       <?= ($filter_cat ?? '') === $c['name'] ? 'selected' : '' ?>>
-                <?= View::e($c['name']) ?>
+                <?= View::e($c['name']) ?><?= $_ccc > 0 ? ' (' . $_ccc . ')' : '' ?>
               </option>
             <?php endforeach; ?>
           </optgroup>
@@ -155,9 +159,10 @@ $flSortUrl = static function (string $col) use ($b, $flSort, $flDir, $search, $f
         <?php if (!empty($tafl_cats)): ?>
           <optgroup label="TAFL">
             <?php foreach ($tafl_cats as $c): ?>
+              <?php $_ccc = (int) ($_catCounts[$c['name']] ?? 0); ?>
               <option value="<?= View::e($c['name']) ?>"
                       <?= ($filter_cat ?? '') === $c['name'] ? 'selected' : '' ?>>
-                <?= View::e($c['name']) ?>
+                <?= View::e($c['name']) ?><?= $_ccc > 0 ? ' (' . $_ccc . ')' : '' ?>
               </option>
             <?php endforeach; ?>
           </optgroup>
@@ -166,9 +171,10 @@ $flSortUrl = static function (string $col) use ($b, $flSort, $flDir, $search, $f
           <?php if (!empty($netCats)): ?>
             <optgroup label="<?= View::e($netName) ?>">
               <?php foreach ($netCats as $c): ?>
+                <?php $_ccc = (int) ($_catCounts[$c['name']] ?? 0); ?>
                 <option value="<?= View::e($c['name']) ?>"
                         <?= ($filter_cat ?? '') === $c['name'] ? 'selected' : '' ?>>
-                  <?= View::e($c['name']) ?>
+                  <?= View::e($c['name']) ?><?= $_ccc > 0 ? ' (' . $_ccc . ')' : '' ?>
                 </option>
               <?php endforeach; ?>
             </optgroup>
@@ -176,9 +182,10 @@ $flSortUrl = static function (string $col) use ($b, $flSort, $flDir, $search, $f
         <?php endforeach; ?>
       <?php else: ?>
         <?php foreach ($activeCats as $c): ?>
+          <?php $_ccc = (int) ($_catCounts[$c['name']] ?? 0); ?>
           <option value="<?= View::e($c['name']) ?>"
                   <?= ($filter_cat ?? '') === $c['name'] ? 'selected' : '' ?>>
-            <?= View::e($c['name']) ?>
+            <?= View::e($c['name']) ?><?= $_ccc > 0 ? ' (' . $_ccc . ')' : '' ?>
           </option>
         <?php endforeach; ?>
       <?php endif; ?>
@@ -186,15 +193,15 @@ $flSortUrl = static function (string $col) use ($b, $flSort, $flDir, $search, $f
     </div>
 
     <div class="select-wrap">
-    <select name="type" class="js-autosubmit">
-      <option value="">All Types</option>
-      <?php
-        $_typeLabels = ['listing' => 'Fanlisting', 'clique' => 'Clique', 'collective' => 'Collective', 'shrine' => 'Shrine', 'webring' => 'Webring', 'other' => 'Other'];
-      ?>
+    <select name="type">
+      <?php $_typeLabels = ['listing' => 'Fanlisting', 'clique' => 'Clique', 'collective' => 'Collective', 'shrine' => 'Shrine', 'webring' => 'Webring', 'other' => 'Other']; ?>
+      <?php $_typeCounts = $type_counts ?? []; $_typeTotal = array_sum($_typeCounts); ?>
+      <option value=""><?= $_typeTotal > 0 ? 'All Types' : 'All Types' ?></option>
       <?php foreach ($type_options ?? [] as $to): ?>
+        <?php $_tc = (int) ($_typeCounts[$to] ?? 0); ?>
         <option value="<?= View::e($to) ?>"
                 <?= ($filter_type ?? '') === $to ? 'selected' : '' ?>>
-          <?= View::e($_typeLabels[$to] ?? ucfirst($to)) ?>
+          <?= View::e($_typeLabels[$to] ?? ucfirst($to)) ?><?= $_tc > 0 ? ' (' . $_tc . ')' : '' ?>
         </option>
       <?php endforeach; ?>
     </select>
@@ -278,7 +285,7 @@ $flSortUrl = static function (string $col) use ($b, $flSort, $flDir, $search, $f
 
           <!-- Checkbox -->
           <td class="cb-col" data-label="">
-            <input type="checkbox" name="selected[]" value="<?= (int) $fl->id ?>" class="fl-row-cb" data-name="<?= View::e($fl->name) ?>">
+            <input type="checkbox" name="selected[]" value="<?= (int) $fl->id ?>" class="fl-row-cb" data-name="<?= View::e($fl->title) ?>">
           </td>
 
           <!-- Listing # -->
@@ -292,7 +299,7 @@ $flSortUrl = static function (string $col) use ($b, $flSort, $flDir, $search, $f
               <?php else: ?>
                 <?= View::e($fl->subject) ?>
               <?php endif; ?>
-              <span class="mem-url"><?= View::e($fl->name) ?></span>
+              <span class="mem-url"><?= View::e($fl->title) ?></span>
             </div>
           </td>
 
@@ -344,10 +351,10 @@ $flSortUrl = static function (string $col) use ($b, $flSort, $flDir, $search, $f
           <td class="act-col" data-label="">
             <div class="data-actions">
               <a href="<?= $b ?>/admin/listings/<?= (int) $fl->id ?>/edit"
-                 class="btn btn-tertiary btn-sm">Edit</a>
+                 class="btn btn-tertiary btn-xs">Edit</a>
               <a href="<?= $b ?>/admin/members?listing_id=<?= (int) $fl->id ?>&status=all"
-                 class="btn btn-quaternary btn-sm">Members</a>
-              <button type="submit" form="del-listing-<?= (int) $fl->id ?>" class="btn btn-danger btn-sm">Delete</button>
+                 class="btn btn-quaternary btn-xs">Members</a>
+              <button type="submit" form="del-listing-<?= (int) $fl->id ?>" class="btn btn-danger btn-xs">Delete</button>
             </div>
           </td>
 
@@ -363,7 +370,7 @@ $flSortUrl = static function (string $col) use ($b, $flSort, $flDir, $search, $f
 <form id="del-listing-<?= (int) $fl->id ?>" method="POST"
       action="<?= $b ?>/admin/listings/<?= (int) $fl->id ?>/delete"
       data-del-modal data-del-entity="listing"
-      data-del-name="<?= View::e($fl->name) ?>">
+      data-del-name="<?= View::e($fl->title) ?>">
   <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
 </form>
 <?php endforeach; ?>

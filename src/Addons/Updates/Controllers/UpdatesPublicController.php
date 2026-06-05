@@ -58,9 +58,9 @@ final class UpdatesPublicController
 
         $html = $this->app->getView()->renderPublic('default/addons/updates/feed.php', [
             'listing'       => $listing,
-            'listing_name'  => $listing->name,
+            'listing_name'  => $listing->title,
             'listing_url'   => $listing->url,
-            'page_title'    => 'Updates — ' . $listing->name,
+            'page_title'    => 'Updates — ' . $listing->title,
             'base_url'      => $baseUrl,
             'theme_path'    => $themePath,
             'updates'       => $updates,

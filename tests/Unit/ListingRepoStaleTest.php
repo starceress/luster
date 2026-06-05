@@ -59,7 +59,7 @@ SQL;
         $results = $this->repo->getStaleListings(55);
 
         self::assertCount(2, $results);
-        $names = array_map(static fn($l) => $l->name, $results);
+        $names = array_map(static fn($l) => $l->title, $results);
         self::assertContains('Stale One', $names);
         self::assertContains('Stale Two', $names);
     }
@@ -74,7 +74,7 @@ SQL;
         $results = $this->repo->getStaleListings(55);
 
         self::assertCount(1, $results);
-        self::assertSame('Explicit Null', $results[0]->name);
+        self::assertSame('Explicit Null', $results[0]->title);
     }
 
     public function testInactiveListingExcluded(): void
@@ -114,7 +114,7 @@ SQL;
         $results = $this->repo->getStaleListings(55);
 
         self::assertCount(1, $results);
-        self::assertSame('Old', $results[0]->name);
+        self::assertSame('Old', $results[0]->title);
     }
 
     public function testMixedActiveAndInactiveListings(): void
@@ -126,7 +126,7 @@ SQL;
         $results = $this->repo->getStaleListings(55);
 
         self::assertCount(1, $results);
-        self::assertSame('Active Stale', $results[0]->name);
+        self::assertSame('Active Stale', $results[0]->title);
     }
 
     // -----------------------------------------------------------------------
@@ -142,7 +142,7 @@ SQL;
         $results = $repo->getStaleListings(55);
 
         self::assertCount(1, $results);
-        self::assertSame('Stale Enth', $results[0]->name);
+        self::assertSame('Stale Enth', $results[0]->title);
     }
 
     public function testStandardSchemaUpcomingListingExcluded(): void

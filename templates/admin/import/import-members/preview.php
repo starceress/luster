@@ -49,7 +49,7 @@ $formatLabel  = $formatLabels[$format] ?? 'Unknown';
 
     <div class="listing-field-row">
       <span class="listing-field-label">Destination</span>
-      <div><?= View::e($listing->name) ?> (member table: <code><?= View::e($listing->dbprefix) ?></code>)</div>
+      <div><?= View::e($listing->title) ?> (member table: <code><?= View::e($listing->dbprefix) ?></code>)</div>
     </div>
     <div class="listing-field-row">
       <span class="listing-field-label">Detected format</span>

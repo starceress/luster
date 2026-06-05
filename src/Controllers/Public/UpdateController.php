@@ -343,7 +343,7 @@ final class UpdateController
         $listingRepo = new ListingRepo($this->app->getDatabase(), $this->app->getConfig());
         $listing     = $listingRepo->getById($listingId);
 
-        $listingName = $listing?->name ?? 'this listing';
+        $listingName = $listing?->title ?? 'this listing';
         $baseUrl        = $this->app->getBaseUrl();
         $session        = $this->app->getSession();
 
@@ -394,7 +394,7 @@ final class UpdateController
 
         $html = $this->app->getView()->renderPublic('update.php', [
             'listing'           => $listing,
-            'listing_name'      => $listing->name,
+            'listing_name'      => $listing->title,
             'listing_url'       => $listing->url,
             'page_title'           => 'Update Membership',
             'form_action'          => $baseUrl . '/update/' . $listingId,

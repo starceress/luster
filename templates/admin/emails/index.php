@@ -49,6 +49,7 @@ $typeLabels = [
     EmailTemplateRepo::TYPE_AFFILIATE_APPLIED  => 'Affiliate Application Notification',
     EmailTemplateRepo::TYPE_AFFILIATE_APPROVED => 'Affiliate Approved',
     EmailTemplateRepo::TYPE_AFFILIATE_REJECTED => 'Affiliate Rejected',
+    EmailTemplateRepo::TYPE_CODE_APPROVED      => 'Code Donation Approved',
 ];
 
 $navLabels = [
@@ -61,6 +62,7 @@ $navLabels = [
     EmailTemplateRepo::TYPE_AFFILIATE_APPLIED  => 'Affiliate Applied',
     EmailTemplateRepo::TYPE_AFFILIATE_APPROVED => 'Affiliate Approved',
     EmailTemplateRepo::TYPE_AFFILIATE_REJECTED => 'Affiliate Rejected',
+    EmailTemplateRepo::TYPE_CODE_APPROVED      => 'Code Approved',
 ];
 
 $typeHints = [
@@ -81,7 +83,7 @@ $allTokenDesc = [
     '{fan_url}'         => "Fan's website URL (may be empty)",
     '{fan_country}'     => "Fan's country",
     '{reset_url}'       => "Password reset link - required in Reset emails",
-    '{listing_name}'    => "Name of the fanlisting",
+    '{listing_title}'    => "Name of the fanlisting",
     '{listing_subject}' => "Subject or topic of the fanlisting",
     '{listing_url}'     => "URL of the fanlisting",
     '{site_name}'       => "Collective or site name",
@@ -93,13 +95,13 @@ $allTokenDesc = [
     '{aff_message}'     => "Affiliate applicant's message, if provided",
 ];
 
-$commonTokens = ['{fan_name}', '{fan_email}', '{fan_url}', '{fan_country}', '{listing_name}', '{listing_subject}', '{listing_url}', '{site_name}', '{owner_name}', '{owner_email}'];
+$commonTokens = ['{fan_name}', '{fan_email}', '{fan_url}', '{fan_country}', '{listing_title}', '{listing_subject}', '{listing_url}', '{site_name}', '{owner_name}', '{owner_email}'];
 $typeTokens   = array_fill_keys(EmailTemplateRepo::TYPES, $commonTokens);
 $typeTokens[EmailTemplateRepo::TYPE_RESET] = array_merge(
     ['{fan_name}', '{fan_email}', '{reset_url}'],
     array_slice($commonTokens, 2)
 );
-$affiliateTokens = ['{aff_name}', '{aff_url}', '{aff_email}', '{aff_message}', '{listing_name}', '{listing_url}', '{site_name}', '{owner_name}', '{owner_email}'];
+$affiliateTokens = ['{aff_name}', '{aff_url}', '{aff_email}', '{aff_message}', '{listing_title}', '{listing_url}', '{site_name}', '{owner_name}', '{owner_email}'];
 $typeTokens[EmailTemplateRepo::TYPE_AFFILIATE_APPLIED]  = $affiliateTokens;
 $typeTokens[EmailTemplateRepo::TYPE_AFFILIATE_APPROVED] = $affiliateTokens;
 $typeTokens[EmailTemplateRepo::TYPE_AFFILIATE_REJECTED] = $affiliateTokens;
@@ -150,7 +152,7 @@ $oldBodyE    = htmlspecialchars($old_body ?? '', ENT_QUOTES, 'UTF-8');
             <?php foreach ($all_listings as $l): ?>
               <?php $sel = (!$isGlobal && (int) $scope === $l->id); ?>
               <option value="<?= (int) $l->id ?>"<?= $sel ? ' selected' : '' ?>>
-                <?= View::e($l->name) ?>
+                <?= View::e($l->title) ?>
               </option>
             <?php endforeach; ?>
           <?php endif; ?>
@@ -174,7 +176,7 @@ $oldBodyE    = htmlspecialchars($old_body ?? '', ENT_QUOTES, 'UTF-8');
        data-site-name="<?= View::e($site_name_val) ?>"
        data-owner-name="<?= View::e($owner_name) ?>"
        data-owner-email="<?= View::e($owner_email) ?>"
-       data-listing-name="<?= View::e($listing?->name ?? 'My Fanlisting') ?>"
+       data-listing-name="<?= View::e($listing?->title ?? 'My Fanlisting') ?>"
        data-listing-subject="<?= View::e($listing?->subject ?? 'Music') ?>"
        data-listing-url="<?= View::e($listing?->url ?? 'https://myfanlisting.com') ?>"
        data-is-global="<?= $isGlobal ? '1' : '0' ?>"
@@ -389,7 +391,7 @@ $oldBodyE    = htmlspecialchars($old_body ?? '', ENT_QUOTES, 'UTF-8');
               <tr class="tok-row" data-textarea="me-body" data-token="{fan_email}"       title="Click to insert"><td><code>{fan_email}</code></td><td>Fan's email address</td></tr>
               <tr class="tok-row" data-textarea="me-body" data-token="{fan_url}"         title="Click to insert"><td><code>{fan_url}</code></td><td>Fan's website URL</td></tr>
               <tr class="tok-row" data-textarea="me-body" data-token="{fan_country}"     title="Click to insert"><td><code>{fan_country}</code></td><td>Fan's country</td></tr>
-              <tr class="tok-row" data-textarea="me-body" data-token="{listing_name}"    title="Click to insert"><td><code>{listing_name}</code></td><td>Name of the listing</td></tr>
+              <tr class="tok-row" data-textarea="me-body" data-token="{listing_title}"    title="Click to insert"><td><code>{listing_title}</code></td><td>Name of the listing</td></tr>
               <tr class="tok-row" data-textarea="me-body" data-token="{listing_subject}" title="Click to insert"><td><code>{listing_subject}</code></td><td>Subject or topic of the listing</td></tr>
               <tr class="tok-row" data-textarea="me-body" data-token="{listing_url}"     title="Click to insert"><td><code>{listing_url}</code></td><td>URL of the listing</td></tr>
               <tr class="tok-row" data-textarea="me-body" data-token="{site_name}"       title="Click to insert"><td><code>{site_name}</code></td><td>Collective or site name</td></tr>
@@ -436,16 +438,16 @@ $oldBodyE    = htmlspecialchars($old_body ?? '', ENT_QUOTES, 'UTF-8');
                         data-count="<?= (int) ($deduplicated_total ?? 0) ?>"
                         data-label="All Listings"
                         <?= ($old_listing_id ?? 0) === 0 ? ' selected' : '' ?>>
-                  All listings (deduplicated)
+                  All listings
                 </option>
                 <?php foreach ($listings as $lst): ?>
                   <option value="<?= (int) $lst->id ?>"
                           data-count="<?= (int) ($listing_counts[$lst->id] ?? 0) ?>"
-                          data-label="<?= View::e($lst->name) ?>"
+                          data-label="<?= View::e($lst->title) ?>"
                           data-subject="<?= View::e($lst->subject) ?>"
                           data-url="<?= View::e($lst->url) ?>"
                           <?= ($old_listing_id ?? 0) === (int) $lst->id ? ' selected' : '' ?>>
-                    <?= View::e($lst->name) ?>
+                    <?= View::e($lst->title) ?>
                   </option>
                 <?php endforeach; ?>
               </select>
@@ -542,13 +544,13 @@ $oldBodyE    = htmlspecialchars($old_body ?? '', ENT_QUOTES, 'UTF-8');
 
         <div class="custom-template-body">
 
-          <div class="form-group">
+          <div class="form-group custom-template-row">
             <label class="form-label" for="new-tpl-name">Template Name <span class="req">*</span></label>
             <input id="new-tpl-name" type="text" name="tpl_name" class="form"
                    maxlength="150" required placeholder="e.g. Welcome note, Monthly update&hellip;">
           </div>
 
-          <div class="form-group">
+          <div class="form-group custom-template-row">
             <label class="form-label" for="new-tpl-subject">Subject</label>
             <input id="new-tpl-subject" type="text" name="tpl_subject" class="form"
                    maxlength="255" placeholder="(optional - leave blank to fill in when composing)">
@@ -596,7 +598,7 @@ $oldBodyE    = htmlspecialchars($old_body ?? '', ENT_QUOTES, 'UTF-8');
               <tr class="tok-row" data-textarea="new-tpl-body" data-token="{fan_email}"       title="Click to insert"><td><code>{fan_email}</code></td><td>Fan's email address</td></tr>
               <tr class="tok-row" data-textarea="new-tpl-body" data-token="{fan_url}"         title="Click to insert"><td><code>{fan_url}</code></td><td>Fan's website URL</td></tr>
               <tr class="tok-row" data-textarea="new-tpl-body" data-token="{fan_country}"     title="Click to insert"><td><code>{fan_country}</code></td><td>Fan's country</td></tr>
-              <tr class="tok-row" data-textarea="new-tpl-body" data-token="{listing_name}"    title="Click to insert"><td><code>{listing_name}</code></td><td>Name of the listing</td></tr>
+              <tr class="tok-row" data-textarea="new-tpl-body" data-token="{listing_title}"    title="Click to insert"><td><code>{listing_title}</code></td><td>Name of the listing</td></tr>
               <tr class="tok-row" data-textarea="new-tpl-body" data-token="{listing_subject}" title="Click to insert"><td><code>{listing_subject}</code></td><td>Subject / topic of the listing</td></tr>
               <tr class="tok-row" data-textarea="new-tpl-body" data-token="{listing_url}"     title="Click to insert"><td><code>{listing_url}</code></td><td>URL of the listing</td></tr>
               <tr class="tok-row" data-textarea="new-tpl-body" data-token="{site_name}"       title="Click to insert"><td><code>{site_name}</code></td><td>Collective or site name</td></tr>

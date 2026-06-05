@@ -155,13 +155,6 @@ use Luster\Core\View;
     </div>
 
     <div>
-      <label>
-        <input type="checkbox" name="send_info" value="1" <?= $send_info_checked ?>>
-        Send me a confirmation email
-      </label>
-    </div>
-
-    <div>
       <button type="submit">Join Fanlisting</button>
       <button type="reset">Clear</button>
     </div>

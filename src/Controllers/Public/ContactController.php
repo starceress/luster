@@ -56,7 +56,7 @@ final class ContactController
         if (!$contactSettings['enabled']) {
             return $this->renderPublic('error.php', [
                 'listing'      => $listing,
-                'listing_name' => $listing->name,
+                'listing_name' => $listing->title,
                 'listing_url'  => $listing->url,
                 'page_title'   => 'Contact',
                 'error'        => 'The contact form for this listing is currently disabled.',
@@ -154,12 +154,12 @@ final class ContactController
 
         $body = "Message from: {$name} <{$email}>"
               . ($url !== '' ? "\nWebsite: {$url}" : '') . "\n"
-              . "Listing: {$listing->name} ({$listing->url})\n"
+              . "Listing: {$listing->title} ({$listing->url})\n"
               . str_repeat('-', 50) . "\n\n"
               . $message;
 
         try {
-            (new Mailer($this->app->getConfig()))->sendWithReplyTo($recipient, $listing->name, $subject, $body, $email, $name);
+            (new Mailer($this->app->getConfig()))->sendWithReplyTo($recipient, $listing->title, $subject, $body, $email, $name);
         } catch (\RuntimeException) {
             $session->set('lstr_flash_error', 'Your message could not be sent. Please try again later.');
             $session->set('lstr_flash_old', $this->collectOld($request));
@@ -185,7 +185,7 @@ final class ContactController
 
         return $this->renderPublic('contact-sent.php', [
             'listing'      => $listing,
-            'listing_name' => $listing->name,
+            'listing_name' => $listing->title,
             'listing_url'  => $listing->url,
             'page_title'   => 'Message Sent',
         ]);
@@ -350,7 +350,7 @@ final class ContactController
 
         $data = [
             'listing'        => $listing,
-            'listing_name'   => $listing?->name ?? (string) $this->app->getConfig()->get('app_name', 'Collective'),
+            'listing_name'   => $listing?->title ?? (string) $this->app->getConfig()->get('app_name', 'Collective'),
             'listing_url'    => $listing?->url  ?? (string) $this->app->getConfig()->get('app_url',  ''),
             'page_title'     => 'Contact',
             'form_action'    => $listing !== null

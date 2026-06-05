@@ -52,7 +52,7 @@ $b = rtrim(View::e($base_url), '/');
             <select id="im-listing" name="listing_id" required>
               <option value="">— Select —</option>
               <?php foreach ($listings as $fl): ?>
-              <option value="<?= (int) $fl->id ?>"><?= View::e($fl->name) ?></option>
+              <option value="<?= (int) $fl->id ?>"><?= View::e($fl->title) ?></option>
               <?php endforeach; ?>
             </select>
           </div>

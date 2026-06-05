@@ -276,24 +276,15 @@ final class JoinController
             $settingsRepo->touchLastUpdated($listingId);
         }
 
-        $sendInfo = ($request->post('send_info') === '1');
-
-        // Determine whether to send the optional join confirmation email.
-        // Password-generated joins always trigger mail (member needs the password).
-        // A non-null per-listing override takes precedence over the fan's checkbox.
-        $confirmEmailOverride = $joinSettings['confirmation_email'];
-        $sendConfirmation = $wasGenerated
-            || ($confirmEmailOverride !== null ? $confirmEmailOverride : $sendInfo);
-
-        // Confirmation email (best-effort — do not abort on failure)
-        if ($sendConfirmation) {
+        // Confirmation email always sent (best-effort — do not abort on failure)
+        {
             try {
                 $cfg       = $this->app->getConfig();
                 $mailer    = new Mailer($cfg);
                 $emailRepo = new EmailTemplateRepo($this->app->getDatabase());
                 $resetUrl  = $wasGenerated ? $this->issuePasswordSetupUrl($listingId, $email) : '';
                 $tokens    = EmailTemplateRepo::buildTokens(
-                    listingName:    $listing->name,
+                    listingName:    $listing->title,
                     listingUrl:     $listing->url,
                     siteName:       (string) $cfg->get('site_name', 'Luster'),
                     listingSubject: $listing->subject,
@@ -328,7 +319,7 @@ final class JoinController
                 $notifyMailer = new Mailer($cfg);
                 $notifyRepo   = new EmailTemplateRepo($this->app->getDatabase());
                 $notifyTokens = EmailTemplateRepo::buildTokens(
-                    listingName:    $listing->name,
+                    listingName:    $listing->title,
                     listingUrl:     $listing->url,
                     siteName:       (string) $cfg->get('site_name', 'Luster'),
                     listingSubject: $listing->subject,
@@ -342,7 +333,7 @@ final class JoinController
                 [$notifySubject, $notifyBody] = $notifyRepo->resolveForListing(
                     $listingId, EmailTemplateRepo::TYPE_NOTIFY_JOIN, $notifyTokens,
                 );
-                $notifyMailer->send($listing->email, $listing->name, $notifySubject, $notifyBody);
+                $notifyMailer->send($listing->email, $listing->title, $notifySubject, $notifyBody);
             } catch (\Throwable $e) {
                 error_log('[Luster] Join notification email failed: ' . $e->getMessage());
             }
@@ -362,7 +353,7 @@ final class JoinController
         $listingRepo = new ListingRepo($this->app->getDatabase(), $this->app->getConfig());
         $listing     = $listingRepo->getById($listingId);
 
-        $listingName = $listing?->name ?? 'this listing';
+        $listingName = $listing?->title ?? 'this listing';
         $baseUrl        = $this->app->getBaseUrl();
 
         $html = $this->app->getView()->renderPublic('success.php', [
@@ -407,7 +398,7 @@ final class JoinController
 
         $html = $this->app->getView()->renderPublic('join.php', [
             'listing'           => $listing,
-            'listing_name'      => $listing->name,
+            'listing_name'      => $listing->title,
             'listing_url'       => $listing->url,
             'page_title'           => 'Join',
             'form_action'          => $baseUrl . '/join/' . $listingId,

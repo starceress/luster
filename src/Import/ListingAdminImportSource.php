@@ -1401,7 +1401,7 @@ final class ListingAdminImportSource implements ImportSourceInterface
                     'warnings' => ['Wishlist add-on is not installed — wishlist entries will be skipped.']];
         }
         return $this->previewTable($source, $tp . 'wishlist', 'Wishlist', [
-            'Owner\'s fanlisting wishlist entries. wType values are mapped to Luster\'s wanted/top/granted/upcoming types.',
+            'Owner\'s fanlisting wishlist entries. wType values are mapped to Luster\'s wanted/top/granted types.',
         ]);
     }
 

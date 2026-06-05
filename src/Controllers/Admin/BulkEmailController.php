@@ -32,7 +32,7 @@ use Luster\Repositories\SavedEmailRepo;
  * Supported body tokens:
  *   {name}         → member's name
  *   {email}        → member's email address
- *   {listing_name} → name of the listing they are a member of (or app name for all-listing sends)
+ *   {listing_title} → name of the listing they are a member of (or app name for all-listing sends)
  *   {site_name}    → site/collective name from config
  */
 final class BulkEmailController extends AdminController
@@ -260,13 +260,13 @@ final class BulkEmailController extends AdminController
                     'email'            => $member->email,
                     'url'              => $member->url,
                     'country'          => $member->country,
-                    'listing_name'     => $listing->name,
+                    'listing_name'     => $listing->title,
                     'listing_subject'  => $listing->subject,
                     'listing_url'      => $listing->url,
                 ];
             }
 
-            return [$recipients, $listing->name];
+            return [$recipients, $listing->title];
         }
 
         // All listings — deduplicate by email (first listing wins)
@@ -282,7 +282,7 @@ final class BulkEmailController extends AdminController
                         'email'            => $member->email,
                         'url'              => $member->url,
                         'country'          => $member->country,
-                        'listing_name'     => $listing->name,
+                        'listing_name'     => $listing->title,
                         'listing_subject'  => $listing->subject,
                         'listing_url'      => $listing->url,
                     ];
@@ -297,7 +297,7 @@ final class BulkEmailController extends AdminController
      * Replaces all supported tokens in a string with per-recipient values.
      *
      * Tokens: {fan_name}, {fan_email}, {fan_url}, {fan_country},
-     *         {listing_name}, {listing_subject}, {listing_url},
+     *         {listing_title}, {listing_subject}, {listing_url},
      *         {site_name}, {owner_name}, {owner_email}
      * Legacy aliases: {name} → {fan_name}, {email} → {fan_email}
      *
@@ -314,7 +314,7 @@ final class BulkEmailController extends AdminController
             [
                 '{fan_name}', '{fan_email}', '{fan_url}', '{fan_country}',
                 '{name}',                    '{email}',
-                '{listing_name}',            '{listing_subject}',            '{listing_url}',
+                '{listing_title}',            '{listing_subject}',            '{listing_url}',
                 '{site_name}',  '{owner_name}', '{owner_email}',
             ],
             [

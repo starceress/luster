@@ -865,7 +865,8 @@ final class EnthusiastMemberImportTest extends TestCase
                 email TEXT NOT NULL DEFAULT \'\',
                 image TEXT NULL,
                 sort_order INTEGER NOT NULL DEFAULT 0,
-                active INTEGER NOT NULL DEFAULT 1
+                active INTEGER NOT NULL DEFAULT 1,
+                status TEXT NOT NULL DEFAULT \'approved\'
             )'
         );
     }
@@ -1141,7 +1142,7 @@ final class EnthusiastMemberImportTest extends TestCase
         $imported = $stmt->fetchColumn();
 
         $this->assertStringContainsString('{fan_name}',       $imported);
-        $this->assertStringContainsString('{listing_name}',   $imported);
+        $this->assertStringContainsString('{listing_title}',   $imported);
         $this->assertStringContainsString('{listing_url}',    $imported);
         $this->assertStringContainsString('{fan_email}',      $imported);
         $this->assertStringContainsString('{reset_url}',      $imported);
@@ -1325,7 +1326,7 @@ final class EnthusiastMemberImportTest extends TestCase
         $this->assertSame('Welcome!', $rows[0]['subject']);
         // Tokens should be translated
         $this->assertStringContainsString('{fan_name}',    $rows[0]['body']);
-        $this->assertStringContainsString('{listing_name}', $rows[0]['body']);
+        $this->assertStringContainsString('{listing_title}', $rows[0]['body']);
         $this->assertStringNotContainsString('$$fan_name$$',       $rows[0]['body']);
         $this->assertStringNotContainsString('$$fanlisting_title$$', $rows[0]['body']);
     }
@@ -1406,7 +1407,7 @@ final class EnthusiastMemberImportTest extends TestCase
         $this->assertStringContainsString('{fan_email}',      $imported);
         $this->assertStringContainsString('{fan_url}',        $imported);
         $this->assertStringContainsString('{fan_country}',    $imported);
-        $this->assertStringContainsString('{listing_name}',   $imported);
+        $this->assertStringContainsString('{listing_title}',   $imported);
         $this->assertStringContainsString('{listing_subject}', $imported);
         $this->assertStringContainsString('{listing_url}',    $imported);
         $this->assertStringContainsString('{owner_name}',     $imported);

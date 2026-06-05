@@ -64,10 +64,10 @@ $submitted = $submitted ?? false;
       </div>
 
       <div>
-        <label for="sub-email">Email: (optional)</label>
-        <input type="email" id="sub-email" name="submitter_email" maxlength="255"
+        <label for="sub-email">Email: <span class="fl-req">*</span></label>
+        <input type="email" id="sub-email" name="submitter_email" maxlength="255" required
                value="<?= View::e($old['submitter_email'] ?? '') ?>">
-        <p class="fl-field-hint">Used only to notify you if your code is approved.</p>
+        <p class="fl-field-hint">Required — used only to notify you when your code is approved.</p>
       </div>
 
       <div>

@@ -1,7 +1,7 @@
 <?php declare(strict_types=1);
 use Luster\Core\View;
 $b          = rtrim(View::e($base_url ?? ''), '/');
-$flName     = View::e($listing->name ?? '');
+$flName     = View::e($listing->title ?? '');
 $oldSubject = View::e($old['subject'] ?? '');
 $oldBody    = htmlspecialchars($old['body'] ?? '', ENT_QUOTES, 'UTF-8');
 $listingId  = (int) ($listing->id ?? 0);
@@ -62,7 +62,7 @@ $listingId  = (int) ($listing->id ?? 0);
             <tr class="tok-row" data-textarea="body" data-token="{fan_email}"      title="Click to insert"><td><code>{fan_email}</code></td><td>Fan's email address</td></tr>
             <tr class="tok-row" data-textarea="body" data-token="{fan_url}"        title="Click to insert"><td><code>{fan_url}</code></td><td>Fan's website URL</td></tr>
             <tr class="tok-row" data-textarea="body" data-token="{fan_country}"    title="Click to insert"><td><code>{fan_country}</code></td><td>Fan's country</td></tr>
-            <tr class="tok-row" data-textarea="body" data-token="{listing_name}"   title="Click to insert"><td><code>{listing_name}</code></td><td>Name of the listing</td></tr>
+            <tr class="tok-row" data-textarea="body" data-token="{listing_title}"   title="Click to insert"><td><code>{listing_title}</code></td><td>Name of the listing</td></tr>
             <tr class="tok-row" data-textarea="body" data-token="{listing_subject}" title="Click to insert"><td><code>{listing_subject}</code></td><td>Subject or topic</td></tr>
             <tr class="tok-row" data-textarea="body" data-token="{listing_url}"    title="Click to insert"><td><code>{listing_url}</code></td><td>URL of the listing</td></tr>
             <tr class="tok-row" data-textarea="body" data-token="{site_name}"      title="Click to insert"><td><code>{site_name}</code></td><td>Collective or site name</td></tr>

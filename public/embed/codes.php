@@ -151,6 +151,14 @@ $_lusterHtml = $_lusterApp->getView()->renderFragment('codes.php', [
     'theme_path'   => $_lusterBaseUrl . '/assets/default/',
 ]);
 
+// Conditionally append the code donation form if enabled for this listing.
+$_lusterEmbedSettings = (new \Luster\Repositories\ListingSettingsRepo($_lusterApp->getDatabase()))
+    ->getEmbedSettings($_lusterListingId);
+if ($_lusterEmbedSettings['codes_submit_enabled'] ?? true) {
+    $luster_return = true;
+    $_lusterHtml .= (string) require __DIR__ . '/codes-submit.php';
+}
+
 if ($luster_return ?? false) {
     return $_lusterHtml;
 }

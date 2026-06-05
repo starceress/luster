@@ -33,7 +33,7 @@ use Luster\Core\View;
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title><?= View::e($page_title . ' — ' . ($listing->name ?? $listing_name ?? '')) ?></title>
+  <title><?= View::e($page_title . ' — ' . ($listing->title ?? $listing_name ?? '')) ?></title>
   <link rel="icon" type="image/svg+xml" href="<?= View::e(rtrim($base_url ?? '', '/')) ?>/assets/images/logo16.svg">
   <link rel="stylesheet" href="<?= View::e($theme_path) ?>style.css">
 </head>
@@ -42,9 +42,9 @@ use Luster\Core\View;
 <header>
   <h1>
     <?php if (!empty($listing->url ?? '')): ?>
-      <a href="<?= View::e($listing->url) ?>"><?= View::e($listing->name ?? $listing_name ?? '') ?></a>
+      <a href="<?= View::e($listing->url) ?>"><?= View::e($listing->title ?? $listing_name ?? '') ?></a>
     <?php else: ?>
-      <?= View::e($listing->name ?? $listing_name ?? '') ?>
+      <?= View::e($listing->title ?? $listing_name ?? '') ?>
     <?php endif; ?>
   </h1>
 </header>

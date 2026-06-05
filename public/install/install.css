@@ -29,7 +29,7 @@
 [data-theme="light"] .install-brand::before { background: radial-gradient(circle, rgb(var(--ch-pink)/0.55) 0%, rgb(var(--ch-teal)/0.2) 45%, transparent 70%); }
 .install-logo { width: 100px; height: 100px; display: block; margin: 0 auto 1.1rem; position: relative; }
 
-.install-brand-name {
+.install-wordmark {
   font-family: var(--font-serif); font-weight: 700;
   font-size: clamp(2rem, 4vw + 1rem, 2.8rem); margin: 0 0 .55rem;
 }
@@ -39,7 +39,7 @@
   -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
 }
 [data-theme="light"] .install-brand-gradient { background: linear-gradient(90deg, var(--gradient-light)); -webkit-background-clip: text; background-clip: text; }
-.install-brand-sub { max-width: 32rem; margin: 0 auto; font-size: var(--fs-lg); line-height: 1.55; color: var(--text-muted); }
+.install-luster-sub { max-width: 32rem; margin: 0 auto; font-size: var(--fs-lg); line-height: 1.55; color: var(--text-muted); }
 
 /* ── Wizard stepper — installer overrides ──────────────────────────── */
 

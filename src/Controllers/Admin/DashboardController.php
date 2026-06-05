@@ -217,7 +217,7 @@ final class DashboardController
 
             if ($approved > $mostActiveCount) {
                 $mostActiveCount = $approved;
-                $mostActiveName  = $fl->name;
+                $mostActiveName  = $fl->title;
                 $mostActiveId    = $fl->id;
             }
 
@@ -230,7 +230,7 @@ final class DashboardController
             }
 
             foreach ($memberRepo->getRecent($fl->dbprefix, 2) as $m) {
-                $recentMembers[] = ['member' => $m, 'listing_name' => $fl->name, 'listing_id' => $fl->id];
+                $recentMembers[] = ['member' => $m, 'listing_name' => $fl->title, 'listing_id' => $fl->id];
             }
 
             $thisMonthCount   = $memberRepo->countApprovedSince($fl->dbprefix, $thisMonthStart);
@@ -314,7 +314,8 @@ final class DashboardController
         // ── Staleness detection ───────────────────────────────────────────
         // Uses ListingRepo::getStaleListings() — LEFT JOIN on lstr_fanlisting_settings,
         // so active listings without a settings row are correctly included.
-        $staleDays     = max(1, (int) ($siteRepo->get('stale_days') ?: '45'));
+        $staleDays    = max(1, (int) ($siteRepo->get('stale_days') ?: '45'));
+        $overdueDays  = max(1, (int) ($siteRepo->get('overdue_days') ?: '55'));
         $staleObjs     = $listingRepo->getStaleListings($staleDays);
         $staleListings = [];
         if (!empty($staleObjs)) {
@@ -359,10 +360,12 @@ final class DashboardController
         }
 
         $adminUsername = (string) $session->get('lstr_admin_username', '');
+        $displayName   = (string) $session->get('lstr_admin_display_name', '');
+        $greetingName  = $displayName !== '' ? $displayName : $adminUsername;
 
         $inner = $view->render('admin/dashboard.php', [
             'admin_username'              => $adminUsername,
-            'welcome_greeting'            => self::dailyGreeting($adminUsername),
+            'welcome_greeting'            => self::dailyGreeting($greetingName),
             'show_http_warning'           => $showHttpWarning,
             'site_name'                   => (string) $config->get('site_name', 'Luster'),
             'csrf_token'                  => $csrfToken,
@@ -399,6 +402,7 @@ final class DashboardController
             'recent_activity'            => $recentActivity,
             'stale_listings'             => $staleListings,
             'stale_threshold_days'       => $staleDays,
+            'overdue_threshold_days'     => $overdueDays,
             'update_status'              => $updateStatus,
             'show_update_banner'         => $showUpdateBanner,
             'no_listings'                => $noListings,

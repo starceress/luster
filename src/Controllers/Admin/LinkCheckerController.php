@@ -86,6 +86,7 @@ final class LinkCheckerController extends AdminController
                 'joined_total_pages' => max(1, (int) ceil($joinedResult['total'] / $perPage)),
                 'aff_stats'          => $affRepo->getLinkStats($listingFilter),
                 'joined_stats'       => $joinedRepo->getLinkStats(),
+                'aff_scope_counts'   => $affRepo->getScopeCounts(),
                 'moved_affiliates'   => $affRepo->getByLinkStatus('redirect', $listingFilter),
                 'moved_joined'       => $joinedRepo->getByLinkStatus('redirect'),
                 'dead_affiliates'    => $affRepo->getByLinkStatus('dead', $listingFilter),

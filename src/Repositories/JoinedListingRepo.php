@@ -26,14 +26,25 @@ final class JoinedListingRepo
      *
      * @return array{items: JoinedListing[], total: int, pages: int}
      */
-    public function getAll(int $perPage = 10, int $page = 1, string $filterCat = ''): array
+    public function getAll(int $perPage = 10, int $page = 1, string $filterCat = '', string $statusTab = 'all'): array
     {
         $offset     = ($page - 1) * $perPage;
-        // $catClause is a hardcoded SQL fragment — $filterCat itself is always bound, never interpolated
-        $catClause  = $filterCat !== '' ? 'WHERE (category = :cat OR categories_json LIKE :catj)' : '';
         $catPattern = '%"name":"' . $filterCat . '"%';
 
-        $countStmt = $this->db->prepare("SELECT COUNT(*) FROM lstr_joined {$catClause}");
+        $statusClause = match ($statusTab) {
+            'approved' => "status = 'approved'",
+            'pending'  => "status = 'pending'",
+            'hidden'   => 'active = 0',
+            default    => '',
+        };
+
+        $whereParts = array_filter([
+            $filterCat !== '' ? '(category = :cat OR categories_json LIKE :catj)' : '',
+            $statusClause,
+        ], static fn(string $s) => $s !== '');
+        $whereClause = $whereParts !== [] ? 'WHERE ' . implode(' AND ', $whereParts) : '';
+
+        $countStmt = $this->db->prepare("SELECT COUNT(*) FROM lstr_joined {$whereClause}");
         if ($filterCat !== '') {
             $countStmt->bindValue(':cat',  $filterCat,  \PDO::PARAM_STR);
             $countStmt->bindValue(':catj', $catPattern, \PDO::PARAM_STR);
@@ -42,7 +53,7 @@ final class JoinedListingRepo
         $total = (int) $countStmt->fetchColumn();
 
         $stmt = $this->db->prepare(
-            "SELECT * FROM lstr_joined {$catClause}
+            "SELECT * FROM lstr_joined {$whereClause}
              ORDER BY category ASC, name ASC
              LIMIT :limit OFFSET :offset"
         );
@@ -62,18 +73,50 @@ final class JoinedListingRepo
     }
 
     /**
+     * Returns row counts for each status tab in one query.
+     *
+     * @return array{all: int, approved: int, pending: int, hidden: int}
+     */
+    public function countAllByStatusTab(): array
+    {
+        $stmt = $this->db->prepare(
+            "SELECT
+                 COUNT(*) AS all_count,
+                 SUM(CASE WHEN status = 'approved' THEN 1 ELSE 0 END) AS approved_count,
+                 SUM(CASE WHEN status = 'pending'  THEN 1 ELSE 0 END) AS pending_count,
+                 SUM(CASE WHEN active = 0          THEN 1 ELSE 0 END) AS hidden_count
+             FROM lstr_joined"
+        );
+        $stmt->execute();
+        $row = $stmt->fetch();
+
+        return [
+            'all'      => (int) ($row['all_count']      ?? 0),
+            'approved' => (int) ($row['approved_count'] ?? 0),
+            'pending'  => (int) ($row['pending_count']  ?? 0),
+            'hidden'   => (int) ($row['hidden_count']   ?? 0),
+        ];
+    }
+
+    /**
      * Full-text search across name, url, category, and categories_json,
      * optionally narrowed to a specific network name.
      *
      * @return array{items: JoinedListing[], total: int, pages: int}
      */
-    public function search(string $q, string $network, int $perPage = 10, int $page = 1, string $filterCat = ''): array
+    public function search(string $q, string $network, int $perPage = 10, int $page = 1, string $filterCat = '', string $statusTab = 'all'): array
     {
         $offset     = ($page - 1) * $perPage;
         $pattern    = '%' . $q . '%';
-        // $catClause is a hardcoded SQL fragment — $filterCat itself is always bound, never interpolated
         $catClause  = $filterCat !== '' ? ' AND (category = :cat OR categories_json LIKE :catj)' : '';
         $catPattern = '%"name":"' . $filterCat . '"%';
+
+        $tabClause = match ($statusTab) {
+            'approved' => " AND status = 'approved'",
+            'pending'  => " AND status = 'pending'",
+            'hidden'   => ' AND active = 0',
+            default    => '',
+        };
 
         if ($network !== '') {
             $netPattern = '%' . $network . '%';
@@ -81,7 +124,7 @@ final class JoinedListingRepo
             $countStmt = $this->db->prepare(
                 "SELECT COUNT(*) FROM lstr_joined
                  WHERE (name LIKE :q1 OR url LIKE :q2 OR category LIKE :q3 OR categories_json LIKE :q4)
-                   AND categories_json LIKE :net{$catClause}"
+                   AND categories_json LIKE :net{$catClause}{$tabClause}"
             );
             $countStmt->bindValue(':q1',  $pattern,    \PDO::PARAM_STR);
             $countStmt->bindValue(':q2',  $pattern,    \PDO::PARAM_STR);
@@ -98,7 +141,7 @@ final class JoinedListingRepo
             $stmt = $this->db->prepare(
                 "SELECT * FROM lstr_joined
                  WHERE (name LIKE :q1 OR url LIKE :q2 OR category LIKE :q3 OR categories_json LIKE :q4)
-                   AND categories_json LIKE :net{$catClause}
+                   AND categories_json LIKE :net{$catClause}{$tabClause}
                  ORDER BY name ASC
                  LIMIT :limit OFFSET :offset"
             );
@@ -116,7 +159,7 @@ final class JoinedListingRepo
         } else {
             $countStmt = $this->db->prepare(
                 "SELECT COUNT(*) FROM lstr_joined
-                 WHERE (name LIKE :q1 OR url LIKE :q2 OR category LIKE :q3 OR categories_json LIKE :q4){$catClause}"
+                 WHERE (name LIKE :q1 OR url LIKE :q2 OR category LIKE :q3 OR categories_json LIKE :q4){$catClause}{$tabClause}"
             );
             $countStmt->bindValue(':q1', $pattern, \PDO::PARAM_STR);
             $countStmt->bindValue(':q2', $pattern, \PDO::PARAM_STR);
@@ -131,7 +174,7 @@ final class JoinedListingRepo
 
             $stmt = $this->db->prepare(
                 "SELECT * FROM lstr_joined
-                 WHERE (name LIKE :q1 OR url LIKE :q2 OR category LIKE :q3 OR categories_json LIKE :q4){$catClause}
+                 WHERE (name LIKE :q1 OR url LIKE :q2 OR category LIKE :q3 OR categories_json LIKE :q4){$catClause}{$tabClause}
                  ORDER BY name ASC
                  LIMIT :limit OFFSET :offset"
             );
@@ -162,12 +205,12 @@ final class JoinedListingRepo
      *
      * @return int[]
      */
-    public function getAllIdsByFilter(string $search, string $network, string $cat): array
+    public function getAllIdsByFilter(string $search, string $network, string $cat, string $statusTab = 'all'): array
     {
         if ($search !== '' || $network !== '') {
-            $result = $this->search($search, $network, PHP_INT_MAX, 1, $cat);
+            $result = $this->search($search, $network, PHP_INT_MAX, 1, $cat, $statusTab);
         } else {
-            $result = $this->getAll(PHP_INT_MAX, 1, $cat);
+            $result = $this->getAll(PHP_INT_MAX, 1, $cat, $statusTab);
         }
 
         return array_map(static fn(JoinedListing $j): int => $j->id, $result['items']);
@@ -250,7 +293,7 @@ final class JoinedListingRepo
      *
      * @return array<string, int>
      */
-    public function getCategoryCountMap(): array
+    public function getCategoryCountMap(bool $activeOnly = true): array
     {
         $stmt = $this->db->prepare(
             'SELECT categories_json, category, active FROM lstr_joined'
@@ -260,7 +303,7 @@ final class JoinedListingRepo
         $counts = [];
 
         foreach ($stmt->fetchAll() as $row) {
-            if (!(bool) $row['active']) {
+            if ($activeOnly && !(bool) $row['active']) {
                 continue;
             }
 
@@ -326,6 +369,42 @@ final class JoinedListingRepo
         ksort($networks);
 
         return $networks;
+    }
+
+    /**
+     * Returns a map of network name → count of joined listings in that network.
+     * A listing is counted once per network even if it has multiple categories there.
+     *
+     * @return array<string, int>  e.g. ['TFL' => 5, 'TAFL' => 3]
+     */
+    public function getNetworkCounts(): array
+    {
+        $stmt = $this->db->prepare(
+            "SELECT id, categories_json FROM lstr_joined
+             WHERE categories_json IS NOT NULL AND categories_json != ''"
+        );
+        $stmt->execute();
+
+        $counts = [];
+
+        foreach ($stmt->fetchAll() as $row) {
+            $decoded = json_decode((string) $row['categories_json'], true);
+            if (!is_array($decoded)) {
+                continue;
+            }
+            $netsForRow = [];
+            foreach ($decoded as $entry) {
+                $network = isset($entry['network']) ? trim((string) $entry['network']) : '';
+                if ($network !== '') {
+                    $netsForRow[$network] = true;
+                }
+            }
+            foreach (array_keys($netsForRow) as $net) {
+                $counts[$net] = ($counts[$net] ?? 0) + 1;
+            }
+        }
+
+        return $counts;
     }
 
     /**

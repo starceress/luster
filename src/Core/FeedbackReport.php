@@ -80,16 +80,19 @@ final class FeedbackReport
         $type    = $form['type']          ?? 'other';
         $subject = $form['subject']       ?? '';
         $message = $form['message']       ?? '';
+        $name    = $form['contact_name']  ?? '';
         $contact = $form['contact_email'] ?? '';
         $includeSysInfo  = (bool) ($form['include_sysinfo']  ?? false);
         $includeErrorLog = (bool) ($form['include_errorlog'] ?? false);
 
-        $typeLabel = self::TYPE_LABELS[$type] ?? 'Other';
+        $typeLabel      = self::TYPE_LABELS[$type] ?? 'Other';
+        $nameDisplay    = $name    !== '' ? $name    : 'Not provided';
         $contactDisplay = $contact !== '' ? $contact : 'Not provided';
 
         $body  = "LUSTER FEEDBACK REPORT\n";
         $body .= self::SEP;
         $body .= self::row('Type',    $typeLabel);
+        $body .= self::row('Name',    $nameDisplay);
         $body .= self::row('Contact', $contactDisplay);
         $body .= "\n";
         $body .= "Subject: {$subject}\n\n";

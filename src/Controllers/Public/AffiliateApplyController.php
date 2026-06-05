@@ -210,9 +210,9 @@ final class AffiliateApplyController
 
         $data = [
             'listing'      => $listing,
-            'listing_name' => (string) $listing->name,
+            'listing_name' => (string) $listing->title,
             'listing_url'  => (string) $listing->url,
-            'page_title'   => 'Application Received — ' . $listing->name,
+            'page_title'   => 'Application Received — ' . $listing->title,
             'base_url'     => $this->app->getBaseUrl(),
             'theme_path'   => rtrim((string) $listing->url, '/') . '/' . ltrim((string) ($embedSettings['theme_path'] ?? 'theme'), '/'),
         ];
@@ -425,9 +425,9 @@ final class AffiliateApplyController
 
         $data = [
             'listing'          => $listing,
-            'listing_name'     => (string) $listing->name,
+            'listing_name'     => (string) $listing->title,
             'listing_url'      => (string) $listing->url,
-            'page_title'       => 'Affiliate Application — ' . $listing->name,
+            'page_title'       => 'Affiliate Application — ' . $listing->title,
             'base_url'         => $this->app->getBaseUrl(),
             'theme_path'       => rtrim((string) $listing->url, '/') . '/' . ltrim((string) ($embedSettings['theme_path'] ?? 'theme'), '/'),
             'form_action'      => $formUrl,
@@ -541,7 +541,7 @@ final class AffiliateApplyController
                 $adminEmail = (string) $config->get('owner_email', '');
             }
             $listingId   = (int) $listing->id;
-            $listingName = (string) $listing->name;
+            $listingName = (string) $listing->title;
             $listingUrl  = (string) $listing->url;
         } else {
             $adminEmail  = (string) $config->get('owner_email', '');

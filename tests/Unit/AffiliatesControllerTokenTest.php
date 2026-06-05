@@ -49,6 +49,7 @@ final class AffiliatesControllerTokenTest extends TestCase
             image:               $image,
             sortOrder:           0,
             active:              true,
+            status:              'approved',
             createdAt:           '',
             updatedAt:           '',
             linkStatus:          'unchecked',

@@ -62,7 +62,7 @@ final class AdoptionRepo
      * Returns the number of applications for a listing with the given status.
      * Pass 'all' to count all regardless of status.
      */
-    public function countForListing(int $listingId, string $status = 'new'): int
+    public function countForListing(int $listingId, string $status = 'pending'): int
     {
         if ($status === 'all') {
             $stmt = $this->db->prepare(
@@ -80,14 +80,14 @@ final class AdoptionRepo
     }
 
     /**
-     * Returns the total count of new applications across all listings.
+     * Returns the total count of pending applications across all listings.
      * Used for the admin nav badge. Returns 0 safely if the table does not exist.
      */
     public function countNew(): int
     {
         try {
             $stmt = $this->db->prepare(
-                "SELECT COUNT(*) FROM `" . self::TABLE . "` WHERE status = 'new'"
+                "SELECT COUNT(*) FROM `" . self::TABLE . "` WHERE status = 'pending'"
             );
             $stmt->execute();
             return (int) $stmt->fetchColumn();
@@ -97,11 +97,91 @@ final class AdoptionRepo
     }
 
     /**
+     * Returns applications filtered by status, listing, and search term.
+     * Pass 'all' for $status to skip status filtering.
+     * Pass 0 for $listingId to include all listings.
+     *
+     * @return array[]
+     */
+    public function query(string $status, int $listingId = 0, string $search = ''): array
+    {
+        $conditions = [];
+        $params     = [];
+
+        if ($status === 'pending') {
+            // Match both canonical 'pending' and legacy 'new' rows
+            $conditions[] = "status IN ('pending', 'new')";
+        } elseif ($status !== 'all') {
+            $conditions[] = 'status = :status';
+            $params['status'] = $status;
+        }
+        if ($listingId > 0) {
+            $conditions[] = 'fanlisting_id = :lid';
+            $params['lid'] = $listingId;
+        }
+        if ($search !== '') {
+            $conditions[] = '(name LIKE :search_n OR email LIKE :search_e)';
+            $params['search_n'] = '%' . $search . '%';
+            $params['search_e'] = '%' . $search . '%';
+        }
+
+        $where = $conditions !== [] ? 'WHERE ' . implode(' AND ', $conditions) : '';
+        $stmt  = $this->db->prepare(
+            'SELECT * FROM `' . self::TABLE . "` {$where} ORDER BY applied_at DESC"
+        );
+        $stmt->execute($params);
+        return $stmt->fetchAll(\PDO::FETCH_ASSOC);
+    }
+
+    /**
+     * Returns per-status counts, optionally scoped to a listing and/or search.
+     *
+     * @return array{all:int, pending:int, reviewed:int, approved:int, rejected:int, granted:int}
+     */
+    public function queryCounts(int $listingId = 0, string $search = ''): array
+    {
+        $conditions = [];
+        $params     = [];
+
+        if ($listingId > 0) {
+            $conditions[] = 'fanlisting_id = :lid';
+            $params['lid'] = $listingId;
+        }
+        if ($search !== '') {
+            $conditions[] = '(name LIKE :search_n OR email LIKE :search_e)';
+            $params['search_n'] = '%' . $search . '%';
+            $params['search_e'] = '%' . $search . '%';
+        }
+
+        $where = $conditions !== [] ? 'WHERE ' . implode(' AND ', $conditions) : '';
+        $stmt  = $this->db->prepare(
+            "SELECT
+                COUNT(*)                         AS total,
+                SUM(status IN ('pending','new')) AS cnt_pending,
+                SUM(status = 'reviewed')         AS cnt_reviewed,
+                SUM(status = 'approved')         AS cnt_approved,
+                SUM(status = 'rejected')         AS cnt_rejected,
+                SUM(status = 'granted')          AS cnt_granted
+             FROM `" . self::TABLE . "` {$where}"
+        );
+        $stmt->execute($params);
+        $row = $stmt->fetch(\PDO::FETCH_ASSOC);
+        return [
+            'all'      => (int) ($row['total']       ?? 0),
+            'pending'  => (int) ($row['cnt_pending']  ?? 0),
+            'reviewed' => (int) ($row['cnt_reviewed'] ?? 0),
+            'approved' => (int) ($row['cnt_approved'] ?? 0),
+            'rejected' => (int) ($row['cnt_rejected'] ?? 0),
+            'granted'  => (int) ($row['cnt_granted']  ?? 0),
+        ];
+    }
+
+    /**
      * Returns all applications across all listings, optionally filtered by status.
      *
      * @return array[]
      */
-    public function getForAllListings(string $status = 'new'): array
+    public function getForAllListings(string $status = 'pending'): array
     {
         if ($status === 'all') {
             $stmt = $this->db->prepare(
@@ -157,12 +237,51 @@ final class AdoptionRepo
     }
 
     /**
+     * Updates editable fields, status, and admin notes for an application.
+     * Falls back gracefully if admin_notes column has not yet been added.
+     */
+    public function update(int $id, string $name, string $email, string $url, string $message, string $status, string $adminNotes = ''): void
+    {
+        if (!in_array($status, ['pending', 'reviewed', 'approved', 'rejected', 'granted'], true)) {
+            $status = 'pending';
+        }
+        $baseParams = [
+            'name'    => $name,
+            'email'   => strtolower(trim($email)),
+            'url'     => $url,
+            'message' => $message !== '' ? $message : null,
+            'status'  => $status,
+            'id'      => $id,
+        ];
+        try {
+            $stmt = $this->db->prepare(
+                'UPDATE `' . self::TABLE . '`
+                 SET name = :name, email = :email, url = :url, message = :message,
+                     status = :status, admin_notes = :notes
+                 WHERE id = :id'
+            );
+            $stmt->execute(array_merge($baseParams, ['notes' => $adminNotes !== '' ? $adminNotes : null]));
+        } catch (\PDOException $e) {
+            if (str_contains($e->getMessage(), 'admin_notes')) {
+                // Column not yet added — update without it
+                $stmt = $this->db->prepare(
+                    'UPDATE `' . self::TABLE . '`
+                     SET name = :name, email = :email, url = :url, message = :message, status = :status
+                     WHERE id = :id'
+                );
+                $stmt->execute($baseParams);
+            } else {
+                throw $e;
+            }
+        }
+    }
+
+    /**
      * Updates the status of an application.
-     * $status must be one of: new, reviewed, approved, rejected.
      */
     public function setStatus(int $id, string $status): void
     {
-        if (!in_array($status, ['new', 'reviewed', 'approved', 'rejected'], true)) {
+        if (!in_array($status, ['pending', 'reviewed', 'approved', 'rejected', 'granted'], true)) {
             return;
         }
         $stmt = $this->db->prepare(
@@ -185,44 +304,46 @@ final class AdoptionRepo
     /**
      * Returns counts for all statuses for a single listing in one query.
      *
-     * @return array{all: int, new: int, reviewed: int, approved: int, rejected: int}
+     * @return array{all: int, pending: int, reviewed: int, approved: int, rejected: int, granted: int}
      */
     public function getCountsForListing(int $listingId): array
     {
         $stmt = $this->db->prepare(
             "SELECT
-                COUNT(*)               AS total,
-                SUM(status = 'new')      AS cnt_new,
-                SUM(status = 'reviewed') AS cnt_reviewed,
-                SUM(status = 'approved') AS cnt_approved,
-                SUM(status = 'rejected') AS cnt_rejected
+                COUNT(*)                         AS total,
+                SUM(status IN ('pending','new')) AS cnt_pending,
+                SUM(status = 'reviewed')         AS cnt_reviewed,
+                SUM(status = 'approved')         AS cnt_approved,
+                SUM(status = 'rejected')         AS cnt_rejected,
+                SUM(status = 'granted')          AS cnt_granted
              FROM `" . self::TABLE . "` WHERE fanlisting_id = :lid"
         );
         $stmt->execute(['lid' => $listingId]);
         $row = $stmt->fetch(\PDO::FETCH_ASSOC);
         return [
-            'all'      => (int) ($row['total']         ?? 0),
-            'new'      => (int) ($row['cnt_new']        ?? 0),
-            'reviewed' => (int) ($row['cnt_reviewed']   ?? 0),
-            'approved' => (int) ($row['cnt_approved']   ?? 0),
-            'rejected' => (int) ($row['cnt_rejected']   ?? 0),
+            'all'      => (int) ($row['total']       ?? 0),
+            'pending'  => (int) ($row['cnt_pending']  ?? 0),
+            'reviewed' => (int) ($row['cnt_reviewed'] ?? 0),
+            'approved' => (int) ($row['cnt_approved'] ?? 0),
+            'rejected' => (int) ($row['cnt_rejected'] ?? 0),
+            'granted'  => (int) ($row['cnt_granted']  ?? 0),
         ];
     }
 
     /**
-     * Returns new/approved/total counts per listing in one query.
+     * Returns pending/approved/total counts per listing in one query.
      * Used by the admin listings tab overview.
      *
-     * @return array<int, array{all: int, new: int, approved: int}>
+     * @return array<int, array{all: int, pending: int, approved: int}>
      */
     public function getAllListingCounts(): array
     {
         $stmt = $this->db->prepare(
             "SELECT
                 fanlisting_id,
-                COUNT(*)               AS total,
-                SUM(status = 'new')      AS cnt_new,
-                SUM(status = 'approved') AS cnt_approved
+                COUNT(*)                    AS total,
+                SUM(status = 'pending')     AS cnt_pending,
+                SUM(status = 'approved')    AS cnt_approved
              FROM `" . self::TABLE . "`
              GROUP BY fanlisting_id"
         );
@@ -231,7 +352,7 @@ final class AdoptionRepo
         foreach ($stmt->fetchAll(\PDO::FETCH_ASSOC) as $row) {
             $result[(int) $row['fanlisting_id']] = [
                 'all'      => (int) $row['total'],
-                'new'      => (int) $row['cnt_new'],
+                'pending'  => (int) $row['cnt_pending'],
                 'approved' => (int) $row['cnt_approved'],
             ];
         }

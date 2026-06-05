@@ -143,6 +143,31 @@ final class CategoryRepo
     }
 
     /**
+     * Returns a map of category_id → listing count from lstr_listing_categories.
+     * Gracefully returns [] if the junction table does not exist (pre-migration 51).
+     *
+     * @return array<int, int>
+     */
+    public function getListingCountsByCategoryId(): array
+    {
+        try {
+            $stmt = $this->db->prepare(
+                'SELECT category_id, COUNT(*) AS cnt
+                 FROM lstr_listing_categories
+                 GROUP BY category_id'
+            );
+            $stmt->execute();
+            $counts = [];
+            foreach ($stmt->fetchAll(\PDO::FETCH_ASSOC) as $row) {
+                $counts[(int) $row['category_id']] = (int) $row['cnt'];
+            }
+            return $counts;
+        } catch (\Throwable) {
+            return [];
+        }
+    }
+
+    /**
      * Updates a category's name and source. The slug is only updated when
      * explicitly provided — it is never auto-derived from the new name on edit,
      * so existing links continue to work after a rename.

@@ -139,9 +139,10 @@ final class AuthController
         $this->app->getCSRF()->regenerate();
 
         $userId = (int) $user['id'];
-        $session->set('lstr_admin_id',       $userId);
-        $session->set('lstr_admin_username', (string) $user['username']);
-        $session->set('lstr_admin_email',    (string) $user['email']);
+        $session->set('lstr_admin_id',           $userId);
+        $session->set('lstr_admin_username',     (string) $user['username']);
+        $session->set('lstr_admin_email',        (string) $user['email']);
+        $session->set('lstr_admin_display_name', (string) ($user['display_name'] ?? ''));
 
         try {
             (new AdminUserRepo($db))->updateLastLogin($userId);

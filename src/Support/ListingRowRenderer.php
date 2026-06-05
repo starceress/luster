@@ -40,7 +40,7 @@ final class ListingRowRenderer
         $image    = (string) ($settings['image'] ?? '');
         $imageTag = $image !== ''
             ? '<img src="' . $e($uploadsUrl . '/' . $image) . '"'
-              . ' alt="' . $e($listing->name) . '"'
+              . ' alt="' . $e($listing->title) . '"'
               . ' title="' . $e($listing->subject) . '">'
             : '';
 
@@ -55,13 +55,13 @@ final class ListingRowRenderer
 
         return str_replace(
             [
-                '{listing_name}', '{listing_url}', '{listing_subject}', '{listing_status}',
+                '{listing_title}', '{listing_url}', '{listing_subject}', '{listing_status}',
                 '{listing_email}', '{listing_type}', '{listing_category}',
                 '{listing_image}', '{date_opened}', '{date_updated}',
                 '{member_count}', '{country_count}', '{countries_count}',
             ],
             [
-                $e($listing->name),
+                $e($listing->title),
                 $e($listing->url),
                 $e($listing->subject),
                 $e($statusLabel),

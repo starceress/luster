@@ -38,7 +38,7 @@ $b = rtrim(View::e($base_url), '/');
             <?php foreach ($listings as $fl): ?>
             <option value="<?= (int) $fl->id ?>"
                     <?= $fl->id === $selected_listing_id ? 'selected' : '' ?>>
-              <?= View::e($fl->name) ?>
+              <?= View::e($fl->title) ?>
             </option>
             <?php endforeach; ?>
           </select>

@@ -80,7 +80,7 @@ SQL;
         $results = $repo->getLatestOpened(1);
 
         self::assertCount(1, $results);
-        self::assertSame('Newest', $results[0]->name);
+        self::assertSame('Newest', $results[0]->title);
     }
 
     public function testLimitRespectedWhenMultipleRequested(): void
@@ -96,8 +96,8 @@ SQL;
         $results = $repo->getLatestOpened(2);
 
         self::assertCount(2, $results);
-        self::assertSame('A', $results[0]->name);
-        self::assertSame('B', $results[1]->name);
+        self::assertSame('A', $results[0]->title);
+        self::assertSame('B', $results[1]->title);
     }
 
     public function testListingsWithNullOpenedAreExcluded(): void
@@ -112,7 +112,7 @@ SQL;
         $results = $repo->getLatestOpened(5);
 
         self::assertCount(1, $results);
-        self::assertSame('Has Date', $results[0]->name);
+        self::assertSame('Has Date', $results[0]->title);
     }
 
     // -----------------------------------------------------------------------
@@ -131,7 +131,7 @@ SQL;
         $results = $repo->getLatestOpened(5);
 
         self::assertCount(1, $results);
-        self::assertSame('Active', $results[0]->name);
+        self::assertSame('Active', $results[0]->title);
     }
 
     public function testUpcomingListingsExcluded(): void
@@ -146,7 +146,7 @@ SQL;
         $results = $repo->getLatestOpened(5);
 
         self::assertCount(1, $results);
-        self::assertSame('Active', $results[0]->name);
+        self::assertSame('Active', $results[0]->title);
     }
 
     // -----------------------------------------------------------------------
@@ -167,7 +167,7 @@ SQL;
         $results = $repo->getLatestOpened(1);
 
         self::assertCount(1, $results);
-        self::assertSame('Third Inserted', $results[0]->name);
+        self::assertSame('Third Inserted', $results[0]->title);
     }
 
     public function testFallbackExcludesInactiveListings(): void
@@ -183,7 +183,7 @@ SQL;
         $results = $repo->getLatestOpened(5);
 
         self::assertCount(1, $results);
-        self::assertSame('Active', $results[0]->name);
+        self::assertSame('Active', $results[0]->title);
     }
 
     public function testFallbackReturnsEmpty(): void
@@ -210,7 +210,7 @@ SQL;
 
         self::assertCount(1, $results);
         $fl = $results[0];
-        self::assertSame('My Fanlisting', $fl->name);
+        self::assertSame('My Fanlisting', $fl->title);
         self::assertSame('https://fl.example.com', $fl->url);
         self::assertSame('2024-03-01', $fl->opened);
         self::assertFalse($fl->upcoming);

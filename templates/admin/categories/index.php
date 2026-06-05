@@ -77,7 +77,7 @@ $catSortUrl = static function (string $col) use ($b, $sort, $dir, $source, $sear
       <button type="submit" name="include_tafl" value="0" class="btn btn-secondary btn-sm">Seed TFL</button>
       <button type="submit" name="include_tafl" value="1" class="btn btn-secondary btn-sm">Seed TAFL</button>
     </form>
-    <a href="<?= $b ?>/admin/categories/settings" class="btn btn-quaternary btn-sm">Display Settings</a>
+    <a href="<?= $b ?>/admin/categories/settings" class="btn btn-quaternary btn-sm"><?= View::icon('gear') ?>Category Settings</a>
   </div>
 </div>
 <!-- ──── COLLAPSIBLE FILTER PANEL ───────────────────────────────────── -->
@@ -88,13 +88,17 @@ $catSortUrl = static function (string $col) use ($b, $sort, $dir, $source, $sear
 
     <div class="select-wrap">
     <select id="cat-net-sel" name="source">
+      <?php $_srcCounts = $source_counts ?? []; $_srcTotal = array_sum($_srcCounts); ?>
       <option value="">All Networks</option>
-      <option value="tfl"  <?= ($source ?? '') === 'tfl'  ? 'selected' : '' ?>>TFL</option>
-      <option value="tafl" <?= ($source ?? '') === 'tafl' ? 'selected' : '' ?>>TAFL</option>
+      <?php $_tflSrc = (int) ($_srcCounts['tfl'] ?? 0); ?>
+      <option value="tfl"  <?= ($source ?? '') === 'tfl'  ? 'selected' : '' ?>>TFL<?= $_tflSrc > 0 ? ' (' . $_tflSrc . ')' : '' ?></option>
+      <?php $_taflSrc = (int) ($_srcCounts['tafl'] ?? 0); ?>
+      <option value="tafl" <?= ($source ?? '') === 'tafl' ? 'selected' : '' ?>>TAFL<?= $_taflSrc > 0 ? ' (' . $_taflSrc . ')' : '' ?></option>
       <?php foreach ($custom_sources ?? [] as $cs): ?>
+        <?php $_csSrc = (int) ($_srcCounts[$cs] ?? 0); ?>
         <option value="<?= View::e($cs) ?>"
                 <?= ($source ?? '') === $cs ? 'selected' : '' ?>>
-          <?= View::e($cs) ?>
+          <?= View::e($cs) ?><?= $_csSrc > 0 ? ' (' . $_csSrc . ')' : '' ?>
         </option>
       <?php endforeach; ?>
     </select>
@@ -107,7 +111,15 @@ $catSortUrl = static function (string $col) use ($b, $sort, $dir, $source, $sear
             data-custom='<?= $custom_json ?? '{}' ?>'>
       <option value="">All Categories</option>
       <?php if ($catName !== ''): ?>
-        <option value="<?= View::e($catName) ?>" selected><?= View::e($catName) ?></option>
+        <?php
+          // Find the category id for the selected name to look up its listing count
+          $_selCatId = null;
+          foreach ($allCats ?? [] as $_ac) {
+              if (($_ac->name ?? '') === $catName) { $_selCatId = $_ac->id; break; }
+          }
+          $_selCount = $_selCatId !== null ? (int) ($listingCounts[$_selCatId] ?? 0) : 0;
+        ?>
+        <option value="<?= View::e($catName) ?>" selected><?= View::e($catName) ?><?= $_selCount > 0 ? ' (' . $_selCount . ')' : '' ?></option>
       <?php endif; ?>
     </select>
     </div>
@@ -177,7 +189,6 @@ $catSortUrl = static function (string $col) use ($b, $sort, $dir, $source, $sear
       <thead>
         <tr>
           <th class="cb-col"><input type="checkbox" id="sel-all" title="Select all"></th>
-          <th><a href="<?= View::e($catSortUrl('id')) ?>" class="sort-th<?= $sort === 'id' ? ' sort-active' : '' ?>">ID <?= View::sortIcon('id', $sort, $dir) ?></a></th>
           <th><a href="<?= View::e($catSortUrl('source')) ?>" class="sort-th<?= $sort === 'source' ? ' sort-active' : '' ?>">Network <?= View::sortIcon('source', $sort, $dir) ?></a></th>
           <th><a href="<?= View::e($catSortUrl('name')) ?>" class="sort-th<?= $sort === 'name' ? ' sort-active' : '' ?>">Category Name <?= View::sortIcon('name', $sort, $dir) ?></a></th>
           <th class="act-col">Actions</th>
@@ -188,7 +199,6 @@ $catSortUrl = static function (string $col) use ($b, $sort, $dir, $source, $sear
         <tr>
           <td class="cb-col" data-label=""><input type="checkbox" name="ids[]" value="<?= (int) $cat->id ?>"
                data-name="<?= View::e($cat->name ?? '') ?>"></td>
-          <td class="text-dim" data-label="ID"><?= (int) $cat->id ?></td>
           <td data-label="Network"><?= $sourceBadge($cat->source ?? 'custom') ?></td>
           <td data-label="Name"><?= View::e($cat->name ?? '') ?></td>
           <td class="act-col" data-label="">

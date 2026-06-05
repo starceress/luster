@@ -89,7 +89,7 @@ final class View
     public static function emailWrap(string $email): string
     {
         $escaped = htmlspecialchars($email, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
-        return str_replace('@', '@<wbr>', $escaped);
+        return '<span class="email-wrap">' . $escaped . '</span>';
     }
 
     /**

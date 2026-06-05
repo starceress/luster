@@ -50,6 +50,7 @@ final class Member
         public readonly bool   $showurl,
         public readonly string $password,
         public readonly bool   $approved,
+        public readonly bool   $rejected,
         public readonly string $added,
         public readonly string $updated,
         public readonly array  $additionalFields,
@@ -82,16 +83,19 @@ final class Member
         // Approved status:
         //   Standard enth_: approved = 1  → approved
         //   Unprefixed:     pending  = 0  → approved (inverted semantics)
+        $rejected = false;
         if (array_key_exists('approved', $row)) {
             $approved = (bool) $row['approved'];
         } elseif (array_key_exists('pending', $row)) {
-            $approved = !(bool) $row['pending'];
+            $pendingVal = (int) $row['pending'];
+            $rejected   = $pendingVal === 2;
+            $approved   = $pendingVal === 0;
         } else {
             $approved = false;
         }
 
         return new self(
-            id:               (int)    ($row['id']       ?? 0),   // no id col in unprefixed schema
+            id:               (int)    ($row['id']       ?? 0),
             name:             (string) ($row['name']     ?? ''),
             email:            (string) ($row['email']    ?? ''),
             url:              (string) ($row['url']      ?? ''),
@@ -99,8 +103,9 @@ final class Member
             showurl:          (bool)   ($row['showurl']  ?? false),
             password:         (string) ($row['password'] ?? ''),
             approved:         $approved,
+            rejected:         $rejected,
             added:            (string) ($row['added']    ?? ''),
-            updated:          (string) ($row['updated']  ?? ''),  // empty string if absent
+            updated:          (string) ($row['updated']  ?? ''),
             additionalFields: $additionalFields,
         );
     }

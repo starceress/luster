@@ -62,10 +62,8 @@ final class ListingRepo
      */
     public function getAll(): array
     {
-        $orderCol = $this->isOwnedSchema ? 'listingid' : 'name';
-
         $stmt = $this->db->prepare(
-            "SELECT * FROM {$this->table} ORDER BY {$orderCol} ASC"
+            "SELECT * FROM {$this->table} ORDER BY subject ASC"
         );
         $stmt->execute();
 

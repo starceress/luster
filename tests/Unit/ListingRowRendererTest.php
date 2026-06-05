@@ -271,7 +271,7 @@ final class ListingRowRendererTest extends TestCase
     {
         $html = ListingRowRenderer::render(
             $this->makeListing(name: '<b>Alert</b>'),
-            '{listing_name}',
+            '{listing_title}',
             [],
             'https://example.com/uploads/listings',
         );
@@ -289,7 +289,7 @@ final class ListingRowRendererTest extends TestCase
             opened:  '2024-01-15',
         );
 
-        $template = '{listing_name}|{listing_url}|{listing_subject}|{listing_email}'
+        $template = '{listing_title}|{listing_url}|{listing_subject}|{listing_email}'
                   . '|{date_opened}|{date_updated}|{listing_type}';
 
         $html = ListingRowRenderer::render(
@@ -320,7 +320,7 @@ final class ListingRowRendererTest extends TestCase
     ): Listing {
         return new Listing(
             id:             1,
-            name:           $name,
+            title:          $name,
             listingtype:    'listing',
             category:       0,
             subject:        $subject,

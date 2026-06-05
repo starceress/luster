@@ -235,6 +235,14 @@ $_lusterHtml = $_lusterApp->getView()->renderFragment('affiliates.php', [
     'theme_path'      => $_lusterApp->getBaseUrl() . '/assets/default/',
 ]);
 
+// Conditionally append the affiliate application form if enabled for this listing.
+$_lusterAffApplySettings = (new \Luster\Repositories\ListingSettingsRepo($_lusterApp->getDatabase()))
+    ->getAffiliateApplySettings($_lusterListingId);
+if ($_lusterAffApplySettings['enabled'] ?? false) {
+    $luster_return = true;
+    $_lusterHtml .= (string) require __DIR__ . '/affiliate-apply.php';
+}
+
 if ($luster_return ?? false) {
     return $_lusterHtml;
 }

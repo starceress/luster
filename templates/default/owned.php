@@ -46,7 +46,7 @@ use Luster\Core\View;
         <?php foreach ($listings as $fl): ?>
           <li>
             <a href="<?= View::e($fl->url) ?>" target="_blank" rel="noopener noreferrer">
-              <?= View::e($fl->name) ?>
+              <?= View::e($fl->title) ?>
             </a>
             <?php if ($fl->subject !== ''): ?>
               &mdash; <?= View::e($fl->subject) ?>

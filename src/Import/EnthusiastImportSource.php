@@ -430,7 +430,7 @@ final class EnthusiastImportSource implements ImportSourceInterface
         }
         $templateCount = $listingCount * 4; // 4 types per listing
         $warnings = [];
-        $warnings[] = 'Enthusiast email tokens ($$fan_name$$, $$fanlisting_title$$, $$site_owner$$, $$site_name$$, etc.) will be translated to Luster\'s token format ({fan_name}, {listing_name}, {owner_name}, {site_name}, etc.).';
+        $warnings[] = 'Enthusiast email tokens ($$fan_name$$, $$fanlisting_title$$, $$site_owner$$, $$site_name$$, etc.) will be translated to Luster\'s token format ({fan_name}, {listing_title}, {owner_name}, {site_name}, etc.).';
         return ['type' => 'Email templates', 'found' => $templateCount, 'import' => $templateCount, 'skip' => 0, 'warnings' => $warnings];
     }
 
@@ -1294,7 +1294,7 @@ final class EnthusiastImportSource implements ImportSourceInterface
             '{fan_email}',
             '{fan_url}',
             '{fan_country}',
-            '{listing_name}',
+            '{listing_title}',
             '{listing_subject}',
             '{listing_url}',
             '{owner_name}',
@@ -1349,7 +1349,7 @@ final class EnthusiastImportSource implements ImportSourceInterface
         }
 
         $warnings = $imported > 0 || $skipped > 0
-            ? ['Enthusiast email tokens ($$fan_name$$, $$fanlisting_title$$, $$site_owner$$, $$site_name$$, etc.) have been translated to Luster\'s token format ({fan_name}, {listing_name}, {owner_name}, {site_name}, etc.).']
+            ? ['Enthusiast email tokens ($$fan_name$$, $$fanlisting_title$$, $$site_owner$$, $$site_name$$, etc.) have been translated to Luster\'s token format ({fan_name}, {listing_title}, {owner_name}, {site_name}, etc.).']
             : [];
 
         return ['type' => 'Email templates', 'imported' => $imported, 'skipped' => $skipped,
@@ -1411,7 +1411,7 @@ final class EnthusiastImportSource implements ImportSourceInterface
         ];
         $tokenReplace = [
             '{fan_name}', '{fan_email}', '{fan_url}', '{fan_country}',
-            '{listing_name}', '{listing_subject}', '{listing_url}',
+            '{listing_title}', '{listing_subject}', '{listing_url}',
             '{owner_name}', '{owner_email}',
             '{owner_name}', '{owner_email}', '{site_name}', '{listing_url}',
             '{reset_url}', '{reset_url}', '{reset_url}', '{reset_url}',
@@ -2019,7 +2019,7 @@ final class EnthusiastImportSource implements ImportSourceInterface
                 '{aff_name}',
                 '{aff_url}',
                 '{aff_image_tag}',
-                '{listing_name}',
+                '{listing_title}',
                 '{listing_url}',
             ],
             $tpl,

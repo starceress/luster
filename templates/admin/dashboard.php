@@ -37,6 +37,7 @@ use Luster\Core\View;
  * @var array[]       $recent_activity
  * @var array[]       $stale_listings
  * @var int           $stale_threshold_days
+ * @var int           $overdue_threshold_days
  * @var string             $base_url
  * @var string             $csrf_token
  * @var \Luster\Core\UpdateStatus $update_status
@@ -170,12 +171,12 @@ $growthDiff          = $growth_this_month - $growth_last_month;
 <?php if ($no_listings ?? false): ?>
 <!-- ──── FIRST-TIME IMPORT CALLOUT ───────────────────────────────────── -->
 <div class="onboard-callout">
-  <div class="onboard-callout__inner">
-    <div class="onboard-callout__heading">
-      <span class="onboard-callout__sparkle">&#10022;</span>
+  <div class="onboard-callout-inner">
+    <div class="onboard-callout-heading">
+      <span class="onboard-callout-sparke">&#10022;</span>
       Getting Started
     </div>
-    <p class="onboard-callout__body">
+    <p class="onboard-callout-body">
       Migrating from Enthusiast or Listing Admin? Use the Import Data Wizard brings in your listings, members,
       affiliates, and images in minutes. Same-database Enthusiast installs are already readable &mdash;
       no migration needed.
@@ -300,15 +301,21 @@ $growthDiff          = $growth_this_month - $growth_last_month;
               <input type="checkbox" name="listing_ids[]"
                      value="<?= (int) $staleItem['listing']->id ?>"
                      form="bulk-maint-form"
-                     aria-label="Select <?= View::e($staleItem['listing']->name) ?>">
+                     aria-label="Select <?= View::e($staleItem['listing']->title) ?>">
             </label>
             <a href="<?= $b ?>/admin/listings/<?= (int) $staleItem['listing']->id ?>/edit"
-               class="link"><?= View::e($staleItem['listing']->name) ?></a>
+               class="link"><?= View::e($staleItem['listing']->title) ?></a>
           </div>
           <div class="todo-mrow-right">
-            <span class="todo-mrow-days">
-              <?php if ($staleItem['days_ago'] !== null): ?>
-                <?= (int) $staleItem['days_ago'] ?> day<?= $staleItem['days_ago'] !== 1 ? 's' : '' ?> ago
+            <?php
+              $daysAgo    = $staleItem['days_ago'];
+              $daysColor  = ($daysAgo === null || $daysAgo >= ($overdue_threshold_days ?? 55))
+                              ? 'var(--danger)'
+                              : 'var(--text-dim)';
+            ?>
+            <span class="todo-mrow-days" style="color:<?= $daysColor ?>">
+              <?php if ($daysAgo !== null): ?>
+                <?= (int) $daysAgo ?> day<?= $daysAgo !== 1 ? 's' : '' ?> ago
               <?php else: ?>
                 Never updated
               <?php endif; ?>
@@ -317,20 +324,20 @@ $growthDiff          = $growth_this_month - $growth_last_month;
                   action="<?= $b ?>/admin/listings/<?= (int) $staleItem['listing']->id ?>/touch-updated"
                   class="todo-mark-form">
               <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
-              <button type="submit" class="btn-mark-updated">Update</button>
+              <button type="submit" id="btn-mark-updated" class="btn btn-success btn-xs">Update</button>
             </form>
           </div>
         </div>
         <?php endforeach; ?>
-        <div class="todo-bulk">
+        <div class="todo-bulk" style="justify-content:space-between">
           <button type="submit" form="bulk-maint-form"
-                  class="btn btn-secondary btn-sm" id="bulk-mark-btn" disabled>
-            Mark Selected as Updated
+                  class="btn btn-tertiary btn-sm" id="bulk-mark-btn" disabled>
+            Update Selected
           </button>
           <form method="POST" action="<?= $b ?>/admin/maintenance/touch-all-updated"
                 data-confirm="Mark all <?= count($stale_listings) ?> neglected listing(s) as updated today?">
             <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
-            <button type="submit" class="btn btn-ghost btn-sm">Mark All &rarr;</button>
+            <button type="submit" class="btn btn-success btn-sm">Update All &rarr;</button>
           </form>
         </div>
       </div>
@@ -384,8 +391,17 @@ $growthDiff          = $growth_this_month - $growth_last_month;
       </div>
       <div class="row">
         <span class="row-label">Up to Date Listings</span>
-        <?php $allUpToDate = $listings_up_to_date >= (int) $fan_current; ?>
-        <span class="row-val <?= $allUpToDate ? 'row-val--success' : 'row-val--warn' ?>">
+        <?php
+          $pct = $fan_current > 0 ? ($listings_up_to_date / $fan_current) * 100 : 100;
+          if ($pct >= 100) {
+              $utdClass = 'row-val--success'; $utdStyle = '';
+          } elseif ($pct > 50) {
+              $utdClass = 'row-val--warn';    $utdStyle = '';
+          } else {
+              $utdClass = '';                 $utdStyle = 'color:var(--danger)';
+          }
+        ?>
+        <span class="row-val <?= $utdClass ?>"<?= $utdStyle ? ' style="' . $utdStyle . '"' : '' ?>>
           <?= (int) $listings_up_to_date ?> of <?= (int) $fan_current ?>
         </span>
       </div>

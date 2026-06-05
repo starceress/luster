@@ -26,6 +26,7 @@ $filterBootMap = [
     ['~/admin/link-checker(?:/|$)~', 'lc-filter-panel', 'fp-lc'],
     ['~/admin/wishlist(?:/|$)~', 'wl-filter-panel', 'fp-wl'],
     ['~/admin/kim(?:/|$)~', 'kim-filter-panel', 'fp-kim'],
+    ['~/admin/adoptions(?:/|$)~', 'adopt-filter-panel', 'fp-adopt'],
     ['~/admin/updates(?:/|$)~', 'upd-filter-panel', 'fp-upd'],
 ];
 $filterBootStates = json_decode((string) ($_COOKIE['lstr_fp'] ?? ''), true);
@@ -65,6 +66,7 @@ $htmlClassAttr = $htmlClasses === [] ? '' : ' class="' . View::e(implode(' ', $h
         [/\/admin\/link-checker(?:\/|$)/,'lc-filter-panel','fp-lc'],
         [/\/admin\/wishlist(?:\/|$)/,'wl-filter-panel','fp-wl'],
         [/\/admin\/kim(?:\/|$)/,'kim-filter-panel','fp-kim'],
+        [/\/admin\/adoptions(?:\/|$)/,'adopt-filter-panel','fp-adopt'],
         [/\/admin\/updates(?:\/|$)/,'upd-filter-panel','fp-upd']
       ];
       function cookieMap(){var m=document.cookie.match(/(?:^|; )lstr_fp=([^;]*)/);if(!m)return {};try{return JSON.parse(decodeURIComponent(m[1]));}catch(e){return {};}}
@@ -82,6 +84,7 @@ $htmlClassAttr = $htmlClasses === [] ? '' : ' class="' . View::e(implode(' ', $h
     html.fp-lc #lc-filter-panel,
     html.fp-wl #wl-filter-panel,
     html.fp-kim #kim-filter-panel,
+    html.fp-adopt #adopt-filter-panel,
     html.fp-upd #upd-filter-panel { display: block; }
   </style>
   <link rel="icon" type="image/svg+xml" href="<?= $b ?>/assets/images/logo16.svg">
@@ -94,11 +97,11 @@ $htmlClassAttr = $htmlClasses === [] ? '' : ' class="' . View::e(implode(' ', $h
   <div class="sidebar-dots" aria-hidden="true"></div>
 
   <div class="sidebar-brand">
-    <div class="brand-lockup">
-      <img src="<?= $b ?>/assets/images/logo50.svg" alt="" class="brand-logo">
-      <div class="brand-text">
-        <span class="brand-name">Luster</span>
-        <span class="brand-sub">Admin Panel</span>
+    <div class="luster-glow">
+      <img src="<?= $b ?>/assets/images/logo50.svg" alt="" class="luster-logo">
+      <div class="luster-text">
+        <span class="wordmark">Luster</span>
+        <span class="luster-sub">Admin Panel</span>
       </div>
     </div>
   </div>
@@ -121,7 +124,7 @@ $htmlClassAttr = $htmlClasses === [] ? '' : ' class="' . View::e(implode(' ', $h
 
     <div class="sidebar-section">
       <div class="sidebar-label">Manage</div>
-      <a href="<?= $b ?>/admin/listings/collective-templates" class="nav-item<?= navActive('collective-templates', $s) ?>"><span class="nav-icon"><?= View::icon('collective') ?></span> Collective</a>
+      <a href="<?= $b ?>/admin/collective" class="nav-item<?= navActive('collective', $s) ?>"><span class="nav-icon"><?= View::icon('collective') ?></span> Collective</a>
 
       <a href="<?= $b ?>/admin/listings" class="nav-item<?= navActive('listings', $s) ?>"><span class="nav-icon"><?= View::icon('star') ?></span> Owned</a>
 
@@ -134,6 +137,13 @@ $htmlClassAttr = $htmlClasses === [] ? '' : ' class="' . View::e(implode(' ', $h
       </a>
 
       <a href="<?= $b ?>/admin/affiliates" class="nav-item<?= navActive('affiliates', $s) ?>"><span class="nav-icon"><?= View::icon('link') ?></span> Affiliates</a>
+
+      <a href="<?= $b ?>/admin/codes" class="nav-item<?= navActive('codes', $s) ?>">
+        <span class="nav-icon"><?= View::icon('image') ?></span> Codes
+        <?php if (($nav_pending_codes ?? 0) > 0): ?>
+          <span class="nav-badge"><?= (int) $nav_pending_codes ?></span>
+        <?php endif; ?>
+      </a>
 
       <a href="<?= $b ?>/admin/categories" class="nav-item<?= navActive('categories', $s) ?>"><span class="nav-icon"><?= View::icon('tag') ?></span> Categories</a>
 
@@ -198,7 +208,7 @@ $htmlClassAttr = $htmlClasses === [] ? '' : ' class="' . View::e(implode(' ', $h
     <div class="sidebar-user">
       <div class="user-star">&#10022;</div>
       <div class="user-info">
-        <span class="user-name"><?= View::e($admin_username) ?></span>
+        <span class="user-name"><?= View::e(($nav_display_name ?? '') !== '' ? $nav_display_name : $admin_username) ?></span>
         <span class="user-role"><?= View::e($site_name) ?></span>
       </div>
     </div>

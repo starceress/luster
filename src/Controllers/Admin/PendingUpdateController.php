@@ -81,7 +81,7 @@ final class PendingUpdateController
             $mailer    = new Mailer($cfg);
             $emailRepo = new EmailTemplateRepo($db);
             $tokens    = EmailTemplateRepo::buildTokens(
-                listingName:    $listing->name,
+                listingName:    $listing->title,
                 listingUrl:     $listing->url,
                 siteName:       (string) $cfg->get('site_name', 'Luster'),
                 listingSubject: $listing->subject,
@@ -99,12 +99,90 @@ final class PendingUpdateController
         $activityRepo->log(
             (int) $session->get('lstr_admin_id'),
             'pending_update.approve',
-            "Approved update #{$id} for {$pending->member_email} on {$listing->name}",
+            "Approved update #{$id} for {$pending->member_email} on {$listing->title}",
             $request->ip(),
         );
 
         $session->set('lstr_flash_success', "Update for {$pending->member_email} approved and applied.");
-        return Response::redirect($baseUrl . '/admin/members');
+        return Response::redirect(
+            $baseUrl . '/admin/members?listing_id=' . $pending->fanlisting_id . '&status=pending'
+        );
+    }
+
+    // -----------------------------------------------------------------------
+    // POST /admin/pending-updates/approve-all
+    // -----------------------------------------------------------------------
+
+    public function approveAll(Request $request, array $params): Response
+    {
+        $db      = $this->app->getDatabase();
+        $config  = $this->app->getConfig();
+        $session = $this->app->getSession();
+        $baseUrl = $this->app->getBaseUrl();
+
+        $listingId    = (int) $request->post('_listing_id', 0);
+        $pendingRepo  = new PendingUpdateRepo($db);
+        $listingRepo  = new ListingRepo($db, $config);
+        $memberRepo   = new MemberRepo($db, $config);
+        $activityRepo = new ActivityRepo($db);
+        $mailer       = new Mailer($config);
+
+        $pendings = $listingId > 0
+            ? $pendingRepo->getByListing($listingId)
+            : $pendingRepo->getAll();
+
+        $count = 0;
+
+        foreach ($pendings as $pending) {
+            $listing = $listingRepo->getById($pending->fanlisting_id);
+            if ($listing === null) {
+                $pendingRepo->delete($pending->id);
+                continue;
+            }
+
+            $member = $memberRepo->getByEmail($listing->dbprefix, $pending->member_email);
+            if ($member === null) {
+                $pendingRepo->delete($pending->id);
+                continue;
+            }
+
+            $memberRepo->update($listing->dbprefix, $pending->member_email, $pending->changes);
+            $pendingRepo->delete($pending->id);
+
+            try {
+                $emailRepo = new EmailTemplateRepo($db);
+                $tokens    = EmailTemplateRepo::buildTokens(
+                    listingName:    $listing->title,
+                    listingUrl:     $listing->url,
+                    siteName:       (string) $config->get('site_name', 'Luster'),
+                    listingSubject: $listing->subject,
+                    ownerName:      (string) $config->get('owner_name', ''),
+                    ownerEmail:     (string) $config->get('owner_email', ''),
+                    fanName:        $member->name,
+                    fanEmail:       $member->email,
+                );
+                [$subject, $body] = $emailRepo->resolveForListing($pending->fanlisting_id, EmailTemplateRepo::TYPE_UPDATE, $tokens);
+                $mailer->send($member->email, $member->name, $subject, $body);
+            } catch (\Throwable $e) {
+                error_log('[Luster] Approve-all-updates email failed for ' . $pending->member_email . ': ' . $e->getMessage());
+            }
+
+            $count++;
+        }
+
+        $activityRepo->log(
+            (int) $session->get('lstr_admin_id'),
+            'pending_update.approve_all',
+            "Approved all {$count} pending update(s)" . ($listingId > 0 ? " for listing #{$listingId}" : ' across all listings'),
+            $request->ip(),
+        );
+
+        $session->set('lstr_flash_success', "Approved {$count} pending update" . ($count !== 1 ? 's' : '') . '.');
+
+        $redirect = $listingId > 0
+            ? $baseUrl . '/admin/members?listing_id=' . $listingId . '&status=pending'
+            : $baseUrl . '/admin/members?status=pending';
+        return Response::redirect($redirect);
     }
 
     // -----------------------------------------------------------------------
@@ -167,7 +245,12 @@ final class PendingUpdateController
         );
 
         $session->set('lstr_flash_success', ucfirst($action) . "d {$count} pending update" . ($count !== 1 ? 's' : '') . '.');
-        return Response::redirect($baseUrl . '/admin/members');
+
+        $returnListingId = (int) $request->post('_listing_id', 0);
+        $redirect = $returnListingId > 0
+            ? $baseUrl . '/admin/members?listing_id=' . $returnListingId . '&status=pending'
+            : $baseUrl . '/admin/members';
+        return Response::redirect($redirect);
     }
 
     // -----------------------------------------------------------------------
@@ -202,6 +285,8 @@ final class PendingUpdateController
         );
 
         $session->set('lstr_flash_success', "Update for {$pending->member_email} rejected.");
-        return Response::redirect($baseUrl . '/admin/members');
+        return Response::redirect(
+            $baseUrl . '/admin/members?listing_id=' . $pending->fanlisting_id . '&status=pending'
+        );
     }
 }

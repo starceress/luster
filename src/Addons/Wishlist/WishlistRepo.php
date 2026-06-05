@@ -177,7 +177,7 @@ final class WishlistRepo
         );
         $stmt->execute();
 
-        $counts = ['wanted' => 0, 'top' => 0, 'granted' => 0, 'upcoming' => 0];
+        $counts = ['wanted' => 0, 'top' => 0, 'granted' => 0];
         foreach ($stmt->fetchAll() as $row) {
             $counts[(string) $row['type']] = (int) $row['cnt'];
         }
@@ -208,6 +208,29 @@ final class WishlistRepo
         $stmt->execute();
 
         return array_column($stmt->fetchAll(), 'category');
+    }
+
+    /**
+     * Returns a map of category string → entry count.
+     *
+     * @return array<string, int>
+     */
+    public function getCategoryCounts(): array
+    {
+        $stmt = $this->db->prepare(
+            "SELECT category, COUNT(*) AS cnt
+             FROM lstr_wishlist
+             WHERE category != ''
+             GROUP BY category"
+        );
+        $stmt->execute();
+
+        $counts = [];
+        foreach ($stmt->fetchAll(\PDO::FETCH_ASSOC) as $row) {
+            $counts[(string) $row['category']] = (int) $row['cnt'];
+        }
+
+        return $counts;
     }
 
     public function insert(array $data): int

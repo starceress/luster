@@ -14,8 +14,8 @@ use Luster\Repositories\SiteSettingsRepo;
 
 final class WishlistAdminController extends AdminController
 {
-    private const VALID_TYPES = ['wanted', 'top', 'granted', 'upcoming'];
-    private const VALID_FILTERS = ['wanted', 'top', 'granted', 'upcoming', 'hidden'];
+    private const VALID_TYPES = ['wanted', 'top', 'granted'];
+    private const VALID_FILTERS = ['wanted', 'top', 'granted', 'hidden'];
 
     // -----------------------------------------------------------------------
     // GET /admin/wishlist
@@ -43,8 +43,9 @@ final class WishlistAdminController extends AdminController
         $activeFilter  = $filter === 'hidden' ? false : null;
 
         $result     = $repo->paginate($typeFilter, false, $search, $filterCat, $sort, $dir, $perPage, $page, $activeFilter);
-        $typeCounts = $repo->countByType();
-        $categories = $repo->getCategories();
+        $typeCounts     = $repo->countByType();
+        $categories     = $repo->getCategories();
+        $categoryCounts = $repo->getCategoryCounts();
 
         $success = (string) $session->get('lstr_flash_success', '');
         $error   = (string) $session->get('lstr_flash_error', '');
@@ -60,7 +61,8 @@ final class WishlistAdminController extends AdminController
             'filter_type'    => $filter,
             'type_counts'    => $typeCounts,
             'hidden_count'   => $repo->countHidden(),
-            'categories'     => $categories,
+            'categories'        => $categories,
+            'category_counts'   => $categoryCounts,
             'search'         => $search,
             'filter_cat'     => $filterCat,
             'filters_active' => $filtersActive,
@@ -331,10 +333,9 @@ final class WishlistAdminController extends AdminController
         $noun  = $count === 1 ? 'entry' : 'entries';
 
         $typeLabels = [
-            'wanted'   => 'Wanted',
-            'top'      => 'Top Wanted',
-            'granted'  => 'Granted',
-            'upcoming' => 'Upcoming',
+            'wanted'  => 'Wanted',
+            'top'     => 'Top Wanted',
+            'granted' => 'Granted',
         ];
 
         switch ($action) {

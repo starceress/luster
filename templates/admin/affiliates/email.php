@@ -89,7 +89,7 @@ $totalCount = (int) ($scope_counts['all'] ?? 0);
             <tr class="tok-row" data-textarea="es-body" data-token="{aff_name}"    title="Click to insert"><td><code>{aff_name}</code></td><td>Affiliate site name</td></tr>
             <tr class="tok-row" data-textarea="es-body" data-token="{aff_email}"   title="Click to insert"><td><code>{aff_email}</code></td><td>Affiliate email address</td></tr>
             <tr class="tok-row" data-textarea="es-body" data-token="{aff_url}"     title="Click to insert"><td><code>{aff_url}</code></td><td>Affiliate site URL</td></tr>
-            <tr class="tok-row" data-textarea="es-body" data-token="{listing_name}"title="Click to insert"><td><code>{listing_name}</code></td><td>Linked listing name (or site name)</td></tr>
+            <tr class="tok-row" data-textarea="es-body" data-token="{listing_title}"title="Click to insert"><td><code>{listing_title}</code></td><td>Linked listing name (or site name)</td></tr>
             <tr class="tok-row" data-textarea="es-body" data-token="{listing_url}" title="Click to insert"><td><code>{listing_url}</code></td><td>Linked listing URL (or site URL)</td></tr>
             <tr class="tok-row" data-textarea="es-body" data-token="{site_name}"   title="Click to insert"><td><code>{site_name}</code></td><td>Collective or site name</td></tr>
             <tr class="tok-row" data-textarea="es-body" data-token="{owner_name}"  title="Click to insert"><td><code>{owner_name}</code></td><td>Owner's display name</td></tr>
@@ -137,7 +137,7 @@ $totalCount = (int) ($scope_counts['all'] ?? 0);
                 </option>
                 <?php foreach ($listings as $fl): ?>
                   <option value="<?= (int) $fl->id ?>"
-                          data-listing-name="<?= View::e($fl->name) ?>"
+                          data-listing-name="<?= View::e($fl->title) ?>"
                           data-listing-url="<?= View::e($fl->url) ?>"
                           <?= $oldScope === (string) $fl->id ? 'selected' : '' ?>>
                     <?= View::e($fl->subject) ?> (<?= (int) ($scope_counts[(string) $fl->id] ?? 0) ?>)

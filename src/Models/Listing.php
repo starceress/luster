@@ -29,7 +29,7 @@ final class Listing
 {
     public function __construct(
         public readonly int     $id,
-        public readonly string  $name,
+        public readonly string  $title,
         public readonly string  $listingtype,
         public readonly int     $category,
         public readonly string  $subject,
@@ -60,8 +60,8 @@ final class Listing
         // Primary key: listingid (owned) or id (enth_fanlistings)
         $id = (int) ($row['listingid'] ?? $row['id'] ?? 0);
 
-        // Display name: title (owned) or name (enth_fanlistings)
-        $name = (string) ($row['title'] ?? $row['name'] ?? '');
+        // Display title: title (owned) or name (enth_fanlistings)
+        $title = (string) ($row['title'] ?? $row['name'] ?? '');
 
         // Member table reference: dbtable (owned) or dbprefix (enth_fanlistings)
         $dbprefix = (string) ($row['dbtable'] ?? $row['dbprefix'] ?? '');
@@ -89,7 +89,7 @@ final class Listing
 
         return new self(
             id:             $id,
-            name:           $name,
+            title:          $title,
             listingtype:    (string) ($row['listingtype'] ?? 'listing'),
             category:       $category,
             subject:        (string) ($row['subject']     ?? ''),

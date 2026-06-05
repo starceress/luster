@@ -5,7 +5,7 @@ use Luster\Core\View;
  *
  * Variables (injected via extract($data) by View::renderFragment):
  * @var \Luster\Models\Wishlist[] $entries
- * @var string $filter_type   'all' | 'wanted' | 'top' | 'granted' | 'upcoming'
+ * @var string $filter_type   'all' | 'wanted' | 'top' | 'granted'
  * @var string $base_url
  */
 
@@ -15,15 +15,14 @@ if (empty($entries)) {
 }
 
 $typeLabels = [
-    'top'      => 'Top Wanted',
-    'granted'  => 'Granted',
-    'upcoming' => 'Upcoming',
-    'wanted'   => 'Wanted',
+    'top'     => 'Top Wanted',
+    'granted' => 'Granted',
+    'wanted'  => 'Wanted',
 ];
 
 if ($filter_type === 'all') {
     // Group by type in a defined order
-    $groups = ['top' => [], 'wanted' => [], 'upcoming' => [], 'granted' => []];
+    $groups = ['top' => [], 'wanted' => [], 'granted' => []];
     foreach ($entries as $entry) {
         $groups[$entry->type][] = $entry;
     }

@@ -42,18 +42,26 @@ final class CategoryController extends AdminController
         $customSources = $repo->getCustomSources();
 
         // Group all categories by source for the dropdown data attributes
-        $allCats   = $repo->getAll();
+        $allCats      = $repo->getAll();
+        $listingCounts = $repo->getListingCountsByCategoryId();
         $tflCats   = array_values(array_filter($allCats, static fn($c) => $c->source === 'tfl'));
         $taflCats  = array_values(array_filter($allCats, static fn($c) => $c->source === 'tafl'));
         $customMap = [];
         foreach ($allCats as $c) {
             if ($c->source !== 'tfl' && $c->source !== 'tafl') {
-                $customMap[$c->source][] = ['name' => $c->name];
+                $customMap[$c->source][] = ['name' => $c->name, 'count' => $listingCounts[$c->id] ?? 0];
             }
         }
-        $tflJson    = json_encode(array_map(static fn($c) => ['name' => $c->name], $tflCats),  JSON_HEX_QUOT | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_TAG);
-        $taflJson   = json_encode(array_map(static fn($c) => ['name' => $c->name], $taflCats), JSON_HEX_QUOT | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_TAG);
+        $makeCatEntry = static fn($c) => ['name' => $c->name, 'count' => $listingCounts[$c->id] ?? 0];
+        $tflJson    = json_encode(array_map($makeCatEntry, $tflCats),  JSON_HEX_QUOT | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_TAG);
+        $taflJson   = json_encode(array_map($makeCatEntry, $taflCats), JSON_HEX_QUOT | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_TAG);
         $customJson = json_encode($customMap,  JSON_HEX_QUOT | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_TAG);
+
+        // Count categories per source for filter dropdown labels.
+        $sourceCounts = ['tfl' => count($tflCats), 'tafl' => count($taflCats)];
+        foreach ($customMap as $src => $cats) {
+            $sourceCounts[$src] = count($cats);
+        }
 
         $session = $this->app->getSession();
         $success = (string) $session->get('lstr_flash_success', '');
@@ -76,9 +84,12 @@ final class CategoryController extends AdminController
             'custom_sources' => $customSources,
             'seed_health'    => $seedHealth,
             'cat_name'       => $catName,
-            'tfl_json'       => $tflJson,
-            'tafl_json'      => $taflJson,
-            'custom_json'    => $customJson,
+            'tfl_json'        => $tflJson,
+            'tafl_json'       => $taflJson,
+            'custom_json'     => $customJson,
+            'source_counts'   => $sourceCounts,
+            'all_cats'        => $allCats,
+            'listing_counts'  => $listingCounts,
             'success'        => $success,
             'error'          => $error,
         ]);

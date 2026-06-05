@@ -19,7 +19,7 @@ $id = (int) $listing->id;
 
 <div class="page-topbar">
   <a href="<?= $b ?>/admin/members?listing_id=<?= (int) $id ?>&status=all" class="link">
-    &larr; Back to Members: <?= View::e($listing->name) ?>
+    &larr; Back to Members: <?= View::e($listing->title) ?>
   </a>
 </div>
 
@@ -146,8 +146,8 @@ $id = (int) $listing->id;
     <?php endif; ?>
 
     <div class="composer-footer">
-      <button type="submit" class="btn btn-primary btn-sm">Save Changes</button>
-      <a href="<?= $b ?>/admin/members?listing_id=<?= (int) $id ?>&status=all" class="btn btn-ghost btn-sm">Cancel</a>
+      <button type="submit" class="btn btn-primary">Save Changes</button>
+      <a href="<?= $b ?>/admin/members?listing_id=<?= (int) $id ?>&status=all" class="btn btn-ghost">Cancel</a>
     </div>
   </div>
 </form>
@@ -167,13 +167,15 @@ $id = (int) $listing->id;
           data-del-name="<?= View::e($member->email) ?>">
       <input type="hidden" name="_csrf"        value="<?= View::e($csrf_token ?? '') ?>">
       <input type="hidden" name="member_email" value="<?= View::e($member->email) ?>">
-      <div class="inline-form-row">
-        <div class="form-group form-group--compact inline-form-grow">
-          <label class="form-label" for="merge-dupe-email">Duplicate email to delete</label>
+      <div class="listing-field-row listing-field-row--top">
+        <label class="listing-field-label" for="merge-dupe-email">Duplicate email to delete</label>
+        <div>
           <input id="merge-dupe-email" type="email" name="duplicate_email" class="form"
                  maxlength="255" placeholder="duplicate&#64;example.com" required>
         </div>
-        <button type="submit" class="btn btn-danger btn-sm">Delete Duplicate</button>
+      </div>
+      <div class="composer-footer">
+        <button type="submit" class="btn btn-danger">Delete Duplicate</button>
       </div>
     </form>
   </div>

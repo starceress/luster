@@ -155,7 +155,7 @@ $items = [
         'label' => 'Site Statistics',
         'badge' => 'Stats',
         'file'  => 'collective-stats.php',
-        'desc'  => 'Collective site-wide statistics with live data — owned count, total members, and more. No template needed: use the variables directly on your page. See the variable reference tab for details.',
+        'desc'  => 'Collective site-wide statistics with live data — owned count, total members, and more. See the Template Help tab for the stats you can show.',
     ],
     'aff-col' => [
         'label' => 'Affiliates',
@@ -173,7 +173,7 @@ $items = [
         'label' => 'Random Listing',
         'badge' => 'Data',
         'file'  => 'random-listing.php',
-        'desc'  => 'Picks one active listing at random and renders it using the owned-listings row template from Admin → Collective.',
+        'desc'  => 'Shows one current listing at random using your owned listings template from Admin → Collective.',
     ],
     'latest' => [
         'label' => 'Latest Listing',
@@ -251,7 +251,7 @@ unset($item);
 $itemsJson = json_encode($items, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_TAG);
 
 $listingsJson = json_encode(
-    array_map(fn($fl) => ['id' => (int) $fl->id, 'name' => $fl->name, 'subject' => $fl->subject], $listings ?? []),
+    array_map(fn($fl) => ['id' => (int) $fl->id, 'name' => $fl->title, 'subject' => $fl->subject], $listings ?? []),
     JSON_HEX_QUOT | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_TAG
 );
 
@@ -272,7 +272,7 @@ $epSafe = View::e($ep);
 
   <div class="callout callout-info">
     <?= View::icon('notes') ?>
-    <span><strong>Before you start:</strong> every snippet needs your <code>$luster_fanlisting_id</code> (the listing&rsquo;s integer ID, shown in the URL when you edit it). Collective embeds like owned listings and site stats don&rsquo;t need one.</span>
+    <span><strong>Before you start:</strong> most listing snippets need your <code>$luster_fanlisting_id</code>. That is the listing ID number shown in the URL when you edit the listing. Collective snippets, like owned listings and site stats, do not need one.</span>
   </div>
 
   <div class="tabs-wrap" id="ec-tabs-wrap">
@@ -280,7 +280,7 @@ $epSafe = View::e($ep);
       <button class="tabs-btn active" data-ec-tab="main" role="tab"
               aria-selected="true" aria-controls="ec-panel-main">Embed Codes</button>
       <button class="tabs-btn"        data-ec-tab="ref"  role="tab"
-              aria-selected="false" aria-controls="ec-panel-ref">Variable reference</button>
+              aria-selected="false" aria-controls="ec-panel-ref">Template Help</button>
     </div>
   </div>
 
@@ -376,242 +376,281 @@ $epSafe = View::e($ep);
   <div class="tabs-panel" id="ec-panel-ref" role="tabpanel">
 
     <p class="text-muted embed-ref-intro">
-      Variables are PHP variables you set <em>before</em> the <code>require</code> line.
-      Tokens like <code>{stat_approved}</code> go inside your stats or member row template strings
-      &mdash; Luster replaces them with live data when the page loads.
+      These settings let you change what the copied code shows on your site.
+      Add them above the <code>require</code> line only when you need them.
+      Words in <code>{braces}</code> go inside your templates; Luster swaps them for real listing,
+      member, or stats information.
     </p>
 
     <div class="ec-ref-layout">
 <!-- ──── REF NAV ──────────────────────────────────────────────────────────── -->
       <nav class="ec-ref-nav" aria-label="Reference sections">
-        <span class="ec-ref-nav-group">Embed variables</span>
-        <button class="ec-ref-nav-item" data-ec-ref="ec-ref-general">General</button>
-        <button class="ec-ref-nav-item" data-ec-ref="ec-ref-members">Members &amp; reset</button>
-        <button class="ec-ref-nav-item" data-ec-ref="ec-ref-listings">Listings display</button>
-        <span class="ec-ref-nav-group">Template tokens</span>
-        <button class="ec-ref-nav-item" data-ec-ref="ec-ref-stat-tokens">Stats</button>
-        <button class="ec-ref-nav-item" data-ec-ref="ec-ref-row-tokens">Member row</button>
+        <span class="ec-ref-nav-group">Snippet settings</span>
+        <button class="ec-ref-nav-item" data-ec-ref="ec-ref-general">Basics</button>
+        <button class="ec-ref-nav-item" data-ec-ref="ec-ref-members">Members and passwords</button>
+        <button class="ec-ref-nav-item" data-ec-ref="ec-ref-listings">Listing pages</button>
+        <span class="ec-ref-nav-group">Template words</span>
+        <button class="ec-ref-nav-item" data-ec-ref="ec-ref-stat-tokens">Listing stats</button>
+        <button class="ec-ref-nav-item" data-ec-ref="ec-ref-row-tokens">Member list</button>
         <button class="ec-ref-nav-item" data-ec-ref="ec-ref-owned-tokens">Owned listings</button>
         <button class="ec-ref-nav-item" data-ec-ref="ec-ref-joined-tokens">Joined listings</button>
         <button class="ec-ref-nav-item" data-ec-ref="ec-ref-aff-tokens">Affiliates</button>
-        <button class="ec-ref-nav-item" data-ec-ref="ec-ref-cstat-tokens">Collective stats</button>
-        <span class="ec-ref-nav-group">Collective stats</span>
-        <button class="ec-ref-nav-item" data-ec-ref="ec-ref-cstat-vars">Output variables</button>
+        <button class="ec-ref-nav-item" data-ec-ref="ec-ref-cstat-tokens">Collective stats template</button>
+        <span class="ec-ref-nav-group">Advanced</span>
+        <button class="ec-ref-nav-item" data-ec-ref="ec-ref-cstat-vars">Stats for custom PHP</button>
       </nav>
 <!-- ──── REF PANELS ───────────────────────────────────────────────────────── -->
       <div>
         <div class="gradient-card" id="ec-ref-general">
           <div class="pc-head">
             <div class="pc-head-meta">
-          <div class="pc-head-title">General variables</div>
-          <div class="pc-head-sub">Set these PHP variables <em>before</em> the <code>require</code> line. They apply to most embeds.</div>
+          <div class="pc-head-title">Basics</div>
+          <div class="pc-head-sub">These are the basic settings used by most copied snippets.</div>
 </div></div>
           <div class="table-wrap">
             <table class="data-table">
-              <thead><tr><th class="act-col">Variable</th><th>Description</th></tr></thead>
+              <thead><tr><th class="act-col">Setting</th><th>What it does</th></tr></thead>
               <tbody>
                 <tr>
                   <td class="act-col"><code>$luster_fanlisting_id</code></td>
-                  <td>Integer ID of the listing to embed. Find it in the URL when editing a listing (e.g. <samp>/admin/listings/3/edit</samp> &rarr; ID is <samp>3</samp>). Use <samp>0</samp> for collective-level affiliates.</td>
-                </tr>
-                <tr>
-                  <td class="act-col"><code>$luster_return</code></td>
-                  <td>When <code>true</code>, the embed returns its HTML string instead of echoing it. Useful when you need to place the output in a variable.</td>
+                  <td>Tells Luster which listing this form or list is for. You can find the number in the listing edit page URL. For example, <samp>/admin/listings/3/edit</samp> means the listing ID is <samp>3</samp>.</td>
                 </tr>
               </tbody>
             </table>
           </div>
+          <details class="ec-ref-card ec-ref-advanced">
+            <summary>Advanced settings</summary>
+            <div class="ec-ref-advanced-body">
+              <div class="table-wrap">
+              <table class="data-table">
+                <thead><tr><th class="act-col">Setting</th><th>What it does</th></tr></thead>
+                <tbody>
+                  <tr>
+                    <td class="act-col"><code>$luster_return</code></td>
+                    <td>Most users should leave this out. It is only for custom PHP pages where you want Luster to prepare the form or list first, then let your own code decide where to show it.</td>
+                  </tr>
+                </tbody>
+              </table>
+              </div>
+            </div>
+          </details>
         </div>
 
         <div class="ec-ref-panel" id="ec-ref-members">
-          <h3 class="pc-head-title embed-ref-heading">Members &amp; reset</h3>
-          <p class="text-muted embed-ref-copy">Options for <code>embed/members.php</code>.</p>
+          <h3 class="pc-head-title embed-ref-heading">Members and passwords</h3>
+          <p class="text-muted embed-ref-copy">Settings for the members list.</p>
           <div class="ec-ref-card">
             <div class="table-wrap">
             <table class="data-table">
-              <thead><tr><th class="act-col">Variable</th><th>Description</th></tr></thead>
+              <thead><tr><th class="act-col">Setting</th><th>What it does</th></tr></thead>
               <tbody>
-                <tr><td class="act-col"><code>$luster_per_page</code></td><td>Members per page. Overrides the site-wide default from Settings.</td></tr>
-                <tr><td class="act-col"><code>$luster_sort_by</code></td><td>Force a default sort: <code>'name'</code> or <code>'country'</code>. When set, the visitor's sort link clicks are overridden.</td></tr>
-                <tr><td class="act-col"><code>$luster_show_search</code></td><td>Set to <code>false</code> to hide the sort and filter controls.</td></tr>
-                <tr><td class="act-col"><code>$luster_members_base</code></td><td>The URL of the page where you're embedding the list. Keeps pagination and sort links pointing back to your page instead of the Luster install URL.</td></tr>
+                <tr><td class="act-col"><code>$luster_per_page</code></td><td>How many members to show before Luster adds a next-page link. Leave this out to use your normal Luster setting.</td></tr>
+                <tr><td class="act-col"><code>$luster_sort_by</code></td><td>Choose how the member list starts: by name or by country. Leave this out if you want visitors to choose the order themselves.</td></tr>
+                <tr><td class="act-col"><code>$luster_show_search</code></td><td>Set this to <code>false</code> if you want to hide the member search, sort, and filter tools.</td></tr>
+                <tr><td class="act-col"><code>$luster_members_base</code></td><td>The page where your member list lives. Use this if page numbers or sort links are sending visitors to the wrong place.</td></tr>
               </tbody>
             </table>
             </div>
           </div>
-          <p class="text-muted embed-ref-copy" style="margin-top:.875rem">Options for <code>embed/reset.php</code>.</p>
+          <p class="text-muted embed-ref-copy" style="margin-top:.875rem">Settings for password reset pages.</p>
           <div class="ec-ref-card">
             <div class="table-wrap">
             <table class="data-table">
-              <thead><tr><th class="act-col">Variable</th><th>Description</th></tr></thead>
+              <thead><tr><th class="act-col">Setting</th><th>What it does</th></tr></thead>
               <tbody>
-                <tr><td class="act-col"><code>$luster_reset_step</code></td><td>By default both steps (email entry and new-password form) appear on the same page. Set to <code>'confirm'</code> to show only step 2 (new-password form) &mdash; useful if you host both steps on separate pages.</td></tr>
+                <tr><td class="act-col"><code>$luster_reset_step</code></td><td>Most sites should leave this out. Use <code>'confirm'</code> only if you made a separate page where members enter their new password.</td></tr>
               </tbody>
             </table>
             </div>
           </div>
-          <p class="text-muted embed-ref-copy" style="margin-top:.875rem">Options for <code>embed/update.php</code> and <code>embed/remove.php</code>.</p>
+          <p class="text-muted embed-ref-copy" style="margin-top:.875rem">Settings for update and remove forms.</p>
           <div class="ec-ref-card">
             <div class="table-wrap">
             <table class="data-table">
-              <thead><tr><th class="act-col">Variable</th><th>Description</th></tr></thead>
+              <thead><tr><th class="act-col">Setting</th><th>What it does</th></tr></thead>
               <tbody>
-                <tr><td class="act-col"><code>$luster_lost_password_url</code></td><td>Override the &ldquo;Forgot your password?&rdquo; link URL. Useful when the embed is on a different page than the listing&rsquo;s own <code>reset.php</code>.</td></tr>
+                <tr><td class="act-col"><code>$luster_lost_password_url</code></td><td>Changes where the &ldquo;Forgot your password?&rdquo; link goes. Use this if your password reset form is on a custom page.</td></tr>
               </tbody>
             </table>
             </div>
           </div>
-          <p class="text-muted embed-ref-copy" style="margin-top:.875rem">Options for <code>embed/stats.php</code>.</p>
+          <p class="text-muted embed-ref-copy" style="margin-top:.875rem">Settings for listing stats.</p>
           <div class="ec-ref-card">
             <div class="table-wrap">
             <table class="data-table">
-              <thead><tr><th class="act-col">Variable</th><th>Description</th></tr></thead>
+              <thead><tr><th class="act-col">Setting</th><th>What it does</th></tr></thead>
               <tbody>
-                <tr><td class="act-col"><code>$luster_stats_template</code></td><td>Inline template string. When non-empty, overrides the stats template stored in the database for this listing.</td></tr>
+                <tr><td class="act-col"><code>$luster_stats_template</code></td><td>A custom stats layout for this one snippet. Leave this out to use the stats layout saved in Luster.</td></tr>
               </tbody>
             </table>
             </div>
           </div>
-          <p class="text-muted embed-ref-copy" style="margin-top:.875rem">Options for <code>embed/affiliates.php</code>.</p>
+          <p class="text-muted embed-ref-copy" style="margin-top:.875rem">Settings for affiliate lists.</p>
           <div class="ec-ref-card">
             <div class="table-wrap">
             <table class="data-table">
-              <thead><tr><th class="act-col">Variable</th><th>Description</th></tr></thead>
+              <thead><tr><th class="act-col">Setting</th><th>What it does</th></tr></thead>
               <tbody>
-                <tr><td class="act-col"><code>$luster_affiliates_base</code></td><td>Base URL for pagination links &mdash; keeps visitors on your page instead of the Luster install URL.</td></tr>
-                <tr><td class="act-col"><code>$luster_per_page</code></td><td>Affiliates per page. Default 50.</td></tr>
-                <tr><td class="act-col"><code>$luster_page</code></td><td>Current page number. Defaults to <code>$_GET['page']</code>, then 1.</td></tr>
+                <tr><td class="act-col"><code>$luster_affiliates_base</code></td><td>The page where your affiliates list lives. Use this if page numbers are sending visitors to the wrong place.</td></tr>
+                <tr><td class="act-col"><code>$luster_per_page</code></td><td>How many affiliates to show before Luster adds a next-page link. The default is 50.</td></tr>
               </tbody>
             </table>
             </div>
           </div>
-          <p class="text-muted embed-ref-copy" style="margin-top:.875rem">Options for <code>embed/updates.php</code> and <code>embed/collective-updates.php</code>.</p>
+          <details class="ec-ref-card ec-ref-advanced">
+            <summary>Advanced affiliate setting</summary>
+            <div class="ec-ref-advanced-body">
+              <div class="table-wrap">
+              <table class="data-table">
+                <thead><tr><th class="act-col">Setting</th><th>What it does</th></tr></thead>
+                <tbody>
+                  <tr><td class="act-col"><code>$luster_page</code></td><td>Chooses which page number to show first. Most users should leave this alone.</td></tr>
+                </tbody>
+              </table>
+              </div>
+            </div>
+          </details>
+          <p class="text-muted embed-ref-copy" style="margin-top:.875rem">Settings for updates feeds.</p>
           <div class="ec-ref-card">
             <div class="table-wrap">
             <table class="data-table">
-              <thead><tr><th class="act-col">Variable</th><th>Description</th></tr></thead>
+              <thead><tr><th class="act-col">Setting</th><th>What it does</th></tr></thead>
               <tbody>
-                <tr><td class="act-col"><code>$luster_per_page</code></td><td>Items per page. Defaults to the site-wide setting.</td></tr>
-                <tr><td class="act-col"><code>$luster_show_cats</code></td><td>Set to <code>false</code> to hide the category tags on each update entry. Defaults to <code>true</code>.</td></tr>
+                <tr><td class="act-col"><code>$luster_per_page</code></td><td>How many updates to show before Luster adds a next-page link. Leave this out to use your normal Luster setting.</td></tr>
+                <tr><td class="act-col"><code>$luster_show_cats</code></td><td>Set this to <code>false</code> if you do not want category labels shown on updates.</td></tr>
               </tbody>
             </table>
             </div>
           </div>
-          <p class="text-muted embed-ref-copy" style="margin-top:.875rem">Options for <code>embed/contact.php</code> and <code>embed/collective-contact.php</code>.</p>
-          <div class="ec-ref-card">
-            <div class="table-wrap">
-            <table class="data-table">
-              <thead><tr><th class="act-col">Variable</th><th>Description</th></tr></thead>
-              <tbody>
-                <tr><td class="act-col"><code>$luster_contact_action</code></td><td>Override the form&rsquo;s POST action URL. Useful when the form and its processor live at different paths.</td></tr>
-              </tbody>
-            </table>
+          <details class="ec-ref-card ec-ref-advanced">
+            <summary>Advanced contact form setting</summary>
+            <div class="ec-ref-advanced-body">
+              <div class="table-wrap">
+              <table class="data-table">
+                <thead><tr><th class="act-col">Setting</th><th>What it does</th></tr></thead>
+                <tbody>
+                  <tr><td class="act-col"><code>$luster_contact_action</code></td><td>Changes where the contact form sends the message after someone clicks submit. Most users should leave this out.</td></tr>
+                </tbody>
+              </table>
+              </div>
             </div>
-          </div>
+          </details>
         </div>
 
         <div class="ec-ref-panel" id="ec-ref-listings">
-          <h3 class="pc-head-title embed-ref-heading">Listings display</h3>
-          <p class="text-muted embed-ref-copy">Options for <code>embed/owned.php</code>.</p>
+          <h3 class="pc-head-title embed-ref-heading">Listing pages</h3>
+          <p class="text-muted embed-ref-copy">Settings for owned listings pages.</p>
           <div class="ec-ref-card">
             <div class="table-wrap">
             <table class="data-table">
-              <thead><tr><th class="act-col">Variable</th><th>Description</th></tr></thead>
+              <thead><tr><th class="act-col">Setting</th><th>What it does</th></tr></thead>
               <tbody>
-                <tr><td class="act-col"><code>$luster_status</code></td><td>Filter by status: <code>'current'</code>, <code>'upcoming'</code>, <code>'pending'</code>, or <code>'all'</code>. Defaults to <code>'current'</code> only.</td></tr>
-                <tr><td class="act-col"><code>$luster_category_id</code></td><td>Pre-filter to a specific category by its integer ID. When <code>0</code> (default), reads <code>$_GET['cat']</code> automatically so the built-in selector works without extra PHP.</td></tr>
-                <tr><td class="act-col"><code>$luster_hide_dropdown</code></td><td>Set to <code>true</code> to hide the category filter entirely. Useful when combining with <code>$luster_category_id</code> to show a single fixed category with no selector.</td></tr>
-                <tr><td class="act-col"><code>$luster_show_list</code></td><td>Set to <code>true</code> to render categories as a bulleted link list instead of a <code>&lt;select&gt;</code> dropdown.</td></tr>
-                <tr><td class="act-col"><code>$luster_browse_by_category</code></td><td>Set to <code>true</code> to enable browse-by-category mode. The landing view shows a category index with listing counts. Clicking a category loads its listings formatted with your HTML template from Admin &rarr; Collective.</td></tr>
-                <tr><td class="act-col"><code>$luster_exclude_pending</code></td><td>When <code>true</code> (default) and <code>$luster_status</code> is <code>'all'</code>, pending listings are silently omitted. Has no effect for other status values.</td></tr>
+                <tr><td class="act-col"><code>$luster_status</code></td><td>Choose which owned listings to show: current, upcoming, pending, or all. Leave this out to show current listings only.</td></tr>
+                <tr><td class="act-col"><code>$luster_category_id</code></td><td>Show only one category of owned listings. Most users can leave this out and let visitors choose a category on the page.</td></tr>
+                <tr><td class="act-col"><code>$luster_hide_dropdown</code></td><td>Set this to <code>true</code> if you do not want the category dropdown to appear.</td></tr>
+                <tr><td class="act-col"><code>$luster_show_list</code></td><td>Set this to <code>true</code> to show category links as a list instead of a dropdown.</td></tr>
+                <tr><td class="act-col"><code>$luster_browse_by_category</code></td><td>Set this to <code>true</code> if you want visitors to choose a category first, then see the listings in that category.</td></tr>
+                <tr><td class="act-col"><code>$luster_exclude_pending</code></td><td>When showing all statuses, this keeps pending listings hidden. Leave it alone unless you want pending listings to show too.</td></tr>
               </tbody>
             </table>
             </div>
           </div>
-          <p class="text-muted embed-ref-copy" style="margin-top:.875rem">Options for <code>embed/joined.php</code>.</p>
+          <p class="text-muted embed-ref-copy" style="margin-top:.875rem">Settings for joined listings pages.</p>
           <div class="ec-ref-card">
             <div class="table-wrap">
             <table class="data-table">
-              <thead><tr><th class="act-col">Variable</th><th>Description</th></tr></thead>
+              <thead><tr><th class="act-col">Setting</th><th>What it does</th></tr></thead>
               <tbody>
-                <tr><td class="act-col"><code>$luster_category</code></td><td>Leave blank (<code>''</code>) for a dropdown selector. Set to <code>'all'</code> to show every listing grouped by category heading. Or enter an exact category name to show only that category's listings.</td></tr>
-                <tr><td class="act-col"><code>$luster_show_list</code></td><td>Set to <code>true</code> to render the category selector as a bulleted link list instead of a <code>&lt;select&gt;</code> dropdown. Has no effect when <code>$luster_category</code> is <code>'all'</code> or a fixed name.</td></tr>
-                <tr><td class="act-col"><code>$luster_show_all_by_default</code></td><td>Set to <code>true</code> to show the dropdown selector AND all listings grouped below it on the initial page load (no category needs to be selected first).</td></tr>
-                <tr><td class="act-col"><code>$luster_browse_by_category</code></td><td>Set to <code>true</code> to enable browse-by-category mode. The landing view shows all category names as links. Clicking a category loads its listings formatted with your HTML template from Admin &rarr; Collective.</td></tr>
+                <tr><td class="act-col"><code>$luster_category</code></td><td>Choose what joined listings to show. Leave it blank to let visitors choose a category. Use <code>'all'</code> to show everything grouped by category. Or type one category name to show only that category.</td></tr>
+                <tr><td class="act-col"><code>$luster_show_list</code></td><td>Set this to <code>true</code> to show category links as a list instead of a dropdown. This only matters when visitors are choosing a category.</td></tr>
+                <tr><td class="act-col"><code>$luster_show_all_by_default</code></td><td>Set this to <code>true</code> if you want all joined listings to show right away, while still letting visitors choose a category.</td></tr>
+                <tr><td class="act-col"><code>$luster_browse_by_category</code></td><td>Set this to <code>true</code> if you want visitors to choose a category first, then see the joined listings in that category.</td></tr>
               </tbody>
             </table>
             </div>
           </div>
-          <p class="text-muted embed-ref-copy" style="margin-top:.875rem">Options for <code>embed/random-listing.php</code>.</p>
+          <p class="text-muted embed-ref-copy" style="margin-top:.875rem">Setting for random listing.</p>
           <div class="ec-ref-card">
             <div class="table-wrap">
             <table class="data-table">
-              <thead><tr><th class="act-col">Variable</th><th>Description</th></tr></thead>
+              <thead><tr><th class="act-col">Setting</th><th>What it does</th></tr></thead>
               <tbody>
-                <tr><td class="act-col"><code>$luster_status</code></td><td>Pool to draw from: <code>'current'</code> (default), <code>'upcoming'</code>, or <code>'all'</code>.</td></tr>
+                <tr><td class="act-col"><code>$luster_status</code></td><td>Choose which listings the random pick can come from: current, upcoming, or all.</td></tr>
               </tbody>
             </table>
             </div>
           </div>
-          <p class="text-muted embed-ref-copy" style="margin-top:.875rem">Options for <code>embed/wishlist.php</code>.</p>
+          <p class="text-muted embed-ref-copy" style="margin-top:.875rem">Setting for wishlist pages.</p>
           <div class="ec-ref-card">
             <div class="table-wrap">
             <table class="data-table">
-              <thead><tr><th class="act-col">Variable</th><th>Description</th></tr></thead>
+              <thead><tr><th class="act-col">Setting</th><th>What it does</th></tr></thead>
               <tbody>
-                <tr><td class="act-col"><code>$luster_wishlist_type</code></td><td>Filter by type: <code>'all'</code> (default), <code>'wanted'</code>, <code>'top'</code>, <code>'granted'</code>, or <code>'upcoming'</code>.</td></tr>
+                <tr><td class="act-col"><code>$luster_wishlist_type</code></td><td>Choose which wishlist entries to show: all, wanted, top, granted, or upcoming.</td></tr>
               </tbody>
             </table>
             </div>
           </div>
-          <p class="text-muted embed-ref-copy" style="margin-top:.875rem">Options for the KIM List embeds (<code>kim-signup</code>, <code>kim-list</code>, <code>kim-update</code>, <code>kim-reset</code>).</p>
+          <p class="text-muted embed-ref-copy" style="margin-top:.875rem">Settings for KIM List pages.</p>
           <div class="ec-ref-card">
             <div class="table-wrap">
             <table class="data-table">
-              <thead><tr><th class="act-col">Variable</th><th>Description</th></tr></thead>
+              <thead><tr><th class="act-col">Setting</th><th>What it does</th></tr></thead>
               <tbody>
-                <tr><td class="act-col"><code>$luster_kim_signup_url</code></td><td>Override the KIM sign-up page URL.</td></tr>
-                <tr><td class="act-col"><code>$luster_kim_update_url</code></td><td>Override the KIM update-details page URL.</td></tr>
-                <tr><td class="act-col"><code>$luster_kim_reset_url</code></td><td>Override the KIM password-reset page URL.</td></tr>
-                <tr><td class="act-col"><code>$luster_kim_list_url</code></td><td>Override the KIM public-list page URL.</td></tr>
+                <tr><td class="act-col"><code>$luster_kim_signup_url</code></td><td>Link to your KIM sign-up page. Use this if it is different from the one saved in Luster.</td></tr>
+                <tr><td class="act-col"><code>$luster_kim_update_url</code></td><td>Link to your KIM update page. Use this if it is different from the one saved in Luster.</td></tr>
+                <tr><td class="act-col"><code>$luster_kim_reset_url</code></td><td>Link to your KIM password reset page. Use this if it is different from the one saved in Luster.</td></tr>
+                <tr><td class="act-col"><code>$luster_kim_list_url</code></td><td>Link to your public KIM list page. Use this if it is different from the one saved in Luster.</td></tr>
               </tbody>
             </table>
             </div>
           </div>
-          <p class="text-muted embed-ref-copy" style="margin-top:.875rem">Input options for <code>embed/collective-stats.php</code>.</p>
+          <p class="text-muted embed-ref-copy" style="margin-top:.875rem">Setting for collective stats.</p>
           <div class="ec-ref-card">
             <div class="table-wrap">
             <table class="data-table">
-              <thead><tr><th class="act-col">Variable</th><th>Description</th></tr></thead>
+              <thead><tr><th class="act-col">Setting</th><th>What it does</th></tr></thead>
               <tbody>
-                <tr><td class="act-col"><code>$luster_count</code></td><td>How many listings to fetch for the newest/random arrays. Default 3.</td></tr>
-                <tr><td class="act-col"><code>$luster_cache_ttl</code></td><td>Stat cache lifetime in seconds. <code>0</code> (default) disables caching. Newest/random are always fetched fresh.</td></tr>
+                <tr><td class="act-col"><code>$luster_count</code></td><td>How many newest listings Luster should make available. The default is 3.</td></tr>
               </tbody>
             </table>
             </div>
           </div>
+          <details class="ec-ref-card ec-ref-advanced">
+            <summary>Advanced stats setting</summary>
+            <div class="ec-ref-advanced-body">
+              <div class="table-wrap">
+              <table class="data-table">
+                <thead><tr><th class="act-col">Setting</th><th>What it does</th></tr></thead>
+                <tbody>
+                  <tr><td class="act-col"><code>$luster_cache_ttl</code></td><td>How long Luster should reuse the same counted stats before counting again. Use <code>0</code> if you always want fresh numbers.</td></tr>
+                </tbody>
+              </table>
+              </div>
+            </div>
+          </details>
         </div>
 
         <!-- STATS TEMPLATE TOKENS -->
         <div class="ec-ref-panel" id="ec-ref-stat-tokens">
-          <h3 class="pc-head-title embed-ref-heading">Stats template tokens</h3>
-          <p class="text-muted embed-ref-copy">Use these in the stats template under <strong>Edit Listing &rarr; Templates</strong>. Rendered by <code>embed/stats.php</code>.</p>
+          <h3 class="pc-head-title embed-ref-heading">Listing stats</h3>
+          <p class="text-muted embed-ref-copy">Put these words in your stats template. Luster replaces each one with real listing information.</p>
           <div class="ec-ref-card">
             <div class="table-wrap">
             <table class="data-table">
-              <thead><tr><th class="act-col">Token</th><th>Output</th></tr></thead>
+              <thead><tr><th class="act-col">Template word</th><th>What it shows</th></tr></thead>
               <tbody>
-                <tr><td class="act-col"><code class="ec-tk">{stat_approved}</code></td><td>Approved member count. <span class="ec-ex">e.g. <em>33</em></span></td></tr>
-                <tr><td class="act-col"><code class="ec-tk">{stat_pending}</code></td><td>Members awaiting approval.</td></tr>
-                <tr><td class="act-col"><code class="ec-tk">{stat_opened}</code></td><td>Date the listing opened. <span class="ec-ex">e.g. <em>January 29th 2026</em></span></td></tr>
-                <tr><td class="act-col"><code class="ec-tk">{stat_updated}</code></td><td>Date of the most recently approved member.</td></tr>
-                <tr><td class="act-col"><code class="ec-tk">{stat_last_updated}</code></td><td>Admin-controlled &ldquo;last updated&rdquo; date from listing settings.</td></tr>
-                <tr><td class="act-col"><code class="ec-tk">{stat_newmembers}</code></td><td>Comma-separated names of the 5 most recently approved members.</td></tr>
-                <tr><td class="act-col"><code class="ec-tk">{stat_growth}</code></td><td>Average members per day since opened (2 decimal places).</td></tr>
-                <tr><td class="act-col"><code class="ec-tk">{listing_name}</code></td><td>Listing name.</td></tr>
-                <tr><td class="act-col"><code class="ec-tk">{listing_url}</code></td><td>Listing URL.</td></tr>
-                <tr><td class="act-col"><code class="ec-tk">{approved_by}</code></td><td>Linked network name &mdash; &ldquo;The Fanlistings Network&rdquo; or &ldquo;The Anime Fanlistings Network&rdquo;. Empty string if not approved by either.</td></tr>
-                <tr><td class="act-col"><code class="ec-tk">{if_approved_by}&hellip;{/if_approved_by}</code></td><td>Block shown only when <code>{approved_by}</code> is non-empty.</td></tr>
+                <tr><td class="act-col"><code class="ec-tk">{stat_approved}</code></td><td>Number of approved members. <span class="ec-ex">e.g. <em>33</em></span></td></tr>
+                <tr><td class="act-col"><code class="ec-tk">{stat_pending}</code></td><td>Number of members waiting for approval.</td></tr>
+                <tr><td class="act-col"><code class="ec-tk">{stat_opened}</code></td><td>Date you opened the listing.</td></tr>
+                <tr><td class="act-col"><code class="ec-tk">{stat_updated}</code></td><td>Date the newest approved member joined.</td></tr>
+                <tr><td class="act-col"><code class="ec-tk">{stat_last_updated}</code></td><td>The &ldquo;last updated&rdquo; date you set for the listing in Luster.</td></tr>
+                <tr><td class="act-col"><code class="ec-tk">{stat_newmembers}</code></td><td>Names of the 5 newest approved members.</td></tr>
+                <tr><td class="act-col"><code class="ec-tk">{stat_growth}</code></td><td>Average new members per day since the listing opened.</td></tr>
+                <tr><td class="act-col"><code class="ec-tk">{listing_title}</code></td><td>Name of the listing.</td></tr>
+                <tr><td class="act-col"><code class="ec-tk">{listing_url}</code></td><td>Link to the listing.</td></tr>
+                <tr><td class="act-col"><code class="ec-tk">{approved_by}</code></td><td>The network that approved the listing, if one is saved.</td></tr>
+                <tr><td class="act-col"><code class="ec-tk">{if_approved_by}&hellip;{/if_approved_by}</code></td><td>Shows the text inside only when the listing has an approved-by network saved.</td></tr>
               </tbody>
             </table>
             </div>
@@ -620,18 +659,18 @@ $epSafe = View::e($ep);
 
         <!-- MEMBER ROW TOKENS -->
         <div class="ec-ref-panel" id="ec-ref-row-tokens">
-          <h3 class="pc-head-title embed-ref-heading">Member row template tokens</h3>
-          <p class="text-muted embed-ref-copy">Use these in the member row template under <strong>Edit Listing &rarr; Templates</strong>. Each token is replaced per-row by <code>embed/members.php</code>.</p>
+          <h3 class="pc-head-title embed-ref-heading">Member list</h3>
+          <p class="text-muted embed-ref-copy">Put these words in your member list template. Luster fills them in for each member.</p>
           <div class="ec-ref-card">
             <div class="table-wrap">
             <table class="data-table">
-              <thead><tr><th class="act-col">Token</th><th>Output</th></tr></thead>
+              <thead><tr><th class="act-col">Template word</th><th>What it shows</th></tr></thead>
               <tbody>
-                <tr><td class="act-col"><code class="ec-tk">{fan_name}</code></td><td>Member's display name. <span class="ec-ex">e.g. <em>Alexia</em></span></td></tr>
-                <tr><td class="act-col"><code class="ec-tk">{fan_url}</code></td><td>Member's website URL.</td></tr>
-                <tr><td class="act-col"><code class="ec-tk">{fan_email}</code></td><td>Member's email address &mdash; visible on the page, use with care.</td></tr>
-                <tr><td class="act-col"><code class="ec-tk">{fan_country}</code></td><td>Country name. <span class="ec-ex">e.g. <em>Philippines</em></span></td></tr>
-                <tr><td class="act-col"><code class="ec-tk">{fan_<em>fieldname</em>}</code></td><td>Value of a custom additional field, where <em>fieldname</em> is the field&rsquo;s machine name as defined under <strong>Edit Listing &rarr; Fields</strong>. <span class="ec-ex">e.g. <code>{fan_favorite}</code></span></td></tr>
+                <tr><td class="act-col"><code class="ec-tk">{fan_name}</code></td><td>Member&rsquo;s name. <span class="ec-ex">e.g. <em>Alexia</em></span></td></tr>
+                <tr><td class="act-col"><code class="ec-tk">{fan_url}</code></td><td>Member&rsquo;s website link.</td></tr>
+                <tr><td class="act-col"><code class="ec-tk">{fan_email}</code></td><td>Member&rsquo;s email address. Only use this if you really want emails visible on your site.</td></tr>
+                <tr><td class="act-col"><code class="ec-tk">{fan_country}</code></td><td>Member&rsquo;s country.</td></tr>
+                <tr><td class="act-col"><code class="ec-tk">{fan_<em>fieldname</em>}</code></td><td>A custom field answer from the member. Replace <em>fieldname</em> with your field name. <span class="ec-ex">e.g. <code>{fan_favorite}</code></span></td></tr>
               </tbody>
             </table>
             </div>
@@ -640,47 +679,47 @@ $epSafe = View::e($ep);
 
         <!-- OWNED LISTINGS TOKENS -->
         <div class="ec-ref-panel" id="ec-ref-owned-tokens">
-          <h3 class="pc-head-title embed-ref-heading">Owned listings tokens</h3>
-          <p class="text-muted embed-ref-copy">Row template tokens for <strong>Admin &rarr; Collective &rarr; Owned Listings</strong>. Used by <code>embed/owned.php</code>, <code>embed/latest-listing.php</code>, and <code>embed/random-listing.php</code>.</p>
+          <h3 class="pc-head-title embed-ref-heading">Owned listings</h3>
+          <p class="text-muted embed-ref-copy">Put these words in your owned listings template. Luster fills them in for each listing.</p>
           <div class="ec-ref-card">
             <div class="table-wrap">
             <table class="data-table">
-              <thead><tr><th class="act-col">Token</th><th>Output</th></tr></thead>
+              <thead><tr><th class="act-col">Template word</th><th>What it shows</th></tr></thead>
               <tbody>
-                <tr><td class="act-col"><code class="ec-tk">{listing_name}</code></td><td>Listing name.</td></tr>
-                <tr><td class="act-col"><code class="ec-tk">{listing_url}</code></td><td>Listing URL.</td></tr>
-                <tr><td class="act-col"><code class="ec-tk">{listing_subject}</code></td><td>Subject / topic.</td></tr>
-                <tr><td class="act-col"><code class="ec-tk">{listing_status}</code></td><td>Status label: Current, Upcoming, or Pending.</td></tr>
-                <tr><td class="act-col"><code class="ec-tk">{listing_email}</code></td><td>Contact email address.</td></tr>
-                <tr><td class="act-col"><code class="ec-tk">{listing_type}</code></td><td>Listing type field.</td></tr>
-                <tr><td class="act-col"><code class="ec-tk">{listing_category}</code></td><td>Comma-separated category names.</td></tr>
-                <tr><td class="act-col"><code class="ec-tk">{listing_image}</code></td><td>Rendered <code>&lt;img&gt;</code> tag, or empty string when no image is set.</td></tr>
-                <tr><td class="act-col"><code class="ec-tk">{date_opened}</code></td><td>Date the listing opened.</td></tr>
-                <tr><td class="act-col"><code class="ec-tk">{date_updated}</code></td><td>Date last updated (admin-set).</td></tr>
-                <tr><td class="act-col"><code class="ec-tk">{member_count}</code></td><td>Approved member count. Triggers a DB query per listing only when present in the template.</td></tr>
-                <tr><td class="act-col"><code class="ec-tk">{country_count}</code></td><td>Distinct countries represented. Same lazy-load behaviour as <code>{member_count}</code>.</td></tr>
-                <tr><td class="act-col"><code class="ec-tk">{countries_count}</code></td><td>Alias for <code>{country_count}</code>.</td></tr>
-                <tr><td class="act-col"><code class="ec-tk">{if_countries}&hellip;{/if_countries}</code></td><td>Block shown only when the country count is greater than zero.</td></tr>
+                <tr><td class="act-col"><code class="ec-tk">{listing_title}</code></td><td>Name of the listing.</td></tr>
+                <tr><td class="act-col"><code class="ec-tk">{listing_url}</code></td><td>Link to the listing.</td></tr>
+                <tr><td class="act-col"><code class="ec-tk">{listing_subject}</code></td><td>What the listing is for.</td></tr>
+                <tr><td class="act-col"><code class="ec-tk">{listing_status}</code></td><td>Listing status: Current, Upcoming, or Pending.</td></tr>
+                <tr><td class="act-col"><code class="ec-tk">{listing_email}</code></td><td>Contact email for the listing.</td></tr>
+                <tr><td class="act-col"><code class="ec-tk">{listing_type}</code></td><td>Listing type, if you filled one in.</td></tr>
+                <tr><td class="act-col"><code class="ec-tk">{listing_category}</code></td><td>The listing&rsquo;s categories.</td></tr>
+                <tr><td class="act-col"><code class="ec-tk">{listing_image}</code></td><td>The listing image. If there is no image, nothing is shown.</td></tr>
+                <tr><td class="act-col"><code class="ec-tk">{date_opened}</code></td><td>Date you opened the listing.</td></tr>
+                <tr><td class="act-col"><code class="ec-tk">{date_updated}</code></td><td>The &ldquo;last updated&rdquo; date you set for the listing in Luster.</td></tr>
+                <tr><td class="act-col"><code class="ec-tk">{member_count}</code></td><td>Number of approved members.</td></tr>
+                <tr><td class="act-col"><code class="ec-tk">{country_count}</code></td><td>Number of different countries represented by approved members.</td></tr>
+                <tr><td class="act-col"><code class="ec-tk">{countries_count}</code></td><td>Same number as <code>{country_count}</code>.</td></tr>
+                <tr><td class="act-col"><code class="ec-tk">{if_countries}&hellip;{/if_countries}</code></td><td>Shows the text inside only when at least one country is counted.</td></tr>
               </tbody>
             </table>
             </div>
           </div>
-          <p class="text-muted embed-ref-copy" style="margin-top:.875rem">Sections layout tokens &mdash; used when <code>$luster_status = 'all'</code> and a sections template is saved under <strong>Admin &rarr; Collective &rarr; Owned Listings &mdash; Sections Layout</strong>.</p>
+          <p class="text-muted embed-ref-copy" style="margin-top:.875rem">Section words for the owned listings sections layout.</p>
           <div class="ec-ref-card">
             <div class="table-wrap">
             <table class="data-table">
-              <thead><tr><th class="act-col">Token</th><th>Output</th></tr></thead>
+              <thead><tr><th class="act-col">Template word</th><th>What it shows</th></tr></thead>
               <tbody>
-                <tr><td class="act-col"><code class="ec-tk">{current_content}</code></td><td>Rendered rows for current / active listings.</td></tr>
-                <tr><td class="act-col"><code class="ec-tk">{upcoming_content}</code></td><td>Rendered rows for upcoming listings.</td></tr>
-                <tr><td class="act-col"><code class="ec-tk">{pending_content}</code></td><td>Rendered rows for pending listings.</td></tr>
+                <tr><td class="act-col"><code class="ec-tk">{current_content}</code></td><td>The current listings section.</td></tr>
+                <tr><td class="act-col"><code class="ec-tk">{upcoming_content}</code></td><td>The upcoming listings section.</td></tr>
+                <tr><td class="act-col"><code class="ec-tk">{pending_content}</code></td><td>The pending listings section.</td></tr>
                 <tr><td class="act-col"><code class="ec-tk">{current_count}</code></td><td>Number of current listings.</td></tr>
                 <tr><td class="act-col"><code class="ec-tk">{upcoming_count}</code></td><td>Number of upcoming listings.</td></tr>
                 <tr><td class="act-col"><code class="ec-tk">{pending_count}</code></td><td>Number of pending listings.</td></tr>
                 <tr><td class="act-col"><code class="ec-tk">{total_count}</code></td><td>Total listings shown.</td></tr>
-                <tr><td class="act-col"><code class="ec-tk">{if_current_listings}&hellip;{/if_current_listings}</code></td><td>Block shown only when current listings exist.</td></tr>
-                <tr><td class="act-col"><code class="ec-tk">{if_upcoming_listings}&hellip;{/if_upcoming_listings}</code></td><td>Block shown only when upcoming listings exist.</td></tr>
-                <tr><td class="act-col"><code class="ec-tk">{if_pending_listings}&hellip;{/if_pending_listings}</code></td><td>Block shown only when pending listings exist.</td></tr>
+                <tr><td class="act-col"><code class="ec-tk">{if_current_listings}&hellip;{/if_current_listings}</code></td><td>Shows the text inside only when there are current listings.</td></tr>
+                <tr><td class="act-col"><code class="ec-tk">{if_upcoming_listings}&hellip;{/if_upcoming_listings}</code></td><td>Shows the text inside only when there are upcoming listings.</td></tr>
+                <tr><td class="act-col"><code class="ec-tk">{if_pending_listings}&hellip;{/if_pending_listings}</code></td><td>Shows the text inside only when there are pending listings.</td></tr>
               </tbody>
             </table>
             </div>
@@ -689,34 +728,34 @@ $epSafe = View::e($ep);
 
         <!-- JOINED LISTINGS TOKENS -->
         <div class="ec-ref-panel" id="ec-ref-joined-tokens">
-          <h3 class="pc-head-title embed-ref-heading">Joined listings tokens</h3>
-          <p class="text-muted embed-ref-copy">Row template tokens for <strong>Admin &rarr; Collective &rarr; Joined Listings</strong>. Used by <code>embed/joined.php</code>.</p>
+          <h3 class="pc-head-title embed-ref-heading">Joined listings</h3>
+          <p class="text-muted embed-ref-copy">Put these words in your joined listings template. Luster fills them in for each listing.</p>
           <div class="ec-ref-card">
             <div class="table-wrap">
             <table class="data-table">
-              <thead><tr><th class="act-col">Token</th><th>Output</th></tr></thead>
+              <thead><tr><th class="act-col">Template word</th><th>What it shows</th></tr></thead>
               <tbody>
-                <tr><td class="act-col"><code class="ec-tk">{listing_name}</code></td><td>Listing name.</td></tr>
-                <tr><td class="act-col"><code class="ec-tk">{listing_url}</code></td><td>Listing URL.</td></tr>
-                <tr><td class="act-col"><code class="ec-tk">{listing_category}</code></td><td>Category name.</td></tr>
-                <tr><td class="act-col"><code class="ec-tk">{listing_image}</code></td><td>Rendered <code>&lt;img&gt;</code> tag, or empty string when no image is set.</td></tr>
-                <tr><td class="act-col"><code class="ec-tk">{image}</code></td><td>Alias for <code>{listing_image}</code>.</td></tr>
-                <tr><td class="act-col"><code class="ec-tk">{listing_status}</code></td><td>Status text.</td></tr>
-                <tr><td class="act-col"><code class="ec-tk">{date_joined}</code></td><td>Date joined.</td></tr>
+                <tr><td class="act-col"><code class="ec-tk">{listing_title}</code></td><td>Name of the listing.</td></tr>
+                <tr><td class="act-col"><code class="ec-tk">{listing_url}</code></td><td>Link to the listing.</td></tr>
+                <tr><td class="act-col"><code class="ec-tk">{listing_category}</code></td><td>Listing category.</td></tr>
+                <tr><td class="act-col"><code class="ec-tk">{listing_image}</code></td><td>The listing image. If there is no image, nothing is shown.</td></tr>
+                <tr><td class="act-col"><code class="ec-tk">{image}</code></td><td>Same as <code>{listing_image}</code>.</td></tr>
+                <tr><td class="act-col"><code class="ec-tk">{listing_status}</code></td><td>Listing status.</td></tr>
+                <tr><td class="act-col"><code class="ec-tk">{date_joined}</code></td><td>Date you joined the listing.</td></tr>
               </tbody>
             </table>
             </div>
           </div>
-          <p class="text-muted embed-ref-copy" style="margin-top:.875rem">Sections layout tokens &mdash; used when <code>$luster_category = 'all'</code> and a sections template is saved under <strong>Admin &rarr; Collective &rarr; Joined Listings &mdash; Sections Layout</strong>.</p>
+          <p class="text-muted embed-ref-copy" style="margin-top:.875rem">Section words for the joined listings sections layout.</p>
           <div class="ec-ref-card">
             <div class="table-wrap">
             <table class="data-table">
-              <thead><tr><th class="act-col">Token</th><th>Output</th></tr></thead>
+              <thead><tr><th class="act-col">Template word</th><th>What it shows</th></tr></thead>
               <tbody>
-                <tr><td class="act-col"><code class="ec-tk">{current_content}</code></td><td>Rendered rows for all active joined listings.</td></tr>
-                <tr><td class="act-col"><code class="ec-tk">{current_count}</code></td><td>Number of active listings.</td></tr>
-                <tr><td class="act-col"><code class="ec-tk">{total_count}</code></td><td>Total active listings.</td></tr>
-                <tr><td class="act-col"><code class="ec-tk">{if_current_listings}&hellip;{/if_current_listings}</code></td><td>Block shown only when active listings exist.</td></tr>
+                <tr><td class="act-col"><code class="ec-tk">{current_content}</code></td><td>The active joined listings section.</td></tr>
+                <tr><td class="act-col"><code class="ec-tk">{current_count}</code></td><td>Number of active joined listings.</td></tr>
+                <tr><td class="act-col"><code class="ec-tk">{total_count}</code></td><td>Total number of active joined listings.</td></tr>
+                <tr><td class="act-col"><code class="ec-tk">{if_current_listings}&hellip;{/if_current_listings}</code></td><td>Shows the text inside only when there are active joined listings.</td></tr>
               </tbody>
             </table>
             </div>
@@ -725,33 +764,33 @@ $epSafe = View::e($ep);
 
         <!-- AFFILIATES TOKENS -->
         <div class="ec-ref-panel" id="ec-ref-aff-tokens">
-          <h3 class="pc-head-title embed-ref-heading">Affiliates tokens</h3>
-          <p class="text-muted embed-ref-copy">Row template tokens for <strong>Edit Listing &rarr; Templates</strong> (per-listing) or <strong>Admin &rarr; Collective &rarr; Affiliates</strong> (collective). Used by <code>embed/affiliates.php</code>.</p>
+          <h3 class="pc-head-title embed-ref-heading">Affiliates</h3>
+          <p class="text-muted embed-ref-copy">Put these words in your affiliates template. Luster fills them in for each affiliate.</p>
           <div class="ec-ref-card">
             <div class="table-wrap">
             <table class="data-table">
-              <thead><tr><th class="act-col">Token</th><th>Output</th></tr></thead>
+              <thead><tr><th class="act-col">Template word</th><th>What it shows</th></tr></thead>
               <tbody>
-                <tr><td class="act-col"><code class="ec-tk">{aff_name}</code></td><td>Affiliate site name.</td></tr>
-                <tr><td class="act-col"><code class="ec-tk">{aff_url}</code></td><td>Affiliate URL.</td></tr>
-                <tr><td class="act-col"><code class="ec-tk">{aff_image}</code></td><td>Image filename only, or empty string.</td></tr>
-                <tr><td class="act-col"><code class="ec-tk">{aff_image_url}</code></td><td>Full image URL ready for use in <code>src</code>, or empty string.</td></tr>
-                <tr><td class="act-col"><code class="ec-tk">{aff_image_tag}</code></td><td>Rendered <code>&lt;img&gt;</code> tag, or empty string when no image.</td></tr>
+                <tr><td class="act-col"><code class="ec-tk">{aff_name}</code></td><td>Affiliate site&rsquo;s name.</td></tr>
+                <tr><td class="act-col"><code class="ec-tk">{aff_url}</code></td><td>Affiliate site&rsquo;s link.</td></tr>
+                <tr><td class="act-col"><code class="ec-tk">{aff_image}</code></td><td>Affiliate image filename. Most users should use <code>{aff_image_tag}</code> instead.</td></tr>
+                <tr><td class="act-col"><code class="ec-tk">{aff_image_url}</code></td><td>Direct link to the affiliate image. Use this only if you are making your own image code.</td></tr>
+                <tr><td class="act-col"><code class="ec-tk">{aff_image_tag}</code></td><td>The affiliate image. If there is no image, nothing is shown.</td></tr>
               </tbody>
             </table>
             </div>
           </div>
-          <p class="text-muted embed-ref-copy" style="margin-top:.875rem">Section layout tokens &mdash; wrap the rendered rows in a full section. Saved under <strong>Edit Listing &rarr; Templates</strong> or <strong>Admin &rarr; Collective &rarr; Affiliates &mdash; Section Layout</strong>.</p>
+          <p class="text-muted embed-ref-copy" style="margin-top:.875rem">Section words for affiliate section layouts.</p>
           <div class="ec-ref-card">
             <div class="table-wrap">
             <table class="data-table">
-              <thead><tr><th class="act-col">Token</th><th>Output</th></tr></thead>
+              <thead><tr><th class="act-col">Template word</th><th>What it shows</th></tr></thead>
               <tbody>
-                <tr><td class="act-col"><code class="ec-tk">{affiliates}</code></td><td>All rendered affiliate rows.</td></tr>
-                <tr><td class="act-col"><code class="ec-tk">{affiliates_count}</code></td><td>Total active affiliate count.</td></tr>
-                <tr><td class="act-col"><code class="ec-tk">{affiliates_list}</code></td><td>Comma-separated <code>&lt;a&gt;</code> link list of affiliate names.</td></tr>
-                <tr><td class="act-col"><code class="ec-tk">{if_affiliates}&hellip;{/if_affiliates}</code></td><td>Block shown only when affiliate count &gt; 0.</td></tr>
-                <tr><td class="act-col"><code class="ec-tk">{if_no_affiliates}&hellip;{/if_no_affiliates}</code></td><td>Block shown only when affiliate count = 0.</td></tr>
+                <tr><td class="act-col"><code class="ec-tk">{affiliates}</code></td><td>All affiliate rows.</td></tr>
+                <tr><td class="act-col"><code class="ec-tk">{affiliates_count}</code></td><td>Number of active affiliates.</td></tr>
+                <tr><td class="act-col"><code class="ec-tk">{affiliates_list}</code></td><td>A simple linked list of affiliate names.</td></tr>
+                <tr><td class="act-col"><code class="ec-tk">{if_affiliates}&hellip;{/if_affiliates}</code></td><td>Shows the text inside only when there are affiliates.</td></tr>
+                <tr><td class="act-col"><code class="ec-tk">{if_no_affiliates}&hellip;{/if_no_affiliates}</code></td><td>Shows the text inside only when there are no affiliates.</td></tr>
               </tbody>
             </table>
             </div>
@@ -760,27 +799,27 @@ $epSafe = View::e($ep);
 
         <!-- COLLECTIVE STATS TEMPLATE TOKENS -->
         <div class="ec-ref-panel" id="ec-ref-cstat-tokens">
-          <h3 class="pc-head-title embed-ref-heading">Collective stats template tokens</h3>
-          <p class="text-muted embed-ref-copy">Use these in the Statistics template under <strong>Admin &rarr; Collective &rarr; Statistics</strong>. Rendered by <code>embed/collective-stats.php</code> when a template is saved.</p>
+          <h3 class="pc-head-title embed-ref-heading">Collective stats template</h3>
+          <p class="text-muted embed-ref-copy">Put these words in your collective stats template. Luster replaces them with your site-wide numbers.</p>
           <div class="ec-ref-card">
             <div class="table-wrap">
             <table class="data-table">
-              <thead><tr><th class="act-col">Token</th><th>Output</th></tr></thead>
+              <thead><tr><th class="act-col">Template word</th><th>What it shows</th></tr></thead>
               <tbody>
-                <tr><td class="act-col"><code class="ec-tk">{owned_active}</code></td><td>Active owned listing count.</td></tr>
-                <tr><td class="act-col"><code class="ec-tk">{owned_upcoming}</code></td><td>Upcoming owned listing count.</td></tr>
-                <tr><td class="act-col"><code class="ec-tk">{owned_pending}</code></td><td>Pending / inactive owned listing count.</td></tr>
-                <tr><td class="act-col"><code class="ec-tk">{joined_active}</code></td><td>Active joined listing count.</td></tr>
-                <tr><td class="act-col"><code class="ec-tk">{affiliates}</code></td><td>Active collective affiliate count.</td></tr>
-                <tr><td class="act-col"><code class="ec-tk">{members_total}</code></td><td>Total members across all listings.</td></tr>
-                <tr><td class="act-col"><code class="ec-tk">{members_approved}</code></td><td>Approved members across all listings.</td></tr>
-                <tr><td class="act-col"><code class="ec-tk">{members_pending}</code></td><td>Pending members across all listings.</td></tr>
-                <tr><td class="act-col"><code class="ec-tk">{owned_newest_name}</code></td><td>Name of the newest active owned listing, or empty.</td></tr>
-                <tr><td class="act-col"><code class="ec-tk">{owned_newest_url}</code></td><td>URL of the newest active owned listing, or empty.</td></tr>
-                <tr><td class="act-col"><code class="ec-tk">{owned_random_name}</code></td><td>Name of a random active owned listing, or empty.</td></tr>
-                <tr><td class="act-col"><code class="ec-tk">{owned_random_url}</code></td><td>URL of a random active owned listing, or empty.</td></tr>
-                <tr><td class="act-col"><code class="ec-tk">{countries_count}</code></td><td>Distinct countries across all approved members, collective-wide.</td></tr>
-                <tr><td class="act-col"><code class="ec-tk">{if_countries}&hellip;{/if_countries}</code></td><td>Block shown only when the collective countries count is greater than zero.</td></tr>
+                <tr><td class="act-col"><code class="ec-tk">{owned_active}</code></td><td>Number of current owned listings.</td></tr>
+                <tr><td class="act-col"><code class="ec-tk">{owned_upcoming}</code></td><td>Number of upcoming owned listings.</td></tr>
+                <tr><td class="act-col"><code class="ec-tk">{owned_pending}</code></td><td>Number of pending or inactive owned listings.</td></tr>
+                <tr><td class="act-col"><code class="ec-tk">{joined_active}</code></td><td>Number of active joined listings.</td></tr>
+                <tr><td class="act-col"><code class="ec-tk">{affiliates}</code></td><td>Number of active collective affiliates.</td></tr>
+                <tr><td class="act-col"><code class="ec-tk">{members_total}</code></td><td>Total members across all your listings.</td></tr>
+                <tr><td class="act-col"><code class="ec-tk">{members_approved}</code></td><td>Approved members across all your listings.</td></tr>
+                <tr><td class="act-col"><code class="ec-tk">{members_pending}</code></td><td>Members waiting for approval across all your listings.</td></tr>
+                <tr><td class="act-col"><code class="ec-tk">{owned_newest_name}</code></td><td>Name of your newest current owned listing.</td></tr>
+                <tr><td class="act-col"><code class="ec-tk">{owned_newest_url}</code></td><td>Link to your newest current owned listing.</td></tr>
+                <tr><td class="act-col"><code class="ec-tk">{owned_random_name}</code></td><td>Name of one random current owned listing.</td></tr>
+                <tr><td class="act-col"><code class="ec-tk">{owned_random_url}</code></td><td>Link to one random current owned listing.</td></tr>
+                <tr><td class="act-col"><code class="ec-tk">{countries_count}</code></td><td>Number of different countries represented by approved members across all your listings.</td></tr>
+                <tr><td class="act-col"><code class="ec-tk">{if_countries}&hellip;{/if_countries}</code></td><td>Shows the text inside only when at least one country is counted.</td></tr>
               </tbody>
             </table>
             </div>
@@ -789,40 +828,43 @@ $epSafe = View::e($ep);
 
         <!-- COLLECTIVE STATS OUTPUT VARIABLES -->
         <div class="ec-ref-panel" id="ec-ref-cstat-vars">
-          <h3 class="pc-head-title embed-ref-heading">Collective stats output variables</h3>
-          <p class="text-muted embed-ref-copy">After <code>require()</code>-ing <code>embed/collective-stats.php</code>, these PHP variables are set and ready to echo anywhere on your page. No template needed.</p>
-          <div class="ec-ref-card">
-            <div class="table-wrap">
+          <h3 class="pc-head-title embed-ref-heading">Stats for custom PHP</h3>
+          <p class="text-muted embed-ref-copy">Advanced. These are meant for people who are comfortable editing PHP. Most users should use the collective stats template words instead.</p>
+          <details class="ec-ref-card ec-ref-advanced">
+            <summary>Show advanced PHP stats</summary>
+            <div class="ec-ref-advanced-body">
+              <div class="table-wrap">
             <table class="data-table">
-              <thead><tr><th class="act-col">Variable</th><th>Output</th></tr></thead>
+              <thead><tr><th class="act-col">PHP variable</th><th>What it shows</th></tr></thead>
               <tbody>
-                <tr><td class="act-col"><code>$luster_owned</code></td><td>Total owned listings (all statuses).</td></tr>
-                <tr><td class="act-col"><code>$luster_owned_active</code></td><td>Open / active owned listings.</td></tr>
-                <tr><td class="act-col"><code>$luster_owned_upcoming</code></td><td>Upcoming owned listings.</td></tr>
-                <tr><td class="act-col"><code>$luster_owned_pending</code></td><td>Pending / inactive owned listings.</td></tr>
-                <tr><td class="act-col"><code>$luster_joined</code></td><td>Total joined listings.</td></tr>
-                <tr><td class="act-col"><code>$luster_joined_active</code></td><td>Active joined listings.</td></tr>
-                <tr><td class="act-col"><code>$luster_joined_upcoming</code></td><td>Upcoming joined listings.</td></tr>
-                <tr><td class="act-col"><code>$luster_joined_pending</code></td><td>Pending joined listings.</td></tr>
-                <tr><td class="act-col"><code>$luster_affiliates</code></td><td>Active collective affiliates.</td></tr>
-                <tr><td class="act-col"><code>$luster_members_approved</code></td><td>Approved members across all listings.</td></tr>
-                <tr><td class="act-col"><code>$luster_members_pending</code></td><td>Pending members across all listings.</td></tr>
-                <tr><td class="act-col"><code>$luster_members_total</code></td><td>Total members (approved + pending) across all listings.</td></tr>
-                <tr><td class="act-col"><code>$luster_owned_growth_rate</code></td><td>Active owned listings added per year (formatted string).</td></tr>
-                <tr><td class="act-col"><code>$luster_joined_growth_rate</code></td><td>Active joined listings added per year (formatted string).</td></tr>
-                <tr><td class="act-col"><code>$luster_members_growth_rate</code></td><td>Approved members added per day across all listings (formatted string).</td></tr>
-                <tr><td class="act-col"><code>$luster_owned_newest</code></td><td>Array of newest N active owned listings (Listing objects). N set by <code>$luster_count</code>, default 3.</td></tr>
-                <tr><td class="act-col"><code>$luster_joined_newest</code></td><td>Array of newest N active joined listings (JoinedListing objects).</td></tr>
-                <tr><td class="act-col"><code>$luster_owned_random</code></td><td>One random active owned listing (Listing object), or <code>null</code>.</td></tr>
-                <tr><td class="act-col"><code>$luster_joined_random</code></td><td>One random active joined listing (JoinedListing object), or <code>null</code>.</td></tr>
-                <tr><td class="act-col"><code>$luster_categories</code></td><td>Array of <code>[id, name, source, count]</code> &mdash; active owned listings per category.</td></tr>
-                <tr><td class="act-col"><code>$luster_total_cats</code></td><td>Alias of <code>count($luster_categories)</code>.</td></tr>
-                <tr><td class="act-col"><code>$luster_owned_current</code></td><td>Alias of <code>$luster_owned_active</code>.</td></tr>
-                <tr><td class="act-col"><code>$luster_collective_fans</code></td><td>Alias of <code>$luster_members_total</code>.</td></tr>
+                <tr><td class="act-col"><code>$luster_owned</code></td><td>Total number of owned listings.</td></tr>
+                <tr><td class="act-col"><code>$luster_owned_active</code></td><td>Number of current owned listings.</td></tr>
+                <tr><td class="act-col"><code>$luster_owned_upcoming</code></td><td>Number of upcoming owned listings.</td></tr>
+                <tr><td class="act-col"><code>$luster_owned_pending</code></td><td>Number of pending or inactive owned listings.</td></tr>
+                <tr><td class="act-col"><code>$luster_joined</code></td><td>Total number of joined listings.</td></tr>
+                <tr><td class="act-col"><code>$luster_joined_active</code></td><td>Number of active joined listings.</td></tr>
+                <tr><td class="act-col"><code>$luster_joined_upcoming</code></td><td>Number of upcoming joined listings.</td></tr>
+                <tr><td class="act-col"><code>$luster_joined_pending</code></td><td>Number of pending joined listings.</td></tr>
+                <tr><td class="act-col"><code>$luster_affiliates</code></td><td>Number of active collective affiliates.</td></tr>
+                <tr><td class="act-col"><code>$luster_members_approved</code></td><td>Approved members across all your listings.</td></tr>
+                <tr><td class="act-col"><code>$luster_members_pending</code></td><td>Members waiting for approval across all your listings.</td></tr>
+                <tr><td class="act-col"><code>$luster_members_total</code></td><td>Total members across all your listings, including pending members.</td></tr>
+                <tr><td class="act-col"><code>$luster_owned_growth_rate</code></td><td>How many current owned listings you add per year, on average.</td></tr>
+                <tr><td class="act-col"><code>$luster_joined_growth_rate</code></td><td>How many active joined listings you add per year, on average.</td></tr>
+                <tr><td class="act-col"><code>$luster_members_growth_rate</code></td><td>How many approved members join per day, on average.</td></tr>
+                <tr><td class="act-col"><code>$luster_owned_newest</code></td><td>A group of your newest current owned listings.</td></tr>
+                <tr><td class="act-col"><code>$luster_joined_newest</code></td><td>A group of your newest active joined listings.</td></tr>
+                <tr><td class="act-col"><code>$luster_owned_random</code></td><td>One random current owned listing.</td></tr>
+                <tr><td class="act-col"><code>$luster_joined_random</code></td><td>One random active joined listing.</td></tr>
+                <tr><td class="act-col"><code>$luster_categories</code></td><td>A group of your owned-listing categories, with a count for each one.</td></tr>
+                <tr><td class="act-col"><code>$luster_total_cats</code></td><td>Number of owned-listing categories.</td></tr>
+                <tr><td class="act-col"><code>$luster_owned_current</code></td><td>Same number as <code>$luster_owned_active</code>.</td></tr>
+                <tr><td class="act-col"><code>$luster_collective_fans</code></td><td>Same number as <code>$luster_members_total</code>.</td></tr>
               </tbody>
             </table>
+              </div>
             </div>
-          </div>
+          </details>
         </div>
 
       </div>

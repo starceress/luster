@@ -22,7 +22,7 @@ $id = (int) $listing->id;
 
 <div class="page-topbar">
   <a href="<?= $b ?>/admin/listings/<?= $id ?>" class="link">
-    &larr; <?= View::e($listing->name) ?>
+    &larr; <?= View::e($listing->title) ?>
   </a>
 </div>
 

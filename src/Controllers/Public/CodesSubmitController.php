@@ -43,11 +43,17 @@ final class CodesSubmitController
         $db     = $this->app->getDatabase();
         $config = $this->app->getConfig();
 
-        $listingRepo = new ListingRepo($db, $config);
-        $listing     = $listingRepo->getById($listingId);
+        $listingRepo  = new ListingRepo($db, $config);
+        $settingsRepo = new ListingSettingsRepo($db);
+        $listing      = $listingRepo->getById($listingId);
 
         if ($listing === null) {
             return Response::notFound('Listing not found.');
+        }
+
+        $embedSettings = $settingsRepo->getEmbedSettings($listingId);
+        if (!($embedSettings['codes_submit_enabled'] ?? true)) {
+            return Response::notFound('Code donations are not enabled for this listing.');
         }
 
         $session = $this->app->getSession();
@@ -62,9 +68,9 @@ final class CodesSubmitController
 
         return Response::html($this->app->getView()->renderPublic('codes-submit.php', [
             'listing'          => $listing,
-            'listing_name'     => $listing->name,
+            'listing_name'     => $listing->title,
             'listing_url'      => $listing->url ?? '',
-            'page_title'       => 'Submit a Code — ' . $listing->name,
+            'page_title'       => 'Submit a Code — ' . $listing->title,
             'base_url'         => $baseUrl,
             'theme_path'       => $baseUrl . '/assets/default',
             'form_action'      => $baseUrl . '/codes/submit/' . $listingId,
@@ -90,15 +96,18 @@ final class CodesSubmitController
         $session = $this->app->getSession();
         $baseUrl = $this->app->getBaseUrl();
 
-        $listingRepo = new ListingRepo($db, $config);
-        $listing     = $listingRepo->getById($listingId);
+        $listingRepo  = new ListingRepo($db, $config);
+        $settingsRepo = new ListingSettingsRepo($db);
+        $listing      = $listingRepo->getById($listingId);
 
         if ($listing === null) {
             return Response::notFound('Listing not found.');
         }
 
-        $settingsRepo  = new ListingSettingsRepo($db);
         $embedSettings = $settingsRepo->getEmbedSettings($listingId);
+        if (!($embedSettings['codes_submit_enabled'] ?? true)) {
+            return Response::notFound('Code donations are not enabled for this listing.');
+        }
 
         $codesSubmitPage = (string) ($embedSettings['form_url_codes_submit'] ?? '');
         $submitUrl = $codesSubmitPage !== ''
@@ -131,10 +140,21 @@ final class CodesSubmitController
             return Response::redirect($submitUrl);
         }
 
-        // Collect optional submitter info
+        // Collect submitter info (email is required)
         $submitterName  = trim((string) $request->post('submitter_name',  ''));
         $submitterEmail = trim((string) $request->post('submitter_email', ''));
         $submitterUrl   = trim((string) $request->post('submitter_url',   ''));
+
+        if ($submitterEmail === '') {
+            $session->set('lstr_flash_error', 'Please enter your email address.');
+            $session->set('lstr_flash_old', [
+                'submitter_name'  => $submitterName,
+                'submitter_email' => $submitterEmail,
+                'submitter_url'   => $submitterUrl,
+            ]);
+            return Response::redirect($submitUrl);
+        }
+
         $submitterName  = $submitterName  !== '' ? $submitterName  : null;
         $submitterEmail = $submitterEmail !== '' ? $submitterEmail : null;
         $submitterUrl   = $submitterUrl   !== '' ? $submitterUrl   : null;
@@ -316,9 +336,9 @@ final class CodesSubmitController
 
         return Response::html($this->app->getView()->renderPublic('codes-submit.php', [
             'listing'          => $listing,
-            'listing_name'     => $listing->name,
+            'listing_name'     => $listing->title,
             'listing_url'      => $listing->url ?? '',
-            'page_title'       => 'Thanks! — ' . $listing->name,
+            'page_title'       => 'Thanks! — ' . $listing->title,
             'base_url'         => $baseUrl,
             'theme_path'       => $baseUrl . '/assets/default',
             'form_action'      => $baseUrl . '/codes/submit/' . $listingId,

@@ -17,7 +17,7 @@ use Luster\Addons\Wishlist\WishlistRepo;
  *
  * Optional variables:
  *   $luster_wishlist_type  string  Filter displayed entries by type.
- *                                  Accepted values: 'all', 'wanted', 'top', 'granted', 'upcoming'
+ *                                  Accepted values: 'all', 'wanted', 'top', 'granted'
  *                                  'all' (default) shows every active entry grouped by type.
  *                                  Any unrecognized value silently falls back to 'all'.
  */
@@ -44,7 +44,7 @@ $_app->getSession()->start();
 // 2. Resolve parameters
 // ---------------------------------------------------------------------------
 
-$_validTypes   = ['wanted', 'top', 'granted', 'upcoming'];
+$_validTypes   = ['wanted', 'top', 'granted'];
 $_filterType   = (string) ($luster_wishlist_type ?? 'all');
 if ($_filterType !== 'all' && !in_array($_filterType, $_validTypes, true)) {
     $_filterType = 'all';

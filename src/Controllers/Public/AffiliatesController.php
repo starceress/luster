@@ -74,9 +74,9 @@ final class AffiliatesController
 
         $html = $this->app->getView()->renderPublic('affiliates.php', [
             'listing'       => $listing,
-            'listing_name'  => $listing->name,
+            'listing_name'  => $listing->title,
             'listing_url'   => $listing->url,
-            'page_title'       => 'Affiliates — ' . $listing->name,
+            'page_title'       => 'Affiliates — ' . $listing->title,
             'affiliates'       => $result['items'],
             'affiliates_html'  => $affiliatesHtml,
             'section_html'     => $sectionHtml,

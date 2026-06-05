@@ -25,7 +25,7 @@ use Luster\Core\Database;
  *   {fan_email}         — member's email address
  *   {fan_url}           — member's website URL
  *   {fan_country}       — member's country
- *   {listing_name}      — name / title of the listing
+ *   {listing_title}      — name / title of the listing
  *   {listing_subject}   — subject / topic of the listing
  *   {listing_url}       — URL of the listing
  *   {site_name}         — collective / site name from config
@@ -43,7 +43,7 @@ use Luster\Core\Database;
  *   {aff_url}           — applicant's site URL
  *   {aff_email}         — applicant's contact email
  *   {aff_message}       — optional message from the applicant (blank if not provided)
- *   plus {listing_name}, {listing_url}, {site_name}, {owner_name}, {owner_email}
+ *   plus {listing_title}, {listing_url}, {site_name}, {owner_name}, {owner_email}
  *
  * Requires Migration 23.
  */
@@ -62,6 +62,7 @@ final class EmailTemplateRepo
     public const TYPE_AFFILIATE_APPLIED  = 'affiliate_applied';
     public const TYPE_AFFILIATE_APPROVED = 'affiliate_approved';
     public const TYPE_AFFILIATE_REJECTED = 'affiliate_rejected';
+    public const TYPE_CODE_APPROVED      = 'code_approved';
 
     /** All valid type values in display order. */
     public const TYPES = [
@@ -74,6 +75,7 @@ final class EmailTemplateRepo
         self::TYPE_AFFILIATE_APPLIED,
         self::TYPE_AFFILIATE_APPROVED,
         self::TYPE_AFFILIATE_REJECTED,
+        self::TYPE_CODE_APPROVED,
     ];
 
     // -----------------------------------------------------------------------
@@ -81,15 +83,16 @@ final class EmailTemplateRepo
     // -----------------------------------------------------------------------
 
     private const DEFAULT_SUBJECTS = [
-        self::TYPE_JOIN               => 'Welcome to the {listing_name} listing!',
-        self::TYPE_APPROVE            => 'Your {listing_name} membership has been approved',
-        self::TYPE_UPDATE             => 'Your {listing_name} membership has been updated',
-        self::TYPE_REMOVE             => 'You have been removed from the {listing_name} listing',
-        self::TYPE_RESET              => 'Reset your {listing_name} password',
-        self::TYPE_NOTIFY_JOIN        => 'New member joined {listing_name}',
-        self::TYPE_AFFILIATE_APPLIED  => 'New affiliate application for {listing_name}',
-        self::TYPE_AFFILIATE_APPROVED => 'Your affiliate application for {listing_name} has been approved',
-        self::TYPE_AFFILIATE_REJECTED => 'Your affiliate application for {listing_name}',
+        self::TYPE_JOIN               => 'Welcome to the {listing_title} listing!',
+        self::TYPE_APPROVE            => 'Your {listing_title} membership has been approved',
+        self::TYPE_UPDATE             => 'Your {listing_title} membership has been updated',
+        self::TYPE_REMOVE             => 'You have been removed from the {listing_title} listing',
+        self::TYPE_RESET              => 'Reset your {listing_title} password',
+        self::TYPE_NOTIFY_JOIN        => 'New member joined {listing_title}',
+        self::TYPE_AFFILIATE_APPLIED  => 'New affiliate application for {listing_title}',
+        self::TYPE_AFFILIATE_APPROVED => 'Your affiliate application for {listing_title} has been approved',
+        self::TYPE_AFFILIATE_REJECTED => 'Your affiliate application for {listing_title}',
+        self::TYPE_CODE_APPROVED      => 'Your code donation for {listing_title} has been approved!',
     ];
 
     // -----------------------------------------------------------------------
@@ -98,7 +101,7 @@ final class EmailTemplateRepo
 
     private const DEFAULT_BODY_JOIN =
         'Hi {fan_name},' . "\n\n"
-        . 'Thank you for joining the {listing_name} listing.' . "\n\n"
+        . 'Thank you for joining the {listing_title} listing.' . "\n\n"
         . 'Here are your membership details:' . "\n"
         . '  Name    : {fan_name}' . "\n"
         . '  Email   : {fan_email}' . "\n"
@@ -110,26 +113,26 @@ final class EmailTemplateRepo
 
     private const DEFAULT_BODY_APPROVE =
         'Hi {fan_name},' . "\n\n"
-        . 'Great news — your membership in the {listing_name} listing has been approved!' . "\n\n"
+        . 'Great news — your membership in the {listing_title} listing has been approved!' . "\n\n"
         . 'Visit the listing at: {listing_url}' . "\n\n"
         . '-- {owner_name}' . "\n"
         . '{site_name}';
 
     private const DEFAULT_BODY_UPDATE =
         'Hi {fan_name},' . "\n\n"
-        . 'Your membership in the {listing_name} listing has been updated successfully.' . "\n\n"
+        . 'Your membership in the {listing_title} listing has been updated successfully.' . "\n\n"
         . '-- {owner_name}' . "\n"
         . '{site_name}';
 
     private const DEFAULT_BODY_REMOVE =
         'Hi {fan_name},' . "\n\n"
-        . 'Your membership in the {listing_name} listing has been removed as requested.' . "\n\n"
+        . 'Your membership in the {listing_title} listing has been removed as requested.' . "\n\n"
         . '-- {owner_name}' . "\n"
         . '{site_name}';
 
     private const DEFAULT_BODY_RESET =
         'Hi {fan_name},' . "\n\n"
-        . 'We received a request to reset the password for your membership in the {listing_name} listing.' . "\n\n"
+        . 'We received a request to reset the password for your membership in the {listing_title} listing.' . "\n\n"
         . 'Click the link below to set a new password. This link expires in 1 hour.' . "\n\n"
         . '{reset_url}' . "\n\n"
         . 'If you did not request this, you can safely ignore this email. Your password will not change.' . "\n\n"
@@ -137,7 +140,7 @@ final class EmailTemplateRepo
         . '{site_name}';
 
     private const DEFAULT_BODY_NOTIFY_JOIN =
-        'A new member has joined the {listing_name} listing.' . "\n\n"
+        'A new member has joined the {listing_title} listing.' . "\n\n"
         . '  Name   : {fan_name}' . "\n"
         . '  Email  : {fan_email}' . "\n"
         . '  Website: {fan_url}' . "\n"
@@ -146,7 +149,7 @@ final class EmailTemplateRepo
         . '{site_name}';
 
     private const DEFAULT_BODY_AFFILIATE_APPLIED =
-        'A new affiliate application has been received for the {listing_name} listing.' . "\n\n"
+        'A new affiliate application has been received for the {listing_title} listing.' . "\n\n"
         . '  Site name: {aff_name}' . "\n"
         . '  URL      : {aff_url}' . "\n"
         . '  Email    : {aff_email}' . "\n\n"
@@ -156,7 +159,7 @@ final class EmailTemplateRepo
 
     private const DEFAULT_BODY_AFFILIATE_APPROVED =
         'Hello {aff_name},' . "\n\n"
-        . 'Your affiliate application for the {listing_name} listing has been approved!' . "\n\n"
+        . 'Your affiliate application for the {listing_title} listing has been approved!' . "\n\n"
         . 'Your site is now listed as an affiliate at: {listing_url}' . "\n\n"
         . 'Thank you for affiliating with us.' . "\n\n"
         . '-- {owner_name}' . "\n"
@@ -164,8 +167,15 @@ final class EmailTemplateRepo
 
     private const DEFAULT_BODY_AFFILIATE_REJECTED =
         'Hello {aff_name},' . "\n\n"
-        . 'Thank you for applying to affiliate with the {listing_name} listing.' . "\n\n"
+        . 'Thank you for applying to affiliate with the {listing_title} listing.' . "\n\n"
         . 'Unfortunately, we are not able to approve your application at this time.' . "\n\n"
+        . '-- {owner_name}' . "\n"
+        . '{site_name}';
+
+    private const DEFAULT_BODY_CODE_APPROVED =
+        'Hi {fan_name},' . "\n\n"
+        . 'Thank you for donating a code to the {listing_title} listing — it has been approved and is now live!' . "\n\n"
+        . 'View the codes at: {listing_url}' . "\n\n"
         . '-- {owner_name}' . "\n"
         . '{site_name}';
 
@@ -350,6 +360,7 @@ final class EmailTemplateRepo
             self::TYPE_AFFILIATE_APPLIED  => self::DEFAULT_BODY_AFFILIATE_APPLIED,
             self::TYPE_AFFILIATE_APPROVED => self::DEFAULT_BODY_AFFILIATE_APPROVED,
             self::TYPE_AFFILIATE_REJECTED => self::DEFAULT_BODY_AFFILIATE_REJECTED,
+            self::TYPE_CODE_APPROVED      => self::DEFAULT_BODY_CODE_APPROVED,
             default                       => '',
         };
     }
@@ -388,7 +399,7 @@ final class EmailTemplateRepo
             '{fan_url}'          => $fanUrl,
             '{fan_country}'      => $fanCountry,
             '{reset_url}'        => $resetUrl,
-            '{listing_name}'     => $listingName,
+            '{listing_title}'     => $listingName,
             '{listing_subject}'  => $listingSubject,
             '{listing_url}'      => $listingUrl,
             '{site_name}'        => $siteName,
@@ -419,7 +430,7 @@ final class EmailTemplateRepo
             : '';
 
         return [
-            '{listing_name}'  => $listingName,
+            '{listing_title}'  => $listingName,
             '{listing_url}'   => $listingUrl,
             '{site_name}'     => $siteName,
             '{owner_name}'    => $ownerName,

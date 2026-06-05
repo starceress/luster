@@ -300,6 +300,10 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
 
 
 <!-- ──── GENERAL + EMBED IN ONE FORM (BOTH POST TO /ADMIN/SETTINGS) ──────── -->
+    <form id="settings-test-email-form" method="POST" action="<?= $b ?>/admin/settings/test-email" class="is-hidden">
+      <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
+    </form>
+
     <form method="POST" action="<?= $b ?>/admin/settings" class="js-warn-unsaved">
       <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
 <!-- ──── PANEL: GENERAL ─────────────────────────────────────────────── -->
@@ -432,10 +436,7 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
               Sends to <strong><?= View::e($admin_user->email ?? '') ?></strong>.
               <?= (cfgVal($cfg, 'smtp_enabled') === '1') ? 'Will use SMTP (' . View::e(cfgVal($cfg, 'smtp_host')) . ').' : 'Will use server mail().' ?>
             </p>
-            <form method="POST" action="<?= $b ?>/admin/settings/test-email" class="action-form-inline">
-              <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
-              <button type="submit" class="btn btn-secondary btn-sm">Send test email</button>
-            </form>
+            <button type="submit" form="settings-test-email-form" class="btn btn-secondary btn-sm">Send test email</button>
             <?php if (($cfg['owner_email'] ?? '') === ''): ?>
               <p class="form-hint form-hint--warn mt-sm">
                 Set a Contact Email (Owner Information above) before sending a test.
@@ -535,74 +536,8 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
             </div>
           </div>
 
-          <div class="pc-section">
-            <div class="pc-section-label">Collective Contact Form</div>
-            <div class="form-group">
-              <label class="toggle-wrap">
-                <input type="checkbox" name="collective_contact_enabled" value="1"
-                       <?= ($site_settings['collective_contact_enabled'] ?? '1') === '1' ? 'checked' : '' ?>>
-                <span class="toggle-label">Enable collective contact form</span>
-              </label>
-              <p class="form-hint">Controls the <code class="neb-code">/contact</code> page and the <code class="neb-code">collective-contact.php</code> embed.</p>
-            </div>
-            <div class="form-group">
-              <label class="form-label" for="s-collective-contact-recipient">Recipient email</label>
-              <input id="s-collective-contact-recipient" type="email"
-                     name="collective_contact_recipient" class="form" maxlength="255"
-                     placeholder="Defaults to Owner Email"
-                     value="<?= View::e($site_settings['collective_contact_recipient'] ?? '') ?>">
-              <p class="form-hint">Override which email address receives collective contact messages. Leave blank to use the Owner Email above.</p>
-            </div>
-          </div>
-
-          <div class="pc-section">
-            <div class="pc-section-label">Collective Affiliate Applications</div>
-            <div class="form-group">
-              <label class="toggle-wrap">
-                <input type="checkbox" name="collective_affiliate_apply_enabled" value="1"
-                       <?= ($site_settings['collective_affiliate_apply_enabled'] ?? '0') === '1' ? 'checked' : '' ?>>
-                <span class="toggle-label">Enable collective affiliate applications</span>
-              </label>
-              <p class="form-hint">Controls the <code class="neb-code">/affiliate-apply/collective</code> route and the <code class="neb-code">affiliate-apply.php</code> embed with <code class="neb-code">$luster_fanlisting_id = 0</code>.</p>
-            </div>
-          </div>
-
-          <div class="pc-section">
-            <div class="pc-section-label">Listing Update Tracking</div>
-            <div class="form-group">
-              <label class="form-label" for="s-stale-days">Dashboard stale warning (days)</label>
-              <input id="s-stale-days" type="number" name="stale_days" class="form form--narrow"
-                     min="1" max="365"
-                     value="<?= View::e($site_settings['stale_days'] ?? '45') ?>">
-              <p class="form-hint">Show a stale warning on the dashboard when a listing hasn't been marked updated in this many days. Default: 45.</p>
-            </div>
-            <div class="form-group">
-              <label class="toggle-wrap">
-                <input type="checkbox" name="overdue_notify_enabled" value="1"
-                       <?= ($site_settings['overdue_notify_enabled'] ?? '0') === '1' ? 'checked' : '' ?>>
-                <span class="toggle-label">Email me when listings haven't been updated in N days</span>
-              </label>
-              <p class="form-hint">Sends a notification to your Contact Email at most once per 24 hours listing any overdue fanlistings.</p>
-            </div>
-            <div class="form-group">
-              <label class="form-label" for="s-overdue-days">Days until overdue email</label>
-              <input id="s-overdue-days" type="number" name="overdue_days" class="form form--narrow"
-                     min="1" max="365"
-                     value="<?= View::e($site_settings['overdue_days'] ?? '55') ?>">
-              <p class="form-hint">Send a notification email when a listing hasn't been updated in this many days. Default: 55. TFL guidelines recommend 55 days.</p>
-            </div>
-            <?php
-              $lastSentTs = (int) ($site_settings['overdue_notify_last_sent'] ?? '0');
-              $lastSentFmt = ($admin_date_format ?? 'j M Y') . ' \a\t ' . ($admin_time_format ?? 'H:i');
-              $lastSentDisplay = $lastSentTs > 0 ? date($lastSentFmt, $lastSentTs) : 'Never';
-            ?>
-            <div class="form-group">
-              <p class="form-hint">Last notification sent: <strong><?= View::e($lastSentDisplay) ?></strong></p>
-            </div>
-          </div>
-
           <div class="composer-footer">
-            <button type="submit" class="btn btn-primary">Save Settings</button>
+            <button type="submit" name="settings_panel" value="panel-general" class="btn btn-primary">Save Settings</button>
             <button type="button" class="btn btn-ghost" id="general-clear-btn">Clear</button>
           </div>
         </div>
@@ -626,31 +561,43 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
             <div class="callout callout-warn"><?= View::icon('caution') ?> 
               <div>These settings affect how Luster handles form action URLs. Set them before embedding forms on external pages.</div>
             </div>
-          </div>
-
-          <div class="pc-section">
-            <div class="pc-section-label">Server Paths</div>
-            <div class="form-group">
-              <label class="form-label" for="s-install-path">Server Install Path</label>
-              <input id="s-install-path" type="text" name="install_path" class="form" maxlength="500"
-                     placeholder="/home/user/yourdomain.com/luster/"
-                     value="<?= View::e(cfgVal($cfg, 'install_path')) ?>">
-              <p class="form-hint">Absolute filesystem path to the Luster root, with trailing slash (e.g. <code class="neb-code">/home/user/example.com/luster/</code>). Used only to generate the embed code snippets below.</p>
-            </div>
-            <div class="form-group">
-              <label class="form-label" for="s-embed-url">Embed Form Submission URL</label>
-              <input id="s-embed-url" type="url" name="embed_base_url" class="form" maxlength="500"
-                     placeholder="https://yourdomain.com/luster/public"
-                     value="<?= View::e(cfgVal($cfg, 'embed_base_url')) ?>">
-              <p class="form-hint">URL used for form submissions inside embeds (no trailing slash). Only needed when Luster is on a different domain from the embedding page. Leave blank to use the Collective Public URL.</p>
-            </div>
-            <div class="form-group">
-              <label class="form-label" for="s-reciprocal-url">Reciprocal Link Check URL</label>
-              <input id="s-reciprocal-url" type="url" name="reciprocal_url" class="form" maxlength="500"
-                     placeholder="https://yourdomain.com/luster/public"
-                     value="<?= View::e(cfgVal($cfg, 'reciprocal_url')) ?>">
-              <p class="form-hint">The URL the Link Checker searches for in affiliate pages to confirm a back-link (no trailing slash). Leave blank to use the Luster Install URL.</p>
-            </div>
+            
+              <div class="listing-field-row listing-field-row--top">
+                <label class="listing-field-label" for="s-install-path">Server Install Path</label>
+                <div>
+                  <?php $_installPath = cfgVal($cfg, 'install_path') ?: (rtrim(LUSTER_BASE, '/') . '/'); ?>
+                  <div class="input-action-row">
+                    <input id="s-install-path" type="text" name="install_path" class="form" maxlength="500"
+                           value="<?= View::e($_installPath) ?>" readonly>
+                    <button type="button" class="btn btn-danger btn-sm path-edit-btn" data-target="s-install-path">Edit</button>
+                  </div>
+                  <p class="form-hint">Absolute filesystem path to the Luster root, with trailing slash. Auto-detected from your server environment — only change this if the detected path is incorrect.</p>
+                </div>
+              </div>
+              <div class="listing-field-row listing-field-row--top">
+                <label class="listing-field-label" for="s-embed-url">Embed Form Submission URL</label>
+                <div>
+                  <?php $_embedBaseUrl = cfgVal($cfg, 'embed_base_url') ?: rtrim(cfgVal($cfg, 'app_url'), '/'); ?>
+                  <div class="input-action-row">
+                    <input id="s-embed-url" type="url" name="embed_base_url" class="form" maxlength="500"
+                           value="<?= View::e($_embedBaseUrl) ?>" readonly>
+                    <button type="button" class="btn btn-danger btn-sm path-edit-btn" data-target="s-embed-url">Edit</button>
+                  </div>
+                  <p class="form-hint">URL used for form submissions inside embeds (no trailing slash). Auto-detected from your App URL — only change this if Luster is on a different domain from the pages hosting your embeds.</p>
+                </div>
+              </div>
+              <div class="listing-field-row listing-field-row--top">
+                <label class="listing-field-label" for="s-reciprocal-url">Reciprocal Link Check URL</label>
+                <div>
+                  <?php $_reciprocalUrl = cfgVal($cfg, 'reciprocal_url') ?: rtrim(cfgVal($cfg, 'app_url'), '/'); ?>
+                  <div class="input-action-row">
+                    <input id="s-reciprocal-url" type="url" name="reciprocal_url" class="form" maxlength="500"
+                           value="<?= View::e($_reciprocalUrl) ?>" readonly>
+                    <button type="button" class="btn btn-danger btn-sm path-edit-btn" data-target="s-reciprocal-url">Edit</button>
+                  </div>
+                  <p class="form-hint">The URL the Link Checker searches for in affiliate pages to confirm a back-link (no trailing slash). Auto-detected from your App URL — only change this if affiliates should link to a different URL.</p>
+                </div>
+              </div>
           </div>
 
           <?php
@@ -708,7 +655,7 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
           <?php endif; ?>
 
           <div class="composer-footer">
-            <button type="submit" class="btn btn-primary">Save Settings</button>
+            <button type="submit" name="settings_panel" value="panel-embed" class="btn btn-primary">Save Settings</button>
             <button type="button" class="btn btn-ghost" id="embed-clear-btn">Clear</button>
           </div>
         </div>
@@ -826,8 +773,9 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
 
           <?php
             $us          = $update_status;
+            $checkedFmt  = ($admin_date_format ?? 'j M Y') . ', ' . ($admin_time_format ?? 'H:i');
             $checkedStr  = $us->checkedAt !== null
-                ? date('j M Y, H:i', $us->checkedAt)
+                ? date($checkedFmt, $us->checkedAt)
                 : null;
           ?>
 
@@ -871,21 +819,23 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
           </div>
           <div class="sysinfo-row">
             <span class="form-label">Last Checked</span>
-           <?= View::e($checkedStr ?? '') ?>
-          </div>
-          <?php endif; ?>
-
-          <div class="mt-sm">
-            <form method="POST" action="<?= $b ?>/admin/settings/check-update" class="action-form-inline">
-              <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
-              <button type="submit" class="btn btn-secondary btn-sm">
+            <span style="display:flex;align-items:center;gap:.75rem;flex-wrap:wrap">
+              <?php if (!$us->neverChecked): ?>
+                <?= View::e($checkedStr ?? '') ?>
+              <?php endif; ?>
+              <button type="button" id="update-check-btn" class="btn btn-secondary btn-xs"
+                      data-url="<?= View::e($b) ?>/admin/settings/check-update"
+                      data-csrf="<?= View::e($csrf_token ?? '') ?>">
                 <?= View::icon('refresh') ?> Check for Updates
               </button>
-            </form>
-            <?php if ($us->neverChecked): ?>
-              No update check has been run yet
-            <?php endif; ?>
+              <span id="update-check-result" style="font-size:var(--fs-sm)">
+                <?php if ($us->neverChecked): ?>
+                  <span class="text-dim">No update check has been run yet</span>
+                <?php endif; ?>
+              </span>
+            </span>
           </div>
+          <?php endif; ?>
         </div>
 
         <!-- Server -->
@@ -931,42 +881,6 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
               <span class="form-label">Install URL</span>
               <span class="text-mono text-dim"><?= View::e(cfgVal($cfg, 'app_url')) ?></span>
             </div>
-        </div>
-
-        <!-- Import Wizard Settings -->
-        <div class="pc-section">
-          <div class="pc-section-label">Import Wizard</div>
-          <p class="mb-section text-dim">
-            Configure which source cards appear in the wizard and advanced import options.
-          </p>
-          <a href="<?= $b ?>/admin/import/settings" class="btn btn-secondary btn-sm">
-            <?= View::icon('import') ?> Import Wizard Settings
-          </a>
-        </div>
-
-        <!-- Network Directory -->
-        <div class="pc-section">
-          <div class="pc-section-label">Network Directory</div>
-          <p class="mb-section text-dim">
-            Check whether your active listings are registered on TFL and TAFL. Results are cached for 7 days.
-          </p>
-          <a href="<?= $b ?>/admin/network-directory" class="btn btn-secondary btn-sm">
-            <?= View::icon('star') ?> Network Directory Status
-          </a>
-        </div>
-
-        <!-- Data Migration -->
-        <div class="pc-section">
-          <div class="pc-section-label">Data Migration</div>
-          <p class="mb-section text-dim">
-            Migrate data from Enthusiast, Listing Admin, or other fanlisting scripts into Luster.
-          </p>
-          <a href="<?= $b ?>/admin/import" class="btn btn-secondary btn-sm">
-            <?= View::icon('import') ?> Import Data Wizard
-          </a>
-          <a href="<?= $b ?>/admin/import/repair" class="btn btn-secondary btn-sm" style="margin-left:.5rem">
-            <?= View::icon('caution') ?> Import Repair Centre
-          </a>
         </div>
       </div>
     </div>

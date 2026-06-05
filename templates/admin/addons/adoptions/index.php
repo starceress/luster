@@ -5,226 +5,439 @@ declare(strict_types=1);
 use Luster\Core\View;
 
 /**
- * Adoptions admin — tabbed overview.
+ * Adoptions admin — overview.
  *
- * @var string   $tab              'pending' | 'listings' | 'settings'
- * @var array[]  $pending          (tab=pending) application rows from lstr_adoption_applications
- * @var array    $listing_map      (tab=pending) [id => Listing]
- * @var array[]  $adoption_listings (tab=listings) each: ['listing'=>Listing, 'count_new'=>int, 'count_approved'=>int, 'count_all'=>int]
- * @var string   $success
- * @var string   $error
- * @var string   $base_url
- * @var string   $csrf_token
+ * @var string                    $tab              'all'|'pending'|'approved'|'rejected'|'granted'|'listings'|'settings'
+ * @var array[]                   $applications     Filtered + sorted applications (app view)
+ * @var array                     $counts           {all, pending, approved, rejected, granted}
+ * @var \Luster\Models\Listing[]  $fanlistings      All listings (for dropdown)
+ * @var array                     $listing_map      [id => Listing]
+ * @var int                       $listing_id       Active listing filter (0 = all)
+ * @var string                    $search           Active search query
+ * @var bool                      $filters_active
+ * @var string                    $sort             Active sort column
+ * @var string                    $dir              'asc'|'desc'
+ * @var array[]                   $adoption_listings (listings view)
+ * @var string                    $success
+ * @var string                    $error
+ * @var string                    $base_url
+ * @var string                    $csrf_token
  */
 
-$b = rtrim(View::e($base_url), '/');
-$pendingTotal = isset($pending) ? count($pending) : 0;
+$b         = rtrim(View::e($base_url), '/');
+$appTabs   = ['all', 'pending', 'reviewed', 'approved', 'rejected', 'granted'];
+$isAppView = in_array($tab, $appTabs, true);
+
+$listing_id      = $listing_id      ?? 0;
+$search          = $search          ?? '';
+$sort            = $sort            ?? 'applied_at';
+$dir             = $dir             ?? 'desc';
+$filters_active  = $filters_active  ?? false;
+$applications    = $applications    ?? [];
+$counts          = $counts          ?? [];
+$listing_map     = $listing_map     ?? [];
+$fanlistings     = $fanlistings     ?? [];
+$selected_listing = $selected_listing ?? null;
+$page            = $page            ?? 1;
+$total_pages     = $total_pages     ?? 1;
+$total           = $total           ?? 0;
+$per_page        = $per_page        ?? 10;
+
+// Canonical tabs
+$statusTabs = [
+    'all'      => 'All',
+    'pending'  => 'Pending',
+    'reviewed' => 'Reviewed',
+    'approved' => 'Approved',
+    'rejected' => 'Rejected',
+    'granted'  => 'Granted',
+];
+
+// Full label map — 'new' kept as legacy fallback for un-migrated rows
+$statusLabels = [
+    'all'      => 'All',
+    'pending'  => 'Pending',
+    'new'      => 'Pending',   // legacy: pre-migration rows
+    'reviewed' => 'Reviewed',
+    'approved' => 'Approved',
+    'rejected' => 'Rejected',
+    'granted'  => 'Granted',
+];
+$statusBadge = [
+    'pending'  => 'badge-pending',
+    'new'      => 'badge-pending',  // legacy
+    'reviewed' => 'badge-upcoming',
+    'approved' => 'badge-current',
+    'rejected' => 'badge-error',
+    'granted'  => 'badge-redirect',
+];
+
+$page = $page ?? 1;
+$buildUrl = static function (array $overrides) use ($b, $tab, $listing_id, $search, $sort, $dir, $page): string {
+    $p = [
+        'tab'        => $tab,
+        'listing_id' => $listing_id > 0 ? $listing_id : '',
+        'search'     => $search,
+        'sort'       => $sort !== 'applied_at' ? $sort : '',
+        'dir'        => $dir  !== 'desc'       ? $dir  : '',
+        'page'       => $page > 1 ? $page : '',
+    ];
+    $merged = array_merge($p, $overrides);
+    $qs = http_build_query(array_filter(
+        $merged,
+        static fn($v) => $v !== '' && $v !== 0 && $v !== null
+    ));
+    return $b . '/admin/adoptions' . ($qs !== '' ? '?' . $qs : '');
+};
+
+$tabUrl   = static fn(string $t) => $buildUrl(['tab' => $t, 'search' => '', 'sort' => '', 'dir' => '', 'page' => '']);
+$resetUrl = $b . '/admin/adoptions?tab=' . View::e($isAppView ? $tab : 'all') . ($listing_id > 0 ? '&listing_id=' . $listing_id : '');
+$returnUrl = $buildUrl([]);
+
+$sortUrl = static function (string $col) use ($buildUrl, $sort, $dir): string {
+    $newDir = ($sort === $col && $dir === 'asc') ? 'desc' : 'asc';
+    return $buildUrl(['sort' => $col !== 'applied_at' ? $col : '', 'dir' => $newDir !== 'desc' ? $newDir : '', 'page' => '']);
+};
 ?>
 
 <?php if ($success !== ''): ?>
-<div class="alert alert-success">
-  <?= View::icon('check') ?><div><?= View::e($success) ?></div>
-</div>
+  <div class="alert alert-success"><?= View::e($success) ?></div>
 <?php endif; ?>
 <?php if ($error !== ''): ?>
-<div class="alert alert-error">
-  <?= View::icon('warning') ?><div><?= View::e($error) ?></div>
-</div>
+  <div class="alert alert-error"><?= View::e($error) ?></div>
 <?php endif; ?>
 
-<div class="gradient-card">
-  <div class="pc-head">
-    <div class="pc-head-icon pc-head-icon-bg"><?= View::icon('adoptions') ?></div>
-    <div class="pc-head-meta">
-      <div class="pc-head-title">Adoption Applications</div>
-      <div class="pc-head-sub">
-        Manage adoption applications across all listings. Mark a listing available for adoption on its
-        <a href="<?= $b ?>/admin/listings" class="link">edit page</a>.
-      </div>
-    </div>
+<!-- ──── TOOLBAR ─────────────────────────────────────────────────── -->
+<div class="toolbar">
+  <div class="actions-row">
+    <?php if ($isAppView): ?>
+    <button type="button" class="btn btn-preview btn-sm filter-toggle"
+            id="adopt-filter-toggle"
+            aria-expanded="true"
+            aria-controls="adopt-filter-panel">
+      <?= View::icon('filter') ?>
+      Filter<?php if ($filters_active): ?><span class="filter-dot" aria-hidden="true"></span><?php endif; ?>
+    </button>
+    <?php endif; ?>
   </div>
-
-  <!-- Tab nav -->
-  <div class="adopt-tabs">
-    <a href="?tab=pending"
-       class="tabs-btn <?= $tab === 'pending' ? 'active' : '' ?>">
-      Pending
-      <?php if ($pendingTotal > 0): ?>
-        <span class="badge badge-pending" style="margin-left:.25rem"><?= $pendingTotal ?></span>
-      <?php endif; ?>
-    </a>
-    <a href="?tab=listings" class="tabs-btn <?= $tab === 'listings' ? 'active' : '' ?>">Listings</a>
-    <a href="?tab=settings" class="tabs-btn <?= $tab === 'settings' ? 'active' : '' ?>">Settings</a>
+  <div class="actions-row actions-row--right">
+    <?php if ($tab === 'listings'): ?>
+      <a href="<?= $b ?>/admin/adoptions" class="btn btn-primary btn-sm">All Applications</a>
+    <?php else: ?>
+      <a href="<?= View::e($tabUrl('listings')) ?>" class="btn btn-primary btn-sm">Listing View</a>
+    <?php endif; ?>
+    <a href="<?= $b ?>/admin/adoptions/settings" class="btn btn-quaternary btn-sm"><?= View::icon('gear') ?>Adoptions Settings</a>
   </div>
-
-  <?php if ($tab === 'pending'): ?>
-  <!-- ── PENDING TAB ──────────────────────────────────────────────────── -->
-  <?php if ($pendingTotal === 0): ?>
-  <div class="empty">
-    <div class="empty-icon"><?= View::icon('check-badge', ['width' => 32, 'height' => 32]) ?></div>
-    <div class="empty-title">No pending applications.</div>
-    <div>All caught up. New applications will appear here when fans apply.</div>
-  </div>
-  <?php else: ?>
-  <div style="padding:0">
-    <table class="data-table">
-      <thead>
-        <tr>
-          <th>Applicant</th>
-          <th>Listing</th>
-          <th>Message</th>
-          <th class="nowrap">Applied</th>
-          <th class="table-actions"></th>
-        </tr>
-      </thead>
-      <tbody>
-        <?php foreach ($pending as $app): ?>
-        <?php $fl = $listing_map[(int) $app['fanlisting_id']] ?? null; ?>
-        <tr>
-          <td>
-            <div class="text-strong"><?= View::e($app['name']) ?></div>
-            <div class="form-hint">
-              <a href="mailto:<?= View::e($app['email']) ?>" class="link"><?= View::emailWrap($app['email']) ?></a>
-            </div>
-            <?php if ($app['url'] !== ''): ?>
-            <div class="form-hint">
-              <a href="<?= View::e($app['url']) ?>" target="_blank" rel="noopener" class="link link-break"><?= View::e($app['url']) ?></a>
-            </div>
-            <?php endif; ?>
-          </td>
-          <td>
-            <?php if ($fl !== null): ?>
-              <a href="<?= $b ?>/admin/adoptions/<?= (int) $fl->id ?>?status=new" class="link"><?= View::e($fl->name) ?></a>
-              <?php if ($fl->subject !== ''): ?>
-              <div class="form-hint"><?= View::e($fl->subject) ?></div>
-              <?php endif; ?>
-            <?php else: ?>
-              <span class="text-dim">#<?= (int) $app['fanlisting_id'] ?></span>
-            <?php endif; ?>
-          </td>
-          <td class="cell-truncate">
-            <?php if (($app['message'] ?? '') !== ''): ?>
-              <span title="<?= View::e((string) $app['message']) ?>">
-                <?= View::e(mb_strimwidth((string) $app['message'], 0, 100, '…')) ?>
-              </span>
-            <?php else: ?>
-              <span class="text-dim">&mdash;</span>
-            <?php endif; ?>
-          </td>
-          <td class="nowrap text-dim"><?= View::e(date('Y-m-d', strtotime((string) $app['applied_at']))) ?></td>
-          <td class="table-actions">
-            <div class="data-actions">
-              <form method="POST" action="<?= $b ?>/admin/adoptions/<?= (int) $app['id'] ?>/approve"
-                    class="action-form-inline">
-                <input type="hidden" name="_csrf"   value="<?= View::e($csrf_token) ?>">
-                <input type="hidden" name="_return" value="pending">
-                <button type="submit" class="btn btn-success btn-xs">Approve</button>
-              </form>
-              <form method="POST" action="<?= $b ?>/admin/adoptions/<?= (int) $app['id'] ?>/reject"
-                    class="action-form-inline"
-                    data-confirm="Reject this application from <?= View::e($app['name']) ?>?">
-                <input type="hidden" name="_csrf"   value="<?= View::e($csrf_token) ?>">
-                <input type="hidden" name="_return" value="pending">
-                <button type="submit" class="btn btn-ghost btn-xs">Reject</button>
-              </form>
-              <a href="mailto:<?= View::e($app['email']) ?>" class="btn btn-secondary btn-xs">Email</a>
-              <?php if ($fl !== null): ?>
-              <a href="<?= $b ?>/admin/adoptions/<?= (int) $fl->id ?>?status=new"
-                 class="btn btn-ghost btn-xs">Review</a>
-              <?php endif; ?>
-            </div>
-          </td>
-        </tr>
-        <?php endforeach; ?>
-      </tbody>
-    </table>
-  </div>
-  <?php endif; ?>
-
-  <?php elseif ($tab === 'listings'): ?>
-  <!-- ── LISTINGS TAB ─────────────────────────────────────────────────── -->
-  <?php if (empty($adoption_listings)): ?>
-  <div class="empty">
-    <div class="empty-icon"><?= View::icon('adoptions', ['width' => 32, 'height' => 32]) ?></div>
-    <div class="empty-title">No listings marked for adoption.</div>
-    <div>Open a listing&rsquo;s edit page and enable &ldquo;Available for adoption&rdquo; to start accepting applications.</div>
-    <a href="<?= $b ?>/admin/listings" class="btn btn-primary btn-sm"><?= View::icon('star') ?> Go to Listings</a>
-  </div>
-  <?php else: ?>
-  <div style="padding:0">
-    <table class="data-table">
-      <thead>
-        <tr>
-          <th class="table-num">#</th>
-          <th>Listing</th>
-          <th class="table-num">Pending</th>
-          <th class="table-num">Approved</th>
-          <th class="table-num">Total</th>
-          <th class="table-actions"></th>
-        </tr>
-      </thead>
-      <tbody>
-        <?php foreach ($adoption_listings as $i => $item): ?>
-        <?php $fl = $item['listing']; ?>
-        <tr>
-          <td class="table-num text-dim"><?= $i + 1 ?></td>
-          <td>
-            <a href="<?= View::e($fl->url) ?>" target="_blank" rel="noopener" class="link">
-              <?= View::e($fl->name) ?>
-            </a>
-            <?php if ($fl->subject !== ''): ?>
-              <span class="form-hint" style="display:inline;margin-left:.4rem"><?= View::e($fl->subject) ?></span>
-            <?php endif; ?>
-          </td>
-          <td class="table-num">
-            <?php if ($item['count_new'] > 0): ?>
-              <span class="badge badge-pending"><?= (int) $item['count_new'] ?></span>
-            <?php else: ?>
-              <span class="text-dim">0</span>
-            <?php endif; ?>
-          </td>
-          <td class="table-num">
-            <?php if ($item['count_approved'] > 0): ?>
-              <span class="badge badge-current"><?= (int) $item['count_approved'] ?></span>
-            <?php else: ?>
-              <span class="text-dim">0</span>
-            <?php endif; ?>
-          </td>
-          <td class="table-num text-dim"><?= (int) $item['count_all'] ?></td>
-          <td class="table-actions">
-            <a href="<?= $b ?>/admin/adoptions/<?= (int) $fl->id ?>" class="btn btn-ghost btn-xs">
-              View Applications
-            </a>
-          </td>
-        </tr>
-        <?php endforeach; ?>
-      </tbody>
-    </table>
-  </div>
-  <?php endif; ?>
-
-  <?php else: ?>
-  <!-- ── SETTINGS TAB ─────────────────────────────────────────────────── -->
-  <div class="pc-section">
-    <div class="listing-field-section">
-      <div class="listing-field-row">
-        <label class="listing-field-label">Per-listing adoption</label>
-        <div>
-          <p style="margin:0 0 .5rem">To accept adoption applications for a listing, open its
-          edit page and enable <strong>Available for adoption</strong>. Fans can then submit
-          applications via the public adopt embed.</p>
-          <a href="<?= $b ?>/admin/listings" class="btn btn-ghost btn-sm">Go to Listings &rarr;</a>
-        </div>
-      </div>
-      <div class="listing-field-row">
-        <label class="listing-field-label">Public embed</label>
-        <div>
-          <p style="margin:0 0 .5rem">Drop the adopt embed into any page to show the application form:</p>
-          <pre style="margin:0;font-size:var(--fs-xs);background:var(--bg-subtle);padding:.6rem .8rem;border-radius:var(--radius-sm);border:1px solid var(--border);overflow-x:auto">$luster_fanlisting_id = 1;
-require '/path/to/luster/public/embed/adopt.php';</pre>
-        </div>
-      </div>
-    </div>
-  </div>
-  <?php endif; ?>
 </div>
+
+<?php if ($isAppView): ?>
+<!-- ──── FILTER PANEL ────────────────────────────────────────────── -->
+<div class="filter-panel" id="adopt-filter-panel">
+  <form method="GET" action="<?= $b ?>/admin/adoptions" class="filter-row" id="adopt-filter-form">
+    <input type="hidden" name="tab" value="<?= View::e($tab) ?>">
+    <?php if ($sort !== 'applied_at'): ?><input type="hidden" name="sort" value="<?= View::e($sort) ?>"><?php endif; ?>
+    <?php if ($dir  !== 'desc'):      ?><input type="hidden" name="dir"  value="<?= View::e($dir) ?>"><?php endif; ?>
+
+    <?php if (!empty($fanlistings)): ?>
+    <div class="select-wrap">
+      <?php $_adoptCounts = $adoption_listing_counts ?? []; $_adoptTotal = array_sum(array_column($_adoptCounts, 'all')); ?>
+      <select name="listing_id" id="adopt-listing-sel">
+        <option value="0"><?= $_adoptTotal > 0 ? 'All Listings (' . $_adoptTotal . ')' : 'All Listings' ?></option>
+        <?php foreach ($fanlistings as $fl): ?>
+          <?php $_adoptN = (int) ($_adoptCounts[(int) $fl->id]['all'] ?? 0); ?>
+          <option value="<?= (int) $fl->id ?>"
+                  <?= $listing_id === $fl->id ? 'selected' : '' ?>>
+            <?= View::e($fl->subject ?: $fl->title) ?><?= $_adoptN > 0 ? ' (' . $_adoptN . ')' : '' ?>
+          </option>
+        <?php endforeach; ?>
+      </select>
+    </div>
+    <?php endif; ?>
+
+    <div class="search-field-wrap">
+      <?= View::icon('search', ['class' => 'search-field-icon', 'aria-hidden' => 'true']) ?>
+      <input type="text" name="search" class="form" placeholder="Search by name or email&hellip;"
+             value="<?= View::e($search) ?>">
+    </div>
+    <button type="submit" class="btn btn-secondary btn-sm">Search</button>
+    <a href="<?= View::e($resetUrl) ?>" class="btn btn-quaternary btn-sm">Reset</a>
+  </form>
+</div>
+
+<!-- ──── STATUS TABS ─────────────────────────────────────────────── -->
+<div class="tabs-wrap">
+  <div class="tabs">
+    <?php foreach ($statusTabs as $key => $label): ?>
+      <a href="<?= View::e($tabUrl($key)) ?>"
+         class="tabs-btn<?= $tab === $key ? ' active' : '' ?>">
+        <?= View::e($label) ?>
+        <?php
+          $cnt      = (int) ($counts[$key] ?? 0);
+          $badgeCls = $key === 'all' ? 'badge-inactive' : ($statusBadge[$key] ?? 'badge-inactive');
+        ?>
+        <?php if ($cnt > 0): ?>
+          <span class="badge <?= $badgeCls ?> badge-inline-sm"><?= $cnt ?></span>
+        <?php endif; ?>
+      </a>
+    <?php endforeach; ?>
+  </div>
+</div>
+<div class="tabs-select-wrap">
+  <span class="overview-section-title">Status</span>
+  <div class="select-wrap flex-fill">
+    <select onchange="window.location.href=this.value">
+      <?php foreach ($statusTabs as $key => $label): ?>
+        <option value="<?= View::e($tabUrl($key)) ?>"<?= $tab === $key ? ' selected' : '' ?>>
+          <?= View::e($label) ?> (<?= (int) ($counts[$key] ?? 0) ?>)
+        </option>
+      <?php endforeach; ?>
+    </select>
+  </div>
+</div>
+
+<!-- ──── APPLICATIONS TABLE ──────────────────────────────────────── -->
+<?php if (empty($applications)): ?>
+  <div class="card">
+    <div class="empty">
+      <div class="empty-icon"><?= View::icon('check-badge', ['width' => 32, 'height' => 32]) ?></div>
+      <?php if ($filters_active || $tab !== 'all'): ?>
+        <div class="empty-title">No applications found.</div>
+        <a href="<?= View::e($resetUrl) ?>" class="btn btn-ghost btn-sm">Clear Filter</a>
+      <?php else: ?>
+        <div class="empty-title">No applications yet.</div>
+        <div>Fans who submit adoption applications will appear here.</div>
+      <?php endif; ?>
+    </div>
+  </div>
+<?php else: ?>
+
+<form method="POST" action="<?= $b ?>/admin/adoptions/bulk"
+      data-del-bulk data-del-entity="adoption_application"
+      data-del-context="applications">
+  <input type="hidden" name="_csrf"    value="<?= View::e($csrf_token) ?>">
+  <input type="hidden" name="_return"  value="<?= View::e($returnUrl) ?>">
+
+  <?php
+    $rangeStart = $total > 0 ? ($page - 1) * $per_page + 1 : 0;
+    $rangeEnd   = min($total, $page * $per_page);
+  ?>
+  <div class="card">
+    <div class="card-head">
+      <?php if ($tab === 'all'): ?>All Applications
+      <?php elseif ($tab === 'pending'): ?>Pending Applications
+      <?php elseif ($tab === 'reviewed'): ?>Reviewed Applications
+      <?php elseif ($tab === 'approved'): ?>Approved Applications
+      <?php elseif ($tab === 'rejected'): ?>Rejected Applications
+      <?php else: ?>Granted Applications
+      <?php endif; ?>
+      <?php if ($selected_listing !== null): ?>&mdash; <?= View::e($selected_listing->subject ?: $selected_listing->title) ?><?php endif; ?>
+      <span class="row-sub">Showing <?= $rangeStart ?>&ndash;<?= $rangeEnd ?> of <?= $total ?> Application<?= $total !== 1 ? 's' : '' ?></span>
+    </div>
+
+    <div class="bulk bulk--flush">
+      Bulk Actions:
+      <div class="select-wrap">
+        <select name="bulk_action" class="select-xs" id="adopt-bulk-action">
+          <option value="" disabled selected>&mdash; Select &mdash;</option>
+          <option value="approve">Approve</option>
+          <option value="reject">Reject</option>
+          <option value="delete">Delete</option>
+        </select>
+      </div>
+      <button type="submit" class="btn btn-quaternary btn-sm">Apply to Selected</button>
+    </div>
+
+    <div class="table-wrap">
+      <table class="data-table mem-table">
+        <thead>
+          <tr>
+            <th class="cb-col"><input type="checkbox" class="sel-all" data-fid="adopt-apps"></th>
+            <th>
+              <a href="<?= View::e($sortUrl('name')) ?>"
+                 class="sort-th<?= $sort === 'name' ? ' sort-active' : '' ?>">
+                Name <?= View::sortIcon('name', $sort, $dir) ?>
+              </a>
+            </th>
+            <th>
+              <a href="<?= View::e($sortUrl('email')) ?>"
+                 class="sort-th<?= $sort === 'email' ? ' sort-active' : '' ?>">
+                Email <?= View::sortIcon('email', $sort, $dir) ?>
+              </a>
+            </th>
+            <?php if ($listing_id === 0): ?>
+            <th>
+              <a href="<?= View::e($sortUrl('listing')) ?>"
+                 class="sort-th<?= $sort === 'listing' ? ' sort-active' : '' ?>">
+                Listing <?= View::sortIcon('listing', $sort, $dir) ?>
+              </a>
+            </th>
+            <?php endif; ?>
+            <th>
+              <a href="<?= View::e($sortUrl('status')) ?>"
+                 class="sort-th<?= $sort === 'status' ? ' sort-active' : '' ?>">
+                Status <?= View::sortIcon('status', $sort, $dir) ?>
+              </a>
+            </th>
+            <th>
+              <a href="<?= View::e($sortUrl('applied_at')) ?>"
+                 class="sort-th<?= $sort === 'applied_at' ? ' sort-active' : '' ?>">
+                Applied <?= View::sortIcon('applied_at', $sort, $dir) ?>
+              </a>
+            </th>
+            <th class="act-col"></th>
+          </tr>
+        </thead>
+        <tbody>
+          <?php foreach ($applications as $app): ?>
+          <?php
+            $appId    = (int) $app['id'];
+            $fl       = $listing_map[(int) $app['fanlisting_id']] ?? null;
+            $isPending  = $app['status'] === 'pending';
+            $isRejected = $app['status'] === 'rejected';
+          ?>
+          <tr<?= $isRejected ? ' class="row-inactive"' : '' ?>>
+            <td class="cb-col">
+              <input type="checkbox" class="row-cb-adopt-apps"
+                     name="ids[]" value="<?= $appId ?>"
+                     data-name="<?= View::e($app['name']) ?>">
+            </td>
+
+            <td data-label="Name">
+              <span class="text-strong"><?= View::e($app['name']) ?></span>
+              <?php if ($app['url'] !== ''): ?>
+                <a href="<?= View::e($app['url']) ?>" target="_blank" rel="noopener noreferrer"
+                   class="mem-url link link-break"><?= View::e($app['url']) ?></a>
+              <?php endif; ?>
+            </td>
+
+            <td data-label="Email" class="text-muted">
+              <?= View::emailWrap($app['email']) ?>
+            </td>
+
+            <?php if ($listing_id === 0): ?>
+            <td data-label="Listing">
+              <?php if ($fl !== null): ?>
+                <a href="<?= $b ?>/admin/listings/<?= (int) $fl->id ?>/edit" class="link">
+                  <?= View::e($fl->subject ?: $fl->title) ?>
+                </a>
+              <?php else: ?>
+                <span class="text-dim">#<?= (int) $app['fanlisting_id'] ?></span>
+              <?php endif; ?>
+            </td>
+            <?php endif; ?>
+
+            <td data-label="Status">
+              <span class="badge <?= $statusBadge[$app['status']] ?? 'badge-inactive' ?>">
+                <?= View::e($statusLabels[$app['status']] ?? $app['status']) ?>
+              </span>
+            </td>
+
+            <td class="text-dim nowrap" data-label="Applied">
+              <?= View::e(date('Y-m-d', strtotime((string) $app['applied_at']))) ?>
+            </td>
+
+            <td class="act-col" data-label="">
+              <div class="data-actions">
+                <?php if ($isPending): ?>
+                  <a href="<?= $b ?>/admin/adoptions/<?= $appId ?>/edit" class="btn btn-primary btn-xs">Review</a>
+                <?php else: ?>
+                  <a href="<?= $b ?>/admin/adoptions/<?= $appId ?>/edit" class="btn btn-tertiary btn-xs">Edit</a>
+                <?php endif; ?>
+                <a href="mailto:<?= View::e($app['email']) ?>" class="btn btn-secondary btn-xs">Email</a>
+                <button type="submit" form="del-adopt-<?= $appId ?>" class="btn btn-danger btn-xs">Delete</button>
+              </div>
+            </td>
+          </tr>
+          <?php endforeach; ?>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</form>
+
+<?php foreach ($applications as $app): ?>
+<form id="del-adopt-<?= (int) $app['id'] ?>" method="POST"
+      action="<?= $b ?>/admin/adoptions/<?= (int) $app['id'] ?>/delete"
+      data-del-modal data-del-entity="adoption_application"
+      data-del-name="<?= View::e($app['name']) ?>">
+  <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
+</form>
+<?php endforeach; ?>
+
+<?php if ($total_pages > 1):
+    $pg_current = $page; $pg_total = $total_pages;
+    $pg_url = static fn(int $p) => $buildUrl(['page' => $p > 1 ? $p : '']);
+    include LUSTER_BASE . '/templates/admin/_pagination.php';
+endif; ?>
+
+<?php endif; // applications ?>
+
+<!-- ──── LISTINGS VIEW ────────────────────────────────────────────── -->
+<?php elseif ($tab === 'listings'): ?>
+
+<?php if (empty($adoption_listings)): ?>
+  <div class="card">
+    <div class="empty">
+      <div class="empty-icon"><?= View::icon('adoptions', ['width' => 32, 'height' => 32]) ?></div>
+      <div class="empty-title">No listings marked for adoption.</div>
+      <div>Open a listing&rsquo;s edit page and enable &ldquo;Available for adoption&rdquo; to start accepting applications.</div>
+      <a href="<?= $b ?>/admin/listings" class="btn btn-primary btn-sm"><?= View::icon('star') ?> Go to Listings</a>
+    </div>
+  </div>
+<?php else: ?>
+  <div class="card">
+    <div class="card-head">Adoption Listings
+      <span class="row-sub"><?= count($adoption_listings) ?> listing<?= count($adoption_listings) !== 1 ? 's' : '' ?></span>
+    </div>
+    <div class="table-wrap">
+      <table class="data-table mem-table">
+        <thead>
+          <tr>
+            <th class="table-num">#</th>
+            <th>Listing</th>
+            <th class="table-num">Pending</th>
+            <th class="table-num">Approved</th>
+            <th class="table-num">Total</th>
+            <th class="act-col"></th>
+          </tr>
+        </thead>
+        <tbody>
+          <?php foreach ($adoption_listings as $i => $item): ?>
+          <?php $fl = $item['listing']; ?>
+          <tr>
+            <td class="table-num text-dim"><?= $i + 1 ?></td>
+            <td data-label="Listing">
+              <a href="<?= $b ?>/admin/listings/<?= (int) $fl->id ?>/edit" class="link">
+                <?= View::e($fl->title) ?>
+              </a>
+              <?php if ($fl->subject !== ''): ?>
+                <span class="form-hint" style="display:inline;margin-left:.4rem"><?= View::e($fl->subject) ?></span>
+              <?php endif; ?>
+            </td>
+            <td class="table-num" data-label="Pending">
+              <?php if ($item['count_pending'] > 0): ?>
+                <a href="<?= $b ?>/admin/adoptions?tab=pending&listing_id=<?= (int) $fl->id ?>" class="badge badge-pending"><?= (int) $item['count_pending'] ?></a>
+              <?php else: ?>
+                <span class="text-dim">&mdash;</span>
+              <?php endif; ?>
+            </td>
+            <td class="table-num" data-label="Approved">
+              <?php if ($item['count_approved'] > 0): ?>
+                <span class="badge badge-current"><?= (int) $item['count_approved'] ?></span>
+              <?php else: ?>
+                <span class="text-dim">&mdash;</span>
+              <?php endif; ?>
+            </td>
+            <td class="table-num text-dim" data-label="Total"><?= (int) $item['count_all'] ?></td>
+            <td class="act-col" data-label="">
+              <a href="<?= $b ?>/admin/adoptions?listing_id=<?= (int) $fl->id ?>" class="btn btn-primary btn-xs">View Applications</a>
+            </td>
+          </tr>
+          <?php endforeach; ?>
+        </tbody>
+      </table>
+    </div>
+  </div>
+<?php endif; ?>
+
+<?php endif; ?>

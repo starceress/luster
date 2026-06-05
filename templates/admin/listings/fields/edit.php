@@ -23,7 +23,7 @@ $encName = urlencode($field->name);
 
 <div class="page-topbar">
   <a href="<?= $b ?>/admin/listings/<?= $id ?>/fields" class="link">
-    &larr; <?= View::e($listing->name) ?> &mdash; Fields
+    &larr; <?= View::e($listing->title) ?> &mdash; Fields
   </a>
 </div>
 

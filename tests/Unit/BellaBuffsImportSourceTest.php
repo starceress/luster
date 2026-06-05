@@ -77,6 +77,7 @@ final class BellaBuffsImportSourceTest extends TestCase
             image TEXT NULL,
             sort_order INTEGER NOT NULL DEFAULT 0,
             active INTEGER NOT NULL DEFAULT 1,
+            status TEXT NOT NULL DEFAULT 'approved',
             pending INTEGER NOT NULL DEFAULT 0
         )");
 

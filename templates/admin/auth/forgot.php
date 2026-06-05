@@ -31,8 +31,8 @@ require_once __DIR__ . '/../_css_assets.php';
   <div class="login-card">
 
     <div class="login-brand">
-      <span class="login-brand-name">Luster</span>
-      <span class="login-brand-sub">Admin Panel</span>
+      <span class="login-wordmark">Luster</span>
+      <span class="login-luster-sub">Admin Panel</span>
     </div>
 
     <?php if ($success !== '') : ?>

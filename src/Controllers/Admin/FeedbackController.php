@@ -54,6 +54,7 @@ final class FeedbackController extends AdminController
         $type         = trim((string) $request->post('type',          ''));
         $subject      = trim((string) $request->post('subject',       ''));
         $message      = trim((string) $request->post('message',       ''));
+        $contactName  = trim((string) $request->post('contact_name',  ''));
         $contactEmail = trim((string) $request->post('contact_email', ''));
         $includeSysinfo  = $request->post('include_sysinfo',  '') === '1';
         $includeErrorlog = $request->post('include_errorlog', '') === '1';
@@ -62,12 +63,13 @@ final class FeedbackController extends AdminController
             'type'             => $type,
             'subject'          => $subject,
             'message'          => $message,
+            'contact_name'     => $contactName,
             'contact_email'    => $contactEmail,
             'include_sysinfo'  => $includeSysinfo  ? '1' : '',
             'include_errorlog' => $includeErrorlog ? '1' : '',
         ];
 
-        $fieldErrors = $this->validateFields($type, $subject, $message, $contactEmail);
+        $fieldErrors = $this->validateFields($type, $subject, $message, $contactName, $contactEmail);
         $viewData    = $this->gatherViewData();
 
         if ($fieldErrors !== []) {
@@ -87,6 +89,7 @@ final class FeedbackController extends AdminController
                 'type'             => $type,
                 'subject'          => $subject,
                 'message'          => $message,
+                'contact_name'     => $contactName,
                 'contact_email'    => $contactEmail,
                 'include_sysinfo'  => $includeSysinfo,
                 'include_errorlog' => $includeErrorlog,
@@ -129,6 +132,7 @@ final class FeedbackController extends AdminController
         string $type,
         string $subject,
         string $message,
+        string $contactName,
         string $contactEmail,
     ): array {
         $errors = [];
@@ -141,6 +145,9 @@ final class FeedbackController extends AdminController
         }
         if ($message === '') {
             $errors['message'] = 'Please describe your issue or request.';
+        }
+        if ($contactName === '') {
+            $errors['contact_name'] = 'Please enter your name.';
         }
         if ($contactEmail === '') {
             $errors['contact_email'] = 'Please enter your email address.';
@@ -223,6 +230,7 @@ final class FeedbackController extends AdminController
             'errorlog_empty' => ($errorLogRows === []),
             'sender_warning' => $senderWarning,
             'admin_email'    => (string) $session->get('lstr_admin_email', ''),
+            'owner_name'     => (string) $config->get('owner_name', ''),
         ];
     }
 }

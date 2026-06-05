@@ -256,7 +256,7 @@ final class ListingSettingsRepo
                 '{aff_name}',
                 '{aff_url}',
                 '{aff_image_tag}',
-                '{listing_name}',
+                '{listing_title}',
                 '{listing_url}',
             ],
             $tpl,
@@ -680,6 +680,7 @@ final class ListingSettingsRepo
             'form_url_remove'       => '',
             'form_url_reset'        => '',
             'form_url_codes_submit' => '',
+            'codes_submit_enabled'  => true,
             'db_host'               => '',
             'db_name'               => '',
             'db_user'               => '',
@@ -690,7 +691,7 @@ final class ListingSettingsRepo
             $stmt = $this->db->prepare(
                 'SELECT form_url_join, form_url_update,
                         form_url_remove, form_url_reset,
-                        form_url_codes_submit,
+                        form_url_codes_submit, codes_submit_enabled,
                         db_host, db_name, db_user, db_pass
                  FROM lstr_fanlisting_settings
                  WHERE fanlisting_id = :id'
@@ -711,6 +712,7 @@ final class ListingSettingsRepo
             'form_url_remove'       => (string) ($row['form_url_remove']       ?? ''),
             'form_url_reset'        => (string) ($row['form_url_reset']        ?? ''),
             'form_url_codes_submit' => (string) ($row['form_url_codes_submit'] ?? ''),
+            'codes_submit_enabled'  => isset($row['codes_submit_enabled']) ? (bool) $row['codes_submit_enabled'] : true,
             'db_host'               => (string) ($row['db_host']               ?? ''),
             'db_name'               => (string) ($row['db_name']               ?? ''),
             'db_user'               => (string) ($row['db_user']               ?? ''),
@@ -734,6 +736,7 @@ final class ListingSettingsRepo
         string $formUrlRemove,
         string $formUrlReset,
         string $formUrlCodesSubmit,
+        bool   $codesSubmitEnabled,
         string $dbHost,
         string $dbName,
         string $dbUser,
@@ -744,35 +747,37 @@ final class ListingSettingsRepo
                  (fanlisting_id,
                   form_url_join, form_url_update,
                   form_url_remove, form_url_reset,
-                  form_url_codes_submit,
+                  form_url_codes_submit, codes_submit_enabled,
                   db_host, db_name, db_user, db_pass)
              VALUES
                  (:id,
                   :form_join, :form_update, :form_remove, :form_reset,
-                  :form_codes_submit,
+                  :form_codes_submit, :codes_submit_enabled,
                   :host, :dbname, :user, :pass)
              ON DUPLICATE KEY UPDATE
-                 form_url_join         = VALUES(form_url_join),
-                 form_url_update       = VALUES(form_url_update),
-                 form_url_remove       = VALUES(form_url_remove),
-                 form_url_reset        = VALUES(form_url_reset),
-                 form_url_codes_submit = VALUES(form_url_codes_submit),
-                 db_host               = VALUES(db_host),
-                 db_name               = VALUES(db_name),
-                 db_user               = VALUES(db_user),
-                 db_pass               = VALUES(db_pass)'
+                 form_url_join          = VALUES(form_url_join),
+                 form_url_update        = VALUES(form_url_update),
+                 form_url_remove        = VALUES(form_url_remove),
+                 form_url_reset         = VALUES(form_url_reset),
+                 form_url_codes_submit  = VALUES(form_url_codes_submit),
+                 codes_submit_enabled   = VALUES(codes_submit_enabled),
+                 db_host                = VALUES(db_host),
+                 db_name                = VALUES(db_name),
+                 db_user                = VALUES(db_user),
+                 db_pass                = VALUES(db_pass)'
         );
         $stmt->execute([
-            'id'                => $listingId,
-            'form_join'         => $formUrlJoin,
-            'form_update'       => $formUrlUpdate,
-            'form_remove'       => $formUrlRemove,
-            'form_reset'        => $formUrlReset,
-            'form_codes_submit' => $formUrlCodesSubmit,
-            'host'              => $dbHost,
-            'dbname'            => $dbName,
-            'user'              => $dbUser,
-            'pass'              => $dbPass,
+            'id'                   => $listingId,
+            'form_join'            => $formUrlJoin,
+            'form_update'          => $formUrlUpdate,
+            'form_remove'          => $formUrlRemove,
+            'form_reset'           => $formUrlReset,
+            'form_codes_submit'    => $formUrlCodesSubmit,
+            'codes_submit_enabled' => (int) $codesSubmitEnabled,
+            'host'                 => $dbHost,
+            'dbname'               => $dbName,
+            'user'                 => $dbUser,
+            'pass'                 => $dbPass,
         ]);
     }
 
@@ -857,7 +862,7 @@ final class ListingSettingsRepo
             $stmt->execute(['id' => $listingId]);
             $row = $stmt->fetch();
         } catch (\Exception) {
-            return ['enabled' => false, 'form_url' => '', 'redirect_url' => ''];
+            return ['enabled' => true, 'form_url' => '', 'redirect_url' => ''];
         }
 
         if ($row === false) {
@@ -876,6 +881,45 @@ final class ListingSettingsRepo
      *
      * Requires Migration 41.
      */
+    /**
+     * Returns whether to send the code-approval email for this listing.
+     * NULL = inherit global setting, true = always send, false = never send.
+     *
+     * @return bool|null
+     */
+    public function getCodeApprovalEmail(int $listingId): ?bool
+    {
+        try {
+            $stmt = $this->db->prepare(
+                'SELECT code_approval_email FROM lstr_fanlisting_settings WHERE fanlisting_id = :id'
+            );
+            $stmt->execute(['id' => $listingId]);
+            $row = $stmt->fetch(\PDO::FETCH_ASSOC);
+        } catch (\Throwable) {
+            return null;
+        }
+        if ($row === false || !array_key_exists('code_approval_email', $row)) {
+            return null;
+        }
+        return $row['code_approval_email'] === null ? null : (bool) $row['code_approval_email'];
+    }
+
+    /**
+     * Saves the per-listing code-approval email override.
+     * Pass null to inherit the global setting.
+     */
+    public function setCodeApprovalEmail(int $listingId, ?bool $value): void
+    {
+        try {
+            $stmt = $this->db->prepare(
+                'INSERT INTO lstr_fanlisting_settings (fanlisting_id, code_approval_email)
+                 VALUES (:id, :val)
+                 ON DUPLICATE KEY UPDATE code_approval_email = :val'
+            );
+            $stmt->execute(['id' => $listingId, 'val' => $value === null ? null : (int) $value]);
+        } catch (\Throwable) {}
+    }
+
     public function saveAffiliateApplySettings(int $listingId, bool $enabled, string $formUrl, string $redirectUrl): void
     {
         try {

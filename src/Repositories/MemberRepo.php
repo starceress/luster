@@ -34,6 +34,9 @@ final class MemberRepo
     /** SQL fragment that selects pending (queued) members. */
     private string $pendingWhere;
 
+    /** SQL fragment that selects rejected members (unprefixed schema only). */
+    private string $rejectedWhere;
+
     /**
      * When true, append 'members' to the dbprefix to get the table name
      * (standard enth_ schema: prefix 'fl_music_' → table 'fl_music_members').
@@ -52,12 +55,14 @@ final class MemberRepo
             // and pending=0 means the member IS approved.
             $this->approvedWhere = 'pending = 0';
             $this->pendingWhere  = 'pending = 1';
+            $this->rejectedWhere = 'pending = 2';
             $this->appendMembers = false;
         } else {
             // Standard Enthusiast: dbprefix + 'members' = table name,
             // and approved=1 means the member IS approved.
             $this->approvedWhere = 'approved = 1';
             $this->pendingWhere  = 'approved = 0';
+            $this->rejectedWhere = '1 = 0'; // no rejected state in standard schema
             $this->appendMembers = true;
         }
     }
@@ -281,9 +286,10 @@ final class MemberRepo
 
         $p     = $this->resolveTable($prefix);
         $where = match ($status) {
-            'pending' => "WHERE {$this->pendingWhere}",
-            'all'     => '',
-            default   => "WHERE {$this->approvedWhere}",
+            'pending'  => "WHERE {$this->pendingWhere}",
+            'rejected' => "WHERE {$this->rejectedWhere}",
+            'all'      => '',
+            default    => "WHERE {$this->approvedWhere}",
         };
 
         $stmt = $this->db->prepare("SELECT email FROM {$p} {$where}");
@@ -315,9 +321,10 @@ final class MemberRepo
         $offset = max(0, ($page - 1) * $perPage);
 
         $where = match ($status) {
-            'pending' => "WHERE {$this->pendingWhere}",
-            'all'     => '',
-            default   => "WHERE {$this->approvedWhere}",
+            'pending'  => "WHERE {$this->pendingWhere}",
+            'rejected' => "WHERE {$this->rejectedWhere}",
+            'all'      => '',
+            default    => "WHERE {$this->approvedWhere}",
         };
 
         $sort = in_array($sort, ['name', 'email', 'country', 'status'], true) ? $sort : 'name';
@@ -608,11 +615,40 @@ final class MemberRepo
     }
 
     /**
-     * Rejects (deletes) a pending member by email.
+     * Rejects a member, moving them to the rejected state.
+     * Unprefixed schema: sets pending=2.
+     * Standard schema: no rejected state — falls back to delete.
      */
     public function reject(string $prefix, string $email): bool
     {
+        if (!$this->appendMembers) {
+            $p    = $this->resolveTable($prefix);
+            $stmt = $this->db->prepare("UPDATE {$p} SET pending = 2 WHERE email = :email");
+            return $stmt->execute(['email' => $email]);
+        }
+
         return $this->deleteByEmail($prefix, $email);
+    }
+
+    /**
+     * Counts rejected members for a listing (unprefixed schema only).
+     */
+    public function countRejected(string $prefix): int
+    {
+        $p = $this->resolveTable($prefix);
+
+        try {
+            $stmt = $this->db->prepare(
+                "SELECT COUNT(*) FROM {$p} WHERE {$this->rejectedWhere}"
+            );
+            $stmt->execute();
+            return (int) $stmt->fetchColumn();
+        } catch (\PDOException $e) {
+            if (strpos($e->getMessage(), "doesn't exist") !== false) {
+                return 0;
+            }
+            throw $e;
+        }
     }
 
     /**

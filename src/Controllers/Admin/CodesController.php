@@ -189,7 +189,7 @@ final class CodesController extends AdminController
         $activityRepo->log(
             (int) $session->get('lstr_admin_id'),
             'codes.upload',
-            "Uploaded {$uploaded} code(s) for listing #{$listingId} ({$listing->name})",
+            "Uploaded {$uploaded} code(s) for listing #{$listingId} ({$listing->title})",
             $request->ip(),
         );
 
@@ -912,7 +912,7 @@ final class CodesController extends AdminController
             $activityRepo->log(
                 (int) $session->get('lstr_admin_id'),
                 'codes.bulk_delete',
-                "Bulk-deleted {$deleted} code(s) from listing #{$listingId} ({$listing->name})",
+                "Bulk-deleted {$deleted} code(s) from listing #{$listingId} ({$listing->title})",
                 $request->ip(),
             );
 
@@ -1248,7 +1248,7 @@ final class CodesController extends AdminController
         $zipContent = (string) file_get_contents($tmpFile);
         unlink($tmpFile);
 
-        $safeName = preg_replace('/[^a-zA-Z0-9_.\-]/', '_', $listing->name);
+        $safeName = preg_replace('/[^a-zA-Z0-9_.\-]/', '_', $listing->title);
         $filename = 'codes_' . $safeName . '_' . date('Ymd') . '.zip';
 
         return Response::download($zipContent, $filename, 'application/zip');

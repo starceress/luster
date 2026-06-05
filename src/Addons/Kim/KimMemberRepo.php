@@ -388,6 +388,7 @@ final class KimMemberRepo
         $d = $dir === 'asc' ? 'ASC' : 'DESC';
         return match ($sort) {
             'name'    => "name {$d}, added_at DESC",
+            'email'   => "email {$d}, name ASC",
             'status'  => $d === 'ASC'
                              ? 'pending DESC, granted DESC, name ASC'
                              : 'pending ASC, granted ASC, name ASC',
@@ -409,6 +410,29 @@ final class KimMemberRepo
         $stmt->execute($params);
 
         return (int) $stmt->fetchColumn();
+    }
+
+    /**
+     * Returns a map of fanlisting_id → total KIM member count (all statuses).
+     * Used to show member counts next to listing filter options.
+     *
+     * @return array<int, int>
+     */
+    public function getCountsByListing(): array
+    {
+        $stmt = $this->db->prepare(
+            'SELECT fanlisting_id, COUNT(*) AS cnt
+             FROM lstr_kim_members
+             GROUP BY fanlisting_id'
+        );
+        $stmt->execute();
+
+        $counts = [];
+        foreach ($stmt->fetchAll(\PDO::FETCH_ASSOC) as $row) {
+            $counts[(int) $row['fanlisting_id']] = (int) $row['cnt'];
+        }
+
+        return $counts;
     }
 
     /**
@@ -499,8 +523,9 @@ final class KimMemberRepo
         }
 
         if ($search !== '') {
-            $conditions[]     = 'name LIKE :search';
-            $params['search'] = '%' . $search . '%';
+            $conditions[]       = '(name LIKE :search_n OR email LIKE :search_e)';
+            $params['search_n'] = '%' . $search . '%';
+            $params['search_e'] = '%' . $search . '%';
         }
 
         $where = $conditions !== [] ? implode(' AND ', $conditions) : '1=1';

@@ -79,7 +79,7 @@ $collLastDate = $latest_coll !== null
     </button>
   </div>
   <div class="actions-row actions-row--right">
-    <a href="<?= $b ?>/admin/updates/settings" class="btn btn-quaternary btn-sm">Display Settings</a>
+    <a href="<?= $b ?>/admin/updates/settings" class="btn btn-quaternary btn-sm"><?= View::icon('gear') ?>Updates Feed Settings</a>
   </div>
 </div>
 

@@ -30,7 +30,7 @@ final class WishlistAddon implements AddonInterface
 
     public function getDescription(): string
     {
-        return 'A collective wishlist of fanlistings you would like to open. Supports four entry types (Wanted, Top Wanted, Granted, Upcoming) with category grouping and a public embed for your site pages.';
+        return 'A collective wishlist of fanlistings you would like to open. Supports three entry types (Wanted, Top Wanted, Granted) with category grouping and a public embed for your site pages.';
     }
 
     public function install(PDO $pdo): void
@@ -42,7 +42,7 @@ final class WishlistAddon implements AddonInterface
                 `url`         VARCHAR(255) NOT NULL DEFAULT '',
                 `image`       VARCHAR(255) NULL,
                 `category`    VARCHAR(500) NOT NULL DEFAULT '',
-                `type`        ENUM('wanted','top','granted','upcoming') NOT NULL DEFAULT 'wanted',
+                `type`        ENUM('wanted','top','granted') NOT NULL DEFAULT 'wanted',
                 `description` TEXT NULL,
                 `added_at`    DATE NULL,
                 `sort_order`  SMALLINT UNSIGNED NOT NULL DEFAULT 0,

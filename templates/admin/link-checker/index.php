@@ -153,7 +153,7 @@ $statusBadgeClass = static function (string $s): string {
   </div>
   <div class="actions-row">
     <button id="lc-run-btn" class="btn btn-primary btn-sm">Run Link Checker</button>
-    <a href="<?= $b ?>/admin/link-checker/settings" class="btn btn-quaternary btn-sm">Display Settings</a>
+    <a href="<?= $b ?>/admin/link-checker/settings" class="btn btn-quaternary btn-sm"><?= View::icon('gear') ?>Link Checker Settings</a>
   </div>
 </div>
 
@@ -163,24 +163,37 @@ $statusBadgeClass = static function (string $s): string {
     <input type="hidden" name="tab" value="affiliates" id="lc-filter-tab">
     <?php if (!empty($listings)): ?>
     <div class="select-wrap">
-      <select name="listing_id" aria-label="Filter by listing">
-        <option value="">All listings</option>
-        <option value="0" <?= $listing_id_filter === 0 ? 'selected' : '' ?>>Collective</option>
+      <?php $_lcSc = $aff_scope_counts ?? []; $_lcTotal = array_sum($_lcSc); ?>
+      <select name="listing_id" id="lc-listing-sel" aria-label="Filter by listing">
+        <option value=""><?= $_lcTotal > 0 ? 'All Listings (' . $_lcTotal . ')' : 'All Listings' ?></option>
+        <?php $_lcCollN = (int) ($_lcSc[0] ?? 0); ?>
+        <?php $_lcCollLabel = ($app_name ?? '') !== '' ? View::e($app_name) . ' (Collective)' : 'Collective'; ?>
+        <option value="0" <?= $listing_id_filter === 0 ? 'selected' : '' ?>><?= $_lcCollLabel ?><?= $_lcCollN > 0 ? ' (' . $_lcCollN . ')' : '' ?></option>
         <?php foreach ($listings as $lst): ?>
+          <?php $_lcN = (int) ($_lcSc[(int) $lst->id] ?? 0); ?>
           <option value="<?= (int) $lst->id ?>" <?= $listing_id_filter === $lst->id ? 'selected' : '' ?>>
-            <?= View::e($lst->subject) ?>
+            <?= View::e($lst->subject) ?><?= $_lcN > 0 ? ' (' . $_lcN . ')' : '' ?>
           </option>
         <?php endforeach; ?>
       </select>
     </div>
     <?php endif; ?>
     <div class="select-wrap">
-      <select name="status" aria-label="Filter by link status">
+      <?php
+        $_lcAffStats    = $aff_stats    ?? ['ok' => 0, 'dead' => 0, 'redirect' => 0, 'unchecked' => 0];
+        $_lcJoinedStats = $joined_stats ?? ['ok' => 0, 'dead' => 0, 'redirect' => 0, 'unchecked' => 0];
+        $_lcCombOk        = (int) $_lcAffStats['ok']        + (int) $_lcJoinedStats['ok'];
+        $_lcCombRedirect  = (int) $_lcAffStats['redirect']  + (int) $_lcJoinedStats['redirect'];
+        $_lcCombDead      = (int) $_lcAffStats['dead']      + (int) $_lcJoinedStats['dead'];
+        $_lcCombUnchecked = (int) $_lcAffStats['unchecked'] + (int) $_lcJoinedStats['unchecked'];
+        $_lcCombTotal     = $_lcCombOk + $_lcCombRedirect + $_lcCombDead + $_lcCombUnchecked;
+      ?>
+      <select name="status" id="lc-status-sel" aria-label="Filter by link status">
         <option value="">All Statuses</option>
-        <option value="ok"        <?= $status === 'ok'        ? 'selected' : '' ?>>Active</option>
-        <option value="redirect"  <?= $status === 'redirect'  ? 'selected' : '' ?>>Redirect</option>
-        <option value="dead"      <?= $status === 'dead'      ? 'selected' : '' ?>>Dead</option>
-        <option value="unchecked" <?= $status === 'unchecked' ? 'selected' : '' ?>>Unchecked</option>
+        <option value="ok"        <?= $status === 'ok'        ? 'selected' : '' ?>>Active<?=        $_lcCombOk        > 0 ? ' (' . $_lcCombOk        . ')' : '' ?></option>
+        <option value="redirect"  <?= $status === 'redirect'  ? 'selected' : '' ?>>Redirect<?=      $_lcCombRedirect  > 0 ? ' (' . $_lcCombRedirect  . ')' : '' ?></option>
+        <option value="dead"      <?= $status === 'dead'      ? 'selected' : '' ?>>Dead<?=          $_lcCombDead      > 0 ? ' (' . $_lcCombDead      . ')' : '' ?></option>
+        <option value="unchecked" <?= $status === 'unchecked' ? 'selected' : '' ?>>Unchecked<?=     $_lcCombUnchecked > 0 ? ' (' . $_lcCombUnchecked . ')' : '' ?></option>
       </select>
     </div>
     <div class="search-field-wrap">
@@ -206,10 +219,10 @@ $statusBadgeClass = static function (string $s): string {
   <span class="overview-section-title">Section</span>
   <div class="select-wrap flex-fill">
     <select class="tabs-select" aria-label="Select tab">
-      <option value="affiliates">Affiliates</option>
-      <option value="joined">Joined</option>
-      <option value="moved">Redirected</option>
-      <option value="dead">Dead</option>
+      <option value="affiliates">Affiliates<?= (int) ($aff_total ?? 0) > 0 ? ' (' . (int) $aff_total . ')' : '' ?></option>
+      <option value="joined">Joined<?= (int) ($joined_total ?? 0) > 0 ? ' (' . (int) $joined_total . ')' : '' ?></option>
+      <option value="moved">Redirected<?= $totalMoved > 0 ? ' (' . $totalMoved . ')' : '' ?></option>
+      <option value="dead">Dead<?= $totalDead > 0 ? ' (' . $totalDead . ')' : '' ?></option>
     </select>
   </div>
 </div>
@@ -422,6 +435,10 @@ $statusBadgeClass = static function (string $s): string {
     </div>
     <?php else: ?>
       <div class="card">
+      <div class="card-head">
+        <span>Redirected Links</span>
+        <span class="row-sub">Showing 1&#8211;<?= $totalMoved ?> of <?= $totalMoved ?> link<?= $totalMoved !== 1 ? 's' : '' ?></span>
+      </div>
       <div class="table-wrap">
         <table class="data-table mem-table">
           <thead>
@@ -521,6 +538,10 @@ $statusBadgeClass = static function (string $s): string {
     <?php else: ?>
         <p>These URLs returned an error or could not be reached. Review and remove or replace the records as needed.</p>
       <div class="card">
+      <div class="card-head">
+        <span>Dead Links</span>
+        <span class="row-sub">Showing 1&#8211;<?= $totalDead ?> of <?= $totalDead ?> link<?= $totalDead !== 1 ? 's' : '' ?></span>
+      </div>
       <div class="table-wrap">
         <table class="data-table mem-table">
           <thead>

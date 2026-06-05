@@ -118,6 +118,81 @@ final class PendingUpdateRepo
         return (int) $stmt->fetchColumn();
     }
 
+    /**
+     * Returns a paginated slice of all pending updates, newest first.
+     *
+     * @return array{updates: array, total: int, pages: int}
+     */
+    public function paginateAll(int $page, int $perPage, string $orderBy = 'submitted_at DESC'): array
+    {
+        $total  = $this->countAll();
+        $pages  = max(1, (int) ceil($total / $perPage));
+        $page   = min($page, $pages);
+        $offset = ($page - 1) * $perPage;
+
+        $allowedOrderBy = ['submitted_at DESC', 'submitted_at ASC', 'fanlisting_id ASC', 'fanlisting_id DESC'];
+        if (!in_array($orderBy, $allowedOrderBy, true)) {
+            $orderBy = 'submitted_at DESC';
+        }
+
+        $stmt = $this->db->prepare(
+            "SELECT * FROM lstr_pending_updates ORDER BY {$orderBy} LIMIT :limit OFFSET :offset"
+        );
+        $stmt->bindValue(':limit',  $perPage, \PDO::PARAM_INT);
+        $stmt->bindValue(':offset', $offset,  \PDO::PARAM_INT);
+        $stmt->execute();
+
+        $updates = array_map(
+            static fn(array $r) => (object) [
+                'id'            => (int)    $r['id'],
+                'fanlisting_id' => (int)    $r['fanlisting_id'],
+                'member_email'  => (string) $r['member_email'],
+                'changes'       => (array)  (json_decode((string) $r['changes'], true) ?? []),
+                'submitted_at'  => (string) $r['submitted_at'],
+            ],
+            $stmt->fetchAll(),
+        );
+
+        return ['updates' => $updates, 'total' => $total, 'pages' => $pages];
+    }
+
+    /**
+     * Returns a paginated slice of pending updates for a specific listing, newest first.
+     *
+     * @return array{updates: array, total: int, pages: int}
+     */
+    public function paginateByListing(int $listingId, int $page, int $perPage): array
+    {
+        $total  = $this->countByListing($listingId);
+        $pages  = max(1, (int) ceil($total / $perPage));
+        $page   = min($page, $pages);
+        $offset = ($page - 1) * $perPage;
+
+        $stmt = $this->db->prepare(
+            'SELECT * FROM lstr_pending_updates
+             WHERE fanlisting_id = :fid
+             ORDER BY submitted_at DESC
+             LIMIT :limit OFFSET :offset'
+        );
+        $stmt->bindValue(':fid',    $listingId, \PDO::PARAM_INT);
+        $stmt->bindValue(':limit',  $perPage,   \PDO::PARAM_INT);
+        $stmt->bindValue(':offset', $offset,    \PDO::PARAM_INT);
+        $stmt->execute();
+
+        $updates = array_map(
+            static fn(array $r) => (object) [
+                'id'            => (int)    $r['id'],
+                'fanlisting_id' => (int)    $r['fanlisting_id'],
+                'member_email'  => (string) $r['member_email'],
+                'changes'       => (array)  (json_decode((string) $r['changes'], true) ?? []),
+                'submitted_at'  => (string) $r['submitted_at'],
+            ],
+            $stmt->fetchAll(),
+        );
+
+        return ['updates' => $updates, 'total' => $total, 'pages' => $pages];
+    }
+
     // -----------------------------------------------------------------------
     // Writes
     // -----------------------------------------------------------------------

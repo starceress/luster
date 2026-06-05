@@ -162,7 +162,7 @@ final class ResetController
                 $mailer    = new Mailer($cfg);
                 $emailRepo = new EmailTemplateRepo($this->app->getDatabase());
                 $tokens    = EmailTemplateRepo::buildTokens(
-                    listingName:    $listing->name,
+                    listingName:    $listing->title,
                     listingUrl:     $listing->url,
                     siteName:       (string) $cfg->get('site_name', 'Luster'),
                     listingSubject: $listing->subject,
@@ -194,7 +194,7 @@ final class ResetController
         $listingRepo = new ListingRepo($this->app->getDatabase(), $this->app->getConfig());
         $listing     = $listingRepo->getById($listingId);
 
-        $listingName = $listing?->name ?? 'this listing';
+        $listingName = $listing?->title ?? 'this listing';
         $baseUrl        = $this->app->getBaseUrl();
 
         $html = $this->app->getView()->renderPublic('success.php', [
@@ -335,7 +335,7 @@ final class ResetController
         $listingRepo = new ListingRepo($this->app->getDatabase(), $this->app->getConfig());
         $listing     = $listingRepo->getById($listingId);
 
-        $listingName = $listing?->name ?? 'this listing';
+        $listingName = $listing?->title ?? 'this listing';
         $baseUrl        = $this->app->getBaseUrl();
 
         $html = $this->app->getView()->renderPublic('success.php', [
@@ -368,7 +368,7 @@ final class ResetController
 
         $html = $this->app->getView()->renderPublic('reset.php', [
             'listing'      => $listing,
-            'listing_name' => $listing->name,
+            'listing_name' => $listing->title,
             'listing_url'  => $listing->url,
             'page_title'      => 'Reset Password',
             'form_action'     => $baseUrl . '/reset/' . $listingId,
@@ -396,7 +396,7 @@ final class ResetController
 
         $html = $this->app->getView()->renderPublic('reset_confirm.php', [
             'listing'      => $listing,
-            'listing_name' => $listing->name,
+            'listing_name' => $listing->title,
             'listing_url'  => $listing->url,
             'page_title'      => 'Set New Password',
             'form_action'     => $baseUrl . '/reset/' . $listingId . '/confirm',

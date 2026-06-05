@@ -773,10 +773,16 @@ document.addEventListener('click', function (e) {
     return html;
   }
 
+  var form    = document.getElementById('fl-filter-form');
+  var typeSel = form ? form.querySelector('select[name="type"]') : null;
+
   netSel.addEventListener('change', function () {
     catSel.innerHTML = buildCatOptions(this.value);
-    document.getElementById('fl-filter-form').submit();
+    form.submit();
   });
+
+  catSel.addEventListener('change', function () { form.submit(); });
+  if (typeSel) typeSel.addEventListener('change', function () { form.submit(); });
 }());
 
 // ── 23. Categories index: network filter → category name select ───────────────
@@ -792,29 +798,38 @@ document.addEventListener('click', function (e) {
   var selected  = catSel.querySelector('option[selected]');
   var currentVal = selected ? selected.value : '';
 
-  function populate(cats) {
+  function optionHtml(c) {
+    var sel   = c.name === currentVal ? ' selected' : '';
+    var label = esc(c.name) + (c.count > 0 ? ' (' + c.count + ')' : '');
+    return '<option value="' + esc(c.name) + '"' + sel + '>' + label + '</option>';
+  }
+
+  function groupHtml(label, cats) {
+    if (!cats || !cats.length) return '';
+    var html = '<optgroup label="' + esc(label) + '">';
+    cats.forEach(function (c) { html += optionHtml(c); });
+    return html + '</optgroup>';
+  }
+
+  function populate(net) {
     var html = '<option value="">All Categories</option>';
-    cats.forEach(function (c) {
-      var sel = c.name === currentVal ? ' selected' : '';
-      html += '<option value="' + esc(c.name) + '"' + sel + '>' + esc(c.name) + '</option>';
-    });
+    if (net === '') {
+      html += groupHtml('TFL', tflCats);
+      html += groupHtml('TAFL', taflCats);
+      Object.keys(customMap).forEach(function (n) { html += groupHtml(n, customMap[n]); });
+    } else {
+      var cats = net === 'tfl' ? tflCats : net === 'tafl' ? taflCats : (customMap[net] || []);
+      cats.forEach(function (c) { html += optionHtml(c); });
+    }
     catSel.innerHTML = html;
   }
 
-  function catsForNet(net) {
-    if (net === 'TFL')       return tflCats;
-    if (net === 'TAFL')      return taflCats;
-    if (net !== '')          return customMap[net] || [];
-    var all = tflCats.concat(taflCats);
-    Object.values(customMap).forEach(function (arr) { all = all.concat(arr); });
-    return all.sort(function (a, b) { return a.name.localeCompare(b.name); });
-  }
-
-  populate(catsForNet(netSel.value));
+  populate(netSel.value);
 
   netSel.addEventListener('change', function () {
     currentVal = '';
-    populate(catsForNet(this.value));
+    populate(this.value);
+    catSel.closest('form').submit();
   });
 
   catSel.addEventListener('change', function () {
@@ -862,6 +877,11 @@ document.addEventListener('click', function (e) {
     document.getElementById('cat-sel').innerHTML = buildJoinedCatOptions(this.value);
     this.form.submit();
   });
+
+  var catSel = document.getElementById('cat-sel');
+  if (catSel) {
+    catSel.addEventListener('change', function () { this.form.submit(); });
+  }
 }());
 
 // ── 24. Dashboard: live date/time ─────────────────────────────────────────────
@@ -1151,7 +1171,7 @@ document.addEventListener('change', function (e) {
     '{fan_country}':     'United States',
     '{fan_password}':    '(password)',
     '{reset_url}':       'https://example.com/reset/1/confirm?token=abc123',
-    '{listing_name}':    pd.dataset.listingName    || 'My Fanlisting',
+    '{listing_title}':    pd.dataset.listingName    || 'My Fanlisting',
     '{listing_subject}': pd.dataset.listingSubject || 'Music',
     '{listing_url}':     pd.dataset.listingUrl     || 'https://myfanlisting.com',
     '{site_name}':       pd.dataset.siteName       || 'Luster',
@@ -1403,7 +1423,7 @@ document.addEventListener('change', function (e) {
     '{fan_email}':       'jane@example.com',
     '{fan_url}':         'https://jane.example.com',
     '{fan_country}':     'United States',
-    '{listing_name}':    'My Fanlisting',
+    '{listing_title}':    'My Fanlisting',
     '{listing_subject}': 'Music',
     '{listing_url}':     'https://myfanlisting.com',
     '{site_name}':       'My Collective',
@@ -1722,7 +1742,6 @@ document.addEventListener('change', function (e) {
       if (vals.show_list === 'true')          lines.push('$luster_show_list          = true;');
     }
     if (type === 'random' && vals.status) lines.push('$luster_status = ' + phpStr(vals.status) + ';');
-    if (type === 'codes-submit' && vals.return_url) lines.push('$luster_return_url  = ' + phpStr(vals.return_url) + ';');
     if (type === 'updates' || type === 'col-updates') {
       if (vals.per_page && vals.per_page !== '') lines.push('$luster_per_page  = ' + (parseInt(vals.per_page, 10) || 10) + ';');
       if (vals.show_cats === 'false')            lines.push('$luster_show_cats = false;');
@@ -1749,7 +1768,7 @@ document.addEventListener('change', function (e) {
     if (type === 'wishlist')    lines.push('// Requires Wishlist add-on (Admin → Add-ons)');
     if (type === 'latest')      lines.push('// Renders the listing with the most recent open date.');
     lines.push("require('" + embedPath + '/' + (FILE[type] || type + '.php') + "');");
-    // Collective stats echo lines
+    // Collective stats display lines
     if (type === 'cstats') {
       var selVars = Array.isArray(vals.vars) ? vals.vars : [];
       if (selVars.length > 0) {
@@ -1759,7 +1778,7 @@ document.addEventListener('change', function (e) {
           lines.push(stmt + pad + '// ' + v.label);
         });
       } else {
-        lines.push('// All variables are available -- select some above to echo them.');
+        lines.push('// Choose stats above to add display lines here.');
       }
     }
     lines.push('?>');
@@ -1769,137 +1788,135 @@ document.addEventListener('change', function (e) {
   // ── CUST definitions ───────────────────────────────────────────────────────
   var CUST = {
     join: {
-      fields: [{ id: 'lid', label: 'Fanlisting', type: 'listing', hint: '' }],
+      fields: [{ id: 'lid', label: 'Listing', type: 'listing', hint: '' }],
     },
     members: {
       fields: [
-        { id: 'lid',          label: 'Fanlisting',                  type: 'listing', hint: '' },
-        { id: 'per_page',     label: 'Members per page',            type: 'number', ph: '20', hint: 'Leave blank to use the site-wide default.' },
-        { id: 'sort_by',      label: 'Default sort',                type: 'select', opts: [['','Visitor choice (default)'],['name','By name'],['country','By country']], hint: '' },
-        { id: 'show_search',  label: 'Sort &amp; filter controls',  type: 'select', opts: [['','Shown (default)'],['false','Hidden']], hint: '' },
-        { id: 'members_base', label: 'URL of this page',            type: 'text',   ph: 'https://yoursite.com/members.php', hint: 'Keeps pagination links pointing back to your page.' },
+        { id: 'lid',          label: 'Listing',                 type: 'listing', hint: '' },
+        { id: 'per_page',     label: 'Members per page',        type: 'number', ph: '20', hint: 'Leave blank to use your normal Luster setting.' },
+        { id: 'sort_by',      label: 'Start sorted by',         type: 'select', opts: [['','Let visitors choose'],['name','Name'],['country','Country']], hint: '' },
+        { id: 'show_search',  label: 'Search and sort tools',   type: 'select', opts: [['','Show'],['false','Hide']], hint: '' },
+        { id: 'members_base', label: 'Member list page',        type: 'text',   ph: 'https://yoursite.com/members.php', hint: 'Use this if page numbers should stay on your own member page.' },
       ],
     },
     stats: {
       fields: [
-        { id: 'lid', label: 'Fanlisting', type: 'listing', hint: '' },
-        { id: 'tpl', label: 'Stats to display', type: 'tokens',
-          hint: 'Check the stats you want. Leave all unchecked to use the template from <strong>Edit Listing → Templates</strong>.',
+        { id: 'lid', label: 'Listing', type: 'listing', hint: '' },
+        { id: 'tpl', label: 'Stats to show', type: 'tokens',
+          hint: 'Choose stats for this snippet, or leave everything unchecked to use the stats template saved in Luster.',
           tokens: [
             { token: '{stat_approved}',     label: 'Approved members',     line: '{stat_approved} members' },
             { token: '{stat_pending}',      label: 'Pending members',      line: '{stat_pending} pending' },
-            { token: '{stat_opened}',       label: 'Opening date',         line: 'Opened: {stat_opened}' },
-            { token: '{stat_updated}',      label: 'Last member date',     line: 'Last updated: {stat_updated}' },
-            { token: '{stat_last_updated}', label: 'Last updated (admin)', line: 'Last updated: {stat_last_updated}' },
+            { token: '{stat_opened}',       label: 'Date opened',          line: 'Opened: {stat_opened}' },
+            { token: '{stat_updated}',      label: 'Newest member date',   line: 'Last member: {stat_updated}' },
+            { token: '{stat_last_updated}', label: 'Last updated date',    line: 'Last updated: {stat_last_updated}' },
             { token: '{stat_newmembers}',   label: 'Newest members',       line: 'Newest: {stat_newmembers}' },
-            { token: '{stat_growth}',       label: 'Growth rate',          line: 'Growth: {stat_growth}/day' },
-            { token: '{listing_name}',      label: 'Listing name',         line: '{listing_name}' },
-            { token: '{listing_url}',       label: 'Listing URL',          line: '{listing_url}' },
+            { token: '{stat_growth}',       label: 'Average members per day', line: 'Growth: {stat_growth}/day' },
+            { token: '{listing_title}',      label: 'Listing name',         line: '{listing_title}' },
+            { token: '{listing_url}',       label: 'Listing link',         line: '{listing_url}' },
           ],
         },
       ],
     },
     affiliates: {
-      fields: [{ id: 'lid', label: 'Fanlisting (0 = collective)', type: 'listing_or_zero', hint: 'Use 0 to embed site-wide affiliates instead.' }],
+      fields: [{ id: 'lid', label: 'Listing', type: 'listing_or_zero', hint: 'Choose Collective for site-wide affiliates.' }],
     },
     'aff-apply': {
-      fields: [{ id: 'lid', label: 'Fanlisting', type: 'listing', hint: '' }],
+      fields: [{ id: 'lid', label: 'Listing', type: 'listing', hint: '' }],
     },
     update: {
-      fields: [{ id: 'lid', label: 'Fanlisting', type: 'listing', hint: '' }],
+      fields: [{ id: 'lid', label: 'Listing', type: 'listing', hint: '' }],
     },
     remove: {
-      fields: [{ id: 'lid', label: 'Fanlisting', type: 'listing', hint: '' }],
+      fields: [{ id: 'lid', label: 'Listing', type: 'listing', hint: '' }],
     },
     reset: {
       fields: [
-        { id: 'lid',        label: 'Fanlisting',    type: 'listing', hint: '' },
-        { id: 'reset_step', label: 'Steps to show', type: 'select',
-          opts: [['','Both steps on one page'],['confirm','New-password step only']],
-          hint: 'Use "new-password only" if each step lives on its own page.' },
+        { id: 'lid',        label: 'Listing', type: 'listing', hint: '' },
+        { id: 'reset_step', label: 'Password reset page', type: 'select',
+          opts: [['','Normal reset page'],['confirm','New-password page only']],
+          hint: 'Most sites should use "Normal reset page." Use the second option only for a separate new-password page.' },
       ],
     },
     owned: {
       fields: [
-        { id: 'browse_by_category', label: 'Browse mode',     type: 'select', opts: [['','Standard'],['true','Browse by category']], hint: 'When enabled, visitors first see a category index with counts.' },
-        { id: 'status',             label: 'Status filter',   type: 'select', opts: [['','Current only (default)'],['upcoming','Upcoming'],['pending','Pending'],['all','All statuses']], hint: '' },
-        { id: 'hide_dropdown',      label: 'Category filter', type: 'select', opts: [['','Shown (default)'],['true','Hidden']], hint: '' },
-        { id: 'show_list',          label: 'Selector style',  type: 'select', opts: [['','Dropdown (default)'],['true','Bulleted link list']], hint: '' },
+        { id: 'browse_by_category', label: 'What visitors see first', type: 'select', opts: [['','Listings'],['true','Category list']], hint: 'Choose Category list if you want visitors to pick a topic before seeing listings.' },
+        { id: 'status',             label: 'Listings to show',        type: 'select', opts: [['','Current only'],['upcoming','Upcoming only'],['pending','Pending only'],['all','All statuses']], hint: '' },
+        { id: 'hide_dropdown',      label: 'Category dropdown',       type: 'select', opts: [['','Show'],['true','Hide']], hint: '' },
+        { id: 'show_list',          label: 'Category style',          type: 'select', opts: [['','Dropdown'],['true','Link list']], hint: '' },
       ],
     },
     joined: {
       fields: [
-        { id: 'browse_by_category', label: 'Browse mode',    type: 'select', opts: [['','Standard'],['true','Browse by category']], hint: 'When enabled, visitors first see a category list.' },
-        { id: 'category',           label: 'Category',       type: 'select', opts: [['','Show category selector (default)'],['all','Show all, grouped by category']], hint: 'To pre-filter by a specific category name, add <code>$luster_category = \'name\';</code> manually.' },
-        { id: 'show_list',          label: 'Selector style', type: 'select', opts: [['','Dropdown (default)'],['true','Bulleted link list']], hint: '' },
+        { id: 'browse_by_category', label: 'What visitors see first', type: 'select', opts: [['','Listings'],['true','Category list']], hint: 'Choose Category list if you want visitors to pick a topic before seeing listings.' },
+        { id: 'category',           label: 'Category view',           type: 'select', opts: [['','Let visitors choose'],['all','Show all by category']], hint: 'To show one category only, add its name manually in the snippet.' },
+        { id: 'show_list',          label: 'Category style',          type: 'select', opts: [['','Dropdown'],['true','Link list']], hint: '' },
       ],
     },
     cstats: {
       fields: [
-        { id: 'vars', label: 'Variables to echo', type: 'cstatvars',
-          hint: 'Selected ones appear as <code>echo</code> lines in the generated code -- all variables are always available.',
+        { id: 'vars', label: 'Stats to show', type: 'cstatvars',
+          hint: 'Choose the stats you want printed by the snippet. People comfortable with PHP can still use the rest manually.',
           vars: [
-            { name: 'luster_owned_active',        label: 'Active owned listings',    desc: '' },
-            { name: 'luster_owned_upcoming',      label: 'Upcoming owned',           desc: '' },
-            { name: 'luster_owned_pending',       label: 'Pending / inactive owned', desc: '' },
-            { name: 'luster_owned',               label: 'Total owned (all)',         desc: '' },
+            { name: 'luster_owned_active',        label: 'Current owned listings',   desc: '' },
+            { name: 'luster_owned_upcoming',      label: 'Upcoming owned listings',  desc: '' },
+            { name: 'luster_owned_pending',       label: 'Pending owned listings',   desc: '' },
+            { name: 'luster_owned',               label: 'Total owned listings',     desc: '' },
             { name: 'luster_joined_active',       label: 'Active joined listings',   desc: '' },
-            { name: 'luster_joined',              label: 'Total joined (all)',        desc: '' },
+            { name: 'luster_joined',              label: 'Total joined listings',    desc: '' },
             { name: 'luster_affiliates',          label: 'Collective affiliates',    desc: '' },
             { name: 'luster_members_approved',    label: 'Approved members',         desc: '' },
             { name: 'luster_members_pending',     label: 'Pending members',          desc: '' },
             { name: 'luster_members_total',       label: 'Total members',            desc: '' },
-            { name: 'luster_owned_growth_rate',   label: 'Owned growth rate',        desc: 'listings/year' },
-            { name: 'luster_joined_growth_rate',  label: 'Joined growth rate',       desc: 'listings/year' },
-            { name: 'luster_members_growth_rate', label: 'Member growth rate',       desc: 'members/day' },
+            { name: 'luster_owned_growth_rate',   label: 'Owned listings per year',  desc: '' },
+            { name: 'luster_joined_growth_rate',  label: 'Joined listings per year', desc: '' },
+            { name: 'luster_members_growth_rate', label: 'Members per day',          desc: '' },
           ],
         },
       ],
     },
     codes: {
-      fields: [{ id: 'lid', label: 'Fanlisting', type: 'listing', hint: '' }],
+      fields: [{ id: 'lid', label: 'Listing', type: 'listing', hint: '' }],
     },
     'codes-submit': {
       fields: [
-        { id: 'lid',        label: 'Fanlisting',          type: 'listing', hint: '' },
-        { id: 'return_url', label: 'Success redirect URL', type: 'text',   ph: 'https://yoursite.com/codes.php?submitted=1',
-          hint: 'Where to send the visitor after a successful submission. Default: same page with ?submitted=1.' },
+        { id: 'lid', label: 'Listing', type: 'listing', hint: '' },
       ],
     },
     contact: {
-      fields: [{ id: 'lid', label: 'Fanlisting', type: 'listing', hint: '' }],
+      fields: [{ id: 'lid', label: 'Listing', type: 'listing', hint: '' }],
     },
     updates: {
       fields: [
-        { id: 'lid',       label: 'Fanlisting',         type: 'listing', hint: '' },
+        { id: 'lid',       label: 'Listing',            type: 'listing', hint: '' },
         { id: 'per_page',  label: 'Updates per page',   type: 'number', ph: '10', hint: '' },
-        { id: 'show_cats', label: 'Show category tags', type: 'select', opts: [['','Yes (default)'],['false','No']], hint: '' },
+        { id: 'show_cats', label: 'Category labels',    type: 'select', opts: [['','Show'],['false','Hide']], hint: '' },
       ],
     },
     adopt: {
-      fields: [{ id: 'lid', label: 'Fanlisting', type: 'listing', hint: '' }],
+      fields: [{ id: 'lid', label: 'Listing', type: 'listing', hint: '' }],
     },
     'aff-col': {
       fields: [
-        { id: 'per_page', label: 'Per page', type: 'number', ph: '20', hint: 'Number of affiliates per page. Leave blank for the default.' },
+        { id: 'per_page', label: 'Affiliates per page', type: 'number', ph: '20', hint: 'Leave blank to use the normal amount.' },
       ],
     },
     'col-aff-apply': {
       fields: [],
-      note: 'Collective affiliate applications use <code>$luster_fanlisting_id = 0</code>, already included above.',
+      note: 'This is already set up for collective affiliate forms.',
     },
     'col-codes': {
       fields: [],
-      note: 'Collective codes use <code>$luster_fanlisting_id = 0</code>, already included above.',
+      note: 'This is already set up for collective codes.',
     },
     'col-codes-submit': {
       fields: [],
-      note: 'Collective code submissions use <code>$luster_fanlisting_id = 0</code>, already included above.',
+      note: 'This is already set up for collective code donations.',
     },
     'col-updates': {
       fields: [
         { id: 'per_page',  label: 'Updates per page',   type: 'number', ph: '10', hint: '' },
-        { id: 'show_cats', label: 'Show category tags', type: 'select', opts: [['','Yes (default)'],['false','No']], hint: '' },
+        { id: 'show_cats', label: 'Category labels',    type: 'select', opts: [['','Show'],['false','Hide']], hint: '' },
       ],
     },
     'col-contact': {
@@ -1907,15 +1924,15 @@ document.addEventListener('change', function (e) {
     },
     wishlist: {
       fields: [
-        { id: 'wishlist_type', label: 'Type filter', type: 'select',
-          opts: [['all','All (default)'],['wanted','Wanted'],['top','Top'],['granted','Granted'],['upcoming','Upcoming']],
-          hint: 'Select a type to add <code>$luster_wishlist_type</code> to the code. "All" is the default — no extra line needed.' },
+        { id: 'wishlist_type', label: 'Wishlist entries to show', type: 'select',
+          opts: [['all','All'],['wanted','Wanted'],['top','Top'],['granted','Granted'],['upcoming','Upcoming']],
+          hint: 'Choose a type, or leave this on All.' },
       ],
     },
     random: {
       fields: [
-        { id: 'status', label: 'Pool to draw from', type: 'select',
-          opts: [['current','Current (default)'],['upcoming','Upcoming'],['all','All']], hint: '' },
+        { id: 'status', label: 'Choose from', type: 'select',
+          opts: [['current','Current listings'],['upcoming','Upcoming listings'],['all','All listings']], hint: '' },
       ],
     },
     latest: {
@@ -1923,19 +1940,19 @@ document.addEventListener('change', function (e) {
     },
     kim: {
       fields: [],
-      note: 'KIM page URLs are configured once in <strong>Admin &rarr; Settings &rarr; KIM</strong>. Set those first and this snippet is ready to copy.',
+      note: 'Set your KIM page links in Settings first. After that, this snippet is ready to copy.',
     },
     'kim-list': {
       fields: [],
-      note: 'KIM page URLs are configured once in <strong>Admin &rarr; Settings &rarr; KIM</strong>. Set those first and this snippet is ready to copy.',
+      note: 'Set your KIM page links in Settings first. After that, this snippet is ready to copy.',
     },
     'kim-update': {
       fields: [],
-      note: 'KIM page URLs are configured once in <strong>Admin &rarr; Settings &rarr; KIM</strong>. Set those first and this snippet is ready to copy.',
+      note: 'Set your KIM page links in Settings first. After that, this snippet is ready to copy.',
     },
     'kim-reset': {
       fields: [],
-      note: 'KIM page URLs are configured once in <strong>Admin &rarr; Settings &rarr; KIM</strong>. Set those first and this snippet is ready to copy.',
+      note: 'Set your KIM page links in Settings first. After that, this snippet is ready to copy.',
     },
   };
 
@@ -1945,7 +1962,7 @@ document.addEventListener('change', function (e) {
     if (!def || !optsBody) return;
     custVals = {};
     if (!def.fields.length) {
-      optsBody.innerHTML = '<p class="ec-opts-empty">' + (def.note || 'No options for this embed &mdash; the snippet is ready to copy as-is.') + '</p>';
+      optsBody.innerHTML = '<p class="ec-opts-empty">' + (def.note || 'No choices needed. This snippet is ready to copy.') + '</p>';
       return;
     }
     var html = '';
@@ -1996,9 +2013,9 @@ document.addEventListener('change', function (e) {
             + '<div>';
       if (f.type === 'listing' || f.type === 'listing_or_zero') {
         html += '<div class="select-wrap"><select id="ec-f-' + esc(f.id) + '" data-fid="' + esc(f.id) + '">';
-        if (f.type === 'listing_or_zero') html += '<option value="0">0 -- site-wide</option>';
+        if (f.type === 'listing_or_zero') html += '<option value="0">Collective</option>';
         listings.forEach(function (fl) {
-          var label = fl.id + ' – ' + esc(fl.subject || fl.name);
+          var label = esc(fl.subject || fl.name);
           html += '<option value="' + parseInt(fl.id, 10) + '">' + label + '</option>';
         });
         if (!listings.length) html += '<option value="1">1</option>';
@@ -2132,7 +2149,7 @@ document.addEventListener('change', function (e) {
           + '<div class="site-stat"><span class="k">Growth</span><span class="v">0.31/day</span></div>'
           + '<div class="site-stat"><span class="k">Newest</span><span class="v">Elise</span></div>'
           + '</div>'
-          + '<div class="site-note">Rendered from your stats template&rsquo;s {stat_*} tokens.</div>';
+          + '<div class="site-note">Shown using the stats template saved in Luster.</div>';
 
       case 'col-codes':
       case 'codes':
@@ -2280,7 +2297,7 @@ document.addEventListener('change', function (e) {
           + '<div class="site-stat"><span class="k">Members</span><span class="v">3,450</span></div>'
           + '<div class="site-stat"><span class="k">Affiliates</span><span class="v">8</span></div>'
           + '</div>'
-          + '<div class="site-note">You lay these out yourself -- they&apos;re plain PHP variables.</div>';
+          + '<div class="site-note">These stats are for custom PHP pages.</div>';
 
       case 'random':
       case 'latest':
@@ -2371,7 +2388,7 @@ document.addEventListener('change', function (e) {
     });
   }
 
-  // ── Variable reference nav ─────────────────────────────────────────────────
+  // ── Template help nav ──────────────────────────────────────────────────────
   var refNavBtns = root.querySelectorAll('.ec-ref-nav-item');
   var refPanels  = root.querySelectorAll('.ec-ref-panel');
 
@@ -3074,11 +3091,54 @@ function adminWireFilterPanel(btnId, panelId, htmlClass) {
 }());
 
 (function () {
+  adminWireFilterPanel('codes-filter-toggle', 'codes-filter-panel', 'fp-codes');
+
+  var sel = document.getElementById('codes-listing-sel');
+  if (sel) {
+    sel.addEventListener('change', function () {
+      var form = document.getElementById('codes-filter-form');
+      if (form) form.submit();
+    });
+  }
+}());
+
+(function () {
+  var form       = document.getElementById('lc-filter-form');
+  var listingSel = document.getElementById('lc-listing-sel');
+  var statusSel  = document.getElementById('lc-status-sel');
+  if (!form) return;
+  if (listingSel) listingSel.addEventListener('change', function () { form.submit(); });
+  if (statusSel)  statusSel.addEventListener('change',  function () { form.submit(); });
+}());
+
+(function () {
   adminWireFilterPanel('wl-filter-toggle', 'wl-filter-panel', 'fp-wl');
 }());
 
 (function () {
+  var sel  = document.getElementById('wl-category-sel');
+  var form = document.getElementById('wl-filter-row');
+  if (!sel || !form) return;
+  sel.addEventListener('change', function () { form.submit(); });
+}());
+
+(function () {
   adminWireFilterPanel('kim-filter-toggle', 'kim-filter-panel', 'fp-kim');
+}());
+
+(function () {
+  adminWireFilterPanel('adopt-filter-toggle', 'adopt-filter-panel', 'fp-adopt');
+}());
+
+(function () {
+  adminWireFilterPanel('aff-filter-toggle', 'aff-filter-panel', 'fp-aff');
+}());
+
+(function () {
+  var sel  = document.getElementById('aff-scope-sel');
+  var form = document.getElementById('aff-filter-form');
+  if (!sel || !form) return;
+  sel.addEventListener('change', function () { form.submit(); });
 }());
 
 (function () {
@@ -3089,25 +3149,27 @@ function adminWireFilterPanel(btnId, panelId, htmlClass) {
 }());
 
 (function () {
-  var form      = document.getElementById('mem-filter-form');
+  var sel  = document.getElementById('adopt-listing-sel');
+  var form = document.getElementById('adopt-filter-form');
+  if (!sel || !form) return;
+  sel.addEventListener('change', function () { form.submit(); });
+}());
+
+(function () {
+  var form       = document.getElementById('mem-filter-form');
   var listingSel = document.getElementById('mem-listing-sel');
-  var statusSel  = document.getElementById('mem-status-sel');
-  if (!form || !listingSel || !statusSel) return;
+  if (!form || !listingSel) return;
+  listingSel.addEventListener('change', function () { form.submit(); });
+}());
 
-  listingSel.addEventListener('change', function () {
-    var lid = parseInt(listingSel.value, 10);
-    if (lid > 0) {
-      statusSel.disabled = false;
-      statusSel.value = 'all';
-    } else {
-      statusSel.disabled = true;
-      statusSel.value = 'all';
-    }
-    form.submit();
-  });
-
-  statusSel.addEventListener('change', function () {
-    form.submit();
+// Cross-listing pending table: select-all checkbox
+(function () {
+  var master = document.getElementById('pending-check-all');
+  if (!master) return;
+  master.addEventListener('change', function () {
+    document.querySelectorAll('input[name="items[]"]').forEach(function (cb) {
+      cb.checked = master.checked;
+    });
   });
 }());
 
@@ -3880,7 +3942,7 @@ document.addEventListener('click', function (e) {
   document.querySelectorAll('.todo-mark-form').forEach(function (form) {
     form.addEventListener('submit', function (e) {
       e.preventDefault();
-      var btn = form.querySelector('.btn-mark-updated');
+      var btn = form.querySelector('button[type="submit"]');
       if (btn && btn.disabled) return;
       if (btn) { btn.disabled = true; btn.textContent = '...'; }
 
@@ -3897,8 +3959,8 @@ document.addEventListener('click', function (e) {
           // Update row UI
           var row  = form.closest('.todo-mrow');
           var days = row && row.querySelector('.todo-mrow-days');
-          if (days) { days.textContent = 'Just now'; }
-          if (btn)  { btn.textContent = 'Updated ✓'; }
+          if (days) { days.textContent = 'Just now'; days.style.color = 'var(--success)'; }
+          if (btn)  { btn.style.display = 'none'; }
 
           // Decrement section badge
           var maintBadge = document.getElementById('todo-maint-badge');
@@ -3914,7 +3976,7 @@ document.addEventListener('click', function (e) {
           }
         })
         .catch(function () {
-          if (btn) { btn.disabled = false; btn.textContent = 'Mark Updated'; }
+          if (btn) { btn.disabled = false; btn.textContent = 'Update'; }
           if (window.lstrToast) window.lstrToast('error', 'Could not update listing.');
         });
     });
@@ -4383,7 +4445,8 @@ document.addEventListener('click', function (e) {
     { label: 'System Details',     hint: 'Settings', url: base + '/admin/settings#panel-system' },
     { label: 'System Info',        hint: 'Admin',    url: base + '/admin/sysinfo' },
     { label: 'Members Settings',   hint: 'Members',  url: base + '/admin/members/settings' },
-    { label: 'Collective Templates', hint: 'Listings', url: base + '/admin/listings/collective-templates' },
+    { label: 'Collective Templates', hint: 'Collective', url: base + '/admin/collective' },
+    { label: 'Collective Settings',  hint: 'Collective', url: base + '/admin/collective/settings' },
   ];
 
   function navLabel(el) {
@@ -4412,7 +4475,7 @@ document.addEventListener('click', function (e) {
     matches.forEach(function (e) {
       var a = document.createElement('a');
       a.href = e.url;
-      a.className = 'nav-item nav-item--extra';
+      a.className = 'nav-item nav-item-extra';
       a.innerHTML = e.label + '<span class="nav-extra-hint">' + e.hint + '</span>';
       extrasEl.appendChild(a);
     });
@@ -4426,7 +4489,7 @@ document.addEventListener('click', function (e) {
 
   function run(query) {
     var q        = query.trim().toLowerCase();
-    var items    = document.querySelectorAll('.sidebar-nav .nav-item:not(.nav-item--extra)');
+    var items    = document.querySelectorAll('.sidebar-nav .nav-item:not(.nav-item-extra)');
     var groups   = document.querySelectorAll('.nav-group');
     var sections = document.querySelectorAll('.sidebar-section');
     var anyVisible = false;
@@ -4470,7 +4533,7 @@ document.addEventListener('click', function (e) {
     });
 
     sections.forEach(function (s) {
-      var hasItem  = Array.from(s.querySelectorAll('.nav-item:not(.nav-item--extra)')).some(function (el) { return el.style.display !== 'none'; });
+      var hasItem  = Array.from(s.querySelectorAll('.nav-item:not(.nav-item-extra)')).some(function (el) { return el.style.display !== 'none'; });
       var hasGroup = Array.from(s.querySelectorAll('.nav-group')).some(function (g) { return g.style.display !== 'none'; });
       s.style.display = (hasItem || hasGroup) ? '' : 'none';
       if (hasItem || hasGroup) anyVisible = true;
@@ -4848,4 +4911,279 @@ document.addEventListener('click', function (e) {
       timer = setTimeout(function () { doSearch(input); }, DELAY);
     });
   });
+}());
+
+// ── 50. Affiliates index: drag-and-drop row reorder ───────────────────────────
+//
+// Active when the table carries [data-aff-reorder-url], set only when the
+// approved/inactive tab is sorted by sort_order ASC with no active filters.
+
+(function () {
+  var table = document.querySelector('table[data-aff-reorder-url]');
+  if (!table) return;
+
+  var reorderUrl = table.dataset.affReorderUrl;
+  var csrf       = table.dataset.affCsrf;
+  var scope      = table.dataset.affScope;
+  var tab        = table.dataset.affTab;
+  var page       = table.dataset.affPage    || '1';
+  var perPage    = table.dataset.affPerPage || '10';
+  var tbody      = table.querySelector('tbody');
+  var dragged    = null;
+
+  tbody.addEventListener('dragstart', function (e) {
+    var row = e.target.closest('tr[data-id]');
+    if (!row) return;
+    dragged = row;
+    row.classList.add('dnd-dragging');
+    e.dataTransfer.effectAllowed = 'move';
+  });
+
+  tbody.addEventListener('dragover', function (e) {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    var row = e.target.closest('tr[data-id]');
+    if (!row || row === dragged) return;
+    tbody.querySelectorAll('tr').forEach(function (r) { r.classList.remove('dnd-over'); });
+    row.classList.add('dnd-over');
+    var rect = row.getBoundingClientRect();
+    if (e.clientY < rect.top + rect.height / 2) {
+      tbody.insertBefore(dragged, row);
+    } else {
+      tbody.insertBefore(dragged, row.nextSibling);
+    }
+  });
+
+  tbody.addEventListener('drop', function (e) { e.preventDefault(); });
+
+  tbody.addEventListener('dragend', function () {
+    if (dragged) dragged.classList.remove('dnd-dragging');
+    tbody.querySelectorAll('tr').forEach(function (r) { r.classList.remove('dnd-over'); });
+    dragged = null;
+
+    var ids = [];
+    tbody.querySelectorAll('tr[data-id]').forEach(function (r) {
+      ids.push(parseInt(r.dataset.id, 10));
+    });
+
+    var params = new URLSearchParams();
+    params.append('_csrf',    csrf);
+    params.append('scope',    scope);
+    params.append('tab',      tab);
+    params.append('page',     page);
+    params.append('per_page', perPage);
+    ids.forEach(function (id) { params.append('ids[]', id); });
+
+    fetch(reorderUrl, {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body:    params.toString(),
+    })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (data.ok) {
+          window.lstrToast('success', 'Order saved.');
+        } else {
+          window.lstrToast('error', data.error || 'Reorder failed.');
+        }
+      })
+      .catch(function () {
+        window.lstrToast('error', 'Reorder failed.');
+      });
+  });
+}());
+
+// ── 50b. Affiliates embed: Click to Reorder / Exit Reorder JS toggle ──────────
+// Normalizes sort_order to match current display order before enabling drag,
+// so the sequence is consistent between normal view and reorder mode.
+
+(function () {
+  var startBtn = document.getElementById('aff-embed-reorder-start');
+  var exitBtn  = document.getElementById('aff-embed-reorder-exit');
+  if (!startBtn || !exitBtn) return;
+
+  var table = document.querySelector('table[data-aff-embed]');
+  if (!table) return;
+
+  function activate() {
+    table.classList.remove('aff-drag-off');
+    startBtn.style.display = 'none';
+    exitBtn.style.display  = '';
+  }
+
+  startBtn.addEventListener('click', function () {
+    var ids = Array.from(table.querySelectorAll('tbody tr[data-id]'))
+                   .map(function (r) { return parseInt(r.dataset.id, 10); })
+                   .filter(Boolean);
+
+    if (!ids.length) { activate(); return; }
+
+    var params = new URLSearchParams();
+    params.append('_csrf',    table.dataset.affCsrf);
+    params.append('scope',    table.dataset.affScope);
+    params.append('tab',      table.dataset.affTab);
+    params.append('page',     table.dataset.affPage     || '1');
+    params.append('per_page', table.dataset.affPerPage  || '10');
+    ids.forEach(function (id) { params.append('ids[]', id); });
+
+    fetch(table.dataset.affReorderUrl, {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body:    params.toString(),
+    })
+    .then(activate)
+    .catch(activate);
+  });
+
+  exitBtn.addEventListener('click', function () {
+    table.classList.add('aff-drag-off');
+    exitBtn.style.display  = 'none';
+    startBtn.style.display = '';
+  });
+}());
+
+// ── 50c. Main affiliates page: normalize sort_order on Click to Reorder ────────
+// Intercepts the URL-based "Click to Reorder" hint link, saves current displayed
+// order to sort_order, then navigates — so entering reorder mode shows the same
+// sequence the user already sees.
+
+(function () {
+  var hintLink = document.getElementById('aff-reorder-hint-btn');
+  if (!hintLink) return;
+
+  hintLink.addEventListener('click', function (e) {
+    var ids = Array.from(document.querySelectorAll('#aff-bulk-form input[name="selected[]"]'))
+                   .map(function (cb) { return parseInt(cb.value, 10); })
+                   .filter(Boolean);
+
+    if (!ids.length) return; // let the link navigate normally
+
+    e.preventDefault();
+    var href = hintLink.href;
+
+    var params = new URLSearchParams();
+    params.append('_csrf',    hintLink.dataset.csrf);
+    params.append('scope',    hintLink.dataset.scope);
+    params.append('tab',      hintLink.dataset.tab);
+    params.append('page',     hintLink.dataset.page    || '1');
+    params.append('per_page', hintLink.dataset.perPage || '10');
+    ids.forEach(function (id) { params.append('ids[]', id); });
+
+    fetch(hintLink.dataset.reorderUrl, {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body:    params.toString(),
+    })
+    .then(function ()  { window.location.href = href; })
+    .catch(function () { window.location.href = href; });
+  });
+}());
+
+// ── Settings: Check for Updates inline result ─────────────────────────────────
+
+(function () {
+  var btn = document.getElementById('update-check-btn');
+  if (!btn) return;
+  var result = document.getElementById('update-check-result');
+
+  btn.addEventListener('click', function () {
+    btn.disabled = true;
+    if (result) result.innerHTML = '<span class="text-muted">Checking&hellip;</span>';
+
+    var params = new URLSearchParams();
+    params.append('_csrf', btn.dataset.csrf);
+
+    fetch(btn.dataset.url, {
+      method:  'POST',
+      headers: {
+        'Content-Type':     'application/x-www-form-urlencoded',
+        'X-Requested-With': 'XMLHttpRequest',
+      },
+      body: params.toString(),
+    })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        btn.disabled = false;
+        if (result) {
+          result.innerHTML = data.ok
+            ? '<span style="color:var(--color-success,#4caf50)">' + esc(data.message) + '</span>'
+            : '<span style="color:var(--color-danger,#e05)">'     + esc(data.message) + '</span>';
+        }
+      })
+      .catch(function () {
+        btn.disabled = false;
+        if (result) result.innerHTML = '<span style="color:var(--color-danger,#e05)">Check failed. Please try again.</span>';
+      });
+  });
+}());
+
+// ── Server Paths: locked inputs with Edit button to unlock ───────────────────
+
+document.addEventListener('click', function (e) {
+  var btn = e.target.closest('.path-edit-btn');
+  if (!btn) return;
+  var input = document.getElementById(btn.dataset.target);
+  if (!input) return;
+  input.disabled = false;
+  input.readOnly = false;
+  input.removeAttribute('readonly');
+  input.focus();
+  btn.remove();
+});
+
+// ── Affiliate message read-more / collapse ────────────────────────────────────
+
+document.addEventListener('click', function (e) {
+  var btn = e.target.closest('.msg-read-more, .msg-collapse');
+  if (!btn) return;
+  var cell = btn.closest('td');
+  if (!cell) return;
+  var ellipsis = cell.querySelector('.msg-ellipsis');
+  var tail     = cell.querySelector('.msg-tail');
+  if (!ellipsis || !tail) return;
+  e.preventDefault();
+  var expanding = btn.classList.contains('msg-read-more');
+  ellipsis.hidden = expanding;
+  tail.hidden     = !expanding;
+});
+
+// Listing edit: compatibility-wrapper subtabs.
+document.addEventListener('click', function (e) {
+  var link = e.target.closest('#compat-wrappers .tab-link');
+  if (!link) return;
+
+  var section = document.getElementById('compat-wrappers');
+  var target  = link.dataset.target;
+  var panel   = target ? document.getElementById(target) : null;
+  if (!section || !panel) return;
+
+  e.preventDefault();
+  section.querySelectorAll('.tab-link').forEach(function (item) {
+    item.classList.remove('tab-link--active');
+  });
+  section.querySelectorAll('.compat-panel').forEach(function (item) {
+    item.style.display = 'none';
+  });
+
+  link.classList.add('tab-link--active');
+  panel.style.display = '';
+});
+
+// Listing edit: dependent rows in the embed settings tab.
+(function () {
+  var affiliateApplyToggle = document.getElementById('fl-affiliate-apply-enabled');
+  var affiliateApplyRow    = document.getElementById('fl-aff-form-url-row');
+  if (affiliateApplyToggle && affiliateApplyRow) {
+    affiliateApplyToggle.addEventListener('change', function () {
+      affiliateApplyRow.style.display = affiliateApplyToggle.checked ? '' : 'none';
+    });
+  }
+
+  var codesSubmitToggle = document.getElementById('fl-codes-submit-enabled');
+  var codesSubmitRow    = document.getElementById('fl-codes-submit-embed-row');
+  if (codesSubmitToggle && codesSubmitRow) {
+    codesSubmitToggle.addEventListener('change', function () {
+      codesSubmitRow.style.display = codesSubmitToggle.checked ? '' : 'none';
+    });
+  }
 }());

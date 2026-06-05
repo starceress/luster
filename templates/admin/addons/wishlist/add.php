@@ -163,14 +163,12 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
               <option value="wanted"   <?= $currentType === 'wanted'   ? 'selected' : '' ?>>Wanted</option>
               <option value="top"      <?= $currentType === 'top'      ? 'selected' : '' ?>>Top Wanted</option>
               <option value="granted"  <?= $currentType === 'granted'  ? 'selected' : '' ?>>Granted</option>
-              <option value="upcoming" <?= $currentType === 'upcoming' ? 'selected' : '' ?>>Upcoming</option>
             </select>
           </div>
           <p class="form-hint">
             <strong>Wanted</strong> — standard wishlist item.
             <strong>Top Wanted</strong> — highest priority.
             <strong>Granted</strong> — you already opened it.
-            <strong>Upcoming</strong> — planning to open.
           </p>
         </div>
       </div>

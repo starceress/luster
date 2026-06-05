@@ -54,7 +54,7 @@ final class KimAdminController extends AdminController
 
         $sortParam = trim((string) $request->query('sort', 'added_at'));
         $dirParam  = trim((string) $request->query('dir',  'desc'));
-        if (!in_array($sortParam, ['name', 'status', 'listing', 'added_at'], true)) {
+        if (!in_array($sortParam, ['name', 'email', 'status', 'listing', 'added_at'], true)) {
             $sortParam = 'added_at';
         }
         if (!in_array($dirParam, ['asc', 'desc'], true)) {
@@ -84,8 +84,9 @@ final class KimAdminController extends AdminController
         $page       = min(max(1, (int) $request->query('page', 1)), $totalPages);
         $offset     = ($page - 1) * $perPage;
 
-        $members     = $kimRepo->getFiltered($listingId, $tab, $search, $perPage, $offset, $sortParam, $dirParam);
-        $fanlistings = $listingRepo->getAll();
+        $members          = $kimRepo->getFiltered($listingId, $tab, $search, $perPage, $offset, $sortParam, $dirParam);
+        $fanlistings      = $listingRepo->getAll();
+        $kimListingCounts = $kimRepo->getCountsByListing();
 
         $listingMap      = [];
         $selectedListing = null;
@@ -109,6 +110,7 @@ final class KimAdminController extends AdminController
             'listing_id'       => $listingId,
             'tab'              => $tab,
             'counts'           => $counts,
+            'kim_listing_counts' => $kimListingCounts,
             'search'           => $search,
             'filters_active'   => $search !== '' || $listingId > 0,
             'page'             => $page,
@@ -396,9 +398,10 @@ final class KimAdminController extends AdminController
             $request->ip(),
         );
 
-        $fromFid = (int) $request->post('from_fid', $member->fanlistingId);
+        $fromFid  = (int) $request->post('from_fid', $member->fanlistingId);
         $session->set('lstr_flash_success', 'KIM member approved.');
-        return Response::redirect($baseUrl . '/admin/kim?listing_id=' . $fromFid . '&tab=pending');
+        $tab = $kimRepo->getTabCounts($fromFid, '')['pending'] > 0 ? 'pending' : 'all';
+        return Response::redirect($baseUrl . '/admin/kim?listing_id=' . $fromFid . '&tab=' . $tab);
     }
 
     // -----------------------------------------------------------------------
@@ -737,7 +740,8 @@ final class KimAdminController extends AdminController
             default => $session->set('lstr_flash_error', 'Unknown bulk action.'),
         };
 
-        return Response::redirect($baseUrl . '/admin/kim?listing_id=' . $fanlistingId);
+        $tab = $kimRepo->getTabCounts($fanlistingId, '')['pending'] > 0 ? 'pending' : 'all';
+        return Response::redirect($baseUrl . '/admin/kim?listing_id=' . $fanlistingId . '&tab=' . $tab);
     }
 
     // -----------------------------------------------------------------------

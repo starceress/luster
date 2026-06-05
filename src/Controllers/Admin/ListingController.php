@@ -18,6 +18,7 @@ use Luster\Repositories\EmailTemplateRepo;
 use Luster\Repositories\ListingRepo;
 use Luster\Repositories\ListingSettingsRepo;
 use Luster\Repositories\MemberRepo;
+use Luster\Repositories\SiteSettingsRepo;
 
 /**
  * Manages the listing list and per-listing settings.
@@ -107,6 +108,29 @@ final class ListingController extends AdminController
         }
         sort($customNetworks);
 
+        // Count listings per network and per category (before any filtering).
+        // Each listing is counted once per network even if it has multiple categories in that network.
+        $networkCounts  = [];
+        $categoryCounts = [];
+        foreach ($allCategoryData as $flId => $catItems) {
+            $netsForListing = [];
+            foreach ($catItems as $cat) {
+                $net  = strtoupper((string) ($cat['network'] ?? ''));
+                $name = (string) ($cat['name'] ?? '');
+                if ($net  !== '') { $netsForListing[$net]  = true; }
+                if ($name !== '') { $categoryCounts[$name] = ($categoryCounts[$name] ?? 0) + 1; }
+            }
+            foreach (array_keys($netsForListing) as $net) {
+                $networkCounts[$net] = ($networkCounts[$net] ?? 0) + 1;
+            }
+        }
+
+        // Count listings per type (before any filtering).
+        $typeCountsAll = [];
+        foreach ($allListingTypes as $type) {
+            $typeCountsAll[$type] = ($typeCountsAll[$type] ?? 0) + 1;
+        }
+
         // Network filter — name-based via resolved category data.
         if ($filterNetwork !== '') {
             $netUpper = strtoupper($filterNetwork);
@@ -164,7 +188,7 @@ final class ListingController extends AdminController
             });
         } elseif ($activeSort === 'name') {
             usort($listings, static function ($a, $b) use ($activeDir): int {
-                $cmp = strcasecmp((string) ($a->name ?? ''), (string) ($b->name ?? ''));
+                $cmp = strcasecmp((string) ($a->title ?? ''), (string) ($b->title ?? ''));
                 return $activeDir === 'desc' ? -$cmp : $cmp;
             });
         } elseif ($activeSort === 'category') {
@@ -233,6 +257,9 @@ final class ListingController extends AdminController
             'tafl_cats'       => $taflCats,
             'custom_networks' => $customNetworks,
             'custom_cats'     => $customCats,
+            'network_counts'  => $networkCounts,
+            'category_counts' => $categoryCounts,
+            'type_counts'     => $typeCountsAll,
             'page'            => $page,
             'total_pages'     => $totalPages,
             'total'           => $totalItems,
@@ -406,6 +433,7 @@ final class ListingController extends AdminController
             'remove.php',        // form_url_remove
             'reset.php',         // form_url_reset
             'codes-submit.php',  // form_url_codes_submit
+            true,                // codes_submit_enabled
             '',                  // db_host
             '',                  // db_name
             '',                  // db_user
@@ -567,7 +595,7 @@ final class ListingController extends AdminController
                 $activityRepo->log(
                     (int) $session->get('lstr_admin_id'),
                     'listing.delete',
-                    "Deleted listing #{$id} ({$listing->name}) via bulk action",
+                    "Deleted listing #{$id} ({$listing->title}) via bulk action",
                     $request->ip(),
                 );
 
@@ -796,6 +824,11 @@ final class ListingController extends AdminController
                 $settingsRepo->saveForAdoption($id, $forAdoptionInput);
             }
             $settingsRepo->saveAffiliateApplySettings($id, $affiliateApplyEnabled, $affiliateApplyFormUrl, $affiliateApplyRedirectUrl);
+
+            // code_approval_email: null=inherit global, true=on, false=off
+            $codeEmailPost = $request->post('code_approval_email', '');
+            $codeEmailVal  = $codeEmailPost === '' ? null : ($codeEmailPost === '1');
+            $settingsRepo->setCodeApprovalEmail($id, $codeEmailVal);
             $settingsRepo->saveJoinSettings($id, $joinConfirmEmail, $autoApproveJoins);
             if ($lastUpdatedInput !== '' || $request->post('fl_last_updated') !== null) {
                 $settingsRepo->setLastUpdated($id, $lastUpdatedInput !== '' ? $lastUpdatedInput : null);
@@ -851,6 +884,7 @@ final class ListingController extends AdminController
         $contactSettings    = $settingsRepo->getContactSettings($id);
         $approvedBy         = $settingsRepo->getApprovedBy($id);
         $affiliateApplySettings = $settingsRepo->getAffiliateApplySettings($id);
+        $codeApprovalEmail  = $settingsRepo->getCodeApprovalEmail($id);
         $joinSettings           = $settingsRepo->getJoinSettings($id);
         $adoptionAddonInstalled = $this->app->isAddonInstalled('Adoption');
         $forAdoption            = $adoptionAddonInstalled && $settingsRepo->getForAdoption($id);
@@ -955,6 +989,7 @@ final class ListingController extends AdminController
             'affiliate_apply_enabled'        => $affiliateApplySettings['enabled'],
             'form_url_affiliate_apply'       => $affiliateApplySettings['form_url'],
             'redirect_url_affiliate_apply'   => $affiliateApplySettings['redirect_url'],
+            'code_approval_email'            => $codeApprovalEmail,
             'join_confirmation_email'        => $joinSettings['confirmation_email'],
             'auto_approve_joins'             => $joinSettings['auto_approve'],
             'codes'               => $codes,
@@ -1000,7 +1035,7 @@ final class ListingController extends AdminController
         $prefix  = $listing->dbprefix;
         $session = $this->app->getSession();
         $baseUrl = $this->app->getBaseUrl();
-        $name    = $listing->name;
+        $name    = $listing->title;
 
         // 1. Drop the member table (only if a table name exists and is safe)
         if ($prefix !== '' && preg_match('/^[a-zA-Z0-9_]+$/', $prefix)) {
@@ -1272,6 +1307,7 @@ final class ListingController extends AdminController
         $formUrlRemove       = ltrim(trim((string) $request->post('form_url_remove',       '')), '/');
         $formUrlReset        = ltrim(trim((string) $request->post('form_url_reset',        '')), '/');
         $formUrlCodesSubmit  = ltrim(trim((string) $request->post('form_url_codes_submit', '')), '/');
+        $codesSubmitEnabled  = $request->post('codes_submit_enabled') === '1';
         $dbHost              = trim((string) $request->post('db_host', ''));
         $dbName              = trim((string) $request->post('db_name', ''));
         $dbUser              = trim((string) $request->post('db_user', ''));
@@ -1292,6 +1328,7 @@ final class ListingController extends AdminController
             $formUrlRemove,
             $formUrlReset,
             $formUrlCodesSubmit,
+            $codesSubmitEnabled,
             $dbHost,
             $dbName,
             $dbUser,
@@ -1303,7 +1340,7 @@ final class ListingController extends AdminController
         $activityRepo->log(
             (int) $session->get('lstr_admin_id'),
             'listing.embed.save',
-            "Saved embed settings for listing #{$id} ({$listing->name})",
+            "Saved embed settings for listing #{$id} ({$listing->title})",
             $request->ip(),
         );
 
@@ -1353,10 +1390,19 @@ final class ListingController extends AdminController
         $session->remove('lstr_flash_success');
         $session->remove('lstr_flash_error');
 
+        $siteSettings   = new SiteSettingsRepo($this->app->getDatabase());
+        $trackingSettings = $siteSettings->getMany([
+            'stale_days',
+            'overdue_notify_enabled',
+            'overdue_days',
+            'overdue_notify_last_sent',
+        ]);
+
         return $this->adminLayout('admin/listings/settings.php', 'Listings Display Settings', 'listings', [
-            'cfg'     => $this->app->getConfig()->all(),
-            'success' => $success,
-            'error'   => $error,
+            'cfg'              => $this->app->getConfig()->all(),
+            'tracking'         => $trackingSettings,
+            'success'          => $success,
+            'error'            => $error,
         ], '', [
             $this->crumb('Owned Listings', $this->adminUrl('/admin/listings')),
         ]);
@@ -1395,7 +1441,14 @@ final class ListingController extends AdminController
             return Response::redirect($baseUrl . '/admin/listings/settings');
         }
 
-        $activityRepo = new ActivityRepo($this->app->getDatabase());
+        $db           = $this->app->getDatabase();
+        $siteSettings = new SiteSettingsRepo($db);
+        $staleDays    = max(1, min(365, (int) $request->post('stale_days', '45')));
+        $siteSettings->set('stale_days', (string) $staleDays);
+        $siteSettings->set('overdue_notify_enabled', $request->post('overdue_notify_enabled') === '1' ? '1' : '0');
+        $siteSettings->set('overdue_days', (string) max(1, min(365, (int) $request->post('overdue_days', '55'))));
+
+        $activityRepo = new ActivityRepo($db);
         $activityRepo->log(
             (int) $session->get('lstr_admin_id'),
             'listings.settings.save',
@@ -1530,7 +1583,7 @@ final class ListingController extends AdminController
 
             // Inject listing ID and install path as a header comment block
             $header  = "<?php\n";
-            $header .= "// Pre-configured by Luster for listing #{$id}: " . $listing->name . "\n";
+            $header .= "// Pre-configured by Luster for listing #{$id}: " . $listing->title . "\n";
             $header .= '$luster_listing_id = ' . $id . ";\n";
             if ($installPath !== '') {
                 $header .= '$luster_path = \'' . addslashes($installPath) . "';\n";

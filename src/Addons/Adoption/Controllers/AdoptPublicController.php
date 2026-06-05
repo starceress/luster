@@ -166,7 +166,7 @@ final class AdoptPublicController
 
         $html = $this->app->getView()->renderPublic('success.php', [
             'listing'         => $listing,
-            'listing_name'    => $listing?->name ?? 'this listing',
+            'listing_name'    => $listing?->title ?? 'this listing',
             'listing_url'     => $listing?->url  ?? '',
             'page_title'      => 'Application Received',
             'success_heading' => 'Application Received',
@@ -221,9 +221,9 @@ final class AdoptPublicController
 
         $html = $this->app->getView()->renderPublic('adopt.php', [
             'listing'          => $listing,
-            'listing_name'     => $listing->name,
+            'listing_name'     => $listing->title,
             'listing_url'      => $listing->url,
-            'page_title'       => 'Adopt ' . $listing->name,
+            'page_title'       => 'Adopt ' . $listing->title,
             'form_action'      => $baseUrl . '/adopt/' . $listingId,
             'csrf_token'       => $this->app->getCSRF()->token(),
             'errors'           => $error !== ''

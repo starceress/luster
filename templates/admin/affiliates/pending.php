@@ -36,7 +36,7 @@ $b = rtrim(View::e($base_url), '/');
       <?php foreach (($listings ?? []) as $fl): ?>
         <option value="<?= (int) $fl->id ?>"
                 <?= ($scope ?? 'all') === (string) $fl->id ? 'selected' : '' ?>>
-          <?= View::e($fl->name) ?>
+          <?= View::e($fl->title) ?>
         </option>
       <?php endforeach; ?>
     </select>
@@ -78,7 +78,7 @@ $b = rtrim(View::e($base_url), '/');
         <td data-label="Listing" class="text-muted">
           <?php $fl = $listing_map[$aff->listingId] ?? null; ?>
           <?php if ($fl !== null): ?>
-            <?= View::e($fl->name) ?>
+            <?= View::e($fl->title) ?>
           <?php elseif ($aff->listingId === null): ?>
             <span class="text-muted">Collective</span>
           <?php else: ?>

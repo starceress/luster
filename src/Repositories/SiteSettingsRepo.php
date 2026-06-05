@@ -62,7 +62,7 @@ class SiteSettingsRepo
     /**
      * Default HTML row/block templates used when no custom value is stored.
      *
-     * Shared by the admin collective-templates page and the embed files so
+     * Shared by the admin collective page and the embed files so
      * both always show the same fallback markup.
      *
      * @return array{owned_template: string, joined_template: string, collective_stats_template: string, owned_sections_template: string, joined_sections_template: string, collective_affiliates_section_template: string}
@@ -70,8 +70,8 @@ class SiteSettingsRepo
     public static function collectiveDefaults(): array
     {
         return [
-            'owned_template'                       => '<a href="{listing_url}" target="_blank">{listing_name}</a> — {listing_subject}',
-            'joined_template'                      => '<a href="{listing_url}" target="_blank">{listing_name}</a> — {listing_category}',
+            'owned_template'                       => '<a href="{listing_url}" target="_blank">{listing_title}</a> — {listing_subject}',
+            'joined_template'                      => '<a href="{listing_url}" target="_blank">{listing_title}</a> — {listing_category}',
             'collective_stats_template' => 'Owned Listings: {owned_active} open, {owned_upcoming} upcoming<br>' . "\n"
                                          . 'Joined Listings: {joined_active}</br>' . "\n"
                                          . 'Total Members: {members_approved} approved (+ {members_pending} pending)</br>' . "\n"

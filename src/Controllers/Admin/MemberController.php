@@ -56,17 +56,19 @@ final class MemberController extends AdminController
             $flById[(int) $fl->id] = $fl;
         }
 
-        $listingId = (int) $request->query('listing_id', 0);
-        $search    = trim((string) $request->query('search', ''));
-        $status    = trim((string) $request->query('status', $listingId > 0 ? 'all' : 'pending'));
-        $sort      = trim((string) $request->query('sort', 'name'));
-        $dir       = trim((string) $request->query('dir', 'asc'));
-        $page      = max(1, (int) $request->query('page', 1));
-        $perPage   = max(5, min(200, (int) $config->get('per_page', 25)));
+        $listingId   = (int) $request->query('listing_id', 0);
+        $search      = trim((string) $request->query('search', ''));
+        $statusParam = $request->query('status', null);
+        $sort        = trim((string) $request->query('sort', 'name'));
+        $dir         = trim((string) $request->query('dir', 'asc'));
+        $page        = max(1, (int) $request->query('page', 1));
+        $puPage      = max(1, (int) $request->query('pu_page', 1));
+        $perPage     = max(5, min(200, (int) $config->get('per_page', 25)));
 
-        if (!in_array($status, ['all', 'pending', 'approved'], true)) { $status = 'all'; }
-        if (!in_array($sort, ['name', 'email', 'country', 'status'], true)) { $sort = 'name'; }
+        if (!in_array($sort, ['name', 'email', 'country', 'status', 'listing', 'total', 'pending', 'rejected'], true)) { $sort = 'name'; }
         if (!in_array($dir, ['asc', 'desc'], true)) { $dir = 'asc'; }
+
+        $validStatuses = ['all', 'pending', 'approved', 'rejected'];
 
         $session = $this->app->getSession();
         $success = (string) $session->get('lstr_flash_success', '');
@@ -74,124 +76,216 @@ final class MemberController extends AdminController
         $session->remove('lstr_flash_success');
         $session->remove('lstr_flash_error');
 
-        // ------------------------------------------------------------------
-        // Per-listing view: a specific listing was selected
-        // ------------------------------------------------------------------
-        if ($listingId > 0) {
-            $listing = $flById[$listingId] ?? null;
-            if ($listing !== null && $listing->dbprefix !== '') {
-                $fields       = $fieldRepo->getFieldsForListing($listingId);
-                $pendingCount = $memberRepo->countPending($listing->dbprefix);
-
-                if ($search !== '') {
-                    $allMatches = $memberRepo->search($listing->dbprefix, $search);
-                    usort($allMatches, static function ($a, $b) use ($sort, $dir): int {
-                        $cmp = match ($sort) {
-                            'email'   => strcasecmp($a->email,   $b->email),
-                            'country' => strcasecmp($a->country,  $b->country) ?: strcasecmp($a->name, $b->name),
-                            'status'  => ($a->approved <=> $b->approved) ?: strcasecmp($a->name, $b->name),
-                            default   => strcasecmp($a->name,    $b->name),
-                        };
-                        return $dir === 'desc' ? -$cmp : $cmp;
-                    });
-                    $total   = count($allMatches);
-                    $pages   = $total > 0 ? (int) ceil($total / $perPage) : 0;
-                    $members = array_slice($allMatches, ($page - 1) * $perPage, $perPage);
-                } else {
-                    $result  = $memberRepo->paginateByStatus($listing->dbprefix, $status, $page, $perPage, $sort, $dir);
-                    $members = $result['members'];
-                    $total   = $result['total'];
-                    $pages   = $result['pages'];
-                }
-
-                return $this->adminLayout('admin/members/index.php', 'Members', 'members', [
-                    'view_mode'    => 'listing',
-                    'listing'      => $listing,
-                    'listing_id'   => $listingId,
-                    'members'      => $members,
-                    'fields'       => $fields,
-                    'total'        => $total,
-                    'page'         => $page,
-                    'pages'        => $pages,
-                    'per_page'     => $perPage,
-                    'search'       => $search,
-                    'status'       => $status,
-                    'all_listings' => $allListings,
-                    'pending_count'=> $pendingCount,
-                    'sort'         => $sort,
-                    'dir'          => $dir,
-                    'success'      => $success,
-                    'error'        => $error,
-                ], '', $this->memberBreadcrumbs($listing, null, false));
-            }
-            // Listing not found — fall through to overview
+        // Resolve listing (null if not selected or not found / no dbprefix)
+        $listing = $listingId > 0 ? ($flById[$listingId] ?? null) : null;
+        if ($listing !== null && $listing->dbprefix === '') {
+            $listing   = null;
             $listingId = 0;
         }
 
         // ------------------------------------------------------------------
-        // Cross-listing search
+        // Tab counts (per-listing or cross-listing)
         // ------------------------------------------------------------------
-        $pendingUpdates = $pendingUpdateRepo->getAll();
-
-        if ($search !== '') {
-            $searchResults = [];
+        $listingCountsMap = [];
+        if ($listing !== null) {
+            $cntPendingNew     = $memberRepo->countPending($listing->dbprefix);
+            $cntApproved       = $memberRepo->countApproved($listing->dbprefix);
+            $cntRejected       = $memberRepo->countRejected($listing->dbprefix);
+            $cntPendingUpdates = $pendingUpdateRepo->countByListing($listingId);
+        } else {
+            $cntPendingNew     = 0;
+            $cntApproved       = 0;
+            $cntRejected       = 0;
+            $cntPendingUpdates = $pendingUpdateRepo->countAll();
             foreach ($allListings as $fl) {
                 if ($fl->dbprefix === '') { continue; }
-                foreach ($memberRepo->search($fl->dbprefix, $search) as $member) {
-                    $searchResults[] = ['listing' => $fl, 'member' => $member];
-                }
+                $p = $memberRepo->countPending($fl->dbprefix);
+                $a = $memberRepo->countApproved($fl->dbprefix);
+                $r = $memberRepo->countRejected($fl->dbprefix);
+                $cntPendingNew += $p;
+                $cntApproved   += $a;
+                $cntRejected   += $r;
+                $listingCountsMap[(int) $fl->id] = ['approved' => $a, 'pending' => $p, 'rejected' => $r];
             }
-            usort($searchResults, fn($a, $b) =>
-                strcmp($a['listing']->name, $b['listing']->name) ?:
-                strcmp($a['member']->name,  $b['member']->name)
-            );
+        }
+        $tabCounts = [
+            'all'      => $cntPendingNew + $cntApproved + $cntRejected,
+            'pending'  => $cntPendingNew + $cntPendingUpdates,
+            'approved' => $cntApproved,
+            'rejected' => $cntRejected,
+        ];
 
-            return $this->adminLayout('admin/members/index.php', 'Members', 'members', [
-                'view_mode'      => 'search',
-                'listing'        => null,
-                'listing_id'     => 0,
-                'search_results' => $searchResults,
-                'pending_updates'=> $pendingUpdates,
-                'fl_by_id'       => $flById,
-                'all_listings'   => $allListings,
-                'success'        => $success,
-                'error'          => $error,
-                'search'         => $search,
-                'status'         => $status,
-            ]);
+        // Auto-select tab when no explicit status param
+        if ($statusParam === null) {
+            $status = $tabCounts['pending'] > 0 ? 'pending' : 'all';
+        } else {
+            $status = in_array($statusParam, $validStatuses, true) ? $statusParam : 'all';
         }
 
         // ------------------------------------------------------------------
-        // Default overview: pending members grouped by listing
+        // Load content data for the active tab
         // ------------------------------------------------------------------
-        $grouped = [];
-        foreach ($allListings as $fl) {
-            if ($fl->dbprefix === '') { continue; }
-            $pending = $memberRepo->getPending($fl->dbprefix, $sort, $dir);
-            if (count($pending) > 0) {
-                $grouped[] = [
-                    'listing'        => $fl,
-                    'members'        => $pending,
-                    'approved_count' => $memberRepo->countApproved($fl->dbprefix),
-                ];
+        $members               = [];
+        $fields                = [];
+        $total                 = 0;
+        $pages                 = 1;
+        $listingPendingUpdates = [];
+        $pendingMemberData     = [];
+        $grouped               = [];
+        $pendingUpdates        = [];
+        $crossListingSearch    = [];
+        $puTotal               = 0;
+        $puPages               = 1;
+
+        if ($listing !== null) {
+            // ── Per-listing ───────────────────────────────────────────────
+            $fields = $fieldRepo->getFieldsForListing($listingId);
+
+            if ($status === 'pending') {
+                // Pending new members
+                if ($search !== '') {
+                    $all = array_filter(
+                        $memberRepo->search($listing->dbprefix, $search),
+                        static fn($m) => !$m->approved
+                    );
+                    usort($all, static fn($a, $b) => strcasecmp($a->name, $b->name));
+                    $total   = count($all);
+                    $pages   = max(1, (int) ceil($total / $perPage));
+                    $members = array_slice(array_values($all), ($page - 1) * $perPage, $perPage);
+                } else {
+                    $r       = $memberRepo->paginateByStatus($listing->dbprefix, 'pending', $page, $perPage, $sort, $dir);
+                    $members = $r['members'];
+                    $total   = $r['total'];
+                    $pages   = $r['pages'];
+                }
+                // Pending updates for this listing (paginated)
+                $puResult              = $pendingUpdateRepo->paginateByListing($listingId, $puPage, $perPage);
+                $listingPendingUpdates = $puResult['updates'];
+                $puTotal               = $puResult['total'];
+                $puPages               = $puResult['pages'];
+                foreach ($listingPendingUpdates as $pu) {
+                    $email = $pu->member_email;
+                    if (!isset($pendingMemberData[$email])) {
+                        $m = $memberRepo->getByEmail($listing->dbprefix, $email);
+                        if ($m !== null) {
+                            $pendingMemberData[$email] = $m;
+                        }
+                    }
+                }
+            } else {
+                // All or Approved — paginated member table
+                if ($search !== '') {
+                    $all = $memberRepo->search($listing->dbprefix, $search);
+                    if ($status === 'approved') {
+                        $all = array_filter($all, static fn($m) => $m->approved);
+                    }
+                    usort($all, static function ($a, $b) use ($sort, $dir): int {
+                        $cmp = match ($sort) {
+                            'email'   => strcasecmp($a->email,   $b->email),
+                            'country' => strcasecmp($a->country, $b->country) ?: strcasecmp($a->name, $b->name),
+                            'status'  => ($a->approved <=> $b->approved)      ?: strcasecmp($a->name, $b->name),
+                            default   => strcasecmp($a->name, $b->name),
+                        };
+                        return $dir === 'desc' ? -$cmp : $cmp;
+                    });
+                    $total   = count($all);
+                    $pages   = max(1, (int) ceil($total / $perPage));
+                    $members = array_slice(array_values($all), ($page - 1) * $perPage, $perPage);
+                } else {
+                    $r       = $memberRepo->paginateByStatus($listing->dbprefix, $status, $page, $perPage, $sort, $dir);
+                    $members = $r['members'];
+                    $total   = $r['total'];
+                    $pages   = $r['pages'];
+                }
             }
+        } else {
+            // ── Cross-listing ─────────────────────────────────────────────
+            if ($search !== '') {
+                // Cross-listing search: results shown in the active tab
+                foreach ($allListings as $fl) {
+                    if ($fl->dbprefix === '') { continue; }
+                    foreach ($memberRepo->search($fl->dbprefix, $search) as $member) {
+                        $crossListingSearch[] = ['listing' => $fl, 'member' => $member];
+                    }
+                }
+                usort($crossListingSearch, static fn($a, $b) =>
+                    strcmp($a['listing']->title, $b['listing']->title) ?:
+                    strcmp($a['member']->name,   $b['member']->name)
+                );
+            } elseif ($status === 'pending') {
+                // Flat paginated pending new members + paginated pending updates
+                $puOrderBy = match ($sort) {
+                    'listing' => $dir === 'desc' ? 'fanlisting_id DESC' : 'fanlisting_id ASC',
+                    default   => 'submitted_at DESC',
+                };
+                $puResult       = $pendingUpdateRepo->paginateAll($puPage, $perPage, $puOrderBy);
+                $pendingUpdates = $puResult['updates'];
+                $puTotal        = $puResult['total'];
+                $puPages        = $puResult['pages'];
+
+                // Build member-data map for pending updates (name/url/country lookup)
+                foreach ($pendingUpdates as $pu) {
+                    $puFl = $flById[(int) $pu->fanlisting_id] ?? null;
+                    if ($puFl !== null && $puFl->dbprefix !== '' && !isset($pendingMemberData[$pu->member_email])) {
+                        $m = $memberRepo->getByEmail($puFl->dbprefix, $pu->member_email);
+                        if ($m !== null) {
+                            $pendingMemberData[$pu->member_email] = $m;
+                        }
+                    }
+                }
+
+                $flatPending = [];
+                foreach ($allListings as $fl) {
+                    if ($fl->dbprefix === '') { continue; }
+                    foreach ($memberRepo->getPending($fl->dbprefix) as $m) {
+                        $flatPending[] = ['listing' => $fl, 'member' => $m];
+                    }
+                }
+                usort($flatPending, static function (array $a, array $b) use ($sort, $dir): int {
+                    $cmp = match ($sort) {
+                        'listing' => strcmp($a['listing']->title, $b['listing']->title) ?: strcasecmp($a['member']->name, $b['member']->name),
+                        'country' => strcasecmp($a['member']->country, $b['member']->country) ?: strcmp($a['listing']->title, $b['listing']->title),
+                        default   => strcasecmp($a['member']->name, $b['member']->name) ?: strcmp($a['listing']->title, $b['listing']->title),
+                    };
+                    return $dir === 'desc' ? -$cmp : $cmp;
+                });
+                $total  = count($flatPending);
+                $pages  = max(1, (int) ceil($total / $perPage));
+                $page   = min($page, $pages);
+                $members = array_slice($flatPending, ($page - 1) * $perPage, $perPage);
+            }
+            // All/Approved with no search: template shows listing summary table
         }
 
         return $this->adminLayout('admin/members/index.php', 'Members', 'members', [
-            'view_mode'      => 'overview',
-            'listing'        => null,
-            'listing_id'     => 0,
-            'grouped'        => $grouped,
-            'search_results' => [],
-            'pending_updates'=> $pendingUpdates,
-            'fl_by_id'       => $flById,
-            'all_listings'   => $allListings,
-            'sort'           => $sort,
-            'dir'            => $dir,
-            'success'        => $success,
-            'error'          => $error,
-            'search'         => $search,
-            'status'         => $status,
+            'listing'                 => $listing,
+            'listing_id'              => $listingId,
+            'all_listings'            => $allListings,
+            'fl_by_id'                => $flById,
+            'status'                  => $status,
+            'tab_counts'              => $tabCounts,
+            'search'                  => $search,
+            'sort'                    => $sort,
+            'dir'                     => $dir,
+            'page'                    => $page,
+            'pu_page'                 => $puPage,
+            'per_page'                => $perPage,
+            // Per-listing data
+            'members'                 => $members,
+            'fields'                  => $fields,
+            'total'                   => $total,
+            'pages'                   => $pages,
+            'listing_pending_updates' => $listingPendingUpdates,
+            'pending_member_data'     => $pendingMemberData,
+            // Cross-listing data
+            'pending_updates'         => $pendingUpdates,
+            'pending_updates_total'   => $puTotal,
+            'pending_updates_pages'   => $puPages,
+            'listing_counts'          => $listingCountsMap,
+            'cross_listing_search'    => $crossListingSearch,
+            'filters_active'          => $listingId > 0 || $search !== '',
+            'success'                 => $success,
+            'error'                   => $error,
         ]);
     }
 
@@ -421,7 +515,7 @@ final class MemberController extends AdminController
             (int) $session->get('lstr_admin_id'),
             'member.merge',
             'Merged duplicate member ' . $dupeEmail . ' into ' . $primaryEmail
-                . ' in listing #' . $listingId . ' (' . $listing->name . ')',
+                . ' in listing #' . $listingId . ' (' . $listing->title . ')',
             $request->ip(),
         );
 
@@ -503,7 +597,7 @@ final class MemberController extends AdminController
                         $cfg       = $this->app->getConfig();
                         $emailRepo = new EmailTemplateRepo($db);
                         $tokens    = EmailTemplateRepo::buildTokens(
-                            listingName:    $listing->name,
+                            listingName:    $listing->title,
                             listingUrl:     $listing->url,
                             siteName:       (string) $cfg->get('site_name', 'Luster'),
                             listingSubject: $listing->subject,
@@ -536,11 +630,23 @@ final class MemberController extends AdminController
         );
 
         $session->set('lstr_flash_success', "Bulk {$action}: {$count} member(s) processed.");
+
+        $pendingUpdateRepo = new PendingUpdateRepo($db);
         $from = (string) $request->post('from', '');
         if ($from === 'overview') {
-            return Response::redirect($baseUrl . '/admin/members');
+            $allListings   = $listingRepo->getAll();
+            $globalPending = $pendingUpdateRepo->countAll();
+            foreach ($allListings as $fl) {
+                if ($fl->dbprefix !== '') {
+                    $globalPending += $memberRepo->countPending($fl->dbprefix);
+                }
+            }
+            $redirectStatus = $globalPending > 0 ? 'pending' : 'all';
+            return Response::redirect($baseUrl . '/admin/members?status=' . $redirectStatus);
         }
-        return Response::redirect($baseUrl . '/admin/members?listing_id=' . $listingId . '&status=all');
+        $remaining      = $memberRepo->countPending($listing->dbprefix) + $pendingUpdateRepo->countByListing($listingId);
+        $redirectStatus = $remaining > 0 ? 'pending' : 'all';
+        return Response::redirect($baseUrl . '/admin/members?listing_id=' . $listingId . '&status=' . $redirectStatus);
     }
 
     // -----------------------------------------------------------------------
@@ -584,7 +690,7 @@ final class MemberController extends AdminController
                 $cfg       = $this->app->getConfig();
                 $emailRepo = new EmailTemplateRepo($db);
                 $tokens    = EmailTemplateRepo::buildTokens(
-                    listingName:    $listing->name,
+                    listingName:    $listing->title,
                     listingUrl:     $listing->url,
                     siteName:       (string) $cfg->get('site_name', 'Luster'),
                     listingSubject: $listing->subject,
@@ -607,7 +713,7 @@ final class MemberController extends AdminController
         $activityRepo->log(
             (int) $session->get('lstr_admin_id'),
             'member.approve_all_pending',
-            "Approved all {$count} pending member(s) in listing #{$listingId} ({$listing->name})",
+            "Approved all {$count} pending member(s) in listing #{$listingId} ({$listing->title})",
             $request->ip(),
         );
 
@@ -656,7 +762,7 @@ final class MemberController extends AdminController
 
                 try {
                     $tokens = EmailTemplateRepo::buildTokens(
-                        listingName:    $fl->name,
+                        listingName:    $fl->title,
                         listingUrl:     $fl->url,
                         siteName:       (string) $config->get('site_name', 'Luster'),
                         listingSubject: $fl->subject,
@@ -703,7 +809,7 @@ final class MemberController extends AdminController
 
             try {
                 $tokens = EmailTemplateRepo::buildTokens(
-                    listingName:    $listing->name,
+                    listingName:    $listing->title,
                     listingUrl:     $listing->url,
                     siteName:       (string) $config->get('site_name', 'Luster'),
                     listingSubject: $listing->subject,
@@ -743,6 +849,96 @@ final class MemberController extends AdminController
 
         $session->set('lstr_flash_success', $msg);
         return Response::redirect($baseUrl . '/admin/members');
+    }
+
+    // -----------------------------------------------------------------------
+    // POST /admin/members/pending-bulk
+    //
+    // Cross-listing bulk approve/reject for the unified pending table.
+    // Checkbox values are encoded as "{listingId}:{email}".
+    // -----------------------------------------------------------------------
+
+    public function pendingBulk(Request $request, array $params): Response
+    {
+        $db     = $this->app->getDatabase();
+        $config = $this->app->getConfig();
+
+        $session      = $this->app->getSession();
+        $baseUrl      = $this->app->getBaseUrl();
+        $action       = (string) $request->post('action', '');
+        $raw          = (array)  $request->post('items', []);
+
+        if (!in_array($action, ['approve', 'reject'], true) || empty($raw)) {
+            $session->set('lstr_flash_error', 'No members selected or invalid action.');
+            return Response::redirect($baseUrl . '/admin/members?status=pending');
+        }
+
+        $listingRepo  = new ListingRepo($db, $config);
+        $memberRepo   = new MemberRepo($db, $config);
+        $settingsRepo = new ListingSettingsRepo($db);
+        $activityRepo = new ActivityRepo($db);
+        $mailer       = new Mailer($config);
+
+        // Group by listing ID
+        $byListing = [];
+        foreach ($raw as $item) {
+            $parts = explode(':', (string) $item, 2);
+            if (count($parts) !== 2) { continue; }
+            [$lid, $email] = $parts;
+            $lid = (int) $lid;
+            if ($lid > 0 && $email !== '') {
+                $byListing[$lid][] = $email;
+            }
+        }
+
+        $count = 0;
+        foreach ($byListing as $listingId => $emails) {
+            $listing = $listingRepo->getById($listingId);
+            if ($listing === null) { continue; }
+
+            foreach ($emails as $email) {
+                if ($action === 'approve') {
+                    $memberRepo->approve($listing->dbprefix, $email);
+
+                    $member = $memberRepo->getByEmail($listing->dbprefix, $email);
+                    if ($member !== null) {
+                        try {
+                            $emailRepo = new EmailTemplateRepo($db);
+                            $tokens    = EmailTemplateRepo::buildTokens(
+                                listingName:    $listing->title,
+                                listingUrl:     $listing->url,
+                                siteName:       (string) $config->get('site_name', 'Luster'),
+                                listingSubject: $listing->subject,
+                                ownerName:      (string) $config->get('owner_name', ''),
+                                ownerEmail:     (string) $config->get('owner_email', ''),
+                                fanName:        $member->name,
+                                fanEmail:       $member->email,
+                            );
+                            [$subj, $body] = $emailRepo->resolveForListing($listingId, EmailTemplateRepo::TYPE_APPROVE, $tokens);
+                            $mailer->send($member->email, $member->name, $subj, $body);
+                        } catch (\Throwable) {}
+                    }
+                } else {
+                    $memberRepo->deleteByEmail($listing->dbprefix, $email);
+                }
+                $count++;
+            }
+
+            if ($action === 'approve') {
+                $settingsRepo->touchLastUpdated($listingId);
+            }
+        }
+
+        $activityRepo->log(
+            (int) $session->get('lstr_admin_id'),
+            'member.pending_bulk_' . $action,
+            "Cross-listing pending bulk {$action}: {$count} member(s)",
+            $request->ip(),
+        );
+
+        $label = $action === 'approve' ? "Approved {$count} member(s)." : "Rejected {$count} member(s).";
+        $session->set('lstr_flash_success', $label);
+        return Response::redirect($baseUrl . '/admin/members?status=pending');
     }
 
     // -----------------------------------------------------------------------
@@ -800,7 +996,7 @@ final class MemberController extends AdminController
         $csv = (string) stream_get_contents($handle);
         fclose($handle);
 
-        $slug = preg_replace('/[^a-z0-9_]/', '_', strtolower($listing->name));
+        $slug = preg_replace('/[^a-z0-9_]/', '_', strtolower($listing->title));
         return Response::csv($csv, "import_template_{$slug}.csv");
     }
 
@@ -1087,7 +1283,7 @@ final class MemberController extends AdminController
         $csv = stream_get_contents($handle);
         fclose($handle);
 
-        $filename = 'members_' . preg_replace('/[^a-z0-9_]/', '_', strtolower($listing->name)) . '.csv';
+        $filename = 'members_' . preg_replace('/[^a-z0-9_]/', '_', strtolower($listing->title)) . '.csv';
 
         return Response::csv((string) $csv, $filename);
     }
@@ -1107,7 +1303,7 @@ final class MemberController extends AdminController
 
         foreach ($all as $fl) {
             foreach ($memberRepo->getPending($fl->dbprefix) as $m) {
-                fputcsv($handle, [$fl->name, $m->name, $m->email, $m->country, $m->url]);
+                fputcsv($handle, [$fl->title, $m->name, $m->email, $m->country, $m->url]);
             }
         }
 
@@ -1167,7 +1363,7 @@ final class MemberController extends AdminController
                     $mailer    = new Mailer($cfg);
                     $emailRepo = new EmailTemplateRepo($db);
                     $tokens    = EmailTemplateRepo::buildTokens(
-                        listingName:    $listing->name,
+                        listingName:    $listing->title,
                         listingUrl:     $listing->url,
                         siteName:       (string) $cfg->get('site_name', 'Luster'),
                         listingSubject: $listing->subject,
@@ -1199,15 +1395,24 @@ final class MemberController extends AdminController
 
         $session->set('lstr_flash_success', $label);
 
-        $page   = max(1, (int) $request->post('_page', 1));
-        $status = (string) $request->post('_status', 'all');
-        if (!in_array($status, ['all', 'pending', 'approved'], true)) {
-            $status = 'all';
+        $pendingUpdateRepo = new PendingUpdateRepo($db);
+        $fromGlobal        = $request->post('_from_global', '') === '1';
+
+        if ($fromGlobal) {
+            $allListings   = (new ListingRepo($db, $config))->getAll();
+            $globalPending = $pendingUpdateRepo->countAll();
+            foreach ($allListings as $fl) {
+                if ($fl->dbprefix !== '') {
+                    $globalPending += $memberRepo->countPending($fl->dbprefix);
+                }
+            }
+            $redirectStatus = $globalPending > 0 ? 'pending' : 'all';
+            return Response::redirect($baseUrl . '/admin/members?status=' . $redirectStatus);
         }
-        $qs = ['listing_id' => $listingId];
-        if ($status !== 'all') { $qs['status'] = $status; }
-        if ($page > 1) { $qs['page'] = $page; }
-        return Response::redirect($baseUrl . '/admin/members?' . http_build_query($qs));
+
+        $remaining      = $memberRepo->countPending($listing->dbprefix) + $pendingUpdateRepo->countByListing($listingId);
+        $redirectStatus = $remaining > 0 ? 'pending' : 'all';
+        return Response::redirect($baseUrl . '/admin/members?listing_id=' . $listingId . '&status=' . $redirectStatus);
     }
 
     // -----------------------------------------------------------------------
@@ -1327,7 +1532,7 @@ final class MemberController extends AdminController
         $db              = $this->app->getDatabase();
         $listingRepo  = new ListingRepo($db, $config);
         $listing      = $listingRepo->getById($id);
-        $flName          = $listing ? $listing->name : '';
+        $flName          = $listing ? $listing->title : '';
         $suffix          = trim((string) $request->post('subject_suffix', ''));
         $subject         = $flName !== '' ? $flName . ': ' . $suffix : $suffix;
         $body            = trim((string) $request->post('body', ''));
@@ -1467,10 +1672,10 @@ final class MemberController extends AdminController
             $country = $member ? $member->country : '';
 
             $search  = ['{fan_name}', '{fan_email}', '{fan_url}', '{fan_country}',
-                        '{listing_name}', '{listing_subject}', '{listing_url}',
+                        '{listing_title}', '{listing_subject}', '{listing_url}',
                         '{site_name}', '{owner_name}', '{owner_email}'];
             $replace = [$name,        $email,        $url,        $country,
-                        $listing->name, $listing->subject, $listing->url,
+                        $listing->title, $listing->subject, $listing->url,
                         $siteName,    $ownerName,    $ownerEmail];
 
             $personalSubject = str_replace($search, $replace, $subject);
@@ -1488,7 +1693,7 @@ final class MemberController extends AdminController
         (new ActivityRepo($db))->log(
             (int) $session->get('lstr_admin_id'),
             'member.email_selected',
-            "Sent email to {$sent} selected member(s) in listing #{$id} ({$listing->name}). Subject: {$subject}",
+            "Sent email to {$sent} selected member(s) in listing #{$id} ({$listing->title}). Subject: {$subject}",
             $request->ip(),
         );
 

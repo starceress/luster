@@ -2,7 +2,7 @@
 use Luster\Core\View;
 /** @var \Luster\Addons\Wishlist\Wishlist[] $entries */
 /** @var string   $filter_type */
-/** @var array    $type_counts    ['wanted'=>int,'top'=>int,'granted'=>int,'upcoming'=>int] */
+/** @var array    $type_counts    ['wanted'=>int,'top'=>int,'granted'=>int] */
 /** @var int      $hidden_count */
 /** @var string[] $categories     distinct category strings stored in wishlist entries */
 /** @var string   $search */
@@ -78,10 +78,9 @@ $tabs = [
     'top'      => ['label' => 'Top Wanted', 'count' => $type_counts['top']      ?? 0,  'badge' => 'badge-info-pink'],
     'wanted'   => ['label' => 'Wanted',     'count' => $type_counts['wanted']   ?? 0,  'badge' => 'badge-redirect'],
     'granted'  => ['label' => 'Granted',    'count' => $type_counts['granted']  ?? 0,  'badge' => 'badge-current'],
-    'upcoming' => ['label' => 'Upcoming',   'count' => $type_counts['upcoming'] ?? 0,  'badge' => 'badge-upcoming'],
     'hidden'   => ['label' => 'Hidden',     'count' => $hidden_count            ?? 0,  'badge' => 'badge-inactive'],
 ];
-$typeTabs = ['wanted' => true, 'top' => true, 'granted' => true, 'upcoming' => true];
+$typeTabs = ['wanted' => true, 'top' => true, 'granted' => true];
 
 $typeQs = $filter_type !== 'all' ? '?type=' . View::e($filter_type) : '';
 
@@ -121,7 +120,7 @@ $showDragHint = isset($typeTabs[$filter_type])
     <a href="<?= $b ?>/admin/wishlist/add" class="btn btn-primary btn-sm">
       <?= View::icon('add') ?> Add Wishlist Entry
     </a>
-    <a href="<?= $b ?>/admin/wishlist/settings" class="btn btn-quaternary btn-sm">Display Settings</a>
+    <a href="<?= $b ?>/admin/wishlist/settings" class="btn btn-quaternary btn-sm"><?= View::icon('gear') ?>Wishlist Settings</a>
   </div>
 </div>
 
@@ -140,40 +139,46 @@ $showDragHint = isset($typeTabs[$filter_type])
 
     <?php if (!empty($categories)): ?>
     <div class="select-wrap">
-      <select name="category">
+      <?php $_wlCc = $category_counts ?? []; ?>
+      <select name="category" id="wl-category-sel">
         <option value="">All Categories</option>
         <?php if ($hasGroups): ?>
           <?php if (!empty($tflFilter)): ?>
           <optgroup label="TFL">
             <?php foreach ($tflFilter as $cat): ?>
-              <option value="<?= View::e($cat) ?>"<?= ($filter_cat ?? '') === $cat ? ' selected' : '' ?>><?= View::e($cat) ?></option>
+              <?php $_wlN = (int) ($_wlCc[$cat] ?? 0); ?>
+              <option value="<?= View::e($cat) ?>"<?= ($filter_cat ?? '') === $cat ? ' selected' : '' ?>><?= View::e($cat) ?><?= $_wlN > 0 ? ' (' . $_wlN . ')' : '' ?></option>
             <?php endforeach; ?>
           </optgroup>
           <?php endif; ?>
           <?php if (!empty($taflFilter)): ?>
           <optgroup label="TAFL">
             <?php foreach ($taflFilter as $cat): ?>
-              <option value="<?= View::e($cat) ?>"<?= ($filter_cat ?? '') === $cat ? ' selected' : '' ?>><?= View::e($cat) ?></option>
+              <?php $_wlN = (int) ($_wlCc[$cat] ?? 0); ?>
+              <option value="<?= View::e($cat) ?>"<?= ($filter_cat ?? '') === $cat ? ' selected' : '' ?>><?= View::e($cat) ?><?= $_wlN > 0 ? ' (' . $_wlN . ')' : '' ?></option>
             <?php endforeach; ?>
           </optgroup>
           <?php endif; ?>
           <?php foreach ($customFilter as $net => $cats): ?>
           <optgroup label="<?= View::e(strtoupper((string) $net)) ?>">
             <?php foreach ($cats as $cat): ?>
-              <option value="<?= View::e($cat) ?>"<?= ($filter_cat ?? '') === $cat ? ' selected' : '' ?>><?= View::e($cat) ?></option>
+              <?php $_wlN = (int) ($_wlCc[$cat] ?? 0); ?>
+              <option value="<?= View::e($cat) ?>"<?= ($filter_cat ?? '') === $cat ? ' selected' : '' ?>><?= View::e($cat) ?><?= $_wlN > 0 ? ' (' . $_wlN . ')' : '' ?></option>
             <?php endforeach; ?>
           </optgroup>
           <?php endforeach; ?>
           <?php if (!empty($otherFilter)): ?>
           <optgroup label="Other">
             <?php foreach ($otherFilter as $cat): ?>
-              <option value="<?= View::e($cat) ?>"<?= ($filter_cat ?? '') === $cat ? ' selected' : '' ?>><?= View::e($cat) ?></option>
+              <?php $_wlN = (int) ($_wlCc[$cat] ?? 0); ?>
+              <option value="<?= View::e($cat) ?>"<?= ($filter_cat ?? '') === $cat ? ' selected' : '' ?>><?= View::e($cat) ?><?= $_wlN > 0 ? ' (' . $_wlN . ')' : '' ?></option>
             <?php endforeach; ?>
           </optgroup>
           <?php endif; ?>
         <?php else: ?>
           <?php foreach ($categories as $cat): ?>
-            <option value="<?= View::e($cat) ?>"<?= ($filter_cat ?? '') === $cat ? ' selected' : '' ?>><?= View::e($cat) ?></option>
+            <?php $_wlN = (int) ($_wlCc[$cat] ?? 0); ?>
+            <option value="<?= View::e($cat) ?>"<?= ($filter_cat ?? '') === $cat ? ' selected' : '' ?>><?= View::e($cat) ?><?= $_wlN > 0 ? ' (' . $_wlN . ')' : '' ?></option>
           <?php endforeach; ?>
         <?php endif; ?>
       </select>
@@ -210,7 +215,7 @@ $showDragHint = isset($typeTabs[$filter_type])
         <?php foreach ($tabs as $key => $tab): ?>
           <option value="<?= View::e($b . '/admin/wishlist' . ($key !== 'all' ? '?type=' . $key : '')) ?>"
                   <?= $filter_type === $key ? 'selected' : '' ?>>
-            <?= View::e($tab['label']) ?><?= $tab['count'] > 0 ? ' (' . (int) $tab['count'] . ')' : '' ?>
+            <?= View::e($tab['label']) ?> (<?= (int) $tab['count'] ?>)
           </option>
         <?php endforeach; ?>
       </select>
@@ -283,9 +288,6 @@ $showDragHint = isset($typeTabs[$filter_type])
             <?php if ($filter_type !== 'granted'): ?>
               <option value="granted">Granted</option>
             <?php endif; ?>
-            <?php if ($filter_type !== 'upcoming'): ?>
-              <option value="upcoming">Upcoming</option>
-            <?php endif; ?>
           </select>
         </div>
       </span>
@@ -318,12 +320,14 @@ $showDragHint = isset($typeTabs[$filter_type])
                 Category <?= View::sortIcon('category', $sort, $dir) ?>
               </a>
             </th>
+            <?php if ($filter_type === 'all'): ?>
             <th>
               <a href="<?= View::e($sortUrl('type')) ?>"
                  class="sort-th<?= $sort === 'type' ? ' sort-active' : '' ?>">
                 Status <?= View::sortIcon('type', $sort, $dir) ?>
               </a>
             </th>
+            <?php endif; ?>
             <th>
               <a href="<?= View::e($sortUrl('added_at')) ?>"
                  class="sort-th<?= $sort === 'added_at' ? ' sort-active' : '' ?>">
@@ -353,7 +357,7 @@ $showDragHint = isset($typeTabs[$filter_type])
             <td data-label="">
               <?php if ($entry->image !== null && $entry->image !== ''): ?>
                 <img src="<?= View::e($b . '/uploads/wishlist/' . $entry->image) ?>"
-                     style="max-width:200px;max-height:200px;display:block;border-radius:4px"
+                     style="max-width:200px;max-height:200px;display:block;border-radius:4px;object-fit:contain"
                      alt="">
               <?php else: ?>
                 <span class="text-dim">&mdash;</span>
@@ -361,7 +365,7 @@ $showDragHint = isset($typeTabs[$filter_type])
             </td>
 
             <td data-label="Subject">
-              <span class="text-strong"><?= View::e($entry->subject) ?></span>
+              <a href="<?= $b ?>/admin/wishlist/<?= (int) $entry->id ?>/edit" class="link text-strong"><?= View::e($entry->subject) ?></a>
               <?php if ($entry->url !== ''): ?>
                   <a href="<?= View::e($entry->url) ?>" target="_blank" rel="noopener noreferrer"
                      class="link mem-url">
@@ -386,25 +390,24 @@ $showDragHint = isset($typeTabs[$filter_type])
               <?php endif; ?>
             </td>
 
+            <?php if ($filter_type === 'all'): ?>
             <td data-label="Status">
               <?php $badgeClass = match ($entry->type) {
-                'wanted'   => 'badge-redirect',
-                'top'      => 'badge-info-pink',
-                'granted'  => 'badge-current',
-                'upcoming' => 'badge-upcoming',
-                default    => 'badge-inactive',
+                'wanted'  => 'badge-redirect',
+                'top'     => 'badge-info-pink',
+                'granted' => 'badge-current',
+                default   => 'badge-inactive',
               }; ?>
               <span class="badge <?= $badgeClass ?>"><?= View::e($entry->typeLabel()) ?></span>
             </td>
+            <?php endif; ?>
 
             <td class="text-muted" data-label="Added">
               <?= $entry->addedAt !== null ? View::e($entry->addedAt) : '<span class="text-dim">&mdash;</span>' ?>
             </td>
 
             <td data-label="Visible">
-              <span class="badge <?= $entry->active ? 'badge-info' : 'badge-inactive' ?>">
-                <?= $entry->active ? 'Public' : 'Hidden' ?>
-              </span>
+              <?= $entry->active ? 'Public' : '<span class="text-muted">Hidden</span>' ?>
             </td>
 
             <td class="act-col" data-label="">

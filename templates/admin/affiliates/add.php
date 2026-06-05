@@ -39,12 +39,6 @@ $v = static function (string $key, $model, string $prop, string $default = '') u
 };
 ?>
 
-<div class="page-topbar">
-  <a href="<?= $backUrl ?>" class="link">
-    &larr; <?= $backLabel ?>
-  </a>
-</div>
-
 <?php if ($error !== ''): ?>
   <div class="alert alert-error"><?= View::e($error) ?></div>
 <?php endif; ?>
@@ -75,7 +69,7 @@ $v = static function (string $key, $model, string $prop, string $default = '') u
             if ($affiliate->listingId !== null) {
                 foreach ($listings as $fl) {
                     if ((int) $fl->id === $affiliate->listingId) {
-                        $scopeLabel = $fl->name;
+                        $scopeLabel = $fl->title;
                         break;
                     }
                 }
@@ -99,7 +93,7 @@ $v = static function (string $key, $model, string $prop, string $default = '') u
                   <?php foreach ($listings as $fl): ?>
                     <?php $selId = (int) ($old['fanlisting_id'] ?? 0); ?>
                     <option value="<?= (int) $fl->id ?>" <?= (int) $fl->id === $selId ? 'selected' : '' ?>>
-                      <?= View::e($fl->name) ?>
+                      <?= View::e($fl->title) ?>
                     </option>
                   <?php endforeach; ?>
                 </select>
@@ -151,6 +145,54 @@ $v = static function (string $key, $model, string $prop, string $default = '') u
                  value="<?= View::e($v('email', $affiliate, 'email')) ?>">
         </div>
       </div>
+
+      <!-- Status (edit mode only) -->
+      <?php if ($isEdit): ?>
+      <div class="listing-field-row">
+        <label class="listing-field-label" for="aff-status">Status</label>
+        <div>
+          <?php $currentStatus = $old['status'] ?? $affiliate->status ?? 'approved'; ?>
+          <div class="radio-group">
+            <label class="radio-label">
+              <input type="radio" name="status" value="approved" <?= $currentStatus === 'approved' ? 'checked' : '' ?>> Approved
+            </label>
+            <label class="radio-label">
+              <input type="radio" name="status" value="pending"  <?= $currentStatus === 'pending'  ? 'checked' : '' ?>> Pending
+            </label>
+            <label class="radio-label">
+              <input type="radio" name="status" value="rejected" <?= $currentStatus === 'rejected' ? 'checked' : '' ?>> Rejected
+            </label>
+          </div>
+          <p class="form-hint">Changing to Rejected will also deactivate the affiliate.</p>
+        </div>
+      </div>
+      <div class="listing-field-row">
+        <label class="listing-field-label">Active</label>
+        <div>
+          <?php $isActive = isset($old['active']) ? $old['active'] === '1' : ($affiliate->active ?? false); ?>
+          <div class="radio-group">
+            <label class="radio-label">
+              <input type="radio" name="active" value="1" <?= $isActive ? 'checked' : '' ?>> Active
+            </label>
+            <label class="radio-label">
+              <input type="radio" name="active" value="0" <?= !$isActive ? 'checked' : '' ?>> Inactive
+            </label>
+          </div>
+          <p class="form-hint">Inactive affiliates are hidden from the public site.</p>
+        </div>
+      </div>
+      <?php endif; ?>
+
+      <!-- Application message (read-only, edit mode only, when present) -->
+      <?php if ($isEdit && ($affiliate->applicationMessage ?? '') !== ''): ?>
+      <div class="listing-field-row listing-field-row--top">
+        <label class="listing-field-label">Application Message</label>
+        <div>
+          <textarea class="form" rows="4" readonly><?= View::e($affiliate->applicationMessage) ?></textarea>
+          <p class="form-hint">Submitted by the applicant. Read-only.</p>
+        </div>
+      </div>
+      <?php endif; ?>
 
       <!-- Image -->
       <div class="listing-field-row listing-field-row--top">

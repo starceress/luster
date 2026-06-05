@@ -53,13 +53,53 @@ final class AdoptionAddon implements AddonInterface
                 `email`         VARCHAR(255) NOT NULL DEFAULT '',
                 `url`           VARCHAR(255) NOT NULL DEFAULT '',
                 `message`       TEXT NULL,
+                `admin_notes`   TEXT NULL,
                 `applied_at`    DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                `status`        ENUM('new','reviewed','approved','rejected') NOT NULL DEFAULT 'new',
+                `status`        ENUM('pending','reviewed','approved','rejected','granted') NOT NULL DEFAULT 'pending',
                 PRIMARY KEY (`id`),
                 INDEX `idx_adoption_listing` (`fanlisting_id`),
                 INDEX `idx_adoption_status`  (`status`)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci"
         );
+
+        // Idempotent migrations for existing installs
+        $colType = $pdo->query(
+            "SELECT COLUMN_TYPE FROM INFORMATION_SCHEMA.COLUMNS
+              WHERE TABLE_SCHEMA = DATABASE()
+                AND TABLE_NAME   = 'lstr_adoption_applications'
+                AND COLUMN_NAME  = 'status'"
+        )->fetchColumn();
+        $colType = (string) $colType;
+
+        // Migrate legacy 'new' rows to 'pending'; 'reviewed' rows are kept as-is
+        if (strpos($colType, "'new'") !== false) {
+            $pdo->exec(
+                "UPDATE `lstr_adoption_applications` SET status = 'pending' WHERE status = 'new'"
+            );
+        }
+
+        // Rebuild ENUM to canonical set if it doesn't match
+        if ($colType !== "enum('pending','reviewed','approved','rejected','granted')") {
+            $pdo->exec(
+                "ALTER TABLE `lstr_adoption_applications`
+                 MODIFY COLUMN `status`
+                   ENUM('pending','reviewed','approved','rejected','granted') NOT NULL DEFAULT 'pending'"
+            );
+        }
+
+        // Idempotent: add admin_notes column
+        $hasNotes = $pdo->query(
+            "SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
+              WHERE TABLE_SCHEMA = DATABASE()
+                AND TABLE_NAME   = 'lstr_adoption_applications'
+                AND COLUMN_NAME  = 'admin_notes'"
+        )->fetchColumn();
+        if (!$hasNotes) {
+            $pdo->exec(
+                "ALTER TABLE `lstr_adoption_applications`
+                 ADD COLUMN `admin_notes` TEXT NULL AFTER `message`"
+            );
+        }
     }
 
     public function uninstall(PDO $pdo): void
@@ -79,7 +119,17 @@ final class AdoptionAddon implements AddonInterface
         $router->get('/adopt/{id}',       AdoptPublicController::class, 'showForm');
         $router->post('/adopt/{id}',      AdoptPublicController::class, 'submit');
 
-        // Admin routes — specific action paths before parameterised {listingId}
+        // Admin routes — literal/specific paths before parameterised routes
+        $router->post('/admin/adoptions/bulk',
+            AdoptionAdminController::class, 'bulk');
+        $router->get('/admin/adoptions/settings',
+            AdoptionAdminController::class, 'settingsForm');
+        $router->post('/admin/adoptions/settings',
+            AdoptionAdminController::class, 'saveSettings');
+        $router->get('/admin/adoptions/{id}/edit',
+            AdoptionAdminController::class, 'editForm');
+        $router->post('/admin/adoptions/{id}/edit',
+            AdoptionAdminController::class, 'editSave');
         $router->post('/admin/adoptions/{id}/approve',
             AdoptionAdminController::class, 'approve');
         $router->post('/admin/adoptions/{id}/reject',
@@ -88,8 +138,6 @@ final class AdoptionAddon implements AddonInterface
             AdoptionAdminController::class, 'setStatus');
         $router->post('/admin/adoptions/{id}/delete',
             AdoptionAdminController::class, 'delete');
-        $router->get('/admin/adoptions/{listingId}',
-            AdoptionAdminController::class, 'forListing');
         $router->get('/admin/adoptions',
             AdoptionAdminController::class, 'index');
     }

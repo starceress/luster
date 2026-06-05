@@ -37,7 +37,7 @@ if (!is_file($_lusterRoot . '/vendor/autoload.php') || !is_file($_lusterRoot . '
 defined('LUSTER_BASE') || define('LUSTER_BASE', $_lusterRoot);
 
 /** @var \Luster\Core\Application $_lusterApp */
-$_lusterApp = require $_lusterRoot . '/bootstrap.php';
+$_lusterApp = $_lusterApp ?? require $_lusterRoot . '/bootstrap.php';
 $_lusterApp->getSession()->start();
 
 // ---------------------------------------------------------------------------
