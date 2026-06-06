@@ -209,14 +209,18 @@ final class UpdateController
         $rateLimit = $this->app->getRateLimit();
         $ip        = $request->ip();
 
+        $embedReturnTo = (string) $session->get('lstr_embed_return_to', '');
+
         if ($rateLimit->isBlocked($ip, RateLimit::ACTION_PUBLIC_UPDATE)) {
             $session->set('lstr_flash_error', 'Too many attempts. Please try again later.');
-            return Response::redirect($baseUrl . '/update/' . $listingId);
+            return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $baseUrl . '/update/' . $listingId);
         }
 
-        // Honeypot — silent reject
+        // Honeypot — silent reject; fake success so bots see no difference
         if ((string) $request->post('website_confirm', '') !== '') {
-            return Response::redirect($baseUrl . '/update/' . $listingId . '/success');
+            $session->remove('lstr_embed_return_to');
+            $session->set('lstr_flash_success', 'Your membership has been updated successfully.');
+            return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $baseUrl . '/update/' . $listingId);
         }
 
         // Must be authenticated before reaching the update form
@@ -257,21 +261,15 @@ final class UpdateController
 
         $postData = $request->postAll();
 
-        // Captcha
+        // Captcha — redirect with flash on failure so the form re-renders with a fresh question
         if (!Captcha::validate((string) $request->post('captcha_answer', ''), 'update')) {
-            $old = [
-                'new_name'  => $newName,
-                'new_email' => $newEmail,
-                'url'       => $url,
-                'country'   => $country,
-            ];
+            $old = ['new_name' => $newName, 'new_email' => $newEmail, 'url' => $url, 'country' => $country];
             foreach ($fields as $field) {
                 $old['field_' . $field->name] = $postData['field_' . $field->name] ?? '';
             }
-            return $this->renderUpdateForm(
-                $listingId, $listing, $fields, $embedSettings, $member, $old,
-                '', 'Incorrect answer — please try again.',
-            );
+            $session->set('lstr_flash_error', 'Incorrect answer — please try again.');
+            $session->set('lstr_flash_old', $old);
+            return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $formUrl);
         }
 
         // Validate update fields only when non-empty
@@ -317,46 +315,30 @@ final class UpdateController
 
         // New password confirmation
         if ($newPassword !== '' && $newPassword !== $newPasswordConfirm) {
-            $old = [
-                'new_name'  => $newName,
-                'new_email' => $newEmail,
-                'url'       => $url,
-                'country'   => $country,
-            ];
+            $old = ['new_name' => $newName, 'new_email' => $newEmail, 'url' => $url, 'country' => $country];
             foreach ($fields as $field) {
                 $old['field_' . $field->name] = $postData['field_' . $field->name] ?? '';
             }
-            return $this->renderUpdateForm(
-                $listingId, $listing, $fields, $embedSettings, $member, $old,
-                '', '', 'New passwords do not match. Please try again.',
-            );
+            $session->set('lstr_flash_error', 'New passwords do not match. Please try again.');
+            $session->set('lstr_flash_old', $old);
+            return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $formUrl);
         }
 
         // New email blacklist + uniqueness check
         if ($newEmail !== '' && $newEmail !== $email) {
+            $old = ['new_name' => $newName, 'new_email' => $newEmail, 'url' => $url, 'country' => $country];
+            foreach ($fields as $field) {
+                $old['field_' . $field->name] = $postData['field_' . $field->name] ?? '';
+            }
             if ((new BlacklistRepo($this->app->getDatabase()))->isBlocked($newEmail)) {
-                $old = [
-                    'new_name'  => $newName,
-                    'new_email' => $newEmail,
-                    'url'       => $url,
-                    'country'   => $country,
-                ];
-                return $this->renderUpdateForm(
-                    $listingId, $listing, $fields, $embedSettings, $member, $old,
-                    '', '', 'That email address cannot be used.',
-                );
+                $session->set('lstr_flash_error', 'That email address cannot be used.');
+                $session->set('lstr_flash_old', $old);
+                return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $formUrl);
             }
             if ($memberRepo->getByEmail($listing->dbprefix, $newEmail) !== null) {
-                $old = [
-                    'new_name'  => $newName,
-                    'new_email' => $newEmail,
-                    'url'       => $url,
-                    'country'   => $country,
-                ];
-                return $this->renderUpdateForm(
-                    $listingId, $listing, $fields, $embedSettings, $member, $old,
-                    '', '', 'That email address is already registered for this listing.',
-                );
+                $session->set('lstr_flash_error', 'That email address is already registered for this listing.');
+                $session->set('lstr_flash_old', $old);
+                return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $formUrl);
             }
         }
 
@@ -411,43 +393,9 @@ final class UpdateController
 
         // Clear auth session — member must sign in again for another update
         $session->remove(self::AUTH_KEY . $listingId);
-        $session->set('lstr_flash_pending', '1');
-
-        return Response::redirect($baseUrl . '/update/' . $listingId . '/success');
-    }
-
-    // -----------------------------------------------------------------------
-    // GET /update/{id}/success
-    // -----------------------------------------------------------------------
-
-    public function success(Request $request, array $params): Response
-    {
-        $listingId = (int) ($params['id'] ?? 0);
-
-        $listingRepo = new ListingRepo($this->app->getDatabase(), $this->app->getConfig());
-        $listing     = $listingRepo->getById($listingId);
-
-        $listingName = $listing?->title ?? 'this listing';
-        $baseUrl     = $this->app->getBaseUrl();
-        $session     = $this->app->getSession();
-
-        $isPending = $session->get('lstr_flash_pending') === '1';
-        $session->remove('lstr_flash_pending');
-
-        $html = $this->app->getView()->renderPublic('success.php', [
-            'listing'         => $listing,
-            'listing_name'    => $listingName,
-            'listing_url'     => $listing?->url ?? '',
-            'page_title'      => $isPending ? 'Update Pending' : 'Membership Updated',
-            'success_heading' => $isPending ? 'Update Submitted' : 'Membership Updated',
-            'success_message' => $isPending
-                ? "Your update for the {$listingName} listing has been submitted and is awaiting admin review. Changes will appear once approved."
-                : "Your membership in the {$listingName} listing has been updated successfully.",
-            'base_url'        => $baseUrl,
-            'theme_path'      => $baseUrl . '/assets/default/',
-        ]);
-
-        return Response::html($html);
+        $session->remove('lstr_embed_return_to');
+        $session->set('lstr_flash_success', "Your update for the {$listing->title} listing has been submitted and is awaiting admin review. Changes will appear once approved.");
+        return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $formUrl);
     }
 
     // -----------------------------------------------------------------------

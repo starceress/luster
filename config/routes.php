@@ -56,7 +56,6 @@ return [
         // Join
         $router->get('/join/{id}',            JoinController::class,    'showForm');
         $router->post('/join/{id}',           JoinController::class,    'submit');
-        $router->get('/join/{id}/success',    JoinController::class,    'success');
 
         // Members list
         $router->get('/members/{id}',         MembersController::class, 'index');
@@ -69,43 +68,34 @@ return [
         $router->post('/update/{id}/sign-in',  UpdateController::class, 'signIn');
         $router->get('/update/{id}/sign-out',  UpdateController::class, 'signOut');
         $router->post('/update/{id}',          UpdateController::class, 'submit');
-        $router->get('/update/{id}/success',   UpdateController::class, 'success');
 
         // Remove membership
         $router->get('/remove/{id}',          RemoveController::class,  'showForm');
         $router->post('/remove/{id}',         RemoveController::class,  'submit');
-        $router->get('/remove/{id}/success',  RemoveController::class,  'success');
 
         // Affiliates — collective route before the per-fanlisting route
         $router->get('/affiliates',      AffiliatesController::class, 'collective');
         $router->get('/affiliates/{id}', AffiliatesController::class, 'index');
 
-        // Code submission (fan-facing) — /thanks must be before the base /{id} route
-        $router->get('/codes/submit/{id}/thanks', CodesSubmitController::class, 'thanks');
+        // Code submission (fan-facing)
         $router->get('/codes/submit/{id}',        CodesSubmitController::class, 'showForm');
         $router->post('/codes/submit/{id}',       CodesSubmitController::class, 'submit');
 
-        // Contact forms — collective routes before per-listing; /sent before base
-        $router->get('/contact/sent',        ContactController::class, 'collectiveSent');
+        // Contact forms — collective routes before per-listing
         $router->get('/contact',             ContactController::class, 'collectiveForm');
         $router->post('/contact',            ContactController::class, 'collectiveSubmit');
-        $router->get('/contact/{id}/sent',   ContactController::class, 'listingSent');
         $router->get('/contact/{id}',        ContactController::class, 'listingForm');
         $router->post('/contact/{id}',       ContactController::class, 'listingSubmit');
 
         // Affiliate applications — collective literal paths before parameterised {id} routes
-        $router->get('/affiliate-apply/collective/success', AffiliateApplyController::class, 'collectiveSuccess');
         $router->get('/affiliate-apply/collective',         AffiliateApplyController::class, 'collectiveShow');
         $router->post('/affiliate-apply/collective',        AffiliateApplyController::class, 'collectiveSubmit');
-        $router->get('/affiliate-apply/{id}/success', AffiliateApplyController::class, 'success');
         $router->get('/affiliate-apply/{id}',         AffiliateApplyController::class, 'show');
         $router->post('/affiliate-apply/{id}',        AffiliateApplyController::class, 'submit');
 
-        // Password reset — specific sub-paths registered before the base route
-        $router->get('/reset/{id}/sent',      ResetController::class,   'sent');
+        // Password reset — confirm path before base route
         $router->get('/reset/{id}/confirm',   ResetController::class,   'showConfirm');
         $router->post('/reset/{id}/confirm',  ResetController::class,   'submitConfirm');
-        $router->get('/reset/{id}/done',      ResetController::class,   'done');
         $router->get('/reset/{id}',           ResetController::class,   'showForm');
         $router->post('/reset/{id}',          ResetController::class,   'submit');
     },

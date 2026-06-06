@@ -84,16 +84,12 @@ final class KimAddon implements AddonInterface
     {
         // ── Public routes ─────────────────────────────────────────────────
         // Order matters: specific paths before dynamic ones.
-        $router->get('/kim/success',        KimSignupController::class, 'success');
         $router->get('/kim/list/{id}',      KimListController::class,   'subject');
         $router->get('/kim/list',           KimListController::class,   'index');
-        $router->get('/kim/update/success', KimUpdateController::class, 'success');
         $router->get('/kim/update',         KimUpdateController::class, 'showForm');
         $router->post('/kim/update',        KimUpdateController::class, 'submit');
-        $router->get('/kim/reset/sent',     KimResetController::class,  'sent');
         $router->get('/kim/reset/confirm',  KimResetController::class,  'showConfirm');
         $router->post('/kim/reset/confirm', KimResetController::class,  'submitConfirm');
-        $router->get('/kim/reset/done',     KimResetController::class,  'done');
         $router->get('/kim/reset',          KimResetController::class,  'showForm');
         $router->post('/kim/reset',         KimResetController::class,  'submit');
         $router->get('/kim',                KimSignupController::class, 'showForm');

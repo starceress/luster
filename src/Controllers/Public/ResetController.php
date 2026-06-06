@@ -24,11 +24,9 @@ use Luster\Repositories\MemberRepo;
  * Fan password reset — allows fans to recover access when they forget their password.
  *
  * GET  /reset/{id}           — email entry form
- * POST /reset/{id}           — sends reset email (always shows /sent, prevents enumeration)
- * GET  /reset/{id}/sent      — "check your email" confirmation page
+ * POST /reset/{id}           — sends reset email, redirects to host page (prevents enumeration)
  * GET  /reset/{id}/confirm   — new password form (validates token from ?token= query param)
- * POST /reset/{id}/confirm   — applies new password, consumes token
- * GET  /reset/{id}/done      — success page shown after password is updated
+ * POST /reset/{id}/confirm   — applies new password, consumes token, redirects to host page
  *
  * Security properties:
  *  - CSRF token on all POST forms (validated by CsrfMiddleware)
@@ -38,7 +36,7 @@ use Luster\Repositories\MemberRepo;
  *  - Token: bin2hex(random_bytes(32)) — 256 bits of entropy
  *  - Only the SHA-256 hash is stored in the DB; the raw token travels only in email
  *  - Token expiry: 1 hour
- *  - Email enumeration prevented: always redirects to /sent regardless of outcome
+ *  - Email enumeration prevented: always flashes the same neutral message regardless of outcome
  *  - Only approved (non-pending) members can request a reset
  *  - New password validated against the shared password policy
  */
@@ -83,15 +81,22 @@ final class ResetController
         $session      = $this->app->getSession();
         $rateLimit    = $this->app->getRateLimit();
         $ip           = $request->ip();
+        $embedReturnTo = (string) $session->get('lstr_embed_return_to', '');
+
+        // Anti-enumeration: always flash the same neutral message regardless of outcome
+        $sentMessage = 'If that email address is registered, you will receive a password reset link shortly. The link expires in 1 hour.';
 
         if ($rateLimit->isBlocked($ip, RateLimit::ACTION_PUBLIC_RESET)) {
-            // Still redirect to /sent — don't reveal that the IP is blocked
-            return Response::redirect($baseUrl . '/reset/' . $listingId . '/sent');
+            $session->remove('lstr_embed_return_to');
+            $session->set('lstr_flash_success', $sentMessage);
+            return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $baseUrl . '/reset/' . $listingId);
         }
 
         // Honeypot — silent reject
         if ((string) $request->post('website_confirm', '') !== '') {
-            return Response::redirect($baseUrl . '/reset/' . $listingId . '/sent');
+            $session->remove('lstr_embed_return_to');
+            $session->set('lstr_flash_success', $sentMessage);
+            return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $baseUrl . '/reset/' . $listingId);
         }
 
         $listingRepo = new ListingRepo($this->app->getDatabase(), $this->app->getConfig());
@@ -103,21 +108,20 @@ final class ResetController
 
         $email = trim((string) $request->post('email', ''));
 
-        // Captcha — re-render the form (not a redirect) so CAPTCHA question refreshes
-        if (!Captcha::validate((string) $request->post('captcha_answer', ''), 'reset')) {
-            $rateLimit->hitDefault($ip, RateLimit::ACTION_PUBLIC_RESET);
-            return $this->renderResetForm(
-                $listingId, $listing, $email,
-                '', 'Incorrect answer — please try again.',
-            );
-        }
-
         $settingsRepo  = new ListingSettingsRepo($this->app->getDatabase());
         $embedSettings = $settingsRepo->getEmbedSettings($listingId);
         $formPageName  = (string) $embedSettings['form_url_reset'];
         $formUrl       = $formPageName !== ''
                        ? rtrim((string) $listing->url, '/') . '/' . ltrim($formPageName, '/')
                        : $baseUrl . '/reset/' . $listingId;
+
+        // Captcha — redirect with flash on failure so the form re-renders with a fresh question
+        if (!Captcha::validate((string) $request->post('captcha_answer', ''), 'reset')) {
+            $rateLimit->hitDefault($ip, RateLimit::ACTION_PUBLIC_RESET);
+            $session->set('lstr_flash_error', 'Incorrect answer — please try again.');
+            $session->set('lstr_flash_old_email', $email);
+            return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $formUrl);
+        }
 
         $v = new Validator(['email' => $email]);
         $v->field('email')->required()->email()->maxLength(255);
@@ -132,9 +136,11 @@ final class ResetController
         $rateLimit->hitDefault($ip, RateLimit::ACTION_PUBLIC_RESET);
 
         // Blacklist check — silently skip sending if this address is blocked.
-        // We still redirect to /sent so the block is not revealed.
+        // Always redirect with the same neutral message so the block is not revealed.
         if ((new BlacklistRepo($this->app->getDatabase()))->isBlocked($email)) {
-            return Response::redirect($baseUrl . '/reset/' . $listingId . '/sent');
+            $session->remove('lstr_embed_return_to');
+            $session->set('lstr_flash_success', $sentMessage);
+            return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $formUrl);
         }
 
         // Look up the member — only send email if they exist AND are approved
@@ -180,38 +186,10 @@ final class ResetController
             }
         }
 
-        // Always redirect to /sent — never reveal whether the email was found
-        return Response::redirect($baseUrl . '/reset/' . $listingId . '/sent');
-    }
-
-    // -----------------------------------------------------------------------
-    // GET /reset/{id}/sent
-    // -----------------------------------------------------------------------
-
-    public function sent(Request $request, array $params): Response
-    {
-        $listingId = (int) ($params['id'] ?? 0);
-
-        $listingRepo = new ListingRepo($this->app->getDatabase(), $this->app->getConfig());
-        $listing     = $listingRepo->getById($listingId);
-
-        $listingName = $listing?->title ?? 'this listing';
-        $baseUrl        = $this->app->getBaseUrl();
-
-        $html = $this->app->getView()->renderPublic('success.php', [
-            'listing'      => $listing,
-            'listing_name' => $listingName,
-            'listing_url'  => $listing?->url ?? '',
-            'page_title'      => 'Check Your Email',
-            'success_heading' => 'Check Your Email',
-            'success_message' => 'If that email address is registered for this listing, '
-                               . 'you will receive a password reset link shortly. '
-                               . 'The link expires in 1 hour.',
-            'base_url'        => $baseUrl,
-            'theme_path'      => $baseUrl . '/assets/default/',
-        ]);
-
-        return Response::html($html);
+        // Always flash the same neutral message and redirect to host page — never reveal whether the email was found
+        $session->remove('lstr_embed_return_to');
+        $session->set('lstr_flash_success', $sentMessage);
+        return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $formUrl);
     }
 
     // -----------------------------------------------------------------------
@@ -254,13 +232,16 @@ final class ResetController
 
     public function submitConfirm(Request $request, array $params): Response
     {
-        $listingId = (int) ($params['id'] ?? 0);
+        $listingId    = (int) ($params['id'] ?? 0);
         $baseUrl      = $this->app->getBaseUrl();
+        $session      = $this->app->getSession();
         $rateLimit    = $this->app->getRateLimit();
         $ip           = $request->ip();
+        $embedReturnTo = (string) $session->get('lstr_embed_return_to', '');
 
         if ($rateLimit->isBlocked($ip, RateLimit::ACTION_PUBLIC_RESET)) {
-            return Response::redirect($baseUrl . '/reset/' . $listingId . '/sent');
+            $session->set('lstr_flash_error', 'Too many attempts. Please try again later.');
+            return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $baseUrl . '/reset/' . $listingId);
         }
 
         $listingRepo = new ListingRepo($this->app->getDatabase(), $this->app->getConfig());
@@ -322,36 +303,10 @@ final class ResetController
         $resetRepo->deleteByToken(hash('sha256', $rawToken));
         $rateLimit->clear($ip, RateLimit::ACTION_PUBLIC_RESET);
 
-        return Response::redirect($baseUrl . '/reset/' . $listingId . '/done');
-    }
-
-    // -----------------------------------------------------------------------
-    // GET /reset/{id}/done
-    // -----------------------------------------------------------------------
-
-    public function done(Request $request, array $params): Response
-    {
-        $listingId = (int) ($params['id'] ?? 0);
-
-        $listingRepo = new ListingRepo($this->app->getDatabase(), $this->app->getConfig());
-        $listing     = $listingRepo->getById($listingId);
-
-        $listingName = $listing?->title ?? 'this listing';
-        $baseUrl        = $this->app->getBaseUrl();
-
-        $html = $this->app->getView()->renderPublic('success.php', [
-            'listing'      => $listing,
-            'listing_name' => $listingName,
-            'listing_url'  => $listing?->url ?? '',
-            'page_title'      => 'Password Updated',
-            'success_heading' => 'Password Updated',
-            'success_message' => "Your password for the {$listingName} listing has been updated. "
-                               . 'You can now use it to update or remove your membership.',
-            'base_url'        => $baseUrl,
-            'theme_path'      => $baseUrl . '/assets/default/',
-        ]);
-
-        return Response::html($html);
+        $listingName = $listing->title;
+        $session->remove('lstr_embed_return_to');
+        $session->set('lstr_flash_success', "Your password for the {$listingName} listing has been updated. You can now use it to update or remove your membership.");
+        return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $baseUrl . '/reset/' . $listingId);
     }
 
     // -----------------------------------------------------------------------

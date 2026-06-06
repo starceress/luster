@@ -78,11 +78,13 @@ final class ContactController
 
     public function listingSubmit(Request $request, array $params): Response
     {
-        $listingId = (int) ($params['id'] ?? 0);
-        $baseUrl   = $this->app->getBaseUrl();
-        $session   = $this->app->getSession();
-        $rateLimit = $this->app->getRateLimit();
-        $ip        = $request->ip();
+        $listingId     = (int) ($params['id'] ?? 0);
+        $baseUrl       = $this->app->getBaseUrl();
+        $session       = $this->app->getSession();
+        $rateLimit     = $this->app->getRateLimit();
+        $ip            = $request->ip();
+        $embedReturnTo = (string) $session->get('lstr_embed_return_to', '');
+        $fallbackUrl   = $baseUrl . '/contact/' . $listingId;
 
         $listingRepo  = new ListingRepo($this->app->getDatabase(), $this->app->getConfig());
         $listing      = $listingRepo->getById($listingId);
@@ -95,23 +97,27 @@ final class ContactController
         $contactSettings = $settingsRepo->getContactSettings($listingId);
 
         if (!$contactSettings['enabled']) {
-            return Response::redirect($baseUrl . '/contact/' . $listingId);
+            return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $fallbackUrl);
         }
 
         if ($rateLimit->isBlocked($ip, RateLimit::ACTION_PUBLIC_CONTACT)) {
             $session->set('lstr_flash_error', 'Too many messages sent. Please try again later.');
-            return Response::redirect($baseUrl . '/contact/' . $listingId);
+            return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $fallbackUrl);
         }
 
-        // Honeypot — silent reject
+        // Honeypot — silent reject; fake success so bots see no difference
         if ((string) $request->post('website_confirm', '') !== '') {
-            return Response::redirect($baseUrl . '/contact/' . $listingId . '/sent');
+            $session->remove('lstr_embed_return_to');
+            $session->set('lstr_flash_success', 'Your message has been sent. Thank you for getting in touch!');
+            return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $fallbackUrl);
         }
 
+        // Captcha — redirect with flash on failure so the form re-renders with a fresh question
         if (!Captcha::validate((string) $request->post('captcha_answer', ''), 'contact_listing')) {
             $rateLimit->hitDefault($ip, RateLimit::ACTION_PUBLIC_CONTACT);
-            $old = $this->collectOld($request);
-            return $this->renderContactForm($listing, $old, '', 'Incorrect answer — please try again.');
+            $session->set('lstr_flash_error', 'Incorrect answer — please try again.');
+            $session->set('lstr_flash_old', $this->collectOld($request));
+            return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $fallbackUrl);
         }
 
         $name    = trim((string) $request->post('name',    ''));
@@ -125,7 +131,7 @@ final class ContactController
             $rateLimit->hitDefault($ip, RateLimit::ACTION_PUBLIC_CONTACT);
             $session->set('lstr_flash_error', 'This email address cannot be used to send messages.');
             $session->set('lstr_flash_old', $this->collectOld($request));
-            return Response::redirect($baseUrl . '/contact/' . $listingId);
+            return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $fallbackUrl);
         }
 
         $v = new Validator($request->postAll());
@@ -138,14 +144,14 @@ final class ContactController
             $rateLimit->hitDefault($ip, RateLimit::ACTION_PUBLIC_CONTACT);
             $session->set('lstr_flash_error', 'Website URL must be a valid http:// or https:// address.');
             $session->set('lstr_flash_old', $this->collectOld($request));
-            return Response::redirect($baseUrl . '/contact/' . $listingId);
+            return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $fallbackUrl);
         }
 
         if ($v->fails()) {
             $rateLimit->hitDefault($ip, RateLimit::ACTION_PUBLIC_CONTACT);
             $session->set('lstr_flash_error', implode(' ', $v->allErrors()));
             $session->set('lstr_flash_old', $this->collectOld($request));
-            return Response::redirect($baseUrl . '/contact/' . $listingId);
+            return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $fallbackUrl);
         }
 
         $recipient = $contactSettings['recipient'] ?? '';
@@ -164,32 +170,12 @@ final class ContactController
         } catch (\RuntimeException) {
             $session->set('lstr_flash_error', 'Your message could not be sent. Please try again later.');
             $session->set('lstr_flash_old', $this->collectOld($request));
-            return Response::redirect($baseUrl . '/contact/' . $listingId);
+            return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $fallbackUrl);
         }
 
-        return Response::redirect($baseUrl . '/contact/' . $listingId . '/sent');
-    }
-
-    // -----------------------------------------------------------------------
-    // GET /contact/{id}/sent
-    // -----------------------------------------------------------------------
-
-    public function listingSent(Request $request, array $params): Response
-    {
-        $listingId   = (int) ($params['id'] ?? 0);
-        $listingRepo = new ListingRepo($this->app->getDatabase(), $this->app->getConfig());
-        $listing     = $listingRepo->getById($listingId);
-
-        if ($listing === null) {
-            return Response::notFound('That listing does not exist.');
-        }
-
-        return $this->renderPublic('contact-sent.php', [
-            'listing'      => $listing,
-            'listing_name' => $listing->title,
-            'listing_url'  => $listing->url,
-            'page_title'   => 'Message Sent',
-        ]);
+        $session->remove('lstr_embed_return_to');
+        $session->set('lstr_flash_success', 'Your message has been sent. Thank you for getting in touch!');
+        return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $fallbackUrl);
     }
 
     // -----------------------------------------------------------------------
@@ -227,33 +213,39 @@ final class ContactController
 
     public function collectiveSubmit(Request $request, array $params): Response
     {
-        $baseUrl   = $this->app->getBaseUrl();
-        $config    = $this->app->getConfig();
-        $session   = $this->app->getSession();
-        $rateLimit = $this->app->getRateLimit();
-        $ip        = $request->ip();
+        $baseUrl       = $this->app->getBaseUrl();
+        $config        = $this->app->getConfig();
+        $session       = $this->app->getSession();
+        $rateLimit     = $this->app->getRateLimit();
+        $ip            = $request->ip();
+        $embedReturnTo = (string) $session->get('lstr_embed_return_to', '');
+        $fallbackUrl   = $baseUrl . '/contact';
 
         $siteRepo = new SiteSettingsRepo($this->app->getDatabase());
         $enabled  = (bool) ((int) ($siteRepo->get('collective_contact_enabled') ?? '1'));
 
         if (!$enabled) {
-            return Response::redirect($baseUrl . '/contact');
+            return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $fallbackUrl);
         }
 
         if ($rateLimit->isBlocked($ip, RateLimit::ACTION_PUBLIC_CONTACT)) {
             $session->set('lstr_flash_error', 'Too many messages sent. Please try again later.');
-            return Response::redirect($baseUrl . '/contact');
+            return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $fallbackUrl);
         }
 
-        // Honeypot — silent reject
+        // Honeypot — silent reject; fake success so bots see no difference
         if ((string) $request->post('website_confirm', '') !== '') {
-            return Response::redirect($baseUrl . '/contact/sent');
+            $session->remove('lstr_embed_return_to');
+            $session->set('lstr_flash_success', 'Your message has been sent. Thank you for getting in touch!');
+            return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $fallbackUrl);
         }
 
+        // Captcha — redirect with flash on failure so the form re-renders with a fresh question
         if (!Captcha::validate((string) $request->post('captcha_answer', ''), 'contact_collective')) {
             $rateLimit->hitDefault($ip, RateLimit::ACTION_PUBLIC_CONTACT);
-            $old = $this->collectOld($request);
-            return $this->renderContactForm(null, $old, '', 'Incorrect answer — please try again.');
+            $session->set('lstr_flash_error', 'Incorrect answer — please try again.');
+            $session->set('lstr_flash_old', $this->collectOld($request));
+            return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $fallbackUrl);
         }
 
         $name    = trim((string) $request->post('name',    ''));
@@ -267,7 +259,7 @@ final class ContactController
             $rateLimit->hitDefault($ip, RateLimit::ACTION_PUBLIC_CONTACT);
             $session->set('lstr_flash_error', 'This email address cannot be used to send messages.');
             $session->set('lstr_flash_old', $this->collectOld($request));
-            return Response::redirect($baseUrl . '/contact');
+            return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $fallbackUrl);
         }
 
         $v = new Validator($request->postAll());
@@ -280,14 +272,14 @@ final class ContactController
             $rateLimit->hitDefault($ip, RateLimit::ACTION_PUBLIC_CONTACT);
             $session->set('lstr_flash_error', 'Website URL must be a valid http:// or https:// address.');
             $session->set('lstr_flash_old', $this->collectOld($request));
-            return Response::redirect($baseUrl . '/contact');
+            return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $fallbackUrl);
         }
 
         if ($v->fails()) {
             $rateLimit->hitDefault($ip, RateLimit::ACTION_PUBLIC_CONTACT);
             $session->set('lstr_flash_error', implode(' ', $v->allErrors()));
             $session->set('lstr_flash_old', $this->collectOld($request));
-            return Response::redirect($baseUrl . '/contact');
+            return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $fallbackUrl);
         }
 
         $siteName  = (string) $config->get('app_name', 'Collective');
@@ -299,7 +291,7 @@ final class ContactController
         if ($recipient === '') {
             $session->set('lstr_flash_error', 'No contact email is configured. Please try again later.');
             $session->set('lstr_flash_old', $this->collectOld($request));
-            return Response::redirect($baseUrl . '/contact');
+            return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $fallbackUrl);
         }
 
         $body = "Message from: {$name} <{$email}>"
@@ -313,26 +305,12 @@ final class ContactController
         } catch (\RuntimeException) {
             $session->set('lstr_flash_error', 'Your message could not be sent. Please try again later.');
             $session->set('lstr_flash_old', $this->collectOld($request));
-            return Response::redirect($baseUrl . '/contact');
+            return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $fallbackUrl);
         }
 
-        return Response::redirect($baseUrl . '/contact/sent');
-    }
-
-    // -----------------------------------------------------------------------
-    // GET /contact/sent
-    // -----------------------------------------------------------------------
-
-    public function collectiveSent(Request $request, array $params): Response
-    {
-        $config = $this->app->getConfig();
-
-        return $this->renderPublic('contact-sent.php', [
-            'listing'      => null,
-            'listing_name' => (string) $config->get('app_name', 'Collective'),
-            'listing_url'  => (string) $config->get('app_url',  ''),
-            'page_title'   => 'Message Sent',
-        ]);
+        $session->remove('lstr_embed_return_to');
+        $session->set('lstr_flash_success', 'Your message has been sent. Thank you for getting in touch!');
+        return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $fallbackUrl);
     }
 
     // -----------------------------------------------------------------------

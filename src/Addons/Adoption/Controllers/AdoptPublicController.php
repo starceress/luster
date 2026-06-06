@@ -19,9 +19,8 @@ use Luster\Repositories\ListingSettingsRepo;
  * Public adoption application form.
  *
  * Routes (registered by AdoptionAddon::registerRoutes()):
- *   GET  /adopt/{id}      — renders the application form.
- *   POST /adopt/{id}      — validates input, inserts application, redirects to /sent.
- *   GET  /adopt/{id}/sent — confirmation page.
+ *   GET  /adopt/{id}  — renders the application form.
+ *   POST /adopt/{id}  — validates input, inserts application, redirects to host page.
  *
  * Only available when the listing has for_adoption=1 in lstr_fanlisting_settings
  * and the listing is not inactive.
@@ -58,10 +57,12 @@ final class AdoptPublicController
 
     public function submit(Request $request, array $params): Response
     {
-        $listingId = (int) ($params['id'] ?? 0);
-        $baseUrl   = $this->app->getBaseUrl();
-        $session   = $this->app->getSession();
-        $ip        = $request->ip();
+        $listingId     = (int) ($params['id'] ?? 0);
+        $baseUrl       = $this->app->getBaseUrl();
+        $session       = $this->app->getSession();
+        $ip            = $request->ip();
+        $embedReturnTo = (string) $session->get('lstr_embed_return_to', '');
+        $fallbackUrl   = $baseUrl . '/adopt/' . $listingId;
 
         $listing = $this->requireAdoptableListing($listingId);
         if ($listing instanceof Response) {
@@ -72,23 +73,27 @@ final class AdoptPublicController
         $rateLimit = $this->app->getRateLimit();
         if ($rateLimit->isBlocked($ip, RateLimit::ACTION_PUBLIC_ADOPT)) {
             $session->set('lstr_flash_error', 'Too many requests. Please try again later.');
-            return Response::redirect($baseUrl . '/adopt/' . $listingId);
+            return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $fallbackUrl);
         }
 
-        // Honeypot
+        // Honeypot — silent reject; fake success so bots see no difference
         if ((string) $request->post('website_confirm', '') !== '') {
-            return Response::redirect($baseUrl . '/adopt/' . $listingId . '/sent');
+            $session->remove('lstr_embed_return_to');
+            $session->set('lstr_flash_success', 'Thank you for your interest in adopting this fanlisting. Your application has been received.');
+            return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $fallbackUrl);
         }
 
-        // Captcha
+        // Captcha — redirect with flash on failure so the form re-renders with a fresh question
         if (!Captcha::validate((string) $request->post('captcha_answer', ''), 'adopt')) {
-            $old = [
+            $rateLimit->hitDefault($ip, RateLimit::ACTION_PUBLIC_ADOPT);
+            $session->set('lstr_flash_error', 'Incorrect answer — please try again.');
+            $session->set('lstr_flash_old', [
                 'name'    => trim((string) $request->post('name',    '')),
                 'email'   => trim((string) $request->post('email',   '')),
                 'url'     => trim((string) $request->post('url',     '')),
                 'message' => trim((string) $request->post('message', '')),
-            ];
-            return $this->renderForm($listingId, $listing, $old, '', 'Incorrect answer — please try again.');
+            ]);
+            return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $fallbackUrl);
         }
 
         $name    = trim((string) $request->post('name',    ''));
@@ -105,13 +110,8 @@ final class AdoptPublicController
         if ($v->fails()) {
             $rateLimit->hitDefault($ip, RateLimit::ACTION_PUBLIC_ADOPT);
             $session->set('lstr_flash_error', implode(' ', $v->allErrors()));
-            $session->set('lstr_flash_old', [
-                'name'    => $name,
-                'email'   => $email,
-                'url'     => $url,
-                'message' => $message,
-            ]);
-            return Response::redirect($baseUrl . '/adopt/' . $listingId);
+            $session->set('lstr_flash_old', ['name' => $name, 'email' => $email, 'url' => $url, 'message' => $message]);
+            return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $fallbackUrl);
         }
 
         $db           = $this->app->getDatabase();
@@ -120,25 +120,15 @@ final class AdoptPublicController
         // Blacklist check
         if ((new BlacklistRepo($db))->isBlocked($email)) {
             $session->set('lstr_flash_error', 'That email address cannot be used to submit an application.');
-            $session->set('lstr_flash_old', [
-                'name'    => $name,
-                'email'   => $email,
-                'url'     => $url,
-                'message' => $message,
-            ]);
-            return Response::redirect($baseUrl . '/adopt/' . $listingId);
+            $session->set('lstr_flash_old', ['name' => $name, 'email' => $email, 'url' => $url, 'message' => $message]);
+            return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $fallbackUrl);
         }
 
         // Duplicate check — one active application per email per listing
         if ($adoptionRepo->hasPendingApplication($listingId, $email)) {
             $session->set('lstr_flash_error', 'An application for this listing from that email address is already pending review.');
-            $session->set('lstr_flash_old', [
-                'name'    => $name,
-                'email'   => $email,
-                'url'     => $url,
-                'message' => $message,
-            ]);
-            return Response::redirect($baseUrl . '/adopt/' . $listingId);
+            $session->set('lstr_flash_old', ['name' => $name, 'email' => $email, 'url' => $url, 'message' => $message]);
+            return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $fallbackUrl);
         }
 
         $adoptionRepo->insert($listingId, [
@@ -150,32 +140,9 @@ final class AdoptPublicController
 
         $rateLimit->clear($ip, RateLimit::ACTION_PUBLIC_ADOPT);
 
-        return Response::redirect($baseUrl . '/adopt/' . $listingId . '/sent');
-    }
-
-    // -----------------------------------------------------------------------
-    // GET /adopt/{id}/sent
-    // -----------------------------------------------------------------------
-
-    public function sent(Request $request, array $params): Response
-    {
-        $listingId   = (int) ($params['id'] ?? 0);
-        $listingRepo = new ListingRepo($this->app->getDatabase(), $this->app->getConfig());
-        $listing     = $listingRepo->getById($listingId);
-        $baseUrl     = $this->app->getBaseUrl();
-
-        $html = $this->app->getView()->renderPublic('success.php', [
-            'listing'         => $listing,
-            'listing_name'    => $listing?->title ?? 'this listing',
-            'listing_url'     => $listing?->url  ?? '',
-            'page_title'      => 'Application Received',
-            'success_heading' => 'Application Received',
-            'success_message' => 'Thank you for your interest in adopting this fanlisting. Your application has been received.',
-            'base_url'        => $baseUrl,
-            'theme_path'      => $baseUrl . '/assets/default/',
-        ]);
-
-        return Response::html($html);
+        $session->remove('lstr_embed_return_to');
+        $session->set('lstr_flash_success', 'Thank you for your interest in adopting this fanlisting. Your application has been received.');
+        return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $fallbackUrl);
     }
 
     // -----------------------------------------------------------------------

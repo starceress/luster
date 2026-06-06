@@ -17,9 +17,8 @@ use Luster\Repositories\ListingRepo;
 /**
  * Public KIM update form.
  *
- * GET  /kim/update         — update form
- * POST /kim/update         — authenticates and updates the KIM entry
- * GET  /kim/update/success — confirmation page
+ * GET  /kim/update  — update form
+ * POST /kim/update  — authenticates and updates the KIM entry, redirects to host page
  */
 final class KimUpdateController
 {
@@ -49,51 +48,56 @@ final class KimUpdateController
 
     public function submit(Request $request, array $params): Response
     {
-        $baseUrl   = $this->app->getBaseUrl();
-        $session   = $this->app->getSession();
-        $rateLimit = $this->app->getRateLimit();
-        $ip        = $request->ip();
+        $baseUrl       = $this->app->getBaseUrl();
+        $session       = $this->app->getSession();
+        $rateLimit     = $this->app->getRateLimit();
+        $ip            = $request->ip();
+        $embedReturnTo = (string) $session->get('lstr_embed_return_to', '');
+        $fallbackUrl   = $baseUrl . '/kim/update';
 
         // Rate limit check
         if ($rateLimit->isBlocked($ip, 'kim_update')) {
             $session->set('lstr_flash_error', 'Too many attempts. Please try again later.');
-            return Response::redirect($baseUrl . '/kim/update');
+            return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $fallbackUrl);
         }
 
-        // Honeypot — silent reject
+        // Honeypot — silent reject; fake success so bots see no difference
         if ((string) $request->post('website_confirm', '') !== '') {
-            return Response::redirect($baseUrl . '/kim/update/success');
+            $session->remove('lstr_embed_return_to');
+            $session->set('lstr_flash_success', 'Your KIM List entry has been updated successfully.');
+            return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $fallbackUrl);
         }
 
         $listingRepo = new ListingRepo($this->app->getDatabase(), $this->app->getConfig());
         $fanlistings = $listingRepo->getAll();
 
-        // Captcha validate — re-render on failure
+        // Captcha — redirect with flash on failure so the form re-renders with a fresh question
         if (!Captcha::validate((string) $request->post('captcha_answer', ''), 'kim_update')) {
             $rateLimit->hitDefault($ip, 'kim_update');
-            $old = [
+            $session->set('lstr_flash_error', 'Incorrect answer — please try again.');
+            $session->set('lstr_flash_old', [
                 'name'          => trim((string) $request->post('name',           '')),
                 'current_email' => trim((string) $request->post('current_email',  '')),
                 'fanlisting_id' => (string) $request->post('fanlisting_id',        ''),
                 'new_email'     => trim((string) $request->post('new_email',       '')),
                 'new_url'       => trim((string) $request->post('new_url',         '')),
                 'send_copy'     => (string) $request->post('send_copy',            ''),
-            ];
-            return $this->renderForm($fanlistings, $old, '', 'Incorrect answer — please try again.');
+            ]);
+            return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $fallbackUrl);
         }
 
-        $name        = trim((string) $request->post('name',           ''));
-        $currentEmail = trim((string) $request->post('current_email', ''));
-        $currentPw    = (string) $request->post('current_password',   '');
-        $fanlistingId = (int) $request->post('fanlisting_id',          0);
+        $name         = trim((string) $request->post('name',           ''));
+        $currentEmail = trim((string) $request->post('current_email',  ''));
+        $currentPw    = (string) $request->post('current_password',    '');
+        $fanlistingId = (int) $request->post('fanlisting_id',           0);
 
         $fanlistingIds = array_map(static fn($fl) => $fl->id, $fanlistings);
 
         $v = new Validator([
-            'name'          => $name,
-            'current_email' => $currentEmail,
+            'name'             => $name,
+            'current_email'    => $currentEmail,
             'current_password' => $currentPw,
-            'fanlisting_id' => (string) $fanlistingId,
+            'fanlisting_id'    => (string) $fanlistingId,
         ]);
         $v->field('name')->required()->maxLength(100);
         $v->field('current_email')->required()->email()->maxLength(255);
@@ -105,55 +109,41 @@ final class KimUpdateController
             $validationFailed = true;
         }
 
+        $oldFields = [
+            'name'          => $name,
+            'current_email' => $currentEmail,
+            'fanlisting_id' => (string) $fanlistingId,
+            'new_email'     => trim((string) $request->post('new_email', '')),
+            'new_url'       => trim((string) $request->post('new_url',   '')),
+            'send_copy'     => (string) $request->post('send_copy',      ''),
+        ];
+
         if ($validationFailed) {
             $rateLimit->hit($ip, 'kim_update', 5, 3600);
             $session->set('lstr_flash_error', implode(' ', $v->allErrors()) ?: 'Please select a valid fanlisting.');
-            $session->set('lstr_flash_old', [
-                'name'          => $name,
-                'current_email' => $currentEmail,
-                'fanlisting_id' => (string) $fanlistingId,
-                'new_email'     => trim((string) $request->post('new_email', '')),
-                'new_url'       => trim((string) $request->post('new_url',   '')),
-                'send_copy'     => (string) $request->post('send_copy',      ''),
-            ]);
-            return Response::redirect($baseUrl . '/kim/update');
+            $session->set('lstr_flash_old', $oldFields);
+            return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $fallbackUrl);
         }
 
         $kimRepo = new KimMemberRepo($this->app->getDatabase());
         $member  = $kimRepo->findByEmailAndFanlisting($currentEmail, $fanlistingId);
 
-        // No enumeration — always same generic error
         if ($member === null) {
             $rateLimit->hit($ip, 'kim_update', 5, 3600);
             $session->set('lstr_flash_error', 'No matching entry found.');
-            $session->set('lstr_flash_old', [
-                'name'          => $name,
-                'current_email' => $currentEmail,
-                'fanlisting_id' => (string) $fanlistingId,
-                'new_email'     => trim((string) $request->post('new_email', '')),
-                'new_url'       => trim((string) $request->post('new_url',   '')),
-                'send_copy'     => (string) $request->post('send_copy',      ''),
-            ]);
-            return Response::redirect($baseUrl . '/kim/update');
+            $session->set('lstr_flash_old', $oldFields);
+            return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $fallbackUrl);
         }
 
-        // Password verify
         if (!password_verify($currentPw, $member->password)) {
             $rateLimit->hit($ip, 'kim_update', 5, 3600);
             $session->set('lstr_flash_error', 'Incorrect password.');
-            $session->set('lstr_flash_old', [
-                'name'          => $name,
-                'current_email' => $currentEmail,
-                'fanlisting_id' => (string) $fanlistingId,
-                'new_email'     => trim((string) $request->post('new_email', '')),
-                'new_url'       => trim((string) $request->post('new_url',   '')),
-                'send_copy'     => (string) $request->post('send_copy',      ''),
-            ]);
-            return Response::redirect($baseUrl . '/kim/update');
+            $session->set('lstr_flash_old', $oldFields);
+            return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $fallbackUrl);
         }
 
         // Build update fields
-        $updateFields = ['name' => $name];
+        $updateFields  = ['name' => $name];
         $updatedFields = ['name'];
 
         $newEmail = trim((string) $request->post('new_email', ''));
@@ -163,28 +153,13 @@ final class KimUpdateController
             if ($vEmail->fails()) {
                 $rateLimit->hit($ip, 'kim_update', 5, 3600);
                 $session->set('lstr_flash_error', implode(' ', $vEmail->allErrors()));
-                $session->set('lstr_flash_old', [
-                    'name'          => $name,
-                    'current_email' => $currentEmail,
-                    'fanlisting_id' => (string) $fanlistingId,
-                    'new_email'     => $newEmail,
-                    'new_url'       => trim((string) $request->post('new_url', '')),
-                    'send_copy'     => (string) $request->post('send_copy',    ''),
-                ]);
-                return Response::redirect($baseUrl . '/kim/update');
+                $session->set('lstr_flash_old', array_merge($oldFields, ['new_email' => $newEmail]));
+                return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $fallbackUrl);
             }
-            // Check not taken by another entry for same fanlisting
             if ($kimRepo->findByEmailAndFanlisting($newEmail, $fanlistingId) !== null) {
                 $session->set('lstr_flash_error', 'That email is already registered for this fanlisting.');
-                $session->set('lstr_flash_old', [
-                    'name'          => $name,
-                    'current_email' => $currentEmail,
-                    'fanlisting_id' => (string) $fanlistingId,
-                    'new_email'     => $newEmail,
-                    'new_url'       => trim((string) $request->post('new_url', '')),
-                    'send_copy'     => (string) $request->post('send_copy',    ''),
-                ]);
-                return Response::redirect($baseUrl . '/kim/update');
+                $session->set('lstr_flash_old', array_merge($oldFields, ['new_email' => $newEmail]));
+                return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $fallbackUrl);
             }
             $updateFields['email'] = $newEmail;
             $updatedFields[] = 'email';
@@ -204,27 +179,13 @@ final class KimUpdateController
             PasswordPolicy::apply($passwordValidator->field('new_password'));
             if ($passwordValidator->fails()) {
                 $session->set('lstr_flash_error', implode(' ', $passwordValidator->allErrors()));
-                $session->set('lstr_flash_old', [
-                    'name'          => $name,
-                    'current_email' => $currentEmail,
-                    'fanlisting_id' => (string) $fanlistingId,
-                    'new_email'     => $newEmail,
-                    'new_url'       => $newUrl,
-                    'send_copy'     => (string) $request->post('send_copy', ''),
-                ]);
-                return Response::redirect($baseUrl . '/kim/update');
+                $session->set('lstr_flash_old', $oldFields);
+                return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $fallbackUrl);
             }
             if ($newPassword !== $newPasswordConfirm) {
                 $session->set('lstr_flash_error', 'New passwords do not match.');
-                $session->set('lstr_flash_old', [
-                    'name'          => $name,
-                    'current_email' => $currentEmail,
-                    'fanlisting_id' => (string) $fanlistingId,
-                    'new_email'     => $newEmail,
-                    'new_url'       => $newUrl,
-                    'send_copy'     => (string) $request->post('send_copy', ''),
-                ]);
-                return Response::redirect($baseUrl . '/kim/update');
+                $session->set('lstr_flash_old', $oldFields);
+                return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $fallbackUrl);
             }
             $updateFields['password'] = password_hash($newPassword, PASSWORD_ARGON2ID);
             $updatedFields[] = 'password';
@@ -236,37 +197,22 @@ final class KimUpdateController
         $sendCopy = ((string) $request->post('send_copy', '') === '1');
         if ($sendCopy) {
             try {
-                $mailer  = new Mailer($this->app->getConfig());
+                $mailer   = new Mailer($this->app->getConfig());
                 $siteName = (string) $this->app->getConfig()->get('site_name', 'Luster');
-                $subject = "KIM List Updated — {$siteName}";
-                $body    = "Hi {$name},\n\n"
-                         . "Your KIM List entry has been updated.\n"
-                         . "Updated fields: " . implode(', ', $updatedFields) . "\n\n"
-                         . "-- {$siteName}";
+                $subject  = "KIM List Updated — {$siteName}";
+                $body     = "Hi {$name},\n\n"
+                          . "Your KIM List entry has been updated.\n"
+                          . "Updated fields: " . implode(', ', $updatedFields) . "\n\n"
+                          . "-- {$siteName}";
                 $mailer->send($newEmail !== '' ? $newEmail : $currentEmail, $name, $subject, $body);
             } catch (\Throwable $e) {
                 error_log('[KIM] Update confirmation email failed: ' . $e->getMessage());
             }
         }
 
-        return Response::redirect($baseUrl . '/kim/update/success');
-    }
-
-    // -----------------------------------------------------------------------
-    // GET /kim/update/success
-    // -----------------------------------------------------------------------
-
-    public function success(Request $request, array $params): Response
-    {
-        $baseUrl = $this->app->getBaseUrl();
-
-        return $this->renderKimPage('success.php', [
-            'heading'    => 'Entry Updated',
-            'message'    => 'Your KIM List entry has been updated successfully.',
-            'page_title' => 'KIM — Entry Updated',
-            'base_url'   => $baseUrl,
-            'theme_path' => $baseUrl . '/assets/default/',
-        ]);
+        $session->remove('lstr_embed_return_to');
+        $session->set('lstr_flash_success', 'Your KIM List entry has been updated successfully.');
+        return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $fallbackUrl);
     }
 
     // -----------------------------------------------------------------------

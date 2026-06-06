@@ -18,9 +18,8 @@ use Luster\Repositories\ListingSettingsRepo;
  * Public fan code submission — allows fans to submit code images for review.
  *
  * Routes:
- *   GET  /codes/submit/{id}        — show submission form
- *   POST /codes/submit/{id}        — process submission (stores as pending)
- *   GET  /codes/submit/{id}/thanks — thank-you page after successful submission
+ *   GET  /codes/submit/{id}  — show submission form
+ *   POST /codes/submit/{id}  — process submission (stores as pending), redirects to host page
  */
 final class CodesSubmitController
 {
@@ -102,10 +101,11 @@ final class CodesSubmitController
         $listingId    = (int) ($params['id'] ?? 0);
         $isCollective = ($listingId === 0);
 
-        $db      = $this->app->getDatabase();
-        $config  = $this->app->getConfig();
-        $session = $this->app->getSession();
-        $baseUrl = $this->app->getBaseUrl();
+        $db            = $this->app->getDatabase();
+        $config        = $this->app->getConfig();
+        $session       = $this->app->getSession();
+        $baseUrl       = $this->app->getBaseUrl();
+        $embedReturnTo = (string) $session->get('lstr_embed_return_to', '');
 
         if ($isCollective) {
             $listing   = null;
@@ -141,7 +141,9 @@ final class CodesSubmitController
 
         // Honeypot — bots fill the hidden field; humans leave it blank
         if ((string) $request->post('website_confirm', '') !== '') {
-            return Response::redirect($baseUrl . '/codes/submit/' . $listingId . '/thanks');
+            $session->remove('lstr_embed_return_to');
+            $session->set('lstr_flash_success', 'Thank you for your code submission!');
+            return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $submitUrl);
         }
 
         // Validate captcha
@@ -332,52 +334,9 @@ final class CodesSubmitController
 
         $rateLimit->hitDefault($ip, RateLimit::ACTION_PUBLIC_CODE_SUBMIT);
 
-        return Response::redirect($baseUrl . '/codes/submit/' . $listingId . '/thanks');
+        $session->remove('lstr_embed_return_to');
+        $session->set('lstr_flash_success', 'Thank you for your code submission! It will appear after review.');
+        return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $submitUrl);
     }
 
-    // -----------------------------------------------------------------------
-    // GET /codes/submit/{id}/thanks
-    // -----------------------------------------------------------------------
-
-    public function thanks(Request $request, array $params): Response
-    {
-        $listingId    = (int) ($params['id'] ?? 0);
-        $isCollective = ($listingId === 0);
-
-        $db     = $this->app->getDatabase();
-        $config = $this->app->getConfig();
-        $baseUrl = $this->app->getBaseUrl();
-
-        if ($isCollective) {
-            $listing     = null;
-            $listingName = (string) ($config->get('app_name', '') ?: 'Collective');
-            $listingUrl  = '';
-        } else {
-            $listingRepo = new ListingRepo($db, $config);
-            $listing     = $listingRepo->getById($listingId);
-
-            if ($listing === null) {
-                return Response::notFound('Listing not found.');
-            }
-
-            $listingName = $listing->title;
-            $listingUrl  = $listing->url ?? '';
-        }
-
-        return Response::html($this->app->getView()->renderPublic('codes-submit.php', [
-            'listing'          => $listing,
-            'listing_name'     => $listingName,
-            'listing_url'      => $listingUrl,
-            'page_title'       => 'Thanks! — ' . $listingName,
-            'base_url'         => $baseUrl,
-            'theme_path'       => $baseUrl . '/assets/default',
-            'form_action'      => $baseUrl . '/codes/submit/' . $listingId,
-            'csrf_token'       => '',
-            'errors'           => '',
-            'old'              => [],
-            'captcha_question' => '',
-            'captcha_error'    => '',
-            'submitted'        => true,
-        ]));
-    }
 }

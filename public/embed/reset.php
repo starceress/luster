@@ -68,6 +68,12 @@ defined('LUSTER_BASE') || define('LUSTER_BASE', $_lusterRoot);
 /** @var \Luster\Core\Application $_lusterApp */
 $_lusterApp = require $_lusterRoot . '/bootstrap.php';
 $_lusterApp->getSession()->start();
+$_lusterRedirectTo = (string) ($luster_redirect_url ?? '');
+if ($_lusterRedirectTo === '') {
+    $_lusterProto      = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+    $_lusterRedirectTo = $_lusterProto . '://' . ($_SERVER['HTTP_HOST'] ?? '') . ($_SERVER['REQUEST_URI'] ?? '');
+}
+$_lusterApp->getSession()->set('lstr_embed_return_to', $_lusterRedirectTo);
 
 // ---------------------------------------------------------------------------
 // 3. Load listing data

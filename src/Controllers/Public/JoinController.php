@@ -83,16 +83,19 @@ final class JoinController
         $session      = $this->app->getSession();
         $rateLimit    = $this->app->getRateLimit();
         $ip           = $request->ip();
+        $embedReturnTo = (string) $session->get('lstr_embed_return_to', '');
 
         // Rate limiting
         if ($rateLimit->isBlocked($ip, RateLimit::ACTION_PUBLIC_JOIN)) {
             $session->set('lstr_flash_error', 'Too many join attempts. Please try again later.');
-            return Response::redirect($baseUrl . '/join/' . $listingId);
+            return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $baseUrl . '/join/' . $listingId);
         }
 
-        // Honeypot — silent reject; redirect to the success page as if it worked
+        // Honeypot — silent reject; fake success so bots see no difference
         if ((string) $request->post('website_confirm', '') !== '') {
-            return Response::redirect($baseUrl . '/join/' . $listingId . '/success');
+            $session->remove('lstr_embed_return_to');
+            $session->set('lstr_flash_success', 'Thank you for joining!');
+            return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $baseUrl . '/join/' . $listingId);
         }
 
         $listingRepo = new ListingRepo($this->app->getDatabase(), $this->app->getConfig());
@@ -112,20 +115,18 @@ final class JoinController
                         ? rtrim((string) $listing->url, '/') . '/' . ltrim($formPageName, '/')
                         : $baseUrl . '/join/' . $listingId;
 
-        // Captcha — re-render the form with an error on failure
+        // Captcha — redirect with flash on failure so the form re-renders with a fresh question
         if (!Captcha::validate((string) $request->post('captcha_answer', ''), 'join')) {
             $rateLimit->hitDefault($ip, RateLimit::ACTION_PUBLIC_JOIN);
-            $old = [
+            $session->set('lstr_flash_error', 'Incorrect answer — please try again.');
+            $session->set('lstr_flash_old', [
                 'name'      => trim((string) $request->post('name',    '')),
                 'email'     => trim((string) $request->post('email',   '')),
                 'url'       => trim((string) $request->post('url',     '')),
                 'country'   => trim((string) $request->post('country', '')),
                 'send_info' => (string) $request->post('send_info', ''),
-            ];
-            return $this->renderJoinForm(
-                $listingId, $listing, $fields, $embedSettings, $old,
-                '', 'Incorrect answer — please try again.',
-            );
+            ]);
+            return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $formUrl);
         }
 
         // Collect and validate posted data
@@ -341,36 +342,9 @@ final class JoinController
             }
         }
 
-        return Response::redirect($baseUrl . '/join/' . $listingId . '/success');
-    }
-
-    // -----------------------------------------------------------------------
-    // GET /join/{id}/success
-    // -----------------------------------------------------------------------
-
-    public function success(Request $request, array $params): Response
-    {
-        $listingId = (int) ($params['id'] ?? 0);
-
-        $listingRepo = new ListingRepo($this->app->getDatabase(), $this->app->getConfig());
-        $listing     = $listingRepo->getById($listingId);
-
-        $listingName = $listing?->title ?? 'this listing';
-        $baseUrl        = $this->app->getBaseUrl();
-
-        $html = $this->app->getView()->renderPublic('success.php', [
-            'listing'       => $listing,
-            'listing_name'  => $listingName,
-            'listing_url'   => $listing?->url ?? '',
-            'page_title'       => 'Thank You!',
-            'success_heading'  => 'Thank You!',
-            'success_message'  => "You have successfully joined the {$listingName} listing. "
-                                . 'Your membership may need to be approved before it appears in the list.',
-            'base_url'         => $baseUrl,
-            'theme_path'       => $baseUrl . '/assets/default/',
-        ]);
-
-        return Response::html($html);
+        $session->remove('lstr_embed_return_to');
+        $session->set('lstr_flash_success', 'Thank you for joining! Your membership may need to be approved before it appears in the member list.');
+        return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $formUrl);
     }
 
     // -----------------------------------------------------------------------

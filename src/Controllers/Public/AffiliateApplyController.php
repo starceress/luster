@@ -86,11 +86,12 @@ final class AffiliateApplyController
 
     public function submit(Request $request, array $params): Response
     {
-        $listingId = (int) ($params['id'] ?? 0);
-        $baseUrl   = $this->app->getBaseUrl();
-        $session   = $this->app->getSession();
-        $rateLimit = $this->app->getRateLimit();
-        $ip        = $request->ip();
+        $listingId     = (int) ($params['id'] ?? 0);
+        $baseUrl       = $this->app->getBaseUrl();
+        $session       = $this->app->getSession();
+        $rateLimit     = $this->app->getRateLimit();
+        $ip            = $request->ip();
+        $embedReturnTo = (string) $session->get('lstr_embed_return_to', '');
 
         $settingsRepo  = new ListingSettingsRepo($this->app->getDatabase());
         $applySettings = $settingsRepo->getAffiliateApplySettings($listingId);
@@ -106,7 +107,8 @@ final class AffiliateApplyController
             return Response::notFound('That listing does not exist.');
         }
 
-        $formUrl = $this->resolveFormUrl($listingId, $listing->url, $applySettings, $baseUrl);
+        $formUrl = $embedReturnTo !== '' ? $embedReturnTo
+            : $this->resolveFormUrl($listingId, $listing->url, $applySettings, $baseUrl);
 
         // Rate limiting
         if ($rateLimit->isBlocked($ip, RateLimit::ACTION_PUBLIC_AFFILIATE_APPLY)) {
@@ -114,10 +116,11 @@ final class AffiliateApplyController
             return Response::redirect($formUrl);
         }
 
-        // Honeypot — silent reject
+        // Honeypot — silent reject; fake success so bots see no difference
         if ((string) $request->post('website_confirm', '') !== '') {
-            $redirectUrl = $this->resolveRedirectUrl($listingId, $listing->url, $applySettings, $baseUrl);
-            return Response::redirect($redirectUrl);
+            $session->remove('lstr_embed_return_to');
+            $session->set('lstr_flash_success', 'Your application has been received. Thank you!');
+            return Response::redirect($formUrl);
         }
 
         // Captcha
@@ -186,40 +189,9 @@ final class AffiliateApplyController
         // Notify admin
         $this->sendAdminNotification($listing, $name, $url, $email, $message);
 
-        $redirectUrl = $this->resolveRedirectUrl($listingId, $listing->url, $applySettings, $baseUrl);
-        return Response::redirect($redirectUrl);
-    }
-
-    // -----------------------------------------------------------------------
-    // GET /affiliate-apply/{id}/success
-    // -----------------------------------------------------------------------
-
-    public function success(Request $request, array $params): Response
-    {
-        $listingId = (int) ($params['id'] ?? 0);
-
-        $listingRepo = new ListingRepo($this->app->getDatabase(), $this->app->getConfig());
-        $listing     = $listingRepo->getById($listingId);
-
-        if ($listing === null) {
-            return Response::notFound('That listing does not exist.');
-        }
-
-        $settingsRepo  = new ListingSettingsRepo($this->app->getDatabase());
-        $embedSettings = $settingsRepo->getEmbedSettings($listingId);
-
-        $data = [
-            'listing'      => $listing,
-            'listing_name' => (string) $listing->title,
-            'listing_url'  => (string) $listing->url,
-            'page_title'   => 'Application Received — ' . $listing->title,
-            'base_url'     => $this->app->getBaseUrl(),
-            'theme_path'   => rtrim((string) $listing->url, '/') . '/' . ltrim((string) ($embedSettings['theme_path'] ?? 'theme'), '/'),
-        ];
-
-        return Response::html(
-            $this->app->getView()->renderPublic('affiliate-apply-success.php', $data)
-        );
+        $session->remove('lstr_embed_return_to');
+        $session->set('lstr_flash_success', 'Your application has been received. Thank you!');
+        return Response::redirect($formUrl);
     }
 
     // -----------------------------------------------------------------------
@@ -249,11 +221,12 @@ final class AffiliateApplyController
 
     public function collectiveSubmit(Request $request, array $params): Response
     {
-        $db        = $this->app->getDatabase();
-        $baseUrl   = $this->app->getBaseUrl();
-        $session   = $this->app->getSession();
-        $rateLimit = $this->app->getRateLimit();
-        $ip        = $request->ip();
+        $db            = $this->app->getDatabase();
+        $baseUrl       = $this->app->getBaseUrl();
+        $session       = $this->app->getSession();
+        $rateLimit     = $this->app->getRateLimit();
+        $ip            = $request->ip();
+        $embedReturnTo = (string) $session->get('lstr_embed_return_to', '');
 
         $siteRepo = new SiteSettingsRepo($db);
 
@@ -261,7 +234,8 @@ final class AffiliateApplyController
             return Response::notFound('Collective affiliate applications are not open.');
         }
 
-        $formUrl = $this->collectiveFormUrl($this->app->getConfig(), $baseUrl);
+        $formUrl = $embedReturnTo !== '' ? $embedReturnTo
+            : $this->collectiveFormUrl($this->app->getConfig(), $baseUrl);
 
         // Rate limiting
         if ($rateLimit->isBlocked($ip, RateLimit::ACTION_PUBLIC_AFFILIATE_APPLY)) {
@@ -269,9 +243,11 @@ final class AffiliateApplyController
             return Response::redirect($formUrl);
         }
 
-        // Honeypot — silent reject
+        // Honeypot — silent reject; fake success so bots see no difference
         if ((string) $request->post('website_confirm', '') !== '') {
-            return Response::redirect($baseUrl . '/affiliate-apply/collective/success');
+            $session->remove('lstr_embed_return_to');
+            $session->set('lstr_flash_success', 'Your application has been received. Thank you!');
+            return Response::redirect($formUrl);
         }
 
         // Captcha
@@ -340,31 +316,9 @@ final class AffiliateApplyController
         // Notify admin
         $this->sendAdminNotification(null, $name, $url, $email, $message);
 
-        return Response::redirect($baseUrl . '/affiliate-apply/collective/success');
-    }
-
-    // -----------------------------------------------------------------------
-    // GET /affiliate-apply/collective/success
-    // -----------------------------------------------------------------------
-
-    public function collectiveSuccess(Request $request, array $params): Response
-    {
-        $config   = $this->app->getConfig();
-        $siteName = (string) $config->get('site_name', 'Collective');
-        $siteUrl  = (string) ($config->get('site_url', '') ?: $this->app->getBaseUrl());
-
-        $data = [
-            'listing'      => null,
-            'listing_name' => $siteName,
-            'listing_url'  => $siteUrl,
-            'page_title'   => 'Application Received',
-            'base_url'     => $this->app->getBaseUrl(),
-            'theme_path'   => $this->app->getBaseUrl() . '/assets/default/',
-        ];
-
-        return Response::html(
-            $this->app->getView()->renderPublic('affiliate-apply-success.php', $data)
-        );
+        $session->remove('lstr_embed_return_to');
+        $session->set('lstr_flash_success', 'Your application has been received. Thank you!');
+        return Response::redirect($formUrl);
     }
 
     // -----------------------------------------------------------------------
@@ -452,15 +406,6 @@ final class AffiliateApplyController
         }
 
         return rtrim($embedBase, '/') . '/affiliate-apply/' . $listingId;
-    }
-
-    private function resolveRedirectUrl(int $listingId, string $listingUrl, array $applySettings, string $baseUrl): string
-    {
-        if ($applySettings['redirect_url'] !== '') {
-            return rtrim($listingUrl, '/') . '/' . ltrim($applySettings['redirect_url'], '/');
-        }
-
-        return $baseUrl . '/affiliate-apply/' . $listingId . '/success';
     }
 
     /**

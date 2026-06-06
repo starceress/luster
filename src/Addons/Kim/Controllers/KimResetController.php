@@ -18,12 +18,10 @@ use Luster\Repositories\ListingRepo;
 /**
  * KIM password reset flow.
  *
- * GET  /kim/reset           — email entry form
- * POST /kim/reset           — sends reset email (always /kim/reset/sent, no enumeration)
- * GET  /kim/reset/sent      — "check your email" page
- * GET  /kim/reset/confirm   — new password form (validates token from ?token=)
- * POST /kim/reset/confirm   — applies new password, consumes token
- * GET  /kim/reset/done      — success page after password is updated
+ * GET  /kim/reset          — email entry form
+ * POST /kim/reset          — sends reset email, redirects to host page (no enumeration)
+ * GET  /kim/reset/confirm  — new password form (validates token from ?token=)
+ * POST /kim/reset/confirm  — applies new password, consumes token, redirects to host page
  */
 final class KimResetController
 {
@@ -55,19 +53,27 @@ final class KimResetController
 
     public function submit(Request $request, array $params): Response
     {
-        $baseUrl   = $this->app->getBaseUrl();
-        $session   = $this->app->getSession();
-        $rateLimit = $this->app->getRateLimit();
-        $ip        = $request->ip();
+        $baseUrl       = $this->app->getBaseUrl();
+        $session       = $this->app->getSession();
+        $rateLimit     = $this->app->getRateLimit();
+        $ip            = $request->ip();
+        $embedReturnTo = (string) $session->get('lstr_embed_return_to', '');
+        $fallbackUrl   = $baseUrl . '/kim/reset';
 
-        // Always redirect to /sent — never reveal blocked status
+        $sentMessage = 'If that email address is registered for the selected fanlisting, you will receive a password reset link shortly. The link expires in 1 hour.';
+
+        // Never reveal blocked status
         if ($rateLimit->isBlocked($ip, 'kim_reset')) {
-            return Response::redirect($baseUrl . '/kim/reset/sent');
+            $session->remove('lstr_embed_return_to');
+            $session->set('lstr_flash_success', $sentMessage);
+            return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $fallbackUrl);
         }
 
-        // Honeypot — silent reject
+        // Honeypot — silent reject; same neutral message so bots see no difference
         if ((string) $request->post('website_confirm', '') !== '') {
-            return Response::redirect($baseUrl . '/kim/reset/sent');
+            $session->remove('lstr_embed_return_to');
+            $session->set('lstr_flash_success', $sentMessage);
+            return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $fallbackUrl);
         }
 
         $listingRepo = new ListingRepo($this->app->getDatabase(), $this->app->getConfig());
@@ -76,10 +82,12 @@ final class KimResetController
         $email        = trim((string) $request->post('email',        ''));
         $fanlistingId = (int) $request->post('fanlisting_id',          0);
 
-        // Captcha validate — re-render on failure
+        // Captcha — redirect with flash on failure so the form re-renders with a fresh question
         if (!Captcha::validate((string) $request->post('captcha_answer', ''), 'kim_reset')) {
             $rateLimit->hitDefault($ip, 'kim_reset');
-            return $this->renderResetForm($fanlistings, $email, '', 'Incorrect answer — please try again.');
+            $session->set('lstr_flash_error', 'Incorrect answer — please try again.');
+            $session->set('lstr_flash_old_email', $email);
+            return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $fallbackUrl);
         }
 
         $fanlistingIds = array_map(static fn($fl) => $fl->id, $fanlistings);
@@ -93,14 +101,12 @@ final class KimResetController
             $validationFailed = true;
         }
 
-        // Always hit rate limit regardless
         $rateLimit->hit($ip, 'kim_reset', 5, 3600);
 
         if (!$validationFailed) {
             $kimRepo = new KimMemberRepo($this->app->getDatabase());
             $member  = $kimRepo->findByEmailAndFanlisting($email, $fanlistingId);
 
-            // Only proceed if found and NOT pending (approved members only)
             if ($member !== null && !$member->pending) {
                 $resetRepo = new KimPasswordResetRepo($this->app->getDatabase());
                 $resetRepo->deleteByMember($member->id);
@@ -133,23 +139,10 @@ final class KimResetController
             }
         }
 
-        // Always redirect to /sent — never enumerate
-        return Response::redirect($baseUrl . '/kim/reset/sent');
-    }
-
-    // -----------------------------------------------------------------------
-    // GET /kim/reset/sent
-    // -----------------------------------------------------------------------
-
-    public function sent(Request $request, array $params): Response
-    {
-        $baseUrl = $this->app->getBaseUrl();
-
-        return $this->renderKimPage('reset-sent.php', [
-            'page_title' => 'KIM — Check Your Email',
-            'base_url'   => $baseUrl,
-            'theme_path' => $baseUrl . '/assets/default/',
-        ]);
+        // Always flash the same neutral message — never enumerate
+        $session->remove('lstr_embed_return_to');
+        $session->set('lstr_flash_success', $sentMessage);
+        return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $fallbackUrl);
     }
 
     // -----------------------------------------------------------------------
@@ -184,12 +177,16 @@ final class KimResetController
 
     public function submitConfirm(Request $request, array $params): Response
     {
-        $baseUrl   = $this->app->getBaseUrl();
-        $rateLimit = $this->app->getRateLimit();
-        $ip        = $request->ip();
+        $baseUrl       = $this->app->getBaseUrl();
+        $session       = $this->app->getSession();
+        $rateLimit     = $this->app->getRateLimit();
+        $ip            = $request->ip();
+        $embedReturnTo = (string) $session->get('lstr_embed_return_to', '');
+        $fallbackUrl   = $baseUrl . '/kim/reset';
 
         if ($rateLimit->isBlocked($ip, 'kim_reset')) {
-            return Response::redirect($baseUrl . '/kim/reset/sent');
+            $session->set('lstr_flash_error', 'Too many attempts. Please try again later.');
+            return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $fallbackUrl);
         }
 
         $rawToken = trim((string) $request->post('token', ''));
@@ -238,22 +235,9 @@ final class KimResetController
         $resetRepo->deleteByToken(hash('sha256', $rawToken));
         $rateLimit->clear($ip, 'kim_reset');
 
-        return Response::redirect($baseUrl . '/kim/reset/done');
-    }
-
-    // -----------------------------------------------------------------------
-    // GET /kim/reset/done
-    // -----------------------------------------------------------------------
-
-    public function done(Request $request, array $params): Response
-    {
-        $baseUrl = $this->app->getBaseUrl();
-
-        return $this->renderKimPage('reset-done.php', [
-            'page_title' => 'KIM — Password Updated',
-            'base_url'   => $baseUrl,
-            'theme_path' => $baseUrl . '/assets/default/',
-        ]);
+        $session->remove('lstr_embed_return_to');
+        $session->set('lstr_flash_success', 'Your KIM List password has been updated successfully.');
+        return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $fallbackUrl);
     }
 
     // -----------------------------------------------------------------------

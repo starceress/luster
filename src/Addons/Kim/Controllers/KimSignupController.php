@@ -18,9 +18,8 @@ use Luster\Repositories\ListingRepo;
 /**
  * Public KIM sign-up form.
  *
- * GET  /kim         — renders the sign-up form
- * POST /kim         — validates, inserts, sends confirmation, redirects
- * GET  /kim/success — confirmation page
+ * GET  /kim  — renders the sign-up form
+ * POST /kim  — validates, inserts, sends confirmation, redirects to host page
  */
 final class KimSignupController
 {
@@ -50,37 +49,42 @@ final class KimSignupController
 
     public function submit(Request $request, array $params): Response
     {
-        $baseUrl   = $this->app->getBaseUrl();
-        $session   = $this->app->getSession();
-        $rateLimit = $this->app->getRateLimit();
-        $ip        = $request->ip();
+        $baseUrl       = $this->app->getBaseUrl();
+        $session       = $this->app->getSession();
+        $rateLimit     = $this->app->getRateLimit();
+        $ip            = $request->ip();
+        $embedReturnTo = (string) $session->get('lstr_embed_return_to', '');
+        $fallbackUrl   = $baseUrl . '/kim';
 
         // Rate limit check
         if ($rateLimit->isBlocked($ip, 'kim_signup')) {
             $session->set('lstr_flash_error', 'Too many attempts. Please try again later.');
-            return Response::redirect($baseUrl . '/kim');
+            return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $fallbackUrl);
         }
 
-        // Honeypot — silent reject
+        // Honeypot — silent reject; fake success so bots see no difference
         if ((string) $request->post('website_confirm', '') !== '') {
-            return Response::redirect($baseUrl . '/kim/success');
+            $session->remove('lstr_embed_return_to');
+            $session->set('lstr_flash_success', 'Thank you for signing up! Your entry is pending approval.');
+            return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $fallbackUrl);
         }
 
         $listingRepo = new ListingRepo($this->app->getDatabase(), $this->app->getConfig());
         $fanlistings = $listingRepo->getAll();
 
-        // Captcha validate — re-render on failure (no redirect, fresh question shown)
+        // Captcha — redirect with flash on failure so the form re-renders with a fresh question
         $captchaOk = Captcha::validate((string) $request->post('captcha_answer', ''), 'kim_signup');
         if (!$captchaOk) {
             $rateLimit->hitDefault($ip, 'kim_signup');
-            $old = [
+            $session->set('lstr_flash_error', 'Incorrect answer — please try again.');
+            $session->set('lstr_flash_old', [
                 'name'         => trim((string) $request->post('name',         '')),
                 'email'        => trim((string) $request->post('email',        '')),
                 'url'          => trim((string) $request->post('url',          '')),
                 'fanlisting_id' => (string) $request->post('fanlisting_id',    ''),
                 'send_copy'    => (string) $request->post('send_copy',         ''),
-            ];
-            return $this->renderForm($fanlistings, $old, '', 'Incorrect answer — please try again.');
+            ]);
+            return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $fallbackUrl);
         }
 
         $name        = trim((string) $request->post('name',         ''));
@@ -107,17 +111,19 @@ final class KimSignupController
             $validationFailed = true;
         }
 
+        $oldFields = [
+            'name'         => $name,
+            'email'        => $email,
+            'url'          => $url,
+            'fanlisting_id' => (string) $fanlistingId,
+            'send_copy'    => (string) $request->post('send_copy', ''),
+        ];
+
         if ($validationFailed) {
             $rateLimit->hit($ip, 'kim_signup', 5, 3600);
             $session->set('lstr_flash_error', implode(' ', $v->allErrors()) ?: 'Please select a valid fanlisting.');
-            $session->set('lstr_flash_old', [
-                'name'         => $name,
-                'email'        => $email,
-                'url'          => $url,
-                'fanlisting_id' => (string) $fanlistingId,
-                'send_copy'    => (string) $request->post('send_copy', ''),
-            ]);
-            return Response::redirect($baseUrl . '/kim');
+            $session->set('lstr_flash_old', $oldFields);
+            return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $fallbackUrl);
         }
 
         $kimRepo = new KimMemberRepo($this->app->getDatabase());
@@ -125,14 +131,8 @@ final class KimSignupController
         // Duplicate check
         if ($kimRepo->findByEmailAndFanlisting($email, $fanlistingId) !== null) {
             $session->set('lstr_flash_error', 'That email is already signed up for this fanlisting.');
-            $session->set('lstr_flash_old', [
-                'name'         => $name,
-                'email'        => $email,
-                'url'          => $url,
-                'fanlisting_id' => (string) $fanlistingId,
-                'send_copy'    => (string) $request->post('send_copy', ''),
-            ]);
-            return Response::redirect($baseUrl . '/kim');
+            $session->set('lstr_flash_old', $oldFields);
+            return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $fallbackUrl);
         }
 
         // Password — auto-generate if not supplied
@@ -141,14 +141,8 @@ final class KimSignupController
 
         if ($rawPassword !== '' && $rawPassword !== $passwordConfirm) {
             $session->set('lstr_flash_error', 'Passwords do not match. Please try again.');
-            $session->set('lstr_flash_old', [
-                'name'         => $name,
-                'email'        => $email,
-                'url'          => $url,
-                'fanlisting_id' => (string) $fanlistingId,
-                'send_copy'    => (string) $request->post('send_copy', ''),
-            ]);
-            return Response::redirect($baseUrl . '/kim');
+            $session->set('lstr_flash_old', $oldFields);
+            return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $fallbackUrl);
         }
 
         if ($rawPassword !== '') {
@@ -156,14 +150,8 @@ final class KimSignupController
             PasswordPolicy::apply($passwordValidator->field('password'));
             if ($passwordValidator->fails()) {
                 $session->set('lstr_flash_error', implode(' ', $passwordValidator->allErrors()));
-                $session->set('lstr_flash_old', [
-                    'name'         => $name,
-                    'email'        => $email,
-                    'url'          => $url,
-                    'fanlisting_id' => (string) $fanlistingId,
-                    'send_copy'    => (string) $request->post('send_copy', ''),
-                ]);
-                return Response::redirect($baseUrl . '/kim');
+                $session->set('lstr_flash_old', $oldFields);
+                return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $fallbackUrl);
             }
         }
 
@@ -219,24 +207,9 @@ final class KimSignupController
             }
         }
 
-        return Response::redirect($baseUrl . '/kim/success');
-    }
-
-    // -----------------------------------------------------------------------
-    // GET /kim/success
-    // -----------------------------------------------------------------------
-
-    public function success(Request $request, array $params): Response
-    {
-        $baseUrl = $this->app->getBaseUrl();
-
-        return $this->renderKimPage('success.php', [
-            'heading'   => 'Sign-Up Received',
-            'message'   => 'Thank you for signing up! Your entry is pending approval.',
-            'page_title' => 'KIM — Sign-Up Received',
-            'base_url'  => $baseUrl,
-            'theme_path' => $baseUrl . '/assets/default/',
-        ]);
+        $session->remove('lstr_embed_return_to');
+        $session->set('lstr_flash_success', 'Thank you for signing up! Your entry is pending approval.');
+        return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $fallbackUrl);
     }
 
     // -----------------------------------------------------------------------
