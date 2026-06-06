@@ -15,7 +15,7 @@ require 'header.php';
   <h1>Remove</h1>
 
   <?php
-  $luster_fanlisting_id     = $listing_id;
+  $luster_fanlisting_id     = 1;
   $luster_lost_password_url = 'reset.php';
   require $luster_root . '/public/embed/remove.php';
   ?>

@@ -105,6 +105,7 @@ final class ResetController
 
         // Captcha — re-render the form (not a redirect) so CAPTCHA question refreshes
         if (!Captcha::validate((string) $request->post('captcha_answer', ''), 'reset')) {
+            $rateLimit->hitDefault($ip, RateLimit::ACTION_PUBLIC_RESET);
             return $this->renderResetForm(
                 $listingId, $listing, $email,
                 '', 'Incorrect answer — please try again.',

@@ -109,6 +109,7 @@ final class ContactController
         }
 
         if (!Captcha::validate((string) $request->post('captcha_answer', ''), 'contact_listing')) {
+            $rateLimit->hitDefault($ip, RateLimit::ACTION_PUBLIC_CONTACT);
             $old = $this->collectOld($request);
             return $this->renderContactForm($listing, $old, '', 'Incorrect answer — please try again.');
         }
@@ -250,6 +251,7 @@ final class ContactController
         }
 
         if (!Captcha::validate((string) $request->post('captcha_answer', ''), 'contact_collective')) {
+            $rateLimit->hitDefault($ip, RateLimit::ACTION_PUBLIC_CONTACT);
             $old = $this->collectOld($request);
             return $this->renderContactForm(null, $old, '', 'Incorrect answer — please try again.');
         }

@@ -46,6 +46,19 @@ final class CodesController extends AdminController
     /** Maximum upload size per file (500 KB). */
     private const MAX_SIZE = 512_000;
 
+    /**
+     * Redirect after a codes action. When the request came from the standalone
+     * Codes page (_from=codes), send the user back there; otherwise return to
+     * the listing edit Codes tab.
+     */
+    private function afterActionRedirect(Request $request, string $baseUrl, int $listingId, string $editSuffix = ''): Response
+    {
+        if ($request->post('_from', '') === 'codes') {
+            return Response::redirect($baseUrl . '/admin/codes?listing_id=' . $listingId);
+        }
+        return Response::redirect($baseUrl . '/admin/listings/' . $listingId . '/edit?tab=codes' . $editSuffix);
+    }
+
     // -----------------------------------------------------------------------
     // POST /admin/listings/{fid}/codes/upload
     // -----------------------------------------------------------------------
@@ -82,13 +95,49 @@ final class CodesController extends AdminController
             }
         }
 
-        // Resolve donor_id from POST — validate it belongs to this listing
-        $postedDonorId = $request->post('donor_id', '') !== '' ? (int) $request->post('donor_id', 0) : null;
-        $donorId       = null;
-        if ($postedDonorId !== null && $postedDonorId > 0) {
-            $donor = $donorsRepo->getById($postedDonorId);
+        // Resolve donor from POST.
+        // Value may be a numeric donor_id (formal registry) or "s:NAME" (past submitter).
+        $postedDonorVal      = (string) $request->post('donor_id', '');
+        $donorId             = null;
+        $uploadSubmitterName = null;
+
+        if (str_starts_with($postedDonorVal, 's:')) {
+            $rawName = trim(substr($postedDonorVal, 2));
+            if ($rawName !== '') {
+                $uploadSubmitterName = $rawName;
+            }
+        } elseif ($postedDonorVal !== '' && (int) $postedDonorVal > 0) {
+            $donor = $donorsRepo->getById((int) $postedDonorVal);
             if ($donor !== null && $donor->listingId === $listingId) {
-                $donorId = $postedDonorId;
+                $donorId = (int) $postedDonorVal;
+            }
+        }
+
+        // Inline new-donor creation: if no donor selected and new_donor_name is filled,
+        // create the donor and use the resulting ID for all uploaded codes in this batch.
+        if ($donorId === null && $uploadSubmitterName === null) {
+            $newDonorName = trim((string) $request->post('new_donor_name', ''));
+            if ($newDonorName !== '') {
+                $newDonorEmail = trim((string) $request->post('new_donor_email', ''));
+                $newDonorUrl   = trim((string) $request->post('new_donor_url',   ''));
+                if ($newDonorEmail !== '' && filter_var($newDonorEmail, FILTER_VALIDATE_EMAIL) === false) {
+                    $newDonorEmail = '';
+                }
+                if ($newDonorUrl !== '' && (!filter_var($newDonorUrl, FILTER_VALIDATE_URL) || !in_array(parse_url($newDonorUrl, PHP_URL_SCHEME), ['http', 'https'], true))) {
+                    $newDonorUrl = '';
+                }
+                $donorId = $donorsRepo->insert(
+                    $listingId,
+                    $newDonorName,
+                    $newDonorEmail !== '' ? $newDonorEmail : null,
+                    $newDonorUrl   !== '' ? $newDonorUrl   : null,
+                );
+                (new ActivityRepo($db))->log(
+                    (int) $session->get('lstr_admin_id'),
+                    'codes.donor.add',
+                    "Added code donor \"{$newDonorName}\" for listing #{$listingId} (created inline during upload)",
+                    $request->ip(),
+                );
             }
         }
 
@@ -120,7 +169,7 @@ final class CodesController extends AdminController
 
         if ($fileData === null || (is_array($fileData['name']) ? empty(array_filter($fileData['name'])) : $fileData['name'] === '')) {
             $session->set('lstr_flash_error', 'No files selected for upload.');
-            return Response::redirect($baseUrl . '/admin/listings/' . $listingId . '/edit?tab=codes');
+            return $this->afterActionRedirect($request, $baseUrl, $listingId);
         }
 
         // Normalise PHP's grouped multi-file array into a flat list of file structs
@@ -179,7 +228,7 @@ final class CodesController extends AdminController
                 continue;
             }
 
-            $newCodeId = $codesRepo->insert($listingId, $newFilename, $width, $height, ++$sortOffset, $sizeId, $donorId, $uploadStatus);
+            $newCodeId = $codesRepo->insert($listingId, $newFilename, $width, $height, ++$sortOffset, $sizeId, $donorId, $uploadStatus, null, $uploadSubmitterName);
             if (!empty($validCatIds)) {
                 $catsRepo->setCategories($newCodeId, $validCatIds);
             }
@@ -207,7 +256,7 @@ final class CodesController extends AdminController
             $session->set('lstr_flash_error', $msg);
         }
 
-        return Response::redirect($baseUrl . '/admin/listings/' . $listingId . '/edit?tab=codes');
+        return $this->afterActionRedirect($request, $baseUrl, $listingId);
     }
 
     // -----------------------------------------------------------------------
@@ -236,7 +285,7 @@ final class CodesController extends AdminController
 
         if ($label === '') {
             $session->set('lstr_flash_error', 'Size label is required.');
-            return Response::redirect($baseUrl . '/admin/listings/' . $listingId . '/edit?tab=codes');
+            return $this->afterActionRedirect($request, $baseUrl, $listingId);
         }
 
         $sizesRepo = new CodeSizesRepo($db);
@@ -251,7 +300,7 @@ final class CodesController extends AdminController
         );
 
         $session->set('lstr_flash_success', "Size \"{$label}\" added.");
-        return Response::redirect($baseUrl . '/admin/listings/' . $listingId . '/edit?tab=codes');
+        return $this->afterActionRedirect($request, $baseUrl, $listingId);
     }
 
     // -----------------------------------------------------------------------
@@ -278,7 +327,7 @@ final class CodesController extends AdminController
 
         if ($size === null || $size->listingId !== $listingId) {
             $session->set('lstr_flash_error', 'Size not found.');
-            return Response::redirect($baseUrl . '/admin/listings/' . $listingId . '/edit?tab=codes');
+            return $this->afterActionRedirect($request, $baseUrl, $listingId);
         }
 
         $label  = trim((string) $request->post('label', ''));
@@ -289,7 +338,7 @@ final class CodesController extends AdminController
 
         if ($label === '') {
             $session->set('lstr_flash_error', 'Size label is required.');
-            return Response::redirect($baseUrl . '/admin/listings/' . $listingId . '/edit?tab=codes&edit_size=' . $sizeId);
+            return $this->afterActionRedirect($request, $baseUrl, $listingId, '&edit_size=' . $sizeId);
         }
 
         $sizesRepo->update($sizeId, $label, $width, $height);
@@ -302,7 +351,7 @@ final class CodesController extends AdminController
         );
 
         $session->set('lstr_flash_success', "Size \"{$label}\" updated.");
-        return Response::redirect($baseUrl . '/admin/listings/' . $listingId . '/edit?tab=codes');
+        return $this->afterActionRedirect($request, $baseUrl, $listingId);
     }
 
     // -----------------------------------------------------------------------
@@ -329,7 +378,7 @@ final class CodesController extends AdminController
 
         if ($name === '') {
             $session->set('lstr_flash_error', 'Category name is required.');
-            return Response::redirect($baseUrl . '/admin/listings/' . $listingId . '/edit?tab=codes');
+            return $this->afterActionRedirect($request, $baseUrl, $listingId);
         }
 
         // Validate parent belongs to this listing
@@ -352,7 +401,7 @@ final class CodesController extends AdminController
         );
 
         $session->set('lstr_flash_success', "Category \"{$name}\" added.");
-        return Response::redirect($baseUrl . '/admin/listings/' . $listingId . '/edit?tab=codes');
+        return $this->afterActionRedirect($request, $baseUrl, $listingId);
     }
 
     // -----------------------------------------------------------------------
@@ -379,7 +428,7 @@ final class CodesController extends AdminController
 
         if ($cat === null || $cat->listingId !== $listingId) {
             $session->set('lstr_flash_error', 'Category not found.');
-            return Response::redirect($baseUrl . '/admin/listings/' . $listingId . '/edit?tab=codes');
+            return $this->afterActionRedirect($request, $baseUrl, $listingId);
         }
 
         $name     = trim((string) $request->post('name', ''));
@@ -388,7 +437,7 @@ final class CodesController extends AdminController
 
         if ($name === '') {
             $session->set('lstr_flash_error', 'Category name is required.');
-            return Response::redirect($baseUrl . '/admin/listings/' . $listingId . '/edit?tab=codes&edit_cat=' . $categoryId);
+            return $this->afterActionRedirect($request, $baseUrl, $listingId, '&edit_cat=' . $categoryId);
         }
 
         // Prevent a category from being its own parent
@@ -414,7 +463,7 @@ final class CodesController extends AdminController
         );
 
         $session->set('lstr_flash_success', "Category \"{$name}\" updated.");
-        return Response::redirect($baseUrl . '/admin/listings/' . $listingId . '/edit?tab=codes');
+        return $this->afterActionRedirect($request, $baseUrl, $listingId);
     }
 
     // -----------------------------------------------------------------------
@@ -441,7 +490,7 @@ final class CodesController extends AdminController
 
         if ($cat === null || $cat->listingId !== $listingId) {
             $session->set('lstr_flash_error', 'Category not found.');
-            return Response::redirect($baseUrl . '/admin/listings/' . $listingId . '/edit?tab=codes');
+            return $this->afterActionRedirect($request, $baseUrl, $listingId);
         }
 
         $codeCount = $catsRepo->countCodesForCategory($categoryId);
@@ -459,7 +508,7 @@ final class CodesController extends AdminController
             $msg .= " Removed from {$codeCount} code" . ($codeCount !== 1 ? 's' : '') . '.';
         }
         $session->set('lstr_flash_success', $msg);
-        return Response::redirect($baseUrl . '/admin/listings/' . $listingId . '/edit?tab=codes');
+        return $this->afterActionRedirect($request, $baseUrl, $listingId);
     }
 
     // -----------------------------------------------------------------------
@@ -486,7 +535,7 @@ final class CodesController extends AdminController
 
         if ($name === '') {
             $session->set('lstr_flash_error', 'Donor name is required.');
-            return Response::redirect($baseUrl . '/admin/listings/' . $listingId . '/edit?tab=codes');
+            return $this->afterActionRedirect($request, $baseUrl, $listingId);
         }
 
         (new CodeDonorsRepo($db))->insert(
@@ -504,7 +553,7 @@ final class CodesController extends AdminController
         );
 
         $session->set('lstr_flash_success', "Donor \"{$name}\" added.");
-        return Response::redirect($baseUrl . '/admin/listings/' . $listingId . '/edit?tab=codes');
+        return $this->afterActionRedirect($request, $baseUrl, $listingId);
     }
 
     // -----------------------------------------------------------------------
@@ -531,7 +580,7 @@ final class CodesController extends AdminController
 
         if ($donor === null || $donor->listingId !== $listingId) {
             $session->set('lstr_flash_error', 'Donor not found.');
-            return Response::redirect($baseUrl . '/admin/listings/' . $listingId . '/edit?tab=codes');
+            return $this->afterActionRedirect($request, $baseUrl, $listingId);
         }
 
         $name  = trim((string) $request->post('name',  ''));
@@ -540,7 +589,7 @@ final class CodesController extends AdminController
 
         if ($name === '') {
             $session->set('lstr_flash_error', 'Donor name is required.');
-            return Response::redirect($baseUrl . '/admin/listings/' . $listingId . '/edit?tab=codes&edit_donor=' . $donorId);
+            return $this->afterActionRedirect($request, $baseUrl, $listingId, '&edit_donor=' . $donorId);
         }
 
         $donorsRepo->update(
@@ -558,7 +607,7 @@ final class CodesController extends AdminController
         );
 
         $session->set('lstr_flash_success', "Donor \"{$name}\" updated.");
-        return Response::redirect($baseUrl . '/admin/listings/' . $listingId . '/edit?tab=codes');
+        return $this->afterActionRedirect($request, $baseUrl, $listingId);
     }
 
     // -----------------------------------------------------------------------
@@ -585,7 +634,7 @@ final class CodesController extends AdminController
 
         if ($donor === null || $donor->listingId !== $listingId) {
             $session->set('lstr_flash_error', 'Donor not found.');
-            return Response::redirect($baseUrl . '/admin/listings/' . $listingId . '/edit?tab=codes');
+            return $this->afterActionRedirect($request, $baseUrl, $listingId);
         }
 
         $codeCount = $donorsRepo->countCodesForDonor($donorId);
@@ -603,7 +652,7 @@ final class CodesController extends AdminController
             $msg .= " {$codeCount} code" . ($codeCount !== 1 ? 's were' : ' was') . ' unattributed.';
         }
         $session->set('lstr_flash_success', $msg);
-        return Response::redirect($baseUrl . '/admin/listings/' . $listingId . '/edit?tab=codes');
+        return $this->afterActionRedirect($request, $baseUrl, $listingId);
     }
 
     // -----------------------------------------------------------------------
@@ -630,7 +679,7 @@ final class CodesController extends AdminController
 
         if ($code === null || $code->listingId !== $listingId) {
             $session->set('lstr_flash_error', 'Code not found.');
-            return Response::redirect($baseUrl . '/admin/listings/' . $listingId . '/edit?tab=codes');
+            return $this->afterActionRedirect($request, $baseUrl, $listingId);
         }
 
         // Validate each submitted category ID belongs to this listing
@@ -655,7 +704,7 @@ final class CodesController extends AdminController
         );
 
         $session->set('lstr_flash_success', 'Categories updated.');
-        return Response::redirect($baseUrl . '/admin/listings/' . $listingId . '/edit?tab=codes');
+        return $this->afterActionRedirect($request, $baseUrl, $listingId);
     }
 
     // -----------------------------------------------------------------------
@@ -682,7 +731,7 @@ final class CodesController extends AdminController
 
         if ($code === null || $code->listingId !== $listingId) {
             $session->set('lstr_flash_error', 'Code not found.');
-            return Response::redirect($baseUrl . '/admin/listings/' . $listingId . '/edit?tab=codes');
+            return $this->afterActionRedirect($request, $baseUrl, $listingId);
         }
 
         $postedDonorId = $request->post('donor_id', '') !== '' ? (int) $request->post('donor_id', 0) : null;
@@ -705,7 +754,7 @@ final class CodesController extends AdminController
         );
 
         $session->set('lstr_flash_success', 'Donor updated.');
-        return Response::redirect($baseUrl . '/admin/listings/' . $listingId . '/edit?tab=codes');
+        return $this->afterActionRedirect($request, $baseUrl, $listingId);
     }
 
     // -----------------------------------------------------------------------
@@ -732,7 +781,7 @@ final class CodesController extends AdminController
 
         if ($size === null || $size->listingId !== $listingId) {
             $session->set('lstr_flash_error', 'Size not found.');
-            return Response::redirect($baseUrl . '/admin/listings/' . $listingId . '/edit?tab=codes');
+            return $this->afterActionRedirect($request, $baseUrl, $listingId);
         }
 
         $codeCount = $sizesRepo->countCodesForSize($sizeId);
@@ -751,7 +800,7 @@ final class CodesController extends AdminController
             $msg .= " {$codeCount} code" . ($codeCount !== 1 ? 's were' : ' was') . ' moved to Unsized.';
         }
         $session->set('lstr_flash_success', $msg);
-        return Response::redirect($baseUrl . '/admin/listings/' . $listingId . '/edit?tab=codes');
+        return $this->afterActionRedirect($request, $baseUrl, $listingId);
     }
 
     // -----------------------------------------------------------------------
@@ -782,7 +831,7 @@ final class CodesController extends AdminController
 
         if ($code === null || $code->listingId !== $listingId) {
             $session->set('lstr_flash_error', 'Code not found.');
-            return Response::redirect($baseUrl . '/admin/listings/' . $listingId . '/edit?tab=codes');
+            return $this->afterActionRedirect($request, $baseUrl, $listingId);
         }
 
         $uploadDir = realpath(__DIR__ . '/../../../public/uploads/codes');
@@ -803,7 +852,7 @@ final class CodesController extends AdminController
         );
 
         $session->set('lstr_flash_success', 'Code deleted.');
-        return Response::redirect($baseUrl . '/admin/listings/' . $listingId . '/edit?tab=codes');
+        return $this->afterActionRedirect($request, $baseUrl, $listingId);
     }
 
     // -----------------------------------------------------------------------
@@ -830,7 +879,7 @@ final class CodesController extends AdminController
 
         if ($code === null || $code->listingId !== $listingId) {
             $session->set('lstr_flash_error', 'Code not found.');
-            return Response::redirect($baseUrl . '/admin/listings/' . $listingId . '/edit?tab=codes');
+            return $this->afterActionRedirect($request, $baseUrl, $listingId);
         }
 
         // Resolve and validate the target size
@@ -854,7 +903,7 @@ final class CodesController extends AdminController
         );
 
         $session->set('lstr_flash_success', 'Code moved.');
-        return Response::redirect($baseUrl . '/admin/listings/' . $listingId . '/edit?tab=codes');
+        return $this->afterActionRedirect($request, $baseUrl, $listingId);
     }
 
     // -----------------------------------------------------------------------
@@ -882,7 +931,7 @@ final class CodesController extends AdminController
 
         if (empty($selectedIds)) {
             $session->set('lstr_flash_error', 'No codes selected.');
-            return Response::redirect($baseUrl . '/admin/listings/' . $listingId . '/edit?tab=codes');
+            return $this->afterActionRedirect($request, $baseUrl, $listingId);
         }
 
         $codesRepo    = new CodesRepo($db);
@@ -997,7 +1046,7 @@ final class CodesController extends AdminController
 
             if (empty($validCatIds)) {
                 $session->set('lstr_flash_error', 'No valid categories selected.');
-                return Response::redirect($baseUrl . '/admin/listings/' . $listingId . '/edit?tab=codes');
+                return $this->afterActionRedirect($request, $baseUrl, $listingId);
             }
 
             $categorized = 0;
@@ -1026,7 +1075,7 @@ final class CodesController extends AdminController
             $session->set('lstr_flash_error', 'Unknown bulk action.');
         }
 
-        return Response::redirect($baseUrl . '/admin/listings/' . $listingId . '/edit?tab=codes');
+        return $this->afterActionRedirect($request, $baseUrl, $listingId);
     }
 
     // -----------------------------------------------------------------------
@@ -1053,7 +1102,7 @@ final class CodesController extends AdminController
 
         if ($code === null || $code->listingId !== $listingId) {
             $session->set('lstr_flash_error', 'Code not found.');
-            return Response::redirect($baseUrl . '/admin/listings/' . $listingId . '/edit?tab=codes');
+            return $this->afterActionRedirect($request, $baseUrl, $listingId);
         }
 
         // Empty string → null (clears the name)
@@ -1072,7 +1121,7 @@ final class CodesController extends AdminController
         );
 
         $session->set('lstr_flash_success', $name !== null ? "Label set to \"{$name}\"." : 'Label cleared.');
-        return Response::redirect($baseUrl . '/admin/listings/' . $listingId . '/edit?tab=codes');
+        return $this->afterActionRedirect($request, $baseUrl, $listingId);
     }
 
     // -----------------------------------------------------------------------
@@ -1099,7 +1148,7 @@ final class CodesController extends AdminController
 
         if ($code === null || $code->listingId !== $listingId) {
             $session->set('lstr_flash_error', 'Code not found.');
-            return Response::redirect($baseUrl . '/admin/listings/' . $listingId . '/edit?tab=codes');
+            return $this->afterActionRedirect($request, $baseUrl, $listingId);
         }
 
         $status = (string) $request->post('status', 'approved');
@@ -1117,7 +1166,7 @@ final class CodesController extends AdminController
         );
 
         $session->set('lstr_flash_success', 'Status updated to ' . $status . '.');
-        return Response::redirect($baseUrl . '/admin/listings/' . $listingId . '/edit?tab=codes');
+        return $this->afterActionRedirect($request, $baseUrl, $listingId);
     }
 
     // -----------------------------------------------------------------------
@@ -1153,7 +1202,7 @@ final class CodesController extends AdminController
 
         if (empty($orderedIds)) {
             $session->set('lstr_flash_error', 'No order data received.');
-            return Response::redirect($baseUrl . '/admin/listings/' . $listingId . '/edit?tab=codes');
+            return $this->afterActionRedirect($request, $baseUrl, $listingId);
         }
 
         (new CodesRepo($db))->reorder($listingId, $orderedIds);
@@ -1166,7 +1215,7 @@ final class CodesController extends AdminController
         );
 
         $session->set('lstr_flash_success', 'Display order saved.');
-        return Response::redirect($baseUrl . '/admin/listings/' . $listingId . '/edit?tab=codes');
+        return $this->afterActionRedirect($request, $baseUrl, $listingId);
     }
 
     // -----------------------------------------------------------------------
@@ -1198,7 +1247,7 @@ final class CodesController extends AdminController
             $session = $this->app->getSession();
             $session->set('lstr_flash_error', 'No approved codes to export.');
             $baseUrl = $this->app->getBaseUrl();
-            return Response::redirect($baseUrl . '/admin/listings/' . $listingId . '/edit?tab=codes');
+            return $this->afterActionRedirect($request, $baseUrl, $listingId);
         }
 
         $uploadDir = realpath(__DIR__ . '/../../../public/uploads/codes');
@@ -1206,7 +1255,7 @@ final class CodesController extends AdminController
             $session = $this->app->getSession();
             $session->set('lstr_flash_error', 'Upload directory not found.');
             $baseUrl = $this->app->getBaseUrl();
-            return Response::redirect($baseUrl . '/admin/listings/' . $listingId . '/edit?tab=codes');
+            return $this->afterActionRedirect($request, $baseUrl, $listingId);
         }
 
         $tmpFile = tempnam(sys_get_temp_dir(), 'lstr_codes_');
@@ -1214,7 +1263,7 @@ final class CodesController extends AdminController
             $session = $this->app->getSession();
             $session->set('lstr_flash_error', 'Could not create temporary file for export.');
             $baseUrl = $this->app->getBaseUrl();
-            return Response::redirect($baseUrl . '/admin/listings/' . $listingId . '/edit?tab=codes');
+            return $this->afterActionRedirect($request, $baseUrl, $listingId);
         }
 
         $zip = new \ZipArchive();
@@ -1223,7 +1272,7 @@ final class CodesController extends AdminController
             $session = $this->app->getSession();
             $session->set('lstr_flash_error', 'Could not create ZIP archive.');
             $baseUrl = $this->app->getBaseUrl();
-            return Response::redirect($baseUrl . '/admin/listings/' . $listingId . '/edit?tab=codes');
+            return $this->afterActionRedirect($request, $baseUrl, $listingId);
         }
 
         $added = 0;
@@ -1242,7 +1291,7 @@ final class CodesController extends AdminController
             $session = $this->app->getSession();
             $session->set('lstr_flash_error', 'No code image files found on disk.');
             $baseUrl = $this->app->getBaseUrl();
-            return Response::redirect($baseUrl . '/admin/listings/' . $listingId . '/edit?tab=codes');
+            return $this->afterActionRedirect($request, $baseUrl, $listingId);
         }
 
         $zipContent = (string) file_get_contents($tmpFile);
@@ -1281,7 +1330,7 @@ final class CodesController extends AdminController
 
         if ($code === null || $code->listingId !== $listingId) {
             $session->set('lstr_flash_error', 'Code not found.');
-            return Response::redirect($baseUrl . '/admin/listings/' . $listingId . '/edit?tab=codes');
+            return $this->afterActionRedirect($request, $baseUrl, $listingId);
         }
 
         $adminId = (int) $session->get('lstr_admin_id');
@@ -1315,7 +1364,18 @@ final class CodesController extends AdminController
         }
         $codesRepo->updateDonor($codeId, $donorId);
 
-        // Submitter URL (for donated codes — empty string clears it)
+        // Submitter name (empty string clears it)
+        $rawSubmitterName = trim((string) $request->post('submitter_name', ''));
+        $codesRepo->updateSubmitterName($codeId, $rawSubmitterName !== '' ? $rawSubmitterName : null);
+
+        // Submitter email (empty string clears it)
+        $rawSubmitterEmail = trim((string) $request->post('submitter_email', ''));
+        if ($rawSubmitterEmail !== '' && filter_var($rawSubmitterEmail, FILTER_VALIDATE_EMAIL) === false) {
+            $rawSubmitterEmail = '';
+        }
+        $codesRepo->updateSubmitterEmail($codeId, $rawSubmitterEmail !== '' ? $rawSubmitterEmail : null);
+
+        // Submitter URL (empty string clears it)
         $rawSubmitterUrl = trim((string) $request->post('submitter_url', ''));
         if ($rawSubmitterUrl !== '' && (filter_var($rawSubmitterUrl, FILTER_VALIDATE_URL) === false || !in_array(parse_url($rawSubmitterUrl, PHP_URL_SCHEME), ['http', 'https'], true))) {
             $rawSubmitterUrl = '';
@@ -1337,7 +1397,7 @@ final class CodesController extends AdminController
         );
 
         $session->set('lstr_flash_success', 'Code updated.');
-        return Response::redirect($baseUrl . '/admin/listings/' . $listingId . '/edit?tab=codes');
+        return $this->afterActionRedirect($request, $baseUrl, $listingId);
     }
 
 }

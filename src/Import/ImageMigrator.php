@@ -123,7 +123,7 @@ final class ImageMigrator
             ],
         ]);
 
-        $data = @file_get_contents($url, false, $context);
+        $data = @file_get_contents($url, false, $context, 0, 10 * 1024 * 1024);
         if ($data === false || $data === '') {
             return null;
         }
@@ -162,12 +162,17 @@ final class ImageMigrator
      */
     public function matchFromZipEntry(\ZipArchive $zip, int $entryIndex, string $targetSubDir, string $prefix): ?string
     {
+        $stat = $zip->statIndex($entryIndex);
+        if ($stat === false || $stat['size'] > 10 * 1024 * 1024) {
+            return null;
+        }
+
         $stream = $zip->getStream($zip->getNameIndex($entryIndex));
         if ($stream === false) {
             return null;
         }
 
-        $data = stream_get_contents($stream);
+        $data = stream_get_contents($stream, 10 * 1024 * 1024 + 1);
         fclose($stream);
 
         if ($data === false || $data === '') {

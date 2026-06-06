@@ -150,9 +150,13 @@ $collAffSectionVal       = $ct['collective_affiliates_section_template']   ?? $d
               <tr class="tok-row" data-textarea="owned_template" data-token="{member_count}">
                 <td><code>{member_count}</code></td><td>Approved member count</td>
               </tr>
+              <tr class="tok-row" data-textarea="owned_template" data-token="{pending_count}">
+                <td><code>{pending_count}</code></td><td>Pending member count</td>
+              </tr>
               <tr class="tok-row" data-textarea="owned_template" data-token="{country_count}">
                 <td><code>{country_count}</code></td><td>Distinct countries</td>
               </tr>
+              <tr><td><code>{if_pending}&hellip;{/if_pending}</code></td><td>Show block only when pending count &gt; 0</td></tr>
             </tbody>
           </table>
         </div>

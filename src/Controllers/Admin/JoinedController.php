@@ -182,7 +182,7 @@ final class JoinedController extends AdminController
             // --- Field validation ---
             $v = new Validator(['name' => $name, 'url' => $url]);
             $v->field('name')->required()->maxLength(255);
-            $v->field('url')->required()->url()->maxLength(500);
+            $v->field('url')->required()->httpUrl()->maxLength(500);
 
             if ($imageError !== '' || $v->fails()) {
                 $messages = $v->fails() ? $v->allErrors() : [];
@@ -333,7 +333,7 @@ final class JoinedController extends AdminController
             // --- Field validation ---
             $v = new Validator(['name' => $name, 'url' => $url]);
             $v->field('name')->required()->maxLength(255);
-            $v->field('url')->required()->url()->maxLength(500);
+            $v->field('url')->required()->httpUrl()->maxLength(500);
 
             if ($imageError !== '' || $v->fails()) {
                 $messages = $v->fails() ? $v->allErrors() : [];

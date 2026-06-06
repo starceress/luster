@@ -116,8 +116,11 @@ $_lusterFormAction = htmlspecialchars(
     'UTF-8'
 );
 
-// Only render the navigator in selector mode (not in show-all or fixed-category mode)
-$_lusterShowCategoryNav = ($_lusterCategory === '' || ($_lusterShowAllDefault && $_lusterCategory === ''));
+// Render the navigator in selector mode, show-all-default mode, or browse-by-category mode
+// (browse mode needs the presenter even when a category is selected — it generates the back link)
+$_lusterShowCategoryNav = ($_lusterCategory === ''
+                        || ($_lusterShowAllDefault && $_lusterCategory === '')
+                        || ($_lusterBrowseByCat && $_lusterCategory !== ''));
 $_lusterShowListings    = true;
 $_lusterCategoryHtml    = '';
 

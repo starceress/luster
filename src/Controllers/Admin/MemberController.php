@@ -346,7 +346,7 @@ final class MemberController extends AdminController
             $v = new Validator(['name' => $name, 'url' => $url]);
             $v->field('name')->required()->maxLength(255);
             if ($url !== '') {
-                $v->field('url')->url()->maxLength(500);
+                $v->field('url')->httpUrl()->maxLength(500);
             }
 
             if ($v->fails()) {

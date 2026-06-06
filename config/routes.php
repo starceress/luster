@@ -65,9 +65,11 @@ return [
         $router->get('/stats/{listingId}', StatsController::class,   'index');
 
         // Update membership
-        $router->get('/update/{id}',          UpdateController::class,  'showForm');
-        $router->post('/update/{id}',         UpdateController::class,  'submit');
-        $router->get('/update/{id}/success',  UpdateController::class,  'success');
+        $router->get('/update/{id}',           UpdateController::class, 'showForm');
+        $router->post('/update/{id}/sign-in',  UpdateController::class, 'signIn');
+        $router->get('/update/{id}/sign-out',  UpdateController::class, 'signOut');
+        $router->post('/update/{id}',          UpdateController::class, 'submit');
+        $router->get('/update/{id}/success',   UpdateController::class, 'success');
 
         // Remove membership
         $router->get('/remove/{id}',          RemoveController::class,  'showForm');
@@ -283,7 +285,9 @@ return [
         $router->post('/admin/listings/{fid}/fields/{name}/delete',
             FieldController::class, 'delete');
 
-        // ── Per-listing affiliate add — POST only (form is now inline in the listing edit tab)
+        // ── Per-listing affiliate add
+        $router->get('/admin/listings/{fid}/affiliates/add',
+            AffiliateController::class, 'add');
         $router->post('/admin/listings/{fid}/affiliates/add',
             AffiliateController::class, 'add');
 

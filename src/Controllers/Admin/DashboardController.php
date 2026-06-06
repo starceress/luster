@@ -11,6 +11,7 @@ use Luster\Core\UpdateChecker;
 use Luster\Repositories\ActivityRepo;
 use Luster\Repositories\AffiliateRepo;
 use Luster\Repositories\CategoryRepo;
+use Luster\Repositories\CodesRepo;
 use Luster\Repositories\ListingRepo;
 use Luster\Repositories\ListingSettingsRepo;
 use Luster\Repositories\JoinedListingRepo;
@@ -190,7 +191,7 @@ final class DashboardController
         $fanCurrent  = (int) $fanStats['total'] - $fanPending - $fanUpcoming;
 
         $newestOwned       = !empty($listings) ? $listings[count($listings) - 1] : null;
-        $newestOwnedName   = $newestOwned?->name;
+        $newestOwnedName   = $newestOwned?->title;
         $newestOwnedOpened = $newestOwned?->opened;
 
         // ── Members ──────────────────────────────────────────────────────
@@ -298,6 +299,15 @@ final class DashboardController
         $affiliateRepo    = new AffiliateRepo($db);
         $pendingAffiliates = $affiliateRepo->getPendingCount();
 
+        $pendingCodes = 0;
+        try {
+            $pendingCodes = (new CodesRepo($db))->countPendingAll();
+        } catch (\Throwable) {}
+
+        $navData          = $this->app->getAdminNavData();
+        $pendingAdoptions = (int) ($navData['nav_pending_adoptions'] ?? 0);
+        $pendingKim       = (int) ($navData['nav_pending_kim']       ?? 0);
+
         // ── Categories ───────────────────────────────────────────────────
         $totalCategories = count($categoryRepo->getAll());
 
@@ -384,6 +394,9 @@ final class DashboardController
             'total_affiliates_collective' => $totalAffiliatesCollective,
             'total_affiliates_per_fl'    => $totalAffiliatesPerFl,
             'pending_affiliates'         => $pendingAffiliates,
+            'pending_codes'              => $pendingCodes,
+            'pending_adoptions'          => $pendingAdoptions,
+            'pending_kim'                => $pendingKim,
             'total_categories'           => $totalCategories,
             'newest_owned_name'          => $newestOwnedName,
             'newest_owned_opened'        => $newestOwnedOpened,

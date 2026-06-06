@@ -18,7 +18,8 @@ require 'header.php';
   <?php endif; ?></p>
 
   <?php
-  $luster_fanlisting_id = $listing_id;
+  $luster_fanlisting_id  = $listing_id;
+  $luster_append_submit  = false; // submission form is on its own codes-submit.php page
   require $luster_root . '/public/embed/codes.php';
   ?>
 

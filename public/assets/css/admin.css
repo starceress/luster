@@ -1986,6 +1986,12 @@ details.chevron:not([open]) > summary { border-bottom: none; }
 
 .settings-band-col + .settings-band-col { border-left: 1px solid var(--border); }
 
+.codes-page-layout { display: grid; grid-template-columns: minmax(0,3fr) minmax(0,7fr); gap: 1.25rem; align-items: start; }
+
+@media (max-width: 860px) {
+  .codes-page-layout { grid-template-columns: 1fr; }
+}
+
 .codes-tabs { display: flex; gap: 0; border-bottom: 1px solid var(--border); padding: 0 1.25rem; background: var(--bg-subtle); }
 
 .codes-tabs .tabs-btn { border-radius: 0; padding-bottom: 10px; }

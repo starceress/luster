@@ -75,6 +75,7 @@ $typeHints = [
     EmailTemplateRepo::TYPE_AFFILIATE_APPLIED  => 'Sent to the listing admin when a new affiliate application is submitted.',
     EmailTemplateRepo::TYPE_AFFILIATE_APPROVED => 'Sent to the applicant when an affiliate application is approved.',
     EmailTemplateRepo::TYPE_AFFILIATE_REJECTED => 'Sent to the applicant when an affiliate application is rejected.',
+    EmailTemplateRepo::TYPE_CODE_APPROVED      => 'Sent to the donor when their submitted code is approved.',
 ];
 
 $allTokenDesc = [

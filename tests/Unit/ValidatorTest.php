@@ -148,6 +148,58 @@ final class ValidatorTest extends TestCase
     }
 
     // -----------------------------------------------------------------------
+    // httpUrl()
+    // -----------------------------------------------------------------------
+
+    public function testHttpUrlPassesOnHttps(): void
+    {
+        $v = new Validator(['url' => 'https://example.com']);
+        $v->field('url')->httpUrl();
+
+        $this->assertTrue($v->passes());
+    }
+
+    public function testHttpUrlPassesOnHttp(): void
+    {
+        $v = new Validator(['url' => 'http://example.com/path']);
+        $v->field('url')->httpUrl();
+
+        $this->assertTrue($v->passes());
+    }
+
+    public function testHttpUrlPassesOnEmpty(): void
+    {
+        $v = new Validator(['url' => '']);
+        $v->field('url')->httpUrl();
+
+        $this->assertTrue($v->passes());
+    }
+
+    public function testHttpUrlRejectsFtpScheme(): void
+    {
+        $v = new Validator(['url' => 'ftp://example.com/file.zip']);
+        $v->field('url')->httpUrl();
+
+        $this->assertTrue($v->fails());
+    }
+
+    public function testHttpUrlRejectsDataUri(): void
+    {
+        $v = new Validator(['url' => 'data:text/html,<script>alert(1)</script>']);
+        $v->field('url')->httpUrl();
+
+        $this->assertTrue($v->fails());
+    }
+
+    public function testHttpUrlRejectsBareString(): void
+    {
+        $v = new Validator(['url' => 'not-a-url']);
+        $v->field('url')->httpUrl();
+
+        $this->assertTrue($v->fails());
+    }
+
+    // -----------------------------------------------------------------------
     // maxLength()
     // -----------------------------------------------------------------------
 

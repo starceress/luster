@@ -70,7 +70,17 @@ class SiteSettingsRepo
     public static function collectiveDefaults(): array
     {
         return [
-            'owned_template'                       => '<a href="{listing_url}" target="_blank">{listing_title}</a> — {listing_subject}',
+            'owned_template' => '<li style="display:flex;gap:0.75em;align-items:flex-start;padding:0.75em 0;">' . "\n"
+                             . '<div style="flex-shrink:0;max-width:120px;">{listing_image}</div>'
+                             . '<div>' . "\n"
+                             . '<b><a href="{listing_url}" target="_blank" rel="noopener noreferrer">{listing_subject}</a></b><br>' . "\n"
+                             . '<i>{listing_title}</i><br>' . "\n"
+                             . '<b>Category:</b> {listing_category}<br>' . "\n"
+                             . '<b>Members:</b> {member_count} member(s){if_pending} (+{pending_count} pending){/if_pending}{if_countries} across {country_count} countries{/if_countries}<br>' . "\n"
+                             . '<b>Opened:</b> {date_opened}<br>' . "\n"
+                             . '<b>Last Updated:</b> {date_updated}' . "\n"
+                             . '</div>' . "\n"
+                             . '</li>',
             'joined_template'                      => '<a href="{listing_url}" target="_blank">{listing_title}</a> — {listing_category}',
             'collective_stats_template' => 'Owned Listings: {owned_active} open, {owned_upcoming} upcoming<br>' . "\n"
                                          . 'Joined Listings: {joined_active}</br>' . "\n"
@@ -89,7 +99,6 @@ class SiteSettingsRepo
                                          . '<ul>{pending_content}</ul>' . "\n"
                                          . '{/if_pending_listings}',
             'joined_sections_template'              => '{if_current_listings}' . "\n"
-                                                   . '<h3>Joined Listings ({current_count})</h3>' . "\n"
                                                    . '<ul>{current_content}</ul>' . "\n"
                                                    . '{/if_current_listings}',
             'collective_affiliates_section_template' => '',

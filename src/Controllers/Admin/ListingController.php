@@ -748,7 +748,7 @@ final class ListingController extends AdminController
                 'email' => $email,
             ]);
             $v->field('title')->required()->maxLength(255);
-            $v->field('url')->required()->url()->maxLength(500);
+            $v->field('url')->required()->httpUrl()->maxLength(500);
             $v->field('email')->required()->email()->maxLength(255);
 
             if ($imageError !== '' || $v->fails()) {
@@ -910,9 +910,8 @@ final class ListingController extends AdminController
         $currentCategoryIds   = $listingRepo->getCategoryIdsForListing($id);
 
         // Codes tab data
-        $codeStatusFilter = in_array((string) $request->query('status_filter', ''), array_merge([''], CodesRepo::STATUSES), true)
-            ? (string) $request->query('status_filter', '')
-            : '';
+        $statusFilterRaw  = (string) $request->query('status_filter', '');
+        $codeStatusFilter = in_array($statusFilterRaw, CodesRepo::STATUSES, true) ? $statusFilterRaw : 'approved';
         $codeEditCatId   = (int) $request->query('edit_cat',   '0');
         $codeEditDonorId = (int) $request->query('edit_donor', '0');
         $allCodes        = $codesRepo->getByListing($id);
@@ -921,8 +920,9 @@ final class ListingController extends AdminController
             $codeStatusCounts[$c->status] = ($codeStatusCounts[$c->status] ?? 0) + 1;
         }
         $codes       = $allCodes;
-        $codeCats    = $codeCatsRepo->getByListing($id);
-        $codeDonors  = $codeDonorsRepo->getByListing($id);
+        $codeCats         = $codeCatsRepo->getByListing($id);
+        $codeDonors       = $codeDonorsRepo->getByListing($id);
+        $codeSubmitterNames = $codesRepo->getSubmitterNamesForListing($id);
         $codeCategoryIds = $codeCatsRepo->getCategoryMapForListing($id);
         $codeCatMap  = [];
         foreach ($codeCats as $cat) { $codeCatMap[$cat->id] = $cat; }
@@ -994,7 +994,8 @@ final class ListingController extends AdminController
             'auto_approve_joins'             => $joinSettings['auto_approve'],
             'codes'               => $codes,
             'code_cats'           => $codeCats,
-            'code_donors'         => $codeDonors,
+            'code_donors'          => $codeDonors,
+            'code_submitter_names' => $codeSubmitterNames,
             'code_grouped'        => $codeGrouped,
             'code_category_ids'   => $codeCategoryIds,
             'code_cat_map'        => $codeCatMap,

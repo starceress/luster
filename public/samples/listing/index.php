@@ -20,13 +20,13 @@ require 'header.php';
 
   <?php
   // Stats block — configure the template in Admin → Listings → Edit → Templates
-  $luster_fanlisting_id = $listing_id;
+  $luster_fanlisting_id = 1;
   require $luster_root . '/public/embed/stats.php';
   ?>
 
   <?php
   // Updates feed — only shows if the Updates add-on is installed
-  $luster_fanlisting_id = $listing_id;
+  $luster_fanlisting_id = 1;
   $luster_show_cats     = true;
   $luster_return        = true;
   $updates = require $luster_root . '/public/embed/updates.php';

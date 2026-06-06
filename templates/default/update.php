@@ -1,59 +1,93 @@
 <?php
 /**
- * Update membership form — content fragment.
+ * Update membership — content fragment.
  *
- * Variables injected by UpdateController:
- *   $listing_name        string
- *   $form_action            string
- *   $csrf_token             string
- *   $errors                 string  pre-escaped HTML error string, or ''
- *   $update_error           string  raw update-specific error (password mismatch, email taken)
- *   $field_email            string  current email (pre-filled, readonly)
- *   $field_name             string  old name value
- *   $field_new_email        string  old new_email value
- *   $field_url              string  old url value
- *   $country_select         string  pre-built <select> HTML
- *   $country_field_enabled  bool
- *   $fields                 AdditionalField[]
- *   $old                    array
- *   $captcha_question       string
- *   $captcha_error          string
- *   $lost_password_url      string
- *   $base_url               string
+ * Two-step rendering controlled by $signed_in:
+ *
+ * Step 1 ($signed_in = false):
+ *   $sign_in_action   string  POST URL for the sign-in form
+ *   $csrf_token       string
+ *   $errors           string  pre-escaped HTML, or ''
+ *   $field_email      string  repopulated email on error
+ *   $lost_password_url string
+ *
+ * Step 2 ($signed_in = true):
+ *   $form_action      string  POST URL for the update form
+ *   $sign_out_url     string  GET URL to clear auth and return to step 1
+ *   $csrf_token       string
+ *   $errors           string
+ *   $update_error     string  raw update-specific error (password mismatch, email taken)
+ *   $field_email      string  authenticated member's current email (display only)
+ *   $field_name       string  repopulated new_name on error
+ *   $field_new_email  string  repopulated new_email on error
+ *   $field_url        string  repopulated url on error
+ *   $country_select   string  pre-built <select> HTML
+ *   $fields           AdditionalField[]
+ *   $old              array
+ *   $captcha_question string
+ *   $captcha_error    string
+ *   $current_name     string  member's existing name (pre-fill placeholder)
+ *   $current_url      string  member's existing URL
+ *   $current_country  string  member's existing country
+ *   $current_extra    array   member's existing additional field values
  */
 
 declare(strict_types=1);
 
 use Luster\Core\View;
+
+$signed_in = $signed_in ?? false;
 ?>
 <div>
   <?php if ($errors !== ''): ?>
     <div><?= $errors ?></div>
   <?php endif; ?>
 
-  <form method="POST" action="<?= View::e($form_action) ?>">
+<?php if (!$signed_in): ?>
+
+  <!-- ── Step 1: Sign in ──────────────────────────────────────────────── -->
+  <form method="POST" action="<?= View::e($sign_in_action) ?>">
     <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
 
-    <p class="fl-hint">
-      Enter your email and password to authenticate, then fill in only the fields you want to change. Leave a field blank to keep your current value.
-    </p>
-
     <div>
-      <label for="upd-email">Email *</label>
+      <label for="upd-email">Email Address *</label>
       <input type="email" id="upd-email" name="email"
-             value="<?= View::e($field_email) ?>" required maxlength="255" autocomplete="email">
+             value="<?= View::e($field_email) ?>" required maxlength="255"
+             autocomplete="email">
     </div>
 
     <div>
       <label for="upd-password">Password *</label>
       <input type="password" id="upd-password" name="password"
              required maxlength="255" autocomplete="current-password">
-      <?php if (($lost_password_url ?? '') !== ''): ?>
-      <p><a href="<?= View::e($lost_password_url) ?>">Forgot your password?</a></p>
-      <?php endif; ?>
     </div>
 
-    <hr>
+    <!-- Honeypot -->
+    <div style="display:none" aria-hidden="true">
+      <input type="text" name="website_confirm" tabindex="-1" autocomplete="off">
+    </div>
+
+    <button type="submit">Sign in</button>
+  </form>
+
+  <?php if (($lost_password_url ?? '') !== ''): ?>
+    <p><a href="<?= View::e($lost_password_url) ?>">Forgot your password?</a></p>
+  <?php endif; ?>
+
+<?php else: ?>
+
+  <!-- ── Step 2: Update form ──────────────────────────────────────────── -->
+  <p class="fl-hint">
+    Signed in as <strong><?= View::e($field_email) ?></strong>.
+    <a href="<?= View::e($sign_out_url) ?>">Not you?</a>
+  </p>
+
+  <p class="fl-hint">
+    Fill in only the fields you want to change. Leave a field blank to keep your current value.
+  </p>
+
+  <form method="POST" action="<?= View::e($form_action) ?>">
+    <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
 
     <?php if ($update_error !== ''): ?>
       <div><?= View::e($update_error) ?></div>
@@ -62,19 +96,24 @@ use Luster\Core\View;
     <div>
       <label for="upd-name">New Name</label>
       <input type="text" id="upd-name" name="new_name"
-             value="<?= View::e($field_name) ?>" maxlength="100" autocomplete="name">
+             value="<?= View::e($field_name) ?>"
+             placeholder="<?= View::e($current_name) ?>"
+             maxlength="100" autocomplete="name">
     </div>
 
     <div>
       <label for="upd-new-email">New Email</label>
       <input type="email" id="upd-new-email" name="new_email"
-             value="<?= View::e($field_new_email) ?>" maxlength="255">
+             value="<?= View::e($field_new_email) ?>"
+             placeholder="<?= View::e($field_email) ?>"
+             maxlength="255">
     </div>
 
     <div>
       <label for="upd-url">New Website URL</label>
       <input type="url" id="upd-url" name="url"
-             value="<?= View::e($field_url) ?>" maxlength="500" placeholder="https://">
+             value="<?= View::e($field_url !== '' ? $field_url : $current_url) ?>"
+             maxlength="500" placeholder="https://">
       <label>
         <input type="checkbox" name="delete_url" value="1">
         Remove my website URL
@@ -87,6 +126,11 @@ use Luster\Core\View;
     </div>
 
     <?php foreach ($fields as $field): ?>
+    <?php
+    $currentFieldVal = $current_extra[$field->name] ?? '';
+    $oldFieldVal     = $old['field_' . $field->name] ?? null;
+    $fieldDisplayVal = $oldFieldVal !== null ? (string) $oldFieldVal : (string) $currentFieldVal;
+    ?>
     <div>
       <label for="f-<?= View::e($field->name) ?>">
         <?= View::e($field->label) ?><?= $field->required ? ' *' : '' ?>
@@ -95,7 +139,7 @@ use Luster\Core\View;
         <textarea id="f-<?= View::e($field->name) ?>"
                   name="field_<?= View::e($field->name) ?>"
                   maxlength="255"
-                  <?= $field->required ? 'required' : '' ?>><?= View::e($old['field_' . $field->name] ?? '') ?></textarea>
+                  <?= $field->required ? 'required' : '' ?>><?= View::e($fieldDisplayVal) ?></textarea>
 
       <?php elseif ($field->type === 'dropdown'): ?>
         <select id="f-<?= View::e($field->name) ?>"
@@ -104,7 +148,7 @@ use Luster\Core\View;
           <option value=""></option>
           <?php foreach (array_filter(array_map('trim', explode(',', $field->options))) as $opt): ?>
             <option value="<?= View::e($opt) ?>"
-              <?= ($old['field_' . $field->name] ?? '') === $opt ? 'selected' : '' ?>>
+              <?= $fieldDisplayVal === $opt ? 'selected' : '' ?>>
               <?= View::e($opt) ?>
             </option>
           <?php endforeach; ?>
@@ -116,17 +160,17 @@ use Luster\Core\View;
           <label>
             <input type="checkbox"
                    name="field_<?= View::e($field->name) ?>" value="1"
-                   <?= ($old['field_' . $field->name] ?? '') === '1' ? 'checked' : '' ?>
+                   <?= $fieldDisplayVal === '1' ? 'checked' : '' ?>
                    <?= $field->required ? 'required' : '' ?>>
             <?= View::e($field->label) ?>
           </label>
         <?php else: ?>
-          <?php $oldArr = (array) ($old['field_' . $field->name] ?? []); ?>
+          <?php $selArr = array_filter(array_map('trim', explode(',', $fieldDisplayVal))); ?>
           <?php foreach ($opts as $opt): ?>
             <label>
               <input type="checkbox"
                      name="field_<?= View::e($field->name) ?>[]" value="<?= View::e($opt) ?>"
-                     <?= in_array($opt, $oldArr, true) ? 'checked' : '' ?>>
+                     <?= in_array($opt, $selArr, true) ? 'checked' : '' ?>>
               <?= View::e($opt) ?>
             </label>
           <?php endforeach; ?>
@@ -137,7 +181,7 @@ use Luster\Core\View;
           <label>
             <input type="radio"
                    name="field_<?= View::e($field->name) ?>" value="<?= View::e($opt) ?>"
-                   <?= ($old['field_' . $field->name] ?? '') === $opt ? 'checked' : '' ?>
+                   <?= $fieldDisplayVal === $opt ? 'checked' : '' ?>
                    <?= $field->required ? 'required' : '' ?>>
             <?= View::e($opt) ?>
           </label>
@@ -147,7 +191,7 @@ use Luster\Core\View;
         <input type="text"
                id="f-<?= View::e($field->name) ?>"
                name="field_<?= View::e($field->name) ?>"
-               value="<?= View::e($old['field_' . $field->name] ?? '') ?>"
+               value="<?= View::e($fieldDisplayVal) ?>"
                maxlength="255"
                <?= $field->required ? 'required' : '' ?>>
       <?php endif; ?>
@@ -185,4 +229,6 @@ use Luster\Core\View;
     <button type="submit">Update Information</button>
     <button type="reset">Clear</button>
   </form>
+
+<?php endif; ?>
 </div>

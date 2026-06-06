@@ -38,12 +38,13 @@ final class PublicCategoryPresenter
         bool   $showList,
         bool   $browseMode,
         bool   $browseShowAll,
+        int    $totalCount = 0,
     ): array {
         $e = static fn(string $v): string => htmlspecialchars($v, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 
         // Browse-by-category: index view when no category is selected
         if ($browseMode && $currentId === 0 && !$browseShowAll) {
-            $html = self::renderOwnedBrowseIndex($categories, $formAction, $e);
+            $html = self::renderOwnedBrowseIndex($categories, $formAction, $e, $totalCount);
             return ['html' => $html, 'show_listings' => false];
         }
 
@@ -70,10 +71,8 @@ final class PublicCategoryPresenter
 
     private static function categoryUrl(array $cat, string $formAction): string
     {
-        // Slug links use the dedicated ?category= param so numeric IDs never ambiguously
-        // collide with numeric-looking slugs (e.g. slug "1984" vs ID 1984).
         if (($cat['slug'] ?? '') !== '') {
-            return $formAction . '?category=' . rawurlencode($cat['slug']);
+            return $formAction . '?cat=' . rawurlencode($cat['slug']);
         }
         return $formAction . '?cat=' . $cat['id'];
     }
@@ -81,15 +80,17 @@ final class PublicCategoryPresenter
     /**
      * @param callable(string):string $e
      */
-    private static function renderOwnedBrowseIndex(array $categories, string $formAction, callable $e): string
+    private static function renderOwnedBrowseIndex(array $categories, string $formAction, callable $e, int $totalCount = 0): string
     {
         if (empty($categories)) {
             return '<p>No categories to display.</p>';
         }
 
+        $countHtml = $totalCount > 0 ? ' <span class="fl-category-count">(' . $totalCount . ')</span>' : '';
+
         $html  = '<nav class="fl-category-nav">';
         $html .= '<ul class="fl-category-list">';
-        $html .= '<li><a href="' . $e($formAction . '?cat=all') . '">All Categories</a></li>';
+        $html .= '<li><a href="' . $e($formAction . '?cat=all') . '">All Categories</a>' . $countHtml . '</li>';
 
         foreach ($categories as $cat) {
             $count = (int) $cat['listing_count'];
@@ -182,14 +183,11 @@ final class PublicCategoryPresenter
         $html  = '<nav class="fl-category-nav">';
         $html .= '<form method="GET" action="' . $e($formAction) . '" class="fl-category-dropdown">';
         $html .= '<label for="fl-owned-cat">Category:</label> ';
-        $html .= '<select id="fl-owned-cat" name="cat" onchange="this.form.submit()">';
+        $html .= '<select id="fl-owned-cat" name="cat">';
         $html .= '<option value="0"' . ($currentId === 0 ? ' selected' : '') . '>All</option>';
 
-        // Option value encodes either the slug (for ?category=) or the ID (for ?cat=).
-        // The select's onchange submits the form, so the browser builds the URL from the value.
-        // We prefix slug values with 'slug:' to distinguish them from raw numeric IDs.
         $optVal = static function (array $c): string {
-            return ($c['slug'] ?? '') !== '' ? 'slug:' . $c['slug'] : (string) $c['id'];
+            return ($c['slug'] ?? '') !== '' ? $c['slug'] : (string) $c['id'];
         };
         $isSel = static function (array $c, int $currentId): string {
             return $currentId === (int) $c['id'] ? ' selected' : '';
@@ -328,7 +326,7 @@ final class PublicCategoryPresenter
         $html  = '<nav class="fl-category-nav">';
         $html .= '<form method="GET" action="' . $e($formAction) . '" class="fl-category-dropdown">';
         $html .= '<label for="fl-joined-cat">Category:</label> ';
-        $html .= '<select id="fl-joined-cat" name="cat" onchange="this.form.submit()">';
+        $html .= '<select id="fl-joined-cat" name="cat">';
         $html .= '<option value="">All categories&hellip;</option>';
 
         foreach ($categories as $catName) {

@@ -114,7 +114,7 @@ if ($_lusterStep === 'confirm') {
 
     $_lusterHtml = $_lusterApp->getView()->renderFragment('reset_confirm.php', [
         'listing'      => $_lusterListing,
-        'listing_name' => $_lusterListing->name,
+        'listing_name' => $_lusterListing->title,
         'listing_url'  => $_lusterListing->url,
         'page_title'      => 'Set New Password',
         'form_action'     => $_lusterBaseUrl . '/reset/' . $_lusterListingId . '/confirm',
@@ -139,7 +139,7 @@ if ($_lusterStep === 'confirm') {
 
     $_lusterHtml = $_lusterApp->getView()->renderFragment('reset.php', [
         'listing'       => $_lusterListing,
-        'listing_name'  => $_lusterListing->name,
+        'listing_name'  => $_lusterListing->title,
         'listing_url'   => $_lusterListing->url,
         'page_title'       => 'Reset Password',
         'form_action'      => $_lusterBaseUrl . '/reset/' . $_lusterListingId,

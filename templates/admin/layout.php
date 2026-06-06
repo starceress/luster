@@ -136,12 +136,12 @@ $htmlClassAttr = $htmlClasses === [] ? '' : ' class="' . View::e(implode(' ', $h
         <?php endif; ?>
       </a>
 
-      <a href="<?= $b ?>/admin/affiliates" class="nav-item<?= navActive('affiliates', $s) ?>"><span class="nav-icon"><?= View::icon('link') ?></span> Affiliates</a>
+      <a href="<?= $b ?>/admin/affiliates" class="nav-item<?= navActive('affiliates', $s) ?>"><span class="nav-icon"><?= View::icon('link') ?></span> Affiliates<?php if (($nav_pending_affiliates ?? 0) > 0): ?><span class="badge badge-pending nav-item-badge"><?= (int) $nav_pending_affiliates ?></span><?php endif; ?></a>
 
       <a href="<?= $b ?>/admin/codes" class="nav-item<?= navActive('codes', $s) ?>">
         <span class="nav-icon"><?= View::icon('image') ?></span> Codes
         <?php if (($nav_pending_codes ?? 0) > 0): ?>
-          <span class="nav-badge"><?= (int) $nav_pending_codes ?></span>
+          <span class="badge badge-pending nav-item-badge"><?= (int) $nav_pending_codes ?></span>
         <?php endif; ?>
       </a>
 

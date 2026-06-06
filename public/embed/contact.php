@@ -107,7 +107,7 @@ $_lusterFormAction = isset($luster_contact_action)
 
 $_lusterData = [
     'listing'          => $_lusterListing,
-    'listing_name'     => $_lusterListing->name,
+    'listing_name'     => $_lusterListing->title,
     'listing_url'      => $_lusterListing->url,
     'page_title'       => 'Contact',
     'base_url'         => $_lusterBaseUrl,

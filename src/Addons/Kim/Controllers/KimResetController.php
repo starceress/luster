@@ -78,6 +78,7 @@ final class KimResetController
 
         // Captcha validate — re-render on failure
         if (!Captcha::validate((string) $request->post('captcha_answer', ''), 'kim_reset')) {
+            $rateLimit->hitDefault($ip, 'kim_reset');
             return $this->renderResetForm($fanlistings, $email, '', 'Incorrect answer — please try again.');
         }
 

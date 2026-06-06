@@ -4,20 +4,26 @@ declare(strict_types=1);
 
 use Luster\Core\Captcha;
 use Luster\Core\Countries;
+use Luster\Repositories\FieldRepo;
 use Luster\Repositories\ListingRepo;
 use Luster\Repositories\ListingSettingsRepo;
-use Luster\Repositories\FieldRepo;
+use Luster\Repositories\MemberRepo;
 
 /**
  * Luster embed — update membership form fragment.
+ *
+ * Two-step flow: shows a sign-in form first; after authentication (handled by
+ * POST /update/{id}/sign-in in the controller) the session key
+ * lstr_update_authed_{id} is set and this embed renders the full update form
+ * pre-filled with the member's current values.
  *
  * Usage:
  *   $luster_fanlisting_id = 1;     // required: listing ID (int)
  *   $luster_return        = false;  // optional: true = return string, false = echo
  *   require '/absolute/path/to/luster/public/embed/update.php';
  *
- * The form POSTs to Luster's update URL. On success the user is sent to the
- * post-update redirect URL from listing settings, or Luster's success page.
+ * Override variables:
+ *   $luster_lost_password_url  — override the "Forgot your password?" link URL
  */
 
 // ---------------------------------------------------------------------------
@@ -72,8 +78,6 @@ if ($_lusterListing === null) {
     return;
 }
 
-$_lusterFieldRepo     = new FieldRepo($_lusterApp->getDatabase(), $_lusterApp->getConfig());
-$_lusterFields        = $_lusterFieldRepo->getFieldsForListing($_lusterListingId);
 $_lusterSettingsRepo  = new ListingSettingsRepo($_lusterApp->getDatabase());
 $_lusterEmbedSettings = $_lusterSettingsRepo->getEmbedSettings($_lusterListingId);
 
@@ -99,15 +103,29 @@ if ($_lusterSuccess !== '') {
 }
 
 // ---------------------------------------------------------------------------
-// 5. Render fragment
+// 5. Determine auth state
 // ---------------------------------------------------------------------------
 
 $_lusterBaseUrl    = rtrim((string) $_lusterApp->getConfig()->get('embed_base_url', ''), '/')
                    ?: $_lusterApp->getBaseUrl();
-$_lusterFormAction = $_lusterBaseUrl . '/update/' . $_lusterListingId;
+$_lusterAuthKey    = 'lstr_update_authed_' . $_lusterListingId;
+$_lusterAuthedEmail = (string) $_lusterSession->get($_lusterAuthKey, '');
+$_lusterSignedIn   = $_lusterAuthedEmail !== '';
 
-// Build "Forgot your password?" URL.
-// $luster_lost_password_url can be set before require to override the DB-configured value.
+// Validate the session email still exists in the DB
+if ($_lusterSignedIn) {
+    $_lusterMemberRepo = new MemberRepo($_lusterApp->getDatabase(), $_lusterApp->getConfig());
+    $_lusterMember     = $_lusterMemberRepo->getByEmail($_lusterListing->dbprefix, $_lusterAuthedEmail);
+    if ($_lusterMember === null) {
+        $_lusterSession->remove($_lusterAuthKey);
+        $_lusterSignedIn = false;
+    }
+}
+
+// ---------------------------------------------------------------------------
+// 6. Build "Forgot your password?" URL (step 1 only)
+// ---------------------------------------------------------------------------
+
 if (isset($luster_lost_password_url)) {
     $_lusterLostPasswordUrl = (string) $luster_lost_password_url;
 } else {
@@ -117,31 +135,84 @@ if (isset($luster_lost_password_url)) {
         : '';
 }
 
-$_lusterHtml = $_lusterApp->getView()->renderFragment('update.php', [
-    'listing'            => $_lusterListing,
-    'listing_name'       => $_lusterListing->name,
-    'listing_url'        => $_lusterListing->url,
-    'page_title'            => 'Update Membership',
-    'form_action'           => $_lusterFormAction,
-    'csrf_token'            => $_lusterApp->getCSRF()->token(),
-    'errors'                => $_lusterError !== ''
-        ? '<p>' . htmlspecialchars($_lusterError, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '</p>'
-        : '',
-    'update_error'          => '',
-    'field_email'           => (string) ($_lusterOld['email']     ?? ''),
-    'field_name'            => (string) ($_lusterOld['new_name']  ?? ''),
-    'field_new_email'       => (string) ($_lusterOld['new_email'] ?? ''),
-    'field_url'             => (string) ($_lusterOld['url']       ?? ''),
-    'country_select'        => Countries::buildSelect((string) ($_lusterOld['country'] ?? '')),
-    'country_field_enabled' => true,
-    'fields'                => $_lusterFields,
-    'old'                   => $_lusterOld,
-    'captcha_question'      => Captcha::getQuestion('update'),
-    'captcha_error'         => '',
-    'lost_password_url'     => $_lusterLostPasswordUrl,
-    'base_url'              => $_lusterApp->getBaseUrl(),
-    'theme_path'            => $_lusterApp->getBaseUrl() . '/assets/default/',
-]);
+// ---------------------------------------------------------------------------
+// 7. Render fragment
+// ---------------------------------------------------------------------------
+
+if (!$_lusterSignedIn) {
+
+    // ── Step 1: sign-in form ────────────────────────────────────────────────
+    $_lusterHtml = $_lusterApp->getView()->renderFragment('update.php', [
+        'listing'          => $_lusterListing,
+        'listing_name'     => $_lusterListing->title,
+        'listing_url'      => $_lusterListing->url,
+        'page_title'       => 'Update Membership',
+        'signed_in'        => false,
+        'sign_in_action'   => $_lusterBaseUrl . '/update/' . $_lusterListingId . '/sign-in',
+        'sign_out_url'     => '',
+        'form_action'      => '',
+        'csrf_token'       => $_lusterApp->getCSRF()->token(),
+        'errors'           => $_lusterError !== ''
+            ? '<p>' . htmlspecialchars($_lusterError, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '</p>'
+            : '',
+        'update_error'     => '',
+        'field_email'      => (string) ($_lusterOld['email'] ?? ''),
+        'field_name'       => '',
+        'field_new_email'  => '',
+        'field_url'        => '',
+        'country_select'   => Countries::buildSelect(''),
+        'fields'           => [],
+        'old'              => [],
+        'captcha_question' => '',
+        'captcha_error'    => '',
+        'lost_password_url' => $_lusterLostPasswordUrl,
+        'current_name'     => '',
+        'current_url'      => '',
+        'current_country'  => '',
+        'current_extra'    => [],
+        'base_url'         => $_lusterApp->getBaseUrl(),
+        'theme_path'       => $_lusterApp->getBaseUrl() . '/assets/default/',
+    ]);
+
+} else {
+
+    // ── Step 2: update form (authenticated) ─────────────────────────────────
+    $_lusterFieldRepo = new FieldRepo($_lusterApp->getDatabase(), $_lusterApp->getConfig());
+    $_lusterFields    = $_lusterFieldRepo->getFieldsForListing($_lusterListingId);
+
+    $_lusterHtml = $_lusterApp->getView()->renderFragment('update.php', [
+        'listing'          => $_lusterListing,
+        'listing_name'     => $_lusterListing->title,
+        'listing_url'      => $_lusterListing->url,
+        'page_title'       => 'Update Membership',
+        'signed_in'        => true,
+        'sign_in_action'   => '',
+        'sign_out_url'     => $_lusterBaseUrl . '/update/' . $_lusterListingId . '/sign-out',
+        'form_action'      => $_lusterBaseUrl . '/update/' . $_lusterListingId,
+        'csrf_token'       => $_lusterApp->getCSRF()->token(),
+        'errors'           => $_lusterError !== ''
+            ? '<p>' . htmlspecialchars($_lusterError, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '</p>'
+            : '',
+        'update_error'     => '',
+        'field_email'      => $_lusterMember->email,
+        'field_name'       => (string) ($_lusterOld['new_name']  ?? ''),
+        'field_new_email'  => (string) ($_lusterOld['new_email'] ?? ''),
+        'field_url'        => (string) ($_lusterOld['url']       ?? ''),
+        'country_select'   => Countries::buildSelect((string) ($_lusterOld['country'] ?? '')),
+        'fields'           => $_lusterFields,
+        'old'              => $_lusterOld,
+        'captcha_question' => Captcha::getQuestion('update'),
+        'captcha_error'    => '',
+        'lost_password_url' => '',
+        'current_name'     => $_lusterMember->name,
+        'current_url'      => $_lusterMember->url,
+        'current_country'  => $_lusterMember->country,
+        'current_extra'    => $_lusterMember->additionalFields,
+        'base_url'         => $_lusterApp->getBaseUrl(),
+        'theme_path'       => $_lusterApp->getBaseUrl() . '/assets/default/',
+    ]);
+
+}
 
 if ($luster_return ?? false) {
     return $_lusterHtml;

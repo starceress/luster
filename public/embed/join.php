@@ -118,7 +118,7 @@ $_lusterFormAction = $_lusterBaseUrl . '/join/' . $_lusterListingId;
 
 $_lusterHtml = $_lusterApp->getView()->renderFragment('join.php', [
     'listing'            => $_lusterListing,
-    'listing_name'       => $_lusterListing->name,
+    'listing_name'       => $_lusterListing->title,
     'listing_url'        => $_lusterListing->url,
     'page_title'            => 'Join',
     'form_action'           => $_lusterFormAction,

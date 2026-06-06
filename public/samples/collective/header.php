@@ -1,8 +1,8 @@
 <?php
-// ── The only line you need to change ─────────────────────────────────────────
+// The only line you need to change.
 $site_tagline = 'A fanlisting collective';
 
-// ── Everything else comes from your Luster installation automatically ─────────
+// Everything else comes from your Luster installation automatically.
 $luster_root = dirname(__DIR__, 3);
 $_cfg        = require $luster_root . '/config/app.php';
 $site_name   = $_cfg['app_name']    ?? 'My Collective';
@@ -11,34 +11,51 @@ $owner_email = $_cfg['owner_email'] ?? '';
 unset($_cfg);
 
 $e = fn(string $v): string => htmlspecialchars($v, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+$current_page = basename((string) ($_SERVER['SCRIPT_NAME'] ?? 'index.php'));
+$nav_items = [
+    'index.php'      => 'Home',
+    'owned.php'      => 'Owned',
+    'joined.php'     => 'Joined',
+    'kim.php'        => 'Keep In Mind',
+    'codes.php'      => 'Codes',
+    'affiliates.php' => 'Affiliates',
+    'contact.php'    => 'Contact',
+];
 ?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title><?= $e($site_name) ?><?= isset($page_title) ? ' &mdash; ' . $e($page_title) : '' ?></title>
+  <title><?= $e($site_name) ?><?= isset($page_title) ? ' - ' . $e($page_title) : '' ?></title>
   <link rel="stylesheet" href="style.css">
 </head>
-<body>
+<body data-sample="collective">
 
-<header>
-  <p class="title">
-    <a href="index.php"><?= $e($site_name) ?></a>
-  </p>
-  <?php if (!empty($site_tagline)): ?>
-    <p class="tagline"><?= $e($site_tagline) ?></p>
-  <?php endif; ?>
-  <nav aria-label="Collective navigation">
-    <a href="index.php">Home</a>
-    <a href="owned.php">Owned</a>
-    <a href="joined.php">Joined</a>
-    <a href="kim.php">Keep In Mind</a>
-    <a href="codes.php">Codes</a>
-    <a href="affiliates.php">Affiliates</a>
-    <a href="contact.php">Contact</a>
-  </nav>
-  <hr class="divider">
-</header>
+<div class="site-shell">
+  <div class="demo-topbar">
+    <div class="demo-switcher" aria-label="Choose sample site">
+      <a class="demo-switch" href="../listing/index.php">Fanlisting</a>
+      <a class="demo-switch active" href="../collective/index.php">Collective</a>
+    </div>
+  </div>
 
-<main>
+  <div class="sample-site">
+    <header class="sample-masthead">
+      <div class="sample-logo-glow" aria-hidden="true"></div>
+      <p class="sample-title">
+        <a href="index.php"><?= $e($site_name) ?></a>
+      </p>
+      <?php if (!empty($site_tagline)): ?>
+        <p class="sample-tagline"><?= $e($site_tagline) ?></p>
+      <?php endif; ?>
+    </header>
+
+    <nav class="sample-nav" aria-label="Collective navigation">
+      <?php foreach ($nav_items as $href => $label): ?>
+        <a href="<?= $e($href) ?>"<?= $current_page === $href ? ' class="active"' : '' ?>><?= $e($label) ?></a>
+      <?php endforeach; ?>
+    </nav>
+
+    <main class="sample-card">
+      <div class="sample-card-inner">

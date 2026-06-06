@@ -26,15 +26,16 @@ final class CodeCategoriesRepo
      *
      * @return object[]
      */
-    public function getByListing(int $listingId): array
+    public function getByListing(?int $listingId): array
     {
+        $fidCond = $listingId === null ? 'fanlisting_id IS NULL' : 'fanlisting_id = :fid';
         $stmt = $this->db->prepare(
-            'SELECT id, fanlisting_id, name, parent_id, sort_order
+            "SELECT id, fanlisting_id, name, parent_id, sort_order
              FROM lstr_code_categories
-             WHERE fanlisting_id = :fid
-             ORDER BY sort_order ASC, id ASC'
+             WHERE {$fidCond}
+             ORDER BY sort_order ASC, id ASC"
         );
-        $stmt->execute(['fid' => $listingId]);
+        $stmt->execute($listingId === null ? [] : ['fid' => $listingId]);
 
         return array_map(static fn(array $r) => (object) [
             'id'        => (int)    $r['id'],
@@ -138,15 +139,16 @@ final class CodeCategoriesRepo
      *
      * @return array<int, int[]>
      */
-    public function getCategoryMapForListing(int $listingId): array
+    public function getCategoryMapForListing(?int $listingId): array
     {
+        $fidCond = $listingId === null ? 'c.fanlisting_id IS NULL' : 'c.fanlisting_id = :fid';
         $stmt = $this->db->prepare(
-            'SELECT m.code_id, m.category_id
+            "SELECT m.code_id, m.category_id
              FROM lstr_code_category_map m
              INNER JOIN lstr_codes c ON c.id = m.code_id
-             WHERE c.fanlisting_id = :fid'
+             WHERE {$fidCond}"
         );
-        $stmt->execute(['fid' => $listingId]);
+        $stmt->execute($listingId === null ? [] : ['fid' => $listingId]);
 
         $map = [];
         foreach ($stmt->fetchAll() as $row) {

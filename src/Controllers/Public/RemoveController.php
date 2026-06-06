@@ -104,6 +104,7 @@ final class RemoveController
         $email           = trim((string) $request->post('email', ''));
         $lostPasswordUrl = $this->buildResetUrl($listing, $embedSettings);
         if (!Captcha::validate((string) $request->post('captcha_answer', ''), 'remove')) {
+            $rateLimit->hitDefault($ip, RateLimit::ACTION_PUBLIC_REMOVE);
             return $this->renderRemoveForm(
                 $listingId, $listing, $email,
                 '', 'Incorrect answer — please try again.',

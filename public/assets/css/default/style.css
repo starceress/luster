@@ -17,13 +17,11 @@
     list-style: none;
     margin: 0;
     padding: 0;
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.25em 0.75em;
+    display: block;
 }
 
 .fl-category-list li {
-    display: inline;
+    display: list-item;
 }
 
 .fl-category-list a[aria-current="page"] {
@@ -59,6 +57,16 @@
 .fl-category-back {
     display: inline-block;
     margin-bottom: 0.5em;
+}
+
+/* Spacing between back-link nav and the dropdown form that follows it */
+.fl-category-nav + .fl-category-nav {
+    margin-top: 0.75em;
+}
+
+/* Heading shown above category-filtered listing results */
+.fl-cat-heading {
+    margin: 0.5em 0 0.75em;
 }
 
 /* ── Pagination ───────────────────────────────────────────────────────────── */
@@ -97,6 +105,68 @@
 
 .fl-errors {
     color: #c00;
+}
+
+/* ── Owned listing cards ─────────────────────────────────────────────────── */
+
+.fl-listing-cards {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.fl-listing-card {
+    display: flex;
+    gap: 0.75em;
+    align-items: flex-start;
+    padding: 0.75em 0;
+    border-bottom: 1px solid #e5e5e5;
+}
+
+.fl-listing-card:last-child {
+    border-bottom: none;
+}
+
+.fl-listing-card-image {
+    flex-shrink: 0;
+}
+
+.fl-listing-card-image img {
+    display: block;
+    max-width: 120px;
+}
+
+.fl-listing-card-body {
+    flex: 1;
+    min-width: 0;
+    font-size: 0.9em;
+    line-height: 1.7;
+}
+
+/* ── Fan codes ────────────────────────────────────────────────────────────── */
+
+/* Flex row that wraps codes within a size group */
+.fl-codes-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5em;
+    align-items: flex-start;
+    margin-bottom: 1em;
+}
+
+/* Individual code item: image stacked above attribution */
+.fl-code {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    margin: 0;
+    padding: 0;
+}
+
+.fl-code figcaption {
+    font-size: 0.85em;
+    margin-top: 0.2em;
+    text-align: center;
 }
 
 /* ── Collective stats ─────────────────────────────────────────────────────── */

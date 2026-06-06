@@ -80,21 +80,17 @@ $_lusterBrowseByCat     = (bool) ($luster_browse_by_category ?? false);
 $_lusterBrowseShowAll = false;
 if (isset($luster_category_id) && (int) $luster_category_id > 0) {
     $_lusterCatId = (int) $luster_category_id;
-} elseif (isset($_GET['category']) && (string) $_GET['category'] !== '') {
-    // Dedicated slug param (links from PublicCategoryPresenter list/browse modes)
-    $_lusterCatSlug = (string) $_GET['category'];
-    $_lusterCatId   = 0;
 } else {
     $_lusterRawCat = (string) ($_GET['cat'] ?? '');
-    if (str_starts_with($_lusterRawCat, 'slug:')) {
-        // Dropdown-posted value: "slug:<slug>" → resolve as slug
-        $_lusterCatSlug = substr($_lusterRawCat, 5);
-        $_lusterCatId   = 0;
-    } elseif ($_lusterRawCat === 'all') {
+    if ($_lusterRawCat === 'all') {
         $_lusterCatId         = 0;
         $_lusterBrowseShowAll = true;
-    } elseif (is_numeric($_lusterRawCat)) {
-        $_lusterCatId = max(0, (int) $_lusterRawCat);
+    } elseif (is_numeric($_lusterRawCat) && (int) $_lusterRawCat > 0) {
+        $_lusterCatId = (int) $_lusterRawCat;
+    } elseif ($_lusterRawCat !== '') {
+        // Non-numeric, non-empty → treat as slug (e.g. ?cat=comics)
+        $_lusterCatSlug = $_lusterRawCat;
+        $_lusterCatId   = 0;
     } else {
         $_lusterCatId = 0;
     }
@@ -139,6 +135,7 @@ $_lusterPresenterResult = PublicCategoryPresenter::renderOwned(
     $_lusterShowList,
     $_lusterBrowseByCat,
     $_lusterBrowseShowAll,
+    count($_lusterListings),
 );
 
 $_lusterCategoryHtml  = $_lusterPresenterResult['html'];
@@ -226,9 +223,11 @@ if ($_lusterOwnedTemplate !== null && $_lusterShowListings) {
     // Batch-fetch member stats via MemberStatsService (chunked UNION ALL)
     $_lusterMemberStatsMap = [];
     $_lusterNeedsMemberStats = str_contains($_lusterOwnedTemplate, '{member_count}')
+                            || str_contains($_lusterOwnedTemplate, '{pending_count}')
                             || str_contains($_lusterOwnedTemplate, '{country_count}')
                             || str_contains($_lusterOwnedTemplate, '{countries_count}')
-                            || str_contains($_lusterOwnedTemplate, '{if_countries}');
+                            || str_contains($_lusterOwnedTemplate, '{if_countries}')
+                            || str_contains($_lusterOwnedTemplate, '{if_pending}');
     if ($_lusterNeedsMemberStats && !empty($_lusterListings)) {
         $_lusterMemberService  = new MemberStatsService($_lusterApp->getDatabase(), $_lusterApp->getConfig());
         $_lusterMemberStatsMap = $_lusterMemberService->forListings($_lusterListings);
@@ -318,6 +317,8 @@ $_lusterHtml = $_lusterApp->getView()->renderFragment('owned.php', [
     'show_listings'       => $_lusterShowListings,
     'categories'          => $_lusterCategories,
     'current_category'    => $_lusterCatId,
+    'browse_show_all'     => $_lusterBrowseShowAll,
+    'total_count'         => count($_lusterListings),
     'status'              => $_lusterStatus,
     'uploads_url'         => $_lusterApp->getBaseUrl() . '/uploads',
     'base_url'            => $_lusterApp->getBaseUrl(),

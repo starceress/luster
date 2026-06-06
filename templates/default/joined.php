@@ -43,6 +43,34 @@ $_renderItem = static function ($fl) use ($uploads_url): void {
 
   <?= $category_html ?? '' ?>
 
+  <?php if ($current_category === 'all' && !empty($categories)): ?>
+    <form method="GET" action="<?= View::e($form_action) ?>" class="fl-category-nav fl-category-dropdown fl-joined-nav">
+      <label for="fl-joined-cat"><b>Choose Category:</b></label>
+      <select id="fl-joined-cat" name="cat">
+        <option value="all" selected>All Listings (<?= (int) $total_count ?>)</option>
+        <?php foreach ($categories as $_catName): ?>
+          <option value="<?= View::e($_catName) ?>"><?= View::e($_catName) ?> (<?= (int) ($category_counts[$_catName] ?? 0) ?>)</option>
+        <?php endforeach; ?>
+      </select>
+      <noscript><button type="submit">Go</button></noscript>
+    </form>
+    <h2 class="fl-cat-heading">All Listings (<?= (int) $total_count ?>)</h2>
+  <?php endif; ?>
+
+  <?php if (($browse_by_category ?? false) && $current_category !== '' && $current_category !== 'all' && !empty($categories)): ?>
+    <form method="GET" action="<?= View::e($form_action) ?>" class="fl-category-nav fl-category-dropdown fl-joined-nav">
+      <label for="fl-joined-cat"><b>Choose Category:</b></label>
+      <select id="fl-joined-cat" name="cat">
+        <option value="all">All Listings (<?= (int) $total_count ?>)</option>
+        <?php foreach ($categories as $_catName): ?>
+          <option value="<?= View::e($_catName) ?>"<?= $_catName === $current_category ? ' selected' : '' ?>><?= View::e($_catName) ?> (<?= (int) ($category_counts[$_catName] ?? 0) ?>)</option>
+        <?php endforeach; ?>
+      </select>
+      <noscript><button type="submit">Go</button></noscript>
+    </form>
+    <h2 class="fl-cat-heading"><?= View::e($current_category) ?> (<?= (int) ($category_counts[$current_category] ?? 0) ?>)</h2>
+  <?php endif; ?>
+
   <?php if ($show_listings ?? true): ?>
 
     <?php if (($sections_mode ?? false)): ?>
@@ -89,3 +117,6 @@ $_renderItem = static function ($fl) use ($uploads_url): void {
   <?php endif; ?>
 
 </div>
+<?php if (!defined('FL_EMBED_JS_LOADED')): define('FL_EMBED_JS_LOADED', true); ?>
+<script src="<?= View::e($base_url) ?>/assets/js/fl-embed.js"></script>
+<?php endif; ?>

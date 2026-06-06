@@ -42,11 +42,16 @@ $buildUrl = static function (array $overrides) use ($b, $lid, $tab, $page): stri
     return $b . '/admin/codes' . ($qs !== '' ? '?' . $qs : '');
 };
 
-$tabUrl     = static fn(string $t) => $buildUrl(['tab' => $t, 'page' => '']);
-$pageUrl    = static fn(int $p)    => $buildUrl(['page' => $p > 1 ? $p : '']);
-$tabCounts  = $tab_counts ?? [];
-$donorMap   = $donor_map  ?? [];
-$uploadsUrl = $uploads_url ?? ($b . '/uploads/codes');
+$tabUrl       = static fn(string $t) => $buildUrl(['tab' => $t, 'page' => '']);
+$pageUrl      = static fn(int $p)    => $buildUrl(['page' => $p > 1 ? $p : '']);
+$tabCounts    = $tab_counts    ?? [];
+$donorMap     = $donor_map     ?? [];
+$uploadsUrl   = $uploads_url   ?? ($b . '/uploads/codes');
+$filterOpts   = $filter_options ?? ['sizes' => [], 'donors' => []];
+$filterSize   = $filter_size   ?? '';
+$filterDonor  = $filter_donor  ?? '';
+$filterSearch = $filter_search ?? '';
+$filtersActive = $filters_active ?? false;
 ?>
 
 <?php if ($success !== ''): ?>
@@ -62,27 +67,76 @@ $uploadsUrl = $uploads_url ?? ($b . '/uploads/codes');
     <button type="button" class="btn btn-preview btn-sm filter-toggle"
             id="codes-filter-toggle" aria-expanded="true" aria-controls="codes-filter-panel">
       <?= View::icon('filter') ?>
-      Filter<?php if ($lid > 0): ?><span class="filter-dot" aria-hidden="true"></span><?php endif; ?>
+      Filter<?php if ($lid > 0 || $filtersActive): ?><span class="filter-dot" aria-hidden="true"></span><?php endif; ?>
     </button>
   </div>
+  <?php if ($viewMode === 'listing' && $lid > 0): ?>
+  <div class="actions-row">
+    <?php $__approvedCountTopbar = ($approved_per_listing ?? [])[$lid] ?? 0; ?>
+    <?php if ($__approvedCountTopbar > 0): ?>
+      <a href="<?= $b ?>/admin/listings/<?= $lid ?>/codes/export" class="btn btn-quaternary btn-sm"><?= View::icon('download') ?> Export ZIP</a>
+    <?php endif; ?>
+    <a href="<?= $b ?>/admin/listings/<?= $lid ?>/edit?tab=codes" class="btn btn-quaternary btn-sm"><?= View::icon('gear') ?> Manage Categories &amp; Donors</a>
+  </div>
+  <?php endif; ?>
 </div>
 
 <!-- ──── FILTER PANEL ───────────────────────────────────────────────── -->
 <div class="filter-panel" id="codes-filter-panel">
   <form method="GET" action="<?= $b ?>/admin/codes" class="filter-row" id="codes-filter-form">
+    <?php if ($lid > 0): ?>
+      <input type="hidden" name="listing_id" value="<?= $lid ?>">
+    <?php endif; ?>
+
     <div class="select-wrap">
-      <?php $_ppl = $pending_per_listing ?? []; $_pplTotal = array_sum($_ppl); ?>
+      <?php $_apl = $approved_per_listing ?? []; $_aplTotal = array_sum($_apl); ?>
       <select name="listing_id" id="codes-listing-sel">
-        <option value="0"<?= $lid === 0 ? ' selected' : '' ?>>All Listings</option>
+        <option value="0"<?= $lid === 0 ? ' selected' : '' ?>>All Listings<?= $_aplTotal > 0 ? ' (' . $_aplTotal . ')' : '' ?></option>
         <?php foreach ($allListing as $fl): ?>
-          <?php $_flPending = (int) ($_ppl[(int) $fl->id] ?? 0); ?>
+          <?php $_flApproved = (int) ($_apl[(int) $fl->id] ?? 0); ?>
           <option value="<?= (int) $fl->id ?>"<?= $lid === (int) $fl->id ? ' selected' : '' ?>>
-            <?= View::e($fl->subject ?: $fl->title) ?><?= $_flPending > 0 ? ' (' . $_flPending . ')' : '' ?>
+            <?= View::e($fl->subject ?: $fl->title) ?><?= $_flApproved > 0 ? ' (' . $_flApproved . ')' : '' ?>
           </option>
         <?php endforeach; ?>
       </select>
     </div>
-    <a href="<?= $b ?>/admin/codes" class="btn btn-quaternary btn-sm">Reset</a>
+
+    <?php if (!empty($filterOpts['sizes'])): ?>
+    <div class="select-wrap">
+      <select name="size" id="codes-size-sel">
+        <option value="">All Sizes</option>
+        <?php foreach ($filterOpts['sizes'] as $sz): ?>
+          <?php $_szVal = is_array($sz) ? $sz['value'] : $sz; $_szCnt = is_array($sz) ? $sz['count'] : null; ?>
+          <option value="<?= View::e($_szVal) ?>"<?= $filterSize === $_szVal ? ' selected' : '' ?>>
+            <?= View::e(str_replace('x', '×', $_szVal)) ?><?= $_szCnt !== null ? ' (' . $_szCnt . ')' : '' ?>
+          </option>
+        <?php endforeach; ?>
+      </select>
+    </div>
+    <?php endif; ?>
+
+    <?php if (!empty($filterOpts['donors'])): ?>
+    <div class="select-wrap">
+      <select name="donor" id="codes-donor-sel">
+        <option value="">All Donors</option>
+        <?php foreach ($filterOpts['donors'] as $dn): ?>
+          <?php $_dnVal = is_array($dn) ? $dn['value'] : $dn; $_dnCnt = is_array($dn) ? $dn['count'] : null; ?>
+          <option value="<?= View::e($_dnVal) ?>"<?= $filterDonor === $_dnVal ? ' selected' : '' ?>>
+            <?= View::e($_dnVal) ?><?= $_dnCnt !== null ? ' (' . $_dnCnt . ')' : '' ?>
+          </option>
+        <?php endforeach; ?>
+      </select>
+    </div>
+    <?php endif; ?>
+
+    <div class="search-field-wrap">
+      <?= View::icon('search', ['class' => 'search-field-icon', 'aria-hidden' => 'true']) ?>
+      <input type="text" name="search" class="form" placeholder="Search listing or donor&hellip;"
+             value="<?= View::e($filterSearch) ?>">
+    </div>
+
+    <button type="submit" class="btn btn-secondary btn-sm">Search</button>
+    <a href="<?= $b ?>/admin/codes<?= $lid > 0 ? '?listing_id=' . $lid : '' ?>" class="btn btn-quaternary btn-sm">Reset</a>
   </form>
 </div>
 
@@ -140,13 +194,13 @@ $uploadsUrl = $uploads_url ?? ($b . '/uploads/codes');
       <?php endif; ?>
       <span class="row-sub"><?= $_flCount ?> pending donation<?= $_flCount !== 1 ? 's' : '' ?></span>
       <div class="actions-row--right">
-        <form method="POST" action="<?= $b ?>/admin/codes/approve-all" class="action-form-inline"
-              data-confirm="Approve all <?= $_flCount ?> pending donation(s) for this listing?">
-          <input type="hidden" name="_csrf"      value="<?= View::e($csrf_token) ?>">
-          <input type="hidden" name="listing_id" value="<?= $_flId ?>">
-          <input type="hidden" name="_tab"       value="pending">
-          <button type="submit" class="btn btn-success btn-xs"><?= View::icon('check') ?> Approve All</button>
-        </form>
+        <button type="button" class="btn btn-success btn-xs"
+                data-global-approve-listing="<?= $_flId ?>"
+                data-global-approve-count="<?= $_flCount ?>"
+                data-global-approve-csrf="<?= View::e($csrf_token) ?>"
+                data-global-approve-url="<?= $b ?>/admin/codes/approve-all">
+          <?= View::icon('check') ?> Approve All
+        </button>
       </div>
     </div>
 
@@ -230,164 +284,342 @@ $uploadsUrl = $uploads_url ?? ($b . '/uploads/codes');
 
 <?php else: ?>
 <!-- ══════════════════════════════════════════════════════════════════ -->
-<!-- PER-LISTING VIEW: code browser + link to full management          -->
+<!-- PER-LISTING VIEW: full tile grid + upload panel                   -->
 <!-- ══════════════════════════════════════════════════════════════════ -->
 
-<div class="toolbar" style="justify-content:flex-end;margin-bottom:1rem">
-  <a href="<?= $b ?>/admin/listings/<?= $lid ?>#tab-codes" class="btn btn-quaternary btn-sm">
-    <?= View::icon('gear') ?> Upload &amp; Manage Categories
-  </a>
-</div>
+<?php
+// Unpack code variables
+$_fid            = $lid;
+$_hasCats        = !empty($code_cats ?? []);
+$_hasDonors      = !empty($code_donors ?? []);
+$_pendingCount   = ($code_status_counts ?? [])['pending']  ?? 0;
+$_approvedCount  = ($code_status_counts ?? [])['approved'] ?? 0;
+$_rejectedCount  = ($code_status_counts ?? [])['rejected'] ?? 0;
+$_groupedCodes   = $code_grouped ?? [];
+$_nonEmptyGroups = array_filter($_groupedCodes, fn($g) => !empty($g['codes']));
+$_groupCount     = count($_nonEmptyGroups);
+$_topLevelCats   = array_filter($code_cats ?? [], fn($c) => $c->parentId === null);
+$_codesBaseUrl   = $b . '/admin/codes?listing_id=' . $_fid;
+$_codeStatusFilter = $code_status_filter ?? '';
+$_totalCodes     = $total_codes ?? 0;
+$_codeCatIds     = $code_category_ids ?? [];
+$_codeDonorMap   = $code_donor_map ?? [];
+$_codeDonors     = $code_donors ?? [];
+$_codeCats       = $code_cats ?? [];
+?>
 
-<!-- Status Tabs -->
-<div class="tabs-wrap">
-  <div class="tabs">
-    <?php
-      $listingTabDefs = [
-        'all'      => ['label' => 'All',      'badge' => 'badge-inactive'],
-        'pending'  => ['label' => 'Pending',  'badge' => 'badge-pending'],
-        'approved' => ['label' => 'Approved', 'badge' => 'badge-current'],
-        'rejected' => ['label' => 'Rejected', 'badge' => 'badge-error'],
-      ];
-    ?>
-    <?php foreach ($listingTabDefs as $tKey => $tDef): ?>
-      <a href="<?= View::e($tabUrl($tKey)) ?>"
-         class="tabs-btn<?= $tab === $tKey ? ' active' : '' ?>">
-        <?= View::e($tDef['label']) ?>
-        <?php $tCnt = (int) ($tabCounts[$tKey] ?? 0); ?>
-        <?php if ($tCnt > 0): ?>
-          <span class="badge <?= $tDef['badge'] ?> badge-inline-sm"><?= $tCnt ?></span>
-        <?php endif; ?>
-      </a>
-    <?php endforeach; ?>
-  </div>
-</div>
-
-<?php if (empty($codes)): ?>
-<div class="card">
-  <div class="empty">
-    <div class="empty-icon"><?= View::icon('image', ['width' => 32, 'height' => 32]) ?></div>
-    <div class="empty-title">No codes<?= $tab !== 'all' ? ' in this status' : '' ?>.</div>
-  </div>
-</div>
-<?php else: ?>
-
-<!-- Approve All (Pending tab only) -->
-<?php if ($tab === 'pending' && !empty($codes)): ?>
-<div style="display:flex;justify-content:flex-end;margin-bottom:1rem">
-  <form method="POST" action="<?= $b ?>/admin/codes/approve-all" class="action-form-inline"
-        data-confirm="Approve all <?= (int) ($tabCounts['pending'] ?? 0) ?> pending code(s)?">
-    <input type="hidden" name="_csrf"      value="<?= View::e($csrf_token) ?>">
-    <input type="hidden" name="listing_id" value="<?= $lid ?>">
-    <input type="hidden" name="_tab"       value="pending">
-    <button type="submit" class="btn btn-success btn-sm"><?= View::icon('check') ?> Approve All Pending</button>
-  </form>
-</div>
-<?php endif; ?>
-
-<form method="POST" action="<?= $b ?>/admin/codes/bulk" id="codes-listing-bulk-form">
-  <input type="hidden" name="_csrf"      value="<?= View::e($csrf_token) ?>">
-  <input type="hidden" name="listing_id" value="<?= $lid ?>">
-  <input type="hidden" name="_tab"       value="<?= View::e($tab) ?>">
-
-  <div class="card">
-    <div class="card-head">
-      <?= View::e($listing->subject ?: $listing->title) ?> — <?= View::e(ucfirst($tab)) ?> Codes
-      <span class="row-sub"><?= (int) $total ?> code<?= (int) $total !== 1 ? 's' : '' ?></span>
-    </div>
-    <div class="bulk bulk--flush">
-      Bulk Actions:
-      <div class="select-wrap">
-        <select name="bulk_action" class="select-xs">
-          <option value="" disabled selected>&mdash; Select &mdash;</option>
-          <?php if (in_array($tab, ['all', 'pending'], true)): ?><option value="approve">Approve</option><?php endif; ?>
-          <?php if (in_array($tab, ['all', 'approved'], true)): ?><option value="reject">Reject</option><?php endif; ?>
-          <?php if ($tab === 'pending'): ?><option value="reject">Reject</option><?php endif; ?>
-        </select>
-      </div>
-      <button type="submit" class="btn btn-quaternary btn-sm">Apply to Selected</button>
-    </div>
-    <div class="table-wrap">
-      <table class="data-table mem-table">
-        <thead>
-          <tr>
-            <th class="cb-col"><input type="checkbox" id="codes-listing-cb-all"></th>
-            <th class="table-col-image">Image</th>
-            <th>Size</th>
-            <th>Donor / Submitter</th>
-            <?php if ($tab !== 'approved'): ?><th>Status</th><?php endif; ?>
-            <th class="act-col">Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          <?php foreach ($codes as $code):
-            $codeDonor = isset($donorMap[$code->donorId ?? null]) ? $donorMap[$code->donorId] : null;
-          ?>
-          <tr>
-            <td class="cb-col"><input type="checkbox" name="code_ids[]" value="<?= (int) $code->id ?>"></td>
-            <td data-label="Image">
-              <img src="<?= View::e($uploadsUrl . '/' . $code->filename) ?>"
-                   alt="" style="max-height:40px;max-width:60px;display:block;border-radius:3px;object-fit:contain">
-            </td>
-            <td data-label="Size" class="text-muted">
-              <?= ($code->width ?? 0) > 0 ? (int) $code->width . '×' . (int) $code->height : '<span class="text-dim">&mdash;</span>' ?>
-            </td>
-            <td data-label="Donor">
-              <?php if ($codeDonor !== null): ?>
-                <span class="badge badge-info-pink"><?= View::e($codeDonor->name) ?></span>
-              <?php elseif (($code->submitterName ?? '') !== ''): ?>
-                <div class="subject-title-stack">
-                  <?= View::e($code->submitterName) ?>
-                  <?php if (($code->submitterEmail ?? '') !== ''): ?>
-                    <span class="mem-url"><?= View::emailWrap($code->submitterEmail) ?></span>
-                  <?php endif; ?>
-                </div>
-              <?php else: ?>
-                <span class="text-dim">&mdash;</span>
-              <?php endif; ?>
-            </td>
-            <?php if ($tab !== 'approved'): ?>
-            <td data-label="Status">
-              <span class="badge <?= $code->status === 'pending' ? 'badge-pending' : 'badge-error' ?>">
-                <?= View::e(ucfirst($code->status)) ?>
-              </span>
-            </td>
-            <?php endif; ?>
-            <td class="act-col" data-label="">
-              <div class="data-actions">
-                <?php if ($code->status === 'pending'): ?>
-                  <form method="POST" action="<?= $b ?>/admin/codes/<?= (int) $code->id ?>/approve" class="action-form-inline">
-                    <input type="hidden" name="_csrf"      value="<?= View::e($csrf_token) ?>">
-                    <input type="hidden" name="listing_id" value="<?= $lid ?>">
-                    <input type="hidden" name="_tab"       value="<?= View::e($tab) ?>">
-                    <button type="submit" class="btn btn-success btn-xs">Approve</button>
-                  </form>
-                  <form method="POST" action="<?= $b ?>/admin/codes/<?= (int) $code->id ?>/reject" class="action-form-inline">
-                    <input type="hidden" name="_csrf"      value="<?= View::e($csrf_token) ?>">
-                    <input type="hidden" name="listing_id" value="<?= $lid ?>">
-                    <input type="hidden" name="_tab"       value="<?= View::e($tab) ?>">
-                    <button type="submit" class="btn btn-danger btn-xs">Reject</button>
-                  </form>
-                <?php elseif ($code->status === 'approved'): ?>
-                  <form method="POST" action="<?= $b ?>/admin/codes/<?= (int) $code->id ?>/reject" class="action-form-inline">
-                    <input type="hidden" name="_csrf"      value="<?= View::e($csrf_token) ?>">
-                    <input type="hidden" name="listing_id" value="<?= $lid ?>">
-                    <input type="hidden" name="_tab"       value="<?= View::e($tab) ?>">
-                    <button type="submit" class="btn btn-warning btn-xs">Reject</button>
-                  </form>
-                <?php endif; ?>
-                <a href="<?= $b ?>/admin/listings/<?= $lid ?>#tab-codes" class="btn btn-tertiary btn-xs">Edit</a>
-              </div>
-            </td>
-          </tr>
-          <?php endforeach; ?>
-        </tbody>
-      </table>
-    </div>
-  </div>
+<form id="codes-bulk-form" method="POST" action="<?= $b ?>/admin/listings/<?= $_fid ?>/codes/bulk">
+  <input type="hidden" name="_csrf"  value="<?= View::e($csrf_token) ?>">
+  <input type="hidden" name="_from"  value="codes">
+</form>
+<form id="codes-reorder-form" method="POST" action="<?= $b ?>/admin/listings/<?= $_fid ?>/codes/reorder">
+  <input type="hidden" name="_csrf"     value="<?= View::e($csrf_token) ?>">
+  <input type="hidden" name="_from"     value="codes">
+  <input type="hidden" id="reorder-ids" name="ordered_ids" value="">
 </form>
 
-<?php endif; // empty($codes) ?>
+<?php foreach ($codes as $code):
+  $_dDonor = ($code->donorId !== null && isset($_codeDonorMap[$code->donorId])) ? $_codeDonorMap[$code->donorId] : null;
+  $_dLabel = ($code->name !== null && $code->name !== '') ? $code->name : null;
+?>
+<dialog id="edit-dialog-<?= (int)$code->id ?>" class="modal code-edit-dialog">
+  <div class="modal-header modal-header-sticky">
+    <span class="modal-title">Edit code &mdash; <?= View::e($code->filename) ?></span>
+    <button type="button" class="modal-close" data-close-dialog aria-label="Close">&times;</button>
+  </div>
+  <div class="modal-body">
+    <div class="code-preview">
+      <img src="<?= View::e($uploads_url . '/' . $code->filename) ?>"
+           alt="<?= View::e($code->filename) ?>"
+           class="code-preview-img">
+      <?php if ($code->width > 0 && $code->height > 0): ?>
+      <div class="code-preview-meta"><?= (int)$code->width ?>&times;<?= (int)$code->height ?>px</div>
+      <?php endif; ?>
+    </div>
+    <form method="POST"
+          action="<?= $b ?>/admin/listings/<?= $_fid ?>/codes/<?= (int)$code->id ?>/update"
+          class="code-modal-form">
+      <input type="hidden" name="_csrf"  value="<?= View::e($csrf_token) ?>">
+      <input type="hidden" name="_from"  value="codes">
+      <div>
+        <label class="form-label code-modal-label">Label <span class="text-dim">(optional)</span></label>
+        <input class="form" type="text" name="name" value="<?= View::e($code->name ?? '') ?>"
+               placeholder="<?= View::e($code->filename) ?>">
+      </div>
+      <div>
+        <label class="form-label code-modal-label">Status</label>
+        <div class="select-wrap">
+          <select name="status">
+            <option value="approved" <?= $code->status === 'approved' ? 'selected' : '' ?>>Live</option>
+            <option value="pending"  <?= $code->status === 'pending'  ? 'selected' : '' ?>>Pending</option>
+            <option value="rejected" <?= $code->status === 'rejected' ? 'selected' : '' ?>>Rejected</option>
+          </select>
+        </div>
+      </div>
+      <?php if ($_hasDonors): ?>
+      <div>
+        <label class="form-label code-modal-label">Donor</label>
+        <div class="select-wrap">
+          <select name="donor_id">
+            <option value="">None</option>
+            <?php foreach ($_codeDonors as $dn): ?>
+              <option value="<?= (int)$dn->id ?>" <?= $code->donorId === $dn->id ? 'selected' : '' ?>><?= View::e($dn->name) ?></option>
+            <?php endforeach; ?>
+          </select>
+        </div>
+      </div>
+      <?php endif; ?>
+      <?php if ($_hasCats): ?>
+      <div>
+        <label class="form-label code-modal-label">Category</label>
+        <div class="select-wrap">
+          <select name="cat_ids[]">
+            <option value="">None</option>
+            <?php
+              $_mCatIds = $_codeCatIds[$code->id] ?? [];
+              foreach ($_codeCats as $cat):
+            ?>
+              <option value="<?= (int)$cat->id ?>" <?= in_array($cat->id, $_mCatIds, true) ? 'selected' : '' ?>>
+                <?= $cat->parentId !== null ? '&#x2514; ' : '' ?><?= View::e($cat->name) ?>
+              </option>
+            <?php endforeach; ?>
+          </select>
+        </div>
+      </div>
+      <?php endif; ?>
+      <?php $_hasDonorInfo = $code->donorId !== null || $code->submitterName !== null || $code->submitterEmail !== null || $code->submitterUrl !== null; ?>
+      <details<?= $_hasDonorInfo ? ' open' : '' ?> class="code-donor-details">
+        <summary class="link" style="font-size:var(--fs-sm);margin-bottom:.5rem;display:inline-block;list-style:none;cursor:pointer"><?= $_hasDonorInfo ? 'Donor information' : '+ Add donor information' ?></summary>
+        <div>
+          <label class="form-label code-modal-label">Donor Name</label>
+          <input class="form" type="text" name="submitter_name"
+                 value="<?= View::e($code->submitterName ?? '') ?>" placeholder="Display name&hellip;">
+        </div>
+        <div style="margin-top:.5rem">
+          <label class="form-label code-modal-label">Donor Email</label>
+          <input class="form" type="email" name="submitter_email"
+                 value="<?= View::e($code->submitterEmail ?? '') ?>" placeholder="Optional">
+        </div>
+        <div style="margin-top:.5rem">
+          <label class="form-label code-modal-label">Donor Website</label>
+          <input class="form" type="url" name="submitter_url"
+                 value="<?= View::e($code->submitterUrl ?? '') ?>" placeholder="https://&hellip;">
+        </div>
+      </details>
+      <div class="composer-footer" style="margin-top:1rem">
+        <button type="submit" class="btn btn-primary btn-sm">Save changes</button>
+        <button type="button" class="btn btn-danger btn-sm code-dialog-delete-btn">Delete</button>
+      </div>
+    </form>
+    <form class="code-delete-form"
+          method="POST"
+          action="<?= $b ?>/admin/listings/<?= $_fid ?>/codes/<?= (int)$code->id ?>/delete"
+          data-del-modal data-del-entity="code"
+          data-del-name="<?= View::e($code->filename) ?>" style="display:none">
+      <input type="hidden" name="_csrf"  value="<?= View::e($csrf_token) ?>">
+      <input type="hidden" name="_from"  value="codes">
+    </form>
+  </div>
+</dialog>
+<?php endforeach; ?>
+
+<div class="codes-page-layout">
+
+<!-- ── Upload Card ─────────────────────────────────────────────────── -->
+<div class="card">
+  <div class="card-head">Upload Codes</div>
+  <form method="POST" action="<?= $b ?>/admin/listings/<?= $_fid ?>/codes/upload" enctype="multipart/form-data">
+    <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
+    <input type="hidden" name="_from" value="codes">
+    <div class="pc-section">
+      <div class="file-drop-zone">
+        <input type="file" id="codes-input" name="codes[]" multiple accept="image/jpeg,image/png,image/gif,image/webp">
+        <span class="file-drop-icon"><?= View::icon('image') ?></span>
+        <strong>Click or drop images</strong>
+        <span class="form-hint">JPEG, PNG, GIF, WebP &mdash; max 500 KB each</span>
+      </div>
+      <p class="panel-hint" style="margin-top:.5rem">Multiple files allowed. Dimensions are detected automatically.</p>
+    </div>
+
+    <div class="pc-section">
+      <?php $_uploadSubmitters = $code_submitter_names ?? []; ?>
+
+      <div class="panel-field">
+        <label class="panel-label" for="upload-donor">Donor</label>
+        <div class="select-wrap">
+          <select id="upload-donor" name="donor_id">
+            <option value="">None</option>
+            <?php if (!empty($_codeDonors)): ?>
+              <?php if (!empty($_uploadSubmitters)): ?><optgroup label="Registered Donors"><?php endif; ?>
+              <?php foreach ($_codeDonors as $dn): ?>
+                <option value="<?= (int)$dn->id ?>"><?= View::e($dn->name) ?></option>
+              <?php endforeach; ?>
+              <?php if (!empty($_uploadSubmitters)): ?></optgroup><?php endif; ?>
+            <?php endif; ?>
+            <?php if (!empty($_uploadSubmitters)): ?>
+              <optgroup label="Past Submitters">
+                <?php foreach ($_uploadSubmitters as $sn): ?>
+                  <option value="s:<?= View::e($sn) ?>"><?= View::e($sn) ?></option>
+                <?php endforeach; ?>
+              </optgroup>
+            <?php endif; ?>
+          </select>
+        </div>
+        <p class="panel-hint"><a href="#" id="upload-add-donor-toggle" class="link"><?= View::icon('add') ?> Add new donor</a></p>
+      </div>
+
+      <!-- Inline new donor fields -->
+      <div id="upload-new-donor-wrap" class="is-hidden">
+        <div class="panel-field">
+          <label class="panel-label" for="upload-donor-name">Donor Name <span class="req">*</span></label>
+          <input class="form" type="text" id="upload-donor-name" name="new_donor_name" placeholder="Display name&hellip;">
+        </div>
+        <div class="panel-field">
+          <label class="panel-label" for="upload-donor-email">Email</label>
+          <input class="form" type="email" id="upload-donor-email" name="new_donor_email" placeholder="Optional">
+        </div>
+        <div class="panel-field">
+          <label class="panel-label" for="upload-donor-url">Website</label>
+          <input class="form" type="url" id="upload-donor-url" name="new_donor_url" placeholder="https://&hellip;">
+        </div>
+      </div>
+
+      <?php if ($_hasCats): ?>
+      <div class="panel-field">
+        <label class="panel-label" for="upload-category">Category</label>
+        <div class="select-wrap">
+          <select id="upload-category" name="cat_ids[]">
+            <option value="">None</option>
+            <?php foreach ($_codeCats as $cat): ?>
+              <option value="<?= (int)$cat->id ?>"><?= $cat->parentId !== null ? '&#x2514; ' : '' ?><?= View::e($cat->name) ?></option>
+            <?php endforeach; ?>
+          </select>
+        </div>
+      </div>
+      <?php endif; ?>
+    </div>
+
+    <div class="composer-footer">
+      <button type="submit" class="btn btn-primary">Add Code</button>
+      <button type="reset" class="btn btn-ghost">Clear</button>
+    </div>
+  </form>
+</div>
+
+<!-- ── Current Codes Card ───────────────────────────────────────────── -->
+<div class="card codes-browser" style="min-width:0" data-initial-code-filter="<?= View::e($_codeStatusFilter) ?>" data-codes-base-url="<?= View::e($_codesBaseUrl) ?>">
+    <div class="card-head">Current Codes
+      <span class="badge badge-<?= $_approvedCount > 0 ? 'current' : 'inactive' ?>"><?= $_approvedCount ?> Approved</span>
+      <?php if ($_pendingCount > 0): ?><span class="badge badge-pending"><?= $_pendingCount ?> Pending</span><?php endif; ?>
+      <?php if ($_rejectedCount > 0): ?><span class="badge badge-error"><?= $_rejectedCount ?> Rejected</span><?php endif; ?>
+      <?php if ($_groupCount > 0): ?><span class="card-head-sub">Click and drag the top left corner to reorder codes &mdash; changes are effective immediately.</span><?php endif; ?>
+    </div>
+
+    <div class="codes-tabs">
+      <a href="<?= View::e($_codesBaseUrl . '&tab=approved') ?>" class="tabs-btn<?= $_codeStatusFilter === 'approved' ? ' active' : '' ?>" data-code-filter="approved">
+        Approved <span class="badge badge-<?= $_approvedCount > 0 ? 'current' : 'inactive' ?>"><?= $_approvedCount ?></span>
+      </a>
+      <a href="<?= View::e($_codesBaseUrl . '&tab=pending') ?>" class="tabs-btn<?= $_codeStatusFilter === 'pending' ? ' active' : '' ?>" data-code-filter="pending">
+        Pending <span class="badge badge-<?= $_pendingCount > 0 ? 'pending' : 'inactive' ?>"><?= $_pendingCount ?></span>
+      </a>
+      <a href="<?= View::e($_codesBaseUrl . '&tab=rejected') ?>" class="tabs-btn<?= $_codeStatusFilter === 'rejected' ? ' active' : '' ?>" data-code-filter="rejected">
+        Rejected <span class="badge badge-<?= $_rejectedCount > 0 ? 'error' : 'inactive' ?>"><?= $_rejectedCount ?></span>
+      </a>
+    </div>
+
+    <div class="codes-bulk">
+      <label class="codes-bulk-label">
+        <input type="checkbox" id="codes-select-all">Select all </label>
+      <div class="select-wrap">
+        <select id="bulk-action-sel" class="select-xs">
+          <option value="" disabled selected>&mdash; Select &mdash;</option>
+          <option value="delete">Delete</option>
+          <option value="approve">Approve</option>
+          <option value="reject">Reject</option>
+          <?php if ($_hasCats): ?>
+            <option value="categorize">Add to Categories&hellip;</option>
+          <?php endif; ?>
+        </select>
+      </div>
+      <?php if ($_hasCats): ?>
+      <div id="bulk-cats-wrap" class="is-hidden">
+        <select id="bulk-cats-sel" name="bulk_cat_ids[]" multiple size="<?= min(4, count($_codeCats)) ?>">
+          <?php foreach ($_codeCats as $cat): ?>
+            <option value="<?= (int)$cat->id ?>"><?= $cat->parentId !== null ? '  &#x2514; ' : '' ?><?= View::e($cat->name) ?></option>
+          <?php endforeach; ?>
+        </select>
+      </div>
+      <?php endif; ?>
+      <button type="button" id="bulk-apply-btn" class="btn btn-quaternary btn-sm">Apply to Selected</button>
+      <div class="codes-bulk-right">
+        <button type="button" id="save-order-btn" class="btn btn-quaternary btn-sm is-hidden">Save Order</button>
+      </div>
+    </div>
+
+    <?php if ($_totalCodes === 0): ?>
+      <div class="card-empty-state">
+        <div class="empty">
+          <span class="empty-icon"><?= View::icon('image', ['width' => 32, 'height' => 32]) ?></span>
+          No codes yet. Use the Upload Codes panel above to add some.
+        </div>
+      </div>
+    <?php else: ?>
+      <?php $_filterEmptyInitial = ($_codeStatusFilter === 'approved' && $_approvedCount === 0) || ($_codeStatusFilter === 'pending' && $_pendingCount === 0) || ($_codeStatusFilter === 'rejected' && $_rejectedCount === 0); ?>
+      <div class="card-empty-state<?= $_filterEmptyInitial ? '' : ' is-hidden' ?>" id="codes-filter-empty">
+        <div class="empty">
+          <span class="empty-icon"><?= View::icon('image', ['width' => 32, 'height' => 32]) ?></span>
+          No codes match this filter &mdash; <a href="<?= View::e($_codesBaseUrl . '&tab=approved') ?>" class="link" data-code-filter="approved">show approved</a>.
+        </div>
+      </div>
+      <?php foreach ($_groupedCodes as $group): ?>
+        <?php if (empty($group['codes'])) continue; ?>
+        <?php
+          $firstCode = reset($group['codes']);
+          $gridMin   = max((int)$firstCode->width + 32, 80) . 'px';
+        ?>
+        <div class="pc-section" data-code-group>
+          <div class="pc-section-label"><?= View::e($group['label']) ?>
+            <span class="badge badge-inactive" data-code-group-count data-total-count="<?= count($group['codes']) ?>"><?= count($group['codes']) ?> code<?= count($group['codes']) !== 1 ? 's' : '' ?></span>
+          </div>
+          <div class="code-grid" data-code-group-grid style="grid-template-columns:repeat(auto-fill,minmax(<?= $gridMin ?>,1fr))">
+          <?php foreach ($group['codes'] as $code): ?>
+          <?php
+            $_codeCatIdsForCode = $_codeCatIds[$code->id] ?? [];
+            $_codeDonorForCode  = ($code->donorId !== null && isset($_codeDonorMap[$code->donorId])) ? $_codeDonorMap[$code->donorId] : null;
+            $_codeLabelForCode  = ($code->name !== null && $code->name !== '') ? $code->name : null;
+            $_isDonated         = $_codeDonorForCode !== null || $code->submitterName !== null;
+          ?>
+          <div class="code-tile code-card<?= $_isDonated ? '' : '' ?>"
+               data-code-status="<?= View::e($code->status) ?>"
+               data-code-id="<?= (int)$code->id ?>">
+            <input type="checkbox" form="codes-bulk-form" name="selected[]" value="<?= (int)$code->id ?>" class="code-tile-cb code-check">
+            <span class="code-drag-handle drag-handle" title="Drag to reorder">&#8942;&#8942;</span>
+            <img src="<?= View::e($uploads_url . '/' . $code->filename) ?>"
+                 alt="<?= (int)$code->width ?>&times;<?= (int)$code->height ?>px"
+                 class="code-tile-img" loading="lazy">
+            <?php if ($_codeLabelForCode !== null): ?>
+            <div class="text-muted"><?= View::e($_codeLabelForCode) ?></div>
+            <?php endif; ?>
+            <?php if ($_codeDonorForCode !== null): ?>
+            <div class="badge badge-info-pink">&hearts; <?= View::e($_codeDonorForCode->name) ?></div>
+            <?php elseif ($code->submitterName !== null): ?>
+            <div class="badge badge-info-pink">&hearts; <?= View::e($code->submitterName) ?></div>
+            <?php endif; ?>
+            <?php if ($code->status === 'pending'): ?>
+            <span class="badge badge-pending">Pending</span>
+            <?php endif; ?>
+            <button type="button" class="btn btn-quaternary btn-sm code-edit-btn" data-dialog="edit-dialog-<?= (int)$code->id ?>">
+              Edit
+            </button>
+          </div>
+          <?php endforeach; ?>
+          </div>
+        </div>
+      <?php endforeach; ?>
+    <?php endif; ?>
+  </div><!-- /codes-browser -->
+
+</div><!-- /two-col grid -->
 
 <?php endif; // view_mode ?>
 

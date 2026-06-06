@@ -26,15 +26,16 @@ final class CodeDonorsRepo
      *
      * @return object[]
      */
-    public function getByListing(int $listingId): array
+    public function getByListing(?int $listingId): array
     {
+        $fidCond = $listingId === null ? 'fanlisting_id IS NULL' : 'fanlisting_id = :fid';
         $stmt = $this->db->prepare(
-            'SELECT id, fanlisting_id, name, email, url
+            "SELECT id, fanlisting_id, name, email, url
              FROM lstr_code_donors
-             WHERE fanlisting_id = :fid
-             ORDER BY name ASC'
+             WHERE {$fidCond}
+             ORDER BY name ASC"
         );
-        $stmt->execute(['fid' => $listingId]);
+        $stmt->execute($listingId === null ? [] : ['fid' => $listingId]);
 
         return array_map(static fn(array $r) => (object) [
             'id'        => (int)    $r['id'],

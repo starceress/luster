@@ -64,6 +64,29 @@ final class ValidatorField
         return $this;
     }
 
+    public function httpUrl(string $message = ''): static
+    {
+        if ($this->stopped) {
+            return $this;
+        }
+
+        if ($this->value === '') {
+            return $this;
+        }
+
+        if (filter_var($this->value, FILTER_VALIDATE_URL) === false) {
+            $this->addError($message ?: 'Please enter a valid URL (e.g. https://example.com).');
+            return $this;
+        }
+
+        $scheme = parse_url($this->value, PHP_URL_SCHEME);
+        if (!in_array($scheme, ['http', 'https'], true)) {
+            $this->addError($message ?: 'Please enter a valid URL starting with http:// or https://.');
+        }
+
+        return $this;
+    }
+
     public function maxLength(int $max, string $message = ''): static
     {
         if ($this->stopped) {

@@ -757,7 +757,7 @@ $_settingsOpen = $_hasCats || $_hasDonors;
         <span class="reminder-banner-msg" data-codes-pending-msg"><?= $_pendingCount ?> code<?= $_pendingCount !== 1 ? 's are' : ' is' ?> pending approval</span>
       </div>
     </div>
-    <a href="<?= $code_status_filter === 'pending' ? $_tabBase : $_tabBase . '&status_filter=pending' ?>" class="btn btn-tertiary btn-sm" data-code-filter="<?= $code_status_filter === 'pending' ? '' : 'pending' ?>" data-codes-pending-action><?= $code_status_filter === 'pending' ? '&larr; Show all codes' : 'Review pending &rarr;' ?></a>
+    <a href="<?= $code_status_filter === 'pending' ? $_tabBase . '&status_filter=approved' : $_tabBase . '&status_filter=pending' ?>" class="btn btn-tertiary btn-sm" data-code-filter="<?= $code_status_filter === 'pending' ? 'approved' : 'pending' ?>" data-codes-pending-action><?= $code_status_filter === 'pending' ? '&larr; Show approved' : 'Review pending &rarr;' ?></a>
   </div>
 </div>
 <?php endif; ?>
@@ -1031,14 +1031,26 @@ $_settingsOpen = $_hasCats || $_hasDonors;
             </div>
           </div>
           <?php endif; ?>
+          <?php $_editSubmitters = $code_submitter_names ?? []; ?>
           <div class="panel-field upload-panel-row">
             <label class="panel-label" for="upload-donor">Donor</label>
             <div class="select-wrap">
               <select id="upload-donor" name="donor_id">
                 <option value="">None</option>
-                <?php foreach ($code_donors as $dn): ?>
-                  <option value="<?= (int)$dn->id ?>"><?= View::e($dn->name) ?></option>
-                <?php endforeach; ?>
+                <?php if (!empty($code_donors)): ?>
+                  <?php if (!empty($_editSubmitters)): ?><optgroup label="Registered Donors"><?php endif; ?>
+                  <?php foreach ($code_donors as $dn): ?>
+                    <option value="<?= (int)$dn->id ?>"><?= View::e($dn->name) ?></option>
+                  <?php endforeach; ?>
+                  <?php if (!empty($_editSubmitters)): ?></optgroup><?php endif; ?>
+                <?php endif; ?>
+                <?php if (!empty($_editSubmitters)): ?>
+                  <optgroup label="Past Submitters">
+                    <?php foreach ($_editSubmitters as $sn): ?>
+                      <option value="s:<?= View::e($sn) ?>"><?= View::e($sn) ?></option>
+                    <?php endforeach; ?>
+                  </optgroup>
+                <?php endif; ?>
               </select>
             </div>
           </div>
@@ -1061,8 +1073,8 @@ $_settingsOpen = $_hasCats || $_hasDonors;
     </div>
 
     <div class="codes-tabs">
-      <a href="<?= $_tabBase ?>" class="tabs-btn<?= $code_status_filter === '' ? ' active' : '' ?>" data-code-filter="">
-        All <span class="badge badge-current"><?= $total_codes ?></span>
+      <a href="<?= $_tabBase ?>&status_filter=approved" class="tabs-btn<?= $code_status_filter === 'approved' ? ' active' : '' ?>" data-code-filter="approved">
+        Approved <span class="badge badge-<?= $_approvedCount > 0 ? 'current' : 'inactive' ?>"><?= $_approvedCount ?></span>
       </a>
       <a href="<?= $_tabBase ?>&status_filter=pending" class="tabs-btn<?= $code_status_filter === 'pending' ? ' active' : '' ?>" data-code-filter="pending">
         Pending <span class="badge badge-<?= $_pendingCount > 0 ? 'pending' : 'inactive' ?>"><?= $_pendingCount ?></span>
@@ -1106,10 +1118,10 @@ $_settingsOpen = $_hasCats || $_hasDonors;
         </div>
       </div>
     <?php else: ?>
-      <div class="card-empty-state<?= $code_status_filter === 'pending' && $_pendingCount === 0 ? '' : ' is-hidden' ?>" id="codes-filter-empty">
+      <div class="card-empty-state<?= ($code_status_filter === 'approved' && $_approvedCount === 0) || ($code_status_filter === 'pending' && $_pendingCount === 0) ? '' : ' is-hidden' ?>" id="codes-filter-empty">
         <div class="empty">
           <span class="empty-icon"><?= View::icon('image', ['width' => 32, 'height' => 32]) ?></span>
-          No codes match this filter &mdash; <a href="<?= $_tabBase ?>" class="link" data-code-filter="">clear filter</a> to see all <?= $total_codes ?>.
+          No codes match this filter &mdash; <a href="<?= $_tabBase ?>&status_filter=approved" class="link" data-code-filter="approved">show approved</a>.
         </div>
       </div>
         <?php foreach ($code_grouped as $group): ?>

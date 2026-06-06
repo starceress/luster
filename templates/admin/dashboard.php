@@ -67,25 +67,45 @@ $growthDiff          = $growth_this_month - $growth_last_month;
     <div class="welcome-sub" id="live-datetime"></div>
     <div class="welcome-title"><?= View::e($welcome_greeting) ?></div>
     <div class="welcome-sub">
-      <?php if ($total_pending > 0 || !empty($stale_listings) || ($pending_affiliates ?? 0) > 0): ?>
-        <?php
-          $parts = [];
-          if ($total_pending > 0) {
-              $parts[] = '<strong>' . (int) $total_pending . ' pending member' . ($total_pending !== 1 ? 's' : '') . '</strong>';
-          }
-          if (($pending_affiliates ?? 0) > 0) {
-              $pa = (int) $pending_affiliates;
-              $parts[] = '<strong>' . $pa . ' affiliate application' . ($pa !== 1 ? 's' : '') . '</strong>';
-          }
-          if (!empty($stale_listings)) {
-              $n = count($stale_listings);
-              $parts[] = '<strong>' . $n . ' neglected listing' . ($n !== 1 ? 's' : '') . '</strong>';
-          }
-        ?>
-        You have <?= implode(' and ', $parts) ?><?= count($parts) === 1 ? ' that needs' : ' that need' ?> attention.
-      <?php else: ?>
-        Everything is up to date!
-      <?php endif; ?>
+      <?php
+        $_wParts = [];
+        if ($total_pending > 0) {
+            $n = (int) $total_pending;
+            $_wParts[] = '<strong>' . $n . ' pending member' . ($n !== 1 ? 's' : '') . '</strong>';
+        }
+        if (!empty($stale_listings)) {
+            $n = count($stale_listings);
+            $_wParts[] = '<strong>' . $n . ' neglected listing' . ($n !== 1 ? 's' : '') . '</strong>';
+        }
+        if (($pending_affiliates ?? 0) > 0) {
+            $n = (int) $pending_affiliates;
+            $_wParts[] = '<strong>' . $n . ' affiliate application' . ($n !== 1 ? 's' : '') . '</strong>';
+        }
+        if (($pending_codes ?? 0) > 0) {
+            $n = (int) $pending_codes;
+            $_wParts[] = '<strong>' . $n . ' donated code' . ($n !== 1 ? 's' : '') . '</strong>';
+        }
+        if (($pending_adoptions ?? 0) > 0) {
+            $n = (int) $pending_adoptions;
+            $_wParts[] = '<strong>' . $n . ' adoption application' . ($n !== 1 ? 's' : '') . '</strong>';
+        }
+        if (($pending_kim ?? 0) > 0) {
+            $n = (int) $pending_kim;
+            $_wParts[] = '<strong>' . $n . ' KIM sign-up' . ($n !== 1 ? 's' : '') . '</strong>';
+        }
+        $_wCount = count($_wParts);
+        if ($_wCount === 0) {
+            $_wSentence = 'Everything is up to date!';
+        } elseif ($_wCount === 1) {
+            $_wSentence = 'You have ' . $_wParts[0] . ' that needs attention.';
+        } elseif ($_wCount === 2) {
+            $_wSentence = 'You have ' . $_wParts[0] . ' and ' . $_wParts[1] . ' that need attention.';
+        } else {
+            $_wLast = array_pop($_wParts);
+            $_wSentence = 'You have ' . implode(', ', $_wParts) . ', and ' . $_wLast . ' that need attention.';
+        }
+      ?>
+      <?= $_wSentence ?>
     </div>
   </div>
   <div class="welcome-actions">
@@ -242,11 +262,19 @@ $growthDiff          = $growth_this_month - $growth_last_month;
 <?php endif; ?>
 
 <!-- ──── TO DO LIST ──────────────────────────────────────────────────── -->
-<?php $hasTodo = $total_pending > 0 || !empty($stale_listings); ?>
+<?php $hasTodo = $total_pending > 0 || !empty($stale_listings)
+    || ($pending_affiliates ?? 0) > 0
+    || ($pending_codes ?? 0) > 0
+    || ($pending_adoptions ?? 0) > 0
+    || ($pending_kim ?? 0) > 0; ?>
 <div class="dash-main-grid">
 
   <?php if ($hasTodo): ?>
-  <?php $todoTotal = (int) $total_pending + count($stale_listings); ?>
+  <?php $todoTotal = (int) $total_pending + count($stale_listings)
+      + ($pending_affiliates ?? 0)
+      + ($pending_codes ?? 0)
+      + ($pending_adoptions ?? 0)
+      + ($pending_kim ?? 0); ?>
   <div class="card todo-card">
     <div class="card-head"><?= View::icon('bell') ?> To Do List
       <span class="badge badge-error todo-head-badge" id="todo-total-badge"><?= $todoTotal ?></span>
@@ -343,6 +371,83 @@ $growthDiff          = $growth_this_month - $growth_last_month;
       </div>
     </div>
     <?php endif; ?>
+
+    <?php if (($pending_affiliates ?? 0) > 0): ?>
+    <div class="todo-section">
+      <button class="todo-toggle todo-toggle--urgent" data-target="todo-affiliates">
+        <div class="todo-toggle-left">
+          <span class="todo-toggle-sigil"><?= View::icon('link') ?></span>
+          <span class="todo-toggle-title">Pending Affiliates</span>
+          <span class="badge badge-pending"><?= (int) $pending_affiliates ?></span>
+        </div>
+        <span class="todo-chev">&#9650;</span>
+      </button>
+      <div class="todo-body" id="todo-affiliates">
+        <div class="todo-action-inner">
+          <span><?= (int) $pending_affiliates ?> affiliate application<?= (int) $pending_affiliates !== 1 ? 's are' : ' is' ?> awaiting review</span>
+          <a href="<?= $b ?>/admin/affiliates/pending" class="btn btn-preview btn-sm">Review Now &rarr;</a>
+        </div>
+      </div>
+    </div>
+    <?php endif; ?>
+
+    <?php if (($pending_codes ?? 0) > 0): ?>
+    <div class="todo-section">
+      <button class="todo-toggle todo-toggle--urgent" data-target="todo-codes">
+        <div class="todo-toggle-left">
+          <span class="todo-toggle-sigil"><?= View::icon('image') ?></span>
+          <span class="todo-toggle-title">Pending Codes</span>
+          <span class="badge badge-pending"><?= (int) $pending_codes ?></span>
+        </div>
+        <span class="todo-chev">&#9650;</span>
+      </button>
+      <div class="todo-body" id="todo-codes">
+        <div class="todo-action-inner">
+          <span><?= (int) $pending_codes ?> code donation<?= (int) $pending_codes !== 1 ? 's are' : ' is' ?> awaiting approval</span>
+          <a href="<?= $b ?>/admin/codes" class="btn btn-preview btn-sm">Review Now &rarr;</a>
+        </div>
+      </div>
+    </div>
+    <?php endif; ?>
+
+    <?php if (($pending_adoptions ?? 0) > 0): ?>
+    <div class="todo-section">
+      <button class="todo-toggle todo-toggle--urgent" data-target="todo-adoptions">
+        <div class="todo-toggle-left">
+          <span class="todo-toggle-sigil"><?= View::icon('adoptions') ?></span>
+          <span class="todo-toggle-title">Pending Adoptions</span>
+          <span class="badge badge-pending"><?= (int) $pending_adoptions ?></span>
+        </div>
+        <span class="todo-chev">&#9650;</span>
+      </button>
+      <div class="todo-body" id="todo-adoptions">
+        <div class="todo-action-inner">
+          <span><?= (int) $pending_adoptions ?> adoption application<?= (int) $pending_adoptions !== 1 ? 's are' : ' is' ?> awaiting review</span>
+          <a href="<?= $b ?>/admin/adoptions" class="btn btn-preview btn-sm">Review Now &rarr;</a>
+        </div>
+      </div>
+    </div>
+    <?php endif; ?>
+
+    <?php if (($pending_kim ?? 0) > 0): ?>
+    <div class="todo-section">
+      <button class="todo-toggle todo-toggle--urgent" data-target="todo-kim">
+        <div class="todo-toggle-left">
+          <span class="todo-toggle-sigil"><?= View::icon('kim') ?></span>
+          <span class="todo-toggle-title">Pending KIM Members</span>
+          <span class="badge badge-pending"><?= (int) $pending_kim ?></span>
+        </div>
+        <span class="todo-chev">&#9650;</span>
+      </button>
+      <div class="todo-body" id="todo-kim">
+        <div class="todo-action-inner">
+          <span><?= (int) $pending_kim ?> Keep In Mind member<?= (int) $pending_kim !== 1 ? 's are' : ' is' ?> awaiting approval</span>
+          <a href="<?= $b ?>/admin/kim" class="btn btn-preview btn-sm">Review Now &rarr;</a>
+        </div>
+      </div>
+    </div>
+    <?php endif; ?>
+
   </div>
   <?php endif; ?>
 

@@ -344,7 +344,7 @@ ob_start();
     <ul>
       <?php foreach ($_lusterOwnedNewest as $_lusterListing): ?>
       <li>
-        <a href="<?= $_lusterE($_lusterListing->url) ?>"><?= $_lusterE($_lusterListing->name) ?></a>
+        <a href="<?= $_lusterE($_lusterListing->url) ?>"><?= $_lusterE($_lusterListing->title) ?></a>
         <?php if ($_lusterListing->subject !== ''): ?>
           <span class="fl-muted">&mdash; <?= $_lusterE($_lusterListing->subject) ?></span>
         <?php endif; ?>

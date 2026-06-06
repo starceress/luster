@@ -109,9 +109,22 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
 
           <div class="pc-section">
             <div class="pc-section-label">Change Password</div>
+            <div class="form-group<?= !empty($fe['admin_current_password']) ? ' has-error' : '' ?>">
+              <label class="form-label" for="p-current-pass">Current Password <em class="opt">(required to set a new password)</em></label>
+              <div class="input-icon-wrap">
+                <input id="p-current-pass" type="password" name="admin_current_password" class="form"
+                       maxlength="255" autocomplete="current-password"
+                       placeholder="Enter your current password">
+                <button type="button" data-pw-toggle aria-label="Show password" tabindex="-1" class="input-icon-btn">
+                  <?= View::icon('eye-on') ?>
+                  <?= View::icon('eye-off') ?>
+                </button>
+              </div>
+              <?php if (!empty($fe['admin_current_password'])): ?><p class="field-error"><?= View::e($fe['admin_current_password'][0]) ?></p><?php endif; ?>
+            </div>
             <div class="form-row">
               <div class="form-group<?= !empty($fe['admin_new_password']) ? ' has-error' : '' ?>">
-                <label class="form-label" for="p-new-pass">New Password <em class="opt">(optional)</em></label>
+                <label class="form-label" for="p-new-pass">New Password</label>
                 <div class="input-icon-wrap">
                   <input id="p-new-pass" type="password" name="admin_new_password" class="form"
                          maxlength="255" autocomplete="new-password"

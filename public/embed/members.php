@@ -144,7 +144,7 @@ $_lusterRenderMember = static function (object $member) use ($_lusterMemberTempl
 // Shared data for all rendering paths
 $_lusterCommonData = [
     'listing'      => $_lusterListing,
-    'listing_name' => $_lusterListing->name,
+    'listing_name' => $_lusterListing->title,
     'listing_url'  => $_lusterListing->url,
     'page_title'      => 'Members',
     'join_url'        => $_lusterBaseUrl . '/join/' . $_lusterListingId,

@@ -99,7 +99,7 @@ final class AdoptPublicController
         $v = new Validator(['name' => $name, 'email' => $email, 'url' => $url, 'message' => $message]);
         $v->field('name')->required()->maxLength(100);
         $v->field('email')->required()->email()->maxLength(255);
-        $v->field('url')->url()->maxLength(500);
+        $v->field('url')->httpUrl()->maxLength(500);
         $v->field('message')->maxLength(2000);
 
         if ($v->fails()) {

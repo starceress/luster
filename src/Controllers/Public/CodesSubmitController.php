@@ -38,22 +38,32 @@ final class CodesSubmitController
 
     public function showForm(Request $request, array $params): Response
     {
-        $listingId = (int) ($params['id'] ?? 0);
+        $listingId    = (int) ($params['id'] ?? 0);
+        $isCollective = ($listingId === 0);
 
         $db     = $this->app->getDatabase();
         $config = $this->app->getConfig();
 
-        $listingRepo  = new ListingRepo($db, $config);
-        $settingsRepo = new ListingSettingsRepo($db);
-        $listing      = $listingRepo->getById($listingId);
+        if ($isCollective) {
+            $listing     = null;
+            $listingName = (string) ($config->get('app_name', '') ?: 'Collective');
+            $listingUrl  = '';
+        } else {
+            $listingRepo  = new ListingRepo($db, $config);
+            $settingsRepo = new ListingSettingsRepo($db);
+            $listing      = $listingRepo->getById($listingId);
 
-        if ($listing === null) {
-            return Response::notFound('Listing not found.');
-        }
+            if ($listing === null) {
+                return Response::notFound('Listing not found.');
+            }
 
-        $embedSettings = $settingsRepo->getEmbedSettings($listingId);
-        if (!($embedSettings['codes_submit_enabled'] ?? true)) {
-            return Response::notFound('Code donations are not enabled for this listing.');
+            $embedSettings = $settingsRepo->getEmbedSettings($listingId);
+            if (!($embedSettings['codes_submit_enabled'] ?? true)) {
+                return Response::notFound('Code donations are not enabled for this listing.');
+            }
+
+            $listingName = $listing->title;
+            $listingUrl  = $listing->url ?? '';
         }
 
         $session = $this->app->getSession();
@@ -68,9 +78,9 @@ final class CodesSubmitController
 
         return Response::html($this->app->getView()->renderPublic('codes-submit.php', [
             'listing'          => $listing,
-            'listing_name'     => $listing->title,
-            'listing_url'      => $listing->url ?? '',
-            'page_title'       => 'Submit a Code — ' . $listing->title,
+            'listing_name'     => $listingName,
+            'listing_url'      => $listingUrl,
+            'page_title'       => 'Submit a Code — ' . $listingName,
             'base_url'         => $baseUrl,
             'theme_path'       => $baseUrl . '/assets/default',
             'form_action'      => $baseUrl . '/codes/submit/' . $listingId,
@@ -89,32 +99,38 @@ final class CodesSubmitController
 
     public function submit(Request $request, array $params): Response
     {
-        $listingId = (int) ($params['id'] ?? 0);
+        $listingId    = (int) ($params['id'] ?? 0);
+        $isCollective = ($listingId === 0);
 
         $db      = $this->app->getDatabase();
         $config  = $this->app->getConfig();
         $session = $this->app->getSession();
         $baseUrl = $this->app->getBaseUrl();
 
-        $listingRepo  = new ListingRepo($db, $config);
-        $settingsRepo = new ListingSettingsRepo($db);
-        $listing      = $listingRepo->getById($listingId);
+        if ($isCollective) {
+            $listing   = null;
+            $submitUrl = $baseUrl . '/codes/submit/0';
+        } else {
+            $listingRepo  = new ListingRepo($db, $config);
+            $settingsRepo = new ListingSettingsRepo($db);
+            $listing      = $listingRepo->getById($listingId);
 
-        if ($listing === null) {
-            return Response::notFound('Listing not found.');
+            if ($listing === null) {
+                return Response::notFound('Listing not found.');
+            }
+
+            $embedSettings = $settingsRepo->getEmbedSettings($listingId);
+            if (!($embedSettings['codes_submit_enabled'] ?? true)) {
+                return Response::notFound('Code donations are not enabled for this listing.');
+            }
+
+            $codesSubmitPage = (string) ($embedSettings['form_url_codes_submit'] ?? '');
+            $submitUrl = $codesSubmitPage !== ''
+                ? rtrim((string) $listing->url, '/') . '/' . ltrim($codesSubmitPage, '/')
+                : $baseUrl . '/codes/submit/' . $listingId;
         }
 
-        $embedSettings = $settingsRepo->getEmbedSettings($listingId);
-        if (!($embedSettings['codes_submit_enabled'] ?? true)) {
-            return Response::notFound('Code donations are not enabled for this listing.');
-        }
-
-        $codesSubmitPage = (string) ($embedSettings['form_url_codes_submit'] ?? '');
-        $submitUrl = $codesSubmitPage !== ''
-            ? rtrim((string) $listing->url, '/') . '/' . ltrim($codesSubmitPage, '/')
-            : $baseUrl . '/codes/submit/' . $listingId;
-
-        $ip        = (string) ($request->server('REMOTE_ADDR') ?? '');
+        $ip        = $request->ip();
         $rateLimit = new RateLimit($db);
 
         // Rate limiting
@@ -131,6 +147,7 @@ final class CodesSubmitController
         // Validate captcha
         $captchaAnswer = (string) $request->post('captcha', '');
         if (!Captcha::validate($captchaAnswer, 'code_submit')) {
+            $rateLimit->hitDefault($ip, RateLimit::ACTION_PUBLIC_CODE_SUBMIT);
             $session->set('lstr_flash_error', 'Incorrect answer to the anti-spam question. Please try again.');
             $session->set('lstr_flash_old', [
                 'submitter_name'  => $request->post('submitter_name',  ''),
@@ -184,8 +201,11 @@ final class CodesSubmitController
             }
         }
 
-        // Validate URL if provided
-        if ($submitterUrl !== null && filter_var($submitterUrl, FILTER_VALIDATE_URL) === false) {
+        // Validate URL if provided (http/https only)
+        if ($submitterUrl !== null && (
+            filter_var($submitterUrl, FILTER_VALIDATE_URL) === false
+            || !in_array(parse_url($submitterUrl, PHP_URL_SCHEME), ['http', 'https'], true)
+        )) {
             $session->set('lstr_flash_error', 'Please enter a valid website URL (e.g. https://example.com).');
             $session->set('lstr_flash_old', [
                 'submitter_name'  => $submitterName  ?? '',
@@ -291,11 +311,12 @@ final class CodesSubmitController
             return Response::redirect($submitUrl);
         }
 
-        $codesRepo = new CodesRepo($db);
-        $sortOrder = $codesRepo->getMaxSortOrder($listingId);
+        $codesRepo  = new CodesRepo($db);
+        $insertId   = $isCollective ? null : $listingId;
+        $sortOrder  = $codesRepo->getMaxSortOrder($insertId);
 
         $codesRepo->insert(
-            $listingId,
+            $insertId,
             $newFilename,
             $width,
             $height,
@@ -320,25 +341,34 @@ final class CodesSubmitController
 
     public function thanks(Request $request, array $params): Response
     {
-        $listingId = (int) ($params['id'] ?? 0);
+        $listingId    = (int) ($params['id'] ?? 0);
+        $isCollective = ($listingId === 0);
 
         $db     = $this->app->getDatabase();
         $config = $this->app->getConfig();
-
-        $listingRepo = new ListingRepo($db, $config);
-        $listing     = $listingRepo->getById($listingId);
-
-        if ($listing === null) {
-            return Response::notFound('Listing not found.');
-        }
-
         $baseUrl = $this->app->getBaseUrl();
+
+        if ($isCollective) {
+            $listing     = null;
+            $listingName = (string) ($config->get('app_name', '') ?: 'Collective');
+            $listingUrl  = '';
+        } else {
+            $listingRepo = new ListingRepo($db, $config);
+            $listing     = $listingRepo->getById($listingId);
+
+            if ($listing === null) {
+                return Response::notFound('Listing not found.');
+            }
+
+            $listingName = $listing->title;
+            $listingUrl  = $listing->url ?? '';
+        }
 
         return Response::html($this->app->getView()->renderPublic('codes-submit.php', [
             'listing'          => $listing,
-            'listing_name'     => $listing->title,
-            'listing_url'      => $listing->url ?? '',
-            'page_title'       => 'Thanks! — ' . $listing->title,
+            'listing_name'     => $listingName,
+            'listing_url'      => $listingUrl,
+            'page_title'       => 'Thanks! — ' . $listingName,
             'base_url'         => $baseUrl,
             'theme_path'       => $baseUrl . '/assets/default',
             'form_action'      => $baseUrl . '/codes/submit/' . $listingId,

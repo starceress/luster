@@ -11,28 +11,22 @@ use Luster\Repositories\ListingRepo;
  * Luster embed — codes fragment.
  *
  * Usage in your own page:
- *   $luster_fanlisting_id = 1;     // required: listing ID (int)
+ *   $luster_fanlisting_id = 1;     // listing ID; omit or set to 0 for collective codes
  *   $luster_return        = false;  // optional: true = return string, false = echo
  *   require '/absolute/path/to/luster/public/embed/codes.php';
  *
- * Renders the codes for the given listing as a content fragment grouped by
- * detected dimensions, with no layout wrapper.
+ * Renders the codes as a content fragment grouped by detected dimensions,
+ * with no layout wrapper. Set $luster_fanlisting_id = 0 (or leave unset) for
+ * collective-wide codes where fanlisting_id IS NULL in lstr_codes.
  */
 
 // ---------------------------------------------------------------------------
-// 1. Validate required variable
+// 1. Resolve listing ID / collective mode
 // ---------------------------------------------------------------------------
 
-$_lusterListingId = (int) ($luster_fanlisting_id ?? 0);
-
-if ($_lusterListingId === 0) {
-    $_lusterHtml = '<p class="fl-errors">Luster embed error: <code>$luster_fanlisting_id</code> is not set.</p>';
-    if ($luster_return ?? false) {
-        return $_lusterHtml;
-    }
-    echo $_lusterHtml;
-    return;
-}
+$_lusterRawListingId = isset($luster_fanlisting_id) ? (int) $luster_fanlisting_id : 0;
+$_lusterIsCollective = ($_lusterRawListingId === 0);
+$_lusterListingId    = $_lusterIsCollective ? null : $_lusterRawListingId;
 
 // ---------------------------------------------------------------------------
 // 2. Bootstrap Luster
@@ -56,22 +50,32 @@ $_lusterApp = require $_lusterRoot . '/bootstrap.php';
 $_lusterApp->getSession()->start();
 
 // ---------------------------------------------------------------------------
-// 3. Load data
+// 3. Load listing (or collective identity)
 // ---------------------------------------------------------------------------
 
-$_lusterListingRepo = new ListingRepo($_lusterApp->getDatabase(), $_lusterApp->getConfig());
-$_lusterListing     = $_lusterListingRepo->getById($_lusterListingId);
+$_lusterDb = $_lusterApp->getDatabase();
 
-if ($_lusterListing === null) {
-    $_lusterHtml = '<p class="fl-errors">Luster embed error: listing #' . $_lusterListingId . ' not found.</p>';
-    if ($luster_return ?? false) {
-        return $_lusterHtml;
+if ($_lusterIsCollective) {
+    $_lusterListing     = null;
+    $_lusterListingName = (string) ($_lusterApp->getConfig()->get('app_name', '') ?: 'Collective');
+    $_lusterListingUrl  = '';
+} else {
+    $_lusterListingRepo = new ListingRepo($_lusterDb, $_lusterApp->getConfig());
+    $_lusterListing     = $_lusterListingRepo->getById($_lusterListingId);
+
+    if ($_lusterListing === null) {
+        $_lusterHtml = '<p class="fl-errors">Luster embed error: listing #' . $_lusterListingId . ' not found.</p>';
+        if ($luster_return ?? false) {
+            return $_lusterHtml;
+        }
+        echo $_lusterHtml;
+        return;
     }
-    echo $_lusterHtml;
-    return;
+
+    $_lusterListingName = $_lusterListing->title;
+    $_lusterListingUrl  = $_lusterListing->url;
 }
 
-$_lusterDb          = $_lusterApp->getDatabase();
 $_lusterCodesRepo   = new CodesRepo($_lusterDb);
 $_lusterCatsRepo    = new CodeCategoriesRepo($_lusterDb);
 $_lusterDonorsRepo  = new CodeDonorsRepo($_lusterDb);
@@ -91,20 +95,9 @@ foreach ($_lusterCategories as $_cat) {
     $_lusterCategoryMap[$_cat->id] = $_cat;
 }
 
-// Separate donated codes (fan-submitted OR assigned to a donor) from regular codes
-$_lusterDonated = [];
-$_lusterRegular = [];
-foreach ($_lusterCodes as $_lc) {
-    if ($_lc->submitterName !== null || $_lc->donorId !== null) {
-        $_lusterDonated[] = $_lc;
-    } else {
-        $_lusterRegular[] = $_lc;
-    }
-}
-
-// Auto-group regular codes by detected dimensions; unknown dimensions last
+// Group all codes by detected dimensions (donated codes sorted in with the rest)
 $_lusterGrouped = [];
-foreach ($_lusterRegular as $_lc) {
+foreach ($_lusterCodes as $_lc) {
     if ($_lc->width > 0 && $_lc->height > 0) {
         $_lKey   = (int) $_lc->width . 'x' . (int) $_lc->height;
         $_lLabel = (int) $_lc->width . '×' . (int) $_lc->height . 'px';
@@ -134,11 +127,10 @@ $_lusterUploadsUrl = $_lusterBaseUrl . '/uploads/codes';
 
 $_lusterHtml = $_lusterApp->getView()->renderFragment('codes.php', [
     'listing'      => $_lusterListing,
-    'listing_name' => $_lusterListing->name,
-    'listing_url'  => $_lusterListing->url,
+    'listing_name' => $_lusterListingName,
+    'listing_url'  => $_lusterListingUrl,
     'page_title'   => 'Codes',
     'codes'        => $_lusterCodes,
-    'donated'      => $_lusterDonated,
     'grouped'      => $_lusterGrouped,
     'categories'   => $_lusterCategories,
     'cat_map'      => $_lusterCatMap,
@@ -146,17 +138,27 @@ $_lusterHtml = $_lusterApp->getView()->renderFragment('codes.php', [
     'donors'       => $_lusterDonors,
     'donor_map'    => $_lusterDonorMap,
     'uploads_url'  => $_lusterUploadsUrl,
-    'join_url'     => $_lusterBaseUrl . '/join/' . $_lusterListingId,
+    'join_url'     => $_lusterIsCollective ? '' : $_lusterBaseUrl . '/join/' . $_lusterListingId,
     'base_url'     => $_lusterBaseUrl,
     'theme_path'   => $_lusterBaseUrl . '/assets/default/',
 ]);
 
-// Conditionally append the code donation form if enabled for this listing.
-$_lusterEmbedSettings = (new \Luster\Repositories\ListingSettingsRepo($_lusterApp->getDatabase()))
-    ->getEmbedSettings($_lusterListingId);
-if ($_lusterEmbedSettings['codes_submit_enabled'] ?? true) {
-    $luster_return = true;
-    $_lusterHtml .= (string) require __DIR__ . '/codes-submit.php';
+// Conditionally append the code donation form if enabled.
+// Set $luster_append_submit = false before require to suppress this (e.g. when you
+// have a dedicated codes-submit page and don't want the form duplicated here).
+// NOTE: codes-submit.php is required in the same scope and reassigns $_lusterHtml,
+// so we save the gallery output and restore $luster_return after the sub-require.
+$_lusterEmbedSettings = $_lusterIsCollective
+    ? []
+    : (new \Luster\Repositories\ListingSettingsRepo($_lusterApp->getDatabase()))
+        ->getEmbedSettings($_lusterListingId);
+if (($luster_append_submit ?? true) && ($_lusterEmbedSettings['codes_submit_enabled'] ?? true)) {
+    $_lusterGalleryHtml  = $_lusterHtml;
+    $_lusterReturnOrig   = $luster_return ?? false;
+    $luster_return       = true;   // make codes-submit.php return, not echo
+    $_lusterSubmitHtml   = (string) require __DIR__ . '/codes-submit.php';
+    $_lusterHtml         = $_lusterGalleryHtml . $_lusterSubmitHtml;
+    $luster_return       = $_lusterReturnOrig; // restore so the outer embed behaves correctly
 }
 
 if ($luster_return ?? false) {

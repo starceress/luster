@@ -214,7 +214,7 @@ $_lusterHtml = str_replace(
         (string) $_lusterPending,
         $_lusterNewMembersStr,
         $_lusterGrowth . ' members/day',
-        htmlspecialchars($_lusterListing->name, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),
+        htmlspecialchars($_lusterListing->title, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),
         htmlspecialchars($_lusterListing->url,  ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),
         $_lusterApprovedByHtml,
     ],

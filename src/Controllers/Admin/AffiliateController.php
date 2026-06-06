@@ -248,7 +248,7 @@ final class AffiliateController extends AdminController
 
             $v = new Validator(['name' => $name, 'url' => $url]);
             $v->field('name')->required()->maxLength(255);
-            $v->field('url')->required()->url()->maxLength(500);
+            $v->field('url')->required()->httpUrl()->maxLength(500);
 
             $siteName  = (string) ($this->app->getConfig()->get('site_name', 'Collective'));
             $allErrors = $v->fails() ? $v->allErrors() : [];
@@ -260,7 +260,7 @@ final class AffiliateController extends AdminController
                 // tmp file was never moved — PHP cleans it up automatically
                 if ($contextFid > 0) {
                     $session->set('lstr_flash_error', implode(' ', $allErrors));
-                    return Response::redirect($baseUrl . '/admin/listings/' . $contextFid . '?tab=affiliates');
+                    return Response::redirect($baseUrl . '/admin/listings/' . $contextFid . '/edit?tab=affiliates');
                 }
                 return $this->adminLayout('admin/affiliates/add.php', 'Add Affiliate', 'affiliates', [
                     'listings'     => $listings,
@@ -285,7 +285,7 @@ final class AffiliateController extends AdminController
                 if (!move_uploaded_file($pendingMove['tmp'], $dir . $pendingMove['filename'])) {
                     $session->set('lstr_flash_error', 'Could not save the uploaded image. Please try again.');
                     if ($contextFid > 0) {
-                        return Response::redirect($baseUrl . '/admin/listings/' . $contextFid . '?tab=affiliates');
+                        return Response::redirect($baseUrl . '/admin/listings/' . $contextFid . '/edit?tab=affiliates');
                     }
                     return Response::redirect($baseUrl . '/admin/affiliates/add');
                 }
@@ -308,7 +308,7 @@ final class AffiliateController extends AdminController
             $session->set('lstr_flash_success', 'Affiliate added.');
 
             $redirect = $contextFid > 0
-                ? $baseUrl . '/admin/listings/' . $contextFid . '?tab=affiliates'
+                ? $baseUrl . '/admin/listings/' . $contextFid . '/edit?tab=affiliates'
                 : $baseUrl . '/admin/affiliates';
 
             return Response::redirect($redirect);
@@ -402,7 +402,7 @@ final class AffiliateController extends AdminController
 
             $v = new Validator(['name' => $name, 'url' => $url]);
             $v->field('name')->required()->maxLength(255);
-            $v->field('url')->required()->url()->maxLength(500);
+            $v->field('url')->required()->httpUrl()->maxLength(500);
 
             $siteName  = (string) ($this->app->getConfig()->get('site_name', 'Collective'));
             $allErrors = $v->fails() ? $v->allErrors() : [];

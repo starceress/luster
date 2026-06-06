@@ -113,9 +113,9 @@ $_lusterFormAction = $_lusterBaseUrl . '/adopt/' . $_lusterListingId;
 
 $_lusterHtml = $_lusterApp->getView()->renderFragment('adopt.php', [
     'listing'          => $_lusterListing,
-    'listing_name'     => $_lusterListing->name,
+    'listing_name'     => $_lusterListing->title,
     'listing_url'      => $_lusterListing->url,
-    'page_title'       => 'Adopt ' . $_lusterListing->name,
+    'page_title'       => 'Adopt ' . $_lusterListing->title,
     'form_action'      => $_lusterFormAction,
     'csrf_token'       => $_lusterApp->getCSRF()->token(),
     'errors'           => $_lusterError !== ''

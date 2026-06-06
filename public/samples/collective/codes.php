@@ -9,7 +9,8 @@ require 'header.php';
   <?= htmlspecialchars($site_name, ENT_QUOTES, 'UTF-8') ?>.</p>
 
   <?php
-  require('C:/xampp/htdocs/luster/public/embed/codes.php');
+  $luster_fanlisting_id = 0; // 0 = collective codes (fanlisting_id IS NULL); set to a listing ID for per-listing codes
+  require $luster_root . '/public/embed/codes.php';
   ?>
 
   <p style="margin-top:1.25rem">

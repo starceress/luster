@@ -25,17 +25,147 @@ final class CodesRepo
     // -----------------------------------------------------------------------
 
     /**
+     * Returns distinct size strings and donor names for codes in one listing.
+     * Used to populate the per-listing filter dropdowns.
+     *
+     * @return array{sizes: string[], donors: string[]}
+     */
+    /**
+     * Returns sizes and donor names (with counts) for a listing's codes.
+     * Used to populate the filter dropdowns on the per-listing Codes page.
+     *
+     * @return array{sizes: array<array{value:string,count:int}>, donors: array<array{value:string,count:int}>}
+     */
+    public function getListingFilterOptions(?int $listingId, ?string $status = null): array
+    {
+        $fidCond      = $listingId === null ? 'fanlisting_id IS NULL' : 'fanlisting_id = :fid';
+        $fidParams    = $listingId === null ? [] : ['fid' => $listingId];
+        $statusClause = $status !== null ? " AND status = " . $this->db->pdo()->quote($status) : '';
+
+        $sizeStmt = $this->db->prepare(
+            "SELECT CONCAT(width, 'x', height) AS size, COUNT(*) AS cnt
+             FROM lstr_codes WHERE {$fidCond} AND width > 0{$statusClause}
+             GROUP BY width, height ORDER BY width ASC, height ASC"
+        );
+        $sizeStmt->execute($fidParams);
+        $sizes = [];
+        foreach ($sizeStmt->fetchAll(\PDO::FETCH_ASSOC) as $row) {
+            $sizes[] = ['value' => $row['size'], 'count' => (int) $row['cnt']];
+        }
+
+        $donorStmt = $this->db->prepare(
+            "SELECT submitter_name, COUNT(*) AS cnt FROM lstr_codes
+             WHERE {$fidCond} AND submitter_name IS NOT NULL AND submitter_name != ''{$statusClause}
+             GROUP BY submitter_name ORDER BY submitter_name ASC"
+        );
+        $donorStmt->execute($fidParams);
+        $donors = [];
+        foreach ($donorStmt->fetchAll(\PDO::FETCH_ASSOC) as $row) {
+            $donors[] = ['value' => $row['submitter_name'], 'count' => (int) $row['cnt']];
+        }
+
+        return ['sizes' => $sizes, 'donors' => $donors];
+    }
+
+    /**
+     * Returns codes for a listing with optional size/donor/search filters.
+     *
+     * @param array{size?:string,donor?:string,search?:string} $filters
+     * @return object[]
+     */
+    public function getByListingFiltered(?int $listingId, ?string $status, array $filters): array
+    {
+        $conditions = [$listingId === null ? 'fanlisting_id IS NULL' : 'fanlisting_id = :fid'];
+        $params     = $listingId === null ? [] : ['fid' => $listingId];
+
+        if ($status !== null) {
+            $conditions[]    = 'status = :status';
+            $params['status'] = $status;
+        }
+
+        if (($filters['size'] ?? '') !== '') {
+            $parts = explode('x', (string) $filters['size'], 2);
+            if (count($parts) === 2 && ctype_digit($parts[0]) && ctype_digit($parts[1])) {
+                $conditions[] = 'width = :sw AND height = :sh';
+                $params['sw'] = (int) $parts[0];
+                $params['sh'] = (int) $parts[1];
+            }
+        }
+
+        if (($filters['donor'] ?? '') !== '') {
+            $conditions[] = 'submitter_name = :donor';
+            $params['donor'] = $filters['donor'];
+        }
+
+        if (($filters['search'] ?? '') !== '') {
+            $conditions[] = 'submitter_name LIKE :search';
+            $params['search'] = '%' . $filters['search'] . '%';
+        }
+
+        $where = 'WHERE ' . implode(' AND ', $conditions);
+        $stmt  = $this->db->prepare(
+            "SELECT id, fanlisting_id, name, filename, width, height, size_id, donor_id,
+                    sort_order, status, submitter_name, submitter_email, submitter_url, created_at
+             FROM lstr_codes {$where} ORDER BY sort_order ASC, id ASC"
+        );
+        $stmt->execute($params);
+
+        return array_map(static fn(array $r) => (object) [
+            'id'            => (int) $r['id'],
+            'fanlistingId'  => (int) $r['fanlisting_id'],
+            'name'          => $r['name'],
+            'filename'      => (string) $r['filename'],
+            'width'         => (int) $r['width'],
+            'height'        => (int) $r['height'],
+            'sizeId'        => isset($r['size_id'])  ? (int) $r['size_id']  : null,
+            'donorId'       => isset($r['donor_id']) ? (int) $r['donor_id'] : null,
+            'sortOrder'     => (int) $r['sort_order'],
+            'status'        => (string) $r['status'],
+            'submitterName' => $r['submitter_name'] ?? null,
+            'submitterEmail'=> $r['submitter_email'] ?? null,
+            'submitterUrl'  => $r['submitter_url']   ?? null,
+            'createdAt'     => $r['created_at']      ?? null,
+            // alias for template compatibility
+            'submitter_name'  => $r['submitter_name']  ?? null,
+            'submitter_email' => $r['submitter_email'] ?? null,
+            'submitter_url'   => $r['submitter_url']   ?? null,
+            'created_at'      => $r['created_at']      ?? null,
+            'fanlisting_id'   => (int) $r['fanlisting_id'],
+        ], $stmt->fetchAll(\PDO::FETCH_ASSOC));
+    }
+
+    /**
+     * Returns distinct submitter_name values recorded on a listing's codes,
+     * ordered alphabetically. Used to populate the upload panel "Past Submitters"
+     * optgroup so admins can attribute new uploads to an existing submitter.
+     *
+     * @return string[]
+     */
+    public function getSubmitterNamesForListing(?int $listingId): array
+    {
+        $fidCond = $listingId === null ? 'fanlisting_id IS NULL' : 'fanlisting_id = :fid';
+        $stmt = $this->db->prepare(
+            "SELECT DISTINCT submitter_name FROM lstr_codes
+             WHERE {$fidCond} AND submitter_name IS NOT NULL AND submitter_name != ''
+             ORDER BY submitter_name ASC"
+        );
+        $stmt->execute($listingId === null ? [] : ['fid' => $listingId]);
+        return array_column($stmt->fetchAll(), 'submitter_name');
+    }
+
+    /**
      * Returns codes for a listing, ordered by sort_order then id.
      * Pass a status string to filter to that status only; null returns all.
      *
      * @return object[]
      */
-    public function getByListing(int $listingId, ?string $status = null): array
+    public function getByListing(?int $listingId, ?string $status = null): array
     {
-        $sql    = 'SELECT id, fanlisting_id, name, filename, width, height, size_id, donor_id, sort_order, status, submitter_name, submitter_email, submitter_url, created_at
+        $fidCond = $listingId === null ? 'fanlisting_id IS NULL' : 'fanlisting_id = :fid';
+        $sql    = "SELECT id, fanlisting_id, name, filename, width, height, size_id, donor_id, sort_order, status, submitter_name, submitter_email, submitter_url, created_at
                    FROM lstr_codes
-                   WHERE fanlisting_id = :fid';
-        $params = ['fid' => $listingId];
+                   WHERE {$fidCond}";
+        $params = $listingId === null ? [] : ['fid' => $listingId];
 
         if ($status !== null) {
             $sql             .= ' AND status = :status';
@@ -102,24 +232,26 @@ final class CodesRepo
     /**
      * Returns the total number of codes for a listing.
      */
-    public function countByListing(int $listingId): int
+    public function countByListing(?int $listingId): int
     {
+        $fidCond = $listingId === null ? 'fanlisting_id IS NULL' : 'fanlisting_id = :fid';
         $stmt = $this->db->prepare(
-            'SELECT COUNT(*) FROM lstr_codes WHERE fanlisting_id = :fid'
+            "SELECT COUNT(*) FROM lstr_codes WHERE {$fidCond}"
         );
-        $stmt->execute(['fid' => $listingId]);
+        $stmt->execute($listingId === null ? [] : ['fid' => $listingId]);
         return (int) $stmt->fetchColumn();
     }
 
     /**
      * Returns the number of pending codes for a listing.
      */
-    public function countPendingByListing(int $listingId): int
+    public function countPendingByListing(?int $listingId): int
     {
+        $fidCond = $listingId === null ? 'fanlisting_id IS NULL' : 'fanlisting_id = :fid';
         $stmt = $this->db->prepare(
-            "SELECT COUNT(*) FROM lstr_codes WHERE fanlisting_id = :fid AND status = 'pending'"
+            "SELECT COUNT(*) FROM lstr_codes WHERE {$fidCond} AND status = 'pending'"
         );
-        $stmt->execute(['fid' => $listingId]);
+        $stmt->execute($listingId === null ? [] : ['fid' => $listingId]);
         return (int) $stmt->fetchColumn();
     }
 
@@ -142,6 +274,25 @@ final class CodesRepo
     }
 
     /**
+     * Returns approved code count per listing, keyed by fanlisting_id.
+     * Used to populate the listing selector dropdown on the global Codes page.
+     *
+     * @return array<int, int>
+     */
+    public function countApprovedPerListing(): array
+    {
+        $stmt = $this->db->prepare(
+            "SELECT fanlisting_id, COUNT(*) AS cnt FROM lstr_codes WHERE status = 'approved' GROUP BY fanlisting_id"
+        );
+        $stmt->execute();
+        $counts = [];
+        foreach ($stmt->fetchAll(\PDO::FETCH_ASSOC) as $row) {
+            $counts[(int) $row['fanlisting_id']] = (int) $row['cnt'];
+        }
+        return $counts;
+    }
+
+    /**
      * Returns total pending code count across ALL listings.
      * Used for the sidebar badge and the global Codes page.
      */
@@ -153,23 +304,93 @@ final class CodesRepo
     }
 
     /**
-     * Returns a paginated slice of pending codes across all listings,
-     * newest first, with their listing ID for display.
+     * Returns sizes and donor names (with counts) for pending codes across all listings.
+     * Used to populate the filter dropdowns on the global Codes page.
      *
+     * @return array{sizes: array<array{value:string,count:int}>, donors: array<array{value:string,count:int}>}
+     */
+    public function getPendingFilterOptions(): array
+    {
+        $sizeStmt = $this->db->prepare(
+            "SELECT CONCAT(width, 'x', height) AS size, COUNT(*) AS cnt
+             FROM lstr_codes WHERE status = 'pending' AND width > 0
+             GROUP BY width, height ORDER BY width ASC, height ASC"
+        );
+        $sizeStmt->execute();
+        $sizes = [];
+        foreach ($sizeStmt->fetchAll(\PDO::FETCH_ASSOC) as $row) {
+            $sizes[] = ['value' => $row['size'], 'count' => (int) $row['cnt']];
+        }
+
+        $donorStmt = $this->db->prepare(
+            "SELECT submitter_name, COUNT(*) AS cnt FROM lstr_codes
+             WHERE status = 'pending' AND submitter_name IS NOT NULL AND submitter_name != ''
+             GROUP BY submitter_name ORDER BY submitter_name ASC"
+        );
+        $donorStmt->execute();
+        $donors = [];
+        foreach ($donorStmt->fetchAll(\PDO::FETCH_ASSOC) as $row) {
+            $donors[] = ['value' => $row['submitter_name'], 'count' => (int) $row['cnt']];
+        }
+
+        return ['sizes' => $sizes, 'donors' => $donors];
+    }
+
+    /**
+     * Returns a paginated slice of pending codes across all listings with optional filters.
+     * Filters: size (WxH string), donor (submitter_name), search (listing subject/title or submitter_name).
+     *
+     * @param array{size?:string,donor?:string,search?:string,listing_id?:int} $filters
      * @return array{items: object[], total: int, pages: int}
      */
-    public function getPendingAllPaginated(int $perPage, int $page): array
+    public function getPendingAllPaginated(int $perPage, int $page, array $filters = []): array
     {
-        $total  = $this->countPendingAll();
+        $conditions = ["status = 'pending'"];
+        $params     = [];
+
+        if (($filters['listing_id'] ?? 0) > 0) {
+            $conditions[] = 'fanlisting_id = :fid';
+            $params['fid'] = (int) $filters['listing_id'];
+        }
+
+        if (($filters['size'] ?? '') !== '') {
+            $parts = explode('x', (string) $filters['size'], 2);
+            if (count($parts) === 2 && ctype_digit($parts[0]) && ctype_digit($parts[1])) {
+                $conditions[] = 'width = :sw AND height = :sh';
+                $params['sw'] = (int) $parts[0];
+                $params['sh'] = (int) $parts[1];
+            }
+        }
+
+        if (($filters['donor'] ?? '') !== '') {
+            $conditions[] = 'submitter_name = :donor';
+            $params['donor'] = $filters['donor'];
+        }
+
+        if (($filters['search'] ?? '') !== '') {
+            // Search matches submitter_name or is matched against listing names by the caller
+            $conditions[] = '(submitter_name LIKE :search OR submitter_url LIKE :search2)';
+            $params['search']  = '%' . $filters['search'] . '%';
+            $params['search2'] = '%' . $filters['search'] . '%';
+        }
+
+        $where = 'WHERE ' . implode(' AND ', $conditions);
+
+        $countStmt = $this->db->prepare("SELECT COUNT(*) FROM lstr_codes {$where}");
+        $countStmt->execute($params);
+        $total  = (int) $countStmt->fetchColumn();
         $pages  = max(1, (int) ceil($total / $perPage));
         $page   = min($page, $pages);
         $offset = ($page - 1) * $perPage;
 
         $stmt = $this->db->prepare(
-            "SELECT * FROM lstr_codes WHERE status = 'pending'
+            "SELECT * FROM lstr_codes {$where}
              ORDER BY created_at DESC, id DESC
              LIMIT :limit OFFSET :offset"
         );
+        foreach ($params as $key => $val) {
+            $stmt->bindValue(':' . $key, $val);
+        }
         $stmt->bindValue(':limit',  $perPage, \PDO::PARAM_INT);
         $stmt->bindValue(':offset', $offset,  \PDO::PARAM_INT);
         $stmt->execute();
@@ -223,12 +444,13 @@ final class CodesRepo
     /**
      * Returns the highest sort_order value for a listing (0 if none exist).
      */
-    public function getMaxSortOrder(int $listingId): int
+    public function getMaxSortOrder(?int $listingId): int
     {
+        $fidCond = $listingId === null ? 'fanlisting_id IS NULL' : 'fanlisting_id = :fid';
         $stmt = $this->db->prepare(
-            'SELECT COALESCE(MAX(sort_order), 0) FROM lstr_codes WHERE fanlisting_id = :fid'
+            "SELECT COALESCE(MAX(sort_order), 0) FROM lstr_codes WHERE {$fidCond}"
         );
-        $stmt->execute(['fid' => $listingId]);
+        $stmt->execute($listingId === null ? [] : ['fid' => $listingId]);
         return (int) $stmt->fetchColumn();
     }
 
@@ -240,7 +462,7 @@ final class CodesRepo
      * Inserts a new code record and returns its new ID.
      */
     public function insert(
-        int     $listingId,
+        ?int    $listingId,
         string  $filename,
         int     $width,
         int     $height,
@@ -320,6 +542,22 @@ final class CodesRepo
             'UPDATE lstr_codes SET submitter_url = :url WHERE id = :id'
         );
         $stmt->execute(['url' => $url, 'id' => $id]);
+    }
+
+    public function updateSubmitterName(int $id, ?string $name): void
+    {
+        $stmt = $this->db->prepare(
+            'UPDATE lstr_codes SET submitter_name = :name WHERE id = :id'
+        );
+        $stmt->execute(['name' => $name, 'id' => $id]);
+    }
+
+    public function updateSubmitterEmail(int $id, ?string $email): void
+    {
+        $stmt = $this->db->prepare(
+            'UPDATE lstr_codes SET submitter_email = :email WHERE id = :id'
+        );
+        $stmt->execute(['email' => $email, 'id' => $id]);
     }
 
     /**

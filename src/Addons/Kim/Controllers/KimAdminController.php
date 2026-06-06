@@ -8,6 +8,7 @@ use Luster\Addons\Kim\KimMember;
 use Luster\Addons\Kim\KimMemberRepo;
 use Luster\Controllers\Admin\AdminController;
 use Luster\Core\Mailer;
+use Luster\Core\PasswordPolicy;
 use Luster\Core\Request;
 use Luster\Core\Response;
 use Luster\Core\Validator;
@@ -318,7 +319,7 @@ final class KimAdminController extends AdminController
         ]);
         $v->field('name')->required()->maxLength(100);
         $v->field('email')->required()->email()->maxLength(255);
-        $v->field('url')->url()->maxLength(500);
+        $v->field('url')->httpUrl()->maxLength(500);
         $v->field('fanlisting_id')->required();
 
         $validationFailed = $v->fails();
@@ -345,8 +346,10 @@ final class KimAdminController extends AdminController
         $newPasswordConfirm = (string) $request->post('new_password_confirm', '');
 
         if ($newPassword !== '') {
-            if (strlen($newPassword) < 8) {
-                $session->set('lstr_flash_error', 'New password must be at least 8 characters.');
+            $pwv = new Validator(['new_password' => $newPassword]);
+            PasswordPolicy::applyOptional($pwv->field('new_password'), $newPassword);
+            if ($pwv->fails()) {
+                $session->set('lstr_flash_error', implode(' ', $pwv->allErrors()));
                 return Response::redirect($baseUrl . '/admin/kim/' . $memberId . '/edit');
             }
             if ($newPassword !== $newPasswordConfirm) {

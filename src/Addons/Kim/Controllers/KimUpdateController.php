@@ -70,6 +70,7 @@ final class KimUpdateController
 
         // Captcha validate — re-render on failure
         if (!Captcha::validate((string) $request->post('captcha_answer', ''), 'kim_update')) {
+            $rateLimit->hitDefault($ip, 'kim_update');
             $old = [
                 'name'          => trim((string) $request->post('name',           '')),
                 'current_email' => trim((string) $request->post('current_email',  '')),

@@ -72,6 +72,7 @@ final class KimSignupController
         // Captcha validate — re-render on failure (no redirect, fresh question shown)
         $captchaOk = Captcha::validate((string) $request->post('captcha_answer', ''), 'kim_signup');
         if (!$captchaOk) {
+            $rateLimit->hitDefault($ip, 'kim_signup');
             $old = [
                 'name'         => trim((string) $request->post('name',         '')),
                 'email'        => trim((string) $request->post('email',        '')),
@@ -98,7 +99,7 @@ final class KimSignupController
         ]);
         $v->field('name')->required()->maxLength(100);
         $v->field('email')->required()->email()->maxLength(255);
-        $v->field('url')->required()->url()->maxLength(500);
+        $v->field('url')->required()->httpUrl()->maxLength(500);
         $v->field('fanlisting_id')->required();
 
         $validationFailed = $v->fails();

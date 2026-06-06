@@ -59,9 +59,7 @@ final class PublicCategoryPresenterTest extends TestCase
             browseMode: false, browseShowAll: false,
         );
 
-        // Slug-based links use ?category= to avoid numeric ID ambiguity
-        self::assertStringContainsString('?category=anime', $result['html']);
-        self::assertStringNotContainsString('?cat=anime', $result['html']);
+        self::assertStringContainsString('?cat=anime', $result['html']);
     }
 
     public function testListModeFallsBackToIdWhenNoSlug(): void

@@ -82,7 +82,7 @@ if ($_lusterListingId > 0) {
     $_lusterResult      = $_lusterAffiliateRepo->getActiveByListing($_lusterListingId, $_lusterPerPage, $_lusterPage);
     $_lusterIsCollective = false;
     $_lusterJoinUrl      = $_lusterBaseUrl . '/join/' . $_lusterListingId;
-    $_lusterTitle        = $_lusterListing->name;
+    $_lusterTitle        = $_lusterListing->title;
 } else {
     // Collective mode
     $_lusterListing   = null;

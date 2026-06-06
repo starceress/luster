@@ -143,7 +143,7 @@ final class AffiliateApplyController
 
         $v = new Validator($request->postAll());
         $v->field('name')->required()->maxLength(200);
-        $v->field('url')->required()->url()->maxLength(500);
+        $v->field('url')->required()->httpUrl()->maxLength(500);
         $v->field('email')->email()->maxLength(255);
         $v->field('message')->maxLength(2000);
 
@@ -297,7 +297,7 @@ final class AffiliateApplyController
 
         $v = new Validator($request->postAll());
         $v->field('name')->required()->maxLength(200);
-        $v->field('url')->required()->url()->maxLength(500);
+        $v->field('url')->required()->httpUrl()->maxLength(500);
         $v->field('email')->email()->maxLength(255);
         $v->field('message')->maxLength(2000);
 
@@ -387,7 +387,7 @@ final class AffiliateApplyController
             'base_url'         => $baseUrl,
             'theme_path'       => $baseUrl . '/assets/default/',
             'form_action'      => $this->collectiveFormUrl($config, $baseUrl),
-            'csrf_token'       => $this->app->getCsrf()->getToken(),
+            'csrf_token'       => $this->app->getCSRF()->token(),
             'captcha_question' => $captchaQuestion,
             'captcha_error'    => '',
             'errors'           => $error,
@@ -431,7 +431,7 @@ final class AffiliateApplyController
             'base_url'         => $this->app->getBaseUrl(),
             'theme_path'       => rtrim((string) $listing->url, '/') . '/' . ltrim((string) ($embedSettings['theme_path'] ?? 'theme'), '/'),
             'form_action'      => $formUrl,
-            'csrf_token'       => $this->app->getCsrf()->getToken(),
+            'csrf_token'       => $this->app->getCSRF()->token(),
             'captcha_question' => $captchaQuestion,
             'captcha_error'    => '',
             'errors'           => $error,

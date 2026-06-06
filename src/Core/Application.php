@@ -185,7 +185,7 @@ final class Application
      * Returns global nav data for admin layout templates.
      * Lazily computed once per request and cached on the instance.
      *
-     * @return array{nav_pending_members: int, nav_pending_kim: int, nav_pending_adoptions: int, nav_site_url: string, nav_installed_addons: array, selected_skin: string}
+     * @return array{nav_pending_members: int, nav_pending_kim: int, nav_pending_adoptions: int, nav_pending_codes: int, nav_pending_affiliates: int, nav_site_url: string, nav_installed_addons: array, selected_skin: string}
      */
     public function getAdminNavData(): array
     {
@@ -219,6 +219,11 @@ final class Application
         $pendingCodes = 0;
         try {
             $pendingCodes = (new \Luster\Repositories\CodesRepo($this->database))->countPendingAll();
+        } catch (\Throwable) {}
+
+        $pendingAffiliates = 0;
+        try {
+            $pendingAffiliates = (new \Luster\Repositories\AffiliateRepo($this->database))->getPendingCount();
         } catch (\Throwable) {}
 
         $navLcDead     = 0;
@@ -278,10 +283,11 @@ final class Application
         } catch (\Throwable) {}
 
         $cache = [
-            'nav_pending_members'   => $pending,
-            'nav_pending_kim'       => $pendingKim,
-            'nav_pending_adoptions' => $pendingAdoptions,
+            'nav_pending_members'    => $pending,
+            'nav_pending_kim'        => $pendingKim,
+            'nav_pending_adoptions'  => $pendingAdoptions,
             'nav_pending_codes'      => $pendingCodes,
+            'nav_pending_affiliates' => $pendingAffiliates,
             'nav_lc_dead'           => $navLcDead,
             'nav_lc_redirect'       => $navLcRedirect,
             'nav_site_url'          => rtrim((string) $this->config->get('site_url', ''), '/'),

@@ -247,6 +247,7 @@ function showConfirmBar(anchorEl, message, onConfirm) {
   bar.querySelector('.confirm-bar-yes').addEventListener('click', function () {
     if (bar.parentNode) bar.remove();
     document.removeEventListener('keydown', onKey);
+    anchorEl.style.display = '';
     onConfirm();
   });
 
@@ -258,6 +259,35 @@ function showConfirmBar(anchorEl, message, onConfirm) {
   // Focus Cancel so Escape works immediately without a mouse move
   bar.querySelector('.confirm-bar-no').focus();
 }
+
+// Per-listing "Approve All" buttons in the global pending view.
+// These must NOT use nested <form> elements (invalid HTML — browsers submit the
+// wrong outer form), so they are type="button" elements that create and submit
+// a temporary form programmatically.
+(function () {
+  function addInput(form, name, value) {
+    var inp = document.createElement('input');
+    inp.type = 'hidden'; inp.name = name; inp.value = value;
+    form.appendChild(inp);
+  }
+
+  document.querySelectorAll('[data-global-approve-listing]').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var count = btn.dataset.globalApproveCount || '?';
+      showConfirmBar(btn, 'Approve all ' + count + ' pending donation(s) for this listing?', function () {
+        var form = document.createElement('form');
+        form.method = 'POST';
+        form.action = btn.dataset.globalApproveUrl;
+        form.style.display = 'none';
+        addInput(form, '_csrf',       btn.dataset.globalApproveCsrf);
+        addInput(form, 'listing_id',  btn.dataset.globalApproveListing);
+        addInput(form, '_tab',        'pending');
+        document.body.appendChild(form);
+        form.submit();
+      });
+    });
+  });
+}());
 
 document.addEventListener('submit', function (e) {
   var form = e.target;
@@ -2743,8 +2773,14 @@ document.addEventListener('click', function (e) {
   var pendingAction = scope.querySelector('[data-codes-pending-action]');
   var filterLinks   = Array.from(scope.querySelectorAll('[data-code-filter]'));
   var groups        = Array.from(scope.querySelectorAll('[data-code-group]'));
-  var activeFilter  = root && (root.getAttribute('data-initial-code-filter') || '').trim() === 'pending' ? 'pending' : '';
+  var _initFilter   = root ? (root.getAttribute('data-initial-code-filter') || '').trim() : '';
+  var _knownFilters = ['pending', 'approved', 'rejected'];
+  var activeFilter  = _knownFilters.indexOf(_initFilter) >= 0 ? _initFilter : '';
   var selAll        = document.getElementById('codes-select-all');
+  // When the codes browser is on its own page (/admin/codes?listing_id=X),
+  // data-codes-base-url carries the canonical base URL for filter links and
+  // history.replaceState updates. Without it, the edit-tab default applies.
+  var codesBaseUrl  = root && root.getAttribute('data-codes-base-url') || null;
 
   function getVisibleChecks() {
     return Array.from(scope.querySelectorAll('.code-check')).filter(function (cb) {
@@ -2761,8 +2797,42 @@ document.addEventListener('click', function (e) {
     selAll.indeterminate = checked.length > 0 && checked.length < visible.length;
   }
 
+  function updateBulkActions(filter) {
+    if (!bulkSel) return;
+    var saved = bulkSel.value;
+    var hasCatsOpt = !!document.getElementById('bulk-cats-wrap');
+    while (bulkSel.options.length > 1) { bulkSel.remove(1); }
+    function addOpt(val, label) {
+      var opt = document.createElement('option');
+      opt.value = val; opt.textContent = label;
+      bulkSel.appendChild(opt);
+    }
+    if (filter === 'approved') {
+      addOpt('reject', 'Reject');
+      addOpt('delete', 'Delete');
+    } else if (filter === 'pending') {
+      addOpt('approve', 'Approve');
+      addOpt('reject', 'Reject');
+      addOpt('delete', 'Delete');
+    } else if (filter === 'rejected') {
+      addOpt('approve', 'Approve');
+      addOpt('delete', 'Delete');
+    } else {
+      addOpt('delete', 'Delete');
+      addOpt('approve', 'Approve');
+      addOpt('reject', 'Reject');
+    }
+    if (hasCatsOpt) { addOpt('categorize', 'Add to Categories…'); }
+    if (Array.from(bulkSel.options).some(function (o) { return o.value === saved; })) {
+      bulkSel.value = saved;
+    }
+    var catsWrapEl = document.getElementById('bulk-cats-wrap');
+    if (catsWrapEl && bulkSel.value !== 'categorize') { catsWrapEl.style.display = 'none'; }
+  }
+
   function applyCodeFilter(nextFilter, updateUrl) {
-    activeFilter = nextFilter === 'pending' ? 'pending' : '';
+    var _known = ['pending', 'approved', 'rejected'];
+    activeFilter = _known.indexOf(nextFilter) >= 0 ? nextFilter : 'approved';
 
     filterLinks.forEach(function (link) {
       if (!link.classList.contains('tabs-btn')) return;
@@ -2793,32 +2863,58 @@ document.addEventListener('click', function (e) {
     });
 
     if (filterEmpty) {
-      filterEmpty.classList.toggle('is-hidden', totalVisible > 0 || activeFilter === '');
+      filterEmpty.classList.toggle('is-hidden', totalVisible > 0);
     }
     if (pendingBanner && pendingAction) {
-      if (activeFilter === 'pending') {
-        if (pendingTitle) pendingTitle.textContent = 'Showing pending codes';
-        if (pendingMsg) pendingMsg.textContent = 'Only pending codes are visible right now.';
-        pendingAction.textContent = '\u2190 Show all codes';
-        pendingAction.setAttribute('data-code-filter', '');
-        pendingAction.setAttribute('href', '?tab=codes');
+      if (codesBaseUrl !== null) {
+        // Standalone codes page: use the listing-scoped base URL
+        if (activeFilter === 'pending') {
+          if (pendingTitle) pendingTitle.textContent = 'Showing pending codes';
+          if (pendingMsg) pendingMsg.textContent = 'Only pending codes are visible right now.';
+          pendingAction.textContent = '\u2190 Show approved';
+          pendingAction.setAttribute('data-code-filter', 'approved');
+          pendingAction.setAttribute('href', codesBaseUrl + '&tab=approved');
+        } else {
+          if (pendingTitle) pendingTitle.textContent = 'Codes awaiting review';
+          if (pendingMsg) pendingMsg.textContent = 'Review pending codes without leaving this page.';
+          pendingAction.textContent = 'Review pending \u2192';
+          pendingAction.setAttribute('data-code-filter', 'pending');
+          pendingAction.setAttribute('href', codesBaseUrl + '&tab=pending');
+        }
       } else {
-        if (pendingTitle) pendingTitle.textContent = 'Codes awaiting review';
-        if (pendingMsg) pendingMsg.textContent = 'Review pending codes without leaving this page.';
-        pendingAction.textContent = 'Review pending \u2192';
-        pendingAction.setAttribute('data-code-filter', 'pending');
-        pendingAction.setAttribute('href', '?tab=codes&status_filter=pending');
+        // Listing edit tab: use the edit-tab URL format
+        if (activeFilter === 'pending') {
+          if (pendingTitle) pendingTitle.textContent = 'Showing pending codes';
+          if (pendingMsg) pendingMsg.textContent = 'Only pending codes are visible right now.';
+          pendingAction.textContent = '\u2190 Show approved';
+          pendingAction.setAttribute('data-code-filter', 'approved');
+          pendingAction.setAttribute('href', '?tab=codes&status_filter=approved');
+        } else {
+          if (pendingTitle) pendingTitle.textContent = 'Codes awaiting review';
+          if (pendingMsg) pendingMsg.textContent = 'Review pending codes without leaving this page.';
+          pendingAction.textContent = 'Review pending \u2192';
+          pendingAction.setAttribute('data-code-filter', 'pending');
+          pendingAction.setAttribute('href', '?tab=codes&status_filter=pending');
+        }
       }
     }
 
     syncSelectAllState();
+    updateBulkActions(activeFilter);
 
     if (updateUrl !== false && window.history && history.replaceState) {
-      var url = new URL(window.location.href);
-      url.searchParams.set('tab', 'codes');
-      if (activeFilter === '') url.searchParams.delete('status_filter');
-      else url.searchParams.set('status_filter', activeFilter);
-      history.replaceState(null, '', url.toString());
+      if (codesBaseUrl !== null) {
+        // Standalone codes page: update URL using base URL + tab param
+        var url = new URL(window.location.origin + codesBaseUrl);
+        url.searchParams.set('tab', activeFilter);
+        history.replaceState(null, '', url.toString());
+      } else {
+        // Listing edit tab: update the status_filter param
+        var url = new URL(window.location.href);
+        url.searchParams.set('tab', 'codes');
+        url.searchParams.set('status_filter', activeFilter);
+        history.replaceState(null, '', url.toString());
+      }
     }
   }
 
@@ -2838,7 +2934,7 @@ document.addEventListener('click', function (e) {
   filterLinks.forEach(function (link) {
     link.addEventListener('click', function (e) {
       if (link.tagName === 'A') e.preventDefault();
-      applyCodeFilter(link.getAttribute('data-code-filter') || '', true);
+      applyCodeFilter(link.getAttribute('data-code-filter') || 'approved', true);
     });
   });
 
@@ -2851,6 +2947,9 @@ document.addEventListener('click', function (e) {
   var applyBtn   = document.getElementById('bulk-apply-btn');
   var saveOrdBtn = document.getElementById('save-order-btn');
   var bulkForm   = document.getElementById('codes-bulk-form');
+
+  // Initialize bulk actions now that bulkSel is available
+  updateBulkActions(activeFilter);
 
   if (bulkSel && catsWrap) {
     bulkSel.addEventListener('change', function () {
@@ -2889,11 +2988,14 @@ document.addEventListener('click', function (e) {
       }
 
       if (action === 'delete') {
-        showConfirmBar(
-          applyBtn,
-          'Delete ' + checked.length + ' code(s)? This cannot be undone.',
-          doSubmit
-        );
+        var delNames = Array.from(checked).map(function (cb) {
+          return cb.closest('.code-card') ? cb.closest('.code-card').getAttribute('data-code-id') || '' : '';
+        }).filter(Boolean).join(', ');
+        if (window.lstrDelModal) {
+          window.lstrDelModal.trigger(doSubmit, 'code', checked.length + ' code(s)', '', 'This will permanently delete the selected codes. This action cannot be undone.');
+        } else {
+          doSubmit();
+        }
         return;
       }
 
@@ -2979,6 +3081,43 @@ document.addEventListener('click', function (e) {
     }
   }
 
+  // ── Upload panel: inline "Add new donor" toggle ─────────────────────────
+  var addDonorToggle  = document.getElementById('upload-add-donor-toggle');
+  var newDonorWrap    = document.getElementById('upload-new-donor-wrap');
+  var uploadDonorSel  = document.getElementById('upload-donor');
+
+  if (addDonorToggle && newDonorWrap) {
+    addDonorToggle.addEventListener('click', function (e) {
+      e.preventDefault();
+      var isHidden = newDonorWrap.classList.contains('is-hidden');
+      newDonorWrap.classList.toggle('is-hidden', !isHidden);
+      if (isHidden) {
+        if (uploadDonorSel) uploadDonorSel.value = '';
+        var firstField = newDonorWrap.querySelector('input[type="text"]');
+        if (firstField) firstField.focus();
+      } else {
+        newDonorWrap.querySelectorAll('input').forEach(function (inp) { inp.value = ''; });
+      }
+    });
+
+    if (uploadDonorSel) {
+      uploadDonorSel.addEventListener('change', function () {
+        if (uploadDonorSel.value !== '') {
+          newDonorWrap.classList.add('is-hidden');
+          newDonorWrap.querySelectorAll('input').forEach(function (inp) { inp.value = ''; });
+        }
+      });
+    }
+
+    // Collapse the new-donor fields when the form is reset (Clear Form button)
+    var uploadForm = newDonorWrap.closest('form');
+    if (uploadForm) {
+      uploadForm.addEventListener('reset', function () {
+        newDonorWrap.classList.add('is-hidden');
+      });
+    }
+  }
+
   // ── Code edit dialogs ────────────────────────────────────────────────────
   document.querySelectorAll('.code-edit-btn').forEach(function (btn) {
     btn.addEventListener('click', function () {
@@ -2995,6 +3134,24 @@ document.addEventListener('click', function (e) {
     dlg.addEventListener('click', function (e) {
       if (e.target === dlg) { dlg.close(); }
     });
+    // Delete button: close the native dialog first so the confirmation modal
+    // can appear in front (native dialog top-layer blocks regular div modals).
+    var delBtn = dlg.querySelector('.code-dialog-delete-btn');
+    if (delBtn) {
+      delBtn.addEventListener('click', function () {
+        var deleteForm = dlg.querySelector('.code-delete-form');
+        if (!deleteForm) return;
+        dlg.close();
+        if (window.lstrDelModal) {
+          window.lstrDelModal.trigger(function () {
+            deleteForm.dataset.delConfirmed = '1';
+            deleteForm.requestSubmit ? deleteForm.requestSubmit() : deleteForm.submit();
+          }, 'code', deleteForm.dataset.delName || '', '', '');
+        } else {
+          deleteForm.requestSubmit ? deleteForm.requestSubmit() : deleteForm.submit();
+        }
+      });
+    }
   });
 
   }
@@ -3093,13 +3250,15 @@ function adminWireFilterPanel(btnId, panelId, htmlClass) {
 (function () {
   adminWireFilterPanel('codes-filter-toggle', 'codes-filter-panel', 'fp-codes');
 
-  var sel = document.getElementById('codes-listing-sel');
-  if (sel) {
-    sel.addEventListener('change', function () {
-      var form = document.getElementById('codes-filter-form');
-      if (form) form.submit();
-    });
-  }
+  ['codes-listing-sel', 'codes-size-sel', 'codes-donor-sel'].forEach(function (id) {
+    var sel = document.getElementById(id);
+    if (sel) {
+      sel.addEventListener('change', function () {
+        var form = document.getElementById('codes-filter-form');
+        if (form) form.submit();
+      });
+    }
+  });
 }());
 
 (function () {
@@ -3463,6 +3622,23 @@ function adminWireFilterPanel(btnId, panelId, htmlClass) {
     if (e.key === 'Escape' && modal.style.display !== 'none') close();
   });
 
+  // Public API: trigger the del-modal with an arbitrary callback instead of a form submit.
+  // Usage: window.lstrDelModal.trigger(callbackFn, 'code', 'filename.jpg', '', '');
+  window.lstrDelModal = {
+    trigger: function (onConfirm, entity, names, context, warning) {
+      var cfg = CFG[entity];
+      if (!cfg) { onConfirm(); return; }
+      pending = { _cb: onConfirm };
+      show(cfg, names, context, warning || '');
+      var origClick = confirmBtn.onclick;
+      confirmBtn.onclick = function () {
+        close();
+        confirmBtn.onclick = origClick;
+        onConfirm();
+      };
+    }
+  };
+
   document.addEventListener('submit', function (e) {
     var form = e.target;
 
@@ -3522,7 +3698,7 @@ function adminWireFilterPanel(btnId, panelId, htmlClass) {
     try { defaults = JSON.parse(defaultsEl.textContent); } catch (err) {}
   }
   document.addEventListener('click', function (e) {
-    var btn = e.target.closest('.btn-ghost[data-textarea]');
+    var btn = e.target.closest('.tpl-reset-row button[data-textarea]');
     if (!btn) return;
     var ta = document.getElementById(btn.dataset.textarea);
     if (ta && defaults[btn.dataset.textarea] !== undefined) {

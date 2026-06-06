@@ -114,6 +114,7 @@ final class JoinController
 
         // Captcha — re-render the form with an error on failure
         if (!Captcha::validate((string) $request->post('captcha_answer', ''), 'join')) {
+            $rateLimit->hitDefault($ip, RateLimit::ACTION_PUBLIC_JOIN);
             $old = [
                 'name'      => trim((string) $request->post('name',    '')),
                 'email'     => trim((string) $request->post('email',   '')),
@@ -138,7 +139,7 @@ final class JoinController
         $v = new Validator($postData);
         $v->field('name')->required()->maxLength(100);
         $v->field('email')->required()->email()->maxLength(255);
-        $v->field('url')->url()->maxLength(500);
+        $v->field('url')->httpUrl()->maxLength(500);
         $v->field('country')->required()->maxLength(100);
 
         foreach ($fields as $field) {
@@ -178,6 +179,7 @@ final class JoinController
 
         // Duplicate email check
         if ($memberRepo->getByEmail($listing->dbprefix, $email) !== null) {
+            $rateLimit->hitDefault($ip, RateLimit::ACTION_PUBLIC_JOIN);
             $session->set('lstr_flash_error', 'That email address is already registered for this listing.');
             $session->set('lstr_flash_old', [
                 'name'      => $name,

@@ -19,6 +19,7 @@ use Luster\Models\Listing;
 final class MemberStatsService
 {
     private string $approvedWhere;
+    private string $pendingWhere;
     private bool   $appendMembers;
 
     public function __construct(
@@ -28,9 +29,11 @@ final class MemberStatsService
         $prefix = (string) $config->get('enth_table_prefix', '');
         if ($prefix === '') {
             $this->approvedWhere = 'pending = 0';
+            $this->pendingWhere  = 'pending = 1';
             $this->appendMembers = false;
         } else {
             $this->approvedWhere = 'approved = 1';
+            $this->pendingWhere  = 'approved = 0';
             $this->appendMembers = true;
         }
     }
@@ -38,18 +41,22 @@ final class MemberStatsService
     /**
      * Returns member stats keyed by listing ID for the given listing set.
      *
-     * Each value is ['approved' => int, 'country_count' => int].
+     * Each value is ['approved' => int, 'pending' => int, 'country_count' => int].
      * Listings with inaccessible member tables return zeros rather than throwing.
      *
      * @param  Listing[] $listings
-     * @return array<int, array{approved: int, country_count: int}>
+     * @return array<int, array{approved: int, pending: int, country_count: int}>
      */
     public function forListings(array $listings): array
     {
+        $zero   = ['approved' => 0, 'pending' => 0, 'country_count' => 0];
         $result = [];
         if (empty($listings)) {
             return $result;
         }
+
+        $aw = $this->approvedWhere;
+        $pw = $this->pendingWhere;
 
         $chunks = array_chunk($listings, 100);
         foreach ($chunks as $chunk) {
@@ -59,21 +66,22 @@ final class MemberStatsService
             foreach ($chunk as $fl) {
                 $raw = $this->appendMembers ? $fl->dbprefix . 'members' : $fl->dbprefix;
                 if ($raw === '' || $raw === 'members') {
-                    $result[$fl->id] = ['approved' => 0, 'country_count' => 0];
+                    $result[$fl->id] = $zero;
                     continue;
                 }
                 try {
                     $table = $this->db->validatePrefix($raw);
                 } catch (\Throwable) {
-                    $result[$fl->id] = ['approved' => 0, 'country_count' => 0];
+                    $result[$fl->id] = $zero;
                     continue;
                 }
-                $quoted         = $this->db->pdo()->quote($table);
-                $idMap[$table]  = $fl->id;
-                $arms[]         = "SELECT {$quoted} AS tbl,
-                                          COUNT(*) AS approved,
-                                          COUNT(DISTINCT CASE WHEN country != '' AND country IS NOT NULL THEN country END) AS country_count
-                                   FROM `{$table}` WHERE {$this->approvedWhere}";
+                $quoted        = $this->db->pdo()->quote($table);
+                $idMap[$table] = $fl->id;
+                $arms[]        = "SELECT {$quoted} AS tbl,
+                                         COUNT(CASE WHEN {$aw} THEN 1 END) AS approved,
+                                         COUNT(CASE WHEN {$pw} THEN 1 END) AS pending,
+                                         COUNT(DISTINCT CASE WHEN ({$aw}) AND country != '' AND country IS NOT NULL THEN country END) AS country_count
+                                  FROM `{$table}`";
             }
 
             if (empty($arms)) {
@@ -89,47 +97,47 @@ final class MemberStatsService
                         if (isset($idMap[$tbl])) {
                             $result[$idMap[$tbl]] = [
                                 'approved'      => (int) $row['approved'],
+                                'pending'       => (int) $row['pending'],
                                 'country_count' => (int) $row['country_count'],
                             ];
                         }
                     }
                 }
             } catch (\Throwable) {
-                // UNION ALL failed — at least one table in the chunk is inaccessible.
-                // Retry each table individually so one missing table doesn't zero the rest.
+                // UNION ALL failed — retry each table individually
                 foreach ($idMap as $tableName => $listingId) {
                     if (isset($result[$listingId])) {
-                        continue;  // already resolved by a previous successful chunk
+                        continue;
                     }
                     try {
-                        $singleSql = "SELECT COUNT(*) AS approved,
-                                             COUNT(DISTINCT CASE WHEN country != '' AND country IS NOT NULL THEN country END) AS country_count
-                                      FROM `{$tableName}` WHERE {$this->approvedWhere}";
+                        $singleSql = "SELECT COUNT(CASE WHEN {$aw} THEN 1 END) AS approved,
+                                             COUNT(CASE WHEN {$pw} THEN 1 END) AS pending,
+                                             COUNT(DISTINCT CASE WHEN ({$aw}) AND country != '' AND country IS NOT NULL THEN country END) AS country_count
+                                      FROM `{$tableName}`";
                         $singleRow = $this->db->pdo()->query($singleSql);
                         if ($singleRow !== false) {
                             $r = $singleRow->fetch(\PDO::FETCH_ASSOC);
                             $result[$listingId] = [
                                 'approved'      => (int) ($r['approved'] ?? 0),
+                                'pending'       => (int) ($r['pending']  ?? 0),
                                 'country_count' => (int) ($r['country_count'] ?? 0),
                             ];
                         }
                     } catch (\Throwable) {
-                        $result[$listingId] = ['approved' => 0, 'country_count' => 0];
+                        $result[$listingId] = $zero;
                     }
                 }
             }
 
-            // Fill any chunk listings that had errors
             foreach ($idMap as $listingId) {
                 if (!isset($result[$listingId])) {
-                    $result[$listingId] = ['approved' => 0, 'country_count' => 0];
+                    $result[$listingId] = $zero;
                 }
             }
         }
 
-        // Guarantee every input listing has an entry
         foreach ($listings as $fl) {
-            $result[$fl->id] ??= ['approved' => 0, 'country_count' => 0];
+            $result[$fl->id] ??= $zero;
         }
 
         return $result;

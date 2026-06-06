@@ -43,16 +43,22 @@ final class GlobalCodesController extends AdminController
         $listingRepo = new ListingRepo($db, $config);
 
         $listingId = (int) $request->query('listing_id', 0);
-        $tab       = trim((string) $request->query('tab', 'pending'));
+        $tab       = trim((string) $request->query('tab', 'approved'));
         $page      = max(1, (int) $request->query('page', 1));
 
         $validTabs = ['all', 'pending', 'approved', 'rejected'];
         if (!in_array($tab, $validTabs, true)) {
-            $tab = 'pending';
+            $tab = 'approved';
         }
 
-        $allListings        = $listingRepo->getAll();
-        $pendingPerListing  = $codesRepo->countPendingPerListing();
+        $allListings         = $listingRepo->getAll();
+        $pendingPerListing   = $codesRepo->countPendingPerListing();
+        $approvedPerListing  = $codesRepo->countApprovedPerListing();
+        $filterOptions       = $codesRepo->getPendingFilterOptions();
+
+        $filterSize   = trim((string) $request->query('size',   ''));
+        $filterDonor  = trim((string) $request->query('donor',  ''));
+        $filterSearch = trim((string) $request->query('search', ''));
 
         $session = $this->app->getSession();
         $success = (string) $session->get('lstr_flash_success', '');
@@ -66,48 +72,130 @@ final class GlobalCodesController extends AdminController
                 return Response::notFound('Listing not found.');
             }
 
-            $statusFilter = $tab === 'all' ? null : $tab;
-            $allCodes     = $codesRepo->getByListing($listingId, $statusFilter);
+            // Apply size/donor/search filters when present; always load all status levels
+            // so the client-side pending/all toggle continues to work.
+            $listingFilters = array_filter([
+                'size'   => $filterSize,
+                'donor'  => $filterDonor,
+                'search' => $filterSearch,
+            ]);
+            $hasFilters = $listingFilters !== [];
+
+            $allCodes     = $hasFilters
+                ? $codesRepo->getByListingFiltered($listingId, null, $listingFilters)
+                : $codesRepo->getByListing($listingId);
             $pendingCount = $codesRepo->countPendingByListing($listingId);
 
-            // Build tab counts
+            $codeStatusCounts = ['approved' => 0, 'pending' => 0, 'rejected' => 0];
+            foreach ($allCodes as $c) {
+                $codeStatusCounts[$c->status] = ($codeStatusCounts[$c->status] ?? 0) + 1;
+            }
+
             $tabCounts = [
-                'all'      => count($codesRepo->getByListing($listingId)),
-                'pending'  => count($codesRepo->getByListing($listingId, 'pending')),
-                'approved' => count($codesRepo->getByListing($listingId, 'approved')),
-                'rejected' => count($codesRepo->getByListing($listingId, 'rejected')),
+                'all'      => count($allCodes),
+                'pending'  => $codeStatusCounts['pending'],
+                'approved' => $codeStatusCounts['approved'],
+                'rejected' => $codeStatusCounts['rejected'],
             ];
 
-            // Donor map for display
-            $donorsRepo = new CodeDonorsRepo($db);
-            $donors     = $donorsRepo->getByListing($listingId);
-            $donorMap   = [];
+            // Group codes by dimensions for the tile grid
+            $codeGrouped = [];
+            foreach ($allCodes as $code) {
+                if ($code->width > 0 && $code->height > 0) {
+                    $gKey   = (int) $code->width . 'x' . (int) $code->height;
+                    $gLabel = (int) $code->width . '×' . (int) $code->height . 'px';
+                } else {
+                    $gKey   = 'unknown';
+                    $gLabel = 'Unknown dimensions';
+                }
+                if (!isset($codeGrouped[$gKey])) {
+                    $codeGrouped[$gKey] = ['label' => $gLabel, 'codes' => []];
+                }
+                $codeGrouped[$gKey]['codes'][] = $code;
+            }
+            uksort($codeGrouped, function (string $a, string $b): int {
+                if ($a === 'unknown') return 1;
+                if ($b === 'unknown') return -1;
+                [$aw, $ah] = explode('x', $a);
+                [$bw, $bh] = explode('x', $b);
+                return $aw !== $bw ? (int) $aw - (int) $bw : (int) $ah - (int) $bh;
+            });
+
+            // Donor data
+            $donorsRepo     = new CodeDonorsRepo($db);
+            $donors         = $donorsRepo->getByListing($listingId);
+            $donorMap       = [];
             foreach ($donors as $dn) {
                 $donorMap[$dn->id] = $dn;
             }
+            $submitterNames = $codesRepo->getSubmitterNamesForListing($listingId);
+
+            // Category data
+            $codeCatsRepo    = new CodeCategoriesRepo($db);
+            $codeCats        = $codeCatsRepo->getByListing($listingId);
+            $codeCatMap      = [];
+            foreach ($codeCats as $cat) {
+                $codeCatMap[$cat->id] = $cat;
+            }
+            $codeCategoryIds = $codeCatsRepo->getCategoryMapForListing($listingId);
+
+            // Initial client-side filter state derived from the tab param
+            $codeStatusFilter = match ($tab) {
+                'pending'  => 'pending',
+                'approved' => 'approved',
+                'rejected' => 'rejected',
+                default    => 'approved',
+            };
+
+            // Filter options for size/donor dropdowns (across all statuses)
+            $listingFilterOpts = $codesRepo->getListingFilterOptions($listingId, null);
 
             $uploadsUrl = rtrim($this->app->getBaseUrl(), '/') . '/uploads/codes';
 
             return $this->adminLayout('admin/codes/index.php', 'Codes', 'codes', [
-                'listing'       => $listing,
-                'listing_id'    => $listingId,
-                'all_listings'  => $allListings,
-                'tab'           => $tab,
-                'tab_counts'    => $tabCounts,
-                'codes'         => $allCodes,
-                'donor_map'     => $donorMap,
-                'uploads_url'   => $uploadsUrl,
-                'pending_count'      => $pendingCount,
-                'pending_per_listing' => $pendingPerListing,
-                'total'              => count($allCodes),
-                'view_mode'          => 'listing',
-                'success'       => $success,
-                'error'         => $error,
+                'listing'             => $listing,
+                'listing_id'          => $listingId,
+                'all_listings'        => $allListings,
+                'tab'                 => $tab,
+                'tab_counts'          => $tabCounts,
+                'codes'               => $allCodes,
+                'donor_map'           => $donorMap,
+                'uploads_url'         => $uploadsUrl,
+                'pending_count'       => $pendingCount,
+                'pending_per_listing'  => $pendingPerListing,
+                'approved_per_listing' => $approvedPerListing,
+                'filter_options'      => $listingFilterOpts,
+                'filter_size'         => $filterSize,
+                'filter_donor'        => $filterDonor,
+                'filter_search'       => $filterSearch,
+                'filters_active'      => $hasFilters,
+                'total'               => count($allCodes),
+                'view_mode'           => 'listing',
+                // Tile grid data
+                'code_grouped'        => $codeGrouped,
+                'code_cats'           => $codeCats,
+                'code_donors'         => $donors,
+                'code_submitter_names' => $submitterNames,
+                'code_cat_map'        => $codeCatMap,
+                'code_category_ids'   => $codeCategoryIds,
+                'code_donor_map'      => $donorMap,
+                'code_status_counts'  => $codeStatusCounts,
+                'code_status_filter'  => $codeStatusFilter,
+                'total_codes'         => count($allCodes),
+                'success'             => $success,
+                'error'               => $error,
             ]);
         }
 
-        // Global view — show pending across all listings
-        $result       = $codesRepo->getPendingAllPaginated(self::PER_PAGE, $page);
+        // Global view — show pending across all listings with filters
+        $filters = array_filter([
+            'size'   => $filterSize,
+            'donor'  => $filterDonor,
+            'search' => $filterSearch,
+        ]);
+
+        // If search term looks like a listing name, scope to matching listing IDs
+        $result       = $codesRepo->getPendingAllPaginated(self::PER_PAGE, $page, $filters);
         $pendingTotal = $result['total'];
 
         // Build listing map for the table
@@ -124,7 +212,13 @@ final class GlobalCodesController extends AdminController
             'tab'           => 'pending',
             'codes'         => $result['items'],
             'pending_count'       => $pendingTotal,
-            'pending_per_listing' => $pendingPerListing,
+            'pending_per_listing'  => $pendingPerListing,
+            'approved_per_listing' => $approvedPerListing,
+            'filter_options'       => $filterOptions,
+            'filter_size'         => $filterSize,
+            'filter_donor'        => $filterDonor,
+            'filter_search'       => $filterSearch,
+            'filters_active'      => $filterSize !== '' || $filterDonor !== '' || $filterSearch !== '',
             'page'                => $page,
             'total_pages'         => $result['pages'],
             'total'               => $pendingTotal,
@@ -277,7 +371,10 @@ final class GlobalCodesController extends AdminController
         );
 
         $session->set('lstr_flash_success', "Approved {$count} pending code(s).");
-        return $this->redirectBack($request, $baseUrl, $listingId);
+        if ($listingId > 0) {
+            return Response::redirect($baseUrl . '/admin/codes?listing_id=' . $listingId . '&tab=approved');
+        }
+        return Response::redirect($baseUrl . '/admin/codes');
     }
 
     // -----------------------------------------------------------------------

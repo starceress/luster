@@ -45,11 +45,17 @@ final class ListingRowRenderer
             : '';
 
         $countryCount = (int) ($memberStats['country_count'] ?? 0);
+        $pendingCount = (int) ($memberStats['pending']        ?? 0);
 
-        // Resolve {if_countries}...{/if_countries} before flat token substitution
+        // Conditional blocks — resolve before flat token substitution
         $template = (string) preg_replace(
             '/\{if_countries\}(.*?)\{\/if_countries\}/s',
             $countryCount > 0 ? '$1' : '',
+            $template,
+        );
+        $template = (string) preg_replace(
+            '/\{if_pending\}(.*?)\{\/if_pending\}/s',
+            $pendingCount > 0 ? '$1' : '',
             $template,
         );
 
@@ -58,7 +64,7 @@ final class ListingRowRenderer
                 '{listing_title}', '{listing_url}', '{listing_subject}', '{listing_status}',
                 '{listing_email}', '{listing_type}', '{listing_category}',
                 '{listing_image}', '{date_opened}', '{date_updated}',
-                '{member_count}', '{country_count}', '{countries_count}',
+                '{member_count}', '{pending_count}', '{country_count}', '{countries_count}',
             ],
             [
                 $e($listing->title),
@@ -72,6 +78,7 @@ final class ListingRowRenderer
                 $e($listing->opened ?? ''),
                 $e((string) ($settings['last_updated'] ?? '')),
                 (string) ($memberStats['approved'] ?? 0),
+                (string) $pendingCount,
                 (string) $countryCount,
                 (string) $countryCount,   // {countries_count} — Fanatically-compatible alias
             ],
