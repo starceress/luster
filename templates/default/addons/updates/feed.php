@@ -9,14 +9,12 @@ declare(strict_types=1);
  * files (via renderFragment). The layout wrapper is added by renderPublic only.
  *
  * @var \Luster\Addons\Updates\Update[] $updates
- * @var int                             $total
- * @var int                             $page
- * @var int                             $pages
  * @var bool                            $is_collective
  * @var bool                            $show_cats
  * @var string                          $owner_name
  * @var string                          $active_cat    currently filtered category ('' = none)
- * @var string                          $feed_url      base URL for pagination links
+ * @var string                          $feed_url      base URL for category filter links
+ * @var string                          $pagination    pre-rendered pagination HTML ('' = none)
  * @var string                          $base_url
  * @var string                          $theme_path
  */
@@ -24,12 +22,6 @@ declare(strict_types=1);
 use Luster\Core\View;
 
 $_activeCat = $active_cat ?? '';
-$pageUrl = static function (int $p) use ($feed_url, $_activeCat): string {
-    $qs = $_activeCat !== ''
-        ? 'cat=' . rawurlencode($_activeCat) . '&page=' . $p
-        : 'page=' . $p;
-    return htmlspecialchars($feed_url . '?' . $qs, ENT_QUOTES, 'UTF-8');
-};
 ?>
 
 <?php if (empty($updates)): ?>
@@ -57,26 +49,6 @@ $pageUrl = static function (int $p) use ($feed_url, $_activeCat): string {
   </div>
   <?php endforeach; ?>
 
-  <?php if ($pages > 1): ?>
-  <nav class="fl-pagination-nav" aria-label="Updates pagination">
-    <ul class="fl-pagination">
-    <?php if ($page > 1): ?>
-      <li><a class="fl-page-link" href="<?= $pageUrl($page - 1) ?>">&lsaquo; Prev</a></li>
-    <?php endif; ?>
-
-    <?php for ($p = 1; $p <= $pages; $p++): ?>
-      <?php if ($p === $page): ?>
-        <li><span class="fl-page-current" aria-current="page"><?= $p ?></span></li>
-      <?php else: ?>
-        <li><a class="fl-page-link" href="<?= $pageUrl($p) ?>"><?= $p ?></a></li>
-      <?php endif; ?>
-    <?php endfor; ?>
-
-    <?php if ($page < $pages): ?>
-      <li><a class="fl-page-link" href="<?= $pageUrl($page + 1) ?>">Next &rsaquo;</a></li>
-    <?php endif; ?>
-    </ul>
-  </nav>
-  <?php endif; ?>
+  <?= $pagination ?? '' ?>
 
 <?php endif; ?>

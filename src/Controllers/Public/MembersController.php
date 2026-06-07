@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Luster\Controllers\Public;
 
 use Luster\Core\Application;
+use Luster\Core\Pagination;
 use Luster\Core\Request;
 use Luster\Core\Response;
 use Luster\Models\Member;
@@ -44,11 +45,12 @@ final class MembersController
         $fieldRepo = new FieldRepo($this->app->getDatabase(), $this->app->getConfig());
         $fields    = $fieldRepo->getFieldsForListing($listingId);
 
-        $settingsRepo    = new ListingSettingsRepo($this->app->getDatabase());
-        $templates       = $settingsRepo->getTemplates($listingId);
-        $membersTemplate = ($templates['members_template'] !== null && trim($templates['members_template']) !== '')
+        $settingsRepo      = new ListingSettingsRepo($this->app->getDatabase());
+        $templates         = $settingsRepo->getTemplates($listingId);
+        $membersTemplate   = ($templates['members_template'] !== null && trim($templates['members_template']) !== '')
             ? $templates['members_template']
             : null;
+        $paginationTemplate = $settingsRepo->getPaginationTemplate($listingId) ?? '';
 
         $baseUrl     = $this->app->getBaseUrl();
         $membersBase = $baseUrl . '/members/' . $listingId;
@@ -88,8 +90,8 @@ final class MembersController
             $statsLine = $country . ': ' . $result['total'] . ' member(s)'
                 . ($result['pages'] > 1 ? ' — page ' . $page . ' of ' . $result['pages'] : '');
 
-            $paginationHtml = $this->buildPagination(
-                $page, $result['pages'], $membersBase,
+            $paginationHtml = Pagination::render(
+                $page, $result['pages'], $membersBase, $paginationTemplate,
                 ['sort' => 'country', 'country' => $country],
             );
 
@@ -147,8 +149,8 @@ final class MembersController
         $result = $memberRepo->paginate($listing->dbprefix, $page, $perPage, true, $sort);
 
         $statsLine      = $result['total'] . ' member(s) — page ' . $page . ' of ' . $result['pages'];
-        $paginationHtml = $this->buildPagination(
-            $page, $result['pages'], $membersBase, ['sort' => $sort],
+        $paginationHtml = Pagination::render(
+            $page, $result['pages'], $membersBase, $paginationTemplate, ['sort' => $sort],
         );
 
         $membersHtml = $membersTemplate !== null && !empty($result['members'])
@@ -207,68 +209,4 @@ final class MembersController
         return implode("\n", $rows);
     }
 
-    /**
-     * Builds paginated navigation HTML.
-     *
-     * $extraParams are merged into every page URL before the page number,
-     * e.g. ['sort' => 'country', 'country' => 'Australia'].
-     *
-     * @param array<string, string> $extraParams
-     */
-    private function buildPagination(
-        int    $currentPage,
-        int    $totalPages,
-        string $baseUrl,
-        array  $extraParams = [],
-    ): string {
-        if ($totalPages <= 1) {
-            return '';
-        }
-
-        $makeUrl = static function (int $p) use ($baseUrl, $extraParams): string {
-            return htmlspecialchars(
-                $baseUrl . '?' . http_build_query(array_merge($extraParams, ['page' => $p])),
-                ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8',
-            );
-        };
-
-        $html = '<nav class="fl-pagination-nav" aria-label="Members pagination"><ul class="fl-pagination">';
-
-        if ($currentPage > 1) {
-            $html .= '<li><a class="fl-page-link" href="' . $makeUrl($currentPage - 1) . '">&laquo; Previous</a></li>';
-        }
-
-        $start = max(1, $currentPage - 2);
-        $end   = min($totalPages, $currentPage + 2);
-
-        if ($start > 1) {
-            $html .= '<li><a class="fl-page-link" href="' . $makeUrl(1) . '">1</a></li>';
-            if ($start > 2) {
-                $html .= '<li><span class="fl-page-gap" aria-hidden="true">&hellip;</span></li>';
-            }
-        }
-
-        for ($i = $start; $i <= $end; $i++) {
-            if ($i === $currentPage) {
-                $html .= '<li><span class="fl-page-current" aria-current="page">' . $i . '</span></li>';
-            } else {
-                $html .= '<li><a class="fl-page-link" href="' . $makeUrl($i) . '">' . $i . '</a></li>';
-            }
-        }
-
-        if ($end < $totalPages) {
-            if ($end < $totalPages - 1) {
-                $html .= '<li><span class="fl-page-gap" aria-hidden="true">&hellip;</span></li>';
-            }
-            $html .= '<li><a class="fl-page-link" href="' . $makeUrl($totalPages) . '">' . $totalPages . '</a></li>';
-        }
-
-        if ($currentPage < $totalPages) {
-            $html .= '<li><a class="fl-page-link" href="' . $makeUrl($currentPage + 1) . '">Next &raquo;</a></li>';
-        }
-
-        $html .= '</ul></nav>';
-
-        return $html;
-    }
 }

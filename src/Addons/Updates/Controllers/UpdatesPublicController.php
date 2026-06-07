@@ -6,10 +6,13 @@ namespace Luster\Addons\Updates\Controllers;
 
 use Luster\Addons\Updates\UpdateRepo;
 use Luster\Core\Application;
+use Luster\Core\Pagination;
 use Luster\Core\Request;
 use Luster\Core\Response;
 use Luster\Core\View;
 use Luster\Repositories\ListingRepo;
+use Luster\Repositories\ListingSettingsRepo;
+use Luster\Repositories\SiteSettingsRepo;
 
 /**
  * Public read-only controller for the Updates add-on.
@@ -53,8 +56,12 @@ final class UpdatesPublicController
 
         $baseUrl   = $this->app->getBaseUrl();
         $themePath = $baseUrl . '/assets/default/';
+        $feedUrl   = $baseUrl . '/updates/' . $fid;
 
-        $ownerName = (string) $config->get('owner_name', '');
+        $ownerName          = (string) $config->get('owner_name', '');
+        $paginationTemplate = (new ListingSettingsRepo($db))->getPaginationTemplate($fid) ?? '';
+        $pagination         = Pagination::render($page, $pages, $feedUrl, $paginationTemplate,
+            $cat !== '' ? ['cat' => $cat] : []);
 
         $html = $this->app->getView()->renderPublic('addons/updates/feed.php', [
             'listing'       => $listing,
@@ -71,7 +78,8 @@ final class UpdatesPublicController
             'show_cats'     => true,
             'owner_name'    => $ownerName,
             'active_cat'    => $cat,
-            'feed_url'      => $baseUrl . '/updates/' . $fid,
+            'feed_url'      => $feedUrl,
+            'pagination'    => $pagination,
         ]);
 
         return Response::html($html);
@@ -103,8 +111,12 @@ final class UpdatesPublicController
         $baseUrl   = $this->app->getBaseUrl();
         $themePath = $baseUrl . '/assets/default/';
         $siteName  = (string) $config->get('site_name', 'Luster');
+        $feedUrl   = $baseUrl . '/updates';
 
-        $ownerName = (string) $config->get('owner_name', '');
+        $ownerName          = (string) $config->get('owner_name', '');
+        $paginationTemplate = (new SiteSettingsRepo($db))->get('collective_pagination_template') ?? '';
+        $pagination         = Pagination::render($page, $pages, $feedUrl, $paginationTemplate,
+            $cat !== '' ? ['cat' => $cat] : []);
 
         $html = $this->app->getView()->renderPublic('addons/updates/feed.php', [
             'listing'       => null,
@@ -121,7 +133,8 @@ final class UpdatesPublicController
             'show_cats'     => true,
             'owner_name'    => $ownerName,
             'active_cat'    => $cat,
-            'feed_url'      => $baseUrl . '/updates',
+            'feed_url'      => $feedUrl,
+            'pagination'    => $pagination,
         ]);
 
         return Response::html($html);

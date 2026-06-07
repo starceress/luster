@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Luster\Controllers\Public;
 
 use Luster\Core\Application;
+use Luster\Core\Pagination;
 use Luster\Core\Request;
 use Luster\Core\Response;
 use Luster\Models\Affiliate;
@@ -50,11 +51,12 @@ final class AffiliatesController
 
         $baseUrl    = $this->app->getBaseUrl();
         $baseHref   = $baseUrl . '/affiliates/' . $listingId;
-        $pagination = $this->buildPagination($page, $result['pages'], $baseHref);
         $uploadsUrl = $baseUrl . '/uploads/affiliates';
 
         $settingsRepo       = new ListingSettingsRepo($this->app->getDatabase());
         $templates          = $settingsRepo->getTemplates($listingId);
+        $pagination         = Pagination::render($page, $result['pages'], $baseHref,
+            $settingsRepo->getPaginationTemplate($listingId) ?? '');
         $affiliatesTemplate = ($templates['affiliates_template'] !== null && trim($templates['affiliates_template']) !== '')
             ? $templates['affiliates_template']
             : null;
@@ -105,10 +107,11 @@ final class AffiliatesController
 
         $baseUrl    = $this->app->getBaseUrl();
         $baseHref   = $baseUrl . '/affiliates';
-        $pagination = $this->buildPagination($page, $result['pages'], $baseHref);
         $uploadsUrl = $baseUrl . '/uploads/affiliates';
 
         $siteRepo     = new SiteSettingsRepo($this->app->getDatabase());
+        $pagination   = Pagination::render($page, $result['pages'], $baseHref,
+            $siteRepo->get('collective_pagination_template') ?? '');
         $siteName     = (string) $this->app->getConfig()->get('site_name', 'Luster');
         $sectTplRaw   = (string) ($siteRepo->getMany(['collective_affiliates_section_template'])['collective_affiliates_section_template'] ?? '');
         $sectionTemplate = trim($sectTplRaw) !== '' ? $sectTplRaw : null;
@@ -256,24 +259,4 @@ final class AffiliatesController
         );
     }
 
-    private function buildPagination(int $current, int $total, string $baseHref): string
-    {
-        if ($total <= 1) {
-            return '';
-        }
-
-        $parts = [];
-        for ($i = 1; $i <= $total; $i++) {
-            $href = htmlspecialchars($baseHref . '?page=' . $i, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
-            if ($i === $current) {
-                $parts[] = '<li><span class="fl-page-current" aria-current="page">' . $i . '</span></li>';
-            } else {
-                $parts[] = '<li><a class="fl-page-link" href="' . $href . '">' . $i . '</a></li>';
-            }
-        }
-
-        return '<nav class="fl-pagination-nav" aria-label="Affiliates pagination"><ul class="fl-pagination">'
-            . implode('', $parts)
-            . '</ul></nav>';
-    }
 }

@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use Luster\Core\Pagination;
 use Luster\Repositories\AffiliateRepo;
 use Luster\Repositories\ListingRepo;
 use Luster\Repositories\ListingSettingsRepo;
@@ -109,10 +110,12 @@ if ($_lusterListingId > 0) {
         && trim($_lusterTpls['affiliates_section_template']) !== '') {
         $_lusterSectionTemplate = $_lusterTpls['affiliates_section_template'];
     }
+    $_lusterPaginationTemplate = $_lusterSettingsRepo->getPaginationTemplate($_lusterListingId) ?? '';
 } else {
     // Collective mode — load section template from lstr_site_settings
-    $_lusterSiteRepo    = new \Luster\Repositories\SiteSettingsRepo($_lusterApp->getDatabase());
-    $_lusterSectTplRaw  = (string) ($_lusterSiteRepo->getMany(['collective_affiliates_section_template'])['collective_affiliates_section_template'] ?? '');
+    $_lusterSiteRepo           = new \Luster\Repositories\SiteSettingsRepo($_lusterApp->getDatabase());
+    $_lusterSectTplRaw         = (string) ($_lusterSiteRepo->getMany(['collective_affiliates_section_template'])['collective_affiliates_section_template'] ?? '');
+    $_lusterPaginationTemplate = (string) ($_lusterSiteRepo->get('collective_pagination_template') ?? '');
     if (trim($_lusterSectTplRaw) !== '') {
         $_lusterSectionTemplate = $_lusterSectTplRaw;
     }
@@ -122,24 +125,6 @@ if ($_lusterListingId > 0) {
 // 4. Build pagination
 // ---------------------------------------------------------------------------
 
-$_lusterBuildPagination = static function (int $current, int $total, string $baseHref): string {
-    if ($total <= 1) {
-        return '';
-    }
-    $parts = [];
-    for ($i = 1; $i <= $total; $i++) {
-        $href = htmlspecialchars($baseHref . '?page=' . $i, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
-        if ($i === $current) {
-            $parts[] = '<li><span class="fl-page-current" aria-current="page">' . $i . '</span></li>';
-        } else {
-            $parts[] = '<li><a class="fl-page-link" href="' . $href . '">' . $i . '</a></li>';
-        }
-    }
-    return '<nav class="fl-pagination-nav" aria-label="Affiliates pagination"><ul class="fl-pagination">'
-        . implode('', $parts)
-        . '</ul></nav>';
-};
-
 // Allow the embedding page to override pagination base URL.
 $_lusterPaginationBase = (isset($luster_affiliates_base) && (string) $luster_affiliates_base !== '')
     ? (string) $luster_affiliates_base
@@ -147,7 +132,9 @@ $_lusterPaginationBase = (isset($luster_affiliates_base) && (string) $luster_aff
         ? $_lusterBaseUrl . '/affiliates/' . $_lusterListingId
         : $_lusterBaseUrl . '/affiliates');
 
-$_lusterPagination = $_lusterBuildPagination($_lusterPage, $_lusterResult['pages'], $_lusterPaginationBase);
+$_lusterPagination = Pagination::render(
+    $_lusterPage, $_lusterResult['pages'], $_lusterPaginationBase, $_lusterPaginationTemplate,
+);
 
 // ---------------------------------------------------------------------------
 // 5. Render fragment
@@ -258,14 +245,6 @@ $_lusterHtml = $_lusterApp->getView()->renderFragment('affiliates.php', [
     'base_url'        => $_lusterApp->getBaseUrl(),
     'theme_path'      => $_lusterApp->getBaseUrl() . '/assets/default/',
 ]);
-
-// Conditionally append the affiliate application form if enabled for this listing.
-$_lusterAffApplySettings = (new \Luster\Repositories\ListingSettingsRepo($_lusterApp->getDatabase()))
-    ->getAffiliateApplySettings($_lusterListingId);
-if ($_lusterAffApplySettings['enabled'] ?? false) {
-    $luster_return = true;
-    $_lusterHtml .= (string) require __DIR__ . '/affiliate-apply.php';
-}
 
 if ($luster_return ?? false) {
     return $_lusterHtml;

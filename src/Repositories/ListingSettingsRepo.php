@@ -210,6 +210,26 @@ final class ListingSettingsRepo
     }
 
     /**
+     * Returns the per-listing pagination template string, or null when not set /
+     * when Migration 64 has not been run yet.
+     */
+    public function getPaginationTemplate(int $listingId): ?string
+    {
+        try {
+            $stmt = $this->db->prepare(
+                'SELECT pagination_template FROM lstr_fanlisting_settings WHERE fanlisting_id = :id'
+            );
+            $stmt->execute(['id' => $listingId]);
+            $row = $stmt->fetch();
+            return ($row !== false && $row['pagination_template'] !== null)
+                ? (string) $row['pagination_template']
+                : null;
+        } catch (\Exception) {
+            return null; // pagination_template column absent — Migration 64 not run yet
+        }
+    }
+
+    /**
      * Translates legacy Enthusiast $$token$$ placeholders to Luster's {token} format.
      * Applied transparently at read time so imported templates work without manual editing.
      */

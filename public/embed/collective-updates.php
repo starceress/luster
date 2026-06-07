@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use Luster\Addons\Updates\UpdateRepo;
+use Luster\Core\Pagination;
 
 /**
  * Luster embed — collective updates feed.
@@ -72,13 +73,14 @@ try {
 }
 
 // ---------------------------------------------------------------------------
-// 4. Build feed URL for pagination links
+// 4. Build feed URL and pagination
 // ---------------------------------------------------------------------------
 
-$_lusterFeedUrl = htmlspecialchars(
-    strtok($_SERVER['REQUEST_URI'] ?? '', '?') ?: '/',
-    ENT_QUOTES | ENT_SUBSTITUTE,
-    'UTF-8',
+$_lusterFeedUrl            = strtok($_SERVER['REQUEST_URI'] ?? '', '?') ?: '/';
+$_lusterPaginationTemplate = (string) ((new \Luster\Repositories\SiteSettingsRepo($_lusterDb))->get('collective_pagination_template') ?? '');
+$_lusterPagination         = Pagination::render(
+    $_lusterPage, $_lusterPages, $_lusterFeedUrl, $_lusterPaginationTemplate,
+    $_lusterCat !== '' ? ['cat' => $_lusterCat] : [],
 );
 
 // ---------------------------------------------------------------------------
@@ -95,6 +97,7 @@ $_lusterHtml = $_lusterApp->getView()->renderFragment('addons/updates/feed.php',
     'owner_name'    => (string) ($_lusterConfig->get('owner_name', '')),
     'active_cat'    => $_lusterCat,
     'feed_url'      => $_lusterFeedUrl,
+    'pagination'    => $_lusterPagination,
     'base_url'      => $_lusterApp->getBaseUrl(),
     'theme_path'    => $_lusterApp->getBaseUrl() . '/assets/default/',
 ]);

@@ -2,10 +2,11 @@
 
 declare(strict_types=1);
 
-use Luster\Repositories\ListingRepo;
+use Luster\Core\Pagination;
 use Luster\Repositories\FieldRepo;
-use Luster\Repositories\MemberRepo;
+use Luster\Repositories\ListingRepo;
 use Luster\Repositories\ListingSettingsRepo;
+use Luster\Repositories\MemberRepo;
 
 /**
  * Luster embed — members list fragment.
@@ -121,12 +122,13 @@ $_lusterMemberRepo = new MemberRepo($_lusterApp->getDatabase(), $_lusterApp->get
 // 4b. Load member row template from DB (if set)
 // ---------------------------------------------------------------------------
 
-$_lusterSettingsRepo   = new ListingSettingsRepo($_lusterApp->getDatabase());
-$_lusterTemplates      = $_lusterSettingsRepo->getTemplates($_lusterListingId);
-$_lusterMemberTemplate = ($_lusterTemplates['members_template'] !== null
-                       && trim($_lusterTemplates['members_template']) !== '')
+$_lusterSettingsRepo     = new ListingSettingsRepo($_lusterApp->getDatabase());
+$_lusterTemplates        = $_lusterSettingsRepo->getTemplates($_lusterListingId);
+$_lusterMemberTemplate   = ($_lusterTemplates['members_template'] !== null
+                         && trim($_lusterTemplates['members_template']) !== '')
     ? $_lusterTemplates['members_template']
     : null;
+$_lusterPaginationTemplate = $_lusterSettingsRepo->getPaginationTemplate($_lusterListingId) ?? '';
 
 /**
  * Applies {token} substitution for a single member row.
@@ -157,61 +159,7 @@ $_lusterCommonData = [
 ];
 
 // ---------------------------------------------------------------------------
-// 5. Build pagination helper (mirrors MembersController::buildPagination)
-// ---------------------------------------------------------------------------
-
-$_lusterBuildPagination = static function (
-    int $currentPage,
-    int $totalPages,
-    string $baseUrl,
-    array $extraParams = [],
-): string {
-    if ($totalPages <= 1) {
-        return '';
-    }
-
-    $makeUrl = static function (int $p) use ($baseUrl, $extraParams): string {
-        return htmlspecialchars(
-            $baseUrl . '?' . http_build_query(array_merge($extraParams, ['page' => $p])),
-            ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8',
-        );
-    };
-
-    $html  = '<nav class="fl-pagination-nav" aria-label="Members pagination"><ul class="fl-pagination">';
-    if ($currentPage > 1) {
-        $html .= '<li><a class="fl-page-link" href="' . $makeUrl($currentPage - 1) . '">&laquo; Previous</a></li>';
-    }
-    $start = max(1, $currentPage - 2);
-    $end   = min($totalPages, $currentPage + 2);
-    if ($start > 1) {
-        $html .= '<li><a class="fl-page-link" href="' . $makeUrl(1) . '">1</a></li>';
-        if ($start > 2) {
-            $html .= '<li><span class="fl-page-gap" aria-hidden="true">&hellip;</span></li>';
-        }
-    }
-    for ($i = $start; $i <= $end; $i++) {
-        if ($i === $currentPage) {
-            $html .= '<li><span class="fl-page-current" aria-current="page">' . $i . '</span></li>';
-        } else {
-            $html .= '<li><a class="fl-page-link" href="' . $makeUrl($i) . '">' . $i . '</a></li>';
-        }
-    }
-    if ($end < $totalPages) {
-        if ($end < $totalPages - 1) {
-            $html .= '<li><span class="fl-page-gap" aria-hidden="true">&hellip;</span></li>';
-        }
-        $html .= '<li><a class="fl-page-link" href="' . $makeUrl($totalPages) . '">' . $totalPages . '</a></li>';
-    }
-    if ($currentPage < $totalPages) {
-        $html .= '<li><a class="fl-page-link" href="' . $makeUrl($currentPage + 1) . '">Next &raquo;</a></li>';
-    }
-    $html .= '</ul></nav>';
-
-    return $html;
-};
-
-// ---------------------------------------------------------------------------
-// 6. Render — three paths identical to MembersController::index()
+// 5. Render — three paths identical to MembersController::index()
 // ---------------------------------------------------------------------------
 
 if ($_lusterCountry !== '') {
@@ -223,8 +171,8 @@ if ($_lusterCountry !== '') {
         . ($_lusterResult['pages'] > 1
             ? ' — page ' . $_lusterPage . ' of ' . $_lusterResult['pages']
             : '');
-    $_lusterPagination = $_lusterBuildPagination(
-        $_lusterPage, $_lusterResult['pages'], $_lusterMembersBase,
+    $_lusterPagination = Pagination::render(
+        $_lusterPage, $_lusterResult['pages'], $_lusterMembersBase, $_lusterPaginationTemplate,
         ['sort' => 'country', 'country' => $_lusterCountry],
     );
 
@@ -269,8 +217,9 @@ if ($_lusterCountry !== '') {
     );
     $_lusterStatsLine  = $_lusterResult['total'] . ' member(s) — page '
         . $_lusterPage . ' of ' . $_lusterResult['pages'];
-    $_lusterPagination = $_lusterBuildPagination(
-        $_lusterPage, $_lusterResult['pages'], $_lusterMembersBase, ['sort' => $_lusterSort],
+    $_lusterPagination = Pagination::render(
+        $_lusterPage, $_lusterResult['pages'], $_lusterMembersBase, $_lusterPaginationTemplate,
+        ['sort' => $_lusterSort],
     );
 
     $_lusterMembersHtml = null;
