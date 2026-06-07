@@ -599,6 +599,134 @@ final class ListingRowRendererTest extends TestCase
     }
 
     // -----------------------------------------------------------------------
+    // renderTemplate() — combined-template flat/sectioned auto-detection
+    // -----------------------------------------------------------------------
+
+    public function testRenderTemplateUsesFlatLoopWhenNoSectionBlocksPresent(): void
+    {
+        $listings = [
+            $this->makeListing(name: 'Alpha'),
+            $this->makeListing(name: 'Beta', upcoming: true),
+        ];
+
+        $html = ListingRowRenderer::renderTemplate(
+            '<ul>{each_listing}<li>{listing_title} ({listing_status})</li>{/each_listing}</ul>',
+            $listings,
+            'https://example.com/uploads/listings',
+            [],
+            [],
+        );
+
+        self::assertSame(
+            '<ul><li>Alpha (current)</li><li>Beta (upcoming)</li></ul>',
+            $html,
+        );
+    }
+
+    public function testRenderTemplateRoutesListingsIntoMatchingStatusSections(): void
+    {
+        $current  = $this->makeListing(name: 'CurrentOne');
+        $upcoming = $this->makeListing(name: 'UpcomingOne', upcoming: true);
+        $pending  = $this->makeListing(name: 'PendingOne', trouble: true);
+
+        $template = '{if_current_listings}<section>Current ({current_count}): {each_current}{listing_title}{/each_current}</section>{/if_current_listings}'
+                  . '{if_upcoming_listings}<section>Upcoming ({upcoming_count}): {each_upcoming}{listing_title}{/each_upcoming}</section>{/if_upcoming_listings}'
+                  . '{if_pending_listings}<section>Pending ({pending_count}): {each_pending}{listing_title}{/each_pending}</section>{/if_pending_listings}';
+
+        $html = ListingRowRenderer::renderTemplate(
+            $template,
+            [$current, $upcoming, $pending],
+            'https://example.com/uploads/listings',
+            [],
+            [],
+        );
+
+        self::assertSame(
+            '<section>Current (1): CurrentOne</section>'
+            . '<section>Upcoming (1): UpcomingOne</section>'
+            . '<section>Pending (1): PendingOne</section>',
+            $html,
+        );
+    }
+
+    public function testRenderTemplateHidesEmptySectionsViaConditionals(): void
+    {
+        $current = $this->makeListing(name: 'OnlyCurrent');
+
+        $template = '{if_current_listings}<section>Current: {each_current}{listing_title}{/each_current}</section>{/if_current_listings}'
+                  . '{if_upcoming_listings}<section>Upcoming: {each_upcoming}{listing_title}{/each_upcoming}</section>{/if_upcoming_listings}'
+                  . '{if_pending_listings}<section>Pending: {each_pending}{listing_title}{/each_pending}</section>{/if_pending_listings}';
+
+        $html = ListingRowRenderer::renderTemplate(
+            $template,
+            [$current],
+            'https://example.com/uploads/listings',
+            [],
+            [],
+        );
+
+        self::assertSame('<section>Current: OnlyCurrent</section>', $html);
+    }
+
+    public function testRenderTemplateHandlesSingleListingThroughSectionedTemplateWithoutLeakingLoopTags(): void
+    {
+        // Regression coverage: latest-listing.php / random-listing.php always pass
+        // exactly one listing. Before renderTemplate() existed, they called
+        // render() directly — which has no loop-processing step — so a sectioned
+        // owned_template (the shape of the new combined-template default) would
+        // leak literal {each_current}/{if_current_listings} tags straight onto
+        // the host page instead of rendering the listing into its own section.
+        $listing = $this->makeListing(name: 'Solo', upcoming: true);
+
+        $template = '{if_current_listings}<h3>Current</h3>{each_current}{listing_title}{/each_current}{/if_current_listings}'
+                  . '{if_upcoming_listings}<h3>Upcoming</h3>{each_upcoming}{listing_title}{/each_upcoming}{/if_upcoming_listings}'
+                  . '{if_pending_listings}<h3>Pending</h3>{each_pending}{listing_title}{/each_pending}{/if_pending_listings}';
+
+        $html = ListingRowRenderer::renderTemplate(
+            $template,
+            [$listing],
+            'https://example.com/uploads/listings',
+            [],
+            [],
+        );
+
+        self::assertSame('<h3>Upcoming</h3>Solo', $html);
+        self::assertStringNotContainsString('{each_', $html);
+        self::assertStringNotContainsString('{if_', $html);
+    }
+
+    public function testRenderTemplateAppliesOuterSectionTokensBeforeRowSubstitutionToAvoidCascading(): void
+    {
+        // Regression coverage: outer section-count tokens like {pending_count}
+        // must be resolved against the template SHELL before any row HTML —
+        // containing user-controlled, View::e()-escaped listing text — is
+        // substituted in. Otherwise a listing whose *title* is literally
+        // "{pending_count}" would have that literal text overwritten by a
+        // second outer-token pass scanning the assembled HTML, breaking the
+        // "escaped values stay plain text" guarantee View::e() exists to provide.
+        $literalTitleListing = $this->makeListing(name: '{pending_count}');
+        $pendingListing      = $this->makeListing(name: 'TroubledOne', trouble: true);
+
+        $template = '{each_current}{listing_title}{/each_current}'
+                  . '|pending_count={pending_count}|'
+                  . '{each_pending}{listing_title}{/each_pending}';
+
+        $html = ListingRowRenderer::renderTemplate(
+            $template,
+            [$literalTitleListing, $pendingListing],
+            'https://example.com/uploads/listings',
+            [],
+            [],
+        );
+
+        // The outer {pending_count} resolves to the section count (one pending
+        // listing) — and the row whose *title* is literally "{pending_count}"
+        // survives as plain, untouched text rather than being overwritten by
+        // that very same substitution on a second pass.
+        self::assertSame('{pending_count}|pending_count=1|TroubledOne', $html);
+    }
+
+    // -----------------------------------------------------------------------
     // Helper
     // -----------------------------------------------------------------------
 

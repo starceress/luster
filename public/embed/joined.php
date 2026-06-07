@@ -196,29 +196,40 @@ if ($_lusterJoinedTemplate !== null) {
         }
     }
 
+    // The item set to feed the loop is whichever one the current view is actually
+    // showing: single-category/selector mode populates $_lusterListings while
+    // $_lusterGrouped (and thus $_lusterFlatGrouped) stays empty; show-all /
+    // show-all-by-default modes populate $_lusterGrouped while $_lusterListings
+    // stays empty. Falling back to $_lusterFlatGrouped is what makes
+    // {each_current_joined} render correctly for a single selected category too —
+    // not just for cat=all — since {each_current_joined} has no separate "flat"
+    // counterpart of its own to fall back to.
+    $_lusterJoinedItems = !empty($_lusterListings) ? $_lusterListings : $_lusterFlatGrouped;
+
     if (str_contains($_lusterJoinedTemplate, '{each_current_joined}')) {
-        $_lusterListingHtml = TemplateEngine::loop($_lusterJoinedTemplate, 'current_joined', $_lusterFlatGrouped, $_lusterRenderRow);
+        // Outer section-count/conditional tokens are applied to the template SHELL
+        // first — before any row HTML is substituted in. TemplateEngine::tokens()
+        // performs one simultaneous strtr() scan per call; running it again over a
+        // string that already contains rendered row HTML would re-scan that HTML's
+        // literal escaped text too (e.g. a listing title of literally
+        // "{current_count}" would be overwritten on the second pass). Resolving the
+        // shell first means the loop body is the last thing substituted in, so its
+        // literal content can never be re-matched — preserving the "escaped values
+        // stay plain text" guarantee end-to-end.
         $_lusterListingHtml = TemplateEngine::render(
-            $_lusterListingHtml,
+            $_lusterJoinedTemplate,
             escaped: [
-                'current_count' => count($_lusterFlatGrouped),
-                'total_count'   => count($_lusterFlatGrouped),
+                'current_count' => count($_lusterJoinedItems),
+                'total_count'   => count($_lusterJoinedItems),
             ],
             conditions: [
-                'current_listings' => $_lusterFlatGrouped !== [],
+                'current_listings' => $_lusterJoinedItems !== [],
             ],
         );
-    } else {
-        // Flat {each_joined} mode — feed whichever item set the current view is
-        // actually showing: single-category/selector mode uses $_lusterListings;
-        // show-all mode (without a {each_current_joined} block in the template)
-        // falls back to the category-sorted flat list, preserving pre-Phase-2
-        // behavior where a simple flat joined_template listed every active listing.
-        $_lusterJoinedItems = !empty($_lusterListings) ? $_lusterListings : $_lusterFlatGrouped;
-
-        if (!empty($_lusterJoinedItems)) {
-            $_lusterListingHtml = TemplateEngine::loop($_lusterJoinedTemplate, 'joined', $_lusterJoinedItems, $_lusterRenderRow);
-        }
+        $_lusterListingHtml = TemplateEngine::loop($_lusterListingHtml, 'current_joined', $_lusterJoinedItems, $_lusterRenderRow);
+    } elseif (!empty($_lusterJoinedItems)) {
+        // Flat {each_joined} mode.
+        $_lusterListingHtml = TemplateEngine::loop($_lusterJoinedTemplate, 'joined', $_lusterJoinedItems, $_lusterRenderRow);
     }
 }
 

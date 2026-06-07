@@ -143,13 +143,22 @@ if ($_flNeedsApproved || $_flNeedsPending) {
     } catch (\Exception) {}
 }
 
-$_lusterHtml = ListingRowRenderer::render(
-    $_lusterListing,
+// Routed through renderTemplate() — not render() — because owned_template is
+// now a combined block template that may declare {each_listing} (flat) or
+// {each_current}/{each_upcoming}/{each_pending} (sectioned) loops of its own.
+// render() has no loop-processing step, so calling it directly here would leak
+// literal {each_listing}/{/each_listing} tags into the page for the new
+// defaults. renderTemplate() auto-detects the template's shape and renders
+// this single listing through whichever mode it declares — placing it into
+// its matching section when the template is sectioned — exactly as
+// embed/owned.php does for a full listing pool (docs/PUBLIC-TEMPLATES-PLAN.md).
+$_lusterHtml = ListingRowRenderer::renderTemplate(
     $_lusterOwnedTemplate,
-    $_lusterSettings,
+    [$_lusterListing],
     $_lusterUploadsUrl,
-    $_lusterCategoryName,
-    $_flStats,
+    [$_lusterListing->id => $_lusterSettings],
+    [$_lusterListing->id => $_flStats],
+    $_lusterCategoryName !== '' ? [$_lusterListing->id => $_lusterCategoryName] : [],
 );
 
 // ---------------------------------------------------------------------------

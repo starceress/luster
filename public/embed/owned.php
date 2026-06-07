@@ -2,7 +2,6 @@
 
 declare(strict_types=1);
 
-use Luster\Core\TemplateEngine;
 use Luster\Repositories\ListingRepo;
 use Luster\Repositories\SiteSettingsRepo;
 use Luster\Support\ListingRowRenderer;
@@ -234,71 +233,24 @@ if ($_lusterOwnedTemplate !== null && $_lusterShowListings) {
         $_lusterMemberStatsMap = $_lusterMemberService->forListings($_lusterListings);
     }
 
-    // Sectioned mode ({each_current}/{each_upcoming}/{each_pending}) vs flat mode
-    // ({each_listing}) — detected by which loop blocks the template itself uses,
-    // per docs/PUBLIC-TEMPLATES-PLAN.md Phase 2. owned_sections_template no longer
-    // exists (Migration 64 deleted it); its grouped-by-status behavior now lives
-    // entirely inside the combined owned_template via these loops, fully under the
-    // site owner's control (headings, wrappers, ordering — all template-authored).
-    $_lusterIsSectioned = str_contains($_lusterOwnedTemplate, '{each_current}')
-                       || str_contains($_lusterOwnedTemplate, '{each_upcoming}')
-                       || str_contains($_lusterOwnedTemplate, '{each_pending}');
-
-    if ($_lusterIsSectioned) {
-        $_lcCurrent  = [];
-        $_lcUpcoming = [];
-        $_lcPending  = [];
-        foreach ($_lusterListings as $_fl) {
-            if ($_fl->trouble) {
-                $_lcPending[] = $_fl;
-            } elseif ($_fl->upcoming) {
-                $_lcUpcoming[] = $_fl;
-            } else {
-                $_lcCurrent[] = $_fl;
-            }
-        }
-
-        $_lusterListingHtml = $_lusterOwnedTemplate;
-        foreach (['current' => $_lcCurrent, 'upcoming' => $_lcUpcoming, 'pending' => $_lcPending] as $_lcName => $_lcGroup) {
-            $_lusterListingHtml = ListingRowRenderer::renderGroup(
-                $_lcName,
-                $_lusterListingHtml,
-                $_lcGroup,
-                $_lusterUploadsUrl,
-                $_lusterSettingsMap,
-                $_lusterMemberStatsMap,
-                $_lusterListingCategoryMap,
-            );
-        }
-
-        // Section counts + {if_*_listings} conditionals are outer-template tokens —
-        // applied once, after every {each_*} loop body has been fully substituted
-        // (TemplateEngine's documented loops → conditionals → tokens order).
-        $_lusterListingHtml = TemplateEngine::render(
-            $_lusterListingHtml,
-            escaped: [
-                'current_count'  => count($_lcCurrent),
-                'upcoming_count' => count($_lcUpcoming),
-                'pending_count'  => count($_lcPending),
-                'total_count'    => count($_lusterListings),
-            ],
-            conditions: [
-                'current_listings'  => $_lcCurrent !== [],
-                'upcoming_listings' => $_lcUpcoming !== [],
-                'pending_listings'  => $_lcPending !== [],
-            ],
-        );
-    } else {
-        $_lusterListingHtml = ListingRowRenderer::renderGroup(
-            'listing',
-            $_lusterOwnedTemplate,
-            $_lusterListings,
-            $_lusterUploadsUrl,
-            $_lusterSettingsMap,
-            $_lusterMemberStatsMap,
-            $_lusterListingCategoryMap,
-        );
-    }
+    // Renders the combined owned_template — auto-detects flat ({each_listing})
+    // vs sectioned ({each_current}/{each_upcoming}/{each_pending}) mode from the
+    // template string itself, per docs/PUBLIC-TEMPLATES-PLAN.md Phase 2.
+    // owned_sections_template no longer exists (Migration 64 deleted it); its
+    // grouped-by-status behavior now lives entirely inside the combined
+    // owned_template via these loops, fully under the site owner's control
+    // (headings, wrappers, ordering — all template-authored). Shared with
+    // latest-listing.php / random-listing.php via ListingRowRenderer::renderTemplate()
+    // so a sectioned template renders identically — and correctly — from every
+    // owned-template surface, including single-listing embeds.
+    $_lusterListingHtml = ListingRowRenderer::renderTemplate(
+        $_lusterOwnedTemplate,
+        $_lusterListings,
+        $_lusterUploadsUrl,
+        $_lusterSettingsMap,
+        $_lusterMemberStatsMap,
+        $_lusterListingCategoryMap,
+    );
 }
 
 // ---------------------------------------------------------------------------

@@ -144,4 +144,86 @@ final class ListingRowRenderer
             ),
         );
     }
+
+    /**
+     * Renders a complete combined owned_template against a set of listings —
+     * auto-detecting flat ({each_listing}) vs sectioned
+     * ({each_current}/{each_upcoming}/{each_pending}) mode from the template
+     * string itself, exactly as embed/owned.php does for its own
+     * site-owner-authored templates (docs/PUBLIC-TEMPLATES-PLAN.md Phase 2).
+     *
+     * Shared by owned.php (many listings, any status pool), latest-listing.php,
+     * and random-listing.php (always exactly one listing) so every owned-template
+     * surface stays behaviorally identical — a sectioned template renders
+     * correctly from a single-listing embed instead of leaking literal
+     * {each_current}/{each_listing} tags into the page (the bug this method
+     * replaces: those two embeds previously called render() directly, which
+     * has no loop-processing step at all).
+     *
+     * Sectioned mode applies the outer section-count/conditional tokens to the
+     * template SHELL first — before any row HTML is substituted in. This order
+     * matters: TemplateEngine::tokens() performs one simultaneous strtr() scan
+     * per call, so running it a second time over a string that already contains
+     * rendered row HTML would re-scan that HTML's literal escaped text too
+     * (e.g. a listing title of literally "{pending_count}" would be overwritten
+     * by the section's pending count on the second pass). Resolving the shell
+     * first means loop bodies are the last thing substituted in, so their
+     * literal content can never be re-matched — preserving the "escaped values
+     * stay plain text" guarantee end-to-end.
+     *
+     * @param Listing[] $listings
+     * @param array<int, array<string, mixed>> $settingsMap [listingId => settings row]
+     * @param array<int, array{approved?: int, pending?: int, country_count?: int}> $statsMap [listingId => member stats]
+     * @param array<int, string> $categoryMap [listingId => comma-separated category names]
+     */
+    public static function renderTemplate(
+        string $template,
+        array  $listings,
+        string $uploadsUrl,
+        array  $settingsMap,
+        array  $statsMap,
+        array  $categoryMap = [],
+    ): string {
+        $isSectioned = str_contains($template, '{each_current}')
+                    || str_contains($template, '{each_upcoming}')
+                    || str_contains($template, '{each_pending}');
+
+        if (!$isSectioned) {
+            return self::renderGroup('listing', $template, $listings, $uploadsUrl, $settingsMap, $statsMap, $categoryMap);
+        }
+
+        $current  = [];
+        $upcoming = [];
+        $pending  = [];
+        foreach ($listings as $listing) {
+            if ($listing->trouble) {
+                $pending[] = $listing;
+            } elseif ($listing->upcoming) {
+                $upcoming[] = $listing;
+            } else {
+                $current[] = $listing;
+            }
+        }
+
+        $html = TemplateEngine::render(
+            $template,
+            escaped: [
+                'current_count'  => count($current),
+                'upcoming_count' => count($upcoming),
+                'pending_count'  => count($pending),
+                'total_count'    => count($listings),
+            ],
+            conditions: [
+                'current_listings'  => $current !== [],
+                'upcoming_listings' => $upcoming !== [],
+                'pending_listings'  => $pending !== [],
+            ],
+        );
+
+        foreach (['current' => $current, 'upcoming' => $upcoming, 'pending' => $pending] as $name => $group) {
+            $html = self::renderGroup($name, $html, $group, $uploadsUrl, $settingsMap, $statsMap, $categoryMap);
+        }
+
+        return $html;
+    }
 }
