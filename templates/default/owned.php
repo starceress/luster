@@ -11,8 +11,9 @@ use Luster\Core\View;
  *   $category_html       string      pre-rendered category navigator (from PublicCategoryPresenter)
  *   $show_listings       bool        false when the presenter is showing a browse-index (no rows)
  *   $listings            Listing[]   filtered list of owned listings
- *   $listing_html        string|null pre-rendered rows (null = use fallback loop)
- *   $sections_mode       bool        true when grouped Current/Upcoming/Pending output was built ($status='all')
+ *   $listing_html        string|null pre-rendered HTML from owned_template — fully self-contained,
+ *                                    including its own wrapper markup (e.g. <ul>/<li> or grouped
+ *                                    <h3>/<ul> sections); null = use fallback loop
  *   $categories          array       [{id, name, slug, source, parent_id, parent_name, listing_count}]
  *   $current_category    int         selected category ID (0 = all)
  *   $browse_show_all     bool        true when ?cat=all shows all listings in browse mode
@@ -73,15 +74,9 @@ use Luster\Core\View;
 
   <?php if ($show_listings ?? true): ?>
 
-    <?php if (($sections_mode ?? false)): ?>
-      <!-- Sections mode: grouped Current/Upcoming/Pending output is authoritative -->
-      <?= $listing_html ?? '' ?>
-
-    <?php elseif (($listing_html ?? null) !== null && $listing_html !== ''): ?>
-      <!-- Custom DB template listing rows -->
-      <ul class="fl-listing-cards">
-        <?= $listing_html ?>
-      </ul>
+    <?php if (($listing_html ?? null) !== null && $listing_html !== ''): ?>
+      <!-- owned_template output — fully self-contained, including its own wrapper markup -->
+      <?= $listing_html ?>
 
     <?php elseif (empty($listings)): ?>
       <p>No listings to display.</p>

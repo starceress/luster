@@ -88,7 +88,7 @@ $_lusterUploadsUrl = $_lusterApp->getBaseUrl() . '/uploads/listings';
 $_lusterSettings = [];
 try {
     $_st = $_lusterApp->getDatabase()->prepare(
-        'SELECT fanlisting_id, image, last_updated FROM lstr_fanlisting_settings WHERE fanlisting_id = :id'
+        'SELECT fanlisting_id, image, last_updated, approved_by FROM lstr_fanlisting_settings WHERE fanlisting_id = :id'
     );
     $_st->execute(['id' => $_lusterListing->id]);
     $_lusterSettings = $_st->fetch() ?: [];
@@ -121,14 +121,25 @@ try {
 }
 
 // Optional member stats (only fetched when template uses them)
-$_flStats = ['approved' => 0, 'country_count' => 0];
-if (str_contains($_lusterOwnedTemplate, '{member_count}')
-    || str_contains($_lusterOwnedTemplate, '{country_count}')
-    || str_contains($_lusterOwnedTemplate, '{countries_count}')
-    || str_contains($_lusterOwnedTemplate, '{if_countries}')) {
+$_flStats = ['approved' => 0, 'pending' => 0, 'country_count' => 0];
+$_flNeedsApproved = str_contains($_lusterOwnedTemplate, '{member_count}')
+                 || str_contains($_lusterOwnedTemplate, '{country_count}')
+                 || str_contains($_lusterOwnedTemplate, '{countries_count}')
+                 || str_contains($_lusterOwnedTemplate, '{if_countries}');
+$_flNeedsPending  = str_contains($_lusterOwnedTemplate, '{member_pending_count}')
+                 || str_contains($_lusterOwnedTemplate, '{pending_count}')
+                 || str_contains($_lusterOwnedTemplate, '{if_pending}');
+
+if ($_flNeedsApproved || $_flNeedsPending) {
     try {
-        $_flStats = (new MemberRepo($_lusterApp->getDatabase(), $_lusterApp->getConfig()))
-            ->getMemberStats($_lusterListing->dbprefix);
+        $_flMemberRepo = new MemberRepo($_lusterApp->getDatabase(), $_lusterApp->getConfig());
+
+        if ($_flNeedsApproved) {
+            $_flStats = array_merge($_flStats, $_flMemberRepo->getMemberStats($_lusterListing->dbprefix));
+        }
+        if ($_flNeedsPending) {
+            $_flStats['pending'] = $_flMemberRepo->countPending($_lusterListing->dbprefix);
+        }
     } catch (\Exception) {}
 }
 

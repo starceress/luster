@@ -680,39 +680,46 @@ $epSafe = View::e($ep);
         <!-- OWNED LISTINGS TOKENS -->
         <div class="ec-ref-panel" id="ec-ref-owned-tokens">
           <h3 class="pc-head-title embed-ref-heading">Owned listings</h3>
-          <p class="text-muted embed-ref-copy">Put these words in your owned listings template. Luster fills them in for each listing.</p>
+          <p class="text-muted embed-ref-copy">Put these words in your owned listings template. Luster fills them in for each listing. The template is fully self-contained — it controls its own wrapper markup (e.g. <code>&lt;ul&gt;</code>/<code>&lt;li&gt;</code>).</p>
           <div class="ec-ref-card">
             <div class="table-wrap">
             <table class="data-table">
               <thead><tr><th class="act-col">Template word</th><th>What it shows</th></tr></thead>
               <tbody>
+                <tr><td class="act-col"><code class="ec-tk">{each_listing}&hellip;{/each_listing}</code></td><td>Wrap your row markup in this. Luster repeats what&rsquo;s inside once per listing (flat, single-status mode).</td></tr>
+                <tr><td class="act-col"><code class="ec-tk">{each_current}&hellip;{/each_current}</code>, <code class="ec-tk">{each_upcoming}&hellip;{/each_upcoming}</code>, <code class="ec-tk">{each_pending}&hellip;{/each_pending}</code></td><td>Same idea, but split into separate Current / Upcoming / Pending sections. Used when the embed shows all statuses (<code>$luster_status = 'all'</code>).</td></tr>
                 <tr><td class="act-col"><code class="ec-tk">{listing_title}</code></td><td>Name of the listing.</td></tr>
                 <tr><td class="act-col"><code class="ec-tk">{listing_url}</code></td><td>Link to the listing.</td></tr>
                 <tr><td class="act-col"><code class="ec-tk">{listing_subject}</code></td><td>What the listing is for.</td></tr>
-                <tr><td class="act-col"><code class="ec-tk">{listing_status}</code></td><td>Listing status: Current, Upcoming, or Pending.</td></tr>
+                <tr><td class="act-col"><code class="ec-tk">{listing_status}</code></td><td>Raw status word: <code>current</code>, <code>upcoming</code>, or <code>pending</code>.</td></tr>
                 <tr><td class="act-col"><code class="ec-tk">{listing_email}</code></td><td>Contact email for the listing.</td></tr>
                 <tr><td class="act-col"><code class="ec-tk">{listing_type}</code></td><td>Listing type, if you filled one in.</td></tr>
                 <tr><td class="act-col"><code class="ec-tk">{listing_category}</code></td><td>The listing&rsquo;s categories.</td></tr>
-                <tr><td class="act-col"><code class="ec-tk">{listing_image}</code></td><td>The listing image. If there is no image, nothing is shown.</td></tr>
+                <tr><td class="act-col"><code class="ec-tk">{listing_image_url}</code></td><td>Just the image&rsquo;s web address as plain text. Empty when there is no image.</td></tr>
+                <tr><td class="act-col"><code class="ec-tk">{listing_image_html}</code></td><td>A ready-to-use <code>&lt;img&gt;</code> tag for the listing image. Empty when there is no image.</td></tr>
                 <tr><td class="act-col"><code class="ec-tk">{date_opened}</code></td><td>Date you opened the listing.</td></tr>
                 <tr><td class="act-col"><code class="ec-tk">{date_updated}</code></td><td>The &ldquo;last updated&rdquo; date you set for the listing in Luster.</td></tr>
                 <tr><td class="act-col"><code class="ec-tk">{member_count}</code></td><td>Number of approved members.</td></tr>
+                <tr><td class="act-col"><code class="ec-tk">{member_pending_count}</code></td><td>Number of members waiting for approval on this listing.</td></tr>
                 <tr><td class="act-col"><code class="ec-tk">{country_count}</code></td><td>Number of different countries represented by approved members.</td></tr>
                 <tr><td class="act-col"><code class="ec-tk">{countries_count}</code></td><td>Same number as <code>{country_count}</code>.</td></tr>
+                <tr><td class="act-col"><code class="ec-tk">{approved_by}</code></td><td>Which network this listing is registered with: <code>tfl</code>, <code>tafl</code>, or empty.</td></tr>
+                <tr><td class="act-col"><code class="ec-tk">{if_listing_image}&hellip;{/if_listing_image}</code></td><td>Shows the text inside only when the listing has an image.</td></tr>
                 <tr><td class="act-col"><code class="ec-tk">{if_countries}&hellip;{/if_countries}</code></td><td>Shows the text inside only when at least one country is counted.</td></tr>
+                <tr><td class="act-col"><code class="ec-tk">{if_pending}&hellip;{/if_pending}</code></td><td>Shows the text inside only when this listing has pending members.</td></tr>
+                <tr><td class="act-col"><code class="ec-tk">{if_status_current}&hellip;{/if_status_current}</code>, <code class="ec-tk">{if_status_upcoming}&hellip;{/if_status_upcoming}</code>, <code class="ec-tk">{if_status_pending}&hellip;{/if_status_pending}</code></td><td>Shows the text inside only when the listing&rsquo;s status matches.</td></tr>
+                <tr><td class="act-col"><code class="ec-tk">{if_tfl}&hellip;{/if_tfl}</code>, <code class="ec-tk">{if_tafl}&hellip;{/if_tafl}</code></td><td>Shows the text inside only when the listing is registered with that network.</td></tr>
+                <tr><td class="act-col"><code class="ec-tk">{if_approved}&hellip;{/if_approved}</code></td><td>Shows the text inside only when the listing is registered with either network.</td></tr>
               </tbody>
             </table>
             </div>
           </div>
-          <p class="text-muted embed-ref-copy" style="margin-top:.875rem">Section words for the owned listings sections layout.</p>
+          <p class="text-muted embed-ref-copy" style="margin-top:.875rem">Section words — only useful inside <code>{each_current}</code> / <code>{each_upcoming}</code> / <code>{each_pending}</code> blocks, placed outside the loops in the same template.</p>
           <div class="ec-ref-card">
             <div class="table-wrap">
             <table class="data-table">
               <thead><tr><th class="act-col">Template word</th><th>What it shows</th></tr></thead>
               <tbody>
-                <tr><td class="act-col"><code class="ec-tk">{current_content}</code></td><td>The current listings section.</td></tr>
-                <tr><td class="act-col"><code class="ec-tk">{upcoming_content}</code></td><td>The upcoming listings section.</td></tr>
-                <tr><td class="act-col"><code class="ec-tk">{pending_content}</code></td><td>The pending listings section.</td></tr>
                 <tr><td class="act-col"><code class="ec-tk">{current_count}</code></td><td>Number of current listings.</td></tr>
                 <tr><td class="act-col"><code class="ec-tk">{upcoming_count}</code></td><td>Number of upcoming listings.</td></tr>
                 <tr><td class="act-col"><code class="ec-tk">{pending_count}</code></td><td>Number of pending listings.</td></tr>
@@ -729,31 +736,33 @@ $epSafe = View::e($ep);
         <!-- JOINED LISTINGS TOKENS -->
         <div class="ec-ref-panel" id="ec-ref-joined-tokens">
           <h3 class="pc-head-title embed-ref-heading">Joined listings</h3>
-          <p class="text-muted embed-ref-copy">Put these words in your joined listings template. Luster fills them in for each listing.</p>
+          <p class="text-muted embed-ref-copy">Put these words in your joined listings template. Luster fills them in for each listing. The template is fully self-contained — it controls its own wrapper markup (e.g. <code>&lt;ul&gt;</code>/<code>&lt;li&gt;</code>).</p>
           <div class="ec-ref-card">
             <div class="table-wrap">
             <table class="data-table">
               <thead><tr><th class="act-col">Template word</th><th>What it shows</th></tr></thead>
               <tbody>
+                <tr><td class="act-col"><code class="ec-tk">{each_joined}&hellip;{/each_joined}</code></td><td>Wrap your row markup in this. Luster repeats what&rsquo;s inside once per joined listing (flat list).</td></tr>
+                <tr><td class="act-col"><code class="ec-tk">{each_current_joined}&hellip;{/each_current_joined}</code></td><td>Same idea, but for every active joined listing ordered by category — used when browsing all listings.</td></tr>
                 <tr><td class="act-col"><code class="ec-tk">{listing_title}</code></td><td>Name of the listing.</td></tr>
                 <tr><td class="act-col"><code class="ec-tk">{listing_url}</code></td><td>Link to the listing.</td></tr>
                 <tr><td class="act-col"><code class="ec-tk">{listing_category}</code></td><td>Listing category.</td></tr>
-                <tr><td class="act-col"><code class="ec-tk">{listing_image}</code></td><td>The listing image. If there is no image, nothing is shown.</td></tr>
-                <tr><td class="act-col"><code class="ec-tk">{image}</code></td><td>Same as <code>{listing_image}</code>.</td></tr>
+                <tr><td class="act-col"><code class="ec-tk">{listing_image_url}</code></td><td>Just the image&rsquo;s web address as plain text. Empty when there is no image.</td></tr>
+                <tr><td class="act-col"><code class="ec-tk">{listing_image_html}</code></td><td>A ready-to-use <code>&lt;img&gt;</code> tag for the listing image. Empty when there is no image.</td></tr>
                 <tr><td class="act-col"><code class="ec-tk">{listing_status}</code></td><td>Listing status.</td></tr>
                 <tr><td class="act-col"><code class="ec-tk">{date_joined}</code></td><td>Date you joined the listing.</td></tr>
+                <tr><td class="act-col"><code class="ec-tk">{if_listing_image}&hellip;{/if_listing_image}</code></td><td>Shows the text inside only when the listing has an image.</td></tr>
               </tbody>
             </table>
             </div>
           </div>
-          <p class="text-muted embed-ref-copy" style="margin-top:.875rem">Section words for the joined listings sections layout.</p>
+          <p class="text-muted embed-ref-copy" style="margin-top:.875rem">Section words — only useful inside an <code>{each_current_joined}</code> block, placed outside the loop in the same template.</p>
           <div class="ec-ref-card">
             <div class="table-wrap">
             <table class="data-table">
               <thead><tr><th class="act-col">Template word</th><th>What it shows</th></tr></thead>
               <tbody>
-                <tr><td class="act-col"><code class="ec-tk">{current_content}</code></td><td>The active joined listings section.</td></tr>
-                <tr><td class="act-col"><code class="ec-tk">{current_count}</code></td><td>Number of active joined listings.</td></tr>
+                <tr><td class="act-col"><code class="ec-tk">{current_count}</code></td><td>Number of active joined listings shown.</td></tr>
                 <tr><td class="act-col"><code class="ec-tk">{total_count}</code></td><td>Total number of active joined listings.</td></tr>
                 <tr><td class="act-col"><code class="ec-tk">{if_current_listings}&hellip;{/if_current_listings}</code></td><td>Shows the text inside only when there are active joined listings.</td></tr>
               </tbody>

@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use Luster\Core\TemplateEngine;
 use Luster\Repositories\ListingRepo;
 use Luster\Repositories\SiteSettingsRepo;
 use Luster\Support\ListingRowRenderer;
@@ -153,7 +154,6 @@ if (trim($_lusterOwnedTemplate) === '') {
 }
 
 $_lusterListingHtml = null;
-$_lusterSectionsMode = false;
 if ($_lusterOwnedTemplate !== null && $_lusterShowListings) {
     $_lusterUploadsUrl = $_lusterApp->getBaseUrl() . '/uploads/listings';
 
@@ -167,7 +167,7 @@ if ($_lusterOwnedTemplate !== null && $_lusterShowListings) {
         try {
             $_db  = $_lusterApp->getDatabase();
             $_phs = implode(',', array_fill(0, count($_lusterListingIds), '?'));
-            $_st  = $_db->prepare("SELECT fanlisting_id, image, last_updated FROM lstr_fanlisting_settings WHERE fanlisting_id IN ({$_phs})");
+            $_st  = $_db->prepare("SELECT fanlisting_id, image, last_updated, approved_by FROM lstr_fanlisting_settings WHERE fanlisting_id IN ({$_phs})");
             $_st->execute(array_values($_lusterListingIds));
             foreach ($_st->fetchAll() as $_row) {
                 $_lusterSettingsMap[(int) $_row['fanlisting_id']] = $_row;
@@ -223,6 +223,7 @@ if ($_lusterOwnedTemplate !== null && $_lusterShowListings) {
     // Batch-fetch member stats via MemberStatsService (chunked UNION ALL)
     $_lusterMemberStatsMap = [];
     $_lusterNeedsMemberStats = str_contains($_lusterOwnedTemplate, '{member_count}')
+                            || str_contains($_lusterOwnedTemplate, '{member_pending_count}')
                             || str_contains($_lusterOwnedTemplate, '{pending_count}')
                             || str_contains($_lusterOwnedTemplate, '{country_count}')
                             || str_contains($_lusterOwnedTemplate, '{countries_count}')
@@ -233,44 +234,70 @@ if ($_lusterOwnedTemplate !== null && $_lusterShowListings) {
         $_lusterMemberStatsMap = $_lusterMemberService->forListings($_lusterListings);
     }
 
-    // Render each listing row using ListingRowRenderer
-    $_lcRenderRow = static fn($fl) => ListingRowRenderer::render(
-        $fl,
-        $_lusterOwnedTemplate,
-        $_lusterSettingsMap[$fl->id] ?? [],
-        $_lusterApp->getBaseUrl() . '/uploads/listings',
-        $_lusterListingCategoryMap[$fl->id] ?? '',
-        $_lusterMemberStatsMap[$fl->id] ?? [],
-    );
+    // Sectioned mode ({each_current}/{each_upcoming}/{each_pending}) vs flat mode
+    // ({each_listing}) — detected by which loop blocks the template itself uses,
+    // per docs/PUBLIC-TEMPLATES-PLAN.md Phase 2. owned_sections_template no longer
+    // exists (Migration 64 deleted it); its grouped-by-status behavior now lives
+    // entirely inside the combined owned_template via these loops, fully under the
+    // site owner's control (headings, wrappers, ordering — all template-authored).
+    $_lusterIsSectioned = str_contains($_lusterOwnedTemplate, '{each_current}')
+                       || str_contains($_lusterOwnedTemplate, '{each_upcoming}')
+                       || str_contains($_lusterOwnedTemplate, '{each_pending}');
 
-    if ($_lusterStatus === 'all') {
-        // Default grouped-by-status layout (Current / Upcoming / Pending headings),
-        // matching the retired owned_sections_template's built-in default. Hardcoded
-        // rather than DB-driven — the admin-customizable template feature was removed
-        // by Migration 64; Phase 2 replaces this block with TemplateEngine-driven
-        // {each_current}/{each_upcoming}/{each_pending} loops.
-        $_lusterSectionsMode = true;
-        $_lcGroups = ['Current' => [], 'Upcoming' => [], 'Pending' => []];
+    if ($_lusterIsSectioned) {
+        $_lcCurrent  = [];
+        $_lcUpcoming = [];
+        $_lcPending  = [];
         foreach ($_lusterListings as $_fl) {
             if ($_fl->trouble) {
-                $_lcGroups['Pending'][] = $_fl;
+                $_lcPending[] = $_fl;
             } elseif ($_fl->upcoming) {
-                $_lcGroups['Upcoming'][] = $_fl;
+                $_lcUpcoming[] = $_fl;
             } else {
-                $_lcGroups['Current'][] = $_fl;
+                $_lcCurrent[] = $_fl;
             }
         }
 
-        $_lusterListingHtml = '';
-        foreach ($_lcGroups as $_lcLabel => $_lcGroup) {
-            if ($_lcGroup === []) {
-                continue;
-            }
-            $_lusterListingHtml .= '<h3>' . $_lcLabel . ' (' . count($_lcGroup) . ')</h3>'
-                . '<ul>' . implode('', array_map($_lcRenderRow, $_lcGroup)) . '</ul>';
+        $_lusterListingHtml = $_lusterOwnedTemplate;
+        foreach (['current' => $_lcCurrent, 'upcoming' => $_lcUpcoming, 'pending' => $_lcPending] as $_lcName => $_lcGroup) {
+            $_lusterListingHtml = ListingRowRenderer::renderGroup(
+                $_lcName,
+                $_lusterListingHtml,
+                $_lcGroup,
+                $_lusterUploadsUrl,
+                $_lusterSettingsMap,
+                $_lusterMemberStatsMap,
+                $_lusterListingCategoryMap,
+            );
         }
+
+        // Section counts + {if_*_listings} conditionals are outer-template tokens —
+        // applied once, after every {each_*} loop body has been fully substituted
+        // (TemplateEngine's documented loops → conditionals → tokens order).
+        $_lusterListingHtml = TemplateEngine::render(
+            $_lusterListingHtml,
+            escaped: [
+                'current_count'  => count($_lcCurrent),
+                'upcoming_count' => count($_lcUpcoming),
+                'pending_count'  => count($_lcPending),
+                'total_count'    => count($_lusterListings),
+            ],
+            conditions: [
+                'current_listings'  => $_lcCurrent !== [],
+                'upcoming_listings' => $_lcUpcoming !== [],
+                'pending_listings'  => $_lcPending !== [],
+            ],
+        );
     } else {
-        $_lusterListingHtml = implode('', array_map($_lcRenderRow, $_lusterListings));
+        $_lusterListingHtml = ListingRowRenderer::renderGroup(
+            'listing',
+            $_lusterOwnedTemplate,
+            $_lusterListings,
+            $_lusterUploadsUrl,
+            $_lusterSettingsMap,
+            $_lusterMemberStatsMap,
+            $_lusterListingCategoryMap,
+        );
     }
 }
 
@@ -291,7 +318,6 @@ $_lusterFormAction = htmlspecialchars(
 $_lusterHtml = $_lusterApp->getView()->renderFragment('owned.php', [
     'listings'            => $_lusterListings,
     'listing_html'        => $_lusterListingHtml,
-    'sections_mode'       => $_lusterSectionsMode,
     'category_html'       => $_lusterCategoryHtml,
     'show_listings'       => $_lusterShowListings,
     'categories'          => $_lusterCategories,

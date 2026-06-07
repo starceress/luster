@@ -97,6 +97,10 @@ $collAffSectionVal       = $ct['collective_affiliates_section_template']   ?? $d
         <div class="chevron-body">
           <table class="et-token-table">
             <tbody>
+              <tr><td><code>{each_listing}&hellip;{/each_listing}</code></td><td>Loop — all listings, flat (single-status mode)</td></tr>
+              <tr><td><code>{each_current}&hellip;{/each_current}</code></td><td>Loop — current listings only (sectioned mode, <code>$luster_status='all'</code>)</td></tr>
+              <tr><td><code>{each_upcoming}&hellip;{/each_upcoming}</code></td><td>Loop — upcoming listings only (sectioned mode)</td></tr>
+              <tr><td><code>{each_pending}&hellip;{/each_pending}</code></td><td>Loop — pending listings only (sectioned mode)</td></tr>
               <tr class="tok-row" data-textarea="owned_template" data-token="{listing_title}">
                 <td><code>{listing_title}</code></td><td>Listing name</td>
               </tr>
@@ -107,7 +111,7 @@ $collAffSectionVal       = $ct['collective_affiliates_section_template']   ?? $d
                 <td><code>{listing_subject}</code></td><td>Subject</td>
               </tr>
               <tr class="tok-row" data-textarea="owned_template" data-token="{listing_status}">
-                <td><code>{listing_status}</code></td><td>Listing status</td>
+                <td><code>{listing_status}</code></td><td>Raw status string: current, upcoming, or pending</td>
               </tr>
               <tr class="tok-row" data-textarea="owned_template" data-token="{date_opened}">
                 <td><code>{date_opened}</code></td><td>Date opened</td>
@@ -116,10 +120,13 @@ $collAffSectionVal       = $ct['collective_affiliates_section_template']   ?? $d
                 <td><code>{date_updated}</code></td><td>Date last updated</td>
               </tr>
               <tr class="tok-row" data-textarea="owned_template" data-token="{listing_category}">
-                <td><code>{listing_category}</code></td><td>Category name</td>
+                <td><code>{listing_category}</code></td><td>Category name(s), comma-separated</td>
               </tr>
-              <tr class="tok-row" data-textarea="owned_template" data-token="{listing_image}">
-                <td><code>{listing_image}</code></td><td>Listing image tag</td>
+              <tr class="tok-row" data-textarea="owned_template" data-token="{listing_image_url}">
+                <td><code>{listing_image_url}</code></td><td>Bare image URL (escaped); empty when no image</td>
+              </tr>
+              <tr class="tok-row" data-textarea="owned_template" data-token="{listing_image_html}">
+                <td><code>{listing_image_html}</code></td><td>Rendered <code>&lt;img&gt;</code> tag; empty when no image</td>
               </tr>
               <tr class="tok-row" data-textarea="owned_template" data-token="{listing_email}">
                 <td><code>{listing_email}</code></td><td>Contact email</td>
@@ -130,15 +137,48 @@ $collAffSectionVal       = $ct['collective_affiliates_section_template']   ?? $d
               <tr class="tok-row" data-textarea="owned_template" data-token="{member_count}">
                 <td><code>{member_count}</code></td><td>Approved member count</td>
               </tr>
-              <tr class="tok-row" data-textarea="owned_template" data-token="{pending_count}">
-                <td><code>{pending_count}</code></td><td>Pending member count</td>
+              <tr class="tok-row" data-textarea="owned_template" data-token="{member_pending_count}">
+                <td><code>{member_pending_count}</code></td><td>Pending member count for this listing</td>
               </tr>
               <tr class="tok-row" data-textarea="owned_template" data-token="{country_count}">
-                <td><code>{country_count}</code></td><td>Distinct countries</td>
+                <td><code>{country_count}</code></td><td>Distinct countries (alias: <code>{countries_count}</code>)</td>
               </tr>
-              <tr><td><code>{if_pending}&hellip;{/if_pending}</code></td><td>Show block only when pending count &gt; 0</td></tr>
+              <tr class="tok-row" data-textarea="owned_template" data-token="{approved_by}">
+                <td><code>{approved_by}</code></td><td>Network registration: <code>tfl</code>, <code>tafl</code>, or empty</td>
+              </tr>
+              <tr><td><code>{if_listing_image}&hellip;{/if_listing_image}</code></td><td>Shown when the listing has an image</td></tr>
+              <tr><td><code>{if_countries}&hellip;{/if_countries}</code></td><td>Shown when country count &gt; 0</td></tr>
+              <tr><td><code>{if_pending}&hellip;{/if_pending}</code></td><td>Shown when this listing's pending member count &gt; 0</td></tr>
+              <tr><td><code>{if_status_current}&hellip;{/if_status_current}</code></td><td>Shown when status = current</td></tr>
+              <tr><td><code>{if_status_upcoming}&hellip;{/if_status_upcoming}</code></td><td>Shown when status = upcoming</td></tr>
+              <tr><td><code>{if_status_pending}&hellip;{/if_status_pending}</code></td><td>Shown when status = pending</td></tr>
+              <tr><td><code>{if_tfl}&hellip;{/if_tfl}</code></td><td>Shown when registered with TFL</td></tr>
+              <tr><td><code>{if_tafl}&hellip;{/if_tafl}</code></td><td>Shown when registered with TAFL</td></tr>
+              <tr><td><code>{if_approved}&hellip;{/if_approved}</code></td><td>Shown when registered with either network</td></tr>
+              <tr class="tok-row" data-textarea="owned_template" data-token="{current_count}">
+                <td><code>{current_count}</code></td><td>Section count — current listings (sectioned mode)</td>
+              </tr>
+              <tr class="tok-row" data-textarea="owned_template" data-token="{upcoming_count}">
+                <td><code>{upcoming_count}</code></td><td>Section count — upcoming listings (sectioned mode)</td>
+              </tr>
+              <tr class="tok-row" data-textarea="owned_template" data-token="{pending_count}">
+                <td><code>{pending_count}</code></td><td>Section count — pending listings (sectioned mode)</td>
+              </tr>
+              <tr class="tok-row" data-textarea="owned_template" data-token="{total_count}">
+                <td><code>{total_count}</code></td><td>Section count — all listings (sectioned mode)</td>
+              </tr>
+              <tr><td><code>{if_current_listings}&hellip;{/if_current_listings}</code></td><td>Shown when the current group is non-empty</td></tr>
+              <tr><td><code>{if_upcoming_listings}&hellip;{/if_upcoming_listings}</code></td><td>Shown when the upcoming group is non-empty</td></tr>
+              <tr><td><code>{if_pending_listings}&hellip;{/if_pending_listings}</code></td><td>Shown when the pending group is non-empty</td></tr>
             </tbody>
           </table>
+          <p class="form-hint mt-sm">
+            Use <code>{each_listing}&hellip;{/each_listing}</code> for a single flat list, or
+            <code>{each_current}</code> / <code>{each_upcoming}</code> / <code>{each_pending}</code>
+            to build separate sections (only used when the embed's status is set to <code>all</code>).
+            The template controls its own wrapper markup (e.g. <code>&lt;ul&gt;</code>/<code>&lt;li&gt;</code>
+            or grouped <code>&lt;h3&gt;</code>/<code>&lt;ul&gt;</code> sections).
+          </p>
         </div>
       </details>
 
@@ -147,6 +187,8 @@ $collAffSectionVal       = $ct['collective_affiliates_section_template']   ?? $d
         <div class="chevron-body">
           <table class="et-token-table">
             <tbody>
+              <tr><td><code>{each_joined}&hellip;{/each_joined}</code></td><td>Loop — all joined listings, flat</td></tr>
+              <tr><td><code>{each_current_joined}&hellip;{/each_current_joined}</code></td><td>Loop — all joined listings, ordered by category (grouped mode, <code>$luster_category='all'</code>)</td></tr>
               <tr class="tok-row" data-textarea="joined_template" data-token="{listing_title}">
                 <td><code>{listing_title}</code></td><td>Listing name</td>
               </tr>
@@ -156,11 +198,11 @@ $collAffSectionVal       = $ct['collective_affiliates_section_template']   ?? $d
               <tr class="tok-row" data-textarea="joined_template" data-token="{listing_category}">
                 <td><code>{listing_category}</code></td><td>Category</td>
               </tr>
-              <tr class="tok-row" data-textarea="joined_template" data-token="{image}">
-                <td><code>{image}</code></td><td>Listing image</td>
+              <tr class="tok-row" data-textarea="joined_template" data-token="{listing_image_url}">
+                <td><code>{listing_image_url}</code></td><td>Bare image URL (escaped); empty when no image</td>
               </tr>
-              <tr class="tok-row" data-textarea="joined_template" data-token="{listing_image}">
-                <td><code>{listing_image}</code></td><td>Listing image (alias)</td>
+              <tr class="tok-row" data-textarea="joined_template" data-token="{listing_image_html}">
+                <td><code>{listing_image_html}</code></td><td>Rendered <code>&lt;img&gt;</code> tag; empty when no image</td>
               </tr>
               <tr class="tok-row" data-textarea="joined_template" data-token="{listing_status}">
                 <td><code>{listing_status}</code></td><td>Status</td>
@@ -168,8 +210,22 @@ $collAffSectionVal       = $ct['collective_affiliates_section_template']   ?? $d
               <tr class="tok-row" data-textarea="joined_template" data-token="{date_joined}">
                 <td><code>{date_joined}</code></td><td>Date joined</td>
               </tr>
+              <tr><td><code>{if_listing_image}&hellip;{/if_listing_image}</code></td><td>Shown when the listing has an image</td></tr>
+              <tr class="tok-row" data-textarea="joined_template" data-token="{current_count}">
+                <td><code>{current_count}</code></td><td>Section count — listings shown (grouped mode)</td>
+              </tr>
+              <tr class="tok-row" data-textarea="joined_template" data-token="{total_count}">
+                <td><code>{total_count}</code></td><td>Section count — total listings (grouped mode)</td>
+              </tr>
+              <tr><td><code>{if_current_listings}&hellip;{/if_current_listings}</code></td><td>Shown when the group is non-empty</td></tr>
             </tbody>
           </table>
+          <p class="form-hint mt-sm">
+            Use <code>{each_joined}&hellip;{/each_joined}</code> for a flat list, or
+            <code>{each_current_joined}&hellip;{/each_current_joined}</code> to render every active
+            joined listing ordered by category (used when browsing all listings). The template
+            controls its own wrapper markup.
+          </p>
         </div>
       </details>
 

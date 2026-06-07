@@ -14,8 +14,11 @@ use Luster\Core\Database;
  * pages load normally before the migration has been run.
  *
  * Keys in use:
- *   owned_template            — per-row HTML template for embed/owned.php
- *   joined_template           — per-row HTML template for embed/joined.php
+ *   owned_template            — combined block template for embed/owned.php; fully self-contained
+ *                               (incl. wrapper markup) using {each_listing} (flat) or
+ *                               {each_current}/{each_upcoming}/{each_pending} (sectioned) loops
+ *   joined_template           — combined block template for embed/joined.php; fully self-contained
+ *                               using {each_joined} (flat) or {each_current_joined} (grouped) loops
  *   collective_stats_template — HTML template for embed/collective-stats.php
  */
 class SiteSettingsRepo
@@ -68,18 +71,26 @@ class SiteSettingsRepo
     public static function collectiveDefaults(): array
     {
         return [
-            'owned_template' => '<li style="display:flex;gap:0.75em;align-items:flex-start;padding:0.75em 0;">' . "\n"
-                             . '<div style="flex-shrink:0;max-width:120px;">{listing_image}</div>'
+            'owned_template' => '<ul style="list-style:none;padding:0;margin:0;">' . "\n"
+                             . '{each_listing}' . "\n"
+                             . '<li style="display:flex;gap:0.75em;align-items:flex-start;padding:0.75em 0;">' . "\n"
+                             . '<div style="flex-shrink:0;max-width:120px;">{listing_image_html}</div>'
                              . '<div>' . "\n"
                              . '<b><a href="{listing_url}" target="_blank" rel="noopener noreferrer">{listing_subject}</a></b><br>' . "\n"
                              . '<i>{listing_title}</i><br>' . "\n"
                              . '<b>Category:</b> {listing_category}<br>' . "\n"
-                             . '<b>Members:</b> {member_count} member(s){if_pending} (+{pending_count} pending){/if_pending}{if_countries} across {country_count} countries{/if_countries}<br>' . "\n"
+                             . '<b>Members:</b> {member_count} member(s){if_pending} (+{member_pending_count} pending){/if_pending}{if_countries} across {country_count} countries{/if_countries}<br>' . "\n"
                              . '<b>Opened:</b> {date_opened}<br>' . "\n"
                              . '<b>Last Updated:</b> {date_updated}' . "\n"
                              . '</div>' . "\n"
-                             . '</li>',
-            'joined_template'                      => '<a href="{listing_url}" target="_blank">{listing_title}</a> — {listing_category}',
+                             . '</li>' . "\n"
+                             . '{/each_listing}' . "\n"
+                             . '</ul>',
+            'joined_template' => '<ul style="list-style:none;padding:0;margin:0;">' . "\n"
+                               . '{each_joined}' . "\n"
+                               . '<li><a href="{listing_url}" target="_blank" rel="noopener noreferrer">{listing_title}</a> — {listing_category}</li>' . "\n"
+                               . '{/each_joined}' . "\n"
+                               . '</ul>',
             'collective_stats_template' => 'Owned Listings: {owned_active} open, {owned_upcoming} upcoming<br>' . "\n"
                                          . 'Joined Listings: {joined_active}</br>' . "\n"
                                          . 'Total Members: {members_approved} approved (+ {members_pending} pending)</br>' . "\n"

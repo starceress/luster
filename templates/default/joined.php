@@ -11,8 +11,9 @@ use Luster\Core\View;
  *   $category_html       string      pre-rendered category navigator (from PublicCategoryPresenter)
  *   $show_listings       bool        false when browse-index is rendered (no listing rows)
  *   $listings            JoinedListing[]              flat list (single-category or selector mode)
- *   $grouped             array<string, JoinedListing[]>  category-keyed list (show-all mode)
- *   $listing_html        string|null  pre-rendered rows via admin HTML template (null = fallback)
+ *   $grouped             array<string, JoinedListing[]>  category-keyed list (show-all mode fallback)
+ *   $listing_html        string|null  pre-rendered HTML from joined_template — fully self-contained,
+ *                                     including its own wrapper markup; null = use fallback loop below
  *   $categories          string[]     all available category names
  *   $category_counts     array<string, int>
  *   $total_count         int
@@ -73,10 +74,8 @@ $_renderItem = static function ($fl) use ($uploads_url): void {
   <?php if ($show_listings ?? true): ?>
 
     <?php if (($listing_html ?? null) !== null && $listing_html !== ''): ?>
-      <!-- Custom DB template listing rows -->
-      <ul>
-        <?= $listing_html ?>
-      </ul>
+      <!-- joined_template output — fully self-contained, including its own wrapper markup -->
+      <?= $listing_html ?>
 
     <?php elseif ($current_category === 'all' || (!empty($grouped) && $current_category === '')): ?>
       <?php /* show-all mode: grouped by category */ ?>

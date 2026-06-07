@@ -2,6 +2,9 @@
 
 declare(strict_types=1);
 
+use Luster\Core\TemplateEngine;
+use Luster\Core\View;
+use Luster\Models\JoinedListing;
 use Luster\Repositories\JoinedListingRepo;
 use Luster\Repositories\SiteSettingsRepo;
 use Luster\Support\PublicCategoryPresenter;
@@ -151,29 +154,71 @@ if (trim($_lusterJoinedTemplate) === '') {
 
 $_lusterListingHtml = null;
 if ($_lusterJoinedTemplate !== null) {
-    $e                 = static fn(string $v): string => htmlspecialchars($v, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
     $_lusterUploadsUrl = $_lusterApp->getBaseUrl() . '/uploads/joined';
-    $renderRow         = static function (object $fl) use ($_lusterJoinedTemplate, $e, $_lusterUploadsUrl): string {
-        $imageTag = ($fl->image !== null && $fl->image !== '')
-            ? '<img src="' . $e($_lusterUploadsUrl . '/' . $fl->image) . '" alt="' . $e($fl->name) . '" title="' . $e($fl->name) . '">'
+
+    // Renders one joined-listing row via TemplateEngine — replaces the old inline
+    // str_replace() closure. {listing_image_url} (escaped bare URL) + {listing_image_html}
+    // (raw <img>) + {if_listing_image} replace {listing_image}/{image} outright; there
+    // is no legacy alias (see docs/PUBLIC-TEMPLATES-PLAN.md "No {listing_image} legacy alias").
+    $_lusterRenderRow = static function (string $inner, JoinedListing $fl) use ($_lusterUploadsUrl): string {
+        $imageUrl  = ($fl->image !== null && $fl->image !== '') ? $_lusterUploadsUrl . '/' . $fl->image : '';
+        $imageHtml = $imageUrl !== ''
+            ? '<img src="' . View::e($imageUrl) . '" alt="' . View::e($fl->name) . '" title="' . View::e($fl->name) . '">'
             : '';
-        return str_replace(
-            ['{listing_title}', '{listing_url}', '{listing_category}', '{listing_image}', '{image}', '{date_joined}', '{listing_status}'],
-            [$e($fl->name), $e($fl->url), $e($fl->category ?? ''), $imageTag, $imageTag, $e($fl->dateJoined ?? ''), $e($fl->status)],
-            $_lusterJoinedTemplate,
+
+        return TemplateEngine::render(
+            $inner,
+            escaped: [
+                'listing_title'     => $fl->name,
+                'listing_url'       => $fl->url,
+                'listing_category'  => $fl->category ?? '',
+                'listing_image_url' => $imageUrl,
+                'date_joined'       => $fl->dateJoined ?? '',
+                'listing_status'    => $fl->status,
+            ],
+            raw: [
+                'listing_image_html' => $imageHtml,
+            ],
+            conditions: [
+                'listing_image' => $imageUrl !== '',
+            ],
         );
     };
 
-    if (!empty($_lusterGrouped)) {
-        $rows = '';
-        foreach ($_lusterGrouped as $catName => $items) {
-            foreach ($items as $fl) {
-                $rows .= $renderRow($fl);
-            }
+    // Flatten $_lusterGrouped (already category-sorted via ksort in $_lusterGroupByCategory)
+    // into a single ordered list — the data ordering IS the "grouped by category" contract
+    // for {each_current_joined}; the row template itself still prints {listing_category}
+    // per item (no template-level group-header support in {each_*} loops).
+    $_lusterFlatGrouped = [];
+    foreach ($_lusterGrouped as $_items) {
+        foreach ($_items as $_fl) {
+            $_lusterFlatGrouped[] = $_fl;
         }
-        $_lusterListingHtml = $rows;
-    } elseif (!empty($_lusterListings)) {
-        $_lusterListingHtml = implode('', array_map($renderRow, $_lusterListings));
+    }
+
+    if (str_contains($_lusterJoinedTemplate, '{each_current_joined}')) {
+        $_lusterListingHtml = TemplateEngine::loop($_lusterJoinedTemplate, 'current_joined', $_lusterFlatGrouped, $_lusterRenderRow);
+        $_lusterListingHtml = TemplateEngine::render(
+            $_lusterListingHtml,
+            escaped: [
+                'current_count' => count($_lusterFlatGrouped),
+                'total_count'   => count($_lusterFlatGrouped),
+            ],
+            conditions: [
+                'current_listings' => $_lusterFlatGrouped !== [],
+            ],
+        );
+    } else {
+        // Flat {each_joined} mode — feed whichever item set the current view is
+        // actually showing: single-category/selector mode uses $_lusterListings;
+        // show-all mode (without a {each_current_joined} block in the template)
+        // falls back to the category-sorted flat list, preserving pre-Phase-2
+        // behavior where a simple flat joined_template listed every active listing.
+        $_lusterJoinedItems = !empty($_lusterListings) ? $_lusterListings : $_lusterFlatGrouped;
+
+        if (!empty($_lusterJoinedItems)) {
+            $_lusterListingHtml = TemplateEngine::loop($_lusterJoinedTemplate, 'joined', $_lusterJoinedItems, $_lusterRenderRow);
+        }
     }
 }
 
