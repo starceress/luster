@@ -234,64 +234,43 @@ if ($_lusterOwnedTemplate !== null && $_lusterShowListings) {
     }
 
     // Render each listing row using ListingRowRenderer
-    $_lusterListingHtml = implode('', array_map(
-        static fn($fl) => ListingRowRenderer::render(
-            $fl,
-            $_lusterOwnedTemplate,
-            $_lusterSettingsMap[$fl->id] ?? [],
-            $_lusterApp->getBaseUrl() . '/uploads/listings',
-            $_lusterListingCategoryMap[$fl->id] ?? '',
-            $_lusterMemberStatsMap[$fl->id] ?? [],
-        ),
-        $_lusterListings,
-    ));
+    $_lcRenderRow = static fn($fl) => ListingRowRenderer::render(
+        $fl,
+        $_lusterOwnedTemplate,
+        $_lusterSettingsMap[$fl->id] ?? [],
+        $_lusterApp->getBaseUrl() . '/uploads/listings',
+        $_lusterListingCategoryMap[$fl->id] ?? '',
+        $_lusterMemberStatsMap[$fl->id] ?? [],
+    );
 
-    // Sections mode
-    $_lusterSectionsTplRaw = $_lusterSiteRepo->get('owned_sections_template');
-    $_lusterSectionsTpl    = $_lusterSectionsTplRaw === null
-        ? SiteSettingsRepo::collectiveDefaults()['owned_sections_template']
-        : $_lusterSectionsTplRaw;
-
-    if ($_lusterStatus === 'all' && trim($_lusterSectionsTpl) !== '') {
+    if ($_lusterStatus === 'all') {
+        // Default grouped-by-status layout (Current / Upcoming / Pending headings),
+        // matching the retired owned_sections_template's built-in default. Hardcoded
+        // rather than DB-driven — the admin-customizable template feature was removed
+        // by Migration 64; Phase 2 replaces this block with TemplateEngine-driven
+        // {each_current}/{each_upcoming}/{each_pending} loops.
         $_lusterSectionsMode = true;
-        $_lcCurrent  = [];
-        $_lcUpcoming = [];
-        $_lcPending  = [];
+        $_lcGroups = ['Current' => [], 'Upcoming' => [], 'Pending' => []];
         foreach ($_lusterListings as $_fl) {
             if ($_fl->trouble) {
-                $_lcPending[] = $_fl;
+                $_lcGroups['Pending'][] = $_fl;
             } elseif ($_fl->upcoming) {
-                $_lcUpcoming[] = $_fl;
+                $_lcGroups['Upcoming'][] = $_fl;
             } else {
-                $_lcCurrent[] = $_fl;
+                $_lcGroups['Current'][] = $_fl;
             }
         }
 
-        $_lcRender = static fn($fl) => ListingRowRenderer::render(
-            $fl,
-            $_lusterOwnedTemplate,
-            $_lusterSettingsMap[$fl->id] ?? [],
-            $_lusterApp->getBaseUrl() . '/uploads/listings',
-            $_lusterListingCategoryMap[$fl->id] ?? '',
-            $_lusterMemberStatsMap[$fl->id] ?? [],
-        );
-
-        $_lcCurrentHtml  = implode('', array_map($_lcRender, $_lcCurrent));
-        $_lcUpcomingHtml = implode('', array_map($_lcRender, $_lcUpcoming));
-        $_lcPendingHtml  = implode('', array_map($_lcRender, $_lcPending));
-
-        $_lusterSectionsOut = (string) preg_replace('/\{if_current_listings\}(.*?)\{\/if_current_listings\}/s', $_lcCurrentHtml  !== '' ? '$1' : '', $_lusterSectionsTpl);
-        $_lusterSectionsOut = (string) preg_replace('/\{if_upcoming_listings\}(.*?)\{\/if_upcoming_listings\}/s', $_lcUpcomingHtml !== '' ? '$1' : '', $_lusterSectionsOut);
-        $_lusterSectionsOut = (string) preg_replace('/\{if_pending_listings\}(.*?)\{\/if_pending_listings\}/s',  $_lcPendingHtml  !== '' ? '$1' : '', $_lusterSectionsOut);
-        $_lusterSectionsOut = str_replace(
-            ['{current_content}', '{upcoming_content}', '{pending_content}',
-             '{current_count}', '{upcoming_count}', '{pending_count}', '{total_count}'],
-            [$_lcCurrentHtml, $_lcUpcomingHtml, $_lcPendingHtml,
-             (string) count($_lcCurrent), (string) count($_lcUpcoming), (string) count($_lcPending),
-             (string) count($_lusterListings)],
-            $_lusterSectionsOut,
-        );
-        $_lusterListingHtml = trim($_lusterSectionsOut) !== '' ? $_lusterSectionsOut : '';
+        $_lusterListingHtml = '';
+        foreach ($_lcGroups as $_lcLabel => $_lcGroup) {
+            if ($_lcGroup === []) {
+                continue;
+            }
+            $_lusterListingHtml .= '<h3>' . $_lcLabel . ' (' . count($_lcGroup) . ')</h3>'
+                . '<ul>' . implode('', array_map($_lcRenderRow, $_lcGroup)) . '</ul>';
+        }
+    } else {
+        $_lusterListingHtml = implode('', array_map($_lcRenderRow, $_lusterListings));
     }
 }
 

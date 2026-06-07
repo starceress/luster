@@ -150,7 +150,6 @@ if (trim($_lusterJoinedTemplate) === '') {
 }
 
 $_lusterListingHtml = null;
-$_lusterSectionsMode = false;
 if ($_lusterJoinedTemplate !== null) {
     $e                 = static fn(string $v): string => htmlspecialchars($v, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
     $_lusterUploadsUrl = $_lusterApp->getBaseUrl() . '/uploads/joined';
@@ -165,32 +164,7 @@ if ($_lusterJoinedTemplate !== null) {
         );
     };
 
-    $_ljSectionsTplRaw = $_lusterSiteRepo->get('joined_sections_template');
-    $_ljSectionsTpl    = $_ljSectionsTplRaw === null
-        ? SiteSettingsRepo::collectiveDefaults()['joined_sections_template']
-        : $_ljSectionsTplRaw;
-
-    if ($_lusterCategory === 'all' && trim($_ljSectionsTpl) !== '' && isset($result)) {
-        $_lusterSectionsMode = true;
-        $_ljActive = array_values(array_filter($result['items'], static fn($fl) => $fl->active));
-
-        $_ljActiveHtml = implode('', array_map($renderRow, $_ljActive));
-
-        $_ljOut = (string) preg_replace(
-            '/\{if_current_listings\}(.*?)\{\/if_current_listings\}/s',
-            $_ljActiveHtml !== '' ? '$1' : '',
-            $_ljSectionsTpl,
-        );
-        $_ljOut = str_replace(
-            ['{current_content}', '{pending_content}',
-             '{current_count}', '{pending_count}', '{total_count}'],
-            [$_ljActiveHtml, '',
-             (string) count($_ljActive), '0',
-             (string) count($_ljActive)],
-            $_ljOut,
-        );
-        $_lusterListingHtml = trim($_ljOut) !== '' ? $_ljOut : '';
-    } elseif (!empty($_lusterGrouped)) {
+    if (!empty($_lusterGrouped)) {
         $rows = '';
         foreach ($_lusterGrouped as $catName => $items) {
             foreach ($items as $fl) {
@@ -211,7 +185,6 @@ $_lusterHtml = $_lusterApp->getView()->renderFragment('joined.php', [
     'listings'           => $_lusterListings,
     'grouped'            => $_lusterGrouped,
     'listing_html'       => $_lusterListingHtml,
-    'sections_mode'      => $_lusterSectionsMode,
     'category_html'      => $_lusterCategoryHtml,
     'show_listings'      => $_lusterShowListings,
     'categories'         => $_lusterCategories,

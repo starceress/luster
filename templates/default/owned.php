@@ -12,7 +12,7 @@ use Luster\Core\View;
  *   $show_listings       bool        false when the presenter is showing a browse-index (no rows)
  *   $listings            Listing[]   filtered list of owned listings
  *   $listing_html        string|null pre-rendered rows (null = use fallback loop)
- *   $sections_mode       bool        true when owned_sections_template produced the output
+ *   $sections_mode       bool        true when grouped Current/Upcoming/Pending output was built ($status='all')
  *   $categories          array       [{id, name, slug, source, parent_id, parent_name, listing_count}]
  *   $current_category    int         selected category ID (0 = all)
  *   $browse_show_all     bool        true when ?cat=all shows all listings in browse mode
@@ -74,7 +74,7 @@ use Luster\Core\View;
   <?php if ($show_listings ?? true): ?>
 
     <?php if (($sections_mode ?? false)): ?>
-      <!-- Sections mode: output is authoritative from the sections template -->
+      <!-- Sections mode: grouped Current/Upcoming/Pending output is authoritative -->
       <?= $listing_html ?? '' ?>
 
     <?php elseif (($listing_html ?? null) !== null && $listing_html !== ''): ?>

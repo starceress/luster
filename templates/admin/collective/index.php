@@ -22,8 +22,6 @@ $defaults = SiteSettingsRepo::collectiveDefaults();
 $ownedVal                = $ct['owned_template']                           ?? $defaults['owned_template'];
 $joinedVal               = $ct['joined_template']                          ?? $defaults['joined_template'];
 $statsVal                = $ct['collective_stats_template']                 ?? $defaults['collective_stats_template'];
-$ownedSectionsVal        = $ct['owned_sections_template']                  ?? $defaults['owned_sections_template'];
-$joinedSectionsVal       = $ct['joined_sections_template']                 ?? $defaults['joined_sections_template'];
 $collAffSectionVal       = $ct['collective_affiliates_section_template']   ?? $defaults['collective_affiliates_section_template'];
 ?>
 
@@ -61,30 +59,12 @@ $collAffSectionVal       = $ct['collective_affiliates_section_template']   ?? $d
           <button type="button" class="btn btn-quaternary btn-xs" data-textarea="owned_template">Reset to Default</button>
         </div>
 
-        <div class="pc-section-label">Owned Listings — Sections Layout</div>
-        <p class="form-hint mb-sm">Used when <code>$luster_status = 'all'</code>. Wraps the row template output in sections by listing status. Omit a conditional block to hide that status. <strong>Clear this field to disable sections mode</strong> and fall back to flat output. Note: pending/trouble listings are excluded by default — set <code>$luster_exclude_pending = false</code> to include them in <code>{pending_content}</code>.</p>
-        <div class="form-group">
-          <textarea name="owned_sections_template" id="owned_sections_template" class="form form-mono" spellcheck="false"><?= View::e($ownedSectionsVal) ?></textarea>
-        </div>
-        <div class="tpl-reset-row">
-          <button type="button" class="btn btn-quaternary btn-xs" data-textarea="owned_sections_template">Reset to Default</button>
-        </div>
-
         <div class="pc-section-label">Joined Listings</div>
         <div class="form-group">
           <textarea name="joined_template" id="joined_template" class="form form-mono" spellcheck="false"><?= View::e($joinedVal) ?></textarea>
         </div>
         <div class="tpl-reset-row">
           <button type="button" class="btn btn-quaternary btn-xs" data-textarea="joined_template">Reset to Default</button>
-        </div>
-
-        <div class="pc-section-label">Joined Listings — Sections Layout</div>
-        <p class="form-hint mb-sm">Used when <code>$luster_category = 'all'</code>. Wraps the row template output in a structured header block. Only active listings are shown. <strong>Clear this field to disable sections mode</strong> and fall back to the standard grouped-by-category output.</p>
-        <div class="form-group">
-          <textarea name="joined_sections_template" id="joined_sections_template" class="form form-mono" spellcheck="false"><?= View::e($joinedSectionsVal) ?></textarea>
-        </div>
-        <div class="tpl-reset-row">
-          <button type="button" class="btn btn-quaternary btn-xs" data-textarea="joined_sections_template">Reset to Default</button>
         </div>
 
         <div class="pc-section-label">Collective Affiliates — Section Layout</div>
@@ -162,26 +142,6 @@ $collAffSectionVal       = $ct['collective_affiliates_section_template']   ?? $d
         </div>
       </details>
 
-      <details class="card chevron">
-        <summary class="chevron-head">Owned Sections Tokens</summary>
-        <div class="chevron-body">
-          <table class="et-token-table">
-            <tbody>
-              <tr><td><code>{current_content}</code></td><td>Rendered current rows</td></tr>
-              <tr><td><code>{upcoming_content}</code></td><td>Rendered upcoming rows</td></tr>
-              <tr><td><code>{pending_content}</code></td><td>Rendered pending rows</td></tr>
-              <tr><td><code>{current_count}</code></td><td>Number of current listings</td></tr>
-              <tr><td><code>{upcoming_count}</code></td><td>Number of upcoming listings</td></tr>
-              <tr><td><code>{pending_count}</code></td><td>Number of pending listings</td></tr>
-              <tr><td><code>{total_count}</code></td><td>Total listings shown</td></tr>
-              <tr><td><code>{if_current_listings}&hellip;{/if_current_listings}</code></td><td>Show block only when current listings exist</td></tr>
-              <tr><td><code>{if_upcoming_listings}&hellip;{/if_upcoming_listings}</code></td><td>Show block only when upcoming listings exist</td></tr>
-              <tr><td><code>{if_pending_listings}&hellip;{/if_pending_listings}</code></td><td>Show block only when pending listings exist</td></tr>
-            </tbody>
-          </table>
-        </div>
-      </details>
-
       <details class="card chevron" open>
         <summary class="chevron-head">Joined Listings Tokens</summary>
         <div class="chevron-body">
@@ -210,21 +170,6 @@ $collAffSectionVal       = $ct['collective_affiliates_section_template']   ?? $d
               </tr>
             </tbody>
           </table>
-        </div>
-      </details>
-
-      <details class="card chevron">
-        <summary class="chevron-head">Joined Sections Tokens</summary>
-        <div class="chevron-body">
-          <table class="et-token-table">
-            <tbody>
-              <tr><td><code>{current_content}</code></td><td>Rendered active listing rows</td></tr>
-              <tr><td><code>{current_count}</code></td><td>Number of active listings</td></tr>
-              <tr><td><code>{total_count}</code></td><td>Total active listings</td></tr>
-              <tr><td><code>{if_current_listings}&hellip;{/if_current_listings}</code></td><td>Show block only when active listings exist</td></tr>
-            </tbody>
-          </table>
-          <p class="form-hint mt-sm">Only active listings are included. Inactive joined listings are never exposed publicly.</p>
         </div>
       </details>
 

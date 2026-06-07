@@ -13,7 +13,6 @@ use Luster\Core\View;
  *   $listings            JoinedListing[]              flat list (single-category or selector mode)
  *   $grouped             array<string, JoinedListing[]>  category-keyed list (show-all mode)
  *   $listing_html        string|null  pre-rendered rows via admin HTML template (null = fallback)
- *   $sections_mode       bool         true when joined_sections_template produced the output
  *   $categories          string[]     all available category names
  *   $category_counts     array<string, int>
  *   $total_count         int
@@ -73,11 +72,7 @@ $_renderItem = static function ($fl) use ($uploads_url): void {
 
   <?php if ($show_listings ?? true): ?>
 
-    <?php if (($sections_mode ?? false)): ?>
-      <!-- Sections mode: output is authoritative from the sections template -->
-      <?= $listing_html ?? '' ?>
-
-    <?php elseif (($listing_html ?? null) !== null && $listing_html !== ''): ?>
+    <?php if (($listing_html ?? null) !== null && $listing_html !== ''): ?>
       <!-- Custom DB template listing rows -->
       <ul>
         <?= $listing_html ?>
