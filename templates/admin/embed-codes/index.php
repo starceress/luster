@@ -601,6 +601,8 @@ $epSafe = View::e($ep);
                 <tr><td class="act-col"><code>$luster_kim_update_url</code></td><td>Link to your KIM update page. Use this if it is different from the one saved in Luster.</td></tr>
                 <tr><td class="act-col"><code>$luster_kim_reset_url</code></td><td>Link to your KIM password reset page. Use this if it is different from the one saved in Luster.</td></tr>
                 <tr><td class="act-col"><code>$luster_kim_list_url</code></td><td>Link to your public KIM list page. Use this if it is different from the one saved in Luster.</td></tr>
+                <tr><td class="act-col"><code>$luster_kim_list_base</code></td><td><strong>kim-list.php only.</strong> URL of your KIM list host page. In overview mode, each fanlisting link becomes this URL + <code>?id=N</code> instead of routing through Luster. In subject mode, used as the &ldquo;Back to KIM List&rdquo; link.</td></tr>
+                <tr><td class="act-col"><code>$luster_kim_subject_id</code></td><td><strong>kim-list.php only.</strong> When set to a fanlisting ID greater than 0, the embed renders the approved KIM members for that fanlisting (subject view) instead of the overview. Typically set from <code>$_GET[&apos;id&apos;]</code> on the host page.</td></tr>
               </tbody>
             </table>
             </div>

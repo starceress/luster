@@ -7,10 +7,19 @@ use Luster\Repositories\ListingRepo;
 use Luster\Repositories\SiteSettingsRepo;
 
 /**
- * Luster embed — KIM List overview fragment.
+ * Luster embed — KIM List overview or per-fanlisting subject fragment.
  *
- * Usage:
- *   $luster_return = false;  // optional: true = return string, false = echo
+ * Overview mode (default):
+ *   $luster_kim_list_base  = 'https://example.com/kim-list.php'; // optional — base for per-fanlisting links
+ *   $luster_kim_signup_url = 'https://example.com/kim.php';      // optional — sign-up link override
+ *   $luster_return         = false;
+ *   require '/absolute/path/to/luster/public/embed/kim-list.php';
+ *
+ * Subject mode (per-fanlisting approved members):
+ *   $luster_kim_subject_id = (int) ($_GET['id'] ?? 0);           // listing ID to show members for
+ *   $luster_kim_list_base  = 'https://example.com/kim-list.php'; // optional — "Back to KIM List" URL
+ *   $luster_kim_signup_url = 'https://example.com/kim.php';      // optional — sign-up link override
+ *   $luster_return         = false;
  *   require '/absolute/path/to/luster/public/embed/kim-list.php';
  */
 
@@ -49,36 +58,23 @@ if (!$_lusterApp->isAddonInstalled('Kim')) {
 }
 
 // ---------------------------------------------------------------------------
-// 3. Load fanlistings with KIM interest counts
+// 3. Resolve mode + override variables
 // ---------------------------------------------------------------------------
 
-$_lusterListingRepo = new ListingRepo($_lusterApp->getDatabase(), $_lusterApp->getConfig());
-$_lusterKimRepo     = new KimMemberRepo($_lusterApp->getDatabase());
-
-$_lusterFanlistings = array_filter(
-    $_lusterListingRepo->getAll(),
-    static fn($fl) => !$fl->trouble,
-);
-
-$_lusterFanlistingsWithCounts = [];
-foreach ($_lusterFanlistings as $_fl) {
-    $_lusterFanlistingsWithCounts[] = [
-        'listing' => $_fl,
-        'count'   => $_lusterKimRepo->countApprovedByFanlisting($_fl->id),
-    ];
-}
+$_lusterSubjectId = (int) ($luster_kim_subject_id ?? 0);
+$_lusterListBase  = isset($luster_kim_list_base) && (string) $luster_kim_list_base !== ''
+    ? (string) $luster_kim_list_base
+    : null;
 
 // ---------------------------------------------------------------------------
-// 4. Load KIM page URLs from settings (allow host-page override)
+// 4. Resolve KIM page URLs (signup link; fallback to site-settings values)
 // ---------------------------------------------------------------------------
 
 $_lusterSiteSettings = new SiteSettingsRepo($_lusterApp->getDatabase());
-$_lusterKimUrls = $_lusterSiteSettings->getMany([
-    "kim_url_signup", "kim_url_update", "kim_url_reset", "kim_url_list"
+$_lusterKimUrls      = $_lusterSiteSettings->getMany([
+    'kim_url_signup', 'kim_url_update', 'kim_url_reset', 'kim_url_list',
 ]);
 
-// Stored values are page filenames; combine with the site origin to build full URLs.
-// Host-page $luster_kim_*_url overrides are used as-is (they are already full URLs).
 $_lusterKimParsed   = parse_url((string) $_lusterApp->getConfig()->get('app_url', ''));
 $_lusterKimSiteRoot = ($_lusterKimParsed['scheme'] ?? 'https') . '://' . ($_lusterKimParsed['host'] ?? '');
 if (!empty($_lusterKimParsed['port'])) {
@@ -87,20 +83,68 @@ if (!empty($_lusterKimParsed['port'])) {
 $_toKimLink = static fn(?string $v): ?string =>
     ($v !== null && $v !== '') ? $_lusterKimSiteRoot . '/' . ltrim($v, '/') : null;
 
-$_lusterLinkSignup = $luster_kim_signup_url ?? $_toKimLink($_lusterKimUrls["kim_url_signup"] ?: null);
+$_lusterLinkSignup = $luster_kim_signup_url ?? $_toKimLink($_lusterKimUrls['kim_url_signup'] ?: null);
 
 // ---------------------------------------------------------------------------
-// 5. Render fragment (no layout wrapper)
+// 5. Render the appropriate fragment
 // ---------------------------------------------------------------------------
 
+$_lusterKimRepo = new KimMemberRepo($_lusterApp->getDatabase());
 $_lusterBaseUrl = $_lusterApp->getBaseUrl();
 
-$_lusterHtml = $_lusterApp->getView()->render('default/addons/kim/list.php', [
-    'fanlistings_with_counts' => $_lusterFanlistingsWithCounts,
-    'base_url'                => $_lusterBaseUrl,
-    'theme_path'              => $_lusterBaseUrl . '/assets/default/',
-    'link_signup'             => $_lusterLinkSignup,
-]);
+if ($_lusterSubjectId > 0) {
+    // -----------------------------------------------------------------------
+    // Subject mode — approved KIM members for one fanlisting
+    // -----------------------------------------------------------------------
+    $_lusterListingRepo = new ListingRepo($_lusterApp->getDatabase(), $_lusterApp->getConfig());
+    $_lusterListing     = $_lusterListingRepo->getById($_lusterSubjectId);
+
+    if ($_lusterListing === null) {
+        $_lusterHtml = '<p class="fl-errors">Luster embed error: that fanlisting does not exist.</p>';
+        if ($luster_return ?? false) {
+            return $_lusterHtml;
+        }
+        echo $_lusterHtml;
+        return;
+    }
+
+    $_lusterMembers = $_lusterKimRepo->getApprovedByFanlisting($_lusterSubjectId);
+
+    $_lusterHtml = $_lusterApp->getView()->render('default/addons/kim/subject.php', [
+        'listing'     => $_lusterListing,
+        'members'     => $_lusterMembers,
+        'base_url'    => $_lusterBaseUrl,
+        'theme_path'  => $_lusterBaseUrl . '/assets/default/',
+        'link_list'   => $_lusterListBase,
+        'link_signup' => $_lusterLinkSignup,
+    ]);
+} else {
+    // -----------------------------------------------------------------------
+    // Overview mode — all fanlistings with KIM interest counts
+    // -----------------------------------------------------------------------
+    $_lusterListingRepo = new ListingRepo($_lusterApp->getDatabase(), $_lusterApp->getConfig());
+
+    $_lusterFanlistings = array_filter(
+        $_lusterListingRepo->getAll(),
+        static fn($fl) => !$fl->trouble,
+    );
+
+    $_lusterFanlistingsWithCounts = [];
+    foreach ($_lusterFanlistings as $_fl) {
+        $_lusterFanlistingsWithCounts[] = [
+            'listing' => $_fl,
+            'count'   => $_lusterKimRepo->countApprovedByFanlisting($_fl->id),
+        ];
+    }
+
+    $_lusterHtml = $_lusterApp->getView()->render('default/addons/kim/list.php', [
+        'fanlistings_with_counts' => $_lusterFanlistingsWithCounts,
+        'base_url'                => $_lusterBaseUrl,
+        'theme_path'              => $_lusterBaseUrl . '/assets/default/',
+        'link_signup'             => $_lusterLinkSignup,
+        'link_list_base'          => $_lusterListBase,
+    ]);
+}
 
 if ($luster_return ?? false) {
     return $_lusterHtml;

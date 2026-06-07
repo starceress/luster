@@ -3,16 +3,20 @@
  * KIM List overview — all fanlistings with interest counts.
  *
  * Variables:
- *   $fanlistings_with_counts  array  [{listing: Listing, count: int}]
+ *   $fanlistings_with_counts  array        [{listing: Listing, count: int}]
  *   $base_url                 string
+ *   $link_signup              string|null  override URL for the sign-up link (optional)
+ *   $link_list_base           string|null  base URL for per-fanlisting links; embed appends ?id={id}
+ *                                          when null, links go to Luster's own /kim/list/{id} route
  */
 
 declare(strict_types=1);
 
 use Luster\Core\View;
 
-$b = rtrim(View::e($base_url), '/');
-$_linkSignup = ($link_signup !== null && $link_signup !== '') ? $link_signup : null;
+$b             = rtrim(View::e($base_url), '/');
+$_linkSignup   = isset($link_signup) && $link_signup !== '' ? $link_signup : null;
+$_linkListBase = isset($link_list_base) && $link_list_base !== '' ? $link_list_base : null;
 ?>
 <div class="fl-wrap">
   <h2 class="fl-title">KIM List</h2>
@@ -33,7 +37,7 @@ $_linkSignup = ($link_signup !== null && $link_signup !== '') ? $link_signup : n
           $count = (int) $entry['count'];
         ?>
         <li class="fl-list-item">
-          <a href="<?= $b ?>/kim/list/<?= View::e((string) $fl->id) ?>">
+          <a href="<?= $_linkListBase !== null ? View::e($_linkListBase) . '?id=' . (int) $fl->id : $b . '/kim/list/' . (int) $fl->id ?>">
             <?= View::e($fl->subject) ?>
           </a>
           <?php if ($count === 0): ?>

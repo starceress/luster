@@ -45,10 +45,12 @@ final class KimListController
         $baseUrl = $this->app->getBaseUrl();
 
         return $this->renderKimPage('list.php', [
-            'page_title'            => 'KIM List',
+            'page_title'             => 'KIM List',
             'fanlistings_with_counts' => $fanlistingsWithCounts,
-            'base_url'              => $baseUrl,
-            'theme_path'            => $baseUrl . '/assets/default/',
+            'base_url'               => $baseUrl,
+            'theme_path'             => $baseUrl . '/assets/default/',
+            'link_signup'            => null,
+            'link_list_base'         => null,
         ]);
     }
 
@@ -73,11 +75,13 @@ final class KimListController
         $baseUrl = $this->app->getBaseUrl();
 
         return $this->renderKimPage('subject.php', [
-            'page_title' => 'KIM — ' . $listing->subject,
-            'listing'    => $listing,
-            'members'    => $members,
-            'base_url'   => $baseUrl,
-            'theme_path' => $baseUrl . '/assets/default/',
+            'page_title'  => 'KIM — ' . $listing->subject,
+            'listing'     => $listing,
+            'members'     => $members,
+            'base_url'    => $baseUrl,
+            'theme_path'  => $baseUrl . '/assets/default/',
+            'link_list'   => null,
+            'link_signup' => null,
         ]);
     }
 
