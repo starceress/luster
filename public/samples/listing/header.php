@@ -32,16 +32,9 @@ $nav_items = [
   <title><?= $e($site_name) ?><?= isset($page_title) ? ' - ' . $e($page_title) : '' ?></title>
   <link rel="stylesheet" href="style.css">
 </head>
-<body data-sample="listing">
+<body>
 
 <div class="site-shell">
-  <div class="demo-topbar">
-    <div class="demo-switcher" aria-label="Choose sample site">
-      <a class="demo-switch active" href="../listing/index.php">Fanlisting</a>
-      <a class="demo-switch" href="../collective/index.php">Collective</a>
-    </div>
-  </div>
-
   <div class="sample-site">
     <header class="sample-masthead">
       <div class="sample-logo-glow" aria-hidden="true"></div>
