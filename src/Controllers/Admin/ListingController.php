@@ -45,6 +45,11 @@ final class ListingController extends AdminController
         $cfgAll    = $config->all();
         $ownedSort = (string) ($cfgAll['owned_sort'] ?? 'id');
 
+        $tab = trim((string) $request->query('tab', 'all'));
+        if (!in_array($tab, ['all', 'current', 'upcoming', 'pending'], true)) {
+            $tab = 'all';
+        }
+
         $search        = trim((string) $request->query('search', ''));
         $filterNetwork = trim((string) $request->query('network', ''));
         $filterCat     = trim((string) $request->query('category', ''));
@@ -210,6 +215,24 @@ final class ListingController extends AdminController
         }
         // if $activeSort is empty, SQL already sorted by id/name
 
+        // Count per status tab across all currently-filtered listings (before tab filter).
+        $tabCounts = ['all' => count($listings), 'current' => 0, 'upcoming' => 0, 'pending' => 0];
+        foreach ($listings as $fl) {
+            if ($fl->upcoming)      { $tabCounts['upcoming']++; }
+            elseif ($fl->trouble)   { $tabCounts['pending']++; }
+            else                    { $tabCounts['current']++; }
+        }
+
+        // Apply status tab filter.
+        if ($tab !== 'all') {
+            $listings = array_values(array_filter($listings, static function ($fl) use ($tab): bool {
+                if ($tab === 'current')  { return !$fl->upcoming && !$fl->trouble; }
+                if ($tab === 'upcoming') { return $fl->upcoming; }
+                if ($tab === 'pending')  { return $fl->trouble; }
+                return true;
+            }));
+        }
+
         $perPage    = max(5, min(200, (int) ($cfgAll['owned_per_page'] ?? 10)));
         $totalItems = count($listings);
         $totalPages = max(1, (int) ceil($totalItems / $perPage));
@@ -266,6 +289,8 @@ final class ListingController extends AdminController
             'per_page'        => $perPage,
             'sort'            => $sort,
             'dir'             => $dir,
+            'tab'             => $tab,
+            'tab_counts'      => $tabCounts,
             'success'         => $success,
             'error'           => $error,
         ]);
@@ -454,6 +479,8 @@ final class ListingController extends AdminController
         $selectAll = $request->post('select_all', '0') === '1';
 
         if ($selectAll) {
+            $saTab     = trim((string) $request->post('sa_filter_tab', 'all'));
+            if (!in_array($saTab, ['all', 'current', 'upcoming', 'pending'], true)) { $saTab = 'all'; }
             $saSearch  = trim((string) $request->post('sa_filter_search', ''));
             $saNetwork = trim((string) $request->post('sa_filter_network', ''));
             $saCat     = trim((string) $request->post('sa_filter_cat', ''));
@@ -490,6 +517,14 @@ final class ListingController extends AdminController
             }
             if ($saType !== '') {
                 $allListings = array_values(array_filter($allListings, static fn($fl): bool => ($settingsRepoAll->getListingType($fl->id)) === $saType));
+            }
+            if ($saTab !== 'all') {
+                $allListings = array_values(array_filter($allListings, static function ($fl) use ($saTab): bool {
+                    if ($saTab === 'current')  { return !$fl->upcoming && !$fl->trouble; }
+                    if ($saTab === 'upcoming') { return $fl->upcoming; }
+                    if ($saTab === 'pending')  { return $fl->trouble; }
+                    return true;
+                }));
             }
 
             $selected = array_map(static fn($fl): int => $fl->id, $allListings);

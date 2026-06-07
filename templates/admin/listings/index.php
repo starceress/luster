@@ -26,7 +26,10 @@ use Luster\Core\View;
 /** @var int                    $per_page */
 $b = rtrim(View::e($base_url), '/');
 
+$flTab = $tab ?? 'all';
+
 $flFilterQs = http_build_query(array_filter([
+    'tab'      => $flTab !== 'all'   ? $flTab           : '',
     'search'   => $search          ?? '',
     'network'  => $filter_network  ?? '',
     'category' => $filter_cat      ?? '',
@@ -35,6 +38,17 @@ $flFilterQs = http_build_query(array_filter([
 $flPageUrl = static function (int $p) use ($b, $flFilterQs): string {
     $qs = $flFilterQs !== '' ? $flFilterQs . '&page=' . $p : 'page=' . $p;
     return $b . '/admin/listings?' . $qs;
+};
+
+$flTabUrl = static function (string $t) use ($b, $search, $filter_network, $filter_cat, $filter_type): string {
+    $qs = http_build_query(array_filter([
+        'tab'      => $t !== 'all' ? $t : '',
+        'search'   => $search          ?? '',
+        'network'  => $filter_network  ?? '',
+        'category' => $filter_cat      ?? '',
+        'type'     => $filter_type     ?? '',
+    ], static fn(string $v): bool => $v !== ''));
+    return $b . '/admin/listings' . ($qs !== '' ? '?' . $qs : '');
 };
 
 $sizeMap   = ['small' => '50px', 'medium' => '100px', 'large' => '150px'];
@@ -91,9 +105,10 @@ $tableTitle = !empty($_titleParts) ? implode(' &mdash; ', $_titleParts) : 'All L
 $flSort = $sort ?? '';
 $flDir  = $dir  ?? 'asc';
 
-$flSortUrl = static function (string $col) use ($b, $flSort, $flDir, $search, $filter_network, $filter_cat, $filter_type): string {
+$flSortUrl = static function (string $col) use ($b, $flSort, $flDir, $flTab, $search, $filter_network, $filter_cat, $filter_type): string {
     $newDir = ($flSort === $col && $flDir === 'asc') ? 'desc' : 'asc';
     $qs = http_build_query(array_filter([
+        'tab'      => $flTab !== 'all' ? $flTab : '',
         'search'   => $search          ?? '',
         'network'  => $filter_network  ?? '',
         'category' => $filter_cat      ?? '',
@@ -123,6 +138,7 @@ $flSortUrl = static function (string $col) use ($b, $flSort, $flDir, $search, $f
 
 <div class="filter-panel" id="filter-panel">
   <form method="GET" action="" class="filter-row" id="fl-filter-form">
+    <?php if ($flTab !== 'all'): ?><input type="hidden" name="tab" value="<?= View::e($flTab) ?>"><?php endif; ?>
     <div class="select-wrap">
     <select id="fl-net-sel" name="network" >
       <?php $_netCounts = $network_counts ?? []; $_netTotal = array_sum($_netCounts); ?>
@@ -213,9 +229,46 @@ $flSortUrl = static function (string $col) use ($b, $flSort, $flDir, $search, $f
              placeholder="Search&hellip;" value="<?= View::e($search ?? '') ?>">
     </div>
     <button type="submit" class="btn btn-secondary btn-sm">Search</button>
-    <a href="?" class="btn btn-quaternary btn-sm">Reset</a>
+    <?php $flResetUrl = $b . '/admin/listings' . ($flTab !== 'all' ? '?tab=' . urlencode($flTab) : ''); ?>
+    <a href="<?= View::e($flResetUrl) ?>" class="btn btn-quaternary btn-sm">Reset</a>
 
   </form>
+</div>
+
+<?php
+$_flStatusTabs = [
+    'all'      => ['label' => 'All',      'badge' => 'badge-inactive'],
+    'current'  => ['label' => 'Current',  'badge' => 'badge-current'],
+    'upcoming' => ['label' => 'Upcoming', 'badge' => 'badge-upcoming'],
+    'pending'  => ['label' => 'Pending',  'badge' => 'badge-pending'],
+];
+$_flTabCounts = $tab_counts ?? [];
+?>
+<div class="tabs-wrap">
+  <div class="tabs">
+    <?php foreach ($_flStatusTabs as $_flKey => $_flTabData): ?>
+      <a href="<?= View::e($flTabUrl($_flKey)) ?>"
+         class="tabs-btn<?= $flTab === $_flKey ? ' active' : '' ?>">
+        <?= View::e($_flTabData['label']) ?>
+        <?php $_flCnt = (int) ($_flTabCounts[$_flKey] ?? 0); ?>
+        <?php if ($_flCnt > 0): ?>
+          <span class="badge <?= $_flTabData['badge'] ?> badge-inline-sm"><?= $_flCnt ?></span>
+        <?php endif; ?>
+      </a>
+    <?php endforeach; ?>
+  </div>
+</div>
+<div class="tabs-select-wrap">
+  <span class="overview-section-title">Status</span>
+  <div class="select-wrap flex-fill">
+    <select onchange="window.location.href=this.value">
+      <?php foreach ($_flStatusTabs as $_flKey => $_flTabData): ?>
+        <option value="<?= View::e($flTabUrl($_flKey)) ?>"<?= $flTab === $_flKey ? ' selected' : '' ?>>
+          <?= View::e($_flTabData['label']) ?> (<?= (int) ($_flTabCounts[$_flKey] ?? 0) ?>)
+        </option>
+      <?php endforeach; ?>
+    </select>
+  </div>
 </div>
 
 <?php if ($success !== ''): ?>
@@ -237,6 +290,7 @@ $flSortUrl = static function (string $col) use ($b, $flSort, $flDir, $search, $f
       data-del-bulk data-del-entity="listing">
   <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
   <input type="hidden" name="select_all" value="0">
+  <input type="hidden" name="sa_filter_tab" value="<?= View::e($flTab) ?>">
   <input type="hidden" name="sa_filter_search" value="<?= View::e($search ?? '') ?>">
   <input type="hidden" name="sa_filter_network" value="<?= View::e($filter_network ?? '') ?>">
   <input type="hidden" name="sa_filter_cat" value="<?= View::e($filter_cat ?? '') ?>">
