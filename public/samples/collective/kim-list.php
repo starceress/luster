@@ -16,8 +16,11 @@ require 'header.php';
 
   <?php
   // Keep per-fanlisting links on this page instead of routing through Luster.
-  $luster_kim_list_base  = $setup['collective_url'] . '/kim-list.php';
-  $luster_kim_signup_url = $setup['collective_url'] . '/kim.php';
+  $_kimDir = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' ? 'https' : 'http')
+      . '://' . $_SERVER['HTTP_HOST']
+      . rtrim(dirname($_SERVER['SCRIPT_NAME']), '/\\');
+  $luster_kim_list_base  = $_kimDir . '/kim-list.php';
+  $luster_kim_signup_url = $_kimDir . '/kim.php';
 
   // Switch to subject mode when a fanlisting ID is in the query string.
   if (isset($_GET['id']) && (int) $_GET['id'] > 0) {
