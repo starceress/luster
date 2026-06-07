@@ -70,49 +70,36 @@ class SiteSettingsRepo
      */
     public static function collectiveDefaults(): array
     {
-        // Shared row markup for every status section below — single-sourced so the
-        // three {each_current}/{each_upcoming}/{each_pending} blocks stay identical
-        // without tripling ~500 characters of literal HTML in this file.
-        $ownedRow = '<li style="display:flex;gap:0.75em;align-items:flex-start;padding:0.75em 0;">' . "\n"
-                  . '<div style="flex-shrink:0;max-width:120px;">{listing_image_html}</div>'
-                  . '<div>' . "\n"
-                  . '<b><a href="{listing_url}" target="_blank" rel="noopener noreferrer">{listing_subject}</a></b><br>' . "\n"
-                  . '<i>{listing_title}</i><br>' . "\n"
-                  . '<b>Category:</b> {listing_category}<br>' . "\n"
-                  . '<b>Members:</b> {member_count} member(s){if_pending} (+{member_pending_count} pending){/if_pending}{if_countries} across {country_count} countries{/if_countries}<br>' . "\n"
-                  . '<b>Opened:</b> {date_opened}<br>' . "\n"
-                  . '<b>Last Updated:</b> {date_updated}' . "\n"
-                  . '</div>' . "\n"
-                  . '</li>' . "\n";
-
-        // Sectioned by status (Current / Upcoming / Pending) — this is the same
-        // grouped-by-status default behavior the retired owned_sections_template
-        // provided for $luster_status='all' (Phase 1 explicitly restored it after
-        // the split-template architecture was removed). Embeds requesting a single
-        // status pool simply end up with the other two {if_*_listings} blocks empty
-        // and hidden; embeds requesting 'all' get the full grouped layout — one
-        // template, both shapes, fully under the site owner's control.
-        $ownedTemplate = '{if_current_listings}' . "\n"
-                       . '<h3>Current ({current_count})</h3>' . "\n"
-                       . '<ul style="list-style:none;padding:0;margin:0;">' . "\n"
-                       . '{each_current}' . "\n" . $ownedRow . '{/each_current}' . "\n"
-                       . '</ul>' . "\n"
-                       . '{/if_current_listings}' . "\n"
-                       . '{if_upcoming_listings}' . "\n"
-                       . '<h3>Upcoming ({upcoming_count})</h3>' . "\n"
-                       . '<ul style="list-style:none;padding:0;margin:0;">' . "\n"
-                       . '{each_upcoming}' . "\n" . $ownedRow . '{/each_upcoming}' . "\n"
-                       . '</ul>' . "\n"
-                       . '{/if_upcoming_listings}' . "\n"
-                       . '{if_pending_listings}' . "\n"
-                       . '<h3>Pending ({pending_count})</h3>' . "\n"
-                       . '<ul style="list-style:none;padding:0;margin:0;">' . "\n"
-                       . '{each_pending}' . "\n" . $ownedRow . '{/each_pending}' . "\n"
-                       . '</ul>' . "\n"
-                       . '{/if_pending_listings}';
-
         return [
-            'owned_template' => $ownedTemplate,
+            // Flat ({each_listing}) by design — not sectioned. owned_template is a
+            // single combined template shared by owned.php (every $luster_status
+            // pool), latest-listing.php, and random-listing.php (always exactly one
+            // listing). A sectioned ({each_current}/{each_upcoming}/{each_pending})
+            // shape renders identically everywhere the template is used — including
+            // single-listing embeds, where a "Current (1)" heading over one row reads
+            // oddly — because rendering has no context-dependent behavior (one stored
+            // template, one consistent look, by design; see docs/PUBLIC-TEMPLATES-PLAN.md).
+            // Site owners who want a grouped Current/Upcoming/Pending look for their
+            // status=all view can author a sectioned template themselves — the engine
+            // (ListingRowRenderer::renderTemplate()) fully supports {each_current} /
+            // {each_upcoming} / {each_pending} / {if_*_listings} / {*_count} tokens —
+            // understanding it will then apply that same grouped look everywhere,
+            // including single-listing widgets.
+            'owned_template' => '<ul style="list-style:none;padding:0;margin:0;">' . "\n"
+                             . '{each_listing}' . "\n"
+                             . '<li style="display:flex;gap:0.75em;align-items:flex-start;padding:0.75em 0;">' . "\n"
+                             . '<div style="flex-shrink:0;max-width:120px;">{listing_image_html}</div>'
+                             . '<div>' . "\n"
+                             . '<b><a href="{listing_url}" target="_blank" rel="noopener noreferrer">{listing_subject}</a></b><br>' . "\n"
+                             . '<i>{listing_title}</i><br>' . "\n"
+                             . '<b>Category:</b> {listing_category}<br>' . "\n"
+                             . '<b>Members:</b> {member_count} member(s){if_pending} (+{member_pending_count} pending){/if_pending}{if_countries} across {country_count} countries{/if_countries}<br>' . "\n"
+                             . '<b>Opened:</b> {date_opened}<br>' . "\n"
+                             . '<b>Last Updated:</b> {date_updated}' . "\n"
+                             . '</div>' . "\n"
+                             . '</li>' . "\n"
+                             . '{/each_listing}' . "\n"
+                             . '</ul>',
             'joined_template' => '<ul style="list-style:none;padding:0;margin:0;">' . "\n"
                                . '{each_joined}' . "\n"
                                . '<li><a href="{listing_url}" target="_blank" rel="noopener noreferrer">{listing_title}</a> — {listing_category}</li>' . "\n"

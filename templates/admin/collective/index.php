@@ -173,9 +173,14 @@ $collAffSectionVal       = $ct['collective_affiliates_section_template']   ?? $d
             </tbody>
           </table>
           <p class="form-hint mt-sm">
-            Use <code>{each_listing}&hellip;{/each_listing}</code> for a single flat list, or
+            Use <code>{each_listing}&hellip;{/each_listing}</code> for a single flat list (the default), or
             <code>{each_current}</code> / <code>{each_upcoming}</code> / <code>{each_pending}</code>
-            to build separate sections (only used when the embed's status is set to <code>all</code>).
+            to build separate sections. This is the same template for every owned-listing
+            embed — <code>owned</code> (any status), <code>latest-listing</code>, and
+            <code>random-listing</code> — so a sectioned template renders its grouped layout
+            everywhere it's used, including single-listing widgets (current/upcoming/pending
+            groups simply stay empty and hidden via <code>{if_*_listings}</code> when a pool
+            excludes them). Sectioned layouts read best on an &ldquo;all&rdquo; overview page.
             The template controls its own wrapper markup (e.g. <code>&lt;ul&gt;</code>/<code>&lt;li&gt;</code>
             or grouped <code>&lt;h3&gt;</code>/<code>&lt;ul&gt;</code> sections).
           </p>
