@@ -340,7 +340,9 @@ return [
         $router->get('/admin/settings',
             SettingsController::class, 'index');
         $router->post('/admin/settings',
-            SettingsController::class, 'update');
+            SettingsController::class, 'updateGeneral');
+        $router->post('/admin/settings/paths',
+            SettingsController::class, 'updatePaths');
         $router->post('/admin/settings/templates',
             SettingsController::class, 'updateTemplates');
         $router->post('/admin/settings/profile',

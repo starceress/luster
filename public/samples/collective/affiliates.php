@@ -13,4 +13,6 @@ require 'header.php';
   require $luster_root . '/public/embed/affiliates.php';
   ?>
 
+  <p><a href="affiliate-apply.php">Want to affiliate with the collective? Apply here.</a></p>
+
 <?php require 'footer.php'; ?>

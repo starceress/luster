@@ -52,4 +52,13 @@ final class UrlNormalizer
         $path = rtrim((string) (parse_url($url, PHP_URL_PATH) ?? '/'), '/');
         return $host . $path;
     }
+
+    /**
+     * Upgrades a plain "http://" URL to "https://" by prefix swap. Leaves
+     * "https://", protocol-relative, and empty values untouched.
+     */
+    public static function httpsify(string $url): string
+    {
+        return str_starts_with($url, 'http://') ? 'https://' . substr($url, 7) : $url;
+    }
 }

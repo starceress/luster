@@ -54,7 +54,7 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
           <option value="panel-appearance">Appearance</option>
           <option value="panel-embed">Server Paths</option>
           <option value="panel-blacklist">Blacklist</option>
-          <option value="panel-luster">System Details</option>
+          <option value="panel-system">System Details</option>
         </select>
       </div>
     </div>
@@ -142,7 +142,7 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
                   <input id="p-confirm-pass" type="password" name="admin_confirm_password" class="form"
                          maxlength="255" autocomplete="new-password"
                          placeholder="Repeat new password">
-                  <button type="button" class="input-icon-btn" aria-label="Show password" tabindex="-1">
+                  <button type="button" data-pw-toggle class="input-icon-btn" aria-label="Show password" tabindex="-1">
                     <?= View::icon('eye-on') ?>
                     <?= View::icon('eye-off') ?>
                   </button>
@@ -210,6 +210,7 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
                     <?php if ($user->id !== ($current_admin_id ?? 0)): ?>
                       <form method="POST"
                             action="<?= $b ?>/admin/admin-users/<?= $user->id ?>/delete"
+                            class="action-form-inline"
                             data-del-modal data-del-entity="admin_user"
                             data-del-name="<?= View::e($user->username) ?>">
                         <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
@@ -248,41 +249,41 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
             <?php foreach ($bundledSkins as $skin):
                 $slug = $skin['slug'];
             ?>
-              <form method="POST" action="<?= $b ?>/admin/settings/skin" style="display:contents">
+              <form method="POST" action="<?= $b ?>/admin/settings/skin" class="action-form-inline">
                 <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
                 <input type="hidden" name="skin" value="<?= View::e($slug) ?>">
                 <button type="submit" class="skin-card<?= $activeSkin === $slug ? ' skin-card--active' : '' ?>"
                         data-skin-preview="<?= View::e($slug) ?>">
-                  <div class="skin-swatch">
+                  <span class="skin-swatch">
                     <?php foreach ($skin['colors'] as $c): ?>
                       <span class="skin-swatch-dot" style="background:<?= View::e($c) ?>"></span>
                     <?php endforeach; ?>
-                  </div>
-                  <div class="skin-card-name"><?= View::e($skin['name']) ?></div>
-                  <div class="skin-card-desc"><?= View::e($skin['desc']) ?></div>
-                  <div class="skin-card-modes">
+                  </span>
+                  <span class="skin-card-name"><?= View::e($skin['name']) ?></span>
+                  <span class="skin-card-desc"><?= View::e($skin['desc']) ?></span>
+                  <span class="skin-card-modes">
                     <span>Light: <?= View::e($skin['light']) ?></span>
                     <span>Dark: <?= View::e($skin['dark']) ?></span>
-                  </div>
+                  </span>
                   <?php if ($activeSkin === $slug): ?>
-                    <div class="skin-card-active-badge"><?= View::icon('check') ?> Active</div>
+                    <span class="skin-card-active-badge"><?= View::icon('check') ?> Active</span>
                   <?php endif; ?>
                 </button>
               </form>
             <?php endforeach; ?>
 
             <?php foreach (($community_skins ?? []) as $slug): ?>
-              <form method="POST" action="<?= $b ?>/admin/settings/skin" style="display:contents">
+              <form method="POST" action="<?= $b ?>/admin/settings/skin" class="action-form-inline">
                 <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
                 <input type="hidden" name="skin" value="<?= View::e($slug) ?>">
                 <button type="submit" class="skin-card<?= $activeSkin === $slug ? ' skin-card--active' : '' ?>">
-                  <div class="skin-swatch skin-swatch--community">
+                  <span class="skin-swatch skin-swatch--community">
                     <span class="skin-swatch-label"><?= View::e(strtoupper(substr($slug, 0, 2))) ?></span>
-                  </div>
-                  <div class="skin-card-name"><?= View::e(ucwords(str_replace('-', ' ', $slug))) ?></div>
-                  <div class="skin-card-desc">Community skin</div>
+                  </span>
+                  <span class="skin-card-name"><?= View::e(ucwords(str_replace('-', ' ', $slug))) ?></span>
+                  <span class="skin-card-desc">Community skin</span>
                   <?php if ($activeSkin === $slug): ?>
-                    <div class="skin-card-active-badge"><?= View::icon('check') ?> Active</div>
+                    <span class="skin-card-active-badge"><?= View::icon('check') ?> Active</span>
                   <?php endif; ?>
                 </button>
               </form>
@@ -312,14 +313,13 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
     </div>
 
 
-<!-- ──── GENERAL + EMBED IN ONE FORM (BOTH POST TO /ADMIN/SETTINGS) ──────── -->
     <form id="settings-test-email-form" method="POST" action="<?= $b ?>/admin/settings/test-email" class="is-hidden">
       <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
     </form>
 
+<!-- ──── PANEL: GENERAL ─────────────────────────────────────────────── -->
     <form method="POST" action="<?= $b ?>/admin/settings" class="js-warn-unsaved">
       <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
-<!-- ──── PANEL: GENERAL ─────────────────────────────────────────────── -->
       <div id="panel-general" class="mini-nav-panel">
         <div class="gradient-card">
           <div class="pc-head">
@@ -550,14 +550,17 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
           </div>
 
           <div class="composer-footer">
-            <button type="submit" name="settings_panel" value="panel-general" class="btn btn-primary">Save Settings</button>
+            <button type="submit" class="btn btn-primary">Save Settings</button>
             <button type="button" class="btn btn-ghost" id="general-clear-btn">Clear</button>
           </div>
         </div>
       </div>
+    </form>
 
 
 <!-- ──── PANEL: EMBED & PATHS ───────────────────────────────────────── -->
+    <form method="POST" action="<?= $b ?>/admin/settings/paths" class="js-warn-unsaved">
+      <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
       <div id="panel-embed" class="mini-nav-panel">
         <div class="gradient-card">
           <div class="pc-head">
@@ -668,7 +671,7 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
           <?php endif; ?>
 
           <div class="composer-footer">
-            <button type="submit" name="settings_panel" value="panel-embed" class="btn btn-primary">Save Settings</button>
+            <button type="submit" class="btn btn-primary">Save Settings</button>
             <button type="button" class="btn btn-ghost" id="embed-clear-btn">Clear</button>
           </div>
         </div>

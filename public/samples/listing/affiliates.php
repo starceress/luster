@@ -13,4 +13,3 @@ require 'header.php';
   <p><a href="affiliate-apply.php">Want to affiliate? Apply here.</a></p>
 
 <?php require 'footer.php'; ?>
-j

@@ -2702,6 +2702,9 @@ document.addEventListener('click', function (e) {
       var el = els[i];
       if (!el.name || el.disabled) continue;
       if (el.type === 'submit' || el.type === 'button' || el.type === 'hidden') continue;
+      // Browsers/password managers can populate password fields asynchronously
+      // after this snapshot is taken, producing a false "unsaved changes" prompt.
+      if (el.type === 'password') continue;
       if (el.type === 'checkbox' || el.type === 'radio') {
         parts.push(el.name + ':' + (el.checked ? '1' : '0'));
       } else {

@@ -132,7 +132,9 @@ input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
 
 .sidebar-section { padding: 1rem 0.875rem 0.25rem; position: relative; z-index: 1; }
 
-.sidebar-label { font-size: var(--fs-xs); font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: rgb(var(--ch-pink)/0.35); padding: 0 0.5rem; margin-bottom: 0.25rem; }
+.sidebar-label { display: flex; align-items: center; gap: 0.625rem; font-size: var(--fs-xs); font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: rgb(var(--ch-pink)/0.35); padding: 0 0.5rem; margin-bottom: 0.25rem; }
+
+.sidebar-label::after { content: ''; flex: 1; height: 1px; background: linear-gradient(to right, rgb(var(--ch-pink)/0.18), transparent); }
 
 .nav-item { display: flex; align-items: center; gap: 0.625rem; padding: 0.5625rem 0.625rem; border-radius: 10px; text-decoration: none; color: var(--text-sidebar); font-size: var(--fs-md); font-weight: 450; transition: background 0.2s, color 0.2s; position: relative; margin-bottom: 0.125rem; }
 

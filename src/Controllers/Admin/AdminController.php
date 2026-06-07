@@ -6,6 +6,7 @@ namespace Luster\Controllers\Admin;
 
 use Luster\Core\Application;
 use Luster\Core\Response;
+use Luster\Core\UrlNormalizer;
 
 /**
  * Abstract base for all admin controllers.
@@ -86,7 +87,7 @@ abstract class AdminController
 
     protected static function httpsify(string $url): string
     {
-        return str_starts_with($url, 'http://') ? 'https://' . substr($url, 7) : $url;
+        return UrlNormalizer::httpsify($url);
     }
 
     protected function adminUrl(string $path = ''): string
