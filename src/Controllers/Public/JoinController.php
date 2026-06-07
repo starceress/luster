@@ -27,7 +27,7 @@ use Luster\Repositories\MemberRepo;
  *
  * GET  /join/{id} — renders the join form for a listing.
  * POST /join/{id} — validates input, checks for duplicates, inserts member,
- *                   sends confirmation email, redirects to success page.
+ *                   sends confirmation email, redirects to host page.
  *
  * Security properties:
  *  - CSRF token validated by CsrfMiddleware before this action runs

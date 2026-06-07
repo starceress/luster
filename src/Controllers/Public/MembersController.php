@@ -232,7 +232,7 @@ final class MembersController
             );
         };
 
-        $html = '<nav class="fl-pagination" aria-label="Members pagination"><ul>';
+        $html = '<nav class="fl-pagination-nav" aria-label="Members pagination"><ul class="fl-pagination">';
 
         if ($currentPage > 1) {
             $html .= '<li><a class="fl-page-link" href="' . $makeUrl($currentPage - 1) . '">&laquo; Previous</a></li>';
@@ -244,7 +244,7 @@ final class MembersController
         if ($start > 1) {
             $html .= '<li><a class="fl-page-link" href="' . $makeUrl(1) . '">1</a></li>';
             if ($start > 2) {
-                $html .= '<li><span>&hellip;</span></li>';
+                $html .= '<li><span class="fl-page-gap" aria-hidden="true">&hellip;</span></li>';
             }
         }
 
@@ -258,7 +258,7 @@ final class MembersController
 
         if ($end < $totalPages) {
             if ($end < $totalPages - 1) {
-                $html .= '<li><span>&hellip;</span></li>';
+                $html .= '<li><span class="fl-page-gap" aria-hidden="true">&hellip;</span></li>';
             }
             $html .= '<li><a class="fl-page-link" href="' . $makeUrl($totalPages) . '">' . $totalPages . '</a></li>';
         }

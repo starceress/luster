@@ -187,7 +187,8 @@ final class AffiliatesController
      * Applies a page-level section template for the affiliates block.
      *
      * Supported tokens:
-     *   {affiliates}        — rendered affiliate rows (from row template or simple fallback)
+     *   {each_affiliate}...{/each_affiliate} — inline per-row loop; {aff_*} tokens work inside
+     *   {affiliates}        — rendered affiliate rows (legacy; use {each_affiliate} instead)
      *   {affiliates_count}  — total active affiliate count
      *   {affiliates_list}   — comma-separated <a href>name</a> list
      *   {if_affiliates}...{/if_affiliates}           — shown when count > 0
@@ -195,7 +196,7 @@ final class AffiliatesController
      *
      * @param Affiliate[]  $affiliates
      * @param int          $total       total active count (may differ from $affiliates on paginated pages)
-     * @param string|null  $rowTemplate per-row template, or null to use the simple link fallback
+     * @param string|null  $rowTemplate per-row template (legacy; ignored when {each_affiliate} is present)
      */
     private function applySectionTemplate(
         string  $template,
@@ -206,7 +207,15 @@ final class AffiliatesController
     ): string {
         $e = static fn(string $v): string => htmlspecialchars($v, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 
-        // Build {affiliates} content
+        // {each_affiliate}...{/each_affiliate} — inline per-row loop block.
+        // Process before conditionals so the block is substituted while still in context.
+        if (preg_match('/\{each_affiliate\}(.*?)\{\/each_affiliate\}/s', $template, $m)) {
+            $rendered = $this->buildAffiliateRows($m[1], $affiliates, $uploadsUrl);
+            $template = (string) preg_replace('/\{each_affiliate\}.*?\{\/each_affiliate\}/s', $rendered, $template, 1);
+            $rowTemplate = null; // inline block handles row rendering; skip legacy rowTemplate for {affiliates}
+        }
+
+        // Build {affiliates} content (legacy path — used when no {each_affiliate} block present)
         if ($rowTemplate !== null && $affiliates !== []) {
             $rows = $this->buildAffiliateRows($rowTemplate, $affiliates, $uploadsUrl);
         } else {
@@ -257,12 +266,14 @@ final class AffiliatesController
         for ($i = 1; $i <= $total; $i++) {
             $href = htmlspecialchars($baseHref . '?page=' . $i, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
             if ($i === $current) {
-                $parts[] = '<span class="fl-page-current">' . $i . '</span>';
+                $parts[] = '<li><span class="fl-page-current" aria-current="page">' . $i . '</span></li>';
             } else {
-                $parts[] = '<a class="fl-page-link" href="' . $href . '">' . $i . '</a>';
+                $parts[] = '<li><a class="fl-page-link" href="' . $href . '">' . $i . '</a></li>';
             }
         }
 
-        return implode(' ', $parts);
+        return '<nav class="fl-pagination-nav" aria-label="Affiliates pagination"><ul class="fl-pagination">'
+            . implode('', $parts)
+            . '</ul></nav>';
     }
 }

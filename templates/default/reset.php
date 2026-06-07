@@ -52,6 +52,8 @@ use Luster\Core\View;
              required maxlength="10" autocomplete="off">
     </div>
 
-    <button type="submit">Send Reset Link</button>
+    <div class="fl-actions">
+      <button type="submit">Send Reset Link</button>
+    </div>
   </form>
 </div>

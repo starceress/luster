@@ -9,6 +9,7 @@ require 'header.php';
 
   <?php
   $luster_fanlisting_id   = 0;   // 0 = collective/site-wide affiliates
+  $luster_affiliates_base = strtok($_SERVER['REQUEST_URI'], '?');
   require $luster_root . '/public/embed/affiliates.php';
   ?>
 

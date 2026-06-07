@@ -22,8 +22,9 @@ final class LegacyCatidMapper
     /**
      * Probes for a legacy Enthusiast category table ('category' then 'categories').
      * Builds a map from legacy catid → lstr_categories.id by normalised name matching.
-     * 'Anime/Manga: Foo' prefixes are stripped to 'Foo' before matching (Migration 49
-     * already removed those prefixes from lstr_categories.name).
+     *
+     * Supports both the current format (Migration 63+: lstr_categories stores
+     * 'Anime/Manga: Foo') and the legacy bare-name format (pre-Migration-63).
      *
      * When the same category name exists under both TFL and TAFL sources, resolution
      * is source-aware: prefixed 'Anime/Manga: Foo' rows prefer the TAFL row; bare
@@ -66,20 +67,26 @@ final class LegacyCatidMapper
         foreach ($rows as $row) {
             $raw = (string) $row['catname'];
             [$normalizedName, $normalizedSource] = CategorySeedCatalog::normalizeImportName($raw);
-            $normalizedKey = strtolower(trim($normalizedName));
-            $strippedKey    = strtolower(trim((string) preg_replace('#^Anime/Manga:\s*#i', '', $raw)));
-            $plain         = strtolower(trim($raw));
-            $hadPrefix     = preg_match('#^Anime/Manga:\s*#i', $raw) === 1;
-            $preferTafl    = $normalizedSource === 'tafl' || $hadPrefix;
+            $normalizedKey     = strtolower(trim($normalizedName));
+            // Bare form of the canonical name: strips "Anime/Manga: " for pre-Migration-63 DBs.
+            $normalizedBareKey = strtolower(trim((string) preg_replace('#^Anime/Manga:\s*#i', '', $normalizedName)));
+            $strippedKey       = strtolower(trim((string) preg_replace('#^Anime/Manga:\s*#i', '', $raw)));
+            $plain             = strtolower(trim($raw));
+            $hadPrefix         = preg_match('#^Anime/Manga:\s*#i', $raw) === 1;
+            $preferTafl        = $normalizedSource === 'tafl' || $hadPrefix;
 
-            // Prefer TAFL for prefixed rows, TFL for plain rows; fall back to any match.
+            // 1. Try exact normalized key (works for Migration-63+ DBs with prefixed names).
             $resolved = self::resolveCandidate($lstrByNameSource, $normalizedKey, $preferTafl);
+            // 2. Try bare canonical name (works for pre-Migration-63 DBs with bare names).
+            if ($resolved === null && $preferTafl && $normalizedBareKey !== $normalizedKey) {
+                $resolved = self::resolveCandidate($lstrByNameSource, $normalizedBareKey, true);
+            }
+            // 3. Try raw-input stripped key (catches variant spellings in older DBs).
             if ($resolved === null && $hadPrefix) {
-                // Older Luster data may have the prefix stripped but not the category renamed.
                 $resolved = self::resolveCandidate($lstrByNameSource, $strippedKey, true);
             }
+            // 4. Last resort: un-stripped name (pre-Migration-49 lstr data).
             if ($resolved === null && $hadPrefix) {
-                // Last resort: look up the un-stripped name (handles pre-Migration-49 lstr data)
                 $resolved = self::resolveCandidate($lstrByNameSource, $plain, false);
             }
 

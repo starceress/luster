@@ -1043,20 +1043,28 @@ final class EnthusiastImportSource implements ImportSourceInterface
             ];
         }
 
-        $hasLastUpdated = $this->tableHasColumn($target, 'lstr_fanlisting_settings', 'last_updated');
-        $hasAffApply    = $this->tableHasColumn($target, 'lstr_fanlisting_settings', 'affiliate_apply_enabled');
+        $hasLastUpdated   = $this->tableHasColumn($target, 'lstr_fanlisting_settings', 'last_updated');
+        $hasAffApply      = $this->tableHasColumn($target, 'lstr_fanlisting_settings', 'affiliate_apply_enabled');
+        $hasCountryField  = $this->tableHasColumn($target, 'lstr_fanlisting_settings', 'country_field_enabled');
+        $hasAffSectionTpl = $this->tableHasColumn($target, 'lstr_fanlisting_settings', 'affiliates_section_template');
         $checkSelect = $hasLastUpdated
             ? 'SELECT fanlisting_id, image, last_updated FROM lstr_fanlisting_settings WHERE fanlisting_id = :fid'
             : 'SELECT fanlisting_id, image FROM lstr_fanlisting_settings WHERE fanlisting_id = :fid';
         $checkStmt  = $target->prepare($checkSelect);
         $insertColumns = 'fanlisting_id, members_per_page, queue_updates, members_template, affiliates_template, stats_template, image'
-            . ($hasLastUpdated ? ', last_updated'            : '')
-            . ($hasAffApply    ? ', affiliate_apply_enabled' : '');
+            . ($hasCountryField  ? ', country_field_enabled'       : '')
+            . ($hasLastUpdated   ? ', last_updated'                : '')
+            . ($hasAffApply      ? ', affiliate_apply_enabled'     : '')
+            . ($hasAffSectionTpl ? ', affiliates_section_template' : '');
         $insertValues  = ':fanlisting_id, :members_per_page, :queue_updates, :members_template, :affiliates_template, :stats_template, :image'
-            . ($hasLastUpdated ? ', :last_updated' : '')
-            . ($hasAffApply    ? ', 1'             : '');
+            . ($hasCountryField  ? ', :country_field_enabled'       : '')
+            . ($hasLastUpdated   ? ', :last_updated'                : '')
+            . ($hasAffApply      ? ', 1'                            : '')
+            . ($hasAffSectionTpl ? ', :affiliates_section_template' : '');
         // COALESCE preserves existing last_updated when the source has no real date.
-        $lastUpdatedAssignment = $hasLastUpdated ? ', last_updated = COALESCE(:last_updated, last_updated)' : '';
+        $lastUpdatedAssignment   = $hasLastUpdated   ? ', last_updated = COALESCE(:last_updated, last_updated)'                                              : '';
+        $countryFieldAssignment  = $hasCountryField  ? ', country_field_enabled = :country_field_enabled'                                                    : '';
+        $affSectionTplAssignment = $hasAffSectionTpl ? ", affiliates_section_template = COALESCE(NULLIF(:affiliates_section_template, ''), affiliates_section_template)" : '';
         $insertStmt = $target->prepare(
             "INSERT INTO lstr_fanlisting_settings ({$insertColumns}) VALUES ({$insertValues})"
         );
@@ -1068,7 +1076,9 @@ final class EnthusiastImportSource implements ImportSourceInterface
                  affiliates_template = COALESCE(NULLIF(:affiliates_template, ''), affiliates_template),
                  stats_template = COALESCE(NULLIF(:stats_template, ''), stats_template),
                  image = COALESCE(:image, image)
+                 {$countryFieldAssignment}
                  {$lastUpdatedAssignment}
+                 {$affSectionTplAssignment}
              WHERE fanlisting_id = :fanlisting_id"
         );
 
@@ -1082,9 +1092,54 @@ final class EnthusiastImportSource implements ImportSourceInterface
 
             $perPage      = max(1, min(200, (int) ($row['perpage'] ?? 25)));
             $holdUpdate   = (int) ($row['holdupdate'] ?? 0);
-            $membersTpl   = self::translateDisplayTokens(trim((string) ($row['listtemplate'] ?? '')));
+            // `country` column: 1 = show country field, 0 = hide. Present in unprefixed `owned`;
+            // may be absent in enth_ schema — default to enabled (1) when missing.
+            $countryEnabled = isset($row['country']) ? ((int) $row['country'] !== 0 ? 1 : 0) : 1;
+            $membersTpl    = self::translateDisplayTokens(trim((string) ($row['listtemplate'] ?? '')));
             $affiliatesTpl = self::translateDisplayTokens(trim((string) ($row['affiliatestemplate'] ?? '')));
-            $statsTpl     = self::translateDisplayTokens(trim((string) ($row['statstemplate'] ?? '')));
+            $statsTpl      = self::translateDisplayTokens(trim((string) ($row['statstemplate'] ?? '')));
+
+            // When affiliates_section_template column exists (Migration 53+), wrap the Enthusiast
+            // per-row template in {each_affiliate}...{/each_affiliate} and store it there.
+            // The legacy affiliates_template column receives null so the section template takes over.
+            $sectionTpl = ($hasAffSectionTpl && $affiliatesTpl !== '')
+                ? '{each_affiliate}' . $affiliatesTpl . '{/each_affiliate}'
+                : '';
+            $affRowTpl = $hasAffSectionTpl ? '' : $affiliatesTpl;
+
+            // Only preserve the translated members_template when it explicitly includes tokens
+            // for this listing's custom additional fields. Enthusiast's standard listtemplate
+            // only shows name/email/url — Luster's PHP loop renders Name → URL, Country, and
+            // additional fields natively and is always better for that case.
+            if ($membersTpl !== '') {
+                // enth_ schema: additional_info is pipe/serialised → parseAdditionalInfo() extracts names.
+                // Unprefixed schema: additional is already a bare comma-separated list of names.
+                if ($schema === 'enthusiast_enth') {
+                    $rawAdditional = trim((string) ($row['additional_info'] ?? ''));
+                    $fieldNames = array_filter(array_map('trim',
+                        explode(',', $this->parseAdditionalInfo($rawAdditional))
+                    ));
+                } else {
+                    $rawAdditional = trim((string) ($row['additional'] ?? ''));
+                    $fieldNames = array_filter(array_map('trim', explode(',', $rawAdditional)));
+                }
+                if ($fieldNames === []) {
+                    // No additional fields — Enthusiast's standard template (name/email/url) is
+                    // inferior to Luster's native loop. Always clear so the loop takes over.
+                    $membersTpl = '';
+                } else {
+                    $hasToken = false;
+                    foreach ($fieldNames as $f) {
+                        if (str_contains($membersTpl, '{fan_' . $f . '}')) {
+                            $hasToken = true;
+                            break;
+                        }
+                    }
+                    if (!$hasToken) {
+                        $membersTpl = '';
+                    }
+                }
+            }
 
             // Derive last_updated: try explicit source columns first, fall back to MAX(member.added).
             // Never invent today's date when no real source date exists.
@@ -1165,28 +1220,32 @@ final class EnthusiastImportSource implements ImportSourceInterface
                         continue;
                     }
                     $updateParams = [
-                        'fanlisting_id'      => $targetListingId,
-                        'members_per_page'   => $perPage,
-                        'queue_updates'      => $holdUpdate,
-                        'members_template'   => $membersTpl,
-                        'affiliates_template' => $affiliatesTpl,
-                        'stats_template'     => $statsTpl,
-                        'image'              => $newImage,
+                        'fanlisting_id'       => $targetListingId,
+                        'members_per_page'    => $perPage,
+                        'queue_updates'       => $holdUpdate,
+                        'members_template'    => $membersTpl,
+                        'affiliates_template' => $affRowTpl,
+                        'stats_template'      => $statsTpl,
+                        'image'               => $newImage,
                     ];
-                    if ($hasLastUpdated) { $updateParams['last_updated'] = $lastUpdated ?? date('Y-m-d'); }
+                    if ($hasCountryField)  { $updateParams['country_field_enabled']       = $countryEnabled; }
+                    if ($hasLastUpdated)   { $updateParams['last_updated']                 = $lastUpdated ?? date('Y-m-d'); }
+                    if ($hasAffSectionTpl) { $updateParams['affiliates_section_template']  = $sectionTpl; }
                     $updateStmt->execute($updateParams);
                     $skipped++;
                 } else {
                     $insertParams = [
-                        'fanlisting_id'      => $targetListingId,
-                        'members_per_page'   => $perPage,
-                        'queue_updates'      => $holdUpdate,
-                        'members_template'   => $membersTpl ?: null,
-                        'affiliates_template' => $affiliatesTpl ?: null,
-                        'stats_template'     => $statsTpl ?: null,
-                        'image'              => $newImage,
+                        'fanlisting_id'       => $targetListingId,
+                        'members_per_page'    => $perPage,
+                        'queue_updates'       => $holdUpdate,
+                        'members_template'    => $membersTpl ?: null,
+                        'affiliates_template' => $affRowTpl ?: null,
+                        'stats_template'      => $statsTpl ?: null,
+                        'image'               => $newImage,
                     ];
-                    if ($hasLastUpdated) { $insertParams['last_updated'] = $lastUpdated ?? date('Y-m-d'); }
+                    if ($hasCountryField)  { $insertParams['country_field_enabled']       = $countryEnabled; }
+                    if ($hasLastUpdated)   { $insertParams['last_updated']                 = $lastUpdated ?? date('Y-m-d'); }
+                    if ($hasAffSectionTpl) { $insertParams['affiliates_section_template']  = $sectionTpl ?: null; }
                     $insertStmt->execute($insertParams);
                     $imported++;
                 }
@@ -1283,7 +1342,9 @@ final class EnthusiastImportSource implements ImportSourceInterface
             '$$site_owner$$',
             '$$site_email$$',
             '$$site_name$$',
+            '$$site_title$$',
             '$$site_url$$',
+            '$$listing_type$$',
             '$$fan_password$$',
             '$$password$$',
             '$$lostpass_link$$',
@@ -1302,7 +1363,9 @@ final class EnthusiastImportSource implements ImportSourceInterface
             '{owner_name}',
             '{owner_email}',
             '{site_name}',
+            '{site_name}',
             '{listing_url}',
+            'fanlisting',
             '{reset_url}',
             '{reset_url}',
             '{reset_url}',
@@ -1401,19 +1464,24 @@ final class EnthusiastImportSource implements ImportSourceInterface
             'UPDATE lstr_saved_emails SET subject = :subject, body = :body WHERE name = :name'
         );
 
-        // Reuse the same token translation table as per-listing templates.
+        // Token translation for saved/reusable templates.
+        // Includes the affiliate-specific tokens that appear in affiliation-notification emails.
         $tokenSearch  = [
             '$$fan_name$$', '$$fan_email$$', '$$fan_url$$', '$$fan_country$$',
             '$$fanlisting_title$$', '$$fanlisting_subject$$', '$$fanlisting_url$$',
             '$$owner_name$$', '$$owner_email$$',
-            '$$site_owner$$', '$$site_email$$', '$$site_name$$', '$$site_url$$',
+            '$$site_owner$$', '$$site_email$$', '$$site_name$$', '$$site_title$$', '$$site_url$$',
+            '$$site_aff_title$$', '$$site_aff_url$$',
+            '$$listing_type$$',
             '$$fan_password$$', '$$password$$', '$$lostpass_link$$', '{password}',
         ];
         $tokenReplace = [
             '{fan_name}', '{fan_email}', '{fan_url}', '{fan_country}',
             '{listing_title}', '{listing_subject}', '{listing_url}',
             '{owner_name}', '{owner_email}',
-            '{owner_name}', '{owner_email}', '{site_name}', '{listing_url}',
+            '{owner_name}', '{owner_email}', '{site_name}', '{site_name}', '{listing_url}',
+            '{aff_name}', '{aff_url}',
+            'fanlisting',
             '{reset_url}', '{reset_url}', '{reset_url}', '{reset_url}',
         ];
 
@@ -1424,7 +1492,7 @@ final class EnthusiastImportSource implements ImportSourceInterface
 
         foreach ($srcRows as $row) {
             $name    = trim((string) ($row['templatename'] ?? ''));
-            $subject = trim((string) ($row['subject']      ?? ''));
+            $subject = str_replace($tokenSearch, $tokenReplace, trim((string) ($row['subject'] ?? '')));
             $body    = str_replace($tokenSearch, $tokenReplace, trim((string) ($row['content'] ?? '')));
 
             if ($name === '') {
@@ -1977,7 +2045,7 @@ final class EnthusiastImportSource implements ImportSourceInterface
         if ($tpl === '') {
             return $tpl;
         }
-        return str_replace(
+        $tpl = str_replace(
             [
                 // Stats tokens
                 '$$stat_opened$$',
@@ -2024,6 +2092,12 @@ final class EnthusiastImportSource implements ImportSourceInterface
             ],
             $tpl,
         );
+        // Additional field tokens not covered by the table above.
+        // enth_ schema uses $$fan_additional_FIELDNAME$$ (strip the prefix).
+        // Unprefixed schema uses $$fan_FIELDNAME$$ (keep as-is).
+        $tpl = (string) preg_replace('/\$\$fan_additional_([a-zA-Z0-9_]+)\$\$/', '{fan_$1}', $tpl);
+        $tpl = (string) preg_replace('/\$\$fan_([a-zA-Z0-9_]+)\$\$/', '{fan_$1}', $tpl);
+        return $tpl;
     }
 
     private function tableHasColumn(PDO $pdo, string $table, string $column): bool
@@ -2557,27 +2631,30 @@ final class EnthusiastImportSource implements ImportSourceInterface
             $configuredDir = $imageSettings[$dirKey] ?? '';
             $configuredUrl = $imageSettings[$urlKey] ?? '';
 
-            $newFilename = null;
+            $newFilename   = null;
+            $triedPaths    = [];
 
             // Try server path first
             if ($configuredDir !== '') {
-                $newFilename = $migrator->copyFromPath($configuredDir . '/' . $imageFilename, $targetSubDir, $prefix);
+                $tryPath = $configuredDir . '/' . $imageFilename;
+                $triedPaths[] = $tryPath;
+                $newFilename  = $migrator->copyFromPath($tryPath, $targetSubDir, $prefix);
             } elseif ($options->imagePath !== '') {
-                $newFilename = $migrator->copyFromPath(
-                    $options->imagePath . '/' . self::IMG_SUBDIRS[$targetSubDir] . '/' . $imageFilename,
-                    $targetSubDir, $prefix
-                );
+                $tryPath = $options->imagePath . '/' . self::IMG_SUBDIRS[$targetSubDir] . '/' . $imageFilename;
+                $triedPaths[] = $tryPath;
+                $newFilename  = $migrator->copyFromPath($tryPath, $targetSubDir, $prefix);
             }
 
             // Fall back to URL
             if ($newFilename === null) {
                 if ($configuredUrl !== '') {
-                    $newFilename = $migrator->fetchFromUrl($configuredUrl . '/' . rawurlencode($imageFilename), $targetSubDir, $prefix);
+                    $tryUrl       = $configuredUrl . '/' . rawurlencode($imageFilename);
+                    $triedPaths[] = $tryUrl;
+                    $newFilename  = $migrator->fetchFromUrl($tryUrl, $targetSubDir, $prefix);
                 } elseif ($options->imageUrl !== '') {
-                    $newFilename = $migrator->fetchFromUrl(
-                        $options->imageUrl . '/' . self::IMG_SUBDIRS[$targetSubDir] . '/' . rawurlencode($imageFilename),
-                        $targetSubDir, $prefix
-                    );
+                    $tryUrl       = $options->imageUrl . '/' . self::IMG_SUBDIRS[$targetSubDir] . '/' . rawurlencode($imageFilename);
+                    $triedPaths[] = $tryUrl;
+                    $newFilename  = $migrator->fetchFromUrl($tryUrl, $targetSubDir, $prefix);
                 }
             }
 
@@ -2585,7 +2662,8 @@ final class EnthusiastImportSource implements ImportSourceInterface
                 $copied++;
             } else {
                 $skipped++;
-                $errors[] = "Image not copied: {$imageFilename}";
+                $tried = $triedPaths !== [] ? ' (tried: ' . implode(', ', $triedPaths) . ')' : ' (no path or URL configured)';
+                $errors[] = "Image not copied: {$imageFilename}{$tried}";
             }
         } elseif ($options->imageMode === 'zip') {
             if ($this->activeZip !== null) {
@@ -2635,7 +2713,9 @@ final class EnthusiastImportSource implements ImportSourceInterface
                 "SELECT `{$nameCol}`, `{$valueCol}` FROM `{$table}`
                   WHERE `{$nameCol}` IN (
                       'affiliates_dir', 'joined_images_dir', 'owned_images_dir',
-                      'affiliates_url', 'joined_images_url', 'owned_images_url'
+                      'affiliates_url', 'joined_images_url', 'owned_images_url',
+                      'root_path_absolute', 'root_path_web',
+                      'installation_path', 'collective_url'
                   )"
             );
             $stmt->execute();
@@ -2644,13 +2724,40 @@ final class EnthusiastImportSource implements ImportSourceInterface
             return [];
         }
 
+        // Derive a public URL equivalent for any dir path that lacks an explicit URL.
+        // Enthusiast stores the server's absolute path but not always the public URL.
+        // If we know the root absolute path and its web address, we can compute the URL.
+        $rootAbs = rtrim((string) ($rows['root_path_absolute'] ?? ($rows['installation_path'] ?? '')), '/\\');
+        $rootWeb = rtrim((string) ($rows['root_path_web']      ?? ($rows['collective_url']      ?? '')), '/');
+
+        $deriveUrl = static function (string $dir) use ($rootAbs, $rootWeb): string {
+            if ($dir === '' || $rootAbs === '' || $rootWeb === '') {
+                return '';
+            }
+            // Normalise separators so Windows paths (backslash) also match.
+            $normDir = str_replace('\\', '/', $dir);
+            $normAbs = str_replace('\\', '/', $rootAbs);
+            if (str_starts_with($normDir, $normAbs . '/')) {
+                $relative = substr($normDir, strlen($normAbs) + 1);
+                return $rootWeb . '/' . $relative;
+            }
+            return '';
+        };
+
+        $affiliatesDir = rtrim((string) ($rows['affiliates_dir']    ?? ''), '/\\');
+        $joinedDir     = rtrim((string) ($rows['joined_images_dir'] ?? ''), '/\\');
+        $listingsDir   = rtrim((string) ($rows['owned_images_dir']  ?? ''), '/\\');
+
         return [
-            'affiliates_dir' => rtrim((string) ($rows['affiliates_dir']    ?? ''), '/\\'),
-            'joined_dir'     => rtrim((string) ($rows['joined_images_dir'] ?? ''), '/\\'),
-            'listings_dir'   => rtrim((string) ($rows['owned_images_dir']  ?? ''), '/\\'),
-            'affiliates_url' => rtrim((string) ($rows['affiliates_url']    ?? ''), '/'),
-            'joined_url'     => rtrim((string) ($rows['joined_images_url'] ?? ''), '/'),
-            'listings_url'   => rtrim((string) ($rows['owned_images_url']  ?? ''), '/'),
+            'affiliates_dir' => $affiliatesDir,
+            'joined_dir'     => $joinedDir,
+            'listings_dir'   => $listingsDir,
+            'affiliates_url' => rtrim((string) ($rows['affiliates_url']    ?? ''), '/')
+                ?: $deriveUrl($affiliatesDir),
+            'joined_url'     => rtrim((string) ($rows['joined_images_url'] ?? ''), '/')
+                ?: $deriveUrl($joinedDir),
+            'listings_url'   => rtrim((string) ($rows['owned_images_url']  ?? ''), '/')
+                ?: $deriveUrl($listingsDir),
         ];
     }
 

@@ -130,12 +130,14 @@ $_lusterBuildPagination = static function (int $current, int $total, string $bas
     for ($i = 1; $i <= $total; $i++) {
         $href = htmlspecialchars($baseHref . '?page=' . $i, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
         if ($i === $current) {
-            $parts[] = '<span class="fl-page-current">' . $i . '</span>';
+            $parts[] = '<li><span class="fl-page-current" aria-current="page">' . $i . '</span></li>';
         } else {
-            $parts[] = '<a class="fl-page-link" href="' . $href . '">' . $i . '</a>';
+            $parts[] = '<li><a class="fl-page-link" href="' . $href . '">' . $i . '</a></li>';
         }
     }
-    return implode(' ', $parts);
+    return '<nav class="fl-pagination-nav" aria-label="Affiliates pagination"><ul class="fl-pagination">'
+        . implode('', $parts)
+        . '</ul></nav>';
 };
 
 // Allow the embedding page to override pagination base URL.
@@ -175,8 +177,30 @@ if ($_lusterAffiliateTemplate !== null) {
 $_lusterSectionHtml = null;
 if ($_lusterSectionTemplate !== null) {
     $e = static fn(string $v): string => htmlspecialchars($v, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+    $_lusterTpl = $_lusterSectionTemplate;
 
-    // Build {affiliates} content from row template or simple fallback
+    // {each_affiliate}...{/each_affiliate} — inline per-row loop block.
+    // Process before conditionals so the block is substituted while still in context.
+    if (preg_match('/\{each_affiliate\}(.*?)\{\/each_affiliate\}/s', $_lusterTpl, $_lusterEachMatch)) {
+        $_lusterEachRowTpl = $_lusterEachMatch[1];
+        $_lusterEachRows   = '';
+        foreach ($_lusterResult['items'] as $_aff) {
+            $imageFilename = $_aff->image ?? '';
+            $imageUrl      = ($imageFilename !== '') ? $_lusterUploadsUrl . '/' . $imageFilename : '';
+            $imageTag      = ($imageUrl !== '')
+                ? '<img src="' . $e($imageUrl) . '" alt="' . $e($_aff->name) . '">'
+                : '';
+            $_lusterEachRows .= str_replace(
+                ['{aff_name}', '{aff_url}', '{aff_image}', '{aff_image_url}', '{aff_image_tag}'],
+                [$e($_aff->name), $e($_aff->url), $e($imageFilename), $e($imageUrl), $imageTag],
+                $_lusterEachRowTpl,
+            );
+        }
+        $_lusterTpl = (string) preg_replace('/\{each_affiliate\}.*?\{\/each_affiliate\}/s', $_lusterEachRows, $_lusterTpl, 1);
+        $_lusterAffiliatesHtml = null; // inline block handled rows; skip legacy {affiliates} path
+    }
+
+    // Build {affiliates} content from row template or simple fallback (legacy path)
     if ($_lusterAffiliatesHtml !== null) {
         $_lusterRowsHtml = $_lusterAffiliatesHtml;
     } else {
@@ -204,10 +228,10 @@ if ($_lusterSectionTemplate !== null) {
     // Process conditionals
     $total = $_lusterResult['total'];
     if ($total > 0) {
-        $_lusterSectionHtml = preg_replace('/\{if_no_affiliates\}.*?\{\/if_no_affiliates\}/s', '', $_lusterSectionTemplate) ?? $_lusterSectionTemplate;
+        $_lusterSectionHtml = preg_replace('/\{if_no_affiliates\}.*?\{\/if_no_affiliates\}/s', '', $_lusterTpl) ?? $_lusterTpl;
         $_lusterSectionHtml = str_replace(['{if_affiliates}', '{/if_affiliates}'], '', $_lusterSectionHtml);
     } else {
-        $_lusterSectionHtml = preg_replace('/\{if_affiliates\}.*?\{\/if_affiliates\}/s', '', $_lusterSectionTemplate) ?? $_lusterSectionTemplate;
+        $_lusterSectionHtml = preg_replace('/\{if_affiliates\}.*?\{\/if_affiliates\}/s', '', $_lusterTpl) ?? $_lusterTpl;
         $_lusterSectionHtml = str_replace(['{if_no_affiliates}', '{/if_no_affiliates}'], '', $_lusterSectionHtml);
     }
 

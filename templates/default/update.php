@@ -67,7 +67,9 @@ $signed_in = $signed_in ?? false;
       <input type="text" name="website_confirm" tabindex="-1" autocomplete="off">
     </div>
 
-    <button type="submit">Sign in</button>
+    <div class="fl-actions">
+      <button type="submit">Sign in</button>
+    </div>
   </form>
 
   <?php if (($lost_password_url ?? '') !== ''): ?>
@@ -226,8 +228,10 @@ $signed_in = $signed_in ?? false;
              required maxlength="10" autocomplete="off">
     </div>
 
-    <button type="submit">Update Information</button>
-    <button type="reset">Clear</button>
+    <div class="fl-actions">
+      <button type="submit">Update Information</button>
+      <button type="reset">Clear</button>
+    </div>
   </form>
 
 <?php endif; ?>

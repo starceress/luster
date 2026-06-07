@@ -35,7 +35,7 @@ $_showHeadings  = count($grouped) > 1;
     <?php if (empty($_group['codes'])) continue; ?>
 
     <?php if ($_showHeadings): ?>
-      <h2><?= View::e($_group['label']) ?></h2>
+      <h2 class="fl-code-size-heading"><?= View::e($_group['label']) ?></h2>
     <?php endif; ?>
 
     <div class="fl-codes-group">

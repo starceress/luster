@@ -23,9 +23,11 @@ use Luster\Repositories\FanPasswordResetRepo;
  *   $luster_return        = false;
  *   require '/absolute/path/to/luster/public/embed/reset.php';
  *
- * In both cases the form POSTs to Luster's URL. On success the user is sent
- * to Luster's /reset/{id}/sent or /reset/{id}/done page respectively, unless
- * redirect URLs are configured in the listing's embed settings.
+ * In both cases the form POSTs to Luster's URL. After every outcome (success
+ * or error) the user is redirected back to this same host page, where the
+ * embed re-renders with a flash success or error message inline.
+ *
+ * To override the redirect target, set $luster_redirect_url before require.
  *
  * The ?token= query parameter is read automatically from $_GET when
  * $luster_reset_step = 'confirm'.

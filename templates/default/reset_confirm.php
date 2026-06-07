@@ -48,7 +48,9 @@ use Luster\Core\View;
                required maxlength="255" autocomplete="new-password">
       </div>
 
-      <button type="submit">Update Password</button>
+      <div class="fl-actions">
+        <button type="submit">Update Password</button>
+      </div>
     </form>
   <?php endif; ?>
 </div>

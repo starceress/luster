@@ -62,7 +62,9 @@ use Luster\Core\View;
              required maxlength="10" autocomplete="off">
     </div>
 
-    <button type="submit">Remove Information</button>
-    <button type="reset">Clear</button>
+    <div class="fl-actions">
+      <button type="submit">Remove Information</button>
+      <button type="reset">Clear</button>
+    </div>
   </form>
 </div>

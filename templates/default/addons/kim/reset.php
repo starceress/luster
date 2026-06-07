@@ -68,7 +68,9 @@ $_linkUpdate = ($link_update !== null && $link_update !== '') ? $link_update : n
              required maxlength="10" autocomplete="off">
     </div>
 
-    <button class="fl-btn" type="submit">Send Reset Link</button>
+    <div class="fl-actions">
+      <button class="fl-btn" type="submit">Send Reset Link</button>
+    </div>
   </form>
 
   <?php if ($_linkUpdate !== null): ?>

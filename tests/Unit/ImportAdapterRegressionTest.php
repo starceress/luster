@@ -1211,7 +1211,7 @@ final class ImportAdapterRegressionTest extends TestCase
         $tgt = $this->makePdo();
         $this->seedOwnedTarget($tgt);
         $tgt->exec("INSERT INTO lstr_categories (name, source) VALUES ('Series', 'tfl')");
-        $tgt->exec("INSERT INTO lstr_categories (name, source) VALUES ('Series', 'tafl')");
+        $tgt->exec("INSERT INTO lstr_categories (name, source) VALUES ('Anime/Manga: Series', 'tafl')");
 
         $opts = ImportOptions::fromPost([
             'source'                => 'enthusiast',
@@ -1223,7 +1223,7 @@ final class ImportAdapterRegressionTest extends TestCase
 
         $this->enthAdapter()->run($src, $tgt, $opts);
 
-        $taflSeriesId = (int) $tgt->query("SELECT id FROM lstr_categories WHERE name = 'Series' AND source = 'tafl'")->fetchColumn();
+        $taflSeriesId = (int) $tgt->query("SELECT id FROM lstr_categories WHERE name = 'Anime/Manga: Series' AND source = 'tafl'")->fetchColumn();
         $stored = $tgt->query("SELECT catid, category_id FROM owned WHERE listingid = 6")->fetch(PDO::FETCH_ASSOC);
 
         $this->assertSame('|' . $taflSeriesId . '|', (string) $stored['catid']);

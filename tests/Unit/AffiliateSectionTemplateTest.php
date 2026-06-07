@@ -261,4 +261,93 @@ final class AffiliateSectionTemplateTest extends TestCase
         self::assertStringContainsString('No affiliates yet.', $result);
         self::assertStringNotContainsString('affiliates</p>', $result);
     }
+
+    // -----------------------------------------------------------------------
+    // {each_affiliate}...{/each_affiliate} inline loop block
+    // -----------------------------------------------------------------------
+
+    public function testEachAffiliateBlockRendersRows(): void
+    {
+        $affiliates = [
+            $this->makeAffiliate('Site A', 'https://a.example'),
+            $this->makeAffiliate('Site B', 'https://b.example'),
+        ];
+        $tpl = '{each_affiliate}<li>{aff_name}</li>{/each_affiliate}';
+        $result = $this->invoke($tpl, $affiliates, 2);
+
+        self::assertStringContainsString('<li>Site A</li>', $result);
+        self::assertStringContainsString('<li>Site B</li>', $result);
+        self::assertStringNotContainsString('{each_affiliate}', $result);
+        self::assertStringNotContainsString('{/each_affiliate}', $result);
+    }
+
+    public function testEachAffiliateBlockRendersAllRowTokens(): void
+    {
+        $aff = $this->makeAffiliate('My Fan', 'https://fl.example', 'banner.png');
+        $tpl = '{each_affiliate}{aff_name}|{aff_url}|{aff_image}|{aff_image_url}|{aff_image_tag}{/each_affiliate}';
+        $result = $this->invoke($tpl, [$aff], 1, 'https://example.com/uploads/affiliates');
+
+        self::assertStringContainsString('My Fan', $result);
+        self::assertStringContainsString('https://fl.example', $result);
+        self::assertStringContainsString('banner.png', $result);
+        self::assertStringContainsString('https://example.com/uploads/affiliates/banner.png', $result);
+        self::assertStringContainsString('<img src="https://example.com/uploads/affiliates/banner.png"', $result);
+    }
+
+    public function testEachAffiliateBlockWithZeroAffiliatesProducesEmptyContent(): void
+    {
+        $tpl = '{each_affiliate}<li>{aff_name}</li>{/each_affiliate}';
+        $result = $this->invoke($tpl, [], 0);
+
+        self::assertSame('', $result);
+    }
+
+    public function testEachAffiliateBlockInsideIfAffiliatesConditional(): void
+    {
+        $aff = $this->makeAffiliate('Fan Site', 'https://fan.example');
+        $tpl = '{if_affiliates}<ul>{each_affiliate}<li>{aff_name}</li>{/each_affiliate}</ul>{/if_affiliates}';
+        $result = $this->invoke($tpl, [$aff], 1);
+
+        self::assertSame('<ul><li>Fan Site</li></ul>', $result);
+    }
+
+    public function testEachAffiliateBlockHidesInsideIfAffiliatesWhenEmpty(): void
+    {
+        $tpl = '{if_affiliates}<ul>{each_affiliate}<li>{aff_name}</li>{/each_affiliate}</ul>{/if_affiliates}'
+             . '{if_no_affiliates}<p>None.</p>{/if_no_affiliates}';
+        $result = $this->invoke($tpl, [], 0);
+
+        self::assertSame('<p>None.</p>', $result);
+    }
+
+    public function testEachAffiliateBlockIgnoresLegacyRowTemplate(): void
+    {
+        $aff = $this->makeAffiliate('Fan Site', 'https://fan.example');
+        // When {each_affiliate} is present, the legacy $rowTemplate must not affect {affiliates}
+        $tpl = '{each_affiliate}<b>{aff_name}</b>{/each_affiliate} count:{affiliates_count}';
+        $result = $this->invoke($tpl, [$aff], 1, 'https://example.com/uploads', '<span>{aff_name}</span>');
+
+        self::assertStringContainsString('<b>Fan Site</b>', $result);
+        self::assertStringNotContainsString('<span>Fan Site</span>', $result);
+        self::assertStringContainsString('count:1', $result);
+    }
+
+    public function testDefaultCombinedTemplateRendersCorrectly(): void
+    {
+        $affiliates = [
+            $this->makeAffiliate('Site A', 'https://a.example', null),
+            $this->makeAffiliate('Site B', 'https://b.example', 'b.png'),
+        ];
+        $tpl = '{if_affiliates}<ul>' . "\n"
+             . '{each_affiliate}<li><a href="{aff_url}" target="_blank" title="{aff_name}">{aff_image_tag}</a></li>{/each_affiliate}' . "\n"
+             . '</ul>{/if_affiliates}';
+        $result = $this->invoke($tpl, $affiliates, 2, 'https://example.com/uploads/affiliates');
+
+        self::assertStringContainsString('<ul>', $result);
+        self::assertStringContainsString('href="https://a.example"', $result);
+        self::assertStringContainsString('href="https://b.example"', $result);
+        self::assertStringContainsString('<img src="https://example.com/uploads/affiliates/b.png"', $result);
+        self::assertStringNotContainsString('{each_affiliate}', $result);
+        self::assertStringNotContainsString('{if_affiliates}', $result);
+    }
 }

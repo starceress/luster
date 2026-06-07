@@ -56,7 +56,7 @@ final class UpdatesPublicController
 
         $ownerName = (string) $config->get('owner_name', '');
 
-        $html = $this->app->getView()->renderPublic('default/addons/updates/feed.php', [
+        $html = $this->app->getView()->renderPublic('addons/updates/feed.php', [
             'listing'       => $listing,
             'listing_name'  => $listing->title,
             'listing_url'   => $listing->url,
@@ -106,7 +106,7 @@ final class UpdatesPublicController
 
         $ownerName = (string) $config->get('owner_name', '');
 
-        $html = $this->app->getView()->renderPublic('default/addons/updates/feed.php', [
+        $html = $this->app->getView()->renderPublic('addons/updates/feed.php', [
             'listing'       => null,
             'listing_name'  => $siteName,
             'listing_url'   => $baseUrl,

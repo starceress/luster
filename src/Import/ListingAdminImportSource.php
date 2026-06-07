@@ -595,17 +595,24 @@ final class ListingAdminImportSource implements ImportSourceInterface
             // fave_fields — additional field names for the member table
             $faveFields = $this->parseFaveFields((string) ($row['fave_fields'] ?? ''));
 
+            // Format field names for the listing registry's additional column.
+            // Owned (unprefixed) schema: comma-separated bare names, e.g. "fave_song,fave_book".
+            // enth_ schema: pipe-separated bare names; FieldRepo synthesises labels from each segment.
+            $additional = $isOwned
+                ? implode(',', $faveFields)
+                : implode('|', $faveFields);
+
             try {
                 if ($existId !== false) {
                     // Overwrite: update existing listing
                     $newListingId = (int) $existId;
                     $this->updateListing($target, $regTable, $idCol, $newListingId,
-                        $title, $subject, $url, $dbtable, $catId, $opened, $isOwned, $status, $newImage);
+                        $title, $subject, $url, $dbtable, $catId, $opened, $isOwned, $status, $newImage, $additional);
                     $skipped++;
                 } else {
                     // Insert new listing row
                     $newListingId = $this->insertListing($target, $regTable, $idCol,
-                        $title, $subject, $url, $dbtable, $catId, $opened, $isOwned, $status, $newImage);
+                        $title, $subject, $url, $dbtable, $catId, $opened, $isOwned, $status, $newImage, $additional);
                     $imported++;
                 }
 
@@ -1599,7 +1606,8 @@ final class ListingAdminImportSource implements ImportSourceInterface
     private function insertListing(
         PDO $target, string $regTable, string $idCol,
         string $title, string $subject, string $url, string $dbtable,
-        ?int $catId, ?string $opened, bool $isOwned, int $status, ?string $image
+        ?int $catId, ?string $opened, bool $isOwned, int $status, ?string $image,
+        string $additional = ''
     ): int {
         if ($isOwned) {
             $stmt = $target->prepare(
@@ -1607,17 +1615,18 @@ final class ListingAdminImportSource implements ImportSourceInterface
                  (title, subject, url, dbtable, catid, category_id, opened, status, imagefile,
                   email, dbserver, dbuser, dbpassword, dbdatabase, additional)
                  VALUES (:title, :subject, :url, :dbtable, '', :catid, :opened, :status,
-                         COALESCE(:image, ''), '', '', '', '', '', '')"
+                         COALESCE(:image, ''), '', '', '', '', '', :additional)"
             );
             $stmt->execute([
-                'title'   => $title,
-                'subject' => $subject,
-                'url'     => $url,
-                'dbtable' => $dbtable,
-                'catid'   => $catId,
-                'opened'  => $opened,
-                'status'  => $status,
-                'image'   => $image,
+                'title'      => $title,
+                'subject'    => $subject,
+                'url'        => $url,
+                'dbtable'    => $dbtable,
+                'catid'      => $catId,
+                'opened'     => $opened,
+                'status'     => $status,
+                'image'      => $image,
+                'additional' => $additional,
             ]);
         } else {
             // enth_fanlistings schema: derive trouble/upcoming from the unified $status value.
@@ -1628,19 +1637,20 @@ final class ListingAdminImportSource implements ImportSourceInterface
                  (name, subject, url, dbprefix, category, category_id, opened, upcoming, trouble,
                   imagefile, email, dbserver, dbuser, dbpassword, dbdatabase, additional_info)
                  VALUES (:name, :subject, :url, :dbprefix, :catid, :catid2, :opened, :upcoming, :trouble,
-                         :image, '', '', '', '', '', '')"
+                         :image, '', '', '', '', '', :additional)"
             );
             $stmt->execute([
-                'name'     => $title,
-                'subject'  => $subject,
-                'url'      => $url,
-                'dbprefix' => $dbtable . '_',
-                'catid'    => $catId ?? 0,
-                'catid2'   => $catId,
-                'opened'   => $opened,
-                'upcoming' => $enthUpcoming,
-                'trouble'  => $enthTrouble,
-                'image'    => $image,
+                'name'       => $title,
+                'subject'    => $subject,
+                'url'        => $url,
+                'dbprefix'   => $dbtable . '_',
+                'catid'      => $catId ?? 0,
+                'catid2'     => $catId,
+                'opened'     => $opened,
+                'upcoming'   => $enthUpcoming,
+                'trouble'    => $enthTrouble,
+                'image'      => $image,
+                'additional' => $additional,
             ]);
         }
 
@@ -1653,25 +1663,28 @@ final class ListingAdminImportSource implements ImportSourceInterface
     private function updateListing(
         PDO $target, string $regTable, string $idCol, int $listingId,
         string $title, string $subject, string $url, string $dbtable,
-        ?int $catId, ?string $opened, bool $isOwned, int $status, ?string $image
+        ?int $catId, ?string $opened, bool $isOwned, int $status, ?string $image,
+        string $additional = ''
     ): void {
         if ($isOwned) {
             $stmt = $target->prepare(
                 "UPDATE `{$regTable}`
                  SET title = :title, subject = :subject, dbtable = :dbtable,
                      catid = COALESCE(:catid, catid), opened = COALESCE(:opened, opened),
-                     status = :status, imagefile = COALESCE(:image, imagefile)
+                     status = :status, imagefile = COALESCE(:image, imagefile),
+                     additional = COALESCE(NULLIF(:additional, ''), additional)
                  WHERE {$idCol} = :id"
             );
             $stmt->execute([
-                'title'   => $title,
-                'subject' => $subject,
-                'dbtable' => $dbtable,
-                'catid'   => $catId,
-                'opened'  => $opened,
-                'status'  => $status,
-                'image'   => $image,
-                'id'      => $listingId,
+                'title'      => $title,
+                'subject'    => $subject,
+                'dbtable'    => $dbtable,
+                'catid'      => $catId,
+                'opened'     => $opened,
+                'status'     => $status,
+                'image'      => $image,
+                'additional' => $additional,
+                'id'         => $listingId,
             ]);
         } else {
             $enthTrouble  = $status === 0 ? 1 : 0;
@@ -1681,19 +1694,21 @@ final class ListingAdminImportSource implements ImportSourceInterface
                  SET name = :name, subject = :subject, dbprefix = :dbprefix,
                      category = COALESCE(:catid, category), opened = COALESCE(:opened, opened),
                      upcoming = :upcoming, trouble = :trouble,
-                     imagefile = COALESCE(:image, imagefile)
+                     imagefile = COALESCE(:image, imagefile),
+                     additional_info = COALESCE(NULLIF(:additional, ''), additional_info)
                  WHERE {$idCol} = :id"
             );
             $stmt->execute([
-                'name'     => $title,
-                'subject'  => $subject,
-                'dbprefix' => $dbtable . '_',
-                'catid'    => $catId,
-                'opened'   => $opened,
-                'upcoming' => $enthUpcoming,
-                'trouble'  => $enthTrouble,
-                'image'    => $image,
-                'id'       => $listingId,
+                'name'       => $title,
+                'subject'    => $subject,
+                'dbprefix'   => $dbtable . '_',
+                'catid'      => $catId,
+                'opened'     => $opened,
+                'upcoming'   => $enthUpcoming,
+                'trouble'    => $enthTrouble,
+                'image'      => $image,
+                'additional' => $additional,
+                'id'         => $listingId,
             ]);
         }
     }
@@ -1715,7 +1730,10 @@ final class ListingAdminImportSource implements ImportSourceInterface
         }
 
         $perPage    = max(1, min(200, (int) ($mainRow['perpage'] ?? 25)));
-        $membersTpl  = trim((string) ($mainRow['members_header'] ?? ''));
+        // LA's members_header is a static HTML block above the list, not a per-member row
+        // template — it can't map to Luster's members_template. Leave null so Luster's
+        // native PHP loop (Name → URL, Country, additional fields) renders the list.
+        $membersTpl  = '';
         $affsTpl     = '';
         $statsTpl    = '';
 

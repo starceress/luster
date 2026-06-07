@@ -108,7 +108,9 @@ $_linkList   = ($link_list   !== null && $link_list   !== '') ? $link_list   : n
       </label>
     </div>
 
-    <button class="fl-btn" type="submit">Sign Up</button>
+    <div class="fl-actions">
+      <button class="fl-btn" type="submit">Sign Up</button>
+    </div>
   </form>
 
   <?php

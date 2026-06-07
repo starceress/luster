@@ -22,7 +22,7 @@ use Luster\Repositories\MemberRepo;
  *
  * GET  /remove/{id} — shows the confirmation/credential form.
  * POST /remove/{id} — verifies email + password, deletes the member row,
- *                     sends a farewell email, redirects to success page.
+ *                     sends a farewell email, redirects to host page.
  *
  * Security properties:
  *  - CSRF token validated by CsrfMiddleware

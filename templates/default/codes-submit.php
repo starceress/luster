@@ -87,7 +87,7 @@ $submitted = $submitted ?? false;
       </div>
       <?php endif; ?>
 
-      <div>
+      <div class="fl-actions">
         <button type="submit">Submit Code</button>
       </div>
     </form>

@@ -19,13 +19,11 @@ use Luster\Repositories\FieldRepo;
  *   $luster_return        = false;  // optional: true = return string, false = echo
  *   require '/absolute/path/to/luster/public/embed/join.php';
  *
- * The form POSTs to Luster's join URL. On success the user is sent to the
- * post-join redirect URL configured in the listing's embed settings, or to
- * Luster's own success page if none is set.
+ * The form POSTs to Luster's join URL. After every outcome (success or error)
+ * the user is redirected back to this same host page, where the embed
+ * re-renders with a flash success or error message inline.
  *
- * On validation error the controller redirects back to Luster's /join/{id} URL
- * (not your embed page). To keep users on your site after errors, configure
- * embed_base_url in Settings and ensure your site handles those URLs too.
+ * To override the redirect target, set $luster_redirect_url before require.
  */
 
 // ---------------------------------------------------------------------------

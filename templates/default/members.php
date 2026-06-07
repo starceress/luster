@@ -59,7 +59,7 @@ use Luster\Core\View;
       <?= $members_html ?>
     </ul>
     <?php if ($pagination !== ''): ?>
-      <div><?= $pagination ?></div>
+      <div class="fl-pagination-wrap"><?= $pagination ?></div>
     <?php endif; ?>
 
   <?php elseif (!empty($members)): ?>
@@ -73,12 +73,12 @@ use Luster\Core\View;
             <?= View::e($member->name) ?>
           <?php endif; ?>
           <?php if ($member->country !== ''): ?>
-            &mdash; <?= View::e($member->country) ?>
+            - <?= View::e($member->country) ?>
           <?php endif; ?>
           <?php foreach ($fields as $field): ?>
             <?php $val = $member->additionalFields[$field->name] ?? ''; ?>
             <?php if ($val !== ''): ?>
-              &bull; <?= View::e($field->label) ?>: <?= View::e($val) ?>
+              <br><?= View::e($field->label) ?>: <?= View::e($val) ?>
             <?php endif; ?>
           <?php endforeach; ?>
         </li>
@@ -86,7 +86,7 @@ use Luster\Core\View;
     </ul>
 
     <?php if ($pagination !== ''): ?>
-      <div><?= $pagination ?></div>
+      <div class="fl-pagination-wrap"><?= $pagination ?></div>
     <?php endif; ?>
 
   <?php else: ?>

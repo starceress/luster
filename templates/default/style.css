@@ -26,6 +26,22 @@
   margin-bottom: 1rem;
 }
 
+.fl-actions,
+.form-actions {
+  display: flex;
+  flex-flow: row wrap;
+  align-items: center;
+  gap: .75rem;
+  margin-top: 1rem;
+}
+
+.fl-actions button,
+.fl-actions .fl-btn,
+.form-actions button,
+.form-actions .fl-btn {
+  flex: 0 0 auto;
+}
+
 .fl-label {
   display: block;
   font-weight: 700;
@@ -89,25 +105,62 @@
   border-bottom: none;
 }
 
+.fl-pagination-wrap,
+.fl-pagination-nav {
+  margin-top: 1.5rem;
+}
+
 .fl-pagination {
   display: flex;
   flex-wrap: wrap;
   gap: .5rem;
-  margin-top: 1.5rem;
+  align-items: center;
+  margin: 0;
+  padding: 0;
+  list-style: none;
   font-size: .875rem;
 }
 
+.fl-pagination li {
+  margin: 0;
+}
+
 .fl-page-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 2rem;
+  padding: .35rem .65rem;
+  border: 1px solid var(--fl-border);
+  border-radius: var(--fl-radius);
   color: var(--fl-accent);
   text-decoration: none;
 }
 
 .fl-page-link:hover {
-  text-decoration: underline;
+  background: var(--fl-surface);
+  text-decoration: none;
+}
+
+.fl-page-current,
+.fl-page-gap {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 2rem;
+  padding: .35rem .65rem;
 }
 
 .fl-page-current {
+  border: 1px solid var(--fl-accent);
+  border-radius: var(--fl-radius);
   font-weight: 700;
+  color: #fff;
+  background: var(--fl-accent);
+}
+
+.fl-page-gap {
+  color: var(--fl-muted);
 }
 
 .fl-empty {

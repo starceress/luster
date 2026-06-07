@@ -14,8 +14,11 @@ use Luster\Repositories\ListingSettingsRepo;
  *   $luster_return        = false;  // optional: true = return string, false = echo
  *   require '/absolute/path/to/luster/public/embed/remove.php';
  *
- * The form POSTs to Luster's remove URL. On success the user is sent to the
- * post-remove redirect URL from listing settings, or Luster's success page.
+ * The form POSTs to Luster's remove URL. After every outcome (success or error)
+ * the user is redirected back to this same host page, where the embed
+ * re-renders with a flash success or error message inline.
+ *
+ * To override the redirect target, set $luster_redirect_url before require.
  */
 
 // ---------------------------------------------------------------------------

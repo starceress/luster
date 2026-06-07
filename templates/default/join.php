@@ -154,7 +154,7 @@ use Luster\Core\View;
              required maxlength="10" autocomplete="off">
     </div>
 
-    <div>
+    <div class="fl-actions">
       <button type="submit">Join Fanlisting</button>
       <button type="reset">Clear</button>
     </div>

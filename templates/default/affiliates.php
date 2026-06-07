@@ -24,7 +24,7 @@ use Luster\Core\View;
   <?php if (($section_html ?? null) !== null): ?>
     <?= $section_html ?>
     <?php if (($pagination ?? '') !== ''): ?>
-      <div><?= $pagination ?></div>
+      <div class="fl-pagination-wrap"><?= $pagination ?></div>
     <?php endif; ?>
   <?php elseif (empty($affiliates)): ?>
     <p>No affiliates to display yet.</p>
@@ -37,7 +37,7 @@ use Luster\Core\View;
       <?= $affiliates_html ?>
     </ul>
     <?php if ($pagination !== ''): ?>
-      <div><?= $pagination ?></div>
+      <div class="fl-pagination-wrap"><?= $pagination ?></div>
     <?php endif; ?>
   <?php else: ?>
     <p>
@@ -57,7 +57,7 @@ use Luster\Core\View;
     <?php endforeach; ?>
 
     <?php if ($pagination !== ''): ?>
-      <div><?= $pagination ?></div>
+      <div class="fl-pagination-wrap"><?= $pagination ?></div>
     <?php endif; ?>
   <?php endif; ?>
 </div>

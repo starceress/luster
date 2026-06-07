@@ -58,7 +58,9 @@ $b = rtrim(View::e($base_url), '/');
                required maxlength="255" autocomplete="new-password">
       </div>
 
-      <button class="fl-btn" type="submit">Set New Password</button>
+      <div class="fl-actions">
+        <button class="fl-btn" type="submit">Set New Password</button>
+      </div>
     </form>
 
   <?php endif; ?>

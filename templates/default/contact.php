@@ -83,7 +83,7 @@ use Luster\Core\View;
              required maxlength="10" autocomplete="off">
     </div>
 
-    <div>
+    <div class="fl-actions">
       <button type="submit">Send Message</button>
     </div>
   </form>

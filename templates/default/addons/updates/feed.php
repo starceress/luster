@@ -58,22 +58,24 @@ $pageUrl = static function (int $p) use ($feed_url, $_activeCat): string {
   <?php endforeach; ?>
 
   <?php if ($pages > 1): ?>
-  <nav>
+  <nav class="fl-pagination-nav" aria-label="Updates pagination">
+    <ul class="fl-pagination">
     <?php if ($page > 1): ?>
-      <a href="<?= $pageUrl($page - 1) ?>">&lsaquo; Prev</a>
+      <li><a class="fl-page-link" href="<?= $pageUrl($page - 1) ?>">&lsaquo; Prev</a></li>
     <?php endif; ?>
 
     <?php for ($p = 1; $p <= $pages; $p++): ?>
       <?php if ($p === $page): ?>
-        <strong><?= $p ?></strong>
+        <li><span class="fl-page-current" aria-current="page"><?= $p ?></span></li>
       <?php else: ?>
-        <a href="<?= $pageUrl($p) ?>"><?= $p ?></a>
+        <li><a class="fl-page-link" href="<?= $pageUrl($p) ?>"><?= $p ?></a></li>
       <?php endif; ?>
     <?php endfor; ?>
 
     <?php if ($page < $pages): ?>
-      <a href="<?= $pageUrl($page + 1) ?>">Next &rsaquo;</a>
+      <li><a class="fl-page-link" href="<?= $pageUrl($page + 1) ?>">Next &rsaquo;</a></li>
     <?php endif; ?>
+    </ul>
   </nav>
   <?php endif; ?>
 

@@ -467,27 +467,21 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
       <div class="pc-section">
         <div class="pc-section-label">Members List</div>
         <div class="form-group">
-          <textarea id="members_template" name="members_template" class="form tpl-textarea" spellcheck="false"><?= View::e($templates['members_template'] ?? '<li><a href="{fan_url}">{fan_name}</a> &mdash; {fan_country}</li>') ?></textarea>
+          <textarea id="members_template" name="members_template" class="form tpl-textarea" spellcheck="false"><?= View::e($templates['members_template'] ?? '<li><a href="{fan_url}">{fan_name}</a> - {fan_country}</li>') ?></textarea>
         </div>
         <div class="tpl-reset-row">
           <button type="button" class="btn btn-quaternary btn-sm btn-tpl-reset" data-target="members_template">Reset to Default</button>
         </div>
 
-        <div class="pc-section-label">Affiliates — Row Template</div>
+        <div class="pc-section-label">Affiliates Template</div>
+        <p class="form-hint mb-sm">Controls the full affiliates section. Use <code>{each_affiliate}&hellip;{/each_affiliate}</code> for per-row markup — <code>{aff_name}</code>, <code>{aff_url}</code>, <code>{aff_image_tag}</code>, <code>{aff_image_url}</code>, and <code>{aff_image}</code> are available inside the block.</p>
         <div class="form-group">
-          <textarea id="affiliates_template" name="affiliates_template" class="form tpl-textarea" spellcheck="false"><?= View::e($templates['affiliates_template'] ?? '<a href="{aff_url}" target="_blank" title="{aff_name}">{aff_image_tag}</a>') ?></textarea>
+          <textarea id="affiliates_section_template" name="affiliates_section_template" class="form tpl-textarea tpl-textarea-lg" spellcheck="false"><?= View::e($templates['affiliates_section_template'] ?: '{if_affiliates}<ul>
+{each_affiliate}<li><a href="{aff_url}" target="_blank" title="{aff_name}">{aff_image_tag}</a></li>{/each_affiliate}
+</ul>{/if_affiliates}') ?></textarea>
         </div>
         <div class="tpl-reset-row">
-          <button type="button" class="btn btn-ghost btn-sm btn-tpl-reset" data-target="affiliates_template">Reset to Default</button>
-        </div>
-
-        <div class="pc-section-label">Affiliates — Section Layout</div>
-        <p class="form-hint mb-sm">Controls the full affiliates section. Use <code>{affiliates}</code> to place the rendered row output. <strong>Leave blank to use the built-in layout.</strong></p>
-        <div class="form-group">
-          <textarea id="affiliates_section_template" name="affiliates_section_template" class="form tpl-textarea tpl-textarea-lg" spellcheck="false"><?= View::e($templates['affiliates_section_template'] ?? '') ?></textarea>
-        </div>
-        <div class="tpl-reset-row">
-          <button type="button" class="btn btn-ghost btn-sm btn-tpl-reset" data-target="affiliates_section_template">Clear</button>
+          <button type="button" class="btn btn-quaternary btn-sm btn-tpl-reset" data-target="affiliates_section_template">Reset to Default</button>
         </div>
 
         <div class="pc-section-label">Statistics</div>
@@ -527,26 +521,21 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
       </details>
 
       <details class="card chevron" open>
-        <summary class="chevron-head">Affiliates Row Tokens</summary>
+        <summary class="chevron-head">Affiliates Template Tokens</summary>
         <div class="chevron-body">
+          <p class="form-hint" style="font-size:0.8em;margin-bottom:0.4em">Row tokens &mdash; use inside <code>{each_affiliate}&hellip;{/each_affiliate}</code></p>
           <table class="et-token-table">
             <tbody>
-              <tr class="tok-row" data-textarea="affiliates_template" data-token="{aff_name}"><td><code>{aff_name}</code></td><td>Affiliate name</td></tr>
-              <tr class="tok-row" data-textarea="affiliates_template" data-token="{aff_url}"><td><code>{aff_url}</code></td><td>Affiliate URL</td></tr>
-              <tr class="tok-row" data-textarea="affiliates_template" data-token="{aff_image_tag}"><td><code>{aff_image_tag}</code></td><td>Rendered image tag (or empty)</td></tr>
-              <tr class="tok-row" data-textarea="affiliates_template" data-token="{aff_image_url}"><td><code>{aff_image_url}</code></td><td>Full image URL, src-ready</td></tr>
-              <tr class="tok-row" data-textarea="affiliates_template" data-token="{aff_image}"><td><code>{aff_image}</code></td><td>Image filename only</td></tr>
+              <tr class="tok-row" data-textarea="affiliates_section_template" data-token="{aff_name}"><td><code>{aff_name}</code></td><td>Affiliate name</td></tr>
+              <tr class="tok-row" data-textarea="affiliates_section_template" data-token="{aff_url}"><td><code>{aff_url}</code></td><td>Affiliate URL</td></tr>
+              <tr class="tok-row" data-textarea="affiliates_section_template" data-token="{aff_image_tag}"><td><code>{aff_image_tag}</code></td><td>Rendered image tag (or empty)</td></tr>
+              <tr class="tok-row" data-textarea="affiliates_section_template" data-token="{aff_image_url}"><td><code>{aff_image_url}</code></td><td>Full image URL, src-ready</td></tr>
+              <tr class="tok-row" data-textarea="affiliates_section_template" data-token="{aff_image}"><td><code>{aff_image}</code></td><td>Image filename only</td></tr>
             </tbody>
           </table>
-        </div>
-      </details>
-
-      <details class="card chevron">
-        <summary class="chevron-head">Affiliates Section Tokens</summary>
-        <div class="chevron-body">
+          <p class="form-hint" style="font-size:0.8em;margin-top:0.75em;margin-bottom:0.4em">Section tokens &mdash; use outside the loop</p>
           <table class="et-token-table">
             <tbody>
-              <tr class="tok-row" data-textarea="affiliates_section_template" data-token="{affiliates}"><td><code>{affiliates}</code></td><td>Rendered affiliate rows</td></tr>
               <tr class="tok-row" data-textarea="affiliates_section_template" data-token="{affiliates_count}"><td><code>{affiliates_count}</code></td><td>Total affiliate count</td></tr>
               <tr class="tok-row" data-textarea="affiliates_section_template" data-token="{affiliates_list}"><td><code>{affiliates_list}</code></td><td>Comma-separated link list</td></tr>
               <tr><td><code>{if_affiliates}&hellip;{/if_affiliates}</code></td><td>Shown when count &gt; 0</td></tr>
@@ -579,7 +568,7 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
   </div>
 </form>
 
-<script type="application/json" id="luster-tpl-defaults">{"members_template":"<li><a href=\"{fan_url}\">{fan_name}<\/a> \u2014 {fan_country}<\/li>","affiliates_template":"<a href=\"{aff_url}\" target=\"_blank\" title=\"{aff_name}\">{aff_image_tag}<\/a>","affiliates_section_template":"","stats_template":"<div>\n<b>Opened:<\/b> {stat_opened}<br>\n<b>Updated:<\/b> {stat_last_updated}<br>\n<b>Fans:<\/b> {stat_approved} (+ {stat_pending} pending)<br>\n<b>Newest Fan:<\/b> {stat_newmembers}<br>\n<b>Growth:<\/b> {stat_growth}{if_approved_by}<br>\n<b>Approved by:<\/b> {approved_by}{\/if_approved_by}\n<\/div>"}</script>
+<script type="application/json" id="luster-tpl-defaults">{"members_template":"<li><a href=\"{fan_url}\">{fan_name}<\/a> - {fan_country}<\/li>","affiliates_section_template":"{if_affiliates}<ul>\n{each_affiliate}<li><a href=\"{aff_url}\" target=\"_blank\" title=\"{aff_name}\">{aff_image_tag}<\/a><\/li>{\/each_affiliate}\n<\/ul>{\/if_affiliates}","stats_template":"<div>\n<b>Opened:<\/b> {stat_opened}<br>\n<b>Updated:<\/b> {stat_last_updated}<br>\n<b>Fans:<\/b> {stat_approved} (+ {stat_pending} pending)<br>\n<b>Newest Fan:<\/b> {stat_newmembers}<br>\n<b>Growth:<\/b> {stat_growth}{if_approved_by}<br>\n<b>Approved by:<\/b> {approved_by}{\/if_approved_by}\n<\/div>"}</script>
 </div><!-- /#tab-templates -->
 <!-- ──── TAB: ADDITIONAL FIELDS ─────────────────────────────────────── -->
 <div id="tab-fields" class="tabs-panel">
