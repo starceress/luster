@@ -97,10 +97,10 @@ $collAffSectionVal       = $ct['collective_affiliates_section_template']   ?? $d
         <div class="chevron-body">
           <table class="et-token-table">
             <tbody>
-              <tr><td><code>{each_listing}&hellip;{/each_listing}</code></td><td>Loop — all listings, flat (single-status mode)</td></tr>
-              <tr><td><code>{each_current}&hellip;{/each_current}</code></td><td>Loop — current listings only (sectioned mode, <code>$luster_status='all'</code>)</td></tr>
-              <tr><td><code>{each_upcoming}&hellip;{/each_upcoming}</code></td><td>Loop — upcoming listings only (sectioned mode)</td></tr>
-              <tr><td><code>{each_pending}&hellip;{/each_pending}</code></td><td>Loop — pending listings only (sectioned mode)</td></tr>
+              <tr><td><code>{each_listing}&hellip;{/each_listing}</code></td><td>Loop — every listing in the active pool, flat (the built-in default)</td></tr>
+              <tr><td><code>{each_current}&hellip;{/each_current}</code></td><td>Loop — current listings only, within a sectioned layout (alternative to <code>{each_listing}</code> — reads best on an &ldquo;all&rdquo; overview, but applies to every owned-listing embed using this template)</td></tr>
+              <tr><td><code>{each_upcoming}&hellip;{/each_upcoming}</code></td><td>Loop — upcoming listings only, within a sectioned layout</td></tr>
+              <tr><td><code>{each_pending}&hellip;{/each_pending}</code></td><td>Loop — pending listings only, within a sectioned layout</td></tr>
               <tr class="tok-row" data-textarea="owned_template" data-token="{listing_title}">
                 <td><code>{listing_title}</code></td><td>Listing name</td>
               </tr>
@@ -193,7 +193,7 @@ $collAffSectionVal       = $ct['collective_affiliates_section_template']   ?? $d
           <table class="et-token-table">
             <tbody>
               <tr><td><code>{each_joined}&hellip;{/each_joined}</code></td><td>Loop — all joined listings, flat</td></tr>
-              <tr><td><code>{each_current_joined}&hellip;{/each_current_joined}</code></td><td>Loop — all joined listings, ordered by category (grouped mode, <code>$luster_category='all'</code>)</td></tr>
+              <tr><td><code>{each_current_joined}&hellip;{/each_current_joined}</code></td><td>Loop — the active joined-listing pool, ordered by category (works for a single selected category as well as &ldquo;all&rdquo;; reads best on an all-categories overview)</td></tr>
               <tr class="tok-row" data-textarea="joined_template" data-token="{listing_title}">
                 <td><code>{listing_title}</code></td><td>Listing name</td>
               </tr>

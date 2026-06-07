@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Luster\Tests\Unit;
 
 use Luster\Models\Listing;
+use Luster\Repositories\SiteSettingsRepo;
 use Luster\Support\ListingRowRenderer;
 use PHPUnit\Framework\TestCase;
 
@@ -672,10 +673,11 @@ final class ListingRowRendererTest extends TestCase
     {
         // Regression coverage: latest-listing.php / random-listing.php always pass
         // exactly one listing. Before renderTemplate() existed, they called
-        // render() directly — which has no loop-processing step — so a sectioned
-        // owned_template (the shape of the new combined-template default) would
-        // leak literal {each_current}/{if_current_listings} tags straight onto
-        // the host page instead of rendering the listing into its own section.
+        // render() directly — which has no loop-processing step — so an opt-in
+        // sectioned owned_template (a site owner could author one even though the
+        // built-in default is flat — see SiteSettingsRepo::collectiveDefaults())
+        // would leak literal {each_current}/{if_current_listings} tags straight
+        // onto the host page instead of rendering the listing into its own section.
         $listing = $this->makeListing(name: 'Solo', upcoming: true);
 
         $template = '{if_current_listings}<h3>Current</h3>{each_current}{listing_title}{/each_current}{/if_current_listings}'
@@ -724,6 +726,27 @@ final class ListingRowRendererTest extends TestCase
         // survives as plain, untouched text rather than being overwritten by
         // that very same substitution on a second pass.
         self::assertSame('{pending_count}|pending_count=1|TroubledOne', $html);
+    }
+
+    public function testCollectiveDefaultsOwnedTemplateIsFlatNotSectioned(): void
+    {
+        // Locks down the exact regression loop this round of fixes walked through:
+        // owned_template is ONE combined template shared by owned.php (every
+        // $luster_status pool), latest-listing.php, and random-listing.php (always
+        // exactly one listing) — and renderTemplate() picks flat vs. sectioned shape
+        // purely from the template string, with no notion of which embed invoked it.
+        // A sectioned built-in default would therefore render "Current (N)" headings
+        // even over a single-listing widget. The default MUST stay flat
+        // ({each_listing}) so the out-of-the-box look is identical and sensible
+        // everywhere; a grouped Current/Upcoming/Pending layout remains available
+        // as an opt-in template a site owner authors themselves.
+        $ownedTemplate = SiteSettingsRepo::collectiveDefaults()['owned_template'];
+
+        self::assertStringContainsString('{each_listing}', $ownedTemplate);
+        self::assertStringNotContainsString('{each_current}', $ownedTemplate);
+        self::assertStringNotContainsString('{each_upcoming}', $ownedTemplate);
+        self::assertStringNotContainsString('{each_pending}', $ownedTemplate);
+        self::assertStringNotContainsString('<h3>', $ownedTemplate);
     }
 
     // -----------------------------------------------------------------------

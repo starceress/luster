@@ -743,7 +743,7 @@ $epSafe = View::e($ep);
               <thead><tr><th class="act-col">Template word</th><th>What it shows</th></tr></thead>
               <tbody>
                 <tr><td class="act-col"><code class="ec-tk">{each_joined}&hellip;{/each_joined}</code></td><td>Wrap your row markup in this. Luster repeats what&rsquo;s inside once per joined listing (flat list).</td></tr>
-                <tr><td class="act-col"><code class="ec-tk">{each_current_joined}&hellip;{/each_current_joined}</code></td><td>Same idea, but for every active joined listing ordered by category — used when browsing all listings.</td></tr>
+                <tr><td class="act-col"><code class="ec-tk">{each_current_joined}&hellip;{/each_current_joined}</code></td><td>Same idea, but renders the active joined-listing pool ordered by category — works whether the visitor is browsing all categories or one selected category; reads best for an all-categories overview.</td></tr>
                 <tr><td class="act-col"><code class="ec-tk">{listing_title}</code></td><td>Name of the listing.</td></tr>
                 <tr><td class="act-col"><code class="ec-tk">{listing_url}</code></td><td>Link to the listing.</td></tr>
                 <tr><td class="act-col"><code class="ec-tk">{listing_category}</code></td><td>Listing category.</td></tr>
