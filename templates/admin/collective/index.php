@@ -227,9 +227,9 @@ $collAffSectionVal       = $ct['collective_affiliates_section_template']   ?? $d
           </table>
           <p class="form-hint mt-sm">
             Use <code>{each_joined}&hellip;{/each_joined}</code> for a flat list, or
-            <code>{each_current_joined}&hellip;{/each_current_joined}</code> to render every active
-            joined listing ordered by category (used when browsing all listings). The template
-            controls its own wrapper markup.
+            <code>{each_current_joined}&hellip;{/each_current_joined}</code> to render the active
+            joined-listing pool ordered by category. It works for a single selected category as
+            well as an all-categories overview. The template controls its own wrapper markup.
           </p>
         </div>
       </details>
