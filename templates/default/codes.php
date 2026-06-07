@@ -22,6 +22,12 @@ use Luster\Core\View;
  *   $base_url      string
  */
 
+// When a custom codes_template has been applied in the embed, use it directly.
+if (isset($codes_template_html) && $codes_template_html !== null) {
+    echo $codes_template_html;
+    return;
+}
+
 $_hasCategories = !empty($categories);
 $_hasDonors     = !empty($donors);
 $_showHeadings  = count($grouped) > 1;

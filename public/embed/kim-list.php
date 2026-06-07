@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use Luster\Addons\Kim\KimMemberRepo;
+use Luster\Core\TemplateEngine;
 use Luster\Repositories\ListingRepo;
 use Luster\Repositories\SiteSettingsRepo;
 
@@ -71,6 +72,7 @@ $_lusterListBase  = isset($luster_kim_list_base) && (string) $luster_kim_list_ba
 // ---------------------------------------------------------------------------
 
 $_lusterSiteSettings = new SiteSettingsRepo($_lusterApp->getDatabase());
+$_lusterKimMemberTemplate = $_lusterSiteSettings->get('kim_member_template');
 $_lusterKimUrls      = $_lusterSiteSettings->getMany([
     'kim_url_signup', 'kim_url_update', 'kim_url_reset', 'kim_url_list',
 ]);
@@ -110,13 +112,40 @@ if ($_lusterSubjectId > 0) {
 
     $_lusterMembers = $_lusterKimRepo->getApprovedByFanlisting($_lusterSubjectId);
 
+    // Apply kim_member_template if set
+    $_lusterKimMemberHtml = null;
+    if ($_lusterKimMemberTemplate !== null && trim($_lusterKimMemberTemplate) !== '') {
+        $_lusterKimMemberHtml = TemplateEngine::loop(
+            $_lusterKimMemberTemplate,
+            'kim_member',
+            $_lusterMembers,
+            static function (string $inner, object $member) use ($_lusterListing): string {
+                return TemplateEngine::render(
+                    $inner,
+                    [
+                        'kim_name'        => $member->name,
+                        'kim_url'         => $member->url,
+                        'listing_title'   => $_lusterListing->title,
+                        'listing_subject' => $_lusterListing->subject,
+                    ],
+                    [],
+                    [
+                        'kim_url'    => $member->url !== '',
+                        'no_kim_url' => $member->url === '',
+                    ],
+                );
+            },
+        );
+    }
+
     $_lusterHtml = $_lusterApp->getView()->render('default/addons/kim/subject.php', [
-        'listing'     => $_lusterListing,
-        'members'     => $_lusterMembers,
-        'base_url'    => $_lusterBaseUrl,
-        'theme_path'  => $_lusterBaseUrl . '/assets/default/',
-        'link_list'   => $_lusterListBase,
-        'link_signup' => $_lusterLinkSignup,
+        'listing'                => $_lusterListing,
+        'members'                => $_lusterMembers,
+        'base_url'               => $_lusterBaseUrl,
+        'theme_path'             => $_lusterBaseUrl . '/assets/default/',
+        'link_list'              => $_lusterListBase,
+        'link_signup'            => $_lusterLinkSignup,
+        'kim_member_template_html' => $_lusterKimMemberHtml,
     ]);
 } else {
     // -----------------------------------------------------------------------

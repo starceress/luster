@@ -27,7 +27,8 @@ $collAffSectionVal       = $ct['collective_affiliates_section_template']   ?? $d
 
 <div class="toolbar">
   <div class="actions-row actions-row--right">
-  <a href="<?= $b ?>/admin/collective/settings" class="btn btn-quaternary btn-sm">Collective Settings</a>
+    <a href="<?= $b ?>/admin/collective/settings" class="btn btn-quaternary btn-sm">Collective Settings</a>
+  </div>
 </div>
 
 <?php if ($success !== ''): ?>

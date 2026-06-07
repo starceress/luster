@@ -8,7 +8,9 @@ use Luster\Addons\Kim\KimMemberRepo;
 use Luster\Core\Application;
 use Luster\Core\Request;
 use Luster\Core\Response;
+use Luster\Core\TemplateEngine;
 use Luster\Repositories\ListingRepo;
+use Luster\Repositories\SiteSettingsRepo;
 
 /**
  * Public KIM listing browser.
@@ -74,14 +76,41 @@ final class KimListController
 
         $baseUrl = $this->app->getBaseUrl();
 
+        $kimMemberTemplate = (new SiteSettingsRepo($this->app->getDatabase()))->get('kim_member_template');
+        $kimMemberHtml     = null;
+        if ($kimMemberTemplate !== null && trim($kimMemberTemplate) !== '') {
+            $kimMemberHtml = TemplateEngine::loop(
+                $kimMemberTemplate,
+                'kim_member',
+                $members,
+                static function (string $inner, object $member) use ($listing): string {
+                    return TemplateEngine::render(
+                        $inner,
+                        [
+                            'kim_name'        => $member->name,
+                            'kim_url'         => $member->url,
+                            'listing_title'   => $listing->title,
+                            'listing_subject' => $listing->subject,
+                        ],
+                        [],
+                        [
+                            'kim_url'    => $member->url !== '',
+                            'no_kim_url' => $member->url === '',
+                        ],
+                    );
+                },
+            );
+        }
+
         return $this->renderKimPage('subject.php', [
-            'page_title'  => 'KIM — ' . $listing->subject,
-            'listing'     => $listing,
-            'members'     => $members,
-            'base_url'    => $baseUrl,
-            'theme_path'  => $baseUrl . '/assets/default/',
-            'link_list'   => null,
-            'link_signup' => null,
+            'page_title'               => 'KIM — ' . $listing->subject,
+            'listing'                  => $listing,
+            'members'                  => $members,
+            'base_url'                 => $baseUrl,
+            'theme_path'               => $baseUrl . '/assets/default/',
+            'link_list'                => null,
+            'link_signup'              => null,
+            'kim_member_template_html' => $kimMemberHtml,
         ]);
     }
 

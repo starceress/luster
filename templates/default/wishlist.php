@@ -7,7 +7,14 @@ use Luster\Core\View;
  * @var \Luster\Models\Wishlist[] $entries
  * @var string $filter_type   'all' | 'wanted' | 'top' | 'granted'
  * @var string $base_url
+ * @var string|null $wishlist_template_html  pre-rendered HTML from embed (null = use default)
  */
+
+// When a custom wishlist_template has been rendered by the embed, use it directly.
+if (isset($wishlist_template_html) && $wishlist_template_html !== null) {
+    echo $wishlist_template_html;
+    return;
+}
 
 if (empty($entries)) {
     echo '<p class="fl-empty">No wishlist entries to display.</p>';

@@ -25,7 +25,9 @@ $_linkSignup = isset($link_signup) && $link_signup !== '' ? $link_signup : null;
     <a href="<?= $_linkList !== null ? View::e($_linkList) : $b . '/kim/list' ?>">&larr; Back to KIM List</a>
   </p>
 
-  <?php if (empty($members)): ?>
+  <?php if (isset($kim_member_template_html) && $kim_member_template_html !== null): ?>
+    <?= $kim_member_template_html ?>
+  <?php elseif (empty($members)): ?>
     <p class="fl-empty">No one has signed up for this fanlisting yet.</p>
   <?php else: ?>
     <ul class="fl-members">

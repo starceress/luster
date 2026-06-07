@@ -9,6 +9,7 @@ use Luster\Core\Application;
 use Luster\Core\Pagination;
 use Luster\Core\Request;
 use Luster\Core\Response;
+use Luster\Core\TemplateEngine;
 use Luster\Core\View;
 use Luster\Repositories\ListingRepo;
 use Luster\Repositories\ListingSettingsRepo;
@@ -58,31 +59,76 @@ final class UpdatesPublicController
         $themePath = $baseUrl . '/assets/default/';
         $feedUrl   = $baseUrl . '/updates/' . $fid;
 
-        $ownerName          = (string) $config->get('owner_name', '');
-        $paginationTemplate = (new ListingSettingsRepo($db))->getPaginationTemplate($fid) ?? '';
+        $ownerName   = (string) $config->get('owner_name', '');
+        $settingsRepo       = new ListingSettingsRepo($db);
+        $paginationTemplate = $settingsRepo->getPaginationTemplate($fid) ?? '';
         $pagination         = Pagination::render($page, $pages, $feedUrl, $paginationTemplate,
             $cat !== '' ? ['cat' => $cat] : []);
 
+        $updatesTemplateHtml = null;
+        $updatesTemplate     = $settingsRepo->getUpdatesTemplate($fid);
+        if ($updatesTemplate !== null && trim($updatesTemplate) !== '') {
+            $updatesTemplateHtml = self::buildUpdatesHtml($updates, $updatesTemplate);
+        }
+
         $html = $this->app->getView()->renderPublic('addons/updates/feed.php', [
-            'listing'       => $listing,
-            'listing_name'  => $listing->title,
-            'listing_url'   => $listing->url,
-            'page_title'    => 'Updates — ' . $listing->title,
-            'base_url'      => $baseUrl,
-            'theme_path'    => $themePath,
-            'updates'       => $updates,
-            'total'         => $total,
-            'page'          => $page,
-            'pages'         => $pages,
-            'is_collective' => false,
-            'show_cats'     => true,
-            'owner_name'    => $ownerName,
-            'active_cat'    => $cat,
-            'feed_url'      => $feedUrl,
-            'pagination'    => $pagination,
+            'listing'               => $listing,
+            'listing_name'          => $listing->title,
+            'listing_url'           => $listing->url,
+            'page_title'            => 'Updates — ' . $listing->title,
+            'base_url'              => $baseUrl,
+            'theme_path'            => $themePath,
+            'updates'               => $updates,
+            'total'                 => $total,
+            'page'                  => $page,
+            'pages'                 => $pages,
+            'is_collective'         => false,
+            'show_cats'             => true,
+            'owner_name'            => $ownerName,
+            'active_cat'            => $cat,
+            'feed_url'              => $feedUrl,
+            'pagination'            => $pagination,
+            'updates_template_html' => $updatesTemplateHtml,
         ]);
 
         return Response::html($html);
+    }
+
+    // -----------------------------------------------------------------------
+    // Internal helpers
+    // -----------------------------------------------------------------------
+
+    /**
+     * Renders an updates list via TemplateEngine when a custom template is set.
+     *
+     * @param \Luster\Addons\Updates\Update[] $updates
+     */
+    private static function buildUpdatesHtml(array $updates, string $template): string
+    {
+        return TemplateEngine::loop(
+            $template,
+            'update',
+            $updates,
+            static function (string $inner, object $update): string {
+                return TemplateEngine::render(
+                    $inner,
+                    [
+                        'update_title'      => $update->title,
+                        'update_date'       => date('F j, Y', strtotime($update->postedAt)),
+                        'update_date_raw'   => substr($update->postedAt, 0, 10),
+                        'update_author'     => $update->author ?? '',
+                        'update_categories' => implode(', ', $update->categories()),
+                    ],
+                    [
+                        'update_body_html' => nl2br(View::e($update->body)),
+                    ],
+                    [
+                        'author'     => ($update->author ?? '') !== '',
+                        'categories' => count($update->categories()) > 0,
+                    ],
+                );
+            },
+        );
     }
 
     // -----------------------------------------------------------------------
@@ -113,28 +159,36 @@ final class UpdatesPublicController
         $siteName  = (string) $config->get('site_name', 'Luster');
         $feedUrl   = $baseUrl . '/updates';
 
-        $ownerName          = (string) $config->get('owner_name', '');
-        $paginationTemplate = (new SiteSettingsRepo($db))->get('collective_pagination_template') ?? '';
+        $ownerName   = (string) $config->get('owner_name', '');
+        $siteRepo           = new SiteSettingsRepo($db);
+        $paginationTemplate = $siteRepo->get('collective_pagination_template') ?? '';
         $pagination         = Pagination::render($page, $pages, $feedUrl, $paginationTemplate,
             $cat !== '' ? ['cat' => $cat] : []);
 
+        $updatesTemplateHtml = null;
+        $collectiveUpdatesTpl = $siteRepo->get('collective_updates_template');
+        if ($collectiveUpdatesTpl !== null && trim($collectiveUpdatesTpl) !== '') {
+            $updatesTemplateHtml = self::buildUpdatesHtml($updates, $collectiveUpdatesTpl);
+        }
+
         $html = $this->app->getView()->renderPublic('addons/updates/feed.php', [
-            'listing'       => null,
-            'listing_name'  => $siteName,
-            'listing_url'   => $baseUrl,
-            'page_title'    => 'Updates — ' . $siteName,
-            'base_url'      => $baseUrl,
-            'theme_path'    => $themePath,
-            'updates'       => $updates,
-            'total'         => $total,
-            'page'          => $page,
-            'pages'         => $pages,
-            'is_collective' => true,
-            'show_cats'     => true,
-            'owner_name'    => $ownerName,
-            'active_cat'    => $cat,
-            'feed_url'      => $feedUrl,
-            'pagination'    => $pagination,
+            'listing'               => null,
+            'listing_name'          => $siteName,
+            'listing_url'           => $baseUrl,
+            'page_title'            => 'Updates — ' . $siteName,
+            'base_url'              => $baseUrl,
+            'theme_path'            => $themePath,
+            'updates'               => $updates,
+            'total'                 => $total,
+            'page'                  => $page,
+            'pages'                 => $pages,
+            'is_collective'         => true,
+            'show_cats'             => true,
+            'owner_name'            => $ownerName,
+            'active_cat'            => $cat,
+            'feed_url'              => $feedUrl,
+            'pagination'            => $pagination,
+            'updates_template_html' => $updatesTemplateHtml,
         ]);
 
         return Response::html($html);

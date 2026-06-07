@@ -22,6 +22,13 @@ declare(strict_types=1);
 use Luster\Core\View;
 
 $_activeCat = $active_cat ?? '';
+
+// When a custom updates_template has been rendered by the embed/controller, use it directly.
+if (isset($updates_template_html) && $updates_template_html !== null) {
+    echo $updates_template_html;
+    echo $pagination ?? '';
+    return;
+}
 ?>
 
 <?php if (empty($updates)): ?>

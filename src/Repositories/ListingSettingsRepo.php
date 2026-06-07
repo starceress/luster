@@ -230,6 +230,46 @@ final class ListingSettingsRepo
     }
 
     /**
+     * Returns the per-listing codes row template string, or null when not set /
+     * when Migration 64 has not been run yet.
+     */
+    public function getCodesTemplate(int $listingId): ?string
+    {
+        try {
+            $stmt = $this->db->prepare(
+                'SELECT codes_template FROM lstr_fanlisting_settings WHERE fanlisting_id = :id'
+            );
+            $stmt->execute(['id' => $listingId]);
+            $row = $stmt->fetch();
+            return ($row !== false && $row['codes_template'] !== null)
+                ? (string) $row['codes_template']
+                : null;
+        } catch (\Exception) {
+            return null;
+        }
+    }
+
+    /**
+     * Returns the per-listing updates row template string, or null when not set /
+     * when Migration 64 has not been run yet.
+     */
+    public function getUpdatesTemplate(int $listingId): ?string
+    {
+        try {
+            $stmt = $this->db->prepare(
+                'SELECT updates_template FROM lstr_fanlisting_settings WHERE fanlisting_id = :id'
+            );
+            $stmt->execute(['id' => $listingId]);
+            $row = $stmt->fetch();
+            return ($row !== false && $row['updates_template'] !== null)
+                ? (string) $row['updates_template']
+                : null;
+        } catch (\Exception) {
+            return null;
+        }
+    }
+
+    /**
      * Translates legacy Enthusiast $$token$$ placeholders to Luster's {token} format.
      * Applied transparently at read time so imported templates work without manual editing.
      */

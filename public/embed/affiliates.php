@@ -246,6 +246,20 @@ $_lusterHtml = $_lusterApp->getView()->renderFragment('affiliates.php', [
     'theme_path'      => $_lusterApp->getBaseUrl() . '/assets/default/',
 ]);
 
+// Conditionally append the affiliate application form if enabled for this listing
+// (per-listing only — collective has no per-listing application settings).
+if (!$_lusterIsCollective) {
+    $_lusterAffApplySettings = $_lusterSettingsRepo->getAffiliateApplySettings($_lusterListingId);
+    if ($_lusterAffApplySettings['enabled'] ?? false) {
+        $_lusterAffiliatesHtmlSaved = $_lusterHtml;
+        $_lusterReturnOrig          = $luster_return ?? false;
+        $luster_return              = true;
+        $_lusterApplyHtml           = (string) require __DIR__ . '/affiliate-apply.php';
+        $_lusterHtml                = $_lusterAffiliatesHtmlSaved . $_lusterApplyHtml;
+        $luster_return              = $_lusterReturnOrig;
+    }
+}
+
 if ($luster_return ?? false) {
     return $_lusterHtml;
 }

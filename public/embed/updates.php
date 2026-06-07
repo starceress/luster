@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 use Luster\Addons\Updates\UpdateRepo;
 use Luster\Core\Pagination;
+use Luster\Core\TemplateEngine;
+use Luster\Core\View;
 use Luster\Repositories\ListingRepo;
 use Luster\Repositories\ListingSettingsRepo;
 
@@ -109,30 +111,67 @@ try {
 // 6. Build feed URL and pagination
 // ---------------------------------------------------------------------------
 
-$_lusterFeedUrl            = strtok($_SERVER['REQUEST_URI'] ?? '', '?') ?: '/';
-$_lusterPaginationTemplate = (new ListingSettingsRepo($_lusterDb))->getPaginationTemplate($_lusterFid) ?? '';
+$_lusterFeedUrl = strtok($_SERVER['REQUEST_URI'] ?? '', '?') ?: '/';
+
+$_lusterSettingsRepo       = new ListingSettingsRepo($_lusterDb);
+$_lusterPaginationTemplate = $_lusterSettingsRepo->getPaginationTemplate($_lusterFid) ?? '';
 $_lusterPagination         = Pagination::render(
     $_lusterPage, $_lusterPages, $_lusterFeedUrl, $_lusterPaginationTemplate,
     $_lusterCat !== '' ? ['cat' => $_lusterCat] : [],
 );
 
 // ---------------------------------------------------------------------------
+// 6b. Apply updates row template (if set) via TemplateEngine
+// ---------------------------------------------------------------------------
+
+$_lusterUpdatesTemplateHtml = null;
+$_lusterUpdatesTemplate     = $_lusterSettingsRepo->getUpdatesTemplate($_lusterFid);
+
+if ($_lusterUpdatesTemplate !== null && trim($_lusterUpdatesTemplate) !== '') {
+    $_lusterUpdatesTemplateHtml = TemplateEngine::loop(
+        $_lusterUpdatesTemplate,
+        'update',
+        $_lusterUpdates,
+        static function (string $inner, object $update): string {
+            return TemplateEngine::render(
+                $inner,
+                [
+                    'update_title'      => $update->title,
+                    'update_date'       => date('F j, Y', strtotime($update->postedAt)),
+                    'update_date_raw'   => substr($update->postedAt, 0, 10),
+                    'update_author'     => $update->author ?? '',
+                    'update_categories' => implode(', ', $update->categories()),
+                ],
+                [
+                    'update_body_html' => nl2br(View::e($update->body)),
+                ],
+                [
+                    'author'     => ($update->author ?? '') !== '',
+                    'categories' => count($update->categories()) > 0,
+                ],
+            );
+        },
+    );
+}
+
+// ---------------------------------------------------------------------------
 // 7. Render fragment
 // ---------------------------------------------------------------------------
 
 $_lusterHtml = $_lusterApp->getView()->renderFragment('addons/updates/feed.php', [
-    'updates'       => $_lusterUpdates,
-    'total'         => $_lusterTotal,
-    'page'          => $_lusterPage,
-    'pages'         => $_lusterPages,
-    'is_collective' => false,
-    'show_cats'     => $_lusterShowCats,
-    'owner_name'    => (string) ($_lusterConfig->get('owner_name', '')),
-    'active_cat'    => $_lusterCat,
-    'feed_url'      => $_lusterFeedUrl,
-    'pagination'    => $_lusterPagination,
-    'base_url'      => $_lusterApp->getBaseUrl(),
-    'theme_path'    => $_lusterApp->getBaseUrl() . '/assets/default/',
+    'updates'               => $_lusterUpdates,
+    'total'                 => $_lusterTotal,
+    'page'                  => $_lusterPage,
+    'pages'                 => $_lusterPages,
+    'is_collective'         => false,
+    'show_cats'             => $_lusterShowCats,
+    'owner_name'            => (string) ($_lusterConfig->get('owner_name', '')),
+    'active_cat'            => $_lusterCat,
+    'feed_url'              => $_lusterFeedUrl,
+    'pagination'            => $_lusterPagination,
+    'updates_template_html' => $_lusterUpdatesTemplateHtml,
+    'base_url'              => $_lusterApp->getBaseUrl(),
+    'theme_path'            => $_lusterApp->getBaseUrl() . '/assets/default/',
 ]);
 
 if ($luster_return ?? false) {
