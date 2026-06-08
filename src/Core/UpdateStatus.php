@@ -4,26 +4,26 @@ declare(strict_types=1);
 
 namespace Luster\Core;
 
-final readonly class UpdateStatus
+final class UpdateStatus
 {
     public function __construct(
         /** Installed version string (from Version::CURRENT). */
-        public string  $installed,
+        public readonly string  $installed,
         /** Latest version fetched from GitHub, or null if never checked / check failed. */
-        public ?string $latest,
+        public readonly ?string $latest,
         /** URL to the GitHub release page, or null when unavailable. */
-        public ?string $releaseUrl,
+        public readonly ?string $releaseUrl,
         /** GitHub release title/name, or null when unavailable. */
-        public ?string $releaseTitle,
+        public readonly ?string $releaseTitle,
         /** Unix timestamp of the last check attempt (success or failure), or null if never run. */
-        public ?int    $checkedAt,
+        public readonly ?int    $checkedAt,
         /** True only when latest > installed and both are valid semver-like strings. */
-        public bool    $updateAvailable,
+        public readonly bool    $updateAvailable,
         /** True when the last fetch attempt failed. Cached values are preserved. */
-        public bool    $checkFailed,
+        public readonly bool    $checkFailed,
         /** True when no check has ever been attempted. */
-        public bool    $neverChecked,
+        public readonly bool    $neverChecked,
         /** Human-readable failure reason, set only when checkFailed is true. */
-        public ?string $error,
+        public readonly ?string $error,
     ) {}
 }

@@ -3,7 +3,7 @@
 // version so the PHP-version check can display before loading modern code.
 
 // PHP version gate — show a friendly error rather than a blank 500.
-if (version_compare(PHP_VERSION, '8.2.0', '<')) {
+if (version_compare(PHP_VERSION, '8.1.0', '<')) {
     http_response_code(503);
     ?>
 <!DOCTYPE html>
@@ -11,7 +11,7 @@ if (version_compare(PHP_VERSION, '8.2.0', '<')) {
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>PHP 8.2 Required — Luster</title>
+<title>PHP 8.1 Required — Luster</title>
 <style>
 body { font-family: system-ui, sans-serif; background: #1a1a2e; color: #e2d9f3; margin: 0; display: flex; align-items: center; justify-content: center; min-height: 100vh; }
 .box { background: #22223b; border: 1px solid #4a4a6a; border-radius: 12px; padding: 2.5rem; max-width: 480px; width: 90%; }
@@ -24,9 +24,9 @@ code { background: #2e2e4a; padding: 0.15em 0.4em; border-radius: 4px; font-size
 <body>
 <div class="box">
   <div class="badge">PHP upgrade needed</div>
-  <h1>Luster requires PHP 8.2 or newer</h1>
+  <h1>Luster requires PHP 8.1 or newer</h1>
   <p>Your server is running <code>PHP <?php echo htmlspecialchars(PHP_VERSION); ?></code>, which is too old to run Luster.</p>
-  <p>In your hosting control panel, look for a <strong>PHP version selector</strong> (often labelled &ldquo;Select PHP Version&rdquo; or &ldquo;MultiPHP Manager&rdquo;) and switch this directory to <strong>PHP 8.2</strong> or <strong>8.3</strong>.</p>
+  <p>In your hosting control panel, look for a <strong>PHP version selector</strong> (often labelled &ldquo;Select PHP Version&rdquo; or &ldquo;MultiPHP Manager&rdquo;) and switch this directory to <strong>PHP 8.1</strong> or <strong>8.3</strong>.</p>
   <p>If you are unsure how to do this, contact your hosting provider — switching PHP versions is a routine request on any modern shared host.</p>
 </div>
 </body>

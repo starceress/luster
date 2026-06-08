@@ -1,10 +1,10 @@
 {
     "name": "luster/luster",
-    "description": "Modern PHP 8.2+ fanlisting management script",
+    "description": "Modern PHP 8.1+ fanlisting management script",
     "type": "project",
     "license": "MIT",
     "require": {
-        "php": ">=8.2",
+        "php": ">=8.1",
         "phpmailer/phpmailer": "^6.0"
     },
     "require-dev": {
