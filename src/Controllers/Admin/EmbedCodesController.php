@@ -101,9 +101,14 @@ final class EmbedCodesController
             'cstats'       => 'collective-stats.php',
             'aff-col'      => 'affiliates.php',
             'col-aff-apply'=> 'affiliate-apply.php',
+            'col-codes'    => 'codes.php',
+            'col-codes-submit' => 'codes-submit.php',
             'random'       => 'random-listing.php',
             'latest'       => 'latest-listing.php',
             'kim'          => 'kim-signup.php',
+            'kim-list'     => 'kim-list.php',
+            'kim-update'   => 'kim-update.php',
+            'kim-reset'    => 'kim-reset.php',
             'col-updates'  => 'collective-updates.php',
             'col-contact'  => 'collective-contact.php',
             'wishlist'     => 'wishlist.php',
@@ -124,7 +129,7 @@ final class EmbedCodesController
         // Variables the embed files read (set only those present in query)
         $luster_return = true;
 
-        if ($key === 'aff-col' || $key === 'col-aff-apply') {
+        if ($key === 'aff-col' || $key === 'col-aff-apply' || $key === 'col-codes' || $key === 'col-codes-submit') {
             $luster_fanlisting_id = 0;
         } elseif ($request->query('lid') !== null) {
             $luster_fanlisting_id = max(0, (int) $request->query('lid', 1));
@@ -137,10 +142,13 @@ final class EmbedCodesController
         if ($q('show_search') !== null)                           { $luster_show_search         = $q('show_search') !== 'false'; }
         if ($q('reset_step') !== null && $q('reset_step') !== '') { $luster_reset_step          = (string) $q('reset_step'); }
         if ($q('browse_by_category') !== null)                    { $luster_browse_by_category  = $q('browse_by_category') === 'true'; }
+        if ($q('category_id') !== null && $q('category_id') !== '') { $luster_category_id        = max(0, (int) $q('category_id')); }
         if ($q('category') !== null && $q('category') !== '')     { $luster_category            = (string) $q('category'); }
         if ($q('status') !== null && $q('status') !== '')         { $luster_status              = (string) $q('status'); }
         if ($q('hide_dropdown') !== null)                         { $luster_hide_dropdown       = $q('hide_dropdown') === 'true'; }
         if ($q('show_list') !== null)                             { $luster_show_list           = $q('show_list') === 'true'; }
+        if ($q('exclude_pending') !== null)                       { $luster_exclude_pending     = $q('exclude_pending') !== 'false'; }
+        if ($q('show_all_by_default') !== null)                   { $luster_show_all_by_default = $q('show_all_by_default') === 'true'; }
         if ($q('show_cats') !== null)                             { $luster_show_cats           = $q('show_cats') === 'true'; }
         if ($q('wishlist_type') !== null && $q('wishlist_type') !== '') { $luster_wishlist_type = (string) $q('wishlist_type'); }
 

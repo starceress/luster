@@ -42,7 +42,7 @@ $encName = urlencode($field->name);
       <div class="pc-head-icon pc-head-icon-bg"><?= View::icon('tag') ?></div>
       <div class="pc-head-meta">
         <div class="pc-head-title">Edit Field</div>
-        <div class="pc-head-sub">Update how this field appears and behaves for members.</div>
+        <div class="pc-head-sub">Update the question members see and how they answer it.</div>
       </div>
     </div>
 
@@ -51,7 +51,7 @@ $encName = urlencode($field->name);
         <span class="listing-field-label">Field Name</span>
         <div>
           <div class="ro-field"><?= View::e($field->name) ?></div>
-          <p class="form-hint">Field names cannot be changed because they map to stored member data.</p>
+          <p class="form-hint">This internal name cannot be changed because existing member answers are saved under it.</p>
         </div>
       </div>
 
@@ -61,6 +61,7 @@ $encName = urlencode($field->name);
           <input type="text" id="ef-label" name="label" class="form"
                  maxlength="100" required
                  value="<?= View::e($field->label) ?>">
+          <p class="form-hint">This is the text members see on forms and profile pages.</p>
         </div>
       </div>
 
@@ -75,6 +76,7 @@ $encName = urlencode($field->name);
               <option value="radio"    <?= $field->type === 'radio' ? 'selected' : '' ?>>Radio Button</option>
             </select>
           </div>
+          <p class="form-hint">Choose how members answer this field.</p>
         </div>
       </div>
 
@@ -83,7 +85,7 @@ $encName = urlencode($field->name);
         <div>
           <textarea id="ef-options" name="options" class="form" rows="3"
                     placeholder="e.g. Option A, Option B, Option C"><?= View::e($options) ?></textarea>
-          <p class="form-hint">Comma-separated values for drop down, checkbox, and radio button fields.</p>
+          <p class="form-hint">For dropdown, checkbox, and radio fields, write the choices separated by commas.</p>
         </div>
       </div>
 
@@ -100,7 +102,7 @@ $encName = urlencode($field->name);
               <span class="form-check-label">No</span>
             </label>
           </div>
-          <p class="form-hint">If Yes, members must fill in this field to successfully submit the form.</p>
+          <p class="form-hint">Choose Yes when members must answer this before they can submit the form.</p>
         </div>
       </div>
     </div>

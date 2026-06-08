@@ -2,7 +2,7 @@
 use Luster\Core\View;
 /** @var \Luster\Models\Listing $listing */
 /** @var string                  $format   'enthusiast'|'listing_admin'|'unknown' */
-/** @var array                   $mapping  source→target column map */
+/** @var array                   $mapping  source to target column map */
 /** @var array                   $counts   total/approved/pending */
 /** @var array[]                 $samples  up to 5 sample rows */
 /** @var string                  $base_url */
@@ -25,7 +25,7 @@ $formatLabel  = $formatLabels[$format] ?? 'Unknown';
     <div class="pc-head-icon pc-head-icon-bg"><?= View::icon('import') ?></div>
     <div class="pc-head-meta">
       <div class="pc-head-title">Ready to Import</div>
-      <div class="pc-head-sub">Review the detected mapping before running the import.</div>
+      <div class="pc-head-sub">Check what Luster found before it adds members.</div>
     </div>
   </div>
 
@@ -49,7 +49,7 @@ $formatLabel  = $formatLabels[$format] ?? 'Unknown';
 
     <div class="listing-field-row">
       <span class="listing-field-label">Destination</span>
-      <div><?= View::e($listing->title) ?> (member table: <code><?= View::e($listing->dbprefix) ?></code>)</div>
+      <div><?= View::e($listing->title) ?> <span class="text-dim">(member table: <code><?= View::e($listing->dbprefix) ?></code>)</span></div>
     </div>
     <div class="listing-field-row">
       <span class="listing-field-label">Detected format</span>
@@ -57,12 +57,13 @@ $formatLabel  = $formatLabels[$format] ?? 'Unknown';
     </div>
     <div class="listing-field-row">
       <span class="listing-field-label">Duplicates</span>
-      <div>Skipped by email (INSERT IGNORE — no overwrite)</div>
+      <div>Skipped by email address. Existing members are not overwritten.</div>
     </div>
   </div>
 
   <div class="pc-section">
-    <div class="pc-section-label">Column Mapping</div>
+    <div class="pc-section-label">Column Matching</div>
+    <p class="form-hint">This shows which old file column will fill each Luster member field.</p>
     <table class="data-table" style="max-width:480px">
       <thead><tr><th>Source column</th><th>Luster column</th></tr></thead>
       <tbody>
@@ -80,7 +81,8 @@ $formatLabel  = $formatLabels[$format] ?? 'Unknown';
 
   <?php if (!empty($samples)): ?>
   <div class="pc-section">
-    <div class="pc-section-label">Sample rows (up to 5)</div>
+    <div class="pc-section-label">Sample Rows</div>
+    <p class="form-hint">A small peek at the uploaded data so you can confirm this is the right file.</p>
     <div style="overflow-x:auto">
       <table class="data-table">
         <thead>

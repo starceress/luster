@@ -59,7 +59,7 @@ function bbScopeChecked(array $old, string $key, bool $default = true): string {
       <div class="pc-head-icon pc-head-icon-bg"><?= View::icon('import') ?></div>
       <div class="pc-head-meta">
         <div class="pc-head-title">BellaBuffs Import Options</div>
-        <div class="pc-head-sub">Choose which Luster listing to import into and what data to migrate.</div>
+        <div class="pc-head-sub">Choose the Luster listing that should receive this BellaBuffs data.</div>
       </div>
     </div>
 
@@ -82,8 +82,8 @@ function bbScopeChecked(array $old, string $key, bool $default = true): string {
           </select>
         </div>
         <p class="field-hint-sm">
-          BellaBuffs manages one fanlisting per install. All imported members will be placed
-          in this listing's member table.
+          BellaBuffs manages one fanlisting per install. Pick the matching Luster listing here.
+          Imported members, affiliates, and codes will be attached to this listing.
         </p>
       </div>
     </div>
@@ -96,7 +96,7 @@ function bbScopeChecked(array $old, string $key, bool $default = true): string {
       <?php if ($bb_mode === 'upload'): ?>
       <div class="callout callout-warn">
         <?= View::icon('alert') ?>
-        <div><strong>Upload mode: only member data can be imported.</strong> Affiliates and codes require a server folder path.</div>
+        <div><strong>Upload mode imports members only.</strong> Use the server folder path if you also want affiliates, fan codes, or button images.</div>
       </div>
       <?php endif; ?>
 
@@ -114,7 +114,7 @@ function bbScopeChecked(array $old, string $key, bool $default = true): string {
               <?php endif; ?>
             </label>
             <div class="import-chk-sub">
-              Imports from <code>newbies.txt</code> as unapproved members (pending&nbsp;=&nbsp;1).
+              Imports <code>newbies.txt</code> as members waiting for approval.
             </div>
           </div>
         </div>
@@ -132,8 +132,8 @@ function bbScopeChecked(array $old, string $key, bool $default = true): string {
               <?php endif; ?>
             </label>
             <div class="import-chk-sub">
-              Imports <code>affiliates.txt</code> into <code>lstr_affiliates</code> for the selected listing.
-              Affiliate button images are copied from <code>buttons/</code>.
+              Imports affiliates for the selected listing.
+              Affiliate button images are copied from the BellaBuffs <code>buttons/</code> folder.
             </div>
           </div>
         </div>
@@ -150,9 +150,8 @@ function bbScopeChecked(array $old, string $key, bool $default = true): string {
               <?php endif; ?>
             </label>
             <div class="import-chk-sub">
-              Imports <code>buttons.txt</code> into <code>lstr_codes</code>. Code images are copied
-              from <code>buttons/</code>. Size records and donor records are created automatically.
-              Donated codes are linked to their creators.
+              Imports fan code records from <code>buttons.txt</code>. Code images are copied
+              from the BellaBuffs <code>buttons/</code> folder. Luster creates the needed sizes and donors automatically.
             </div>
           </div>
         </div>

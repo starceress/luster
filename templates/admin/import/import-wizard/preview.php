@@ -47,7 +47,7 @@ $src = View::e($source);
   <div class="alert alert-error import-stack-gap"><?= View::e($error) ?></div>
   <a href="<?= $b ?>/admin/import/<?= $src ?>/options" class="btn btn-secondary">&#8592; Back to Options</a>
 <?php elseif ($preview === null): ?>
-  <div class="alert alert-error import-stack-gap">Preview data is unavailable.</div>
+  <div class="alert alert-error import-stack-gap">Luster could not build a preview for this import.</div>
   <a href="<?= $b ?>/admin/import/<?= $src ?>/options" class="btn btn-secondary">&#8592; Back to Options</a>
 <?php else: ?>
 
@@ -95,7 +95,7 @@ $src = View::e($source);
         <span class="stat-label">Found</span>
       </div>
       <div class="stat-value"><?= number_format($totalFound) ?></div>
-      <div class="stat-pills"><span class="badge badge-inactive">Records in source</span></div>
+      <div class="stat-pills"><span class="badge badge-inactive">Rows found in the old data</span></div>
     </div>
     <div class="stat-card">
       <div class="stat-header">
@@ -105,7 +105,7 @@ $src = View::e($source);
       <div class="stat-value"><?= number_format($totalImport) ?></div>
       <div class="stat-pills">
         <?php if ($totalFound > 0): ?>
-          <span class="badge badge-current"><?= number_format(round($totalImport / $totalFound * 100)) ?>% of found</span>
+          <span class="badge badge-current"><?= number_format(round($totalImport / $totalFound * 100)) ?>% will be added or updated</span>
         <?php else: ?>
           <span class="badge badge-inactive">Nothing to import</span>
         <?php endif; ?>
@@ -119,7 +119,7 @@ $src = View::e($source);
       <div class="stat-value"><?= number_format($totalSkip) ?></div>
       <div class="stat-pills">
         <?php if ($totalSkip > 0): ?>
-          <span class="badge badge-pending">Already exists</span>
+          <span class="badge badge-pending">Already in Luster</span>
         <?php else: ?>
           <span class="badge badge-current">None</span>
         <?php endif; ?>
@@ -128,7 +128,7 @@ $src = View::e($source);
   </div>
 
   <div class="card">
-    <div class="card-head">Ready to Import</div>
+    <div class="card-head">Preview Summary</div>
     <div class="card-body">
     <div class="listing-field-row listing-field-row--top">
       <div class="listing-field-label">Source</div>
@@ -189,7 +189,7 @@ $src = View::e($source);
 
       <?php if ($preview->sameDatabase): ?>
         <div class="listing-field-label">Same database</div>
-        <div class="import-review-list-value">Member tables are already readable, so no member data will be moved.</div>
+        <div class="import-review-list-value">The old member tables are already in Luster's database, so member rows do not need to be copied.</div>
       <?php endif; ?>
     </div>
   </div>
@@ -203,7 +203,7 @@ $src = View::e($source);
       <div class="pc-head-icon pc-head-icon-bg"><?= View::icon('import') ?></div>
       <div class="pc-head-meta">
         <div class="pc-head-title">Dry Run Results</div>
-        <div class="pc-head-sub"><?= number_format($totalImport) ?> record(s) would be imported across <?= count($preview->rows) ?> data type(s).</div>
+        <div class="pc-head-sub">This is a preview only. Nothing has been written yet.</div>
       </div>
     </div>
     
@@ -236,7 +236,7 @@ $src = View::e($source);
     </div>
     <div class="pc-section"><div class="callout callout-warn">
       <?= View::icon('alert') ?>
-      <span>This will write <strong><?= number_format($totalImport) ?> record(s)</strong> to your Luster database. Original source files are never modified or deleted.</span>
+      <span>Running the import will write <strong><?= number_format($totalImport) ?> record(s)</strong> to Luster. The old source files and old database are not modified.</span>
     </div></div>
 
     <form method="POST" action="<?= $b ?>/admin/import/<?= $src ?>/run">

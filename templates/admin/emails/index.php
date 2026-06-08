@@ -67,33 +67,35 @@ $navLabels = [
 
 $typeHints = [
     EmailTemplateRepo::TYPE_JOIN               => 'Sent to the fan after they successfully join.',
-    EmailTemplateRepo::TYPE_APPROVE            => 'Sent when an admin approves a pending membership.',
-    EmailTemplateRepo::TYPE_UPDATE             => 'Sent to the fan after they update their details.',
-    EmailTemplateRepo::TYPE_REMOVE             => 'Sent to the fan after their membership is removed.',
-    EmailTemplateRepo::TYPE_RESET              => 'Sent when a fan requests a password reset. Must include {reset_url}.',
-    EmailTemplateRepo::TYPE_NOTIFY_JOIN        => 'Sent to this listing\'s admin email when a new fan joins.',
-    EmailTemplateRepo::TYPE_AFFILIATE_APPLIED  => 'Sent to the listing admin when a new affiliate application is submitted.',
-    EmailTemplateRepo::TYPE_AFFILIATE_APPROVED => 'Sent to the applicant when an affiliate application is approved.',
-    EmailTemplateRepo::TYPE_AFFILIATE_REJECTED => 'Sent to the applicant when an affiliate application is rejected.',
-    EmailTemplateRepo::TYPE_CODE_APPROVED      => 'Sent to the donor when their submitted code is approved.',
+    EmailTemplateRepo::TYPE_APPROVE            => 'Sent to a fan after you approve their pending membership.',
+    EmailTemplateRepo::TYPE_UPDATE             => 'Sent to a fan after their member details are updated.',
+    EmailTemplateRepo::TYPE_REMOVE             => 'Sent to a fan after their membership is removed.',
+    EmailTemplateRepo::TYPE_RESET              => 'Sent when a fan asks for a password reset. Keep {reset_url} in this email.',
+    EmailTemplateRepo::TYPE_NOTIFY_JOIN        => 'Sent to the listing admin email when a new fan joins.',
+    EmailTemplateRepo::TYPE_AFFILIATE_APPLIED  => 'Sent to the listing admin when a new affiliate application arrives.',
+    EmailTemplateRepo::TYPE_AFFILIATE_APPROVED => 'Sent to the affiliate applicant after you approve them.',
+    EmailTemplateRepo::TYPE_AFFILIATE_REJECTED => 'Sent to the affiliate applicant after you reject them.',
+    EmailTemplateRepo::TYPE_CODE_APPROVED      => 'Sent to the code donor after their submitted code is approved.',
 ];
 
 $allTokenDesc = [
-    '{fan_name}'        => "Fan's display name",
-    '{fan_email}'       => "Fan's email address",
-    '{fan_url}'         => "Fan's website URL (may be empty)",
+    '{fan_name}'        => "The fan or donor's name",
+    '{fan_email}'       => "The fan or donor's email address",
+    '{fan_url}'         => "The fan or donor's website link, if they gave one",
     '{fan_country}'     => "Fan's country",
-    '{reset_url}'       => "Password reset link - required in Reset emails",
-    '{listing_title}'    => "Name of the fanlisting",
-    '{listing_subject}' => "Subject or topic of the fanlisting",
-    '{listing_url}'     => "URL of the fanlisting",
-    '{site_name}'       => "Collective or site name",
-    '{owner_name}'      => "Admin's display name",
-    '{owner_email}'     => "Admin's email address",
+    '{reset_url}'       => "The secure link the fan clicks to set a new password",
+    '{listing_title}'    => "The listing's display name",
+    '{listing_subject}' => "What the listing is about",
+    '{listing_url}'     => "The listing's website link",
+    '{site_name}'       => "Your collective or site name",
+    '{owner_name}'      => "Your owner/admin name",
+    '{owner_email}'     => "Your owner/admin email address",
     '{aff_name}'        => "Affiliate applicant's site name",
-    '{aff_url}'         => "Affiliate applicant's site URL",
+    '{aff_url}'         => "Affiliate applicant's site link",
     '{aff_email}'       => "Affiliate applicant's email address",
-    '{aff_message}'     => "Affiliate applicant's message, if provided",
+    '{aff_message}'     => "Affiliate applicant's message, if they wrote one",
+    '{name}'            => "Older short name for {fan_name}; bulk email only",
+    '{email}'           => "Older short name for {fan_email}; bulk email only",
 ];
 
 $commonTokens = ['{fan_name}', '{fan_email}', '{fan_url}', '{fan_country}', '{listing_title}', '{listing_subject}', '{listing_url}', '{site_name}', '{owner_name}', '{owner_email}'];
@@ -106,6 +108,30 @@ $affiliateTokens = ['{aff_name}', '{aff_url}', '{aff_email}', '{aff_message}', '
 $typeTokens[EmailTemplateRepo::TYPE_AFFILIATE_APPLIED]  = $affiliateTokens;
 $typeTokens[EmailTemplateRepo::TYPE_AFFILIATE_APPROVED] = $affiliateTokens;
 $typeTokens[EmailTemplateRepo::TYPE_AFFILIATE_REJECTED] = $affiliateTokens;
+$typeTokens[EmailTemplateRepo::TYPE_CODE_APPROVED] = ['{fan_name}', '{fan_email}', '{fan_url}', '{listing_title}', '{listing_subject}', '{listing_url}', '{site_name}', '{owner_name}', '{owner_email}'];
+
+$typeExtraHints = [
+    EmailTemplateRepo::TYPE_RESET => 'This email needs {reset_url}. Without it, the fan will not have a password reset link to click.',
+    EmailTemplateRepo::TYPE_AFFILIATE_APPLIED => 'Affiliate emails use {aff_*} tokens instead of {fan_*} tokens because the person is applying with a website, not joining as a member.',
+    EmailTemplateRepo::TYPE_AFFILIATE_APPROVED => 'Affiliate emails use {aff_*} tokens instead of {fan_*} tokens because the person is applying with a website, not joining as a member.',
+    EmailTemplateRepo::TYPE_AFFILIATE_REJECTED => 'Affiliate emails use {aff_*} tokens instead of {fan_*} tokens because the person is applying with a website, not joining as a member.',
+    EmailTemplateRepo::TYPE_CODE_APPROVED => 'Code donor emails use the fan tokens for donor details: {fan_name}, {fan_email}, and {fan_url}. There are no separate code-image tokens in this email.',
+];
+
+$bulkTokens = [
+    '{fan_name}'        => $allTokenDesc['{fan_name}'],
+    '{fan_email}'       => $allTokenDesc['{fan_email}'],
+    '{fan_url}'         => $allTokenDesc['{fan_url}'],
+    '{fan_country}'     => $allTokenDesc['{fan_country}'],
+    '{listing_title}'    => $allTokenDesc['{listing_title}'],
+    '{listing_subject}' => $allTokenDesc['{listing_subject}'],
+    '{listing_url}'     => $allTokenDesc['{listing_url}'],
+    '{site_name}'       => $allTokenDesc['{site_name}'],
+    '{owner_name}'      => $allTokenDesc['{owner_name}'],
+    '{owner_email}'     => $allTokenDesc['{owner_email}'],
+    '{name}'            => $allTokenDesc['{name}'],
+    '{email}'           => $allTokenDesc['{email}'],
+];
 
 $isGlobal     = ($scope === 'global');
 $resetConfirm = $isGlobal
@@ -252,6 +278,7 @@ $oldBodyE    = htmlspecialchars($old_body ?? '', ENT_QUOTES, 'UTF-8');
                        value="<?= View::e($card['fillSubject']) ?>"
                        maxlength="255"
                        data-type="<?= View::e($type) ?>">
+                <p class="form-hint">Tokens work here too. Example: <code>{listing_title}</code> becomes the real listing name when the email is sent.</p>
               </div>
               <div class="form-group">
                 <label class="form-label" for="et-body-<?= View::e($type) ?>">Body</label>
@@ -260,6 +287,10 @@ $oldBodyE    = htmlspecialchars($old_body ?? '', ENT_QUOTES, 'UTF-8');
                           name="email_body_<?= View::e($type) ?>"
                           rows="9"
                           data-type="<?= View::e($type) ?>"><?= View::e($card['fillBody']) ?></textarea>
+                <p class="form-hint">Write the email normally, then place tokens where you want Luster to fill in a fan, listing, affiliate, or owner detail.</p>
+                <?php if (isset($typeExtraHints[$type])): ?>
+                  <p class="form-hint"><?= View::e($typeExtraHints[$type]) ?></p>
+                <?php endif; ?>
               </div>
               <div class="et-preview-panel email-preview-panel is-hidden" id="et-preview-<?= View::e($type) ?>">
                 <div class="email-preview-panel-head">
@@ -293,6 +324,7 @@ $oldBodyE    = htmlspecialchars($old_body ?? '', ENT_QUOTES, 'UTF-8');
           <details class="card chevron" open>
             <summary class="chevron-head">Available Tokens</summary>
             <div class="card-body">
+              <p class="form-hint">Click a token row to insert it into the body. Tokens also work in the subject line if you type or paste them there.</p>
               <table class="et-token-table">
                 <tbody>
                   <?php foreach ($typeTokens[$type] as $token): ?>
@@ -378,6 +410,7 @@ $oldBodyE    = htmlspecialchars($old_body ?? '', ENT_QUOTES, 'UTF-8');
             <input type="hidden" name="tpl_body"    id="me-save-body">
             <input type="text"   name="tpl_name"    id="me-save-name"
                    class="form" placeholder="Template name&hellip;" maxlength="150">
+            <p class="form-hint">This saves the message as a reusable starting point. It does not send anything.</p>
             <button type="submit" class="btn btn-secondary btn-sm btn-block-center" id="me-save-btn">Save Template</button>
           </form>
         </div>
@@ -386,18 +419,15 @@ $oldBodyE    = htmlspecialchars($old_body ?? '', ENT_QUOTES, 'UTF-8');
       <details class="card chevron" open>
         <summary class="card-head">Available Tokens</summary>
         <div class="card-body">
+          <p class="form-hint">Click a token row to insert it into the message. Tokens also work in the subject line if you type or paste them there.</p>
           <table class="et-token-table">
             <tbody>
-              <tr class="tok-row" data-textarea="me-body" data-token="{fan_name}"        title="Click to insert"><td><code>{fan_name}</code></td><td>Fan's display name</td></tr>
-              <tr class="tok-row" data-textarea="me-body" data-token="{fan_email}"       title="Click to insert"><td><code>{fan_email}</code></td><td>Fan's email address</td></tr>
-              <tr class="tok-row" data-textarea="me-body" data-token="{fan_url}"         title="Click to insert"><td><code>{fan_url}</code></td><td>Fan's website URL</td></tr>
-              <tr class="tok-row" data-textarea="me-body" data-token="{fan_country}"     title="Click to insert"><td><code>{fan_country}</code></td><td>Fan's country</td></tr>
-              <tr class="tok-row" data-textarea="me-body" data-token="{listing_title}"    title="Click to insert"><td><code>{listing_title}</code></td><td>Name of the listing</td></tr>
-              <tr class="tok-row" data-textarea="me-body" data-token="{listing_subject}" title="Click to insert"><td><code>{listing_subject}</code></td><td>Subject or topic of the listing</td></tr>
-              <tr class="tok-row" data-textarea="me-body" data-token="{listing_url}"     title="Click to insert"><td><code>{listing_url}</code></td><td>URL of the listing</td></tr>
-              <tr class="tok-row" data-textarea="me-body" data-token="{site_name}"       title="Click to insert"><td><code>{site_name}</code></td><td>Collective or site name</td></tr>
-              <tr class="tok-row" data-textarea="me-body" data-token="{owner_name}"      title="Click to insert"><td><code>{owner_name}</code></td><td>Owner's display name</td></tr>
-              <tr class="tok-row" data-textarea="me-body" data-token="{owner_email}"     title="Click to insert"><td><code>{owner_email}</code></td><td>Owner's email address</td></tr>
+              <?php foreach ($bulkTokens as $token => $desc): ?>
+                <tr class="tok-row" data-textarea="me-body" data-token="<?= View::e($token) ?>" title="Click to insert">
+                  <td><code><?= View::e($token) ?></code></td>
+                  <td><?= View::e($desc) ?></td>
+                </tr>
+              <?php endforeach; ?>
             </tbody>
           </table>
         </div>
@@ -433,32 +463,38 @@ $oldBodyE    = htmlspecialchars($old_body ?? '', ENT_QUOTES, 'UTF-8');
           </div>
           <div class="composer-row">
             <label class="composer-lbl" for="me-listing">Send To</label>
-            <div class="select-wrap">
-              <select name="listing_id" id="me-listing" >
-                <option value="0"
-                        data-count="<?= (int) ($deduplicated_total ?? 0) ?>"
-                        data-label="All Listings"
-                        <?= ($old_listing_id ?? 0) === 0 ? ' selected' : '' ?>>
-                  All listings
-                </option>
-                <?php foreach ($listings as $lst): ?>
-                  <option value="<?= (int) $lst->id ?>"
-                          data-count="<?= (int) ($listing_counts[$lst->id] ?? 0) ?>"
-                          data-label="<?= View::e($lst->title) ?>"
-                          data-subject="<?= View::e($lst->subject) ?>"
-                          data-url="<?= View::e($lst->url) ?>"
-                          <?= ($old_listing_id ?? 0) === (int) $lst->id ? ' selected' : '' ?>>
-                    <?= View::e($lst->title) ?>
+            <div class="flex-fill">
+              <div class="select-wrap">
+                <select name="listing_id" id="me-listing" >
+                  <option value="0"
+                          data-count="<?= (int) ($deduplicated_total ?? 0) ?>"
+                          data-label="All Listings"
+                          <?= ($old_listing_id ?? 0) === 0 ? ' selected' : '' ?>>
+                    All listings
                   </option>
-                <?php endforeach; ?>
-              </select>
+                  <?php foreach ($listings as $lst): ?>
+                    <option value="<?= (int) $lst->id ?>"
+                            data-count="<?= (int) ($listing_counts[$lst->id] ?? 0) ?>"
+                            data-label="<?= View::e($lst->title) ?>"
+                            data-subject="<?= View::e($lst->subject) ?>"
+                            data-url="<?= View::e($lst->url) ?>"
+                            <?= ($old_listing_id ?? 0) === (int) $lst->id ? ' selected' : '' ?>>
+                      <?= View::e($lst->title) ?>
+                    </option>
+                  <?php endforeach; ?>
+                </select>
+              </div>
+              <p class="form-hint">All listings sends one email per unique email address. If one fan joined more than one listing with the same email, Luster only emails them once.</p>
             </div>
           </div>
           <div class="composer-row">
             <label class="composer-lbl" for="me-subject">Subject</label>
-            <input class="subj-input" id="me-subject" type="text" name="subject"
-                   maxlength="255" required placeholder="Enter subject&hellip;"
-                   value="<?= $oldSubjectE ?>">
+            <div class="flex-fill">
+              <input class="subj-input" id="me-subject" type="text" name="subject"
+                     maxlength="255" required placeholder="Enter subject&hellip;"
+                     value="<?= $oldSubjectE ?>">
+              <p class="form-hint">Tokens work in the subject. Example: <code>{listing_title}</code> becomes the member's listing name.</p>
+            </div>
           </div>
         </div>
 
@@ -466,6 +502,7 @@ $oldBodyE    = htmlspecialchars($old_body ?? '', ENT_QUOTES, 'UTF-8');
           <textarea class="email" id="me-body" name="body"
                     maxlength="50000" required
                     placeholder="Write your message&hellip;"><?= $oldBodyE ?></textarea>
+          <p class="form-hint">Each recipient gets their own filled-in version of this message.</p>
         </div>
 
         <div class="composer-footer">
@@ -549,18 +586,21 @@ $oldBodyE    = htmlspecialchars($old_body ?? '', ENT_QUOTES, 'UTF-8');
             <label class="form-label" for="new-tpl-name">Template Name <span class="req">*</span></label>
             <input id="new-tpl-name" type="text" name="tpl_name" class="form"
                    maxlength="150" required placeholder="e.g. Welcome note, Monthly update&hellip;">
+            <p class="form-hint">Only admins see this name. Use something that will make sense when you load it later.</p>
           </div>
 
           <div class="form-group custom-template-row">
             <label class="form-label" for="new-tpl-subject">Subject</label>
             <input id="new-tpl-subject" type="text" name="tpl_subject" class="form"
                    maxlength="255" placeholder="(optional - leave blank to fill in when composing)">
+            <p class="form-hint">Optional. Tokens work here after you load this template into a compose screen.</p>
           </div>
 
           <div class="form-group form-group--compact">
             <label class="form-label" for="new-tpl-body">Body <span class="req">*</span></label>
             <textarea id="new-tpl-body" name="tpl_body" class="form"
                       rows="9" maxlength="50000" required></textarea>
+            <p class="form-hint">Saved templates are reusable starting points for bulk email. Tokens are filled when the message is sent.</p>
           </div>
 
           <!-- Live preview panel -->
@@ -593,18 +633,15 @@ $oldBodyE    = htmlspecialchars($old_body ?? '', ENT_QUOTES, 'UTF-8');
       <details class="card chevron" open>
         <summary class="chevron-head">Available Tokens</summary>
         <div class="card-body">
+          <p class="form-hint">These are bulk-email tokens. Click a row to insert it into the body. Tokens also work in the subject line if you type or paste them there.</p>
           <table class="et-token-table">
             <tbody>
-              <tr class="tok-row" data-textarea="new-tpl-body" data-token="{fan_name}"        title="Click to insert"><td><code>{fan_name}</code></td><td>Fan's display name</td></tr>
-              <tr class="tok-row" data-textarea="new-tpl-body" data-token="{fan_email}"       title="Click to insert"><td><code>{fan_email}</code></td><td>Fan's email address</td></tr>
-              <tr class="tok-row" data-textarea="new-tpl-body" data-token="{fan_url}"         title="Click to insert"><td><code>{fan_url}</code></td><td>Fan's website URL</td></tr>
-              <tr class="tok-row" data-textarea="new-tpl-body" data-token="{fan_country}"     title="Click to insert"><td><code>{fan_country}</code></td><td>Fan's country</td></tr>
-              <tr class="tok-row" data-textarea="new-tpl-body" data-token="{listing_title}"    title="Click to insert"><td><code>{listing_title}</code></td><td>Name of the listing</td></tr>
-              <tr class="tok-row" data-textarea="new-tpl-body" data-token="{listing_subject}" title="Click to insert"><td><code>{listing_subject}</code></td><td>Subject / topic of the listing</td></tr>
-              <tr class="tok-row" data-textarea="new-tpl-body" data-token="{listing_url}"     title="Click to insert"><td><code>{listing_url}</code></td><td>URL of the listing</td></tr>
-              <tr class="tok-row" data-textarea="new-tpl-body" data-token="{site_name}"       title="Click to insert"><td><code>{site_name}</code></td><td>Collective or site name</td></tr>
-              <tr class="tok-row" data-textarea="new-tpl-body" data-token="{owner_name}"      title="Click to insert"><td><code>{owner_name}</code></td><td>Owner's display name</td></tr>
-              <tr class="tok-row" data-textarea="new-tpl-body" data-token="{owner_email}"     title="Click to insert"><td><code>{owner_email}</code></td><td>Owner's email address</td></tr>
+              <?php foreach ($bulkTokens as $token => $desc): ?>
+                <tr class="tok-row" data-textarea="new-tpl-body" data-token="<?= View::e($token) ?>" title="Click to insert">
+                  <td><code><?= View::e($token) ?></code></td>
+                  <td><?= View::e($desc) ?></td>
+                </tr>
+              <?php endforeach; ?>
             </tbody>
           </table>
         </div>
@@ -685,16 +722,19 @@ $oldBodyE    = htmlspecialchars($old_body ?? '', ENT_QUOTES, 'UTF-8');
             <label class="form-label" for="ct-edit-name">Template Name <span class="req">*</span></label>
             <input type="text" id="ct-edit-name" name="tpl_name" class="form"
                    maxlength="150" required>
+            <p class="form-hint">Only admins see this name.</p>
           </div>
           <div class="form-group">
             <label class="form-label" for="ct-edit-subject">Subject</label>
             <input type="text" id="ct-edit-subject" name="tpl_subject" class="form"
                    maxlength="255">
+            <p class="form-hint">Optional. Tokens work here after you load this template into a compose screen.</p>
           </div>
           <div class="form-group form-group--compact">
             <label class="form-label" for="ct-edit-body">Body <span class="req">*</span></label>
             <textarea id="ct-edit-body" name="tpl_body" class="form"
                       rows="9" maxlength="50000" required></textarea>
+            <p class="form-hint">Tokens are filled when the message is sent.</p>
           </div>
         </div>
         <div class="modal-footer">

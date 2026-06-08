@@ -45,6 +45,7 @@ $fe = $field_errors ?? [];
           <input id="au-username" type="text" name="username" class="form"
                  maxlength="50" required autocomplete="off"
                  value="<?= View::e((string) ($old['username'] ?? '')) ?>">
+          <p class="form-hint">The name this admin will type on the login screen.</p>
           <?php if (!empty($fe['username'])): ?><p class="field-error"><?= View::e($fe['username'][0]) ?></p><?php endif; ?>
         </div>
       </div>
@@ -55,6 +56,7 @@ $fe = $field_errors ?? [];
           <input id="au-email" type="email" name="email" class="form"
                  maxlength="255" required autocomplete="off"
                  value="<?= View::e((string) ($old['email'] ?? '')) ?>">
+          <p class="form-hint">Used for admin account messages, including admin password resets.</p>
           <?php if (!empty($fe['email'])): ?><p class="field-error"><?= View::e($fe['email'][0]) ?></p><?php endif; ?>
         </div>
       </div>
@@ -65,7 +67,7 @@ $fe = $field_errors ?? [];
           <input id="au-owner-name" type="text" name="display_name" class="form"
                  maxlength="100" required autocomplete="off"
                  value="<?= View::e((string) ($old['display_name'] ?? '')) ?>">
-          <p class="form-hint">Used in outgoing emails and communications.</p>
+          <p class="form-hint">The friendly name shown inside the admin panel for this account.</p>
         </div>
       </div>
 
@@ -82,7 +84,7 @@ $fe = $field_errors ?? [];
               <?= View::icon('eye-off') ?>
             </button>
           </div>
-          <p class="form-hint">Minimum 12 characters.</p>
+          <p class="form-hint">Minimum 12 characters. The new admin can change this after logging in.</p>
           <?php if (!empty($fe['password'])): ?><p class="field-error"><?= View::e($fe['password'][0]) ?></p><?php endif; ?>
         </div>
       </div>
@@ -98,6 +100,7 @@ $fe = $field_errors ?? [];
               <?= View::icon('eye-off') ?>
             </button>
           </div>
+          <p class="form-hint">Type the same password again so Luster can catch typos.</p>
           <?php if (!empty($fe['password_confirm'])): ?><p class="field-error"><?= View::e($fe['password_confirm'][0]) ?></p><?php endif; ?>
         </div>
       </div>

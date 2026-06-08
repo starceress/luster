@@ -24,9 +24,8 @@ $b = rtrim(View::e($base_url), '/');
     <div class="pc-head-meta">
       <div class="pc-head-title">Import Members Only</div>
       <div class="pc-head-sub">
-        Supplemental tool — use this when you only need to import members into
-        an existing Luster listing (e.g. after running the main Import Data Wizard,
-        or to merge a standalone member table export). For a full site migration,
+        Use this smaller tool when you only need to add members to
+        an existing Luster listing. For a full site migration,
         use the <a href="<?= $b ?>/admin/import" class="link">Import Data Wizard</a> instead.
       </div>
     </div>
@@ -40,8 +39,8 @@ $b = rtrim(View::e($base_url), '/');
         <?= View::icon('notes') ?>
         <div>
           <strong>How duplicates are handled:</strong> members with an email address already
-          present in the target table are silently skipped (no overwrite). Re-running the
-          import on the same dump is safe.
+          already present in the selected listing are skipped. Existing members are not changed,
+          so re-running the same file is safe.
         </div>
       </div>
 
@@ -56,7 +55,7 @@ $b = rtrim(View::e($base_url), '/');
               <?php endforeach; ?>
             </select>
           </div>
-          <p class="form-hint">Members will be inserted into this listing's member table.</p>
+          <p class="form-hint">Choose the Luster listing these members should belong to.</p>
         </div>
       </div>
 
@@ -71,6 +70,7 @@ $b = rtrim(View::e($base_url), '/');
             <strong>Click to upload</strong>
             <span class="form-hint">.SQL &mdash; max 10 MB</span>
           </label>
+          <p class="form-hint" style="margin-top:.5rem">Upload a SQL export of a member table from Enthusiast or Listing Admin.</p>
         </div>
       </div>
     </div>

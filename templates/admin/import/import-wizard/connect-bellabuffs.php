@@ -51,26 +51,26 @@ $bbMode  = ($conn_mode ?? 'path') === 'upload' ? 'upload' : 'path';
       <div class="pc-head-icon pc-head-icon-bg"><?= View::icon('import') ?></div>
       <div class="pc-head-meta">
         <div class="pc-head-title">Connect to BellaBuffs</div>
-        <div class="pc-head-sub">BellaBuffs stores data in flat text files &mdash; no database credentials required.</div>
+        <div class="pc-head-sub">BellaBuffs keeps its data in text files, so no database login is needed.</div>
       </div>
     </div>
 
     <!-- ── Source mode selection ─────────────────────────────────────── -->
     <div class="pc-section">
-      <p>BellaBuffs data files are read-only &mdash; nothing in your BellaBuffs installation will be modified.</p>
+      <p>Luster only reads the BellaBuffs files. It does not edit or delete anything in the old install.</p>
       <div class="import-choice pc-section">
         <label class="import-choice-item">
           <input type="radio" name="bb_conn_mode" value="path" id="js-bb-mode-path"<?= $bbMode === 'path' ? ' checked' : '' ?>>
           <div>
             <div class="import-choice-title">Server folder path</div>
-            <div class="import-choice-sub">Enter the absolute path to the BellaBuffs installation folder on this server. Supports members, affiliates, codes, and image migration.</div>
+            <div class="import-choice-sub">Use this when BellaBuffs is on the same server. This supports members, affiliates, fan codes, and button images.</div>
           </div>
         </label>
         <label class="import-choice-item">
           <input type="radio" name="bb_conn_mode" value="upload" id="js-bb-mode-upload"<?= $bbMode === 'upload' ? ' checked' : '' ?>>
           <div>
             <div class="import-choice-title">Upload files</div>
-            <div class="import-choice-sub">Upload <code>members.txt</code> directly. Useful when BellaBuffs is on a different server. Members and pending members only &mdash; affiliate and code import require a folder path.</div>
+            <div class="import-choice-sub">Use this when BellaBuffs is on another server. Upload mode can import approved and pending members only.</div>
           </div>
         </label>
       </div>
@@ -85,7 +85,7 @@ $bbMode  = ($conn_mode ?? 'path') === 'upload' ? 'upload' : 'path';
         <div>
           <input id="bb_folder_path" type="text" name="bb_folder_path" class="form"
                  placeholder="/home/user/public_html/myfanlisting">
-          <p class="form-hint">Absolute server path to the BellaBuffs installation root — the folder containing
+          <p class="form-hint">The server folder where BellaBuffs is installed. It should contain
             <code>members.txt</code>, <code>affiliates.txt</code>, <code>buttons.txt</code>,
             and the <code>buttons/</code> image directory.</p>
         </div>

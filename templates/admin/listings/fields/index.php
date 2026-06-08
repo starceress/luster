@@ -39,7 +39,7 @@ $id = (int) $listing->id;
     <div class="empty">
       <div class="empty-icon"><?= View::icon('tag', ['width' => 32, 'height' => 32]) ?></div>
       <div class="empty-title">No additional fields defined yet.</div>
-      <div>Fields defined in your Enthusiast database will appear here.</div>
+      <div>Extra member questions you add or import will appear here.</div>
     </div>
   <?php else: ?>
     <div class="table-wrap">
@@ -97,7 +97,7 @@ $id = (int) $listing->id;
       <div class="pc-head-icon pc-head-icon-bg"><?= View::icon('add') ?></div>
       <div class="pc-head-meta">
         <div class="pc-head-title">Add New Field</div>
-        <div class="pc-head-sub">Create an extra member field for this listing.</div>
+        <div class="pc-head-sub">Add an extra question to this listing's join and update forms.</div>
       </div>
     </div>
 
@@ -109,7 +109,7 @@ $id = (int) $listing->id;
                  maxlength="30" pattern="[a-zA-Z0-9_]+"
                  placeholder="e.g. fave_song" required
                  title="Letters, numbers and underscores only">
-          <p class="form-hint">Letters, numbers, and underscores only. This key is used to store the field data.</p>
+          <p class="form-hint">Short internal name for this field. Use letters, numbers, and underscores only. Members will see the label below instead.</p>
         </div>
       </div>
 
@@ -130,8 +130,10 @@ $id = (int) $listing->id;
               <option value="text">Text</option>
               <option value="dropdown">Drop Down</option>
               <option value="checkbox">Checkbox</option>
+              <option value="radio">Radio Button</option>
             </select>
           </div>
+          <p class="form-hint">Choose how members will answer this field.</p>
         </div>
       </div>
 
@@ -140,7 +142,7 @@ $id = (int) $listing->id;
         <div>
           <textarea class="form" id="af-options" name="options" rows="2"
                     placeholder="e.g. Option A, Option B, Option C"></textarea>
-          <p class="form-hint">Comma-separated values for drop down and checkbox fields.</p>
+          <p class="form-hint">For dropdown, checkbox, and radio fields, write the choices separated by commas.</p>
         </div>
       </div>
 
@@ -157,7 +159,7 @@ $id = (int) $listing->id;
               <span class="form-check-label">No</span>
             </label>
           </div>
-          <p class="form-hint">If Yes, members must fill in this field to successfully submit the form.</p>
+          <p class="form-hint">Choose Yes when members must answer this before they can submit the form.</p>
         </div>
       </div>
     </div>

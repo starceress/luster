@@ -18,7 +18,7 @@ $listingName = (string) ($result['listing_name'] ?? '');
     <div class="pc-head-icon pc-head-icon-bg"><?= View::icon('check') ?></div>
     <div class="pc-head-meta">
       <div class="pc-head-title">Import Complete</div>
-      <div class="pc-head-sub">Members have been imported into <strong><?= View::e($listingName) ?></strong>.</div>
+      <div class="pc-head-sub">Luster finished adding members to <strong><?= View::e($listingName) ?></strong>.</div>
     </div>
   </div>
 
@@ -29,8 +29,9 @@ $listingName = (string) ($result['listing_name'] ?? '');
         <div class="stat-value"><?= number_format($imported) ?></div>
       </div>
       <div class="stat-tile">
-        <span class="stat-label">Skipped (duplicate)</span>
+        <span class="stat-label">Skipped</span>
         <div class="stat-value"><?= number_format($skipped) ?></div>
+        <div class="stat-pills"><span class="badge badge-inactive">Already existed</span></div>
       </div>
     </div>
   </div>

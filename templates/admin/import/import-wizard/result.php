@@ -129,7 +129,7 @@ $hasErr  = $result->hasErrors();
     <div class="pc-head-icon pc-head-icon-bg"><?= View::icon('import') ?></div>
     <div class="pc-head-meta">
       <div class="pc-head-title">Import Details</div>
-      <div class="pc-head-sub">Review imported records, skipped records, image migration, and any warnings from this run.</div>
+      <div class="pc-head-sub">See what was added, what was skipped, and whether any images or records need attention.</div>
     </div>
   </div>
   <div class="import-scroll-x">
@@ -244,7 +244,7 @@ $hasErr  = $result->hasErrors();
 <?php if (empty($result->imageRows) && $result->totalImported() > 0): ?>
   <div class="callout callout-warn">
     <?= View::icon('alert') ?>
-    <div><strong>No images were migrated.</strong> To migrate images, <a href="<?= $b ?>/admin/import/<?= $src ?>/connect" class="link">re-run the import</a> and provide either a server path, a URL to your live site, or upload a ZIP of your image folder.</div>
+    <div><strong>No images were migrated.</strong> To copy images too, <a href="<?= $b ?>/admin/import/<?= $src ?>/connect" class="link">run the import again</a> and provide a server path, old site URL, or ZIP of your image folder.</div>
   </div>
 <?php endif; ?>
 <!-- ──── ACTIONS ────────────────────────────────────────────────────── -->

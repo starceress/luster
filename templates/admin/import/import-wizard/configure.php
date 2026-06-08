@@ -164,7 +164,7 @@ function importChecked(array $old, string $key, bool $default = true): string {
         <input id="fu_prefix" type="text" name="fu_prefix" class="form import-input-medium"
                placeholder="blog"
                value="<?= importOld($old, 'fu_prefix', 'blog') ?>">
-        <p class="help-text">The base table name configured in <code>blog-config.php</code> (default: <code>blog</code>). Luster will look for <code>{name}</code>, <code>{name}_category</code>, and <code>{name}_catjoin</code>.</p>
+        <p class="help-text">The main FanUpdate table name from <code>blog-config.php</code>. Most installs use <code>blog</code>. If you enter <code>blog</code>, Luster looks for <code>blog</code>, <code>blog_category</code>, and <code>blog_catjoin</code>.</p>
       </div>
     </div>
     <?php endif; ?>
@@ -176,7 +176,7 @@ function importChecked(array $old, string $key, bool $default = true): string {
         <input id="la_table_prefix" type="text" name="la_table_prefix" class="form import-input-medium"
                placeholder="(leave blank for default install)"
                value="<?= importOld($old, 'la_table_prefix') ?>">
-        <p class="help-text">Leave blank if LA uses default table names (<code>main</code>, <code>members</code>, etc.). If your LA install was configured with a prefix (e.g. <code>trex_</code>), enter it here. Luster will look for <code>{prefix}members</code>, <code>{prefix}categories</code>, and so on &mdash; the registry table is derived as the prefix without underscores (e.g. <code>trex_</code> &rarr; <code>trex</code>).</p>
+        <p class="help-text">Leave blank for a normal Listing Admin install. If your table names start with extra text, like <code>trex_members</code>, enter that extra text here: <code>trex_</code>. Luster also uses that prefix to find the registry table.</p>
       </div>
     </div>
     <?php endif; ?>
@@ -309,8 +309,8 @@ function importChecked(array $old, string $key, bool $default = true): string {
           <input type="url" name="image_url" class="form import-input-wide"
                  placeholder="https://example.com/old-install"
                  value="<?= importOld($old, 'image_url') ?>">
-          <p class="field-hint-sm">Base URL of your old installation (no trailing slash). Luster will append
-            <?php if ($source === 'codesort'): ?><code>/codes/{filename}</code><?php else: ?>the standard image sub-paths<?php endif; ?>.</p>
+          <p class="field-hint-sm">Base URL of your old installation (no trailing slash). Luster adds the needed image path after it.
+            <?php if ($source === 'codesort'): ?>For CodeSort, that means <code>/codes/</code> plus the code image filename.<?php else: ?>For other imports, Luster uses the standard image subfolders.<?php endif; ?></p>
         </div>
         <label class="form-check">
           <input type="radio" name="image_mode" value="zip"

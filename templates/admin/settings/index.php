@@ -62,7 +62,7 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
 
   <div class="settings-content">
 
-<!-- ──── PANEL: ACCOUNT DETAUKS ─────────────────────────────────────── -->
+<!-- ──── PANEL: ACCOUNT DETAILS ─────────────────────────────────────── -->
     <div id="panel-admin" class="mini-nav-panel">
       <div class="gradient-card">
         <div class="pc-head">
@@ -86,6 +86,7 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
                 <input id="p-username" type="text" name="admin_username" class="form"
                        maxlength="50" required
                        value="<?= View::e($admin_user->username ?? '') ?>">
+                <p class="form-hint">The name you type on the admin login screen.</p>
                 <?php if (!empty($fe['username'])): ?><p class="field-error"><?= View::e($fe['username'][0]) ?></p><?php endif; ?>
               </div>
               <div class="form-group<?= !empty($fe['email']) ? ' has-error' : '' ?>">
@@ -93,6 +94,7 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
                 <input id="p-email" type="email" name="admin_email" class="form"
                        maxlength="255" required
                        value="<?= View::e($admin_user->email ?? '') ?>">
+                <p class="form-hint">Used for admin account messages, including admin password resets.</p>
                 <?php if (!empty($fe['email'])): ?><p class="field-error"><?= View::e($fe['email'][0]) ?></p><?php endif; ?>
               </div>
             </div>
@@ -102,7 +104,7 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
                 <input id="p-owner-name" type="text" name="admin_display_name" class="form"
                        maxlength="100" required
                        value="<?= View::e($admin_user->displayName ?? '') ?>">
-                <p class="form-hint">Your public name used in outgoing emails and communications.</p>
+                <p class="form-hint">The friendly name shown inside the admin panel for this account.</p>
               </div>
             </div>
           </div>
@@ -120,6 +122,7 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
                   <?= View::icon('eye-off') ?>
                 </button>
               </div>
+              <p class="form-hint">Only needed when you are changing your password.</p>
               <?php if (!empty($fe['admin_current_password'])): ?><p class="field-error"><?= View::e($fe['admin_current_password'][0]) ?></p><?php endif; ?>
             </div>
             <div class="form-row">
@@ -134,6 +137,7 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
                     <?= View::icon('eye-off') ?>
                   </button>
                 </div>
+                <p class="form-hint">Leave blank to keep your current password. New passwords must be at least 12 characters.</p>
                 <?php if (!empty($fe['admin_new_password'])): ?><p class="field-error"><?= View::e($fe['admin_new_password'][0]) ?></p><?php endif; ?>
               </div>
               <div class="form-group<?= !empty($fe['admin_confirm_password']) ? ' has-error' : '' ?>">
@@ -147,6 +151,7 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
                     <?= View::icon('eye-off') ?>
                   </button>
                 </div>
+                <p class="form-hint">Type the same new password again so Luster can catch typos.</p>
                 <?php if (!empty($fe['admin_confirm_password'])): ?><p class="field-error"><?= View::e($fe['admin_confirm_password'][0]) ?></p><?php endif; ?>
               </div>
             </div>
@@ -291,7 +296,7 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
           </div>
           <p class="form-hint mt-md">
             Drop a <code>.css</code> file into <code>public/assets/css/skins/</code> to add a community skin.
-            File name becomes the skin slug (e.g. <code>myskin.css</code> → <code>[data-skin="myskin"]</code>).
+            The file name becomes the skin name Luster saves. For example, <code>myskin.css</code> becomes <code>myskin</code>.
           </p>
           <?php if (!SkinCatalog::isBundled($activeSkin)): ?>
           <?php $activeSkinHash = $site_settings['selected_skin_hash'] ?? null; ?>
@@ -302,7 +307,7 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
               Community skin CSS files run on every admin page and are treated as trusted code.
               Only activate skins from authors you control or explicitly trust.
               <?php if ($activeSkinHash !== null): ?>
-                Verify the SHA-256 hash against the hash published by the skin author.
+                This fingerprint helps you confirm the file has not changed since you activated it.
                 <br><code class="text-xs link-break"><?= View::e($activeSkinHash) ?></code>
               <?php endif; ?>
             </div>
@@ -339,14 +344,14 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
               <input id="s-site-name" type="text" name="site_name" class="form"
                      maxlength="100" required
                      value="<?= View::e(cfgVal($cfg, 'site_name', 'Luster')) ?>">
-              <p class="form-hint">Shown in the browser tab and welcome block.</p>
+              <p class="form-hint">Your collective's name. Luster also uses this in outgoing emails and admin page titles.</p>
               <?php if (!empty($fe['site_name'])): ?><p class="field-error"><?= View::e($fe['site_name'][0]) ?></p><?php endif; ?>
             </div>
             <div class="form-group<?= !empty($fe['site_url']) ? ' has-error' : '' ?>">
               <label class="form-label" for="s-site-url">Collective Public URL <span class="req">*</span></label>
               <input id="s-site-url" type="url" name="site_url" class="form" maxlength="500" required
                      value="<?= View::e(cfgVal($cfg, 'site_url')) ?>">
-              <p class="form-hint">Your collective's public homepage URL. Shown as the &ldquo;Visit site&rdquo; link in the admin nav, and used as a fallback for embed form submissions when Embed Form Submission URL is blank. <b>No trailing slash.</b></p>
+              <p class="form-hint">Your collective's public homepage URL, without a trailing slash. Luster uses this for the &ldquo;Visit site&rdquo; admin link and as a fallback for embedded forms.</p>
               <?php if (!empty($fe['site_url'])): ?><p class="field-error"><?= View::e($fe['site_url'][0]) ?></p><?php endif; ?>
             </div>
           </div>
@@ -359,13 +364,13 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
                 <input id="s-owner-name" type="text" name="owner_name" class="form"
                        maxlength="100"
                        value="<?= View::e(cfgVal($cfg, 'owner_name')) ?>">
-                <p class="form-hint">Used publically, such as in email correspondence.</p>
+                <p class="form-hint">The public owner name used in email templates and messages.</p>
               </div>
               <div class="form-group">
                 <label class="form-label" for="s-owner-email">Contact Email</label>
                 <input id="s-owner-email" type="email" name="owner_email" class="form" maxlength="255"
                        value="<?= View::e(cfgVal($cfg, 'owner_email')) ?>">
-                <p class="form-hint">Used publically, such as in email correspondence.<br> May differ from your admin login email.</p>
+                <p class="form-hint">The public contact email used for outgoing messages. This can be different from your admin login email.</p>
               </div>
             </div>
           </div>
@@ -378,7 +383,7 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
                        <?= (cfgVal($cfg, 'smtp_enabled') === '1') ? 'checked' : '' ?>>
                 <span class="toggle-label">Send email via SMTP</span>
               </label>
-              <p class="form-hint">When enabled, all outgoing email is routed through the SMTP server below. When disabled, email is sent via the server&rsquo;s <code class="neb-code">mail()</code> function.</p>
+              <p class="form-hint">Turn this on when you want Luster to send mail through a real email account or email service. Leave it off only if your web host's built-in PHP mail sending is already reliable.</p>
             </div>
             <div class="form-row">
               <div class="form-group">
@@ -386,6 +391,7 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
                 <input id="s-smtp-host" type="text" name="smtp_host" class="form"
                        maxlength="255" placeholder="e.g. smtp.gmail.com"
                        value="<?= View::e(cfgVal($cfg, 'smtp_host')) ?>">
+                <p class="form-hint">The mail server address from your email provider.</p>
               </div>
               <div class="form-group form-group--narrow">
                 <label class="form-label" for="s-smtp-port">Port</label>
@@ -401,12 +407,13 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
                 <input id="s-smtp-user" type="text" name="smtp_user" class="form"
                        maxlength="255" autocomplete="off"
                        value="<?= View::e(cfgVal($cfg, 'smtp_user')) ?>">
+                <p class="form-hint">Usually your full email address, unless your provider says otherwise.</p>
               </div>
               <div class="form-group">
                 <label class="form-label" for="s-smtp-pass">SMTP Password</label>
                 <input id="s-smtp-pass" type="password" name="smtp_pass" class="form"
                        maxlength="255" autocomplete="new-password"
-                       placeholder="<?= (cfgVal($cfg, 'smtp_pass') !== '') ? '(password stored — leave blank to keep)' : '' ?>">
+                       placeholder="<?= (cfgVal($cfg, 'smtp_pass') !== '') ? '(password stored - leave blank to keep)' : '' ?>">
                 <p class="form-hint">Leave blank to keep the current stored password. Enter a new value to replace it.</p>
               </div>
             </div>
@@ -423,6 +430,7 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
                   <?php endforeach; ?>
                 </select>
               </div>
+              <p class="form-hint">Use the encryption type your email provider lists for outgoing SMTP.</p>
             </div>
             <div class="form-row">
               <div class="form-group">
@@ -430,14 +438,14 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
                 <input id="s-smtp-from" type="email" name="smtp_from" class="form"
                        maxlength="255" placeholder="Defaults to Contact Email"
                        value="<?= View::e(cfgVal($cfg, 'smtp_from')) ?>">
-                <p class="form-hint">Envelope From address. Leave blank to use the Contact Email above.</p>
+                <p class="form-hint">The sender email address recipients see. Leave blank to use the Contact Email above.</p>
               </div>
               <div class="form-group">
                 <label class="form-label" for="s-smtp-from-name">From Name</label>
                 <input id="s-smtp-from-name" type="text" name="smtp_from_name" class="form"
                        maxlength="100" placeholder="Defaults to Owner Name"
                        value="<?= View::e(cfgVal($cfg, 'smtp_from_name')) ?>">
-                <p class="form-hint">Display name shown in the From header. Leave blank to use Owner Name.</p>
+                <p class="form-hint">The sender name recipients see. Leave blank to use Owner Name.</p>
               </div>
             </div>
           </div>
@@ -447,7 +455,7 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
             <p class="form-hint mb-sm">
               Send a test message to your admin account email to confirm your mail settings are working.
               Sends to <strong><?= View::e($admin_user->email ?? '') ?></strong>.
-              <?= (cfgVal($cfg, 'smtp_enabled') === '1') ? 'Will use SMTP (' . View::e(cfgVal($cfg, 'smtp_host')) . ').' : 'Will use server mail().' ?>
+              <?= (cfgVal($cfg, 'smtp_enabled') === '1') ? 'Will use SMTP (' . View::e(cfgVal($cfg, 'smtp_host')) . ').' : 'Will use your web host\'s built-in mail sending.' ?>
             </p>
             <button type="submit" form="settings-test-email-form" class="btn btn-secondary btn-sm">Send test email</button>
             <?php if (($cfg['owner_email'] ?? '') === ''): ?>
@@ -530,6 +538,7 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
                     <?php endforeach; ?>
                   </select>
                 </div>
+                <p class="form-hint">Choose how dates look in admin tables and activity screens.</p>
               </div>
               <div class="form-group">
                 <label class="form-label" for="s-time-format">Time Format</label>
@@ -545,6 +554,7 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
                     <?php endforeach; ?>
                   </select>
                 </div>
+                <p class="form-hint">Choose 24-hour time or 12-hour AM/PM time.</p>
               </div>
             </div>
           </div>
@@ -575,7 +585,7 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
 
           <div class="pc-section">
             <div class="callout callout-warn"><?= View::icon('caution') ?> 
-              <div>These settings affect how Luster handles form action URLs. Set them before embedding forms on external pages.</div>
+              <div>These settings tell copied embed snippets where Luster lives. Most sites can keep the detected values. Edit them only when embedded forms submit to the wrong place or link checks look for the wrong URL.</div>
             </div>
             
               <div class="listing-field-row listing-field-row--top">
@@ -587,7 +597,7 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
                            value="<?= View::e($_installPath) ?>" readonly>
                     <button type="button" class="btn btn-danger btn-sm path-edit-btn" data-target="s-install-path">Edit</button>
                   </div>
-                  <p class="form-hint">Absolute filesystem path to the Luster root, with trailing slash. Auto-detected from your server environment — only change this if the detected path is incorrect.</p>
+                  <p class="form-hint">The server folder where Luster is installed, ending with a slash. This is a disk path, not a web address. Only change it if copied embed snippets cannot find Luster.</p>
                 </div>
               </div>
               <div class="listing-field-row listing-field-row--top">
@@ -599,7 +609,7 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
                            value="<?= View::e($_embedBaseUrl) ?>" readonly>
                     <button type="button" class="btn btn-danger btn-sm path-edit-btn" data-target="s-embed-url">Edit</button>
                   </div>
-                  <p class="form-hint">URL used for form submissions inside embeds (no trailing slash). Auto-detected from your App URL — only change this if Luster is on a different domain from the pages hosting your embeds.</p>
+                  <p class="form-hint">The web address embedded forms submit to, without a trailing slash. Change this only if your public fanlisting pages live on a different domain or folder than the Luster admin app.</p>
                 </div>
               </div>
               <div class="listing-field-row listing-field-row--top">
@@ -611,68 +621,9 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
                            value="<?= View::e($_reciprocalUrl) ?>" readonly>
                     <button type="button" class="btn btn-danger btn-sm path-edit-btn" data-target="s-reciprocal-url">Edit</button>
                   </div>
-                  <p class="form-hint">The URL the Link Checker searches for in affiliate pages to confirm a back-link (no trailing slash). Auto-detected from your App URL — only change this if affiliates should link to a different URL.</p>
+                  <p class="form-hint">The public URL affiliates should link back to, without a trailing slash. The Link Checker looks for this address on affiliate sites.</p>
                 </div>
               </div>
-          </div>
-
-          <?php
-            $installPath = cfgVal($cfg, 'install_path');
-            if ($installPath !== ''):
-              $installPath = rtrim($installPath, '/');
-          ?>
-          <div class="pc-section">
-            <div class="pc-section-label">Per-Listing Embed Lines</div>
-            <p class="form-hint">
-              Set <code class="neb-code">$luster_fanlisting_id</code> to the listing ID before each include.
-              Optionally set <code class="neb-code">$luster_return = true</code> to capture the output as a string.
-            </p>
-            <?php
-            $perListingEmbeds = [
-                'join'       => 'Join form',
-                'members'    => 'Members list',
-                'update'     => 'Update membership',
-                'remove'     => 'Remove membership',
-                'reset'      => 'Password reset',
-                'stats'      => 'Listing stats',
-                'affiliates' => 'Affiliates (per-listing)',
-            ];
-            foreach ($perListingEmbeds as $file => $label): ?>
-            <div class="form-group">
-              <label class="form-label"><?= View::e($label) ?></label>
-              <div class="ro-field">
-                $luster_fanlisting_id = 1; require '<?= View::e($installPath) ?>/public/embed/<?= View::e($file) ?>.php';
-              </div>
-            </div>
-            <?php endforeach; ?>
-          </div>
-
-          <div class="pc-section">
-            <div class="pc-section-label">Site-Wide Embed Lines</div>
-            <p class="form-hint">
-              These embeds aggregate data across your entire collective.
-              No <code class="neb-code">$luster_fanlisting_id</code> needed
-              (except Affiliates, where <code class="neb-code">$luster_fanlisting_id = 0</code> gives site-wide affiliates).
-            </p>
-            <div class="form-group">
-              <label class="form-label">Collective stats</label>
-              <div class="ro-field">
-                require '<?= View::e($installPath) ?>/public/embed/collective-stats.php';
-              </div>
-              <p class="form-hint">Exposes <code class="neb-code">$luster_owned_active</code>, <code class="neb-code">$luster_members_approved</code>, growth rates, and more.</p>
-            </div>
-            <div class="form-group">
-              <label class="form-label">Site-wide affiliates</label>
-              <div class="ro-field">
-                $luster_fanlisting_id = 0; require '<?= View::e($installPath) ?>/public/embed/affiliates.php';
-              </div>
-            </div>
-          </div>
-          <?php endif; ?>
-
-          <div class="composer-footer">
-            <button type="submit" class="btn btn-primary">Save Settings</button>
-            <button type="button" class="btn btn-ghost" id="embed-clear-btn">Clear</button>
           </div>
         </div>
       </div>
@@ -688,7 +639,7 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
           </div>
           <div class="pc-head-meta">
             <div class="pc-head-title">Blacklist</div>
-            <div class="pc-head-sub">Block specific addresses or entire domains from submitting the join form.</div>
+            <div class="pc-head-sub">Block specific email addresses or whole email domains from public forms.</div>
           </div>
         </div>
 
@@ -701,7 +652,7 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
                 <label class="form-label" for="bl-pattern">Email Pattern <span class="req">*</span></label>
                 <input id="bl-pattern" type="text" name="pattern" class="form" maxlength="255" required
                        placeholder="spam@example.com  or  @spam.com">
-                <p class="form-hint">Full email for exact block, or start with <code class="neb-code">@</code> to block an entire domain.</p>
+                <p class="form-hint">Use a full email address to block one person, or start with <code class="neb-code">@</code> to block everyone from that email domain.</p>
               </div>
               <div class="form-group">
                 <label class="form-label" for="bl-note">Note <em class="opt">(optional)</em></label>
@@ -776,7 +727,7 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
           </div>
           <div class="pc-head-meta">
             <div class="pc-head-title">System Details</div>
-            <div class="pc-head-sub">Runtime environment and diagnostic information.</div>
+            <div class="pc-head-sub">Version, server, and database details useful when troubleshooting.</div>
           </div>
         </div>
 
@@ -871,7 +822,7 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
             Database Connection
           </div>
           <p class="mb-section text-dim">
-            Details pulled from <code>config/app.php</code>
+            These values come from <code>config/app.php</code>. Luster shows them here so you can verify what database this install is using.
           </p>
             <div class="sysinfo-row">
               <span class="form-label">Host</span> <?= View::e(cfgVal($cfg, 'db_host', 'localhost')) ?>
@@ -887,7 +838,7 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
               <span class="status-inline">
                 <?php if ($cfg['app_debug'] ?? false): ?>
                   <span class="badge badge-error">Enabled</span>
-                  <span class="text-dim">Disable in production</span>
+                  <span class="text-dim">Shows extra error details. Turn off on a live public site.</span>
                 <?php else: ?>
                   <span class="badge badge-inactive">Disabled</span>
                 <?php endif; ?>
@@ -897,6 +848,7 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
               <span class="form-label">Install URL</span>
               <span class="text-mono text-dim"><?= View::e(cfgVal($cfg, 'app_url')) ?></span>
             </div>
+            <p class="form-hint">The install URL is where the Luster app itself lives. Your public collective URL can be different.</p>
         </div>
       </div>
     </div>

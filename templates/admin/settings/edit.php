@@ -28,6 +28,14 @@ $fe = $field_errors ?? [];
   <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
 
   <div class="gradient-card">
+    <div class="pc-head">
+      <div class="pc-head-icon pc-head-icon-bg"><?= View::icon('admins') ?></div>
+      <div class="pc-head-meta">
+        <div class="pc-head-title">Edit Admin Account</div>
+        <div class="pc-head-sub">Update login details or set a new password for this admin.</div>
+      </div>
+    </div>
+
     <div class="listing-field-section">
       <div class="pc-section-label">Account Details</div>
 
@@ -37,6 +45,7 @@ $fe = $field_errors ?? [];
           <input id="au-username" type="text" name="username" class="form"
                  maxlength="50" required autocomplete="off"
                  value="<?= View::e($user->username) ?>">
+          <p class="form-hint">The name this admin types on the login screen.</p>
           <?php if (!empty($fe['username'])): ?><p class="field-error"><?= View::e($fe['username'][0]) ?></p><?php endif; ?>
         </div>
       </div>
@@ -47,6 +56,7 @@ $fe = $field_errors ?? [];
           <input id="au-email" type="email" name="email" class="form"
                  maxlength="255" required autocomplete="off"
                  value="<?= View::e($user->email) ?>">
+          <p class="form-hint">Used for admin account messages, including admin password resets.</p>
           <?php if (!empty($fe['email'])): ?><p class="field-error"><?= View::e($fe['email'][0]) ?></p><?php endif; ?>
         </div>
       </div>
@@ -57,7 +67,7 @@ $fe = $field_errors ?? [];
           <input id="au-owner-name" type="text" name="display_name" class="form"
                  maxlength="100" required autocomplete="off"
                  value="<?= View::e($user->displayName ?? '') ?>">
-          <p class="form-hint">Used in outgoing emails and communications.</p>
+          <p class="form-hint">The friendly name shown inside the admin panel for this account.</p>
         </div>
       </div>
 
@@ -75,7 +85,7 @@ $fe = $field_errors ?? [];
               <?= View::icon('eye-off') ?>
             </button>
           </div>
-          <p class="form-hint">Minimum 12 characters. Leave blank to keep the current password.</p>
+          <p class="form-hint">Leave blank to keep the current password. If changing it, use at least 12 characters.</p>
           <?php if (!empty($fe['new_password'])): ?><p class="field-error"><?= View::e($fe['new_password'][0]) ?></p><?php endif; ?>
         </div>
       </div>
@@ -92,6 +102,7 @@ $fe = $field_errors ?? [];
               <?= View::icon('eye-off') ?>
             </button>
           </div>
+          <p class="form-hint">Type the same new password again so Luster can catch typos.</p>
           <?php if (!empty($fe['new_password_confirm'])): ?><p class="field-error"><?= View::e($fe['new_password_confirm'][0]) ?></p><?php endif; ?>
         </div>
       </div>

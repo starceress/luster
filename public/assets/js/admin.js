@@ -1199,7 +1199,6 @@ document.addEventListener('change', function (e) {
     '{fan_email}':       'jane@example.com',
     '{fan_url}':         'https://jane.example.com',
     '{fan_country}':     'United States',
-    '{fan_password}':    '(password)',
     '{reset_url}':       'https://example.com/reset/1/confirm?token=abc123',
     '{listing_title}':    pd.dataset.listingName    || 'My Fanlisting',
     '{listing_subject}': pd.dataset.listingSubject || 'Music',
@@ -1207,6 +1206,10 @@ document.addEventListener('change', function (e) {
     '{site_name}':       pd.dataset.siteName       || 'Luster',
     '{owner_name}':      pd.dataset.ownerName      || 'The Admin',
     '{owner_email}':     pd.dataset.ownerEmail     || 'admin@example.com',
+    '{aff_name}':        'Example Affiliate',
+    '{aff_url}':         'https://affiliate.example.com',
+    '{aff_email}':       'owner@affiliate.example.com',
+    '{aff_message}':     'Message: I would love to affiliate with you.\n\n',
   };
 
   function updatePreview(type) {
@@ -1763,13 +1766,16 @@ document.addEventListener('change', function (e) {
     if (type === 'owned') {
       if (vals.browse_by_category === 'true') lines.push('$luster_browse_by_category = true;');
       if (vals.status)                        lines.push('$luster_status             = ' + phpStr(vals.status) + ';');
+      if (vals.category_id)                   lines.push('$luster_category_id        = ' + (parseInt(vals.category_id, 10) || 0) + ';');
       if (vals.hide_dropdown === 'true')      lines.push('$luster_hide_dropdown      = true;');
       if (vals.show_list === 'true')          lines.push('$luster_show_list          = true;');
+      if (vals.exclude_pending === 'false')   lines.push('$luster_exclude_pending    = false;');
     }
     if (type === 'joined') {
       if (vals.browse_by_category === 'true') lines.push('$luster_browse_by_category = true;');
       if (vals.category)                      lines.push('$luster_category           = ' + phpStr(vals.category) + ';');
       if (vals.show_list === 'true')          lines.push('$luster_show_list          = true;');
+      if (vals.show_all_by_default === 'true') lines.push('$luster_show_all_by_default = true;');
     }
     if (type === 'random' && vals.status) lines.push('$luster_status = ' + phpStr(vals.status) + ';');
     if (type === 'updates' || type === 'col-updates') {
@@ -1844,6 +1850,7 @@ document.addEventListener('change', function (e) {
             { token: '{stat_growth}',       label: 'Average members per day', line: 'Growth: {stat_growth}/day' },
             { token: '{listing_title}',      label: 'Listing name',         line: '{listing_title}' },
             { token: '{listing_url}',       label: 'Listing link',         line: '{listing_url}' },
+            { token: '{approved_by}',       label: 'Approved-by network',   line: '{if_approved_by}Approved by: {approved_by}{/if_approved_by}' },
           ],
         },
       ],
@@ -1872,8 +1879,10 @@ document.addEventListener('change', function (e) {
       fields: [
         { id: 'browse_by_category', label: 'What visitors see first', type: 'select', opts: [['','Listings'],['true','Category list']], hint: 'Choose Category list if you want visitors to pick a topic before seeing listings.' },
         { id: 'status',             label: 'Listings to show',        type: 'select', opts: [['','Current only'],['upcoming','Upcoming only'],['pending','Pending only'],['all','All statuses']], hint: '' },
+        { id: 'category_id',        label: 'Only this category ID',    type: 'number', ph: '0', hint: 'Optional. Leave blank unless you know the category ID you want to lock this snippet to.' },
         { id: 'hide_dropdown',      label: 'Category dropdown',       type: 'select', opts: [['','Show'],['true','Hide']], hint: '' },
         { id: 'show_list',          label: 'Category style',          type: 'select', opts: [['','Dropdown'],['true','Link list']], hint: '' },
+        { id: 'exclude_pending',    label: 'Pending listings',        type: 'select', opts: [['','Hide when showing all'],['false','Show when showing all']], hint: 'Only matters when "Listings to show" is All statuses.' },
       ],
     },
     joined: {
@@ -1881,6 +1890,7 @@ document.addEventListener('change', function (e) {
         { id: 'browse_by_category', label: 'What visitors see first', type: 'select', opts: [['','Listings'],['true','Category list']], hint: 'Choose Category list if you want visitors to pick a topic before seeing listings.' },
         { id: 'category',           label: 'Category view',           type: 'select', opts: [['','Let visitors choose'],['all','Show all by category']], hint: 'To show one category only, add its name manually in the snippet.' },
         { id: 'show_list',          label: 'Category style',          type: 'select', opts: [['','Dropdown'],['true','Link list']], hint: '' },
+        { id: 'show_all_by_default', label: 'Show all first',          type: 'select', opts: [['','No'],['true','Yes']], hint: 'Shows all joined listings immediately, while still keeping the category chooser.' },
       ],
     },
     cstats: {
@@ -1893,11 +1903,18 @@ document.addEventListener('change', function (e) {
             { name: 'luster_owned_pending',       label: 'Pending owned listings',   desc: '' },
             { name: 'luster_owned',               label: 'Total owned listings',     desc: '' },
             { name: 'luster_joined_active',       label: 'Active joined listings',   desc: '' },
+            { name: 'luster_joined_approved',     label: 'Approved joined listings', desc: '' },
+            { name: 'luster_joined_upcoming',     label: 'Upcoming joined listings', desc: '' },
+            { name: 'luster_joined_pending',      label: 'Pending joined listings',  desc: '' },
             { name: 'luster_joined',              label: 'Total joined listings',    desc: '' },
             { name: 'luster_affiliates',          label: 'Collective affiliates',    desc: '' },
             { name: 'luster_members_approved',    label: 'Approved members',         desc: '' },
             { name: 'luster_members_pending',     label: 'Pending members',          desc: '' },
             { name: 'luster_members_total',       label: 'Total members',            desc: '' },
+            { name: 'luster_countries_count',     label: 'Countries represented',    desc: '' },
+            { name: 'luster_total_cats',          label: 'Owned categories',         desc: '' },
+            { name: 'luster_owned_current',       label: 'Owned current alias',      desc: '' },
+            { name: 'luster_collective_fans',     label: 'Total fans alias',         desc: '' },
             { name: 'luster_owned_growth_rate',   label: 'Owned listings per year',  desc: '' },
             { name: 'luster_joined_growth_rate',  label: 'Joined listings per year', desc: '' },
             { name: 'luster_members_growth_rate', label: 'Members per day',          desc: '' },
@@ -1955,7 +1972,7 @@ document.addEventListener('change', function (e) {
     wishlist: {
       fields: [
         { id: 'wishlist_type', label: 'Wishlist entries to show', type: 'select',
-          opts: [['all','All'],['wanted','Wanted'],['top','Top'],['granted','Granted'],['upcoming','Upcoming']],
+          opts: [['all','All'],['wanted','Wanted'],['top','Top'],['granted','Granted']],
           hint: 'Choose a type, or leave this on All.' },
       ],
     },
@@ -2624,10 +2641,10 @@ document.addEventListener('click', function (e) {
       fan_email:       'fan@example.com',
       fan_url:         'https://example.com',
       fan_country:     'United States',
-      fan_password:    '',
       name:            'Fan Name',
       email:           'fan@example.com',
       listing_name:    listName,
+      listing_title:   listName,
       listing_subject: selSubject,
       listing_url:     selUrl,
       site_name:       md.siteName  || '',
