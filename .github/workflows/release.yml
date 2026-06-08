@@ -1,0 +1,65 @@
+name: Release
+
+# Builds a ready-to-upload Luster package and attaches it to the GitHub Release.
+# The zip already contains vendor/ (built with --no-dev), so end users never
+# need to run Composer themselves — unzip, upload, and run the installer.
+#
+# Triggered by pushing a tag like "v1.0.0".
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  package:
+    name: Build release package
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          tools: composer
+          coverage: none
+
+      - name: Install production dependencies only
+        run: composer install --no-dev --optimize-autoloader --no-interaction
+
+      - name: Assemble package contents
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          PKG="luster-${VERSION}"
+          mkdir -p "dist/${PKG}"
+
+          rsync -a \
+            --exclude='.git' \
+            --exclude='.github' \
+            --exclude='.env.example' \
+            --exclude='.gitignore' \
+            --exclude='.phpunit.result.cache' \
+            --exclude='dist' \
+            --exclude='docs' \
+            --exclude='phpunit.xml' \
+            --exclude='tests' \
+            ./ "dist/${PKG}/"
+
+          echo "PKG=${PKG}" >> "$GITHUB_ENV"
+          echo "VERSION=${VERSION}" >> "$GITHUB_ENV"
+
+      - name: Create zip
+        working-directory: dist
+        run: zip -r "../${PKG}.zip" "${PKG}"
+
+      - name: Attach zip to the release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ${{ env.PKG }}.zip
+          generate_release_notes: true
