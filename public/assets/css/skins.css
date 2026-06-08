@@ -94,10 +94,8 @@
   --ch-danger:        255 179 193;
 }
 
-/* Nav section headers — gold (on the cobalt light-mode sidebar) */
-[data-skin="prism-power"][data-theme="light"] .sidebar-label { color: #fbd30b; }
+[data-skin="prism-power"] .sidebar-label { color: #fbd30b; }
 
-/* Bright cyan #4fc9f0 as the light-mode hover accent for links */
 [data-skin="prism-power"][data-theme="light"] .nav-item:hover { background: rgb(79 201 240 / 0.14); color: #4fc9f0; }
 [data-skin="prism-power"][data-theme="light"] .nav-item:hover .nav-icon { color: #4fc9f0; opacity: 1; filter: drop-shadow(0 0 5px rgb(79 201 240 / 0.55)); }
 [data-skin="prism-power"][data-theme="light"] .link:hover { color: #1ba6d8; border-color: #1ba6d8; }
@@ -113,8 +111,8 @@
   --border-soft:   #223158;
   --hairline:      rgba(238, 94, 158, 0.06);
   --text:          #fce0ed;
-  --text-muted:    #b8a8c8;
-  --text-dim:      #6e5d80;
+  --text-muted:    #cbb9dd;
+  --text-dim:      #9583ab;
   --text-sidebar:  #f0c8e0;
   --accent:        #ee5e9e;
   --ch-accent:     238 94 158;
@@ -158,18 +156,16 @@
 [data-skin="prism-power"][data-theme="dark"] .sidebar {
   --accent:  #4a6dd6;
   --accent3: #ee5e9e;
-  /* Deep Sailor-bow rose — a saturated blend of the #f13f72 hot-pink and
-     the #420c1d wine, deepening downward. The red-bow + cobalt pairing IS
-     the core Sailor Moon look; this rich rose complements the cobalt cards. */
-  background: linear-gradient(172deg, #8e1843 0%, #571026 50%, #320818 100%);
+  background: linear-gradient(172deg, #8e1843 0%, #571026 100%);
 }
+[data-skin="prism-power"][data-theme="dark"] .nav-item:hover { background: #2f4a99; color: #fff; }
+[data-skin="prism-power"][data-theme="dark"] .nav-item:hover .nav-icon { color: #fbd30b; opacity: 1; filter: drop-shadow(0 0 6px rgb(241 63 114 / 0.55)); }
 
-/* sidebar links hover to Sailor Moon hair-gold */
-[data-skin="prism-power"][data-theme="dark"] .nav-item:hover { background: #2f4a99; color: #fbd30b; }
-[data-skin="prism-power"][data-theme="dark"] .nav-item:hover .nav-icon { color: #f13f72; opacity: 1; filter: drop-shadow(0 0 6px rgb(241 63 114 / 0.55)); }
+[data-skin="prism-power"][data-theme="dark"] .row-sub { color: #d8d0a5; }
 
+[data-skin="prism-power"][data-theme="dark"] .bulk,
+[data-skin="prism-power"][data-theme="dark"] .data-table th { color: #99b3ff; }
 
-/* —— Prism Power scrollbars — tuned hot-pink so it reads on each bg —— */
 [data-skin="prism-power"][data-theme="light"] * { scrollbar-color: rgb(238 94 158 / .42) transparent; }
 [data-skin="prism-power"][data-theme="light"] ::-webkit-scrollbar-thumb { background: rgb(238 94 158 / .42); border: 3px solid transparent; background-clip: padding-box; }
 [data-skin="prism-power"][data-theme="light"] ::-webkit-scrollbar-thumb:hover { background: rgb(238 94 158 / .66); border: 3px solid transparent; background-clip: padding-box; }
@@ -186,7 +182,6 @@
 [data-skin="prism-power"][data-theme="dark"] ::-webkit-scrollbar-button:horizontal:decrement,
 [data-skin="prism-power"][data-theme="dark"] ::-webkit-scrollbar-button:horizontal:increment { background-color: rgb(238 94 158 / .62); }
 
-/* sidebar-nav scrollbar (sits on the purple rail) */
 [data-skin="prism-power"][data-theme="dark"] .sidebar-nav { scrollbar-color: rgb(238 94 158 / .5) transparent; }
 [data-skin="prism-power"][data-theme="dark"] .sidebar-nav::-webkit-scrollbar-thumb { background: rgb(238 94 158 / .5); }
 [data-skin="prism-power"][data-theme="dark"] .sidebar-nav::-webkit-scrollbar-thumb:hover { background: rgb(238 94 158 / .75); }
