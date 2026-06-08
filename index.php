@@ -44,6 +44,6 @@ if (is_file($_configPath) && is_file($_sentinelPath)) {
     header('Location: public/');
 } else {
     // Not installed yet — go to the installer.
-    header('Location: public/install/');
+    header('Location: install/');
 }
 exit;

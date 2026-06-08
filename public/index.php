@@ -26,7 +26,7 @@ if (!is_file(LUSTER_BASE . '/vendor/autoload.php')) {
 
 // If config/app.php does not exist yet, send the user to the installer
 if (!is_file(LUSTER_BASE . '/config/app.php')) {
-    header('Location: ./install/');
+    header('Location: ../install/');
     exit;
 }
 
