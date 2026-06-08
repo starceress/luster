@@ -381,7 +381,7 @@ final class Application
         try {
             $siteRepo = new SiteSettingsRepo($this->database);
 
-            if ($siteRepo->get('overdue_notify_enabled', '0') !== '1') {
+            if ($siteRepo->get('overdue_notify_enabled', '1') !== '1') {
                 return;
             }
 

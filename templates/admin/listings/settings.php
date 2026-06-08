@@ -95,7 +95,7 @@ function flsCfgVal(array $cfg, string $key, $default = ''): string {
         <div>
           <label class="toggle-wrap">
             <input type="checkbox" name="overdue_notify_enabled" value="1"
-                   <?= ($tracking['overdue_notify_enabled'] ?? '0') === '1' ? 'checked' : '' ?>>
+                   <?= ($tracking['overdue_notify_enabled'] ?? '1') === '1' ? 'checked' : '' ?>>
             <span class="toggle-label">Email me when listings haven't been updated in N days</span>
           </label>
           <p class="form-hint">Sends one reminder email per day at most, listing any fanlistings that need an update.</p>
