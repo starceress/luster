@@ -85,30 +85,43 @@ class SiteSettingsRepo
             // {each_upcoming} / {each_pending} / {if_*_listings} / {*_count} tokens —
             // understanding it will then apply that same grouped look everywhere,
             // including single-listing widgets.
-            'owned_template' => '<ul style="list-style:none;padding:0;margin:0;">' . "\n"
+            'owned_template' => '<div class="fl-listing-list">' . "\n"
                              . '{each_listing}' . "\n"
-                             . '<li style="display:flex;gap:0.75em;align-items:flex-start;padding:0.75em 0;">' . "\n"
-                             . '<div style="flex-shrink:0;max-width:120px;">{listing_image_html}</div>'
-                             . '<div>' . "\n"
-                             . '<b><a href="{listing_url}" target="_blank" rel="noopener noreferrer">{listing_subject}</a></b><br>' . "\n"
-                             . '<i>{listing_title}</i><br>' . "\n"
-                             . '<b>Category:</b> {listing_category}<br>' . "\n"
-                             . '<b>Members:</b> {member_count} member(s){if_pending} (+{member_pending_count} pending){/if_pending}{if_countries} across {country_count} countries{/if_countries}<br>' . "\n"
-                             . '<b>Opened:</b> {date_opened}<br>' . "\n"
-                             . '<b>Last Updated:</b> {date_updated}' . "\n"
+                             . '<div class="fl-listing-item">' . "\n"
+                             . '{if_listing_image}<div class="fl-listing-image-wrap"><img class="fl-listing-image" src="{listing_image_url}" alt="{listing_subject}"></div>{/if_listing_image}' . "\n"
+                             . '<div class="fl-listing-body">' . "\n"
+                             . '<a class="fl-listing-title" href="{listing_url}" target="_blank" rel="noopener noreferrer">{listing_subject}</a>' . "\n"
+                             . '<span class="fl-listing-subject">{listing_title}</span>' . "\n"
+                             . '<div class="fl-listing-meta">' . "\n"
+                             . '<span class="fl-listing-category">{listing_category}</span>' . "\n"
+                             . '<span class="fl-listing-member-count">{member_count} member(s){if_pending} +{member_pending_count} pending{/if_pending}</span>' . "\n"
+                             . '{if_countries}<span class="fl-listing-country-count">{country_count} countries</span>{/if_countries}' . "\n"
+                             . '<span class="fl-listing-date-opened">Opened: {date_opened}</span>' . "\n"
                              . '</div>' . "\n"
-                             . '</li>' . "\n"
+                             . '</div>' . "\n"
+                             . '</div>' . "\n"
                              . '{/each_listing}' . "\n"
-                             . '</ul>',
-            'joined_template' => '<ul style="list-style:none;padding:0;margin:0;">' . "\n"
+                             . '</div>',
+            'joined_template' => '<div class="fl-joined-list">' . "\n"
                                . '{each_joined}' . "\n"
-                               . '<li><a href="{listing_url}" target="_blank" rel="noopener noreferrer">{listing_title}</a> — {listing_category}</li>' . "\n"
+                               . '<div class="fl-joined-item">' . "\n"
+                               . '{if_listing_image}<div class="fl-joined-image-wrap"><img class="fl-joined-image" src="{listing_image_url}" alt="{listing_title}"></div>{/if_listing_image}' . "\n"
+                               . '<div class="fl-joined-body">' . "\n"
+                               . '<a class="fl-joined-title" href="{listing_url}" target="_blank" rel="noopener noreferrer">{listing_title}</a>' . "\n"
+                               . '<span class="fl-joined-category">{listing_category}</span>' . "\n"
+                               . '<span class="fl-joined-date">{date_joined}</span>' . "\n"
+                               . '</div>' . "\n"
+                               . '</div>' . "\n"
                                . '{/each_joined}' . "\n"
-                               . '</ul>',
-            'collective_stats_template' => 'Owned Listings: {owned_active} open, {owned_upcoming} upcoming<br>' . "\n"
-                                         . 'Joined Listings: {joined_active}</br>' . "\n"
-                                         . 'Total Members: {members_approved} approved (+ {members_pending} pending)</br>' . "\n"
-                                         . 'Featured Listing: <a href="{owned_random_url}" target="_blank">{owned_random_name}</a></br>',
+                               . '</div>',
+            'collective_stats_template' => '<div class="fl-cstats">' . "\n"
+                                         . '<div class="fl-cstats-grid">' . "\n"
+                                         . '<span class="fl-cstats-label">Owned listings:</span><span class="fl-cstats-value">{owned_active} open, {owned_upcoming} upcoming</span>' . "\n"
+                                         . '<span class="fl-cstats-label">Joined listings:</span><span class="fl-cstats-value">{joined_active}</span>' . "\n"
+                                         . '<span class="fl-cstats-label">Total members:</span><span class="fl-cstats-value">{members_approved} approved</span>' . "\n"
+                                         . '</div>' . "\n"
+                                         . '<div class="fl-cstats-random">Featured: <a href="{owned_random_url}">{owned_random_name}</a></div>' . "\n"
+                                         . '</div>',
             'collective_affiliates_section_template' => '',
         ];
     }

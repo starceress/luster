@@ -113,13 +113,7 @@ $_lusterLastUpdatedFallback = (string) $_lusterApp->getConfig()->get('last_updat
 $_lusterTemplate     = ($_lusterTemplates['stats_template'] !== null
                      && trim($_lusterTemplates['stats_template']) !== '')
     ? $_lusterTemplates['stats_template']
-    : '<table>'
-    . '<tr><td>Opened</td><td>{stat_opened}</td></tr>'
-    . '<tr><td>Last updated</td><td>{stat_last_updated}</td></tr>'
-    . '<tr><td>Members</td><td>{stat_approved} ({stat_pending} pending)</td></tr>'
-    . '<tr><td>Newest</td><td>{stat_newmembers}</td></tr>'
-    . '{if_approved_by}<tr><td>Approved by</td><td>{approved_by}</td></tr>{/if_approved_by}'
-    . '</table>';
+    : ListingSettingsRepo::defaultStatsTemplate();
 
 // Allow an inline override set before require (e.g. from the customizer-generated code).
 if (isset($luster_stats_template) && trim((string) $luster_stats_template) !== '') {
@@ -220,6 +214,8 @@ $_lusterHtml = str_replace(
     ],
     $_lusterTemplate,
 );
+
+$_lusterHtml .= \Luster\Core\View::attribution();
 
 if ($luster_return ?? false) {
     return $_lusterHtml;

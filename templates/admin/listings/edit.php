@@ -1,5 +1,6 @@
 <?php
 use Luster\Core\View;
+use Luster\Repositories\ListingSettingsRepo;
 /** @var \Luster\Models\Listing    $listing */
 /** @var string                       $error */
 /** @var string                       $success */
@@ -467,7 +468,7 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
       <div class="pc-section">
         <div class="pc-section-label">Members List</div>
         <div class="form-group">
-          <textarea id="members_template" name="members_template" class="form tpl-textarea" spellcheck="false"><?= View::e($templates['members_template'] ?? '<li><a href="{fan_url}">{fan_name}</a> - {fan_country}</li>') ?></textarea>
+          <textarea id="members_template" name="members_template" class="form tpl-textarea" spellcheck="false"><?= View::e($templates['members_template'] ?? ListingSettingsRepo::defaultMembersTemplate()) ?></textarea>
         </div>
         <div class="tpl-reset-row">
           <button type="button" class="btn btn-quaternary btn-sm btn-tpl-reset" data-target="members_template">Reset to Default</button>
@@ -486,12 +487,7 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
 
         <div class="pc-section-label">Statistics</div>
         <div class="form-group">
-          <textarea id="stats_template" name="stats_template" class="form tpl-textarea tpl-textarea-lg" spellcheck="false"><?= View::e($templates['stats_template'] ?? '<div><b>Opened:</b> {stat_opened}<br>
-<b>Updated:</b> {stat_last_updated}<br>
-<b>Fans:</b> {stat_approved} (+ {stat_pending} pending)<br>
-<b>Newest Fan:</b> {stat_newmembers}<br>
-<b>Growth:</b> {stat_growth}{if_approved_by}<br>
-<b>Approved by:</b> {approved_by}{/if_approved_by}</div>') ?></textarea>
+          <textarea id="stats_template" name="stats_template" class="form tpl-textarea tpl-textarea-lg" spellcheck="false"><?= View::e($templates['stats_template'] ?? ListingSettingsRepo::defaultStatsTemplate()) ?></textarea>
         </div>
         <div class="tpl-reset-row">
           <button type="button" class="btn btn-ghost btn-sm btn-tpl-reset" data-target="stats_template">Reset to Default</button>
@@ -575,7 +571,11 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
   </div>
 </form>
 
-<script type="application/json" id="luster-tpl-defaults">{"members_template":"<li><a href=\"{fan_url}\">{fan_name}<\/a> - {fan_country}<\/li>","affiliates_section_template":"{if_affiliates}<ul>\n{each_affiliate}<li><a href=\"{aff_url}\" target=\"_blank\" title=\"{aff_name}\">{aff_image_tag}<\/a><\/li>{\/each_affiliate}\n<\/ul>{\/if_affiliates}","stats_template":"<div>\n<b>Opened:<\/b> {stat_opened}<br>\n<b>Updated:<\/b> {stat_last_updated}<br>\n<b>Fans:<\/b> {stat_approved} (+ {stat_pending} pending)<br>\n<b>Newest Fan:<\/b> {stat_newmembers}<br>\n<b>Growth:<\/b> {stat_growth}{if_approved_by}<br>\n<b>Approved by:<\/b> {approved_by}{\/if_approved_by}\n<\/div>"}</script>
+<script type="application/json" id="luster-tpl-defaults"><?= json_encode([
+    'members_template'           => ListingSettingsRepo::defaultMembersTemplate(),
+    'affiliates_section_template'=> '{if_affiliates}<ul>' . "\n" . '{each_affiliate}<li><a href="{aff_url}" target="_blank" title="{aff_name}">{aff_image_tag}</a></li>{/each_affiliate}' . "\n" . '</ul>{/if_affiliates}',
+    'stats_template'             => ListingSettingsRepo::defaultStatsTemplate(),
+], JSON_HEX_TAG | JSON_UNESCAPED_UNICODE) ?></script>
 </div><!-- /#tab-templates -->
 <!-- ──── TAB: ADDITIONAL FIELDS ─────────────────────────────────────── -->
 <div id="tab-fields" class="tabs-panel">

@@ -161,6 +161,8 @@ $_lusterHtml = ListingRowRenderer::renderTemplate(
     $_lusterCategoryName !== '' ? [$_lusterListing->id => $_lusterCategoryName] : [],
 );
 
+$_lusterHtml .= \Luster\Core\View::attribution();
+
 // ---------------------------------------------------------------------------
 // 5. Return or echo
 // ---------------------------------------------------------------------------

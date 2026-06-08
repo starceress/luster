@@ -141,6 +141,8 @@ $_lusterHtml = $_lusterApp->getView()->render('default/addons/kim/reset.php', [
     'link_update' => $_lusterLinkUpdate,
 ]);
 
+$_lusterHtml .= \Luster\Core\View::attribution();
+
 if ($luster_return ?? false) {
     return $_lusterHtml;
 }

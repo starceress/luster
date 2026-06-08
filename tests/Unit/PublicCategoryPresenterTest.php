@@ -144,7 +144,9 @@ final class PublicCategoryPresenterTest extends TestCase
             browseMode: false, browseShowAll: false,
         );
 
+        self::assertStringContainsString('<div class="fl-category-nav"', $result['html']);
         self::assertStringContainsString('fl-category-nav', $result['html']);
+        self::assertStringNotContainsString('<nav', $result['html']);
     }
 
     // -----------------------------------------------------------------------

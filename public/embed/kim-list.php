@@ -175,6 +175,8 @@ if ($_lusterSubjectId > 0) {
     ]);
 }
 
+$_lusterHtml .= \Luster\Core\View::attribution();
+
 if ($luster_return ?? false) {
     return $_lusterHtml;
 }

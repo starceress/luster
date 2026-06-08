@@ -18,18 +18,18 @@ use Luster\Support\FormFieldBuilder;
 use Luster\Support\SuccessRenderer;
 
 /**
- * Public fan code submission — allows fans to submit code images for review.
+ * Public fan code submission â€” allows fans to submit code images for review.
  *
  * Routes:
- *   GET  /codes/submit/{id}  — show submission form
- *   POST /codes/submit/{id}  — process submission (stores as pending), redirects to host page
+ *   GET  /codes/submit/{id}  â€” show submission form
+ *   POST /codes/submit/{id}  â€” process submission (stores as pending), redirects to host page
  */
 final class CodesSubmitController
 {
     /** Allowed MIME types for submitted code images. */
     private const ALLOWED_MIME = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
 
-    /** Maximum upload size per file (200 KB — tighter limit for fan submissions). */
+    /** Maximum upload size per file (200 KB â€” tighter limit for fan submissions). */
     private const MAX_SIZE = 204_800;
 
     public function __construct(private readonly Application $app) {}
@@ -87,7 +87,7 @@ final class CodesSubmitController
         $f = $this->app->getFormFieldBuilder()->build([
             ['type' => 'file',  'name' => 'code_image',      'id' => 'code-image',  'label' => 'Upload Code',         'required' => true,  'attrs' => ['accept' => 'image/jpeg,image/png,image/gif,image/webp']],
             ['type' => 'text',  'name' => 'submitter_name',  'id' => 'sub-name',    'label' => 'Name (optional)',      'required' => false, 'value' => (string) ($old['submitter_name']  ?? ''), 'attrs' => ['maxlength' => '150', 'autocomplete' => 'name']],
-            ['type' => 'email', 'name' => 'submitter_email', 'id' => 'sub-email',   'label' => 'Email',               'required' => true,  'value' => (string) ($old['submitter_email'] ?? ''), 'attrs' => ['maxlength' => '255', 'autocomplete' => 'email'], 'hint' => 'Required — used only to notify you when your code is approved.'],
+            ['type' => 'email', 'name' => 'submitter_email', 'id' => 'sub-email',   'label' => 'Email',               'required' => true,  'value' => (string) ($old['submitter_email'] ?? ''), 'attrs' => ['maxlength' => '255', 'autocomplete' => 'email'], 'hint' => 'Required â€” used only to notify you when your code is approved.'],
             ['type' => 'url',   'name' => 'submitter_url',   'id' => 'sub-url',     'label' => 'Website (optional)',   'required' => false, 'value' => (string) ($old['submitter_url']   ?? ''), 'attrs' => ['maxlength' => '255', 'placeholder' => 'https://', 'autocomplete' => 'url'], 'hint' => 'Displayed as a link on your donated code.'],
             ['type' => 'text',  'name' => 'captcha',         'id' => 'captcha',     'label' => 'Captcha: ' . $captchaQuestion, 'required' => true, 'attrs' => ['maxlength' => '10', 'autocomplete' => 'off']],
         ], $wrapperTpl);
@@ -96,9 +96,9 @@ final class CodesSubmitController
             'listing'      => $listing,
             'listing_name' => $listingName,
             'listing_url'  => $listingUrl,
-            'page_title'   => 'Submit a Code — ' . $listingName,
+            'page_title'   => 'Submit a Code â€” ' . $listingName,
             'base_url'     => $baseUrl,
-            'theme_path'   => $baseUrl . '/assets/default',
+            'theme_path'   => $baseUrl . '/assets/css/default/',
             'form_action'  => $baseUrl . '/codes/submit/' . $listingId,
             'csrf_token'   => $this->app->getCSRF()->token(),
             'errors'       => htmlspecialchars($error, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),
@@ -153,7 +153,7 @@ final class CodesSubmitController
             return Response::redirect($submitUrl);
         }
 
-        // Honeypot — bots fill the hidden field; humans leave it blank
+        // Honeypot â€” bots fill the hidden field; humans leave it blank
         if ((string) $request->post('website_confirm', '') !== '') {
             $session->remove('lstr_embed_return_to');
             $session->set('lstr_flash_success_html', SuccessRenderer::render('', 'code-submitted'));

@@ -156,6 +156,8 @@ $_lusterHtml = $_lusterApp->getView()->render('default/addons/kim/signup.php', [
     'link_list'   => $_lusterLinkList,
 ]);
 
+$_lusterHtml .= \Luster\Core\View::attribution();
+
 if ($luster_return ?? false) {
     return $_lusterHtml;
 }

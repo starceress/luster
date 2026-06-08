@@ -15,9 +15,9 @@ declare(strict_types=1);
 
 use Luster\Core\View;
 ?>
-<div>
+<div class="fl-embed fl-embed--remove">
   <?php if ($errors !== ''): ?>
-    <div><?= $errors ?></div>
+    <div class="fl-errors"><?= $errors ?></div>
   <?php endif; ?>
 
   <p class="fl-hint">
@@ -41,8 +41,8 @@ use Luster\Core\View;
 
     <?= $f['captcha_answer'] ?>
 
-    <div class="fl-actions">
-      <button type="submit">Remove Information</button>
+    <div class="fl-form-actions">
+      <button type="submit" class="fl-submit">Remove Information</button>
       <button type="reset">Clear</button>
     </div>
   </form>

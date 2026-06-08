@@ -23,19 +23,19 @@ use Luster\Support\FormFieldBuilder;
 use Luster\Support\SuccessRenderer;
 
 /**
- * Fan password reset — allows fans to recover access when they forget their password.
+ * Fan password reset â€” allows fans to recover access when they forget their password.
  *
- * GET  /reset/{id}           — email entry form
- * POST /reset/{id}           — sends reset email, redirects to host page (prevents enumeration)
- * GET  /reset/{id}/confirm   — new password form (validates token from ?token= query param)
- * POST /reset/{id}/confirm   — applies new password, consumes token, redirects to host page
+ * GET  /reset/{id}           â€” email entry form
+ * POST /reset/{id}           â€” sends reset email, redirects to host page (prevents enumeration)
+ * GET  /reset/{id}/confirm   â€” new password form (validates token from ?token= query param)
+ * POST /reset/{id}/confirm   â€” applies new password, consumes token, redirects to host page
  *
  * Security properties:
  *  - CSRF token on all POST forms (validated by CsrfMiddleware)
  *  - Honeypot on the email entry form
  *  - Arithmetic CAPTCHA on the email entry form
  *  - Rate-limited per IP (5/hr) on both POST actions
- *  - Token: bin2hex(random_bytes(32)) — 256 bits of entropy
+ *  - Token: bin2hex(random_bytes(32)) â€” 256 bits of entropy
  *  - Only the SHA-256 hash is stored in the DB; the raw token travels only in email
  *  - Token expiry: 1 hour
  *  - Email enumeration prevented: always flashes the same neutral message regardless of outcome
@@ -91,7 +91,7 @@ final class ResetController
             return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $baseUrl . '/reset/' . $listingId);
         }
 
-        // Honeypot — silent reject
+        // Honeypot â€” silent reject
         if ((string) $request->post('website_confirm', '') !== '') {
             $session->remove('lstr_embed_return_to');
             $session->set('lstr_flash_success_html', SuccessRenderer::render('', 'reset-sent'));
@@ -114,10 +114,10 @@ final class ResetController
                        ? rtrim((string) $listing->url, '/') . '/' . ltrim($formPageName, '/')
                        : $baseUrl . '/reset/' . $listingId;
 
-        // Captcha — redirect with flash on failure so the form re-renders with a fresh question
+        // Captcha â€” redirect with flash on failure so the form re-renders with a fresh question
         if (!Captcha::validate((string) $request->post('captcha_answer', ''), 'reset')) {
             $rateLimit->hitDefault($ip, RateLimit::ACTION_PUBLIC_RESET);
-            $session->set('lstr_flash_error', 'Incorrect answer — please try again.');
+            $session->set('lstr_flash_error', 'Incorrect answer â€” please try again.');
             $session->set('lstr_flash_old_email', $email);
             return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $formUrl);
         }
@@ -134,7 +134,7 @@ final class ResetController
 
         $rateLimit->hitDefault($ip, RateLimit::ACTION_PUBLIC_RESET);
 
-        // Blacklist check — silently skip sending if this address is blocked.
+        // Blacklist check â€” silently skip sending if this address is blocked.
         // Always redirect with the same neutral message so the block is not revealed.
         if ((new BlacklistRepo($this->app->getDatabase()))->isBlocked($email)) {
             $session->remove('lstr_embed_return_to');
@@ -143,14 +143,14 @@ final class ResetController
             return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $formUrl);
         }
 
-        // Look up the member — only send email if they exist AND are approved
+        // Look up the member â€” only send email if they exist AND are approved
         $memberRepo = new MemberRepo($this->app->getDatabase(), $this->app->getConfig());
         $member     = $memberRepo->getByEmail($listing->dbprefix, $email);
 
         if ($member !== null && $member->approved) {
             $resetRepo = new FanPasswordResetRepo($this->app->getDatabase());
 
-            // One token at a time — delete any existing token for this email+fanlisting
+            // One token at a time â€” delete any existing token for this email+fanlisting
             $resetRepo->deleteByEmail($listingId, $email);
 
             // Generate token
@@ -186,7 +186,7 @@ final class ResetController
             }
         }
 
-        // Always flash the same neutral message and redirect to host page — never reveal whether the email was found
+        // Always flash the same neutral message and redirect to host page â€” never reveal whether the email was found
         $session->remove('lstr_embed_return_to');
         $successTpl = $settingsRepo->getSuccessTemplate($listingId) ?? '';
         $session->set('lstr_flash_success_html', SuccessRenderer::render($successTpl, 'reset-sent'));
@@ -300,7 +300,7 @@ final class ResetController
             ['password' => password_hash($newPassword, PASSWORD_ARGON2ID)],
         );
 
-        // Consume the token — one-time use
+        // Consume the token â€” one-time use
         $resetRepo->deleteByToken(hash('sha256', $rawToken));
         $rateLimit->clear($ip, RateLimit::ACTION_PUBLIC_RESET);
 
@@ -345,7 +345,7 @@ final class ResetController
                 : '',
             'f'            => $f,
             'base_url'     => $baseUrl,
-            'theme_path'   => $baseUrl . '/assets/default/',
+            'theme_path'   => $baseUrl . '/assets/css/default/',
         ]);
 
         return Response::html($html);
@@ -380,7 +380,7 @@ final class ResetController
             'token_valid'  => $rawToken !== '',
             'f'            => $f,
             'base_url'     => $baseUrl,
-            'theme_path'   => $baseUrl . '/assets/default/',
+            'theme_path'   => $baseUrl . '/assets/css/default/',
         ]);
 
         return Response::html($html);

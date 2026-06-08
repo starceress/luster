@@ -404,6 +404,8 @@ if ($_lusterCStatsTemplate !== null) {
         $_lusterCStatsTemplate,
     );
 
+    $_lusterHtml .= \Luster\Core\View::attribution();
+
     if ($luster_return ?? false) {
         return $_lusterHtml;
     }
@@ -474,5 +476,6 @@ ob_start();
 </div>
 <?php
 $_lusterHtml = ob_get_clean();
+$_lusterHtml .= \Luster\Core\View::attribution();
 
 return $_lusterHtml;

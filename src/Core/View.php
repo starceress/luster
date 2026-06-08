@@ -258,7 +258,16 @@ final class View
             throw new RuntimeException("Public template not found: {$path}");
         }
 
-        return $this->renderPhp($path, $data);
+        return $this->renderPhp($path, $data) . self::attribution();
+    }
+
+    /**
+     * Returns the "Powered by Luster" attribution line appended to every embed fragment.
+     * Standalone embed files that do not go through renderFragment() append this manually.
+     */
+    public static function attribution(): string
+    {
+        return "\n" . '<p class="fl-powered-by"><small>Powered by <a href="https://luster.starceress.net/" rel="nofollow">Luster</a></small></p>';
     }
 
     // -----------------------------------------------------------------------

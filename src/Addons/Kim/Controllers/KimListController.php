@@ -15,8 +15,8 @@ use Luster\Repositories\SiteSettingsRepo;
 /**
  * Public KIM listing browser.
  *
- * GET /kim/list       — shows all fanlistings with interest counts
- * GET /kim/list/{id}  — shows approved KIM members for a specific fanlisting
+ * GET /kim/list       â€” shows all fanlistings with interest counts
+ * GET /kim/list/{id}  â€” shows approved KIM members for a specific fanlisting
  */
 final class KimListController
 {
@@ -50,7 +50,7 @@ final class KimListController
             'page_title'             => 'KIM List',
             'fanlistings_with_counts' => $fanlistingsWithCounts,
             'base_url'               => $baseUrl,
-            'theme_path'             => $baseUrl . '/assets/default/',
+            'theme_path'             => $baseUrl . '/assets/css/default/',
             'link_signup'            => null,
             'link_list_base'         => null,
         ]);
@@ -103,11 +103,11 @@ final class KimListController
         }
 
         return $this->renderKimPage('subject.php', [
-            'page_title'               => 'KIM — ' . $listing->subject,
+            'page_title'               => 'KIM â€” ' . $listing->subject,
             'listing'                  => $listing,
             'members'                  => $members,
             'base_url'                 => $baseUrl,
-            'theme_path'               => $baseUrl . '/assets/default/',
+            'theme_path'               => $baseUrl . '/assets/css/default/',
             'link_list'                => null,
             'link_signup'              => null,
             'kim_member_template_html' => $kimMemberHtml,
@@ -131,7 +131,7 @@ final class KimListController
             'listing'      => $data['listing'] ?? null,
             'listing_name' => $siteName,
             'listing_url'  => $baseUrl,
-            'theme_path'   => $baseUrl . '/assets/default/',
+            'theme_path'   => $baseUrl . '/assets/css/default/',
         ]);
 
         $layoutPath = $this->app->getBasePath() . '/templates/default/layout.php';

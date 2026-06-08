@@ -18,7 +18,7 @@ use Luster\Core\View;
  */
 
 ?>
-<div>
+<div class="fl-embed fl-embed--codes-submit">
   <p>
     Submit a code image for consideration. All submissions are reviewed before being published.
     Maximum file size: 200&nbsp;KB. Accepted formats: JPEG, PNG, GIF, WebP.
@@ -43,8 +43,8 @@ use Luster\Core\View;
     <?= $f['submitter_url'] ?>
     <?= $f['captcha'] ?>
 
-    <div class="fl-actions">
-      <button type="submit">Submit Code</button>
+    <div class="fl-form-actions">
+      <button type="submit" class="fl-submit">Submit Code</button>
     </div>
   </form>
 </div>

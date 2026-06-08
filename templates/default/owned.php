@@ -25,7 +25,7 @@ use Luster\Core\View;
  *   $theme_path          string
  */
 ?>
-<div>
+<div class="fl-embed fl-embed--owned">
 
   <?= $category_html ?? '' ?>
 
@@ -79,17 +79,17 @@ use Luster\Core\View;
       <?= $listing_html ?>
 
     <?php elseif (empty($listings)): ?>
-      <p>No listings to display.</p>
+      <p class="fl-empty">No listings to display.</p>
 
     <?php else: ?>
-      <ul>
+      <ul class="fl-listing-list">
         <?php foreach ($listings as $fl): ?>
-          <li>
-            <a href="<?= View::e($fl->url) ?>" target="_blank" rel="noopener noreferrer">
+          <li class="fl-listing-item">
+            <a class="fl-listing-title" href="<?= View::e($fl->url) ?>" target="_blank" rel="noopener noreferrer">
               <?= View::e($fl->title) ?>
             </a>
             <?php if ($fl->subject !== ''): ?>
-              &mdash; <?= View::e($fl->subject) ?>
+              <span class="fl-listing-subject"><?= View::e($fl->subject) ?></span>
             <?php endif; ?>
           </li>
         <?php endforeach; ?>

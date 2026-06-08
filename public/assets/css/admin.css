@@ -2492,7 +2492,7 @@ tr.lc-busy td:last-child { opacity: 1; }
 
 #ec-reset-btn { flex-shrink: 0; }
 
-@media (max-width: 640px) {
+@media (max-width: 640px) {side
   .ec-sel-row { flex-wrap: wrap; }
   .ec-sel-arrow, #ec-reset-btn { display: none; }
   .ec-sel-step { flex: 1 1 100%; }

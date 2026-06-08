@@ -1,186 +1,865 @@
 /*
- * Luster — public fl-* utility classes
+ * Luster — public fl-* embed stylesheet
  *
- * Loaded by: templates/default/layout.php (via $theme_path reference)
- * These classes are available for site owners to target in their own CSS.
- * They are intentionally minimal; all visual styling belongs in the site's
- * own stylesheet.
+ * This is Luster's canonical baseline stylesheet for all public embeds.
+ * Edit this file to customise embed styles, or add overrides in your own
+ * stylesheet loaded AFTER this one — the CSS cascade handles the rest.
+ *
+ * How to include:
+ *   Add the <link> tag once in your <head>, after your own stylesheet links:
+ *   <link rel="stylesheet" href="/path/to/luster/public/assets/css/default/style.css">
+ *   Then drop the PHP require snippet wherever you want the embed in your page.
+ *
+ * Loaded by: templates/default/layout.php (full-page rendering)
  */
 
-/* ── Category navigator ───────────────────────────────────────────────────── */
+/* ── CSS custom properties ──────────────────────────────────────────────────── */
+
+:root {
+  /* Typography — inherit from host by default */
+  --fl-font-family:   inherit;
+  --fl-font-size:     inherit;
+  --fl-color:         inherit;
+
+  /* Links */
+  --fl-link-color:    #0066cc;
+  --fl-link-hover:    #004499;
+
+  /* Borders and spacing */
+  --fl-border-color:  #d8d8d8;
+  --fl-radius:        3px;
+  --fl-gap:           0.5em;
+  --fl-row-gap:       0.6em;
+
+  /* Muted / secondary text */
+  --fl-muted:         #777;
+
+  /* Form inputs */
+  --fl-input-border:  #bbb;
+  --fl-input-bg:      #fff;
+  --fl-input-color:   #222;
+  --fl-input-padding: 0.35em 0.6em;
+  --fl-input-radius:  3px;
+
+  /* Status badge colours */
+  --fl-status-current-bg:  #e6f4ea;
+  --fl-status-current-fg:  #2d6a3f;
+  --fl-status-upcoming-bg: #fff8e1;
+  --fl-status-upcoming-fg: #7a5c00;
+  --fl-status-pending-bg:  #f3f3f3;
+  --fl-status-pending-fg:  #555;
+
+  /* Error / success feedback */
+  --fl-error-color:    #c00;
+  --fl-success-bg:     #f0fff4;
+  --fl-success-border: #6ccf8a;
+}
+
+/* ── Per-embed root wrapper ──────────────────────────────────────────────────── */
+
+.fl-embed {
+  /* Intentionally empty — inherits font, color, line-height from host.
+     Serves as a specificity anchor for scoped overrides:
+       .fl-embed .fl-member-list { ... }  (specificity 0,2,0) */
+}
+
+/* ── Global utilities ────────────────────────────────────────────────────────── */
+
+.fl-empty {
+  color: var(--fl-muted, #777);
+  font-style: italic;
+  margin: 0.5em 0;
+}
+
+.fl-hint {
+  color: var(--fl-muted, #777);
+  font-size: 0.9em;
+  margin: 0.25em 0 0.75em;
+}
+
+.fl-powered-by {
+  margin-top: 1em;
+  font-size: 0.8em;
+  opacity: 0.7;
+}
+
+.fl-pagination-wrap {
+  margin-top: 0.75em;
+}
+
+/* ── Category navigator ──────────────────────────────────────────────────────── */
 
 .fl-category-nav {
-    margin-bottom: 1em;
+  margin-bottom: 1em;
 }
 
 .fl-category-list {
-    list-style: none;
-    margin: 0;
-    padding: 0;
-    display: block;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: block;
 }
 
 .fl-category-list li {
-    display: list-item;
+  display: list-item;
 }
 
 .fl-category-list a[aria-current="page"] {
-    font-weight: bold;
-    text-decoration: none;
+  font-weight: bold;
+  text-decoration: none;
 }
 
 /* Child categories nested under a parent in list mode */
 .fl-category-list-children {
-    list-style: none;
-    margin: 0.25em 0 0 1em;
-    padding: 0;
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.25em 0.75em;
+  list-style: none;
+  margin: 0.25em 0 0 1em;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25em 0.75em;
 }
 
 /* Count badge next to each category name */
 .fl-category-count {
-    font-size: 0.85em;
-    opacity: 0.7;
+  font-size: 0.85em;
+  opacity: 0.7;
 }
 
 /* Dropdown form container */
 .fl-category-dropdown {
-    display: flex;
-    align-items: center;
-    gap: 0.5em;
-    flex-wrap: wrap;
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+  flex-wrap: wrap;
 }
 
 /* Back link in browse-by-category mode */
 .fl-category-back {
-    display: inline-block;
-    margin-bottom: 0.5em;
+  display: inline-block;
+  margin-bottom: 0.5em;
 }
 
 /* Spacing between back-link nav and the dropdown form that follows it */
 .fl-category-nav + .fl-category-nav {
-    margin-top: 0.75em;
+  margin-top: 0.75em;
 }
 
 /* Heading shown above category-filtered listing results */
 .fl-cat-heading {
-    margin: 0.5em 0 0.75em;
+  margin: 0.5em 0 0.75em;
 }
 
-/* ── Pagination ───────────────────────────────────────────────────────────── */
+/* ── Pagination ──────────────────────────────────────────────────────────────── */
 
-.fl-pagination {
-    display: flex;
-    gap: 0.25em;
-    list-style: none;
-    margin: 1em 0 0;
-    padding: 0;
+/* .fl-pagination is the legacy alias — keep for backward compat */
+.fl-pagination,
+.fl-pagination-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25em;
+  align-items: center;
+  list-style: none;
+  margin: 1em 0 0;
+  padding: 0;
 }
 
 .fl-pagination a,
-.fl-pagination span {
-    display: inline-block;
-    padding: 0.2em 0.5em;
+.fl-pagination span,
+.fl-pagination-nav a,
+.fl-pagination-nav span {
+  display: inline-block;
+  padding: 0.2em 0.5em;
 }
 
-/* ── Forms ────────────────────────────────────────────────────────────────── */
+.fl-page-current {
+  font-weight: bold;
+  text-decoration: none;
+}
+
+.fl-page-gap {
+  opacity: 0.65;
+}
+
+/* ── Forms ───────────────────────────────────────────────────────────────────── */
+
+.fl-form {
+  /* Intentionally empty — inherits from host */
+}
+
+.fl-form-fields {
+  margin-bottom: 0.5em;
+}
 
 .fl-field {
-    margin-bottom: 0.75em;
+  margin-bottom: 0.75em;
 }
 
 .fl-label {
-    display: block;
-    margin-bottom: 0.25em;
+  display: block;
+  margin-bottom: 0.25em;
 }
 
 .fl-input,
 .fl-select,
 .fl-textarea {
-    width: 100%;
-    box-sizing: border-box;
+  width: 100%;
+  box-sizing: border-box;
+  padding: var(--fl-input-padding, 0.35em 0.6em);
+  border: 1px solid var(--fl-input-border, #bbb);
+  border-radius: var(--fl-input-radius, 3px);
+  background: var(--fl-input-bg, #fff);
+  color: var(--fl-input-color, #222);
 }
 
+.fl-field-hint {
+  font-size: 0.85em;
+  color: var(--fl-muted, #777);
+  margin: 0.2em 0 0;
+}
+
+.fl-field-error {
+  font-size: 0.85em;
+  color: var(--fl-error-color, #c00);
+  margin: 0.2em 0 0;
+}
+
+/* Summary error block at top of form */
 .fl-errors {
-    color: #c00;
+  color: var(--fl-error-color, #c00);
+  margin: 0 0 0.75em;
 }
 
-/* ── Owned listing cards ─────────────────────────────────────────────────── */
+/* Single error line inside .fl-errors */
+.fl-error {
+  color: var(--fl-error-color, #c00);
+}
 
+/* .fl-actions is kept as a legacy alias for .fl-form-actions */
+.fl-actions,
+.fl-form-actions {
+  display: flex;
+  gap: var(--fl-gap, 0.5em);
+  align-items: center;
+  flex-wrap: wrap;
+  margin-top: 0.75em;
+}
+
+.fl-submit,
+.fl-btn {
+  /* Intentionally empty — inherit button styles from host */
+}
+
+.fl-btn-secondary {
+  /* Secondary ghost button variant — host can style */
+}
+
+.fl-captcha-row {
+  margin-bottom: 0.75em;
+}
+
+.fl-captcha-question {
+  font-weight: bold;
+  margin-bottom: 0.25em;
+}
+
+/* ── Success / result messages ───────────────────────────────────────────────── */
+
+.fl-success {
+  background: var(--fl-success-bg, #f0fff4);
+  border: 1px solid var(--fl-success-border, #6ccf8a);
+  border-radius: var(--fl-radius, 3px);
+  padding: 0.75em 1em;
+  margin: 0.5em 0;
+}
+
+.fl-success-body {
+  margin: 0;
+}
+
+.fl-success-actions {
+  margin-top: 0.5em;
+}
+
+/* ── Member list ─────────────────────────────────────────────────────────────── */
+
+.fl-member-controls {
+  margin-bottom: 0.75em;
+}
+
+.fl-member-sort {
+  font-size: 0.9em;
+  margin-bottom: 0.25em;
+}
+
+.fl-member-sort-link[aria-current] {
+  font-weight: bold;
+  text-decoration: none;
+}
+
+.fl-member-filter {
+  margin-bottom: 0.25em;
+}
+
+.fl-member-back {
+  display: inline-block;
+  margin-bottom: 0.5em;
+  font-size: 0.9em;
+}
+
+.fl-embed .fl-member-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.fl-embed .fl-member-item {
+  padding: 0.35em 0;
+  border-bottom: 1px solid var(--fl-border-color, #d8d8d8);
+  line-height: 1.5;
+}
+
+.fl-embed .fl-member-item:last-child {
+  border-bottom: none;
+}
+
+.fl-member-name {
+  font-weight: 500;
+}
+
+.fl-member-country {
+  font-size: 0.9em;
+  color: var(--fl-muted, #777);
+}
+
+.fl-member-email {
+  font-size: 0.9em;
+  color: var(--fl-muted, #777);
+}
+
+.fl-member-field {
+  font-size: 0.9em;
+}
+
+.fl-member-field-label {
+  font-weight: 500;
+}
+
+/* ── Stats (per-listing) ─────────────────────────────────────────────────────── */
+
+.fl-stats {
+  /* Outer wrapper — intentionally empty */
+}
+
+.fl-stats-table {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.25em 1em;
+}
+
+.fl-stat-row {
+  display: contents;
+}
+
+.fl-stat-label {
+  font-weight: 500;
+}
+
+.fl-stat-value {
+  /* Inherits from host */
+}
+
+.fl-stat-newmembers {
+  /* "Newest members" line */
+}
+
+.fl-stat-approved-by {
+  /* TFL/TAFL badge */
+}
+
+/* ── Affiliates ──────────────────────────────────────────────────────────────── */
+
+.fl-embed .fl-affiliate-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--fl-gap, 0.5em);
+  align-items: flex-start;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.fl-affiliate-item {
+  display: inline-block;
+}
+
+.fl-affiliate-image {
+  display: block;
+  max-width: 100%;
+}
+
+.fl-affiliate-name {
+  /* Text fallback when no image */
+}
+
+.fl-affiliates-section {
+  /* Full affiliates block wrapper */
+}
+
+.fl-affiliates-heading {
+  margin: 0 0 0.5em;
+}
+
+.fl-affiliates-empty {
+  color: var(--fl-muted, #777);
+  font-style: italic;
+}
+
+/* ── Owned listings ──────────────────────────────────────────────────────────── */
+
+/* Deprecated aliases: .fl-listing-cards, .fl-listing-card,
+   .fl-listing-card-image, .fl-listing-card-body */
+
+.fl-listing-list,
 .fl-listing-cards {
-    list-style: none;
-    margin: 0;
-    padding: 0;
+  list-style: none;
+  margin: 0;
+  padding: 0;
 }
 
+.fl-listing-item,
 .fl-listing-card {
-    display: flex;
-    gap: 0.75em;
-    align-items: flex-start;
-    padding: 0.75em 0;
-    border-bottom: 1px solid #e5e5e5;
+  display: flex;
+  gap: 0.75em;
+  align-items: flex-start;
+  padding: 0.75em 0;
+  border-bottom: 1px solid var(--fl-border-color, #d8d8d8);
 }
 
+.fl-listing-item:last-child,
 .fl-listing-card:last-child {
-    border-bottom: none;
+  border-bottom: none;
 }
 
+.fl-listing-image-wrap,
 .fl-listing-card-image {
-    flex-shrink: 0;
+  flex-shrink: 0;
 }
 
+.fl-listing-image-wrap img,
 .fl-listing-card-image img {
-    display: block;
-    max-width: 120px;
+  display: block;
+  max-width: 120px;
 }
 
+.fl-listing-image {
+  display: block;
+  max-width: 120px;
+}
+
+.fl-listing-body,
 .fl-listing-card-body {
-    flex: 1;
-    min-width: 0;
-    font-size: 0.9em;
-    line-height: 1.7;
+  flex: 1;
+  min-width: 0;
+  font-size: 0.9em;
+  line-height: 1.7;
 }
 
-/* ── Fan codes ────────────────────────────────────────────────────────────── */
-
-/* Flex row that wraps codes within a size group */
-.fl-codes-group {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.5em;
-    align-items: flex-start;
-    margin-bottom: 1em;
+.fl-listing-title {
+  font-weight: 600;
+  display: block;
 }
 
-/* Individual code item: image stacked above attribution */
-.fl-code {
-    display: inline-flex;
-    flex-direction: column;
-    align-items: center;
-    margin: 0;
-    padding: 0;
+.fl-listing-subject {
+  display: block;
+  font-style: italic;
 }
 
-.fl-code figcaption {
-    font-size: 0.85em;
-    margin-top: 0.2em;
-    text-align: center;
+.fl-listing-meta {
+  font-size: 0.85em;
+  color: var(--fl-muted, #777);
+  margin-top: 0.25em;
 }
 
-/* ── Collective stats ─────────────────────────────────────────────────────── */
+.fl-listing-category,
+.fl-listing-status,
+.fl-listing-date-opened,
+.fl-listing-date-updated,
+.fl-listing-member-count,
+.fl-listing-country-count {
+  display: inline;
+  margin-right: 0.75em;
+}
 
-.fl-collective-stats {}
+.fl-listing-item--current  .fl-listing-status { color: var(--fl-status-current-fg,  #2d6a3f); }
+.fl-listing-item--upcoming .fl-listing-status { color: var(--fl-status-upcoming-fg, #7a5c00); }
+.fl-listing-item--pending  .fl-listing-status { color: var(--fl-status-pending-fg,  #555);    }
 
+.fl-listing-section {
+  margin-bottom: 1.5em;
+}
+
+.fl-listing-section-heading {
+  margin: 0 0 0.5em;
+}
+
+.fl-listing-section-count {
+  font-size: 0.85em;
+  opacity: 0.7;
+}
+
+/* ── Joined listings ─────────────────────────────────────────────────────────── */
+
+.fl-joined-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.fl-joined-item {
+  display: flex;
+  gap: 0.75em;
+  align-items: flex-start;
+  padding: 0.5em 0;
+  border-bottom: 1px solid var(--fl-border-color, #d8d8d8);
+}
+
+.fl-joined-item:last-child {
+  border-bottom: none;
+}
+
+.fl-joined-image-wrap {
+  flex-shrink: 0;
+}
+
+.fl-joined-image {
+  display: block;
+  max-width: 80px;
+}
+
+.fl-joined-body {
+  flex: 1;
+  min-width: 0;
+  font-size: 0.9em;
+  line-height: 1.6;
+}
+
+.fl-joined-title {
+  font-weight: 600;
+  display: block;
+}
+
+.fl-joined-category,
+.fl-joined-date,
+.fl-joined-status {
+  display: block;
+  font-size: 0.85em;
+  color: var(--fl-muted, #777);
+}
+
+.fl-joined-section {
+  margin-bottom: 1.25em;
+}
+
+.fl-joined-section-heading {
+  margin: 0 0 0.4em;
+}
+
+/* ── Collective stats ────────────────────────────────────────────────────────── */
+
+/* Deprecated aliases: .fl-collective-stats, .fl-newest-owned,
+   .fl-random-owned, .fl-categories (collective context) */
+
+.fl-cstats,
+.fl-collective-stats {
+  /* Outer wrapper */
+}
+
+/* .fl-stats-grid is the legacy alias — kept for backward compat */
+.fl-cstats-grid,
 .fl-stats-grid {
-    display: grid;
-    grid-template-columns: auto 1fr;
-    gap: 0.25em 1em;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.25em 1em;
 }
 
-.fl-newest-owned,
-.fl-random-owned,
+.fl-cstats-label {
+  font-weight: 500;
+}
+
+.fl-cstats-value {
+  /* Inherits from host */
+}
+
+.fl-cstats-newest,
+.fl-newest-owned {
+  margin-top: 1em;
+}
+
+.fl-cstats-random,
+.fl-random-owned {
+  margin-top: 1em;
+}
+
+.fl-cstats-categories,
 .fl-categories {
-    margin-top: 1em;
+  margin-top: 1em;
+}
+
+/* ── Fan codes ───────────────────────────────────────────────────────────────── */
+
+/* Deprecated aliases: .fl-codes-group → .fl-code-list,
+   .fl-code → .fl-code-item, .fl-code-size-heading → .fl-code-group-label */
+
+.fl-codes {
+  /* Outermost codes container */
+}
+
+.fl-code-group {
+  margin-bottom: 1.5em;
+}
+
+.fl-code-group-label {
+  font-weight: 500;
+  margin: 0 0 0.5em;
+  font-size: 0.9em;
+}
+
+.fl-code-list,
+.fl-codes-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5em;
+  align-items: flex-start;
+  margin-bottom: 1em;
+  list-style: none;
+  padding: 0;
+}
+
+.fl-code-item,
+.fl-code {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  margin: 0;
+  padding: 0;
+}
+
+.fl-code-image {
+  display: block;
+}
+
+.fl-code-caption,
+.fl-code-item figcaption,
+.fl-code figcaption {
+  font-size: 0.85em;
+  margin-top: 0.2em;
+  text-align: center;
+}
+
+/* ── Updates feed ────────────────────────────────────────────────────────────── */
+
+.fl-updates {
+  /* Outer container */
+}
+
+.fl-update-item {
+  margin-bottom: 1.5em;
+  padding-bottom: 1.5em;
+  border-bottom: 1px solid var(--fl-border-color, #d8d8d8);
+}
+
+.fl-update-item:last-child {
+  border-bottom: none;
+  margin-bottom: 0;
+  padding-bottom: 0;
+}
+
+.fl-update-header {
+  margin-bottom: 0.35em;
+}
+
+.fl-update-title {
+  font-weight: 600;
+  font-size: 1.05em;
+  display: block;
+}
+
+.fl-update-date {
+  font-size: 0.85em;
+  color: var(--fl-muted, #777);
+}
+
+.fl-update-body {
+  line-height: 1.6;
+}
+
+.fl-update-meta {
+  font-size: 0.85em;
+  color: var(--fl-muted, #777);
+  margin-top: 0.4em;
+}
+
+.fl-update-categories {
+  display: inline;
+}
+
+.fl-update-category-tag {
+  margin-right: 0.3em;
+}
+
+/* ── KIM List ────────────────────────────────────────────────────────────────── */
+
+/* The old generic class names (.fl-wrap, .fl-list, .fl-list-item, .fl-title,
+   .fl-intro, .fl-count, .fl-count--empty, .fl-meta) used in older KIM templates
+   are NOT aliased here — they were collision risks with host-page CSS and were
+   never defined in this file. They are replaced by scoped .fl-kim-* names. */
+
+.fl-kim {
+  /* KIM outer wrapper */
+}
+
+.fl-kim-heading {
+  margin: 0 0 0.5em;
+}
+
+.fl-kim-intro {
+  margin-bottom: 0.75em;
+  font-size: 0.95em;
+}
+
+.fl-embed .fl-kim-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.fl-embed .fl-kim-item {
+  padding: 0.3em 0;
+  border-bottom: 1px solid var(--fl-border-color, #d8d8d8);
+}
+
+.fl-embed .fl-kim-item:last-child {
+  border-bottom: none;
+}
+
+.fl-kim-count {
+  font-size: 0.85em;
+  color: var(--fl-muted, #777);
+}
+
+.fl-kim-count--empty {
+  font-style: italic;
+}
+
+.fl-kim-meta {
+  margin-top: 0.75em;
+  font-size: 0.9em;
+  color: var(--fl-muted, #777);
+}
+
+.fl-kim-subject {
+  /* Per-fanlisting subject view wrapper */
+}
+
+.fl-kim-subject-heading {
+  margin: 0 0 0.5em;
+}
+
+.fl-embed .fl-kim-member-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.fl-embed .fl-kim-member-item {
+  padding: 0.3em 0;
+  border-bottom: 1px solid var(--fl-border-color, #d8d8d8);
+}
+
+.fl-embed .fl-kim-member-item:last-child {
+  border-bottom: none;
+}
+
+.fl-kim-member-name {
+  font-weight: 500;
+}
+
+/* ── Wishlist ────────────────────────────────────────────────────────────────── */
+
+/* Deprecated aliases:
+   .fl-wishlist (the <ul>) → .fl-wishlist-list
+   .fl-wishlist-img        → .fl-wishlist-image
+   .fl-wishlist-cat        → .fl-wishlist-category
+   .fl-wishlist-desc       → .fl-wishlist-description */
+
+.fl-wishlist-group {
+  margin-bottom: 1.25em;
+}
+
+.fl-wishlist-group-label {
+  margin: 0 0 0.4em;
+}
+
+.fl-wishlist-list,
+.fl-wishlist {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.fl-wishlist-item {
+  display: flex;
+  gap: 0.75em;
+  align-items: flex-start;
+  padding: 0.5em 0;
+  border-bottom: 1px solid var(--fl-border-color, #d8d8d8);
+}
+
+.fl-wishlist-item:last-child {
+  border-bottom: none;
+}
+
+.fl-wishlist-item--top    { /* Top-wanted modifier */ }
+.fl-wishlist-item--wanted { /* Wanted modifier */ }
+
+.fl-wishlist-item--granted {
+  opacity: 0.65;
+}
+
+.fl-wishlist-image,
+.fl-wishlist-img {
+  display: block;
+  flex-shrink: 0;
+  max-width: 80px;
+}
+
+.fl-wishlist-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.fl-wishlist-subject {
+  font-weight: 500;
+}
+
+.fl-wishlist-category,
+.fl-wishlist-cat {
+  font-size: 0.85em;
+  color: var(--fl-muted, #777);
+}
+
+.fl-wishlist-description,
+.fl-wishlist-desc {
+  font-size: 0.9em;
+  margin: 0.2em 0 0;
+}
+
+.fl-wishlist-type-badge {
+  display: inline-block;
+  font-size: 0.75em;
+  padding: 0.1em 0.4em;
+  border-radius: var(--fl-radius, 3px);
+  border: 1px solid currentColor;
+  margin-right: 0.35em;
+  vertical-align: middle;
 }

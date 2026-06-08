@@ -21,8 +21,8 @@ use Luster\Support\SuccessRenderer;
  * Public adoption application form.
  *
  * Routes (registered by AdoptionAddon::registerRoutes()):
- *   GET  /adopt/{id}  — renders the application form.
- *   POST /adopt/{id}  — validates input, inserts application, redirects to host page.
+ *   GET  /adopt/{id}  â€” renders the application form.
+ *   POST /adopt/{id}  â€” validates input, inserts application, redirects to host page.
  *
  * Only available when the listing has for_adoption=1 in lstr_fanlisting_settings
  * and the listing is not inactive.
@@ -78,7 +78,7 @@ final class AdoptPublicController
             return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $fallbackUrl);
         }
 
-        // Honeypot — silent reject; fake success so bots see no difference
+        // Honeypot â€” silent reject; fake success so bots see no difference
         if ((string) $request->post('website_confirm', '') !== '') {
             $session->remove('lstr_embed_return_to');
             $successTpl = (new ListingSettingsRepo($this->app->getDatabase()))->getSuccessTemplate($listingId) ?? '';
@@ -86,10 +86,10 @@ final class AdoptPublicController
             return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $fallbackUrl);
         }
 
-        // Captcha — redirect with flash on failure so the form re-renders with a fresh question
+        // Captcha â€” redirect with flash on failure so the form re-renders with a fresh question
         if (!Captcha::validate((string) $request->post('captcha_answer', ''), 'adopt')) {
             $rateLimit->hitDefault($ip, RateLimit::ACTION_PUBLIC_ADOPT);
-            $session->set('lstr_flash_error', 'Incorrect answer — please try again.');
+            $session->set('lstr_flash_error', 'Incorrect answer â€” please try again.');
             $session->set('lstr_flash_old', [
                 'name'    => trim((string) $request->post('name',    '')),
                 'email'   => trim((string) $request->post('email',   '')),
@@ -127,7 +127,7 @@ final class AdoptPublicController
             return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $fallbackUrl);
         }
 
-        // Duplicate check — one active application per email per listing
+        // Duplicate check â€” one active application per email per listing
         if ($adoptionRepo->hasPendingApplication($listingId, $email)) {
             $session->set('lstr_flash_error', 'An application for this listing from that email address is already pending review.');
             $session->set('lstr_flash_old', ['name' => $name, 'email' => $email, 'url' => $url, 'message' => $message]);
@@ -215,7 +215,7 @@ final class AdoptPublicController
                 : '',
             'f'            => $f,
             'base_url'     => $baseUrl,
-            'theme_path'   => $baseUrl . '/assets/default/',
+            'theme_path'   => $baseUrl . '/assets/css/default/',
         ]);
 
         return Response::html($html);

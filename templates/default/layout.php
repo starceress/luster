@@ -16,7 +16,7 @@ declare(strict_types=1);
  *   $page_title      — string, page-specific title (e.g. "Join", "Members")
  *   $base_url        — string, Luster base URL (no trailing slash)
  *   $theme_path      — string, web-accessible path to this theme's assets, trailing slash
- *                      e.g. http://localhost/luster/public/assets/default/
+ *                      e.g. http://localhost/luster/public/assets/css/default/
  *   $content         — string, rendered page content — output with <?= $content ?>
  *                      This is trusted server-rendered HTML; do NOT escape it.
  *

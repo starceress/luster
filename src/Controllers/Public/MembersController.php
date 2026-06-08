@@ -19,9 +19,9 @@ use Luster\Repositories\MemberRepo;
  *
  * GET /members/{id}[?sort=country|name&country=...&page=N]
  *
- * sort=country (default), no country param → country summary (countries + counts)
- * sort=country, country=X               → paginated members from that country
- * sort=name                             → paginated alphabetical list of all members
+ * sort=country (default), no country param â†’ country summary (countries + counts)
+ * sort=country, country=X               â†’ paginated members from that country
+ * sort=name                             â†’ paginated alphabetical list of all members
  */
 final class MembersController
 {
@@ -75,7 +75,7 @@ final class MembersController
             'show_search'     => true,
             'fields'          => $fields,
             'base_url'        => $baseUrl,
-            'theme_path'      => $baseUrl . '/assets/default/',
+            'theme_path'      => $baseUrl . '/assets/css/default/',
         ];
 
         // -----------------------------------------------------------------------
@@ -88,7 +88,7 @@ final class MembersController
             );
 
             $statsLine = $country . ': ' . $result['total'] . ' member(s)'
-                . ($result['pages'] > 1 ? ' — page ' . $page . ' of ' . $result['pages'] : '');
+                . ($result['pages'] > 1 ? ' â€” page ' . $page . ' of ' . $result['pages'] : '');
 
             $paginationHtml = Pagination::render(
                 $page, $result['pages'], $membersBase, $paginationTemplate,
@@ -148,7 +148,7 @@ final class MembersController
 
         $result = $memberRepo->paginate($listing->dbprefix, $page, $perPage, true, $sort);
 
-        $statsLine      = $result['total'] . ' member(s) — page ' . $page . ' of ' . $result['pages'];
+        $statsLine      = $result['total'] . ' member(s) â€” page ' . $page . ' of ' . $result['pages'];
         $paginationHtml = Pagination::render(
             $page, $result['pages'], $membersBase, $paginationTemplate, ['sort' => $sort],
         );
@@ -177,11 +177,11 @@ final class MembersController
      * Applies a per-member row template to a list of members and returns the
      * concatenated HTML string. Each member row replaces these tokens:
      *
-     *   {fan_name}    — member name (HTML-escaped)
-     *   {fan_url}     — member URL (HTML-escaped)
-     *   {fan_email}   — member email (HTML-escaped)
-     *   {fan_country} — member country (HTML-escaped)
-     *   {fan_{name}}  — additional field value (HTML-escaped), e.g. {fan_fave_song}
+     *   {fan_name}    â€” member name (HTML-escaped)
+     *   {fan_url}     â€” member URL (HTML-escaped)
+     *   {fan_email}   â€” member email (HTML-escaped)
+     *   {fan_country} â€” member country (HTML-escaped)
+     *   {fan_{name}}  â€” additional field value (HTML-escaped), e.g. {fan_fave_song}
      *
      * @param Member[]            $members
      * @param \Luster\Models\AdditionalField[] $fields

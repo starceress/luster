@@ -21,10 +21,10 @@ use Luster\Support\SuccessRenderer;
 /**
  * Public contact forms.
  *
- * GET  /contact/{id} — per-listing contact form
- * POST /contact/{id} — process per-listing contact submission
- * GET  /contact      — collective contact form
- * POST /contact      — process collective contact submission
+ * GET  /contact/{id} â€” per-listing contact form
+ * POST /contact/{id} â€” process per-listing contact submission
+ * GET  /contact      â€” collective contact form
+ * POST /contact      â€” process collective contact submission
  *
  * Security properties:
  *  - CSRF token validated by CsrfMiddleware before any action runs
@@ -106,7 +106,7 @@ final class ContactController
             return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $fallbackUrl);
         }
 
-        // Honeypot — silent reject; fake success so bots see no difference
+        // Honeypot â€” silent reject; fake success so bots see no difference
         if ((string) $request->post('website_confirm', '') !== '') {
             $session->remove('lstr_embed_return_to');
             $contactSentTpl = $settingsRepo->getContactSentTemplate($listingId) ?? '';
@@ -114,10 +114,10 @@ final class ContactController
             return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $fallbackUrl);
         }
 
-        // Captcha — redirect with flash on failure so the form re-renders with a fresh question
+        // Captcha â€” redirect with flash on failure so the form re-renders with a fresh question
         if (!Captcha::validate((string) $request->post('captcha_answer', ''), 'contact_listing')) {
             $rateLimit->hitDefault($ip, RateLimit::ACTION_PUBLIC_CONTACT);
-            $session->set('lstr_flash_error', 'Incorrect answer — please try again.');
+            $session->set('lstr_flash_error', 'Incorrect answer â€” please try again.');
             $session->set('lstr_flash_old', $this->collectOld($request));
             return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $fallbackUrl);
         }
@@ -241,7 +241,7 @@ final class ContactController
             return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $fallbackUrl);
         }
 
-        // Honeypot — silent reject; fake success so bots see no difference
+        // Honeypot â€” silent reject; fake success so bots see no difference
         if ((string) $request->post('website_confirm', '') !== '') {
             $session->remove('lstr_embed_return_to');
             $collectiveContactSentTpl = $siteRepo->get('collective_contact_sent_template') ?? '';
@@ -249,10 +249,10 @@ final class ContactController
             return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $fallbackUrl);
         }
 
-        // Captcha — redirect with flash on failure so the form re-renders with a fresh question
+        // Captcha â€” redirect with flash on failure so the form re-renders with a fresh question
         if (!Captcha::validate((string) $request->post('captcha_answer', ''), 'contact_collective')) {
             $rateLimit->hitDefault($ip, RateLimit::ACTION_PUBLIC_CONTACT);
-            $session->set('lstr_flash_error', 'Incorrect answer — please try again.');
+            $session->set('lstr_flash_error', 'Incorrect answer â€” please try again.');
             $session->set('lstr_flash_old', $this->collectOld($request));
             return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $fallbackUrl);
         }
@@ -347,7 +347,7 @@ final class ContactController
             ? ((new ListingSettingsRepo($this->app->getDatabase()))->getWrapperTemplate((int) $listing->id) ?? '')
             : ((new SiteSettingsRepo($this->app->getDatabase()))->get('collective_field_wrapper_template', '') ?? '');
 
-        // Subject select as raw_input — needs disabled placeholder that is pre-selected
+        // Subject select as raw_input â€” needs disabled placeholder that is pre-selected
         $subjOld     = (string) ($old['subject'] ?? '');
         $subjectHtml = '<select id="contact-subject" name="subject" required>'
                      . '<option value="" disabled' . ($subjOld === '' ? ' selected' : '') . '>Choose &mdash;</option>';
@@ -404,7 +404,7 @@ final class ContactController
         $config  = $this->app->getConfig();
         $baseUrl = $this->app->getBaseUrl();
 
-        $themePath = rtrim($baseUrl, '/') . '/assets/default';
+        $themePath = rtrim($baseUrl, '/') . '/assets/css/default/';
 
         return Response::html($view->renderPublic($template, array_merge($data, [
             'base_url'   => $baseUrl,

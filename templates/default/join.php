@@ -16,10 +16,10 @@ declare(strict_types=1);
 
 use Luster\Core\View;
 ?>
-<div>
+<div class="fl-embed fl-embed--join">
 
   <?php if ($errors !== ''): ?>
-    <div><?= $errors ?></div>
+    <div class="fl-errors"><?= $errors ?></div>
   <?php endif; ?>
 
   <form class="fl-form" method="POST" action="<?= View::e($form_action) ?>">
@@ -44,8 +44,8 @@ use Luster\Core\View;
 
     <?= $f['captcha_answer'] ?>
 
-    <div class="fl-actions">
-      <button type="submit">Join Fanlisting</button>
+    <div class="fl-form-actions">
+      <button type="submit" class="fl-submit">Join Fanlisting</button>
       <button type="reset">Clear</button>
     </div>
   </form>

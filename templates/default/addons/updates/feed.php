@@ -21,41 +21,50 @@ declare(strict_types=1);
 
 use Luster\Core\View;
 
-$_activeCat = $active_cat ?? '';
+$_activeCat   = $active_cat ?? '';
+$_embedClass  = ($is_collective ?? false) ? 'fl-embed--collective-updates' : 'fl-embed--updates';
 
 // When a custom updates_template has been rendered by the embed/controller, use it directly.
 if (isset($updates_template_html) && $updates_template_html !== null) {
-    echo $updates_template_html;
-    echo $pagination ?? '';
+    echo '<div class="fl-embed ' . $_embedClass . '">' . $updates_template_html . ($pagination ?? '') . '</div>';
     return;
 }
 ?>
-
+<div class="fl-embed <?= $_embedClass ?>">
 <?php if (empty($updates)): ?>
-  <p>No updates posted yet.</p>
+  <p class="fl-empty">No updates posted yet.</p>
 <?php else: ?>
 
+  <div class="fl-updates">
   <?php foreach ($updates as $u): ?>
-  <div>
-    <h2><?= View::e($u->title) ?></h2>
-    <p>
-      <time datetime="<?= View::e(substr($u->postedAt, 0, 10)) ?>"><?= View::e(date('F j, Y', strtotime($u->postedAt))) ?></time>
-      <?php if ($owner_name !== ''): ?>
-        &mdash; <?= View::e($owner_name) ?>
-      <?php endif; ?>
-    </p>
+  <div class="fl-update-item">
+    <div class="fl-update-header">
+      <h2 class="fl-update-title"><?= View::e($u->title) ?></h2>
+      <p class="fl-update-date">
+        <time datetime="<?= View::e(substr($u->postedAt, 0, 10)) ?>"><?= View::e(date('F j, Y', strtotime($u->postedAt))) ?></time>
+        <?php if ($owner_name !== ''): ?>
+          &mdash; <?= View::e($owner_name) ?>
+        <?php endif; ?>
+      </p>
+    </div>
     <?php if ($show_cats && !empty($u->categories())): ?>
-      <p>Category:
-        <?php foreach ($u->categories() as $_ci => $_cat): ?>
-          <?php if ($_ci > 0): ?>, <?php endif; ?>
-          <a href="<?= htmlspecialchars($feed_url . '?cat=' . rawurlencode($_cat), ENT_QUOTES, 'UTF-8') ?>"><?= View::e($_cat) ?></a>
-        <?php endforeach; ?>
+      <p class="fl-update-meta">
+        <span class="fl-update-categories">Category:
+          <?php foreach ($u->categories() as $_ci => $_cat): ?>
+            <?php if ($_ci > 0): ?>, <?php endif; ?>
+            <a class="fl-update-category-tag" href="<?= htmlspecialchars($feed_url . '?cat=' . rawurlencode($_cat), ENT_QUOTES, 'UTF-8') ?>"><?= View::e($_cat) ?></a>
+          <?php endforeach; ?>
+        </span>
       </p>
     <?php endif; ?>
-    <p><?= nl2br(View::e($u->body)) ?></p>
+    <div class="fl-update-body"><?= nl2br(View::e($u->body)) ?></div>
   </div>
   <?php endforeach; ?>
+  </div><!-- /.fl-updates -->
 
-  <?= $pagination ?? '' ?>
+  <?php if (($pagination ?? '') !== ''): ?>
+    <div class="fl-pagination-wrap"><?= $pagination ?></div>
+  <?php endif; ?>
 
 <?php endif; ?>
+</div>

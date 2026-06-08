@@ -349,6 +349,42 @@ final class ListingSettingsRepo
     }
 
     /**
+     * Default stats template used when no override is stored in the database.
+     *
+     * Shared by embed/stats.php (public fallback) and the admin per-listing
+     * template editor (pre-filled textarea so admins see the canonical default).
+     */
+    public static function defaultStatsTemplate(): string
+    {
+        return '<div class="fl-stats">'
+            . "\n" . '  <div class="fl-stats-table">'
+            . "\n" . '    <div class="fl-stat-row"><span class="fl-stat-label">Members:</span><span class="fl-stat-value">{stat_approved}</span></div>'
+            . "\n" . '    <div class="fl-stat-row"><span class="fl-stat-label">Opened:</span><span class="fl-stat-value">{stat_opened}</span></div>'
+            . "\n" . '    <div class="fl-stat-row"><span class="fl-stat-label">Last Updated:</span><span class="fl-stat-value">{stat_last_updated}</span></div>'
+            . "\n" . '    {if_approved_by}<div class="fl-stat-row fl-stat-approved-by"><span class="fl-stat-label">Listed at:</span><span class="fl-stat-value">{approved_by}</span></div>{/if_approved_by}'
+            . "\n" . '  </div>'
+            . "\n" . '</div>';
+    }
+
+    /**
+     * Default members row template used when no override is stored in the database.
+     *
+     * Shared by templates/default/members.php (public fallback) and the admin
+     * per-listing template editor (pre-filled textarea).
+     */
+    public static function defaultMembersTemplate(): string
+    {
+        return '<div class="fl-member-list">'
+            . "\n" . '{each_member}'
+            . "\n" . '<div class="fl-member-item">'
+            . "\n" . '  {if_fan_url}<a class="fl-member-name" href="{fan_url}" rel="noopener noreferrer">{fan_name}</a>{/if_fan_url}{if_no_fan_url}<span class="fl-member-name">{fan_name}</span>{/if_no_fan_url}'
+            . "\n" . '  {if_fan_country}<span class="fl-member-country">{fan_country}</span>{/if_fan_country}'
+            . "\n" . '</div>'
+            . "\n" . '{/each_member}'
+            . "\n" . '</div>';
+    }
+
+    /**
      * Translates legacy Enthusiast $$token$$ placeholders to Luster's {token} format.
      * Applied transparently at read time so imported templates work without manual editing.
      */

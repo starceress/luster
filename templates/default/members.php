@@ -21,64 +21,64 @@ declare(strict_types=1);
 
 use Luster\Core\View;
 ?>
-<div>
+<div class="fl-embed fl-embed--members">
   <?php if ($show_search ?? true): ?>
-  <p>
-    Sort by:
-    <?php
-      $allUrl     = View::e($members_base . '?sort=added');
-      $nameUrl    = View::e($members_base . '?sort=name');
-      $countryUrl = View::e($members_base . '?sort=country');
-    ?>
-    <?= $sort === 'added'   ? '<strong>View All</strong>' : '<a href="' . $allUrl    . '">View All</a>' ?> /
-    <?= $sort === 'name'    ? '<strong>Name</strong>'     : '<a href="' . $nameUrl   . '">Name</a>'    ?> /
-    <?= $sort === 'country' ? '<strong>Country</strong>'  : '<a href="' . $countryUrl . '">Country</a>' ?>
-  </p>
+  <div class="fl-member-controls">
+    <p class="fl-member-sort">
+      Sort by:
+      <?php
+        $allUrl     = View::e($members_base . '?sort=added');
+        $nameUrl    = View::e($members_base . '?sort=name');
+        $countryUrl = View::e($members_base . '?sort=country');
+      ?>
+      <?= $sort === 'added'   ? '<strong aria-current="page" class="fl-member-sort-link">View All</strong>' : '<a class="fl-member-sort-link" href="' . $allUrl    . '">View All</a>' ?> /
+      <?= $sort === 'name'    ? '<strong aria-current="page" class="fl-member-sort-link">Name</strong>'     : '<a class="fl-member-sort-link" href="' . $nameUrl   . '">Name</a>'    ?> /
+      <?= $sort === 'country' ? '<strong aria-current="page" class="fl-member-sort-link">Country</strong>'  : '<a class="fl-member-sort-link" href="' . $countryUrl . '">Country</a>' ?>
+    </p>
 
-  <?php if ($country !== ''): ?>
-    <p><a href="<?= View::e($members_base . '?sort=country') ?>">&larr; Back to countries</a></p>
-  <?php endif; ?>
+    <?php if ($country !== ''): ?>
+      <p class="fl-member-back"><a href="<?= View::e($members_base . '?sort=country') ?>">&larr; Back to countries</a></p>
+    <?php endif; ?>
+  </div>
   <?php endif; ?>
 
   <p class="fl-hint"><?= View::e($stats_line) ?></p>
 
   <?php if (!empty($country_summary)): ?>
     <!-- Country summary view -->
-    <ul>
+    <ul class="fl-member-list">
       <?php foreach ($country_summary as $row): ?>
-        <li>
-          <a href="<?= View::e($row['url']) ?>"><?= View::e($row['country']) ?></a>
-          (<?= (int) $row['fan_count'] ?>)
+        <li class="fl-member-item">
+          <a class="fl-member-name" href="<?= View::e($row['url']) ?>"><?= View::e($row['country']) ?></a>
+          <span class="fl-member-country">(<?= (int) $row['fan_count'] ?>)</span>
         </li>
       <?php endforeach; ?>
     </ul>
 
   <?php elseif (($members_html ?? null) !== null && $members_html !== ''): ?>
     <!-- Custom DB template member rows -->
-    <ul>
-      <?= $members_html ?>
-    </ul>
+    <?= $members_html ?>
     <?php if ($pagination !== ''): ?>
       <div class="fl-pagination-wrap"><?= $pagination ?></div>
     <?php endif; ?>
 
   <?php elseif (!empty($members)): ?>
     <!-- Member list view -->
-    <ul>
+    <ul class="fl-member-list">
       <?php foreach ($members as $member): ?>
-        <li>
+        <li class="fl-member-item">
           <?php if ($member->showurl && $member->url !== ''): ?>
-            <a href="<?= View::e($member->url) ?>"><?= View::e($member->name) ?></a>
+            <a class="fl-member-name" href="<?= View::e($member->url) ?>"><?= View::e($member->name) ?></a>
           <?php else: ?>
-            <?= View::e($member->name) ?>
+            <span class="fl-member-name"><?= View::e($member->name) ?></span>
           <?php endif; ?>
           <?php if ($member->country !== ''): ?>
-            - <?= View::e($member->country) ?>
+            <span class="fl-member-country"><?= View::e($member->country) ?></span>
           <?php endif; ?>
           <?php foreach ($fields as $field): ?>
             <?php $val = $member->additionalFields[$field->name] ?? ''; ?>
             <?php if ($val !== ''): ?>
-              <br><?= View::e($field->label) ?>: <?= View::e($val) ?>
+              <span class="fl-member-field"><span class="fl-member-field-label"><?= View::e($field->label) ?>:</span> <span class="fl-member-field-value"><?= View::e($val) ?></span></span>
             <?php endif; ?>
           <?php endforeach; ?>
         </li>
@@ -90,6 +90,6 @@ use Luster\Core\View;
     <?php endif; ?>
 
   <?php else: ?>
-    <p>No members to display yet.</p>
+    <p class="fl-empty">No members to display yet.</p>
   <?php endif; ?>
 </div>

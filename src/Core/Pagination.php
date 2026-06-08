@@ -22,11 +22,11 @@ final class Pagination
 {
     private const DEFAULT_TEMPLATE = <<<'HTML'
         {if_pages}
-        <nav class="fl-pagination-nav" aria-label="Pagination">
+        <div class="fl-pagination-nav fl-pagination" role="group" aria-label="Pagination">
           {if_prev}<a class="fl-page-prev" href="{prev_url}">&laquo; Prev</a>{/if_prev}
           {each_page}{if_current}<span class="fl-page-current">{page_label}</span>{/if_current}{if_linked}<a class="fl-page-link" href="{page_url}">{page_label}</a>{/if_linked}{if_gap}<span class="fl-page-gap">{page_label}</span>{/if_gap}{/each_page}
           {if_next}<a class="fl-page-next" href="{next_url}">Next &raquo;</a>{/if_next}
-        </nav>
+        </div>
         {/if_pages}
         HTML;
 

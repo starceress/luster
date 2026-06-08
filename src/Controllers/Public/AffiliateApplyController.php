@@ -23,8 +23,8 @@ use Luster\Support\SuccessRenderer;
 /**
  * Public affiliate application form.
  *
- * GET  /affiliate-apply/{id} — renders the application form for a listing.
- * POST /affiliate-apply/{id} — validates input, stores a pending application,
+ * GET  /affiliate-apply/{id} â€” renders the application form for a listing.
+ * POST /affiliate-apply/{id} â€” validates input, stores a pending application,
  *                              sends admin notification email, redirects.
  *
  * Security properties:
@@ -118,7 +118,7 @@ final class AffiliateApplyController
             return Response::redirect($formUrl);
         }
 
-        // Honeypot — silent reject; fake success so bots see no difference
+        // Honeypot â€” silent reject; fake success so bots see no difference
         if ((string) $request->post('website_confirm', '') !== '') {
             $session->remove('lstr_embed_return_to');
             $affApplySentTpl = $settingsRepo->getAffiliateApplySentTemplate($listingId) ?? '';
@@ -129,7 +129,7 @@ final class AffiliateApplyController
         // Captcha
         if (!Captcha::validate((string) $request->post('captcha_answer', ''), 'affiliate_apply')) {
             $rateLimit->hitDefault($ip, RateLimit::ACTION_PUBLIC_AFFILIATE_APPLY);
-            $session->set('lstr_flash_error', 'Incorrect answer — please try again.');
+            $session->set('lstr_flash_error', 'Incorrect answer â€” please try again.');
             $session->set('lstr_flash_old', $this->collectOld($request));
             return Response::redirect($formUrl);
         }
@@ -253,7 +253,7 @@ final class AffiliateApplyController
             return Response::redirect($formUrl);
         }
 
-        // Honeypot — silent reject; fake success so bots see no difference
+        // Honeypot â€” silent reject; fake success so bots see no difference
         if ((string) $request->post('website_confirm', '') !== '') {
             $session->remove('lstr_embed_return_to');
             $collectiveAffApplySentTpl = $siteRepo->get('collective_affiliate_apply_sent_template') ?? '';
@@ -264,7 +264,7 @@ final class AffiliateApplyController
         // Captcha
         if (!Captcha::validate((string) $request->post('captcha_answer', ''), 'affiliate_apply')) {
             $rateLimit->hitDefault($ip, RateLimit::ACTION_PUBLIC_AFFILIATE_APPLY);
-            $session->set('lstr_flash_error', 'Incorrect answer — please try again.');
+            $session->set('lstr_flash_error', 'Incorrect answer â€” please try again.');
             $session->set('lstr_flash_old', $this->collectOld($request));
             return Response::redirect($formUrl);
         }
@@ -365,7 +365,7 @@ final class AffiliateApplyController
             'listing_url'  => $siteUrl,
             'page_title'   => 'Affiliate Application',
             'base_url'     => $baseUrl,
-            'theme_path'   => $baseUrl . '/assets/default/',
+            'theme_path'   => $baseUrl . '/assets/css/default/',
             'form_action'  => $this->collectiveFormUrl($config, $baseUrl),
             'csrf_token'   => $this->app->getCSRF()->token(),
             'errors'       => $error,
@@ -416,7 +416,7 @@ final class AffiliateApplyController
             'listing'      => $listing,
             'listing_name' => (string) $listing->title,
             'listing_url'  => (string) $listing->url,
-            'page_title'   => 'Affiliate Application — ' . $listing->title,
+            'page_title'   => 'Affiliate Application â€” ' . $listing->title,
             'base_url'     => $this->app->getBaseUrl(),
             'theme_path'   => rtrim((string) $listing->url, '/') . '/' . ltrim((string) ($embedSettings['theme_path'] ?? 'theme'), '/'),
             'form_action'  => $formUrl,
@@ -555,7 +555,7 @@ final class AffiliateApplyController
             $mailer = new Mailer($config);
             $mailer->send($adminEmail, '', $subject, $body);
         } catch (\Exception) {
-            // Email failure is non-fatal — the application was already saved
+            // Email failure is non-fatal â€” the application was already saved
         }
     }
 

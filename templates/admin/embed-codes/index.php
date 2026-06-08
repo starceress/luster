@@ -270,6 +270,11 @@ $epSafe = View::e($ep);
     <span><strong>Before you start:</strong> most listing snippets need your <code>$luster_fanlisting_id</code>. That is the listing ID number shown in the URL when you edit the listing. Collective snippets, like owned listings and site stats, do not need one.</span>
   </div>
 
+  <div class="callout callout-info">
+    <?= View::icon('palette') ?>
+    <span><strong>Baseline CSS:</strong> snippets include Luster's editable stylesheet at <code>/assets/css/default/style.css</code>. Add it once per host page and edit that file to make embed controls match your site.</span>
+  </div>
+
   <div class="tabs-wrap" id="ec-tabs-wrap">
     <div class="tabs" id="ec-tabs" role="tablist" aria-label="Embed codes sections">
       <button class="tabs-btn active" data-ec-tab="main" role="tab"

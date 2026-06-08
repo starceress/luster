@@ -62,7 +62,7 @@ Options -Indexes -MultiViews
     # Set this to the URL path of the public/ directory relative to the domain root.
     # If your document root points directly at public/: RewriteBase /
     # If Luster lives in a subdirectory: RewriteBase /that/subdirectory/public/
-    RewriteBase /
+    RewriteBase /luster/public/
 
     # Serve real files and directories directly (CSS, JS, images, etc.)
     RewriteCond %{REQUEST_FILENAME} -f [OR]

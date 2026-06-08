@@ -17,9 +17,9 @@ declare(strict_types=1);
 
 use Luster\Core\View;
 ?>
-<div>
+<div class="fl-embed fl-embed--reset">
   <?php if ($errors !== ''): ?>
-    <div><?= $errors ?></div>
+    <div class="fl-errors"><?= $errors ?></div>
   <?php endif; ?>
 
   <?php if (!$token_valid): ?>
@@ -37,8 +37,8 @@ use Luster\Core\View;
       <?= $f['new_password'] ?>
       <?= $f['new_password_confirm'] ?>
 
-      <div class="fl-actions">
-        <button type="submit">Update Password</button>
+      <div class="fl-form-actions">
+        <button type="submit" class="fl-submit">Update Password</button>
       </div>
     </form>
   <?php endif; ?>

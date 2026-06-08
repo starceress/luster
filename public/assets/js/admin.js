@@ -1543,6 +1543,7 @@ document.addEventListener('change', function (e) {
 
   var embedPath = root.dataset.embedPath || '';
   var adminBase = (root.dataset.baseUrl || '').replace(/\/$/, '');
+  var baselineCss = adminBase ? adminBase + '/assets/css/default/style.css' : '';
   var listings  = JSON.parse(root.dataset.listings || '[]');
   var items     = JSON.parse(root.dataset.items    || '{}');
 
@@ -1734,7 +1735,13 @@ document.addEventListener('change', function (e) {
   };
 
   function generateCode(type, vals) {
-    var lines = ['<?php'];
+    var lines = [];
+    if (baselineCss) {
+      lines.push('<!-- Luster baseline embed CSS. Add once in your <head>, after your own stylesheet links. Edit public/assets/css/default/style.css or override with your own rules. -->');
+      lines.push('<link rel="stylesheet" href="' + baselineCss + '">');
+      lines.push('');
+    }
+    lines.push('<?php');
     // Listing ID
     var needsId = ['join','members','stats','update','remove','reset','aff-apply','codes','codes-submit','contact','updates','adopt'];
     if (needsId.indexOf(type) !== -1) {

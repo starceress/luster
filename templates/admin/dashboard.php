@@ -197,9 +197,7 @@ $growthDiff          = $growth_this_month - $growth_last_month;
       Getting Started
     </div>
     <p class="onboard-callout-body">
-      Migrating from Enthusiast or Listing Admin? Use the Import Data Wizard brings in your listings, members,
-      affiliates, and images in minutes. Same-database Enthusiast installs are already readable &mdash;
-      no migration needed.
+      Migrating from Enthusiast, Listing Admin, Fanatically, CodeSort, or FanUpdate? Use the Import Data Wizard brings in your listings, members, affiliates, and images in minutes. 
     </p>
       <a href="<?= $b ?>/admin/import" class="btn btn-primary btn-sm">Open Import Data Wizard &rarr;</a> 
       <a href="<?= $b ?>/admin/listings/add" class="btn btn-quaternary btn-sm">Add First Listing Manually&rarr;</a>

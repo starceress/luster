@@ -26,20 +26,20 @@ use Luster\Core\View;
  *   $theme_path          string
  */
 
-/** Renders one JoinedListing item */
+/** Renders one JoinedListing item (plain link or image) */
 $_renderItem = static function ($fl) use ($uploads_url): void {
     if ($fl->image !== null && $fl->image !== '') {
         echo '<a href="' . View::e($fl->url) . '" target="_blank" rel="noopener noreferrer">';
-        echo '<img src="' . View::e($uploads_url . '/' . $fl->image) . '" alt="' . View::e($fl->name) . '">';
+        echo '<img class="fl-joined-image" src="' . View::e($uploads_url . '/' . $fl->image) . '" alt="' . View::e($fl->name) . '">';
         echo '</a>';
     } else {
-        echo '<a href="' . View::e($fl->url) . '" target="_blank" rel="noopener noreferrer">';
+        echo '<a class="fl-joined-title" href="' . View::e($fl->url) . '" target="_blank" rel="noopener noreferrer">';
         echo View::e($fl->name);
         echo '</a>';
     }
 };
 ?>
-<div>
+<div class="fl-embed fl-embed--joined">
 
   <?= $category_html ?? '' ?>
 
@@ -80,13 +80,13 @@ $_renderItem = static function ($fl) use ($uploads_url): void {
     <?php elseif ($current_category === 'all' || (!empty($grouped) && $current_category === '')): ?>
       <?php /* show-all mode: grouped by category */ ?>
       <?php if (empty($grouped)): ?>
-        <p>No listings to display.</p>
+        <p class="fl-empty">No listings to display.</p>
       <?php else: ?>
         <?php foreach ($grouped as $catName => $items): ?>
-          <h3><?= View::e($catName) ?></h3>
-          <ul>
+          <h3 class="fl-cat-heading"><?= View::e($catName) ?></h3>
+          <ul class="fl-joined-list">
             <?php foreach ($items as $fl): ?>
-              <li><?php $_renderItem($fl); ?></li>
+              <li class="fl-joined-item"><?php $_renderItem($fl); ?></li>
             <?php endforeach; ?>
           </ul>
         <?php endforeach; ?>
@@ -95,17 +95,17 @@ $_renderItem = static function ($fl) use ($uploads_url): void {
     <?php elseif ($current_category !== '' && $current_category !== 'all'): ?>
       <?php /* Single-category mode */ ?>
       <?php if (empty($listings)): ?>
-        <p>No listings in this category.</p>
+        <p class="fl-empty">No listings in this category.</p>
       <?php else: ?>
-        <ul>
+        <ul class="fl-joined-list">
           <?php foreach ($listings as $fl): ?>
-            <li><?php $_renderItem($fl); ?></li>
+            <li class="fl-joined-item"><?php $_renderItem($fl); ?></li>
           <?php endforeach; ?>
         </ul>
       <?php endif; ?>
 
     <?php else: ?>
-      <p>No listings to display.</p>
+      <p class="fl-empty">No listings to display.</p>
     <?php endif; ?>
 
   <?php endif; ?>

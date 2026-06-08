@@ -21,56 +21,58 @@ $_linkUpdate = ($link_update !== null && $link_update !== '') ? $link_update : n
 $_linkReset  = ($link_reset  !== null && $link_reset  !== '') ? $link_reset  : null;
 $_linkList   = ($link_list   !== null && $link_list   !== '') ? $link_list   : null;
 ?>
-<div class="fl-wrap">
-  <h2 class="fl-title">KIM List — Sign Up</h2>
-  <p class="fl-intro">
-    KIM (Keep In Mind) is an adoption interest registry. If a fanlisting owner might
-    someday give up their listing, you can sign up here to express interest in adopting it.
-  </p>
+<div class="fl-embed fl-embed--kim-signup">
+  <div class="fl-kim">
+    <h2 class="fl-kim-heading">KIM List &mdash; Sign Up</h2>
+    <p class="fl-kim-intro">
+      KIM (Keep In Mind) is an adoption interest registry. If a fanlisting owner might
+      someday give up their listing, you can sign up here to express interest in adopting it.
+    </p>
 
-  <?php if ($errors !== ''): ?>
-    <div class="fl-errors"><?= $errors ?></div>
-  <?php endif; ?>
+    <?php if ($errors !== ''): ?>
+      <div class="fl-errors"><?= $errors ?></div>
+    <?php endif; ?>
 
-  <form class="fl-form" method="POST" action="<?= View::e($form_action) ?>">
-    <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
+    <form class="fl-form" method="POST" action="<?= View::e($form_action) ?>">
+      <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
 
-    <?= $f['name'] ?>
-    <?= $f['url'] ?>
-    <?= $f['email'] ?>
-    <?= $f['fanlisting_id'] ?>
-    <?= $f['password'] ?>
-    <?= $f['password_confirm'] ?>
+      <?= $f['name'] ?>
+      <?= $f['url'] ?>
+      <?= $f['email'] ?>
+      <?= $f['fanlisting_id'] ?>
+      <?= $f['password'] ?>
+      <?= $f['password_confirm'] ?>
 
-    <!-- Honeypot — hidden from humans, filled by bots -->
-    <div style="display:none" aria-hidden="true">
-      <input type="text" name="website_confirm" tabindex="-1" autocomplete="off">
-    </div>
+      <!-- Honeypot — hidden from humans, filled by bots -->
+      <div style="display:none" aria-hidden="true">
+        <input type="text" name="website_confirm" tabindex="-1" autocomplete="off">
+      </div>
 
-    <?= $f['captcha_answer'] ?>
+      <?= $f['captcha_answer'] ?>
 
-    <div class="fl-field">
-      <label>
-        <input type="checkbox" name="send_copy" value="1"
-               <?= ((string) ($old['send_copy'] ?? '')) === '1' ? 'checked' : '' ?>>
-        Email me a copy of my submission
-      </label>
-    </div>
+      <div class="fl-field">
+        <label>
+          <input type="checkbox" name="send_copy" value="1"
+                 <?= ((string) ($old['send_copy'] ?? '')) === '1' ? 'checked' : '' ?>>
+          Email me a copy of my submission
+        </label>
+      </div>
 
-    <div class="fl-actions">
-      <button class="fl-btn" type="submit">Sign Up</button>
-    </div>
-  </form>
+      <div class="fl-form-actions">
+        <button class="fl-submit fl-btn" type="submit">Sign Up</button>
+      </div>
+    </form>
 
-  <?php
-  $_metaLinks = [];
-  if ($_linkUpdate !== null) $_metaLinks[] = '<a href="' . View::e($_linkUpdate) . '">Update your entry</a>';
-  if ($_linkReset  !== null) $_metaLinks[] = '<a href="' . View::e($_linkReset)  . '">Forgot password?</a>';
-  if ($_linkList   !== null) $_metaLinks[] = '<a href="' . View::e($_linkList)   . '">View the KIM list</a>';
-  ?>
-  <?php if (!empty($_metaLinks)): ?>
-  <p class="fl-meta">
-    Already signed up? <?= implode(' &middot; ', $_metaLinks) ?>
-  </p>
-  <?php endif; ?>
+    <?php
+    $_metaLinks = [];
+    if ($_linkUpdate !== null) $_metaLinks[] = '<a href="' . View::e($_linkUpdate) . '">Update your entry</a>';
+    if ($_linkReset  !== null) $_metaLinks[] = '<a href="' . View::e($_linkReset)  . '">Forgot password?</a>';
+    if ($_linkList   !== null) $_metaLinks[] = '<a href="' . View::e($_linkList)   . '">View the KIM list</a>';
+    ?>
+    <?php if (!empty($_metaLinks)): ?>
+    <p class="fl-kim-meta">
+      Already signed up? <?= implode(' &middot; ', $_metaLinks) ?>
+    </p>
+    <?php endif; ?>
+  </div>
 </div>

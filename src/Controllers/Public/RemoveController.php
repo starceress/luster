@@ -20,10 +20,10 @@ use Luster\Support\FormFieldBuilder;
 use Luster\Support\SuccessRenderer;
 
 /**
- * Fan removal form — lets a fan remove themselves from a listing.
+ * Fan removal form â€” lets a fan remove themselves from a listing.
  *
- * GET  /remove/{id} — shows the confirmation/credential form.
- * POST /remove/{id} — verifies email + password, deletes the member row,
+ * GET  /remove/{id} â€” shows the confirmation/credential form.
+ * POST /remove/{id} â€” verifies email + password, deletes the member row,
  *                     sends a farewell email, redirects to host page.
  *
  * Security properties:
@@ -78,13 +78,13 @@ final class RemoveController
         $ip           = $request->ip();
         $embedReturnTo = (string) $session->get('lstr_embed_return_to', '');
 
-        // Rate limiting — prevents credential stuffing and email enumeration
+        // Rate limiting â€” prevents credential stuffing and email enumeration
         if ($rateLimit->isBlocked($ip, RateLimit::ACTION_PUBLIC_REMOVE)) {
             $session->set('lstr_flash_error', 'Too many attempts. Please try again later.');
             return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $baseUrl . '/remove/' . $listingId);
         }
 
-        // Honeypot — silent reject; fake success so bots see no difference
+        // Honeypot â€” silent reject; fake success so bots see no difference
         if ((string) $request->post('website_confirm', '') !== '') {
             $session->remove('lstr_embed_return_to');
             $session->set('lstr_flash_success_html', SuccessRenderer::render('', 'removed'));
@@ -105,12 +105,12 @@ final class RemoveController
                        ? rtrim((string) $listing->url, '/') . '/' . ltrim($formPageName, '/')
                        : $baseUrl . '/remove/' . $listingId;
 
-        // Captcha — redirect with flash on failure so the form re-renders with a fresh question
+        // Captcha â€” redirect with flash on failure so the form re-renders with a fresh question
         $email           = trim((string) $request->post('email', ''));
         $lostPasswordUrl = $this->buildResetUrl($listing, $embedSettings);
         if (!Captcha::validate((string) $request->post('captcha_answer', ''), 'remove')) {
             $rateLimit->hitDefault($ip, RateLimit::ACTION_PUBLIC_REMOVE);
-            $session->set('lstr_flash_error', 'Incorrect answer — please try again.');
+            $session->set('lstr_flash_error', 'Incorrect answer â€” please try again.');
             $session->set('lstr_flash_old_email', $email);
             return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $formUrl);
         }
@@ -138,7 +138,7 @@ final class RemoveController
             return Response::redirect($formUrl);
         }
 
-        // Verify password — detect and verify legacy MD5 hashes before deletion
+        // Verify password â€” detect and verify legacy MD5 hashes before deletion
         $storedHash = $member->password;
         $verified   = false;
 
@@ -242,7 +242,7 @@ final class RemoveController
             'lost_password_url' => $lostPasswordUrl,
             'f'                 => $f,
             'base_url'          => $baseUrl,
-            'theme_path'        => $baseUrl . '/assets/default/',
+            'theme_path'        => $baseUrl . '/assets/css/default/',
         ]);
 
         return Response::html($html);

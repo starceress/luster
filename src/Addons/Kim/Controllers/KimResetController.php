@@ -21,10 +21,10 @@ use Luster\Support\SuccessRenderer;
 /**
  * KIM password reset flow.
  *
- * GET  /kim/reset          — email entry form
- * POST /kim/reset          — sends reset email, redirects to host page (no enumeration)
- * GET  /kim/reset/confirm  — new password form (validates token from ?token=)
- * POST /kim/reset/confirm  — applies new password, consumes token, redirects to host page
+ * GET  /kim/reset          â€” email entry form
+ * POST /kim/reset          â€” sends reset email, redirects to host page (no enumeration)
+ * GET  /kim/reset/confirm  â€” new password form (validates token from ?token=)
+ * POST /kim/reset/confirm  â€” applies new password, consumes token, redirects to host page
  */
 final class KimResetController
 {
@@ -70,7 +70,7 @@ final class KimResetController
             return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $fallbackUrl);
         }
 
-        // Honeypot — silent reject; same neutral message so bots see no difference
+        // Honeypot â€” silent reject; same neutral message so bots see no difference
         if ((string) $request->post('website_confirm', '') !== '') {
             $session->remove('lstr_embed_return_to');
             $session->set('lstr_flash_success_html', SuccessRenderer::render('', 'reset-sent'));
@@ -83,10 +83,10 @@ final class KimResetController
         $email        = trim((string) $request->post('email',        ''));
         $fanlistingId = (int) $request->post('fanlisting_id',          0);
 
-        // Captcha — redirect with flash on failure so the form re-renders with a fresh question
+        // Captcha â€” redirect with flash on failure so the form re-renders with a fresh question
         if (!Captcha::validate((string) $request->post('captcha_answer', ''), 'kim_reset')) {
             $rateLimit->hitDefault($ip, 'kim_reset');
-            $session->set('lstr_flash_error', 'Incorrect answer — please try again.');
+            $session->set('lstr_flash_error', 'Incorrect answer â€” please try again.');
             $session->set('lstr_flash_old_email', $email);
             return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $fallbackUrl);
         }
@@ -125,7 +125,7 @@ final class KimResetController
 
                 try {
                     $mailer  = new Mailer($this->app->getConfig());
-                    $subject = "KIM List Password Reset — {$siteName}";
+                    $subject = "KIM List Password Reset â€” {$siteName}";
                     $body    = "Hi {$member->name},\n\n"
                              . "A password reset was requested for your KIM List account.\n\n"
                              . "Click the link below to set a new password:\n"
@@ -140,7 +140,7 @@ final class KimResetController
             }
         }
 
-        // Always flash the same neutral message — never enumerate
+        // Always flash the same neutral message â€” never enumerate
         $session->remove('lstr_embed_return_to');
         $session->set('lstr_flash_success_html', SuccessRenderer::render('', 'reset-sent'));
         return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $fallbackUrl);
@@ -271,7 +271,7 @@ final class KimResetController
         ], $wrapperTpl);
 
         return $this->renderKimPage('reset.php', [
-            'page_title'  => 'KIM List — Reset Password',
+            'page_title'  => 'KIM List â€” Reset Password',
             'form_action' => $baseUrl . '/kim/reset',
             'csrf_token'  => $this->app->getCSRF()->token(),
             'errors'      => $error !== ''
@@ -279,7 +279,7 @@ final class KimResetController
                 : '',
             'f'           => $f,
             'base_url'    => $baseUrl,
-            'theme_path'  => $baseUrl . '/assets/default/',
+            'theme_path'  => $baseUrl . '/assets/css/default/',
         ]);
     }
 
@@ -297,7 +297,7 @@ final class KimResetController
         ], $wrapperTpl);
 
         return $this->renderKimPage('reset-confirm.php', [
-            'page_title'  => 'KIM — Set New Password',
+            'page_title'  => 'KIM â€” Set New Password',
             'form_action' => $baseUrl . '/kim/reset/confirm',
             'csrf_token'  => $this->app->getCSRF()->token(),
             'errors'      => $error !== ''
@@ -307,7 +307,7 @@ final class KimResetController
             'token_valid' => $tokenValid,
             'f'           => $f,
             'base_url'    => $baseUrl,
-            'theme_path'  => $baseUrl . '/assets/default/',
+            'theme_path'  => $baseUrl . '/assets/css/default/',
         ]);
     }
 
@@ -324,7 +324,7 @@ final class KimResetController
             'listing'      => null,
             'listing_name' => $siteName,
             'listing_url'  => $baseUrl,
-            'theme_path'   => $baseUrl . '/assets/default/',
+            'theme_path'   => $baseUrl . '/assets/css/default/',
         ]);
 
         $layoutPath = $this->app->getBasePath() . '/templates/default/layout.php';

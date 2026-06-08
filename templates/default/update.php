@@ -28,9 +28,9 @@ use Luster\Core\View;
 
 $signed_in = $signed_in ?? false;
 ?>
-<div>
+<div class="fl-embed fl-embed--update">
   <?php if ($errors !== ''): ?>
-    <div><?= $errors ?></div>
+    <div class="fl-errors"><?= $errors ?></div>
   <?php endif; ?>
 
 <?php if (!$signed_in): ?>
@@ -47,7 +47,7 @@ $signed_in = $signed_in ?? false;
       <input type="text" name="website_confirm" tabindex="-1" autocomplete="off">
     </div>
 
-    <div class="fl-actions">
+    <div class="fl-form-actions">
       <button type="submit">Sign in</button>
     </div>
   </form>
@@ -90,7 +90,7 @@ $signed_in = $signed_in ?? false;
 
     <?= $f['captcha_answer'] ?>
 
-    <div class="fl-actions">
+    <div class="fl-form-actions">
       <button type="submit">Update Information</button>
       <button type="reset">Clear</button>
     </div>

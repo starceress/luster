@@ -27,8 +27,8 @@ use Luster\Support\SuccessRenderer;
 /**
  * Public join form.
  *
- * GET  /join/{id} — renders the join form for a listing.
- * POST /join/{id} — validates input, checks for duplicates, inserts member,
+ * GET  /join/{id} â€” renders the join form for a listing.
+ * POST /join/{id} â€” validates input, checks for duplicates, inserts member,
  *                   sends confirmation email, redirects to host page.
  *
  * Security properties:
@@ -93,7 +93,7 @@ final class JoinController
             return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $baseUrl . '/join/' . $listingId);
         }
 
-        // Honeypot — silent reject; fake success so bots see no difference
+        // Honeypot â€” silent reject; fake success so bots see no difference
         if ((string) $request->post('website_confirm', '') !== '') {
             $session->remove('lstr_embed_return_to');
             $session->set('lstr_flash_success_html', SuccessRenderer::render('', 'joined'));
@@ -117,10 +117,10 @@ final class JoinController
                         ? rtrim((string) $listing->url, '/') . '/' . ltrim($formPageName, '/')
                         : $baseUrl . '/join/' . $listingId;
 
-        // Captcha — redirect with flash on failure so the form re-renders with a fresh question
+        // Captcha â€” redirect with flash on failure so the form re-renders with a fresh question
         if (!Captcha::validate((string) $request->post('captcha_answer', ''), 'join')) {
             $rateLimit->hitDefault($ip, RateLimit::ACTION_PUBLIC_JOIN);
-            $session->set('lstr_flash_error', 'Incorrect answer — please try again.');
+            $session->set('lstr_flash_error', 'Incorrect answer â€” please try again.');
             $session->set('lstr_flash_old', [
                 'name'      => trim((string) $request->post('name',    '')),
                 'email'     => trim((string) $request->post('email',   '')),
@@ -194,7 +194,7 @@ final class JoinController
             return Response::redirect($formUrl);
         }
 
-        // Password — use the supplied value or auto-generate a secure one
+        // Password â€” use the supplied value or auto-generate a secure one
         $rawPassword     = (string) $request->post('password',         '');
         $passwordConfirm = (string) $request->post('password_confirm', '');
 
@@ -263,7 +263,7 @@ final class JoinController
             $insertData['updated']  = date('Y-m-d H:i:s');
         }
 
-        // Additional fields — names from FieldRepo only, never raw user input.
+        // Additional fields â€” names from FieldRepo only, never raw user input.
         // Checkbox fields post as arrays; implode to a comma-separated string.
         foreach ($fields as $field) {
             $colName   = ($prefix === '') ? $field->name : 'additional_' . $field->name;
@@ -281,7 +281,7 @@ final class JoinController
             $settingsRepo->touchLastUpdated($listingId);
         }
 
-        // Confirmation email always sent (best-effort — do not abort on failure)
+        // Confirmation email always sent (best-effort â€” do not abort on failure)
         {
             try {
                 $cfg       = $this->app->getConfig();
@@ -317,7 +317,7 @@ final class JoinController
             }
         }
 
-        // Admin notification email (best-effort — only when listing has an email address)
+        // Admin notification email (best-effort â€” only when listing has an email address)
         if ($listing->email !== '') {
             try {
                 $cfg          = $this->app->getConfig();
@@ -390,7 +390,7 @@ final class JoinController
             ['type' => 'url',      'name' => 'url',              'id' => 'join-url',              'label' => 'Website URL',      'required' => false, 'value' => (string) ($old['url']   ?? ''), 'attrs' => ['maxlength' => '500', 'placeholder' => 'https://', 'autocomplete' => 'url'], 'hint' => 'Optional'],
             ['type' => 'text',     'name' => 'country',          'id' => '',                      'label' => 'Country',          'required' => true,  'raw_input' => $countrySelect],
             ...$fb->descriptorsFromAdditionalFields($fields, $old),
-            ['type' => 'password', 'name' => 'password',         'id' => 'join-password',         'label' => 'Password',         'required' => false, 'attrs' => ['maxlength' => '255', 'autocomplete' => 'new-password'], 'hint' => 'Optional — one will be emailed to you if left blank'],
+            ['type' => 'password', 'name' => 'password',         'id' => 'join-password',         'label' => 'Password',         'required' => false, 'attrs' => ['maxlength' => '255', 'autocomplete' => 'new-password'], 'hint' => 'Optional â€” one will be emailed to you if left blank'],
             ['type' => 'password', 'name' => 'password_confirm', 'id' => 'join-password-confirm', 'label' => 'Confirm Password', 'required' => false, 'attrs' => ['maxlength' => '255', 'autocomplete' => 'new-password']],
             ['type' => 'text',     'name' => 'captcha_answer',   'id' => 'join-captcha',          'label' => 'Captcha: ' . $captchaQuestion, 'required' => true, 'error' => $captchaError, 'attrs' => ['maxlength' => '10', 'autocomplete' => 'off']],
         ];
@@ -407,7 +407,7 @@ final class JoinController
             'fields'       => $fields,
             'f'            => $f,
             'base_url'     => $baseUrl,
-            'theme_path'   => $baseUrl . '/assets/default/',
+            'theme_path'   => $baseUrl . '/assets/css/default/',
         ]);
 
         return Response::html($html);

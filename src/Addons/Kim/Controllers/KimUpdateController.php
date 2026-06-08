@@ -20,8 +20,8 @@ use Luster\Support\SuccessRenderer;
 /**
  * Public KIM update form.
  *
- * GET  /kim/update  — update form
- * POST /kim/update  — authenticates and updates the KIM entry, redirects to host page
+ * GET  /kim/update  â€” update form
+ * POST /kim/update  â€” authenticates and updates the KIM entry, redirects to host page
  */
 final class KimUpdateController
 {
@@ -64,7 +64,7 @@ final class KimUpdateController
             return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $fallbackUrl);
         }
 
-        // Honeypot — silent reject; fake success so bots see no difference
+        // Honeypot â€” silent reject; fake success so bots see no difference
         if ((string) $request->post('website_confirm', '') !== '') {
             $session->remove('lstr_embed_return_to');
             $session->set('lstr_flash_success_html', SuccessRenderer::render('', 'kim-updated'));
@@ -74,10 +74,10 @@ final class KimUpdateController
         $listingRepo = new ListingRepo($this->app->getDatabase(), $this->app->getConfig());
         $fanlistings = $listingRepo->getAll();
 
-        // Captcha — redirect with flash on failure so the form re-renders with a fresh question
+        // Captcha â€” redirect with flash on failure so the form re-renders with a fresh question
         if (!Captcha::validate((string) $request->post('captcha_answer', ''), 'kim_update')) {
             $rateLimit->hitDefault($ip, 'kim_update');
-            $session->set('lstr_flash_error', 'Incorrect answer — please try again.');
+            $session->set('lstr_flash_error', 'Incorrect answer â€” please try again.');
             $session->set('lstr_flash_old', [
                 'name'          => trim((string) $request->post('name',           '')),
                 'current_email' => trim((string) $request->post('current_email',  '')),
@@ -202,7 +202,7 @@ final class KimUpdateController
             try {
                 $mailer   = new Mailer($this->app->getConfig());
                 $siteName = (string) $this->app->getConfig()->get('site_name', 'Luster');
-                $subject  = "KIM List Updated — {$siteName}";
+                $subject  = "KIM List Updated â€” {$siteName}";
                 $body     = "Hi {$name},\n\n"
                           . "Your KIM List entry has been updated.\n"
                           . "Updated fields: " . implode(', ', $updatedFields) . "\n\n"
@@ -255,7 +255,7 @@ final class KimUpdateController
         ], $wrapperTpl);
 
         return $this->renderKimPage('update.php', [
-            'page_title'  => 'KIM List — Update Entry',
+            'page_title'  => 'KIM List â€” Update Entry',
             'form_action' => $baseUrl . '/kim/update',
             'csrf_token'  => $this->app->getCSRF()->token(),
             'errors'      => $error !== ''
@@ -264,7 +264,7 @@ final class KimUpdateController
             'old'         => $old,
             'f'           => $f,
             'base_url'    => $baseUrl,
-            'theme_path'  => $baseUrl . '/assets/default/',
+            'theme_path'  => $baseUrl . '/assets/css/default/',
         ]);
     }
 
@@ -281,7 +281,7 @@ final class KimUpdateController
             'listing'      => null,
             'listing_name' => $siteName,
             'listing_url'  => $baseUrl,
-            'theme_path'   => $baseUrl . '/assets/default/',
+            'theme_path'   => $baseUrl . '/assets/css/default/',
         ]);
 
         $layoutPath = $this->app->getBasePath() . '/templates/default/layout.php';

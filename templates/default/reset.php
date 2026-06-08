@@ -14,9 +14,9 @@ declare(strict_types=1);
 
 use Luster\Core\View;
 ?>
-<div>
+<div class="fl-embed fl-embed--reset">
   <?php if ($errors !== ''): ?>
-    <div><?= $errors ?></div>
+    <div class="fl-errors"><?= $errors ?></div>
   <?php endif; ?>
 
   <p class="fl-hint">
@@ -36,8 +36,8 @@ use Luster\Core\View;
 
     <?= $f['captcha_answer'] ?>
 
-    <div class="fl-actions">
-      <button type="submit">Send Reset Link</button>
+    <div class="fl-form-actions">
+      <button type="submit" class="fl-submit">Send Reset Link</button>
     </div>
   </form>
 </div>

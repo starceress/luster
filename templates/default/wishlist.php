@@ -17,7 +17,7 @@ if (isset($wishlist_template_html) && $wishlist_template_html !== null) {
 }
 
 if (empty($entries)) {
-    echo '<p class="fl-empty">No wishlist entries to display.</p>';
+    echo '<div class="fl-embed fl-embed--wishlist"><p class="fl-empty">No wishlist entries to display.</p></div>';
     return;
 }
 
@@ -26,6 +26,8 @@ $typeLabels = [
     'granted' => 'Granted',
     'wanted'  => 'Wanted',
 ];
+
+echo '<div class="fl-embed fl-embed--wishlist">';
 
 if ($filter_type === 'all') {
     // Group by type in a defined order
@@ -38,13 +40,13 @@ if ($filter_type === 'all') {
         if (empty($groupEntries)) {
             continue;
         }
-        echo '<div class="fl-wishlist-group">';
+        echo '<div class="fl-wishlist-group fl-wishlist-group--' . htmlspecialchars($type, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '">';
         echo '<h3 class="fl-wishlist-group-label">' . htmlspecialchars($typeLabels[$type] ?? $type, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '</h3>';
-        echo '<ul class="fl-wishlist">';
+        echo '<ul class="fl-wishlist-list">';
         foreach ($groupEntries as $entry) {
-            echo '<li class="fl-wishlist-item">';
+            echo '<li class="fl-wishlist-item fl-wishlist-item--' . htmlspecialchars($entry->type, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '">';
             if ($entry->image !== null && $entry->image !== '') {
-                echo '<img class="fl-wishlist-img" src="' . htmlspecialchars($base_url . '/uploads/wishlist/' . $entry->image, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '"'
+                echo '<img class="fl-wishlist-image" src="' . htmlspecialchars($base_url . '/uploads/wishlist/' . $entry->image, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '"'
                    . ' alt="' . htmlspecialchars($entry->subject, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '">';
             }
             echo '<div class="fl-wishlist-info">';
@@ -55,10 +57,10 @@ if ($filter_type === 'all') {
                 echo '<span class="fl-wishlist-subject">' . htmlspecialchars($entry->subject, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '</span>';
             }
             if ($entry->category !== '') {
-                echo ' <span class="fl-wishlist-cat">(' . htmlspecialchars($entry->category, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . ')</span>';
+                echo ' <span class="fl-wishlist-category">(' . htmlspecialchars($entry->category, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . ')</span>';
             }
             if ($entry->description !== null) {
-                echo '<p class="fl-wishlist-desc">' . htmlspecialchars($entry->description, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '</p>';
+                echo '<p class="fl-wishlist-description">' . htmlspecialchars($entry->description, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '</p>';
             }
             echo '</div>';
             echo '</li>';
@@ -68,11 +70,11 @@ if ($filter_type === 'all') {
     }
 } else {
     // Single-type flat list
-    echo '<ul class="fl-wishlist">';
+    echo '<ul class="fl-wishlist-list">';
     foreach ($entries as $entry) {
-        echo '<li class="fl-wishlist-item">';
+        echo '<li class="fl-wishlist-item fl-wishlist-item--' . htmlspecialchars($entry->type, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '">';
         if ($entry->image !== null && $entry->image !== '') {
-            echo '<img class="fl-wishlist-img" src="' . htmlspecialchars($base_url . '/uploads/wishlist/' . $entry->image, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '"'
+            echo '<img class="fl-wishlist-image" src="' . htmlspecialchars($base_url . '/uploads/wishlist/' . $entry->image, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '"'
                . ' alt="' . htmlspecialchars($entry->subject, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '">';
         }
         echo '<div class="fl-wishlist-info">';
@@ -83,13 +85,15 @@ if ($filter_type === 'all') {
             echo '<span class="fl-wishlist-subject">' . htmlspecialchars($entry->subject, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '</span>';
         }
         if ($entry->category !== '') {
-            echo ' <span class="fl-wishlist-cat">(' . htmlspecialchars($entry->category, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . ')</span>';
+            echo ' <span class="fl-wishlist-category">(' . htmlspecialchars($entry->category, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . ')</span>';
         }
         if ($entry->description !== null) {
-            echo '<p class="fl-wishlist-desc">' . htmlspecialchars($entry->description, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '</p>';
+            echo '<p class="fl-wishlist-description">' . htmlspecialchars($entry->description, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '</p>';
         }
         echo '</div>';
         echo '</li>';
     }
     echo '</ul>';
 }
+
+echo '</div>';

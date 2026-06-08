@@ -15,11 +15,12 @@ final class PaginationTest extends TestCase
         self::assertSame('', Pagination::render(1, 0, '/members'));
     }
 
-    public function testDefaultTemplateRendersNavWithPrevAndNextLinks(): void
+    public function testDefaultTemplateRendersDivWithPrevAndNextLinks(): void
     {
         $html = Pagination::render(3, 5, '/members');
 
-        self::assertStringContainsString('<nav class="fl-pagination-nav"', $html);
+        self::assertStringContainsString('<div class="fl-pagination-nav fl-pagination"', $html);
+        self::assertStringNotContainsString('<nav', $html);
         self::assertStringContainsString('fl-page-prev', $html);
         self::assertStringContainsString('fl-page-next', $html);
         self::assertStringContainsString('href="/members?page=2"', $html);

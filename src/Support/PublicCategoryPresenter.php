@@ -9,9 +9,10 @@ use Luster\Core\View;
 /**
  * Renders the public category navigator for owned and joined listing embeds.
  *
- * Produces semantic HTML with fl-category-* CSS classes and aria-current="page"
+ * Produces embed-safe HTML with fl-category-* CSS classes and aria-current="page"
  * on the active link. URLs use the category slug when available, falling back to
- * the numeric ID so old bookmarks never break.
+ * the numeric ID so old bookmarks never break. The wrappers intentionally avoid
+ * the HTML nav tag so host-page navigation CSS does not leak into embeds.
  *
  * All return values are either an HTML string or a result array:
  *   ['html' => string, 'show_listings' => bool]
@@ -50,9 +51,9 @@ final class PublicCategoryPresenter
 
         // Browse mode with a category selected — render back link, then fall through to show listings
         if ($browseMode && ($currentId !== 0 || $browseShowAll)) {
-            $html  = '<nav class="fl-category-nav">';
+            $html  = '<div class="fl-category-nav">';
             $html .= '<a class="fl-category-back" href="' . $e($formAction) . '">&larr; All categories</a>';
-            $html .= '</nav>';
+            $html .= '</div>';
             return ['html' => $html, 'show_listings' => true];
         }
 
@@ -88,7 +89,7 @@ final class PublicCategoryPresenter
 
         $countHtml = $totalCount > 0 ? ' <span class="fl-category-count">(' . $totalCount . ')</span>' : '';
 
-        $html  = '<nav class="fl-category-nav">';
+        $html  = '<div class="fl-category-nav">';
         $html .= '<ul class="fl-category-list">';
         $html .= '<li><a href="' . $e($formAction . '?cat=all') . '">All Categories</a>' . $countHtml . '</li>';
 
@@ -103,7 +104,7 @@ final class PublicCategoryPresenter
         }
 
         $html .= '</ul>';
-        $html .= '</nav>';
+        $html .= '</div>';
         return $html;
     }
 
@@ -123,7 +124,7 @@ final class PublicCategoryPresenter
             }
         }
 
-        $html  = '<nav class="fl-category-nav">';
+        $html  = '<div class="fl-category-nav">';
         $html .= '<ul class="fl-category-list">';
         $allActive = $currentId === 0 ? ' aria-current="page"' : '';
         $html .= '<li><a' . $allActive . ' href="' . $e($formAction) . '">All</a></li>';
@@ -160,7 +161,7 @@ final class PublicCategoryPresenter
         }
 
         $html .= '</ul>';
-        $html .= '</nav>';
+        $html .= '</div>';
         return $html;
     }
 
@@ -180,7 +181,7 @@ final class PublicCategoryPresenter
             }
         }
 
-        $html  = '<nav class="fl-category-nav">';
+        $html  = '<div class="fl-category-nav">';
         $html .= '<form method="GET" action="' . $e($formAction) . '" class="fl-category-dropdown">';
         $html .= '<label for="fl-owned-cat">Category:</label> ';
         $html .= '<select id="fl-owned-cat" name="cat">';
@@ -219,7 +220,7 @@ final class PublicCategoryPresenter
         $html .= '</select>';
         $html .= '<noscript><button type="submit">Go</button></noscript>';
         $html .= '</form>';
-        $html .= '</nav>';
+        $html .= '</div>';
         return $html;
     }
 
@@ -253,9 +254,9 @@ final class PublicCategoryPresenter
 
         // Browse mode with a category selected — render back link
         if ($browseMode && $currentCategory !== '') {
-            $html  = '<nav class="fl-category-nav">';
+            $html  = '<div class="fl-category-nav">';
             $html .= '<a class="fl-category-back" href="' . $e($formAction) . '">&larr; All categories</a>';
-            $html .= '</nav>';
+            $html .= '</div>';
             return ['html' => $html, 'show_listings' => true];
         }
 
@@ -280,7 +281,7 @@ final class PublicCategoryPresenter
             return '<p>No categories to display.</p>';
         }
 
-        $html  = '<nav class="fl-category-nav">';
+        $html  = '<div class="fl-category-nav">';
         $html .= '<ul class="fl-category-list">';
         $html .= '<li><a href="' . $e($formAction . '?cat=all') . '">All Categories</a>';
         $html .= ' <span class="fl-category-count">(' . $totalCount . ')</span></li>';
@@ -294,7 +295,7 @@ final class PublicCategoryPresenter
         }
 
         $html .= '</ul>';
-        $html .= '</nav>';
+        $html .= '</div>';
         return $html;
     }
 
@@ -303,7 +304,7 @@ final class PublicCategoryPresenter
      */
     private static function renderJoinedList(array $categories, string $currentCategory, string $formAction, callable $e): string
     {
-        $html  = '<nav class="fl-category-nav">';
+        $html  = '<div class="fl-category-nav">';
         $html .= '<ul class="fl-category-list">';
 
         foreach ($categories as $catName) {
@@ -314,7 +315,7 @@ final class PublicCategoryPresenter
         }
 
         $html .= '</ul>';
-        $html .= '</nav>';
+        $html .= '</div>';
         return $html;
     }
 
@@ -323,7 +324,7 @@ final class PublicCategoryPresenter
      */
     private static function renderJoinedDropdown(array $categories, string $currentCategory, string $formAction, callable $e): string
     {
-        $html  = '<nav class="fl-category-nav">';
+        $html  = '<div class="fl-category-nav">';
         $html .= '<form method="GET" action="' . $e($formAction) . '" class="fl-category-dropdown">';
         $html .= '<label for="fl-joined-cat">Category:</label> ';
         $html .= '<select id="fl-joined-cat" name="cat">';
@@ -337,7 +338,7 @@ final class PublicCategoryPresenter
         $html .= '</select>';
         $html .= '<noscript><button type="submit">Go</button></noscript>';
         $html .= '</form>';
-        $html .= '</nav>';
+        $html .= '</div>';
         return $html;
     }
 }

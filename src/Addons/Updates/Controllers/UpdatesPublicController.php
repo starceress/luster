@@ -18,14 +18,14 @@ use Luster\Repositories\SiteSettingsRepo;
 /**
  * Public read-only controller for the Updates add-on.
  *
- * No auth, no CSRF, no rate limiting — both routes are GET only.
+ * No auth, no CSRF, no rate limiting â€” both routes are GET only.
  */
 final class UpdatesPublicController
 {
     public function __construct(private readonly Application $app) {}
 
     // -----------------------------------------------------------------------
-    // GET /updates/{id}  — per-fanlisting feed
+    // GET /updates/{id}  â€” per-fanlisting feed
     // -----------------------------------------------------------------------
 
     public function feed(Request $request, array $params): Response
@@ -56,7 +56,7 @@ final class UpdatesPublicController
         $pages = max(1, (int) ceil($total / $perPage));
 
         $baseUrl   = $this->app->getBaseUrl();
-        $themePath = $baseUrl . '/assets/default/';
+        $themePath = $baseUrl . '/assets/css/default/';
         $feedUrl   = $baseUrl . '/updates/' . $fid;
 
         $ownerName   = (string) $config->get('owner_name', '');
@@ -75,7 +75,7 @@ final class UpdatesPublicController
             'listing'               => $listing,
             'listing_name'          => $listing->title,
             'listing_url'           => $listing->url,
-            'page_title'            => 'Updates — ' . $listing->title,
+            'page_title'            => 'Updates â€” ' . $listing->title,
             'base_url'              => $baseUrl,
             'theme_path'            => $themePath,
             'updates'               => $updates,
@@ -132,7 +132,7 @@ final class UpdatesPublicController
     }
 
     // -----------------------------------------------------------------------
-    // GET /updates  — collective feed
+    // GET /updates  â€” collective feed
     // -----------------------------------------------------------------------
 
     public function collective(Request $request, array $params): Response
@@ -155,7 +155,7 @@ final class UpdatesPublicController
         $pages = max(1, (int) ceil($total / $perPage));
 
         $baseUrl   = $this->app->getBaseUrl();
-        $themePath = $baseUrl . '/assets/default/';
+        $themePath = $baseUrl . '/assets/css/default/';
         $siteName  = (string) $config->get('site_name', 'Luster');
         $feedUrl   = $baseUrl . '/updates';
 
@@ -175,7 +175,7 @@ final class UpdatesPublicController
             'listing'               => null,
             'listing_name'          => $siteName,
             'listing_url'           => $baseUrl,
-            'page_title'            => 'Updates — ' . $siteName,
+            'page_title'            => 'Updates â€” ' . $siteName,
             'base_url'              => $baseUrl,
             'theme_path'            => $themePath,
             'updates'               => $updates,

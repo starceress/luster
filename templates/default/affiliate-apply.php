@@ -13,8 +13,9 @@ use Luster\Core\View;
 /** @var array<string,string>    $f  keys: name, url, email, image, message, captcha_answer */
 
 ?>
+<div class="fl-embed fl-embed--affiliate-apply">
 <?php if ($errors !== ''): ?>
-  <div class="fl-error"><?= $errors ?></div>
+  <div class="fl-errors"><?= $errors ?></div>
 <?php endif; ?>
 
 <form class="fl-form" method="POST" action="<?= View::e($form_action) ?>" enctype="multipart/form-data">
@@ -33,7 +34,8 @@ use Luster\Core\View;
 
   <?= $f['captcha_answer'] ?>
 
-  <div class="fl-actions">
-    <button type="submit" class="fl-btn">Submit Application</button>
+  <div class="fl-form-actions">
+    <button type="submit" class="fl-submit fl-btn">Submit Application</button>
   </div>
 </form>
+</div>

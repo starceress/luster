@@ -23,11 +23,11 @@ use Luster\Support\FormFieldBuilder;
 use Luster\Support\SuccessRenderer;
 
 /**
- * Fan update form — two-step flow.
+ * Fan update form â€” two-step flow.
  *
- * Step 1 (sign-in): GET /update/{id} with no session → email + password only.
- * Step 2 (update):  POST /update/{id}/sign-in → sets session → GET /update/{id}
- *                   → pre-filled update fields.
+ * Step 1 (sign-in): GET /update/{id} with no session â†’ email + password only.
+ * Step 2 (update):  POST /update/{id}/sign-in â†’ sets session â†’ GET /update/{id}
+ *                   â†’ pre-filled update fields.
  *
  * Security properties:
  *  - CSRF token validated by CsrfMiddleware
@@ -106,7 +106,7 @@ final class UpdateController
             return Response::redirect($baseUrl . '/update/' . $listingId);
         }
 
-        // Honeypot — silent reject
+        // Honeypot â€” silent reject
         if ((string) $request->post('website_confirm', '') !== '') {
             return Response::redirect($baseUrl . '/update/' . $listingId);
         }
@@ -146,7 +146,7 @@ final class UpdateController
             return Response::redirect($formUrl);
         }
 
-        // Verify password — detect and upgrade legacy MD5 hashes
+        // Verify password â€” detect and upgrade legacy MD5 hashes
         $storedHash = $member->password;
         $verified   = false;
 
@@ -218,7 +218,7 @@ final class UpdateController
             return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $baseUrl . '/update/' . $listingId);
         }
 
-        // Honeypot — silent reject; fake success so bots see no difference
+        // Honeypot â€” silent reject; fake success so bots see no difference
         if ((string) $request->post('website_confirm', '') !== '') {
             $session->remove('lstr_embed_return_to');
             $session->set('lstr_flash_success_html', SuccessRenderer::render('', 'updated'));
@@ -263,13 +263,13 @@ final class UpdateController
 
         $postData = $request->postAll();
 
-        // Captcha — redirect with flash on failure so the form re-renders with a fresh question
+        // Captcha â€” redirect with flash on failure so the form re-renders with a fresh question
         if (!Captcha::validate((string) $request->post('captcha_answer', ''), 'update')) {
             $old = ['new_name' => $newName, 'new_email' => $newEmail, 'url' => $url, 'country' => $country];
             foreach ($fields as $field) {
                 $old['field_' . $field->name] = $postData['field_' . $field->name] ?? '';
             }
-            $session->set('lstr_flash_error', 'Incorrect answer — please try again.');
+            $session->set('lstr_flash_error', 'Incorrect answer â€” please try again.');
             $session->set('lstr_flash_old', $old);
             return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $formUrl);
         }
@@ -393,7 +393,7 @@ final class UpdateController
         $pendingRepo = new PendingUpdateRepo($this->app->getDatabase());
         $pendingRepo->insert($listingId, $finalEmail, $updateData);
 
-        // Clear auth session — member must sign in again for another update
+        // Clear auth session â€” member must sign in again for another update
         $session->remove(self::AUTH_KEY . $listingId);
         $session->remove('lstr_embed_return_to');
         $successTpl = $settingsRepo->getSuccessTemplate($listingId) ?? '';
@@ -409,7 +409,7 @@ final class UpdateController
     // -----------------------------------------------------------------------
 
     /**
-     * Renders the sign-in step (step 1 — email + password only).
+     * Renders the sign-in step (step 1 â€” email + password only).
      */
     private function renderSignIn(
         int $listingId,
@@ -441,14 +441,14 @@ final class UpdateController
             'fields'            => [],
             'f'                 => $f,
             'base_url'          => $baseUrl,
-            'theme_path'        => $baseUrl . '/assets/default/',
+            'theme_path'        => $baseUrl . '/assets/css/default/',
         ]);
 
         return Response::html($html);
     }
 
     /**
-     * Renders the update form (step 2 — authenticated, pre-filled fields).
+     * Renders the update form (step 2 â€” authenticated, pre-filled fields).
      *
      * @param \Luster\Models\AdditionalField[] $fields
      * @param array<string,mixed>              $embedSettings
@@ -515,7 +515,7 @@ final class UpdateController
             'fields'        => $fields,
             'f'             => $f,
             'base_url'      => $baseUrl,
-            'theme_path'    => $baseUrl . '/assets/default/',
+            'theme_path'    => $baseUrl . '/assets/css/default/',
         ]);
 
         return Response::html($html);
