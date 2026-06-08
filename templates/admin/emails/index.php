@@ -502,7 +502,6 @@ $oldBodyE    = htmlspecialchars($old_body ?? '', ENT_QUOTES, 'UTF-8');
           <textarea class="email" id="me-body" name="body"
                     maxlength="50000" required
                     placeholder="Write your message&hellip;"><?= $oldBodyE ?></textarea>
-          <p class="form-hint">Each recipient gets their own filled-in version of this message.</p>
         </div>
 
         <div class="composer-footer">

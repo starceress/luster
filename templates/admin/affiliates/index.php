@@ -332,7 +332,7 @@ $rangeEnd   = min($total, $page * $per_page);
           <td data-label="Image">
             <?php if ($aff->image !== null && $aff->image !== ''): ?>
               <img src="<?= $b ?>/uploads/affiliates/<?= View::e($aff->image) ?>"
-                   alt="" style="max-width:80px;max-height:48px;display:block;border-radius:3px;object-fit:contain">
+                   alt="" style="max-width:200px;max-height:200px;display:block;border-radius:3px;object-fit:contain">
             <?php else: ?>
               <span class="text-dim">&mdash;</span>
             <?php endif; ?>
