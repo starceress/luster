@@ -73,7 +73,7 @@ final class ImportAdapterRegressionTest extends TestCase
             )"
         );
         $pdo->exec("CREATE TABLE IF NOT EXISTS lstr_categories (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, slug TEXT NOT NULL DEFAULT '', parent_id INTEGER NULL, source TEXT NOT NULL DEFAULT 'custom')");
-        $pdo->exec("CREATE TABLE IF NOT EXISTS lstr_fanlisting_settings (fanlisting_id INTEGER PRIMARY KEY, members_per_page INTEGER NOT NULL DEFAULT 25, queue_updates INTEGER NOT NULL DEFAULT 0, members_template TEXT NULL, affiliates_template TEXT NULL, stats_template TEXT NULL, image TEXT NULL, last_updated TEXT NULL)");
+        $pdo->exec("CREATE TABLE IF NOT EXISTS lstr_fanlisting_settings (fanlisting_id INTEGER PRIMARY KEY, members_per_page INTEGER NOT NULL DEFAULT 25, queue_updates INTEGER NOT NULL DEFAULT 0, members_template TEXT NULL, stats_template TEXT NULL, image TEXT NULL, last_updated TEXT NULL)");
         $pdo->exec("CREATE TABLE IF NOT EXISTS lstr_listing_categories (fanlisting_id INTEGER NOT NULL, category_id INTEGER NOT NULL, PRIMARY KEY (fanlisting_id, category_id))");
     }
 
@@ -106,7 +106,7 @@ final class ImportAdapterRegressionTest extends TestCase
             )"
         );
         $pdo->exec("CREATE TABLE IF NOT EXISTS lstr_categories (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, slug TEXT NOT NULL DEFAULT '', parent_id INTEGER NULL, source TEXT NOT NULL DEFAULT 'custom')");
-        $pdo->exec("CREATE TABLE IF NOT EXISTS lstr_fanlisting_settings (fanlisting_id INTEGER PRIMARY KEY, members_per_page INTEGER NOT NULL DEFAULT 25, queue_updates INTEGER NOT NULL DEFAULT 0, members_template TEXT NULL, affiliates_template TEXT NULL, stats_template TEXT NULL, image TEXT NULL, last_updated TEXT NULL)");
+        $pdo->exec("CREATE TABLE IF NOT EXISTS lstr_fanlisting_settings (fanlisting_id INTEGER PRIMARY KEY, members_per_page INTEGER NOT NULL DEFAULT 25, queue_updates INTEGER NOT NULL DEFAULT 0, members_template TEXT NULL, stats_template TEXT NULL, image TEXT NULL, last_updated TEXT NULL)");
         $pdo->exec("CREATE TABLE IF NOT EXISTS lstr_listing_categories (fanlisting_id INTEGER NOT NULL, category_id INTEGER NOT NULL, PRIMARY KEY (fanlisting_id, category_id))");
     }
 

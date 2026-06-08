@@ -186,7 +186,6 @@ final class ListingAdminImportTest extends TestCase
                 members_per_page INTEGER NOT NULL DEFAULT 25,
                 queue_updates    INTEGER NOT NULL DEFAULT 0,
                 members_template TEXT    NULL,
-                affiliates_template TEXT NULL,
                 stats_template   TEXT    NULL,
                 image            TEXT    NULL,
                 last_updated     DATE    NULL
@@ -996,7 +995,6 @@ final class ListingAdminImportTest extends TestCase
                 members_per_page INTEGER NOT NULL DEFAULT 25,
                 queue_updates    INTEGER NOT NULL DEFAULT 0,
                 members_template TEXT    NULL,
-                affiliates_template TEXT NULL,
                 stats_template   TEXT    NULL,
                 image            TEXT    NULL,
                 last_updated     DATE    NULL

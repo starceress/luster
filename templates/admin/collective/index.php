@@ -68,7 +68,7 @@ $collAffSectionVal       = $ct['collective_affiliates_section_template']   ?? $d
           <button type="button" class="btn btn-quaternary btn-xs" data-textarea="joined_template">Reset to Default</button>
         </div>
 
-        <div class="pc-section-label">Collective Affiliates &mdash; Section Layout</div>
+        <div class="pc-section-label">Affiliates</div>
         <p class="form-hint mb-sm">Controls the full affiliates section on <code>/affiliates</code> and the collective affiliates embed. Use <code>{each_affiliate}&hellip;{/each_affiliate}</code> when you want to design each row yourself, or <code>{affiliates}</code> when you want Luster to drop in the ready-made rows. <strong>Leave blank to use the built-in layout.</strong></p>
         <div class="form-group">
           <textarea name="collective_affiliates_section_template" id="collective_affiliates_section_template" class="form form-mono" spellcheck="false"><?= View::e($collAffSectionVal) ?></textarea>

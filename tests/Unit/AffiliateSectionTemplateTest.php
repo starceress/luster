@@ -14,8 +14,7 @@ use ReflectionMethod;
  * Tests for AffiliatesController::applySectionTemplate().
  *
  * Covers:
- *  - {affiliates}        receives the row-template output when row template is set
- *  - {affiliates}        falls back to simple <a> links when no row template
+ *  - {affiliates}        renders built-in <a> link/image rows
  *  - {affiliates_count}  receives the total count
  *  - {affiliates_list}   receives a comma-separated link list
  *  - {if_affiliates}     block shown / {if_no_affiliates} removed when count > 0
@@ -65,11 +64,10 @@ final class AffiliateSectionTemplateTest extends TestCase
     }
 
     private function invoke(
-        string  $template,
-        array   $affiliates,
-        int     $total,
-        string  $uploadsUrl = 'https://example.com/uploads/affiliates',
-        ?string $rowTemplate = null,
+        string $template,
+        array  $affiliates,
+        int    $total,
+        string $uploadsUrl = 'https://example.com/uploads/affiliates',
     ): string {
         return (string) $this->applySection->invoke(
             $this->controller,
@@ -77,7 +75,6 @@ final class AffiliateSectionTemplateTest extends TestCase
             $affiliates,
             $total,
             $uploadsUrl,
-            $rowTemplate,
         );
     }
 
@@ -123,20 +120,6 @@ final class AffiliateSectionTemplateTest extends TestCase
     {
         $result = $this->invoke('{affiliates_list}', [], 0);
         self::assertSame('', $result);
-    }
-
-    public function testAffiliatesTokenUsesRowTemplateWhenSet(): void
-    {
-        $aff = $this->makeAffiliate('Cool Site', 'https://cool.example', null);
-        $result = $this->invoke(
-            '{affiliates}',
-            [$aff],
-            1,
-            'https://example.com/uploads/affiliates',
-            '<span>{aff_name}</span>',
-        );
-
-        self::assertSame('<span>Cool Site</span>', $result);
     }
 
     public function testAffiliatesTokenFallbackSimpleLinkWhenNoRowTemplate(): void
@@ -238,13 +221,7 @@ final class AffiliateSectionTemplateTest extends TestCase
         $tpl = '{if_affiliates}<p>{affiliates_count} affiliates</p>{affiliates}{/if_affiliates}'
              . '{if_no_affiliates}<p>No affiliates yet.</p>{/if_no_affiliates}';
 
-        $result = $this->invoke(
-            $tpl,
-            $affiliates,
-            2,
-            'https://example.com/uploads',
-            '<a href="{aff_url}">{aff_name}</a>',
-        );
+        $result = $this->invoke($tpl, $affiliates, 2, 'https://example.com/uploads');
 
         self::assertStringContainsString('2 affiliates', $result);
         self::assertStringContainsString('href="https://a.example"', $result);
@@ -318,18 +295,6 @@ final class AffiliateSectionTemplateTest extends TestCase
         $result = $this->invoke($tpl, [], 0);
 
         self::assertSame('<p>None.</p>', $result);
-    }
-
-    public function testEachAffiliateBlockIgnoresLegacyRowTemplate(): void
-    {
-        $aff = $this->makeAffiliate('Fan Site', 'https://fan.example');
-        // When {each_affiliate} is present, the legacy $rowTemplate must not affect {affiliates}
-        $tpl = '{each_affiliate}<b>{aff_name}</b>{/each_affiliate} count:{affiliates_count}';
-        $result = $this->invoke($tpl, [$aff], 1, 'https://example.com/uploads', '<span>{aff_name}</span>');
-
-        self::assertStringContainsString('<b>Fan Site</b>', $result);
-        self::assertStringNotContainsString('<span>Fan Site</span>', $result);
-        self::assertStringContainsString('count:1', $result);
     }
 
     public function testDefaultCombinedTemplateRendersCorrectly(): void

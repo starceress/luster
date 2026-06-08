@@ -57,13 +57,6 @@ final class AffiliatesController
         $templates          = $settingsRepo->getTemplates($listingId);
         $pagination         = Pagination::render($page, $result['pages'], $baseHref,
             $settingsRepo->getPaginationTemplate($listingId) ?? '');
-        $affiliatesTemplate = ($templates['affiliates_template'] !== null && trim($templates['affiliates_template']) !== '')
-            ? $templates['affiliates_template']
-            : null;
-
-        $affiliatesHtml = $affiliatesTemplate !== null && !empty($result['items'])
-            ? $this->buildAffiliateRows($affiliatesTemplate, $result['items'], $uploadsUrl)
-            : null;
 
         $sectionTemplate = ($templates['affiliates_section_template'] !== null
             && trim($templates['affiliates_section_template']) !== '')
@@ -71,7 +64,7 @@ final class AffiliatesController
             : null;
 
         $sectionHtml = $sectionTemplate !== null
-            ? $this->applySectionTemplate($sectionTemplate, $result['items'], $result['total'], $uploadsUrl, $affiliatesTemplate)
+            ? $this->applySectionTemplate($sectionTemplate, $result['items'], $result['total'], $uploadsUrl)
             : null;
 
         $html = $this->app->getView()->renderPublic('affiliates.php', [
@@ -80,7 +73,6 @@ final class AffiliatesController
             'listing_url'   => $listing->url,
             'page_title'       => 'Affiliates — ' . $listing->title,
             'affiliates'       => $result['items'],
-            'affiliates_html'  => $affiliatesHtml,
             'section_html'     => $sectionHtml,
             'total'            => $result['total'],
             'pagination'       => $pagination,
@@ -117,7 +109,7 @@ final class AffiliatesController
         $sectionTemplate = trim($sectTplRaw) !== '' ? $sectTplRaw : null;
 
         $sectionHtml = $sectionTemplate !== null
-            ? $this->applySectionTemplate($sectionTemplate, $result['items'], $result['total'], $uploadsUrl, null)
+            ? $this->applySectionTemplate($sectionTemplate, $result['items'], $result['total'], $uploadsUrl)
             : null;
 
         $html = $this->app->getView()->renderPublic('affiliates.php', [
@@ -126,7 +118,6 @@ final class AffiliatesController
             'listing_url'  => $baseUrl,
             'page_title'      => 'Affiliates',
             'affiliates'      => $result['items'],
-            'affiliates_html' => null,
             'section_html'    => $sectionHtml,
             'total'           => $result['total'],
             'pagination'      => $pagination,
@@ -191,7 +182,7 @@ final class AffiliatesController
      *
      * Supported tokens:
      *   {each_affiliate}...{/each_affiliate} — inline per-row loop; {aff_*} tokens work inside
-     *   {affiliates}        — rendered affiliate rows (legacy; use {each_affiliate} instead)
+     *   {affiliates}        — rendered affiliate rows (built-in link/image rows)
      *   {affiliates_count}  — total active affiliate count
      *   {affiliates_list}   — comma-separated <a href>name</a> list
      *   {if_affiliates}...{/if_affiliates}           — shown when count > 0
@@ -199,14 +190,12 @@ final class AffiliatesController
      *
      * @param Affiliate[]  $affiliates
      * @param int          $total       total active count (may differ from $affiliates on paginated pages)
-     * @param string|null  $rowTemplate per-row template (legacy; ignored when {each_affiliate} is present)
      */
     private function applySectionTemplate(
-        string  $template,
-        array   $affiliates,
-        int     $total,
-        string  $uploadsUrl,
-        ?string $rowTemplate,
+        string $template,
+        array  $affiliates,
+        int    $total,
+        string $uploadsUrl,
     ): string {
         $e = static fn(string $v): string => htmlspecialchars($v, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 
@@ -215,26 +204,21 @@ final class AffiliatesController
         if (preg_match('/\{each_affiliate\}(.*?)\{\/each_affiliate\}/s', $template, $m)) {
             $rendered = $this->buildAffiliateRows($m[1], $affiliates, $uploadsUrl);
             $template = (string) preg_replace('/\{each_affiliate\}.*?\{\/each_affiliate\}/s', $rendered, $template, 1);
-            $rowTemplate = null; // inline block handles row rendering; skip legacy rowTemplate for {affiliates}
         }
 
-        // Build {affiliates} content (legacy path — used when no {each_affiliate} block present)
-        if ($rowTemplate !== null && $affiliates !== []) {
-            $rows = $this->buildAffiliateRows($rowTemplate, $affiliates, $uploadsUrl);
-        } else {
-            $rowParts = [];
-            foreach ($affiliates as $aff) {
-                $imageUrl = ($aff->image !== null && $aff->image !== '') ? $uploadsUrl . '/' . $aff->image : '';
-                if ($imageUrl !== '') {
-                    $rowParts[] = '<a href="' . $e($aff->url) . '" target="_blank" rel="noopener noreferrer">'
-                        . '<img src="' . $e($imageUrl) . '" alt="' . $e($aff->name) . '"></a>';
-                } else {
-                    $rowParts[] = '<a href="' . $e($aff->url) . '" target="_blank" rel="noopener noreferrer">'
-                        . $e($aff->name) . '</a>';
-                }
+        // Build {affiliates} content — built-in link/image rows
+        $rowParts = [];
+        foreach ($affiliates as $aff) {
+            $imageUrl = ($aff->image !== null && $aff->image !== '') ? $uploadsUrl . '/' . $aff->image : '';
+            if ($imageUrl !== '') {
+                $rowParts[] = '<a href="' . $e($aff->url) . '" target="_blank" rel="noopener noreferrer">'
+                    . '<img src="' . $e($imageUrl) . '" alt="' . $e($aff->name) . '"></a>';
+            } else {
+                $rowParts[] = '<a href="' . $e($aff->url) . '" target="_blank" rel="noopener noreferrer">'
+                    . $e($aff->name) . '</a>';
             }
-            $rows = implode("\n", $rowParts);
         }
+        $rows = implode("\n", $rowParts);
 
         // Build {affiliates_list} — comma-separated plain links
         $listParts = [];

@@ -1051,12 +1051,12 @@ final class EnthusiastImportSource implements ImportSourceInterface
             ? 'SELECT fanlisting_id, image, last_updated FROM lstr_fanlisting_settings WHERE fanlisting_id = :fid'
             : 'SELECT fanlisting_id, image FROM lstr_fanlisting_settings WHERE fanlisting_id = :fid';
         $checkStmt  = $target->prepare($checkSelect);
-        $insertColumns = 'fanlisting_id, members_per_page, queue_updates, members_template, affiliates_template, stats_template, image'
+        $insertColumns = 'fanlisting_id, members_per_page, queue_updates, members_template, stats_template, image'
             . ($hasCountryField  ? ', country_field_enabled'       : '')
             . ($hasLastUpdated   ? ', last_updated'                : '')
             . ($hasAffApply      ? ', affiliate_apply_enabled'     : '')
             . ($hasAffSectionTpl ? ', affiliates_section_template' : '');
-        $insertValues  = ':fanlisting_id, :members_per_page, :queue_updates, :members_template, :affiliates_template, :stats_template, :image'
+        $insertValues  = ':fanlisting_id, :members_per_page, :queue_updates, :members_template, :stats_template, :image'
             . ($hasCountryField  ? ', :country_field_enabled'       : '')
             . ($hasLastUpdated   ? ', :last_updated'                : '')
             . ($hasAffApply      ? ', 1'                            : '')
@@ -1073,7 +1073,6 @@ final class EnthusiastImportSource implements ImportSourceInterface
              SET members_per_page = :members_per_page,
                  queue_updates = :queue_updates,
                  members_template = COALESCE(NULLIF(:members_template, ''), members_template),
-                 affiliates_template = COALESCE(NULLIF(:affiliates_template, ''), affiliates_template),
                  stats_template = COALESCE(NULLIF(:stats_template, ''), stats_template),
                  image = COALESCE(:image, image)
                  {$countryFieldAssignment}
@@ -1099,13 +1098,11 @@ final class EnthusiastImportSource implements ImportSourceInterface
             $affiliatesTpl = self::translateDisplayTokens(trim((string) ($row['affiliatestemplate'] ?? '')));
             $statsTpl      = self::translateDisplayTokens(trim((string) ($row['statstemplate'] ?? '')));
 
-            // When affiliates_section_template column exists (Migration 53+), wrap the Enthusiast
-            // per-row template in {each_affiliate}...{/each_affiliate} and store it there.
-            // The legacy affiliates_template column receives null so the section template takes over.
+            // Wrap the Enthusiast per-row template in {each_affiliate}...{/each_affiliate} so it
+            // becomes a section template — Luster no longer stores a separate row-only template.
             $sectionTpl = ($hasAffSectionTpl && $affiliatesTpl !== '')
                 ? '{each_affiliate}' . $affiliatesTpl . '{/each_affiliate}'
                 : '';
-            $affRowTpl = $hasAffSectionTpl ? '' : $affiliatesTpl;
 
             // Only preserve the translated members_template when it explicitly includes tokens
             // for this listing's custom additional fields. Enthusiast's standard listtemplate
@@ -1224,7 +1221,6 @@ final class EnthusiastImportSource implements ImportSourceInterface
                         'members_per_page'    => $perPage,
                         'queue_updates'       => $holdUpdate,
                         'members_template'    => $membersTpl,
-                        'affiliates_template' => $affRowTpl,
                         'stats_template'      => $statsTpl,
                         'image'               => $newImage,
                     ];
@@ -1239,7 +1235,6 @@ final class EnthusiastImportSource implements ImportSourceInterface
                         'members_per_page'    => $perPage,
                         'queue_updates'       => $holdUpdate,
                         'members_template'    => $membersTpl ?: null,
-                        'affiliates_template' => $affRowTpl ?: null,
                         'stats_template'      => $statsTpl ?: null,
                         'image'               => $newImage,
                     ];

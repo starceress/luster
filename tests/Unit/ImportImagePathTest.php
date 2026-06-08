@@ -110,7 +110,7 @@ final class ImportImagePathTest extends TestCase
         $pdo->exec("CREATE TABLE IF NOT EXISTS lstr_fanlisting_settings
             (fanlisting_id INTEGER PRIMARY KEY, members_per_page INTEGER NOT NULL DEFAULT 25,
              queue_updates INTEGER NOT NULL DEFAULT 0,
-             members_template TEXT NULL, affiliates_template TEXT NULL,
+             members_template TEXT NULL,
              stats_template TEXT NULL, image TEXT NULL)");
         return $pdo;
     }

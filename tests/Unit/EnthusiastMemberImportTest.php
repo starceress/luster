@@ -830,7 +830,6 @@ final class EnthusiastMemberImportTest extends TestCase
                 members_per_page INTEGER NOT NULL DEFAULT 25,
                 queue_updates INTEGER NOT NULL DEFAULT 0,
                 members_template TEXT NULL,
-                affiliates_template TEXT NULL,
                 stats_template TEXT NULL,
                 image TEXT NULL,
                 last_updated DATE NULL
@@ -1440,7 +1439,7 @@ final class EnthusiastMemberImportTest extends TestCase
             )'
         );
         $tgt->exec('CREATE TABLE IF NOT EXISTS lstr_categories (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, slug TEXT NOT NULL DEFAULT \'\', parent_id INTEGER NULL, source TEXT NOT NULL DEFAULT \'custom\')');
-        $tgt->exec('CREATE TABLE IF NOT EXISTS lstr_fanlisting_settings (fanlisting_id INTEGER PRIMARY KEY, members_per_page INTEGER NOT NULL DEFAULT 25, queue_updates INTEGER NOT NULL DEFAULT 0, members_template TEXT NULL, affiliates_template TEXT NULL, stats_template TEXT NULL, image TEXT NULL, last_updated DATE NULL)');
+        $tgt->exec('CREATE TABLE IF NOT EXISTS lstr_fanlisting_settings (fanlisting_id INTEGER PRIMARY KEY, members_per_page INTEGER NOT NULL DEFAULT 25, queue_updates INTEGER NOT NULL DEFAULT 0, members_template TEXT NULL, stats_template TEXT NULL, image TEXT NULL, last_updated DATE NULL)');
         return $tgt;
     }
 
@@ -1672,7 +1671,6 @@ final class EnthusiastMemberImportTest extends TestCase
                 members_per_page INTEGER NOT NULL DEFAULT 25,
                 queue_updates INTEGER NOT NULL DEFAULT 0,
                 members_template TEXT NULL,
-                affiliates_template TEXT NULL,
                 stats_template TEXT NULL,
                 image TEXT NULL,
                 affiliates_section_template TEXT NULL
@@ -1685,11 +1683,9 @@ final class EnthusiastMemberImportTest extends TestCase
             'import_settings'   => '1',
         ]));
 
-        $row = $tgt->query('SELECT affiliates_template, affiliates_section_template FROM lstr_fanlisting_settings WHERE fanlisting_id = 1')
+        $row = $tgt->query('SELECT affiliates_section_template FROM lstr_fanlisting_settings WHERE fanlisting_id = 1')
                    ->fetch(\PDO::FETCH_ASSOC);
 
-        $this->assertNull($row['affiliates_template'],
-            'affiliates_template must be null when affiliates_section_template column exists');
         $this->assertStringContainsString('{each_affiliate}', (string) $row['affiliates_section_template'],
             'affiliates_section_template must be wrapped in {each_affiliate} block');
         $this->assertStringContainsString('{/each_affiliate}', (string) $row['affiliates_section_template']);
@@ -1697,42 +1693,5 @@ final class EnthusiastMemberImportTest extends TestCase
             'Enthusiast $$aff_url$$ must be translated to {aff_url}');
         $this->assertStringContainsString('{aff_image_tag}', (string) $row['affiliates_section_template'],
             'Enthusiast $$aff_image$$ must be translated to {aff_image_tag}');
-    }
-
-    public function testSettingsAffiliatesTemplateFallsBackToLegacyColumnWhenSectionColumnMissing(): void
-    {
-        $src = $this->makePdo();
-
-        $src->exec('CREATE TABLE IF NOT EXISTS category (catid INTEGER PRIMARY KEY, catname TEXT NOT NULL, parent INTEGER NOT NULL DEFAULT 0)');
-        $src->exec(
-            'CREATE TABLE owned (
-                listingid INTEGER PRIMARY KEY, dbtable TEXT NOT NULL DEFAULT \'\',
-                url TEXT NOT NULL DEFAULT \'\', title TEXT NOT NULL DEFAULT \'\',
-                subject TEXT NOT NULL DEFAULT \'\', email TEXT NOT NULL DEFAULT \'\',
-                catid TEXT NOT NULL DEFAULT \'\', additional TEXT NOT NULL DEFAULT \'\',
-                status INTEGER NOT NULL DEFAULT 2,
-                perpage INTEGER NOT NULL DEFAULT 25, holdupdate INTEGER NOT NULL DEFAULT 0,
-                affiliatestemplate TEXT NOT NULL DEFAULT \'\'
-            )'
-        );
-        $src->exec("INSERT INTO owned (listingid, dbtable, url, affiliatestemplate)
-                    VALUES (1, 'fl', 'http://fl.example.com', '\$\$aff_name\$\$')");
-        $src->exec("CREATE TABLE fl (email TEXT PRIMARY KEY, added DATE NULL)");
-
-        // Target WITHOUT affiliates_section_template column (old migration state)
-        $tgt = $this->makeTargetWithOpened();
-        $tgt->exec("INSERT INTO owned (listingid, dbtable, url) VALUES (1, 'fl', 'http://fl.example.com')");
-
-        $this->adapter()->run($src, $tgt, ImportOptions::fromPost([
-            'source'            => 'enthusiast',
-            'conflict_strategy' => 'skip',
-            'import_settings'   => '1',
-        ]));
-
-        $row = $tgt->query('SELECT affiliates_template FROM lstr_fanlisting_settings WHERE fanlisting_id = 1')
-                   ->fetch(\PDO::FETCH_ASSOC);
-
-        $this->assertSame('{aff_name}', $row['affiliates_template'],
-            'Without affiliates_section_template column, translated row template must go to affiliates_template');
     }
 }

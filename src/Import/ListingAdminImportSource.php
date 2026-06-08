@@ -1734,7 +1734,6 @@ final class ListingAdminImportSource implements ImportSourceInterface
         // template — it can't map to Luster's members_template. Leave null so Luster's
         // native PHP loop (Name → URL, Country, additional fields) renders the list.
         $membersTpl  = '';
-        $affsTpl     = '';
         $statsTpl    = '';
 
         $hasLastUpdated = $this->tableHasColumn($target, 'lstr_fanlisting_settings', 'last_updated');
@@ -1746,14 +1745,13 @@ final class ListingAdminImportSource implements ImportSourceInterface
 
         $ins = $target->prepare(
             "INSERT INTO lstr_fanlisting_settings
-               (fanlisting_id, members_per_page, members_template, affiliates_template, stats_template{$luCol}{$affCol})
-             VALUES (:fid, :perpage, :mtpl, :atpl, :stpl{$luVal}{$affVal})"
+               (fanlisting_id, members_per_page, members_template, stats_template{$luCol}{$affCol})
+             VALUES (:fid, :perpage, :mtpl, :stpl{$luVal}{$affVal})"
         );
         $params = [
             'fid'    => $listingId,
             'perpage' => $perPage,
             'mtpl'   => $membersTpl ?: null,
-            'atpl'   => $affsTpl    ?: null,
             'stpl'   => $statsTpl   ?: null,
         ];
         if ($hasLastUpdated) {

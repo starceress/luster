@@ -1301,17 +1301,15 @@ final class ListingController extends AdminController
 
         $statsRaw               = (string) $request->post('stats_template',               '');
         $membersRaw             = (string) $request->post('members_template',             '');
-        $affiliatesRaw          = (string) $request->post('affiliates_template',          '');
         $affiliatesSectionRaw   = (string) $request->post('affiliates_section_template',  '');
 
         // Treat blank / whitespace-only input as null (use built-in default)
         $statsTemplate             = trim($statsRaw)             !== '' ? $statsRaw             : null;
         $membersTemplate           = trim($membersRaw)           !== '' ? $membersRaw           : null;
-        $affiliatesTemplate        = trim($affiliatesRaw)        !== '' ? $affiliatesRaw        : null;
         $affiliatesSectionTemplate = trim($affiliatesSectionRaw) !== '' ? $affiliatesSectionRaw : null;
 
         $settingsRepo = new ListingSettingsRepo($db);
-        $settingsRepo->saveTemplates($id, $statsTemplate, $membersTemplate, $affiliatesTemplate, $affiliatesSectionTemplate);
+        $settingsRepo->saveTemplates($id, $statsTemplate, $membersTemplate, $affiliatesSectionTemplate);
 
         $this->app->getSession()->set('lstr_flash_success', 'Templates saved successfully.');
 

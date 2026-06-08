@@ -28,17 +28,6 @@ use Luster\Core\View;
     <?php endif; ?>
   <?php elseif (empty($affiliates)): ?>
     <p>No affiliates to display yet.</p>
-  <?php elseif (($affiliates_html ?? null) !== null && $affiliates_html !== ''): ?>
-    <!-- Custom DB template affiliate rows -->
-    <p>
-      <?= (int) $total ?> affiliate<?= $total !== 1 ? 's' : '' ?>
-    </p>
-    <ul>
-      <?= $affiliates_html ?>
-    </ul>
-    <?php if ($pagination !== ''): ?>
-      <div class="fl-pagination-wrap"><?= $pagination ?></div>
-    <?php endif; ?>
   <?php else: ?>
     <p>
       <?= (int) $total ?> affiliate<?= $total !== 1 ? 's' : '' ?>
