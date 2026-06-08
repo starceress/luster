@@ -67,17 +67,24 @@ final class AuthMiddleware
 
         $tokenHash = hash('sha256', $rawToken);
 
-        $stmt = $this->db->prepare(
-            'SELECT rt.id, u.username, u.email
-             FROM lstr_admin_remember_tokens rt
-             JOIN lstr_admin_users u ON u.id = rt.admin_user_id
-             WHERE rt.admin_user_id = :uid
-               AND rt.token_hash    = :hash
-               AND rt.expires_at    > NOW()
-             LIMIT 1'
-        );
-        $stmt->execute(['uid' => $userId, 'hash' => $tokenHash]);
-        $row = $stmt->fetch();
+        try {
+            $stmt = $this->db->prepare(
+                'SELECT rt.id, u.username, u.email
+                 FROM lstr_admin_remember_tokens rt
+                 JOIN lstr_admin_users u ON u.id = rt.admin_user_id
+                 WHERE rt.admin_user_id = :uid
+                   AND rt.token_hash    = :hash
+                   AND rt.expires_at    > NOW()
+                 LIMIT 1'
+            );
+            $stmt->execute(['uid' => $userId, 'hash' => $tokenHash]);
+            $row = $stmt->fetch();
+        } catch (\PDOException $e) {
+            // DB missing or tables not yet created (e.g. fresh reinstall).
+            // Expire the stale cookie so future requests don't keep hitting this path.
+            setcookie('lstr_remember', '', ['expires' => 1, 'path' => '/', 'httponly' => true, 'samesite' => 'Strict']);
+            return false;
+        }
 
         if ($row === false) {
             return false;
