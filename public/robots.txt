@@ -1,5 +1,5 @@
 User-agent: *
 Disallow: /admin/
 Disallow: /admin.php
-Disallow: /install.php
-Disallow: /migrate.php
+Disallow: /install/
+Disallow: /migrate/

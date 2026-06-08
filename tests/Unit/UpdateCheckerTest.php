@@ -77,7 +77,7 @@ final class UpdateCheckerTest extends TestCase
     {
         return fn() => json_encode([
             'tag_name' => 'v' . $version,
-            'html_url' => 'https://github.com/spyderfang/luster/releases/tag/v' . $version,
+            'html_url' => 'https://github.com/starceress/luster/releases/tag/v' . $version,
             'name'     => $title,
         ]);
     }
