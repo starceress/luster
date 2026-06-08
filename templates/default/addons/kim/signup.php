@@ -3,14 +3,13 @@
  * KIM List sign-up form — content fragment.
  *
  * Variables:
- *   $form_action      string
- *   $csrf_token       string
- *   $errors           string  pre-escaped HTML error string, or ''
- *   $fanlistings      Listing[]
- *   $old              array   keys: name, email, url, fanlisting_id, send_copy
- *   $captcha_question string
- *   $captcha_error    string
- *   $base_url         string
+ *   $form_action  string
+ *   $csrf_token   string
+ *   $errors       string  pre-escaped HTML error string, or ''
+ *   $old          array   keys: send_copy
+ *   $f            array<string,string>  keys: name, url, email, fanlisting_id, password,
+ *                                             password_confirm, captcha_answer
+ *   $base_url     string
  */
 
 declare(strict_types=1);
@@ -33,72 +32,22 @@ $_linkList   = ($link_list   !== null && $link_list   !== '') ? $link_list   : n
     <div class="fl-errors"><?= $errors ?></div>
   <?php endif; ?>
 
-  <form method="POST" action="<?= View::e($form_action) ?>">
+  <form class="fl-form" method="POST" action="<?= View::e($form_action) ?>">
     <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
 
-    <div class="fl-field">
-      <label class="fl-label" for="kim-name">Name <span class="fl-required">*</span></label>
-      <input class="fl-input" type="text" id="kim-name" name="name"
-             value="<?= View::e($old['name'] ?? '') ?>" required maxlength="100" autocomplete="name">
-    </div>
-
-    <div class="fl-field">
-      <label class="fl-label" for="kim-url">Collective / Website URL <span class="fl-required">*</span></label>
-      <input class="fl-input" type="url" id="kim-url" name="url"
-             value="<?= View::e($old['url'] ?? '') ?>" required maxlength="500"
-             placeholder="https://" autocomplete="url">
-    </div>
-
-    <div class="fl-field">
-      <label class="fl-label" for="kim-email">Email <span class="fl-required">*</span></label>
-      <input class="fl-input" type="email" id="kim-email" name="email"
-             value="<?= View::e($old['email'] ?? '') ?>" required maxlength="255" autocomplete="email">
-    </div>
-
-    <div class="fl-field">
-      <label class="fl-label" for="kim-fanlisting">Fanlisting Interested In <span class="fl-required">*</span></label>
-      <select class="fl-select" id="kim-fanlisting" name="fanlisting_id" required>
-        <option value="">— Select a fanlisting —</option>
-        <?php foreach ($fanlistings as $fl): ?>
-          <option value="<?= View::e((string) $fl->id) ?>"
-            <?= ((string) ($old['fanlisting_id'] ?? '')) === (string) $fl->id ? 'selected' : '' ?>>
-            <?= View::e($fl->subject) ?>
-            <?= $fl->upcoming ? ' (upcoming)' : '' ?>
-          </option>
-        <?php endforeach; ?>
-      </select>
-    </div>
-
-    <div class="fl-field">
-      <label class="fl-label" for="kim-password">
-        Password
-        <span class="fl-opt"> — leave blank to auto-generate; you'll receive it by email</span>
-      </label>
-      <input class="fl-input" type="password" id="kim-password" name="password"
-             maxlength="255" autocomplete="new-password">
-    </div>
-
-    <div class="fl-field">
-      <label class="fl-label" for="kim-password-confirm">Confirm Password</label>
-      <input class="fl-input" type="password" id="kim-password-confirm" name="password_confirm"
-             maxlength="255" autocomplete="new-password">
-    </div>
+    <?= $f['name'] ?>
+    <?= $f['url'] ?>
+    <?= $f['email'] ?>
+    <?= $f['fanlisting_id'] ?>
+    <?= $f['password'] ?>
+    <?= $f['password_confirm'] ?>
 
     <!-- Honeypot — hidden from humans, filled by bots -->
     <div style="display:none" aria-hidden="true">
       <input type="text" name="website_confirm" tabindex="-1" autocomplete="off">
     </div>
 
-    <div class="fl-field">
-      <label class="fl-label" for="kim-captcha">
-        Captcha: <?= View::e($captcha_question) ?> <span class="fl-required">*</span>
-      </label>
-      <?php if ($captcha_error !== ''): ?>
-        <div class="fl-errors"><?= View::e($captcha_error) ?></div>
-      <?php endif; ?>
-      <input class="fl-input" type="text" id="kim-captcha" name="captcha_answer"
-             required maxlength="10" autocomplete="off">
-    </div>
+    <?= $f['captcha_answer'] ?>
 
     <div class="fl-field">
       <label>

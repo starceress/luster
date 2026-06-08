@@ -20,7 +20,7 @@ use Luster\Repositories\SiteSettingsRepo;
  *
  *   // Then use the exposed variables:
  *   echo $luster_owned_active;        // e.g. 24
- *   echo $luster_owned_newest[0]->name; // e.g. "Always – Amy and Rory"
+ *   echo $luster_owned_newest[0]->title; // e.g. "Always – Amy and Rory"
  *
  * ──────────────────────────────────────────────────────────────────────
  * Optional variables (set before require):
@@ -47,7 +47,8 @@ use Luster\Repositories\SiteSettingsRepo;
  *   $luster_owned_upcoming      int   Upcoming owned listings
  *   $luster_owned_pending       int   Pending / inactive owned listings
  *   $luster_joined              int   Total joined listings
- *   $luster_joined_active       int   Active joined listings
+ *   $luster_joined_active       int   Active joined listings (any status, active=1)
+ *   $luster_joined_approved     int   Approved joined listings (active, not upcoming/pending)
  *   $luster_joined_upcoming     int   Upcoming joined listings
  *   $luster_joined_pending      int   Pending joined listings
  *   $luster_affiliates          int   Active collective affiliates
@@ -70,16 +71,47 @@ use Luster\Repositories\SiteSettingsRepo;
  *   $luster_categories  array  [{id, name, source, count}, ...]
  *                              count = active owned listings in that category
  *
- *  Convenience (backwards-compat aliases matching Enthusiast naming)
+ *  Convenience aliases — Enthusiast-prefixed names
  *   $luster_total_cats          int   Alias of count($luster_categories)
  *   $luster_owned_current       int   Alias of $luster_owned_active
  *   $luster_collective_fans     int   Alias of $luster_members_total
+ *
+ *  Enthusiast-compatible unprefixed names (no $luster_ prefix needed)
+ *   The most common Enthusiast collective template variables are aliased here.
+ *   Templates using these names will work with little or no modification;
+ *   niche keys (imagefile, desc variants, full random arrays) may still need
+ *   minor edits — see $owned_random / $joined_random aliases below.
+ *   Counts:
+ *   $total_cats / $collective_categories = count($luster_categories)
+ *   $owned                          = $luster_owned (total owned)
+ *   $owned_current                  = $luster_owned_active
+ *   $owned_upcoming                 = $luster_owned_upcoming
+ *   $owned_pending                  = $luster_owned_pending
+ *   $joined / $joined_total         = $luster_joined (total joined)
+ *   $joined_current                 = $luster_joined_active (all active, any status)
+ *   $joined_approved                = $luster_joined_approved (active, not upcoming/pending)
+ *   $joined_upcoming                = $luster_joined_upcoming
+ *   $joined_pending                 = $luster_joined_pending
+ *   $affiliates_collective / $collective_affiliates = $luster_affiliates
+ *   $collective_total_fans_approved = $luster_members_approved
+ *   $collective_total_fans_pending  = $luster_members_pending
+ *   $collective_total_fans          = $luster_members_total
+ *   $countries_count                = $luster_countries_count
+ *   Growth rate strings:
+ *   $owned_growth_rate              = $luster_owned_growth_rate
+ *   $joined_growth_rate             = $luster_joined_growth_rate
+ *   $collective_fans_growth_rate    = $luster_members_growth_rate
+ *   Flat-array aliases (Enthusiast-style access):
+ *   $owned_newest  array  ['url', 'name'/'title', 'subject'/'desc', 'listingtype', 'opened']
+ *   $joined_newest array  ['url', 'name', 'subject'/'desc', 'category', 'added']
+ *   $owned_random  array  same keys as $owned_newest, or [] when no active owned listing
+ *   $joined_random array  same keys as $joined_newest, or [] when no active joined listing
  *
  * ──────────────────────────────────────────────────────────────────────
  * Accessing newest/random listing properties:
  *
  *   // Owned Listing object properties:
- *   $luster_owned_newest[0]->name        // listing title
+ *   $luster_owned_newest[0]->title       // listing title
  *   $luster_owned_newest[0]->subject     // subject / topic
  *   $luster_owned_newest[0]->url         // listing URL
  *   $luster_owned_newest[0]->listingtype // e.g. 'listing'
@@ -99,7 +131,7 @@ use Luster\Repositories\SiteSettingsRepo;
  *
  *   Newest listing:
  *   <a href="<?= htmlspecialchars($luster_owned_newest[0]->url ?? '#', ENT_QUOTES, 'UTF-8') ?>">
- *     <?= htmlspecialchars($luster_owned_newest[0]->name ?? '', ENT_QUOTES, 'UTF-8') ?>
+ *     <?= htmlspecialchars($luster_owned_newest[0]->title ?? '', ENT_QUOTES, 'UTF-8') ?>
  *   </a>
  *
  * Example (category list):
@@ -220,6 +252,7 @@ $luster_owned_pending       = $_lusterOwnedCounts['trouble'];
 
 $luster_joined              = $_lusterJoinedCounts['total'];
 $luster_joined_active       = $_lusterJoinedCounts['active'];
+$luster_joined_approved     = (int) ($_lusterJoinedCounts['approved'] ?? 0);
 $luster_joined_upcoming     = $_lusterJoinedCounts['upcoming'];
 $luster_joined_pending      = $_lusterJoinedCounts['pending'];
 
@@ -245,10 +278,70 @@ $luster_categories          = $_lusterCategories;
 // Countries across all listings (distinct, case-insensitive)
 $luster_countries_count     = $_lusterCountriesCount;
 
-// Convenience aliases (Enthusiast-compatible naming)
+// Convenience aliases (Enthusiast-prefixed naming)
 $luster_total_cats          = count($_lusterCategories);
 $luster_owned_current       = $_lusterOwnedCounts['active'];
 $luster_collective_fans     = $_lusterMembers['total'];
+
+// Enthusiast-compatible unprefixed aliases
+// After requiring this file, these names work exactly like Enthusiast's
+// own collective stats variables — no bridge or wrapper needed.
+$total_cats                     = $luster_total_cats;
+$owned                          = $luster_owned;
+$owned_current                  = $luster_owned_active;
+$owned_upcoming                 = $luster_owned_upcoming;
+$owned_pending                  = $luster_owned_pending;
+$joined                         = $luster_joined;
+$joined_current                 = $luster_joined_active;
+$joined_approved                = $luster_joined_approved;
+$joined_upcoming                = $luster_joined_upcoming;
+$joined_pending                 = $luster_joined_pending;
+$affiliates_collective          = $luster_affiliates;
+$collective_affiliates          = $luster_affiliates;
+$collective_total_fans_approved = $luster_members_approved;
+$collective_total_fans_pending  = $luster_members_pending;
+$collective_total_fans          = $luster_members_total;
+$collective_categories          = $luster_total_cats;
+$countries_count                = $luster_countries_count;
+$owned_growth_rate              = $luster_owned_growth_rate;
+$joined_growth_rate             = $luster_joined_growth_rate;
+$collective_fans_growth_rate    = $luster_members_growth_rate;
+
+// Flat-array aliases — mirrors Enthusiast's $owned_newest / $joined_newest / $owned_random / $joined_random
+$owned_newest = !empty($luster_owned_newest) ? [
+    'url'         => $luster_owned_newest[0]->url,
+    'subject'     => $luster_owned_newest[0]->subject,
+    'desc'        => $luster_owned_newest[0]->subject,
+    'name'        => $luster_owned_newest[0]->title,
+    'title'       => $luster_owned_newest[0]->title,
+    'listingtype' => $luster_owned_newest[0]->listingtype,
+    'opened'      => $luster_owned_newest[0]->opened ?? $luster_owned_newest[0]->joined,
+] : [];
+$joined_newest = !empty($luster_joined_newest) ? [
+    'url'      => $luster_joined_newest[0]->url,
+    'name'     => $luster_joined_newest[0]->name,
+    'subject'  => $luster_joined_newest[0]->name,
+    'desc'     => $luster_joined_newest[0]->name,
+    'category' => $luster_joined_newest[0]->category,
+    'added'    => $luster_joined_newest[0]->dateJoined,
+] : [];
+$owned_random = $luster_owned_random !== null ? [
+    'url'         => $luster_owned_random->url,
+    'subject'     => $luster_owned_random->subject,
+    'desc'        => $luster_owned_random->subject,
+    'name'        => $luster_owned_random->title,
+    'title'       => $luster_owned_random->title,
+    'listingtype' => $luster_owned_random->listingtype,
+    'opened'      => $luster_owned_random->opened ?? $luster_owned_random->joined,
+] : [];
+$joined_random = $luster_joined_random !== null ? [
+    'url'      => $luster_joined_random->url,
+    'name'     => $luster_joined_random->name,
+    'subject'  => $luster_joined_random->name,
+    'desc'     => $luster_joined_random->name,
+    'category' => $luster_joined_random->category,
+    'added'    => $luster_joined_random->dateJoined,
+] : [];
 
 // ---------------------------------------------------------------------------
 // 5. Optional rendered HTML block
@@ -303,9 +396,9 @@ if ($_lusterCStatsTemplate !== null) {
             (string) $luster_members_approved,
             (string) $luster_members_pending,
             (string) $_lusterCountriesCount,
-            $_lusterE(!empty($_lusterOwnedNewest) ? $_lusterOwnedNewest[0]->name : ''),
-            $_lusterE(!empty($_lusterOwnedNewest) ? $_lusterOwnedNewest[0]->url  : ''),
-            $_lusterE($_lusterOwnedRandom !== null ? $_lusterOwnedRandom->name : ''),
+            $_lusterE(!empty($_lusterOwnedNewest) ? $_lusterOwnedNewest[0]->title : ''),
+            $_lusterE(!empty($_lusterOwnedNewest) ? $_lusterOwnedNewest[0]->url   : ''),
+            $_lusterE($_lusterOwnedRandom !== null ? $_lusterOwnedRandom->title : ''),
             $_lusterE($_lusterOwnedRandom !== null ? $_lusterOwnedRandom->url  : ''),
         ],
         $_lusterCStatsTemplate,
@@ -358,7 +451,7 @@ ob_start();
   <div class="fl-random-owned">
     <h3>Featured Listing</h3>
     <p>
-      <a href="<?= $_lusterE($_lusterOwnedRandom->url) ?>"><?= $_lusterE($_lusterOwnedRandom->name) ?></a>
+      <a href="<?= $_lusterE($_lusterOwnedRandom->url) ?>"><?= $_lusterE($_lusterOwnedRandom->title) ?></a>
       <?php if ($_lusterOwnedRandom->subject !== ''): ?>
         <span class="fl-muted">&mdash; <?= $_lusterE($_lusterOwnedRandom->subject) ?></span>
       <?php endif; ?>

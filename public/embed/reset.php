@@ -120,46 +120,67 @@ if ($_lusterStep === 'confirm') {
         }
     }
 
+    $_lusterWrapperTpl = (new \Luster\Repositories\ListingSettingsRepo($_lusterApp->getDatabase()))->getWrapperTemplate($_lusterListingId) ?? '';
+    $_lusterFb         = $_lusterApp->getFormFieldBuilder();
+    $_lusterF          = $_lusterFb->build([
+        ['type' => 'password', 'name' => 'new_password',        'id' => 'rc-password', 'label' => 'New Password',         'required' => true, 'attrs' => ['maxlength' => '255', 'autocomplete' => 'new-password']],
+        ['type' => 'password', 'name' => 'new_password_confirm', 'id' => 'rc-confirm',  'label' => 'Confirm New Password', 'required' => true, 'attrs' => ['maxlength' => '255', 'autocomplete' => 'new-password']],
+    ], $_lusterWrapperTpl);
+
     $_lusterHtml = $_lusterApp->getView()->renderFragment('reset_confirm.php', [
         'listing'      => $_lusterListing,
         'listing_name' => $_lusterListing->title,
         'listing_url'  => $_lusterListing->url,
-        'page_title'      => 'Set New Password',
-        'form_action'     => $_lusterBaseUrl . '/reset/' . $_lusterListingId . '/confirm',
-        'reset_url'       => $_lusterBaseUrl . '/reset/' . $_lusterListingId,
-        'csrf_token'      => $_lusterApp->getCSRF()->token(),
-        'errors'          => $_lusterError !== ''
+        'page_title'   => 'Set New Password',
+        'form_action'  => $_lusterBaseUrl . '/reset/' . $_lusterListingId . '/confirm',
+        'reset_url'    => $_lusterBaseUrl . '/reset/' . $_lusterListingId,
+        'csrf_token'   => $_lusterApp->getCSRF()->token(),
+        'errors'       => $_lusterError !== ''
             ? '<p>' . htmlspecialchars($_lusterError, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '</p>'
             : '',
-        'token'           => $_lusterTokenValid ? $_lusterRawToken : '',
-        'token_valid'     => $_lusterTokenValid,
-        'base_url'        => $_lusterApp->getBaseUrl(),
-        'theme_path'      => $_lusterApp->getBaseUrl() . '/assets/default/',
+        'token'        => $_lusterTokenValid ? $_lusterRawToken : '',
+        'token_valid'  => $_lusterTokenValid,
+        'f'            => $_lusterF,
+        'base_url'     => $_lusterApp->getBaseUrl(),
+        'theme_path'   => $_lusterApp->getBaseUrl() . '/assets/default/',
     ]);
 } else {
     // ── Request step: email entry form ─────────────────────────────────────
 
     $_lusterSession  = $_lusterApp->getSession();
-    $_lusterError    = (string) $_lusterSession->get('lstr_flash_error', '');
-    $_lusterOldEmail = (string) $_lusterSession->get('lstr_flash_old_email', '');
+    $_lusterSuccess  = (string) $_lusterSession->get('lstr_flash_success_html', '');
+    $_lusterError    = (string) $_lusterSession->get('lstr_flash_error',        '');
+    $_lusterOldEmail = (string) $_lusterSession->get('lstr_flash_old_email',    '');
+    $_lusterSession->remove('lstr_flash_success_html');
     $_lusterSession->remove('lstr_flash_error');
     $_lusterSession->remove('lstr_flash_old_email');
 
+    if ($_lusterSuccess !== '') {
+        if ($luster_return ?? false) { return $_lusterSuccess; }
+        echo $_lusterSuccess;
+        return;
+    }
+
+    $_lusterCaptchaQ   = Captcha::getQuestion('reset');
+    $_lusterWrapperTpl = (new \Luster\Repositories\ListingSettingsRepo($_lusterApp->getDatabase()))->getWrapperTemplate($_lusterListingId) ?? '';
+    $_lusterF          = $_lusterApp->getFormFieldBuilder()->build([
+        ['type' => 'email', 'name' => 'email',          'id' => 'rst-email',   'label' => 'Email',    'required' => true, 'value' => $_lusterOldEmail, 'attrs' => ['maxlength' => '255', 'autocomplete' => 'email']],
+        ['type' => 'text',  'name' => 'captcha_answer', 'id' => 'rst-captcha', 'label' => 'Captcha: ' . $_lusterCaptchaQ, 'required' => true, 'attrs' => ['maxlength' => '10', 'autocomplete' => 'off']],
+    ], $_lusterWrapperTpl);
+
     $_lusterHtml = $_lusterApp->getView()->renderFragment('reset.php', [
-        'listing'       => $_lusterListing,
-        'listing_name'  => $_lusterListing->title,
-        'listing_url'   => $_lusterListing->url,
-        'page_title'       => 'Reset Password',
-        'form_action'      => $_lusterBaseUrl . '/reset/' . $_lusterListingId,
-        'csrf_token'       => $_lusterApp->getCSRF()->token(),
-        'errors'           => $_lusterError !== ''
+        'listing'      => $_lusterListing,
+        'listing_name' => $_lusterListing->title,
+        'listing_url'  => $_lusterListing->url,
+        'page_title'   => 'Reset Password',
+        'form_action'  => $_lusterBaseUrl . '/reset/' . $_lusterListingId,
+        'csrf_token'   => $_lusterApp->getCSRF()->token(),
+        'errors'       => $_lusterError !== ''
             ? '<p>' . htmlspecialchars($_lusterError, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '</p>'
             : '',
-        'field_email'      => $_lusterOldEmail,
-        'captcha_question' => Captcha::getQuestion('reset'),
-        'captcha_error'    => '',
-        'base_url'         => $_lusterApp->getBaseUrl(),
-        'theme_path'       => $_lusterApp->getBaseUrl() . '/assets/default/',
+        'f'            => $_lusterF,
+        'base_url'     => $_lusterApp->getBaseUrl(),
+        'theme_path'   => $_lusterApp->getBaseUrl() . '/assets/default/',
     ]);
 }
 

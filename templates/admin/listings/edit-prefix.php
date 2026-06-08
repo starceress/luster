@@ -21,9 +21,9 @@ $b = rtrim(View::e($base_url), '/');
 
 <?php if (!$table_exists): ?>
   <div class="alert alert-error mb-section">
-    <strong>Warning:</strong> the current member table
+    <strong>Warning:</strong> the current member storage
     <code><?= View::e($listing->dbprefix) ?></code>
-    does not exist in the database. Proceeding may cause further errors.
+    could not be found. Changing this now may cause more problems.
   </div>
 <?php endif; ?>
 
@@ -38,21 +38,21 @@ $b = rtrim(View::e($base_url), '/');
     <div class="pc-head">
       <div class="pc-head-icon pc-head-icon-bg"><?= View::icon('database') ?></div>
       <div class="pc-head-meta">
-        <div class="pc-head-title">Rename Member Table</div>
-        <div class="pc-head-sub">Updates the database table prefix used for this listing's member records.</div>
+        <div class="pc-head-title">Rename Member Storage</div>
+        <div class="pc-head-sub">Changes the internal name Luster uses for this listing's member records.</div>
       </div>
     </div>
 
     <div class="card-body">
       <div class="callout callout-err"><?= View::icon('alert') ?>
-        <div><strong>Destructive Operation.</strong> This renames the member table in your database. If anything goes wrong your member data may become unreachable. There is no undo - <b>back up your database before proceeding.</b></div>
+        <div><strong>High-risk change.</strong> This renames where this listing's members are stored. If anything goes wrong, Luster may not be able to find those members. There is no undo - <b>back up your database before proceeding.</b></div>
     </div>
 
       <div class="listing-field-row listing-field-row--top">
         <span class="listing-field-label">Current Prefix</span>
         <div>
           <div class="ro-field"><?= View::e($listing->dbprefix) ?></div>
-          <p class="form-hint">The existing member table name in the database.</p>
+          <p class="form-hint">The current internal name for this listing's member records.</p>
         </div>
       </div>
 
@@ -62,7 +62,7 @@ $b = rtrim(View::e($base_url), '/');
         </label>
         <div>
           <input id="ep-new-prefix" type="text" name="new_prefix" class="form" pattern="[a-zA-Z0-9_]+" placeholder="e.g. fl_music_" required>
-          <p class="form-hint">Letters, numbers, and underscores only. Must not already exist as a table.</p>
+          <p class="form-hint">Use letters, numbers, and underscores only. Choose a name Luster is not already using.</p>
         </div>
       </div>
 

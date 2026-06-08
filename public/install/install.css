@@ -11,7 +11,6 @@
   overflow-x: hidden;
   --wizard-active: var(--accent);
   --wizard-done: #34d87d;
-  --wizard-done-2: #70e098;      /* lighter stop in completion gem gradient */
   --wizard-active-glow: color-mix(in srgb, var(--wizard-active) 20%, transparent);
   --wizard-done-glow: color-mix(in srgb, var(--wizard-done) 20%, transparent);
   --wizard-done-shadow: color-mix(in srgb, var(--wizard-done) 26%, transparent);
@@ -67,8 +66,6 @@
 .install-page .composer-footer:not(.composer-footer--center) button.btn-primary:last-child { margin-left: auto; }
 /* Centered variant used on the done page */
 .composer-footer--center { justify-content: center; }
-/* Footer note text (left of buttons) */
-.install-footer-note { margin-right: auto; color: var(--text-dim); font-size: var(--fs-sm); line-height: 1.45; }
 
 /* ── Requirements list ─────────────────────────────────────────────── */
 .install-req-list { display: flex; flex-direction: column; list-style: none; margin: 0; padding: 0; }
@@ -98,7 +95,6 @@ code { font-family: var(--font-mono); font-size: .82em; background: var(--bg-sub
 
 /* ── Reduced motion ────────────────────────────────────────────────── */
 @media (prefers-reduced-motion: reduce) {
-  .theme-transition .install-page { animation: none; }
   .install-logo { animation: none; }
 }
 
@@ -145,5 +141,4 @@ code { font-family: var(--font-mono); font-size: .82em; background: var(--bg-sub
   .composer-footer.composer-footer--row button.btn-primary { width: auto; margin-left: 0; }
   .composer-footer.composer-footer--center .btn,
   .composer-footer.composer-footer--center button.btn-primary { width: auto; }
-  .install-footer-note { width: 100%; margin-right: 0; }
 }

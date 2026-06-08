@@ -1,8 +1,6 @@
 <?php
-// Edit these three lines.
-$listing_id   = 1;               // your listing's ID (Admin -> Listings)
-$site_name    = 'My Fanlisting'; // your listing's name
-$site_subject = 'Subject Name';  // what your fanlisting is about
+// Edit this line to match your listing's ID (Admin → Listings).
+$listing_id = 1;
 
 // Everything else comes from your Luster installation automatically.
 $luster_root = dirname(__DIR__, 3);
@@ -10,6 +8,17 @@ $_cfg        = require $luster_root . '/config/app.php';
 $owner_name  = $_cfg['owner_name']  ?? '';
 $owner_email = $_cfg['owner_email'] ?? '';
 unset($_cfg);
+
+// Load the listing's name and subject from the database.
+defined('LUSTER_BASE') || define('LUSTER_BASE', $luster_root);
+$_lusterApp     = require $luster_root . '/bootstrap.php';
+$_lusterListing = (new \Luster\Repositories\ListingRepo(
+    $_lusterApp->getDatabase(),
+    $_lusterApp->getConfig()
+))->getById($listing_id);
+$site_name    = (string) ($_lusterListing?->title   ?? 'My Fanlisting');
+$site_subject = (string) ($_lusterListing?->subject ?? 'Subject Name');
+unset($_lusterApp, $_lusterListing);
 
 $e = fn(string $v): string => htmlspecialchars($v, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 $current_page = basename((string) ($_SERVER['SCRIPT_NAME'] ?? 'index.php'));

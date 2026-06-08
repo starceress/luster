@@ -15,7 +15,7 @@ require 'header.php';
   <h1>Join</h1>
 
   <?php
-  $luster_fanlisting_id = 1;
+  $luster_fanlisting_id = 2;
   require $luster_root . '/public/embed/join.php';
   ?>
 

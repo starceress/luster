@@ -173,7 +173,7 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
         <div class="pc-head-icon pc-head-icon-bg"><?= View::icon('star') ?></div>
         <div class="pc-head-meta">
           <div class="pc-head-title">General Details</div>
-          <div class="pc-head-sub">Manage the core profile, image, behaviour, and maintenance settings for this listing.</div>
+          <div class="pc-head-sub">Manage the listing's details, image, status, and public form settings.</div>
         </div>
       </div>
       <div class="pc-section">
@@ -209,7 +209,7 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
             <input id="fl-title" type="text" name="title" class="form"
                    value="<?= View::e((string) $oldTitle) ?>"
                    maxlength="255" required>
-            <p class="form-hint">Optional name of your listing, &mdash; defaults to "Subject" if left blank.</p>
+            <p class="form-hint">Optional display name for your listing. If you leave it blank, Luster uses the subject.</p>
             <?php if (!empty($fe['title'])): ?><p class="field-error"><?= View::e($fe['title'][0]) ?></p><?php endif; ?>
           </div>
         </div>
@@ -230,7 +230,7 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
             <input id="fl-email" type="email" name="email" class="form"
                    value="<?= View::e((string) $oldEmail) ?>"
                    maxlength="255" required>
-            <p class="form-hint form-hint-inline">This is the email address that listing emails will be sent from.</p>
+            <p class="form-hint form-hint-inline">Luster uses this address as the sender for emails from this listing.</p>
             <?php if (!empty($fe['email'])): ?><p class="field-error"><?= View::e($fe['email'][0]) ?></p><?php endif; ?>
           </div>
         </div>
@@ -346,7 +346,7 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
           <div>
             <input id="fl-members-per-page" type="number" name="members_per_page" class="form form--compact"
                    min="5" max="200" value="<?= (int) ($members_per_page ?? 25) ?>">
-            <p class="form-hint">Admin list view (5&ndash;200).</p>
+            <p class="form-hint">How many members to show on each admin members page for this listing. Choose 5&ndash;200.</p>
           </div>
         </div>
 
@@ -460,7 +460,7 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
         <div class="pc-head-icon pc-head-icon-bg"><?= View::icon('embed') ?></div>
         <div class="pc-head-meta">
           <div class="pc-head-title">HTML Templates</div>
-          <div class="pc-head-sub">Controls how members, affiliates, and stats render on your site.</div>
+          <div class="pc-head-sub">Choose the HTML Luster prints for this listing's members, affiliates, and stats.</div>
         </div>
       </div>
 
@@ -474,7 +474,7 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
         </div>
 
         <div class="pc-section-label">Affiliates Template</div>
-        <p class="form-hint mb-sm">Controls the full affiliates section. Use <code>{each_affiliate}&hellip;{/each_affiliate}</code> for per-row markup — <code>{aff_name}</code>, <code>{aff_url}</code>, <code>{aff_image_tag}</code>, <code>{aff_image_url}</code>, and <code>{aff_image}</code> are available inside the block.</p>
+        <p class="form-hint mb-sm">Controls the full affiliates section for this listing. Use <code>{each_affiliate}&hellip;{/each_affiliate}</code> when you want to design each row yourself, or <code>{affiliates}</code> when you want Luster to drop in the ready-made rows.</p>
         <div class="form-group">
           <textarea id="affiliates_section_template" name="affiliates_section_template" class="form tpl-textarea tpl-textarea-lg" spellcheck="false"><?= View::e($templates['affiliates_section_template'] ?: '{if_affiliates}<ul>
 {each_affiliate}<li><a href="{aff_url}" target="_blank" title="{aff_name}">{aff_image_tag}</a></li>{/each_affiliate}
@@ -509,12 +509,14 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
       <details class="card chevron" open>
         <summary class="chevron-head">Members List Tokens</summary>
         <div class="chevron-body">
+          <p class="form-hint mb-sm">A token is a placeholder. Luster replaces it with each member's real information when the members list loads.</p>
           <table class="et-token-table">
             <tbody>
-              <tr class="tok-row" data-textarea="members_template" data-token="{fan_name}"><td><code>{fan_name}</code></td><td>Fan's display name</td></tr>
-              <tr class="tok-row" data-textarea="members_template" data-token="{fan_email}"><td><code>{fan_email}</code></td><td>Fan's email address</td></tr>
-              <tr class="tok-row" data-textarea="members_template" data-token="{fan_url}"><td><code>{fan_url}</code></td><td>Fan's website URL</td></tr>
-              <tr class="tok-row" data-textarea="members_template" data-token="{fan_country}"><td><code>{fan_country}</code></td><td>Fan's country</td></tr>
+              <tr class="tok-row" data-textarea="members_template" data-token="{fan_name}"><td><code>{fan_name}</code></td><td>The member's display name.</td></tr>
+              <tr class="tok-row" data-textarea="members_template" data-token="{fan_email}"><td><code>{fan_email}</code></td><td>The member's email address. Only use this if you want emails visible on your public site.</td></tr>
+              <tr class="tok-row" data-textarea="members_template" data-token="{fan_url}"><td><code>{fan_url}</code></td><td>The member's website link.</td></tr>
+              <tr class="tok-row" data-textarea="members_template" data-token="{fan_country}"><td><code>{fan_country}</code></td><td>The member's country.</td></tr>
+              <tr><td><code>{fan_field_name}</code></td><td>Additional field values use the field name after <code>fan_</code>. For a field named <code>fave_song</code>, use <code>{fan_fave_song}</code>.</td></tr>
             </tbody>
           </table>
         </div>
@@ -523,23 +525,25 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
       <details class="card chevron" open>
         <summary class="chevron-head">Affiliates Template Tokens</summary>
         <div class="chevron-body">
-          <p class="form-hint" style="font-size:0.8em;margin-bottom:0.4em">Row tokens &mdash; use inside <code>{each_affiliate}&hellip;{/each_affiliate}</code></p>
+          <p class="form-hint" style="font-size:0.8em;margin-bottom:0.4em">Use these inside <code>{each_affiliate}&hellip;{/each_affiliate}</code>. Luster repeats that block once for each affiliate.</p>
           <table class="et-token-table">
             <tbody>
-              <tr class="tok-row" data-textarea="affiliates_section_template" data-token="{aff_name}"><td><code>{aff_name}</code></td><td>Affiliate name</td></tr>
-              <tr class="tok-row" data-textarea="affiliates_section_template" data-token="{aff_url}"><td><code>{aff_url}</code></td><td>Affiliate URL</td></tr>
-              <tr class="tok-row" data-textarea="affiliates_section_template" data-token="{aff_image_tag}"><td><code>{aff_image_tag}</code></td><td>Rendered image tag (or empty)</td></tr>
-              <tr class="tok-row" data-textarea="affiliates_section_template" data-token="{aff_image_url}"><td><code>{aff_image_url}</code></td><td>Full image URL, src-ready</td></tr>
-              <tr class="tok-row" data-textarea="affiliates_section_template" data-token="{aff_image}"><td><code>{aff_image}</code></td><td>Image filename only</td></tr>
+              <tr><td><code>{each_affiliate}&hellip;{/each_affiliate}</code></td><td>Repeats the HTML inside it once for each affiliate being shown.</td></tr>
+              <tr class="tok-row" data-textarea="affiliates_section_template" data-token="{aff_name}"><td><code>{aff_name}</code></td><td>The affiliate site's name.</td></tr>
+              <tr class="tok-row" data-textarea="affiliates_section_template" data-token="{aff_url}"><td><code>{aff_url}</code></td><td>The affiliate site's link.</td></tr>
+              <tr class="tok-row" data-textarea="affiliates_section_template" data-token="{aff_image_tag}"><td><code>{aff_image_tag}</code></td><td>A ready-made <code>&lt;img&gt;</code> tag for the affiliate image. Empty when there is no image.</td></tr>
+              <tr class="tok-row" data-textarea="affiliates_section_template" data-token="{aff_image_url}"><td><code>{aff_image_url}</code></td><td>The full image link. Empty when there is no image.</td></tr>
+              <tr class="tok-row" data-textarea="affiliates_section_template" data-token="{aff_image}"><td><code>{aff_image}</code></td><td>The saved image filename only. Most templates should use <code>{aff_image_tag}</code> instead.</td></tr>
             </tbody>
           </table>
-          <p class="form-hint" style="font-size:0.8em;margin-top:0.75em;margin-bottom:0.4em">Section tokens &mdash; use outside the loop</p>
+          <p class="form-hint" style="font-size:0.8em;margin-top:0.75em;margin-bottom:0.4em">Use these outside the affiliate row loop.</p>
           <table class="et-token-table">
             <tbody>
-              <tr class="tok-row" data-textarea="affiliates_section_template" data-token="{affiliates_count}"><td><code>{affiliates_count}</code></td><td>Total affiliate count</td></tr>
-              <tr class="tok-row" data-textarea="affiliates_section_template" data-token="{affiliates_list}"><td><code>{affiliates_list}</code></td><td>Comma-separated link list</td></tr>
-              <tr><td><code>{if_affiliates}&hellip;{/if_affiliates}</code></td><td>Shown when count &gt; 0</td></tr>
-              <tr><td><code>{if_no_affiliates}&hellip;{/if_no_affiliates}</code></td><td>Shown when count = 0</td></tr>
+              <tr class="tok-row" data-textarea="affiliates_section_template" data-token="{affiliates}"><td><code>{affiliates}</code></td><td>Ready-made affiliate rows. Handy when you do not want to design each row yourself.</td></tr>
+              <tr class="tok-row" data-textarea="affiliates_section_template" data-token="{affiliates_count}"><td><code>{affiliates_count}</code></td><td>How many active affiliates this listing has.</td></tr>
+              <tr class="tok-row" data-textarea="affiliates_section_template" data-token="{affiliates_list}"><td><code>{affiliates_list}</code></td><td>A simple comma-separated list of linked affiliate names.</td></tr>
+              <tr><td><code>{if_affiliates}&hellip;{/if_affiliates}</code></td><td>Shows the HTML inside only when this listing has at least one affiliate.</td></tr>
+              <tr><td><code>{if_no_affiliates}&hellip;{/if_no_affiliates}</code></td><td>Shows the HTML inside only when this listing has no affiliates.</td></tr>
             </tbody>
           </table>
         </div>
@@ -548,17 +552,20 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
       <details class="card chevron" open>
         <summary class="chevron-head">Statistics Tokens</summary>
         <div class="chevron-body">
+          <p class="form-hint mb-sm">These fill in the public stats block for this one listing.</p>
           <table class="et-token-table">
             <tbody>
-              <tr class="tok-row" data-textarea="stats_template" data-token="{stat_opened}"><td><code>{stat_opened}</code></td><td>Date opened</td></tr>
-              <tr class="tok-row" data-textarea="stats_template" data-token="{stat_updated}"><td><code>{stat_updated}</code></td><td>Last updated (formatted)</td></tr>
-              <tr class="tok-row" data-textarea="stats_template" data-token="{stat_last_updated}"><td><code>{stat_last_updated}</code></td><td>Last updated (raw date)</td></tr>
-              <tr class="tok-row" data-textarea="stats_template" data-token="{stat_approved}"><td><code>{stat_approved}</code></td><td>Approved member count</td></tr>
-              <tr class="tok-row" data-textarea="stats_template" data-token="{stat_pending}"><td><code>{stat_pending}</code></td><td>Pending member count</td></tr>
-              <tr class="tok-row" data-textarea="stats_template" data-token="{stat_newmembers}"><td><code>{stat_newmembers}</code></td><td>Newest member name</td></tr>
-              <tr class="tok-row" data-textarea="stats_template" data-token="{stat_growth}"><td><code>{stat_growth}</code></td><td>Average members/day since opening</td></tr>
-              <tr class="tok-row" data-textarea="stats_template" data-token="{approved_by}"><td><code>{approved_by}</code></td><td>Linked network name (TFL or TAFL), or empty</td></tr>
-              <tr class="tok-row" data-textarea="stats_template" data-token="{if_approved_by}"><td><code>{if_approved_by}&hellip;{/if_approved_by}</code></td><td>Block shown only when approved by a network</td></tr>
+              <tr class="tok-row" data-textarea="stats_template" data-token="{stat_opened}"><td><code>{stat_opened}</code></td><td>The date you opened the listing.</td></tr>
+              <tr class="tok-row" data-textarea="stats_template" data-token="{stat_updated}"><td><code>{stat_updated}</code></td><td>The date the newest approved member joined.</td></tr>
+              <tr class="tok-row" data-textarea="stats_template" data-token="{stat_last_updated}"><td><code>{stat_last_updated}</code></td><td>The Last Updated date you set for this listing in Luster.</td></tr>
+              <tr class="tok-row" data-textarea="stats_template" data-token="{stat_approved}"><td><code>{stat_approved}</code></td><td>How many approved members this listing has.</td></tr>
+              <tr class="tok-row" data-textarea="stats_template" data-token="{stat_pending}"><td><code>{stat_pending}</code></td><td>How many members are waiting for approval.</td></tr>
+              <tr class="tok-row" data-textarea="stats_template" data-token="{stat_newmembers}"><td><code>{stat_newmembers}</code></td><td>The names of the 5 newest approved members.</td></tr>
+              <tr class="tok-row" data-textarea="stats_template" data-token="{stat_growth}"><td><code>{stat_growth}</code></td><td>Average new members per day since the listing opened.</td></tr>
+              <tr class="tok-row" data-textarea="stats_template" data-token="{listing_title}"><td><code>{listing_title}</code></td><td>The listing's display name.</td></tr>
+              <tr class="tok-row" data-textarea="stats_template" data-token="{listing_url}"><td><code>{listing_url}</code></td><td>The link to the listing.</td></tr>
+              <tr class="tok-row" data-textarea="stats_template" data-token="{approved_by}"><td><code>{approved_by}</code></td><td>The network that approved the listing, if one is saved.</td></tr>
+              <tr class="tok-row" data-textarea="stats_template" data-token="{if_approved_by}"><td><code>{if_approved_by}&hellip;{/if_approved_by}</code></td><td>Shows the HTML inside only when an approved-by network is saved.</td></tr>
             </tbody>
           </table>
         </div>
@@ -575,7 +582,7 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
 
   <?php if ($listing->dbprefix === ''): ?>
   <div class="card">
-    <p class="text-muted">Additional fields require a member table. This listing has no database table configured yet.</p>
+    <p class="text-muted">Additional fields can be added after Luster creates the member storage for this listing.</p>
   </div>
   <?php else: ?>
 
@@ -591,7 +598,7 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
         </div>
       </div>
       <div class="listing-field-section">
-        <div class="callout callout-info"><?= View::icon('notes') ?><div><strong>Rules:</strong> Letters (a-z, A-Z) and numbers (0-9) only. <b>No spaces</b> — use underscores in place of spaces. Max 30 characters. Must be unique per listing and per additional field.</div></div>
+        <div class="callout callout-info"><?= View::icon('notes') ?><div><strong>Rules:</strong> Use letters, numbers, and underscores only. No spaces. Keep it under 30 characters, and choose a name this listing does not already use.</div></div>
 
         <div class="listing-field-row listing-field-row--top">
           <label class="listing-field-label" for="af-name">Field Name <span class="req">*</span></label>
@@ -600,7 +607,7 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
                    maxlength="30" pattern="[a-zA-Z0-9_]+"
                    placeholder="e.g. fave_song" required
                    title="Letters, numbers and underscores only">
-            <p class="form-hint">Database field name. Please refer to the rules highlighted above..</p>
+            <p class="form-hint">Short internal name for this field. Members will not see this exact name; they see the label below.</p>
           </div>
         </div>
         <div class="listing-field-row listing-field-row--top">
@@ -608,7 +615,7 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
           <div>
             <input type="text" class="form" id="af-label" name="label"
                    maxlength="100" placeholder="e.g. Favourite Song" required>
-            <p class="form-hint">The associatedlabel members will see on your join form and members pages.</p>
+            <p class="form-hint">The label members will see on your join form and members pages.</p>
           </div>
         </div>
         <div class="listing-field-row listing-field-row--top">
@@ -629,7 +636,7 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
           <div>
             <textarea class="form" id="af-options" name="options" rows="2"
                       placeholder="e.g. Option A, Option B, Option C"></textarea>
-            <p class="form-hint">Comma-separated values for drop down, checkbox, and radio button fields.</p>
+            <p class="form-hint">For dropdown, checkbox, and radio fields, write the choices separated by commas.</p>
           </div>
         </div>
         <div class="listing-field-row listing-field-row--top">
@@ -645,7 +652,7 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
                 <span class="form-check-label">No</span>
               </label>
             </div>
-            <p class="form-hint">If Yes, members must fill in this field to successfully submit the form.</p>
+            <p class="form-hint">Choose Yes when members must answer this before they can submit the form.</p>
           </div>
         </div>
       </div>
@@ -1216,7 +1223,7 @@ $embedBaseUrl   = rtrim((string) ($cfg['embed_base_url'] ?? ''), '/') ?: rtrim((
     <div class="pc-head-icon pc-head-icon-bg"><?= View::icon('embed') ?></div>
     <div class="pc-head-meta">
       <div class="pc-head-title">Embed Settings</div>
-      <div class="pc-head-sub">Configure the external page filenames and generated snippets used to embed this listing on your site.</div>
+      <div class="pc-head-sub">Tell Luster which public pages hold this listing's forms, and get the include snippets for your site.</div>
     </div>
   </div>
   
@@ -1232,7 +1239,7 @@ $embedBaseUrl   = rtrim((string) ($cfg['embed_base_url'] ?? ''), '/') ?: rtrim((
           <input id="fl-form-join" type="text" name="form_url_join" class="form"
                  maxlength="200"
                  value="<?= View::e($embedSettings['form_url_join'] !== '' ? $embedSettings['form_url_join'] : 'join.php') ?>">
-          <p class="form-hint">Filename of the page on your site containing the join embed.</p>
+          <p class="form-hint">The public page on your site where visitors can join this listing.</p>
         </div>
       </div>
 
@@ -1242,6 +1249,7 @@ $embedBaseUrl   = rtrim((string) ($cfg['embed_base_url'] ?? ''), '/') ?: rtrim((
           <input id="fl-form-update" type="text" name="form_url_update" class="form"
                  maxlength="200"
                  value="<?= View::e($embedSettings['form_url_update'] !== '' ? $embedSettings['form_url_update'] : 'update.php') ?>">
+          <p class="form-hint">The public page where members can update their information.</p>
         </div>
       </div>
 
@@ -1251,6 +1259,7 @@ $embedBaseUrl   = rtrim((string) ($cfg['embed_base_url'] ?? ''), '/') ?: rtrim((
           <input id="fl-form-remove" type="text" name="form_url_remove" class="form"
                  maxlength="200"
                  value="<?= View::e($embedSettings['form_url_remove'] !== '' ? $embedSettings['form_url_remove'] : 'remove.php') ?>">
+          <p class="form-hint">The public page where members can remove themselves from this listing.</p>
         </div>
       </div>
 
@@ -1260,6 +1269,7 @@ $embedBaseUrl   = rtrim((string) ($cfg['embed_base_url'] ?? ''), '/') ?: rtrim((
           <input id="fl-form-reset" type="text" name="form_url_reset" class="form"
                  maxlength="200"
                  value="<?= View::e($embedSettings['form_url_reset'] !== '' ? $embedSettings['form_url_reset'] : 'reset.php') ?>">
+          <p class="form-hint">The public page where members can request or finish a password reset.</p>
         </div>
       </div>
 
@@ -1270,7 +1280,7 @@ $embedBaseUrl   = rtrim((string) ($cfg['embed_base_url'] ?? ''), '/') ?: rtrim((
           <input id="fl-form-url-aff-apply" type="text" name="form_url_affiliate_apply" class="form"
                  maxlength="500"
                  value="<?= View::e(($form_url_affiliate_apply ?? '') !== '' ? $form_url_affiliate_apply : 'affiliate-apply.php') ?>">
-          <p class="form-hint">Path within your listing URL that hosts the embed. Leave blank to use the built-in route <code>/affiliate-apply/<?= (int) $listing->id ?></code>.</p>
+          <p class="form-hint">The public page where other sites can apply to affiliate with this listing. Leave blank to use Luster's built-in application page.</p>
         </div>
       </div>
 
@@ -1281,6 +1291,7 @@ $embedBaseUrl   = rtrim((string) ($cfg['embed_base_url'] ?? ''), '/') ?: rtrim((
           <input id="fl-form-codes-submit" type="text" name="form_url_codes_submit" class="form"
                  maxlength="200"
                  value="<?= View::e($embedSettings['form_url_codes_submit'] !== '' ? $embedSettings['form_url_codes_submit'] : 'codes-submit.php') ?>">
+          <p class="form-hint">The public page where visitors can donate codes for this listing.</p>
         </div>
       </div>
     </div>
@@ -1359,7 +1370,7 @@ $embedBaseUrl   = rtrim((string) ($cfg['embed_base_url'] ?? ''), '/') ?: rtrim((
       <p class="form-hint">
         Set the <strong>Installation Path</strong> in
         <a href="<?= $b ?>/admin/settings" class="link">Settings &rarr; Server Paths</a>
-        to generate embed snippets here.
+        to show ready-to-use snippets here.
       </p>
     <?php endif; ?>
   </div>
@@ -1370,9 +1381,9 @@ $embedBaseUrl   = rtrim((string) ($cfg['embed_base_url'] ?? ''), '/') ?: rtrim((
   <summary class="card-head">Compatibility Wrappers</summary>
   <div class="card-body">
     <p class="form-hint mb-md">
-      Use these wrapper files to keep existing Enthusiast or Listing Admin include paths working
-      while serving content from Luster. Copy the file into your legacy install directory, then
-      add the two lines shown at the top of your fanlisting page (before the include).
+      Use these files when an older Enthusiast or Listing Admin page still includes files like
+      <code>show_join.php</code>. The wrapper lets that old include point to Luster instead.
+      Copy the wrapper into the old script folder, then add the two lines shown before the include.
     </p>
 
     <?php
@@ -1411,7 +1422,7 @@ $embedBaseUrl   = rtrim((string) ($cfg['embed_base_url'] ?? ''), '/') ?: rtrim((
         <div>
           <p class="form-hint mb-xs">
             Copy <code>public/compat/<?= View::e($subDir) ?>/<?= View::e($entry['file']) ?></code>
-            into your <?= View::e($network) ?> directory, then add to your page:
+            into the old <?= View::e($network) ?> folder, then add this to your page:
           </p>
           <div class="ro-field embed-snippet">
             $luster_listing_id = <?= (int) $listing->id ?>;<?php if ($compatInstallPath !== ''): ?><br>
@@ -1443,27 +1454,27 @@ $embedBaseUrl   = rtrim((string) ($cfg['embed_base_url'] ?? ''), '/') ?: rtrim((
     <?= View::icon('alert') ?>
     <div>
       <strong>Advanced settings - proceed with caution!</strong>
-      <span>Only modify these settings <b>if you know what you are doing</b>. Incorrect values can break your listing or prevent members from being found.</span>
+      <span>Only change these if you are intentionally moving where this listing stores or reads members. Wrong values can make the listing lose track of its members.</span>
     </div>
   </div>
 
   <details class="card chevron">
-    <summary class="card-head">Database Prefix
-      <div class="card-head-sub">The member table name in your database. Most users never need to change this.</siv>
+    <summary class="card-head">Member Storage Name
+      <div class="card-head-sub">The internal name Luster uses for this listing's member records. Most users never need to change this.</div>
     </summary>
     <div class="card-body">
       <div class="listining-field-row">
         <input type="text" class="form mono" value="<?= View::e($listing->dbprefix) ?>"
                readonly>
         <a href="<?= $b ?>/admin/listings/<?= (int) $listing->id ?>/edit-prefix"
-           class="btn btn-danger">Edit</a>
+           class="btn btn-danger">Rename</a>
       </div>
     </div>
   </details>
 
   <details class="card chevron">
-    <summary class="card-head">Per-listing Database Connection
-      <div class="card-head-sub">Override the global database connection for this listing only. Leave all fields blank to use the global database.</div>
+    <summary class="card-head">Separate Database Login
+      <div class="card-head-sub">Use this only if this listing's members live in a different database from the rest of Luster. Leave everything blank for the normal setup.</div>
     </summary>
     <form method="POST" action="<?= $b ?>/admin/listings/<?= (int) $listing->id ?>/embed" class="js-warn-unsaved">
       <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
@@ -1479,6 +1490,7 @@ $embedBaseUrl   = rtrim((string) ($cfg['embed_base_url'] ?? ''), '/') ?: rtrim((
             <input id="adv-db-host" type="text" name="db_host" class="form"
                    maxlength="255" placeholder="localhost"
                    value="<?= View::e($advEmbedSettings['db_host'] ?? '') ?>">
+            <p class="form-hint">The database server name, usually <code>localhost</code>.</p>
           </div>
         </div>
         <div class="listing-field-row listing-field-row--top">
@@ -1487,6 +1499,7 @@ $embedBaseUrl   = rtrim((string) ($cfg['embed_base_url'] ?? ''), '/') ?: rtrim((
             <input id="adv-db-name" type="text" name="db_name" class="form"
                    maxlength="255" placeholder="my_database"
                    value="<?= View::e($advEmbedSettings['db_name'] ?? '') ?>">
+            <p class="form-hint">The database name that contains this listing's member table.</p>
           </div>
         </div>
         <div class="listing-field-row listing-field-row--top">
@@ -1495,6 +1508,7 @@ $embedBaseUrl   = rtrim((string) ($cfg['embed_base_url'] ?? ''), '/') ?: rtrim((
             <input id="adv-db-user" type="text" name="db_user" class="form"
                    maxlength="255" autocomplete="off"
                    value="<?= View::e($advEmbedSettings['db_user'] ?? '') ?>">
+            <p class="form-hint">The username Luster should use for that separate database.</p>
           </div>
         </div>
         <div class="listing-field-row listing-field-row--top">
@@ -1509,7 +1523,7 @@ $embedBaseUrl   = rtrim((string) ($cfg['embed_base_url'] ?? ''), '/') ?: rtrim((
                 <?= View::icon('eye-off') ?>
               </button>
             </div>
-            <p class="form-hint">Only fill in to change the stored password.</p>
+            <p class="form-hint">Only fill this in when you want to set or replace the saved password.</p>
           </div>
         </div>
       </div>

@@ -14,6 +14,9 @@ use Luster\Core\Request;
 use Luster\Core\Response;
 use Luster\Core\Validator;
 use Luster\Repositories\ListingRepo;
+use Luster\Repositories\SiteSettingsRepo;
+use Luster\Support\FormFieldBuilder;
+use Luster\Support\SuccessRenderer;
 
 /**
  * Public KIM sign-up form.
@@ -65,7 +68,7 @@ final class KimSignupController
         // Honeypot — silent reject; fake success so bots see no difference
         if ((string) $request->post('website_confirm', '') !== '') {
             $session->remove('lstr_embed_return_to');
-            $session->set('lstr_flash_success', 'Thank you for signing up! Your entry is pending approval.');
+            $session->set('lstr_flash_success_html', SuccessRenderer::render('', 'kim-signed-up'));
             return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $fallbackUrl);
         }
 
@@ -208,7 +211,7 @@ final class KimSignupController
         }
 
         $session->remove('lstr_embed_return_to');
-        $session->set('lstr_flash_success', 'Thank you for signing up! Your entry is pending approval.');
+        $session->set('lstr_flash_success_html', SuccessRenderer::render('', 'kim-signed-up'));
         return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $fallbackUrl);
     }
 
@@ -222,21 +225,42 @@ final class KimSignupController
         string $error = '',
         string $captchaError = '',
     ): Response {
-        $baseUrl = $this->app->getBaseUrl();
+        $baseUrl    = $this->app->getBaseUrl();
+        $wrapperTpl = (new SiteSettingsRepo($this->app->getDatabase()))->get('collective_field_wrapper_template', '') ?? '';
+
+        $flSelectHtml = '<select class="fl-select" id="kim-fanlisting" name="fanlisting_id" required>'
+                      . '<option value="">&#8212; Select a fanlisting &#8212;</option>';
+        foreach ($fanlistings as $_fl) {
+            $_flId       = htmlspecialchars((string) $_fl->id, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+            $_flTitle    = htmlspecialchars((string) $_fl->subject, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+            $_flSelected = ((string) ($old['fanlisting_id'] ?? '')) === (string) $_fl->id ? ' selected' : '';
+            $_flUpcoming = $_fl->upcoming ? ' (upcoming)' : '';
+            $flSelectHtml .= "<option value=\"{$_flId}\"{$_flSelected}>{$_flTitle}{$_flUpcoming}</option>";
+        }
+        $flSelectHtml .= '</select>';
+
+        $captchaQ = Captcha::getQuestion('kim_signup');
+        $f = $this->app->getFormFieldBuilder()->build([
+            ['type' => 'text',     'name' => 'name',             'id' => 'kim-name',             'label' => 'Name',                     'required' => true,  'value' => (string) ($old['name']  ?? ''), 'attrs' => ['maxlength' => '100', 'autocomplete' => 'name']],
+            ['type' => 'url',      'name' => 'url',              'id' => 'kim-url',              'label' => 'Collective / Website URL',  'required' => true,  'value' => (string) ($old['url']   ?? ''), 'attrs' => ['maxlength' => '500', 'placeholder' => 'https://', 'autocomplete' => 'url']],
+            ['type' => 'email',    'name' => 'email',            'id' => 'kim-email',            'label' => 'Email',                    'required' => true,  'value' => (string) ($old['email'] ?? ''), 'attrs' => ['maxlength' => '255', 'autocomplete' => 'email']],
+            ['type' => 'select',   'name' => 'fanlisting_id',   'id' => 'kim-fanlisting',       'label' => 'Fanlisting Interested In', 'required' => true,  'raw_input' => $flSelectHtml],
+            ['type' => 'password', 'name' => 'password',         'id' => 'kim-password',         'label' => 'Password',                 'required' => false, 'attrs' => ['maxlength' => '255', 'autocomplete' => 'new-password'], 'hint' => 'Leave blank to auto-generate; you\'ll receive it by email'],
+            ['type' => 'password', 'name' => 'password_confirm', 'id' => 'kim-password-confirm', 'label' => 'Confirm Password',         'required' => false, 'attrs' => ['maxlength' => '255', 'autocomplete' => 'new-password']],
+            ['type' => 'text',     'name' => 'captcha_answer',   'id' => 'kim-captcha',          'label' => 'Captcha: ' . $captchaQ,   'required' => true,  'error' => $captchaError, 'attrs' => ['maxlength' => '10', 'autocomplete' => 'off']],
+        ], $wrapperTpl);
 
         return $this->renderKimPage('signup.php', [
-            'page_title'      => 'KIM List — Sign Up',
-            'form_action'     => $baseUrl . '/kim',
-            'csrf_token'      => $this->app->getCSRF()->token(),
-            'errors'          => $error !== ''
+            'page_title'  => 'KIM List — Sign Up',
+            'form_action' => $baseUrl . '/kim',
+            'csrf_token'  => $this->app->getCSRF()->token(),
+            'errors'      => $error !== ''
                 ? '<p>' . htmlspecialchars($error, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '</p>'
                 : '',
-            'fanlistings'     => $fanlistings,
-            'old'             => $old,
-            'captcha_question' => Captcha::getQuestion('kim_signup'),
-            'captcha_error'   => $captchaError,
-            'base_url'        => $baseUrl,
-            'theme_path'      => $baseUrl . '/assets/default/',
+            'old'         => $old,
+            'f'           => $f,
+            'base_url'    => $baseUrl,
+            'theme_path'  => $baseUrl . '/assets/default/',
         ]);
     }
 

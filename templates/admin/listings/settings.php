@@ -37,7 +37,7 @@ function flsCfgVal(array $cfg, string $key, $default = ''): string {
       <div class="pc-head-icon pc-head-icon-bg"><?= View::icon('gear') ?></div>
       <div class="pc-head-meta">
         <div class="pc-head-title">Display Settings</div>
-        <div class="pc-head-sub">Controls how owned listings are sorted and paginated within the admin panel.</div>
+        <div class="pc-head-sub">Choose how owned listings are shown in the admin area and when Luster reminds you to update them.</div>
       </div>
     </div>
 
@@ -72,7 +72,7 @@ function flsCfgVal(array $cfg, string $key, $default = ''): string {
         <label class="listing-field-label" for="fl-per-page">Listings per page</label>
         <div>
           <input type="number" id="fl-per-page" name="owned_per_page" class="form form--compact" min="5" max="50" value="<?= (int) ($cfg['owned_per_page'] ?? 10) ?>">
-          <p class="form-hint">How many listings to show per page. Min 5, max 50.</p>
+          <p class="form-hint">How many listings to show on each admin page. Choose 5&ndash;50.</p>
         </div>
       </div>
     </div>
@@ -86,7 +86,7 @@ function flsCfgVal(array $cfg, string $key, $default = ''): string {
           <input id="s-stale-days" type="number" name="stale_days" class="form form--compact"
                  min="1" max="365"
                  value="<?= View::e($tracking['stale_days'] ?? '45') ?>">
-          <p class="form-hint">Show a stale warning on the dashboard when a listing hasn't been marked updated in this many days. Default: 45.</p>
+          <p class="form-hint">Show a dashboard warning when this many days pass without marking a listing updated. Default: 45.</p>
         </div>
       </div>
 
@@ -98,7 +98,7 @@ function flsCfgVal(array $cfg, string $key, $default = ''): string {
                    <?= ($tracking['overdue_notify_enabled'] ?? '0') === '1' ? 'checked' : '' ?>>
             <span class="toggle-label">Email me when listings haven't been updated in N days</span>
           </label>
-          <p class="form-hint">Sends a notification to your Contact Email at most once per 24 hours listing any overdue fanlistings.</p>
+          <p class="form-hint">Sends one reminder email per day at most, listing any fanlistings that need an update.</p>
         </div>
       </div>
 
@@ -108,7 +108,7 @@ function flsCfgVal(array $cfg, string $key, $default = ''): string {
           <input id="s-overdue-days" type="number" name="overdue_days" class="form form--compact"
                  min="1" max="365"
                  value="<?= View::e($tracking['overdue_days'] ?? '55') ?>">
-          <p class="form-hint">Send a notification email when a listing hasn't been updated in this many days. Default: 55. TFL guidelines recommend 55 days.</p>
+          <p class="form-hint">Send the reminder when this many days pass without an update. Default: 55. TFL guidelines recommend 55 days.</p>
         </div>
       </div>
 

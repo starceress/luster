@@ -34,7 +34,7 @@ $b = rtrim(View::e($base_url), '/');
       <div class="pc-head-icon pc-head-icon-bg"><?= View::icon('general') ?></div>
       <div class="pc-head-meta">
         <div class="pc-head-title">Collective Settings</div>
-        <div class="pc-head-sub">Site-wide collective features and public-facing pages.</div>
+        <div class="pc-head-sub">Turn site-wide collective features on or off, and choose where their messages go.</div>
       </div>
     </div>
 
@@ -46,7 +46,7 @@ $b = rtrim(View::e($base_url), '/');
                  <?= ($site_settings['collective_contact_enabled'] ?? '1') === '1' ? 'checked' : '' ?>>
           <span class="toggle-label">Enable collective contact form</span>
         </label>
-        <p class="form-hint">Controls the <code class="neb-code">/contact</code> page and the <code class="neb-code">collective-contact.php</code> embed.</p>
+        <p class="form-hint">Turns on the public contact form for your whole collective, including the contact page and the matching embed.</p>
       </div>
       <div class="form-group">
         <label class="form-label" for="s-collective-contact-recipient">Recipient email</label>
@@ -54,7 +54,7 @@ $b = rtrim(View::e($base_url), '/');
                name="collective_contact_recipient" class="form" maxlength="255"
                placeholder="Defaults to Owner Email"
                value="<?= View::e($site_settings['collective_contact_recipient'] ?? '') ?>">
-        <p class="form-hint">Override which email address receives collective contact messages. Leave blank to use the Owner Email.</p>
+        <p class="form-hint">Choose where collective contact messages are sent. Leave blank to use the Owner Email from General Settings.</p>
       </div>
     </div>
 
@@ -66,7 +66,7 @@ $b = rtrim(View::e($base_url), '/');
                  <?= ($site_settings['collective_affiliate_apply_enabled'] ?? '1') === '1' ? 'checked' : '' ?>>
           <span class="toggle-label">Enable collective affiliate applications</span>
         </label>
-        <p class="form-hint">Controls the <code class="neb-code">/affiliate-apply/collective</code> route and the <code class="neb-code">affiliate-apply.php</code> embed with <code class="neb-code">$luster_fanlisting_id = 0</code>.</p>
+        <p class="form-hint">Lets other sites apply to affiliate with your whole collective. This is separate from affiliate applications for one specific fanlisting.</p>
       </div>
     </div>
 

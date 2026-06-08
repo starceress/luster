@@ -11,7 +11,7 @@ require 'header.php';
   <h1>Updates</h1>
 
   <?php
-  $luster_fanlisting_id = 1;
+  $luster_fanlisting_id = 2;
   $luster_show_cats     = true;
   require $luster_root . '/public/embed/updates.php';
   ?>

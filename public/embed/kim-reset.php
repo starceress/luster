@@ -68,19 +68,16 @@ $_lusterFanlistings = $_lusterListingRepo->getAll();
 // ---------------------------------------------------------------------------
 
 $_lusterSession  = $_lusterApp->getSession();
-$_lusterSuccess  = (string) $_lusterSession->get('lstr_flash_success',   '');
-$_lusterError    = (string) $_lusterSession->get('lstr_flash_error',     '');
-$_lusterOldEmail = (string) $_lusterSession->get('lstr_flash_old_email', '');
-$_lusterSession->remove('lstr_flash_success');
+$_lusterSuccess  = (string) $_lusterSession->get('lstr_flash_success_html', '');
+$_lusterError    = (string) $_lusterSession->get('lstr_flash_error',        '');
+$_lusterOldEmail = (string) $_lusterSession->get('lstr_flash_old_email',    '');
+$_lusterSession->remove('lstr_flash_success_html');
 $_lusterSession->remove('lstr_flash_error');
 $_lusterSession->remove('lstr_flash_old_email');
 
 if ($_lusterSuccess !== '') {
-    $_lusterHtml = '<div class="fl-success"><p>'
-        . htmlspecialchars($_lusterSuccess, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8')
-        . '</p></div>';
-    if ($luster_return ?? false) { return $_lusterHtml; }
-    echo $_lusterHtml;
+    if ($luster_return ?? false) { return $_lusterSuccess; }
+    echo $_lusterSuccess;
     return;
 }
 
@@ -114,19 +111,34 @@ $_lusterLinkList   = $luster_kim_list_url   ?? $_toKimLink($_lusterKimUrls["kim_
 
 $_lusterBaseUrl = $_lusterApp->getBaseUrl();
 
+$_lusterCaptchaQ   = Captcha::getQuestion('kim_reset');
+$_lusterWrapperTpl = $_lusterSiteSettings->get('collective_field_wrapper_template', '') ?? '';
+
+$_lusterFlSelectHtml = '<select class="fl-select" id="kim-fanlisting" name="fanlisting_id" required>'
+                     . '<option value="">&#8212; Select the fanlisting your entry is for &#8212;</option>';
+foreach ($_lusterFanlistings as $_lusterFl) {
+    $_lusterFlId    = htmlspecialchars((string) $_lusterFl->id, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+    $_lusterFlTitle = htmlspecialchars((string) $_lusterFl->subject, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+    $_lusterFlSelectHtml .= "<option value=\"{$_lusterFlId}\">{$_lusterFlTitle}</option>";
+}
+$_lusterFlSelectHtml .= '</select>';
+
+$_lusterF = $_lusterApp->getFormFieldBuilder()->build([
+    ['type' => 'email',  'name' => 'email',          'id' => 'kim-email',      'label' => 'Email',                  'required' => true, 'value' => $_lusterOldEmail, 'attrs' => ['maxlength' => '255', 'autocomplete' => 'email']],
+    ['type' => 'select', 'name' => 'fanlisting_id',  'id' => 'kim-fanlisting', 'label' => 'Fanlisting',             'required' => true, 'raw_input' => $_lusterFlSelectHtml],
+    ['type' => 'text',   'name' => 'captcha_answer', 'id' => 'kim-captcha',    'label' => 'Captcha: ' . $_lusterCaptchaQ, 'required' => true, 'attrs' => ['maxlength' => '10', 'autocomplete' => 'off']],
+], $_lusterWrapperTpl);
+
 $_lusterHtml = $_lusterApp->getView()->render('default/addons/kim/reset.php', [
-    'form_action'      => $_lusterBaseUrl . '/kim/reset',
-    'csrf_token'       => $_lusterApp->getCSRF()->token(),
-    'errors'           => $_lusterError !== ''
+    'form_action' => $_lusterBaseUrl . '/kim/reset',
+    'csrf_token'  => $_lusterApp->getCSRF()->token(),
+    'errors'      => $_lusterError !== ''
         ? '<p>' . htmlspecialchars($_lusterError, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '</p>'
         : '',
-    'fanlistings'      => $_lusterFanlistings,
-    'old_email'        => $_lusterOldEmail,
-    'captcha_question' => Captcha::getQuestion('kim_reset'),
-    'captcha_error'    => '',
-    'base_url'         => $_lusterBaseUrl,
-    'theme_path'       => $_lusterBaseUrl . '/assets/default/',
-    'link_update'      => $_lusterLinkUpdate,
+    'f'           => $_lusterF,
+    'base_url'    => $_lusterBaseUrl,
+    'theme_path'  => $_lusterBaseUrl . '/assets/default/',
+    'link_update' => $_lusterLinkUpdate,
 ]);
 
 if ($luster_return ?? false) {

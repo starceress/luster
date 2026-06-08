@@ -16,6 +16,8 @@ use Luster\Repositories\EmailTemplateRepo;
 use Luster\Repositories\ListingRepo;
 use Luster\Repositories\ListingSettingsRepo;
 use Luster\Repositories\MemberRepo;
+use Luster\Support\FormFieldBuilder;
+use Luster\Support\SuccessRenderer;
 
 /**
  * Fan removal form — lets a fan remove themselves from a listing.
@@ -85,7 +87,7 @@ final class RemoveController
         // Honeypot — silent reject; fake success so bots see no difference
         if ((string) $request->post('website_confirm', '') !== '') {
             $session->remove('lstr_embed_return_to');
-            $session->set('lstr_flash_success', 'You have been removed from the listing.');
+            $session->set('lstr_flash_success_html', SuccessRenderer::render('', 'removed'));
             return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $baseUrl . '/remove/' . $listingId);
         }
 
@@ -182,7 +184,11 @@ final class RemoveController
 
 
         $session->remove('lstr_embed_return_to');
-        $session->set('lstr_flash_success', "You have been removed from the listing. We're sorry to see you go!");
+        $successTpl = $settingsRepo->getSuccessTemplate($listingId) ?? '';
+        $session->set('lstr_flash_success_html', SuccessRenderer::render($successTpl, 'removed', [
+            'listing_title' => $listing->title,
+            'listing_url'   => $listing->url,
+        ]));
         return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $formUrl);
     }
 
@@ -213,7 +219,17 @@ final class RemoveController
         string $captchaError = '',
         string $lostPasswordUrl = '',
     ): Response {
-        $baseUrl = $this->app->getBaseUrl();
+        $baseUrl         = $this->app->getBaseUrl();
+        $captchaQuestion = Captcha::getQuestion('remove');
+        $wrapperTpl      = (new ListingSettingsRepo($this->app->getDatabase()))->getWrapperTemplate($listingId) ?? '';
+
+        $fb          = $this->app->getFormFieldBuilder();
+        $descriptors = [
+            ['type' => 'email',    'name' => 'email',          'id' => 'rem-email',    'label' => 'Email',    'required' => true, 'value' => $oldEmail,   'attrs' => ['maxlength' => '255', 'autocomplete' => 'email']],
+            ['type' => 'password', 'name' => 'password',       'id' => 'rem-password', 'label' => 'Password', 'required' => true, 'attrs' => ['maxlength' => '255', 'autocomplete' => 'current-password']],
+            ['type' => 'text',     'name' => 'captcha_answer', 'id' => 'rem-captcha',  'label' => 'Captcha: ' . $captchaQuestion, 'required' => true, 'error' => $captchaError, 'attrs' => ['maxlength' => '10', 'autocomplete' => 'off']],
+        ];
+        $f = $fb->build($descriptors, $wrapperTpl);
 
         $html = $this->app->getView()->renderPublic('remove.php', [
             'listing'           => $listing,
@@ -223,10 +239,8 @@ final class RemoveController
             'form_action'       => $baseUrl . '/remove/' . $listingId,
             'csrf_token'        => $this->app->getCSRF()->token(),
             'errors'            => $error !== '' ? '<p>' . htmlspecialchars($error, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '</p>' : '',
-            'field_email'       => $oldEmail,
             'lost_password_url' => $lostPasswordUrl,
-            'captcha_question'  => Captcha::getQuestion('remove'),
-            'captcha_error'     => $captchaError,
+            'f'                 => $f,
             'base_url'          => $baseUrl,
             'theme_path'        => $baseUrl . '/assets/default/',
         ]);

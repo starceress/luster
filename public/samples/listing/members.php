@@ -13,7 +13,7 @@ require 'header.php';
   <h1>Members</h1>
 
   <?php
-  $luster_fanlisting_id = 1;
+  $luster_fanlisting_id = 2;
   $luster_members_base  = strtok($_SERVER['REQUEST_URI'], '?');
   require $luster_root . '/public/embed/members.php';
   ?>

@@ -8,6 +8,7 @@
  *   $errors       string  pre-escaped HTML error string, or ''
  *   $token        string  raw token (empty when invalid)
  *   $token_valid  bool
+ *   $f            array<string,string>  keys: new_password, new_password_confirm
  *   $base_url     string
  */
 
@@ -38,25 +39,12 @@ $b = rtrim(View::e($base_url), '/');
       <div class="fl-errors"><?= $errors ?></div>
     <?php endif; ?>
 
-    <form method="POST" action="<?= View::e($form_action) ?>">
+    <form class="fl-form" method="POST" action="<?= View::e($form_action) ?>">
       <input type="hidden" name="_csrf"  value="<?= View::e($csrf_token) ?>">
       <input type="hidden" name="token" value="<?= View::e($token) ?>">
 
-      <div class="fl-field">
-        <label class="fl-label" for="kim-new-password">
-          New Password <span class="fl-required">*</span>
-        </label>
-        <input class="fl-input" type="password" id="kim-new-password" name="new_password"
-               required maxlength="255" autocomplete="new-password">
-      </div>
-
-      <div class="fl-field">
-        <label class="fl-label" for="kim-new-password-confirm">
-          Confirm New Password <span class="fl-required">*</span>
-        </label>
-        <input class="fl-input" type="password" id="kim-new-password-confirm" name="new_password_confirm"
-               required maxlength="255" autocomplete="new-password">
-      </div>
+      <?= $f['new_password'] ?>
+      <?= $f['new_password_confirm'] ?>
 
       <div class="fl-actions">
         <button class="fl-btn" type="submit">Set New Password</button>

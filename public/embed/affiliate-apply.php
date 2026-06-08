@@ -88,19 +88,16 @@ if ($_lusterListingId === 0) {
 
     $_lusterConfig  = $_lusterApp->getConfig();
     $_lusterSession = $_lusterApp->getSession();
-    $_lusterSuccess = (string) $_lusterSession->get('lstr_flash_success', '');
-    $_lusterError   = (string) $_lusterSession->get('lstr_flash_error',   '');
-    $_lusterOld     = (array)  $_lusterSession->get('lstr_flash_old',     []);
-    $_lusterSession->remove('lstr_flash_success');
+    $_lusterSuccess = (string) $_lusterSession->get('lstr_flash_success_html', '');
+    $_lusterError   = (string) $_lusterSession->get('lstr_flash_error',        '');
+    $_lusterOld     = (array)  $_lusterSession->get('lstr_flash_old',          []);
+    $_lusterSession->remove('lstr_flash_success_html');
     $_lusterSession->remove('lstr_flash_error');
     $_lusterSession->remove('lstr_flash_old');
 
     if ($_lusterSuccess !== '') {
-        $_lusterHtml = '<div class="fl-success"><p>'
-            . htmlspecialchars($_lusterSuccess, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8')
-            . '</p></div>';
-        if ($luster_return ?? false) { return $_lusterHtml; }
-        echo $_lusterHtml;
+        if ($luster_return ?? false) { return $_lusterSuccess; }
+        echo $_lusterSuccess;
         return;
     }
 
@@ -109,19 +106,28 @@ if ($_lusterListingId === 0) {
     $_lusterSiteName   = (string) $_lusterConfig->get('site_name', 'Collective');
     $_lusterSiteUrl    = (string) ($_lusterConfig->get('site_url', '') ?: $_lusterApp->getBaseUrl());
 
+    $_lusterCaptchaQ   = Captcha::getQuestion('affiliate_apply');
+    $_lusterWrapperTpl = $_lusterSiteRepo->get('collective_field_wrapper_template', '') ?? '';
+    $_lusterF          = $_lusterApp->getFormFieldBuilder()->build([
+        ['type' => 'text',     'name' => 'name',           'id' => 'aff-name',    'label' => 'Site name',                      'required' => true,  'value' => (string) ($_lusterOld['name']    ?? ''), 'attrs' => ['maxlength' => '200', 'autocomplete' => 'organization']],
+        ['type' => 'url',      'name' => 'url',            'id' => 'aff-url',     'label' => 'Site URL',                       'required' => true,  'value' => (string) ($_lusterOld['url']     ?? ''), 'attrs' => ['maxlength' => '500', 'placeholder' => 'https://', 'autocomplete' => 'url']],
+        ['type' => 'email',    'name' => 'email',          'id' => 'aff-email',   'label' => 'Your email (optional)',          'required' => false, 'value' => (string) ($_lusterOld['email']   ?? ''), 'attrs' => ['maxlength' => '255', 'autocomplete' => 'email'], 'hint' => 'Used to notify you when your application is approved or rejected.'],
+        ['type' => 'file',     'name' => 'image',          'id' => 'aff-image',   'label' => 'Site button / image (optional)', 'required' => false, 'attrs' => ['accept' => 'image/jpeg,image/png,image/gif,image/webp'], 'hint' => 'JPEG, PNG, GIF, or WebP. Max 2 MB.'],
+        ['type' => 'textarea', 'name' => 'message',        'id' => 'aff-message', 'label' => 'Message (optional)',             'required' => false, 'value' => (string) ($_lusterOld['message'] ?? ''), 'attrs' => ['maxlength' => '2000', 'rows' => '4']],
+        ['type' => 'text',     'name' => 'captcha_answer', 'id' => 'aff-captcha', 'label' => 'Captcha: ' . $_lusterCaptchaQ,  'required' => true,  'attrs' => ['maxlength' => '10', 'autocomplete' => 'off']],
+    ], $_lusterWrapperTpl);
+
     $_lusterHtml = $_lusterApp->getView()->renderFragment('affiliate-apply.php', [
-        'listing'          => null,
-        'listing_name'     => $_lusterSiteName,
-        'listing_url'      => $_lusterSiteUrl,
-        'page_title'       => 'Affiliate Application',
-        'base_url'         => $_lusterApp->getBaseUrl(),
-        'theme_path'       => $_lusterApp->getBaseUrl() . '/assets/default/',
-        'form_action'      => $_lusterFormAction,
-        'csrf_token'       => $_lusterApp->getCsrf()->token(),
-        'captcha_question' => Captcha::getQuestion('affiliate_apply'),
-        'captcha_error'    => '',
-        'errors'           => $_lusterError,
-        'old'              => $_lusterOld,
+        'listing'      => null,
+        'listing_name' => $_lusterSiteName,
+        'listing_url'  => $_lusterSiteUrl,
+        'page_title'   => 'Affiliate Application',
+        'base_url'     => $_lusterApp->getBaseUrl(),
+        'theme_path'   => $_lusterApp->getBaseUrl() . '/assets/default/',
+        'form_action'  => $_lusterFormAction,
+        'csrf_token'   => $_lusterApp->getCsrf()->token(),
+        'errors'       => $_lusterError,
+        'f'            => $_lusterF,
     ]);
 
     if ($luster_return ?? false) {
@@ -164,19 +170,16 @@ if ($_lusterListing === null) {
 // ---------------------------------------------------------------------------
 
 $_lusterSession = $_lusterApp->getSession();
-$_lusterSuccess = (string) $_lusterSession->get('lstr_flash_success', '');
-$_lusterError   = (string) $_lusterSession->get('lstr_flash_error',   '');
-$_lusterOld     = (array)  $_lusterSession->get('lstr_flash_old',     []);
-$_lusterSession->remove('lstr_flash_success');
+$_lusterSuccess = (string) $_lusterSession->get('lstr_flash_success_html', '');
+$_lusterError   = (string) $_lusterSession->get('lstr_flash_error',        '');
+$_lusterOld     = (array)  $_lusterSession->get('lstr_flash_old',          []);
+$_lusterSession->remove('lstr_flash_success_html');
 $_lusterSession->remove('lstr_flash_error');
 $_lusterSession->remove('lstr_flash_old');
 
 if ($_lusterSuccess !== '') {
-    $_lusterHtml = '<div class="fl-success"><p>'
-        . htmlspecialchars($_lusterSuccess, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8')
-        . '</p></div>';
-    if ($luster_return ?? false) { return $_lusterHtml; }
-    echo $_lusterHtml;
+    if ($luster_return ?? false) { return $_lusterSuccess; }
+    echo $_lusterSuccess;
     return;
 }
 
@@ -191,19 +194,28 @@ $_lusterFormAction = $_lusterApplySettings['form_url'] !== ''
 // 5. Render fragment
 // ---------------------------------------------------------------------------
 
+$_lusterCaptchaQ   = Captcha::getQuestion('affiliate_apply');
+$_lusterWrapperTpl = $_lusterSettingsRepo->getWrapperTemplate($_lusterListingId) ?? '';
+$_lusterF          = $_lusterApp->getFormFieldBuilder()->build([
+    ['type' => 'text',     'name' => 'name',           'id' => 'aff-name',    'label' => 'Site name',                      'required' => true,  'value' => (string) ($_lusterOld['name']    ?? ''), 'attrs' => ['maxlength' => '200', 'autocomplete' => 'organization']],
+    ['type' => 'url',      'name' => 'url',            'id' => 'aff-url',     'label' => 'Site URL',                       'required' => true,  'value' => (string) ($_lusterOld['url']     ?? ''), 'attrs' => ['maxlength' => '500', 'placeholder' => 'https://', 'autocomplete' => 'url']],
+    ['type' => 'email',    'name' => 'email',          'id' => 'aff-email',   'label' => 'Your email (optional)',          'required' => false, 'value' => (string) ($_lusterOld['email']   ?? ''), 'attrs' => ['maxlength' => '255', 'autocomplete' => 'email'], 'hint' => 'Used to notify you when your application is approved or rejected.'],
+    ['type' => 'file',     'name' => 'image',          'id' => 'aff-image',   'label' => 'Site button / image (optional)', 'required' => false, 'attrs' => ['accept' => 'image/jpeg,image/png,image/gif,image/webp'], 'hint' => 'JPEG, PNG, GIF, or WebP. Max 2 MB.'],
+    ['type' => 'textarea', 'name' => 'message',        'id' => 'aff-message', 'label' => 'Message (optional)',             'required' => false, 'value' => (string) ($_lusterOld['message'] ?? ''), 'attrs' => ['maxlength' => '2000', 'rows' => '4']],
+    ['type' => 'text',     'name' => 'captcha_answer', 'id' => 'aff-captcha', 'label' => 'Captcha: ' . $_lusterCaptchaQ,  'required' => true,  'attrs' => ['maxlength' => '10', 'autocomplete' => 'off']],
+], $_lusterWrapperTpl);
+
 $_lusterHtml = $_lusterApp->getView()->renderFragment('affiliate-apply.php', [
-    'listing'          => $_lusterListing,
-    'listing_name'     => (string) $_lusterListing->title,
-    'listing_url'      => (string) $_lusterListing->url,
-    'page_title'       => 'Affiliate Application — ' . $_lusterListing->title,
-    'base_url'         => $_lusterApp->getBaseUrl(),
-    'theme_path'       => rtrim((string) $_lusterListing->url, '/') . '/' . ltrim((string) ($_lusterEmbedSettings['theme_path'] ?? 'theme'), '/'),
-    'form_action'      => $_lusterFormAction,
-    'csrf_token'       => $_lusterApp->getCsrf()->token(),
-    'captcha_question' => Captcha::getQuestion('affiliate_apply'),
-    'captcha_error'    => '',
-    'errors'           => $_lusterError,
-    'old'              => $_lusterOld,
+    'listing'      => $_lusterListing,
+    'listing_name' => (string) $_lusterListing->title,
+    'listing_url'  => (string) $_lusterListing->url,
+    'page_title'   => 'Affiliate Application — ' . $_lusterListing->title,
+    'base_url'     => $_lusterApp->getBaseUrl(),
+    'theme_path'   => rtrim((string) $_lusterListing->url, '/') . '/' . ltrim((string) ($_lusterEmbedSettings['theme_path'] ?? 'theme'), '/'),
+    'form_action'  => $_lusterFormAction,
+    'csrf_token'   => $_lusterApp->getCsrf()->token(),
+    'errors'       => $_lusterError,
+    'f'            => $_lusterF,
 ]);
 
 if ($luster_return ?? false) {

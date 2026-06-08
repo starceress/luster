@@ -19,6 +19,8 @@ use Luster\Repositories\ListingRepo;
 use Luster\Repositories\ListingSettingsRepo;
 use Luster\Repositories\FanPasswordResetRepo;
 use Luster\Repositories\MemberRepo;
+use Luster\Support\FormFieldBuilder;
+use Luster\Support\SuccessRenderer;
 
 /**
  * Fan password reset — allows fans to recover access when they forget their password.
@@ -83,19 +85,16 @@ final class ResetController
         $ip           = $request->ip();
         $embedReturnTo = (string) $session->get('lstr_embed_return_to', '');
 
-        // Anti-enumeration: always flash the same neutral message regardless of outcome
-        $sentMessage = 'If that email address is registered, you will receive a password reset link shortly. The link expires in 1 hour.';
-
         if ($rateLimit->isBlocked($ip, RateLimit::ACTION_PUBLIC_RESET)) {
             $session->remove('lstr_embed_return_to');
-            $session->set('lstr_flash_success', $sentMessage);
+            $session->set('lstr_flash_success_html', SuccessRenderer::render('', 'reset-sent'));
             return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $baseUrl . '/reset/' . $listingId);
         }
 
         // Honeypot — silent reject
         if ((string) $request->post('website_confirm', '') !== '') {
             $session->remove('lstr_embed_return_to');
-            $session->set('lstr_flash_success', $sentMessage);
+            $session->set('lstr_flash_success_html', SuccessRenderer::render('', 'reset-sent'));
             return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $baseUrl . '/reset/' . $listingId);
         }
 
@@ -139,7 +138,8 @@ final class ResetController
         // Always redirect with the same neutral message so the block is not revealed.
         if ((new BlacklistRepo($this->app->getDatabase()))->isBlocked($email)) {
             $session->remove('lstr_embed_return_to');
-            $session->set('lstr_flash_success', $sentMessage);
+            $successTpl = $settingsRepo->getSuccessTemplate($listingId) ?? '';
+            $session->set('lstr_flash_success_html', SuccessRenderer::render($successTpl, 'reset-sent'));
             return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $formUrl);
         }
 
@@ -188,7 +188,8 @@ final class ResetController
 
         // Always flash the same neutral message and redirect to host page — never reveal whether the email was found
         $session->remove('lstr_embed_return_to');
-        $session->set('lstr_flash_success', $sentMessage);
+        $successTpl = $settingsRepo->getSuccessTemplate($listingId) ?? '';
+        $session->set('lstr_flash_success_html', SuccessRenderer::render($successTpl, 'reset-sent'));
         return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $formUrl);
     }
 
@@ -303,9 +304,12 @@ final class ResetController
         $resetRepo->deleteByToken(hash('sha256', $rawToken));
         $rateLimit->clear($ip, RateLimit::ACTION_PUBLIC_RESET);
 
-        $listingName = $listing->title;
         $session->remove('lstr_embed_return_to');
-        $session->set('lstr_flash_success', "Your password for the {$listingName} listing has been updated. You can now use it to update or remove your membership.");
+        $successTpl = (new ListingSettingsRepo($this->app->getDatabase()))->getSuccessTemplate($listingId) ?? '';
+        $session->set('lstr_flash_success_html', SuccessRenderer::render($successTpl, 'reset-done', [
+            'listing_title' => $listing->title,
+            'listing_url'   => $listing->url,
+        ]));
         return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $baseUrl . '/reset/' . $listingId);
     }
 
@@ -320,23 +324,28 @@ final class ResetController
         string $error = '',
         string $captchaError = '',
     ): Response {
-        $baseUrl = $this->app->getBaseUrl();
+        $baseUrl         = $this->app->getBaseUrl();
+        $captchaQuestion = Captcha::getQuestion('reset');
+        $wrapperTpl      = (new ListingSettingsRepo($this->app->getDatabase()))->getWrapperTemplate($listingId) ?? '';
+
+        $f = $this->app->getFormFieldBuilder()->build([
+            ['type' => 'email', 'name' => 'email',          'id' => 'rst-email',   'label' => 'Email',    'required' => true, 'value' => $oldEmail,       'attrs' => ['maxlength' => '255', 'autocomplete' => 'email']],
+            ['type' => 'text',  'name' => 'captcha_answer', 'id' => 'rst-captcha', 'label' => 'Captcha: ' . $captchaQuestion, 'required' => true, 'error' => $captchaError, 'attrs' => ['maxlength' => '10', 'autocomplete' => 'off']],
+        ], $wrapperTpl);
 
         $html = $this->app->getView()->renderPublic('reset.php', [
             'listing'      => $listing,
             'listing_name' => $listing->title,
             'listing_url'  => $listing->url,
-            'page_title'      => 'Reset Password',
-            'form_action'     => $baseUrl . '/reset/' . $listingId,
-            'csrf_token'      => $this->app->getCSRF()->token(),
-            'errors'          => $error !== ''
+            'page_title'   => 'Reset Password',
+            'form_action'  => $baseUrl . '/reset/' . $listingId,
+            'csrf_token'   => $this->app->getCSRF()->token(),
+            'errors'       => $error !== ''
                 ? '<p>' . htmlspecialchars($error, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '</p>'
                 : '',
-            'field_email'     => $oldEmail,
-            'captcha_question' => Captcha::getQuestion('reset'),
-            'captcha_error'   => $captchaError,
-            'base_url'        => $baseUrl,
-            'theme_path'      => $baseUrl . '/assets/default/',
+            'f'            => $f,
+            'base_url'     => $baseUrl,
+            'theme_path'   => $baseUrl . '/assets/default/',
         ]);
 
         return Response::html($html);
@@ -348,23 +357,30 @@ final class ResetController
         string $rawToken,
         string $error = '',
     ): Response {
-        $baseUrl = $this->app->getBaseUrl();
+        $baseUrl    = $this->app->getBaseUrl();
+        $wrapperTpl = (new ListingSettingsRepo($this->app->getDatabase()))->getWrapperTemplate($listingId) ?? '';
+
+        $f = $this->app->getFormFieldBuilder()->build([
+            ['type' => 'password', 'name' => 'new_password',         'id' => 'rc-password', 'label' => 'New Password',         'required' => true, 'attrs' => ['maxlength' => '255', 'autocomplete' => 'new-password']],
+            ['type' => 'password', 'name' => 'new_password_confirm',  'id' => 'rc-confirm',  'label' => 'Confirm New Password', 'required' => true, 'attrs' => ['maxlength' => '255', 'autocomplete' => 'new-password']],
+        ], $wrapperTpl);
 
         $html = $this->app->getView()->renderPublic('reset_confirm.php', [
             'listing'      => $listing,
             'listing_name' => $listing->title,
             'listing_url'  => $listing->url,
-            'page_title'      => 'Set New Password',
-            'form_action'     => $baseUrl . '/reset/' . $listingId . '/confirm',
-            'reset_url'       => $baseUrl . '/reset/' . $listingId,
-            'csrf_token'      => $this->app->getCSRF()->token(),
-            'errors'          => $error !== ''
+            'page_title'   => 'Set New Password',
+            'form_action'  => $baseUrl . '/reset/' . $listingId . '/confirm',
+            'reset_url'    => $baseUrl . '/reset/' . $listingId,
+            'csrf_token'   => $this->app->getCSRF()->token(),
+            'errors'       => $error !== ''
                 ? '<p>' . htmlspecialchars($error, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '</p>'
                 : '',
-            'token'           => $rawToken,
-            'token_valid'     => $rawToken !== '',
-            'base_url'        => $baseUrl,
-            'theme_path'      => $baseUrl . '/assets/default/',
+            'token'        => $rawToken,
+            'token_valid'  => $rawToken !== '',
+            'f'            => $f,
+            'base_url'     => $baseUrl,
+            'theme_path'   => $baseUrl . '/assets/default/',
         ]);
 
         return Response::html($html);

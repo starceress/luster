@@ -8,10 +8,10 @@ namespace Luster\Core;
  * Canonical registry of bundled admin skins.
  *
  * To add a new bundled skin:
- *   1. Add token blocks to public/assets/css/tokens.css
+ *   1. Add token blocks and class overrides to public/assets/css/skins.css
  *      ([data-skin="x"], [data-skin="x"][data-theme="dark"],
  *       [data-skin="x"][data-theme="light"],
- *       [data-skin="x"][data-theme="light"] .sidebar)
+ *       [data-skin="x"][data-theme="light"] .sidebar, etc.)
  *   2. Add one entry to self::all() below.
  *
  * Community (drop-in) skins live in public/assets/css/skins/ and are

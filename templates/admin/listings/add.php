@@ -53,7 +53,7 @@ $dataCustomCats = json_encode($custom_cats     ?? [], JSON_HEX_QUOT | JSON_HEX_A
             <div class="select-auto"id="cat-rows"></div>
             <a href="#" class="link" id="cat-add"><?= View::icon('add') ?> Add another category</a>
           </div>
-          <p class="form-hint">The network(s) and category(ies) this listing is listed under.</p>
+          <p class="form-hint">Choose the network and category this listing belongs to. Add another category if it is listed in more than one place.</p>
         </div>
       </div>
 
@@ -72,7 +72,7 @@ $dataCustomCats = json_encode($custom_cats     ?? [], JSON_HEX_QUOT | JSON_HEX_A
         <div>
           <input id="fl-title" type="text" name="title" class="form" maxlength="255"
                  value="<?= View::e($val('title')) ?>">
-          <p class="form-hint">Optional name of your listing — defaults to "Subject" if left blank.</p>
+          <p class="form-hint">Optional display name for your listing. If you leave it blank, Luster uses the subject.</p>
         </div>
       </div>
 
@@ -91,7 +91,7 @@ $dataCustomCats = json_encode($custom_cats     ?? [], JSON_HEX_QUOT | JSON_HEX_A
           <input id="fl-email" type="email" name="email" class="form" maxlength="255"
                  placeholder="admin@example.com"
                  value="<?= View::e($val('email')) ?>">
-          <p class="form-hint">This is the email address that listing emails will be sent from.</p>
+          <p class="form-hint">Luster uses this address as the sender for emails from this listing.</p>
         </div>
       </div>
 

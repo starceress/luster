@@ -14,6 +14,9 @@ use Luster\Core\Request;
 use Luster\Core\Response;
 use Luster\Core\Validator;
 use Luster\Repositories\ListingRepo;
+use Luster\Repositories\SiteSettingsRepo;
+use Luster\Support\FormFieldBuilder;
+use Luster\Support\SuccessRenderer;
 
 /**
  * KIM password reset flow.
@@ -60,19 +63,17 @@ final class KimResetController
         $embedReturnTo = (string) $session->get('lstr_embed_return_to', '');
         $fallbackUrl   = $baseUrl . '/kim/reset';
 
-        $sentMessage = 'If that email address is registered for the selected fanlisting, you will receive a password reset link shortly. The link expires in 1 hour.';
-
         // Never reveal blocked status
         if ($rateLimit->isBlocked($ip, 'kim_reset')) {
             $session->remove('lstr_embed_return_to');
-            $session->set('lstr_flash_success', $sentMessage);
+            $session->set('lstr_flash_success_html', SuccessRenderer::render('', 'reset-sent'));
             return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $fallbackUrl);
         }
 
         // Honeypot — silent reject; same neutral message so bots see no difference
         if ((string) $request->post('website_confirm', '') !== '') {
             $session->remove('lstr_embed_return_to');
-            $session->set('lstr_flash_success', $sentMessage);
+            $session->set('lstr_flash_success_html', SuccessRenderer::render('', 'reset-sent'));
             return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $fallbackUrl);
         }
 
@@ -141,7 +142,7 @@ final class KimResetController
 
         // Always flash the same neutral message — never enumerate
         $session->remove('lstr_embed_return_to');
-        $session->set('lstr_flash_success', $sentMessage);
+        $session->set('lstr_flash_success_html', SuccessRenderer::render('', 'reset-sent'));
         return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $fallbackUrl);
     }
 
@@ -236,7 +237,7 @@ final class KimResetController
         $rateLimit->clear($ip, 'kim_reset');
 
         $session->remove('lstr_embed_return_to');
-        $session->set('lstr_flash_success', 'Your KIM List password has been updated successfully.');
+        $session->set('lstr_flash_success_html', SuccessRenderer::render('', 'kim-reset-done'));
         return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $fallbackUrl);
     }
 
@@ -250,21 +251,35 @@ final class KimResetController
         string $error = '',
         string $captchaError = '',
     ): Response {
-        $baseUrl = $this->app->getBaseUrl();
+        $baseUrl    = $this->app->getBaseUrl();
+        $wrapperTpl = (new SiteSettingsRepo($this->app->getDatabase()))->get('collective_field_wrapper_template', '') ?? '';
+
+        $flSelectHtml = '<select class="fl-select" id="kim-fanlisting" name="fanlisting_id" required>'
+                      . '<option value="">&#8212; Select the fanlisting your entry is for &#8212;</option>';
+        foreach ($fanlistings as $_fl) {
+            $_flId    = htmlspecialchars((string) $_fl->id, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+            $_flTitle = htmlspecialchars((string) $_fl->subject, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+            $flSelectHtml .= "<option value=\"{$_flId}\">{$_flTitle}</option>";
+        }
+        $flSelectHtml .= '</select>';
+
+        $captchaQ = Captcha::getQuestion('kim_reset');
+        $f = $this->app->getFormFieldBuilder()->build([
+            ['type' => 'email',  'name' => 'email',          'id' => 'kim-email',     'label' => 'Email',                  'required' => true, 'value' => $oldEmail, 'attrs' => ['maxlength' => '255', 'autocomplete' => 'email']],
+            ['type' => 'select', 'name' => 'fanlisting_id',  'id' => 'kim-fanlisting','label' => 'Fanlisting',             'required' => true, 'raw_input' => $flSelectHtml],
+            ['type' => 'text',   'name' => 'captcha_answer', 'id' => 'kim-captcha',   'label' => 'Captcha: ' . $captchaQ, 'required' => true, 'error' => $captchaError, 'attrs' => ['maxlength' => '10', 'autocomplete' => 'off']],
+        ], $wrapperTpl);
 
         return $this->renderKimPage('reset.php', [
-            'page_title'      => 'KIM List — Reset Password',
-            'form_action'     => $baseUrl . '/kim/reset',
-            'csrf_token'      => $this->app->getCSRF()->token(),
-            'errors'          => $error !== ''
+            'page_title'  => 'KIM List — Reset Password',
+            'form_action' => $baseUrl . '/kim/reset',
+            'csrf_token'  => $this->app->getCSRF()->token(),
+            'errors'      => $error !== ''
                 ? '<p>' . htmlspecialchars($error, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '</p>'
                 : '',
-            'fanlistings'     => $fanlistings,
-            'old_email'       => $oldEmail,
-            'captcha_question' => Captcha::getQuestion('kim_reset'),
-            'captcha_error'   => $captchaError,
-            'base_url'        => $baseUrl,
-            'theme_path'      => $baseUrl . '/assets/default/',
+            'f'           => $f,
+            'base_url'    => $baseUrl,
+            'theme_path'  => $baseUrl . '/assets/default/',
         ]);
     }
 
@@ -273,7 +288,13 @@ final class KimResetController
         bool   $tokenValid,
         string $error = '',
     ): Response {
-        $baseUrl = $this->app->getBaseUrl();
+        $baseUrl    = $this->app->getBaseUrl();
+        $wrapperTpl = (new SiteSettingsRepo($this->app->getDatabase()))->get('collective_field_wrapper_template', '') ?? '';
+
+        $f = $this->app->getFormFieldBuilder()->build([
+            ['type' => 'password', 'name' => 'new_password',         'id' => 'kim-new-password',         'label' => 'New Password',         'required' => true, 'attrs' => ['maxlength' => '255', 'autocomplete' => 'new-password']],
+            ['type' => 'password', 'name' => 'new_password_confirm', 'id' => 'kim-new-password-confirm', 'label' => 'Confirm New Password', 'required' => true, 'attrs' => ['maxlength' => '255', 'autocomplete' => 'new-password']],
+        ], $wrapperTpl);
 
         return $this->renderKimPage('reset-confirm.php', [
             'page_title'  => 'KIM — Set New Password',
@@ -284,6 +305,7 @@ final class KimResetController
                 : '',
             'token'       => $rawToken,
             'token_valid' => $tokenValid,
+            'f'           => $f,
             'base_url'    => $baseUrl,
             'theme_path'  => $baseUrl . '/assets/default/',
         ]);

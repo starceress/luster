@@ -93,19 +93,16 @@ if (!$_lusterSettingsRepo->getForAdoption($_lusterListingId)) {
 // ---------------------------------------------------------------------------
 
 $_lusterSession = $_lusterApp->getSession();
-$_lusterSuccess = (string) $_lusterSession->get('lstr_flash_success', '');
-$_lusterError   = (string) $_lusterSession->get('lstr_flash_error',   '');
-$_lusterOld     = (array)  $_lusterSession->get('lstr_flash_old',     []);
-$_lusterSession->remove('lstr_flash_success');
+$_lusterSuccess = (string) $_lusterSession->get('lstr_flash_success_html', '');
+$_lusterError   = (string) $_lusterSession->get('lstr_flash_error',        '');
+$_lusterOld     = (array)  $_lusterSession->get('lstr_flash_old',          []);
+$_lusterSession->remove('lstr_flash_success_html');
 $_lusterSession->remove('lstr_flash_error');
 $_lusterSession->remove('lstr_flash_old');
 
 if ($_lusterSuccess !== '') {
-    $_lusterHtml = '<div class="fl-success"><p>'
-        . htmlspecialchars($_lusterSuccess, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8')
-        . '</p></div>';
-    if ($luster_return ?? false) { return $_lusterHtml; }
-    echo $_lusterHtml;
+    if ($luster_return ?? false) { return $_lusterSuccess; }
+    echo $_lusterSuccess;
     return;
 }
 
@@ -117,24 +114,29 @@ $_lusterBaseUrl    = rtrim((string) $_lusterApp->getConfig()->get('embed_base_ur
                    ?: $_lusterApp->getBaseUrl();
 $_lusterFormAction = $_lusterBaseUrl . '/adopt/' . $_lusterListingId;
 
+$_lusterCaptchaQ   = Captcha::getQuestion('adopt');
+$_lusterWrapperTpl = $_lusterSettingsRepo->getWrapperTemplate($_lusterListingId) ?? '';
+$_lusterF          = $_lusterApp->getFormFieldBuilder()->build([
+    ['type' => 'text',     'name' => 'name',           'id' => 'adopt-name',    'label' => 'Name',    'required' => true,  'value' => (string) ($_lusterOld['name']    ?? ''), 'attrs' => ['maxlength' => '100', 'autocomplete' => 'name']],
+    ['type' => 'email',    'name' => 'email',          'id' => 'adopt-email',   'label' => 'Email',   'required' => true,  'value' => (string) ($_lusterOld['email']   ?? ''), 'attrs' => ['maxlength' => '255', 'autocomplete' => 'email']],
+    ['type' => 'url',      'name' => 'url',            'id' => 'adopt-url',     'label' => 'Website URL', 'required' => false, 'value' => (string) ($_lusterOld['url']  ?? ''), 'attrs' => ['maxlength' => '500', 'placeholder' => 'https://', 'autocomplete' => 'url'], 'hint' => 'Optional'],
+    ['type' => 'textarea', 'name' => 'message',        'id' => 'adopt-message', 'label' => 'Message', 'required' => false, 'value' => (string) ($_lusterOld['message'] ?? ''), 'attrs' => ['maxlength' => '2000', 'rows' => '5'], 'hint' => 'Optional'],
+    ['type' => 'text',     'name' => 'captcha_answer', 'id' => 'adopt-captcha', 'label' => 'Captcha: ' . $_lusterCaptchaQ, 'required' => true, 'attrs' => ['maxlength' => '10', 'autocomplete' => 'off']],
+], $_lusterWrapperTpl);
+
 $_lusterHtml = $_lusterApp->getView()->renderFragment('adopt.php', [
-    'listing'          => $_lusterListing,
-    'listing_name'     => $_lusterListing->title,
-    'listing_url'      => $_lusterListing->url,
-    'page_title'       => 'Adopt ' . $_lusterListing->title,
-    'form_action'      => $_lusterFormAction,
-    'csrf_token'       => $_lusterApp->getCSRF()->token(),
-    'errors'           => $_lusterError !== ''
+    'listing'      => $_lusterListing,
+    'listing_name' => $_lusterListing->title,
+    'listing_url'  => $_lusterListing->url,
+    'page_title'   => 'Adopt ' . $_lusterListing->title,
+    'form_action'  => $_lusterFormAction,
+    'csrf_token'   => $_lusterApp->getCSRF()->token(),
+    'errors'       => $_lusterError !== ''
         ? '<p>' . htmlspecialchars($_lusterError, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '</p>'
         : '',
-    'field_name'       => (string) ($_lusterOld['name']    ?? ''),
-    'field_email'      => (string) ($_lusterOld['email']   ?? ''),
-    'field_url'        => (string) ($_lusterOld['url']     ?? ''),
-    'field_message'    => (string) ($_lusterOld['message'] ?? ''),
-    'captcha_question' => Captcha::getQuestion('adopt'),
-    'captcha_error'    => '',
-    'base_url'         => $_lusterApp->getBaseUrl(),
-    'theme_path'       => $_lusterApp->getBaseUrl() . '/assets/default/',
+    'f'            => $_lusterF,
+    'base_url'     => $_lusterApp->getBaseUrl(),
+    'theme_path'   => $_lusterApp->getBaseUrl() . '/assets/default/',
 ]);
 
 if ($luster_return ?? false) {

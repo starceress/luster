@@ -103,44 +103,48 @@ $_lusterFormAction = $_lusterEmbedBase . '/codes/submit/' . $_lusterSubmitId;
 // 4. Consume flash
 // ---------------------------------------------------------------------------
 
-$_lusterSuccess = (string) $_lusterSession->get('lstr_flash_success', '');
-$_lusterError   = (string) $_lusterSession->get('lstr_flash_error',   '');
-$_lusterOld     = (array)  $_lusterSession->get('lstr_flash_old',     []);
-$_lusterSession->remove('lstr_flash_success');
+$_lusterSuccess = (string) $_lusterSession->get('lstr_flash_success_html', '');
+$_lusterError   = (string) $_lusterSession->get('lstr_flash_error',        '');
+$_lusterOld     = (array)  $_lusterSession->get('lstr_flash_old',          []);
+$_lusterSession->remove('lstr_flash_success_html');
 $_lusterSession->remove('lstr_flash_error');
 $_lusterSession->remove('lstr_flash_old');
 
 if ($_lusterSuccess !== '') {
-    $_lusterHtml = '<div class="fl-success"><p>'
-        . htmlspecialchars($_lusterSuccess, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8')
-        . '</p></div>';
-    if ($luster_return ?? false) { return $_lusterHtml; }
-    echo $_lusterHtml;
+    if ($luster_return ?? false) { return $_lusterSuccess; }
+    echo $_lusterSuccess;
     return;
 }
 
 // ---------------------------------------------------------------------------
-// 5. Build captcha for the form
+// 5. Build wrapped fields and render
 // ---------------------------------------------------------------------------
 
-$_lusterCaptchaQuestion = Captcha::getQuestion('code_submit');
+$_lusterCaptchaQ = Captcha::getQuestion('code_submit');
 
-// ---------------------------------------------------------------------------
-// 6. Render fragment
-// ---------------------------------------------------------------------------
+if ($_lusterIsCollective) {
+    $_lusterWrapperTpl = (new \Luster\Repositories\SiteSettingsRepo($_lusterDb))->get('collective_field_wrapper_template', '') ?? '';
+} else {
+    $_lusterWrapperTpl = (new \Luster\Repositories\ListingSettingsRepo($_lusterDb))->getWrapperTemplate($_lusterListingId) ?? '';
+}
+
+$_lusterF = $_lusterApp->getFormFieldBuilder()->build([
+    ['type' => 'file',  'name' => 'code_image',      'id' => 'code-image',  'label' => 'Upload Code',         'required' => true,  'attrs' => ['accept' => 'image/jpeg,image/png,image/gif,image/webp']],
+    ['type' => 'text',  'name' => 'submitter_name',  'id' => 'sub-name',    'label' => 'Name (optional)',      'required' => false, 'value' => (string) ($_lusterOld['submitter_name']  ?? ''), 'attrs' => ['maxlength' => '150', 'autocomplete' => 'name']],
+    ['type' => 'email', 'name' => 'submitter_email', 'id' => 'sub-email',   'label' => 'Email',               'required' => true,  'value' => (string) ($_lusterOld['submitter_email'] ?? ''), 'attrs' => ['maxlength' => '255', 'autocomplete' => 'email'], 'hint' => 'Required — used only to notify you when your code is approved.'],
+    ['type' => 'url',   'name' => 'submitter_url',   'id' => 'sub-url',     'label' => 'Website (optional)',   'required' => false, 'value' => (string) ($_lusterOld['submitter_url']   ?? ''), 'attrs' => ['maxlength' => '255', 'placeholder' => 'https://', 'autocomplete' => 'url'], 'hint' => 'Displayed as a link on your donated code.'],
+    ['type' => 'text',  'name' => 'captcha',         'id' => 'captcha',     'label' => 'Captcha: ' . $_lusterCaptchaQ, 'required' => true, 'attrs' => ['maxlength' => '10', 'autocomplete' => 'off']],
+], $_lusterWrapperTpl);
 
 $_lusterHtml = $_lusterApp->getView()->renderFragment('codes-submit.php', [
-    'listing'          => $_lusterListing,
-    'listing_name'     => $_lusterListingName,
-    'listing_url'      => $_lusterListingUrl,
-    'form_action'      => $_lusterFormAction,
-    'csrf_token'       => $_lusterApp->getCSRF()->token(),
-    'errors'           => htmlspecialchars($_lusterError, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),
-    'old'              => $_lusterOld,
-    'captcha_question' => $_lusterCaptchaQuestion,
-    'captcha_error'    => '',
-    'submitted'        => false,
-    'base_url'         => $_lusterBaseUrl,
+    'listing'      => $_lusterListing,
+    'listing_name' => $_lusterListingName,
+    'listing_url'  => $_lusterListingUrl,
+    'form_action'  => $_lusterFormAction,
+    'csrf_token'   => $_lusterApp->getCSRF()->token(),
+    'errors'       => htmlspecialchars($_lusterError, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),
+    'f'            => $_lusterF,
+    'base_url'     => $_lusterBaseUrl,
 ]);
 
 if ($luster_return ?? false) {

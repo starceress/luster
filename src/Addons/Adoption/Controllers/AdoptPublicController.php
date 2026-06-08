@@ -14,6 +14,8 @@ use Luster\Core\Validator;
 use Luster\Repositories\BlacklistRepo;
 use Luster\Repositories\ListingRepo;
 use Luster\Repositories\ListingSettingsRepo;
+use Luster\Support\FormFieldBuilder;
+use Luster\Support\SuccessRenderer;
 
 /**
  * Public adoption application form.
@@ -79,7 +81,8 @@ final class AdoptPublicController
         // Honeypot — silent reject; fake success so bots see no difference
         if ((string) $request->post('website_confirm', '') !== '') {
             $session->remove('lstr_embed_return_to');
-            $session->set('lstr_flash_success', 'Thank you for your interest in adopting this fanlisting. Your application has been received.');
+            $successTpl = (new ListingSettingsRepo($this->app->getDatabase()))->getSuccessTemplate($listingId) ?? '';
+            $session->set('lstr_flash_success_html', SuccessRenderer::render($successTpl, 'adopt-submitted'));
             return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $fallbackUrl);
         }
 
@@ -141,7 +144,11 @@ final class AdoptPublicController
         $rateLimit->clear($ip, RateLimit::ACTION_PUBLIC_ADOPT);
 
         $session->remove('lstr_embed_return_to');
-        $session->set('lstr_flash_success', 'Thank you for your interest in adopting this fanlisting. Your application has been received.');
+        $successTpl = (new ListingSettingsRepo($this->app->getDatabase()))->getSuccessTemplate($listingId) ?? '';
+        $session->set('lstr_flash_success_html', SuccessRenderer::render($successTpl, 'adopt-submitted', [
+            'listing_title' => $listing->title,
+            'listing_url'   => $listing->url,
+        ]));
         return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $fallbackUrl);
     }
 
@@ -184,26 +191,31 @@ final class AdoptPublicController
         string $error = '',
         string $captchaError = '',
     ): Response {
-        $baseUrl = $this->app->getBaseUrl();
+        $baseUrl         = $this->app->getBaseUrl();
+        $captchaQuestion = Captcha::getQuestion('adopt');
+        $wrapperTpl      = (new ListingSettingsRepo($this->app->getDatabase()))->getWrapperTemplate($listingId) ?? '';
+
+        $f = $this->app->getFormFieldBuilder()->build([
+            ['type' => 'text',     'name' => 'name',           'id' => 'adopt-name',    'label' => 'Name',    'required' => true,  'value' => (string) ($old['name']    ?? ''), 'attrs' => ['maxlength' => '100', 'autocomplete' => 'name']],
+            ['type' => 'email',    'name' => 'email',          'id' => 'adopt-email',   'label' => 'Email',   'required' => true,  'value' => (string) ($old['email']   ?? ''), 'attrs' => ['maxlength' => '255', 'autocomplete' => 'email']],
+            ['type' => 'url',      'name' => 'url',            'id' => 'adopt-url',     'label' => 'Website URL', 'required' => false, 'value' => (string) ($old['url']  ?? ''), 'attrs' => ['maxlength' => '500', 'placeholder' => 'https://', 'autocomplete' => 'url'], 'hint' => 'Optional'],
+            ['type' => 'textarea', 'name' => 'message',        'id' => 'adopt-message', 'label' => 'Message', 'required' => false, 'value' => (string) ($old['message'] ?? ''), 'attrs' => ['maxlength' => '2000', 'rows' => '5'], 'hint' => 'Optional'],
+            ['type' => 'text',     'name' => 'captcha_answer', 'id' => 'adopt-captcha', 'label' => 'Captcha: ' . $captchaQuestion, 'required' => true, 'error' => $captchaError, 'attrs' => ['maxlength' => '10', 'autocomplete' => 'off']],
+        ], $wrapperTpl);
 
         $html = $this->app->getView()->renderPublic('adopt.php', [
-            'listing'          => $listing,
-            'listing_name'     => $listing->title,
-            'listing_url'      => $listing->url,
-            'page_title'       => 'Adopt ' . $listing->title,
-            'form_action'      => $baseUrl . '/adopt/' . $listingId,
-            'csrf_token'       => $this->app->getCSRF()->token(),
-            'errors'           => $error !== ''
+            'listing'      => $listing,
+            'listing_name' => $listing->title,
+            'listing_url'  => $listing->url,
+            'page_title'   => 'Adopt ' . $listing->title,
+            'form_action'  => $baseUrl . '/adopt/' . $listingId,
+            'csrf_token'   => $this->app->getCSRF()->token(),
+            'errors'       => $error !== ''
                 ? '<p>' . htmlspecialchars($error, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '</p>'
                 : '',
-            'field_name'       => (string) ($old['name']    ?? ''),
-            'field_email'      => (string) ($old['email']   ?? ''),
-            'field_url'        => (string) ($old['url']     ?? ''),
-            'field_message'    => (string) ($old['message'] ?? ''),
-            'captcha_question' => Captcha::getQuestion('adopt'),
-            'captcha_error'    => $captchaError,
-            'base_url'         => $baseUrl,
-            'theme_path'       => $baseUrl . '/assets/default/',
+            'f'            => $f,
+            'base_url'     => $baseUrl,
+            'theme_path'   => $baseUrl . '/assets/default/',
         ]);
 
         return Response::html($html);

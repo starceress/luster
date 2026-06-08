@@ -16,6 +16,7 @@ use Luster\Repositories\BlacklistRepo;
 use Luster\Repositories\ListingRepo;
 use Luster\Repositories\ListingSettingsRepo;
 use Luster\Repositories\SiteSettingsRepo;
+use Luster\Support\SuccessRenderer;
 
 /**
  * Public contact forms.
@@ -108,7 +109,8 @@ final class ContactController
         // Honeypot — silent reject; fake success so bots see no difference
         if ((string) $request->post('website_confirm', '') !== '') {
             $session->remove('lstr_embed_return_to');
-            $session->set('lstr_flash_success', 'Your message has been sent. Thank you for getting in touch!');
+            $contactSentTpl = $settingsRepo->getContactSentTemplate($listingId) ?? '';
+            $session->set('lstr_flash_success_html', SuccessRenderer::render($contactSentTpl, 'contact-sent'));
             return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $fallbackUrl);
         }
 
@@ -174,7 +176,13 @@ final class ContactController
         }
 
         $session->remove('lstr_embed_return_to');
-        $session->set('lstr_flash_success', 'Your message has been sent. Thank you for getting in touch!');
+        $contactSentTpl = $settingsRepo->getContactSentTemplate($listingId) ?? '';
+        $session->set('lstr_flash_success_html', SuccessRenderer::render($contactSentTpl, 'contact-sent', [
+            'sender_name'   => $name,
+            'sender_email'  => $email,
+            'listing_title' => $listing->title,
+            'listing_url'   => $listing->url,
+        ]));
         return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $fallbackUrl);
     }
 
@@ -236,7 +244,8 @@ final class ContactController
         // Honeypot — silent reject; fake success so bots see no difference
         if ((string) $request->post('website_confirm', '') !== '') {
             $session->remove('lstr_embed_return_to');
-            $session->set('lstr_flash_success', 'Your message has been sent. Thank you for getting in touch!');
+            $collectiveContactSentTpl = $siteRepo->get('collective_contact_sent_template') ?? '';
+            $session->set('lstr_flash_success_html', SuccessRenderer::render($collectiveContactSentTpl, 'contact-sent'));
             return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $fallbackUrl);
         }
 
@@ -309,7 +318,12 @@ final class ContactController
         }
 
         $session->remove('lstr_embed_return_to');
-        $session->set('lstr_flash_success', 'Your message has been sent. Thank you for getting in touch!');
+        $collectiveContactSentTpl = $siteRepo->get('collective_contact_sent_template') ?? '';
+        $session->set('lstr_flash_success_html', SuccessRenderer::render($collectiveContactSentTpl, 'contact-sent', [
+            'sender_name'  => $name,
+            'sender_email' => $email,
+            'site_name'    => $siteName,
+        ]));
         return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $fallbackUrl);
     }
 
@@ -327,25 +341,44 @@ final class ContactController
         string $captchaError = '',
     ): Response {
         $captchaKey = $listing !== null ? 'contact_listing' : 'contact_collective';
+        $baseUrl    = $this->app->getBaseUrl();
+
+        $wrapperTpl = $listing !== null
+            ? ((new ListingSettingsRepo($this->app->getDatabase()))->getWrapperTemplate((int) $listing->id) ?? '')
+            : ((new SiteSettingsRepo($this->app->getDatabase()))->get('collective_field_wrapper_template', '') ?? '');
+
+        // Subject select as raw_input — needs disabled placeholder that is pre-selected
+        $subjOld     = (string) ($old['subject'] ?? '');
+        $subjectHtml = '<select id="contact-subject" name="subject" required>'
+                     . '<option value="" disabled' . ($subjOld === '' ? ' selected' : '') . '>Choose &mdash;</option>';
+        foreach (['Comments', 'Contact', 'Questions/Concerns', 'Affiliation', 'Link Exchange'] as $_subjectOpt) {
+            $optEsc       = htmlspecialchars($_subjectOpt, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+            $subjectHtml .= '<option value="' . $optEsc . '"' . ($subjOld === $_subjectOpt ? ' selected' : '') . '>' . $optEsc . '</option>';
+        }
+        $subjectHtml .= '</select>';
+
+        $fb          = $this->app->getFormFieldBuilder();
+        $descriptors = [
+            ['type' => 'text',     'name' => 'name',           'id' => 'contact-name',    'label' => 'Name',        'required' => true,  'value' => (string) ($old['name']    ?? ''), 'attrs' => ['maxlength' => '100', 'autocomplete' => 'name']],
+            ['type' => 'email',    'name' => 'email',          'id' => 'contact-email',   'label' => 'Email',       'required' => true,  'value' => (string) ($old['email']   ?? ''), 'attrs' => ['maxlength' => '255', 'autocomplete' => 'email']],
+            ['type' => 'url',      'name' => 'url',            'id' => 'contact-url',     'label' => 'Website URL', 'required' => false, 'value' => (string) ($old['url']     ?? ''), 'attrs' => ['maxlength' => '255', 'autocomplete' => 'url']],
+            ['type' => 'select',   'name' => 'subject',        'id' => 'contact-subject', 'label' => 'Subject',     'required' => true,  'raw_input' => $subjectHtml],
+            ['type' => 'textarea', 'name' => 'message',        'id' => 'contact-message', 'label' => 'Message',     'required' => true,  'value' => (string) ($old['message'] ?? ''), 'attrs' => ['maxlength' => '5000', 'rows' => '6']],
+            ['type' => 'text',     'name' => 'captcha_answer', 'id' => 'contact-captcha', 'label' => 'Captcha: ' . Captcha::getQuestion($captchaKey), 'required' => true, 'error' => $captchaError, 'attrs' => ['maxlength' => '10', 'autocomplete' => 'off']],
+        ];
+        $f = $fb->build($descriptors, $wrapperTpl);
 
         $data = [
-            'listing'        => $listing,
-            'listing_name'   => $listing?->title ?? (string) $this->app->getConfig()->get('app_name', 'Collective'),
-            'listing_url'    => $listing?->url  ?? (string) $this->app->getConfig()->get('app_url',  ''),
-            'page_title'     => 'Contact',
-            'form_action'    => $listing !== null
-                ? $this->app->getBaseUrl() . '/contact/' . (int) $listing->id
-                : $this->app->getBaseUrl() . '/contact',
-            'csrf_token'     => $this->app->getCSRF()->token(),
-            'errors'         => $flashError !== '' ? View::e($flashError) : '',
-            'captcha_question' => Captcha::getQuestion($captchaKey),
-            'captcha_error'  => $captchaError !== '' ? View::e($captchaError) : '',
-            'old'            => $old,
-            'field_name'     => View::e($old['name']    ?? ''),
-            'field_email'    => View::e($old['email']   ?? ''),
-            'field_url'      => View::e($old['url']     ?? ''),
-            'field_subject'  => View::e($old['subject'] ?? ''),
-            'field_message'  => View::e($old['message'] ?? ''),
+            'listing'      => $listing,
+            'listing_name' => $listing?->title ?? (string) $this->app->getConfig()->get('app_name', 'Collective'),
+            'listing_url'  => $listing?->url   ?? (string) $this->app->getConfig()->get('app_url',  ''),
+            'page_title'   => 'Contact',
+            'form_action'  => $listing !== null
+                ? $baseUrl . '/contact/' . (int) $listing->id
+                : $baseUrl . '/contact',
+            'csrf_token'   => $this->app->getCSRF()->token(),
+            'errors'       => $flashError !== '' ? '<p>' . htmlspecialchars($flashError, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '</p>' : '',
+            'f'            => $f,
         ];
 
         return $this->renderPublic('contact.php', $data);

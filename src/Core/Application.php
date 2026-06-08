@@ -11,6 +11,7 @@ use Luster\Repositories\ErrorLogRepo;
 use Luster\Repositories\ListingRepo;
 use Luster\Repositories\MemberRepo;
 use Luster\Repositories\SiteSettingsRepo;
+use Luster\Support\FormFieldBuilder;
 use Throwable;
 
 /**
@@ -41,13 +42,14 @@ use Throwable;
  */
 final class Application
 {
-    private Config    $config;
-    private Database  $database;
-    private Session   $session;
-    private Router    $router;
-    private View      $view;
-    private CSRF      $csrf;
-    private RateLimit $rateLimit;
+    private Config          $config;
+    private Database        $database;
+    private Session         $session;
+    private Router          $router;
+    private View            $view;
+    private CSRF            $csrf;
+    private RateLimit       $rateLimit;
+    private FormFieldBuilder $formFieldBuilder;
 
     /** Addon keys that are currently installed (populated at boot or on first use). */
     private array $installedAddonKeys = [];
@@ -62,13 +64,16 @@ final class Application
         private readonly string $basePath,
         string $configPath,
     ) {
-        $this->config    = new Config($configPath);
-        $this->database  = new Database($this->config);
-        $this->session   = new Session((string) $this->config->get('session_cookie_domain', ''));
-        $this->router    = new Router();
-        $this->view      = new View($this->basePath . '/templates');
-        $this->csrf      = new CSRF($this->session);
-        $this->rateLimit = new RateLimit($this->database);
+        $this->config          = new Config($configPath);
+        $this->database        = new Database($this->config);
+        $this->session         = new Session((string) $this->config->get('session_cookie_domain', ''));
+        $this->router          = new Router();
+        $this->view            = new View($this->basePath . '/templates');
+        $this->csrf            = new CSRF($this->session);
+        $this->rateLimit       = new RateLimit($this->database);
+        $fieldRenderer         = new FieldRenderer();
+        $fieldWrapper          = new FieldWrapper();
+        $this->formFieldBuilder = new FormFieldBuilder($fieldRenderer, $fieldWrapper);
 
         // Give the router a resolver so controllers receive this Application
         $this->router->setResolver(function (string $class): object {
@@ -113,6 +118,11 @@ final class Application
     public function getRateLimit(): RateLimit
     {
         return $this->rateLimit;
+    }
+
+    public function getFormFieldBuilder(): FormFieldBuilder
+    {
+        return $this->formFieldBuilder;
     }
 
     public function getBasePath(): string

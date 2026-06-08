@@ -18,7 +18,7 @@ require 'header.php';
   <h1>Reset Password</h1>
 
   <?php
-  $luster_fanlisting_id = 1;
+  $luster_fanlisting_id = 2;
   $luster_reset_step    = isset($_GET['token']) ? 'confirm' : 'request';
   require $luster_root . '/public/embed/reset.php';
   ?>

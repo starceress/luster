@@ -35,6 +35,9 @@ final class CollectiveStatsRepo
     /** SQL expression yielding 1 for pending members, else 0. */
     private string $pendingExpr;
 
+    /** WHERE predicate for approved joined listings (active, not pending/upcoming). */
+    private const JOINED_APPROVED_WHERE = "active = 1 AND status NOT IN ('upcoming', 'pending')";
+
     public function __construct(
         private readonly Database $db,
         private readonly Config   $config,
@@ -105,18 +108,24 @@ final class CollectiveStatsRepo
     /**
      * Returns status counts for all joined listings.
      *
+     * `approved` counts rows that are active and not in an upcoming/pending state —
+     * i.e. listings the site owner has actually joined and are publicly visible.
+     * This is distinct from `active` (SUM(active = 1)) which includes all active rows
+     * regardless of their status value.
+     *
      * Returns zeros if the lstr_joined table does not yet exist.
      *
-     * @return array{total: int, active: int, upcoming: int, pending: int}
+     * @return array{total: int, active: int, approved: int, upcoming: int, pending: int}
      */
     public function getJoinedCounts(): array
     {
         try {
             $stmt = $this->db->prepare(
-                "SELECT COUNT(*)                    AS total,
-                        SUM(active = 1)             AS active,
-                        SUM(status = 'upcoming')    AS upcoming,
-                        SUM(status = 'pending')     AS pending
+                "SELECT COUNT(*)                   AS total,
+                        SUM(active = 1)            AS active,
+                        SUM(" . self::JOINED_APPROVED_WHERE . ")  AS approved,
+                        SUM(status = 'upcoming')   AS upcoming,
+                        SUM(status = 'pending')    AS pending
                  FROM lstr_joined"
             );
             $stmt->execute();
@@ -125,11 +134,12 @@ final class CollectiveStatsRepo
             return [
                 'total'    => (int) ($row['total']    ?? 0),
                 'active'   => (int) ($row['active']   ?? 0),
+                'approved' => (int) ($row['approved'] ?? 0),
                 'upcoming' => (int) ($row['upcoming'] ?? 0),
                 'pending'  => (int) ($row['pending']  ?? 0),
             ];
         } catch (\Throwable) {
-            return ['total' => 0, 'active' => 0, 'upcoming' => 0, 'pending' => 0];
+            return ['total' => 0, 'active' => 0, 'approved' => 0, 'upcoming' => 0, 'pending' => 0];
         }
     }
 
@@ -310,8 +320,11 @@ final class CollectiveStatsRepo
     }
 
     /**
-     * Returns the N most recently added active joined listings,
+     * Returns the N most recently added approved joined listings,
      * ordered by date_joined descending then by primary key descending.
+     *
+     * "Approved" means active and not pending/upcoming — same predicate as
+     * getJoinedCounts()['approved']. Active-but-pending rows are excluded.
      *
      * Returns an empty array if lstr_joined does not yet exist.
      *
@@ -326,7 +339,7 @@ final class CollectiveStatsRepo
         try {
             $stmt = $this->db->prepare(
                 'SELECT * FROM lstr_joined
-                 WHERE active = 1
+                 WHERE ' . self::JOINED_APPROVED_WHERE . '
                  ORDER BY date_joined DESC, id DESC
                  LIMIT :n'
             );
@@ -370,7 +383,10 @@ final class CollectiveStatsRepo
     }
 
     /**
-     * Returns a single random active joined fanlisting, or null if none exist.
+     * Returns a single random approved joined fanlisting, or null if none exist.
+     *
+     * "Approved" uses the same predicate as getJoinedCounts()['approved'] —
+     * active rows that are not pending or upcoming.
      *
      * Returns null if lstr_joined does not yet exist.
      */
@@ -379,7 +395,7 @@ final class CollectiveStatsRepo
         try {
             $stmt = $this->db->prepare(
                 'SELECT * FROM lstr_joined
-                 WHERE active = 1
+                 WHERE ' . self::JOINED_APPROVED_WHERE . '
                  ORDER BY RAND()
                  LIMIT 1'
             );

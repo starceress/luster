@@ -8,6 +8,7 @@ use Luster\Repositories\FieldRepo;
 use Luster\Repositories\ListingRepo;
 use Luster\Repositories\ListingSettingsRepo;
 use Luster\Repositories\MemberRepo;
+use Luster\Support\FormFieldBuilder;
 
 /**
  * Luster embed — update membership form fragment.
@@ -92,19 +93,16 @@ $_lusterEmbedSettings = $_lusterSettingsRepo->getEmbedSettings($_lusterListingId
 // ---------------------------------------------------------------------------
 
 $_lusterSession = $_lusterApp->getSession();
-$_lusterSuccess = (string) $_lusterSession->get('lstr_flash_success', '');
-$_lusterError   = (string) $_lusterSession->get('lstr_flash_error',   '');
-$_lusterOld     = (array)  $_lusterSession->get('lstr_flash_old',     []);
-$_lusterSession->remove('lstr_flash_success');
+$_lusterSuccess = (string) $_lusterSession->get('lstr_flash_success_html', '');
+$_lusterError   = (string) $_lusterSession->get('lstr_flash_error',        '');
+$_lusterOld     = (array)  $_lusterSession->get('lstr_flash_old',          []);
+$_lusterSession->remove('lstr_flash_success_html');
 $_lusterSession->remove('lstr_flash_error');
 $_lusterSession->remove('lstr_flash_old');
 
 if ($_lusterSuccess !== '') {
-    $_lusterHtml = '<div class="fl-success"><p>'
-        . htmlspecialchars($_lusterSuccess, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8')
-        . '</p></div>';
-    if ($luster_return ?? false) { return $_lusterHtml; }
-    echo $_lusterHtml;
+    if ($luster_return ?? false) { return $_lusterSuccess; }
+    echo $_lusterSuccess;
     return;
 }
 
@@ -145,77 +143,89 @@ if (isset($luster_lost_password_url)) {
 // 7. Render fragment
 // ---------------------------------------------------------------------------
 
+$_lusterWrapperTpl = $_lusterSettingsRepo->getWrapperTemplate($_lusterListingId) ?? '';
+$_lusterFb         = $_lusterApp->getFormFieldBuilder();
+
 if (!$_lusterSignedIn) {
 
     // ── Step 1: sign-in form ────────────────────────────────────────────────
+    $_lusterDescriptors = [
+        ['type' => 'email',    'name' => 'email',    'id' => 'upd-email',    'label' => 'Email Address', 'required' => true, 'value' => (string) ($_lusterOld['email'] ?? ''), 'attrs' => ['maxlength' => '255', 'autocomplete' => 'email']],
+        ['type' => 'password', 'name' => 'password', 'id' => 'upd-password', 'label' => 'Password',       'required' => true, 'attrs' => ['maxlength' => '255', 'autocomplete' => 'current-password']],
+    ];
+    $_lusterF = $_lusterFb->build($_lusterDescriptors, $_lusterWrapperTpl);
+
     $_lusterHtml = $_lusterApp->getView()->renderFragment('update.php', [
-        'listing'          => $_lusterListing,
-        'listing_name'     => $_lusterListing->title,
-        'listing_url'      => $_lusterListing->url,
-        'page_title'       => 'Update Membership',
-        'signed_in'        => false,
-        'sign_in_action'   => $_lusterBaseUrl . '/update/' . $_lusterListingId . '/sign-in',
-        'sign_out_url'     => '',
-        'form_action'      => '',
-        'csrf_token'       => $_lusterApp->getCSRF()->token(),
-        'errors'           => $_lusterError !== ''
+        'listing'           => $_lusterListing,
+        'listing_name'      => $_lusterListing->title,
+        'listing_url'       => $_lusterListing->url,
+        'page_title'        => 'Update Membership',
+        'signed_in'         => false,
+        'sign_in_action'    => $_lusterBaseUrl . '/update/' . $_lusterListingId . '/sign-in',
+        'csrf_token'        => $_lusterApp->getCSRF()->token(),
+        'errors'            => $_lusterError !== ''
             ? '<p>' . htmlspecialchars($_lusterError, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '</p>'
             : '',
-        'update_error'     => '',
-        'field_email'      => (string) ($_lusterOld['email'] ?? ''),
-        'field_name'       => '',
-        'field_new_email'  => '',
-        'field_url'        => '',
-        'country_select'   => Countries::buildSelect(''),
-        'fields'           => [],
-        'old'              => [],
-        'captcha_question' => '',
-        'captcha_error'    => '',
         'lost_password_url' => $_lusterLostPasswordUrl,
-        'current_name'     => '',
-        'current_url'      => '',
-        'current_country'  => '',
-        'current_extra'    => [],
-        'base_url'         => $_lusterApp->getBaseUrl(),
-        'theme_path'       => $_lusterApp->getBaseUrl() . '/assets/default/',
+        'fields'            => [],
+        'f'                 => $_lusterF,
+        'base_url'          => $_lusterApp->getBaseUrl(),
+        'theme_path'        => $_lusterApp->getBaseUrl() . '/assets/default/',
     ]);
 
 } else {
 
     // ── Step 2: update form (authenticated) ─────────────────────────────────
-    $_lusterFieldRepo = new FieldRepo($_lusterApp->getDatabase(), $_lusterApp->getConfig());
-    $_lusterFields    = $_lusterFieldRepo->getFieldsForListing($_lusterListingId);
+    $_lusterFieldRepo    = new FieldRepo($_lusterApp->getDatabase(), $_lusterApp->getConfig());
+    $_lusterFields       = $_lusterFieldRepo->getFieldsForListing($_lusterListingId);
+    $_lusterCaptchaQ     = Captcha::getQuestion('update');
+    $_lusterCountrySel   = Countries::buildSelect((string) ($_lusterOld['country'] ?? ''));
+
+    $_lusterUrlVal = htmlspecialchars(
+        (string) (($_lusterOld['url'] ?? '') !== '' ? ($_lusterOld['url'] ?? '') : $_lusterMember->url),
+        ENT_QUOTES | ENT_SUBSTITUTE,
+        'UTF-8',
+    );
+    $_lusterUrlRaw = '<input type="url" id="upd-url" name="url" value="' . $_lusterUrlVal . '" maxlength="500" placeholder="https://">'
+                   . '<label><input type="checkbox" name="delete_url" value="1"> Remove my website URL</label>';
+
+    $_lusterUpdOld = [];
+    foreach ($_lusterFields as $_lusterField) {
+        $_lusterOldVal = $_lusterOld['field_' . $_lusterField->name] ?? null;
+        $_lusterUpdOld['field_' . $_lusterField->name] = $_lusterOldVal !== null
+            ? (is_array($_lusterOldVal) ? implode(',', array_map('strval', $_lusterOldVal)) : (string) $_lusterOldVal)
+            : (string) ($_lusterMember->additionalFields[$_lusterField->name] ?? '');
+    }
+
+    $_lusterDescriptors = [
+        ['type' => 'text',     'name' => 'new_name',            'id' => 'upd-name',         'label' => 'New Name',             'required' => false, 'value' => (string) ($_lusterOld['new_name']  ?? ''), 'attrs' => ['maxlength' => '100', 'autocomplete' => 'name',         'placeholder' => $_lusterMember->name]],
+        ['type' => 'email',    'name' => 'new_email',           'id' => 'upd-new-email',    'label' => 'New Email',            'required' => false, 'value' => (string) ($_lusterOld['new_email'] ?? ''), 'attrs' => ['maxlength' => '255',                                    'placeholder' => $_lusterMember->email]],
+        ['type' => 'url',      'name' => 'url',                 'id' => 'upd-url',          'label' => 'New Website URL',      'required' => false, 'raw_input' => $_lusterUrlRaw],
+        ['type' => 'text',     'name' => 'country',             'id' => '',                 'label' => 'New Country',          'required' => false, 'raw_input' => $_lusterCountrySel],
+        ...$_lusterFb->descriptorsFromAdditionalFields($_lusterFields, $_lusterUpdOld),
+        ['type' => 'password', 'name' => 'new_password',        'id' => 'upd-new-pass',     'label' => 'New Password',         'required' => false, 'attrs' => ['maxlength' => '255', 'autocomplete' => 'new-password', 'placeholder' => 'Leave blank to keep current']],
+        ['type' => 'password', 'name' => 'new_password_confirm', 'id' => 'upd-confirm-pass', 'label' => 'Confirm New Password', 'required' => false, 'attrs' => ['maxlength' => '255', 'autocomplete' => 'new-password', 'placeholder' => 'Repeat new password']],
+        ['type' => 'text',     'name' => 'captcha_answer',      'id' => 'upd-captcha',      'label' => 'Captcha: ' . $_lusterCaptchaQ, 'required' => true, 'attrs' => ['maxlength' => '10', 'autocomplete' => 'off']],
+    ];
+    $_lusterF = $_lusterFb->build($_lusterDescriptors, $_lusterWrapperTpl);
 
     $_lusterHtml = $_lusterApp->getView()->renderFragment('update.php', [
-        'listing'          => $_lusterListing,
-        'listing_name'     => $_lusterListing->title,
-        'listing_url'      => $_lusterListing->url,
-        'page_title'       => 'Update Membership',
-        'signed_in'        => true,
-        'sign_in_action'   => '',
-        'sign_out_url'     => $_lusterBaseUrl . '/update/' . $_lusterListingId . '/sign-out',
-        'form_action'      => $_lusterBaseUrl . '/update/' . $_lusterListingId,
-        'csrf_token'       => $_lusterApp->getCSRF()->token(),
-        'errors'           => $_lusterError !== ''
+        'listing'       => $_lusterListing,
+        'listing_name'  => $_lusterListing->title,
+        'listing_url'   => $_lusterListing->url,
+        'page_title'    => 'Update Membership',
+        'signed_in'     => true,
+        'sign_out_url'  => $_lusterBaseUrl . '/update/' . $_lusterListingId . '/sign-out',
+        'form_action'   => $_lusterBaseUrl . '/update/' . $_lusterListingId,
+        'csrf_token'    => $_lusterApp->getCSRF()->token(),
+        'errors'        => $_lusterError !== ''
             ? '<p>' . htmlspecialchars($_lusterError, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '</p>'
             : '',
-        'update_error'     => '',
-        'field_email'      => $_lusterMember->email,
-        'field_name'       => (string) ($_lusterOld['new_name']  ?? ''),
-        'field_new_email'  => (string) ($_lusterOld['new_email'] ?? ''),
-        'field_url'        => (string) ($_lusterOld['url']       ?? ''),
-        'country_select'   => Countries::buildSelect((string) ($_lusterOld['country'] ?? '')),
-        'fields'           => $_lusterFields,
-        'old'              => $_lusterOld,
-        'captcha_question' => Captcha::getQuestion('update'),
-        'captcha_error'    => '',
-        'lost_password_url' => '',
-        'current_name'     => $_lusterMember->name,
-        'current_url'      => $_lusterMember->url,
-        'current_country'  => $_lusterMember->country,
-        'current_extra'    => $_lusterMember->additionalFields,
-        'base_url'         => $_lusterApp->getBaseUrl(),
-        'theme_path'       => $_lusterApp->getBaseUrl() . '/assets/default/',
+        'field_email'   => $_lusterMember->email,
+        'fields'        => $_lusterFields,
+        'f'             => $_lusterF,
+        'base_url'      => $_lusterApp->getBaseUrl(),
+        'theme_path'    => $_lusterApp->getBaseUrl() . '/assets/default/',
     ]);
 
 }

@@ -96,7 +96,6 @@
   --accent-glow: rgb(var(--ch-accent)/0.1);
   --accent2: #27b1a5;
   --accent3: var(--va-purple);
-  --accent3-glow: rgba(201,88,10,0.15);
   --success: #27ae60;
   --ch-success: 5 150 105;        /* success green channel (light)      */
   --success-bg: rgb(var(--ch-success)/0.08);
@@ -137,7 +136,6 @@
   --accent-glow: rgb(var(--ch-pink)/0.15);
   --accent2: #b34774;
   --accent3: #ffd166;
-  --accent3-glow: rgb(var(--ch-gold)/0.2);
   --success: #2ecc71;
   --ch-success: 52 211 153;       /* success green channel (dark)       */
   --success-bg: rgb(var(--ch-success)/0.1);
@@ -146,7 +144,6 @@
   --danger-bg: rgb(var(--ch-danger)/0.1);
   --warn: #ffd166;
   --warn-bg: rgb(var(--ch-gold)/0.1);
-  --warn-text: #1a1005;
   --shadow: 0 4px 24px rgba(0,0,0,0.55);
   --shadow-lg: 0 16px 56px rgba(0,0,0,0.65);
   --glow: 0 0 0 3px rgb(var(--ch-pink)/0.15);

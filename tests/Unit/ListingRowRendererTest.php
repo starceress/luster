@@ -202,6 +202,34 @@ final class ListingRowRendererTest extends TestCase
         self::assertSame('', $withoutImage);
     }
 
+    public function testLegacyListingImageTokenPassesThroughAsLiteralText(): void
+    {
+        // {listing_image} was the old token name — renamed to {listing_image_url} /
+        // {listing_image_html} with no legacy alias. The renderer must leave it untouched
+        // so site owners get a visible artefact in the output instead of silent data loss.
+        $html = ListingRowRenderer::render(
+            $this->makeListing(),
+            '{listing_image}',
+            ['image' => 'cover.jpg'],
+            'https://example.com/uploads/listings',
+        );
+
+        self::assertSame('{listing_image}', $html);
+    }
+
+    public function testLegacyImageAliasTokenPassesThroughAsLiteralText(): void
+    {
+        // {image} was the joined-listing template alias — also removed; no alias kept.
+        $html = ListingRowRenderer::render(
+            $this->makeListing(),
+            '{image}',
+            ['image' => 'cover.jpg'],
+            'https://example.com/uploads/listings',
+        );
+
+        self::assertSame('{image}', $html);
+    }
+
     // -----------------------------------------------------------------------
     // Member stat tokens
     // -----------------------------------------------------------------------

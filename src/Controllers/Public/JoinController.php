@@ -21,6 +21,8 @@ use Luster\Repositories\ListingSettingsRepo;
 use Luster\Repositories\FieldRepo;
 use Luster\Repositories\BlacklistRepo;
 use Luster\Repositories\MemberRepo;
+use Luster\Support\FormFieldBuilder;
+use Luster\Support\SuccessRenderer;
 
 /**
  * Public join form.
@@ -94,7 +96,7 @@ final class JoinController
         // Honeypot — silent reject; fake success so bots see no difference
         if ((string) $request->post('website_confirm', '') !== '') {
             $session->remove('lstr_embed_return_to');
-            $session->set('lstr_flash_success', 'Thank you for joining!');
+            $session->set('lstr_flash_success_html', SuccessRenderer::render('', 'joined'));
             return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $baseUrl . '/join/' . $listingId);
         }
 
@@ -343,7 +345,13 @@ final class JoinController
         }
 
         $session->remove('lstr_embed_return_to');
-        $session->set('lstr_flash_success', 'Thank you for joining! Your membership may need to be approved before it appears in the member list.');
+        $successTpl = (new ListingSettingsRepo($this->app->getDatabase()))->getSuccessTemplate($listingId) ?? '';
+        $action     = $autoApprove ? 'joined' : 'joined-pending';
+        $session->set('lstr_flash_success_html', SuccessRenderer::render($successTpl, $action, [
+            'fan_name'      => $name,
+            'listing_title' => $listing->title,
+            'listing_url'   => $listing->url,
+        ]));
         return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $formUrl);
     }
 
@@ -370,27 +378,36 @@ final class JoinController
         string $error = '',
         string $captchaError = '',
     ): Response {
-        $baseUrl = $this->app->getBaseUrl();
+        $baseUrl         = $this->app->getBaseUrl();
+        $captchaQuestion = Captcha::getQuestion('join');
+        $countrySelect   = Countries::buildSelect((string) ($old['country'] ?? ''));
+        $wrapperTpl      = (new ListingSettingsRepo($this->app->getDatabase()))->getWrapperTemplate($listingId) ?? '';
+
+        $fb          = $this->app->getFormFieldBuilder();
+        $descriptors = [
+            ['type' => 'text',     'name' => 'name',             'id' => 'join-name',             'label' => 'Name',             'required' => true,  'value' => (string) ($old['name']  ?? ''), 'attrs' => ['maxlength' => '100', 'autocomplete' => 'name']],
+            ['type' => 'email',    'name' => 'email',            'id' => 'join-email',            'label' => 'Email',            'required' => true,  'value' => (string) ($old['email'] ?? ''), 'attrs' => ['maxlength' => '255', 'autocomplete' => 'email']],
+            ['type' => 'url',      'name' => 'url',              'id' => 'join-url',              'label' => 'Website URL',      'required' => false, 'value' => (string) ($old['url']   ?? ''), 'attrs' => ['maxlength' => '500', 'placeholder' => 'https://', 'autocomplete' => 'url'], 'hint' => 'Optional'],
+            ['type' => 'text',     'name' => 'country',          'id' => '',                      'label' => 'Country',          'required' => true,  'raw_input' => $countrySelect],
+            ...$fb->descriptorsFromAdditionalFields($fields, $old),
+            ['type' => 'password', 'name' => 'password',         'id' => 'join-password',         'label' => 'Password',         'required' => false, 'attrs' => ['maxlength' => '255', 'autocomplete' => 'new-password'], 'hint' => 'Optional — one will be emailed to you if left blank'],
+            ['type' => 'password', 'name' => 'password_confirm', 'id' => 'join-password-confirm', 'label' => 'Confirm Password', 'required' => false, 'attrs' => ['maxlength' => '255', 'autocomplete' => 'new-password']],
+            ['type' => 'text',     'name' => 'captcha_answer',   'id' => 'join-captcha',          'label' => 'Captcha: ' . $captchaQuestion, 'required' => true, 'error' => $captchaError, 'attrs' => ['maxlength' => '10', 'autocomplete' => 'off']],
+        ];
+        $f = $fb->build($descriptors, $wrapperTpl);
 
         $html = $this->app->getView()->renderPublic('join.php', [
-            'listing'           => $listing,
-            'listing_name'      => $listing->title,
-            'listing_url'       => $listing->url,
-            'page_title'           => 'Join',
-            'form_action'          => $baseUrl . '/join/' . $listingId,
-            'csrf_token'           => $this->app->getCSRF()->token(),
-            'errors'               => $error !== '' ? '<p>' . htmlspecialchars($error, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '</p>' : '',
-            'field_name'           => (string) ($old['name']  ?? ''),
-            'field_email'          => (string) ($old['email'] ?? ''),
-            'field_url'            => (string) ($old['url']   ?? ''),
-            'country_select'       => Countries::buildSelect((string) ($old['country'] ?? '')),
-            'fields'               => $fields,
-            'old'                  => $old,
-            'captcha_question'     => Captcha::getQuestion('join'),
-            'captcha_error'        => $captchaError,
-            'send_info_checked'    => !isset($old['send_info']) || $old['send_info'] === '1' ? 'checked' : '',
-            'base_url'             => $baseUrl,
-            'theme_path'           => $baseUrl . '/assets/default/',
+            'listing'      => $listing,
+            'listing_name' => $listing->title,
+            'listing_url'  => $listing->url,
+            'page_title'   => 'Join',
+            'form_action'  => $baseUrl . '/join/' . $listingId,
+            'csrf_token'   => $this->app->getCSRF()->token(),
+            'errors'       => $error !== '' ? '<p>' . htmlspecialchars($error, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '</p>' : '',
+            'fields'       => $fields,
+            'f'            => $f,
+            'base_url'     => $baseUrl,
+            'theme_path'   => $baseUrl . '/assets/default/',
         ]);
 
         return Response::html($html);

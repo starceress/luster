@@ -17,6 +17,8 @@ use Luster\Repositories\EmailTemplateRepo;
 use Luster\Repositories\ListingRepo;
 use Luster\Repositories\ListingSettingsRepo;
 use Luster\Repositories\SiteSettingsRepo;
+use Luster\Support\FormFieldBuilder;
+use Luster\Support\SuccessRenderer;
 
 /**
  * Public affiliate application form.
@@ -119,7 +121,8 @@ final class AffiliateApplyController
         // Honeypot — silent reject; fake success so bots see no difference
         if ((string) $request->post('website_confirm', '') !== '') {
             $session->remove('lstr_embed_return_to');
-            $session->set('lstr_flash_success', 'Your application has been received. Thank you!');
+            $affApplySentTpl = $settingsRepo->getAffiliateApplySentTemplate($listingId) ?? '';
+            $session->set('lstr_flash_success_html', SuccessRenderer::render($affApplySentTpl, 'affiliate-apply-sent'));
             return Response::redirect($formUrl);
         }
 
@@ -190,7 +193,14 @@ final class AffiliateApplyController
         $this->sendAdminNotification($listing, $name, $url, $email, $message);
 
         $session->remove('lstr_embed_return_to');
-        $session->set('lstr_flash_success', 'Your application has been received. Thank you!');
+        $affApplySentTpl = $settingsRepo->getAffiliateApplySentTemplate($listingId) ?? '';
+        $session->set('lstr_flash_success_html', SuccessRenderer::render($affApplySentTpl, 'affiliate-apply-sent', [
+            'aff_name'      => $name,
+            'aff_url'       => $url,
+            'aff_email'     => $email,
+            'listing_title' => $listing->title,
+            'listing_url'   => $listing->url,
+        ]));
         return Response::redirect($formUrl);
     }
 
@@ -246,7 +256,8 @@ final class AffiliateApplyController
         // Honeypot — silent reject; fake success so bots see no difference
         if ((string) $request->post('website_confirm', '') !== '') {
             $session->remove('lstr_embed_return_to');
-            $session->set('lstr_flash_success', 'Your application has been received. Thank you!');
+            $collectiveAffApplySentTpl = $siteRepo->get('collective_affiliate_apply_sent_template') ?? '';
+            $session->set('lstr_flash_success_html', SuccessRenderer::render($collectiveAffApplySentTpl, 'affiliate-apply-sent'));
             return Response::redirect($formUrl);
         }
 
@@ -317,7 +328,12 @@ final class AffiliateApplyController
         $this->sendAdminNotification(null, $name, $url, $email, $message);
 
         $session->remove('lstr_embed_return_to');
-        $session->set('lstr_flash_success', 'Your application has been received. Thank you!');
+        $collectiveAffApplySentTpl = $siteRepo->get('collective_affiliate_apply_sent_template') ?? '';
+        $session->set('lstr_flash_success_html', SuccessRenderer::render($collectiveAffApplySentTpl, 'affiliate-apply-sent', [
+            'aff_name'  => $name,
+            'aff_url'   => $url,
+            'aff_email' => $email,
+        ]));
         return Response::redirect($formUrl);
     }
 
@@ -332,20 +348,28 @@ final class AffiliateApplyController
         $baseUrl         = $this->app->getBaseUrl();
         $siteName        = (string) $config->get('site_name', 'Collective');
         $siteUrl         = (string) ($config->get('site_url', '') ?: $baseUrl);
+        $wrapperTpl      = (new SiteSettingsRepo($this->app->getDatabase()))->get('collective_field_wrapper_template', '') ?? '';
+
+        $f = $this->app->getFormFieldBuilder()->build([
+            ['type' => 'text',     'name' => 'name',           'id' => 'aff-name',    'label' => 'Site name',                      'required' => true,  'value' => (string) ($old['name']    ?? ''), 'attrs' => ['maxlength' => '200', 'autocomplete' => 'organization']],
+            ['type' => 'url',      'name' => 'url',            'id' => 'aff-url',     'label' => 'Site URL',                       'required' => true,  'value' => (string) ($old['url']     ?? ''), 'attrs' => ['maxlength' => '500', 'placeholder' => 'https://', 'autocomplete' => 'url']],
+            ['type' => 'email',    'name' => 'email',          'id' => 'aff-email',   'label' => 'Your email (optional)',          'required' => false, 'value' => (string) ($old['email']   ?? ''), 'attrs' => ['maxlength' => '255', 'autocomplete' => 'email'], 'hint' => 'Used to notify you when your application is approved or rejected.'],
+            ['type' => 'file',     'name' => 'image',          'id' => 'aff-image',   'label' => 'Site button / image (optional)', 'required' => false, 'attrs' => ['accept' => 'image/jpeg,image/png,image/gif,image/webp'], 'hint' => 'JPEG, PNG, GIF, or WebP. Max 2 MB.'],
+            ['type' => 'textarea', 'name' => 'message',        'id' => 'aff-message', 'label' => 'Message (optional)',             'required' => false, 'value' => (string) ($old['message'] ?? ''), 'attrs' => ['maxlength' => '2000', 'rows' => '4']],
+            ['type' => 'text',     'name' => 'captcha_answer', 'id' => 'aff-captcha', 'label' => 'Captcha: ' . $captchaQuestion,  'required' => true,  'attrs' => ['maxlength' => '10', 'autocomplete' => 'off']],
+        ], $wrapperTpl);
 
         $data = [
-            'listing'          => null,
-            'listing_name'     => $siteName,
-            'listing_url'      => $siteUrl,
-            'page_title'       => 'Affiliate Application',
-            'base_url'         => $baseUrl,
-            'theme_path'       => $baseUrl . '/assets/default/',
-            'form_action'      => $this->collectiveFormUrl($config, $baseUrl),
-            'csrf_token'       => $this->app->getCSRF()->token(),
-            'captcha_question' => $captchaQuestion,
-            'captcha_error'    => '',
-            'errors'           => $error,
-            'old'              => $old,
+            'listing'      => null,
+            'listing_name' => $siteName,
+            'listing_url'  => $siteUrl,
+            'page_title'   => 'Affiliate Application',
+            'base_url'     => $baseUrl,
+            'theme_path'   => $baseUrl . '/assets/default/',
+            'form_action'  => $this->collectiveFormUrl($config, $baseUrl),
+            'csrf_token'   => $this->app->getCSRF()->token(),
+            'errors'       => $error,
+            'f'            => $f,
         ];
 
         return Response::html(
@@ -368,7 +392,9 @@ final class AffiliateApplyController
     ): Response {
         $captchaQuestion = Captcha::getQuestion('affiliate_apply');
         $config          = $this->app->getConfig();
-        $embedSettings   = (new ListingSettingsRepo($this->app->getDatabase()))->getEmbedSettings($listingId);
+        $settingsRepo    = new ListingSettingsRepo($this->app->getDatabase());
+        $embedSettings   = $settingsRepo->getEmbedSettings($listingId);
+        $wrapperTpl      = $settingsRepo->getWrapperTemplate($listingId) ?? '';
 
         $formUrl = $this->resolveFormUrl(
             $listingId,
@@ -377,19 +403,26 @@ final class AffiliateApplyController
             $this->app->getBaseUrl(),
         );
 
+        $f = $this->app->getFormFieldBuilder()->build([
+            ['type' => 'text',     'name' => 'name',           'id' => 'aff-name',    'label' => 'Site name',                      'required' => true,  'value' => (string) ($old['name']    ?? ''), 'attrs' => ['maxlength' => '200', 'autocomplete' => 'organization']],
+            ['type' => 'url',      'name' => 'url',            'id' => 'aff-url',     'label' => 'Site URL',                       'required' => true,  'value' => (string) ($old['url']     ?? ''), 'attrs' => ['maxlength' => '500', 'placeholder' => 'https://', 'autocomplete' => 'url']],
+            ['type' => 'email',    'name' => 'email',          'id' => 'aff-email',   'label' => 'Your email (optional)',          'required' => false, 'value' => (string) ($old['email']   ?? ''), 'attrs' => ['maxlength' => '255', 'autocomplete' => 'email'], 'hint' => 'Used to notify you when your application is approved or rejected.'],
+            ['type' => 'file',     'name' => 'image',          'id' => 'aff-image',   'label' => 'Site button / image (optional)', 'required' => false, 'attrs' => ['accept' => 'image/jpeg,image/png,image/gif,image/webp'], 'hint' => 'JPEG, PNG, GIF, or WebP. Max 2 MB.'],
+            ['type' => 'textarea', 'name' => 'message',        'id' => 'aff-message', 'label' => 'Message (optional)',             'required' => false, 'value' => (string) ($old['message'] ?? ''), 'attrs' => ['maxlength' => '2000', 'rows' => '4']],
+            ['type' => 'text',     'name' => 'captcha_answer', 'id' => 'aff-captcha', 'label' => 'Captcha: ' . $captchaQuestion,  'required' => true,  'attrs' => ['maxlength' => '10', 'autocomplete' => 'off']],
+        ], $wrapperTpl);
+
         $data = [
-            'listing'          => $listing,
-            'listing_name'     => (string) $listing->title,
-            'listing_url'      => (string) $listing->url,
-            'page_title'       => 'Affiliate Application — ' . $listing->title,
-            'base_url'         => $this->app->getBaseUrl(),
-            'theme_path'       => rtrim((string) $listing->url, '/') . '/' . ltrim((string) ($embedSettings['theme_path'] ?? 'theme'), '/'),
-            'form_action'      => $formUrl,
-            'csrf_token'       => $this->app->getCSRF()->token(),
-            'captcha_question' => $captchaQuestion,
-            'captcha_error'    => '',
-            'errors'           => $error,
-            'old'              => $old,
+            'listing'      => $listing,
+            'listing_name' => (string) $listing->title,
+            'listing_url'  => (string) $listing->url,
+            'page_title'   => 'Affiliate Application — ' . $listing->title,
+            'base_url'     => $this->app->getBaseUrl(),
+            'theme_path'   => rtrim((string) $listing->url, '/') . '/' . ltrim((string) ($embedSettings['theme_path'] ?? 'theme'), '/'),
+            'form_action'  => $formUrl,
+            'csrf_token'   => $this->app->getCSRF()->token(),
+            'errors'       => $error,
+            'f'            => $f,
         ];
 
         return Response::html(

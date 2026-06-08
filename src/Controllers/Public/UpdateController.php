@@ -19,6 +19,8 @@ use Luster\Repositories\FieldRepo;
 use Luster\Repositories\BlacklistRepo;
 use Luster\Repositories\MemberRepo;
 use Luster\Repositories\PendingUpdateRepo;
+use Luster\Support\FormFieldBuilder;
+use Luster\Support\SuccessRenderer;
 
 /**
  * Fan update form — two-step flow.
@@ -219,7 +221,7 @@ final class UpdateController
         // Honeypot — silent reject; fake success so bots see no difference
         if ((string) $request->post('website_confirm', '') !== '') {
             $session->remove('lstr_embed_return_to');
-            $session->set('lstr_flash_success', 'Your membership has been updated successfully.');
+            $session->set('lstr_flash_success_html', SuccessRenderer::render('', 'updated'));
             return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $baseUrl . '/update/' . $listingId);
         }
 
@@ -394,7 +396,11 @@ final class UpdateController
         // Clear auth session — member must sign in again for another update
         $session->remove(self::AUTH_KEY . $listingId);
         $session->remove('lstr_embed_return_to');
-        $session->set('lstr_flash_success', "Your update for the {$listing->title} listing has been submitted and is awaiting admin review. Changes will appear once approved.");
+        $successTpl = $settingsRepo->getSuccessTemplate($listingId) ?? '';
+        $session->set('lstr_flash_success_html', SuccessRenderer::render($successTpl, 'updated-pending', [
+            'listing_title' => $listing->title,
+            'listing_url'   => $listing->url,
+        ]));
         return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $formUrl);
     }
 
@@ -412,36 +418,30 @@ final class UpdateController
         array $old = [],
         string $error = '',
     ): Response {
-        $baseUrl = $this->app->getBaseUrl();
+        $baseUrl    = $this->app->getBaseUrl();
+        $wrapperTpl = (new ListingSettingsRepo($this->app->getDatabase()))->getWrapperTemplate($listingId) ?? '';
+
+        $fb          = $this->app->getFormFieldBuilder();
+        $descriptors = [
+            ['type' => 'email',    'name' => 'email',    'id' => 'upd-email',    'label' => 'Email Address', 'required' => true, 'value' => (string) ($old['email'] ?? ''), 'attrs' => ['maxlength' => '255', 'autocomplete' => 'email']],
+            ['type' => 'password', 'name' => 'password', 'id' => 'upd-password', 'label' => 'Password',       'required' => true, 'attrs' => ['maxlength' => '255', 'autocomplete' => 'current-password']],
+        ];
+        $f = $fb->build($descriptors, $wrapperTpl);
 
         $html = $this->app->getView()->renderPublic('update.php', [
-            'listing'          => $listing,
-            'listing_name'     => $listing->title,
-            'listing_url'      => $listing->url,
-            'page_title'       => 'Update Membership',
-            'signed_in'        => false,
-            'sign_in_action'   => $baseUrl . '/update/' . $listingId . '/sign-in',
-            'sign_out_url'     => '',
-            'form_action'      => '',
-            'csrf_token'       => $this->app->getCSRF()->token(),
-            'errors'           => $error !== '' ? '<p>' . htmlspecialchars($error, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '</p>' : '',
-            'update_error'     => '',
-            'field_email'      => (string) ($old['email'] ?? ''),
-            'field_name'       => '',
-            'field_new_email'  => '',
-            'field_url'        => '',
-            'country_select'   => Countries::buildSelect(''),
-            'fields'           => [],
-            'old'              => [],
-            'captcha_question' => '',
-            'captcha_error'    => '',
+            'listing'           => $listing,
+            'listing_name'      => $listing->title,
+            'listing_url'       => $listing->url,
+            'page_title'        => 'Update Membership',
+            'signed_in'         => false,
+            'sign_in_action'    => $baseUrl . '/update/' . $listingId . '/sign-in',
+            'csrf_token'        => $this->app->getCSRF()->token(),
+            'errors'            => $error !== '' ? '<p>' . htmlspecialchars($error, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '</p>' : '',
             'lost_password_url' => $this->buildResetUrl($listing, $embedSettings, $baseUrl, $listingId),
-            'current_name'     => '',
-            'current_url'      => '',
-            'current_country'  => '',
-            'current_extra'    => [],
-            'base_url'         => $baseUrl,
-            'theme_path'       => $baseUrl . '/assets/default/',
+            'fields'            => [],
+            'f'                 => $f,
+            'base_url'          => $baseUrl,
+            'theme_path'        => $baseUrl . '/assets/default/',
         ]);
 
         return Response::html($html);
@@ -465,36 +465,57 @@ final class UpdateController
         string $captchaError = '',
         string $updateError = '',
     ): Response {
-        $baseUrl = $this->app->getBaseUrl();
+        $baseUrl         = $this->app->getBaseUrl();
+        $captchaQuestion = Captcha::getQuestion('update');
+        $countrySelect   = Countries::buildSelect((string) ($old['country'] ?? ''));
+        $wrapperTpl      = (new ListingSettingsRepo($this->app->getDatabase()))->getWrapperTemplate($listingId) ?? '';
+
+        // URL + "Remove my website URL" checkbox bundled as a single raw_input
+        $urlVal = htmlspecialchars(
+            (string) (($old['url'] ?? '') !== '' ? $old['url'] : $member->url),
+            ENT_QUOTES | ENT_SUBSTITUTE,
+            'UTF-8',
+        );
+        $urlRaw = '<input type="url" id="upd-url" name="url" value="' . $urlVal . '" maxlength="500" placeholder="https://">'
+                . '<label><input type="checkbox" name="delete_url" value="1"> Remove my website URL</label>';
+
+        // Merge old/current values for additional fields so pre-fill comes from the member record
+        $updOld = [];
+        foreach ($fields as $field) {
+            $oldVal = $old['field_' . $field->name] ?? null;
+            $updOld['field_' . $field->name] = $oldVal !== null
+                ? (is_array($oldVal) ? implode(',', array_map('strval', $oldVal)) : (string) $oldVal)
+                : (string) ($member->additionalFields[$field->name] ?? '');
+        }
+
+        $fb          = $this->app->getFormFieldBuilder();
+        $descriptors = [
+            ['type' => 'text',     'name' => 'new_name',            'id' => 'upd-name',         'label' => 'New Name',             'required' => false, 'value' => (string) ($old['new_name']  ?? ''), 'attrs' => ['maxlength' => '100', 'autocomplete' => 'name',         'placeholder' => $member->name]],
+            ['type' => 'email',    'name' => 'new_email',           'id' => 'upd-new-email',    'label' => 'New Email',            'required' => false, 'value' => (string) ($old['new_email'] ?? ''), 'attrs' => ['maxlength' => '255',                                    'placeholder' => $member->email]],
+            ['type' => 'url',      'name' => 'url',                 'id' => 'upd-url',          'label' => 'New Website URL',      'required' => false, 'raw_input' => $urlRaw],
+            ['type' => 'text',     'name' => 'country',             'id' => '',                 'label' => 'New Country',          'required' => false, 'raw_input' => $countrySelect],
+            ...$fb->descriptorsFromAdditionalFields($fields, $updOld),
+            ['type' => 'password', 'name' => 'new_password',        'id' => 'upd-new-pass',     'label' => 'New Password',         'required' => false, 'attrs' => ['maxlength' => '255', 'autocomplete' => 'new-password', 'placeholder' => 'Leave blank to keep current']],
+            ['type' => 'password', 'name' => 'new_password_confirm', 'id' => 'upd-confirm-pass', 'label' => 'Confirm New Password', 'required' => false, 'attrs' => ['maxlength' => '255', 'autocomplete' => 'new-password', 'placeholder' => 'Repeat new password']],
+            ['type' => 'text',     'name' => 'captcha_answer',      'id' => 'upd-captcha',      'label' => 'Captcha: ' . $captchaQuestion, 'required' => true, 'error' => $captchaError, 'attrs' => ['maxlength' => '10', 'autocomplete' => 'off']],
+        ];
+        $f = $fb->build($descriptors, $wrapperTpl);
 
         $html = $this->app->getView()->renderPublic('update.php', [
-            'listing'          => $listing,
-            'listing_name'     => $listing->title,
-            'listing_url'      => $listing->url,
-            'page_title'       => 'Update Membership',
-            'signed_in'        => true,
-            'sign_in_action'   => '',
-            'sign_out_url'     => $baseUrl . '/update/' . $listingId . '/sign-out',
-            'form_action'      => $baseUrl . '/update/' . $listingId,
-            'csrf_token'       => $this->app->getCSRF()->token(),
-            'errors'           => $error !== '' ? '<p>' . htmlspecialchars($error, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '</p>' : '',
-            'update_error'     => $updateError,
-            'field_email'      => $member->email,
-            'field_name'       => (string) ($old['new_name']  ?? ''),
-            'field_new_email'  => (string) ($old['new_email'] ?? ''),
-            'field_url'        => (string) ($old['url']       ?? ''),
-            'country_select'   => Countries::buildSelect((string) ($old['country'] ?? '')),
-            'fields'           => $fields,
-            'old'              => $old,
-            'captcha_question' => Captcha::getQuestion('update'),
-            'captcha_error'    => $captchaError,
-            'lost_password_url' => '',
-            'current_name'     => $member->name,
-            'current_url'      => $member->url,
-            'current_country'  => $member->country,
-            'current_extra'    => $member->additionalFields,
-            'base_url'         => $baseUrl,
-            'theme_path'       => $baseUrl . '/assets/default/',
+            'listing'       => $listing,
+            'listing_name'  => $listing->title,
+            'listing_url'   => $listing->url,
+            'page_title'    => 'Update Membership',
+            'signed_in'     => true,
+            'sign_out_url'  => $baseUrl . '/update/' . $listingId . '/sign-out',
+            'form_action'   => $baseUrl . '/update/' . $listingId,
+            'csrf_token'    => $this->app->getCSRF()->token(),
+            'errors'        => $error !== '' ? '<p>' . htmlspecialchars($error, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '</p>' : '',
+            'field_email'   => $member->email,
+            'fields'        => $fields,
+            'f'             => $f,
+            'base_url'      => $baseUrl,
+            'theme_path'    => $baseUrl . '/assets/default/',
         ]);
 
         return Response::html($html);

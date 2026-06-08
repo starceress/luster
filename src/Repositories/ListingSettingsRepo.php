@@ -250,6 +250,26 @@ final class ListingSettingsRepo
     }
 
     /**
+     * Returns the per-listing field wrapper template string, or null when not set /
+     * when Migration 64 has not been run yet.
+     */
+    public function getWrapperTemplate(int $listingId): ?string
+    {
+        try {
+            $stmt = $this->db->prepare(
+                'SELECT field_wrapper_template FROM lstr_fanlisting_settings WHERE fanlisting_id = :id'
+            );
+            $stmt->execute(['id' => $listingId]);
+            $row = $stmt->fetch();
+            return ($row !== false && $row['field_wrapper_template'] !== null)
+                ? (string) $row['field_wrapper_template']
+                : null;
+        } catch (\Exception) {
+            return null; // column absent — Migration 64 not run yet
+        }
+    }
+
+    /**
      * Returns the per-listing updates row template string, or null when not set /
      * when Migration 64 has not been run yet.
      */
@@ -263,6 +283,66 @@ final class ListingSettingsRepo
             $row = $stmt->fetch();
             return ($row !== false && $row['updates_template'] !== null)
                 ? (string) $row['updates_template']
+                : null;
+        } catch (\Exception) {
+            return null;
+        }
+    }
+
+    /**
+     * Returns the per-listing success/action-confirmation template string, or null
+     * when not set / when Migration 64 has not been run yet.
+     */
+    public function getSuccessTemplate(int $listingId): ?string
+    {
+        try {
+            $stmt = $this->db->prepare(
+                'SELECT success_template FROM lstr_fanlisting_settings WHERE fanlisting_id = :id'
+            );
+            $stmt->execute(['id' => $listingId]);
+            $row = $stmt->fetch();
+            return ($row !== false && $row['success_template'] !== null)
+                ? (string) $row['success_template']
+                : null;
+        } catch (\Exception) {
+            return null;
+        }
+    }
+
+    /**
+     * Returns the per-listing contact-sent confirmation template string, or null
+     * when not set / when Migration 64 has not been run yet.
+     */
+    public function getContactSentTemplate(int $listingId): ?string
+    {
+        try {
+            $stmt = $this->db->prepare(
+                'SELECT contact_sent_template FROM lstr_fanlisting_settings WHERE fanlisting_id = :id'
+            );
+            $stmt->execute(['id' => $listingId]);
+            $row = $stmt->fetch();
+            return ($row !== false && $row['contact_sent_template'] !== null)
+                ? (string) $row['contact_sent_template']
+                : null;
+        } catch (\Exception) {
+            return null;
+        }
+    }
+
+    /**
+     * Returns the per-listing affiliate-apply confirmation template string, or null
+     * when not set / when Migration 64 has not been run yet.
+     */
+    public function getAffiliateApplySentTemplate(int $listingId): ?string
+    {
+        try {
+            $stmt = $this->db->prepare(
+                'SELECT affiliate_apply_sent_template FROM lstr_fanlisting_settings WHERE fanlisting_id = :id'
+            );
+            $stmt->execute(['id' => $listingId]);
+            $row = $stmt->fetch();
+            return ($row !== false && $row['affiliate_apply_sent_template'] !== null)
+                ? (string) $row['affiliate_apply_sent_template']
                 : null;
         } catch (\Exception) {
             return null;

@@ -3,14 +3,14 @@
  * KIM List update form — content fragment.
  *
  * Variables:
- *   $form_action      string
- *   $csrf_token       string
- *   $errors           string  pre-escaped HTML error string, or ''
- *   $fanlistings      Listing[]
- *   $old              array   keys: name, current_email, fanlisting_id, new_email, new_url, send_copy
- *   $captcha_question string
- *   $captcha_error    string
- *   $base_url         string
+ *   $form_action  string
+ *   $csrf_token   string
+ *   $errors       string  pre-escaped HTML error string, or ''
+ *   $old          array   keys: send_copy
+ *   $f            array<string,string>  keys: name, current_email, current_password,
+ *                                             fanlisting_id, new_email, new_url,
+ *                                             new_password, new_password_confirm, captcha_answer
+ *   $base_url     string
  */
 
 declare(strict_types=1);
@@ -32,66 +32,21 @@ $_linkList  = ($link_list  !== null && $link_list  !== '') ? $link_list  : null;
     <div class="fl-errors"><?= $errors ?></div>
   <?php endif; ?>
 
-  <form method="POST" action="<?= View::e($form_action) ?>">
+  <form class="fl-form" method="POST" action="<?= View::e($form_action) ?>">
     <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
 
-    <div class="fl-field">
-      <label class="fl-label" for="kim-name">Name <span class="fl-required">*</span></label>
-      <input class="fl-input" type="text" id="kim-name" name="name"
-             value="<?= View::e($old['name'] ?? '') ?>" required maxlength="100" autocomplete="name">
-    </div>
-
-    <div class="fl-field">
-      <label class="fl-label" for="kim-current-email">Current Email <span class="fl-required">*</span></label>
-      <input class="fl-input" type="email" id="kim-current-email" name="current_email"
-             value="<?= View::e($old['current_email'] ?? '') ?>" required maxlength="255" autocomplete="email">
-    </div>
-
-    <div class="fl-field">
-      <label class="fl-label" for="kim-current-password">Current Password <span class="fl-required">*</span></label>
-      <input class="fl-input" type="password" id="kim-current-password" name="current_password"
-             required maxlength="255" autocomplete="current-password">
-    </div>
-
-    <div class="fl-field">
-      <label class="fl-label" for="kim-fanlisting">Fanlisting <span class="fl-required">*</span></label>
-      <select class="fl-select" id="kim-fanlisting" name="fanlisting_id" required>
-        <option value="">— Select the fanlisting your entry is for —</option>
-        <?php foreach ($fanlistings as $fl): ?>
-          <option value="<?= View::e((string) $fl->id) ?>"
-            <?= ((string) ($old['fanlisting_id'] ?? '')) === (string) $fl->id ? 'selected' : '' ?>>
-            <?= View::e($fl->subject) ?>
-          </option>
-        <?php endforeach; ?>
-      </select>
-    </div>
+    <?= $f['name'] ?>
+    <?= $f['current_email'] ?>
+    <?= $f['current_password'] ?>
+    <?= $f['fanlisting_id'] ?>
 
     <fieldset class="fl-fieldset">
       <legend>Optional Updates</legend>
 
-      <div class="fl-field">
-        <label class="fl-label" for="kim-new-email">New Email <span class="fl-opt">(leave blank to keep current)</span></label>
-        <input class="fl-input" type="email" id="kim-new-email" name="new_email"
-               value="<?= View::e($old['new_email'] ?? '') ?>" maxlength="255" autocomplete="off">
-      </div>
-
-      <div class="fl-field">
-        <label class="fl-label" for="kim-new-url">New Collective / Website URL <span class="fl-opt">(leave blank to keep current)</span></label>
-        <input class="fl-input" type="url" id="kim-new-url" name="new_url"
-               value="<?= View::e($old['new_url'] ?? '') ?>" maxlength="500" placeholder="https://">
-      </div>
-
-      <div class="fl-field">
-        <label class="fl-label" for="kim-new-password">New Password <span class="fl-opt">(min 8 chars; leave blank to keep current)</span></label>
-        <input class="fl-input" type="password" id="kim-new-password" name="new_password"
-               maxlength="255" autocomplete="new-password">
-      </div>
-
-      <div class="fl-field">
-        <label class="fl-label" for="kim-new-password-confirm">Confirm New Password</label>
-        <input class="fl-input" type="password" id="kim-new-password-confirm" name="new_password_confirm"
-               maxlength="255" autocomplete="new-password">
-      </div>
+      <?= $f['new_email'] ?>
+      <?= $f['new_url'] ?>
+      <?= $f['new_password'] ?>
+      <?= $f['new_password_confirm'] ?>
     </fieldset>
 
     <!-- Honeypot — hidden from humans, filled by bots -->
@@ -99,16 +54,7 @@ $_linkList  = ($link_list  !== null && $link_list  !== '') ? $link_list  : null;
       <input type="text" name="website_confirm" tabindex="-1" autocomplete="off">
     </div>
 
-    <div class="fl-field">
-      <label class="fl-label" for="kim-captcha">
-        Captcha: <?= View::e($captcha_question) ?> <span class="fl-required">*</span>
-      </label>
-      <?php if ($captcha_error !== ''): ?>
-        <div class="fl-errors"><?= View::e($captcha_error) ?></div>
-      <?php endif; ?>
-      <input class="fl-input" type="text" id="kim-captcha" name="captcha_answer"
-             required maxlength="10" autocomplete="off">
-    </div>
+    <?= $f['captcha_answer'] ?>
 
     <div class="fl-field">
       <label>
