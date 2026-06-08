@@ -206,7 +206,7 @@ $pendingNewCnt = count($pendingNew);
         $_plTo   = min((int) $total, $page * $per_page);
       ?>
       <span class="row-sub">Showing <?= $_plFrom ?>&ndash;<?= $_plTo ?> of <?= number_format((int) $total) ?> member<?= (int) $total !== 1 ? 's' : '' ?></span>
-      <div class="inline-actions-row actions-row--right">
+      <div class="actions-row actions-row--right actions-row--wrap">
         <form method="POST" action="<?= $b ?>/admin/members/<?= $lid ?>/approve-all-pending"
               class="action-form-inline"
               data-confirm="Approve all <?= $pendingNewCnt ?> pending member(s)? This will send approval emails.">
@@ -309,7 +309,7 @@ $pendingNewCnt = count($pendingNew);
         $_puTo   = min($pendingPUTotal, $puPage * $per_page);
       ?>
       <span class="row-sub">Showing <?= $_puFrom ?>&ndash;<?= $_puTo ?> of <?= number_format($pendingPUTotal) ?> update<?= $pendingPUTotal !== 1 ? 's' : '' ?></span>
-      <div class="inline-actions-row actions-row--right">
+      <div class="actions-row actions-row--right actions-row--wrap">
         <form method="POST" action="<?= $b ?>/admin/pending-updates/approve-all"
               class="action-form-inline"
               data-confirm="Approve all <?= $pendingPUTotal ?> pending update(s)? Changes will be applied immediately.">
@@ -681,7 +681,7 @@ $_newTo         = min($_totalNew, $page * $per_page);
   <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
   <div class="card"><div class="card-head"><?= View::icon('pending') ?> Pending New Members</span>
       <span class="row-sub">Showing <?= $_newFrom ?>&ndash;<?= $_newTo ?> of <?= number_format($_totalNew) ?> member<?= $_totalNew !== 1 ? 's' : '' ?></span>
-      <div class="inline-actions-row actions-row--right">
+      <div class="actions-row actions-row--right actions-row--wrap">
         <form method="POST" action="<?= $b ?>/admin/members/approve-all-overview"
               class="action-form-inline"
               data-confirm="Approve all pending items across all listings? This will send approval emails.">
@@ -797,7 +797,7 @@ endif;
         $_puTo   = min($_totalUpdates, $puPage * $per_page);
       ?>
       <span class="row-sub">Showing <?= $_puFrom ?>&ndash;<?= $_puTo ?> of <?= number_format($_totalUpdates) ?> update<?= $_totalUpdates !== 1 ? 's' : '' ?></span>
-      <div class="inline-actions-row actions-row--right">
+      <div class="actions-row actions-row--right actions-row--wrap">
         <form method="POST" action="<?= $b ?>/admin/pending-updates/approve-all"
               class="action-form-inline"
               data-confirm="Approve all <?= $_totalUpdates ?> pending update(s) across all listings? Changes will be applied immediately.">

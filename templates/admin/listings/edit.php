@@ -90,7 +90,7 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
   <a href="<?= $b ?>/admin/listings" class="link">
     &larr; Back to Owned Listings
   </a>
-  <div class="topbar-actions">
+  <div class="actions-row">
     <a href="<?= $b ?>/admin/members?listing_id=<?= (int) $listing->id ?>&status=all" class="btn btn-quaternary btn-sm">Member List</a>
     <a href="<?= $b ?>/admin/emails?tab=bulk&listing=<?= (int) $listing->id ?>" class="btn btn-quaternary btn-sm">Bulk Email</a>
     <?php if (in_array('Kim', $nav_installed_addons ?? [], true)): ?>
@@ -267,7 +267,7 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
         <div class="listing-field-row listing-field-row--top">
           <label class="listing-field-label" for="fl-last-updated">Last Updated</label>
           <div>
-            <div class="compact-actions">
+            <div class="actions-row actions-row--wrap">
               <input id="fl-last-updated" type="date" name="fl_last_updated" class="form form--compact"
                      value="<?= View::e($fl_last_updated ?? '') ?>">
               <button type="button" class="btn btn-tertiary btn-sm" id="set-today-btn">Set Today's Date</button>
@@ -1499,7 +1499,7 @@ $embedBaseUrl   = rtrim((string) ($cfg['embed_base_url'] ?? ''), '/') ?: rtrim((
             <input id="adv-db-name" type="text" name="db_name" class="form"
                    maxlength="255" placeholder="my_database"
                    value="<?= View::e($advEmbedSettings['db_name'] ?? '') ?>">
-            <p class="form-hint">The database name that contains this listing's member table.</p>
+            <p class="form-hint">The database name that contains this listing's member records.</p>
           </div>
         </div>
         <div class="listing-field-row listing-field-row--top">

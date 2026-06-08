@@ -35,7 +35,7 @@ $fid = (int) $listing->id;
 <div class="page-topbar">
   <a href="<?= $b ?>/admin/kim" class="link">&larr; Back to KIM List</a>
   <?php if ($approved_count > 0): ?>
-  <div class="topbar-actions">
+  <div class="actions-row">
     <a href="<?= $b ?>/admin/kim/<?= $fid ?>/bulk-email"
        class="btn btn-primary btn-sm">Bulk Email All (<?= (int) $approved_count ?>)</a>
   </div>

@@ -814,6 +814,7 @@ a.topbar-crumb:hover { color: var(--accent2); }
 .actions-row { display: flex; gap: 0.5rem; align-items: center; }
 
 .actions-row--right { margin-left: auto; }
+.actions-row--wrap  { flex-wrap: wrap; }
 
 .filter-panel { display: none; background: rgb(var(--ch-preview)/.09); border: 1px solid rgb(var(--ch-preview)/.2); border-radius: 10px; padding: 0.75rem 1rem; margin-bottom: 1.25rem; }
 
@@ -1089,10 +1090,6 @@ body:not(:has(:target)) .mini-nav-item[href="#panel-admin"], body:has(#panel-adm
 
 .page-topbar .link { display: inline-flex; align-items: center; gap: .35rem; font-size: var(--fs-md); font-weight: 500; white-space: nowrap; }
 
-.topbar-actions { display: flex; gap: .5rem; align-items: center; }
-
-.compact-actions { display: flex; gap: .5rem; flex-wrap: wrap; align-items: center; }
-
 .embed-snippet { margin-top: .35rem; font-size: .8rem; user-select: all; }
 
 .card-empty-state { text-align: center; padding: 2.5rem; }
@@ -1124,8 +1121,6 @@ body:not(:has(:target)) .mini-nav-item[href="#panel-admin"], body:has(#panel-adm
 .input-action-row { display: flex; gap: .5rem; align-items: center; }
 .input-action-row .form { flex: 1; }
 .input-action-row .form:disabled { opacity: .6; cursor: not-allowed; }
-
-.inline-actions-row { display: flex; gap: .5rem; align-items: center; flex-wrap: wrap; }
 
 .btn-block-center { width: 100%; justify-content: center; }
 
