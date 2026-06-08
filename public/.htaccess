@@ -59,25 +59,21 @@ Options -Indexes -MultiViews
 <IfModule mod_rewrite.c>
     RewriteEngine On
 
-    # Set this to the URL path of the public/ directory relative to the
-    # domain root. For a document-root install use: RewriteBase /
-    # For a subdirectory install adjust accordingly, e.g.: RewriteBase /mysite/public/
-    RewriteBase /luster/public/
+    # Set this to the URL path of the public/ directory relative to the domain root.
+    # If your document root points directly at public/: RewriteBase /
+    # If Luster lives in a subdirectory: RewriteBase /that/subdirectory/public/
+    RewriteBase /
 
     # Serve real files and directories directly (CSS, JS, images, etc.)
     RewriteCond %{REQUEST_FILENAME} -f [OR]
     RewriteCond %{REQUEST_FILENAME} -d
     RewriteRule ^ - [L]
 
-    # Redirect old standalone scripts to their new subdirectory locations
-    RewriteRule ^install\.php$ /luster/public/install/ [R=301,L]
-    RewriteRule ^migrate\.php$ /luster/public/migrate/ [R=301,L]
-
     # Redirect old display-codes URL to embed-codes (permanent, preserves query string)
-    RewriteRule ^admin/display-codes$ /luster/public/admin/embed-codes [R=301,L,QSA]
+    RewriteRule ^admin/display-codes$ admin/embed-codes [R=301,L,QSA]
 
     # Redirect old saved-emails URL to new-email-template (permanent, preserves query string)
-    RewriteRule ^admin/saved-emails(/.*)?$ /luster/public/admin/new-email-template$1 [R=301,L,QSA]
+    RewriteRule ^admin/saved-emails(/.*)?$ admin/new-email-template$1 [R=301,L,QSA]
 
     # Route /admin and /admin/* to the admin front controller
     RewriteRule ^admin(/.*)?$ admin.php [L,QSA]
