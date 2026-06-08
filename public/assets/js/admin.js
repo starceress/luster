@@ -4102,7 +4102,7 @@ document.addEventListener('click', function (e) {
 // ── 43. Settings -- scoped panel clear buttons ─────────────────────────────────
 
 (function () {
-  [['general-clear-btn', 'panel-general'], ['embed-clear-btn', 'panel-embed']].forEach(function (pair) {
+  [['general-clear-btn', 'panel-general'], ['smtp-clear-btn', 'panel-smtp'], ['embed-clear-btn', 'panel-embed']].forEach(function (pair) {
     var btn   = document.getElementById(pair[0]);
     var panel = document.getElementById(pair[1]);
     if (!btn || !panel) return;

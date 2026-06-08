@@ -343,6 +343,8 @@ return [
             SettingsController::class, 'updateGeneral');
         $router->post('/admin/settings/paths',
             SettingsController::class, 'updatePaths');
+        $router->post('/admin/settings/smtp',
+            SettingsController::class, 'updateSmtp');
         $router->post('/admin/settings/templates',
             SettingsController::class, 'updateTemplates');
         $router->post('/admin/settings/profile',

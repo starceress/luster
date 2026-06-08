@@ -42,6 +42,7 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
       <a href="#panel-admin" class="mini-nav-item"><?= View::icon('account') ?> Account Details</a>
       <a href="#panel-accounts" class="mini-nav-item"><?= View::icon('admins') ?> Admin Accounts</a>
       <a href="#panel-general" class="mini-nav-item"><?= View::icon('general') ?> General</a>
+      <a href="#panel-smtp" class="mini-nav-item"><?= View::icon('email') ?> SMTP / Email</a>
       <a href="#panel-appearance" class="mini-nav-item"><?= View::icon('palette') ?> Appearance</a>
       <a href="#panel-embed" class="mini-nav-item"><?= View::icon('paths') ?> Server Paths</a>
       <a href="#panel-blacklist" class="mini-nav-item"><?= View::icon('blacklist') ?> Blacklist</a>
@@ -51,6 +52,7 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
           <option value="panel-admin">Account Details</option>
           <option value="panel-accounts">Admin Accounts</option>
           <option value="panel-general">General</option>
+          <option value="panel-smtp">SMTP / Email</option>
           <option value="panel-appearance">Appearance</option>
           <option value="panel-embed">Server Paths</option>
           <option value="panel-blacklist">Blacklist</option>
@@ -376,96 +378,6 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
           </div>
 
           <div class="pc-section">
-            <div class="pc-section-label">SMTP Email</div>
-            <div class="form-group">
-              <label class="toggle-wrap">
-                <input type="checkbox" name="smtp_enabled" value="1"
-                       <?= (cfgVal($cfg, 'smtp_enabled') === '1') ? 'checked' : '' ?>>
-                <span class="toggle-label">Send email via SMTP</span>
-              </label>
-              <p class="form-hint">Turn this on when you want Luster to send mail through a real email account or email service. Leave it off only if your web host's built-in PHP mail sending is already reliable.</p>
-            </div>
-            <div class="form-row">
-              <div class="form-group">
-                <label class="form-label" for="s-smtp-host">SMTP Host</label>
-                <input id="s-smtp-host" type="text" name="smtp_host" class="form"
-                       maxlength="255" placeholder="e.g. smtp.gmail.com"
-                       value="<?= View::e(cfgVal($cfg, 'smtp_host')) ?>">
-                <p class="form-hint">The mail server address from your email provider.</p>
-              </div>
-              <div class="form-group form-group--narrow">
-                <label class="form-label" for="s-smtp-port">Port</label>
-                <input id="s-smtp-port" type="number" name="smtp_port" class="form form--narrow"
-                       min="1" max="65535"
-                       value="<?= View::e((string) (int) ($cfg['smtp_port'] ?? 587)) ?>">
-                <p class="form-hint">587 for TLS, 465 for SSL.</p>
-              </div>
-            </div>
-            <div class="form-row">
-              <div class="form-group">
-                <label class="form-label" for="s-smtp-user">SMTP Username</label>
-                <input id="s-smtp-user" type="text" name="smtp_user" class="form"
-                       maxlength="255" autocomplete="off"
-                       value="<?= View::e(cfgVal($cfg, 'smtp_user')) ?>">
-                <p class="form-hint">Usually your full email address, unless your provider says otherwise.</p>
-              </div>
-              <div class="form-group">
-                <label class="form-label" for="s-smtp-pass">SMTP Password</label>
-                <input id="s-smtp-pass" type="password" name="smtp_pass" class="form"
-                       maxlength="255" autocomplete="new-password"
-                       placeholder="<?= (cfgVal($cfg, 'smtp_pass') !== '') ? '(password stored - leave blank to keep)' : '' ?>">
-                <p class="form-hint">Leave blank to keep the current stored password. Enter a new value to replace it.</p>
-              </div>
-            </div>
-            <div class="form-group">
-              <label class="form-label" for="s-smtp-secure">Encryption</label>
-              <div class="select-wrap">
-                <select id="s-smtp-secure" name="smtp_secure">
-                  <?php
-                    $curSecure = cfgVal($cfg, 'smtp_secure', 'tls');
-                    $secureOpts = ['tls' => 'STARTTLS (port 587, recommended)', 'ssl' => 'SMTPS (port 465)', 'none' => 'None (not recommended)'];
-                  ?>
-                  <?php foreach ($secureOpts as $val => $label): ?>
-                    <option value="<?= View::e($val) ?>"<?= $val === $curSecure ? ' selected' : '' ?>><?= View::e($label) ?></option>
-                  <?php endforeach; ?>
-                </select>
-              </div>
-              <p class="form-hint">Use the encryption type your email provider lists for outgoing SMTP.</p>
-            </div>
-            <div class="form-row">
-              <div class="form-group">
-                <label class="form-label" for="s-smtp-from">From Address</label>
-                <input id="s-smtp-from" type="email" name="smtp_from" class="form"
-                       maxlength="255" placeholder="Defaults to Contact Email"
-                       value="<?= View::e(cfgVal($cfg, 'smtp_from')) ?>">
-                <p class="form-hint">The sender email address recipients see. Leave blank to use the Contact Email above.</p>
-              </div>
-              <div class="form-group">
-                <label class="form-label" for="s-smtp-from-name">From Name</label>
-                <input id="s-smtp-from-name" type="text" name="smtp_from_name" class="form"
-                       maxlength="100" placeholder="Defaults to Owner Name"
-                       value="<?= View::e(cfgVal($cfg, 'smtp_from_name')) ?>">
-                <p class="form-hint">The sender name recipients see. Leave blank to use Owner Name.</p>
-              </div>
-            </div>
-          </div>
-
-          <div class="pc-section">
-            <div class="pc-section-label">Test Email</div>
-            <p class="form-hint mb-sm">
-              Send a test message to your admin account email to confirm your mail settings are working.
-              Sends to <strong><?= View::e($admin_user->email ?? '') ?></strong>.
-              <?= (cfgVal($cfg, 'smtp_enabled') === '1') ? 'Will use SMTP (' . View::e(cfgVal($cfg, 'smtp_host')) . ').' : 'Will use your web host\'s built-in mail sending.' ?>
-            </p>
-            <button type="submit" form="settings-test-email-form" class="btn btn-secondary btn-sm">Send test email</button>
-            <?php if (($cfg['owner_email'] ?? '') === ''): ?>
-              <p class="form-hint form-hint--warn mt-sm">
-                Set a Contact Email (Owner Information above) before sending a test.
-              </p>
-            <?php endif; ?>
-          </div>
-
-          <div class="pc-section">
             <div class="pc-section-label">Display & Locale</div>
             <div class="form-row form-row--3">
               <div class="form-group">
@@ -562,6 +474,119 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
           <div class="composer-footer">
             <button type="submit" class="btn btn-primary">Save Settings</button>
             <button type="button" class="btn btn-ghost" id="general-clear-btn">Clear</button>
+          </div>
+        </div>
+      </div>
+    </form>
+
+<!-- ──── PANEL: SMTP / EMAIL ────────────────────────────────────────── -->
+    <form method="POST" action="<?= $b ?>/admin/settings/smtp" class="js-warn-unsaved">
+      <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
+      <div id="panel-smtp" class="mini-nav-panel">
+        <div class="gradient-card">
+          <div class="pc-head">
+            <div class="pc-head-icon pc-head-icon-bg">
+            <?= View::icon('email') ?>
+            </div>
+            <div class="pc-head-meta">
+              <div class="pc-head-title">SMTP / Email</div>
+              <div class="pc-head-sub">Outgoing mail delivery and message sender details.</div>
+            </div>
+          </div>
+
+          <div class="pc-section">
+            <div class="pc-section-label">SMTP Email</div>
+            <div class="form-group">
+              <label class="toggle-wrap">
+                <input type="checkbox" name="smtp_enabled" value="1"
+                       <?= (cfgVal($cfg, 'smtp_enabled') === '1') ? 'checked' : '' ?>>
+                <span class="toggle-label">Send email via SMTP</span>
+              </label>
+              <p class="form-hint">Turn this on when you want Luster to send mail through a real email account or email service. Leave it off only if your web host's built-in PHP mail sending is already reliable.</p>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label" for="s-smtp-host">SMTP Host</label>
+                <input id="s-smtp-host" type="text" name="smtp_host" class="form"
+                       maxlength="255" placeholder="e.g. smtp.gmail.com"
+                       value="<?= View::e(cfgVal($cfg, 'smtp_host')) ?>">
+                <p class="form-hint">The mail server address from your email provider.</p>
+              </div>
+              <div class="form-group form-group--narrow">
+                <label class="form-label" for="s-smtp-port">Port</label>
+                <input id="s-smtp-port" type="number" name="smtp_port" class="form form--narrow"
+                       min="1" max="65535"
+                       value="<?= View::e((string) (int) ($cfg['smtp_port'] ?? 587)) ?>">
+                <p class="form-hint">587 for TLS, 465 for SSL.</p>
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label" for="s-smtp-user">SMTP Username</label>
+                <input id="s-smtp-user" type="text" name="smtp_user" class="form"
+                       maxlength="255" autocomplete="off"
+                       value="<?= View::e(cfgVal($cfg, 'smtp_user')) ?>">
+                <p class="form-hint">Usually your full email address, unless your provider says otherwise.</p>
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="s-smtp-pass">SMTP Password</label>
+                <input id="s-smtp-pass" type="password" name="smtp_pass" class="form"
+                       maxlength="255" autocomplete="new-password"
+                       placeholder="<?= (cfgVal($cfg, 'smtp_pass') !== '') ? '(password stored - leave blank to keep)' : '' ?>">
+                <p class="form-hint">Leave blank to keep the current stored password. Enter a new value to replace it.</p>
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="s-smtp-secure">Encryption</label>
+              <div class="select-wrap">
+                <select id="s-smtp-secure" name="smtp_secure">
+                  <?php
+                    $curSecure = cfgVal($cfg, 'smtp_secure', 'tls');
+                    $secureOpts = ['tls' => 'STARTTLS (port 587, recommended)', 'ssl' => 'SMTPS (port 465)', 'none' => 'None (not recommended)'];
+                  ?>
+                  <?php foreach ($secureOpts as $val => $label): ?>
+                    <option value="<?= View::e($val) ?>"<?= $val === $curSecure ? ' selected' : '' ?>><?= View::e($label) ?></option>
+                  <?php endforeach; ?>
+                </select>
+              </div>
+              <p class="form-hint">Use the encryption type your email provider lists for outgoing SMTP.</p>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label" for="s-smtp-from">From Address</label>
+                <input id="s-smtp-from" type="email" name="smtp_from" class="form"
+                       maxlength="255" placeholder="Defaults to Contact Email"
+                       value="<?= View::e(cfgVal($cfg, 'smtp_from')) ?>">
+                <p class="form-hint">The sender email address recipients see. Leave blank to use the Contact Email above.</p>
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="s-smtp-from-name">From Name</label>
+                <input id="s-smtp-from-name" type="text" name="smtp_from_name" class="form"
+                       maxlength="100" placeholder="Defaults to Owner Name"
+                       value="<?= View::e(cfgVal($cfg, 'smtp_from_name')) ?>">
+                <p class="form-hint">The sender name recipients see. Leave blank to use Owner Name.</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="pc-section">
+            <div class="pc-section-label">Test Email</div>
+            <p class="form-hint mb-sm">
+              Send a test message to your admin account email to confirm your mail settings are working.
+              Sends to <strong><?= View::e($admin_user->email ?? '') ?></strong>.
+              <?= (cfgVal($cfg, 'smtp_enabled') === '1') ? 'Will use SMTP (' . View::e(cfgVal($cfg, 'smtp_host')) . ').' : 'Will use your web host\'s built-in mail sending.' ?>
+            </p>
+            <button type="submit" form="settings-test-email-form" class="btn btn-secondary btn-sm">Send test email</button>
+            <?php if (($cfg['owner_email'] ?? '') === ''): ?>
+              <p class="form-hint form-hint--warn mt-sm">
+                Set a Contact Email (Owner Information above) before sending a test.
+              </p>
+            <?php endif; ?>
+          </div>
+
+          <div class="composer-footer">
+            <button type="submit" class="btn btn-primary">Save Settings</button>
+            <button type="button" class="btn btn-ghost" id="smtp-clear-btn">Clear</button>
           </div>
         </div>
       </div>
