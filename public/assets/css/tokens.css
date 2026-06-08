@@ -115,6 +115,20 @@
   --ch-preview: 79 70 229;
   --c-gradient-start: #160f2a;    /* dark stop of brand text gradient   */
   --c-preview-hover: #1e1a70;     /* preview button hover/focus text    */
+  /* ── Skin-tokenized surface properties ────────────────────── */
+  --topbar-bg:            var(--bg-card);
+  --topbar-shadow:        0 4px 16px rgba(0,0,0,0.08), 0 1px 0 rgb(var(--ch-pink)/.12);
+  --card-head-bg:         var(--bg-subtle);
+  --card-head-color:      var(--text-muted);
+  --welcome-bg:           var(--bg-card);
+  --welcome-border:       var(--border);
+  --welcome-blush:        radial-gradient(circle at top right, rgb(var(--ch-pink)/0.12) 0%, rgb(var(--ch-teal)/0.06) 50%, transparent 70%);
+  --brand-gradient:       linear-gradient(90deg, var(--gradient));
+  --btn-primary-bg:       var(--accent);
+  --btn-primary-color:    #fff;
+  --btn-primary-hover-bg: color-mix(in srgb, var(--accent) 75%, #fff);
+  --sidebar-active-rail:  linear-gradient(180deg, var(--gradient));
+  --stat-hover-shadow:    var(--shadow-lg);
 }
 /* ── DARK THEME (DEFAULT) ──────────────────────────────────── */
 [data-theme="dark"] {
@@ -154,4 +168,18 @@
   --card-border-4: var(--va-gold);
   --c-gradient-start: #f4f0ff;    /* light stop of brand text gradient  */
   --c-preview-hover: #c7d2fe;     /* preview button hover/focus text    */
+  /* ── Skin-tokenized surface properties ────────────────────── */
+  --topbar-bg:            var(--bg-card);
+  --topbar-shadow:        0 4px 24px rgba(0,0,0,0.35), 0 1px 0 rgb(var(--ch-pink)/.08);
+  --card-head-bg:         var(--bg-subtle);
+  --card-head-color:      var(--text-muted);
+  --welcome-bg:           var(--bg-card);
+  --welcome-border:       var(--border);
+  --welcome-blush:        radial-gradient(circle at top right, rgb(var(--ch-pink)/0.12) 0%, rgb(var(--ch-teal)/0.06) 50%, transparent 70%);
+  --brand-gradient:       linear-gradient(90deg, var(--gradient));
+  --btn-primary-bg:       #60a5fa;
+  --btn-primary-color:    #fff;
+  --btn-primary-hover-bg: color-mix(in srgb, #60a5fa 75%, #fff);
+  --sidebar-active-rail:  linear-gradient(180deg, var(--gradient));
+  --stat-hover-shadow:    var(--shadow-lg);
 }

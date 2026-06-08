@@ -72,6 +72,15 @@
   --c-gradient-start: #1c1d4a;
   --c-preview-hover:  #2c3784;
   --ch-preview:       74 109 214;
+  /* surface tokens */
+  --topbar-bg:       linear-gradient(180deg, #ffffff 0%, #e2ebf7 100%);
+  --topbar-shadow:   0 4px 16px rgba(42, 59, 168, 0.1), 0 1px 0 rgba(216, 62, 138, 0.22);
+  --card-head-bg:    linear-gradient(180deg, #ffc8de 0%, #ffb2d3 100%);
+  --card-head-color: #8c2b56;
+  --welcome-bg:      linear-gradient(135deg, #ffffff 0%, #fce6ee 100%);
+  --welcome-border:  #f0c8d9;
+  --welcome-blush:   radial-gradient(circle at top right, rgb(216 62 138 / 0.16) 0%, rgb(74 109 214 / 0.1) 50%, transparent 70%);
+  --brand-gradient:  linear-gradient(135deg, #1c1d4a 0%, #d83e8a 50%, #4a6dd6 100%);
 }
 
 [data-skin="prism-power"][data-theme="light"] .sidebar {
@@ -85,11 +94,6 @@
   --ch-danger:        255 179 193;
 }
 
-[data-skin="prism-power"][data-theme="light"] .card-head {
-  background: linear-gradient(180deg, #ffc8de 0%, #ffb2d3 100%);
-  color: #8c2b56;
-}
-
 /* Nav section headers — gold (on the cobalt light-mode sidebar) */
 [data-skin="prism-power"][data-theme="light"] .sidebar-label { color: #fbd30b; }
 
@@ -97,29 +101,6 @@
 [data-skin="prism-power"][data-theme="light"] .nav-item:hover { background: rgb(79 201 240 / 0.14); color: #4fc9f0; }
 [data-skin="prism-power"][data-theme="light"] .nav-item:hover .nav-icon { color: #4fc9f0; opacity: 1; filter: drop-shadow(0 0 5px rgb(79 201 240 / 0.55)); }
 [data-skin="prism-power"][data-theme="light"] .link:hover { color: #1ba6d8; border-color: #1ba6d8; }
-
-[data-skin="prism-power"][data-theme="light"] .topbar {
-  background: linear-gradient(180deg, #ffffff 0%, #e2ebf7 100%);
-  box-shadow: 0 4px 16px rgba(42, 59, 168, 0.1), 0 1px 0 rgba(216, 62, 138, 0.22);
-}
-
-[data-skin="prism-power"][data-theme="light"] .welcome-block {
-  background: linear-gradient(135deg, #ffffff 0%, #fce6ee 100%);
-  border-color: #f0c8d9;
-}
-[data-skin="prism-power"][data-theme="light"] .welcome-block::after {
-  background: radial-gradient(circle at top right,
-    rgb(216 62 138 / 0.16) 0%, rgb(74 109 214 / 0.1) 50%, transparent 70%);
-}
-
-[data-skin="prism-power"][data-theme="light"] .wordmark,
-[data-skin="prism-power"][data-theme="light"] .login-wordmark,
-[data-skin="prism-power"][data-theme="light"] .reminder-banner--update .reminder-banner-title {
-  background: linear-gradient(135deg, #1c1d4a 0%, #d83e8a 50%, #4a6dd6 100%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
-}
 
 [data-skin="prism-power"][data-theme="dark"] {
   --bg:            #0f1838;
@@ -159,6 +140,19 @@
   --c-gradient-start: #ffd6e8;
   --c-preview-hover:  #f0a8c5;
   --ch-preview:       238 94 158;
+  /* surface tokens */
+  --topbar-bg:            linear-gradient(180deg, #26396f 0%, #131f44 100%);
+  --topbar-shadow:        0 4px 24px rgba(0, 0, 0, 0.6), 0 1px 0 rgb(238 94 158 / 0.35);
+  --card-head-bg:         #2f4a99;
+  --card-head-color:      #fbd30b;
+  --welcome-bg:           linear-gradient(135deg, #26396f 0%, #1e2f5e 100%);
+  --welcome-border:       #34487f;
+  --welcome-blush:        radial-gradient(circle at top right, rgb(238 94 158 / 0.22) 0%, rgb(214 49 82 / 0.14) 50%, transparent 70%);
+  --brand-gradient:       linear-gradient(120deg, #fbd30b 0%, #ffe89a 26%, #24cbf7 66%, #1f9fe0 100%);
+  --btn-primary-bg:       var(--accent);
+  --btn-primary-hover-bg: color-mix(in srgb, #ee5e9e 78%, #fff);
+  --sidebar-active-rail:  linear-gradient(180deg, #ee5e9e 0%, #d63152 50%, #4a6dd6 100%);
+  --stat-hover-shadow:    0 16px 56px rgba(0, 0, 0, 0.75), 0 0 32px rgb(238 94 158 / 0.2), 0 0 48px rgb(74 109 214 / 0.12);
 }
 
 [data-skin="prism-power"][data-theme="dark"] .sidebar {
@@ -173,49 +167,6 @@
 /* sidebar links hover to Sailor Moon hair-gold */
 [data-skin="prism-power"][data-theme="dark"] .nav-item:hover { background: #2f4a99; color: #fbd30b; }
 [data-skin="prism-power"][data-theme="dark"] .nav-item:hover .nav-icon { color: #f13f72; opacity: 1; filter: drop-shadow(0 0 6px rgb(241 63 114 / 0.55)); }
-[data-skin="prism-power"][data-theme="dark"] .card-head {
-  background: #2f4a99;
-  color: #fbd30b;
-}
-
-[data-skin="prism-power"][data-theme="dark"] .topbar {
-  background: linear-gradient(180deg, #26396f 0%, #131f44 100%);
-  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.6), 0 1px 0 rgb(238 94 158 / 0.35);
-}
-
-[data-skin="prism-power"][data-theme="dark"] .welcome-block {
-  background: linear-gradient(135deg, #26396f 0%, #1e2f5e 100%);
-  border-color: #34487f;
-}
-[data-skin="prism-power"][data-theme="dark"] .welcome-block::after {
-  background: radial-gradient(circle at top right,
-    rgb(238 94 158 / 0.22) 0%, rgb(214 49 82 / 0.14) 50%, transparent 70%);
-}
-
-[data-skin="prism-power"][data-theme="dark"] .wordmark,
-[data-skin="prism-power"][data-theme="dark"] .login-wordmark,
-[data-skin="prism-power"][data-theme="dark"] .reminder-banner--update .reminder-banner-title {
-  background: linear-gradient(120deg, #fbd30b 0%, #ffe89a 26%, #24cbf7 66%, #1f9fe0 100%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
-}
-
-[data-skin="prism-power"][data-theme="dark"] .sidebar .nav-item.active::before {
-  background: linear-gradient(180deg, #ee5e9e 0%, #d63152 50%, #4a6dd6 100%);
-}
-
-[data-skin="prism-power"][data-theme="dark"] .stat-card:hover {
-  box-shadow: 0 16px 56px rgba(0, 0, 0, 0.75), 0 0 32px rgb(238 94 158 / 0.2), 0 0 48px rgb(74 109 214 / 0.12);
-}
-
-[data-skin="prism-power"][data-theme="dark"] .btn-primary {
-  background: #ee5e9e;
-  color: #fff;
-}
-[data-skin="prism-power"][data-theme="dark"] .btn-primary:hover {
-  background: color-mix(in srgb, #ee5e9e 78%, #fff);
-}
 
 
 /* —— Prism Power scrollbars — tuned hot-pink so it reads on each bg —— */
@@ -250,46 +201,6 @@
   --ch-gold:      49 108 217;
   --gradient:     #e3350d, #4dad5b, #316cd9;
   --gradient-bar: linear-gradient(90deg, #e3350d, #4dad5b, #316cd9);
-}
-
-[data-skin="victory-road"][data-theme="dark"] {
-  --bg:            #11141a;
-  --bg-card:       #191d26;
-  --bg-sidebar:    #0a0d12;
-  --bg-subtle:     #222836;
-  --bg-elevated:   #1f2430;
-  --bg-code:       #141821;
-  --border:        #2c3445;
-  --border-soft:   #222838;
-  --hairline:      rgba(227, 53, 13, 0.06);
-  --text:          #e8edf5;
-  --text-muted:    #90a0b8;
-  --text-dim:      #5f728f;
-  --text-sidebar:  #cbd6e6;
-  --accent:        #e3350d;
-  --ch-accent:     227 53 13;
-  --accent-glow:   rgb(227 53 13 / 0.22);
-  --accent2:       #316cd9;
-  --accent3:       #ffcb05;
-  --success:       #4dad5b;
-  --ch-success:    77 173 91;
-  --success-bg:    rgb(77 173 91 / 0.1);
-  --danger:        #f87171;
-  --ch-danger:     248 113 113;
-  --danger-bg:     rgb(248 113 113 / 0.1);
-  --warn:          #ffcb05;
-  --warn-bg:       rgb(255 203 5 / 0.12);
-  --shadow:        0 4px 24px rgba(0, 0, 0, 0.6), 0 0 28px rgb(227 53 13 / 0.08);
-  --shadow-lg:     0 16px 56px rgba(0, 0, 0, 0.7), 0 0 48px rgb(227 53 13 / 0.1), 0 0 32px rgb(49 108 217 / 0.06);
-  --glow:          0 0 0 3px rgb(227 53 13 / 0.25);
-  --card-border-1: #e3350d;
-  --card-border-2: #4dad5b;
-  --card-border-3: #316cd9;
-  --card-border-4: #ffcb05;
-  --blush:         radial-gradient(ellipse at 110% -10%, rgb(227 53 13 / 0.15) 0%, transparent 60%);
-  --c-gradient-start: #f0f4fa;
-  --c-preview-hover:  #c8d6f5;
-  --ch-preview:       49 108 217;
 }
 
 [data-skin="victory-road"][data-theme="light"] {
@@ -330,6 +241,68 @@
   --c-gradient-start: #ffffff;
   --c-preview-hover:  #1e3d8a;
   --ch-preview:       49 108 217;
+  /* surface tokens */
+  --topbar-bg:            linear-gradient(180deg, #ffffff 0%, #f0f3f7 100%);
+  --topbar-shadow:        0 4px 16px rgba(22, 29, 43, 0.1), 0 1px 0 rgba(227, 53, 13, 0.2);
+  --card-head-bg:         linear-gradient(180deg, #efd62e 0%, #e6c900 100%);
+  --card-head-color:      #1d2c5e;
+  --welcome-bg:           linear-gradient(135deg, #ffffff 0%, #f0f3f7 100%);
+  --welcome-border:       #c9d3e2;
+  --welcome-blush:        radial-gradient(circle at top right, rgb(227 53 13 / 0.12) 0%, rgb(49 108 217 / 0.06) 50%, transparent 70%);
+  --brand-gradient:       linear-gradient(135deg, #ffcb05 0%, #ffda3f 32%, #3466af 78%, #21386e 100%);
+  --btn-primary-bg:       #ee7b00;
+  --btn-primary-hover-bg: color-mix(in srgb, #ee7b00 80%, #fff);
+}
+
+[data-skin="victory-road"][data-theme="dark"] {
+  --bg:            #11141a;
+  --bg-card:       #191d26;
+  --bg-sidebar:    #0a0d12;
+  --bg-subtle:     #222836;
+  --bg-elevated:   #1f2430;
+  --bg-code:       #141821;
+  --border:        #2c3445;
+  --border-soft:   #222838;
+  --hairline:      rgba(227, 53, 13, 0.06);
+  --text:          #e8edf5;
+  --text-muted:    #90a0b8;
+  --text-dim:      #5f728f;
+  --text-sidebar:  #cbd6e6;
+  --accent:        #e3350d;
+  --ch-accent:     227 53 13;
+  --accent-glow:   rgb(227 53 13 / 0.22);
+  --accent2:       #316cd9;
+  --accent3:       #ffcb05;
+  --success:       #4dad5b;
+  --ch-success:    77 173 91;
+  --success-bg:    rgb(77 173 91 / 0.1);
+  --danger:        #f87171;
+  --ch-danger:     248 113 113;
+  --danger-bg:     rgb(248 113 113 / 0.1);
+  --warn:          #ffcb05;
+  --warn-bg:       rgb(255 203 5 / 0.12);
+  --shadow:        0 4px 24px rgba(0, 0, 0, 0.6), 0 0 28px rgb(227 53 13 / 0.08);
+  --shadow-lg:     0 16px 56px rgba(0, 0, 0, 0.7), 0 0 48px rgb(227 53 13 / 0.1), 0 0 32px rgb(49 108 217 / 0.06);
+  --glow:          0 0 0 3px rgb(227 53 13 / 0.25);
+  --card-border-1: #e3350d;
+  --card-border-2: #4dad5b;
+  --card-border-3: #316cd9;
+  --card-border-4: #ffcb05;
+  --blush:         radial-gradient(ellipse at 110% -10%, rgb(227 53 13 / 0.15) 0%, transparent 60%);
+  --c-gradient-start: #f0f4fa;
+  --c-preview-hover:  #c8d6f5;
+  --ch-preview:       49 108 217;
+  /* surface tokens */
+  --topbar-bg:            linear-gradient(180deg, #1f2430 0%, #11141a 100%);
+  --topbar-shadow:        0 4px 24px rgba(0, 0, 0, 0.6), 0 1px 0 rgb(227 53 13 / 0.3);
+  --card-head-bg:         linear-gradient(180deg, #1f2430 0%, #191d26 100%);
+  --welcome-bg:           linear-gradient(135deg, #1f2430 0%, #191d26 100%);
+  --welcome-border:       #2c3445;
+  --welcome-blush:        radial-gradient(circle at top right, rgb(227 53 13 / 0.2) 0%, rgb(49 108 217 / 0.1) 50%, transparent 70%);
+  --brand-gradient:       linear-gradient(135deg, #f0f4fa 0%, #e3350d 55%, #4dad5b 100%);
+  --btn-primary-bg:       var(--accent);
+  --btn-primary-hover-bg: color-mix(in srgb, #e3350d 78%, #fff);
+  --stat-hover-shadow:    0 16px 56px rgba(0, 0, 0, 0.7), 0 0 32px rgb(227 53 13 / 0.2), 0 0 48px rgb(49 108 217 / 0.1);
 }
 
 [data-skin="victory-road"][data-theme="light"] .sidebar {
@@ -341,17 +314,7 @@
   --ch-danger:        255 179 193;
 }
 
-[data-skin="victory-road"][data-theme="dark"] .card-head {
-  background: linear-gradient(180deg, #1f2430 0%, #191d26 100%);
-}
-[data-skin="victory-road"][data-theme="light"] .card-head {
-  background: linear-gradient(180deg, #efd62e 0%, #e6c900 100%);
-  color: #1d2c5e;
-}
-
 /* —— Victory Road light — Pokémon palette tuning —— */
-[data-skin="victory-road"][data-theme="light"] .btn-primary { background: #ee7b00; color: #fff; }
-[data-skin="victory-road"][data-theme="light"] .btn-primary:hover { background: color-mix(in srgb, #ee7b00 80%, #fff); }
 [data-skin="victory-road"][data-theme="light"] .btn-secondary { background: #0f9bdf; color: #fff; }
 [data-skin="victory-road"][data-theme="light"] .btn-secondary:hover { background: color-mix(in srgb, #0f9bdf 80%, #fff); }
 [data-skin="victory-road"][data-theme="light"] .link:hover { color: #0f9bdf; border-color: #0f9bdf; }
@@ -360,62 +323,6 @@
 [data-skin="victory-road"][data-theme="light"] .welcome-block strong,
 [data-skin="victory-road"][data-theme="light"] .card-body strong,
 [data-skin="victory-road"][data-theme="light"] .modal-body strong { color: #35ac35; }
-
-[data-skin="victory-road"][data-theme="dark"] .topbar {
-  background: linear-gradient(180deg, #1f2430 0%, #11141a 100%);
-  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.6), 0 1px 0 rgb(227 53 13 / 0.3);
-}
-[data-skin="victory-road"][data-theme="light"] .topbar {
-  background: linear-gradient(180deg, #ffffff 0%, #f0f3f7 100%);
-  box-shadow: 0 4px 16px rgba(22, 29, 43, 0.1), 0 1px 0 rgba(227, 53, 13, 0.2);
-}
-
-[data-skin="victory-road"][data-theme="dark"] .welcome-block {
-  background: linear-gradient(135deg, #1f2430 0%, #191d26 100%);
-  border-color: #2c3445;
-}
-[data-skin="victory-road"][data-theme="dark"] .welcome-block::after {
-  background: radial-gradient(circle at top right,
-    rgb(227 53 13 / 0.2) 0%, rgb(49 108 217 / 0.1) 50%, transparent 70%);
-}
-[data-skin="victory-road"][data-theme="light"] .welcome-block {
-  background: linear-gradient(135deg, #ffffff 0%, #f0f3f7 100%);
-  border-color: #c9d3e2;
-}
-[data-skin="victory-road"][data-theme="light"] .welcome-block::after {
-  background: radial-gradient(circle at top right,
-    rgb(227 53 13 / 0.12) 0%, rgb(49 108 217 / 0.06) 50%, transparent 70%);
-}
-
-[data-skin="victory-road"][data-theme="dark"] .wordmark,
-[data-skin="victory-road"][data-theme="dark"] .login-wordmark,
-[data-skin="victory-road"][data-theme="dark"] .reminder-banner--update .reminder-banner-title {
-  background: linear-gradient(135deg, #f0f4fa 0%, #e3350d 55%, #4dad5b 100%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
-}
-[data-skin="victory-road"][data-theme="light"] .wordmark,
-[data-skin="victory-road"][data-theme="light"] .login-wordmark,
-[data-skin="victory-road"][data-theme="light"] .reminder-banner--update .reminder-banner-title {
-  background: linear-gradient(135deg, #ffcb05 0%, #ffda3f 32%, #3466af 78%, #21386e 100%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
-}
-
-[data-skin="victory-road"][data-theme="dark"] .stat-card:hover {
-  box-shadow: 0 16px 56px rgba(0, 0, 0, 0.7), 0 0 32px rgb(227 53 13 / 0.2), 0 0 48px rgb(49 108 217 / 0.1);
-}
-
-[data-skin="victory-road"][data-theme="dark"] .btn-primary {
-  background: #e3350d;
-  color: #fff;
-}
-[data-skin="victory-road"][data-theme="dark"] .btn-primary:hover {
-  background: color-mix(in srgb, #e3350d 78%, #fff);
-}
-
 
 /* —— THE FORCE - Luke Skywalker / Darth Vader ————————————————————————— */
 [data-skin="the-force"] {
@@ -467,6 +374,17 @@
   --c-gradient-start: #fff0f0;
   --c-preview-hover:  #aaaaaa;
   --ch-preview:       150 150 150;
+  /* surface tokens */
+  --topbar-bg:            linear-gradient(180deg, #1a1a1c 0%, #0a0a0c 100%);
+  --topbar-shadow:        0 4px 24px rgba(0, 0, 0, 0.9), 0 1px 0 rgb(255 42 42 / 0.4);
+  --card-head-bg:         #000000;
+  --welcome-bg:           linear-gradient(135deg, #1a1a1c 0%, #121214 100%);
+  --welcome-border:       #331515;
+  --welcome-blush:        radial-gradient(circle at top right, rgb(255 42 42 / 0.2) 0%, rgb(179 0 0 / 0.1) 50%, transparent 70%);
+  --brand-gradient:       linear-gradient(135deg, #fff0f0 0%, #ff2a2a 45%, #990000 100%);
+  --btn-primary-bg:       var(--accent);
+  --btn-primary-hover-bg: color-mix(in srgb, #ff2a2a 78%, #fff);
+  --stat-hover-shadow:    0 16px 56px rgba(0, 0, 0, 0.9), 0 0 32px rgb(255 42 42 / 0.25), 0 0 64px rgb(179 0 0 / 0.1);
 }
 
 [data-skin="the-force"][data-theme="light"] {
@@ -515,6 +433,14 @@
   --c-gradient-start: #0a111a;
   --c-preview-hover:  #1e3d8a;
   --ch-preview:       0 119 255;
+  /* surface tokens */
+  --topbar-bg:      linear-gradient(180deg, #ffffff 0%, #eceadd 100%);
+  --topbar-shadow:  0 4px 16px rgba(43, 37, 33, 0.1), 0 1px 0 rgba(0, 119, 255, 0.2);
+  --card-head-bg:   linear-gradient(180deg, #f5f4ef 0%, #eceadd 100%);
+  --welcome-bg:     linear-gradient(135deg, #ffffff 0%, #f5f4ef 100%);
+  --welcome-border: #d6cfc1;
+  --welcome-blush:  radial-gradient(circle at top right, rgb(0 119 255 / 0.12) 0%, rgb(21 176 83 / 0.06) 50%, transparent 70%);
+  --brand-gradient: linear-gradient(135deg, #0a111a 0%, #0077ff 50%, #15b053 100%);
 }
 
 [data-skin="the-force"][data-theme="light"] .sidebar {
@@ -525,68 +451,6 @@
   --danger:           #ffb3c1;
   --danger-bg:        rgba(255, 179, 193, 0.1);
   --ch-danger:        255 179 193;
-}
-
-[data-skin="the-force"][data-theme="dark"] .card-head {
-  background: #000000;
-}
-[data-skin="the-force"][data-theme="light"] .card-head {
-  background: linear-gradient(180deg, #f5f4ef 0%, #eceadd 100%);
-}
-
-[data-skin="the-force"][data-theme="dark"] .topbar {
-  background: linear-gradient(180deg, #1a1a1c 0%, #0a0a0c 100%);
-  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.9), 0 1px 0 rgb(255 42 42 / 0.4);
-}
-[data-skin="the-force"][data-theme="light"] .topbar {
-  background: linear-gradient(180deg, #ffffff 0%, #eceadd 100%);
-  box-shadow: 0 4px 16px rgba(43, 37, 33, 0.1), 0 1px 0 rgba(0, 119, 255, 0.2);
-}
-
-[data-skin="the-force"][data-theme="dark"] .welcome-block {
-  background: linear-gradient(135deg, #1a1a1c 0%, #121214 100%);
-  border-color: #331515;
-}
-[data-skin="the-force"][data-theme="dark"] .welcome-block::after {
-  background: radial-gradient(circle at top right,
-    rgb(255 42 42 / 0.2) 0%, rgb(179 0 0 / 0.1) 50%, transparent 70%);
-}
-[data-skin="the-force"][data-theme="light"] .welcome-block {
-  background: linear-gradient(135deg, #ffffff 0%, #f5f4ef 100%);
-  border-color: #d6cfc1;
-}
-[data-skin="the-force"][data-theme="light"] .welcome-block::after {
-  background: radial-gradient(circle at top right,
-    rgb(0 119 255 / 0.12) 0%, rgb(21 176 83 / 0.06) 50%, transparent 70%);
-}
-
-[data-skin="the-force"][data-theme="dark"] .wordmark,
-[data-skin="the-force"][data-theme="dark"] .login-wordmark,
-[data-skin="the-force"][data-theme="dark"] .reminder-banner--update .reminder-banner-title {
-  background: linear-gradient(135deg, #fff0f0 0%, #ff2a2a 45%, #990000 100%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
-}
-[data-skin="the-force"][data-theme="light"] .wordmark,
-[data-skin="the-force"][data-theme="light"] .login-wordmark,
-[data-skin="the-force"][data-theme="light"] .reminder-banner--update .reminder-banner-title {
-  background: linear-gradient(135deg, #0a111a 0%, #0077ff 50%, #15b053 100%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
-}
-
-[data-skin="the-force"][data-theme="dark"] .stat-card:hover {
-  box-shadow: 0 16px 56px rgba(0, 0, 0, 0.9), 0 0 32px rgb(255 42 42 / 0.25), 0 0 64px rgb(179 0 0 / 0.1);
-}
-
-[data-skin="the-force"][data-theme="dark"] .btn-primary {
-  background: #ff2a2a;
-  color: #fff;
-}
-[data-skin="the-force"][data-theme="dark"] .btn-primary:hover {
-  background: color-mix(in srgb, #ff2a2a 78%, #fff);
 }
 
 
@@ -640,6 +504,18 @@
   --c-gradient-start: #fdf8e8;
   --c-preview-hover:  #c060b8;
   --ch-preview:       216 132 203;
+  /* surface tokens */
+  --topbar-bg:            linear-gradient(180deg, #1c1835 0%, #0d0a17 100%);
+  --topbar-shadow:        0 4px 24px rgba(0, 0, 0, 0.7), 0 1px 0 rgb(255 202 40 / 0.3);
+  --card-head-bg:         linear-gradient(180deg, #1c1835 0%, #15112a 100%);
+  --welcome-bg:           linear-gradient(135deg, #1c1835 0%, #15112a 100%);
+  --welcome-border:       #2e2550;
+  --welcome-blush:        radial-gradient(circle at top right, rgb(255 202 40 / 0.18) 0%, rgb(216 132 203 / 0.1) 50%, transparent 70%);
+  --brand-gradient:       linear-gradient(135deg, #fdf8e8 0%, #ffca28 50%, #d884cb 100%);
+  --btn-primary-bg:       var(--accent);
+  --btn-primary-color:    #1a0d00;
+  --btn-primary-hover-bg: color-mix(in srgb, #ffca28 85%, #fff);
+  --stat-hover-shadow:    0 16px 56px rgba(0, 0, 0, 0.8), 0 0 32px rgb(255 202 40 / 0.2), 0 0 48px rgb(216 132 203 / 0.1);
 }
 
 [data-skin="floating-lights"][data-theme="light"] {
@@ -680,6 +556,14 @@
   --c-gradient-start: #ffffff;
   --c-preview-hover:  #5a2a70;
   --ch-preview:       106 59 121;
+  /* surface tokens */
+  --topbar-bg:      linear-gradient(180deg, #ffffff 0%, #fcf9f2 100%);
+  --topbar-shadow:  0 4px 16px rgba(30, 10, 46, 0.1), 0 1px 0 rgba(214, 74, 120, 0.2);
+  --card-head-bg:   linear-gradient(180deg, #f5effe 0%, #fcf9f2 100%);
+  --welcome-bg:     linear-gradient(135deg, #ffffff 0%, #fcf9f2 100%);
+  --welcome-border: #d9c8e6;
+  --welcome-blush:  radial-gradient(circle at top right, rgb(214 74 120 / 0.1) 0%, rgb(138 59 158 / 0.06) 50%, transparent 70%);
+  --brand-gradient: linear-gradient(135deg, #1e0a2e 0%, #d64a78 55%, #fca311 100%);
 }
 
 [data-skin="floating-lights"][data-theme="light"] .sidebar {
@@ -689,68 +573,6 @@
   --danger:           #ffb3c1;
   --danger-bg:        rgba(255, 179, 193, 0.1);
   --ch-danger:        255 179 193;
-}
-
-[data-skin="floating-lights"][data-theme="dark"] .card-head {
-  background: linear-gradient(180deg, #1c1835 0%, #15112a 100%);
-}
-[data-skin="floating-lights"][data-theme="light"] .card-head {
-  background: linear-gradient(180deg, #f5effe 0%, #fcf9f2 100%);
-}
-
-[data-skin="floating-lights"][data-theme="dark"] .topbar {
-  background: linear-gradient(180deg, #1c1835 0%, #0d0a17 100%);
-  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.7), 0 1px 0 rgb(255 202 40 / 0.3);
-}
-[data-skin="floating-lights"][data-theme="light"] .topbar {
-  background: linear-gradient(180deg, #ffffff 0%, #fcf9f2 100%);
-  box-shadow: 0 4px 16px rgba(30, 10, 46, 0.1), 0 1px 0 rgba(214, 74, 120, 0.2);
-}
-
-[data-skin="floating-lights"][data-theme="dark"] .welcome-block {
-  background: linear-gradient(135deg, #1c1835 0%, #15112a 100%);
-  border-color: #2e2550;
-}
-[data-skin="floating-lights"][data-theme="dark"] .welcome-block::after {
-  background: radial-gradient(circle at top right,
-    rgb(255 202 40 / 0.18) 0%, rgb(216 132 203 / 0.1) 50%, transparent 70%);
-}
-[data-skin="floating-lights"][data-theme="light"] .welcome-block {
-  background: linear-gradient(135deg, #ffffff 0%, #fcf9f2 100%);
-  border-color: #d9c8e6;
-}
-[data-skin="floating-lights"][data-theme="light"] .welcome-block::after {
-  background: radial-gradient(circle at top right,
-    rgb(214 74 120 / 0.1) 0%, rgb(138 59 158 / 0.06) 50%, transparent 70%);
-}
-
-[data-skin="floating-lights"][data-theme="dark"] .wordmark,
-[data-skin="floating-lights"][data-theme="dark"] .login-wordmark,
-[data-skin="floating-lights"][data-theme="dark"] .reminder-banner--update .reminder-banner-title {
-  background: linear-gradient(135deg, #fdf8e8 0%, #ffca28 50%, #d884cb 100%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
-}
-[data-skin="floating-lights"][data-theme="light"] .wordmark,
-[data-skin="floating-lights"][data-theme="light"] .login-wordmark,
-[data-skin="floating-lights"][data-theme="light"] .reminder-banner--update .reminder-banner-title {
-  background: linear-gradient(135deg, #1e0a2e 0%, #d64a78 55%, #fca311 100%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
-}
-
-[data-skin="floating-lights"][data-theme="dark"] .stat-card:hover {
-  box-shadow: 0 16px 56px rgba(0, 0, 0, 0.8), 0 0 32px rgb(255 202 40 / 0.2), 0 0 48px rgb(216 132 203 / 0.1);
-}
-
-[data-skin="floating-lights"][data-theme="dark"] .btn-primary {
-  background: #ffca28;
-  color: #1a0d00;
-}
-[data-skin="floating-lights"][data-theme="dark"] .btn-primary:hover {
-  background: color-mix(in srgb, #ffca28 85%, #fff);
 }
 
 
@@ -804,6 +626,18 @@
   --c-gradient-start: #e8f8ff;
   --c-preview-hover:  #0099bb;
   --ch-preview:       0 229 255;
+  /* surface tokens */
+  --topbar-bg:            linear-gradient(180deg, #141c30 0%, #0c1222 100%);
+  --topbar-shadow:        0 4px 24px rgba(0, 0, 0, 0.7), 0 1px 0 rgb(0 229 255 / 0.3);
+  --card-head-bg:         linear-gradient(180deg, #141c30 0%, #111a2e 100%);
+  --welcome-bg:           linear-gradient(135deg, #141c30 0%, #111a2e 100%);
+  --welcome-border:       #1e2d45;
+  --welcome-blush:        radial-gradient(circle at top right, rgb(0 229 255 / 0.15) 0%, rgb(255 183 3 / 0.08) 50%, transparent 70%);
+  --brand-gradient:       linear-gradient(135deg, #e8f8ff 0%, #00e5ff 45%, #ffb703 100%);
+  --btn-primary-bg:       var(--accent);
+  --btn-primary-color:    #1a0c00;
+  --btn-primary-hover-bg: color-mix(in srgb, #ff7e1f 85%, #fff);
+  --stat-hover-shadow:    0 16px 56px rgba(0, 0, 0, 0.8), 0 0 32px rgb(0 229 255 / 0.2), 0 0 48px rgb(255 183 3 / 0.1);
 }
 
 [data-skin="moving-castle"][data-theme="light"] {
@@ -852,6 +686,15 @@
   --c-gradient-start: #001220;
   --c-preview-hover:  #1565c0;
   --ch-preview:       21 101 192;
+  /* surface tokens */
+  --topbar-bg:       linear-gradient(180deg, #ffffff 0%, #e1f5fe 100%);
+  --topbar-shadow:   0 4px 16px rgba(10, 30, 44, 0.1), 0 1px 0 rgba(255, 140, 0, 0.2);
+  --card-head-bg:    #649fbb;
+  --card-head-color: #0a2330;
+  --welcome-bg:      linear-gradient(135deg, #ffffff 0%, #e1f5fe 100%);
+  --welcome-border:  #9bc8e4;
+  --welcome-blush:   radial-gradient(circle at top right, rgb(255 140 0 / 0.12) 0%, rgb(77 125 93 / 0.06) 50%, transparent 70%);
+  --brand-gradient:  linear-gradient(135deg, #001220 0%, #ff6b6b 50%, #ff8c00 100%);
 }
 
 [data-skin="moving-castle"][data-theme="light"] .sidebar {
@@ -863,18 +706,11 @@
   --ch-danger:        255 179 193;
 }
 
-[data-skin="moving-castle"][data-theme="dark"] .card-head {
-  background: linear-gradient(180deg, #141c30 0%, #111a2e 100%);
-}
 [data-skin="moving-castle"][data-theme="dark"] .link { color: #f57e92; }
 [data-skin="moving-castle"][data-theme="dark"] .link:hover { color: #00e5ff; border-color: #00e5ff; }
 [data-skin="moving-castle"][data-theme="dark"] .welcome-block strong,
 [data-skin="moving-castle"][data-theme="dark"] .card-body strong,
 [data-skin="moving-castle"][data-theme="dark"] .modal-body strong { color: #975a9f; }
-[data-skin="moving-castle"][data-theme="light"] .card-head {
-  background: #649fbb;
-  color: #0a2330;
-}
 [data-skin="moving-castle"][data-theme="light"] .link { color: #f57e92; }
 [data-skin="moving-castle"][data-theme="light"] .link:hover { color: #0277bd; border-color: #0277bd; }
 [data-skin="moving-castle"][data-theme="light"] .btn-secondary { background: #f0c986; color: #3d2c0e; }
@@ -883,58 +719,3 @@
 [data-skin="moving-castle"][data-theme="light"] .welcome-block strong,
 [data-skin="moving-castle"][data-theme="light"] .card-body strong,
 [data-skin="moving-castle"][data-theme="light"] .modal-body strong { color: #f57e92; }
-
-[data-skin="moving-castle"][data-theme="dark"] .topbar {
-  background: linear-gradient(180deg, #141c30 0%, #0c1222 100%);
-  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.7), 0 1px 0 rgb(0 229 255 / 0.3);
-}
-[data-skin="moving-castle"][data-theme="light"] .topbar {
-  background: linear-gradient(180deg, #ffffff 0%, #e1f5fe 100%);
-  box-shadow: 0 4px 16px rgba(10, 30, 44, 0.1), 0 1px 0 rgba(255, 140, 0, 0.2);
-}
-
-[data-skin="moving-castle"][data-theme="dark"] .welcome-block {
-  background: linear-gradient(135deg, #141c30 0%, #111a2e 100%);
-  border-color: #1e2d45;
-}
-[data-skin="moving-castle"][data-theme="dark"] .welcome-block::after {
-  background: radial-gradient(circle at top right,
-    rgb(0 229 255 / 0.15) 0%, rgb(255 183 3 / 0.08) 50%, transparent 70%);
-}
-[data-skin="moving-castle"][data-theme="light"] .welcome-block {
-  background: linear-gradient(135deg, #ffffff 0%, #e1f5fe 100%);
-  border-color: #9bc8e4;
-}
-[data-skin="moving-castle"][data-theme="light"] .welcome-block::after {
-  background: radial-gradient(circle at top right,
-    rgb(255 140 0 / 0.12) 0%, rgb(77 125 93 / 0.06) 50%, transparent 70%);
-}
-
-[data-skin="moving-castle"][data-theme="dark"] .wordmark,
-[data-skin="moving-castle"][data-theme="dark"] .login-wordmark,
-[data-skin="moving-castle"][data-theme="dark"] .reminder-banner--update .reminder-banner-title {
-  background: linear-gradient(135deg, #e8f8ff 0%, #00e5ff 45%, #ffb703 100%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
-}
-[data-skin="moving-castle"][data-theme="light"] .wordmark,
-[data-skin="moving-castle"][data-theme="light"] .login-wordmark,
-[data-skin="moving-castle"][data-theme="light"] .reminder-banner--update .reminder-banner-title {
-  background: linear-gradient(135deg, #001220 0%, #ff6b6b 50%, #ff8c00 100%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
-}
-
-[data-skin="moving-castle"][data-theme="dark"] .stat-card:hover {
-  box-shadow: 0 16px 56px rgba(0, 0, 0, 0.8), 0 0 32px rgb(0 229 255 / 0.2), 0 0 48px rgb(255 183 3 / 0.1);
-}
-
-[data-skin="moving-castle"][data-theme="dark"] .btn-primary {
-  background: #ff7e1f;
-  color: #1a0c00;
-}
-[data-skin="moving-castle"][data-theme="dark"] .btn-primary:hover {
-  background: color-mix(in srgb, #ff7e1f 85%, #fff);
-}
