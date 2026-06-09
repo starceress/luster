@@ -42,7 +42,18 @@ final class GlobalCodesController extends AdminController
         $codesRepo   = new CodesRepo($db);
         $listingRepo = new ListingRepo($db, $config);
 
-        $listingId = (int) $request->query('listing_id', 0);
+        // Redirect if the listing selector submitted "collective", forwarding search term
+        $listingIdRaw = trim((string) $request->query('listing_id', ''));
+        if ($listingIdRaw === 'collective') {
+            $fwdSearch = trim((string) $request->query('search', ''));
+            $fwdTab    = trim((string) $request->query('tab', ''));
+            $qs        = 'collective=1';
+            if ($fwdTab !== '')    $qs .= '&tab='    . urlencode($fwdTab);
+            if ($fwdSearch !== '') $qs .= '&search=' . urlencode($fwdSearch);
+            return Response::redirect($this->app->getBaseUrl() . '/admin/codes?' . $qs);
+        }
+
+        $listingId = (int) $listingIdRaw;
         $tab       = trim((string) $request->query('tab', 'approved'));
         $page      = max(1, (int) $request->query('page', 1));
 
@@ -65,6 +76,84 @@ final class GlobalCodesController extends AdminController
         $error   = (string) $session->get('lstr_flash_error', '');
         $session->remove('lstr_flash_success');
         $session->remove('lstr_flash_error');
+
+        $isCollective = (int) $request->query('collective', 0) === 1;
+
+        if ($isCollective) {
+            $validCollTab = in_array($tab, ['approved', 'pending', 'rejected'], true) ? $tab : 'approved';
+            $filterSearch = trim((string) $request->query('search', ''));
+
+            $codes = $codesRepo->getByListing(null);
+
+            if ($filterSearch !== '') {
+                $needle = mb_strtolower($filterSearch);
+                $codes  = array_values(array_filter($codes, static function (object $c) use ($needle): bool {
+                    return str_contains(mb_strtolower($c->submitterName ?? ''), $needle)
+                        || str_contains(mb_strtolower($c->name ?? ''), $needle)
+                        || str_contains(mb_strtolower($c->filename), $needle);
+                }));
+            }
+            $statusCounts = ['approved' => 0, 'pending' => 0, 'rejected' => 0];
+            $grouped      = [];
+            foreach ($codes as $code) {
+                $statusCounts[$code->status] = ($statusCounts[$code->status] ?? 0) + 1;
+                if ($code->width > 0 && $code->height > 0) {
+                    $key   = (int) $code->width . 'x' . (int) $code->height;
+                    $label = (int) $code->width . '×' . (int) $code->height . 'px';
+                } else {
+                    $key   = 'unknown';
+                    $label = 'Unknown dimensions';
+                }
+                if (!isset($grouped[$key])) {
+                    $grouped[$key] = ['label' => $label, 'codes' => []];
+                }
+                $grouped[$key]['codes'][] = $code;
+            }
+            uksort($grouped, static function (string $a, string $b): int {
+                if ($a === 'unknown') return 1;
+                if ($b === 'unknown') return -1;
+                [$aw, $ah] = explode('x', $a);
+                [$bw, $bh] = explode('x', $b);
+                return $aw !== $bw ? (int) $aw - (int) $bw : (int) $ah - (int) $bh;
+            });
+
+            $tabCounts = [
+                'all'      => count($codes),
+                'pending'  => $statusCounts['pending'],
+                'approved' => $statusCounts['approved'],
+                'rejected' => $statusCounts['rejected'],
+            ];
+
+            return $this->adminLayout('admin/codes/index.php', 'Collective Codes', 'codes', [
+                'listing'              => null,
+                'listing_id'           => 0,
+                'all_listings'         => $allListings,
+                'view_mode'            => 'collective',
+                'codes'                => $codes,
+                'code_grouped'         => $grouped,
+                'code_status_counts'   => $statusCounts,
+                'code_status_filter'   => $validCollTab,
+                'tab'                  => $validCollTab,
+                'tab_counts'           => $tabCounts,
+                'total_codes'          => count($codes),
+                'code_cats'            => [],
+                'code_donors'          => [],
+                'code_cat_map'         => [],
+                'code_donor_map'       => [],
+                'code_category_ids'    => [],
+                'code_submitter_names' => $codesRepo->getSubmitterNamesForListing(null),
+                'pending_per_listing'  => $pendingPerListing,
+                'approved_per_listing' => $approvedPerListing,
+                'filter_options'       => $filterOptions,
+                'filter_size'          => '',
+                'filter_donor'         => '',
+                'filter_search'        => $filterSearch,
+                'filters_active'       => $filterSearch !== '',
+                'uploads_url'          => rtrim($this->app->getBaseUrl(), '/') . '/uploads/codes',
+                'success'              => $success,
+                'error'                => $error,
+            ]);
+        }
 
         if ($listingId > 0) {
             $listing = $listingRepo->getById($listingId);
@@ -375,6 +464,345 @@ final class GlobalCodesController extends AdminController
             return Response::redirect($baseUrl . '/admin/codes?listing_id=' . $listingId . '&tab=approved');
         }
         return Response::redirect($baseUrl . '/admin/codes');
+    }
+
+    // -----------------------------------------------------------------------
+    // POST /admin/codes/collective-upload
+    // -----------------------------------------------------------------------
+
+    public function uploadCollective(Request $request, array $params): Response
+    {
+        $db      = $this->app->getDatabase();
+        $session = $this->app->getSession();
+        $baseUrl = $this->app->getBaseUrl();
+
+        $codesRepo    = new CodesRepo($db);
+        $activityRepo = new ActivityRepo($db);
+
+        $uploadStatus = (string) $request->post('upload_status', 'approved');
+        if (!in_array($uploadStatus, CodesRepo::STATUSES, true)) {
+            $uploadStatus = 'approved';
+        }
+
+        // Resolve submitter from donor select (s:name = past submitter) or inline new-donor fields
+        $postedDonorVal = (string) $request->post('donor_id', '');
+        $submitterName  = '';
+        $submitterEmail = '';
+        $submitterUrl   = '';
+
+        if (str_starts_with($postedDonorVal, 's:')) {
+            $submitterName = trim(substr($postedDonorVal, 2));
+        } else {
+            $newDonorName = trim((string) $request->post('new_donor_name', ''));
+            if ($newDonorName !== '') {
+                $submitterName  = $newDonorName;
+                $submitterEmail = trim((string) $request->post('new_donor_email', ''));
+                $submitterUrl   = trim((string) $request->post('new_donor_url', ''));
+            }
+        }
+
+        if ($submitterEmail !== '' && filter_var($submitterEmail, FILTER_VALIDATE_EMAIL) === false) {
+            $submitterEmail = '';
+        }
+        if ($submitterUrl !== '' && (
+            filter_var($submitterUrl, FILTER_VALIDATE_URL) === false
+            || !in_array(parse_url($submitterUrl, PHP_URL_SCHEME), ['http', 'https'], true)
+        )) {
+            $submitterUrl = '';
+        }
+
+        $uploadsBase = realpath(__DIR__ . '/../../../public/uploads');
+        if ($uploadsBase === false) {
+            $session->set('lstr_flash_error', 'Uploads directory not found.');
+            return Response::redirect($baseUrl . '/admin/codes?collective=1');
+        }
+
+        $uploadDir = $uploadsBase . DIRECTORY_SEPARATOR . 'codes';
+        if (!is_dir($uploadDir)) {
+            mkdir($uploadDir, 0755, true);
+        }
+
+        $fileData = $request->file('codes');
+        if ($fileData === null || (is_array($fileData['name']) ? empty(array_filter($fileData['name'])) : $fileData['name'] === '')) {
+            $session->set('lstr_flash_error', 'No files selected for upload.');
+            return Response::redirect($baseUrl . '/admin/codes?collective=1');
+        }
+
+        $names    = is_array($fileData['name'])     ? $fileData['name']     : [$fileData['name']];
+        $tmpNames = is_array($fileData['tmp_name']) ? $fileData['tmp_name'] : [$fileData['tmp_name']];
+        $errors   = is_array($fileData['error'])    ? $fileData['error']    : [$fileData['error']];
+        $sizes    = is_array($fileData['size'])      ? $fileData['size']    : [$fileData['size']];
+
+        $uploaded   = 0;
+        $skipped    = [];
+        $sortOffset = $codesRepo->getMaxSortOrder(null);
+        $finfo      = new \finfo(FILEINFO_MIME_TYPE);
+
+        $allowedMime = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+        $maxSize     = 512_000;
+
+        foreach ($names as $i => $originalName) {
+            if ($originalName === '' || $originalName === null) {
+                continue;
+            }
+
+            $safeName = htmlspecialchars((string) $originalName, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+
+            if ((int) $errors[$i] !== UPLOAD_ERR_OK) {
+                $skipped[] = $safeName . ' (upload error)';
+                continue;
+            }
+
+            $tmpName  = (string) $tmpNames[$i];
+            $fileSize = (int) $sizes[$i];
+
+            if ($fileSize > $maxSize) {
+                $skipped[] = $safeName . ' (exceeds 500 KB)';
+                continue;
+            }
+
+            $mime = $finfo->file($tmpName);
+            if (!in_array($mime, $allowedMime, true)) {
+                $skipped[] = $safeName . ' (not a supported image)';
+                continue;
+            }
+
+            $ext = match ($mime) {
+                'image/jpeg' => 'jpg',
+                'image/png'  => 'png',
+                'image/gif'  => 'gif',
+                'image/webp' => 'webp',
+                default      => 'bin',
+            };
+
+            $imgInfo = getimagesize($tmpName);
+            $width   = $imgInfo !== false ? (int) $imgInfo[0] : 0;
+            $height  = $imgInfo !== false ? (int) $imgInfo[1] : 0;
+
+            $newFilename = 'c_' . uniqid('', true) . bin2hex(random_bytes(4)) . '.' . $ext;
+            $dest        = $uploadDir . DIRECTORY_SEPARATOR . $newFilename;
+
+            if (!move_uploaded_file($tmpName, $dest)) {
+                $skipped[] = $safeName . ' (move failed)';
+                continue;
+            }
+
+            $codesRepo->insert(
+                null,
+                $newFilename,
+                $width,
+                $height,
+                ++$sortOffset,
+                null,
+                null,
+                $uploadStatus,
+                null,
+                $submitterName !== '' ? $submitterName : null,
+                $submitterEmail !== '' ? $submitterEmail : null,
+                $submitterUrl !== '' ? $submitterUrl : null,
+            );
+            $uploaded++;
+        }
+
+        $activityRepo->log(
+            (int) $session->get('lstr_admin_id'),
+            'codes.collective.upload',
+            "Uploaded {$uploaded} collective code(s)",
+            $request->ip(),
+        );
+
+        if ($uploaded > 0) {
+            $msg = 'Uploaded ' . $uploaded . ' collective code' . ($uploaded !== 1 ? 's' : '') . ' successfully.';
+            if (!empty($skipped)) {
+                $msg .= ' Skipped: ' . implode(', ', $skipped);
+            }
+            $session->set('lstr_flash_success', $msg);
+        } else {
+            $msg = 'No collective codes uploaded.';
+            if (!empty($skipped)) {
+                $msg .= ' Issues: ' . implode(', ', $skipped);
+            }
+            $session->set('lstr_flash_error', $msg);
+        }
+
+        return Response::redirect($baseUrl . '/admin/codes?collective=1');
+    }
+
+    // -----------------------------------------------------------------------
+    // POST /admin/codes/collective/{id}/update
+    // -----------------------------------------------------------------------
+
+    public function updateCollective(Request $request, array $params): Response
+    {
+        $id      = (int) ($params['id'] ?? 0);
+        $db      = $this->app->getDatabase();
+        $session = $this->app->getSession();
+        $baseUrl = $this->app->getBaseUrl();
+
+        $codesRepo = new CodesRepo($db);
+        $code      = $codesRepo->getById($id);
+
+        if ($code === null || $code->fanlisting_id !== null) {
+            return Response::notFound('Collective code not found.');
+        }
+
+        $status = trim((string) $request->post('status', ''));
+        if (!in_array($status, CodesRepo::STATUSES, true)) {
+            $status = $code->status;
+        }
+
+        $name           = trim((string) $request->post('name', ''));
+        $submitterName  = trim((string) $request->post('submitter_name', ''));
+        $submitterEmail = trim((string) $request->post('submitter_email', ''));
+        $submitterUrl   = trim((string) $request->post('submitter_url', ''));
+
+        if ($submitterEmail !== '' && filter_var($submitterEmail, FILTER_VALIDATE_EMAIL) === false) {
+            $submitterEmail = '';
+        }
+        if ($submitterUrl !== '' && (
+            filter_var($submitterUrl, FILTER_VALIDATE_URL) === false
+            || !in_array(parse_url($submitterUrl, PHP_URL_SCHEME), ['http', 'https'], true)
+        )) {
+            $submitterUrl = '';
+        }
+
+        $codesRepo->updateStatus($id, $status);
+        $codesRepo->updateName($id, $name !== '' ? $name : null);
+        $codesRepo->updateSubmitterName($id, $submitterName !== '' ? $submitterName : null);
+        $codesRepo->updateSubmitterEmail($id, $submitterEmail !== '' ? $submitterEmail : null);
+        $codesRepo->updateSubmitterUrl($id, $submitterUrl !== '' ? $submitterUrl : null);
+
+        if ($status === 'approved' && $code->status !== 'approved') {
+            $this->maybeSendDonorEmail($db, $codesRepo->getById($id));
+        }
+
+        (new ActivityRepo($db))->log(
+            (int) $session->get('lstr_admin_id'),
+            'code.update',
+            "Updated collective code #{$id}",
+            $request->ip(),
+        );
+
+        $tab = trim((string) $request->post('_tab', $status));
+        $session->set('lstr_flash_success', 'Code updated.');
+        return Response::redirect($baseUrl . '/admin/codes?collective=1&tab=' . urlencode($tab));
+    }
+
+    // -----------------------------------------------------------------------
+    // POST /admin/codes/collective/{id}/delete
+    // -----------------------------------------------------------------------
+
+    public function deleteCollective(Request $request, array $params): Response
+    {
+        $id      = (int) ($params['id'] ?? 0);
+        $db      = $this->app->getDatabase();
+        $session = $this->app->getSession();
+        $baseUrl = $this->app->getBaseUrl();
+
+        $codesRepo = new CodesRepo($db);
+        $code      = $codesRepo->getById($id);
+
+        if ($code === null || $code->fanlisting_id !== null) {
+            return Response::notFound('Collective code not found.');
+        }
+
+        $codesRepo->delete($id);
+
+        (new ActivityRepo($db))->log(
+            (int) $session->get('lstr_admin_id'),
+            'code.delete',
+            "Deleted collective code #{$id} ({$code->filename})",
+            $request->ip(),
+        );
+
+        $tab = trim((string) $request->post('_tab', 'approved'));
+        $session->set('lstr_flash_success', 'Code deleted.');
+        return Response::redirect($baseUrl . '/admin/codes?collective=1&tab=' . urlencode($tab));
+    }
+
+    // -----------------------------------------------------------------------
+    // POST /admin/codes/collective/bulk
+    // -----------------------------------------------------------------------
+
+    public function bulkCollective(Request $request, array $params): Response
+    {
+        $db      = $this->app->getDatabase();
+        $session = $this->app->getSession();
+        $baseUrl = $this->app->getBaseUrl();
+
+        $action = trim((string) $request->post('bulk_action', ''));
+        $rawIds = (array) $request->post('selected', []);
+        $ids    = array_values(array_filter(array_map('intval', $rawIds), fn(int $i) => $i > 0));
+        $tab    = trim((string) $request->post('_tab', 'approved'));
+
+        if (empty($ids) || !in_array($action, ['approve', 'reject', 'delete'], true)) {
+            $session->set('lstr_flash_error', 'No codes selected or invalid action.');
+            return Response::redirect($baseUrl . '/admin/codes?collective=1&tab=' . urlencode($tab));
+        }
+
+        $codesRepo = new CodesRepo($db);
+        $count     = 0;
+
+        if ($action === 'delete') {
+            foreach ($ids as $codeId) {
+                $c = $codesRepo->getById($codeId);
+                if ($c !== null && $c->fanlisting_id === null) {
+                    $codesRepo->delete($codeId);
+                    $count++;
+                }
+            }
+        } else {
+            $status = $action === 'approve' ? 'approved' : 'rejected';
+            $count  = $codesRepo->bulkStatus($ids, $status);
+            if ($action === 'approve') {
+                foreach ($ids as $codeId) {
+                    $c = $codesRepo->getById($codeId);
+                    if ($c !== null) {
+                        $this->maybeSendDonorEmail($db, $c);
+                    }
+                }
+            }
+        }
+
+        (new ActivityRepo($db))->log(
+            (int) $session->get('lstr_admin_id'),
+            "code.bulk_{$action}",
+            "Bulk {$action}: {$count} collective code(s)",
+            $request->ip(),
+        );
+
+        $session->set('lstr_flash_success', ucfirst($action) . "d {$count} collective code(s).");
+        return Response::redirect($baseUrl . '/admin/codes?collective=1&tab=' . urlencode($tab));
+    }
+
+    // -----------------------------------------------------------------------
+    // POST /admin/codes/collective/reorder
+    // -----------------------------------------------------------------------
+
+    public function reorderCollective(Request $request, array $params): Response
+    {
+        $db      = $this->app->getDatabase();
+        $session = $this->app->getSession();
+        $baseUrl = $this->app->getBaseUrl();
+
+        $raw        = trim((string) $request->post('ordered_ids', ''));
+        $orderedIds = $raw !== '' ? array_map('intval', explode(',', $raw)) : [];
+        $orderedIds = array_values(array_filter($orderedIds, fn(int $i) => $i > 0));
+
+        if (!empty($orderedIds)) {
+            (new CodesRepo($db))->reorderCollective($orderedIds);
+
+            (new ActivityRepo($db))->log(
+                (int) $session->get('lstr_admin_id'),
+                'code.reorder',
+                'Reordered ' . count($orderedIds) . ' collective code(s)',
+                $request->ip(),
+            );
+        }
+
+        $tab = trim((string) $request->post('_tab', 'approved'));
+        $session->set('lstr_flash_success', 'Collective code order saved.');
+        return Response::redirect($baseUrl . '/admin/codes?collective=1&tab=' . urlencode($tab));
     }
 
     // -----------------------------------------------------------------------

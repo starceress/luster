@@ -168,13 +168,13 @@ $items = [
         'label' => 'Random Listing',
         'badge' => 'Data',
         'file'  => 'random-listing.php',
-        'desc'  => 'Shows one current listing at random using your owned listings template from Admin → Collective.',
+        'desc'  => 'Shows one current listing at random using the Random Listing template from Admin &rarr; Collective &rarr; Templates.',
     ],
     'latest' => [
         'label' => 'Latest Listing',
         'badge' => 'Data',
         'file'  => 'latest-listing.php',
-        'desc'  => 'Renders the most recently opened active listing using the owned-listings row template from Admin → Collective.',
+        'desc'  => 'Renders the most recently opened active listing using the Latest Listing template from Admin &rarr; Collective &rarr; Templates.',
     ],
     'kim' => [
         'label' => 'KIM Form',
@@ -209,7 +209,7 @@ $items = [
     'col-codes-submit' => [
         'label' => 'Codes Donation Form',
         'badge' => 'Form',
-        'file'  => 'codes-submit.php',
+        'file'  => 'collective-codes-submit.php',
         'desc'  => 'Form for fans to submit collective codes. Submissions are reviewed in Admin → Codes.',
     ],
     'col-updates' => [

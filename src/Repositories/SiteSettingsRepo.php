@@ -66,25 +66,17 @@ class SiteSettingsRepo
      * Shared by the admin collective page and the embed files so
      * both always show the same fallback markup.
      *
-     * @return array{owned_template: string, joined_template: string, collective_stats_template: string, collective_affiliates_section_template: string}
+     * @return array{owned_template: string, joined_template: string, collective_stats_template: string, collective_affiliates_section_template: string, random_listing_template: string, latest_listing_template: string}
      */
     public static function collectiveDefaults(): array
     {
         return [
-            // Flat ({each_listing}) by design — not sectioned. owned_template is a
-            // single combined template shared by owned.php (every $luster_status
-            // pool), latest-listing.php, and random-listing.php (always exactly one
-            // listing). A sectioned ({each_current}/{each_upcoming}/{each_pending})
-            // shape renders identically everywhere the template is used — including
-            // single-listing embeds, where a "Current (1)" heading over one row reads
-            // oddly — because rendering has no context-dependent behavior (one stored
-            // template, one consistent look, by design; see docs/PUBLIC-TEMPLATES-PLAN.md).
-            // Site owners who want a grouped Current/Upcoming/Pending look for their
-            // status=all view can author a sectioned template themselves — the engine
-            // (ListingRowRenderer::renderTemplate()) fully supports {each_current} /
-            // {each_upcoming} / {each_pending} / {if_*_listings} / {*_count} tokens —
-            // understanding it will then apply that same grouped look everywhere,
-            // including single-listing widgets.
+            // Flat ({each_listing}) by design — not sectioned. owned_template is used
+            // only by owned.php; random-listing.php and latest-listing.php each have
+            // their own separate template (random_listing_template /
+            // latest_listing_template). A sectioned ({each_current}/{each_upcoming}/
+            // {each_pending}) shape is supported by all three templates via
+            // ListingRowRenderer::renderTemplate().
             'owned_template' => '<div class="fl-listing-list">' . "\n"
                              . '{each_listing}' . "\n"
                              . '<div class="fl-listing-item">' . "\n"
@@ -122,7 +114,45 @@ class SiteSettingsRepo
                                          . '</div>' . "\n"
                                          . '<div class="fl-cstats-random">Featured: <a href="{owned_random_url}">{owned_random_name}</a></div>' . "\n"
                                          . '</div>',
-            'collective_affiliates_section_template' => '',
+            'collective_affiliates_section_template' => '<div class="fl-affiliates-section">' . "\n"
+                                                    . '{if_affiliates}' . "\n"
+                                                    . '<ul class="fl-affiliate-list">' . "\n"
+                                                    . '{each_affiliate}' . "\n"
+                                                    . '<li class="fl-affiliate-item">' . "\n"
+                                                    . '<a href="{aff_url}" target="_blank" rel="noopener noreferrer">{aff_image_tag}<span class="fl-affiliate-name">{aff_name}</span></a>' . "\n"
+                                                    . '</li>' . "\n"
+                                                    . '{/each_affiliate}' . "\n"
+                                                    . '</ul>' . "\n"
+                                                    . '{/if_affiliates}' . "\n"
+                                                    . '{if_no_affiliates}' . "\n"
+                                                    . '<p class="fl-affiliates-empty">No affiliates yet.</p>' . "\n"
+                                                    . '{/if_no_affiliates}' . "\n"
+                                                    . '</div>',
+            // Single-listing embeds — each has its own separate template so site
+            // owners can style them independently from the full owned-listings list.
+            'random_listing_template' => '<div class="fl-random-listing">' . "\n"
+                                      . '{each_listing}' . "\n"
+                                      . '<div class="fl-random-listing-item">' . "\n"
+                                      . '{if_listing_image}<div class="fl-random-listing-image-wrap"><img class="fl-random-listing-image" src="{listing_image_url}" alt="{listing_subject}"></div>{/if_listing_image}' . "\n"
+                                      . '<div class="fl-random-listing-body">' . "\n"
+                                      . '<a class="fl-random-listing-title" href="{listing_url}" target="_blank" rel="noopener noreferrer">{listing_subject}</a>' . "\n"
+                                      . '<span class="fl-random-listing-subject">{listing_title}</span>' . "\n"
+                                      . '</div>' . "\n"
+                                      . '</div>' . "\n"
+                                      . '{/each_listing}' . "\n"
+                                      . '</div>',
+            'latest_listing_template' => '<div class="fl-latest-listing">' . "\n"
+                                      . '{each_listing}' . "\n"
+                                      . '<div class="fl-latest-listing-item">' . "\n"
+                                      . '{if_listing_image}<div class="fl-latest-listing-image-wrap"><img class="fl-latest-listing-image" src="{listing_image_url}" alt="{listing_subject}"></div>{/if_listing_image}' . "\n"
+                                      . '<div class="fl-latest-listing-body">' . "\n"
+                                      . '<a class="fl-latest-listing-title" href="{listing_url}" target="_blank" rel="noopener noreferrer">{listing_subject}</a>' . "\n"
+                                      . '<span class="fl-latest-listing-subject">{listing_title}</span>' . "\n"
+                                      . '<span class="fl-latest-listing-date">Opened: {date_opened}</span>' . "\n"
+                                      . '</div>' . "\n"
+                                      . '</div>' . "\n"
+                                      . '{/each_listing}' . "\n"
+                                      . '</div>',
         ];
     }
 

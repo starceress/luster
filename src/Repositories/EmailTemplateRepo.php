@@ -45,6 +45,19 @@ use Luster\Core\Database;
  *   {aff_message}       — optional message from the applicant (blank if not provided)
  *   plus {listing_title}, {listing_url}, {site_name}, {owner_name}, {owner_email}
  *
+ * Adoption tokens (adoption_applied / adoption_approved / adoption_rejected):
+ *   {applicant_name}    — adoption applicant's name
+ *   {applicant_email}   — adoption applicant's email address
+ *   {applicant_url}     — adoption applicant's website URL (blank if not provided)
+ *   {applicant_message} — applicant's message, prefixed "Message: \n\n" when non-empty
+ *   plus {listing_title}, {listing_url}, {site_name}, {owner_name}, {owner_email}
+ *
+ * KIM tokens (kim_applied / kim_approved):
+ *   {kim_name}          — KIM member's name
+ *   {kim_email}         — KIM member's email address
+ *   {kim_url}           — KIM member's website URL
+ *   plus {listing_title}, {listing_url}, {site_name}, {owner_name}, {owner_email}
+ *
  * Requires Migration 23.
  */
 final class EmailTemplateRepo
@@ -63,6 +76,11 @@ final class EmailTemplateRepo
     public const TYPE_AFFILIATE_APPROVED = 'affiliate_approved';
     public const TYPE_AFFILIATE_REJECTED = 'affiliate_rejected';
     public const TYPE_CODE_APPROVED      = 'code_approved';
+    public const TYPE_ADOPTION_APPLIED   = 'adoption_applied';
+    public const TYPE_ADOPTION_APPROVED  = 'adoption_approved';
+    public const TYPE_ADOPTION_REJECTED  = 'adoption_rejected';
+    public const TYPE_KIM_APPLIED        = 'kim_applied';
+    public const TYPE_KIM_APPROVED       = 'kim_approved';
 
     /** All valid type values in display order. */
     public const TYPES = [
@@ -76,6 +94,11 @@ final class EmailTemplateRepo
         self::TYPE_AFFILIATE_APPROVED,
         self::TYPE_AFFILIATE_REJECTED,
         self::TYPE_CODE_APPROVED,
+        self::TYPE_ADOPTION_APPLIED,
+        self::TYPE_ADOPTION_APPROVED,
+        self::TYPE_ADOPTION_REJECTED,
+        self::TYPE_KIM_APPLIED,
+        self::TYPE_KIM_APPROVED,
     ];
 
     // -----------------------------------------------------------------------
@@ -93,6 +116,11 @@ final class EmailTemplateRepo
         self::TYPE_AFFILIATE_APPROVED => 'Your affiliate application for {listing_title} has been approved',
         self::TYPE_AFFILIATE_REJECTED => 'Your affiliate application for {listing_title}',
         self::TYPE_CODE_APPROVED      => 'Your code donation for {listing_title} has been approved!',
+        self::TYPE_ADOPTION_APPLIED   => 'New adoption application for {listing_title}',
+        self::TYPE_ADOPTION_APPROVED  => 'Your adoption application for {listing_title} has been approved',
+        self::TYPE_ADOPTION_REJECTED  => 'Your adoption application for {listing_title}',
+        self::TYPE_KIM_APPLIED        => 'New KIM List sign-up for {listing_title}',
+        self::TYPE_KIM_APPROVED       => 'Your KIM List sign-up for {listing_title} has been approved',
     ];
 
     // -----------------------------------------------------------------------
@@ -176,6 +204,44 @@ final class EmailTemplateRepo
         'Hi {fan_name},' . "\n\n"
         . 'Thank you for donating a code to the {listing_title} listing — it has been approved and is now live!' . "\n\n"
         . 'View the codes at: {listing_url}' . "\n\n"
+        . '-- {owner_name}' . "\n"
+        . '{site_name}';
+
+    private const DEFAULT_BODY_ADOPTION_APPLIED =
+        'A new adoption application has been received for the {listing_title} listing.' . "\n\n"
+        . '  Name   : {applicant_name}' . "\n"
+        . '  Email  : {applicant_email}' . "\n"
+        . '  Website: {applicant_url}' . "\n\n"
+        . '{applicant_message}'
+        . 'Review this application from your admin panel.' . "\n\n"
+        . '-- {site_name}';
+
+    private const DEFAULT_BODY_ADOPTION_APPROVED =
+        'Hi {applicant_name},' . "\n\n"
+        . 'Great news — your adoption application for {listing_title} has been approved!' . "\n\n"
+        . 'We will be in touch with next steps.' . "\n\n"
+        . '-- {owner_name}' . "\n"
+        . '{site_name}';
+
+    private const DEFAULT_BODY_ADOPTION_REJECTED =
+        'Hi {applicant_name},' . "\n\n"
+        . 'Thank you for your interest in adopting {listing_title}.' . "\n\n"
+        . 'Unfortunately, we are not able to approve your application at this time.' . "\n\n"
+        . '-- {owner_name}' . "\n"
+        . '{site_name}';
+
+    private const DEFAULT_BODY_KIM_APPLIED =
+        'A new Keep In Mind sign-up has been received for {listing_title}.' . "\n\n"
+        . '  Name   : {kim_name}' . "\n"
+        . '  Email  : {kim_email}' . "\n"
+        . '  Website: {kim_url}' . "\n\n"
+        . 'Review and approve or reject from your admin panel.' . "\n\n"
+        . '-- {site_name}';
+
+    private const DEFAULT_BODY_KIM_APPROVED =
+        'Hi {kim_name},' . "\n\n"
+        . 'Your Keep In Mind sign-up for {listing_title} has been approved.' . "\n\n"
+        . 'We will let you know when the listing is open for members.' . "\n\n"
         . '-- {owner_name}' . "\n"
         . '{site_name}';
 
@@ -361,6 +427,11 @@ final class EmailTemplateRepo
             self::TYPE_AFFILIATE_APPROVED => self::DEFAULT_BODY_AFFILIATE_APPROVED,
             self::TYPE_AFFILIATE_REJECTED => self::DEFAULT_BODY_AFFILIATE_REJECTED,
             self::TYPE_CODE_APPROVED      => self::DEFAULT_BODY_CODE_APPROVED,
+            self::TYPE_ADOPTION_APPLIED   => self::DEFAULT_BODY_ADOPTION_APPLIED,
+            self::TYPE_ADOPTION_APPROVED  => self::DEFAULT_BODY_ADOPTION_APPROVED,
+            self::TYPE_ADOPTION_REJECTED  => self::DEFAULT_BODY_ADOPTION_REJECTED,
+            self::TYPE_KIM_APPLIED        => self::DEFAULT_BODY_KIM_APPLIED,
+            self::TYPE_KIM_APPROVED       => self::DEFAULT_BODY_KIM_APPROVED,
             default                       => '',
         };
     }
@@ -439,6 +510,68 @@ final class EmailTemplateRepo
             '{aff_url}'       => $affUrl,
             '{aff_email}'     => $affEmail,
             '{aff_message}'   => $messageBlock,
+        ];
+    }
+
+    /**
+     * Builds the adoption-application token map for use with applyTokens().
+     * Used for adoption_applied, adoption_approved, and adoption_rejected emails.
+     *
+     * @return array<string, string>
+     */
+    public static function buildAdoptionTokens(
+        string $listingName      = '',
+        string $listingUrl       = '',
+        string $siteName         = '',
+        string $ownerName        = '',
+        string $ownerEmail       = '',
+        string $applicantName    = '',
+        string $applicantEmail   = '',
+        string $applicantUrl     = '',
+        string $applicantMessage = '',
+    ): array {
+        $messageBlock = $applicantMessage !== ''
+            ? 'Message: ' . $applicantMessage . "\n\n"
+            : '';
+
+        return [
+            '{listing_title}'      => $listingName,
+            '{listing_url}'        => $listingUrl,
+            '{site_name}'          => $siteName,
+            '{owner_name}'         => $ownerName,
+            '{owner_email}'        => $ownerEmail,
+            '{applicant_name}'     => $applicantName,
+            '{applicant_email}'    => $applicantEmail,
+            '{applicant_url}'      => $applicantUrl,
+            '{applicant_message}'  => $messageBlock,
+        ];
+    }
+
+    /**
+     * Builds the KIM-member token map for use with applyTokens().
+     * Used for kim_applied and kim_approved emails.
+     *
+     * @return array<string, string>
+     */
+    public static function buildKimTokens(
+        string $listingName = '',
+        string $listingUrl  = '',
+        string $siteName    = '',
+        string $ownerName   = '',
+        string $ownerEmail  = '',
+        string $kimName     = '',
+        string $kimEmail    = '',
+        string $kimUrl      = '',
+    ): array {
+        return [
+            '{listing_title}'  => $listingName,
+            '{listing_url}'    => $listingUrl,
+            '{site_name}'      => $siteName,
+            '{owner_name}'     => $ownerName,
+            '{owner_email}'    => $ownerEmail,
+            '{kim_name}'       => $kimName,
+            '{kim_email}'      => $kimEmail,
+            '{kim_url}'        => $kimUrl,
         ];
     }
 

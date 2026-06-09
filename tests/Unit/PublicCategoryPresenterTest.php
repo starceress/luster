@@ -41,13 +41,39 @@ final class PublicCategoryPresenterTest extends TestCase
 
     public function testListModeContainsAriaCurrent(): void
     {
+        // Overview (no category selected): list mode marks the "All" link as current
         $result = PublicCategoryPresenter::renderOwned(
             [$this->cat(5, 'Anime', 'anime')],
-            5, '/listings', hideDropdown: false, showList: true,
+            0, '/listings', hideDropdown: false, showList: true,
             browseMode: false, browseShowAll: false,
         );
 
         self::assertStringContainsString('aria-current="page"', $result['html']);
+        self::assertTrue($result['show_listings']);
+    }
+
+    public function testPerCategoryShowsDropdownSwitcher(): void
+    {
+        // Per-category page with default showCatSwitcher=true: shows a dropdown
+        $result = PublicCategoryPresenter::renderOwned(
+            [$this->cat(5, 'Anime', 'anime'), $this->cat(6, 'Books', 'books')],
+            5, '/listings', hideDropdown: false, showList: true,
+            browseMode: false, browseShowAll: false,
+        );
+
+        self::assertStringContainsString('<select', $result['html']);
+        self::assertTrue($result['show_listings']);
+    }
+
+    public function testPerCategoryHidesSwitcherWhenOff(): void
+    {
+        $result = PublicCategoryPresenter::renderOwned(
+            [$this->cat(5, 'Anime', 'anime')],
+            5, '/listings', hideDropdown: false, showList: true,
+            browseMode: false, browseShowAll: false, showCatSwitcher: false,
+        );
+
+        self::assertStringNotContainsString('<select', $result['html']);
         self::assertTrue($result['show_listings']);
     }
 
@@ -194,12 +220,42 @@ final class PublicCategoryPresenterTest extends TestCase
 
     public function testRenderJoinedListAriaCurrentOnActive(): void
     {
+        // Overview (no category selected): list mode shows all categories without aria-current
+        // (joined list has no "All" pseudo-entry, so aria-current only fires when a category matches)
+        // Test that a matching item in overview list mode receives aria-current
+        $result = PublicCategoryPresenter::renderJoined(
+            ['Anime', 'Books'],
+            [], 0, '', '/joined', showList: true, browseMode: false,
+        );
+
+        // In overview with no selection, no item is active
+        self::assertStringNotContainsString('aria-current="page"', $result['html']);
+        self::assertStringContainsString('Anime', $result['html']);
+        self::assertStringContainsString('fl-category-list', $result['html']);
+    }
+
+    public function testJoinedPerCategoryShowsDropdownSwitcher(): void
+    {
+        // Per-category page with default showCatSwitcher=true: shows a dropdown
         $result = PublicCategoryPresenter::renderJoined(
             ['Anime', 'Books'],
             [], 0, 'Anime', '/joined', showList: true, browseMode: false,
         );
 
-        self::assertStringContainsString('aria-current="page"', $result['html']);
+        self::assertStringContainsString('<select', $result['html']);
+        self::assertStringContainsString('selected', $result['html']);
+        self::assertTrue($result['show_listings']);
+    }
+
+    public function testJoinedPerCategoryHidesSwitcherWhenOff(): void
+    {
+        $result = PublicCategoryPresenter::renderJoined(
+            ['Anime', 'Books'],
+            [], 0, 'Anime', '/joined', showList: false, browseMode: false, showCatSwitcher: false,
+        );
+
+        self::assertSame('', $result['html']);
+        self::assertTrue($result['show_listings']);
     }
 
     public function testRenderJoinedEmptyCategoriesReturnsEmptyHtml(): void

@@ -54,7 +54,7 @@ use Luster\Core\View;
 </main>
 
 <footer>
-  <p><small>Powered by <a href="https://github.com/starceress/luster">Luster</a></small></p>
+  <p>Powered by <a href="https://github.com/starceress/luster">Luster</a></p>
 </footer>
 
 </body>

@@ -1,28 +1,16 @@
-<?php
-
-declare(strict_types=1);
-
-/**
- * @var array  $site_settings
- * @var string $success
- * @var string $error
- * @var string $base_url
- * @var string $csrf_token
- */
-
+<?php declare(strict_types=1);
 use Luster\Core\View;
-
-$b = rtrim(View::e($base_url), '/');
+$b = rtrim(View::e($base_url ?? ''), '/');
 ?>
 
 <div class="page-topbar">
-  <a href="<?= $b ?>/admin/collective" class="link">&larr; Back to Collective Templates</a>
+  <a href="<?= $b ?>/admin/collective" class="link">&larr; Back to Collective</a>
 </div>
 
-<?php if ($success !== ''): ?>
+<?php if (($success ?? '') !== ''): ?>
   <div class="alert alert-success"><?= View::e($success) ?></div>
 <?php endif; ?>
-<?php if ($error !== ''): ?>
+<?php if (($error ?? '') !== ''): ?>
   <div class="alert alert-error"><?= View::e($error) ?></div>
 <?php endif; ?>
 

@@ -7,11 +7,13 @@ namespace Luster\Addons\Adoption\Controllers;
 use Luster\Addons\Adoption\AdoptionRepo;
 use Luster\Core\Application;
 use Luster\Core\Captcha;
+use Luster\Core\Mailer;
 use Luster\Core\RateLimit;
 use Luster\Core\Request;
 use Luster\Core\Response;
 use Luster\Core\Validator;
 use Luster\Repositories\BlacklistRepo;
+use Luster\Repositories\EmailTemplateRepo;
 use Luster\Repositories\ListingRepo;
 use Luster\Repositories\ListingSettingsRepo;
 use Luster\Support\FormFieldBuilder;
@@ -142,6 +144,40 @@ final class AdoptPublicController
         ]);
 
         $rateLimit->clear($ip, RateLimit::ACTION_PUBLIC_ADOPT);
+
+        // Admin notification email
+        try {
+            $config    = $this->app->getConfig();
+            $adminTo   = ($listing->email !== '') ? $listing->email
+                       : (string) $config->get('owner_email', '');
+            if ($adminTo !== '') {
+                $emailRepo = new EmailTemplateRepo($db);
+                $tokens    = EmailTemplateRepo::buildAdoptionTokens(
+                    listingName      : $listing->title,
+                    listingUrl       : $listing->url,
+                    siteName         : (string) $config->get('site_name',   ''),
+                    ownerName        : (string) $config->get('owner_name',  ''),
+                    ownerEmail       : (string) $config->get('owner_email', ''),
+                    applicantName    : $name,
+                    applicantEmail   : $email,
+                    applicantUrl     : $url,
+                    applicantMessage : $message,
+                );
+                [$subject, $body] = $emailRepo->resolveForListing(
+                    $listingId,
+                    EmailTemplateRepo::TYPE_ADOPTION_APPLIED,
+                    $tokens,
+                );
+                (new Mailer($config))->send(
+                    $adminTo,
+                    (string) $config->get('owner_name', ''),
+                    $subject,
+                    $body,
+                );
+            }
+        } catch (\Throwable) {
+            // Email failures are non-fatal
+        }
 
         $session->remove('lstr_embed_return_to');
         $successTpl = (new ListingSettingsRepo($this->app->getDatabase()))->getSuccessTemplate($listingId) ?? '';

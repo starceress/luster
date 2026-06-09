@@ -11,9 +11,10 @@ use Luster\Repositories\SiteSettingsRepo;
  * Luster embed — KIM List overview or per-fanlisting subject fragment.
  *
  * Overview mode (default):
- *   $luster_kim_list_base  = 'https://example.com/kim-list.php'; // optional — base for per-fanlisting links
- *   $luster_kim_signup_url = 'https://example.com/kim.php';      // optional — sign-up link override
- *   $luster_return         = false;
+ *   $luster_kim_list_base        = 'https://example.com/kim-list.php'; // optional — base for per-fanlisting links
+ *   $luster_kim_signup_url       = 'https://example.com/kim.php';      // optional — sign-up link override
+ *   $luster_kim_only_with_signups = true;                              // optional — false = show all listings even with no sign-ups
+ *   $luster_return               = false;
  *   require '/absolute/path/to/luster/public/embed/kim-list.php';
  *
  * Subject mode (per-fanlisting approved members):
@@ -62,8 +63,9 @@ if (!$_lusterApp->isAddonInstalled('Kim')) {
 // 3. Resolve mode + override variables
 // ---------------------------------------------------------------------------
 
-$_lusterSubjectId = (int) ($luster_kim_subject_id ?? 0);
-$_lusterListBase  = isset($luster_kim_list_base) && (string) $luster_kim_list_base !== ''
+$_lusterSubjectId       = (int) ($luster_kim_subject_id ?? 0);
+$_lusterOnlyWithSignups = (bool) ($luster_kim_only_with_signups ?? true);
+$_lusterListBase        = isset($luster_kim_list_base) && (string) $luster_kim_list_base !== ''
     ? (string) $luster_kim_list_base
     : null;
 
@@ -149,20 +151,25 @@ if ($_lusterSubjectId > 0) {
     ]);
 } else {
     // -----------------------------------------------------------------------
-    // Overview mode — all fanlistings with KIM interest counts
+    // Overview mode — all (or only active) fanlistings with KIM interest counts
     // -----------------------------------------------------------------------
     $_lusterListingRepo = new ListingRepo($_lusterApp->getDatabase(), $_lusterApp->getConfig());
 
-    $_lusterFanlistings = array_filter(
+    $_lusterFanlistings   = array_filter(
         $_lusterListingRepo->getAll(),
         static fn($fl) => !$fl->trouble,
     );
+    $_lusterApprovedCounts = $_lusterKimRepo->getApprovedCountsAll();
 
     $_lusterFanlistingsWithCounts = [];
     foreach ($_lusterFanlistings as $_fl) {
+        $_lusterCount = $_lusterApprovedCounts[$_fl->id] ?? 0;
+        if ($_lusterOnlyWithSignups && $_lusterCount === 0) {
+            continue;
+        }
         $_lusterFanlistingsWithCounts[] = [
             'listing' => $_fl,
-            'count'   => $_lusterKimRepo->countApprovedByFanlisting($_fl->id),
+            'count'   => $_lusterCount,
         ];
     }
 

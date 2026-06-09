@@ -79,8 +79,8 @@
 
 .fl-powered-by {
   margin-top: 1em;
-  font-size: 0.8em;
-  opacity: 0.7;
+  font-size: 1em;
+  text-align: center;
 }
 
 .fl-pagination-wrap {
@@ -505,6 +505,79 @@
 .fl-listing-section-count {
   font-size: 0.85em;
   opacity: 0.7;
+}
+
+/* ── Random listing ──────────────────────────────────────────────────────────── */
+
+.fl-random-listing-item {
+  display: flex;
+  gap: 0.75em;
+  align-items: flex-start;
+  padding: 0.5em 0;
+}
+
+.fl-random-listing-image-wrap { flex-shrink: 0; }
+
+.fl-random-listing-image {
+  display: block;
+  max-width: 120px;
+}
+
+.fl-random-listing-body {
+  flex: 1;
+  min-width: 0;
+  font-size: 0.9em;
+  line-height: 1.7;
+}
+
+.fl-random-listing-title {
+  font-weight: 600;
+  display: block;
+}
+
+.fl-random-listing-subject {
+  display: block;
+  font-style: italic;
+}
+
+/* ── Latest listing ──────────────────────────────────────────────────────────── */
+
+.fl-latest-listing-item {
+  display: flex;
+  gap: 0.75em;
+  align-items: flex-start;
+  padding: 0.5em 0;
+}
+
+.fl-latest-listing-image-wrap { flex-shrink: 0; }
+
+.fl-latest-listing-image {
+  display: block;
+  max-width: 120px;
+}
+
+.fl-latest-listing-body {
+  flex: 1;
+  min-width: 0;
+  font-size: 0.9em;
+  line-height: 1.7;
+}
+
+.fl-latest-listing-title {
+  font-weight: 600;
+  display: block;
+}
+
+.fl-latest-listing-subject {
+  display: block;
+  font-style: italic;
+}
+
+.fl-latest-listing-date {
+  display: block;
+  font-size: 0.85em;
+  color: var(--fl-muted, #777);
+  margin-top: 0.25em;
 }
 
 /* ── Joined listings ─────────────────────────────────────────────────────────── */

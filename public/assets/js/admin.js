@@ -1724,7 +1724,7 @@ document.addEventListener('change', function (e) {
     join: 'join.php', members: 'members.php', stats: 'stats.php',
     update: 'update.php', remove: 'remove.php', reset: 'reset.php',
     affiliates: 'affiliates.php', owned: 'owned.php', joined: 'joined.php',
-    cstats: 'collective-stats.php', 'aff-col': 'affiliates.php', 'col-aff-apply': 'affiliate-apply.php', 'col-codes': 'codes.php', 'col-codes-submit': 'codes-submit.php',
+    cstats: 'collective-stats.php', 'aff-col': 'affiliates.php', 'col-aff-apply': 'affiliate-apply.php', 'col-codes': 'codes.php', 'col-codes-submit': 'collective-codes-submit.php',
     'aff-apply': 'affiliate-apply.php',
     random: 'random-listing.php', latest: 'latest-listing.php',
     kim: 'kim-signup.php', 'kim-list': 'kim-list.php', 'kim-update': 'kim-update.php', 'kim-reset': 'kim-reset.php',
@@ -1775,13 +1775,15 @@ document.addEventListener('change', function (e) {
       if (vals.status)                        lines.push('$luster_status             = ' + phpStr(vals.status) + ';');
       if (vals.category_id)                   lines.push('$luster_category_id        = ' + (parseInt(vals.category_id, 10) || 0) + ';');
       if (vals.hide_dropdown === 'true')      lines.push('$luster_hide_dropdown      = true;');
-      if (vals.show_list === 'true')          lines.push('$luster_show_list          = true;');
+      if (vals.show_list === 'false')         lines.push('$luster_show_list          = false;');
+      if (vals.show_cat_switcher === 'false') lines.push('$luster_show_cat_switcher  = false;');
       if (vals.exclude_pending === 'false')   lines.push('$luster_exclude_pending    = false;');
     }
     if (type === 'joined') {
       if (vals.browse_by_category === 'true') lines.push('$luster_browse_by_category = true;');
       if (vals.category)                      lines.push('$luster_category           = ' + phpStr(vals.category) + ';');
-      if (vals.show_list === 'true')          lines.push('$luster_show_list          = true;');
+      if (vals.show_list === 'false')         lines.push('$luster_show_list          = false;');
+      if (vals.show_cat_switcher === 'false') lines.push('$luster_show_cat_switcher  = false;');
       if (vals.show_all_by_default === 'true') lines.push('$luster_show_all_by_default = true;');
     }
     if (type === 'random' && vals.status) lines.push('$luster_status = ' + phpStr(vals.status) + ';');
@@ -1791,6 +1793,9 @@ document.addEventListener('change', function (e) {
     }
     if (type === 'wishlist' && vals.wishlist_type && vals.wishlist_type !== 'all') {
       lines.push('$luster_wishlist_type = ' + phpStr(vals.wishlist_type) + ';');
+    }
+    if (type === 'kim-list' && vals.only_with_signups === 'false') {
+      lines.push('$luster_kim_only_with_signups = false;');
     }
     // Stats template override
     if (type === 'stats' && Array.isArray(vals.tpl) && vals.tpl.length > 0) {
@@ -1888,7 +1893,8 @@ document.addEventListener('change', function (e) {
         { id: 'status',             label: 'Listings to show',        type: 'select', opts: [['','Current only'],['upcoming','Upcoming only'],['pending','Pending only'],['all','All statuses']], hint: '' },
         { id: 'category_id',        label: 'Only this category ID',    type: 'number', ph: '0', hint: 'Optional. Leave blank unless you know the category ID you want to lock this snippet to.' },
         { id: 'hide_dropdown',      label: 'Category dropdown',       type: 'select', opts: [['','Show'],['true','Hide']], hint: '' },
-        { id: 'show_list',          label: 'Category style',          type: 'select', opts: [['','Dropdown'],['true','Link list']], hint: '' },
+        { id: 'show_list',          label: 'Overview style',          type: 'select', opts: [['','Link list'],['false','Dropdown']], hint: 'How categories appear on the main page before a category is selected.' },
+        { id: 'show_cat_switcher',  label: 'Per-category switcher',   type: 'select', opts: [['','Show'],['false','Hide']], hint: 'When a visitor is browsing a category, show a dropdown to switch to another.' },
         { id: 'exclude_pending',    label: 'Pending listings',        type: 'select', opts: [['','Hide when showing all'],['false','Show when showing all']], hint: 'Only matters when "Listings to show" is All statuses.' },
       ],
     },
@@ -1896,7 +1902,8 @@ document.addEventListener('change', function (e) {
       fields: [
         { id: 'browse_by_category', label: 'What visitors see first', type: 'select', opts: [['','Listings'],['true','Category list']], hint: 'Choose Category list if you want visitors to pick a topic before seeing listings.' },
         { id: 'category',           label: 'Category view',           type: 'select', opts: [['','Let visitors choose'],['all','Show all by category']], hint: 'To show one category only, add its name manually in the snippet.' },
-        { id: 'show_list',          label: 'Category style',          type: 'select', opts: [['','Dropdown'],['true','Link list']], hint: '' },
+        { id: 'show_list',          label: 'Overview style',          type: 'select', opts: [['','Link list'],['false','Dropdown']], hint: 'How categories appear on the main page before a category is selected.' },
+        { id: 'show_cat_switcher',  label: 'Per-category switcher',   type: 'select', opts: [['','Show'],['false','Hide']], hint: 'When a visitor is browsing a category, show a dropdown to switch to another.' },
         { id: 'show_all_by_default', label: 'Show all first',          type: 'select', opts: [['','No'],['true','Yes']], hint: 'Shows all joined listings immediately, while still keeping the category chooser.' },
       ],
     },
@@ -1997,7 +2004,9 @@ document.addEventListener('change', function (e) {
       note: 'Set your KIM page links in Settings first. After that, this snippet is ready to copy.',
     },
     'kim-list': {
-      fields: [],
+      fields: [
+        { id: 'only_with_signups', label: 'Listings to show', type: 'select', opts: [['','Only with sign-ups'],['false','All listings']], hint: 'By default, only fanlistings that have at least one approved KIM member are shown.' },
+      ],
       note: 'Set your KIM page links in Settings first. After that, this snippet is ready to copy.',
     },
     'kim-update': {
@@ -2149,6 +2158,20 @@ document.addEventListener('change', function (e) {
     if (prevBtn) {
       prevBtn.style.display = buildPreviewUrl() ? '' : 'none';
     }
+    schedulePreviewRefresh();
+  }
+
+  var prevRefreshTimer = null;
+  function schedulePreviewRefresh() {
+    if (!prevModal || prevModal.style.display === 'none') return;
+    clearTimeout(prevRefreshTimer);
+    prevRefreshTimer = setTimeout(function () {
+      var url = buildPreviewUrl();
+      if (url && prevIframe) {
+        prevIframe.src = url;
+        if (prevNewTab) prevNewTab.href = url;
+      }
+    }, 600);
   }
 
   function buildPreviewUrl() {
@@ -2788,7 +2811,7 @@ document.addEventListener('click', function (e) {
 
 (function () {
   function initCodesManager() {
-    if (!document.querySelector('.code-card')) return;
+    if (!document.querySelector('.codes-browser')) return;
 
   // ── Select-all checkbox ──────────────────────────────────────────────────
   var root          = document.querySelector('.codes-browser');
@@ -3705,10 +3728,7 @@ function adminWireFilterPanel(btnId, panelId, htmlClass) {
 // ── 42. Collective Templates -- token insert, reset to default ─────────────────
 
 (function () {
-  // Token row: insert at cursor in target textarea (event delegation)
-  document.addEventListener('click', function (e) {
-    var row = e.target.closest('.tok-row[data-textarea]');
-    if (!row) return;
+  function insertTokenFromRow(row) {
     var ta = document.getElementById(row.dataset.textarea);
     if (!ta) return;
     var token = row.dataset.token || '';
@@ -3716,7 +3736,106 @@ function adminWireFilterPanel(btnId, panelId, htmlClass) {
     ta.value = ta.value.slice(0, start) + token + ta.value.slice(end);
     ta.selectionStart = ta.selectionEnd = start + token.length;
     ta.focus();
+  }
+
+  // Token row: insert at cursor in target textarea (event delegation)
+  document.addEventListener('click', function (e) {
+    var row = e.target.closest('.tok-row[data-textarea]');
+    if (!row) return;
+    insertTokenFromRow(row);
   });
+
+  document.addEventListener('keydown', function (e) {
+    if (e.key !== 'Enter' && e.key !== ' ') return;
+    var row = e.target.closest('.tok-row[data-textarea]');
+    if (!row) return;
+    e.preventDefault();
+    insertTokenFromRow(row);
+  });
+
+  // Token search: keep results grouped inside their original token cards.
+  var tokenSearch = document.getElementById('collective-token-search');
+  var tokenSearchClear = document.getElementById('collective-token-search-clear');
+  var tokenCards = document.querySelectorAll('[data-token-card]');
+  var tokenSearchEmpty = document.getElementById('collective-token-search-empty');
+  var tokenSearchActive = false;
+
+  function tokenSearchText(value) {
+    return (value || '').toLowerCase().replace(/[{}_.\/-]+/g, ' ');
+  }
+
+  function updateTokenSearch() {
+    if (!tokenSearch || !tokenCards.length) return;
+
+    var rawQuery = tokenSearch.value.trim();
+    var terms = tokenSearchText(rawQuery).split(/\s+/).filter(Boolean);
+    var active = terms.length > 0;
+    var hasQuery = tokenSearch.value.length > 0;
+    var totalMatches = 0;
+
+    if (active && !tokenSearchActive) {
+      tokenCards.forEach(function (card) {
+        card.dataset.tokenSearchWasOpen = card.open ? '1' : '0';
+      });
+    }
+
+    tokenCards.forEach(function (card) {
+      var matches = 0;
+      var rows = card.querySelectorAll('.tok-row[data-token]');
+      var help = card.querySelectorAll('[data-token-search-help]');
+
+      help.forEach(function (el) {
+        el.hidden = active;
+      });
+
+      rows.forEach(function (row) {
+        var source = [
+          row.dataset.token || '',
+          row.textContent || '',
+          row.getAttribute('title') || ''
+        ].join(' ');
+        var haystack = source.toLowerCase() + ' ' + tokenSearchText(source);
+        var match = !active || terms.every(function (term) {
+          return haystack.indexOf(term) !== -1;
+        });
+
+        row.hidden = !match;
+        if (match) matches += 1;
+      });
+
+      if (active) {
+        card.hidden = matches === 0;
+        if (matches > 0) card.open = true;
+        totalMatches += matches;
+      } else {
+        card.hidden = false;
+        if (tokenSearchActive) {
+          card.open = card.dataset.tokenSearchWasOpen === '1';
+          delete card.dataset.tokenSearchWasOpen;
+        }
+      }
+    });
+
+    if (tokenSearchEmpty) {
+      tokenSearchEmpty.hidden = !active || totalMatches > 0;
+    }
+    if (tokenSearchClear) {
+      tokenSearchClear.hidden = !hasQuery;
+    }
+
+    tokenSearchActive = active;
+  }
+
+  if (tokenSearch) {
+    tokenSearch.addEventListener('input', updateTokenSearch);
+  }
+  if (tokenSearchClear && tokenSearch) {
+    tokenSearchClear.addEventListener('click', function () {
+      tokenSearch.value = '';
+      updateTokenSearch();
+      tokenSearch.focus();
+    });
+  }
 
   // Reset to default button
   var defaultsEl = document.getElementById('luster-coltpl-defaults');
@@ -3726,12 +3845,80 @@ function adminWireFilterPanel(btnId, panelId, htmlClass) {
   }
   document.addEventListener('click', function (e) {
     var btn = e.target.closest('.tpl-reset-row button[data-textarea]');
-    if (!btn) return;
+    if (!btn || btn.classList.contains('coltpl-preview-btn')) return;
     var ta = document.getElementById(btn.dataset.textarea);
     if (ta && defaults[btn.dataset.textarea] !== undefined) {
       ta.value = defaults[btn.dataset.textarea];
       ta.focus();
     }
+  });
+
+  // ── Collective template preview (real-data backend render) ─────────────
+  var coltplMeta = {};
+  var coltplMetaEl = document.getElementById('luster-coltpl-meta');
+  if (coltplMetaEl) { try { coltplMeta = JSON.parse(coltplMetaEl.textContent); } catch (err) {} }
+
+  var coltplModal    = document.getElementById('coltpl-prev-modal');
+  var coltplIframe   = document.getElementById('coltpl-prev-iframe');
+  var coltplClose    = document.getElementById('coltpl-prev-close');
+  var coltplTitle    = document.getElementById('coltpl-prev-title');
+  var coltplSpinner  = document.getElementById('coltpl-prev-spinner');
+
+  var COLTPL_LABELS = {
+    owned: 'Owned Listings Preview', random: 'Random Listing Preview',
+    latest: 'Latest Listing Preview', joined: 'Joined Listings Preview',
+    collective_affiliates_section: 'Affiliates Preview', collective_stats: 'Statistics Preview'
+  };
+
+  function closeColtplModal() {
+    if (coltplModal) { coltplModal.classList.add('is-hidden'); coltplModal.style.display = 'none'; }
+    if (coltplIframe) { coltplIframe.srcdoc = ''; }
+  }
+
+  function loadColtplPreview(type, tplHtml) {
+    if (!coltplModal || !coltplIframe || !coltplMeta.previewUrl) return;
+    if (coltplTitle) coltplTitle.textContent = COLTPL_LABELS[type] || 'Preview';
+    if (coltplSpinner) coltplSpinner.style.display = '';
+    coltplIframe.srcdoc = '';
+    coltplModal.classList.remove('is-hidden');
+    coltplModal.style.display = 'flex';
+
+    var fd = new FormData();
+    fd.append('_csrf', coltplMeta.csrf || '');
+    fd.append('template_type', type);
+    fd.append('template_html', tplHtml);
+
+    fetch(coltplMeta.previewUrl, { method: 'POST', body: fd })
+      .then(function (r) { return r.text(); })
+      .then(function (html) {
+        if (coltplSpinner) coltplSpinner.style.display = 'none';
+        if (coltplIframe) coltplIframe.srcdoc = html;
+      })
+      .catch(function () {
+        if (coltplSpinner) coltplSpinner.style.display = 'none';
+        if (coltplIframe) coltplIframe.srcdoc = '<body style="font-family:sans-serif;padding:1rem;color:#c00">Preview request failed.</body>';
+      });
+  }
+
+  document.addEventListener('click', function (e) {
+    var btn = e.target.closest('.coltpl-preview-btn');
+    if (!btn) return;
+    var type     = btn.dataset.tpltype;
+    var taId     = btn.dataset.textarea;
+    var ta       = taId ? document.getElementById(taId) : null;
+    var tplHtml  = ta ? ta.value : '';
+    if (!type || !tplHtml.trim()) return;
+    loadColtplPreview(type, tplHtml);
+  });
+
+  if (coltplClose) coltplClose.addEventListener('click', closeColtplModal);
+  if (coltplModal) {
+    coltplModal.addEventListener('click', function (e) {
+      if (e.target === coltplModal) closeColtplModal();
+    });
+  }
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && coltplModal && coltplModal.style.display !== 'none') closeColtplModal();
   });
 }());
 
@@ -4624,6 +4811,36 @@ document.addEventListener('click', function (e) {
 
 }());
 
+// ── Embed snippet copy + code toggle ────────────────────────────────
+(function () {
+  document.addEventListener('click', function (ev) {
+    var copyBtn = ev.target.closest('.es-copy');
+    if (copyBtn) {
+      var text = copyBtn.dataset.snippet || '';
+      var original = copyBtn.innerHTML;
+      function done() {
+        copyBtn.textContent = 'Copied!';
+        setTimeout(function () { copyBtn.innerHTML = original; }, 1600);
+      }
+      if (navigator.clipboard) {
+        navigator.clipboard.writeText(text).then(done).catch(function () {});
+      } else {
+        done();
+      }
+      return;
+    }
+    var toggleBtn = ev.target.closest('.es-toggle');
+    if (toggleBtn) {
+      var item = toggleBtn.closest('.es-item');
+      var snippet = item ? item.querySelector('.es-snippet') : null;
+      if (!snippet) return;
+      var willShow = snippet.hidden;
+      snippet.hidden = !willShow;
+      toggleBtn.setAttribute('aria-expanded', willShow ? 'true' : 'false');
+    }
+  });
+}());
+
 // ── Nav search ───────────────────────────────────────────────────────────────
 
 (function () {
@@ -4648,7 +4865,9 @@ document.addEventListener('click', function (e) {
     { label: 'System Details',     hint: 'Settings', url: base + '/admin/settings#panel-system' },
     { label: 'System Info',        hint: 'Admin',    url: base + '/admin/sysinfo' },
     { label: 'Members Settings',   hint: 'Members',  url: base + '/admin/members/settings' },
-    { label: 'Collective Templates', hint: 'Collective', url: base + '/admin/collective' },
+    { label: 'Collective Templates', hint: 'Collective', url: base + '/admin/collective/templates' },
+    { label: 'Embed Snippets',       hint: 'Collective', url: base + '/admin/collective/snippets' },
+    { label: 'Collective Codes',     hint: 'Collective', url: base + '/admin/codes?collective=1' },
     { label: 'Collective Settings',  hint: 'Collective', url: base + '/admin/collective/settings' },
   ];
 

@@ -67,7 +67,7 @@ $filtersActive = $filters_active ?? false;
     <button type="button" class="btn btn-preview btn-sm filter-toggle"
             id="codes-filter-toggle" aria-expanded="true" aria-controls="codes-filter-panel">
       <?= View::icon('filter') ?>
-      Filter<?php if ($lid > 0 || $filtersActive): ?><span class="filter-dot" aria-hidden="true"></span><?php endif; ?>
+      Filter<?php if ($lid > 0 || $filtersActive || $viewMode === 'collective'): ?><span class="filter-dot" aria-hidden="true"></span><?php endif; ?>
     </button>
   </div>
   <?php if ($viewMode === 'listing' && $lid > 0): ?>
@@ -77,6 +77,11 @@ $filtersActive = $filters_active ?? false;
       <a href="<?= $b ?>/admin/listings/<?= $lid ?>/codes/export" class="btn btn-quaternary btn-sm"><?= View::icon('download') ?> Export ZIP</a>
     <?php endif; ?>
     <a href="<?= $b ?>/admin/listings/<?= $lid ?>/edit?tab=codes" class="btn btn-quaternary btn-sm"><?= View::icon('gear') ?> Manage Categories &amp; Donors</a>
+  </div>
+  <?php endif; ?>
+  <?php if ($viewMode !== 'collective'): ?>
+  <div class="actions-row actions-row--right">
+    <a href="<?= $b ?>/admin/codes?collective=1" class="btn btn-quaternary btn-sm"><?= View::icon('image') ?> Collective Codes</a>
   </div>
   <?php endif; ?>
 </div>
@@ -91,7 +96,8 @@ $filtersActive = $filters_active ?? false;
     <div class="select-wrap">
       <?php $_apl = $approved_per_listing ?? []; $_aplTotal = array_sum($_apl); ?>
       <select name="listing_id" id="codes-listing-sel">
-        <option value="0"<?= $lid === 0 ? ' selected' : '' ?>>All Listings<?= $_aplTotal > 0 ? ' (' . $_aplTotal . ')' : '' ?></option>
+        <option value="0"<?= $lid === 0 && $viewMode !== 'collective' ? ' selected' : '' ?>>All Listings<?= $_aplTotal > 0 ? ' (' . $_aplTotal . ')' : '' ?></option>
+        <option value="collective"<?= $viewMode === 'collective' ? ' selected' : '' ?>><?= View::e($app_name ?? 'Collective') ?> (Collective)</option>
         <?php foreach ($allListing as $fl): ?>
           <?php $_flApproved = (int) ($_apl[(int) $fl->id] ?? 0); ?>
           <option value="<?= (int) $fl->id ?>"<?= $lid === (int) $fl->id ? ' selected' : '' ?>>
@@ -101,7 +107,7 @@ $filtersActive = $filters_active ?? false;
       </select>
     </div>
 
-    <?php if (!empty($filterOpts['sizes'])): ?>
+    <?php if ($viewMode !== 'collective' && !empty($filterOpts['sizes'])): ?>
     <div class="select-wrap">
       <select name="size" id="codes-size-sel">
         <option value="">All Sizes</option>
@@ -115,7 +121,7 @@ $filtersActive = $filters_active ?? false;
     </div>
     <?php endif; ?>
 
-    <?php if (!empty($filterOpts['donors'])): ?>
+    <?php if ($viewMode !== 'collective' && !empty($filterOpts['donors'])): ?>
     <div class="select-wrap">
       <select name="donor" id="codes-donor-sel">
         <option value="">All Donors</option>
@@ -131,16 +137,276 @@ $filtersActive = $filters_active ?? false;
 
     <div class="search-field-wrap">
       <?= View::icon('search', ['class' => 'search-field-icon', 'aria-hidden' => 'true']) ?>
-      <input type="text" name="search" class="form" placeholder="Search listing or donor&hellip;"
+      <input type="text" name="search" class="form"
+             placeholder="<?= $viewMode === 'collective' ? 'Search donor or filename&hellip;' : 'Search listing or donor&hellip;' ?>"
              value="<?= View::e($filterSearch) ?>">
     </div>
 
     <button type="submit" class="btn btn-secondary btn-sm">Search</button>
-    <a href="<?= $b ?>/admin/codes<?= $lid > 0 ? '?listing_id=' . $lid : '' ?>" class="btn btn-quaternary btn-sm">Reset</a>
+    <?php if ($viewMode === 'collective'): ?>
+      <a href="<?= $b ?>/admin/codes?collective=1" class="btn btn-quaternary btn-sm">Reset</a>
+    <?php else: ?>
+      <a href="<?= $b ?>/admin/codes<?= $lid > 0 ? '?listing_id=' . $lid : '' ?>" class="btn btn-quaternary btn-sm">Reset</a>
+    <?php endif; ?>
   </form>
 </div>
 
-<?php if ($viewMode === 'global'): ?>
+<?php if ($viewMode === 'collective'): ?>
+<!-- ══════════════════════════════════════════════════════════════════ -->
+<!-- COLLECTIVE VIEW: full tile-grid layout (mirrors per-listing view)  -->
+<!-- ══════════════════════════════════════════════════════════════════ -->
+
+<?php
+$_colCounts         = $code_status_counts ?? ['approved' => 0, 'pending' => 0, 'rejected' => 0];
+$_colPending        = (int) $_colCounts['pending'];
+$_colApproved       = (int) $_colCounts['approved'];
+$_colRejected       = (int) $_colCounts['rejected'];
+$_colGrouped        = $code_grouped ?? [];
+$_colNonEmpty       = array_filter($_colGrouped, fn($g) => !empty($g['codes']));
+$_colGroupCount     = count($_colNonEmpty);
+$_colStatusFilter   = $code_status_filter ?? 'approved';
+$_colTotal          = $total_codes ?? 0;
+$_colBaseUrl        = $b . '/admin/codes?collective=1';
+$_colUploads        = $uploads_url ?? ($b . '/uploads/codes');
+?>
+
+<form id="codes-bulk-form" method="POST" action="<?= $b ?>/admin/codes/collective/bulk">
+  <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
+  <input type="hidden" name="_tab"  value="<?= View::e($_colStatusFilter) ?>">
+</form>
+<form id="codes-reorder-form" method="POST" action="<?= $b ?>/admin/codes/collective/reorder">
+  <input type="hidden" name="_csrf"     value="<?= View::e($csrf_token) ?>">
+  <input type="hidden" name="_tab"      value="<?= View::e($_colStatusFilter) ?>">
+  <input type="hidden" id="reorder-ids" name="ordered_ids" value="">
+</form>
+
+<?php foreach ($codes as $code): ?>
+<dialog id="edit-dialog-<?= (int)$code->id ?>" class="modal code-edit-dialog">
+  <div class="modal-header modal-header-sticky">
+    <span class="modal-title">Edit code &mdash; <?= View::e($code->filename) ?></span>
+    <button type="button" class="modal-close" data-close-dialog aria-label="Close">&times;</button>
+  </div>
+  <div class="modal-body">
+    <div class="code-preview">
+      <img src="<?= View::e($_colUploads . '/' . $code->filename) ?>"
+           alt="<?= View::e($code->filename) ?>"
+           class="code-preview-img">
+      <?php if ($code->width > 0 && $code->height > 0): ?>
+      <div class="code-preview-meta"><?= (int)$code->width ?>&times;<?= (int)$code->height ?>px</div>
+      <?php endif; ?>
+    </div>
+    <form method="POST"
+          action="<?= $b ?>/admin/codes/collective/<?= (int)$code->id ?>/update"
+          class="code-modal-form">
+      <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
+      <input type="hidden" name="_tab"  value="<?= View::e($_colStatusFilter) ?>">
+      <div>
+        <label class="form-label code-modal-label">Label <span class="text-dim">(optional)</span></label>
+        <input class="form" type="text" name="name" value="<?= View::e($code->name ?? '') ?>"
+               placeholder="<?= View::e($code->filename) ?>">
+      </div>
+      <div>
+        <label class="form-label code-modal-label">Status</label>
+        <div class="select-wrap">
+          <select name="status">
+            <option value="approved" <?= $code->status === 'approved' ? 'selected' : '' ?>>Live</option>
+            <option value="pending"  <?= $code->status === 'pending'  ? 'selected' : '' ?>>Pending</option>
+            <option value="rejected" <?= $code->status === 'rejected' ? 'selected' : '' ?>>Rejected</option>
+          </select>
+        </div>
+      </div>
+      <?php $_hasDonorInfo = $code->submitterName !== null || $code->submitterEmail !== null || $code->submitterUrl !== null; ?>
+      <details<?= $_hasDonorInfo ? ' open' : '' ?> class="code-donor-details">
+        <summary class="link" style="font-size:var(--fs-sm);margin-bottom:.5rem;display:inline-block;list-style:none;cursor:pointer"><?= $_hasDonorInfo ? 'Donor information' : '+ Add donor information' ?></summary>
+        <div>
+          <label class="form-label code-modal-label">Donor Name</label>
+          <input class="form" type="text" name="submitter_name"
+                 value="<?= View::e($code->submitterName ?? '') ?>" placeholder="Display name&hellip;">
+        </div>
+        <div style="margin-top:.5rem">
+          <label class="form-label code-modal-label">Donor Email</label>
+          <input class="form" type="email" name="submitter_email"
+                 value="<?= View::e($code->submitterEmail ?? '') ?>" placeholder="Optional">
+        </div>
+        <div style="margin-top:.5rem">
+          <label class="form-label code-modal-label">Donor Website</label>
+          <input class="form" type="url" name="submitter_url"
+                 value="<?= View::e($code->submitterUrl ?? '') ?>" placeholder="https://&hellip;">
+        </div>
+      </details>
+      <div class="composer-footer" style="margin-top:1rem">
+        <button type="submit" class="btn btn-primary btn-sm">Save changes</button>
+        <button type="button" class="btn btn-danger btn-sm code-dialog-delete-btn">Delete</button>
+      </div>
+    </form>
+    <form class="code-delete-form"
+          method="POST"
+          action="<?= $b ?>/admin/codes/collective/<?= (int)$code->id ?>/delete"
+          data-del-modal data-del-entity="code"
+          data-del-name="<?= View::e($code->filename) ?>" style="display:none">
+      <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
+      <input type="hidden" name="_tab"  value="<?= View::e($_colStatusFilter) ?>">
+    </form>
+  </div>
+</dialog>
+<?php endforeach; ?>
+
+<div class="codes-page-layout">
+
+<!-- ── Upload Card ─────────────────────────────────────────────────── -->
+<div class="card">
+  <div class="card-head">Upload Codes</div>
+  <form method="POST" action="<?= $b ?>/admin/codes/collective-upload" enctype="multipart/form-data">
+    <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
+    <div class="pc-section">
+      <div class="file-drop-zone">
+        <input type="file" id="codes-input" name="codes[]" multiple accept="image/jpeg,image/png,image/gif,image/webp">
+        <span class="file-drop-icon"><?= View::icon('image') ?></span>
+        <strong>Click or drop images</strong>
+        <span class="form-hint">JPEG, PNG, GIF, WebP &mdash; max 500 KB each</span>
+      </div>
+      <p class="panel-hint" style="margin-top:.5rem">Multiple files allowed. Dimensions are detected automatically.</p>
+    </div>
+
+    <div class="pc-section">
+      <?php $_colSubmitters = $code_submitter_names ?? []; ?>
+      <div class="panel-field">
+        <label class="panel-label" for="cc-donor">Donor</label>
+        <div class="select-wrap">
+          <select id="cc-donor" name="donor_id">
+            <option value="">None</option>
+            <?php if (!empty($_colSubmitters)): ?>
+              <optgroup label="Past Submitters">
+                <?php foreach ($_colSubmitters as $sn): ?>
+                  <option value="s:<?= View::e($sn) ?>"><?= View::e($sn) ?></option>
+                <?php endforeach; ?>
+              </optgroup>
+            <?php endif; ?>
+          </select>
+        </div>
+        <p class="panel-hint"><a href="#" id="upload-add-donor-toggle" class="link"><?= View::icon('add') ?> Add new donor</a></p>
+      </div>
+
+      <div id="upload-new-donor-wrap" class="is-hidden">
+        <div class="panel-field">
+          <label class="panel-label" for="cc-donor-name">Donor Name <span class="req">*</span></label>
+          <input class="form" type="text" id="cc-donor-name" name="new_donor_name" placeholder="Display name&hellip;">
+        </div>
+        <div class="panel-field">
+          <label class="panel-label" for="cc-donor-email">Email</label>
+          <input class="form" type="email" id="cc-donor-email" name="new_donor_email" placeholder="Optional">
+        </div>
+        <div class="panel-field">
+          <label class="panel-label" for="cc-donor-url">Website</label>
+          <input class="form" type="url" id="cc-donor-url" name="new_donor_url" placeholder="https://&hellip;">
+        </div>
+      </div>
+    </div>
+
+    <div class="composer-footer">
+      <button type="submit" class="btn btn-primary">Add Code</button>
+      <button type="reset" class="btn btn-ghost">Clear</button>
+    </div>
+  </form>
+</div>
+
+<!-- ── Current Codes Card ───────────────────────────────────────────── -->
+<div class="card codes-browser" style="min-width:0" data-initial-code-filter="<?= View::e($_colStatusFilter) ?>" data-codes-base-url="<?= View::e($_colBaseUrl) ?>">
+  <div class="card-head">Current Codes
+    <span class="badge badge-<?= $_colApproved > 0 ? 'current' : 'inactive' ?>"><?= $_colApproved ?> Approved</span>
+    <?php if ($_colPending > 0): ?><span class="badge badge-pending"><?= $_colPending ?> Pending</span><?php endif; ?>
+    <?php if ($_colRejected > 0): ?><span class="badge badge-error"><?= $_colRejected ?> Rejected</span><?php endif; ?>
+    <?php if ($_colGroupCount > 0): ?><span class="card-head-sub">Click and drag the top left corner to reorder codes &mdash; changes are effective immediately.</span><?php endif; ?>
+  </div>
+
+  <div class="codes-tabs">
+    <a href="<?= View::e($_colBaseUrl . '&tab=approved') ?>" class="tabs-btn<?= $_colStatusFilter === 'approved' ? ' active' : '' ?>" data-code-filter="approved">
+      Approved <span class="badge badge-<?= $_colApproved > 0 ? 'current' : 'inactive' ?>"><?= $_colApproved ?></span>
+    </a>
+    <a href="<?= View::e($_colBaseUrl . '&tab=pending') ?>" class="tabs-btn<?= $_colStatusFilter === 'pending' ? ' active' : '' ?>" data-code-filter="pending">
+      Pending <span class="badge badge-<?= $_colPending > 0 ? 'pending' : 'inactive' ?>"><?= $_colPending ?></span>
+    </a>
+    <a href="<?= View::e($_colBaseUrl . '&tab=rejected') ?>" class="tabs-btn<?= $_colStatusFilter === 'rejected' ? ' active' : '' ?>" data-code-filter="rejected">
+      Rejected <span class="badge badge-<?= $_colRejected > 0 ? 'error' : 'inactive' ?>"><?= $_colRejected ?></span>
+    </a>
+  </div>
+
+  <div class="codes-bulk">
+    <label class="codes-bulk-label">
+      <input type="checkbox" id="codes-select-all">Select all </label>
+    <div class="select-wrap">
+      <select id="bulk-action-sel" class="select-xs">
+        <option value="" disabled selected>&mdash; Select &mdash;</option>
+        <option value="delete">Delete</option>
+        <option value="approve">Approve</option>
+        <option value="reject">Reject</option>
+      </select>
+    </div>
+    <button type="button" id="bulk-apply-btn" class="btn btn-quaternary btn-sm">Apply to Selected</button>
+    <div class="codes-bulk-right">
+      <button type="button" id="save-order-btn" class="btn btn-quaternary btn-sm is-hidden">Save Order</button>
+    </div>
+  </div>
+
+  <?php if ($_colTotal === 0): ?>
+    <div class="card-empty-state">
+      <div class="empty">
+        <span class="empty-icon"><?= View::icon('image', ['width' => 32, 'height' => 32]) ?></span>
+        No collective codes yet. Use the Upload Codes panel to add some.
+      </div>
+    </div>
+  <?php else: ?>
+    <?php $_colFilterEmpty = ($_colStatusFilter === 'approved' && $_colApproved === 0) || ($_colStatusFilter === 'pending' && $_colPending === 0) || ($_colStatusFilter === 'rejected' && $_colRejected === 0); ?>
+    <div class="card-empty-state<?= $_colFilterEmpty ? '' : ' is-hidden' ?>" id="codes-filter-empty">
+      <div class="empty">
+        <span class="empty-icon"><?= View::icon('image', ['width' => 32, 'height' => 32]) ?></span>
+        No codes match this filter &mdash; <a href="<?= View::e($_colBaseUrl . '&tab=approved') ?>" class="link" data-code-filter="approved">show approved</a>.
+      </div>
+    </div>
+    <?php foreach ($_colGrouped as $group): ?>
+      <?php if (empty($group['codes'])) continue; ?>
+      <?php
+        $firstCode = reset($group['codes']);
+        $gridMin   = max((int)$firstCode->width + 32, 80) . 'px';
+      ?>
+      <div class="pc-section" data-code-group>
+        <div class="pc-section-label"><?= View::e($group['label']) ?>
+          <span class="badge badge-inactive" data-code-group-count data-total-count="<?= count($group['codes']) ?>"><?= count($group['codes']) ?> code<?= count($group['codes']) !== 1 ? 's' : '' ?></span>
+        </div>
+        <div class="code-grid" data-code-group-grid style="grid-template-columns:repeat(auto-fill,minmax(<?= $gridMin ?>,1fr))">
+        <?php foreach ($group['codes'] as $code): ?>
+        <?php $_isDonated = $code->submitterName !== null; ?>
+        <div class="code-tile code-card"
+             data-code-status="<?= View::e($code->status) ?>"
+             data-code-id="<?= (int)$code->id ?>">
+          <input type="checkbox" form="codes-bulk-form" name="selected[]" value="<?= (int)$code->id ?>" class="code-tile-cb code-check">
+          <span class="code-drag-handle drag-handle" title="Drag to reorder">&#8942;&#8942;</span>
+          <img src="<?= View::e($_colUploads . '/' . $code->filename) ?>"
+               alt="<?= (int)$code->width ?>&times;<?= (int)$code->height ?>px"
+               class="code-tile-img" loading="lazy">
+          <?php if (($code->name ?? '') !== ''): ?>
+          <div class="text-muted"><?= View::e($code->name) ?></div>
+          <?php endif; ?>
+          <?php if ($code->submitterName !== null): ?>
+          <div class="badge badge-info-pink">&hearts; <?= View::e($code->submitterName) ?></div>
+          <?php endif; ?>
+          <?php if ($code->status === 'pending'): ?>
+          <span class="badge badge-pending">Pending</span>
+          <?php endif; ?>
+          <button type="button" class="btn btn-quaternary btn-sm code-edit-btn" data-dialog="edit-dialog-<?= (int)$code->id ?>">
+            Edit
+          </button>
+        </div>
+        <?php endforeach; ?>
+        </div>
+      </div>
+    <?php endforeach; ?>
+  <?php endif; ?>
+</div><!-- /codes-browser -->
+
+</div><!-- /codes-page-layout -->
+
+<?php elseif ($viewMode === 'global'): ?>
 <!-- ══════════════════════════════════════════════════════════════════ -->
 <!-- GLOBAL VIEW: pending donations across all listings                 -->
 <!-- ══════════════════════════════════════════════════════════════════ -->

@@ -267,7 +267,7 @@ final class View
      */
     public static function attribution(): string
     {
-        return "\n" . '<p class="fl-powered-by"><small>Powered by <a href="https://luster.starceress.net/" rel="nofollow">Luster</a></small></p>';
+        return "\n" . '<p class="fl-powered-by">Powered by <a href="https://luster.starceress.net/" rel="nofollow">Luster</a></p>';
     }
 
     // -----------------------------------------------------------------------

@@ -25,8 +25,12 @@ use Luster\Support\PublicCategoryPresenter;
  *                               'all' — show ALL active listings grouped by category
  *                               other — exact category name; show only that category's listings
  *                               Default: '' (reads $_GET['cat'])
- *   $luster_show_list           bool    Show category selector as bulleted list vs <select>.
- *                                       Default: false
+ *   $luster_show_list           bool    Overview page: show categories as a bulleted link
+ *                                       list instead of a <select> dropdown.
+ *                                       Default: true
+ *   $luster_show_cat_switcher   bool    Per-category page: show a compact dropdown so
+ *                                       visitors can switch categories without going back.
+ *                                       Default: true
  *   $luster_browse_by_category  bool    Browse-by-category mode: index view when no category selected.
  *                                       Default: false
  *   $luster_show_all_by_default bool    Show grouped listings AND the selector initially.
@@ -57,7 +61,8 @@ $_lusterApp = require $_lusterRoot . '/bootstrap.php';
 // 2. Resolve parameters
 // ---------------------------------------------------------------------------
 
-$_lusterShowList        = (bool) ($luster_show_list           ?? false);
+$_lusterShowList        = (bool) ($luster_show_list           ?? true);
+$_lusterShowCatSwitcher = (bool) ($luster_show_cat_switcher    ?? true);
 $_lusterShowAllDefault  = (bool) ($luster_show_all_by_default  ?? false);
 $_lusterBrowseByCat     = (bool) ($luster_browse_by_category   ?? false);
 
@@ -119,27 +124,20 @@ $_lusterFormAction = htmlspecialchars(
     'UTF-8'
 );
 
-// Render the navigator in selector mode, show-all-default mode, or browse-by-category mode
-// (browse mode needs the presenter even when a category is selected — it generates the back link)
-$_lusterShowCategoryNav = ($_lusterCategory === ''
-                        || ($_lusterShowAllDefault && $_lusterCategory === '')
-                        || ($_lusterBrowseByCat && $_lusterCategory !== ''));
-$_lusterShowListings    = true;
-$_lusterCategoryHtml    = '';
-
-if ($_lusterShowCategoryNav) {
-    $_ljPresenter = PublicCategoryPresenter::renderJoined(
-        $_lusterCategories,
-        $_lusterCategoryCountMap,
-        $_lusterTotalCount,
-        $_lusterCategory,
-        $_lusterFormAction,
-        $_lusterShowList,
-        $_lusterBrowseByCat,
-    );
-    $_lusterCategoryHtml = $_ljPresenter['html'];
-    $_lusterShowListings = $_ljPresenter['show_listings'];
-}
+// Always render the navigator — the presenter handles all cases (overview list/dropdown,
+// per-category switcher, browse-by-category back link, or empty string when nothing applies)
+$_ljPresenter = PublicCategoryPresenter::renderJoined(
+    $_lusterCategories,
+    $_lusterCategoryCountMap,
+    $_lusterTotalCount,
+    $_lusterCategory,
+    $_lusterFormAction,
+    $_lusterShowList,
+    $_lusterBrowseByCat,
+    $_lusterShowCatSwitcher,
+);
+$_lusterCategoryHtml = $_ljPresenter['html'];
+$_lusterShowListings = $_ljPresenter['show_listings'];
 
 // ---------------------------------------------------------------------------
 // 3c. Load joined listing row template from DB (if set)

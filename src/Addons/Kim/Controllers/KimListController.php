@@ -36,11 +36,17 @@ final class KimListController
         // Filter out trouble listings
         $filtered = array_filter($fanlistings, static fn($fl) => !$fl->trouble);
 
+        $approvedCounts = $kimRepo->getApprovedCountsAll();
+
         $fanlistingsWithCounts = [];
         foreach ($filtered as $fl) {
+            $count = $approvedCounts[$fl->id] ?? 0;
+            if ($count === 0) {
+                continue;
+            }
             $fanlistingsWithCounts[] = [
                 'listing' => $fl,
-                'count'   => $kimRepo->countApprovedByFanlisting($fl->id),
+                'count'   => $count,
             ];
         }
 

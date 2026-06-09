@@ -6,9 +6,11 @@ namespace Luster\Addons\Adoption\Controllers;
 
 use Luster\Addons\Adoption\AdoptionRepo;
 use Luster\Core\Application;
+use Luster\Core\Mailer;
 use Luster\Core\Request;
 use Luster\Core\Response;
 use Luster\Repositories\ActivityRepo;
+use Luster\Repositories\EmailTemplateRepo;
 use Luster\Repositories\ListingRepo;
 use Luster\Repositories\ListingSettingsRepo;
 use Luster\Repositories\SiteSettingsRepo;
@@ -453,6 +455,10 @@ final class AdoptionAdminController
 
         $adoptionRepo->setStatus($id, $status);
 
+        if ($status === 'approved' || $status === 'rejected') {
+            $this->sendAdoptionStatusEmail($application, $status);
+        }
+
         (new ActivityRepo($db))->log(
             (int) $session->get('lstr_admin_id', 0) ?: null,
             'adoption_status',
@@ -461,6 +467,44 @@ final class AdoptionAdminController
 
         $session->set('lstr_flash_success', 'Application ' . $status . '.');
         return $this->redirectAfterAction($request, $baseUrl);
+    }
+
+    private function sendAdoptionStatusEmail(array $application, string $status): void
+    {
+        try {
+            $config    = $this->app->getConfig();
+            $db        = $this->app->getDatabase();
+            $listingId = (int) $application['fanlisting_id'];
+            $listing   = (new ListingRepo($db, $config))->getById($listingId);
+            $emailRepo = new EmailTemplateRepo($db);
+
+            $type = $status === 'approved'
+                ? EmailTemplateRepo::TYPE_ADOPTION_APPROVED
+                : EmailTemplateRepo::TYPE_ADOPTION_REJECTED;
+
+            $tokens = EmailTemplateRepo::buildAdoptionTokens(
+                listingName      : $listing?->title ?? '',
+                listingUrl       : $listing?->url   ?? '',
+                siteName         : (string) $config->get('site_name',   ''),
+                ownerName        : (string) $config->get('owner_name',  ''),
+                ownerEmail       : (string) $config->get('owner_email', ''),
+                applicantName    : (string) $application['name'],
+                applicantEmail   : (string) $application['email'],
+                applicantUrl     : (string) ($application['url']     ?? ''),
+                applicantMessage : (string) ($application['message'] ?? ''),
+            );
+
+            [$subject, $body] = $emailRepo->resolveForListing($listingId, $type, $tokens);
+
+            $toEmail = (string) $application['email'];
+            if ($toEmail === '') {
+                return;
+            }
+
+            (new Mailer($config))->send($toEmail, (string) $application['name'], $subject, $body);
+        } catch (\Throwable) {
+            // Email failures are non-fatal
+        }
     }
 
     private function redirectAfterAction(Request $request, string $baseUrl): Response

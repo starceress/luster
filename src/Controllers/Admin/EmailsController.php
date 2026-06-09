@@ -120,12 +120,21 @@ final class EmailsController extends AdminController
 
         // Resolve global email templates for the compose sidebar
         $typeLabels = [
-            EmailTemplateRepo::TYPE_JOIN        => 'Join confirmation',
-            EmailTemplateRepo::TYPE_APPROVE     => 'Membership approved',
-            EmailTemplateRepo::TYPE_UPDATE      => 'Membership updated',
-            EmailTemplateRepo::TYPE_REMOVE      => 'Membership removed',
-            EmailTemplateRepo::TYPE_RESET       => 'Password reset',
-            EmailTemplateRepo::TYPE_NOTIFY_JOIN => 'New member notification',
+            EmailTemplateRepo::TYPE_JOIN               => 'Join confirmation',
+            EmailTemplateRepo::TYPE_APPROVE            => 'Membership approved',
+            EmailTemplateRepo::TYPE_UPDATE             => 'Membership updated',
+            EmailTemplateRepo::TYPE_REMOVE             => 'Membership removed',
+            EmailTemplateRepo::TYPE_RESET              => 'Password reset',
+            EmailTemplateRepo::TYPE_NOTIFY_JOIN        => 'New member notification (admin)',
+            EmailTemplateRepo::TYPE_AFFILIATE_APPLIED  => 'Affiliate application (admin)',
+            EmailTemplateRepo::TYPE_AFFILIATE_APPROVED => 'Affiliate approved',
+            EmailTemplateRepo::TYPE_AFFILIATE_REJECTED => 'Affiliate rejected',
+            EmailTemplateRepo::TYPE_CODE_APPROVED      => 'Code donation approved',
+            EmailTemplateRepo::TYPE_ADOPTION_APPLIED   => 'Adoption application (admin)',
+            EmailTemplateRepo::TYPE_ADOPTION_APPROVED  => 'Adoption approved',
+            EmailTemplateRepo::TYPE_ADOPTION_REJECTED  => 'Adoption rejected',
+            EmailTemplateRepo::TYPE_KIM_APPLIED        => 'KIM sign-up (admin)',
+            EmailTemplateRepo::TYPE_KIM_APPROVED       => 'KIM sign-up approved',
         ];
         $globalEmailTemplates = [];
         foreach ($typeLabels as $type => $label) {

@@ -13,6 +13,7 @@ use Luster\Core\Request;
 use Luster\Core\Response;
 use Luster\Core\Validator;
 use Luster\Repositories\ActivityRepo;
+use Luster\Repositories\EmailTemplateRepo;
 use Luster\Repositories\ListingRepo;
 use Luster\Repositories\SiteSettingsRepo;
 
@@ -392,6 +393,32 @@ final class KimAdminController extends AdminController
         }
 
         $kimRepo->approve($memberId);
+
+        // Send approval email to KIM member
+        try {
+            $config      = $this->app->getConfig();
+            $listingRepo = new ListingRepo($db, $config);
+            $listing     = $listingRepo->getById($member->fanlistingId);
+            $emailRepo   = new EmailTemplateRepo($db);
+            $tokens      = EmailTemplateRepo::buildKimTokens(
+                listingName : $listing?->title ?? '',
+                listingUrl  : $listing?->url   ?? '',
+                siteName    : (string) $config->get('site_name',   ''),
+                ownerName   : (string) $config->get('owner_name',  ''),
+                ownerEmail  : (string) $config->get('owner_email', ''),
+                kimName     : $member->name,
+                kimEmail    : $member->email,
+                kimUrl      : $member->url,
+            );
+            [$subject, $body] = $emailRepo->resolveForListing(
+                $member->fanlistingId,
+                EmailTemplateRepo::TYPE_KIM_APPROVED,
+                $tokens,
+            );
+            (new Mailer($config))->send($member->email, $member->name, $subject, $body);
+        } catch (\Throwable) {
+            // Email failures are non-fatal
+        }
 
         $activityRepo = new ActivityRepo($db);
         $activityRepo->log(
@@ -820,6 +847,114 @@ final class KimAdminController extends AdminController
 
         $session->set('lstr_flash_success', 'KIM settings saved.');
         return Response::redirect($baseUrl . '/admin/kim/settings');
+    }
+
+    // -----------------------------------------------------------------------
+    // GET /admin/kim/add
+    // -----------------------------------------------------------------------
+
+    public function addForm(Request $request, array $params): Response
+    {
+        $db      = $this->app->getDatabase();
+        $config  = $this->app->getConfig();
+        $session = $this->app->getSession();
+
+        $listingRepo = new ListingRepo($db, $config);
+        $fanlistings = $listingRepo->getAll();
+
+        $error = (string) $session->get('lstr_flash_error', '');
+        $old   = (array)  $session->get('lstr_flash_old',   []);
+        $session->remove('lstr_flash_error');
+        $session->remove('lstr_flash_old');
+
+        return $this->adminLayout('admin/addons/kim/add.php', 'Add KIM Entry', 'kim', [
+            'fanlistings' => $fanlistings,
+            'old'         => $old,
+            'error'       => $error,
+        ], '', [
+            $this->crumb('Keep In Mind', $this->adminUrl('/admin/kim')),
+        ]);
+    }
+
+    // -----------------------------------------------------------------------
+    // POST /admin/kim/add
+    // -----------------------------------------------------------------------
+
+    public function add(Request $request, array $params): Response
+    {
+        $db      = $this->app->getDatabase();
+        $config  = $this->app->getConfig();
+        $session = $this->app->getSession();
+        $baseUrl = $this->app->getBaseUrl();
+
+        $name         = trim((string) $request->post('name',         ''));
+        $email        = trim((string) $request->post('email',        ''));
+        $url          = trim((string) $request->post('url',          ''));
+        $fanlistingId = (int) $request->post('fanlisting_id', 0);
+        $approveNow   = $request->post('approve_now', '0') === '1';
+        $newPassword  = (string) $request->post('password', '');
+
+        $listingRepo   = new ListingRepo($db, $config);
+        $fanlistings   = $listingRepo->getAll();
+        $fanlistingIds = array_map(static fn($fl) => $fl->id, $fanlistings);
+
+        $v = new Validator([
+            'name'         => $name,
+            'email'        => $email,
+            'url'          => $url,
+            'fanlisting_id'=> (string) $fanlistingId,
+        ]);
+        $v->field('name')->required()->maxLength(100);
+        $v->field('email')->required()->email()->maxLength(255);
+        $v->field('url')->httpUrl()->maxLength(500);
+        $v->field('fanlisting_id')->required();
+
+        $validationFailed = $v->fails();
+        if (!$validationFailed && ($fanlistingId <= 0 || !in_array($fanlistingId, $fanlistingIds, true))) {
+            $validationFailed = true;
+        }
+
+        if ($newPassword !== '') {
+            $pwv = new Validator(['password' => $newPassword]);
+            PasswordPolicy::applyOptional($pwv->field('password'), $newPassword);
+            if ($pwv->fails()) {
+                $session->set('lstr_flash_error', implode(' ', $pwv->allErrors()));
+                $session->set('lstr_flash_old', ['name' => $name, 'email' => $email, 'url' => $url, 'fanlisting_id' => $fanlistingId]);
+                return Response::redirect($baseUrl . '/admin/kim/add');
+            }
+        }
+
+        if ($validationFailed) {
+            $session->set('lstr_flash_error', implode(' ', $v->allErrors()) ?: 'Invalid input.');
+            $session->set('lstr_flash_old', ['name' => $name, 'email' => $email, 'url' => $url, 'fanlisting_id' => $fanlistingId]);
+            return Response::redirect($baseUrl . '/admin/kim/add');
+        }
+
+        $kimRepo = new KimMemberRepo($db);
+
+        if ($kimRepo->findByEmailAndFanlisting($email, $fanlistingId) !== null) {
+            $session->set('lstr_flash_error', 'This email address is already registered for that fanlisting.');
+            $session->set('lstr_flash_old', ['name' => $name, 'email' => $email, 'url' => $url, 'fanlisting_id' => $fanlistingId]);
+            return Response::redirect($baseUrl . '/admin/kim/add');
+        }
+
+        $passwordHash = $newPassword !== '' ? password_hash($newPassword, PASSWORD_ARGON2ID) : '';
+        $newId = $kimRepo->create($fanlistingId, $name, $email, $url, $passwordHash);
+
+        if ($approveNow) {
+            $kimRepo->approve($newId);
+        }
+
+        $activityRepo = new ActivityRepo($db);
+        $activityRepo->log(
+            (int) $session->get('lstr_admin_id'),
+            'kim.add',
+            "Admin added KIM entry #{$newId} ({$email}) for fanlisting {$fanlistingId}" . ($approveNow ? ' (approved immediately)' : ''),
+            $request->ip(),
+        );
+
+        $session->set('lstr_flash_success', 'KIM entry added' . ($approveNow ? ' and approved.' : ' as pending.'));
+        return Response::redirect($baseUrl . '/admin/kim?listing_id=' . $fanlistingId);
     }
 
     // -----------------------------------------------------------------------

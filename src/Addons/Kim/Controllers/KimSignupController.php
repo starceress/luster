@@ -13,6 +13,7 @@ use Luster\Core\PasswordPolicy;
 use Luster\Core\Request;
 use Luster\Core\Response;
 use Luster\Core\Validator;
+use Luster\Repositories\EmailTemplateRepo;
 use Luster\Repositories\ListingRepo;
 use Luster\Repositories\SiteSettingsRepo;
 use Luster\Support\FormFieldBuilder;
@@ -208,6 +209,40 @@ final class KimSignupController
             } catch (\Throwable $e) {
                 error_log('[KIM] Sign-up confirmation email failed: ' . $e->getMessage());
             }
+        }
+
+        // Admin notification email
+        try {
+            $config    = $this->app->getConfig();
+            $adminTo   = ($selectedListing !== null && $selectedListing->email !== '')
+                       ? $selectedListing->email
+                       : (string) $config->get('owner_email', '');
+            if ($adminTo !== '') {
+                $emailRepo = new EmailTemplateRepo($this->app->getDatabase());
+                $tokens    = EmailTemplateRepo::buildKimTokens(
+                    listingName : $selectedListing?->title ?? '',
+                    listingUrl  : $selectedListing?->url   ?? '',
+                    siteName    : (string) $config->get('site_name',   ''),
+                    ownerName   : (string) $config->get('owner_name',  ''),
+                    ownerEmail  : (string) $config->get('owner_email', ''),
+                    kimName     : $name,
+                    kimEmail    : $email,
+                    kimUrl      : $url,
+                );
+                [$notifySubject, $notifyBody] = $emailRepo->resolveForListing(
+                    $fanlistingId,
+                    EmailTemplateRepo::TYPE_KIM_APPLIED,
+                    $tokens,
+                );
+                (new Mailer($config))->send(
+                    $adminTo,
+                    (string) $config->get('owner_name', ''),
+                    $notifySubject,
+                    $notifyBody,
+                );
+            }
+        } catch (\Throwable) {
+            // Email failures are non-fatal
         }
 
         $session->remove('lstr_embed_return_to');

@@ -30,9 +30,12 @@ use Luster\Support\PublicCategoryPresenter;
  *                                     Default: 0 (reads $_GET['cat'])
  *   $luster_hide_dropdown       bool    Set true to suppress the category selector entirely.
  *                                       Default: false
- *   $luster_show_list           bool    Set true to display categories as a bulleted link
+ *   $luster_show_list           bool    Overview page: show categories as a bulleted link
  *                                       list instead of a <select> dropdown.
- *                                       Default: false
+ *                                       Default: true
+ *   $luster_show_cat_switcher   bool    Per-category page: show a compact dropdown so
+ *                                       visitors can switch categories without going back.
+ *                                       Default: true
  *   $luster_browse_by_category  bool    Set true to enable browse-by-category mode.
  *                                       Default: false
  */
@@ -66,9 +69,10 @@ $_lusterStatus        = in_array($luster_status ?? 'current', $_lusterValidStatu
                       ? (string) ($luster_status ?? 'current')
                       : 'current';
 
-$_lusterExcludePending  = (bool) ($luster_exclude_pending  ?? true);
-$_lusterHideDropdown    = (bool) ($luster_hide_dropdown    ?? false);
-$_lusterShowList        = (bool) ($luster_show_list        ?? false);
+$_lusterExcludePending  = (bool) ($luster_exclude_pending   ?? true);
+$_lusterHideDropdown    = (bool) ($luster_hide_dropdown     ?? false);
+$_lusterShowList        = (bool) ($luster_show_list         ?? true);
+$_lusterShowCatSwitcher = (bool) ($luster_show_cat_switcher ?? true);
 $_lusterBrowseByCat     = (bool) ($luster_browse_by_category ?? false);
 
 // Category ID resolution order:
@@ -136,6 +140,7 @@ $_lusterPresenterResult = PublicCategoryPresenter::renderOwned(
     $_lusterBrowseByCat,
     $_lusterBrowseShowAll,
     count($_lusterListings),
+    $_lusterShowCatSwitcher,
 );
 
 $_lusterCategoryHtml  = $_lusterPresenterResult['html'];

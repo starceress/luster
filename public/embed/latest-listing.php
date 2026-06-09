@@ -11,7 +11,7 @@ use Luster\Support\ListingRowRenderer;
  * Luster embed — most recently opened owned listing.
  *
  * Returns the listing with the latest open date, rendered using the
- * owned-listings row template from Admin → Collective.
+ * Latest Listing template from Admin → Collective → Templates.
  * Outputs an HTML comment when no listings are found so the host page never breaks.
  *
  * For the unprefixed (Enthusiast-compatible) schema, which has no `opened`
@@ -64,14 +64,14 @@ if (empty($_lusterLatest)) {
 $_lusterListing = $_lusterLatest[0];
 
 // ---------------------------------------------------------------------------
-// 3. Load owned template from DB
+// 3. Load latest listing template from DB
 // ---------------------------------------------------------------------------
 
-$_lusterSiteRepo      = new SiteSettingsRepo($_lusterApp->getDatabase());
-$_lusterOwnedTemplate = $_lusterSiteRepo->get('owned_template')
-    ?? SiteSettingsRepo::collectiveDefaults()['owned_template'];
-if (trim($_lusterOwnedTemplate) === '') {
-    $_lusterOwnedTemplate = SiteSettingsRepo::collectiveDefaults()['owned_template'];
+$_lusterSiteRepo  = new SiteSettingsRepo($_lusterApp->getDatabase());
+$_lusterTemplate  = $_lusterSiteRepo->get('latest_listing_template')
+    ?? SiteSettingsRepo::collectiveDefaults()['latest_listing_template'];
+if (trim($_lusterTemplate) === '') {
+    $_lusterTemplate = SiteSettingsRepo::collectiveDefaults()['latest_listing_template'];
 }
 
 $_lusterUploadsUrl = $_lusterApp->getBaseUrl() . '/uploads/listings';
@@ -114,13 +114,13 @@ try {
 
 // Optional member stats (only fetched when template uses them)
 $_flStats = ['approved' => 0, 'pending' => 0, 'country_count' => 0];
-$_flNeedsApproved = str_contains($_lusterOwnedTemplate, '{member_count}')
-                 || str_contains($_lusterOwnedTemplate, '{country_count}')
-                 || str_contains($_lusterOwnedTemplate, '{countries_count}')
-                 || str_contains($_lusterOwnedTemplate, '{if_countries}');
-$_flNeedsPending  = str_contains($_lusterOwnedTemplate, '{member_pending_count}')
-                 || str_contains($_lusterOwnedTemplate, '{pending_count}')
-                 || str_contains($_lusterOwnedTemplate, '{if_pending}');
+$_flNeedsApproved = str_contains($_lusterTemplate, '{member_count}')
+                 || str_contains($_lusterTemplate, '{country_count}')
+                 || str_contains($_lusterTemplate, '{countries_count}')
+                 || str_contains($_lusterTemplate, '{if_countries}');
+$_flNeedsPending  = str_contains($_lusterTemplate, '{member_pending_count}')
+                 || str_contains($_lusterTemplate, '{pending_count}')
+                 || str_contains($_lusterTemplate, '{if_pending}');
 
 if ($_flNeedsApproved || $_flNeedsPending) {
     try {
@@ -135,17 +135,11 @@ if ($_flNeedsApproved || $_flNeedsPending) {
     } catch (\Exception) {}
 }
 
-// Routed through renderTemplate() — not render() — because owned_template is
-// now a combined block template that may declare {each_listing} (flat) or
-// {each_current}/{each_upcoming}/{each_pending} (sectioned) loops of its own.
-// render() has no loop-processing step, so calling it directly here would leak
-// literal {each_listing}/{/each_listing} tags into the page for the new
-// defaults. renderTemplate() auto-detects the template's shape and renders
-// this single listing through whichever mode it declares — placing it into
-// its matching section when the template is sectioned — exactly as
-// embed/owned.php does for a full listing pool (docs/PUBLIC-TEMPLATES-PLAN.md).
+// renderTemplate() auto-detects flat ({each_listing}) or sectioned
+// ({each_current}/{each_upcoming}/{each_pending}) mode and renders this
+// single listing through whichever shape the template declares.
 $_lusterHtml = ListingRowRenderer::renderTemplate(
-    $_lusterOwnedTemplate,
+    $_lusterTemplate,
     [$_lusterListing],
     $_lusterUploadsUrl,
     [$_lusterListing->id => $_lusterSettings],

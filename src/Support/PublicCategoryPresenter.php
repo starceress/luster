@@ -40,6 +40,7 @@ final class PublicCategoryPresenter
         bool   $browseMode,
         bool   $browseShowAll,
         int    $totalCount = 0,
+        bool   $showCatSwitcher = true,
     ): array {
         $e = static fn(string $v): string => htmlspecialchars($v, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 
@@ -62,7 +63,15 @@ final class PublicCategoryPresenter
             return ['html' => '', 'show_listings' => true];
         }
 
-        // Normal mode: list or dropdown
+        // Per-category page: show compact dropdown switcher (independent of $showList)
+        if ($currentId > 0) {
+            $html = $showCatSwitcher
+                ? self::renderOwnedDropdown($categories, $currentId, $formAction, $e)
+                : '';
+            return ['html' => $html, 'show_listings' => true];
+        }
+
+        // Overview (no category selected): list or dropdown
         $html = $showList
             ? self::renderOwnedList($categories, $currentId, $formAction, $e)
             : self::renderOwnedDropdown($categories, $currentId, $formAction, $e);
@@ -243,6 +252,7 @@ final class PublicCategoryPresenter
         string $formAction,
         bool   $showList,
         bool   $browseMode,
+        bool   $showCatSwitcher = true,
     ): array {
         $e = static fn(string $v): string => htmlspecialchars($v, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 
@@ -265,6 +275,15 @@ final class PublicCategoryPresenter
             return ['html' => '', 'show_listings' => true];
         }
 
+        // Per-category page: show compact dropdown switcher (independent of $showList)
+        if ($currentCategory !== '') {
+            $html = $showCatSwitcher
+                ? self::renderJoinedDropdown($categories, $currentCategory, $formAction, $e)
+                : '';
+            return ['html' => $html, 'show_listings' => true];
+        }
+
+        // Overview (no category selected): list or dropdown
         $html = $showList
             ? self::renderJoinedList($categories, $currentCategory, $formAction, $e)
             : self::renderJoinedDropdown($categories, $currentCategory, $formAction, $e);

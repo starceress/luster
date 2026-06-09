@@ -614,4 +614,24 @@ final class CodesRepo
         $stmt = $this->db->prepare('DELETE FROM lstr_codes WHERE fanlisting_id = :fid');
         $stmt->execute(['fid' => $listingId]);
     }
+
+    /**
+     * Bulk-updates sort_order for collective codes (fanlisting_id IS NULL).
+     *
+     * @param int[] $orderedIds  Code IDs in the desired display order (first = 0, etc.).
+     */
+    public function reorderCollective(array $orderedIds): void
+    {
+        if (empty($orderedIds)) {
+            return;
+        }
+
+        $stmt = $this->db->prepare(
+            'UPDATE lstr_codes SET sort_order = :sort WHERE id = :id AND fanlisting_id IS NULL'
+        );
+
+        foreach ($orderedIds as $index => $codeId) {
+            $stmt->execute(['sort' => $index, 'id' => (int) $codeId]);
+        }
+    }
 }

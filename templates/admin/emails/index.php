@@ -50,6 +50,11 @@ $typeLabels = [
     EmailTemplateRepo::TYPE_AFFILIATE_APPROVED => 'Affiliate Approved',
     EmailTemplateRepo::TYPE_AFFILIATE_REJECTED => 'Affiliate Rejected',
     EmailTemplateRepo::TYPE_CODE_APPROVED      => 'Code Donation Approved',
+    EmailTemplateRepo::TYPE_ADOPTION_APPLIED   => 'Admin - Adoption Application',
+    EmailTemplateRepo::TYPE_ADOPTION_APPROVED  => 'Adoption Application Approved',
+    EmailTemplateRepo::TYPE_ADOPTION_REJECTED  => 'Adoption Application Rejected',
+    EmailTemplateRepo::TYPE_KIM_APPLIED        => 'Admin - KIM List Sign-Up',
+    EmailTemplateRepo::TYPE_KIM_APPROVED       => 'KIM Sign-Up Approved',
 ];
 
 $navLabels = [
@@ -63,6 +68,11 @@ $navLabels = [
     EmailTemplateRepo::TYPE_AFFILIATE_APPROVED => 'Affiliate Approved',
     EmailTemplateRepo::TYPE_AFFILIATE_REJECTED => 'Affiliate Rejected',
     EmailTemplateRepo::TYPE_CODE_APPROVED      => 'Code Approved',
+    EmailTemplateRepo::TYPE_ADOPTION_APPLIED   => 'Adoption Applied',
+    EmailTemplateRepo::TYPE_ADOPTION_APPROVED  => 'Adoption Approved',
+    EmailTemplateRepo::TYPE_ADOPTION_REJECTED  => 'Adoption Rejected',
+    EmailTemplateRepo::TYPE_KIM_APPLIED        => 'KIM Applied',
+    EmailTemplateRepo::TYPE_KIM_APPROVED       => 'KIM Approved',
 ];
 
 $typeHints = [
@@ -76,6 +86,11 @@ $typeHints = [
     EmailTemplateRepo::TYPE_AFFILIATE_APPROVED => 'Sent to the affiliate applicant after you approve them.',
     EmailTemplateRepo::TYPE_AFFILIATE_REJECTED => 'Sent to the affiliate applicant after you reject them.',
     EmailTemplateRepo::TYPE_CODE_APPROVED      => 'Sent to the code donor after their submitted code is approved.',
+    EmailTemplateRepo::TYPE_ADOPTION_APPLIED   => 'Sent to the listing admin when someone submits an adoption application.',
+    EmailTemplateRepo::TYPE_ADOPTION_APPROVED  => 'Sent to the applicant after you approve their adoption application.',
+    EmailTemplateRepo::TYPE_ADOPTION_REJECTED  => 'Sent to the applicant after you reject their adoption application.',
+    EmailTemplateRepo::TYPE_KIM_APPLIED        => 'Sent to the listing admin when someone signs up to the KIM List.',
+    EmailTemplateRepo::TYPE_KIM_APPROVED       => 'Sent to the KIM member after you approve their sign-up.',
 ];
 
 $allTokenDesc = [
@@ -90,12 +105,19 @@ $allTokenDesc = [
     '{site_name}'       => "Your collective or site name",
     '{owner_name}'      => "Your owner/admin name",
     '{owner_email}'     => "Your owner/admin email address",
-    '{aff_name}'        => "Affiliate applicant's site name",
-    '{aff_url}'         => "Affiliate applicant's site link",
-    '{aff_email}'       => "Affiliate applicant's email address",
-    '{aff_message}'     => "Affiliate applicant's message, if they wrote one",
-    '{name}'            => "Older short name for {fan_name}; bulk email only",
-    '{email}'           => "Older short name for {fan_email}; bulk email only",
+    '{aff_name}'           => "Affiliate applicant's site name",
+    '{aff_url}'            => "Affiliate applicant's site link",
+    '{aff_email}'          => "Affiliate applicant's email address",
+    '{aff_message}'        => "Affiliate applicant's message, if they wrote one",
+    '{applicant_name}'     => "Adoption applicant's name",
+    '{applicant_email}'    => "Adoption applicant's email address",
+    '{applicant_url}'      => "Adoption applicant's website link, if provided",
+    '{applicant_message}'  => "Adoption applicant's message, if they wrote one",
+    '{kim_name}'           => "KIM member's name",
+    '{kim_email}'          => "KIM member's email address",
+    '{kim_url}'            => "KIM member's website link",
+    '{name}'               => "Older short name for {fan_name}; bulk email only",
+    '{email}'              => "Older short name for {fan_email}; bulk email only",
 ];
 
 $commonTokens = ['{fan_name}', '{fan_email}', '{fan_url}', '{fan_country}', '{listing_title}', '{listing_subject}', '{listing_url}', '{site_name}', '{owner_name}', '{owner_email}'];
@@ -109,6 +131,13 @@ $typeTokens[EmailTemplateRepo::TYPE_AFFILIATE_APPLIED]  = $affiliateTokens;
 $typeTokens[EmailTemplateRepo::TYPE_AFFILIATE_APPROVED] = $affiliateTokens;
 $typeTokens[EmailTemplateRepo::TYPE_AFFILIATE_REJECTED] = $affiliateTokens;
 $typeTokens[EmailTemplateRepo::TYPE_CODE_APPROVED] = ['{fan_name}', '{fan_email}', '{fan_url}', '{listing_title}', '{listing_subject}', '{listing_url}', '{site_name}', '{owner_name}', '{owner_email}'];
+$adoptionTokens = ['{applicant_name}', '{applicant_email}', '{applicant_url}', '{applicant_message}', '{listing_title}', '{listing_url}', '{site_name}', '{owner_name}', '{owner_email}'];
+$typeTokens[EmailTemplateRepo::TYPE_ADOPTION_APPLIED]   = $adoptionTokens;
+$typeTokens[EmailTemplateRepo::TYPE_ADOPTION_APPROVED]  = $adoptionTokens;
+$typeTokens[EmailTemplateRepo::TYPE_ADOPTION_REJECTED]  = $adoptionTokens;
+$kimTokens = ['{kim_name}', '{kim_email}', '{kim_url}', '{listing_title}', '{listing_url}', '{site_name}', '{owner_name}', '{owner_email}'];
+$typeTokens[EmailTemplateRepo::TYPE_KIM_APPLIED]  = $kimTokens;
+$typeTokens[EmailTemplateRepo::TYPE_KIM_APPROVED] = $kimTokens;
 
 $typeExtraHints = [
     EmailTemplateRepo::TYPE_RESET => 'This email needs {reset_url}. Without it, the fan will not have a password reset link to click.',
@@ -116,6 +145,11 @@ $typeExtraHints = [
     EmailTemplateRepo::TYPE_AFFILIATE_APPROVED => 'Affiliate emails use {aff_*} tokens instead of {fan_*} tokens because the person is applying with a website, not joining as a member.',
     EmailTemplateRepo::TYPE_AFFILIATE_REJECTED => 'Affiliate emails use {aff_*} tokens instead of {fan_*} tokens because the person is applying with a website, not joining as a member.',
     EmailTemplateRepo::TYPE_CODE_APPROVED => 'Code donor emails use the fan tokens for donor details: {fan_name}, {fan_email}, and {fan_url}. There are no separate code-image tokens in this email.',
+    EmailTemplateRepo::TYPE_ADOPTION_APPLIED  => 'Adoption emails use {applicant_*} tokens instead of {fan_*} tokens. This notification goes to the listing admin email when an application arrives.',
+    EmailTemplateRepo::TYPE_ADOPTION_APPROVED => 'Adoption emails use {applicant_*} tokens instead of {fan_*} tokens. This email is sent to the applicant when you approve their application.',
+    EmailTemplateRepo::TYPE_ADOPTION_REJECTED => 'Adoption emails use {applicant_*} tokens instead of {fan_*} tokens. This email is sent to the applicant when you reject their application.',
+    EmailTemplateRepo::TYPE_KIM_APPLIED  => 'KIM emails use {kim_*} tokens instead of {fan_*} tokens. This notification goes to the listing admin email when someone signs up to the KIM List.',
+    EmailTemplateRepo::TYPE_KIM_APPROVED => 'KIM emails use {kim_*} tokens instead of {fan_*} tokens. This email is sent to the KIM member when you approve their sign-up.',
 ];
 
 $bulkTokens = [
@@ -324,7 +358,7 @@ $oldBodyE    = htmlspecialchars($old_body ?? '', ENT_QUOTES, 'UTF-8');
           <details class="card chevron" open>
             <summary class="chevron-head">Available Tokens</summary>
             <div class="card-body">
-              <p class="form-hint">Click a token row to insert it into the body. Tokens also work in the subject line if you type or paste them there.</p>
+              <p class="form-hint">Click a token row to insert it into the body of the message. Tokens also work in the subject line if you type or paste them there.</p>
               <table class="et-token-table">
                 <tbody>
                   <?php foreach ($typeTokens[$type] as $token): ?>
@@ -419,7 +453,7 @@ $oldBodyE    = htmlspecialchars($old_body ?? '', ENT_QUOTES, 'UTF-8');
       <details class="card chevron" open>
         <summary class="card-head">Available Tokens</summary>
         <div class="card-body">
-          <p class="form-hint">Click a token row to insert it into the message. Tokens also work in the subject line if you type or paste them there.</p>
+          <p class="form-hint">Click a token row to insert it into the body of the message. Tokens also work in the subject line if you type or paste them there.</p>
           <table class="et-token-table">
             <tbody>
               <?php foreach ($bulkTokens as $token => $desc): ?>
@@ -583,16 +617,20 @@ $oldBodyE    = htmlspecialchars($old_body ?? '', ENT_QUOTES, 'UTF-8');
 
           <div class="form-group custom-template-row">
             <label class="form-label" for="new-tpl-name">Template Name <span class="req">*</span></label>
-            <input id="new-tpl-name" type="text" name="tpl_name" class="form"
-                   maxlength="150" required placeholder="e.g. Welcome note, Monthly update&hellip;">
-            <p class="form-hint">Only admins see this name. Use something that will make sense when you load it later.</p>
+            <div>
+              <input id="new-tpl-name" type="text" name="tpl_name" class="form"
+                     maxlength="150" required placeholder="e.g. Welcome note, Monthly update&hellip;">
+              <p class="form-hint">Only admins see this name. Use something that will make sense when you load it later.</p>
+            </div>
           </div>
 
           <div class="form-group custom-template-row">
             <label class="form-label" for="new-tpl-subject">Subject</label>
-            <input id="new-tpl-subject" type="text" name="tpl_subject" class="form"
-                   maxlength="255" placeholder="(optional - leave blank to fill in when composing)">
-            <p class="form-hint">Optional. Tokens work here after you load this template into a compose screen.</p>
+            <div>
+              <input id="new-tpl-subject" type="text" name="tpl_subject" class="form"
+                     maxlength="255" placeholder="(optional - leave blank to fill in when composing)">
+              <p class="form-hint">Optional. Tokens work here after you load this template into a compose screen.</p>
+            </div>
           </div>
 
           <div class="form-group form-group--compact">
@@ -632,7 +670,7 @@ $oldBodyE    = htmlspecialchars($old_body ?? '', ENT_QUOTES, 'UTF-8');
       <details class="card chevron" open>
         <summary class="chevron-head">Available Tokens</summary>
         <div class="card-body">
-          <p class="form-hint">These are bulk-email tokens. Click a row to insert it into the body. Tokens also work in the subject line if you type or paste them there.</p>
+          <p class="form-hint">Click a token row to insert it into the body of the message. Tokens also work in the subject line if you type or paste them there.</p>
           <table class="et-token-table">
             <tbody>
               <?php foreach ($bulkTokens as $token => $desc): ?>

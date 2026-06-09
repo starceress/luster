@@ -134,7 +134,13 @@ return [
         $router->post('/admin/listings/settings', ListingController::class, 'saveSettings');
         $router->post('/admin/listings/bulk', ListingController::class, 'bulk');
         $router->get('/admin/collective',
+            SettingsController::class, 'collectiveIndex');
+        $router->get('/admin/collective/templates',
             SettingsController::class, 'collectiveTemplates');
+        $router->post('/admin/collective/templates/preview',
+            SettingsController::class, 'previewCollectiveTemplate');
+        $router->get('/admin/collective/snippets',
+            SettingsController::class, 'collectiveSnippets');
         $router->get('/admin/collective/settings',
             SettingsController::class, 'collectiveSettings');
         $router->post('/admin/collective/settings',
@@ -383,10 +389,20 @@ return [
         // ── Global Codes ─────────────────────────────────────────────
         $router->get('/admin/codes',
             \Luster\Controllers\Admin\GlobalCodesController::class, 'index');
+        $router->post('/admin/codes/collective-upload',
+            \Luster\Controllers\Admin\GlobalCodesController::class, 'uploadCollective');
         $router->post('/admin/codes/approve-all',
             \Luster\Controllers\Admin\GlobalCodesController::class, 'approveAll');
         $router->post('/admin/codes/bulk',
             \Luster\Controllers\Admin\GlobalCodesController::class, 'bulk');
+        $router->post('/admin/codes/collective/bulk',
+            \Luster\Controllers\Admin\GlobalCodesController::class, 'bulkCollective');
+        $router->post('/admin/codes/collective/reorder',
+            \Luster\Controllers\Admin\GlobalCodesController::class, 'reorderCollective');
+        $router->post('/admin/codes/collective/{id}/update',
+            \Luster\Controllers\Admin\GlobalCodesController::class, 'updateCollective');
+        $router->post('/admin/codes/collective/{id}/delete',
+            \Luster\Controllers\Admin\GlobalCodesController::class, 'deleteCollective');
         $router->post('/admin/codes/{id}/approve',
             \Luster\Controllers\Admin\GlobalCodesController::class, 'approve');
         $router->post('/admin/codes/{id}/reject',

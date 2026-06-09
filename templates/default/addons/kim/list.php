@@ -28,7 +28,7 @@ $_linkListBase = isset($link_list_base) && $link_list_base !== '' ? $link_list_b
     </p>
 
     <?php if (empty($fanlistings_with_counts)): ?>
-      <p class="fl-empty">No fanlistings found.</p>
+      <p class="fl-empty">No fanlistings with sign-ups yet.</p>
     <?php else: ?>
       <ul class="fl-kim-list">
         <?php foreach ($fanlistings_with_counts as $entry): ?>

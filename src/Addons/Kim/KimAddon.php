@@ -98,6 +98,8 @@ final class KimAddon implements AddonInterface
         // ── Admin routes ──────────────────────────────────────────────────
         $router->get('/admin/kim',                      KimAdminController::class, 'index');
         $router->get('/admin/kim/listings',             KimAdminController::class, 'listings');
+        $router->get('/admin/kim/add',                  KimAdminController::class, 'addForm');
+        $router->post('/admin/kim/add',                 KimAdminController::class, 'add');
         $router->get('/admin/kim/settings',             KimAdminController::class, 'showSettings');
         $router->post('/admin/kim/settings',            KimAdminController::class, 'saveSettings');
         $router->post('/admin/kim/bulk',                KimAdminController::class, 'bulkGlobal');

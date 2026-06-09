@@ -289,6 +289,29 @@ final class KimMemberRepo
     }
 
     /**
+     * Returns approved member counts for every fanlisting in a single query.
+     *
+     * @return array<int, int>  Map of fanlisting_id => approved count (only IDs with at least one approved member included)
+     */
+    public function getApprovedCountsAll(): array
+    {
+        $stmt = $this->db->prepare(
+            'SELECT fanlisting_id, COUNT(*) AS cnt
+             FROM lstr_kim_members
+             WHERE pending = 0
+             GROUP BY fanlisting_id'
+        );
+        $stmt->execute();
+
+        $result = [];
+        foreach ($stmt->fetchAll() as $row) {
+            $result[(int) $row['fanlisting_id']] = (int) $row['cnt'];
+        }
+
+        return $result;
+    }
+
+    /**
      * Returns name + email for a specific set of member IDs.
      * Used for bulk email-selected.
      *
