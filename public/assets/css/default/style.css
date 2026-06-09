@@ -57,11 +57,9 @@
 
 /* ── Per-embed root wrapper ──────────────────────────────────────────────────── */
 
-.fl-embed {
-  /* Intentionally empty — inherits font, color, line-height from host.
-     Serves as a specificity anchor for scoped overrides:
-       .fl-embed .fl-member-list { ... }  (specificity 0,2,0) */
-}
+/* .fl-embed — inherits font, color, line-height from host.
+   Serves as a specificity anchor for scoped overrides:
+     .fl-embed .fl-member-list { ... }  (specificity 0,2,0) */
 
 /* ── Global utilities ────────────────────────────────────────────────────────── */
 
@@ -182,10 +180,6 @@
 
 /* ── Forms ───────────────────────────────────────────────────────────────────── */
 
-.fl-form {
-  /* Intentionally empty — inherits from host */
-}
-
 .fl-form-fields {
   margin-bottom: 0.5em;
 }
@@ -244,14 +238,7 @@
   margin-top: 0.75em;
 }
 
-.fl-submit,
-.fl-btn {
-  /* Intentionally empty — inherit button styles from host */
-}
-
-.fl-btn-secondary {
-  /* Secondary ghost button variant — host can style */
-}
+/* .fl-submit / .fl-btn / .fl-btn-secondary — inherit button styles from host */
 
 .fl-captcha-row {
   margin-bottom: 0.75em;
@@ -346,10 +333,6 @@
 
 /* ── Stats (per-listing) ─────────────────────────────────────────────────────── */
 
-.fl-stats {
-  /* Outer wrapper — intentionally empty */
-}
-
 .fl-stats-table {
   display: grid;
   grid-template-columns: auto 1fr;
@@ -362,18 +345,6 @@
 
 .fl-stat-label {
   font-weight: 500;
-}
-
-.fl-stat-value {
-  /* Inherits from host */
-}
-
-.fl-stat-newmembers {
-  /* "Newest members" line */
-}
-
-.fl-stat-approved-by {
-  /* TFL/TAFL badge */
 }
 
 /* ── Affiliates ──────────────────────────────────────────────────────────────── */
@@ -395,14 +366,6 @@
 .fl-affiliate-image {
   display: block;
   max-width: 100%;
-}
-
-.fl-affiliate-name {
-  /* Text fallback when no image */
-}
-
-.fl-affiliates-section {
-  /* Full affiliates block wrapper */
 }
 
 .fl-affiliates-heading {
@@ -642,11 +605,6 @@
 /* Deprecated aliases: .fl-collective-stats, .fl-newest-owned,
    .fl-random-owned, .fl-categories (collective context) */
 
-.fl-cstats,
-.fl-collective-stats {
-  /* Outer wrapper */
-}
-
 /* .fl-stats-grid is the legacy alias — kept for backward compat */
 .fl-cstats-grid,
 .fl-stats-grid {
@@ -657,10 +615,6 @@
 
 .fl-cstats-label {
   font-weight: 500;
-}
-
-.fl-cstats-value {
-  /* Inherits from host */
 }
 
 .fl-cstats-newest,
@@ -682,10 +636,6 @@
 
 /* Deprecated aliases: .fl-codes-group → .fl-code-list,
    .fl-code → .fl-code-item, .fl-code-size-heading → .fl-code-group-label */
-
-.fl-codes {
-  /* Outermost codes container */
-}
 
 .fl-code-group {
   margin-bottom: 1.5em;
@@ -730,10 +680,6 @@
 }
 
 /* ── Updates feed ────────────────────────────────────────────────────────────── */
-
-.fl-updates {
-  /* Outer container */
-}
 
 .fl-update-item {
   margin-bottom: 1.5em;
@@ -787,10 +733,6 @@
    are NOT aliased here — they were collision risks with host-page CSS and were
    never defined in this file. They are replaced by scoped .fl-kim-* names. */
 
-.fl-kim {
-  /* KIM outer wrapper */
-}
-
 .fl-kim-heading {
   margin: 0 0 0.5em;
 }
@@ -828,10 +770,6 @@
   margin-top: 0.75em;
   font-size: 0.9em;
   color: var(--fl-muted, #777);
-}
-
-.fl-kim-subject {
-  /* Per-fanlisting subject view wrapper */
 }
 
 .fl-kim-subject-heading {
@@ -891,9 +829,6 @@
 .fl-wishlist-item:last-child {
   border-bottom: none;
 }
-
-.fl-wishlist-item--top    { /* Top-wanted modifier */ }
-.fl-wishlist-item--wanted { /* Wanted modifier */ }
 
 .fl-wishlist-item--granted {
   opacity: 0.65;
