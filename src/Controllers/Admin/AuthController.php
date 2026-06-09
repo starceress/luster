@@ -99,7 +99,7 @@ final class AuthController
 
         $db   = $this->app->getDatabase();
         $stmt = $db->prepare(
-            'SELECT id, username, email, password FROM lstr_admin_users WHERE username = :username'
+            'SELECT id, username, email, display_name, password FROM lstr_admin_users WHERE username = :username'
         );
         $stmt->execute(['username' => $username]);
         $user = $stmt->fetch();

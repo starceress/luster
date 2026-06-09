@@ -69,7 +69,7 @@ final class AuthMiddleware
 
         try {
             $stmt = $this->db->prepare(
-                'SELECT rt.id, u.username, u.email
+                'SELECT rt.id, u.username, u.email, u.display_name
                  FROM lstr_admin_remember_tokens rt
                  JOIN lstr_admin_users u ON u.id = rt.admin_user_id
                  WHERE rt.admin_user_id = :uid
@@ -128,9 +128,10 @@ final class AuthMiddleware
         ]);
 
         $this->session->regenerate();
-        $this->session->set('lstr_admin_id',       $userId);
-        $this->session->set('lstr_admin_username', (string) $row['username']);
-        $this->session->set('lstr_admin_email',    (string) $row['email']);
+        $this->session->set('lstr_admin_id',           $userId);
+        $this->session->set('lstr_admin_username',     (string) $row['username']);
+        $this->session->set('lstr_admin_email',        (string) $row['email']);
+        $this->session->set('lstr_admin_display_name', (string) ($row['display_name'] ?? ''));
         return true;
     }
 }
