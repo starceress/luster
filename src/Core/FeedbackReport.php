@@ -29,12 +29,17 @@ final class FeedbackReport
 {
     private const SEP = "========================================\n";
 
-    private const TYPE_LABELS = [
+    public const TYPE_LABELS = [
         'bug'      => 'Bug Report',
         'question' => 'Question / Concern',
         'feature'  => 'Feature Request',
         'other'    => 'Other',
     ];
+
+    public static function typeLabel(string $type): string
+    {
+        return self::TYPE_LABELS[$type] ?? 'Other';
+    }
 
     public static function formatSysInfo(array $data): string
     {

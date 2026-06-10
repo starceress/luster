@@ -16,6 +16,9 @@ declare(strict_types=1);
 
 use Luster\Core\View;
 ?>
+<?php if (!empty($join_intro_html ?? '')): ?>
+<?= $join_intro_html ?>
+<?php endif; ?>
 <div class="fl-embed fl-embed--join">
 
   <?php if ($errors !== ''): ?>
@@ -46,7 +49,7 @@ use Luster\Core\View;
 
     <div class="fl-form-actions">
       <button type="submit" class="fl-submit">Join Fanlisting</button>
-      <button type="reset">Clear</button>
+      <button type="reset" class="fl-btn-secondary">Clear</button>
     </div>
   </form>
 </div>

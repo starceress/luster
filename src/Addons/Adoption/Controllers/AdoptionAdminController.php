@@ -6,13 +6,16 @@ namespace Luster\Addons\Adoption\Controllers;
 
 use Luster\Addons\Adoption\AdoptionRepo;
 use Luster\Core\Application;
+use Luster\Core\Config;
 use Luster\Core\Mailer;
 use Luster\Core\Request;
 use Luster\Core\Response;
+use Luster\Models\Listing;
 use Luster\Repositories\ActivityRepo;
 use Luster\Repositories\EmailTemplateRepo;
 use Luster\Repositories\ListingRepo;
 use Luster\Repositories\ListingSettingsRepo;
+use Luster\Repositories\SavedEmailRepo;
 use Luster\Repositories\SiteSettingsRepo;
 
 /**
@@ -23,6 +26,10 @@ use Luster\Repositories\SiteSettingsRepo;
  *   POST /admin/adoptions/bulk                    bulk()        — bulk actions
  *   GET  /admin/adoptions/settings                settingsForm()
  *   POST /admin/adoptions/settings                saveSettings()
+ *   GET  /admin/adoptions/email                   bulkEmailForm()
+ *   POST /admin/adoptions/email                   bulkEmailSend()
+ *   GET  /admin/adoptions/{id}/email              emailForm()
+ *   POST /admin/adoptions/{id}/email              emailSend()
  *   GET  /admin/adoptions/{id}/edit               editForm()
  *   POST /admin/adoptions/{id}/edit               editSave()
  *   POST /admin/adoptions/{id}/approve            approve()
@@ -189,9 +196,14 @@ final class AdoptionAdminController
         $ids     = array_filter($ids, static fn(int $id): bool => $id > 0);
         $returnUrl = (string) $request->post('_return', $baseUrl . '/admin/adoptions');
 
-        if (empty($ids) || !in_array($action, ['approve', 'reject', 'delete'], true)) {
+        if (empty($ids) || !in_array($action, ['approve', 'reject', 'delete', 'email'], true)) {
             $session->set('lstr_flash_error', 'No action or applications selected.');
             return Response::redirect($returnUrl);
+        }
+
+        if ($action === 'email') {
+            $qs = http_build_query(['ids' => array_values($ids), '_return' => $returnUrl]);
+            return Response::redirect($baseUrl . '/admin/adoptions/email?' . $qs);
         }
 
         $count = 0;
@@ -238,6 +250,8 @@ final class AdoptionAdminController
         $session = $this->app->getSession();
         $error   = (string) $session->get('lstr_flash_error', '');
         $session->remove('lstr_flash_error');
+        $success = (string) $session->get('lstr_flash_success', '');
+        $session->remove('lstr_flash_success');
 
         // Pending (or legacy 'new') applications open in review mode
         $isReviewMode = in_array($application['status'] ?? 'pending', ['pending', 'new'], true);
@@ -246,6 +260,7 @@ final class AdoptionAdminController
             'application'    => $application,
             'listing'        => $listing,
             'error'          => $error,
+            'success'        => $success,
             'is_review_mode' => $isReviewMode,
         ], [
             $this->crumb('Adoptions', $this->adminUrl('/admin/adoptions')),
@@ -435,6 +450,254 @@ final class AdoptionAdminController
     }
 
     // -----------------------------------------------------------------------
+    // GET /admin/adoptions/{id}/email
+    // POST /admin/adoptions/{id}/email
+    // -----------------------------------------------------------------------
+
+    public function emailForm(Request $request, array $params): Response
+    {
+        $id           = (int) ($params['id'] ?? 0);
+        $db           = $this->app->getDatabase();
+        $config       = $this->app->getConfig();
+        $adoptionRepo = new AdoptionRepo($db);
+        $listingRepo  = new ListingRepo($db, $config);
+
+        $application = $adoptionRepo->getById($id);
+        if ($application === null) {
+            return Response::notFound('Application not found.');
+        }
+
+        $listing     = $listingRepo->getById((int) $application['fanlisting_id']);
+        $savedEmails = (new SavedEmailRepo($db))->getAll();
+
+        $session = $this->app->getSession();
+        $old     = (array) $session->get('lstr_flash_old', []);
+        $error   = (string) $session->get('lstr_flash_error', '');
+        $session->remove('lstr_flash_old');
+        $session->remove('lstr_flash_error');
+
+        return $this->layout('admin/addons/adoptions/email.php', 'Email Applicant', [
+            'application'  => $application,
+            'listing'      => $listing,
+            'from_name'    => $this->resolveFromName($config),
+            'from_email'   => $this->resolveFromEmail($config),
+            'owner_name'   => (string) $config->get('owner_name',  ''),
+            'owner_email'  => (string) $config->get('owner_email', ''),
+            'site_name'    => (string) $config->get('site_name',   ''),
+            'saved_emails' => $savedEmails,
+            'old'          => ['subject' => (string) ($old['subject'] ?? ''), 'body' => (string) ($old['body'] ?? '')],
+            'error'        => $error,
+        ], [
+            $this->crumb('Adoptions', $this->adminUrl('/admin/adoptions')),
+            $this->crumb('Email Applicant'),
+        ]);
+    }
+
+    public function emailSend(Request $request, array $params): Response
+    {
+        $this->app->getCSRF()->validate($request->post('_csrf', ''));
+
+        $id           = (int) ($params['id'] ?? 0);
+        $db           = $this->app->getDatabase();
+        $config       = $this->app->getConfig();
+        $session      = $this->app->getSession();
+        $baseUrl      = $this->app->getBaseUrl();
+        $adoptionRepo = new AdoptionRepo($db);
+
+        $application = $adoptionRepo->getById($id);
+        if ($application === null) {
+            return Response::notFound('Application not found.');
+        }
+
+        $subject = trim((string) $request->post('subject', ''));
+        $body    = trim((string) $request->post('body',    ''));
+
+        if ($subject === '' || $body === '') {
+            $session->set('lstr_flash_error', 'Subject and message are required.');
+            $session->set('lstr_flash_old', ['subject' => $subject, 'body' => $body]);
+            return Response::redirect($baseUrl . '/admin/adoptions/' . $id . '/email');
+        }
+
+        $listing = (new ListingRepo($db, $config))->getById((int) $application['fanlisting_id']);
+        $subject = $this->applyAdoptionTokens($subject, $application, $listing, $config);
+        $body    = $this->applyAdoptionTokens($body,    $application, $listing, $config);
+
+        try {
+            (new Mailer($config))->send(
+                (string) $application['email'],
+                (string) $application['name'],
+                $subject,
+                $body
+            );
+        } catch (\Throwable $e) {
+            $session->set('lstr_flash_error', 'Failed to send email: ' . $e->getMessage());
+            $session->set('lstr_flash_old', ['subject' => (string) $request->post('subject', ''), 'body' => (string) $request->post('body', '')]);
+            return Response::redirect($baseUrl . '/admin/adoptions/' . $id . '/email');
+        }
+
+        (new ActivityRepo($db))->log(
+            (int) $session->get('lstr_admin_id', 0) ?: null,
+            'adoption_email',
+            "Emailed adoption applicant #{$id} (" . (string) $application['email'] . ')'
+        );
+
+        $session->set('lstr_flash_success', 'Email sent to ' . (string) $application['name'] . '.');
+        return Response::redirect($baseUrl . '/admin/adoptions/' . $id . '/edit');
+    }
+
+    // -----------------------------------------------------------------------
+    // GET /admin/adoptions/email
+    // POST /admin/adoptions/email
+    // -----------------------------------------------------------------------
+
+    public function bulkEmailForm(Request $request, array $params): Response
+    {
+        $db     = $this->app->getDatabase();
+        $config = $this->app->getConfig();
+
+        $ids = array_filter(
+            array_map('intval', (array) $request->query('ids', [])),
+            static fn(int $id): bool => $id > 0
+        );
+
+        $returnUrl = (string) $request->query('_return', $this->app->getBaseUrl() . '/admin/adoptions');
+
+        $adoptionRepo = new AdoptionRepo($db);
+        $listingRepo  = new ListingRepo($db, $config);
+
+        $applications = [];
+        foreach (array_unique($ids) as $id) {
+            $app = $adoptionRepo->getById($id);
+            if ($app !== null) {
+                $applications[] = $app;
+            }
+        }
+
+        if (empty($applications)) {
+            $session = $this->app->getSession();
+            $session->set('lstr_flash_error', 'No valid applications selected.');
+            return Response::redirect($returnUrl);
+        }
+
+        // Build applicant name map (email => name) and preload listings
+        $applicantNames = [];
+        $listingIds     = [];
+        foreach ($applications as $app) {
+            $applicantNames[(string) $app['email']] = (string) $app['name'];
+            $listingIds[] = (int) $app['fanlisting_id'];
+        }
+        $listingMap = [];
+        foreach (array_unique($listingIds) as $lid) {
+            $fl = $listingRepo->getById($lid);
+            if ($fl !== null) {
+                $listingMap[$lid] = $fl;
+            }
+        }
+
+        $savedEmails = (new SavedEmailRepo($db))->getAll();
+        $session     = $this->app->getSession();
+        $old         = (array) $session->get('lstr_flash_old', []);
+        $error       = (string) $session->get('lstr_flash_error', '');
+        $session->remove('lstr_flash_old');
+        $session->remove('lstr_flash_error');
+
+        return $this->layout('admin/addons/adoptions/email-selected.php', 'Email Applicants', [
+            'applications'   => $applications,
+            'applicant_names'=> $applicantNames,
+            'listing_map'    => $listingMap,
+            'recipient_count'=> count($applications),
+            'from_name'      => $this->resolveFromName($config),
+            'from_email'     => $this->resolveFromEmail($config),
+            'owner_name'     => (string) $config->get('owner_name',  ''),
+            'owner_email'    => (string) $config->get('owner_email', ''),
+            'site_name'      => (string) $config->get('site_name',   ''),
+            'saved_emails'   => $savedEmails,
+            'return_url'     => $returnUrl,
+            'old'            => ['subject' => (string) ($old['subject'] ?? ''), 'body' => (string) ($old['body'] ?? '')],
+            'error'          => $error,
+        ], [
+            $this->crumb('Adoptions', $this->adminUrl('/admin/adoptions')),
+            $this->crumb('Email Applicants'),
+        ]);
+    }
+
+    public function bulkEmailSend(Request $request, array $params): Response
+    {
+        $this->app->getCSRF()->validate($request->post('_csrf', ''));
+
+        $db      = $this->app->getDatabase();
+        $config  = $this->app->getConfig();
+        $session = $this->app->getSession();
+        $baseUrl = $this->app->getBaseUrl();
+
+        $returnUrl = trim((string) $request->post('_return', $baseUrl . '/admin/adoptions'));
+
+        $ids = array_filter(
+            array_map('intval', (array) $request->post('ids', [])),
+            static fn(int $id): bool => $id > 0
+        );
+
+        $subject = trim((string) $request->post('subject', ''));
+        $body    = trim((string) $request->post('body',    ''));
+
+        if ($subject === '' || $body === '') {
+            $session->set('lstr_flash_error', 'Subject and message are required.');
+            $session->set('lstr_flash_old', ['subject' => $subject, 'body' => $body]);
+            $qs = http_build_query(['ids' => array_values($ids), '_return' => $returnUrl]);
+            return Response::redirect($baseUrl . '/admin/adoptions/email?' . $qs);
+        }
+
+        if (empty($ids)) {
+            $session->set('lstr_flash_error', 'No recipients selected.');
+            return Response::redirect($returnUrl);
+        }
+
+        $adoptionRepo = new AdoptionRepo($db);
+        $listingRepo  = new ListingRepo($db, $config);
+        $mailer       = new Mailer($config);
+
+        $sent   = 0;
+        $failed = 0;
+        $seen   = [];
+
+        foreach (array_unique($ids) as $id) {
+            $app = $adoptionRepo->getById($id);
+            if ($app === null) {
+                continue;
+            }
+            $email = strtolower(trim((string) $app['email']));
+            if ($email === '' || isset($seen[$email])) {
+                continue;
+            }
+            $seen[$email] = true;
+
+            $listing = $listingRepo->getById((int) $app['fanlisting_id']);
+            $sub     = $this->applyAdoptionTokens($subject, $app, $listing, $config);
+            $msg     = $this->applyAdoptionTokens($body,    $app, $listing, $config);
+
+            try {
+                $mailer->send($email, (string) $app['name'], $sub, $msg);
+                $sent++;
+            } catch (\Throwable) {
+                $failed++;
+            }
+        }
+
+        (new ActivityRepo($db))->log(
+            (int) $session->get('lstr_admin_id', 0) ?: null,
+            'adoption_bulk_email',
+            "Bulk emailed {$sent} adoption applicant(s)" . ($failed > 0 ? " ({$failed} failed)" : '')
+        );
+
+        $msg = 'Email sent to ' . $sent . ' applicant' . ($sent !== 1 ? 's' : '') . '.';
+        if ($failed > 0) {
+            $msg .= ' ' . $failed . ' failed to send.';
+        }
+        $session->set('lstr_flash_success', $msg);
+        return Response::redirect($returnUrl);
+    }
+
+    // -----------------------------------------------------------------------
     // Helpers
     // -----------------------------------------------------------------------
 
@@ -548,5 +811,39 @@ final class AdoptionAdminController
     private function crumb(string $label, string $url = ''): array
     {
         return ['label' => $label, 'url' => $url];
+    }
+
+    private function applyAdoptionTokens(string $text, array $app, ?Listing $listing, Config $config): string
+    {
+        return str_replace(
+            ['{app_name}', '{app_email}', '{app_url}', '{app_message}', '{app_status}',
+             '{listing_title}', '{listing_url}',
+             '{site_name}', '{owner_name}', '{owner_email}'],
+            [
+                (string) ($app['name']    ?? ''),
+                (string) ($app['email']   ?? ''),
+                (string) ($app['url']     ?? ''),
+                (string) ($app['message'] ?? ''),
+                (string) ($app['status']  ?? ''),
+                $listing?->title ?? '',
+                $listing?->url   ?? '',
+                (string) $config->get('site_name',   ''),
+                (string) $config->get('owner_name',  ''),
+                (string) $config->get('owner_email', ''),
+            ],
+            $text
+        );
+    }
+
+    private function resolveFromName(Config $config): string
+    {
+        $name = (string) $config->get('smtp_from_name', '');
+        return $name !== '' ? $name : (string) $config->get('owner_name', '');
+    }
+
+    private function resolveFromEmail(Config $config): string
+    {
+        $email = (string) $config->get('smtp_from', '');
+        return $email !== '' ? $email : (string) $config->get('owner_email', '');
     }
 }

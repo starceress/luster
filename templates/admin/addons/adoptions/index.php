@@ -239,6 +239,7 @@ $sortUrl = static function (string $col) use ($buildUrl, $sort, $dir): string {
       <div class="select-wrap">
         <select name="bulk_action" class="select-xs" id="adopt-bulk-action">
           <option value="" disabled selected>&mdash; Select &mdash;</option>
+          <option value="email">Email</option>
           <option value="approve">Approve</option>
           <option value="reject">Reject</option>
           <option value="delete">Delete</option>
@@ -343,7 +344,7 @@ $sortUrl = static function (string $col) use ($buildUrl, $sort, $dir): string {
                 <?php else: ?>
                   <a href="<?= $b ?>/admin/adoptions/<?= $appId ?>/edit" class="btn btn-tertiary btn-xs">Edit</a>
                 <?php endif; ?>
-                <a href="mailto:<?= View::e($app['email']) ?>" class="btn btn-secondary btn-xs">Email</a>
+                <a href="<?= $b ?>/admin/adoptions/<?= $appId ?>/email" class="btn btn-secondary btn-xs">Email</a>
                 <button type="submit" form="del-adopt-<?= $appId ?>" class="btn btn-danger btn-xs">Delete</button>
               </div>
             </td>

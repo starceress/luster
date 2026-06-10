@@ -14,6 +14,9 @@ declare(strict_types=1);
 
 use Luster\Core\View;
 ?>
+<?php if (!empty($adoption_intro_html ?? '')): ?>
+<?= $adoption_intro_html ?>
+<?php endif; ?>
 <div class="fl-embed fl-embed--adopt">
 
   <?php if ($errors !== ''): ?>
@@ -36,8 +39,8 @@ use Luster\Core\View;
     <?= $f['captcha_answer'] ?>
 
     <div class="fl-form-actions">
-      <button type="submit" class="fl-submit fl-btn">Submit Application</button>
-      <button type="reset" class="fl-btn fl-btn-secondary">Clear</button>
+      <button type="submit" class="fl-submit">Submit Application</button>
+      <button type="reset" class="fl-btn-secondary">Clear</button>
     </div>
   </form>
 </div>

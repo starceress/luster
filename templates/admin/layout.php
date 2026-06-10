@@ -169,6 +169,10 @@ $htmlClassAttr = $htmlClasses === [] ? '' : ' class="' . View::e(implode(' ', $h
       <a href="<?= $b ?>/admin/wishlist" class="nav-item<?= navActive('wishlist', $s) ?>"><span class="nav-icon"><?= View::icon('wishlist') ?></span> Wishlist</a>
       <?php endif; ?>
 
+      <?php if (in_array('Rules', $_navAddons, true)): ?>
+      <a href="<?= $b ?>/admin/rules" class="nav-item<?= navActive('rules', $s) ?>"><span class="nav-icon"><?= View::icon('rules') ?></span> Join Rules</a>
+      <?php endif; ?>
+
       <a href="<?= $b ?>/admin/embed-codes" class="nav-item<?= navActive('embed-codes', $s) ?>"><span class="nav-icon"><?= View::icon('embed') ?></span> Embed Wizard</a>
 
       <?php $_lcIssues = ($nav_lc_dead ?? 0) + ($nav_lc_redirect ?? 0); ?>

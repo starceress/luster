@@ -71,6 +71,13 @@ final class JoinController
         $session->remove('lstr_flash_error');
         $session->remove('lstr_flash_old');
 
+        // Redirect to rules gate if the fan hasn't agreed yet
+        if ($this->app->isAddonInstalled('Rules') && !$this->rulesAgreed($listingId)) {
+            $baseUrl = $this->app->getBaseUrl();
+            $session->set('lstr_embed_return_to', $baseUrl . '/join/' . $listingId);
+            return Response::redirect($baseUrl . '/rules/' . $listingId);
+        }
+
         return $this->renderJoinForm($listingId, $listing, $fields, $embedSettings, $old, $error);
     }
 
@@ -93,7 +100,7 @@ final class JoinController
             return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $baseUrl . '/join/' . $listingId);
         }
 
-        // Honeypot â€” silent reject; fake success so bots see no difference
+        // Honeypot — silent reject; fake success so bots see no difference
         if ((string) $request->post('website_confirm', '') !== '') {
             $session->remove('lstr_embed_return_to');
             $session->set('lstr_flash_success_html', SuccessRenderer::render('', 'joined'));
@@ -105,6 +112,12 @@ final class JoinController
 
         if ($listing === null) {
             return Response::notFound('That listing does not exist.');
+        }
+
+        // Rules gate enforcement — catches direct POSTs that bypass the embed gate
+        if ($this->app->isAddonInstalled('Rules') && !$this->rulesAgreed($listingId)) {
+            $session->set('lstr_embed_return_to', $embedReturnTo !== '' ? $embedReturnTo : $baseUrl . '/join/' . $listingId);
+            return Response::redirect($baseUrl . '/rules/' . $listingId);
         }
 
         $fieldRepo     = new FieldRepo($this->app->getDatabase(), $this->app->getConfig());
@@ -381,7 +394,19 @@ final class JoinController
         $baseUrl         = $this->app->getBaseUrl();
         $captchaQuestion = Captcha::getQuestion('join');
         $countrySelect   = Countries::buildSelect((string) ($old['country'] ?? ''));
-        $wrapperTpl      = (new ListingSettingsRepo($this->app->getDatabase()))->getWrapperTemplate($listingId) ?? '';
+        $settingsRepoRjf = new ListingSettingsRepo($this->app->getDatabase());
+        $wrapperTpl      = $settingsRepoRjf->getWrapperTemplate($listingId) ?? '';
+        $rawJoinIntro    = $settingsRepoRjf->getJoinIntroTemplate($listingId) ?? '';
+        $joinIntroHtml   = $rawJoinIntro !== ''
+            ? \Luster\Core\TemplateEngine::render(
+                $rawJoinIntro,
+                escaped: [
+                    'listing_title'   => $listing->title,
+                    'listing_url'     => $listing->url,
+                    'listing_subject' => $listing->subject ?? '',
+                ],
+            )
+            : '';
 
         $fb          = $this->app->getFormFieldBuilder();
         $descriptors = [
@@ -397,17 +422,18 @@ final class JoinController
         $f = $fb->build($descriptors, $wrapperTpl);
 
         $html = $this->app->getView()->renderPublic('join.php', [
-            'listing'      => $listing,
-            'listing_name' => $listing->title,
-            'listing_url'  => $listing->url,
-            'page_title'   => 'Join',
-            'form_action'  => $baseUrl . '/join/' . $listingId,
-            'csrf_token'   => $this->app->getCSRF()->token(),
-            'errors'       => $error !== '' ? '<p>' . htmlspecialchars($error, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '</p>' : '',
-            'fields'       => $fields,
-            'f'            => $f,
-            'base_url'     => $baseUrl,
-            'theme_path'   => $baseUrl . '/assets/css/default/',
+            'listing'         => $listing,
+            'listing_name'    => $listing->title,
+            'listing_url'     => $listing->url,
+            'page_title'      => 'Join',
+            'form_action'     => $baseUrl . '/join/' . $listingId,
+            'csrf_token'      => $this->app->getCSRF()->token(),
+            'errors'          => $error !== '' ? '<p>' . htmlspecialchars($error, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '</p>' : '',
+            'fields'          => $fields,
+            'f'               => $f,
+            'join_intro_html' => $joinIntroHtml,
+            'base_url'        => $baseUrl,
+            'theme_path'      => $baseUrl . '/assets/css/default/',
         ]);
 
         return Response::html($html);
@@ -427,5 +453,25 @@ final class JoinController
         $resetRepo->create($listingId, $email, $tokenHash, $expiresAt);
 
         return $this->app->getBaseUrl() . '/reset/' . $listingId . '/confirm?token=' . urlencode($rawToken);
+    }
+
+    /**
+     * Returns true if the fan has agreed to the current rules version for this
+     * listing, or if no active rules exist.  Wrapped in try/catch so a missing
+     * lstr_rules table (addon uninstalled mid-session) never blocks joining.
+     */
+    private function rulesAgreed(int $listingId): bool
+    {
+        try {
+            $repo    = new \Luster\Addons\Rules\RulesRepo($this->app->getDatabase());
+            $ruleSet = $repo->getForListing($listingId);
+            if ($ruleSet === null || !$ruleSet->enabled || trim($ruleSet->body) === '') {
+                return true;
+            }
+            $stored = (string) $this->app->getSession()->get('lstr_rules_agreed_' . $listingId, '');
+            return $stored === $ruleSet->fingerprint();
+        } catch (\Throwable) {
+            return true;
+        }
     }
 }

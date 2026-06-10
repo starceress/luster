@@ -240,13 +240,9 @@ $growthDiff          = $growth_this_month - $growth_last_month;
       </div>
     </div>
     <div class="status-inline">
-      <?php if ($update_status->releaseUrl !== null): ?>
-        <a href="<?= View::e($update_status->releaseUrl) ?>"
-           class="btn btn-download btn-sm"
-           target="_blank" rel="noopener noreferrer">
-          Download &rarr;
-        </a>
-      <?php endif; ?>
+      <a href="<?= $b ?>/admin/update" class="btn btn-download btn-sm">
+        Prepare Update &rarr;
+      </a>
       <form method="POST" action="<?= $b ?>/admin/dismiss-update" class="action-form-inline">
         <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
         <input type="hidden" name="version" value="<?= View::e($update_status->latest ?? '') ?>">
@@ -529,13 +525,13 @@ $growthDiff          = $growth_this_month - $growth_last_month;
         <span class="row-val"><?= number_format((int) $total_members) ?></span>
       </div>
       <div class="row">
-        <span class="row-label">Growth This Month</span>
+        <span class="row-label">New Members This Month</span>
         <div class="inline-link-row">
-          <span class="row-val"><?= (int) $growth_this_month ?></span>
+          <span class="row-val"><?= number_format((int) $growth_this_month) ?> member<?= $growth_this_month !== 1 ? 's' : '' ?></span>
           <?php if ($growthDiff > 0): ?>
           <span class="growth-pill growth-pill--up">
             <svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M2 7l3-4 3 4"/></svg>
-            <?= View::icon('add') ?><?= (int) $growthDiff ?> vs last month
+            +<?= (int) $growthDiff ?> vs last month
           </span>
           <?php endif; ?>
         </div>

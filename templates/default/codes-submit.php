@@ -18,11 +18,16 @@ use Luster\Core\View;
  */
 
 ?>
+<?php if (!empty($codes_submit_intro_html ?? '')): ?>
+<?= $codes_submit_intro_html ?>
+<?php endif; ?>
 <div class="fl-embed fl-embed--codes-submit">
+  <?php if (empty($codes_submit_intro_html ?? '')): ?>
   <p>
     Submit a code image for consideration. All submissions are reviewed before being published.
     Maximum file size: 200&nbsp;KB. Accepted formats: JPEG, PNG, GIF, WebP.
   </p>
+  <?php endif; ?>
 
   <?php if ($errors !== ''): ?>
     <p><?= $errors ?></p>

@@ -81,19 +81,37 @@ $totalCount = (int) ($scope_counts['all'] ?? 0);
       </div>
     </div>
 
-    <details class="card chevron" open>
-      <summary class="card-head">Available Tokens</summary>
-      <div class="card-body">
-        <table class="et-token-table">
+    <div class="search-field-wrap token-search-wrap">
+      <?= View::icon('search', ['class' => 'search-field-icon', 'aria-hidden' => 'true']) ?>
+      <input type="search"
+             data-token-search
+             class="form"
+             placeholder="Search email tokens"
+             autocomplete="off"
+             aria-label="Search email tokens">
+      <button type="button"
+              data-token-search-clear
+              class="token-search-clear"
+              aria-label="Clear search"
+              title="Clear search"
+              hidden><?= View::icon('x', ['aria-hidden' => 'true']) ?></button>
+    </div>
+
+    <p data-token-search-empty class="form-hint token-search-empty" hidden>No tokens found.</p>
+
+    <details class="card chevron" data-token-card>
+      <summary class="chevron-head">Available Tokens</summary>
+      <div class="chevron-body">
+        <table class="et-token-table et-token-table--compact">
           <tbody>
-            <tr class="tok-row" data-textarea="es-body" data-token="{aff_name}"    title="Click to insert"><td><code>{aff_name}</code></td><td>Affiliate site name</td></tr>
-            <tr class="tok-row" data-textarea="es-body" data-token="{aff_email}"   title="Click to insert"><td><code>{aff_email}</code></td><td>Affiliate email address</td></tr>
-            <tr class="tok-row" data-textarea="es-body" data-token="{aff_url}"     title="Click to insert"><td><code>{aff_url}</code></td><td>Affiliate site URL</td></tr>
-            <tr class="tok-row" data-textarea="es-body" data-token="{listing_title}"title="Click to insert"><td><code>{listing_title}</code></td><td>Linked listing name (or site name)</td></tr>
-            <tr class="tok-row" data-textarea="es-body" data-token="{listing_url}" title="Click to insert"><td><code>{listing_url}</code></td><td>Linked listing URL (or site URL)</td></tr>
-            <tr class="tok-row" data-textarea="es-body" data-token="{site_name}"   title="Click to insert"><td><code>{site_name}</code></td><td>Collective or site name</td></tr>
-            <tr class="tok-row" data-textarea="es-body" data-token="{owner_name}"  title="Click to insert"><td><code>{owner_name}</code></td><td>Owner's display name</td></tr>
-            <tr class="tok-row" data-textarea="es-body" data-token="{owner_email}" title="Click to insert"><td><code>{owner_email}</code></td><td>Owner's email address</td></tr>
+            <tr class="tok-row" tabindex="0" role="button" title="Affiliate site name"               aria-label="Insert {aff_name}. Affiliate site name"               data-textarea="es-body" data-token="{aff_name}">    <td class="token-cell" data-desc="Affiliate site name">               <code>{aff_name}</code></td></tr>
+            <tr class="tok-row" tabindex="0" role="button" title="Affiliate email address"            aria-label="Insert {aff_email}. Affiliate email address"            data-textarea="es-body" data-token="{aff_email}">   <td class="token-cell" data-desc="Affiliate email address">            <code>{aff_email}</code></td></tr>
+            <tr class="tok-row" tabindex="0" role="button" title="Affiliate site URL"                 aria-label="Insert {aff_url}. Affiliate site URL"                   data-textarea="es-body" data-token="{aff_url}">     <td class="token-cell" data-desc="Affiliate site URL">                 <code>{aff_url}</code></td></tr>
+            <tr class="tok-row" tabindex="0" role="button" title="Linked listing name (or site name)" aria-label="Insert {listing_title}. Linked listing name (or site name)" data-textarea="es-body" data-token="{listing_title}"><td class="token-cell" data-desc="Linked listing name (or site name)"><code>{listing_title}</code></td></tr>
+            <tr class="tok-row" tabindex="0" role="button" title="Linked listing URL (or site URL)"   aria-label="Insert {listing_url}. Linked listing URL (or site URL)"   data-textarea="es-body" data-token="{listing_url}"> <td class="token-cell" data-desc="Linked listing URL (or site URL)">  <code>{listing_url}</code></td></tr>
+            <tr class="tok-row" tabindex="0" role="button" title="Collective or site name"            aria-label="Insert {site_name}. Collective or site name"            data-textarea="es-body" data-token="{site_name}">   <td class="token-cell" data-desc="Collective or site name">            <code>{site_name}</code></td></tr>
+            <tr class="tok-row" tabindex="0" role="button" title="Owner's display name"              aria-label="Insert {owner_name}. Owner's display name"             data-textarea="es-body" data-token="{owner_name}">  <td class="token-cell" data-desc="Owner's display name">              <code>{owner_name}</code></td></tr>
+            <tr class="tok-row" tabindex="0" role="button" title="Owner's email address"             aria-label="Insert {owner_email}. Owner's email address"            data-textarea="es-body" data-token="{owner_email}"> <td class="token-cell" data-desc="Owner's email address">             <code>{owner_email}</code></td></tr>
           </tbody>
         </table>
       </div>

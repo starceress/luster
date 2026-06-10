@@ -103,6 +103,11 @@ final class UpdatesPublicController
      *
      * @param \Luster\Addons\Updates\Update[] $updates
      */
+    public static function buildUpdatesHtmlPublic(array $updates, string $template): string
+    {
+        return self::buildUpdatesHtml($updates, $template);
+    }
+
     private static function buildUpdatesHtml(array $updates, string $template): string
     {
         return TemplateEngine::loop(

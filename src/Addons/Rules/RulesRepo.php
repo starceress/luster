@@ -1,0 +1,155 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Luster\Addons\Rules;
+
+use Luster\Core\Database;
+
+/**
+ * Data access for the Rules add-on.
+ *
+ * One row per listing in lstr_rules (UNIQUE on fanlisting_id).
+ */
+final class RulesRepo
+{
+    public function __construct(private readonly Database $db) {}
+
+    // -------------------------------------------------------------------------
+    // Reads
+    // -------------------------------------------------------------------------
+
+    public function getForListing(int $listingId): ?RuleSet
+    {
+        $stmt = $this->db->prepare(
+            'SELECT * FROM `lstr_rules` WHERE `fanlisting_id` = :id'
+        );
+        $stmt->execute(['id' => $listingId]);
+        $row = $stmt->fetch();
+
+        return $row ? $this->hydrate($row) : null;
+    }
+
+    /**
+     * Returns all listings joined with their rules status.
+     * Rows without rules have null rule fields.
+     *
+     * @return array<int,array{listing_id:int,listing_title:string,rules_id:int|null,rules_title:string|null,rules_enabled:bool|null,rules_version:int|null,rules_updated_at:string|null}>
+     */
+    public function getAllWithListings(): array
+    {
+        $stmt = $this->db->prepare(
+            'SELECT
+                o.listingid            AS listing_id,
+                o.title                AS listing_title,
+                r.id                   AS rules_id,
+                r.title                AS rules_title,
+                r.enabled              AS rules_enabled,
+                r.version              AS rules_version,
+                r.updated_at           AS rules_updated_at
+             FROM `owned` o
+             LEFT JOIN `lstr_rules` r ON r.fanlisting_id = o.listingid
+             ORDER BY o.title ASC'
+        );
+        $stmt->execute();
+
+        $rows = [];
+        foreach ($stmt->fetchAll() as $row) {
+            $rows[] = [
+                'listing_id'       => (int) $row['listing_id'],
+                'listing_title'    => (string) $row['listing_title'],
+                'rules_id'         => $row['rules_id'] !== null ? (int) $row['rules_id'] : null,
+                'rules_title'      => $row['rules_title'] !== null ? (string) $row['rules_title'] : null,
+                'rules_enabled'    => $row['rules_enabled'] !== null ? (bool) $row['rules_enabled'] : null,
+                'rules_version'    => $row['rules_version'] !== null ? (int) $row['rules_version'] : null,
+                'rules_updated_at' => $row['rules_updated_at'] !== null ? (string) $row['rules_updated_at'] : null,
+            ];
+        }
+
+        return $rows;
+    }
+
+    // -------------------------------------------------------------------------
+    // Writes
+    // -------------------------------------------------------------------------
+
+    /**
+     * Create or update a rule set for a listing.
+     * Bumps the version if the body has changed.
+     */
+    public function upsert(int $listingId, string $title, string $body, bool $enabled): void
+    {
+        $existing = $this->getForListing($listingId);
+
+        if ($existing === null) {
+            $stmt = $this->db->prepare(
+                'INSERT INTO `lstr_rules`
+                    (`fanlisting_id`, `title`, `body`, `enabled`, `version`, `updated_at`)
+                 VALUES
+                    (:fid, :title, :body, :enabled, 1, NOW())'
+            );
+            $stmt->execute([
+                'fid'     => $listingId,
+                'title'   => $title,
+                'body'    => $body,
+                'enabled' => $enabled ? 1 : 0,
+            ]);
+            return;
+        }
+
+        // Bump version only when body content changes — title and enabled state
+        // changes do not invalidate existing fan agreements.
+        $bumpVersion = trim($body) !== trim($existing->body);
+
+        $stmt = $this->db->prepare(
+            'UPDATE `lstr_rules`
+             SET `title`      = :title,
+                 `body`       = :body,
+                 `enabled`    = :enabled,
+                 `version`    = IF(:bump, `version` + 1, `version`),
+                 `updated_at` = NOW()
+             WHERE `fanlisting_id` = :fid'
+        );
+        $stmt->execute([
+            'title'   => $title,
+            'body'    => $body,
+            'enabled' => $enabled ? 1 : 0,
+            'bump'    => $bumpVersion ? 1 : 0,
+            'fid'     => $listingId,
+        ]);
+    }
+
+    public function setEnabled(int $listingId, bool $enabled): void
+    {
+        $stmt = $this->db->prepare(
+            'UPDATE `lstr_rules` SET `enabled` = :enabled WHERE `fanlisting_id` = :fid'
+        );
+        $stmt->execute(['enabled' => $enabled ? 1 : 0, 'fid' => $listingId]);
+    }
+
+    public function delete(int $listingId): void
+    {
+        $stmt = $this->db->prepare(
+            'DELETE FROM `lstr_rules` WHERE `fanlisting_id` = :fid'
+        );
+        $stmt->execute(['fid' => $listingId]);
+    }
+
+    // -------------------------------------------------------------------------
+    // Helpers
+    // -------------------------------------------------------------------------
+
+    /** @param array<string,mixed> $row */
+    private function hydrate(array $row): RuleSet
+    {
+        return new RuleSet(
+            id:          (int)  $row['id'],
+            fanlistingId:(int)  $row['fanlisting_id'],
+            title:       (string) $row['title'],
+            body:        (string) $row['body'],
+            enabled:     (bool) $row['enabled'],
+            version:     (int)  $row['version'],
+            updatedAt:   (string) $row['updated_at'],
+        );
+    }
+}

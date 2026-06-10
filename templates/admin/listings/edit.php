@@ -449,133 +449,350 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
 </div>
 
 
+<?php
+// Templates tab — local helpers
+$hasUpdatesAddon  = (bool) ($updates_addon_installed ?? false);
+$hasAdoptionAddon = (bool) ($adoption_addon_installed ?? false) && (bool) ($for_adoption ?? false);
+$hasCodesSubmit   = (bool) ($embed_settings['codes_submit_enabled'] ?? true);
+$hasRulesAddon    = (bool) ($rules_addon_installed ?? false) && (bool) ($rules_enabled_for_listing ?? false);
+
+$tplMembersVal   = ($templates['members_template']            ?? '') ?: ListingSettingsRepo::defaultMembersTemplate();
+$tplAffVal       = ($templates['affiliates_section_template'] ?? '') ?: ListingSettingsRepo::defaultAffiliatesSectionTemplate();
+$tplStatsVal     = ($templates['stats_template']              ?? '') ?: ListingSettingsRepo::defaultStatsTemplate();
+$tplUpdatesVal   = ($templates['updates_template']            ?? '') ?: ListingSettingsRepo::defaultUpdatesTemplate();
+$tplJoinVal      = $templates['join_intro_template']          ?? '';
+$tplAdoptVal     = $templates['adoption_intro_template']      ?? '';
+$tplCodesVal     = $templates['codes_submit_intro_template']  ?? '';
+$tplRulesVal     = $templates['rules_intro_template']         ?? '';
+
+// tok() helper — matches the collective templates page pattern
+$ltok = static fn(string $ta, string $token, string $label, string $desc): string =>
+    '<tr class="tok-row" tabindex="0" role="button"'
+    . ' title="'          . View::e($desc)  . '"'
+    . ' aria-label="Insert ' . View::e($label) . '. ' . View::e($desc) . '"'
+    . ' data-textarea="'  . View::e($ta)    . '"'
+    . ' data-token="'     . View::e($token) . '">'
+    . '<td class="token-cell" data-desc="' . View::e($desc) . '"><code>' . View::e($label) . '</code></td>'
+    . '</tr>' . "\n";
+?>
 <div id="tab-templates" class="tabs-panel">
 <form method="POST" action="<?= $b ?>/admin/listings/<?= (int) $listing->id ?>/templates" class="js-warn-unsaved">
   <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
 
   <div class="composer-grid">
 
-    <!-- Left: template editors -->
+    <!-- ── Left column: template editors ──────────────────────────────── -->
     <div class="gradient-card">
       <div class="pc-head">
         <div class="pc-head-icon pc-head-icon-bg"><?= View::icon('embed') ?></div>
         <div class="pc-head-meta">
-          <div class="pc-head-title">HTML Templates</div>
-          <div class="pc-head-sub">Choose the HTML Luster prints for this listing's members, affiliates, and stats.</div>
+          <div class="pc-head-title">Listing HTML Templates</div>
+          <div class="pc-head-sub">HTML that Luster prints for this listing's members, affiliates, stats, and public forms.</div>
         </div>
       </div>
 
       <div class="pc-section">
+
         <div class="pc-section-label">Members List</div>
         <div class="form-group">
-          <textarea id="members_template" name="members_template" class="form tpl-textarea" spellcheck="false"><?= View::e($templates['members_template'] ?? ListingSettingsRepo::defaultMembersTemplate()) ?></textarea>
+          <textarea id="members_template" name="members_template" class="form form-mono" spellcheck="false"><?= View::e($tplMembersVal) ?></textarea>
         </div>
         <div class="tpl-reset-row">
-          <button type="button" class="btn btn-quaternary btn-sm btn-tpl-reset" data-target="members_template">Reset to Default</button>
+          <button type="button" class="btn btn-secondary btn-xs coltpl-preview-btn" data-tpltype="members" data-textarea="members_template">Preview</button>
+          <button type="button" class="btn btn-quaternary btn-xs" data-textarea="members_template">Reset to Default</button>
         </div>
 
-        <div class="pc-section-label">Affiliates Template</div>
-        <p class="form-hint mb-sm">Controls the full affiliates section for this listing. Use <code>{each_affiliate}&hellip;{/each_affiliate}</code> when you want to design each row yourself, or <code>{affiliates}</code> when you want Luster to drop in the ready-made rows.</p>
+        <div class="pc-section-label">Affiliates Section</div>
+        <p class="form-hint mb-sm">Controls the full affiliates block for this listing. Use <code>{each_affiliate}&hellip;{/each_affiliate}</code> to design each row, or <code>{affiliates}</code> to drop in ready-made rows.</p>
         <div class="form-group">
-          <textarea id="affiliates_section_template" name="affiliates_section_template" class="form tpl-textarea tpl-textarea-lg" spellcheck="false"><?= View::e($templates['affiliates_section_template'] ?: '{if_affiliates}<ul>
-{each_affiliate}<li><a href="{aff_url}" target="_blank" title="{aff_name}">{aff_image_tag}</a></li>{/each_affiliate}
-</ul>{/if_affiliates}') ?></textarea>
+          <textarea id="affiliates_section_template" name="affiliates_section_template" class="form form-mono" spellcheck="false"><?= View::e($tplAffVal) ?></textarea>
         </div>
         <div class="tpl-reset-row">
-          <button type="button" class="btn btn-quaternary btn-sm btn-tpl-reset" data-target="affiliates_section_template">Reset to Default</button>
+          <button type="button" class="btn btn-secondary btn-xs coltpl-preview-btn" data-tpltype="affiliates_section" data-textarea="affiliates_section_template">Preview</button>
+          <button type="button" class="btn btn-quaternary btn-xs" data-textarea="affiliates_section_template">Reset to Default</button>
         </div>
 
         <div class="pc-section-label">Statistics</div>
         <div class="form-group">
-          <textarea id="stats_template" name="stats_template" class="form tpl-textarea tpl-textarea-lg" spellcheck="false"><?= View::e($templates['stats_template'] ?? ListingSettingsRepo::defaultStatsTemplate()) ?></textarea>
+          <textarea id="stats_template" name="stats_template" class="form form-mono" spellcheck="false"><?= View::e($tplStatsVal) ?></textarea>
         </div>
         <div class="tpl-reset-row">
-          <button type="button" class="btn btn-ghost btn-sm btn-tpl-reset" data-target="stats_template">Reset to Default</button>
+          <button type="button" class="btn btn-secondary btn-xs coltpl-preview-btn" data-tpltype="stats" data-textarea="stats_template">Preview</button>
+          <button type="button" class="btn btn-quaternary btn-xs" data-textarea="stats_template">Reset to Default</button>
         </div>
+
+        <?php if ($hasUpdatesAddon): ?>
+        <div class="pc-section-label">Updates Feed</div>
+        <p class="form-hint mb-sm">Controls the rendered updates list on <code>/updates/<?= (int) $listing->id ?></code> and the embed. Wrap each post in <code>{each_update}&hellip;{/each_update}</code>.</p>
+        <div class="form-group">
+          <textarea id="updates_template" name="updates_template" class="form form-mono" spellcheck="false"><?= View::e($tplUpdatesVal) ?></textarea>
+        </div>
+        <div class="tpl-reset-row">
+          <button type="button" class="btn btn-secondary btn-xs coltpl-preview-btn" data-tpltype="updates" data-textarea="updates_template">Preview</button>
+          <button type="button" class="btn btn-quaternary btn-xs" data-textarea="updates_template">Reset to Default</button>
+        </div>
+        <?php else: ?>
+        <input type="hidden" name="updates_template" value="<?= View::e((string) ($tplUpdatesVal ?? '')) ?>">
+        <?php endif; ?>
+
+        <div class="pc-section-label">Join Form Intro</div>
+        <p class="form-hint mb-sm">Optional HTML displayed <em>above</em> the join form. Use tokens to personalise it. Leave blank to show nothing.</p>
+        <div class="form-group">
+          <textarea id="join_intro_template" name="join_intro_template" class="form form-mono" spellcheck="false"><?= View::e($tplJoinVal) ?></textarea>
+        </div>
+        <div class="tpl-reset-row">
+          <button type="button" class="btn btn-secondary btn-xs coltpl-preview-btn" data-tpltype="join_intro" data-textarea="join_intro_template">Preview</button>
+          <button type="button" class="btn btn-quaternary btn-xs" data-textarea="join_intro_template">Reset to Default</button>
+        </div>
+
+        <?php if ($hasAdoptionAddon): ?>
+        <div class="pc-section-label">Adoption Form Intro</div>
+        <p class="form-hint mb-sm">Optional HTML displayed above the adoption application form. Leave blank to show nothing.</p>
+        <div class="form-group">
+          <textarea id="adoption_intro_template" name="adoption_intro_template" class="form form-mono" spellcheck="false"><?= View::e($tplAdoptVal) ?></textarea>
+        </div>
+        <div class="tpl-reset-row">
+          <button type="button" class="btn btn-secondary btn-xs coltpl-preview-btn" data-tpltype="adoption_intro" data-textarea="adoption_intro_template">Preview</button>
+          <button type="button" class="btn btn-quaternary btn-xs" data-textarea="adoption_intro_template">Reset to Default</button>
+        </div>
+        <?php else: ?>
+        <input type="hidden" name="adoption_intro_template" value="<?= View::e((string) ($tplAdoptVal ?? '')) ?>">
+        <?php endif; ?>
+
+        <?php if ($hasCodesSubmit): ?>
+        <div class="pc-section-label">Code Donation Intro</div>
+        <p class="form-hint mb-sm">Optional HTML displayed above the code donation form. Leave blank to show the default description text.</p>
+        <div class="form-group">
+          <textarea id="codes_submit_intro_template" name="codes_submit_intro_template" class="form form-mono" spellcheck="false"><?= View::e($tplCodesVal) ?></textarea>
+        </div>
+        <div class="tpl-reset-row">
+          <button type="button" class="btn btn-secondary btn-xs coltpl-preview-btn" data-tpltype="codes_submit_intro" data-textarea="codes_submit_intro_template">Preview</button>
+          <button type="button" class="btn btn-quaternary btn-xs" data-textarea="codes_submit_intro_template">Reset to Default</button>
+        </div>
+        <?php else: ?>
+        <input type="hidden" name="codes_submit_intro_template" value="<?= View::e((string) ($tplCodesVal ?? '')) ?>">
+        <?php endif; ?>
+
+        <?php if ($hasRulesAddon): ?>
+        <div class="pc-section-label">Join Rules Intro</div>
+        <p class="form-hint mb-sm">Optional HTML displayed above the join rules gate form. Leave blank to show nothing.</p>
+        <div class="form-group">
+          <textarea id="rules_intro_template" name="rules_intro_template" class="form form-mono" spellcheck="false"><?= View::e($tplRulesVal) ?></textarea>
+        </div>
+        <div class="tpl-reset-row">
+          <button type="button" class="btn btn-secondary btn-xs coltpl-preview-btn" data-tpltype="rules_intro" data-textarea="rules_intro_template">Preview</button>
+          <button type="button" class="btn btn-quaternary btn-xs" data-textarea="rules_intro_template">Reset to Default</button>
+        </div>
+        <?php else: ?>
+        <input type="hidden" name="rules_intro_template" value="<?= View::e((string) ($tplRulesVal ?? '')) ?>">
+        <?php endif; ?>
+
       </div>
 
       <div class="composer-footer">
         <button type="submit" class="btn btn-primary">Save Templates</button>
-        <a href="<?= $b ?>/admin/listings" class="btn btn-ghost">Cancel</a>
+        <a href="<?= $b ?>/admin/listings/<?= (int) $listing->id ?>" class="btn btn-ghost">Cancel</a>
       </div>
     </div>
 
-    <!-- Right: token reference -->
+    <!-- ── Right column: token reference ──────────────────────────────── -->
     <div class="composer-side">
-      <details class="card chevron" open>
+
+      <div class="search-field-wrap token-search-wrap">
+        <?= View::icon('search', ['class' => 'search-field-icon', 'aria-hidden' => 'true']) ?>
+        <input type="search"
+               id="collective-token-search"
+               data-token-search
+               class="form"
+               placeholder="Search embed tokens"
+               autocomplete="off"
+               aria-label="Search embed tokens">
+        <button type="button"
+                id="collective-token-search-clear"
+                data-token-search-clear
+                class="token-search-clear"
+                aria-label="Clear embed token search"
+                title="Clear search"
+                hidden><?= View::icon('x', ['aria-hidden' => 'true']) ?></button>
+      </div>
+
+      <p id="collective-token-search-empty" data-token-search-empty class="form-hint token-search-empty" hidden>No tokens found.</p>
+
+      <!-- Members List -->
+      <details class="card chevron" data-token-card>
         <summary class="chevron-head">Members List Tokens</summary>
         <div class="chevron-body">
-          <p class="form-hint mb-sm">A token is a placeholder. Luster replaces it with each member's real information when the members list loads.</p>
-          <table class="et-token-table">
-            <tbody>
-              <tr class="tok-row" data-textarea="members_template" data-token="{fan_name}"><td><code>{fan_name}</code></td><td>The member's display name.</td></tr>
-              <tr class="tok-row" data-textarea="members_template" data-token="{fan_email}"><td><code>{fan_email}</code></td><td>The member's email address. Only use this if you want emails visible on your public site.</td></tr>
-              <tr class="tok-row" data-textarea="members_template" data-token="{fan_url}"><td><code>{fan_url}</code></td><td>The member's website link.</td></tr>
-              <tr class="tok-row" data-textarea="members_template" data-token="{fan_country}"><td><code>{fan_country}</code></td><td>The member's country.</td></tr>
-              <tr><td><code>{fan_field_name}</code></td><td>Additional field values use the field name after <code>fan_</code>. For a field named <code>fave_song</code>, use <code>{fan_fave_song}</code>.</td></tr>
-            </tbody>
-          </table>
+          <p class="form-hint mb-sm" data-token-search-help>Wrap your row design in {each_member}...{/each_member}. Luster repeats it once per approved member.</p>
+          <table class="et-token-table et-token-table--compact"><tbody>
+            <?= $ltok('members_template', '{each_member}{/each_member}', '{each_member}...{/each_member}', 'Repeats the HTML inside it once for each approved member shown.') ?>
+            <?= $ltok('members_template', '{fan_name}',    '{fan_name}',    'The member\'s display name.') ?>
+            <?= $ltok('members_template', '{fan_email}',   '{fan_email}',   'The member\'s email. Only use this if you want emails visible publicly.') ?>
+            <?= $ltok('members_template', '{fan_url}',     '{fan_url}',     'The member\'s website URL.') ?>
+            <?= $ltok('members_template', '{fan_country}', '{fan_country}', 'The member\'s country.') ?>
+            <?= $ltok('members_template', '{fan_FIELDNAME}', '{fan_FIELDNAME}', 'Additional field value. Replace FIELDNAME with the field\'s internal name, e.g. {fan_fave_song}.') ?>
+            <?= $ltok('members_template', '{if_fan_url}{/if_fan_url}',         '{if_fan_url}...{/if_fan_url}',         'Shows only when the member has a website URL.') ?>
+            <?= $ltok('members_template', '{if_fan_country}{/if_fan_country}', '{if_fan_country}...{/if_fan_country}', 'Shows only when the member has a country saved.') ?>
+          </tbody></table>
         </div>
       </details>
 
-      <details class="card chevron" open>
-        <summary class="chevron-head">Affiliates Template Tokens</summary>
+      <!-- Affiliates Section -->
+      <details class="card chevron" data-token-card>
+        <summary class="chevron-head">Affiliates Section Tokens</summary>
         <div class="chevron-body">
-          <p class="form-hint" style="font-size:0.8em;margin-bottom:0.4em">Use these inside <code>{each_affiliate}&hellip;{/each_affiliate}</code>. Luster repeats that block once for each affiliate.</p>
-          <table class="et-token-table">
-            <tbody>
-              <tr><td><code>{each_affiliate}&hellip;{/each_affiliate}</code></td><td>Repeats the HTML inside it once for each affiliate being shown.</td></tr>
-              <tr class="tok-row" data-textarea="affiliates_section_template" data-token="{aff_name}"><td><code>{aff_name}</code></td><td>The affiliate site's name.</td></tr>
-              <tr class="tok-row" data-textarea="affiliates_section_template" data-token="{aff_url}"><td><code>{aff_url}</code></td><td>The affiliate site's link.</td></tr>
-              <tr class="tok-row" data-textarea="affiliates_section_template" data-token="{aff_image_tag}"><td><code>{aff_image_tag}</code></td><td>A ready-made <code>&lt;img&gt;</code> tag for the affiliate image. Empty when there is no image.</td></tr>
-              <tr class="tok-row" data-textarea="affiliates_section_template" data-token="{aff_image_url}"><td><code>{aff_image_url}</code></td><td>The full image link. Empty when there is no image.</td></tr>
-              <tr class="tok-row" data-textarea="affiliates_section_template" data-token="{aff_image}"><td><code>{aff_image}</code></td><td>The saved image filename only. Most templates should use <code>{aff_image_tag}</code> instead.</td></tr>
-            </tbody>
-          </table>
-          <p class="form-hint" style="font-size:0.8em;margin-top:0.75em;margin-bottom:0.4em">Use these outside the affiliate row loop.</p>
-          <table class="et-token-table">
-            <tbody>
-              <tr class="tok-row" data-textarea="affiliates_section_template" data-token="{affiliates}"><td><code>{affiliates}</code></td><td>Ready-made affiliate rows. Handy when you do not want to design each row yourself.</td></tr>
-              <tr class="tok-row" data-textarea="affiliates_section_template" data-token="{affiliates_count}"><td><code>{affiliates_count}</code></td><td>How many active affiliates this listing has.</td></tr>
-              <tr class="tok-row" data-textarea="affiliates_section_template" data-token="{affiliates_list}"><td><code>{affiliates_list}</code></td><td>A simple comma-separated list of linked affiliate names.</td></tr>
-              <tr><td><code>{if_affiliates}&hellip;{/if_affiliates}</code></td><td>Shows the HTML inside only when this listing has at least one affiliate.</td></tr>
-              <tr><td><code>{if_no_affiliates}&hellip;{/if_no_affiliates}</code></td><td>Shows the HTML inside only when this listing has no affiliates.</td></tr>
-            </tbody>
-          </table>
+          <p class="form-hint mb-sm" data-token-search-help>Use {each_affiliate}...{/each_affiliate} to design each row yourself. Use {affiliates} to drop in ready-made rows without a custom loop.</p>
+          <table class="et-token-table et-token-table--compact"><tbody>
+            <?= $ltok('affiliates_section_template', '{each_affiliate}{/each_affiliate}', '{each_affiliate}...{/each_affiliate}', 'Repeats the HTML inside it once for each affiliate.') ?>
+            <?= $ltok('affiliates_section_template', '{aff_name}',      '{aff_name}',      'The affiliate site name. Use inside {each_affiliate}.') ?>
+            <?= $ltok('affiliates_section_template', '{aff_url}',       '{aff_url}',       'The affiliate site link. Use inside {each_affiliate}.') ?>
+            <?= $ltok('affiliates_section_template', '{aff_image}',     '{aff_image}',     'The saved image filename. Use inside {each_affiliate}.') ?>
+            <?= $ltok('affiliates_section_template', '{aff_image_url}', '{aff_image_url}', 'The full image URL. Empty when there is no image. Use inside {each_affiliate}.') ?>
+            <?= $ltok('affiliates_section_template', '{aff_image_tag}', '{aff_image_tag}', 'A ready-made img tag. Empty when there is no image. Use inside {each_affiliate}.') ?>
+            <?= $ltok('affiliates_section_template', '{affiliates}',       '{affiliates}',       'Ready-made affiliate rows. Use this when you do not want to design each row yourself.') ?>
+            <?= $ltok('affiliates_section_template', '{affiliates_count}', '{affiliates_count}', 'How many active affiliates this listing has.') ?>
+            <?= $ltok('affiliates_section_template', '{affiliates_list}',  '{affiliates_list}',  'A comma-separated list of linked affiliate names.') ?>
+            <?= $ltok('affiliates_section_template', '{if_affiliates}{/if_affiliates}',       '{if_affiliates}...{/if_affiliates}',       'Shows only when this listing has at least one affiliate.') ?>
+            <?= $ltok('affiliates_section_template', '{if_no_affiliates}{/if_no_affiliates}', '{if_no_affiliates}...{/if_no_affiliates}', 'Shows only when this listing has no affiliates.') ?>
+          </tbody></table>
         </div>
       </details>
 
-      <details class="card chevron" open>
+      <!-- Statistics -->
+      <details class="card chevron" data-token-card>
         <summary class="chevron-head">Statistics Tokens</summary>
         <div class="chevron-body">
-          <p class="form-hint mb-sm">These fill in the public stats block for this one listing.</p>
-          <table class="et-token-table">
-            <tbody>
-              <tr class="tok-row" data-textarea="stats_template" data-token="{stat_opened}"><td><code>{stat_opened}</code></td><td>The date you opened the listing.</td></tr>
-              <tr class="tok-row" data-textarea="stats_template" data-token="{stat_updated}"><td><code>{stat_updated}</code></td><td>The date the newest approved member joined.</td></tr>
-              <tr class="tok-row" data-textarea="stats_template" data-token="{stat_last_updated}"><td><code>{stat_last_updated}</code></td><td>The Last Updated date you set for this listing in Luster.</td></tr>
-              <tr class="tok-row" data-textarea="stats_template" data-token="{stat_approved}"><td><code>{stat_approved}</code></td><td>How many approved members this listing has.</td></tr>
-              <tr class="tok-row" data-textarea="stats_template" data-token="{stat_pending}"><td><code>{stat_pending}</code></td><td>How many members are waiting for approval.</td></tr>
-              <tr class="tok-row" data-textarea="stats_template" data-token="{stat_newmembers}"><td><code>{stat_newmembers}</code></td><td>The names of the 5 newest approved members.</td></tr>
-              <tr class="tok-row" data-textarea="stats_template" data-token="{stat_growth}"><td><code>{stat_growth}</code></td><td>Average new members per day since the listing opened.</td></tr>
-              <tr class="tok-row" data-textarea="stats_template" data-token="{listing_title}"><td><code>{listing_title}</code></td><td>The listing's display name.</td></tr>
-              <tr class="tok-row" data-textarea="stats_template" data-token="{listing_url}"><td><code>{listing_url}</code></td><td>The link to the listing.</td></tr>
-              <tr class="tok-row" data-textarea="stats_template" data-token="{approved_by}"><td><code>{approved_by}</code></td><td>The network that approved the listing, if one is saved.</td></tr>
-              <tr class="tok-row" data-textarea="stats_template" data-token="{if_approved_by}"><td><code>{if_approved_by}&hellip;{/if_approved_by}</code></td><td>Shows the HTML inside only when an approved-by network is saved.</td></tr>
-            </tbody>
-          </table>
+          <p class="form-hint mb-sm" data-token-search-help>These tokens fill in the public stats block for this listing.</p>
+          <table class="et-token-table et-token-table--compact"><tbody>
+            <?= $ltok('stats_template', '{stat_opened}',       '{stat_opened}',       'The date you opened the listing.') ?>
+            <?= $ltok('stats_template', '{stat_updated}',      '{stat_updated}',      'The date the newest approved member joined.') ?>
+            <?= $ltok('stats_template', '{stat_last_updated}', '{stat_last_updated}', 'The Last Updated date you set for this listing.') ?>
+            <?= $ltok('stats_template', '{stat_approved}',     '{stat_approved}',     'How many approved members this listing has.') ?>
+            <?= $ltok('stats_template', '{stat_pending}',      '{stat_pending}',      'How many members are waiting for approval.') ?>
+            <?= $ltok('stats_template', '{stat_newmembers}',   '{stat_newmembers}',   'The names of the 5 newest approved members, comma-separated.') ?>
+            <?= $ltok('stats_template', '{stat_growth}',       '{stat_growth}',       'Average new members per day since the listing opened.') ?>
+            <?= $ltok('stats_template', '{listing_title}',     '{listing_title}',     'The listing\'s display name.') ?>
+            <?= $ltok('stats_template', '{listing_url}',       '{listing_url}',       'The link to the listing.') ?>
+            <?= $ltok('stats_template', '{approved_by}',       '{approved_by}',       'The network that approved this listing, as a linked name. Empty when no network is saved.') ?>
+            <?= $ltok('stats_template', '{if_approved_by}{/if_approved_by}', '{if_approved_by}...{/if_approved_by}', 'Shows only when an approved-by network is saved.') ?>
+          </tbody></table>
         </div>
       </details>
-    </div>
 
-  </div>
+      <?php if ($hasUpdatesAddon): ?>
+      <!-- Updates Feed -->
+      <details class="card chevron" data-token-card>
+        <summary class="chevron-head">Updates Feed Tokens</summary>
+        <div class="chevron-body">
+          <p class="form-hint mb-sm" data-token-search-help>Wrap each post in {each_update}...{/each_update}. Luster repeats it once per update entry.</p>
+          <table class="et-token-table et-token-table--compact"><tbody>
+            <?= $ltok('updates_template', '{each_update}{/each_update}', '{each_update}...{/each_update}', 'Repeats the HTML inside it once for each update post shown.') ?>
+            <?= $ltok('updates_template', '{update_title}',      '{update_title}',      'The update post title.') ?>
+            <?= $ltok('updates_template', '{update_date}',       '{update_date}',       'The posted date in human-readable format, e.g. June 1, 2025.') ?>
+            <?= $ltok('updates_template', '{update_date_raw}',   '{update_date_raw}',   'The posted date in YYYY-MM-DD format.') ?>
+            <?= $ltok('updates_template', '{update_author}',     '{update_author}',     'The author name. Empty when not set.') ?>
+            <?= $ltok('updates_template', '{update_categories}', '{update_categories}', 'Category names, comma-separated. Empty when not set.') ?>
+            <?= $ltok('updates_template', '{update_body_html}',  '{update_body_html}',  'The update body text, with line breaks converted to HTML.') ?>
+            <?= $ltok('updates_template', '{if_author}{/if_author}',         '{if_author}...{/if_author}',         'Shows only when the update has an author set.') ?>
+            <?= $ltok('updates_template', '{if_categories}{/if_categories}', '{if_categories}...{/if_categories}', 'Shows only when the update has categories set.') ?>
+          </tbody></table>
+        </div>
+      </details>
+      <?php endif; ?>
+
+      <!-- Join Form Intro -->
+      <details class="card chevron" data-token-card>
+        <summary class="chevron-head">Join Form Intro Tokens</summary>
+        <div class="chevron-body">
+          <p class="form-hint mb-sm" data-token-search-help>Simple substitution tokens for the intro block displayed above the join form.</p>
+          <table class="et-token-table et-token-table--compact"><tbody>
+            <?= $ltok('join_intro_template', '{listing_title}',   '{listing_title}',   'The listing\'s display name.') ?>
+            <?= $ltok('join_intro_template', '{listing_url}',     '{listing_url}',     'The link to the listing.') ?>
+            <?= $ltok('join_intro_template', '{listing_subject}', '{listing_subject}', 'What the listing is about.') ?>
+          </tbody></table>
+        </div>
+      </details>
+
+      <?php if ($hasAdoptionAddon): ?>
+      <!-- Adoption Form Intro -->
+      <details class="card chevron" data-token-card>
+        <summary class="chevron-head">Adoption Form Intro Tokens</summary>
+        <div class="chevron-body">
+          <p class="form-hint mb-sm" data-token-search-help>Simple substitution tokens for the intro block displayed above the adoption form.</p>
+          <table class="et-token-table et-token-table--compact"><tbody>
+            <?= $ltok('adoption_intro_template', '{listing_title}',   '{listing_title}',   'The listing\'s display name.') ?>
+            <?= $ltok('adoption_intro_template', '{listing_url}',     '{listing_url}',     'The link to the listing.') ?>
+            <?= $ltok('adoption_intro_template', '{listing_subject}', '{listing_subject}', 'What the listing is about.') ?>
+          </tbody></table>
+        </div>
+      </details>
+      <?php endif; ?>
+
+      <?php if ($hasCodesSubmit): ?>
+      <!-- Code Donation Intro -->
+      <details class="card chevron" data-token-card>
+        <summary class="chevron-head">Code Donation Intro Tokens</summary>
+        <div class="chevron-body">
+          <p class="form-hint mb-sm" data-token-search-help>Simple substitution tokens for the intro block displayed above the code donation form.</p>
+          <table class="et-token-table et-token-table--compact"><tbody>
+            <?= $ltok('codes_submit_intro_template', '{listing_title}',   '{listing_title}',   'The listing\'s display name.') ?>
+            <?= $ltok('codes_submit_intro_template', '{listing_url}',     '{listing_url}',     'The link to the listing.') ?>
+            <?= $ltok('codes_submit_intro_template', '{listing_subject}', '{listing_subject}', 'What the listing is about.') ?>
+          </tbody></table>
+        </div>
+      </details>
+      <?php endif; ?>
+
+      <?php if ($hasRulesAddon): ?>
+      <!-- Join Rules Intro -->
+      <details class="card chevron" data-token-card>
+        <summary class="chevron-head">Join Rules Intro Tokens</summary>
+        <div class="chevron-body">
+          <p class="form-hint mb-sm" data-token-search-help>Simple substitution tokens for the intro block displayed above the join rules gate.</p>
+          <table class="et-token-table et-token-table--compact"><tbody>
+            <?= $ltok('rules_intro_template', '{listing_title}',   '{listing_title}',   'The listing\'s display name.') ?>
+            <?= $ltok('rules_intro_template', '{listing_url}',     '{listing_url}',     'The link to the listing.') ?>
+            <?= $ltok('rules_intro_template', '{listing_subject}', '{listing_subject}', 'What the listing is about.') ?>
+          </tbody></table>
+        </div>
+      </details>
+      <?php endif; ?>
+
+    </div><!-- /.composer-side -->
+  </div><!-- /.composer-grid -->
 </form>
 
-<script type="application/json" id="luster-tpl-defaults"><?= json_encode([
-    'members_template'           => ListingSettingsRepo::defaultMembersTemplate(),
-    'affiliates_section_template'=> '{if_affiliates}<ul>' . "\n" . '{each_affiliate}<li><a href="{aff_url}" target="_blank" title="{aff_name}">{aff_image_tag}</a></li>{/each_affiliate}' . "\n" . '</ul>{/if_affiliates}',
-    'stats_template'             => ListingSettingsRepo::defaultStatsTemplate(),
-], JSON_HEX_TAG | JSON_UNESCAPED_UNICODE) ?></script>
+<script type="application/json" id="luster-coltpl-defaults">
+<?= json_encode([
+    'members_template'            => ListingSettingsRepo::defaultMembersTemplate(),
+    'affiliates_section_template' => ListingSettingsRepo::defaultAffiliatesSectionTemplate(),
+    'stats_template'              => ListingSettingsRepo::defaultStatsTemplate(),
+    'updates_template'            => ListingSettingsRepo::defaultUpdatesTemplate(),
+    'join_intro_template'         => '',
+    'adoption_intro_template'     => '',
+    'codes_submit_intro_template' => '',
+    'rules_intro_template'        => '',
+], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) ?>
+</script>
+
+<script type="application/json" id="luster-coltpl-meta"><?= json_encode([
+    'previewUrl' => $b . '/admin/listings/' . (int) $listing->id . '/templates/preview',
+    'csrf'       => $csrf_token ?? '',
+], JSON_UNESCAPED_SLASHES) ?></script>
+
+<div id="coltpl-prev-modal" class="modal-backdrop is-hidden" style="display:none" role="dialog" aria-modal="true" aria-label="Template preview">
+  <div class="modal modal--preview" style="max-width:680px;height:68vh">
+    <div class="modal-header">
+      <span id="coltpl-prev-title" class="modal-title">Preview</span>
+      <div style="display:flex;align-items:center;gap:.5rem">
+        <span id="coltpl-prev-spinner" style="display:none;font-size:.8rem;color:var(--text-muted)">Loading&hellip;</span>
+        <button type="button" id="coltpl-prev-close" class="btn btn-tertiary btn-sm" aria-label="Close preview">&times;&ensp;Close</button>
+      </div>
+    </div>
+    <div class="modal-body--iframe">
+      <iframe id="coltpl-prev-iframe" title="Template preview" sandbox="allow-same-origin allow-scripts"></iframe>
+    </div>
+  </div>
+</div>
 </div><!-- /#tab-templates -->
 <!-- ──── TAB: ADDITIONAL FIELDS ─────────────────────────────────────── -->
 <div id="tab-fields" class="tabs-panel">
@@ -728,8 +945,9 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
 $_fid          = (int) $listing->id;
 $_hasCats      = !empty($code_cats);
 $_hasDonors    = !empty($code_donors);
-$_pendingCount = $code_status_counts['pending'] ?? 0;
+$_pendingCount  = $code_status_counts['pending']  ?? 0;
 $_approvedCount = $code_status_counts['approved'] ?? 0;
+$_rejectedCount = $code_status_counts['rejected'] ?? 0;
 $_nonEmptyGroups = array_filter($code_grouped, fn($g) => !empty($g['codes']));
 $_groupCount   = count($_nonEmptyGroups);
 $_topLevelCats = array_filter($code_cats, fn($c) => $c->parentId === null);
@@ -758,7 +976,7 @@ $_settingsOpen = $_hasCats || $_hasDonors;
 </div>
 <?php endif; ?>
 
-<details class="card chevron" <?= $_settingsOpen ? 'open' : '' ?> id="settingsBand" open>
+<details class="card chevron is-hidden" id="settingsBand">
   <summary class="card-head">Code Categories & Donors</summary>
 
   <div class="settings-band-grid">
@@ -916,17 +1134,15 @@ $_settingsOpen = $_hasCats || $_hasDonors;
   $_dDonor = ($code->donorId !== null && isset($code_donor_map[$code->donorId])) ? $code_donor_map[$code->donorId] : null;
   $_dLabel = ($code->name !== null && $code->name !== '') ? $code->name : null;
 ?>
-<dialog id="edit-dialog-<?= (int)$code->id ?>" class="modal">
+<dialog id="edit-dialog-<?= (int)$code->id ?>" class="modal code-edit-dialog">
   <div class="modal-header modal-header-sticky">
-    <span class="modal-title">
-      Edit code<?= $_dLabel !== null ? ' &mdash; ' . View::e($_dLabel) : ' #' . (int)$code->id ?>
-    </span>
+    <span class="modal-title">Edit code &mdash; <?= View::e($code->filename) ?></span>
     <button type="button" class="modal-close" data-close-dialog aria-label="Close">&times;</button>
   </div>
   <div class="modal-body">
     <div class="code-preview">
       <img src="<?= View::e($uploads_url . '/' . $code->filename) ?>"
-           alt="Code #<?= (int)$code->id ?>"
+           alt="<?= View::e($code->filename) ?>"
            class="code-preview-img">
       <?php if ($code->width > 0 && $code->height > 0): ?>
       <div class="code-preview-meta"><?= (int)$code->width ?>&times;<?= (int)$code->height ?>px</div>
@@ -937,15 +1153,17 @@ $_settingsOpen = $_hasCats || $_hasDonors;
           class="code-modal-form">
       <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
       <div>
-        <label class="form-label code-modal-label">Label (optional)</label>
-        <input class="form" type="text" name="name" value="<?= View::e($code->name ?? '') ?>" placeholder="e.g. Animated version">
+        <label class="form-label code-modal-label">Label <span class="text-dim">(optional)</span></label>
+        <input class="form" type="text" name="name" value="<?= View::e($code->name ?? '') ?>"
+               placeholder="<?= View::e($code->filename) ?>">
       </div>
       <div>
         <label class="form-label code-modal-label">Status</label>
         <div class="select-wrap">
-          <select name="status" >
-            <option value="approved" <?= $code->status === 'approved' ? 'selected' : '' ?>>&#10003; Live</option>
-            <option value="pending"  <?= $code->status === 'pending'  ? 'selected' : '' ?>>&#8987; Pending</option>
+          <select name="status">
+            <option value="approved" <?= $code->status === 'approved' ? 'selected' : '' ?>>Live</option>
+            <option value="pending"  <?= $code->status === 'pending'  ? 'selected' : '' ?>>Pending</option>
+            <option value="rejected" <?= $code->status === 'rejected' ? 'selected' : '' ?>>Rejected</option>
           </select>
         </div>
       </div>
@@ -953,8 +1171,8 @@ $_settingsOpen = $_hasCats || $_hasDonors;
       <div>
         <label class="form-label code-modal-label">Donor</label>
         <div class="select-wrap">
-          <select name="donor_id" >
-            <option value="">No donor</option>
+          <select name="donor_id">
+            <option value="">None</option>
             <?php foreach ($code_donors as $dn): ?>
               <option value="<?= (int)$dn->id ?>" <?= $code->donorId === $dn->id ? 'selected' : '' ?>><?= View::e($dn->name) ?></option>
             <?php endforeach; ?>
@@ -966,7 +1184,7 @@ $_settingsOpen = $_hasCats || $_hasDonors;
       <div>
         <label class="form-label code-modal-label">Category</label>
         <div class="select-wrap">
-          <select name="cat_ids[]" >
+          <select name="cat_ids[]">
             <option value="">None</option>
             <?php
               $_dCatIds = $code_category_ids[$code->id] ?? [];
@@ -980,20 +1198,34 @@ $_settingsOpen = $_hasCats || $_hasDonors;
         </div>
       </div>
       <?php endif; ?>
-      <?php if ($code->submitterName !== null): ?>
-      <div>
-        <label class="form-label code-modal-label">Submitter website</label>
-        <input class="form" type="url" name="submitter_url" value="<?= View::e($code->submitterUrl ?? '') ?>" placeholder="https://example.com">
-      </div>
-      <?php endif; ?>
+      <?php $_hasDonorInfo = $code->donorId !== null || $code->submitterName !== null || $code->submitterEmail !== null || $code->submitterUrl !== null; ?>
+      <details<?= $_hasDonorInfo ? ' open' : '' ?> class="code-donor-details">
+        <summary class="link" style="font-size:var(--fs-sm);margin-bottom:.5rem;display:inline-block;list-style:none;cursor:pointer"><?= $_hasDonorInfo ? 'Donor information' : '+ Add donor information' ?></summary>
+        <div>
+          <label class="form-label code-modal-label">Donor Name</label>
+          <input class="form" type="text" name="submitter_name"
+                 value="<?= View::e($code->submitterName ?? '') ?>" placeholder="Display name&hellip;">
+        </div>
+        <div style="margin-top:.5rem">
+          <label class="form-label code-modal-label">Donor Email</label>
+          <input class="form" type="email" name="submitter_email"
+                 value="<?= View::e($code->submitterEmail ?? '') ?>" placeholder="Optional">
+        </div>
+        <div style="margin-top:.5rem">
+          <label class="form-label code-modal-label">Donor Website</label>
+          <input class="form" type="url" name="submitter_url"
+                 value="<?= View::e($code->submitterUrl ?? '') ?>" placeholder="https://&hellip;">
+        </div>
+      </details>
       <button class="btn btn-primary btn-block-center">Save changes</button>
     </form>
     <div class="code-modal-footer">
       <form method="POST"
             action="<?= $b ?>/admin/listings/<?= $_fid ?>/codes/<?= (int)$code->id ?>/delete"
             data-del-modal data-del-entity="code"
-            data-del-name="<?= View::e($_dLabel !== null ? $_dLabel : 'Code #' . (int)$code->id) ?>">
+            data-del-name="<?= View::e($code->filename) ?>">
         <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
+        <input type="hidden" name="_from" value="edit">
         <button type="submit" class="btn btn-danger btn-sm btn-block-center">Delete this code</button>
       </form>
     </div>
@@ -1001,70 +1233,99 @@ $_settingsOpen = $_hasCats || $_hasDonors;
 </dialog>
 <?php endforeach; ?>
 
-<div class="mini-nav-layout">
-    <div class="panel-col">
-    <div class="panel-card">
-      <div class="card-head">Upload Codes</div>
-      <div class="pc-section">
-        <form method="POST" action="<?= $b ?>/admin/listings/<?= $_fid ?>/codes/upload" enctype="multipart/form-data">
-          <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
-          <div class="file-drop-zone">
-            <input type="file" id="codes-input" name="codes[]" multiple accept="image/jpeg,image/png,image/gif,image/webp">
-            <span class="file-drop-icon"><?= View::icon('image') ?></span>
-            <strong>Click or drop images</strong>
-            <span class="form-hint">JPEG, PNG, GIF, WebP &mdash; max 500 KB each</span>
-          </div>
-          <?php if ($_hasCats): ?>
-          <div class="panel-field upload-panel-row">
-            <label class="panel-label" for="upload-category">Category</label>
-            <div class="select-wrap">
-              <select id="upload-category" name="cat_ids[]">
-                <option value="">None</option>
-                <?php foreach ($code_cats as $cat): ?>
-                  <option value="<?= (int)$cat->id ?>"><?= $cat->parentId !== null ? '&#x2514; ' : '' ?><?= View::e($cat->name) ?></option>
-                <?php endforeach; ?>
-              </select>
-            </div>
-          </div>
-          <?php endif; ?>
-          <?php $_editSubmitters = $code_submitter_names ?? []; ?>
-          <div class="panel-field upload-panel-row">
-            <label class="panel-label" for="upload-donor">Donor</label>
-            <div class="select-wrap">
-              <select id="upload-donor" name="donor_id">
-                <option value="">None</option>
-                <?php if (!empty($code_donors)): ?>
-                  <?php if (!empty($_editSubmitters)): ?><optgroup label="Registered Donors"><?php endif; ?>
-                  <?php foreach ($code_donors as $dn): ?>
-                    <option value="<?= (int)$dn->id ?>"><?= View::e($dn->name) ?></option>
-                  <?php endforeach; ?>
-                  <?php if (!empty($_editSubmitters)): ?></optgroup><?php endif; ?>
-                <?php endif; ?>
-                <?php if (!empty($_editSubmitters)): ?>
-                  <optgroup label="Past Submitters">
-                    <?php foreach ($_editSubmitters as $sn): ?>
-                      <option value="s:<?= View::e($sn) ?>"><?= View::e($sn) ?></option>
-                    <?php endforeach; ?>
-                  </optgroup>
-                <?php endif; ?>
-              </select>
-            </div>
-          </div>
-          <button type="submit" class="btn btn-primary btn-full">Upload</button>
-          <p class="panel-hint panel-hint-spaced">Dimensions are detected automatically. Settings above apply to all files in this batch.</p>
-        </form>
+<div class="codes-page-layout">
+
+<!-- ── Upload Card ─────────────────────────────────────────────────── -->
+<div class="card">
+  <div class="card-head">Upload Codes</div>
+  <form method="POST" action="<?= $b ?>/admin/listings/<?= $_fid ?>/codes/upload" enctype="multipart/form-data">
+    <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
+    <div class="pc-section">
+      <div class="file-drop-zone">
+        <input type="file" id="codes-input" name="codes[]" multiple accept="image/jpeg,image/png,image/gif,image/webp">
+        <span class="file-drop-icon"><?= View::icon('image') ?></span>
+        <strong>Click or drop images</strong>
+        <span class="form-hint">JPEG, PNG, GIF, WebP &mdash; max 500 KB each</span>
       </div>
-    </div>
-    <?php if ($_approvedCount > 0): ?>
-    <a href="<?= $b ?>/admin/listings/<?= $_fid ?>/codes/export" class="btn btn-quaternary btn-full"><span><?= View::icon('download') ?> Export ZIP</span><span class="card-head-sub">Download all approved codes in a ZIP file.</span></a>
-    <?php endif; ?>
+      <p class="panel-hint" style="margin-top:.5rem">Multiple files allowed. Dimensions are detected automatically.</p>
     </div>
 
-  <div class="gradient-card codes-browser" data-initial-code-filter="<?= View::e($code_status_filter) ?>">
-    <div class="card-head">Current Codes <span class="badge badge-inactive"><?= $_approvedCount ?> Approved</span>
-      <?php if ($_pendingCount > 0): ?>
-        <span class="badge badge-pending"><?= $_pendingCount ?> Pending</span>
+    <div class="pc-section">
+      <?php $_editSubmitters = $code_submitter_names ?? []; ?>
+
+      <div class="panel-field">
+        <label class="panel-label" for="upload-donor">Donor</label>
+        <div class="select-wrap">
+          <select id="upload-donor" name="donor_id">
+            <option value="">None</option>
+            <?php if (!empty($code_donors)): ?>
+              <?php if (!empty($_editSubmitters)): ?><optgroup label="Registered Donors"><?php endif; ?>
+              <?php foreach ($code_donors as $dn): ?>
+                <option value="<?= (int)$dn->id ?>"><?= View::e($dn->name) ?></option>
+              <?php endforeach; ?>
+              <?php if (!empty($_editSubmitters)): ?></optgroup><?php endif; ?>
+            <?php endif; ?>
+            <?php if (!empty($_editSubmitters)): ?>
+              <optgroup label="Past Submitters">
+                <?php foreach ($_editSubmitters as $sn): ?>
+                  <option value="s:<?= View::e($sn) ?>"><?= View::e($sn) ?></option>
+                <?php endforeach; ?>
+              </optgroup>
+            <?php endif; ?>
+          </select>
+        </div>
+        <p class="panel-hint"><a href="#" id="upload-add-donor-toggle" class="link"><?= View::icon('add') ?> Add new donor</a></p>
+      </div>
+
+      <!-- Inline new donor fields -->
+      <div id="upload-new-donor-wrap" class="is-hidden">
+        <div class="panel-field">
+          <label class="panel-label" for="upload-donor-name">Donor Name <span class="req">*</span></label>
+          <input class="form" type="text" id="upload-donor-name" name="new_donor_name" placeholder="Display name&hellip;">
+        </div>
+        <div class="panel-field">
+          <label class="panel-label" for="upload-donor-email">Email</label>
+          <input class="form" type="email" id="upload-donor-email" name="new_donor_email" placeholder="Optional">
+        </div>
+        <div class="panel-field">
+          <label class="panel-label" for="upload-donor-url">Website</label>
+          <input class="form" type="url" id="upload-donor-url" name="new_donor_url" placeholder="https://&hellip;">
+        </div>
+      </div>
+
+      <?php if ($_hasCats): ?>
+      <div class="panel-field">
+        <label class="panel-label" for="upload-category">Category</label>
+        <div class="select-wrap">
+          <select id="upload-category" name="cat_ids[]">
+            <option value="">None</option>
+            <?php foreach ($code_cats as $cat): ?>
+              <option value="<?= (int)$cat->id ?>"><?= $cat->parentId !== null ? '&#x2514; ' : '' ?><?= View::e($cat->name) ?></option>
+            <?php endforeach; ?>
+          </select>
+        </div>
+      </div>
       <?php endif; ?>
+    </div>
+
+    <div class="composer-footer">
+      <button type="submit" class="btn btn-primary">Add Code</button>
+      <button type="reset" class="btn btn-ghost">Clear</button>
+    </div>
+  </form>
+  <?php if ($_approvedCount > 0): ?>
+  <div style="padding:.75rem 1.25rem;border-top:1px solid var(--border)">
+    <a href="<?= $b ?>/admin/listings/<?= $_fid ?>/codes/export" class="btn btn-quaternary btn-sm"><?= View::icon('download') ?> Export ZIP</a>
+  </div>
+  <?php endif; ?>
+</div>
+
+<!-- ── Current Codes Card ───────────────────────────────────────────── -->
+<div class="card codes-browser" style="min-width:0" data-initial-code-filter="<?= View::e($code_status_filter) ?>">
+    <div class="card-head">Current Codes
+      <span class="badge badge-<?= $_approvedCount > 0 ? 'current' : 'inactive' ?>"><?= $_approvedCount ?> Approved</span>
+      <?php if ($_pendingCount > 0): ?><span class="badge badge-pending"><?= $_pendingCount ?> Pending</span><?php endif; ?>
+      <?php if ($_rejectedCount > 0): ?><span class="badge badge-error"><?= $_rejectedCount ?> Rejected</span><?php endif; ?>
       <?php if ($_groupCount > 0): ?><span class="card-head-sub">Click and drag the top left corner to reorder codes &mdash; changes are effective immediately.</span><?php endif; ?>
     </div>
 
@@ -1074,6 +1335,9 @@ $_settingsOpen = $_hasCats || $_hasDonors;
       </a>
       <a href="<?= $_tabBase ?>&status_filter=pending" class="tabs-btn<?= $code_status_filter === 'pending' ? ' active' : '' ?>" data-code-filter="pending">
         Pending <span class="badge badge-<?= $_pendingCount > 0 ? 'pending' : 'inactive' ?>"><?= $_pendingCount ?></span>
+      </a>
+      <a href="<?= $_tabBase ?>&status_filter=rejected" class="tabs-btn<?= $code_status_filter === 'rejected' ? ' active' : '' ?>" data-code-filter="rejected">
+        Rejected <span class="badge badge-<?= $_rejectedCount > 0 ? 'error' : 'inactive' ?>"><?= $_rejectedCount ?></span>
       </a>
     </div>
 
@@ -1114,7 +1378,8 @@ $_settingsOpen = $_hasCats || $_hasDonors;
         </div>
       </div>
     <?php else: ?>
-      <div class="card-empty-state<?= ($code_status_filter === 'approved' && $_approvedCount === 0) || ($code_status_filter === 'pending' && $_pendingCount === 0) ? '' : ' is-hidden' ?>" id="codes-filter-empty">
+      <?php $_filterEmptyInitial = ($code_status_filter === 'approved' && $_approvedCount === 0) || ($code_status_filter === 'pending' && $_pendingCount === 0) || ($code_status_filter === 'rejected' && $_rejectedCount === 0); ?>
+      <div class="card-empty-state<?= $_filterEmptyInitial ? '' : ' is-hidden' ?>" id="codes-filter-empty">
         <div class="empty">
           <span class="empty-icon"><?= View::icon('image', ['width' => 32, 'height' => 32]) ?></span>
           No codes match this filter &mdash; <a href="<?= $_tabBase ?>&status_filter=approved" class="link" data-code-filter="approved">show approved</a>.
@@ -1138,7 +1403,7 @@ $_settingsOpen = $_hasCats || $_hasDonors;
               $_codeLabel  = ($code->name !== null && $code->name !== '') ? $code->name : null;
               $_isDonated  = $_codeDonor !== null || $code->submitterName !== null;
             ?>
-            <div class="code-tile code-card<?= $_isDonated ? : '' ?>"
+            <div class="code-tile code-card"
                  data-code-status="<?= View::e($code->status) ?>"
                  data-code-id="<?= (int)$code->id ?>">
               <input type="checkbox" form="codes-bulk-form" name="selected[]" value="<?= (int)$code->id ?>" class="code-tile-cb code-check">

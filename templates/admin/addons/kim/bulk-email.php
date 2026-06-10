@@ -85,20 +85,38 @@ $oldBody    = htmlspecialchars($old['body'] ?? '', ENT_QUOTES, 'UTF-8');
       </div>
     </div>
 
-    <details class="card chevron" open>
-      <summary class="card-head">Available Tokens</summary>
-      <div class="card-body">
-        <table class="et-token-table">
+    <div class="search-field-wrap token-search-wrap">
+      <?= View::icon('search', ['class' => 'search-field-icon', 'aria-hidden' => 'true']) ?>
+      <input type="search"
+             data-token-search
+             class="form"
+             placeholder="Search tokens"
+             autocomplete="off"
+             aria-label="Search tokens">
+      <button type="button"
+              data-token-search-clear
+              class="token-search-clear"
+              aria-label="Clear search"
+              title="Clear search"
+              hidden><?= View::icon('x', ['aria-hidden' => 'true']) ?></button>
+    </div>
+
+    <p data-token-search-empty class="form-hint token-search-empty" hidden>No tokens found.</p>
+
+    <details class="card chevron" data-token-card>
+      <summary class="chevron-head">Available Tokens</summary>
+      <div class="chevron-body">
+        <table class="et-token-table et-token-table--compact">
           <tbody>
-            <tr class="tok-row" data-textarea="es-body" data-token="{name}"            title="Click to insert"><td><code>{name}</code></td><td>Member's display name</td></tr>
-            <tr class="tok-row" data-textarea="es-body" data-token="{email}"           title="Click to insert"><td><code>{email}</code></td><td>Member's email address</td></tr>
-            <tr class="tok-row" data-textarea="es-body" data-token="{url}"             title="Click to insert"><td><code>{url}</code></td><td>Member's website URL</td></tr>
-            <tr class="tok-row" data-textarea="es-body" data-token="{added_at}"        title="Click to insert"><td><code>{added_at}</code></td><td>Sign-up date</td></tr>
-            <tr class="tok-row" data-textarea="es-body" data-token="{listing_subject}" title="Click to insert"><td><code>{listing_subject}</code></td><td>Subject or topic</td></tr>
-            <tr class="tok-row" data-textarea="es-body" data-token="{listing_url}"     title="Click to insert"><td><code>{listing_url}</code></td><td>URL of the listing</td></tr>
-            <tr class="tok-row" data-textarea="es-body" data-token="{site_name}"       title="Click to insert"><td><code>{site_name}</code></td><td>Collective or site name</td></tr>
-            <tr class="tok-row" data-textarea="es-body" data-token="{owner_name}"      title="Click to insert"><td><code>{owner_name}</code></td><td>Owner's display name</td></tr>
-            <tr class="tok-row" data-textarea="es-body" data-token="{owner_email}"     title="Click to insert"><td><code>{owner_email}</code></td><td>Owner's email address</td></tr>
+            <tr class="tok-row" tabindex="0" role="button" title="Member's display name"   aria-label="Insert {name}. Member's display name"            data-textarea="es-body" data-token="{name}">           <td class="token-cell" data-desc="Member's display name">   <code>{name}</code></td></tr>
+            <tr class="tok-row" tabindex="0" role="button" title="Member's email address"  aria-label="Insert {email}. Member's email address"          data-textarea="es-body" data-token="{email}">          <td class="token-cell" data-desc="Member's email address">  <code>{email}</code></td></tr>
+            <tr class="tok-row" tabindex="0" role="button" title="Member's website URL"    aria-label="Insert {url}. Member's website URL"              data-textarea="es-body" data-token="{url}">            <td class="token-cell" data-desc="Member's website URL">    <code>{url}</code></td></tr>
+            <tr class="tok-row" tabindex="0" role="button" title="Sign-up date"            aria-label="Insert {added_at}. Sign-up date"                 data-textarea="es-body" data-token="{added_at}">       <td class="token-cell" data-desc="Sign-up date">            <code>{added_at}</code></td></tr>
+            <tr class="tok-row" tabindex="0" role="button" title="Subject or topic"        aria-label="Insert {listing_subject}. Subject or topic"      data-textarea="es-body" data-token="{listing_subject}"><td class="token-cell" data-desc="Subject or topic">        <code>{listing_subject}</code></td></tr>
+            <tr class="tok-row" tabindex="0" role="button" title="URL of the listing"      aria-label="Insert {listing_url}. URL of the listing"        data-textarea="es-body" data-token="{listing_url}">    <td class="token-cell" data-desc="URL of the listing">      <code>{listing_url}</code></td></tr>
+            <tr class="tok-row" tabindex="0" role="button" title="Collective or site name" aria-label="Insert {site_name}. Collective or site name"     data-textarea="es-body" data-token="{site_name}">      <td class="token-cell" data-desc="Collective or site name"> <code>{site_name}</code></td></tr>
+            <tr class="tok-row" tabindex="0" role="button" title="Owner's display name"   aria-label="Insert {owner_name}. Owner's display name"       data-textarea="es-body" data-token="{owner_name}">     <td class="token-cell" data-desc="Owner's display name">    <code>{owner_name}</code></td></tr>
+            <tr class="tok-row" tabindex="0" role="button" title="Owner's email address"  aria-label="Insert {owner_email}. Owner's email address"     data-textarea="es-body" data-token="{owner_email}">    <td class="token-cell" data-desc="Owner's email address">   <code>{owner_email}</code></td></tr>
           </tbody>
         </table>
       </div>

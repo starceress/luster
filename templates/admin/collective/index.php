@@ -251,7 +251,7 @@ $addons      = $addon_counts     ?? ['wishlist' => null, 'updates' => null];
       <?php if ($hasKim): ?>
       <a href="<?= $b ?>/admin/kim" class="collective-action-item">
         <span class="pc-head-icon pc-head-icon-bg"><?= View::icon('kim') ?></span>
-        <span class="collective-action-label">Keep In Mind Index</span>
+        <span class="collective-action-label">Keep In Mind Index<?php if (($addons['kim'] ?? null) !== null): ?> <span class="badge badge-inactive badge-inline-sm"><?= (int) $addons['kim'] ?> sign-up<?= (int) $addons['kim'] !== 1 ? 's' : '' ?></span><?php endif; ?></span>
       </a>
       <?php endif; ?>
 

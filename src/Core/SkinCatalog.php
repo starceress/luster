@@ -68,14 +68,6 @@ final class SkinCatalog
                 'desc'   => 'Lantern palette - golden amber, wisteria & rose',
                 'colors' => ['#ffca28', '#d884cb', '#ff77a8'],
             ],
-            [
-                'slug'   => 'moving-castle',
-                'name'   => 'Moving Castle',
-                'light'  => 'Flower Field',
-                'dark'   => 'Star Lake',
-                'desc'   => 'Storybook palette - sky green, ember and night blue',
-                'colors' => ['#00e5ff', '#ffb703', '#fb8500'],
-            ],
         ];
     }
 

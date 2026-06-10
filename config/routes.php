@@ -11,6 +11,7 @@ use Luster\Controllers\Admin\ActivityLogController;
 use Luster\Controllers\Admin\EmailsController;
 use Luster\Controllers\Admin\BulkEmailController;
 use Luster\Controllers\Admin\AdminUsersController;
+use Luster\Controllers\Admin\AdminUpdateController;
 use Luster\Controllers\Admin\BlacklistController;
 use Luster\Controllers\Admin\EmailTemplatesController;
 use Luster\Controllers\Admin\AffiliateController;
@@ -124,6 +125,16 @@ return [
             DashboardController::class, 'touchListing');
         $router->post('/admin/dismiss-update',
             DashboardController::class, 'dismissUpdate');
+        $router->get('/admin/update',
+            AdminUpdateController::class, 'index');
+        $router->post('/admin/update/prepare',
+            AdminUpdateController::class, 'prepare');
+        $router->post('/admin/update/backup',
+            AdminUpdateController::class, 'backup');
+        $router->post('/admin/update/apply',
+            AdminUpdateController::class, 'apply');
+        $router->post('/admin/update/discard',
+            AdminUpdateController::class, 'discard');
 
         // ── Listings ────────────────────────────────────────────────
         $router->get('/admin/listings',
@@ -153,6 +164,8 @@ return [
             ListingController::class, 'edit');
         $router->post('/admin/listings/{id}/templates',
             ListingController::class, 'saveTemplates');
+        $router->post('/admin/listings/{id}/templates/preview',
+            ListingController::class, 'templatesPreview');
         // Old per-listing email-template routes — redirect to unified page
         $router->get('/admin/listings/{id}/email-templates',
             ListingController::class, 'emailTemplatesRedirect');

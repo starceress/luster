@@ -76,7 +76,6 @@ $filtersActive = $filters_active ?? false;
     <?php if ($__approvedCountTopbar > 0): ?>
       <a href="<?= $b ?>/admin/listings/<?= $lid ?>/codes/export" class="btn btn-quaternary btn-sm"><?= View::icon('download') ?> Export ZIP</a>
     <?php endif; ?>
-    <a href="<?= $b ?>/admin/listings/<?= $lid ?>/edit?tab=codes" class="btn btn-quaternary btn-sm"><?= View::icon('gear') ?> Manage Categories &amp; Donors</a>
   </div>
   <?php endif; ?>
   <?php if ($viewMode !== 'collective'): ?>
@@ -778,6 +777,7 @@ $_codeCats       = $code_cats ?? [];
       <span class="badge badge-<?= $_approvedCount > 0 ? 'current' : 'inactive' ?>"><?= $_approvedCount ?> Approved</span>
       <?php if ($_pendingCount > 0): ?><span class="badge badge-pending"><?= $_pendingCount ?> Pending</span><?php endif; ?>
       <?php if ($_rejectedCount > 0): ?><span class="badge badge-error"><?= $_rejectedCount ?> Rejected</span><?php endif; ?>
+      <a href="<?= $b ?>/admin/listings/<?= $_fid ?>/edit?tab=codes" class="btn btn-preview btn-xs" style="margin-left:auto"><?= View::icon('gear') ?> Manage Listing</a>
       <?php if ($_groupCount > 0): ?><span class="card-head-sub">Click and drag the top left corner to reorder codes &mdash; changes are effective immediately.</span><?php endif; ?>
     </div>
 

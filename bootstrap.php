@@ -17,7 +17,8 @@ declare(strict_types=1);
  *   $app = require LUSTER_BASE . '/bootstrap.php';
  */
 
-defined('LUSTER_BASE') || define('LUSTER_BASE', __DIR__);
+defined('LUSTER_BASE')  || define('LUSTER_BASE',  __DIR__);
+defined('LUSTER_EMBED') || define('LUSTER_EMBED', rtrim(str_replace('\\', '/', LUSTER_BASE), '/') . '/public/embed');
 
 require_once LUSTER_BASE . '/vendor/autoload.php';
 

@@ -212,6 +212,6 @@ $collLastDate = $latest_coll !== null
       </tbody>
     </table>
   </div>
-  <?php $pg_current = $page; $pg_total = $pages; $pg_url = $pageUrl;
-        require __DIR__ . '/../../_pagination.php'; ?>
 </div>
+<?php $pg_current = $page; $pg_total = $pages; $pg_url = $pageUrl;
+      require __DIR__ . '/../../_pagination.php'; ?>

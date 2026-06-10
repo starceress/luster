@@ -162,49 +162,62 @@ final class ListingSettingsRepo
     }
 
     /**
-     * Returns the stats, members, and affiliates-section template overrides for a listing.
+     * Returns all per-listing template overrides. All values are null when no override is saved.
      *
-     * All values are null when no override has been saved.
-     *
-     * @return array{stats_template: string|null, members_template: string|null, affiliates_section_template: string|null}
+     * @return array{stats_template: string|null, members_template: string|null, affiliates_section_template: string|null, updates_template: string|null, join_intro_template: string|null, adoption_intro_template: string|null, codes_submit_intro_template: string|null, rules_intro_template: string|null}
      */
     public function getTemplates(int $listingId): array
     {
         $defaults = [
-            'stats_template'              => null,
-            'members_template'            => null,
-            'affiliates_section_template' => null,
+            'stats_template'               => null,
+            'members_template'             => null,
+            'affiliates_section_template'  => null,
+            'updates_template'             => null,
+            'join_intro_template'          => null,
+            'adoption_intro_template'      => null,
+            'codes_submit_intro_template'  => null,
+            'rules_intro_template'         => null,
         ];
 
-        try {
-            $stmt = $this->db->prepare(
-                'SELECT stats_template, members_template, affiliates_section_template
-                 FROM lstr_fanlisting_settings
-                 WHERE fanlisting_id = :id'
-            );
-            $stmt->execute(['id' => $listingId]);
-            $row = $stmt->fetch();
-        } catch (\Exception) {
-            // affiliates_section_template absent — Migration 53 not run; fall back to 2-column query
-            $stmt = $this->db->prepare(
-                'SELECT stats_template, members_template
-                 FROM lstr_fanlisting_settings
-                 WHERE fanlisting_id = :id'
-            );
-            $stmt->execute(['id' => $listingId]);
-            $row = $stmt->fetch();
+        // Try the widest query first; fall back gracefully as migrations are added.
+        $cols  = 'stats_template, members_template, affiliates_section_template, updates_template, join_intro_template, adoption_intro_template, codes_submit_intro_template, rules_intro_template';
+        $row   = false;
+
+        foreach ([
+            $cols,
+            'stats_template, members_template, affiliates_section_template, updates_template, join_intro_template, adoption_intro_template, codes_submit_intro_template',
+            'stats_template, members_template, affiliates_section_template, updates_template',
+            'stats_template, members_template, affiliates_section_template',
+            'stats_template, members_template',
+        ] as $selectCols) {
+            try {
+                $stmt = $this->db->prepare(
+                    "SELECT {$selectCols} FROM lstr_fanlisting_settings WHERE fanlisting_id = :id"
+                );
+                $stmt->execute(['id' => $listingId]);
+                $row = $stmt->fetch();
+                break;
+            } catch (\Exception) {
+                // column absent — try narrower set
+            }
         }
 
         if ($row === false) {
             return $defaults;
         }
 
-        $tr = static fn(?string $v): ?string => $v !== null ? self::translateLegacyTokens($v) : null;
+        $tr  = static fn(?string $v): ?string => $v !== null ? self::translateLegacyTokens($v) : null;
+        $col = static fn(array $r, string $k): ?string => isset($r[$k]) && $r[$k] !== null ? (string) $r[$k] : null;
 
         return [
-            'stats_template'              => $tr($row['stats_template']              !== null ? (string) $row['stats_template']              : null),
-            'members_template'            => $tr($row['members_template']            !== null ? (string) $row['members_template']            : null),
-            'affiliates_section_template' => $tr(($row['affiliates_section_template'] ?? null) !== null ? (string) $row['affiliates_section_template'] : null),
+            'stats_template'               => $tr($col($row, 'stats_template')),
+            'members_template'             => $tr($col($row, 'members_template')),
+            'affiliates_section_template'  => $tr($col($row, 'affiliates_section_template')),
+            'updates_template'             => $col($row, 'updates_template'),
+            'join_intro_template'          => $col($row, 'join_intro_template'),
+            'adoption_intro_template'      => $col($row, 'adoption_intro_template'),
+            'codes_submit_intro_template'  => $col($row, 'codes_submit_intro_template'),
+            'rules_intro_template'         => $col($row, 'rules_intro_template'),
         ];
     }
 
@@ -282,6 +295,54 @@ final class ListingSettingsRepo
             $row = $stmt->fetch();
             return ($row !== false && $row['updates_template'] !== null)
                 ? (string) $row['updates_template']
+                : null;
+        } catch (\Exception) {
+            return null;
+        }
+    }
+
+    public function getJoinIntroTemplate(int $listingId): ?string
+    {
+        try {
+            $stmt = $this->db->prepare(
+                'SELECT join_intro_template FROM lstr_fanlisting_settings WHERE fanlisting_id = :id'
+            );
+            $stmt->execute(['id' => $listingId]);
+            $row = $stmt->fetch();
+            return ($row !== false && $row['join_intro_template'] !== null)
+                ? (string) $row['join_intro_template']
+                : null;
+        } catch (\Exception) {
+            return null;
+        }
+    }
+
+    public function getAdoptionIntroTemplate(int $listingId): ?string
+    {
+        try {
+            $stmt = $this->db->prepare(
+                'SELECT adoption_intro_template FROM lstr_fanlisting_settings WHERE fanlisting_id = :id'
+            );
+            $stmt->execute(['id' => $listingId]);
+            $row = $stmt->fetch();
+            return ($row !== false && $row['adoption_intro_template'] !== null)
+                ? (string) $row['adoption_intro_template']
+                : null;
+        } catch (\Exception) {
+            return null;
+        }
+    }
+
+    public function getCodesSubmitIntroTemplate(int $listingId): ?string
+    {
+        try {
+            $stmt = $this->db->prepare(
+                'SELECT codes_submit_intro_template FROM lstr_fanlisting_settings WHERE fanlisting_id = :id'
+            );
+            $stmt->execute(['id' => $listingId]);
+            $row = $stmt->fetch();
+            return ($row !== false && $row['codes_submit_intro_template'] !== null)
+                ? (string) $row['codes_submit_intro_template']
                 : null;
         } catch (\Exception) {
             return null;
@@ -385,6 +446,38 @@ final class ListingSettingsRepo
     }
 
     /**
+     * Default updates-feed entry template used when no override is stored.
+     */
+    public static function defaultAffiliatesSectionTemplate(): string
+    {
+        return '{if_affiliates}' . "\n"
+            . '<ul class="fl-affiliate-list">' . "\n"
+            . '{each_affiliate}' . "\n"
+            . '<li class="fl-affiliate-item"><a href="{aff_url}" target="_blank" rel="noopener noreferrer">{aff_image_tag}<span class="fl-affiliate-name">{aff_name}</span></a></li>' . "\n"
+            . '{/each_affiliate}' . "\n"
+            . '</ul>' . "\n"
+            . '{/if_affiliates}' . "\n"
+            . '{if_no_affiliates}<p class="fl-affiliates-empty">No affiliates yet.</p>{/if_no_affiliates}';
+    }
+
+    public static function defaultUpdatesTemplate(): string
+    {
+        return '<div class="fl-updates-list">' . "\n"
+            . '{each_update}' . "\n"
+            . '<div class="fl-update-item">' . "\n"
+            . '  <h3 class="fl-update-title">{update_title}</h3>' . "\n"
+            . '  <div class="fl-update-meta">' . "\n"
+            . '    <span class="fl-update-date">{update_date}</span>'
+            . '{if_author} &middot; <span class="fl-update-author">{update_author}</span>{/if_author}'
+            . '{if_categories} &middot; <span class="fl-update-categories">{update_categories}</span>{/if_categories}' . "\n"
+            . '  </div>' . "\n"
+            . '  <div class="fl-update-body">{update_body_html}</div>' . "\n"
+            . '</div>' . "\n"
+            . '{/each_update}' . "\n"
+            . '</div>';
+    }
+
+    /**
      * Translates legacy Enthusiast $$token$$ placeholders to Luster's {token} format.
      * Applied transparently at read time so imported templates work without manual editing.
      */
@@ -439,50 +532,102 @@ final class ListingSettingsRepo
     }
 
     /**
-     * Saves (upserts) the stats, members, and affiliates-section template overrides for a listing.
-     *
-     * Pass null to clear an override. Does not touch other columns on existing rows.
+     * Saves (upserts) all per-listing template overrides for a listing.
+     * Pass null to clear an override. Tries the widest column set first and
+     * falls back gracefully when an older migration is absent.
      */
     public function saveTemplates(
         int $listingId,
         ?string $statsTemplate,
         ?string $membersTemplate,
         ?string $affiliatesSectionTemplate = null,
+        ?string $updatesTemplate = null,
+        ?string $joinIntroTemplate = null,
+        ?string $adoptionIntroTemplate = null,
+        ?string $codesSubmitIntroTemplate = null,
+        ?string $rulesIntroTemplate = null,
     ): void {
-        // Try the full 3-column upsert first (Migration 53 present).
-        try {
-            $stmt = $this->db->prepare(
-                'INSERT INTO lstr_fanlisting_settings
+        $attempts = [
+            [
+                'sql' => 'INSERT INTO lstr_fanlisting_settings
+                     (fanlisting_id, stats_template, members_template, affiliates_section_template,
+                      updates_template, join_intro_template, adoption_intro_template, codes_submit_intro_template,
+                      rules_intro_template)
+                 VALUES (:id, :stats, :members, :section, :updates, :join, :adoption, :codes, :rules)
+                 ON DUPLICATE KEY UPDATE
+                     stats_template              = VALUES(stats_template),
+                     members_template            = VALUES(members_template),
+                     affiliates_section_template = VALUES(affiliates_section_template),
+                     updates_template            = VALUES(updates_template),
+                     join_intro_template         = VALUES(join_intro_template),
+                     adoption_intro_template     = VALUES(adoption_intro_template),
+                     codes_submit_intro_template = VALUES(codes_submit_intro_template),
+                     rules_intro_template        = VALUES(rules_intro_template)',
+                'bind' => ['id' => $listingId, 'stats' => $statsTemplate, 'members' => $membersTemplate,
+                           'section' => $affiliatesSectionTemplate, 'updates' => $updatesTemplate,
+                           'join' => $joinIntroTemplate, 'adoption' => $adoptionIntroTemplate,
+                           'codes' => $codesSubmitIntroTemplate, 'rules' => $rulesIntroTemplate],
+            ],
+            [
+                'sql' => 'INSERT INTO lstr_fanlisting_settings
+                     (fanlisting_id, stats_template, members_template, affiliates_section_template,
+                      updates_template, join_intro_template, adoption_intro_template, codes_submit_intro_template)
+                 VALUES (:id, :stats, :members, :section, :updates, :join, :adoption, :codes)
+                 ON DUPLICATE KEY UPDATE
+                     stats_template              = VALUES(stats_template),
+                     members_template            = VALUES(members_template),
+                     affiliates_section_template = VALUES(affiliates_section_template),
+                     updates_template            = VALUES(updates_template),
+                     join_intro_template         = VALUES(join_intro_template),
+                     adoption_intro_template     = VALUES(adoption_intro_template),
+                     codes_submit_intro_template = VALUES(codes_submit_intro_template)',
+                'bind' => ['id' => $listingId, 'stats' => $statsTemplate, 'members' => $membersTemplate,
+                           'section' => $affiliatesSectionTemplate, 'updates' => $updatesTemplate,
+                           'join' => $joinIntroTemplate, 'adoption' => $adoptionIntroTemplate,
+                           'codes' => $codesSubmitIntroTemplate],
+            ],
+            [
+                'sql' => 'INSERT INTO lstr_fanlisting_settings
+                     (fanlisting_id, stats_template, members_template, affiliates_section_template, updates_template)
+                 VALUES (:id, :stats, :members, :section, :updates)
+                 ON DUPLICATE KEY UPDATE
+                     stats_template              = VALUES(stats_template),
+                     members_template            = VALUES(members_template),
+                     affiliates_section_template = VALUES(affiliates_section_template),
+                     updates_template            = VALUES(updates_template)',
+                'bind' => ['id' => $listingId, 'stats' => $statsTemplate, 'members' => $membersTemplate,
+                           'section' => $affiliatesSectionTemplate, 'updates' => $updatesTemplate],
+            ],
+            [
+                'sql' => 'INSERT INTO lstr_fanlisting_settings
                      (fanlisting_id, stats_template, members_template, affiliates_section_template)
                  VALUES (:id, :stats, :members, :section)
                  ON DUPLICATE KEY UPDATE
                      stats_template              = VALUES(stats_template),
                      members_template            = VALUES(members_template),
-                     affiliates_section_template = VALUES(affiliates_section_template)'
-            );
-            $stmt->execute([
-                'id'      => $listingId,
-                'stats'   => $statsTemplate,
-                'members' => $membersTemplate,
-                'section' => $affiliatesSectionTemplate,
-            ]);
-            return;
-        } catch (\Exception) {
-            // affiliates_section_template column absent (Migration 53 not run) — fall back.
-        }
+                     affiliates_section_template = VALUES(affiliates_section_template)',
+                'bind' => ['id' => $listingId, 'stats' => $statsTemplate, 'members' => $membersTemplate,
+                           'section' => $affiliatesSectionTemplate],
+            ],
+            [
+                'sql' => 'INSERT INTO lstr_fanlisting_settings (fanlisting_id, stats_template, members_template)
+                 VALUES (:id, :stats, :members)
+                 ON DUPLICATE KEY UPDATE
+                     stats_template   = VALUES(stats_template),
+                     members_template = VALUES(members_template)',
+                'bind' => ['id' => $listingId, 'stats' => $statsTemplate, 'members' => $membersTemplate],
+            ],
+        ];
 
-        $stmt = $this->db->prepare(
-            'INSERT INTO lstr_fanlisting_settings (fanlisting_id, stats_template, members_template)
-             VALUES (:id, :stats, :members)
-             ON DUPLICATE KEY UPDATE
-                 stats_template   = VALUES(stats_template),
-                 members_template = VALUES(members_template)'
-        );
-        $stmt->execute([
-            'id'      => $listingId,
-            'stats'   => $statsTemplate,
-            'members' => $membersTemplate,
-        ]);
+        foreach ($attempts as $attempt) {
+            try {
+                $stmt = $this->db->prepare($attempt['sql']);
+                $stmt->execute($attempt['bind']);
+                return;
+            } catch (\Exception) {
+                // column absent — try narrower set
+            }
+        }
     }
 
     /**

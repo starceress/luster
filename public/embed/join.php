@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use Luster\Core\Captcha;
 use Luster\Core\Countries;
+use Luster\Core\TemplateEngine;
 use Luster\Repositories\ListingRepo;
 use Luster\Repositories\ListingSettingsRepo;
 use Luster\Repositories\FieldRepo;
@@ -119,6 +120,18 @@ $_lusterBaseUrl    = rtrim((string) $_lusterApp->getConfig()->get('embed_base_ur
 $_lusterFormAction = $_lusterBaseUrl . '/join/' . $_lusterListingId;
 $_lusterWrapperTpl = $_lusterSettingsRepo->getWrapperTemplate($_lusterListingId) ?? '';
 
+$_lusterRawJoinIntro = $_lusterSettingsRepo->getJoinIntroTemplate($_lusterListingId) ?? '';
+$_lusterJoinIntroHtml = $_lusterRawJoinIntro !== ''
+    ? TemplateEngine::render(
+        $_lusterRawJoinIntro,
+        escaped: [
+            'listing_title'   => $_lusterListing->title,
+            'listing_url'     => $_lusterListing->url,
+            'listing_subject' => $_lusterListing->subject ?? '',
+        ],
+    )
+    : '';
+
 $_lusterCaptchaQ   = Captcha::getQuestion('join');
 $_lusterCountrySel = Countries::buildSelect((string) ($_lusterOld['country'] ?? ''));
 $_lusterFb         = $_lusterApp->getFormFieldBuilder();
@@ -135,19 +148,20 @@ $_lusterDescriptors = [
 $_lusterF = $_lusterFb->build($_lusterDescriptors, $_lusterWrapperTpl);
 
 $_lusterHtml = $_lusterApp->getView()->renderFragment('join.php', [
-    'listing'      => $_lusterListing,
-    'listing_name' => $_lusterListing->title,
-    'listing_url'  => $_lusterListing->url,
-    'page_title'   => 'Join',
-    'form_action'  => $_lusterFormAction,
-    'csrf_token'   => $_lusterApp->getCSRF()->token(),
-    'errors'       => $_lusterError !== ''
+    'listing'         => $_lusterListing,
+    'listing_name'    => $_lusterListing->title,
+    'listing_url'     => $_lusterListing->url,
+    'page_title'      => 'Join',
+    'form_action'     => $_lusterFormAction,
+    'csrf_token'      => $_lusterApp->getCSRF()->token(),
+    'errors'          => $_lusterError !== ''
         ? '<p>' . htmlspecialchars($_lusterError, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '</p>'
         : '',
-    'fields'       => $_lusterFields,
-    'f'            => $_lusterF,
-    'base_url'     => $_lusterApp->getBaseUrl(),
-    'theme_path'   => $_lusterApp->getBaseUrl() . '/assets/default/',
+    'fields'          => $_lusterFields,
+    'f'               => $_lusterF,
+    'join_intro_html' => $_lusterJoinIntroHtml,
+    'base_url'        => $_lusterApp->getBaseUrl(),
+    'theme_path'      => $_lusterApp->getBaseUrl() . '/assets/default/',
 ]);
 
 if ($luster_return ?? false) {

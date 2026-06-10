@@ -51,7 +51,10 @@ final class EmbedCodesController
 
         // Absolute server path to the embed directory
         $lusterBase = defined('LUSTER_BASE') ? \LUSTER_BASE : dirname(__DIR__, 3);
-        $embedPath  = rtrim(str_replace('\\', '/', (string) realpath($lusterBase . '/public/embed')), '/');
+        $resolved   = realpath($lusterBase . '/public/embed');
+        $embedPath  = $resolved !== false
+            ? rtrim(str_replace('\\', '/', $resolved), '/')
+            : rtrim(str_replace('\\', '/', $lusterBase), '/') . '/public/embed';
 
         $inner = $view->render('admin/embed-codes/index.php', [
             'embed_path'  => $embedPath,
@@ -112,6 +115,7 @@ final class EmbedCodesController
             'col-updates'  => 'collective-updates.php',
             'col-contact'  => 'collective-contact.php',
             'wishlist'     => 'wishlist.php',
+            'rules-gate'   => 'rules-gate.php',
         ];
 
         $key = (string) $request->query('key', '');

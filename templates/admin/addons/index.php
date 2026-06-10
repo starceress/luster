@@ -56,6 +56,8 @@ $b = rtrim(View::e($base_url), '/');
               <a href="<?= $b ?>/admin/wishlist" class="btn btn-primary btn-sm">Manage</a>
             <?php elseif ($key === 'Adoption'): ?>
               <a href="<?= $b ?>/admin/adoptions" class="btn btn-primary btn-sm">Manage</a>
+            <?php elseif ($key === 'Rules'): ?>
+              <a href="<?= $b ?>/admin/rules" class="btn btn-primary btn-sm">Manage</a>
             <?php endif; ?>
             <form method="POST" action="<?= $b ?>/admin/addons/uninstall" class="js-uninstall-form"
                   data-addon-name="<?= View::e($addon->getName()) ?>">

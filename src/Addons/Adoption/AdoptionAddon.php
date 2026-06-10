@@ -125,6 +125,14 @@ final class AdoptionAddon implements AddonInterface
             AdoptionAdminController::class, 'settingsForm');
         $router->post('/admin/adoptions/settings',
             AdoptionAdminController::class, 'saveSettings');
+        $router->get('/admin/adoptions/email',
+            AdoptionAdminController::class, 'bulkEmailForm');
+        $router->post('/admin/adoptions/email',
+            AdoptionAdminController::class, 'bulkEmailSend');
+        $router->get('/admin/adoptions/{id}/email',
+            AdoptionAdminController::class, 'emailForm');
+        $router->post('/admin/adoptions/{id}/email',
+            AdoptionAdminController::class, 'emailSend');
         $router->get('/admin/adoptions/{id}/edit',
             AdoptionAdminController::class, 'editForm');
         $router->post('/admin/adoptions/{id}/edit',

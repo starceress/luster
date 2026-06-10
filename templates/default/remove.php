@@ -43,7 +43,7 @@ use Luster\Core\View;
 
     <div class="fl-form-actions">
       <button type="submit" class="fl-submit">Remove Information</button>
-      <button type="reset">Clear</button>
+      <button type="reset" class="fl-btn-secondary">Clear</button>
     </div>
   </form>
 </div>

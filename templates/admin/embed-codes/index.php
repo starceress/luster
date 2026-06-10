@@ -14,6 +14,8 @@ use Luster\Core\View;
 
 $b  = rtrim(View::e($base_url ?? ''), '/');
 $ep = rtrim($embed_path ?? '/path/to/luster/public/embed', '/');
+$setupDefine = "<?php defined('LUSTER_EMBED') || define('LUSTER_EMBED', '" . str_replace(["\\", "'"], ["\\\\", "\\'"], $ep) . "'); ?>";
+$setupCss = '<link rel="stylesheet" href="' . rtrim((string) ($base_url ?? ''), '/') . '/assets/css/default/style.css">';
 
 // ── icon + badge maps ─────────────────────────────────────────────────────
 $iconMap = [
@@ -46,6 +48,7 @@ $iconMap = [
     'col-updates'  => 'updates',
     'col-contact'  => 'email',
     'wishlist'     => 'wishlist',
+    'rules-gate'   => 'rules',
 ];
 $badgeMeta = [
     'form' => ['cls' => 'badge-info-pink', 'label' => 'Form'],
@@ -133,6 +136,12 @@ $items = [
         'badge' => 'Addon',
         'file'  => 'adopt.php',
         'desc'  => 'An adoption application form for this listing. Requires the Adoption add-on to be installed and the listing to have adoption enabled.',
+    ],
+    'rules-gate' => [
+        'label' => 'Join Rules Gate',
+        'badge' => 'Addon',
+        'file'  => 'rules-gate.php',
+        'desc'  => 'Shows the joining rules and an agreement checkbox. Place it before the join embed — if the fan has not agreed yet, render this and stop; if the return is empty, show the join form. Requires the Join Rules add-on to be installed and rules to be enabled for this listing.',
     ],
     'owned' => [
         'label' => 'Owned Listings',
@@ -260,21 +269,6 @@ $epSafe = View::e($ep);
      data-items='<?= $itemsJson ?>'
      data-base-url="<?= $b ?>">
 
-  <p>
-    Add Luster forms and data to any PHP page on your site with a single snippet.
-    The embed path is already filled in based on where Luster is installed on this server.
-  </p>
-
-  <div class="callout callout-info">
-    <?= View::icon('notes') ?>
-    <span><strong>Before you start:</strong> most listing snippets need your <code>$luster_fanlisting_id</code>. That is the listing ID number shown in the URL when you edit the listing. Collective snippets, like owned listings and site stats, do not need one.</span>
-  </div>
-
-  <div class="callout callout-info">
-    <?= View::icon('palette') ?>
-    <span><strong>Baseline CSS:</strong> snippets include Luster's editable stylesheet at <code>/assets/css/default/style.css</code>. Add it once per host page and edit that file to make embed controls match your site.</span>
-  </div>
-
   <div class="tabs-wrap" id="ec-tabs-wrap">
     <div class="tabs" id="ec-tabs" role="tablist" aria-label="Embed codes sections">
       <button class="tabs-btn active" data-ec-tab="main" role="tab"
@@ -289,11 +283,29 @@ $epSafe = View::e($ep);
 
 <!-- ──── CASCADING SELECTORS ────────────────────────────────────────────── -->
     <div class="ec-sel-bar">
+
+      <div class="ec-sel-row ec-sel-row--include">
+        <div class="ec-sel-step ec-sel-step--include">
+          <div class="wizard-step-node wizard-step-node--active">
+            <div class="wizard-step-bubble">1</div>
+            <span class="wizard-step-label"
+                  data-step-sub="You need this for embeds to work!">Include This</span>
+          </div>
+        </div>
+        <div class="callout callout-info ec-sel-callout">
+          <?= View::icon('palette') ?>
+          <span><strong>Baseline CSS:</strong> Copy this once to your <code>header.php</code>:
+            <code><?= View::e($setupDefine) ?></code>
+            <code><?= View::e($setupCss) ?></code>
+          </span>
+        </div>
+      </div>
+
       <div class="ec-sel-row">
 
         <div class="ec-sel-step">
           <div class="wizard-step-node wizard-step-node--active">
-            <div class="wizard-step-bubble">1</div>
+            <div class="wizard-step-bubble">2</div>
             <span class="wizard-step-label"
                   data-step-sub="Use this on your collective or one listing.">Where It Goes</span>
           </div>
@@ -310,7 +322,7 @@ $epSafe = View::e($ep);
 
         <div class="ec-sel-step">
           <div class="wizard-step-node wizard-step-node--active">
-            <div class="wizard-step-bubble">2</div>
+            <div class="wizard-step-bubble">3</div>
             <span class="wizard-step-label"
                   data-step-sub="Choose the section you want to show.">What to Embed</span>
           </div>

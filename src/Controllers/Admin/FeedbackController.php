@@ -103,7 +103,7 @@ final class FeedbackController extends AdminController
             $mailer->sendWithReplyTo(
                 Version::SUPPORT_EMAIL,
                 Version::SUPPORT_NAME,
-                '[Luster Feedback] ' . $subject,
+                '[Luster Feedback] ' . FeedbackReport::typeLabel($type) . ' - ' . $subject,
                 $composedBody,
                 $contactEmail,
             );

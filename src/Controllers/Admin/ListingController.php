@@ -6,6 +6,7 @@ namespace Luster\Controllers\Admin;
 
 use Luster\Core\Request;
 use Luster\Core\Response;
+use Luster\Core\TemplateEngine;
 use Luster\Core\Validator;
 use Luster\Repositories\ActivityRepo;
 use Luster\Repositories\AffiliateRepo;
@@ -19,6 +20,7 @@ use Luster\Repositories\ListingRepo;
 use Luster\Repositories\ListingSettingsRepo;
 use Luster\Repositories\MemberRepo;
 use Luster\Repositories\SiteSettingsRepo;
+use Luster\Support\MemberStatsService;
 
 /**
  * Manages the listing list and per-listing settings.
@@ -922,6 +924,17 @@ final class ListingController extends AdminController
         $codeApprovalEmail  = $settingsRepo->getCodeApprovalEmail($id);
         $joinSettings           = $settingsRepo->getJoinSettings($id);
         $adoptionAddonInstalled = $this->app->isAddonInstalled('Adoption');
+        $updatesAddonInstalled  = $this->app->isAddonInstalled('Updates');
+        $rulesAddonInstalled    = $this->app->isAddonInstalled('Rules');
+        $rulesEnabledForListing = $rulesAddonInstalled && (function () use ($db, $id): bool {
+            try {
+                $repo = new \Luster\Addons\Rules\RulesRepo($db);
+                $rs   = $repo->getForListing($id);
+                return $rs !== null && $rs->enabled && trim($rs->body) !== '';
+            } catch (\Throwable) {
+                return false;
+            }
+        })();
         $forAdoption            = $adoptionAddonInstalled && $settingsRepo->getForAdoption($id);
         $adoptionCount          = $adoptionAddonInstalled
             ? (new \Luster\Addons\Adoption\AdoptionRepo($db))->countForListing($id, 'all')
@@ -1019,6 +1032,9 @@ final class ListingController extends AdminController
             'contact_recipient'   => $contactSettings['recipient'] ?? '',
             'approved_by'         => $approvedBy,
             'adoption_addon_installed'       => $adoptionAddonInstalled,
+            'updates_addon_installed'        => $updatesAddonInstalled,
+            'rules_addon_installed'          => $rulesAddonInstalled,
+            'rules_enabled_for_listing'      => $rulesEnabledForListing,
             'for_adoption'                   => $forAdoption,
             'adoption_count'                 => $adoptionCount,
             'affiliate_apply_enabled'        => $affiliateApplySettings['enabled'],
@@ -1299,21 +1315,250 @@ final class ListingController extends AdminController
             return Response::notFound('Listing not found.');
         }
 
-        $statsRaw               = (string) $request->post('stats_template',               '');
-        $membersRaw             = (string) $request->post('members_template',             '');
-        $affiliatesSectionRaw   = (string) $request->post('affiliates_section_template',  '');
+        $nil = static fn(string $raw): ?string => trim($raw) !== '' ? $raw : null;
 
-        // Treat blank / whitespace-only input as null (use built-in default)
-        $statsTemplate             = trim($statsRaw)             !== '' ? $statsRaw             : null;
-        $membersTemplate           = trim($membersRaw)           !== '' ? $membersRaw           : null;
-        $affiliatesSectionTemplate = trim($affiliatesSectionRaw) !== '' ? $affiliatesSectionRaw : null;
+        $statsTemplate             = $nil((string) $request->post('stats_template',               ''));
+        $membersTemplate           = $nil((string) $request->post('members_template',             ''));
+        $affiliatesSectionTemplate = $nil((string) $request->post('affiliates_section_template',  ''));
+        $updatesTemplate           = $nil((string) $request->post('updates_template',             ''));
+        $joinIntroTemplate         = $nil((string) $request->post('join_intro_template',          ''));
+        $adoptionIntroTemplate     = $nil((string) $request->post('adoption_intro_template',      ''));
+        $codesSubmitIntroTemplate  = $nil((string) $request->post('codes_submit_intro_template',  ''));
+        $rulesIntroTemplate        = $nil((string) $request->post('rules_intro_template',         ''));
 
         $settingsRepo = new ListingSettingsRepo($db);
-        $settingsRepo->saveTemplates($id, $statsTemplate, $membersTemplate, $affiliatesSectionTemplate);
+        $settingsRepo->saveTemplates(
+            $id, $statsTemplate, $membersTemplate, $affiliatesSectionTemplate,
+            $updatesTemplate, $joinIntroTemplate, $adoptionIntroTemplate, $codesSubmitIntroTemplate,
+            $rulesIntroTemplate,
+        );
 
         $this->app->getSession()->set('lstr_flash_success', 'Templates saved successfully.');
 
-        return Response::redirect($this->app->getBaseUrl() . '/admin/listings/' . $id . '#tab-templates');
+        return Response::redirect($this->app->getBaseUrl() . '/admin/listings/' . $id . '/edit#tab-templates');
+    }
+
+    // -----------------------------------------------------------------------
+    // POST /admin/listings/{id}/templates/preview
+    // -----------------------------------------------------------------------
+
+    public function templatesPreview(Request $request, array $params): Response
+    {
+        $id = (int) ($params['id'] ?? 0);
+        $this->app->getCSRF()->validate($request->post('_csrf', ''));
+
+        $db     = $this->app->getDatabase();
+        $config = $this->app->getConfig();
+        $appUrl = rtrim((string) $config->get('app_url', ''), '/');
+
+        $type = (string) $request->post('template_type', '');
+        $tpl  = (string) $request->post('template_html', '');
+
+        $listingRepo = new ListingRepo($db, $config);
+        $listing     = $listingRepo->getById($id);
+
+        $wrap = function (string $content) use ($appUrl): Response {
+            $cssUrl = htmlspecialchars(
+                $appUrl . '/assets/css/default/style.css',
+                ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8',
+            );
+            return Response::html(
+                '<!DOCTYPE html><html lang="en"><head>'
+                . '<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">'
+                . '<link rel="stylesheet" href="' . $cssUrl . '?v=' . filemtime(
+                    rtrim(LUSTER_BASE, '/') . '/public/assets/css/default/style.css'
+                ) . '">'
+                . '<style>body{padding:1rem;background:#fff;font-family:sans-serif;font-size:14px}</style>'
+                . '</head><body>' . $content . '</body></html>'
+            );
+        };
+
+        if ($listing === null) {
+            return $wrap('<p style="color:#c00">Listing not found.</p>');
+        }
+
+        $allowed = ['members', 'affiliates_section', 'stats', 'updates', 'join_intro', 'adoption_intro', 'codes_submit_intro', 'rules_intro'];
+        if ($tpl === '' || !in_array($type, $allowed, true)) {
+            return $wrap('<p style="color:#c00">Unknown template type or empty template.</p>');
+        }
+
+        try {
+            $uploadsBase = $appUrl . '/uploads';
+            $html = match ($type) {
+                'members'             => $this->ltplPreviewMembers($tpl, $listing, $db, $config, $uploadsBase . '/members'),
+                'affiliates_section'  => $this->ltplPreviewAffiliates($tpl, $listing, $db, $uploadsBase . '/affiliates'),
+                'stats'               => $this->ltplPreviewStats($tpl, $listing, $db, $config),
+                'updates'             => $this->ltplPreviewUpdates($tpl, $listing, $db),
+                default               => $this->ltplPreviewIntro($tpl, $listing),
+            };
+        } catch (\Throwable $e) {
+            $html = '<p style="color:#c00;font-family:monospace">Preview error: '
+                  . htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '</p>';
+        }
+
+        return $wrap($html);
+    }
+
+    private function ltplPreviewMembers(string $tpl, object $listing, \Luster\Core\Database $db, \Luster\Core\Config $config, string $uploadsUrl): string
+    {
+        $prefix = (string) ($listing->dbprefix ?? '');
+        if ($prefix === '') {
+            return '<p style="font-style:italic;color:#888">No member table configured for this listing.</p>';
+        }
+        $memberRepo = new MemberRepo($db, $config);
+        $members    = $memberRepo->paginateByStatus($prefix, 'approved', 1, 10)['members'];
+
+        if (empty($members)) {
+            return '<p style="font-style:italic;color:#888">No approved members for this listing yet.</p>';
+        }
+
+        $e = static fn(string $v): string => htmlspecialchars($v, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+
+        $renderRow = static function (string $inner, object $m) use ($e): string {
+            return TemplateEngine::render(
+                $inner,
+                escaped: [
+                    'fan_name'    => $m->name,
+                    'fan_email'   => $m->email ?? '',
+                    'fan_url'     => $m->url    ?? '',
+                    'fan_country' => $m->country ?? '',
+                ],
+                conditions: [
+                    'fan_url'        => !empty($m->url),
+                    'no_fan_url'     => empty($m->url),
+                    'fan_country'    => !empty($m->country),
+                ],
+            );
+        };
+
+        return TemplateEngine::loop($tpl, 'member', $members, $renderRow);
+    }
+
+    private function ltplPreviewAffiliates(string $tpl, object $listing, \Luster\Core\Database $db, string $uploadsUrl): string
+    {
+        $affiliateRepo = new AffiliateRepo($db);
+        $affiliates    = $affiliateRepo->getByListing((int) $listing->id)['items'];
+
+        if (empty($affiliates)) {
+            return '<p style="font-style:italic;color:#888">No affiliates for this listing yet.</p>';
+        }
+
+        $e = static fn(string $v): string => htmlspecialchars($v, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+
+        // Handle {each_affiliate}...{/each_affiliate} inline loop
+        if (preg_match('/\{each_affiliate\}(.*?)\{\/each_affiliate\}/s', $tpl, $m)) {
+            $inner    = $m[1];
+            $rowParts = [];
+            foreach ($affiliates as $aff) {
+                $imageUrl   = !empty($aff->image) ? $uploadsUrl . '/' . $aff->image : '';
+                $imageHtml  = $imageUrl !== '' ? '<img src="' . $e($imageUrl) . '" alt="' . $e($aff->name) . '">' : '';
+                $rowParts[] = str_replace(
+                    ['{aff_name}', '{aff_url}', '{aff_image}', '{aff_image_url}', '{aff_image_tag}'],
+                    [$e($aff->name), $e($aff->url), $e($aff->image ?? ''), $e($imageUrl), $imageHtml],
+                    $inner,
+                );
+            }
+            $tpl = (string) preg_replace(
+                '/\{each_affiliate\}.*?\{\/each_affiliate\}/s',
+                implode('', $rowParts),
+                $tpl,
+                1,
+            );
+        }
+
+        // Build {affiliates} fallback rows (plain link/image, no custom row template)
+        $rowParts = [];
+        foreach ($affiliates as $aff) {
+            $imageUrl   = !empty($aff->image) ? $uploadsUrl . '/' . $aff->image : '';
+            $rowParts[] = $imageUrl !== ''
+                ? '<a href="' . $e($aff->url) . '" target="_blank" rel="noopener noreferrer"><img src="' . $e($imageUrl) . '" alt="' . $e($aff->name) . '"></a>'
+                : '<a href="' . $e($aff->url) . '" target="_blank" rel="noopener noreferrer">' . $e($aff->name) . '</a>';
+        }
+        $rows = implode("\n", $rowParts);
+
+        $listParts = [];
+        foreach ($affiliates as $aff) {
+            $listParts[] = '<a href="' . $e($aff->url) . '">' . $e($aff->name) . '</a>';
+        }
+        $plainList = implode(', ', $listParts);
+
+        $count = count($affiliates);
+
+        if ($count > 0) {
+            $tpl = (string) (preg_replace('/\{if_no_affiliates\}.*?\{\/if_no_affiliates\}/s', '', $tpl) ?? $tpl);
+            $tpl = str_replace(['{if_affiliates}', '{/if_affiliates}'], '', $tpl);
+        } else {
+            $tpl = (string) (preg_replace('/\{if_affiliates\}.*?\{\/if_affiliates\}/s', '', $tpl) ?? $tpl);
+            $tpl = str_replace(['{if_no_affiliates}', '{/if_no_affiliates}'], '', $tpl);
+        }
+
+        return str_replace(
+            ['{affiliates}', '{affiliates_count}', '{affiliates_list}'],
+            [$rows, (string) $count, $plainList],
+            $tpl,
+        );
+    }
+
+    private function ltplPreviewStats(string $tpl, object $listing, \Luster\Core\Database $db, \Luster\Core\Config $config): string
+    {
+        $settingsRepo = new ListingSettingsRepo($db);
+        $approvedBy   = (string) ($settingsRepo->getApprovedBy((int) $listing->id) ?? '');
+
+        $prefix     = (string) ($listing->dbprefix ?? '');
+        $memberRepo = new MemberRepo($db, $config);
+        $approved   = $prefix !== '' ? $memberRepo->countApproved($prefix) : 0;
+        $pending    = $prefix !== '' ? $memberRepo->countPending($prefix) : 0;
+
+        $networkLink = match ($approvedBy) {
+            'tfl'  => '<a href="https://thefanlistings.org" rel="noopener noreferrer">The Fanlistings Network</a>',
+            'tafl' => '<a href="https://animefanlistings.com" rel="noopener noreferrer">The Anime Fanlistings Network</a>',
+            default => '',
+        };
+
+        $rendered = TemplateEngine::render(
+            $tpl,
+            escaped: [
+                'stat_opened'       => $listing->opened ?? '',
+                'stat_updated'      => '',
+                'stat_last_updated' => '',
+                'stat_approved'     => (string) $approved,
+                'stat_pending'      => (string) $pending,
+                'stat_newmembers'   => '',
+                'stat_growth'       => '',
+                'listing_title'     => $listing->title,
+                'listing_url'       => $listing->url,
+            ],
+            conditions: ['approved_by' => $approvedBy !== ''],
+        );
+        return str_replace('{approved_by}', $networkLink, $rendered);
+    }
+
+    private function ltplPreviewUpdates(string $tpl, object $listing, \Luster\Core\Database $db): string
+    {
+        try {
+            $updateRepo = new \Luster\Addons\Updates\UpdateRepo($db);
+            $updates    = $updateRepo->getForFanlisting((int) $listing->id, 1, 3);
+        } catch (\Throwable) {
+            return '<p style="font-style:italic;color:#888">Updates add-on is not installed.</p>';
+        }
+
+        if (empty($updates)) {
+            return '<p style="font-style:italic;color:#888">No updates posted for this listing yet.</p>';
+        }
+
+        return \Luster\Addons\Updates\Controllers\UpdatesPublicController::buildUpdatesHtmlPublic($updates, $tpl);
+    }
+
+    private function ltplPreviewIntro(string $tpl, object $listing): string
+    {
+        return TemplateEngine::render(
+            $tpl,
+            escaped: [
+                'listing_title'   => $listing->title,
+                'listing_url'     => $listing->url,
+                'listing_subject' => $listing->subject ?? '',
+            ],
+        );
     }
 
     // -----------------------------------------------------------------------

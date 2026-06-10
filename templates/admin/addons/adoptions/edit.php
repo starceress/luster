@@ -39,6 +39,9 @@ $statusLabels = [
   </a>
 </div>
 
+<?php if (($success ?? '') !== ''): ?>
+  <div class="alert alert-success"><?= View::e($success) ?></div>
+<?php endif; ?>
 <?php if ($error !== ''): ?>
   <div class="alert alert-error"><?= View::e($error) ?></div>
 <?php endif; ?>

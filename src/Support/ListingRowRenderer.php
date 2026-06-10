@@ -95,6 +95,7 @@ final class ListingRowRenderer
                 'tfl'             => $approvedBy === 'tfl',
                 'tafl'            => $approvedBy === 'tafl',
                 'approved'        => $approvedBy !== '',
+                'date_updated'    => (string) ($settings['last_updated'] ?? '') !== '',
             ],
         );
     }

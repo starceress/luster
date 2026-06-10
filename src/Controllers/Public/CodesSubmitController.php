@@ -78,10 +78,23 @@ final class CodesSubmitController
 
         $captchaQuestion = Captcha::getQuestion('code_submit');
 
+        $codesSubmitIntroHtml = '';
         if ($isCollective) {
             $wrapperTpl = (new SiteSettingsRepo($this->app->getDatabase()))->get('collective_field_wrapper_template', '') ?? '';
         } else {
-            $wrapperTpl = (new ListingSettingsRepo($this->app->getDatabase()))->getWrapperTemplate($listingId) ?? '';
+            $settingsRepoRcs = new ListingSettingsRepo($this->app->getDatabase());
+            $wrapperTpl      = $settingsRepoRcs->getWrapperTemplate($listingId) ?? '';
+            $rawCsIntro      = $settingsRepoRcs->getCodesSubmitIntroTemplate($listingId) ?? '';
+            if ($rawCsIntro !== '') {
+                $codesSubmitIntroHtml = \Luster\Core\TemplateEngine::render(
+                    $rawCsIntro,
+                    escaped: [
+                        'listing_title'   => $listing->title,
+                        'listing_url'     => $listing->url ?? '',
+                        'listing_subject' => $listing->subject ?? '',
+                    ],
+                );
+            }
         }
 
         $f = $this->app->getFormFieldBuilder()->build([
@@ -93,16 +106,17 @@ final class CodesSubmitController
         ], $wrapperTpl);
 
         return Response::html($this->app->getView()->renderPublic('codes-submit.php', [
-            'listing'      => $listing,
-            'listing_name' => $listingName,
-            'listing_url'  => $listingUrl,
-            'page_title'   => 'Submit a Code â€” ' . $listingName,
-            'base_url'     => $baseUrl,
-            'theme_path'   => $baseUrl . '/assets/css/default/',
-            'form_action'  => $baseUrl . '/codes/submit/' . $listingId,
-            'csrf_token'   => $this->app->getCSRF()->token(),
-            'errors'       => htmlspecialchars($error, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),
-            'f'            => $f,
+            'listing'                  => $listing,
+            'listing_name'             => $listingName,
+            'listing_url'              => $listingUrl,
+            'page_title'               => 'Submit a Code — ' . $listingName,
+            'base_url'                 => $baseUrl,
+            'theme_path'               => $baseUrl . '/assets/css/default/',
+            'form_action'              => $baseUrl . '/codes/submit/' . $listingId,
+            'csrf_token'               => $this->app->getCSRF()->token(),
+            'errors'                   => htmlspecialchars($error, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),
+            'f'                        => $f,
+            'codes_submit_intro_html'  => $codesSubmitIntroHtml,
         ]));
     }
 

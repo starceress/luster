@@ -480,14 +480,14 @@
   margin-top: 0.25em;
 }
 
+.fl-listing-network,
 .fl-listing-category,
 .fl-listing-status,
 .fl-listing-date-opened,
 .fl-listing-date-updated,
 .fl-listing-member-count,
 .fl-listing-country-count {
-  display: inline;
-  margin-right: 0.75em;
+  display: block;
 }
 
 .fl-listing-item--current  .fl-listing-status { color: var(--fl-status-current-fg,  #2d6a3f); }

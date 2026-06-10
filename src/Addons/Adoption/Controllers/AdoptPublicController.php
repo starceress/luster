@@ -229,7 +229,19 @@ final class AdoptPublicController
     ): Response {
         $baseUrl         = $this->app->getBaseUrl();
         $captchaQuestion = Captcha::getQuestion('adopt');
-        $wrapperTpl      = (new ListingSettingsRepo($this->app->getDatabase()))->getWrapperTemplate($listingId) ?? '';
+        $settingsRepoRaf = new ListingSettingsRepo($this->app->getDatabase());
+        $wrapperTpl      = $settingsRepoRaf->getWrapperTemplate($listingId) ?? '';
+        $rawAdoptIntro   = $settingsRepoRaf->getAdoptionIntroTemplate($listingId) ?? '';
+        $adoptionIntroHtml = $rawAdoptIntro !== ''
+            ? \Luster\Core\TemplateEngine::render(
+                $rawAdoptIntro,
+                escaped: [
+                    'listing_title'   => $listing->title,
+                    'listing_url'     => $listing->url,
+                    'listing_subject' => $listing->subject ?? '',
+                ],
+            )
+            : '';
 
         $f = $this->app->getFormFieldBuilder()->build([
             ['type' => 'text',     'name' => 'name',           'id' => 'adopt-name',    'label' => 'Name',    'required' => true,  'value' => (string) ($old['name']    ?? ''), 'attrs' => ['maxlength' => '100', 'autocomplete' => 'name']],
@@ -240,18 +252,19 @@ final class AdoptPublicController
         ], $wrapperTpl);
 
         $html = $this->app->getView()->renderPublic('adopt.php', [
-            'listing'      => $listing,
-            'listing_name' => $listing->title,
-            'listing_url'  => $listing->url,
-            'page_title'   => 'Adopt ' . $listing->title,
-            'form_action'  => $baseUrl . '/adopt/' . $listingId,
-            'csrf_token'   => $this->app->getCSRF()->token(),
-            'errors'       => $error !== ''
+            'listing'            => $listing,
+            'listing_name'       => $listing->title,
+            'listing_url'        => $listing->url,
+            'page_title'         => 'Adopt ' . $listing->title,
+            'form_action'        => $baseUrl . '/adopt/' . $listingId,
+            'csrf_token'         => $this->app->getCSRF()->token(),
+            'errors'             => $error !== ''
                 ? '<p>' . htmlspecialchars($error, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '</p>'
                 : '',
-            'f'            => $f,
-            'base_url'     => $baseUrl,
-            'theme_path'   => $baseUrl . '/assets/css/default/',
+            'f'                  => $f,
+            'adoption_intro_html' => $adoptionIntroHtml,
+            'base_url'           => $baseUrl,
+            'theme_path'         => $baseUrl . '/assets/css/default/',
         ]);
 
         return Response::html($html);

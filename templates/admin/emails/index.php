@@ -355,19 +355,20 @@ $oldBodyE    = htmlspecialchars($old_body ?? '', ENT_QUOTES, 'UTF-8');
 
           </div>
 
-          <details class="card chevron" open>
+          <details class="card chevron" data-token-card>
             <summary class="chevron-head">Available Tokens</summary>
-            <div class="card-body">
-              <p class="form-hint">Click a token row to insert it into the body of the message. Tokens also work in the subject line if you type or paste them there.</p>
-              <table class="et-token-table">
+            <div class="chevron-body">
+              <table class="et-token-table et-token-table--compact">
                 <tbody>
-                  <?php foreach ($typeTokens[$type] as $token): ?>
-                    <tr class="tok-row"
+                  <?php foreach ($typeTokens[$type] as $token):
+                    $desc = $allTokenDesc[$token] ?? '';
+                  ?>
+                    <tr class="tok-row" tabindex="0" role="button"
+                        title="<?= View::e($desc) ?>"
+                        aria-label="Insert <?= View::e($token) ?>. <?= View::e($desc) ?>"
                         data-textarea="et-body-<?= View::e($type) ?>"
-                        data-token="<?= View::e($token) ?>"
-                        title="Click to insert">
-                      <td><code><?= View::e($token) ?></code></td>
-                      <td><?= View::e($allTokenDesc[$token] ?? '') ?></td>
+                        data-token="<?= View::e($token) ?>">
+                      <td class="token-cell" data-desc="<?= View::e($desc) ?>"><code><?= View::e($token) ?></code></td>
                     </tr>
                   <?php endforeach; ?>
                 </tbody>
@@ -450,16 +451,37 @@ $oldBodyE    = htmlspecialchars($old_body ?? '', ENT_QUOTES, 'UTF-8');
         </div>
       </div>
 
-      <details class="card chevron" open>
-        <summary class="card-head">Available Tokens</summary>
-        <div class="card-body">
-          <p class="form-hint">Click a token row to insert it into the body of the message. Tokens also work in the subject line if you type or paste them there.</p>
-          <table class="et-token-table">
+      <div class="search-field-wrap token-search-wrap">
+        <?= View::icon('search', ['class' => 'search-field-icon', 'aria-hidden' => 'true']) ?>
+        <input type="search"
+               data-token-search
+               data-token-search-scope="tab-bulk"
+               class="form"
+               placeholder="Search email tokens"
+               autocomplete="off"
+               aria-label="Search email tokens">
+        <button type="button"
+                data-token-search-clear
+                class="token-search-clear"
+                aria-label="Clear search"
+                title="Clear search"
+                hidden><?= View::icon('x', ['aria-hidden' => 'true']) ?></button>
+      </div>
+
+      <p data-token-search-empty class="form-hint token-search-empty" hidden>No tokens found.</p>
+
+      <details class="card chevron" data-token-card>
+        <summary class="chevron-head">Available Tokens</summary>
+        <div class="chevron-body">
+          <table class="et-token-table et-token-table--compact">
             <tbody>
               <?php foreach ($bulkTokens as $token => $desc): ?>
-                <tr class="tok-row" data-textarea="me-body" data-token="<?= View::e($token) ?>" title="Click to insert">
-                  <td><code><?= View::e($token) ?></code></td>
-                  <td><?= View::e($desc) ?></td>
+                <tr class="tok-row" tabindex="0" role="button"
+                    title="<?= View::e($desc) ?>"
+                    aria-label="Insert <?= View::e($token) ?>. <?= View::e($desc) ?>"
+                    data-textarea="me-body"
+                    data-token="<?= View::e($token) ?>">
+                  <td class="token-cell" data-desc="<?= View::e($desc) ?>"><code><?= View::e($token) ?></code></td>
                 </tr>
               <?php endforeach; ?>
             </tbody>
@@ -667,16 +689,37 @@ $oldBodyE    = htmlspecialchars($old_body ?? '', ENT_QUOTES, 'UTF-8');
     
 <!-- ──── SIDEBAR: AVAILABLE TOKENS ──────────────────────────────────── -->
     <div class="composer-side">
-      <details class="card chevron" open>
+      <div class="search-field-wrap token-search-wrap">
+        <?= View::icon('search', ['class' => 'search-field-icon', 'aria-hidden' => 'true']) ?>
+        <input type="search"
+               data-token-search
+               data-token-search-scope="tab-custom"
+               class="form"
+               placeholder="Search email tokens"
+               autocomplete="off"
+               aria-label="Search email tokens">
+        <button type="button"
+                data-token-search-clear
+                class="token-search-clear"
+                aria-label="Clear search"
+                title="Clear search"
+                hidden><?= View::icon('x', ['aria-hidden' => 'true']) ?></button>
+      </div>
+
+      <p data-token-search-empty class="form-hint token-search-empty" hidden>No tokens found.</p>
+
+      <details class="card chevron" data-token-card>
         <summary class="chevron-head">Available Tokens</summary>
-        <div class="card-body">
-          <p class="form-hint">Click a token row to insert it into the body of the message. Tokens also work in the subject line if you type or paste them there.</p>
-          <table class="et-token-table">
+        <div class="chevron-body">
+          <table class="et-token-table et-token-table--compact">
             <tbody>
               <?php foreach ($bulkTokens as $token => $desc): ?>
-                <tr class="tok-row" data-textarea="new-tpl-body" data-token="<?= View::e($token) ?>" title="Click to insert">
-                  <td><code><?= View::e($token) ?></code></td>
-                  <td><?= View::e($desc) ?></td>
+                <tr class="tok-row" tabindex="0" role="button"
+                    title="<?= View::e($desc) ?>"
+                    aria-label="Insert <?= View::e($token) ?>. <?= View::e($desc) ?>"
+                    data-textarea="new-tpl-body"
+                    data-token="<?= View::e($token) ?>">
+                  <td class="token-cell" data-desc="<?= View::e($desc) ?>"><code><?= View::e($token) ?></code></td>
                 </tr>
               <?php endforeach; ?>
             </tbody>

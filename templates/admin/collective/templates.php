@@ -130,19 +130,21 @@ $tok = static fn(string $ta, string $token, string $label, string $desc): string
         <?= View::icon('search', ['class' => 'search-field-icon', 'aria-hidden' => 'true']) ?>
         <input type="search"
                id="collective-token-search"
+               data-token-search
                class="form"
                placeholder="Search embed tokens"
                autocomplete="off"
                aria-label="Search embed tokens">
         <button type="button"
                 id="collective-token-search-clear"
+                data-token-search-clear
                 class="token-search-clear"
                 aria-label="Clear embed token search"
                 title="Clear search"
                 hidden><?= View::icon('x', ['aria-hidden' => 'true']) ?></button>
       </div>
 
-      <p id="collective-token-search-empty" class="form-hint token-search-empty" hidden>No tokens found.</p>
+      <p id="collective-token-search-empty" data-token-search-empty class="form-hint token-search-empty" hidden>No tokens found.</p>
 
       <!-- ── Owned Listings ─────────────────────────── -->
       <details class="card chevron" data-token-card>

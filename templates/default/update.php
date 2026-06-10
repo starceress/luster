@@ -91,8 +91,8 @@ $signed_in = $signed_in ?? false;
     <?= $f['captcha_answer'] ?>
 
     <div class="fl-form-actions">
-      <button type="submit">Update Information</button>
-      <button type="reset">Clear</button>
+      <button type="submit" class="fl-submit">Update Information</button>
+      <button type="reset" class="fl-btn-secondary">Clear</button>
     </div>
   </form>
 

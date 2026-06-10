@@ -1134,9 +1134,15 @@ document.addEventListener('change', function (e) {
       listing_name:    md.listingName    || '',
       listing_subject: md.listingSubject || '',
       listing_url:     md.listingUrl     || '',
+      listing_title:   md.listingName    || '',
       site_name:       md.siteName       || '',
       owner_name:      md.ownerName      || '',
       owner_email:     md.ownerEmail     || '',
+      app_name:        md.fanName        || '',
+      app_email:       md.fanEmail       || '',
+      app_url:         md.fanUrl         || '',
+      app_message:     md.appMessage     || '',
+      app_status:      md.appStatus      || '',
     };
     var rawSubj = (listingName ? listingName + ': ' : '') + (subj ? subj.value : '');
 
@@ -1605,7 +1611,7 @@ document.addEventListener('change', function (e) {
   var pickItems = root.querySelectorAll('.ec-qc-item'); // no-op in new layout; kept for selectItem() loop
 
   var navGroups = [
-    { val: 'l', keys: ['join','members','stats','affiliates','aff-apply','update','remove','reset','codes','codes-submit','contact','updates','adopt'] },
+    { val: 'l', keys: ['join','members','stats','affiliates','aff-apply','update','remove','reset','codes','codes-submit','contact','updates','adopt','rules-gate'] },
     { val: 'c', keys: ['owned','joined','cstats','aff-col','col-aff-apply','random','latest','col-codes','col-codes-submit','kim','kim-list','kim-update','kim-reset','col-updates','col-contact','wishlist'] },
   ];
 
@@ -1731,19 +1737,24 @@ document.addEventListener('change', function (e) {
     codes: 'codes.php', 'codes-submit': 'codes-submit.php',
     contact: 'contact.php', updates: 'updates.php', adopt: 'adopt.php',
     'col-updates': 'collective-updates.php', 'col-contact': 'collective-contact.php',
-    wishlist: 'wishlist.php',
+    wishlist: 'wishlist.php', 'rules-gate': 'rules-gate.php',
   };
 
   function generateCode(type, vals) {
     var lines = [];
-    if (baselineCss) {
-      lines.push('<!-- Luster baseline embed CSS. Add once in your <head>, after your own stylesheet links. Edit public/assets/css/default/style.css or override with your own rules. -->');
-      lines.push('<link rel="stylesheet" href="' + baselineCss + '">');
+    if (embedPath || baselineCss) {
+      lines.push('<!-- Luster: copy this block once to every page that uses embeds. -->');
+      if (embedPath) {
+        lines.push("<?php defined('LUSTER_EMBED') || define('LUSTER_EMBED', " + phpStr(embedPath) + "); ?>");
+      }
+      if (baselineCss) {
+        lines.push('<link rel="stylesheet" href="' + baselineCss + '">');
+      }
       lines.push('');
     }
     lines.push('<?php');
     // Listing ID
-    var needsId = ['join','members','stats','update','remove','reset','aff-apply','codes','codes-submit','contact','updates','adopt'];
+    var needsId = ['join','members','stats','update','remove','reset','aff-apply','codes','codes-submit','contact','updates','adopt','rules-gate'];
     if (needsId.indexOf(type) !== -1) {
       var lid = parseInt(vals.lid || (listings.length ? listings[0].id : 1), 10) || 1;
       if (type === 'aff-apply') lines.push('// Enable in Admin → Listings → Edit → Affiliates');
@@ -1815,7 +1826,17 @@ document.addEventListener('change', function (e) {
     if (type === 'col-updates') lines.push('// Requires Updates Feed add-on (Admin → Add-ons)');
     if (type === 'wishlist')    lines.push('// Requires Wishlist add-on (Admin → Add-ons)');
     if (type === 'latest')      lines.push('// Renders the listing with the most recent open date.');
-    lines.push("require('" + embedPath + '/' + (FILE[type] || type + '.php') + "');");
+    if (type === 'rules-gate') {
+      lines.push('// Requires Join Rules add-on (Admin -> Add-ons)');
+      lines.push('$luster_return = true;');
+      lines.push("$gate = require LUSTER_EMBED . '/rules-gate.php';");
+      lines.push("if ($gate !== '') { echo $gate; return; }");
+      lines.push('// Fan has agreed -- show the join form:');
+      lines.push('$luster_return = false;');
+      lines.push("require LUSTER_EMBED . '/join.php';");
+    } else {
+      lines.push("require LUSTER_EMBED . '/" + (FILE[type] || type + '.php') + "';");
+    };
     // Collective stats display lines
     if (type === 'cstats') {
       var selVars = Array.isArray(vals.vars) ? vals.vars : [];
@@ -2016,6 +2037,9 @@ document.addEventListener('change', function (e) {
     'kim-reset': {
       fields: [],
       note: 'Set your KIM page links in Settings first. After that, this snippet is ready to copy.',
+    },
+    'rules-gate': {
+      fields: [{ id: 'lid', label: 'Listing', type: 'listing', hint: '' }],
     },
   };
 
@@ -2407,6 +2431,14 @@ document.addEventListener('change', function (e) {
           + '<p class="site-sub">Enter your email to receive a reset link.</p>'
           + '<label>Email</label><input class="fld" placeholder="you@example.com" />'
           + '<button class="site-btn">Send reset link</button>';
+
+      case 'rules-gate':
+        return '<h4>Joining Rules</h4>'
+          + '<p class="site-sub">Please read and agree to the rules before joining.</p>'
+          + '<div style="background:#f5f3fc;border:1px solid #d0c8e8;border-radius:6px;padding:.75rem;font-size:.78rem;color:#6a5f87;margin-bottom:.75rem">No jumping ahead in queues. No sharing passwords. Be respectful.</div>'
+          + '<label><input type="checkbox" /> I have read and agree to the joining rules</label>'
+          + '<button class="site-btn" style="margin-top:.75rem">Agree &amp; Continue</button>'
+          + '<div class="site-note">Once agreed, the fan is shown the join form instead.</div>';
 
       default:
         return '<h4>' + esc(key) + '</h4>';
@@ -3753,89 +3785,75 @@ function adminWireFilterPanel(btnId, panelId, htmlClass) {
     insertTokenFromRow(row);
   });
 
-  // Token search: keep results grouped inside their original token cards.
-  var tokenSearch = document.getElementById('collective-token-search');
-  var tokenSearchClear = document.getElementById('collective-token-search-clear');
-  var tokenCards = document.querySelectorAll('[data-token-card]');
-  var tokenSearchEmpty = document.getElementById('collective-token-search-empty');
-  var tokenSearchActive = false;
-
-  function tokenSearchText(value) {
-    return (value || '').toLowerCase().replace(/[{}_.\/-]+/g, ' ');
-  }
-
-  function updateTokenSearch() {
-    if (!tokenSearch || !tokenCards.length) return;
-
-    var rawQuery = tokenSearch.value.trim();
-    var terms = tokenSearchText(rawQuery).split(/\s+/).filter(Boolean);
-    var active = terms.length > 0;
-    var hasQuery = tokenSearch.value.length > 0;
-    var totalMatches = 0;
-
-    if (active && !tokenSearchActive) {
-      tokenCards.forEach(function (card) {
-        card.dataset.tokenSearchWasOpen = card.open ? '1' : '0';
-      });
+  // Token search: generic multi-instance implementation.
+  // Each [data-token-search] input scopes its search to [data-token-card] elements within
+  // the container identified by [data-token-search-scope] (or the whole document when omitted).
+  (function () {
+    function tokenSearchNorm(s) {
+      return (s || '').toLowerCase().replace(/[{}_.\/-]+/g, ' ');
     }
 
-    tokenCards.forEach(function (card) {
-      var matches = 0;
-      var rows = card.querySelectorAll('.tok-row[data-token]');
-      var help = card.querySelectorAll('[data-token-search-help]');
+    document.querySelectorAll('[data-token-search]').forEach(function (input) {
+      var scopeId    = input.getAttribute('data-token-search-scope');
+      var scope      = scopeId ? document.getElementById(scopeId) : document;
+      if (!scope) return;
 
-      help.forEach(function (el) {
-        el.hidden = active;
-      });
+      var clearBtn   = scope.querySelector('[data-token-search-clear]');
+      var emptyEl    = scope.querySelector('[data-token-search-empty]');
+      var tokenCards = scope.querySelectorAll('[data-token-card]');
+      var wasOpen    = {};
 
-      rows.forEach(function (row) {
-        var source = [
-          row.dataset.token || '',
-          row.textContent || '',
-          row.getAttribute('title') || ''
-        ].join(' ');
-        var haystack = source.toLowerCase() + ' ' + tokenSearchText(source);
-        var match = !active || terms.every(function (term) {
-          return haystack.indexOf(term) !== -1;
+      function run() {
+        var rawQuery     = input.value.trim();
+        var terms        = tokenSearchNorm(rawQuery).split(/\s+/).filter(Boolean);
+        var active       = terms.length > 0;
+        var totalMatches = 0;
+
+        if (active && !wasOpen._active) {
+          tokenCards.forEach(function (card, i) { wasOpen[i] = card.open; });
+          wasOpen._active = true;
+        }
+
+        tokenCards.forEach(function (card, i) {
+          var rows    = card.querySelectorAll('.tok-row[data-token]');
+          var helps   = card.querySelectorAll('[data-token-search-help]');
+          var matches = 0;
+
+          helps.forEach(function (el) { el.hidden = active; });
+
+          rows.forEach(function (row) {
+            var source   = [row.getAttribute('data-token') || '', row.getAttribute('title') || '', row.textContent || ''].join(' ');
+            var haystack = source.toLowerCase() + ' ' + tokenSearchNorm(source);
+            var match    = !active || terms.every(function (t) { return haystack.indexOf(t) !== -1; });
+            row.hidden   = !match;
+            if (match) matches++;
+          });
+
+          if (active) {
+            card.hidden = matches === 0;
+            if (matches > 0) card.open = true;
+            totalMatches += matches;
+          } else {
+            card.hidden = false;
+            if (wasOpen._active) { card.open = !!wasOpen[i]; delete wasOpen[i]; }
+          }
         });
 
-        row.hidden = !match;
-        if (match) matches += 1;
-      });
+        if (!active) wasOpen._active = false;
+        if (emptyEl)  emptyEl.hidden  = !active || totalMatches > 0;
+        if (clearBtn) clearBtn.hidden = input.value.length === 0;
+      }
 
-      if (active) {
-        card.hidden = matches === 0;
-        if (matches > 0) card.open = true;
-        totalMatches += matches;
-      } else {
-        card.hidden = false;
-        if (tokenSearchActive) {
-          card.open = card.dataset.tokenSearchWasOpen === '1';
-          delete card.dataset.tokenSearchWasOpen;
-        }
+      input.addEventListener('input', run);
+      if (clearBtn) {
+        clearBtn.addEventListener('click', function () {
+          input.value = '';
+          run();
+          input.focus();
+        });
       }
     });
-
-    if (tokenSearchEmpty) {
-      tokenSearchEmpty.hidden = !active || totalMatches > 0;
-    }
-    if (tokenSearchClear) {
-      tokenSearchClear.hidden = !hasQuery;
-    }
-
-    tokenSearchActive = active;
-  }
-
-  if (tokenSearch) {
-    tokenSearch.addEventListener('input', updateTokenSearch);
-  }
-  if (tokenSearchClear && tokenSearch) {
-    tokenSearchClear.addEventListener('click', function () {
-      tokenSearch.value = '';
-      updateTokenSearch();
-      tokenSearch.focus();
-    });
-  }
+  }());
 
   // Reset to default button
   var defaultsEl = document.getElementById('luster-coltpl-defaults');
@@ -3867,7 +3885,11 @@ function adminWireFilterPanel(btnId, panelId, htmlClass) {
   var COLTPL_LABELS = {
     owned: 'Owned Listings Preview', random: 'Random Listing Preview',
     latest: 'Latest Listing Preview', joined: 'Joined Listings Preview',
-    collective_affiliates_section: 'Affiliates Preview', collective_stats: 'Statistics Preview'
+    collective_affiliates_section: 'Affiliates Preview', collective_stats: 'Statistics Preview',
+    members: 'Members List Preview', affiliates_section: 'Affiliates Section Preview',
+    stats: 'Statistics Preview', updates: 'Updates Feed Preview',
+    join_intro: 'Join Form Intro Preview', adoption_intro: 'Adoption Form Intro Preview',
+    codes_submit_intro: 'Code Donation Intro Preview', rules_intro: 'Join Rules Intro Preview'
   };
 
   function closeColtplModal() {
@@ -4114,7 +4136,8 @@ function adminWireFilterPanel(btnId, panelId, htmlClass) {
     ? JSON.parse(previewData.dataset.scopeCounts)
     : null;
 
-  var recipientLabel = scopeEl ? 'affiliate' : 'member';
+  var context        = previewData ? (previewData.dataset.context || '') : '';
+  var recipientLabel = scopeEl ? 'affiliate' : (context === 'adoption' ? 'applicant' : 'member');
 
   // ── Recipient count (chips-based for KIM, scope-based for affiliate email) ─
   function getRecipientCount() {
@@ -4208,6 +4231,7 @@ function adminWireFilterPanel(btnId, panelId, htmlClass) {
   var sampleSiteUrl        = previewData.dataset.siteUrl        || '';
   var sampleOwnerName      = previewData.dataset.ownerName      || '';
   var sampleOwnerEmail     = previewData.dataset.ownerEmail     || '';
+  var sampleAppMessage     = previewData.dataset.appMessage     || '';
   var sampleFromName       = previewData.dataset.fromName       || sampleOwnerName;
   var sampleFromEmail      = previewData.dataset.fromEmail      || sampleOwnerEmail;
 
@@ -4230,9 +4254,15 @@ function adminWireFilterPanel(btnId, panelId, htmlClass) {
       .replace(/\{listing_name\}/g,     sampleListingName  || sampleSite)
       .replace(/\{listing_subject\}/g,  sampleListingSubject)
       .replace(/\{listing_url\}/g,      sampleListingUrl   || sampleSiteUrl)
+      .replace(/\{listing_title\}/g,    sampleListingName  || sampleSite)
       .replace(/\{site_name\}/g,        sampleSite)
       .replace(/\{owner_name\}/g,       sampleOwnerName)
-      .replace(/\{owner_email\}/g,      sampleOwnerEmail);
+      .replace(/\{owner_email\}/g,      sampleOwnerEmail)
+      .replace(/\{app_name\}/g,         sampleName)
+      .replace(/\{app_email\}/g,        sampleEmail)
+      .replace(/\{app_url\}/g,          'https://example.com')
+      .replace(/\{app_message\}/g,      sampleAppMessage)
+      .replace(/\{app_status\}/g,       'pending');
   }
 
   function setModalMode(mode) {
