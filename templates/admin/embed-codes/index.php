@@ -289,13 +289,12 @@ $epSafe = View::e($ep);
           <div class="wizard-step-node wizard-step-node--active">
             <div class="wizard-step-bubble">1</div>
             <span class="wizard-step-label"
-                  data-step-sub="You need this for embeds to work!">Include This</span>
+                  data-step-sub="Add this to your site once">REQUIRED!</span>
           </div>
         </div>
-        <div class="callout callout-info ec-sel-callout">
-          <?= View::icon('palette') ?>
-          <span><strong>Baseline CSS:</strong> Copy this once to your <code>header.php</code>:
-            <code><?= View::e($setupDefine) ?></code>
+        <div class="callout callout-warn ec-sel-callout">
+          <span><strong>Add this to your site once &mdash; paste both lines into header.php, just before <code>&lt;/head&gt;</strong></code>:<br><br>
+            <code><?= View::e($setupDefine) ?></code><br>
             <code><?= View::e($setupCss) ?></code>
           </span>
         </div>
@@ -387,7 +386,7 @@ $epSafe = View::e($ep);
 <!-- ──── VARIABLE REFERENCE ──────────────────────────────────────────────── -->
   <div class="tabs-panel" id="ec-panel-ref" role="tabpanel">
 
-    <p class="text-muted embed-ref-intro">
+    <p class="text-muted">
       These settings let you change what the copied code shows on your site.
       Add them above the <code>require</code> line only when you need them.
       Words in <code>{braces}</code> go inside your templates; Luster swaps them for real listing,
@@ -456,8 +455,8 @@ $epSafe = View::e($ep);
         </div>
 
         <div class="ec-ref-panel" id="ec-ref-members">
-          <h3 class="pc-head-title embed-ref-heading">Members and passwords</h3>
-          <p class="text-muted embed-ref-copy">Settings for the members list.</p>
+          <h3 class="pc-head-title">Members and passwords</h3>
+          <p class="text-muted">Settings for the members list.</p>
           <div class="ec-ref-card">
             <div class="table-wrap">
             <table class="data-table">
@@ -471,7 +470,7 @@ $epSafe = View::e($ep);
             </table>
             </div>
           </div>
-          <p class="text-muted embed-ref-copy" style="margin-top:.875rem">Settings for password reset pages.</p>
+          <p class="text-muted" style="margin-top:.875rem">Settings for password reset pages.</p>
           <div class="ec-ref-card">
             <div class="table-wrap">
             <table class="data-table">
@@ -482,7 +481,7 @@ $epSafe = View::e($ep);
             </table>
             </div>
           </div>
-          <p class="text-muted embed-ref-copy" style="margin-top:.875rem">Settings for update and remove forms.</p>
+          <p class="text-muted" style="margin-top:.875rem">Settings for update and remove forms.</p>
           <div class="ec-ref-card">
             <div class="table-wrap">
             <table class="data-table">
@@ -493,7 +492,7 @@ $epSafe = View::e($ep);
             </table>
             </div>
           </div>
-          <p class="text-muted embed-ref-copy" style="margin-top:.875rem">Settings for listing stats.</p>
+          <p class="text-muted" style="margin-top:.875rem">Settings for listing stats.</p>
           <div class="ec-ref-card">
             <div class="table-wrap">
             <table class="data-table">
@@ -504,7 +503,7 @@ $epSafe = View::e($ep);
             </table>
             </div>
           </div>
-          <p class="text-muted embed-ref-copy" style="margin-top:.875rem">Settings for affiliate lists.</p>
+          <p class="text-muted" style="margin-top:.875rem">Settings for affiliate lists.</p>
           <div class="ec-ref-card">
             <div class="table-wrap">
             <table class="data-table">
@@ -529,7 +528,7 @@ $epSafe = View::e($ep);
               </div>
             </div>
           </details>
-          <p class="text-muted embed-ref-copy" style="margin-top:.875rem">Settings for updates feeds.</p>
+          <p class="text-muted" style="margin-top:.875rem">Settings for updates feeds.</p>
           <div class="ec-ref-card">
             <div class="table-wrap">
             <table class="data-table">
@@ -557,8 +556,8 @@ $epSafe = View::e($ep);
         </div>
 
         <div class="ec-ref-panel" id="ec-ref-listings">
-          <h3 class="pc-head-title embed-ref-heading">Listing pages</h3>
-          <p class="text-muted embed-ref-copy">Settings for owned listings pages.</p>
+          <h3 class="pc-head-title">Listing pages</h3>
+          <p class="text-muted">Settings for owned listings pages.</p>
           <div class="ec-ref-card">
             <div class="table-wrap">
             <table class="data-table">
@@ -574,7 +573,7 @@ $epSafe = View::e($ep);
             </table>
             </div>
           </div>
-          <p class="text-muted embed-ref-copy" style="margin-top:.875rem">Settings for joined listings pages.</p>
+          <p class="text-muted" style="margin-top:.875rem">Settings for joined listings pages.</p>
           <div class="ec-ref-card">
             <div class="table-wrap">
             <table class="data-table">
@@ -588,7 +587,7 @@ $epSafe = View::e($ep);
             </table>
             </div>
           </div>
-          <p class="text-muted embed-ref-copy" style="margin-top:.875rem">Setting for random listing.</p>
+          <p class="text-muted" style="margin-top:.875rem">Setting for random listing.</p>
           <div class="ec-ref-card">
             <div class="table-wrap">
             <table class="data-table">
@@ -599,7 +598,7 @@ $epSafe = View::e($ep);
             </table>
             </div>
           </div>
-          <p class="text-muted embed-ref-copy" style="margin-top:.875rem">Setting for wishlist pages.</p>
+          <p class="text-muted" style="margin-top:.875rem">Setting for wishlist pages.</p>
           <div class="ec-ref-card">
             <div class="table-wrap">
             <table class="data-table">
@@ -610,7 +609,7 @@ $epSafe = View::e($ep);
             </table>
             </div>
           </div>
-          <p class="text-muted embed-ref-copy" style="margin-top:.875rem">Settings for KIM List pages.</p>
+          <p class="text-muted" style="margin-top:.875rem">Settings for KIM List pages.</p>
           <div class="ec-ref-card">
             <div class="table-wrap">
             <table class="data-table">
@@ -626,7 +625,7 @@ $epSafe = View::e($ep);
             </table>
             </div>
           </div>
-          <p class="text-muted embed-ref-copy" style="margin-top:.875rem">Setting for collective stats.</p>
+          <p class="text-muted" style="margin-top:.875rem">Setting for collective stats.</p>
           <div class="ec-ref-card">
             <div class="table-wrap">
             <table class="data-table">
@@ -654,8 +653,8 @@ $epSafe = View::e($ep);
 
         <!-- STATS TEMPLATE TOKENS -->
         <div class="ec-ref-panel" id="ec-ref-stat-tokens">
-          <h3 class="pc-head-title embed-ref-heading">Listing stats</h3>
-          <p class="text-muted embed-ref-copy">Put these words in your stats template. Luster replaces each one with real listing information.</p>
+          <h3 class="pc-head-title">Listing stats</h3>
+          <p class="text-muted">Put these words in your stats template. Luster replaces each one with real listing information.</p>
           <div class="ec-ref-card">
             <div class="table-wrap">
             <table class="data-table">
@@ -680,8 +679,8 @@ $epSafe = View::e($ep);
 
         <!-- MEMBER ROW TOKENS -->
         <div class="ec-ref-panel" id="ec-ref-row-tokens">
-          <h3 class="pc-head-title embed-ref-heading">Member list</h3>
-          <p class="text-muted embed-ref-copy">Put these words in your member list template. Luster fills them in for each member.</p>
+          <h3 class="pc-head-title">Member list</h3>
+          <p class="text-muted">Put these words in your member list template. Luster fills them in for each member.</p>
           <div class="ec-ref-card">
             <div class="table-wrap">
             <table class="data-table">
@@ -700,8 +699,8 @@ $epSafe = View::e($ep);
 
         <!-- OWNED LISTINGS TOKENS -->
         <div class="ec-ref-panel" id="ec-ref-owned-tokens">
-          <h3 class="pc-head-title embed-ref-heading">Owned listings</h3>
-          <p class="text-muted embed-ref-copy">Put these words in your owned listings template. Think of a loop as a repeat box: you design one row, and Luster repeats that row for every owned listing it finds. Add your own <code>&lt;ul&gt;</code>, <code>&lt;li&gt;</code>, cards, or headings in the template if you want them.</p>
+          <h3 class="pc-head-title">Owned listings</h3>
+          <p class="text-muted">Put these words in your owned listings template. Think of a loop as a repeat box: you design one row, and Luster repeats that row for every owned listing it finds. Add your own <code>&lt;ul&gt;</code>, <code>&lt;li&gt;</code>, cards, or headings in the template if you want them.</p>
           <div class="ec-ref-card">
             <div class="table-wrap">
             <table class="data-table">
@@ -735,7 +734,7 @@ $epSafe = View::e($ep);
             </table>
             </div>
           </div>
-          <p class="text-muted embed-ref-copy" style="margin-top:.875rem">Section words for sectioned owned templates. Put these near your section headings, outside the repeated row itself. Example: <code>Current ({current_count})</code>. These count listings, not members.</p>
+          <p class="text-muted" style="margin-top:.875rem">Section words for sectioned owned templates. Put these near your section headings, outside the repeated row itself. Example: <code>Current ({current_count})</code>. These count listings, not members.</p>
           <div class="ec-ref-card">
             <div class="table-wrap">
             <table class="data-table">
@@ -756,8 +755,8 @@ $epSafe = View::e($ep);
 
         <!-- JOINED LISTINGS TOKENS -->
         <div class="ec-ref-panel" id="ec-ref-joined-tokens">
-          <h3 class="pc-head-title embed-ref-heading">Joined listings</h3>
-          <p class="text-muted embed-ref-copy">Put these words in your joined listings template. Use a repeat box for the row, then add your own list, card, or paragraph markup around it.</p>
+          <h3 class="pc-head-title">Joined listings</h3>
+          <p class="text-muted">Put these words in your joined listings template. Use a repeat box for the row, then add your own list, card, or paragraph markup around it.</p>
           <div class="ec-ref-card">
             <div class="table-wrap">
             <table class="data-table">
@@ -777,7 +776,7 @@ $epSafe = View::e($ep);
             </table>
             </div>
           </div>
-          <p class="text-muted embed-ref-copy" style="margin-top:.875rem">Section words for joined templates. Put these near headings or summary text, outside the repeated row itself.</p>
+          <p class="text-muted" style="margin-top:.875rem">Section words for joined templates. Put these near headings or summary text, outside the repeated row itself.</p>
           <div class="ec-ref-card">
             <div class="table-wrap">
             <table class="data-table">
@@ -794,8 +793,8 @@ $epSafe = View::e($ep);
 
         <!-- AFFILIATES TOKENS -->
         <div class="ec-ref-panel" id="ec-ref-aff-tokens">
-          <h3 class="pc-head-title embed-ref-heading">Affiliates</h3>
-          <p class="text-muted embed-ref-copy">Put these words in your affiliates template. Use <code>{affiliates}</code> for ready-made rows, or <code>{each_affiliate}</code> when you want to design each affiliate row yourself.</p>
+          <h3 class="pc-head-title">Affiliates</h3>
+          <p class="text-muted">Put these words in your affiliates template. Use <code>{affiliates}</code> for ready-made rows, or <code>{each_affiliate}</code> when you want to design each affiliate row yourself.</p>
           <div class="ec-ref-card">
             <div class="table-wrap">
             <table class="data-table">
@@ -811,7 +810,7 @@ $epSafe = View::e($ep);
             </table>
             </div>
           </div>
-          <p class="text-muted embed-ref-copy" style="margin-top:.875rem">Section words for affiliate section layouts.</p>
+          <p class="text-muted" style="margin-top:.875rem">Section words for affiliate section layouts.</p>
           <div class="ec-ref-card">
             <div class="table-wrap">
             <table class="data-table">
@@ -830,8 +829,8 @@ $epSafe = View::e($ep);
 
         <!-- COLLECTIVE STATS TEMPLATE TOKENS -->
         <div class="ec-ref-panel" id="ec-ref-cstat-tokens">
-          <h3 class="pc-head-title embed-ref-heading">Collective stats template</h3>
-          <p class="text-muted embed-ref-copy">Put these words in your collective stats template. Luster replaces them with your site-wide numbers.</p>
+          <h3 class="pc-head-title">Collective stats template</h3>
+          <p class="text-muted">Put these words in your collective stats template. Luster replaces them with your site-wide numbers.</p>
           <div class="ec-ref-card">
             <div class="table-wrap">
             <table class="data-table">
@@ -859,8 +858,8 @@ $epSafe = View::e($ep);
 
         <!-- PAGINATION TOKENS -->
         <div class="ec-ref-panel" id="ec-ref-pagination-tokens">
-          <h3 class="pc-head-title embed-ref-heading">Pagination</h3>
-          <p class="text-muted embed-ref-copy">Pagination is the little page picker under long lists. Put the page-row words inside <code>{each_page}</code>, and Luster repeats them for every page number it needs to show.</p>
+          <h3 class="pc-head-title">Pagination</h3>
+          <p class="text-muted">Pagination is the little page picker under long lists. Put the page-row words inside <code>{each_page}</code>, and Luster repeats them for every page number it needs to show.</p>
           <div class="ec-ref-card">
             <div class="table-wrap">
             <table class="data-table">
@@ -886,8 +885,8 @@ $epSafe = View::e($ep);
 
         <!-- FORM FIELD WRAPPER TOKENS -->
         <div class="ec-ref-panel" id="ec-ref-form-tokens">
-          <h3 class="pc-head-title embed-ref-heading">Form fields</h3>
-          <p class="text-muted embed-ref-copy">These control the wrapper around one form field: label, input, hint, and error. Luster repeats this wrapper for every field in a public form.</p>
+          <h3 class="pc-head-title">Form fields</h3>
+          <p class="text-muted">These control the wrapper around one form field: label, input, hint, and error. Luster repeats this wrapper for every field in a public form.</p>
           <div class="ec-ref-card">
             <div class="table-wrap">
             <table class="data-table">
@@ -911,8 +910,8 @@ $epSafe = View::e($ep);
 
         <!-- SUCCESS TEMPLATE TOKENS -->
         <div class="ec-ref-panel" id="ec-ref-success-tokens">
-          <h3 class="pc-head-title embed-ref-heading">Success messages</h3>
-          <p class="text-muted embed-ref-copy">These words are for the message shown after someone submits a public form. The action words let one saved message behave differently for join, update, reset, contact, affiliate, KIM, code, and adoption forms.</p>
+          <h3 class="pc-head-title">Success messages</h3>
+          <p class="text-muted">These words are for the message shown after someone submits a public form. The action words let one saved message behave differently for join, update, reset, contact, affiliate, KIM, code, and adoption forms.</p>
           <div class="ec-ref-card">
             <div class="table-wrap">
             <table class="data-table">
@@ -939,8 +938,8 @@ $epSafe = View::e($ep);
 
         <!-- CODES TEMPLATE TOKENS -->
         <div class="ec-ref-panel" id="ec-ref-codes-tokens">
-          <h3 class="pc-head-title embed-ref-heading">Codes</h3>
-          <p class="text-muted embed-ref-copy">These words are for code gallery templates. Use <code>{each_code}</code> for one flat list, or <code>{each_size_group}</code> when you want Luster to make a section for each button size.</p>
+          <h3 class="pc-head-title">Codes</h3>
+          <p class="text-muted">These words are for code gallery templates. Use <code>{each_code}</code> for one flat list, or <code>{each_size_group}</code> when you want Luster to make a section for each button size.</p>
           <div class="ec-ref-card">
             <div class="table-wrap">
             <table class="data-table">
@@ -968,8 +967,8 @@ $epSafe = View::e($ep);
 
         <!-- UPDATES TEMPLATE TOKENS -->
         <div class="ec-ref-panel" id="ec-ref-updates-tokens">
-          <h3 class="pc-head-title embed-ref-heading">Updates</h3>
-          <p class="text-muted embed-ref-copy">These words are for updates feed row templates. Design one update inside <code>{each_update}</code>, and Luster repeats it for each update post.</p>
+          <h3 class="pc-head-title">Updates</h3>
+          <p class="text-muted">These words are for updates feed row templates. Design one update inside <code>{each_update}</code>, and Luster repeats it for each update post.</p>
           <div class="ec-ref-card">
             <div class="table-wrap">
             <table class="data-table">
@@ -991,8 +990,8 @@ $epSafe = View::e($ep);
 
         <!-- WISHLIST TEMPLATE TOKENS -->
         <div class="ec-ref-panel" id="ec-ref-wishlist-tokens">
-          <h3 class="pc-head-title embed-ref-heading">Wishlist</h3>
-          <p class="text-muted embed-ref-copy">These words are for wishlist row templates. Luster repeats the row once for each active wishlist item being shown.</p>
+          <h3 class="pc-head-title">Wishlist</h3>
+          <p class="text-muted">These words are for wishlist row templates. Luster repeats the row once for each active wishlist item being shown.</p>
           <div class="ec-ref-card">
             <div class="table-wrap">
             <table class="data-table">
@@ -1017,8 +1016,8 @@ $epSafe = View::e($ep);
 
         <!-- KIM MEMBER TEMPLATE TOKENS -->
         <div class="ec-ref-panel" id="ec-ref-kim-tokens">
-          <h3 class="pc-head-title embed-ref-heading">KIM members</h3>
-          <p class="text-muted embed-ref-copy">These words are for the KIM member row template. Luster repeats the row once for each approved KIM member being shown.</p>
+          <h3 class="pc-head-title">KIM members</h3>
+          <p class="text-muted">These words are for the KIM member row template. Luster repeats the row once for each approved KIM member being shown.</p>
           <div class="ec-ref-card">
             <div class="table-wrap">
             <table class="data-table">
@@ -1038,8 +1037,8 @@ $epSafe = View::e($ep);
 
         <!-- COLLECTIVE STATS OUTPUT VARIABLES -->
         <div class="ec-ref-panel" id="ec-ref-cstat-vars">
-          <h3 class="pc-head-title embed-ref-heading">Stats for custom PHP</h3>
-          <p class="text-muted embed-ref-copy">Advanced. These are plain PHP variables created after you require <code>collective-stats.php</code>. Number and text variables can be echoed directly; object or array variables need PHP code that picks a key or property first.</p>
+          <h3 class="pc-head-title">Stats for custom PHP</h3>
+          <p class="text-muted">Advanced. These are plain PHP variables created after you require <code>collective-stats.php</code>. Number and text variables can be echoed directly; object or array variables need PHP code that picks a key or property first.</p>
           <details class="ec-ref-card ec-ref-advanced">
             <summary>Show advanced PHP stats</summary>
             <div class="ec-ref-advanced-body">
@@ -1075,7 +1074,7 @@ $epSafe = View::e($ep);
               </tbody>
             </table>
               </div>
-              <p class="text-muted embed-ref-copy" style="margin-top:.875rem">Enthusiast-compatible aliases. These are helpful when moving an older Enthusiast collective page into Luster.</p>
+              <p class="text-muted" style="margin-top:.875rem">Enthusiast-compatible aliases. These are helpful when moving an older Enthusiast collective page into Luster.</p>
               <div class="table-wrap">
             <table class="data-table">
               <thead><tr><th class="act-col">PHP variable</th><th>What it shows</th></tr></thead>

@@ -253,15 +253,6 @@
   --fl: ; /* Secondary ghost button variant — host can style */
 }
 
-.fl-captcha-row {
-  margin-bottom: 0.75em;
-}
-
-.fl-captcha-question {
-  font-weight: bold;
-  margin-bottom: 0.25em;
-}
-
 /* ── Success / result messages ───────────────────────────────────────────────── */
 
 .fl-success {
@@ -403,10 +394,6 @@
 
 .fl-affiliates-section {
   --fl: ; /* Full affiliates block wrapper */
-}
-
-.fl-affiliates-heading {
-  margin: 0 0 0.5em;
 }
 
 .fl-affiliates-empty {

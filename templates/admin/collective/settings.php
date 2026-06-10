@@ -58,6 +58,18 @@ $b = rtrim(View::e($base_url ?? ''), '/');
       </div>
     </div>
 
+    <div class="pc-section">
+      <div class="pc-section-label">Pending Items Digest</div>
+      <div class="form-group">
+        <label class="toggle-wrap">
+          <input type="checkbox" name="pending_digest_enabled" value="1"
+                 <?= ($site_settings['pending_digest_enabled'] ?? '1') === '1' ? 'checked' : '' ?>>
+          <span class="toggle-label">Email me a weekly pending items digest</span>
+        </label>
+        <p class="form-hint">Sent to the Owner Email once a week when there are pending members, affiliate applications, code submissions, update requests, KIM sign-ups, or adoption applications waiting for review. Nothing is sent when the queue is empty.</p>
+      </div>
+    </div>
+
     <div class="composer-footer">
       <button type="submit" class="btn btn-primary">Save Settings</button>
       <a href="<?= $b ?>/admin/collective" class="btn btn-ghost">Cancel</a>

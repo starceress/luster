@@ -143,6 +143,7 @@ return [
         $router->post('/admin/listings/add',     ListingController::class, 'add');
         $router->get('/admin/listings/settings', ListingController::class, 'indexSettings');
         $router->post('/admin/listings/settings', ListingController::class, 'saveSettings');
+        $router->post('/admin/listings/settings/send-overdue-now', ListingController::class, 'sendOverdueNow');
         $router->post('/admin/listings/bulk', ListingController::class, 'bulk');
         $router->get('/admin/collective',
             SettingsController::class, 'collectiveIndex');

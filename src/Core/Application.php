@@ -352,11 +352,12 @@ final class Application
         }
         $this->view->share(['admin_date_format' => $dateFmt, 'admin_time_format' => $timeFmt]);
 
-        // Fire overdue listing notification for authenticated admins (at most once per 24h).
+        // Fire periodic admin notifications for authenticated admins.
         // Start the session early — Session::start() is idempotent.
         $this->session->start();
         if ($this->session->has('lstr_admin_id')) {
             $this->runOverdueCheck();
+            $this->runPendingDigestCheck();
         }
 
         $loginUrl = $this->getBaseUrl() . '/admin/login';
@@ -442,6 +443,72 @@ final class Application
                     'Overdue notification failed: ' . $e->getMessage(),
                     'error',
                     'Application::runOverdueCheck',
+                );
+            } catch (\Throwable) {
+                // DB unavailable too — truly silent fallback
+            }
+        }
+    }
+
+    /**
+     * Sends the weekly pending-items digest email if enabled and the 7-day
+     * throttle has elapsed. Fires silently — any exception is swallowed so
+     * a mail failure never breaks admin page loads.
+     */
+    private function runPendingDigestCheck(): void
+    {
+        try {
+            $siteRepo = new SiteSettingsRepo($this->database);
+
+            if ($siteRepo->get('pending_digest_enabled', '1') !== '1') {
+                return;
+            }
+
+            $lastSent = (int) ($siteRepo->get('pending_digest_last_sent', '0') ?? '0');
+            if ((time() - $lastSent) < 604800) {
+                return;
+            }
+
+            // Update the timestamp first — even if there's nothing pending we reset the 7-day window.
+            $siteRepo->set('pending_digest_last_sent', (string) time());
+
+            $digest = new PendingItemsDigest(
+                $this->database,
+                $this->config,
+                $this->isAddonInstalled('Kim'),
+                $this->isAddonInstalled('Adoption'),
+            );
+            $data = $digest->gather();
+
+            if ($data['grand_total'] === 0) {
+                return;
+            }
+
+            $ownerEmail = (string) ($this->config->get('owner_email', '') ?? '');
+            if ($ownerEmail === '') {
+                return;
+            }
+
+            $siteName = (string) ($this->config->get('site_name', 'your collective') ?? '');
+            $adminUrl = rtrim((string) ($this->config->get('app_url', '') ?? ''), '/') . '/admin';
+
+            $body = $digest->renderEmailBody($data, $siteName, $adminUrl);
+
+            $mailer = new Mailer($this->config);
+            $mailer->send($ownerEmail, '', '[' . $siteName . '] Pending items digest', $body);
+
+            $adminId = (int) $this->session->get('lstr_admin_id', 0);
+            (new ActivityRepo($this->database))->log(
+                $adminId > 0 ? $adminId : null,
+                'pending_digest_notification',
+                'Pending items digest sent (' . $data['grand_total'] . ' item(s))',
+            );
+        } catch (\Throwable $e) {
+            try {
+                (new ErrorLogRepo($this->database))->log(
+                    'Pending items digest failed: ' . $e->getMessage(),
+                    'error',
+                    'Application::runPendingDigestCheck',
                 );
             } catch (\Throwable) {
                 // DB unavailable too — truly silent fallback

@@ -111,15 +111,39 @@ function flsCfgVal(array $cfg, string $key, $default = ''): string {
           <p class="form-hint">Send the reminder when this many days pass without an update. Default: 55. TFL guidelines recommend 55 days.</p>
         </div>
       </div>
+    </div>
 
       <?php
-        $lastSentTs      = (int) ($tracking['overdue_notify_last_sent'] ?? '0');
-        $lastSentDisplay = $lastSentTs > 0 ? date('j M Y \a\t H:i', $lastSentTs) : 'Never';
-      ?>
-      <div class="listing-field-row" style="margin-top:.75rem">
-        <label class="listing-field-label">Last notification</label>
-        <div><p class="form-hint">Last notification sent: <strong><?= View::e($lastSentDisplay) ?></strong></p></div>
+  $lastSentTs = (int) ($tracking['overdue_notify_last_sent'] ?? '0');
+  if ($lastSentTs > 0) {
+      $datePart        = date($admin_date_format ?? 'j M Y', $lastSentTs);
+      $timePart        = date($admin_time_format ?? 'H:i', $lastSentTs);
+      $lastSentDisplay = $datePart . ' at ' . $timePart;
+  } else {
+      $lastSentDisplay = 'Never';
+  }
+?>
+  <div class="pc-section">
+    <div class="pc-section-label">Overdue Notification Status</div>
+
+    <div class="listing-field-row">
+      <label class="listing-field-label">Last check</label>
+      <div>
+        <p class="form-hint">Last notification sent: <strong><?= View::e($lastSentDisplay) ?></strong></p>
       </div>
+    </div>
+
+    <div class="listing-field-row" style="margin-top:.75rem">
+      <label class="listing-field-label">Send now</label>
+      <div>
+        <form method="POST" action="<?= $b ?>/admin/listings/settings/send-overdue-now">
+          <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
+          <button type="submit" class="btn btn-quaternary btn-sm"><?= View::icon('email') ?> Send overdue notification now</button>
+        </form>
+        <p class="form-hint" style="margin-top:.5rem">Bypasses the 24-hour window and immediately sends the overdue notification if any listings are due. Useful for testing your email setup or sending an extra reminder.</p>
+      </div>
+    </div>
+
     </div>
 
     <div class="composer-footer">
@@ -129,3 +153,4 @@ function flsCfgVal(array $cfg, string $key, $default = ''): string {
     </div>
   </div>
 </form>
+</div>

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Luster\Controllers\Admin;
 
+use Luster\Core\Mailer;
 use Luster\Core\Request;
 use Luster\Core\Response;
 use Luster\Core\TemplateEngine;
@@ -1736,6 +1737,76 @@ final class ListingController extends AdminController
         );
 
         $session->set('lstr_flash_success', 'Settings saved successfully.');
+        return Response::redirect($baseUrl . '/admin/listings/settings');
+    }
+
+    // -----------------------------------------------------------------------
+    // POST /admin/listings/settings/send-overdue-now
+    // -----------------------------------------------------------------------
+
+    public function sendOverdueNow(Request $request, array $params): Response
+    {
+        $session  = $this->app->getSession();
+        $baseUrl  = $this->app->getBaseUrl();
+        $config   = $this->app->getConfig();
+        $db       = $this->app->getDatabase();
+
+        $ownerEmail = (string) ($config->get('owner_email', '') ?? '');
+        if ($ownerEmail === '') {
+            $session->set('lstr_flash_error', 'No owner email is configured. Add one under Settings → General before sending notifications.');
+            return Response::redirect($baseUrl . '/admin/listings/settings');
+        }
+
+        $siteRepo = new SiteSettingsRepo($db);
+        $days     = max(1, (int) ($siteRepo->get('overdue_days', '55') ?? '55'));
+
+        $stale = (new ListingRepo($db, $config))->getStaleListings($days);
+
+        // Always update the timestamp — resets the 24-hour window.
+        $siteRepo->set('overdue_notify_last_sent', (string) time());
+
+        if (empty($stale)) {
+            $session->set('lstr_flash_success', 'No overdue listings found — no email was sent. The 24-hour window has been reset.');
+            return Response::redirect($baseUrl . '/admin/listings/settings');
+        }
+
+        $siteName = (string) ($config->get('site_name', 'your collective') ?? '');
+        $adminUrl = rtrim((string) ($config->get('app_url', '') ?? ''), '/') . '/admin';
+
+        $lines = array_map(
+            static fn($l) => '- ' . $l->title . ' (' . $l->url . ')',
+            $stale,
+        );
+
+        $tplPath = LUSTER_BASE . '/templates/email/admin-overdue-listings.txt';
+        if (is_file($tplPath)) {
+            $body = str_replace(
+                ['{listings}', '{collective_name}', '{admin_url}', '{days}'],
+                [implode("\n", $lines), $siteName, $adminUrl, (string) $days],
+                (string) file_get_contents($tplPath),
+            );
+        } else {
+            $body = "The following fanlistings on {$siteName} haven't been updated in {$days}+ days:\n\n"
+                  . implode("\n", $lines)
+                  . "\n\nLog in to mark them updated: {$adminUrl}";
+        }
+
+        try {
+            $mailer = new Mailer($config);
+            $mailer->send($ownerEmail, '', '[' . $siteName . '] Overdue fanlistings', $body);
+
+            (new ActivityRepo($db))->log(
+                (int) $session->get('lstr_admin_id'),
+                'overdue_notification',
+                'Overdue notification sent manually for ' . count($stale) . ' listing(s)',
+                $request->ip(),
+            );
+
+            $session->set('lstr_flash_success', 'Overdue notification sent to ' . $ownerEmail . ' (' . count($stale) . ' listing(s) listed).');
+        } catch (\Throwable $e) {
+            $session->set('lstr_flash_error', 'Failed to send email: ' . $e->getMessage());
+        }
+
         return Response::redirect($baseUrl . '/admin/listings/settings');
     }
 

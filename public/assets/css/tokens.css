@@ -113,7 +113,6 @@
   --card-border-3: #1d6fe8;
   --card-border-4: #e8ac10;
   --ch-preview: 79 70 229;
-  --c-gradient-start: #160f2a;    /* dark stop of brand text gradient   */
   --c-preview-hover: #1e1a70;     /* preview button hover/focus text    */
   /* ── Skin-tokenized surface properties ────────────────────── */
   --topbar-bg:            var(--bg-card);
@@ -166,7 +165,6 @@
   --card-border-2: var(--va-teal);
   --card-border-3: var(--va-blue);
   --card-border-4: var(--va-gold);
-  --c-gradient-start: #f4f0ff;    /* light stop of brand text gradient  */
   --c-preview-hover: #c7d2fe;     /* preview button hover/focus text    */
   /* ── Skin-tokenized surface properties ────────────────────── */
   --topbar-bg:            var(--bg-card);

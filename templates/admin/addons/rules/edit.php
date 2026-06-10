@@ -28,76 +28,73 @@ $b = rtrim(View::e($base_url), '/');
   <div class="composer-grid">
 
     <!-- ── Main form ──────────────────────────────────────────────────── -->
-    <div class="composer-main">
-      <form method="POST" action="<?= $b ?>/admin/rules/<?= (int) $listing_id ?>/edit">
-        <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
+    <form method="POST" action="<?= $b ?>/admin/rules/<?= (int) $listing_id ?>/edit">
+      <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
 
-        <div class="gradient-card">
-          <div class="listing-field-section">
+      <div class="gradient-card">
+        <div class="listing-field-section">
 
-            <div class="listing-field-row listing-field-row--top">
-              <label class="listing-field-label" for="rules-title">Heading</label>
-              <div>
-                <input class="form" type="text" id="rules-title" name="title"
-                       maxlength="255"
-                       value="<?= View::e($rules?->title ?? 'Join Rules') ?>"
-                       placeholder="Join Rules">
-                <p class="form-hint">Shown above the rules text on your site. Defaults to "Join Rules".</p>
-              </div>
+          <div class="listing-field-row listing-field-row--top">
+            <label class="listing-field-label" for="rules-title">Heading</label>
+            <div>
+              <input class="form" type="text" id="rules-title" name="title"
+                     maxlength="255"
+                     value="<?= View::e($rules?->title ?? 'Join Rules') ?>"
+                     placeholder="Join Rules">
+              <p class="form-hint">Shown above the rules text on your site. Defaults to "Join Rules".</p>
             </div>
-
-            <div class="listing-field-row">
-              <label class="listing-field-label" for="rules-body">
-                Rules Text <span class="req">*</span>
-              </label>
-              <div>
-                <textarea class="form form-textarea" id="rules-body" name="body"
-                          rows="14"
-                          maxlength="10000"
-                          placeholder="Enter your join rules here&#x0a;&#x0a;You can use line breaks to separate rule items."><?= View::e($rules?->body ?? '') ?></textarea>
-                <p class="form-hint">Plain text only. Line breaks are preserved when displayed. Editing this text will invalidate all existing fan agreements and require re-acceptance.</p>
-              </div>
-            </div>
-
-            <div class="listing-field-row">
-              <label class="listing-field-label" for="rules-enabled">Enabled</label>
-              <div>
-                <label class="toggle-label">
-                  <input type="checkbox" id="rules-enabled" name="enabled" value="1"
-                         <?= ($rules === null || $rules->enabled) ? 'checked' : '' ?>>
-                  <span class="toggle-switch"></span>
-                  <span class="toggle-text">Show rules gate on this listing</span>
-                </label>
-                <p class="form-hint">When disabled, the gate is hidden and fans can join without agreeing. The rules text is preserved.</p>
-              </div>
-            </div>
-
-          </div><!-- /.listing-field-section -->
-
-          <div class="composer-footer">
-            <button type="submit" class="btn btn-primary">Save Rules</button>
-            <a href="<?= $b ?>/admin/rules" class="btn btn-ghost">Cancel</a>
           </div>
-        </div><!-- /.gradient-card -->
-      </form>
 
-      <?php if ($rules !== null): ?>
-      <div class="gradient-card" style="margin-top:1.25rem">
-        <div class="pc-head">Danger Zone</div>
-        <p style="margin:0 0 .875rem;font-size:var(--fs-sm);color:var(--text-muted)">
-          Deleting rules removes the rules text entirely for this listing. Fans will no longer be shown a rules gate.
-        </p>
-        <form method="POST"
-              action="<?= $b ?>/admin/rules/<?= (int) $listing_id ?>/delete"
-              id="rules-delete-form">
-          <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
-          <button type="button" class="btn btn-danger btn-sm js-rules-del-trigger">
-            Delete Rules for <?= View::e($listing->title) ?>
-          </button>
-        </form>
-      </div>
-      <?php endif; ?>
-    </div><!-- /.composer-main -->
+          <div class="listing-field-row">
+            <label class="listing-field-label" for="rules-body">
+              Rules Text <span class="req">*</span>
+            </label>
+            <div>
+              <textarea class="form form-textarea" id="rules-body" name="body"
+                        rows="14"
+                        maxlength="10000"
+                        placeholder="Enter your join rules here&#x0a;&#x0a;You can use line breaks to separate rule items."><?= View::e($rules?->body ?? '') ?></textarea>
+              <p class="form-hint">Plain text only. Line breaks are preserved when displayed. Editing this text will invalidate all existing fan agreements and require re-acceptance.</p>
+            </div>
+          </div>
+
+          <div class="listing-field-row">
+            <label class="listing-field-label" for="rules-enabled">Enabled</label>
+            <div>
+              <label class="toggle-wrap">
+                <input type="checkbox" id="rules-enabled" name="enabled" value="1"
+                       <?= ($rules === null || $rules->enabled) ? 'checked' : '' ?>>
+                <span class="toggle-label">Show rules gate on this listing</span>
+              </label>
+              <p class="form-hint">When disabled, the gate is hidden and fans can join without agreeing. The rules text is preserved.</p>
+            </div>
+          </div>
+
+        </div><!-- /.listing-field-section -->
+
+        <div class="composer-footer">
+          <button type="submit" class="btn btn-primary">Save Rules</button>
+          <a href="<?= $b ?>/admin/rules" class="btn btn-ghost">Cancel</a>
+        </div>
+      </div><!-- /.gradient-card -->
+    </form>
+
+    <?php if ($rules !== null): ?>
+    <div class="gradient-card" style="margin-top:1.25rem">
+      <div class="pc-head">Danger Zone</div>
+      <p style="margin:0 0 .875rem;font-size:var(--fs-sm);color:var(--text-muted)">
+        Deleting rules removes the rules text entirely for this listing. Fans will no longer be shown a rules gate.
+      </p>
+      <form method="POST"
+            action="<?= $b ?>/admin/rules/<?= (int) $listing_id ?>/delete"
+            id="rules-delete-form">
+        <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
+        <button type="button" class="btn btn-danger btn-sm js-rules-del-trigger">
+          Delete Rules for <?= View::e($listing->title) ?>
+        </button>
+      </form>
+    </div>
+    <?php endif; ?>
 
     <!-- ── Sidebar ────────────────────────────────────────────────────── -->
     <div class="composer-side">

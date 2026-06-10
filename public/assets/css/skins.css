@@ -71,7 +71,6 @@
   --card-border-3: #f7d440;
   --card-border-4: #4a6dd6;
   --blush:         radial-gradient(ellipse at 110% -10%, rgb(216 62 138 / 0.12) 0%, rgb(74 109 214 / 0.06) 50%, transparent 70%);
-  --c-gradient-start: #1c1d4a;
   --c-preview-hover:  #2c3784;
   --ch-preview:       74 109 214;
   /* surface tokens */
@@ -144,7 +143,6 @@
   --card-border-3: #d63152;
   --card-border-4: #f7d440;
   --blush:         radial-gradient(ellipse at 110% -10%, rgb(238 94 158 / 0.16) 0%, rgb(214 49 82 / 0.08) 50%, transparent 70%);
-  --c-gradient-start: #ffd6e8;
   --c-preview-hover:  #f0a8c5;
   --ch-preview:       238 94 158;
   --topbar-bg:            linear-gradient(180deg, #26396f 0%, #131f44 100%);
@@ -237,7 +235,6 @@
   --card-border-3: #316cd9;
   --card-border-4: #ffcb05;
   --blush:         radial-gradient(ellipse at 110% -10%, rgb(209 43 8 / 0.08) 0%, transparent 60%);
-  --c-gradient-start: #ffffff;
   --c-preview-hover:  #1e3d8a;
   --ch-preview:       49 108 217;
   --topbar-bg:            linear-gradient(180deg, #ffffff 0%, #f0f3f7 100%);
@@ -254,7 +251,6 @@
 
 [data-skin="victory-road"][data-theme="light"] .sidebar {
   --accent:           #ffcb05;
-  --c-gradient-start: #ffffff;
   --text-dim:         #cc9999;
   --danger:           #ffb3c1;
   --danger-bg:        rgba(255, 179, 193, 0.1);
@@ -314,7 +310,6 @@
   --card-border-3: #316cd9;
   --card-border-4: #ffcb05;
   --blush:         radial-gradient(ellipse at 110% -10%, rgb(227 53 13 / 0.15) 0%, transparent 60%);
-  --c-gradient-start: #f0f4fa;
   --c-preview-hover:  #c8d6f5;
   --ch-preview:       49 108 217;
   /* surface tokens */
@@ -394,7 +389,6 @@
   --card-border-3: #e0a843;
   --card-border-4: #8bc34a;
   --blush:         radial-gradient(ellipse at 110% -10%, rgb(0 119 255 / 0.08) 0%, transparent 60%);
-  --c-gradient-start: #0a111a;
   --c-preview-hover:  #1e3d8a;
   --ch-preview:       0 119 255;
   /* surface tokens */
@@ -410,7 +404,6 @@
 [data-skin="the-force"][data-theme="light"] .sidebar {
   --accent:           #66b3ff;
   --accent3:          #e0a843;
-  --c-gradient-start: #f0f8ff;
   --text-dim:         #9b8878;
   --danger:           #ffb3c1;
   --danger-bg:        rgba(255, 179, 193, 0.1);
@@ -452,7 +445,6 @@
   --card-border-3: #666666;
   --card-border-4: #c42020;
   --blush:         radial-gradient(ellipse at 110% -10%, rgb(196 32 32 / 0.08) 0%, transparent 60%);
-  --c-gradient-start: #fff0f0;
   --c-preview-hover:  #aaaaaa;
   --ch-preview:       150 150 150;
   /* surface tokens */
@@ -533,7 +525,6 @@
   --card-border-3: #fca311;
   --card-border-4: #4caf50;
   --blush:         radial-gradient(ellipse at 110% -10%, rgb(214 74 120 / 0.08) 0%, transparent 60%);
-  --c-gradient-start: #ffffff;
   --c-preview-hover:  #5a2a70;
   --ch-preview:       106 59 121;
   /* surface tokens */
@@ -548,7 +539,6 @@
 
 [data-skin="floating-lights"][data-theme="light"] .sidebar {
   --accent:           #ffd166;
-  --c-gradient-start: #f0e8ff;
   --text-dim:         #c8a0d4;
   --danger:           #ffb3c1;
   --danger-bg:        rgba(255, 179, 193, 0.1);
@@ -608,7 +598,6 @@
   --card-border-3: #ff77a8;
   --card-border-4: #8a65c9;
   --blush:         radial-gradient(ellipse at 110% -10%, rgb(255 202 40 / 0.12) 0%, transparent 60%);
-  --c-gradient-start: #fdf8e8;
   --c-preview-hover:  #c060b8;
   --ch-preview:       216 132 203;
   /* surface tokens */

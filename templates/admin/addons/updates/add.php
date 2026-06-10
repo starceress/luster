@@ -163,7 +163,7 @@ $backLabel  = trim((string) ($back_label ?? $ctxDisplay)) ?: 'Collective';
         </div>
         <div class="composer-row">
           <span class="composer-lbl">Date</span>
-          <span id="upd-preview-date" class="composer-line"></span>
+          <span id="upd-preview-date" class="composer-val"></span>
         </div>
         <div class="composer-row" id="upd-preview-cats-row">
           <span class="composer-lbl">Category</span>
