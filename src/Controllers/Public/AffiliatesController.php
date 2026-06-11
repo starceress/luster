@@ -63,8 +63,9 @@ final class AffiliatesController
             ? $templates['affiliates_section_template']
             : null;
 
+        $affiliateApplyUrl = $baseUrl . '/affiliate-apply/' . $listingId;
         $sectionHtml = $sectionTemplate !== null
-            ? $this->applySectionTemplate($sectionTemplate, $result['items'], $result['total'], $uploadsUrl)
+            ? $this->applySectionTemplate($sectionTemplate, $result['items'], $result['total'], $uploadsUrl, $affiliateApplyUrl)
             : null;
 
         $html = $this->app->getView()->renderPublic('affiliates.php', [
@@ -108,8 +109,9 @@ final class AffiliatesController
         $sectTplRaw   = (string) ($siteRepo->getMany(['collective_affiliates_section_template'])['collective_affiliates_section_template'] ?? '');
         $sectionTemplate = trim($sectTplRaw) !== '' ? $sectTplRaw : null;
 
+        $affiliateApplyUrl = $baseUrl . '/affiliate-apply/collective';
         $sectionHtml = $sectionTemplate !== null
-            ? $this->applySectionTemplate($sectionTemplate, $result['items'], $result['total'], $uploadsUrl)
+            ? $this->applySectionTemplate($sectionTemplate, $result['items'], $result['total'], $uploadsUrl, $affiliateApplyUrl)
             : null;
 
         $html = $this->app->getView()->renderPublic('affiliates.php', [
@@ -182,9 +184,10 @@ final class AffiliatesController
      *
      * Supported tokens:
      *   {each_affiliate}...{/each_affiliate} â€” inline per-row loop; {aff_*} tokens work inside
-     *   {affiliates}        â€” rendered affiliate rows (built-in link/image rows)
-     *   {affiliates_count}  â€” total active affiliate count
-     *   {affiliates_list}   â€” comma-separated <a href>name</a> list
+     *   {affiliates}           â€” rendered affiliate rows (built-in link/image rows)
+     *   {affiliates_count}     â€” total active affiliate count
+     *   {affiliates_list}      â€” comma-separated <a href>name</a> list
+     *   {affiliate_apply_url}  â€” URL of the affiliate application form
      *   {if_affiliates}...{/if_affiliates}           â€” shown when count > 0
      *   {if_no_affiliates}...{/if_no_affiliates}     â€” shown when count = 0
      *
@@ -196,6 +199,7 @@ final class AffiliatesController
         array  $affiliates,
         int    $total,
         string $uploadsUrl,
+        string $affiliateApplyUrl = '',
     ): string {
         $e = static fn(string $v): string => htmlspecialchars($v, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 
@@ -237,8 +241,8 @@ final class AffiliatesController
         }
 
         return str_replace(
-            ['{affiliates}', '{affiliates_count}', '{affiliates_list}'],
-            [$rows, (string) $total, $plainList],
+            ['{affiliates}', '{affiliates_count}', '{affiliates_list}', '{affiliate_apply_url}'],
+            [$rows, (string) $total, $plainList, htmlspecialchars($affiliateApplyUrl, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8')],
             $output,
         );
     }

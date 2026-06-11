@@ -126,14 +126,20 @@ $_lusterBaseUrl    = rtrim((string) $_lusterApp->getConfig()->get('embed_base_ur
                    ?: $_lusterApp->getBaseUrl();
 $_lusterFormAction = $_lusterBaseUrl . '/rules/' . $_lusterListingId . '/agree';
 
+// Load the listing once — used by both the intro template and the rules body tokens.
+try {
+    $_lusterListing = (new \Luster\Repositories\ListingRepo($_lusterApp->getDatabase(), $_lusterApp->getConfig()))
+        ->getById($_lusterListingId);
+} catch (\Throwable) {
+    $_lusterListing = null;
+}
+
 // Load rules intro template (gracefully absent before Migration 68)
 $_lusterRulesIntroHtml = '';
 try {
     $_lusterRawIntro = (new \Luster\Repositories\ListingSettingsRepo($_lusterApp->getDatabase()))
         ->getTemplates($_lusterListingId)['rules_intro_template'] ?? null;
     if ($_lusterRawIntro !== null && trim($_lusterRawIntro) !== '') {
-        $_lusterListing = (new \Luster\Repositories\ListingRepo($_lusterApp->getDatabase(), $_lusterApp->getConfig()))
-            ->getById($_lusterListingId);
         $_lusterRulesIntroHtml = \Luster\Core\TemplateEngine::render($_lusterRawIntro, escaped: [
             'listing_title'   => $_lusterListing?->title ?? '',
             'listing_url'     => $_lusterListing?->url ?? '',
@@ -144,6 +150,18 @@ try {
     // intro template unavailable — proceed without it
 }
 
+$_lusterRulesBodyHtml = \Luster\Support\RulesBodyRenderer::render(
+    $_lusterRuleSet->body,
+    [
+        'subject'       => $_lusterListing?->subject ?? '',
+        'listing_title' => $_lusterListing?->title ?? '',
+        'listing_url'   => $_lusterListing?->url ?? '',
+        'join_url'      => $_lusterBaseUrl . '/join/' . $_lusterListingId,
+        'update_url'    => $_lusterBaseUrl . '/update/' . $_lusterListingId,
+    ],
+    $_lusterRuleSet->listStyle
+);
+
 $_lusterHtml = $_lusterApp->getView()->renderFragment('addons/rules/gate.php', [
     'rules'            => $_lusterRuleSet,
     'already_agreed'   => false,
@@ -151,6 +169,7 @@ $_lusterHtml = $_lusterApp->getView()->renderFragment('addons/rules/gate.php', [
     'return_to'        => $_lusterRedirectTo,
     'csrf_token'       => $_lusterApp->getCSRF()->token(),
     'rules_intro_html' => $_lusterRulesIntroHtml,
+    'rules_body_html'  => $_lusterRulesBodyHtml,
 ]);
 
 if ($luster_return ?? false) {

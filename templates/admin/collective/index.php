@@ -5,6 +5,7 @@ $installed = array_map('strtolower', array_map('strval', $nav_installed_addons ?
 $hasKim      = in_array('kim',      $installed, true);
 $hasUpdates  = in_array('updates',  $installed, true);
 $hasWishlist = in_array('wishlist', $installed, true);
+$hasRules    = in_array('rules',    $installed, true);
 $codes       = $collective_codes ?? ['total' => 0, 'pending' => 0];
 $addons      = $addon_counts     ?? ['wishlist' => null, 'updates' => null];
 ?>
@@ -252,6 +253,13 @@ $addons      = $addon_counts     ?? ['wishlist' => null, 'updates' => null];
       <a href="<?= $b ?>/admin/kim" class="collective-action-item">
         <span class="pc-head-icon pc-head-icon-bg"><?= View::icon('kim') ?></span>
         <span class="collective-action-label">Keep In Mind Index<?php if (($addons['kim'] ?? null) !== null): ?> <span class="badge badge-inactive badge-inline-sm"><?= (int) $addons['kim'] ?> sign-up<?= (int) $addons['kim'] !== 1 ? 's' : '' ?></span><?php endif; ?></span>
+      </a>
+      <?php endif; ?>
+
+      <?php if ($hasRules): ?>
+      <a href="<?= $b ?>/admin/rules" class="collective-action-item">
+        <span class="pc-head-icon pc-head-icon-bg"><?= View::icon('rules') ?></span>
+        <span class="collective-action-label">Join Rules Index</span>
       </a>
       <?php endif; ?>
 

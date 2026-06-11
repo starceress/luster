@@ -5,7 +5,7 @@ declare(strict_types=1);
 use Luster\Core\View;
 
 /**
- * @var array<int,array{listing_id:int,listing_title:string,rules_id:int|null,rules_title:string|null,rules_enabled:bool|null,rules_version:int|null,rules_updated_at:string|null}> $rows
+ * @var array<int,array{listing_id:int,listing_title:string,listing_subject:string,rules_id:int|null,rules_enabled:bool|null,rules_version:int|null,rules_updated_at:string|null}> $rows
  * @var string $success
  * @var string $error
  * @var string $base_url
@@ -56,7 +56,7 @@ $b = rtrim(View::e($base_url), '/');
         <?php foreach ($rows as $row): ?>
         <tr>
           <td data-label="Listing">
-            <span class="text-strong"><?= View::e($row['listing_title']) ?></span>
+            <span class="text-strong"><?= View::e($row['listing_subject']) ?></span>
           </td>
 
           <td data-label="Status">
@@ -96,7 +96,7 @@ $b = rtrim(View::e($base_url), '/');
                 </form>
                 <button type="button"
                         class="btn btn-danger btn-xs js-rules-del-btn"
-                        data-listing-title="<?= View::e($row['listing_title']) ?>"
+                        data-listing-title="<?= View::e($row['listing_subject']) ?>"
                         data-form-id="del-rules-<?= (int) $row['listing_id'] ?>">
                   Delete
                 </button>

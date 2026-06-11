@@ -192,9 +192,13 @@ if ($_lusterSectionTemplate !== null) {
         $_lusterSectionHtml = str_replace(['{if_no_affiliates}', '{/if_no_affiliates}'], '', $_lusterSectionHtml);
     }
 
+    $_lusterAffApplyUrl = $_lusterListingId > 0
+        ? $_lusterBaseUrl . '/affiliate-apply/' . $_lusterListingId
+        : $_lusterBaseUrl . '/affiliate-apply/collective';
+
     $_lusterSectionHtml = str_replace(
-        ['{affiliates}', '{affiliates_count}', '{affiliates_list}'],
-        [$_lusterRowsHtml, (string) $total, $plainList],
+        ['{affiliates}', '{affiliates_count}', '{affiliates_list}', '{affiliate_apply_url}'],
+        [$_lusterRowsHtml, (string) $total, $plainList, htmlspecialchars($_lusterAffApplyUrl, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8')],
         $_lusterSectionHtml,
     );
 }

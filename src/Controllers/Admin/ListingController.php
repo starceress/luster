@@ -927,15 +927,15 @@ final class ListingController extends AdminController
         $adoptionAddonInstalled = $this->app->isAddonInstalled('Adoption');
         $updatesAddonInstalled  = $this->app->isAddonInstalled('Updates');
         $rulesAddonInstalled    = $this->app->isAddonInstalled('Rules');
-        $rulesEnabledForListing = $rulesAddonInstalled && (function () use ($db, $id): bool {
+        $rulesSet               = null;
+        if ($rulesAddonInstalled) {
             try {
-                $repo = new \Luster\Addons\Rules\RulesRepo($db);
-                $rs   = $repo->getForListing($id);
-                return $rs !== null && $rs->enabled && trim($rs->body) !== '';
+                $rulesSet = (new \Luster\Addons\Rules\RulesRepo($db))->getForListing($id);
             } catch (\Throwable) {
-                return false;
+                $rulesSet = null;
             }
-        })();
+        }
+        $rulesEnabledForListing = $rulesSet !== null && $rulesSet->enabled && trim($rulesSet->body) !== '';
         $forAdoption            = $adoptionAddonInstalled && $settingsRepo->getForAdoption($id);
         $adoptionCount          = $adoptionAddonInstalled
             ? (new \Luster\Addons\Adoption\AdoptionRepo($db))->countForListing($id, 'all')
@@ -1036,6 +1036,7 @@ final class ListingController extends AdminController
             'updates_addon_installed'        => $updatesAddonInstalled,
             'rules_addon_installed'          => $rulesAddonInstalled,
             'rules_enabled_for_listing'      => $rulesEnabledForListing,
+            'rules'                           => $rulesSet,
             'for_adoption'                   => $forAdoption,
             'adoption_count'                 => $adoptionCount,
             'affiliate_apply_enabled'        => $affiliateApplySettings['enabled'],
@@ -1316,12 +1317,30 @@ final class ListingController extends AdminController
             return Response::notFound('Listing not found.');
         }
 
-        $nil = static fn(string $raw): ?string => trim($raw) !== '' ? $raw : null;
+        // Null if empty or if the value matches the current code default
+        // (keeps templates "linked" to the code default so future default
+        // changes flow through without needing a per-listing migration).
+        $defaults = [
+            'stats_template'              => ListingSettingsRepo::defaultStatsTemplate(),
+            'members_template'            => ListingSettingsRepo::defaultMembersTemplate(),
+            'affiliates_section_template' => ListingSettingsRepo::defaultAffiliatesSectionTemplate(),
+            'updates_template'            => ListingSettingsRepo::defaultUpdatesTemplate(),
+        ];
+        $nil = static function (string $raw, string $key = '') use ($defaults): ?string {
+            $trimmed = trim($raw);
+            if ($trimmed === '') {
+                return null;
+            }
+            if (isset($defaults[$key]) && $trimmed === trim($defaults[$key])) {
+                return null;
+            }
+            return $raw;
+        };
 
-        $statsTemplate             = $nil((string) $request->post('stats_template',               ''));
-        $membersTemplate           = $nil((string) $request->post('members_template',             ''));
-        $affiliatesSectionTemplate = $nil((string) $request->post('affiliates_section_template',  ''));
-        $updatesTemplate           = $nil((string) $request->post('updates_template',             ''));
+        $statsTemplate             = $nil((string) $request->post('stats_template',               ''), 'stats_template');
+        $membersTemplate           = $nil((string) $request->post('members_template',             ''), 'members_template');
+        $affiliatesSectionTemplate = $nil((string) $request->post('affiliates_section_template',  ''), 'affiliates_section_template');
+        $updatesTemplate           = $nil((string) $request->post('updates_template',             ''), 'updates_template');
         $joinIntroTemplate         = $nil((string) $request->post('join_intro_template',          ''));
         $adoptionIntroTemplate     = $nil((string) $request->post('adoption_intro_template',      ''));
         $codesSubmitIntroTemplate  = $nil((string) $request->post('codes_submit_intro_template',  ''));
@@ -1378,9 +1397,13 @@ final class ListingController extends AdminController
             return $wrap('<p style="color:#c00">Listing not found.</p>');
         }
 
-        $allowed = ['members', 'affiliates_section', 'stats', 'updates', 'join_intro', 'adoption_intro', 'codes_submit_intro', 'rules_intro'];
-        if ($tpl === '' || !in_array($type, $allowed, true)) {
-            return $wrap('<p style="color:#c00">Unknown template type or empty template.</p>');
+        $allowed     = ['members', 'affiliates_section', 'stats', 'updates', 'join_intro', 'adoption_intro', 'codes_submit_intro', 'rules_intro'];
+        $introTypes  = ['join_intro', 'adoption_intro', 'codes_submit_intro', 'rules_intro'];
+        if (!in_array($type, $allowed, true)) {
+            return $wrap('<p style="color:#c00">Unknown template type.</p>');
+        }
+        if ($tpl === '' && !in_array($type, $introTypes, true)) {
+            return $wrap('<p style="color:#c00">Template is empty.</p>');
         }
 
         try {
@@ -1410,6 +1433,21 @@ final class ListingController extends AdminController
         $members    = $memberRepo->paginateByStatus($prefix, 'approved', 1, 10)['members'];
 
         if (empty($members)) {
+            // If the template uses the new-style engine, render the empty state properly
+            if (str_contains($tpl, '{if_no_members}')) {
+                $result = preg_replace('/\{each_member\}.*?\{\/each_member\}/s', '', $tpl) ?? $tpl;
+                $result = preg_replace('/\{if_members\}.*?\{\/if_members\}/s', '', $result) ?? $result;
+                $result = str_replace(['{if_no_members}', '{/if_no_members}'], '', $result);
+                $joinUrl = htmlspecialchars($listing->url ?? '#', ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+                return str_replace(
+                    ['{join_url}', '{member_count}', '{stats_line}', '{sort_link_all}', '{sort_link_name}', '{sort_link_country}'],
+                    [$joinUrl, '0', '0 member(s)',
+                     '<strong aria-current="page" class="fl-member-sort-link">View All</strong>',
+                     '<a class="fl-member-sort-link" href="#">Name</a>',
+                     '<a class="fl-member-sort-link" href="#">Country</a>'],
+                    $result,
+                );
+            }
             return '<p style="font-style:italic;color:#888">No approved members for this listing yet.</p>';
         }
 
@@ -1432,7 +1470,29 @@ final class ListingController extends AdminController
             );
         };
 
-        return TemplateEngine::loop($tpl, 'member', $members, $renderRow);
+        $total  = count($members);
+        $result = TemplateEngine::loop($tpl, 'member', $members, $renderRow);
+
+        // Process page-level conditionals ({if_members}/{if_no_members}) and tokens
+        $result = preg_replace('/\{if_no_members\}.*?\{\/if_no_members\}/s', '', $result) ?? $result;
+        $result = str_replace(['{if_members}', '{/if_members}'], '', $result);
+        $result = str_replace(
+            [
+                '{join_url}', '{member_count}', '{stats_line}',
+                '{sort_link_all}', '{sort_link_name}', '{sort_link_country}',
+            ],
+            [
+                htmlspecialchars($listing->url ?? '#', ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),
+                (string) $total,
+                $total . ' member(s)',
+                '<strong aria-current="page" class="fl-member-sort-link">View All</strong>',
+                '<a class="fl-member-sort-link" href="#">Name</a>',
+                '<a class="fl-member-sort-link" href="#">Country</a>',
+            ],
+            $result,
+        );
+
+        return $result;
     }
 
     private function ltplPreviewAffiliates(string $tpl, object $listing, \Luster\Core\Database $db, string $uploadsUrl): string
@@ -1509,6 +1569,23 @@ final class ListingController extends AdminController
         $memberRepo = new MemberRepo($db, $config);
         $approved   = $prefix !== '' ? $memberRepo->countApproved($prefix) : 0;
         $pending    = $prefix !== '' ? $memberRepo->countPending($prefix) : 0;
+        $countries  = $prefix !== '' ? $memberRepo->countUniqueCountries($prefix) : 0;
+        $newest     = $prefix !== '' ? $memberRepo->getNewestMembers($prefix, 5) : [];
+
+        $e = static fn(string $v): string => htmlspecialchars($v, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+
+        $newestEscaped = array_map($e, $newest);
+        $newestOxford  = match (count($newestEscaped)) {
+            0       => '',
+            1       => $newestEscaped[0],
+            2       => $newestEscaped[0] . ' and ' . $newestEscaped[1],
+            default => implode(', ', array_slice($newestEscaped, 0, -1)) . ', and ' . end($newestEscaped),
+        };
+        $newestLabel = count($newest) === 1 ? 'Member' : 'Members';
+
+        $adminLastUpdated = $settingsRepo->getLastUpdated((int) $listing->id);
+        $lastUpdatedFallback = (string) $config->get('last_updated_fallback', 'Never');
+        $lastUpdatedStr = $adminLastUpdated ?? $lastUpdatedFallback;
 
         $networkLink = match ($approvedBy) {
             'tfl'  => '<a href="https://thefanlistings.org" rel="noopener noreferrer">The Fanlistings Network</a>',
@@ -1519,17 +1596,23 @@ final class ListingController extends AdminController
         $rendered = TemplateEngine::render(
             $tpl,
             escaped: [
-                'stat_opened'       => $listing->opened ?? '',
-                'stat_updated'      => '',
-                'stat_last_updated' => '',
-                'stat_approved'     => (string) $approved,
-                'stat_pending'      => (string) $pending,
-                'stat_newmembers'   => '',
-                'stat_growth'       => '',
-                'listing_title'     => $listing->title,
-                'listing_url'       => $listing->url,
+                'stat_opened'            => $listing->opened ?? '',
+                'stat_updated'           => '',
+                'stat_last_updated'      => $lastUpdatedStr,
+                'stat_approved'          => (string) $approved,
+                'stat_pending'           => (string) $pending,
+                'stat_countries'         => (string) $countries,
+                'stat_newmembers'        => implode(', ', $newestEscaped),
+                'stat_newmembers_oxford' => $newestOxford,
+                'stat_newmembers_label'  => $newestLabel,
+                'stat_growth'            => '0.00 members/day',
+                'listing_title'          => $listing->title,
+                'listing_url'            => $listing->url,
             ],
-            conditions: ['approved_by' => $approvedBy !== ''],
+            conditions: [
+                'approved_by'  => $approvedBy !== '',
+                'stat_pending' => $pending > 0,
+            ],
         );
         return str_replace('{approved_by}', $networkLink, $rendered);
     }
@@ -1552,6 +1635,9 @@ final class ListingController extends AdminController
 
     private function ltplPreviewIntro(string $tpl, object $listing): string
     {
+        if (trim($tpl) === '') {
+            return '<p style="font-style:italic;color:#888">This intro is blank &mdash; leave it empty to hide this section from visitors.</p>';
+        }
         return TemplateEngine::render(
             $tpl,
             escaped: [

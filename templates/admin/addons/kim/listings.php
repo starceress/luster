@@ -152,7 +152,7 @@ $pageUrl = static function (int $p) use ($b, $sort, $dir): string {
       </tbody>
     </table>
     </div>
-    <?php $pg_current = $page ?? 1; $pg_total = $pages ?? 1; $pg_url = $pageUrl;
-          include LUSTER_BASE . '/templates/admin/_pagination.php'; ?>
   </div>
+  <?php $pg_current = $page ?? 1; $pg_total = $pages ?? 1; $pg_url = $pageUrl;
+        include LUSTER_BASE . '/templates/admin/_pagination.php'; ?>
 <?php endif; ?>

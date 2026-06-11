@@ -146,6 +146,9 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
   <button class="tabs-btn" data-tab="codes">Codes</button>
   <button class="tabs-btn" data-tab="affiliates">Affiliates<?php if (!empty($affiliates)): ?> <span class="badge badge-inactive badge-inline-sm"><?= count($affiliates) ?></span><?php endif; ?></button>
   <button class="tabs-btn" data-tab="templates">Templates</button>
+  <?php if ($rules_addon_installed ?? false): ?>
+  <button class="tabs-btn" data-tab="rules">Rules</button>
+  <?php endif; ?>
   <button class="tabs-btn" data-tab="embed">Embed</button>
   <button class="tabs-btn" data-tab="advanced">Advanced</button>
 </div>
@@ -158,6 +161,9 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
       <option value="codes">Codes</option>
       <option value="affiliates">Affiliates<?= !empty($affiliates) ? ' (' . count($affiliates) . ')' : '' ?></option>
       <option value="templates">Templates</option>
+      <?php if ($rules_addon_installed ?? false): ?>
+      <option value="rules">Rules</option>
+      <?php endif; ?>
       <option value="embed">Embed</option>
       <option value="advanced">Advanced</option>
     </select>
@@ -456,9 +462,43 @@ $hasAdoptionAddon = (bool) ($adoption_addon_installed ?? false) && (bool) ($for_
 $hasCodesSubmit   = (bool) ($embed_settings['codes_submit_enabled'] ?? true);
 $hasRulesAddon    = (bool) ($rules_addon_installed ?? false) && (bool) ($rules_enabled_for_listing ?? false);
 
-$tplMembersVal   = ($templates['members_template']            ?? '') ?: ListingSettingsRepo::defaultMembersTemplate();
-$tplAffVal       = ($templates['affiliates_section_template'] ?? '') ?: ListingSettingsRepo::defaultAffiliatesSectionTemplate();
-$tplStatsVal     = ($templates['stats_template']              ?? '') ?: ListingSettingsRepo::defaultStatsTemplate();
+// For templates that have known code defaults, treat a DB value that
+// matches any recognised old default format as absent (null) so the
+// current code default is shown instead. This lets default changes
+// flow through to the textarea without a manual per-listing migration.
+$_isOldStatsTemplate = static function (?string $v): bool {
+    return $v !== null && str_starts_with(ltrim($v), '<div class="fl-stats">');
+};
+
+$_isOldMembersTemplate = static function (?string $v): bool {
+    // Pre-sort-bar default: starts with {if_members} and has no sort link tokens
+    return $v !== null && trim($v) !== ''
+        && str_starts_with(ltrim($v), '{if_members}')
+        && !str_contains($v, '{sort_link_all}');
+};
+$tplMembersVal   = ($_isOldMembersTemplate($templates['members_template'] ?? null) || ($templates['members_template'] ?? '') === '')
+    ? ListingSettingsRepo::defaultMembersTemplate()
+    : ($templates['members_template'] ?? '');
+$_isOldAffTemplate = static function (?string $v): bool {
+    // Pre-heading default: starts with {if_affiliates} and has no <h1>
+    return $v !== null && trim($v) !== ''
+        && str_starts_with(ltrim($v), '{if_affiliates}')
+        && !str_contains($v, '<h1>');
+};
+$tplAffVal       = ($_isOldAffTemplate($templates['affiliates_section_template'] ?? null) || ($templates['affiliates_section_template'] ?? '') === '')
+    ? ListingSettingsRepo::defaultAffiliatesSectionTemplate()
+    : ($templates['affiliates_section_template'] ?? '');
+$_statsNeedsReset = static function (?string $v) use ($_isOldStatsTemplate): bool {
+    if ($v === null || trim($v) === '') return true;
+    if ($_isOldStatsTemplate($v)) return true;
+    // Migrate templates that still use the old {stat_newmembers_label} token
+    if (str_contains($v, '{stat_newmembers_label}')) return true;
+    // Migrate templates that look like the old built-in default (no h1, no stat_countries)
+    return str_starts_with(ltrim($v), '<p>Members:') && !str_contains($v, '{stat_countries}');
+};
+$tplStatsVal     = $_statsNeedsReset($templates['stats_template'] ?? null)
+    ? ListingSettingsRepo::defaultStatsTemplate()
+    : ($templates['stats_template'] ?? '');
 $tplUpdatesVal   = ($templates['updates_template']            ?? '') ?: ListingSettingsRepo::defaultUpdatesTemplate();
 $tplJoinVal      = $templates['join_intro_template']          ?? '';
 $tplAdoptVal     = $templates['adoption_intro_template']      ?? '';
@@ -622,16 +662,26 @@ $ltok = static fn(string $ta, string $token, string $label, string $desc): strin
       <details class="card chevron" data-token-card>
         <summary class="chevron-head">Members List Tokens</summary>
         <div class="chevron-body">
-          <p class="form-hint mb-sm" data-token-search-help>Wrap your row design in {each_member}...{/each_member}. Luster repeats it once per approved member.</p>
+          <p class="form-hint mb-sm" data-token-search-help>Wrap your row design in {each_member}...{/each_member}. Use {if_no_members} outside the loop for an empty state.</p>
           <table class="et-token-table et-token-table--compact"><tbody>
-            <?= $ltok('members_template', '{each_member}{/each_member}', '{each_member}...{/each_member}', 'Repeats the HTML inside it once for each approved member shown.') ?>
+            <?= $ltok('members_template', '{each_member}{/each_member}',   '{each_member}...{/each_member}',   'Repeats the HTML inside it once for each approved member shown.') ?>
             <?= $ltok('members_template', '{fan_name}',    '{fan_name}',    'The member\'s display name.') ?>
             <?= $ltok('members_template', '{fan_email}',   '{fan_email}',   'The member\'s email. Only use this if you want emails visible publicly.') ?>
             <?= $ltok('members_template', '{fan_url}',     '{fan_url}',     'The member\'s website URL.') ?>
             <?= $ltok('members_template', '{fan_country}', '{fan_country}', 'The member\'s country.') ?>
             <?= $ltok('members_template', '{fan_FIELDNAME}', '{fan_FIELDNAME}', 'Additional field value. Replace FIELDNAME with the field\'s internal name, e.g. {fan_fave_song}.') ?>
-            <?= $ltok('members_template', '{if_fan_url}{/if_fan_url}',         '{if_fan_url}...{/if_fan_url}',         'Shows only when the member has a website URL.') ?>
-            <?= $ltok('members_template', '{if_fan_country}{/if_fan_country}', '{if_fan_country}...{/if_fan_country}', 'Shows only when the member has a country saved.') ?>
+            <?= $ltok('members_template', '{if_fan_url}{/if_fan_url}',             '{if_fan_url}...{/if_fan_url}',             'Shows only when the member has a website URL.') ?>
+            <?= $ltok('members_template', '{if_no_fan_url}{/if_no_fan_url}',       '{if_no_fan_url}...{/if_no_fan_url}',       'Shows only when the member has no website URL.') ?>
+            <?= $ltok('members_template', '{if_fan_country}{/if_fan_country}',     '{if_fan_country}...{/if_fan_country}',     'Shows only when the member has a country saved.') ?>
+            <?= $ltok('members_template', '{if_no_fan_country}{/if_no_fan_country}','{if_no_fan_country}...{/if_no_fan_country}','Shows only when the member has no country saved.') ?>
+            <?= $ltok('members_template', '{if_members}{/if_members}',       '{if_members}...{/if_members}',       'Shows when there is at least one member. Place outside {each_member}.') ?>
+            <?= $ltok('members_template', '{if_no_members}{/if_no_members}', '{if_no_members}...{/if_no_members}', 'Shows when the list is empty (empty state). Place outside {each_member}.') ?>
+            <?= $ltok('members_template', '{join_url}',     '{join_url}',     'URL of the join form. Useful inside {if_no_members} for a &ldquo;Want to join?&rdquo; link.') ?>
+            <?= $ltok('members_template', '{member_count}', '{member_count}', 'Total approved member count. Place outside {each_member}.') ?>
+            <?= $ltok('members_template', '{stats_line}',   '{stats_line}',   'The stats summary line: &ldquo;11 member(s) &mdash; page 1 of 2&rdquo; or &ldquo;5 countries represented&rdquo;. Lets you relocate or wrap it inside your custom layout.') ?>
+            <?= $ltok('members_template', '{sort_link_all}',     '{sort_link_all}',     'The &ldquo;View All&rdquo; sort link, rendered as &lt;strong&gt; when active or &lt;a&gt; otherwise.') ?>
+            <?= $ltok('members_template', '{sort_link_name}',    '{sort_link_name}',    'The &ldquo;Name&rdquo; sort link, rendered as &lt;strong&gt; when active or &lt;a&gt; otherwise.') ?>
+            <?= $ltok('members_template', '{sort_link_country}', '{sort_link_country}', 'The &ldquo;Country&rdquo; sort link, rendered as &lt;strong&gt; when active or &lt;a&gt; otherwise.') ?>
           </tbody></table>
         </div>
       </details>
@@ -651,6 +701,7 @@ $ltok = static fn(string $ta, string $token, string $label, string $desc): strin
             <?= $ltok('affiliates_section_template', '{affiliates}',       '{affiliates}',       'Ready-made affiliate rows. Use this when you do not want to design each row yourself.') ?>
             <?= $ltok('affiliates_section_template', '{affiliates_count}', '{affiliates_count}', 'How many active affiliates this listing has.') ?>
             <?= $ltok('affiliates_section_template', '{affiliates_list}',  '{affiliates_list}',  'A comma-separated list of linked affiliate names.') ?>
+            <?= $ltok('affiliates_section_template', '{affiliate_apply_url}',                '{affiliate_apply_url}',                   'URL of the affiliate application form for this listing.') ?>
             <?= $ltok('affiliates_section_template', '{if_affiliates}{/if_affiliates}',       '{if_affiliates}...{/if_affiliates}',       'Shows only when this listing has at least one affiliate.') ?>
             <?= $ltok('affiliates_section_template', '{if_no_affiliates}{/if_no_affiliates}', '{if_no_affiliates}...{/if_no_affiliates}', 'Shows only when this listing has no affiliates.') ?>
           </tbody></table>
@@ -668,8 +719,12 @@ $ltok = static fn(string $ta, string $token, string $label, string $desc): strin
             <?= $ltok('stats_template', '{stat_last_updated}', '{stat_last_updated}', 'The Last Updated date you set for this listing.') ?>
             <?= $ltok('stats_template', '{stat_approved}',     '{stat_approved}',     'How many approved members this listing has.') ?>
             <?= $ltok('stats_template', '{stat_pending}',      '{stat_pending}',      'How many members are waiting for approval.') ?>
-            <?= $ltok('stats_template', '{stat_newmembers}',   '{stat_newmembers}',   'The names of the 5 newest approved members, comma-separated.') ?>
-            <?= $ltok('stats_template', '{stat_growth}',       '{stat_growth}',       'Average new members per day since the listing opened.') ?>
+            <?= $ltok('stats_template', '{stat_countries}',    '{stat_countries}',    'Number of distinct countries represented among approved members.') ?>
+            <?= $ltok('stats_template', '{stat_newmembers}',        '{stat_newmembers}',        'The names of the 5 newest approved members, comma-separated.') ?>
+            <?= $ltok('stats_template', '{stat_newmembers_oxford}', '{stat_newmembers_oxford}', 'Same list formatted with Oxford comma (e.g. &ldquo;Alice, Bob, and Carol&rdquo;).') ?>
+            <?= $ltok('stats_template', '{stat_newmembers_label}',  '{stat_newmembers_label}',  '&ldquo;Member&rdquo; when there is exactly 1 newest; &ldquo;Members&rdquo; otherwise.') ?>
+            <?= $ltok('stats_template', '{if_stat_pending}{/if_stat_pending}', '{if_stat_pending}...{/if_stat_pending}', 'Shows only when at least one member is awaiting approval.') ?>
+            <?= $ltok('stats_template', '{stat_growth}',            '{stat_growth}',            'Average new members per day since the listing opened.') ?>
             <?= $ltok('stats_template', '{listing_title}',     '{listing_title}',     'The listing\'s display name.') ?>
             <?= $ltok('stats_template', '{listing_url}',       '{listing_url}',       'The link to the listing.') ?>
             <?= $ltok('stats_template', '{approved_by}',       '{approved_by}',       'The network that approved this listing, as a linked name. Empty when no network is saved.') ?>
@@ -794,6 +849,59 @@ $ltok = static fn(string $ta, string $token, string $label, string $desc): strin
   </div>
 </div>
 </div><!-- /#tab-templates -->
+<?php if ($rules_addon_installed ?? false): ?>
+<!-- ──── TAB: RULES ─────────────────────────────────────────────────── -->
+<div id="tab-rules" class="tabs-panel">
+  <div class="gradient-card">
+    <?php if ($rules === null): ?>
+      <div class="empty">
+        <span class="empty-icon"><?= View::icon('rules', ['width' => 32, 'height' => 32]) ?></span>
+        <span class="empty-title">No rules set up yet.</span>
+        <p>Create join rules fans must agree to before signing up.</p>
+        <a href="<?= $b ?>/admin/rules/<?= (int) $listing->id ?>/edit" class="btn btn-primary">Create Rules</a>
+      </div>
+    <?php else: ?>
+      <div class="pc-section">
+        <div class="listing-field-row listing-field-row--compact">
+          <span class="listing-field-label text-muted">State</span>
+          <span>
+            <?= $rules->enabled
+              ? '<span class="badge badge-current">Enabled</span>'
+              : '<span class="badge badge-pending">Disabled</span>' ?>
+          </span>
+        </div>
+        <div class="listing-field-row listing-field-row--compact">
+          <span class="listing-field-label text-muted">Version</span>
+          <span>v<?= (int) $rules->version ?></span>
+        </div>
+        <div class="listing-field-row listing-field-row--compact">
+          <span class="listing-field-label text-muted">Updated</span>
+          <span class="text-muted"><?= View::e(date('Y-m-d', strtotime($rules->updatedAt))) ?></span>
+        </div>
+        <div class="listing-field-row listing-field-row--compact">
+          <span class="listing-field-label text-muted">List Style</span>
+          <span><?= $rules->listStyle === 'circle' ? 'Bulleted' : 'Numbered' ?></span>
+        </div>
+        <div class="listing-field-row listing-field-row--compact">
+          <span class="listing-field-label text-muted">Gate Type</span>
+          <span><?= $rules->gateType === 'button' ? 'Single button' : 'Checkbox + button' ?></span>
+        </div>
+        <div class="listing-field-row listing-field-row--compact">
+          <span class="listing-field-label text-muted">Gate Label</span>
+          <span><?= $rules->gateLabel !== '' ? View::e($rules->gateLabel) : '<span class="text-muted">(default)</span>' ?></span>
+        </div>
+      </div>
+      <div class="pc-section">
+        <p class="listing-field-label text-muted mb-sm">Rules Text Preview</p>
+        <p><?= nl2br(View::e(mb_strlen($rules->body) > 200 ? mb_substr($rules->body, 0, 200) . '...' : $rules->body)) ?></p>
+      </div>
+      <div class="composer-footer">
+        <a href="<?= $b ?>/admin/rules/<?= (int) $listing->id ?>/edit" class="btn btn-primary">Edit Rules</a>
+      </div>
+    <?php endif; ?>
+  </div>
+</div><!-- /#tab-rules -->
+<?php endif; ?>
 <!-- ──── TAB: ADDITIONAL FIELDS ─────────────────────────────────────── -->
 <div id="tab-fields" class="tabs-panel">
 

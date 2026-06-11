@@ -281,60 +281,64 @@ $epSafe = View::e($ep);
 <!-- ──── EMBED PICKER: cascading selectors + content pane ─────────────────── -->
   <div class="tabs-panel active" id="ec-panel-main" role="tabpanel" style="margin-bottom:1.5rem;">
 
-<!-- ──── CASCADING SELECTORS ────────────────────────────────────────────── -->
-    <div class="ec-sel-bar">
+<!-- ──── INTEGRATED WIZARD CARD ────────────────────────────────────────── -->
+    <div class="card ec-wizard-card">
 
-      <div class="ec-sel-row ec-sel-row--include">
-        <div class="ec-sel-step ec-sel-step--include">
-          <div class="wizard-step-node wizard-step-node--active">
+      <div class="ec-setup-top">
+        <div class="ec-setup-head">
+          <div class="wizard-step-node wizard-step-node--active ec-setup-step" id="ec-step1-node">
             <div class="wizard-step-bubble">1</div>
             <span class="wizard-step-label"
-                  data-step-sub="Add this to your site once">REQUIRED!</span>
+                  data-step-sub="Paste *both* lines into your header, just before </head>"><span class="ec-step-title">Include This <span class="badge badge-error badge-inline">Required!</span></span></span>
           </div>
+          <button type="button" class="btn btn-primary btn-sm ec-setup-cp-btn" id="ec-setup-cp"
+                  data-setup-text="<?= htmlspecialchars($setupDefine . "\n" . $setupCss, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') ?>">Copy</button>
         </div>
-        <div class="callout callout-warn ec-sel-callout">
-          <span><strong>Add this to your site once &mdash; paste both lines into header.php, just before <code>&lt;/head&gt;</strong></code>:<br><br>
-            <code><?= View::e($setupDefine) ?></code><br>
-            <code><?= View::e($setupCss) ?></code>
-          </span>
+        <div class="ec-setup-snip">
+          <div class="ec-setup-snip-line"><code><?= View::e($setupDefine) ?></code></div>
+          <div class="ec-setup-snip-line"><code><?= View::e($setupCss) ?></code></div>
         </div>
       </div>
 
-      <div class="ec-sel-row">
+      <!-- ② + ③ Pickers -->
+      <div class="ec-sel-pickers">
+        <div class="ec-sel-row">
 
-        <div class="ec-sel-step">
-          <div class="wizard-step-node wizard-step-node--active">
-            <div class="wizard-step-bubble">2</div>
-            <span class="wizard-step-label"
-                  data-step-sub="Use this on your collective or one listing.">Where It Goes</span>
+          <div class="ec-sel-step">
+            <div class="wizard-step-node wizard-step-node--active" id="ec-step2-node">
+              <div class="wizard-step-bubble">2</div>
+              <span class="wizard-step-label"
+                    data-step-sub="Collective or a single listing.">Where It Goes</span>
+            </div>
+            <div class="select-wrap" style="margin-top:.5rem;">
+              <select id="ec-sec-sel">
+                <option value="">&mdash; Choose a Type &mdash;</option>
+                <option value="c">Collective</option>
+                <option value="l">Listings</option>
+              </select>
+            </div>
           </div>
-          <div class="select-wrap" style="margin-top:.5rem;">
-            <select id="ec-sec-sel">
-              <option value="">&mdash; Choose a Type &mdash;</option>
-              <option value="c">Collective</option>
-              <option value="l">Listings</option>
-            </select>
+
+          <span class="ec-sel-arrow" aria-hidden="true">&rarr;</span>
+
+          <div class="ec-sel-step">
+            <div class="wizard-step-node wizard-step-node--active" id="ec-step3-node">
+              <div class="wizard-step-bubble">3</div>
+              <span class="wizard-step-label"
+                    data-step-sub="Choose the section you want to show.">What to Embed</span>
+            </div>
+            <div class="select-wrap" style="margin-top:.5rem;">
+              <select id="ec-emb-sel" disabled>
+                <option value="">&mdash; Choose a Section &mdash;</option>
+              </select>
+            </div>
           </div>
+
+          <button type="button" class="btn btn-quaternary" id="ec-reset-btn">Reset</button>
+
         </div>
-
-        <span class="ec-sel-arrow" aria-hidden="true">&rarr;</span>
-
-        <div class="ec-sel-step">
-          <div class="wizard-step-node wizard-step-node--active">
-            <div class="wizard-step-bubble">3</div>
-            <span class="wizard-step-label"
-                  data-step-sub="Choose the section you want to show.">What to Embed</span>
-          </div>
-          <div class="select-wrap" style="margin-top:.5rem;">
-            <select id="ec-emb-sel" disabled>
-              <option value="">&mdash; Choose a Section &mdash;</option>
-            </select>
-          </div>
-        </div>
-
-        <button type="button" class="btn btn-quaternary" id="ec-reset-btn">Reset</button>
-
       </div>
+
     </div>
 
 <!-- ──── CONTENT PANE ────────────────────────────────────────────────────── -->

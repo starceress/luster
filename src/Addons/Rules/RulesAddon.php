@@ -41,9 +41,11 @@ final class RulesAddon implements AddonInterface
             "CREATE TABLE IF NOT EXISTS `lstr_rules` (
                 `id`            INT UNSIGNED NOT NULL AUTO_INCREMENT,
                 `fanlisting_id` INT NOT NULL,
-                `title`         VARCHAR(255) NOT NULL DEFAULT 'Join Rules',
                 `body`          TEXT NOT NULL,
                 `enabled`       TINYINT(1) NOT NULL DEFAULT 1,
+                `list_style`    ENUM('numbered','circle') NOT NULL DEFAULT 'numbered',
+                `gate_type`     ENUM('checkbox','button') NOT NULL DEFAULT 'checkbox',
+                `gate_label`    VARCHAR(255) NOT NULL DEFAULT '',
                 `version`       INT UNSIGNED NOT NULL DEFAULT 1,
                 `updated_at`    DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
                 PRIMARY KEY (`id`),
@@ -51,6 +53,56 @@ final class RulesAddon implements AddonInterface
                 KEY `idx_rules_enabled` (`enabled`)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci"
         );
+
+        // Idempotent migrations for existing installs
+        $hasListStyle = $pdo->query(
+            "SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
+              WHERE TABLE_SCHEMA = DATABASE()
+                AND TABLE_NAME   = 'lstr_rules'
+                AND COLUMN_NAME  = 'list_style'"
+        )->fetchColumn();
+        if (!$hasListStyle) {
+            $pdo->exec(
+                "ALTER TABLE `lstr_rules`
+                 ADD COLUMN `list_style` ENUM('numbered','circle') NOT NULL DEFAULT 'numbered' AFTER `enabled`"
+            );
+        }
+
+        $hasGateType = $pdo->query(
+            "SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
+              WHERE TABLE_SCHEMA = DATABASE()
+                AND TABLE_NAME   = 'lstr_rules'
+                AND COLUMN_NAME  = 'gate_type'"
+        )->fetchColumn();
+        if (!$hasGateType) {
+            $pdo->exec(
+                "ALTER TABLE `lstr_rules`
+                 ADD COLUMN `gate_type` ENUM('checkbox','button') NOT NULL DEFAULT 'checkbox' AFTER `list_style`"
+            );
+        }
+
+        $hasGateLabel = $pdo->query(
+            "SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
+              WHERE TABLE_SCHEMA = DATABASE()
+                AND TABLE_NAME   = 'lstr_rules'
+                AND COLUMN_NAME  = 'gate_label'"
+        )->fetchColumn();
+        if (!$hasGateLabel) {
+            $pdo->exec(
+                "ALTER TABLE `lstr_rules`
+                 ADD COLUMN `gate_label` VARCHAR(255) NOT NULL DEFAULT '' AFTER `gate_type`"
+            );
+        }
+
+        $hasTitle = $pdo->query(
+            "SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
+              WHERE TABLE_SCHEMA = DATABASE()
+                AND TABLE_NAME   = 'lstr_rules'
+                AND COLUMN_NAME  = 'title'"
+        )->fetchColumn();
+        if ($hasTitle) {
+            $pdo->exec('ALTER TABLE `lstr_rules` DROP COLUMN `title`');
+        }
     }
 
     public function uninstall(PDO $pdo): void

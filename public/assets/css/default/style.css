@@ -2,8 +2,39 @@
  * Luster — public fl-* embed stylesheet
  *
  * This is Luster's canonical baseline stylesheet for all public embeds.
- * Edit this file to customise embed styles, or add overrides in your own
- * stylesheet loaded AFTER this one — the CSS cascade handles the rest.
+ * It provides layout, spacing, and structure — NO hardcoded colors.
+ *
+ * To add colors, define any of these CSS custom properties in your own stylesheet:
+ *
+ *   --fl-muted             Secondary / helper text color
+ *   --fl-border-color      List-item separator and box border color
+ *   --fl-link-color        Link color (not applied by default — use in your own rules)
+ *   --fl-link-hover        Link hover color
+ *   --fl-input-border      Input / select / textarea border color
+ *   --fl-input-bg          Input background color
+ *   --fl-input-color       Input text color
+ *   --fl-error-color       Validation error text color
+ *   --fl-success-bg        Success message background
+ *   --fl-success-border    Success message border color
+ *   --fl-status-current-fg  "Current" listing status text color
+ *   --fl-status-upcoming-fg "Upcoming" listing status text color
+ *   --fl-status-pending-fg  "Pending" listing status text color
+ *
+ * Example (add to your site's stylesheet or a <style> block):
+ *
+ *   :root {
+ *     --fl-muted:              #777;
+ *     --fl-border-color:       #d8d8d8;
+ *     --fl-input-border:       #bbb;
+ *     --fl-input-bg:           #fff;
+ *     --fl-input-color:        #222;
+ *     --fl-error-color:        #c00;
+ *     --fl-success-bg:         #f0fff4;
+ *     --fl-success-border:     #6ccf8a;
+ *     --fl-status-current-fg:  #2d6a3f;
+ *     --fl-status-upcoming-fg: #7a5c00;
+ *     --fl-status-pending-fg:  #555;
+ *   }
  *
  * How to include:
  *   Add the <link> tag once in your <head>, after your own stylesheet links:
@@ -16,43 +47,19 @@
 /* ── CSS custom properties ──────────────────────────────────────────────────── */
 
 :root {
-  /* Typography — inherit from host by default */
+  /* Typography — inherit from host */
   --fl-font-family:   inherit;
   --fl-font-size:     inherit;
   --fl-color:         inherit;
 
-  /* Links */
-  --fl-link-color:    #0066cc;
-  --fl-link-hover:    #004499;
-
-  /* Borders and spacing */
-  --fl-border-color:  #d8d8d8;
+  /* Spacing and shape — non-color structural defaults */
   --fl-radius:        3px;
   --fl-gap:           0.5em;
   --fl-row-gap:       0.6em;
 
-  /* Muted / secondary text */
-  --fl-muted:         #777;
-
-  /* Form inputs */
-  --fl-input-border:  #bbb;
-  --fl-input-bg:      #fff;
-  --fl-input-color:   #222;
+  /* Form inputs — structural only */
   --fl-input-padding: 0.35em 0.6em;
   --fl-input-radius:  3px;
-
-  /* Status badge colours */
-  --fl-status-current-bg:  #e6f4ea;
-  --fl-status-current-fg:  #2d6a3f;
-  --fl-status-upcoming-bg: #fff8e1;
-  --fl-status-upcoming-fg: #7a5c00;
-  --fl-status-pending-bg:  #f3f3f3;
-  --fl-status-pending-fg:  #555;
-
-  /* Error / success feedback */
-  --fl-error-color:    #c00;
-  --fl-success-bg:     #f0fff4;
-  --fl-success-border: #6ccf8a;
 }
 
 /* ── Per-embed root wrapper ──────────────────────────────────────────────────── */
@@ -66,13 +73,13 @@
 /* ── Global utilities ────────────────────────────────────────────────────────── */
 
 .fl-empty {
-  color: var(--fl-muted, #777);
+  color: var(--fl-muted);
   font-style: italic;
   margin: 0.5em 0;
 }
 
 .fl-hint {
-  color: var(--fl-muted, #777);
+  color: var(--fl-muted);
   font-size: 0.9em;
   margin: 0.25em 0 0.75em;
 }
@@ -205,33 +212,33 @@
   width: 100%;
   box-sizing: border-box;
   padding: var(--fl-input-padding, 0.35em 0.6em);
-  border: 1px solid var(--fl-input-border, #bbb);
+  border: 1px solid var(--fl-input-border);
   border-radius: var(--fl-input-radius, 3px);
-  background: var(--fl-input-bg, #fff);
-  color: var(--fl-input-color, #222);
+  background: var(--fl-input-bg);
+  color: var(--fl-input-color);
 }
 
 .fl-field-hint {
   font-size: 0.85em;
-  color: var(--fl-muted, #777);
+  color: var(--fl-muted);
   margin: 0.2em 0 0;
 }
 
 .fl-field-error {
   font-size: 0.85em;
-  color: var(--fl-error-color, #c00);
+  color: var(--fl-error-color);
   margin: 0.2em 0 0;
 }
 
 /* Summary error block at top of form */
 .fl-errors {
-  color: var(--fl-error-color, #c00);
+  color: var(--fl-error-color);
   margin: 0 0 0.75em;
 }
 
 /* Single error line inside .fl-errors */
 .fl-error {
-  color: var(--fl-error-color, #c00);
+  color: var(--fl-error-color);
 }
 
 /* .fl-actions is kept as a legacy alias for .fl-form-actions */
@@ -256,8 +263,8 @@
 /* ── Success / result messages ───────────────────────────────────────────────── */
 
 .fl-success {
-  background: var(--fl-success-bg, #f0fff4);
-  border: 1px solid var(--fl-success-border, #6ccf8a);
+  background: var(--fl-success-bg);
+  border: 1px solid var(--fl-success-border);
   border-radius: var(--fl-radius, 3px);
   padding: 0.75em 1em;
   margin: 0.5em 0;
@@ -269,6 +276,57 @@
 
 .fl-success-actions {
   margin-top: 0.5em;
+}
+
+/* ── Rules gate ───────────────────────────────────────────────────────────────── */
+
+.fl-rules-gate {
+  margin-top: 1.25em;
+}
+
+.fl-rules-agreed {
+  padding: 1em;
+}
+
+.fl-rules-intro {
+  margin-bottom: 1em;
+}
+
+.fl-rules-title {
+  margin: 0 0 0.75em;
+}
+
+.fl-rules-body {
+  margin-bottom: 1.25em;
+}
+
+.fl-rules-body p {
+  margin: 0 0 0.75em;
+}
+
+.fl-rules-body ol,
+.fl-rules-body ul {
+  margin: 0 0 0.75em;
+  padding-left: 1.5em;
+}
+
+.fl-rules-body ul.fl-rules-circle {
+  list-style-type: circle;
+}
+
+.fl-rules-agree-field {
+  margin-bottom: 1em;
+}
+
+.fl-rules-agree-label {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5em;
+  cursor: pointer;
+}
+
+.fl-rules-agree-check {
+  margin-top: 0.2em;
 }
 
 /* ── Member list ─────────────────────────────────────────────────────────────── */
@@ -285,6 +343,12 @@
 .fl-member-sort-link[aria-current] {
   font-weight: bold;
   text-decoration: none;
+}
+
+.fl-member-stats {
+  color: var(--fl-muted);
+  font-size: 0.9em;
+  margin: 0.25em 0 0.75em;
 }
 
 .fl-member-filter {
@@ -305,7 +369,7 @@
 
 .fl-embed .fl-member-item {
   padding: 0.35em 0;
-  border-bottom: 1px solid var(--fl-border-color, #d8d8d8);
+  border-bottom: 1px solid var(--fl-border-color);
   line-height: 1.5;
 }
 
@@ -319,12 +383,12 @@
 
 .fl-member-country {
   font-size: 0.9em;
-  color: var(--fl-muted, #777);
+  color: var(--fl-muted);
 }
 
 .fl-member-email {
   font-size: 0.9em;
-  color: var(--fl-muted, #777);
+  color: var(--fl-muted);
 }
 
 .fl-member-field {
@@ -397,7 +461,7 @@
 }
 
 .fl-affiliates-empty {
-  color: var(--fl-muted, #777);
+  color: var(--fl-muted);
   font-style: italic;
 }
 
@@ -419,7 +483,7 @@
   gap: 0.75em;
   align-items: flex-start;
   padding: 0.75em 0;
-  border-bottom: 1px solid var(--fl-border-color, #d8d8d8);
+  border-bottom: 1px solid var(--fl-border-color);
 }
 
 .fl-listing-item:last-child,
@@ -463,7 +527,7 @@
 
 .fl-listing-meta {
   font-size: 0.85em;
-  color: var(--fl-muted, #777);
+  color: var(--fl-muted);
   margin-top: 0.25em;
 }
 
@@ -477,9 +541,9 @@
   display: block;
 }
 
-.fl-listing-item--current  .fl-listing-status { color: var(--fl-status-current-fg,  #2d6a3f); }
-.fl-listing-item--upcoming .fl-listing-status { color: var(--fl-status-upcoming-fg, #7a5c00); }
-.fl-listing-item--pending  .fl-listing-status { color: var(--fl-status-pending-fg,  #555);    }
+.fl-listing-item--current  .fl-listing-status { color: var(--fl-status-current-fg);  }
+.fl-listing-item--upcoming .fl-listing-status { color: var(--fl-status-upcoming-fg); }
+.fl-listing-item--pending  .fl-listing-status { color: var(--fl-status-pending-fg);  }
 
 .fl-listing-section {
   margin-bottom: 1.5em;
@@ -563,7 +627,7 @@
 .fl-latest-listing-date {
   display: block;
   font-size: 0.85em;
-  color: var(--fl-muted, #777);
+  color: var(--fl-muted);
   margin-top: 0.25em;
 }
 
@@ -580,7 +644,7 @@
   gap: 0.75em;
   align-items: flex-start;
   padding: 0.5em 0;
-  border-bottom: 1px solid var(--fl-border-color, #d8d8d8);
+  border-bottom: 1px solid var(--fl-border-color);
 }
 
 .fl-joined-item:last-child {
@@ -613,7 +677,7 @@
 .fl-joined-status {
   display: block;
   font-size: 0.85em;
-  color: var(--fl-muted, #777);
+  color: var(--fl-muted);
 }
 
 .fl-joined-section {
@@ -725,7 +789,7 @@
 .fl-update-item {
   margin-bottom: 1.5em;
   padding-bottom: 1.5em;
-  border-bottom: 1px solid var(--fl-border-color, #d8d8d8);
+  border-bottom: 1px solid var(--fl-border-color);
 }
 
 .fl-update-item:last-child {
@@ -746,7 +810,7 @@
 
 .fl-update-date {
   font-size: 0.85em;
-  color: var(--fl-muted, #777);
+  color: var(--fl-muted);
 }
 
 .fl-update-body {
@@ -755,7 +819,7 @@
 
 .fl-update-meta {
   font-size: 0.85em;
-  color: var(--fl-muted, #777);
+  color: var(--fl-muted);
   margin-top: 0.4em;
 }
 
@@ -795,7 +859,7 @@
 
 .fl-embed .fl-kim-item {
   padding: 0.3em 0;
-  border-bottom: 1px solid var(--fl-border-color, #d8d8d8);
+  border-bottom: 1px solid var(--fl-border-color);
 }
 
 .fl-embed .fl-kim-item:last-child {
@@ -804,7 +868,7 @@
 
 .fl-kim-count {
   font-size: 0.85em;
-  color: var(--fl-muted, #777);
+  color: var(--fl-muted);
 }
 
 .fl-kim-count--empty {
@@ -814,7 +878,7 @@
 .fl-kim-meta {
   margin-top: 0.75em;
   font-size: 0.9em;
-  color: var(--fl-muted, #777);
+  color: var(--fl-muted);
 }
 
 .fl-kim-subject {
@@ -833,7 +897,7 @@
 
 .fl-embed .fl-kim-member-item {
   padding: 0.3em 0;
-  border-bottom: 1px solid var(--fl-border-color, #d8d8d8);
+  border-bottom: 1px solid var(--fl-border-color);
 }
 
 .fl-embed .fl-kim-member-item:last-child {
@@ -872,7 +936,7 @@
   gap: 0.75em;
   align-items: flex-start;
   padding: 0.5em 0;
-  border-bottom: 1px solid var(--fl-border-color, #d8d8d8);
+  border-bottom: 1px solid var(--fl-border-color);
 }
 
 .fl-wishlist-item:last-child {
@@ -905,7 +969,7 @@
 .fl-wishlist-category,
 .fl-wishlist-cat {
   font-size: 0.85em;
-  color: var(--fl-muted, #777);
+  color: var(--fl-muted);
 }
 
 .fl-wishlist-description,

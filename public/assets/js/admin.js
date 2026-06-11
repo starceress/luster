@@ -1615,8 +1615,8 @@ document.addEventListener('change', function (e) {
     { val: 'c', keys: ['owned','joined','cstats','aff-col','col-aff-apply','random','latest','col-codes','col-codes-submit','kim','kim-list','kim-update','kim-reset','col-updates','col-contact','wishlist'] },
   ];
 
-  var secSel = document.getElementById('ec-sec-sel');
-  var embSel = document.getElementById('ec-emb-sel');
+  var secSel   = document.getElementById('ec-sec-sel');
+  var embSel   = document.getElementById('ec-emb-sel');
 
   // Returns the section val ('l'/'c') that owns a given embed key, or null
   function sectionForKey(key) {
@@ -1651,7 +1651,9 @@ document.addEventListener('change', function (e) {
     });
 
     embSel.addEventListener('change', function () {
-      if (embSel.value) selectItem(embSel.value);
+      if (embSel.value) {
+        selectItem(embSel.value);
+      }
     });
   }
 
@@ -1742,16 +1744,6 @@ document.addEventListener('change', function (e) {
 
   function generateCode(type, vals) {
     var lines = [];
-    if (embedPath || baselineCss) {
-      lines.push('<!-- Luster: copy this block once to every page that uses embeds. -->');
-      if (embedPath) {
-        lines.push("<?php defined('LUSTER_EMBED') || define('LUSTER_EMBED', " + phpStr(embedPath) + "); ?>");
-      }
-      if (baselineCss) {
-        lines.push('<link rel="stylesheet" href="' + baselineCss + '">');
-      }
-      lines.push('');
-    }
     lines.push('<?php');
     // Listing ID
     var needsId = ['join','members','stats','update','remove','reset','aff-apply','codes','codes-submit','contact','updates','adopt','rules-gate'];
@@ -2494,6 +2486,25 @@ document.addEventListener('change', function (e) {
       codeCpBtn.textContent = 'Copied!';
       codeCpBtn.classList.add('ec-copied');
       setTimeout(function () { codeCpBtn.innerHTML = cpOrig; codeCpBtn.classList.remove('ec-copied'); }, 1800);
+    });
+  }
+
+  // ── Setup snippet copy ─────────────────────────────────────────────────────
+  var setupCpBtn = document.getElementById('ec-setup-cp');
+  if (setupCpBtn) {
+    setupCpBtn.addEventListener('click', function () {
+      var text = setupCpBtn.dataset.setupText || '';
+      if (navigator.clipboard) {
+        navigator.clipboard.writeText(text).catch(function () {});
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text; ta.style.cssText = 'position:fixed;opacity:0;pointer-events:none';
+        document.body.appendChild(ta); ta.select();
+        try { document.execCommand('copy'); } catch (e) {}
+        document.body.removeChild(ta);
+      }
+      setupCpBtn.textContent = 'Copied!';
+      setTimeout(function () { setupCpBtn.textContent = 'Copy'; }, 1800);
     });
   }
 
@@ -3656,6 +3667,7 @@ function adminWireFilterPanel(btnId, panelId, htmlClass) {
     merge_member:          { title: 'Delete Duplicate Member', btn: 'Delete',      desc: 'You are about to delete the duplicate account for <strong>$$names$$</strong>.',      warn: 'This permanently deletes the duplicate account. This action cannot be undone.' },
     rename_prefix:         { title: 'Rename Member Table',     btn: 'Rename Table', desc: 'You are about to rename the member table from <strong>$$names$$</strong> to <strong>$$context$$</strong>.', warn: 'This renames the table directly in your database. If anything goes wrong, member data may become unreachable. This action cannot be undone.' },
     update:                { title: 'Delete Update',           btn: 'Delete',      desc: 'You are about to delete the update <strong>$$names$$</strong>.',                       warn: 'This action cannot be undone.' },
+    rules:                 { title: 'Delete Rules',            btn: 'Delete',      desc: 'You are about to delete the join rules for <strong>$$names$$</strong>.',               warn: 'Deleting removes the rules text (and rules gate, if enabled) entirely for this listing. This action cannot be undone.' },
     wishlist_entry:        { title: 'Delete Wishlist Entries', btn: 'Delete',      desc: 'You are about to delete <strong>$$names$$</strong>.',                                   warn: 'This action cannot be undone.' }
   };
 
@@ -3929,7 +3941,7 @@ function adminWireFilterPanel(btnId, panelId, htmlClass) {
     var taId     = btn.dataset.textarea;
     var ta       = taId ? document.getElementById(taId) : null;
     var tplHtml  = ta ? ta.value : '';
-    if (!type || !tplHtml.trim()) return;
+    if (!type) return;
     loadColtplPreview(type, tplHtml);
   });
 
@@ -5638,4 +5650,20 @@ document.addEventListener('click', function (e) {
       codesSubmitRow.style.display = codesSubmitToggle.checked ? '' : 'none';
     });
   }
+}());
+
+// Rules edit: Gate Style + Gate Label rows only apply when the gate is enabled.
+(function () {
+  var enabledToggle = document.getElementById('rules-enabled');
+  var gateStyleRow  = document.getElementById('rules-gate-style-row');
+  var gateLabelRow  = document.getElementById('rules-gate-label-row');
+  if (!enabledToggle || !gateStyleRow || !gateLabelRow) return;
+
+  function toggle() {
+    var show = enabledToggle.checked;
+    gateStyleRow.style.display = show ? '' : 'none';
+    gateLabelRow.style.display = show ? '' : 'none';
+  }
+  enabledToggle.addEventListener('change', toggle);
+  toggle();
 }());

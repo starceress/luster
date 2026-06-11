@@ -27,6 +27,9 @@ final class SqliteDatabase
         $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
         $pdo->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
 
+        // MySQL's NOW() has no SQLite equivalent — shim it for repos that use it.
+        $pdo->sqliteCreateFunction('NOW', static fn(): string => date('Y-m-d H:i:s'));
+
         foreach (array_filter(array_map('trim', explode(';', $ddl))) as $stmt) {
             $pdo->exec($stmt);
         }

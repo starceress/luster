@@ -67,6 +67,15 @@ $tok = static fn(string $ta, string $token, string $label, string $desc): string
           <button type="button" class="btn btn-quaternary btn-xs" data-textarea="owned_template">Reset to Default</button>
         </div>
 
+        <div class="pc-section-label">Joined Listings</div>
+        <div class="form-group">
+          <textarea name="joined_template" id="joined_template" class="form form-mono" spellcheck="false"><?= View::e($joinedVal) ?></textarea>
+        </div>
+        <div class="tpl-reset-row">
+          <button type="button" class="btn btn-secondary btn-xs coltpl-preview-btn" data-tpltype="joined" data-textarea="joined_template">Preview</button>
+          <button type="button" class="btn btn-quaternary btn-xs" data-textarea="joined_template">Reset to Default</button>
+        </div>
+
         <div class="pc-section-label">Random Listing</div>
         <p class="form-hint mb-sm">Used by the Random Listing embed. Styles one listing chosen at random from your active pool.</p>
         <div class="form-group">
@@ -85,15 +94,6 @@ $tok = static fn(string $ta, string $token, string $label, string $desc): string
         <div class="tpl-reset-row">
           <button type="button" class="btn btn-secondary btn-xs coltpl-preview-btn" data-tpltype="latest" data-textarea="latest_listing_template">Preview</button>
           <button type="button" class="btn btn-quaternary btn-xs" data-textarea="latest_listing_template">Reset to Default</button>
-        </div>
-
-        <div class="pc-section-label">Joined Listings</div>
-        <div class="form-group">
-          <textarea name="joined_template" id="joined_template" class="form form-mono" spellcheck="false"><?= View::e($joinedVal) ?></textarea>
-        </div>
-        <div class="tpl-reset-row">
-          <button type="button" class="btn btn-secondary btn-xs coltpl-preview-btn" data-tpltype="joined" data-textarea="joined_template">Preview</button>
-          <button type="button" class="btn btn-quaternary btn-xs" data-textarea="joined_template">Reset to Default</button>
         </div>
 
         <div class="pc-section-label">Affiliates</div>
@@ -192,6 +192,29 @@ $tok = static fn(string $ta, string $token, string $label, string $desc): string
         </div>
       </details>
 
+      <!-- ── Joined Listings ────────────────────────── -->
+      <details class="card chevron" data-token-card>
+        <summary class="chevron-head">Joined Listings Tokens</summary>
+        <div class="chevron-body">
+          <p class="form-hint mb-sm" data-token-search-help>Use {each_joined}...{/each_joined} for a flat list. Use {each_current_joined}...{/each_current_joined} when you want the list to follow category order.</p>
+          <table class="et-token-table et-token-table--compact"><tbody>
+            <?= $tok('joined_template', '{each_joined}{/each_joined}',                 '{each_joined}...{/each_joined}',                 'Repeats the HTML inside it once for each joined listing. Use this for a simple list.') ?>
+            <?= $tok('joined_template', '{each_current_joined}{/each_current_joined}', '{each_current_joined}...{/each_current_joined}', 'Repeats the HTML inside it once for each joined listing, in category order.') ?>
+            <?= $tok('joined_template', '{listing_title}',      '{listing_title}',      'The joined fanlisting display name.') ?>
+            <?= $tok('joined_template', '{listing_url}',        '{listing_url}',        'The link to the joined fanlisting.') ?>
+            <?= $tok('joined_template', '{listing_category}',   '{listing_category}',   'The category saved for this joined listing.') ?>
+            <?= $tok('joined_template', '{listing_image_url}',  '{listing_image_url}',  'The image URL. Empty when there is no image.') ?>
+            <?= $tok('joined_template', '{listing_image_html}', '{listing_image_html}', 'A ready-made img tag. Empty when there is no image.') ?>
+            <?= $tok('joined_template', '{listing_status}',     '{listing_status}',     'The joined listing status.') ?>
+            <?= $tok('joined_template', '{date_joined}',        '{date_joined}',        'The date you added this joined listing.') ?>
+            <?= $tok('joined_template', '{if_listing_image}{/if_listing_image}', '{if_listing_image}...{/if_listing_image}', 'Shows only when the joined listing has an image.') ?>
+            <?= $tok('joined_template', '{current_count}',  '{current_count}',  'How many joined listings are being shown.') ?>
+            <?= $tok('joined_template', '{total_count}',    '{total_count}',    'The total number of joined listings in this view.') ?>
+            <?= $tok('joined_template', '{if_current_listings}{/if_current_listings}', '{if_current_listings}...{/if_current_listings}', 'Shows only when there is at least one joined listing.') ?>
+          </tbody></table>
+        </div>
+      </details>
+
       <!-- ── Random Listing ─────────────────────────── -->
       <details class="card chevron" data-token-card>
         <summary class="chevron-head">Random Listing Tokens</summary>
@@ -242,29 +265,6 @@ $tok = static fn(string $ta, string $token, string $label, string $desc): string
             <?= $tok('latest_listing_template', '{if_listing_image}{/if_listing_image}',     '{if_listing_image}...{/if_listing_image}',     'Shows only when the listing has an image.') ?>
             <?= $tok('latest_listing_template', '{if_countries}{/if_countries}',             '{if_countries}...{/if_countries}',             'Shows only when this listing has at least one country.') ?>
             <?= $tok('latest_listing_template', '{if_status_current}{/if_status_current}',   '{if_status_current}...{/if_status_current}',   'Shows only when the listing is current.') ?>
-          </tbody></table>
-        </div>
-      </details>
-
-      <!-- ── Joined Listings ────────────────────────── -->
-      <details class="card chevron" data-token-card>
-        <summary class="chevron-head">Joined Listings Tokens</summary>
-        <div class="chevron-body">
-          <p class="form-hint mb-sm" data-token-search-help>Use {each_joined}...{/each_joined} for a flat list. Use {each_current_joined}...{/each_current_joined} when you want the list to follow category order.</p>
-          <table class="et-token-table et-token-table--compact"><tbody>
-            <?= $tok('joined_template', '{each_joined}{/each_joined}',                 '{each_joined}...{/each_joined}',                 'Repeats the HTML inside it once for each joined listing. Use this for a simple list.') ?>
-            <?= $tok('joined_template', '{each_current_joined}{/each_current_joined}', '{each_current_joined}...{/each_current_joined}', 'Repeats the HTML inside it once for each joined listing, in category order.') ?>
-            <?= $tok('joined_template', '{listing_title}',      '{listing_title}',      'The joined fanlisting display name.') ?>
-            <?= $tok('joined_template', '{listing_url}',        '{listing_url}',        'The link to the joined fanlisting.') ?>
-            <?= $tok('joined_template', '{listing_category}',   '{listing_category}',   'The category saved for this joined listing.') ?>
-            <?= $tok('joined_template', '{listing_image_url}',  '{listing_image_url}',  'The image URL. Empty when there is no image.') ?>
-            <?= $tok('joined_template', '{listing_image_html}', '{listing_image_html}', 'A ready-made img tag. Empty when there is no image.') ?>
-            <?= $tok('joined_template', '{listing_status}',     '{listing_status}',     'The joined listing status.') ?>
-            <?= $tok('joined_template', '{date_joined}',        '{date_joined}',        'The date you added this joined listing.') ?>
-            <?= $tok('joined_template', '{if_listing_image}{/if_listing_image}', '{if_listing_image}...{/if_listing_image}', 'Shows only when the joined listing has an image.') ?>
-            <?= $tok('joined_template', '{current_count}',  '{current_count}',  'How many joined listings are being shown.') ?>
-            <?= $tok('joined_template', '{total_count}',    '{total_count}',    'The total number of joined listings in this view.') ?>
-            <?= $tok('joined_template', '{if_current_listings}{/if_current_listings}', '{if_current_listings}...{/if_current_listings}', 'Shows only when there is at least one joined listing.') ?>
           </tbody></table>
         </div>
       </details>

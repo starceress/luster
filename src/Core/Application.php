@@ -469,9 +469,6 @@ final class Application
                 return;
             }
 
-            // Update the timestamp first — even if there's nothing pending we reset the 7-day window.
-            $siteRepo->set('pending_digest_last_sent', (string) time());
-
             $digest = new PendingItemsDigest(
                 $this->database,
                 $this->config,
@@ -483,6 +480,11 @@ final class Application
             if ($data['grand_total'] === 0) {
                 return;
             }
+
+            // Only advance the 7-day window when there are items to report —
+            // an empty queue leaves the clock untouched so the next cron tick
+            // can check again immediately rather than waiting a full week.
+            $siteRepo->set('pending_digest_last_sent', (string) time());
 
             $ownerEmail = (string) ($this->config->get('owner_email', '') ?? '');
             if ($ownerEmail === '') {

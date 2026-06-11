@@ -417,14 +417,12 @@ final class ListingSettingsRepo
      */
     public static function defaultStatsTemplate(): string
     {
-        return '<div class="fl-stats">'
-            . "\n" . '  <div class="fl-stats-table">'
-            . "\n" . '    <div class="fl-stat-row"><span class="fl-stat-label">Members:</span><span class="fl-stat-value">{stat_approved}</span></div>'
-            . "\n" . '    <div class="fl-stat-row"><span class="fl-stat-label">Opened:</span><span class="fl-stat-value">{stat_opened}</span></div>'
-            . "\n" . '    <div class="fl-stat-row"><span class="fl-stat-label">Last Updated:</span><span class="fl-stat-value">{stat_last_updated}</span></div>'
-            . "\n" . '    {if_approved_by}<div class="fl-stat-row fl-stat-approved-by"><span class="fl-stat-label">Listed at:</span><span class="fl-stat-value">{approved_by}</span></div>{/if_approved_by}'
-            . "\n" . '  </div>'
-            . "\n" . '</div>';
+        return '<h1>Listing Statistics</h1>'
+            . '<p><b>Members:</b> {stat_approved} total{if_stat_pending} (+{stat_pending} pending){/if_stat_pending} across {stat_countries} countries<br>'
+            . '<b>Newest:</b> {stat_newmembers_oxford}<br>'
+            . '<b>Opened On:</b> {stat_opened}<br>'
+            . '<b>Last Updated:</b> {stat_last_updated}{if_approved_by}<br>'
+            . '<b>Approved by:</b> {approved_by}{/if_approved_by}</p>';
     }
 
     /**
@@ -435,14 +433,22 @@ final class ListingSettingsRepo
      */
     public static function defaultMembersTemplate(): string
     {
-        return '<div class="fl-member-list">'
+        return '<h1>Member List</h1>'
+            . "\n" . '<p class="fl-member-sort">Sort by: {sort_link_all} | {sort_link_name} | {sort_link_country}</p><br>'
+            . "\n" . '<p class="fl-member-stats">{stats_line}</p>'
+            . "\n"
+            . "\n" . '{if_members}'
+            . "\n" . '<div class="fl-member-list">'
             . "\n" . '{each_member}'
-            . "\n" . '<div class="fl-member-item">'
-            . "\n" . '  {if_fan_url}<a class="fl-member-name" href="{fan_url}" rel="noopener noreferrer">{fan_name}</a>{/if_fan_url}{if_no_fan_url}<span class="fl-member-name">{fan_name}</span>{/if_no_fan_url}'
-            . "\n" . '  {if_fan_country}<span class="fl-member-country">{fan_country}</span>{/if_fan_country}'
-            . "\n" . '</div>'
+            . "\n" . '  <ul class="fl-member-item">'
+            . "\n" . '    <li>{if_fan_url}<a class="fl-member-name" href="{fan_url}" rel="noopener noreferrer">{fan_name}</a>{/if_fan_url}{if_no_fan_url}<span class="fl-member-name">{fan_name}</span>{/if_no_fan_url} - {if_fan_country}<span class="fl-member-country">{fan_country}</span>{/if_fan_country}</li>'
+            . "\n" . '  </ul>'
             . "\n" . '{/each_member}'
-            . "\n" . '</div>';
+            . "\n" . '</div>'
+            . "\n" . '{/if_members}'
+            . "\n" . '{if_no_members}'
+            . "\n" . '  <p class="fl-empty">No members yet. <a href="{join_url}">Want to join?</a></p>'
+            . "\n" . '{/if_no_members}';
     }
 
     /**
@@ -450,14 +456,19 @@ final class ListingSettingsRepo
      */
     public static function defaultAffiliatesSectionTemplate(): string
     {
-        return '{if_affiliates}' . "\n"
+        return '<h1>Affiliates</h1>' . "\n\n"
+            . '{if_affiliates}' . "\n"
             . '<ul class="fl-affiliate-list">' . "\n"
+            . '<p><a href="{affiliate_apply_url}">Apply to become an affiliate?</a></p>' . "\n\n"
             . '{each_affiliate}' . "\n"
-            . '<li class="fl-affiliate-item"><a href="{aff_url}" target="_blank" rel="noopener noreferrer">{aff_image_tag}<span class="fl-affiliate-name">{aff_name}</span></a></li>' . "\n"
-            . '{/each_affiliate}' . "\n"
+            . '  <li class="fl-affiliate-item">' . "\n"
+            . '    <a href="{aff_url}" target="_blank" rel="noopener noreferrer">{aff_image_tag}</a></li>' . "\n"
+            . '{/each_affiliate}' . "\n\n"
             . '</ul>' . "\n"
-            . '{/if_affiliates}' . "\n"
-            . '{if_no_affiliates}<p class="fl-affiliates-empty">No affiliates yet.</p>{/if_no_affiliates}';
+            . '{/if_affiliates}' . "\n\n"
+            . '{if_no_affiliates}' . "\n"
+            . '  <p class="fl-affiliates-empty">No affiliates yet. <a href="{affiliate_apply_url}">Apply to become an affiliate?</a></p>' . "\n"
+            . '{/if_no_affiliates}';
     }
 
     public static function defaultUpdatesTemplate(): string

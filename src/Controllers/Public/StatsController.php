@@ -29,8 +29,11 @@ use Luster\Repositories\MemberRepo;
  *   {stat_last_updated} — admin-controlled "last updated" date from settings
  *   {stat_approved}     — approved member count
  *   {stat_pending}      — pending member count
- *   {stat_newmembers}   — comma-separated list of newest 5 approved member names
- *   {stat_growth}       — average members per day since opened, e.g. "1.23 members/day"
+ *   {stat_newmembers}        — comma-separated list of newest 5 approved member names
+ *   {stat_newmembers_oxford} — same list formatted with Oxford comma (e.g. "A, B, and C")
+ *   {stat_newmembers_label}  — "Member" when count is 1, "Members" otherwise
+ *   {stat_growth}            — average members per day since opened, e.g. "1.23 members/day"
+ *   {if_stat_pending}...{/if_stat_pending} — rendered only when pending count > 0
  *   {listing_title}      — listing name (HTML-escaped)
  *   {listing_url}       — listing URL (HTML-escaped)
  *   {approved_by}       — linked network name ("The Fanlistings Network" or
@@ -40,10 +43,12 @@ use Luster\Repositories\MemberRepo;
 final class StatsController
 {
     private const DEFAULT_TEMPLATE =
-        '<p>Opened: {stat_opened}<br>Last updated: {stat_last_updated}<br>'
-        . 'Members: {stat_approved} ({stat_pending} pending)<br>'
-        . 'Newest: {stat_newmembers}{if_approved_by}<br>'
-        . 'Approved by: {approved_by}{/if_approved_by}</p>';
+        '<h1>Listing Statistics</h1>'
+        . '<p><b>Members:</b> {stat_approved} total{if_stat_pending} (+{stat_pending} pending){/if_stat_pending} across {stat_countries} countries<br>'
+        . '<b>Newest:</b> {stat_newmembers_oxford}<br>'
+        . '<b>Opened On:</b> {stat_opened}<br>'
+        . '<b>Last Updated:</b> {stat_last_updated}{if_approved_by}<br>'
+        . '<b>Approved by:</b> {approved_by}{/if_approved_by}</p>';
 
     public function __construct(private readonly Application $app) {}
 
@@ -69,6 +74,7 @@ final class StatsController
 
         $approved    = $memberRepo->countApproved($prefix);
         $pending     = $memberRepo->countPending($prefix);
+        $countries   = $memberRepo->countUniqueCountries($prefix);
         $newest      = $memberRepo->getNewestMembers($prefix, 5);
         $lastUpdated = $memberRepo->getMostRecentApprovedDate($prefix);
 
@@ -100,10 +106,13 @@ final class StatsController
         $opened  = $listing->joined !== null ? $this->formatDate($listing->joined) : 'Unknown';
         $updated = $lastUpdated     !== null ? $this->formatDate($lastUpdated)      : 'Never';
 
-        $newMembersStr = implode(', ', array_map(
+        $newestEscaped = array_map(
             static fn(string $name) => htmlspecialchars($name, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),
             $newest,
-        ));
+        );
+        $newMembersStr    = implode(', ', $newestEscaped);
+        $newMembersOxford = $this->oxfordComma($newestEscaped);
+        $newMembersLabel  = count($newest) === 1 ? 'Member' : 'Members';
 
         // Growth: members per day since opened; guard against zero days
         $growth = '0.00';
@@ -117,10 +126,15 @@ final class StatsController
 
         // ── Replace tokens ──────────────────────────────────────────────────
 
-        // Conditional block — must run before flat str_replace
+        // Conditional blocks — must run before flat str_replace
         $template = (string) preg_replace(
             '/\{if_approved_by\}(.*?)\{\/if_approved_by\}/s',
             $approvedBy !== '' ? '$1' : '',
+            $template,
+        );
+        $template = (string) preg_replace(
+            '/\{if_stat_pending\}(.*?)\{\/if_stat_pending\}/s',
+            $pending > 0 ? '$1' : '',
             $template,
         );
 
@@ -131,7 +145,10 @@ final class StatsController
                 '{stat_last_updated}',
                 '{stat_approved}',
                 '{stat_pending}',
+                '{stat_countries}',
                 '{stat_newmembers}',
+                '{stat_newmembers_oxford}',
+                '{stat_newmembers_label}',
                 '{stat_growth}',
                 '{listing_title}',
                 '{listing_url}',
@@ -143,7 +160,10 @@ final class StatsController
                 $adminUpdatedStr,
                 (string) $approved,
                 (string) $pending,
+                (string) $countries,
                 $newMembersStr,
+                $newMembersOxford,
+                $newMembersLabel,
                 $growth . ' members/day',
                 htmlspecialchars($listing->title, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),
                 htmlspecialchars($listing->url,  ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),
@@ -158,6 +178,17 @@ final class StatsController
     // -----------------------------------------------------------------------
     // Internals
     // -----------------------------------------------------------------------
+
+    /** Formats names with Oxford comma: "", "A", "A and B", "A, B, and C". */
+    private function oxfordComma(array $names): string
+    {
+        return match (count($names)) {
+            0       => '',
+            1       => $names[0],
+            2       => $names[0] . ' and ' . $names[1],
+            default => implode(', ', array_slice($names, 0, -1)) . ', and ' . end($names),
+        };
+    }
 
     /**
      * Formats a date or datetime string as "Month Dth Year" (e.g. "March 1st 2026").

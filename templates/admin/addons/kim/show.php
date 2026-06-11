@@ -228,9 +228,9 @@ $fid = (int) $listing->id;
       </table>
       </div>
     </form>
-    <?php $pg_current = $page; $pg_total = $total_pages; $pg_url = $page_url;
-    include LUSTER_BASE . '/templates/admin/_pagination.php'; ?>
   </div>
+  <?php $pg_current = $page; $pg_total = $total_pages; $pg_url = $page_url;
+  include LUSTER_BASE . '/templates/admin/_pagination.php'; ?>
 <?php foreach ($approved_members as $m): ?>
 <form id="del-kim-<?= (int) $m->id ?>" method="POST"
       action="<?= $b ?>/admin/kim/<?= (int) $m->id ?>/delete"

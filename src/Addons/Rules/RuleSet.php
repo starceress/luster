@@ -12,11 +12,13 @@ final class RuleSet
     public function __construct(
         public readonly int    $id,
         public readonly int    $fanlistingId,
-        public readonly string $title,
         public readonly string $body,
         public readonly bool   $enabled,
         public readonly int    $version,
         public readonly string $updatedAt,
+        public readonly string $listStyle = 'numbered',
+        public readonly string $gateType  = 'checkbox',
+        public readonly string $gateLabel = '',
     ) {}
 
     /**
@@ -27,5 +29,20 @@ final class RuleSet
     public function fingerprint(): string
     {
         return $this->id . ':' . $this->version;
+    }
+
+    /**
+     * The gate label to display, falling back to a type-appropriate default
+     * when no custom label has been set.
+     */
+    public function effectiveGateLabel(): string
+    {
+        if ($this->gateLabel !== '') {
+            return $this->gateLabel;
+        }
+
+        return $this->gateType === 'button'
+            ? 'I agree -- proceed to join form'
+            : 'I have read and agree to the rules above.';
     }
 }

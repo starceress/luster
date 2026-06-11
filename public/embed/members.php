@@ -113,6 +113,12 @@ $_lusterRawSort = (isset($luster_sort_by) && in_array($luster_sort_by, ['name', 
 $_lusterSort    = in_array($_lusterRawSort, ['name', 'country', 'added'], true) ? $_lusterRawSort : 'country';
 $_lusterCountry = trim((string) ($_GET['country'] ?? ''));
 
+// Build pre-rendered sort link tokens for the members template
+$_lusterEscape          = static fn(string $v): string => htmlspecialchars($v, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+$_lusterSortLinkAll     = $_lusterSort === 'added'   ? '<strong aria-current="page" class="fl-member-sort-link">View All</strong>'  : '<a class="fl-member-sort-link" href="' . $_lusterEscape($_lusterMembersBase . '?sort=added')   . '">View All</a>';
+$_lusterSortLinkName    = $_lusterSort === 'name'    ? '<strong aria-current="page" class="fl-member-sort-link">Name</strong>'      : '<a class="fl-member-sort-link" href="' . $_lusterEscape($_lusterMembersBase . '?sort=name')    . '">Name</a>';
+$_lusterSortLinkCountry = $_lusterSort === 'country' ? '<strong aria-current="page" class="fl-member-sort-link">Country</strong>'   : '<a class="fl-member-sort-link" href="' . $_lusterEscape($_lusterMembersBase . '?sort=country') . '">Country</a>';
+
 // $luster_show_search — whether to render sort/filter controls in the template
 $_lusterShowSearch = (bool) ($luster_show_search ?? true);
 
@@ -131,16 +137,93 @@ $_lusterMemberTemplate   = ($_lusterTemplates['members_template'] !== null
 $_lusterPaginationTemplate = $_lusterSettingsRepo->getPaginationTemplate($_lusterListingId) ?? '';
 
 /**
- * Applies {token} substitution for a single member row.
- * Always HTML-escapes values before substitution.
+ * Applies a members list template — supports {each_member} loop, per-member
+ * conditionals ({if_fan_url}, {if_no_fan_url}, {if_fan_country}, {if_no_fan_country}),
+ * page-level conditionals ({if_members}, {if_no_members}), and page-level
+ * tokens ({join_url}, {member_count}).
+ * Legacy templates (no {each_member} block) are handled as per-row templates.
  */
-$_lusterRenderMember = static function (object $member) use ($_lusterMemberTemplate): string {
+$_lusterApplyMembersTemplate = static function (
+    string $tpl,
+    array  $members,
+    int    $total,
+    string $joinUrl,
+    array  $fields,
+    string $statsLine = '',
+    string $sortLinkAll = '',
+    string $sortLinkName = '',
+    string $sortLinkCountry = '',
+) use ($_lusterListingId): string {
     $e = static fn(string $v): string => htmlspecialchars($v, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
-    return str_replace(
-        ['{fan_name}', '{fan_url}', '{fan_email}', '{fan_country}'],
-        [$e($member->name), $e($member->url ?? ''), $e($member->email), $e($member->country)],
-        (string) $_lusterMemberTemplate,
-    );
+
+    $applyRowConditionals = static function (string $row, object $m): string {
+        $hasUrl     = ($m->url     ?? '') !== '';
+        $hasCountry = ($m->country ?? '') !== '';
+
+        if ($hasUrl) {
+            $row = preg_replace('/\{if_no_fan_url\}.*?\{\/if_no_fan_url\}/s', '', $row) ?? $row;
+            $row = str_replace(['{if_fan_url}', '{/if_fan_url}'], '', $row);
+        } else {
+            $row = preg_replace('/\{if_fan_url\}.*?\{\/if_fan_url\}/s', '', $row) ?? $row;
+            $row = str_replace(['{if_no_fan_url}', '{/if_no_fan_url}'], '', $row);
+        }
+        if ($hasCountry) {
+            $row = preg_replace('/\{if_no_fan_country\}.*?\{\/if_no_fan_country\}/s', '', $row) ?? $row;
+            $row = str_replace(['{if_fan_country}', '{/if_fan_country}'], '', $row);
+        } else {
+            $row = preg_replace('/\{if_fan_country\}.*?\{\/if_fan_country\}/s', '', $row) ?? $row;
+            $row = str_replace(['{if_no_fan_country}', '{/if_no_fan_country}'], '', $row);
+        }
+        return $row;
+    };
+
+    $buildTokens = static function (object $m) use ($e, $fields): array {
+        $tokens = [
+            '{fan_name}'    => $e($m->name),
+            '{fan_url}'     => $e($m->url     ?? ''),
+            '{fan_email}'   => $e($m->email   ?? ''),
+            '{fan_country}' => $e($m->country ?? ''),
+        ];
+        foreach ($fields as $field) {
+            $val = (string) ($m->additionalFields[$field->name] ?? '');
+            $tokens['{fan_' . $field->name . '}'] = $e($val);
+        }
+        return $tokens;
+    };
+
+    if (preg_match('/\{each_member\}(.*?)\{\/each_member\}/s', $tpl, $eachMatch)) {
+        $rowTpl   = $eachMatch[1];
+        $rendered = '';
+        foreach ($members as $member) {
+            $row     = $applyRowConditionals($rowTpl, $member);
+            $tokens  = $buildTokens($member);
+            $rendered .= str_replace(array_keys($tokens), array_values($tokens), $row);
+        }
+        $tpl = (string) preg_replace('/\{each_member\}.*?\{\/each_member\}/s', $rendered, $tpl, 1);
+
+        if ($total > 0) {
+            $tpl = preg_replace('/\{if_no_members\}.*?\{\/if_no_members\}/s', '', $tpl) ?? $tpl;
+            $tpl = str_replace(['{if_members}', '{/if_members}'], '', $tpl);
+        } else {
+            $tpl = preg_replace('/\{if_members\}.*?\{\/if_members\}/s', '', $tpl) ?? $tpl;
+            $tpl = str_replace(['{if_no_members}', '{/if_no_members}'], '', $tpl);
+        }
+
+        return str_replace(
+            ['{join_url}', '{member_count}', '{stats_line}', '{sort_link_all}', '{sort_link_name}', '{sort_link_country}'],
+            [$e($joinUrl), (string) $total, $e($statsLine), $sortLinkAll, $sortLinkName, $sortLinkCountry],
+            $tpl,
+        );
+    }
+
+    // Legacy: entire template is per-row
+    $rows = [];
+    foreach ($members as $member) {
+        $row    = $applyRowConditionals($tpl, $member);
+        $tokens = $buildTokens($member);
+        $rows[] = str_replace(array_keys($tokens), array_values($tokens), $row);
+    }
+    return implode("\n", $rows);
 };
 
 // Shared data for all rendering paths
@@ -178,7 +261,11 @@ if ($_lusterCountry !== '') {
 
     $_lusterMembersHtml = null;
     if ($_lusterMemberTemplate !== null) {
-        $_lusterMembersHtml = implode('', array_map($_lusterRenderMember, $_lusterResult['members']));
+        $_lusterMembersHtml = $_lusterApplyMembersTemplate(
+            $_lusterMemberTemplate, $_lusterResult['members'], $_lusterResult['total'],
+            $_lusterBaseUrl . '/join/' . $_lusterListingId, $_lusterFields,
+            $_lusterStatsLine, $_lusterSortLinkAll, $_lusterSortLinkName, $_lusterSortLinkCountry,
+        );
     }
     $_lusterHtml = $_lusterApp->getView()->renderFragment('members.php', array_merge($_lusterCommonData, [
         'country'         => $_lusterCountry,
@@ -224,7 +311,11 @@ if ($_lusterCountry !== '') {
 
     $_lusterMembersHtml = null;
     if ($_lusterMemberTemplate !== null) {
-        $_lusterMembersHtml = implode('', array_map($_lusterRenderMember, $_lusterResult['members']));
+        $_lusterMembersHtml = $_lusterApplyMembersTemplate(
+            $_lusterMemberTemplate, $_lusterResult['members'], $_lusterResult['total'],
+            $_lusterBaseUrl . '/join/' . $_lusterListingId, $_lusterFields,
+            $_lusterStatsLine, $_lusterSortLinkAll, $_lusterSortLinkName, $_lusterSortLinkCountry,
+        );
     }
     $_lusterHtml = $_lusterApp->getView()->renderFragment('members.php', array_merge($_lusterCommonData, [
         'country'         => '',

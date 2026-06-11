@@ -42,7 +42,7 @@ use Luster\Core\View;
   </div>
   <?php endif; ?>
 
-  <p class="fl-hint"><?= View::e($stats_line) ?></p>
+  <p class="fl-member-stats"><?= View::e($stats_line) ?></p>
 
   <?php if (!empty($country_summary)): ?>
     <!-- Country summary view -->

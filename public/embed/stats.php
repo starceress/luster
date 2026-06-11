@@ -96,6 +96,7 @@ $_lusterPrefix     = $_lusterListing->dbprefix;
 
 $_lusterApproved    = $_lusterMemberRepo->countApproved($_lusterPrefix);
 $_lusterPending     = $_lusterMemberRepo->countPending($_lusterPrefix);
+$_lusterCountries   = $_lusterMemberRepo->countUniqueCountries($_lusterPrefix);
 $_lusterNewest      = $_lusterMemberRepo->getNewestMembers($_lusterPrefix, 5);
 $_lusterLastUpdated = $_lusterMemberRepo->getMostRecentApprovedDate($_lusterPrefix);
 
@@ -151,10 +152,21 @@ $_lusterUpdated = $_lusterLastUpdated !== null
 // 7. Build token values
 // ---------------------------------------------------------------------------
 
-$_lusterNewMembersStr = implode(', ', array_map(
+$_lusterNewestEscaped = array_map(
     static fn(string $name) => htmlspecialchars($name, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),
     $_lusterNewest,
-));
+);
+$_lusterNewMembersStr = implode(', ', $_lusterNewestEscaped);
+
+$_lusterNewMembersOxford = (static function (array $names): string {
+    return match (count($names)) {
+        0       => '',
+        1       => $names[0],
+        2       => $names[0] . ' and ' . $names[1],
+        default => implode(', ', array_slice($names, 0, -1)) . ', and ' . end($names),
+    };
+})($_lusterNewestEscaped);
+$_lusterNewMembersLabel = count($_lusterNewest) === 1 ? 'Member' : 'Members';
 
 $_lusterGrowth = '0.00';
 if ($_lusterListing->joined !== null) {
@@ -180,10 +192,15 @@ $_lusterApprovedByHtml = match ($_lusterApprovedBy) {
     default => '',
 };
 
-// Conditional block — must run before flat str_replace
+// Conditional blocks — must run before flat str_replace
 $_lusterTemplate = (string) preg_replace(
     '/\{if_approved_by\}(.*?)\{\/if_approved_by\}/s',
     $_lusterApprovedBy !== '' ? '$1' : '',
+    $_lusterTemplate,
+);
+$_lusterTemplate = (string) preg_replace(
+    '/\{if_stat_pending\}(.*?)\{\/if_stat_pending\}/s',
+    $_lusterPending > 0 ? '$1' : '',
     $_lusterTemplate,
 );
 
@@ -194,7 +211,10 @@ $_lusterHtml = str_replace(
         '{stat_last_updated}',
         '{stat_approved}',
         '{stat_pending}',
+        '{stat_countries}',
         '{stat_newmembers}',
+        '{stat_newmembers_oxford}',
+        '{stat_newmembers_label}',
         '{stat_growth}',
         '{listing_title}',
         '{listing_url}',
@@ -206,7 +226,10 @@ $_lusterHtml = str_replace(
         $_lusterAdminUpdatedStr,
         (string) $_lusterApproved,
         (string) $_lusterPending,
+        (string) $_lusterCountries,
         $_lusterNewMembersStr,
+        $_lusterNewMembersOxford,
+        $_lusterNewMembersLabel,
         $_lusterGrowth . ' members/day',
         htmlspecialchars($_lusterListing->title, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),
         htmlspecialchars($_lusterListing->url,  ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),

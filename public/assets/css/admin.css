@@ -2160,6 +2160,8 @@ details.chevron:not([open]) > summary { border-bottom: none; border-radius: calc
 
 .ec-code-file svg { opacity: .5; flex-shrink: 0; }
 
+.snip-pre { font-size: var(--fs-sm); background: var(--ec-code-bg); border: 1px solid var(--border-soft); border-radius: 10px; padding: .625rem; overflow: auto; white-space: pre-wrap;word-break: break-all; margin:.75rem 0; color:var(--text-muted); }
+
 .ec-pre { background: var(--ec-code-bg); padding: .875rem 1.125rem; font-size: var(--fs-base); line-height: 1.8; overflow-x: auto; font-family: var(--font-mono); color: var(--text-muted); margin: 0; white-space: pre; display: block; min-height: 120px; margin-bottom: 1.5rem; }
 
 .ec-pre .ec-hl-c { color: var(--ec-hl-c); }
@@ -2640,40 +2642,53 @@ tr.lc-busy td:last-child { opacity: 1; }
 
 .msg-expand[open] summary { display: block; margin: .35rem 0 0; }
 
-/* ── Embed codes — cascading selector bar ─────────────────────────────── */
-.ec-sel-bar {
+/* ── Embed wizard integrated card ─────────────────────────────────────── */
+.ec-wizard-card {
   margin-bottom: 1rem;
-  /* Mirror the wizard-active variables so .wizard-step-node--active rules apply here too */
   --wizard-active: var(--accent);
   --wizard-active-glow: color-mix(in srgb, var(--wizard-active) 20%, transparent);
 }
+
+.ec-wizard-card .wizard-step-node { flex-direction: row; align-items: center; position: static; z-index: auto; }
+
+.ec-wizard-card .wizard-step-label { text-align: left; align-items: flex-start; min-width: 0; max-width: none; }
+
+.ec-wizard-card .wizard-step-label .ec-step-title { display: inline-flex; align-items: center; gap: 0.3rem; }
+
+.ec-wizard-card .wizard-step-bubble { width: 28px; height: 28px; font-size: var(--fs-sm); transition: none; }
+
+.ec-setup-top { padding: 1rem 1.25rem; border-bottom: 1px solid var(--hairline); }
+
+.ec-setup-head { display: flex; align-items: center; gap: .625rem; margin-bottom: .75rem; flex-wrap: wrap; }
+
+.ec-setup-cp-btn { margin-left: auto; }
+
+.ec-setup-step { flex: 0 0 auto; }
+
+.ec-setup-badge { flex: 0 0 auto; }
+
+.ec-setup-hint { font-size: var(--fs-sm); color: var(--text-muted); flex: 1; min-width: 150px; }
+
+.ec-setup-snip { background: var(--ec-code-bg); border: 1px solid var(--border); border-radius: var(--radius-sm); font-family: var(--font-mono); font-size: var(--fs-sm); line-height: 1.7; overflow-x: auto; }
+
+.ec-setup-snip-line { padding: .4rem 1rem; color: var(--text-muted); display: block; }
+
+.ec-setup-snip-line + .ec-setup-snip-line { border-top: 1px solid var(--hairline); }
+
+.ec-setup-snip-line code { font-family: inherit; color: inherit; background: none; padding: 0; }
+
+.ec-sel-pickers { padding: 1rem 1.25rem; }
 
 .ec-sel-row { display: flex; align-items: flex-end; gap: .75rem; }
 
 .ec-sel-step { display: flex; flex-direction: column; gap: .5rem; flex: 1; min-width: 0; }
 
-/* Reuse import-wizard node classes; switch to horizontal row layout */
-.ec-sel-bar .wizard-step-node { flex-direction: row; align-items: center; position: static; z-index: auto; }
-
-.ec-sel-bar .wizard-step-label { text-align: left; min-width: 0; max-width: none; }
-
 .ec-sel-arrow { font-size: 1.5rem; font-weight: 700; color: var(--accent); flex-shrink: 0; padding-bottom: .5rem; line-height: 1; }
 
 #ec-reset-btn { flex-shrink: 0; }
 
-/* "Include This" step + paired baseline-CSS callout */
-.ec-sel-row--include { align-items: center; margin-bottom: 1rem; }
-
-.ec-sel-step--include { flex: 0 0 auto; }
-
-.ec-sel-step--include .wizard-step-label { text-align: left; }
-
-.ec-sel-callout { flex: 1; margin-bottom: 0; }
-
 @media (max-width: 640px) {
-  .ec-sel-row { flex-wrap: wrap; }
-  .ec-sel-arrow, #ec-reset-btn { display: none; }
-  .ec-sel-step { flex: 1 1 100%; }
-  .ec-sel-row--include { flex-direction: column; align-items: flex-start; }
-  .ec-sel-step--include .wizard-step-label { text-align: left; }
+  .ec-sel-pickers .ec-sel-row { flex-wrap: wrap; }
+  .ec-sel-pickers .ec-sel-arrow, .ec-sel-pickers #ec-reset-btn { display: none; }
+  .ec-sel-pickers .ec-sel-step { flex: 1 1 100%; }
 }

@@ -85,13 +85,8 @@ final class RulesAdminController extends AdminController
             return $listing;
         }
 
-        $title   = trim((string) $request->post('title',   'Join Rules'));
         $body    = trim((string) $request->post('body',    ''));
         $enabled = $request->post('enabled', '') !== '';
-
-        if ($title === '') {
-            $title = 'Join Rules';
-        }
 
         if ($body === '' && $enabled) {
             $session = $this->app->getSession();
@@ -99,11 +94,22 @@ final class RulesAdminController extends AdminController
             return Response::redirect($this->adminUrl('/admin/rules/' . $listingId . '/edit'));
         }
 
+        $listStyle = (string) $request->post('list_style', 'numbered');
+        $listStyle = in_array($listStyle, ['numbered', 'circle'], true) ? $listStyle : 'numbered';
+
+        $gateType = (string) $request->post('gate_type', 'checkbox');
+        $gateType = in_array($gateType, ['checkbox', 'button'], true) ? $gateType : 'checkbox';
+
+        $gateLabel = trim((string) $request->post('gate_label', ''));
+        if (mb_strlen($gateLabel) > 255) {
+            $gateLabel = mb_substr($gateLabel, 0, 255);
+        }
+
         $repo = new RulesRepo($this->app->getDatabase());
         $existing = $repo->getForListing($listingId);
         $oldVersion = $existing?->version ?? 0;
 
-        $repo->upsert($listingId, $title, $body, $enabled);
+        $repo->upsert($listingId, $body, $enabled, $listStyle, $gateType, $gateLabel);
 
         $newVersion = $repo->getForListing($listingId)?->version ?? 0;
         $bumped     = $newVersion > $oldVersion;

@@ -12,6 +12,7 @@ use Luster\Core\Response;
 use Luster\Core\TemplateEngine;
 use Luster\Repositories\ListingRepo;
 use Luster\Repositories\ListingSettingsRepo;
+use Luster\Support\RulesBodyRenderer;
 
 /**
  * Public rules gate.
@@ -48,7 +49,10 @@ final class RulesPublicController
         $csrf       = $this->app->getCSRF()->token();
         $returnTo   = (string) $session->get('lstr_embed_return_to', '');
         if ($returnTo === '') {
-            $returnTo = $baseUrl . '/rules/' . $listingId;
+            // Standalone (non-embed) visits have no captured host-page URL —
+            // default to the join form so agreeing doesn't redirect back to
+            // this same gate (which would then show "already agreed").
+            $returnTo = $baseUrl . '/join/' . $listingId;
         }
 
         $alreadyAgreed = $this->hasAgreed($listingId, $ruleSet);
@@ -66,17 +70,26 @@ final class RulesPublicController
             ]);
         }
 
+        $rulesBodyHtml = RulesBodyRenderer::render($ruleSet->body, [
+            'subject'       => $listing?->subject ?? '',
+            'listing_title' => $listing?->title ?? '',
+            'listing_url'   => $listing?->url ?? '',
+            'join_url'      => $baseUrl . '/join/' . $listingId,
+            'update_url'    => $baseUrl . '/update/' . $listingId,
+        ], $ruleSet->listStyle);
+
         $html = $this->app->getView()->renderPublic('addons/rules/gate.php', [
             'listing'          => $listing,
             'listing_name'     => $listing?->title ?? '',
             'listing_url'      => $listing?->url ?? '',
-            'page_title'       => $ruleSet->title,
+            'page_title'       => 'Join Rules',
             'rules'            => $ruleSet,
             'already_agreed'   => $alreadyAgreed,
             'form_action'      => $baseUrl . '/rules/' . $listingId . '/agree',
             'return_to'        => $returnTo,
             'csrf_token'       => $csrf,
             'rules_intro_html' => $rulesIntroHtml,
+            'rules_body_html'  => $rulesBodyHtml,
             'base_url'         => $baseUrl,
             'theme_path'       => $baseUrl . '/assets/css/default/',
         ]);
