@@ -130,6 +130,141 @@ final class FormFieldBuilderTest extends TestCase
     }
 
     // -------------------------------------------------------------------------
+    // build() — '_input' tokens (bare input, no wrapper/label)
+    // -------------------------------------------------------------------------
+
+    public function testTextFieldProducesInputToken(): void
+    {
+        $result = $this->fb->build([
+            ['type' => 'text', 'name' => 'my_name', 'id' => 'f-name', 'label' => 'Name', 'required' => true, 'value' => 'Alice'],
+        ], '');
+
+        $this->assertArrayHasKey('my_name_input', $result);
+        $this->assertStringContainsString('type="text"', $result['my_name_input']);
+        $this->assertStringContainsString('value="Alice"', $result['my_name_input']);
+        $this->assertStringNotContainsString('<label', $result['my_name_input']);
+        $this->assertStringNotContainsString('<div', $result['my_name_input']);
+    }
+
+    public function testPasswordFieldProducesInputToken(): void
+    {
+        $result = $this->fb->build([
+            ['type' => 'password', 'name' => 'pw', 'id' => 'f-pw', 'label' => 'Password'],
+        ], '');
+
+        $this->assertArrayHasKey('pw_input', $result);
+        $this->assertStringContainsString('type="password"', $result['pw_input']);
+        $this->assertStringNotContainsString('<label', $result['pw_input']);
+    }
+
+    public function testTextareaFieldProducesInputToken(): void
+    {
+        $result = $this->fb->build([
+            ['type' => 'textarea', 'name' => 'msg', 'id' => 'f-msg', 'label' => 'Message', 'value' => 'hello'],
+        ], '');
+
+        $this->assertArrayHasKey('msg_input', $result);
+        $this->assertStringContainsString('<textarea', $result['msg_input']);
+        $this->assertStringContainsString('hello', $result['msg_input']);
+        $this->assertStringNotContainsString('<label', $result['msg_input']);
+    }
+
+    public function testSelectFieldProducesInputToken(): void
+    {
+        $result = $this->fb->build([
+            ['type' => 'select', 'name' => 'col', 'id' => 'f-col', 'label' => 'Colour', 'options' => ['r' => 'Red', 'b' => 'Blue'], 'value' => 'b'],
+        ], '');
+
+        $this->assertArrayHasKey('col_input', $result);
+        $this->assertStringContainsString('<select', $result['col_input']);
+        $this->assertStringContainsString('selected', $result['col_input']);
+        $this->assertStringNotContainsString('<label', $result['col_input']);
+    }
+
+    public function testCheckboxGroupInputTokenContainsInlinePairs(): void
+    {
+        $result = $this->fb->build([
+            ['type' => 'checkboxGroup', 'name' => 'fave', 'id' => '', 'label' => 'Faves',
+             'options' => ['cats' => 'Cats', 'dogs' => 'Dogs'], 'selected' => ['cats']],
+        ], '');
+
+        $this->assertArrayHasKey('fave_input', $result);
+        $this->assertStringContainsString('type="checkbox"', $result['fave_input']);
+        $this->assertStringContainsString('checked', $result['fave_input']);
+    }
+
+    public function testRadioGroupInputTokenContainsInlinePairs(): void
+    {
+        $result = $this->fb->build([
+            ['type' => 'radioGroup', 'name' => 'mood', 'id' => '', 'label' => 'Mood',
+             'options' => ['happy' => 'Happy', 'sad' => 'Sad'], 'value' => 'happy'],
+        ], '');
+
+        $this->assertArrayHasKey('mood_input', $result);
+        $this->assertStringContainsString('type="radio"', $result['mood_input']);
+    }
+
+    public function testFileFieldProducesDropZoneInputToken(): void
+    {
+        $result = $this->fb->build([
+            ['type' => 'file', 'name' => 'img', 'id' => 'f-img', 'label' => 'Image', 'required' => true, 'attrs' => ['accept' => 'image/*']],
+        ], '');
+
+        $this->assertArrayHasKey('img_input', $result);
+        $this->assertStringContainsString('<label class="fl-file-zone" for="f-img">', $result['img_input']);
+        $this->assertStringContainsString('<span class="fl-file-prompt">Click to choose a file</span>', $result['img_input']);
+        $this->assertStringContainsString('type="file"', $result['img_input']);
+        $this->assertStringContainsString('accept="image/*"', $result['img_input']);
+        $this->assertStringContainsString('required', $result['img_input']);
+
+        // The full wrapped block uses the bare <input>, not the drop-zone markup.
+        $this->assertStringNotContainsString('fl-file-zone', $result['img']);
+    }
+
+    public function testFileFieldDropZoneOmitsForAttributeWhenIdEmpty(): void
+    {
+        $result = $this->fb->build([
+            ['type' => 'file', 'name' => 'img', 'id' => '', 'label' => 'Image'],
+        ], '');
+
+        $this->assertStringContainsString('<label class="fl-file-zone">', $result['img_input']);
+        $this->assertStringNotContainsString('for=', $result['img_input']);
+    }
+
+    public function testRawInputInputTokenEqualsRawHtml(): void
+    {
+        $raw = '<select><option>custom</option></select>';
+        $result = $this->fb->build([
+            ['type' => 'select', 'name' => 'custom', 'id' => '', 'label' => 'Custom', 'raw_input' => $raw],
+        ], '');
+
+        $this->assertSame($raw, $result['custom_input']);
+    }
+
+    public function testRawInputForFileTypeInputTokenEqualsRawHtmlNotDropZone(): void
+    {
+        $raw = '<input type="file" name="proof" id="custom-proof">';
+        $result = $this->fb->build([
+            ['type' => 'file', 'name' => 'proof', 'id' => 'custom-proof', 'label' => 'Proof', 'raw_input' => $raw],
+        ], '');
+
+        $this->assertSame($raw, $result['proof_input']);
+        $this->assertStringNotContainsString('fl-file-zone', $result['proof_input']);
+    }
+
+    public function testAdditionalFieldDescriptorsProduceInputTokensWhenBuilt(): void
+    {
+        $field = new AdditionalField('fave', 'Favourite', 'text', false);
+        $descs = $this->fb->descriptorsFromAdditionalFields([$field], ['field_fave' => 'Jazz']);
+
+        $result = $this->fb->build($descs, '');
+
+        $this->assertArrayHasKey('field_fave_input', $result);
+        $this->assertStringContainsString('value="Jazz"', $result['field_fave_input']);
+        $this->assertStringNotContainsString('<label', $result['field_fave_input']);
+    }
+
+    // -------------------------------------------------------------------------
     // build() — validation errors
     // -------------------------------------------------------------------------
 

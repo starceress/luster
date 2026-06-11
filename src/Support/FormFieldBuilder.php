@@ -7,6 +7,7 @@ namespace Luster\Support;
 use InvalidArgumentException;
 use Luster\Core\FieldRenderer;
 use Luster\Core\FieldWrapper;
+use Luster\Core\View;
 use Luster\Models\AdditionalField;
 
 /**
@@ -90,6 +91,10 @@ final class FormFieldBuilder
             $inputHtml = ($rawInput !== null)
                 ? $rawInput
                 : $this->renderInput($type, $id, $name, $value, $required, $options, $selected, $attrs);
+
+            $result[$name . '_input'] = ($type === 'file' && $rawInput === null)
+                ? $this->fileDropZone($id, $name, $required, (string) ($attrs['accept'] ?? ''))
+                : $inputHtml;
 
             $result[$name] = $this->wrapper->render(
                 $wrapperTemplate,
@@ -260,5 +265,20 @@ final class FormFieldBuilder
             'radioGroup'    => $this->renderer->radioGroup($name, $options, $value, $required),
             default         => '',
         };
+    }
+
+    /**
+     * Wraps a file input in a clickable drop-zone label for use as a field's
+     * '_input' token (e.g. {field_image_input}).
+     */
+    private function fileDropZone(string $id, string $name, bool $required, string $accept): string
+    {
+        $inputTag = $this->renderer->file($id, $name, $required, $accept);
+        $idAttr   = $id !== '' ? ' for="' . View::e($id) . '"' : '';
+
+        return '<label class="fl-file-zone"' . $idAttr . '>'
+             . $inputTag
+             . '<span class="fl-file-prompt">Click to choose a file</span>'
+             . '</label>';
     }
 }
