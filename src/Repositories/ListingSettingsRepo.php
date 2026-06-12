@@ -423,7 +423,7 @@ final class ListingSettingsRepo
     {
         return '<h1>Listing Statistics</h1>'
             . '<p><b>Members:</b> {stat_approved} total{if_stat_pending} (+{stat_pending} pending){/if_stat_pending} across {stat_countries} countries<br>'
-            . '<b>Newest:</b> {stat_newmembers_oxford}<br>'
+            . '<b>Newest Members:</b> {stat_newmembers_oxford}<br>'
             . '<b>Opened On:</b> {stat_opened}<br>'
             . '<b>Last Updated:</b> {stat_last_updated}{if_approved_by}<br>'
             . '<b>Approved by:</b> {approved_by}{/if_approved_by}</p>';

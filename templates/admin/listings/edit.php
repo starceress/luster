@@ -503,7 +503,10 @@ $_statsNeedsReset = static function (?string $v) use ($_isOldStatsTemplate): boo
     // Migrate templates that still use the old {stat_newmembers_label} token
     if (str_contains($v, '{stat_newmembers_label}')) return true;
     // Migrate templates that look like the old built-in default (no h1, no stat_countries)
-    return str_starts_with(ltrim($v), '<p>Members:') && !str_contains($v, '{stat_countries}');
+    if (str_starts_with(ltrim($v), '<p>Members:') && !str_contains($v, '{stat_countries}')) return true;
+    // Migrate previous default that used "<b>Newest:</b>" (now "<b>Newest Members:</b>")
+    if (str_contains($v, '<b>Newest:</b>') && !str_contains($v, '<b>Newest Members:</b>')) return true;
+    return false;
 };
 $tplStatsVal     = $_statsNeedsReset($templates['stats_template'] ?? null)
     ? $_gFallback(ListingSettingsRepo::defaultStatsTemplate(), 'listing_default_stats_template')
