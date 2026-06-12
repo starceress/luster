@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 use Luster\Addons\Kim\KimMemberRepo;
 use Luster\Core\Captcha;
+use Luster\Core\View;
 use Luster\Repositories\ListingRepo;
 use Luster\Repositories\SiteSettingsRepo;
+use Luster\Support\FormTemplateRenderer;
 
 /**
  * Luster embed — KIM List sign-up form fragment.
@@ -137,9 +139,40 @@ $_lusterF = $_lusterApp->getFormFieldBuilder()->build([
     ['type' => 'email',    'name' => 'email',            'id' => 'kim-email',            'label' => 'Email',                    'required' => true,  'value' => (string) ($_lusterOld['email'] ?? ''), 'attrs' => ['maxlength' => '255', 'autocomplete' => 'email']],
     ['type' => 'select',   'name' => 'fanlisting_id',   'id' => 'kim-fanlisting',       'label' => 'Fanlisting Interested In', 'required' => true,  'raw_input' => $_lusterFlSelectHtml],
     ['type' => 'password', 'name' => 'password',         'id' => 'kim-password',         'label' => 'Password',                 'required' => false, 'attrs' => ['maxlength' => '255', 'autocomplete' => 'new-password'], 'hint' => 'Leave blank to auto-generate; you\'ll receive it by email'],
-    ['type' => 'password', 'name' => 'password_confirm', 'id' => 'kim-password-confirm', 'label' => 'Confirm Password',         'required' => false, 'attrs' => ['maxlength' => '255', 'autocomplete' => 'new-password']],
-    ['type' => 'text',     'name' => 'captcha_answer',   'id' => 'kim-captcha',          'label' => 'Captcha: ' . $_lusterCaptchaQ, 'required' => true, 'attrs' => ['maxlength' => '10', 'autocomplete' => 'off']],
+    ['type' => 'password',     'name' => 'password_confirm', 'id' => 'kim-password-confirm', 'label' => 'Confirm Password',         'required' => false, 'attrs' => ['maxlength' => '255', 'autocomplete' => 'new-password']],
+    ['type' => 'checkboxGroup','name' => 'send_copy',        'id' => '',                     'label' => 'Opt-in',                   'required' => false, 'options' => ['1' => 'Email me a copy of my submission'], 'selected' => ((string) ($_lusterOld['send_copy'] ?? '')) === '1' ? ['1'] : []],
+    ['type' => 'text',         'name' => 'captcha_answer',   'id' => 'kim-captcha',          'label' => 'Captcha: ' . $_lusterCaptchaQ, 'required' => true, 'attrs' => ['maxlength' => '10', 'autocomplete' => 'off']],
 ], $_lusterWrapperTpl);
+
+$_lusterFormHtml     = null;
+$_lusterSiteName     = (string) $_lusterApp->getConfig()->get('site_name', 'Luster');
+$_lusterKimSignupTpl = $_lusterSiteSettings->get('kim_signup_form_template') ?? '';
+if ($_lusterKimSignupTpl !== '') {
+    $_lusterKimTokens = [
+        '{site_name}'                        => View::e($_lusterSiteName),
+        '{field_name}'                        => $_lusterF['name'],
+        '{field_name_input}'                  => $_lusterF['name_input'],
+        '{field_url}'                         => $_lusterF['url'],
+        '{field_url_input}'                   => $_lusterF['url_input'],
+        '{field_email}'                       => $_lusterF['email'],
+        '{field_email_input}'                 => $_lusterF['email_input'],
+        '{field_fanlisting_id}'               => $_lusterF['fanlisting_id'],
+        '{field_fanlisting_id_input}'         => $_lusterF['fanlisting_id_input'],
+        '{field_password}'                    => $_lusterF['password'],
+        '{field_password_input}'              => $_lusterF['password_input'],
+        '{field_password_confirm}'            => $_lusterF['password_confirm'],
+        '{field_password_confirm_input}'      => $_lusterF['password_confirm_input'],
+        '{field_send_copy}'                   => $_lusterF['send_copy'],
+        '{field_send_copy_input}'             => $_lusterF['send_copy_input'],
+        '{captcha_block}'                     => $_lusterF['captcha_answer'],
+        '{captcha_block_input}'               => $_lusterF['captcha_answer_input'],
+        '{captcha_question}'                  => View::e($_lusterCaptchaQ),
+        '{submit_button}'                     => '<button type="submit" class="fl-submit">Sign Up</button>',
+        '{clear_button}'                      => '<button type="reset" class="fl-btn-secondary">Clear</button>',
+    ];
+    $_lusterInnerHtml = FormTemplateRenderer::expandTokens($_lusterKimSignupTpl, $_lusterKimTokens);
+    $_lusterFormHtml  = FormTemplateRenderer::wrapForm($_lusterInnerHtml, $_lusterBaseUrl . '/kim', $_lusterApp->getCSRF()->token(), false);
+}
 
 $_lusterHtml = $_lusterApp->getView()->render('default/addons/kim/signup.php', [
     'form_action' => $_lusterBaseUrl . '/kim',
@@ -149,6 +182,7 @@ $_lusterHtml = $_lusterApp->getView()->render('default/addons/kim/signup.php', [
         : '',
     'old'         => $_lusterOld,
     'f'           => $_lusterF,
+    'form_html'   => $_lusterFormHtml,
     'base_url'    => $_lusterBaseUrl,
     'theme_path'  => $_lusterBaseUrl . '/assets/default/',
     'link_update' => $_lusterLinkUpdate,

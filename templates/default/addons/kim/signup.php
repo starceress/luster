@@ -20,6 +20,27 @@ $b = rtrim(View::e($base_url), '/');
 $_linkUpdate = ($link_update !== null && $link_update !== '') ? $link_update : null;
 $_linkReset  = ($link_reset  !== null && $link_reset  !== '') ? $link_reset  : null;
 $_linkList   = ($link_list   !== null && $link_list   !== '') ? $link_list   : null;
+
+if (isset($form_html) && $form_html !== null) {
+    ?>
+<div class="fl-embed fl-embed--kim-signup">
+  <div class="fl-kim">
+    <?php if (($errors ?? '') !== ''): ?><div class="fl-errors"><?= $errors ?></div><?php endif; ?>
+    <?= $form_html ?>
+    <?php
+    $_metaLinks = [];
+    if ($_linkUpdate !== null) $_metaLinks[] = '<a href="' . View::e($_linkUpdate) . '">Update your entry</a>';
+    if ($_linkReset  !== null) $_metaLinks[] = '<a href="' . View::e($_linkReset)  . '">Forgot password?</a>';
+    if ($_linkList   !== null) $_metaLinks[] = '<a href="' . View::e($_linkList)   . '">View the KIM list</a>';
+    ?>
+    <?php if (!empty($_metaLinks)): ?>
+    <p class="fl-kim-meta">Already signed up? <?= implode(' &middot; ', $_metaLinks) ?></p>
+    <?php endif; ?>
+  </div>
+</div>
+    <?php
+    return;
+}
 ?>
 <div class="fl-embed fl-embed--kim-signup">
   <div class="fl-kim">

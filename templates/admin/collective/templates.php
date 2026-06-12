@@ -15,6 +15,9 @@ $statsVal           = $ct['collective_stats_template']                   ?: $d['
 $affApplyFormVal    = ($ct['collective_affiliate_apply_form_template'] ?? '') !== ''
     ? $ct['collective_affiliate_apply_form_template']
     : '';
+$kimSignupFormVal   = ($ct['kim_signup_form_template'] ?? '') !== ''
+    ? $ct['kim_signup_form_template']
+    : '';
 
 // Renders one clickable token row for the sidebar reference panel.
 $tok = static fn(string $ta, string $token, string $label, string $desc): string =>
@@ -126,6 +129,16 @@ $tok = static fn(string $ta, string $token, string $label, string $desc): string
         <div class="tpl-reset-row">
           <button type="button" class="btn btn-secondary btn-xs coltpl-preview-btn" data-tpltype="collective_affiliate_apply_form" data-textarea="collective_affiliate_apply_form_template">Preview</button>
           <button type="button" class="btn btn-quaternary btn-xs" data-textarea="collective_affiliate_apply_form_template">Reset to Default</button>
+        </div>
+
+        <div class="pc-section-label">KIM Sign-Up Form</div>
+        <p class="form-hint mb-sm">Controls the layout of the KIM (Keep In Mind) sign-up form. Leave blank to use the built-in form layout.</p>
+        <div class="form-group">
+          <textarea name="kim_signup_form_template" id="kim_signup_form_template" class="form form-mono" spellcheck="false"><?= View::e($kimSignupFormVal) ?></textarea>
+        </div>
+        <div class="tpl-reset-row">
+          <button type="button" class="btn btn-secondary btn-xs coltpl-preview-btn" data-tpltype="kim_signup_form" data-textarea="kim_signup_form_template">Preview</button>
+          <button type="button" class="btn btn-quaternary btn-xs" data-textarea="kim_signup_form_template">Reset to Default</button>
         </div>
 
       </div>
@@ -349,6 +362,36 @@ $tok = static fn(string $ta, string $token, string $label, string $desc): string
             <?= $tok('collective_affiliate_apply_form_template', '{captcha_block_input}', '{captcha_block_input}', 'Just the captcha text input element.') ?>
             <?= $tok('collective_affiliate_apply_form_template', '{captcha_question}',    '{captcha_question}',    'The arithmetic question text only (e.g. "2 + 3").') ?>
             <?= $tok('collective_affiliate_apply_form_template', '{submit_button}',       '{submit_button}',       'The submit button.') ?>
+          </tbody></table>
+        </div>
+      </details>
+
+      <!-- ── KIM Sign-Up Form ───────────────────────── -->
+      <details class="card chevron" data-token-card>
+        <summary class="chevron-head">KIM Sign-Up Form Tokens</summary>
+        <div class="chevron-body">
+          <p class="form-hint mb-sm" data-token-search-help>Controls the layout of the KIM sign-up form. Leave the template blank to use the built-in form. Field tokens output the full label + input block; <code>_input</code> variants output just the raw input element.</p>
+          <table class="et-token-table et-token-table--compact"><tbody>
+            <?= $tok('kim_signup_form_template', '{site_name}',                   '{site_name}',                   'The collective/site name.') ?>
+            <?= $tok('kim_signup_form_template', '{field_name}',                  '{field_name}',                  'Full label + input block for the name field.') ?>
+            <?= $tok('kim_signup_form_template', '{field_name_input}',            '{field_name_input}',            'Just the name text input element.') ?>
+            <?= $tok('kim_signup_form_template', '{field_url}',                   '{field_url}',                   'Full label + input block for the URL field.') ?>
+            <?= $tok('kim_signup_form_template', '{field_url_input}',             '{field_url_input}',             'Just the URL input element.') ?>
+            <?= $tok('kim_signup_form_template', '{field_email}',                 '{field_email}',                 'Full label + input block for the email field.') ?>
+            <?= $tok('kim_signup_form_template', '{field_email_input}',           '{field_email_input}',           'Just the email input element.') ?>
+            <?= $tok('kim_signup_form_template', '{field_fanlisting_id}',         '{field_fanlisting_id}',         'Full label + select block for the fanlisting selector.') ?>
+            <?= $tok('kim_signup_form_template', '{field_fanlisting_id_input}',   '{field_fanlisting_id_input}',   'Just the fanlisting select element.') ?>
+            <?= $tok('kim_signup_form_template', '{field_password}',              '{field_password}',              'Full label + input block for the password field.') ?>
+            <?= $tok('kim_signup_form_template', '{field_password_input}',        '{field_password_input}',        'Just the password input element.') ?>
+            <?= $tok('kim_signup_form_template', '{field_password_confirm}',      '{field_password_confirm}',      'Full label + input block for the confirm password field.') ?>
+            <?= $tok('kim_signup_form_template', '{field_password_confirm_input}','{field_password_confirm_input}','Just the confirm password input element.') ?>
+            <?= $tok('kim_signup_form_template', '{field_send_copy}',             '{field_send_copy}',             'Full label + checkbox block for the email copy opt-in.') ?>
+            <?= $tok('kim_signup_form_template', '{field_send_copy_input}',       '{field_send_copy_input}',       'Just the send-copy checkbox group element.') ?>
+            <?= $tok('kim_signup_form_template', '{captcha_block}',               '{captcha_block}',               'Full label + input block for the captcha field.') ?>
+            <?= $tok('kim_signup_form_template', '{captcha_block_input}',         '{captcha_block_input}',         'Just the captcha text input element.') ?>
+            <?= $tok('kim_signup_form_template', '{captcha_question}',            '{captcha_question}',            'The arithmetic question text only (e.g. "2 + 3").') ?>
+            <?= $tok('kim_signup_form_template', '{submit_button}',               '{submit_button}',               'The submit button.') ?>
+            <?= $tok('kim_signup_form_template', '{clear_button}',                '{clear_button}',                'A reset button that clears the form.') ?>
           </tbody></table>
         </div>
       </details>

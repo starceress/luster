@@ -66,7 +66,7 @@ class SiteSettingsRepo
      * Shared by the admin collective page and the embed files so
      * both always show the same fallback markup.
      *
-     * @return array{owned_template: string, joined_template: string, collective_stats_template: string, collective_affiliates_section_template: string, random_listing_template: string, latest_listing_template: string, collective_affiliate_apply_form_template: string}
+     * @return array{owned_template: string, joined_template: string, collective_stats_template: string, collective_affiliates_section_template: string, random_listing_template: string, latest_listing_template: string, collective_affiliate_apply_form_template: string, kim_signup_form_template: string}
      */
     public static function collectiveDefaults(): array
     {
@@ -157,6 +157,8 @@ class SiteSettingsRepo
                                       . '</div>',
             // Collective affiliate application form: empty string = no custom template (show built-in form).
             'collective_affiliate_apply_form_template' => '',
+            // KIM sign-up form: empty string = no custom template (show built-in form).
+            'kim_signup_form_template' => '',
         ];
     }
 

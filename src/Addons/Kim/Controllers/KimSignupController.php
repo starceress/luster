@@ -13,10 +13,12 @@ use Luster\Core\PasswordPolicy;
 use Luster\Core\Request;
 use Luster\Core\Response;
 use Luster\Core\Validator;
+use Luster\Core\View;
 use Luster\Repositories\EmailTemplateRepo;
 use Luster\Repositories\ListingRepo;
 use Luster\Repositories\SiteSettingsRepo;
 use Luster\Support\FormFieldBuilder;
+use Luster\Support\FormTemplateRenderer;
 use Luster\Support\SuccessRenderer;
 
 /**
@@ -261,10 +263,12 @@ final class KimSignupController
         string $captchaError = '',
     ): Response {
         $baseUrl    = $this->app->getBaseUrl();
-        $wrapperTpl = (new SiteSettingsRepo($this->app->getDatabase()))->get('collective_field_wrapper_template', '') ?? '';
+        $siteRepo   = new SiteSettingsRepo($this->app->getDatabase());
+        $wrapperTpl = $siteRepo->get('collective_field_wrapper_template', '') ?? '';
+        $siteName   = (string) $this->app->getConfig()->get('site_name', 'Luster');
 
-        $flSelectHtml = '<select class="fl-select" id="kim-fanlisting" name="fanlisting_id" required>'
-                      . '<option value="">&#8212; Select a fanlisting &#8212;</option>';
+        $flSelectHtml = '<select class=”fl-select” id=”kim-fanlisting” name=”fanlisting_id” required>'
+                      . '<option value=””>&#8212; Select a fanlisting &#8212;</option>';
         foreach ($fanlistings as $_fl) {
             $_flId       = htmlspecialchars((string) $_fl->id, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
             $_flTitle    = htmlspecialchars((string) $_fl->subject, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
@@ -276,17 +280,47 @@ final class KimSignupController
 
         $captchaQ = Captcha::getQuestion('kim_signup');
         $f = $this->app->getFormFieldBuilder()->build([
-            ['type' => 'text',     'name' => 'name',             'id' => 'kim-name',             'label' => 'Name',                     'required' => true,  'value' => (string) ($old['name']  ?? ''), 'attrs' => ['maxlength' => '100', 'autocomplete' => 'name']],
-            ['type' => 'url',      'name' => 'url',              'id' => 'kim-url',              'label' => 'Collective / Website URL',  'required' => true,  'value' => (string) ($old['url']   ?? ''), 'attrs' => ['maxlength' => '500', 'placeholder' => 'https://', 'autocomplete' => 'url']],
-            ['type' => 'email',    'name' => 'email',            'id' => 'kim-email',            'label' => 'Email',                    'required' => true,  'value' => (string) ($old['email'] ?? ''), 'attrs' => ['maxlength' => '255', 'autocomplete' => 'email']],
-            ['type' => 'select',   'name' => 'fanlisting_id',   'id' => 'kim-fanlisting',       'label' => 'Fanlisting Interested In', 'required' => true,  'raw_input' => $flSelectHtml],
-            ['type' => 'password', 'name' => 'password',         'id' => 'kim-password',         'label' => 'Password',                 'required' => false, 'attrs' => ['maxlength' => '255', 'autocomplete' => 'new-password'], 'hint' => 'Leave blank to auto-generate; you\'ll receive it by email'],
-            ['type' => 'password', 'name' => 'password_confirm', 'id' => 'kim-password-confirm', 'label' => 'Confirm Password',         'required' => false, 'attrs' => ['maxlength' => '255', 'autocomplete' => 'new-password']],
-            ['type' => 'text',     'name' => 'captcha_answer',   'id' => 'kim-captcha',          'label' => 'Captcha: ' . $captchaQ,   'required' => true,  'error' => $captchaError, 'attrs' => ['maxlength' => '10', 'autocomplete' => 'off']],
+            ['type' => 'text',         'name' => 'name',             'id' => 'kim-name',             'label' => 'Name',                     'required' => true,  'value' => (string) ($old['name']  ?? ''), 'attrs' => ['maxlength' => '100', 'autocomplete' => 'name']],
+            ['type' => 'url',          'name' => 'url',              'id' => 'kim-url',              'label' => 'Collective / Website URL',  'required' => true,  'value' => (string) ($old['url']   ?? ''), 'attrs' => ['maxlength' => '500', 'placeholder' => 'https://', 'autocomplete' => 'url']],
+            ['type' => 'email',        'name' => 'email',            'id' => 'kim-email',            'label' => 'Email',                    'required' => true,  'value' => (string) ($old['email'] ?? ''), 'attrs' => ['maxlength' => '255', 'autocomplete' => 'email']],
+            ['type' => 'select',       'name' => 'fanlisting_id',    'id' => 'kim-fanlisting',       'label' => 'Fanlisting Interested In', 'required' => true,  'raw_input' => $flSelectHtml],
+            ['type' => 'password',     'name' => 'password',         'id' => 'kim-password',         'label' => 'Password',                 'required' => false, 'attrs' => ['maxlength' => '255', 'autocomplete' => 'new-password'], 'hint' => 'Leave blank to auto-generate; you\'ll receive it by email'],
+            ['type' => 'password',     'name' => 'password_confirm', 'id' => 'kim-password-confirm', 'label' => 'Confirm Password',         'required' => false, 'attrs' => ['maxlength' => '255', 'autocomplete' => 'new-password']],
+            ['type' => 'checkboxGroup','name' => 'send_copy',        'id' => '',                     'label' => 'Opt-in',                   'required' => false, 'options' => ['1' => 'Email me a copy of my submission'], 'selected' => ((string) ($old['send_copy'] ?? '')) === '1' ? ['1'] : []],
+            ['type' => 'text',         'name' => 'captcha_answer',   'id' => 'kim-captcha',          'label' => 'Captcha: ' . $captchaQ,   'required' => true,  'error' => $captchaError, 'attrs' => ['maxlength' => '10', 'autocomplete' => 'off']],
         ], $wrapperTpl);
 
+        $formHtml = null;
+        $kimSignupTpl = $siteRepo->get('kim_signup_form_template') ?? '';
+        if ($kimSignupTpl !== '') {
+            $tokens = [
+                '{site_name}'                        => View::e($siteName),
+                '{field_name}'                        => $f['name'],
+                '{field_name_input}'                  => $f['name_input'],
+                '{field_url}'                         => $f['url'],
+                '{field_url_input}'                   => $f['url_input'],
+                '{field_email}'                       => $f['email'],
+                '{field_email_input}'                 => $f['email_input'],
+                '{field_fanlisting_id}'               => $f['fanlisting_id'],
+                '{field_fanlisting_id_input}'         => $f['fanlisting_id_input'],
+                '{field_password}'                    => $f['password'],
+                '{field_password_input}'              => $f['password_input'],
+                '{field_password_confirm}'            => $f['password_confirm'],
+                '{field_password_confirm_input}'      => $f['password_confirm_input'],
+                '{field_send_copy}'                   => $f['send_copy'],
+                '{field_send_copy_input}'             => $f['send_copy_input'],
+                '{captcha_block}'                     => $f['captcha_answer'],
+                '{captcha_block_input}'               => $f['captcha_answer_input'],
+                '{captcha_question}'                  => View::e($captchaQ),
+                '{submit_button}'                     => '<button type=”submit” class=”fl-submit”>Sign Up</button>',
+                '{clear_button}'                      => '<button type=”reset” class=”fl-btn-secondary”>Clear</button>',
+            ];
+            $innerHtml = FormTemplateRenderer::expandTokens($kimSignupTpl, $tokens);
+            $formHtml  = FormTemplateRenderer::wrapForm($innerHtml, $baseUrl . '/kim', $this->app->getCSRF()->token(), false);
+        }
+
         return $this->renderKimPage('signup.php', [
-            'page_title'  => 'KIM List â€” Sign Up',
+            'page_title'  => 'KIM List — Sign Up',
             'form_action' => $baseUrl . '/kim',
             'csrf_token'  => $this->app->getCSRF()->token(),
             'errors'      => $error !== ''
@@ -294,6 +328,7 @@ final class KimSignupController
                 : '',
             'old'         => $old,
             'f'           => $f,
+            'form_html'   => $formHtml,
             'base_url'    => $baseUrl,
             'theme_path'  => $baseUrl . '/assets/css/default/',
         ]);
