@@ -6,6 +6,8 @@ use Luster\Core\Pagination;
 use Luster\Repositories\AffiliateRepo;
 use Luster\Repositories\ListingRepo;
 use Luster\Repositories\ListingSettingsRepo;
+use Luster\Repositories\SiteSettingsRepo;
+use Luster\Support\ListingTemplateResolver;
 
 /**
  * Luster embed — affiliates fragment.
@@ -101,9 +103,14 @@ $_lusterSectionTemplate   = null;
 if ($_lusterListingId > 0) {
     $_lusterSettingsRepo = new ListingSettingsRepo($_lusterApp->getDatabase());
     $_lusterTpls         = $_lusterSettingsRepo->getTemplates($_lusterListingId);
-    if (($_lusterTpls['affiliates_section_template'] ?? null) !== null
-        && trim($_lusterTpls['affiliates_section_template']) !== '') {
-        $_lusterSectionTemplate = $_lusterTpls['affiliates_section_template'];
+    $_lusterGlobalTpls   = (new SiteSettingsRepo($_lusterApp->getDatabase()))->getGlobalTemplates();
+    $_lusterAffResolved  = ListingTemplateResolver::resolve(
+        $_lusterTpls['affiliates_section_template'] ?? null,
+        $_lusterGlobalTpls['listing_default_affiliates_section_template'] ?? null,
+        ListingSettingsRepo::defaultAffiliatesSectionTemplate(),
+    );
+    if ($_lusterAffResolved['should_render_template']) {
+        $_lusterSectionTemplate = $_lusterAffResolved['value'];
     }
     $_lusterPaginationTemplate = $_lusterSettingsRepo->getPaginationTemplate($_lusterListingId) ?? '';
 } else {

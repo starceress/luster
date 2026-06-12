@@ -6,7 +6,10 @@ use Luster\Core\Captcha;
 use Luster\Core\View;
 use Luster\Repositories\CodesRepo;
 use Luster\Repositories\ListingRepo;
+use Luster\Repositories\ListingSettingsRepo;
+use Luster\Repositories\SiteSettingsRepo;
 use Luster\Support\FormTemplateRenderer;
+use Luster\Support\ListingTemplateResolver;
 
 /**
  * Luster embed — fan code submission form fragment.
@@ -141,7 +144,13 @@ $_lusterF = $_lusterApp->getFormFieldBuilder()->build([
 
 $_lusterFormHtml = null;
 if (!$_lusterIsCollective) {
-    $_lusterCsFormTpl = $_lusterCsSettingsRepo->getCodesSubmitFormTemplate($_lusterListingId) ?? '';
+    $_lusterGlobalTpls = (new SiteSettingsRepo($_lusterDb))->getGlobalTemplates();
+    $_lusterCsResolved = ListingTemplateResolver::resolve(
+        $_lusterCsSettingsRepo->getCodesSubmitFormTemplate($_lusterListingId),
+        $_lusterGlobalTpls['listing_default_codes_submit_form_template'] ?? null,
+        '',
+    );
+    $_lusterCsFormTpl  = $_lusterCsResolved['should_render_template'] ? $_lusterCsResolved['value'] : '';
     if ($_lusterCsFormTpl !== '') {
         $_lusterCsTokens = [
             '{listing_title}'               => View::e($_lusterListingName),

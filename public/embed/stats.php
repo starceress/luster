@@ -5,6 +5,8 @@ declare(strict_types=1);
 use Luster\Repositories\ListingRepo;
 use Luster\Repositories\ListingSettingsRepo;
 use Luster\Repositories\MemberRepo;
+use Luster\Repositories\SiteSettingsRepo;
+use Luster\Support\ListingTemplateResolver;
 
 /**
  * Luster embed — stats fragment.
@@ -111,10 +113,13 @@ $_lusterTemplates    = $_lusterSettingsRepo->getTemplates($_lusterListingId);
 $_lusterAdminLastUpdated = $_lusterSettingsRepo->getLastUpdated($_lusterListingId);
 $_lusterLastUpdatedFallback = (string) $_lusterApp->getConfig()->get('last_updated_fallback', 'Never');
 
-$_lusterTemplate     = ($_lusterTemplates['stats_template'] !== null
-                     && trim($_lusterTemplates['stats_template']) !== '')
-    ? $_lusterTemplates['stats_template']
-    : ListingSettingsRepo::defaultStatsTemplate();
+$_lusterGlobalTpls   = (new SiteSettingsRepo($_lusterApp->getDatabase()))->getGlobalTemplates();
+$_lusterStatResolved = ListingTemplateResolver::resolve(
+    $_lusterTemplates['stats_template'] ?? null,
+    $_lusterGlobalTpls['listing_default_stats_template'] ?? null,
+    ListingSettingsRepo::defaultStatsTemplate(),
+);
+$_lusterTemplate     = $_lusterStatResolved['value'];
 
 // Allow an inline override set before require (e.g. from the customizer-generated code).
 if (isset($luster_stats_template) && trim((string) $luster_stats_template) !== '') {

@@ -8,6 +8,7 @@ use Luster\Repositories\ListingRepo;
 use Luster\Repositories\ListingSettingsRepo;
 use Luster\Repositories\SiteSettingsRepo;
 use Luster\Support\FormTemplateRenderer;
+use Luster\Support\ListingTemplateResolver;
 
 /**
  * Luster embed — affiliate application form fragment.
@@ -235,8 +236,14 @@ $_lusterF          = $_lusterApp->getFormFieldBuilder()->build([
     ['type' => 'text',     'name' => 'captcha_answer', 'id' => 'aff-captcha', 'label' => 'Captcha: ' . $_lusterCaptchaQ,  'required' => true,  'attrs' => ['maxlength' => '10', 'autocomplete' => 'off']],
 ], $_lusterWrapperTpl);
 
-$_lusterFormHtml = null;
-$_lusterAffApplyTpl = $_lusterSettingsRepo->getAffiliateApplyFormTemplate($_lusterListingId) ?? '';
+$_lusterFormHtml        = null;
+$_lusterGlobalTpls      = (new SiteSettingsRepo($_lusterApp->getDatabase()))->getGlobalTemplates();
+$_lusterAffApplyResolved = ListingTemplateResolver::resolve(
+    $_lusterSettingsRepo->getAffiliateApplyFormTemplate($_lusterListingId),
+    $_lusterGlobalTpls['listing_default_affiliate_apply_form_template'] ?? null,
+    '',
+);
+$_lusterAffApplyTpl = $_lusterAffApplyResolved['should_render_template'] ? $_lusterAffApplyResolved['value'] : '';
 if ($_lusterAffApplyTpl !== '') {
     $_lusterAffTokens = [
         '{listing_title}'         => View::e((string) $_lusterListing->title),

@@ -478,8 +478,15 @@ $_isOldMembersTemplate = static function (?string $v): bool {
     if (str_contains($v, '{stats_line}') && str_contains($v, '{sort_link_all}')) return true;
     return false;
 };
+// When no per-listing override exists, show the global default if one is set, otherwise the built-in.
+// This keeps the textarea contents and reset-button targets consistent with the badge showing 'Global'.
+$_gFallback = static function (string $builtIn, string $globalKey) use ($global_templates): string {
+    $g = ($global_templates ?? [])[$globalKey] ?? null;
+    return ($g !== null && trim($g) !== '') ? $g : $builtIn;
+};
+
 $tplMembersVal   = ($_isOldMembersTemplate($templates['members_template'] ?? null) || ($templates['members_template'] ?? '') === '')
-    ? ListingSettingsRepo::defaultMembersTemplate()
+    ? $_gFallback(ListingSettingsRepo::defaultMembersTemplate(), 'listing_default_members_template')
     : ($templates['members_template'] ?? '');
 $_isOldAffTemplate = static function (?string $v): bool {
     // Pre-heading default: starts with {if_affiliates} and has no <h1>
@@ -488,7 +495,7 @@ $_isOldAffTemplate = static function (?string $v): bool {
         && !str_contains($v, '<h1>');
 };
 $tplAffVal       = ($_isOldAffTemplate($templates['affiliates_section_template'] ?? null) || ($templates['affiliates_section_template'] ?? '') === '')
-    ? ListingSettingsRepo::defaultAffiliatesSectionTemplate()
+    ? $_gFallback(ListingSettingsRepo::defaultAffiliatesSectionTemplate(), 'listing_default_affiliates_section_template')
     : ($templates['affiliates_section_template'] ?? '');
 $_statsNeedsReset = static function (?string $v) use ($_isOldStatsTemplate): bool {
     if ($v === null || trim($v) === '') return true;
@@ -499,14 +506,14 @@ $_statsNeedsReset = static function (?string $v) use ($_isOldStatsTemplate): boo
     return str_starts_with(ltrim($v), '<p>Members:') && !str_contains($v, '{stat_countries}');
 };
 $tplStatsVal     = $_statsNeedsReset($templates['stats_template'] ?? null)
-    ? ListingSettingsRepo::defaultStatsTemplate()
+    ? $_gFallback(ListingSettingsRepo::defaultStatsTemplate(), 'listing_default_stats_template')
     : ($templates['stats_template'] ?? '');
-$tplUpdatesVal   = ($templates['updates_template']            ?? '') ?: ListingSettingsRepo::defaultUpdatesTemplate();
-$tplCodesFormVal    = ($templates['codes_submit_form_template']    ?? '') ?: ListingSettingsRepo::defaultCodesSubmitFormTemplate();
-$tplAffApplyFormVal = ($templates['affiliate_apply_form_template'] ?? '') ?: ListingSettingsRepo::defaultAffiliateApplyFormTemplate();
-$tplAdoptFormVal    = ($templates['adopt_form_template']           ?? '') ?: ListingSettingsRepo::defaultAdoptFormTemplate();
+$tplUpdatesVal      = ($templates['updates_template']            ?? '') ?: $_gFallback(ListingSettingsRepo::defaultUpdatesTemplate(),              'listing_default_updates_template');
+$tplCodesFormVal    = ($templates['codes_submit_form_template']    ?? '') ?: $_gFallback(ListingSettingsRepo::defaultCodesSubmitFormTemplate(),    'listing_default_codes_submit_form_template');
+$tplAffApplyFormVal = ($templates['affiliate_apply_form_template'] ?? '') ?: $_gFallback(ListingSettingsRepo::defaultAffiliateApplyFormTemplate(), 'listing_default_affiliate_apply_form_template');
+$tplAdoptFormVal    = ($templates['adopt_form_template']           ?? '') ?: $_gFallback(ListingSettingsRepo::defaultAdoptFormTemplate(),          'listing_default_adopt_form_template');
 $tplRulesVal        = $templates['rules_intro_template']             ?? '';
-$tplJoinFormVal     = ($templates['join_form_template']              ?? '') ?: ListingSettingsRepo::defaultJoinFormTemplate();
+$tplJoinFormVal     = ($templates['join_form_template']              ?? '') ?: $_gFallback(ListingSettingsRepo::defaultJoinFormTemplate(),          'listing_default_join_form_template');
 
 // Source badge helper for Templates tab
 $tplSrc = $template_sources ?? [];
@@ -914,15 +921,15 @@ $ltok = static fn(string $ta, string $token, string $label, string $desc): strin
 
 <script type="application/json" id="luster-coltpl-defaults">
 <?= json_encode([
-    'members_template'              => ListingSettingsRepo::defaultMembersTemplate(),
-    'affiliates_section_template'   => ListingSettingsRepo::defaultAffiliatesSectionTemplate(),
-    'stats_template'                => ListingSettingsRepo::defaultStatsTemplate(),
-    'updates_template'              => ListingSettingsRepo::defaultUpdatesTemplate(),
-    'codes_submit_form_template'    => ListingSettingsRepo::defaultCodesSubmitFormTemplate(),
+    'members_template'              => $_gFallback(ListingSettingsRepo::defaultMembersTemplate(),              'listing_default_members_template'),
+    'affiliates_section_template'   => $_gFallback(ListingSettingsRepo::defaultAffiliatesSectionTemplate(),   'listing_default_affiliates_section_template'),
+    'stats_template'                => $_gFallback(ListingSettingsRepo::defaultStatsTemplate(),                'listing_default_stats_template'),
+    'updates_template'              => $_gFallback(ListingSettingsRepo::defaultUpdatesTemplate(),              'listing_default_updates_template'),
+    'codes_submit_form_template'    => $_gFallback(ListingSettingsRepo::defaultCodesSubmitFormTemplate(),      'listing_default_codes_submit_form_template'),
     'rules_intro_template'          => '',
-    'join_form_template'            => ListingSettingsRepo::defaultJoinFormTemplate(),
-    'affiliate_apply_form_template' => ListingSettingsRepo::defaultAffiliateApplyFormTemplate(),
-    'adopt_form_template'           => ListingSettingsRepo::defaultAdoptFormTemplate(),
+    'join_form_template'            => $_gFallback(ListingSettingsRepo::defaultJoinFormTemplate(),             'listing_default_join_form_template'),
+    'affiliate_apply_form_template' => $_gFallback(ListingSettingsRepo::defaultAffiliateApplyFormTemplate(),  'listing_default_affiliate_apply_form_template'),
+    'adopt_form_template'           => $_gFallback(ListingSettingsRepo::defaultAdoptFormTemplate(),           'listing_default_adopt_form_template'),
 ], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) ?>
 </script>
 

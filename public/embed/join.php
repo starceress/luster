@@ -5,11 +5,13 @@ declare(strict_types=1);
 use Luster\Core\Captcha;
 use Luster\Core\Countries;
 use Luster\Core\View;
+use Luster\Repositories\FieldRepo;
 use Luster\Repositories\ListingRepo;
 use Luster\Repositories\ListingSettingsRepo;
-use Luster\Repositories\FieldRepo;
+use Luster\Repositories\SiteSettingsRepo;
 use Luster\Support\FormFieldBuilder;
 use Luster\Support\FormTemplateRenderer;
+use Luster\Support\ListingTemplateResolver;
 
 /**
  * Luster embed — join form fragment.
@@ -131,14 +133,20 @@ $_lusterDescriptors = [
     ['type' => 'url',      'name' => 'url',              'id' => 'join-url',              'label' => 'Website URL',      'required' => false, 'value' => (string) ($_lusterOld['url']   ?? ''), 'attrs' => ['maxlength' => '500', 'placeholder' => 'https://', 'autocomplete' => 'url'], 'hint' => 'Optional'],
     ['type' => 'text',     'name' => 'country',          'id' => '',                      'label' => 'Country',          'required' => $_lusterCountryEnabled, 'raw_input' => $_lusterCountrySel],
     ...$_lusterFb->descriptorsFromAdditionalFields($_lusterFields, $_lusterOld),
-    ['type' => 'password', 'name' => 'password',         'id' => 'join-password',         'label' => 'Password',         'required' => false, 'attrs' => ['maxlength' => '255', 'autocomplete' => 'new-password'], 'hint' => 'Optional — one will be emailed to you if left blank'],
+    ['type' => 'password', 'name' => 'password',         'id' => 'join-password',         'label' => 'Password',         'required' => false, 'attrs' => ['maxlength' => '255', 'autocomplete' => 'new-password'], 'hint' => 'Optional - If left blank, a password will automatically generated and emailed to you.'],
     ['type' => 'password', 'name' => 'password_confirm', 'id' => 'join-password-confirm', 'label' => 'Confirm Password', 'required' => false, 'attrs' => ['maxlength' => '255', 'autocomplete' => 'new-password']],
     ['type' => 'text',     'name' => 'captcha_answer',   'id' => 'join-captcha',          'label' => 'Captcha: ' . $_lusterCaptchaQ, 'required' => true, 'attrs' => ['maxlength' => '10', 'autocomplete' => 'off']],
 ];
 $_lusterF = $_lusterFb->build($_lusterDescriptors, $_lusterWrapperTpl);
 
-$_lusterFormHtml    = null;
-$_lusterJoinFormTpl = $_lusterSettingsRepo->getJoinFormTemplate($_lusterListingId) ?? '';
+$_lusterFormHtml     = null;
+$_lusterGlobalTpls   = (new SiteSettingsRepo($_lusterApp->getDatabase()))->getGlobalTemplates();
+$_lusterJoinResolved = ListingTemplateResolver::resolve(
+    $_lusterSettingsRepo->getJoinFormTemplate($_lusterListingId),
+    $_lusterGlobalTpls['listing_default_join_form_template'] ?? null,
+    '',
+);
+$_lusterJoinFormTpl  = $_lusterJoinResolved['should_render_template'] ? $_lusterJoinResolved['value'] : '';
 if ($_lusterJoinFormTpl !== '') {
     $_lusterAdditionalFieldsHtml      = implode("\n", array_map(
         fn($field) => $_lusterF['field_' . $field->name] ?? '', $_lusterFields,

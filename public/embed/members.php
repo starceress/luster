@@ -7,6 +7,8 @@ use Luster\Repositories\FieldRepo;
 use Luster\Repositories\ListingRepo;
 use Luster\Repositories\ListingSettingsRepo;
 use Luster\Repositories\MemberRepo;
+use Luster\Repositories\SiteSettingsRepo;
+use Luster\Support\ListingTemplateResolver;
 
 /**
  * Luster embed — members list fragment.
@@ -130,10 +132,13 @@ $_lusterMemberRepo = new MemberRepo($_lusterApp->getDatabase(), $_lusterApp->get
 
 $_lusterSettingsRepo     = new ListingSettingsRepo($_lusterApp->getDatabase());
 $_lusterTemplates        = $_lusterSettingsRepo->getTemplates($_lusterListingId);
-$_lusterMemberTemplate   = ($_lusterTemplates['members_template'] !== null
-                         && trim($_lusterTemplates['members_template']) !== '')
-    ? $_lusterTemplates['members_template']
-    : null;
+$_lusterGlobalTpls       = (new SiteSettingsRepo($_lusterApp->getDatabase()))->getGlobalTemplates();
+$_lusterMembResolved     = ListingTemplateResolver::resolve(
+    $_lusterTemplates['members_template'] ?? null,
+    $_lusterGlobalTpls['listing_default_members_template'] ?? null,
+    ListingSettingsRepo::defaultMembersTemplate(),
+);
+$_lusterMemberTemplate   = $_lusterMembResolved['should_render_template'] ? $_lusterMembResolved['value'] : null;
 $_lusterPaginationTemplate = $_lusterSettingsRepo->getPaginationTemplate($_lusterListingId) ?? '';
 
 /**

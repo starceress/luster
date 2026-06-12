@@ -8,6 +8,8 @@ use Luster\Core\TemplateEngine;
 use Luster\Core\View;
 use Luster\Repositories\ListingRepo;
 use Luster\Repositories\ListingSettingsRepo;
+use Luster\Repositories\SiteSettingsRepo;
+use Luster\Support\ListingTemplateResolver;
 
 /**
  * Luster embed — per-fanlisting updates feed.
@@ -125,9 +127,15 @@ $_lusterPagination         = Pagination::render(
 // ---------------------------------------------------------------------------
 
 $_lusterUpdatesTemplateHtml = null;
-$_lusterUpdatesTemplate     = $_lusterSettingsRepo->getUpdatesTemplate($_lusterFid);
+$_lusterGlobalTpls          = (new SiteSettingsRepo($_lusterDb))->getGlobalTemplates();
+$_lusterUpdResolved         = ListingTemplateResolver::resolve(
+    $_lusterSettingsRepo->getUpdatesTemplate($_lusterFid),
+    $_lusterGlobalTpls['listing_default_updates_template'] ?? null,
+    ListingSettingsRepo::defaultUpdatesTemplate(),
+);
+$_lusterUpdatesTemplate = $_lusterUpdResolved['should_render_template'] ? $_lusterUpdResolved['value'] : null;
 
-if ($_lusterUpdatesTemplate !== null && trim($_lusterUpdatesTemplate) !== '') {
+if ($_lusterUpdatesTemplate !== null) {
     $_lusterUpdatesTemplateHtml = TemplateEngine::loop(
         $_lusterUpdatesTemplate,
         'update',

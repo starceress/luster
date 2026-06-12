@@ -42,6 +42,22 @@ $tok = static fn(string $ta, string $token, string $label, string $desc): string
   <div class="alert alert-error"><?= View::e($error) ?></div>
 <?php endif; ?>
 
+<?php if (!empty($listings)): ?>
+<div class="card mb-sm">
+  <div class="actions-row actions-row--wrap" style="gap:.75rem">
+    <label class="form-label" for="gtpl-preview-listing" style="white-space:nowrap;margin:0">Preview with listing:</label>
+    <div class="select-wrap" style="flex:1;min-width:10rem;max-width:22rem">
+      <select id="gtpl-preview-listing" class="form" aria-label="Select a listing to use when previewing templates">
+        <?php foreach ($listings as $_l): ?>
+          <option value="<?= (int) $_l->id ?>"><?= View::e($_l->title) ?></option>
+        <?php endforeach; ?>
+      </select>
+    </div>
+    <p class="form-hint" style="margin:0">Templates are previewed using live data from the selected listing.</p>
+  </div>
+</div>
+<?php endif; ?>
+
 <form method="POST" action="<?= $b ?>/admin/listings/global-templates" class="js-warn-unsaved">
   <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
 
@@ -66,6 +82,7 @@ $tok = static fn(string $ta, string $token, string $label, string $desc): string
         </div>
         <div class="tpl-reset-row">
           <button type="button" class="btn btn-quaternary btn-xs" data-textarea="listing_default_members_template">Reset to Built-in Default</button>
+          <?php if (!empty($listings)): ?><button type="button" class="btn btn-quaternary btn-xs" data-gtpl-preview="members" data-textarea="listing_default_members_template">Preview</button><?php endif; ?>
         </div>
 
         <div class="pc-section-label">Statistics</div>
@@ -74,6 +91,7 @@ $tok = static fn(string $ta, string $token, string $label, string $desc): string
         </div>
         <div class="tpl-reset-row">
           <button type="button" class="btn btn-quaternary btn-xs" data-textarea="listing_default_stats_template">Reset to Built-in Default</button>
+          <?php if (!empty($listings)): ?><button type="button" class="btn btn-quaternary btn-xs" data-gtpl-preview="stats" data-textarea="listing_default_stats_template">Preview</button><?php endif; ?>
         </div>
 
         <div class="pc-section-label">Affiliates Section</div>
@@ -83,6 +101,7 @@ $tok = static fn(string $ta, string $token, string $label, string $desc): string
         </div>
         <div class="tpl-reset-row">
           <button type="button" class="btn btn-quaternary btn-xs" data-textarea="listing_default_affiliates_section_template">Reset to Built-in Default</button>
+          <?php if (!empty($listings)): ?><button type="button" class="btn btn-quaternary btn-xs" data-gtpl-preview="affiliates_section" data-textarea="listing_default_affiliates_section_template">Preview</button><?php endif; ?>
         </div>
 
         <div class="pc-section-label">Updates Feed</div>
@@ -92,6 +111,7 @@ $tok = static fn(string $ta, string $token, string $label, string $desc): string
         </div>
         <div class="tpl-reset-row">
           <button type="button" class="btn btn-quaternary btn-xs" data-textarea="listing_default_updates_template">Reset to Built-in Default</button>
+          <?php if (!empty($listings)): ?><button type="button" class="btn btn-quaternary btn-xs" data-gtpl-preview="updates" data-textarea="listing_default_updates_template">Preview</button><?php endif; ?>
         </div>
 
         <div class="pc-section-label">Join Form</div>
@@ -101,6 +121,7 @@ $tok = static fn(string $ta, string $token, string $label, string $desc): string
         </div>
         <div class="tpl-reset-row">
           <button type="button" class="btn btn-quaternary btn-xs" data-textarea="listing_default_join_form_template">Reset to Built-in Default</button>
+          <?php if (!empty($listings)): ?><button type="button" class="btn btn-quaternary btn-xs" data-gtpl-preview="join_form" data-textarea="listing_default_join_form_template">Preview</button><?php endif; ?>
         </div>
 
         <div class="pc-section-label">Code Donation Form</div>
@@ -110,6 +131,7 @@ $tok = static fn(string $ta, string $token, string $label, string $desc): string
         </div>
         <div class="tpl-reset-row">
           <button type="button" class="btn btn-quaternary btn-xs" data-textarea="listing_default_codes_submit_form_template">Reset to Built-in Default</button>
+          <?php if (!empty($listings)): ?><button type="button" class="btn btn-quaternary btn-xs" data-gtpl-preview="codes_submit_form" data-textarea="listing_default_codes_submit_form_template">Preview</button><?php endif; ?>
         </div>
 
         <div class="pc-section-label">Affiliate Application Form</div>
@@ -119,6 +141,7 @@ $tok = static fn(string $ta, string $token, string $label, string $desc): string
         </div>
         <div class="tpl-reset-row">
           <button type="button" class="btn btn-quaternary btn-xs" data-textarea="listing_default_affiliate_apply_form_template">Reset to Built-in Default</button>
+          <?php if (!empty($listings)): ?><button type="button" class="btn btn-quaternary btn-xs" data-gtpl-preview="affiliate_apply_form" data-textarea="listing_default_affiliate_apply_form_template">Preview</button><?php endif; ?>
         </div>
 
         <div class="pc-section-label">Adopt Form</div>
@@ -128,6 +151,7 @@ $tok = static fn(string $ta, string $token, string $label, string $desc): string
         </div>
         <div class="tpl-reset-row">
           <button type="button" class="btn btn-quaternary btn-xs" data-textarea="listing_default_adopt_form_template">Reset to Built-in Default</button>
+          <?php if (!empty($listings)): ?><button type="button" class="btn btn-quaternary btn-xs" data-gtpl-preview="adopt_form" data-textarea="listing_default_adopt_form_template">Preview</button><?php endif; ?>
         </div>
 
       </div>
@@ -371,3 +395,40 @@ $tok = static fn(string $ta, string $token, string $label, string $desc): string
     array_values($d)
 ), JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) ?>
 </script>
+
+<?php if (!empty($listings)): ?>
+<script>
+(function () {
+  const sel = document.getElementById('gtpl-preview-listing');
+  const csrf = <?= json_encode($csrf_token ?? '') ?>;
+  const base = <?= json_encode($b) ?>;
+
+  document.querySelectorAll('[data-gtpl-preview]').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      const listingId = sel ? sel.value : '';
+      if (!listingId) { return; }
+      const tplType = btn.dataset.gtplPreview;
+      const taId    = btn.dataset.textarea;
+      const ta      = document.getElementById(taId);
+      if (!ta) { return; }
+
+      const form = document.createElement('form');
+      form.method = 'POST';
+      form.action = base + '/admin/listings/' + listingId + '/templates/preview';
+      form.target = 'gtpl-preview-window';
+
+      [['_csrf', csrf], ['type', tplType], ['template', ta.value]].forEach(function ([n, v]) {
+        const inp = document.createElement('input');
+        inp.type = 'hidden'; inp.name = n; inp.value = v;
+        form.appendChild(inp);
+      });
+
+      document.body.appendChild(form);
+      window.open('', 'gtpl-preview-window', 'width=900,height=600,resizable=yes,scrollbars=yes');
+      form.submit();
+      document.body.removeChild(form);
+    });
+  });
+}());
+</script>
+<?php endif; ?>
