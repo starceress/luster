@@ -16,9 +16,11 @@ use Luster\Repositories\BlacklistRepo;
 use Luster\Repositories\EmailTemplateRepo;
 use Luster\Repositories\ListingRepo;
 use Luster\Repositories\ListingSettingsRepo;
+use Luster\Repositories\SiteSettingsRepo;
 use Luster\Core\View;
 use Luster\Support\FormFieldBuilder;
 use Luster\Support\FormTemplateRenderer;
+use Luster\Support\ListingTemplateResolver;
 use Luster\Support\SuccessRenderer;
 
 /**
@@ -242,8 +244,14 @@ final class AdoptPublicController
             ['type' => 'text',     'name' => 'captcha_answer', 'id' => 'adopt-captcha', 'label' => 'Captcha: ' . $captchaQuestion, 'required' => true, 'error' => $captchaError, 'attrs' => ['maxlength' => '10', 'autocomplete' => 'off']],
         ], $wrapperTpl);
 
+        $globalTemplates  = (new SiteSettingsRepo($this->app->getDatabase()))->getGlobalTemplates();
+        $adoptResolved    = ListingTemplateResolver::resolve(
+            $settingsRepoRaf->getAdoptFormTemplate($listingId),
+            $globalTemplates['listing_default_adopt_form_template'] ?? null,
+            '',
+        );
         $formHtml = null;
-        $adoptFormTpl = $settingsRepoRaf->getAdoptFormTemplate($listingId) ?? '';
+        $adoptFormTpl = $adoptResolved['should_render_template'] ? $adoptResolved['value'] : '';
         if ($adoptFormTpl !== '') {
             $tokens = [
                 '{listing_title}'        => View::e($listing->title),

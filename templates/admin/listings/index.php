@@ -132,6 +132,7 @@ $flSortUrl = static function (string $col) use ($b, $flSort, $flDir, $flTab, $se
   </div>
   <div>
     <a href="<?= $b ?>/admin/listings/add" class="btn btn-primary btn-sm"><?= View::icon('add') ?> Add Listing</a>
+    <a href="<?= $b ?>/admin/listings/global-templates" class="btn btn-quaternary btn-sm"><?= View::icon('embed') ?> Global Templates</a>
     <a href="<?= $b ?>/admin/listings/settings" class="btn btn-quaternary btn-sm"><?= View::icon('gear') ?> Owned Settings</a>
   </div>
 </div>

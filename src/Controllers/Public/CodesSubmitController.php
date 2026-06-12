@@ -17,6 +17,7 @@ use Luster\Repositories\ListingSettingsRepo;
 use Luster\Repositories\SiteSettingsRepo;
 use Luster\Support\FormFieldBuilder;
 use Luster\Support\FormTemplateRenderer;
+use Luster\Support\ListingTemplateResolver;
 use Luster\Support\SuccessRenderer;
 
 /**
@@ -95,9 +96,15 @@ final class CodesSubmitController
             ['type' => 'text',  'name' => 'captcha',         'id' => 'captcha',     'label' => 'Captcha: ' . $captchaQuestion, 'required' => true, 'attrs' => ['maxlength' => '10', 'autocomplete' => 'off']],
         ], $wrapperTpl);
 
+        $globalTemplates = (new SiteSettingsRepo($this->app->getDatabase()))->getGlobalTemplates();
         $formHtml = null;
         if (!$isCollective) {
-            $csFormTpl = $settingsRepoRcs->getCodesSubmitFormTemplate($listingId) ?? '';
+            $csResolved = ListingTemplateResolver::resolve(
+                $settingsRepoRcs->getCodesSubmitFormTemplate($listingId),
+                $globalTemplates['listing_default_codes_submit_form_template'] ?? null,
+                '',
+            );
+            $csFormTpl = $csResolved['should_render_template'] ? $csResolved['value'] : '';
             if ($csFormTpl !== '') {
                 $tokens = [
                     '{listing_title}'               => View::e($listingName),

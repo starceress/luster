@@ -22,8 +22,10 @@ use Luster\Repositories\ListingSettingsRepo;
 use Luster\Repositories\FieldRepo;
 use Luster\Repositories\BlacklistRepo;
 use Luster\Repositories\MemberRepo;
+use Luster\Repositories\SiteSettingsRepo;
 use Luster\Support\FormFieldBuilder;
 use Luster\Support\FormTemplateRenderer;
+use Luster\Support\ListingTemplateResolver;
 use Luster\Support\SuccessRenderer;
 
 /**
@@ -418,8 +420,14 @@ final class JoinController
         ];
         $f = $fb->build($descriptors, $wrapperTpl);
 
+        $globalTemplates = (new SiteSettingsRepo($this->app->getDatabase()))->getGlobalTemplates();
+        $joinResolved    = ListingTemplateResolver::resolve(
+            $settingsRepoRjf->getJoinFormTemplate($listingId),
+            $globalTemplates['listing_default_join_form_template'] ?? null,
+            '',
+        );
         $formHtml    = null;
-        $joinFormTpl = $settingsRepoRjf->getJoinFormTemplate($listingId) ?? '';
+        $joinFormTpl = $joinResolved['should_render_template'] ? $joinResolved['value'] : '';
         if ($joinFormTpl !== '') {
             $additionalFieldsHtml      = implode("\n", array_map(
                 fn($field) => $f['field_' . $field->name] ?? '', $fields,

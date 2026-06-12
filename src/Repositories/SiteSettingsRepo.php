@@ -222,4 +222,24 @@ class SiteSettingsRepo
 
         return $result;
     }
+
+    /**
+     * Returns all eight listing-level global template defaults from lstr_site_settings.
+     * Any key that has never been saved returns null (cascade falls to built-in default).
+     *
+     * @return array<string, string|null>
+     */
+    public function getGlobalTemplates(): array
+    {
+        return $this->getMany([
+            'listing_default_members_template',
+            'listing_default_stats_template',
+            'listing_default_affiliates_section_template',
+            'listing_default_updates_template',
+            'listing_default_join_form_template',
+            'listing_default_codes_submit_form_template',
+            'listing_default_affiliate_apply_form_template',
+            'listing_default_adopt_form_template',
+        ]);
+    }
 }

@@ -20,6 +20,7 @@ use Luster\Repositories\ListingSettingsRepo;
 use Luster\Repositories\SiteSettingsRepo;
 use Luster\Support\FormFieldBuilder;
 use Luster\Support\FormTemplateRenderer;
+use Luster\Support\ListingTemplateResolver;
 use Luster\Support\SuccessRenderer;
 
 /**
@@ -446,8 +447,14 @@ final class AffiliateApplyController
             ['type' => 'text',     'name' => 'captcha_answer', 'id' => 'aff-captcha', 'label' => 'Captcha: ' . $captchaQuestion,  'required' => true,  'attrs' => ['maxlength' => '10', 'autocomplete' => 'off']],
         ], $wrapperTpl);
 
+        $globalTemplates = (new SiteSettingsRepo($this->app->getDatabase()))->getGlobalTemplates();
+        $affApplyResolved = ListingTemplateResolver::resolve(
+            $settingsRepo->getAffiliateApplyFormTemplate($listingId),
+            $globalTemplates['listing_default_affiliate_apply_form_template'] ?? null,
+            '',
+        );
         $formHtml = null;
-        $affApplyTpl = $settingsRepo->getAffiliateApplyFormTemplate($listingId) ?? '';
+        $affApplyTpl = $affApplyResolved['should_render_template'] ? $affApplyResolved['value'] : '';
         if ($affApplyTpl !== '') {
             $tokens = [
                 '{listing_title}'         => View::e((string) $listing->title),

@@ -506,6 +506,16 @@ $tplAdoptFormVal    = ($templates['adopt_form_template']           ?? '') ?: Lis
 $tplRulesVal        = $templates['rules_intro_template']             ?? '';
 $tplJoinFormVal     = ($templates['join_form_template']              ?? '') ?: ListingSettingsRepo::defaultJoinFormTemplate();
 
+// Source badge helper for Templates tab
+$tplSrc = $template_sources ?? [];
+$srcBadge = static function (string $key) use ($tplSrc): string {
+    return match ($tplSrc[$key] ?? 'built_in') {
+        'custom'   => '<span class="badge badge-current badge-inline-sm">Custom</span>',
+        'global'   => '<span class="badge badge-info badge-inline-sm">Global</span>',
+        default    => '<span class="badge badge-inactive badge-inline-sm">Built-in</span>',
+    };
+};
+
 // tok() helper — matches the collective templates page pattern
 $ltok = static fn(string $ta, string $token, string $label, string $desc): string =>
     '<tr class="tok-row" tabindex="0" role="button"'
@@ -528,13 +538,13 @@ $ltok = static fn(string $ta, string $token, string $label, string $desc): strin
         <div class="pc-head-icon pc-head-icon-bg"><?= View::icon('embed') ?></div>
         <div class="pc-head-meta">
           <div class="pc-head-title">Listing HTML Templates</div>
-          <div class="pc-head-sub">HTML that Luster prints for this listing's members, affiliates, stats, and public forms.</div>
+          <div class="pc-head-sub">HTML that Luster prints for this listing's members, affiliates, stats, and public forms. Badges show whether each template is a custom override, inherited from <a href="<?= $b ?>/admin/listings/global-templates" class="link">global defaults</a>, or the built-in fallback.</div>
         </div>
       </div>
 
       <div class="pc-section">
 
-        <div class="pc-section-label">Members List</div>
+        <div class="pc-section-label">Members List <?= $srcBadge('members_template') ?></div>
         <div class="form-group">
           <textarea id="members_template" name="members_template" class="form form-mono" spellcheck="false"><?= View::e($tplMembersVal) ?></textarea>
         </div>
@@ -543,7 +553,7 @@ $ltok = static fn(string $ta, string $token, string $label, string $desc): strin
           <button type="button" class="btn btn-quaternary btn-xs" data-textarea="members_template">Reset to Default</button>
         </div>
 
-        <div class="pc-section-label">Affiliates Section</div>
+        <div class="pc-section-label">Affiliates Section <?= $srcBadge('affiliates_section_template') ?></div>
         <p class="form-hint mb-sm">Controls the full affiliates block for this listing. Use <code>{each_affiliate}&hellip;{/each_affiliate}</code> to design each row, or <code>{affiliates}</code> to drop in ready-made rows.</p>
         <div class="form-group">
           <textarea id="affiliates_section_template" name="affiliates_section_template" class="form form-mono" spellcheck="false"><?= View::e($tplAffVal) ?></textarea>
@@ -553,7 +563,7 @@ $ltok = static fn(string $ta, string $token, string $label, string $desc): strin
           <button type="button" class="btn btn-quaternary btn-xs" data-textarea="affiliates_section_template">Reset to Default</button>
         </div>
 
-        <div class="pc-section-label">Statistics</div>
+        <div class="pc-section-label">Statistics <?= $srcBadge('stats_template') ?></div>
         <div class="form-group">
           <textarea id="stats_template" name="stats_template" class="form form-mono" spellcheck="false"><?= View::e($tplStatsVal) ?></textarea>
         </div>
@@ -563,7 +573,7 @@ $ltok = static fn(string $ta, string $token, string $label, string $desc): strin
         </div>
 
         <?php if ($hasUpdatesAddon): ?>
-        <div class="pc-section-label">Updates Feed</div>
+        <div class="pc-section-label">Updates Feed <?= $srcBadge('updates_template') ?></div>
         <p class="form-hint mb-sm">Controls the rendered updates list on <code>/updates/<?= (int) $listing->id ?></code> and the embed. Wrap each post in <code>{each_update}&hellip;{/each_update}</code>.</p>
         <div class="form-group">
           <textarea id="updates_template" name="updates_template" class="form form-mono" spellcheck="false"><?= View::e($tplUpdatesVal) ?></textarea>
@@ -576,7 +586,7 @@ $ltok = static fn(string $ta, string $token, string $label, string $desc): strin
         <input type="hidden" name="updates_template" value="<?= View::e((string) ($tplUpdatesVal ?? '')) ?>">
         <?php endif; ?>
 
-        <div class="pc-section-label">Join Form</div>
+        <div class="pc-section-label">Join Form <?= $srcBadge('join_form_template') ?></div>
         <p class="form-hint mb-sm">Controls the full layout of the join form, including every field. Write any introductory text directly at the top of the template. Use the tokens below to arrange fields in any order.</p>
         <div class="form-group">
           <textarea id="join_form_template" name="join_form_template" class="form form-mono" spellcheck="false"><?= View::e($tplJoinFormVal) ?></textarea>
@@ -587,7 +597,7 @@ $ltok = static fn(string $ta, string $token, string $label, string $desc): strin
         </div>
 
         <?php if ($hasAdoptionAddon): ?>
-        <div class="pc-section-label">Adopt Form</div>
+        <div class="pc-section-label">Adopt Form <?= $srcBadge('adopt_form_template') ?></div>
         <p class="form-hint mb-sm">Controls the full layout of the adoption application form. Use the tokens on the right to arrange fields in any order.</p>
         <div class="form-group">
           <textarea id="adopt_form_template" name="adopt_form_template" class="form form-mono" spellcheck="false"><?= View::e($tplAdoptFormVal) ?></textarea>
@@ -601,7 +611,7 @@ $ltok = static fn(string $ta, string $token, string $label, string $desc): strin
         <?php endif; ?>
 
         <?php if ($hasCodesSubmit): ?>
-        <div class="pc-section-label">Code Donation Form</div>
+        <div class="pc-section-label">Code Donation Form <?= $srcBadge('codes_submit_form_template') ?></div>
         <p class="form-hint mb-sm">Controls the full layout of the code donation form. Write any introductory text directly at the top of the template. Use the tokens below to arrange fields in any order.</p>
         <div class="form-group">
           <textarea id="codes_submit_form_template" name="codes_submit_form_template" class="form form-mono" spellcheck="false"><?= View::e($tplCodesFormVal) ?></textarea>
@@ -615,7 +625,7 @@ $ltok = static fn(string $ta, string $token, string $label, string $desc): strin
         <?php endif; ?>
 
         <?php if ($affiliate_apply_enabled ?? false): ?>
-        <div class="pc-section-label">Affiliate Application Form</div>
+        <div class="pc-section-label">Affiliate Application Form <?= $srcBadge('affiliate_apply_form_template') ?></div>
         <p class="form-hint mb-sm">Controls the full layout of the affiliate application form. Write any introductory text directly at the top of the template. Use the tokens below to arrange fields in any order.</p>
         <div class="form-group">
           <textarea id="affiliate_apply_form_template" name="affiliate_apply_form_template" class="form form-mono" spellcheck="false"><?= View::e($tplAffApplyFormVal) ?></textarea>

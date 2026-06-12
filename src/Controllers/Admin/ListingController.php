@@ -25,6 +25,7 @@ use Luster\Repositories\ListingSettingsRepo;
 use Luster\Repositories\MemberRepo;
 use Luster\Repositories\SiteSettingsRepo;
 use Luster\Support\FormTemplateRenderer;
+use Luster\Support\ListingTemplateResolver;
 use Luster\Support\MemberStatsService;
 
 /**
@@ -958,6 +959,37 @@ final class ListingController extends AdminController
         $affiliates           = $affiliateRepo->getByListing($id)['items'];
         $fields               = $fieldRepo->getFieldsForListing($id);
         $templates            = $settingsRepo->getTemplates($id);
+        $globalTemplates      = (new SiteSettingsRepo($db))->getGlobalTemplates();
+        $tplBuiltIns = [
+            'stats_template'                => ListingSettingsRepo::defaultStatsTemplate(),
+            'members_template'              => ListingSettingsRepo::defaultMembersTemplate(),
+            'affiliates_section_template'   => ListingSettingsRepo::defaultAffiliatesSectionTemplate(),
+            'updates_template'              => ListingSettingsRepo::defaultUpdatesTemplate(),
+            'join_form_template'            => ListingSettingsRepo::defaultJoinFormTemplate(),
+            'codes_submit_form_template'    => ListingSettingsRepo::defaultCodesSubmitFormTemplate(),
+            'affiliate_apply_form_template' => ListingSettingsRepo::defaultAffiliateApplyFormTemplate(),
+            'adopt_form_template'           => ListingSettingsRepo::defaultAdoptFormTemplate(),
+        ];
+        $tplGlobalKeyMap = [
+            'stats_template'                => 'listing_default_stats_template',
+            'members_template'              => 'listing_default_members_template',
+            'affiliates_section_template'   => 'listing_default_affiliates_section_template',
+            'updates_template'              => 'listing_default_updates_template',
+            'join_form_template'            => 'listing_default_join_form_template',
+            'codes_submit_form_template'    => 'listing_default_codes_submit_form_template',
+            'affiliate_apply_form_template' => 'listing_default_affiliate_apply_form_template',
+            'adopt_form_template'           => 'listing_default_adopt_form_template',
+        ];
+        $templateSources = [];
+        foreach ($tplBuiltIns as $tplKey => $builtIn) {
+            $globalKey    = $tplGlobalKeyMap[$tplKey];
+            $resolved     = ListingTemplateResolver::resolve(
+                $templates[$tplKey] ?? null,
+                $globalTemplates[$globalKey] ?? null,
+                $builtIn,
+            );
+            $templateSources[$tplKey] = $resolved['source'];
+        }
         $categories           = $categoryRepo->getAll();
         $currentCategoryId    = $listing->categoryId ?? null;
         $currentCategoryIds   = $listingRepo->getCategoryIdsForListing($id);
@@ -1027,6 +1059,8 @@ final class ListingController extends AdminController
             'affiliates'          => $affiliates,
             'fields'              => $fields,
             'templates'           => $templates,
+            'global_templates'    => $globalTemplates,
+            'template_sources'    => $templateSources,
             'categories'          => $categories,
             'current_category_id'  => $currentCategoryId,
             'current_category_ids' => $currentCategoryIds,
@@ -1321,26 +1355,44 @@ final class ListingController extends AdminController
             return Response::notFound('Listing not found.');
         }
 
-        // Null if empty or if the value matches the current code default
-        // (keeps templates "linked" to the code default so future default
-        // changes flow through without needing a per-listing migration).
-        $defaults = [
-            'stats_template'             => ListingSettingsRepo::defaultStatsTemplate(),
-            'members_template'           => ListingSettingsRepo::defaultMembersTemplate(),
-            'affiliates_section_template'=> ListingSettingsRepo::defaultAffiliatesSectionTemplate(),
-            'updates_template'           => ListingSettingsRepo::defaultUpdatesTemplate(),
+        // Null if empty, matches the built-in default, or matches the current
+        // global default — so NULL in the DB means "follow cascade" rather than
+        // storing a literal copy of a higher-level value.
+        $builtIns = [
+            'stats_template'                => ListingSettingsRepo::defaultStatsTemplate(),
+            'members_template'              => ListingSettingsRepo::defaultMembersTemplate(),
+            'affiliates_section_template'   => ListingSettingsRepo::defaultAffiliatesSectionTemplate(),
+            'updates_template'              => ListingSettingsRepo::defaultUpdatesTemplate(),
             'codes_submit_form_template'    => ListingSettingsRepo::defaultCodesSubmitFormTemplate(),
             'join_form_template'            => ListingSettingsRepo::defaultJoinFormTemplate(),
             'affiliate_apply_form_template' => ListingSettingsRepo::defaultAffiliateApplyFormTemplate(),
             'adopt_form_template'           => ListingSettingsRepo::defaultAdoptFormTemplate(),
         ];
-        $nil = static function (string $raw, string $key = '') use ($defaults): ?string {
-            $trimmed = trim($raw);
-            if ($trimmed === '') {
+        $globalMap = [
+            'stats_template'                => 'listing_default_stats_template',
+            'members_template'              => 'listing_default_members_template',
+            'affiliates_section_template'   => 'listing_default_affiliates_section_template',
+            'updates_template'              => 'listing_default_updates_template',
+            'codes_submit_form_template'    => 'listing_default_codes_submit_form_template',
+            'join_form_template'            => 'listing_default_join_form_template',
+            'affiliate_apply_form_template' => 'listing_default_affiliate_apply_form_template',
+            'adopt_form_template'           => 'listing_default_adopt_form_template',
+        ];
+        $globalDefaults = (new SiteSettingsRepo($db))->getGlobalTemplates();
+        $normalize = static fn(string $v): string => trim(str_replace("\r\n", "\n", $v));
+        $nil = static function (string $raw, string $key = '') use ($builtIns, $globalMap, $globalDefaults, $normalize): ?string {
+            $n = $normalize($raw);
+            if ($n === '') {
                 return null;
             }
-            if (isset($defaults[$key]) && $trimmed === trim($defaults[$key])) {
+            if (isset($builtIns[$key]) && $n === $normalize($builtIns[$key])) {
                 return null;
+            }
+            if (isset($globalMap[$key])) {
+                $globalVal = $globalDefaults[$globalMap[$key]] ?? null;
+                if ($globalVal !== null && $n === $normalize($globalVal)) {
+                    return null;
+                }
             }
             return $raw;
         };
@@ -1926,6 +1978,70 @@ final class ListingController extends AdminController
         $this->app->getSession()->set('lstr_flash_success', 'Category updated.');
 
         return Response::redirect($this->app->getBaseUrl() . '/admin/listings/' . $id);
+    }
+
+    // -----------------------------------------------------------------------
+    // GET /admin/listings/global-templates
+    // -----------------------------------------------------------------------
+
+    public function globalTemplates(Request $request, array $params): Response
+    {
+        $db       = $this->app->getDatabase();
+        $session  = $this->app->getSession();
+        $success  = (string) $session->get('lstr_flash_success', '');
+        $error    = (string) $session->get('lstr_flash_error', '');
+        $session->remove('lstr_flash_success');
+        $session->remove('lstr_flash_error');
+
+        $siteRepo = new SiteSettingsRepo($db);
+        $globals  = $siteRepo->getGlobalTemplates();
+
+        $listings = (new ListingRepo($db, $this->app->getConfig()))->getAll();
+        $active   = array_values(array_filter($listings, fn($l) => !$l->trouble));
+        usort($active, fn($a, $b) => strcmp($a->title, $b->title));
+
+        return $this->layout('admin/listings/global-templates.php', [
+            'page_title'   => 'Global Listing Templates',
+            'success'      => $success,
+            'error'        => $error,
+            'globals'      => $globals,
+            'listings'     => $active,
+            'csrf_token'   => $this->app->getCSRF()->token(),
+        ]);
+    }
+
+    // -----------------------------------------------------------------------
+    // POST /admin/listings/global-templates
+    // -----------------------------------------------------------------------
+
+    public function saveGlobalTemplates(Request $request, array $params): Response
+    {
+        $db       = $this->app->getDatabase();
+        $session  = $this->app->getSession();
+        $baseUrl  = $this->app->getBaseUrl();
+
+        $types = [
+            'listing_default_members_template'              => ListingSettingsRepo::defaultMembersTemplate(),
+            'listing_default_stats_template'                => ListingSettingsRepo::defaultStatsTemplate(),
+            'listing_default_affiliates_section_template'   => ListingSettingsRepo::defaultAffiliatesSectionTemplate(),
+            'listing_default_updates_template'              => ListingSettingsRepo::defaultUpdatesTemplate(),
+            'listing_default_join_form_template'            => ListingSettingsRepo::defaultJoinFormTemplate(),
+            'listing_default_codes_submit_form_template'    => ListingSettingsRepo::defaultCodesSubmitFormTemplate(),
+            'listing_default_affiliate_apply_form_template' => ListingSettingsRepo::defaultAffiliateApplyFormTemplate(),
+            'listing_default_adopt_form_template'           => ListingSettingsRepo::defaultAdoptFormTemplate(),
+        ];
+
+        $siteRepo = new SiteSettingsRepo($db);
+        $normalize = static fn(string $v): string => trim(str_replace("\r\n", "\n", $v));
+
+        foreach ($types as $key => $builtIn) {
+            $submitted = $normalize((string) $request->post($key, ''));
+            $value     = ($submitted === '' || $submitted === $normalize($builtIn)) ? null : $submitted;
+            $siteRepo->set($key, $value);
+        }
+
+        $session->set('lstr_flash_success', 'Global listing templates saved.');
+        return Response::redirect($baseUrl . '/admin/listings/global-templates');
     }
 
     // -----------------------------------------------------------------------

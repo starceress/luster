@@ -141,6 +141,8 @@ return [
             ListingController::class, 'index');
         $router->get('/admin/listings/add',      ListingController::class, 'addForm');
         $router->post('/admin/listings/add',     ListingController::class, 'add');
+        $router->get('/admin/listings/global-templates',  ListingController::class, 'globalTemplates');
+        $router->post('/admin/listings/global-templates', ListingController::class, 'saveGlobalTemplates');
         $router->get('/admin/listings/settings', ListingController::class, 'indexSettings');
         $router->post('/admin/listings/settings', ListingController::class, 'saveSettings');
         $router->post('/admin/listings/settings/send-overdue-now', ListingController::class, 'sendOverdueNow');

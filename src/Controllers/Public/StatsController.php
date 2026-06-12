@@ -10,6 +10,8 @@ use Luster\Core\Response;
 use Luster\Repositories\ListingRepo;
 use Luster\Repositories\ListingSettingsRepo;
 use Luster\Repositories\MemberRepo;
+use Luster\Repositories\SiteSettingsRepo;
+use Luster\Support\ListingTemplateResolver;
 
 /**
  * Public stats endpoint.
@@ -82,9 +84,13 @@ final class StatsController
 
         $settingsRepo   = new ListingSettingsRepo($this->app->getDatabase());
         $templates      = $settingsRepo->getTemplates($listingId);
-        $template       = ($templates['stats_template'] !== null && trim($templates['stats_template']) !== '')
-            ? $templates['stats_template']
-            : self::DEFAULT_TEMPLATE;
+        $globalTemplates = (new SiteSettingsRepo($this->app->getDatabase()))->getGlobalTemplates();
+        $resolved       = ListingTemplateResolver::resolve(
+            $templates['stats_template'] ?? null,
+            $globalTemplates['listing_default_stats_template'] ?? null,
+            self::DEFAULT_TEMPLATE,
+        );
+        $template = $resolved['value'];
 
         // Admin-controlled "last updated" date; fallback from config
         $adminLastUpdated    = $settingsRepo->getLastUpdated($listingId);

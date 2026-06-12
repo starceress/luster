@@ -14,6 +14,7 @@ use Luster\Core\View;
 use Luster\Repositories\ListingRepo;
 use Luster\Repositories\ListingSettingsRepo;
 use Luster\Repositories\SiteSettingsRepo;
+use Luster\Support\ListingTemplateResolver;
 
 /**
  * Public read-only controller for the Updates add-on.
@@ -65,10 +66,15 @@ final class UpdatesPublicController
         $pagination         = Pagination::render($page, $pages, $feedUrl, $paginationTemplate,
             $cat !== '' ? ['cat' => $cat] : []);
 
+        $globalTemplates     = (new SiteSettingsRepo($db))->getGlobalTemplates();
+        $resolved            = ListingTemplateResolver::resolve(
+            $settingsRepo->getUpdatesTemplate($fid),
+            $globalTemplates['listing_default_updates_template'] ?? null,
+            '',
+        );
         $updatesTemplateHtml = null;
-        $updatesTemplate     = $settingsRepo->getUpdatesTemplate($fid);
-        if ($updatesTemplate !== null && trim($updatesTemplate) !== '') {
-            $updatesTemplateHtml = self::buildUpdatesHtml($updates, $updatesTemplate);
+        if ($resolved['should_render_template']) {
+            $updatesTemplateHtml = self::buildUpdatesHtml($updates, $resolved['value']);
         }
 
         $html = $this->app->getView()->renderPublic('addons/updates/feed.php', [

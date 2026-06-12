@@ -13,6 +13,7 @@ use Luster\Repositories\AffiliateRepo;
 use Luster\Repositories\ListingRepo;
 use Luster\Repositories\ListingSettingsRepo;
 use Luster\Repositories\SiteSettingsRepo;
+use Luster\Support\ListingTemplateResolver;
 
 /**
  * Public affiliates page.
@@ -58,10 +59,13 @@ final class AffiliatesController
         $pagination         = Pagination::render($page, $result['pages'], $baseHref,
             $settingsRepo->getPaginationTemplate($listingId) ?? '');
 
-        $sectionTemplate = ($templates['affiliates_section_template'] !== null
-            && trim($templates['affiliates_section_template']) !== '')
-            ? $templates['affiliates_section_template']
-            : null;
+        $globalTemplates = (new SiteSettingsRepo($this->app->getDatabase()))->getGlobalTemplates();
+        $resolved        = ListingTemplateResolver::resolve(
+            $templates['affiliates_section_template'] ?? null,
+            $globalTemplates['listing_default_affiliates_section_template'] ?? null,
+            '',
+        );
+        $sectionTemplate = $resolved['should_render_template'] ? $resolved['value'] : null;
 
         $affiliateApplyUrl = $baseUrl . '/affiliate-apply/' . $listingId;
         $sectionHtml = $sectionTemplate !== null

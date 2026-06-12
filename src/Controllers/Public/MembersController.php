@@ -13,6 +13,8 @@ use Luster\Repositories\ListingRepo;
 use Luster\Repositories\ListingSettingsRepo;
 use Luster\Repositories\FieldRepo;
 use Luster\Repositories\MemberRepo;
+use Luster\Repositories\SiteSettingsRepo;
+use Luster\Support\ListingTemplateResolver;
 
 /**
  * Public members list.
@@ -47,9 +49,13 @@ final class MembersController
 
         $settingsRepo      = new ListingSettingsRepo($this->app->getDatabase());
         $templates         = $settingsRepo->getTemplates($listingId);
-        $membersTemplate   = ($templates['members_template'] !== null && trim($templates['members_template']) !== '')
-            ? $templates['members_template']
-            : null;
+        $globalTemplates   = (new SiteSettingsRepo($this->app->getDatabase()))->getGlobalTemplates();
+        $resolved          = ListingTemplateResolver::resolve(
+            $templates['members_template'] ?? null,
+            $globalTemplates['listing_default_members_template'] ?? null,
+            '',
+        );
+        $membersTemplate   = $resolved['should_render_template'] ? $resolved['value'] : null;
         $paginationTemplate = $settingsRepo->getPaginationTemplate($listingId) ?? '';
 
         $baseUrl     = $this->app->getBaseUrl();
