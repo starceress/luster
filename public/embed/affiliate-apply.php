@@ -3,9 +3,11 @@
 declare(strict_types=1);
 
 use Luster\Core\Captcha;
+use Luster\Core\View;
 use Luster\Repositories\ListingRepo;
 use Luster\Repositories\ListingSettingsRepo;
 use Luster\Repositories\SiteSettingsRepo;
+use Luster\Support\FormTemplateRenderer;
 
 /**
  * Luster embed — affiliate application form fragment.
@@ -117,6 +119,33 @@ if ($_lusterListingId === 0) {
         ['type' => 'text',     'name' => 'captcha_answer', 'id' => 'aff-captcha', 'label' => 'Captcha: ' . $_lusterCaptchaQ,  'required' => true,  'attrs' => ['maxlength' => '10', 'autocomplete' => 'off']],
     ], $_lusterWrapperTpl);
 
+    $_lusterFormHtml = null;
+    $_lusterCollAffTpl = $_lusterSiteRepo->get('collective_affiliate_apply_form_template') ?? '';
+    if ($_lusterCollAffTpl !== '') {
+        $_lusterAffTokens = [
+            '{listing_title}'         => View::e($_lusterSiteName),
+            '{listing_url}'           => View::e($_lusterSiteUrl),
+            '{field_name}'            => $_lusterF['name'],
+            '{field_name_input}'      => $_lusterF['name_input'],
+            '{field_url}'             => $_lusterF['url'],
+            '{field_url_input}'       => $_lusterF['url_input'],
+            '{field_email}'           => $_lusterF['email'],
+            '{field_email_input}'     => $_lusterF['email_input'],
+            '{field_image}'           => $_lusterF['image'],
+            '{field_image_input}'     => $_lusterF['image_input'],
+            '{field_message}'         => $_lusterF['message'],
+            '{field_message_input}'   => $_lusterF['message_input'],
+            '{captcha_block}'         => $_lusterF['captcha_answer'],
+            '{captcha_block_input}'   => $_lusterF['captcha_answer_input'],
+            '{captcha_question}'      => View::e($_lusterCaptchaQ),
+            '{submit_button}'         => '<button type="submit" class="fl-submit">Submit Application</button>',
+        ];
+        $_lusterInnerHtml = FormTemplateRenderer::expandTokens($_lusterCollAffTpl, $_lusterAffTokens);
+        $_lusterFormHtml  = FormTemplateRenderer::wrapForm(
+            $_lusterInnerHtml, $_lusterFormAction, $_lusterApp->getCsrf()->token(), true,
+        );
+    }
+
     $_lusterHtml = $_lusterApp->getView()->renderFragment('affiliate-apply.php', [
         'listing'      => null,
         'listing_name' => $_lusterSiteName,
@@ -128,6 +157,7 @@ if ($_lusterListingId === 0) {
         'csrf_token'   => $_lusterApp->getCsrf()->token(),
         'errors'       => $_lusterError,
         'f'            => $_lusterF,
+        'form_html'    => $_lusterFormHtml,
     ]);
 
     if ($luster_return ?? false) {
@@ -205,6 +235,33 @@ $_lusterF          = $_lusterApp->getFormFieldBuilder()->build([
     ['type' => 'text',     'name' => 'captcha_answer', 'id' => 'aff-captcha', 'label' => 'Captcha: ' . $_lusterCaptchaQ,  'required' => true,  'attrs' => ['maxlength' => '10', 'autocomplete' => 'off']],
 ], $_lusterWrapperTpl);
 
+$_lusterFormHtml = null;
+$_lusterAffApplyTpl = $_lusterSettingsRepo->getAffiliateApplyFormTemplate($_lusterListingId) ?? '';
+if ($_lusterAffApplyTpl !== '') {
+    $_lusterAffTokens = [
+        '{listing_title}'         => View::e((string) $_lusterListing->title),
+        '{listing_url}'           => View::e((string) $_lusterListing->url),
+        '{field_name}'            => $_lusterF['name'],
+        '{field_name_input}'      => $_lusterF['name_input'],
+        '{field_url}'             => $_lusterF['url'],
+        '{field_url_input}'       => $_lusterF['url_input'],
+        '{field_email}'           => $_lusterF['email'],
+        '{field_email_input}'     => $_lusterF['email_input'],
+        '{field_image}'           => $_lusterF['image'],
+        '{field_image_input}'     => $_lusterF['image_input'],
+        '{field_message}'         => $_lusterF['message'],
+        '{field_message_input}'   => $_lusterF['message_input'],
+        '{captcha_block}'         => $_lusterF['captcha_answer'],
+        '{captcha_block_input}'   => $_lusterF['captcha_answer_input'],
+        '{captcha_question}'      => View::e($_lusterCaptchaQ),
+        '{submit_button}'         => '<button type="submit" class="fl-submit">Submit Application</button>',
+    ];
+    $_lusterInnerHtml = FormTemplateRenderer::expandTokens($_lusterAffApplyTpl, $_lusterAffTokens);
+    $_lusterFormHtml  = FormTemplateRenderer::wrapForm(
+        $_lusterInnerHtml, $_lusterFormAction, $_lusterApp->getCsrf()->token(), true,
+    );
+}
+
 $_lusterHtml = $_lusterApp->getView()->renderFragment('affiliate-apply.php', [
     'listing'      => $_lusterListing,
     'listing_name' => (string) $_lusterListing->title,
@@ -216,6 +273,7 @@ $_lusterHtml = $_lusterApp->getView()->renderFragment('affiliate-apply.php', [
     'csrf_token'   => $_lusterApp->getCsrf()->token(),
     'errors'       => $_lusterError,
     'f'            => $_lusterF,
+    'form_html'    => $_lusterFormHtml,
 ]);
 
 if ($luster_return ?? false) {

@@ -11,6 +11,7 @@ use Luster\Core\RateLimit;
 use Luster\Core\Request;
 use Luster\Core\Response;
 use Luster\Core\Validator;
+use Luster\Core\View;
 use Luster\Repositories\AffiliateRepo;
 use Luster\Repositories\BlacklistRepo;
 use Luster\Repositories\EmailTemplateRepo;
@@ -18,6 +19,7 @@ use Luster\Repositories\ListingRepo;
 use Luster\Repositories\ListingSettingsRepo;
 use Luster\Repositories\SiteSettingsRepo;
 use Luster\Support\FormFieldBuilder;
+use Luster\Support\FormTemplateRenderer;
 use Luster\Support\SuccessRenderer;
 
 /**
@@ -348,7 +350,8 @@ final class AffiliateApplyController
         $baseUrl         = $this->app->getBaseUrl();
         $siteName        = (string) $config->get('site_name', 'Collective');
         $siteUrl         = (string) ($config->get('site_url', '') ?: $baseUrl);
-        $wrapperTpl      = (new SiteSettingsRepo($this->app->getDatabase()))->get('collective_field_wrapper_template', '') ?? '';
+        $siteRepo        = new SiteSettingsRepo($this->app->getDatabase());
+        $wrapperTpl      = $siteRepo->get('collective_field_wrapper_template', '') ?? '';
 
         $f = $this->app->getFormFieldBuilder()->build([
             ['type' => 'text',     'name' => 'name',           'id' => 'aff-name',    'label' => 'Site name',                      'required' => true,  'value' => (string) ($old['name']    ?? ''), 'attrs' => ['maxlength' => '200', 'autocomplete' => 'organization']],
@@ -358,6 +361,36 @@ final class AffiliateApplyController
             ['type' => 'textarea', 'name' => 'message',        'id' => 'aff-message', 'label' => 'Message (optional)',             'required' => false, 'value' => (string) ($old['message'] ?? ''), 'attrs' => ['maxlength' => '2000', 'rows' => '4']],
             ['type' => 'text',     'name' => 'captcha_answer', 'id' => 'aff-captcha', 'label' => 'Captcha: ' . $captchaQuestion,  'required' => true,  'attrs' => ['maxlength' => '10', 'autocomplete' => 'off']],
         ], $wrapperTpl);
+
+        $formHtml = null;
+        $collectiveAffTpl = $siteRepo->get('collective_affiliate_apply_form_template') ?? '';
+        if ($collectiveAffTpl !== '') {
+            $tokens = [
+                '{listing_title}'         => View::e($siteName),
+                '{listing_url}'           => View::e($siteUrl),
+                '{field_name}'            => $f['name'],
+                '{field_name_input}'      => $f['name_input'],
+                '{field_url}'             => $f['url'],
+                '{field_url_input}'       => $f['url_input'],
+                '{field_email}'           => $f['email'],
+                '{field_email_input}'     => $f['email_input'],
+                '{field_image}'           => $f['image'],
+                '{field_image_input}'     => $f['image_input'],
+                '{field_message}'         => $f['message'],
+                '{field_message_input}'   => $f['message_input'],
+                '{captcha_block}'         => $f['captcha_answer'],
+                '{captcha_block_input}'   => $f['captcha_answer_input'],
+                '{captcha_question}'      => View::e($captchaQuestion),
+                '{submit_button}'         => '<button type="submit" class="fl-submit">Submit Application</button>',
+            ];
+            $innerHtml = FormTemplateRenderer::expandTokens($collectiveAffTpl, $tokens);
+            $formHtml  = FormTemplateRenderer::wrapForm(
+                $innerHtml,
+                $this->collectiveFormUrl($config, $baseUrl),
+                $this->app->getCSRF()->token(),
+                true,
+            );
+        }
 
         $data = [
             'listing'      => null,
@@ -370,6 +403,7 @@ final class AffiliateApplyController
             'csrf_token'   => $this->app->getCSRF()->token(),
             'errors'       => $error,
             'f'            => $f,
+            'form_html'    => $formHtml,
         ];
 
         return Response::html(
@@ -412,17 +446,48 @@ final class AffiliateApplyController
             ['type' => 'text',     'name' => 'captcha_answer', 'id' => 'aff-captcha', 'label' => 'Captcha: ' . $captchaQuestion,  'required' => true,  'attrs' => ['maxlength' => '10', 'autocomplete' => 'off']],
         ], $wrapperTpl);
 
+        $formHtml = null;
+        $affApplyTpl = $settingsRepo->getAffiliateApplyFormTemplate($listingId) ?? '';
+        if ($affApplyTpl !== '') {
+            $tokens = [
+                '{listing_title}'         => View::e((string) $listing->title),
+                '{listing_url}'           => View::e((string) $listing->url),
+                '{field_name}'            => $f['name'],
+                '{field_name_input}'      => $f['name_input'],
+                '{field_url}'             => $f['url'],
+                '{field_url_input}'       => $f['url_input'],
+                '{field_email}'           => $f['email'],
+                '{field_email_input}'     => $f['email_input'],
+                '{field_image}'           => $f['image'],
+                '{field_image_input}'     => $f['image_input'],
+                '{field_message}'         => $f['message'],
+                '{field_message_input}'   => $f['message_input'],
+                '{captcha_block}'         => $f['captcha_answer'],
+                '{captcha_block_input}'   => $f['captcha_answer_input'],
+                '{captcha_question}'      => View::e($captchaQuestion),
+                '{submit_button}'         => '<button type=”submit” class=”fl-submit”>Submit Application</button>',
+            ];
+            $innerHtml = FormTemplateRenderer::expandTokens($affApplyTpl, $tokens);
+            $formHtml  = FormTemplateRenderer::wrapForm(
+                $innerHtml,
+                $formUrl,
+                $this->app->getCSRF()->token(),
+                true,
+            );
+        }
+
         $data = [
             'listing'      => $listing,
             'listing_name' => (string) $listing->title,
             'listing_url'  => (string) $listing->url,
-            'page_title'   => 'Affiliate Application â€” ' . $listing->title,
+            'page_title'   => 'Affiliate Application — ' . $listing->title,
             'base_url'     => $this->app->getBaseUrl(),
             'theme_path'   => rtrim((string) $listing->url, '/') . '/' . ltrim((string) ($embedSettings['theme_path'] ?? 'theme'), '/'),
             'form_action'  => $formUrl,
             'csrf_token'   => $this->app->getCSRF()->token(),
             'errors'       => $error,
             'f'            => $f,
+            'form_html'    => $formHtml,
         ];
 
         return Response::html(

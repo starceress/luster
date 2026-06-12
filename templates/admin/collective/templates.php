@@ -6,12 +6,15 @@ $b  = rtrim(View::e($base_url ?? ''), '/');
 $ct = $collective_templates ?? [];
 $d  = SiteSettingsRepo::collectiveDefaults();
 
-$ownedVal      = $ct['owned_template']                         ?: $d['owned_template'];
-$randomVal     = $ct['random_listing_template']                ?: $d['random_listing_template'];
-$latestVal     = $ct['latest_listing_template']                ?: $d['latest_listing_template'];
-$joinedVal     = $ct['joined_template']                        ?: $d['joined_template'];
-$affSectionVal = $ct['collective_affiliates_section_template'] ?: $d['collective_affiliates_section_template'];
-$statsVal      = $ct['collective_stats_template']              ?: $d['collective_stats_template'];
+$ownedVal           = $ct['owned_template']                              ?: $d['owned_template'];
+$randomVal          = $ct['random_listing_template']                     ?: $d['random_listing_template'];
+$latestVal          = $ct['latest_listing_template']                     ?: $d['latest_listing_template'];
+$joinedVal          = $ct['joined_template']                             ?: $d['joined_template'];
+$affSectionVal      = $ct['collective_affiliates_section_template']      ?: $d['collective_affiliates_section_template'];
+$statsVal           = $ct['collective_stats_template']                   ?: $d['collective_stats_template'];
+$affApplyFormVal    = ($ct['collective_affiliate_apply_form_template'] ?? '') !== ''
+    ? $ct['collective_affiliate_apply_form_template']
+    : '';
 
 // Renders one clickable token row for the sidebar reference panel.
 $tok = static fn(string $ta, string $token, string $label, string $desc): string =>
@@ -113,6 +116,16 @@ $tok = static fn(string $ta, string $token, string $label, string $desc): string
         <div class="tpl-reset-row">
           <button type="button" class="btn btn-secondary btn-xs coltpl-preview-btn" data-tpltype="collective_stats" data-textarea="collective_stats_template">Preview</button>
           <button type="button" class="btn btn-quaternary btn-xs" data-textarea="collective_stats_template">Reset to Default</button>
+        </div>
+
+        <div class="pc-section-label">Collective Affiliate Application Form</div>
+        <p class="form-hint mb-sm">Controls the layout of the collective affiliate application form. Leave blank to use the built-in form layout. When set, this template is used by the affiliate-apply embed in collective mode.</p>
+        <div class="form-group">
+          <textarea name="collective_affiliate_apply_form_template" id="collective_affiliate_apply_form_template" class="form form-mono" spellcheck="false"><?= View::e($affApplyFormVal) ?></textarea>
+        </div>
+        <div class="tpl-reset-row">
+          <button type="button" class="btn btn-secondary btn-xs coltpl-preview-btn" data-tpltype="collective_affiliate_apply_form" data-textarea="collective_affiliate_apply_form_template">Preview</button>
+          <button type="button" class="btn btn-quaternary btn-xs" data-textarea="collective_affiliate_apply_form_template">Reset to Default</button>
         </div>
 
       </div>
@@ -310,6 +323,32 @@ $tok = static fn(string $ta, string $token, string $label, string $desc): string
             <?= $tok('collective_stats_template', '{owned_random_url}',  '{owned_random_url}',  'The link to a randomly chosen owned listing.') ?>
             <?= $tok('collective_stats_template', '{countries_count}',   '{countries_count}',   'How many different countries are represented across your owned listings.') ?>
             <?= $tok('collective_stats_template', '{if_countries}{/if_countries}', '{if_countries}...{/if_countries}', 'Shows only when the collective country count is greater than zero.') ?>
+          </tbody></table>
+        </div>
+      </details>
+
+      <!-- ── Collective Affiliate Application Form ──── -->
+      <details class="card chevron" data-token-card>
+        <summary class="chevron-head">Collective Affiliate Apply Form Tokens</summary>
+        <div class="chevron-body">
+          <p class="form-hint mb-sm" data-token-search-help>Controls the layout of the collective affiliate application form. Leave the template blank to use the built-in form. Field tokens output the full label + input block; <code>_input</code> variants output just the raw input element.</p>
+          <table class="et-token-table et-token-table--compact"><tbody>
+            <?= $tok('collective_affiliate_apply_form_template', '{listing_title}', '{listing_title}', 'The collective/site name.') ?>
+            <?= $tok('collective_affiliate_apply_form_template', '{listing_url}',   '{listing_url}',   'The collective/site URL.') ?>
+            <?= $tok('collective_affiliate_apply_form_template', '{field_name}',          '{field_name}',          'Full label + input block for the affiliate site name field.') ?>
+            <?= $tok('collective_affiliate_apply_form_template', '{field_name_input}',    '{field_name_input}',    'Just the site name text input element.') ?>
+            <?= $tok('collective_affiliate_apply_form_template', '{field_url}',           '{field_url}',           'Full label + input block for the site URL field.') ?>
+            <?= $tok('collective_affiliate_apply_form_template', '{field_url_input}',     '{field_url_input}',     'Just the site URL input element.') ?>
+            <?= $tok('collective_affiliate_apply_form_template', '{field_email}',         '{field_email}',         'Full label + input block for the email field.') ?>
+            <?= $tok('collective_affiliate_apply_form_template', '{field_email_input}',   '{field_email_input}',   'Just the email input element.') ?>
+            <?= $tok('collective_affiliate_apply_form_template', '{field_image}',         '{field_image}',         'Full label + input block for the site button/image upload field.') ?>
+            <?= $tok('collective_affiliate_apply_form_template', '{field_image_input}',   '{field_image_input}',   'Just the file input element.') ?>
+            <?= $tok('collective_affiliate_apply_form_template', '{field_message}',       '{field_message}',       'Full label + input block for the message textarea.') ?>
+            <?= $tok('collective_affiliate_apply_form_template', '{field_message_input}', '{field_message_input}', 'Just the message textarea element.') ?>
+            <?= $tok('collective_affiliate_apply_form_template', '{captcha_block}',       '{captcha_block}',       'Full label + input block for the captcha field.') ?>
+            <?= $tok('collective_affiliate_apply_form_template', '{captcha_block_input}', '{captcha_block_input}', 'Just the captcha text input element.') ?>
+            <?= $tok('collective_affiliate_apply_form_template', '{captcha_question}',    '{captcha_question}',    'The arithmetic question text only (e.g. "2 + 3").') ?>
+            <?= $tok('collective_affiliate_apply_form_template', '{submit_button}',       '{submit_button}',       'The submit button.') ?>
           </tbody></table>
         </div>
       </details>

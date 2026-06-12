@@ -11,8 +11,18 @@ use Luster\Core\View;
 /** @var string                  $csrf_token */
 /** @var string                  $errors */
 /** @var array<string,string>    $f  keys: name, url, email, image, message, captcha_answer */
+/** @var string|null             $form_html  Non-null when a custom affiliate-apply form template is active */
 
 ?>
+<?php if (isset($form_html)): ?>
+<div class="fl-embed fl-embed--affiliate-apply">
+<?php if ($errors !== ''): ?>
+  <div class="fl-errors"><?= $errors ?></div>
+<?php endif; ?>
+  <?= $form_html ?>
+</div>
+<?php return; ?>
+<?php endif; ?>
 <div class="fl-embed fl-embed--affiliate-apply">
 <?php if ($errors !== ''): ?>
   <div class="fl-errors"><?= $errors ?></div>

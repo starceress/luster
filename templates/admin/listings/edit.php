@@ -501,9 +501,10 @@ $tplStatsVal     = $_statsNeedsReset($templates['stats_template'] ?? null)
     : ($templates['stats_template'] ?? '');
 $tplUpdatesVal   = ($templates['updates_template']            ?? '') ?: ListingSettingsRepo::defaultUpdatesTemplate();
 $tplAdoptVal     = $templates['adoption_intro_template']      ?? '';
-$tplCodesFormVal = ($templates['codes_submit_form_template']  ?? '') ?: ListingSettingsRepo::defaultCodesSubmitFormTemplate();
-$tplRulesVal     = $templates['rules_intro_template']         ?? '';
-$tplJoinFormVal  = ($templates['join_form_template']          ?? '') ?: ListingSettingsRepo::defaultJoinFormTemplate();
+$tplCodesFormVal    = ($templates['codes_submit_form_template']    ?? '') ?: ListingSettingsRepo::defaultCodesSubmitFormTemplate();
+$tplAffApplyFormVal = ($templates['affiliate_apply_form_template'] ?? '') ?: ListingSettingsRepo::defaultAffiliateApplyFormTemplate();
+$tplRulesVal        = $templates['rules_intro_template']             ?? '';
+$tplJoinFormVal     = ($templates['join_form_template']              ?? '') ?: ListingSettingsRepo::defaultJoinFormTemplate();
 
 // tok() helper — matches the collective templates page pattern
 $ltok = static fn(string $ta, string $token, string $label, string $desc): string =>
@@ -611,6 +612,20 @@ $ltok = static fn(string $ta, string $token, string $label, string $desc): strin
         </div>
         <?php else: ?>
         <input type="hidden" name="codes_submit_form_template" value="<?= View::e((string) ($tplCodesFormVal ?? '')) ?>">
+        <?php endif; ?>
+
+        <?php if ($affiliate_apply_enabled ?? false): ?>
+        <div class="pc-section-label">Affiliate Application Form</div>
+        <p class="form-hint mb-sm">Controls the full layout of the affiliate application form. Write any introductory text directly at the top of the template. Use the tokens below to arrange fields in any order.</p>
+        <div class="form-group">
+          <textarea id="affiliate_apply_form_template" name="affiliate_apply_form_template" class="form form-mono" spellcheck="false"><?= View::e($tplAffApplyFormVal) ?></textarea>
+        </div>
+        <div class="tpl-reset-row">
+          <button type="button" class="btn btn-secondary btn-xs coltpl-preview-btn" data-tpltype="affiliate_apply_form" data-textarea="affiliate_apply_form_template">Preview</button>
+          <button type="button" class="btn btn-quaternary btn-xs" data-textarea="affiliate_apply_form_template">Reset to Default</button>
+        </div>
+        <?php else: ?>
+        <input type="hidden" name="affiliate_apply_form_template" value="<?= View::e((string) ($tplAffApplyFormVal ?? '')) ?>">
         <?php endif; ?>
 
         <?php if ($hasRulesAddon): ?>
@@ -826,6 +841,34 @@ $ltok = static fn(string $ta, string $token, string $label, string $desc): strin
       </details>
       <?php endif; ?>
 
+      <?php if ($affiliate_apply_enabled ?? false): ?>
+      <!-- Affiliate Application Form -->
+      <details class="card chevron" data-token-card>
+        <summary class="chevron-head">Affiliate Application Form Tokens</summary>
+        <div class="chevron-body">
+          <p class="form-hint mb-sm" data-token-search-help>Arrange and label every field of the affiliate application form. Write any introductory text directly into the template. Each field token has a "_input" version that prints just the bare input (no label/wrapper) for custom layouts.</p>
+          <table class="et-token-table et-token-table--compact"><tbody>
+            <?= $ltok('affiliate_apply_form_template', '{listing_title}', '{listing_title}', 'The listing\'s display name.') ?>
+            <?= $ltok('affiliate_apply_form_template', '{listing_url}',   '{listing_url}',   'The link to the listing.') ?>
+            <?= $ltok('affiliate_apply_form_template', '{field_name}',       '{field_name}',       'The Site Name field, with label and wrapper.') ?>
+            <?= $ltok('affiliate_apply_form_template', '{field_name_input}', '{field_name_input}', 'Just the Site Name input, no label or wrapper.') ?>
+            <?= $ltok('affiliate_apply_form_template', '{field_url}',       '{field_url}',       'The Site URL field, with label and wrapper.') ?>
+            <?= $ltok('affiliate_apply_form_template', '{field_url_input}', '{field_url_input}', 'Just the URL input, no label or wrapper.') ?>
+            <?= $ltok('affiliate_apply_form_template', '{field_email}',       '{field_email}',       'The Email field (optional), with label and wrapper.') ?>
+            <?= $ltok('affiliate_apply_form_template', '{field_email_input}', '{field_email_input}', 'Just the Email input, no label or wrapper.') ?>
+            <?= $ltok('affiliate_apply_form_template', '{field_image}',       '{field_image}',       'The site button / image upload field, with label and wrapper.') ?>
+            <?= $ltok('affiliate_apply_form_template', '{field_image_input}', '{field_image_input}', 'Just the file input (styled drop zone), no label or wrapper.') ?>
+            <?= $ltok('affiliate_apply_form_template', '{field_message}',       '{field_message}',       'The Message textarea (optional), with label and wrapper.') ?>
+            <?= $ltok('affiliate_apply_form_template', '{field_message_input}', '{field_message_input}', 'Just the Message textarea, no label or wrapper.') ?>
+            <?= $ltok('affiliate_apply_form_template', '{captcha_block}',       '{captcha_block}',       'The captcha question field, with label and wrapper.') ?>
+            <?= $ltok('affiliate_apply_form_template', '{captcha_block_input}', '{captcha_block_input}', 'Just the captcha answer input, no label or wrapper.') ?>
+            <?= $ltok('affiliate_apply_form_template', '{captcha_question}', '{captcha_question}', 'The captcha question text on its own, e.g. for use inside a custom label.') ?>
+            <?= $ltok('affiliate_apply_form_template', '{submit_button}', '{submit_button}', 'The "Submit Application" submit button.') ?>
+          </tbody></table>
+        </div>
+      </details>
+      <?php endif; ?>
+
       <?php if ($hasRulesAddon): ?>
       <!-- Join Rules Intro -->
       <details class="card chevron" data-token-card>
@@ -847,14 +890,15 @@ $ltok = static fn(string $ta, string $token, string $label, string $desc): strin
 
 <script type="application/json" id="luster-coltpl-defaults">
 <?= json_encode([
-    'members_template'            => ListingSettingsRepo::defaultMembersTemplate(),
-    'affiliates_section_template' => ListingSettingsRepo::defaultAffiliatesSectionTemplate(),
-    'stats_template'              => ListingSettingsRepo::defaultStatsTemplate(),
-    'updates_template'            => ListingSettingsRepo::defaultUpdatesTemplate(),
-    'adoption_intro_template'    => '',
-    'codes_submit_form_template' => ListingSettingsRepo::defaultCodesSubmitFormTemplate(),
-    'rules_intro_template'       => '',
-    'join_form_template'         => ListingSettingsRepo::defaultJoinFormTemplate(),
+    'members_template'              => ListingSettingsRepo::defaultMembersTemplate(),
+    'affiliates_section_template'   => ListingSettingsRepo::defaultAffiliatesSectionTemplate(),
+    'stats_template'                => ListingSettingsRepo::defaultStatsTemplate(),
+    'updates_template'              => ListingSettingsRepo::defaultUpdatesTemplate(),
+    'adoption_intro_template'       => '',
+    'codes_submit_form_template'    => ListingSettingsRepo::defaultCodesSubmitFormTemplate(),
+    'rules_intro_template'          => '',
+    'join_form_template'            => ListingSettingsRepo::defaultJoinFormTemplate(),
+    'affiliate_apply_form_template' => ListingSettingsRepo::defaultAffiliateApplyFormTemplate(),
 ], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) ?>
 </script>
 

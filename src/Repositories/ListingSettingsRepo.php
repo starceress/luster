@@ -169,23 +169,24 @@ final class ListingSettingsRepo
     public function getTemplates(int $listingId): array
     {
         $defaults = [
-            'stats_template'               => null,
-            'members_template'             => null,
-            'affiliates_section_template'  => null,
-            'updates_template'             => null,
-            'adoption_intro_template'      => null,
-            'codes_submit_form_template'   => null,
-            'rules_intro_template'         => null,
-            'join_form_template'           => null,
+            'stats_template'                => null,
+            'members_template'              => null,
+            'affiliates_section_template'   => null,
+            'updates_template'              => null,
+            'adoption_intro_template'       => null,
+            'codes_submit_form_template'    => null,
+            'rules_intro_template'          => null,
+            'join_form_template'            => null,
+            'affiliate_apply_form_template' => null,
         ];
 
         // Try the widest query first; fall back gracefully as migrations are added.
-        // Tier 1 uses codes_submit_form_template (Migration 70) instead of the retired
-        // codes_submit_intro_template column (dropped by Migration 72).
+        // Tier 1 uses codes_submit_form_template and affiliate_apply_form_template
+        // (both added by Migration 70) instead of the retired intro columns.
         $row = false;
 
         foreach ([
-            'stats_template, members_template, affiliates_section_template, updates_template, adoption_intro_template, codes_submit_form_template, rules_intro_template, join_form_template',
+            'stats_template, members_template, affiliates_section_template, updates_template, adoption_intro_template, codes_submit_form_template, rules_intro_template, join_form_template, affiliate_apply_form_template',
             'stats_template, members_template, affiliates_section_template, updates_template, adoption_intro_template, rules_intro_template',
             'stats_template, members_template, affiliates_section_template, updates_template, adoption_intro_template',
             'stats_template, members_template, affiliates_section_template, updates_template',
@@ -212,14 +213,15 @@ final class ListingSettingsRepo
         $col = static fn(array $r, string $k): ?string => isset($r[$k]) && $r[$k] !== null ? (string) $r[$k] : null;
 
         return [
-            'stats_template'               => $tr($col($row, 'stats_template')),
-            'members_template'             => $tr($col($row, 'members_template')),
-            'affiliates_section_template'  => $tr($col($row, 'affiliates_section_template')),
-            'updates_template'             => $col($row, 'updates_template'),
-            'adoption_intro_template'      => $col($row, 'adoption_intro_template'),
-            'codes_submit_form_template'   => $col($row, 'codes_submit_form_template'),
-            'rules_intro_template'         => $col($row, 'rules_intro_template'),
-            'join_form_template'           => $col($row, 'join_form_template'),
+            'stats_template'                => $tr($col($row, 'stats_template')),
+            'members_template'              => $tr($col($row, 'members_template')),
+            'affiliates_section_template'   => $tr($col($row, 'affiliates_section_template')),
+            'updates_template'              => $col($row, 'updates_template'),
+            'adoption_intro_template'       => $col($row, 'adoption_intro_template'),
+            'codes_submit_form_template'    => $col($row, 'codes_submit_form_template'),
+            'rules_intro_template'          => $col($row, 'rules_intro_template'),
+            'join_form_template'            => $col($row, 'join_form_template'),
+            'affiliate_apply_form_template' => $col($row, 'affiliate_apply_form_template'),
         ];
     }
 
@@ -506,6 +508,25 @@ final class ListingSettingsRepo
     }
 
     /**
+     * Default Affiliate Application Form template used when no override is stored in the database.
+     */
+    public static function defaultAffiliateApplyFormTemplate(): string
+    {
+        return '<h1>Affiliate Application — {listing_title}</h1>' . "\n"
+            . '<div class="fl-form-fields">' . "\n"
+            . '{field_name}' . "\n"
+            . '{field_url}' . "\n"
+            . '{field_email}' . "\n"
+            . '{field_image}' . "\n"
+            . '{field_message}' . "\n"
+            . '{captcha_block}' . "\n"
+            . '</div>' . "\n"
+            . '<div class="fl-form-actions">' . "\n"
+            . '{submit_button}' . "\n"
+            . '</div>';
+    }
+
+    /**
      * Default Codes Submit Form template used when no override is stored in the database.
      */
     public static function defaultCodesSubmitFormTemplate(): string
@@ -522,6 +543,26 @@ final class ListingSettingsRepo
             . '<div class="fl-form-actions">' . "\n"
             . '{submit_button}' . "\n"
             . '</div>';
+    }
+
+    /**
+     * Returns the per-listing Affiliate Apply Form template string, or null when not set /
+     * when Migration 70 has not been run yet.
+     */
+    public function getAffiliateApplyFormTemplate(int $listingId): ?string
+    {
+        try {
+            $stmt = $this->db->prepare(
+                'SELECT affiliate_apply_form_template FROM lstr_fanlisting_settings WHERE fanlisting_id = :id'
+            );
+            $stmt->execute(['id' => $listingId]);
+            $row = $stmt->fetch();
+            return ($row !== false && $row['affiliate_apply_form_template'] !== null)
+                ? (string) $row['affiliate_apply_form_template']
+                : null;
+        } catch (\Exception) {
+            return null;
+        }
     }
 
     /**
@@ -613,28 +654,30 @@ final class ListingSettingsRepo
         ?string $codesSubmitFormTemplate = null,
         ?string $rulesIntroTemplate = null,
         ?string $joinFormTemplate = null,
+        ?string $affiliateApplyFormTemplate = null,
     ): void {
         $attempts = [
             [
                 'sql' => 'INSERT INTO lstr_fanlisting_settings
                      (fanlisting_id, stats_template, members_template, affiliates_section_template,
                       updates_template, adoption_intro_template, codes_submit_form_template,
-                      rules_intro_template, join_form_template)
-                 VALUES (:id, :stats, :members, :section, :updates, :adoption, :codes_form, :rules, :join_form)
+                      rules_intro_template, join_form_template, affiliate_apply_form_template)
+                 VALUES (:id, :stats, :members, :section, :updates, :adoption, :codes_form, :rules, :join_form, :aff_apply_form)
                  ON DUPLICATE KEY UPDATE
-                     stats_template               = VALUES(stats_template),
-                     members_template             = VALUES(members_template),
-                     affiliates_section_template  = VALUES(affiliates_section_template),
-                     updates_template             = VALUES(updates_template),
-                     adoption_intro_template      = VALUES(adoption_intro_template),
-                     codes_submit_form_template   = VALUES(codes_submit_form_template),
-                     rules_intro_template         = VALUES(rules_intro_template),
-                     join_form_template           = VALUES(join_form_template)',
+                     stats_template                = VALUES(stats_template),
+                     members_template              = VALUES(members_template),
+                     affiliates_section_template   = VALUES(affiliates_section_template),
+                     updates_template              = VALUES(updates_template),
+                     adoption_intro_template       = VALUES(adoption_intro_template),
+                     codes_submit_form_template    = VALUES(codes_submit_form_template),
+                     rules_intro_template          = VALUES(rules_intro_template),
+                     join_form_template            = VALUES(join_form_template),
+                     affiliate_apply_form_template = VALUES(affiliate_apply_form_template)',
                 'bind' => ['id' => $listingId, 'stats' => $statsTemplate, 'members' => $membersTemplate,
                            'section' => $affiliatesSectionTemplate, 'updates' => $updatesTemplate,
                            'adoption' => $adoptionIntroTemplate,
                            'codes_form' => $codesSubmitFormTemplate, 'rules' => $rulesIntroTemplate,
-                           'join_form' => $joinFormTemplate],
+                           'join_form' => $joinFormTemplate, 'aff_apply_form' => $affiliateApplyFormTemplate],
             ],
             [
                 'sql' => 'INSERT INTO lstr_fanlisting_settings
