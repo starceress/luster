@@ -29,6 +29,7 @@ CREATE TABLE lstr_fanlisting_settings (
     rules_intro_template          TEXT NULL,
     join_form_template            TEXT NULL,
     affiliate_apply_form_template TEXT NULL,
+    adopt_form_template           TEXT NULL,
     form_url_join                 TEXT NULL,
     form_url_update               TEXT NULL,
     form_url_remove               TEXT NULL,

@@ -1332,6 +1332,7 @@ final class ListingController extends AdminController
             'codes_submit_form_template'    => ListingSettingsRepo::defaultCodesSubmitFormTemplate(),
             'join_form_template'            => ListingSettingsRepo::defaultJoinFormTemplate(),
             'affiliate_apply_form_template' => ListingSettingsRepo::defaultAffiliateApplyFormTemplate(),
+            'adopt_form_template'           => ListingSettingsRepo::defaultAdoptFormTemplate(),
         ];
         $nil = static function (string $raw, string $key = '') use ($defaults): ?string {
             $trimmed = trim($raw);
@@ -1353,12 +1354,13 @@ final class ListingController extends AdminController
         $rulesIntroTemplate        = $nil((string) $request->post('rules_intro_template',           ''));
         $joinFormTemplate          = $nil((string) $request->post('join_form_template',             ''), 'join_form_template');
         $affiliateApplyFormTemplate = $nil((string) $request->post('affiliate_apply_form_template', ''), 'affiliate_apply_form_template');
+        $adoptFormTemplate          = $nil((string) $request->post('adopt_form_template',           ''), 'adopt_form_template');
 
         $settingsRepo = new ListingSettingsRepo($db);
         $settingsRepo->saveTemplates(
             $id, $statsTemplate, $membersTemplate, $affiliatesSectionTemplate,
             $updatesTemplate, $adoptionIntroTemplate, $codesSubmitFormTemplate,
-            $rulesIntroTemplate, $joinFormTemplate, $affiliateApplyFormTemplate,
+            $rulesIntroTemplate, $joinFormTemplate, $affiliateApplyFormTemplate, $adoptFormTemplate,
         );
 
         $this->app->getSession()->set('lstr_flash_success', 'Templates saved successfully.');
@@ -1405,7 +1407,7 @@ final class ListingController extends AdminController
             return $wrap('<p style="color:#c00">Listing not found.</p>');
         }
 
-        $allowed    = ['members', 'affiliates_section', 'stats', 'updates', 'adoption_intro', 'codes_submit_form', 'rules_intro', 'join_form', 'affiliate_apply_form'];
+        $allowed    = ['members', 'affiliates_section', 'stats', 'updates', 'adoption_intro', 'codes_submit_form', 'rules_intro', 'join_form', 'affiliate_apply_form', 'adopt_form'];
         $introTypes = ['adoption_intro', 'rules_intro'];
         if (!in_array($type, $allowed, true)) {
             return $wrap('<p style="color:#c00">Unknown template type.</p>');
@@ -1424,6 +1426,7 @@ final class ListingController extends AdminController
                 'join_form'           => $this->ltplPreviewJoinForm($tpl, $listing),
                 'codes_submit_form'  => $this->ltplPreviewCodesSubmitForm($tpl, $listing),
                 'affiliate_apply_form' => $this->ltplPreviewAffiliateApplyForm($tpl, $listing),
+                'adopt_form'           => $this->ltplPreviewAdoptForm($tpl, $listing),
                 default              => $this->ltplPreviewIntro($tpl, $listing),
             };
         } catch (\Throwable $e) {
@@ -1792,6 +1795,42 @@ final class ListingController extends AdminController
 
         $inner = FormTemplateRenderer::expandTokens($tpl, $tokens);
         return FormTemplateRenderer::wrapForm($inner, '#', $this->app->getCSRF()->token(), true, preview: true);
+    }
+
+    private function ltplPreviewAdoptForm(string $tpl, object $listing): string
+    {
+        $captchaQuestion = Captcha::getQuestion('adopt');
+        $fb = $this->app->getFormFieldBuilder();
+
+        $descriptors = [
+            ['type' => 'text',     'name' => 'name',           'id' => 'adopt-name',    'label' => 'Name',        'required' => true,  'value' => '', 'attrs' => ['maxlength' => '100', 'autocomplete' => 'name']],
+            ['type' => 'email',    'name' => 'email',          'id' => 'adopt-email',   'label' => 'Email',       'required' => true,  'value' => '', 'attrs' => ['maxlength' => '255', 'autocomplete' => 'email']],
+            ['type' => 'url',      'name' => 'url',            'id' => 'adopt-url',     'label' => 'Website URL', 'required' => false, 'value' => '', 'attrs' => ['maxlength' => '500', 'placeholder' => 'https://', 'autocomplete' => 'url'], 'hint' => 'Optional'],
+            ['type' => 'textarea', 'name' => 'message',        'id' => 'adopt-message', 'label' => 'Message',     'required' => false, 'value' => '', 'attrs' => ['maxlength' => '2000', 'rows' => '5'], 'hint' => 'Optional'],
+            ['type' => 'text',     'name' => 'captcha_answer', 'id' => 'adopt-captcha', 'label' => 'Captcha: ' . $captchaQuestion, 'required' => true, 'attrs' => ['maxlength' => '10', 'autocomplete' => 'off']],
+        ];
+        $f = $fb->build($descriptors, '');
+
+        $tokens = [
+            '{listing_title}'        => View::e($listing->title),
+            '{listing_url}'          => View::e($listing->url),
+            '{field_name}'           => $f['name'],
+            '{field_name_input}'     => $f['name_input'],
+            '{field_email}'          => $f['email'],
+            '{field_email_input}'    => $f['email_input'],
+            '{field_url}'            => $f['url'],
+            '{field_url_input}'      => $f['url_input'],
+            '{field_message}'        => $f['message'],
+            '{field_message_input}'  => $f['message_input'],
+            '{captcha_block}'        => $f['captcha_answer'],
+            '{captcha_block_input}'  => $f['captcha_answer_input'],
+            '{captcha_question}'     => View::e($captchaQuestion),
+            '{submit_button}'        => '<button type="submit" class="fl-submit">Submit Application</button>',
+            '{clear_button}'         => '<button type="reset" class="fl-btn-secondary">Clear</button>',
+        ];
+
+        $inner = FormTemplateRenderer::expandTokens($tpl, $tokens);
+        return FormTemplateRenderer::wrapForm($inner, '#', $this->app->getCSRF()->token(), false, preview: true);
     }
 
     // -----------------------------------------------------------------------

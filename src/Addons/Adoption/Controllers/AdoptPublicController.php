@@ -16,15 +16,17 @@ use Luster\Repositories\BlacklistRepo;
 use Luster\Repositories\EmailTemplateRepo;
 use Luster\Repositories\ListingRepo;
 use Luster\Repositories\ListingSettingsRepo;
+use Luster\Core\View;
 use Luster\Support\FormFieldBuilder;
+use Luster\Support\FormTemplateRenderer;
 use Luster\Support\SuccessRenderer;
 
 /**
  * Public adoption application form.
  *
  * Routes (registered by AdoptionAddon::registerRoutes()):
- *   GET  /adopt/{id}  â€” renders the application form.
- *   POST /adopt/{id}  â€” validates input, inserts application, redirects to host page.
+ *   GET  /adopt/{id}  — renders the application form.
+ *   POST /adopt/{id}  — validates input, inserts application, redirects to host page.
  *
  * Only available when the listing has for_adoption=1 in lstr_fanlisting_settings
  * and the listing is not inactive.
@@ -80,7 +82,7 @@ final class AdoptPublicController
             return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $fallbackUrl);
         }
 
-        // Honeypot â€” silent reject; fake success so bots see no difference
+        // Honeypot — silent reject; fake success so bots see no difference
         if ((string) $request->post('website_confirm', '') !== '') {
             $session->remove('lstr_embed_return_to');
             $successTpl = (new ListingSettingsRepo($this->app->getDatabase()))->getSuccessTemplate($listingId) ?? '';
@@ -88,10 +90,10 @@ final class AdoptPublicController
             return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $fallbackUrl);
         }
 
-        // Captcha â€” redirect with flash on failure so the form re-renders with a fresh question
+        // Captcha — redirect with flash on failure so the form re-renders with a fresh question
         if (!Captcha::validate((string) $request->post('captcha_answer', ''), 'adopt')) {
             $rateLimit->hitDefault($ip, RateLimit::ACTION_PUBLIC_ADOPT);
-            $session->set('lstr_flash_error', 'Incorrect answer â€” please try again.');
+            $session->set('lstr_flash_error', 'Incorrect answer — please try again.');
             $session->set('lstr_flash_old', [
                 'name'    => trim((string) $request->post('name',    '')),
                 'email'   => trim((string) $request->post('email',   '')),
@@ -129,7 +131,7 @@ final class AdoptPublicController
             return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $fallbackUrl);
         }
 
-        // Duplicate check â€” one active application per email per listing
+        // Duplicate check — one active application per email per listing
         if ($adoptionRepo->hasPendingApplication($listingId, $email)) {
             $session->set('lstr_flash_error', 'An application for this listing from that email address is already pending review.');
             $session->set('lstr_flash_old', ['name' => $name, 'email' => $email, 'url' => $url, 'message' => $message]);
@@ -251,20 +253,45 @@ final class AdoptPublicController
             ['type' => 'text',     'name' => 'captcha_answer', 'id' => 'adopt-captcha', 'label' => 'Captcha: ' . $captchaQuestion, 'required' => true, 'error' => $captchaError, 'attrs' => ['maxlength' => '10', 'autocomplete' => 'off']],
         ], $wrapperTpl);
 
+        $formHtml = null;
+        $adoptFormTpl = $settingsRepoRaf->getAdoptFormTemplate($listingId) ?? '';
+        if ($adoptFormTpl !== '') {
+            $tokens = [
+                '{listing_title}'        => View::e($listing->title),
+                '{listing_url}'          => View::e($listing->url),
+                '{field_name}'           => $f['name'],
+                '{field_name_input}'     => $f['name_input'],
+                '{field_email}'          => $f['email'],
+                '{field_email_input}'    => $f['email_input'],
+                '{field_url}'            => $f['url'],
+                '{field_url_input}'      => $f['url_input'],
+                '{field_message}'        => $f['message'],
+                '{field_message_input}'  => $f['message_input'],
+                '{captcha_block}'        => $f['captcha_answer'],
+                '{captcha_block_input}'  => $f['captcha_answer_input'],
+                '{captcha_question}'     => View::e($captchaQuestion),
+                '{submit_button}'        => '<button type="submit" class="fl-submit">Submit Application</button>',
+                '{clear_button}'         => '<button type="reset" class="fl-btn-secondary">Clear</button>',
+            ];
+            $innerHtml = FormTemplateRenderer::expandTokens($adoptFormTpl, $tokens);
+            $formHtml  = FormTemplateRenderer::wrapForm($innerHtml, $baseUrl . '/adopt/' . $listingId, $this->app->getCSRF()->token(), false);
+        }
+
         $html = $this->app->getView()->renderPublic('adopt.php', [
-            'listing'            => $listing,
-            'listing_name'       => $listing->title,
-            'listing_url'        => $listing->url,
-            'page_title'         => 'Adopt ' . $listing->title,
-            'form_action'        => $baseUrl . '/adopt/' . $listingId,
-            'csrf_token'         => $this->app->getCSRF()->token(),
-            'errors'             => $error !== ''
+            'listing'             => $listing,
+            'listing_name'        => $listing->title,
+            'listing_url'         => $listing->url,
+            'page_title'          => 'Adopt ' . $listing->title,
+            'form_action'         => $baseUrl . '/adopt/' . $listingId,
+            'csrf_token'          => $this->app->getCSRF()->token(),
+            'errors'              => $error !== ''
                 ? '<p>' . htmlspecialchars($error, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '</p>'
                 : '',
-            'f'                  => $f,
+            'f'                   => $f,
+            'form_html'           => $formHtml,
             'adoption_intro_html' => $adoptionIntroHtml,
-            'base_url'           => $baseUrl,
-            'theme_path'         => $baseUrl . '/assets/css/default/',
+            'base_url'            => $baseUrl,
+            'theme_path'          => $baseUrl . '/assets/css/default/',
         ]);
 
         return Response::html($html);

@@ -3904,7 +3904,8 @@ function adminWireFilterPanel(btnId, panelId, htmlClass) {
     codes_submit_form: 'Code Donation Form Preview', rules_intro: 'Join Rules Intro Preview',
     join_form: 'Join Form Preview', affiliate_apply_form: 'Affiliate Application Form Preview',
     collective_affiliate_apply_form: 'Collective Affiliate Apply Form Preview',
-    kim_signup_form: 'KIM Sign-Up Form Preview'
+    kim_signup_form: 'KIM Sign-Up Form Preview',
+    adopt_form: 'Adopt Form Preview'
   };
 
   function closeColtplModal() {

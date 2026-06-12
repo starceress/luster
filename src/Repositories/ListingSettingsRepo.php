@@ -164,7 +164,7 @@ final class ListingSettingsRepo
     /**
      * Returns all per-listing template overrides. All values are null when no override is saved.
      *
-     * @return array{stats_template: string|null, members_template: string|null, affiliates_section_template: string|null, updates_template: string|null, adoption_intro_template: string|null, codes_submit_form_template: string|null, rules_intro_template: string|null, join_form_template: string|null}
+     * @return array{stats_template: string|null, members_template: string|null, affiliates_section_template: string|null, updates_template: string|null, adoption_intro_template: string|null, codes_submit_form_template: string|null, rules_intro_template: string|null, join_form_template: string|null, affiliate_apply_form_template: string|null, adopt_form_template: string|null}
      */
     public function getTemplates(int $listingId): array
     {
@@ -178,6 +178,7 @@ final class ListingSettingsRepo
             'rules_intro_template'          => null,
             'join_form_template'            => null,
             'affiliate_apply_form_template' => null,
+            'adopt_form_template'           => null,
         ];
 
         // Try the widest query first; fall back gracefully as migrations are added.
@@ -186,7 +187,7 @@ final class ListingSettingsRepo
         $row = false;
 
         foreach ([
-            'stats_template, members_template, affiliates_section_template, updates_template, adoption_intro_template, codes_submit_form_template, rules_intro_template, join_form_template, affiliate_apply_form_template',
+            'stats_template, members_template, affiliates_section_template, updates_template, adoption_intro_template, codes_submit_form_template, rules_intro_template, join_form_template, affiliate_apply_form_template, adopt_form_template',
             'stats_template, members_template, affiliates_section_template, updates_template, adoption_intro_template, rules_intro_template',
             'stats_template, members_template, affiliates_section_template, updates_template, adoption_intro_template',
             'stats_template, members_template, affiliates_section_template, updates_template',
@@ -222,6 +223,7 @@ final class ListingSettingsRepo
             'rules_intro_template'          => $col($row, 'rules_intro_template'),
             'join_form_template'            => $col($row, 'join_form_template'),
             'affiliate_apply_form_template' => $col($row, 'affiliate_apply_form_template'),
+            'adopt_form_template'           => $col($row, 'adopt_form_template'),
         ];
     }
 
@@ -341,6 +343,34 @@ final class ListingSettingsRepo
         }
     }
 
+    public function getAdoptFormTemplate(int $listingId): ?string
+    {
+        try {
+            $stmt = $this->db->prepare(
+                'SELECT adopt_form_template FROM lstr_fanlisting_settings WHERE fanlisting_id = :id'
+            );
+            $stmt->execute(['id' => $listingId]);
+            $row = $stmt->fetch();
+            return ($row !== false && $row['adopt_form_template'] !== null)
+                ? (string) $row['adopt_form_template']
+                : null;
+        } catch (\Exception) {
+            return null;
+        }
+    }
+
+    public static function defaultAdoptFormTemplate(): string
+    {
+        return '{field_name}' . "\n"
+             . '{field_email}' . "\n"
+             . '{field_url}' . "\n"
+             . '{field_message}' . "\n"
+             . '{captcha_block}' . "\n"
+             . '<div class="fl-form-actions">' . "\n"
+             . '{submit_button}' . "\n"
+             . '{clear_button}' . "\n"
+             . '</div>';
+    }
 
     /**
      * Returns the per-listing success/action-confirmation template string, or null
@@ -655,14 +685,15 @@ final class ListingSettingsRepo
         ?string $rulesIntroTemplate = null,
         ?string $joinFormTemplate = null,
         ?string $affiliateApplyFormTemplate = null,
+        ?string $adoptFormTemplate = null,
     ): void {
         $attempts = [
             [
                 'sql' => 'INSERT INTO lstr_fanlisting_settings
                      (fanlisting_id, stats_template, members_template, affiliates_section_template,
                       updates_template, adoption_intro_template, codes_submit_form_template,
-                      rules_intro_template, join_form_template, affiliate_apply_form_template)
-                 VALUES (:id, :stats, :members, :section, :updates, :adoption, :codes_form, :rules, :join_form, :aff_apply_form)
+                      rules_intro_template, join_form_template, affiliate_apply_form_template, adopt_form_template)
+                 VALUES (:id, :stats, :members, :section, :updates, :adoption, :codes_form, :rules, :join_form, :aff_apply_form, :adopt_form)
                  ON DUPLICATE KEY UPDATE
                      stats_template                = VALUES(stats_template),
                      members_template              = VALUES(members_template),
@@ -672,12 +703,14 @@ final class ListingSettingsRepo
                      codes_submit_form_template    = VALUES(codes_submit_form_template),
                      rules_intro_template          = VALUES(rules_intro_template),
                      join_form_template            = VALUES(join_form_template),
-                     affiliate_apply_form_template = VALUES(affiliate_apply_form_template)',
+                     affiliate_apply_form_template = VALUES(affiliate_apply_form_template),
+                     adopt_form_template           = VALUES(adopt_form_template)',
                 'bind' => ['id' => $listingId, 'stats' => $statsTemplate, 'members' => $membersTemplate,
                            'section' => $affiliatesSectionTemplate, 'updates' => $updatesTemplate,
                            'adoption' => $adoptionIntroTemplate,
                            'codes_form' => $codesSubmitFormTemplate, 'rules' => $rulesIntroTemplate,
-                           'join_form' => $joinFormTemplate, 'aff_apply_form' => $affiliateApplyFormTemplate],
+                           'join_form' => $joinFormTemplate, 'aff_apply_form' => $affiliateApplyFormTemplate,
+                           'adopt_form' => $adoptFormTemplate],
             ],
             [
                 'sql' => 'INSERT INTO lstr_fanlisting_settings

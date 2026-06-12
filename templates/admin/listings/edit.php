@@ -503,6 +503,7 @@ $tplUpdatesVal   = ($templates['updates_template']            ?? '') ?: ListingS
 $tplAdoptVal     = $templates['adoption_intro_template']      ?? '';
 $tplCodesFormVal    = ($templates['codes_submit_form_template']    ?? '') ?: ListingSettingsRepo::defaultCodesSubmitFormTemplate();
 $tplAffApplyFormVal = ($templates['affiliate_apply_form_template'] ?? '') ?: ListingSettingsRepo::defaultAffiliateApplyFormTemplate();
+$tplAdoptFormVal    = ($templates['adopt_form_template']           ?? '') ?: ListingSettingsRepo::defaultAdoptFormTemplate();
 $tplRulesVal        = $templates['rules_intro_template']             ?? '';
 $tplJoinFormVal     = ($templates['join_form_template']              ?? '') ?: ListingSettingsRepo::defaultJoinFormTemplate();
 
@@ -596,8 +597,19 @@ $ltok = static fn(string $ta, string $token, string $label, string $desc): strin
           <button type="button" class="btn btn-secondary btn-xs coltpl-preview-btn" data-tpltype="adoption_intro" data-textarea="adoption_intro_template">Preview</button>
           <button type="button" class="btn btn-quaternary btn-xs" data-textarea="adoption_intro_template">Reset to Default</button>
         </div>
+
+        <div class="pc-section-label">Adopt Form</div>
+        <p class="form-hint mb-sm">Controls the full layout of the adoption application form. Use the tokens on the right to arrange fields in any order.</p>
+        <div class="form-group">
+          <textarea id="adopt_form_template" name="adopt_form_template" class="form form-mono" spellcheck="false"><?= View::e($tplAdoptFormVal) ?></textarea>
+        </div>
+        <div class="tpl-reset-row">
+          <button type="button" class="btn btn-secondary btn-xs coltpl-preview-btn" data-tpltype="adopt_form" data-textarea="adopt_form_template">Preview</button>
+          <button type="button" class="btn btn-quaternary btn-xs" data-textarea="adopt_form_template">Reset to Default</button>
+        </div>
         <?php else: ?>
         <input type="hidden" name="adoption_intro_template" value="<?= View::e((string) ($tplAdoptVal ?? '')) ?>">
+        <input type="hidden" name="adopt_form_template" value="<?= View::e((string) ($tplAdoptFormVal ?? '')) ?>">
         <?php endif; ?>
 
         <?php if ($hasCodesSubmit): ?>
@@ -815,6 +827,33 @@ $ltok = static fn(string $ta, string $token, string $label, string $desc): strin
       </details>
       <?php endif; ?>
 
+      <?php if ($hasAdoptionAddon): ?>
+      <!-- Adopt Form -->
+      <details class="card chevron" data-token-card>
+        <summary class="chevron-head">Adopt Form Tokens</summary>
+        <div class="chevron-body">
+          <p class="form-hint mb-sm" data-token-search-help>Arrange and label every field of the adoption application form. Each field token has a "_input" version that prints just the bare input (no label/wrapper) for custom layouts.</p>
+          <table class="et-token-table et-token-table--compact"><tbody>
+            <?= $ltok('adopt_form_template', '{listing_title}',        '{listing_title}',        'The listing\'s display name.') ?>
+            <?= $ltok('adopt_form_template', '{listing_url}',          '{listing_url}',          'The link to the listing.') ?>
+            <?= $ltok('adopt_form_template', '{field_name}',           '{field_name}',           'The Name field, with label and wrapper.') ?>
+            <?= $ltok('adopt_form_template', '{field_name_input}',     '{field_name_input}',     'Just the Name input, no label or wrapper.') ?>
+            <?= $ltok('adopt_form_template', '{field_email}',          '{field_email}',          'The Email field, with label and wrapper.') ?>
+            <?= $ltok('adopt_form_template', '{field_email_input}',    '{field_email_input}',    'Just the Email input, no label or wrapper.') ?>
+            <?= $ltok('adopt_form_template', '{field_url}',            '{field_url}',            'The Website URL field (optional), with label and wrapper.') ?>
+            <?= $ltok('adopt_form_template', '{field_url_input}',      '{field_url_input}',      'Just the Website URL input, no label or wrapper.') ?>
+            <?= $ltok('adopt_form_template', '{field_message}',        '{field_message}',        'The Message textarea (optional), with label and wrapper.') ?>
+            <?= $ltok('adopt_form_template', '{field_message_input}',  '{field_message_input}',  'Just the Message textarea, no label or wrapper.') ?>
+            <?= $ltok('adopt_form_template', '{captcha_block}',        '{captcha_block}',        'The captcha field, with label and wrapper.') ?>
+            <?= $ltok('adopt_form_template', '{captcha_block_input}',  '{captcha_block_input}',  'Just the captcha answer input, no label or wrapper.') ?>
+            <?= $ltok('adopt_form_template', '{captcha_question}',     '{captcha_question}',     'The captcha question text on its own.') ?>
+            <?= $ltok('adopt_form_template', '{submit_button}',        '{submit_button}',        'The "Submit Application" submit button.') ?>
+            <?= $ltok('adopt_form_template', '{clear_button}',         '{clear_button}',         'The "Clear" reset button.') ?>
+          </tbody></table>
+        </div>
+      </details>
+      <?php endif; ?>
+
       <?php if ($hasCodesSubmit): ?>
       <!-- Code Donation Form -->
       <details class="card chevron" data-token-card>
@@ -899,6 +938,7 @@ $ltok = static fn(string $ta, string $token, string $label, string $desc): strin
     'rules_intro_template'          => '',
     'join_form_template'            => ListingSettingsRepo::defaultJoinFormTemplate(),
     'affiliate_apply_form_template' => ListingSettingsRepo::defaultAffiliateApplyFormTemplate(),
+    'adopt_form_template'           => ListingSettingsRepo::defaultAdoptFormTemplate(),
 ], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) ?>
 </script>
 
