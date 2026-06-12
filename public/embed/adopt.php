@@ -3,7 +3,6 @@
 declare(strict_types=1);
 
 use Luster\Core\Captcha;
-use Luster\Core\TemplateEngine;
 use Luster\Core\View;
 use Luster\Repositories\ListingRepo;
 use Luster\Repositories\ListingSettingsRepo;
@@ -120,17 +119,6 @@ $_lusterFormAction = $_lusterBaseUrl . '/adopt/' . $_lusterListingId;
 $_lusterCaptchaQ   = Captcha::getQuestion('adopt');
 $_lusterWrapperTpl = $_lusterSettingsRepo->getWrapperTemplate($_lusterListingId) ?? '';
 
-$_lusterRawAdoptIntro    = $_lusterSettingsRepo->getAdoptionIntroTemplate($_lusterListingId) ?? '';
-$_lusterAdoptionIntroHtml = $_lusterRawAdoptIntro !== ''
-    ? TemplateEngine::render(
-        $_lusterRawAdoptIntro,
-        escaped: [
-            'listing_title'   => $_lusterListing->title,
-            'listing_url'     => $_lusterListing->url,
-            'listing_subject' => $_lusterListing->subject ?? '',
-        ],
-    )
-    : '';
 $_lusterF          = $_lusterApp->getFormFieldBuilder()->build([
     ['type' => 'text',     'name' => 'name',           'id' => 'adopt-name',    'label' => 'Name',    'required' => true,  'value' => (string) ($_lusterOld['name']    ?? ''), 'attrs' => ['maxlength' => '100', 'autocomplete' => 'name']],
     ['type' => 'email',    'name' => 'email',          'id' => 'adopt-email',   'label' => 'Email',   'required' => true,  'value' => (string) ($_lusterOld['email']   ?? ''), 'attrs' => ['maxlength' => '255', 'autocomplete' => 'email']],
@@ -175,7 +163,6 @@ $_lusterHtml = $_lusterApp->getView()->renderFragment('adopt.php', [
         : '',
     'f'                   => $_lusterF,
     'form_html'           => $_lusterFormHtml,
-    'adoption_intro_html' => $_lusterAdoptionIntroHtml,
     'base_url'            => $_lusterApp->getBaseUrl(),
     'theme_path'          => $_lusterApp->getBaseUrl() . '/assets/default/',
 ]);

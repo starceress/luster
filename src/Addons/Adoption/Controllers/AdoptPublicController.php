@@ -233,17 +233,6 @@ final class AdoptPublicController
         $captchaQuestion = Captcha::getQuestion('adopt');
         $settingsRepoRaf = new ListingSettingsRepo($this->app->getDatabase());
         $wrapperTpl      = $settingsRepoRaf->getWrapperTemplate($listingId) ?? '';
-        $rawAdoptIntro   = $settingsRepoRaf->getAdoptionIntroTemplate($listingId) ?? '';
-        $adoptionIntroHtml = $rawAdoptIntro !== ''
-            ? \Luster\Core\TemplateEngine::render(
-                $rawAdoptIntro,
-                escaped: [
-                    'listing_title'   => $listing->title,
-                    'listing_url'     => $listing->url,
-                    'listing_subject' => $listing->subject ?? '',
-                ],
-            )
-            : '';
 
         $f = $this->app->getFormFieldBuilder()->build([
             ['type' => 'text',     'name' => 'name',           'id' => 'adopt-name',    'label' => 'Name',    'required' => true,  'value' => (string) ($old['name']    ?? ''), 'attrs' => ['maxlength' => '100', 'autocomplete' => 'name']],
@@ -289,7 +278,6 @@ final class AdoptPublicController
                 : '',
             'f'                   => $f,
             'form_html'           => $formHtml,
-            'adoption_intro_html' => $adoptionIntroHtml,
             'base_url'            => $baseUrl,
             'theme_path'          => $baseUrl . '/assets/css/default/',
         ]);

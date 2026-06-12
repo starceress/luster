@@ -1349,7 +1349,6 @@ final class ListingController extends AdminController
         $membersTemplate           = $nil((string) $request->post('members_template',             ''), 'members_template');
         $affiliatesSectionTemplate = $nil((string) $request->post('affiliates_section_template',  ''), 'affiliates_section_template');
         $updatesTemplate           = $nil((string) $request->post('updates_template',             ''), 'updates_template');
-        $adoptionIntroTemplate     = $nil((string) $request->post('adoption_intro_template',      ''));
         $codesSubmitFormTemplate   = $nil((string) $request->post('codes_submit_form_template',   ''), 'codes_submit_form_template');
         $rulesIntroTemplate        = $nil((string) $request->post('rules_intro_template',           ''));
         $joinFormTemplate          = $nil((string) $request->post('join_form_template',             ''), 'join_form_template');
@@ -1359,7 +1358,7 @@ final class ListingController extends AdminController
         $settingsRepo = new ListingSettingsRepo($db);
         $settingsRepo->saveTemplates(
             $id, $statsTemplate, $membersTemplate, $affiliatesSectionTemplate,
-            $updatesTemplate, $adoptionIntroTemplate, $codesSubmitFormTemplate,
+            $updatesTemplate, $codesSubmitFormTemplate,
             $rulesIntroTemplate, $joinFormTemplate, $affiliateApplyFormTemplate, $adoptFormTemplate,
         );
 
@@ -1407,8 +1406,8 @@ final class ListingController extends AdminController
             return $wrap('<p style="color:#c00">Listing not found.</p>');
         }
 
-        $allowed    = ['members', 'affiliates_section', 'stats', 'updates', 'adoption_intro', 'codes_submit_form', 'rules_intro', 'join_form', 'affiliate_apply_form', 'adopt_form'];
-        $introTypes = ['adoption_intro', 'rules_intro'];
+        $allowed    = ['members', 'affiliates_section', 'stats', 'updates', 'codes_submit_form', 'rules_intro', 'join_form', 'affiliate_apply_form', 'adopt_form'];
+        $introTypes = ['rules_intro'];
         if (!in_array($type, $allowed, true)) {
             return $wrap('<p style="color:#c00">Unknown template type.</p>');
         }

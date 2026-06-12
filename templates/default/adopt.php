@@ -8,6 +8,7 @@
  *   $csrf_token    string
  *   $errors        string  pre-escaped HTML error block, or ''
  *   $f             array<string,string>  keys: 'name', 'email', 'url', 'message', 'captcha_answer'
+ *   $form_html     string|null  when set, renders custom template and short-circuits default
  */
 
 declare(strict_types=1);
@@ -24,9 +25,6 @@ if (isset($form_html)) {
     return;
 }
 ?>
-<?php if (!empty($adoption_intro_html ?? '')): ?>
-<?= $adoption_intro_html ?>
-<?php endif; ?>
 <div class="fl-embed fl-embed--adopt">
 
   <?php if ($errors !== ''): ?>

@@ -500,7 +500,6 @@ $tplStatsVal     = $_statsNeedsReset($templates['stats_template'] ?? null)
     ? ListingSettingsRepo::defaultStatsTemplate()
     : ($templates['stats_template'] ?? '');
 $tplUpdatesVal   = ($templates['updates_template']            ?? '') ?: ListingSettingsRepo::defaultUpdatesTemplate();
-$tplAdoptVal     = $templates['adoption_intro_template']      ?? '';
 $tplCodesFormVal    = ($templates['codes_submit_form_template']    ?? '') ?: ListingSettingsRepo::defaultCodesSubmitFormTemplate();
 $tplAffApplyFormVal = ($templates['affiliate_apply_form_template'] ?? '') ?: ListingSettingsRepo::defaultAffiliateApplyFormTemplate();
 $tplAdoptFormVal    = ($templates['adopt_form_template']           ?? '') ?: ListingSettingsRepo::defaultAdoptFormTemplate();
@@ -588,16 +587,6 @@ $ltok = static fn(string $ta, string $token, string $label, string $desc): strin
         </div>
 
         <?php if ($hasAdoptionAddon): ?>
-        <div class="pc-section-label">Adoption Form Intro</div>
-        <p class="form-hint mb-sm">Optional HTML displayed above the adoption application form. Leave blank to show nothing.</p>
-        <div class="form-group">
-          <textarea id="adoption_intro_template" name="adoption_intro_template" class="form form-mono" spellcheck="false"><?= View::e($tplAdoptVal) ?></textarea>
-        </div>
-        <div class="tpl-reset-row">
-          <button type="button" class="btn btn-secondary btn-xs coltpl-preview-btn" data-tpltype="adoption_intro" data-textarea="adoption_intro_template">Preview</button>
-          <button type="button" class="btn btn-quaternary btn-xs" data-textarea="adoption_intro_template">Reset to Default</button>
-        </div>
-
         <div class="pc-section-label">Adopt Form</div>
         <p class="form-hint mb-sm">Controls the full layout of the adoption application form. Use the tokens on the right to arrange fields in any order.</p>
         <div class="form-group">
@@ -608,7 +597,6 @@ $ltok = static fn(string $ta, string $token, string $label, string $desc): strin
           <button type="button" class="btn btn-quaternary btn-xs" data-textarea="adopt_form_template">Reset to Default</button>
         </div>
         <?php else: ?>
-        <input type="hidden" name="adoption_intro_template" value="<?= View::e((string) ($tplAdoptVal ?? '')) ?>">
         <input type="hidden" name="adopt_form_template" value="<?= View::e((string) ($tplAdoptFormVal ?? '')) ?>">
         <?php endif; ?>
 
@@ -813,21 +801,6 @@ $ltok = static fn(string $ta, string $token, string $label, string $desc): strin
       </details>
 
       <?php if ($hasAdoptionAddon): ?>
-      <!-- Adoption Form Intro -->
-      <details class="card chevron" data-token-card>
-        <summary class="chevron-head">Adoption Form Intro Tokens</summary>
-        <div class="chevron-body">
-          <p class="form-hint mb-sm" data-token-search-help>Simple substitution tokens for the intro block displayed above the adoption form.</p>
-          <table class="et-token-table et-token-table--compact"><tbody>
-            <?= $ltok('adoption_intro_template', '{listing_title}',   '{listing_title}',   'The listing\'s display name.') ?>
-            <?= $ltok('adoption_intro_template', '{listing_url}',     '{listing_url}',     'The link to the listing.') ?>
-            <?= $ltok('adoption_intro_template', '{listing_subject}', '{listing_subject}', 'What the listing is about.') ?>
-          </tbody></table>
-        </div>
-      </details>
-      <?php endif; ?>
-
-      <?php if ($hasAdoptionAddon): ?>
       <!-- Adopt Form -->
       <details class="card chevron" data-token-card>
         <summary class="chevron-head">Adopt Form Tokens</summary>
@@ -933,7 +906,6 @@ $ltok = static fn(string $ta, string $token, string $label, string $desc): strin
     'affiliates_section_template'   => ListingSettingsRepo::defaultAffiliatesSectionTemplate(),
     'stats_template'                => ListingSettingsRepo::defaultStatsTemplate(),
     'updates_template'              => ListingSettingsRepo::defaultUpdatesTemplate(),
-    'adoption_intro_template'       => '',
     'codes_submit_form_template'    => ListingSettingsRepo::defaultCodesSubmitFormTemplate(),
     'rules_intro_template'          => '',
     'join_form_template'            => ListingSettingsRepo::defaultJoinFormTemplate(),
