@@ -12,12 +12,8 @@ $latestVal          = $ct['latest_listing_template']                     ?: $d['
 $joinedVal          = $ct['joined_template']                             ?: $d['joined_template'];
 $affSectionVal      = $ct['collective_affiliates_section_template']      ?: $d['collective_affiliates_section_template'];
 $statsVal           = $ct['collective_stats_template']                   ?: $d['collective_stats_template'];
-$affApplyFormVal    = ($ct['collective_affiliate_apply_form_template'] ?? '') !== ''
-    ? $ct['collective_affiliate_apply_form_template']
-    : '';
-$kimSignupFormVal   = ($ct['kim_signup_form_template'] ?? '') !== ''
-    ? $ct['kim_signup_form_template']
-    : '';
+$affApplyFormVal    = $ct['collective_affiliate_apply_form_template'] ?: $d['collective_affiliate_apply_form_template'];
+$kimSignupFormVal   = $ct['kim_signup_form_template']                   ?: $d['kim_signup_form_template'];
 
 // Renders one clickable token row for the sidebar reference panel.
 $tok = static fn(string $ta, string $token, string $label, string $desc): string =>
@@ -122,7 +118,7 @@ $tok = static fn(string $ta, string $token, string $label, string $desc): string
         </div>
 
         <div class="pc-section-label">Collective Affiliate Application Form</div>
-        <p class="form-hint mb-sm">Controls the layout of the collective affiliate application form. Leave blank to use the built-in form layout. When set, this template is used by the affiliate-apply embed in collective mode.</p>
+        <p class="form-hint mb-sm">Controls the layout of the collective affiliate application form. Use the tokens on the right to arrange fields. This template is used by the affiliate-apply embed in collective mode.</p>
         <div class="form-group">
           <textarea name="collective_affiliate_apply_form_template" id="collective_affiliate_apply_form_template" class="form form-mono" spellcheck="false"><?= View::e($affApplyFormVal) ?></textarea>
         </div>
@@ -132,7 +128,7 @@ $tok = static fn(string $ta, string $token, string $label, string $desc): string
         </div>
 
         <div class="pc-section-label">KIM Sign-Up Form</div>
-        <p class="form-hint mb-sm">Controls the layout of the KIM (Keep In Mind) sign-up form. Leave blank to use the built-in form layout.</p>
+        <p class="form-hint mb-sm">Controls the layout of the KIM (Keep In Mind) sign-up form. Use the tokens on the right to arrange fields.</p>
         <div class="form-group">
           <textarea name="kim_signup_form_template" id="kim_signup_form_template" class="form form-mono" spellcheck="false"><?= View::e($kimSignupFormVal) ?></textarea>
         </div>

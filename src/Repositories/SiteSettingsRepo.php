@@ -155,11 +155,40 @@ class SiteSettingsRepo
                                       . '</div>' . "\n"
                                       . '{/each_listing}' . "\n"
                                       . '</div>',
-            // Collective affiliate application form: empty string = no custom template (show built-in form).
-            'collective_affiliate_apply_form_template' => '',
-            // KIM sign-up form: empty string = no custom template (show built-in form).
-            'kim_signup_form_template' => '',
+            'collective_affiliate_apply_form_template' => self::defaultCollectiveAffiliateApplyFormTemplate(),
+            'kim_signup_form_template'                   => self::defaultKimSignupFormTemplate(),
         ];
+    }
+
+    public static function defaultCollectiveAffiliateApplyFormTemplate(): string
+    {
+        return '{field_name}' . "\n"
+             . '{field_url}' . "\n"
+             . '{field_email}' . "\n"
+             . '{field_image}' . "\n"
+             . '{field_message}' . "\n"
+             . '{captcha_block}' . "\n"
+             . '<div class="fl-form-actions">' . "\n"
+             . '{submit_button}' . "\n"
+             . '</div>';
+    }
+
+    public static function defaultKimSignupFormTemplate(): string
+    {
+        return '<h2 class="fl-kim-heading">KIM List &mdash; Sign Up</h2>' . "\n"
+             . '<p class="fl-kim-intro">KIM (Keep In Mind) is an adoption interest registry. If a fanlisting owner might someday give up their listing, you can sign up here to express interest in adopting it.</p>' . "\n"
+             . '{field_name}' . "\n"
+             . '{field_url}' . "\n"
+             . '{field_email}' . "\n"
+             . '{field_fanlisting_id}' . "\n"
+             . '{field_password}' . "\n"
+             . '{field_password_confirm}' . "\n"
+             . '{field_send_copy}' . "\n"
+             . '{captcha_block}' . "\n"
+             . '<div class="fl-form-actions">' . "\n"
+             . '{submit_button}' . "\n"
+             . '{clear_button}' . "\n"
+             . '</div>';
     }
 
     /**

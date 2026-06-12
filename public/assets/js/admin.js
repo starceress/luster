@@ -3945,6 +3945,15 @@ function adminWireFilterPanel(btnId, panelId, htmlClass) {
     var ta       = taId ? document.getElementById(taId) : null;
     var tplHtml  = ta ? ta.value : '';
     if (!type) return;
+    if (!tplHtml.trim()) {
+      if (!coltplModal || !coltplIframe) return;
+      if (coltplTitle) coltplTitle.textContent = COLTPL_LABELS[type] || 'Preview';
+      if (coltplSpinner) coltplSpinner.style.display = 'none';
+      coltplIframe.srcdoc = '<body style="font-family:sans-serif;padding:1.5rem;color:#777;font-style:italic">The template is empty. Enter tokens and HTML in the textarea above, then click Preview.</body>';
+      coltplModal.classList.remove('is-hidden');
+      coltplModal.style.display = 'flex';
+      return;
+    }
     loadColtplPreview(type, tplHtml);
   });
 

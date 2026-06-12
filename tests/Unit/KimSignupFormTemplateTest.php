@@ -19,10 +19,12 @@ final class KimSignupFormTemplateTest extends TestCase
         self::assertArrayHasKey('kim_signup_form_template', $defaults);
     }
 
-    public function testKimSignupFormTemplateDefaultIsEmptyString(): void
+    public function testKimSignupFormTemplateDefaultIsNonEmpty(): void
     {
         $defaults = SiteSettingsRepo::collectiveDefaults();
 
-        self::assertSame('', $defaults['kim_signup_form_template']);
+        self::assertNotSame('', $defaults['kim_signup_form_template']);
+        self::assertStringContainsString('{field_name}', $defaults['kim_signup_form_template']);
+        self::assertStringContainsString('{submit_button}', $defaults['kim_signup_form_template']);
     }
 }
