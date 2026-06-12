@@ -3900,8 +3900,9 @@ function adminWireFilterPanel(btnId, panelId, htmlClass) {
     collective_affiliates_section: 'Affiliates Preview', collective_stats: 'Statistics Preview',
     members: 'Members List Preview', affiliates_section: 'Affiliates Section Preview',
     stats: 'Statistics Preview', updates: 'Updates Feed Preview',
-    join_intro: 'Join Form Intro Preview', adoption_intro: 'Adoption Form Intro Preview',
-    codes_submit_intro: 'Code Donation Intro Preview', rules_intro: 'Join Rules Intro Preview'
+    adoption_intro: 'Adoption Form Intro Preview',
+    codes_submit_form: 'Code Donation Form Preview', rules_intro: 'Join Rules Intro Preview',
+    join_form: 'Join Form Preview'
   };
 
   function closeColtplModal() {

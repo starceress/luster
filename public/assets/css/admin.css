@@ -1046,7 +1046,8 @@ tr.row-warning { background-color: var(--warn-bg); }
 
 .link-break { word-break: break-all; }
 
-.mem-url { display: block; font-size: var(--fs-sm); font-weight: 400; word-break: break-all; overflow-wrap: anywhere; }
+.mem-url { display: block; font-size: var(--fs-sm); color: var(--text-dim); font-weight: 400; word-break: break-all; overflow-wrap: anywhere; }
+
 .email-wrap { word-break: break-all; overflow-wrap: anywhere; }
 
 .action-form-inline { display: contents; }

@@ -39,16 +39,21 @@ final class FormTemplateRenderer
     /**
      * Wraps already-expanded form body HTML in a <form> tag with the CSRF
      * field and the standard "website_confirm" honeypot field.
+     *
+     * Set $preview to true for admin preview iframes — adds
+     * onsubmit="return false;" so the Submit/Clear buttons don't navigate.
      */
     public static function wrapForm(
         string $innerHtml,
         string $action,
         string $csrfToken,
         bool   $multipart,
+        bool   $preview = false,
     ): string {
         $enctype = $multipart ? ' enctype="multipart/form-data"' : '';
+        $onsubmit = $preview ? ' onsubmit="return false;"' : '';
 
-        return '<form class="fl-form" method="POST" action="' . View::e($action) . '"' . $enctype . '>'
+        return '<form class="fl-form" method="POST" action="' . View::e($action) . '"' . $enctype . $onsubmit . '>'
              . '<input type="hidden" name="_csrf" value="' . View::e($csrfToken) . '">'
              . '<div style="display:none" aria-hidden="true"><input type="text" name="website_confirm" tabindex="-1" autocomplete="off"></div>'
              . $innerHtml

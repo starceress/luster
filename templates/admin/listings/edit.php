@@ -500,10 +500,10 @@ $tplStatsVal     = $_statsNeedsReset($templates['stats_template'] ?? null)
     ? ListingSettingsRepo::defaultStatsTemplate()
     : ($templates['stats_template'] ?? '');
 $tplUpdatesVal   = ($templates['updates_template']            ?? '') ?: ListingSettingsRepo::defaultUpdatesTemplate();
-$tplJoinVal      = $templates['join_intro_template']          ?? '';
 $tplAdoptVal     = $templates['adoption_intro_template']      ?? '';
-$tplCodesVal     = $templates['codes_submit_intro_template']  ?? '';
+$tplCodesFormVal = ($templates['codes_submit_form_template']  ?? '') ?: ListingSettingsRepo::defaultCodesSubmitFormTemplate();
 $tplRulesVal     = $templates['rules_intro_template']         ?? '';
+$tplJoinFormVal  = ($templates['join_form_template']          ?? '') ?: ListingSettingsRepo::defaultJoinFormTemplate();
 
 // tok() helper — matches the collective templates page pattern
 $ltok = static fn(string $ta, string $token, string $label, string $desc): string =>
@@ -575,14 +575,14 @@ $ltok = static fn(string $ta, string $token, string $label, string $desc): strin
         <input type="hidden" name="updates_template" value="<?= View::e((string) ($tplUpdatesVal ?? '')) ?>">
         <?php endif; ?>
 
-        <div class="pc-section-label">Join Form Intro</div>
-        <p class="form-hint mb-sm">Optional HTML displayed <em>above</em> the join form. Use tokens to personalise it. Leave blank to show nothing.</p>
+        <div class="pc-section-label">Join Form</div>
+        <p class="form-hint mb-sm">Controls the full layout of the join form, including every field. Write any introductory text directly at the top of the template. Use the tokens below to arrange fields in any order.</p>
         <div class="form-group">
-          <textarea id="join_intro_template" name="join_intro_template" class="form form-mono" spellcheck="false"><?= View::e($tplJoinVal) ?></textarea>
+          <textarea id="join_form_template" name="join_form_template" class="form form-mono" spellcheck="false"><?= View::e($tplJoinFormVal) ?></textarea>
         </div>
         <div class="tpl-reset-row">
-          <button type="button" class="btn btn-secondary btn-xs coltpl-preview-btn" data-tpltype="join_intro" data-textarea="join_intro_template">Preview</button>
-          <button type="button" class="btn btn-quaternary btn-xs" data-textarea="join_intro_template">Reset to Default</button>
+          <button type="button" class="btn btn-secondary btn-xs coltpl-preview-btn" data-tpltype="join_form" data-textarea="join_form_template">Preview</button>
+          <button type="button" class="btn btn-quaternary btn-xs" data-textarea="join_form_template">Reset to Default</button>
         </div>
 
         <?php if ($hasAdoptionAddon): ?>
@@ -600,17 +600,17 @@ $ltok = static fn(string $ta, string $token, string $label, string $desc): strin
         <?php endif; ?>
 
         <?php if ($hasCodesSubmit): ?>
-        <div class="pc-section-label">Code Donation Intro</div>
-        <p class="form-hint mb-sm">Optional HTML displayed above the code donation form. Leave blank to show the default description text.</p>
+        <div class="pc-section-label">Code Donation Form</div>
+        <p class="form-hint mb-sm">Controls the full layout of the code donation form. Write any introductory text directly at the top of the template. Use the tokens below to arrange fields in any order.</p>
         <div class="form-group">
-          <textarea id="codes_submit_intro_template" name="codes_submit_intro_template" class="form form-mono" spellcheck="false"><?= View::e($tplCodesVal) ?></textarea>
+          <textarea id="codes_submit_form_template" name="codes_submit_form_template" class="form form-mono" spellcheck="false"><?= View::e($tplCodesFormVal) ?></textarea>
         </div>
         <div class="tpl-reset-row">
-          <button type="button" class="btn btn-secondary btn-xs coltpl-preview-btn" data-tpltype="codes_submit_intro" data-textarea="codes_submit_intro_template">Preview</button>
-          <button type="button" class="btn btn-quaternary btn-xs" data-textarea="codes_submit_intro_template">Reset to Default</button>
+          <button type="button" class="btn btn-secondary btn-xs coltpl-preview-btn" data-tpltype="codes_submit_form" data-textarea="codes_submit_form_template">Preview</button>
+          <button type="button" class="btn btn-quaternary btn-xs" data-textarea="codes_submit_form_template">Reset to Default</button>
         </div>
         <?php else: ?>
-        <input type="hidden" name="codes_submit_intro_template" value="<?= View::e((string) ($tplCodesVal ?? '')) ?>">
+        <input type="hidden" name="codes_submit_form_template" value="<?= View::e((string) ($tplCodesFormVal ?? '')) ?>">
         <?php endif; ?>
 
         <?php if ($hasRulesAddon): ?>
@@ -754,15 +754,33 @@ $ltok = static fn(string $ta, string $token, string $label, string $desc): strin
       </details>
       <?php endif; ?>
 
-      <!-- Join Form Intro -->
+      <!-- Join Form -->
       <details class="card chevron" data-token-card>
-        <summary class="chevron-head">Join Form Intro Tokens</summary>
+        <summary class="chevron-head">Join Form Tokens</summary>
         <div class="chevron-body">
-          <p class="form-hint mb-sm" data-token-search-help>Simple substitution tokens for the intro block displayed above the join form.</p>
+          <p class="form-hint mb-sm" data-token-search-help>Arrange and label every field of the join form, and write any introductory text directly into the template. Each field token has a "_input" version that prints just the bare input (no label/wrapper) for custom layouts.</p>
           <table class="et-token-table et-token-table--compact"><tbody>
-            <?= $ltok('join_intro_template', '{listing_title}',   '{listing_title}',   'The listing\'s display name.') ?>
-            <?= $ltok('join_intro_template', '{listing_url}',     '{listing_url}',     'The link to the listing.') ?>
-            <?= $ltok('join_intro_template', '{listing_subject}', '{listing_subject}', 'What the listing is about.') ?>
+            <?= $ltok('join_form_template', '{listing_title}', '{listing_title}', 'The listing\'s display name.') ?>
+            <?= $ltok('join_form_template', '{listing_url}',   '{listing_url}',   'The link to the listing.') ?>
+            <?= $ltok('join_form_template', '{field_name}',       '{field_name}',       'The Name field, with label and wrapper.') ?>
+            <?= $ltok('join_form_template', '{field_name_input}', '{field_name_input}', 'Just the Name input, no label or wrapper.') ?>
+            <?= $ltok('join_form_template', '{field_email}',       '{field_email}',       'The Email field, with label and wrapper.') ?>
+            <?= $ltok('join_form_template', '{field_email_input}', '{field_email_input}', 'Just the Email input, no label or wrapper.') ?>
+            <?= $ltok('join_form_template', '{field_url}',       '{field_url}',       'The Website URL field, with label and wrapper.') ?>
+            <?= $ltok('join_form_template', '{field_url_input}', '{field_url_input}', 'Just the Website URL input, no label or wrapper.') ?>
+            <?= $ltok('join_form_template', '{field_country}',       '{field_country}',       'The Country field, with label and wrapper. Empty when the country field is disabled for this listing.') ?>
+            <?= $ltok('join_form_template', '{field_country_input}', '{field_country_input}', 'Just the Country select, no label or wrapper. Empty when the country field is disabled for this listing.') ?>
+            <?= $ltok('join_form_template', '{additional_fields}',       '{additional_fields}',       'All admin-defined additional fields, with labels and wrappers, in order.') ?>
+            <?= $ltok('join_form_template', '{additional_fields_input}', '{additional_fields_input}', 'All admin-defined additional fields as bare inputs only, in order.') ?>
+            <?= $ltok('join_form_template', '{field_password}',       '{field_password}',       'The Password field, with label and wrapper.') ?>
+            <?= $ltok('join_form_template', '{field_password_input}', '{field_password_input}', 'Just the Password input, no label or wrapper.') ?>
+            <?= $ltok('join_form_template', '{field_password_confirm}',       '{field_password_confirm}',       'The Confirm Password field, with label and wrapper.') ?>
+            <?= $ltok('join_form_template', '{field_password_confirm_input}', '{field_password_confirm_input}', 'Just the Confirm Password input, no label or wrapper.') ?>
+            <?= $ltok('join_form_template', '{captcha_block}',       '{captcha_block}',       'The captcha question field, with label and wrapper.') ?>
+            <?= $ltok('join_form_template', '{captcha_block_input}', '{captcha_block_input}', 'Just the captcha answer input, no label or wrapper.') ?>
+            <?= $ltok('join_form_template', '{captcha_question}', '{captcha_question}', 'The captcha question text on its own, e.g. for use inside a custom label.') ?>
+            <?= $ltok('join_form_template', '{submit_button}', '{submit_button}', 'The "Join Fanlisting" submit button.') ?>
+            <?= $ltok('join_form_template', '{clear_button}',  '{clear_button}',  'The "Clear" reset button.') ?>
           </tbody></table>
         </div>
       </details>
@@ -783,15 +801,26 @@ $ltok = static fn(string $ta, string $token, string $label, string $desc): strin
       <?php endif; ?>
 
       <?php if ($hasCodesSubmit): ?>
-      <!-- Code Donation Intro -->
+      <!-- Code Donation Form -->
       <details class="card chevron" data-token-card>
-        <summary class="chevron-head">Code Donation Intro Tokens</summary>
+        <summary class="chevron-head">Code Donation Form Tokens</summary>
         <div class="chevron-body">
-          <p class="form-hint mb-sm" data-token-search-help>Simple substitution tokens for the intro block displayed above the code donation form.</p>
+          <p class="form-hint mb-sm" data-token-search-help>Arrange and label every field of the code donation form. Write any introductory text directly into the template. Each field token has a "_input" version that prints just the bare input (no label/wrapper) for custom layouts.</p>
           <table class="et-token-table et-token-table--compact"><tbody>
-            <?= $ltok('codes_submit_intro_template', '{listing_title}',   '{listing_title}',   'The listing\'s display name.') ?>
-            <?= $ltok('codes_submit_intro_template', '{listing_url}',     '{listing_url}',     'The link to the listing.') ?>
-            <?= $ltok('codes_submit_intro_template', '{listing_subject}', '{listing_subject}', 'What the listing is about.') ?>
+            <?= $ltok('codes_submit_form_template', '{listing_title}', '{listing_title}', 'The listing\'s display name.') ?>
+            <?= $ltok('codes_submit_form_template', '{listing_url}',   '{listing_url}',   'The link to the listing.') ?>
+            <?= $ltok('codes_submit_form_template', '{field_code_image}',       '{field_code_image}',       'The file upload field, with label and wrapper.') ?>
+            <?= $ltok('codes_submit_form_template', '{field_code_image_input}', '{field_code_image_input}', 'Just the file input, no label or wrapper.') ?>
+            <?= $ltok('codes_submit_form_template', '{field_submitter_name}',       '{field_submitter_name}',       'The Name field, with label and wrapper.') ?>
+            <?= $ltok('codes_submit_form_template', '{field_submitter_name_input}', '{field_submitter_name_input}', 'Just the Name input, no label or wrapper.') ?>
+            <?= $ltok('codes_submit_form_template', '{field_submitter_email}',       '{field_submitter_email}',       'The Email field, with label and wrapper.') ?>
+            <?= $ltok('codes_submit_form_template', '{field_submitter_email_input}', '{field_submitter_email_input}', 'Just the Email input, no label or wrapper.') ?>
+            <?= $ltok('codes_submit_form_template', '{field_submitter_url}',       '{field_submitter_url}',       'The Website field, with label and wrapper.') ?>
+            <?= $ltok('codes_submit_form_template', '{field_submitter_url_input}', '{field_submitter_url_input}', 'Just the Website input, no label or wrapper.') ?>
+            <?= $ltok('codes_submit_form_template', '{captcha_block}',       '{captcha_block}',       'The captcha question field, with label and wrapper.') ?>
+            <?= $ltok('codes_submit_form_template', '{captcha_block_input}', '{captcha_block_input}', 'Just the captcha answer input, no label or wrapper.') ?>
+            <?= $ltok('codes_submit_form_template', '{captcha_question}', '{captcha_question}', 'The captcha question text on its own, e.g. for use inside a custom label.') ?>
+            <?= $ltok('codes_submit_form_template', '{submit_button}', '{submit_button}', 'The "Submit Code" submit button.') ?>
           </tbody></table>
         </div>
       </details>
@@ -822,10 +851,10 @@ $ltok = static fn(string $ta, string $token, string $label, string $desc): strin
     'affiliates_section_template' => ListingSettingsRepo::defaultAffiliatesSectionTemplate(),
     'stats_template'              => ListingSettingsRepo::defaultStatsTemplate(),
     'updates_template'            => ListingSettingsRepo::defaultUpdatesTemplate(),
-    'join_intro_template'         => '',
-    'adoption_intro_template'     => '',
-    'codes_submit_intro_template' => '',
-    'rules_intro_template'        => '',
+    'adoption_intro_template'    => '',
+    'codes_submit_form_template' => ListingSettingsRepo::defaultCodesSubmitFormTemplate(),
+    'rules_intro_template'       => '',
+    'join_form_template'         => ListingSettingsRepo::defaultJoinFormTemplate(),
 ], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) ?>
 </script>
 

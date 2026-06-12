@@ -4,11 +4,14 @@ declare(strict_types=1);
 
 namespace Luster\Controllers\Admin;
 
+use Luster\Core\Captcha;
+use Luster\Core\Countries;
 use Luster\Core\Mailer;
 use Luster\Core\Request;
 use Luster\Core\Response;
 use Luster\Core\TemplateEngine;
 use Luster\Core\Validator;
+use Luster\Core\View;
 use Luster\Repositories\ActivityRepo;
 use Luster\Repositories\AffiliateRepo;
 use Luster\Repositories\CategoryRepo;
@@ -21,6 +24,7 @@ use Luster\Repositories\ListingRepo;
 use Luster\Repositories\ListingSettingsRepo;
 use Luster\Repositories\MemberRepo;
 use Luster\Repositories\SiteSettingsRepo;
+use Luster\Support\FormTemplateRenderer;
 use Luster\Support\MemberStatsService;
 
 /**
@@ -1321,10 +1325,12 @@ final class ListingController extends AdminController
         // (keeps templates "linked" to the code default so future default
         // changes flow through without needing a per-listing migration).
         $defaults = [
-            'stats_template'              => ListingSettingsRepo::defaultStatsTemplate(),
-            'members_template'            => ListingSettingsRepo::defaultMembersTemplate(),
-            'affiliates_section_template' => ListingSettingsRepo::defaultAffiliatesSectionTemplate(),
-            'updates_template'            => ListingSettingsRepo::defaultUpdatesTemplate(),
+            'stats_template'             => ListingSettingsRepo::defaultStatsTemplate(),
+            'members_template'           => ListingSettingsRepo::defaultMembersTemplate(),
+            'affiliates_section_template'=> ListingSettingsRepo::defaultAffiliatesSectionTemplate(),
+            'updates_template'           => ListingSettingsRepo::defaultUpdatesTemplate(),
+            'codes_submit_form_template' => ListingSettingsRepo::defaultCodesSubmitFormTemplate(),
+            'join_form_template'         => ListingSettingsRepo::defaultJoinFormTemplate(),
         ];
         $nil = static function (string $raw, string $key = '') use ($defaults): ?string {
             $trimmed = trim($raw);
@@ -1341,16 +1347,16 @@ final class ListingController extends AdminController
         $membersTemplate           = $nil((string) $request->post('members_template',             ''), 'members_template');
         $affiliatesSectionTemplate = $nil((string) $request->post('affiliates_section_template',  ''), 'affiliates_section_template');
         $updatesTemplate           = $nil((string) $request->post('updates_template',             ''), 'updates_template');
-        $joinIntroTemplate         = $nil((string) $request->post('join_intro_template',          ''));
         $adoptionIntroTemplate     = $nil((string) $request->post('adoption_intro_template',      ''));
-        $codesSubmitIntroTemplate  = $nil((string) $request->post('codes_submit_intro_template',  ''));
+        $codesSubmitFormTemplate   = $nil((string) $request->post('codes_submit_form_template',   ''), 'codes_submit_form_template');
         $rulesIntroTemplate        = $nil((string) $request->post('rules_intro_template',         ''));
+        $joinFormTemplate          = $nil((string) $request->post('join_form_template',           ''), 'join_form_template');
 
         $settingsRepo = new ListingSettingsRepo($db);
         $settingsRepo->saveTemplates(
             $id, $statsTemplate, $membersTemplate, $affiliatesSectionTemplate,
-            $updatesTemplate, $joinIntroTemplate, $adoptionIntroTemplate, $codesSubmitIntroTemplate,
-            $rulesIntroTemplate,
+            $updatesTemplate, $adoptionIntroTemplate, $codesSubmitFormTemplate,
+            $rulesIntroTemplate, $joinFormTemplate,
         );
 
         $this->app->getSession()->set('lstr_flash_success', 'Templates saved successfully.');
@@ -1397,8 +1403,8 @@ final class ListingController extends AdminController
             return $wrap('<p style="color:#c00">Listing not found.</p>');
         }
 
-        $allowed     = ['members', 'affiliates_section', 'stats', 'updates', 'join_intro', 'adoption_intro', 'codes_submit_intro', 'rules_intro'];
-        $introTypes  = ['join_intro', 'adoption_intro', 'codes_submit_intro', 'rules_intro'];
+        $allowed    = ['members', 'affiliates_section', 'stats', 'updates', 'adoption_intro', 'codes_submit_form', 'rules_intro', 'join_form'];
+        $introTypes = ['adoption_intro', 'rules_intro'];
         if (!in_array($type, $allowed, true)) {
             return $wrap('<p style="color:#c00">Unknown template type.</p>');
         }
@@ -1409,11 +1415,13 @@ final class ListingController extends AdminController
         try {
             $uploadsBase = $appUrl . '/uploads';
             $html = match ($type) {
-                'members'             => $this->ltplPreviewMembers($tpl, $listing, $db, $config, $uploadsBase . '/members'),
-                'affiliates_section'  => $this->ltplPreviewAffiliates($tpl, $listing, $db, $uploadsBase . '/affiliates'),
-                'stats'               => $this->ltplPreviewStats($tpl, $listing, $db, $config),
-                'updates'             => $this->ltplPreviewUpdates($tpl, $listing, $db),
-                default               => $this->ltplPreviewIntro($tpl, $listing),
+                'members'            => $this->ltplPreviewMembers($tpl, $listing, $db, $config, $uploadsBase . '/members'),
+                'affiliates_section' => $this->ltplPreviewAffiliates($tpl, $listing, $db, $uploadsBase . '/affiliates'),
+                'stats'              => $this->ltplPreviewStats($tpl, $listing, $db, $config),
+                'updates'            => $this->ltplPreviewUpdates($tpl, $listing, $db),
+                'join_form'          => $this->ltplPreviewJoinForm($tpl, $listing),
+                'codes_submit_form'  => $this->ltplPreviewCodesSubmitForm($tpl, $listing),
+                default              => $this->ltplPreviewIntro($tpl, $listing),
             };
         } catch (\Throwable $e) {
             $html = '<p style="color:#c00;font-family:monospace">Preview error: '
@@ -1646,6 +1654,103 @@ final class ListingController extends AdminController
                 'listing_subject' => $listing->subject ?? '',
             ],
         );
+    }
+
+    private function ltplPreviewJoinForm(string $tpl, object $listing): string
+    {
+        $captchaQuestion = Captcha::getQuestion('join');
+        $countrySelect   = Countries::buildSelect('');
+        $fb = $this->app->getFormFieldBuilder();
+
+        $db     = $this->app->getDatabase();
+        $config = $this->app->getConfig();
+
+        $settingsRepo        = new ListingSettingsRepo($db);
+        $countryFieldEnabled = (bool) $settingsRepo->getEmbedSettings((int) $listing->id)['country_field_enabled'];
+
+        $fieldRepo = new FieldRepo($db, $config);
+        $fields    = $fieldRepo->getFieldsForListing((int) $listing->id);
+
+        $descriptors = [
+            ['type' => 'text',     'name' => 'name',             'id' => 'join-name',             'label' => 'Name',             'required' => true,  'value' => '', 'attrs' => ['maxlength' => '100', 'autocomplete' => 'name']],
+            ['type' => 'email',    'name' => 'email',            'id' => 'join-email',            'label' => 'Email',            'required' => true,  'value' => '', 'attrs' => ['maxlength' => '255', 'autocomplete' => 'email']],
+            ['type' => 'url',      'name' => 'url',              'id' => 'join-url',              'label' => 'Website URL',      'required' => false, 'value' => '', 'attrs' => ['maxlength' => '500', 'placeholder' => 'https://', 'autocomplete' => 'url'], 'hint' => 'Optional'],
+            ['type' => 'text',     'name' => 'country',          'id' => '',                      'label' => 'Country',          'required' => $countryFieldEnabled, 'raw_input' => $countrySelect],
+            ...$fb->descriptorsFromAdditionalFields($fields, []),
+            ['type' => 'password', 'name' => 'password',         'id' => 'join-password',         'label' => 'Password',         'required' => false, 'attrs' => ['maxlength' => '255', 'autocomplete' => 'new-password'], 'hint' => 'Optional — one will be emailed to you if left blank'],
+            ['type' => 'password', 'name' => 'password_confirm', 'id' => 'join-password-confirm', 'label' => 'Confirm Password', 'required' => false, 'attrs' => ['maxlength' => '255', 'autocomplete' => 'new-password']],
+            ['type' => 'text',     'name' => 'captcha_answer',   'id' => 'join-captcha',          'label' => 'Captcha: ' . $captchaQuestion, 'required' => true, 'attrs' => ['maxlength' => '10', 'autocomplete' => 'off']],
+        ];
+        $f = $fb->build($descriptors, '');
+
+        $additionalFieldsHtml      = implode("\n", array_map(
+            fn($field) => $f['field_' . $field->name] ?? '', $fields,
+        ));
+        $additionalFieldsInputHtml = implode("\n", array_map(
+            fn($field) => $f['field_' . $field->name . '_input'] ?? '', $fields,
+        ));
+
+        $tokens = [
+            '{listing_title}'                 => View::e($listing->title),
+            '{listing_url}'                   => View::e($listing->url),
+            '{field_name}'                     => $f['name'],
+            '{field_name_input}'               => $f['name_input'],
+            '{field_email}'                    => $f['email'],
+            '{field_email_input}'              => $f['email_input'],
+            '{field_url}'                      => $f['url'],
+            '{field_url_input}'                => $f['url_input'],
+            '{field_country}'                  => $countryFieldEnabled ? $f['country'] : '',
+            '{field_country_input}'            => $countryFieldEnabled ? $f['country_input'] : '',
+            '{additional_fields}'              => $additionalFieldsHtml,
+            '{additional_fields_input}'        => $additionalFieldsInputHtml,
+            '{field_password}'                 => $f['password'],
+            '{field_password_input}'           => $f['password_input'],
+            '{field_password_confirm}'         => $f['password_confirm'],
+            '{field_password_confirm_input}'   => $f['password_confirm_input'],
+            '{captcha_block}'                  => $f['captcha_answer'],
+            '{captcha_block_input}'            => $f['captcha_answer_input'],
+            '{captcha_question}'               => View::e($captchaQuestion),
+            '{submit_button}'                  => '<button type="submit" class="fl-submit">Join Fanlisting</button>',
+            '{clear_button}'                   => '<button type="reset" class="fl-btn-secondary">Clear</button>',
+        ];
+
+        $inner = FormTemplateRenderer::expandTokens($tpl, $tokens);
+        return FormTemplateRenderer::wrapForm($inner, '#', $this->app->getCSRF()->token(), false, preview: true);
+    }
+
+    private function ltplPreviewCodesSubmitForm(string $tpl, object $listing): string
+    {
+        $captchaQuestion = Captcha::getQuestion('code_submit');
+        $fb = $this->app->getFormFieldBuilder();
+
+        $descriptors = [
+            ['type' => 'file',  'name' => 'code_image',      'id' => 'code-image',  'label' => 'Upload Code',       'required' => true,  'attrs' => ['accept' => 'image/jpeg,image/png,image/gif,image/webp']],
+            ['type' => 'text',  'name' => 'submitter_name',  'id' => 'sub-name',    'label' => 'Name (optional)',    'required' => false, 'value' => '', 'attrs' => ['maxlength' => '150', 'autocomplete' => 'name']],
+            ['type' => 'email', 'name' => 'submitter_email', 'id' => 'sub-email',   'label' => 'Email',             'required' => true,  'value' => '', 'attrs' => ['maxlength' => '255', 'autocomplete' => 'email'], 'hint' => 'Required — used only to notify you when your code is approved.'],
+            ['type' => 'url',   'name' => 'submitter_url',   'id' => 'sub-url',     'label' => 'Website (optional)', 'required' => false, 'value' => '', 'attrs' => ['maxlength' => '255', 'placeholder' => 'https://', 'autocomplete' => 'url'], 'hint' => 'Displayed as a link on your donated code.'],
+            ['type' => 'text',  'name' => 'captcha',         'id' => 'captcha',     'label' => 'Captcha: ' . $captchaQuestion, 'required' => true, 'attrs' => ['maxlength' => '10', 'autocomplete' => 'off']],
+        ];
+        $f = $fb->build($descriptors, '');
+
+        $tokens = [
+            '{listing_title}'               => View::e($listing->title),
+            '{listing_url}'                 => View::e($listing->url),
+            '{field_code_image}'            => $f['code_image'],
+            '{field_code_image_input}'      => $f['code_image_input'],
+            '{field_submitter_name}'        => $f['submitter_name'],
+            '{field_submitter_name_input}'  => $f['submitter_name_input'],
+            '{field_submitter_email}'       => $f['submitter_email'],
+            '{field_submitter_email_input}' => $f['submitter_email_input'],
+            '{field_submitter_url}'         => $f['submitter_url'],
+            '{field_submitter_url_input}'   => $f['submitter_url_input'],
+            '{captcha_block}'               => $f['captcha'],
+            '{captcha_block_input}'         => $f['captcha_input'],
+            '{captcha_question}'            => View::e($captchaQuestion),
+            '{submit_button}'               => '<button type="submit" class="fl-submit">Submit Code</button>',
+        ];
+
+        $inner = FormTemplateRenderer::expandTokens($tpl, $tokens);
+        return FormTemplateRenderer::wrapForm($inner, '#', $this->app->getCSRF()->token(), true, preview: true);
     }
 
     // -----------------------------------------------------------------------

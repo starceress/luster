@@ -229,7 +229,7 @@ final class Countries
             htmlspecialchars($v, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 
         $html  = '<select class="fl-select" id="' . $e($id) . '" name="' . $e($name) . '">';
-        $html .= '<option value=""></option>';
+        $html .= '<option value="" disabled' . ($selected === '' ? ' selected' : '') . '>&mdash; Select a Country &mdash;</option>';
 
         foreach (self::list() as $country) {
             $sel   = ($country === $selected) ? ' selected' : '';

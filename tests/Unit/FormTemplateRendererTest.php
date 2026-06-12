@@ -124,4 +124,18 @@ final class FormTemplateRendererTest extends TestCase
 
         self::assertStringContainsString('value="a&quot;b&lt;c&gt;"', $html);
     }
+
+    public function testWrapFormPreviewAddsNonSubmittingAttribute(): void
+    {
+        $html = FormTemplateRenderer::wrapForm('<p>inner</p>', '#', 'tok123', false, preview: true);
+
+        self::assertStringContainsString('onsubmit="return false;"', $html);
+    }
+
+    public function testWrapFormDefaultOmitsNonSubmittingAttribute(): void
+    {
+        $html = FormTemplateRenderer::wrapForm('<p>inner</p>', '/join/1', 'tok123', false);
+
+        self::assertStringNotContainsString('onsubmit', $html);
+    }
 }

@@ -50,7 +50,7 @@ final class FieldWrapperTest extends TestCase
         $withHint    = $this->wrapper->render('', '<input>', 'Avatar', 'join-avatar', false, 'JPEG, PNG, or GIF only');
         $withoutHint = $this->wrapper->render('', '<input>', 'Avatar', 'join-avatar', false);
 
-        self::assertStringContainsString('<small>JPEG, PNG, or GIF only</small>', $withHint);
+        self::assertStringContainsString('<small class="fl-field-hint">JPEG, PNG, or GIF only</small>', $withHint);
         self::assertStringNotContainsString('<small>', $withoutHint);
     }
 
@@ -59,8 +59,8 @@ final class FieldWrapperTest extends TestCase
         $withError    = $this->wrapper->render('', '<input>', 'Captcha', 'join-captcha', true, '', 'Incorrect answer.');
         $withoutError = $this->wrapper->render('', '<input>', 'Captcha', 'join-captcha', true);
 
-        self::assertStringContainsString('<p class="fl-error">Incorrect answer.</p>', $withError);
-        self::assertStringNotContainsString('fl-error', $withoutError);
+        self::assertStringContainsString('<p class="fl-field-error">Incorrect answer.</p>', $withError);
+        self::assertStringNotContainsString('fl-field-error', $withoutError);
     }
 
     public function testInputIsInsertedAsTrustedRawHtmlNotEscaped(): void

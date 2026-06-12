@@ -15,19 +15,24 @@ use Luster\Core\View;
  *   $errors        string  (pre-escaped HTML or empty string)
  *   $f             array<string,string>  keys: code_image, submitter_name, submitter_email, submitter_url, captcha
  *   $base_url      string
+ *   $form_html     string|null  pre-rendered custom form; when set, default markup is skipped
  */
 
 ?>
-<?php if (!empty($codes_submit_intro_html ?? '')): ?>
-<?= $codes_submit_intro_html ?>
+<?php if (isset($form_html)): ?>
+<div class="fl-embed fl-embed--codes-submit">
+  <?php if ($errors !== ''): ?>
+    <div class="fl-errors"><?= $errors ?></div>
+  <?php endif; ?>
+  <?= $form_html ?>
+</div>
+<?php return; ?>
 <?php endif; ?>
 <div class="fl-embed fl-embed--codes-submit">
-  <?php if (empty($codes_submit_intro_html ?? '')): ?>
   <p>
     Submit a code image for consideration. All submissions are reviewed before being published.
     Maximum file size: 200&nbsp;KB. Accepted formats: JPEG, PNG, GIF, WebP.
   </p>
-  <?php endif; ?>
 
   <?php if ($errors !== ''): ?>
     <p><?= $errors ?></p>

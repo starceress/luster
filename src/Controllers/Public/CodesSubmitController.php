@@ -9,27 +9,29 @@ use Luster\Core\Captcha;
 use Luster\Core\RateLimit;
 use Luster\Core\Request;
 use Luster\Core\Response;
+use Luster\Core\View;
 use Luster\Repositories\BlacklistRepo;
 use Luster\Repositories\CodesRepo;
 use Luster\Repositories\ListingRepo;
 use Luster\Repositories\ListingSettingsRepo;
 use Luster\Repositories\SiteSettingsRepo;
 use Luster\Support\FormFieldBuilder;
+use Luster\Support\FormTemplateRenderer;
 use Luster\Support\SuccessRenderer;
 
 /**
- * Public fan code submission â€” allows fans to submit code images for review.
+ * Public fan code submission â€" allows fans to submit code images for review.
  *
  * Routes:
- *   GET  /codes/submit/{id}  â€” show submission form
- *   POST /codes/submit/{id}  â€” process submission (stores as pending), redirects to host page
+ *   GET  /codes/submit/{id}  â€" show submission form
+ *   POST /codes/submit/{id}  â€" process submission (stores as pending), redirects to host page
  */
 final class CodesSubmitController
 {
     /** Allowed MIME types for submitted code images. */
     private const ALLOWED_MIME = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
 
-    /** Maximum upload size per file (200 KB â€” tighter limit for fan submissions). */
+    /** Maximum upload size per file (200 KB â€" tighter limit for fan submissions). */
     private const MAX_SIZE = 204_800;
 
     public function __construct(private readonly Application $app) {}
@@ -78,45 +80,63 @@ final class CodesSubmitController
 
         $captchaQuestion = Captcha::getQuestion('code_submit');
 
-        $codesSubmitIntroHtml = '';
         if ($isCollective) {
             $wrapperTpl = (new SiteSettingsRepo($this->app->getDatabase()))->get('collective_field_wrapper_template', '') ?? '';
         } else {
             $settingsRepoRcs = new ListingSettingsRepo($this->app->getDatabase());
             $wrapperTpl      = $settingsRepoRcs->getWrapperTemplate($listingId) ?? '';
-            $rawCsIntro      = $settingsRepoRcs->getCodesSubmitIntroTemplate($listingId) ?? '';
-            if ($rawCsIntro !== '') {
-                $codesSubmitIntroHtml = \Luster\Core\TemplateEngine::render(
-                    $rawCsIntro,
-                    escaped: [
-                        'listing_title'   => $listing->title,
-                        'listing_url'     => $listing->url ?? '',
-                        'listing_subject' => $listing->subject ?? '',
-                    ],
-                );
-            }
         }
 
         $f = $this->app->getFormFieldBuilder()->build([
             ['type' => 'file',  'name' => 'code_image',      'id' => 'code-image',  'label' => 'Upload Code',         'required' => true,  'attrs' => ['accept' => 'image/jpeg,image/png,image/gif,image/webp']],
             ['type' => 'text',  'name' => 'submitter_name',  'id' => 'sub-name',    'label' => 'Name (optional)',      'required' => false, 'value' => (string) ($old['submitter_name']  ?? ''), 'attrs' => ['maxlength' => '150', 'autocomplete' => 'name']],
-            ['type' => 'email', 'name' => 'submitter_email', 'id' => 'sub-email',   'label' => 'Email',               'required' => true,  'value' => (string) ($old['submitter_email'] ?? ''), 'attrs' => ['maxlength' => '255', 'autocomplete' => 'email'], 'hint' => 'Required â€” used only to notify you when your code is approved.'],
+            ['type' => 'email', 'name' => 'submitter_email', 'id' => 'sub-email',   'label' => 'Email',               'required' => true,  'value' => (string) ($old['submitter_email'] ?? ''), 'attrs' => ['maxlength' => '255', 'autocomplete' => 'email'], 'hint' => 'Required — used only to notify you when your code is approved.'],
             ['type' => 'url',   'name' => 'submitter_url',   'id' => 'sub-url',     'label' => 'Website (optional)',   'required' => false, 'value' => (string) ($old['submitter_url']   ?? ''), 'attrs' => ['maxlength' => '255', 'placeholder' => 'https://', 'autocomplete' => 'url'], 'hint' => 'Displayed as a link on your donated code.'],
             ['type' => 'text',  'name' => 'captcha',         'id' => 'captcha',     'label' => 'Captcha: ' . $captchaQuestion, 'required' => true, 'attrs' => ['maxlength' => '10', 'autocomplete' => 'off']],
         ], $wrapperTpl);
 
+        $formHtml = null;
+        if (!$isCollective) {
+            $csFormTpl = $settingsRepoRcs->getCodesSubmitFormTemplate($listingId) ?? '';
+            if ($csFormTpl !== '') {
+                $tokens = [
+                    '{listing_title}'               => View::e($listingName),
+                    '{listing_url}'                 => View::e($listingUrl),
+                    '{field_code_image}'            => $f['code_image'],
+                    '{field_code_image_input}'      => $f['code_image_input'],
+                    '{field_submitter_name}'        => $f['submitter_name'],
+                    '{field_submitter_name_input}'  => $f['submitter_name_input'],
+                    '{field_submitter_email}'       => $f['submitter_email'],
+                    '{field_submitter_email_input}' => $f['submitter_email_input'],
+                    '{field_submitter_url}'         => $f['submitter_url'],
+                    '{field_submitter_url_input}'   => $f['submitter_url_input'],
+                    '{captcha_block}'               => $f['captcha'],
+                    '{captcha_block_input}'         => $f['captcha_input'],
+                    '{captcha_question}'            => View::e($captchaQuestion),
+                    '{submit_button}'               => '<button type="submit" class="fl-submit">Submit Code</button>',
+                ];
+                $innerHtml = FormTemplateRenderer::expandTokens($csFormTpl, $tokens);
+                $formHtml  = FormTemplateRenderer::wrapForm(
+                    $innerHtml,
+                    $baseUrl . '/codes/submit/' . $listingId,
+                    $this->app->getCSRF()->token(),
+                    true,
+                );
+            }
+        }
+
         return Response::html($this->app->getView()->renderPublic('codes-submit.php', [
-            'listing'                  => $listing,
-            'listing_name'             => $listingName,
-            'listing_url'              => $listingUrl,
-            'page_title'               => 'Submit a Code — ' . $listingName,
-            'base_url'                 => $baseUrl,
-            'theme_path'               => $baseUrl . '/assets/css/default/',
-            'form_action'              => $baseUrl . '/codes/submit/' . $listingId,
-            'csrf_token'               => $this->app->getCSRF()->token(),
-            'errors'                   => htmlspecialchars($error, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),
-            'f'                        => $f,
-            'codes_submit_intro_html'  => $codesSubmitIntroHtml,
+            'listing'      => $listing,
+            'listing_name' => $listingName,
+            'listing_url'  => $listingUrl,
+            'page_title'   => 'Submit a Code — ' . $listingName,
+            'base_url'     => $baseUrl,
+            'theme_path'   => $baseUrl . '/assets/css/default/',
+            'form_action'  => $baseUrl . '/codes/submit/' . $listingId,
+            'csrf_token'   => $this->app->getCSRF()->token(),
+            'errors'       => htmlspecialchars($error, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),
+            'f'            => $f,
+            'form_html'    => $formHtml,
         ]));
     }
 
@@ -167,7 +187,7 @@ final class CodesSubmitController
             return Response::redirect($submitUrl);
         }
 
-        // Honeypot â€” bots fill the hidden field; humans leave it blank
+        // Honeypot â€" bots fill the hidden field; humans leave it blank
         if ((string) $request->post('website_confirm', '') !== '') {
             $session->remove('lstr_embed_return_to');
             $session->set('lstr_flash_success_html', SuccessRenderer::render('', 'code-submitted'));

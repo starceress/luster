@@ -4,11 +4,12 @@ declare(strict_types=1);
 
 use Luster\Core\Captcha;
 use Luster\Core\Countries;
-use Luster\Core\TemplateEngine;
+use Luster\Core\View;
 use Luster\Repositories\ListingRepo;
 use Luster\Repositories\ListingSettingsRepo;
 use Luster\Repositories\FieldRepo;
 use Luster\Support\FormFieldBuilder;
+use Luster\Support\FormTemplateRenderer;
 
 /**
  * Luster embed — join form fragment.
@@ -120,26 +121,15 @@ $_lusterBaseUrl    = rtrim((string) $_lusterApp->getConfig()->get('embed_base_ur
 $_lusterFormAction = $_lusterBaseUrl . '/join/' . $_lusterListingId;
 $_lusterWrapperTpl = $_lusterSettingsRepo->getWrapperTemplate($_lusterListingId) ?? '';
 
-$_lusterRawJoinIntro = $_lusterSettingsRepo->getJoinIntroTemplate($_lusterListingId) ?? '';
-$_lusterJoinIntroHtml = $_lusterRawJoinIntro !== ''
-    ? TemplateEngine::render(
-        $_lusterRawJoinIntro,
-        escaped: [
-            'listing_title'   => $_lusterListing->title,
-            'listing_url'     => $_lusterListing->url,
-            'listing_subject' => $_lusterListing->subject ?? '',
-        ],
-    )
-    : '';
-
-$_lusterCaptchaQ   = Captcha::getQuestion('join');
-$_lusterCountrySel = Countries::buildSelect((string) ($_lusterOld['country'] ?? ''));
+$_lusterCaptchaQ      = Captcha::getQuestion('join');
+$_lusterCountrySel    = Countries::buildSelect((string) ($_lusterOld['country'] ?? ''));
+$_lusterCountryEnabled = (bool) ($_lusterEmbedSettings['country_field_enabled'] ?? true);
 $_lusterFb         = $_lusterApp->getFormFieldBuilder();
 $_lusterDescriptors = [
     ['type' => 'text',     'name' => 'name',             'id' => 'join-name',             'label' => 'Name',             'required' => true,  'value' => (string) ($_lusterOld['name']  ?? ''), 'attrs' => ['maxlength' => '100', 'autocomplete' => 'name']],
     ['type' => 'email',    'name' => 'email',            'id' => 'join-email',            'label' => 'Email',            'required' => true,  'value' => (string) ($_lusterOld['email'] ?? ''), 'attrs' => ['maxlength' => '255', 'autocomplete' => 'email']],
     ['type' => 'url',      'name' => 'url',              'id' => 'join-url',              'label' => 'Website URL',      'required' => false, 'value' => (string) ($_lusterOld['url']   ?? ''), 'attrs' => ['maxlength' => '500', 'placeholder' => 'https://', 'autocomplete' => 'url'], 'hint' => 'Optional'],
-    ['type' => 'text',     'name' => 'country',          'id' => '',                      'label' => 'Country',          'required' => true,  'raw_input' => $_lusterCountrySel],
+    ['type' => 'text',     'name' => 'country',          'id' => '',                      'label' => 'Country',          'required' => $_lusterCountryEnabled, 'raw_input' => $_lusterCountrySel],
     ...$_lusterFb->descriptorsFromAdditionalFields($_lusterFields, $_lusterOld),
     ['type' => 'password', 'name' => 'password',         'id' => 'join-password',         'label' => 'Password',         'required' => false, 'attrs' => ['maxlength' => '255', 'autocomplete' => 'new-password'], 'hint' => 'Optional — one will be emailed to you if left blank'],
     ['type' => 'password', 'name' => 'password_confirm', 'id' => 'join-password-confirm', 'label' => 'Confirm Password', 'required' => false, 'attrs' => ['maxlength' => '255', 'autocomplete' => 'new-password']],
@@ -147,21 +137,65 @@ $_lusterDescriptors = [
 ];
 $_lusterF = $_lusterFb->build($_lusterDescriptors, $_lusterWrapperTpl);
 
+$_lusterFormHtml    = null;
+$_lusterJoinFormTpl = $_lusterSettingsRepo->getJoinFormTemplate($_lusterListingId) ?? '';
+if ($_lusterJoinFormTpl !== '') {
+    $_lusterAdditionalFieldsHtml      = implode("\n", array_map(
+        fn($field) => $_lusterF['field_' . $field->name] ?? '', $_lusterFields,
+    ));
+    $_lusterAdditionalFieldsInputHtml = implode("\n", array_map(
+        fn($field) => $_lusterF['field_' . $field->name . '_input'] ?? '', $_lusterFields,
+    ));
+
+    $_lusterTokens = [
+        '{listing_title}'                => View::e($_lusterListing->title),
+        '{listing_url}'                  => View::e($_lusterListing->url),
+        '{field_name}'                    => $_lusterF['name'],
+        '{field_name_input}'              => $_lusterF['name_input'],
+        '{field_email}'                   => $_lusterF['email'],
+        '{field_email_input}'             => $_lusterF['email_input'],
+        '{field_url}'                     => $_lusterF['url'],
+        '{field_url_input}'               => $_lusterF['url_input'],
+        '{field_country}'                 => $_lusterCountryEnabled ? $_lusterF['country'] : '',
+        '{field_country_input}'           => $_lusterCountryEnabled ? $_lusterF['country_input'] : '',
+        '{additional_fields}'             => $_lusterAdditionalFieldsHtml,
+        '{additional_fields_input}'       => $_lusterAdditionalFieldsInputHtml,
+        '{field_password}'                => $_lusterF['password'],
+        '{field_password_input}'          => $_lusterF['password_input'],
+        '{field_password_confirm}'        => $_lusterF['password_confirm'],
+        '{field_password_confirm_input}'  => $_lusterF['password_confirm_input'],
+        '{captcha_block}'                 => $_lusterF['captcha_answer'],
+        '{captcha_block_input}'           => $_lusterF['captcha_answer_input'],
+        '{captcha_question}'              => View::e($_lusterCaptchaQ),
+        '{submit_button}'                 => '<button type="submit" class="fl-submit">Join Fanlisting</button>',
+        '{clear_button}'                  => '<button type="reset" class="fl-btn-secondary">Clear</button>',
+    ];
+
+    $_lusterInnerHtml = FormTemplateRenderer::expandTokens($_lusterJoinFormTpl, $_lusterTokens);
+    $_lusterFormHtml  = FormTemplateRenderer::wrapForm(
+        $_lusterInnerHtml,
+        $_lusterFormAction,
+        $_lusterApp->getCSRF()->token(),
+        false,
+    );
+}
+
 $_lusterHtml = $_lusterApp->getView()->renderFragment('join.php', [
-    'listing'         => $_lusterListing,
-    'listing_name'    => $_lusterListing->title,
-    'listing_url'     => $_lusterListing->url,
-    'page_title'      => 'Join',
-    'form_action'     => $_lusterFormAction,
-    'csrf_token'      => $_lusterApp->getCSRF()->token(),
-    'errors'          => $_lusterError !== ''
+    'listing'               => $_lusterListing,
+    'listing_name'          => $_lusterListing->title,
+    'listing_url'           => $_lusterListing->url,
+    'page_title'            => 'Join',
+    'form_action'           => $_lusterFormAction,
+    'csrf_token'            => $_lusterApp->getCSRF()->token(),
+    'errors'                => $_lusterError !== ''
         ? '<p>' . htmlspecialchars($_lusterError, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '</p>'
         : '',
-    'fields'          => $_lusterFields,
-    'f'               => $_lusterF,
-    'join_intro_html' => $_lusterJoinIntroHtml,
-    'base_url'        => $_lusterApp->getBaseUrl(),
-    'theme_path'      => $_lusterApp->getBaseUrl() . '/assets/default/',
+    'fields'                => $_lusterFields,
+    'f'                     => $_lusterF,
+    'base_url'              => $_lusterApp->getBaseUrl(),
+    'theme_path'            => $_lusterApp->getBaseUrl() . '/assets/default/',
+    'country_field_enabled' => $_lusterCountryEnabled,
+    'form_html'             => $_lusterFormHtml,
 ]);
 
 if ($luster_return ?? false) {

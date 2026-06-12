@@ -3,21 +3,30 @@
  * Join form — content fragment.
  *
  * Variables injected by JoinController / embed/join.php:
- *   $listing_name  string
- *   $form_action   string
- *   $csrf_token    string
- *   $errors        string  pre-escaped HTML error block, or ''
- *   $fields        AdditionalField[]  used to echo additional fields in order
- *   $f             array<string,string>  wrapped field HTML keyed by field name
- *   $base_url      string
+ *   $listing_name           string
+ *   $form_action            string
+ *   $csrf_token             string
+ *   $errors                 string  pre-escaped HTML error block, or ''
+ *   $fields                 AdditionalField[]  used to echo additional fields in order
+ *   $f                      array<string,string>  wrapped field HTML keyed by field name
+ *   $base_url               string
+ *   $country_field_enabled  bool  whether to render the country field
+ *   $form_html              ?string  pre-rendered <form> HTML when a custom
+ *                           join_form_template is set; bypasses the markup below
  */
 
 declare(strict_types=1);
 
 use Luster\Core\View;
 ?>
-<?php if (!empty($join_intro_html ?? '')): ?>
-<?= $join_intro_html ?>
+<?php if (isset($form_html)): ?>
+<div class="fl-embed fl-embed--join">
+  <?php if ($errors !== ''): ?>
+    <div class="fl-errors"><?= $errors ?></div>
+  <?php endif; ?>
+  <?= $form_html ?>
+</div>
+<?php return; ?>
 <?php endif; ?>
 <div class="fl-embed fl-embed--join">
 
@@ -31,7 +40,9 @@ use Luster\Core\View;
     <?= $f['name'] ?>
     <?= $f['email'] ?>
     <?= $f['url'] ?>
-    <?= $f['country'] ?>
+    <?php if ($country_field_enabled ?? true): ?>
+      <?= $f['country'] ?>
+    <?php endif; ?>
 
     <?php foreach ($fields as $_field): ?>
       <?= $f['field_' . $_field->name] ?? '' ?>

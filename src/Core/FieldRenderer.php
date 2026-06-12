@@ -40,6 +40,7 @@ final class FieldRenderer
         return '<input type="password"'
              . ' id="' . View::e($id) . '"'
              . ' name="' . View::e($name) . '"'
+             . ' class="fl-input"'
              . ($required ? ' required' : '')
              . $this->renderAttrs($attrs)
              . '>';
@@ -50,6 +51,7 @@ final class FieldRenderer
         return '<textarea'
              . ' id="' . View::e($id) . '"'
              . ' name="' . View::e($name) . '"'
+             . ' class="fl-textarea"'
              . ($required ? ' required' : '')
              . $this->renderAttrs($attrs)
              . '>' . View::e($value) . '</textarea>';
@@ -71,6 +73,7 @@ final class FieldRenderer
         return '<select'
              . ' id="' . View::e($id) . '"'
              . ' name="' . View::e($name) . '"'
+             . ' class="fl-select"'
              . ($required ? ' required' : '')
              . $this->renderAttrs($attrs)
              . '>' . $optionsHtml . '</select>';
@@ -192,6 +195,7 @@ final class FieldRenderer
              . ' id="' . View::e($id) . '"'
              . ' name="' . View::e($name) . '"'
              . ' value="' . View::e($value) . '"'
+             . ' class="fl-input"'
              . ($required ? ' required' : '')
              . $this->renderAttrs($attrs)
              . '>';

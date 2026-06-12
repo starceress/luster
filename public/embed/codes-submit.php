@@ -3,9 +3,10 @@
 declare(strict_types=1);
 
 use Luster\Core\Captcha;
-use Luster\Core\TemplateEngine;
+use Luster\Core\View;
 use Luster\Repositories\CodesRepo;
 use Luster\Repositories\ListingRepo;
+use Luster\Support\FormTemplateRenderer;
 
 /**
  * Luster embed — fan code submission form fragment.
@@ -123,23 +124,11 @@ if ($_lusterSuccess !== '') {
 
 $_lusterCaptchaQ = Captcha::getQuestion('code_submit');
 
-$_lusterCsIntroHtml = '';
 if ($_lusterIsCollective) {
     $_lusterWrapperTpl = (new \Luster\Repositories\SiteSettingsRepo($_lusterDb))->get('collective_field_wrapper_template', '') ?? '';
 } else {
     $_lusterCsSettingsRepo = new \Luster\Repositories\ListingSettingsRepo($_lusterDb);
     $_lusterWrapperTpl     = $_lusterCsSettingsRepo->getWrapperTemplate($_lusterListingId) ?? '';
-    $_lusterRawCsIntro     = $_lusterCsSettingsRepo->getCodesSubmitIntroTemplate($_lusterListingId) ?? '';
-    if ($_lusterRawCsIntro !== '') {
-        $_lusterCsIntroHtml = TemplateEngine::render(
-            $_lusterRawCsIntro,
-            escaped: [
-                'listing_title'   => $_lusterListing->title,
-                'listing_url'     => $_lusterListing->url ?? '',
-                'listing_subject' => $_lusterListing->subject ?? '',
-            ],
-        );
-    }
 }
 
 $_lusterF = $_lusterApp->getFormFieldBuilder()->build([
@@ -150,16 +139,46 @@ $_lusterF = $_lusterApp->getFormFieldBuilder()->build([
     ['type' => 'text',  'name' => 'captcha',         'id' => 'captcha',     'label' => 'Captcha: ' . $_lusterCaptchaQ, 'required' => true, 'attrs' => ['maxlength' => '10', 'autocomplete' => 'off']],
 ], $_lusterWrapperTpl);
 
+$_lusterFormHtml = null;
+if (!$_lusterIsCollective) {
+    $_lusterCsFormTpl = $_lusterCsSettingsRepo->getCodesSubmitFormTemplate($_lusterListingId) ?? '';
+    if ($_lusterCsFormTpl !== '') {
+        $_lusterCsTokens = [
+            '{listing_title}'               => View::e($_lusterListingName),
+            '{listing_url}'                 => View::e($_lusterListingUrl),
+            '{field_code_image}'            => $_lusterF['code_image'],
+            '{field_code_image_input}'      => $_lusterF['code_image_input'],
+            '{field_submitter_name}'        => $_lusterF['submitter_name'],
+            '{field_submitter_name_input}'  => $_lusterF['submitter_name_input'],
+            '{field_submitter_email}'       => $_lusterF['submitter_email'],
+            '{field_submitter_email_input}' => $_lusterF['submitter_email_input'],
+            '{field_submitter_url}'         => $_lusterF['submitter_url'],
+            '{field_submitter_url_input}'   => $_lusterF['submitter_url_input'],
+            '{captcha_block}'               => $_lusterF['captcha'],
+            '{captcha_block_input}'         => $_lusterF['captcha_input'],
+            '{captcha_question}'            => View::e($_lusterCaptchaQ),
+            '{submit_button}'               => '<button type="submit" class="fl-submit">Submit Code</button>',
+        ];
+        $_lusterInnerHtml = FormTemplateRenderer::expandTokens($_lusterCsFormTpl, $_lusterCsTokens);
+        $_lusterFormHtml  = FormTemplateRenderer::wrapForm(
+            $_lusterInnerHtml,
+            $_lusterFormAction,
+            $_lusterApp->getCSRF()->token(),
+            true,
+        );
+    }
+}
+
 $_lusterHtml = $_lusterApp->getView()->renderFragment('codes-submit.php', [
-    'listing'                 => $_lusterListing,
-    'listing_name'            => $_lusterListingName,
-    'listing_url'             => $_lusterListingUrl,
-    'form_action'             => $_lusterFormAction,
-    'csrf_token'              => $_lusterApp->getCSRF()->token(),
-    'errors'                  => htmlspecialchars($_lusterError, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),
-    'f'                       => $_lusterF,
-    'codes_submit_intro_html' => $_lusterCsIntroHtml,
-    'base_url'                => $_lusterBaseUrl,
+    'listing'      => $_lusterListing,
+    'listing_name' => $_lusterListingName,
+    'listing_url'  => $_lusterListingUrl,
+    'form_action'  => $_lusterFormAction,
+    'csrf_token'   => $_lusterApp->getCSRF()->token(),
+    'errors'       => htmlspecialchars($_lusterError, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),
+    'f'            => $_lusterF,
+    'form_html'    => $_lusterFormHtml,
+    'base_url'     => $_lusterBaseUrl,
 ]);
 
 if ($luster_return ?? false) {

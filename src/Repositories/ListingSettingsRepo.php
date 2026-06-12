@@ -164,7 +164,7 @@ final class ListingSettingsRepo
     /**
      * Returns all per-listing template overrides. All values are null when no override is saved.
      *
-     * @return array{stats_template: string|null, members_template: string|null, affiliates_section_template: string|null, updates_template: string|null, join_intro_template: string|null, adoption_intro_template: string|null, codes_submit_intro_template: string|null, rules_intro_template: string|null}
+     * @return array{stats_template: string|null, members_template: string|null, affiliates_section_template: string|null, updates_template: string|null, adoption_intro_template: string|null, codes_submit_form_template: string|null, rules_intro_template: string|null, join_form_template: string|null}
      */
     public function getTemplates(int $listingId): array
     {
@@ -173,19 +173,21 @@ final class ListingSettingsRepo
             'members_template'             => null,
             'affiliates_section_template'  => null,
             'updates_template'             => null,
-            'join_intro_template'          => null,
             'adoption_intro_template'      => null,
-            'codes_submit_intro_template'  => null,
+            'codes_submit_form_template'   => null,
             'rules_intro_template'         => null,
+            'join_form_template'           => null,
         ];
 
         // Try the widest query first; fall back gracefully as migrations are added.
-        $cols  = 'stats_template, members_template, affiliates_section_template, updates_template, join_intro_template, adoption_intro_template, codes_submit_intro_template, rules_intro_template';
-        $row   = false;
+        // Tier 1 uses codes_submit_form_template (Migration 70) instead of the retired
+        // codes_submit_intro_template column (dropped by Migration 72).
+        $row = false;
 
         foreach ([
-            $cols,
-            'stats_template, members_template, affiliates_section_template, updates_template, join_intro_template, adoption_intro_template, codes_submit_intro_template',
+            'stats_template, members_template, affiliates_section_template, updates_template, adoption_intro_template, codes_submit_form_template, rules_intro_template, join_form_template',
+            'stats_template, members_template, affiliates_section_template, updates_template, adoption_intro_template, rules_intro_template',
+            'stats_template, members_template, affiliates_section_template, updates_template, adoption_intro_template',
             'stats_template, members_template, affiliates_section_template, updates_template',
             'stats_template, members_template, affiliates_section_template',
             'stats_template, members_template',
@@ -214,10 +216,10 @@ final class ListingSettingsRepo
             'members_template'             => $tr($col($row, 'members_template')),
             'affiliates_section_template'  => $tr($col($row, 'affiliates_section_template')),
             'updates_template'             => $col($row, 'updates_template'),
-            'join_intro_template'          => $col($row, 'join_intro_template'),
             'adoption_intro_template'      => $col($row, 'adoption_intro_template'),
-            'codes_submit_intro_template'  => $col($row, 'codes_submit_intro_template'),
+            'codes_submit_form_template'   => $col($row, 'codes_submit_form_template'),
             'rules_intro_template'         => $col($row, 'rules_intro_template'),
+            'join_form_template'           => $col($row, 'join_form_template'),
         ];
     }
 
@@ -301,16 +303,20 @@ final class ListingSettingsRepo
         }
     }
 
-    public function getJoinIntroTemplate(int $listingId): ?string
+    /**
+     * Returns the per-listing Join Form template string, or null when not set /
+     * when Migration 70 has not been run yet.
+     */
+    public function getJoinFormTemplate(int $listingId): ?string
     {
         try {
             $stmt = $this->db->prepare(
-                'SELECT join_intro_template FROM lstr_fanlisting_settings WHERE fanlisting_id = :id'
+                'SELECT join_form_template FROM lstr_fanlisting_settings WHERE fanlisting_id = :id'
             );
             $stmt->execute(['id' => $listingId]);
             $row = $stmt->fetch();
-            return ($row !== false && $row['join_intro_template'] !== null)
-                ? (string) $row['join_intro_template']
+            return ($row !== false && $row['join_form_template'] !== null)
+                ? (string) $row['join_form_template']
                 : null;
         } catch (\Exception) {
             return null;
@@ -333,21 +339,6 @@ final class ListingSettingsRepo
         }
     }
 
-    public function getCodesSubmitIntroTemplate(int $listingId): ?string
-    {
-        try {
-            $stmt = $this->db->prepare(
-                'SELECT codes_submit_intro_template FROM lstr_fanlisting_settings WHERE fanlisting_id = :id'
-            );
-            $stmt->execute(['id' => $listingId]);
-            $row = $stmt->fetch();
-            return ($row !== false && $row['codes_submit_intro_template'] !== null)
-                ? (string) $row['codes_submit_intro_template']
-                : null;
-        } catch (\Exception) {
-            return null;
-        }
-    }
 
     /**
      * Returns the per-listing success/action-confirmation template string, or null
@@ -489,6 +480,71 @@ final class ListingSettingsRepo
     }
 
     /**
+     * Default Join Form template used when no override is stored in the database.
+     *
+     * Shared by the public Join controller/embed (fallback to the hardcoded
+     * templates/default/join.php layout when this matches) and the admin
+     * per-listing template editor (pre-filled textarea).
+     */
+    public static function defaultJoinFormTemplate(): string
+    {
+        return '<h1>Join {listing_title}</h1>' . "\n"
+            . '<div class="fl-form-fields">' . "\n"
+            . '{field_name}' . "\n"
+            . '{field_email}' . "\n"
+            . '{field_url}' . "\n"
+            . '{field_country}' . "\n"
+            . '{additional_fields}' . "\n"
+            . '{field_password}' . "\n"
+            . '{field_password_confirm}' . "\n"
+            . '{captcha_block}' . "\n"
+            . '</div>' . "\n"
+            . '<div class="fl-form-actions">' . "\n"
+            . '{submit_button}' . "\n"
+            . '{clear_button}' . "\n"
+            . '</div>';
+    }
+
+    /**
+     * Default Codes Submit Form template used when no override is stored in the database.
+     */
+    public static function defaultCodesSubmitFormTemplate(): string
+    {
+        return '<h1>Submit a Code for {listing_title}</h1>' . "\n"
+            . '<p>All submissions are reviewed before being published. Accepted: JPEG, PNG, GIF, WebP. Max 200 KB.</p>' . "\n"
+            . '<div class="fl-form-fields">' . "\n"
+            . '{field_code_image}' . "\n"
+            . '{field_submitter_name}' . "\n"
+            . '{field_submitter_email}' . "\n"
+            . '{field_submitter_url}' . "\n"
+            . '{captcha_block}' . "\n"
+            . '</div>' . "\n"
+            . '<div class="fl-form-actions">' . "\n"
+            . '{submit_button}' . "\n"
+            . '</div>';
+    }
+
+    /**
+     * Returns the per-listing Codes Submit Form template string, or null when not set /
+     * when Migration 70 has not been run yet.
+     */
+    public function getCodesSubmitFormTemplate(int $listingId): ?string
+    {
+        try {
+            $stmt = $this->db->prepare(
+                'SELECT codes_submit_form_template FROM lstr_fanlisting_settings WHERE fanlisting_id = :id'
+            );
+            $stmt->execute(['id' => $listingId]);
+            $row = $stmt->fetch();
+            return ($row !== false && $row['codes_submit_form_template'] !== null)
+                ? (string) $row['codes_submit_form_template']
+                : null;
+        } catch (\Exception) {
+            return null;
+        }
+    }
+
+    /**
      * Translates legacy Enthusiast $$token$$ placeholders to Luster's {token} format.
      * Applied transparently at read time so imported templates work without manual editing.
      */
@@ -553,49 +609,63 @@ final class ListingSettingsRepo
         ?string $membersTemplate,
         ?string $affiliatesSectionTemplate = null,
         ?string $updatesTemplate = null,
-        ?string $joinIntroTemplate = null,
         ?string $adoptionIntroTemplate = null,
-        ?string $codesSubmitIntroTemplate = null,
+        ?string $codesSubmitFormTemplate = null,
         ?string $rulesIntroTemplate = null,
+        ?string $joinFormTemplate = null,
     ): void {
         $attempts = [
             [
                 'sql' => 'INSERT INTO lstr_fanlisting_settings
                      (fanlisting_id, stats_template, members_template, affiliates_section_template,
-                      updates_template, join_intro_template, adoption_intro_template, codes_submit_intro_template,
-                      rules_intro_template)
-                 VALUES (:id, :stats, :members, :section, :updates, :join, :adoption, :codes, :rules)
+                      updates_template, adoption_intro_template, codes_submit_form_template,
+                      rules_intro_template, join_form_template)
+                 VALUES (:id, :stats, :members, :section, :updates, :adoption, :codes_form, :rules, :join_form)
                  ON DUPLICATE KEY UPDATE
-                     stats_template              = VALUES(stats_template),
-                     members_template            = VALUES(members_template),
-                     affiliates_section_template = VALUES(affiliates_section_template),
-                     updates_template            = VALUES(updates_template),
-                     join_intro_template         = VALUES(join_intro_template),
-                     adoption_intro_template     = VALUES(adoption_intro_template),
-                     codes_submit_intro_template = VALUES(codes_submit_intro_template),
-                     rules_intro_template        = VALUES(rules_intro_template)',
+                     stats_template               = VALUES(stats_template),
+                     members_template             = VALUES(members_template),
+                     affiliates_section_template  = VALUES(affiliates_section_template),
+                     updates_template             = VALUES(updates_template),
+                     adoption_intro_template      = VALUES(adoption_intro_template),
+                     codes_submit_form_template   = VALUES(codes_submit_form_template),
+                     rules_intro_template         = VALUES(rules_intro_template),
+                     join_form_template           = VALUES(join_form_template)',
                 'bind' => ['id' => $listingId, 'stats' => $statsTemplate, 'members' => $membersTemplate,
                            'section' => $affiliatesSectionTemplate, 'updates' => $updatesTemplate,
-                           'join' => $joinIntroTemplate, 'adoption' => $adoptionIntroTemplate,
-                           'codes' => $codesSubmitIntroTemplate, 'rules' => $rulesIntroTemplate],
+                           'adoption' => $adoptionIntroTemplate,
+                           'codes_form' => $codesSubmitFormTemplate, 'rules' => $rulesIntroTemplate,
+                           'join_form' => $joinFormTemplate],
             ],
             [
                 'sql' => 'INSERT INTO lstr_fanlisting_settings
                      (fanlisting_id, stats_template, members_template, affiliates_section_template,
-                      updates_template, join_intro_template, adoption_intro_template, codes_submit_intro_template)
-                 VALUES (:id, :stats, :members, :section, :updates, :join, :adoption, :codes)
+                      updates_template, adoption_intro_template, rules_intro_template)
+                 VALUES (:id, :stats, :members, :section, :updates, :adoption, :rules)
                  ON DUPLICATE KEY UPDATE
                      stats_template              = VALUES(stats_template),
                      members_template            = VALUES(members_template),
                      affiliates_section_template = VALUES(affiliates_section_template),
                      updates_template            = VALUES(updates_template),
-                     join_intro_template         = VALUES(join_intro_template),
                      adoption_intro_template     = VALUES(adoption_intro_template),
-                     codes_submit_intro_template = VALUES(codes_submit_intro_template)',
+                     rules_intro_template        = VALUES(rules_intro_template)',
                 'bind' => ['id' => $listingId, 'stats' => $statsTemplate, 'members' => $membersTemplate,
                            'section' => $affiliatesSectionTemplate, 'updates' => $updatesTemplate,
-                           'join' => $joinIntroTemplate, 'adoption' => $adoptionIntroTemplate,
-                           'codes' => $codesSubmitIntroTemplate],
+                           'adoption' => $adoptionIntroTemplate, 'rules' => $rulesIntroTemplate],
+            ],
+            [
+                'sql' => 'INSERT INTO lstr_fanlisting_settings
+                     (fanlisting_id, stats_template, members_template, affiliates_section_template,
+                      updates_template, adoption_intro_template)
+                 VALUES (:id, :stats, :members, :section, :updates, :adoption)
+                 ON DUPLICATE KEY UPDATE
+                     stats_template              = VALUES(stats_template),
+                     members_template            = VALUES(members_template),
+                     affiliates_section_template = VALUES(affiliates_section_template),
+                     updates_template            = VALUES(updates_template),
+                     adoption_intro_template     = VALUES(adoption_intro_template)',
+                'bind' => ['id' => $listingId, 'stats' => $statsTemplate, 'members' => $membersTemplate,
+                           'section' => $affiliatesSectionTemplate, 'updates' => $updatesTemplate,
+                           'adoption' => $adoptionIntroTemplate],
             ],
             [
                 'sql' => 'INSERT INTO lstr_fanlisting_settings
@@ -991,6 +1061,7 @@ final class ListingSettingsRepo
             'db_name'               => '',
             'db_user'               => '',
             'db_pass'               => '',
+            'country_field_enabled' => true,
         ];
 
         try {
@@ -998,7 +1069,8 @@ final class ListingSettingsRepo
                 'SELECT form_url_join, form_url_update,
                         form_url_remove, form_url_reset,
                         form_url_codes_submit, codes_submit_enabled,
-                        db_host, db_name, db_user, db_pass
+                        db_host, db_name, db_user, db_pass,
+                        COALESCE(country_field_enabled, 1) AS country_field_enabled
                  FROM lstr_fanlisting_settings
                  WHERE fanlisting_id = :id'
             );
@@ -1023,6 +1095,7 @@ final class ListingSettingsRepo
             'db_name'               => (string) ($row['db_name']               ?? ''),
             'db_user'               => (string) ($row['db_user']               ?? ''),
             'db_pass'               => (string) ($row['db_pass']               ?? ''),
+            'country_field_enabled' => (bool) ($row['country_field_enabled']   ?? true),
         ];
     }
 

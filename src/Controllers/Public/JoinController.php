@@ -13,6 +13,7 @@ use Luster\Core\RateLimit;
 use Luster\Core\Request;
 use Luster\Core\Response;
 use Luster\Core\Validator;
+use Luster\Core\View;
 use Luster\Models\Listing;
 use Luster\Repositories\EmailTemplateRepo;
 use Luster\Repositories\FanPasswordResetRepo;
@@ -22,6 +23,7 @@ use Luster\Repositories\FieldRepo;
 use Luster\Repositories\BlacklistRepo;
 use Luster\Repositories\MemberRepo;
 use Luster\Support\FormFieldBuilder;
+use Luster\Support\FormTemplateRenderer;
 use Luster\Support\SuccessRenderer;
 
 /**
@@ -156,7 +158,11 @@ final class JoinController
         $v->field('name')->required()->maxLength(100);
         $v->field('email')->required()->email()->maxLength(255);
         $v->field('url')->httpUrl()->maxLength(500);
-        $v->field('country')->required()->maxLength(100);
+        $countryFieldEnabled = (bool) $embedSettings['country_field_enabled'];
+        $countryField = $v->field('country')->maxLength(100);
+        if ($countryFieldEnabled) {
+            $countryField->required();
+        }
 
         foreach ($fields as $field) {
             $vf = $v->field('field_' . $field->name)->maxLength(255);
@@ -396,24 +402,15 @@ final class JoinController
         $countrySelect   = Countries::buildSelect((string) ($old['country'] ?? ''));
         $settingsRepoRjf = new ListingSettingsRepo($this->app->getDatabase());
         $wrapperTpl      = $settingsRepoRjf->getWrapperTemplate($listingId) ?? '';
-        $rawJoinIntro    = $settingsRepoRjf->getJoinIntroTemplate($listingId) ?? '';
-        $joinIntroHtml   = $rawJoinIntro !== ''
-            ? \Luster\Core\TemplateEngine::render(
-                $rawJoinIntro,
-                escaped: [
-                    'listing_title'   => $listing->title,
-                    'listing_url'     => $listing->url,
-                    'listing_subject' => $listing->subject ?? '',
-                ],
-            )
-            : '';
+
+        $countryFieldEnabled = (bool) $embedSettings['country_field_enabled'];
 
         $fb          = $this->app->getFormFieldBuilder();
         $descriptors = [
             ['type' => 'text',     'name' => 'name',             'id' => 'join-name',             'label' => 'Name',             'required' => true,  'value' => (string) ($old['name']  ?? ''), 'attrs' => ['maxlength' => '100', 'autocomplete' => 'name']],
             ['type' => 'email',    'name' => 'email',            'id' => 'join-email',            'label' => 'Email',            'required' => true,  'value' => (string) ($old['email'] ?? ''), 'attrs' => ['maxlength' => '255', 'autocomplete' => 'email']],
             ['type' => 'url',      'name' => 'url',              'id' => 'join-url',              'label' => 'Website URL',      'required' => false, 'value' => (string) ($old['url']   ?? ''), 'attrs' => ['maxlength' => '500', 'placeholder' => 'https://', 'autocomplete' => 'url'], 'hint' => 'Optional'],
-            ['type' => 'text',     'name' => 'country',          'id' => '',                      'label' => 'Country',          'required' => true,  'raw_input' => $countrySelect],
+            ['type' => 'text',     'name' => 'country',          'id' => '',                      'label' => 'Country',          'required' => $countryFieldEnabled, 'raw_input' => $countrySelect],
             ...$fb->descriptorsFromAdditionalFields($fields, $old),
             ['type' => 'password', 'name' => 'password',         'id' => 'join-password',         'label' => 'Password',         'required' => false, 'attrs' => ['maxlength' => '255', 'autocomplete' => 'new-password'], 'hint' => 'Optional â€” one will be emailed to you if left blank'],
             ['type' => 'password', 'name' => 'password_confirm', 'id' => 'join-password-confirm', 'label' => 'Confirm Password', 'required' => false, 'attrs' => ['maxlength' => '255', 'autocomplete' => 'new-password']],
@@ -421,19 +418,63 @@ final class JoinController
         ];
         $f = $fb->build($descriptors, $wrapperTpl);
 
+        $formHtml    = null;
+        $joinFormTpl = $settingsRepoRjf->getJoinFormTemplate($listingId) ?? '';
+        if ($joinFormTpl !== '') {
+            $additionalFieldsHtml      = implode("\n", array_map(
+                fn($field) => $f['field_' . $field->name] ?? '', $fields,
+            ));
+            $additionalFieldsInputHtml = implode("\n", array_map(
+                fn($field) => $f['field_' . $field->name . '_input'] ?? '', $fields,
+            ));
+
+            $tokens = [
+                '{listing_title}'                => View::e($listing->title),
+                '{listing_url}'                  => View::e($listing->url),
+                '{field_name}'                    => $f['name'],
+                '{field_name_input}'              => $f['name_input'],
+                '{field_email}'                   => $f['email'],
+                '{field_email_input}'             => $f['email_input'],
+                '{field_url}'                     => $f['url'],
+                '{field_url_input}'               => $f['url_input'],
+                '{field_country}'                 => $countryFieldEnabled ? $f['country'] : '',
+                '{field_country_input}'           => $countryFieldEnabled ? $f['country_input'] : '',
+                '{additional_fields}'             => $additionalFieldsHtml,
+                '{additional_fields_input}'       => $additionalFieldsInputHtml,
+                '{field_password}'                => $f['password'],
+                '{field_password_input}'          => $f['password_input'],
+                '{field_password_confirm}'        => $f['password_confirm'],
+                '{field_password_confirm_input}'  => $f['password_confirm_input'],
+                '{captcha_block}'                 => $f['captcha_answer'],
+                '{captcha_block_input}'           => $f['captcha_answer_input'],
+                '{captcha_question}'              => View::e($captchaQuestion),
+                '{submit_button}'                 => '<button type="submit" class="fl-submit">Join Fanlisting</button>',
+                '{clear_button}'                  => '<button type="reset" class="fl-btn-secondary">Clear</button>',
+            ];
+
+            $innerHtml = FormTemplateRenderer::expandTokens($joinFormTpl, $tokens);
+            $formHtml  = FormTemplateRenderer::wrapForm(
+                $innerHtml,
+                $baseUrl . '/join/' . $listingId,
+                $this->app->getCSRF()->token(),
+                false,
+            );
+        }
+
         $html = $this->app->getView()->renderPublic('join.php', [
-            'listing'         => $listing,
-            'listing_name'    => $listing->title,
-            'listing_url'     => $listing->url,
-            'page_title'      => 'Join',
-            'form_action'     => $baseUrl . '/join/' . $listingId,
-            'csrf_token'      => $this->app->getCSRF()->token(),
-            'errors'          => $error !== '' ? '<p>' . htmlspecialchars($error, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '</p>' : '',
-            'fields'          => $fields,
-            'f'               => $f,
-            'join_intro_html' => $joinIntroHtml,
-            'base_url'        => $baseUrl,
-            'theme_path'      => $baseUrl . '/assets/css/default/',
+            'listing'               => $listing,
+            'listing_name'          => $listing->title,
+            'listing_url'           => $listing->url,
+            'page_title'            => 'Join',
+            'form_action'           => $baseUrl . '/join/' . $listingId,
+            'csrf_token'            => $this->app->getCSRF()->token(),
+            'errors'                => $error !== '' ? '<p>' . htmlspecialchars($error, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '</p>' : '',
+            'fields'                => $fields,
+            'f'                     => $f,
+            'base_url'              => $baseUrl,
+            'theme_path'            => $baseUrl . '/assets/css/default/',
+            'country_field_enabled' => $countryFieldEnabled,
+            'form_html'             => $formHtml,
         ]);
 
         return Response::html($html);

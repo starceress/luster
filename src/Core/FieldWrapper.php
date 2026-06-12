@@ -20,11 +20,11 @@ namespace Luster\Core;
 final class FieldWrapper
 {
     private const DEFAULT_TEMPLATE = <<<'HTML'
-        <div{if_field_id} id="wrap-{field_id}"{/if_field_id}>
-          <label{if_field_id} for="{field_id}"{/if_field_id}>{label}{required_indicator}</label>
-          {if_error}<p class="fl-error">{error}</p>{/if_error}
+        <div class="fl-field"{if_field_id} id="wrap-{field_id}"{/if_field_id}>
+          <label class="fl-label"{if_field_id} for="{field_id}"{/if_field_id}>{label}{required_indicator}</label>
+          {if_error}<p class="fl-field-error">{error}</p>{/if_error}
           {input}
-          {if_hint}<small>{hint}</small>{/if_hint}
+          {if_hint}<small class="fl-field-hint">{hint}</small>{/if_hint}
         </div>
         HTML;
 

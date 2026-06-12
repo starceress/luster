@@ -260,6 +260,17 @@
   --fl: ; /* Secondary ghost button variant — host can style */
 }
 
+/* ── File upload drop zone ───────────────────────────────────────────────────── */
+
+.fl-file-zone {
+  --fl: ; /* Host can style: border, background, padding, cursor, etc. */
+  display: block;
+}
+
+.fl-file-prompt {
+  --fl: ; /* Host can style: text color, font, display block/inline, etc. */
+}
+
 /* ── Success / result messages ───────────────────────────────────────────────── */
 
 .fl-success {
