@@ -44,16 +44,18 @@ $tok = static fn(string $ta, string $token, string $label, string $desc): string
 
 <?php if (!empty($listings)): ?>
 <div class="card mb-sm">
-  <div class="actions-row actions-row--wrap" style="gap:.75rem">
-    <label class="form-label" for="gtpl-preview-listing" style="white-space:nowrap;margin:0">Preview with listing:</label>
-    <div class="select-wrap" style="flex:1;min-width:10rem;max-width:22rem">
-      <select id="gtpl-preview-listing" class="form" aria-label="Select a listing to use when previewing templates">
-        <?php foreach ($listings as $_l): ?>
-          <option value="<?= (int) $_l->id ?>"><?= View::e($_l->title) ?></option>
-        <?php endforeach; ?>
-      </select>
+  <div class="listing-field-row" style="gap:.75rem;align-items:center;padding:.75rem 1rem">
+    <label class="listing-field-label" for="gtpl-preview-listing" style="min-width:0">Preview listing</label>
+    <div style="display:flex;align-items:center;gap:.75rem;flex-wrap:wrap">
+      <div class="select-wrap" style="min-width:10rem;max-width:22rem">
+        <select id="gtpl-preview-listing" class="form" aria-label="Select a listing to use when previewing templates">
+          <?php foreach ($listings as $_l): ?>
+            <option value="<?= (int) $_l->id ?>"><?= View::e($_l->title) ?></option>
+          <?php endforeach; ?>
+        </select>
+      </div>
+      <p class="form-hint" style="margin:0">Select a listing, then click <strong>Preview</strong> next to any template below to see a live render using that listing's data.</p>
     </div>
-    <p class="form-hint" style="margin:0">Templates are previewed using live data from the selected listing.</p>
   </div>
 </div>
 <?php endif; ?>
@@ -412,10 +414,16 @@ $tok = static fn(string $ta, string $token, string $label, string $desc): string
       const ta      = document.getElementById(taId);
       if (!ta) { return; }
 
+      // Open (or reuse) the preview window before form.submit() so the named
+      // target exists. The form stays in the DOM until after the POST fires;
+      // removing it synchronously would abort the submission.
+      window.open('', 'gtpl-preview-window', 'width=900,height=600,resizable=yes,scrollbars=yes');
+
       const form = document.createElement('form');
       form.method = 'POST';
       form.action = base + '/admin/listings/' + listingId + '/templates/preview';
       form.target = 'gtpl-preview-window';
+      form.style.display = 'none';
 
       [['_csrf', csrf], ['type', tplType], ['template', ta.value]].forEach(function ([n, v]) {
         const inp = document.createElement('input');
@@ -424,9 +432,9 @@ $tok = static fn(string $ta, string $token, string $label, string $desc): string
       });
 
       document.body.appendChild(form);
-      window.open('', 'gtpl-preview-window', 'width=900,height=600,resizable=yes,scrollbars=yes');
       form.submit();
-      document.body.removeChild(form);
+      // Delay removal so the browser can read the form before navigating.
+      setTimeout(function () { document.body.removeChild(form); }, 500);
     });
   });
 }());
