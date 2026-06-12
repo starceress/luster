@@ -439,7 +439,6 @@ final class ListingSettingsRepo
     {
         return '<h1>Member List</h1>'
             . "\n" . '<p class="fl-member-sort">Sort by: {sort_link_all} | {sort_link_name} | {sort_link_country}</p><br>'
-            . "\n" . '<p class="fl-member-stats">{stats_line}</p>'
             . "\n"
             . "\n" . '{if_members}'
             . "\n" . '<div class="fl-member-list">'

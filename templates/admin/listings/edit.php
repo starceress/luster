@@ -471,10 +471,12 @@ $_isOldStatsTemplate = static function (?string $v): bool {
 };
 
 $_isOldMembersTemplate = static function (?string $v): bool {
+    if ($v === null || trim($v) === '') return false;
     // Pre-sort-bar default: starts with {if_members} and has no sort link tokens
-    return $v !== null && trim($v) !== ''
-        && str_starts_with(ltrim($v), '{if_members}')
-        && !str_contains($v, '{sort_link_all}');
+    if (str_starts_with(ltrim($v), '{if_members}') && !str_contains($v, '{sort_link_all}')) return true;
+    // Old default that included the now-removed {stats_line} paragraph
+    if (str_contains($v, '{stats_line}') && str_contains($v, '{sort_link_all}')) return true;
+    return false;
 };
 $tplMembersVal   = ($_isOldMembersTemplate($templates['members_template'] ?? null) || ($templates['members_template'] ?? '') === '')
     ? ListingSettingsRepo::defaultMembersTemplate()
