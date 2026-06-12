@@ -2000,13 +2000,13 @@ final class ListingController extends AdminController
         $active   = array_values(array_filter($listings, fn($l) => !$l->trouble));
         usort($active, fn($a, $b) => strcmp($a->title, $b->title));
 
-        return $this->layout('admin/listings/global-templates.php', [
-            'page_title'   => 'Global Listing Templates',
-            'success'      => $success,
-            'error'        => $error,
-            'globals'      => $globals,
-            'listings'     => $active,
-            'csrf_token'   => $this->app->getCSRF()->token(),
+        return $this->adminLayout('admin/listings/global-templates.php', 'Global Listing Templates', 'listings', [
+            'success'  => $success,
+            'error'    => $error,
+            'globals'  => $globals,
+            'listings' => $active,
+        ], '', [
+            $this->crumb('Owned Listings', $this->adminUrl('/admin/listings')),
         ]);
     }
 
