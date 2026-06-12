@@ -24,8 +24,8 @@ use Luster\Support\SuccessRenderer;
 /**
  * Public KIM sign-up form.
  *
- * GET  /kim  â€” renders the sign-up form
- * POST /kim  â€” validates, inserts, sends confirmation, redirects to host page
+ * GET  /kim  â€— renders the sign-up form
+ * POST /kim  â€— validates, inserts, sends confirmation, redirects to host page
  */
 final class KimSignupController
 {
@@ -68,7 +68,7 @@ final class KimSignupController
             return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $fallbackUrl);
         }
 
-        // Honeypot â€” silent reject; fake success so bots see no difference
+        // Honeypot â€— silent reject; fake success so bots see no difference
         if ((string) $request->post('website_confirm', '') !== '') {
             $session->remove('lstr_embed_return_to');
             $session->set('lstr_flash_success_html', SuccessRenderer::render('', 'kim-signed-up'));
@@ -78,11 +78,11 @@ final class KimSignupController
         $listingRepo = new ListingRepo($this->app->getDatabase(), $this->app->getConfig());
         $fanlistings = $listingRepo->getAll();
 
-        // Captcha â€” redirect with flash on failure so the form re-renders with a fresh question
+        // Captcha â€— redirect with flash on failure so the form re-renders with a fresh question
         $captchaOk = Captcha::validate((string) $request->post('captcha_answer', ''), 'kim_signup');
         if (!$captchaOk) {
             $rateLimit->hitDefault($ip, 'kim_signup');
-            $session->set('lstr_flash_error', 'Incorrect answer â€” please try again.');
+            $session->set('lstr_flash_error', 'Incorrect answer â€— please try again.');
             $session->set('lstr_flash_old', [
                 'name'         => trim((string) $request->post('name',         '')),
                 'email'        => trim((string) $request->post('email',        '')),
@@ -141,7 +141,7 @@ final class KimSignupController
             return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $fallbackUrl);
         }
 
-        // Password â€” auto-generate if not supplied
+        // Password â€— auto-generate if not supplied
         $rawPassword     = (string) $request->post('password',         '');
         $passwordConfirm = (string) $request->post('password_confirm', '');
 
@@ -189,7 +189,7 @@ final class KimSignupController
                 $mailer  = new Mailer($this->app->getConfig());
                 $siteName = (string) $this->app->getConfig()->get('site_name', 'Luster');
                 $setupUrl = $wasGenerated ? $this->issuePasswordSetupUrl($kimRepo, $email, $fanlistingId) : '';
-                $subject = "KIM List Sign-Up â€” {$siteName}";
+                $subject = "KIM List Sign-Up â€— {$siteName}";
                 $body    = "Hi {$name},\n\n"
                          . "You have signed up for the KIM List for:\n"
                          . "  Fanlisting: " . ($selectedListing?->subject ?? "ID {$fanlistingId}") . "\n"
@@ -267,8 +267,8 @@ final class KimSignupController
         $wrapperTpl = $siteRepo->get('collective_field_wrapper_template', '') ?? '';
         $siteName   = (string) $this->app->getConfig()->get('site_name', 'Luster');
 
-        $flSelectHtml = '<select class=”fl-select” id=”kim-fanlisting” name=”fanlisting_id” required>'
-                      . '<option value=””>&#8212; Select a fanlisting &#8212;</option>';
+        $flSelectHtml = '<select class="fl-select" id="kim-fanlisting" name="fanlisting_id" required>'
+                      . '<option value="">&#8212; Select a fanlisting &#8212;</option>';
         foreach ($fanlistings as $_fl) {
             $_flId       = htmlspecialchars((string) $_fl->id, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
             $_flTitle    = htmlspecialchars((string) $_fl->subject, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
@@ -312,8 +312,8 @@ final class KimSignupController
                 '{captcha_block}'                     => $f['captcha_answer'],
                 '{captcha_block_input}'               => $f['captcha_answer_input'],
                 '{captcha_question}'                  => View::e($captchaQ),
-                '{submit_button}'                     => '<button type=”submit” class=”fl-submit”>Sign Up</button>',
-                '{clear_button}'                      => '<button type=”reset” class=”fl-btn-secondary”>Clear</button>',
+                '{submit_button}'                     => '<button type="submit" class="fl-submit">Sign Up</button>',
+                '{clear_button}'                      => '<button type="reset" class="fl-btn-secondary">Clear</button>',
             ];
             $innerHtml = FormTemplateRenderer::expandTokens($kimSignupTpl, $tokens);
             $formHtml  = FormTemplateRenderer::wrapForm($innerHtml, $baseUrl . '/kim', $this->app->getCSRF()->token(), false);

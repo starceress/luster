@@ -25,8 +25,8 @@ use Luster\Support\SuccessRenderer;
 /**
  * Public affiliate application form.
  *
- * GET  /affiliate-apply/{id} â€” renders the application form for a listing.
- * POST /affiliate-apply/{id} â€” validates input, stores a pending application,
+ * GET  /affiliate-apply/{id} â€— renders the application form for a listing.
+ * POST /affiliate-apply/{id} â€— validates input, stores a pending application,
  *                              sends admin notification email, redirects.
  *
  * Security properties:
@@ -120,7 +120,7 @@ final class AffiliateApplyController
             return Response::redirect($formUrl);
         }
 
-        // Honeypot â€” silent reject; fake success so bots see no difference
+        // Honeypot â€— silent reject; fake success so bots see no difference
         if ((string) $request->post('website_confirm', '') !== '') {
             $session->remove('lstr_embed_return_to');
             $affApplySentTpl = $settingsRepo->getAffiliateApplySentTemplate($listingId) ?? '';
@@ -131,7 +131,7 @@ final class AffiliateApplyController
         // Captcha
         if (!Captcha::validate((string) $request->post('captcha_answer', ''), 'affiliate_apply')) {
             $rateLimit->hitDefault($ip, RateLimit::ACTION_PUBLIC_AFFILIATE_APPLY);
-            $session->set('lstr_flash_error', 'Incorrect answer â€” please try again.');
+            $session->set('lstr_flash_error', 'Incorrect answer â€— please try again.');
             $session->set('lstr_flash_old', $this->collectOld($request));
             return Response::redirect($formUrl);
         }
@@ -255,7 +255,7 @@ final class AffiliateApplyController
             return Response::redirect($formUrl);
         }
 
-        // Honeypot â€” silent reject; fake success so bots see no difference
+        // Honeypot â€— silent reject; fake success so bots see no difference
         if ((string) $request->post('website_confirm', '') !== '') {
             $session->remove('lstr_embed_return_to');
             $collectiveAffApplySentTpl = $siteRepo->get('collective_affiliate_apply_sent_template') ?? '';
@@ -266,7 +266,7 @@ final class AffiliateApplyController
         // Captcha
         if (!Captcha::validate((string) $request->post('captcha_answer', ''), 'affiliate_apply')) {
             $rateLimit->hitDefault($ip, RateLimit::ACTION_PUBLIC_AFFILIATE_APPLY);
-            $session->set('lstr_flash_error', 'Incorrect answer â€” please try again.');
+            $session->set('lstr_flash_error', 'Incorrect answer â€— please try again.');
             $session->set('lstr_flash_old', $this->collectOld($request));
             return Response::redirect($formUrl);
         }
@@ -465,7 +465,7 @@ final class AffiliateApplyController
                 '{captcha_block}'         => $f['captcha_answer'],
                 '{captcha_block_input}'   => $f['captcha_answer_input'],
                 '{captcha_question}'      => View::e($captchaQuestion),
-                '{submit_button}'         => '<button type=”submit” class=”fl-submit”>Submit Application</button>',
+                '{submit_button}'         => '<button type="submit" class="fl-submit">Submit Application</button>',
             ];
             $innerHtml = FormTemplateRenderer::expandTokens($affApplyTpl, $tokens);
             $formHtml  = FormTemplateRenderer::wrapForm(
@@ -620,7 +620,7 @@ final class AffiliateApplyController
             $mailer = new Mailer($config);
             $mailer->send($adminEmail, '', $subject, $body);
         } catch (\Exception) {
-            // Email failure is non-fatal â€” the application was already saved
+            // Email failure is non-fatal â€— the application was already saved
         }
     }
 

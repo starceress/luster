@@ -17,8 +17,8 @@ use Luster\Repositories\SiteSettingsRepo;
 /**
  * Public affiliates page.
  *
- * GET /affiliates/{id}  â€” affiliates for a specific fanlisting
- * GET /affiliates       â€” collective / site-wide affiliates (fanlisting_id IS NULL)
+ * GET /affiliates/{id}  â€— affiliates for a specific fanlisting
+ * GET /affiliates       â€— collective / site-wide affiliates (fanlisting_id IS NULL)
  *
  * Only active affiliates (active = 1) are shown.
  * Supports optional pagination via ?page= query parameter.
@@ -72,7 +72,7 @@ final class AffiliatesController
             'listing'       => $listing,
             'listing_name'  => $listing->title,
             'listing_url'   => $listing->url,
-            'page_title'       => 'Affiliates â€” ' . $listing->title,
+            'page_title'       => 'Affiliates â€— ' . $listing->title,
             'affiliates'       => $result['items'],
             'section_html'     => $sectionHtml,
             'total'            => $result['total'],
@@ -141,11 +141,11 @@ final class AffiliatesController
      * Applies a per-affiliate row template to a list of affiliates and returns
      * the concatenated HTML string. Each row replaces these tokens:
      *
-     *   {aff_name}      â€” affiliate name (HTML-escaped)
-     *   {aff_url}       â€” affiliate URL (HTML-escaped)
-     *   {aff_image}     â€” image filename only (HTML-escaped), or empty string
-     *   {aff_image_url} â€” full src-ready URL including uploads path (HTML-escaped)
-     *   {aff_image_tag} â€” rendered <img> tag, or empty string when no image
+     *   {aff_name}      â€— affiliate name (HTML-escaped)
+     *   {aff_url}       â€— affiliate URL (HTML-escaped)
+     *   {aff_image}     â€— image filename only (HTML-escaped), or empty string
+     *   {aff_image_url} â€— full src-ready URL including uploads path (HTML-escaped)
+     *   {aff_image_tag} â€— rendered <img> tag, or empty string when no image
      *
      * @param Affiliate[] $affiliates
      */
@@ -183,13 +183,13 @@ final class AffiliatesController
      * Applies a page-level section template for the affiliates block.
      *
      * Supported tokens:
-     *   {each_affiliate}...{/each_affiliate} â€” inline per-row loop; {aff_*} tokens work inside
-     *   {affiliates}           â€” rendered affiliate rows (built-in link/image rows)
-     *   {affiliates_count}     â€” total active affiliate count
-     *   {affiliates_list}      â€” comma-separated <a href>name</a> list
-     *   {affiliate_apply_url}  â€” URL of the affiliate application form
-     *   {if_affiliates}...{/if_affiliates}           â€” shown when count > 0
-     *   {if_no_affiliates}...{/if_no_affiliates}     â€” shown when count = 0
+     *   {each_affiliate}...{/each_affiliate} â€— inline per-row loop; {aff_*} tokens work inside
+     *   {affiliates}           â€— rendered affiliate rows (built-in link/image rows)
+     *   {affiliates_count}     â€— total active affiliate count
+     *   {affiliates_list}      â€— comma-separated <a href>name</a> list
+     *   {affiliate_apply_url}  â€— URL of the affiliate application form
+     *   {if_affiliates}...{/if_affiliates}           â€— shown when count > 0
+     *   {if_no_affiliates}...{/if_no_affiliates}     â€— shown when count = 0
      *
      * @param Affiliate[]  $affiliates
      * @param int          $total       total active count (may differ from $affiliates on paginated pages)
@@ -203,14 +203,14 @@ final class AffiliatesController
     ): string {
         $e = static fn(string $v): string => htmlspecialchars($v, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 
-        // {each_affiliate}...{/each_affiliate} â€” inline per-row loop block.
+        // {each_affiliate}...{/each_affiliate} â€— inline per-row loop block.
         // Process before conditionals so the block is substituted while still in context.
         if (preg_match('/\{each_affiliate\}(.*?)\{\/each_affiliate\}/s', $template, $m)) {
             $rendered = $this->buildAffiliateRows($m[1], $affiliates, $uploadsUrl);
             $template = (string) preg_replace('/\{each_affiliate\}.*?\{\/each_affiliate\}/s', $rendered, $template, 1);
         }
 
-        // Build {affiliates} content â€” built-in link/image rows
+        // Build {affiliates} content â€— built-in link/image rows
         $rowParts = [];
         foreach ($affiliates as $aff) {
             $imageUrl = ($aff->image !== null && $aff->image !== '') ? $uploadsUrl . '/' . $aff->image : '';
@@ -224,7 +224,7 @@ final class AffiliatesController
         }
         $rows = implode("\n", $rowParts);
 
-        // Build {affiliates_list} â€” comma-separated plain links
+        // Build {affiliates_list} â€— comma-separated plain links
         $listParts = [];
         foreach ($affiliates as $aff) {
             $listParts[] = '<a href="' . $e($aff->url) . '">' . $e($aff->name) . '</a>';
