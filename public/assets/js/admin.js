@@ -2510,7 +2510,7 @@ document.addEventListener('change', function (e) {
         return '<h4>Joining Rules</h4>'
           + '<p class="site-sub">Please read and agree to the rules before joining.</p>'
           + '<div style="background:#f5f3fc;border:1px solid #d0c8e8;border-radius:6px;padding:.75rem;font-size:.78rem;color:#6a5f87;margin-bottom:.75rem">No jumping ahead in queues. No sharing passwords. Be respectful.</div>'
-          + '<label><input type="checkbox" /> I have read and agree to the joining rules</label>'
+          + '<label><input type="checkbox" /> Proceed</label>'
           + '<button class="site-btn" style="margin-top:.75rem">Agree &amp; Continue</button>'
           + '<div class="site-note">Once agreed, the fan is shown the join form instead.</div>';
 
@@ -4072,8 +4072,15 @@ function adminWireFilterPanel(btnId, panelId, htmlClass) {
     }
     var extra;
     if (type === 'rules' && taId) {
-      var labelEl = document.getElementById(taId.replace(/-body$/, '-gate-label'));
-      if (labelEl) extra = { gate_label: labelEl.value };
+      var prefix    = taId.replace(/-body$/, '');
+      var labelEl   = document.getElementById(prefix + '-gate-label');
+      var enabledEl = document.getElementById(prefix + '-enabled');
+      var typeEl    = document.getElementById(prefix + '-gate-type');
+      extra = {
+        gate_label:   labelEl   ? labelEl.value                    : '',
+        gate_enabled: enabledEl ? (enabledEl.checked ? '1' : '0')  : '1',
+        gate_type:    typeEl    ? typeEl.value                      : '',
+      };
     }
     loadColtplPreview(type, tplHtml, extra);
   });
@@ -4221,6 +4228,18 @@ function adminWireFilterPanel(btnId, panelId, htmlClass) {
     }
     listingsCb.addEventListener('change', checkMemDep);
     membersCb.addEventListener('change', checkMemDep);
+  }
+
+  // Listing Admin: Join Rules-depends-on-Listings dependency warning
+  var rulesCb   = document.getElementById('ck-rules');
+  var rulesWarn = document.getElementById('js-rules-dep-warn');
+
+  if (listingsCb && rulesCb && rulesWarn) {
+    function checkRulesDep() {
+      rulesWarn.classList.toggle('is-visible', rulesCb.checked && !listingsCb.checked);
+    }
+    listingsCb.addEventListener('change', checkRulesDep);
+    rulesCb.addEventListener('change', checkRulesDep);
   }
 
   // Test connection button
@@ -4452,6 +4471,55 @@ function adminWireFilterPanel(btnId, panelId, htmlClass) {
 
   document.getElementById('es-modal-send').addEventListener('click', function () {
     form.submit();
+  });
+}());
+
+// ── 42. Import preview — run with progress ────────────────────────────────────
+// POSTs the run form via fetch (redirect:'manual' so PHP's 302 to /result is
+// never followed by fetch), shows a progress animation while PHP works, then
+// navigates the main window to /result once fetch resolves. Session data written
+// by /run is not consumed by fetch because we stop at the 302.
+
+(function () {
+  var runForm     = document.getElementById('js-import-run-form');
+  if (!runForm) return;
+
+  var previewCard = document.getElementById('js-import-preview-card');
+  var processing  = document.getElementById('js-import-processing');
+  if (!processing) return;
+
+  function showProcessing() {
+    if (previewCard) previewCard.style.display = 'none';
+    processing.style.display = 'flex';
+
+    var activeNode = document.querySelector('.wizard-step-node--active');
+    if (activeNode) {
+      activeNode.classList.replace('wizard-step-node--active', 'wizard-step-node--done');
+      var bubble = activeNode.querySelector('.wizard-step-bubble');
+      if (bubble) {
+        bubble.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="14" height="14" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>';
+      }
+    }
+  }
+
+  runForm.addEventListener('submit', function (e) {
+    e.preventDefault();
+    showProcessing();
+
+    var resultUrl = runForm.action.replace(/\/run(\?.*)?$/, '/result');
+
+    fetch(runForm.action, {
+      method:      'POST',
+      body:        new FormData(runForm),
+      credentials: 'same-origin',
+      redirect:    'manual'        // stop at PHP's 302; do NOT fetch /result
+    })
+    .then(function () {
+      window.location.href = resultUrl;
+    })
+    .catch(function () {
+      window.location.href = resultUrl;
+    });
   });
 }());
 

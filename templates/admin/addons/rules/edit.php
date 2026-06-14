@@ -21,10 +21,11 @@ $bodyVal     = ($rules?->body ?? '') !== '' ? $rules->body : $defaultBody;
 
 $currentGateType  = $rules?->gateType  ?? 'checkbox';
 $defaultGateLabel = $currentGateType === 'button'
-    ? 'I agree — proceed to join form'
-    : 'I have read and agree to the rules above.';
+    ? 'Proceed'
+    : 'Proceed';
 ?>
 
+<?php if (!($_rules_embedded ?? false)): ?>
 <div class="page-topbar">
   <a href="<?= $b ?>/admin/rules" class="link">&larr; Back to Join Rules</a>
 </div>
@@ -36,12 +37,16 @@ $defaultGateLabel = $currentGateType === 'button'
 <?php if (isset($success) && $success !== ''): ?>
 <div class="alert alert-success" style="margin-bottom:1.25rem"><?= View::e($success) ?></div>
 <?php endif; ?>
+<?php endif; ?>
 
   <div class="composer-grid">
 
     <!-- ── Main form ──────────────────────────────────────────────────── -->
     <form method="POST" action="<?= $b ?>/admin/rules/<?= (int) $listing_id ?>/edit">
       <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
+      <?php if ($_rules_embedded ?? false): ?>
+      <input type="hidden" name="_redirect_to_listing" value="<?= (int) $listing_id ?>">
+      <?php endif; ?>
 
       <div class="gradient-card">
         <div class="pc-head">
@@ -65,8 +70,8 @@ $defaultGateLabel = $currentGateType === 'button'
                         spellcheck="false"><?= View::e($bodyVal) ?></textarea>
               <p class="form-hint">HTML is allowed. Use tokens like <code>{subject}</code>, <code>{gate_checkbox}</code>, and <code>{gate_button}</code> to insert dynamic content. Editing this text will increment the version number and require fans to agree again on their next visit.</p>
               <div class="tpl-reset-row">
+                <button type="button" class="btn btn-preview btn-xs coltpl-preview-btn" data-tpltype="rules" data-textarea="rules-body"><?= View::icon('eye-on') ?> Preview</button> &nbsp;
                 <button type="button" class="btn btn-quaternary btn-xs" data-textarea="rules-body">Reset to Default</button>
-                &nbsp; <button type="button" class="btn btn-preview btn-xs coltpl-preview-btn" data-tpltype="rules" data-textarea="rules-body"><?= View::icon('eye-on') ?> Preview</button>
               </div>
             </div>
           </div>
@@ -155,6 +160,7 @@ $defaultGateLabel = $currentGateType === 'button'
     </div>
   </div>
 
+<?php if (!($_rules_embedded ?? false)): ?>
 <script type="application/json" id="luster-coltpl-defaults">
 <?= json_encode(['rules-body' => $defaultBody], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) ?>
 </script>
@@ -178,3 +184,4 @@ $defaultGateLabel = $currentGateType === 'button'
     </div>
   </div>
 </div>
+<?php endif; ?>

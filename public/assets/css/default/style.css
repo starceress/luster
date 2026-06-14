@@ -848,11 +848,6 @@
 
 /* ── KIM List ────────────────────────────────────────────────────────────────── */
 
-/* The old generic class names (.fl-wrap, .fl-list, .fl-list-item, .fl-title,
-   .fl-intro, .fl-count, .fl-count--empty, .fl-meta) used in older KIM templates
-   are NOT aliased here — they were collision risks with host-page CSS and were
-   never defined in this file. They are replaced by scoped .fl-kim-* names. */
-
 .fl-kim {
   --fl: ; /* KIM outer wrapper */
 }

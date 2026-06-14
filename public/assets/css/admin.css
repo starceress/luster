@@ -1545,7 +1545,7 @@ div.dnd-over, a.dnd-over { outline: 2px solid var(--accent); border-radius: inhe
 
 .modal-title { font-family: var(--font-serif); font-size: var(--fs-lg); font-weight: 700; color: var(--text); margin: 0; }
 
-.modal-body { padding: .75rem; color: var(--text-muted); line-height: 1.5; }
+.modal-body { font-size: var(--fs-lg); padding: .75rem; color: var(--text-muted); line-height: 1.5; }
 
 .modal-body strong { color: var(--accent3); }
 
@@ -1559,7 +1559,7 @@ div.dnd-over, a.dnd-over { outline: 2px solid var(--accent); border-radius: inhe
 
 .modal-body--iframe iframe { display: block; width: 100%; height: 100%; border: none; }
 
-.modal-warning { margin-top: 1rem; padding: .75rem 1rem; background: var(--danger-bg); border: 1px solid var(--danger); border-radius: 8px; color: var(--danger); font-size: var(--fs-md); line-height: 1.4; }
+.modal-warning { margin-top: 1rem; padding: .75rem 1rem; background: var(--danger-bg); border: 1px solid var(--danger); border-radius: 8px; color: var(--danger); font-size: var(--fs-lg); line-height: 1.4; }
 
 .modal-warning strong { color: inherit; }
 
@@ -2574,6 +2574,18 @@ details.chevron:not([open]) > summary { border-bottom: none; border-radius: calc
 .import-review-sep { color: var(--text-dim); }
 .skip-summary-cell { white-space: nowrap; }
 .skip-detail-row > .skip-detail-cell { border-top: none; }
+
+/* ──── IMPORT PROGRESS ───────────────────────────────────────────────────── */
+.import-processing { display: none; flex-direction: column; align-items: center; padding: 3.5rem 2rem; gap: 1.25rem; text-align: center; }
+.import-processing-spinner { width: 48px; height: 48px; border: 3px solid var(--surface-2); border-top-color: var(--accent); border-radius: 50%; animation: lstr-spin .85s linear infinite; flex-shrink: 0; }
+.import-processing-title { font-size: var(--fs-lg); font-weight: 600; color: var(--text); }
+.import-processing-sub { color: var(--text-dim); font-size: var(--fs-sm); margin-top: -.5rem; }
+.import-progress-track { width: 100%; max-width: 420px; height: 6px; background: var(--surface-2); border-radius: 3px; overflow: hidden; }
+.import-progress-bar { height: 100%; width: 35%; border-radius: 3px; background: linear-gradient(90deg, var(--accent), var(--accent-muted, var(--accent))); animation: import-bar-slide 1.8s cubic-bezier(.4,0,.6,1) infinite; }
+.import-processing-note { font-size: var(--fs-sm); color: var(--text-muted); max-width: 420px; line-height: 1.5; }
+@keyframes import-bar-slide { 0% { transform: translateX(-200%); } 100% { transform: translateX(400%); } }
+@keyframes lstr-spin { to { transform: rotate(360deg); } }
+
 /* ──── SKIN PICKER ───────────────────────────────────────────────────────── */
 .skin-picker { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: .75rem; }
 

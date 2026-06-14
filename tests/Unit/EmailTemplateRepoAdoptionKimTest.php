@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Luster\Tests\Unit;
 
 use Luster\Repositories\EmailTemplateRepo;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -34,7 +35,7 @@ final class EmailTemplateRepoAdoptionKimTest extends TestCase
     // Default subjects
     // -----------------------------------------------------------------------
 
-    /** @dataProvider newTypeProvider */
+    #[DataProvider('newTypeProvider')]
     public function testDefaultSubjectIsNonEmptyForNewTypes(string $type): void
     {
         $subject = EmailTemplateRepo::defaultSubject($type);
@@ -45,7 +46,7 @@ final class EmailTemplateRepoAdoptionKimTest extends TestCase
     // Default bodies
     // -----------------------------------------------------------------------
 
-    /** @dataProvider newTypeProvider */
+    #[DataProvider('newTypeProvider')]
     public function testDefaultBodyIsNonEmptyForNewTypes(string $type): void
     {
         $body = EmailTemplateRepo::defaultBody($type);

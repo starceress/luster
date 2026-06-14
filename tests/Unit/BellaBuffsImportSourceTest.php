@@ -288,7 +288,7 @@ final class BellaBuffsImportSourceTest extends TestCase
         $this->makeDb($pdo);
         $adapter = new BellaBuffsImportSource();
         $options = $this->makeOptions(['bb_target_listing_id' => '0']);
-        $preview = $adapter->preview($pdo, $options);
+        $preview = $adapter->preview($pdo, $pdo, $options);
 
         $this->assertNotEmpty($preview->rows);
         $warnings = $preview->rows[0]['warnings'] ?? [];
@@ -309,7 +309,7 @@ final class BellaBuffsImportSourceTest extends TestCase
 
         $adapter = new BellaBuffsImportSource();
         $options = $this->makeOptions(['_bb_approved_path' => $path]);
-        $preview = $adapter->preview($pdo, $options);
+        $preview = $adapter->preview($pdo, $pdo, $options);
 
         $approved = $this->findRow($preview->rows, 'Members (approved)');
         $this->assertNotNull($approved);
@@ -335,7 +335,7 @@ final class BellaBuffsImportSourceTest extends TestCase
 
         $adapter = new BellaBuffsImportSource();
         $options = $this->makeOptions(['_bb_approved_path' => $path]);
-        $preview = $adapter->preview($pdo, $options);
+        $preview = $adapter->preview($pdo, $pdo, $options);
 
         $approved = $this->findRow($preview->rows, 'Members (approved)');
         $this->assertNotNull($approved);
@@ -358,7 +358,7 @@ final class BellaBuffsImportSourceTest extends TestCase
             '_bb_pending_path'  => $path,
             'bb_import_pending' => '1',
         ]);
-        $preview = $adapter->preview($pdo, $options);
+        $preview = $adapter->preview($pdo, $pdo, $options);
 
         $pending = $this->findRow($preview->rows, 'Members (pending)');
         $this->assertNotNull($pending);

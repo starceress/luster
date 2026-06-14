@@ -186,8 +186,8 @@ if (!$_lusterSignedIn) {
         ENT_QUOTES | ENT_SUBSTITUTE,
         'UTF-8',
     );
-    $_lusterUrlRaw = '<input type="url" id="upd-url" name="url" value="' . $_lusterUrlVal . '" maxlength="500" placeholder="https://">'
-                   . '<label><input type="checkbox" name="delete_url" value="1"> Remove my website URL</label>';
+    $_lusterUrlRaw = '<input class="fl-input" type="url" id="upd-url" name="url" value="' . $_lusterUrlVal . '" maxlength="500" placeholder="https://">'
+                   . '<div class="fl-field-hint"><label><input type="checkbox" name="delete_url" value="1"> Remove my website URL</label></div>';
 
     $_lusterUpdOld = [];
     foreach ($_lusterFields as $_lusterField) {

@@ -63,7 +63,7 @@ $b = rtrim(View::e($base_url), '/');
                   data-addon-name="<?= View::e($addon->getName()) ?>">
               <input type="hidden" name="_csrf"      value="<?= View::e($csrf_token) ?>">
               <input type="hidden" name="addon_key"  value="<?= View::e($key) ?>">
-              <button type="button" class="btn btn-danger btn-sm js-uninstall-btn">Uninstall</button>
+              <button type="button" class="btn btn-danger btn-sm js-uninstall-btn">Disable</button>
             </form>
           <?php else: ?>
             <form method="POST" action="<?= $b ?>/admin/addons/install">
@@ -82,17 +82,15 @@ $b = rtrim(View::e($base_url), '/');
   <div id="addon-uninstall-modal" class="modal-backdrop is-hidden" role="dialog" aria-modal="true" aria-labelledby="addon-modal-title">
     <div class="modal">
       <div class="modal-header">
-        <h3 class="modal-title" id="addon-modal-title">Uninstall Add-on</h3>
+        <h3 class="modal-title" id="addon-modal-title">Disable Add-on</h3>
         <button type="button" class="modal-close" aria-label="Close">&times;</button>
       </div>
       <div class="modal-body">
-        <p>You are about to uninstall <strong id="addon-modal-name"></strong>.</p>
-        <div class="modal-warning">
-          <strong>Warning:</strong> This will permanently delete all data created by this add-on. This action cannot be undone.
-        </div>
+        <p>You are about to disable <strong id="addon-modal-name"></strong>.</p>
+        <div class="callout callout-warn" style="margin-top:.5rem">The add-on will be removed from the admin panel and its public routes will stop working. All data is kept &mdash; reinstalling it later will restore full access.</p>
       </div>
       <div class="modal-footer">
-        <button type="button" class="btn btn-danger" id="addon-modal-confirm">Uninstall</button>
+        <button type="button" class="btn btn-danger" id="addon-modal-confirm">Disable</button>
         <button type="button" class="btn btn-quaternary" id="addon-modal-cancel">Cancel</button>
       </div>
     </div>

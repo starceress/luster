@@ -198,7 +198,7 @@ $src = View::e($source);
       <div class="overview-section-divider"></div>
 
 
-  <div class="gradient-card import-preview-results-card">
+  <div id="js-import-preview-card" class="gradient-card import-preview-results-card">
     <div class="pc-head">
       <div class="pc-head-icon pc-head-icon-bg"><?= View::icon('import') ?></div>
       <div class="pc-head-meta">
@@ -239,7 +239,7 @@ $src = View::e($source);
       <span>Running the import will write <strong><?= number_format($totalImport) ?> record(s)</strong> to Luster. The old source files and old database are not modified.</span>
     </div></div>
 
-    <form method="POST" action="<?= $b ?>/admin/import/<?= $src ?>/run">
+    <form id="js-import-run-form" method="POST" action="<?= $b ?>/admin/import/<?= $src ?>/run">
       <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
       <div class="composer-footer">
         <a href="<?= $b ?>/admin/import/<?= $src ?>/options" class="btn btn-quaternary">&#8592; Back</a>
@@ -249,5 +249,15 @@ $src = View::e($source);
   </div>
 
 <?php endif; ?>
+
+<div id="js-import-processing" class="import-processing">
+  <div class="import-processing-spinner" role="status" aria-label="Importing"></div>
+  <div class="import-processing-title">Importing&hellip;</div>
+  <div class="import-processing-sub">Do not close or refresh this tab.</div>
+  <div class="import-progress-track" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-label="Import in progress">
+    <div class="import-progress-bar"></div>
+  </div>
+  <p class="import-processing-note">Records are being written to your Luster database. Large imports with many members may take several minutes.</p>
+</div>
 
 </div>

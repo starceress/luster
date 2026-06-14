@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use Luster\Repositories\ListingRepo;
+use Luster\Repositories\ListingSettingsRepo;
 use Luster\Repositories\SiteSettingsRepo;
 use Luster\Support\ListingRowRenderer;
 use Luster\Support\MemberStatsService;
@@ -210,15 +211,8 @@ if ($_lusterOwnedTemplate !== null && $_lusterShowListings) {
     $_lusterListingCategoryMap = [];
 
     if (!empty($_lusterListingIds)) {
-        try {
-            $_db  = $_lusterApp->getDatabase();
-            $_phs = implode(',', array_fill(0, count($_lusterListingIds), '?'));
-            $_st  = $_db->prepare("SELECT fanlisting_id, image, last_updated, approved_by FROM lstr_fanlisting_settings WHERE fanlisting_id IN ({$_phs})");
-            $_st->execute(array_values($_lusterListingIds));
-            foreach ($_st->fetchAll() as $_row) {
-                $_lusterSettingsMap[(int) $_row['fanlisting_id']] = $_row;
-            }
-        } catch (\Exception) {}
+        $_db = $_lusterApp->getDatabase();
+        $_lusterSettingsMap = (new ListingSettingsRepo($_db))->getRenderSettingsBatch($_lusterListingIds);
 
         // Batch-fetch category names via junction table
         try {

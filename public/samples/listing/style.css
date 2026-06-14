@@ -651,7 +651,6 @@ button-danger {
 
 .sort-bar,
 .pagination,
-.fl-pagination,
 .category-bar,
 .fl-category-nav {
   display: flex;
@@ -665,19 +664,6 @@ button-danger {
 .fl-pagination-wrap,
 .fl-pagination-nav {
   margin: 1rem 0;
-}
-
-.fl-pagination-nav .fl-pagination {
-  margin: 0;
-}
-
-.fl-pagination {
-  list-style: none;
-  padding: 0;
-}
-
-.fl-pagination li {
-  margin: 0;
 }
 
 .fl-page-gap {

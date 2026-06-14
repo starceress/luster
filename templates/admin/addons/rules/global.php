@@ -24,8 +24,8 @@ $bodyVal     = $global_body !== '' ? $global_body : $defaultBody;
 $currentGateType  = $global_gate_type  !== '' ? $global_gate_type  : 'checkbox';
 $gateIsEnabled    = $global_gate_enabled === '1';
 $defaultGateLabel = $currentGateType === 'button'
-    ? 'I agree — proceed to join form'
-    : 'I have read and agree to the rules above.';
+    ? 'Proceed'
+    : 'Proceed';
 ?>
 
 <div class="page-topbar">
@@ -67,8 +67,8 @@ $defaultGateLabel = $currentGateType === 'button'
                         spellcheck="false"><?= View::e($bodyVal) ?></textarea>
               <p class="form-hint">Shown on listings that have no per-listing rules configured. HTML is allowed. Use tokens like <code>{subject}</code>, <code>{gate_checkbox}</code>, and <code>{gate_button}</code> to insert dynamic content. Editing this text will increment the version number and require all fans using this template to agree again on their next visit.</p>
               <div class="tpl-reset-row">
-                <button type="button" class="btn btn-quaternary btn-xs" data-textarea="global-rules-body">Reset to Built-in Rules</button>
-                &nbsp; <button type="button" class="btn btn-preview btn-xs coltpl-preview-btn" data-tpltype="rules" data-textarea="global-rules-body"><?= View::icon('eye-on') ?> Preview</button>
+                <button type="button" class="btn btn-preview btn-xs coltpl-preview-btn" data-tpltype="rules" data-textarea="global-rules-body"><?= View::icon('eye-on') ?> Preview</button> &nbsp;
+                <button type="button" class="btn btn-quaternary btn-xs" data-textarea="global-rules-body">Reset to Luster Rules</button>
               </div>
             </div>
           </div>
@@ -113,7 +113,7 @@ $defaultGateLabel = $currentGateType === 'button'
 
         <div class="composer-footer">
           <button type="submit" class="btn btn-primary">Save Global Rules</button>
-          <button type="button" class="btn btn-quaternary js-rules-reset-defaults" data-form-reset="global-rules-body">Reset to Default</button>
+          <button type="button" class="btn btn-quaternary js-rules-reset-defaults" data-form-reset="global-rules-body">Reset Form to Default</button>
         </div>
       </div><!-- /.gradient-card -->
     </form>

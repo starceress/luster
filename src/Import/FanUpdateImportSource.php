@@ -82,14 +82,14 @@ final class FanUpdateImportSource implements ImportSourceInterface
     // Preview (read-only)
     // -----------------------------------------------------------------------
 
-    public function preview(PDO $source, ImportOptions $options): ImportPreview
+    public function preview(PDO $source, PDO $target, ImportOptions $options): ImportPreview
     {
         $schema = $options->schemaVariant !== '' ? $options->schemaVariant : $this->detectSchema($source);
         $prefix = $options->tablePrefix . $options->fanUpdatePrefix;
         $rows   = [];
 
         if ($options->importUpdates) {
-            $rows[] = $this->previewUpdates($source, $prefix);
+            $rows[] = $this->previewUpdates($source, $target, $prefix);
         }
 
         return new ImportPreview($rows, $schema, false);
@@ -124,13 +124,35 @@ final class FanUpdateImportSource implements ImportSourceInterface
     // Preview helpers
     // -----------------------------------------------------------------------
 
-    /** @return array{type:string,found:int,import:int,skip:int,warnings:string[]} */
-    private function previewUpdates(PDO $source, string $prefix): array
+    /**
+     * Checks whether $table exists on $pdo, using sqlite_master for SQLite
+     * connections (used in tests) and SHOW TABLES LIKE for MySQL/MariaDB.
+     */
+    private function tableExists(PDO $pdo, string $table): bool
     {
-        $warns = ['Requires the Updates Feed add-on to be installed before running.'];
+        try {
+            if ($pdo->getAttribute(PDO::ATTR_DRIVER_NAME) === 'sqlite') {
+                $stmt = $pdo->prepare("SELECT name FROM sqlite_master WHERE type='table' AND name = ?");
+                $stmt->execute([$table]);
+                return $stmt->fetchColumn() !== false;
+            }
+            $stmt = $pdo->query('SHOW TABLES LIKE ' . $pdo->quote($table));
+            return $stmt && $stmt->fetchColumn() !== false;
+        } catch (\Throwable) {
+            return false;
+        }
+    }
 
-        $stmt = $source->query("SHOW TABLES LIKE '{$prefix}'");
-        if (!$stmt || $stmt->fetchColumn() === false) {
+    /** @return array{type:string,found:int,import:int,skip:int,warnings:string[]} */
+    private function previewUpdates(PDO $source, PDO $target, string $prefix): array
+    {
+        $warns = [];
+
+        if (!$this->tableExists($target, 'lstr_updates')) {
+            $warns[] = 'Updates Feed add-on is not installed — lstr_updates table not found. Updates will be skipped.';
+        }
+
+        if (!$this->tableExists($source, $prefix)) {
             $warns[] = "Table `{$prefix}` not found — check the Blog Table Name setting.";
             return ['type' => 'Updates (blog entries)', 'found' => 0, 'import' => 0, 'skip' => 0, 'warnings' => $warns];
         }

@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use Luster\Repositories\ListingRepo;
+use Luster\Repositories\ListingSettingsRepo;
 use Luster\Repositories\MemberRepo;
 use Luster\Repositories\SiteSettingsRepo;
 use Luster\Support\ListingRowRenderer;
@@ -85,14 +86,7 @@ if (trim($_lusterTemplate) === '') {
 $_lusterUploadsUrl = $_lusterApp->getBaseUrl() . '/uploads/listings';
 
 // Fetch per-listing settings (image, last_updated)
-$_lusterSettings = [];
-try {
-    $_st = $_lusterApp->getDatabase()->prepare(
-        'SELECT fanlisting_id, image, last_updated, approved_by FROM lstr_fanlisting_settings WHERE fanlisting_id = :id'
-    );
-    $_st->execute(['id' => $_lusterListing->id]);
-    $_lusterSettings = $_st->fetch() ?: [];
-} catch (\Exception) {}
+$_lusterSettings = (new ListingSettingsRepo($_lusterApp->getDatabase()))->getRenderSettings($_lusterListing->id);
 
 // Fetch all assigned category names via junction table (falls back to primary categoryId)
 $_lusterCategoryName = '';

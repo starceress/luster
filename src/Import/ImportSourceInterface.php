@@ -47,9 +47,13 @@ interface ImportSourceInterface
 
     /**
      * Performs a read-only pass over the source database and returns counts
-     * and warnings without writing anything to the target database.
+     * and warnings without writing anything to either database.
+     *
+     * $target may be used to check whether Luster add-ons (Wishlist, KIM,
+     * Updates Feed, Rules, Adoption) are installed, so the preview accurately
+     * reports what will be imported vs. skipped.
      */
-    public function preview(PDO $source, ImportOptions $options): ImportPreview;
+    public function preview(PDO $source, PDO $target, ImportOptions $options): ImportPreview;
 
     /**
      * Executes the import, writing to $target.

@@ -143,7 +143,7 @@ final class ListingAdminImportSource implements ImportSourceInterface
     // Preview (read-only)
     // -----------------------------------------------------------------------
 
-    public function preview(PDO $source, ImportOptions $options): ImportPreview
+    public function preview(PDO $source, PDO $target, ImportOptions $options): ImportPreview
     {
         $schema = $options->schemaVariant !== '' ? $options->schemaVariant : $this->detectSchema($source);
         $tp     = $options->tablePrefix;
@@ -154,6 +154,10 @@ final class ListingAdminImportSource implements ImportSourceInterface
         $sp     = $tp . $laP;    // full source prefix for non-registry tables
         $sreg   = $tp . $laReg;  // full source registry table name
         $rows   = [];
+
+        // Add-on availability (Updates Feed, Wishlist, KIM, Rules) must be checked against
+        // the Luster target DB, not the foreign LA source.
+        $addonCheckPdo = $target;
 
         if ($options->importCategories) {
             $rows[] = $this->previewTable($source, $sp . 'categories', 'Categories');
@@ -175,7 +179,7 @@ final class ListingAdminImportSource implements ImportSourceInterface
             $rows[] = $this->previewTable($source, $sp . 'joined', 'Joined listings');
         }
         if ($options->importUpdates) {
-            if ($this->updatesAddonInstalled($source)) {
+            if ($this->updatesAddonInstalled($addonCheckPdo)) {
                 $rows[] = $this->previewTable($source, $sp . 'updates', 'Updates', [
                     'LA crossposting fields (uDW, uIJ, uLJ) will be dropped.',
                 ]);
@@ -185,10 +189,13 @@ final class ListingAdminImportSource implements ImportSourceInterface
             }
         }
         if ($options->importWishlist) {
-            $rows[] = $this->previewWishlist($source, $source, $sp);
+            $rows[] = $this->previewWishlist($source, $addonCheckPdo, $sp);
         }
         if ($options->importKim) {
-            $rows[] = $this->previewKim($source, $source, $sp);
+            $rows[] = $this->previewKim($source, $addonCheckPdo, $sp);
+        }
+        if ($options->importRules) {
+            $rows[] = $this->previewRules($source, $addonCheckPdo, $sreg);
         }
 
         return new ImportPreview($rows, $schema, false);
@@ -310,6 +317,11 @@ final class ListingAdminImportSource implements ImportSourceInterface
             $rows[] = $this->runKim($source, $target, $options, $listingIdMap, $sp);
         }
 
+        // ── Step 9: Join Rules ────────────────────────────────────────────
+        if ($options->importRules) {
+            $rows[] = $this->runRules($source, $target, $listingIdMap, $sreg);
+        }
+
         // Close and clean up pre-uploaded ZIP if one was opened.
         if ($this->activeZip !== null) {
             $this->activeZip->close();
@@ -345,7 +357,15 @@ final class ListingAdminImportSource implements ImportSourceInterface
 
     private function updatesAddonInstalled(PDO $target): bool
     {
+        $driver = $target->getAttribute(PDO::ATTR_DRIVER_NAME);
         try {
+            if ($driver === 'sqlite') {
+                $stmt = $target->prepare(
+                    "SELECT name FROM sqlite_master WHERE type='table' AND name='lstr_updates'"
+                );
+                $stmt->execute();
+                return $stmt->fetchColumn() !== false;
+            }
             $stmt = $target->query("SHOW TABLES LIKE 'lstr_updates'");
             return $stmt && $stmt->fetchColumn() !== false;
         } catch (\Throwable) {
@@ -385,6 +405,17 @@ final class ListingAdminImportSource implements ImportSourceInterface
         }
 
         $srcIdToNewId = [];
+
+        // Track newly-inserted target id → source ('custom'/'tfl'/'tafl'). Existing
+        // matched categories are also recorded here (their source may have been
+        // updated on overwrite), so they remain valid 'custom' parents below.
+        $targetIdToSource = [];
+
+        // Track ids actually INSERTed in this run. Only these may have their
+        // parent_id mutated below — pre-existing categories are never re-parented,
+        // even though they may still serve as parents for newly-created children.
+        $newlyCreatedIds = [];
+
         $insertStmt   = $target->prepare(
             'INSERT INTO lstr_categories (name, slug, source) VALUES (:name, :slug, :source)'
         );
@@ -407,19 +438,23 @@ final class ListingAdminImportSource implements ImportSourceInterface
             $existKey = $catSource . ':' . strtolower($name);
             if (isset($existingNames[$existKey])) {
                 $existId = $existingNames[$existKey];
+                $srcIdToNewId[(int) $row['catid']] = $existId;
+                // Existing categories matched by (source, name) keep (skip) or are
+                // updated to (overwrite) this $catSource — record it so the
+                // parent-link pass below can treat them as valid 'custom'
+                // parents/children alongside categories created in this run.
+                $targetIdToSource[$existId] = $catSource;
                 if ($options->conflictStrategy === 'skip') {
                     $skipped++;
                     if (count($skippedItems) < self::SKIP_CAP) {
                         $skippedItems[] = ['label' => $name, 'reason' => 'Already exists in Luster'];
                     }
-                    $srcIdToNewId[(int) $row['catid']] = $existId;
                     continue;
                 }
                 // overwrite: update source if it changed
                 try {
                     $target->prepare('UPDATE lstr_categories SET source = :source WHERE id = :id')
                            ->execute(['source' => $catSource, 'id' => $existId]);
-                    $srcIdToNewId[(int) $row['catid']] = $existId;
                     $skipped++;
                 } catch (\Throwable $e) {
                     $errors[] = "Category '{$name}': " . $e->getMessage();
@@ -439,11 +474,58 @@ final class ListingAdminImportSource implements ImportSourceInterface
                 $insertStmt->execute(['name' => $name, 'slug' => $slug, 'source' => $catSource]);
                 $newId = (int) $target->lastInsertId();
                 $srcIdToNewId[(int) $row['catid']]         = $newId;
+                $targetIdToSource[$newId]                   = $catSource;
+                $newlyCreatedIds[$newId]                    = true;
                 $existingNames[$existKey]                   = $newId;
                 $existingNames['any:' . strtolower($name)]  = $newId;
                 $imported++;
             } catch (\Throwable $e) {
                 $errors[] = "Category '{$name}': " . $e->getMessage();
+            }
+        }
+
+        // Link newly-created "custom" categories into a one-level parent/child
+        // hierarchy (lstr_categories.parent_id, Migration 56) when the source data
+        // defines a parent relationship between two categories created in this run.
+        // Pre-existing/seeded categories are never re-parented.
+        if ($srcIdToNewId !== []) {
+            $targetParentId = [];
+            try {
+                $ids          = array_values(array_unique($srcIdToNewId));
+                $placeholders = implode(',', array_fill(0, count($ids), '?'));
+                $pStmt        = $target->prepare("SELECT id, parent_id FROM lstr_categories WHERE id IN ({$placeholders})");
+                $pStmt->execute($ids);
+                foreach ($pStmt->fetchAll() as $pRow) {
+                    $targetParentId[(int) $pRow['id']] = $pRow['parent_id'] !== null ? (int) $pRow['parent_id'] : null;
+                }
+            } catch (\Throwable) {}
+
+            $linkStmt = $target->prepare("UPDATE lstr_categories SET parent_id = :pid WHERE id = :id AND source = 'custom'");
+            foreach ($srcRows as $row) {
+                $parentSrcId = (int) ($row['parent'] ?? 0);
+                if ($parentSrcId === 0) {
+                    continue;
+                }
+
+                $childId  = $srcIdToNewId[(int) $row['catid']] ?? null;
+                $parentId = $srcIdToNewId[$parentSrcId] ?? null;
+                if ($childId === null || $parentId === null) {
+                    continue;
+                }
+                if (!isset($newlyCreatedIds[$childId])) {
+                    continue;
+                }
+                if (($targetIdToSource[$childId] ?? null) !== 'custom' || ($targetIdToSource[$parentId] ?? null) !== 'custom') {
+                    continue;
+                }
+                if (($targetParentId[$parentId] ?? null) !== null) {
+                    continue;
+                }
+
+                try {
+                    $linkStmt->execute(['pid' => $parentId, 'id' => $childId]);
+                    $targetParentId[$childId] = $parentId;
+                } catch (\Throwable) {}
             }
         }
 
@@ -638,8 +720,9 @@ final class ListingAdminImportSource implements ImportSourceInterface
                     } catch (\Throwable) {}
                 }
 
-                // Create lstr_fanlisting_settings row
-                $this->ensureListingSettings($target, $newListingId, $row, $lastUpdated);
+                // Create or update the lstr_fanlisting_settings row. On overwrite of an
+                // existing listing, re-apply main.desc, form URL overrides, and LA templates.
+                $this->ensureListingSettings($target, $newListingId, $row, $lastUpdated, $existId !== false);
 
                 // ZIP image map entry
                 if ($imgFilename !== '' && $newImage === null && $options->imageMode === 'zip') {
@@ -1397,6 +1480,111 @@ final class ListingAdminImportSource implements ImportSourceInterface
     }
 
     // -----------------------------------------------------------------------
+    // Run helpers — Join Rules (main.form_join_rules -> lstr_rules.body)
+    // -----------------------------------------------------------------------
+
+    /** @return array{type:string,found:int,import:int,skip:int,warnings:string[]} */
+    private function previewRules(PDO $source, PDO $target, string $sreg): array
+    {
+        if (!$this->rulesAddonInstalled($target)) {
+            return ['type' => 'Join Rules', 'found' => 0, 'import' => 0, 'skip' => 0,
+                    'warnings' => ['Join Rules add-on is not installed — join rules will be skipped.']];
+        }
+
+        try {
+            $stmt  = $source->query("SELECT COUNT(*) FROM `{$sreg}` WHERE form_join_rules IS NOT NULL AND TRIM(form_join_rules) != ''");
+            $found = (int) $stmt->fetchColumn();
+        } catch (\Throwable) {
+            $found = 0;
+        }
+
+        return ['type' => 'Join Rules', 'found' => $found, 'import' => $found, 'skip' => 0,
+                'warnings' => ['Listings that already have join rules configured in Luster are left unchanged.']];
+    }
+
+    /** @return array{type:string,imported:int,skipped:int,warnings:string[],errors:string[],skipped_items:array} */
+    private function runRules(PDO $source, PDO $target, array $listingIdMap, string $sreg): array
+    {
+        if (!$this->rulesAddonInstalled($target)) {
+            return ['type' => 'Join Rules', 'imported' => 0, 'skipped' => 0,
+                    'warnings' => ['Join Rules add-on is not installed — join rules were skipped.'],
+                    'errors' => [], 'skipped_items' => []];
+        }
+
+        try {
+            $stmt    = $source->query("SELECT id, form_join_rules FROM `{$sreg}`");
+            $srcRows = $stmt->fetchAll();
+        } catch (\Throwable $e) {
+            return ['type' => 'Join Rules', 'imported' => 0, 'skipped' => 0,
+                    'warnings' => [], 'errors' => ['Could not read join rules: ' . $e->getMessage()],
+                    'skipped_items' => []];
+        }
+
+        $chkStmt = $target->prepare('SELECT id FROM lstr_rules WHERE fanlisting_id = :fid');
+        $insStmt = $target->prepare('INSERT INTO lstr_rules (fanlisting_id, body) VALUES (:fid, :body)');
+
+        $imported     = 0;
+        $skipped      = 0;
+        $errors       = [];
+        $skippedItems = [];
+
+        foreach ($srcRows as $row) {
+            $body = trim((string) ($row['form_join_rules'] ?? ''));
+            if ($body === '') {
+                continue;
+            }
+
+            $laId      = (int) ($row['id'] ?? 0);
+            $listingId = $listingIdMap[$laId] ?? null;
+            if ($listingId === null) {
+                $skipped++;
+                if (count($skippedItems) < self::SKIP_CAP) {
+                    $skippedItems[] = ['label' => "LA listing #{$laId}", 'reason' => 'No matching imported listing'];
+                }
+                continue;
+            }
+
+            $chkStmt->execute(['fid' => $listingId]);
+            if ($chkStmt->fetchColumn() !== false) {
+                $skipped++;
+                if (count($skippedItems) < self::SKIP_CAP) {
+                    $skippedItems[] = ['label' => "Listing #{$listingId}", 'reason' => 'Already has join rules'];
+                }
+                continue;
+            }
+
+            try {
+                $insStmt->execute(['fid' => $listingId, 'body' => $body]);
+                $imported++;
+            } catch (\Throwable $e) {
+                $errors[] = "Join rules for listing #{$listingId}: " . $e->getMessage();
+            }
+        }
+
+        return ['type' => 'Join Rules', 'imported' => $imported, 'skipped' => $skipped,
+                'warnings' => ['Imported rules are enabled by default — review wording and gate style from Admin → Join Rules.'],
+                'errors' => $errors, 'skipped_items' => $skippedItems];
+    }
+
+    private function rulesAddonInstalled(PDO $target): bool
+    {
+        $driver = $target->getAttribute(PDO::ATTR_DRIVER_NAME);
+        try {
+            if ($driver === 'sqlite') {
+                $stmt = $target->prepare(
+                    "SELECT name FROM sqlite_master WHERE type='table' AND name='lstr_rules'"
+                );
+                $stmt->execute();
+                return $stmt->fetchColumn() !== false;
+            }
+            $stmt = $target->query("SHOW TABLES LIKE 'lstr_rules'");
+            return $stmt && $stmt->fetchColumn() !== false;
+        } catch (\Throwable) {
+            return false;
+        }
+    }
+
+    // -----------------------------------------------------------------------
     // Run helpers — Wishlist (owner's personal wishlist, LA wishlist table)
     // -----------------------------------------------------------------------
 
@@ -1714,48 +1902,125 @@ final class ListingAdminImportSource implements ImportSourceInterface
     }
 
     /**
-     * Creates or skips the lstr_fanlisting_settings row for a newly imported listing.
+     * Creates the lstr_fanlisting_settings row for a newly imported listing, or — when
+     * $overwrite is true and the row already exists — re-applies main.desc, form URL
+     * overrides, and LA templates to it (blank-safe, mirroring
+     * EnthusiastImportSource::runSettings()'s "exists && !skip" branch). When the row
+     * already exists and $overwrite is false, only backfills last_updated if it is
+     * still missing — existing customisations are left untouched.
      *
      * @param string|null $lastUpdated  Real source date (YYYY-MM-DD); null = leave column NULL.
      */
     private function ensureListingSettings(
-        PDO $target, int $listingId, array $mainRow, ?string $lastUpdated = null
+        PDO $target, int $listingId, array $mainRow, ?string $lastUpdated = null, bool $overwrite = false
     ): void {
-        $chk = $target->prepare(
-            'SELECT fanlisting_id FROM lstr_fanlisting_settings WHERE fanlisting_id = :fid'
-        );
+        $hasLastUpdated   = $this->tableHasColumn($target, 'lstr_fanlisting_settings', 'last_updated');
+        $hasAffApply      = $this->tableHasColumn($target, 'lstr_fanlisting_settings', 'affiliate_apply_enabled');
+        $hasAffSectionTpl = $this->tableHasColumn($target, 'lstr_fanlisting_settings', 'affiliates_section_template');
+
+        $selectCols = 'fanlisting_id' . ($hasLastUpdated ? ', last_updated' : '');
+        $chk = $target->prepare("SELECT {$selectCols} FROM lstr_fanlisting_settings WHERE fanlisting_id = :fid");
         $chk->execute(['fid' => $listingId]);
-        if ($chk->fetchColumn() !== false) {
-            return; // already exists
+        $existing = $chk->fetch(\PDO::FETCH_ASSOC);
+
+        $perPage = max(1, min(200, (int) ($mainRow['perpage'] ?? 25)));
+
+        // main.members/stats/affiliates -> members_template/stats_template/affiliates_section_template
+        $membersTpl    = self::translateLaMembersTemplate((string) ($mainRow['members'] ?? ''));
+        $statsTpl      = self::translateLaStatsTemplate((string) ($mainRow['stats'] ?? ''));
+        $affiliatesTpl = self::translateLaAffiliatesTemplate((string) ($mainRow['affiliates'] ?? ''));
+
+        // main.desc -> description
+        $description = html_entity_decode((string) ($mainRow['desc'] ?? ''), ENT_QUOTES | ENT_HTML5, 'UTF-8');
+
+        // main.form_join/form_update/form_reset -> form_url_join/update/reset overrides;
+        // only when non-empty and different from LA's own default filename.
+        $formUrlJoin   = self::normalizeFormUrlOverride((string) ($mainRow['form_join']   ?? ''), 'join.php');
+        $formUrlUpdate = self::normalizeFormUrlOverride((string) ($mainRow['form_update'] ?? ''), 'update.php');
+        $formUrlReset  = self::normalizeFormUrlOverride((string) ($mainRow['form_reset']  ?? ''), 'reset.php');
+
+        // Wrap the LA affiliate row template in {each_affiliate}...{/each_affiliate} so it
+        // becomes a section template, mirroring EnthusiastImportSource::runSettings().
+        $sectionTpl = ($hasAffSectionTpl && $affiliatesTpl !== '')
+            ? '{each_affiliate}' . $affiliatesTpl . '{/each_affiliate}'
+            : '';
+
+        if ($existing !== false) {
+            if (!$overwrite) {
+                // Skip-backfill: leave existing customisations untouched, only fill in
+                // last_updated when the target row has none yet (image is backfilled
+                // separately by the caller).
+                if ($hasLastUpdated && $lastUpdated !== null
+                    && ($existing['last_updated'] === null || $existing['last_updated'] === '')
+                ) {
+                    $target->prepare(
+                        'UPDATE lstr_fanlisting_settings SET last_updated = :lu WHERE fanlisting_id = :fid'
+                    )->execute(['lu' => $lastUpdated, 'fid' => $listingId]);
+                }
+                return;
+            }
+
+            // Overwrite: re-apply main.desc, form URL overrides, and LA templates.
+            // COALESCE(NULLIF(...)) keeps the existing value when the LA source is blank.
+            $assignments = 'members_per_page = :perpage,'
+                . " members_template = COALESCE(NULLIF(:mtpl, ''), members_template),"
+                . " stats_template = COALESCE(NULLIF(:stpl, ''), stats_template),"
+                . " description = COALESCE(NULLIF(:description, ''), description),"
+                . ' form_url_join = :form_url_join,'
+                . ' form_url_update = :form_url_update,'
+                . ' form_url_reset = :form_url_reset';
+            $params = [
+                'fid'             => $listingId,
+                'perpage'         => $perPage,
+                'mtpl'            => $membersTpl,
+                'stpl'            => $statsTpl,
+                'description'     => $description,
+                'form_url_join'   => $formUrlJoin,
+                'form_url_update' => $formUrlUpdate,
+                'form_url_reset'  => $formUrlReset,
+            ];
+            if ($hasAffSectionTpl) {
+                $assignments .= ", affiliates_section_template = COALESCE(NULLIF(:affiliates_section_template, ''), affiliates_section_template)";
+                $params['affiliates_section_template'] = $sectionTpl;
+            }
+            if ($hasLastUpdated) {
+                $assignments .= ', last_updated = COALESCE(:last_updated, last_updated)';
+                $params['last_updated'] = $lastUpdated;
+            }
+            $target->prepare("UPDATE lstr_fanlisting_settings SET {$assignments} WHERE fanlisting_id = :fid")
+                ->execute($params);
+            return;
         }
 
-        $perPage    = max(1, min(200, (int) ($mainRow['perpage'] ?? 25)));
-        // LA's members_header is a static HTML block above the list, not a per-member row
-        // template — it can't map to Luster's members_template. Leave null so Luster's
-        // native PHP loop (Name → URL, Country, additional fields) renders the list.
-        $membersTpl  = '';
-        $statsTpl    = '';
-
-        $hasLastUpdated = $this->tableHasColumn($target, 'lstr_fanlisting_settings', 'last_updated');
-        $hasAffApply    = $this->tableHasColumn($target, 'lstr_fanlisting_settings', 'affiliate_apply_enabled');
-        $luCol  = $hasLastUpdated ? ', last_updated'            : '';
-        $luVal  = $hasLastUpdated ? ', :last_updated'           : '';
-        $affCol = $hasAffApply    ? ', affiliate_apply_enabled' : '';
-        $affVal = $hasAffApply    ? ', 1'                      : '';
+        $luCol  = $hasLastUpdated   ? ', last_updated'                : '';
+        $luVal  = $hasLastUpdated   ? ', :last_updated'               : '';
+        $affCol = $hasAffApply      ? ', affiliate_apply_enabled'     : '';
+        $affVal = $hasAffApply      ? ', 1'                          : '';
+        $secCol = $hasAffSectionTpl ? ', affiliates_section_template' : '';
+        $secVal = $hasAffSectionTpl ? ', :affiliates_section_template' : '';
 
         $ins = $target->prepare(
             "INSERT INTO lstr_fanlisting_settings
-               (fanlisting_id, members_per_page, members_template, stats_template{$luCol}{$affCol})
-             VALUES (:fid, :perpage, :mtpl, :stpl{$luVal}{$affVal})"
+               (fanlisting_id, members_per_page, members_template, stats_template,
+                description, form_url_join, form_url_update, form_url_reset{$luCol}{$affCol}{$secCol})
+             VALUES (:fid, :perpage, :mtpl, :stpl,
+                     :description, :form_url_join, :form_url_update, :form_url_reset{$luVal}{$affVal}{$secVal})"
         );
         $params = [
-            'fid'    => $listingId,
-            'perpage' => $perPage,
-            'mtpl'   => $membersTpl ?: null,
-            'stpl'   => $statsTpl   ?: null,
+            'fid'             => $listingId,
+            'perpage'         => $perPage,
+            'mtpl'            => $membersTpl ?: null,
+            'stpl'            => $statsTpl   ?: null,
+            'description'     => $description ?: null,
+            'form_url_join'   => $formUrlJoin,
+            'form_url_update' => $formUrlUpdate,
+            'form_url_reset'  => $formUrlReset,
         ];
         if ($hasLastUpdated) {
             $params['last_updated'] = $lastUpdated;
+        }
+        if ($hasAffSectionTpl) {
+            $params['affiliates_section_template'] = $sectionTpl ?: null;
         }
         $ins->execute($params);
     }
@@ -1916,6 +2181,80 @@ final class ListingAdminImportSource implements ImportSourceInterface
             return substr($s, 0, 10);
         }
         return null;
+    }
+
+    /**
+     * Returns '' when $value is empty or matches LA's own default filename for this
+     * form (no override needed); otherwise returns the trimmed override value.
+     */
+    private static function normalizeFormUrlOverride(string $value, string $default): string
+    {
+        $value = trim($value);
+        if ($value === '' || $value === $default) {
+            return '';
+        }
+        return $value;
+    }
+
+    /**
+     * Translates LA's `main.members` per-member row template into Luster's
+     * members_template token syntax. Returns '' when the source value is empty or
+     * byte-identical to LA's own default (Luster's native member loop is preferred).
+     */
+    private static function translateLaMembersTemplate(string $tpl): string
+    {
+        $trimmed = trim($tpl);
+        if ($trimmed === '' || $trimmed === "<li>{name}<br />\n{email} &middot; {url}{fave_field}</li>") {
+            return '';
+        }
+
+        return str_replace(
+            ['{name}', '{email}', '{url}', '{fave_field}'],
+            [
+                '{fan_name}',
+                '<a href="mailto:{fan_email}">{fan_email}</a>',
+                '{if_fan_url}<a href="{fan_url}" target="_blank" rel="noopener noreferrer">URL &raquo;</a>{/if_fan_url}{if_no_fan_url}<del>URL</del>{/if_no_fan_url}',
+                '',
+            ],
+            $trimmed
+        );
+    }
+
+    /**
+     * Translates LA's `main.stats` template into Luster's stats_template token
+     * syntax. Returns '' when the source value is empty.
+     */
+    private static function translateLaStatsTemplate(string $tpl): string
+    {
+        $trimmed = trim($tpl);
+        if ($trimmed === '') {
+            return '';
+        }
+
+        return str_replace(
+            ['{members}', '{pending}', '{since}', '{updated}', '{newest}'],
+            ['{stat_approved}', '{stat_pending}', '{stat_opened}', '{stat_last_updated}', '{stat_newmembers}'],
+            $trimmed
+        );
+    }
+
+    /**
+     * Translates LA's `main.affiliates` per-affiliate row template into Luster's
+     * affiliate row token syntax (for wrapping in {each_affiliate}...{/each_affiliate}).
+     * Returns '' when the source value is empty.
+     */
+    private static function translateLaAffiliatesTemplate(string $tpl): string
+    {
+        $trimmed = trim($tpl);
+        if ($trimmed === '') {
+            return '';
+        }
+
+        return str_replace(
+            ['{url}', '{image}', '{subject}'],
+            ['{aff_url}', '{aff_image_url}', '{aff_name}'],
+            $trimmed
+        );
     }
 
     /** Returns true when $column exists on $table in $pdo (MySQL + SQLite aware). */

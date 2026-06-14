@@ -721,6 +721,8 @@ final class ListingController extends AdminController
                 $approvedByInput = '';
             }
 
+            $description = trim((string) $request->post('description', ''));
+
             $forAdoptionInput = $this->app->isAddonInstalled('Adoption')
                              && $request->post('for_adoption') === '1';
 
@@ -843,6 +845,7 @@ final class ListingController extends AdminController
                     'contact_recipient'       => $contactRecipient,
                     'join_confirmation_email' => $joinConfirmEmail,
                     'auto_approve_joins'      => $autoApproveJoins,
+                    'description'             => $description,
                 ], '', [
                     $this->crumb('Owned Listings', $this->adminUrl('/admin/listings')),
                     $this->crumb($listing->subject),
@@ -865,6 +868,7 @@ final class ListingController extends AdminController
             $settingsRepo->saveMembersPerPage($id, $membersPerPage);
             $settingsRepo->saveContactSettings($id, $contactEnabled, $contactRecipient !== '' ? $contactRecipient : null);
             $settingsRepo->saveApprovedBy($id, $approvedByInput);
+            $settingsRepo->saveDescription($id, $description);
             if ($this->app->isAddonInstalled('Adoption')) {
                 $settingsRepo->saveForAdoption($id, $forAdoptionInput);
             }
@@ -928,6 +932,7 @@ final class ListingController extends AdminController
         $embedSettings      = $settingsRepo->getEmbedSettings($id);
         $contactSettings    = $settingsRepo->getContactSettings($id);
         $approvedBy         = $settingsRepo->getApprovedBy($id);
+        $description        = $settingsRepo->getDescription($id);
         $affiliateApplySettings = $settingsRepo->getAffiliateApplySettings($id);
         $codeApprovalEmail  = $settingsRepo->getCodeApprovalEmail($id);
         $joinSettings           = $settingsRepo->getJoinSettings($id);
@@ -1072,6 +1077,7 @@ final class ListingController extends AdminController
             'contact_enabled'     => $contactSettings['enabled'],
             'contact_recipient'   => $contactSettings['recipient'] ?? '',
             'approved_by'         => $approvedBy,
+            'description'         => $description,
             'adoption_addon_installed'       => $adoptionAddonInstalled,
             'updates_addon_installed'        => $updatesAddonInstalled,
             'rules_addon_installed'          => $rulesAddonInstalled,
@@ -1404,7 +1410,6 @@ final class ListingController extends AdminController
         $affiliatesSectionTemplate = $nil((string) $request->post('affiliates_section_template',  ''), 'affiliates_section_template');
         $updatesTemplate           = $nil((string) $request->post('updates_template',             ''), 'updates_template');
         $codesSubmitFormTemplate   = $nil((string) $request->post('codes_submit_form_template',   ''), 'codes_submit_form_template');
-        $rulesIntroTemplate        = $nil((string) $request->post('rules_intro_template',           ''));
         $joinFormTemplate          = $nil((string) $request->post('join_form_template',             ''), 'join_form_template');
         $affiliateApplyFormTemplate = $nil((string) $request->post('affiliate_apply_form_template', ''), 'affiliate_apply_form_template');
         $adoptFormTemplate          = $nil((string) $request->post('adopt_form_template',           ''), 'adopt_form_template');
@@ -1413,7 +1418,7 @@ final class ListingController extends AdminController
         $settingsRepo->saveTemplates(
             $id, $statsTemplate, $membersTemplate, $affiliatesSectionTemplate,
             $updatesTemplate, $codesSubmitFormTemplate,
-            $rulesIntroTemplate, $joinFormTemplate, $affiliateApplyFormTemplate, $adoptFormTemplate,
+            null, $joinFormTemplate, $affiliateApplyFormTemplate, $adoptFormTemplate,
         );
 
         $this->app->getSession()->set('lstr_flash_success', 'Templates saved successfully.');
@@ -1444,12 +1449,11 @@ final class ListingController extends AdminController
             return $this->previewWrap('<p style="color:#c00">Listing not found.</p>', $appUrl);
         }
 
-        $allowed    = ['members', 'affiliates_section', 'stats', 'updates', 'codes_submit_form', 'rules_intro', 'rules', 'join_form', 'affiliate_apply_form', 'adopt_form'];
-        $introTypes = ['rules_intro'];
+        $allowed = ['members', 'affiliates_section', 'stats', 'updates', 'codes_submit_form', 'rules', 'join_form', 'affiliate_apply_form', 'adopt_form'];
         if (!in_array($type, $allowed, true)) {
             return $this->previewWrap('<p style="color:#c00">Unknown template type.</p>', $appUrl);
         }
-        if ($tpl === '' && !in_array($type, $introTypes, true)) {
+        if ($tpl === '') {
             return $this->previewWrap('<p style="color:#c00">Template is empty.</p>', $appUrl);
         }
 
@@ -1460,12 +1464,18 @@ final class ListingController extends AdminController
                 'affiliates_section' => $this->ltplPreviewAffiliates($tpl, $listing, $db, $uploadsBase . '/affiliates', $appUrl),
                 'stats'              => $this->ltplPreviewStats($tpl, $listing, $db, $config),
                 'updates'            => $this->ltplPreviewUpdates($tpl, $listing, $db),
-                'rules'              => $this->ltplPreviewRules($tpl, $listing, trim((string) $request->post('gate_label', ''))),
+                'rules'              => $this->ltplPreviewRules(
+                    $tpl,
+                    $listing,
+                    trim((string) $request->post('gate_label', '')),
+                    (string) $request->post('gate_enabled', '1') !== '0',
+                    trim((string) $request->post('gate_type', '')),
+                ),
                 'join_form'           => $this->ltplPreviewJoinForm($tpl, $listing),
                 'codes_submit_form'  => $this->ltplPreviewCodesSubmitForm($tpl, $listing),
                 'affiliate_apply_form' => $this->ltplPreviewAffiliateApplyForm($tpl, $listing),
                 'adopt_form'           => $this->ltplPreviewAdoptForm($tpl, $listing),
-                default              => $this->ltplPreviewIntro($tpl, $listing),
+                default                => throw new \LogicException("Unhandled preview type: {$type}"),
             };
         } catch (\Throwable $e) {
             $html = '<p style="color:#c00;font-family:monospace">Preview error: '
@@ -1703,27 +1713,7 @@ final class ListingController extends AdminController
         return \Luster\Addons\Updates\Controllers\UpdatesPublicController::buildUpdatesHtmlPublic($updates, $tpl);
     }
 
-    private function ltplPreviewIntro(string $tpl, object $listing): string
-    {
-        if (trim($tpl) === '') {
-            return '<p style="font-style:italic;color:#888">This intro is blank &mdash; leave it empty to hide this section from visitors.</p>';
-        }
-        return TemplateEngine::render(
-            $tpl,
-            escaped: [
-                'listing_title'   => $listing->title,
-                'listing_url'     => $listing->url,
-                'listing_subject' => $listing->subject ?? '',
-            ],
-        );
-    }
-
-    /**
-     * Join Rules body preview using this listing's tokens. Renders both gate
-     * types (checkbox and button) so {if_gate_checkbox} can be reviewed in
-     * either state.
-     */
-    private function ltplPreviewRules(string $tpl, object $listing, string $gateLabel = ''): string
+    private function ltplPreviewRules(string $tpl, object $listing, string $gateLabel = '', bool $gateEnabled = true, string $gateType = ''): string
     {
         $appUrl = rtrim((string) $this->app->getConfig()->get('app_url', ''), '/');
 
@@ -1733,7 +1723,7 @@ final class ListingController extends AdminController
             'listing_url'   => $listing->url,
             'join_url'      => $appUrl . '/join/' . $listing->id,
             'update_url'    => $appUrl . '/update/' . $listing->id,
-        ], $gateLabel);
+        ], $gateLabel, $gateEnabled, $gateType);
     }
 
     private function ltplPreviewJoinForm(string $tpl, object $listing): string

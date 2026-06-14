@@ -98,12 +98,12 @@ final class BellaBuffsImportSource implements ImportSourceInterface
     /**
      * Reads the BellaBuffs flat files and returns counts.
      *
-     * IMPORTANT: $source is the Luster TARGET PDO. The controller passes
-     * the target as both arguments so preview() can count duplicate members.
+     * BellaBuffs has no foreign source database — $source and $target are both
+     * Luster's own PDO. The controller passes the target for both arguments.
      */
-    public function preview(PDO $source, ImportOptions $options): ImportPreview
+    public function preview(PDO $source, PDO $target, ImportOptions $options): ImportPreview
     {
-        $targetPdo = $source;
+        $targetPdo = $target;
         $rows      = [];
 
         if ($options->bbTargetListingId <= 0) {

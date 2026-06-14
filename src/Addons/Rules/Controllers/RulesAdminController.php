@@ -368,8 +368,10 @@ final class RulesAdminController extends AdminController
         $this->app->getCSRF()->validate($request->post('_csrf', ''));
 
         $appUrl    = rtrim((string) $this->app->getConfig()->get('app_url', ''), '/');
-        $tpl       = (string) $request->post('template_html', '');
-        $gateLabel = trim((string) $request->post('gate_label', ''));
+        $tpl         = (string) $request->post('template_html', '');
+        $gateLabel   = trim((string) $request->post('gate_label', ''));
+        $gateEnabled = (string) $request->post('gate_enabled', '1') !== '0';
+        $gateType    = trim((string) $request->post('gate_type', ''));
 
         if ($tpl === '') {
             return $this->previewWrap('<p style="color:#c00">Template is empty.</p>', $appUrl);
@@ -382,7 +384,7 @@ final class RulesAdminController extends AdminController
                 'listing_url'   => 'https://example.com/sample-fanlisting',
                 'join_url'      => 'https://example.com/sample-fanlisting/join',
                 'update_url'    => 'https://example.com/sample-fanlisting/update',
-            ], $gateLabel);
+            ], $gateLabel, $gateEnabled, $gateType);
         } catch (\Throwable $e) {
             $html = '<p style="color:#c00;font-family:monospace">Preview error: '
                   . htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '</p>';

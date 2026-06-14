@@ -297,8 +297,8 @@ final class EmbedCodesController
             $countrySel = Countries::buildSelect($member->country);
 
             $urlVal = htmlspecialchars($member->url, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
-            $urlRaw = '<input type="url" id="upd-url" name="url" value="' . $urlVal . '" maxlength="500" placeholder="https://">'
-                    . '<label><input type="checkbox" name="delete_url" value="1"> Remove my website URL</label>';
+            $urlRaw = '<input class="fl-input" type="url" id="upd-url" name="url" value="' . $urlVal . '" maxlength="500" placeholder="https://">'
+                    . '<div class="fl-field-hint"><label><input type="checkbox" name="delete_url" value="1"> Remove my website URL</label></div>';
 
             $oldFields = [];
             foreach ($fields as $field) {

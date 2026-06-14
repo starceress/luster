@@ -517,8 +517,8 @@ final class UpdateController
             ENT_QUOTES | ENT_SUBSTITUTE,
             'UTF-8',
         );
-        $urlRaw = '<input type="url" id="upd-url" name="url" value="' . $urlVal . '" maxlength="500" placeholder="https://">'
-                . '<label><input type="checkbox" name="delete_url" value="1"> Remove my website URL</label>';
+        $urlRaw = '<input class="fl-input" type="url" id="upd-url" name="url" value="' . $urlVal . '" maxlength="500" placeholder="https://">'
+                . '<div class="fl-field-hint"><label><input type="checkbox" name="delete_url" value="1"> Remove my website URL</label></div>';
 
         // Merge old/current values for additional fields so pre-fill comes from the member record
         $updOld = [];

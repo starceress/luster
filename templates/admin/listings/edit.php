@@ -243,6 +243,16 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
           </div>
         </div>
 
+        <div class="listing-field-row listing-field-row--top">
+          <label class="listing-field-label" for="fl-description">Description</label>
+          <div>
+            <textarea id="fl-description" name="description" class="form" rows="4"
+                      maxlength="65535"
+                      placeholder="A short description of this listing&hellip;"><?= View::e($description ?? '') ?></textarea>
+            <p class="form-hint">Optional. Available to embed templates via the <code>{listing_description}</code> token.</p>
+          </div>
+        </div>
+
         <div class="listing-field-row">
           <label class="listing-field-label">Status</label>
           <div class="status-pill-row" id="status-pills">
@@ -517,7 +527,6 @@ $tplUpdatesVal      = ($templates['updates_template']            ?? '') ?: $_gFa
 $tplCodesFormVal    = ($templates['codes_submit_form_template']    ?? '') ?: $_gFallback(ListingSettingsRepo::defaultCodesSubmitFormTemplate(),    'listing_default_codes_submit_form_template');
 $tplAffApplyFormVal = ($templates['affiliate_apply_form_template'] ?? '') ?: $_gFallback(ListingSettingsRepo::defaultAffiliateApplyFormTemplate(), 'listing_default_affiliate_apply_form_template');
 $tplAdoptFormVal    = ($templates['adopt_form_template']           ?? '') ?: $_gFallback(ListingSettingsRepo::defaultAdoptFormTemplate(),          'listing_default_adopt_form_template');
-$tplRulesVal        = $templates['rules_intro_template']             ?? '';
 $tplJoinFormVal     = ($templates['join_form_template']              ?? '') ?: $_gFallback(ListingSettingsRepo::defaultJoinFormTemplate(),          'listing_default_join_form_template');
 
 // Source badge helper for Templates tab
@@ -593,7 +602,7 @@ $ltok = static fn(string $ta, string $token, string $label, string $desc): strin
           <textarea id="updates_template" name="updates_template" class="form form-mono" spellcheck="false"><?= View::e($tplUpdatesVal) ?></textarea>
         </div>
         <div class="tpl-reset-row">
-          <button type="button" class="btn btn-preview btn-xs coltpl-preview-btn" data-tpltype="updates" data-textarea="updates_template"><?= View::icon('eye-on') ?>  &nbsp;
+          <button type="button" class="btn btn-preview btn-xs coltpl-preview-btn" data-tpltype="updates" data-textarea="updates_template"><?= View::icon('eye-on') ?>  Preview</button>&nbsp;
           <button type="button" class="btn btn-quaternary btn-xs" data-textarea="updates_template">Reset to Default</button>
         </div>
         <?php else: ?>
@@ -617,7 +626,7 @@ $ltok = static fn(string $ta, string $token, string $label, string $desc): strin
           <textarea id="adopt_form_template" name="adopt_form_template" class="form form-mono" spellcheck="false"><?= View::e($tplAdoptFormVal) ?></textarea>
         </div>
         <div class="tpl-reset-row">
-          <button type="button" class="btn btn-preview btn-xs coltpl-preview-btn" data-tpltype="adopt_form" data-textarea="adopt_form_template"><?= View::icon('eye-on') ?>  &nbsp;
+          <button type="button" class="btn btn-preview btn-xs coltpl-preview-btn" data-tpltype="adopt_form" data-textarea="adopt_form_template"><?= View::icon('eye-on') ?>  Preview</button>&nbsp;
           <button type="button" class="btn btn-quaternary btn-xs" data-textarea="adopt_form_template">Reset to Default</button>
         </div>
         <?php else: ?>
@@ -650,20 +659,6 @@ $ltok = static fn(string $ta, string $token, string $label, string $desc): strin
         </div>
         <?php else: ?>
         <input type="hidden" name="affiliate_apply_form_template" value="<?= View::e((string) ($tplAffApplyFormVal ?? '')) ?>">
-        <?php endif; ?>
-
-        <?php if ($hasRulesAddon): ?>
-        <div class="pc-section-label">Join Rules Intro</div>
-        <p class="form-hint mb-sm">Optional HTML displayed above the join rules gate form. Leave blank to show nothing.</p>
-        <div class="form-group">
-          <textarea id="rules_intro_template" name="rules_intro_template" class="form form-mono" spellcheck="false"><?= View::e($tplRulesVal) ?></textarea>
-        </div>
-        <div class="tpl-reset-row">
-          <button type="button" class="btn btn-preview btn-xs coltpl-preview-btn" data-tpltype="rules_intro" data-textarea="rules_intro_template"><?= View::icon('eye-on') ?> Preview</button> &nbsp;
-          <button type="button" class="btn btn-quaternary btn-xs" data-textarea="rules_intro_template">Reset to Default</button>
-        </div>
-        <?php else: ?>
-        <input type="hidden" name="rules_intro_template" value="<?= View::e((string) ($tplRulesVal ?? '')) ?>">
         <?php endif; ?>
 
       </div>
@@ -907,24 +902,11 @@ $ltok = static fn(string $ta, string $token, string $label, string $desc): strin
       </details>
       <?php endif; ?>
 
-      <?php if ($hasRulesAddon): ?>
-      <!-- Join Rules Intro -->
-      <details class="card chevron" data-token-card>
-        <summary class="chevron-head">Join Rules Intro Tokens</summary>
-        <div class="chevron-body">
-          <p class="form-hint mb-sm" data-token-search-help>Simple substitution tokens for the intro block displayed above the join rules gate.</p>
-          <table class="et-token-table et-token-table--compact"><tbody>
-            <?= $ltok('rules_intro_template', '{listing_title}',   '{listing_title}',   'The listing\'s display name.') ?>
-            <?= $ltok('rules_intro_template', '{listing_url}',     '{listing_url}',     'The link to the listing.') ?>
-            <?= $ltok('rules_intro_template', '{listing_subject}', '{listing_subject}', 'What the listing is about.') ?>
-          </tbody></table>
-        </div>
-      </details>
-      <?php endif; ?>
-
     </div><!-- /.composer-side -->
   </div><!-- /.composer-grid -->
 </form>
+
+</div><!-- /#tab-templates -->
 
 <script type="application/json" id="luster-coltpl-defaults">
 <?= json_encode([
@@ -933,11 +915,10 @@ $ltok = static fn(string $ta, string $token, string $label, string $desc): strin
     'stats_template'                => $_gFallback(ListingSettingsRepo::defaultStatsTemplate(),                'listing_default_stats_template'),
     'updates_template'              => $_gFallback(ListingSettingsRepo::defaultUpdatesTemplate(),              'listing_default_updates_template'),
     'codes_submit_form_template'    => $_gFallback(ListingSettingsRepo::defaultCodesSubmitFormTemplate(),      'listing_default_codes_submit_form_template'),
-    'rules_intro_template'          => '',
     'join_form_template'            => $_gFallback(ListingSettingsRepo::defaultJoinFormTemplate(),             'listing_default_join_form_template'),
     'affiliate_apply_form_template' => $_gFallback(ListingSettingsRepo::defaultAffiliateApplyFormTemplate(),  'listing_default_affiliate_apply_form_template'),
     'adopt_form_template'           => $_gFallback(ListingSettingsRepo::defaultAdoptFormTemplate(),           'listing_default_adopt_form_template'),
-    'rules-tab-body'                => RulesBodyRenderer::defaultBody(),
+    'rules-body'                    => RulesBodyRenderer::defaultBody(),
 ], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) ?>
 </script>
 
@@ -960,128 +941,16 @@ $ltok = static fn(string $ta, string $token, string $label, string $desc): strin
     </div>
   </div>
 </div>
-</div><!-- /#tab-templates -->
 <?php if ($rules_addon_installed ?? false): ?>
 <!-- ──── TAB: RULES ─────────────────────────────────────────────────── -->
 <div id="tab-rules" class="tabs-panel">
 
 <?php
-  $_rulesTabGateType  = $rules?->gateType  ?? 'checkbox';
-  $_rulesTabGateLabel = $_rulesTabGateType === 'button'
-    ? 'I agree — proceed to join form'
-    : 'I have read and agree to the rules above.';
-  $_rulesTabBodyVal = ($rules?->body ?? '') !== '' ? $rules->body : RulesBodyRenderer::defaultBody();
+$listing_id      = (int) $listing->id;
+$_rules_embedded = true;
+include LUSTER_BASE . '/templates/admin/addons/rules/edit.php';
+unset($listing_id, $_rules_embedded, $defaultBody, $bodyVal, $currentGateType, $defaultGateLabel);
 ?>
-
-  <div class="composer-grid">
-
-    <!-- ── Rules form ──────────────────────────────────────────────────── -->
-    <form method="POST" action="<?= $b ?>/admin/rules/<?= (int) $listing->id ?>/edit">
-      <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
-      <input type="hidden" name="_redirect_to_listing" value="<?= (int) $listing->id ?>">
-
-      <div class="gradient-card">
-        <div class="listing-field-section">
-
-          <div class="listing-field-row listing-field-row--top">
-            <label class="listing-field-label" for="rules-tab-body">
-              Rules Template <span class="req">*</span>
-            </label>
-            <div>
-              <textarea class="form form-mono" id="rules-tab-body" name="body"
-                        rows="16" maxlength="10000"
-                        spellcheck="false"><?= View::e($_rulesTabBodyVal) ?></textarea>
-              <p class="form-hint">HTML is allowed. Use tokens like <code>{subject}</code>, <code>{gate_checkbox}</code>, and <code>{gate_button}</code> to insert dynamic content. Editing this text will increment the version number and require fans to agree again on their next visit.</p>
-              <div class="tpl-reset-row">
-                <button type="button" class="btn btn-quaternary btn-xs" data-textarea="rules-tab-body">Reset to Default</button>
-                &nbsp; <button type="button" class="btn btn-preview btn-xs coltpl-preview-btn" data-tpltype="rules" data-textarea="rules-tab-body"><?= View::icon('eye-on') ?> Preview</button>
-              </div>
-            </div>
-          </div>
-
-          <div class="listing-field-row">
-            <label class="listing-field-label" for="rules-tab-enabled">Enabled</label>
-            <div>
-              <label class="toggle-wrap">
-                <input type="checkbox" id="rules-tab-enabled" name="enabled" value="1"
-                       <?= ($rules !== null && $rules->enabled) ? 'checked' : '' ?>>
-                <span class="toggle-label">Show rules gate on this listing</span>
-              </label>
-              <p class="form-hint">When disabled, the gate is hidden and fans can join without agreeing. The rules template is preserved.</p>
-            </div>
-          </div>
-
-          <div class="listing-field-row" id="rules-tab-gate-style-row" style="<?= ($rules !== null && $rules->enabled) ? '' : 'display:none' ?>">
-            <label class="listing-field-label" for="rules-tab-gate-type">Gate Style</label>
-            <div>
-              <div class="select-wrap select-auto">
-                <select id="rules-tab-gate-type" name="gate_type">
-                  <option value="checkbox" <?= $_rulesTabGateType === 'checkbox' ? 'selected' : '' ?>>Checkbox + Button</option>
-                  <option value="button"   <?= $_rulesTabGateType === 'button'   ? 'selected' : '' ?>>Single Button</option>
-                </select>
-              </div>
-              <p class="form-hint">"Checkbox + Button" — <code>{gate_checkbox}</code> renders a required checkbox; <code>{gate_button}</code> renders the submit button. "Single Button" — <code>{gate_checkbox}</code> renders as empty; <code>{gate_button}</code> renders a button that submits the agreement directly.</p>
-            </div>
-          </div>
-
-          <div class="listing-field-row" id="rules-tab-gate-label-row">
-            <label class="listing-field-label" for="rules-tab-gate-label">Gate Label</label>
-            <div>
-              <input class="form" type="text" id="rules-tab-gate-label" name="gate_label"
-                     maxlength="255"
-                     value="<?= View::e($rules?->gateLabel ?? '') ?>"
-                     placeholder="<?= View::e($_rulesTabGateLabel) ?>">
-              <p class="form-hint">Text shown on the <code>{gate_button}</code> button, used for both gate styles. <code>{gate_checkbox}</code> renders an unlabeled checkbox &mdash; add your own label text in the template body next to it. Leave blank to use the default for the selected gate type. Only takes effect while the gate is enabled above.</p>
-            </div>
-          </div>
-
-        </div><!-- /.listing-field-section -->
-
-        <div class="composer-footer">
-          <button type="submit" class="btn btn-primary">Save Rules</button>
-          <button type="button" class="btn btn-quaternary js-rules-reset-defaults" data-form-reset="rules-tab-body">Reset to Default</button>
-          <?php if ($rules !== null): ?>
-          <div class="composer-footer-spacer"></div>
-          <button type="submit" form="rules-delete-form-tab" class="btn btn-danger">Delete</button>
-          <?php endif; ?>
-        </div>
-      </div><!-- /.gradient-card -->
-    </form>
-
-    <?php if ($rules !== null): ?>
-    <form id="rules-delete-form-tab"
-          method="POST"
-          action="<?= $b ?>/admin/rules/<?= (int) $listing->id ?>/delete"
-          class="action-form-inline"
-          data-del-modal
-          data-del-entity="rules"
-          data-del-name="<?= View::e($listing->title) ?>">
-      <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
-    </form>
-    <?php endif; ?>
-
-    <!-- ── Sidebar ────────────────────────────────────────────────────── -->
-    <div class="composer-side">
-
-      <details class="card chevron">
-        <summary class="chevron-head">Available Tokens</summary>
-        <div class="chevron-body">
-          <p class="form-hint mb-sm">Use these in your rules template &mdash; they're replaced when shown to fans.</p>
-          <table class="et-token-table et-token-table--compact"><tbody>
-            <tr><td><code>{subject}</code></td><td>Listing subject name</td></tr>
-            <tr><td><code>{listing_title}</code></td><td>Listing title</td></tr>
-            <tr><td><code>{listing_url}</code></td><td>Listing's external URL</td></tr>
-            <tr><td><code>{join_url}</code></td><td>Link to the join form</td></tr>
-            <tr><td><code>{update_url}</code></td><td>Link to the update form</td></tr>
-            <tr><td><code>{gate_checkbox}</code></td><td>Agreement checkbox (empty in button mode)</td></tr>
-            <tr><td><code>{gate_button}</code></td><td>Agreement button (label from Gate Label)</td></tr>
-            <tr><td><code>{if_gate_checkbox}...{/if_gate_checkbox}</code></td><td>Wraps content shown only when the gate style is "Checkbox + Button" (removed entirely in "Single Button" mode)</td></tr>
-          </tbody></table>
-        </div>
-      </details>
-
-    </div><!-- /.composer-side -->
-  </div><!-- /.composer-grid -->
 </div><!-- /#tab-rules -->
 <?php endif; ?>
 <!-- ──── TAB: ADDITIONAL FIELDS ─────────────────────────────────────── -->

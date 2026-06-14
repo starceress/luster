@@ -237,8 +237,10 @@ $tok = static fn(string $ta, string $token, string $label, string $desc): string
             <?= $tok('owned_template', '{country_count}',      '{country_count}',      'How many different countries are represented by approved members.') ?>
             <?= $tok('owned_template', '{countries_count}',    '{countries_count}',    'Same as {country_count}. Use whichever name you prefer.') ?>
             <?= $tok('owned_template', '{approved_by}',        '{approved_by}',        'Which network this listing is registered with: tfl, tafl, or blank.') ?>
+            <?= $tok('owned_template', '{listing_description}', '{listing_description}', 'The listing description, if set on the Edit Listing page.') ?>
             <?= $tok('owned_template', '{if_listing_image}{/if_listing_image}',       '{if_listing_image}...{/if_listing_image}',       'Shows only when the listing has an image.') ?>
             <?= $tok('owned_template', '{if_countries}{/if_countries}',               '{if_countries}...{/if_countries}',               'Shows only when this listing has at least one country.') ?>
+            <?= $tok('owned_template', '{if_description}{/if_description}',          '{if_description}...{/if_description}',          'Shows only when this listing has a description set.') ?>
             <?= $tok('owned_template', '{if_pending}{/if_pending}',                   '{if_pending}...{/if_pending}',                   'Shows only when this listing has members waiting for approval.') ?>
             <?= $tok('owned_template', '{if_status_current}{/if_status_current}',     '{if_status_current}...{/if_status_current}',     'Shows only when the listing is current.') ?>
             <?= $tok('owned_template', '{if_status_upcoming}{/if_status_upcoming}',   '{if_status_upcoming}...{/if_status_upcoming}',   'Shows only when the listing is upcoming.') ?>
@@ -300,8 +302,10 @@ $tok = static fn(string $ta, string $token, string $label, string $desc): string
             <?= $tok('random_listing_template', '{member_pending_count}',  '{member_pending_count}',  'How many members are waiting for approval.') ?>
             <?= $tok('random_listing_template', '{country_count}',      '{country_count}',      'How many different countries are represented by approved members.') ?>
             <?= $tok('random_listing_template', '{approved_by}',        '{approved_by}',        'Which network this listing is registered with: tfl, tafl, or blank.') ?>
+            <?= $tok('random_listing_template', '{listing_description}', '{listing_description}', 'The listing description, if set on the Edit Listing page.') ?>
             <?= $tok('random_listing_template', '{if_listing_image}{/if_listing_image}',     '{if_listing_image}...{/if_listing_image}',     'Shows only when the listing has an image.') ?>
             <?= $tok('random_listing_template', '{if_countries}{/if_countries}',             '{if_countries}...{/if_countries}',             'Shows only when this listing has at least one country.') ?>
+            <?= $tok('random_listing_template', '{if_description}{/if_description}',         '{if_description}...{/if_description}',         'Shows only when this listing has a description set.') ?>
             <?= $tok('random_listing_template', '{if_status_current}{/if_status_current}',   '{if_status_current}...{/if_status_current}',   'Shows only when the listing is current.') ?>
           </tbody></table>
         </div>
@@ -327,8 +331,10 @@ $tok = static fn(string $ta, string $token, string $label, string $desc): string
             <?= $tok('latest_listing_template', '{member_pending_count}',  '{member_pending_count}',  'How many members are waiting for approval.') ?>
             <?= $tok('latest_listing_template', '{country_count}',      '{country_count}',      'How many different countries are represented by approved members.') ?>
             <?= $tok('latest_listing_template', '{approved_by}',        '{approved_by}',        'Which network this listing is registered with: tfl, tafl, or blank.') ?>
+            <?= $tok('latest_listing_template', '{listing_description}', '{listing_description}', 'The listing description, if set on the Edit Listing page.') ?>
             <?= $tok('latest_listing_template', '{if_listing_image}{/if_listing_image}',     '{if_listing_image}...{/if_listing_image}',     'Shows only when the listing has an image.') ?>
             <?= $tok('latest_listing_template', '{if_countries}{/if_countries}',             '{if_countries}...{/if_countries}',             'Shows only when this listing has at least one country.') ?>
+            <?= $tok('latest_listing_template', '{if_description}{/if_description}',         '{if_description}...{/if_description}',         'Shows only when this listing has a description set.') ?>
             <?= $tok('latest_listing_template', '{if_status_current}{/if_status_current}',   '{if_status_current}...{/if_status_current}',   'Shows only when the listing is current.') ?>
           </tbody></table>
         </div>
@@ -413,6 +419,7 @@ $tok = static fn(string $ta, string $token, string $label, string $desc): string
             <?= $tok('collective_stats_template', '{owned_random_url}',  '{owned_random_url}',  'The link to a randomly chosen owned listing.') ?>
             <?= $tok('collective_stats_template', '{countries_count}',   '{countries_count}',   'How many different countries are represented across your owned listings.') ?>
             <?= $tok('collective_stats_template', '{if_countries}{/if_countries}', '{if_countries}...{/if_countries}', 'Shows only when the collective country count is greater than zero.') ?>
+            <?= $tok('collective_stats_template', '{if_pending}{/if_pending}', '{if_pending}...{/if_pending}', 'Shows only when at least one member across your owned listings is waiting for approval.') ?>
           </tbody></table>
         </div>
       </details>

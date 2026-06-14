@@ -201,7 +201,7 @@ final class EnthusiastMemberImportTest extends TestCase
             showemail INTEGER NOT NULL DEFAULT 1, showurl INTEGER NOT NULL DEFAULT 1, added TEXT NULL)");
         $this->insertMember($src, 'gachia', ['email' => 'c@test.com']);
 
-        $preview = $this->adapter()->preview($src, $this->makeOptions());
+        $preview = $this->adapter()->preview($src, $src, $this->makeOptions());
 
         $membersRow = null;
         foreach ($preview->rows as $row) {
@@ -226,7 +226,7 @@ final class EnthusiastMemberImportTest extends TestCase
         // Drop the table the seed created
         $src->exec('DROP TABLE huntrix');
 
-        $preview = $this->adapter()->preview($src, $this->makeOptions());
+        $preview = $this->adapter()->preview($src, $src, $this->makeOptions());
 
         $membersRow = null;
         foreach ($preview->rows as $row) {
@@ -252,7 +252,7 @@ final class EnthusiastMemberImportTest extends TestCase
         $this->insertMember($src, 'fl_hunt_members', ['email' => 'fan@test.com']);
         $this->insertMember($src, 'fl_hunt_members', ['email' => 'fan2@test.com']);
 
-        $preview = $this->adapter()->preview($src, $this->makeOptions());
+        $preview = $this->adapter()->preview($src, $src, $this->makeOptions());
 
         $membersRow = null;
         foreach ($preview->rows as $row) {
@@ -289,7 +289,7 @@ final class EnthusiastMemberImportTest extends TestCase
 
         $this->assertNotNull($membersRow);
         $this->assertSame(0, $membersRow['imported']);
-        $this->assertStringContainsString('already accessible', implode(' ', $membersRow['warnings']));
+        $this->assertStringContainsString('already reading them directly', implode(' ', $membersRow['warnings']));
     }
 
     // -----------------------------------------------------------------------
@@ -685,7 +685,7 @@ final class EnthusiastMemberImportTest extends TestCase
 
         // Target: needs lstr_categories + lstr_joined
         $tgt->exec('CREATE TABLE IF NOT EXISTS lstr_categories (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, slug TEXT NOT NULL DEFAULT \'\', parent_id INTEGER NULL, source TEXT NOT NULL DEFAULT \'custom\')');
-        $tgt->exec('CREATE TABLE IF NOT EXISTS lstr_joined (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL DEFAULT \'\', url TEXT NOT NULL DEFAULT \'\', image TEXT NULL, category TEXT NOT NULL DEFAULT \'\', categories_json TEXT NULL, category_id INTEGER NULL, date_joined TEXT NULL, active INTEGER NOT NULL DEFAULT 1, status TEXT NOT NULL DEFAULT \'approved\', sort_order INTEGER NOT NULL DEFAULT 0)');
+        $tgt->exec('CREATE TABLE IF NOT EXISTS lstr_joined (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL DEFAULT \'\', url TEXT NOT NULL DEFAULT \'\', image TEXT NULL, category TEXT NOT NULL DEFAULT \'\', categories_json TEXT NULL, category_id INTEGER NULL, date_joined TEXT NULL, active INTEGER NOT NULL DEFAULT 1, status TEXT NOT NULL DEFAULT \'approved\', sort_order INTEGER NOT NULL DEFAULT 0, description TEXT NULL, comments TEXT NULL)');
     }
 
     public function testRunCategoriesAssignsTflSourceToKnownTflCategories(): void
@@ -832,6 +832,11 @@ final class EnthusiastMemberImportTest extends TestCase
                 members_template TEXT NULL,
                 stats_template TEXT NULL,
                 image TEXT NULL,
+                listing_type TEXT NULL,
+                form_url_join TEXT NOT NULL DEFAULT \'\',
+                form_url_update TEXT NOT NULL DEFAULT \'\',
+                form_url_reset TEXT NOT NULL DEFAULT \'\',
+                description TEXT NULL,
                 last_updated DATE NULL
             )'
         );
@@ -1439,7 +1444,7 @@ final class EnthusiastMemberImportTest extends TestCase
             )'
         );
         $tgt->exec('CREATE TABLE IF NOT EXISTS lstr_categories (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, slug TEXT NOT NULL DEFAULT \'\', parent_id INTEGER NULL, source TEXT NOT NULL DEFAULT \'custom\')');
-        $tgt->exec('CREATE TABLE IF NOT EXISTS lstr_fanlisting_settings (fanlisting_id INTEGER PRIMARY KEY, members_per_page INTEGER NOT NULL DEFAULT 25, queue_updates INTEGER NOT NULL DEFAULT 0, members_template TEXT NULL, stats_template TEXT NULL, image TEXT NULL, last_updated DATE NULL)');
+        $tgt->exec('CREATE TABLE IF NOT EXISTS lstr_fanlisting_settings (fanlisting_id INTEGER PRIMARY KEY, members_per_page INTEGER NOT NULL DEFAULT 25, queue_updates INTEGER NOT NULL DEFAULT 0, members_template TEXT NULL, stats_template TEXT NULL, image TEXT NULL, listing_type TEXT NULL, form_url_join TEXT NOT NULL DEFAULT \'\', form_url_update TEXT NOT NULL DEFAULT \'\', form_url_reset TEXT NOT NULL DEFAULT \'\', description TEXT NULL, last_updated DATE NULL)');
         return $tgt;
     }
 
@@ -1673,6 +1678,11 @@ final class EnthusiastMemberImportTest extends TestCase
                 members_template TEXT NULL,
                 stats_template TEXT NULL,
                 image TEXT NULL,
+                listing_type TEXT NULL,
+                form_url_join TEXT NOT NULL DEFAULT \'\',
+                form_url_update TEXT NOT NULL DEFAULT \'\',
+                form_url_reset TEXT NOT NULL DEFAULT \'\',
+                description TEXT NULL,
                 affiliates_section_template TEXT NULL
             )'
         );
@@ -1693,5 +1703,152 @@ final class EnthusiastMemberImportTest extends TestCase
             'Enthusiast $$aff_url$$ must be translated to {aff_url}');
         $this->assertStringContainsString('{aff_image_tag}', (string) $row['affiliates_section_template'],
             'Enthusiast $$aff_image$$ must be translated to {aff_image_tag}');
+    }
+
+    public function testAffImgTagInSrcReplacedBeforeTokenSubstitution(): void
+    {
+        // Enthusiast's default affiliate row template puts $$aff_image$$ inside an <img> src=""
+        // attribute: <img src="$$aff_url$$images/$$aff_image$$" width="$$aff_width$$" ...>.
+        // Simple token-by-token replacement would inject a full <img> element into the src
+        // attribute, whose quotes break the surrounding HTML. The pre-processing regex in
+        // translateDisplayTokens() must replace the entire <img> element first.
+        $src = $this->makePdo();
+        $src->exec('CREATE TABLE IF NOT EXISTS category (catid INTEGER PRIMARY KEY, catname TEXT NOT NULL, parent INTEGER NOT NULL DEFAULT 0)');
+        $src->exec(
+            'CREATE TABLE owned (
+                listingid INTEGER PRIMARY KEY, dbtable TEXT NOT NULL DEFAULT \'\',
+                url TEXT NOT NULL DEFAULT \'\', title TEXT NOT NULL DEFAULT \'\',
+                subject TEXT NOT NULL DEFAULT \'\', email TEXT NOT NULL DEFAULT \'\',
+                catid TEXT NOT NULL DEFAULT \'\', additional TEXT NOT NULL DEFAULT \'\',
+                status INTEGER NOT NULL DEFAULT 2,
+                perpage INTEGER NOT NULL DEFAULT 25, holdupdate INTEGER NOT NULL DEFAULT 0,
+                affiliatestemplate TEXT NOT NULL DEFAULT \'\'
+            )'
+        );
+        $enthTpl = '<a href="$$aff_url$$" title="$$aff_title$$">'
+                 . '<img src="$$aff_url$$images/$$aff_image$$" width="$$aff_width$$" height="$$aff_height$$" border="0" alt=" $$aff_title$$" />'
+                 . '</a>';
+        $stmt = $src->prepare("INSERT INTO owned (listingid, dbtable, url, affiliatestemplate) VALUES (1, 'fl', 'http://fl.example.com', ?)");
+        $stmt->execute([$enthTpl]);
+        $src->exec("CREATE TABLE fl (email TEXT PRIMARY KEY, added DATE NULL)");
+
+        $tgt = $this->makePdo();
+        $tgt->exec(
+            'CREATE TABLE owned (
+                listingid INTEGER PRIMARY KEY AUTOINCREMENT,
+                dbtable TEXT NOT NULL DEFAULT \'\', url TEXT NOT NULL DEFAULT \'\',
+                title TEXT NOT NULL DEFAULT \'\', subject TEXT NOT NULL DEFAULT \'\',
+                email TEXT NOT NULL DEFAULT \'\', catid TEXT NOT NULL DEFAULT \'\',
+                additional TEXT NOT NULL DEFAULT \'\', status INTEGER NOT NULL DEFAULT 2
+            )'
+        );
+        $tgt->exec("INSERT INTO owned (listingid, dbtable, url) VALUES (1, 'fl', 'http://fl.example.com')");
+        $tgt->exec(
+            'CREATE TABLE lstr_fanlisting_settings (
+                fanlisting_id INTEGER PRIMARY KEY,
+                members_per_page INTEGER NOT NULL DEFAULT 25,
+                queue_updates INTEGER NOT NULL DEFAULT 0,
+                members_template TEXT NULL,
+                stats_template TEXT NULL,
+                image TEXT NULL,
+                listing_type TEXT NULL,
+                form_url_join TEXT NOT NULL DEFAULT \'\',
+                form_url_update TEXT NOT NULL DEFAULT \'\',
+                form_url_reset TEXT NOT NULL DEFAULT \'\',
+                description TEXT NULL,
+                affiliates_section_template TEXT NULL
+            )'
+        );
+
+        $this->adapter()->run($src, $tgt, ImportOptions::fromPost([
+            'source'            => 'enthusiast',
+            'conflict_strategy' => 'skip',
+            'import_settings'   => '1',
+        ]));
+
+        $tpl = (string) $tgt->query('SELECT affiliates_section_template FROM lstr_fanlisting_settings WHERE fanlisting_id = 1')
+                             ->fetch(\PDO::FETCH_ASSOC)['affiliates_section_template'];
+
+        $this->assertStringContainsString('{aff_image_tag}', $tpl,
+            'Entire <img> with $$aff_image$$ in src must be replaced with {aff_image_tag}');
+        $this->assertStringNotContainsString('$$aff_width$$', $tpl,
+            '$$aff_width$$ must be removed (no Luster equivalent)');
+        $this->assertStringNotContainsString('$$aff_height$$', $tpl,
+            '$$aff_height$$ must be removed (no Luster equivalent)');
+        // {aff_image_tag} must NOT appear inside a src="" attribute
+        $this->assertDoesNotMatchRegularExpression(
+            '/<img\b[^>]*src=["\'][^"\']*\{aff_image_tag\}/i',
+            $tpl,
+            '{aff_image_tag} must not appear inside an <img> src attribute',
+        );
+    }
+
+    public function testAffTitleTokenTranslatedOnOverwrite(): void
+    {
+        // Enthusiast's default affiliates template uses $$aff_title$$ for the site name.
+        // On an overwrite import, translateDisplayTokens() must convert it to {aff_name}.
+        $src = $this->makePdo();
+        $src->exec('CREATE TABLE IF NOT EXISTS category (catid INTEGER PRIMARY KEY, catname TEXT NOT NULL, parent INTEGER NOT NULL DEFAULT 0)');
+        $src->exec(
+            'CREATE TABLE owned (
+                listingid INTEGER PRIMARY KEY, dbtable TEXT NOT NULL DEFAULT \'\',
+                url TEXT NOT NULL DEFAULT \'\', title TEXT NOT NULL DEFAULT \'\',
+                subject TEXT NOT NULL DEFAULT \'\', email TEXT NOT NULL DEFAULT \'\',
+                catid TEXT NOT NULL DEFAULT \'\', additional TEXT NOT NULL DEFAULT \'\',
+                status INTEGER NOT NULL DEFAULT 2,
+                perpage INTEGER NOT NULL DEFAULT 25, holdupdate INTEGER NOT NULL DEFAULT 0,
+                affiliatestemplate TEXT NOT NULL DEFAULT \'\'
+            )'
+        );
+        $src->exec("INSERT INTO owned (listingid, dbtable, url, affiliatestemplate)
+                    VALUES (1, 'fl', 'http://fl.example.com/', '<a href=\"\$\$aff_url\$\$\">\$\$aff_title\$\$</a>')");
+        $src->exec("CREATE TABLE fl (email TEXT PRIMARY KEY, added DATE NULL)");
+
+        $tgt = $this->makePdo();
+        $tgt->exec(
+            'CREATE TABLE owned (
+                listingid INTEGER PRIMARY KEY AUTOINCREMENT,
+                dbtable TEXT NOT NULL DEFAULT \'\', url TEXT NOT NULL DEFAULT \'\',
+                title TEXT NOT NULL DEFAULT \'\', subject TEXT NOT NULL DEFAULT \'\',
+                email TEXT NOT NULL DEFAULT \'\', catid TEXT NOT NULL DEFAULT \'\',
+                additional TEXT NOT NULL DEFAULT \'\', status INTEGER NOT NULL DEFAULT 2
+            )'
+        );
+        $tgt->exec("INSERT INTO owned (listingid, dbtable, url) VALUES (1, 'fl', 'http://fl.example.com/')");
+        $tgt->exec(
+            'CREATE TABLE lstr_fanlisting_settings (
+                fanlisting_id INTEGER PRIMARY KEY,
+                members_per_page INTEGER NOT NULL DEFAULT 25,
+                queue_updates INTEGER NOT NULL DEFAULT 0,
+                members_template TEXT NULL,
+                stats_template TEXT NULL,
+                image TEXT NULL,
+                listing_type TEXT NULL,
+                form_url_join TEXT NOT NULL DEFAULT \'\',
+                form_url_update TEXT NOT NULL DEFAULT \'\',
+                form_url_reset TEXT NOT NULL DEFAULT \'\',
+                description TEXT NULL,
+                affiliates_section_template TEXT NULL
+            )'
+        );
+        // Pre-insert an existing row so the overwrite path is exercised.
+        $tgt->exec("INSERT INTO lstr_fanlisting_settings (fanlisting_id) VALUES (1)");
+
+        $this->adapter()->run($src, $tgt, ImportOptions::fromPost([
+            'source'            => 'enthusiast',
+            'conflict_strategy' => 'overwrite',
+            'import_settings'   => '1',
+        ]));
+
+        $row = $tgt->query('SELECT affiliates_section_template FROM lstr_fanlisting_settings WHERE fanlisting_id = 1')
+                   ->fetch(\PDO::FETCH_ASSOC);
+
+        $tpl = (string) $row['affiliates_section_template'];
+        $this->assertStringContainsString('{aff_name}', $tpl,
+            'Enthusiast $$aff_title$$ must be translated to {aff_name} on overwrite');
+        $this->assertStringNotContainsString('$$aff_title$$', $tpl,
+            'Raw $$aff_title$$ must not survive the overwrite import');
+        $this->assertStringContainsString('{aff_url}', $tpl,
+            'Enthusiast $$aff_url$$ must be translated to {aff_url} on overwrite');
     }
 }

@@ -187,6 +187,11 @@ final class ListingAdminImportTest extends TestCase
                 queue_updates    INTEGER NOT NULL DEFAULT 0,
                 members_template TEXT    NULL,
                 stats_template   TEXT    NULL,
+                affiliates_section_template TEXT NULL,
+                description      TEXT    NULL,
+                form_url_join    TEXT    NOT NULL DEFAULT \'\',
+                form_url_update  TEXT    NOT NULL DEFAULT \'\',
+                form_url_reset   TEXT    NOT NULL DEFAULT \'\',
                 image            TEXT    NULL,
                 last_updated     DATE    NULL
             )'
@@ -996,6 +1001,11 @@ final class ListingAdminImportTest extends TestCase
                 queue_updates    INTEGER NOT NULL DEFAULT 0,
                 members_template TEXT    NULL,
                 stats_template   TEXT    NULL,
+                affiliates_section_template TEXT NULL,
+                description      TEXT    NULL,
+                form_url_join    TEXT    NOT NULL DEFAULT \'\',
+                form_url_update  TEXT    NOT NULL DEFAULT \'\',
+                form_url_reset   TEXT    NOT NULL DEFAULT \'\',
                 image            TEXT    NULL,
                 last_updated     DATE    NULL
             )'
@@ -1066,5 +1076,269 @@ final class ListingAdminImportTest extends TestCase
         $stmt = $tgt->query("SELECT opened FROM owned WHERE url = 'http://opened.com'");
         $this->assertSame('2018-11-05', $stmt->fetchColumn(),
             'opened date from main.since must be stored in owned.opened');
+    }
+
+    // -----------------------------------------------------------------------
+    // Rec 10 — mExtra delimiter variants (parseMExtra)
+    // -----------------------------------------------------------------------
+
+    /**
+     * Invokes the private parseMExtra() helper directly via reflection.
+     * @param  string[] $faveFields
+     * @return string[]|null
+     */
+    private function callParseMExtra(string $raw, array $faveFields): ?array
+    {
+        $ref = new \ReflectionMethod(ListingAdminImportSource::class, 'parseMExtra');
+        $ref->setAccessible(true);
+        return $ref->invoke($this->adapter(), $raw, $faveFields);
+    }
+
+    public function testParseMExtraHandlesDoublePipeDelimiter(): void
+    {
+        $this->assertSame(['red', 'metal'], $this->callParseMExtra('red||metal', ['favcolor', 'favsong']));
+    }
+
+    public function testParseMExtraHandlesSinglePipeDelimiter(): void
+    {
+        $this->assertSame(['blue', 'rock'], $this->callParseMExtra('blue|rock', ['favcolor', 'favsong']));
+    }
+
+    public function testParseMExtraHandlesNewlineDelimiter(): void
+    {
+        $this->assertSame(['green', 'pop'], $this->callParseMExtra("green\npop", ['favcolor', 'favsong']));
+    }
+
+    public function testParseMExtraReturnsNullWhenDelimiterUnrecognised(): void
+    {
+        $this->assertNull($this->callParseMExtra('unparseable', ['favcolor', 'favsong']));
+    }
+
+    public function testParseMExtraReturnsBlanksForEmptyRawWithFaveFields(): void
+    {
+        $this->assertSame(['', ''], $this->callParseMExtra('', ['favcolor', 'favsong']));
+    }
+
+    public function testParseMExtraReturnsEmptyArrayWhenNoFaveFields(): void
+    {
+        $this->assertSame([], $this->callParseMExtra('anything||goes', []));
+        $this->assertSame([], $this->callParseMExtra('unparseable', []));
+    }
+
+    /**
+     * Integration-level check of the extraFailures warning produced by runMembers().
+     *
+     * Note: the member INSERT in runMembers() uses MySQL's "ON DUPLICATE KEY UPDATE",
+     * which SQLite rejects as a syntax error (caught per-row into $errors). The
+     * extraFailures count/warning is computed before that INSERT is attempted, so it
+     * remains verifiable here even though imported counts/member rows are not
+     * (consistent with this file's existing "member import correctness is out of
+     * scope" note for SQLite fixtures).
+     */
+    public function testLaMemberImportWarnsWhenMExtraUnparseable(): void
+    {
+        $src = $this->makePdo();
+        $tgt = $this->makePdo();
+
+        $this->seedLaSource($src);
+        $this->seedTarget($tgt);
+
+        $listingId = $this->insertSourceListing($src, 'http://fl.com');
+        $src->exec("UPDATE main SET fave_fields = 'favcolor,favsong' WHERE id = {$listingId}");
+
+        $src->exec("INSERT INTO members (fNiq, mName, mEmail, mExtra) VALUES ({$listingId}, 'Double Pipe', 'pp@test.com', 'red||metal')");
+        $src->exec("INSERT INTO members (fNiq, mName, mEmail, mExtra) VALUES ({$listingId}, 'Unparseable', 'up@test.com', 'unparseable')");
+
+        $result = $this->adapter()->run($src, $tgt, $this->makeOptions([
+            'import_listings' => '1',
+            'import_members'  => '1',
+        ]));
+
+        $membersRow = null;
+        foreach ($result->rows as $r) {
+            if ($r['type'] === 'Members') { $membersRow = $r; break; }
+        }
+        $this->assertNotNull($membersRow);
+        $this->assertContains(
+            '1 member(s) imported without custom field data (mExtra could not be parsed).',
+            $membersRow['warnings']
+        );
+    }
+
+    // -----------------------------------------------------------------------
+    // main.desc → lstr_fanlisting_settings.description
+    // -----------------------------------------------------------------------
+
+    /** Adds desc / form_join / form_update / form_reset columns to the LA source main table. */
+    private function addFormColumns(PDO $pdo): void
+    {
+        $pdo->exec("ALTER TABLE main ADD COLUMN desc TEXT NULL");
+        $pdo->exec("ALTER TABLE main ADD COLUMN form_join   TEXT NOT NULL DEFAULT ''");
+        $pdo->exec("ALTER TABLE main ADD COLUMN form_update TEXT NOT NULL DEFAULT ''");
+        $pdo->exec("ALTER TABLE main ADD COLUMN form_reset  TEXT NOT NULL DEFAULT ''");
+    }
+
+    public function testDescriptionImportedFromSourceOnNewListing(): void
+    {
+        $src = $this->makePdo();
+        $tgt = $this->makePdo();
+
+        $this->seedLaSource($src);
+        $this->addFormColumns($src);
+        $this->seedTarget($tgt);
+
+        $id = $this->insertSourceListing($src, 'http://fl.com');
+        $src->prepare("UPDATE main SET desc = :d WHERE id = :id")->execute(['d' => 'A lovely fanlisting.', 'id' => $id]);
+
+        $this->adapter()->run($src, $tgt, $this->makeOptions(['import_listings' => '1']));
+
+        $stmt = $tgt->query("SELECT description FROM lstr_fanlisting_settings");
+        $this->assertSame('A lovely fanlisting.', $stmt->fetchColumn());
+    }
+
+    public function testBlankDescriptionStoredAsNullOnNewListing(): void
+    {
+        $src = $this->makePdo();
+        $tgt = $this->makePdo();
+
+        $this->seedLaSource($src);
+        $this->addFormColumns($src);
+        $this->seedTarget($tgt);
+
+        // desc column present but blank — should store NULL
+        $this->insertSourceListing($src, 'http://fl.com');
+
+        $this->adapter()->run($src, $tgt, $this->makeOptions(['import_listings' => '1']));
+
+        $stmt = $tgt->query("SELECT description FROM lstr_fanlisting_settings");
+        $row  = $stmt->fetch();
+        $this->assertNull($row['description'], 'Blank desc should be stored as NULL');
+    }
+
+    public function testDescriptionAppliedOnOverwrite(): void
+    {
+        $src = $this->makePdo();
+        $tgt = $this->makePdo();
+
+        $this->seedLaSource($src);
+        $this->addFormColumns($src);
+        $this->seedTarget($tgt);
+
+        $id = $this->insertSourceListing($src, 'http://fl.com');
+        $src->prepare("UPDATE main SET desc = :d WHERE id = :id")->execute(['d' => 'Updated description.', 'id' => $id]);
+
+        // Pre-seed existing listing + settings row with no description
+        $tgt->exec("INSERT INTO owned (listingid, dbtable, title, subject, url) VALUES (1, 'fl_com', 'Test', 'Test', 'http://fl.com')");
+        $tgt->exec("INSERT INTO lstr_fanlisting_settings (fanlisting_id) VALUES (1)");
+
+        $this->adapter()->run($src, $tgt, $this->makeOptions([
+            'import_listings'   => '1',
+            'conflict_strategy' => 'overwrite',
+        ]));
+
+        $stmt = $tgt->query("SELECT description FROM lstr_fanlisting_settings WHERE fanlisting_id = 1");
+        $this->assertSame('Updated description.', $stmt->fetchColumn(), 'Overwrite should apply new description');
+    }
+
+    public function testDescriptionNotTouchedOnSkipWhenSettingsRowExists(): void
+    {
+        $src = $this->makePdo();
+        $tgt = $this->makePdo();
+
+        $this->seedLaSource($src);
+        $this->addFormColumns($src);
+        $this->seedTarget($tgt);
+
+        $id = $this->insertSourceListing($src, 'http://fl.com');
+        $src->prepare("UPDATE main SET desc = :d WHERE id = :id")->execute(['d' => 'Source description.', 'id' => $id]);
+
+        // Pre-seed with a different existing description
+        $tgt->exec("INSERT INTO owned (listingid, dbtable, title, subject, url) VALUES (1, 'fl_com', 'Test', 'Test', 'http://fl.com')");
+        $tgt->exec("INSERT INTO lstr_fanlisting_settings (fanlisting_id, description) VALUES (1, 'Original description.')");
+
+        $this->adapter()->run($src, $tgt, $this->makeOptions([
+            'import_listings'   => '1',
+            'conflict_strategy' => 'skip',
+        ]));
+
+        $stmt = $tgt->query("SELECT description FROM lstr_fanlisting_settings WHERE fanlisting_id = 1");
+        $this->assertSame('Original description.', $stmt->fetchColumn(), 'Skip should not overwrite existing description');
+    }
+
+    // -----------------------------------------------------------------------
+    // Form URL overrides (main.form_join/update/reset → form_url_join/update/reset)
+    // -----------------------------------------------------------------------
+
+    public function testFormUrlJoinImportedWhenCustom(): void
+    {
+        $src = $this->makePdo();
+        $tgt = $this->makePdo();
+
+        $this->seedLaSource($src);
+        $this->addFormColumns($src);
+        $this->seedTarget($tgt);
+
+        $id = $this->insertSourceListing($src, 'http://fl.com');
+        $src->prepare("UPDATE main SET form_join = :v WHERE id = :id")->execute(['v' => 'custom-join.php', 'id' => $id]);
+
+        $this->adapter()->run($src, $tgt, $this->makeOptions(['import_listings' => '1']));
+
+        $stmt = $tgt->query("SELECT form_url_join FROM lstr_fanlisting_settings");
+        $this->assertSame('custom-join.php', $stmt->fetchColumn());
+    }
+
+    public function testFormUrlJoinDefaultFilenameNotImported(): void
+    {
+        $src = $this->makePdo();
+        $tgt = $this->makePdo();
+
+        $this->seedLaSource($src);
+        $this->addFormColumns($src);
+        $this->seedTarget($tgt);
+
+        $id = $this->insertSourceListing($src, 'http://fl.com');
+        // 'join.php' is the LA default — should be skipped
+        $src->prepare("UPDATE main SET form_join = :v WHERE id = :id")->execute(['v' => 'join.php', 'id' => $id]);
+
+        $this->adapter()->run($src, $tgt, $this->makeOptions(['import_listings' => '1']));
+
+        $stmt = $tgt->query("SELECT form_url_join FROM lstr_fanlisting_settings");
+        $this->assertSame('', $stmt->fetchColumn(), 'Default filename should not be imported');
+    }
+
+    public function testFormUrlUpdateDefaultFilenameNotImported(): void
+    {
+        $src = $this->makePdo();
+        $tgt = $this->makePdo();
+
+        $this->seedLaSource($src);
+        $this->addFormColumns($src);
+        $this->seedTarget($tgt);
+
+        $id = $this->insertSourceListing($src, 'http://fl.com');
+        $src->prepare("UPDATE main SET form_update = :v WHERE id = :id")->execute(['v' => 'update.php', 'id' => $id]);
+
+        $this->adapter()->run($src, $tgt, $this->makeOptions(['import_listings' => '1']));
+
+        $stmt = $tgt->query("SELECT form_url_update FROM lstr_fanlisting_settings");
+        $this->assertSame('', $stmt->fetchColumn(), 'Default filename should not be imported');
+    }
+
+    public function testFormUrlResetDefaultFilenameNotImported(): void
+    {
+        $src = $this->makePdo();
+        $tgt = $this->makePdo();
+
+        $this->seedLaSource($src);
+        $this->addFormColumns($src);
+        $this->seedTarget($tgt);
+
+        $id = $this->insertSourceListing($src, 'http://fl.com');
+        $src->prepare("UPDATE main SET form_reset = :v WHERE id = :id")->execute(['v' => 'reset.php', 'id' => $id]);
+
+        $this->adapter()->run($src, $tgt, $this->makeOptions(['import_listings' => '1']));
+
+        $stmt = $tgt->query("SELECT form_url_reset FROM lstr_fanlisting_settings");
+        $this->assertSame('', $stmt->fetchColumn(), 'Default filename should not be imported');
     }
 }

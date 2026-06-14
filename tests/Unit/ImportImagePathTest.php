@@ -106,12 +106,16 @@ final class ImportImagePathTest extends TestCase
              category TEXT NOT NULL DEFAULT '', categories_json TEXT NULL,
              category_id INTEGER NULL,
              date_joined TEXT NULL, active INTEGER NOT NULL DEFAULT 1,
-             status TEXT NOT NULL DEFAULT 'approved', sort_order INTEGER NOT NULL DEFAULT 0)");
+             status TEXT NOT NULL DEFAULT 'approved', sort_order INTEGER NOT NULL DEFAULT 0,
+             description TEXT NULL, comments TEXT NULL)");
         $pdo->exec("CREATE TABLE IF NOT EXISTS lstr_fanlisting_settings
             (fanlisting_id INTEGER PRIMARY KEY, members_per_page INTEGER NOT NULL DEFAULT 25,
              queue_updates INTEGER NOT NULL DEFAULT 0,
              members_template TEXT NULL,
-             stats_template TEXT NULL, image TEXT NULL)");
+             stats_template TEXT NULL, image TEXT NULL,
+             listing_type TEXT NULL, form_url_join TEXT NOT NULL DEFAULT '',
+             form_url_update TEXT NOT NULL DEFAULT '', form_url_reset TEXT NOT NULL DEFAULT '',
+             description TEXT NULL)");
         return $pdo;
     }
 

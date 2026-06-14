@@ -24,7 +24,7 @@ final class ListingRowRenderer
      * Replace all {token} placeholders for one listing and return the HTML row.
      *
      * @param array<string, mixed> $settings    Row from lstr_fanlisting_settings
-     *                                           (keys: image, last_updated, approved_by).
+     *                                           (keys: image, last_updated, approved_by, description).
      * @param array{approved?: int, pending?: int, country_count?: int} $memberStats
      */
     public static function render(
@@ -52,6 +52,7 @@ final class ListingRowRenderer
         $countryCount = (int) ($memberStats['country_count'] ?? 0);
         $pendingCount = (int) ($memberStats['pending']        ?? 0);
         $approvedBy   = (string) ($settings['approved_by'] ?? '');
+        $description  = (string) ($settings['description'] ?? '');
 
         return TemplateEngine::render(
             $template,
@@ -77,6 +78,7 @@ final class ListingRowRenderer
                 'country_count'        => $countryCount,
                 'countries_count'      => $countryCount,
                 'approved_by'          => $approvedBy,
+                'listing_description'  => $description,
             ],
             raw: [
                 'listing_image_html' => $imageHtml,
@@ -96,6 +98,7 @@ final class ListingRowRenderer
                 'tafl'            => $approvedBy === 'tafl',
                 'approved'        => $approvedBy !== '',
                 'date_updated'    => (string) ($settings['last_updated'] ?? '') !== '',
+                'description'     => $description !== '',
             ],
         );
     }

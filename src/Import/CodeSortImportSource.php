@@ -157,7 +157,7 @@ final class CodeSortImportSource implements ImportSourceInterface
     // Preview (read-only)
     // -----------------------------------------------------------------------
 
-    public function preview(PDO $source, ImportOptions $options): ImportPreview
+    public function preview(PDO $source, PDO $target, ImportOptions $options): ImportPreview
     {
         $schema = $options->schemaVariant !== '' ? $options->schemaVariant : $this->detectSchema($source);
         $p      = $options->tablePrefix . $this->tablePrefix($schema);

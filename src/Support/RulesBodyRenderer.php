@@ -99,31 +99,48 @@ RULES;
     }
 
     /**
-     * Renders the body twice — once for each gate type (checkbox and button) —
-     * so admins can preview {if_gate_checkbox} behaviour in both states without
-     * needing extra form fields. Each render is wrapped in the public gate
-     * markup and preceded by a labelled section divider.
+     * Renders the body for preview, showing gate controls that match the current
+     * gate settings from the admin form.
      *
-     * When $gateLabel is non-empty, it is used as the {gate_button} text in
-     * BOTH sections (mirroring RuleSet::effectiveGateLabel(), which applies the
-     * same admin-configured label regardless of gate type). When blank, each
-     * section falls back to the type-appropriate built-in default.
+     * When $gateEnabled is false, both gate tokens collapse to empty strings and
+     * one "Gate Disabled" section is shown. When $gateEnabled is true, $gateType
+     * selects which variant to render: 'checkbox' → Checkbox Gate only, 'button'
+     * → Button Gate only. When $gateType is '' (the default), both variants are
+     * shown side-by-side (the original behavior, preserved for callers that do
+     * not pass gate state).
      *
      * @param array<string,string> $escaped Text-token values (auto-escaped)
      */
-    public static function renderPreview(string $body, array $escaped = [], string $gateLabel = ''): string
+    public static function renderPreview(string $body, array $escaped = [], string $gateLabel = '', bool $gateEnabled = true, string $gateType = ''): string
     {
-        $checkboxLabel = $gateLabel !== '' ? $gateLabel : 'I have read and agree to the rules above.';
-        $buttonLabel   = $gateLabel !== '' ? $gateLabel : 'I agree — proceed to join form';
+        $label = $gateLabel !== '' ? $gateLabel : 'Proceed';
+
+        if (!$gateEnabled) {
+            return self::sectionLabel('Gate Disabled')
+                . self::wrapGate(self::renderWithFallback($body, $escaped, [
+                    'gate_checkbox' => '',
+                    'gate_button'   => '',
+                ]));
+        }
 
         $checkboxGate = [
             'gate_checkbox' => '<input type="checkbox" class="fl-rules-agree-check" name="agree" value="1" required>',
-            'gate_button'   => '<button type="submit" class="fl-submit fl-rules-gate-btn">' . View::e($checkboxLabel) . '</button>',
+            'gate_button'   => '<button type="submit" class="fl-submit fl-rules-gate-btn">' . View::e($label) . '</button>',
         ];
         $buttonGate = [
             'gate_checkbox' => '',
-            'gate_button'   => '<button type="submit" class="fl-submit fl-rules-gate-btn" name="agree" value="1">' . View::e($buttonLabel) . '</button>',
+            'gate_button'   => '<button type="submit" class="fl-submit fl-rules-gate-btn" name="agree" value="1">' . View::e($label) . '</button>',
         ];
+
+        if ($gateType === 'checkbox') {
+            return self::sectionLabel('Checkbox Gate')
+                . self::wrapGate(self::renderWithFallback($body, $escaped, $checkboxGate));
+        }
+
+        if ($gateType === 'button') {
+            return self::sectionLabel('Button Gate')
+                . self::wrapGate(self::renderWithFallback($body, $escaped, $buttonGate));
+        }
 
         return self::sectionLabel('Checkbox Gate')
             . self::wrapGate(self::renderWithFallback($body, $escaped, $checkboxGate))

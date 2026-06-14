@@ -131,7 +131,7 @@ SQL;
 
         $rules = $this->repo->getForListing(1);
 
-        self::assertSame('I have read and agree to the rules above.', $rules?->effectiveGateLabel());
+        self::assertSame('Proceed', $rules?->effectiveGateLabel());
     }
 
     public function testEffectiveGateLabelDefaultsForButtonGate(): void
@@ -140,7 +140,7 @@ SQL;
 
         $rules = $this->repo->getForListing(1);
 
-        self::assertSame('I agree — proceed to join form', $rules?->effectiveGateLabel());
+        self::assertSame('Proceed', $rules?->effectiveGateLabel());
     }
 
     // -------------------------------------------------------------------------

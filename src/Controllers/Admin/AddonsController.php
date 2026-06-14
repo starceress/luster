@@ -144,9 +144,8 @@ final class AddonsController
         $pdo   = $this->app->getDatabase()->pdo();
 
         try {
-            // DDL (DROP TABLE) causes an implicit commit in MySQL, so we
-            // cannot wrap uninstall() in a transaction — run steps sequentially.
-            $addon->uninstall($pdo);
+            // Only deregister from lstr_addons — data tables are preserved so
+            // reinstalling the add-on recovers all existing data.
             $stmt = $pdo->prepare('DELETE FROM `lstr_addons` WHERE `addon_key` = :k');
             $stmt->execute(['k' => $key]);
         } catch (Throwable $e) {
@@ -158,11 +157,11 @@ final class AddonsController
         $activityRepo->log(
             (int) $session->get('lstr_admin_id'),
             'addon.uninstall',
-            'Uninstalled add-on: ' . $addon->getName() . ' (' . $key . ')',
+            'Disabled add-on: ' . $addon->getName() . ' (' . $key . ')',
             $request->ip(),
         );
 
-        $session->set('lstr_flash_success', '"' . $addon->getName() . '" uninstalled successfully.');
+        $session->set('lstr_flash_success', '"' . $addon->getName() . '" disabled. Data is preserved — reinstall to restore access.');
         return Response::redirect($redirect);
     }
 }

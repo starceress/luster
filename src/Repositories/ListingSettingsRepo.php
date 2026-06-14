@@ -786,6 +786,62 @@ final class ListingSettingsRepo
     }
 
     /**
+     * Batch-fetches per-listing render settings (image, last_updated,
+     * approved_by, description) for owned/random/latest listing row templates.
+     *
+     * Falls back to a query without `description` if that column doesn't exist
+     * yet (Migration 74 not yet run), so image/last_updated/approved_by are not
+     * lost on older schemas.
+     *
+     * @param int[] $listingIds
+     * @return array<int, array<string, mixed>> [fanlisting_id => settings row]
+     */
+    public function getRenderSettingsBatch(array $listingIds): array
+    {
+        if ($listingIds === []) {
+            return [];
+        }
+
+        $phs = implode(',', array_fill(0, count($listingIds), '?'));
+        $map = [];
+
+        try {
+            $stmt = $this->db->prepare(
+                "SELECT fanlisting_id, image, last_updated, approved_by, description
+                 FROM lstr_fanlisting_settings WHERE fanlisting_id IN ({$phs})"
+            );
+            $stmt->execute(array_values($listingIds));
+            foreach ($stmt->fetchAll() as $row) {
+                $map[(int) $row['fanlisting_id']] = $row;
+            }
+            return $map;
+        } catch (\Exception) {}
+
+        try {
+            $stmt = $this->db->prepare(
+                "SELECT fanlisting_id, image, last_updated, approved_by
+                 FROM lstr_fanlisting_settings WHERE fanlisting_id IN ({$phs})"
+            );
+            $stmt->execute(array_values($listingIds));
+            foreach ($stmt->fetchAll() as $row) {
+                $map[(int) $row['fanlisting_id']] = $row;
+            }
+        } catch (\Exception) {}
+
+        return $map;
+    }
+
+    /**
+     * Single-listing convenience wrapper around getRenderSettingsBatch().
+     *
+     * @return array<string, mixed>
+     */
+    public function getRenderSettings(int $listingId): array
+    {
+        return $this->getRenderSettingsBatch([$listingId])[$listingId] ?? [];
+    }
+
+    /**
      * Returns the listing type for a listing.
      * Defaults to 'listing' if no settings row exists or the value is null.
      */
@@ -914,6 +970,50 @@ final class ListingSettingsRepo
             ]);
         } catch (\Exception) {
             // Migration 37 not run yet
+        }
+    }
+
+    /**
+     * Returns the free-text description for a listing.
+     * Returns '' if the row doesn't exist, the value is null, or Migration 74 hasn't run.
+     *
+     * Requires Migration 74.
+     */
+    public function getDescription(int $listingId): string
+    {
+        try {
+            $stmt = $this->db->prepare(
+                'SELECT description FROM lstr_fanlisting_settings WHERE fanlisting_id = :id'
+            );
+            $stmt->execute(['id' => $listingId]);
+            $row = $stmt->fetch();
+        } catch (\Exception) {
+            return '';
+        }
+
+        if ($row === false || $row['description'] === null) {
+            return '';
+        }
+
+        return (string) $row['description'];
+    }
+
+    /**
+     * Saves (upserts) the free-text description for a listing.
+     *
+     * Requires Migration 74.
+     */
+    public function saveDescription(int $listingId, string $description): void
+    {
+        try {
+            $stmt = $this->db->prepare(
+                'INSERT INTO lstr_fanlisting_settings (fanlisting_id, description)
+                 VALUES (:id, :val)
+                 ON DUPLICATE KEY UPDATE description = VALUES(description)'
+            );
+            $stmt->execute(['id' => $listingId, 'val' => $description !== '' ? $description : null]);
+        } catch (\Exception) {
+            // Migration 74 not run yet
         }
     }
 

@@ -363,10 +363,16 @@ if ($_lusterCStatsTemplate !== null) {
     $_lusterE = static fn(string $v): string =>
         htmlspecialchars($v, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 
-    // Resolve {if_countries}...{/if_countries} before flat token substitution
+    // Resolve {if_countries}...{/if_countries} and {if_pending}...{/if_pending}
+    // before flat token substitution
     $_lusterCStatsTemplate = (string) preg_replace(
         '/\{if_countries\}(.*?)\{\/if_countries\}/s',
         $_lusterCountriesCount > 0 ? '$1' : '',
+        $_lusterCStatsTemplate,
+    );
+    $_lusterCStatsTemplate = (string) preg_replace(
+        '/\{if_pending\}(.*?)\{\/if_pending\}/s',
+        $luster_members_pending > 0 ? '$1' : '',
         $_lusterCStatsTemplate,
     );
 

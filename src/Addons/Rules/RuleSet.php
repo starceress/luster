@@ -41,7 +41,7 @@ final class RuleSet
         }
 
         return $this->gateType === 'button'
-            ? 'I agree — proceed to join form'
-            : 'I have read and agree to the rules above.';
+            ? 'Proceed'
+            : 'Proceed';
     }
 }
