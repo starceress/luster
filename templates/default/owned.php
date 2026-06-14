@@ -19,6 +19,7 @@ use Luster\Core\View;
  *   $browse_show_all     bool        true when ?cat=all shows all listings in browse mode
  *   $total_count         int         total listing count across all categories
  *   $status              string      active status filter: current|upcoming|pending|all
+ *   $view                string      pseudo-view active: '' | 'pending' | 'upcoming'
  *   $form_action         string      URL the category filter form/links point to
  *   $uploads_url         string      base URL for listing images
  *   $base_url            string
@@ -53,6 +54,13 @@ use Luster\Core\View;
     </form>
     <h2 class="fl-cat-heading"><?= View::e($_ownedCurrentCat['name']) ?> (<?= count($listings) ?>)</h2>
   <?php endif; endif; ?>
+
+  <?php if (($view ?? '') === 'pending' || ($view ?? '') === 'upcoming'): ?>
+    <h2 class="fl-cat-heading">
+      <?= ($view ?? '') === 'pending' ? 'Pending Listings' : 'Upcoming Listings' ?>
+      (<?= count($listings) ?>)
+    </h2>
+  <?php endif; ?>
 
   <?php if (($browse_show_all ?? false) && !empty($categories)):
     $_tcOwned = (int) ($total_count ?? count($listings));

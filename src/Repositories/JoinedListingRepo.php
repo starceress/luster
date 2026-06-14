@@ -32,10 +32,12 @@ final class JoinedListingRepo
         $catPattern = '%"name":"' . $filterCat . '"%';
 
         $statusClause = match ($statusTab) {
-            'approved' => "status = 'approved'",
-            'pending'  => "status = 'pending'",
-            'hidden'   => 'active = 0',
-            default    => '',
+            'approved'        => "status = 'approved'",
+            'pending'         => "status = 'pending'",
+            'hidden'          => 'active = 0',
+            'visible'         => 'active = 1',
+            'visible_pending' => "status = 'pending' AND active = 1",
+            default           => '',
         };
 
         $whereParts = array_filter([
@@ -84,17 +86,19 @@ final class JoinedListingRepo
                  COUNT(*) AS all_count,
                  SUM(CASE WHEN status = 'approved' THEN 1 ELSE 0 END) AS approved_count,
                  SUM(CASE WHEN status = 'pending'  THEN 1 ELSE 0 END) AS pending_count,
-                 SUM(CASE WHEN active = 0          THEN 1 ELSE 0 END) AS hidden_count
+                 SUM(CASE WHEN active = 0          THEN 1 ELSE 0 END) AS hidden_count,
+                 SUM(CASE WHEN status = 'pending' AND active = 1 THEN 1 ELSE 0 END) AS visible_pending_count
              FROM lstr_joined"
         );
         $stmt->execute();
         $row = $stmt->fetch();
 
         return [
-            'all'      => (int) ($row['all_count']      ?? 0),
-            'approved' => (int) ($row['approved_count'] ?? 0),
-            'pending'  => (int) ($row['pending_count']  ?? 0),
-            'hidden'   => (int) ($row['hidden_count']   ?? 0),
+            'all'             => (int) ($row['all_count']             ?? 0),
+            'approved'        => (int) ($row['approved_count']        ?? 0),
+            'pending'         => (int) ($row['pending_count']         ?? 0),
+            'hidden'          => (int) ($row['hidden_count']          ?? 0),
+            'visible_pending' => (int) ($row['visible_pending_count'] ?? 0),
         ];
     }
 
@@ -234,32 +238,71 @@ final class JoinedListingRepo
     }
 
     /**
-     * Returns all distinct, non-empty category names sorted alphabetically.
+     * Returns all approved, visible (non-hidden) joined listings — the pool
+     * eligible for the Random Joined Listing embed.
      *
-     * For rows with a non-empty categories_json, each entry's 'name' value is
-     * collected. For rows without categories_json, the legacy category string
-     * is used as the fallback.
-     *
-     * @return string[]
+     * @return JoinedListing[]
      */
-    /**
-     * Returns the total number of active joined listings.
-     */
-    public function countActive(): int
+    public function getActiveApproved(): array
     {
         $stmt = $this->db->prepare(
-            'SELECT COUNT(*) FROM lstr_joined WHERE active = 1'
+            "SELECT * FROM lstr_joined WHERE status = 'approved' AND active = 1 ORDER BY name ASC"
+        );
+        $stmt->execute();
+
+        return array_map(static fn(array $r) => JoinedListing::fromRow($r), $stmt->fetchAll());
+    }
+
+    /**
+     * Returns the $limit most-recently-joined approved, visible joined listings,
+     * ordered by date_joined descending (NULLs last, falling back to id descending).
+     *
+     * @return JoinedListing[]
+     */
+    public function getLatestJoined(int $limit = 1): array
+    {
+        $stmt = $this->db->prepare(
+            "SELECT * FROM lstr_joined
+             WHERE status = 'approved' AND active = 1
+             ORDER BY date_joined IS NULL, date_joined DESC, id DESC
+             LIMIT :limit"
+        );
+        $stmt->bindValue(':limit', $limit, \PDO::PARAM_INT);
+        $stmt->execute();
+
+        return array_map(static fn(array $r) => JoinedListing::fromRow($r), $stmt->fetchAll());
+    }
+
+    /**
+     * Returns the total number of joined listings (active + pending).
+     */
+    public function countAll(): int
+    {
+        $stmt = $this->db->prepare(
+            'SELECT COUNT(*) FROM lstr_joined'
         );
         $stmt->execute();
 
         return (int) $stmt->fetchColumn();
     }
 
-    public function getCategories(): array
+    /**
+     * Returns all distinct, non-empty category names sorted alphabetically.
+     *
+     * For rows with a non-empty categories_json, each entry's 'name' value is
+     * collected. For rows without categories_json, the legacy category string
+     * is used as the fallback.
+     *
+     * @param bool $activeOnly When true, only considers non-hidden (active=1) rows,
+     *                         so categories that only contain hidden listings are excluded.
+     *                         Defaults to false for admin use (shows all categories).
+     * @return string[]
+     */
+    public function getCategories(bool $activeOnly = false): array
     {
-        $stmt = $this->db->prepare(
-            'SELECT id, categories_json, category FROM lstr_joined'
-        );
+        $sql  = 'SELECT id, categories_json, category FROM lstr_joined';
+        $sql .= $activeOnly ? ' WHERE active = 1' : '';
+        $stmt = $this->db->prepare($sql);
         $stmt->execute();
 
         $names = [];

@@ -152,31 +152,25 @@ $v = static function (string $key, $model, string $prop, string $default = '') u
         <label class="listing-field-label" for="aff-status">Status</label>
         <div>
           <?php $currentStatus = $old['status'] ?? $affiliate->status ?? 'approved'; ?>
-          <div class="radio-group">
-            <label class="radio-label">
-              <input type="radio" name="status" value="approved" <?= $currentStatus === 'approved' ? 'checked' : '' ?>> Approved
-            </label>
-            <label class="radio-label">
-              <input type="radio" name="status" value="pending"  <?= $currentStatus === 'pending'  ? 'checked' : '' ?>> Pending
-            </label>
-            <label class="radio-label">
-              <input type="radio" name="status" value="rejected" <?= $currentStatus === 'rejected' ? 'checked' : '' ?>> Rejected
-            </label>
+          <div class="select-wrap">
+            <select id="aff-status" name="status">
+              <option value="approved" <?= $currentStatus === 'approved' ? 'selected' : '' ?>>Approved</option>
+              <option value="pending"  <?= $currentStatus === 'pending'  ? 'selected' : '' ?>>Pending</option>
+              <option value="rejected" <?= $currentStatus === 'rejected' ? 'selected' : '' ?>>Rejected</option>
+            </select>
           </div>
           <p class="form-hint">Changing to Rejected will also deactivate the affiliate.</p>
         </div>
       </div>
       <div class="listing-field-row">
-        <label class="listing-field-label">Active</label>
+        <label class="listing-field-label" for="aff-active">Active</label>
         <div>
           <?php $isActive = isset($old['active']) ? $old['active'] === '1' : ($affiliate->active ?? false); ?>
-          <div class="radio-group">
-            <label class="radio-label">
-              <input type="radio" name="active" value="1" <?= $isActive ? 'checked' : '' ?>> Active
-            </label>
-            <label class="radio-label">
-              <input type="radio" name="active" value="0" <?= !$isActive ? 'checked' : '' ?>> Inactive
-            </label>
+          <div class="select-wrap">
+            <select id="aff-active" name="active">
+              <option value="1" <?= $isActive ? 'selected' : '' ?>>Active</option>
+              <option value="0" <?= !$isActive ? 'selected' : '' ?>>Inactive</option>
+            </select>
           </div>
           <p class="form-hint">Inactive affiliates are hidden from the public site.</p>
         </div>

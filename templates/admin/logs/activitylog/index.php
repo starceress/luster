@@ -47,6 +47,13 @@ $pageUrl = static fn(int $p): string => $b . '/admin/activitylog?page=' . $p;
       <span class="row-sub">Showing <?= $rangeFirst ?>-<?= $rangeLast ?> of <?= (int) $total ?> entr<?= $total === 1 ? 'y' : 'ies' ?></span>
     </div>
     <table class="data-table">
+      <colgroup>
+        <col style="width:7rem">
+        <col style="width:5.5rem">
+        <col>
+        <col style="width:7rem">
+        <col style="width:9rem">
+      </colgroup>
       <thead>
         <tr>
           <th>Date</th>
@@ -58,7 +65,8 @@ $pageUrl = static fn(int $p): string => $b . '/admin/activitylog?page=' . $p;
       </thead>
       <tbody>
         <?php foreach ($entries as $entry):
-          $ts = ($entry['created_at'] ?? '') !== '' ? strtotime((string) $entry['created_at']) : null;
+          $ts  = ($entry['created_at'] ?? '') !== '' ? strtotime((string) $entry['created_at']) : null;
+          $ip  = (string) ($entry['ip_address'] ?? '');
         ?>
         <tr>
           <td class="text-dim nowrap">
@@ -68,11 +76,13 @@ $pageUrl = static fn(int $p): string => $b . '/admin/activitylog?page=' . $p;
             <?= $ts !== null ? View::e(date($admin_time_format, $ts)) : '' ?>
           </td>
           <td><?= View::e((string) ($entry['description'] ?? '')) ?></td>
-          <td class="text-muted"><?= View::e((string) ($entry['username'] ?? '&mdash;')) ?></td>
-          <td>
-            <code>
-              <?= View::e((string) ($entry['ip_address'] ?? '')) ?>
-        </code>
+          <td class="text-muted nowrap"><?= View::e((string) ($entry['username'] ?? '')) ?></td>
+          <td class="nowrap">
+            <?php if ($ip !== ''): ?>
+              <code><?= View::e($ip) ?></code>
+            <?php else: ?>
+              <span class="text-dim">&mdash;</span>
+            <?php endif; ?>
           </td>
         </tr>
         <?php endforeach; ?>

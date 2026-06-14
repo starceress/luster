@@ -185,7 +185,7 @@ $totalCount = (int) ($scope_counts['all'] ?? 0);
           Send to <span id="es-send-count"><?= (int) ($scope_counts[$oldScope] ?? $totalCount) ?></span>
           affiliate<?= ((int) ($scope_counts[$oldScope] ?? $totalCount)) !== 1 ? 's' : '' ?> &rarr;
         </button>
-        <button type="button" class="btn btn-preview" id="es-preview-btn">Preview</button>
+        <button type="button" class="btn btn-preview" id="es-preview-btn"><?= View::icon('eye-on') ?> Preview</button>
         <button type="button" class="btn btn-ghost js-form-reset">Clear</button>
         <div class="composer-footer-spacer"></div>
         <a href="<?= $b ?>/admin/affiliates" class="btn btn-danger">Cancel</a>

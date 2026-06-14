@@ -220,7 +220,8 @@ final class AdoptionAdminController
         (new ActivityRepo($db))->log(
             (int) $session->get('lstr_admin_id', 0) ?: null,
             'adoption_bulk',
-            "Bulk {$action} on {$count} adoption application(s)"
+            "Bulk {$action} on {$count} adoption application(s)",
+            $request->ip()
         );
 
         $session->set('lstr_flash_success', ucfirst($action) . 'd ' . $count . ' application' . ($count !== 1 ? 's' : '') . '.');
@@ -304,7 +305,8 @@ final class AdoptionAdminController
         (new ActivityRepo($db))->log(
             (int) $session->get('lstr_admin_id', 0) ?: null,
             'adoption_edit',
-            "Edited adoption application #{$id}"
+            "Edited adoption application #{$id}",
+            $request->ip()
         );
 
         $session->set('lstr_flash_success', 'Application updated.');
@@ -354,7 +356,8 @@ final class AdoptionAdminController
         (new ActivityRepo($db))->log(
             (int) $session->get('lstr_admin_id', 0) ?: null,
             'adoption_status',
-            "Set adoption application #{$id} status to '{$status}'"
+            "Set adoption application #{$id} status to '{$status}'",
+            $request->ip()
         );
 
         $session->set('lstr_flash_success', 'Application status updated.');
@@ -386,7 +389,8 @@ final class AdoptionAdminController
         (new ActivityRepo($db))->log(
             (int) $session->get('lstr_admin_id', 0) ?: null,
             'adoption_delete',
-            "Deleted adoption application #{$id} for listing #{$listingId}"
+            "Deleted adoption application #{$id} for listing #{$listingId}",
+            $request->ip()
         );
 
         $session->set('lstr_flash_success', 'Application deleted.');
@@ -538,7 +542,8 @@ final class AdoptionAdminController
         (new ActivityRepo($db))->log(
             (int) $session->get('lstr_admin_id', 0) ?: null,
             'adoption_email',
-            "Emailed adoption applicant #{$id} (" . (string) $application['email'] . ')'
+            "Emailed adoption applicant #{$id} (" . (string) $application['email'] . ')',
+            $request->ip()
         );
 
         $session->set('lstr_flash_success', 'Email sent to ' . (string) $application['name'] . '.');
@@ -686,7 +691,8 @@ final class AdoptionAdminController
         (new ActivityRepo($db))->log(
             (int) $session->get('lstr_admin_id', 0) ?: null,
             'adoption_bulk_email',
-            "Bulk emailed {$sent} adoption applicant(s)" . ($failed > 0 ? " ({$failed} failed)" : '')
+            "Bulk emailed {$sent} adoption applicant(s)" . ($failed > 0 ? " ({$failed} failed)" : ''),
+            $request->ip()
         );
 
         $msg = 'Email sent to ' . $sent . ' applicant' . ($sent !== 1 ? 's' : '') . '.';
@@ -725,7 +731,8 @@ final class AdoptionAdminController
         (new ActivityRepo($db))->log(
             (int) $session->get('lstr_admin_id', 0) ?: null,
             'adoption_status',
-            "Set adoption application #{$id} to '{$status}'"
+            "Set adoption application #{$id} to '{$status}'",
+            $request->ip()
         );
 
         $session->set('lstr_flash_success', 'Application ' . $status . '.');

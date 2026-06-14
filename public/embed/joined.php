@@ -2,11 +2,9 @@
 
 declare(strict_types=1);
 
-use Luster\Core\TemplateEngine;
-use Luster\Core\View;
-use Luster\Models\JoinedListing;
 use Luster\Repositories\JoinedListingRepo;
 use Luster\Repositories\SiteSettingsRepo;
+use Luster\Support\JoinedListingRowRenderer;
 use Luster\Support\PublicCategoryPresenter;
 
 /**
@@ -35,6 +33,8 @@ use Luster\Support\PublicCategoryPresenter;
  *                                       Default: false
  *   $luster_show_all_by_default bool    Show grouped listings AND the selector initially.
  *                                       Default: false
+ *   $luster_show_pending        bool    Show "All Pending (N)" entry in the category nav
+ *                                       when pending joined listings exist. Default: true
  */
 
 // ---------------------------------------------------------------------------
@@ -61,15 +61,25 @@ $_lusterApp = require $_lusterRoot . '/bootstrap.php';
 // 2. Resolve parameters
 // ---------------------------------------------------------------------------
 
-$_lusterShowList        = (bool) ($luster_show_list           ?? true);
-$_lusterShowCatSwitcher = (bool) ($luster_show_cat_switcher    ?? true);
-$_lusterShowAllDefault  = (bool) ($luster_show_all_by_default  ?? false);
-$_lusterBrowseByCat     = (bool) ($luster_browse_by_category   ?? false);
+$_lusterShowList          = (bool) ($luster_show_list            ?? true);
+$_lusterShowCatSwitcher   = (bool) ($luster_show_cat_switcher     ?? true);
+$_lusterShowAllDefault    = (bool) ($luster_show_all_by_default   ?? false);
+$_lusterBrowseByCat       = (bool) ($luster_browse_by_category    ?? false);
+$_lusterShowPendingPseudo = (bool) ($luster_show_pending          ?? true);
 
 // Category: prefer explicit $luster_category; fall back to $_GET['cat']
-$_lusterCategory = isset($luster_category) && (string) $luster_category !== ''
-                 ? (string) $luster_category
-                 : (string) ($_GET['cat'] ?? '');
+// Sentinel value __pending__ activates the pending pseudo-view.
+$_lusterPseudoView   = '';
+$_lusterCategoryRaw  = isset($luster_category) && (string) $luster_category !== ''
+                     ? (string) $luster_category
+                     : (string) ($_GET['cat'] ?? '');
+
+if ($_lusterCategoryRaw === '__pending__') {
+    $_lusterPseudoView = 'pending';
+    $_lusterCategory   = '';
+} else {
+    $_lusterCategory = $_lusterCategoryRaw;
+}
 
 // ---------------------------------------------------------------------------
 // 3. Load listings and categories
@@ -77,19 +87,20 @@ $_lusterCategory = isset($luster_category) && (string) $luster_category !== ''
 
 $_lusterRepo = new JoinedListingRepo($_lusterApp->getDatabase());
 
-$_lusterCategories       = $_lusterRepo->getCategories();
-$_lusterCategoryCountMap = $_lusterRepo->getCategoryCountMap();
-$_lusterTotalCount       = $_lusterRepo->countActive();
+$_lusterCategories       = $_lusterRepo->getCategories(true);     // activeOnly: hides categories that only contain hidden rows
+$_lusterCategoryCountMap = $_lusterRepo->getCategoryCountMap();   // activeOnly=true: excludes hidden (active=0)
+$_lusterStatusTabs       = $_lusterRepo->countAllByStatusTab();
+$_lusterPendingCount     = (int) ($_lusterStatusTabs['visible_pending'] ?? 0); // non-hidden pending only
+// Total for the nav = non-hidden rows only (all rows minus active=0)
+$_lusterTotalCount       = (int) ($_lusterStatusTabs['all'] ?? 0) - (int) ($_lusterStatusTabs['hidden'] ?? 0);
 
 /**
  * Groups a flat result set of JoinedListings into [category => [...]] sorted by key.
+ * Includes both active and pending listings (active-only filter removed per spec).
  */
 $_lusterGroupByCategory = static function (array $items): array {
     $grouped = [];
     foreach ($items as $fl) {
-        if (!$fl->active) {
-            continue;
-        }
         $cat = $fl->category !== '' ? $fl->category : 'Uncategorized';
         $grouped[$cat][] = $fl;
     }
@@ -97,16 +108,20 @@ $_lusterGroupByCategory = static function (array $items): array {
     return $grouped;
 };
 
-if ($_lusterCategory === 'all') {
-    $result          = $_lusterRepo->getAll(perPage: 9999, page: 1);
+if ($_lusterPseudoView === 'pending') {
+    $result          = $_lusterRepo->getAll(perPage: 9999, page: 1, statusTab: 'visible_pending');
+    $_lusterListings = $result['items'];
+    $_lusterGrouped  = [];
+} elseif ($_lusterCategory === 'all') {
+    $result          = $_lusterRepo->getAll(perPage: 9999, page: 1, statusTab: 'visible');
     $_lusterGrouped  = $_lusterGroupByCategory($result['items']);
     $_lusterListings = [];
 } elseif ($_lusterCategory !== '') {
-    $result          = $_lusterRepo->getAll(perPage: 9999, page: 1, filterCat: $_lusterCategory);
-    $_lusterListings = array_values(array_filter($result['items'], static fn($fl) => $fl->active));
+    $result          = $_lusterRepo->getAll(perPage: 9999, page: 1, filterCat: $_lusterCategory, statusTab: 'visible');
+    $_lusterListings = $result['items'];
     $_lusterGrouped  = [];
 } elseif ($_lusterShowAllDefault) {
-    $result          = $_lusterRepo->getAll(perPage: 9999, page: 1);
+    $result          = $_lusterRepo->getAll(perPage: 9999, page: 1, statusTab: 'visible');
     $_lusterGrouped  = $_lusterGroupByCategory($result['items']);
     $_lusterListings = [];
 } else {
@@ -135,6 +150,9 @@ $_ljPresenter = PublicCategoryPresenter::renderJoined(
     $_lusterShowList,
     $_lusterBrowseByCat,
     $_lusterShowCatSwitcher,
+    $_lusterPseudoView,
+    $_lusterPendingCount,
+    $_lusterShowPendingPseudo,
 );
 $_lusterCategoryHtml = $_ljPresenter['html'];
 $_lusterShowListings = $_ljPresenter['show_listings'];
@@ -153,35 +171,6 @@ if (trim($_lusterJoinedTemplate) === '') {
 $_lusterListingHtml = null;
 if ($_lusterJoinedTemplate !== null) {
     $_lusterUploadsUrl = $_lusterApp->getBaseUrl() . '/uploads/joined';
-
-    // Renders one joined-listing row via TemplateEngine — replaces the old inline
-    // str_replace() closure. {listing_image_url} (escaped bare URL) + {listing_image_html}
-    // (raw <img>) + {if_listing_image} replace {listing_image}/{image} outright; there
-    // is no legacy alias (see docs/PUBLIC-TEMPLATES-PLAN.md "No {listing_image} legacy alias").
-    $_lusterRenderRow = static function (string $inner, JoinedListing $fl) use ($_lusterUploadsUrl): string {
-        $imageUrl  = ($fl->image !== null && $fl->image !== '') ? $_lusterUploadsUrl . '/' . $fl->image : '';
-        $imageHtml = $imageUrl !== ''
-            ? '<img src="' . View::e($imageUrl) . '" alt="' . View::e($fl->name) . '" title="' . View::e($fl->name) . '">'
-            : '';
-
-        return TemplateEngine::render(
-            $inner,
-            escaped: [
-                'listing_title'     => $fl->name,
-                'listing_url'       => $fl->url,
-                'listing_category'  => $fl->category ?? '',
-                'listing_image_url' => $imageUrl,
-                'date_joined'       => $fl->dateJoined ?? '',
-                'listing_status'    => $fl->status,
-            ],
-            raw: [
-                'listing_image_html' => $imageHtml,
-            ],
-            conditions: [
-                'listing_image' => $imageUrl !== '',
-            ],
-        );
-    };
 
     // Flatten $_lusterGrouped (already category-sorted via ksort in $_lusterGroupByCategory)
     // into a single ordered list — the data ordering IS the "grouped by category" contract
@@ -204,30 +193,13 @@ if ($_lusterJoinedTemplate !== null) {
     // counterpart of its own to fall back to.
     $_lusterJoinedItems = !empty($_lusterListings) ? $_lusterListings : $_lusterFlatGrouped;
 
-    if (str_contains($_lusterJoinedTemplate, '{each_current_joined}')) {
-        // Outer section-count/conditional tokens are applied to the template SHELL
-        // first — before any row HTML is substituted in. TemplateEngine::tokens()
-        // performs one simultaneous strtr() scan per call; running it again over a
-        // string that already contains rendered row HTML would re-scan that HTML's
-        // literal escaped text too (e.g. a listing title of literally
-        // "{current_count}" would be overwritten on the second pass). Resolving the
-        // shell first means the loop body is the last thing substituted in, so its
-        // literal content can never be re-matched — preserving the "escaped values
-        // stay plain text" guarantee end-to-end.
-        $_lusterListingHtml = TemplateEngine::render(
-            $_lusterJoinedTemplate,
-            escaped: [
-                'current_count' => count($_lusterJoinedItems),
-                'total_count'   => count($_lusterJoinedItems),
-            ],
-            conditions: [
-                'current_listings' => $_lusterJoinedItems !== [],
-            ],
-        );
-        $_lusterListingHtml = TemplateEngine::loop($_lusterListingHtml, 'current_joined', $_lusterJoinedItems, $_lusterRenderRow);
-    } elseif (!empty($_lusterJoinedItems)) {
-        // Flat {each_joined} mode.
-        $_lusterListingHtml = TemplateEngine::loop($_lusterJoinedTemplate, 'joined', $_lusterJoinedItems, $_lusterRenderRow);
+    // Sectioned ({each_current_joined}) templates always render, even with zero
+    // items (the shell still shows {if_current_listings}-gated empty state).
+    // Flat ({each_joined}) templates only render when there is at least one
+    // item — otherwise $_lusterListingHtml stays null and templates/default/
+    // joined.php falls through to its own "No listings to display" branches.
+    if (str_contains($_lusterJoinedTemplate, '{each_current_joined}') || !empty($_lusterJoinedItems)) {
+        $_lusterListingHtml = JoinedListingRowRenderer::renderTemplate($_lusterJoinedTemplate, $_lusterJoinedItems, $_lusterUploadsUrl);
     }
 }
 
@@ -247,6 +219,7 @@ $_lusterHtml = $_lusterApp->getView()->renderFragment('joined.php', [
     'current_category'   => $_lusterCategory,
     'show_list'          => $_lusterShowList,
     'browse_by_category' => $_lusterBrowseByCat,
+    'view'               => $_lusterPseudoView,
     'uploads_url'        => $_lusterApp->getBaseUrl() . '/uploads/joined',
     'base_url'           => $_lusterApp->getBaseUrl(),
     'form_action'        => $_lusterFormAction,

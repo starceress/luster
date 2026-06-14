@@ -250,6 +250,28 @@ SQL;
         self::assertSame(1, $list[0]['listing_count']);
     }
 
+    public function testGetCategoryListDoesNotIncludeUpcomingListings(): void
+    {
+        $upcoming = $this->insertListing('Upcoming', status: 1);
+        $cat      = $this->insertCategory('Future');
+        $this->db->pdo()->exec("INSERT INTO lstr_listing_categories VALUES ({$upcoming}, {$cat})");
+
+        self::assertSame([], $this->repo->getCategoryList());
+    }
+
+    public function testGetCategoryListWithStatusUpcomingIncludesUpcomingListings(): void
+    {
+        $upcoming = $this->insertListing('Upcoming', status: 1);
+        $cat      = $this->insertCategory('Future');
+        $this->db->pdo()->exec("INSERT INTO lstr_listing_categories VALUES ({$upcoming}, {$cat})");
+
+        $list = $this->repo->getCategoryList('upcoming');
+
+        self::assertCount(1, $list);
+        self::assertSame('Future', $list[0]['name']);
+        self::assertSame(1, $list[0]['listing_count']);
+    }
+
     public function testGetCategoryListEmptyWhenNoJunctionRows(): void
     {
         $this->insertListing('Uncategorised');

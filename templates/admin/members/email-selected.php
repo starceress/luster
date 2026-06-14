@@ -182,7 +182,7 @@ $flName     = View::e($listing->title ?? '');
           Send to <span id="es-send-count"><?= $count ?></span>
           member<?= $count !== 1 ? 's' : '' ?> &rarr;
         </button>
-        <button type="button" class="btn btn-preview" id="es-preview-btn">Preview</button>
+        <button type="button" class="btn btn-preview" id="es-preview-btn"><?= View::icon('eye-on') ?> Preview</button>
         <button type="button" class="btn btn-ghost js-form-reset">Clear</button>
         <div class="composer-footer-spacer"></div>
         <a href="<?= $b ?>/admin/members?listing_id=<?= (int) $listingId ?>&status=all" class="btn btn-danger">Cancel</a>

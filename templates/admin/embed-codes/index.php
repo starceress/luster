@@ -25,7 +25,6 @@ $iconMap = [
     'affiliates'   => 'link',
     'aff-apply'    => 'link',
     'update'       => 'notes',
-    'remove'       => 'signout',
     'reset'        => 'gear',
     'codes'        => 'embed',
     'codes-submit' => 'image',
@@ -39,6 +38,8 @@ $iconMap = [
     'col-aff-apply'=> 'link',
     'random'       => 'wand',
     'latest'       => 'updates',
+    'random-joined'=> 'wand',
+    'latest-joined'=> 'heart',
     'kim'          => 'kim',
     'kim-list'     => 'kim',
     'kim-update'   => 'kim',
@@ -69,7 +70,7 @@ $items = [
         'label' => 'Members List',
         'badge' => 'Data',
         'file'  => 'members.php',
-        'desc'  => 'Paginated list of approved members, sorted by name or country. Edit the template in Edit Listing → Templates.',
+        'desc'  => 'Paginated list of approved members, sorted by name, country, or newest joined. Edit the template in Edit Listing → Templates.',
     ],
     'stats' => [
         'label' => 'Statistics',
@@ -90,16 +91,10 @@ $items = [
         'desc'  => 'Must be enabled for the listing under Edit Listing → Affiliates. A form where fans can submit affiliate applications. Applications are queued as pending and appear on the site after admin approval.',
     ],
     'update' => [
-        'label' => 'Update Details',
+        'label' => 'Update Details Form',
         'badge' => 'Form',
         'file'  => 'update.php',
-        'desc'  => 'Lets existing members update their name, URL, and other details. Fields are the same as the join form, so extra fields appear here too.',
-    ],
-    'remove' => [
-        'label' => 'Remove Membership',
-        'badge' => 'Form',
-        'file'  => 'remove.php',
-        'desc'  => 'Lets members remove themselves from the fanlisting. Members enter their email to confirm. The listing owner receives an email with the member\'s name and email, but no confirmation link is needed — removals are effective immediately to avoid broken links and orphaned data.',
+        'desc'  => 'Lets existing members update their name, URL, and other details. Fields are the same as the join form, so extra fields appear here too. Members can also check a box to permanently delete their membership instead — this takes effect immediately and emails the member a farewell message.',
     ],
     'reset' => [
         'label' => 'Password Reset',
@@ -184,6 +179,18 @@ $items = [
         'badge' => 'Data',
         'file'  => 'latest-listing.php',
         'desc'  => 'Renders the most recently opened active listing using the Latest Listing template from Admin &rarr; Collective &rarr; Templates.',
+    ],
+    'random-joined' => [
+        'label' => 'Random Joined Listing',
+        'badge' => 'Data',
+        'file'  => 'random-joined-listing.php',
+        'desc'  => 'Shows one active, approved joined listing at random using the Random Joined Listing template from Admin &rarr; Collective &rarr; Templates.',
+    ],
+    'latest-joined' => [
+        'label' => 'Latest Joined Listing',
+        'badge' => 'Data',
+        'file'  => 'latest-joined-listing.php',
+        'desc'  => 'Renders the most recently joined active, approved listing using the Latest Joined Listing template from Admin &rarr; Collective &rarr; Templates.',
     ],
     'kim' => [
         'label' => 'KIM Form',
@@ -467,9 +474,8 @@ $epSafe = View::e($ep);
               <thead><tr><th class="act-col">Setting</th><th>What it does</th></tr></thead>
               <tbody>
                 <tr><td class="act-col"><code>$luster_per_page</code></td><td>How many members to show before Luster adds a next-page link. Leave this out to use your normal Luster setting.</td></tr>
-                <tr><td class="act-col"><code>$luster_sort_by</code></td><td>Choose how the member list starts: by name or by country. Leave this out if you want visitors to choose the order themselves.</td></tr>
-                <tr><td class="act-col"><code>$luster_show_search</code></td><td>Set this to <code>false</code> if you want to hide the member search, sort, and filter tools.</td></tr>
-                <tr><td class="act-col"><code>$luster_members_base</code></td><td>The page where your member list lives. Use this if page numbers or sort links are sending visitors to the wrong place.</td></tr>
+                <tr><td class="act-col"><code>$luster_sort_by</code></td><td>Choose how the member list starts: <code>'name'</code>, <code>'country'</code>, or <code>'added'</code> for newest joined first. Leave this out if you want visitors to choose the order themselves.</td></tr>
+                <tr><td class="act-col"><code>$luster_show_search</code></td><td>Set this to <code>false</code> if you want to hide the member sort and country filter tools.</td></tr>
               </tbody>
             </table>
             </div>
@@ -485,7 +491,7 @@ $epSafe = View::e($ep);
             </table>
             </div>
           </div>
-          <p class="text-muted" style="margin-top:.875rem">Settings for update and remove forms.</p>
+          <p class="text-muted" style="margin-top:.875rem">Settings for the update form.</p>
           <div class="ec-ref-card">
             <div class="table-wrap">
             <table class="data-table">
@@ -513,7 +519,6 @@ $epSafe = View::e($ep);
             <table class="data-table">
               <thead><tr><th class="act-col">Setting</th><th>What it does</th></tr></thead>
               <tbody>
-                <tr><td class="act-col"><code>$luster_affiliates_base</code></td><td>The page where your affiliates list lives. Use this if page numbers are sending visitors to the wrong place.</td></tr>
                 <tr><td class="act-col"><code>$luster_per_page</code></td><td>How many affiliates to show before Luster adds a next-page link. The default is 50.</td></tr>
               </tbody>
             </table>
@@ -571,6 +576,7 @@ $epSafe = View::e($ep);
                 <tr><td class="act-col"><code>$luster_category_id</code></td><td>Show only one category of owned listings. Most users can leave this out and let visitors choose a category on the page.</td></tr>
                 <tr><td class="act-col"><code>$luster_hide_dropdown</code></td><td>Set this to <code>true</code> if you do not want the category dropdown to appear.</td></tr>
                 <tr><td class="act-col"><code>$luster_show_list</code></td><td>Set this to <code>true</code> to show category links as a list instead of a dropdown.</td></tr>
+                <tr><td class="act-col"><code>$luster_show_cat_switcher</code></td><td>Set this to <code>false</code> if you do not want the compact category switcher on an individual category page.</td></tr>
                 <tr><td class="act-col"><code>$luster_browse_by_category</code></td><td>Set this to <code>true</code> if you want visitors to choose a category first, then see the listings in that category.</td></tr>
                 <tr><td class="act-col"><code>$luster_exclude_pending</code></td><td>When showing all statuses, this keeps pending listings hidden. Leave it alone unless you want pending listings to show too.</td></tr>
               </tbody>
@@ -585,6 +591,7 @@ $epSafe = View::e($ep);
               <tbody>
                 <tr><td class="act-col"><code>$luster_category</code></td><td>Choose what joined listings to show. Leave it blank to let visitors choose a category. Use <code>'all'</code> to show everything grouped by category. Or type one category name to show only that category.</td></tr>
                 <tr><td class="act-col"><code>$luster_show_list</code></td><td>Set this to <code>true</code> to show category links as a list instead of a dropdown. This only matters when visitors are choosing a category.</td></tr>
+                <tr><td class="act-col"><code>$luster_show_cat_switcher</code></td><td>Set this to <code>false</code> if you do not want the compact category switcher on an individual category page.</td></tr>
                 <tr><td class="act-col"><code>$luster_show_all_by_default</code></td><td>Set this to <code>true</code> if you want all joined listings to show right away, while still letting visitors choose a category.</td></tr>
                 <tr><td class="act-col"><code>$luster_browse_by_category</code></td><td>Set this to <code>true</code> if you want visitors to choose a category first, then see the joined listings in that category.</td></tr>
               </tbody>
@@ -625,6 +632,7 @@ $epSafe = View::e($ep);
                 <tr><td class="act-col"><code>$luster_kim_list_url</code></td><td>Link to your public KIM list page. Use this if it is different from the one saved in Luster.</td></tr>
                 <tr><td class="act-col"><code>$luster_kim_list_base</code></td><td><strong>kim-list.php only.</strong> URL of your KIM list host page. In overview mode, each fanlisting link becomes this URL + <code>?id=N</code> instead of routing through Luster. In subject mode, used as the &ldquo;Back to KIM List&rdquo; link.</td></tr>
                 <tr><td class="act-col"><code>$luster_kim_subject_id</code></td><td><strong>kim-list.php only.</strong> When set to a fanlisting ID greater than 0, the embed renders the approved KIM members for that fanlisting (subject view) instead of the overview. Typically set from <code>$_GET[&apos;id&apos;]</code> on the host page.</td></tr>
+                <tr><td class="act-col"><code>$luster_kim_only_with_signups</code></td><td><strong>kim-list.php overview only.</strong> Defaults to <code>true</code>. Set it to <code>false</code> if the overview should show every eligible listing, even listings with no approved KIM sign-ups yet.</td></tr>
               </tbody>
             </table>
             </div>
@@ -666,14 +674,18 @@ $epSafe = View::e($ep);
               <tbody>
                 <tr><td class="act-col"><code class="ec-tk">{stat_approved}</code></td><td>Number of approved members. <span class="ec-ex">e.g. <em>33</em></span></td></tr>
                 <tr><td class="act-col"><code class="ec-tk">{stat_pending}</code></td><td>Number of members waiting for approval.</td></tr>
+                <tr><td class="act-col"><code class="ec-tk">{stat_countries}</code></td><td>Number of different countries represented by approved members.</td></tr>
                 <tr><td class="act-col"><code class="ec-tk">{stat_opened}</code></td><td>Date you opened the listing.</td></tr>
                 <tr><td class="act-col"><code class="ec-tk">{stat_updated}</code></td><td>Date the newest approved member joined.</td></tr>
                 <tr><td class="act-col"><code class="ec-tk">{stat_last_updated}</code></td><td>The &ldquo;last updated&rdquo; date you set for the listing in Luster.</td></tr>
-                <tr><td class="act-col"><code class="ec-tk">{stat_newmembers}</code></td><td>Names of the 5 newest approved members.</td></tr>
+                <tr><td class="act-col"><code class="ec-tk">{stat_newmembers}</code></td><td>Names of the 5 newest approved members, separated by commas.</td></tr>
+                <tr><td class="act-col"><code class="ec-tk">{stat_newmembers_oxford}</code></td><td>The same newest-member list formatted as a sentence, such as <em>A, B, and C</em>.</td></tr>
+                <tr><td class="act-col"><code class="ec-tk">{stat_newmembers_label}</code></td><td><code>Member</code> when there is one newest member, otherwise <code>Members</code>.</td></tr>
                 <tr><td class="act-col"><code class="ec-tk">{stat_growth}</code></td><td>Average new members per day since the listing opened.</td></tr>
                 <tr><td class="act-col"><code class="ec-tk">{listing_title}</code></td><td>Name of the listing.</td></tr>
                 <tr><td class="act-col"><code class="ec-tk">{listing_url}</code></td><td>Link to the listing.</td></tr>
                 <tr><td class="act-col"><code class="ec-tk">{approved_by}</code></td><td>The network that approved the listing, if one is saved.</td></tr>
+                <tr><td class="act-col"><code class="ec-tk">{if_stat_pending}&hellip;{/if_stat_pending}</code></td><td>Shows the text inside only when there are pending members.</td></tr>
                 <tr><td class="act-col"><code class="ec-tk">{if_approved_by}&hellip;{/if_approved_by}</code></td><td>Shows the text inside only when the listing has an approved-by network saved.</td></tr>
               </tbody>
             </table>
@@ -684,17 +696,23 @@ $epSafe = View::e($ep);
         <!-- MEMBER ROW TOKENS -->
         <div class="ec-ref-panel" id="ec-ref-row-tokens">
           <h3 class="pc-head-title">Member list</h3>
-          <p class="text-muted">Put these words in your member list template. Luster fills them in for each member.</p>
+          <p class="text-muted">Put these words in your member list template. Use <code>{each_member}</code> for one member row, then add your own wrapper, empty state, sort links, or summary text around it.</p>
           <div class="ec-ref-card">
             <div class="table-wrap">
             <table class="data-table">
               <thead><tr><th class="act-col">Template word</th><th>What it shows</th></tr></thead>
               <tbody>
+                <tr><td class="act-col"><code class="ec-tk">{each_member}&hellip;{/each_member}</code></td><td>Repeat box for one member row. Luster repeats the text inside once for each approved member.</td></tr>
                 <tr><td class="act-col"><code class="ec-tk">{fan_name}</code></td><td>Member&rsquo;s name. <span class="ec-ex">e.g. <em>Alexia</em></span></td></tr>
                 <tr><td class="act-col"><code class="ec-tk">{fan_url}</code></td><td>Member&rsquo;s website link.</td></tr>
                 <tr><td class="act-col"><code class="ec-tk">{fan_email}</code></td><td>Member&rsquo;s email address. Only use this if you really want emails visible on your site.</td></tr>
                 <tr><td class="act-col"><code class="ec-tk">{fan_country}</code></td><td>Member&rsquo;s country.</td></tr>
                 <tr><td class="act-col"><code class="ec-tk">{fan_<em>fieldname</em>}</code></td><td>A custom field answer from the member. Replace <em>fieldname</em> with your field name. <span class="ec-ex">e.g. <code>{fan_favorite}</code></span></td></tr>
+                <tr><td class="act-col"><code class="ec-tk">{if_fan_url}</code>, <code class="ec-tk">{if_no_fan_url}</code></td><td>Shows link or no-link markup depending on whether the member has a URL.</td></tr>
+                <tr><td class="act-col"><code class="ec-tk">{if_fan_country}</code>, <code class="ec-tk">{if_no_fan_country}</code></td><td>Shows country or no-country markup depending on whether the member has a country saved.</td></tr>
+                <tr><td class="act-col"><code class="ec-tk">{if_members}&hellip;{/if_members}</code>, <code class="ec-tk">{if_no_members}&hellip;{/if_no_members}</code></td><td>Shows wrapper or empty-state markup depending on whether the member list has approved members.</td></tr>
+                <tr><td class="act-col"><code class="ec-tk">{join_url}</code>, <code class="ec-tk">{member_count}</code>, <code class="ec-tk">{stats_line}</code></td><td>Page-level details for links, totals, and summary text outside the repeated row.</td></tr>
+                <tr><td class="act-col"><code class="ec-tk">{sort_link_all}</code>, <code class="ec-tk">{sort_link_name}</code>, <code class="ec-tk">{sort_link_country}</code></td><td>Ready-made member-list sort links that keep visitors on the current member page.</td></tr>
               </tbody>
             </table>
             </div>
@@ -823,6 +841,7 @@ $epSafe = View::e($ep);
                 <tr><td class="act-col"><code class="ec-tk">{affiliates}</code></td><td>All affiliate rows using the saved row template.</td></tr>
                 <tr><td class="act-col"><code class="ec-tk">{affiliates_count}</code></td><td>Number of active affiliates.</td></tr>
                 <tr><td class="act-col"><code class="ec-tk">{affiliates_list}</code></td><td>A simple linked list of affiliate names.</td></tr>
+                <tr><td class="act-col"><code class="ec-tk">{affiliate_apply_url}</code></td><td>Link to the matching affiliate application form. Listing affiliates point to that listing; collective affiliates point to the collective application form.</td></tr>
                 <tr><td class="act-col"><code class="ec-tk">{if_affiliates}&hellip;{/if_affiliates}</code></td><td>Shows the text inside only when there are affiliates.</td></tr>
                 <tr><td class="act-col"><code class="ec-tk">{if_no_affiliates}&hellip;{/if_no_affiliates}</code></td><td>Shows the text inside only when there are no affiliates.</td></tr>
               </tbody>
@@ -910,6 +929,26 @@ $epSafe = View::e($ep);
             </table>
             </div>
           </div>
+          <p class="text-muted" style="margin-top:.875rem">These go in whole form layout templates, such as join, code donation, affiliate application, adoption, and KIM sign-up templates. The normal <code>{field_*}</code> tokens include the saved field wrapper. Add <code>_input</code> before the closing brace, such as <code>{field_name_input}</code>, when you want the raw form control only.</p>
+          <div class="ec-ref-card">
+            <div class="table-wrap">
+            <table class="data-table">
+              <thead><tr><th class="act-col">Template word</th><th>What it shows</th></tr></thead>
+              <tbody>
+                <tr><td class="act-col"><code class="ec-tk">{listing_title}</code>, <code class="ec-tk">{listing_url}</code></td><td>The listing or collective name and URL for the form.</td></tr>
+                <tr><td class="act-col"><code class="ec-tk">{site_name}</code></td><td>The site name in KIM sign-up templates.</td></tr>
+                <tr><td class="act-col"><code class="ec-tk">{field_name}</code>, <code class="ec-tk">{field_email}</code>, <code class="ec-tk">{field_url}</code></td><td>Common person, email, and website fields.</td></tr>
+                <tr><td class="act-col"><code class="ec-tk">{field_country}</code>, <code class="ec-tk">{additional_fields}</code></td><td>Join-form country and custom fields. Empty when the listing does not use them.</td></tr>
+                <tr><td class="act-col"><code class="ec-tk">{field_password}</code>, <code class="ec-tk">{field_password_confirm}</code></td><td>Password fields for join and KIM sign-up forms.</td></tr>
+                <tr><td class="act-col"><code class="ec-tk">{field_code_image}</code>, <code class="ec-tk">{field_submitter_name}</code>, <code class="ec-tk">{field_submitter_email}</code>, <code class="ec-tk">{field_submitter_url}</code></td><td>Code donation upload and donor-credit fields.</td></tr>
+                <tr><td class="act-col"><code class="ec-tk">{field_image}</code>, <code class="ec-tk">{field_message}</code></td><td>Affiliate image and application/adoption message fields.</td></tr>
+                <tr><td class="act-col"><code class="ec-tk">{field_fanlisting_id}</code>, <code class="ec-tk">{field_send_copy}</code></td><td>KIM sign-up listing selector and confirmation-copy checkbox.</td></tr>
+                <tr><td class="act-col"><code class="ec-tk">{captcha_block}</code>, <code class="ec-tk">{captcha_block_input}</code>, <code class="ec-tk">{captcha_question}</code></td><td>Captcha field wrapper, raw captcha input, and the captcha question text.</td></tr>
+                <tr><td class="act-col"><code class="ec-tk">{submit_button}</code>, <code class="ec-tk">{clear_button}</code></td><td>Ready-made action buttons. Some forms only provide a submit button.</td></tr>
+              </tbody>
+            </table>
+            </div>
+          </div>
         </div>
 
         <!-- SUCCESS TEMPLATE TOKENS -->
@@ -985,7 +1024,7 @@ $epSafe = View::e($ep);
                 <tr><td class="act-col"><code class="ec-tk">{update_body_html}</code></td><td>The update body with line breaks converted to <code>&lt;br&gt;</code>. Luster escapes the text first, so visitor-supplied HTML is not allowed through.</td></tr>
                 <tr><td class="act-col"><code class="ec-tk">{update_author}</code></td><td>Update author, when saved.</td></tr>
                 <tr><td class="act-col"><code class="ec-tk">{update_categories}</code></td><td>Update category names, separated by commas.</td></tr>
-                <tr><td class="act-col"><code class="ec-tk">{if_author}</code>, <code class="ec-tk">{if_categories}</code></td><td>Shows author or category markup only when that information exists.</td></tr>
+                <tr><td class="act-col"><code class="ec-tk">{if_author}&hellip;{/if_author}</code>, <code class="ec-tk">{if_categories}&hellip;{/if_categories}</code></td><td>Shows author or category markup only when that information exists.</td></tr>
               </tbody>
             </table>
             </div>
@@ -1011,7 +1050,23 @@ $epSafe = View::e($ep);
                 <tr><td class="act-col"><code class="ec-tk">{item_image_url}</code></td><td>Direct link to the wishlist image, when one is uploaded.</td></tr>
                 <tr><td class="act-col"><code class="ec-tk">{if_item_url}</code>, <code class="ec-tk">{if_no_item_url}</code></td><td>Shows link or no-link markup depending on whether the item has a URL.</td></tr>
                 <tr><td class="act-col"><code class="ec-tk">{if_item_category}</code>, <code class="ec-tk">{if_item_description}</code>, <code class="ec-tk">{if_item_image}</code></td><td>Shows category, description, or image markup only when that detail exists.</td></tr>
-                <tr><td class="act-col"><code class="ec-tk">{if_type_top}</code>, <code class="ec-tk">{if_type_wanted}</code>, <code class="ec-tk">{if_type_granted}</code></td><td>Shows the text inside only for that wishlist type.</td></tr>
+                <tr><td class="act-col"><code class="ec-tk">{if_type_top}&hellip;{/if_type_top}</code>, <code class="ec-tk">{if_type_wanted}&hellip;{/if_type_wanted}</code>, <code class="ec-tk">{if_type_granted}&hellip;{/if_type_granted}</code></td><td>Shows the text inside only for that wishlist type.</td></tr>
+              </tbody>
+            </table>
+            </div>
+          </div>
+          <p class="text-muted" style="margin-top:.875rem">Section words for grouping your wishlist by type. Use these to add a heading like "Top Wanted" that only shows up when there's something to put under it.</p>
+          <div class="ec-ref-card">
+            <div class="table-wrap">
+            <table class="data-table">
+              <thead><tr><th class="act-col">Template word</th><th>What it shows</th></tr></thead>
+              <tbody>
+                <tr><td class="act-col"><code class="ec-tk">{each_wishlist_item_top}&hellip;{/each_wishlist_item_top}</code></td><td>Repeat box for one Top Wanted item. Same words as the main repeat box above, but only for Top Wanted entries on this page.</td></tr>
+                <tr><td class="act-col"><code class="ec-tk">{each_wishlist_item_wanted}&hellip;{/each_wishlist_item_wanted}</code></td><td>Repeat box for one Wanted item, only for Wanted entries on this page.</td></tr>
+                <tr><td class="act-col"><code class="ec-tk">{each_wishlist_item_granted}&hellip;{/each_wishlist_item_granted}</code></td><td>Repeat box for one Granted item, only for Granted entries on this page.</td></tr>
+                <tr><td class="act-col"><code class="ec-tk">{if_has_top}&hellip;{/if_has_top}</code></td><td>Shows the text inside only when this page has at least one Top Wanted item. Put your "Top Wanted" heading and its repeat box inside this.</td></tr>
+                <tr><td class="act-col"><code class="ec-tk">{if_has_wanted}&hellip;{/if_has_wanted}</code></td><td>Shows the text inside only when this page has at least one Wanted item.</td></tr>
+                <tr><td class="act-col"><code class="ec-tk">{if_has_granted}&hellip;{/if_has_granted}</code></td><td>Shows the text inside only when this page has at least one Granted item.</td></tr>
               </tbody>
             </table>
             </div>
@@ -1110,8 +1165,8 @@ $epSafe = View::e($ep);
       <span class="modal-title" id="ec-prev-modal-title">Preview</span>
       <div style="display:flex;align-items:center;gap:.5rem">
         <a id="ec-prev-newtab" href="#" target="_blank" rel="noopener"
-           class="btn btn-ghost btn-sm" style="text-decoration:none">&#x2197;&ensp;New tab</a>
-        <button class="modal-close btn btn-ghost btn-sm">&#x2715;&ensp;Close</button>
+           class="btn btn-quaternary" style="text-decoration:none">&#x2197;&ensp;Open in New Tab</a>
+        <button type="button" id="ec-prev-close" class="btn btn-quaternary">&#x2715;&ensp;Close</button>
       </div>
     </div>
     <div class="modal-body--iframe">

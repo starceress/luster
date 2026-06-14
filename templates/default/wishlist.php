@@ -8,11 +8,18 @@ use Luster\Core\View;
  * @var string $filter_type   'all' | 'wanted' | 'top' | 'granted'
  * @var string $base_url
  * @var string|null $wishlist_template_html  pre-rendered HTML from embed (null = use default)
+ * @var string $pagination  pre-built pagination HTML, or ''
+ * @var int $page
+ * @var int $pages
+ * @var int $total
  */
 
 // When a custom wishlist_template has been rendered by the embed, use it directly.
 if (isset($wishlist_template_html) && $wishlist_template_html !== null) {
     echo $wishlist_template_html;
+    if ($pagination !== '') {
+        echo '<div class="fl-pagination-wrap">' . $pagination . '</div>';
+    }
     return;
 }
 
@@ -94,6 +101,10 @@ if ($filter_type === 'all') {
         echo '</li>';
     }
     echo '</ul>';
+}
+
+if ($pagination !== '') {
+    echo '<div class="fl-pagination-wrap">' . $pagination . '</div>';
 }
 
 echo '</div>';

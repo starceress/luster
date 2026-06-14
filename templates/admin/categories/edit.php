@@ -3,6 +3,17 @@ use Luster\Core\View;
 $b  = rtrim(View::e($base_url ?? ''), '/');
 $fe = $field_errors ?? [];
 $currentSource = $cat->source ?? 'custom';
+$currentSourceLabel = in_array($currentSource, ['tfl', 'tafl'], true) ? strtoupper($currentSource) : $currentSource;
+
+$networkOptions = [
+    ['value' => 'tfl',  'label' => 'TFL'],
+    ['value' => 'tafl', 'label' => 'TAFL'],
+];
+$customNets = $custom_networks ?? [];
+sort($customNets, SORT_STRING | SORT_FLAG_CASE);
+foreach ($customNets as $net) {
+    $networkOptions[] = ['value' => $net, 'label' => ucfirst($net)];
+}
 $currentSlug   = $cat->slug ?? '';
 $currentParent = isset($cat->parent_id) && $cat->parent_id !== null ? (int) $cat->parent_id : null;
 ?>
@@ -74,7 +85,7 @@ $currentParent = isset($cat->parent_id) && $cat->parent_id !== null ? (int) $cat
         <div>
           <div class="select-wrap">
             <select id="add-network-toggle" name="add_network">
-              <option value="no">Keep current (<?= View::e($currentSource) ?>)</option>
+              <option value="no">Keep current (<?= View::e($currentSourceLabel) ?>)</option>
               <option value="yes">Change network</option>
             </select>
           </div>
@@ -88,11 +99,22 @@ $currentParent = isset($cat->parent_id) && $cat->parent_id !== null ? (int) $cat
         </div>
       </div>
 
-      <div class="listing-field-row listing-field-row--top is-hidden" id="network-name-row">
-        <label class="listing-field-label" for="cat-network">New Network Name</label>
+      <div class="listing-field-row listing-field-row--top is-hidden" id="replacement-network-row">
+        <label class="listing-field-label" for="replacement-network">New Network</label>
         <div>
-          <input id="cat-network" type="text" name="network_name" class="form"
-                 maxlength="50" placeholder="e.g. MyNetwork">
+          <div class="cat-row">
+            <div class="select-wrap" data-role="cat-network-wrap">
+              <select id="replacement-network" name="replacement_network">
+                <?php foreach ($networkOptions as $opt): ?>
+                  <option value="<?= View::e($opt['value']) ?>"><?= View::e($opt['label']) ?></option>
+                <?php endforeach; ?>
+                <option value="other">Other (add new)</option>
+              </select>
+            </div>
+            <input id="cat-network" type="text" name="network_name" data-role="cat-network-other"
+                   maxlength="50" placeholder="New network name" style="display:none">
+          </div>
+          <p class="form-hint">Choose an existing network, or "Other (add new)" to create one.</p>
         </div>
       </div>
 
@@ -102,13 +124,17 @@ $currentParent = isset($cat->parent_id) && $cat->parent_id !== null ? (int) $cat
       <button type="submit" class="btn btn-primary">Save Changes</button>
       <button type="button" class="btn btn-ghost js-form-reset">Clear</button>
       <a href="<?= $b ?>/admin/categories" class="btn btn-ghost">Cancel</a>
+      <span class="composer-footer-spacer"></span>
+      <button type="submit"
+              form="del-category-<?= (int) ($cat->id ?? 0) ?>"
+              class="btn btn-danger">Delete Category</button>
     </div>
   </div>
 </form>
 
-<form method="POST" action="<?= $b ?>/admin/categories/<?= (int) ($cat->id ?? 0) ?>/delete"
+<form id="del-category-<?= (int) ($cat->id ?? 0) ?>" method="POST"
+      action="<?= $b ?>/admin/categories/<?= (int) ($cat->id ?? 0) ?>/delete"
       data-del-modal data-del-entity="category"
       data-del-name="<?= View::e($cat->name ?? '') ?>">
   <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
-  <button type="submit" class="btn btn-danger">Delete Category</button>
 </form>

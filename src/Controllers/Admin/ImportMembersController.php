@@ -288,7 +288,8 @@ final class ImportMembersController
         $activityRepo->log(
             $adminUserId,
             'import_members',
-            "Imported {$imported} members (skipped {$skipped}) into listing #{$listingId}: {$listing->title}"
+            "Imported {$imported} members (skipped {$skipped}) into listing #{$listingId}: {$listing->title}",
+            $request->ip()
         );
 
         $this->clearImportSession($session);

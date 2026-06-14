@@ -32,7 +32,6 @@ use Luster\Controllers\Public\AffiliateApplyController;
 use Luster\Controllers\Public\AffiliatesController;
 use Luster\Controllers\Public\JoinController;
 use Luster\Controllers\Public\MembersController;
-use Luster\Controllers\Public\RemoveController;
 use Luster\Controllers\Public\ResetController;
 use Luster\Controllers\Public\CodesSubmitController;
 use Luster\Controllers\Public\StatsController;
@@ -69,10 +68,6 @@ return [
         $router->post('/update/{id}/sign-in',  UpdateController::class, 'signIn');
         $router->get('/update/{id}/sign-out',  UpdateController::class, 'signOut');
         $router->post('/update/{id}',          UpdateController::class, 'submit');
-
-        // Remove membership
-        $router->get('/remove/{id}',          RemoveController::class,  'showForm');
-        $router->post('/remove/{id}',         RemoveController::class,  'submit');
 
         // Affiliates — collective route before the per-fanlisting route
         $router->get('/affiliates',      AffiliatesController::class, 'collective');
@@ -143,12 +138,15 @@ return [
         $router->post('/admin/listings/add',     ListingController::class, 'add');
         $router->get('/admin/listings/global-templates',  ListingController::class, 'globalTemplates');
         $router->post('/admin/listings/global-templates', ListingController::class, 'saveGlobalTemplates');
+        $router->post('/admin/listings/global-templates/preview', ListingController::class, 'globalTemplatesPreview');
         $router->get('/admin/listings/settings', ListingController::class, 'indexSettings');
         $router->post('/admin/listings/settings', ListingController::class, 'saveSettings');
         $router->post('/admin/listings/settings/send-overdue-now', ListingController::class, 'sendOverdueNow');
         $router->post('/admin/listings/bulk', ListingController::class, 'bulk');
         $router->get('/admin/collective',
             SettingsController::class, 'collectiveIndex');
+        $router->post('/admin/collective/quick-actions/reorder',
+            SettingsController::class, 'reorderQuickActions');
         $router->get('/admin/collective/templates',
             SettingsController::class, 'collectiveTemplates');
         $router->post('/admin/collective/templates/preview',
@@ -199,6 +197,11 @@ return [
         $router->post('/admin/members/pending-bulk',
             MemberController::class, 'pendingBulk');
 
+        // export-pending is registered before {id} so 'export-pending' isn't
+        // captured as a listing id.
+        $router->get('/admin/members/export-pending',
+            MemberController::class, 'exportPending');
+
         // ── Members for a specific listing ───────────────────────
         $router->get('/admin/members/{id}',
             MemberController::class, 'index');
@@ -220,8 +223,6 @@ return [
             MemberController::class, 'approveAllPending');
         $router->get('/admin/members/{id}/export',
             MemberController::class, 'export');
-        $router->get('/admin/members/export-pending',
-            MemberController::class, 'exportPending');
         $router->get('/admin/members/{id}/emailmember',
             MemberController::class, 'emailMemberForm');
         $router->post('/admin/members/{id}/emailmember',
@@ -232,14 +233,6 @@ return [
             MemberController::class, 'emailSelectedSend');
         $router->post('/admin/members/{id}/email-selected/save-template',
             MemberController::class, 'emailSelectedSaveTemplate');
-
-        // import/template must be before import so 'template' isn't treated as a sub-param
-        $router->get('/admin/members/{id}/import/template',
-            MemberController::class, 'importTemplate');
-        $router->get('/admin/members/{id}/import',
-            MemberController::class, 'importForm');
-        $router->post('/admin/members/{id}/import',
-            MemberController::class, 'import');
 
         // ── Codes for a specific listing ─────────────────────────
         //    Specific literal paths are registered before parameterised ones

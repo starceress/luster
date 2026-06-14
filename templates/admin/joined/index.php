@@ -284,7 +284,7 @@ $bulkOptions = match ($statusTab) {
           <td class="text-dim" data-label=""><?= $loop + 1 ?></td>
           <td data-label="Subject">
             <a href="<?= View::e($jf->url) ?>" target="_blank" rel="noopener noreferrer"
-               class="link"><?= View::e($jf->name) ?></a>
+               class="link"><b><?= View::e($jf->name) ?></b></a>
           </td>
           <td data-label="Category">
             <?php

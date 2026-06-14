@@ -713,10 +713,9 @@ final class ListingRepo
      */
     public function getCategoryList(string $status = 'current', bool $excludePending = false): array
     {
-        // Mirror the getFiltered() status logic so the nav pool and content pool
-        // always come from the same set of listings.
+        // Mirrors getFiltered() exactly — only current-status listings count toward categories.
         $active = match (true) {
-            $status === 'current'                => $this->isOwnedSchema ? 'f.status = 2'  : 'f.upcoming = 0 AND f.trouble = 0',
+            $status === 'current'                => $this->isOwnedSchema ? 'f.status = 2' : 'f.upcoming = 0 AND f.trouble = 0',
             $status === 'upcoming'              => $this->isOwnedSchema ? 'f.status = 1'  : 'f.upcoming = 1',
             $status === 'pending'               => $this->isOwnedSchema ? 'f.status = 0'  : 'f.trouble = 1',
             $status === 'all' && $excludePending => $this->isOwnedSchema ? 'f.status != 0' : 'f.trouble = 0',

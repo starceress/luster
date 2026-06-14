@@ -97,6 +97,7 @@ final class AdminUsersController extends AdminController
         (new ActivityRepo($this->app->getDatabase()))->log(
             $adminId, 'admin_user.add',
             "Created admin account: {$username}",
+            $request->ip(),
         );
 
         $session->set('lstr_flash_success', "Admin account \"{$username}\" created.");
@@ -196,6 +197,7 @@ final class AdminUsersController extends AdminController
         (new ActivityRepo($this->app->getDatabase()))->log(
             $adminId, 'admin_user.edit',
             "Edited admin account: {$username}",
+            $request->ip(),
         );
 
         $session->set('lstr_flash_success', "Account \"{$username}\" updated.");
@@ -238,6 +240,7 @@ final class AdminUsersController extends AdminController
         (new ActivityRepo($this->app->getDatabase()))->log(
             $adminId, 'admin_user.delete',
             "Deleted admin account: {$user->username}",
+            $request->ip(),
         );
 
         $session->set('lstr_flash_success', "Account \"{$user->username}\" deleted.");

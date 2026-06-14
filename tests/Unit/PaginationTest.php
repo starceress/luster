@@ -19,7 +19,7 @@ final class PaginationTest extends TestCase
     {
         $html = Pagination::render(3, 5, '/members');
 
-        self::assertStringContainsString('<div class="fl-pagination-nav fl-pagination"', $html);
+        self::assertStringContainsString('<div class="fl-pagination-nav"', $html);
         self::assertStringNotContainsString('<nav', $html);
         self::assertStringContainsString('fl-page-prev', $html);
         self::assertStringContainsString('fl-page-next', $html);

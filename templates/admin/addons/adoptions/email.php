@@ -160,7 +160,7 @@ $oldBody    = htmlspecialchars($old['body'] ?? '', ENT_QUOTES, 'UTF-8');
 
       <div class="composer-footer">
         <button type="button" class="btn btn-primary" id="em-send-btn"><?= View::icon('send') ?> Send</button>
-        <button type="button" class="btn btn-preview" id="preview-email-btn">Preview</button>
+        <button type="button" class="btn btn-preview" id="preview-email-btn"><?= View::icon('eye-on') ?> Preview</button>
         <button type="button" class="btn btn-ghost js-form-reset">Clear</button>
         <div class="composer-footer-spacer"></div>
         <a href="<?= $b ?>/admin/adoptions/<?= $appId ?>/edit" class="btn btn-danger">Cancel</a>

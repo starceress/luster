@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use Luster\Addons\Rules\RuleSet;
 use Luster\Addons\Rules\RulesRepo;
 
 /**
@@ -96,6 +97,30 @@ try {
 }
 
 if ($_lusterRuleSet === null || !$_lusterRuleSet->enabled || trim($_lusterRuleSet->body) === '') {
+    // No active per-listing rules — try global fallback
+    try {
+        $_lusterSiteRepo    = new \Luster\Repositories\SiteSettingsRepo($_lusterApp->getDatabase());
+        $_lusterGlobalBody    = trim((string) ($_lusterSiteRepo->get('rules_global_body') ?? ''));
+        $_lusterGlobalEnabled = ($_lusterSiteRepo->get('rules_global_gate_enabled') ?? '0') === '1';
+        if ($_lusterGlobalBody !== '' && $_lusterGlobalEnabled) {
+            $_lusterGlobalVer = (int) ($_lusterSiteRepo->get('rules_global_version') ?? 1);
+            $_lusterRuleSet   = new RuleSet(
+                id:           0,
+                fanlistingId: $_lusterListingId,
+                body:         $_lusterGlobalBody,
+                enabled:      true,
+                version:      $_lusterGlobalVer,
+                updatedAt:    '',
+                gateType:     $_lusterSiteRepo->get('rules_global_gate_type')  ?? 'checkbox',
+                gateLabel:    $_lusterSiteRepo->get('rules_global_gate_label') ?? '',
+            );
+        }
+    } catch (\Throwable) {
+        // Site settings unavailable — proceed without global rules
+    }
+}
+
+if ($_lusterRuleSet === null || !$_lusterRuleSet->enabled || trim($_lusterRuleSet->body) === '') {
     // No active rules for this listing — proceed to join form
     if ($luster_return ?? false) {
         return '';
@@ -126,7 +151,6 @@ $_lusterBaseUrl    = rtrim((string) $_lusterApp->getConfig()->get('embed_base_ur
                    ?: $_lusterApp->getBaseUrl();
 $_lusterFormAction = $_lusterBaseUrl . '/rules/' . $_lusterListingId . '/agree';
 
-// Load the listing once — used by both the intro template and the rules body tokens.
 try {
     $_lusterListing = (new \Luster\Repositories\ListingRepo($_lusterApp->getDatabase(), $_lusterApp->getConfig()))
         ->getById($_lusterListingId);
@@ -134,20 +158,20 @@ try {
     $_lusterListing = null;
 }
 
-// Load rules intro template (gracefully absent before Migration 68)
-$_lusterRulesIntroHtml = '';
-try {
-    $_lusterRawIntro = (new \Luster\Repositories\ListingSettingsRepo($_lusterApp->getDatabase()))
-        ->getTemplates($_lusterListingId)['rules_intro_template'] ?? null;
-    if ($_lusterRawIntro !== null && trim($_lusterRawIntro) !== '') {
-        $_lusterRulesIntroHtml = \Luster\Core\TemplateEngine::render($_lusterRawIntro, escaped: [
-            'listing_title'   => $_lusterListing?->title ?? '',
-            'listing_url'     => $_lusterListing?->url ?? '',
-            'listing_subject' => $_lusterListing?->subject ?? '',
-        ]);
-    }
-} catch (\Throwable) {
-    // intro template unavailable — proceed without it
+// Build gate tokens based on gate type
+$_lusterEscGateLabel = htmlspecialchars(
+    $_lusterRuleSet->effectiveGateLabel(),
+    ENT_QUOTES | ENT_SUBSTITUTE,
+    'UTF-8'
+);
+if ($_lusterRuleSet->gateType === 'button') {
+    $_lusterGateCheckboxHtml = '';
+    $_lusterGateButtonHtml   = '<button type="submit" class="fl-submit fl-rules-gate-btn" name="agree" value="1">'
+                             . $_lusterEscGateLabel . '</button>';
+} else {
+    $_lusterGateCheckboxHtml = '<input type="checkbox" class="fl-rules-agree-check" name="agree" value="1" required>';
+    $_lusterGateButtonHtml   = '<button type="submit" class="fl-submit fl-rules-gate-btn">'
+                             . $_lusterEscGateLabel . '</button>';
 }
 
 $_lusterRulesBodyHtml = \Luster\Support\RulesBodyRenderer::render(
@@ -159,17 +183,23 @@ $_lusterRulesBodyHtml = \Luster\Support\RulesBodyRenderer::render(
         'join_url'      => $_lusterBaseUrl . '/join/' . $_lusterListingId,
         'update_url'    => $_lusterBaseUrl . '/update/' . $_lusterListingId,
     ],
-    $_lusterRuleSet->listStyle
+    [
+        'gate_checkbox' => $_lusterGateCheckboxHtml,
+        'gate_button'   => $_lusterGateButtonHtml,
+    ]
 );
 
+if (!\Luster\Support\RulesBodyRenderer::hasGateToken($_lusterRuleSet->body)) {
+    $_lusterRulesBodyHtml .= "\n" . $_lusterGateCheckboxHtml . "\n" . $_lusterGateButtonHtml;
+}
+
 $_lusterHtml = $_lusterApp->getView()->renderFragment('addons/rules/gate.php', [
-    'rules'            => $_lusterRuleSet,
-    'already_agreed'   => false,
-    'form_action'      => $_lusterFormAction,
-    'return_to'        => $_lusterRedirectTo,
-    'csrf_token'       => $_lusterApp->getCSRF()->token(),
-    'rules_intro_html' => $_lusterRulesIntroHtml,
-    'rules_body_html'  => $_lusterRulesBodyHtml,
+    'rules'           => $_lusterRuleSet,
+    'already_agreed'  => false,
+    'form_action'     => $_lusterFormAction,
+    'return_to'       => $_lusterRedirectTo,
+    'csrf_token'      => $_lusterApp->getCSRF()->token(),
+    'rules_body_html' => $_lusterRulesBodyHtml,
 ]);
 
 if ($luster_return ?? false) {

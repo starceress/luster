@@ -312,11 +312,11 @@ final class KimMemberRepo
     }
 
     /**
-     * Returns name + email for a specific set of member IDs.
+     * Returns name + email + url + added_at for a specific set of member IDs.
      * Used for bulk email-selected.
      *
      * @param  int[]  $ids
-     * @return array<int, array{name: string, email: string}>
+     * @return array<int, array{name: string, email: string, url: string, added_at: string}>
      */
     public function getEmailsByIds(array $ids): array
     {
@@ -325,33 +325,43 @@ final class KimMemberRepo
         }
         $placeholders = implode(', ', array_fill(0, count($ids), '?'));
         $stmt = $this->db->prepare(
-            "SELECT name, email FROM lstr_kim_members WHERE id IN ({$placeholders}) ORDER BY name ASC"
+            "SELECT name, email, url, added_at FROM lstr_kim_members WHERE id IN ({$placeholders}) ORDER BY name ASC"
         );
         $stmt->execute(array_values($ids));
 
         return array_map(
-            static fn(array $row) => ['name' => (string) $row['name'], 'email' => (string) $row['email']],
+            static fn(array $row) => [
+                'name'     => (string) $row['name'],
+                'email'    => (string) $row['email'],
+                'url'      => (string) ($row['url'] ?? ''),
+                'added_at' => (string) ($row['added_at'] ?? ''),
+            ],
             $stmt->fetchAll()
         );
     }
 
     /**
-     * Returns name + email for approved members of a fanlisting.
+     * Returns name + email + url + added_at for approved members of a fanlisting.
      * Used for bulk email.
      *
-     * @return array<int, array{name: string, email: string}>
+     * @return array<int, array{name: string, email: string, url: string, added_at: string}>
      */
     public function getEmailsByFanlisting(int $fanlistingId): array
     {
         $stmt = $this->db->prepare(
-            'SELECT name, email FROM lstr_kim_members
+            'SELECT name, email, url, added_at FROM lstr_kim_members
              WHERE fanlisting_id = :fanlisting_id AND pending = 0
              ORDER BY name ASC'
         );
         $stmt->execute(['fanlisting_id' => $fanlistingId]);
 
         return array_map(
-            static fn(array $row) => ['name' => (string) $row['name'], 'email' => (string) $row['email']],
+            static fn(array $row) => [
+                'name'     => (string) $row['name'],
+                'email'    => (string) $row['email'],
+                'url'      => (string) ($row['url'] ?? ''),
+                'added_at' => (string) ($row['added_at'] ?? ''),
+            ],
             $stmt->fetchAll()
         );
     }

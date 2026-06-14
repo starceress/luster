@@ -58,7 +58,7 @@ $_defaults = [
           <input id="kim-per-page" type="number" name="kim_per_page"
                  class="form form--compact" min="5" max="25"
                  value="<?= (int) ($kim_per_page ?? 10) ?>">
-          <p class="form-hint">How many listings to show per page on the KIM index and per-listing member list. Min 5, max 25, default 10.</p>
+          <p class="form-hint">How many rows to show per page in the Keep In Mind admin data table. Does not affect the public KIM embed — use the Embed Wizard for that. Min 5, max 25, default 10.</p>
         </div>
       </div>
     </div>

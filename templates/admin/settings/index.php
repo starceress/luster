@@ -39,23 +39,23 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
   <nav class="panel-card">
     <div class="card-head">Settings</div>
     <div class="panel-body">
-      <a href="#panel-admin" class="mini-nav-item"><?= View::icon('account') ?> Account Details</a>
-      <a href="#panel-accounts" class="mini-nav-item"><?= View::icon('admins') ?> Admin Accounts</a>
       <a href="#panel-general" class="mini-nav-item"><?= View::icon('general') ?> General</a>
-      <a href="#panel-smtp" class="mini-nav-item"><?= View::icon('email') ?> SMTP / Email</a>
+      <a href="#panel-admin" class="mini-nav-item"><?= View::icon('account') ?> Account Details</a>
+      <a href="#panel-accounts" class="mini-nav-item"><?= View::icon('admins') ?> Additional Accounts</a>
       <a href="#panel-appearance" class="mini-nav-item"><?= View::icon('palette') ?> Appearance</a>
+      <a href="#panel-smtp" class="mini-nav-item"><?= View::icon('email') ?> SMTP &amp; Email</a>
       <a href="#panel-embed" class="mini-nav-item"><?= View::icon('paths') ?> Server Paths</a>
-      <a href="#panel-blacklist" class="mini-nav-item"><?= View::icon('blacklist') ?> Blacklist</a>
+      <a href="#panel-blacklist" class="mini-nav-item"><?= View::icon('blacklist') ?> Spam Filtering</a>
       <a href="#panel-system" class="mini-nav-item"><?= View::icon('wrench') ?> System Details</a>
       <div class="select-wrap settings-nav-select-wrap">
         <select id="settings-nav-select">
-          <option value="panel-admin">Account Details</option>
-          <option value="panel-accounts">Admin Accounts</option>
           <option value="panel-general">General</option>
-          <option value="panel-smtp">SMTP / Email</option>
+          <option value="panel-admin">Account Details</option>
+          <option value="panel-accounts">Additional Accounts</option>
           <option value="panel-appearance">Appearance</option>
+          <option value="panel-smtp">SMTP &amp; Email</option>
           <option value="panel-embed">Server Paths</option>
-          <option value="panel-blacklist">Blacklist</option>
+          <option value="panel-blacklist">Spam Filtering</option>
           <option value="panel-system">System Details</option>
         </select>
       </div>
@@ -82,31 +82,35 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
 
           <div class="pc-section">
             <div class="pc-section-label">Login Details</div>
-            <div class="form-row">
-              <div class="form-group<?= !empty($fe['username']) ? ' has-error' : '' ?>">
-                <label class="form-label" for="p-username">Username <span class="req">*</span></label>
+            <div class="listing-field-row listing-field-row--top<?= !empty($fe['username']) ? ' has-error' : '' ?>">
+              <label class="listing-field-label" for="p-username">Username <span class="req">*</span></label>
+              <div>
                 <input id="p-username" type="text" name="admin_username" class="form"
                        maxlength="50" required
                        value="<?= View::e($admin_user->username ?? '') ?>">
-                <p class="form-hint">The name you type on the admin login screen.</p>
+                <p class="form-hint form-hint-inline">The name you type on the admin login screen.</p>
                 <?php if (!empty($fe['username'])): ?><p class="field-error"><?= View::e($fe['username'][0]) ?></p><?php endif; ?>
               </div>
-              <div class="form-group<?= !empty($fe['email']) ? ' has-error' : '' ?>">
-                <label class="form-label" for="p-email">Email Address <span class="req">*</span></label>
+            </div>
+
+            <div class="listing-field-row listing-field-row--top<?= !empty($fe['email']) ? ' has-error' : '' ?>">
+              <label class="listing-field-label" for="p-email">Email Address <span class="req">*</span></label>
+              <div>
                 <input id="p-email" type="email" name="admin_email" class="form"
                        maxlength="255" required
                        value="<?= View::e($admin_user->email ?? '') ?>">
-                <p class="form-hint">Used for admin account messages, including admin password resets.</p>
+                <p class="form-hint form-hint-inline">Used for admin account messages, including admin password resets.</p>
                 <?php if (!empty($fe['email'])): ?><p class="field-error"><?= View::e($fe['email'][0]) ?></p><?php endif; ?>
               </div>
             </div>
-            <div class="form-row">
-              <div class="form-group">
-                <label class="form-label" for="p-owner-name">Owner Name <span class="req">*</span></label>
+
+            <div class="listing-field-row listing-field-row--top">
+              <label class="listing-field-label" for="p-owner-name">Owner Name <span class="req">*</span></label>
+              <div>
                 <input id="p-owner-name" type="text" name="admin_display_name" class="form"
                        maxlength="100" required
                        value="<?= View::e($admin_user->displayName ?? '') ?>">
-                <p class="form-hint">The friendly name shown inside the admin panel for this account.</p>
+                <p class="form-hint form-hint-inline">The friendly name shown inside the admin panel for this account.</p>
               </div>
             </div>
           </div>
@@ -174,7 +178,7 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
             <?= View::icon('admins') ?>
           </div>
             <div class="pc-head-meta">
-            <div class="pc-head-title">Admin Accounts <span class="badge badge-info-pink badge-inline-gap"><?= count($users ?? []) ?> Total</span></div>
+            <div class="pc-head-title">Additional Accounts &nbsp; <span class="badge badge-info-pink" style="font-family: var(--font-sans);"><?= count($users ?? []) ?> Total</span></div>
             <div class="pc-head-sub">All accounts with admin panel access. Each logs in independently.</div>
           </div>
           <a href="<?= $b ?>/admin/admin-users/add" class="btn btn-primary btn-sm pc-head-cta">
@@ -334,7 +338,7 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
             <?= View::icon('general') ?>
             </div>
             <div class="pc-head-meta">
-              <div class="pc-head-title">General Settings</div>
+              <div class="pc-head-title">General</div>
               <div class="pc-head-sub">Core site identity and display preferences.</div>
             </div>
           </div>
@@ -489,7 +493,7 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
             <?= View::icon('email') ?>
             </div>
             <div class="pc-head-meta">
-              <div class="pc-head-title">SMTP / Email</div>
+              <div class="pc-head-title">SMTP &amp; Email</div>
               <div class="pc-head-sub">Outgoing mail delivery and message sender details.</div>
             </div>
           </div>
@@ -571,15 +575,14 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
 
           <div class="pc-section">
             <div class="pc-section-label">Test Email</div>
-            <p class="form-hint mb-sm">
-              Send a test message to your admin account email to confirm your mail settings are working.
-              Sends to <strong><?= View::e($admin_user->email ?? '') ?></strong>.
-              <?= (cfgVal($cfg, 'smtp_enabled') === '1') ? 'Will use SMTP (' . View::e(cfgVal($cfg, 'smtp_host')) . ').' : 'Will use your web host\'s built-in mail sending.' ?>
-            </p>
-            <button type="submit" form="settings-test-email-form" class="btn btn-secondary btn-sm">Send test email</button>
+              <p>Send a test message to your admin account email to confirm your mail settings are working. Sends to <strong><?= View::e($admin_user->email ?? '') ?></strong>.
+
+              <?= (cfgVal($cfg, 'smtp_enabled') === '1') ? 'Will use SMTP (' . View::e(cfgVal($cfg, 'smtp_host')) . ').' : 'Will use your web host\'s built-in mail sending.' ?></p>
+              
+            <button type="submit" form="settings-test-email-form" class="btn btn-secondary btn-sm">Send Test Email</button>
             <?php if (($cfg['owner_email'] ?? '') === ''): ?>
               <p class="form-hint form-hint--warn mt-sm">
-                Set a Contact Email (Owner Information above) before sending a test.
+                Please set a Contact Email under the "General" tab before sending a test email.
               </p>
             <?php endif; ?>
           </div>
@@ -616,7 +619,7 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
               <div class="listing-field-row listing-field-row--top">
                 <label class="listing-field-label" for="s-install-path">Server Install Path</label>
                 <div>
-                  <?php $_installPath = cfgVal($cfg, 'install_path') ?: (rtrim(LUSTER_BASE, '/') . '/'); ?>
+                  <?php $_installPath = cfgVal($cfg, 'install_path') ?: (rtrim(str_replace('\\', '/', LUSTER_BASE), '/') . '/'); ?>
                   <div class="input-action-row">
                     <input id="s-install-path" type="text" name="install_path" class="form" maxlength="500"
                            value="<?= View::e($_installPath) ?>" readonly>
@@ -663,7 +666,7 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
             <?= View::icon('blacklist') ?>
           </div>
           <div class="pc-head-meta">
-            <div class="pc-head-title">Blacklist</div>
+            <div class="pc-head-title">Spam Filtering</div>
             <div class="pc-head-sub">Block specific email addresses or whole email domains from public forms.</div>
           </div>
         </div>
@@ -677,7 +680,7 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
                 <label class="form-label" for="bl-pattern">Email Pattern <span class="req">*</span></label>
                 <input id="bl-pattern" type="text" name="pattern" class="form" maxlength="255" required
                        placeholder="spam@example.com  or  @spam.com">
-                <p class="form-hint">Use a full email address to block one person, or start with <code class="neb-code">@</code> to block everyone from that email domain.</p>
+                <p class="form-hint">Use a full email address to block one person, or start with <code>@</code> to block everyone from that email domain.</p>
               </div>
               <div class="form-group">
                 <label class="form-label" for="bl-note">Note <em class="opt">(optional)</em></label>
@@ -689,7 +692,7 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
           </div>
 
           <div class="composer-footer">
-            <button type="submit" class="btn btn-primary">Add to Blacklist</button>
+            <button type="submit" class="btn btn-primary">Add Filter Rule</button>
             <button type="reset" class="btn btn-ghost">Clear</button>
           </div>
         </form>
@@ -699,7 +702,7 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
         <div class="card">
           <div class="empty">
             <span class="empty-icon"><?= View::icon('blacklist', ['width' => 32, 'height' => 32]) ?></span>
-            <div class="empty-title">No blocked patterns found.</div>
+            <div class="empty-title">No spam filter patterns found.</div>
             <div>Add email addresses or domains above to prevent them from joining.</div>
           </div>
         </div>

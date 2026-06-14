@@ -334,7 +334,7 @@ $sortUrl = static function (string $col) use ($buildUrl, $sort, $dir): string {
             </td>
 
             <td class="text-dim nowrap" data-label="Applied">
-              <?= View::e(date('Y-m-d', strtotime((string) $app['applied_at']))) ?>
+              <?= View::e(date($admin_date_format, strtotime((string) $app['applied_at']))) ?>
             </td>
 
             <td class="act-col" data-label="">

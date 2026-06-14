@@ -9,9 +9,9 @@ use Luster\Addons\Rules\RulesRepo;
 use Luster\Core\Application;
 use Luster\Core\Request;
 use Luster\Core\Response;
-use Luster\Core\TemplateEngine;
+use Luster\Core\View;
 use Luster\Repositories\ListingRepo;
-use Luster\Repositories\ListingSettingsRepo;
+use Luster\Repositories\SiteSettingsRepo;
 use Luster\Support\RulesBodyRenderer;
 
 /**
@@ -60,38 +60,40 @@ final class RulesPublicController
         $listing = (new ListingRepo($this->app->getDatabase(), $this->app->getConfig()))
             ->getById($listingId);
 
-        $rawIntro    = (new ListingSettingsRepo($this->app->getDatabase()))->getTemplates($listingId)['rules_intro_template'] ?? null;
-        $rulesIntroHtml = '';
-        if ($rawIntro !== null && trim($rawIntro) !== '') {
-            $rulesIntroHtml = TemplateEngine::render($rawIntro, escaped: [
-                'listing_title'   => $listing?->title ?? '',
-                'listing_url'     => $listing?->url ?? '',
-                'listing_subject' => $listing?->subject ?? '',
-            ]);
+        [$gateCheckboxHtml, $gateButtonHtml] = $this->buildGateTokens($ruleSet);
+
+        $rulesBodyHtml = RulesBodyRenderer::render(
+            $ruleSet->body,
+            [
+                'subject'       => $listing?->subject ?? '',
+                'listing_title' => $listing?->title ?? '',
+                'listing_url'   => $listing?->url ?? '',
+                'join_url'      => $baseUrl . '/join/' . $listingId,
+                'update_url'    => $baseUrl . '/update/' . $listingId,
+            ],
+            [
+                'gate_checkbox' => $gateCheckboxHtml,
+                'gate_button'   => $gateButtonHtml,
+            ]
+        );
+
+        if (!RulesBodyRenderer::hasGateToken($ruleSet->body)) {
+            $rulesBodyHtml .= "\n" . $gateCheckboxHtml . "\n" . $gateButtonHtml;
         }
 
-        $rulesBodyHtml = RulesBodyRenderer::render($ruleSet->body, [
-            'subject'       => $listing?->subject ?? '',
-            'listing_title' => $listing?->title ?? '',
-            'listing_url'   => $listing?->url ?? '',
-            'join_url'      => $baseUrl . '/join/' . $listingId,
-            'update_url'    => $baseUrl . '/update/' . $listingId,
-        ], $ruleSet->listStyle);
-
         $html = $this->app->getView()->renderPublic('addons/rules/gate.php', [
-            'listing'          => $listing,
-            'listing_name'     => $listing?->title ?? '',
-            'listing_url'      => $listing?->url ?? '',
-            'page_title'       => 'Join Rules',
-            'rules'            => $ruleSet,
-            'already_agreed'   => $alreadyAgreed,
-            'form_action'      => $baseUrl . '/rules/' . $listingId . '/agree',
-            'return_to'        => $returnTo,
-            'csrf_token'       => $csrf,
-            'rules_intro_html' => $rulesIntroHtml,
-            'rules_body_html'  => $rulesBodyHtml,
-            'base_url'         => $baseUrl,
-            'theme_path'       => $baseUrl . '/assets/css/default/',
+            'listing'         => $listing,
+            'listing_name'    => $listing?->title ?? '',
+            'listing_url'     => $listing?->url ?? '',
+            'page_title'      => 'Join Rules',
+            'rules'           => $ruleSet,
+            'already_agreed'  => $alreadyAgreed,
+            'form_action'     => $baseUrl . '/rules/' . $listingId . '/agree',
+            'return_to'       => $returnTo,
+            'csrf_token'      => $csrf,
+            'rules_body_html' => $rulesBodyHtml,
+            'base_url'        => $baseUrl,
+            'theme_path'      => $baseUrl . '/assets/css/default/',
         ]);
 
         return Response::html($html);
@@ -146,22 +148,52 @@ final class RulesPublicController
 
     /**
      * Returns the active RuleSet for the listing, or a 404 Response if none.
+     * Tries per-listing rules first, then falls back to the global template.
      *
      * @return \Luster\Addons\Rules\RuleSet|Response
      */
     private function requireActiveRules(int $listingId): mixed
     {
+        $ruleSet = $this->resolveActiveRules($listingId);
+        return $ruleSet ?? Response::notFound('Rules not found.');
+    }
+
+    /**
+     * Resolves the active RuleSet: per-listing first, then global fallback.
+     * Returns null when no active rules exist anywhere.
+     */
+    private function resolveActiveRules(int $listingId): ?RuleSet
+    {
         if ($listingId <= 0) {
-            return Response::notFound('Rules not found.');
+            return null;
         }
 
         $ruleSet = (new RulesRepo($this->app->getDatabase()))->getForListing($listingId);
-
-        if ($ruleSet === null || !$ruleSet->enabled || trim($ruleSet->body) === '') {
-            return Response::notFound('Rules not found.');
+        if ($ruleSet !== null && $ruleSet->enabled && trim($ruleSet->body) !== '') {
+            return $ruleSet;
         }
 
-        return $ruleSet;
+        // Global template fallback — same logic as the embed
+        try {
+            $siteRepo   = new SiteSettingsRepo($this->app->getDatabase());
+            $globalBody    = trim((string) ($siteRepo->get('rules_global_body') ?? ''));
+            $globalEnabled = ($siteRepo->get('rules_global_gate_enabled') ?? '0') === '1';
+            if ($globalBody === '' || !$globalEnabled) {
+                return null;
+            }
+            return new RuleSet(
+                id:           0,
+                fanlistingId: $listingId,
+                body:         $globalBody,
+                enabled:      true,
+                version:      (int) ($siteRepo->get('rules_global_version') ?? 1),
+                updatedAt:    '',
+                gateType:     (string) ($siteRepo->get('rules_global_gate_type')  ?? 'checkbox'),
+                gateLabel:    (string) ($siteRepo->get('rules_global_gate_label') ?? ''),
+            );
+        } catch (\Throwable) {
+            return null;
+        }
     }
 
     private function hasAgreed(int $listingId, RuleSet $ruleSet): bool
@@ -182,5 +214,28 @@ final class RulesPublicController
         $scheme = strtolower($parsed['scheme'] ?? '');
         $host   = $parsed['host'] ?? '';
         return in_array($scheme, ['http', 'https'], true) && $host !== '';
+    }
+
+    /**
+     * Returns [checkboxHtml, buttonHtml] gate token values for the given rule set.
+     *
+     * @return array{string, string}
+     */
+    private function buildGateTokens(RuleSet $ruleSet): array
+    {
+        $label = View::e($ruleSet->effectiveGateLabel());
+
+        if ($ruleSet->gateType === 'button') {
+            return [
+                '',
+                '<button type="submit" class="fl-submit fl-rules-gate-btn" name="agree" value="1">'
+                    . $label . '</button>',
+            ];
+        }
+
+        return [
+            '<input type="checkbox" class="fl-rules-agree-check" name="agree" value="1" required>',
+            '<button type="submit" class="fl-submit fl-rules-gate-btn">' . $label . '</button>',
+        ];
     }
 }

@@ -118,6 +118,12 @@ final class RulesAddon implements AddonInterface
 
         // Admin — literal paths before parameterised
         $router->get('/admin/rules',              RulesAdminController::class, 'index');
+        $router->post('/admin/rules/bulk',        RulesAdminController::class, 'bulk');
+        $router->get('/admin/rules/settings',     RulesAdminController::class, 'settingsForm');
+        $router->post('/admin/rules/settings',    RulesAdminController::class, 'settingsSave');
+        $router->get('/admin/rules/global',       RulesAdminController::class, 'globalForm');
+        $router->post('/admin/rules/global',      RulesAdminController::class, 'globalSave');
+        $router->post('/admin/rules/global/preview', RulesAdminController::class, 'globalPreview');
         $router->get('/admin/rules/{id}/edit',    RulesAdminController::class, 'editForm');
         $router->post('/admin/rules/{id}/edit',   RulesAdminController::class, 'editSave');
         $router->post('/admin/rules/{id}/toggle', RulesAdminController::class, 'toggle');

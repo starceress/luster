@@ -19,6 +19,20 @@ final class RulesRepo
     // Reads
     // -------------------------------------------------------------------------
 
+    /**
+     * Returns every listing's subject name for use in autocomplete datalists.
+     *
+     * @return string[]
+     */
+    public function getSubjects(): array
+    {
+        $stmt = $this->db->prepare(
+            'SELECT `subject` FROM `owned` ORDER BY `subject` ASC'
+        );
+        $stmt->execute();
+        return $stmt->fetchAll(\PDO::FETCH_COLUMN);
+    }
+
     public function getForListing(int $listingId): ?RuleSet
     {
         $stmt = $this->db->prepare(
@@ -31,37 +45,68 @@ final class RulesRepo
     }
 
     /**
-     * Returns all listings joined with their rules status.
-     * Rows without rules have null rule fields.
+     * Returns all listings joined with their rules status, optionally filtered.
      *
-     * @return array<int,array{listing_id:int,listing_title:string,listing_subject:string,rules_id:int|null,rules_enabled:bool|null,rules_version:int|null,rules_updated_at:string|null}>
+     * @param string $search Filter by subject name (substring, case-insensitive).
+     * @param string $type   Filter by listing type ('', 'listing', 'shrine', …).
+     * @return array<int,array{listing_id:int,listing_title:string,listing_subject:string,listing_type:string,rules_id:int|null,rules_enabled:bool|null,rules_version:int|null,rules_updated_at:string|null}>
      */
-    public function getAllWithListings(): array
-    {
+    public function getAllWithListings(
+        string $sort   = 'subject',
+        string $dir    = 'asc',
+        string $search = '',
+        string $type   = '',
+    ): array {
+        $orderCol = match ($sort) {
+            'id'         => 'o.listingid',
+            'updated_at' => 'r.updated_at',
+            default      => 'o.subject',
+        };
+        $orderDir = $dir === 'desc' ? 'DESC' : 'ASC';
+
+        $conditions = [];
+        $binds      = [];
+
+        if ($search !== '') {
+            $conditions[] = 'o.subject LIKE :search';
+            $binds['search'] = '%' . $search . '%';
+        }
+
+        if ($type !== '') {
+            $conditions[] = "COALESCE(NULLIF(s.listing_type, ''), 'listing') = :type";
+            $binds['type'] = $type;
+        }
+
+        $where = $conditions !== [] ? 'WHERE ' . implode(' AND ', $conditions) : '';
+
         $stmt = $this->db->prepare(
-            'SELECT
-                o.listingid            AS listing_id,
-                o.title                AS listing_title,
-                o.subject              AS listing_subject,
-                r.id                   AS rules_id,
-                r.enabled              AS rules_enabled,
-                r.version              AS rules_version,
-                r.updated_at           AS rules_updated_at
+            "SELECT
+                o.listingid                                   AS listing_id,
+                o.title                                       AS listing_title,
+                o.subject                                     AS listing_subject,
+                COALESCE(NULLIF(s.listing_type, ''), 'listing') AS listing_type,
+                r.id                                 AS rules_id,
+                r.enabled                            AS rules_enabled,
+                r.version                            AS rules_version,
+                r.updated_at                         AS rules_updated_at
              FROM `owned` o
              LEFT JOIN `lstr_rules` r ON r.fanlisting_id = o.listingid
-             ORDER BY o.subject ASC'
+             LEFT JOIN `lstr_fanlisting_settings` s ON s.fanlisting_id = o.listingid
+             {$where}
+             ORDER BY {$orderCol} {$orderDir}"
         );
-        $stmt->execute();
+        $stmt->execute($binds);
 
         $rows = [];
         foreach ($stmt->fetchAll() as $row) {
             $rows[] = [
-                'listing_id'       => (int) $row['listing_id'],
+                'listing_id'       => (int)    $row['listing_id'],
                 'listing_title'    => (string) $row['listing_title'],
                 'listing_subject'  => (string) $row['listing_subject'],
-                'rules_id'         => $row['rules_id'] !== null ? (int) $row['rules_id'] : null,
+                'listing_type'     => (string) $row['listing_type'],
+                'rules_id'         => $row['rules_id']   !== null ? (int)  $row['rules_id']   : null,
                 'rules_enabled'    => $row['rules_enabled'] !== null ? (bool) $row['rules_enabled'] : null,
-                'rules_version'    => $row['rules_version'] !== null ? (int) $row['rules_version'] : null,
+                'rules_version'    => $row['rules_version'] !== null ? (int)  $row['rules_version'] : null,
                 'rules_updated_at' => $row['rules_updated_at'] !== null ? (string) $row['rules_updated_at'] : null,
             ];
         }
@@ -81,7 +126,6 @@ final class RulesRepo
         int $listingId,
         string $body,
         bool $enabled,
-        string $listStyle = 'numbered',
         string $gateType = 'checkbox',
         string $gateLabel = ''
     ): void {
@@ -90,15 +134,14 @@ final class RulesRepo
         if ($existing === null) {
             $stmt = $this->db->prepare(
                 'INSERT INTO `lstr_rules`
-                    (`fanlisting_id`, `body`, `enabled`, `list_style`, `gate_type`, `gate_label`, `version`, `updated_at`)
+                    (`fanlisting_id`, `body`, `enabled`, `gate_type`, `gate_label`, `version`, `updated_at`)
                  VALUES
-                    (:fid, :body, :enabled, :list_style, :gate_type, :gate_label, 1, NOW())'
+                    (:fid, :body, :enabled, :gate_type, :gate_label, 1, NOW())'
             );
             $stmt->execute([
                 'fid'        => $listingId,
                 'body'       => $body,
                 'enabled'    => $enabled ? 1 : 0,
-                'list_style' => $listStyle,
                 'gate_type'  => $gateType,
                 'gate_label' => $gateLabel,
             ]);
@@ -106,7 +149,7 @@ final class RulesRepo
         }
 
         // Bump version only when body content changes — enabled state and
-        // display/gate settings do not invalidate existing fan agreements.
+        // gate settings do not invalidate existing fan agreements.
         $bumpVersion = trim($body) !== trim($existing->body);
 
         // Two static statements (rather than a CASE WHEN keyed off a bound
@@ -118,7 +161,6 @@ final class RulesRepo
             'UPDATE `lstr_rules`
              SET `body`       = :body,
                  `enabled`    = :enabled,
-                 `list_style` = :list_style,
                  `gate_type`  = :gate_type,
                  `gate_label` = :gate_label,
                  `version`    = ' . $versionExpr . ',
@@ -128,11 +170,46 @@ final class RulesRepo
         $stmt->execute([
             'body'       => $body,
             'enabled'    => $enabled ? 1 : 0,
-            'list_style' => $listStyle,
             'gate_type'  => $gateType,
             'gate_label' => $gateLabel,
             'fid'        => $listingId,
         ]);
+    }
+
+    /**
+     * Delete rules for multiple listings by their listing ID.
+     *
+     * @param int[] $listingIds
+     */
+    public function bulkDelete(array $listingIds): int
+    {
+        if ($listingIds === []) {
+            return 0;
+        }
+        $placeholders = implode(',', array_fill(0, count($listingIds), '?'));
+        $stmt = $this->db->prepare(
+            "DELETE FROM `lstr_rules` WHERE `fanlisting_id` IN ({$placeholders})"
+        );
+        $stmt->execute(array_values($listingIds));
+        return (int) $stmt->rowCount();
+    }
+
+    /**
+     * Enable or disable rules for multiple listings by their listing ID.
+     *
+     * @param int[] $listingIds
+     */
+    public function bulkSetEnabled(array $listingIds, bool $enabled): int
+    {
+        if ($listingIds === []) {
+            return 0;
+        }
+        $placeholders = implode(',', array_fill(0, count($listingIds), '?'));
+        $stmt = $this->db->prepare(
+            "UPDATE `lstr_rules` SET `enabled` = ? WHERE `fanlisting_id` IN ({$placeholders})"
+        );
+        $stmt->execute(array_merge([$enabled ? 1 : 0], array_values($listingIds)));
+        return (int) $stmt->rowCount();
     }
 
     public function setEnabled(int $listingId, bool $enabled): void
@@ -165,7 +242,6 @@ final class RulesRepo
             enabled:     (bool) $row['enabled'],
             version:     (int)  $row['version'],
             updatedAt:   (string) $row['updated_at'],
-            listStyle:   (string) ($row['list_style'] ?? 'numbered'),
             gateType:    (string) ($row['gate_type']  ?? 'checkbox'),
             gateLabel:   (string) ($row['gate_label'] ?? ''),
         );

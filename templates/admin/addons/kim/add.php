@@ -53,7 +53,7 @@ $b = rtrim(View::e($base_url ?? ''), '/');
           <div class="select-wrap">
             <select id="kim-fanlisting" name="fanlisting_id" required>
               <option value="" disabled <?= (($old ?? [])['fanlisting_id'] ?? 0) == 0 ? 'selected' : '' ?>>
-                &mdash; Select a fanlisting &mdash;
+                &mdash; Select a Listing &mdash;
               </option>
               <?php foreach ($fanlistings ?? [] as $fl): ?>
                 <option value="<?= (int) $fl->id ?>"

@@ -118,7 +118,7 @@ $b = rtrim(View::e($base_url), '/');
             <span class="text-muted">—</span>
           <?php endif; ?>
         </td>
-        <td data-label="Submitted" class="text-muted"><?= View::e($aff->createdAt !== '' ? date('Y-m-d', strtotime($aff->createdAt)) : '—') ?></td>
+        <td data-label="Submitted" class="text-muted"><?= View::e($aff->createdAt !== '' ? date($admin_date_format, strtotime($aff->createdAt)) : '—') ?></td>
         <td class="act-col" data-label="">
           <div class="data-actions">
             <form method="POST" action="<?= $b ?>/admin/affiliates/<?= (int) $aff->id ?>/approve">

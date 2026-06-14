@@ -127,12 +127,9 @@ if ($_lusterListingId > 0) {
 // 4. Build pagination
 // ---------------------------------------------------------------------------
 
-// Allow the embedding page to override pagination base URL.
-$_lusterPaginationBase = (isset($luster_affiliates_base) && (string) $luster_affiliates_base !== '')
-    ? (string) $luster_affiliates_base
-    : ($_lusterListingId > 0
-        ? $_lusterBaseUrl . '/affiliates/' . $_lusterListingId
-        : $_lusterBaseUrl . '/affiliates');
+// Pagination links always point back to the host page that includes this
+// embed, so visitors never leave it when paging through affiliates.
+$_lusterPaginationBase = strtok($_SERVER['REQUEST_URI'] ?? '', '?') ?: '/';
 
 $_lusterPagination = Pagination::render(
     $_lusterPage, $_lusterResult['pages'], $_lusterPaginationBase, $_lusterPaginationTemplate,

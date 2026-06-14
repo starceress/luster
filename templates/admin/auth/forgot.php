@@ -65,7 +65,7 @@ require_once __DIR__ . '/../_css_assets.php';
   </p>
   </div>
 
-  <p class="login-footer"><b>Luster</b> &copy; <a href="https://dreamesque.net/contact/" target="_blank" title="Contact" class="link">Star</a>, <?= date('Y') === '2026' ? '2026' : '2026&#x2013;' . date('Y') ?>.
+  <p class="login-footer"><a href="https://luster.nu/" target="_blank" title="Luster ✦ Fanlisting Management Script" class="link"><b>Luster</b></a> &copy; <a href="https://dreamesque.net/" target="_blank" title="Star ✦ Dreamesque.Net" class="link">Star</a>, <?= date('Y') === '2026' ? '2026' : '2026&#x2013;' . date('Y') ?></p>
 </div>
 
 <?php $jsV = filemtime(LUSTER_BASE . '/public/assets/js/admin.js') ?: 0; ?>

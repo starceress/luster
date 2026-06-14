@@ -38,6 +38,12 @@ use Luster\Support\PublicCategoryPresenter;
  *                                       Default: true
  *   $luster_browse_by_category  bool    Set true to enable browse-by-category mode.
  *                                       Default: false
+ *   $luster_show_pending        bool    Show "All Pending (N)" entry in the category nav
+ *                                       when pending listings exist (status='current' only).
+ *                                       Default: true
+ *   $luster_show_upcoming       bool    Show "All Upcoming (N)" entry in the category nav
+ *                                       when upcoming listings exist (status='current' only).
+ *                                       Default: true
  */
 
 // ---------------------------------------------------------------------------
@@ -69,24 +75,32 @@ $_lusterStatus        = in_array($luster_status ?? 'current', $_lusterValidStatu
                       ? (string) ($luster_status ?? 'current')
                       : 'current';
 
-$_lusterExcludePending  = (bool) ($luster_exclude_pending   ?? true);
-$_lusterHideDropdown    = (bool) ($luster_hide_dropdown     ?? false);
-$_lusterShowList        = (bool) ($luster_show_list         ?? true);
-$_lusterShowCatSwitcher = (bool) ($luster_show_cat_switcher ?? true);
-$_lusterBrowseByCat     = (bool) ($luster_browse_by_category ?? false);
+$_lusterExcludePending      = (bool) ($luster_exclude_pending     ?? true);
+$_lusterHideDropdown        = (bool) ($luster_hide_dropdown       ?? false);
+$_lusterShowList            = (bool) ($luster_show_list           ?? true);
+$_lusterShowCatSwitcher     = (bool) ($luster_show_cat_switcher   ?? true);
+$_lusterBrowseByCat         = (bool) ($luster_browse_by_category  ?? false);
+$_lusterShowPendingPseudo   = (bool) ($luster_show_pending        ?? true);
+$_lusterShowUpcomingPseudo  = (bool) ($luster_show_upcoming       ?? true);
 
 // Category ID resolution order:
 //   1. $luster_category_id (explicit integer) — bypasses URL params entirely
-//   2. $_GET['category'] (slug) — new dedicated slug param, avoids numeric ambiguity
+//   2. $_GET['cat'] sentinel values __pending__ / __upcoming__ — pseudo-views (current only)
 //   3. $_GET['cat'] with 'slug:' prefix — dropdown-posted slug value
 //   4. $_GET['cat'] with 'all' value — browse-show-all mode
 //   5. $_GET['cat'] numeric — legacy ID-based link
 $_lusterBrowseShowAll = false;
+$_lusterPseudoView    = '';   // '' | 'pending' | 'upcoming'
+
 if (isset($luster_category_id) && (int) $luster_category_id > 0) {
     $_lusterCatId = (int) $luster_category_id;
 } else {
     $_lusterRawCat = (string) ($_GET['cat'] ?? '');
-    if ($_lusterRawCat === 'all') {
+    if ($_lusterStatus === 'current'
+        && ($_lusterRawCat === '__pending__' || $_lusterRawCat === '__upcoming__')) {
+        $_lusterPseudoView = $_lusterRawCat === '__pending__' ? 'pending' : 'upcoming';
+        $_lusterCatId      = 0;
+    } elseif ($_lusterRawCat === 'all') {
         $_lusterCatId         = 0;
         $_lusterBrowseShowAll = true;
     } elseif (is_numeric($_lusterRawCat) && (int) $_lusterRawCat > 0) {
@@ -121,33 +135,61 @@ if (isset($_lusterCatSlug) && $_lusterCatSlug !== '') {
     unset($_lusterCatSlug);
 }
 
+// Pseudo-view counts (only meaningful for status='current')
+$_lusterPendingCount  = 0;
+$_lusterUpcomingCount = 0;
+if ($_lusterStatus === 'current') {
+    $_lusterStats         = $_lusterListingRepo->getStats();
+    $_lusterPendingCount  = (int) ($_lusterStats['trouble']  ?? 0);
+    $_lusterUpcomingCount = (int) ($_lusterStats['upcoming'] ?? 0);
+}
+
+// When a pseudo-view is active, fetch that status group's listings instead
+$_lusterContentStatus = $_lusterPseudoView !== '' ? $_lusterPseudoView : $_lusterStatus;
+
 $_lusterListings = $_lusterListingRepo->getFiltered(
-    $_lusterStatus,
-    $_lusterCatId > 0 ? $_lusterCatId : null,
+    $_lusterContentStatus,
+    // Suppress category filter when in a pseudo-view (all pending/upcoming regardless of category)
+    $_lusterPseudoView === '' && $_lusterCatId > 0 ? $_lusterCatId : null,
     $_lusterExcludePending,
 );
 
 // ---------------------------------------------------------------------------
-// 3b. Build the category navigator HTML via PublicCategoryPresenter
+// 3b. Build form action URL (needed both for the presenter and renderFragment)
+// ---------------------------------------------------------------------------
+
+$_lusterFormAction = htmlspecialchars(
+    strtok($_SERVER['REQUEST_URI'] ?? '', '?') ?: '/',
+    ENT_QUOTES | ENT_SUBSTITUTE,
+    'UTF-8'
+);
+
+// ---------------------------------------------------------------------------
+// 3c. Build the category navigator HTML via PublicCategoryPresenter
 // ---------------------------------------------------------------------------
 
 $_lusterPresenterResult = PublicCategoryPresenter::renderOwned(
     $_lusterCategories,
     $_lusterCatId,
-    htmlspecialchars(strtok($_SERVER['REQUEST_URI'] ?? '', '?') ?: '/', ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),
+    $_lusterFormAction,
     $_lusterHideDropdown,
     $_lusterShowList,
     $_lusterBrowseByCat,
     $_lusterBrowseShowAll,
     count($_lusterListings),
     $_lusterShowCatSwitcher,
+    $_lusterPseudoView,
+    $_lusterPendingCount,
+    $_lusterShowPendingPseudo,
+    $_lusterUpcomingCount,
+    $_lusterShowUpcomingPseudo,
 );
 
 $_lusterCategoryHtml  = $_lusterPresenterResult['html'];
 $_lusterShowListings  = $_lusterPresenterResult['show_listings'];
 
 // ---------------------------------------------------------------------------
-// 3c. Load owned listing row template from DB (if set)
+// 3d. Load owned listing row template from DB (if set)
 // ---------------------------------------------------------------------------
 
 $_lusterSiteRepo      = new SiteSettingsRepo($_lusterApp->getDatabase());
@@ -241,13 +283,6 @@ if ($_lusterOwnedTemplate !== null && $_lusterShowListings) {
     // Renders the combined owned_template — auto-detects flat ({each_listing})
     // vs sectioned ({each_current}/{each_upcoming}/{each_pending}) mode from the
     // template string itself, per docs/PUBLIC-TEMPLATES-PLAN.md Phase 2.
-    // owned_sections_template no longer exists (Migration 64 deleted it); its
-    // grouped-by-status behavior now lives entirely inside the combined
-    // owned_template via these loops, fully under the site owner's control
-    // (headings, wrappers, ordering — all template-authored). Shared with
-    // latest-listing.php / random-listing.php via ListingRowRenderer::renderTemplate()
-    // so a sectioned template renders identically — and correctly — from every
-    // owned-template surface, including single-listing embeds.
     $_lusterListingHtml = ListingRowRenderer::renderTemplate(
         $_lusterOwnedTemplate,
         $_lusterListings,
@@ -259,17 +294,7 @@ if ($_lusterOwnedTemplate !== null && $_lusterShowListings) {
 }
 
 // ---------------------------------------------------------------------------
-// 4. Build form action URL
-// ---------------------------------------------------------------------------
-
-$_lusterFormAction = htmlspecialchars(
-    strtok($_SERVER['REQUEST_URI'] ?? '', '?') ?: '/',
-    ENT_QUOTES | ENT_SUBSTITUTE,
-    'UTF-8'
-);
-
-// ---------------------------------------------------------------------------
-// 5. Render fragment
+// 4. Render fragment
 // ---------------------------------------------------------------------------
 
 $_lusterHtml = $_lusterApp->getView()->renderFragment('owned.php', [
@@ -282,6 +307,7 @@ $_lusterHtml = $_lusterApp->getView()->renderFragment('owned.php', [
     'browse_show_all'     => $_lusterBrowseShowAll,
     'total_count'         => count($_lusterListings),
     'status'              => $_lusterStatus,
+    'view'                => $_lusterPseudoView,
     'uploads_url'         => $_lusterApp->getBaseUrl() . '/uploads',
     'base_url'            => $_lusterApp->getBaseUrl(),
     'form_action'         => $_lusterFormAction,

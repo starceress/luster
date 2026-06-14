@@ -443,14 +443,14 @@ final class ListingSettingsRepo
             . "\n" . '{if_members}'
             . "\n" . '<div class="fl-member-list">'
             . "\n" . '{each_member}'
-            . "\n" . '  <ul class="fl-member-item">'
-            . "\n" . '    <li>{if_fan_url}<a class="fl-member-name" href="{fan_url}" rel="noopener noreferrer">{fan_name}</a>{/if_fan_url}{if_no_fan_url}<span class="fl-member-name">{fan_name}</span>{/if_no_fan_url} - {if_fan_country}<span class="fl-member-country">{fan_country}</span>{/if_fan_country}</li>'
-            . "\n" . '  </ul>'
+            . "\n" . '<ul class="fl-member-item">'
+            . "\n" . '<li>{if_fan_url}<a class="fl-member-name" href="{fan_url}" rel="noopener noreferrer">{fan_name}</a>{/if_fan_url}{if_no_fan_url}<span class="fl-member-name">{fan_name}</span>{/if_no_fan_url} - {if_fan_country}<span class="fl-member-country">{fan_country}</span>{/if_fan_country}</li>'
+            . "\n" . '</ul>'
             . "\n" . '{/each_member}'
             . "\n" . '</div>'
             . "\n" . '{/if_members}'
             . "\n" . '{if_no_members}'
-            . "\n" . '  <p class="fl-empty">No members yet. <a href="{join_url}">Want to join?</a></p>'
+            . "\n" . '<p class="fl-empty">No members yet. <a href="{join_url}">Want to join?</a></p>'
             . "\n" . '{/if_no_members}';
     }
 
@@ -464,29 +464,28 @@ final class ListingSettingsRepo
             . '<ul class="fl-affiliate-list">' . "\n"
             . '<p><a href="{affiliate_apply_url}">Apply to become an affiliate?</a></p>' . "\n\n"
             . '{each_affiliate}' . "\n"
-            . '  <li class="fl-affiliate-item">' . "\n"
-            . '    <a href="{aff_url}" target="_blank" rel="noopener noreferrer">{aff_image_tag}</a></li>' . "\n"
+            . '<li class="fl-affiliate-item">' . "\n"
+            . '<a href="{aff_url}" target="_blank" rel="noopener noreferrer">{aff_image_tag}</a></li>' . "\n"
             . '{/each_affiliate}' . "\n\n"
             . '</ul>' . "\n"
             . '{/if_affiliates}' . "\n\n"
             . '{if_no_affiliates}' . "\n"
-            . '  <p class="fl-affiliates-empty">No affiliates yet. <a href="{affiliate_apply_url}">Apply to become an affiliate?</a></p>' . "\n"
+            . '<p class="fl-affiliates-empty">No affiliates yet. <a href="{affiliate_apply_url}">Apply to become an affiliate?</a></p>' . "\n"
             . '{/if_no_affiliates}';
     }
 
     public static function defaultUpdatesTemplate(): string
     {
         return '<div class="fl-updates-list">' . "\n"
-            . '{each_update}' . "\n"
+            . '{each_update}' . "\n\n"
             . '<div class="fl-update-item">' . "\n"
-            . '  <h3 class="fl-update-title">{update_title}</h3>' . "\n"
-            . '  <div class="fl-update-meta">' . "\n"
-            . '    <span class="fl-update-date">{update_date}</span>'
-            . '{if_author} &middot; <span class="fl-update-author">{update_author}</span>{/if_author}'
-            . '{if_categories} &middot; <span class="fl-update-categories">{update_categories}</span>{/if_categories}' . "\n"
-            . '  </div>' . "\n"
-            . '  <div class="fl-update-body">{update_body_html}</div>' . "\n"
-            . '</div>' . "\n"
+            . '<h3 class="fl-update-title">{update_title}</h3>' . "\n"
+            . '<div class="fl-update-meta">' . "\n"
+            . '<span class="fl-update-date"><b>Date Posted:</b> {update_date}</span>'
+            . '{if_author} by <span class="fl-update-author">{update_author}</span>{/if_author}<br>' . "\n"
+            . '{if_categories}<b>Categories:</b> <span class="fl-update-categories">{update_categories}</span>{/if_categories}</div>' . "\n\n"
+            . '<div class="fl-update-body">{update_body_html}</div>' . "\n"
+            . '</div>' . "\n\n"
             . '{/each_update}' . "\n"
             . '</div>';
     }
@@ -533,6 +532,7 @@ final class ListingSettingsRepo
             . '</div>' . "\n"
             . '<div class="fl-form-actions">' . "\n"
             . '{submit_button}' . "\n"
+            . '{clear_button}' . "\n"
             . '</div>';
     }
 
@@ -552,6 +552,7 @@ final class ListingSettingsRepo
             . '</div>' . "\n"
             . '<div class="fl-form-actions">' . "\n"
             . '{submit_button}' . "\n"
+            . '{clear_button}' . "\n"
             . '</div>';
     }
 
@@ -1076,7 +1077,6 @@ final class ListingSettingsRepo
      * @return array{
      *   form_url_join:          string,
      *   form_url_update:        string,
-     *   form_url_remove:        string,
      *   form_url_reset:         string,
      *   form_url_codes_submit:  string,
      *   db_host:                string,
@@ -1090,7 +1090,6 @@ final class ListingSettingsRepo
         $defaults = [
             'form_url_join'         => '',
             'form_url_update'       => '',
-            'form_url_remove'       => '',
             'form_url_reset'        => '',
             'form_url_codes_submit' => '',
             'codes_submit_enabled'  => true,
@@ -1104,7 +1103,7 @@ final class ListingSettingsRepo
         try {
             $stmt = $this->db->prepare(
                 'SELECT form_url_join, form_url_update,
-                        form_url_remove, form_url_reset,
+                        form_url_reset,
                         form_url_codes_submit, codes_submit_enabled,
                         db_host, db_name, db_user, db_pass,
                         COALESCE(country_field_enabled, 1) AS country_field_enabled
@@ -1124,7 +1123,6 @@ final class ListingSettingsRepo
         return [
             'form_url_join'         => (string) ($row['form_url_join']         ?? ''),
             'form_url_update'       => (string) ($row['form_url_update']       ?? ''),
-            'form_url_remove'       => (string) ($row['form_url_remove']       ?? ''),
             'form_url_reset'        => (string) ($row['form_url_reset']        ?? ''),
             'form_url_codes_submit' => (string) ($row['form_url_codes_submit'] ?? ''),
             'codes_submit_enabled'  => isset($row['codes_submit_enabled']) ? (bool) $row['codes_submit_enabled'] : true,
@@ -1149,7 +1147,6 @@ final class ListingSettingsRepo
         int    $listingId,
         string $formUrlJoin,
         string $formUrlUpdate,
-        string $formUrlRemove,
         string $formUrlReset,
         string $formUrlCodesSubmit,
         bool   $codesSubmitEnabled,
@@ -1162,18 +1159,17 @@ final class ListingSettingsRepo
             'INSERT INTO lstr_fanlisting_settings
                  (fanlisting_id,
                   form_url_join, form_url_update,
-                  form_url_remove, form_url_reset,
+                  form_url_reset,
                   form_url_codes_submit, codes_submit_enabled,
                   db_host, db_name, db_user, db_pass)
              VALUES
                  (:id,
-                  :form_join, :form_update, :form_remove, :form_reset,
+                  :form_join, :form_update, :form_reset,
                   :form_codes_submit, :codes_submit_enabled,
                   :host, :dbname, :user, :pass)
              ON DUPLICATE KEY UPDATE
                  form_url_join          = VALUES(form_url_join),
                  form_url_update        = VALUES(form_url_update),
-                 form_url_remove        = VALUES(form_url_remove),
                  form_url_reset         = VALUES(form_url_reset),
                  form_url_codes_submit  = VALUES(form_url_codes_submit),
                  codes_submit_enabled   = VALUES(codes_submit_enabled),
@@ -1186,7 +1182,6 @@ final class ListingSettingsRepo
             'id'                   => $listingId,
             'form_join'            => $formUrlJoin,
             'form_update'          => $formUrlUpdate,
-            'form_remove'          => $formUrlRemove,
             'form_reset'           => $formUrlReset,
             'form_codes_submit'    => $formUrlCodesSubmit,
             'codes_submit_enabled' => (int) $codesSubmitEnabled,

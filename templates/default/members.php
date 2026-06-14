@@ -7,7 +7,7 @@
  *   $listing_url    string
  *   $join_url          string
  *   $members_base      string  base URL for sort/filter links
- *   $sort              string  'name' or 'country'
+ *   $sort              string  'name', 'country', or 'added'
  *   $country           string  active country filter, or ''
  *   $members           Member[]  current page members (empty for country summary)
  *   $country_summary   array   [{country, fan_count, url}, ...] (empty for member lists)

@@ -31,6 +31,7 @@ use Luster\Support\ListingTemplateResolver;
  *   {stat_last_updated} — admin-controlled "last updated" date from settings
  *   {stat_approved}     — approved member count
  *   {stat_pending}      — pending member count
+ *   {stat_countries}    — unique country count for approved members
  *   {stat_newmembers}        — comma-separated list of newest 5 approved member names
  *   {stat_newmembers_oxford} — same list formatted with Oxford comma (e.g. "A, B, and C")
  *   {stat_newmembers_label}  — "Member" when count is 1, "Members" otherwise

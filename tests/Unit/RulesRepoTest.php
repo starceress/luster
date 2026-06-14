@@ -43,30 +43,28 @@ SQL;
     // upsert (insert) + hydrate round trip
     // -------------------------------------------------------------------------
 
-    public function testUpsertInsertsNewRuleSetWithDisplayAndGateSettings(): void
+    public function testUpsertInsertsNewRuleSetWithGateSettings(): void
     {
-        $this->repo->upsert(1, "1. Be nice\n2. Have fun", true, 'circle', 'button', 'Continue to Join');
+        $this->repo->upsert(1, "<ol>\n<li>Be nice</li>\n</ol>", true, 'button', 'Continue to Join');
 
         $rules = $this->repo->getForListing(1);
 
         self::assertNotNull($rules);
         self::assertSame(1, $rules->fanlistingId);
-        self::assertSame("1. Be nice\n2. Have fun", $rules->body);
+        self::assertSame("<ol>\n<li>Be nice</li>\n</ol>", $rules->body);
         self::assertTrue($rules->enabled);
-        self::assertSame('circle', $rules->listStyle);
         self::assertSame('button', $rules->gateType);
         self::assertSame('Continue to Join', $rules->gateLabel);
         self::assertSame(1, $rules->version);
     }
 
-    public function testUpsertDefaultsListStyleAndGateTypeWhenNotProvided(): void
+    public function testUpsertDefaultsGateTypeWhenNotProvided(): void
     {
         $this->repo->upsert(1, 'Be nice.', true);
 
         $rules = $this->repo->getForListing(1);
 
         self::assertNotNull($rules);
-        self::assertSame('numbered', $rules->listStyle);
         self::assertSame('checkbox', $rules->gateType);
         self::assertSame('', $rules->gateLabel);
     }
@@ -87,18 +85,17 @@ SQL;
         self::assertSame(2, $updated?->version);
     }
 
-    public function testUpsertDoesNotBumpVersionWhenOnlyDisplaySettingsChange(): void
+    public function testUpsertDoesNotBumpVersionWhenOnlyGateSettingsChange(): void
     {
-        $this->repo->upsert(1, 'Same body.', true, 'numbered', 'checkbox', '');
+        $this->repo->upsert(1, 'Same body.', true, 'checkbox', '');
         $original = $this->repo->getForListing(1);
         self::assertSame(1, $original?->version);
 
-        // Change list style, gate type, and gate label — body untouched.
-        $this->repo->upsert(1, 'Same body.', true, 'circle', 'button', 'Custom Label');
+        // Change gate type and gate label — body untouched.
+        $this->repo->upsert(1, 'Same body.', true, 'button', 'Custom Label');
         $updated = $this->repo->getForListing(1);
 
         self::assertSame(1, $updated?->version);
-        self::assertSame('circle', $updated?->listStyle);
         self::assertSame('button', $updated?->gateType);
         self::assertSame('Custom Label', $updated?->gateLabel);
     }
@@ -121,7 +118,7 @@ SQL;
 
     public function testEffectiveGateLabelReturnsCustomLabelWhenSet(): void
     {
-        $this->repo->upsert(1, 'Be nice.', true, 'numbered', 'button', 'Click to Join');
+        $this->repo->upsert(1, 'Be nice.', true, 'button', 'Click to Join');
 
         $rules = $this->repo->getForListing(1);
 
@@ -130,7 +127,7 @@ SQL;
 
     public function testEffectiveGateLabelDefaultsForCheckboxGate(): void
     {
-        $this->repo->upsert(1, 'Be nice.', true, 'numbered', 'checkbox', '');
+        $this->repo->upsert(1, 'Be nice.', true, 'checkbox', '');
 
         $rules = $this->repo->getForListing(1);
 
@@ -139,11 +136,11 @@ SQL;
 
     public function testEffectiveGateLabelDefaultsForButtonGate(): void
     {
-        $this->repo->upsert(1, 'Be nice.', true, 'numbered', 'button', '');
+        $this->repo->upsert(1, 'Be nice.', true, 'button', '');
 
         $rules = $this->repo->getForListing(1);
 
-        self::assertSame('I agree -- proceed to join form', $rules?->effectiveGateLabel());
+        self::assertSame('I agree — proceed to join form', $rules?->effectiveGateLabel());
     }
 
     // -------------------------------------------------------------------------

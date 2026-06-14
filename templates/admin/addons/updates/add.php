@@ -127,7 +127,7 @@ $backLabel  = trim((string) ($back_label ?? $ctxDisplay)) ?: 'Collective';
           <?= $is_edit ? 'Save Changes' : 'Post Update' ?>
         </button>
         <button type="button" class="btn btn-preview" id="upd-preview-btn"><?= View::icon('eye-on') ?> Preview</button>
-        <button type="button" class="btn btn-ghost js-form-reset"><?= $is_edit ? ' Reset to Original' : 'Clear' ?></button>
+        <button type="button" class="btn btn-quaternary js-form-reset"><?= $is_edit ? ' Reset to Original' : 'Clear' ?></button>
         
         <?php if ($is_edit): ?>
           <div class="composer-footer-spacer"></div>

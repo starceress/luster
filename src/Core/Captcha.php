@@ -35,7 +35,7 @@ final class Captcha
      * the answer is never zero.
      *
      * @param  string $key  Form identifier — used to scope the session keys so
-     *                      different forms (join, update, remove, reset) do not
+     *                      different forms (join, update, reset) do not
      *                      share a captcha slot and produce independent questions.
      * @return array{question: string, answer: int}
      */

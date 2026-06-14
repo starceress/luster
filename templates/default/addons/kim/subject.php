@@ -8,6 +8,10 @@
  *   $base_url     string
  *   $link_list    string|null  override URL for "Back to KIM List" link (optional)
  *   $link_signup  string|null  override URL for the sign-up link (optional)
+ *   $pagination   string       pre-built pagination HTML, or ''
+ *   $page         int
+ *   $pages        int
+ *   $total        int          total approved members across all pages
  */
 
 declare(strict_types=1);
@@ -28,10 +32,13 @@ $_linkSignup = isset($link_signup) && $link_signup !== '' ? $link_signup : null;
 
     <?php if (isset($kim_member_template_html) && $kim_member_template_html !== null): ?>
       <?= $kim_member_template_html ?>
+      <?php if (($pagination ?? '') !== ''): ?>
+        <div class="fl-pagination-wrap"><?= $pagination ?></div>
+      <?php endif; ?>
     <?php elseif (empty($members)): ?>
       <p class="fl-empty">No one has signed up for this fanlisting yet.</p>
     <?php else: ?>
-      <p class="fl-kim-count"><?= count($members) ?> interested</p>
+      <p class="fl-kim-count"><?= $total ?? count($members) ?> interested</p>
       <ul class="fl-kim-member-list">
         <?php foreach ($members as $member): ?>
           <li class="fl-kim-member-item">
@@ -45,6 +52,9 @@ $_linkSignup = isset($link_signup) && $link_signup !== '' ? $link_signup : null;
           </li>
         <?php endforeach; ?>
       </ul>
+      <?php if (($pagination ?? '') !== ''): ?>
+        <div class="fl-pagination-wrap"><?= $pagination ?></div>
+      <?php endif; ?>
     <?php endif; ?>
 
     <p class="fl-kim-meta">

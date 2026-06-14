@@ -195,7 +195,7 @@ $oldBody    = htmlspecialchars($old['body'] ?? '', ENT_QUOTES, 'UTF-8');
           Send to <span id="es-send-count"><?= $count ?></span>
           member<?= $count !== 1 ? 's' : '' ?> &rarr;
         </button>
-        <button type="button" class="btn btn-preview" id="es-preview-btn">Preview</button>
+        <button type="button" class="btn btn-preview" id="es-preview-btn"><?= View::icon('eye-on') ?> Preview</button>
         <button type="button" class="btn btn-ghost js-form-reset">Clear</button>
         <div class="composer-footer-spacer"></div>
         <a href="<?= $b ?>/admin/kim/<?= $fid ?>/show" class="btn btn-danger">Cancel</a>

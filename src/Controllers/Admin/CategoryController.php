@@ -188,11 +188,12 @@ final class CategoryController extends AdminController
         $indentedList = $repo->buildIndentedList();
 
         return $this->adminLayout('admin/categories/edit.php', 'Edit Category', 'categories', [
-            'cat'           => $cat,
-            'success'       => $success,
-            'error'         => $error,
-            'field_errors'  => is_array($fieldErrors) ? $fieldErrors : [],
-            'indented_list' => $indentedList,
+            'cat'             => $cat,
+            'success'         => $success,
+            'error'           => $error,
+            'field_errors'    => is_array($fieldErrors) ? $fieldErrors : [],
+            'indented_list'   => $indentedList,
+            'custom_networks' => $repo->getCustomNetworks(),
         ], '', [
             $this->crumb('Categories', $this->adminUrl('/admin/categories')),
             $this->crumb($cat->name),
@@ -219,11 +220,20 @@ final class CategoryController extends AdminController
             return Response::redirect($baseUrl . '/admin/categories/' . $id . '/edit');
         }
 
-        $repo          = new CategoryRepo($this->app->getDatabase());
-        $addNetwork    = trim((string) $request->post('add_network', 'no'));
-        $networkName   = trim((string) $request->post('network_name', ''));
-        $currentSource = trim((string) $request->post('current_source', 'custom'));
-        $source        = ($addNetwork === 'yes' && $networkName !== '') ? strtolower($networkName) : $currentSource;
+        $repo               = new CategoryRepo($this->app->getDatabase());
+        $addNetwork         = trim((string) $request->post('add_network', 'no'));
+        $replacementNetwork = trim((string) $request->post('replacement_network', ''));
+        $networkName        = trim((string) $request->post('network_name', ''));
+        $currentSource      = trim((string) $request->post('current_source', 'custom'));
+
+        if ($addNetwork === 'yes' && $replacementNetwork === 'other' && $networkName !== '') {
+            $source = strtolower($networkName);
+        } elseif ($addNetwork === 'yes' && $replacementNetwork !== '' && $replacementNetwork !== 'other') {
+            $source = strtolower($replacementNetwork);
+        } else {
+            $source = $currentSource;
+        }
+
         $slugInput     = trim((string) $request->post('slug', ''));
         $parentIdRaw   = trim((string) $request->post('parent_id', ''));
         $parentId      = $parentIdRaw !== '' ? (int) $parentIdRaw : null;

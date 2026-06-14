@@ -34,6 +34,7 @@
   --ch-gold:      247 212 64;
   --gradient:     #ee5e9e, #1ba6d8, #f7d440;
   --gradient-bar: linear-gradient(90deg, #ee5e9e, #1ba6d8, #f7d440);
+  --hairline: #fff;
 }
 
 [data-skin="prism-power"][data-theme="light"] {
@@ -95,7 +96,8 @@
 [data-skin="prism-power"][data-theme="light"] .link:hover { color: #1ba6d8; border-color: #1ba6d8; }
 [data-skin="prism-power"] .sidebar-label { color: var(--va-gold); }
 [data-skin="prism-power"] .sidebar-label::after { content: ''; flex: 1; height: 1px; background: linear-gradient(to right, color-mix(in srgb, var(--accent3) 58%, transparent), transparent); }
-[data-skin="prism-power"][data-theme="light"] .row-sub { color: #d83e8a; }
+[data-skin="prism-power"][data-theme="light"] .row-sub, 
+[data-skin="prism-power"][data-theme="light"] .card-head-sub { color: #d83e8a; }
 [data-skin="prism-power"][data-theme="light"] .overview-section-divider { border-top: 1px solid #a6b7e7; }
 [data-skin="prism-power"][data-theme="light"] .btn-tertiary { background: #bbc8ee; color: #fff; border: 1px solid var(--border); }
 [data-skin="prism-power"][data-theme="light"] .btn-tertiary:hover { background: #a6b7e7; color: #fff; }
@@ -162,13 +164,15 @@
 [data-skin="prism-power"][data-theme="dark"] .sidebar {
   --accent:  #4a6dd6;
   --accent3: #ee5e9e;
+  --sidebar-active-rail: linear-gradient(180deg, #fbd30b 0%, #24cbf7 55%, #4a6dd6 100%);
   background: linear-gradient(172deg, #8e1843 0%, #571026 100%);
 }
 
 [data-skin="prism-power"][data-theme="dark"] .welcome-block strong { color: var(--accent); }
 [data-skin="prism-power"][data-theme="dark"] .nav-item:hover { background: #2f4a99; color: #fff; }
 [data-skin="prism-power"][data-theme="dark"] .nav-item:hover .nav-icon { color: #fbd30b; opacity: 1; filter: drop-shadow(0 0 6px rgb(241 63 114 / 0.55)); }
-[data-skin="prism-power"][data-theme="dark"] .row-sub { color: #d8d0a5; }
+[data-skin="prism-power"][data-theme="dark"] .row-sub,
+[data-skin="prism-power"][data-theme="dark"] .card-head-sub { color: #d8d0a5; }
 [data-skin="prism-power"][data-theme="dark"] .bulk,
 [data-skin="prism-power"][data-theme="dark"] .data-table th { color: #99b3ff; }
 [data-skin="prism-power"][data-theme="dark"] * { scrollbar-color: rgb(238 94 158 / .5) transparent; }
@@ -269,7 +273,8 @@
 [data-skin="victory-road"][data-theme="light"] .modal-body strong { color: #35ac35; }
 [data-skin="victory-road"][data-theme="light"] .todo-toggle { background: #fff4ad; }
 [data-skin="victory-road"][data-theme="light"] .bulk { background: #fff4ad; }
-[data-skin="victory-road"][data-theme="light"] .row-sub { color: var(--text-muted); }
+[data-skin="victory-road"][data-theme="light"] .row-sub,
+[data-skin="victory-road"][data-theme="light"] .card-head-sub { color: var(--text-muted); }
 [data-skin="victory-road"][data-theme="light"] .filter-panel select,
 [data-skin="victory-road"][data-theme="light"] .filter-panel input:not([type="button"]):not([type="submit"]):not([type="reset"]) { background: #fff; color: var(--text); }
 [data-skin="victory-road"][data-theme="light"] .filter-panel input::placeholder { color: var(--text); }
@@ -346,6 +351,14 @@
   --gradient-bar: linear-gradient(90deg, #c42020, #7a0000, #444444);
 }
 
+/* To Do List badge: the tinted badge-error fill barely differs from this skin's
+   reddish/earthy card-head bar in either theme, so give it a solid fill instead. */
+[data-skin="the-force"] .todo-head-badge {
+  background:   var(--danger);
+  color:        #ffffff;
+  border-color: var(--danger);
+}
+
 [data-skin="the-force"][data-theme="light"] {
   --va-pink:       #0077ff;
   --va-teal:       #15b053;
@@ -394,7 +407,7 @@
   /* surface tokens */
   --topbar-bg:      linear-gradient(180deg, #ffffff 0%, #eceadd 100%);
   --topbar-shadow:  0 4px 16px rgba(43, 37, 33, 0.1), 0 1px 0 rgba(0, 119, 255, 0.2);
-  --card-head-bg:   linear-gradient(180deg, #f5f4ef 0%, #eceadd 100%);
+  --card-head-bg:   #a7978b;
   --welcome-bg:     linear-gradient(135deg, #ffffff 0%, #f5f4ef 100%);
   --welcome-border: #d6cfc1;
   --welcome-blush:  radial-gradient(circle at top right, rgb(0 119 255 / 0.12) 0%, rgb(21 176 83 / 0.06) 50%, transparent 70%);
@@ -409,6 +422,9 @@
   --danger-bg:        rgba(255, 179, 193, 0.1);
   --ch-danger:        255 179 193;
 }
+
+[data-skin="the-force"][data-theme="light"] .row-sub,
+[data-skin="the-force"][data-theme="light"] .card-head-sub { color: var(--text-muted); }
 
 [data-skin="the-force"][data-theme="dark"] {
   --bg:            #0a0a0c;
@@ -450,7 +466,7 @@
   /* surface tokens */
   --topbar-bg:            linear-gradient(180deg, #1a1a1c 0%, #0a0a0c 100%);
   --topbar-shadow:        0 4px 24px rgba(0, 0, 0, 0.9), 0 1px 0 rgb(196 32 32 / 0.3);
-  --card-head-bg:         #000000;
+  --card-head-bg:         #331515;
   --welcome-bg:           linear-gradient(135deg, #1a1a1c 0%, #121214 100%);
   --welcome-border:       #331515;
   --welcome-blush:        radial-gradient(circle at top right, rgb(196 32 32 / 0.13) 0%, rgb(122 0 0 / 0.07) 50%, transparent 70%);
@@ -470,8 +486,14 @@
   color:        #d44040;
   border-color: rgb(196 32 32 / 0.36);
 }
+[data-skin="the-force"][data-theme="dark"] .row-sub,
+[data-skin="the-force"][data-theme="dark"] .card-head-sub { color: #d6cfc1; }
 [data-skin="the-force"][data-theme="dark"] .stat-extra a { color: var(--text); }
 [data-skin="the-force"][data-theme="dark"] .stat-extra a:hover { color: #ffffff; }
+[data-skin="the-force"][data-theme="dark"] .filter-panel select,
+[data-skin="the-force"][data-theme="dark"] .filter-panel input:not([type="button"]):not([type="submit"]):not([type="reset"]) { background: #414752; color: var(--text); }
+[data-skin="the-force"][data-theme="dark"] .filter-panel input::placeholder { color: var(--text); }
+[data-skin="the-force"][data-theme="dark"] .filter-panel .search-field-icon { color: var(--text); }
 
 
 
@@ -603,7 +625,7 @@
   /* surface tokens */
   --topbar-bg:            linear-gradient(180deg, #1c1835 0%, #0d0a17 100%);
   --topbar-shadow:        0 4px 24px rgba(0, 0, 0, 0.7), 0 1px 0 rgb(255 202 40 / 0.3);
-  --card-head-bg:         linear-gradient(180deg, #1c1835 0%, #15112a 100%);
+  --card-head-bg:         #0e0c26;
   --welcome-bg:           linear-gradient(135deg, #1c1835 0%, #15112a 100%);
   --welcome-border:       #2e2550;
   --welcome-blush:        radial-gradient(circle at top right, rgb(255 202 40 / 0.18) 0%, rgb(216 132 203 / 0.1) 50%, transparent 70%);

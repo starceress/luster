@@ -2,47 +2,15 @@
  * Luster — public fl-* embed stylesheet
  *
  * This is Luster's canonical baseline stylesheet for all public embeds.
- * It provides layout, spacing, and structure — NO hardcoded colors.
- *
- * To add colors, define any of these CSS custom properties in your own stylesheet:
- *
- *   --fl-muted             Secondary / helper text color
- *   --fl-border-color      List-item separator and box border color
- *   --fl-link-color        Link color (not applied by default — use in your own rules)
- *   --fl-link-hover        Link hover color
- *   --fl-input-border      Input / select / textarea border color
- *   --fl-input-bg          Input background color
- *   --fl-input-color       Input text color
- *   --fl-error-color       Validation error text color
- *   --fl-success-bg        Success message background
- *   --fl-success-border    Success message border color
- *   --fl-status-current-fg  "Current" listing status text color
- *   --fl-status-upcoming-fg "Upcoming" listing status text color
- *   --fl-status-pending-fg  "Pending" listing status text color
- *
- * Example (add to your site's stylesheet or a <style> block):
- *
- *   :root {
- *     --fl-muted:              #777;
- *     --fl-border-color:       #d8d8d8;
- *     --fl-input-border:       #bbb;
- *     --fl-input-bg:           #fff;
- *     --fl-input-color:        #222;
- *     --fl-error-color:        #c00;
- *     --fl-success-bg:         #f0fff4;
- *     --fl-success-border:     #6ccf8a;
- *     --fl-status-current-fg:  #2d6a3f;
- *     --fl-status-upcoming-fg: #7a5c00;
- *     --fl-status-pending-fg:  #555;
- *   }
+ * It provides layout, spacing, and structure — NO hardcoded colors (other than for
+ * success and error messages).
  *
  * How to include:
- *   Add the <link> tag once in your <head>, after your own stylesheet links:
+ *   Add the following <link> tag once in your <head>, BEFORE your own stylesheet links:
  *   <link rel="stylesheet" href="/path/to/luster/public/assets/css/default/style.css">
- *   Then drop the PHP require snippet wherever you want the embed in your page.
  *
- * Loaded by: templates/default/layout.php (full-page rendering)
  */
+
 
 /* ── CSS custom properties ──────────────────────────────────────────────────── */
 
@@ -73,15 +41,17 @@
 /* ── Global utilities ────────────────────────────────────────────────────────── */
 
 .fl-empty {
-  color: var(--fl-muted);
   font-style: italic;
   margin: 0.5em 0;
 }
 
 .fl-hint {
-  color: var(--fl-muted);
   font-size: 0.9em;
   margin: 0.25em 0 0.75em;
+}
+
+.fl-muted {
+  font-style: italic;
 }
 
 .fl-powered-by {
@@ -158,8 +128,6 @@
 
 /* ── Pagination ──────────────────────────────────────────────────────────────── */
 
-/* .fl-pagination is the legacy alias — keep for backward compat */
-.fl-pagination,
 .fl-pagination-nav {
   display: flex;
   flex-wrap: wrap;
@@ -170,8 +138,6 @@
   padding: 0;
 }
 
-.fl-pagination a,
-.fl-pagination span,
 .fl-pagination-nav a,
 .fl-pagination-nav span {
   display: inline-block;
@@ -201,6 +167,17 @@
   margin-bottom: 0.75em;
 }
 
+.fl-field--danger {
+  margin-top: 1em;
+  padding: 0.6em 0.75em;
+  border: 1px solid #c00;
+  border-radius: var(--fl-input-radius, 3px);
+}
+
+.fl-field--danger .fl-field-hint {
+  color: #c00;
+}
+
 .fl-label {
   display: block;
   margin-bottom: 0.25em;
@@ -212,37 +189,32 @@
   width: 100%;
   box-sizing: border-box;
   padding: var(--fl-input-padding, 0.35em 0.6em);
-  border: 1px solid var(--fl-input-border);
+  border: 1px solid currentColor;
   border-radius: var(--fl-input-radius, 3px);
-  background: var(--fl-input-bg);
-  color: var(--fl-input-color);
 }
 
 .fl-field-hint {
   font-size: 0.85em;
-  color: var(--fl-muted);
   margin: 0.2em 0 0;
 }
 
 .fl-field-error {
   font-size: 0.85em;
-  color: var(--fl-error-color);
+  color: #c00;
   margin: 0.2em 0 0;
 }
 
 /* Summary error block at top of form */
 .fl-errors {
-  color: var(--fl-error-color);
+  color: #c00;
   margin: 0 0 0.75em;
 }
 
 /* Single error line inside .fl-errors */
 .fl-error {
-  color: var(--fl-error-color);
+  color: #c00;
 }
 
-/* .fl-actions is kept as a legacy alias for .fl-form-actions */
-.fl-actions,
 .fl-form-actions {
   display: flex;
   gap: var(--fl-gap, 0.5em);
@@ -274,8 +246,8 @@
 /* ── Success / result messages ───────────────────────────────────────────────── */
 
 .fl-success {
-  background: var(--fl-success-bg);
-  border: 1px solid var(--fl-success-border);
+  background: #f0fff4;
+  border: 1px solid #6ccf8a;
   border-radius: var(--fl-radius, 3px);
   padding: 0.75em 1em;
   margin: 0.5em 0;
@@ -325,6 +297,20 @@
   list-style-type: circle;
 }
 
+/* Numbered rules list rendered directly inside the gate form (outside .fl-rules-body) */
+.fl-rules-list {
+  margin: 0 0 0.75em;
+  padding-left: 1.5em;
+}
+
+/* Wraps the optional {gate_checkbox} alongside the agreement statement */
+.fl-rules-gate-checkbox {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5em;
+  margin: 1em 0;
+}
+
 .fl-rules-agree-field {
   margin-bottom: 1em;
 }
@@ -357,7 +343,6 @@
 }
 
 .fl-member-stats {
-  color: var(--fl-muted);
   font-size: 0.9em;
   margin: 0.25em 0 0.75em;
 }
@@ -380,12 +365,7 @@
 
 .fl-embed .fl-member-item {
   padding: 0.35em 0;
-  border-bottom: 1px solid var(--fl-border-color);
   line-height: 1.5;
-}
-
-.fl-embed .fl-member-item:last-child {
-  border-bottom: none;
 }
 
 .fl-member-name {
@@ -394,12 +374,10 @@
 
 .fl-member-country {
   font-size: 0.9em;
-  color: var(--fl-muted);
 }
 
 .fl-member-email {
   font-size: 0.9em;
-  color: var(--fl-muted);
 }
 
 .fl-member-field {
@@ -472,54 +450,39 @@
 }
 
 .fl-affiliates-empty {
-  color: var(--fl-muted);
   font-style: italic;
 }
 
 /* ── Owned listings ──────────────────────────────────────────────────────────── */
 
-/* Deprecated aliases: .fl-listing-cards, .fl-listing-card,
-   .fl-listing-card-image, .fl-listing-card-body */
-
-.fl-listing-list,
-.fl-listing-cards {
+.fl-listing-list {
   list-style: none;
   margin: 0;
   padding: 0;
 }
 
-.fl-listing-item,
-.fl-listing-card {
+.fl-listing-item {
   display: flex;
   gap: 0.75em;
   align-items: flex-start;
   padding: 0.75em 0;
-  border-bottom: 1px solid var(--fl-border-color);
 }
 
-.fl-listing-item:last-child,
-.fl-listing-card:last-child {
-  border-bottom: none;
-}
-
-.fl-listing-image-wrap,
-.fl-listing-card-image {
+.fl-listing-image-wrap {
   flex-shrink: 0;
 }
 
-.fl-listing-image-wrap img,
-.fl-listing-card-image img {
+.fl-listing-image-wrap img {
   display: block;
-  max-width: 120px;
+  max-width: 100%;
 }
 
 .fl-listing-image {
   display: block;
-  max-width: 120px;
+  max-width: 100%;
 }
 
-.fl-listing-body,
-.fl-listing-card-body {
+.fl-listing-body {
   flex: 1;
   min-width: 0;
   font-size: 0.9em;
@@ -538,7 +501,6 @@
 
 .fl-listing-meta {
   font-size: 0.85em;
-  color: var(--fl-muted);
   margin-top: 0.25em;
 }
 
@@ -551,10 +513,6 @@
 .fl-listing-country-count {
   display: block;
 }
-
-.fl-listing-item--current  .fl-listing-status { color: var(--fl-status-current-fg);  }
-.fl-listing-item--upcoming .fl-listing-status { color: var(--fl-status-upcoming-fg); }
-.fl-listing-item--pending  .fl-listing-status { color: var(--fl-status-pending-fg);  }
 
 .fl-listing-section {
   margin-bottom: 1.5em;
@@ -582,7 +540,7 @@
 
 .fl-random-listing-image {
   display: block;
-  max-width: 120px;
+  max-width: 100%;
 }
 
 .fl-random-listing-body {
@@ -615,7 +573,7 @@
 
 .fl-latest-listing-image {
   display: block;
-  max-width: 120px;
+  max-width: 100%;
 }
 
 .fl-latest-listing-body {
@@ -638,7 +596,6 @@
 .fl-latest-listing-date {
   display: block;
   font-size: 0.85em;
-  color: var(--fl-muted);
   margin-top: 0.25em;
 }
 
@@ -655,11 +612,6 @@
   gap: 0.75em;
   align-items: flex-start;
   padding: 0.5em 0;
-  border-bottom: 1px solid var(--fl-border-color);
-}
-
-.fl-joined-item:last-child {
-  border-bottom: none;
 }
 
 .fl-joined-image-wrap {
@@ -668,7 +620,7 @@
 
 .fl-joined-image {
   display: block;
-  max-width: 80px;
+  max-width: 100%;
 }
 
 .fl-joined-body {
@@ -688,7 +640,6 @@
 .fl-joined-status {
   display: block;
   font-size: 0.85em;
-  color: var(--fl-muted);
 }
 
 .fl-joined-section {
@@ -699,19 +650,80 @@
   margin: 0 0 0.4em;
 }
 
+/* ── Random joined listing ───────────────────────────────────────────────────── */
+
+.fl-random-joined-listing-item {
+  display: flex;
+  gap: 0.75em;
+  align-items: flex-start;
+  padding: 0.5em 0;
+}
+
+.fl-random-joined-listing-image-wrap { flex-shrink: 0; }
+
+.fl-random-joined-listing-image {
+  display: block;
+  max-width: 100%;
+}
+
+.fl-random-joined-listing-body {
+  flex: 1;
+  min-width: 0;
+  font-size: 0.9em;
+  line-height: 1.7;
+}
+
+.fl-random-joined-listing-title {
+  font-weight: 600;
+  display: block;
+}
+
+.fl-random-joined-listing-category {
+  display: block;
+  font-size: 0.85em;
+}
+
+/* ── Latest joined listing ───────────────────────────────────────────────────── */
+
+.fl-latest-joined-listing-item {
+  display: flex;
+  gap: 0.75em;
+  align-items: flex-start;
+  padding: 0.5em 0;
+}
+
+.fl-latest-joined-listing-image-wrap { flex-shrink: 0; }
+
+.fl-latest-joined-listing-image {
+  display: block;
+  max-width: 100%;
+}
+
+.fl-latest-joined-listing-body {
+  flex: 1;
+  min-width: 0;
+  font-size: 0.9em;
+  line-height: 1.7;
+}
+
+.fl-latest-joined-listing-title {
+  font-weight: 600;
+  display: block;
+}
+
+.fl-latest-joined-listing-category,
+.fl-latest-joined-listing-date {
+  display: block;
+  font-size: 0.85em;
+}
+
 /* ── Collective stats ────────────────────────────────────────────────────────── */
 
-/* Deprecated aliases: .fl-collective-stats, .fl-newest-owned,
-   .fl-random-owned, .fl-categories (collective context) */
-
-.fl-cstats,
-.fl-collective-stats {
+.fl-cstats {
   --fl: ; /* Outer wrapper */
 }
 
-/* .fl-stats-grid is the legacy alias — kept for backward compat */
-.fl-cstats-grid,
-.fl-stats-grid {
+.fl-cstats-grid {
   display: grid;
   grid-template-columns: auto 1fr;
   gap: 0.25em 1em;
@@ -725,25 +737,19 @@
   --fl: ; /* Inherits from host */
 }
 
-.fl-cstats-newest,
-.fl-newest-owned {
+.fl-cstats-newest {
   margin-top: 1em;
 }
 
-.fl-cstats-random,
-.fl-random-owned {
+.fl-cstats-random {
   margin-top: 1em;
 }
 
-.fl-cstats-categories,
-.fl-categories {
+.fl-cstats-categories {
   margin-top: 1em;
 }
 
 /* ── Fan codes ───────────────────────────────────────────────────────────────── */
-
-/* Deprecated aliases: .fl-codes-group → .fl-code-list,
-   .fl-code → .fl-code-item, .fl-code-size-heading → .fl-code-group-label */
 
 .fl-codes {
   --fl: ; /* Outermost codes container */
@@ -759,8 +765,7 @@
   font-size: 0.9em;
 }
 
-.fl-code-list,
-.fl-codes-group {
+.fl-code-list {
   display: flex;
   flex-wrap: wrap;
   gap: 0.5em;
@@ -770,8 +775,7 @@
   padding: 0;
 }
 
-.fl-code-item,
-.fl-code {
+.fl-code-item {
   display: inline-flex;
   flex-direction: column;
   align-items: center;
@@ -784,8 +788,7 @@
 }
 
 .fl-code-caption,
-.fl-code-item figcaption,
-.fl-code figcaption {
+.fl-code-item figcaption {
   font-size: 0.85em;
   margin-top: 0.2em;
   text-align: center;
@@ -800,11 +803,9 @@
 .fl-update-item {
   margin-bottom: 1.5em;
   padding-bottom: 1.5em;
-  border-bottom: 1px solid var(--fl-border-color);
 }
 
 .fl-update-item:last-child {
-  border-bottom: none;
   margin-bottom: 0;
   padding-bottom: 0;
 }
@@ -820,17 +821,20 @@
 }
 
 .fl-update-date {
-  font-size: 0.85em;
-  color: var(--fl-muted);
+  font-size: inherit;
+}
+
+.fl-update-author {
+  font-style: italic;
 }
 
 .fl-update-body {
+  margin-top: 1rem;
   line-height: 1.6;
 }
 
 .fl-update-meta {
   font-size: 0.85em;
-  color: var(--fl-muted);
   margin-top: 0.4em;
 }
 
@@ -870,16 +874,10 @@
 
 .fl-embed .fl-kim-item {
   padding: 0.3em 0;
-  border-bottom: 1px solid var(--fl-border-color);
-}
-
-.fl-embed .fl-kim-item:last-child {
-  border-bottom: none;
 }
 
 .fl-kim-count {
   font-size: 0.85em;
-  color: var(--fl-muted);
 }
 
 .fl-kim-count--empty {
@@ -889,7 +887,6 @@
 .fl-kim-meta {
   margin-top: 0.75em;
   font-size: 0.9em;
-  color: var(--fl-muted);
 }
 
 .fl-kim-subject {
@@ -908,11 +905,6 @@
 
 .fl-embed .fl-kim-member-item {
   padding: 0.3em 0;
-  border-bottom: 1px solid var(--fl-border-color);
-}
-
-.fl-embed .fl-kim-member-item:last-child {
-  border-bottom: none;
 }
 
 .fl-kim-member-name {
@@ -920,12 +912,6 @@
 }
 
 /* ── Wishlist ────────────────────────────────────────────────────────────────── */
-
-/* Deprecated aliases:
-   .fl-wishlist (the <ul>) → .fl-wishlist-list
-   .fl-wishlist-img        → .fl-wishlist-image
-   .fl-wishlist-cat        → .fl-wishlist-category
-   .fl-wishlist-desc       → .fl-wishlist-description */
 
 .fl-wishlist-group {
   margin-bottom: 1.25em;
@@ -935,8 +921,7 @@
   margin: 0 0 0.4em;
 }
 
-.fl-wishlist-list,
-.fl-wishlist {
+.fl-wishlist-list {
   list-style: none;
   margin: 0;
   padding: 0;
@@ -947,11 +932,6 @@
   gap: 0.75em;
   align-items: flex-start;
   padding: 0.5em 0;
-  border-bottom: 1px solid var(--fl-border-color);
-}
-
-.fl-wishlist-item:last-child {
-  border-bottom: none;
 }
 
 .fl-wishlist-item--top    { --fl: ; /* Top-wanted modifier */ }
@@ -961,11 +941,10 @@
   opacity: 0.65;
 }
 
-.fl-wishlist-image,
-.fl-wishlist-img {
+.fl-wishlist-image {
   display: block;
   flex-shrink: 0;
-  max-width: 80px;
+  max-width: 100%;
 }
 
 .fl-wishlist-info {
@@ -977,14 +956,11 @@
   font-weight: 500;
 }
 
-.fl-wishlist-category,
-.fl-wishlist-cat {
+.fl-wishlist-category {
   font-size: 0.85em;
-  color: var(--fl-muted);
 }
 
-.fl-wishlist-description,
-.fl-wishlist-desc {
+.fl-wishlist-description {
   font-size: 0.9em;
   margin: 0.2em 0 0;
 }

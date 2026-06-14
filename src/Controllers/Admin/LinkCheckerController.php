@@ -203,6 +203,7 @@ final class LinkCheckerController extends AdminController
             (int) $this->app->getSession()->get('lstr_admin_id', 0) ?: null,
             'link-checker',
             'Updated auto link check settings',
+            $request->ip(),
         );
 
         return Response::redirect($this->adminUrl('/admin/link-checker/settings'));
@@ -327,6 +328,7 @@ final class LinkCheckerController extends AdminController
             (int) $this->app->getSession()->get('lstr_admin_id', 0) ?: null,
             'link-checker',
             "Applied redirect URL to affiliate #{$id}",
+            $request->ip(),
         );
 
         return Response::redirect($this->adminUrl('/admin/link-checker'));
@@ -357,6 +359,7 @@ final class LinkCheckerController extends AdminController
             (int) $this->app->getSession()->get('lstr_admin_id', 0) ?: null,
             'link-checker',
             "Applied redirect URL to joined listing #{$id}",
+            $request->ip(),
         );
 
         return Response::redirect($this->adminUrl('/admin/link-checker'));
@@ -380,6 +383,7 @@ final class LinkCheckerController extends AdminController
             (int) $this->app->getSession()->get('lstr_admin_id', 0) ?: null,
             'link-checker',
             'Reset all affiliate link statuses',
+            $request->ip(),
         );
 
         return Response::redirect($this->adminUrl('/admin/link-checker'));
@@ -403,6 +407,7 @@ final class LinkCheckerController extends AdminController
             (int) $this->app->getSession()->get('lstr_admin_id', 0) ?: null,
             'link-checker',
             'Reset all joined-listing link statuses',
+            $request->ip(),
         );
 
         return Response::redirect($this->adminUrl('/admin/link-checker'));
@@ -428,6 +433,7 @@ final class LinkCheckerController extends AdminController
             (int) $this->app->getSession()->get('lstr_admin_id', 0) ?: null,
             'link-checker',
             'Reset all affiliate and joined-listing link statuses',
+            $request->ip(),
         );
 
         return Response::redirect($this->adminUrl('/admin/link-checker'));

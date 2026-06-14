@@ -374,6 +374,68 @@ final class ContentRowTemplatesTest extends TestCase
         self::assertSame('(Anime): FaveAB', $result);
     }
 
+    public function testWishlistTypeScopedLoopsOnlyIncludeMatchingType(): void
+    {
+        $tpl = '{each_wishlist_item_top}[T:{item_subject}]{/each_wishlist_item_top}'
+             . '{each_wishlist_item_wanted}[W:{item_subject}]{/each_wishlist_item_wanted}'
+             . '{each_wishlist_item_granted}[G:{item_subject}]{/each_wishlist_item_granted}';
+
+        $entries = [
+            ['subject' => 'A', 'type' => 'top'],
+            ['subject' => 'B', 'type' => 'wanted'],
+            ['subject' => 'C', 'type' => 'granted'],
+            ['subject' => 'D', 'type' => 'top'],
+        ];
+
+        $rowFn = static fn(string $inner, array $e): string => TemplateEngine::render(
+            $inner,
+            ['item_subject' => $e['subject']],
+        );
+
+        $top     = array_values(array_filter($entries, static fn(array $e): bool => $e['type'] === 'top'));
+        $wanted  = array_values(array_filter($entries, static fn(array $e): bool => $e['type'] === 'wanted'));
+        $granted = array_values(array_filter($entries, static fn(array $e): bool => $e['type'] === 'granted'));
+
+        $result = TemplateEngine::loop($tpl, 'wishlist_item_top', $top, $rowFn);
+        $result = TemplateEngine::loop($result, 'wishlist_item_wanted', $wanted, $rowFn);
+        $result = TemplateEngine::loop($result, 'wishlist_item_granted', $granted, $rowFn);
+
+        self::assertSame('[T:A][T:D][W:B][G:C]', $result);
+    }
+
+    public function testWishlistHasTypeConditionalsHideEmptyGroups(): void
+    {
+        $tpl = '{if_has_top}<h2>Top Wanted</h2>{each_wishlist_item_top}{item_subject}{/each_wishlist_item_top}{/if_has_top}'
+             . '{if_has_wanted}<h2>Wanted</h2>{each_wishlist_item_wanted}{item_subject}{/each_wishlist_item_wanted}{/if_has_wanted}'
+             . '{if_has_granted}<h2>Granted</h2>{each_wishlist_item_granted}{item_subject}{/each_wishlist_item_granted}{/if_has_granted}';
+
+        $entries = [
+            ['subject' => 'A', 'type' => 'wanted'],
+            ['subject' => 'B', 'type' => 'wanted'],
+        ];
+
+        $rowFn = static fn(string $inner, array $e): string => TemplateEngine::render(
+            $inner,
+            ['item_subject' => $e['subject']],
+        );
+
+        $top     = array_values(array_filter($entries, static fn(array $e): bool => $e['type'] === 'top'));
+        $wanted  = array_values(array_filter($entries, static fn(array $e): bool => $e['type'] === 'wanted'));
+        $granted = array_values(array_filter($entries, static fn(array $e): bool => $e['type'] === 'granted'));
+
+        // Shell-first ordering, matching public/embed/wishlist.php.
+        $result = TemplateEngine::conditionals($tpl, [
+            'has_top'     => $top     !== [],
+            'has_wanted'  => $wanted  !== [],
+            'has_granted' => $granted !== [],
+        ]);
+        $result = TemplateEngine::loop($result, 'wishlist_item_top', $top, $rowFn);
+        $result = TemplateEngine::loop($result, 'wishlist_item_wanted', $wanted, $rowFn);
+        $result = TemplateEngine::loop($result, 'wishlist_item_granted', $granted, $rowFn);
+
+        self::assertSame('<h2>Wanted</h2>AB', $result);
+    }
+
     // -------------------------------------------------------------------------
     // KIM member URL conditionals
     // -------------------------------------------------------------------------

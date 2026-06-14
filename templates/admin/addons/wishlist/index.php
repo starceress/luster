@@ -76,8 +76,8 @@ $tabTotal = array_sum($type_counts);
 $tabs = [
     'all'      => ['label' => 'All',        'count' => $tabTotal,                      'badge' => 'badge-inactive'],
     'top'      => ['label' => 'Top Wanted', 'count' => $type_counts['top']      ?? 0,  'badge' => 'badge-info-pink'],
-    'wanted'   => ['label' => 'Wanted',     'count' => $type_counts['wanted']   ?? 0,  'badge' => 'badge-redirect'],
-    'granted'  => ['label' => 'Granted',    'count' => $type_counts['granted']  ?? 0,  'badge' => 'badge-current'],
+    'wanted'   => ['label' => 'Wanted',     'count' => $type_counts['wanted']   ?? 0,  'badge' => 'badge-current'],
+    'granted'  => ['label' => 'Granted',    'count' => $type_counts['granted']  ?? 0,  'badge' => 'badge-redirect'],
     'hidden'   => ['label' => 'Hidden',     'count' => $hidden_count            ?? 0,  'badge' => 'badge-inactive'],
 ];
 $typeTabs = ['wanted' => true, 'top' => true, 'granted' => true];
@@ -365,27 +365,32 @@ $showDragHint = isset($typeTabs[$filter_type])
             </td>
 
             <td data-label="Subject">
-              <a href="<?= $b ?>/admin/wishlist/<?= (int) $entry->id ?>/edit" class="link text-strong"><?= View::e($entry->subject) ?></a>
+              <a href="<?= $b ?>/admin/wishlist/<?= (int) $entry->id ?>/edit" class="link"><b><?= View::e($entry->subject) ?></b></a>
               <?php if ($entry->url !== ''): ?>
                   <a href="<?= View::e($entry->url) ?>" target="_blank" rel="noopener noreferrer"
-                     class="link mem-url">
+                     class="mem-url">
                     <?= View::e(mb_strimwidth($entry->url, 0, 60, '…')) ?>
                   </a>
               <?php endif; ?>
             </td>
 
             <td data-label="Category">
-              <?php if ($entry->category !== ''): ?>
-                <span class="cat-net-item">
-                  <?php
-                  $entNet = $catNetwork[$entry->category] ?? null;
-                  if ($entNet !== null) {
-                      echo $networkBadge($entNet) . ' ';
-                  }
-                  echo View::e($entry->category);
-                  ?>
-                </span>
-              <?php else: ?>
+              <?php
+              $_wlEntCats = $entry->category !== ''
+                  ? array_filter(array_map('trim', explode(',', $entry->category)))
+                  : [];
+              if (!empty($_wlEntCats)):
+                  $_wlFirst = true;
+                  foreach ($_wlEntCats as $_wlCat):
+                      if (!$_wlFirst) echo '<span class="text-muted">, </span>';
+                      $_wlFirst = false;
+                      $_wlNet = $catNetwork[$_wlCat] ?? null;
+                      $_wlBadge = $_wlNet !== null ? $networkBadge($_wlNet) : '';
+              ?>
+                <span class="cat-net-item"><?= $_wlBadge ?><?= View::e($_wlCat) ?></span>
+              <?php
+                  endforeach;
+              else: ?>
                 <span class="text-dim">&mdash;</span>
               <?php endif; ?>
             </td>
@@ -393,9 +398,9 @@ $showDragHint = isset($typeTabs[$filter_type])
             <?php if ($filter_type === 'all'): ?>
             <td data-label="Status">
               <?php $badgeClass = match ($entry->type) {
-                'wanted'  => 'badge-redirect',
+                'wanted'  => 'badge-current',
                 'top'     => 'badge-info-pink',
-                'granted' => 'badge-current',
+                'granted' => 'badge-redirect',
                 default   => 'badge-inactive',
               }; ?>
               <span class="badge <?= $badgeClass ?>"><?= View::e($entry->typeLabel()) ?></span>

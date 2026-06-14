@@ -29,12 +29,16 @@ use Luster\Support\ListingTemplateResolver;
  *                         last_updated_fallback config value (default "Never")
  *   {stat_approved}     — approved member count
  *   {stat_pending}      — pending member count
- *   {stat_newmembers}   — comma-separated newest 5 approved member names
+ *   {stat_countries}    — unique country count for approved members
+ *   {stat_newmembers}        — comma-separated newest 5 approved member names
+ *   {stat_newmembers_oxford} — newest members formatted as a sentence list
+ *   {stat_newmembers_label}  — "Member" when count is 1, "Members" otherwise
  *   {stat_growth}       — average members per day since opened, e.g. "1.23 members/day"
  *   {listing_title}      — listing name (HTML-escaped)
  *   {listing_url}       — listing URL (HTML-escaped)
  *   {approved_by}       — linked network name ("The Fanlistings Network" or
  *                         "The Anime Fanlistings Network"), or '' if not approved
+ *   {if_stat_pending}...{/if_stat_pending} — rendered only when pending count > 0
  *   {if_approved_by}...{/if_approved_by}  — rendered only when approved_by is set
  */
 

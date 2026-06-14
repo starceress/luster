@@ -262,14 +262,14 @@ final class PendingUpdateRepo
     }
 
     /**
-     * Deletes all pending updates for a given member email across all listings.
-     * Called when a member is deleted from the system.
+     * Deletes all pending updates for a given member email within one listing.
+     * Called when that member permanently deletes their membership.
      */
-    public function deleteByEmail(string $email): void
+    public function deleteByListingAndEmail(int $listingId, string $email): void
     {
         $stmt = $this->db->prepare(
-            'DELETE FROM lstr_pending_updates WHERE member_email = :email'
+            'DELETE FROM lstr_pending_updates WHERE fanlisting_id = :fid AND member_email = :email'
         );
-        $stmt->execute(['email' => $email]);
+        $stmt->execute(['fid' => $listingId, 'email' => $email]);
     }
 }

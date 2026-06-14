@@ -268,7 +268,7 @@ final class KimSignupController
         $siteName   = (string) $this->app->getConfig()->get('site_name', 'Luster');
 
         $flSelectHtml = '<select class="fl-select" id="kim-fanlisting" name="fanlisting_id" required>'
-                      . '<option value="">&#8212; Select a fanlisting &#8212;</option>';
+                      . '<option value="">&#8212; Select a Listing &#8212;</option>';
         foreach ($fanlistings as $_fl) {
             $_flId       = htmlspecialchars((string) $_fl->id, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
             $_flTitle    = htmlspecialchars((string) $_fl->subject, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
@@ -281,10 +281,10 @@ final class KimSignupController
         $captchaQ = Captcha::getQuestion('kim_signup');
         $f = $this->app->getFormFieldBuilder()->build([
             ['type' => 'text',         'name' => 'name',             'id' => 'kim-name',             'label' => 'Name',                     'required' => true,  'value' => (string) ($old['name']  ?? ''), 'attrs' => ['maxlength' => '100', 'autocomplete' => 'name']],
-            ['type' => 'url',          'name' => 'url',              'id' => 'kim-url',              'label' => 'Collective / Website URL',  'required' => true,  'value' => (string) ($old['url']   ?? ''), 'attrs' => ['maxlength' => '500', 'placeholder' => 'https://', 'autocomplete' => 'url']],
+            ['type' => 'url',          'name' => 'url',              'id' => 'kim-url',              'label' => 'Website URL',  'required' => true,  'value' => (string) ($old['url']   ?? ''), 'attrs' => ['maxlength' => '500', 'placeholder' => 'https://', 'autocomplete' => 'url']],
             ['type' => 'email',        'name' => 'email',            'id' => 'kim-email',            'label' => 'Email',                    'required' => true,  'value' => (string) ($old['email'] ?? ''), 'attrs' => ['maxlength' => '255', 'autocomplete' => 'email']],
             ['type' => 'select',       'name' => 'fanlisting_id',    'id' => 'kim-fanlisting',       'label' => 'Fanlisting Interested In', 'required' => true,  'raw_input' => $flSelectHtml],
-            ['type' => 'password',     'name' => 'password',         'id' => 'kim-password',         'label' => 'Password',                 'required' => false, 'attrs' => ['maxlength' => '255', 'autocomplete' => 'new-password'], 'hint' => 'Leave blank to auto-generate; you\'ll receive it by email'],
+            ['type' => 'password',     'name' => 'password',         'id' => 'kim-password',         'label' => 'Password',                 'required' => false, 'attrs' => ['maxlength' => '255', 'autocomplete' => 'new-password'], 'hint' => 'Optional - If left blank, a password will automatically generated and emailed to you.'],
             ['type' => 'password',     'name' => 'password_confirm', 'id' => 'kim-password-confirm', 'label' => 'Confirm Password',         'required' => false, 'attrs' => ['maxlength' => '255', 'autocomplete' => 'new-password']],
             ['type' => 'checkboxGroup','name' => 'send_copy',        'id' => '',                     'label' => 'Opt-in',                   'required' => false, 'options' => ['1' => 'Email me a copy of my submission'], 'selected' => ((string) ($old['send_copy'] ?? '')) === '1' ? ['1'] : []],
             ['type' => 'text',         'name' => 'captcha_answer',   'id' => 'kim-captcha',          'label' => 'Captcha: ' . $captchaQ,   'required' => true,  'error' => $captchaError, 'attrs' => ['maxlength' => '10', 'autocomplete' => 'off']],

@@ -28,6 +28,7 @@ $filterBootMap = [
     ['~/admin/kim(?:/|$)~', 'kim-filter-panel', 'fp-kim'],
     ['~/admin/adoptions(?:/|$)~', 'adopt-filter-panel', 'fp-adopt'],
     ['~/admin/updates(?:/|$)~', 'upd-filter-panel', 'fp-upd'],
+    ['~/admin/rules(?:/|$)~',   'rules-filter-panel', 'fp-rules'],
 ];
 $filterBootStates = json_decode((string) ($_COOKIE['lstr_fp'] ?? ''), true);
 if (!is_array($filterBootStates)) {
@@ -67,7 +68,8 @@ $htmlClassAttr = $htmlClasses === [] ? '' : ' class="' . View::e(implode(' ', $h
         [/\/admin\/wishlist(?:\/|$)/,'wl-filter-panel','fp-wl'],
         [/\/admin\/kim(?:\/|$)/,'kim-filter-panel','fp-kim'],
         [/\/admin\/adoptions(?:\/|$)/,'adopt-filter-panel','fp-adopt'],
-        [/\/admin\/updates(?:\/|$)/,'upd-filter-panel','fp-upd']
+        [/\/admin\/updates(?:\/|$)/,'upd-filter-panel','fp-upd'],
+        [/\/admin\/rules(?:\/|$)/,'rules-filter-panel','fp-rules']
       ];
       function cookieMap(){var m=document.cookie.match(/(?:^|; )lstr_fp=([^;]*)/);if(!m)return {};try{return JSON.parse(decodeURIComponent(m[1]));}catch(e){return {};}}
       function writeCookie(map){document.cookie='lstr_fp='+encodeURIComponent(JSON.stringify(map))+'; path=/; SameSite=Lax';}
@@ -85,7 +87,8 @@ $htmlClassAttr = $htmlClasses === [] ? '' : ' class="' . View::e(implode(' ', $h
     html.fp-wl #wl-filter-panel,
     html.fp-kim #kim-filter-panel,
     html.fp-adopt #adopt-filter-panel,
-    html.fp-upd #upd-filter-panel { display: block; }
+    html.fp-upd #upd-filter-panel,
+    html.fp-rules #rules-filter-panel { display: block; }
   </style>
   <link rel="icon" type="image/svg+xml" href="<?= $b ?>/assets/images/logo16.svg">
   <?= lusterAdminCssLinks($b . '/assets/css', LUSTER_BASE . '/public/assets/css', $selected_skin ?? '') . PHP_EOL ?>

@@ -66,7 +66,7 @@ class SiteSettingsRepo
      * Shared by the admin collective page and the embed files so
      * both always show the same fallback markup.
      *
-     * @return array{owned_template: string, joined_template: string, collective_stats_template: string, collective_affiliates_section_template: string, random_listing_template: string, latest_listing_template: string, collective_affiliate_apply_form_template: string, kim_signup_form_template: string}
+     * @return array{owned_template: string, joined_template: string, collective_stats_template: string, collective_affiliates_section_template: string, random_listing_template: string, latest_listing_template: string, random_joined_listing_template: string, latest_joined_listing_template: string, collective_affiliate_apply_form_template: string, kim_signup_form_template: string, wishlist_template: string, collective_updates_template: string}
      */
     public static function collectiveDefaults(): array
     {
@@ -155,8 +155,36 @@ class SiteSettingsRepo
                                       . '</div>' . "\n"
                                       . '{/each_listing}' . "\n"
                                       . '</div>',
+            // Single-listing joined embeds — mirror random_listing_template /
+            // latest_listing_template above, but for lstr_joined rows via
+            // JoinedListingRowRenderer.
+            'random_joined_listing_template' => '<div class="fl-random-joined-listing">' . "\n"
+                                              . '{each_joined}' . "\n"
+                                              . '<div class="fl-random-joined-listing-item">' . "\n"
+                                              . '{if_listing_image}<div class="fl-random-joined-listing-image-wrap"><img class="fl-random-joined-listing-image" src="{listing_image_url}" alt="{listing_title}"></div>{/if_listing_image}' . "\n"
+                                              . '<div class="fl-random-joined-listing-body">' . "\n"
+                                              . '<a class="fl-random-joined-listing-title" href="{listing_url}" target="_blank" rel="noopener noreferrer">{listing_title}</a>' . "\n"
+                                              . '<span class="fl-random-joined-listing-category">{listing_category}</span>' . "\n"
+                                              . '</div>' . "\n"
+                                              . '</div>' . "\n"
+                                              . '{/each_joined}' . "\n"
+                                              . '</div>',
+            'latest_joined_listing_template' => '<div class="fl-latest-joined-listing">' . "\n"
+                                              . '{each_joined}' . "\n"
+                                              . '<div class="fl-latest-joined-listing-item">' . "\n"
+                                              . '{if_listing_image}<div class="fl-latest-joined-listing-image-wrap"><img class="fl-latest-joined-listing-image" src="{listing_image_url}" alt="{listing_title}"></div>{/if_listing_image}' . "\n"
+                                              . '<div class="fl-latest-joined-listing-body">' . "\n"
+                                              . '<a class="fl-latest-joined-listing-title" href="{listing_url}" target="_blank" rel="noopener noreferrer">{listing_title}</a>' . "\n"
+                                              . '<span class="fl-latest-joined-listing-category">{listing_category}</span>' . "\n"
+                                              . '<span class="fl-latest-joined-listing-date">Joined: {date_joined}</span>' . "\n"
+                                              . '</div>' . "\n"
+                                              . '</div>' . "\n"
+                                              . '{/each_joined}' . "\n"
+                                              . '</div>',
             'collective_affiliate_apply_form_template' => self::defaultCollectiveAffiliateApplyFormTemplate(),
             'kim_signup_form_template'                   => self::defaultKimSignupFormTemplate(),
+            'wishlist_template'                          => self::defaultWishlistTemplate(),
+            'collective_updates_template'                => self::defaultCollectiveUpdatesTemplate(),
         ];
     }
 
@@ -170,6 +198,7 @@ class SiteSettingsRepo
              . '{captcha_block}' . "\n"
              . '<div class="fl-form-actions">' . "\n"
              . '{submit_button}' . "\n"
+             . '{clear_button}' . "\n"
              . '</div>';
     }
 
@@ -189,6 +218,65 @@ class SiteSettingsRepo
              . '{submit_button}' . "\n"
              . '{clear_button}' . "\n"
              . '</div>';
+    }
+
+    public static function defaultWishlistTemplate(): string
+    {
+        return <<<'HTML'
+<div class="fl-embed fl-embed--wishlist">
+<h1>Wishlist</h1>
+
+{if_has_top}
+<h2>Top Wanted</h2>
+{each_wishlist_item_top}
+<div class="fl-wishlist-item">
+{if_item_url}<a class="fl-wishlist-subject" href="{item_url}" rel="noopener noreferrer" title="{item_subject}">{if_item_image}<img src="{item_image_url}" alt="{item_subject}">{/if_item_image}</a>{/if_item_url}
+
+<div class="fl-wishlist-info">
+{if_item_url}<a class="fl-wishlist-subject" href="{item_url}" rel="noopener noreferrer" title="{item_subject}">{item_subject}</a>{/if_item_url}<br>
+{if_item_category}<b>Category:</b> {item_category}{/if_item_category}<br>
+{if_item_description}<p class="fl-wishlist-description">{item_description}</p>{/if_item_description}
+</div>
+</div>
+{/each_wishlist_item_top}
+{/if_has_top}
+
+{if_has_wanted}
+<h2>Wanted</h2>
+{each_wishlist_item_wanted}
+<div class="fl-wishlist-item">
+{if_item_url}<a class="fl-wishlist-subject" href="{item_url}" rel="noopener noreferrer" title="{item_subject}">{if_item_image}<img src="{item_image_url}" alt="{item_subject}">{/if_item_image}</a>{/if_item_url}
+
+<div class="fl-wishlist-info">
+{if_item_url}<a class="fl-wishlist-subject" href="{item_url}" rel="noopener noreferrer" title="{item_subject}">{item_subject}</a>{/if_item_url}<br>
+{if_item_category}<b>Category:</b> {item_category}{/if_item_category}<br>
+{if_item_description}<p class="fl-wishlist-description">{item_description}</p>{/if_item_description}
+</div>
+</div>
+{/each_wishlist_item_wanted}
+{/if_has_wanted}
+
+{if_has_granted}
+<h2>Granted</h2>
+{each_wishlist_item_granted}
+<div class="fl-wishlist-item">
+{if_item_url}<a class="fl-wishlist-subject" href="{item_url}" rel="noopener noreferrer" title="{item_subject}">{if_item_image}<img src="{item_image_url}" alt="{item_subject}">{/if_item_image}</a>{/if_item_url}
+
+<div class="fl-wishlist-info">
+{if_item_url}<a class="fl-wishlist-subject" href="{item_url}" rel="noopener noreferrer" title="{item_subject}">{item_subject}</a>{/if_item_url}<br>
+{if_item_category}<b>Category:</b> {item_category}{/if_item_category}<br>
+{if_item_description}<p class="fl-wishlist-description">{item_description}</p>{/if_item_description}
+</div>
+</div>
+{/each_wishlist_item_granted}
+{/if_has_granted}
+</div>
+HTML;
+    }
+
+    public static function defaultCollectiveUpdatesTemplate(): string
+    {
+        return ListingSettingsRepo::defaultUpdatesTemplate();
     }
 
     /**

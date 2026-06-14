@@ -20,6 +20,9 @@
  *   $field_email      string  authenticated member's current email (display only)
  *   $fields           AdditionalField[]  used to echo additional fields in order
  *   $f                array<string,string>  wrapped field HTML keyed by field name
+ *
+ *   POST 'delete_membership' = '1' (checkbox): skips field updates and
+ *   permanently deletes the membership instead.
  */
 
 declare(strict_types=1);
@@ -88,6 +91,17 @@ $signed_in = $signed_in ?? false;
       <input type="text" name="website_confirm" tabindex="-1" autocomplete="off">
     </div>
 
+    <div class="fl-field fl-field--danger">
+      <label>
+        <input type="checkbox" id="upd-delete-membership" name="delete_membership" value="1">
+        Permanently delete my membership instead of updating it
+      </label>
+      <p class="fl-field-hint">
+        This immediately and permanently removes your membership from this listing.
+        Any changes above are ignored, and this cannot be undone.
+      </p>
+    </div>
+
     <?= $f['captcha_answer'] ?>
 
     <div class="fl-form-actions">
@@ -95,6 +109,10 @@ $signed_in = $signed_in ?? false;
       <button type="reset" class="fl-btn-secondary">Clear</button>
     </div>
   </form>
+
+  <?php if (!defined('FL_EMBED_JS_LOADED')): define('FL_EMBED_JS_LOADED', true); ?>
+  <script src="<?= View::e($base_url) ?>/assets/js/fl-embed.js"></script>
+  <?php endif; ?>
 
 <?php endif; ?>
 </div>

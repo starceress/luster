@@ -42,24 +42,6 @@ $tok = static fn(string $ta, string $token, string $label, string $desc): string
   <div class="alert alert-error"><?= View::e($error) ?></div>
 <?php endif; ?>
 
-<?php if (!empty($listings)): ?>
-<div class="card mb-sm">
-  <div class="listing-field-row" style="gap:.75rem;align-items:center;padding:.75rem 1rem">
-    <label class="listing-field-label" for="gtpl-preview-listing" style="min-width:0">Preview listing</label>
-    <div style="display:flex;align-items:center;gap:.75rem;flex-wrap:wrap">
-      <div class="select-wrap" style="min-width:10rem;max-width:22rem">
-        <select id="gtpl-preview-listing" class="form" aria-label="Select a listing to use when previewing templates">
-          <?php foreach ($listings as $_l): ?>
-            <option value="<?= (int) $_l->id ?>"><?= View::e($_l->title) ?></option>
-          <?php endforeach; ?>
-        </select>
-      </div>
-      <p class="form-hint" style="margin:0">Select a listing, then click <strong>Preview</strong> next to any template below to see a live render using that listing's data.</p>
-    </div>
-  </div>
-</div>
-<?php endif; ?>
-
 <form method="POST" action="<?= $b ?>/admin/listings/global-templates" class="js-warn-unsaved">
   <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
 
@@ -84,7 +66,7 @@ $tok = static fn(string $ta, string $token, string $label, string $desc): string
         </div>
         <div class="tpl-reset-row">
           <button type="button" class="btn btn-quaternary btn-xs" data-textarea="listing_default_members_template">Reset to Built-in Default</button>
-          <?php if (!empty($listings)): ?><button type="button" class="btn btn-quaternary btn-xs" data-gtpl-preview="members" data-textarea="listing_default_members_template">Preview</button><?php endif; ?>
+          &nbsp; <button type="button" class="btn btn-preview btn-xs coltpl-preview-btn" data-tpltype="members" data-textarea="listing_default_members_template"><?= View::icon('eye-on') ?> 
         </div>
 
         <div class="pc-section-label">Statistics</div>
@@ -93,7 +75,7 @@ $tok = static fn(string $ta, string $token, string $label, string $desc): string
         </div>
         <div class="tpl-reset-row">
           <button type="button" class="btn btn-quaternary btn-xs" data-textarea="listing_default_stats_template">Reset to Built-in Default</button>
-          <?php if (!empty($listings)): ?><button type="button" class="btn btn-quaternary btn-xs" data-gtpl-preview="stats" data-textarea="listing_default_stats_template">Preview</button><?php endif; ?>
+          &nbsp; <button type="button" class="btn btn-preview btn-xs coltpl-preview-btn" data-tpltype="stats" data-textarea="listing_default_stats_template"><?= View::icon('eye-on') ?> Preview</button>
         </div>
 
         <div class="pc-section-label">Affiliates Section</div>
@@ -103,7 +85,7 @@ $tok = static fn(string $ta, string $token, string $label, string $desc): string
         </div>
         <div class="tpl-reset-row">
           <button type="button" class="btn btn-quaternary btn-xs" data-textarea="listing_default_affiliates_section_template">Reset to Built-in Default</button>
-          <?php if (!empty($listings)): ?><button type="button" class="btn btn-quaternary btn-xs" data-gtpl-preview="affiliates_section" data-textarea="listing_default_affiliates_section_template">Preview</button><?php endif; ?>
+          &nbsp; <button type="button" class="btn btn-preview btn-xs coltpl-preview-btn" data-tpltype="affiliates_section" data-textarea="listing_default_affiliates_section_template"><?= View::icon('eye-on') ?> 
         </div>
 
         <div class="pc-section-label">Updates Feed</div>
@@ -113,7 +95,7 @@ $tok = static fn(string $ta, string $token, string $label, string $desc): string
         </div>
         <div class="tpl-reset-row">
           <button type="button" class="btn btn-quaternary btn-xs" data-textarea="listing_default_updates_template">Reset to Built-in Default</button>
-          <?php if (!empty($listings)): ?><button type="button" class="btn btn-quaternary btn-xs" data-gtpl-preview="updates" data-textarea="listing_default_updates_template">Preview</button><?php endif; ?>
+          &nbsp; <button type="button" class="btn btn-preview btn-xs coltpl-preview-btn" data-tpltype="updates" data-textarea="listing_default_updates_template"><?= View::icon('eye-on') ?> Preview</button>
         </div>
 
         <div class="pc-section-label">Join Form</div>
@@ -123,7 +105,7 @@ $tok = static fn(string $ta, string $token, string $label, string $desc): string
         </div>
         <div class="tpl-reset-row">
           <button type="button" class="btn btn-quaternary btn-xs" data-textarea="listing_default_join_form_template">Reset to Built-in Default</button>
-          <?php if (!empty($listings)): ?><button type="button" class="btn btn-quaternary btn-xs" data-gtpl-preview="join_form" data-textarea="listing_default_join_form_template">Preview</button><?php endif; ?>
+          &nbsp; <button type="button" class="btn btn-preview btn-xs coltpl-preview-btn" data-tpltype="join_form" data-textarea="listing_default_join_form_template"><?= View::icon('eye-on') ?> Preview</button>
         </div>
 
         <div class="pc-section-label">Code Donation Form</div>
@@ -133,7 +115,7 @@ $tok = static fn(string $ta, string $token, string $label, string $desc): string
         </div>
         <div class="tpl-reset-row">
           <button type="button" class="btn btn-quaternary btn-xs" data-textarea="listing_default_codes_submit_form_template">Reset to Built-in Default</button>
-          <?php if (!empty($listings)): ?><button type="button" class="btn btn-quaternary btn-xs" data-gtpl-preview="codes_submit_form" data-textarea="listing_default_codes_submit_form_template">Preview</button><?php endif; ?>
+          &nbsp; <button type="button" class="btn btn-preview btn-xs coltpl-preview-btn" data-tpltype="codes_submit_form" data-textarea="listing_default_codes_submit_form_template"><?= View::icon('eye-on') ?> Preview</button>
         </div>
 
         <div class="pc-section-label">Affiliate Application Form</div>
@@ -143,7 +125,7 @@ $tok = static fn(string $ta, string $token, string $label, string $desc): string
         </div>
         <div class="tpl-reset-row">
           <button type="button" class="btn btn-quaternary btn-xs" data-textarea="listing_default_affiliate_apply_form_template">Reset to Built-in Default</button>
-          <?php if (!empty($listings)): ?><button type="button" class="btn btn-quaternary btn-xs" data-gtpl-preview="affiliate_apply_form" data-textarea="listing_default_affiliate_apply_form_template">Preview</button><?php endif; ?>
+          &nbsp; <button type="button" class="btn btn-preview btn-xs coltpl-preview-btn" data-tpltype="affiliate_apply_form" data-textarea="listing_default_affiliate_apply_form_template"><?= View::icon('eye-on') ?> Preview</button>
         </div>
 
         <div class="pc-section-label">Adopt Form</div>
@@ -153,7 +135,7 @@ $tok = static fn(string $ta, string $token, string $label, string $desc): string
         </div>
         <div class="tpl-reset-row">
           <button type="button" class="btn btn-quaternary btn-xs" data-textarea="listing_default_adopt_form_template">Reset to Built-in Default</button>
-          <?php if (!empty($listings)): ?><button type="button" class="btn btn-quaternary btn-xs" data-gtpl-preview="adopt_form" data-textarea="listing_default_adopt_form_template">Preview</button><?php endif; ?>
+          &nbsp; <button type="button" class="btn btn-preview btn-xs coltpl-preview-btn" data-tpltype="adopt_form" data-textarea="listing_default_adopt_form_template"><?= View::icon('eye-on') ?> Preview</button>
         </div>
 
       </div>
@@ -165,7 +147,7 @@ $tok = static fn(string $ta, string $token, string $label, string $desc): string
     </div>
 
     <!-- ── Right column: token reference ─────────────────────────────────── -->
-    <div class="composer-side">
+    <div class="composer-side composer-side--sticky">
 
       <div class="search-field-wrap token-search-wrap">
         <?= View::icon('search', ['class' => 'search-field-icon', 'aria-hidden' => 'true']) ?>
@@ -332,6 +314,7 @@ $tok = static fn(string $ta, string $token, string $label, string $desc): string
             <?= $tok('listing_default_codes_submit_form_template', '{captcha_block_input}', '{captcha_block_input}', 'Just the captcha answer input, no label or wrapper.') ?>
             <?= $tok('listing_default_codes_submit_form_template', '{captcha_question}', '{captcha_question}', 'The captcha question text on its own.') ?>
             <?= $tok('listing_default_codes_submit_form_template', '{submit_button}', '{submit_button}', 'The "Submit Code" submit button.') ?>
+            <?= $tok('listing_default_codes_submit_form_template', '{clear_button}',  '{clear_button}',  'The "Clear" reset button.') ?>
           </tbody></table>
         </div>
       </details>
@@ -358,6 +341,7 @@ $tok = static fn(string $ta, string $token, string $label, string $desc): string
             <?= $tok('listing_default_affiliate_apply_form_template', '{captcha_block_input}', '{captcha_block_input}', 'Just the captcha answer input, no label or wrapper.') ?>
             <?= $tok('listing_default_affiliate_apply_form_template', '{captcha_question}', '{captcha_question}', 'The captcha question text on its own.') ?>
             <?= $tok('listing_default_affiliate_apply_form_template', '{submit_button}', '{submit_button}', 'The "Submit Application" submit button.') ?>
+            <?= $tok('listing_default_affiliate_apply_form_template', '{clear_button}',  '{clear_button}',  'The "Clear" reset button.') ?>
           </tbody></table>
         </div>
       </details>
@@ -398,45 +382,22 @@ $tok = static fn(string $ta, string $token, string $label, string $desc): string
 ), JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) ?>
 </script>
 
-<?php if (!empty($listings)): ?>
-<script>
-(function () {
-  const sel = document.getElementById('gtpl-preview-listing');
-  const csrf = <?= json_encode($csrf_token ?? '') ?>;
-  const base = <?= json_encode($b) ?>;
+<script type="application/json" id="luster-coltpl-meta"><?= json_encode([
+    'previewUrl' => $b . '/admin/listings/global-templates/preview',
+    'csrf'       => $csrf_token ?? '',
+], JSON_UNESCAPED_SLASHES) ?></script>
 
-  document.querySelectorAll('[data-gtpl-preview]').forEach(function (btn) {
-    btn.addEventListener('click', function () {
-      const listingId = sel ? sel.value : '';
-      if (!listingId) { return; }
-      const tplType = btn.dataset.gtplPreview;
-      const taId    = btn.dataset.textarea;
-      const ta      = document.getElementById(taId);
-      if (!ta) { return; }
-
-      // Open (or reuse) the preview window before form.submit() so the named
-      // target exists. The form stays in the DOM until after the POST fires;
-      // removing it synchronously would abort the submission.
-      window.open('', 'gtpl-preview-window', 'width=900,height=600,resizable=yes,scrollbars=yes');
-
-      const form = document.createElement('form');
-      form.method = 'POST';
-      form.action = base + '/admin/listings/' + listingId + '/templates/preview';
-      form.target = 'gtpl-preview-window';
-      form.style.display = 'none';
-
-      [['_csrf', csrf], ['type', tplType], ['template', ta.value]].forEach(function ([n, v]) {
-        const inp = document.createElement('input');
-        inp.type = 'hidden'; inp.name = n; inp.value = v;
-        form.appendChild(inp);
-      });
-
-      document.body.appendChild(form);
-      form.submit();
-      // Delay removal so the browser can read the form before navigating.
-      setTimeout(function () { document.body.removeChild(form); }, 500);
-    });
-  });
-}());
-</script>
-<?php endif; ?>
+<div id="coltpl-prev-modal" class="modal-backdrop is-hidden" style="display:none" role="dialog" aria-modal="true" aria-label="Template preview">
+  <div class="modal modal--preview" style="max-width:680px;height:68vh">
+    <div class="modal-header">
+      <span id="coltpl-prev-title" class="modal-title">Preview</span>
+      <div style="display:flex;align-items:center;gap:.5rem">
+        <span id="coltpl-prev-spinner" style="display:none;font-size:.8rem;color:var(--text-muted)">Loading&hellip;</span>
+        <button type="button" id="coltpl-prev-close" class="btn btn-tertiary btn-sm" aria-label="Close preview">&times;&ensp;Close</button>
+      </div>
+    </div>
+    <div class="modal-body--iframe">
+      <iframe id="coltpl-prev-iframe" title="Template preview" sandbox=""></iframe>
+    </div>
+  </div>
+</div>

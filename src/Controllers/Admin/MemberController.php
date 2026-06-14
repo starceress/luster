@@ -65,7 +65,7 @@ final class MemberController extends AdminController
         $puPage      = max(1, (int) $request->query('pu_page', 1));
         $perPage     = max(5, min(200, (int) $config->get('per_page', 25)));
 
-        if (!in_array($sort, ['name', 'email', 'country', 'status', 'listing', 'total', 'pending', 'rejected'], true)) { $sort = 'name'; }
+        if (!in_array($sort, ['id', 'name', 'email', 'country', 'status', 'listing', 'total', 'pending', 'rejected'], true)) { $sort = 'name'; }
         if (!in_array($dir, ['asc', 'desc'], true)) { $dir = 'asc'; }
 
         $validStatuses = ['all', 'pending', 'approved', 'rejected'];
@@ -942,291 +942,6 @@ final class MemberController extends AdminController
     }
 
     // -----------------------------------------------------------------------
-    // GET  /admin/members/{id}/import       — show import form
-    // POST /admin/members/{id}/import       — process uploaded CSV
-    // GET  /admin/members/{id}/import/template — download blank CSV template
-    // -----------------------------------------------------------------------
-
-    public function importForm(Request $request, array $params): Response
-    {
-        $listingId = (int) ($params['id'] ?? 0);
-
-        $listing = (new ListingRepo($this->app->getDatabase(), $this->app->getConfig()))
-            ->getById($listingId);
-
-        if ($listing === null) {
-            return Response::notFound('Listing not found.');
-        }
-
-        return $this->adminLayout('admin/members/import.php', 'Import Members', 'members', [
-            'listing' => $listing,
-            'results' => null,
-            'error'   => '',
-        ], '', $this->memberBreadcrumbs($listing));
-    }
-
-    public function importTemplate(Request $request, array $params): Response
-    {
-        $listingId = (int) ($params['id'] ?? 0);
-
-        $db     = $this->app->getDatabase();
-        $config = $this->app->getConfig();
-
-        $listing = (new ListingRepo($db, $config))->getById($listingId);
-
-        if ($listing === null) {
-            return Response::notFound('Listing not found.');
-        }
-
-        $fields = (new FieldRepo($db, $config))->getFieldsForListing($listingId);
-
-        $handle = fopen('php://temp', 'r+');
-
-        if ($handle === false) {
-            return Response::serverError('Could not create CSV stream.');
-        }
-
-        $header = ['name', 'email', 'url', 'country', 'password'];
-        foreach ($fields as $field) {
-            $header[] = $field->name;
-        }
-        fputcsv($handle, $header);
-
-        rewind($handle);
-        $csv = (string) stream_get_contents($handle);
-        fclose($handle);
-
-        $slug = preg_replace('/[^a-z0-9_]/', '_', strtolower($listing->title));
-        return Response::csv($csv, "import_template_{$slug}.csv");
-    }
-
-    public function import(Request $request, array $params): Response
-    {
-        $listingId = (int) ($params['id'] ?? 0);
-
-        $db     = $this->app->getDatabase();
-        $config = $this->app->getConfig();
-
-        $listingRepo  = new ListingRepo($db, $config);
-        $memberRepo   = new MemberRepo($db, $config);
-        $fieldRepo    = new FieldRepo($db, $config);
-        $activityRepo = new ActivityRepo($db);
-        $session      = $this->app->getSession();
-        $baseUrl      = $this->app->getBaseUrl();
-
-        $listing = $listingRepo->getById($listingId);
-
-        if ($listing === null) {
-            return Response::notFound('Listing not found.');
-        }
-
-        $fields = $fieldRepo->getFieldsForListing($listingId);
-
-        // ------------------------------------------------------------------
-        // File validation
-        // ------------------------------------------------------------------
-
-        $upload = $request->file('csv');
-
-        if ($upload === null || ($upload['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_NO_FILE) {
-            return $this->adminLayout('admin/members/import.php', 'Import Members', 'members', [
-                'listing' => $listing,
-                'results' => null,
-                'error'   => 'Please select a CSV file to upload.',
-            ], '', $this->memberBreadcrumbs($listing));
-        }
-
-        if (($upload['error'] ?? 0) !== UPLOAD_ERR_OK) {
-            return $this->adminLayout('admin/members/import.php', 'Import Members', 'members', [
-                'listing' => $listing,
-                'results' => null,
-                'error'   => 'File upload failed (error code ' . (int) $upload['error'] . ').',
-            ], '', $this->memberBreadcrumbs($listing));
-        }
-
-        if ((int) ($upload['size'] ?? 0) > 2 * 1024 * 1024) {
-            return $this->adminLayout('admin/members/import.php', 'Import Members', 'members', [
-                'listing' => $listing,
-                'results' => null,
-                'error'   => 'File exceeds the 2 MB size limit.',
-            ], '', $this->memberBreadcrumbs($listing));
-        }
-
-        $tmpPath = (string) ($upload['tmp_name'] ?? '');
-
-        $finfo    = new \finfo(FILEINFO_MIME_TYPE);
-        $mimeType = $finfo->file($tmpPath);
-        $allowed  = ['text/csv', 'text/plain', 'application/csv', 'application/vnd.ms-excel'];
-
-        if (!in_array($mimeType, $allowed, true)) {
-            return $this->adminLayout('admin/members/import.php', 'Import Members', 'members', [
-                'listing' => $listing,
-                'results' => null,
-                'error'   => 'Only CSV files are accepted (detected: ' . htmlspecialchars($mimeType, ENT_QUOTES, 'UTF-8') . ').',
-            ], '', $this->memberBreadcrumbs($listing));
-        }
-
-        // ------------------------------------------------------------------
-        // Parse CSV
-        // ------------------------------------------------------------------
-
-        $handle = fopen($tmpPath, 'r');
-
-        if ($handle === false) {
-            return $this->adminLayout('admin/members/import.php', 'Import Members', 'members', [
-                'listing' => $listing,
-                'results' => null,
-                'error'   => 'Could not open uploaded file for reading.',
-            ], '', $this->memberBreadcrumbs($listing));
-        }
-
-        // Read + normalise header row
-        $rawHeader = fgetcsv($handle);
-
-        if ($rawHeader === false || $rawHeader === null) {
-            fclose($handle);
-            return $this->adminLayout('admin/members/import.php', 'Import Members', 'members', [
-                'listing' => $listing,
-                'results' => null,
-                'error'   => 'The file appears to be empty or could not be read.',
-            ], '', $this->memberBreadcrumbs($listing));
-        }
-
-        $headerMap = []; // column name (lowercase) → column index
-        foreach ($rawHeader as $i => $col) {
-            $headerMap[strtolower(trim((string) $col))] = $i;
-        }
-
-        if (!isset($headerMap['name']) || !isset($headerMap['email'])) {
-            fclose($handle);
-            return $this->adminLayout('admin/members/import.php', 'Import Members', 'members', [
-                'listing' => $listing,
-                'results' => null,
-                'error'   => 'The CSV must have at least a "name" column and an "email" column in the header row.',
-            ], '', $this->memberBreadcrumbs($listing));
-        }
-
-        // Build set of valid additional field names for this listing
-        $fieldNames = [];
-        foreach ($fields as $field) {
-            $fieldNames[] = $field->name;
-        }
-
-        // ------------------------------------------------------------------
-        // Process rows
-        // ------------------------------------------------------------------
-
-        $prefix      = (string) $config->get('enth_table_prefix', '');
-        $imported    = 0;
-        $skipped     = 0;
-        $errors      = [];
-        $rowNumber   = 1; // 1 = header; data rows start at 2
-
-        while (($row = fgetcsv($handle)) !== false) {
-            $rowNumber++;
-
-            // Skip entirely blank rows
-            if ($row === [null] || array_filter(array_map('trim', $row)) === []) {
-                continue;
-            }
-
-            $get = static function (string $col) use ($row, $headerMap): string {
-                $idx = $headerMap[$col] ?? null;
-                return $idx !== null && isset($row[$idx]) ? trim((string) $row[$idx]) : '';
-            };
-
-            $name    = $get('name');
-            $email   = $get('email');
-            $url     = $get('url');
-            $country = $get('country');
-            $rawPass = $get('password');
-
-            // Validate name
-            if ($name === '') {
-                $errors[] = ['row' => $rowNumber, 'email' => $email, 'reason' => 'Name is required.'];
-                continue;
-            }
-            if (strlen($name) > 255) {
-                $errors[] = ['row' => $rowNumber, 'email' => $email, 'reason' => 'Name exceeds 255 characters.'];
-                continue;
-            }
-
-            // Validate email
-            if ($email === '') {
-                $errors[] = ['row' => $rowNumber, 'email' => '(empty)', 'reason' => 'Email is required.'];
-                continue;
-            }
-            if (!filter_var($email, FILTER_VALIDATE_EMAIL) || strlen($email) > 255) {
-                $errors[] = ['row' => $rowNumber, 'email' => $email, 'reason' => 'Invalid email address.'];
-                continue;
-            }
-
-            // Duplicate check
-            if ($memberRepo->getByEmail($listing->dbprefix, $email) !== null) {
-                $skipped++;
-                continue;
-            }
-
-            // Build insert data
-            $password    = $rawPass !== '' ? $rawPass : bin2hex(random_bytes(8));
-            $insertData  = [
-                'name'     => $name,
-                'email'    => $email,
-                'url'      => $url,
-                'country'  => $country,
-                'showurl'  => $url !== '' ? 1 : 0,
-                'password' => password_hash($password, PASSWORD_ARGON2ID),
-                'added'    => date('Y-m-d H:i:s'),
-            ];
-
-            // Schema-specific status column
-            if ($prefix === '') {
-                $insertData['pending'] = 0; // immediately approved
-            } else {
-                $insertData['approved'] = 1;
-                $insertData['updated']  = date('Y-m-d H:i:s');
-            }
-
-            // Additional fields
-            foreach ($fields as $field) {
-                $colName              = ($prefix === '') ? $field->name : 'additional_' . $field->name;
-                $insertData[$colName] = $get($field->name);
-            }
-
-            try {
-                $memberRepo->insert($listing->dbprefix, $insertData);
-                $imported++;
-            } catch (\Throwable $e) {
-                $errors[] = ['row' => $rowNumber, 'email' => $email, 'reason' => 'Database error: ' . $e->getMessage()];
-            }
-        }
-
-        fclose($handle);
-
-        // Touch last_updated if anything was imported
-        if ($imported > 0) {
-            (new ListingSettingsRepo($db))->touchLastUpdated($listingId);
-        }
-
-        $activityRepo->log(
-            (int) $session->get('lstr_admin_id'),
-            'member.import',
-            "CSV import into listing #{$listingId}: {$imported} imported, {$skipped} skipped (duplicates), " . count($errors) . ' errors.',
-            $request->ip(),
-        );
-
-        return $this->adminLayout('admin/members/import.php', 'Import Members', 'members', [
-            'listing' => $listing,
-            'results' => [
-                'imported' => $imported,
-                'skipped'  => $skipped,
-                'errors'   => $errors,
-            ],
-            'error' => '',
-        ], '', $this->memberBreadcrumbs($listing));
-    }
-
-    // -----------------------------------------------------------------------
     // GET /admin/members/{id}/export
     // -----------------------------------------------------------------------
 
@@ -1302,6 +1017,10 @@ final class MemberController extends AdminController
         fputcsv($handle, ['Listing', 'Name', 'Email', 'Country', 'URL']);
 
         foreach ($all as $fl) {
+            if ($fl->dbprefix === '') {
+                continue;
+            }
+
             foreach ($memberRepo->getPending($fl->dbprefix) as $m) {
                 fputcsv($handle, [$fl->title, $m->name, $m->email, $m->country, $m->url]);
             }
@@ -1547,9 +1266,30 @@ final class MemberController extends AdminController
             return Response::redirect($redirectBack);
         }
 
+        $member = $listing !== null ? (new MemberRepo($db, $config))->getByEmail($listing->dbprefix, $toEmail) : null;
+
+        $search  = ['{fan_name}', '{fan_email}', '{fan_url}', '{fan_country}',
+                    '{listing_title}', '{listing_subject}', '{listing_url}',
+                    '{site_name}', '{owner_name}', '{owner_email}'];
+        $replace = [
+            $member ? $member->name    : '',
+            $toEmail,
+            $member ? $member->url     : '',
+            $member ? $member->country : '',
+            $listing ? $listing->title   : '',
+            $listing ? $listing->subject : '',
+            $listing ? $listing->url     : '',
+            (string) $config->get('site_name', 'Luster'),
+            (string) $config->get('owner_name', ''),
+            (string) $config->get('owner_email', ''),
+        ];
+
+        $finalSubject = str_replace($search, $replace, $subject);
+        $finalBody    = str_replace($search, $replace, $body);
+
         try {
             $mailer = new \Luster\Core\Mailer($config);
-            $mailer->send($toEmail, '', $subject, $body);
+            $mailer->send($toEmail, $member ? $member->name : '', $finalSubject, $finalBody);
             $session->set('lstr_flash_success', 'Email sent successfully!');
         } catch (\RuntimeException $e) {
             $session->set('lstr_flash_error', 'The email could not be sent. Check that Owner Email is set in Settings and that your server supports outgoing mail.');

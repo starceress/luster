@@ -18,6 +18,7 @@ use Luster\Core\View;
  *   $category_counts     array<string, int>
  *   $total_count         int
  *   $current_category    string       '' | 'all' | exact name
+ *   $view                string       '' | 'pending' — active pseudo-view
  *   $show_list           bool
  *   $browse_by_category  bool
  *   $uploads_url         string
@@ -42,6 +43,10 @@ $_renderItem = static function ($fl) use ($uploads_url): void {
 <div class="fl-embed fl-embed--joined">
 
   <?= $category_html ?? '' ?>
+
+  <?php if (($view ?? '') === 'pending'): ?>
+    <h2 class="fl-cat-heading">Pending Listings (<?= count($listings) ?>)</h2>
+  <?php endif; ?>
 
   <?php if ($current_category === 'all' && !empty($categories)): ?>
     <form method="GET" action="<?= View::e($form_action) ?>" class="fl-category-nav fl-category-dropdown fl-joined-nav">
@@ -73,7 +78,18 @@ $_renderItem = static function ($fl) use ($uploads_url): void {
 
   <?php if ($show_listings ?? true): ?>
 
-    <?php if (($listing_html ?? null) !== null && $listing_html !== ''): ?>
+    <?php if (($view ?? '') === 'pending'): ?>
+      <?php if (empty($listings)): ?>
+        <p class="fl-empty">No pending listings to display.</p>
+      <?php else: ?>
+        <ul class="fl-joined-list">
+          <?php foreach ($listings as $fl): ?>
+            <li class="fl-joined-item"><?php $_renderItem($fl); ?></li>
+          <?php endforeach; ?>
+        </ul>
+      <?php endif; ?>
+
+    <?php elseif (($listing_html ?? null) !== null && $listing_html !== ''): ?>
       <!-- joined_template output — fully self-contained, including its own wrapper markup -->
       <?= $listing_html ?>
 

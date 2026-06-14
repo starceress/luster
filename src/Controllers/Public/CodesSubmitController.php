@@ -90,9 +90,9 @@ final class CodesSubmitController
 
         $f = $this->app->getFormFieldBuilder()->build([
             ['type' => 'file',  'name' => 'code_image',      'id' => 'code-image',  'label' => 'Upload Code',         'required' => true,  'attrs' => ['accept' => 'image/jpeg,image/png,image/gif,image/webp']],
-            ['type' => 'text',  'name' => 'submitter_name',  'id' => 'sub-name',    'label' => 'Name (optional)',      'required' => false, 'value' => (string) ($old['submitter_name']  ?? ''), 'attrs' => ['maxlength' => '150', 'autocomplete' => 'name']],
+            ['type' => 'text',  'name' => 'submitter_name',  'id' => 'sub-name',    'label' => 'Name',      'required' => true, 'value' => (string) ($old['submitter_name']  ?? ''), 'attrs' => ['maxlength' => '150', 'autocomplete' => 'name']],
             ['type' => 'email', 'name' => 'submitter_email', 'id' => 'sub-email',   'label' => 'Email',               'required' => true,  'value' => (string) ($old['submitter_email'] ?? ''), 'attrs' => ['maxlength' => '255', 'autocomplete' => 'email'], 'hint' => 'Required — used only to notify you when your code is approved.'],
-            ['type' => 'url',   'name' => 'submitter_url',   'id' => 'sub-url',     'label' => 'Website (optional)',   'required' => false, 'value' => (string) ($old['submitter_url']   ?? ''), 'attrs' => ['maxlength' => '255', 'placeholder' => 'https://', 'autocomplete' => 'url'], 'hint' => 'Displayed as a link on your donated code.'],
+            ['type' => 'url',   'name' => 'submitter_url',   'id' => 'sub-url',     'label' => 'Website URL (optional)',   'required' => false, 'value' => (string) ($old['submitter_url']   ?? ''), 'attrs' => ['maxlength' => '255', 'placeholder' => 'https://', 'autocomplete' => 'url'], 'hint' => 'Displayed as a link on your donated code.'],
             ['type' => 'text',  'name' => 'captcha',         'id' => 'captcha',     'label' => 'Captcha: ' . $captchaQuestion, 'required' => true, 'attrs' => ['maxlength' => '10', 'autocomplete' => 'off']],
         ], $wrapperTpl);
 
@@ -121,6 +121,7 @@ final class CodesSubmitController
                     '{captcha_block_input}'         => $f['captcha_input'],
                     '{captcha_question}'            => View::e($captchaQuestion),
                     '{submit_button}'               => '<button type="submit" class="fl-submit">Submit Code</button>',
+                    '{clear_button}'                => '<button type="reset" class="fl-btn-secondary">Clear</button>',
                 ];
                 $innerHtml = FormTemplateRenderer::expandTokens($csFormTpl, $tokens);
                 $formHtml  = FormTemplateRenderer::wrapForm(

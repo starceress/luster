@@ -128,6 +128,7 @@ final class BulkEmailController extends AdminController
             $adminId,
             'bulk_email.send',
             "Sent bulk email to {$sent} member(s) across {$scope}. Subject: {$subject}",
+            $request->ip(),
         );
 
         return $this->adminLayout('admin/emails/result.php', 'Emails', 'emails', [

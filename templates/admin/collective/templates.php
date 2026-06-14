@@ -9,11 +9,15 @@ $d  = SiteSettingsRepo::collectiveDefaults();
 $ownedVal           = $ct['owned_template']                              ?: $d['owned_template'];
 $randomVal          = $ct['random_listing_template']                     ?: $d['random_listing_template'];
 $latestVal          = $ct['latest_listing_template']                     ?: $d['latest_listing_template'];
+$randomJoinedVal    = $ct['random_joined_listing_template']              ?: $d['random_joined_listing_template'];
+$latestJoinedVal    = $ct['latest_joined_listing_template']              ?: $d['latest_joined_listing_template'];
 $joinedVal          = $ct['joined_template']                             ?: $d['joined_template'];
 $affSectionVal      = $ct['collective_affiliates_section_template']      ?: $d['collective_affiliates_section_template'];
 $statsVal           = $ct['collective_stats_template']                   ?: $d['collective_stats_template'];
 $affApplyFormVal    = $ct['collective_affiliate_apply_form_template'] ?: $d['collective_affiliate_apply_form_template'];
 $kimSignupFormVal   = $ct['kim_signup_form_template']                   ?: $d['kim_signup_form_template'];
+$wishlistVal          = $ct['wishlist_template']                        ?: $d['wishlist_template'];
+$collectiveUpdatesVal = $ct['collective_updates_template']              ?: $d['collective_updates_template'];
 
 // Renders one clickable token row for the sidebar reference panel.
 $tok = static fn(string $ta, string $token, string $label, string $desc): string =>
@@ -31,8 +35,7 @@ $tok = static fn(string $ta, string $token, string $label, string $desc): string
     <a href="<?= $b ?>/admin/collective" class="link">&larr; Back to Collective</a>
   </div>
   <div class="actions-row actions-row--right">
-    <a href="<?= $b ?>/admin/collective/snippets" class="btn btn-quaternary btn-sm">Embed Snippets</a>
-    <a href="<?= $b ?>/admin/collective/settings" class="btn btn-quaternary btn-sm">Collective Settings</a>
+    <a href="<?= $b ?>/admin/collective/snippets" class="btn btn-quaternary btn-sm">Collective Specific Embed Snippets</a>
   </div>
 </div>
 
@@ -65,7 +68,7 @@ $tok = static fn(string $ta, string $token, string $label, string $desc): string
           <textarea name="owned_template" id="owned_template" class="form form-mono" spellcheck="false"><?= View::e($ownedVal) ?></textarea>
         </div>
         <div class="tpl-reset-row">
-          <button type="button" class="btn btn-secondary btn-xs coltpl-preview-btn" data-tpltype="owned" data-textarea="owned_template">Preview</button>
+          <button type="button" class="btn btn-preview btn-xs coltpl-preview-btn" data-tpltype="owned" data-textarea="owned_template"><?= View::icon('eye-on') ?> Preview</button> &nbsp; 
           <button type="button" class="btn btn-quaternary btn-xs" data-textarea="owned_template">Reset to Default</button>
         </div>
 
@@ -74,28 +77,48 @@ $tok = static fn(string $ta, string $token, string $label, string $desc): string
           <textarea name="joined_template" id="joined_template" class="form form-mono" spellcheck="false"><?= View::e($joinedVal) ?></textarea>
         </div>
         <div class="tpl-reset-row">
-          <button type="button" class="btn btn-secondary btn-xs coltpl-preview-btn" data-tpltype="joined" data-textarea="joined_template">Preview</button>
+          <button type="button" class="btn btn-preview btn-xs coltpl-preview-btn" data-tpltype="joined" data-textarea="joined_template"><?= View::icon('eye-on') ?> Preview</button> &nbsp; 
           <button type="button" class="btn btn-quaternary btn-xs" data-textarea="joined_template">Reset to Default</button>
         </div>
 
-        <div class="pc-section-label">Random Listing</div>
-        <p class="form-hint mb-sm">Used by the Random Listing embed. Styles one listing chosen at random from your active pool.</p>
+        <div class="pc-section-label">Random Owned</div>
+        <p class="form-hint mb-sm">Used by the Random Owned embed. Styles one listing chosen at random from your active pool.</p>
         <div class="form-group">
           <textarea name="random_listing_template" id="random_listing_template" class="form form-mono" spellcheck="false"><?= View::e($randomVal) ?></textarea>
         </div>
         <div class="tpl-reset-row">
-          <button type="button" class="btn btn-secondary btn-xs coltpl-preview-btn" data-tpltype="random" data-textarea="random_listing_template">Preview</button>
+          <button type="button" class="btn btn-preview btn-xs coltpl-preview-btn" data-tpltype="random" data-textarea="random_listing_template"><?= View::icon('eye-on') ?> Preview</button> &nbsp; 
           <button type="button" class="btn btn-quaternary btn-xs" data-textarea="random_listing_template">Reset to Default</button>
         </div>
 
-        <div class="pc-section-label">Latest Listing</div>
-        <p class="form-hint mb-sm">Used by the Latest Listing embed. Styles the most recently opened listing.</p>
+        <div class="pc-section-label">Latest Owned</div>
+        <p class="form-hint mb-sm">Used by the Latest Owned embed. Styles the most recently opened listing.</p>
         <div class="form-group">
           <textarea name="latest_listing_template" id="latest_listing_template" class="form form-mono" spellcheck="false"><?= View::e($latestVal) ?></textarea>
         </div>
         <div class="tpl-reset-row">
-          <button type="button" class="btn btn-secondary btn-xs coltpl-preview-btn" data-tpltype="latest" data-textarea="latest_listing_template">Preview</button>
+          <button type="button" class="btn btn-preview btn-xs coltpl-preview-btn" data-tpltype="latest" data-textarea="latest_listing_template"><?= View::icon('eye-on') ?> Preview</button> &nbsp;
           <button type="button" class="btn btn-quaternary btn-xs" data-textarea="latest_listing_template">Reset to Default</button>
+        </div>
+
+        <div class="pc-section-label">Random Joined</div>
+        <p class="form-hint mb-sm">Used by the Random Joined Listing embed. Styles one joined listing chosen at random from your active, approved pool.</p>
+        <div class="form-group">
+          <textarea name="random_joined_listing_template" id="random_joined_listing_template" class="form form-mono" spellcheck="false"><?= View::e($randomJoinedVal) ?></textarea>
+        </div>
+        <div class="tpl-reset-row">
+          <button type="button" class="btn btn-preview btn-xs coltpl-preview-btn" data-tpltype="random-joined" data-textarea="random_joined_listing_template"><?= View::icon('eye-on') ?> Preview</button> &nbsp;
+          <button type="button" class="btn btn-quaternary btn-xs" data-textarea="random_joined_listing_template">Reset to Default</button>
+        </div>
+
+        <div class="pc-section-label">Latest Joined</div>
+        <p class="form-hint mb-sm">Used by the Latest Joined Listing embed. Styles the most recently joined active, approved listing.</p>
+        <div class="form-group">
+          <textarea name="latest_joined_listing_template" id="latest_joined_listing_template" class="form form-mono" spellcheck="false"><?= View::e($latestJoinedVal) ?></textarea>
+        </div>
+        <div class="tpl-reset-row">
+          <button type="button" class="btn btn-preview btn-xs coltpl-preview-btn" data-tpltype="latest-joined" data-textarea="latest_joined_listing_template"><?= View::icon('eye-on') ?> Preview</button> &nbsp;
+          <button type="button" class="btn btn-quaternary btn-xs" data-textarea="latest_joined_listing_template">Reset to Default</button>
         </div>
 
         <div class="pc-section-label">Affiliates</div>
@@ -104,7 +127,7 @@ $tok = static fn(string $ta, string $token, string $label, string $desc): string
           <textarea name="collective_affiliates_section_template" id="collective_affiliates_section_template" class="form form-mono" spellcheck="false"><?= View::e($affSectionVal) ?></textarea>
         </div>
         <div class="tpl-reset-row">
-          <button type="button" class="btn btn-secondary btn-xs coltpl-preview-btn" data-tpltype="collective_affiliates_section" data-textarea="collective_affiliates_section_template">Preview</button>
+          <button type="button" class="btn btn-preview btn-xs coltpl-preview-btn" data-tpltype="collective_affiliates_section" data-textarea="collective_affiliates_section_template"><?= View::icon('eye-on') ?> Preview</button>
           <button type="button" class="btn btn-quaternary btn-xs" data-textarea="collective_affiliates_section_template">Reset to Default</button>
         </div>
 
@@ -113,7 +136,7 @@ $tok = static fn(string $ta, string $token, string $label, string $desc): string
           <textarea name="collective_stats_template" id="collective_stats_template" class="form form-mono" spellcheck="false"><?= View::e($statsVal) ?></textarea>
         </div>
         <div class="tpl-reset-row">
-          <button type="button" class="btn btn-secondary btn-xs coltpl-preview-btn" data-tpltype="collective_stats" data-textarea="collective_stats_template">Preview</button>
+          <button type="button" class="btn btn-preview btn-xs coltpl-preview-btn" data-tpltype="collective_stats" data-textarea="collective_stats_template"><?= View::icon('eye-on') ?> Preview</button> &nbsp; 
           <button type="button" class="btn btn-quaternary btn-xs" data-textarea="collective_stats_template">Reset to Default</button>
         </div>
 
@@ -123,7 +146,7 @@ $tok = static fn(string $ta, string $token, string $label, string $desc): string
           <textarea name="collective_affiliate_apply_form_template" id="collective_affiliate_apply_form_template" class="form form-mono" spellcheck="false"><?= View::e($affApplyFormVal) ?></textarea>
         </div>
         <div class="tpl-reset-row">
-          <button type="button" class="btn btn-secondary btn-xs coltpl-preview-btn" data-tpltype="collective_affiliate_apply_form" data-textarea="collective_affiliate_apply_form_template">Preview</button>
+          <button type="button" class="btn btn-preview btn-xs coltpl-preview-btn" data-tpltype="collective_affiliate_apply_form" data-textarea="collective_affiliate_apply_form_template"><?= View::icon('eye-on') ?> Preview</button> &nbsp; 
           <button type="button" class="btn btn-quaternary btn-xs" data-textarea="collective_affiliate_apply_form_template">Reset to Default</button>
         </div>
 
@@ -133,8 +156,28 @@ $tok = static fn(string $ta, string $token, string $label, string $desc): string
           <textarea name="kim_signup_form_template" id="kim_signup_form_template" class="form form-mono" spellcheck="false"><?= View::e($kimSignupFormVal) ?></textarea>
         </div>
         <div class="tpl-reset-row">
-          <button type="button" class="btn btn-secondary btn-xs coltpl-preview-btn" data-tpltype="kim_signup_form" data-textarea="kim_signup_form_template">Preview</button>
+          <button type="button" class="btn btn-preview btn-xs coltpl-preview-btn" data-tpltype="kim_signup_form" data-textarea="kim_signup_form_template"><?= View::icon('eye-on') ?> Preview</button> &nbsp; 
           <button type="button" class="btn btn-quaternary btn-xs" data-textarea="kim_signup_form_template">Reset to Default</button>
+        </div>
+
+        <div class="pc-section-label">Wishlist</div>
+        <p class="form-hint mb-sm">Used by the Wishlist embed. This template is self-contained — include your own wrapper element.</p>
+        <div class="form-group">
+          <textarea name="wishlist_template" id="wishlist_template" class="form form-mono" spellcheck="false"><?= View::e($wishlistVal) ?></textarea>
+        </div>
+        <div class="tpl-reset-row">
+          <button type="button" class="btn btn-preview btn-xs coltpl-preview-btn" data-tpltype="wishlist" data-textarea="wishlist_template"><?= View::icon('eye-on') ?> Preview</button> &nbsp; 
+          <button type="button" class="btn btn-quaternary btn-xs" data-textarea="wishlist_template">Reset to Default</button>
+        </div>
+
+        <div class="pc-section-label">Updates Feed</div>
+        <p class="form-hint mb-sm">Used by the collective Updates Feed embed. Wrap each post in <code>{each_update}&hellip;{/each_update}</code> — the outer wrapper and pagination are added automatically.</p>
+        <div class="form-group">
+          <textarea name="collective_updates_template" id="collective_updates_template" class="form form-mono" spellcheck="false"><?= View::e($collectiveUpdatesVal) ?></textarea>
+        </div>
+        <div class="tpl-reset-row">
+          <button type="button" class="btn btn-preview btn-xs coltpl-preview-btn" data-tpltype="collective_updates" data-textarea="collective_updates_template"><?= View::icon('eye-on') ?> Preview</button> &nbsp; 
+          <button type="button" class="btn btn-quaternary btn-xs" data-textarea="collective_updates_template">Reset to Default</button>
         </div>
 
       </div>
@@ -146,7 +189,7 @@ $tok = static fn(string $ta, string $token, string $label, string $desc): string
     </div>
 
     <!-- ── Right column: token reference ─────────────────────────────────── -->
-    <div class="composer-side">
+    <div class="composer-side composer-side--sticky">
 
       <div class="search-field-wrap token-search-wrap">
         <?= View::icon('search', ['class' => 'search-field-icon', 'aria-hidden' => 'true']) ?>
@@ -291,6 +334,44 @@ $tok = static fn(string $ta, string $token, string $label, string $desc): string
         </div>
       </details>
 
+      <!-- ── Random Joined Listing ──────────────────── -->
+      <details class="card chevron" data-token-card>
+        <summary class="chevron-head">Random Joined Listing Tokens</summary>
+        <div class="chevron-body">
+          <p class="form-hint mb-sm" data-token-search-help>Always renders one joined listing. Wrap your row design in {each_joined}...{/each_joined} — it is required for tokens to be replaced.</p>
+          <table class="et-token-table et-token-table--compact"><tbody>
+            <?= $tok('random_joined_listing_template', '{each_joined}{/each_joined}', '{each_joined}...{/each_joined}', 'Wrap your row design inside this. Required for token replacement.') ?>
+            <?= $tok('random_joined_listing_template', '{listing_title}',      '{listing_title}',      'The joined fanlisting display name.') ?>
+            <?= $tok('random_joined_listing_template', '{listing_url}',        '{listing_url}',        'The link to the joined fanlisting.') ?>
+            <?= $tok('random_joined_listing_template', '{listing_category}',   '{listing_category}',   'The category saved for this joined listing.') ?>
+            <?= $tok('random_joined_listing_template', '{listing_image_url}',  '{listing_image_url}',  'The image URL. Empty when there is no image.') ?>
+            <?= $tok('random_joined_listing_template', '{listing_image_html}', '{listing_image_html}', 'A ready-made img tag. Empty when there is no image.') ?>
+            <?= $tok('random_joined_listing_template', '{listing_status}',     '{listing_status}',     'The joined listing status.') ?>
+            <?= $tok('random_joined_listing_template', '{date_joined}',        '{date_joined}',        'The date you added this joined listing.') ?>
+            <?= $tok('random_joined_listing_template', '{if_listing_image}{/if_listing_image}', '{if_listing_image}...{/if_listing_image}', 'Shows only when the joined listing has an image.') ?>
+          </tbody></table>
+        </div>
+      </details>
+
+      <!-- ── Latest Joined Listing ──────────────────── -->
+      <details class="card chevron" data-token-card>
+        <summary class="chevron-head">Latest Joined Listing Tokens</summary>
+        <div class="chevron-body">
+          <p class="form-hint mb-sm" data-token-search-help>Always renders one joined listing. Wrap your row design in {each_joined}...{/each_joined} — it is required for tokens to be replaced.</p>
+          <table class="et-token-table et-token-table--compact"><tbody>
+            <?= $tok('latest_joined_listing_template', '{each_joined}{/each_joined}', '{each_joined}...{/each_joined}', 'Wrap your row design inside this. Required for token replacement.') ?>
+            <?= $tok('latest_joined_listing_template', '{listing_title}',      '{listing_title}',      'The joined fanlisting display name.') ?>
+            <?= $tok('latest_joined_listing_template', '{listing_url}',        '{listing_url}',        'The link to the joined fanlisting.') ?>
+            <?= $tok('latest_joined_listing_template', '{listing_category}',   '{listing_category}',   'The category saved for this joined listing.') ?>
+            <?= $tok('latest_joined_listing_template', '{listing_image_url}',  '{listing_image_url}',  'The image URL. Empty when there is no image.') ?>
+            <?= $tok('latest_joined_listing_template', '{listing_image_html}', '{listing_image_html}', 'A ready-made img tag. Empty when there is no image.') ?>
+            <?= $tok('latest_joined_listing_template', '{listing_status}',     '{listing_status}',     'The joined listing status.') ?>
+            <?= $tok('latest_joined_listing_template', '{date_joined}',        '{date_joined}',        'The date you joined this listing.') ?>
+            <?= $tok('latest_joined_listing_template', '{if_listing_image}{/if_listing_image}', '{if_listing_image}...{/if_listing_image}', 'Shows only when the joined listing has an image.') ?>
+          </tbody></table>
+        </div>
+      </details>
+
       <!-- ── Affiliates Section ─────────────────────── -->
       <details class="card chevron" data-token-card>
         <summary class="chevron-head">Affiliates Section Tokens</summary>
@@ -358,6 +439,7 @@ $tok = static fn(string $ta, string $token, string $label, string $desc): string
             <?= $tok('collective_affiliate_apply_form_template', '{captcha_block_input}', '{captcha_block_input}', 'Just the captcha text input element.') ?>
             <?= $tok('collective_affiliate_apply_form_template', '{captcha_question}',    '{captcha_question}',    'The arithmetic question text only (e.g. "2 + 3").') ?>
             <?= $tok('collective_affiliate_apply_form_template', '{submit_button}',       '{submit_button}',       'The submit button.') ?>
+            <?= $tok('collective_affiliate_apply_form_template', '{clear_button}',        '{clear_button}',        'A reset button that clears the form.') ?>
           </tbody></table>
         </div>
       </details>
@@ -392,6 +474,57 @@ $tok = static fn(string $ta, string $token, string $label, string $desc): string
         </div>
       </details>
 
+      <!-- ── Wishlist ───────────────────────────────── -->
+      <details class="card chevron" data-token-card>
+        <summary class="chevron-head">Wishlist Tokens</summary>
+        <div class="chevron-body">
+          <p class="form-hint mb-sm" data-token-search-help>Wrap your row design in {each_wishlist_item}...{/each_wishlist_item}. This template is self-contained — include your own wrapper element.</p>
+          <table class="et-token-table et-token-table--compact"><tbody>
+            <?= $tok('wishlist_template', '{each_wishlist_item}{/each_wishlist_item}', '{each_wishlist_item}...{/each_wishlist_item}', 'Repeats the HTML inside it once for each active wishlist entry.') ?>
+            <?= $tok('wishlist_template', '{item_subject}',     '{item_subject}',     'The wishlist item title.') ?>
+            <?= $tok('wishlist_template', '{item_url}',         '{item_url}',         'The link for this item. Empty when none is set.') ?>
+            <?= $tok('wishlist_template', '{item_type}',        '{item_type}',        'The raw item type: wanted, top, or granted.') ?>
+            <?= $tok('wishlist_template', '{item_type_label}',  '{item_type_label}',  'The human-readable type label: Wanted, Top Wanted, or Granted.') ?>
+            <?= $tok('wishlist_template', '{item_category}',    '{item_category}',    'The category for this item. Empty when none is set.') ?>
+            <?= $tok('wishlist_template', '{item_description}', '{item_description}','The description for this item. Empty when none is set.') ?>
+            <?= $tok('wishlist_template', '{item_image_url}',   '{item_image_url}',   'The image URL for this item. Empty when there is no image.') ?>
+            <?= $tok('wishlist_template', '{if_item_image}{/if_item_image}',             '{if_item_image}...{/if_item_image}',             'Shows only when this item has an image.') ?>
+            <?= $tok('wishlist_template', '{if_item_url}{/if_item_url}',                 '{if_item_url}...{/if_item_url}',                 'Shows only when this item has a link.') ?>
+            <?= $tok('wishlist_template', '{if_no_item_url}{/if_no_item_url}',           '{if_no_item_url}...{/if_no_item_url}',           'Shows only when this item has no link.') ?>
+            <?= $tok('wishlist_template', '{if_item_category}{/if_item_category}',       '{if_item_category}...{/if_item_category}',       'Shows only when this item has a category.') ?>
+            <?= $tok('wishlist_template', '{if_item_description}{/if_item_description}', '{if_item_description}...{/if_item_description}', 'Shows only when this item has a description.') ?>
+            <?= $tok('wishlist_template', '{if_type_top}{/if_type_top}',         '{if_type_top}...{/if_type_top}',         'Shows only when this item\'s type is Top Wanted.') ?>
+            <?= $tok('wishlist_template', '{if_type_wanted}{/if_type_wanted}',   '{if_type_wanted}...{/if_type_wanted}',   'Shows only when this item\'s type is Wanted.') ?>
+            <?= $tok('wishlist_template', '{if_type_granted}{/if_type_granted}', '{if_type_granted}...{/if_type_granted}', 'Shows only when this item\'s type is Granted.') ?>
+            <?= $tok('wishlist_template', '{each_wishlist_item_top}{/each_wishlist_item_top}',         '{each_wishlist_item_top}...{/each_wishlist_item_top}',         'Repeats the HTML inside it once for each Top Wanted entry on this page (same per-item tokens as above). Use to build a separate section for this group.') ?>
+            <?= $tok('wishlist_template', '{each_wishlist_item_wanted}{/each_wishlist_item_wanted}',   '{each_wishlist_item_wanted}...{/each_wishlist_item_wanted}',   'Repeats the HTML inside it once for each Wanted entry on this page.') ?>
+            <?= $tok('wishlist_template', '{each_wishlist_item_granted}{/each_wishlist_item_granted}', '{each_wishlist_item_granted}...{/each_wishlist_item_granted}', 'Repeats the HTML inside it once for each Granted entry on this page.') ?>
+            <?= $tok('wishlist_template', '{if_has_top}{/if_has_top}',         '{if_has_top}...{/if_has_top}',         'Shows only when this page has at least one Top Wanted entry. Wrap a heading + {each_wishlist_item_top} block in this to build a conditional section.') ?>
+            <?= $tok('wishlist_template', '{if_has_wanted}{/if_has_wanted}',   '{if_has_wanted}...{/if_has_wanted}',   'Shows only when this page has at least one Wanted entry.') ?>
+            <?= $tok('wishlist_template', '{if_has_granted}{/if_has_granted}', '{if_has_granted}...{/if_has_granted}', 'Shows only when this page has at least one Granted entry.') ?>
+          </tbody></table>
+        </div>
+      </details>
+
+      <!-- ── Updates Feed ───────────────────────────── -->
+      <details class="card chevron" data-token-card>
+        <summary class="chevron-head">Updates Feed Tokens</summary>
+        <div class="chevron-body">
+          <p class="form-hint mb-sm" data-token-search-help>Wrap each post in {each_update}...{/each_update}. Luster repeats it once per update entry and adds the wrapper and pagination automatically.</p>
+          <table class="et-token-table et-token-table--compact"><tbody>
+            <?= $tok('collective_updates_template', '{each_update}{/each_update}', '{each_update}...{/each_update}', 'Repeats the HTML inside it once for each update post shown.') ?>
+            <?= $tok('collective_updates_template', '{update_title}',      '{update_title}',      'The update post title.') ?>
+            <?= $tok('collective_updates_template', '{update_date}',       '{update_date}',       'The posted date in human-readable format, e.g. June 1, 2025.') ?>
+            <?= $tok('collective_updates_template', '{update_date_raw}',   '{update_date_raw}',   'The posted date in YYYY-MM-DD format.') ?>
+            <?= $tok('collective_updates_template', '{update_author}',     '{update_author}',     'The author name. Empty when not set.') ?>
+            <?= $tok('collective_updates_template', '{update_categories}', '{update_categories}', 'Category names, comma-separated. Empty when not set.') ?>
+            <?= $tok('collective_updates_template', '{update_body_html}',  '{update_body_html}',  'The update body text, with line breaks converted to HTML.') ?>
+            <?= $tok('collective_updates_template', '{if_author}{/if_author}',         '{if_author}...{/if_author}',         'Shows only when the update has an author set.') ?>
+            <?= $tok('collective_updates_template', '{if_categories}{/if_categories}', '{if_categories}...{/if_categories}', 'Shows only when the update has categories set.') ?>
+          </tbody></table>
+        </div>
+      </details>
+
     </div><!-- /.composer-side -->
   </div><!-- /.composer-grid -->
 </form>
@@ -415,7 +548,7 @@ $tok = static fn(string $ta, string $token, string $label, string $desc): string
       </div>
     </div>
     <div class="modal-body--iframe">
-      <iframe id="coltpl-prev-iframe" title="Template preview" sandbox="allow-same-origin allow-scripts"></iframe>
+      <iframe id="coltpl-prev-iframe" title="Template preview" sandbox=""></iframe>
     </div>
   </div>
 </div>

@@ -377,7 +377,7 @@ $rangeEnd   = min($total, $page * $per_page);
             <?php if ($msg !== ''): ?>
               <?php if (mb_strlen($msg) > 80): ?>
                 <?php $msgHead = mb_strimwidth($msg, 0, 80, ''); $msgTail = mb_substr($msg, 80); ?>
-                <?= View::e($msgHead) ?><span class="msg-ellipsis">&hellip; <button type="button" class="link msg-read-more">Read more &rarr;</button></span><span class="msg-tail" hidden><?= nl2br(View::e($msgTail)) ?> <button type="button" class="link msg-collapse">Collapse</button></span>
+                <?= View::e($msgHead) ?><span class="msg-ellipsis">&hellip; <button type="button" class="link msg-read-more">Read more &rarr;</button></span><span class="msg-tail" hidden><?= nl2br(View::e($msgTail)) ?><br><button type="button" class="link msg-collapse">&larr; Collapse</button></span>
               <?php else: ?>
                 <?= nl2br(View::e($msg)) ?>
               <?php endif; ?>
@@ -386,7 +386,7 @@ $rangeEnd   = min($total, $page * $per_page);
             <?php endif; ?>
           </td>
           <td class="text-dim nowrap" data-label="Submitted">
-            <?= $aff->createdAt !== '' ? View::e(date('Y-m-d', strtotime($aff->createdAt))) : '&mdash;' ?>
+            <?= $aff->createdAt !== '' ? View::e(date($admin_date_format, strtotime($aff->createdAt))) : '&mdash;' ?>
           </td>
           <?php endif; ?>
 

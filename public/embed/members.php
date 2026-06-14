@@ -21,7 +21,7 @@ use Luster\Support\ListingTemplateResolver;
  * Optional variables:
  *   $luster_per_page    int   Members per page. Overrides the config per_page value.
  *                             Default: reads config per_page (typically 50).
- *   $luster_sort_by     string  Force a default sort: 'name' or 'country'.
+ *   $luster_sort_by     string  Force a default sort: 'name', 'country', or 'added'.
  *                             When set, $_GET['sort'] is ignored unless you also
  *                             want visitors to be able to switch — omit this variable
  *                             if you want the user-facing sort links to work normally.
@@ -94,12 +94,9 @@ $_lusterFields    = $_lusterFieldRepo->getFieldsForListing($_lusterListingId);
 
 $_lusterBaseUrl     = $_lusterApp->getBaseUrl();
 
-// Allow the embedding page to override the base URL used for sort/pagination
-// links so they point back to the external page rather than Luster's own route.
-//   $luster_members_base = strtok($_SERVER['REQUEST_URI'] ?? '', '?') ?: '';
-$_lusterMembersBase = (isset($luster_members_base) && (string) $luster_members_base !== '')
-    ? (string) $luster_members_base
-    : $_lusterBaseUrl . '/members/' . $_lusterListingId;
+// Sort and pagination links always point back to the host page that
+// includes this embed, so visitors never leave it when paging or sorting.
+$_lusterMembersBase = strtok($_SERVER['REQUEST_URI'] ?? '', '?') ?: '/';
 
 // $luster_per_page — override config value when set
 $_lusterPerPage = (isset($luster_per_page) && (int) $luster_per_page > 0)

@@ -418,8 +418,8 @@ $_lusterE = static fn(string $v): string =>
 
 ob_start();
 ?>
-<div class="fl-collective-stats">
-  <dl class="fl-stats-grid">
+<div class="fl-cstats">
+  <dl class="fl-cstats-grid">
     <dt>Owned listings</dt>
     <dd><?= $luster_owned_active ?> open<?= $luster_owned_upcoming > 0 ? ', ' . $luster_owned_upcoming . ' upcoming' : '' ?></dd>
 
@@ -434,7 +434,7 @@ ob_start();
   </dl>
 
   <?php if (!empty($_lusterOwnedNewest)): ?>
-  <div class="fl-newest-owned">
+  <div class="fl-cstats-newest">
     <h3>Newest Listings</h3>
     <ul>
       <?php foreach ($_lusterOwnedNewest as $_lusterListing): ?>
@@ -450,7 +450,7 @@ ob_start();
   <?php endif; ?>
 
   <?php if ($_lusterOwnedRandom !== null): ?>
-  <div class="fl-random-owned">
+  <div class="fl-cstats-random">
     <h3>Featured Listing</h3>
     <p>
       <a href="<?= $_lusterE($_lusterOwnedRandom->url) ?>"><?= $_lusterE($_lusterOwnedRandom->title) ?></a>
@@ -462,7 +462,7 @@ ob_start();
   <?php endif; ?>
 
   <?php if (!empty($_lusterCategories)): ?>
-  <div class="fl-categories">
+  <div class="fl-cstats-categories">
     <h3>Categories</h3>
     <ul>
       <?php foreach ($_lusterCategories as $_lusterCat): ?>

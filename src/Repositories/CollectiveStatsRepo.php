@@ -285,10 +285,12 @@ final class CollectiveStatsRepo
     // -----------------------------------------------------------------------
 
     /**
-     * Returns the N most recently added active owned listings.
+     * Returns the N most recently opened active owned listings.
      *
-     * Sorted by opened date descending when available, then by primary key
-     * descending as a fallback (insertion order).
+     * Sorted by opened date descending (NULLs sort last), then by primary key
+     * descending as a tiebreaker/fallback (insertion order). If the `opened`
+     * column is absent (raw pre-migration Enthusiast install), falls back to
+     * plain primary-key order via a caught PDOException.
      *
      * @return Listing[]
      */
@@ -304,14 +306,25 @@ final class CollectiveStatsRepo
             $activeWhere = 'upcoming = 0 AND trouble = 0';
         }
 
-        $stmt = $this->db->prepare(
-            "SELECT * FROM {$this->ownedTable}
-             WHERE {$activeWhere}
-             ORDER BY {$this->ownedPk} DESC
-             LIMIT :n"
-        );
-        $stmt->bindValue(':n', $n, \PDO::PARAM_INT);
-        $stmt->execute();
+        try {
+            $stmt = $this->db->prepare(
+                "SELECT * FROM {$this->ownedTable}
+                 WHERE {$activeWhere}
+                 ORDER BY opened DESC, {$this->ownedPk} DESC
+                 LIMIT :n"
+            );
+            $stmt->bindValue(':n', $n, \PDO::PARAM_INT);
+            $stmt->execute();
+        } catch (\PDOException) {
+            $stmt = $this->db->prepare(
+                "SELECT * FROM {$this->ownedTable}
+                 WHERE {$activeWhere}
+                 ORDER BY {$this->ownedPk} DESC
+                 LIMIT :n"
+            );
+            $stmt->bindValue(':n', $n, \PDO::PARAM_INT);
+            $stmt->execute();
+        }
 
         return array_map(
             static fn(array $row) => Listing::fromRow($row),

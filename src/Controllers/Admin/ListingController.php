@@ -27,6 +27,9 @@ use Luster\Repositories\SiteSettingsRepo;
 use Luster\Support\FormTemplateRenderer;
 use Luster\Support\ListingTemplateResolver;
 use Luster\Support\MemberStatsService;
+use Luster\Support\MembersTemplateRenderer;
+use Luster\Support\RulesBodyRenderer;
+use Luster\Support\SampleTemplateData;
 
 /**
  * Manages the listing list and per-listing settings.
@@ -463,7 +466,6 @@ final class ListingController extends AdminController
             $newId,
             'join.php',          // form_url_join
             'update.php',        // form_url_update
-            'remove.php',        // form_url_remove
             'reset.php',         // form_url_reset
             'codes-submit.php',  // form_url_codes_submit
             true,                // codes_submit_enabled
@@ -1438,42 +1440,27 @@ final class ListingController extends AdminController
         $listingRepo = new ListingRepo($db, $config);
         $listing     = $listingRepo->getById($id);
 
-        $wrap = function (string $content) use ($appUrl): Response {
-            $cssUrl = htmlspecialchars(
-                $appUrl . '/assets/css/default/style.css',
-                ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8',
-            );
-            return Response::html(
-                '<!DOCTYPE html><html lang="en"><head>'
-                . '<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">'
-                . '<link rel="stylesheet" href="' . $cssUrl . '?v=' . filemtime(
-                    rtrim(LUSTER_BASE, '/') . '/public/assets/css/default/style.css'
-                ) . '">'
-                . '<style>body{padding:1rem;background:#fff;font-family:sans-serif;font-size:14px}</style>'
-                . '</head><body>' . $content . '</body></html>'
-            );
-        };
-
         if ($listing === null) {
-            return $wrap('<p style="color:#c00">Listing not found.</p>');
+            return $this->previewWrap('<p style="color:#c00">Listing not found.</p>', $appUrl);
         }
 
-        $allowed    = ['members', 'affiliates_section', 'stats', 'updates', 'codes_submit_form', 'rules_intro', 'join_form', 'affiliate_apply_form', 'adopt_form'];
+        $allowed    = ['members', 'affiliates_section', 'stats', 'updates', 'codes_submit_form', 'rules_intro', 'rules', 'join_form', 'affiliate_apply_form', 'adopt_form'];
         $introTypes = ['rules_intro'];
         if (!in_array($type, $allowed, true)) {
-            return $wrap('<p style="color:#c00">Unknown template type.</p>');
+            return $this->previewWrap('<p style="color:#c00">Unknown template type.</p>', $appUrl);
         }
         if ($tpl === '' && !in_array($type, $introTypes, true)) {
-            return $wrap('<p style="color:#c00">Template is empty.</p>');
+            return $this->previewWrap('<p style="color:#c00">Template is empty.</p>', $appUrl);
         }
 
         try {
             $uploadsBase = $appUrl . '/uploads';
             $html = match ($type) {
                 'members'            => $this->ltplPreviewMembers($tpl, $listing, $db, $config, $uploadsBase . '/members'),
-                'affiliates_section' => $this->ltplPreviewAffiliates($tpl, $listing, $db, $uploadsBase . '/affiliates'),
+                'affiliates_section' => $this->ltplPreviewAffiliates($tpl, $listing, $db, $uploadsBase . '/affiliates', $appUrl),
                 'stats'              => $this->ltplPreviewStats($tpl, $listing, $db, $config),
                 'updates'            => $this->ltplPreviewUpdates($tpl, $listing, $db),
+                'rules'              => $this->ltplPreviewRules($tpl, $listing, trim((string) $request->post('gate_label', ''))),
                 'join_form'           => $this->ltplPreviewJoinForm($tpl, $listing),
                 'codes_submit_form'  => $this->ltplPreviewCodesSubmitForm($tpl, $listing),
                 'affiliate_apply_form' => $this->ltplPreviewAffiliateApplyForm($tpl, $listing),
@@ -1485,7 +1472,42 @@ final class ListingController extends AdminController
                   . htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '</p>';
         }
 
-        return $wrap($html);
+        return $this->previewWrap($html, $appUrl);
+    }
+
+    /**
+     * Wraps a preview fragment in a minimal standalone HTML document, loading
+     * the public default stylesheet so previews look like the real public page.
+     * Shared by templatesPreview() (per-listing) and globalTemplatesPreview().
+     */
+    private function previewWrap(string $content, string $appUrl): Response
+    {
+        $cssUrl = htmlspecialchars(
+            $appUrl . '/assets/css/default/style.css',
+            ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8',
+        );
+        return Response::html(
+            '<!DOCTYPE html><html lang="en"><head>'
+            . '<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">'
+            . '<link rel="stylesheet" href="' . $cssUrl . '?v=' . filemtime(
+                rtrim(LUSTER_BASE, '/') . '/public/assets/css/default/style.css'
+            ) . '">'
+            . '<style>body{padding:1rem;background:#fff;font-family:sans-serif;font-size:14px}</style>'
+            . '</head><body>' . $content . '</body></html>'
+        );
+    }
+
+    /**
+     * Renders a small section divider used by globalTemplatesPreview() to
+     * separate "Sample Data" and "Empty State" renders within one preview.
+     */
+    private function previewSectionLabel(string $label): string
+    {
+        return '<div style="margin:1.5rem 0 .5rem;padding:.35rem .6rem;background:#eef1f8;'
+            . 'border-left:3px solid #889bd6;font:600 .75rem sans-serif;color:#445;'
+            . 'text-transform:uppercase;letter-spacing:.04em">'
+            . htmlspecialchars($label, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8')
+            . '</div>';
     }
 
     private function ltplPreviewMembers(string $tpl, object $listing, \Luster\Core\Database $db, \Luster\Core\Config $config, string $uploadsUrl): string
@@ -1494,73 +1516,35 @@ final class ListingController extends AdminController
         if ($prefix === '') {
             return '<p style="font-style:italic;color:#888">No member table configured for this listing.</p>';
         }
-        $memberRepo = new MemberRepo($db, $config);
-        $members    = $memberRepo->paginateByStatus($prefix, 'approved', 1, 10)['members'];
 
-        if (empty($members)) {
-            // If the template uses the new-style engine, render the empty state properly
-            if (str_contains($tpl, '{if_no_members}')) {
-                $result = preg_replace('/\{each_member\}.*?\{\/each_member\}/s', '', $tpl) ?? $tpl;
-                $result = preg_replace('/\{if_members\}.*?\{\/if_members\}/s', '', $result) ?? $result;
-                $result = str_replace(['{if_no_members}', '{/if_no_members}'], '', $result);
-                $joinUrl = htmlspecialchars($listing->url ?? '#', ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
-                return str_replace(
-                    ['{join_url}', '{member_count}', '{stats_line}', '{sort_link_all}', '{sort_link_name}', '{sort_link_country}'],
-                    [$joinUrl, '0', '0 member(s)',
-                     '<strong aria-current="page" class="fl-member-sort-link">View All</strong>',
-                     '<a class="fl-member-sort-link" href="#">Name</a>',
-                     '<a class="fl-member-sort-link" href="#">Country</a>'],
-                    $result,
-                );
-            }
+        $fieldRepo = new FieldRepo($db, $config);
+        $fields    = $fieldRepo->getFieldsForListing((int) $listing->id);
+
+        $memberRepo = new MemberRepo($db, $config);
+        $page       = $memberRepo->paginateByStatus($prefix, 'approved', 1, 10);
+        $members    = $page['members'];
+        $total      = $page['total'];
+
+        $result = MembersTemplateRenderer::render(
+            $tpl,
+            $members,
+            $fields,
+            (string) ($listing->url ?? '#'),
+            $total,
+            $total . ' member(s)',
+            '<strong aria-current="page" class="fl-member-sort-link">View All</strong>',
+            '<a class="fl-member-sort-link" href="#">Name</a>',
+            '<a class="fl-member-sort-link" href="#">Country</a>',
+        );
+
+        if (trim($result) === '' && empty($members)) {
             return '<p style="font-style:italic;color:#888">No approved members for this listing yet.</p>';
         }
-
-        $e = static fn(string $v): string => htmlspecialchars($v, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
-
-        $renderRow = static function (string $inner, object $m) use ($e): string {
-            return TemplateEngine::render(
-                $inner,
-                escaped: [
-                    'fan_name'    => $m->name,
-                    'fan_email'   => $m->email ?? '',
-                    'fan_url'     => $m->url    ?? '',
-                    'fan_country' => $m->country ?? '',
-                ],
-                conditions: [
-                    'fan_url'        => !empty($m->url),
-                    'no_fan_url'     => empty($m->url),
-                    'fan_country'    => !empty($m->country),
-                ],
-            );
-        };
-
-        $total  = count($members);
-        $result = TemplateEngine::loop($tpl, 'member', $members, $renderRow);
-
-        // Process page-level conditionals ({if_members}/{if_no_members}) and tokens
-        $result = preg_replace('/\{if_no_members\}.*?\{\/if_no_members\}/s', '', $result) ?? $result;
-        $result = str_replace(['{if_members}', '{/if_members}'], '', $result);
-        $result = str_replace(
-            [
-                '{join_url}', '{member_count}', '{stats_line}',
-                '{sort_link_all}', '{sort_link_name}', '{sort_link_country}',
-            ],
-            [
-                htmlspecialchars($listing->url ?? '#', ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),
-                (string) $total,
-                $total . ' member(s)',
-                '<strong aria-current="page" class="fl-member-sort-link">View All</strong>',
-                '<a class="fl-member-sort-link" href="#">Name</a>',
-                '<a class="fl-member-sort-link" href="#">Country</a>',
-            ],
-            $result,
-        );
 
         return $result;
     }
 
-    private function ltplPreviewAffiliates(string $tpl, object $listing, \Luster\Core\Database $db, string $uploadsUrl): string
+    private function ltplPreviewAffiliates(string $tpl, object $listing, \Luster\Core\Database $db, string $uploadsUrl, string $appUrl): string
     {
         $affiliateRepo = new AffiliateRepo($db);
         $affiliates    = $affiliateRepo->getByListing((int) $listing->id)['items'];
@@ -1569,6 +1553,19 @@ final class ListingController extends AdminController
             return '<p style="font-style:italic;color:#888">No affiliates for this listing yet.</p>';
         }
 
+        $affiliateApplyUrl = $appUrl . '/affiliate-apply/' . (int) $listing->id;
+        return self::renderAffiliatesSection($tpl, $affiliates, $uploadsUrl, $affiliateApplyUrl);
+    }
+
+    /**
+     * Renders the affiliates_section_template against a set of affiliates.
+     * Shared by ltplPreviewAffiliates() (real listing data) and
+     * gtplPreviewAffiliates() (sample/empty data, listing-independent).
+     *
+     * @param \Luster\Models\Affiliate[] $affiliates
+     */
+    private static function renderAffiliatesSection(string $tpl, array $affiliates, string $uploadsUrl, string $affiliateApplyUrl = ''): string
+    {
         $e = static fn(string $v): string => htmlspecialchars($v, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 
         // Handle {each_affiliate}...{/each_affiliate} inline loop
@@ -1619,8 +1616,8 @@ final class ListingController extends AdminController
         }
 
         return str_replace(
-            ['{affiliates}', '{affiliates_count}', '{affiliates_list}'],
-            [$rows, (string) $count, $plainList],
+            ['{affiliates}', '{affiliates_count}', '{affiliates_list}', '{affiliate_apply_url}'],
+            [$rows, (string) $count, $plainList, $e($affiliateApplyUrl)],
             $tpl,
         );
     }
@@ -1637,14 +1634,11 @@ final class ListingController extends AdminController
         $countries  = $prefix !== '' ? $memberRepo->countUniqueCountries($prefix) : 0;
         $newest     = $prefix !== '' ? $memberRepo->getNewestMembers($prefix, 5) : [];
 
-        $e = static fn(string $v): string => htmlspecialchars($v, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
-
-        $newestEscaped = array_map($e, $newest);
-        $newestOxford  = match (count($newestEscaped)) {
+        $newestOxford = match (count($newest)) {
             0       => '',
-            1       => $newestEscaped[0],
-            2       => $newestEscaped[0] . ' and ' . $newestEscaped[1],
-            default => implode(', ', array_slice($newestEscaped, 0, -1)) . ', and ' . end($newestEscaped),
+            1       => $newest[0],
+            2       => $newest[0] . ' and ' . $newest[1],
+            default => implode(', ', array_slice($newest, 0, -1)) . ', and ' . end($newest),
         };
         $newestLabel = count($newest) === 1 ? 'Member' : 'Members';
 
@@ -1658,27 +1652,38 @@ final class ListingController extends AdminController
             default => '',
         };
 
-        $rendered = TemplateEngine::render(
-            $tpl,
-            escaped: [
-                'stat_opened'            => $listing->opened ?? '',
-                'stat_updated'           => '',
-                'stat_last_updated'      => $lastUpdatedStr,
-                'stat_approved'          => (string) $approved,
-                'stat_pending'           => (string) $pending,
-                'stat_countries'         => (string) $countries,
-                'stat_newmembers'        => implode(', ', $newestEscaped),
-                'stat_newmembers_oxford' => $newestOxford,
-                'stat_newmembers_label'  => $newestLabel,
-                'stat_growth'            => '0.00 members/day',
-                'listing_title'          => $listing->title,
-                'listing_url'            => $listing->url,
-            ],
-            conditions: [
-                'approved_by'  => $approvedBy !== '',
-                'stat_pending' => $pending > 0,
-            ],
-        );
+        $values = [
+            'stat_opened'            => $listing->opened ?? '',
+            'stat_updated'           => '',
+            'stat_last_updated'      => $lastUpdatedStr,
+            'stat_approved'          => (string) $approved,
+            'stat_pending'           => (string) $pending,
+            'stat_countries'         => (string) $countries,
+            'stat_newmembers'        => implode(', ', $newest),
+            'stat_newmembers_oxford' => $newestOxford,
+            'stat_newmembers_label'  => $newestLabel,
+            'stat_growth'            => '0.00 members/day',
+            'listing_title'          => $listing->title,
+            'listing_url'            => $listing->url,
+        ];
+        $conditions = [
+            'approved_by'  => $approvedBy !== '',
+            'stat_pending' => $pending > 0,
+        ];
+        return self::renderStatsTemplate($tpl, $values, $conditions, $networkLink);
+    }
+
+    /**
+     * Renders the stats_template against a set of token values, conditions, and an
+     * approved-by network link. Shared by ltplPreviewStats() (real listing data) and
+     * gtplPreviewStats() (sample/empty data, listing-independent).
+     *
+     * @param array<string, string> $values
+     * @param array<string, bool>   $conditions
+     */
+    private static function renderStatsTemplate(string $tpl, array $values, array $conditions, string $networkLink): string
+    {
+        $rendered = TemplateEngine::render($tpl, escaped: $values, conditions: $conditions);
         return str_replace('{approved_by}', $networkLink, $rendered);
     }
 
@@ -1713,12 +1718,26 @@ final class ListingController extends AdminController
         );
     }
 
+    /**
+     * Join Rules body preview using this listing's tokens. Renders both gate
+     * types (checkbox and button) so {if_gate_checkbox} can be reviewed in
+     * either state.
+     */
+    private function ltplPreviewRules(string $tpl, object $listing, string $gateLabel = ''): string
+    {
+        $appUrl = rtrim((string) $this->app->getConfig()->get('app_url', ''), '/');
+
+        return RulesBodyRenderer::renderPreview($tpl, [
+            'subject'       => $listing->subject ?? '',
+            'listing_title' => $listing->title,
+            'listing_url'   => $listing->url,
+            'join_url'      => $appUrl . '/join/' . $listing->id,
+            'update_url'    => $appUrl . '/update/' . $listing->id,
+        ], $gateLabel);
+    }
+
     private function ltplPreviewJoinForm(string $tpl, object $listing): string
     {
-        $captchaQuestion = Captcha::getQuestion('join');
-        $countrySelect   = Countries::buildSelect('');
-        $fb = $this->app->getFormFieldBuilder();
-
         $db     = $this->app->getDatabase();
         $config = $this->app->getConfig();
 
@@ -1728,13 +1747,29 @@ final class ListingController extends AdminController
         $fieldRepo = new FieldRepo($db, $config);
         $fields    = $fieldRepo->getFieldsForListing((int) $listing->id);
 
+        return $this->renderJoinFormPreview($tpl, $listing->title, $listing->url, $countryFieldEnabled, $fields);
+    }
+
+    /**
+     * Renders the join_form_template against sample form field markup.
+     * Shared by ltplPreviewJoinForm() (real listing data) and
+     * gtplPreviewJoinForm() (sample data, listing-independent).
+     *
+     * @param \Luster\Models\AdditionalField[] $fields
+     */
+    private function renderJoinFormPreview(string $tpl, string $listingTitle, string $listingUrl, bool $countryFieldEnabled, array $fields): string
+    {
+        $captchaQuestion = Captcha::getQuestion('join');
+        $countrySelect   = Countries::buildSelect('');
+        $fb = $this->app->getFormFieldBuilder();
+
         $descriptors = [
             ['type' => 'text',     'name' => 'name',             'id' => 'join-name',             'label' => 'Name',             'required' => true,  'value' => '', 'attrs' => ['maxlength' => '100', 'autocomplete' => 'name']],
             ['type' => 'email',    'name' => 'email',            'id' => 'join-email',            'label' => 'Email',            'required' => true,  'value' => '', 'attrs' => ['maxlength' => '255', 'autocomplete' => 'email']],
             ['type' => 'url',      'name' => 'url',              'id' => 'join-url',              'label' => 'Website URL',      'required' => false, 'value' => '', 'attrs' => ['maxlength' => '500', 'placeholder' => 'https://', 'autocomplete' => 'url'], 'hint' => 'Optional'],
             ['type' => 'text',     'name' => 'country',          'id' => '',                      'label' => 'Country',          'required' => $countryFieldEnabled, 'raw_input' => $countrySelect],
             ...$fb->descriptorsFromAdditionalFields($fields, []),
-            ['type' => 'password', 'name' => 'password',         'id' => 'join-password',         'label' => 'Password',         'required' => false, 'attrs' => ['maxlength' => '255', 'autocomplete' => 'new-password'], 'hint' => 'Optional — one will be emailed to you if left blank'],
+            ['type' => 'password', 'name' => 'password',         'id' => 'join-password',         'label' => 'Password',         'required' => false, 'attrs' => ['maxlength' => '255', 'autocomplete' => 'new-password'], 'hint' => 'Optional - If left blank, a password will automatically generated and emailed to you.'],
             ['type' => 'password', 'name' => 'password_confirm', 'id' => 'join-password-confirm', 'label' => 'Confirm Password', 'required' => false, 'attrs' => ['maxlength' => '255', 'autocomplete' => 'new-password']],
             ['type' => 'text',     'name' => 'captcha_answer',   'id' => 'join-captcha',          'label' => 'Captcha: ' . $captchaQuestion, 'required' => true, 'attrs' => ['maxlength' => '10', 'autocomplete' => 'off']],
         ];
@@ -1748,8 +1783,8 @@ final class ListingController extends AdminController
         ));
 
         $tokens = [
-            '{listing_title}'                 => View::e($listing->title),
-            '{listing_url}'                   => View::e($listing->url),
+            '{listing_title}'                 => View::e($listingTitle),
+            '{listing_url}'                   => View::e($listingUrl),
             '{field_name}'                     => $f['name'],
             '{field_name_input}'               => $f['name_input'],
             '{field_email}'                    => $f['email'],
@@ -1777,6 +1812,16 @@ final class ListingController extends AdminController
 
     private function ltplPreviewCodesSubmitForm(string $tpl, object $listing): string
     {
+        return $this->renderCodesSubmitFormPreview($tpl, $listing->title, $listing->url);
+    }
+
+    /**
+     * Renders the codes_submit_form_template against sample form field markup.
+     * Shared by ltplPreviewCodesSubmitForm() (real listing data) and
+     * gtplPreviewCodesSubmitForm() (sample data, listing-independent).
+     */
+    private function renderCodesSubmitFormPreview(string $tpl, string $listingTitle, string $listingUrl): string
+    {
         $captchaQuestion = Captcha::getQuestion('code_submit');
         $fb = $this->app->getFormFieldBuilder();
 
@@ -1790,8 +1835,8 @@ final class ListingController extends AdminController
         $f = $fb->build($descriptors, '');
 
         $tokens = [
-            '{listing_title}'               => View::e($listing->title),
-            '{listing_url}'                 => View::e($listing->url),
+            '{listing_title}'               => View::e($listingTitle),
+            '{listing_url}'                 => View::e($listingUrl),
             '{field_code_image}'            => $f['code_image'],
             '{field_code_image_input}'      => $f['code_image_input'],
             '{field_submitter_name}'        => $f['submitter_name'],
@@ -1804,6 +1849,7 @@ final class ListingController extends AdminController
             '{captcha_block_input}'         => $f['captcha_input'],
             '{captcha_question}'            => View::e($captchaQuestion),
             '{submit_button}'               => '<button type="submit" class="fl-submit">Submit Code</button>',
+            '{clear_button}'                => '<button type="reset" class="fl-btn-secondary">Clear</button>',
         ];
 
         $inner = FormTemplateRenderer::expandTokens($tpl, $tokens);
@@ -1812,22 +1858,32 @@ final class ListingController extends AdminController
 
     private function ltplPreviewAffiliateApplyForm(string $tpl, object $listing): string
     {
+        return $this->renderAffiliateApplyFormPreview($tpl, $listing->title, $listing->url);
+    }
+
+    /**
+     * Renders the affiliate_apply_form_template against sample form field markup.
+     * Shared by ltplPreviewAffiliateApplyForm() (real listing data) and
+     * gtplPreviewAffiliateApplyForm() (sample data, listing-independent).
+     */
+    private function renderAffiliateApplyFormPreview(string $tpl, string $listingTitle, string $listingUrl): string
+    {
         $captchaQuestion = Captcha::getQuestion('affiliate_apply');
         $fb = $this->app->getFormFieldBuilder();
 
         $descriptors = [
             ['type' => 'text',     'name' => 'name',           'id' => 'aff-name',    'label' => 'Site name',                      'required' => true,  'value' => '', 'attrs' => ['maxlength' => '200', 'autocomplete' => 'organization']],
             ['type' => 'url',      'name' => 'url',            'id' => 'aff-url',     'label' => 'Site URL',                       'required' => true,  'value' => '', 'attrs' => ['maxlength' => '500', 'placeholder' => 'https://', 'autocomplete' => 'url']],
-            ['type' => 'email',    'name' => 'email',          'id' => 'aff-email',   'label' => 'Your email (optional)',           'required' => false, 'value' => '', 'attrs' => ['maxlength' => '255', 'autocomplete' => 'email']],
-            ['type' => 'file',     'name' => 'image',          'id' => 'aff-image',   'label' => 'Site button / image (optional)', 'required' => false, 'attrs' => ['accept' => 'image/jpeg,image/png,image/gif,image/webp']],
+            ['type' => 'email',    'name' => 'email',          'id' => 'aff-email',   'label' => 'Email',           'required' => true, 'value' => '', 'attrs' => ['maxlength' => '255', 'autocomplete' => 'email']],
+            ['type' => 'file',     'name' => 'image',          'id' => 'aff-image',   'label' => 'Site Button / Image (optional)', 'required' => false, 'attrs' => ['accept' => 'image/jpeg,image/png,image/gif,image/webp']],
             ['type' => 'textarea', 'name' => 'message',        'id' => 'aff-message', 'label' => 'Message (optional)',             'required' => false, 'value' => '', 'attrs' => ['maxlength' => '2000', 'rows' => '4']],
             ['type' => 'text',     'name' => 'captcha_answer', 'id' => 'aff-captcha', 'label' => 'Captcha: ' . $captchaQuestion,   'required' => true,  'attrs' => ['maxlength' => '10', 'autocomplete' => 'off']],
         ];
         $f = $fb->build($descriptors, '');
 
         $tokens = [
-            '{listing_title}'         => View::e($listing->title),
-            '{listing_url}'           => View::e($listing->url),
+            '{listing_title}'         => View::e($listingTitle),
+            '{listing_url}'           => View::e($listingUrl),
             '{field_name}'            => $f['name'],
             '{field_name_input}'      => $f['name_input'],
             '{field_url}'             => $f['url'],
@@ -1842,6 +1898,7 @@ final class ListingController extends AdminController
             '{captcha_block_input}'   => $f['captcha_answer_input'],
             '{captcha_question}'      => View::e($captchaQuestion),
             '{submit_button}'         => '<button type="submit" class="fl-submit">Submit Application</button>',
+            '{clear_button}'          => '<button type="reset" class="fl-btn-secondary">Clear</button>',
         ];
 
         $inner = FormTemplateRenderer::expandTokens($tpl, $tokens);
@@ -1849,6 +1906,16 @@ final class ListingController extends AdminController
     }
 
     private function ltplPreviewAdoptForm(string $tpl, object $listing): string
+    {
+        return $this->renderAdoptFormPreview($tpl, $listing->title, $listing->url);
+    }
+
+    /**
+     * Renders the adopt_form_template against sample form field markup.
+     * Shared by ltplPreviewAdoptForm() (real listing data) and
+     * gtplPreviewAdoptForm() (sample data, listing-independent).
+     */
+    private function renderAdoptFormPreview(string $tpl, string $listingTitle, string $listingUrl): string
     {
         $captchaQuestion = Captcha::getQuestion('adopt');
         $fb = $this->app->getFormFieldBuilder();
@@ -1863,8 +1930,8 @@ final class ListingController extends AdminController
         $f = $fb->build($descriptors, '');
 
         $tokens = [
-            '{listing_title}'        => View::e($listing->title),
-            '{listing_url}'          => View::e($listing->url),
+            '{listing_title}'        => View::e($listingTitle),
+            '{listing_url}'          => View::e($listingUrl),
             '{field_name}'           => $f['name'],
             '{field_name_input}'     => $f['name_input'],
             '{field_email}'          => $f['email'],
@@ -1906,7 +1973,6 @@ final class ListingController extends AdminController
 
         $formUrlJoin         = ltrim(trim((string) $request->post('form_url_join',         '')), '/');
         $formUrlUpdate       = ltrim(trim((string) $request->post('form_url_update',       '')), '/');
-        $formUrlRemove       = ltrim(trim((string) $request->post('form_url_remove',       '')), '/');
         $formUrlReset        = ltrim(trim((string) $request->post('form_url_reset',        '')), '/');
         $formUrlCodesSubmit  = ltrim(trim((string) $request->post('form_url_codes_submit', '')), '/');
         $codesSubmitEnabled  = $request->post('codes_submit_enabled') === '1';
@@ -1927,7 +1993,6 @@ final class ListingController extends AdminController
             $id,
             $formUrlJoin,
             $formUrlUpdate,
-            $formUrlRemove,
             $formUrlReset,
             $formUrlCodesSubmit,
             $codesSubmitEnabled,
@@ -1996,15 +2061,10 @@ final class ListingController extends AdminController
         $siteRepo = new SiteSettingsRepo($db);
         $globals  = $siteRepo->getGlobalTemplates();
 
-        $listings = (new ListingRepo($db, $this->app->getConfig()))->getAll();
-        $active   = array_values(array_filter($listings, fn($l) => !$l->trouble));
-        usort($active, fn($a, $b) => strcmp($a->title, $b->title));
-
         return $this->adminLayout('admin/listings/global-templates.php', 'Global Listing Templates', 'listings', [
             'success'  => $success,
             'error'    => $error,
             'globals'  => $globals,
-            'listings' => $active,
         ], '', [
             $this->crumb('Owned Listings', $this->adminUrl('/admin/listings')),
         ]);
@@ -2045,6 +2105,221 @@ final class ListingController extends AdminController
     }
 
     // -----------------------------------------------------------------------
+    // POST /admin/listings/global-templates/preview
+    // -----------------------------------------------------------------------
+
+    public function globalTemplatesPreview(Request $request, array $params): Response
+    {
+        $this->app->getCSRF()->validate($request->post('_csrf', ''));
+
+        $config = $this->app->getConfig();
+        $appUrl = rtrim((string) $config->get('app_url', ''), '/');
+
+        $type = (string) $request->post('template_type', '');
+        $tpl  = (string) $request->post('template_html', '');
+
+        $allowed = ['members', 'affiliates_section', 'stats', 'updates', 'join_form', 'codes_submit_form', 'affiliate_apply_form', 'adopt_form'];
+        if (!in_array($type, $allowed, true)) {
+            return $this->previewWrap('<p style="color:#c00">Unknown template type.</p>', $appUrl);
+        }
+        if ($tpl === '') {
+            return $this->previewWrap('<p style="color:#c00">Template is empty.</p>', $appUrl);
+        }
+
+        try {
+            $html = match ($type) {
+                'members'              => $this->gtplPreviewMembers($tpl),
+                'affiliates_section'   => $this->gtplPreviewAffiliates($tpl),
+                'stats'                => $this->gtplPreviewStats($tpl),
+                'updates'              => $this->gtplPreviewUpdates($tpl),
+                'join_form'            => $this->gtplPreviewJoinForm($tpl),
+                'codes_submit_form'    => $this->gtplPreviewCodesSubmitForm($tpl),
+                'affiliate_apply_form' => $this->gtplPreviewAffiliateApplyForm($tpl),
+                'adopt_form'           => $this->gtplPreviewAdoptForm($tpl),
+            };
+        } catch (\Throwable $e) {
+            $html = '<p style="color:#c00;font-family:monospace">Preview error: '
+                  . htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '</p>';
+        }
+
+        return $this->previewWrap($html, $appUrl);
+    }
+
+    /**
+     * Members List preview using generic sample members, plus an empty-state
+     * render with zero members.
+     */
+    private function gtplPreviewMembers(string $tpl): string
+    {
+        $fields  = SampleTemplateData::additionalFields();
+        $members = SampleTemplateData::members();
+
+        $sample = MembersTemplateRenderer::render(
+            $tpl,
+            $members,
+            $fields,
+            '#',
+            count($members),
+            count($members) . ' member(s)',
+            '<strong aria-current="page" class="fl-member-sort-link">View All</strong>',
+            '<a class="fl-member-sort-link" href="#">Name</a>',
+            '<a class="fl-member-sort-link" href="#">Country</a>',
+        );
+
+        $empty = MembersTemplateRenderer::render(
+            $tpl,
+            [],
+            $fields,
+            '#',
+            0,
+            '0 member(s)',
+            '<strong aria-current="page" class="fl-member-sort-link">View All</strong>',
+            '<a class="fl-member-sort-link" href="#">Name</a>',
+            '<a class="fl-member-sort-link" href="#">Country</a>',
+        );
+
+        if (trim($empty) === '') {
+            $empty = '<p style="font-style:italic;color:#888">No approved members for this listing yet.</p>';
+        }
+
+        return $this->previewSectionLabel('Sample Data') . $sample
+            . $this->previewSectionLabel('Empty State') . $empty;
+    }
+
+    /**
+     * Affiliates Section preview using generic sample affiliates, plus an
+     * empty-state render with zero affiliates.
+     */
+    private function gtplPreviewAffiliates(string $tpl): string
+    {
+        $appUrl            = rtrim((string) $this->app->getConfig()->get('app_url', ''), '/');
+        $uploadsUrl        = $appUrl . '/uploads/affiliates';
+        $sampleImagesUrl   = $appUrl . '/assets/images';
+        $affiliateApplyUrl = $appUrl . '/affiliate-apply/collective';
+
+        $sample = self::renderAffiliatesSection($tpl, SampleTemplateData::affiliates(), $sampleImagesUrl, $affiliateApplyUrl);
+        $empty  = self::renderAffiliatesSection($tpl, [], $uploadsUrl, $affiliateApplyUrl);
+
+        if (trim($empty) === '') {
+            $empty = '<p style="font-style:italic;color:#888">No affiliates for this listing yet.</p>';
+        }
+
+        return $this->previewSectionLabel('Sample Data') . $sample
+            . $this->previewSectionLabel('Empty State') . $empty;
+    }
+
+    /**
+     * Statistics preview using generic sample stats, plus an empty-state
+     * render representing a brand-new listing with no members yet.
+     */
+    private function gtplPreviewStats(string $tpl): string
+    {
+        $sampleNames  = array_map(fn($m) => $m->name, SampleTemplateData::members());
+        $sampleOxford = implode(', ', array_slice($sampleNames, 0, -1)) . ', and ' . end($sampleNames);
+
+        $sampleValues = [
+            'stat_opened'            => '2020-01-15',
+            'stat_updated'           => '',
+            'stat_last_updated'      => '2026-06-10',
+            'stat_approved'          => '42',
+            'stat_pending'           => '3',
+            'stat_countries'         => '12',
+            'stat_newmembers'        => implode(', ', $sampleNames),
+            'stat_newmembers_oxford' => $sampleOxford,
+            'stat_newmembers_label'  => 'Members',
+            'stat_growth'            => '0.71 members/day',
+            'listing_title'          => 'Sample Fanlisting',
+            'listing_url'            => 'https://example.com/sample-fanlisting',
+        ];
+        $sampleConditions = [
+            'approved_by'  => true,
+            'stat_pending' => true,
+        ];
+        $sampleNetworkLink = '<a href="https://thefanlistings.org" rel="noopener noreferrer">The Fanlistings Network</a>';
+
+        $emptyValues = [
+            'stat_opened'            => '',
+            'stat_updated'           => '',
+            'stat_last_updated'      => 'Never',
+            'stat_approved'          => '0',
+            'stat_pending'           => '0',
+            'stat_countries'         => '0',
+            'stat_newmembers'        => '',
+            'stat_newmembers_oxford' => '',
+            'stat_newmembers_label'  => 'Members',
+            'stat_growth'            => '0.00 members/day',
+            'listing_title'          => 'Sample Fanlisting',
+            'listing_url'            => 'https://example.com/sample-fanlisting',
+        ];
+        $emptyConditions = [
+            'approved_by'  => false,
+            'stat_pending' => false,
+        ];
+
+        $sample = self::renderStatsTemplate($tpl, $sampleValues, $sampleConditions, $sampleNetworkLink);
+        $empty  = self::renderStatsTemplate($tpl, $emptyValues, $emptyConditions, '');
+
+        return $this->previewSectionLabel('Sample Data') . $sample
+            . $this->previewSectionLabel('Empty State') . $empty;
+    }
+
+    /**
+     * Updates Feed preview using generic sample updates, plus an empty-state
+     * render with zero updates.
+     */
+    private function gtplPreviewUpdates(string $tpl): string
+    {
+        $sample = \Luster\Addons\Updates\Controllers\UpdatesPublicController::buildUpdatesHtmlPublic(SampleTemplateData::updates(), $tpl);
+        $empty  = \Luster\Addons\Updates\Controllers\UpdatesPublicController::buildUpdatesHtmlPublic([], $tpl);
+
+        if (trim($empty) === '') {
+            $empty = '<p style="font-style:italic;color:#888">No updates posted yet.</p>';
+        }
+
+        return $this->previewSectionLabel('Sample Data') . $sample
+            . $this->previewSectionLabel('Empty State') . $empty;
+    }
+
+    /**
+     * Join Form preview using generic sample form field markup. Forms have no
+     * empty-state concept, so this renders a single "Sample Data" section.
+     */
+    private function gtplPreviewJoinForm(string $tpl): string
+    {
+        return $this->renderJoinFormPreview(
+            $tpl,
+            'Sample Fanlisting',
+            'https://example.com/sample-fanlisting',
+            true,
+            SampleTemplateData::additionalFields(),
+        );
+    }
+
+    /**
+     * Code Donation Form preview using generic sample form field markup.
+     */
+    private function gtplPreviewCodesSubmitForm(string $tpl): string
+    {
+        return $this->renderCodesSubmitFormPreview($tpl, 'Sample Fanlisting', 'https://example.com/sample-fanlisting');
+    }
+
+    /**
+     * Affiliate Application Form preview using generic sample form field markup.
+     */
+    private function gtplPreviewAffiliateApplyForm(string $tpl): string
+    {
+        return $this->renderAffiliateApplyFormPreview($tpl, 'Sample Fanlisting', 'https://example.com/sample-fanlisting');
+    }
+
+    /**
+     * Adopt Form preview using generic sample form field markup.
+     */
+    private function gtplPreviewAdoptForm(string $tpl): string
+    {
+        return $this->renderAdoptFormPreview($tpl, 'Sample Fanlisting', 'https://example.com/sample-fanlisting');
+    }
+
+    // -----------------------------------------------------------------------
     // GET /admin/listings/settings
     // -----------------------------------------------------------------------
 
@@ -2064,7 +2339,7 @@ final class ListingController extends AdminController
             'overdue_notify_last_sent',
         ]);
 
-        return $this->adminLayout('admin/listings/settings.php', 'Listings Display Settings', 'listings', [
+        return $this->adminLayout('admin/listings/settings.php', 'Owned Listings Settings', 'listings', [
             'cfg'              => $this->app->getConfig()->all(),
             'tracking'         => $trackingSettings,
             'success'          => $success,

@@ -507,10 +507,10 @@ $_colUploads        = $uploads_url ?? ($b . '/uploads/codes');
             </td>
             <td data-label="Donor">
               <div class="subject-title-stack">
-                <?= ($code->submitter_name ?? '') !== '' ? View::e($code->submitter_name) : '<span class="text-dim">&mdash;</span>' ?>
+                <?= ($code->submitter_name ?? '') !== '' ? '<b>' . View::e($code->submitter_name) . '</b>' : '<span class="text-dim">&mdash;</span>' ?>
                 <?php if (($code->submitter_url ?? '') !== ''): ?>
                   <a href="<?= View::e($code->submitter_url) ?>" target="_blank" rel="noopener noreferrer"
-                     class="link text-dim mem-url"><?= View::e(mb_strimwidth($code->submitter_url, 0, 40, '…')) ?></a>
+                     class="mem-url link"><?= View::e(mb_strimwidth($code->submitter_url, 0, 40, '…')) ?></a>
                 <?php endif; ?>
               </div>
             </td>
@@ -888,4 +888,3 @@ $_codeCats       = $code_cats ?? [];
 </div><!-- /two-col grid -->
 
 <?php endif; // view_mode ?>
-

@@ -8,8 +8,7 @@ require 'header.php';
   <p>Friends of the collective — click to visit.</p>
 
   <?php
-  $luster_fanlisting_id   = 0;   // 0 = collective/site-wide affiliates
-  $luster_affiliates_base = strtok($_SERVER['REQUEST_URI'], '?');
+  $luster_fanlisting_id = 0;   // 0 = collective/site-wide affiliates
   require $luster_root . '/public/embed/affiliates.php';
   ?>
 

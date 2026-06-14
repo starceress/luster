@@ -7,12 +7,14 @@ namespace Luster\Controllers\Public;
 use Luster\Core\Application;
 use Luster\Core\Captcha;
 use Luster\Core\Countries;
+use Luster\Core\Mailer;
 use Luster\Core\PasswordPolicy;
 use Luster\Core\RateLimit;
 use Luster\Core\Request;
 use Luster\Core\Response;
 use Luster\Core\Validator;
 use Luster\Models\Listing;
+use Luster\Repositories\EmailTemplateRepo;
 use Luster\Repositories\ListingRepo;
 use Luster\Repositories\ListingSettingsRepo;
 use Luster\Repositories\FieldRepo;
@@ -271,6 +273,45 @@ final class UpdateController
             }
             $session->set('lstr_flash_error', 'Incorrect answer â€” please try again.');
             $session->set('lstr_flash_old', $old);
+            return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $formUrl);
+        }
+
+        // Permanently delete membership instead of updating it
+        if ((string) $request->post('delete_membership', '') === '1') {
+            $memberName = $member->name;
+            $memberRepo->deleteByEmail($listing->dbprefix, $email);
+
+            $pendingRepo = new PendingUpdateRepo($this->app->getDatabase());
+            $pendingRepo->deleteByListingAndEmail($listingId, $email);
+
+            // Farewell email (best-effort)
+            try {
+                $cfg       = $this->app->getConfig();
+                $mailer    = new Mailer($cfg);
+                $emailRepo = new EmailTemplateRepo($this->app->getDatabase());
+                $tokens    = EmailTemplateRepo::buildTokens(
+                    listingName:    $listing->title,
+                    listingUrl:     $listing->url,
+                    siteName:       (string) $cfg->get('site_name', 'Luster'),
+                    listingSubject: $listing->subject,
+                    ownerName:      (string) $cfg->get('owner_name', ''),
+                    ownerEmail:     (string) $cfg->get('owner_email', ''),
+                    fanName:        $memberName,
+                    fanEmail:       $email,
+                );
+                [$subject, $body] = $emailRepo->resolveForListing($listingId, EmailTemplateRepo::TYPE_REMOVE, $tokens);
+                $mailer->send($email, $memberName, $subject, $body);
+            } catch (\Throwable $e) {
+                error_log('[Luster] Remove email failed: ' . $e->getMessage());
+            }
+
+            $session->remove(self::AUTH_KEY . $listingId);
+            $session->remove('lstr_embed_return_to');
+            $successTpl = $settingsRepo->getSuccessTemplate($listingId) ?? '';
+            $session->set('lstr_flash_success_html', SuccessRenderer::render($successTpl, 'removed', [
+                'listing_title' => $listing->title,
+                'listing_url'   => $listing->url,
+            ]));
             return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $formUrl);
         }
 

@@ -16,7 +16,6 @@ final class RuleSet
         public readonly bool   $enabled,
         public readonly int    $version,
         public readonly string $updatedAt,
-        public readonly string $listStyle = 'numbered',
         public readonly string $gateType  = 'checkbox',
         public readonly string $gateLabel = '',
     ) {}
@@ -42,7 +41,7 @@ final class RuleSet
         }
 
         return $this->gateType === 'button'
-            ? 'I agree -- proceed to join form'
+            ? 'I agree — proceed to join form'
             : 'I have read and agree to the rules above.';
     }
 }

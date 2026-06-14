@@ -2,8 +2,8 @@
 /**
  * Sample listing — members list.
  *
- * Sort (?sort=name or ?sort=country) and pagination (?page=N) work automatically.
- * $luster_members_base tells Luster which URL to use for those links.
+ * Sort (?sort=name or ?sort=country) and pagination (?page=N) work automatically
+ * and always link back to this page.
  */
 
 $page_title = 'Members';
@@ -14,7 +14,6 @@ require 'header.php';
 
   <?php
   $luster_fanlisting_id = 2;
-  $luster_members_base  = strtok($_SERVER['REQUEST_URI'], '?');
   require $luster_root . '/public/embed/members.php';
   ?>
 

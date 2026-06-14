@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use Luster\Addons\Kim\KimMemberRepo;
+use Luster\Core\Pagination;
 use Luster\Core\TemplateEngine;
 use Luster\Repositories\ListingRepo;
 use Luster\Repositories\SiteSettingsRepo;
@@ -21,6 +22,7 @@ use Luster\Repositories\SiteSettingsRepo;
  *   $luster_kim_subject_id = (int) ($_GET['id'] ?? 0);           // listing ID to show members for
  *   $luster_kim_list_base  = 'https://example.com/kim-list.php'; // optional — "Back to KIM List" URL
  *   $luster_kim_signup_url = 'https://example.com/kim.php';      // optional — sign-up link override
+ *   $luster_per_page       = 25;                                 // optional — approved members per page
  *   $luster_return         = false;
  *   require '/absolute/path/to/luster/public/embed/kim-list.php';
  */
@@ -65,6 +67,8 @@ if (!$_lusterApp->isAddonInstalled('Kim')) {
 
 $_lusterSubjectId       = (int) ($luster_kim_subject_id ?? 0);
 $_lusterOnlyWithSignups = (bool) ($luster_kim_only_with_signups ?? true);
+$_lusterPerPage         = isset($luster_per_page) ? max(1, (int) $luster_per_page) : 25;
+$_lusterPage            = max(1, (int) ($_GET['page'] ?? 1));
 $_lusterListBase        = isset($luster_kim_list_base) && (string) $luster_kim_list_base !== ''
     ? (string) $luster_kim_list_base
     : null;
@@ -112,7 +116,19 @@ if ($_lusterSubjectId > 0) {
         return;
     }
 
-    $_lusterMembers = $_lusterKimRepo->getApprovedByFanlisting($_lusterSubjectId);
+    $_lusterTotal   = $_lusterKimRepo->countApprovedByFanlisting($_lusterSubjectId);
+    $_lusterPages   = max(1, (int) ceil($_lusterTotal / $_lusterPerPage));
+    $_lusterMembers = $_lusterKimRepo->getApprovedByFanlistingPaged($_lusterSubjectId, $_lusterPage, $_lusterPerPage);
+
+    $_lusterSubjectBaseUrl     = strtok($_SERVER['REQUEST_URI'] ?? '', '?') ?: '/';
+    $_lusterPaginationTemplate = (string) ($_lusterSiteSettings->get('collective_pagination_template') ?? '');
+    $_lusterPagination         = Pagination::render(
+        $_lusterPage,
+        $_lusterPages,
+        $_lusterSubjectBaseUrl,
+        $_lusterPaginationTemplate,
+        ['id' => $_lusterSubjectId],
+    );
 
     // Apply kim_member_template if set
     $_lusterKimMemberHtml = null;
@@ -148,6 +164,10 @@ if ($_lusterSubjectId > 0) {
         'link_list'              => $_lusterListBase,
         'link_signup'            => $_lusterLinkSignup,
         'kim_member_template_html' => $_lusterKimMemberHtml,
+        'pagination'             => $_lusterPagination,
+        'page'                   => $_lusterPage,
+        'pages'                  => $_lusterPages,
+        'total'                  => $_lusterTotal,
     ]);
 } else {
     // -----------------------------------------------------------------------

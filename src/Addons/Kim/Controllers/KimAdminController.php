@@ -572,18 +572,41 @@ final class KimAdminController extends AdminController
                 array_map('strval', $postedEmails),
                 static fn(string $e) => filter_var($e, FILTER_VALIDATE_EMAIL) !== false
             ));
-            $recipients = array_map(static fn(string $e) => ['name' => '', 'email' => $e], $safeEmails);
+            $recipients = array_map(static function (string $e) use ($kimRepo, $fanlistingId): array {
+                $m = $kimRepo->findByEmailAndFanlisting($e, $fanlistingId);
+                return [
+                    'name'     => $m ? $m->name    : '',
+                    'email'    => $e,
+                    'url'      => $m ? $m->url     : '',
+                    'added_at' => $m ? $m->addedAt : '',
+                ];
+            }, $safeEmails);
         } else {
             $recipients = $kimRepo->getEmailsByFanlisting($fanlistingId);
         }
+
+        $siteName   = (string) $config->get('site_name', 'Luster');
+        $ownerName  = (string) $config->get('owner_name', '');
+        $ownerEmail = (string) $config->get('owner_email', '');
+
+        $search = ['{name}', '{email}', '{url}', '{added_at}',
+                   '{listing_subject}', '{listing_url}',
+                   '{site_name}', '{owner_name}', '{owner_email}'];
 
         $mailer = new Mailer($this->app->getConfig());
         $sent   = 0;
         $failed = 0;
 
         foreach ($recipients as $r) {
+            $replace = [$r['name'], $r['email'], $r['url'], $r['added_at'],
+                        $listing->subject, $listing->url,
+                        $siteName, $ownerName, $ownerEmail];
+
+            $personalSubject = str_replace($search, $replace, $subject);
+            $personalBody    = str_replace($search, $replace, $body);
+
             try {
-                $mailer->send($r['email'], $r['name'], $subject, $body);
+                $mailer->send($r['email'], $r['name'], $personalSubject, $personalBody);
                 $sent++;
             } catch (\Throwable $e) {
                 $failed++;
@@ -697,9 +720,23 @@ final class KimAdminController extends AdminController
             return Response::redirect($redirectBack);
         }
 
+        $search  = ['{name}', '{email}', '{url}', '{added_at}',
+                    '{listing_subject}', '{listing_url}',
+                    '{site_name}', '{owner_name}', '{owner_email}'];
+        $replace = [
+            $member->name, $member->email, $member->url, $member->addedAt,
+            $listing ? $listing->subject : '', $listing ? $listing->url : '',
+            (string) $config->get('site_name', 'Luster'),
+            (string) $config->get('owner_name', ''),
+            (string) $config->get('owner_email', ''),
+        ];
+
+        $finalSubject = str_replace($search, $replace, $subject);
+        $finalBody    = str_replace($search, $replace, $body);
+
         try {
             $mailer = new Mailer($this->app->getConfig());
-            $mailer->send($member->email, $member->name, $subject, $body);
+            $mailer->send($member->email, $member->name, $finalSubject, $finalBody);
             $session->set('lstr_flash_success', 'Email sent to ' . $member->name . '.');
         } catch (\Throwable $e) {
             error_log('[KIM] Email member failed for ' . $member->email . ': ' . $e->getMessage());

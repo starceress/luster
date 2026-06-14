@@ -26,7 +26,6 @@ $nav_items = [
     'index.php'      => 'Home',
     'join.php'       => 'Join',
     'update.php'     => 'Update',
-    'remove.php'     => 'Remove',
     'members.php'    => 'Members',
     'codes.php'      => 'Codes',
     'affiliates.php' => 'Affiliates',

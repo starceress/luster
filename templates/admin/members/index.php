@@ -94,7 +94,7 @@ $tabDefs = [
   </div>
   <div class="actions-row">
     <?php if ($lid > 0): ?>
-      <a href="<?= $b ?>/admin/members/<?= $lid ?>/import" class="btn btn-quaternary btn-sm">&#8595; Import CSV</a>
+      <a href="<?= $b ?>/admin/import-members" class="btn btn-quaternary btn-sm">&#8595; Import Members</a>
       <a href="<?= $b ?>/admin/members/<?= $lid ?>/export" class="btn btn-quaternary btn-sm">&#8593; Export CSV</a>
     <?php else: ?>
       <a href="<?= $b ?>/admin/members/export-pending" class="btn btn-quaternary btn-sm">&#8593; Export Pending</a>
@@ -211,7 +211,7 @@ $pendingNewCnt = count($pendingNew);
               class="action-form-inline"
               data-confirm="Approve all <?= $pendingNewCnt ?> pending member(s)? This will send approval emails.">
           <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
-          <button type="submit" class="btn btn-success btn-sm">Approve All</button>
+          <button type="submit" class="btn btn-success btn-sm">Approve All Pending</button>
         </form>
       </div>
     </div>
@@ -247,7 +247,7 @@ $pendingNewCnt = count($pendingNew);
             <td class="cb-col" data-label=""><input type="checkbox" name="emails[]" value="<?= View::e($m->email) ?>" data-name="<?= View::e($m->name) ?>"></td>
             <td data-label="Name">
               <div class="subject-title-stack">
-                <?= View::e($m->name) ?>
+                <b><?= View::e($m->name) ?></b>
                 <?php if ($m->url): ?>
                   <a href="<?= View::e($m->url) ?>" target="_blank" rel="noopener noreferrer" class="link mem-url"><?= View::e($m->url) ?></a>
                 <?php endif; ?>
@@ -349,7 +349,7 @@ $pendingNewCnt = count($pendingNew);
             <td data-label="Member">
               <span class="text-strong"><?= View::e($puMember ? $puMember->name : $pu->member_email) ?></span>
               <?= View::emailWrap($pu->member_email) ?>
-              <span class="text-dim" style="font-size:var(--fs-xs)"><?= View::e(date('Y-m-d', strtotime($pu->submitted_at))) ?></span>
+              <span class="text-dim" style="font-size:var(--fs-xs)"><?= View::e(date($admin_date_format, strtotime($pu->submitted_at))) ?></span>
             </td>
             <td data-label="Changes">
               <?php if (empty($pu->changes)): ?>
@@ -436,7 +436,7 @@ endif;
       <?php else: ?>
         <div class="empty-title">No members yet.</div>
         <div>They&rsquo;ll appear here after the first fan joins.</div>
-        <a href="<?= $b ?>/admin/members/<?= $lid ?>/import" class="btn btn-primary btn-sm"><?= View::icon('import') ?> Import CSV</a>
+        <a href="<?= $b ?>/admin/import-members" class="btn btn-primary btn-sm"><?= View::icon('import') ?> Import Members</a>
       <?php endif; ?>
     </div>
   </div>
@@ -496,7 +496,7 @@ endif;
             <td class="cb-col" data-label=""><input type="checkbox" name="emails[]" value="<?= View::e($m->email) ?>" data-name="<?= View::e($m->name) ?>"></td>
             <td data-label="Name">
               <div class="subject-title-stack">
-                <?= View::e($m->name) ?>
+                <b><?= View::e($m->name) ?></b>
                 <?php if ($m->url): ?>
                   <a href="<?= View::e($m->url) ?>" target="_blank" rel="noopener noreferrer" class="link mem-url"><?= View::e($m->url) ?></a>
                 <?php endif; ?>
@@ -606,7 +606,7 @@ include LUSTER_BASE . '/templates/admin/_pagination.php';
           <td data-label="Listing"><a href="<?= $b ?>/admin/members?listing_id=<?= $flId ?>" class="link"><?= View::e($fl->title) ?></a></td>
           <td data-label="Name">
             <div class="subject-title-stack">
-              <?= View::e($m->name) ?>
+              <b><?= View::e($m->name) ?></b>
               <?php if ($m->url !== ''): ?>
                 <a href="<?= View::e($m->url) ?>" target="_blank" rel="noopener noreferrer" class="link mem-url"><?= View::e($m->url) ?></a>
               <?php endif; ?>
@@ -686,7 +686,7 @@ $_newTo         = min($_totalNew, $page * $per_page);
               class="action-form-inline"
               data-confirm="Approve all pending items across all listings? This will send approval emails.">
           <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
-          <button type="submit" class="btn btn-success btn-sm">Approve All</button>
+          <button type="submit" class="btn btn-success btn-sm">Approve All Pending</button>
         </form>
       </div>
     </div>
@@ -733,7 +733,7 @@ $_newTo         = min($_totalNew, $page * $per_page);
             </td>
             <td data-label="Name">
               <div class="subject-title-stack">
-                <?= View::e($m->name) ?>
+                <b><?= View::e($m->name) ?></b>
                 <?php if ($m->url !== ''): ?>
                   <a href="<?= View::e($m->url) ?>" target="_blank" rel="noopener noreferrer"
                      class="link mem-url"><?= View::e($m->url) ?></a>
@@ -864,7 +864,7 @@ endif;
             </td>
             <td data-label="Name">
               <div class="subject-title-stack">
-                <?= View::e($puMember?->name ?? $pu->member_email) ?>
+                <b><?= View::e($puMember?->name ?? $pu->member_email) ?></b>
                 <?php if (($puMember?->url ?? '') !== ''): ?>
                   <a href="<?= View::e($puMember->url) ?>" target="_blank" rel="noopener noreferrer"
                      class="link mem-url"><?= View::e($puMember->url) ?></a>
@@ -927,13 +927,14 @@ $validListings  = array_values(array_filter($all_listings ?? [], static fn($fl) 
 $_lcMap         = $listing_counts ?? [];
 
 // Sort by active URL param; default = listing name asc
-$_ovSort = in_array($sort, ['listing', 'total', 'pending', 'rejected'], true) ? $sort : 'listing';
+$_ovSort = in_array($sort, ['id', 'listing', 'total', 'pending', 'rejected'], true) ? $sort : 'listing';
 $_ovDir  = $dir === 'desc' ? 'desc' : 'asc';
 usort($validListings, static function ($a, $b) use ($_ovSort, $_ovDir, $_lcMap): int {
     $aId = (int) $a->id; $bId = (int) $b->id;
     $aLc = $_lcMap[$aId] ?? ['approved' => 0, 'pending' => 0, 'rejected' => 0];
     $bLc = $_lcMap[$bId] ?? ['approved' => 0, 'pending' => 0, 'rejected' => 0];
     $cmp = match ($_ovSort) {
+        'id'       => $aId <=> $bId,
         'total'    => (($status === 'rejected' ? $aLc['rejected'] : $aLc['approved']) <=> ($status === 'rejected' ? $bLc['rejected'] : $bLc['approved'])) ?: strcasecmp($a->subject ?: $a->title, $b->subject ?: $b->title),
         'pending'  => ($aLc['pending']  <=> $bLc['pending'])  ?: strcasecmp($a->subject ?: $a->title, $b->subject ?: $b->title),
         'rejected' => ($aLc['rejected'] <=> $bLc['rejected'])  ?: strcasecmp($a->subject ?: $a->title, $b->subject ?: $b->title),
@@ -965,7 +966,7 @@ $_ovSortUrl = static function (string $col) use ($buildUrl, $_ovSort, $_ovDir): 
       <table class="data-table mem-table">
         <thead>
           <tr>
-            <th class="table-num">#</th>
+            <th class="table-num"><a href="<?= View::e($_ovSortUrl('id')) ?>" class="sort-th<?= $_ovSort === 'id' ? ' sort-active' : '' ?>">&num; <?= View::sortIcon('id', $_ovSort, $_ovDir) ?></a></th>
             <th><a href="<?= View::e($_ovSortUrl('listing')) ?>" class="sort-th<?= $_ovSort === 'listing' ? ' sort-active' : '' ?>">Listing <?= View::sortIcon('listing', $_ovSort, $_ovDir) ?></a></th>
             <th style="text-align:center;white-space:nowrap;width:9rem"><a href="<?= View::e($_ovSortUrl('total')) ?>" class="sort-th<?= $_ovSort === 'total' ? ' sort-active' : '' ?>"><?= $status === 'rejected' ? 'Rejected' : ($status === 'approved' ? 'Approved' : 'Total Members') ?> <?= View::sortIcon('total', $_ovSort, $_ovDir) ?></a></th>
             <?php if ($status === 'all'): ?>
@@ -984,7 +985,7 @@ $_ovSortUrl = static function (string $col) use ($buildUrl, $_ovSort, $_ovDir): 
             <td class="table-num text-dim" data-label="#"><?= $_vlIdx + 1 ?></td>
             <td data-label="Listing">
               <div class="subject-title-stack">
-                <a href="<?= $b ?>/admin/listings/<?= $_flId ?>/edit" class="link text-strong"><?= View::e($fl->subject ?: $fl->title) ?></a>
+                <a href="<?= $b ?>/admin/listings/<?= $_flId ?>/edit" class="link"><b><?= View::e($fl->subject ?: $fl->title) ?></b></a>
                 <?php if ($fl->subject !== ''): ?>
                   <span class="mem-url"><?= View::e($fl->title) ?></span>
                 <?php endif; ?>

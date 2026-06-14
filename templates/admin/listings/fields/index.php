@@ -58,7 +58,7 @@ $id = (int) $listing->id;
             <?php $safeName = View::e($field->name); ?>
             <tr>
               <td><?= View::e($field->label) ?></td>
-              <td><code class="neb-code"><?= $safeName ?></code></td>
+              <td><code><?= $safeName ?></code></td>
               <td class="text-muted"><?= View::e($field->type) ?></td>
               <td>
                 <?php if ($field->required): ?>

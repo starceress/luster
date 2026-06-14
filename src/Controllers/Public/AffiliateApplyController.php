@@ -357,8 +357,8 @@ final class AffiliateApplyController
         $f = $this->app->getFormFieldBuilder()->build([
             ['type' => 'text',     'name' => 'name',           'id' => 'aff-name',    'label' => 'Site name',                      'required' => true,  'value' => (string) ($old['name']    ?? ''), 'attrs' => ['maxlength' => '200', 'autocomplete' => 'organization']],
             ['type' => 'url',      'name' => 'url',            'id' => 'aff-url',     'label' => 'Site URL',                       'required' => true,  'value' => (string) ($old['url']     ?? ''), 'attrs' => ['maxlength' => '500', 'placeholder' => 'https://', 'autocomplete' => 'url']],
-            ['type' => 'email',    'name' => 'email',          'id' => 'aff-email',   'label' => 'Your email (optional)',          'required' => false, 'value' => (string) ($old['email']   ?? ''), 'attrs' => ['maxlength' => '255', 'autocomplete' => 'email'], 'hint' => 'Used to notify you when your application is approved or rejected.'],
-            ['type' => 'file',     'name' => 'image',          'id' => 'aff-image',   'label' => 'Site button / image (optional)', 'required' => false, 'attrs' => ['accept' => 'image/jpeg,image/png,image/gif,image/webp'], 'hint' => 'JPEG, PNG, GIF, or WebP. Max 2 MB.'],
+            ['type' => 'email',    'name' => 'email',          'id' => 'aff-email',   'label' => 'Email',          'required' => true, 'value' => (string) ($old['email']   ?? ''), 'attrs' => ['maxlength' => '255', 'autocomplete' => 'email'], 'hint' => 'Used to notify you when your application is approved or rejected.'],
+            ['type' => 'file',     'name' => 'image',          'id' => 'aff-image',   'label' => 'Site Button / Image (optional)', 'required' => false, 'attrs' => ['accept' => 'image/jpeg,image/png,image/gif,image/webp'], 'hint' => 'JPEG, PNG, GIF, or WebP. Max 2 MB.'],
             ['type' => 'textarea', 'name' => 'message',        'id' => 'aff-message', 'label' => 'Message (optional)',             'required' => false, 'value' => (string) ($old['message'] ?? ''), 'attrs' => ['maxlength' => '2000', 'rows' => '4']],
             ['type' => 'text',     'name' => 'captcha_answer', 'id' => 'aff-captcha', 'label' => 'Captcha: ' . $captchaQuestion,  'required' => true,  'attrs' => ['maxlength' => '10', 'autocomplete' => 'off']],
         ], $wrapperTpl);
@@ -383,6 +383,7 @@ final class AffiliateApplyController
                 '{captcha_block_input}'   => $f['captcha_answer_input'],
                 '{captcha_question}'      => View::e($captchaQuestion),
                 '{submit_button}'         => '<button type="submit" class="fl-submit">Submit Application</button>',
+                '{clear_button}'          => '<button type="reset" class="fl-btn-secondary">Clear</button>',
             ];
             $innerHtml = FormTemplateRenderer::expandTokens($collectiveAffTpl, $tokens);
             $formHtml  = FormTemplateRenderer::wrapForm(
@@ -441,8 +442,8 @@ final class AffiliateApplyController
         $f = $this->app->getFormFieldBuilder()->build([
             ['type' => 'text',     'name' => 'name',           'id' => 'aff-name',    'label' => 'Site name',                      'required' => true,  'value' => (string) ($old['name']    ?? ''), 'attrs' => ['maxlength' => '200', 'autocomplete' => 'organization']],
             ['type' => 'url',      'name' => 'url',            'id' => 'aff-url',     'label' => 'Site URL',                       'required' => true,  'value' => (string) ($old['url']     ?? ''), 'attrs' => ['maxlength' => '500', 'placeholder' => 'https://', 'autocomplete' => 'url']],
-            ['type' => 'email',    'name' => 'email',          'id' => 'aff-email',   'label' => 'Your email (optional)',          'required' => false, 'value' => (string) ($old['email']   ?? ''), 'attrs' => ['maxlength' => '255', 'autocomplete' => 'email'], 'hint' => 'Used to notify you when your application is approved or rejected.'],
-            ['type' => 'file',     'name' => 'image',          'id' => 'aff-image',   'label' => 'Site button / image (optional)', 'required' => false, 'attrs' => ['accept' => 'image/jpeg,image/png,image/gif,image/webp'], 'hint' => 'JPEG, PNG, GIF, or WebP. Max 2 MB.'],
+            ['type' => 'email',    'name' => 'email',          'id' => 'aff-email',   'label' => 'Email',          'required' => true, 'value' => (string) ($old['email']   ?? ''), 'attrs' => ['maxlength' => '255', 'autocomplete' => 'email'], 'hint' => 'Used to notify you when your application is approved or rejected.'],
+            ['type' => 'file',     'name' => 'image',          'id' => 'aff-image',   'label' => 'Site Button / Image (optional)', 'required' => false, 'attrs' => ['accept' => 'image/jpeg,image/png,image/gif,image/webp'], 'hint' => 'JPEG, PNG, GIF, or WebP. Max 2 MB.'],
             ['type' => 'textarea', 'name' => 'message',        'id' => 'aff-message', 'label' => 'Message (optional)',             'required' => false, 'value' => (string) ($old['message'] ?? ''), 'attrs' => ['maxlength' => '2000', 'rows' => '4']],
             ['type' => 'text',     'name' => 'captcha_answer', 'id' => 'aff-captcha', 'label' => 'Captcha: ' . $captchaQuestion,  'required' => true,  'attrs' => ['maxlength' => '10', 'autocomplete' => 'off']],
         ], $wrapperTpl);
@@ -473,6 +474,7 @@ final class AffiliateApplyController
                 '{captcha_block_input}'   => $f['captcha_answer_input'],
                 '{captcha_question}'      => View::e($captchaQuestion),
                 '{submit_button}'         => '<button type="submit" class="fl-submit">Submit Application</button>',
+                '{clear_button}'          => '<button type="reset" class="fl-btn-secondary">Clear</button>',
             ];
             $innerHtml = FormTemplateRenderer::expandTokens($affApplyTpl, $tokens);
             $formHtml  = FormTemplateRenderer::wrapForm(

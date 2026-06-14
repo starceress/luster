@@ -220,9 +220,8 @@ final class PublicCategoryPresenterTest extends TestCase
 
     public function testRenderJoinedListAriaCurrentOnActive(): void
     {
-        // Overview (no category selected): list mode shows all categories without aria-current
-        // (joined list has no "All" pseudo-entry, so aria-current only fires when a category matches)
-        // Test that a matching item in overview list mode receives aria-current
+        // Overview (no category selected): no item carries aria-current because
+        // "All Listings" only activates when currentCategory==='all', not ''
         $result = PublicCategoryPresenter::renderJoined(
             ['Anime', 'Books'],
             [], 0, '', '/joined', showList: true, browseMode: false,
@@ -266,5 +265,114 @@ final class PublicCategoryPresenterTest extends TestCase
 
         self::assertSame('', $result['html']);
         self::assertTrue($result['show_listings']);
+    }
+
+    // -----------------------------------------------------------------------
+    // renderOwned — pseudo-entries (pending / upcoming)
+    // -----------------------------------------------------------------------
+
+    public function testListModeShowsPendingPseudoEntryWhenCountNonZero(): void
+    {
+        $result = PublicCategoryPresenter::renderOwned(
+            [$this->cat(1, 'Anime', 'anime')],
+            0, '/listings', hideDropdown: false, showList: true,
+            browseMode: false, browseShowAll: false,
+            totalCount: 5, showCatSwitcher: true,
+            view: '', pendingCount: 3, showPending: true, upcomingCount: 0, showUpcoming: true,
+        );
+
+        self::assertStringContainsString('All Pending', $result['html']);
+        self::assertStringContainsString('__pending__', $result['html']);
+        self::assertStringContainsString('(3)', $result['html']);
+    }
+
+    public function testListModeOmitsPendingWhenToggleOff(): void
+    {
+        $result = PublicCategoryPresenter::renderOwned(
+            [$this->cat(1, 'Anime', 'anime')],
+            0, '/listings', hideDropdown: false, showList: true,
+            browseMode: false, browseShowAll: false,
+            totalCount: 5, showCatSwitcher: true,
+            view: '', pendingCount: 3, showPending: false, upcomingCount: 0, showUpcoming: true,
+        );
+
+        self::assertStringNotContainsString('All Pending', $result['html']);
+    }
+
+    public function testPendingViewActivatesAriaCurrent(): void
+    {
+        $result = PublicCategoryPresenter::renderOwned(
+            [$this->cat(1, 'Anime', 'anime')],
+            0, '/listings', hideDropdown: false, showList: true,
+            browseMode: false, browseShowAll: false,
+            totalCount: 5, showCatSwitcher: true,
+            view: 'pending', pendingCount: 3, showPending: true, upcomingCount: 0, showUpcoming: true,
+        );
+
+        // "All Pending" gets aria-current when view === 'pending'
+        self::assertStringContainsString('aria-current="page"', $result['html']);
+        // "All" link must NOT carry aria-current when a pseudo-view is active
+        self::assertMatchesRegularExpression('/<a [^>]*href="\/listings"[^>]*>All<\/a>/', $result['html']);
+        self::assertStringNotContainsString('<a aria-current="page" href="/listings">All</a>', $result['html']);
+    }
+
+    // -----------------------------------------------------------------------
+    // renderJoined — "All Listings" entry and pseudo-entries
+    // -----------------------------------------------------------------------
+
+    public function testJoinedListModeShowsAllListingsEntry(): void
+    {
+        $result = PublicCategoryPresenter::renderJoined(
+            ['Anime'], ['Anime' => 2], 5, '', '/joined', showList: true, browseMode: false,
+        );
+
+        self::assertStringContainsString('All Listings', $result['html']);
+        self::assertStringContainsString('?cat=all', $result['html']);
+        self::assertStringContainsString('(5)', $result['html']);
+    }
+
+    public function testJoinedListModeShowsPendingPseudoEntry(): void
+    {
+        $result = PublicCategoryPresenter::renderJoined(
+            ['Anime'], ['Anime' => 2], 5, '', '/joined',
+            showList: true, browseMode: false, showCatSwitcher: true,
+            view: '', pendingCount: 2, showPending: true,
+        );
+
+        self::assertStringContainsString('All Pending', $result['html']);
+        self::assertStringContainsString('__pending__', $result['html']);
+        self::assertStringContainsString('(2)', $result['html']);
+    }
+
+    // -----------------------------------------------------------------------
+    // renderJoined — dropdown placeholder (fix: hidden-row / dead-zone bug)
+    // -----------------------------------------------------------------------
+
+    public function testJoinedDropdownOverviewHasDisabledPlaceholder(): void
+    {
+        // When no category is selected, "All Listings" must NOT be pre-selected;
+        // instead a disabled placeholder allows the change event to fire when
+        // the visitor picks "All Listings" for the first time.
+        $result = PublicCategoryPresenter::renderJoined(
+            ['Anime', 'Books'],
+            [], 5, '', '/joined', showList: false, browseMode: false,
+        );
+
+        self::assertStringContainsString('disabled selected', $result['html']);
+        self::assertStringContainsString('value="all"', $result['html']);
+        // "All Listings" must NOT carry the selected attribute in overview state
+        self::assertStringNotContainsString('<option value="all" selected', $result['html']);
+    }
+
+    public function testJoinedDropdownAllCategoryMarksAllListingsSelected(): void
+    {
+        // When cat=all is active, "All Listings" should carry selected.
+        $result = PublicCategoryPresenter::renderJoined(
+            ['Anime', 'Books'],
+            [], 5, 'all', '/joined', showList: false, browseMode: false,
+        );
+
+        self::assertStringContainsString('<option value="all" selected', $result['html']);
+        self::assertStringNotContainsString('disabled selected', $result['html']);
     }
 }

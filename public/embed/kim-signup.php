@@ -123,7 +123,7 @@ $_lusterCaptchaQ  = Captcha::getQuestion('kim_signup');
 $_lusterWrapperTpl = $_lusterSiteSettings->get('collective_field_wrapper_template', '') ?? '';
 
 $_lusterFlSelectHtml = '<select class="fl-select" id="kim-fanlisting" name="fanlisting_id" required>'
-                     . '<option value="">&#8212; Select a fanlisting &#8212;</option>';
+                     . '<option value="">&#8212; Select a Listing &#8212;</option>';
 foreach ($_lusterFanlistings as $_lusterFl) {
     $_lusterFlId       = htmlspecialchars((string) $_lusterFl->id, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
     $_lusterFlTitle    = htmlspecialchars((string) $_lusterFl->subject, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
@@ -135,10 +135,10 @@ $_lusterFlSelectHtml .= '</select>';
 
 $_lusterF = $_lusterApp->getFormFieldBuilder()->build([
     ['type' => 'text',     'name' => 'name',             'id' => 'kim-name',             'label' => 'Name',                     'required' => true,  'value' => (string) ($_lusterOld['name']  ?? ''), 'attrs' => ['maxlength' => '100', 'autocomplete' => 'name']],
-    ['type' => 'url',      'name' => 'url',              'id' => 'kim-url',              'label' => 'Collective / Website URL',  'required' => true,  'value' => (string) ($_lusterOld['url']   ?? ''), 'attrs' => ['maxlength' => '500', 'placeholder' => 'https://', 'autocomplete' => 'url']],
+    ['type' => 'url',      'name' => 'url',              'id' => 'kim-url',              'label' => 'Website URL',  'required' => true,  'value' => (string) ($_lusterOld['url']   ?? ''), 'attrs' => ['maxlength' => '500', 'placeholder' => 'https://', 'autocomplete' => 'url']],
     ['type' => 'email',    'name' => 'email',            'id' => 'kim-email',            'label' => 'Email',                    'required' => true,  'value' => (string) ($_lusterOld['email'] ?? ''), 'attrs' => ['maxlength' => '255', 'autocomplete' => 'email']],
     ['type' => 'select',   'name' => 'fanlisting_id',   'id' => 'kim-fanlisting',       'label' => 'Fanlisting Interested In', 'required' => true,  'raw_input' => $_lusterFlSelectHtml],
-    ['type' => 'password', 'name' => 'password',         'id' => 'kim-password',         'label' => 'Password',                 'required' => false, 'attrs' => ['maxlength' => '255', 'autocomplete' => 'new-password'], 'hint' => 'Leave blank to auto-generate; you\'ll receive it by email'],
+    ['type' => 'password', 'name' => 'password',         'id' => 'kim-password',         'label' => 'Password',                 'required' => false, 'attrs' => ['maxlength' => '255', 'autocomplete' => 'new-password'], 'hint' => 'Optional - If left blank, a password will automatically generated and emailed to you.'],
     ['type' => 'password',     'name' => 'password_confirm', 'id' => 'kim-password-confirm', 'label' => 'Confirm Password',         'required' => false, 'attrs' => ['maxlength' => '255', 'autocomplete' => 'new-password']],
     ['type' => 'checkboxGroup','name' => 'send_copy',        'id' => '',                     'label' => 'Opt-in',                   'required' => false, 'options' => ['1' => 'Email me a copy of my submission'], 'selected' => ((string) ($_lusterOld['send_copy'] ?? '')) === '1' ? ['1'] : []],
     ['type' => 'text',         'name' => 'captcha_answer',   'id' => 'kim-captcha',          'label' => 'Captcha: ' . $_lusterCaptchaQ, 'required' => true, 'attrs' => ['maxlength' => '10', 'autocomplete' => 'off']],

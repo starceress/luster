@@ -160,7 +160,7 @@ $dataExist      = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON
     <div class="composer-footer">
       <button type="submit" class="btn btn-primary"><?= $isEdit ? 'Save Changes' : 'Add Joined Listing' ?></button>
       <?php if ($isEdit): ?>
-        <button type="reset" class="btn btn-ghost">Reset to Original</button>
+        <button type="reset" class="btn btn-quaternary">Reset to Original</button>
       <?php endif; ?>
       <button type="button" class="btn btn-ghost" id="clear-form-btn">Clear</button>
       <?php if ($isEdit): ?>

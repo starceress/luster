@@ -8,12 +8,60 @@ $hasWishlist = in_array('wishlist', $installed, true);
 $hasRules    = in_array('rules',    $installed, true);
 $codes       = $collective_codes ?? ['total' => 0, 'pending' => 0];
 $addons      = $addon_counts     ?? ['wishlist' => null, 'updates' => null];
+
+$quickActions = [
+    'add_owned' => [
+        'href'  => "$b/admin/listings/add",
+        'icon'  => 'star',
+        'label' => 'Add Owned Listing',
+    ],
+    'add_joined' => [
+        'href'  => "$b/admin/joined/add",
+        'icon'  => 'heart',
+        'label' => 'Add Joined Listing',
+    ],
+    'add_code' => [
+        'href'  => "$b/admin/codes?collective=1",
+        'icon'  => 'image',
+        'label' => 'Add Collective Code',
+    ],
+    'add_affiliate' => [
+        'href'  => "$b/admin/affiliates/add",
+        'icon'  => 'link',
+        'label' => 'Add Collective Affiliate',
+    ],
+    'add_update' => [
+        'href'  => $hasUpdates ? "$b/admin/updates/collective/add" : "$b/admin/addons",
+        'icon'  => 'updates',
+        'label' => 'Add Collective Update',
+        'muted' => !$hasUpdates,
+    ],
+    'add_wishlist' => [
+        'href'  => $hasWishlist ? "$b/admin/wishlist/add" : "$b/admin/addons",
+        'icon'  => 'wishlist',
+        'label' => 'Add Wishlist Entry',
+        'muted' => !$hasWishlist,
+    ],
+    'add_kim' => [
+        'href'  => $hasKim ? "$b/admin/kim/add" : "$b/admin/addons",
+        'icon'  => 'kim',
+        'label' => 'Add KIM Entry',
+        'muted' => !$hasKim,
+    ],
+];
+
+$quickActionsOrder = array_values(array_unique(array_intersect($quick_actions_order ?? [], array_keys($quickActions))));
+foreach (array_keys($quickActions) as $qaKey) {
+    if (!in_array($qaKey, $quickActionsOrder, true)) {
+        $quickActionsOrder[] = $qaKey;
+    }
+}
 ?>
 
 <div class="toolbar">
   <div class="actions-row"></div>
   <div class="actions-row actions-row--right">
-    <a href="<?= $b ?>/admin/collective/templates" class="btn btn-quaternary btn-sm">Collective Templates</a>
+    <a href="<?= $b ?>/admin/collective/templates" class="btn btn-primary btn-sm">Collective Templates</a>
     <a href="<?= $b ?>/admin/collective/settings" class="btn btn-quaternary btn-sm"><?= View::icon('gear') ?> Collective Settings</a>
   </div>
 </div>
@@ -135,63 +183,27 @@ $addons      = $addon_counts     ?? ['wishlist' => null, 'updates' => null];
 
 <div class="collective-columns">
   <div class="card">
-    <div class="card-head">Quick Actions</div>
-    <div class="collective-action-list">
-
-      <a href="<?= $b ?>/admin/listings/add" class="collective-action-item">
-        <span class="pc-head-icon pc-head-icon-bg"><?= View::icon('star') ?></span>
-        <span class="collective-action-label">Add Owned Listing</span>
-      </a>
-
-      <a href="<?= $b ?>/admin/joined/add" class="collective-action-item">
-        <span class="pc-head-icon pc-head-icon-bg"><?= View::icon('heart') ?></span>
-        <span class="collective-action-label">Add Joined Listing</span>
-      </a>
-
-      <a href="<?= $b ?>/admin/codes?collective=1" class="collective-action-item">
-        <span class="pc-head-icon pc-head-icon-bg"><?= View::icon('image') ?></span>
-        <span class="collective-action-label">Add Collective Code</span>
-      </a>
-
-      <a href="<?= $b ?>/admin/affiliates/add" class="collective-action-item">
-        <span class="pc-head-icon pc-head-icon-bg"><?= View::icon('link') ?></span>
-        <span class="collective-action-label">Add Collective Affiliate</span>
-      </a>
-
-      <a href="<?= $hasUpdates ? $b . '/admin/updates/collective/add' : $b . '/admin/addons' ?>" class="collective-action-item<?= $hasUpdates ? '' : ' is-muted' ?>">
-        <span class="pc-head-icon pc-head-icon-bg"><?= View::icon('updates') ?></span>
-        <span>
-          <span class="collective-action-label">Add Collective Update</span>
-          <?php if (!$hasUpdates): ?>
+    <div class="card-head">
+      Quick Actions
+      <span class="card-head-sub">Hover a tile and drag its <?= View::icon('grip') ?> handle to reorder.</span>
+    </div>
+    <div class="collective-action-grid" id="qa-grid" data-qa-reorder-url="<?= $b ?>/admin/collective/quick-actions/reorder" data-qa-csrf="<?= View::e($csrf_token) ?>">
+      <?php foreach ($quickActionsOrder as $qaKey): ?>
+        <?php $qa = $quickActions[$qaKey]; ?>
+        <a href="<?= View::e($qa['href']) ?>" class="collective-action-tile<?= !empty($qa['muted']) ? ' is-muted' : '' ?>" data-action-key="<?= View::e($qaKey) ?>" draggable="false">
+          <span class="qa-drag-handle" title="Drag to reorder"><?= View::icon('grip') ?></span>
+          <span class="pc-head-icon pc-head-icon-bg"><?= View::icon($qa['icon']) ?></span>
+          <span class="collective-action-label"><?= View::e($qa['label']) ?></span>
+          <?php if (!empty($qa['muted'])): ?>
             <span class="badge badge-inactive badge-inline-sm">Install add-on</span>
           <?php endif; ?>
-        </span>
-      </a>
-
-      <a href="<?= $hasWishlist ? $b . '/admin/wishlist/add' : $b . '/admin/addons' ?>" class="collective-action-item<?= $hasWishlist ? '' : ' is-muted' ?>">
-        <span class="pc-head-icon pc-head-icon-bg"><?= View::icon('wishlist') ?></span>
-        <span>
-          <span class="collective-action-label">Add Wishlist Entry</span>
-          <?php if (!$hasWishlist): ?>
-            <span class="badge badge-inactive badge-inline-sm">Install add-on</span>
-          <?php endif; ?>
-        </span>
-      </a>
-
-      <a href="<?= $hasKim ? $b . '/admin/kim/add' : $b . '/admin/addons' ?>" class="collective-action-item<?= $hasKim ? '' : ' is-muted' ?>">
-        <span class="pc-head-icon pc-head-icon-bg"><?= View::icon('kim') ?></span>
-        <span>
-          <span class="collective-action-label">Add KIM Entry</span>
-          <?php if (!$hasKim): ?>
-            <span class="badge badge-inactive badge-inline-sm">Install add-on</span>
-          <?php endif; ?>
-        </span>
-      </a>
+        </a>
+      <?php endforeach; ?>
     </div>
   </div>
 
   <div class="card">
-    <div class="card-head"><?= View::icon('embed') ?>> References</div>
+    <div class="card-head"><?= View::icon('embed') ?> References</div>
     <div class="collective-action-list">
 
       <a href="<?= $b ?>/admin/collective/templates" class="collective-action-item">

@@ -1054,6 +1054,28 @@ document.addEventListener('change', function (e) {
   toggle();
 }());
 
+// ── 28b. Categories edit: "New Network" row + "Other (add new)" name field ────
+
+(function () {
+  var addSel  = document.querySelector('select[name="add_network"]');
+  var repSel  = document.getElementById('replacement-network');
+  var repRow  = document.getElementById('replacement-network-row');
+  var nameTxt = document.getElementById('cat-network');
+  if (!addSel || !repSel || !repRow || !nameTxt) return;
+
+  function toggleName() {
+    nameTxt.style.display = repSel.value === 'other' ? '' : 'none';
+  }
+  function toggleReplacement() {
+    repRow.classList.toggle('is-hidden', addSel.value !== 'yes');
+    toggleName();
+  }
+
+  addSel.addEventListener('change', toggleReplacement);
+  repSel.addEventListener('change', toggleName);
+  toggleReplacement();
+}());
+
 // ── 29. Members email: template selector + save template + preview modal ──────
 
 (function () {
@@ -1216,6 +1238,13 @@ document.addEventListener('change', function (e) {
     '{aff_url}':         'https://affiliate.example.com',
     '{aff_email}':       'owner@affiliate.example.com',
     '{aff_message}':     'Message: I would love to affiliate with you.\n\n',
+    '{applicant_name}':    'Alex Applicant',
+    '{applicant_email}':   'alex@example.com',
+    '{applicant_url}':     'https://alex.example.com',
+    '{applicant_message}': 'Message: I would love to adopt this listing.\n\n',
+    '{kim_name}':        'Jamie KIM',
+    '{kim_email}':       'jamie@example.com',
+    '{kim_url}':         'https://jamie.example.com',
   };
 
   function updatePreview(type) {
@@ -1611,8 +1640,8 @@ document.addEventListener('change', function (e) {
   var pickItems = root.querySelectorAll('.ec-qc-item'); // no-op in new layout; kept for selectItem() loop
 
   var navGroups = [
-    { val: 'l', keys: ['join','members','stats','affiliates','aff-apply','update','remove','reset','codes','codes-submit','contact','updates','adopt','rules-gate'] },
-    { val: 'c', keys: ['owned','joined','cstats','aff-col','col-aff-apply','random','latest','col-codes','col-codes-submit','kim','kim-list','kim-update','kim-reset','col-updates','col-contact','wishlist'] },
+    { val: 'l', keys: ['join','members','stats','affiliates','aff-apply','update','reset','codes','codes-submit','contact','updates','adopt','rules-gate'] },
+    { val: 'c', keys: ['owned','joined','cstats','aff-col','col-aff-apply','random','latest','random-joined','latest-joined','col-codes','col-codes-submit','kim','kim-list','kim-update','kim-reset','col-updates','col-contact','wishlist'] },
   ];
 
   var secSel   = document.getElementById('ec-sec-sel');
@@ -1687,6 +1716,7 @@ document.addEventListener('change', function (e) {
   var prevIframe     = document.getElementById('ec-prev-iframe');
   var prevModalTitle = document.getElementById('ec-prev-modal-title');
   var prevNewTab     = document.getElementById('ec-prev-newtab');
+  var prevCloseBtn   = document.getElementById('ec-prev-close');
   var optsBody       = document.getElementById('ec-opts-body');
   var optsBadge      = document.getElementById('ec-opts-badge');
 
@@ -1708,6 +1738,7 @@ document.addEventListener('change', function (e) {
   }
 
   if (prevBtn) prevBtn.addEventListener('click', openPreview);
+  if (prevCloseBtn) prevCloseBtn.addEventListener('click', closePreview);
 
   if (prevModal) {
     prevModal.addEventListener('click', function (e) {
@@ -1730,11 +1761,12 @@ document.addEventListener('change', function (e) {
 
   var FILE = {
     join: 'join.php', members: 'members.php', stats: 'stats.php',
-    update: 'update.php', remove: 'remove.php', reset: 'reset.php',
+    update: 'update.php', reset: 'reset.php',
     affiliates: 'affiliates.php', owned: 'owned.php', joined: 'joined.php',
     cstats: 'collective-stats.php', 'aff-col': 'affiliates.php', 'col-aff-apply': 'affiliate-apply.php', 'col-codes': 'codes.php', 'col-codes-submit': 'collective-codes-submit.php',
     'aff-apply': 'affiliate-apply.php',
     random: 'random-listing.php', latest: 'latest-listing.php',
+    'random-joined': 'random-joined-listing.php', 'latest-joined': 'latest-joined-listing.php',
     kim: 'kim-signup.php', 'kim-list': 'kim-list.php', 'kim-update': 'kim-update.php', 'kim-reset': 'kim-reset.php',
     codes: 'codes.php', 'codes-submit': 'codes-submit.php',
     contact: 'contact.php', updates: 'updates.php', adopt: 'adopt.php',
@@ -1746,7 +1778,7 @@ document.addEventListener('change', function (e) {
     var lines = [];
     lines.push('<?php');
     // Listing ID
-    var needsId = ['join','members','stats','update','remove','reset','aff-apply','codes','codes-submit','contact','updates','adopt','rules-gate'];
+    var needsId = ['join','members','stats','update','reset','aff-apply','codes','codes-submit','contact','updates','adopt','rules-gate'];
     if (needsId.indexOf(type) !== -1) {
       var lid = parseInt(vals.lid || (listings.length ? listings[0].id : 1), 10) || 1;
       if (type === 'aff-apply') lines.push('// Enable in Admin → Listings → Edit → Affiliates');
@@ -1770,7 +1802,9 @@ document.addEventListener('change', function (e) {
       if (vals.per_page && vals.per_page !== '' && vals.per_page !== '20') lines.push('$luster_per_page     = ' + (parseInt(vals.per_page, 10) || 20) + ';');
       if (vals.sort_by)                                                    lines.push('$luster_sort_by      = ' + phpStr(vals.sort_by) + ';');
       if (vals.show_search === 'false')                                    lines.push('$luster_show_search  = false;');
-      if (vals.members_base)                                               lines.push('$luster_members_base = ' + phpStr(vals.members_base) + ';');
+    }
+    if (type === 'affiliates') {
+      if (vals.per_page && vals.per_page !== '')       lines.push('$luster_per_page        = ' + (parseInt(vals.per_page, 10) || 50) + ';');
     }
     if (type === 'reset' && vals.reset_step) lines.push('$luster_reset_step = ' + phpStr(vals.reset_step) + ';');
     if (type === 'owned') {
@@ -1794,11 +1828,17 @@ document.addEventListener('change', function (e) {
       if (vals.per_page && vals.per_page !== '') lines.push('$luster_per_page  = ' + (parseInt(vals.per_page, 10) || 10) + ';');
       if (vals.show_cats === 'false')            lines.push('$luster_show_cats = false;');
     }
-    if (type === 'wishlist' && vals.wishlist_type && vals.wishlist_type !== 'all') {
-      lines.push('$luster_wishlist_type = ' + phpStr(vals.wishlist_type) + ';');
+    if (type === 'wishlist') {
+      if (vals.wishlist_type && vals.wishlist_type !== 'all') lines.push('$luster_wishlist_type = ' + phpStr(vals.wishlist_type) + ';');
+      if (vals.per_page && vals.per_page !== '')              lines.push('$luster_per_page      = ' + (parseInt(vals.per_page, 10) || 25) + ';');
     }
-    if (type === 'kim-list' && vals.only_with_signups === 'false') {
-      lines.push('$luster_kim_only_with_signups = false;');
+    if (type === 'kim-list') {
+      if (vals.only_with_signups === 'false')    lines.push('$luster_kim_only_with_signups = false;');
+      if (vals.per_page && vals.per_page !== '') lines.push('$luster_per_page              = ' + (parseInt(vals.per_page, 10) || 25) + ';');
+    }
+    if (type === 'cstats') {
+      if (vals.count && vals.count !== '')         lines.push('$luster_count     = ' + (parseInt(vals.count, 10) || 3) + ';');
+      if (vals.cache_ttl && vals.cache_ttl !== '') lines.push('$luster_cache_ttl = ' + Math.max(0, parseInt(vals.cache_ttl, 10) || 0) + ';');
     }
     // Stats template override
     if (type === 'stats' && Array.isArray(vals.tpl) && vals.tpl.length > 0) {
@@ -1818,6 +1858,8 @@ document.addEventListener('change', function (e) {
     if (type === 'col-updates') lines.push('// Requires Updates Feed add-on (Admin → Add-ons)');
     if (type === 'wishlist')    lines.push('// Requires Wishlist add-on (Admin → Add-ons)');
     if (type === 'latest')      lines.push('// Renders the listing with the most recent open date.');
+    if (type === 'random-joined') lines.push('// Renders one active, approved joined listing at random.');
+    if (type === 'latest-joined') lines.push('// Renders the joined listing with the most recent join date.');
     if (type === 'rules-gate') {
       lines.push('// Requires Join Rules add-on (Admin -> Add-ons)');
       lines.push('$luster_return = true;');
@@ -1854,10 +1896,9 @@ document.addEventListener('change', function (e) {
     members: {
       fields: [
         { id: 'lid',          label: 'Listing',                 type: 'listing', hint: '' },
-        { id: 'per_page',     label: 'Members per page',        type: 'number', ph: '20', hint: 'Leave blank to use your normal Luster setting.' },
-        { id: 'sort_by',      label: 'Start sorted by',         type: 'select', opts: [['','Let visitors choose'],['name','Name'],['country','Country']], hint: '' },
-        { id: 'show_search',  label: 'Search and sort tools',   type: 'select', opts: [['','Show'],['false','Hide']], hint: '' },
-        { id: 'members_base', label: 'Member list page',        type: 'text',   ph: 'https://yoursite.com/members.php', hint: 'Use this if page numbers should stay on your own member page.' },
+        { id: 'per_page',     label: 'Members per page',        type: 'number', ph: '25', hint: 'How many members to show per page. Leave blank to use your normal Luster setting (default 25).' },
+        { id: 'sort_by',      label: 'Start sorted by',         type: 'select', opts: [['country','Country'],['name','Name']], hint: '' },
+        { id: 'show_search',  label: 'Sort and filter tools',   type: 'select', opts: [['','Show'],['false','Hide']], hint: 'Shows or hides the sort links and search box above the member list. Visitors use these to re-sort or filter members.' },
       ],
     },
     stats: {
@@ -1868,11 +1909,15 @@ document.addEventListener('change', function (e) {
           tokens: [
             { token: '{stat_approved}',     label: 'Approved members',     line: '{stat_approved} members' },
             { token: '{stat_pending}',      label: 'Pending members',      line: '{stat_pending} pending' },
+            { token: '{if_stat_pending}',   label: 'Pending only when present', line: '{if_stat_pending}{stat_pending} pending{/if_stat_pending}' },
+            { token: '{stat_countries}',    label: 'Countries represented', line: '{stat_countries} countries' },
             { token: '{stat_opened}',       label: 'Date opened',          line: 'Opened: {stat_opened}' },
             { token: '{stat_updated}',      label: 'Newest member date',   line: 'Last member: {stat_updated}' },
             { token: '{stat_last_updated}', label: 'Last updated date',    line: 'Last updated: {stat_last_updated}' },
             { token: '{stat_newmembers}',   label: 'Newest members',       line: 'Newest: {stat_newmembers}' },
-            { token: '{stat_growth}',       label: 'Average members per day', line: 'Growth: {stat_growth}/day' },
+            { token: '{stat_newmembers_oxford}', label: 'Newest members, sentence list', line: 'Newest: {stat_newmembers_oxford}' },
+            { token: '{stat_newmembers_label}',  label: 'Newest member label', line: 'Newest {stat_newmembers_label}: {stat_newmembers}' },
+            { token: '{stat_growth}',       label: 'Average members per day', line: 'Growth: {stat_growth}' },
             { token: '{listing_title}',      label: 'Listing name',         line: '{listing_title}' },
             { token: '{listing_url}',       label: 'Listing link',         line: '{listing_url}' },
             { token: '{approved_by}',       label: 'Approved-by network',   line: '{if_approved_by}Approved by: {approved_by}{/if_approved_by}' },
@@ -1881,15 +1926,15 @@ document.addEventListener('change', function (e) {
       ],
     },
     affiliates: {
-      fields: [{ id: 'lid', label: 'Listing', type: 'listing_or_zero', hint: 'Choose Collective for site-wide affiliates.' }],
+      fields: [
+        { id: 'lid',             label: 'Listing',             type: 'listing_or_zero', hint: 'Choose Collective for site-wide affiliates.' },
+        { id: 'per_page',        label: 'Affiliates per page', type: 'number', ph: '', hint: 'Leave blank to show all affiliates at once. Enter a number to paginate — e.g. 20 shows 20 affiliates per page.' },
+      ],
     },
     'aff-apply': {
       fields: [{ id: 'lid', label: 'Listing', type: 'listing', hint: '' }],
     },
     update: {
-      fields: [{ id: 'lid', label: 'Listing', type: 'listing', hint: '' }],
-    },
-    remove: {
       fields: [{ id: 'lid', label: 'Listing', type: 'listing', hint: '' }],
     },
     reset: {
@@ -1902,41 +1947,43 @@ document.addEventListener('change', function (e) {
     },
     owned: {
       fields: [
-        { id: 'browse_by_category', label: 'What visitors see first', type: 'select', opts: [['','Listings'],['true','Category list']], hint: 'Choose Category list if you want visitors to pick a topic before seeing listings.' },
+        { id: 'browse_by_category', label: 'What visitors see first', type: 'select', opts: [['true','Category list'],['','Listings']], hint: 'Choose Category list if you want visitors to pick a topic before seeing listings.' },
         { id: 'status',             label: 'Listings to show',        type: 'select', opts: [['','Current only'],['upcoming','Upcoming only'],['pending','Pending only'],['all','All statuses']], hint: '' },
         { id: 'category_id',        label: 'Only this category ID',    type: 'number', ph: '0', hint: 'Optional. Leave blank unless you know the category ID you want to lock this snippet to.' },
-        { id: 'hide_dropdown',      label: 'Category dropdown',       type: 'select', opts: [['','Show'],['true','Hide']], hint: '' },
-        { id: 'show_list',          label: 'Overview style',          type: 'select', opts: [['','Link list'],['false','Dropdown']], hint: 'How categories appear on the main page before a category is selected.' },
+        { id: 'hide_dropdown',      label: 'Category dropdown',       type: 'select', opts: [['','Show'],['true','Hide']], hint: 'The category dropdown is a small menu at the top of the listings snippet that lets visitors switch between categories. Hide it if you only have one category or want a simpler page.' },
+        { id: 'show_list',          label: 'Overview style',          type: 'select', opts: [['','Link list'],['false','Dropdown']], hint: 'How categories appear on the main page before a category is selected.', showIf: { field: 'browse_by_category', equals: '' } },
         { id: 'show_cat_switcher',  label: 'Per-category switcher',   type: 'select', opts: [['','Show'],['false','Hide']], hint: 'When a visitor is browsing a category, show a dropdown to switch to another.' },
         { id: 'exclude_pending',    label: 'Pending listings',        type: 'select', opts: [['','Hide when showing all'],['false','Show when showing all']], hint: 'Only matters when "Listings to show" is All statuses.' },
       ],
     },
     joined: {
       fields: [
-        { id: 'browse_by_category', label: 'What visitors see first', type: 'select', opts: [['','Listings'],['true','Category list']], hint: 'Choose Category list if you want visitors to pick a topic before seeing listings.' },
+        { id: 'browse_by_category', label: 'What visitors see first', type: 'select', opts: [['true','Category list'],['','Listings']], hint: 'Choose Category list if you want visitors to pick a topic before seeing listings.' },
         { id: 'category',           label: 'Category view',           type: 'select', opts: [['','Let visitors choose'],['all','Show all by category']], hint: 'To show one category only, add its name manually in the snippet.' },
-        { id: 'show_list',          label: 'Overview style',          type: 'select', opts: [['','Link list'],['false','Dropdown']], hint: 'How categories appear on the main page before a category is selected.' },
+        { id: 'show_list',          label: 'Overview style',          type: 'select', opts: [['','Link list'],['false','Dropdown']], hint: 'How categories appear on the main page before a category is selected.', showIf: { field: 'browse_by_category', equals: '' } },
         { id: 'show_cat_switcher',  label: 'Per-category switcher',   type: 'select', opts: [['','Show'],['false','Hide']], hint: 'When a visitor is browsing a category, show a dropdown to switch to another.' },
         { id: 'show_all_by_default', label: 'Show all first',          type: 'select', opts: [['','No'],['true','Yes']], hint: 'Shows all joined listings immediately, while still keeping the category chooser.' },
       ],
     },
     cstats: {
       fields: [
+        { id: 'count',     label: 'Newest/random count', type: 'number', ph: '3', hint: 'How many newest listings Luster should prepare for custom PHP output.' },
+        { id: 'cache_ttl', label: 'Cache seconds',       type: 'number', ph: '0', hint: 'Leave blank or 0 for fresh stats every time.' },
         { id: 'vars', label: 'Stats to show', type: 'cstatvars',
           hint: 'Choose the stats you want printed by the snippet. People comfortable with PHP can still use the rest manually.',
           vars: [
-            { name: 'luster_owned_active',        label: 'Current owned listings',   desc: '' },
-            { name: 'luster_owned_upcoming',      label: 'Upcoming owned listings',  desc: '' },
+            { name: 'luster_owned_active',        label: 'Current owned listings',   desc: '', checked: true },
+            { name: 'luster_owned_upcoming',      label: 'Upcoming owned listings',  desc: '', checked: true },
             { name: 'luster_owned_pending',       label: 'Pending owned listings',   desc: '' },
             { name: 'luster_owned',               label: 'Total owned listings',     desc: '' },
-            { name: 'luster_joined_active',       label: 'Active joined listings',   desc: '' },
+            { name: 'luster_joined_active',       label: 'Active joined listings',   desc: '', checked: true },
             { name: 'luster_joined_approved',     label: 'Approved joined listings', desc: '' },
             { name: 'luster_joined_upcoming',     label: 'Upcoming joined listings', desc: '' },
             { name: 'luster_joined_pending',      label: 'Pending joined listings',  desc: '' },
             { name: 'luster_joined',              label: 'Total joined listings',    desc: '' },
             { name: 'luster_affiliates',          label: 'Collective affiliates',    desc: '' },
-            { name: 'luster_members_approved',    label: 'Approved members',         desc: '' },
-            { name: 'luster_members_pending',     label: 'Pending members',          desc: '' },
+            { name: 'luster_members_approved',    label: 'Approved members',         desc: '', checked: true },
+            { name: 'luster_members_pending',     label: 'Pending members',          desc: '', checked: true },
             { name: 'luster_members_total',       label: 'Total members',            desc: '' },
             { name: 'luster_countries_count',     label: 'Countries represented',    desc: '' },
             { name: 'luster_total_cats',          label: 'Owned categories',         desc: '' },
@@ -1944,7 +1991,7 @@ document.addEventListener('change', function (e) {
             { name: 'luster_collective_fans',     label: 'Total fans alias',         desc: '' },
             { name: 'luster_owned_growth_rate',   label: 'Owned listings per year',  desc: '' },
             { name: 'luster_joined_growth_rate',  label: 'Joined listings per year', desc: '' },
-            { name: 'luster_members_growth_rate', label: 'Members per day',          desc: '' },
+            { name: 'luster_members_growth_rate', label: 'Members per day',          desc: '', checked: true },
           ],
         },
       ],
@@ -2001,6 +2048,8 @@ document.addEventListener('change', function (e) {
         { id: 'wishlist_type', label: 'Wishlist entries to show', type: 'select',
           opts: [['all','All'],['wanted','Wanted'],['top','Top'],['granted','Granted']],
           hint: 'Choose a type, or leave this on All.' },
+        { id: 'per_page', label: 'Entries per page', type: 'number', ph: '25',
+          hint: 'Counted across all categories combined, even when showing All.' },
       ],
     },
     random: {
@@ -2019,6 +2068,8 @@ document.addEventListener('change', function (e) {
     'kim-list': {
       fields: [
         { id: 'only_with_signups', label: 'Listings to show', type: 'select', opts: [['','Only with sign-ups'],['false','All listings']], hint: 'By default, only fanlistings that have at least one approved KIM member are shown.' },
+        { id: 'per_page', label: 'Entries per page', type: 'number', ph: '25',
+          hint: 'Members shown per page when viewing a single fanlisting\'s KIM list.' },
       ],
       note: 'Set your KIM page links in Settings first. After that, this snippet is ready to copy.',
     },
@@ -2048,14 +2099,16 @@ document.addEventListener('change', function (e) {
     def.fields.forEach(function (f) {
       // Token grid (stats template builder)
       if (f.type === 'tokens') {
-        custVals[f.id] = [];
+        custVals[f.id] = (f.tokens || []).filter(function (t) { return t.checked; })
+          .map(function (t) { return { token: t.token, line: t.line }; });
         html += '<div class="listing-field-row listing-field-row--top">'
               + '<label class="listing-field-label">' + f.label + '</label>'
               + '<div><div class="ec-token-grid">';
         (f.tokens || []).forEach(function (t) {
           html += '<label class="ec-token-item">'
                 + '<input type="checkbox" class="ec-tok-cb" data-tokfid="' + esc(f.id) + '"'
-                + ' data-tok="' + esc(t.token) + '" data-line="' + esc(t.line) + '">'
+                + ' data-tok="' + esc(t.token) + '" data-line="' + esc(t.line) + '"'
+                + (t.checked ? ' checked' : '') + '>'
                 + '<span class="ec-token-inner">'
                 + '<span class="ec-tok-name">' + esc(t.token) + '</span>'
                 + '<span class="ec-tok-desc">' + esc(t.label) + '</span>'
@@ -2068,14 +2121,16 @@ document.addEventListener('change', function (e) {
       }
       // Variable grid (cstats echo builder)
       if (f.type === 'cstatvars') {
-        custVals[f.id] = [];
+        custVals[f.id] = (f.vars || []).filter(function (v) { return v.checked; })
+          .map(function (v) { return { name: v.name, label: v.label }; });
         html += '<div class="listing-field-row listing-field-row--top">'
               + '<label class="listing-field-label">' + f.label + '</label>'
               + '<div><div class="ec-token-grid">';
         (f.vars || []).forEach(function (v) {
           html += '<label class="ec-token-item">'
                 + '<input type="checkbox" class="ec-var-cb" data-varfid="' + esc(f.id) + '"'
-                + ' data-varname="' + esc(v.name) + '" data-varlabel="' + esc(v.label) + '">'
+                + ' data-varname="' + esc(v.name) + '" data-varlabel="' + esc(v.label) + '"'
+                + (v.checked ? ' checked' : '') + '>'
                 + '<span class="ec-token-inner">'
                 + '<span class="ec-tok-name">$' + esc(v.name) + '</span>'
                 + '<span class="ec-tok-desc">' + esc(v.label) + (v.desc ? ' -- ' + esc(v.desc) : '') + '</span>'
@@ -2087,7 +2142,7 @@ document.addEventListener('change', function (e) {
         return;
       }
       // Standard option: label column + control column
-      html += '<div class="listing-field-row listing-field-row--top">'
+      html += '<div class="listing-field-row listing-field-row--top" id="ec-row-' + esc(f.id) + '">'
             + '<label class="listing-field-label" for="ec-f-' + esc(f.id) + '">' + f.label + '</label>'
             + '<div>';
       if (f.type === 'listing' || f.type === 'listing_or_zero') {
@@ -2114,12 +2169,32 @@ document.addEventListener('change', function (e) {
       html += '</div></div>';
     });
     optsBody.innerHTML = html;
+    // Show/hide fields whose `showIf` condition depends on another field's value,
+    // resetting any hidden field back to its default so the generated snippet
+    // never carries an override for an option the user can no longer see.
+    function applyConditionalRows() {
+      def.fields.forEach(function (f) {
+        if (!f.showIf) return;
+        var visible = custVals[f.showIf.field] === f.showIf.equals;
+        var row = optsBody.querySelector('#ec-row-' + f.id);
+        if (row) row.style.display = visible ? '' : 'none';
+        if (!visible) {
+          var def0 = (f.opts && f.opts[0]) ? f.opts[0][0] : '';
+          if (custVals[f.id] !== def0) {
+            custVals[f.id] = def0;
+            var ctrl = optsBody.querySelector('#ec-f-' + f.id);
+            if (ctrl) ctrl.value = def0;
+          }
+        }
+      });
+    }
     // Wire standard inputs
     optsBody.querySelectorAll('[data-fid]').forEach(function (el) {
       custVals[el.dataset.fid] = el.value;
-      el.addEventListener('input',  function () { custVals[el.dataset.fid] = el.value; refreshCode(); });
-      el.addEventListener('change', function () { custVals[el.dataset.fid] = el.value; refreshCode(); });
+      el.addEventListener('input',  function () { custVals[el.dataset.fid] = el.value; applyConditionalRows(); refreshCode(); });
+      el.addEventListener('change', function () { custVals[el.dataset.fid] = el.value; applyConditionalRows(); refreshCode(); });
     });
+    applyConditionalRows();
     // Wire token checkboxes
     optsBody.querySelectorAll('.ec-tok-cb').forEach(function (cb) {
       cb.addEventListener('change', function () {
@@ -2155,7 +2230,7 @@ document.addEventListener('change', function (e) {
         if (v && v !== '') n++;
       } else if (f.type === 'select') {
         var def0 = (f.opts && f.opts[0]) ? f.opts[0][0] : '';
-        if (v && v !== def0) n++;
+        if (v !== undefined && v !== def0) n++;
       } else if (v && v !== '') {
         n++;
       }
@@ -2198,8 +2273,14 @@ document.addEventListener('change', function (e) {
     } else if (custVals.lid !== undefined && custVals.lid !== '') {
       url += '&lid=' + encodeURIComponent(custVals.lid);
     }
-    var skip = { lid: true, tpl: true, vars: true };
+    var skip = { lid: true, vars: true };
     Object.keys(custVals).forEach(function (k) {
+      if (k === 'tpl') {
+        if (Array.isArray(custVals.tpl) && custVals.tpl.length > 0) {
+          url += '&stats_template=' + encodeURIComponent(custVals.tpl.map(function (t) { return t.line; }).join('<br>'));
+        }
+        return;
+      }
       if (skip[k] || typeof custVals[k] !== 'string' || custVals[k] === '') return;
       url += '&' + encodeURIComponent(k) + '=' + encodeURIComponent(custVals[k]);
     });
@@ -2334,14 +2415,9 @@ document.addEventListener('change', function (e) {
           + '<p class="site-sub">Sign in with the email and password you joined with.</p>'
           + '<label>Email</label><input class="fld" placeholder="you@example.com" />'
           + '<label>Password</label><input class="fld" type="password" placeholder="••••••••" />'
-          + '<button class="site-btn">Load my details</button>';
-
-      case 'remove':
-        return '<h4>Remove membership</h4>'
-          + '<p class="site-sub">This removes you from ' + name + '. It can&apos;t be undone.</p>'
-          + '<label>Email</label><input class="fld" placeholder="you@example.com" />'
-          + '<label>Password</label><input class="fld" type="password" placeholder="••••••••" />'
-          + '<button class="site-btn" style="background:#c0392b">Remove me</button>';
+          + '<button class="site-btn">Load my details</button>'
+          + '<p class="site-sub" style="margin-top:0.75em">Once signed in, members can also check '
+          + '"Permanently delete my membership instead of updating it" to leave ' + name + '.</p>';
 
       case 'reset':
         if (vals.reset_step === 'confirm') {
@@ -2397,6 +2473,12 @@ document.addEventListener('change', function (e) {
         return '<h4>' + (key === 'random' ? 'Featured listing' : 'Latest listing') + '</h4>'
           + '<div class="site-row"><a class="site-link" href="#">' + name + '</a><span class="site-flag">Current</span></div>'
           + '<div class="site-note">' + (key === 'random' ? 'A different listing each page load.' : 'Your most recently opened listing.') + '</div>';
+
+      case 'random-joined':
+      case 'latest-joined':
+        return '<h4>' + (key === 'random-joined' ? 'Featured joined listing' : 'Latest joined listing') + '</h4>'
+          + '<div class="site-row"><a class="site-link" href="#">Sailor Moon</a><span class="site-flag">Anime</span></div>'
+          + '<div class="site-note">' + (key === 'random-joined' ? 'A different joined listing each page load.' : 'The fanlisting you most recently joined.') + '</div>';
 
       case 'kim':
         return '<h4>Keep me in mind</h4>'
@@ -3657,7 +3739,7 @@ function adminWireFilterPanel(btnId, panelId, htmlClass) {
     joined:                { title: 'Delete Joined Listing',   btn: 'Delete',      desc: 'You are about to delete <strong>$$names$$</strong> from your joined listings.',        warn: 'This action cannot be undone.' },
     email_template:        { title: 'Delete Template',         btn: 'Delete',      desc: 'You are about to delete template <strong>$$names$$</strong>.',                        warn: 'This action cannot be undone.' },
     admin_user:            { title: 'Delete Admin Account',    btn: 'Delete',      desc: 'You are about to delete admin account <strong>$$names$$</strong>.',                   warn: 'This will permanently remove admin access for this user. This action cannot be undone.' },
-    blacklist:             { title: 'Remove Blacklist Entry',  btn: 'Remove',      desc: 'You are about to remove <strong>$$names$$</strong> from the blacklist.',              warn: 'This action cannot be undone.' },
+    blacklist:             { title: 'Remove Spam Filter Entry', btn: 'Remove',     desc: 'You are about to remove <strong>$$names$$</strong> from spam filtering.',             warn: 'This action cannot be undone.' },
     field:                 { title: 'Drop Field Column',       btn: 'Drop Column', desc: 'You are about to drop the column for field <strong>$$names$$</strong>.',             warn: 'This permanently removes all member data for this field and cannot be undone.' },
     code:                  { title: 'Delete Code',             btn: 'Delete',      desc: 'You are about to delete code <strong>$$names$$</strong>.',                           warn: 'This action cannot be undone.' },
     code_category:         { title: 'Delete Code Category',    btn: 'Delete',      desc: 'You are about to delete code category <strong>$$names$$</strong>. Assignments will be removed.', warn: 'This action cannot be undone.' },
@@ -3883,6 +3965,32 @@ function adminWireFilterPanel(btnId, panelId, htmlClass) {
     }
   });
 
+  // Rules pages: "Reset to Default" composer-footer button restores the whole
+  // form (body, gate enabled, gate type, gate label) to built-in defaults —
+  // not just the page-load values that a native type="reset" would restore.
+  document.addEventListener('click', function (e) {
+    var btn = e.target.closest('.js-rules-reset-defaults');
+    if (!btn) return;
+    var taId = btn.dataset.formReset;
+    if (!taId || defaults[taId] === undefined) return;
+    var prefix = taId.replace(/-body$/, '');
+
+    var ta = document.getElementById(taId);
+    if (ta) ta.value = defaults[taId];
+
+    var enabledCb = document.getElementById(prefix + '-enabled');
+    if (enabledCb) {
+      enabledCb.checked = false;
+      enabledCb.dispatchEvent(new Event('change', { bubbles: true }));
+    }
+
+    var gateTypeSel = document.getElementById(prefix + '-gate-type');
+    if (gateTypeSel) gateTypeSel.value = 'checkbox';
+
+    var gateLabelInput = document.getElementById(prefix + '-gate-label');
+    if (gateLabelInput) gateLabelInput.value = '';
+  });
+
   // ── Collective template preview (real-data backend render) ─────────────
   var coltplMeta = {};
   var coltplMetaEl = document.getElementById('luster-coltpl-meta');
@@ -3897,14 +4005,17 @@ function adminWireFilterPanel(btnId, panelId, htmlClass) {
   var COLTPL_LABELS = {
     owned: 'Owned Listings Preview', random: 'Random Listing Preview',
     latest: 'Latest Listing Preview', joined: 'Joined Listings Preview',
+    'random-joined': 'Random Joined Listing Preview', 'latest-joined': 'Latest Joined Listing Preview',
     collective_affiliates_section: 'Affiliates Preview', collective_stats: 'Statistics Preview',
     members: 'Members List Preview', affiliates_section: 'Affiliates Section Preview',
     stats: 'Statistics Preview', updates: 'Updates Feed Preview',
     codes_submit_form: 'Code Donation Form Preview', rules_intro: 'Join Rules Intro Preview',
+    rules: 'Join Rules Preview',
     join_form: 'Join Form Preview', affiliate_apply_form: 'Affiliate Application Form Preview',
     collective_affiliate_apply_form: 'Collective Affiliate Apply Form Preview',
     kim_signup_form: 'KIM Sign-Up Form Preview',
-    adopt_form: 'Adopt Form Preview'
+    adopt_form: 'Adopt Form Preview',
+    wishlist: 'Wishlist Preview', collective_updates: 'Collective Updates Feed Preview'
   };
 
   function closeColtplModal() {
@@ -3912,7 +4023,7 @@ function adminWireFilterPanel(btnId, panelId, htmlClass) {
     if (coltplIframe) { coltplIframe.srcdoc = ''; }
   }
 
-  function loadColtplPreview(type, tplHtml) {
+  function loadColtplPreview(type, tplHtml, extra) {
     if (!coltplModal || !coltplIframe || !coltplMeta.previewUrl) return;
     if (coltplTitle) coltplTitle.textContent = COLTPL_LABELS[type] || 'Preview';
     if (coltplSpinner) coltplSpinner.style.display = '';
@@ -3924,6 +4035,11 @@ function adminWireFilterPanel(btnId, panelId, htmlClass) {
     fd.append('_csrf', coltplMeta.csrf || '');
     fd.append('template_type', type);
     fd.append('template_html', tplHtml);
+    if (extra) {
+      for (var key in extra) {
+        if (Object.prototype.hasOwnProperty.call(extra, key)) fd.append(key, extra[key]);
+      }
+    }
 
     fetch(coltplMeta.previewUrl, { method: 'POST', body: fd })
       .then(function (r) { return r.text(); })
@@ -3954,7 +4070,12 @@ function adminWireFilterPanel(btnId, panelId, htmlClass) {
       coltplModal.style.display = 'flex';
       return;
     }
-    loadColtplPreview(type, tplHtml);
+    var extra;
+    if (type === 'rules' && taId) {
+      var labelEl = document.getElementById(taId.replace(/-body$/, '-gate-label'));
+      if (labelEl) extra = { gate_label: labelEl.value };
+    }
+    loadColtplPreview(type, tplHtml, extra);
   });
 
   if (coltplClose) coltplClose.addEventListener('click', closeColtplModal);
@@ -4582,6 +4703,10 @@ document.addEventListener('click', function (e) {
   adminWireFilterPanel('upd-filter-toggle', 'upd-filter-panel', 'fp-upd');
 }());
 
+(function () {
+  adminWireFilterPanel('rules-filter-toggle', 'rules-filter-panel', 'fp-rules');
+}());
+
 // ── 45. Import scope: ZIP auto-upload on file select ──────────────────────────
 
 (function () {
@@ -4911,11 +5036,13 @@ document.addEventListener('click', function (e) {
     { label: 'Email Templates',    hint: 'Emails',   url: base + '/admin/emails?tab=templates' },
     { label: 'Bulk Email',         hint: 'Emails',   url: base + '/admin/emails?tab=bulk' },
     { label: 'Custom Templates',   hint: 'Emails',   url: base + '/admin/emails?tab=custom' },
+    { label: 'General',            hint: 'Settings', url: base + '/admin/settings#panel-general' },
     { label: 'Account Details',    hint: 'Settings', url: base + '/admin/settings#panel-admin' },
-    { label: 'Admin Accounts',     hint: 'Settings', url: base + '/admin/settings#panel-accounts' },
-    { label: 'General Settings',   hint: 'Settings', url: base + '/admin/settings#panel-general' },
+    { label: 'Additional Accounts', hint: 'Settings', url: base + '/admin/settings#panel-accounts' },
+    { label: 'Appearance',         hint: 'Settings', url: base + '/admin/settings#panel-appearance' },
+    { label: 'SMTP & Email',       hint: 'Settings', url: base + '/admin/settings#panel-smtp' },
     { label: 'Server Paths',       hint: 'Settings', url: base + '/admin/settings#panel-embed' },
-    { label: 'Blacklist',          hint: 'Settings', url: base + '/admin/settings#panel-blacklist' },
+    { label: 'Spam Filtering',     hint: 'Settings', url: base + '/admin/settings#panel-blacklist' },
     { label: 'System Details',     hint: 'Settings', url: base + '/admin/settings#panel-system' },
     { label: 'System Info',        hint: 'Admin',    url: base + '/admin/sysinfo' },
     { label: 'Members Settings',   hint: 'Members',  url: base + '/admin/members/settings' },
@@ -5055,7 +5182,7 @@ document.addEventListener('click', function (e) {
   if (!sel) return;
 
   function sync() {
-    var h = location.hash.replace('#', '') || 'panel-admin';
+    var h = location.hash.replace('#', '') || 'panel-general';
     if (sel.querySelector('option[value="' + h + '"]')) sel.value = h;
   }
 
@@ -5664,18 +5791,151 @@ document.addEventListener('click', function (e) {
   }
 }());
 
-// Rules edit: Gate Style + Gate Label rows only apply when the gate is enabled.
-(function () {
-  var enabledToggle = document.getElementById('rules-enabled');
-  var gateStyleRow  = document.getElementById('rules-gate-style-row');
-  var gateLabelRow  = document.getElementById('rules-gate-label-row');
-  if (!enabledToggle || !gateStyleRow || !gateLabelRow) return;
+// ── 47. Join Rules admin pages ────────────────────────────────────────────────
 
-  function toggle() {
-    var show = enabledToggle.checked;
-    gateStyleRow.style.display = show ? '' : 'none';
-    gateLabelRow.style.display = show ? '' : 'none';
+(function () {
+
+  // ── Select-all for Rules index ─────────────────────────────────────────────
+  var selAll   = document.getElementById('rules-sel-all');
+  var bulkForm = document.getElementById('rules-bulk-form');
+  if (selAll && bulkForm) {
+    selAll.addEventListener('change', function () {
+      var boxes = document.getElementsByClassName('rules-row-cb');
+      for (var i = 0; i < boxes.length; i++) { boxes[i].checked = selAll.checked; }
+    });
+    bulkForm.addEventListener('change', function (e) {
+      if (!e.target.classList.contains('rules-row-cb')) return;
+      var boxes = document.getElementsByClassName('rules-row-cb');
+      var count = 0;
+      for (var i = 0; i < boxes.length; i++) { if (boxes[i].checked) count++; }
+      selAll.checked       = boxes.length > 0 && count === boxes.length;
+      selAll.indeterminate = count > 0 && count < boxes.length;
+    });
   }
-  enabledToggle.addEventListener('change', toggle);
-  toggle();
+
+  // ── Type filter auto-submit ────────────────────────────────────────────────
+  var typeSelect = document.getElementById('rules-type-select');
+  if (typeSelect) {
+    typeSelect.addEventListener('change', function () { typeSelect.form.submit(); });
+  }
+
+  // ── Gate show/hide helper ─────────────────────────────────────────────────
+  // Gate Label stays visible regardless of the toggle — it's a single setting
+  // shared by both gate styles, so admins can pre-configure it before enabling.
+  function wireGate(toggleId, styleRowId) {
+    var tog  = document.getElementById(toggleId);
+    var sRow = document.getElementById(styleRowId);
+    if (!tog || !sRow) return;
+    function sync() {
+      sRow.style.display = tog.checked ? '' : 'none';
+    }
+    tog.addEventListener('change', sync);
+    sync(); // Correct initial state regardless of server-rendered style attribute
+  }
+
+  // Standalone edit page
+  wireGate('rules-enabled',        'rules-gate-style-row');
+  // Listing edit — Rules tab
+  wireGate('rules-tab-enabled',    'rules-tab-gate-style-row');
+  // Global rules template page
+  wireGate('global-rules-enabled', 'global-rules-gate-style-row');
+
+}());
+
+// ── 48. Collective Quick Actions: drag-and-drop tile reorder ───────────────────
+//
+// Each .collective-action-tile in #qa-grid carries a .qa-drag-handle (grip icon).
+// draggable="true" is set on the handle so dragging doesn't fight with the tile's
+// own link navigation; dragstart/dragend fire on the handle, dragover/drop on the
+// tile. On drop, the new tile order is posted to the reorder endpoint so it
+// persists across page loads.
+
+(function () {
+  var grid = document.getElementById('qa-grid');
+  if (!grid) return;
+
+  var reorderUrl = grid.dataset.qaReorderUrl;
+  var csrf       = grid.dataset.qaCsrf;
+  var dragSrc    = null;
+
+  grid.querySelectorAll('.qa-drag-handle').forEach(function (handle) {
+    handle.setAttribute('draggable', 'true');
+
+    handle.addEventListener('click', function (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    });
+
+    handle.addEventListener('dragstart', function (e) {
+      dragSrc = handle.closest('.collective-action-tile');
+      if (!dragSrc) { e.preventDefault(); return; }
+      dragSrc.classList.add('dnd-dragging');
+      e.dataTransfer.effectAllowed = 'move';
+      // Firefox requires at least one setData call for drag to proceed
+      e.dataTransfer.setData('text/plain', dragSrc.dataset.actionKey || '');
+    });
+
+    handle.addEventListener('dragend', function () {
+      if (dragSrc) { dragSrc.classList.remove('dnd-dragging'); }
+      grid.querySelectorAll('.collective-action-tile').forEach(function (t) {
+        t.classList.remove('dnd-over');
+      });
+      dragSrc = null;
+    });
+  });
+
+  grid.querySelectorAll('.collective-action-tile').forEach(function (tile) {
+    tile.addEventListener('dragover', function (e) {
+      if (!dragSrc || dragSrc === tile) return;
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      tile.classList.add('dnd-over');
+    });
+
+    tile.addEventListener('dragleave', function (e) {
+      if (!tile.contains(e.relatedTarget)) {
+        tile.classList.remove('dnd-over');
+      }
+    });
+
+    tile.addEventListener('drop', function (e) {
+      e.preventDefault();
+      tile.classList.remove('dnd-over');
+      if (!dragSrc || dragSrc === tile) return;
+
+      var nodes  = Array.from(grid.children);
+      var srcIdx = nodes.indexOf(dragSrc);
+      var tgtIdx = nodes.indexOf(tile);
+      if (srcIdx < tgtIdx) {
+        grid.insertBefore(dragSrc, tile.nextSibling);
+      } else {
+        grid.insertBefore(dragSrc, tile);
+      }
+
+      var order = Array.from(grid.querySelectorAll('.collective-action-tile')).map(function (t) {
+        return t.dataset.actionKey;
+      });
+
+      var params = new URLSearchParams();
+      params.append('_csrf', csrf);
+      order.forEach(function (key) { params.append('order[]', key); });
+
+      fetch(reorderUrl, {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body:    params.toString(),
+      })
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+          if (data.ok) {
+            window.lstrToast('success', 'Order saved.');
+          } else {
+            window.lstrToast('error', data.error || 'Reorder failed.');
+          }
+        })
+        .catch(function () {
+          window.lstrToast('error', 'Reorder failed.');
+        });
+    });
+  });
 }());

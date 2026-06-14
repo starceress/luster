@@ -32,7 +32,6 @@ CREATE TABLE lstr_fanlisting_settings (
     adopt_form_template           TEXT NULL,
     form_url_join                 TEXT NULL,
     form_url_update               TEXT NULL,
-    form_url_remove               TEXT NULL,
     form_url_reset                TEXT NULL,
     form_url_codes_submit         TEXT NULL,
     codes_submit_enabled          INTEGER NOT NULL DEFAULT 1,

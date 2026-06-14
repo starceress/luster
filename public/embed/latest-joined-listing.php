@@ -1,0 +1,87 @@
+<?php
+
+declare(strict_types=1);
+
+use Luster\Repositories\JoinedListingRepo;
+use Luster\Repositories\SiteSettingsRepo;
+use Luster\Support\JoinedListingRowRenderer;
+
+/**
+ * Luster embed — most recently joined listing.
+ *
+ * Returns the active, approved joined listing with the most recent
+ * date_joined, rendered using the Latest Joined Listing template from
+ * Admin → Collective → Templates.
+ * Outputs an HTML comment when no listings are found so the host page never breaks.
+ *
+ * Usage:
+ *   require '/absolute/path/to/luster/public/embed/latest-joined-listing.php';
+ *
+ * Optional variables:
+ *   $luster_return   bool    true = return HTML string, false = echo
+ *                            Default: false
+ */
+
+// ---------------------------------------------------------------------------
+// 1. Bootstrap Luster
+// ---------------------------------------------------------------------------
+
+$_lusterRoot = dirname(__DIR__, 2);
+
+if (!is_file($_lusterRoot . '/vendor/autoload.php') || !is_file($_lusterRoot . '/config/app.php')) {
+    $_lusterHtml = '<!-- Luster embed error: Luster is not installed correctly. -->';
+    if ($luster_return ?? false) {
+        return $_lusterHtml;
+    }
+    echo $_lusterHtml;
+    return;
+}
+
+defined('LUSTER_BASE') || define('LUSTER_BASE', $_lusterRoot);
+
+/** @var \Luster\Core\Application $_lusterApp */
+$_lusterApp = require $_lusterRoot . '/bootstrap.php';
+
+// ---------------------------------------------------------------------------
+// 2. Fetch the most recently joined active, approved listing
+// ---------------------------------------------------------------------------
+
+$_lusterRepo   = new JoinedListingRepo($_lusterApp->getDatabase());
+$_lusterLatest = $_lusterRepo->getLatestJoined(1);
+
+if (empty($_lusterLatest)) {
+    $_lusterHtml = '<!-- Luster latest-joined-listing: no active joined listings found. -->';
+    if ($luster_return ?? false) {
+        return $_lusterHtml;
+    }
+    echo $_lusterHtml;
+    return;
+}
+
+$_lusterListing = $_lusterLatest[0];
+
+// ---------------------------------------------------------------------------
+// 3. Load latest joined listing template from DB
+// ---------------------------------------------------------------------------
+
+$_lusterSiteRepo = new SiteSettingsRepo($_lusterApp->getDatabase());
+$_lusterTemplate = $_lusterSiteRepo->get('latest_joined_listing_template')
+    ?? SiteSettingsRepo::collectiveDefaults()['latest_joined_listing_template'];
+if (trim($_lusterTemplate) === '') {
+    $_lusterTemplate = SiteSettingsRepo::collectiveDefaults()['latest_joined_listing_template'];
+}
+
+$_lusterUploadsUrl = $_lusterApp->getBaseUrl() . '/uploads/joined';
+
+$_lusterHtml = JoinedListingRowRenderer::renderTemplate($_lusterTemplate, [$_lusterListing], $_lusterUploadsUrl);
+$_lusterHtml .= \Luster\Core\View::attribution();
+
+// ---------------------------------------------------------------------------
+// 4. Return or echo
+// ---------------------------------------------------------------------------
+
+if ($luster_return ?? false) {
+    return $_lusterHtml;
+}
+
+echo $_lusterHtml;

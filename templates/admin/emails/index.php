@@ -207,7 +207,7 @@ $oldBodyE    = htmlspecialchars($old_body ?? '', ENT_QUOTES, 'UTF-8');
       <input type="hidden" name="tab" value="templates">
       <div class="select-wrap email-scope-select">
         <select name="listing" class="js-autosubmit" >
-          <option value="global"<?= $isGlobal ? ' selected' : '' ?>>Global Templates (default for all listings)</option>
+          <option value="global"<?= $isGlobal ? ' selected' : '' ?>>Collective &amp; Global Listings (Default)</option>
           <?php if (!empty($all_listings)): ?>
             <option disabled></option>
             <?php foreach ($all_listings as $l): ?>
@@ -348,7 +348,7 @@ $oldBodyE    = htmlspecialchars($old_body ?? '', ENT_QUOTES, 'UTF-8');
                       data-type="<?= View::e($type) ?>"><?= View::icon('eye-on') ?> Preview</button>
               <button type="submit"
                       form="et-reset-<?= View::e($type) ?>"
-                      class="btn btn-ghost">
+                      class="btn btn-quaternary">
                 <?= $isGlobal ? 'Reset to Default' : 'Reset to Global' ?>
               </button>
             </div>
@@ -526,7 +526,7 @@ $oldBodyE    = htmlspecialchars($old_body ?? '', ENT_QUOTES, 'UTF-8');
                           data-count="<?= (int) ($deduplicated_total ?? 0) ?>"
                           data-label="All Listings"
                           <?= ($old_listing_id ?? 0) === 0 ? ' selected' : '' ?>>
-                    All listings
+                    All Listings
                   </option>
                   <?php foreach ($listings as $lst): ?>
                     <option value="<?= (int) $lst->id ?>"
@@ -540,7 +540,7 @@ $oldBodyE    = htmlspecialchars($old_body ?? '', ENT_QUOTES, 'UTF-8');
                   <?php endforeach; ?>
                 </select>
               </div>
-              <p class="form-hint">All listings sends one email per unique email address. If one fan joined more than one listing with the same email, Luster only emails them once.</p>
+              <p class="form-hint">All listings sends <b>one email per unique email address</b>. If one fan joined more than one listing with the same email, Luster only emails them once.</p>
             </div>
           </div>
           <div class="composer-row">
@@ -549,7 +549,7 @@ $oldBodyE    = htmlspecialchars($old_body ?? '', ENT_QUOTES, 'UTF-8');
               <input class="subj-input" id="me-subject" type="text" name="subject"
                      maxlength="255" required placeholder="Enter subject&hellip;"
                      value="<?= $oldSubjectE ?>">
-              <p class="form-hint">Tokens work in the subject. Example: <code>{listing_title}</code> becomes the member's listing name.</p>
+              <p class="form-hint">Tokens work in the subject. Example: <code>{listing_title}</code> becomes the selected listing's name.</p>
             </div>
           </div>
         </div>
@@ -562,7 +562,7 @@ $oldBodyE    = htmlspecialchars($old_body ?? '', ENT_QUOTES, 'UTF-8');
 
         <div class="composer-footer">
           <button type="button" class="btn btn-primary" id="me-send-btn"><?= View::icon('send') ?> Send</button>
-          <button type="button" class="btn btn-preview" id="me-preview-btn">Preview</button>
+          <button type="button" class="btn btn-preview" id="me-preview-btn"><?= View::icon('eye-on') ?> Preview</button>
           <button type="button" class="btn btn-ghost js-form-reset">Clear</button>
           <div class="composer-footer-spacer"></div>
           <a href="<?= $b ?>/admin/members" class="btn btn-danger">Cancel</a>
@@ -642,16 +642,16 @@ $oldBodyE    = htmlspecialchars($old_body ?? '', ENT_QUOTES, 'UTF-8');
             <div>
               <input id="new-tpl-name" type="text" name="tpl_name" class="form"
                      maxlength="150" required placeholder="e.g. Welcome note, Monthly update&hellip;">
-              <p class="form-hint">Only admins see this name. Use something that will make sense when you load it later.</p>
+              <p class="form-hint">Only admins see this name.</p>
             </div>
           </div>
 
           <div class="form-group custom-template-row">
-            <label class="form-label" for="new-tpl-subject">Subject</label>
+            <label class="form-label" for="new-tpl-subject">Subject (optional)</label>
             <div>
               <input id="new-tpl-subject" type="text" name="tpl_subject" class="form"
-                     maxlength="255" placeholder="(optional - leave blank to fill in when composing)">
-              <p class="form-hint">Optional. Tokens work here after you load this template into a compose screen.</p>
+                     maxlength="255" placeholder="(Optional - Leave blank to fill this when composing)">
+              <p class="form-hint">Tokens work here <i>after</i> you load this template into a compose screen.</p>
             </div>
           </div>
 

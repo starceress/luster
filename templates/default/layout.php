@@ -21,9 +21,9 @@ declare(strict_types=1);
  *                      This is trusted server-rendered HTML; do NOT escape it.
  *
  * CSS classes available (from style.css):
- *   .fl-wrap, .fl-title, .fl-field, .fl-label, .fl-input, .fl-select,
- *   .fl-btn, .fl-errors, .fl-member, .fl-pagination, .fl-page-link,
- *   .fl-page-current, .fl-empty
+ *   .fl-field, .fl-label, .fl-input, .fl-select, .fl-btn, .fl-btn-secondary,
+ *   .fl-errors, .fl-form-actions, .fl-member-list, .fl-member-item,
+ *   .fl-pagination-nav, .fl-page-link, .fl-page-current, .fl-empty
  */
 
 use Luster\Core\View;
@@ -54,7 +54,7 @@ use Luster\Core\View;
 </main>
 
 <footer>
-  <p>Powered by <a href="https://github.com/starceress/luster">Luster</a></p>
+  <p>Powered by <a href="https://luster.nu/" rel="noopener noreferrer" target="_blank" title="Luster ✦ Fanlisting Management Script">Luster</a></p>
 </footer>
 
 </body>
