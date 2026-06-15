@@ -45,7 +45,6 @@ jobs:
             --exclude='.env.example' \
             --exclude='.gitignore' \
             --exclude='.phpunit.result.cache' \
-            --exclude='composer.json' \
             --exclude='composer.lock' \
             --exclude='dist' \
             --exclude='docs' \
