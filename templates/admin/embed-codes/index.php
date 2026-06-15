@@ -676,17 +676,15 @@ $epSafe = View::e($ep);
                 <tr><td class="act-col"><code class="ec-tk">{stat_pending}</code></td><td>Number of members waiting for approval.</td></tr>
                 <tr><td class="act-col"><code class="ec-tk">{stat_countries}</code></td><td>Number of different countries represented by approved members.</td></tr>
                 <tr><td class="act-col"><code class="ec-tk">{stat_opened}</code></td><td>Date you opened the listing.</td></tr>
-                <tr><td class="act-col"><code class="ec-tk">{stat_updated}</code></td><td>Date the newest approved member joined.</td></tr>
-                <tr><td class="act-col"><code class="ec-tk">{stat_last_updated}</code></td><td>The &ldquo;last updated&rdquo; date you set for the listing in Luster.</td></tr>
-                <tr><td class="act-col"><code class="ec-tk">{stat_newmembers}</code></td><td>Names of the 5 newest approved members, separated by commas.</td></tr>
-                <tr><td class="act-col"><code class="ec-tk">{stat_newmembers_oxford}</code></td><td>The same newest-member list formatted as a sentence, such as <em>A, B, and C</em>.</td></tr>
-                <tr><td class="act-col"><code class="ec-tk">{stat_newmembers_label}</code></td><td><code>Member</code> when there is one newest member, otherwise <code>Members</code>.</td></tr>
+                <tr><td class="act-col"><code class="ec-tk">{stat_updated}</code></td><td>The most recent activity date: whichever is more recent of the newest approved member's join date and the &ldquo;last updated&rdquo; date you set for the listing. Shows <em>N/A</em> if neither is set.</td></tr>
+                <tr><td class="act-col"><code class="ec-tk">{stat_newmembers}</code></td><td>Names of the 5 newest approved members, formatted as a sentence, such as <em>A, B, and C</em>.</td></tr>
                 <tr><td class="act-col"><code class="ec-tk">{stat_growth}</code></td><td>Average new members per day since the listing opened.</td></tr>
                 <tr><td class="act-col"><code class="ec-tk">{listing_title}</code></td><td>Name of the listing.</td></tr>
                 <tr><td class="act-col"><code class="ec-tk">{listing_url}</code></td><td>Link to the listing.</td></tr>
                 <tr><td class="act-col"><code class="ec-tk">{approved_by}</code></td><td>The network that approved the listing, if one is saved.</td></tr>
                 <tr><td class="act-col"><code class="ec-tk">{if_stat_pending}&hellip;{/if_stat_pending}</code></td><td>Shows the text inside only when there are pending members.</td></tr>
                 <tr><td class="act-col"><code class="ec-tk">{if_approved_by}&hellip;{/if_approved_by}</code></td><td>Shows the text inside only when the listing has an approved-by network saved.</td></tr>
+                <tr><td class="act-col"><code class="ec-tk">{network_status}</code></td><td>The approving network as a linked name, or &ldquo;Independent&rdquo; when no network is saved. Always shows something.</td></tr>
               </tbody>
             </table>
             </div>
@@ -744,7 +742,6 @@ $epSafe = View::e($ep);
                 <tr><td class="act-col"><code class="ec-tk">{member_count}</code></td><td>Number of approved members.</td></tr>
                 <tr><td class="act-col"><code class="ec-tk">{member_pending_count}</code></td><td>Number of members waiting for approval on this listing.</td></tr>
                 <tr><td class="act-col"><code class="ec-tk">{country_count}</code></td><td>Number of different countries represented by approved members.</td></tr>
-                <tr><td class="act-col"><code class="ec-tk">{countries_count}</code></td><td>Same number as <code>{country_count}</code>.</td></tr>
                 <tr><td class="act-col"><code class="ec-tk">{approved_by}</code></td><td>The approval network saved for this listing, such as <code>tfl</code> or <code>tafl</code>. Empty means no network is saved.</td></tr>
                 <tr><td class="act-col"><code class="ec-tk">{if_listing_image}&hellip;{/if_listing_image}</code></td><td>Shows the text inside only when the listing has an image.</td></tr>
                 <tr><td class="act-col"><code class="ec-tk">{if_countries}&hellip;{/if_countries}</code></td><td>Shows the text inside only when at least one country is counted.</td></tr>
@@ -825,9 +822,7 @@ $epSafe = View::e($ep);
                 <tr><td class="act-col"><code class="ec-tk">{each_affiliate}&hellip;{/each_affiliate}</code></td><td>Wrap your affiliate row in this. Luster repeats what&rsquo;s inside once per affiliate.</td></tr>
                 <tr><td class="act-col"><code class="ec-tk">{aff_name}</code></td><td>Affiliate site&rsquo;s name.</td></tr>
                 <tr><td class="act-col"><code class="ec-tk">{aff_url}</code></td><td>Affiliate site&rsquo;s link.</td></tr>
-                <tr><td class="act-col"><code class="ec-tk">{aff_image}</code></td><td>Affiliate image filename. Most users should use <code>{aff_image_tag}</code> instead.</td></tr>
-                <tr><td class="act-col"><code class="ec-tk">{aff_image_url}</code></td><td>Direct link to the affiliate image. Use this only if you are making your own image code.</td></tr>
-                <tr><td class="act-col"><code class="ec-tk">{aff_image_tag}</code></td><td>The affiliate image. If there is no image, nothing is shown.</td></tr>
+                <tr><td class="act-col"><code class="ec-tk">{aff_image_url}</code></td><td>The affiliate image. If there is no image, shows a text link to the affiliate instead.</td></tr>
               </tbody>
             </table>
             </div>
@@ -863,6 +858,7 @@ $epSafe = View::e($ep);
                 <tr><td class="act-col"><code class="ec-tk">{owned_upcoming}</code></td><td>Number of upcoming owned listings.</td></tr>
                 <tr><td class="act-col"><code class="ec-tk">{owned_pending}</code></td><td>Number of pending or inactive owned listings.</td></tr>
                 <tr><td class="act-col"><code class="ec-tk">{joined_active}</code></td><td>Number of active joined listings.</td></tr>
+                <tr><td class="act-col"><code class="ec-tk">{joined_pending}</code></td><td>Number of joined listings waiting for approval.</td></tr>
                 <tr><td class="act-col"><code class="ec-tk">{affiliates}</code></td><td>Number of active collective affiliates.</td></tr>
                 <tr><td class="act-col"><code class="ec-tk">{members_total}</code></td><td>Total members across all your listings.</td></tr>
                 <tr><td class="act-col"><code class="ec-tk">{members_approved}</code></td><td>Approved members across all your listings.</td></tr>
@@ -872,6 +868,7 @@ $epSafe = View::e($ep);
                 <tr><td class="act-col"><code class="ec-tk">{owned_random_name}</code></td><td>Name of one random current owned listing.</td></tr>
                 <tr><td class="act-col"><code class="ec-tk">{owned_random_url}</code></td><td>Link to one random current owned listing.</td></tr>
                 <tr><td class="act-col"><code class="ec-tk">{countries_count}</code></td><td>Number of different countries represented by approved members across all your listings.</td></tr>
+                <tr><td class="act-col"><code class="ec-tk">{collective_last_updated}</code></td><td>Date your newest owned listing was opened &mdash; the last time the collective grew.</td></tr>
                 <tr><td class="act-col"><code class="ec-tk">{if_countries}&hellip;{/if_countries}</code></td><td>Shows the text inside only when at least one country is counted.</td></tr>
               </tbody>
             </table>
@@ -1127,6 +1124,7 @@ $epSafe = View::e($ep);
                 <tr><td class="act-col"><code>$luster_joined_random</code></td><td>One random active joined listing.</td></tr>
                 <tr><td class="act-col"><code>$luster_categories</code></td><td>A group of your owned-listing categories, with a count for each one.</td></tr>
                 <tr><td class="act-col"><code>$luster_countries_count</code></td><td>Number of different countries represented by approved members across all listings.</td></tr>
+                <tr><td class="act-col"><code>$luster_collective_last_updated</code></td><td>Date your newest owned listing was opened, formatted "Month Dth Year" (or "Never" if no owned listing has an opened date).</td></tr>
                 <tr><td class="act-col"><code>$luster_total_cats</code></td><td>Number of owned-listing categories.</td></tr>
                 <tr><td class="act-col"><code>$luster_owned_current</code></td><td>Same number as <code>$luster_owned_active</code>.</td></tr>
                 <tr><td class="act-col"><code>$luster_collective_fans</code></td><td>Same number as <code>$luster_members_total</code>.</td></tr>
@@ -1144,6 +1142,7 @@ $epSafe = View::e($ep);
                 <tr><td class="act-col"><code>$affiliates_collective</code>, <code>$collective_affiliates</code></td><td>Two names for the active collective affiliate count.</td></tr>
                 <tr><td class="act-col"><code>$collective_total_fans_approved</code>, <code>$collective_total_fans_pending</code>, <code>$collective_total_fans</code></td><td>Approved, pending, and total member counts across all listings.</td></tr>
                 <tr><td class="act-col"><code>$collective_categories</code>, <code>$countries_count</code></td><td>Owned-listing category count and country count.</td></tr>
+                <tr><td class="act-col"><code>$collective_last_updated</code></td><td>Same value as <code>$luster_collective_last_updated</code>.</td></tr>
                 <tr><td class="act-col"><code>$owned_growth_rate</code>, <code>$joined_growth_rate</code>, <code>$collective_fans_growth_rate</code></td><td>Growth-rate aliases for old templates.</td></tr>
                 <tr><td class="act-col"><code>$owned_newest</code>, <code>$joined_newest</code>, <code>$owned_random</code>, <code>$joined_random</code></td><td>Flat arrays for old templates. Use keys like <code>['url']</code>, <code>['name']</code>, <code>['title']</code>, <code>['subject']</code>, <code>['desc']</code>, <code>['listingtype']</code>, <code>['category']</code>, <code>['opened']</code>, or <code>['added']</code> depending on the array.</td></tr>
               </tbody>

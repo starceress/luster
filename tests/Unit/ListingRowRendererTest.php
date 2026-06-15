@@ -307,34 +307,6 @@ final class ListingRowRendererTest extends TestCase
         self::assertSame('0/0/0', $html);
     }
 
-    public function testCountriesCountAliasMatchesCountryCount(): void
-    {
-        $html = ListingRowRenderer::render(
-            $this->makeListing(),
-            '{countries_count}',
-            [],
-            'https://example.com/uploads/listings',
-            '',
-            ['approved' => 42, 'pending' => 0, 'country_count' => 7],
-        );
-
-        self::assertSame('7', $html);
-    }
-
-    public function testCountriesCountAliasPresentAlongsideOriginal(): void
-    {
-        $html = ListingRowRenderer::render(
-            $this->makeListing(),
-            '{country_count}/{countries_count}',
-            [],
-            'https://example.com/uploads/listings',
-            '',
-            ['approved' => 0, 'pending' => 0, 'country_count' => 12],
-        );
-
-        self::assertSame('12/12', $html);
-    }
-
     public function testIfCountriesConditionalRendersWhenCountAboveZero(): void
     {
         $html = ListingRowRenderer::render(
@@ -379,7 +351,7 @@ final class ListingRowRendererTest extends TestCase
     {
         $html = ListingRowRenderer::render(
             $this->makeListing(),
-            '{if_countries}({countries_count} countries){/if_countries}',
+            '{if_countries}({country_count} countries){/if_countries}',
             [],
             'https://example.com/uploads/listings',
             '',

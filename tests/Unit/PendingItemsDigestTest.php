@@ -146,8 +146,9 @@ SQL;
     {
         [$db, $config, $pdo] = self::makeDb(self::$baseDdl, ['fans_alpha', 'fans_beta']);
 
-        $pdo->exec("INSERT INTO owned VALUES (1,'Alpha','Alpha','fans_alpha','','',0,'',2,'listing')");
-        $pdo->exec("INSERT INTO owned VALUES (2,'Beta','Beta','fans_beta','','',0,'',2,'listing')");
+        // Title and subject differ so the test verifies subject is used in the digest.
+        $pdo->exec("INSERT INTO owned VALUES (1,'Alpha Fanlisting','Blue Eye Samurai','fans_alpha','','',0,'',2,'listing')");
+        $pdo->exec("INSERT INTO owned VALUES (2,'Beta Fanlisting','Onryo','fans_beta','','',0,'',2,'listing')");
 
         $pdo->exec("INSERT INTO fans_alpha VALUES ('a@x.com','A','US',1)"); // pending
         $pdo->exec("INSERT INTO fans_alpha VALUES ('b@x.com','B','US',1)"); // pending
@@ -161,9 +162,9 @@ SQL;
         $this->assertSame(3, $data['grand_total']);
         $this->assertCount(2, $data['members']['by_listing']);
 
-        $byTitle = array_column($data['members']['by_listing'], 'count', 'title');
-        $this->assertSame(2, $byTitle['Alpha']);
-        $this->assertSame(1, $byTitle['Beta']);
+        $bySubject = array_column($data['members']['by_listing'], 'count', 'subject');
+        $this->assertSame(2, $bySubject['Blue Eye Samurai']);
+        $this->assertSame(1, $bySubject['Onryo']);
     }
 
     public function testGatherOmitsListingsWithNoPendingMembers(): void
@@ -321,8 +322,8 @@ SQL;
 
         $data = [
             'members'     => ['total' => 3, 'by_listing' => [
-                ['title' => 'Alpha', 'count' => 2],
-                ['title' => 'Beta',  'count' => 1],
+                ['subject' => 'Alpha', 'count' => 2],
+                ['subject' => 'Beta',  'count' => 1],
             ]],
             'affiliates'  => ['total' => 2],
             'codes'       => ['total' => 1],
@@ -399,7 +400,7 @@ SQL;
         [$db, $config] = self::makeDb(self::$baseDdl);
 
         $data = [
-            'members'     => ['total' => 1, 'by_listing' => [['title' => 'FL', 'count' => 1]]],
+            'members'     => ['total' => 1, 'by_listing' => [['subject' => 'FL', 'count' => 1]]],
             'affiliates'  => ['total' => 0],
             'codes'       => ['total' => 0],
             'updates'     => ['total' => 0],

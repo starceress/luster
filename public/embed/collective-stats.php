@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use Luster\Repositories\CollectiveStatsRepo;
 use Luster\Repositories\SiteSettingsRepo;
+use Luster\Support\DateFormatter;
 
 /**
  * Luster embed — collective statistics.
@@ -56,6 +57,13 @@ use Luster\Repositories\SiteSettingsRepo;
  *   $luster_members_pending     int   Pending members across all listings
  *   $luster_members_total       int   Total members across all listings
  *
+ *  Last collective update
+ *   $luster_collective_last_updated string  Date the most recently added owned
+ *                                            listing was opened, formatted
+ *                                            "Month Dth Year" (e.g. "March 1st 2026"),
+ *                                            or "Never" if no owned listing has an
+ *                                            opened date set.
+ *
  *  Growth rates (formatted to 2 decimal places)
  *   $luster_owned_growth_rate   string  Active owned listings per year
  *   $luster_joined_growth_rate  string  Active joined listings per year
@@ -97,6 +105,7 @@ use Luster\Repositories\SiteSettingsRepo;
  *   $collective_total_fans_pending  = $luster_members_pending
  *   $collective_total_fans          = $luster_members_total
  *   $countries_count                = $luster_countries_count
+ *   $collective_last_updated        = $luster_collective_last_updated
  *   Growth rate strings:
  *   $owned_growth_rate              = $luster_owned_growth_rate
  *   $joined_growth_rate             = $luster_joined_growth_rate
@@ -239,6 +248,7 @@ $_lusterOwnedNewest  = $_lusterStatsRepo->getNewestOwned($_lusterCount);
 $_lusterJoinedNewest = $_lusterStatsRepo->getNewestJoined($_lusterCount);
 $_lusterOwnedRandom  = $_lusterStatsRepo->getRandomOwned();
 $_lusterJoinedRandom = $_lusterStatsRepo->getRandomJoined();
+$_lusterLastOwnedOpened = $_lusterStatsRepo->getLastOwnedOpenedDate();
 
 // ---------------------------------------------------------------------------
 // 4. Expose public variables
@@ -278,6 +288,11 @@ $luster_categories          = $_lusterCategories;
 // Countries across all listings (distinct, case-insensitive)
 $luster_countries_count     = $_lusterCountriesCount;
 
+// Last collective update — date the most recently added owned listing was opened
+$luster_collective_last_updated = $_lusterLastOwnedOpened !== null
+    ? DateFormatter::format($_lusterLastOwnedOpened)
+    : 'Never';
+
 // Convenience aliases (Enthusiast-prefixed naming)
 $luster_total_cats          = count($_lusterCategories);
 $luster_owned_current       = $_lusterOwnedCounts['active'];
@@ -303,6 +318,7 @@ $collective_total_fans_pending  = $luster_members_pending;
 $collective_total_fans          = $luster_members_total;
 $collective_categories          = $luster_total_cats;
 $countries_count                = $luster_countries_count;
+$collective_last_updated        = $luster_collective_last_updated;
 $owned_growth_rate              = $luster_owned_growth_rate;
 $joined_growth_rate             = $luster_joined_growth_rate;
 $collective_fans_growth_rate    = $luster_members_growth_rate;
@@ -382,6 +398,7 @@ if ($_lusterCStatsTemplate !== null) {
             '{owned_upcoming}',
             '{owned_pending}',
             '{joined_active}',
+            '{joined_pending}',
             '{affiliates}',
             '{members_total}',
             '{members_approved}',
@@ -391,12 +408,14 @@ if ($_lusterCStatsTemplate !== null) {
             '{owned_newest_url}',
             '{owned_random_name}',
             '{owned_random_url}',
+            '{collective_last_updated}',
         ],
         [
             (string) $luster_owned_active,
             (string) $luster_owned_upcoming,
             (string) $luster_owned_pending,
             (string) $luster_joined_active,
+            (string) $luster_joined_pending,
             (string) $luster_affiliates,
             (string) $luster_members_total,
             (string) $luster_members_approved,
@@ -406,6 +425,7 @@ if ($_lusterCStatsTemplate !== null) {
             $_lusterE(!empty($_lusterOwnedNewest) ? $_lusterOwnedNewest[0]->url   : ''),
             $_lusterE($_lusterOwnedRandom !== null ? $_lusterOwnedRandom->title : ''),
             $_lusterE($_lusterOwnedRandom !== null ? $_lusterOwnedRandom->url  : ''),
+            $_lusterE($luster_collective_last_updated),
         ],
         $_lusterCStatsTemplate,
     );
@@ -430,13 +450,16 @@ ob_start();
     <dd><?= $luster_owned_active ?> open<?= $luster_owned_upcoming > 0 ? ', ' . $luster_owned_upcoming . ' upcoming' : '' ?></dd>
 
     <dt>Joined listings</dt>
-    <dd><?= $luster_joined_active ?></dd>
+    <dd><?= $luster_joined_active ?><?= $luster_joined_pending > 0 ? ', ' . $luster_joined_pending . ' pending' : '' ?></dd>
 
     <dt>Total members</dt>
     <dd><?= $luster_members_approved ?> approved<?= $luster_members_pending > 0 ? ', ' . $luster_members_pending . ' pending' : '' ?></dd>
 
     <dt>Member growth</dt>
     <dd><?= $_lusterE($luster_members_growth_rate) ?> per day</dd>
+
+    <dt>Collective last updated</dt>
+    <dd><?= $_lusterE($luster_collective_last_updated) ?></dd>
   </dl>
 
   <?php if (!empty($_lusterOwnedNewest)): ?>

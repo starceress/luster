@@ -3,7 +3,9 @@
 declare(strict_types=1);
 
 use Luster\Core\Captcha;
+use Luster\Core\View;
 use Luster\Repositories\SiteSettingsRepo;
+use Luster\Support\FormTemplateRenderer;
 
 /**
  * Luster embed — collective code donation form fragment.
@@ -77,20 +79,51 @@ $_lusterWrapperTpl = (new SiteSettingsRepo($_lusterDb))->get('collective_field_w
 
 $_lusterF = $_lusterApp->getFormFieldBuilder()->build([
     ['type' => 'file',  'name' => 'code_image',      'id' => 'code-image', 'label' => 'Upload Code',       'required' => true,  'attrs' => ['accept' => 'image/jpeg,image/png,image/gif,image/webp']],
-    ['type' => 'text',  'name' => 'submitter_name',  'id' => 'sub-name',   'label' => 'Name (optional)',    'required' => true, 'value' => (string) ($_lusterOld['submitter_name']  ?? ''), 'attrs' => ['maxlength' => '150', 'autocomplete' => 'name']],
+    ['type' => 'text',  'name' => 'submitter_name',  'id' => 'sub-name',   'label' => 'Name',    'required' => true, 'value' => (string) ($_lusterOld['submitter_name']  ?? ''), 'attrs' => ['maxlength' => '150', 'autocomplete' => 'name']],
     ['type' => 'email', 'name' => 'submitter_email', 'id' => 'sub-email',  'label' => 'Email',              'required' => true,  'value' => (string) ($_lusterOld['submitter_email'] ?? ''), 'attrs' => ['maxlength' => '255', 'autocomplete' => 'email'], 'hint' => 'Required — used only to notify you when your code is approved.'],
     ['type' => 'url',   'name' => 'submitter_url',   'id' => 'sub-url',    'label' => 'Website URL (optional)', 'required' => false, 'value' => (string) ($_lusterOld['submitter_url']   ?? ''), 'attrs' => ['maxlength' => '255', 'placeholder' => 'https://', 'autocomplete' => 'url'], 'hint' => 'Displayed as a link on your donated code.'],
     ['type' => 'text',  'name' => 'captcha',         'id' => 'captcha',    'label' => 'Captcha: ' . $_lusterCaptchaQ, 'required' => true, 'attrs' => ['maxlength' => '10', 'autocomplete' => 'off']],
 ], $_lusterWrapperTpl);
 
+$_lusterSiteName = (string) ($_lusterConfig->get('site_name', '') ?: 'Collective');
+
+$_lusterFormHtml = null;
+$_lusterCsTpl    = (new SiteSettingsRepo($_lusterDb))->get('collective_codes_submit_form_template');
+if ($_lusterCsTpl !== null && trim($_lusterCsTpl) !== '') {
+    $_lusterCsTokens = [
+        '{site_name}'                    => View::e($_lusterSiteName),
+        '{field_code_image}'            => $_lusterF['code_image'],
+        '{field_code_image_input}'      => $_lusterF['code_image_input'],
+        '{field_submitter_name}'        => $_lusterF['submitter_name'],
+        '{field_submitter_name_input}'  => $_lusterF['submitter_name_input'],
+        '{field_submitter_email}'       => $_lusterF['submitter_email'],
+        '{field_submitter_email_input}' => $_lusterF['submitter_email_input'],
+        '{field_submitter_url}'         => $_lusterF['submitter_url'],
+        '{field_submitter_url_input}'   => $_lusterF['submitter_url_input'],
+        '{captcha_block}'               => $_lusterF['captcha'],
+        '{captcha_block_input}'         => $_lusterF['captcha_input'],
+        '{captcha_question}'            => View::e($_lusterCaptchaQ),
+        '{submit_button}'               => '<button type="submit" class="fl-submit">Submit Code</button>',
+        '{clear_button}'                 => '<button type="reset" class="fl-btn-secondary">Clear</button>',
+    ];
+    $_lusterInnerHtml = FormTemplateRenderer::expandTokens($_lusterCsTpl, $_lusterCsTokens);
+    $_lusterFormHtml  = FormTemplateRenderer::wrapForm(
+        $_lusterInnerHtml,
+        $_lusterFormAction,
+        $_lusterApp->getCSRF()->token(),
+        true,
+    );
+}
+
 $_lusterHtml = $_lusterApp->getView()->renderFragment('codes-submit.php', [
     'listing'      => null,
-    'listing_name' => (string) ($_lusterConfig->get('app_name', '') ?: 'Collective'),
+    'listing_name' => $_lusterSiteName,
     'listing_url'  => '',
     'form_action'  => $_lusterFormAction,
     'csrf_token'   => $_lusterApp->getCSRF()->token(),
     'errors'       => htmlspecialchars($_lusterError, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),
     'f'            => $_lusterF,
+    'form_html'    => $_lusterFormHtml,
     'base_url'     => $_lusterBaseUrl,
 ]);
 

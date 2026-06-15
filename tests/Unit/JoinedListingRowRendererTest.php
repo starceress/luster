@@ -34,18 +34,18 @@ final class JoinedListingRowRendererTest extends TestCase
 
         $html = JoinedListingRowRenderer::render(
             $listing,
-            '{listing_title}|{listing_url}|{listing_category}|{date_joined}|{listing_status}',
+            '{listing_subject}|{listing_url}|{listing_category}|{date_joined}|{listing_status}',
             self::UPLOADS_URL,
         );
 
         self::assertSame('Sailor Moon|https://sailormoon.example.com|Anime|2024-03-01|approved', $html);
     }
 
-    public function testListingTitleIsEscaped(): void
+    public function testListingSubjectIsEscaped(): void
     {
         $listing = $this->makeJoined(name: '<b>Alert</b>');
 
-        $html = JoinedListingRowRenderer::render($listing, '{listing_title}', self::UPLOADS_URL);
+        $html = JoinedListingRowRenderer::render($listing, '{listing_subject}', self::UPLOADS_URL);
 
         self::assertSame('&lt;b&gt;Alert&lt;/b&gt;', $html);
     }
@@ -118,7 +118,7 @@ final class JoinedListingRowRendererTest extends TestCase
 
         $html = JoinedListingRowRenderer::renderGroup(
             'joined',
-            '<ul>{each_joined}<li>{listing_title}</li>{/each_joined}</ul>',
+            '<ul>{each_joined}<li>{listing_subject}</li>{/each_joined}</ul>',
             $listings,
             self::UPLOADS_URL,
         );
@@ -130,7 +130,7 @@ final class JoinedListingRowRendererTest extends TestCase
     {
         $html = JoinedListingRowRenderer::renderGroup(
             'joined',
-            '{each_joined}<li>{listing_title}</li>{/each_joined}',
+            '{each_joined}<li>{listing_subject}</li>{/each_joined}',
             [],
             self::UPLOADS_URL,
         );
@@ -150,7 +150,7 @@ final class JoinedListingRowRendererTest extends TestCase
         ];
 
         $html = JoinedListingRowRenderer::renderTemplate(
-            '<ul>{each_joined}<li>{listing_title} ({listing_category})</li>{/each_joined}</ul>',
+            '<ul>{each_joined}<li>{listing_subject} ({listing_category})</li>{/each_joined}</ul>',
             $listings,
             self::UPLOADS_URL,
         );
@@ -166,7 +166,7 @@ final class JoinedListingRowRendererTest extends TestCase
         ];
 
         $template = '{if_current_listings}<section>Joined ({current_count}/{total_count}): '
-                   . '{each_current_joined}{listing_title}{/each_current_joined}</section>{/if_current_listings}';
+                   . '{each_current_joined}{listing_subject}{/each_current_joined}</section>{/if_current_listings}';
 
         $html = JoinedListingRowRenderer::renderTemplate($template, $listings, self::UPLOADS_URL);
 
@@ -175,7 +175,7 @@ final class JoinedListingRowRendererTest extends TestCase
 
     public function testRenderTemplateSectionedConditionalHiddenWhenEmpty(): void
     {
-        $template = '{if_current_listings}<section>{each_current_joined}{listing_title}{/each_current_joined}</section>{/if_current_listings}';
+        $template = '{if_current_listings}<section>{each_current_joined}{listing_subject}{/each_current_joined}</section>{/if_current_listings}';
 
         $html = JoinedListingRowRenderer::renderTemplate($template, [], self::UPLOADS_URL);
 
@@ -193,7 +193,7 @@ final class JoinedListingRowRendererTest extends TestCase
         self::assertArrayHasKey('random_joined_listing_template', $defaults);
         self::assertStringContainsString('{each_joined}', $defaults['random_joined_listing_template']);
         self::assertStringContainsString('fl-random-joined-listing', $defaults['random_joined_listing_template']);
-        self::assertStringContainsString('{listing_title}', $defaults['random_joined_listing_template']);
+        self::assertStringContainsString('{listing_subject}', $defaults['random_joined_listing_template']);
         self::assertStringContainsString('{listing_url}', $defaults['random_joined_listing_template']);
         self::assertStringContainsString('{listing_category}', $defaults['random_joined_listing_template']);
         self::assertStringContainsString('{if_listing_image}', $defaults['random_joined_listing_template']);

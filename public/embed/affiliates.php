@@ -7,6 +7,7 @@ use Luster\Repositories\AffiliateRepo;
 use Luster\Repositories\ListingRepo;
 use Luster\Repositories\ListingSettingsRepo;
 use Luster\Repositories\SiteSettingsRepo;
+use Luster\Support\CollectiveFormUrlResolver;
 use Luster\Support\ListingTemplateResolver;
 
 /**
@@ -153,12 +154,12 @@ if ($_lusterSectionTemplate !== null) {
         foreach ($_lusterResult['items'] as $_aff) {
             $imageFilename = $_aff->image ?? '';
             $imageUrl      = ($imageFilename !== '') ? $_lusterUploadsUrl . '/' . $imageFilename : '';
-            $imageTag      = ($imageUrl !== '')
+            $imageOrLink   = ($imageUrl !== '')
                 ? '<img src="' . $e($imageUrl) . '" alt="' . $e($_aff->name) . '">'
-                : '';
+                : '<a href="' . $e($_aff->url) . '">' . $e($_aff->name) . '</a>';
             $_lusterEachRows .= str_replace(
-                ['{aff_name}', '{aff_url}', '{aff_image}', '{aff_image_url}', '{aff_image_tag}'],
-                [$e($_aff->name), $e($_aff->url), $e($imageFilename), $e($imageUrl), $imageTag],
+                ['{aff_name}', '{aff_url}', '{aff_image_url}'],
+                [$e($_aff->name), $e($_aff->url), $imageOrLink],
                 $_lusterEachRowTpl,
             );
         }
@@ -196,9 +197,13 @@ if ($_lusterSectionTemplate !== null) {
         $_lusterSectionHtml = str_replace(['{if_no_affiliates}', '{/if_no_affiliates}'], '', $_lusterSectionHtml);
     }
 
-    $_lusterAffApplyUrl = $_lusterListingId > 0
-        ? $_lusterBaseUrl . '/affiliate-apply/' . $_lusterListingId
-        : $_lusterBaseUrl . '/affiliate-apply/collective';
+    if ($_lusterListingId > 0) {
+        $_lusterAffApplyUrl = $_lusterBaseUrl . '/affiliate-apply/' . $_lusterListingId;
+    } else {
+        $_lusterSiteUrl  = (string) ($_lusterApp->getConfig()->get('site_url', '') ?: $_lusterBaseUrl);
+        $_lusterAffOverride = (new SiteSettingsRepo($_lusterApp->getDatabase()))->get('collective_form_url_affiliate_apply');
+        $_lusterAffApplyUrl = CollectiveFormUrlResolver::resolve($_lusterAffOverride, $_lusterSiteUrl, $_lusterBaseUrl . '/affiliate-apply/collective');
+    }
 
     $_lusterSectionHtml = str_replace(
         ['{affiliates}', '{affiliates_count}', '{affiliates_list}', '{affiliate_apply_url}'],

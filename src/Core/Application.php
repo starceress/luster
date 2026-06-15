@@ -504,6 +504,7 @@ final class Application
                 $adminId > 0 ? $adminId : null,
                 'pending_digest_notification',
                 'Pending items digest sent (' . $data['grand_total'] . ' item(s))',
+                (string) ($_SERVER['REMOTE_ADDR'] ?? ''),
             );
         } catch (\Throwable $e) {
             try {

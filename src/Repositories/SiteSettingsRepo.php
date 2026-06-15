@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Luster\Repositories;
 
 use Luster\Core\Database;
+use Luster\Core\FieldWrapper;
+use Luster\Support\SuccessRenderer;
 
 /**
  * Key/value store for site-wide (non-per-listing) settings.
@@ -66,7 +68,7 @@ class SiteSettingsRepo
      * Shared by the admin collective page and the embed files so
      * both always show the same fallback markup.
      *
-     * @return array{owned_template: string, joined_template: string, collective_stats_template: string, collective_affiliates_section_template: string, random_listing_template: string, latest_listing_template: string, random_joined_listing_template: string, latest_joined_listing_template: string, collective_affiliate_apply_form_template: string, kim_signup_form_template: string, wishlist_template: string, collective_updates_template: string}
+     * @return array{owned_template: string, joined_template: string, collective_stats_template: string, collective_affiliates_section_template: string, random_listing_template: string, latest_listing_template: string, random_joined_listing_template: string, latest_joined_listing_template: string, collective_affiliate_apply_form_template: string, kim_signup_form_template: string, wishlist_template: string, collective_updates_template: string, collective_codes_template: string, collective_codes_submit_form_template: string, collective_field_wrapper_template: string, collective_contact_sent_template: string}
      */
     public static function collectiveDefaults(): array
     {
@@ -98,14 +100,9 @@ class SiteSettingsRepo
                              . '</div>',
             'joined_template' => '<div class="fl-joined-list">' . "\n"
                                . '{each_joined}' . "\n"
-                               . '<div class="fl-joined-item">' . "\n"
-                               . '{if_listing_image}<div class="fl-joined-image-wrap"><img class="fl-joined-image" src="{listing_image_url}" alt="{listing_title}"></div>{/if_listing_image}' . "\n"
-                               . '<div class="fl-joined-body">' . "\n"
-                               . '<a class="fl-joined-title" href="{listing_url}" target="_blank" rel="noopener noreferrer">{listing_title}</a>' . "\n"
-                               . '<span class="fl-joined-category">{listing_category}</span>' . "\n"
-                               . '<span class="fl-joined-date">{date_joined}</span>' . "\n"
-                               . '</div>' . "\n"
-                               . '</div>' . "\n"
+                               . '{if_listing_image}' . "\n"
+                               . '<a href="{listing_url}" title="{listing_subject} - {listing_category}&#010;Joined on {date_joined}" target="_blank" rel="noopener noreferrer"><img src="{listing_image_url}" alt="{listing_category} {date_joined}"></a>' . "\n"
+                               . '{/if_listing_image}' . "\n"
                                . '{/each_joined}' . "\n"
                                . '</div>',
             'collective_stats_template' => '<div class="fl-cstats">' . "\n"
@@ -120,9 +117,7 @@ class SiteSettingsRepo
                                                     . '{if_affiliates}' . "\n"
                                                     . '<ul class="fl-affiliate-list">' . "\n"
                                                     . '{each_affiliate}' . "\n"
-                                                    . '<li class="fl-affiliate-item">' . "\n"
-                                                    . '<a href="{aff_url}" target="_blank" rel="noopener noreferrer">{aff_image_tag}<span class="fl-affiliate-name">{aff_name}</span></a>' . "\n"
-                                                    . '</li>' . "\n"
+                                                    . '<li class="fl-affiliate-item">{aff_image_url}</li>' . "\n"
                                                     . '{/each_affiliate}' . "\n"
                                                     . '</ul>' . "\n"
                                                     . '{/if_affiliates}' . "\n"
@@ -161,9 +156,9 @@ class SiteSettingsRepo
             'random_joined_listing_template' => '<div class="fl-random-joined-listing">' . "\n"
                                               . '{each_joined}' . "\n"
                                               . '<div class="fl-random-joined-listing-item">' . "\n"
-                                              . '{if_listing_image}<div class="fl-random-joined-listing-image-wrap"><img class="fl-random-joined-listing-image" src="{listing_image_url}" alt="{listing_title}"></div>{/if_listing_image}' . "\n"
+                                              . '{if_listing_image}<div class="fl-random-joined-listing-image-wrap"><img class="fl-random-joined-listing-image" src="{listing_image_url}" alt="{listing_subject}"></div>{/if_listing_image}' . "\n"
                                               . '<div class="fl-random-joined-listing-body">' . "\n"
-                                              . '<a class="fl-random-joined-listing-title" href="{listing_url}" target="_blank" rel="noopener noreferrer">{listing_title}</a>' . "\n"
+                                              . '<a class="fl-random-joined-listing-title" href="{listing_url}" target="_blank" rel="noopener noreferrer">{listing_subject}</a>' . "\n"
                                               . '<span class="fl-random-joined-listing-category">{listing_category}</span>' . "\n"
                                               . '</div>' . "\n"
                                               . '</div>' . "\n"
@@ -172,9 +167,9 @@ class SiteSettingsRepo
             'latest_joined_listing_template' => '<div class="fl-latest-joined-listing">' . "\n"
                                               . '{each_joined}' . "\n"
                                               . '<div class="fl-latest-joined-listing-item">' . "\n"
-                                              . '{if_listing_image}<div class="fl-latest-joined-listing-image-wrap"><img class="fl-latest-joined-listing-image" src="{listing_image_url}" alt="{listing_title}"></div>{/if_listing_image}' . "\n"
+                                              . '{if_listing_image}<div class="fl-latest-joined-listing-image-wrap"><img class="fl-latest-joined-listing-image" src="{listing_image_url}" alt="{listing_subject}"></div>{/if_listing_image}' . "\n"
                                               . '<div class="fl-latest-joined-listing-body">' . "\n"
-                                              . '<a class="fl-latest-joined-listing-title" href="{listing_url}" target="_blank" rel="noopener noreferrer">{listing_title}</a>' . "\n"
+                                              . '<a class="fl-latest-joined-listing-title" href="{listing_url}" target="_blank" rel="noopener noreferrer">{listing_subject}</a>' . "\n"
                                               . '<span class="fl-latest-joined-listing-category">{listing_category}</span>' . "\n"
                                               . '<span class="fl-latest-joined-listing-date">Joined: {date_joined}</span>' . "\n"
                                               . '</div>' . "\n"
@@ -185,6 +180,10 @@ class SiteSettingsRepo
             'kim_signup_form_template'                   => self::defaultKimSignupFormTemplate(),
             'wishlist_template'                          => self::defaultWishlistTemplate(),
             'collective_updates_template'                => self::defaultCollectiveUpdatesTemplate(),
+            'collective_codes_template'                  => self::defaultCollectiveCodesTemplate(),
+            'collective_codes_submit_form_template'      => self::defaultCollectiveCodesSubmitFormTemplate(),
+            'collective_field_wrapper_template'          => FieldWrapper::defaultTemplate(),
+            'collective_contact_sent_template'           => SuccessRenderer::defaultTemplate('contact-sent'),
         ];
     }
 
@@ -277,6 +276,34 @@ HTML;
     public static function defaultCollectiveUpdatesTemplate(): string
     {
         return ListingSettingsRepo::defaultUpdatesTemplate();
+    }
+
+    public static function defaultCollectiveCodesTemplate(): string
+    {
+        return ListingSettingsRepo::defaultCodesTemplate();
+    }
+
+    /**
+     * Default Collective Codes Donation Form template used when no override is stored
+     * in the database. Mirrors ListingSettingsRepo::defaultCodesSubmitFormTemplate(),
+     * but uses {site_name} in place of {listing_title} since collective code
+     * submissions are not tied to a single fanlisting.
+     */
+    public static function defaultCollectiveCodesSubmitFormTemplate(): string
+    {
+        return '<h1>Submit a Code for {site_name}</h1>' . "\n"
+            . '<p>All submissions are reviewed before being published. Accepted: JPEG, PNG, GIF, WebP. Max 200 KB.</p>' . "\n"
+            . '<div class="fl-form-fields">' . "\n"
+            . '{field_code_image}' . "\n"
+            . '{field_submitter_name}' . "\n"
+            . '{field_submitter_email}' . "\n"
+            . '{field_submitter_url}' . "\n"
+            . '{captcha_block}' . "\n"
+            . '</div>' . "\n"
+            . '<div class="fl-form-actions">' . "\n"
+            . '{submit_button}' . "\n"
+            . '{clear_button}' . "\n"
+            . '</div>';
     }
 
     /**

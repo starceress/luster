@@ -69,7 +69,7 @@ $b = rtrim(View::e($base_url), '/');
             <form method="POST" action="<?= $b ?>/admin/addons/install">
               <input type="hidden" name="_csrf"      value="<?= View::e($csrf_token) ?>">
               <input type="hidden" name="addon_key"  value="<?= View::e($key) ?>">
-              <button type="submit" class="btn btn-primary btn-sm">Install</button>
+              <button type="submit" class="btn btn-primary btn-sm">Enable</button>
             </form>
           <?php endif; ?>
         </div>

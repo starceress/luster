@@ -118,7 +118,6 @@ try {
 $_flStats = ['approved' => 0, 'pending' => 0, 'country_count' => 0];
 $_flNeedsApproved = str_contains($_lusterTemplate, '{member_count}')
                  || str_contains($_lusterTemplate, '{country_count}')
-                 || str_contains($_lusterTemplate, '{countries_count}')
                  || str_contains($_lusterTemplate, '{if_countries}');
 $_flNeedsPending  = str_contains($_lusterTemplate, '{member_pending_count}')
                  || str_contains($_lusterTemplate, '{pending_count}')

@@ -266,7 +266,6 @@ if ($_lusterOwnedTemplate !== null && $_lusterShowListings) {
                             || str_contains($_lusterOwnedTemplate, '{member_pending_count}')
                             || str_contains($_lusterOwnedTemplate, '{pending_count}')
                             || str_contains($_lusterOwnedTemplate, '{country_count}')
-                            || str_contains($_lusterOwnedTemplate, '{countries_count}')
                             || str_contains($_lusterOwnedTemplate, '{if_countries}')
                             || str_contains($_lusterOwnedTemplate, '{if_pending}');
     if ($_lusterNeedsMemberStats && !empty($_lusterListings)) {

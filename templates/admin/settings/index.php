@@ -13,6 +13,8 @@
 /** @var string $db_version */
 /** @var int    $error_log_count */
 /** @var \Luster\Core\UpdateStatus $update_status */
+/** @var string|null $htaccess_base_actual   Active RewriteBase found; null = no mismatch */
+/** @var string|null $htaccess_base_expected Expected path from app_url; set when mismatch exists */
 
 use Luster\Core\SkinCatalog;
 use Luster\Core\UpdateStatus;
@@ -759,6 +761,21 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
           </div>
         </div>
 
+        <?php if (($htaccess_base_actual ?? null) !== null): ?>
+        <div class="callout callout-warn" style="margin:1.25rem 1.5rem 0">
+          <?= View::icon('caution') ?>
+          <div>
+            <strong>RewriteBase mismatch.</strong>
+            Your <code>public/.htaccess</code> has
+            <code>RewriteBase <?= View::e($htaccess_base_actual) ?></code>
+            but your install URL suggests it should be
+            <code>RewriteBase <?= View::e($htaccess_base_expected) ?></code>.
+            Clean admin URLs may 404. Open <code>public/.htaccess</code>,
+            find the <code>RewriteBase</code> line, and update it.
+          </div>
+        </div>
+        <?php endif; ?>
+
         <!-- Script -->
         <div class="pc-section">
           <div class="pc-section-label">Script</div>
@@ -815,6 +832,7 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
               <?php endif; ?>
             </span>
           </div>
+          <?php endif; ?>
           <div class="sysinfo-row">
             <span class="form-label">Last Checked</span>
             <span style="display:flex;align-items:center;gap:.75rem;flex-wrap:wrap">
@@ -833,7 +851,6 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
               </span>
             </span>
           </div>
-          <?php endif; ?>
         </div>
 
         <!-- Server -->

@@ -13,6 +13,7 @@ use Luster\Repositories\AffiliateRepo;
 use Luster\Repositories\ListingRepo;
 use Luster\Repositories\ListingSettingsRepo;
 use Luster\Repositories\SiteSettingsRepo;
+use Luster\Support\CollectiveFormUrlResolver;
 use Luster\Support\ListingTemplateResolver;
 
 /**
@@ -113,7 +114,9 @@ final class AffiliatesController
         $sectTplRaw   = (string) ($siteRepo->getMany(['collective_affiliates_section_template'])['collective_affiliates_section_template'] ?? '');
         $sectionTemplate = trim($sectTplRaw) !== '' ? $sectTplRaw : null;
 
-        $affiliateApplyUrl = $baseUrl . '/affiliate-apply/collective';
+        $siteUrl           = (string) ($this->app->getConfig()->get('site_url', '') ?: $baseUrl);
+        $affApplyOverride  = $siteRepo->get('collective_form_url_affiliate_apply');
+        $affiliateApplyUrl = CollectiveFormUrlResolver::resolve($affApplyOverride, $siteUrl, $baseUrl . '/affiliate-apply/collective');
         $sectionHtml = $sectionTemplate !== null
             ? $this->applySectionTemplate($sectionTemplate, $result['items'], $result['total'], $uploadsUrl, $affiliateApplyUrl)
             : null;
@@ -147,9 +150,8 @@ final class AffiliatesController
      *
      *   {aff_name}      — affiliate name (HTML-escaped)
      *   {aff_url}       — affiliate URL (HTML-escaped)
-     *   {aff_image}     — image filename only (HTML-escaped), or empty string
-     *   {aff_image_url} — full src-ready URL including uploads path (HTML-escaped)
-     *   {aff_image_tag} — rendered <img> tag, or empty string when no image
+     *   {aff_image_url} — rendered <img> tag when the affiliate has an image;
+     *                      otherwise a text link to the affiliate site
      *
      * @param Affiliate[] $affiliates
      */
@@ -158,24 +160,20 @@ final class AffiliatesController
         $rows = [];
 
         foreach ($affiliates as $affiliate) {
+            $name = htmlspecialchars($affiliate->name, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+            $url  = htmlspecialchars($affiliate->url,  ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+
             $imageUrl = ($affiliate->image !== null && $affiliate->image !== '')
                 ? $uploadsUrl . '/' . $affiliate->image
                 : '';
 
-            $imageTag = ($imageUrl !== '')
-                ? '<img src="' . htmlspecialchars($imageUrl,         ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '"'
-                . ' alt="'     . htmlspecialchars($affiliate->name,  ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '">'
-                : '';
+            $imageOrLink = ($imageUrl !== '')
+                ? '<img src="' . htmlspecialchars($imageUrl, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '" alt="' . $name . '">'
+                : '<a href="' . $url . '">' . $name . '</a>';
 
             $rows[] = str_replace(
-                ['{aff_name}', '{aff_url}', '{aff_image}', '{aff_image_url}', '{aff_image_tag}'],
-                [
-                    htmlspecialchars($affiliate->name,         ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),
-                    htmlspecialchars($affiliate->url,          ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),
-                    htmlspecialchars($affiliate->image ?? '',  ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),
-                    htmlspecialchars($imageUrl,                ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),
-                    $imageTag,
-                ],
+                ['{aff_name}', '{aff_url}', '{aff_image_url}'],
+                [$name, $url, $imageOrLink],
                 $template,
             );
         }

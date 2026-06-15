@@ -265,6 +265,26 @@ final class ListingSettingsRepo
     }
 
     /**
+     * Saves (upserts) the per-listing codes display template. Pass null or an
+     * empty string to clear the override and fall back to the built-in default.
+     *
+     * Requires Migration 64.
+     */
+    public function saveCodesTemplate(int $listingId, ?string $template): void
+    {
+        try {
+            $stmt = $this->db->prepare(
+                'INSERT INTO lstr_fanlisting_settings (fanlisting_id, codes_template)
+                 VALUES (:id, :val)
+                 ON DUPLICATE KEY UPDATE codes_template = VALUES(codes_template)'
+            );
+            $stmt->execute(['id' => $listingId, 'val' => ($template !== null && trim($template) !== '') ? $template : null]);
+        } catch (\Exception) {
+            // Migration 64 not run yet
+        }
+    }
+
+    /**
      * Returns the per-listing field wrapper template string, or null when not set /
      * when Migration 64 has not been run yet.
      */
@@ -423,9 +443,9 @@ final class ListingSettingsRepo
     {
         return '<h1>Listing Statistics</h1>'
             . "\n" . '<p><b>Members:</b> {stat_approved} total{if_stat_pending} (+{stat_pending} pending){/if_stat_pending} across {stat_countries} countries<br>'
-            . "\n" . '<b>Newest Members:</b> {stat_newmembers_oxford}<br>'
+            . "\n" . '<b>Newest Members:</b> {stat_newmembers}<br>'
             . "\n" . '<b>Opened On:</b> {stat_opened}<br>'
-            . "\n" . '<b>Last Updated:</b> {stat_last_updated}{if_approved_by}<br>'
+            . "\n" . '<b>Last Updated:</b> {stat_updated}{if_approved_by}<br>'
             . "\n" . '<b>Approved by:</b> {approved_by}{/if_approved_by}</p>';
     }
 
@@ -464,8 +484,7 @@ final class ListingSettingsRepo
             . '<ul class="fl-affiliate-list">' . "\n"
             . '<p><a href="{affiliate_apply_url}">Apply to become an affiliate?</a></p>' . "\n\n"
             . '{each_affiliate}' . "\n"
-            . '<li class="fl-affiliate-item">' . "\n"
-            . '<a href="{aff_url}" target="_blank" rel="noopener noreferrer">{aff_image_tag}</a></li>' . "\n"
+            . '<li class="fl-affiliate-item">{aff_image_url}</li>' . "\n"
             . '{/each_affiliate}' . "\n\n"
             . '</ul>' . "\n"
             . '{/if_affiliates}' . "\n\n"
@@ -487,6 +506,41 @@ final class ListingSettingsRepo
             . '<div class="fl-update-body">{update_body_html}</div>' . "\n"
             . '</div>' . "\n\n"
             . '{/each_update}' . "\n"
+            . '</div>';
+    }
+
+    /**
+     * Default codes display template used when no override is stored in the database.
+     *
+     * Shared by templates/default/codes.php (public fallback — only when an
+     * override containing {each_size_group} or {each_code} is stored) and the
+     * admin per-listing template editor (pre-filled textarea).
+     */
+    public static function defaultCodesTemplate(): string
+    {
+        return '<div class="fl-embed fl-embed--codes">' . "\n"
+            . '{if_no_codes}' . "\n"
+            . '<p class="fl-empty">No codes available yet.</p>' . "\n"
+            . '{/if_no_codes}' . "\n"
+            . '{if_codes}' . "\n"
+            . '<div class="fl-codes">' . "\n"
+            . '{each_size_group}' . "\n"
+            . '<div class="fl-code-group">' . "\n"
+            . '<h2 class="fl-code-group-label">{group_size}</h2>' . "\n"
+            . '<ul class="fl-code-list">' . "\n"
+            . '{each_code}' . "\n"
+            . '<li class="fl-code-item">' . "\n"
+            . '<figure class="fl-code-image"><img src="{code_url}" alt="{code_alt}" loading="lazy"></figure>' . "\n"
+            . '{if_donor}<span class="fl-code-caption">by {if_donor_url}<a href="{code_donor_url}" target="_blank" rel="noopener noreferrer">{code_donor_name}</a>{/if_donor_url}{if_no_donor_url}{code_donor_name}{/if_no_donor_url}</span>{/if_donor}' . "\n"
+            . '{if_code_name}<span class="fl-code-caption">{code_name}</span>{/if_code_name}' . "\n"
+            . '{if_categories}<span class="fl-code-caption">{code_categories}</span>{/if_categories}' . "\n"
+            . '</li>' . "\n"
+            . '{/each_code}' . "\n"
+            . '</ul>' . "\n"
+            . '</div>' . "\n"
+            . '{/each_size_group}' . "\n"
+            . '</div>' . "\n"
+            . '{/if_codes}' . "\n"
             . '</div>';
     }
 
@@ -629,7 +683,7 @@ final class ListingSettingsRepo
             [
                 '{stat_opened}',
                 '{stat_updated}',
-                '{stat_last_updated}',
+                '{stat_updated}',
                 '{stat_approved}',
                 '{stat_pending}',
                 '{stat_newmembers}',
@@ -642,7 +696,7 @@ final class ListingSettingsRepo
                 '{fan_country}',
                 '{aff_name}',
                 '{aff_url}',
-                '{aff_image_tag}',
+                '{aff_image_url}',
                 '{listing_title}',
                 '{listing_url}',
             ],

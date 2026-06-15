@@ -138,8 +138,8 @@ final class SettingsTestEmailTest extends TestCase
     private function makeBody(string $siteName): string
     {
         return "This is a test email sent from your {$siteName} admin panel.\n\n"
-            . "If you received this message, your server's mail() function is working correctly.\n\n"
-            . "— Luster";
+            . "If you received this message, your server's mail() function is working correctly!\n\n"
+            . "— Luster ✦";
     }
 
     private function makeSuccessFlash(string $recipientEmail): string

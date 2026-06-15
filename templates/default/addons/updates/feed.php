@@ -25,7 +25,9 @@ $_activeCat   = $active_cat ?? '';
 $_embedClass  = ($is_collective ?? false) ? 'fl-embed--collective-updates' : 'fl-embed--updates';
 
 // When a custom updates_template has been rendered by the embed/controller, use it directly.
-if (isset($updates_template_html) && $updates_template_html !== null) {
+// Guard with !empty($updates) so the hardcoded empty state is shown for zero-result pages
+// even when a custom template is configured (the template loop produces no rows, not a message).
+if (isset($updates_template_html) && $updates_template_html !== null && !empty($updates)) {
     echo '<div class="fl-embed ' . $_embedClass . '">' . $updates_template_html . ($pagination ?? '') . '</div>';
     return;
 }

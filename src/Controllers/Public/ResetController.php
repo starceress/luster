@@ -129,7 +129,7 @@ final class ResetController
             $rateLimit->hitDefault($ip, RateLimit::ACTION_PUBLIC_RESET);
             $session->set('lstr_flash_error', implode(' ', $v->allErrors()));
             $session->set('lstr_flash_old_email', $email);
-            return Response::redirect($formUrl);
+            return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $formUrl);
         }
 
         $rateLimit->hitDefault($ip, RateLimit::ACTION_PUBLIC_RESET);

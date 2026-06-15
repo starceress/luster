@@ -82,7 +82,7 @@ use Luster\Core\View;
 
   <?php if ($show_listings ?? true): ?>
 
-    <?php if (($listing_html ?? null) !== null && $listing_html !== ''): ?>
+    <?php if (($listing_html ?? null) !== null && $listing_html !== '' && !empty($listings)): ?>
       <!-- owned_template output — fully self-contained, including its own wrapper markup -->
       <?= $listing_html ?>
 

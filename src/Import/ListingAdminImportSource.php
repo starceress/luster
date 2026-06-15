@@ -2233,7 +2233,7 @@ final class ListingAdminImportSource implements ImportSourceInterface
 
         return str_replace(
             ['{members}', '{pending}', '{since}', '{updated}', '{newest}'],
-            ['{stat_approved}', '{stat_pending}', '{stat_opened}', '{stat_last_updated}', '{stat_newmembers}'],
+            ['{stat_approved}', '{stat_pending}', '{stat_opened}', '{stat_updated}', '{stat_newmembers}'],
             $trimmed
         );
     }
@@ -2249,6 +2249,17 @@ final class ListingAdminImportSource implements ImportSourceInterface
         if ($trimmed === '') {
             return '';
         }
+
+        // LA's per-affiliate template typically embeds {image} inside an <img> src=""
+        // attribute (e.g. src="{image}"). {aff_image_url} now expands to a full <img> (or
+        // text-link) element, so leaving it inside another src="" attribute would produce
+        // broken HTML. Replace the entire <img> element with {aff_image_url} up front so
+        // the token lands in the right context.
+        $trimmed = (string) preg_replace(
+            '/<img\b[^>]*?src=["\'][^"\']*\{image\}[^"\']*["\'][^>]*?\/?>/is',
+            '{aff_image_url}',
+            $trimmed,
+        );
 
         return str_replace(
             ['{url}', '{image}', '{subject}'],

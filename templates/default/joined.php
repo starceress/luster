@@ -89,7 +89,7 @@ $_renderItem = static function ($fl) use ($uploads_url): void {
         </ul>
       <?php endif; ?>
 
-    <?php elseif (($listing_html ?? null) !== null && $listing_html !== ''): ?>
+    <?php elseif (($listing_html ?? null) !== null && $listing_html !== '' && !empty($listings)): ?>
       <!-- joined_template output — fully self-contained, including its own wrapper markup -->
       <?= $listing_html ?>
 

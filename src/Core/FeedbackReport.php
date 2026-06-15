@@ -16,7 +16,7 @@ namespace Luster\Core;
  *   compose(array $form, string $sysInfo, string $errorLog): string — assemble full report
  *
  * Expected formatSysInfo() keys:
- *   luster_version (string), base_url (string — path only, e.g. "luster/public"),
+ *   luster_version (string), base_url (string — path only, e.g. "luster/public"; displayed as install type, not raw path),
  *   report_timestamp (string), php_version (string), db_version (string), debug_enabled (bool),
  *   mail_configured (bool), admin_username (string),
  *   addons (string[]), migration_level (?int)
@@ -46,6 +46,13 @@ final class FeedbackReport
         $addons    = !empty($data['addons']) ? implode(', ', $data['addons']) : 'None';
         $migration = $data['migration_level'] !== null ? (string) $data['migration_level'] : 'unknown';
 
+        $rawPath  = (string) ($data['base_url'] ?? '');
+        $segments = array_values(array_filter(explode('/', $rawPath), fn($s) => $s !== ''));
+        $n = count($segments);
+        $installType = $n === 0
+            ? 'Root install'
+            : 'Subdirectory (' . $n . ' ' . ($n === 1 ? 'segment' : 'segments') . ')';
+
         return self::SEP
             . "SYSTEM INFO\n"
             . self::SEP
@@ -55,7 +62,7 @@ final class FeedbackReport
             . self::row('Debug mode',     ($data['debug_enabled']  ?? false) ? 'Yes' : 'No')
             . self::row('Mail',           ($data['mail_configured'] ?? false) ? 'Owner email set' : 'Owner email not set')
             . self::row('Migration',      $migration)
-            . self::row('Base URL',       $data['base_url']       ?? 'unknown')
+            . self::row('Install type',   $installType)
             . self::row('Reported by',    $data['admin_username'] ?? 'unknown')
             . self::row('Report time',    $data['report_timestamp'] ?? 'unknown')
             . self::row('Add-ons',        $addons);

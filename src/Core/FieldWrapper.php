@@ -28,6 +28,11 @@ final class FieldWrapper
         </div>
         HTML;
 
+    public static function defaultTemplate(): string
+    {
+        return self::DEFAULT_TEMPLATE;
+    }
+
     /**
      * @param string $fieldId empty string for checkbox/radio groups — no single
      *                        input id exists to point a wrapper id/label-for at

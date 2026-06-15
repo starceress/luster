@@ -1,4 +1,4 @@
-Hi there,
+Hey there!
 
 Here's your weekly pending items digest for {collective_name}:
 
@@ -11,4 +11,4 @@ Log in to your admin panel to review:
 
 You can adjust or disable this email under Collective > Settings.
 
-— Luster
+— Luster ✦

@@ -11,6 +11,7 @@ use Luster\Repositories\ListingRepo;
 use Luster\Repositories\ListingSettingsRepo;
 use Luster\Repositories\MemberRepo;
 use Luster\Repositories\SiteSettingsRepo;
+use Luster\Support\DateFormatter;
 use Luster\Support\ListingTemplateResolver;
 
 /**
@@ -27,14 +28,14 @@ use Luster\Support\ListingTemplateResolver;
  *
  * Tokens:
  *   {stat_opened}       — date listing opened, formatted "Month Dth Year"
- *   {stat_updated}      — date of most recently added approved member (same format)
- *   {stat_last_updated} — admin-controlled "last updated" date from settings
+ *   {stat_updated}      — most recent activity date: whichever is more recent
+ *                         of the newest approved member's join date and the
+ *                         admin-set "last updated" date; "N/A" if neither is set
  *   {stat_approved}     — approved member count
  *   {stat_pending}      — pending member count
  *   {stat_countries}    — unique country count for approved members
- *   {stat_newmembers}        — comma-separated list of newest 5 approved member names
- *   {stat_newmembers_oxford} — same list formatted with Oxford comma (e.g. "A, B, and C")
- *   {stat_newmembers_label}  — "Member" when count is 1, "Members" otherwise
+ *   {stat_newmembers}        — newest 5 approved member names, formatted with
+ *                              Oxford comma (e.g. "A, B, and C")
  *   {stat_growth}            — average members per day since opened, e.g. "1.23 members/day"
  *   {if_stat_pending}...{/if_stat_pending} — rendered only when pending count > 0
  *   {listing_title}      — listing name (HTML-escaped)
@@ -42,15 +43,17 @@ use Luster\Support\ListingTemplateResolver;
  *   {approved_by}       — linked network name ("The Fanlistings Network" or
  *                         "The Anime Fanlistings Network"), or '' if not approved
  *   {if_approved_by}...{/if_approved_by}  — rendered only when approved_by is set
+ *   {network_status}    — linked network name, or "Independent" when not approved
+ *                         by a network; always renders something
  */
 final class StatsController
 {
     private const DEFAULT_TEMPLATE =
         '<h1>Listing Statistics</h1>'
         . '<p><b>Members:</b> {stat_approved} total{if_stat_pending} (+{stat_pending} pending){/if_stat_pending} across {stat_countries} countries<br>'
-        . '<b>Newest:</b> {stat_newmembers_oxford}<br>'
+        . '<b>Newest:</b> {stat_newmembers}<br>'
         . '<b>Opened On:</b> {stat_opened}<br>'
-        . '<b>Last Updated:</b> {stat_last_updated}{if_approved_by}<br>'
+        . '<b>Last Updated:</b> {stat_updated}{if_approved_by}<br>'
         . '<b>Approved by:</b> {approved_by}{/if_approved_by}</p>';
 
     public function __construct(private readonly Application $app) {}
@@ -75,11 +78,11 @@ final class StatsController
         $prefix     = $listing->dbprefix;
         $memberRepo = new MemberRepo($this->app->getDatabase(), $this->app->getConfig());
 
-        $approved    = $memberRepo->countApproved($prefix);
-        $pending     = $memberRepo->countPending($prefix);
-        $countries   = $memberRepo->countUniqueCountries($prefix);
-        $newest      = $memberRepo->getNewestMembers($prefix, 5);
-        $lastUpdated = $memberRepo->getMostRecentApprovedDate($prefix);
+        $approved   = $memberRepo->countApproved($prefix);
+        $pending    = $memberRepo->countPending($prefix);
+        $countries  = $memberRepo->countUniqueCountries($prefix);
+        $newest     = $memberRepo->getNewestMembers($prefix, 5);
+        $memberDate = $memberRepo->getMostRecentApprovedDate($prefix);
 
         // ── Load template ───────────────────────────────────────────────────
 
@@ -93,13 +96,6 @@ final class StatsController
         );
         $template = $resolved['value'];
 
-        // Admin-controlled "last updated" date; fallback from config
-        $adminLastUpdated    = $settingsRepo->getLastUpdated($listingId);
-        $lastUpdatedFallback = (string) $this->app->getConfig()->get('last_updated_fallback', 'Never');
-        $adminUpdatedStr     = $adminLastUpdated !== null
-            ? $this->formatDate($adminLastUpdated)
-            : $lastUpdatedFallback;
-
         // Approval status
         $approvedBy     = $settingsRepo->getApprovedBy($listingId);
         $approvedByHtml = match ($approvedBy) {
@@ -110,16 +106,17 @@ final class StatsController
 
         // ── Build token values ──────────────────────────────────────────────
 
-        $opened  = $listing->joined !== null ? $this->formatDate($listing->joined) : 'Unknown';
-        $updated = $lastUpdated     !== null ? $this->formatDate($lastUpdated)      : 'Never';
+        $opened = $listing->joined !== null ? DateFormatter::format($listing->joined) : 'Unknown';
+
+        $adminDate   = $settingsRepo->getLastUpdated($listingId);
+        $updatedDate = DateFormatter::mostRecent($memberDate, $adminDate);
+        $updated     = $updatedDate !== null ? DateFormatter::format($updatedDate) : 'N/A';
 
         $newestEscaped = array_map(
             static fn(string $name) => htmlspecialchars($name, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),
             $newest,
         );
-        $newMembersStr    = implode(', ', $newestEscaped);
-        $newMembersOxford = $this->oxfordComma($newestEscaped);
-        $newMembersLabel  = count($newest) === 1 ? 'Member' : 'Members';
+        $newMembers = $this->oxfordComma($newestEscaped);
 
         // Growth: members per day since opened; guard against zero days
         $growth = '0.00';
@@ -145,36 +142,34 @@ final class StatsController
             $template,
         );
 
+        $networkStatus = $approvedByHtml !== '' ? $approvedByHtml : 'Independent';
+
         $output = str_replace(
             [
                 '{stat_opened}',
                 '{stat_updated}',
-                '{stat_last_updated}',
                 '{stat_approved}',
                 '{stat_pending}',
                 '{stat_countries}',
                 '{stat_newmembers}',
-                '{stat_newmembers_oxford}',
-                '{stat_newmembers_label}',
                 '{stat_growth}',
                 '{listing_title}',
                 '{listing_url}',
                 '{approved_by}',
+                '{network_status}',
             ],
             [
                 $opened,
                 $updated,
-                $adminUpdatedStr,
                 (string) $approved,
                 (string) $pending,
                 (string) $countries,
-                $newMembersStr,
-                $newMembersOxford,
-                $newMembersLabel,
+                $newMembers,
                 $growth . ' members/day',
                 htmlspecialchars($listing->title, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),
                 htmlspecialchars($listing->url,  ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),
                 $approvedByHtml,
+                $networkStatus,
             ],
             $template,
         );
@@ -195,29 +190,5 @@ final class StatsController
             2       => $names[0] . ' and ' . $names[1],
             default => implode(', ', array_slice($names, 0, -1)) . ', and ' . end($names),
         };
-    }
-
-    /**
-     * Formats a date or datetime string as "Month Dth Year" (e.g. "March 1st 2026").
-     * Returns the original string unchanged if it cannot be parsed.
-     */
-    private function formatDate(string $dateStr): string
-    {
-        $ts = strtotime($dateStr);
-
-        if ($ts === false) {
-            return $dateStr;
-        }
-
-        $day    = (int) date('j', $ts);
-        $suffix = match (true) {
-            $day >= 11 && $day <= 13 => 'th',   // 11th, 12th, 13th
-            $day % 10 === 1          => 'st',
-            $day % 10 === 2          => 'nd',
-            $day % 10 === 3          => 'rd',
-            default                  => 'th',
-        };
-
-        return date('F', $ts) . ' ' . $day . $suffix . ' ' . date('Y', $ts);
     }
 }

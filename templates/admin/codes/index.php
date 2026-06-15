@@ -96,7 +96,7 @@ $filtersActive = $filters_active ?? false;
       <?php $_apl = $approved_per_listing ?? []; $_aplTotal = array_sum($_apl); ?>
       <select name="listing_id" id="codes-listing-sel">
         <option value="0"<?= $lid === 0 && $viewMode !== 'collective' ? ' selected' : '' ?>>All Listings<?= $_aplTotal > 0 ? ' (' . $_aplTotal . ')' : '' ?></option>
-        <option value="collective"<?= $viewMode === 'collective' ? ' selected' : '' ?>><?= View::e($app_name ?? 'Collective') ?> (Collective)</option>
+        <option value="collective"<?= $viewMode === 'collective' ? ' selected' : '' ?>><?= ($app_name ?? '') !== '' ? View::e($app_name) . ' (Collective)' : 'Collective' ?></option>
         <?php foreach ($allListing as $fl): ?>
           <?php $_flApproved = (int) ($_apl[(int) $fl->id] ?? 0); ?>
           <option value="<?= (int) $fl->id ?>"<?= $lid === (int) $fl->id ? ' selected' : '' ?>>

@@ -40,7 +40,7 @@ final class PendingItemsDigest
      * not installed, and an array with a 'total' key when it is.
      *
      * @return array{
-     *     members: array{total: int, by_listing: list<array{title: string, count: int}>},
+     *     members: array{total: int, by_listing: list<array{subject: string, count: int}>},
      *     affiliates: array{total: int},
      *     codes: array{total: int},
      *     updates: array{total: int},
@@ -63,7 +63,7 @@ final class PendingItemsDigest
             }
             $count = $memberRepo->countPending($listing->dbprefix);
             if ($count > 0) {
-                $byListing[]   = ['title' => $listing->title, 'count' => $count];
+                $byListing[]   = ['subject' => $listing->subject, 'count' => $count];
                 $membersTotal += $count;
             }
         }
@@ -111,7 +111,7 @@ final class PendingItemsDigest
         if ($data['members']['total'] > 0) {
             $lines[] = '- Members awaiting approval: ' . $data['members']['total'];
             foreach ($data['members']['by_listing'] as $entry) {
-                $lines[] = '    - ' . $entry['title'] . ': ' . $entry['count'];
+                $lines[] = '    - ' . $entry['subject'] . ': ' . $entry['count'];
             }
         }
         if ($data['affiliates']['total'] > 0) {

@@ -2,13 +2,14 @@
 
 declare(strict_types=1);
 
-use Luster\Core\TemplateEngine;
 use Luster\Core\View;
 use Luster\Repositories\CodeCategoriesRepo;
 use Luster\Repositories\CodeDonorsRepo;
 use Luster\Repositories\CodesRepo;
 use Luster\Repositories\ListingRepo;
 use Luster\Repositories\ListingSettingsRepo;
+use Luster\Repositories\SiteSettingsRepo;
+use Luster\Support\CodesTemplateRenderer;
 
 /**
  * Luster embed — codes fragment.
@@ -129,137 +130,29 @@ $_lusterBaseUrl    = rtrim($_lusterApp->getBaseUrl(), '/');
 $_lusterUploadsUrl = $_lusterBaseUrl . '/uploads/codes';
 
 // ---------------------------------------------------------------------------
-// 4a. Apply codes row template (if set) via TemplateEngine
+// 4a. Apply codes display template (if set) via CodesTemplateRenderer
 // ---------------------------------------------------------------------------
 
 $_lusterCodesTemplateHtml = null;
+$_lusterCodesTemplate     = null;
 
-if (!$_lusterIsCollective && $_lusterListingId !== null) {
+if ($_lusterIsCollective) {
+    $_lusterCodesTemplate = (new SiteSettingsRepo($_lusterDb))->get('collective_codes_template');
+} elseif ($_lusterListingId !== null) {
     $_lusterCodesTemplate = (new ListingSettingsRepo($_lusterDb))->getCodesTemplate($_lusterListingId);
+}
 
-    if ($_lusterCodesTemplate !== null && trim($_lusterCodesTemplate) !== '') {
-        // Shared per-code renderer — resolves donor info, size label, categories,
-        // and builds the escaped + conditions maps for TemplateEngine::render().
-        $_lusterRenderCode = static function (
-            string $inner,
-            object $code,
-            bool   $sizeChanged,
-            array  $catMap,
-            array  $categoryMap,
-            array  $donorMap,
-            string $uploadsUrl,
-            string $listingName,
-        ): string {
-            $dnrObj    = ($code->donorId !== null) ? ($donorMap[$code->donorId] ?? null) : null;
-            $donorName = $code->submitterName ?? ($dnrObj !== null ? $dnrObj->name : null);
-            $donorUrl  = '';
-            if (($code->submitterUrl ?? '') !== '') {
-                $donorUrl = (string) $code->submitterUrl;
-            } elseif ($dnrObj !== null && ($dnrObj->url ?? '') !== '') {
-                $donorUrl = (string) $dnrObj->url;
-            }
-
-            $hasSize   = $code->width > 0 && $code->height > 0;
-            $sizeLabel = $hasSize ? ((int) $code->width . '×' . (int) $code->height) : '';
-            $altText   = $donorName !== null
-                ? 'Donated by ' . $donorName
-                : ($sizeLabel !== '' ? $sizeLabel : $listingName . ' code');
-
-            $catIds   = $catMap[$code->id] ?? [];
-            $catNames = [];
-            foreach ($catIds as $catId) {
-                if (isset($categoryMap[$catId])) {
-                    $catNames[] = $categoryMap[$catId]->name;
-                }
-            }
-
-            return TemplateEngine::render(
-                $inner,
-                [
-                    'code_url'        => $uploadsUrl . '/' . $code->filename,
-                    'code_alt'        => $altText,
-                    'code_width'      => $hasSize ? (string) (int) $code->width : '',
-                    'code_height'     => $hasSize ? (string) (int) $code->height : '',
-                    'code_size'       => $sizeLabel,
-                    'code_name'       => (string) ($code->name ?? ''),
-                    'code_categories' => implode(', ', $catNames),
-                    'code_donor_name' => (string) ($donorName ?? ''),
-                    'code_donor_url'  => $donorUrl,
-                ],
-                [],
-                [
-                    'size'         => $hasSize,
-                    'size_changed' => $sizeChanged,
-                    'donor'        => $donorName !== null,
-                    'no_donor'     => $donorName === null,
-                    'donor_url'    => $donorUrl !== '',
-                    'no_donor_url' => $donorUrl === '',
-                    'categories'   => count($catNames) > 0,
-                    'code_name'    => ($code->name ?? '') !== '',
-                ],
-            );
-        };
-
-        if (str_contains($_lusterCodesTemplate, '{each_size_group}')) {
-            // Grouped mode: outer {each_size_group} with inner {each_code}
-            $_lusterCodesTemplateHtml = TemplateEngine::loop(
-                $_lusterCodesTemplate,
-                'size_group',
-                array_values($_lusterGrouped),
-                static function (string $innerGroupTpl, array $group) use (
-                    $_lusterRenderCode,
-                    $_lusterCatMap,
-                    $_lusterCategoryMap,
-                    $_lusterDonorMap,
-                    $_lusterUploadsUrl,
-                    $_lusterListingName,
-                ): string {
-                    $processed = TemplateEngine::tokens($innerGroupTpl, [
-                        'group_size'       => $group['label'],
-                        'group_code_count' => (string) count($group['codes']),
-                    ]);
-                    return TemplateEngine::loop(
-                        $processed,
-                        'code',
-                        $group['codes'],
-                        static fn(string $inner, object $code): string => $_lusterRenderCode(
-                            $inner, $code, false,
-                            $_lusterCatMap, $_lusterCategoryMap, $_lusterDonorMap,
-                            $_lusterUploadsUrl, $_lusterListingName,
-                        ),
-                    );
-                },
-            );
-        } elseif (str_contains($_lusterCodesTemplate, '{each_code}')) {
-            // Flat mode: single {each_code} loop with {if_size_changed} tracking
-            $_lusterPrevSizeKey = null;
-            $_lusterCodesTemplateHtml = TemplateEngine::loop(
-                $_lusterCodesTemplate,
-                'code',
-                $_lusterCodes,
-                static function (string $inner, object $code) use (
-                    &$_lusterPrevSizeKey,
-                    $_lusterRenderCode,
-                    $_lusterCatMap,
-                    $_lusterCategoryMap,
-                    $_lusterDonorMap,
-                    $_lusterUploadsUrl,
-                    $_lusterListingName,
-                ): string {
-                    $sizeKey            = ($code->width > 0 && $code->height > 0)
-                        ? ((int) $code->width . 'x' . (int) $code->height)
-                        : 'unknown';
-                    $sizeChanged        = $sizeKey !== $_lusterPrevSizeKey;
-                    $_lusterPrevSizeKey = $sizeKey;
-                    return $_lusterRenderCode(
-                        $inner, $code, $sizeChanged,
-                        $_lusterCatMap, $_lusterCategoryMap, $_lusterDonorMap,
-                        $_lusterUploadsUrl, $_lusterListingName,
-                    );
-                },
-            );
-        }
-    }
+if ($_lusterCodesTemplate !== null && trim($_lusterCodesTemplate) !== '') {
+    $_lusterCodesTemplateHtml = CodesTemplateRenderer::render(
+        $_lusterCodesTemplate,
+        $_lusterCodes,
+        $_lusterGrouped,
+        $_lusterCatMap,
+        $_lusterCategoryMap,
+        $_lusterDonorMap,
+        $_lusterUploadsUrl,
+        $_lusterListingName,
+    );
 }
 
 $_lusterHtml = $_lusterApp->getView()->renderFragment('codes.php', [
@@ -281,16 +174,17 @@ $_lusterHtml = $_lusterApp->getView()->renderFragment('codes.php', [
     'codes_template_html' => $_lusterCodesTemplateHtml,
 ]);
 
-// Conditionally append the code donation form if enabled.
-// Set $luster_append_submit = false before require to suppress this (e.g. when you
-// have a dedicated codes-submit page and don't want the form duplicated here).
+// Optionally append the code donation form after the gallery.
+// Set $luster_append_submit = true before require to include the form here (useful when
+// you want both the gallery and submission on the same page without a separate embed).
+// By default (false) codes.php shows only the gallery; use codes-submit.php separately.
 // NOTE: codes-submit.php is required in the same scope and reassigns $_lusterHtml,
 // so we save the gallery output and restore $luster_return after the sub-require.
 $_lusterEmbedSettings = $_lusterIsCollective
     ? []
     : (new \Luster\Repositories\ListingSettingsRepo($_lusterApp->getDatabase()))
         ->getEmbedSettings($_lusterListingId);
-if (($luster_append_submit ?? true) && ($_lusterEmbedSettings['codes_submit_enabled'] ?? true)) {
+if (($luster_append_submit ?? false) && ($_lusterEmbedSettings['codes_submit_enabled'] ?? true)) {
     $_lusterGalleryHtml  = $_lusterHtml;
     $_lusterReturnOrig   = $luster_return ?? false;
     $luster_return       = true;   // make codes-submit.php return, not echo

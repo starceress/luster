@@ -32,5 +32,12 @@ if (!is_file(LUSTER_BASE . '/config/app.php')) {
 
 /** @var \Luster\Core\Application $app */
 $app = require LUSTER_BASE . '/bootstrap.php';
+
+// Luster has no public home page — redirect the bare root URL to the admin panel.
+if ((new \Luster\Core\Request())->path() === '/') {
+    header('Location: ' . $app->getBaseUrl() . '/admin', true, 302);
+    exit;
+}
+
 $app->run();
 // No exit() here — PHP ends naturally; see Response::send() for redirect handling.

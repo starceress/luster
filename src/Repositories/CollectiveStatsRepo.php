@@ -422,6 +422,34 @@ final class CollectiveStatsRepo
     }
 
     // -----------------------------------------------------------------------
+    // Last collective update
+    // -----------------------------------------------------------------------
+
+    /**
+     * Returns the most recent `opened` date across all owned listings, or null
+     * if no owned listing has an opened date set (or the column is absent on
+     * a raw pre-migration Enthusiast install).
+     *
+     * This reflects the last time a new owned listing was added to the
+     * collective, regardless of its current status.
+     */
+    public function getLastOwnedOpenedDate(): ?string
+    {
+        try {
+            $stmt = $this->db->prepare(
+                "SELECT MAX(opened) FROM {$this->ownedTable}
+                 WHERE opened IS NOT NULL AND opened != ''"
+            );
+            $stmt->execute();
+            $value = $stmt->fetchColumn();
+
+            return ($value !== false && $value !== null && $value !== '') ? (string) $value : null;
+        } catch (\Throwable) {
+            return null;
+        }
+    }
+
+    // -----------------------------------------------------------------------
     // Category breakdown
     // -----------------------------------------------------------------------
 

@@ -60,6 +60,15 @@ final class SuccessRenderer
     ];
 
     /**
+     * Returns the hardcoded default template HTML for the given action,
+     * or an empty string for an unknown action.
+     */
+    public static function defaultTemplate(string $action): string
+    {
+        return self::DEFAULTS[$action] ?? '';
+    }
+
+    /**
      * Renders success HTML for the given action.
      *
      * @param array<string, string> $context  plain-text token values — escaped by TemplateEngine

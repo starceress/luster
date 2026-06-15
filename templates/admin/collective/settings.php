@@ -59,6 +59,24 @@ $b = rtrim(View::e($base_url ?? ''), '/');
     </div>
 
     <div class="pc-section">
+      <div class="pc-section-label">Form Page URLs</div>
+      <div class="form-group">
+        <label class="form-label" for="s-form-url-codes-submit">Code Donation Form</label>
+        <input id="s-form-url-codes-submit" type="text" name="collective_form_url_codes_submit" class="form" maxlength="200"
+               value="<?= View::e($site_settings['collective_form_url_codes_submit'] ?? '') ?>"
+               placeholder="codes-submit.php">
+        <p class="form-hint">The public page on your site where visitors can donate codes to your collective (e.g. <code>codes-submit.php</code>). Leave blank to use Luster's built-in page.</p>
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="s-form-url-affiliate-apply">Affiliate Application Form</label>
+        <input id="s-form-url-affiliate-apply" type="text" name="collective_form_url_affiliate_apply" class="form" maxlength="200"
+               value="<?= View::e($site_settings['collective_form_url_affiliate_apply'] ?? '') ?>"
+               placeholder="affiliate-apply.php">
+        <p class="form-hint">The public page on your site where other sites can apply to affiliate with your collective (e.g. <code>affiliate-apply.php</code>). Leave blank to use Luster's built-in page.</p>
+      </div>
+    </div>
+
+    <div class="pc-section">
       <div class="pc-section-label">Pending Items Digest</div>
       <div class="form-group">
         <label class="toggle-wrap">

@@ -33,7 +33,7 @@ final class JoinedListingRowRenderer
         return TemplateEngine::render(
             $template,
             escaped: [
-                'listing_title'     => $listing->name,
+                'listing_subject'   => $listing->name,
                 'listing_url'       => $listing->url,
                 'listing_category'  => $listing->category,
                 'listing_image_url' => $imageUrl,

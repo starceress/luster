@@ -18,6 +18,7 @@ use Luster\Repositories\EmailTemplateRepo;
 use Luster\Repositories\ListingRepo;
 use Luster\Repositories\ListingSettingsRepo;
 use Luster\Repositories\SiteSettingsRepo;
+use Luster\Support\CollectiveFormUrlResolver;
 use Luster\Support\FormFieldBuilder;
 use Luster\Support\FormTemplateRenderer;
 use Luster\Support\ListingTemplateResolver;
@@ -416,7 +417,11 @@ final class AffiliateApplyController
     private function collectiveFormUrl(object $config, string $baseUrl): string
     {
         $embedBase = (string) ($config->get('embed_base_url', '') ?: $baseUrl);
-        return rtrim($embedBase, '/') . '/affiliate-apply/collective';
+        $siteUrl   = (string) ($config->get('site_url', '') ?: $baseUrl);
+
+        $override = (new SiteSettingsRepo($this->app->getDatabase()))->get('collective_form_url_affiliate_apply');
+
+        return CollectiveFormUrlResolver::resolve($override, $siteUrl, rtrim($embedBase, '/') . '/affiliate-apply/collective');
     }
 
     private function renderForm(

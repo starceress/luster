@@ -17,15 +17,31 @@ final class FeedbackReportTest extends TestCase
     {
         $out = FeedbackReport::formatSysInfo($this->sysInfoData());
 
-        $this->assertStringContainsString('1.0.0',            $out);
-        $this->assertStringContainsString('8.2.0',            $out);
-        $this->assertStringContainsString('8.0.31',           $out);
-        $this->assertStringContainsString('No',               $out);
-        $this->assertStringContainsString('Owner email set',  $out);
-        $this->assertStringContainsString('36',               $out);
-        $this->assertStringContainsString('luster/public',    $out);
-        $this->assertStringContainsString('testadmin',        $out);
-        $this->assertStringContainsString('Kim, Updates',     $out);
+        $this->assertStringContainsString('1.0.0',                $out);
+        $this->assertStringContainsString('8.2.0',                $out);
+        $this->assertStringContainsString('8.0.31',               $out);
+        $this->assertStringContainsString('No',                   $out);
+        $this->assertStringContainsString('Owner email set',      $out);
+        $this->assertStringContainsString('36',                   $out);
+        $this->assertStringContainsString('Subdirectory (2 segments)', $out);
+        $this->assertStringContainsString('testadmin',            $out);
+        $this->assertStringContainsString('Kim, Updates',         $out);
+        $this->assertStringNotContainsString('luster/public',     $out);
+    }
+
+    public function testSysInfoRootInstallShowsRootInstall(): void
+    {
+        $out = FeedbackReport::formatSysInfo($this->sysInfoData(['base_url' => '']));
+        $this->assertStringContainsString('Root install', $out);
+    }
+
+    public function testSysInfoSubdirectoryShowsSegmentCount(): void
+    {
+        $out = FeedbackReport::formatSysInfo($this->sysInfoData(['base_url' => 'assets/luster/public']));
+        $this->assertStringContainsString('Subdirectory (3 segments)', $out);
+
+        $out2 = FeedbackReport::formatSysInfo($this->sysInfoData(['base_url' => 'public']));
+        $this->assertStringContainsString('Subdirectory (1 segment)', $out2);
     }
 
     public function testSysInfoNullMigrationRendersUnknown(): void

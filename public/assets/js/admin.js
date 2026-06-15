@@ -1912,11 +1912,8 @@ document.addEventListener('change', function (e) {
             { token: '{if_stat_pending}',   label: 'Pending only when present', line: '{if_stat_pending}{stat_pending} pending{/if_stat_pending}' },
             { token: '{stat_countries}',    label: 'Countries represented', line: '{stat_countries} countries' },
             { token: '{stat_opened}',       label: 'Date opened',          line: 'Opened: {stat_opened}' },
-            { token: '{stat_updated}',      label: 'Newest member date',   line: 'Last member: {stat_updated}' },
-            { token: '{stat_last_updated}', label: 'Last updated date',    line: 'Last updated: {stat_last_updated}' },
-            { token: '{stat_newmembers}',   label: 'Newest members',       line: 'Newest: {stat_newmembers}' },
-            { token: '{stat_newmembers_oxford}', label: 'Newest members, sentence list', line: 'Newest: {stat_newmembers_oxford}' },
-            { token: '{stat_newmembers_label}',  label: 'Newest member label', line: 'Newest {stat_newmembers_label}: {stat_newmembers}' },
+            { token: '{stat_updated}',      label: 'Most recent activity date', line: 'Last updated: {stat_updated}' },
+            { token: '{stat_newmembers}',   label: 'Newest members, sentence list', line: 'Newest: {stat_newmembers}' },
             { token: '{stat_growth}',       label: 'Average members per day', line: 'Growth: {stat_growth}' },
             { token: '{listing_title}',      label: 'Listing name',         line: '{listing_title}' },
             { token: '{listing_url}',       label: 'Listing link',         line: '{listing_url}' },
@@ -1959,10 +1956,10 @@ document.addEventListener('change', function (e) {
     joined: {
       fields: [
         { id: 'browse_by_category', label: 'What visitors see first', type: 'select', opts: [['true','Category list'],['','Listings']], hint: 'Choose Category list if you want visitors to pick a topic before seeing listings.' },
-        { id: 'category',           label: 'Category view',           type: 'select', opts: [['','Let visitors choose'],['all','Show all by category']], hint: 'To show one category only, add its name manually in the snippet.' },
+        { id: 'category',           label: 'Category view',           type: 'select', opts: [['','Selector (visitors choose a category)'],['all','All categories']], hint: 'To pin the snippet to one specific category, add $luster_category = \'Category Name\'; to the snippet above the require line, replacing Category Name with the exact category name.' },
         { id: 'show_list',          label: 'Overview style',          type: 'select', opts: [['','Link list'],['false','Dropdown']], hint: 'How categories appear on the main page before a category is selected.', showIf: { field: 'browse_by_category', equals: '' } },
-        { id: 'show_cat_switcher',  label: 'Per-category switcher',   type: 'select', opts: [['','Show'],['false','Hide']], hint: 'When a visitor is browsing a category, show a dropdown to switch to another.' },
-        { id: 'show_all_by_default', label: 'Show all first',          type: 'select', opts: [['','No'],['true','Yes']], hint: 'Shows all joined listings immediately, while still keeping the category chooser.' },
+        { id: 'show_cat_switcher',  label: 'Per-category switcher',   type: 'select', opts: [['','Show'],['false','Hide']], hint: 'A compact category dropdown shown after a visitor has selected a category, letting them switch to another. Does not affect the main overview picker.' },
+        { id: 'show_all_by_default', label: 'Show all listings first', type: 'select', opts: [['','No'],['true','Yes']], hint: 'Shows every joined listing right away while still keeping the category selector visible for filtering. Only applies when visitors are choosing a category.', showIf: [{ field: 'browse_by_category', equals: '' }, { field: 'category', equals: '' }] },
       ],
     },
     cstats: {
@@ -2175,7 +2172,8 @@ document.addEventListener('change', function (e) {
     function applyConditionalRows() {
       def.fields.forEach(function (f) {
         if (!f.showIf) return;
-        var visible = custVals[f.showIf.field] === f.showIf.equals;
+        var conds = Array.isArray(f.showIf) ? f.showIf : [f.showIf];
+        var visible = conds.every(function (c) { return custVals[c.field] === c.equals; });
         var row = optsBody.querySelector('#ec-row-' + f.id);
         if (row) row.style.display = visible ? '' : 'none';
         if (!visible) {
@@ -2304,14 +2302,19 @@ document.addEventListener('change', function (e) {
           + '<label>Country</label><select class="fld fld--select"><option>Philippines</option><option>United States</option></select>'
           + '<button class="site-btn">Join the fanlisting</button>';
 
-      case 'members':
+      case 'members': {
         var showCtrl = vals.show_search !== 'false';
+        var sortBy = vals.sort_by || 'country';
+        var memberRows = sortBy === 'name'
+          ? [['Alexia','Philippines'],['Bea','United States'],['Cara','Japan'],['Devon','Canada'],['Elise','France']]
+          : [['Devon','Canada'],['Elise','France'],['Cara','Japan'],['Alexia','Philippines'],['Bea','United States']];
         return '<h4>Members <span style="color:#a39cbb;font-weight:400;font-size:.85rem">(33)</span></h4>'
-          + (showCtrl ? '<p class="site-sub">Sort: <a class="site-link" href="#">Name</a> &middot; <a class="site-link" href="#">Country</a></p>' : '')
-          + ['Alexia','Bea','Cara','Devon','Elise'].map(function (n, i) {
-              return '<div class="site-row"><a class="site-link" href="#">' + n + '</a><span class="site-flag">' + ['Philippines','United States','Japan','Canada','France'][i] + '</span></div>';
+          + (showCtrl ? '<p class="site-sub">Sort: <a class="site-link" href="#">' + (sortBy === 'name' ? '<u>Name</u>' : 'Name') + '</a> &middot; <a class="site-link" href="#">' + (sortBy !== 'name' ? '<u>Country</u>' : 'Country') + '</a></p>' : '')
+          + memberRows.map(function (r) {
+              return '<div class="site-row"><a class="site-link" href="#">' + r[0] + '</a><span class="site-flag">' + r[1] + '</span></div>';
             }).join('')
           + '<div class="site-pager"><span class="on">1</span><span>2</span><span>3</span><span>&rsaquo;</span></div>';
+      }
 
       case 'stats':
         return '<h4>' + name + ' &mdash; Statistics</h4>'
@@ -2359,7 +2362,7 @@ document.addEventListener('change', function (e) {
 
       case 'updates':
       case 'col-updates': {
-        var showCats = vals.show_cats === 'true';
+        var showCats = vals.show_cats !== 'false';
         return '<h4>' + (key === 'col-updates' ? 'Updates' : name + ' -- Updates') + '</h4>'
           + [['Site launch', 'May 10, 2026', 'Anime'],['New members', 'Apr 28, 2026', 'News']].map(function (e) {
               return '<div style="padding:.5rem 0;border-bottom:1px solid #ece8f4">'
@@ -2434,28 +2437,82 @@ document.addEventListener('change', function (e) {
 
       case 'owned': {
         var browse = vals.browse_by_category === 'true';
-        var asList = vals.show_list === 'true';
+        var asList = vals.show_list !== 'false';
+        var hideDropdown = vals.hide_dropdown === 'true';
+        var showSwitcher = vals.show_cat_switcher !== 'false';
+        var statusVal = vals.status || '';
+        var hasCatId = parseInt(vals.category_id || '0', 10) > 0;
+        var allSamplesO = {
+          '':        [['Huntrix', ''],            ['Witch King', ''],      ['The Force', '']],
+          'upcoming':[['Golden Hour', 'Upcoming'],['The Magicians', 'Upcoming']],
+          'pending': [['New Series', 'Pending'],  ['Untitled', 'Pending']],
+          'all':     [['Huntrix', 'Current'],     ['Golden Hour', 'Upcoming'], ['New Series', 'Pending']]
+        };
+        var samplesO = allSamplesO[statusVal] || allSamplesO[''];
+        var rowsO = samplesO.map(function (it) {
+          return '<div class="site-row"><a class="site-link" href="#">' + it[0] + '</a>'
+            + (it[1] ? '<span class="site-flag">' + it[1] + '</span>' : '') + '</div>';
+        }).join('');
+        var catDropdownO = '<select class="fld fld--select"><option>— Choose a category —</option><option>Anime (5)</option><option>Music (3)</option><option>Games (2)</option></select>';
+        var catListO = '<ul style="margin:0 0 .25rem;padding-left:18px"><li><a class="site-link" href="#">Anime (5)</a></li><li><a class="site-link" href="#">Music (3)</a></li><li><a class="site-link" href="#">Games (2)</a></li></ul>';
+        var switcherO = showSwitcher
+          ? '<select class="fld fld--select" style="margin-bottom:.35rem"><option>Anime</option><option>Music</option><option>Games</option></select>'
+          : '';
+        if (browse) {
+          return '<h4>Owned fanlistings</h4>'
+            + '<div class="site-note" style="margin-bottom:.25rem">Category overview:</div>'
+            + catListO
+            + '<div class="site-note" style="margin:.4rem 0 .2rem">After selecting a category:</div>'
+            + switcherO
+            + rowsO;
+        }
+        if (hasCatId) {
+          return '<h4>Owned fanlistings</h4>'
+            + '<div class="site-note" style="margin-bottom:.25rem">Showing category ID ' + parseInt(vals.category_id, 10) + ' only:</div>'
+            + rowsO;
+        }
+        if (hideDropdown) {
+          return '<h4>Owned fanlistings</h4>' + rowsO;
+        }
         return '<h4>Owned fanlistings</h4>'
-          + (browse
-              ? (asList
-                  ? '<ul style="margin:0;padding-left:18px"><li><a class="site-link" href="#">Anime (12)</a></li><li><a class="site-link" href="#">Music (8)</a></li><li><a class="site-link" href="#">Games (5)</a></li></ul>'
-                  : '<select class="fld fld--select"><option>Choose a category...</option><option>Anime (12)</option><option>Music (8)</option></select>')
-              : [['Huntrix','Current'],['The Pride: 1000% You','Current'],['Golden Hour','Upcoming']].map(function (it) {
-                  return '<div class="site-row"><a class="site-link" href="#">' + it[0] + '</a><span class="site-flag">' + it[1] + '</span></div>';
-                }).join(''));
+          + '<div class="site-note" style="margin-bottom:.25rem">Category overview:</div>'
+          + (asList ? catListO : catDropdownO)
+          + '<div class="site-note" style="margin:.4rem 0 .2rem">After selecting a category:</div>'
+          + switcherO
+          + rowsO;
       }
 
       case 'joined': {
         var browse2 = vals.browse_by_category === 'true';
-        var asList2 = vals.show_list === 'true';
+        var asList2 = vals.show_list !== 'false';
+        var showSwitcher2 = vals.show_cat_switcher !== 'false';
+        var catVal2 = vals.category || '';
+        var showAllFirst2 = vals.show_all_by_default === 'true';
+        var sampleRows2 = [['Sailor Moon','Anime'],['Cowboy Bebop','Anime'],['Radiohead','Music']].map(function (it) {
+          return '<div class="site-row"><a class="site-link" href="#">' + it[0] + '</a><span class="site-flag">' + it[1] + '</span></div>';
+        }).join('');
+        var catDropdown2 = '<select class="fld fld--select"><option>— Choose a category —</option><option>Anime (12)</option><option>Music (8)</option></select>';
+        var catList2 = '<ul style="margin:0 0 .25rem;padding-left:18px"><li><a class="site-link" href="#">Anime (12)</a></li><li><a class="site-link" href="#">Music (8)</a></li></ul>';
+        if (browse2) {
+          var switcher2 = showSwitcher2
+            ? '<select class="fld fld--select" style="margin-bottom:.35rem"><option>Anime</option><option>Music</option></select>'
+            : '';
+          return '<h4>Joined fanlistings</h4>'
+            + '<div class="site-note" style="margin-bottom:.25rem">Category overview:</div>'
+            + (asList2 ? catList2 : catDropdown2)
+            + '<div class="site-note" style="margin:.4rem 0 .2rem">After selecting a category:</div>'
+            + switcher2
+            + sampleRows2;
+        }
+        if (catVal2 === 'all') {
+          return '<h4>Joined fanlistings</h4>' + sampleRows2;
+        }
+        if (showAllFirst2) {
+          return '<h4>Joined fanlistings</h4>' + catDropdown2 + sampleRows2;
+        }
         return '<h4>Joined fanlistings</h4>'
-          + (browse2
-              ? (asList2
-                  ? '<ul style="margin:0;padding-left:18px"><li><a class="site-link" href="#">Anime (12)</a></li><li><a class="site-link" href="#">Music (8)</a></li></ul>'
-                  : '<select class="fld fld--select"><option>Choose a category...</option><option>Anime (12)</option><option>Music (8)</option></select>')
-              : [['Sailor Moon','Anime'],['Cowboy Bebop','Anime'],['Radiohead','Music']].map(function (it) {
-                  return '<div class="site-row"><a class="site-link" href="#">' + it[0] + '</a><span class="site-flag">' + it[1] + '</span></div>';
-                }).join(''));
+          + catDropdown2
+          + '<div class="site-note">Listings appear after a category is chosen.</div>';
       }
 
       case 'cstats':
@@ -2468,11 +2525,18 @@ document.addEventListener('change', function (e) {
           + '</div>'
           + '<div class="site-note">These stats are for custom PHP pages.</div>';
 
-      case 'random':
+      case 'random': {
+        var randStatus = vals.status || 'current';
+        var randBadge = randStatus === 'upcoming' ? 'Upcoming' : randStatus === 'all' ? 'Any status' : 'Current';
+        return '<h4>Featured listing</h4>'
+          + '<div class="site-row"><a class="site-link" href="#">' + name + '</a><span class="site-flag">' + randBadge + '</span></div>'
+          + '<div class="site-note">A different listing each page load.' + (randStatus === 'upcoming' ? ' Pool: upcoming listings only.' : randStatus === 'all' ? ' Pool: all statuses.' : '') + '</div>';
+      }
+
       case 'latest':
-        return '<h4>' + (key === 'random' ? 'Featured listing' : 'Latest listing') + '</h4>'
+        return '<h4>Latest listing</h4>'
           + '<div class="site-row"><a class="site-link" href="#">' + name + '</a><span class="site-flag">Current</span></div>'
-          + '<div class="site-note">' + (key === 'random' ? 'A different listing each page load.' : 'Your most recently opened listing.') + '</div>';
+          + '<div class="site-note">Your most recently opened listing.</div>';
 
       case 'random-joined':
       case 'latest-joined':
@@ -2487,11 +2551,14 @@ document.addEventListener('change', function (e) {
           + '<label>Email</label><input class="fld" placeholder="you@example.com" />'
           + '<button class="site-btn">Sign up</button>';
 
-      case 'kim-list':
+      case 'kim-list': {
+        var kimAll = vals.only_with_signups === 'false';
         return '<h4>KIM List</h4>'
-          + '<p class="site-sub">People waiting to hear about available fanlistings.</p>'
+          + '<p class="site-sub">' + (kimAll ? 'All fanlistings, including those with no sign-ups.' : 'Fanlistings that have at least one approved sign-up.') + '</p>'
           + '<div class="site-row"><span>Jane Doe</span><span class="site-flag">Wanted: Paramore</span></div>'
-          + '<div class="site-row"><span>Alex Smith</span><span class="site-flag">Wanted: Taylor Swift</span></div>';
+          + '<div class="site-row"><span>Alex Smith</span><span class="site-flag">Wanted: Taylor Swift</span></div>'
+          + (kimAll ? '<div class="site-note" style="margin-top:.35rem">+ Listings with no sign-ups also shown.</div>' : '');
+      }
 
       case 'kim-update':
         return '<h4>Update your KIM entry</h4>'
@@ -3854,14 +3921,42 @@ function adminWireFilterPanel(btnId, panelId, htmlClass) {
 // ── 42. Collective Templates -- token insert, reset to default ─────────────────
 
 (function () {
+  // Matches paired conditional/loop tokens stored as a single concatenated
+  // "{if_x}{/if_x}" or "{each_x}{/each_x}" string in data-token.
+  var PAIR_TOKEN_RE = /^(\{(?:if|each)_[a-zA-Z0-9_]+\})(\{\/(?:if|each)_[a-zA-Z0-9_]+\})$/;
+
+  // Inserts text at the current selection while preserving the textarea's
+  // native undo/redo stack (direct .value assignment resets it).
+  function insertTextPreservingUndo(ta, text) {
+    if (typeof document.execCommand === 'function' && document.execCommand('insertText', false, text)) {
+      return;
+    }
+    var start = ta.selectionStart, end = ta.selectionEnd;
+    ta.value = ta.value.slice(0, start) + text + ta.value.slice(end);
+    ta.selectionStart = ta.selectionEnd = start + text.length;
+  }
+
   function insertTokenFromRow(row) {
     var ta = document.getElementById(row.dataset.textarea);
     if (!ta) return;
     var token = row.dataset.token || '';
     var start = ta.selectionStart, end = ta.selectionEnd;
-    ta.value = ta.value.slice(0, start) + token + ta.value.slice(end);
-    ta.selectionStart = ta.selectionEnd = start + token.length;
+
     ta.focus();
+
+    // For paired conditional/loop tokens with an active selection, wrap the
+    // selection instead of replacing it: open tag before, close tag after.
+    var pairMatch = token.match(PAIR_TOKEN_RE);
+    if (pairMatch && start !== end) {
+      var selected = ta.value.slice(start, end);
+      ta.setSelectionRange(start, end);
+      insertTextPreservingUndo(ta, pairMatch[1] + selected + pairMatch[2]);
+      var innerStart = start + pairMatch[1].length;
+      ta.setSelectionRange(innerStart, innerStart + selected.length);
+      return;
+    }
+
+    insertTextPreservingUndo(ta, token);
   }
 
   // Token row: insert at cursor in target textarea (event delegation)
@@ -4015,7 +4110,11 @@ function adminWireFilterPanel(btnId, panelId, htmlClass) {
     collective_affiliate_apply_form: 'Collective Affiliate Apply Form Preview',
     kim_signup_form: 'KIM Sign-Up Form Preview',
     adopt_form: 'Adopt Form Preview',
-    wishlist: 'Wishlist Preview', collective_updates: 'Collective Updates Feed Preview'
+    wishlist: 'Wishlist Preview', collective_updates: 'Collective Updates Feed Preview',
+    codes: 'Codes Display Preview', collective_codes: 'Collective Codes Display Preview',
+    collective_codes_submit_form: 'Collective Codes Donation Form Preview',
+    collective_field_wrapper: 'Form Field Wrapper Preview',
+    collective_contact_sent: 'Contact Sent Message Preview'
   };
 
   function closeColtplModal() {

@@ -261,14 +261,12 @@ final class AffiliateSectionTemplateTest extends TestCase
     public function testEachAffiliateBlockRendersAllRowTokens(): void
     {
         $aff = $this->makeAffiliate('My Fan', 'https://fl.example', 'banner.png');
-        $tpl = '{each_affiliate}{aff_name}|{aff_url}|{aff_image}|{aff_image_url}|{aff_image_tag}{/each_affiliate}';
+        $tpl = '{each_affiliate}{aff_name}|{aff_url}|{aff_image_url}{/each_affiliate}';
         $result = $this->invoke($tpl, [$aff], 1, 'https://example.com/uploads/affiliates');
 
         self::assertStringContainsString('My Fan', $result);
         self::assertStringContainsString('https://fl.example', $result);
-        self::assertStringContainsString('banner.png', $result);
-        self::assertStringContainsString('https://example.com/uploads/affiliates/banner.png', $result);
-        self::assertStringContainsString('<img src="https://example.com/uploads/affiliates/banner.png"', $result);
+        self::assertStringContainsString('<img src="https://example.com/uploads/affiliates/banner.png" alt="My Fan">', $result);
     }
 
     public function testEachAffiliateBlockWithZeroAffiliatesProducesEmptyContent(): void
@@ -304,14 +302,13 @@ final class AffiliateSectionTemplateTest extends TestCase
             $this->makeAffiliate('Site B', 'https://b.example', 'b.png'),
         ];
         $tpl = '{if_affiliates}<ul>' . "\n"
-             . '{each_affiliate}<li><a href="{aff_url}" target="_blank" title="{aff_name}">{aff_image_tag}</a></li>{/each_affiliate}' . "\n"
+             . '{each_affiliate}<li class="fl-affiliate-item">{aff_image_url}</li>{/each_affiliate}' . "\n"
              . '</ul>{/if_affiliates}';
         $result = $this->invoke($tpl, $affiliates, 2, 'https://example.com/uploads/affiliates');
 
         self::assertStringContainsString('<ul>', $result);
-        self::assertStringContainsString('href="https://a.example"', $result);
-        self::assertStringContainsString('href="https://b.example"', $result);
-        self::assertStringContainsString('<img src="https://example.com/uploads/affiliates/b.png"', $result);
+        self::assertStringContainsString('<a href="https://a.example">Site A</a>', $result);
+        self::assertStringContainsString('<img src="https://example.com/uploads/affiliates/b.png" alt="Site B">', $result);
         self::assertStringNotContainsString('{each_affiliate}', $result);
         self::assertStringNotContainsString('{if_affiliates}', $result);
     }

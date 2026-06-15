@@ -742,6 +742,7 @@ final class UpdateApplier
     {
         $rel = $this->normalizeRelative($rel);
         return $rel === 'config/app.php'
+            || $rel === 'public/.htaccess'
             || str_starts_with($rel, 'storage/')
             || str_starts_with($rel, 'public/uploads/')
             || str_starts_with($rel, 'vendor/')

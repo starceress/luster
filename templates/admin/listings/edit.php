@@ -513,6 +513,8 @@ $_statsNeedsReset = static function (?string $v) use ($_isOldStatsTemplate): boo
     if ($_isOldStatsTemplate($v)) return true;
     // Migrate templates that still use the old {stat_newmembers_label} token
     if (str_contains($v, '{stat_newmembers_label}')) return true;
+    // Migrate templates that still use the retired {stat_last_updated} or {stat_newmembers_oxford} tokens
+    if (str_contains($v, '{stat_last_updated}') || str_contains($v, '{stat_newmembers_oxford}')) return true;
     // Migrate templates that look like the old built-in default (no h1, no stat_countries)
     if (str_starts_with(ltrim($v), '<p>Members:') && !str_contains($v, '{stat_countries}')) return true;
     // Migrate previous defaults that used "<b>Newest:</b>" or lacked internal newlines
@@ -528,6 +530,7 @@ $tplCodesFormVal    = ($templates['codes_submit_form_template']    ?? '') ?: $_g
 $tplAffApplyFormVal = ($templates['affiliate_apply_form_template'] ?? '') ?: $_gFallback(ListingSettingsRepo::defaultAffiliateApplyFormTemplate(), 'listing_default_affiliate_apply_form_template');
 $tplAdoptFormVal    = ($templates['adopt_form_template']           ?? '') ?: $_gFallback(ListingSettingsRepo::defaultAdoptFormTemplate(),          'listing_default_adopt_form_template');
 $tplJoinFormVal     = ($templates['join_form_template']              ?? '') ?: $_gFallback(ListingSettingsRepo::defaultJoinFormTemplate(),          'listing_default_join_form_template');
+$tplCodesVal        = ($templates['codes_template']                  ?? '') ?: ListingSettingsRepo::defaultCodesTemplate();
 
 // Source badge helper for Templates tab
 $tplSrc = $template_sources ?? [];
@@ -633,6 +636,16 @@ $ltok = static fn(string $ta, string $token, string $label, string $desc): strin
         <input type="hidden" name="adopt_form_template" value="<?= View::e((string) ($tplAdoptFormVal ?? '')) ?>">
         <?php endif; ?>
 
+        <div class="pc-section-label">Codes Display <?= $srcBadge('codes_template') ?></div>
+        <p class="form-hint mb-sm">Controls how this listing's approved fan codes are displayed. Use <code>{each_size_group}&hellip;{/each_size_group}</code> to group codes by dimensions, or a single <code>{each_code}&hellip;{/each_code}</code> loop for a flat gallery.</p>
+        <div class="form-group">
+          <textarea id="codes_template" name="codes_template" class="form form-mono" spellcheck="false"><?= View::e($tplCodesVal) ?></textarea>
+        </div>
+        <div class="tpl-reset-row">
+          <button type="button" class="btn btn-preview btn-xs coltpl-preview-btn" data-tpltype="codes" data-textarea="codes_template"><?= View::icon('eye-on') ?> Preview</button> &nbsp;
+          <button type="button" class="btn btn-quaternary btn-xs" data-textarea="codes_template">Reset to Default</button>
+        </div>
+
         <?php if ($hasCodesSubmit): ?>
         <div class="pc-section-label">Code Donation Form <?= $srcBadge('codes_submit_form_template') ?></div>
         <p class="form-hint mb-sm">Controls the full layout of the code donation form. Write any introductory text directly at the top of the template. Use the tokens below to arrange fields in any order.</p>
@@ -729,9 +742,7 @@ $ltok = static fn(string $ta, string $token, string $label, string $desc): strin
             <?= $ltok('affiliates_section_template', '{each_affiliate}{/each_affiliate}', '{each_affiliate}...{/each_affiliate}', 'Repeats the HTML inside it once for each affiliate.') ?>
             <?= $ltok('affiliates_section_template', '{aff_name}',      '{aff_name}',      'The affiliate site name. Use inside {each_affiliate}.') ?>
             <?= $ltok('affiliates_section_template', '{aff_url}',       '{aff_url}',       'The affiliate site link. Use inside {each_affiliate}.') ?>
-            <?= $ltok('affiliates_section_template', '{aff_image}',     '{aff_image}',     'The saved image filename. Use inside {each_affiliate}.') ?>
-            <?= $ltok('affiliates_section_template', '{aff_image_url}', '{aff_image_url}', 'The full image URL. Empty when there is no image. Use inside {each_affiliate}.') ?>
-            <?= $ltok('affiliates_section_template', '{aff_image_tag}', '{aff_image_tag}', 'A ready-made img tag. Empty when there is no image. Use inside {each_affiliate}.') ?>
+            <?= $ltok('affiliates_section_template', '{aff_image_url}', '{aff_image_url}', 'The affiliate image, or a text link to the affiliate when there is no image. Use inside {each_affiliate}.') ?>
             <?= $ltok('affiliates_section_template', '{affiliates}',       '{affiliates}',       'Ready-made affiliate rows. Use this when you do not want to design each row yourself.') ?>
             <?= $ltok('affiliates_section_template', '{affiliates_count}', '{affiliates_count}', 'How many active affiliates this listing has.') ?>
             <?= $ltok('affiliates_section_template', '{affiliates_list}',  '{affiliates_list}',  'A comma-separated list of linked affiliate names.') ?>
@@ -749,20 +760,18 @@ $ltok = static fn(string $ta, string $token, string $label, string $desc): strin
           <p class="form-hint mb-sm" data-token-search-help>These tokens fill in the public stats block for this listing.</p>
           <table class="et-token-table et-token-table--compact"><tbody>
             <?= $ltok('stats_template', '{stat_opened}',       '{stat_opened}',       'The date you opened the listing.') ?>
-            <?= $ltok('stats_template', '{stat_updated}',      '{stat_updated}',      'The date the newest approved member joined.') ?>
-            <?= $ltok('stats_template', '{stat_last_updated}', '{stat_last_updated}', 'The Last Updated date you set for this listing.') ?>
+            <?= $ltok('stats_template', '{stat_updated}',      '{stat_updated}',      'The most recent activity date: whichever is more recent of the newest approved member\'s join date and the Last Updated date you set. Shows &ldquo;N/A&rdquo; if neither is set.') ?>
             <?= $ltok('stats_template', '{stat_approved}',     '{stat_approved}',     'How many approved members this listing has.') ?>
             <?= $ltok('stats_template', '{stat_pending}',      '{stat_pending}',      'How many members are waiting for approval.') ?>
             <?= $ltok('stats_template', '{stat_countries}',    '{stat_countries}',    'Number of distinct countries represented among approved members.') ?>
-            <?= $ltok('stats_template', '{stat_newmembers}',        '{stat_newmembers}',        'The names of the 5 newest approved members, comma-separated.') ?>
-            <?= $ltok('stats_template', '{stat_newmembers_oxford}', '{stat_newmembers_oxford}', 'Same list formatted with Oxford comma (e.g. &ldquo;Alice, Bob, and Carol&rdquo;).') ?>
-            <?= $ltok('stats_template', '{stat_newmembers_label}',  '{stat_newmembers_label}',  '&ldquo;Member&rdquo; when there is exactly 1 newest; &ldquo;Members&rdquo; otherwise.') ?>
+            <?= $ltok('stats_template', '{stat_newmembers}',        '{stat_newmembers}',        'The names of the 5 newest approved members, formatted with Oxford comma (e.g. &ldquo;Alice, Bob, and Carol&rdquo;).') ?>
             <?= $ltok('stats_template', '{if_stat_pending}{/if_stat_pending}', '{if_stat_pending}...{/if_stat_pending}', 'Shows only when at least one member is awaiting approval.') ?>
             <?= $ltok('stats_template', '{stat_growth}',            '{stat_growth}',            'Average new members per day since the listing opened.') ?>
             <?= $ltok('stats_template', '{listing_title}',     '{listing_title}',     'The listing\'s display name.') ?>
             <?= $ltok('stats_template', '{listing_url}',       '{listing_url}',       'The link to the listing.') ?>
             <?= $ltok('stats_template', '{approved_by}',       '{approved_by}',       'The network that approved this listing, as a linked name. Empty when no network is saved.') ?>
             <?= $ltok('stats_template', '{if_approved_by}{/if_approved_by}', '{if_approved_by}...{/if_approved_by}', 'Shows only when an approved-by network is saved.') ?>
+            <?= $ltok('stats_template', '{network_status}',    '{network_status}',    'The approving network as a linked name, or &ldquo;Independent&rdquo; when no network is saved. Always shows something.') ?>
           </tbody></table>
         </div>
       </details>
@@ -846,6 +855,39 @@ $ltok = static fn(string $ta, string $token, string $label, string $desc): strin
       </details>
       <?php endif; ?>
 
+      <!-- Codes Display -->
+      <details class="card chevron" data-token-card>
+        <summary class="chevron-head">Codes Display Tokens</summary>
+        <div class="chevron-body">
+          <p class="form-hint mb-sm" data-token-search-help>Use {each_size_group}...{/each_size_group} (with an inner {each_code}...{/each_code}) to group codes by dimensions, or a single {each_code}...{/each_code} loop for a flat gallery.</p>
+          <table class="et-token-table et-token-table--compact"><tbody>
+            <?= $ltok('codes_template', '{each_size_group}{/each_size_group}', '{each_size_group}...{/each_size_group}', 'Repeats the HTML inside it once per group of same-sized codes. Wrap an {each_code}...{/each_code} loop inside it.') ?>
+            <?= $ltok('codes_template', '{group_size}',       '{group_size}',       'The group label, e.g. "88×31px" or "Other". Use inside {each_size_group}.') ?>
+            <?= $ltok('codes_template', '{group_code_count}', '{group_code_count}', 'How many codes are in this size group. Use inside {each_size_group}.') ?>
+            <?= $ltok('codes_template', '{each_code}{/each_code}', '{each_code}...{/each_code}', 'Repeats the HTML inside it once for each approved code shown.') ?>
+            <?= $ltok('codes_template', '{code_url}',        '{code_url}',        'The full image URL for the code.') ?>
+            <?= $ltok('codes_template', '{code_alt}',        '{code_alt}',        'Suggested alt text &mdash; donor name, size, or the listing name.') ?>
+            <?= $ltok('codes_template', '{code_width}',      '{code_width}',      'The code\'s width in pixels. Empty when dimensions are unknown.') ?>
+            <?= $ltok('codes_template', '{code_height}',     '{code_height}',     'The code\'s height in pixels. Empty when dimensions are unknown.') ?>
+            <?= $ltok('codes_template', '{code_size}',       '{code_size}',       'The code\'s dimensions as &ldquo;WxH&rdquo;, e.g. &ldquo;88×31&rdquo;. Empty when unknown.') ?>
+            <?= $ltok('codes_template', '{code_name}',       '{code_name}',       'The code\'s saved name/title. Empty when not set.') ?>
+            <?= $ltok('codes_template', '{code_categories}', '{code_categories}', 'Category names for this code, comma-separated. Empty when uncategorised.') ?>
+            <?= $ltok('codes_template', '{code_donor_name}', '{code_donor_name}', 'The donor\'s name. Empty when the code was not donated.') ?>
+            <?= $ltok('codes_template', '{code_donor_url}',  '{code_donor_url}',  'The donor\'s website URL. Empty when not set.') ?>
+            <?= $ltok('codes_template', '{if_size}{/if_size}',                 '{if_size}...{/if_size}',                 'Shows only when the code has known dimensions.') ?>
+            <?= $ltok('codes_template', '{if_size_changed}{/if_size_changed}', '{if_size_changed}...{/if_size_changed}', 'Flat layout only &mdash; shows when this code starts a new size group (the previous code was a different size).') ?>
+            <?= $ltok('codes_template', '{if_donor}{/if_donor}',         '{if_donor}...{/if_donor}',         'Shows only when the code was donated by a named donor.') ?>
+            <?= $ltok('codes_template', '{if_no_donor}{/if_no_donor}',   '{if_no_donor}...{/if_no_donor}',   'Shows only when the code has no donor.') ?>
+            <?= $ltok('codes_template', '{if_donor_url}{/if_donor_url}', '{if_donor_url}...{/if_donor_url}', 'Shows only when the donor has a website URL saved.') ?>
+            <?= $ltok('codes_template', '{if_no_donor_url}{/if_no_donor_url}', '{if_no_donor_url}...{/if_no_donor_url}', 'Shows only when the donor has no website URL.') ?>
+            <?= $ltok('codes_template', '{if_categories}{/if_categories}', '{if_categories}...{/if_categories}', 'Shows only when the code has at least one category.') ?>
+            <?= $ltok('codes_template', '{if_code_name}{/if_code_name}',   '{if_code_name}...{/if_code_name}',   'Shows only when the code has a saved name.') ?>
+            <?= $ltok('codes_template', '{if_codes}{/if_codes}',       '{if_codes}...{/if_codes}',       'Shows when this listing has at least one approved code. Place outside the loop.') ?>
+            <?= $ltok('codes_template', '{if_no_codes}{/if_no_codes}', '{if_no_codes}...{/if_no_codes}', 'Shows when this listing has no approved codes (empty state). Place outside the loop.') ?>
+          </tbody></table>
+        </div>
+      </details>
+
       <?php if ($hasCodesSubmit): ?>
       <!-- Code Donation Form -->
       <details class="card chevron" data-token-card>
@@ -918,6 +960,7 @@ $ltok = static fn(string $ta, string $token, string $label, string $desc): strin
     'join_form_template'            => $_gFallback(ListingSettingsRepo::defaultJoinFormTemplate(),             'listing_default_join_form_template'),
     'affiliate_apply_form_template' => $_gFallback(ListingSettingsRepo::defaultAffiliateApplyFormTemplate(),  'listing_default_affiliate_apply_form_template'),
     'adopt_form_template'           => $_gFallback(ListingSettingsRepo::defaultAdoptFormTemplate(),           'listing_default_adopt_form_template'),
+    'codes_template'                => ListingSettingsRepo::defaultCodesTemplate(),
     'rules-body'                    => RulesBodyRenderer::defaultBody(),
 ], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) ?>
 </script>

@@ -183,7 +183,7 @@ final class JoinController
                 'country'   => $country,
                 'send_info' => (string) $request->post('send_info', ''),
             ]);
-            return Response::redirect($formUrl);
+            return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $formUrl);
         }
 
         $memberRepo = new MemberRepo($this->app->getDatabase(), $this->app->getConfig());
@@ -198,7 +198,7 @@ final class JoinController
                 'country'   => $country,
                 'send_info' => (string) $request->post('send_info', ''),
             ]);
-            return Response::redirect($formUrl);
+            return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $formUrl);
         }
 
         // Duplicate email check
@@ -212,7 +212,7 @@ final class JoinController
                 'country'   => $country,
                 'send_info' => (string) $request->post('send_info', ''),
             ]);
-            return Response::redirect($formUrl);
+            return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $formUrl);
         }
 
         // Password â€” use the supplied value or auto-generate a secure one
@@ -228,7 +228,7 @@ final class JoinController
                 'country'   => $country,
                 'send_info' => (string) $request->post('send_info', ''),
             ]);
-            return Response::redirect($formUrl);
+            return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $formUrl);
         }
 
         if ($rawPassword !== '') {
@@ -243,7 +243,7 @@ final class JoinController
                     'country'   => $country,
                     'send_info' => (string) $request->post('send_info', ''),
                 ]);
-                return Response::redirect($formUrl);
+                return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $formUrl);
             }
         }
 

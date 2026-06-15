@@ -15,6 +15,7 @@ use Luster\Repositories\CodesRepo;
 use Luster\Repositories\ListingRepo;
 use Luster\Repositories\ListingSettingsRepo;
 use Luster\Repositories\SiteSettingsRepo;
+use Luster\Support\CollectiveFormUrlResolver;
 use Luster\Support\FormFieldBuilder;
 use Luster\Support\FormTemplateRenderer;
 use Luster\Support\ListingTemplateResolver;
@@ -51,7 +52,7 @@ final class CodesSubmitController
 
         if ($isCollective) {
             $listing     = null;
-            $listingName = (string) ($config->get('app_name', '') ?: 'Collective');
+            $listingName = (string) ($config->get('site_name', '') ?: 'Collective');
             $listingUrl  = '';
         } else {
             $listingRepo  = new ListingRepo($db, $config);
@@ -131,6 +132,33 @@ final class CodesSubmitController
                     true,
                 );
             }
+        } else {
+            $csCollectiveTpl = (new SiteSettingsRepo($db))->get('collective_codes_submit_form_template');
+            if ($csCollectiveTpl !== null && trim($csCollectiveTpl) !== '') {
+                $tokens = [
+                    '{site_name}'                    => View::e($listingName),
+                    '{field_code_image}'            => $f['code_image'],
+                    '{field_code_image_input}'      => $f['code_image_input'],
+                    '{field_submitter_name}'        => $f['submitter_name'],
+                    '{field_submitter_name_input}'  => $f['submitter_name_input'],
+                    '{field_submitter_email}'       => $f['submitter_email'],
+                    '{field_submitter_email_input}' => $f['submitter_email_input'],
+                    '{field_submitter_url}'         => $f['submitter_url'],
+                    '{field_submitter_url_input}'   => $f['submitter_url_input'],
+                    '{captcha_block}'               => $f['captcha'],
+                    '{captcha_block_input}'         => $f['captcha_input'],
+                    '{captcha_question}'            => View::e($captchaQuestion),
+                    '{submit_button}'               => '<button type="submit" class="fl-submit">Submit Code</button>',
+                    '{clear_button}'                => '<button type="reset" class="fl-btn-secondary">Clear</button>',
+                ];
+                $innerHtml = FormTemplateRenderer::expandTokens($csCollectiveTpl, $tokens);
+                $formHtml  = FormTemplateRenderer::wrapForm(
+                    $innerHtml,
+                    $baseUrl . '/codes/submit/' . $listingId,
+                    $this->app->getCSRF()->token(),
+                    true,
+                );
+            }
         }
 
         return Response::html($this->app->getView()->renderPublic('codes-submit.php', [
@@ -164,8 +192,10 @@ final class CodesSubmitController
         $embedReturnTo = (string) $session->get('lstr_embed_return_to', '');
 
         if ($isCollective) {
-            $listing   = null;
-            $submitUrl = $baseUrl . '/codes/submit/0';
+            $listing  = null;
+            $siteUrl  = (string) ($config->get('site_url', '') ?: $baseUrl);
+            $override = (new SiteSettingsRepo($db))->get('collective_form_url_codes_submit');
+            $submitUrl = CollectiveFormUrlResolver::resolve($override, $siteUrl, $baseUrl . '/codes/submit/0');
         } else {
             $listingRepo  = new ListingRepo($db, $config);
             $settingsRepo = new ListingSettingsRepo($db);
@@ -186,20 +216,22 @@ final class CodesSubmitController
                 : $baseUrl . '/codes/submit/' . $listingId;
         }
 
+        $formUrl = $embedReturnTo !== '' ? $embedReturnTo : $submitUrl;
+
         $ip        = $request->ip();
         $rateLimit = new RateLimit($db);
 
         // Rate limiting
         if ($rateLimit->isBlocked($ip, RateLimit::ACTION_PUBLIC_CODE_SUBMIT)) {
             $session->set('lstr_flash_error', 'Too many submissions. Please wait a while before trying again.');
-            return Response::redirect($submitUrl);
+            return Response::redirect($formUrl);
         }
 
         // Honeypot â€" bots fill the hidden field; humans leave it blank
         if ((string) $request->post('website_confirm', '') !== '') {
             $session->remove('lstr_embed_return_to');
             $session->set('lstr_flash_success_html', SuccessRenderer::render('', 'code-submitted'));
-            return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $submitUrl);
+            return Response::redirect($formUrl);
         }
 
         // Validate captcha
@@ -212,7 +244,7 @@ final class CodesSubmitController
                 'submitter_email' => $request->post('submitter_email', ''),
                 'submitter_url'   => $request->post('submitter_url',   ''),
             ]);
-            return Response::redirect($submitUrl);
+            return Response::redirect($formUrl);
         }
 
         // Collect submitter info (email is required)
@@ -227,7 +259,7 @@ final class CodesSubmitController
                 'submitter_email' => $submitterEmail,
                 'submitter_url'   => $submitterUrl,
             ]);
-            return Response::redirect($submitUrl);
+            return Response::redirect($formUrl);
         }
 
         $submitterName  = $submitterName  !== '' ? $submitterName  : null;
@@ -242,7 +274,7 @@ final class CodesSubmitController
                 'submitter_email' => $submitterEmail ?? '',
                 'submitter_url'   => $submitterUrl   ?? '',
             ]);
-            return Response::redirect($submitUrl);
+            return Response::redirect($formUrl);
         }
 
         // Blacklist check on optional email
@@ -255,7 +287,7 @@ final class CodesSubmitController
                     'submitter_email' => $submitterEmail ?? '',
                     'submitter_url'   => $submitterUrl   ?? '',
                 ]);
-                return Response::redirect($submitUrl);
+                return Response::redirect($formUrl);
             }
         }
 
@@ -270,7 +302,7 @@ final class CodesSubmitController
                 'submitter_email' => $submitterEmail ?? '',
                 'submitter_url'   => $submitterUrl   ?? '',
             ]);
-            return Response::redirect($submitUrl);
+            return Response::redirect($formUrl);
         }
 
         // Validate file upload
@@ -282,7 +314,7 @@ final class CodesSubmitController
                 'submitter_email' => $submitterEmail ?? '',
                 'submitter_url'   => $submitterUrl   ?? '',
             ]);
-            return Response::redirect($submitUrl);
+            return Response::redirect($formUrl);
         }
 
         if ((int) $fileData['error'] !== UPLOAD_ERR_OK) {
@@ -292,7 +324,7 @@ final class CodesSubmitController
                 'submitter_email' => $submitterEmail ?? '',
                 'submitter_url'   => $submitterUrl   ?? '',
             ]);
-            return Response::redirect($submitUrl);
+            return Response::redirect($formUrl);
         }
 
         if (!is_uploaded_file((string) $fileData['tmp_name'])) {
@@ -302,7 +334,7 @@ final class CodesSubmitController
                 'submitter_email' => $submitterEmail ?? '',
                 'submitter_url'   => $submitterUrl   ?? '',
             ]);
-            return Response::redirect($submitUrl);
+            return Response::redirect($formUrl);
         }
 
         if ((int) $fileData['size'] > self::MAX_SIZE) {
@@ -312,7 +344,7 @@ final class CodesSubmitController
                 'submitter_email' => $submitterEmail ?? '',
                 'submitter_url'   => $submitterUrl   ?? '',
             ]);
-            return Response::redirect($submitUrl);
+            return Response::redirect($formUrl);
         }
 
         $finfo = new \finfo(FILEINFO_MIME_TYPE);
@@ -325,7 +357,7 @@ final class CodesSubmitController
                 'submitter_email' => $submitterEmail ?? '',
                 'submitter_url'   => $submitterUrl   ?? '',
             ]);
-            return Response::redirect($submitUrl);
+            return Response::redirect($formUrl);
         }
 
         $ext = match ($mime) {
@@ -349,7 +381,7 @@ final class CodesSubmitController
                 'submitter_email' => $submitterEmail ?? '',
                 'submitter_url'   => $submitterUrl   ?? '',
             ]);
-            return Response::redirect($submitUrl);
+            return Response::redirect($formUrl);
         }
         $uploadDir = $uploadsBase . DIRECTORY_SEPARATOR . 'codes';
         if (!is_dir($uploadDir)) {
@@ -366,7 +398,7 @@ final class CodesSubmitController
                 'submitter_email' => $submitterEmail ?? '',
                 'submitter_url'   => $submitterUrl   ?? '',
             ]);
-            return Response::redirect($submitUrl);
+            return Response::redirect($formUrl);
         }
 
         $codesRepo  = new CodesRepo($db);
@@ -393,7 +425,7 @@ final class CodesSubmitController
         $session->remove('lstr_embed_return_to');
         $successTpl = isset($settingsRepo) ? ($settingsRepo->getSuccessTemplate($listingId) ?? '') : '';
         $session->set('lstr_flash_success_html', SuccessRenderer::render($successTpl, 'code-submitted'));
-        return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $submitUrl);
+        return Response::redirect($formUrl);
     }
 
 }

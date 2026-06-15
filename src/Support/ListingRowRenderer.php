@@ -76,7 +76,6 @@ final class ListingRowRenderer
                 // {pending_count} *section* count token is processed.
                 'pending_count'        => $pendingCount,
                 'country_count'        => $countryCount,
-                'countries_count'      => $countryCount,
                 'approved_by'          => $approvedBy,
                 'listing_description'  => $description,
             ],

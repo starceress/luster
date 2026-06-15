@@ -81,6 +81,26 @@ final class UpdateApplierTest extends TestCase
         rmdir($path);
     }
 
+    public function testApplySkipListIncludesHtaccessAndConfigApp(): void
+    {
+        $applier = new UpdateApplier(sys_get_temp_dir(), SqliteDatabase::make(''));
+        $method  = new \ReflectionMethod(UpdateApplier::class, 'shouldSkipApplyPath');
+        $method->setAccessible(true);
+
+        // Must be skipped
+        self::assertTrue($method->invoke($applier, 'config/app.php'));
+        self::assertTrue($method->invoke($applier, 'public/.htaccess'));
+        self::assertTrue($method->invoke($applier, 'storage/logs/error.log'));
+        self::assertTrue($method->invoke($applier, 'public/uploads/codes/image.jpg'));
+        self::assertTrue($method->invoke($applier, 'vendor/autoload.php'));
+
+        // Must NOT be skipped
+        self::assertFalse($method->invoke($applier, 'src/Core/View.php'));
+        self::assertFalse($method->invoke($applier, 'public/assets/css/admin.css'));
+        self::assertFalse($method->invoke($applier, 'config/routes.php'));
+        self::assertFalse($method->invoke($applier, 'public/assets/.htaccess'));
+    }
+
     public function testChecksumParserMatchesNamedZipAsset(): void
     {
         $hash = str_repeat('a', 64);

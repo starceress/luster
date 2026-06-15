@@ -24,6 +24,8 @@ use Luster\Repositories\ListingRepo;
 use Luster\Repositories\ListingSettingsRepo;
 use Luster\Repositories\MemberRepo;
 use Luster\Repositories\SiteSettingsRepo;
+use Luster\Support\CodesTemplateRenderer;
+use Luster\Support\DateFormatter;
 use Luster\Support\FormTemplateRenderer;
 use Luster\Support\ListingTemplateResolver;
 use Luster\Support\MemberStatsService;
@@ -966,6 +968,7 @@ final class ListingController extends AdminController
         $affiliates           = $affiliateRepo->getByListing($id)['items'];
         $fields               = $fieldRepo->getFieldsForListing($id);
         $templates            = $settingsRepo->getTemplates($id);
+        $templates['codes_template'] = $settingsRepo->getCodesTemplate($id);
         $globalTemplates      = (new SiteSettingsRepo($db))->getGlobalTemplates();
         $tplBuiltIns = [
             'stats_template'                => ListingSettingsRepo::defaultStatsTemplate(),
@@ -997,6 +1000,9 @@ final class ListingController extends AdminController
             );
             $templateSources[$tplKey] = $resolved['source'];
         }
+        $templateSources['codes_template'] = (!empty($templates['codes_template']) && trim((string) $templates['codes_template']) !== '')
+            ? 'custom'
+            : 'built_in';
         $categories           = $categoryRepo->getAll();
         $currentCategoryId    = $listing->categoryId ?? null;
         $currentCategoryIds   = $listingRepo->getCategoryIdsForListing($id);
@@ -1375,6 +1381,7 @@ final class ListingController extends AdminController
             'join_form_template'            => ListingSettingsRepo::defaultJoinFormTemplate(),
             'affiliate_apply_form_template' => ListingSettingsRepo::defaultAffiliateApplyFormTemplate(),
             'adopt_form_template'           => ListingSettingsRepo::defaultAdoptFormTemplate(),
+            'codes_template'                => ListingSettingsRepo::defaultCodesTemplate(),
         ];
         $globalMap = [
             'stats_template'                => 'listing_default_stats_template',
@@ -1413,6 +1420,7 @@ final class ListingController extends AdminController
         $joinFormTemplate          = $nil((string) $request->post('join_form_template',             ''), 'join_form_template');
         $affiliateApplyFormTemplate = $nil((string) $request->post('affiliate_apply_form_template', ''), 'affiliate_apply_form_template');
         $adoptFormTemplate          = $nil((string) $request->post('adopt_form_template',           ''), 'adopt_form_template');
+        $codesTemplate              = $nil((string) $request->post('codes_template',                ''), 'codes_template');
 
         $settingsRepo = new ListingSettingsRepo($db);
         $settingsRepo->saveTemplates(
@@ -1420,6 +1428,7 @@ final class ListingController extends AdminController
             $updatesTemplate, $codesSubmitFormTemplate,
             null, $joinFormTemplate, $affiliateApplyFormTemplate, $adoptFormTemplate,
         );
+        $settingsRepo->saveCodesTemplate($id, $codesTemplate);
 
         $this->app->getSession()->set('lstr_flash_success', 'Templates saved successfully.');
 
@@ -1449,7 +1458,7 @@ final class ListingController extends AdminController
             return $this->previewWrap('<p style="color:#c00">Listing not found.</p>', $appUrl);
         }
 
-        $allowed = ['members', 'affiliates_section', 'stats', 'updates', 'codes_submit_form', 'rules', 'join_form', 'affiliate_apply_form', 'adopt_form'];
+        $allowed = ['members', 'affiliates_section', 'stats', 'updates', 'codes', 'codes_submit_form', 'rules', 'join_form', 'affiliate_apply_form', 'adopt_form'];
         if (!in_array($type, $allowed, true)) {
             return $this->previewWrap('<p style="color:#c00">Unknown template type.</p>', $appUrl);
         }
@@ -1464,6 +1473,7 @@ final class ListingController extends AdminController
                 'affiliates_section' => $this->ltplPreviewAffiliates($tpl, $listing, $db, $uploadsBase . '/affiliates', $appUrl),
                 'stats'              => $this->ltplPreviewStats($tpl, $listing, $db, $config),
                 'updates'            => $this->ltplPreviewUpdates($tpl, $listing, $db),
+                'codes'              => $this->ltplPreviewCodes($tpl, $listing, $db),
                 'rules'              => $this->ltplPreviewRules(
                     $tpl,
                     $listing,
@@ -1583,11 +1593,13 @@ final class ListingController extends AdminController
             $inner    = $m[1];
             $rowParts = [];
             foreach ($affiliates as $aff) {
-                $imageUrl   = !empty($aff->image) ? $uploadsUrl . '/' . $aff->image : '';
-                $imageHtml  = $imageUrl !== '' ? '<img src="' . $e($imageUrl) . '" alt="' . $e($aff->name) . '">' : '';
+                $imageUrl    = !empty($aff->image) ? $uploadsUrl . '/' . $aff->image : '';
+                $imageOrLink = $imageUrl !== ''
+                    ? '<img src="' . $e($imageUrl) . '" alt="' . $e($aff->name) . '">'
+                    : '<a href="' . $e($aff->url) . '">' . $e($aff->name) . '</a>';
                 $rowParts[] = str_replace(
-                    ['{aff_name}', '{aff_url}', '{aff_image}', '{aff_image_url}', '{aff_image_tag}'],
-                    [$e($aff->name), $e($aff->url), $e($aff->image ?? ''), $e($imageUrl), $imageHtml],
+                    ['{aff_name}', '{aff_url}', '{aff_image_url}'],
+                    [$e($aff->name), $e($aff->url), $imageOrLink],
                     $inner,
                 );
             }
@@ -1643,6 +1655,7 @@ final class ListingController extends AdminController
         $pending    = $prefix !== '' ? $memberRepo->countPending($prefix) : 0;
         $countries  = $prefix !== '' ? $memberRepo->countUniqueCountries($prefix) : 0;
         $newest     = $prefix !== '' ? $memberRepo->getNewestMembers($prefix, 5) : [];
+        $memberDate = $prefix !== '' ? $memberRepo->getMostRecentApprovedDate($prefix) : null;
 
         $newestOxford = match (count($newest)) {
             0       => '',
@@ -1650,11 +1663,10 @@ final class ListingController extends AdminController
             2       => $newest[0] . ' and ' . $newest[1],
             default => implode(', ', array_slice($newest, 0, -1)) . ', and ' . end($newest),
         };
-        $newestLabel = count($newest) === 1 ? 'Member' : 'Members';
 
-        $adminLastUpdated = $settingsRepo->getLastUpdated((int) $listing->id);
-        $lastUpdatedFallback = (string) $config->get('last_updated_fallback', 'Never');
-        $lastUpdatedStr = $adminLastUpdated ?? $lastUpdatedFallback;
+        $adminDate   = $settingsRepo->getLastUpdated((int) $listing->id);
+        $updatedDate = DateFormatter::mostRecent($memberDate, $adminDate);
+        $updatedStr  = $updatedDate ?? 'N/A';
 
         $networkLink = match ($approvedBy) {
             'tfl'  => '<a href="https://thefanlistings.org" rel="noopener noreferrer">The Fanlistings Network</a>',
@@ -1663,18 +1675,15 @@ final class ListingController extends AdminController
         };
 
         $values = [
-            'stat_opened'            => $listing->opened ?? '',
-            'stat_updated'           => '',
-            'stat_last_updated'      => $lastUpdatedStr,
-            'stat_approved'          => (string) $approved,
-            'stat_pending'           => (string) $pending,
-            'stat_countries'         => (string) $countries,
-            'stat_newmembers'        => implode(', ', $newest),
-            'stat_newmembers_oxford' => $newestOxford,
-            'stat_newmembers_label'  => $newestLabel,
-            'stat_growth'            => '0.00 members/day',
-            'listing_title'          => $listing->title,
-            'listing_url'            => $listing->url,
+            'stat_opened'     => $listing->opened ?? '',
+            'stat_updated'    => $updatedStr,
+            'stat_approved'   => (string) $approved,
+            'stat_pending'    => (string) $pending,
+            'stat_countries'  => (string) $countries,
+            'stat_newmembers' => $newestOxford,
+            'stat_growth'     => '0.00 members/day',
+            'listing_title'   => $listing->title,
+            'listing_url'     => $listing->url,
         ];
         $conditions = [
             'approved_by'  => $approvedBy !== '',
@@ -1693,8 +1702,13 @@ final class ListingController extends AdminController
      */
     private static function renderStatsTemplate(string $tpl, array $values, array $conditions, string $networkLink): string
     {
-        $rendered = TemplateEngine::render($tpl, escaped: $values, conditions: $conditions);
-        return str_replace('{approved_by}', $networkLink, $rendered);
+        $rendered      = TemplateEngine::render($tpl, escaped: $values, conditions: $conditions);
+        $networkStatus = $networkLink !== '' ? $networkLink : 'Independent';
+        return str_replace(
+            ['{approved_by}', '{network_status}'],
+            [$networkLink, $networkStatus],
+            $rendered,
+        );
     }
 
     private function ltplPreviewUpdates(string $tpl, object $listing, \Luster\Core\Database $db): string
@@ -1711,6 +1725,66 @@ final class ListingController extends AdminController
         }
 
         return \Luster\Addons\Updates\Controllers\UpdatesPublicController::buildUpdatesHtmlPublic($updates, $tpl);
+    }
+
+    private function ltplPreviewCodes(string $tpl, object $listing, \Luster\Core\Database $db): string
+    {
+        $listingId = (int) $listing->id;
+        $appUrl     = rtrim((string) $this->app->getConfig()->get('app_url', ''), '/');
+        $uploadsUrl = $appUrl . '/uploads/codes';
+
+        $codesRepo      = new CodesRepo($db);
+        $codeCatsRepo   = new CodeCategoriesRepo($db);
+        $codeDonorsRepo = new CodeDonorsRepo($db);
+
+        $codes      = $codesRepo->getByListing($listingId, 'approved');
+        $catMap     = $codeCatsRepo->getCategoryMapForListing($listingId);
+        $categories = $codeCatsRepo->getByListing($listingId);
+        $donors     = $codeDonorsRepo->getByListing($listingId);
+
+        $categoryMap = [];
+        foreach ($categories as $cat) {
+            $categoryMap[$cat->id] = $cat;
+        }
+
+        $donorMap = [];
+        foreach ($donors as $donor) {
+            $donorMap[$donor->id] = $donor;
+        }
+
+        $grouped = [];
+        foreach ($codes as $code) {
+            if ($code->width > 0 && $code->height > 0) {
+                $key   = (int) $code->width . 'x' . (int) $code->height;
+                $label = (int) $code->width . '×' . (int) $code->height . 'px';
+            } else {
+                $key   = 'unknown';
+                $label = 'Other';
+            }
+            if (!isset($grouped[$key])) {
+                $grouped[$key] = ['label' => $label, 'codes' => []];
+            }
+            $grouped[$key]['codes'][] = $code;
+        }
+        uksort($grouped, function (string $a, string $b): int {
+            if ($a === 'unknown') return 1;
+            if ($b === 'unknown') return -1;
+            [$aw, $ah] = explode('x', $a);
+            [$bw, $bh] = explode('x', $b);
+            return $aw !== $bw ? (int) $aw - (int) $bw : (int) $ah - (int) $bh;
+        });
+
+        $html = CodesTemplateRenderer::render($tpl, $codes, $grouped, $catMap, $categoryMap, $donorMap, $uploadsUrl, $listing->title);
+
+        if ($html === null) {
+            return '<p style="color:#c00">Template must include an {each_code} or {each_size_group} block.</p>';
+        }
+
+        if (trim($html) === '' && empty($codes)) {
+            return '<p style="font-style:italic;color:#888">No approved codes for this listing yet.</p>';
+        }
+
+        return $html;
     }
 
     private function ltplPreviewRules(string $tpl, object $listing, string $gateLabel = '', bool $gateEnabled = true, string $gateType = ''): string
@@ -1817,7 +1891,7 @@ final class ListingController extends AdminController
 
         $descriptors = [
             ['type' => 'file',  'name' => 'code_image',      'id' => 'code-image',  'label' => 'Upload Code',       'required' => true,  'attrs' => ['accept' => 'image/jpeg,image/png,image/gif,image/webp']],
-            ['type' => 'text',  'name' => 'submitter_name',  'id' => 'sub-name',    'label' => 'Name (optional)',    'required' => false, 'value' => '', 'attrs' => ['maxlength' => '150', 'autocomplete' => 'name']],
+            ['type' => 'text',  'name' => 'submitter_name',  'id' => 'sub-name',    'label' => 'Name',    'required' => false, 'value' => '', 'attrs' => ['maxlength' => '150', 'autocomplete' => 'name']],
             ['type' => 'email', 'name' => 'submitter_email', 'id' => 'sub-email',   'label' => 'Email',             'required' => true,  'value' => '', 'attrs' => ['maxlength' => '255', 'autocomplete' => 'email'], 'hint' => 'Required — used only to notify you when your code is approved.'],
             ['type' => 'url',   'name' => 'submitter_url',   'id' => 'sub-url',     'label' => 'Website (optional)', 'required' => false, 'value' => '', 'attrs' => ['maxlength' => '255', 'placeholder' => 'https://', 'autocomplete' => 'url'], 'hint' => 'Displayed as a link on your donated code.'],
             ['type' => 'text',  'name' => 'captcha',         'id' => 'captcha',     'label' => 'Captcha: ' . $captchaQuestion, 'required' => true, 'attrs' => ['maxlength' => '10', 'autocomplete' => 'off']],
@@ -2182,10 +2256,14 @@ final class ListingController extends AdminController
      */
     private function gtplPreviewAffiliates(string $tpl): string
     {
-        $appUrl            = rtrim((string) $this->app->getConfig()->get('app_url', ''), '/');
-        $uploadsUrl        = $appUrl . '/uploads/affiliates';
-        $sampleImagesUrl   = $appUrl . '/assets/images';
-        $affiliateApplyUrl = $appUrl . '/affiliate-apply/collective';
+        $appUrl          = rtrim((string) $this->app->getConfig()->get('app_url', ''), '/');
+        $uploadsUrl      = $appUrl . '/uploads/affiliates';
+        $sampleImagesUrl = $appUrl . '/assets/images';
+
+        // Per-listing affiliate apply URL, mirroring ltplPreviewAffiliates() —
+        // this is the global default for per-listing affiliates_section_template,
+        // not the collective template, so it must not use the collective apply URL.
+        $affiliateApplyUrl = $appUrl . '/affiliate-apply/1';
 
         $sample = self::renderAffiliatesSection($tpl, SampleTemplateData::affiliates(), $sampleImagesUrl, $affiliateApplyUrl);
         $empty  = self::renderAffiliatesSection($tpl, [], $uploadsUrl, $affiliateApplyUrl);
@@ -2208,18 +2286,15 @@ final class ListingController extends AdminController
         $sampleOxford = implode(', ', array_slice($sampleNames, 0, -1)) . ', and ' . end($sampleNames);
 
         $sampleValues = [
-            'stat_opened'            => '2020-01-15',
-            'stat_updated'           => '',
-            'stat_last_updated'      => '2026-06-10',
-            'stat_approved'          => '42',
-            'stat_pending'           => '3',
-            'stat_countries'         => '12',
-            'stat_newmembers'        => implode(', ', $sampleNames),
-            'stat_newmembers_oxford' => $sampleOxford,
-            'stat_newmembers_label'  => 'Members',
-            'stat_growth'            => '0.71 members/day',
-            'listing_title'          => 'Sample Fanlisting',
-            'listing_url'            => 'https://example.com/sample-fanlisting',
+            'stat_opened'     => '2020-01-15',
+            'stat_updated'    => '2026-06-10',
+            'stat_approved'   => '42',
+            'stat_pending'    => '3',
+            'stat_countries'  => '12',
+            'stat_newmembers' => $sampleOxford,
+            'stat_growth'     => '0.71 members/day',
+            'listing_title'   => 'Sample Fanlisting',
+            'listing_url'     => 'https://example.com/sample-fanlisting',
         ];
         $sampleConditions = [
             'approved_by'  => true,
@@ -2228,18 +2303,15 @@ final class ListingController extends AdminController
         $sampleNetworkLink = '<a href="https://thefanlistings.org" rel="noopener noreferrer">The Fanlistings Network</a>';
 
         $emptyValues = [
-            'stat_opened'            => '',
-            'stat_updated'           => '',
-            'stat_last_updated'      => 'Never',
-            'stat_approved'          => '0',
-            'stat_pending'           => '0',
-            'stat_countries'         => '0',
-            'stat_newmembers'        => '',
-            'stat_newmembers_oxford' => '',
-            'stat_newmembers_label'  => 'Members',
-            'stat_growth'            => '0.00 members/day',
-            'listing_title'          => 'Sample Fanlisting',
-            'listing_url'            => 'https://example.com/sample-fanlisting',
+            'stat_opened'     => '',
+            'stat_updated'    => 'N/A',
+            'stat_approved'   => '0',
+            'stat_pending'    => '0',
+            'stat_countries'  => '0',
+            'stat_newmembers' => '',
+            'stat_growth'     => '0.00 members/day',
+            'listing_title'   => 'Sample Fanlisting',
+            'listing_url'     => 'https://example.com/sample-fanlisting',
         ];
         $emptyConditions = [
             'approved_by'  => false,

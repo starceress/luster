@@ -78,14 +78,14 @@ $tok = static fn(string $ta, string $token, string $label, string $desc): string
           &nbsp; <button type="button" class="btn btn-preview btn-xs coltpl-preview-btn" data-tpltype="stats" data-textarea="listing_default_stats_template"><?= View::icon('eye-on') ?> Preview</button>
         </div>
 
-        <div class="pc-section-label">Affiliates Section</div>
+        <div class="pc-section-label">Affiliates</div>
         <p class="form-hint mb-sm">Controls the full affiliates block. Use <code>{each_affiliate}&hellip;{/each_affiliate}</code> to design each row, or <code>{affiliates}</code> to drop in ready-made rows.</p>
         <div class="form-group">
           <textarea name="listing_default_affiliates_section_template" id="listing_default_affiliates_section_template" class="form form-mono" spellcheck="false"><?= View::e($val('listing_default_affiliates_section_template')) ?></textarea>
         </div>
         <div class="tpl-reset-row">
           <button type="button" class="btn btn-quaternary btn-xs" data-textarea="listing_default_affiliates_section_template">Reset to Built-in Default</button>
-          &nbsp; <button type="button" class="btn btn-preview btn-xs coltpl-preview-btn" data-tpltype="affiliates_section" data-textarea="listing_default_affiliates_section_template"><?= View::icon('eye-on') ?> 
+          &nbsp; <button type="button" class="btn btn-preview btn-xs coltpl-preview-btn" data-tpltype="affiliates_section" data-textarea="listing_default_affiliates_section_template"><?= View::icon('eye-on') ?> Preview</button>
         </div>
 
         <div class="pc-section-label">Updates Feed</div>
@@ -118,7 +118,7 @@ $tok = static fn(string $ta, string $token, string $label, string $desc): string
           &nbsp; <button type="button" class="btn btn-preview btn-xs coltpl-preview-btn" data-tpltype="codes_submit_form" data-textarea="listing_default_codes_submit_form_template"><?= View::icon('eye-on') ?> Preview</button>
         </div>
 
-        <div class="pc-section-label">Affiliate Application Form</div>
+        <div class="pc-section-label">Affiliate Form</div>
         <p class="form-hint mb-sm">Default layout for affiliate application forms.</p>
         <div class="form-group">
           <textarea name="listing_default_affiliate_apply_form_template" id="listing_default_affiliate_apply_form_template" class="form form-mono" spellcheck="false"><?= View::e($val('listing_default_affiliate_apply_form_template')) ?></textarea>
@@ -128,7 +128,7 @@ $tok = static fn(string $ta, string $token, string $label, string $desc): string
           &nbsp; <button type="button" class="btn btn-preview btn-xs coltpl-preview-btn" data-tpltype="affiliate_apply_form" data-textarea="listing_default_affiliate_apply_form_template"><?= View::icon('eye-on') ?> Preview</button>
         </div>
 
-        <div class="pc-section-label">Adopt Form</div>
+        <div class="pc-section-label">Adoption Form</div>
         <p class="form-hint mb-sm">Default layout for adoption application forms (requires Adoption add-on).</p>
         <div class="form-group">
           <textarea name="listing_default_adopt_form_template" id="listing_default_adopt_form_template" class="form form-mono" spellcheck="false"><?= View::e($val('listing_default_adopt_form_template')) ?></textarea>
@@ -204,20 +204,18 @@ $tok = static fn(string $ta, string $token, string $label, string $desc): string
           <p class="form-hint mb-sm" data-token-search-help>These tokens fill in the public stats block for a listing.</p>
           <table class="et-token-table et-token-table--compact"><tbody>
             <?= $tok('listing_default_stats_template', '{stat_opened}',       '{stat_opened}',       'The date the listing opened.') ?>
-            <?= $tok('listing_default_stats_template', '{stat_updated}',      '{stat_updated}',      'The date the newest approved member joined.') ?>
-            <?= $tok('listing_default_stats_template', '{stat_last_updated}', '{stat_last_updated}', 'The Last Updated date set for this listing.') ?>
+            <?= $tok('listing_default_stats_template', '{stat_updated}',      '{stat_updated}',      'The most recent activity date: whichever is more recent of the newest approved member\'s join date and the Last Updated date set for the listing. Shows "N/A" if neither is set.') ?>
             <?= $tok('listing_default_stats_template', '{stat_approved}',     '{stat_approved}',     'How many approved members this listing has.') ?>
             <?= $tok('listing_default_stats_template', '{stat_pending}',      '{stat_pending}',      'How many members are waiting for approval.') ?>
             <?= $tok('listing_default_stats_template', '{stat_countries}',    '{stat_countries}',    'Number of distinct countries represented among approved members.') ?>
-            <?= $tok('listing_default_stats_template', '{stat_newmembers}',        '{stat_newmembers}',        'Names of the 5 newest approved members, comma-separated.') ?>
-            <?= $tok('listing_default_stats_template', '{stat_newmembers_oxford}', '{stat_newmembers_oxford}', 'Same list formatted with Oxford comma.') ?>
-            <?= $tok('listing_default_stats_template', '{stat_newmembers_label}',  '{stat_newmembers_label}',  '"Member" when exactly 1 newest; "Members" otherwise.') ?>
+            <?= $tok('listing_default_stats_template', '{stat_newmembers}',        '{stat_newmembers}',        'Names of the 5 newest approved members, formatted with Oxford comma.') ?>
             <?= $tok('listing_default_stats_template', '{if_stat_pending}{/if_stat_pending}', '{if_stat_pending}...{/if_stat_pending}', 'Shows only when at least one member is awaiting approval.') ?>
             <?= $tok('listing_default_stats_template', '{stat_growth}',            '{stat_growth}',            'Average new members per day since the listing opened.') ?>
             <?= $tok('listing_default_stats_template', '{listing_title}',     '{listing_title}',     'The listing\'s display name.') ?>
             <?= $tok('listing_default_stats_template', '{listing_url}',       '{listing_url}',       'The link to the listing.') ?>
             <?= $tok('listing_default_stats_template', '{approved_by}',       '{approved_by}',       'The network that approved this listing, as a linked name. Empty when none saved.') ?>
             <?= $tok('listing_default_stats_template', '{if_approved_by}{/if_approved_by}', '{if_approved_by}...{/if_approved_by}', 'Shows only when an approved-by network is saved.') ?>
+            <?= $tok('listing_default_stats_template', '{network_status}',    '{network_status}',    'The approving network as a linked name, or "Independent" when none is saved. Always shows something.') ?>
           </tbody></table>
         </div>
       </details>
@@ -231,9 +229,7 @@ $tok = static fn(string $ta, string $token, string $label, string $desc): string
             <?= $tok('listing_default_affiliates_section_template', '{each_affiliate}{/each_affiliate}', '{each_affiliate}...{/each_affiliate}', 'Repeats the HTML inside it once for each affiliate.') ?>
             <?= $tok('listing_default_affiliates_section_template', '{aff_name}',      '{aff_name}',      'The affiliate site name. Use inside {each_affiliate}.') ?>
             <?= $tok('listing_default_affiliates_section_template', '{aff_url}',       '{aff_url}',       'The affiliate site link. Use inside {each_affiliate}.') ?>
-            <?= $tok('listing_default_affiliates_section_template', '{aff_image}',     '{aff_image}',     'The saved image filename. Use inside {each_affiliate}.') ?>
-            <?= $tok('listing_default_affiliates_section_template', '{aff_image_url}', '{aff_image_url}', 'The full image URL. Empty when there is no image. Use inside {each_affiliate}.') ?>
-            <?= $tok('listing_default_affiliates_section_template', '{aff_image_tag}', '{aff_image_tag}', 'A ready-made img tag. Empty when there is no image. Use inside {each_affiliate}.') ?>
+            <?= $tok('listing_default_affiliates_section_template', '{aff_image_url}', '{aff_image_url}', 'The affiliate image, or a text link to the affiliate when there is no image. Use inside {each_affiliate}.') ?>
             <?= $tok('listing_default_affiliates_section_template', '{affiliates}',       '{affiliates}',       'Ready-made affiliate rows. Use this when you do not want to design each row yourself.') ?>
             <?= $tok('listing_default_affiliates_section_template', '{affiliates_count}', '{affiliates_count}', 'How many active affiliates this listing has.') ?>
             <?= $tok('listing_default_affiliates_section_template', '{affiliates_list}',  '{affiliates_list}',  'A comma-separated list of linked affiliate names.') ?>
