@@ -60,8 +60,13 @@ jobs:
         working-directory: dist/${{ env.PKG }}
         run: zip -r "../../${PKG}.zip" *
 
-      - name: Attach zip to the release
+      - name: Generate SHA256SUMS
+        run: sha256sum "${PKG}.zip" > SHA256SUMS
+
+      - name: Attach release assets
         uses: softprops/action-gh-release@v2
         with:
-          files: ${{ env.PKG }}.zip
+          files: |
+            ${{ env.PKG }}.zip
+            SHA256SUMS
           generate_release_notes: true
