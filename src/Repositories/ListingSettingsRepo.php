@@ -484,7 +484,7 @@ final class ListingSettingsRepo
             . '<ul class="fl-affiliate-list">' . "\n"
             . '<p><a href="{affiliate_apply_url}">Apply to become an affiliate?</a></p>' . "\n\n"
             . '{each_affiliate}' . "\n"
-            . '<li class="fl-affiliate-item">{aff_image_url}</li>' . "\n"
+            . '<li class="fl-affiliate-item">{if_aff_image}{aff_image}{/if_aff_image}{if_no_aff_image}<a href="{aff_url}">{aff_name}</a>{/if_no_aff_image}</li>' . "\n"
             . '{/each_affiliate}' . "\n\n"
             . '</ul>' . "\n"
             . '{/if_affiliates}' . "\n\n"
@@ -696,7 +696,7 @@ final class ListingSettingsRepo
                 '{fan_country}',
                 '{aff_name}',
                 '{aff_url}',
-                '{aff_image_url}',
+                '{aff_image}',
                 '{listing_title}',
                 '{listing_url}',
             ],

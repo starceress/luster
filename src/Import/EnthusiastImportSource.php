@@ -2152,15 +2152,15 @@ final class EnthusiastImportSource implements ImportSourceInterface
         }
 
         // Enthusiast's default affiliate template embeds $$aff_image$$ inside an <img> src=""
-        // attribute (e.g. src="$$aff_url$$images/$$aff_image$$"). Replacing $$aff_image$$ with
-        // {aff_image_url} — a full <img> (or text-link) element — inside another src=""
-        // attribute produces broken HTML: the quotes in the expansion terminate the src value
-        // early, and the remaining attributes are rendered as visible link text. Replace the
-        // entire <img> element with {aff_image_url} up front so the token lands in the right
-        // context.
+        // attribute (e.g. src="$$aff_url$$images/$$aff_image$$"). {aff_image} is the ready-made
+        // <img src="..." alt="..."> tag, so replacing $$aff_image$$ with it inside another
+        // src="" attribute would produce broken HTML: the quotes in the expansion terminate the
+        // src value early, and the remaining attributes are rendered as visible link text.
+        // Replace the entire <img> element with {aff_image} up front so the token lands in the
+        // right context.
         $tpl = (string) preg_replace(
             '/<img\b[^>]*?src=["\'][^"\']*\$\$aff_image\$\$[^"\']*["\'][^>]*?\/?>/is',
-            '{aff_image_url}',
+            '{aff_image}',
             $tpl,
         );
 
@@ -2210,7 +2210,7 @@ final class EnthusiastImportSource implements ImportSourceInterface
                 '{aff_name}',
                 '{aff_name}',
                 '{aff_url}',
-                '{aff_image_url}',
+                '{aff_image}',
                 '',
                 '',
                 '{listing_title}',

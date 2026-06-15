@@ -2251,19 +2251,19 @@ final class ListingAdminImportSource implements ImportSourceInterface
         }
 
         // LA's per-affiliate template typically embeds {image} inside an <img> src=""
-        // attribute (e.g. src="{image}"). {aff_image_url} now expands to a full <img> (or
-        // text-link) element, so leaving it inside another src="" attribute would produce
-        // broken HTML. Replace the entire <img> element with {aff_image_url} up front so
+        // attribute (e.g. src="{image}"). {aff_image} is the ready-made <img src="..."
+        // alt="..."> tag, so leaving it inside another src="" attribute would produce
+        // broken HTML. Replace the entire <img> element with {aff_image} up front so
         // the token lands in the right context.
         $trimmed = (string) preg_replace(
             '/<img\b[^>]*?src=["\'][^"\']*\{image\}[^"\']*["\'][^>]*?\/?>/is',
-            '{aff_image_url}',
+            '{aff_image}',
             $trimmed,
         );
 
         return str_replace(
             ['{url}', '{image}', '{subject}'],
-            ['{aff_url}', '{aff_image_url}', '{aff_name}'],
+            ['{aff_url}', '{aff_image}', '{aff_name}'],
             $trimmed
         );
     }

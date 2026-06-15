@@ -7,6 +7,7 @@ use Luster\Repositories\AffiliateRepo;
 use Luster\Repositories\ListingRepo;
 use Luster\Repositories\ListingSettingsRepo;
 use Luster\Repositories\SiteSettingsRepo;
+use Luster\Support\AffiliateRowRenderer;
 use Luster\Support\CollectiveFormUrlResolver;
 use Luster\Support\ListingTemplateResolver;
 
@@ -149,20 +150,7 @@ if ($_lusterSectionTemplate !== null) {
     // {each_affiliate}...{/each_affiliate} — inline per-row loop block.
     // Process before conditionals so the block is substituted while still in context.
     if (preg_match('/\{each_affiliate\}(.*?)\{\/each_affiliate\}/s', $_lusterTpl, $_lusterEachMatch)) {
-        $_lusterEachRowTpl = $_lusterEachMatch[1];
-        $_lusterEachRows   = '';
-        foreach ($_lusterResult['items'] as $_aff) {
-            $imageFilename = $_aff->image ?? '';
-            $imageUrl      = ($imageFilename !== '') ? $_lusterUploadsUrl . '/' . $imageFilename : '';
-            $imageOrLink   = ($imageUrl !== '')
-                ? '<img src="' . $e($imageUrl) . '" alt="' . $e($_aff->name) . '">'
-                : '<a href="' . $e($_aff->url) . '">' . $e($_aff->name) . '</a>';
-            $_lusterEachRows .= str_replace(
-                ['{aff_name}', '{aff_url}', '{aff_image_url}'],
-                [$e($_aff->name), $e($_aff->url), $imageOrLink],
-                $_lusterEachRowTpl,
-            );
-        }
+        $_lusterEachRows = AffiliateRowRenderer::renderRows($_lusterEachMatch[1], $_lusterResult['items'], $_lusterUploadsUrl);
         $_lusterTpl = (string) preg_replace('/\{each_affiliate\}.*?\{\/each_affiliate\}/s', $_lusterEachRows, $_lusterTpl, 1);
     }
 

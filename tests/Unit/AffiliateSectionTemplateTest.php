@@ -261,11 +261,12 @@ final class AffiliateSectionTemplateTest extends TestCase
     public function testEachAffiliateBlockRendersAllRowTokens(): void
     {
         $aff = $this->makeAffiliate('My Fan', 'https://fl.example', 'banner.png');
-        $tpl = '{each_affiliate}{aff_name}|{aff_url}|{aff_image_url}{/each_affiliate}';
+        $tpl = '{each_affiliate}{aff_name}|{aff_url}|{aff_image_url}|{aff_image}{/each_affiliate}';
         $result = $this->invoke($tpl, [$aff], 1, 'https://example.com/uploads/affiliates');
 
         self::assertStringContainsString('My Fan', $result);
         self::assertStringContainsString('https://fl.example', $result);
+        self::assertStringContainsString('https://example.com/uploads/affiliates/banner.png', $result);
         self::assertStringContainsString('<img src="https://example.com/uploads/affiliates/banner.png" alt="My Fan">', $result);
     }
 
@@ -302,7 +303,7 @@ final class AffiliateSectionTemplateTest extends TestCase
             $this->makeAffiliate('Site B', 'https://b.example', 'b.png'),
         ];
         $tpl = '{if_affiliates}<ul>' . "\n"
-             . '{each_affiliate}<li class="fl-affiliate-item">{aff_image_url}</li>{/each_affiliate}' . "\n"
+             . '{each_affiliate}<li class="fl-affiliate-item">{if_aff_image}{aff_image}{/if_aff_image}{if_no_aff_image}<a href="{aff_url}">{aff_name}</a>{/if_no_aff_image}</li>{/each_affiliate}' . "\n"
              . '</ul>{/if_affiliates}';
         $result = $this->invoke($tpl, $affiliates, 2, 'https://example.com/uploads/affiliates');
 

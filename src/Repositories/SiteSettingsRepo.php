@@ -117,7 +117,7 @@ class SiteSettingsRepo
                                                     . '{if_affiliates}' . "\n"
                                                     . '<ul class="fl-affiliate-list">' . "\n"
                                                     . '{each_affiliate}' . "\n"
-                                                    . '<li class="fl-affiliate-item">{aff_image_url}</li>' . "\n"
+                                                    . '<li class="fl-affiliate-item">{if_aff_image}{aff_image}{/if_aff_image}{if_no_aff_image}<a href="{aff_url}">{aff_name}</a>{/if_no_aff_image}</li>' . "\n"
                                                     . '{/each_affiliate}' . "\n"
                                                     . '</ul>' . "\n"
                                                     . '{/if_affiliates}' . "\n"

@@ -24,6 +24,7 @@ use Luster\Repositories\ListingRepo;
 use Luster\Repositories\ListingSettingsRepo;
 use Luster\Repositories\MemberRepo;
 use Luster\Repositories\SiteSettingsRepo;
+use Luster\Support\AffiliateRowRenderer;
 use Luster\Support\CodesTemplateRenderer;
 use Luster\Support\DateFormatter;
 use Luster\Support\FormTemplateRenderer;
@@ -1590,22 +1591,10 @@ final class ListingController extends AdminController
 
         // Handle {each_affiliate}...{/each_affiliate} inline loop
         if (preg_match('/\{each_affiliate\}(.*?)\{\/each_affiliate\}/s', $tpl, $m)) {
-            $inner    = $m[1];
-            $rowParts = [];
-            foreach ($affiliates as $aff) {
-                $imageUrl    = !empty($aff->image) ? $uploadsUrl . '/' . $aff->image : '';
-                $imageOrLink = $imageUrl !== ''
-                    ? '<img src="' . $e($imageUrl) . '" alt="' . $e($aff->name) . '">'
-                    : '<a href="' . $e($aff->url) . '">' . $e($aff->name) . '</a>';
-                $rowParts[] = str_replace(
-                    ['{aff_name}', '{aff_url}', '{aff_image_url}'],
-                    [$e($aff->name), $e($aff->url), $imageOrLink],
-                    $inner,
-                );
-            }
+            $rendered = AffiliateRowRenderer::renderRows($m[1], $affiliates, $uploadsUrl);
             $tpl = (string) preg_replace(
                 '/\{each_affiliate\}.*?\{\/each_affiliate\}/s',
-                implode('', $rowParts),
+                $rendered,
                 $tpl,
                 1,
             );

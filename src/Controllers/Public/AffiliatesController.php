@@ -13,6 +13,7 @@ use Luster\Repositories\AffiliateRepo;
 use Luster\Repositories\ListingRepo;
 use Luster\Repositories\ListingSettingsRepo;
 use Luster\Repositories\SiteSettingsRepo;
+use Luster\Support\AffiliateRowRenderer;
 use Luster\Support\CollectiveFormUrlResolver;
 use Luster\Support\ListingTemplateResolver;
 
@@ -146,39 +147,14 @@ final class AffiliatesController
 
     /**
      * Applies a per-affiliate row template to a list of affiliates and returns
-     * the concatenated HTML string. Each row replaces these tokens:
-     *
-     *   {aff_name}      — affiliate name (HTML-escaped)
-     *   {aff_url}       — affiliate URL (HTML-escaped)
-     *   {aff_image_url} — rendered <img> tag when the affiliate has an image;
-     *                      otherwise a text link to the affiliate site
+     * the concatenated HTML string. See AffiliateRowRenderer for the {aff_*}
+     * token reference.
      *
      * @param Affiliate[] $affiliates
      */
     private function buildAffiliateRows(string $template, array $affiliates, string $uploadsUrl): string
     {
-        $rows = [];
-
-        foreach ($affiliates as $affiliate) {
-            $name = htmlspecialchars($affiliate->name, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
-            $url  = htmlspecialchars($affiliate->url,  ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
-
-            $imageUrl = ($affiliate->image !== null && $affiliate->image !== '')
-                ? $uploadsUrl . '/' . $affiliate->image
-                : '';
-
-            $imageOrLink = ($imageUrl !== '')
-                ? '<img src="' . htmlspecialchars($imageUrl, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '" alt="' . $name . '">'
-                : '<a href="' . $url . '">' . $name . '</a>';
-
-            $rows[] = str_replace(
-                ['{aff_name}', '{aff_url}', '{aff_image_url}'],
-                [$name, $url, $imageOrLink],
-                $template,
-            );
-        }
-
-        return implode("\n", $rows);
+        return AffiliateRowRenderer::renderRows($template, $affiliates, $uploadsUrl);
     }
 
     /**

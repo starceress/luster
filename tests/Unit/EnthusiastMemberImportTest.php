@@ -1701,8 +1701,8 @@ final class EnthusiastMemberImportTest extends TestCase
         $this->assertStringContainsString('{/each_affiliate}', (string) $row['affiliates_section_template']);
         $this->assertStringContainsString('{aff_url}', (string) $row['affiliates_section_template'],
             'Enthusiast $$aff_url$$ must be translated to {aff_url}');
-        $this->assertStringContainsString('{aff_image_url}', (string) $row['affiliates_section_template'],
-            'Enthusiast $$aff_image$$ must be translated to {aff_image_url}');
+        $this->assertStringContainsString('{aff_image}', (string) $row['affiliates_section_template'],
+            'Enthusiast $$aff_image$$ must be translated to {aff_image}');
     }
 
     public function testAffImageUrlInSrcReplacedBeforeTokenSubstitution(): void
@@ -1769,17 +1769,17 @@ final class EnthusiastMemberImportTest extends TestCase
         $tpl = (string) $tgt->query('SELECT affiliates_section_template FROM lstr_fanlisting_settings WHERE fanlisting_id = 1')
                              ->fetch(\PDO::FETCH_ASSOC)['affiliates_section_template'];
 
-        $this->assertStringContainsString('{aff_image_url}', $tpl,
-            'Entire <img> with $$aff_image$$ in src must be replaced with {aff_image_url}');
+        $this->assertStringContainsString('{aff_image}', $tpl,
+            'Entire <img> with $$aff_image$$ in src must be replaced with {aff_image}');
         $this->assertStringNotContainsString('$$aff_width$$', $tpl,
             '$$aff_width$$ must be removed (no Luster equivalent)');
         $this->assertStringNotContainsString('$$aff_height$$', $tpl,
             '$$aff_height$$ must be removed (no Luster equivalent)');
-        // {aff_image_url} must NOT appear inside a src="" attribute
+        // {aff_image} (the whole <img> tag token) must NOT appear inside a src="" attribute
         $this->assertDoesNotMatchRegularExpression(
-            '/<img\b[^>]*src=["\'][^"\']*\{aff_image_url\}/i',
+            '/<img\b[^>]*src=["\'][^"\']*\{aff_image\}/i',
             $tpl,
-            '{aff_image_url} must not appear inside an <img> src attribute',
+            '{aff_image} must not appear inside an <img> src attribute',
         );
     }
 
