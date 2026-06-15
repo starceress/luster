@@ -7,7 +7,7 @@ namespace Luster\Core;
 use RuntimeException;
 
 /**
- * Minimal router.
+ * Minimal router
  *
  * Routes are registered as GET/POST pairs of (path, controller class, action).
  * Path segments wrapped in {braces} become named route parameters passed

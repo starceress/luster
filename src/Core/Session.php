@@ -9,7 +9,7 @@ use RuntimeException;
 /**
  * Secure session wrapper.
  *
- * Enforces secure session settings before
+ * Enforces the session security settings required before
  * ever calling session_start(). Call start() once at application bootstrap
  * (Application::run() does this automatically).
  */

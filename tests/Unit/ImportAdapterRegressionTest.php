@@ -11,7 +11,7 @@ use PDO;
 use PHPUnit\Framework\TestCase;
 
 /**
- * Regression tests for five import-adapter bug fixes:
+ * Regression tests for the five import-adapter bugs:
  *
  *   Fix 1 — Enthusiast `category` (singular) table name
  *   Fix 2 — $tp scope propagated to all preview/run helpers (dump mode)
