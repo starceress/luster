@@ -63,7 +63,7 @@ $oldBody    = htmlspecialchars($old['body'] ?? '', ENT_QUOTES, 'UTF-8');
             <?php endforeach; ?>
           </select>
         </div>
-        <p class="form-hint">Loading a template will replace your current subject and message.</p>
+        <p class="form-hint">Selecting fills the subject and message fields. You can edit before sending.</p>
         <a href="<?= $b ?>/admin/emails?tab=custom" class="btn btn-tertiary btn-sm btn-block-center">Manage Templates</a>
       </div>
     </div>
@@ -80,6 +80,7 @@ $oldBody    = htmlspecialchars($old['body'] ?? '', ENT_QUOTES, 'UTF-8');
           <div id="es-save-emails"></div>
           <input type="text" name="tpl_name" id="es-save-name"
                  class="form" placeholder="Template name&hellip;" maxlength="150">
+          <p class="form-hint">This saves the message as a reusable starting point. It does not send anything.</p>
           <button type="submit" class="btn btn-secondary btn-sm btn-block-center">Save Template</button>
         </form>
       </div>
@@ -90,9 +91,9 @@ $oldBody    = htmlspecialchars($old['body'] ?? '', ENT_QUOTES, 'UTF-8');
       <input type="search"
              data-token-search
              class="form"
-             placeholder="Search tokens"
+             placeholder="Search email tokens"
              autocomplete="off"
-             aria-label="Search tokens">
+             aria-label="Search email tokens">
       <button type="button"
               data-token-search-clear
               class="token-search-clear"
@@ -177,9 +178,12 @@ $oldBody    = htmlspecialchars($old['body'] ?? '', ENT_QUOTES, 'UTF-8');
         </div>
         <div class="composer-row">
           <span class="composer-lbl">Subject</span>
-          <input class="subj-input" type="text" name="subject" id="es-subject"
-                 maxlength="255" required placeholder="Enter subject&hellip;"
-                 value="<?= $oldSubject ?>">
+          <div class="flex-fill">
+            <input class="subj-input" type="text" name="subject" id="es-subject"
+                   maxlength="255" required placeholder="Enter subject&hellip;"
+                   value="<?= $oldSubject ?>">
+            <p class="form-hint">Tokens work in the subject line too.</p>
+          </div>
         </div>
       </div>
 

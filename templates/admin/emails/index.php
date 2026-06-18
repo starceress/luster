@@ -531,11 +531,11 @@ $oldBodyE    = htmlspecialchars($old_body ?? '', ENT_QUOTES, 'UTF-8');
                   <?php foreach ($listings as $lst): ?>
                     <option value="<?= (int) $lst->id ?>"
                             data-count="<?= (int) ($listing_counts[$lst->id] ?? 0) ?>"
-                            data-label="<?= View::e($lst->title) ?>"
+                            data-label="<?= View::e($lst->subject) ?>"
                             data-subject="<?= View::e($lst->subject) ?>"
                             data-url="<?= View::e($lst->url) ?>"
                             <?= ($old_listing_id ?? 0) === (int) $lst->id ? ' selected' : '' ?>>
-                      <?= View::e($lst->title) ?>
+                      <?= View::e($lst->subject) ?>
                     </option>
                   <?php endforeach; ?>
                 </select>

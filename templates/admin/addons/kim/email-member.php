@@ -61,7 +61,7 @@ $backUrl    = $listing !== null
             <?php endforeach; ?>
           </select>
         </div>
-        <p class="form-hint">Loading a template will replace your current subject and message.</p>
+        <p class="form-hint">Selecting fills the subject and message fields. You can edit before sending.</p>
         <a href="<?= $b ?>/admin/emails?tab=custom" class="btn btn-tertiary btn-sm btn-block-center">Manage Templates</a>
       </div>
     </div>
@@ -77,6 +77,7 @@ $backUrl    = $listing !== null
           <input type="hidden" name="tpl_body"    id="em-save-body">
           <input type="text"   name="tpl_name"    id="em-save-name"
                  class="form" placeholder="Template name&hellip;" maxlength="150">
+          <p class="form-hint">This saves the message as a reusable starting point. It does not send anything.</p>
           <button type="submit" class="btn btn-secondary btn-sm btn-block-center">Save Template</button>
         </form>
       </div>
@@ -87,9 +88,9 @@ $backUrl    = $listing !== null
       <input type="search"
              data-token-search
              class="form"
-             placeholder="Search tokens"
+             placeholder="Search email tokens"
              autocomplete="off"
-             aria-label="Search tokens">
+             aria-label="Search email tokens">
       <button type="button"
               data-token-search-clear
               class="token-search-clear"
@@ -157,7 +158,7 @@ $backUrl    = $listing !== null
             <span class="badge badge-info-pink"><?= $flSubject ?>:</span>
           <?php endif; ?>
           <input class="subj-input" type="text" name="subject_suffix" id="subject"
-                 value="<?= $oldSubject ?>" placeholder="Enter subject&hellip;">
+                 maxlength="255" required value="<?= $oldSubject ?>" placeholder="Enter subject&hellip;">
         </div>
       </div>
 
