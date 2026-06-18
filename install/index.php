@@ -1051,7 +1051,7 @@ function patchHtaccess(string $appUrl): void
         return;
     }
 
-    $patched = preg_replace('/^(\s*RewriteBase\s+)\S+/m', '${1}' . $path, $contents);
+    $patched = preg_replace('/^(\s*)#?\s*(RewriteBase\s+)\S+/m', '${1}${2}' . $path, $contents);
     if ($patched !== null && $patched !== $contents) {
         file_put_contents($htaccess, $patched);
     }
