@@ -1,27 +1,116 @@
-# Composer
-/vendor/
-composer.lock
+<?php
 
-# Live config — never commit
-/config/app.php
+declare(strict_types=1);
+use Luster\Core\View;
 
-# Runtime storage
-/storage/logs/*
-!/storage/logs/.gitkeep
-/storage/cache/*
-!/storage/cache/.gitkeep
+/** @var array  $settings     Keyed by setting name to string value */
+/** @var string $success */
+/** @var string $base_url */
+/** @var string $csrf_token */
 
-# User uploads — keep the directory and its .htaccess, not the files
-/public/uploads/*
-!/public/uploads/.htaccess
+$b = rtrim(View::e($base_url ?? ''), '/');
+?>
 
-# Installer sentinel — created at runtime, not committed
-/storage/.installed
+<div class="page-topbar">
+  <a href="<?= $b ?>/admin/import" class="link">&larr; Back to Import Wizard</a>
+</div>
 
-# Test artefacts
-/.phpunit.cache/
-/.phpunit.result.cache
-/coverage/
+<?php if (($success ?? '') !== ''): ?>
+  <div class="alert alert-success"><?= View::e($success) ?></div>
+<?php endif; ?>
 
-# Environment file (if ever adopted)
-.env
+<form method="POST" action="<?= $b ?>/admin/import/settings" class="js-warn-unsaved">
+  <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
+
+  <div class="gradient-card">
+    <div class="pc-head">
+      <div class="pc-head-icon pc-head-icon-bg"><?= View::icon('import') ?></div>
+      <div class="pc-head-meta">
+        <div class="pc-head-title">Import Wizard Settings</div>
+        <div class="pc-head-sub">Choose which import options appear on the first wizard screen.</div>
+      </div>
+    </div>
+
+    <!-- ── Source card visibility ──────────────────────────────────── -->
+    <div class="pc-section">
+      <div class="pc-section-label">Source Card Visibility</div>
+      <p class="form-hint" style="margin-bottom:1rem">
+        After you finish moving data from an old script, you can hide that script's card.
+        This only hides the card from the wizard; it does not delete any imported data.
+      </p>
+
+      <div class="listing-field-row">
+        <label class="listing-field-label">Visible sources</label>
+        <div>
+          <div class="form-group">
+            <label class="toggle-wrap">
+              <input type="checkbox" name="import_show_enthusiast" value="1"
+                     <?= ($settings['import_show_enthusiast'] ?? '1') === '1' ? 'checked' : '' ?>>
+              <span class="toggle-label">Show Enthusiast card</span>
+            </label>
+          </div>
+          <div class="form-group">
+            <label class="toggle-wrap">
+              <input type="checkbox" name="import_show_listing_admin" value="1"
+                     <?= ($settings['import_show_listing_admin'] ?? '1') === '1' ? 'checked' : '' ?>>
+              <span class="toggle-label">Show Listing Admin card</span>
+            </label>
+          </div>
+          <div class="form-group">
+            <label class="toggle-wrap">
+              <input type="checkbox" name="import_show_fanupdate" value="1"
+                     <?= ($settings['import_show_fanupdate'] ?? '1') === '1' ? 'checked' : '' ?>>
+              <span class="toggle-label">Show FanUpdate card</span>
+            </label>
+          </div>
+          <div class="form-group">
+            <label class="toggle-wrap">
+              <input type="checkbox" name="import_show_codesort" value="1"
+                     <?= ($settings['import_show_codesort'] ?? '1') === '1' ? 'checked' : '' ?>>
+              <span class="toggle-label">Show CodeSort card</span>
+            </label>
+          </div>
+          <div class="form-group">
+            <label class="toggle-wrap">
+              <input type="checkbox" name="import_show_bellabuffs" value="1"
+                     <?= ($settings['import_show_bellabuffs'] ?? '1') === '1' ? 'checked' : '' ?>>
+              <span class="toggle-label">Show BellaBuffs card</span>
+            </label>
+          </div>
+          <div class="form-group">
+            <label class="toggle-wrap">
+              <input type="checkbox" name="import_show_fanatically" value="1"
+                     <?= ($settings['import_show_fanatically'] ?? '1') === '1' ? 'checked' : '' ?>>
+              <span class="toggle-label">Show Fanatically card</span>
+            </label>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Config file reader ──────────────────────────────────────── -->
+    <div class="pc-section">
+      <div class="pc-section-label">Config File Reader</div>
+
+      <div class="listing-field-row listing-field-row--top">
+        <label class="listing-field-label">Auto-detect</label>
+        <div>
+          <label class="toggle-wrap">
+            <input type="checkbox" name="import_allow_config_reader" value="1"
+                   <?= ($settings['import_allow_config_reader'] ?? '0') === '1' ? 'checked' : '' ?>>
+            <span class="toggle-label">Allow auto-detect from <code>config.php</code> path</span>
+          </label>
+          <p class="form-hint">
+            Turn this on if you want Luster to read the old script's <code>config.php</code> file and fill in database details for you.
+            Luster reads the file as text; it does not run the file. Leave this off unless you trust the old config file and want the shortcut.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <div class="composer-footer">
+      <button type="submit" class="btn btn-primary">Save Settings</button>
+    </div>
+
+  </div>
+</form>
