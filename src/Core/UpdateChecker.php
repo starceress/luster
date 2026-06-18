@@ -111,6 +111,36 @@ final class UpdateChecker
     }
 
     /**
+     * Returns true when an update notification email should be sent.
+     *
+     * Gated by: email notifications enabled, update available, not already
+     * notified for this specific version.
+     */
+    public function shouldSendNotification(UpdateStatus $status): bool
+    {
+        if ($this->repo->get('update_email_notify') !== '1') {
+            return false;
+        }
+        if (!$status->updateAvailable || $status->latest === null) {
+            return false;
+        }
+        $notifiedVersion = $this->repo->get('update_notified_version');
+        if ($notifiedVersion !== null && $notifiedVersion === $status->latest) {
+            return false;
+        }
+        return true;
+    }
+
+    /**
+     * Records that the admin has been notified about $version so that
+     * shouldSendNotification() returns false for the same version.
+     */
+    public function markNotified(string $version): void
+    {
+        $this->repo->set('update_notified_version', $version);
+    }
+
+    /**
      * Compares two version strings and returns whether $latest is newer than $installed.
      *
      * Returns null when either string is not a recognisable semver-like value

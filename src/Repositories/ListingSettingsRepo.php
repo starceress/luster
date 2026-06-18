@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Luster\Repositories;
 
 use Luster\Core\Database;
+use Luster\Support\SuccessRenderer;
 
 /**
  * Data access for the lstr_fanlisting_settings table.
@@ -164,7 +165,7 @@ final class ListingSettingsRepo
     /**
      * Returns all per-listing template overrides. All values are null when no override is saved.
      *
-     * @return array{stats_template: string|null, members_template: string|null, affiliates_section_template: string|null, updates_template: string|null, codes_submit_form_template: string|null, rules_intro_template: string|null, join_form_template: string|null, affiliate_apply_form_template: string|null, adopt_form_template: string|null}
+     * @return array{stats_template: string|null, members_template: string|null, affiliates_section_template: string|null, updates_template: string|null, codes_submit_form_template: string|null, rules_intro_template: string|null, join_form_template: string|null, affiliate_apply_form_template: string|null, adopt_form_template: string|null, contact_form_template: string|null, contact_sent_template: string|null, update_form_template: string|null, reset_form_template: string|null}
      */
     public function getTemplates(int $listingId): array
     {
@@ -178,14 +179,18 @@ final class ListingSettingsRepo
             'join_form_template'            => null,
             'affiliate_apply_form_template' => null,
             'adopt_form_template'           => null,
+            'contact_form_template'         => null,
+            'contact_sent_template'         => null,
+            'update_form_template'          => null,
+            'reset_form_template'           => null,
         ];
 
         // Try the widest query first; fall back gracefully as migrations are added.
-        // Tier 1 uses codes_submit_form_template and affiliate_apply_form_template
-        // (both added by Migration 70) instead of the retired intro columns.
         $row = false;
 
         foreach ([
+            'stats_template, members_template, affiliates_section_template, updates_template, codes_submit_form_template, rules_intro_template, join_form_template, affiliate_apply_form_template, adopt_form_template, contact_form_template, contact_sent_template, update_form_template, reset_form_template',
+            'stats_template, members_template, affiliates_section_template, updates_template, codes_submit_form_template, rules_intro_template, join_form_template, affiliate_apply_form_template, adopt_form_template, contact_form_template, update_form_template, reset_form_template',
             'stats_template, members_template, affiliates_section_template, updates_template, codes_submit_form_template, rules_intro_template, join_form_template, affiliate_apply_form_template, adopt_form_template',
             'stats_template, members_template, affiliates_section_template, updates_template, rules_intro_template',
             'stats_template, members_template, affiliates_section_template, updates_template',
@@ -221,6 +226,10 @@ final class ListingSettingsRepo
             'join_form_template'            => $col($row, 'join_form_template'),
             'affiliate_apply_form_template' => $col($row, 'affiliate_apply_form_template'),
             'adopt_form_template'           => $col($row, 'adopt_form_template'),
+            'contact_form_template'         => $col($row, 'contact_form_template'),
+            'contact_sent_template'         => $col($row, 'contact_sent_template'),
+            'update_form_template'          => $col($row, 'update_form_template'),
+            'reset_form_template'           => $col($row, 'reset_form_template'),
         ];
     }
 
@@ -414,6 +423,139 @@ final class ListingSettingsRepo
     }
 
     /**
+     * Returns the built-in contact-sent confirmation HTML.
+     * Delegates to SuccessRenderer so the canonical string lives in one place.
+     */
+    public static function defaultContactSentTemplate(): string
+    {
+        return SuccessRenderer::defaultTemplate('contact-sent');
+    }
+
+    /**
+     * Returns the per-listing update-form template string, or null when not set /
+     * when the column has not been added yet.
+     */
+    public function getUpdateFormTemplate(int $listingId): ?string
+    {
+        try {
+            $stmt = $this->db->prepare(
+                'SELECT update_form_template FROM lstr_fanlisting_settings WHERE fanlisting_id = :id'
+            );
+            $stmt->execute(['id' => $listingId]);
+            $row = $stmt->fetch();
+            return ($row !== false && $row['update_form_template'] !== null)
+                ? (string) $row['update_form_template']
+                : null;
+        } catch (\Exception) {
+            return null;
+        }
+    }
+
+    /**
+     * Returns the per-listing reset-form template string, or null when not set /
+     * when the column has not been added yet.
+     */
+    public function getResetFormTemplate(int $listingId): ?string
+    {
+        try {
+            $stmt = $this->db->prepare(
+                'SELECT reset_form_template FROM lstr_fanlisting_settings WHERE fanlisting_id = :id'
+            );
+            $stmt->execute(['id' => $listingId]);
+            $row = $stmt->fetch();
+            return ($row !== false && $row['reset_form_template'] !== null)
+                ? (string) $row['reset_form_template']
+                : null;
+        } catch (\Exception) {
+            return null;
+        }
+    }
+
+    /**
+     * Default Update (edit membership) Form template used when no override is stored.
+     */
+    public static function defaultUpdateFormTemplate(): string
+    {
+        return '<h1>Update Your Details</h1>' . "\n"
+            . '{if_not_signed_in}' . "\n"
+            . '<div class="fl-form-fields">' . "\n"
+            . '{field_signin_email}' . "\n"
+            . '{field_signin_password}' . "\n"
+            . '</div>' . "\n"
+            . '{/if_not_signed_in}' . "\n"
+            . '{if_signed_in}' . "\n"
+            . '<div class="fl-form-fields">' . "\n"
+            . '{field_new_name}' . "\n"
+            . '{field_new_email}' . "\n"
+            . '{additional_fields}' . "\n"
+            . '{field_remove}' . "\n"
+            . '</div>' . "\n"
+            . '{captcha_block}' . "\n"
+            . '<div class="fl-form-actions">' . "\n"
+            . '{submit_button}' . "\n"
+            . '</div>' . "\n"
+            . '{/if_signed_in}';
+    }
+
+    /**
+     * Default Password Reset Form template used when no override is stored.
+     */
+    public static function defaultResetFormTemplate(): string
+    {
+        return '{if_step_email}' . "\n"
+            . '<h1>Reset Your Password</h1>' . "\n"
+            . '<div class="fl-form-fields">' . "\n"
+            . '{field_email}' . "\n"
+            . '{captcha_block}' . "\n"
+            . '</div>' . "\n"
+            . '<div class="fl-form-actions">{submit_button}</div>' . "\n"
+            . '{/if_step_email}' . "\n"
+            . '{if_step_confirm}' . "\n"
+            . '{if_token_valid}' . "\n"
+            . '<h1>Choose a New Password</h1>' . "\n"
+            . '<div class="fl-form-fields">' . "\n"
+            . '{field_new_password}' . "\n"
+            . '{field_new_password_confirm}' . "\n"
+            . '{hidden_token}' . "\n"
+            . '</div>' . "\n"
+            . '<div class="fl-form-actions">{submit_button}</div>' . "\n"
+            . '{/if_token_valid}' . "\n"
+            . '{if_token_invalid}' . "\n"
+            . '<p class="fl-error">This reset link is invalid or has expired. <a href="{reset_request_url}">Request a new one.</a></p>' . "\n"
+            . '{/if_token_invalid}' . "\n"
+            . '{/if_step_confirm}';
+    }
+
+    /**
+     * Returns all listings eligible for adoption (for_adoption = 1, status != 0),
+     * sorted case-insensitively by title.
+     *
+     * @return list<array{id: int, title: string}>
+     */
+    public function getAdoptableListings(\Luster\Repositories\ListingRepo $repo): array
+    {
+        $pdo = $this->db->pdo();
+        try {
+            $stmt = $pdo->prepare(
+                "SELECT o.listingid AS id, o.title
+                   FROM owned o
+                   JOIN lstr_fanlisting_settings s ON s.fanlisting_id = o.listingid
+                  WHERE s.for_adoption = 1 AND o.status != 0
+                  ORDER BY LOWER(o.title)"
+            );
+            $stmt->execute();
+            $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+        } catch (\Exception) {
+            return [];
+        }
+
+        return array_values(array_map(
+            static fn(array $r): array => ['id' => (int) $r['id'], 'title' => (string) $r['title']],
+            $rows,
+        ));
+    }
+
+    /**
      * Returns the per-listing affiliate-apply confirmation template string, or null
      * when not set / when Migration 64 has not been run yet.
      */
@@ -495,7 +637,8 @@ final class ListingSettingsRepo
 
     public static function defaultUpdatesTemplate(): string
     {
-        return '<div class="fl-updates-list">' . "\n"
+        return '{if_updates}' . "\n"
+            . '<div class="fl-updates-list">' . "\n"
             . '{each_update}' . "\n\n"
             . '<div class="fl-update-item">' . "\n"
             . '<h3 class="fl-update-title">{update_title}</h3>' . "\n"
@@ -506,7 +649,9 @@ final class ListingSettingsRepo
             . '<div class="fl-update-body">{update_body_html}</div>' . "\n"
             . '</div>' . "\n\n"
             . '{/each_update}' . "\n"
-            . '</div>';
+            . '</div>' . "\n"
+            . '{/if_updates}' . "\n"
+            . '{if_no_updates}<p class="fl-empty">No updates yet.</p>{/if_no_updates}';
     }
 
     /**

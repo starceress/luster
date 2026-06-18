@@ -1,0 +1,599 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Luster\Tests\Unit;
+
+use Luster\Core\Config;
+use Luster\Core\Database;
+use Luster\Repositories\MemberLinkCheckRepo;
+use Luster\Tests\Unit\Support\SqliteDatabase;
+use PDO;
+use PHPUnit\Framework\TestCase;
+use ReflectionProperty;
+
+final class MemberLinkCheckRepoTest extends TestCase
+{
+    // ── DDL ─────────────────────────────────────────────────────────────────
+
+    private const CHECK_DDL = <<<SQL
+CREATE TABLE lstr_member_link_checks (
+    id                INTEGER PRIMARY KEY AUTOINCREMENT,
+    listing_id        INTEGER NOT NULL,
+    member_email      TEXT    NOT NULL,
+    member_name       TEXT    NOT NULL DEFAULT '',
+    member_url        TEXT    NOT NULL,
+    link_status       TEXT    NOT NULL DEFAULT 'unchecked',
+    link_redirect_url TEXT    NULL,
+    link_checked_at   TEXT    NULL,
+    created_at        TEXT    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE (listing_id, member_email)
+)
+SQL;
+
+    /** Member table for the unprefixed schema — table name = dbprefix (no 'members' suffix). */
+    private const MEMBER_DDL = <<<SQL
+CREATE TABLE test_fl (
+    email   TEXT    PRIMARY KEY,
+    name    TEXT    NOT NULL DEFAULT '',
+    url     TEXT    NOT NULL DEFAULT '',
+    pending INTEGER NOT NULL DEFAULT 0
+)
+SQL;
+
+    /** Member table for the standard enth_ schema — table name = dbprefix + 'members'. */
+    private const ENTH_MEMBER_DDL = <<<SQL
+CREATE TABLE enth_fl_members (
+    email    TEXT    PRIMARY KEY,
+    name     TEXT    NOT NULL DEFAULT '',
+    url      TEXT    NOT NULL DEFAULT '',
+    approved INTEGER NOT NULL DEFAULT 1
+)
+SQL;
+
+    // ── Helpers ─────────────────────────────────────────────────────────────
+
+    private function makeDb(string $extraDdl = ''): Database
+    {
+        $ddl = self::CHECK_DDL;
+        if ($extraDdl !== '') {
+            $ddl .= ';' . $extraDdl;
+        }
+        return SqliteDatabase::make($ddl);
+    }
+
+    private function makeConfig(string $enthPrefix = ''): Config
+    {
+        $tmp = sys_get_temp_dir() . '/lstr_test_cfg_' . uniqid('', true) . '.php';
+        file_put_contents($tmp, '<?php return ' . var_export(['enth_table_prefix' => $enthPrefix], true) . ';');
+        $cfg = new Config($tmp);
+        unlink($tmp);
+        return $cfg;
+    }
+
+    private function makeRepo(Database $db, string $enthPrefix = ''): MemberLinkCheckRepo
+    {
+        return new MemberLinkCheckRepo($db, $this->makeConfig($enthPrefix));
+    }
+
+    /** Inserts a row into the unprefixed member table. */
+    private function insertMember(Database $db, string $email, string $name, string $url, int $pending = 0): void
+    {
+        $db->pdo()->prepare('INSERT INTO test_fl (email, name, url, pending) VALUES (:e, :n, :u, :p)')
+           ->execute(['e' => $email, 'n' => $name, 'u' => $url, 'p' => $pending]);
+    }
+
+    /** Inserts a check record directly (bypasses sync). */
+    private function insertCheck(Database $db, int $listingId, string $email, string $name, string $url, string $status = 'unchecked'): int
+    {
+        $db->pdo()->prepare(
+            'INSERT INTO lstr_member_link_checks (listing_id, member_email, member_name, member_url, link_status) VALUES (:l, :e, :n, :u, :s)'
+        )->execute(['l' => $listingId, 'e' => $email, 'n' => $name, 'u' => $url, 's' => $status]);
+        return (int) $db->pdo()->lastInsertId();
+    }
+
+    // ── syncFromListing (unprefixed schema) ─────────────────────────────────
+
+    public function testSyncFromListingReturnsZeroWhenNoMembersHaveUrl(): void
+    {
+        $db   = $this->makeDb(self::MEMBER_DDL);
+        $repo = $this->makeRepo($db);
+
+        $this->insertMember($db, 'a@test.com', 'Alice', '');
+
+        self::assertSame(0, $repo->syncFromListing(1, 'test_fl'));
+    }
+
+    public function testSyncFromListingInsertsApprovedMembersWithUrl(): void
+    {
+        $db   = $this->makeDb(self::MEMBER_DDL);
+        $repo = $this->makeRepo($db);
+
+        $this->insertMember($db, 'a@test.com', 'Alice', 'https://alice.test');
+        $this->insertMember($db, 'b@test.com', 'Bob',   'https://bob.test');
+
+        $count = $repo->syncFromListing(1, 'test_fl');
+
+        self::assertSame(2, $count);
+        $items = $repo->paginate(1, '', '', 'member_name', 'asc', 100, 1)['items'];
+        self::assertCount(2, $items);
+    }
+
+    public function testSyncFromListingSkipsPendingMembers(): void
+    {
+        $db   = $this->makeDb(self::MEMBER_DDL);
+        $repo = $this->makeRepo($db);
+
+        $this->insertMember($db, 'a@test.com', 'Alice', 'https://alice.test', 1); // pending
+        $this->insertMember($db, 'b@test.com', 'Bob',   'https://bob.test',   0); // approved
+
+        $count = $repo->syncFromListing(1, 'test_fl');
+
+        self::assertSame(1, $count);
+    }
+
+    public function testSyncFromListingClearsPreviousRecords(): void
+    {
+        $db   = $this->makeDb(self::MEMBER_DDL);
+        $repo = $this->makeRepo($db);
+
+        // First sync
+        $this->insertMember($db, 'a@test.com', 'Alice', 'https://alice.test');
+        $repo->syncFromListing(1, 'test_fl');
+        self::assertSame(1, $repo->paginate(1, '', '', 'member_name', 'asc', 100, 1)['total']);
+
+        // Remove Alice's URL, add Bob — second sync should give a fresh snapshot
+        $db->pdo()->exec("UPDATE test_fl SET url = '' WHERE email = 'a@test.com'");
+        $this->insertMember($db, 'b@test.com', 'Bob', 'https://bob.test');
+
+        $count = $repo->syncFromListing(1, 'test_fl');
+
+        self::assertSame(1, $count);
+        $items = $repo->paginate(1, '', '', 'member_name', 'asc', 100, 1)['items'];
+        self::assertCount(1, $items);
+        self::assertSame('Bob', $items[0]->member_name);
+    }
+
+    // ── syncFromListing (standard enth_ schema) ──────────────────────────────
+
+    public function testSyncFromListingStandardSchemaUsesApprovedColumn(): void
+    {
+        $db   = $this->makeDb(self::ENTH_MEMBER_DDL);
+        $repo = $this->makeRepo($db, 'enth_');
+
+        // enth_ schema: approved=1 means approved; table name = prefix + 'members'
+        $db->pdo()->prepare(
+            'INSERT INTO enth_fl_members (email, name, url, approved) VALUES (:e, :n, :u, :a)'
+        )->execute(['e' => 'c@test.com', 'n' => 'Carol', 'u' => 'https://carol.test', 'a' => 1]);
+        $db->pdo()->prepare(
+            'INSERT INTO enth_fl_members (email, name, url, approved) VALUES (:e, :n, :u, :a)'
+        )->execute(['e' => 'd@test.com', 'n' => 'Dave',  'u' => 'https://dave.test',  'a' => 0]); // not approved
+
+        $count = $repo->syncFromListing(5, 'enth_fl_');
+
+        self::assertSame(1, $count);
+        $items = $repo->paginate(5, '', '', 'member_name', 'asc', 100, 1)['items'];
+        self::assertSame('Carol', $items[0]->member_name);
+    }
+
+    // ── getById ─────────────────────────────────────────────────────────────
+
+    public function testGetByIdReturnsNullWhenNotFound(): void
+    {
+        $db   = $this->makeDb();
+        $repo = $this->makeRepo($db);
+
+        self::assertNull($repo->getById(999));
+    }
+
+    public function testGetByIdReturnsRow(): void
+    {
+        $db   = $this->makeDb();
+        $repo = $this->makeRepo($db);
+
+        $id  = $this->insertCheck($db, 1, 'e@test.com', 'Eve', 'https://eve.test');
+        $row = $repo->getById($id);
+
+        self::assertNotNull($row);
+        self::assertSame('Eve', $row->member_name);
+        self::assertSame('https://eve.test', $row->member_url);
+    }
+
+    // ── paginate ─────────────────────────────────────────────────────────────
+
+    public function testPaginateReturnsEmptyWhenNoRows(): void
+    {
+        $db     = $this->makeDb();
+        $repo   = $this->makeRepo($db);
+        $result = $repo->paginate(1, '', '', 'member_name', 'asc', 10, 1);
+
+        self::assertSame([], $result['items']);
+        self::assertSame(0, $result['total']);
+    }
+
+    public function testPaginateFiltersToCorrectListing(): void
+    {
+        $db   = $this->makeDb();
+        $repo = $this->makeRepo($db);
+
+        $this->insertCheck($db, 1, 'a@test.com', 'Alice', 'https://a.test');
+        $this->insertCheck($db, 2, 'b@test.com', 'Bob',   'https://b.test');
+
+        $result = $repo->paginate(1, '', '', 'member_name', 'asc', 10, 1);
+
+        self::assertSame(1, $result['total']);
+        self::assertSame('Alice', $result['items'][0]->member_name);
+    }
+
+    public function testPaginateFiltersOnStatus(): void
+    {
+        $db   = $this->makeDb();
+        $repo = $this->makeRepo($db);
+
+        $this->insertCheck($db, 1, 'a@test.com', 'Alice', 'https://a.test', 'ok');
+        $this->insertCheck($db, 1, 'b@test.com', 'Bob',   'https://b.test', 'dead');
+
+        $result = $repo->paginate(1, 'ok', '', 'member_name', 'asc', 10, 1);
+
+        self::assertSame(1, $result['total']);
+        self::assertSame('Alice', $result['items'][0]->member_name);
+    }
+
+    public function testPaginateSearchMatchesName(): void
+    {
+        $db   = $this->makeDb();
+        $repo = $this->makeRepo($db);
+
+        $this->insertCheck($db, 1, 'a@test.com', 'Alice Wonder', 'https://a.test');
+        $this->insertCheck($db, 1, 'b@test.com', 'Bob Builder',  'https://b.test');
+
+        $result = $repo->paginate(1, '', 'Alice', 'member_name', 'asc', 10, 1);
+
+        self::assertSame(1, $result['total']);
+    }
+
+    public function testPaginateSearchMatchesEmail(): void
+    {
+        $db   = $this->makeDb();
+        $repo = $this->makeRepo($db);
+
+        $this->insertCheck($db, 1, 'unique@test.com', 'Alice', 'https://a.test');
+        $this->insertCheck($db, 1, 'other@test.com',  'Bob',   'https://b.test');
+
+        $result = $repo->paginate(1, '', 'unique', 'member_name', 'asc', 10, 1);
+
+        self::assertSame(1, $result['total']);
+    }
+
+    public function testPaginateRespectsPaging(): void
+    {
+        $db   = $this->makeDb();
+        $repo = $this->makeRepo($db);
+
+        for ($i = 1; $i <= 5; $i++) {
+            $this->insertCheck($db, 1, "m{$i}@test.com", "Member{$i}", "https://m{$i}.test");
+        }
+
+        $page1 = $repo->paginate(1, '', '', 'member_name', 'asc', 3, 1);
+        $page2 = $repo->paginate(1, '', '', 'member_name', 'asc', 3, 2);
+
+        self::assertSame(5, $page1['total']);
+        self::assertCount(3, $page1['items']);
+        self::assertCount(2, $page2['items']);
+    }
+
+    // ── getLinkStats ─────────────────────────────────────────────────────────
+
+    public function testGetLinkStatsReturnsZerosWhenEmpty(): void
+    {
+        $db   = $this->makeDb();
+        $repo = $this->makeRepo($db);
+
+        $stats = $repo->getLinkStats(1);
+
+        self::assertSame(['ok' => 0, 'dead' => 0, 'redirect' => 0, 'unchecked' => 0], $stats);
+    }
+
+    public function testGetLinkStatsCountsByStatus(): void
+    {
+        $db   = $this->makeDb();
+        $repo = $this->makeRepo($db);
+
+        $this->insertCheck($db, 1, 'a@test.com', 'Alice', 'https://a.test', 'ok');
+        $this->insertCheck($db, 1, 'b@test.com', 'Bob',   'https://b.test', 'dead');
+        $this->insertCheck($db, 1, 'c@test.com', 'Carol', 'https://c.test', 'redirect');
+        $this->insertCheck($db, 1, 'd@test.com', 'Dave',  'https://d.test', 'unchecked');
+        $this->insertCheck($db, 2, 'e@test.com', 'Eve',   'https://e.test', 'dead'); // different listing
+
+        $stats = $repo->getLinkStats(1);
+
+        self::assertSame(1, $stats['ok']);
+        self::assertSame(1, $stats['dead']);
+        self::assertSame(1, $stats['redirect']);
+        self::assertSame(1, $stats['unchecked']);
+    }
+
+    // ── getAllIds ─────────────────────────────────────────────────────────────
+
+    public function testGetAllIdsReturnsEmptyArrayWhenNone(): void
+    {
+        $db   = $this->makeDb();
+        $repo = $this->makeRepo($db);
+
+        self::assertSame([], $repo->getAllIds(1));
+    }
+
+    public function testGetAllIdsReturnsIdsForListing(): void
+    {
+        $db   = $this->makeDb();
+        $repo = $this->makeRepo($db);
+
+        $id1 = $this->insertCheck($db, 1, 'a@test.com', 'Alice', 'https://a.test');
+        $id2 = $this->insertCheck($db, 1, 'b@test.com', 'Bob',   'https://b.test');
+        $this->insertCheck($db, 2, 'c@test.com', 'Carol', 'https://c.test'); // different listing
+
+        $ids = $repo->getAllIds(1);
+
+        self::assertSame([$id1, $id2], array_values(array_map('intval', $ids)));
+    }
+
+    // ── getByLinkStatus ──────────────────────────────────────────────────────
+
+    public function testGetByLinkStatusReturnsMatchingRows(): void
+    {
+        $db   = $this->makeDb();
+        $repo = $this->makeRepo($db);
+
+        $this->insertCheck($db, 1, 'a@test.com', 'Alice', 'https://a.test', 'redirect');
+        $this->insertCheck($db, 1, 'b@test.com', 'Bob',   'https://b.test', 'ok');
+
+        $results = $repo->getByLinkStatus('redirect', 1);
+
+        self::assertCount(1, $results);
+        self::assertSame('Alice', $results[0]->member_name);
+    }
+
+    public function testGetByLinkStatusExcludesOtherListings(): void
+    {
+        $db   = $this->makeDb();
+        $repo = $this->makeRepo($db);
+
+        $this->insertCheck($db, 1, 'a@test.com', 'Alice', 'https://a.test', 'dead');
+        $this->insertCheck($db, 2, 'b@test.com', 'Bob',   'https://b.test', 'dead');
+
+        self::assertCount(1, $repo->getByLinkStatus('dead', 1));
+    }
+
+    // ── updateLinkStatus ─────────────────────────────────────────────────────
+
+    public function testUpdateLinkStatusChangesStatusAndSetsCheckedAt(): void
+    {
+        $db   = $this->makeDb();
+        $repo = $this->makeRepo($db);
+
+        $id = $this->insertCheck($db, 1, 'a@test.com', 'Alice', 'https://a.test');
+        $repo->updateLinkStatus($id, 'ok', null);
+
+        $row = $repo->getById($id);
+        self::assertSame('ok', $row->link_status);
+        self::assertNull($row->link_redirect_url);
+        self::assertNotNull($row->link_checked_at);
+    }
+
+    public function testUpdateLinkStatusStoresRedirectUrl(): void
+    {
+        $db   = $this->makeDb();
+        $repo = $this->makeRepo($db);
+
+        $id = $this->insertCheck($db, 1, 'a@test.com', 'Alice', 'https://old.test');
+        $repo->updateLinkStatus($id, 'redirect', 'https://new.test');
+
+        $row = $repo->getById($id);
+        self::assertSame('redirect', $row->link_status);
+        self::assertSame('https://new.test', $row->link_redirect_url);
+    }
+
+    // ── applyRedirectUrl ─────────────────────────────────────────────────────
+
+    public function testApplyRedirectUrlReturnsFalseWhenNotRedirect(): void
+    {
+        $db   = $this->makeDb(self::MEMBER_DDL);
+        $repo = $this->makeRepo($db);
+
+        $id = $this->insertCheck($db, 1, 'a@test.com', 'Alice', 'https://a.test', 'ok');
+
+        self::assertFalse($repo->applyRedirectUrl($id, 'test_fl'));
+    }
+
+    public function testApplyRedirectUrlReturnsFalseWhenNoRedirectUrlStored(): void
+    {
+        $db   = $this->makeDb(self::MEMBER_DDL);
+        $repo = $this->makeRepo($db);
+
+        $id = $this->insertCheck($db, 1, 'a@test.com', 'Alice', 'https://a.test', 'redirect');
+        // link_redirect_url is NULL
+
+        self::assertFalse($repo->applyRedirectUrl($id, 'test_fl'));
+    }
+
+    public function testApplyRedirectUrlUpdatesCheckTableAndMemberTable(): void
+    {
+        $db   = $this->makeDb(self::MEMBER_DDL);
+        $repo = $this->makeRepo($db);
+
+        $this->insertMember($db, 'a@test.com', 'Alice', 'https://old.test');
+        $id = $this->insertCheck($db, 1, 'a@test.com', 'Alice', 'https://old.test', 'redirect');
+
+        // Store redirect target
+        $db->pdo()->prepare(
+            "UPDATE lstr_member_link_checks SET link_redirect_url = 'https://new.test' WHERE id = :id"
+        )->execute(['id' => $id]);
+
+        $result = $repo->applyRedirectUrl($id, 'test_fl');
+
+        self::assertTrue($result);
+
+        // Check table should have new URL and 'unchecked' status
+        $checkRow = $repo->getById($id);
+        self::assertSame('https://new.test', $checkRow->member_url);
+        self::assertSame('unchecked', $checkRow->link_status);
+        self::assertNull($checkRow->link_redirect_url);
+        self::assertNull($checkRow->link_checked_at);
+
+        // Member table should also have the new URL
+        $memberRow = $db->pdo()->query("SELECT url FROM test_fl WHERE email = 'a@test.com'")->fetch();
+        self::assertSame('https://new.test', $memberRow['url']);
+    }
+
+    // ── resetLinkStatus ──────────────────────────────────────────────────────
+
+    public function testResetLinkStatusResetsAllToUnchecked(): void
+    {
+        $db   = $this->makeDb();
+        $repo = $this->makeRepo($db);
+
+        $id1 = $this->insertCheck($db, 1, 'a@test.com', 'Alice', 'https://a.test', 'ok');
+        $id2 = $this->insertCheck($db, 1, 'b@test.com', 'Bob',   'https://b.test', 'dead');
+        $id3 = $this->insertCheck($db, 2, 'c@test.com', 'Carol', 'https://c.test', 'ok'); // different listing
+
+        // Set redirect URLs and checked times on id1 and id2
+        $db->pdo()->exec("UPDATE lstr_member_link_checks SET link_redirect_url = 'x', link_checked_at = '2026-01-01' WHERE listing_id = 1");
+
+        $repo->resetLinkStatus(1);
+
+        $row1 = $repo->getById($id1);
+        self::assertSame('unchecked', $row1->link_status);
+        self::assertNull($row1->link_redirect_url);
+        self::assertNull($row1->link_checked_at);
+
+        $row2 = $repo->getById($id2);
+        self::assertSame('unchecked', $row2->link_status);
+
+        // Listing 2 should be untouched
+        $row3 = $repo->getById($id3);
+        self::assertSame('ok', $row3->link_status);
+    }
+
+    // ── clearListing ────────────────────────────────────────────────────────
+
+    public function testClearListingDeletesOnlyThatListing(): void
+    {
+        $db   = $this->makeDb();
+        $repo = $this->makeRepo($db);
+
+        $this->insertCheck($db, 1, 'a@test.com', 'Alice', 'https://a.test');
+        $this->insertCheck($db, 1, 'b@test.com', 'Bob',   'https://b.test');
+        $id3 = $this->insertCheck($db, 2, 'c@test.com', 'Carol', 'https://c.test');
+
+        $repo->clearListing(1);
+
+        self::assertSame(0, $repo->paginate(1, '', '', 'member_name', 'asc', 100, 1)['total']);
+        self::assertNotNull($repo->getById($id3));
+    }
+
+    // ── upsertMember ────────────────────────────────────────────────────────
+
+    public function testUpsertMemberInsertsNewRow(): void
+    {
+        $db   = $this->makeDb();
+        $repo = $this->makeRepo($db);
+
+        $repo->upsertMember(1, 'a@test.com', 'Alice', 'https://a.test');
+
+        $result = $repo->paginate(1, '', '', 'member_name', 'asc', 10, 1);
+        self::assertSame(1, $result['total']);
+        $row = $result['items'][0];
+        self::assertSame('Alice', $row->member_name);
+        self::assertSame('https://a.test', $row->member_url);
+        self::assertSame('unchecked', $row->link_status);
+    }
+
+    public function testUpsertMemberUpdatesExistingRowName(): void
+    {
+        $db   = $this->makeDb();
+        $repo = $this->makeRepo($db);
+
+        $id = $this->insertCheck($db, 1, 'a@test.com', 'Alice', 'https://a.test', 'ok');
+
+        $repo->upsertMember(1, 'a@test.com', 'Alice Updated', 'https://a.test');
+
+        $row = $repo->getById($id);
+        self::assertSame('Alice Updated', $row->member_name);
+        self::assertSame('ok', $row->link_status); // URL unchanged — status preserved
+    }
+
+    public function testUpsertMemberResetsStatusWhenUrlChanges(): void
+    {
+        $db   = $this->makeDb();
+        $repo = $this->makeRepo($db);
+
+        $id = $this->insertCheck($db, 1, 'a@test.com', 'Alice', 'https://old.test', 'ok');
+        // Manually set a redirect URL and checked_at
+        $db->pdo()->exec("UPDATE lstr_member_link_checks SET link_redirect_url = 'https://r.test', link_checked_at = '2026-01-01' WHERE id = {$id}");
+
+        $repo->upsertMember(1, 'a@test.com', 'Alice', 'https://new.test');
+
+        $row = $repo->getById($id);
+        self::assertSame('https://new.test', $row->member_url);
+        self::assertSame('unchecked', $row->link_status);
+        self::assertNull($row->link_redirect_url);
+        self::assertNull($row->link_checked_at);
+    }
+
+    public function testUpsertMemberDoesNotAffectOtherListings(): void
+    {
+        $db   = $this->makeDb();
+        $repo = $this->makeRepo($db);
+
+        $id2 = $this->insertCheck($db, 2, 'a@test.com', 'Alice', 'https://a.test', 'ok');
+
+        $repo->upsertMember(1, 'a@test.com', 'Alice', 'https://new.test');
+
+        // Listing 2 row should be untouched
+        $row2 = $repo->getById($id2);
+        self::assertSame('https://a.test', $row2->member_url);
+        self::assertSame('ok', $row2->link_status);
+
+        // Listing 1 should have the new row
+        $result1 = $repo->paginate(1, '', '', 'member_name', 'asc', 10, 1);
+        self::assertSame(1, $result1['total']);
+    }
+
+    // ── removeMember ────────────────────────────────────────────────────────
+
+    public function testRemoveMemberDeletesTheRow(): void
+    {
+        $db   = $this->makeDb();
+        $repo = $this->makeRepo($db);
+
+        $id = $this->insertCheck($db, 1, 'a@test.com', 'Alice', 'https://a.test');
+
+        $repo->removeMember(1, 'a@test.com');
+
+        self::assertNull($repo->getById($id));
+    }
+
+    public function testRemoveMemberIsNoOpWhenRowMissing(): void
+    {
+        $db   = $this->makeDb();
+        $repo = $this->makeRepo($db);
+
+        // Should not throw
+        $repo->removeMember(1, 'nobody@test.com');
+        self::assertSame(0, $repo->paginate(1, '', '', 'member_name', 'asc', 10, 1)['total']);
+    }
+
+    public function testRemoveMemberDoesNotAffectOtherListings(): void
+    {
+        $db   = $this->makeDb();
+        $repo = $this->makeRepo($db);
+
+        $id1 = $this->insertCheck($db, 1, 'a@test.com', 'Alice', 'https://a.test');
+        $id2 = $this->insertCheck($db, 2, 'a@test.com', 'Alice', 'https://a.test');
+
+        $repo->removeMember(1, 'a@test.com');
+
+        self::assertNull($repo->getById($id1));
+        self::assertNotNull($repo->getById($id2));
+    }
+}

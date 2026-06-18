@@ -116,6 +116,12 @@ final class UpdatesPublicController
 
     private static function buildUpdatesHtml(array $updates, string $template): string
     {
+        $hasUpdates = count($updates) > 0;
+        $template = TemplateEngine::conditionals($template, [
+            'updates'    => $hasUpdates,
+            'no_updates' => !$hasUpdates,
+        ]);
+
         return TemplateEngine::loop(
             $template,
             'update',

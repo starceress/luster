@@ -56,6 +56,7 @@ final class FeedbackController extends AdminController
         $message      = trim((string) $request->post('message',       ''));
         $contactName  = trim((string) $request->post('contact_name',  ''));
         $contactEmail = trim((string) $request->post('contact_email', ''));
+        $contactUrl   = trim((string) $request->post('contact_url',   ''));
         $includeSysinfo  = $request->post('include_sysinfo',  '') === '1';
         $includeErrorlog = $request->post('include_errorlog', '') === '1';
 
@@ -65,11 +66,12 @@ final class FeedbackController extends AdminController
             'message'          => $message,
             'contact_name'     => $contactName,
             'contact_email'    => $contactEmail,
+            'contact_url'      => $contactUrl,
             'include_sysinfo'  => $includeSysinfo  ? '1' : '',
             'include_errorlog' => $includeErrorlog ? '1' : '',
         ];
 
-        $fieldErrors = $this->validateFields($type, $subject, $message, $contactName, $contactEmail);
+        $fieldErrors = $this->validateFields($type, $subject, $message, $contactName, $contactEmail, $contactUrl);
         $viewData    = $this->gatherViewData();
 
         if ($fieldErrors !== []) {
@@ -134,6 +136,7 @@ final class FeedbackController extends AdminController
         string $message,
         string $contactName,
         string $contactEmail,
+        string $contactUrl = '',
     ): array {
         $errors = [];
 
@@ -153,6 +156,9 @@ final class FeedbackController extends AdminController
             $errors['contact_email'] = 'Please enter your email address.';
         } elseif (!filter_var($contactEmail, FILTER_VALIDATE_EMAIL)) {
             $errors['contact_email'] = 'Please enter a valid email address.';
+        }
+        if ($contactUrl !== '' && !preg_match('/^https?:\/\//i', $contactUrl)) {
+            $errors['contact_url'] = 'The URL must start with http:// or https://.';
         }
 
         return $errors;

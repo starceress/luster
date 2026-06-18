@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Luster\Repositories;
 
 use Luster\Core\Database;
-use Luster\Core\FieldWrapper;
 use Luster\Support\SuccessRenderer;
 
 /**
@@ -68,7 +67,7 @@ class SiteSettingsRepo
      * Shared by the admin collective page and the embed files so
      * both always show the same fallback markup.
      *
-     * @return array{owned_template: string, joined_template: string, collective_stats_template: string, collective_affiliates_section_template: string, random_listing_template: string, latest_listing_template: string, random_joined_listing_template: string, latest_joined_listing_template: string, collective_affiliate_apply_form_template: string, kim_signup_form_template: string, wishlist_template: string, collective_updates_template: string, collective_codes_template: string, collective_codes_submit_form_template: string, collective_field_wrapper_template: string, collective_contact_sent_template: string}
+     * @return array{owned_template: string, joined_template: string, collective_stats_template: string, collective_affiliates_section_template: string, random_listing_template: string, latest_listing_template: string, random_joined_listing_template: string, latest_joined_listing_template: string, collective_affiliate_apply_form_template: string, kim_signup_form_template: string, wishlist_template: string, collective_updates_template: string, collective_codes_template: string, collective_codes_submit_form_template: string, collective_contact_sent_template: string, collective_adoption_form_template: string, collective_kim_list_overview_template: string, collective_kim_list_subject_template: string, kim_update_form_template: string, kim_reset_form_template: string}
      */
     public static function collectiveDefaults(): array
     {
@@ -182,8 +181,12 @@ class SiteSettingsRepo
             'collective_updates_template'                => self::defaultCollectiveUpdatesTemplate(),
             'collective_codes_template'                  => self::defaultCollectiveCodesTemplate(),
             'collective_codes_submit_form_template'      => self::defaultCollectiveCodesSubmitFormTemplate(),
-            'collective_field_wrapper_template'          => FieldWrapper::defaultTemplate(),
             'collective_contact_sent_template'           => SuccessRenderer::defaultTemplate('contact-sent'),
+            'collective_adoption_form_template'          => self::defaultCollectiveAdoptionFormTemplate(),
+            'collective_kim_list_overview_template'      => self::defaultCollectiveKimListOverviewTemplate(),
+            'collective_kim_list_subject_template'       => self::defaultCollectiveKimListSubjectTemplate(),
+            'kim_update_form_template'                   => self::defaultKimUpdateFormTemplate(),
+            'kim_reset_form_template'                    => self::defaultKimResetFormTemplate(),
         ];
     }
 
@@ -304,6 +307,113 @@ HTML;
             . '{submit_button}' . "\n"
             . '{clear_button}' . "\n"
             . '</div>';
+    }
+
+    /**
+     * Default Collective Adoption Application Form template.
+     */
+    public static function defaultCollectiveAdoptionFormTemplate(): string
+    {
+        return '<h1>Adopt a Listing</h1>' . "\n"
+            . '<div class="fl-form-fields">' . "\n"
+            . '{field_listing_id}' . "\n"
+            . '{field_name}' . "\n"
+            . '{field_email}' . "\n"
+            . '{field_url}' . "\n"
+            . '{field_message}' . "\n"
+            . '{captcha_block}' . "\n"
+            . '</div>' . "\n"
+            . '<div class="fl-form-actions">' . "\n"
+            . '{submit_button}' . "\n"
+            . '{clear_button}' . "\n"
+            . '</div>';
+    }
+
+    /**
+     * Default KIM list overview template (shows all fanlistings with KIM sign-up counts).
+     */
+    public static function defaultCollectiveKimListOverviewTemplate(): string
+    {
+        return '{if_has_listings}' . "\n"
+            . '<ul class="fl-kim-overview-list">' . "\n"
+            . '{each_kim_listing}' . "\n"
+            . '<li class="fl-kim-overview-item"><a href="{listing_kim_url}">{listing_subject}</a> ({listing_kim_count})</li>' . "\n"
+            . '{/each_kim_listing}' . "\n"
+            . '</ul>' . "\n"
+            . '{/if_has_listings}' . "\n"
+            . '{if_no_listings}' . "\n"
+            . '<p class="fl-empty">No KIM sign-ups yet.</p>' . "\n"
+            . '{/if_no_listings}';
+    }
+
+    /**
+     * Default KIM list subject template (shows approved KIM members for a fanlisting).
+     */
+    public static function defaultCollectiveKimListSubjectTemplate(): string
+    {
+        return '<h2>{listing_subject}</h2>' . "\n"
+            . '{if_has_kim_members}' . "\n"
+            . '<ul class="fl-kim-member-list">' . "\n"
+            . '{each_kim_member}' . "\n"
+            . '<li class="fl-kim-member-item">'
+            . '{if_member_url}<a href="{member_url}" rel="noopener noreferrer">{member_name}</a>{/if_member_url}'
+            . '{if_no_member_url}{member_name}{/if_no_member_url}'
+            . '</li>' . "\n"
+            . '{/each_kim_member}' . "\n"
+            . '</ul>' . "\n"
+            . '{/if_has_kim_members}' . "\n"
+            . '{if_no_kim_members}' . "\n"
+            . '<p class="fl-empty">No one has signed up yet.</p>' . "\n"
+            . '{/if_no_kim_members}';
+    }
+
+    /**
+     * Default KIM Update (edit membership) Form template.
+     */
+    public static function defaultKimUpdateFormTemplate(): string
+    {
+        return '<h1>Update Your KIM Details</h1>' . "\n"
+            . '<div class="fl-form-fields">' . "\n"
+            . '{field_name}' . "\n"
+            . '{field_current_email}' . "\n"
+            . '{field_current_password}' . "\n"
+            . '{field_fanlisting_id}' . "\n"
+            . '</div>' . "\n"
+            . '<div class="fl-form-actions">' . "\n"
+            . '{submit_button}' . "\n"
+            . '</div>' . "\n"
+            . '{if_lost_password_url}'
+            . '<p class="fl-form-hint"><a href="{lost_password_url}">Forgot your password?</a></p>'
+            . '{/if_lost_password_url}';
+    }
+
+    /**
+     * Default KIM Password Reset Form template.
+     */
+    public static function defaultKimResetFormTemplate(): string
+    {
+        return '{if_step_email}' . "\n"
+            . '<h1>Reset Your KIM Password</h1>' . "\n"
+            . '<div class="fl-form-fields">' . "\n"
+            . '{field_email}' . "\n"
+            . '{field_fanlisting_id}' . "\n"
+            . '</div>' . "\n"
+            . '<div class="fl-form-actions">{submit_button}</div>' . "\n"
+            . '{/if_step_email}' . "\n"
+            . '{if_step_confirm}' . "\n"
+            . '{if_token_valid}' . "\n"
+            . '<h1>Choose a New KIM Password</h1>' . "\n"
+            . '<div class="fl-form-fields">' . "\n"
+            . '{field_password}' . "\n"
+            . '{field_password_confirm}' . "\n"
+            . '{hidden_token}' . "\n"
+            . '</div>' . "\n"
+            . '<div class="fl-form-actions">{submit_button}</div>' . "\n"
+            . '{/if_token_valid}' . "\n"
+            . '{if_token_invalid}' . "\n"
+            . '<p class="fl-error">This reset link is invalid or has expired. <a href="{reset_request_url}">Request a new one.</a></p>' . "\n"
+            . '{/if_token_invalid}' . "\n"
+            . '{/if_step_confirm}';
     }
 
     /**
