@@ -1731,11 +1731,18 @@ final class ListingController extends AdminController
             return '<p style="font-style:italic;color:#888">Updates add-on is not installed.</p>';
         }
 
-        $sample = !empty($updates)
-            ? \Luster\Addons\Updates\Controllers\UpdatesPublicController::buildUpdatesHtmlPublic($updates, $tpl)
-            : \Luster\Addons\Updates\Controllers\UpdatesPublicController::buildUpdatesHtmlPublic(SampleTemplateData::updates(), $tpl);
+        $tplResolved = str_replace(
+            ['{listing_title}', '{listing_subject}'],
+            [
+                htmlspecialchars((string) $listing->title,   ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),
+                htmlspecialchars((string) ($listing->subject ?? $listing->title), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),
+            ],
+            $tpl,
+        );
 
-        $empty = \Luster\Addons\Updates\Controllers\UpdatesPublicController::buildUpdatesHtmlPublic([], $tpl);
+        $sampleUpdates = !empty($updates) ? $updates : SampleTemplateData::updates();
+        $sample = \Luster\Addons\Updates\Controllers\UpdatesPublicController::buildUpdatesHtmlPublic($sampleUpdates, $tplResolved);
+        $empty  = \Luster\Addons\Updates\Controllers\UpdatesPublicController::buildUpdatesHtmlPublic([], $tplResolved);
         if (trim($empty) === '') {
             $empty = '<p style="font-style:italic;color:#888">No updates posted for this listing yet.</p>';
         }
@@ -2470,8 +2477,14 @@ final class ListingController extends AdminController
      */
     private function gtplPreviewUpdates(string $tpl): string
     {
-        $sample = \Luster\Addons\Updates\Controllers\UpdatesPublicController::buildUpdatesHtmlPublic(SampleTemplateData::updates(), $tpl);
-        $empty  = \Luster\Addons\Updates\Controllers\UpdatesPublicController::buildUpdatesHtmlPublic([], $tpl);
+        $tplResolved = str_replace(
+            ['{listing_title}', '{listing_subject}'],
+            ['Sample Fanlisting', 'Sample Subject'],
+            $tpl,
+        );
+
+        $sample = \Luster\Addons\Updates\Controllers\UpdatesPublicController::buildUpdatesHtmlPublic(SampleTemplateData::updates(), $tplResolved);
+        $empty  = \Luster\Addons\Updates\Controllers\UpdatesPublicController::buildUpdatesHtmlPublic([], $tplResolved);
 
         if (trim($empty) === '') {
             $empty = '<p style="font-style:italic;color:#888">No updates posted yet.</p>';

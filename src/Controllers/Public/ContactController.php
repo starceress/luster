@@ -121,7 +121,7 @@ final class ContactController
             $hpTpl        = ($hpPerListing !== null && $hpPerListing !== '') ? $hpPerListing
                           : (($hpGlobal !== null && $hpGlobal !== '') ? $hpGlobal : '');
             $session->set('lstr_flash_success_html', SuccessRenderer::render($hpTpl, 'contact-sent', [
-                'sender_name' => trim((string) $request->post('name', '')),
+                'sender_name' => trim((string) $request->post('name', '')) ?: 'there',
             ]));
             return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $fallbackUrl);
         }
@@ -266,7 +266,7 @@ final class ContactController
             $session->remove('lstr_embed_return_to');
             $collectiveContactSentTpl = $siteRepo->get('collective_contact_sent_template') ?? '';
             $session->set('lstr_flash_success_html', SuccessRenderer::render($collectiveContactSentTpl, 'contact-sent', [
-                'sender_name' => trim((string) $request->post('name', '')),
+                'sender_name' => trim((string) $request->post('name', '')) ?: 'there',
             ]));
             return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $fallbackUrl);
         }

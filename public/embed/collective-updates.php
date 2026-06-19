@@ -95,8 +95,13 @@ $_lusterUpdatesTemplateHtml = null;
 $_lusterUpdatesTemplate     = $_lusterSiteRepo->get('collective_updates_template');
 
 if ($_lusterUpdatesTemplate !== null && trim($_lusterUpdatesTemplate) !== '') {
+    $tplForLoop = TemplateEngine::conditionals($_lusterUpdatesTemplate, [
+        'updates'    => count($_lusterUpdates) > 0,
+        'no_updates' => count($_lusterUpdates) === 0,
+    ]);
+
     $_lusterUpdatesTemplateHtml = TemplateEngine::loop(
-        $_lusterUpdatesTemplate,
+        $tplForLoop,
         'update',
         $_lusterUpdates,
         static function (string $inner, object $update): string {

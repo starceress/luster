@@ -307,6 +307,8 @@ HTML;
     public static function defaultCollectiveUpdatesTemplate(): string
     {
         return '<div class="fl-updates-list">' . "\n"
+            . '{if_no_updates}<p>No updates posted yet.</p>{/if_no_updates}' . "\n"
+            . '{if_updates}' . "\n"
             . '{each_update}' . "\n"
             . "\n"
             . '<div class="fl-update-item">' . "\n"
@@ -321,6 +323,7 @@ HTML;
             . '</div>' . "\n"
             . "\n"
             . '{/each_update}' . "\n"
+            . '{/if_updates}' . "\n"
             . '</div>';
     }
 
