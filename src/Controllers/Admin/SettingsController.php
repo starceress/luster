@@ -18,7 +18,9 @@ use Luster\Core\TemplateEngine;
 use Luster\Core\UpdateChecker;
 use Luster\Core\Validator;
 use Luster\Core\View;
+use Luster\Addons\Updates\Controllers\UpdatesPublicController as UpdatesPreviewHelper;
 use Luster\Support\AffiliateRowRenderer;
+use Luster\Support\SampleTemplateData;
 use Luster\Support\CollectiveFormUrlResolver;
 use Luster\Support\FormTemplateRenderer;
 use Luster\Repositories\ActivityRepo;
@@ -1016,41 +1018,22 @@ final class SettingsController extends AdminController
             return '<p style="font-style:italic;color:#888">The Update Feed add-on is not installed.</p>';
         }
 
-        $updates = (new UpdateRepo($db))->getCollective(1, 5);
+        $liveUpdates   = (new UpdateRepo($db))->getCollective(1, 5);
+        $sampleUpdates = !empty($liveUpdates) ? $liveUpdates : SampleTemplateData::updates();
 
-        if (empty($updates)) {
-            return '<p style="font-style:italic;color:#888">No collective updates to preview with.</p>';
+        $sample = UpdatesPreviewHelper::buildUpdatesHtmlPublic($sampleUpdates, $tpl);
+        $empty  = UpdatesPreviewHelper::buildUpdatesHtmlPublic([], $tpl);
+
+        if (trim($empty) === '') {
+            $empty = '<p style="font-style:italic;color:#888">No updates posted yet.</p>';
         }
 
-        $tplForLoop = TemplateEngine::conditionals($tpl, [
-            'updates'    => count($updates) > 0,
-            'no_updates' => count($updates) === 0,
-        ]);
+        $label = empty($liveUpdates) ? 'Sample Data' : 'Active Data';
 
-        return TemplateEngine::loop(
-            $tplForLoop,
-            'update',
-            $updates,
-            static function (string $inner, $update): string {
-                return TemplateEngine::render(
-                    $inner,
-                    escaped: [
-                        'update_title'      => $update->title,
-                        'update_date'       => date('F j, Y', strtotime($update->postedAt)),
-                        'update_date_raw'   => substr($update->postedAt, 0, 10),
-                        'update_author'     => $update->author ?? '',
-                        'update_categories' => implode(', ', $update->categories()),
-                    ],
-                    raw: [
-                        'update_body_html' => nl2br(View::e($update->body)),
-                    ],
-                    conditions: [
-                        'author'     => ($update->author ?? '') !== '',
-                        'categories' => count($update->categories()) > 0,
-                    ],
-                );
-            },
-        );
+        return '<p style="font-size:.8em;color:#888;margin-bottom:.5rem">' . htmlspecialchars($label, ENT_QUOTES, 'UTF-8') . '</p>'
+            . $sample
+            . '<p style="font-size:.8em;color:#888;margin:.75rem 0 .5rem">' . 'Empty State' . '</p>'
+            . $empty;
     }
 
     private function coltplPreviewCodes(string $tpl, Database $db, string $uploadsUrl): string
