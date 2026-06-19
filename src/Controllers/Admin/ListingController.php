@@ -33,6 +33,7 @@ use Luster\Support\MemberStatsService;
 use Luster\Support\MembersTemplateRenderer;
 use Luster\Support\RulesBodyRenderer;
 use Luster\Support\SampleTemplateData;
+use Luster\Support\SuccessRenderer;
 
 /**
  * Manages the listing list and per-listing settings.
@@ -979,7 +980,11 @@ final class ListingController extends AdminController
             'join_form_template'            => ListingSettingsRepo::defaultJoinFormTemplate(),
             'codes_submit_form_template'    => ListingSettingsRepo::defaultCodesSubmitFormTemplate(),
             'affiliate_apply_form_template' => ListingSettingsRepo::defaultAffiliateApplyFormTemplate(),
-            'adopt_form_template'           => ListingSettingsRepo::defaultAdoptFormTemplate(),
+            'contact_form_template'         => ListingSettingsRepo::defaultContactFormTemplate(),
+            'codes_template'                => ListingSettingsRepo::defaultCodesTemplate(),
+            'update_form_template'          => ListingSettingsRepo::defaultUpdateFormTemplate(),
+            'reset_form_template'           => ListingSettingsRepo::defaultResetFormTemplate(),
+            'contact_sent_template'         => ListingSettingsRepo::defaultContactSentTemplate(),
         ];
         $tplGlobalKeyMap = [
             'stats_template'                => 'listing_default_stats_template',
@@ -989,7 +994,11 @@ final class ListingController extends AdminController
             'join_form_template'            => 'listing_default_join_form_template',
             'codes_submit_form_template'    => 'listing_default_codes_submit_form_template',
             'affiliate_apply_form_template' => 'listing_default_affiliate_apply_form_template',
-            'adopt_form_template'           => 'listing_default_adopt_form_template',
+            'contact_form_template'         => 'listing_default_contact_form_template',
+            'codes_template'                => 'listing_default_codes_template',
+            'update_form_template'          => 'listing_default_update_form_template',
+            'reset_form_template'           => 'listing_default_reset_form_template',
+            'contact_sent_template'         => 'listing_default_contact_sent_template',
         ];
         $templateSources = [];
         foreach ($tplBuiltIns as $tplKey => $builtIn) {
@@ -1001,9 +1010,6 @@ final class ListingController extends AdminController
             );
             $templateSources[$tplKey] = $resolved['source'];
         }
-        $templateSources['codes_template'] = (!empty($templates['codes_template']) && trim((string) $templates['codes_template']) !== '')
-            ? 'custom'
-            : 'built_in';
         $categories           = $categoryRepo->getAll();
         $currentCategoryId    = $listing->categoryId ?? null;
         $currentCategoryIds   = $listingRepo->getCategoryIdsForListing($id);
@@ -1083,6 +1089,7 @@ final class ListingController extends AdminController
             'embed_settings'      => $embedSettings,
             'contact_enabled'     => $contactSettings['enabled'],
             'contact_recipient'   => $contactSettings['recipient'] ?? '',
+            'form_url_contact'    => $contactSettings['form_url_contact'] ?? '',
             'approved_by'         => $approvedBy,
             'description'         => $description,
             'adoption_addon_installed'       => $adoptionAddonInstalled,
@@ -1381,8 +1388,11 @@ final class ListingController extends AdminController
             'codes_submit_form_template'    => ListingSettingsRepo::defaultCodesSubmitFormTemplate(),
             'join_form_template'            => ListingSettingsRepo::defaultJoinFormTemplate(),
             'affiliate_apply_form_template' => ListingSettingsRepo::defaultAffiliateApplyFormTemplate(),
-            'adopt_form_template'           => ListingSettingsRepo::defaultAdoptFormTemplate(),
+            'contact_form_template'         => ListingSettingsRepo::defaultContactFormTemplate(),
             'codes_template'                => ListingSettingsRepo::defaultCodesTemplate(),
+            'update_form_template'          => ListingSettingsRepo::defaultUpdateFormTemplate(),
+            'reset_form_template'           => ListingSettingsRepo::defaultResetFormTemplate(),
+            'contact_sent_template'         => ListingSettingsRepo::defaultContactSentTemplate(),
         ];
         $globalMap = [
             'stats_template'                => 'listing_default_stats_template',
@@ -1392,7 +1402,11 @@ final class ListingController extends AdminController
             'codes_submit_form_template'    => 'listing_default_codes_submit_form_template',
             'join_form_template'            => 'listing_default_join_form_template',
             'affiliate_apply_form_template' => 'listing_default_affiliate_apply_form_template',
-            'adopt_form_template'           => 'listing_default_adopt_form_template',
+            'contact_form_template'         => 'listing_default_contact_form_template',
+            'codes_template'                => 'listing_default_codes_template',
+            'update_form_template'          => 'listing_default_update_form_template',
+            'reset_form_template'           => 'listing_default_reset_form_template',
+            'contact_sent_template'         => 'listing_default_contact_sent_template',
         ];
         $globalDefaults = (new SiteSettingsRepo($db))->getGlobalTemplates();
         $normalize = static fn(string $v): string => trim(str_replace("\r\n", "\n", $v));
@@ -1417,23 +1431,41 @@ final class ListingController extends AdminController
         $membersTemplate           = $nil((string) $request->post('members_template',             ''), 'members_template');
         $affiliatesSectionTemplate = $nil((string) $request->post('affiliates_section_template',  ''), 'affiliates_section_template');
         $updatesTemplate           = $nil((string) $request->post('updates_template',             ''), 'updates_template');
-        $codesSubmitFormTemplate   = $nil((string) $request->post('codes_submit_form_template',   ''), 'codes_submit_form_template');
-        $joinFormTemplate          = $nil((string) $request->post('join_form_template',             ''), 'join_form_template');
-        $affiliateApplyFormTemplate = $nil((string) $request->post('affiliate_apply_form_template', ''), 'affiliate_apply_form_template');
-        $adoptFormTemplate          = $nil((string) $request->post('adopt_form_template',           ''), 'adopt_form_template');
-        $codesTemplate              = $nil((string) $request->post('codes_template',                ''), 'codes_template');
+        $codesSubmitFormTemplate    = $nil((string) $request->post('codes_submit_form_template',    ''), 'codes_submit_form_template');
+        $joinFormTemplate           = $nil((string) $request->post('join_form_template',              ''), 'join_form_template');
+        $affiliateApplyFormTemplate = $nil((string) $request->post('affiliate_apply_form_template',   ''), 'affiliate_apply_form_template');
+        $contactFormTemplate        = $nil((string) $request->post('contact_form_template',           ''), 'contact_form_template');
+        $contactSentTemplate        = $nil((string) $request->post('contact_sent_template',           ''), 'contact_sent_template');
+        $updateFormTemplate         = $nil((string) $request->post('update_form_template',            ''), 'update_form_template');
+        $resetFormTemplate          = $nil((string) $request->post('reset_form_template',             ''), 'reset_form_template');
+        $codesTemplate              = $nil((string) $request->post('codes_template',                  ''), 'codes_template');
 
         $settingsRepo = new ListingSettingsRepo($db);
+
+        // Preserve templates not editable via this form so they are not cleared on save.
+        // adopt_form_template is managed by the Adoption addon.
+        $existingTemplates     = $settingsRepo->getTemplates($id);
+        $adoptFormTemplate     = $existingTemplates['adopt_form_template'];
+
         $settingsRepo->saveTemplates(
             $id, $statsTemplate, $membersTemplate, $affiliatesSectionTemplate,
             $updatesTemplate, $codesSubmitFormTemplate,
-            null, $joinFormTemplate, $affiliateApplyFormTemplate, $adoptFormTemplate,
+            null, $joinFormTemplate, $affiliateApplyFormTemplate,
+            $adoptFormTemplate, $contactFormTemplate,
+            $updateFormTemplate, $resetFormTemplate,
         );
         $settingsRepo->saveCodesTemplate($id, $codesTemplate);
+        $settingsRepo->saveContactSentTemplate($id, $contactSentTemplate);
 
         $this->app->getSession()->set('lstr_flash_success', 'Templates saved successfully.');
 
-        return Response::redirect($this->app->getBaseUrl() . '/admin/listings/' . $id . '/edit#tab-templates');
+        $returnGroup = (string) $request->post('return_group', 'all');
+        $validGroups = ['all', 'members', 'join-form', 'update-form', 'reset-form', 'statistics', 'codes', 'codes-form', 'affiliates', 'affiliate-form', 'updates', 'contact-form', 'contact-sent'];
+        if (!in_array($returnGroup, $validGroups, true)) {
+            $returnGroup = 'all';
+        }
+        $groupSuffix = $returnGroup !== 'all' ? '?group=' . $returnGroup : '';
+        return Response::redirect($this->app->getBaseUrl() . '/admin/listings/' . $id . '/edit' . $groupSuffix . '#tab-templates');
     }
 
     // -----------------------------------------------------------------------
@@ -1459,7 +1491,7 @@ final class ListingController extends AdminController
             return $this->previewWrap('<p style="color:#c00">Listing not found.</p>', $appUrl);
         }
 
-        $allowed = ['members', 'affiliates_section', 'stats', 'updates', 'codes', 'codes_submit_form', 'rules', 'join_form', 'affiliate_apply_form', 'adopt_form'];
+        $allowed = ['members', 'affiliates_section', 'stats', 'updates', 'codes', 'codes_submit_form', 'rules', 'join_form', 'affiliate_apply_form', 'contact_form', 'contact_sent', 'update_form', 'reset_form'];
         if (!in_array($type, $allowed, true)) {
             return $this->previewWrap('<p style="color:#c00">Unknown template type.</p>', $appUrl);
         }
@@ -1482,10 +1514,13 @@ final class ListingController extends AdminController
                     (string) $request->post('gate_enabled', '1') !== '0',
                     trim((string) $request->post('gate_type', '')),
                 ),
-                'join_form'           => $this->ltplPreviewJoinForm($tpl, $listing),
-                'codes_submit_form'  => $this->ltplPreviewCodesSubmitForm($tpl, $listing),
+                'join_form'            => $this->ltplPreviewJoinForm($tpl, $listing),
+                'codes_submit_form'    => $this->ltplPreviewCodesSubmitForm($tpl, $listing),
                 'affiliate_apply_form' => $this->ltplPreviewAffiliateApplyForm($tpl, $listing),
-                'adopt_form'           => $this->ltplPreviewAdoptForm($tpl, $listing),
+                'contact_form'         => $this->ltplPreviewContactForm($tpl, $listing),
+                'contact_sent'         => $this->ltplPreviewContactSent($tpl, $listing),
+                'update_form'          => $this->ltplPreviewUpdateForm($tpl, $listing),
+                'reset_form'           => $this->ltplPreviewResetForm($tpl, $listing),
                 default                => throw new \LogicException("Unhandled preview type: {$type}"),
             };
         } catch (\Throwable $e) {
@@ -1600,22 +1635,6 @@ final class ListingController extends AdminController
             );
         }
 
-        // Build {affiliates} fallback rows (plain link/image, no custom row template)
-        $rowParts = [];
-        foreach ($affiliates as $aff) {
-            $imageUrl   = !empty($aff->image) ? $uploadsUrl . '/' . $aff->image : '';
-            $rowParts[] = $imageUrl !== ''
-                ? '<a href="' . $e($aff->url) . '" target="_blank" rel="noopener noreferrer"><img src="' . $e($imageUrl) . '" alt="' . $e($aff->name) . '"></a>'
-                : '<a href="' . $e($aff->url) . '" target="_blank" rel="noopener noreferrer">' . $e($aff->name) . '</a>';
-        }
-        $rows = implode("\n", $rowParts);
-
-        $listParts = [];
-        foreach ($affiliates as $aff) {
-            $listParts[] = '<a href="' . $e($aff->url) . '">' . $e($aff->name) . '</a>';
-        }
-        $plainList = implode(', ', $listParts);
-
         $count = count($affiliates);
 
         if ($count > 0) {
@@ -1627,8 +1646,8 @@ final class ListingController extends AdminController
         }
 
         return str_replace(
-            ['{affiliates}', '{affiliates_count}', '{affiliates_list}', '{affiliate_apply_url}'],
-            [$rows, (string) $count, $plainList, $e($affiliateApplyUrl)],
+            ['{affiliates_count}', '{affiliate_apply_url}'],
+            [(string) $count, $e($affiliateApplyUrl)],
             $tpl,
         );
     }
@@ -1657,12 +1676,6 @@ final class ListingController extends AdminController
         $updatedDate = DateFormatter::mostRecent($memberDate, $adminDate);
         $updatedStr  = $updatedDate ?? 'N/A';
 
-        $networkLink = match ($approvedBy) {
-            'tfl'  => '<a href="https://thefanlistings.org" rel="noopener noreferrer">The Fanlistings Network</a>',
-            'tafl' => '<a href="https://animefanlistings.com" rel="noopener noreferrer">The Anime Fanlistings Network</a>',
-            default => '',
-        };
-
         $values = [
             'stat_opened'     => $listing->opened ?? '',
             'stat_updated'    => $updatedStr,
@@ -1676,26 +1689,34 @@ final class ListingController extends AdminController
         ];
         $conditions = [
             'approved_by'  => $approvedBy !== '',
+            'tfl'          => $approvedBy === 'tfl',
+            'tafl'         => $approvedBy === 'tafl',
             'stat_pending' => $pending > 0,
         ];
-        return self::renderStatsTemplate($tpl, $values, $conditions, $networkLink);
+        return self::renderStatsTemplate($tpl, $values, $conditions, $approvedBy);
     }
 
     /**
-     * Renders the stats_template against a set of token values, conditions, and an
-     * approved-by network link. Shared by ltplPreviewStats() (real listing data) and
-     * gtplPreviewStats() (sample/empty data, listing-independent).
+     * Renders the stats_template against a set of token values, conditions, and
+     * the raw approved-by key. Shared by ltplPreviewStats() (real listing data)
+     * and gtplPreviewStats() (sample/empty data, listing-independent).
      *
      * @param array<string, string> $values
      * @param array<string, bool>   $conditions
      */
-    private static function renderStatsTemplate(string $tpl, array $values, array $conditions, string $networkLink): string
+    private static function renderStatsTemplate(string $tpl, array $values, array $conditions, string $approvedBy): string
     {
-        $rendered      = TemplateEngine::render($tpl, escaped: $values, conditions: $conditions);
-        $networkStatus = $networkLink !== '' ? $networkLink : 'Independent';
+        $network     = strtoupper($approvedBy);
+        $networkName = match ($approvedBy) {
+            'tfl'   => 'The Fanlistings Network',
+            'tafl'  => 'The Anime Fanlistings Network',
+            default => '',
+        };
+
+        $rendered = TemplateEngine::render($tpl, escaped: $values, conditions: $conditions);
         return str_replace(
-            ['{approved_by}', '{network_status}'],
-            [$networkLink, $networkStatus],
+            ['{approved_by}', '{network}', '{network_status}', '{network_name}', '{tfl_url}', '{tafl_url}'],
+            [$network, $network, $network, $networkName, 'https://thefanlistings.org/', 'https://www.animefanlistings.com/'],
             $rendered,
         );
     }
@@ -1709,11 +1730,19 @@ final class ListingController extends AdminController
             return '<p style="font-style:italic;color:#888">Updates add-on is not installed.</p>';
         }
 
-        if (empty($updates)) {
-            return '<p style="font-style:italic;color:#888">No updates posted for this listing yet.</p>';
+        $sample = !empty($updates)
+            ? \Luster\Addons\Updates\Controllers\UpdatesPublicController::buildUpdatesHtmlPublic($updates, $tpl)
+            : \Luster\Addons\Updates\Controllers\UpdatesPublicController::buildUpdatesHtmlPublic(SampleTemplateData::updates(), $tpl);
+
+        $empty = \Luster\Addons\Updates\Controllers\UpdatesPublicController::buildUpdatesHtmlPublic([], $tpl);
+        if (trim($empty) === '') {
+            $empty = '<p style="font-style:italic;color:#888">No updates posted for this listing yet.</p>';
         }
 
-        return \Luster\Addons\Updates\Controllers\UpdatesPublicController::buildUpdatesHtmlPublic($updates, $tpl);
+        return $this->previewSectionLabel(empty($updates) ? 'Sample Data' : 'Active Data')
+            . $sample
+            . $this->previewSectionLabel('Empty State')
+            . $empty;
     }
 
     private function ltplPreviewCodes(string $tpl, object $listing, \Luster\Core\Database $db): string
@@ -1723,22 +1752,22 @@ final class ListingController extends AdminController
         $uploadsUrl = $appUrl . '/uploads/codes';
 
         $codesRepo      = new CodesRepo($db);
-        $codeCatsRepo   = new CodeCategoriesRepo($db);
         $codeDonorsRepo = new CodeDonorsRepo($db);
+        $catsRepo       = new CodeCategoriesRepo($db);
 
         $codes      = $codesRepo->getByListing($listingId, 'approved');
-        $catMap     = $codeCatsRepo->getCategoryMapForListing($listingId);
-        $categories = $codeCatsRepo->getByListing($listingId);
         $donors     = $codeDonorsRepo->getByListing($listingId);
-
-        $categoryMap = [];
-        foreach ($categories as $cat) {
-            $categoryMap[$cat->id] = $cat;
-        }
+        $categories = $catsRepo->getByListing($listingId);
+        $catMap     = $catsRepo->getCategoryMapForListing($listingId);
 
         $donorMap = [];
         foreach ($donors as $donor) {
             $donorMap[$donor->id] = $donor;
+        }
+
+        $categoryMap = [];
+        foreach ($categories as $cat) {
+            $categoryMap[$cat->id] = $cat;
         }
 
         $grouped = [];
@@ -1763,7 +1792,10 @@ final class ListingController extends AdminController
             return $aw !== $bw ? (int) $aw - (int) $bw : (int) $ah - (int) $bh;
         });
 
-        $html = CodesTemplateRenderer::render($tpl, $codes, $grouped, $catMap, $categoryMap, $donorMap, $uploadsUrl, $listing->title);
+        $html = CodesTemplateRenderer::render(
+            $tpl, $codes, $grouped, $donorMap, $uploadsUrl,
+            $catMap, $categoryMap, $listing->title ?? '',
+        );
 
         if ($html === null) {
             return '<p style="color:#c00">Template must include an {each_code} or {each_size_group} block.</p>';
@@ -1928,7 +1960,7 @@ final class ListingController extends AdminController
             ['type' => 'text',     'name' => 'name',           'id' => 'aff-name',    'label' => 'Site name',                      'required' => true,  'value' => '', 'attrs' => ['maxlength' => '200', 'autocomplete' => 'organization']],
             ['type' => 'url',      'name' => 'url',            'id' => 'aff-url',     'label' => 'Site URL',                       'required' => true,  'value' => '', 'attrs' => ['maxlength' => '500', 'placeholder' => 'https://', 'autocomplete' => 'url']],
             ['type' => 'email',    'name' => 'email',          'id' => 'aff-email',   'label' => 'Email',           'required' => true, 'value' => '', 'attrs' => ['maxlength' => '255', 'autocomplete' => 'email']],
-            ['type' => 'file',     'name' => 'image',          'id' => 'aff-image',   'label' => 'Site Button / Image (optional)', 'required' => false, 'attrs' => ['accept' => 'image/jpeg,image/png,image/gif,image/webp']],
+            ['type' => 'file',     'name' => 'image',          'id' => 'aff-image',   'label' => 'Site Button / Image (optional)', 'required' => false, 'attrs' => ['accept' => 'image/jpeg,image/png,image/gif,image/webp'], 'hint' => 'JPEG, PNG, GIF, or WebP. Max 2 MB.'],
             ['type' => 'textarea', 'name' => 'message',        'id' => 'aff-message', 'label' => 'Message (optional)',             'required' => false, 'value' => '', 'attrs' => ['maxlength' => '2000', 'rows' => '4']],
             ['type' => 'text',     'name' => 'captcha_answer', 'id' => 'aff-captcha', 'label' => 'Captcha: ' . $captchaQuestion,   'required' => true,  'attrs' => ['maxlength' => '10', 'autocomplete' => 'off']],
         ];
@@ -1958,49 +1990,144 @@ final class ListingController extends AdminController
         return FormTemplateRenderer::wrapForm($inner, '#', $this->app->getCSRF()->token(), true, preview: true);
     }
 
-    private function ltplPreviewAdoptForm(string $tpl, object $listing): string
+    private function ltplPreviewContactForm(string $tpl, object $listing): string
     {
-        return $this->renderAdoptFormPreview($tpl, $listing->title, $listing->url);
+        return $this->renderContactFormPreview($tpl, $listing->title, $listing->url);
     }
 
-    /**
-     * Renders the adopt_form_template against sample form field markup.
-     * Shared by ltplPreviewAdoptForm() (real listing data) and
-     * gtplPreviewAdoptForm() (sample data, listing-independent).
-     */
-    private function renderAdoptFormPreview(string $tpl, string $listingTitle, string $listingUrl): string
+    private function ltplPreviewContactSent(string $tpl, object $listing): string
     {
-        $captchaQuestion = Captcha::getQuestion('adopt');
+        return SuccessRenderer::render($tpl, 'contact-sent', [
+            'sender_name'   => 'Alice',
+            'sender_email'  => 'alice@example.com',
+            'listing_title' => $listing->title,
+            'listing_url'   => $listing->url,
+            'site_name'     => (string) ($this->app->getConfig()->get('app_name', '') ?: 'My Site'),
+            'owner_name'    => (string) ($this->app->getConfig()->get('owner_name', '') ?: 'Site Owner'),
+            'owner_email'   => (string) ($this->app->getConfig()->get('owner_email', '') ?: 'owner@example.com'),
+        ]);
+    }
+
+    private function ltplPreviewUpdateForm(string $tpl, object $listing): string
+    {
+        $db     = $this->app->getDatabase();
+        $config = $this->app->getConfig();
+
+        $fieldRepo = new FieldRepo($db, $config);
+        $fields    = $fieldRepo->getFieldsForListing((int) $listing->id);
+
+        $captchaQuestion = Captcha::getQuestion('update');
+        $countrySelect   = Countries::buildSelect('');
         $fb = $this->app->getFormFieldBuilder();
 
-        $descriptors = [
-            ['type' => 'text',     'name' => 'name',           'id' => 'adopt-name',    'label' => 'Name',        'required' => true,  'value' => '', 'attrs' => ['maxlength' => '100', 'autocomplete' => 'name']],
-            ['type' => 'email',    'name' => 'email',          'id' => 'adopt-email',   'label' => 'Email',       'required' => true,  'value' => '', 'attrs' => ['maxlength' => '255', 'autocomplete' => 'email']],
-            ['type' => 'url',      'name' => 'url',            'id' => 'adopt-url',     'label' => 'Website URL', 'required' => false, 'value' => '', 'attrs' => ['maxlength' => '500', 'placeholder' => 'https://', 'autocomplete' => 'url'], 'hint' => 'Optional'],
-            ['type' => 'textarea', 'name' => 'message',        'id' => 'adopt-message', 'label' => 'Message',     'required' => false, 'value' => '', 'attrs' => ['maxlength' => '2000', 'rows' => '5'], 'hint' => 'Optional'],
-            ['type' => 'text',     'name' => 'captcha_answer', 'id' => 'adopt-captcha', 'label' => 'Captcha: ' . $captchaQuestion, 'required' => true, 'attrs' => ['maxlength' => '10', 'autocomplete' => 'off']],
+        // Build sign-in step fields
+        $signInDescriptors = [
+            ['type' => 'email',    'name' => 'email',    'id' => 'upd-email',    'label' => 'Email Address', 'required' => true,  'value' => '', 'attrs' => ['maxlength' => '255', 'autocomplete' => 'email']],
+            ['type' => 'password', 'name' => 'password', 'id' => 'upd-password', 'label' => 'Password',      'required' => true,  'attrs' => ['maxlength' => '255', 'autocomplete' => 'current-password']],
         ];
-        $f = $fb->build($descriptors, '');
+        $fSignIn = $fb->build($signInDescriptors, '');
+
+        // Build update step fields
+        $urlRaw = '<input class="fl-input" type="url" id="upd-url" name="url" value="" maxlength="500" placeholder="https://">'
+                . '<div class="fl-field-hint"><label><input type="checkbox" name="delete_url" value="1"> Remove my website URL</label></div>';
+        $updateDescriptors = [
+            ['type' => 'text',     'name' => 'new_name',             'id' => 'upd-name',         'label' => 'New Name',             'required' => false, 'value' => '', 'attrs' => ['maxlength' => '100', 'autocomplete' => 'name',         'placeholder' => 'Your Name']],
+            ['type' => 'email',    'name' => 'new_email',            'id' => 'upd-new-email',    'label' => 'New Email',            'required' => false, 'value' => '', 'attrs' => ['maxlength' => '255',                                    'placeholder' => 'your@email.com']],
+            ['type' => 'url',      'name' => 'url',                  'id' => 'upd-url',          'label' => 'New Website URL',      'required' => false, 'raw_input' => $urlRaw],
+            ['type' => 'text',     'name' => 'country',              'id' => '',                 'label' => 'New Country',          'required' => false, 'raw_input' => $countrySelect],
+            ...$fb->descriptorsFromAdditionalFields($fields, []),
+            ['type' => 'password', 'name' => 'new_password',         'id' => 'upd-new-pass',     'label' => 'New Password',         'required' => false, 'attrs' => ['maxlength' => '255', 'autocomplete' => 'new-password', 'placeholder' => 'Leave blank to keep current']],
+            ['type' => 'password', 'name' => 'new_password_confirm',  'id' => 'upd-confirm-pass', 'label' => 'Confirm New Password', 'required' => false, 'attrs' => ['maxlength' => '255', 'autocomplete' => 'new-password']],
+            ['type' => 'text',     'name' => 'captcha_answer',        'id' => 'upd-captcha',      'label' => 'Captcha: ' . $captchaQuestion, 'required' => true, 'attrs' => ['maxlength' => '10', 'autocomplete' => 'off']],
+        ];
+        $fUpdate = $fb->build($updateDescriptors, '');
+
+        $additionalFieldsHtml = implode("\n", array_map(
+            fn($field) => $fUpdate['field_' . $field->name] ?? '', $fields,
+        ));
+
+        $removeMembershipHtml = '<div class="fl-field fl-field--danger"><label>'
+            . '<input type="checkbox" id="upd-delete-membership" name="delete_membership" value="1">'
+            . ' Permanently delete my membership instead of updating it</label>'
+            . '<p class="fl-field-hint">This immediately and permanently removes your membership.</p></div>';
+
+        // Preview shows both steps simultaneously so the admin can see the whole template.
+        $processed = TemplateEngine::conditionals($tpl, [
+            'not_signed_in' => true,
+            'signed_in'     => true,
+        ]);
 
         $tokens = [
-            '{listing_title}'        => View::e($listingTitle),
-            '{listing_url}'          => View::e($listingUrl),
-            '{field_name}'           => $f['name'],
-            '{field_name_input}'     => $f['name_input'],
-            '{field_email}'          => $f['email'],
-            '{field_email_input}'    => $f['email_input'],
-            '{field_url}'            => $f['url'],
-            '{field_url_input}'      => $f['url_input'],
-            '{field_message}'        => $f['message'],
-            '{field_message_input}'  => $f['message_input'],
-            '{captcha_block}'        => $f['captcha_answer'],
-            '{captcha_block_input}'  => $f['captcha_answer_input'],
-            '{captcha_question}'     => View::e($captchaQuestion),
-            '{submit_button}'        => '<button type="submit" class="fl-submit">Submit Application</button>',
-            '{clear_button}'         => '<button type="reset" class="fl-btn-secondary">Clear</button>',
+            '{listing_title}'          => View::e((string) $listing->title),
+            '{listing_url}'            => View::e((string) $listing->url),
+            '{field_signin_email}'     => $fSignIn['email'],
+            '{field_signin_password}'  => $fSignIn['password'],
+            '{field_new_name}'         => $fUpdate['new_name'],
+            '{field_new_email}'        => $fUpdate['new_email'],
+            '{field_new_url}'          => $fUpdate['url'],
+            '{field_new_country}'      => $fUpdate['country'],
+            '{additional_fields}'      => $additionalFieldsHtml,
+            '{field_password}'         => $fUpdate['new_password'],
+            '{field_password_confirm}' => $fUpdate['new_password_confirm'],
+            '{captcha_block}'          => $fUpdate['captcha_answer'],
+            '{captcha_block_input}'    => $fUpdate['captcha_answer_input'],
+            '{captcha_question}'       => View::e($captchaQuestion),
+            '{field_remove}'           => $removeMembershipHtml,
+            '{submit_button}'          => '<button type="submit" class="fl-submit">Update Information</button>',
+            '{clear_button}'           => '<button type="reset" class="fl-btn-secondary">Clear</button>',
+            '{sign_out_url}'           => '#',
+            '{field_email}'            => 'example@email.com',
+            '{lost_password_url}'      => '#',
         ];
 
-        $inner = FormTemplateRenderer::expandTokens($tpl, $tokens);
+        $inner = FormTemplateRenderer::expandTokens($processed, $tokens);
+        return FormTemplateRenderer::wrapForm($inner, '#', $this->app->getCSRF()->token(), false, preview: true);
+    }
+
+    private function ltplPreviewResetForm(string $tpl, object $listing): string
+    {
+        $captchaQuestion = Captcha::getQuestion('reset');
+        $fb = $this->app->getFormFieldBuilder();
+
+        $emailDescriptors = [
+            ['type' => 'email', 'name' => 'email',           'id' => 'reset-email',  'label' => 'Email Address', 'required' => true, 'value' => '', 'attrs' => ['maxlength' => '255', 'autocomplete' => 'email']],
+            ['type' => 'text',  'name' => 'captcha_answer',  'id' => 'reset-captcha','label' => 'Captcha: ' . $captchaQuestion, 'required' => true, 'attrs' => ['maxlength' => '10', 'autocomplete' => 'off']],
+        ];
+        $fEmail = $fb->build($emailDescriptors, '');
+
+        $passwordDescriptors = [
+            ['type' => 'password', 'name' => 'new_password',        'id' => 'reset-pass',    'label' => 'New Password',         'required' => true, 'attrs' => ['maxlength' => '255', 'autocomplete' => 'new-password']],
+            ['type' => 'password', 'name' => 'new_password_confirm', 'id' => 'reset-confirm', 'label' => 'Confirm New Password', 'required' => true, 'attrs' => ['maxlength' => '255', 'autocomplete' => 'new-password']],
+        ];
+        $fPassword = $fb->build($passwordDescriptors, '');
+
+        // Preview shows all conditional blocks simultaneously.
+        $processed = TemplateEngine::conditionals($tpl, [
+            'step_email'    => true,
+            'step_confirm'  => true,
+            'token_valid'   => true,
+            'token_invalid' => false,
+        ]);
+
+        $tokens = [
+            '{listing_title}'             => View::e((string) $listing->title),
+            '{listing_url}'               => View::e((string) $listing->url),
+            '{field_email}'               => $fEmail['email'],
+            '{field_email_input}'         => $fEmail['email_input'],
+            '{captcha_block}'             => $fEmail['captcha_answer'],
+            '{captcha_block_input}'       => $fEmail['captcha_answer_input'],
+            '{captcha_question}'          => View::e($captchaQuestion),
+            '{field_new_password}'        => $fPassword['new_password'],
+            '{field_new_password_input}'  => $fPassword['new_password_input'],
+            '{field_new_password_confirm}'       => $fPassword['new_password_confirm'],
+            '{field_new_password_confirm_input}' => $fPassword['new_password_confirm_input'],
+            '{hidden_token}'              => '',
+            '{reset_request_url}'         => '#',
+            '{submit_button}'             => '<button type="submit" class="fl-submit">Reset Password</button>',
+            '{clear_button}'              => '<button type="reset" class="fl-btn-secondary">Clear</button>',
+        ];
+
+        $inner = FormTemplateRenderer::expandTokens($processed, $tokens);
         return FormTemplateRenderer::wrapForm($inner, '#', $this->app->getCSRF()->token(), false, preview: true);
     }
 
@@ -2054,6 +2181,9 @@ final class ListingController extends AdminController
             $dbUser,
             $dbPass,
         );
+
+        $formUrlContact = ltrim(trim((string) $request->post('form_url_contact', '')), '/');
+        $settingsRepo->saveFormUrlContact($id, $formUrlContact);
 
         $activityRepo = new ActivityRepo($db);
         $session      = $this->app->getSession();
@@ -2141,7 +2271,11 @@ final class ListingController extends AdminController
             'listing_default_join_form_template'            => ListingSettingsRepo::defaultJoinFormTemplate(),
             'listing_default_codes_submit_form_template'    => ListingSettingsRepo::defaultCodesSubmitFormTemplate(),
             'listing_default_affiliate_apply_form_template' => ListingSettingsRepo::defaultAffiliateApplyFormTemplate(),
-            'listing_default_adopt_form_template'           => ListingSettingsRepo::defaultAdoptFormTemplate(),
+            'listing_default_update_form_template'          => ListingSettingsRepo::defaultUpdateFormTemplate(),
+            'listing_default_reset_form_template'           => ListingSettingsRepo::defaultResetFormTemplate(),
+            'listing_default_codes_template'                => ListingSettingsRepo::defaultCodesTemplate(),
+            'listing_default_contact_form_template'         => ListingSettingsRepo::defaultContactFormTemplate(),
+            'listing_default_contact_sent_template'         => ListingSettingsRepo::defaultContactSentTemplate(),
         ];
 
         $siteRepo = new SiteSettingsRepo($db);
@@ -2154,7 +2288,9 @@ final class ListingController extends AdminController
         }
 
         $session->set('lstr_flash_success', 'Global listing templates saved.');
-        return Response::redirect($baseUrl . '/admin/listings/global-templates');
+        $returnGroup = (string) $request->post('return_group', '');
+        $groupSuffix = ($returnGroup !== '' && $returnGroup !== 'all') ? '?group=' . urlencode($returnGroup) : '';
+        return Response::redirect($baseUrl . '/admin/listings/global-templates' . $groupSuffix);
     }
 
     // -----------------------------------------------------------------------
@@ -2171,7 +2307,7 @@ final class ListingController extends AdminController
         $type = (string) $request->post('template_type', '');
         $tpl  = (string) $request->post('template_html', '');
 
-        $allowed = ['members', 'affiliates_section', 'stats', 'updates', 'join_form', 'codes_submit_form', 'affiliate_apply_form', 'adopt_form'];
+        $allowed = ['members', 'affiliates_section', 'stats', 'updates', 'join_form', 'update_form', 'reset_form', 'codes', 'codes_submit_form', 'affiliate_apply_form', 'contact_form', 'contact_sent'];
         if (!in_array($type, $allowed, true)) {
             return $this->previewWrap('<p style="color:#c00">Unknown template type.</p>', $appUrl);
         }
@@ -2188,7 +2324,11 @@ final class ListingController extends AdminController
                 'join_form'            => $this->gtplPreviewJoinForm($tpl),
                 'codes_submit_form'    => $this->gtplPreviewCodesSubmitForm($tpl),
                 'affiliate_apply_form' => $this->gtplPreviewAffiliateApplyForm($tpl),
-                'adopt_form'           => $this->gtplPreviewAdoptForm($tpl),
+                'update_form'          => $this->gtplPreviewUpdateForm($tpl),
+                'reset_form'           => $this->gtplPreviewResetForm($tpl),
+                'codes'                => $this->gtplPreviewCodes($tpl),
+                'contact_form'         => $this->gtplPreviewContactForm($tpl),
+                'contact_sent'         => $this->gtplPreviewContactSent($tpl),
             };
         } catch (\Throwable $e) {
             $html = '<p style="color:#c00;font-family:monospace">Preview error: '
@@ -2287,10 +2427,10 @@ final class ListingController extends AdminController
         ];
         $sampleConditions = [
             'approved_by'  => true,
+            'tfl'          => true,
+            'tafl'         => false,
             'stat_pending' => true,
         ];
-        $sampleNetworkLink = '<a href="https://thefanlistings.org" rel="noopener noreferrer">The Fanlistings Network</a>';
-
         $emptyValues = [
             'stat_opened'     => '',
             'stat_updated'    => 'N/A',
@@ -2304,10 +2444,12 @@ final class ListingController extends AdminController
         ];
         $emptyConditions = [
             'approved_by'  => false,
+            'tfl'          => false,
+            'tafl'         => false,
             'stat_pending' => false,
         ];
 
-        $sample = self::renderStatsTemplate($tpl, $sampleValues, $sampleConditions, $sampleNetworkLink);
+        $sample = self::renderStatsTemplate($tpl, $sampleValues, $sampleConditions, 'tfl');
         $empty  = self::renderStatsTemplate($tpl, $emptyValues, $emptyConditions, '');
 
         return $this->previewSectionLabel('Sample Data') . $sample
@@ -2362,12 +2504,240 @@ final class ListingController extends AdminController
         return $this->renderAffiliateApplyFormPreview($tpl, 'Sample Fanlisting', 'https://example.com/sample-fanlisting');
     }
 
-    /**
-     * Adopt Form preview using generic sample form field markup.
-     */
-    private function gtplPreviewAdoptForm(string $tpl): string
+    private function gtplPreviewUpdateForm(string $tpl): string
     {
-        return $this->renderAdoptFormPreview($tpl, 'Sample Fanlisting', 'https://example.com/sample-fanlisting');
+        $captchaQuestion = Captcha::getQuestion('update_prev');
+        $countrySelect   = Countries::buildSelect('');
+        $fb = $this->app->getFormFieldBuilder();
+        $sampleFields = SampleTemplateData::additionalFields();
+
+        $signInDescriptors = [
+            ['type' => 'email',    'name' => 'email',    'id' => 'upd-email',    'label' => 'Email Address', 'required' => true,  'value' => '', 'attrs' => ['maxlength' => '255', 'autocomplete' => 'email']],
+            ['type' => 'password', 'name' => 'password', 'id' => 'upd-password', 'label' => 'Password',      'required' => true,  'attrs' => ['maxlength' => '255', 'autocomplete' => 'current-password']],
+        ];
+        $fSignIn = $fb->build($signInDescriptors, '');
+
+        $urlRaw = '<input class="fl-input" type="url" id="upd-url" name="url" value="" maxlength="500" placeholder="https://">'
+                . '<div class="fl-field-hint"><label><input type="checkbox" name="delete_url" value="1"> Remove my website URL</label></div>';
+        $updateDescriptors = [
+            ['type' => 'text',     'name' => 'new_name',              'id' => 'upd-name',         'label' => 'New Name',             'required' => false, 'value' => '', 'attrs' => ['maxlength' => '100', 'autocomplete' => 'name']],
+            ['type' => 'email',    'name' => 'new_email',             'id' => 'upd-new-email',    'label' => 'New Email',            'required' => false, 'value' => '', 'attrs' => ['maxlength' => '255']],
+            ['type' => 'url',      'name' => 'url',                   'id' => 'upd-url',          'label' => 'New Website URL',      'required' => false, 'raw_input' => $urlRaw],
+            ['type' => 'text',     'name' => 'country',               'id' => '',                 'label' => 'New Country',          'required' => false, 'raw_input' => $countrySelect],
+            ...$fb->descriptorsFromAdditionalFields($sampleFields, []),
+            ['type' => 'password', 'name' => 'new_password',          'id' => 'upd-new-pass',     'label' => 'New Password',         'required' => false, 'attrs' => ['maxlength' => '255', 'autocomplete' => 'new-password']],
+            ['type' => 'password', 'name' => 'new_password_confirm',  'id' => 'upd-confirm-pass', 'label' => 'Confirm New Password', 'required' => false, 'attrs' => ['maxlength' => '255', 'autocomplete' => 'new-password']],
+            ['type' => 'text',     'name' => 'captcha_answer',        'id' => 'upd-captcha',      'label' => 'Captcha: ' . $captchaQuestion, 'required' => true, 'attrs' => ['maxlength' => '10', 'autocomplete' => 'off']],
+        ];
+        $fUpdate = $fb->build($updateDescriptors, '');
+
+        $additionalFieldsHtml = implode("\n", array_map(
+            fn($field) => $fUpdate['field_' . $field->name] ?? '', $sampleFields,
+        ));
+        $removeMembershipHtml = '<div class="fl-field fl-field--danger"><label>'
+            . '<input type="checkbox" id="upd-delete-membership" name="delete_membership" value="1">'
+            . ' Permanently delete my membership instead of updating it</label></div>';
+
+        $processed = TemplateEngine::conditionals($tpl, [
+            'not_signed_in' => true,
+            'signed_in'     => true,
+        ]);
+
+        $tokens = [
+            '{listing_title}'          => 'Sample Fanlisting',
+            '{listing_url}'            => 'https://example.com/sample-fanlisting',
+            '{field_signin_email}'     => $fSignIn['email'],
+            '{field_signin_password}'  => $fSignIn['password'],
+            '{field_new_name}'         => $fUpdate['new_name'],
+            '{field_new_email}'        => $fUpdate['new_email'],
+            '{field_new_url}'          => $fUpdate['url'],
+            '{field_new_country}'      => $fUpdate['country'],
+            '{additional_fields}'      => $additionalFieldsHtml,
+            '{field_password}'         => $fUpdate['new_password'],
+            '{field_password_confirm}' => $fUpdate['new_password_confirm'],
+            '{captcha_block}'          => $fUpdate['captcha_answer'],
+            '{captcha_block_input}'    => $fUpdate['captcha_answer_input'],
+            '{captcha_question}'       => View::e($captchaQuestion),
+            '{field_remove}'           => $removeMembershipHtml,
+            '{submit_button}'          => '<button type="submit" class="fl-submit">Update Information</button>',
+            '{clear_button}'           => '<button type="reset" class="fl-btn-secondary">Clear</button>',
+            '{sign_out_url}'           => '#',
+            '{field_email}'            => 'example@email.com',
+            '{lost_password_url}'      => '#',
+        ];
+
+        $inner = FormTemplateRenderer::expandTokens($processed, $tokens);
+        return FormTemplateRenderer::wrapForm($inner, '#', $this->app->getCSRF()->token(), false, preview: true);
+    }
+
+    private function gtplPreviewResetForm(string $tpl): string
+    {
+        $captchaQuestion = Captcha::getQuestion('reset_prev');
+        $fb = $this->app->getFormFieldBuilder();
+
+        $fEmail = $fb->build([
+            ['type' => 'email', 'name' => 'email',          'id' => 'reset-email',  'label' => 'Email Address', 'required' => true, 'value' => '', 'attrs' => ['maxlength' => '255', 'autocomplete' => 'email']],
+            ['type' => 'text',  'name' => 'captcha_answer', 'id' => 'reset-captcha','label' => 'Captcha: ' . $captchaQuestion, 'required' => true, 'attrs' => ['maxlength' => '10', 'autocomplete' => 'off']],
+        ], '');
+        $fPassword = $fb->build([
+            ['type' => 'password', 'name' => 'new_password',        'id' => 'reset-pass',    'label' => 'New Password',         'required' => true, 'attrs' => ['maxlength' => '255', 'autocomplete' => 'new-password']],
+            ['type' => 'password', 'name' => 'new_password_confirm', 'id' => 'reset-confirm', 'label' => 'Confirm New Password', 'required' => true, 'attrs' => ['maxlength' => '255', 'autocomplete' => 'new-password']],
+        ], '');
+
+        $processed = TemplateEngine::conditionals($tpl, [
+            'step_email'    => true,
+            'step_confirm'  => true,
+            'token_valid'   => true,
+            'token_invalid' => false,
+        ]);
+
+        $tokens = [
+            '{listing_title}'             => 'Sample Fanlisting',
+            '{listing_url}'               => 'https://example.com/sample-fanlisting',
+            '{field_email}'               => $fEmail['email'],
+            '{field_email_input}'         => $fEmail['email_input'],
+            '{captcha_block}'             => $fEmail['captcha_answer'],
+            '{captcha_block_input}'       => $fEmail['captcha_answer_input'],
+            '{captcha_question}'          => View::e($captchaQuestion),
+            '{field_new_password}'        => $fPassword['new_password'],
+            '{field_new_password_input}'  => $fPassword['new_password_input'],
+            '{field_new_password_confirm}'       => $fPassword['new_password_confirm'],
+            '{field_new_password_confirm_input}' => $fPassword['new_password_confirm_input'],
+            '{hidden_token}'              => '',
+            '{reset_request_url}'         => '#',
+            '{submit_button}'             => '<button type="submit" class="fl-submit">Reset Password</button>',
+            '{clear_button}'              => '<button type="reset" class="fl-btn-secondary">Clear</button>',
+        ];
+
+        $inner = FormTemplateRenderer::expandTokens($processed, $tokens);
+        return FormTemplateRenderer::wrapForm($inner, '#', $this->app->getCSRF()->token(), false, preview: true);
+    }
+
+    private function gtplPreviewCodes(string $tpl): string
+    {
+        $appUrl     = rtrim((string) $this->app->getConfig()->get('app_url', ''), '/');
+        $uploadsUrl = $appUrl . '/uploads/codes';
+        $db         = $this->app->getDatabase();
+
+        $codesRepo      = new CodesRepo($db);
+        $codeDonorsRepo = new CodeDonorsRepo($db);
+        $catsRepo       = new CodeCategoriesRepo($db);
+
+        $codes      = $codesRepo->getByListing(null, 'approved');
+        $donors     = $codeDonorsRepo->getByListing(null);
+        $categories = $catsRepo->getByListing(null);
+        $catMap     = $catsRepo->getCategoryMapForListing(null);
+
+        $donorMap = [];
+        foreach ($donors as $donor) { $donorMap[$donor->id] = $donor; }
+        $categoryMap = [];
+        foreach ($categories as $cat) { $categoryMap[$cat->id] = $cat; }
+
+        $grouped = [];
+        foreach ($codes as $code) {
+            if ($code->width > 0 && $code->height > 0) {
+                $key   = (int) $code->width . 'x' . (int) $code->height;
+                $label = (int) $code->width . "\xC3\x97" . (int) $code->height . 'px';
+            } else {
+                $key   = 'unknown';
+                $label = 'Other';
+            }
+            if (!isset($grouped[$key])) { $grouped[$key] = ['label' => $label, 'codes' => []]; }
+            $grouped[$key]['codes'][] = $code;
+        }
+        uksort($grouped, function (string $a, string $b): int {
+            if ($a === 'unknown') return 1;
+            if ($b === 'unknown') return -1;
+            [$aw, $ah] = explode('x', $a);
+            [$bw, $bh] = explode('x', $b);
+            return $aw !== $bw ? (int) $aw - (int) $bw : (int) $ah - (int) $bh;
+        });
+
+        $html = CodesTemplateRenderer::render(
+            $tpl, $codes, $grouped, $donorMap, $uploadsUrl,
+            $catMap, $categoryMap, 'Sample Fanlisting',
+        );
+
+        if ($html === null) {
+            return '<p style="color:#c00">Template must include an {each_code} or {each_size_group} block.</p>';
+        }
+        if (trim($html) === '' && empty($codes)) {
+            return '<p style="font-style:italic;color:#888">No approved codes to preview with.</p>';
+        }
+
+        return $html;
+    }
+
+    /**
+     * Contact Form preview using generic sample form field markup.
+     */
+    private function gtplPreviewContactForm(string $tpl): string
+    {
+        return $this->renderContactFormPreview($tpl, 'Sample Fanlisting', 'https://example.com/sample-fanlisting');
+    }
+
+    /**
+     * Renders the contact_form_template against sample form field markup.
+     * Shared by ltplPreviewContactForm() (real listing data) and
+     * gtplPreviewContactForm() (sample data, listing-independent).
+     */
+    private function renderContactFormPreview(string $tpl, string $listingTitle, string $listingUrl): string
+    {
+        $captchaQuestion = Captcha::getQuestion('contact_listing');
+        $fb = $this->app->getFormFieldBuilder();
+
+        $subjectHtml = '<select id="contact-subject" name="subject" required>'
+                     . '<option value="" disabled selected>Choose &mdash;</option>'
+                     . '<option value="Comments">Comments</option>'
+                     . '<option value="Questions/Concerns">Questions/Concerns</option>'
+                     . '<option value="Affiliation">Affiliation</option>'
+                     . '</select>';
+
+        $descriptors = [
+            ['type' => 'text',     'name' => 'name',           'id' => 'contact-name',    'label' => 'Name',        'required' => true,  'value' => '', 'attrs' => ['maxlength' => '100', 'autocomplete' => 'name']],
+            ['type' => 'email',    'name' => 'email',          'id' => 'contact-email',   'label' => 'Email',       'required' => true,  'value' => '', 'attrs' => ['maxlength' => '255', 'autocomplete' => 'email']],
+            ['type' => 'url',      'name' => 'url',            'id' => 'contact-url',     'label' => 'Website URL', 'required' => false, 'value' => '', 'attrs' => ['maxlength' => '255', 'autocomplete' => 'url']],
+            ['type' => 'select',   'name' => 'subject',        'id' => 'contact-subject', 'label' => 'Subject',     'required' => true,  'raw_input' => $subjectHtml],
+            ['type' => 'textarea', 'name' => 'message',        'id' => 'contact-message', 'label' => 'Message',     'required' => true,  'value' => '', 'attrs' => ['maxlength' => '5000', 'rows' => '6']],
+            ['type' => 'text',     'name' => 'captcha_answer', 'id' => 'contact-captcha', 'label' => 'Captcha: ' . $captchaQuestion, 'required' => true, 'attrs' => ['maxlength' => '10', 'autocomplete' => 'off']],
+        ];
+        $f = $fb->build($descriptors, '');
+
+        $tokens = [
+            '{listing_title}'        => View::e($listingTitle),
+            '{listing_url}'          => View::e($listingUrl),
+            '{field_name}'           => $f['name'],
+            '{field_name_input}'     => $f['name_input'],
+            '{field_email}'          => $f['email'],
+            '{field_email_input}'    => $f['email_input'],
+            '{field_url}'            => $f['url'],
+            '{field_url_input}'      => $f['url_input'],
+            '{field_subject}'        => $f['subject'],
+            '{field_subject_input}'  => $f['subject_input'],
+            '{field_message}'        => $f['message'],
+            '{field_message_input}'  => $f['message_input'],
+            '{captcha_block}'        => $f['captcha_answer'],
+            '{captcha_block_input}'  => $f['captcha_answer_input'],
+            '{captcha_question}'     => View::e($captchaQuestion),
+            '{submit_button}'        => '<button type="submit" class="fl-submit">Send Message</button>',
+            '{clear_button}'         => '<button type="reset" class="fl-btn-secondary">Clear</button>',
+        ];
+
+        $inner = FormTemplateRenderer::expandTokens($tpl, $tokens);
+        return FormTemplateRenderer::wrapForm($inner, '#', $this->app->getCSRF()->token(), true, preview: true);
+    }
+
+    private function gtplPreviewContactSent(string $tpl): string
+    {
+        return SuccessRenderer::render($tpl, 'contact-sent', [
+            'sender_name'   => 'Alice',
+            'sender_email'  => 'alice@example.com',
+            'listing_title' => 'Sample Fanlisting',
+            'listing_url'   => 'https://example.com/sample-fanlisting',
+            'site_name'     => (string) ($this->app->getConfig()->get('app_name', '') ?: 'My Site'),
+            'owner_name'    => (string) ($this->app->getConfig()->get('owner_name', '') ?: 'Site Owner'),
+            'owner_email'   => (string) ($this->app->getConfig()->get('owner_email', '') ?: 'owner@example.com'),
+        ]);
     }
 
     // -----------------------------------------------------------------------
@@ -2382,19 +2752,10 @@ final class ListingController extends AdminController
         $session->remove('lstr_flash_success');
         $session->remove('lstr_flash_error');
 
-        $siteSettings   = new SiteSettingsRepo($this->app->getDatabase());
-        $trackingSettings = $siteSettings->getMany([
-            'stale_days',
-            'overdue_notify_enabled',
-            'overdue_days',
-            'overdue_notify_last_sent',
-        ]);
-
         return $this->adminLayout('admin/listings/settings.php', 'Owned Listings Settings', 'listings', [
-            'cfg'              => $this->app->getConfig()->all(),
-            'tracking'         => $trackingSettings,
-            'success'          => $success,
-            'error'            => $error,
+            'cfg'     => $this->app->getConfig()->all(),
+            'success' => $success,
+            'error'   => $error,
         ], '', [
             $this->crumb('Owned Listings', $this->adminUrl('/admin/listings')),
         ]);
@@ -2430,16 +2791,10 @@ final class ListingController extends AdminController
             $this->writeConfig($updated);
         } catch (\RuntimeException $e) {
             $session->set('lstr_flash_error', 'Could not save settings: ' . $e->getMessage());
-            return Response::redirect($baseUrl . '/admin/listings/settings');
+            return Response::redirect($baseUrl . '/admin/settings#panel-notifications');
         }
 
         $db           = $this->app->getDatabase();
-        $siteSettings = new SiteSettingsRepo($db);
-        $staleDays    = max(1, min(365, (int) $request->post('stale_days', '45')));
-        $siteSettings->set('stale_days', (string) $staleDays);
-        $siteSettings->set('overdue_notify_enabled', $request->post('overdue_notify_enabled') === '1' ? '1' : '0');
-        $siteSettings->set('overdue_days', (string) max(1, min(365, (int) $request->post('overdue_days', '55'))));
-
         $activityRepo = new ActivityRepo($db);
         $activityRepo->log(
             (int) $session->get('lstr_admin_id'),
@@ -2466,7 +2821,7 @@ final class ListingController extends AdminController
         $ownerEmail = (string) ($config->get('owner_email', '') ?? '');
         if ($ownerEmail === '') {
             $session->set('lstr_flash_error', 'No owner email is configured. Add one under Settings → General before sending notifications.');
-            return Response::redirect($baseUrl . '/admin/listings/settings');
+            return Response::redirect($baseUrl . '/admin/settings#panel-notifications');
         }
 
         $siteRepo = new SiteSettingsRepo($db);
@@ -2479,7 +2834,7 @@ final class ListingController extends AdminController
 
         if (empty($stale)) {
             $session->set('lstr_flash_success', 'No overdue listings found — no email was sent. The 24-hour window has been reset.');
-            return Response::redirect($baseUrl . '/admin/listings/settings');
+            return Response::redirect($baseUrl . '/admin/settings#panel-notifications');
         }
 
         $siteName = (string) ($config->get('site_name', 'your collective') ?? '');

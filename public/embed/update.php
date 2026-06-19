@@ -4,11 +4,16 @@ declare(strict_types=1);
 
 use Luster\Core\Captcha;
 use Luster\Core\Countries;
+use Luster\Core\TemplateEngine;
+use Luster\Core\View;
 use Luster\Repositories\FieldRepo;
 use Luster\Repositories\ListingRepo;
 use Luster\Repositories\ListingSettingsRepo;
 use Luster\Repositories\MemberRepo;
+use Luster\Repositories\SiteSettingsRepo;
 use Luster\Support\FormFieldBuilder;
+use Luster\Support\FormTemplateRenderer;
+use Luster\Support\ListingTemplateResolver;
 
 /**
  * Luster embed — update membership form fragment.
@@ -134,26 +139,70 @@ if (isset($luster_lost_password_url)) {
     $_lusterLostPasswordUrl = (string) $luster_lost_password_url;
 } else {
     $_lusterResetPage       = (string) ($_lusterEmbedSettings['form_url_reset'] ?? '');
-    $_lusterLostPasswordUrl = $_lusterResetPage !== ''
-        ? rtrim((string) $_lusterListing->url, '/') . '/' . ltrim($_lusterResetPage, '/')
-        : '';
+    if ($_lusterResetPage !== '' && preg_match('#^https?://#i', $_lusterResetPage)) {
+        $_lusterLostPasswordUrl = $_lusterResetPage;
+    } elseif ($_lusterResetPage !== '') {
+        $_lusterLostPasswordUrl = rtrim((string) $_lusterListing->url, '/') . '/' . ltrim($_lusterResetPage, '/');
+    } else {
+        $_lusterLostPasswordUrl = '';
+    }
 }
 
 // ---------------------------------------------------------------------------
 // 7. Render fragment
 // ---------------------------------------------------------------------------
 
-$_lusterWrapperTpl = $_lusterSettingsRepo->getWrapperTemplate($_lusterListingId) ?? '';
-$_lusterFb         = $_lusterApp->getFormFieldBuilder();
+$_lusterWrapperTpl    = $_lusterSettingsRepo->getWrapperTemplate($_lusterListingId) ?? '';
+$_lusterGlobalTpls    = (new SiteSettingsRepo($_lusterApp->getDatabase()))->getGlobalTemplates();
+$_lusterUpdResolved   = ListingTemplateResolver::resolve(
+    $_lusterSettingsRepo->getUpdateFormTemplate($_lusterListingId),
+    $_lusterGlobalTpls['listing_default_update_form_template'] ?? null,
+    ListingSettingsRepo::defaultUpdateFormTemplate(),
+);
+$_lusterUpdateFormTpl = $_lusterUpdResolved['should_render_template'] ? $_lusterUpdResolved['value'] : '';
+$_lusterFb            = $_lusterApp->getFormFieldBuilder();
 
 if (!$_lusterSignedIn) {
 
     // ── Step 1: sign-in form ────────────────────────────────────────────────
+    $_lusterFormAction1  = $_lusterBaseUrl . '/update/' . $_lusterListingId . '/sign-in';
     $_lusterDescriptors = [
         ['type' => 'email',    'name' => 'email',    'id' => 'upd-email',    'label' => 'Email Address', 'required' => true, 'value' => (string) ($_lusterOld['email'] ?? ''), 'attrs' => ['maxlength' => '255', 'autocomplete' => 'email']],
         ['type' => 'password', 'name' => 'password', 'id' => 'upd-password', 'label' => 'Password',       'required' => true, 'attrs' => ['maxlength' => '255', 'autocomplete' => 'current-password']],
     ];
     $_lusterF = $_lusterFb->build($_lusterDescriptors, $_lusterWrapperTpl);
+
+    $_lusterFormHtml = null;
+    if ($_lusterUpdateFormTpl !== '') {
+        $_lusterProcessed = TemplateEngine::conditionals($_lusterUpdateFormTpl, [
+            'not_signed_in' => true,
+            'signed_in'     => false,
+        ]);
+        $_lusterTokens = [
+            '{listing_title}'          => View::e((string) $_lusterListing->title),
+            '{listing_url}'            => View::e((string) $_lusterListing->url),
+            '{field_signin_email}'     => $_lusterF['email'],
+            '{field_signin_password}'  => $_lusterF['password'],
+            '{field_new_name}'         => '',
+            '{field_new_email}'        => '',
+            '{field_new_url}'          => '',
+            '{field_new_country}'      => '',
+            '{additional_fields}'      => '',
+            '{field_password}'         => '',
+            '{field_password_confirm}' => '',
+            '{captcha_block}'          => '',
+            '{captcha_block_input}'    => '',
+            '{captcha_question}'       => '',
+            '{field_remove}'           => '',
+            '{submit_button}'          => '<button type="submit" class="fl-submit">Sign in</button>',
+            '{clear_button}'           => '<button type="reset" class="fl-btn-secondary">Clear</button>',
+            '{sign_out_url}'           => '#',
+            '{field_email}'            => '',
+            '{lost_password_url}'      => View::e($_lusterLostPasswordUrl),
+        ];
+        $_lusterInner    = FormTemplateRenderer::expandTokens($_lusterProcessed, $_lusterTokens);
+        $_lusterFormHtml = FormTemplateRenderer::wrapForm($_lusterInner, $_lusterFormAction1, $_lusterApp->getCSRF()->token(), false);
+    }
 
     $_lusterHtml = $_lusterApp->getView()->renderFragment('update.php', [
         'listing'           => $_lusterListing,
@@ -161,7 +210,7 @@ if (!$_lusterSignedIn) {
         'listing_url'       => $_lusterListing->url,
         'page_title'        => 'Update Membership',
         'signed_in'         => false,
-        'sign_in_action'    => $_lusterBaseUrl . '/update/' . $_lusterListingId . '/sign-in',
+        'sign_in_action'    => $_lusterFormAction1,
         'csrf_token'        => $_lusterApp->getCSRF()->token(),
         'errors'            => $_lusterError !== ''
             ? '<p>' . htmlspecialchars($_lusterError, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '</p>'
@@ -169,6 +218,7 @@ if (!$_lusterSignedIn) {
         'lost_password_url' => $_lusterLostPasswordUrl,
         'fields'            => [],
         'f'                 => $_lusterF,
+        'form_html'         => $_lusterFormHtml,
         'base_url'          => $_lusterApp->getBaseUrl(),
         'theme_path'        => $_lusterApp->getBaseUrl() . '/assets/default/',
     ]);
@@ -180,6 +230,8 @@ if (!$_lusterSignedIn) {
     $_lusterFields       = $_lusterFieldRepo->getFieldsForListing($_lusterListingId);
     $_lusterCaptchaQ     = Captcha::getQuestion('update');
     $_lusterCountrySel   = Countries::buildSelect((string) ($_lusterOld['country'] ?? ''));
+    $_lusterFormAction2  = $_lusterBaseUrl . '/update/' . $_lusterListingId;
+    $_lusterSignOutUrl   = $_lusterBaseUrl . '/update/' . $_lusterListingId . '/sign-out';
 
     $_lusterUrlVal = htmlspecialchars(
         (string) (($_lusterOld['url'] ?? '') !== '' ? ($_lusterOld['url'] ?? '') : $_lusterMember->url),
@@ -209,14 +261,54 @@ if (!$_lusterSignedIn) {
     ];
     $_lusterF = $_lusterFb->build($_lusterDescriptors, $_lusterWrapperTpl);
 
+    $_lusterFormHtml = null;
+    if ($_lusterUpdateFormTpl !== '') {
+        $_lusterAddlHtml    = implode("\n", array_map(
+            fn(\Luster\Models\AdditionalField $fld) => $_lusterF['field_' . $fld->name] ?? '',
+            $_lusterFields,
+        ));
+        $_lusterRemoveHtml  = '<div class="fl-field fl-field--danger"><label>'
+            . '<input type="checkbox" id="upd-delete-membership" name="delete_membership" value="1">'
+            . ' Permanently delete my membership instead of updating it</label>'
+            . '<p class="fl-field-hint">This immediately and permanently removes your membership from this listing. Cannot be undone.</p></div>';
+        $_lusterProcessed = TemplateEngine::conditionals($_lusterUpdateFormTpl, [
+            'not_signed_in' => false,
+            'signed_in'     => true,
+        ]);
+        $_lusterTokens = [
+            '{listing_title}'          => View::e((string) $_lusterListing->title),
+            '{listing_url}'            => View::e((string) $_lusterListing->url),
+            '{field_signin_email}'     => '',
+            '{field_signin_password}'  => '',
+            '{field_new_name}'         => $_lusterF['new_name'],
+            '{field_new_email}'        => $_lusterF['new_email'],
+            '{field_new_url}'          => $_lusterF['url'],
+            '{field_new_country}'      => $_lusterF['country'],
+            '{additional_fields}'      => $_lusterAddlHtml,
+            '{field_password}'         => $_lusterF['new_password'],
+            '{field_password_confirm}' => $_lusterF['new_password_confirm'],
+            '{captcha_block}'          => $_lusterF['captcha_answer'],
+            '{captcha_block_input}'    => $_lusterF['captcha_answer_input'] ?? '',
+            '{captcha_question}'       => View::e($_lusterCaptchaQ),
+            '{field_remove}'           => $_lusterRemoveHtml,
+            '{submit_button}'          => '<button type="submit" class="fl-submit">Update Information</button>',
+            '{clear_button}'           => '<button type="reset" class="fl-btn-secondary">Clear</button>',
+            '{sign_out_url}'           => View::e($_lusterSignOutUrl),
+            '{field_email}'            => View::e($_lusterMember->email),
+            '{lost_password_url}'      => '',
+        ];
+        $_lusterInner    = FormTemplateRenderer::expandTokens($_lusterProcessed, $_lusterTokens);
+        $_lusterFormHtml = FormTemplateRenderer::wrapForm($_lusterInner, $_lusterFormAction2, $_lusterApp->getCSRF()->token(), false);
+    }
+
     $_lusterHtml = $_lusterApp->getView()->renderFragment('update.php', [
         'listing'       => $_lusterListing,
         'listing_name'  => $_lusterListing->title,
         'listing_url'   => $_lusterListing->url,
         'page_title'    => 'Update Membership',
         'signed_in'     => true,
-        'sign_out_url'  => $_lusterBaseUrl . '/update/' . $_lusterListingId . '/sign-out',
-        'form_action'   => $_lusterBaseUrl . '/update/' . $_lusterListingId,
+        'sign_out_url'  => $_lusterSignOutUrl,
+        'form_action'   => $_lusterFormAction2,
         'csrf_token'    => $_lusterApp->getCSRF()->token(),
         'errors'        => $_lusterError !== ''
             ? '<p>' . htmlspecialchars($_lusterError, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '</p>'
@@ -224,6 +316,7 @@ if (!$_lusterSignedIn) {
         'field_email'   => $_lusterMember->email,
         'fields'        => $_lusterFields,
         'f'             => $_lusterF,
+        'form_html'     => $_lusterFormHtml,
         'base_url'      => $_lusterApp->getBaseUrl(),
         'theme_path'    => $_lusterApp->getBaseUrl() . '/assets/default/',
     ]);

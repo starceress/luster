@@ -469,7 +469,6 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
 <?php
 // Templates tab — local helpers
 $hasUpdatesAddon  = (bool) ($updates_addon_installed ?? false);
-$hasAdoptionAddon = (bool) ($adoption_addon_installed ?? false) && (bool) ($for_adoption ?? false);
 $hasCodesSubmit   = (bool) ($embed_settings['codes_submit_enabled'] ?? true);
 $hasRulesAddon    = (bool) ($rules_addon_installed ?? false) && (bool) ($rules_enabled_for_listing ?? false);
 
@@ -528,9 +527,17 @@ $tplStatsVal     = $_statsNeedsReset($templates['stats_template'] ?? null)
 $tplUpdatesVal      = ($templates['updates_template']            ?? '') ?: $_gFallback(ListingSettingsRepo::defaultUpdatesTemplate(),              'listing_default_updates_template');
 $tplCodesFormVal    = ($templates['codes_submit_form_template']    ?? '') ?: $_gFallback(ListingSettingsRepo::defaultCodesSubmitFormTemplate(),    'listing_default_codes_submit_form_template');
 $tplAffApplyFormVal = ($templates['affiliate_apply_form_template'] ?? '') ?: $_gFallback(ListingSettingsRepo::defaultAffiliateApplyFormTemplate(), 'listing_default_affiliate_apply_form_template');
-$tplAdoptFormVal    = ($templates['adopt_form_template']           ?? '') ?: $_gFallback(ListingSettingsRepo::defaultAdoptFormTemplate(),          'listing_default_adopt_form_template');
 $tplJoinFormVal     = ($templates['join_form_template']              ?? '') ?: $_gFallback(ListingSettingsRepo::defaultJoinFormTemplate(),          'listing_default_join_form_template');
-$tplCodesVal        = ($templates['codes_template']                  ?? '') ?: ListingSettingsRepo::defaultCodesTemplate();
+$tplCodesVal        = ($templates['codes_template']                  ?? '') ?: $_gFallback(ListingSettingsRepo::defaultCodesTemplate(),           'listing_default_codes_template');
+$tplUpdateFormVal   = ($templates['update_form_template']             ?? '') ?: $_gFallback(ListingSettingsRepo::defaultUpdateFormTemplate(), 'listing_default_update_form_template');
+$tplResetFormVal    = ($templates['reset_form_template']              ?? '') ?: $_gFallback(ListingSettingsRepo::defaultResetFormTemplate(),  'listing_default_reset_form_template');
+$tplContactFormVal  = ($templates['contact_form_template']           ?? '') ?: $_gFallback(ListingSettingsRepo::defaultContactFormTemplate(), 'listing_default_contact_form_template');
+$tplContactSentVal  = ($templates['contact_sent_template']           ?? '') ?: $_gFallback(ListingSettingsRepo::defaultContactSentTemplate(), 'listing_default_contact_sent_template');
+
+$activeGroup = (string) ($_GET['group'] ?? 'all');
+$_validGroups = ['all', 'members', 'join-form', 'update-form', 'reset-form', 'statistics', 'codes', 'codes-form', 'affiliates', 'affiliate-form', 'updates', 'contact-form', 'contact-sent'];
+if (!in_array($activeGroup, $_validGroups, true)) { $activeGroup = 'all'; }
+$_grp = static fn(string $g) => ($activeGroup !== 'all' && $activeGroup !== $g) ? 'hidden' : '';
 
 // Source badge helper for Templates tab
 $tplSrc = $template_sources ?? [];
@@ -553,8 +560,38 @@ $ltok = static fn(string $ta, string $token, string $label, string $desc): strin
     . '</tr>' . "\n";
 ?>
 <div id="tab-templates" class="tabs-panel">
+
+<div class="tpl-group-selector-bar">
+  <div class="select-wrap">
+    <select id="tpl-group-select" class="form">
+      <option value="all"<?= $activeGroup === 'all' ? ' selected' : '' ?>>All Templates</option>
+      <option value="members"<?= $activeGroup === 'members' ? ' selected' : '' ?>>Members List</option>
+      <optgroup label="Membership Forms">
+        <option value="join-form"<?= $activeGroup === 'join-form' ? ' selected' : '' ?>>Join Form</option>
+        <option value="update-form"<?= $activeGroup === 'update-form' ? ' selected' : '' ?>>Update Membership Form</option>
+        <option value="reset-form"<?= $activeGroup === 'reset-form' ? ' selected' : '' ?>>Lost Password Form</option>
+      </optgroup>
+      <option value="statistics"<?= $activeGroup === 'statistics' ? ' selected' : '' ?>>Statistics</option>
+      <optgroup label="Codes &amp; Donation Form">
+        <option value="codes"<?= $activeGroup === 'codes' ? ' selected' : '' ?>>Codes Display</option>
+        <option value="codes-form"<?= $activeGroup === 'codes-form' ? ' selected' : '' ?>>Code Donation Form</option>
+      </optgroup>
+      <optgroup label="Affiliates &amp; Form">
+        <option value="affiliates"<?= $activeGroup === 'affiliates' ? ' selected' : '' ?>>Affiliates Section</option>
+        <option value="affiliate-form"<?= $activeGroup === 'affiliate-form' ? ' selected' : '' ?>>Affiliate Application Form</option>
+      </optgroup>
+      <option value="updates"<?= $activeGroup === 'updates' ? ' selected' : '' ?>>Updates Feed</option>
+      <optgroup label="Contact">
+        <option value="contact-form"<?= $activeGroup === 'contact-form' ? ' selected' : '' ?>>Contact Form</option>
+        <option value="contact-sent"<?= $activeGroup === 'contact-sent' ? ' selected' : '' ?>>Contact Sent Message</option>
+      </optgroup>
+    </select>
+  </div>
+</div>
+
 <form method="POST" action="<?= $b ?>/admin/listings/<?= (int) $listing->id ?>/templates" class="js-warn-unsaved">
   <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
+  <input type="hidden" name="return_group" id="tpl-return-group" value="<?= View::e($activeGroup) ?>">
 
   <div class="composer-grid">
 
@@ -570,109 +607,159 @@ $ltok = static fn(string $ta, string $token, string $label, string $desc): strin
 
       <div class="pc-section">
 
-        <div class="pc-section-label">Members List <?= $srcBadge('members_template') ?></div>
-        <div class="form-group">
-          <textarea id="members_template" name="members_template" class="form form-mono" spellcheck="false"><?= View::e($tplMembersVal) ?></textarea>
-        </div>
-        <div class="tpl-reset-row">
-          <button type="button" class="btn btn-preview btn-xs coltpl-preview-btn" data-tpltype="members" data-textarea="members_template"><?= View::icon('eye-on') ?> Preview</button> &nbsp;
-          <button type="button" class="btn btn-quaternary btn-xs" data-textarea="members_template">Reset to Default</button>
-        </div>
-
-        <div class="pc-section-label">Affiliates Section <?= $srcBadge('affiliates_section_template') ?></div>
-        <p class="form-hint mb-sm">Controls the full affiliates block for this listing. Use <code>{each_affiliate}&hellip;{/each_affiliate}</code> to design each row, or <code>{affiliates}</code> to drop in ready-made rows.</p>
-        <div class="form-group">
-          <textarea id="affiliates_section_template" name="affiliates_section_template" class="form form-mono" spellcheck="false"><?= View::e($tplAffVal) ?></textarea>
-        </div>
-        <div class="tpl-reset-row">
-          <button type="button" class="btn btn-preview btn-xs coltpl-preview-btn" data-tpltype="affiliates_section" data-textarea="affiliates_section_template"><?= View::icon('eye-on') ?> Preview</button> &nbsp;
-          <button type="button" class="btn btn-quaternary btn-xs" data-textarea="affiliates_section_template">Reset to Default</button>
+        <div class="tpl-group-section" data-tpl-group="members" <?= $_grp('members') ?>>
+          <div class="pc-section-label">Members List <?= $srcBadge('members_template') ?></div>
+          <div class="form-group">
+            <textarea id="members_template" name="members_template" class="form form-mono" spellcheck="false"><?= View::e($tplMembersVal) ?></textarea>
+          </div>
+          <div class="tpl-reset-row">
+            <button type="button" class="btn btn-preview btn-xs coltpl-preview-btn" data-tpltype="members" data-textarea="members_template"><?= View::icon('eye-on') ?> Preview</button> &nbsp;
+            <button type="button" class="btn btn-quaternary btn-xs" data-textarea="members_template">Reset to Default</button>
+          </div>
         </div>
 
-        <div class="pc-section-label">Statistics <?= $srcBadge('stats_template') ?></div>
-        <div class="form-group">
-          <textarea id="stats_template" name="stats_template" class="form form-mono" spellcheck="false"><?= View::e($tplStatsVal) ?></textarea>
+        <div class="tpl-group-section" data-tpl-group="affiliates" <?= $_grp('affiliates') ?>>
+          <div class="pc-section-label">Affiliates Section <?= $srcBadge('affiliates_section_template') ?></div>
+          <p class="form-hint mb-sm">Controls the full affiliates block for this listing. Use <code>{each_affiliate}&hellip;{/each_affiliate}</code> to design each row.</p>
+          <div class="form-group">
+            <textarea id="affiliates_section_template" name="affiliates_section_template" class="form form-mono" spellcheck="false"><?= View::e($tplAffVal) ?></textarea>
+          </div>
+          <div class="tpl-reset-row">
+            <button type="button" class="btn btn-preview btn-xs coltpl-preview-btn" data-tpltype="affiliates_section" data-textarea="affiliates_section_template"><?= View::icon('eye-on') ?> Preview</button> &nbsp;
+            <button type="button" class="btn btn-quaternary btn-xs" data-textarea="affiliates_section_template">Reset to Default</button>
+          </div>
         </div>
-        <div class="tpl-reset-row">
-          <button type="button" class="btn btn-preview btn-xs coltpl-preview-btn" data-tpltype="stats" data-textarea="stats_template"><?= View::icon('eye-on') ?> Preview</button> &nbsp;
-          <button type="button" class="btn btn-quaternary btn-xs" data-textarea="stats_template">Reset to Default</button>
+
+        <div class="tpl-group-section" data-tpl-group="statistics" <?= $_grp('statistics') ?>>
+          <div class="pc-section-label">Statistics <?= $srcBadge('stats_template') ?></div>
+          <div class="form-group">
+            <textarea id="stats_template" name="stats_template" class="form form-mono" spellcheck="false"><?= View::e($tplStatsVal) ?></textarea>
+          </div>
+          <div class="tpl-reset-row">
+            <button type="button" class="btn btn-preview btn-xs coltpl-preview-btn" data-tpltype="stats" data-textarea="stats_template"><?= View::icon('eye-on') ?> Preview</button> &nbsp;
+            <button type="button" class="btn btn-quaternary btn-xs" data-textarea="stats_template">Reset to Default</button>
+          </div>
         </div>
 
         <?php if ($hasUpdatesAddon): ?>
-        <div class="pc-section-label">Updates Feed <?= $srcBadge('updates_template') ?></div>
-        <p class="form-hint mb-sm">Controls the rendered updates list on <code>/updates/<?= (int) $listing->id ?></code> and the embed. Wrap each post in <code>{each_update}&hellip;{/each_update}</code>.</p>
-        <div class="form-group">
-          <textarea id="updates_template" name="updates_template" class="form form-mono" spellcheck="false"><?= View::e($tplUpdatesVal) ?></textarea>
-        </div>
-        <div class="tpl-reset-row">
-          <button type="button" class="btn btn-preview btn-xs coltpl-preview-btn" data-tpltype="updates" data-textarea="updates_template"><?= View::icon('eye-on') ?>  Preview</button>&nbsp;
-          <button type="button" class="btn btn-quaternary btn-xs" data-textarea="updates_template">Reset to Default</button>
+        <div class="tpl-group-section" data-tpl-group="updates" <?= $_grp('updates') ?>>
+          <div class="pc-section-label">Updates Feed <?= $srcBadge('updates_template') ?></div>
+          <p class="form-hint mb-sm">Controls the rendered updates list on <code>/updates/<?= (int) $listing->id ?></code> and the embed. Wrap each post in <code>{each_update}&hellip;{/each_update}</code>.</p>
+          <div class="form-group">
+            <textarea id="updates_template" name="updates_template" class="form form-mono" spellcheck="false"><?= View::e($tplUpdatesVal) ?></textarea>
+          </div>
+          <div class="tpl-reset-row">
+            <button type="button" class="btn btn-preview btn-xs coltpl-preview-btn" data-tpltype="updates" data-textarea="updates_template"><?= View::icon('eye-on') ?>  Preview</button>&nbsp;
+            <button type="button" class="btn btn-quaternary btn-xs" data-textarea="updates_template">Reset to Default</button>
+          </div>
         </div>
         <?php else: ?>
         <input type="hidden" name="updates_template" value="<?= View::e((string) ($tplUpdatesVal ?? '')) ?>">
         <?php endif; ?>
 
-        <div class="pc-section-label">Join Form <?= $srcBadge('join_form_template') ?></div>
-        <p class="form-hint mb-sm">Controls the full layout of the join form, including every field. Write any introductory text directly at the top of the template. Use the tokens below to arrange fields in any order.</p>
-        <div class="form-group">
-          <textarea id="join_form_template" name="join_form_template" class="form form-mono" spellcheck="false"><?= View::e($tplJoinFormVal) ?></textarea>
-        </div>
-        <div class="tpl-reset-row">
-          <button type="button" class="btn btn-preview btn-xs coltpl-preview-btn" data-tpltype="join_form" data-textarea="join_form_template"><?= View::icon('eye-on') ?> Preview</button> &nbsp;
-          <button type="button" class="btn btn-quaternary btn-xs" data-textarea="join_form_template">Reset to Default</button>
+        <div class="tpl-group-section" data-tpl-group="join-form" <?= $_grp('join-form') ?>>
+          <div class="pc-section-label">Join Form <?= $srcBadge('join_form_template') ?></div>
+          <p class="form-hint mb-sm">Controls the full layout of the join form, including every field. Write any introductory text directly at the top of the template. Use the tokens below to arrange fields in any order.</p>
+          <div class="form-group">
+            <textarea id="join_form_template" name="join_form_template" class="form form-mono" spellcheck="false"><?= View::e($tplJoinFormVal) ?></textarea>
+          </div>
+          <div class="tpl-reset-row">
+            <button type="button" class="btn btn-preview btn-xs coltpl-preview-btn" data-tpltype="join_form" data-textarea="join_form_template"><?= View::icon('eye-on') ?> Preview</button> &nbsp;
+            <button type="button" class="btn btn-quaternary btn-xs" data-textarea="join_form_template">Reset to Default</button>
+          </div>
         </div>
 
-        <?php if ($hasAdoptionAddon): ?>
-        <div class="pc-section-label">Adopt Form <?= $srcBadge('adopt_form_template') ?></div>
-        <p class="form-hint mb-sm">Controls the full layout of the adoption application form. Use the tokens on the right to arrange fields in any order.</p>
-        <div class="form-group">
-          <textarea id="adopt_form_template" name="adopt_form_template" class="form form-mono" spellcheck="false"><?= View::e($tplAdoptFormVal) ?></textarea>
+        <div class="tpl-group-section" data-tpl-group="update-form" <?= $_grp('update-form') ?>>
+          <div class="pc-section-label">Update Membership Form <?= $srcBadge('update_form_template') ?></div>
+          <p class="form-hint mb-sm">Controls the full layout of the update form. Use <code>{if_not_signed_in}&hellip;{/if_not_signed_in}</code> for the sign-in step and <code>{if_signed_in}&hellip;{/if_signed_in}</code> for the update fields step.</p>
+          <div class="form-group">
+            <textarea id="update_form_template" name="update_form_template" class="form form-mono" spellcheck="false"><?= View::e($tplUpdateFormVal) ?></textarea>
+          </div>
+          <div class="tpl-reset-row">
+            <button type="button" class="btn btn-preview btn-xs coltpl-preview-btn" data-tpltype="update_form" data-textarea="update_form_template"><?= View::icon('eye-on') ?> Preview</button> &nbsp;
+            <button type="button" class="btn btn-quaternary btn-xs" data-textarea="update_form_template">Reset to Default</button>
+          </div>
         </div>
-        <div class="tpl-reset-row">
-          <button type="button" class="btn btn-preview btn-xs coltpl-preview-btn" data-tpltype="adopt_form" data-textarea="adopt_form_template"><?= View::icon('eye-on') ?>  Preview</button>&nbsp;
-          <button type="button" class="btn btn-quaternary btn-xs" data-textarea="adopt_form_template">Reset to Default</button>
-        </div>
-        <?php else: ?>
-        <input type="hidden" name="adopt_form_template" value="<?= View::e((string) ($tplAdoptFormVal ?? '')) ?>">
-        <?php endif; ?>
 
-        <div class="pc-section-label">Codes Display <?= $srcBadge('codes_template') ?></div>
-        <p class="form-hint mb-sm">Controls how this listing's approved fan codes are displayed. Use <code>{each_size_group}&hellip;{/each_size_group}</code> to group codes by dimensions, or a single <code>{each_code}&hellip;{/each_code}</code> loop for a flat gallery.</p>
-        <div class="form-group">
-          <textarea id="codes_template" name="codes_template" class="form form-mono" spellcheck="false"><?= View::e($tplCodesVal) ?></textarea>
+        <div class="tpl-group-section" data-tpl-group="reset-form" <?= $_grp('reset-form') ?>>
+          <div class="pc-section-label">Lost Password Form <?= $srcBadge('reset_form_template') ?></div>
+          <p class="form-hint mb-sm">Controls the full layout of the password reset form. Use <code>{if_step_email}&hellip;{/if_step_email}</code> for the email-entry step and <code>{if_step_confirm}&hellip;{/if_step_confirm}</code> for the new-password step.</p>
+          <div class="form-group">
+            <textarea id="reset_form_template" name="reset_form_template" class="form form-mono" spellcheck="false"><?= View::e($tplResetFormVal) ?></textarea>
+          </div>
+          <div class="tpl-reset-row">
+            <button type="button" class="btn btn-preview btn-xs coltpl-preview-btn" data-tpltype="reset_form" data-textarea="reset_form_template"><?= View::icon('eye-on') ?> Preview</button> &nbsp;
+            <button type="button" class="btn btn-quaternary btn-xs" data-textarea="reset_form_template">Reset to Default</button>
+          </div>
         </div>
-        <div class="tpl-reset-row">
-          <button type="button" class="btn btn-preview btn-xs coltpl-preview-btn" data-tpltype="codes" data-textarea="codes_template"><?= View::icon('eye-on') ?> Preview</button> &nbsp;
-          <button type="button" class="btn btn-quaternary btn-xs" data-textarea="codes_template">Reset to Default</button>
+
+        <div class="tpl-group-section" data-tpl-group="codes" <?= $_grp('codes') ?>>
+          <div class="pc-section-label">Codes Display <?= $srcBadge('codes_template') ?></div>
+          <p class="form-hint mb-sm">Controls how this listing's approved fan codes are displayed. Use <code>{each_size_group}&hellip;{/each_size_group}</code> to group codes by dimensions, or a single <code>{each_code}&hellip;{/each_code}</code> loop for a flat gallery.</p>
+          <div class="form-group">
+            <textarea id="codes_template" name="codes_template" class="form form-mono" spellcheck="false"><?= View::e($tplCodesVal) ?></textarea>
+          </div>
+          <div class="tpl-reset-row">
+            <button type="button" class="btn btn-preview btn-xs coltpl-preview-btn" data-tpltype="codes" data-textarea="codes_template"><?= View::icon('eye-on') ?> Preview</button> &nbsp;
+            <button type="button" class="btn btn-quaternary btn-xs" data-textarea="codes_template">Reset to Default</button>
+          </div>
         </div>
 
         <?php if ($hasCodesSubmit): ?>
-        <div class="pc-section-label">Code Donation Form <?= $srcBadge('codes_submit_form_template') ?></div>
-        <p class="form-hint mb-sm">Controls the full layout of the code donation form. Write any introductory text directly at the top of the template. Use the tokens below to arrange fields in any order.</p>
-        <div class="form-group">
-          <textarea id="codes_submit_form_template" name="codes_submit_form_template" class="form form-mono" spellcheck="false"><?= View::e($tplCodesFormVal) ?></textarea>
-        </div>
-        <div class="tpl-reset-row">
-          <button type="button" class="btn btn-preview btn-xs coltpl-preview-btn" data-tpltype="codes_submit_form" data-textarea="codes_submit_form_template"><?= View::icon('eye-on') ?> Preview</button> &nbsp;
-          <button type="button" class="btn btn-quaternary btn-xs" data-textarea="codes_submit_form_template">Reset to Default</button>
+        <div class="tpl-group-section" data-tpl-group="codes-form" <?= $_grp('codes-form') ?>>
+          <div class="pc-section-label">Code Donation Form <?= $srcBadge('codes_submit_form_template') ?></div>
+          <p class="form-hint mb-sm">Controls the full layout of the code donation form. Write any introductory text directly at the top of the template. Use the tokens below to arrange fields in any order.</p>
+          <div class="form-group">
+            <textarea id="codes_submit_form_template" name="codes_submit_form_template" class="form form-mono" spellcheck="false"><?= View::e($tplCodesFormVal) ?></textarea>
+          </div>
+          <div class="tpl-reset-row">
+            <button type="button" class="btn btn-preview btn-xs coltpl-preview-btn" data-tpltype="codes_submit_form" data-textarea="codes_submit_form_template"><?= View::icon('eye-on') ?> Preview</button> &nbsp;
+            <button type="button" class="btn btn-quaternary btn-xs" data-textarea="codes_submit_form_template">Reset to Default</button>
+          </div>
         </div>
         <?php else: ?>
         <input type="hidden" name="codes_submit_form_template" value="<?= View::e((string) ($tplCodesFormVal ?? '')) ?>">
         <?php endif; ?>
 
         <?php if ($affiliate_apply_enabled ?? false): ?>
-        <div class="pc-section-label">Affiliate Application Form <?= $srcBadge('affiliate_apply_form_template') ?></div>
-        <p class="form-hint mb-sm">Controls the full layout of the affiliate application form. Write any introductory text directly at the top of the template. Use the tokens below to arrange fields in any order.</p>
-        <div class="form-group">
-          <textarea id="affiliate_apply_form_template" name="affiliate_apply_form_template" class="form form-mono" spellcheck="false"><?= View::e($tplAffApplyFormVal) ?></textarea>
-        </div>
-        <div class="tpl-reset-row">
-          <button type="button" class="btn btn-preview btn-xs coltpl-preview-btn" data-tpltype="affiliate_apply_form" data-textarea="affiliate_apply_form_template"><?= View::icon('eye-on') ?> Preview</button> &nbsp;
-          <button type="button" class="btn btn-quaternary btn-xs" data-textarea="affiliate_apply_form_template">Reset to Default</button>
+        <div class="tpl-group-section" data-tpl-group="affiliate-form" <?= $_grp('affiliate-form') ?>>
+          <div class="pc-section-label">Affiliate Application Form <?= $srcBadge('affiliate_apply_form_template') ?></div>
+          <p class="form-hint mb-sm">Controls the full layout of the affiliate application form. Write any introductory text directly at the top of the template. Use the tokens below to arrange fields in any order.</p>
+          <div class="form-group">
+            <textarea id="affiliate_apply_form_template" name="affiliate_apply_form_template" class="form form-mono" spellcheck="false"><?= View::e($tplAffApplyFormVal) ?></textarea>
+          </div>
+          <div class="tpl-reset-row">
+            <button type="button" class="btn btn-preview btn-xs coltpl-preview-btn" data-tpltype="affiliate_apply_form" data-textarea="affiliate_apply_form_template"><?= View::icon('eye-on') ?> Preview</button> &nbsp;
+            <button type="button" class="btn btn-quaternary btn-xs" data-textarea="affiliate_apply_form_template">Reset to Default</button>
+          </div>
         </div>
         <?php else: ?>
         <input type="hidden" name="affiliate_apply_form_template" value="<?= View::e((string) ($tplAffApplyFormVal ?? '')) ?>">
         <?php endif; ?>
+
+        <div class="tpl-group-section" data-tpl-group="contact-form" <?= $_grp('contact-form') ?>>
+          <div class="pc-section-label">Contact Form <?= $srcBadge('contact_form_template') ?></div>
+          <p class="form-hint mb-sm">Controls the full layout of the contact form. Write any introductory text directly at the top of the template. Use the tokens below to arrange fields in any order.</p>
+          <div class="form-group">
+            <textarea id="contact_form_template" name="contact_form_template" class="form form-mono" spellcheck="false"><?= View::e($tplContactFormVal) ?></textarea>
+          </div>
+          <div class="tpl-reset-row">
+            <button type="button" class="btn btn-preview btn-xs coltpl-preview-btn" data-tpltype="contact_form" data-textarea="contact_form_template"><?= View::icon('eye-on') ?> Preview</button> &nbsp;
+            <button type="button" class="btn btn-quaternary btn-xs" data-textarea="contact_form_template">Reset to Default</button>
+          </div>
+        </div>
+
+        <div class="tpl-group-section" data-tpl-group="contact-sent" <?= $_grp('contact-sent') ?>>
+          <div class="pc-section-label">Contact Sent Message <?= $srcBadge('contact_sent_template') ?></div>
+          <p class="form-hint mb-sm">The confirmation message shown after a visitor submits the contact form.</p>
+          <div class="form-group">
+            <textarea id="contact_sent_template" name="contact_sent_template" class="form form-mono" spellcheck="false"><?= View::e($tplContactSentVal) ?></textarea>
+          </div>
+          <div class="tpl-reset-row">
+            <button type="button" class="btn btn-preview btn-xs coltpl-preview-btn" data-tpltype="contact_sent" data-textarea="contact_sent_template"><?= View::icon('eye-on') ?> Preview</button> &nbsp;
+            <button type="button" class="btn btn-quaternary btn-xs" data-textarea="contact_sent_template">Reset to Default</button>
+          </div>
+        </div>
 
       </div>
 
@@ -706,7 +793,7 @@ $ltok = static fn(string $ta, string $token, string $label, string $desc): strin
       <p id="collective-token-search-empty" data-token-search-empty class="form-hint token-search-empty" hidden>No tokens found.</p>
 
       <!-- Members List -->
-      <details class="card chevron" data-token-card>
+      <details class="card chevron" data-token-card data-tpl-group="members" <?= $_grp('members') ?>>
         <summary class="chevron-head">Members List Tokens</summary>
         <div class="chevron-body">
           <p class="form-hint mb-sm" data-token-search-help>Wrap your row design in {each_member}...{/each_member}. Use {if_no_members} outside the loop for an empty state.</p>
@@ -734,19 +821,16 @@ $ltok = static fn(string $ta, string $token, string $label, string $desc): strin
       </details>
 
       <!-- Affiliates Section -->
-      <details class="card chevron" data-token-card>
+      <details class="card chevron" data-token-card data-tpl-group="affiliates" <?= $_grp('affiliates') ?>>
         <summary class="chevron-head">Affiliates Section Tokens</summary>
         <div class="chevron-body">
-          <p class="form-hint mb-sm" data-token-search-help>Use {each_affiliate}...{/each_affiliate} to design each row yourself. Use {affiliates} to drop in ready-made rows without a custom loop.</p>
+          <p class="form-hint mb-sm" data-token-search-help>Use {each_affiliate}...{/each_affiliate} to design each row yourself.</p>
           <table class="et-token-table et-token-table--compact"><tbody>
             <?= $ltok('affiliates_section_template', '{each_affiliate}{/each_affiliate}', '{each_affiliate}...{/each_affiliate}', 'Repeats the HTML inside it once for each affiliate.') ?>
             <?= $ltok('affiliates_section_template', '{aff_name}',      '{aff_name}',      'The affiliate site name. Use inside {each_affiliate}.') ?>
             <?= $ltok('affiliates_section_template', '{aff_url}',       '{aff_url}',       'The affiliate site link. Use inside {each_affiliate}.') ?>
             <?= $ltok('affiliates_section_template', '{aff_image_url}', '{aff_image_url}', 'The affiliate image URL. Empty when there is no image. Use inside {each_affiliate}.') ?>
-            <?= $ltok('affiliates_section_template', '{aff_image}',     '{aff_image}',     'A ready-made affiliate image tag. Empty when there is no image. Use inside {each_affiliate}.') ?>
-            <?= $ltok('affiliates_section_template', '{affiliates}',       '{affiliates}',       'Ready-made affiliate rows. Use this when you do not want to design each row yourself.') ?>
             <?= $ltok('affiliates_section_template', '{affiliates_count}', '{affiliates_count}', 'How many active affiliates this listing has.') ?>
-            <?= $ltok('affiliates_section_template', '{affiliates_list}',  '{affiliates_list}',  'A comma-separated list of linked affiliate names.') ?>
             <?= $ltok('affiliates_section_template', '{affiliate_apply_url}',                '{affiliate_apply_url}',                   'URL of the affiliate application form for this listing.') ?>
             <?= $ltok('affiliates_section_template', '{if_affiliates}{/if_affiliates}',       '{if_affiliates}...{/if_affiliates}',       'Shows only when this listing has at least one affiliate.') ?>
             <?= $ltok('affiliates_section_template', '{if_no_affiliates}{/if_no_affiliates}', '{if_no_affiliates}...{/if_no_affiliates}', 'Shows only when this listing has no affiliates.') ?>
@@ -757,7 +841,7 @@ $ltok = static fn(string $ta, string $token, string $label, string $desc): strin
       </details>
 
       <!-- Statistics -->
-      <details class="card chevron" data-token-card>
+      <details class="card chevron" data-token-card data-tpl-group="statistics" <?= $_grp('statistics') ?>>
         <summary class="chevron-head">Statistics Tokens</summary>
         <div class="chevron-body">
           <p class="form-hint mb-sm" data-token-search-help>These tokens fill in the public stats block for this listing.</p>
@@ -772,16 +856,21 @@ $ltok = static fn(string $ta, string $token, string $label, string $desc): strin
             <?= $ltok('stats_template', '{stat_growth}',            '{stat_growth}',            'Average new members per day since the listing opened.') ?>
             <?= $ltok('stats_template', '{listing_title}',     '{listing_title}',     'The listing\'s display name.') ?>
             <?= $ltok('stats_template', '{listing_url}',       '{listing_url}',       'The link to the listing.') ?>
-            <?= $ltok('stats_template', '{approved_by}',       '{approved_by}',       'The network that approved this listing, as a linked name. Empty when no network is saved.') ?>
+            <?= $ltok('stats_template', '{approved_by}',       '{approved_by}',       'Network acronym: &ldquo;TFL&rdquo;, &ldquo;TAFL&rdquo;, or empty. Plain text, no link.') ?>
+            <?= $ltok('stats_template', '{network}',           '{network}',           'Same as {approved_by} &mdash; network acronym as raw text. Empty when not set.') ?>
+            <?= $ltok('stats_template', '{network_name}',      '{network_name}',      'Full network name: &ldquo;The Fanlistings Network&rdquo;, &ldquo;The Anime Fanlistings Network&rdquo;, or empty.') ?>
+            <?= $ltok('stats_template', '{tfl_url}',           '{tfl_url}',           'TFL website URL: <code>https://thefanlistings.org/</code>') ?>
+            <?= $ltok('stats_template', '{tafl_url}',          '{tafl_url}',          'TAFL website URL: <code>https://www.animefanlistings.com/</code>') ?>
             <?= $ltok('stats_template', '{if_approved_by}{/if_approved_by}', '{if_approved_by}...{/if_approved_by}', 'Shows only when an approved-by network is saved.') ?>
-            <?= $ltok('stats_template', '{network_status}',    '{network_status}',    'The approving network as a linked name, or &ldquo;Independent&rdquo; when no network is saved. Always shows something.') ?>
+            <?= $ltok('stats_template', '{if_tfl}{/if_tfl}',             '{if_tfl}...{/if_tfl}',             'Shows only when this listing is TFL-approved.') ?>
+            <?= $ltok('stats_template', '{if_tafl}{/if_tafl}',           '{if_tafl}...{/if_tafl}',           'Shows only when this listing is TAFL-approved.') ?>
           </tbody></table>
         </div>
       </details>
 
       <?php if ($hasUpdatesAddon): ?>
       <!-- Updates Feed -->
-      <details class="card chevron" data-token-card>
+      <details class="card chevron" data-token-card data-tpl-group="updates" <?= $_grp('updates') ?>>
         <summary class="chevron-head">Updates Feed Tokens</summary>
         <div class="chevron-body">
           <p class="form-hint mb-sm" data-token-search-help>Wrap each post in {each_update}...{/each_update}. Luster repeats it once per update entry.</p>
@@ -801,7 +890,7 @@ $ltok = static fn(string $ta, string $token, string $label, string $desc): strin
       <?php endif; ?>
 
       <!-- Join Form -->
-      <details class="card chevron" data-token-card>
+      <details class="card chevron" data-token-card data-tpl-group="join-form" <?= $_grp('join-form') ?>>
         <summary class="chevron-head">Join Form Tokens</summary>
         <div class="chevron-body">
           <p class="form-hint mb-sm" data-token-search-help>Arrange and label every field of the join form, and write any introductory text directly into the template. Each field token has a "_input" version that prints just the bare input (no label/wrapper) for custom layouts.</p>
@@ -831,35 +920,66 @@ $ltok = static fn(string $ta, string $token, string $label, string $desc): strin
         </div>
       </details>
 
-      <?php if ($hasAdoptionAddon): ?>
-      <!-- Adopt Form -->
-      <details class="card chevron" data-token-card>
-        <summary class="chevron-head">Adopt Form Tokens</summary>
+
+      <!-- Update Membership Form -->
+      <details class="card chevron" data-token-card data-tpl-group="update-form" <?= $_grp('update-form') ?>>
+        <summary class="chevron-head">Update Form Tokens</summary>
         <div class="chevron-body">
-          <p class="form-hint mb-sm" data-token-search-help>Arrange and label every field of the adoption application form. Each field token has a "_input" version that prints just the bare input (no label/wrapper) for custom layouts.</p>
+          <p class="form-hint mb-sm" data-token-search-help>Use {if_not_signed_in}...{/if_not_signed_in} for the sign-in step and {if_signed_in}...{/if_signed_in} for the update fields step. Both conditionals can share the same template.</p>
           <table class="et-token-table et-token-table--compact"><tbody>
-            <?= $ltok('adopt_form_template', '{listing_title}',        '{listing_title}',        'The listing\'s display name.') ?>
-            <?= $ltok('adopt_form_template', '{listing_url}',          '{listing_url}',          'The link to the listing.') ?>
-            <?= $ltok('adopt_form_template', '{field_name}',           '{field_name}',           'The Name field, with label and wrapper.') ?>
-            <?= $ltok('adopt_form_template', '{field_name_input}',     '{field_name_input}',     'Just the Name input, no label or wrapper.') ?>
-            <?= $ltok('adopt_form_template', '{field_email}',          '{field_email}',          'The Email field, with label and wrapper.') ?>
-            <?= $ltok('adopt_form_template', '{field_email_input}',    '{field_email_input}',    'Just the Email input, no label or wrapper.') ?>
-            <?= $ltok('adopt_form_template', '{field_url}',            '{field_url}',            'The Website URL field (optional), with label and wrapper.') ?>
-            <?= $ltok('adopt_form_template', '{field_url_input}',      '{field_url_input}',      'Just the Website URL input, no label or wrapper.') ?>
-            <?= $ltok('adopt_form_template', '{field_message}',        '{field_message}',        'The Message textarea (optional), with label and wrapper.') ?>
-            <?= $ltok('adopt_form_template', '{field_message_input}',  '{field_message_input}',  'Just the Message textarea, no label or wrapper.') ?>
-            <?= $ltok('adopt_form_template', '{captcha_block}',        '{captcha_block}',        'The captcha field, with label and wrapper.') ?>
-            <?= $ltok('adopt_form_template', '{captcha_block_input}',  '{captcha_block_input}',  'Just the captcha answer input, no label or wrapper.') ?>
-            <?= $ltok('adopt_form_template', '{captcha_question}',     '{captcha_question}',     'The captcha question text on its own.') ?>
-            <?= $ltok('adopt_form_template', '{submit_button}',        '{submit_button}',        'The "Submit Application" submit button.') ?>
-            <?= $ltok('adopt_form_template', '{clear_button}',         '{clear_button}',         'The "Clear" reset button.') ?>
+            <?= $ltok('update_form_template', '{if_not_signed_in}{/if_not_signed_in}', '{if_not_signed_in}...{/if_not_signed_in}', 'Shows the sign-in step (email + password). Shown on first visit before authentication.') ?>
+            <?= $ltok('update_form_template', '{if_signed_in}{/if_signed_in}',         '{if_signed_in}...{/if_signed_in}',         'Shows the update form step. Shown after the member signs in.') ?>
+            <?= $ltok('update_form_template', '{field_signin_email}',    '{field_signin_email}',    'Sign-in step: the Email field, with label and wrapper.') ?>
+            <?= $ltok('update_form_template', '{field_signin_password}', '{field_signin_password}', 'Sign-in step: the Password field, with label and wrapper.') ?>
+            <?= $ltok('update_form_template', '{lost_password_url}',     '{lost_password_url}',     'Sign-in step: URL of the password reset page. Use for a "Forgot your password?" link.') ?>
+            <?= $ltok('update_form_template', '{field_new_name}',    '{field_new_name}',    'Update step: the New Name field, with label and wrapper.') ?>
+            <?= $ltok('update_form_template', '{field_new_email}',   '{field_new_email}',   'Update step: the New Email field, with label and wrapper.') ?>
+            <?= $ltok('update_form_template', '{field_new_url}',     '{field_new_url}',     'Update step: the New Website URL field (includes Remove URL checkbox), with label and wrapper.') ?>
+            <?= $ltok('update_form_template', '{field_new_country}', '{field_new_country}', 'Update step: the Country selector, with label and wrapper.') ?>
+            <?= $ltok('update_form_template', '{additional_fields}', '{additional_fields}', 'Update step: all admin-defined additional fields, with labels and wrappers, in order.') ?>
+            <?= $ltok('update_form_template', '{field_password}',         '{field_password}',         'Update step: the New Password field, with label and wrapper.') ?>
+            <?= $ltok('update_form_template', '{field_password_confirm}', '{field_password_confirm}', 'Update step: the Confirm New Password field, with label and wrapper.') ?>
+            <?= $ltok('update_form_template', '{captcha_block}',       '{captcha_block}',       'The captcha question field, with label and wrapper.') ?>
+            <?= $ltok('update_form_template', '{captcha_block_input}', '{captcha_block_input}', 'Just the captcha answer input, no label or wrapper.') ?>
+            <?= $ltok('update_form_template', '{captcha_question}',    '{captcha_question}',    'The captcha question text on its own.') ?>
+            <?= $ltok('update_form_template', '{field_remove}',     '{field_remove}',     'Update step: the "Delete my membership" checkbox block.') ?>
+            <?= $ltok('update_form_template', '{field_email}',      '{field_email}',      'Update step: the authenticated member\'s email address (display only, not editable).') ?>
+            <?= $ltok('update_form_template', '{sign_out_url}',     '{sign_out_url}',     'Update step: URL for the "Sign out" link.') ?>
+            <?= $ltok('update_form_template', '{submit_button}',    '{submit_button}',    'The submit button.') ?>
+            <?= $ltok('update_form_template', '{clear_button}',     '{clear_button}',     'The "Clear" reset button.') ?>
+            <?= $ltok('update_form_template', '{listing_title}',    '{listing_title}',    'The listing\'s display name.') ?>
+            <?= $ltok('update_form_template', '{listing_url}',      '{listing_url}',      'The link to the listing.') ?>
           </tbody></table>
         </div>
       </details>
-      <?php endif; ?>
+
+      <!-- Lost Password Form -->
+      <details class="card chevron" data-token-card data-tpl-group="reset-form" <?= $_grp('reset-form') ?>>
+        <summary class="chevron-head">Lost Password Form Tokens</summary>
+        <div class="chevron-body">
+          <p class="form-hint mb-sm" data-token-search-help>Use {if_step_email}...{/if_step_email} for the email-entry step and {if_step_confirm}...{/if_step_confirm} for the new-password step. Use {if_token_valid} or {if_token_invalid} to handle expired links.</p>
+          <table class="et-token-table et-token-table--compact"><tbody>
+            <?= $ltok('reset_form_template', '{if_step_email}{/if_step_email}',     '{if_step_email}...{/if_step_email}',     'Shows when the visitor is on the email-entry step.') ?>
+            <?= $ltok('reset_form_template', '{if_step_confirm}{/if_step_confirm}', '{if_step_confirm}...{/if_step_confirm}', 'Shows when the visitor has clicked a reset link and is setting a new password.') ?>
+            <?= $ltok('reset_form_template', '{if_token_valid}{/if_token_valid}',   '{if_token_valid}...{/if_token_valid}',   'Inside {if_step_confirm}: shows when the reset token is valid.') ?>
+            <?= $ltok('reset_form_template', '{if_token_invalid}{/if_token_invalid}', '{if_token_invalid}...{/if_token_invalid}', 'Inside {if_step_confirm}: shows when the reset token has expired or is invalid.') ?>
+            <?= $ltok('reset_form_template', '{field_email}',               '{field_email}',               'Email-entry step: the Email field, with label and wrapper.') ?>
+            <?= $ltok('reset_form_template', '{captcha_block}',             '{captcha_block}',             'Email-entry step: the captcha question field, with label and wrapper.') ?>
+            <?= $ltok('reset_form_template', '{captcha_block_input}',       '{captcha_block_input}',       'Just the captcha answer input, no label or wrapper.') ?>
+            <?= $ltok('reset_form_template', '{captcha_question}',          '{captcha_question}',          'The captcha question text on its own.') ?>
+            <?= $ltok('reset_form_template', '{field_new_password}',        '{field_new_password}',        'Confirm step: the New Password field, with label and wrapper.') ?>
+            <?= $ltok('reset_form_template', '{field_new_password_confirm}', '{field_new_password_confirm}', 'Confirm step: the Confirm New Password field, with label and wrapper.') ?>
+            <?= $ltok('reset_form_template', '{reset_request_url}',         '{reset_request_url}',         'URL of the email-entry form. Use inside {if_token_invalid} for a "request a new one" link.') ?>
+            <?= $ltok('reset_form_template', '{submit_button}',             '{submit_button}',             'The submit button (label changes per step).') ?>
+            <?= $ltok('reset_form_template', '{clear_button}',              '{clear_button}',              'The "Clear" reset button.') ?>
+            <?= $ltok('reset_form_template', '{listing_title}',             '{listing_title}',             'The listing\'s display name.') ?>
+            <?= $ltok('reset_form_template', '{listing_url}',               '{listing_url}',               'The link to the listing.') ?>
+          </tbody></table>
+        </div>
+      </details>
 
       <!-- Codes Display -->
-      <details class="card chevron" data-token-card>
+      <details class="card chevron" data-token-card data-tpl-group="codes" <?= $_grp('codes') ?>>
         <summary class="chevron-head">Codes Display Tokens</summary>
         <div class="chevron-body">
           <p class="form-hint mb-sm" data-token-search-help>Use {each_size_group}...{/each_size_group} (with an inner {each_code}...{/each_code}) to group codes by dimensions, or a single {each_code}...{/each_code} loop for a flat gallery.</p>
@@ -869,21 +989,21 @@ $ltok = static fn(string $ta, string $token, string $label, string $desc): strin
             <?= $ltok('codes_template', '{group_code_count}', '{group_code_count}', 'How many codes are in this size group. Use inside {each_size_group}.') ?>
             <?= $ltok('codes_template', '{each_code}{/each_code}', '{each_code}...{/each_code}', 'Repeats the HTML inside it once for each approved code shown.') ?>
             <?= $ltok('codes_template', '{code_url}',        '{code_url}',        'The full image URL for the code.') ?>
-            <?= $ltok('codes_template', '{code_alt}',        '{code_alt}',        'Suggested alt text &mdash; donor name, size, or the listing name.') ?>
+            <?= $ltok('codes_template', '{code_alt}',        '{code_alt}',        'Suggested alt text: donor name, then size, then listing name. Good for &lt;img alt=&quot;{code_alt}&quot;&gt;.') ?>
             <?= $ltok('codes_template', '{code_width}',      '{code_width}',      'The code\'s width in pixels. Empty when dimensions are unknown.') ?>
             <?= $ltok('codes_template', '{code_height}',     '{code_height}',     'The code\'s height in pixels. Empty when dimensions are unknown.') ?>
             <?= $ltok('codes_template', '{code_size}',       '{code_size}',       'The code\'s dimensions as &ldquo;WxH&rdquo;, e.g. &ldquo;88×31&rdquo;. Empty when unknown.') ?>
             <?= $ltok('codes_template', '{code_name}',       '{code_name}',       'The code\'s saved name/title. Empty when not set.') ?>
-            <?= $ltok('codes_template', '{code_categories}', '{code_categories}', 'Category names for this code, comma-separated. Empty when uncategorised.') ?>
+            <?= $ltok('codes_template', '{code_categories}', '{code_categories}', 'Comma-separated code category names. Empty when no categories assigned.') ?>
             <?= $ltok('codes_template', '{code_donor_name}', '{code_donor_name}', 'The donor\'s name. Empty when the code was not donated.') ?>
             <?= $ltok('codes_template', '{code_donor_url}',  '{code_donor_url}',  'The donor\'s website URL. Empty when not set.') ?>
-            <?= $ltok('codes_template', '{if_size}{/if_size}',                 '{if_size}...{/if_size}',                 'Shows only when the code has known dimensions.') ?>
-            <?= $ltok('codes_template', '{if_size_changed}{/if_size_changed}', '{if_size_changed}...{/if_size_changed}', 'Flat layout only &mdash; shows when this code starts a new size group (the previous code was a different size).') ?>
+            <?= $ltok('codes_template', '{if_size}{/if_size}',           '{if_size}...{/if_size}',           'Shows only when width and height are known.') ?>
+            <?= $ltok('codes_template', '{if_size_changed}{/if_size_changed}', '{if_size_changed}...{/if_size_changed}', 'Flat mode only. Shows when the code size differs from the previous code &mdash; useful for size headings.') ?>
             <?= $ltok('codes_template', '{if_donor}{/if_donor}',         '{if_donor}...{/if_donor}',         'Shows only when the code was donated by a named donor.') ?>
             <?= $ltok('codes_template', '{if_no_donor}{/if_no_donor}',   '{if_no_donor}...{/if_no_donor}',   'Shows only when the code has no donor.') ?>
             <?= $ltok('codes_template', '{if_donor_url}{/if_donor_url}', '{if_donor_url}...{/if_donor_url}', 'Shows only when the donor has a website URL saved.') ?>
             <?= $ltok('codes_template', '{if_no_donor_url}{/if_no_donor_url}', '{if_no_donor_url}...{/if_no_donor_url}', 'Shows only when the donor has no website URL.') ?>
-            <?= $ltok('codes_template', '{if_categories}{/if_categories}', '{if_categories}...{/if_categories}', 'Shows only when the code has at least one category.') ?>
+            <?= $ltok('codes_template', '{if_categories}{/if_categories}', '{if_categories}...{/if_categories}', 'Shows only when the code has categories assigned.') ?>
             <?= $ltok('codes_template', '{if_code_name}{/if_code_name}',   '{if_code_name}...{/if_code_name}',   'Shows only when the code has a saved name.') ?>
             <?= $ltok('codes_template', '{if_codes}{/if_codes}',       '{if_codes}...{/if_codes}',       'Shows when this listing has at least one approved code. Place outside the loop.') ?>
             <?= $ltok('codes_template', '{if_no_codes}{/if_no_codes}', '{if_no_codes}...{/if_no_codes}', 'Shows when this listing has no approved codes (empty state). Place outside the loop.') ?>
@@ -893,7 +1013,7 @@ $ltok = static fn(string $ta, string $token, string $label, string $desc): strin
 
       <?php if ($hasCodesSubmit): ?>
       <!-- Code Donation Form -->
-      <details class="card chevron" data-token-card>
+      <details class="card chevron" data-token-card data-tpl-group="codes-form" <?= $_grp('codes-form') ?>>
         <summary class="chevron-head">Code Donation Form Tokens</summary>
         <div class="chevron-body">
           <p class="form-hint mb-sm" data-token-search-help>Arrange and label every field of the code donation form. Write any introductory text directly into the template. Each field token has a "_input" version that prints just the bare input (no label/wrapper) for custom layouts.</p>
@@ -920,7 +1040,7 @@ $ltok = static fn(string $ta, string $token, string $label, string $desc): strin
 
       <?php if ($affiliate_apply_enabled ?? false): ?>
       <!-- Affiliate Application Form -->
-      <details class="card chevron" data-token-card>
+      <details class="card chevron" data-token-card data-tpl-group="affiliate-form" <?= $_grp('affiliate-form') ?>>
         <summary class="chevron-head">Affiliate Application Form Tokens</summary>
         <div class="chevron-body">
           <p class="form-hint mb-sm" data-token-search-help>Arrange and label every field of the affiliate application form. Write any introductory text directly into the template. Each field token has a "_input" version that prints just the bare input (no label/wrapper) for custom layouts.</p>
@@ -947,6 +1067,48 @@ $ltok = static fn(string $ta, string $token, string $label, string $desc): strin
       </details>
       <?php endif; ?>
 
+      <!-- Contact Form -->
+      <details class="card chevron" data-token-card data-tpl-group="contact-form" <?= $_grp('contact-form') ?>>
+        <summary class="chevron-head">Contact Form Tokens</summary>
+        <div class="chevron-body">
+          <p class="form-hint mb-sm" data-token-search-help>Arrange and label every field of the contact form. Each field token has a "_input" version that prints just the bare input (no label/wrapper) for custom layouts.</p>
+          <table class="et-token-table et-token-table--compact"><tbody>
+            <?= $ltok('contact_form_template', '{listing_title}',         '{listing_title}',         'The listing\'s display name.') ?>
+            <?= $ltok('contact_form_template', '{listing_url}',           '{listing_url}',           'The link to the listing.') ?>
+            <?= $ltok('contact_form_template', '{field_name}',            '{field_name}',            'The Name field, with label and wrapper.') ?>
+            <?= $ltok('contact_form_template', '{field_name_input}',      '{field_name_input}',      'Just the Name input, no label or wrapper.') ?>
+            <?= $ltok('contact_form_template', '{field_email}',           '{field_email}',           'The Email field, with label and wrapper.') ?>
+            <?= $ltok('contact_form_template', '{field_email_input}',     '{field_email_input}',     'Just the Email input, no label or wrapper.') ?>
+            <?= $ltok('contact_form_template', '{field_url}',             '{field_url}',             'The Website URL field (optional), with label and wrapper.') ?>
+            <?= $ltok('contact_form_template', '{field_url_input}',       '{field_url_input}',       'Just the Website URL input, no label or wrapper.') ?>
+            <?= $ltok('contact_form_template', '{field_subject}',         '{field_subject}',         'The Subject dropdown, with label and wrapper.') ?>
+            <?= $ltok('contact_form_template', '{field_subject_input}',   '{field_subject_input}',   'Just the Subject select element, no label or wrapper.') ?>
+            <?= $ltok('contact_form_template', '{field_message}',         '{field_message}',         'The Message textarea, with label and wrapper.') ?>
+            <?= $ltok('contact_form_template', '{field_message_input}',   '{field_message_input}',   'Just the Message textarea, no label or wrapper.') ?>
+            <?= $ltok('contact_form_template', '{captcha_block}',         '{captcha_block}',         'The captcha field, with label and wrapper.') ?>
+            <?= $ltok('contact_form_template', '{captcha_block_input}',   '{captcha_block_input}',   'Just the captcha answer input, no label or wrapper.') ?>
+            <?= $ltok('contact_form_template', '{captcha_question}',      '{captcha_question}',      'The captcha question text on its own.') ?>
+            <?= $ltok('contact_form_template', '{submit_button}',         '{submit_button}',         'The "Send Message" submit button.') ?>
+            <?= $ltok('contact_form_template', '{clear_button}',          '{clear_button}',          'The "Clear" reset button.') ?>
+          </tbody></table>
+        </div>
+      </details>
+
+      <!-- Contact Sent -->
+      <details class="card chevron" data-token-card data-tpl-group="contact-sent" <?= $_grp('contact-sent') ?>>
+        <summary class="chevron-head">Contact Sent Tokens</summary>
+        <div class="chevron-body">
+          <p class="form-hint mb-sm" data-token-search-help>Shown after a visitor submits the contact form.</p>
+          <table class="et-token-table et-token-table--compact"><tbody>
+            <?= $ltok('contact_sent_template', '{sender_name}',   '{sender_name}',   'The name the visitor entered on the contact form.') ?>
+            <?= $ltok('contact_sent_template', '{sender_email}',  '{sender_email}',  'The email address the visitor entered.') ?>
+            <?= $ltok('contact_sent_template', '{listing_title}', '{listing_title}', 'The listing\'s display name.') ?>
+            <?= $ltok('contact_sent_template', '{listing_url}',   '{listing_url}',   'The link to the listing.') ?>
+            <?= $ltok('contact_sent_template', '{site_name}',     '{site_name}',     'The site/collective name.') ?>
+          </tbody></table>
+        </div>
+      </details>
+
     </div><!-- /.composer-side -->
   </div><!-- /.composer-grid -->
 </form>
@@ -961,9 +1123,12 @@ $ltok = static fn(string $ta, string $token, string $label, string $desc): strin
     'updates_template'              => $_gFallback(ListingSettingsRepo::defaultUpdatesTemplate(),              'listing_default_updates_template'),
     'codes_submit_form_template'    => $_gFallback(ListingSettingsRepo::defaultCodesSubmitFormTemplate(),      'listing_default_codes_submit_form_template'),
     'join_form_template'            => $_gFallback(ListingSettingsRepo::defaultJoinFormTemplate(),             'listing_default_join_form_template'),
+    'update_form_template'          => $_gFallback(ListingSettingsRepo::defaultUpdateFormTemplate(),           'listing_default_update_form_template'),
+    'reset_form_template'           => $_gFallback(ListingSettingsRepo::defaultResetFormTemplate(),            'listing_default_reset_form_template'),
     'affiliate_apply_form_template' => $_gFallback(ListingSettingsRepo::defaultAffiliateApplyFormTemplate(),  'listing_default_affiliate_apply_form_template'),
-    'adopt_form_template'           => $_gFallback(ListingSettingsRepo::defaultAdoptFormTemplate(),           'listing_default_adopt_form_template'),
-    'codes_template'                => ListingSettingsRepo::defaultCodesTemplate(),
+    'codes_template'                => $_gFallback(ListingSettingsRepo::defaultCodesTemplate(),               'listing_default_codes_template'),
+    'contact_form_template'         => $_gFallback(ListingSettingsRepo::defaultContactFormTemplate(),         'listing_default_contact_form_template'),
+    'contact_sent_template'         => $_gFallback(ListingSettingsRepo::defaultContactSentTemplate(),         'listing_default_contact_sent_template'),
     'rules-body'                    => RulesBodyRenderer::defaultBody(),
 ], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) ?>
 </script>
@@ -1326,318 +1491,22 @@ $_settingsOpen = $_hasCats || $_hasDonors;
   </div>
 </details>
 
-<form id="codes-bulk-form" method="POST" action="<?= $b ?>/admin/listings/<?= $_fid ?>/codes/bulk">
-  <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
-</form>
-<form id="codes-reorder-form" method="POST" action="<?= $b ?>/admin/listings/<?= $_fid ?>/codes/reorder">
-  <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
-  <input type="hidden" id="reorder-ids" name="ordered_ids" value="">
-</form>
-
-<?php foreach ($codes as $code): ?>
 <?php
-  $_dDonor = ($code->donorId !== null && isset($code_donor_map[$code->donorId])) ? $code_donor_map[$code->donorId] : null;
-  $_dLabel = ($code->name !== null && $code->name !== '') ? $code->name : null;
+$_from             = 'edit';
+$_groupedCodes     = $code_grouped;
+$_nonEmptyGroups   = array_filter($code_grouped, fn($g) => !empty($g['codes']));
+$_groupCount       = count($_nonEmptyGroups);
+$_codesBaseUrl     = null;
+$_codeStatusFilter = $code_status_filter;
+$_totalCodes       = $total_codes;
+$_codeCatIds       = $code_category_ids;
+$_codeDonorMap     = $code_donor_map;
+$_codeDonors       = $code_donors;
+$_codeCats         = $code_cats;
+$_uploadSubmitters = $code_submitter_names ?? [];
+require LUSTER_BASE . '/templates/admin/codes/_listing_panel.php';
 ?>
-<dialog id="edit-dialog-<?= (int)$code->id ?>" class="modal code-edit-dialog">
-  <div class="modal-header modal-header-sticky">
-    <span class="modal-title">Edit code &mdash; <?= View::e($code->filename) ?></span>
-    <button type="button" class="modal-close" data-close-dialog aria-label="Close">&times;</button>
-  </div>
-  <div class="modal-body">
-    <div class="code-preview">
-      <img src="<?= View::e($uploads_url . '/' . $code->filename) ?>"
-           alt="<?= View::e($code->filename) ?>"
-           class="code-preview-img">
-      <?php if ($code->width > 0 && $code->height > 0): ?>
-      <div class="code-preview-meta"><?= (int)$code->width ?>&times;<?= (int)$code->height ?>px</div>
-      <?php endif; ?>
-    </div>
-    <form method="POST"
-          action="<?= $b ?>/admin/listings/<?= $_fid ?>/codes/<?= (int)$code->id ?>/update"
-          class="code-modal-form">
-      <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
-      <div>
-        <label class="form-label code-modal-label">Label <span class="text-dim">(optional)</span></label>
-        <input class="form" type="text" name="name" value="<?= View::e($code->name ?? '') ?>"
-               placeholder="<?= View::e($code->filename) ?>">
-      </div>
-      <div>
-        <label class="form-label code-modal-label">Status</label>
-        <div class="select-wrap">
-          <select name="status">
-            <option value="approved" <?= $code->status === 'approved' ? 'selected' : '' ?>>Live</option>
-            <option value="pending"  <?= $code->status === 'pending'  ? 'selected' : '' ?>>Pending</option>
-            <option value="rejected" <?= $code->status === 'rejected' ? 'selected' : '' ?>>Rejected</option>
-          </select>
-        </div>
-      </div>
-      <?php if ($_hasDonors): ?>
-      <div>
-        <label class="form-label code-modal-label">Donor</label>
-        <div class="select-wrap">
-          <select name="donor_id">
-            <option value="">None</option>
-            <?php foreach ($code_donors as $dn): ?>
-              <option value="<?= (int)$dn->id ?>" <?= $code->donorId === $dn->id ? 'selected' : '' ?>><?= View::e($dn->name) ?></option>
-            <?php endforeach; ?>
-          </select>
-        </div>
-      </div>
-      <?php endif; ?>
-      <?php if ($_hasCats): ?>
-      <div>
-        <label class="form-label code-modal-label">Category</label>
-        <div class="select-wrap">
-          <select name="cat_ids[]">
-            <option value="">None</option>
-            <?php
-              $_dCatIds = $code_category_ids[$code->id] ?? [];
-              foreach ($code_cats as $cat):
-            ?>
-              <option value="<?= (int)$cat->id ?>" <?= in_array($cat->id, $_dCatIds, true) ? 'selected' : '' ?>>
-                <?= $cat->parentId !== null ? '&#x2514; ' : '' ?><?= View::e($cat->name) ?>
-              </option>
-            <?php endforeach; ?>
-          </select>
-        </div>
-      </div>
-      <?php endif; ?>
-      <?php $_hasDonorInfo = $code->donorId !== null || $code->submitterName !== null || $code->submitterEmail !== null || $code->submitterUrl !== null; ?>
-      <details<?= $_hasDonorInfo ? ' open' : '' ?> class="code-donor-details">
-        <summary class="link" style="font-size:var(--fs-sm);margin-bottom:.5rem;display:inline-block;list-style:none;cursor:pointer"><?= $_hasDonorInfo ? 'Donor information' : '+ Add donor information' ?></summary>
-        <div>
-          <label class="form-label code-modal-label">Donor Name</label>
-          <input class="form" type="text" name="submitter_name"
-                 value="<?= View::e($code->submitterName ?? '') ?>" placeholder="Display name&hellip;">
-        </div>
-        <div style="margin-top:.5rem">
-          <label class="form-label code-modal-label">Donor Email</label>
-          <input class="form" type="email" name="submitter_email"
-                 value="<?= View::e($code->submitterEmail ?? '') ?>" placeholder="Optional">
-        </div>
-        <div style="margin-top:.5rem">
-          <label class="form-label code-modal-label">Donor Website</label>
-          <input class="form" type="url" name="submitter_url"
-                 value="<?= View::e($code->submitterUrl ?? '') ?>" placeholder="https://&hellip;">
-        </div>
-      </details>
-      <button class="btn btn-primary btn-block-center">Save changes</button>
-    </form>
-    <div class="code-modal-footer">
-      <form method="POST"
-            action="<?= $b ?>/admin/listings/<?= $_fid ?>/codes/<?= (int)$code->id ?>/delete"
-            data-del-modal data-del-entity="code"
-            data-del-name="<?= View::e($code->filename) ?>">
-        <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
-        <input type="hidden" name="_from" value="edit">
-        <button type="submit" class="btn btn-danger btn-sm btn-block-center">Delete this code</button>
-      </form>
-    </div>
-  </div>
-</dialog>
-<?php endforeach; ?>
 
-<div class="codes-page-layout">
-
-<!-- ── Upload Card ─────────────────────────────────────────────────── -->
-<div class="card">
-  <div class="card-head">Upload Codes</div>
-  <form method="POST" action="<?= $b ?>/admin/listings/<?= $_fid ?>/codes/upload" enctype="multipart/form-data">
-    <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
-    <div class="pc-section">
-      <div class="file-drop-zone">
-        <input type="file" id="codes-input" name="codes[]" multiple accept="image/jpeg,image/png,image/gif,image/webp">
-        <span class="file-drop-icon"><?= View::icon('image') ?></span>
-        <strong>Click or drop images</strong>
-        <span class="form-hint">JPEG, PNG, GIF, WebP &mdash; max 500 KB each</span>
-      </div>
-      <p class="panel-hint" style="margin-top:.5rem">Multiple files allowed. Dimensions are detected automatically.</p>
-    </div>
-
-    <div class="pc-section">
-      <?php $_editSubmitters = $code_submitter_names ?? []; ?>
-
-      <div class="panel-field">
-        <label class="panel-label" for="upload-donor">Donor</label>
-        <div class="select-wrap">
-          <select id="upload-donor" name="donor_id">
-            <option value="">None</option>
-            <?php if (!empty($code_donors)): ?>
-              <?php if (!empty($_editSubmitters)): ?><optgroup label="Registered Donors"><?php endif; ?>
-              <?php foreach ($code_donors as $dn): ?>
-                <option value="<?= (int)$dn->id ?>"><?= View::e($dn->name) ?></option>
-              <?php endforeach; ?>
-              <?php if (!empty($_editSubmitters)): ?></optgroup><?php endif; ?>
-            <?php endif; ?>
-            <?php if (!empty($_editSubmitters)): ?>
-              <optgroup label="Past Submitters">
-                <?php foreach ($_editSubmitters as $sn): ?>
-                  <option value="s:<?= View::e($sn) ?>"><?= View::e($sn) ?></option>
-                <?php endforeach; ?>
-              </optgroup>
-            <?php endif; ?>
-          </select>
-        </div>
-        <p class="panel-hint"><a href="#" id="upload-add-donor-toggle" class="link"><?= View::icon('add') ?> Add new donor</a></p>
-      </div>
-
-      <!-- Inline new donor fields -->
-      <div id="upload-new-donor-wrap" class="is-hidden">
-        <div class="panel-field">
-          <label class="panel-label" for="upload-donor-name">Donor Name <span class="req">*</span></label>
-          <input class="form" type="text" id="upload-donor-name" name="new_donor_name" placeholder="Display name&hellip;">
-        </div>
-        <div class="panel-field">
-          <label class="panel-label" for="upload-donor-email">Email</label>
-          <input class="form" type="email" id="upload-donor-email" name="new_donor_email" placeholder="Optional">
-        </div>
-        <div class="panel-field">
-          <label class="panel-label" for="upload-donor-url">Website</label>
-          <input class="form" type="url" id="upload-donor-url" name="new_donor_url" placeholder="https://&hellip;">
-        </div>
-      </div>
-
-      <?php if ($_hasCats): ?>
-      <div class="panel-field">
-        <label class="panel-label" for="upload-category">Category</label>
-        <div class="select-wrap">
-          <select id="upload-category" name="cat_ids[]">
-            <option value="">None</option>
-            <?php foreach ($code_cats as $cat): ?>
-              <option value="<?= (int)$cat->id ?>"><?= $cat->parentId !== null ? '&#x2514; ' : '' ?><?= View::e($cat->name) ?></option>
-            <?php endforeach; ?>
-          </select>
-        </div>
-      </div>
-      <?php endif; ?>
-    </div>
-
-    <div class="composer-footer">
-      <button type="submit" class="btn btn-primary">Add Code</button>
-      <button type="reset" class="btn btn-ghost">Clear</button>
-    </div>
-  </form>
-  <?php if ($_approvedCount > 0): ?>
-  <div style="padding:.75rem 1.25rem;border-top:1px solid var(--border)">
-    <a href="<?= $b ?>/admin/listings/<?= $_fid ?>/codes/export" class="btn btn-quaternary btn-sm"><?= View::icon('download') ?> Export ZIP</a>
-  </div>
-  <?php endif; ?>
-</div>
-
-<!-- ── Current Codes Card ───────────────────────────────────────────── -->
-<div class="card codes-browser" style="min-width:0" data-initial-code-filter="<?= View::e($code_status_filter) ?>">
-    <div class="card-head">Current Codes
-      <span class="badge badge-<?= $_approvedCount > 0 ? 'current' : 'inactive' ?>"><?= $_approvedCount ?> Approved</span>
-      <?php if ($_pendingCount > 0): ?><span class="badge badge-pending"><?= $_pendingCount ?> Pending</span><?php endif; ?>
-      <?php if ($_rejectedCount > 0): ?><span class="badge badge-error"><?= $_rejectedCount ?> Rejected</span><?php endif; ?>
-      <?php if ($_groupCount > 0): ?><span class="card-head-sub">Click and drag the top left corner to reorder codes &mdash; changes are effective immediately.</span><?php endif; ?>
-    </div>
-
-    <div class="codes-tabs">
-      <a href="<?= $_tabBase ?>&status_filter=approved" class="tabs-btn<?= $code_status_filter === 'approved' ? ' active' : '' ?>" data-code-filter="approved">
-        Approved <span class="badge badge-<?= $_approvedCount > 0 ? 'current' : 'inactive' ?>"><?= $_approvedCount ?></span>
-      </a>
-      <a href="<?= $_tabBase ?>&status_filter=pending" class="tabs-btn<?= $code_status_filter === 'pending' ? ' active' : '' ?>" data-code-filter="pending">
-        Pending <span class="badge badge-<?= $_pendingCount > 0 ? 'pending' : 'inactive' ?>"><?= $_pendingCount ?></span>
-      </a>
-      <a href="<?= $_tabBase ?>&status_filter=rejected" class="tabs-btn<?= $code_status_filter === 'rejected' ? ' active' : '' ?>" data-code-filter="rejected">
-        Rejected <span class="badge badge-<?= $_rejectedCount > 0 ? 'error' : 'inactive' ?>"><?= $_rejectedCount ?></span>
-      </a>
-    </div>
-
-    <div class="codes-bulk">
-      <label class="codes-bulk-label">
-        <input type="checkbox" id="codes-select-all">Select all </label>
-      <div class="select-wrap">
-        <select id="bulk-action-sel" class="select-xs">
-          <option value="" disabled selected>&mdash; Select &mdash;</option>
-          <option value="delete">Delete</option>
-          <option value="approve">Approve</option>
-          <option value="reject">Reject</option>
-          <?php if ($_hasCats): ?>
-            <option value="categorize">Add to Categories&hellip;</option>
-          <?php endif; ?>
-        </select>
-      </div>
-      <?php if ($_hasCats): ?>
-      <div id="bulk-cats-wrap" class="is-hidden">
-        <select id="bulk-cats-sel" name="bulk_cat_ids[]" multiple size="<?= min(4, count($code_cats)) ?>" >
-          <?php foreach ($code_cats as $cat): ?>
-            <option value="<?= (int)$cat->id ?>"><?= $cat->parentId !== null ? '  &#x2514; ' : '' ?><?= View::e($cat->name) ?></option>
-          <?php endforeach; ?>
-        </select>
-      </div>
-      <?php endif; ?>
-      <button type="button" id="bulk-apply-btn" class="btn btn-quaternary btn-sm">Apply to Selected</button>
-      <div class="codes-bulk-right">
-        <button type="button" id="save-order-btn" class="btn btn-quaternary btn-sm is-hidden">Save Order</button>
-      </div>
-    </div>
-
-    <?php if ($total_codes === 0): ?>
-      <div class="card-empty-state">
-        <div class="empty">
-          <span class="empty-icon"><?= View::icon('image', ['width' => 32, 'height' => 32]) ?></span>
-          No codes yet.
-        </div>
-      </div>
-    <?php else: ?>
-      <?php $_filterEmptyInitial = ($code_status_filter === 'approved' && $_approvedCount === 0) || ($code_status_filter === 'pending' && $_pendingCount === 0) || ($code_status_filter === 'rejected' && $_rejectedCount === 0); ?>
-      <div class="card-empty-state<?= $_filterEmptyInitial ? '' : ' is-hidden' ?>" id="codes-filter-empty">
-        <div class="empty">
-          <span class="empty-icon"><?= View::icon('image', ['width' => 32, 'height' => 32]) ?></span>
-          No codes match this filter &mdash; <a href="<?= $_tabBase ?>&status_filter=approved" class="link" data-code-filter="approved">show approved</a>.
-        </div>
-      </div>
-        <?php foreach ($code_grouped as $group): ?>
-          <?php if (empty($group['codes'])) continue; ?>
-          <?php
-            $firstCode = reset($group['codes']);
-            $gridMin   = max((int)$firstCode->width + 32, 80) . 'px';
-          ?>
-          <div class="pc-section" data-code-group>
-            <div class="pc-section-label"><?= View::e($group['label']) ?>
-              <span class="badge badge-inactive" data-code-group-count data-total-count="<?= count($group['codes']) ?>"><?= count($group['codes']) ?> code<?= count($group['codes']) !== 1 ? 's' : '' ?></span>
-            </div>
-            <div class="code-grid" data-code-group-grid style="grid-template-columns:repeat(auto-fill,minmax(<?= $gridMin ?>,1fr))">
-            <?php foreach ($group['codes'] as $code): ?>
-            <?php
-              $_codeCatIds = $code_category_ids[$code->id] ?? [];
-              $_codeDonor  = ($code->donorId !== null && isset($code_donor_map[$code->donorId])) ? $code_donor_map[$code->donorId] : null;
-              $_codeLabel  = ($code->name !== null && $code->name !== '') ? $code->name : null;
-              $_isDonated  = $_codeDonor !== null || $code->submitterName !== null;
-            ?>
-            <div class="code-tile code-card"
-                 data-code-status="<?= View::e($code->status) ?>"
-                 data-code-id="<?= (int)$code->id ?>">
-              <input type="checkbox" form="codes-bulk-form" name="selected[]" value="<?= (int)$code->id ?>" class="code-tile-cb code-check">
-              <span class="code-drag-handle drag-handle" title="Drag to reorder">&#8942;&#8942;</span>
-              <img src="<?= View::e($uploads_url . '/' . $code->filename) ?>"
-                   alt="<?= (int)$code->width ?>&times;<?= (int)$code->height ?>px"
-                   class="code-tile-img" loading="lazy">
-              <?php if ($_codeLabel !== null): ?>
-              <div class="text-muted"><?= View::e($_codeLabel) ?></div>
-              <?php endif; ?>
-              <?php if ($_codeDonor !== null): ?>
-              <div class="badge badge-info-pink">&hearts; <?= View::e($_codeDonor->name) ?></div>
-              <?php elseif ($code->submitterName !== null): ?>
-              <div class="badge badge-info-pink">&hearts; <?= View::e($code->submitterName) ?></div>
-              <?php endif; ?>
-              <?php if ($code->status === 'pending'): ?>
-              <span class="badge badge-pending">Pending</span>
-              <?php endif; ?>
-              <button type="button" class="btn btn-quaternary btn-sm" data-dialog="edit-dialog-<?= (int)$code->id ?>">
-                Edit
-              </button>
-            </div>
-            <?php endforeach; ?>
-            </div>
-          </div>
-        <?php endforeach; ?>
-    <?php endif; ?>
-  </div>
-</div>
 </div>
 <!-- ──── TAB: AFFILIATES ────────────────────────────────────────────── -->
 <div id="tab-affiliates" class="tabs-panel">
@@ -1752,6 +1621,16 @@ $embedBaseUrl   = rtrim((string) ($cfg['embed_base_url'] ?? ''), '/') ?: rtrim((
                  maxlength="200"
                  value="<?= View::e($embedSettings['form_url_codes_submit'] !== '' ? $embedSettings['form_url_codes_submit'] : 'codes-submit.php') ?>">
           <p class="form-hint">The public page where visitors can donate codes for this listing.</p>
+        </div>
+      </div>
+
+      <div class="listing-field-row">
+        <label class="listing-field-label" for="fl-form-contact">Contact Form</label>
+        <div>
+          <input id="fl-form-contact" type="text" name="form_url_contact" class="form"
+                 maxlength="200"
+                 value="<?= View::e(($form_url_contact ?? '') !== '' ? $form_url_contact : 'contact.php') ?>">
+          <p class="form-hint">The public page where visitors can send you a message about this listing.</p>
         </div>
       </div>
     </div>

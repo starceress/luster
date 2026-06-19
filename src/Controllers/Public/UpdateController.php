@@ -12,6 +12,7 @@ use Luster\Core\PasswordPolicy;
 use Luster\Core\RateLimit;
 use Luster\Core\Request;
 use Luster\Core\Response;
+use Luster\Core\TemplateEngine;
 use Luster\Core\Validator;
 use Luster\Models\Listing;
 use Luster\Repositories\EmailTemplateRepo;
@@ -21,15 +22,18 @@ use Luster\Repositories\FieldRepo;
 use Luster\Repositories\BlacklistRepo;
 use Luster\Repositories\MemberRepo;
 use Luster\Repositories\PendingUpdateRepo;
+use Luster\Repositories\SiteSettingsRepo;
 use Luster\Support\FormFieldBuilder;
+use Luster\Support\FormTemplateRenderer;
+use Luster\Support\ListingTemplateResolver;
 use Luster\Support\SuccessRenderer;
 
 /**
- * Fan update form â€” two-step flow.
+ * Fan update form — two-step flow.
  *
- * Step 1 (sign-in): GET /update/{id} with no session â†’ email + password only.
- * Step 2 (update):  POST /update/{id}/sign-in â†’ sets session â†’ GET /update/{id}
- *                   â†’ pre-filled update fields.
+ * Step 1 (sign-in): GET /update/{id} with no session → email + password only.
+ * Step 2 (update):  POST /update/{id}/sign-in → sets session → GET /update/{id}
+ *                   → pre-filled update fields.
  *
  * Security properties:
  *  - CSRF token validated by CsrfMiddleware
@@ -108,7 +112,7 @@ final class UpdateController
             return Response::redirect($baseUrl . '/update/' . $listingId);
         }
 
-        // Honeypot â€” silent reject
+        // Honeypot — silent reject
         if ((string) $request->post('website_confirm', '') !== '') {
             return Response::redirect($baseUrl . '/update/' . $listingId);
         }
@@ -148,7 +152,7 @@ final class UpdateController
             return Response::redirect($formUrl);
         }
 
-        // Verify password â€” detect and upgrade legacy MD5 hashes
+        // Verify password — detect and upgrade legacy MD5 hashes
         $storedHash = $member->password;
         $verified   = false;
 
@@ -220,7 +224,7 @@ final class UpdateController
             return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $baseUrl . '/update/' . $listingId);
         }
 
-        // Honeypot â€” silent reject; fake success so bots see no difference
+        // Honeypot — silent reject; fake success so bots see no difference
         if ((string) $request->post('website_confirm', '') !== '') {
             $session->remove('lstr_embed_return_to');
             $session->set('lstr_flash_success_html', SuccessRenderer::render('', 'updated'));
@@ -265,13 +269,13 @@ final class UpdateController
 
         $postData = $request->postAll();
 
-        // Captcha â€” redirect with flash on failure so the form re-renders with a fresh question
+        // Captcha — redirect with flash on failure so the form re-renders with a fresh question
         if (!Captcha::validate((string) $request->post('captcha_answer', ''), 'update')) {
             $old = ['new_name' => $newName, 'new_email' => $newEmail, 'url' => $url, 'country' => $country];
             foreach ($fields as $field) {
                 $old['field_' . $field->name] = $postData['field_' . $field->name] ?? '';
             }
-            $session->set('lstr_flash_error', 'Incorrect answer â€” please try again.');
+            $session->set('lstr_flash_error', 'Incorrect answer — please try again.');
             $session->set('lstr_flash_old', $old);
             return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $formUrl);
         }
@@ -434,7 +438,7 @@ final class UpdateController
         $pendingRepo = new PendingUpdateRepo($this->app->getDatabase());
         $pendingRepo->insert($listingId, $finalEmail, $updateData);
 
-        // Clear auth session â€” member must sign in again for another update
+        // Clear auth session — member must sign in again for another update
         $session->remove(self::AUTH_KEY . $listingId);
         $session->remove('lstr_embed_return_to');
         $successTpl = $settingsRepo->getSuccessTemplate($listingId) ?? '';
@@ -450,7 +454,7 @@ final class UpdateController
     // -----------------------------------------------------------------------
 
     /**
-     * Renders the sign-in step (step 1 â€” email + password only).
+     * Renders the sign-in step (step 1 — email + password only).
      */
     private function renderSignIn(
         int $listingId,
@@ -459,8 +463,19 @@ final class UpdateController
         array $old = [],
         string $error = '',
     ): Response {
-        $baseUrl    = $this->app->getBaseUrl();
-        $wrapperTpl = (new ListingSettingsRepo($this->app->getDatabase()))->getWrapperTemplate($listingId) ?? '';
+        $baseUrl       = $this->app->getBaseUrl();
+        $settingsRepo  = new ListingSettingsRepo($this->app->getDatabase());
+        $wrapperTpl    = $settingsRepo->getWrapperTemplate($listingId) ?? '';
+        $globalTemplates = (new SiteSettingsRepo($this->app->getDatabase()))->getGlobalTemplates();
+        $updResolved   = ListingTemplateResolver::resolve(
+            $settingsRepo->getUpdateFormTemplate($listingId),
+            $globalTemplates['listing_default_update_form_template'] ?? null,
+            ListingSettingsRepo::defaultUpdateFormTemplate(),
+        );
+        $updateFormTpl = $updResolved['should_render_template'] ? $updResolved['value'] : '';
+
+        $formAction      = $baseUrl . '/update/' . $listingId . '/sign-in';
+        $lostPasswordUrl = $this->buildResetUrl($listing, $embedSettings, $baseUrl, $listingId);
 
         $fb          = $this->app->getFormFieldBuilder();
         $descriptors = [
@@ -469,18 +484,51 @@ final class UpdateController
         ];
         $f = $fb->build($descriptors, $wrapperTpl);
 
+        $formHtml = null;
+        if ($updateFormTpl !== '') {
+            $processed = TemplateEngine::conditionals($updateFormTpl, [
+                'not_signed_in' => true,
+                'signed_in'     => false,
+            ]);
+            $tokens = [
+                '{listing_title}'          => \Luster\Core\View::e((string) $listing->title),
+                '{listing_url}'            => \Luster\Core\View::e((string) $listing->url),
+                '{field_signin_email}'     => $f['email'],
+                '{field_signin_password}'  => $f['password'],
+                '{field_new_name}'         => '',
+                '{field_new_email}'        => '',
+                '{field_new_url}'          => '',
+                '{field_new_country}'      => '',
+                '{additional_fields}'      => '',
+                '{field_password}'         => '',
+                '{field_password_confirm}' => '',
+                '{captcha_block}'          => '',
+                '{captcha_block_input}'    => '',
+                '{captcha_question}'       => '',
+                '{field_remove}'           => '',
+                '{submit_button}'          => '<button type="submit" class="fl-submit">Sign in</button>',
+                '{clear_button}'           => '<button type="reset" class="fl-btn-secondary">Clear</button>',
+                '{sign_out_url}'           => '#',
+                '{field_email}'            => '',
+                '{lost_password_url}'      => \Luster\Core\View::e($lostPasswordUrl),
+            ];
+            $inner    = FormTemplateRenderer::expandTokens($processed, $tokens);
+            $formHtml = FormTemplateRenderer::wrapForm($inner, $formAction, $this->app->getCSRF()->token(), false);
+        }
+
         $html = $this->app->getView()->renderPublic('update.php', [
             'listing'           => $listing,
             'listing_name'      => $listing->title,
             'listing_url'       => $listing->url,
             'page_title'        => 'Update Membership',
             'signed_in'         => false,
-            'sign_in_action'    => $baseUrl . '/update/' . $listingId . '/sign-in',
+            'sign_in_action'    => $formAction,
             'csrf_token'        => $this->app->getCSRF()->token(),
             'errors'            => $error !== '' ? '<p>' . htmlspecialchars($error, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '</p>' : '',
-            'lost_password_url' => $this->buildResetUrl($listing, $embedSettings, $baseUrl, $listingId),
+            'lost_password_url' => $lostPasswordUrl,
             'fields'            => [],
             'f'                 => $f,
+            'form_html'         => $formHtml,
             'base_url'          => $baseUrl,
             'theme_path'        => $baseUrl . '/assets/css/default/',
         ]);
@@ -489,7 +537,7 @@ final class UpdateController
     }
 
     /**
-     * Renders the update form (step 2 â€” authenticated, pre-filled fields).
+     * Renders the update form (step 2 — authenticated, pre-filled fields).
      *
      * @param \Luster\Models\AdditionalField[] $fields
      * @param array<string,mixed>              $embedSettings
@@ -509,7 +557,18 @@ final class UpdateController
         $baseUrl         = $this->app->getBaseUrl();
         $captchaQuestion = Captcha::getQuestion('update');
         $countrySelect   = Countries::buildSelect((string) ($old['country'] ?? ''));
-        $wrapperTpl      = (new ListingSettingsRepo($this->app->getDatabase()))->getWrapperTemplate($listingId) ?? '';
+        $settingsRepo    = new ListingSettingsRepo($this->app->getDatabase());
+        $wrapperTpl      = $settingsRepo->getWrapperTemplate($listingId) ?? '';
+        $globalTemplates = (new SiteSettingsRepo($this->app->getDatabase()))->getGlobalTemplates();
+        $updResolved     = ListingTemplateResolver::resolve(
+            $settingsRepo->getUpdateFormTemplate($listingId),
+            $globalTemplates['listing_default_update_form_template'] ?? null,
+            ListingSettingsRepo::defaultUpdateFormTemplate(),
+        );
+        $updateFormTpl = $updResolved['should_render_template'] ? $updResolved['value'] : '';
+
+        $formAction = $baseUrl . '/update/' . $listingId;
+        $signOutUrl = $baseUrl . '/update/' . $listingId . '/sign-out';
 
         // URL + "Remove my website URL" checkbox bundled as a single raw_input
         $urlVal = htmlspecialchars(
@@ -542,19 +601,61 @@ final class UpdateController
         ];
         $f = $fb->build($descriptors, $wrapperTpl);
 
+        $formHtml = null;
+        if ($updateFormTpl !== '') {
+            $additionalFieldsHtml = implode("\n", array_map(
+                fn(\Luster\Models\AdditionalField $field) => $f['field_' . $field->name] ?? '',
+                $fields,
+            ));
+            $removeMembershipHtml = '<div class="fl-field fl-field--danger"><label>'
+                . '<input type="checkbox" id="upd-delete-membership" name="delete_membership" value="1">'
+                . ' Permanently delete my membership instead of updating it</label>'
+                . '<p class="fl-field-hint">This immediately and permanently removes your membership from this listing. Cannot be undone.</p></div>';
+
+            $processed = TemplateEngine::conditionals($updateFormTpl, [
+                'not_signed_in' => false,
+                'signed_in'     => true,
+            ]);
+            $tokens = [
+                '{listing_title}'          => \Luster\Core\View::e((string) $listing->title),
+                '{listing_url}'            => \Luster\Core\View::e((string) $listing->url),
+                '{field_signin_email}'     => '',
+                '{field_signin_password}'  => '',
+                '{field_new_name}'         => $f['new_name'],
+                '{field_new_email}'        => $f['new_email'],
+                '{field_new_url}'          => $f['url'],
+                '{field_new_country}'      => $f['country'],
+                '{additional_fields}'      => $additionalFieldsHtml,
+                '{field_password}'         => $f['new_password'],
+                '{field_password_confirm}' => $f['new_password_confirm'],
+                '{captcha_block}'          => $f['captcha_answer'],
+                '{captcha_block_input}'    => $f['captcha_answer_input'] ?? '',
+                '{captcha_question}'       => \Luster\Core\View::e($captchaQuestion),
+                '{field_remove}'           => $removeMembershipHtml,
+                '{submit_button}'          => '<button type="submit" class="fl-submit">Update Information</button>',
+                '{clear_button}'           => '<button type="reset" class="fl-btn-secondary">Clear</button>',
+                '{sign_out_url}'           => \Luster\Core\View::e($signOutUrl),
+                '{field_email}'            => \Luster\Core\View::e($member->email),
+                '{lost_password_url}'      => '',
+            ];
+            $inner    = FormTemplateRenderer::expandTokens($processed, $tokens);
+            $formHtml = FormTemplateRenderer::wrapForm($inner, $formAction, $this->app->getCSRF()->token(), false);
+        }
+
         $html = $this->app->getView()->renderPublic('update.php', [
             'listing'       => $listing,
             'listing_name'  => $listing->title,
             'listing_url'   => $listing->url,
             'page_title'    => 'Update Membership',
             'signed_in'     => true,
-            'sign_out_url'  => $baseUrl . '/update/' . $listingId . '/sign-out',
-            'form_action'   => $baseUrl . '/update/' . $listingId,
+            'sign_out_url'  => $signOutUrl,
+            'form_action'   => $formAction,
             'csrf_token'    => $this->app->getCSRF()->token(),
             'errors'        => $error !== '' ? '<p>' . htmlspecialchars($error, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '</p>' : '',
             'field_email'   => $member->email,
             'fields'        => $fields,
             'f'             => $f,
+            'form_html'     => $formHtml,
             'base_url'      => $baseUrl,
             'theme_path'    => $baseUrl . '/assets/css/default/',
         ]);
@@ -574,6 +675,9 @@ final class UpdateController
     {
         $resetPage = (string) ($embedSettings['form_url_reset'] ?? '');
         if ($resetPage !== '') {
+            if (preg_match('#^https?://#i', $resetPage)) {
+                return $resetPage;
+            }
             return rtrim((string) $listing->url, '/') . '/' . ltrim($resetPage, '/');
         }
         return '';

@@ -81,11 +81,8 @@ if ($_lusterIsCollective) {
 }
 
 $_lusterCodesRepo   = new CodesRepo($_lusterDb);
-$_lusterCatsRepo    = new CodeCategoriesRepo($_lusterDb);
 $_lusterDonorsRepo  = new CodeDonorsRepo($_lusterDb);
 $_lusterCodes       = $_lusterCodesRepo->getByListing($_lusterListingId, 'approved');
-$_lusterCategories  = $_lusterCatsRepo->getByListing($_lusterListingId);
-$_lusterCatMap      = $_lusterCatsRepo->getCategoryMapForListing($_lusterListingId);
 $_lusterDonors      = $_lusterDonorsRepo->getByListing($_lusterListingId);
 
 // Build donor lookup: id => object
@@ -93,7 +90,11 @@ $_lusterDonorMap = [];
 foreach ($_lusterDonors as $_d) {
     $_lusterDonorMap[$_d->id] = $_d;
 }
-// Build category lookup: id => object
+
+// Load code categories
+$_lusterCatRepo    = new CodeCategoriesRepo($_lusterDb);
+$_lusterCategories = $_lusterCatRepo->getByListing($_lusterListingId);
+$_lusterCatMap     = $_lusterCatRepo->getCategoryMapForListing($_lusterListingId);
 $_lusterCategoryMap = [];
 foreach ($_lusterCategories as $_cat) {
     $_lusterCategoryMap[$_cat->id] = $_cat;
@@ -139,7 +140,12 @@ $_lusterCodesTemplate     = null;
 if ($_lusterIsCollective) {
     $_lusterCodesTemplate = (new SiteSettingsRepo($_lusterDb))->get('collective_codes_template');
 } elseif ($_lusterListingId !== null) {
-    $_lusterCodesTemplate = (new ListingSettingsRepo($_lusterDb))->getCodesTemplate($_lusterListingId);
+    $_lusterCodesResolved = \Luster\Support\ListingTemplateResolver::resolve(
+        (new ListingSettingsRepo($_lusterDb))->getCodesTemplate($_lusterListingId),
+        (new SiteSettingsRepo($_lusterDb))->get('listing_default_codes_template'),
+        ListingSettingsRepo::defaultCodesTemplate(),
+    );
+    $_lusterCodesTemplate = $_lusterCodesResolved['should_render_template'] ? $_lusterCodesResolved['value'] : null;
 }
 
 if ($_lusterCodesTemplate !== null && trim($_lusterCodesTemplate) !== '') {
@@ -147,10 +153,10 @@ if ($_lusterCodesTemplate !== null && trim($_lusterCodesTemplate) !== '') {
         $_lusterCodesTemplate,
         $_lusterCodes,
         $_lusterGrouped,
-        $_lusterCatMap,
-        $_lusterCategoryMap,
         $_lusterDonorMap,
         $_lusterUploadsUrl,
+        $_lusterCatMap,
+        $_lusterCategoryMap,
         $_lusterListingName,
     );
 }

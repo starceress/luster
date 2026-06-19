@@ -11,7 +11,9 @@ use Luster\Core\PasswordPolicy;
 use Luster\Core\RateLimit;
 use Luster\Core\Request;
 use Luster\Core\Response;
+use Luster\Core\TemplateEngine;
 use Luster\Core\Validator;
+use Luster\Core\View;
 use Luster\Models\Listing;
 use Luster\Repositories\BlacklistRepo;
 use Luster\Repositories\EmailTemplateRepo;
@@ -19,23 +21,26 @@ use Luster\Repositories\ListingRepo;
 use Luster\Repositories\ListingSettingsRepo;
 use Luster\Repositories\FanPasswordResetRepo;
 use Luster\Repositories\MemberRepo;
+use Luster\Repositories\SiteSettingsRepo;
 use Luster\Support\FormFieldBuilder;
+use Luster\Support\FormTemplateRenderer;
+use Luster\Support\ListingTemplateResolver;
 use Luster\Support\SuccessRenderer;
 
 /**
- * Fan password reset â€” allows fans to recover access when they forget their password.
+ * Fan password reset — allows fans to recover access when they forget their password.
  *
- * GET  /reset/{id}           â€” email entry form
- * POST /reset/{id}           â€” sends reset email, redirects to host page (prevents enumeration)
- * GET  /reset/{id}/confirm   â€” new password form (validates token from ?token= query param)
- * POST /reset/{id}/confirm   â€” applies new password, consumes token, redirects to host page
+ * GET  /reset/{id}           — email entry form
+ * POST /reset/{id}           — sends reset email, redirects to host page (prevents enumeration)
+ * GET  /reset/{id}/confirm   — new password form (validates token from ?token= query param)
+ * POST /reset/{id}/confirm   — applies new password, consumes token, redirects to host page
  *
  * Security properties:
  *  - CSRF token on all POST forms (validated by CsrfMiddleware)
  *  - Honeypot on the email entry form
  *  - Arithmetic CAPTCHA on the email entry form
  *  - Rate-limited per IP (5/hr) on both POST actions
- *  - Token: bin2hex(random_bytes(32)) â€” 256 bits of entropy
+ *  - Token: bin2hex(random_bytes(32)) — 256 bits of entropy
  *  - Only the SHA-256 hash is stored in the DB; the raw token travels only in email
  *  - Token expiry: 1 hour
  *  - Email enumeration prevented: always flashes the same neutral message regardless of outcome
@@ -91,7 +96,7 @@ final class ResetController
             return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $baseUrl . '/reset/' . $listingId);
         }
 
-        // Honeypot â€” silent reject
+        // Honeypot — silent reject
         if ((string) $request->post('website_confirm', '') !== '') {
             $session->remove('lstr_embed_return_to');
             $session->set('lstr_flash_success_html', SuccessRenderer::render('', 'reset-sent'));
@@ -110,14 +115,18 @@ final class ResetController
         $settingsRepo  = new ListingSettingsRepo($this->app->getDatabase());
         $embedSettings = $settingsRepo->getEmbedSettings($listingId);
         $formPageName  = (string) $embedSettings['form_url_reset'];
-        $formUrl       = $formPageName !== ''
-                       ? rtrim((string) $listing->url, '/') . '/' . ltrim($formPageName, '/')
-                       : $baseUrl . '/reset/' . $listingId;
+        if ($formPageName !== '' && preg_match('#^https?://#i', $formPageName)) {
+            $formUrl = $formPageName;
+        } elseif ($formPageName !== '') {
+            $formUrl = rtrim((string) $listing->url, '/') . '/' . ltrim($formPageName, '/');
+        } else {
+            $formUrl = $baseUrl . '/reset/' . $listingId;
+        }
 
-        // Captcha â€” redirect with flash on failure so the form re-renders with a fresh question
+        // Captcha — redirect with flash on failure so the form re-renders with a fresh question
         if (!Captcha::validate((string) $request->post('captcha_answer', ''), 'reset')) {
             $rateLimit->hitDefault($ip, RateLimit::ACTION_PUBLIC_RESET);
-            $session->set('lstr_flash_error', 'Incorrect answer â€” please try again.');
+            $session->set('lstr_flash_error', 'Incorrect answer — please try again.');
             $session->set('lstr_flash_old_email', $email);
             return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $formUrl);
         }
@@ -134,7 +143,7 @@ final class ResetController
 
         $rateLimit->hitDefault($ip, RateLimit::ACTION_PUBLIC_RESET);
 
-        // Blacklist check â€” silently skip sending if this address is blocked.
+        // Blacklist check — silently skip sending if this address is blocked.
         // Always redirect with the same neutral message so the block is not revealed.
         if ((new BlacklistRepo($this->app->getDatabase()))->isBlocked($email)) {
             $session->remove('lstr_embed_return_to');
@@ -143,14 +152,14 @@ final class ResetController
             return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $formUrl);
         }
 
-        // Look up the member â€” only send email if they exist AND are approved
+        // Look up the member — only send email if they exist AND are approved
         $memberRepo = new MemberRepo($this->app->getDatabase(), $this->app->getConfig());
         $member     = $memberRepo->getByEmail($listing->dbprefix, $email);
 
         if ($member !== null && $member->approved) {
             $resetRepo = new FanPasswordResetRepo($this->app->getDatabase());
 
-            // One token at a time â€” delete any existing token for this email+fanlisting
+            // One token at a time — delete any existing token for this email+fanlisting
             $resetRepo->deleteByEmail($listingId, $email);
 
             // Generate token
@@ -162,7 +171,12 @@ final class ResetController
 
             $resetRepo->create($listingId, $email, $tokenHash, $expiresAt);
 
-            $resetUrl = $baseUrl . '/reset/' . $listingId . '/confirm?token=' . urlencode($rawToken);
+            if ($formPageName !== '') {
+                $sep      = str_contains($formUrl, '?') ? '&' : '?';
+                $resetUrl = $formUrl . $sep . 'token=' . urlencode($rawToken);
+            } else {
+                $resetUrl = $baseUrl . '/reset/' . $listingId . '/confirm?token=' . urlencode($rawToken);
+            }
 
             try {
                 $cfg       = $this->app->getConfig();
@@ -186,7 +200,7 @@ final class ResetController
             }
         }
 
-        // Always flash the same neutral message and redirect to host page â€” never reveal whether the email was found
+        // Always flash the same neutral message and redirect to host page — never reveal whether the email was found
         $session->remove('lstr_embed_return_to');
         $successTpl = $settingsRepo->getSuccessTemplate($listingId) ?? '';
         $session->set('lstr_flash_success_html', SuccessRenderer::render($successTpl, 'reset-sent'));
@@ -300,7 +314,7 @@ final class ResetController
             ['password' => password_hash($newPassword, PASSWORD_ARGON2ID)],
         );
 
-        // Consume the token â€” one-time use
+        // Consume the token — one-time use
         $resetRepo->deleteByToken(hash('sha256', $rawToken));
         $rateLimit->clear($ip, RateLimit::ACTION_PUBLIC_RESET);
 
@@ -326,24 +340,60 @@ final class ResetController
     ): Response {
         $baseUrl         = $this->app->getBaseUrl();
         $captchaQuestion = Captcha::getQuestion('reset');
-        $wrapperTpl      = (new ListingSettingsRepo($this->app->getDatabase()))->getWrapperTemplate($listingId) ?? '';
+        $settingsRepo    = new ListingSettingsRepo($this->app->getDatabase());
+        $wrapperTpl      = $settingsRepo->getWrapperTemplate($listingId) ?? '';
+        $globalTemplates = (new SiteSettingsRepo($this->app->getDatabase()))->getGlobalTemplates();
+        $rstResolved     = ListingTemplateResolver::resolve(
+            $settingsRepo->getResetFormTemplate($listingId),
+            $globalTemplates['listing_default_reset_form_template'] ?? null,
+            ListingSettingsRepo::defaultResetFormTemplate(),
+        );
+        $resetFormTpl = $rstResolved['should_render_template'] ? $rstResolved['value'] : '';
+        $formAction      = $baseUrl . '/reset/' . $listingId;
 
         $f = $this->app->getFormFieldBuilder()->build([
             ['type' => 'email', 'name' => 'email',          'id' => 'rst-email',   'label' => 'Email',    'required' => true, 'value' => $oldEmail,       'attrs' => ['maxlength' => '255', 'autocomplete' => 'email']],
             ['type' => 'text',  'name' => 'captcha_answer', 'id' => 'rst-captcha', 'label' => 'Captcha: ' . $captchaQuestion, 'required' => true, 'error' => $captchaError, 'attrs' => ['maxlength' => '10', 'autocomplete' => 'off']],
         ], $wrapperTpl);
 
+        $formHtml = null;
+        if ($resetFormTpl !== '') {
+            $processed = TemplateEngine::conditionals($resetFormTpl, [
+                'step_email'   => true,
+                'step_confirm' => false,
+                'token_valid'  => false,
+                'token_invalid' => false,
+            ]);
+            $tokens = [
+                '{listing_title}'             => View::e((string) $listing->title),
+                '{listing_url}'               => View::e((string) $listing->url),
+                '{field_email}'               => $f['email'],
+                '{captcha_block}'             => $f['captcha_answer'],
+                '{captcha_block_input}'       => $f['captcha_answer_input'] ?? '',
+                '{captcha_question}'          => View::e($captchaQuestion),
+                '{field_new_password}'        => '',
+                '{field_new_password_confirm}' => '',
+                '{hidden_token}'              => '',
+                '{reset_request_url}'         => View::e($formAction),
+                '{submit_button}'             => '<button type="submit" class="fl-submit">Send Reset Link</button>',
+                '{clear_button}'              => '<button type="reset" class="fl-btn-secondary">Clear</button>',
+            ];
+            $inner    = FormTemplateRenderer::expandTokens($processed, $tokens);
+            $formHtml = FormTemplateRenderer::wrapForm($inner, $formAction, $this->app->getCSRF()->token(), false);
+        }
+
         $html = $this->app->getView()->renderPublic('reset.php', [
             'listing'      => $listing,
             'listing_name' => $listing->title,
             'listing_url'  => $listing->url,
             'page_title'   => 'Reset Password',
-            'form_action'  => $baseUrl . '/reset/' . $listingId,
+            'form_action'  => $formAction,
             'csrf_token'   => $this->app->getCSRF()->token(),
             'errors'       => $error !== ''
                 ? '<p>' . htmlspecialchars($error, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '</p>'
                 : '',
             'f'            => $f,
+            'form_html'    => $formHtml,
             'base_url'     => $baseUrl,
             'theme_path'   => $baseUrl . '/assets/css/default/',
         ]);
@@ -357,28 +407,69 @@ final class ResetController
         string $rawToken,
         string $error = '',
     ): Response {
-        $baseUrl    = $this->app->getBaseUrl();
-        $wrapperTpl = (new ListingSettingsRepo($this->app->getDatabase()))->getWrapperTemplate($listingId) ?? '';
+        $baseUrl      = $this->app->getBaseUrl();
+        $settingsRepo = new ListingSettingsRepo($this->app->getDatabase());
+        $wrapperTpl   = $settingsRepo->getWrapperTemplate($listingId) ?? '';
+        $globalTemplates = (new SiteSettingsRepo($this->app->getDatabase()))->getGlobalTemplates();
+        $rstResolved  = ListingTemplateResolver::resolve(
+            $settingsRepo->getResetFormTemplate($listingId),
+            $globalTemplates['listing_default_reset_form_template'] ?? null,
+            ListingSettingsRepo::defaultResetFormTemplate(),
+        );
+        $resetFormTpl = $rstResolved['should_render_template'] ? $rstResolved['value'] : '';
+        $tokenValid   = $rawToken !== '';
+        $formAction   = $baseUrl . '/reset/' . $listingId . '/confirm';
+        $resetUrl     = $baseUrl . '/reset/' . $listingId;
 
         $f = $this->app->getFormFieldBuilder()->build([
             ['type' => 'password', 'name' => 'new_password',         'id' => 'rc-password', 'label' => 'New Password',         'required' => true, 'attrs' => ['maxlength' => '255', 'autocomplete' => 'new-password']],
             ['type' => 'password', 'name' => 'new_password_confirm',  'id' => 'rc-confirm',  'label' => 'Confirm New Password', 'required' => true, 'attrs' => ['maxlength' => '255', 'autocomplete' => 'new-password']],
         ], $wrapperTpl);
 
+        $formHtml = null;
+        if ($resetFormTpl !== '') {
+            $processed = TemplateEngine::conditionals($resetFormTpl, [
+                'step_email'   => false,
+                'step_confirm' => true,
+                'token_valid'  => $tokenValid,
+                'token_invalid' => !$tokenValid,
+            ]);
+            $tokens = [
+                '{listing_title}'             => View::e((string) $listing->title),
+                '{listing_url}'               => View::e((string) $listing->url),
+                '{field_email}'               => '',
+                '{captcha_block}'             => '',
+                '{captcha_block_input}'       => '',
+                '{captcha_question}'          => '',
+                '{field_new_password}'        => $f['new_password'],
+                '{field_new_password_confirm}' => $f['new_password_confirm'],
+                '{hidden_token}'              => '',
+                '{reset_request_url}'         => View::e($resetUrl),
+                '{submit_button}'             => '<button type="submit" class="fl-submit">Set New Password</button>',
+                '{clear_button}'              => '<button type="reset" class="fl-btn-secondary">Clear</button>',
+            ];
+            $inner = FormTemplateRenderer::expandTokens($processed, $tokens);
+            if ($tokenValid) {
+                $inner .= '<input type="hidden" name="token" value="' . View::e($rawToken) . '">';
+            }
+            $formHtml = FormTemplateRenderer::wrapForm($inner, $formAction, $this->app->getCSRF()->token(), false);
+        }
+
         $html = $this->app->getView()->renderPublic('reset_confirm.php', [
             'listing'      => $listing,
             'listing_name' => $listing->title,
             'listing_url'  => $listing->url,
             'page_title'   => 'Set New Password',
-            'form_action'  => $baseUrl . '/reset/' . $listingId . '/confirm',
-            'reset_url'    => $baseUrl . '/reset/' . $listingId,
+            'form_action'  => $formAction,
+            'reset_url'    => $resetUrl,
             'csrf_token'   => $this->app->getCSRF()->token(),
             'errors'       => $error !== ''
                 ? '<p>' . htmlspecialchars($error, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '</p>'
                 : '',
             'token'        => $rawToken,
-            'token_valid'  => $rawToken !== '',
+            'token_valid'  => $tokenValid,
             'f'            => $f,
+            'form_html'    => $formHtml,
             'base_url'     => $baseUrl,
             'theme_path'   => $baseUrl . '/assets/css/default/',
         ]);
