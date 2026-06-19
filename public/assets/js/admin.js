@@ -6238,11 +6238,15 @@ document.addEventListener('click', function (e) {
     })
       .then(function (r) { return r.json(); })
       .then(function (data) {
-        btn.disabled = false;
         if (result) {
           result.innerHTML = data.ok
-            ? '<span style="color:var(--color-success,#4caf50)">' + esc(data.message) + '</span>'
+            ? '<span style="color:var(--color-success,#4caf50)">' + esc(data.message) + ' Reloading&hellip;</span>'
             : '<span style="color:var(--color-danger,#e05)">'     + esc(data.message) + '</span>';
+        }
+        if (data.ok) {
+          setTimeout(function () { window.location.reload(); }, 800);
+        } else {
+          btn.disabled = false;
         }
       })
       .catch(function () {

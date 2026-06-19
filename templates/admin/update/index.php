@@ -167,7 +167,7 @@ $current = Version::CURRENT;
         <?php endif; ?>
       </div>
 
-      <div class="composer-footer">
+      <div class="composer-footer" style="justify-content:center">
         <form method="POST" action="<?= $b ?>/admin/update/prepare" class="action-form-inline">
           <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
           <button type="submit" class="btn btn-primary">
@@ -176,7 +176,7 @@ $current = Version::CURRENT;
         </form>
         <?php if (($update_status->releaseUrl ?? null) !== null): ?>
           <a href="<?= View::e((string) $update_status->releaseUrl) ?>" class="btn btn-secondary" target="_blank" rel="noopener noreferrer">
-            Open Release
+            View on GitHub
           </a>
         <?php endif; ?>
         <?php if ($lock_exists): ?>

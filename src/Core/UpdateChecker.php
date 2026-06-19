@@ -22,7 +22,7 @@ use Luster\Repositories\SiteSettingsRepo;
  */
 final class UpdateChecker
 {
-    private const CACHE_TTL    = 86400; // 24 hours
+    private const CACHE_TTL    = 3600; // 1 hour
     private const GITHUB_API   = 'https://api.github.com/repos/' . Version::GITHUB_REPO . '/releases/latest';
     private const FETCH_TIMEOUT = 10;
 
@@ -240,18 +240,46 @@ final class UpdateChecker
     private function defaultFetcher(): \Closure
     {
         return function (string $url): string|false {
-            $context = stream_context_create([
-                'http' => [
-                    'timeout'       => self::FETCH_TIMEOUT,
-                    'user_agent'    => 'Luster/' . Version::CURRENT . ' (update-check)',
-                    'ignore_errors' => true,
-                ],
-                'ssl'  => [
-                    'verify_peer'      => true,
-                    'verify_peer_name' => true,
-                ],
-            ]);
-            return @file_get_contents($url, false, $context);
+            $ua = 'Luster/' . Version::CURRENT . ' (update-check)';
+
+            if (ini_get('allow_url_fopen')) {
+                $context = stream_context_create([
+                    'http' => [
+                        'timeout'       => self::FETCH_TIMEOUT,
+                        'user_agent'    => $ua,
+                        'ignore_errors' => true,
+                    ],
+                    'ssl'  => [
+                        'verify_peer'      => true,
+                        'verify_peer_name' => true,
+                    ],
+                ]);
+                $result = @file_get_contents($url, false, $context);
+                if ($result !== false) {
+                    return $result;
+                }
+            }
+
+            if (function_exists('curl_init')) {
+                $ch = curl_init($url);
+                curl_setopt_array($ch, [
+                    CURLOPT_RETURNTRANSFER => true,
+                    CURLOPT_FOLLOWLOCATION => true,
+                    CURLOPT_MAXREDIRS      => 3,
+                    CURLOPT_TIMEOUT        => self::FETCH_TIMEOUT,
+                    CURLOPT_CONNECTTIMEOUT => self::FETCH_TIMEOUT,
+                    CURLOPT_USERAGENT      => $ua,
+                    CURLOPT_HTTPHEADER     => ['Accept: application/json'],
+                ]);
+                $result = curl_exec($ch);
+                $code   = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
+                curl_close($ch);
+                if (is_string($result) && $code > 0) {
+                    return $result;
+                }
+            }
+
+            return false;
         };
     }
 }

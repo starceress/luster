@@ -888,20 +888,48 @@ final class UpdateApplier
     private function defaultFetcher(): \Closure
     {
         return function (string $url): string|false {
-            $context = stream_context_create([
-                'http' => [
-                    'timeout' => self::FETCH_TIMEOUT,
-                    'user_agent' => 'Luster/' . Version::CURRENT . ' (auto-update)',
-                    'ignore_errors' => true,
-                    'header' => "Accept: application/vnd.github+json, application/octet-stream\r\n",
-                ],
-                'ssl' => [
-                    'verify_peer' => true,
-                    'verify_peer_name' => true,
-                ],
-            ]);
+            $ua     = 'Luster/' . Version::CURRENT . ' (auto-update)';
+            $accept = 'application/vnd.github+json, application/octet-stream';
 
-            return @file_get_contents($url, false, $context);
+            if (ini_get('allow_url_fopen')) {
+                $context = stream_context_create([
+                    'http' => [
+                        'timeout'       => self::FETCH_TIMEOUT,
+                        'user_agent'    => $ua,
+                        'ignore_errors' => true,
+                        'header'        => "Accept: {$accept}\r\n",
+                    ],
+                    'ssl' => [
+                        'verify_peer'      => true,
+                        'verify_peer_name' => true,
+                    ],
+                ]);
+                $result = @file_get_contents($url, false, $context);
+                if ($result !== false) {
+                    return $result;
+                }
+            }
+
+            if (function_exists('curl_init')) {
+                $ch = curl_init($url);
+                curl_setopt_array($ch, [
+                    CURLOPT_RETURNTRANSFER => true,
+                    CURLOPT_FOLLOWLOCATION => true,
+                    CURLOPT_MAXREDIRS      => 5,
+                    CURLOPT_TIMEOUT        => self::FETCH_TIMEOUT,
+                    CURLOPT_CONNECTTIMEOUT => self::FETCH_TIMEOUT,
+                    CURLOPT_USERAGENT      => $ua,
+                    CURLOPT_HTTPHEADER     => ["Accept: {$accept}"],
+                ]);
+                $result = curl_exec($ch);
+                $code   = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
+                curl_close($ch);
+                if (is_string($result) && $code > 0) {
+                    return $result;
+                }
+            }
+
+            return false;
         };
     }
 }

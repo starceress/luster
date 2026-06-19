@@ -972,15 +972,10 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
               <?php elseif ($us->latest === null): ?>
                 <span class="badge badge-inactive">No releases yet</span>
               <?php elseif ($us->updateAvailable): ?>
-                <span class="badge badge-error">Update available</span>
-                <a href="<?= $b ?>/admin/update" class="link">
-                  Prepare update &rarr;
+                <span class="badge badge-current">Update available</span>
+                <a href="<?= $b ?>/admin/update" class="btn btn-download btn-sm">
+                  Prepare Update &rarr;
                 </a>
-                <?php if ($us->releaseUrl !== null): ?>
-                  <a href="<?= View::e($us->releaseUrl) ?>" class="link" target="_blank" rel="noopener noreferrer">
-                    Release notes &rarr;
-                  </a>
-                <?php endif; ?>
               <?php else: ?>
                 <span class="badge badge-current">Up to date</span>
               <?php endif; ?>
