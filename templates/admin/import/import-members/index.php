@@ -67,7 +67,7 @@ $b = rtrim(View::e($base_url), '/');
           <label class="file-drop-zone" for="im-file">
             <input id="im-file" type="file" name="sql_file" accept=".sql" required>
             <span class="file-drop-icon"><?= View::icon('import') ?></span>
-            <strong>Click to upload</strong>
+            <strong>Drag &amp; drop or click to browse</strong>
             <span class="form-hint">.SQL &mdash; max 10 MB</span>
           </label>
           <p class="form-hint" style="margin-top:.5rem">Upload a SQL export of a member table from Enthusiast or Listing Admin.</p>

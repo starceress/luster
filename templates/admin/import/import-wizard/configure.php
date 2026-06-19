@@ -143,7 +143,7 @@ function importChecked(array $old, string $key, bool $default = true): string {
           <label class="file-drop-zone" for="sql_dump">
             <input id="sql_dump" type="file" name="sql_dump" accept=".sql,text/plain,text/x-sql,application/sql">
             <span class="file-drop-icon"><?= View::icon('import') ?></span>
-            <strong>Click or drop .sql file</strong>
+            <strong>Drag &amp; drop or click to browse</strong>
             <span class="form-hint">mysqldump export &mdash; max 50 MB</span>
           </label>
           <p class="field-hint-sm">Export your source database with <code>mysqldump --no-tablespaces &lt;dbname&gt; &gt; export.sql</code> and upload the resulting file. The source schema is detected automatically.</p>

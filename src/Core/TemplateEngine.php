@@ -40,7 +40,7 @@ final class TemplateEngine
      * passed straight through a form-field wrapper template.
      *
      */
-    private const RAW_TOKEN_ALLOWLIST = ['input', 'pagination', 'network_status'];
+    private const RAW_TOKEN_ALLOWLIST = ['input', 'pagination', 'network_status', 'stat_newmembers'];
 
     private function __construct()
     {

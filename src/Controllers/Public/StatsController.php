@@ -89,11 +89,7 @@ final class StatsController
         $updatedDate = DateFormatter::mostRecent($memberDate, $adminDate);
         $updated     = $updatedDate !== null ? DateFormatter::format($updatedDate) : 'N/A';
 
-        $newestEscaped = array_map(
-            static fn(string $name) => htmlspecialchars($name, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),
-            $newest,
-        );
-        $newMembers = $this->oxfordComma($newestEscaped);
+        $newMembers = $this->formatNewestMembers($newest, $approved);
 
         // Growth: members per day since opened; guard against zero days
         $growth = '0.00';
@@ -176,14 +172,36 @@ final class StatsController
     // Internals
     // -----------------------------------------------------------------------
 
-    /** Formats names with Oxford comma: "", "A", "A and B", "A, B, and C". */
-    private function oxfordComma(array $names): string
+    /**
+     * Formats newest members with hyperlinks and ", and more..." when applicable.
+     *
+     * @param array<int, array{name: string, url: string}> $members
+     */
+    private function formatNewestMembers(array $members, int $totalApproved): string
     {
-        return match (count($names)) {
-            0       => '',
-            1       => $names[0],
-            2       => $names[0] . ' and ' . $names[1],
-            default => implode(', ', array_slice($names, 0, -1)) . ', and ' . end($names),
+        if ($members === []) {
+            return '';
+        }
+
+        $formatted = array_map(static function (array $m): string {
+            $name = htmlspecialchars($m['name'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+            if ($m['url'] !== '') {
+                $url = htmlspecialchars($m['url'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+                return '<a href="' . $url . '">' . $name . '</a>';
+            }
+            return $name;
+        }, $members);
+
+        $hasMore = $totalApproved > count($members);
+
+        if ($hasMore) {
+            return implode(', ', $formatted) . ', and more&hellip;';
+        }
+
+        return match (count($formatted)) {
+            1       => $formatted[0],
+            2       => $formatted[0] . ' and ' . $formatted[1],
+            default => implode(', ', array_slice($formatted, 0, -1)) . ', and ' . end($formatted),
         };
     }
 }

@@ -319,7 +319,7 @@ $dataExisting = json_encode($existingCats, JSON_HEX_QUOT | JSON_HEX_AMP | JSON_H
             <?php endif; ?>
             <label class="file-drop-zone">
               <input type="file" id="thumbnail" name="image" accept="image/jpeg,image/png,image/gif,image/webp"><span class="file-drop-icon"><?= View::icon('image') ?></span>
-              <strong>Click to upload</strong>
+              <strong>Drag &amp; drop or click to browse</strong>
               <span class="form-hint">JPEG, PNG, GIF, WebP &mdash; max 2 MB</span>
             </label>
           </div>
@@ -851,7 +851,7 @@ $ltok = static fn(string $ta, string $token, string $label, string $desc): strin
             <?= $ltok('stats_template', '{stat_approved}',     '{stat_approved}',     'How many approved members this listing has.') ?>
             <?= $ltok('stats_template', '{stat_pending}',      '{stat_pending}',      'How many members are waiting for approval.') ?>
             <?= $ltok('stats_template', '{stat_countries}',    '{stat_countries}',    'Number of distinct countries represented among approved members.') ?>
-            <?= $ltok('stats_template', '{stat_newmembers}',        '{stat_newmembers}',        'The names of the 5 newest approved members, formatted with Oxford comma (e.g. &ldquo;Alice, Bob, and Carol&rdquo;).') ?>
+            <?= $ltok('stats_template', '{stat_newmembers}',        '{stat_newmembers}',        'Up to 5 newest approved members, linked to their websites when available. Shows &ldquo;&hellip;and more&rdquo; when there are more than 5 total.') ?>
             <?= $ltok('stats_template', '{if_stat_pending}{/if_stat_pending}', '{if_stat_pending}...{/if_stat_pending}', 'Shows only when at least one member is awaiting approval.') ?>
             <?= $ltok('stats_template', '{stat_growth}',            '{stat_growth}',            'Average new members per day since the listing opened.') ?>
             <?= $ltok('stats_template', '{listing_title}',   '{listing_title}',   'The listing\'s display name.') ?>

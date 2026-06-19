@@ -21,7 +21,7 @@ final class FieldWrapper
 {
     private const DEFAULT_TEMPLATE = <<<'HTML'
         <div class="fl-field"{if_field_id} id="wrap-{field_id}"{/if_field_id}>
-          <label class="fl-label"{if_field_id} for="{field_id}"{/if_field_id}>{label}{required_indicator}</label>
+          <label class="fl-label"{if_field_id} for="{field_id}"{/if_field_id}>{label}{required_html}</label>
           {if_error}<p class="fl-field-error">{error}</p>{/if_error}
           {input}
           {if_hint}<small class="fl-field-hint">{hint}</small>{/if_hint}
@@ -54,13 +54,13 @@ final class FieldWrapper
             escaped: [
                 'label'               => $label,
                 'field_id'            => $fieldId,
-                'required_indicator'  => $required ? '*' : '',
                 'hint'                => $hint,
                 'error'               => $error,
                 'lost_password_url'   => $lostPasswordUrl,
             ],
             raw: [
-                'input' => $input,
+                'input'               => $input,
+                'required_html'  => $required ? '<span class="fl-required">*</span>' : '',
             ],
             conditions: [
                 'field_id'           => $fieldId !== '',

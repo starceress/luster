@@ -485,17 +485,18 @@ final class MemberRepo
     }
 
     /**
-     * Returns the N most recently added approved members (id + name only).
+     * Returns the N most recently added approved members (name + url).
      *
      * Intended for stats display — avoids fetching full member rows.
+     * URL is only included when the member has opted in via showurl.
      *
-     * @return array<int, string>
+     * @return array<int, array{name: string, url: string}>
      */
     public function getNewestMembers(string $prefix, int $limit): array
     {
         $p    = $this->resolveTable($prefix);
         $stmt = $this->db->prepare(
-            "SELECT name FROM {$p}
+            "SELECT name, url, showurl FROM {$p}
              WHERE {$this->approvedWhere}
              ORDER BY added DESC
              LIMIT :limit"
@@ -504,7 +505,12 @@ final class MemberRepo
         $stmt->execute();
 
         return array_map(
-            static fn(array $r) => (string) $r['name'],
+            static fn(array $r) => [
+                'name' => (string) $r['name'],
+                'url'  => ((bool) $r['showurl'] && trim((string) $r['url']) !== '')
+                    ? (string) $r['url']
+                    : '',
+            ],
             $stmt->fetchAll()
         );
     }

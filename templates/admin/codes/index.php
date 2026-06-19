@@ -276,7 +276,7 @@ $_colUploads        = $uploads_url ?? ($b . '/uploads/codes');
       <div class="file-drop-zone">
         <input type="file" id="codes-input" name="codes[]" multiple accept="image/jpeg,image/png,image/gif,image/webp">
         <span class="file-drop-icon"><?= View::icon('image') ?></span>
-        <strong>Click or drop images</strong>
+        <strong>Drag &amp; drop or click to browse</strong>
         <span class="form-hint">JPEG, PNG, GIF, WebP &mdash; max 500 KB each</span>
       </div>
       <p class="panel-hint" style="margin-top:.5rem">Multiple files allowed. Dimensions are detected automatically.</p>

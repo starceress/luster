@@ -108,7 +108,7 @@ $bbMode  = ($conn_mode ?? 'path') === 'upload' ? 'upload' : 'path';
           <label class="file-drop-zone" for="members_file">
             <input id="members_file" type="file" name="members_file" accept=".txt">
             <span class="file-drop-icon"><?= View::icon('import') ?></span>
-            <strong>Click to upload</strong>
+            <strong>Drag &amp; drop or click to browse</strong>
             <span class="form-hint">.TXT &mdash; approved members</span>
           </label>
         </div>
@@ -119,7 +119,7 @@ $bbMode  = ($conn_mode ?? 'path') === 'upload' ? 'upload' : 'path';
           <label class="file-drop-zone" for="newbies_file">
             <input id="newbies_file" type="file" name="newbies_file" accept=".txt">
             <span class="file-drop-icon"><?= View::icon('import') ?></span>
-            <strong>Click to upload</strong>
+            <strong>Drag &amp; drop or click to browse</strong>
             <span class="form-hint">.TXT &mdash; pending members, leave empty to skip</span>
           </label>
         </div>

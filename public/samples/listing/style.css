@@ -486,6 +486,11 @@ label {
   font-size: .88rem;
 }
 
+.fl-required {
+  color: var(--va-pink);
+  margin-left: 0.15em;
+}
+
 .form-actions,
 .fl-form-actions {
   display: flex;

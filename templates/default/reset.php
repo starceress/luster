@@ -30,8 +30,7 @@ if (isset($form_html)) {
   <?php endif; ?>
 
   <p class="fl-hint">
-    Enter your email address and we'll send you a link to reset your password.
-    The link expires in 1 hour.
+    If you have lost or forgotten your password, enter the email address you joined with below and a reset link will be sent to you. For your security, reset links expire after 1 hour.
   </p>
 
   <form class="fl-form" method="POST" action="<?= View::e($form_action) ?>">

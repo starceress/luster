@@ -91,7 +91,7 @@ $items = [
         'desc'  => 'Must be enabled for the listing under Edit Listing → Affiliates. A form where fans can submit affiliate applications. Applications are queued as pending and appear on the site after admin approval.',
     ],
     'update' => [
-        'label' => 'Update Details Form',
+        'label' => 'Update Membership Form',
         'badge' => 'Form',
         'file'  => 'update.php',
         'desc'  => 'Lets existing members update their name, URL, and other details. Fields are the same as the join form, so extra fields appear here too. Members can also check a box to permanently delete their membership instead — this takes effect immediately and emails the member a farewell message.',
@@ -677,7 +677,7 @@ $epSafe = View::e($ep);
                 <tr><td class="act-col"><code class="ec-tk">{stat_countries}</code></td><td>Number of different countries represented by approved members.</td></tr>
                 <tr><td class="act-col"><code class="ec-tk">{stat_opened}</code></td><td>Date you opened the listing.</td></tr>
                 <tr><td class="act-col"><code class="ec-tk">{stat_updated}</code></td><td>The most recent activity date: whichever is more recent of the newest approved member's join date and the &ldquo;last updated&rdquo; date you set for the listing. Shows <em>N/A</em> if neither is set.</td></tr>
-                <tr><td class="act-col"><code class="ec-tk">{stat_newmembers}</code></td><td>Names of the 5 newest approved members, formatted as a sentence, such as <em>A, B, and C</em>.</td></tr>
+                <tr><td class="act-col"><code class="ec-tk">{stat_newmembers}</code></td><td>Up to 5 newest approved members, linked to their websites when available. Shows <em>&hellip;and more</em> when there are more than 5 total.</td></tr>
                 <tr><td class="act-col"><code class="ec-tk">{stat_growth}</code></td><td>Average new members per day since the listing opened.</td></tr>
                 <tr><td class="act-col"><code class="ec-tk">{listing_title}</code></td><td>Name of the listing.</td></tr>
                 <tr><td class="act-col"><code class="ec-tk">{listing_url}</code></td><td>Link to the listing.</td></tr>
@@ -922,7 +922,7 @@ $epSafe = View::e($ep);
                 <tr><td class="act-col"><code class="ec-tk">{input}</code></td><td>The actual form control, such as a text box, dropdown, checkbox group, textarea, or file upload.</td></tr>
                 <tr><td class="act-col"><code class="ec-tk">{label}</code></td><td>The field label, such as Name, Email, or Country.</td></tr>
                 <tr><td class="act-col"><code class="ec-tk">{field_id}</code></td><td>The HTML ID for fields that have one. Useful for <code>for="{field_id}"</code> on labels.</td></tr>
-                <tr><td class="act-col"><code class="ec-tk">{required_indicator}</code></td><td>An asterisk when the field is required; empty when it is optional.</td></tr>
+                <tr><td class="act-col"><code class="ec-tk">{required_html}</code></td><td>A red asterisk (<code>&lt;span class="fl-required"&gt;*&lt;/span&gt;</code>) when required; empty when optional.</td></tr>
                 <tr><td class="act-col"><code class="ec-tk">{hint}</code></td><td>Small help text for the field, when Luster has one.</td></tr>
                 <tr><td class="act-col"><code class="ec-tk">{error}</code></td><td>The field error message, when there is one.</td></tr>
                 <tr><td class="act-col"><code class="ec-tk">{lost_password_url}</code></td><td>The password-reset link for password fields.</td></tr>

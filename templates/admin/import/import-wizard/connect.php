@@ -205,7 +205,7 @@ $connectUrl = $b . '/admin/import/' . $src . '/connect';
               <input id="sql_dump" type="file" name="sql_dump"
                      accept=".sql,text/plain,text/x-sql,application/sql">
               <span class="file-drop-icon"><?= View::icon('import') ?></span>
-              <strong>Click to upload</strong>
+              <strong>Drag &amp; drop or click to browse</strong>
               <span class="form-hint">.SQL &mdash; max 50 MB</span>
             </label>
             <p class="form-hint" style="margin-top:.5rem">Use a SQL export of the old database. Luster only reads table definitions and inserted rows from the file; it ignores other SQL commands.</p>

@@ -38,7 +38,7 @@ final class CollectiveFieldWrapperRemovalTest extends TestCase
         self::assertStringContainsString('class="fl-label"', $html);
         self::assertStringContainsString('for="contact-email"', $html);
         self::assertStringContainsString('<input type="email" id="contact-email">', $html);
-        self::assertStringContainsString('Email*', $html);
+        self::assertStringContainsString('class="fl-required"', $html);
     }
 
     public function testFieldWrapperBuiltInDefaultRendersOptionalFieldWithNoAsterisk(): void

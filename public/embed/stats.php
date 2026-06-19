@@ -131,19 +131,32 @@ $_lusterUpdated     = $_lusterUpdatedDate !== null
 // 7. Build token values
 // ---------------------------------------------------------------------------
 
-$_lusterNewestEscaped = array_map(
-    static fn(string $name) => htmlspecialchars($name, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),
-    $_lusterNewest,
-);
+$_lusterNewMembers = (static function (array $members, int $totalApproved): string {
+    if ($members === []) {
+        return '';
+    }
 
-$_lusterNewMembers = (static function (array $names): string {
-    return match (count($names)) {
-        0       => '',
-        1       => $names[0],
-        2       => $names[0] . ' and ' . $names[1],
-        default => implode(', ', array_slice($names, 0, -1)) . ', and ' . end($names),
+    $formatted = array_map(static function (array $m): string {
+        $name = htmlspecialchars($m['name'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+        if ($m['url'] !== '') {
+            $url = htmlspecialchars($m['url'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+            return '<a href="' . $url . '">' . $name . '</a>';
+        }
+        return $name;
+    }, $members);
+
+    $hasMore = $totalApproved > count($members);
+
+    if ($hasMore) {
+        return implode(', ', $formatted) . ', and more&hellip;';
+    }
+
+    return match (count($formatted)) {
+        1       => $formatted[0],
+        2       => $formatted[0] . ' and ' . $formatted[1],
+        default => implode(', ', array_slice($formatted, 0, -1)) . ', and ' . end($formatted),
     };
-})($_lusterNewestEscaped);
+})($_lusterNewest, $_lusterApproved);
 
 $_lusterGrowth = '0.00';
 if ($_lusterListing->joined !== null) {

@@ -23,7 +23,7 @@ final class FieldWrapperTest extends TestCase
         self::assertStringContainsString('id="wrap-join-name"', $html);
         self::assertStringContainsString('for="join-name"', $html);
         self::assertStringContainsString('<input type="text" id="join-name">', $html);
-        self::assertStringContainsString('Name*', $html);
+        self::assertStringContainsString('Name<span class="fl-required">*</span>', $html);
     }
 
     public function testDefaultTemplateOmitsIdAndForWhenFieldIdIsEmpty(): void
@@ -40,9 +40,9 @@ final class FieldWrapperTest extends TestCase
         $required = $this->wrapper->render('', '<input>', 'Name', 'join-name', true);
         $optional = $this->wrapper->render('', '<input>', 'Name', 'join-name', false);
 
-        self::assertStringContainsString('Name*', $required);
+        self::assertStringContainsString('fl-required', $required);
         self::assertStringContainsString('Name</label>', $optional);
-        self::assertStringNotContainsString('Name*', $optional);
+        self::assertStringNotContainsString('fl-required', $optional);
     }
 
     public function testHintIsShownOnlyWhenNonEmpty(): void

@@ -416,7 +416,7 @@ $imagesOn     = !empty($old['import_images']) || empty($old);
                        data-upload-url="<?= View::e($zip_url) ?>"
                        data-csrf="<?= View::e($csrf_token) ?>">
                 <span class="file-drop-icon"><?= View::icon('import') ?></span>
-                <strong>Click to upload</strong>
+                <strong>Drag &amp; drop or click to browse</strong>
                 <span class="form-hint">.ZIP &mdash; max 50 MB &mdash; uploads automatically on selection</span>
               </label>
               <span id="js-zip-upload-result" style="font-size:var(--fs-sm);display:none;margin-top:.375rem;display:block"></span>
@@ -470,7 +470,7 @@ $imagesOn     = !empty($old['import_images']) || empty($old);
                          data-upload-url="<?= View::e($zip_url) ?>"
                          data-csrf="<?= View::e($csrf_token) ?>">
                   <span class="file-drop-icon"><?= View::icon('import') ?></span>
-                  <strong>Click to upload</strong>
+                  <strong>Drag &amp; drop or click to browse</strong>
                   <span class="form-hint">.ZIP &mdash; max 50 MB &mdash; uploads automatically on selection</span>
                 </label>
                 <span id="js-zip-upload-result" style="font-size:var(--fs-sm);margin-top:.375rem;display:none"></span>

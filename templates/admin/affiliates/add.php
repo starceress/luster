@@ -205,7 +205,7 @@ $v = static function (string $key, $model, string $prop, string $default = '') u
           <label class="file-drop-zone">
             <input type="file" name="image" accept="image/jpeg,image/png,image/gif,image/webp">
             <span class="file-drop-icon"><?= View::icon('image') ?></span>
-              <strong>Click to upload</strong>
+              <strong>Drag &amp; drop or click to browse</strong>
               <span class="form-hint">JPEG, PNG, GIF, WebP &mdash; max 2 MB</span>
           </label>
         </div>

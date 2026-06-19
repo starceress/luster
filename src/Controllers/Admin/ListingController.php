@@ -1683,12 +1683,7 @@ final class ListingController extends AdminController
         $newest     = $prefix !== '' ? $memberRepo->getNewestMembers($prefix, 5) : [];
         $memberDate = $prefix !== '' ? $memberRepo->getMostRecentApprovedDate($prefix) : null;
 
-        $newestOxford = match (count($newest)) {
-            0       => '',
-            1       => $newest[0],
-            2       => $newest[0] . ' and ' . $newest[1],
-            default => implode(', ', array_slice($newest, 0, -1)) . ', and ' . end($newest),
-        };
+        $newestFormatted = self::formatNewestMembers($newest, $approved);
 
         $adminDate   = $settingsRepo->getLastUpdated((int) $listing->id);
         $updatedDate = DateFormatter::mostRecent($memberDate, $adminDate);
@@ -1700,7 +1695,7 @@ final class ListingController extends AdminController
             'stat_approved'   => (string) $approved,
             'stat_pending'    => (string) $pending,
             'stat_countries'  => (string) $countries,
-            'stat_newmembers' => $newestOxford,
+            'stat_newmembers' => $newestFormatted,
             'stat_growth'     => '0.00 members/day',
             'listing_title'   => $listing->title,
             'listing_subject' => $listing->subject ?? $listing->title,
@@ -1732,12 +1727,49 @@ final class ListingController extends AdminController
             default => '',
         };
 
-        $rendered = TemplateEngine::render($tpl, escaped: $values, conditions: $conditions);
+        $rawValues = [];
+        if (isset($values['stat_newmembers'])) {
+            $rawValues['stat_newmembers'] = $values['stat_newmembers'];
+            unset($values['stat_newmembers']);
+        }
+
+        $rendered = TemplateEngine::render($tpl, escaped: $values, raw: $rawValues, conditions: $conditions);
         return str_replace(
             ['{approved_by}', '{network}', '{network_status}', '{network_name}', '{tfl_url}', '{tafl_url}'],
             [$network, $network, $network, $networkName, 'https://thefanlistings.org/', 'https://www.animefanlistings.com/'],
             $rendered,
         );
+    }
+
+    /**
+     * @param array<int, array{name: string, url: string}> $members
+     */
+    private static function formatNewestMembers(array $members, int $totalApproved): string
+    {
+        if ($members === []) {
+            return '';
+        }
+
+        $formatted = array_map(static function (array $m): string {
+            $name = htmlspecialchars($m['name'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+            if ($m['url'] !== '') {
+                $url = htmlspecialchars($m['url'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+                return '<a href="' . $url . '">' . $name . '</a>';
+            }
+            return $name;
+        }, $members);
+
+        $hasMore = $totalApproved > count($members);
+
+        if ($hasMore) {
+            return implode(', ', $formatted) . ', and more&hellip;';
+        }
+
+        return match (count($formatted)) {
+            1       => $formatted[0],
+            2       => $formatted[0] . ' and ' . $formatted[1],
+            default => implode(', ', array_slice($formatted, 0, -1)) . ', and ' . end($formatted),
+        };
     }
 
     private function ltplPreviewUpdates(string $tpl, object $listing, \Luster\Core\Database $db): string
@@ -2442,8 +2474,11 @@ final class ListingController extends AdminController
      */
     private function gtplPreviewStats(string $tpl): string
     {
-        $sampleNames  = array_map(fn($m) => $m->name, SampleTemplateData::members());
-        $sampleOxford = implode(', ', array_slice($sampleNames, 0, -1)) . ', and ' . end($sampleNames);
+        $sampleMembers = array_map(
+            fn($m) => ['name' => $m->name, 'url' => $m->showurl ? $m->url : ''],
+            SampleTemplateData::members(),
+        );
+        $sampleNewest = self::formatNewestMembers($sampleMembers, 42);
 
         $sampleValues = [
             'stat_opened'     => '2020-01-15',
@@ -2451,7 +2486,7 @@ final class ListingController extends AdminController
             'stat_approved'   => '42',
             'stat_pending'    => '3',
             'stat_countries'  => '12',
-            'stat_newmembers' => $sampleOxford,
+            'stat_newmembers' => $sampleNewest,
             'stat_growth'     => '0.71 members/day',
             'listing_title'   => 'Sample Fanlisting',
             'listing_subject' => 'Sample Subject',

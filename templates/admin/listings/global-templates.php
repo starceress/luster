@@ -401,7 +401,7 @@ $_grp = static fn(string $g) => ($activeGroup !== 'all' && $activeGroup !== $g) 
             <?= $tok('listing_default_stats_template', '{stat_approved}',     '{stat_approved}',     'How many approved members this listing has.') ?>
             <?= $tok('listing_default_stats_template', '{stat_pending}',      '{stat_pending}',      'How many members are waiting for approval.') ?>
             <?= $tok('listing_default_stats_template', '{stat_countries}',    '{stat_countries}',    'Number of distinct countries represented among approved members.') ?>
-            <?= $tok('listing_default_stats_template', '{stat_newmembers}',        '{stat_newmembers}',        'Names of the 5 newest approved members, formatted with Oxford comma.') ?>
+            <?= $tok('listing_default_stats_template', '{stat_newmembers}',        '{stat_newmembers}',        'Up to 5 newest approved members, linked to their websites when available. Shows &ldquo;&hellip;and more&rdquo; when there are more than 5 total.') ?>
             <?= $tok('listing_default_stats_template', '{if_stat_pending}{/if_stat_pending}', '{if_stat_pending}...{/if_stat_pending}', 'Shows only when at least one member is awaiting approval.') ?>
             <?= $tok('listing_default_stats_template', '{stat_growth}',            '{stat_growth}',            'Average new members per day since the listing opened.') ?>
             <?= $tok('listing_default_stats_template', '{listing_title}',   '{listing_title}',   'The listing\'s display name.') ?>

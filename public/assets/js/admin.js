@@ -971,7 +971,7 @@ document.addEventListener('change', function (e) {
     if (hint) hint.textContent = 'Ready to upload - save the form to apply it.';
     label.classList.add('is-ready');
   } else {
-    if (title) title.textContent = label.dataset.defaultTitle || 'Click to upload';
+    if (title) title.textContent = label.dataset.defaultTitle || 'Drag & drop or click to browse';
     if (hint) hint.textContent = label.dataset.defaultHint || '';
     label.classList.remove('is-ready');
   }
@@ -1960,7 +1960,7 @@ document.addEventListener('drop', function (e) {
             { token: '{stat_countries}',    label: 'Countries represented', line: '{stat_countries} countries' },
             { token: '{stat_opened}',       label: 'Date opened',          line: 'Opened: {stat_opened}' },
             { token: '{stat_updated}',      label: 'Most recent activity date', line: 'Last updated: {stat_updated}' },
-            { token: '{stat_newmembers}',   label: 'Newest members, sentence list', line: 'Newest: {stat_newmembers}' },
+            { token: '{stat_newmembers}',   label: 'Newest members (linked, up to 5)', line: 'Newest: {stat_newmembers}' },
             { token: '{stat_growth}',       label: 'Average members per day', line: 'Growth: {stat_growth}' },
             { token: '{listing_title}',      label: 'Listing name',         line: '{listing_title}' },
             { token: '{listing_url}',       label: 'Listing link',         line: '{listing_url}' },

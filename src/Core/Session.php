@@ -35,8 +35,15 @@ final class Session
         }
 
         if (session_status() === PHP_SESSION_ACTIVE) {
-            $this->started = true;
-            return;
+            if (session_name() === 'luster_session') {
+                // Already our session — nothing to do.
+                $this->started = true;
+                return;
+            }
+            // Another session is active (e.g. session.auto_start = On on shared
+            // hosting started a PHPSESSID session). Write-close it so its data is
+            // preserved, then start our own named session below.
+            session_write_close();
         }
 
         ini_set('session.cookie_httponly', '1');

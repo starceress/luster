@@ -100,7 +100,7 @@ $dataCustomCats = json_encode($custom_cats     ?? [], JSON_HEX_QUOT | JSON_HEX_A
         <label class="file-drop-zone">
           <input id="thumbnail" type="file" name="image" accept="image/jpeg,image/png,image/gif,image/webp">
           <span class="file-drop-icon"><?= View::icon('image') ?></span>
-              <strong>Click to upload</strong>
+              <strong>Drag &amp; drop or click to browse</strong>
               <span class="form-hint">JPEG, PNG, GIF, WebP &mdash; max 2 MB</span>
         </label>
       </div>

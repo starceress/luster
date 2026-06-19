@@ -173,14 +173,19 @@ final class ContactController
             $recipient = $listing->email;
         }
 
-        $body = "Message from: {$name} <{$email}>"
-              . ($url !== '' ? "\nWebsite: {$url}" : '') . "\n"
-              . "Listing: {$listing->title} ({$listing->url})\n"
-              . str_repeat('-', 50) . "\n\n"
-              . $message;
+        $emailSubject = "[{$listing->title}] Contact Form - {$subject}";
+
+        $body = "Name: {$name}\n"
+              . "Email: {$email}\n"
+              . "Website URL: " . ($url !== '' ? $url : '(not provided)') . "\n"
+              . "Subject: {$subject}\n"
+              . "Listing: {$listing->title} ({$listing->url})\n\n"
+              . "Message:\n{$message}\n\n"
+              . str_repeat('-', 50) . "\n"
+              . "IP Address: {$ip}";
 
         try {
-            (new Mailer($this->app->getConfig()))->sendWithReplyTo($recipient, $listing->title, $subject, $body, $email, $name);
+            (new Mailer($this->app->getConfig()))->sendWithReplyTo($recipient, $listing->title, $emailSubject, $body, $email, $name);
         } catch (\RuntimeException) {
             $session->set('lstr_flash_error', 'Your message could not be sent. Please try again later.');
             $session->set('lstr_flash_old', $this->collectOld($request));
@@ -325,14 +330,18 @@ final class ContactController
             return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $fallbackUrl);
         }
 
-        $body = "Message from: {$name} <{$email}>"
-              . ($url !== '' ? "\nWebsite: {$url}" : '') . "\n"
-              . "Site: {$siteName}\n"
-              . str_repeat('-', 50) . "\n\n"
-              . $message;
+        $emailSubject = "[{$siteName}] Contact Form - {$subject}";
+
+        $body = "Name: {$name}\n"
+              . "Email: {$email}\n"
+              . "Website URL: " . ($url !== '' ? $url : '(not provided)') . "\n"
+              . "Subject: {$subject}\n\n"
+              . "Message:\n{$message}\n\n"
+              . str_repeat('-', 50) . "\n"
+              . "IP Address: {$ip}";
 
         try {
-            (new Mailer($config))->sendWithReplyTo($recipient, $siteName, $subject, $body, $email, $name);
+            (new Mailer($config))->sendWithReplyTo($recipient, $siteName, $emailSubject, $body, $email, $name);
         } catch (\RuntimeException) {
             $session->set('lstr_flash_error', 'Your message could not be sent. Please try again later.');
             $session->set('lstr_flash_old', $this->collectOld($request));
