@@ -1022,8 +1022,13 @@ final class SettingsController extends AdminController
             return '<p style="font-style:italic;color:#888">No collective updates to preview with.</p>';
         }
 
+        $tplForLoop = TemplateEngine::conditionals($tpl, [
+            'updates'    => count($updates) > 0,
+            'no_updates' => count($updates) === 0,
+        ]);
+
         return TemplateEngine::loop(
-            $tpl,
+            $tplForLoop,
             'update',
             $updates,
             static function (string $inner, $update): string {

@@ -988,6 +988,8 @@ $_grp = static fn(string $g): string => ($activeGroup !== 'all' && $activeGroup 
         <div class="chevron-body">
           <p class="form-hint mb-sm" data-token-search-help>Wrap each post in {each_update}...{/each_update}. Luster repeats it once per update entry and adds the wrapper and pagination automatically.</p>
           <table class="et-token-table et-token-table--compact"><tbody>
+            <?= $tok('collective_updates_template', '{if_updates}{/if_updates}',       '{if_updates}...{/if_updates}',       'Shows only when there is at least one update on the current page.') ?>
+            <?= $tok('collective_updates_template', '{if_no_updates}{/if_no_updates}', '{if_no_updates}...{/if_no_updates}', 'Shows when the current page has no updates (use for an empty state message).') ?>
             <?= $tok('collective_updates_template', '{each_update}{/each_update}', '{each_update}...{/each_update}', 'Repeats the HTML inside it once for each update post shown.') ?>
             <?= $tok('collective_updates_template', '{update_title}',      '{update_title}',      'The update post title.') ?>
             <?= $tok('collective_updates_template', '{update_date}',       '{update_date}',       'The posted date in human-readable format, e.g. June 1, 2025.') ?>
