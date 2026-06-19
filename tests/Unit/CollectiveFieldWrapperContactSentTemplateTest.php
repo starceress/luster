@@ -27,9 +27,6 @@ final class CollectiveFieldWrapperContactSentTemplateTest extends TestCase
 
         self::assertNotSame('', $defaults['collective_contact_sent_template']);
         self::assertStringContainsString('fl-success', $defaults['collective_contact_sent_template']);
-        self::assertSame(
-            SuccessRenderer::defaultTemplate('contact-sent'),
-            $defaults['collective_contact_sent_template'],
-        );
+        self::assertStringContainsString('{sender_name}', $defaults['collective_contact_sent_template']);
     }
 }

@@ -492,6 +492,7 @@ final class UpdateController
             ]);
             $tokens = [
                 '{listing_title}'          => \Luster\Core\View::e((string) $listing->title),
+                '{listing_subject}'        => \Luster\Core\View::e((string) $listing->subject),
                 '{listing_url}'            => \Luster\Core\View::e((string) $listing->url),
                 '{field_signin_email}'     => $f['email'],
                 '{field_signin_password}'  => $f['password'],
@@ -618,6 +619,7 @@ final class UpdateController
             ]);
             $tokens = [
                 '{listing_title}'          => \Luster\Core\View::e((string) $listing->title),
+                '{listing_subject}'        => \Luster\Core\View::e((string) $listing->subject),
                 '{listing_url}'            => \Luster\Core\View::e((string) $listing->url),
                 '{field_signin_email}'     => '',
                 '{field_signin_password}'  => '',

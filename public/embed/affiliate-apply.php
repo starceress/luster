@@ -125,6 +125,7 @@ if ($_lusterListingId === 0) {
     if ($_lusterCollAffTpl !== '') {
         $_lusterAffTokens = [
             '{listing_title}'         => View::e($_lusterSiteName),
+            '{listing_subject}'       => View::e($_lusterSiteName),
             '{listing_url}'           => View::e($_lusterSiteUrl),
             '{field_name}'            => $_lusterF['name'],
             '{field_name_input}'      => $_lusterF['name_input'],
@@ -248,6 +249,7 @@ $_lusterAffApplyTpl = $_lusterAffApplyResolved['should_render_template'] ? $_lus
 if ($_lusterAffApplyTpl !== '') {
     $_lusterAffTokens = [
         '{listing_title}'         => View::e((string) $_lusterListing->title),
+        '{listing_subject}'       => View::e((string) $_lusterListing->subject),
         '{listing_url}'           => View::e((string) $_lusterListing->url),
         '{field_name}'            => $_lusterF['name'],
         '{field_name_input}'      => $_lusterF['name_input'],

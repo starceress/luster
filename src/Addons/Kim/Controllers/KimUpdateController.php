@@ -267,8 +267,9 @@ final class KimUpdateController
             ['type' => 'email',    'name' => 'new_email',            'id' => 'kim-new-email',            'label' => 'New Email',               'required' => false, 'value' => (string) ($old['new_email']     ?? ''), 'attrs' => ['maxlength' => '255', 'autocomplete' => 'off'], 'hint' => 'Leave blank to keep current'],
             ['type' => 'url',      'name' => 'new_url',              'id' => 'kim-new-url',              'label' => 'New Website URL',         'required' => false, 'value' => (string) ($old['new_url']       ?? ''), 'attrs' => ['maxlength' => '500', 'placeholder' => 'https://'], 'hint' => 'Leave blank to keep current'],
             ['type' => 'password', 'name' => 'new_password',         'id' => 'kim-new-password',         'label' => 'New Password',            'required' => false, 'attrs' => ['maxlength' => '255', 'autocomplete' => 'new-password'], 'hint' => 'Min 8 characters; leave blank to keep current'],
-            ['type' => 'password', 'name' => 'new_password_confirm', 'id' => 'kim-new-password-confirm', 'label' => 'Confirm New Password',    'required' => false, 'attrs' => ['maxlength' => '255', 'autocomplete' => 'new-password']],
-            ['type' => 'text',     'name' => 'captcha_answer',       'id' => 'kim-captcha',              'label' => 'Captcha: ' . $captchaQ,  'required' => true,  'error' => $captchaError, 'attrs' => ['maxlength' => '10', 'autocomplete' => 'off']],
+            ['type' => 'password',     'name' => 'new_password_confirm', 'id' => 'kim-new-password-confirm', 'label' => 'Confirm New Password',    'required' => false, 'attrs' => ['maxlength' => '255', 'autocomplete' => 'new-password']],
+            ['type' => 'checkboxGroup', 'name' => 'send_copy',        'id' => '',                         'label' => 'Opt-in',                  'required' => false, 'options' => ['1' => 'Email me a copy of my submission'], 'selected' => ((string) ($old['send_copy'] ?? '')) === '1' ? ['1'] : []],
+            ['type' => 'text',         'name' => 'captcha_answer',   'id' => 'kim-captcha',              'label' => 'Captcha: ' . $captchaQ,  'required' => true,  'error' => $captchaError, 'attrs' => ['maxlength' => '10', 'autocomplete' => 'off']],
         ], '');
 
         $formHtml  = null;

@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Luster\Tests\Unit;
 
-use Luster\Repositories\ListingSettingsRepo;
 use Luster\Repositories\SiteSettingsRepo;
 use PHPUnit\Framework\TestCase;
 
@@ -45,7 +44,7 @@ final class CollectiveWishlistUpdatesTemplateTest extends TestCase
         self::assertArrayHasKey('collective_updates_template', $defaults);
     }
 
-    public function testCollectiveUpdatesTemplateDefaultMatchesListingUpdatesTemplate(): void
+    public function testCollectiveUpdatesTemplateDefaultHasExpectedStructure(): void
     {
         $defaults = SiteSettingsRepo::collectiveDefaults();
 
@@ -53,8 +52,10 @@ final class CollectiveWishlistUpdatesTemplateTest extends TestCase
         self::assertStringContainsString('{each_update}', $defaults['collective_updates_template']);
         self::assertStringContainsString('{update_title}', $defaults['collective_updates_template']);
         self::assertStringContainsString('{update_body_html}', $defaults['collective_updates_template']);
+        self::assertStringContainsString('fl-updates-list', $defaults['collective_updates_template']);
+        self::assertStringNotContainsString('{listing_subject}', $defaults['collective_updates_template']);
         self::assertSame(
-            ListingSettingsRepo::defaultUpdatesTemplate(),
+            SiteSettingsRepo::defaultCollectiveUpdatesTemplate(),
             $defaults['collective_updates_template'],
         );
     }

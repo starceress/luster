@@ -45,7 +45,8 @@ final class JoinedListingRowRenderer
                 'listing_image_html' => $imageHtml,
             ],
             conditions: [
-                'listing_image' => $imageUrl !== '',
+                'listing_image'    => $imageUrl !== '',
+                'no_listing_image' => $imageUrl === '',
             ],
         );
     }

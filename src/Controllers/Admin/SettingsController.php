@@ -303,8 +303,17 @@ final class SettingsController extends AdminController
         $session->remove('lstr_flash_error');
 
         $groupWhitelist = [
-            'all', 'owned', 'joined', 'stats', 'codes',
-            'contact', 'affiliates', 'adoption', 'kim', 'wishlist', 'updates',
+            'all',
+            'owned', 'latest-owned', 'random-owned',
+            'joined', 'latest-joined', 'random-joined',
+            'stats',
+            'codes', 'codes-form',
+            'affiliates', 'affiliate-form',
+            'contact', 'contact-sent',
+            'kim-overview', 'kim-subject', 'kim-signup', 'kim-update', 'kim-reset',
+            'adoption',
+            'wishlist',
+            'updates',
         ];
         $activeGroup = (string) $request->query('group', 'all');
         if (!in_array($activeGroup, $groupWhitelist, true)) {
@@ -855,8 +864,9 @@ final class SettingsController extends AdminController
             ['type' => 'email',    'name' => 'new_email',            'id' => 'kim-new-email',            'label' => 'New Email',            'required' => false, 'attrs' => ['maxlength' => '255'], 'hint' => 'Leave blank to keep current'],
             ['type' => 'url',      'name' => 'new_url',              'id' => 'kim-new-url',              'label' => 'New Website URL',      'required' => false, 'attrs' => ['maxlength' => '500', 'placeholder' => 'https://'], 'hint' => 'Leave blank to keep current'],
             ['type' => 'password', 'name' => 'new_password',         'id' => 'kim-new-password',         'label' => 'New Password',         'required' => false, 'attrs' => ['maxlength' => '255'], 'hint' => 'Min 8 characters; leave blank to keep current'],
-            ['type' => 'password', 'name' => 'new_password_confirm', 'id' => 'kim-new-password-confirm', 'label' => 'Confirm New Password', 'required' => false, 'attrs' => ['maxlength' => '255']],
-            ['type' => 'text',     'name' => 'captcha_answer',       'id' => 'kim-captcha',              'label' => 'Captcha: ' . $captchaQ, 'required' => true, 'attrs' => ['maxlength' => '10']],
+            ['type' => 'password',     'name' => 'new_password_confirm', 'id' => 'kim-new-password-confirm', 'label' => 'Confirm New Password', 'required' => false, 'attrs' => ['maxlength' => '255']],
+            ['type' => 'checkboxGroup', 'name' => 'send_copy',        'id' => '',                         'label' => 'Opt-in',               'required' => false, 'options' => ['1' => 'Email me a copy of my submission'], 'selected' => []],
+            ['type' => 'text',         'name' => 'captcha_answer',   'id' => 'kim-captcha',              'label' => 'Captcha: ' . $captchaQ, 'required' => true, 'attrs' => ['maxlength' => '10']],
         ], '');
 
         $lostPwUrl = '#';
@@ -878,8 +888,8 @@ final class SettingsController extends AdminController
             '{field_new_password_input}'         => $f['new_password_input'],
             '{field_new_password_confirm}'       => $f['new_password_confirm'],
             '{field_new_password_confirm_input}' => $f['new_password_confirm_input'],
-            '{field_send_copy}'                  => '',
-            '{field_send_copy_input}'            => '',
+            '{field_send_copy}'                  => $f['send_copy'],
+            '{field_send_copy_input}'            => $f['send_copy_input'],
             '{captcha_block}'                    => $f['captcha_answer'],
             '{captcha_block_input}'              => $f['captcha_answer_input'],
             '{captcha_question}'                 => View::e($captchaQ),
@@ -1118,6 +1128,7 @@ final class SettingsController extends AdminController
         $tokens = [
             '{listing_title}'               => View::e($siteName),
             '{listing_url}'                 => View::e($siteUrl),
+            '{site_name}'                   => View::e($siteName),
             '{field_code_image}'            => $f['code_image'],
             '{field_code_image_input}'      => $f['code_image_input'],
             '{field_submitter_name}'        => $f['submitter_name'],
@@ -1674,8 +1685,17 @@ final class SettingsController extends AdminController
         $baseUrl  = $this->app->getBaseUrl();
 
         $groupWhitelist = [
-            'all', 'owned', 'joined', 'stats', 'codes',
-            'contact', 'affiliates', 'adoption', 'kim', 'wishlist', 'updates',
+            'all',
+            'owned', 'latest-owned', 'random-owned',
+            'joined', 'latest-joined', 'random-joined',
+            'stats',
+            'codes', 'codes-form',
+            'affiliates', 'affiliate-form',
+            'contact', 'contact-sent',
+            'kim-overview', 'kim-subject', 'kim-signup', 'kim-update', 'kim-reset',
+            'adoption',
+            'wishlist',
+            'updates',
         ];
         $returnGroup = (string) $request->post('return_group', 'all');
         if (!in_array($returnGroup, $groupWhitelist, true)) {

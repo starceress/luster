@@ -40,7 +40,7 @@ SQL;
 
     public function testDefaultTemplateContainsListingTitleToken(): void
     {
-        self::assertStringContainsString('{listing_title}', ListingSettingsRepo::defaultCodesSubmitFormTemplate());
+        self::assertStringContainsString('{listing_subject}', ListingSettingsRepo::defaultCodesSubmitFormTemplate());
     }
 
     public function testDefaultTemplateContainsRequiredFieldTokens(): void

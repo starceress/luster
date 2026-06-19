@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Luster\Repositories;
 
 use Luster\Core\Database;
-use Luster\Support\SuccessRenderer;
 
 /**
  * Data access for the lstr_fanlisting_settings table.
@@ -418,12 +417,15 @@ final class ListingSettingsRepo
 
     public static function defaultContactFormTemplate(): string
     {
-        return '{field_name}' . "\n"
+        return '<h2>Contact Form</h2>' . "\n"
+             . '<div class="fl-form-fields">' . "\n"
+             . '{field_name}' . "\n"
              . '{field_email}' . "\n"
              . '{field_url}' . "\n"
              . '{field_subject}' . "\n"
              . '{field_message}' . "\n"
              . '{captcha_block}' . "\n"
+             . '</div>' . "\n"
              . '<div class="fl-form-actions">' . "\n"
              . '{submit_button}' . "\n"
              . '{clear_button}' . "\n"
@@ -472,11 +474,11 @@ final class ListingSettingsRepo
 
     /**
      * Returns the built-in contact-sent confirmation HTML.
-     * Delegates to SuccessRenderer so the canonical string lives in one place.
+     * Returns the built-in contact-sent confirmation HTML.
      */
     public static function defaultContactSentTemplate(): string
     {
-        return SuccessRenderer::defaultTemplate('contact-sent');
+        return '<div class="fl-success"><p>Your message has been sent. Thank you for getting in touch, {sender_name}!</p></div>';
     }
 
     /**
@@ -524,21 +526,35 @@ final class ListingSettingsRepo
      */
     public static function defaultUpdateFormTemplate(): string
     {
-        return '<h1>Update Your Details</h1>' . "\n"
-            . '{if_not_signed_in}' . "\n"
+        return '{if_not_signed_in}' . "\n"
+            . '<h2>Update Your Information for {listing_subject}</h2>' . "\n"
+            . '<p>Enter your email address and password to continue.</p>' . "\n"
+            . "\n"
             . '<div class="fl-form-fields">' . "\n"
             . '{field_signin_email}' . "\n"
             . '{field_signin_password}' . "\n"
             . '</div>' . "\n"
+            . '<p><a href="{lost_password_url}" class="fl-link">Forgot your password?</a></p>' . "\n"
+            . '<div class="fl-form-actions">' . "\n"
+            . '{submit_button}' . "\n"
+            . '</div>' . "\n"
             . '{/if_not_signed_in}' . "\n"
+            . "\n"
             . '{if_signed_in}' . "\n"
+            . '<h2>Update Your Information for {listing_subject}</h2>' . "\n"
+            . '<p>Signed in as <strong>{field_email}</strong>. <a href="{sign_out_url}" class="fl-link">Not you?</a></p>' . "\n"
+            . '<p>Fill in only the fields you want to change. Leave a field blank to keep your current value.</p>' . "\n"
             . '<div class="fl-form-fields">' . "\n"
             . '{field_new_name}' . "\n"
             . '{field_new_email}' . "\n"
+            . '{field_new_url}' . "\n"
+            . '{field_new_country}' . "\n"
             . '{additional_fields}' . "\n"
+            . '{field_password}' . "\n"
+            . '{field_password_confirm}' . "\n"
             . '{field_remove}' . "\n"
-            . '</div>' . "\n"
             . '{captcha_block}' . "\n"
+            . '</div>' . "\n"
             . '<div class="fl-form-actions">' . "\n"
             . '{submit_button}' . "\n"
             . '{clear_button}' . "\n"
@@ -552,25 +568,34 @@ final class ListingSettingsRepo
     public static function defaultResetFormTemplate(): string
     {
         return '{if_step_email}' . "\n"
-            . '<h1>Reset Your Password</h1>' . "\n"
+            . '<h2>Reset Password for {listing_subject}</h2>' . "\n"
+            . '<p>Enter your email address and a link will be sent to reset your password. The link expires in 1 hour.</p>' . "\n"
+            . "\n"
             . '<div class="fl-form-fields">' . "\n"
             . '{field_email}' . "\n"
             . '{captcha_block}' . "\n"
             . '</div>' . "\n"
-            . '<div class="fl-form-actions">{submit_button} {clear_button}</div>' . "\n"
+            . "\n"
+            . '<div class="fl-form-actions">' . "\n"
+            . '{submit_button}' . "\n"
+            . '</div>' . "\n"
             . '{/if_step_email}' . "\n"
+            . "\n"
             . '{if_step_confirm}' . "\n"
+            . '<h2>Set New Password</h2>' . "\n"
+            . '{if_token_invalid}' . "\n"
+            . '<p>This reset link has expired or is invalid. <a href="{reset_request_url}" class="fl-link">Request a new one.</a></p>' . "\n"
+            . '{/if_token_invalid}' . "\n"
             . '{if_token_valid}' . "\n"
-            . '<h1>Choose a New Password</h1>' . "\n"
             . '<div class="fl-form-fields">' . "\n"
             . '{field_new_password}' . "\n"
             . '{field_new_password_confirm}' . "\n"
             . '</div>' . "\n"
-            . '<div class="fl-form-actions">{submit_button} {clear_button}</div>' . "\n"
+            . "\n"
+            . '<div class="fl-form-actions">' . "\n"
+            . '{submit_button}' . "\n"
+            . '</div>' . "\n"
             . '{/if_token_valid}' . "\n"
-            . '{if_token_invalid}' . "\n"
-            . '<p class="fl-error">This reset link is invalid or has expired. <a href="{reset_request_url}">Request a new one.</a></p>' . "\n"
-            . '{/if_token_invalid}' . "\n"
             . '{/if_step_confirm}';
     }
 
@@ -631,7 +656,8 @@ final class ListingSettingsRepo
      */
     public static function defaultStatsTemplate(): string
     {
-        return '<div class="fl-stats">' . "\n"
+        return '<h2>{listing_subject} Statistics</h2>' . "\n"
+            . '<div class="fl-stats">' . "\n"
             . '<div class="fl-stats-grid">' . "\n"
             . '<span class="fl-stats-label">Members:</span><span class="fl-stats-value">{stat_approved} total{if_stat_pending} (+{stat_pending} pending){/if_stat_pending}</span>' . "\n"
             . '<span class="fl-stats-label">Countries:</span><span class="fl-stats-value">{stat_countries}</span>' . "\n"
@@ -652,21 +678,25 @@ final class ListingSettingsRepo
      */
     public static function defaultMembersTemplate(): string
     {
-        return '<h1>Member List</h1>'
-            . "\n" . '<p class="fl-member-sort">Sort by: {sort_link_all} | {sort_link_name} | {sort_link_country}</p><br>'
+        return '<h1>Member List</h1>' . "\n"
+            . '<p>Sort by: {sort_link_all} | {sort_link_name} | {sort_link_country}</p><br>' . "\n"
             . "\n"
-            . "\n" . '{if_members}'
-            . "\n" . '<div class="fl-member-list">'
-            . "\n" . '{each_member}'
-            . "\n" . '<ul class="fl-member-item">'
-            . "\n" . '<li>{if_fan_url}<a class="fl-member-name" href="{fan_url}" rel="noopener noreferrer">{fan_name}</a>{/if_fan_url}{if_no_fan_url}<span class="fl-member-name">{fan_name}</span>{/if_no_fan_url} - {if_fan_country}<span class="fl-member-country">{fan_country}</span>{/if_fan_country}</li>'
-            . "\n" . '</ul>'
-            . "\n" . '{/each_member}'
-            . "\n" . '</div>'
-            . "\n" . '{/if_members}'
-            . "\n" . '{if_no_members}'
-            . "\n" . '<p class="fl-empty">No members yet. <a href="{join_url}">Want to join?</a></p>'
-            . "\n" . '{/if_no_members}';
+            . '{if_members}' . "\n"
+            . '<div class="fl-member-list">' . "\n"
+            . "\n"
+            . '{each_member}' . "\n"
+            . '<ul class="fl-member-item">' . "\n"
+            . '<li>{if_fan_url}<a href="{fan_url}">{fan_name}</a>{/if_fan_url}' . "\n"
+            . '{if_no_fan_url}{fan_name}{/if_no_fan_url}{if_fan_country} &mdash; {fan_country}{/if_fan_country}</li>' . "\n"
+            . '</ul>' . "\n"
+            . '{/each_member}' . "\n"
+            . "\n"
+            . '</div>' . "\n"
+            . '{/if_members}' . "\n"
+            . "\n"
+            . '{if_no_members}' . "\n"
+            . '<p>No members yet. <a href="{join_url}">Want to join?</a></p>' . "\n"
+            . '{/if_no_members}';
     }
 
     /**
@@ -674,37 +704,44 @@ final class ListingSettingsRepo
      */
     public static function defaultAffiliatesSectionTemplate(): string
     {
-        return '<h1>Affiliates</h1>' . "\n\n"
+        return '<h2>Affiliates</h2>' . "\n"
+            . '<div class="fl-affiliates-section">' . "\n"
             . '{if_affiliates}' . "\n"
-            . '<ul class="fl-affiliate-list">' . "\n"
-            . '<p><a href="{affiliate_apply_url}">Apply to become an affiliate?</a></p>' . "\n\n"
+            . '<p><a href="{affiliate_apply_url}">Apply to become an affiliate?</a></p>' . "\n"
+            . "\n"
             . '{each_affiliate}' . "\n"
-            . '<li class="fl-affiliate-item">{if_aff_image}<a href="{aff_url}" target="_blank" rel="noopener noreferrer"><img src="{aff_image_url}" alt="{aff_name}"></a>{/if_aff_image}{if_no_aff_image}<a href="{aff_url}">{aff_name}</a>{/if_no_aff_image}</li>' . "\n"
-            . '{/each_affiliate}' . "\n\n"
-            . '</ul>' . "\n"
-            . '{/if_affiliates}' . "\n\n"
+            . '{if_aff_image}<a href="{aff_url}" title="{aff_name}" target="_blank"><img src="{aff_image_url}" alt="{aff_name}"></a>{/if_aff_image}' . "\n"
+            . '{if_no_aff_image}<a href="{aff_url}" title="{aff_name}" target="_blank">{aff_name}</a>{/if_no_aff_image}' . "\n"
+            . "\n"
+            . '{/each_affiliate}{/if_affiliates}' . "\n"
+            . "\n"
             . '{if_no_affiliates}' . "\n"
-            . '<p class="fl-affiliates-empty">No affiliates yet. <a href="{affiliate_apply_url}">Apply to become an affiliate?</a></p>' . "\n"
-            . '{/if_no_affiliates}';
+            . 'No affiliates yet. <a href="{affiliate_apply_url}">Apply to become an affiliate?</a>' . "\n"
+            . '{/if_no_affiliates}' . "\n"
+            . '</div>';
     }
 
     public static function defaultUpdatesTemplate(): string
     {
-        return '{if_updates}' . "\n"
+        return '<h2>{listing_subject} Updates</h2>' . "\n"
             . '<div class="fl-updates-list">' . "\n"
-            . '{each_update}' . "\n\n"
+            . '{if_no_updates}<p>No updates yet.</p>{/if_no_updates}' . "\n"
+            . '{if_updates}' . "\n"
+            . '{each_update}' . "\n"
+            . "\n"
             . '<div class="fl-update-item">' . "\n"
             . '<h3 class="fl-update-title">{update_title}</h3>' . "\n"
             . '<div class="fl-update-meta">' . "\n"
             . '<span class="fl-update-date"><b>Date Posted:</b> {update_date}</span>'
             . '{if_author} by <span class="fl-update-author">{update_author}</span>{/if_author}<br>' . "\n"
-            . '{if_categories}<b>Categories:</b> <span class="fl-update-categories">{update_categories}</span>{/if_categories}</div>' . "\n\n"
+            . '{if_categories}<b>Categories:</b> <span class="fl-update-categories">{update_categories}</span>{/if_categories}</div>' . "\n"
+            . "\n"
             . '<div class="fl-update-body">{update_body_html}</div>' . "\n"
-            . '</div>' . "\n\n"
-            . '{/each_update}' . "\n"
             . '</div>' . "\n"
+            . "\n"
+            . '{/each_update}' . "\n"
             . '{/if_updates}' . "\n"
-            . '{if_no_updates}<p class="fl-empty">No updates yet.</p>{/if_no_updates}';
+            . '</div>';
     }
 
     /**
@@ -716,27 +753,33 @@ final class ListingSettingsRepo
      */
     public static function defaultCodesTemplate(): string
     {
-        return '<div class="fl-embed fl-embed--codes">' . "\n"
-            . '{if_no_codes}' . "\n"
-            . '<p class="fl-empty">No codes available yet.</p>' . "\n"
-            . '{/if_no_codes}' . "\n"
+        return '<h2>Codes</h2>' . "\n"
+            . '<div class="fl-embed fl-embed--codes">' . "\n"
+            . '{if_no_codes}<p>No codes available yet.</p>{/if_no_codes}' . "\n"
             . '{if_codes}' . "\n"
+            . "\n"
             . '<div class="fl-codes">' . "\n"
             . '{each_size_group}' . "\n"
+            . "\n"
             . '<div class="fl-code-group">' . "\n"
-            . '<h2 class="fl-code-group-label">{group_size}</h2>' . "\n"
+            . '<h2>{group_size}</h2>' . "\n"
+            . "\n"
             . '<ul class="fl-code-list">' . "\n"
             . '{each_code}' . "\n"
+            . "\n"
             . '<li class="fl-code-item">' . "\n"
-            . '<figure class="fl-code-image"><img src="{code_url}" alt="{code_alt}" loading="lazy"></figure>' . "\n"
-            . '{if_donor}<span class="fl-code-caption">by {if_donor_url}<a href="{code_donor_url}" target="_blank" rel="noopener noreferrer">{code_donor_name}</a>{/if_donor_url}{if_no_donor_url}{code_donor_name}{/if_no_donor_url}</span>{/if_donor}' . "\n"
+            . '<img src="{code_url}" alt="{code_alt}" class="fl-code-image">' . "\n"
+            . '{if_donor}<span class="fl-code-caption">by {if_donor_url}<a href="{code_donor_url}" target="_blank">{code_donor_name}</a>{/if_donor_url}{if_no_donor_url}{code_donor_name}{/if_no_donor_url}</span>{/if_donor}' . "\n"
             . '{if_code_name}<span class="fl-code-caption">{code_name}</span>{/if_code_name}' . "\n"
             . '</li>' . "\n"
+            . "\n"
             . '{/each_code}' . "\n"
             . '</ul>' . "\n"
             . '</div>' . "\n"
+            . "\n"
             . '{/each_size_group}' . "\n"
             . '</div>' . "\n"
+            . "\n"
             . '{/if_codes}' . "\n"
             . '</div>';
     }
@@ -750,7 +793,7 @@ final class ListingSettingsRepo
      */
     public static function defaultJoinFormTemplate(): string
     {
-        return '<h1>Join {listing_title}</h1>' . "\n"
+        return '<h2>Join {listing_subject}</h2>' . "\n"
             . '<div class="fl-form-fields">' . "\n"
             . '{field_name}' . "\n"
             . '{field_email}' . "\n"
@@ -772,7 +815,7 @@ final class ListingSettingsRepo
      */
     public static function defaultAffiliateApplyFormTemplate(): string
     {
-        return '<h1>Affiliate Application — {listing_title}</h1>' . "\n"
+        return '<h2>Affiliate Application for {listing_subject}</h2>' . "\n"
             . '<div class="fl-form-fields">' . "\n"
             . '{field_name}' . "\n"
             . '{field_email}' . "\n"
@@ -781,6 +824,7 @@ final class ListingSettingsRepo
             . '{field_message}' . "\n"
             . '{captcha_block}' . "\n"
             . '</div>' . "\n"
+            . "\n"
             . '<div class="fl-form-actions">' . "\n"
             . '{submit_button}' . "\n"
             . '{clear_button}' . "\n"
@@ -792,8 +836,7 @@ final class ListingSettingsRepo
      */
     public static function defaultCodesSubmitFormTemplate(): string
     {
-        return '<h1>Submit a Code for {listing_title}</h1>' . "\n"
-            . '<p>All submissions are reviewed before being published. Accepted: JPEG, PNG, GIF, WebP. Max 200 KB.</p>' . "\n"
+        return '<h2>Donate Codes to {listing_subject}</h2>' . "\n"
             . '<div class="fl-form-fields">' . "\n"
             . '{field_submitter_name}' . "\n"
             . '{field_submitter_email}' . "\n"

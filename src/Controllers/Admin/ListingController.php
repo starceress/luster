@@ -1685,6 +1685,7 @@ final class ListingController extends AdminController
             'stat_newmembers' => $newestOxford,
             'stat_growth'     => '0.00 members/day',
             'listing_title'   => $listing->title,
+            'listing_subject' => $listing->subject ?? $listing->title,
             'listing_url'     => $listing->url,
         ];
         $conditions = [
@@ -1832,7 +1833,7 @@ final class ListingController extends AdminController
         $fieldRepo = new FieldRepo($db, $config);
         $fields    = $fieldRepo->getFieldsForListing((int) $listing->id);
 
-        return $this->renderJoinFormPreview($tpl, $listing->title, $listing->url, $countryFieldEnabled, $fields);
+        return $this->renderJoinFormPreview($tpl, $listing->title, $listing->url, (string) $listing->subject, $countryFieldEnabled, $fields);
     }
 
     /**
@@ -1842,7 +1843,7 @@ final class ListingController extends AdminController
      *
      * @param \Luster\Models\AdditionalField[] $fields
      */
-    private function renderJoinFormPreview(string $tpl, string $listingTitle, string $listingUrl, bool $countryFieldEnabled, array $fields): string
+    private function renderJoinFormPreview(string $tpl, string $listingTitle, string $listingUrl, string $listingSubject, bool $countryFieldEnabled, array $fields): string
     {
         $captchaQuestion = Captcha::getQuestion('join');
         $countrySelect   = Countries::buildSelect('');
@@ -1870,6 +1871,7 @@ final class ListingController extends AdminController
         $tokens = [
             '{listing_title}'                 => View::e($listingTitle),
             '{listing_url}'                   => View::e($listingUrl),
+            '{listing_subject}'               => View::e($listingSubject),
             '{field_name}'                     => $f['name'],
             '{field_name_input}'               => $f['name_input'],
             '{field_email}'                    => $f['email'],
@@ -1897,7 +1899,7 @@ final class ListingController extends AdminController
 
     private function ltplPreviewCodesSubmitForm(string $tpl, object $listing): string
     {
-        return $this->renderCodesSubmitFormPreview($tpl, $listing->title, $listing->url);
+        return $this->renderCodesSubmitFormPreview($tpl, $listing->title, $listing->url, (string) $listing->subject);
     }
 
     /**
@@ -1905,7 +1907,7 @@ final class ListingController extends AdminController
      * Shared by ltplPreviewCodesSubmitForm() (real listing data) and
      * gtplPreviewCodesSubmitForm() (sample data, listing-independent).
      */
-    private function renderCodesSubmitFormPreview(string $tpl, string $listingTitle, string $listingUrl): string
+    private function renderCodesSubmitFormPreview(string $tpl, string $listingTitle, string $listingUrl, string $listingSubject = ''): string
     {
         $captchaQuestion = Captcha::getQuestion('code_submit');
         $fb = $this->app->getFormFieldBuilder();
@@ -1922,6 +1924,7 @@ final class ListingController extends AdminController
         $tokens = [
             '{listing_title}'               => View::e($listingTitle),
             '{listing_url}'                 => View::e($listingUrl),
+            '{listing_subject}'             => View::e($listingSubject),
             '{field_code_image}'            => $f['code_image'],
             '{field_code_image_input}'      => $f['code_image_input'],
             '{field_submitter_name}'        => $f['submitter_name'],
@@ -1943,7 +1946,7 @@ final class ListingController extends AdminController
 
     private function ltplPreviewAffiliateApplyForm(string $tpl, object $listing): string
     {
-        return $this->renderAffiliateApplyFormPreview($tpl, $listing->title, $listing->url);
+        return $this->renderAffiliateApplyFormPreview($tpl, $listing->title, $listing->url, (string) $listing->subject);
     }
 
     /**
@@ -1951,7 +1954,7 @@ final class ListingController extends AdminController
      * Shared by ltplPreviewAffiliateApplyForm() (real listing data) and
      * gtplPreviewAffiliateApplyForm() (sample data, listing-independent).
      */
-    private function renderAffiliateApplyFormPreview(string $tpl, string $listingTitle, string $listingUrl): string
+    private function renderAffiliateApplyFormPreview(string $tpl, string $listingTitle, string $listingUrl, string $listingSubject = ''): string
     {
         $captchaQuestion = Captcha::getQuestion('affiliate_apply');
         $fb = $this->app->getFormFieldBuilder();
@@ -1969,6 +1972,7 @@ final class ListingController extends AdminController
         $tokens = [
             '{listing_title}'         => View::e($listingTitle),
             '{listing_url}'           => View::e($listingUrl),
+            '{listing_subject}'       => View::e($listingSubject),
             '{field_name}'            => $f['name'],
             '{field_name_input}'      => $f['name_input'],
             '{field_url}'             => $f['url'],
@@ -2060,6 +2064,7 @@ final class ListingController extends AdminController
         $tokens = [
             '{listing_title}'          => View::e((string) $listing->title),
             '{listing_url}'            => View::e((string) $listing->url),
+            '{listing_subject}'        => View::e((string) ($listing->subject ?? $listing->title)),
             '{field_signin_email}'     => $fSignIn['email'],
             '{field_signin_password}'  => $fSignIn['password'],
             '{field_new_name}'         => $fUpdate['new_name'],
@@ -2112,6 +2117,7 @@ final class ListingController extends AdminController
         $tokens = [
             '{listing_title}'             => View::e((string) $listing->title),
             '{listing_url}'               => View::e((string) $listing->url),
+            '{listing_subject}'           => View::e((string) ($listing->subject ?? $listing->title)),
             '{field_email}'               => $fEmail['email'],
             '{field_email_input}'         => $fEmail['email_input'],
             '{captcha_block}'             => $fEmail['captcha_answer'],
@@ -2423,6 +2429,7 @@ final class ListingController extends AdminController
             'stat_newmembers' => $sampleOxford,
             'stat_growth'     => '0.71 members/day',
             'listing_title'   => 'Sample Fanlisting',
+            'listing_subject' => 'Sample Subject',
             'listing_url'     => 'https://example.com/sample-fanlisting',
         ];
         $sampleConditions = [
@@ -2440,6 +2447,7 @@ final class ListingController extends AdminController
             'stat_newmembers' => '',
             'stat_growth'     => '0.00 members/day',
             'listing_title'   => 'Sample Fanlisting',
+            'listing_subject' => 'Sample Subject',
             'listing_url'     => 'https://example.com/sample-fanlisting',
         ];
         $emptyConditions = [
@@ -2483,6 +2491,7 @@ final class ListingController extends AdminController
             $tpl,
             'Sample Fanlisting',
             'https://example.com/sample-fanlisting',
+            'Sample Subject',
             true,
             SampleTemplateData::additionalFields(),
         );
@@ -2493,7 +2502,7 @@ final class ListingController extends AdminController
      */
     private function gtplPreviewCodesSubmitForm(string $tpl): string
     {
-        return $this->renderCodesSubmitFormPreview($tpl, 'Sample Fanlisting', 'https://example.com/sample-fanlisting');
+        return $this->renderCodesSubmitFormPreview($tpl, 'Sample Fanlisting', 'https://example.com/sample-fanlisting', 'Sample Subject');
     }
 
     /**
@@ -2501,7 +2510,7 @@ final class ListingController extends AdminController
      */
     private function gtplPreviewAffiliateApplyForm(string $tpl): string
     {
-        return $this->renderAffiliateApplyFormPreview($tpl, 'Sample Fanlisting', 'https://example.com/sample-fanlisting');
+        return $this->renderAffiliateApplyFormPreview($tpl, 'Sample Fanlisting', 'https://example.com/sample-fanlisting', 'Sample Subject');
     }
 
     private function gtplPreviewUpdateForm(string $tpl): string
@@ -2546,6 +2555,7 @@ final class ListingController extends AdminController
         $tokens = [
             '{listing_title}'          => 'Sample Fanlisting',
             '{listing_url}'            => 'https://example.com/sample-fanlisting',
+            '{listing_subject}'        => 'Sample Subject',
             '{field_signin_email}'     => $fSignIn['email'],
             '{field_signin_password}'  => $fSignIn['password'],
             '{field_new_name}'         => $fUpdate['new_name'],
@@ -2594,6 +2604,7 @@ final class ListingController extends AdminController
         $tokens = [
             '{listing_title}'             => 'Sample Fanlisting',
             '{listing_url}'               => 'https://example.com/sample-fanlisting',
+            '{listing_subject}'           => 'Sample Subject',
             '{field_email}'               => $fEmail['email'],
             '{field_email_input}'         => $fEmail['email_input'],
             '{captcha_block}'             => $fEmail['captcha_answer'],

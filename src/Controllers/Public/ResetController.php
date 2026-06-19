@@ -366,6 +366,7 @@ final class ResetController
             ]);
             $tokens = [
                 '{listing_title}'             => View::e((string) $listing->title),
+                '{listing_subject}'           => View::e((string) $listing->subject),
                 '{listing_url}'               => View::e((string) $listing->url),
                 '{field_email}'               => $f['email'],
                 '{captcha_block}'             => $f['captcha_answer'],
@@ -436,6 +437,7 @@ final class ResetController
             ]);
             $tokens = [
                 '{listing_title}'             => View::e((string) $listing->title),
+                '{listing_subject}'           => View::e((string) $listing->subject),
                 '{listing_url}'               => View::e((string) $listing->url),
                 '{field_email}'               => '',
                 '{captcha_block}'             => '',

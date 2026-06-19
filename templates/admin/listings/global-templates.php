@@ -68,13 +68,13 @@ $_grp = static fn(string $g) => ($activeGroup !== 'all' && $activeGroup !== $g) 
         <option value="codes"<?= $activeGroup === 'codes' ? ' selected' : '' ?>>Codes Display</option>
         <option value="codes-form"<?= $activeGroup === 'codes-form' ? ' selected' : '' ?>>Code Donation Form</option>
       </optgroup>
-      <optgroup label="Contact">
-        <option value="contact-form"<?= $activeGroup === 'contact-form' ? ' selected' : '' ?>>Contact Form</option>
-        <option value="contact-sent"<?= $activeGroup === 'contact-sent' ? ' selected' : '' ?>>Contact Sent Message</option>
+      <optgroup label="Affiliates">
+        <option value="affiliates"<?= $activeGroup === 'affiliates' ? ' selected' : '' ?>>Affiliates Display</option>
+        <option value="affiliate-form"<?= $activeGroup === 'affiliate-form' ? ' selected' : '' ?>>Affiliate Application</option>
       </optgroup>
-      <optgroup label="Affiliates &amp; Form">
-        <option value="affiliates"<?= $activeGroup === 'affiliates' ? ' selected' : '' ?>>Affiliates Section</option>
-        <option value="affiliate-form"<?= $activeGroup === 'affiliate-form' ? ' selected' : '' ?>>Affiliate Application Form</option>
+      <optgroup label="Contact Form">
+        <option value="contact-form"<?= $activeGroup === 'contact-form' ? ' selected' : '' ?>>Contact Form</option>
+        <option value="contact-sent"<?= $activeGroup === 'contact-sent' ? ' selected' : '' ?>>Contact Confirmation</option>
       </optgroup>
       <option value="updates"<?= $activeGroup === 'updates' ? ' selected' : '' ?>>Updates Feed</option>
     </select>
@@ -182,6 +182,30 @@ $_grp = static fn(string $g) => ($activeGroup !== 'all' && $activeGroup !== $g) 
           </div>
         </div>
 
+        <div class="tpl-group-section" data-tpl-group="affiliates" <?= $_grp('affiliates') ?>>
+          <div class="pc-section-label">Affiliates Display</div>
+          <p class="form-hint mb-sm">Controls the full affiliates block. Use <code>{each_affiliate}&hellip;{/each_affiliate}</code> to design each row.</p>
+          <div class="form-group">
+            <textarea name="listing_default_affiliates_section_template" id="listing_default_affiliates_section_template" class="form form-mono" spellcheck="false"><?= View::e($val('listing_default_affiliates_section_template')) ?></textarea>
+          </div>
+          <div class="tpl-reset-row">
+            <button type="button" class="btn btn-quaternary btn-xs" data-textarea="listing_default_affiliates_section_template">Reset to Built-in Default</button>
+            &nbsp; <button type="button" class="btn btn-preview btn-xs coltpl-preview-btn" data-tpltype="affiliates_section" data-textarea="listing_default_affiliates_section_template"><?= View::icon('eye-on') ?> Preview</button>
+          </div>
+        </div>
+
+        <div class="tpl-group-section" data-tpl-group="affiliate-form" <?= $_grp('affiliate-form') ?>>
+          <div class="pc-section-label">Affiliate Application</div>
+          <p class="form-hint mb-sm">Default layout for affiliate application forms.</p>
+          <div class="form-group">
+            <textarea name="listing_default_affiliate_apply_form_template" id="listing_default_affiliate_apply_form_template" class="form form-mono" spellcheck="false"><?= View::e($val('listing_default_affiliate_apply_form_template')) ?></textarea>
+          </div>
+          <div class="tpl-reset-row">
+            <button type="button" class="btn btn-quaternary btn-xs" data-textarea="listing_default_affiliate_apply_form_template">Reset to Built-in Default</button>
+            &nbsp; <button type="button" class="btn btn-preview btn-xs coltpl-preview-btn" data-tpltype="affiliate_apply_form" data-textarea="listing_default_affiliate_apply_form_template"><?= View::icon('eye-on') ?> Preview</button>
+          </div>
+        </div>
+
         <div class="tpl-group-section" data-tpl-group="contact-form" <?= $_grp('contact-form') ?>>
           <div class="pc-section-label">Contact Form</div>
           <p class="form-hint mb-sm">Default layout for the contact form (name, email, subject, message).</p>
@@ -195,7 +219,7 @@ $_grp = static fn(string $g) => ($activeGroup !== 'all' && $activeGroup !== $g) 
         </div>
 
         <div class="tpl-group-section" data-tpl-group="contact-sent" <?= $_grp('contact-sent') ?>>
-          <div class="pc-section-label">Contact Sent Message</div>
+          <div class="pc-section-label">Contact Confirmation</div>
           <p class="form-hint mb-sm">Default confirmation message shown after a visitor submits a listing contact form.</p>
           <div class="form-group">
             <textarea name="listing_default_contact_sent_template" id="listing_default_contact_sent_template" class="form form-mono" spellcheck="false"><?= View::e($val('listing_default_contact_sent_template')) ?></textarea>
@@ -203,30 +227,6 @@ $_grp = static fn(string $g) => ($activeGroup !== 'all' && $activeGroup !== $g) 
           <div class="tpl-reset-row">
             <button type="button" class="btn btn-quaternary btn-xs" data-textarea="listing_default_contact_sent_template">Reset to Built-in Default</button>
             &nbsp; <button type="button" class="btn btn-preview btn-xs coltpl-preview-btn" data-tpltype="contact_sent" data-textarea="listing_default_contact_sent_template"><?= View::icon('eye-on') ?> Preview</button>
-          </div>
-        </div>
-
-        <div class="tpl-group-section" data-tpl-group="affiliates" <?= $_grp('affiliates') ?>>
-          <div class="pc-section-label">Affiliates Section</div>
-          <p class="form-hint mb-sm">Controls the full affiliates block. Use <code>{each_affiliate}&hellip;{/each_affiliate}</code> to design each row.</p>
-          <div class="form-group">
-            <textarea name="listing_default_affiliates_section_template" id="listing_default_affiliates_section_template" class="form form-mono" spellcheck="false"><?= View::e($val('listing_default_affiliates_section_template')) ?></textarea>
-          </div>
-          <div class="tpl-reset-row">
-            <button type="button" class="btn btn-quaternary btn-xs" data-textarea="listing_default_affiliates_section_template">Reset to Built-in Default</button>
-            &nbsp; <button type="button" class="btn btn-preview btn-xs coltpl-preview-btn" data-tpltype="affiliates_section" data-textarea="listing_default_affiliates_section_template"><?= View::icon('eye-on') ?> Preview</button>
-          </div>
-        </div>
-
-        <div class="tpl-group-section" data-tpl-group="affiliate-form" <?= $_grp('affiliate-form') ?>>
-          <div class="pc-section-label">Affiliate Application Form</div>
-          <p class="form-hint mb-sm">Default layout for affiliate application forms.</p>
-          <div class="form-group">
-            <textarea name="listing_default_affiliate_apply_form_template" id="listing_default_affiliate_apply_form_template" class="form form-mono" spellcheck="false"><?= View::e($val('listing_default_affiliate_apply_form_template')) ?></textarea>
-          </div>
-          <div class="tpl-reset-row">
-            <button type="button" class="btn btn-quaternary btn-xs" data-textarea="listing_default_affiliate_apply_form_template">Reset to Built-in Default</button>
-            &nbsp; <button type="button" class="btn btn-preview btn-xs coltpl-preview-btn" data-tpltype="affiliate_apply_form" data-textarea="listing_default_affiliate_apply_form_template"><?= View::icon('eye-on') ?> Preview</button>
           </div>
         </div>
 
@@ -301,81 +301,15 @@ $_grp = static fn(string $g) => ($activeGroup !== 'all' && $activeGroup !== $g) 
         </div>
       </details>
 
-      <!-- Statistics -->
-      <details class="card chevron" data-token-card data-tpl-group="statistics" <?= $_grp('statistics') ?>>
-        <summary class="chevron-head">Statistics Tokens</summary>
-        <div class="chevron-body">
-          <p class="form-hint mb-sm" data-token-search-help>These tokens fill in the public stats block for a listing.</p>
-          <table class="et-token-table et-token-table--compact"><tbody>
-            <?= $tok('listing_default_stats_template', '{stat_opened}',       '{stat_opened}',       'The date the listing opened.') ?>
-            <?= $tok('listing_default_stats_template', '{stat_updated}',      '{stat_updated}',      'The most recent activity date: whichever is more recent of the newest approved member\'s join date and the Last Updated date set for the listing. Shows "N/A" if neither is set.') ?>
-            <?= $tok('listing_default_stats_template', '{stat_approved}',     '{stat_approved}',     'How many approved members this listing has.') ?>
-            <?= $tok('listing_default_stats_template', '{stat_pending}',      '{stat_pending}',      'How many members are waiting for approval.') ?>
-            <?= $tok('listing_default_stats_template', '{stat_countries}',    '{stat_countries}',    'Number of distinct countries represented among approved members.') ?>
-            <?= $tok('listing_default_stats_template', '{stat_newmembers}',        '{stat_newmembers}',        'Names of the 5 newest approved members, formatted with Oxford comma.') ?>
-            <?= $tok('listing_default_stats_template', '{if_stat_pending}{/if_stat_pending}', '{if_stat_pending}...{/if_stat_pending}', 'Shows only when at least one member is awaiting approval.') ?>
-            <?= $tok('listing_default_stats_template', '{stat_growth}',            '{stat_growth}',            'Average new members per day since the listing opened.') ?>
-            <?= $tok('listing_default_stats_template', '{listing_title}',     '{listing_title}',     'The listing\'s display name.') ?>
-            <?= $tok('listing_default_stats_template', '{listing_url}',       '{listing_url}',       'The link to the listing.') ?>
-            <?= $tok('listing_default_stats_template', '{approved_by}',       '{approved_by}',       'Network acronym: &ldquo;TFL&rdquo;, &ldquo;TAFL&rdquo;, or empty. Plain text, no link.') ?>
-            <?= $tok('listing_default_stats_template', '{network}',           '{network}',           'Same as {approved_by} &mdash; network acronym as raw text. Empty when not set.') ?>
-            <?= $tok('listing_default_stats_template', '{network_name}',      '{network_name}',      'Full network name: &ldquo;The Fanlistings Network&rdquo;, &ldquo;The Anime Fanlistings Network&rdquo;, or empty.') ?>
-            <?= $tok('listing_default_stats_template', '{tfl_url}',           '{tfl_url}',           'TFL website URL: <code>https://thefanlistings.org/</code>') ?>
-            <?= $tok('listing_default_stats_template', '{tafl_url}',          '{tafl_url}',          'TAFL website URL: <code>https://www.animefanlistings.com/</code>') ?>
-            <?= $tok('listing_default_stats_template', '{if_approved_by}{/if_approved_by}', '{if_approved_by}...{/if_approved_by}', 'Shows only when an approved-by network is saved.') ?>
-            <?= $tok('listing_default_stats_template', '{if_tfl}{/if_tfl}',             '{if_tfl}...{/if_tfl}',             'Shows only when this listing is TFL-approved.') ?>
-            <?= $tok('listing_default_stats_template', '{if_tafl}{/if_tafl}',           '{if_tafl}...{/if_tafl}',           'Shows only when this listing is TAFL-approved.') ?>
-          </tbody></table>
-        </div>
-      </details>
-
-      <!-- Affiliates Section -->
-      <details class="card chevron" data-token-card data-tpl-group="affiliates" <?= $_grp('affiliates') ?>>
-        <summary class="chevron-head">Affiliates Section Tokens</summary>
-        <div class="chevron-body">
-          <p class="form-hint mb-sm" data-token-search-help>Use {each_affiliate}...{/each_affiliate} to design each row yourself.</p>
-          <table class="et-token-table et-token-table--compact"><tbody>
-            <?= $tok('listing_default_affiliates_section_template', '{each_affiliate}{/each_affiliate}', '{each_affiliate}...{/each_affiliate}', 'Repeats the HTML inside it once for each affiliate.') ?>
-            <?= $tok('listing_default_affiliates_section_template', '{aff_name}',      '{aff_name}',      'The affiliate site name. Use inside {each_affiliate}.') ?>
-            <?= $tok('listing_default_affiliates_section_template', '{aff_url}',       '{aff_url}',       'The affiliate site link. Use inside {each_affiliate}.') ?>
-            <?= $tok('listing_default_affiliates_section_template', '{aff_image_url}', '{aff_image_url}', 'The affiliate image URL. Empty when there is no image. Use inside {each_affiliate}.') ?>
-            <?= $tok('listing_default_affiliates_section_template', '{affiliates_count}', '{affiliates_count}', 'How many active affiliates this listing has.') ?>
-            <?= $tok('listing_default_affiliates_section_template', '{affiliate_apply_url}',                '{affiliate_apply_url}',                   'URL of the affiliate application form for this listing.') ?>
-            <?= $tok('listing_default_affiliates_section_template', '{if_affiliates}{/if_affiliates}',       '{if_affiliates}...{/if_affiliates}',       'Shows only when this listing has at least one affiliate.') ?>
-            <?= $tok('listing_default_affiliates_section_template', '{if_no_affiliates}{/if_no_affiliates}', '{if_no_affiliates}...{/if_no_affiliates}', 'Shows only when this listing has no affiliates.') ?>
-            <?= $tok('listing_default_affiliates_section_template', '{if_aff_image}{/if_aff_image}',       '{if_aff_image}...{/if_aff_image}',       'Inside {each_affiliate}, shows only when the affiliate has an image.') ?>
-            <?= $tok('listing_default_affiliates_section_template', '{if_no_aff_image}{/if_no_aff_image}', '{if_no_aff_image}...{/if_no_aff_image}', 'Inside {each_affiliate}, shows only when the affiliate has no image.') ?>
-          </tbody></table>
-        </div>
-      </details>
-
-      <!-- Updates Feed -->
-      <details class="card chevron" data-token-card data-tpl-group="updates" <?= $_grp('updates') ?>>
-        <summary class="chevron-head">Updates Feed Tokens</summary>
-        <div class="chevron-body">
-          <p class="form-hint mb-sm" data-token-search-help>Wrap each post in {each_update}...{/each_update}. Luster repeats it once per update entry. Requires the Updates Feed add-on.</p>
-          <table class="et-token-table et-token-table--compact"><tbody>
-            <?= $tok('listing_default_updates_template', '{each_update}{/each_update}', '{each_update}...{/each_update}', 'Repeats the HTML inside it once for each update post shown.') ?>
-            <?= $tok('listing_default_updates_template', '{update_title}',      '{update_title}',      'The update post title.') ?>
-            <?= $tok('listing_default_updates_template', '{update_date}',       '{update_date}',       'The posted date in human-readable format, e.g. June 1, 2025.') ?>
-            <?= $tok('listing_default_updates_template', '{update_date_raw}',   '{update_date_raw}',   'The posted date in YYYY-MM-DD format.') ?>
-            <?= $tok('listing_default_updates_template', '{update_author}',     '{update_author}',     'The author name. Empty when not set.') ?>
-            <?= $tok('listing_default_updates_template', '{update_categories}', '{update_categories}', 'Category names, comma-separated. Empty when not set.') ?>
-            <?= $tok('listing_default_updates_template', '{update_body_html}',  '{update_body_html}',  'The update body text, with line breaks converted to HTML.') ?>
-            <?= $tok('listing_default_updates_template', '{if_author}{/if_author}',         '{if_author}...{/if_author}',         'Shows only when the update has an author set.') ?>
-            <?= $tok('listing_default_updates_template', '{if_categories}{/if_categories}', '{if_categories}...{/if_categories}', 'Shows only when the update has categories set.') ?>
-          </tbody></table>
-        </div>
-      </details>
-
       <!-- Join Form -->
       <details class="card chevron" data-token-card data-tpl-group="join-form" <?= $_grp('join-form') ?>>
         <summary class="chevron-head">Join Form Tokens</summary>
         <div class="chevron-body">
           <p class="form-hint mb-sm" data-token-search-help>Arrange and label every field of the join form. Each field token has a "_input" version that prints just the bare input (no label/wrapper) for custom layouts.</p>
           <table class="et-token-table et-token-table--compact"><tbody>
-            <?= $tok('listing_default_join_form_template', '{listing_title}', '{listing_title}', 'The listing\'s display name.') ?>
-            <?= $tok('listing_default_join_form_template', '{listing_url}',   '{listing_url}',   'The link to the listing.') ?>
+            <?= $tok('listing_default_join_form_template', '{listing_title}',   '{listing_title}',   'The listing\'s display name.') ?>
+            <?= $tok('listing_default_join_form_template', '{listing_subject}', '{listing_subject}', 'What the listing is about (the subject/topic, e.g. "Archaeology").') ?>
+            <?= $tok('listing_default_join_form_template', '{listing_url}',     '{listing_url}',     'The link to the listing.') ?>
             <?= $tok('listing_default_join_form_template', '{field_name}',       '{field_name}',       'The Name field, with label and wrapper.') ?>
             <?= $tok('listing_default_join_form_template', '{field_name_input}', '{field_name_input}', 'Just the Name input, no label or wrapper.') ?>
             <?= $tok('listing_default_join_form_template', '{field_email}',       '{field_email}',       'The Email field, with label and wrapper.') ?>
@@ -423,8 +357,9 @@ $_grp = static fn(string $g) => ($activeGroup !== 'all' && $activeGroup !== $g) 
             <?= $tok('listing_default_update_form_template', '{field_remove}',     '{field_remove}',     'Update step: the &ldquo;Delete my membership&rdquo; checkbox block.') ?>
             <?= $tok('listing_default_update_form_template', '{submit_button}',    '{submit_button}',    'The submit button.') ?>
             <?= $tok('listing_default_update_form_template', '{clear_button}',     '{clear_button}',     'The &ldquo;Clear&rdquo; reset button.') ?>
-            <?= $tok('listing_default_update_form_template', '{listing_title}',    '{listing_title}',    'The listing&rsquo;s display name.') ?>
-            <?= $tok('listing_default_update_form_template', '{listing_url}',      '{listing_url}',      'The link to the listing.') ?>
+            <?= $tok('listing_default_update_form_template', '{listing_title}',   '{listing_title}',   'The listing&rsquo;s display name.') ?>
+            <?= $tok('listing_default_update_form_template', '{listing_subject}', '{listing_subject}', 'What the listing is about (the subject/topic, e.g. "Archaeology").') ?>
+            <?= $tok('listing_default_update_form_template', '{listing_url}',     '{listing_url}',     'The link to the listing.') ?>
           </tbody></table>
         </div>
       </details>
@@ -448,8 +383,38 @@ $_grp = static fn(string $g) => ($activeGroup !== 'all' && $activeGroup !== $g) 
             <?= $tok('listing_default_reset_form_template', '{reset_request_url}',         '{reset_request_url}',         'URL of the email-entry form. Use inside {if_token_invalid} for a &ldquo;request a new one&rdquo; link.') ?>
             <?= $tok('listing_default_reset_form_template', '{submit_button}',             '{submit_button}',             'The submit button.') ?>
             <?= $tok('listing_default_reset_form_template', '{clear_button}',              '{clear_button}',              'The &ldquo;Clear&rdquo; reset button.') ?>
-            <?= $tok('listing_default_reset_form_template', '{listing_title}',             '{listing_title}',             'The listing&rsquo;s display name.') ?>
-            <?= $tok('listing_default_reset_form_template', '{listing_url}',               '{listing_url}',               'The link to the listing.') ?>
+            <?= $tok('listing_default_reset_form_template', '{listing_title}',   '{listing_title}',   'The listing&rsquo;s display name.') ?>
+            <?= $tok('listing_default_reset_form_template', '{listing_subject}', '{listing_subject}', 'What the listing is about (the subject/topic, e.g. "Archaeology").') ?>
+            <?= $tok('listing_default_reset_form_template', '{listing_url}',     '{listing_url}',     'The link to the listing.') ?>
+          </tbody></table>
+        </div>
+      </details>
+
+      <!-- Statistics -->
+      <details class="card chevron" data-token-card data-tpl-group="statistics" <?= $_grp('statistics') ?>>
+        <summary class="chevron-head">Statistics Tokens</summary>
+        <div class="chevron-body">
+          <p class="form-hint mb-sm" data-token-search-help>These tokens fill in the public stats block for a listing.</p>
+          <table class="et-token-table et-token-table--compact"><tbody>
+            <?= $tok('listing_default_stats_template', '{stat_opened}',       '{stat_opened}',       'The date the listing opened.') ?>
+            <?= $tok('listing_default_stats_template', '{stat_updated}',      '{stat_updated}',      'The most recent activity date: whichever is more recent of the newest approved member\'s join date and the Last Updated date set for the listing. Shows "N/A" if neither is set.') ?>
+            <?= $tok('listing_default_stats_template', '{stat_approved}',     '{stat_approved}',     'How many approved members this listing has.') ?>
+            <?= $tok('listing_default_stats_template', '{stat_pending}',      '{stat_pending}',      'How many members are waiting for approval.') ?>
+            <?= $tok('listing_default_stats_template', '{stat_countries}',    '{stat_countries}',    'Number of distinct countries represented among approved members.') ?>
+            <?= $tok('listing_default_stats_template', '{stat_newmembers}',        '{stat_newmembers}',        'Names of the 5 newest approved members, formatted with Oxford comma.') ?>
+            <?= $tok('listing_default_stats_template', '{if_stat_pending}{/if_stat_pending}', '{if_stat_pending}...{/if_stat_pending}', 'Shows only when at least one member is awaiting approval.') ?>
+            <?= $tok('listing_default_stats_template', '{stat_growth}',            '{stat_growth}',            'Average new members per day since the listing opened.') ?>
+            <?= $tok('listing_default_stats_template', '{listing_title}',   '{listing_title}',   'The listing\'s display name.') ?>
+            <?= $tok('listing_default_stats_template', '{listing_subject}', '{listing_subject}', 'What the listing is about (the subject/topic, e.g. "Archaeology").') ?>
+            <?= $tok('listing_default_stats_template', '{listing_url}',     '{listing_url}',     'The link to the listing.') ?>
+            <?= $tok('listing_default_stats_template', '{approved_by}',       '{approved_by}',       'Network acronym: &ldquo;TFL&rdquo;, &ldquo;TAFL&rdquo;, or empty. Plain text, no link.') ?>
+            <?= $tok('listing_default_stats_template', '{network}',           '{network}',           'Same as {approved_by} &mdash; network acronym as raw text. Empty when not set.') ?>
+            <?= $tok('listing_default_stats_template', '{network_name}',      '{network_name}',      'Full network name: &ldquo;The Fanlistings Network&rdquo;, &ldquo;The Anime Fanlistings Network&rdquo;, or empty.') ?>
+            <?= $tok('listing_default_stats_template', '{tfl_url}',           '{tfl_url}',           'TFL website URL: <code>https://thefanlistings.org/</code>') ?>
+            <?= $tok('listing_default_stats_template', '{tafl_url}',          '{tafl_url}',          'TAFL website URL: <code>https://www.animefanlistings.com/</code>') ?>
+            <?= $tok('listing_default_stats_template', '{if_approved_by}{/if_approved_by}', '{if_approved_by}...{/if_approved_by}', 'Shows only when an approved-by network is saved.') ?>
+            <?= $tok('listing_default_stats_template', '{if_tfl}{/if_tfl}',             '{if_tfl}...{/if_tfl}',             'Shows only when this listing is TFL-approved.') ?>
+            <?= $tok('listing_default_stats_template', '{if_tafl}{/if_tafl}',           '{if_tafl}...{/if_tafl}',           'Shows only when this listing is TAFL-approved.') ?>
           </tbody></table>
         </div>
       </details>
@@ -488,8 +453,9 @@ $_grp = static fn(string $g) => ($activeGroup !== 'all' && $activeGroup !== $g) 
         <div class="chevron-body">
           <p class="form-hint mb-sm" data-token-search-help>Arrange and label every field of the code donation form. Each field token has a "_input" version that prints just the bare input (no label/wrapper) for custom layouts.</p>
           <table class="et-token-table et-token-table--compact"><tbody>
-            <?= $tok('listing_default_codes_submit_form_template', '{listing_title}', '{listing_title}', 'The listing\'s display name.') ?>
-            <?= $tok('listing_default_codes_submit_form_template', '{listing_url}',   '{listing_url}',   'The link to the listing.') ?>
+            <?= $tok('listing_default_codes_submit_form_template', '{listing_title}',   '{listing_title}',   'The listing\'s display name.') ?>
+            <?= $tok('listing_default_codes_submit_form_template', '{listing_subject}', '{listing_subject}', 'What the listing is about (the subject/topic, e.g. "Archaeology").') ?>
+            <?= $tok('listing_default_codes_submit_form_template', '{listing_url}',     '{listing_url}',     'The link to the listing.') ?>
             <?= $tok('listing_default_codes_submit_form_template', '{field_code_image}',       '{field_code_image}',       'The file upload field, with label and wrapper.') ?>
             <?= $tok('listing_default_codes_submit_form_template', '{field_code_image_input}', '{field_code_image_input}', 'Just the file input, no label or wrapper.') ?>
             <?= $tok('listing_default_codes_submit_form_template', '{field_submitter_name}',       '{field_submitter_name}',       'The Name field, with label and wrapper.') ?>
@@ -507,14 +473,35 @@ $_grp = static fn(string $g) => ($activeGroup !== 'all' && $activeGroup !== $g) 
         </div>
       </details>
 
+      <!-- Affiliates Section -->
+      <details class="card chevron" data-token-card data-tpl-group="affiliates" <?= $_grp('affiliates') ?>>
+        <summary class="chevron-head">Affiliates Section Tokens</summary>
+        <div class="chevron-body">
+          <p class="form-hint mb-sm" data-token-search-help>Use {each_affiliate}...{/each_affiliate} to design each row yourself.</p>
+          <table class="et-token-table et-token-table--compact"><tbody>
+            <?= $tok('listing_default_affiliates_section_template', '{each_affiliate}{/each_affiliate}', '{each_affiliate}...{/each_affiliate}', 'Repeats the HTML inside it once for each affiliate.') ?>
+            <?= $tok('listing_default_affiliates_section_template', '{aff_name}',      '{aff_name}',      'The affiliate site name. Use inside {each_affiliate}.') ?>
+            <?= $tok('listing_default_affiliates_section_template', '{aff_url}',       '{aff_url}',       'The affiliate site link. Use inside {each_affiliate}.') ?>
+            <?= $tok('listing_default_affiliates_section_template', '{aff_image_url}', '{aff_image_url}', 'The affiliate image URL. Empty when there is no image. Use inside {each_affiliate}.') ?>
+            <?= $tok('listing_default_affiliates_section_template', '{affiliates_count}', '{affiliates_count}', 'How many active affiliates this listing has.') ?>
+            <?= $tok('listing_default_affiliates_section_template', '{affiliate_apply_url}',                '{affiliate_apply_url}',                   'URL of the affiliate application form for this listing.') ?>
+            <?= $tok('listing_default_affiliates_section_template', '{if_affiliates}{/if_affiliates}',       '{if_affiliates}...{/if_affiliates}',       'Shows only when this listing has at least one affiliate.') ?>
+            <?= $tok('listing_default_affiliates_section_template', '{if_no_affiliates}{/if_no_affiliates}', '{if_no_affiliates}...{/if_no_affiliates}', 'Shows only when this listing has no affiliates.') ?>
+            <?= $tok('listing_default_affiliates_section_template', '{if_aff_image}{/if_aff_image}',       '{if_aff_image}...{/if_aff_image}',       'Inside {each_affiliate}, shows only when the affiliate has an image.') ?>
+            <?= $tok('listing_default_affiliates_section_template', '{if_no_aff_image}{/if_no_aff_image}', '{if_no_aff_image}...{/if_no_aff_image}', 'Inside {each_affiliate}, shows only when the affiliate has no image.') ?>
+          </tbody></table>
+        </div>
+      </details>
+
       <!-- Affiliate Application Form -->
       <details class="card chevron" data-token-card data-tpl-group="affiliate-form" <?= $_grp('affiliate-form') ?>>
         <summary class="chevron-head">Affiliate Application Form Tokens</summary>
         <div class="chevron-body">
           <p class="form-hint mb-sm" data-token-search-help>Arrange and label every field of the affiliate application form. Each field token has a "_input" version that prints just the bare input (no label/wrapper) for custom layouts.</p>
           <table class="et-token-table et-token-table--compact"><tbody>
-            <?= $tok('listing_default_affiliate_apply_form_template', '{listing_title}', '{listing_title}', 'The listing\'s display name.') ?>
-            <?= $tok('listing_default_affiliate_apply_form_template', '{listing_url}',   '{listing_url}',   'The link to the listing.') ?>
+            <?= $tok('listing_default_affiliate_apply_form_template', '{listing_title}',   '{listing_title}',   'The listing\'s display name.') ?>
+            <?= $tok('listing_default_affiliate_apply_form_template', '{listing_subject}', '{listing_subject}', 'What the listing is about (the subject/topic, e.g. "Archaeology").') ?>
+            <?= $tok('listing_default_affiliate_apply_form_template', '{listing_url}',     '{listing_url}',     'The link to the listing.') ?>
             <?= $tok('listing_default_affiliate_apply_form_template', '{field_name}',       '{field_name}',       'The Site Name field, with label and wrapper.') ?>
             <?= $tok('listing_default_affiliate_apply_form_template', '{field_name_input}', '{field_name_input}', 'Just the Site Name input, no label or wrapper.') ?>
             <?= $tok('listing_default_affiliate_apply_form_template', '{field_url}',       '{field_url}',       'The Site URL field, with label and wrapper.') ?>
@@ -572,6 +559,30 @@ $_grp = static fn(string $g) => ($activeGroup !== 'all' && $activeGroup !== $g) 
             <?= $tok('listing_default_contact_sent_template', '{listing_title}', '{listing_title}', 'The listing\'s display name.') ?>
             <?= $tok('listing_default_contact_sent_template', '{listing_url}',   '{listing_url}',   'The link to the listing.') ?>
             <?= $tok('listing_default_contact_sent_template', '{site_name}',     '{site_name}',     'The site/collective name.') ?>
+          </tbody></table>
+        </div>
+      </details>
+
+      <!-- Updates Feed -->
+      <details class="card chevron" data-token-card data-tpl-group="updates" <?= $_grp('updates') ?>>
+        <summary class="chevron-head">Updates Feed Tokens</summary>
+        <div class="chevron-body">
+          <p class="form-hint mb-sm" data-token-search-help>Wrap each post in {each_update}...{/each_update}. Luster repeats it once per update entry. Requires the Updates Feed add-on.</p>
+          <table class="et-token-table et-token-table--compact"><tbody>
+            <?= $tok('listing_default_updates_template', '{listing_title}',   '{listing_title}',   'The listing\'s display name.') ?>
+            <?= $tok('listing_default_updates_template', '{listing_subject}', '{listing_subject}', 'What the listing is about (the subject/topic, e.g. "Archaeology").') ?>
+            <?= $tok('listing_default_updates_template', '{listing_url}',     '{listing_url}',     'The link to the listing.') ?>
+            <?= $tok('listing_default_updates_template', '{if_updates}{/if_updates}',       '{if_updates}...{/if_updates}',       'Shows only when there is at least one update on the current page.') ?>
+            <?= $tok('listing_default_updates_template', '{if_no_updates}{/if_no_updates}', '{if_no_updates}...{/if_no_updates}', 'Shows when the current page has no updates (use for an empty state message).') ?>
+            <?= $tok('listing_default_updates_template', '{each_update}{/each_update}', '{each_update}...{/each_update}', 'Repeats the HTML inside it once for each update post shown.') ?>
+            <?= $tok('listing_default_updates_template', '{update_title}',      '{update_title}',      'The update post title.') ?>
+            <?= $tok('listing_default_updates_template', '{update_date}',       '{update_date}',       'The posted date in human-readable format, e.g. June 1, 2025.') ?>
+            <?= $tok('listing_default_updates_template', '{update_date_raw}',   '{update_date_raw}',   'The posted date in YYYY-MM-DD format.') ?>
+            <?= $tok('listing_default_updates_template', '{update_author}',     '{update_author}',     'The author name. Empty when not set.') ?>
+            <?= $tok('listing_default_updates_template', '{update_categories}', '{update_categories}', 'Category names, comma-separated. Empty when not set.') ?>
+            <?= $tok('listing_default_updates_template', '{update_body_html}',  '{update_body_html}',  'The update body text, with line breaks converted to HTML.') ?>
+            <?= $tok('listing_default_updates_template', '{if_author}{/if_author}',         '{if_author}...{/if_author}',         'Shows only when the update has an author set.') ?>
+            <?= $tok('listing_default_updates_template', '{if_categories}{/if_categories}', '{if_categories}...{/if_categories}', 'Shows only when the update has categories set.') ?>
           </tbody></table>
         </div>
       </details>

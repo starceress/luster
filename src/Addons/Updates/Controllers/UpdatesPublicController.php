@@ -74,7 +74,15 @@ final class UpdatesPublicController
         );
         $updatesTemplateHtml = null;
         if ($resolved['should_render_template']) {
-            $updatesTemplateHtml = self::buildUpdatesHtml($updates, $resolved['value']);
+            $resolvedTpl = str_replace(
+                ['{listing_title}', '{listing_subject}'],
+                [
+                    htmlspecialchars((string) $listing->title,   ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),
+                    htmlspecialchars((string) $listing->subject, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),
+                ],
+                $resolved['value'],
+            );
+            $updatesTemplateHtml = self::buildUpdatesHtml($updates, $resolvedTpl);
         }
 
         $html = $this->app->getView()->renderPublic('addons/updates/feed.php', [

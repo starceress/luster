@@ -24,7 +24,6 @@ final class CollectiveCodesSubmitFormTemplateTest extends TestCase
         $defaults = SiteSettingsRepo::collectiveDefaults();
 
         self::assertNotSame('', $defaults['collective_codes_submit_form_template']);
-        self::assertStringContainsString('{site_name}', $defaults['collective_codes_submit_form_template']);
         self::assertStringContainsString('{field_code_image}', $defaults['collective_codes_submit_form_template']);
         self::assertStringContainsString('{field_submitter_name}', $defaults['collective_codes_submit_form_template']);
         self::assertStringContainsString('{field_submitter_email}', $defaults['collective_codes_submit_form_template']);

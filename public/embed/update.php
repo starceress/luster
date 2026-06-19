@@ -180,6 +180,7 @@ if (!$_lusterSignedIn) {
         ]);
         $_lusterTokens = [
             '{listing_title}'          => View::e((string) $_lusterListing->title),
+            '{listing_subject}'        => View::e((string) $_lusterListing->subject),
             '{listing_url}'            => View::e((string) $_lusterListing->url),
             '{field_signin_email}'     => $_lusterF['email'],
             '{field_signin_password}'  => $_lusterF['password'],
@@ -277,6 +278,7 @@ if (!$_lusterSignedIn) {
         ]);
         $_lusterTokens = [
             '{listing_title}'          => View::e((string) $_lusterListing->title),
+            '{listing_subject}'        => View::e((string) $_lusterListing->subject),
             '{listing_url}'            => View::e((string) $_lusterListing->url),
             '{field_signin_email}'     => '',
             '{field_signin_password}'  => '',

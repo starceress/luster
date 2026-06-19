@@ -110,6 +110,7 @@ $_lusterFormHtml   = null;
 if ($_lusterContactTpl !== '') {
     $_lusterTokens = [
         '{listing_title}'        => htmlspecialchars((string) $_lusterConfig->get('app_name', 'Collective'), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),
+        '{listing_subject}'      => htmlspecialchars((string) $_lusterConfig->get('app_name', 'Collective'), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),
         '{listing_url}'          => htmlspecialchars((string) $_lusterConfig->get('app_url',  ''),           ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),
         '{field_name}'           => $_lusterF['name'],
         '{field_name_input}'     => $_lusterF['name_input'],

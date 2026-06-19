@@ -120,7 +120,9 @@ final class ContactController
             $hpGlobal     = (new SiteSettingsRepo($this->app->getDatabase()))->get('listing_default_contact_sent_template');
             $hpTpl        = ($hpPerListing !== null && $hpPerListing !== '') ? $hpPerListing
                           : (($hpGlobal !== null && $hpGlobal !== '') ? $hpGlobal : '');
-            $session->set('lstr_flash_success_html', SuccessRenderer::render($hpTpl, 'contact-sent'));
+            $session->set('lstr_flash_success_html', SuccessRenderer::render($hpTpl, 'contact-sent', [
+                'sender_name' => trim((string) $request->post('name', '')),
+            ]));
             return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $fallbackUrl);
         }
 
@@ -263,7 +265,9 @@ final class ContactController
         if ((string) $request->post('website_confirm', '') !== '') {
             $session->remove('lstr_embed_return_to');
             $collectiveContactSentTpl = $siteRepo->get('collective_contact_sent_template') ?? '';
-            $session->set('lstr_flash_success_html', SuccessRenderer::render($collectiveContactSentTpl, 'contact-sent'));
+            $session->set('lstr_flash_success_html', SuccessRenderer::render($collectiveContactSentTpl, 'contact-sent', [
+                'sender_name' => trim((string) $request->post('name', '')),
+            ]));
             return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $fallbackUrl);
         }
 
@@ -405,6 +409,7 @@ final class ContactController
         if ($contactTpl !== '') {
             $tokens = [
                 '{listing_title}'        => View::e($listing?->title ?? (string) $this->app->getConfig()->get('app_name', 'Collective')),
+                '{listing_subject}'      => View::e($listing?->subject ?? (string) $this->app->getConfig()->get('app_name', 'Collective')),
                 '{listing_url}'          => View::e($listing?->url   ?? (string) $this->app->getConfig()->get('app_url',  '')),
                 '{field_name}'           => $f['name'],
                 '{field_name_input}'     => $f['name_input'],

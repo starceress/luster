@@ -38,7 +38,7 @@ SQL;
 
     public function testDefaultTemplateContainsListingTitleToken(): void
     {
-        self::assertStringContainsString('{listing_title}', ListingSettingsRepo::defaultAffiliateApplyFormTemplate());
+        self::assertStringContainsString('{listing_subject}', ListingSettingsRepo::defaultAffiliateApplyFormTemplate());
     }
 
     public function testDefaultTemplateContainsRequiredFieldTokens(): void

@@ -136,8 +136,27 @@ $_lusterUpdResolved         = ListingTemplateResolver::resolve(
 $_lusterUpdatesTemplate = $_lusterUpdResolved['should_render_template'] ? $_lusterUpdResolved['value'] : null;
 
 if ($_lusterUpdatesTemplate !== null) {
+    // Apply listing context tokens to the template SHELL before loop rendering
+    // so that user-authored update body text cannot accidentally match {listing_subject}.
+    $tplForLoop = $_lusterFid !== null
+        ? str_replace(
+            ['{listing_title}', '{listing_subject}'],
+            [
+                htmlspecialchars((string) $_lusterListing->title,   ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),
+                htmlspecialchars((string) $_lusterListing->subject, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),
+            ],
+            $_lusterUpdatesTemplate,
+        )
+        : $_lusterUpdatesTemplate;
+
+    // Process page-level conditionals before the per-update loop.
+    $tplForLoop = TemplateEngine::conditionals($tplForLoop, [
+        'updates'    => count($_lusterUpdates) > 0,
+        'no_updates' => count($_lusterUpdates) === 0,
+    ]);
+
     $_lusterUpdatesTemplateHtml = TemplateEngine::loop(
-        $_lusterUpdatesTemplate,
+        $tplForLoop,
         'update',
         $_lusterUpdates,
         static function (string $inner, object $update): string {

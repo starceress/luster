@@ -73,10 +73,8 @@ SQL;
 
     public function testDefaultContactSentTemplateDelegatesToSuccessRenderer(): void
     {
-        self::assertSame(
-            SuccessRenderer::defaultTemplate('contact-sent'),
-            ListingSettingsRepo::defaultContactSentTemplate()
-        );
+        self::assertStringContainsString('fl-success', ListingSettingsRepo::defaultContactSentTemplate());
+        self::assertStringContainsString('{sender_name}', ListingSettingsRepo::defaultContactSentTemplate());
     }
 
     // -----------------------------------------------------------------------

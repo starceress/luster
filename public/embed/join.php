@@ -157,6 +157,7 @@ if ($_lusterJoinFormTpl !== '') {
 
     $_lusterTokens = [
         '{listing_title}'                => View::e($_lusterListing->title),
+        '{listing_subject}'              => View::e($_lusterListing->subject),
         '{listing_url}'                  => View::e($_lusterListing->url),
         '{field_name}'                    => $_lusterF['name'],
         '{field_name_input}'              => $_lusterF['name_input'],

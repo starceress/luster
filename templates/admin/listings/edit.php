@@ -576,15 +576,15 @@ $ltok = static fn(string $ta, string $token, string $label, string $desc): strin
         <option value="codes"<?= $activeGroup === 'codes' ? ' selected' : '' ?>>Codes Display</option>
         <option value="codes-form"<?= $activeGroup === 'codes-form' ? ' selected' : '' ?>>Code Donation Form</option>
       </optgroup>
-      <optgroup label="Affiliates &amp; Form">
-        <option value="affiliates"<?= $activeGroup === 'affiliates' ? ' selected' : '' ?>>Affiliates Section</option>
-        <option value="affiliate-form"<?= $activeGroup === 'affiliate-form' ? ' selected' : '' ?>>Affiliate Application Form</option>
+      <optgroup label="Affiliates">
+        <option value="affiliates"<?= $activeGroup === 'affiliates' ? ' selected' : '' ?>>Affiliates Display</option>
+        <option value="affiliate-form"<?= $activeGroup === 'affiliate-form' ? ' selected' : '' ?>>Affiliate Application</option>
+      </optgroup>
+      <optgroup label="Contact Form">
+        <option value="contact-form"<?= $activeGroup === 'contact-form' ? ' selected' : '' ?>>Contact Form</option>
+        <option value="contact-sent"<?= $activeGroup === 'contact-sent' ? ' selected' : '' ?>>Contact Confirmation</option>
       </optgroup>
       <option value="updates"<?= $activeGroup === 'updates' ? ' selected' : '' ?>>Updates Feed</option>
-      <optgroup label="Contact">
-        <option value="contact-form"<?= $activeGroup === 'contact-form' ? ' selected' : '' ?>>Contact Form</option>
-        <option value="contact-sent"<?= $activeGroup === 'contact-sent' ? ' selected' : '' ?>>Contact Sent Message</option>
-      </optgroup>
     </select>
   </div>
 </div>
@@ -854,8 +854,9 @@ $ltok = static fn(string $ta, string $token, string $label, string $desc): strin
             <?= $ltok('stats_template', '{stat_newmembers}',        '{stat_newmembers}',        'The names of the 5 newest approved members, formatted with Oxford comma (e.g. &ldquo;Alice, Bob, and Carol&rdquo;).') ?>
             <?= $ltok('stats_template', '{if_stat_pending}{/if_stat_pending}', '{if_stat_pending}...{/if_stat_pending}', 'Shows only when at least one member is awaiting approval.') ?>
             <?= $ltok('stats_template', '{stat_growth}',            '{stat_growth}',            'Average new members per day since the listing opened.') ?>
-            <?= $ltok('stats_template', '{listing_title}',     '{listing_title}',     'The listing\'s display name.') ?>
-            <?= $ltok('stats_template', '{listing_url}',       '{listing_url}',       'The link to the listing.') ?>
+            <?= $ltok('stats_template', '{listing_title}',   '{listing_title}',   'The listing\'s display name.') ?>
+            <?= $ltok('stats_template', '{listing_subject}', '{listing_subject}', 'What the listing is about (the subject/topic, e.g. "Archaeology").') ?>
+            <?= $ltok('stats_template', '{listing_url}',     '{listing_url}',     'The link to the listing.') ?>
             <?= $ltok('stats_template', '{approved_by}',       '{approved_by}',       'Network acronym: &ldquo;TFL&rdquo;, &ldquo;TAFL&rdquo;, or empty. Plain text, no link.') ?>
             <?= $ltok('stats_template', '{network}',           '{network}',           'Same as {approved_by} &mdash; network acronym as raw text. Empty when not set.') ?>
             <?= $ltok('stats_template', '{network_name}',      '{network_name}',      'Full network name: &ldquo;The Fanlistings Network&rdquo;, &ldquo;The Anime Fanlistings Network&rdquo;, or empty.') ?>
@@ -875,6 +876,11 @@ $ltok = static fn(string $ta, string $token, string $label, string $desc): strin
         <div class="chevron-body">
           <p class="form-hint mb-sm" data-token-search-help>Wrap each post in {each_update}...{/each_update}. Luster repeats it once per update entry.</p>
           <table class="et-token-table et-token-table--compact"><tbody>
+            <?= $ltok('updates_template', '{listing_title}',   '{listing_title}',   'The listing\'s display name.') ?>
+            <?= $ltok('updates_template', '{listing_subject}', '{listing_subject}', 'What the listing is about (the subject/topic, e.g. "Archaeology").') ?>
+            <?= $ltok('updates_template', '{listing_url}',     '{listing_url}',     'The link to the listing.') ?>
+            <?= $ltok('updates_template', '{if_updates}{/if_updates}',       '{if_updates}...{/if_updates}',       'Shows only when there is at least one update on the current page.') ?>
+            <?= $ltok('updates_template', '{if_no_updates}{/if_no_updates}', '{if_no_updates}...{/if_no_updates}', 'Shows when the current page has no updates (use for an empty state message).') ?>
             <?= $ltok('updates_template', '{each_update}{/each_update}', '{each_update}...{/each_update}', 'Repeats the HTML inside it once for each update post shown.') ?>
             <?= $ltok('updates_template', '{update_title}',      '{update_title}',      'The update post title.') ?>
             <?= $ltok('updates_template', '{update_date}',       '{update_date}',       'The posted date in human-readable format, e.g. June 1, 2025.') ?>
@@ -895,8 +901,9 @@ $ltok = static fn(string $ta, string $token, string $label, string $desc): strin
         <div class="chevron-body">
           <p class="form-hint mb-sm" data-token-search-help>Arrange and label every field of the join form, and write any introductory text directly into the template. Each field token has a "_input" version that prints just the bare input (no label/wrapper) for custom layouts.</p>
           <table class="et-token-table et-token-table--compact"><tbody>
-            <?= $ltok('join_form_template', '{listing_title}', '{listing_title}', 'The listing\'s display name.') ?>
-            <?= $ltok('join_form_template', '{listing_url}',   '{listing_url}',   'The link to the listing.') ?>
+            <?= $ltok('join_form_template', '{listing_title}',   '{listing_title}',   'The listing\'s display name.') ?>
+            <?= $ltok('join_form_template', '{listing_subject}', '{listing_subject}', 'What the listing is about (the subject/topic, e.g. "Archaeology").') ?>
+            <?= $ltok('join_form_template', '{listing_url}',     '{listing_url}',     'The link to the listing.') ?>
             <?= $ltok('join_form_template', '{field_name}',       '{field_name}',       'The Name field, with label and wrapper.') ?>
             <?= $ltok('join_form_template', '{field_name_input}', '{field_name_input}', 'Just the Name input, no label or wrapper.') ?>
             <?= $ltok('join_form_template', '{field_email}',       '{field_email}',       'The Email field, with label and wrapper.') ?>
@@ -947,8 +954,9 @@ $ltok = static fn(string $ta, string $token, string $label, string $desc): strin
             <?= $ltok('update_form_template', '{sign_out_url}',     '{sign_out_url}',     'Update step: URL for the "Sign out" link.') ?>
             <?= $ltok('update_form_template', '{submit_button}',    '{submit_button}',    'The submit button.') ?>
             <?= $ltok('update_form_template', '{clear_button}',     '{clear_button}',     'The "Clear" reset button.') ?>
-            <?= $ltok('update_form_template', '{listing_title}',    '{listing_title}',    'The listing\'s display name.') ?>
-            <?= $ltok('update_form_template', '{listing_url}',      '{listing_url}',      'The link to the listing.') ?>
+            <?= $ltok('update_form_template', '{listing_title}',   '{listing_title}',   'The listing\'s display name.') ?>
+            <?= $ltok('update_form_template', '{listing_subject}', '{listing_subject}', 'What the listing is about (the subject/topic, e.g. "Archaeology").') ?>
+            <?= $ltok('update_form_template', '{listing_url}',     '{listing_url}',     'The link to the listing.') ?>
           </tbody></table>
         </div>
       </details>
@@ -972,8 +980,9 @@ $ltok = static fn(string $ta, string $token, string $label, string $desc): strin
             <?= $ltok('reset_form_template', '{reset_request_url}',         '{reset_request_url}',         'URL of the email-entry form. Use inside {if_token_invalid} for a "request a new one" link.') ?>
             <?= $ltok('reset_form_template', '{submit_button}',             '{submit_button}',             'The submit button (label changes per step).') ?>
             <?= $ltok('reset_form_template', '{clear_button}',              '{clear_button}',              'The "Clear" reset button.') ?>
-            <?= $ltok('reset_form_template', '{listing_title}',             '{listing_title}',             'The listing\'s display name.') ?>
-            <?= $ltok('reset_form_template', '{listing_url}',               '{listing_url}',               'The link to the listing.') ?>
+            <?= $ltok('reset_form_template', '{listing_title}',   '{listing_title}',   'The listing\'s display name.') ?>
+            <?= $ltok('reset_form_template', '{listing_subject}', '{listing_subject}', 'What the listing is about (the subject/topic, e.g. "Archaeology").') ?>
+            <?= $ltok('reset_form_template', '{listing_url}',     '{listing_url}',     'The link to the listing.') ?>
           </tbody></table>
         </div>
       </details>
@@ -1018,8 +1027,9 @@ $ltok = static fn(string $ta, string $token, string $label, string $desc): strin
         <div class="chevron-body">
           <p class="form-hint mb-sm" data-token-search-help>Arrange and label every field of the code donation form. Write any introductory text directly into the template. Each field token has a "_input" version that prints just the bare input (no label/wrapper) for custom layouts.</p>
           <table class="et-token-table et-token-table--compact"><tbody>
-            <?= $ltok('codes_submit_form_template', '{listing_title}', '{listing_title}', 'The listing\'s display name.') ?>
-            <?= $ltok('codes_submit_form_template', '{listing_url}',   '{listing_url}',   'The link to the listing.') ?>
+            <?= $ltok('codes_submit_form_template', '{listing_title}',   '{listing_title}',   'The listing\'s display name.') ?>
+            <?= $ltok('codes_submit_form_template', '{listing_subject}', '{listing_subject}', 'What the listing is about (the subject/topic, e.g. "Archaeology").') ?>
+            <?= $ltok('codes_submit_form_template', '{listing_url}',     '{listing_url}',     'The link to the listing.') ?>
             <?= $ltok('codes_submit_form_template', '{field_code_image}',       '{field_code_image}',       'The file upload field, with label and wrapper.') ?>
             <?= $ltok('codes_submit_form_template', '{field_code_image_input}', '{field_code_image_input}', 'Just the file input, no label or wrapper.') ?>
             <?= $ltok('codes_submit_form_template', '{field_submitter_name}',       '{field_submitter_name}',       'The Name field, with label and wrapper.') ?>
@@ -1045,8 +1055,9 @@ $ltok = static fn(string $ta, string $token, string $label, string $desc): strin
         <div class="chevron-body">
           <p class="form-hint mb-sm" data-token-search-help>Arrange and label every field of the affiliate application form. Write any introductory text directly into the template. Each field token has a "_input" version that prints just the bare input (no label/wrapper) for custom layouts.</p>
           <table class="et-token-table et-token-table--compact"><tbody>
-            <?= $ltok('affiliate_apply_form_template', '{listing_title}', '{listing_title}', 'The listing\'s display name.') ?>
-            <?= $ltok('affiliate_apply_form_template', '{listing_url}',   '{listing_url}',   'The link to the listing.') ?>
+            <?= $ltok('affiliate_apply_form_template', '{listing_title}',   '{listing_title}',   'The listing\'s display name.') ?>
+            <?= $ltok('affiliate_apply_form_template', '{listing_subject}', '{listing_subject}', 'What the listing is about (the subject/topic, e.g. "Archaeology").') ?>
+            <?= $ltok('affiliate_apply_form_template', '{listing_url}',     '{listing_url}',     'The link to the listing.') ?>
             <?= $ltok('affiliate_apply_form_template', '{field_name}',       '{field_name}',       'The Site Name field, with label and wrapper.') ?>
             <?= $ltok('affiliate_apply_form_template', '{field_name_input}', '{field_name_input}', 'Just the Site Name input, no label or wrapper.') ?>
             <?= $ltok('affiliate_apply_form_template', '{field_url}',       '{field_url}',       'The Site URL field, with label and wrapper.') ?>

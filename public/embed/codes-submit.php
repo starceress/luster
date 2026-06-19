@@ -154,6 +154,7 @@ if (!$_lusterIsCollective) {
     if ($_lusterCsFormTpl !== '') {
         $_lusterCsTokens = [
             '{listing_title}'               => View::e($_lusterListingName),
+            '{listing_subject}'             => View::e((string) ($_lusterListing->subject ?? $_lusterListingName)),
             '{listing_url}'                 => View::e($_lusterListingUrl),
             '{field_code_image}'            => $_lusterF['code_image'],
             '{field_code_image_input}'      => $_lusterF['code_image_input'],

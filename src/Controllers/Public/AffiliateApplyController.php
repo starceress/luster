@@ -369,6 +369,7 @@ final class AffiliateApplyController
         if ($collectiveAffTpl !== '') {
             $tokens = [
                 '{listing_title}'         => View::e($siteName),
+                '{listing_subject}'       => View::e($siteName),
                 '{listing_url}'           => View::e($siteUrl),
                 '{field_name}'            => $f['name'],
                 '{field_name_input}'      => $f['name_input'],
@@ -464,6 +465,7 @@ final class AffiliateApplyController
         if ($affApplyTpl !== '') {
             $tokens = [
                 '{listing_title}'         => View::e((string) $listing->title),
+                '{listing_subject}'       => View::e((string) $listing->subject),
                 '{listing_url}'           => View::e((string) $listing->url),
                 '{field_name}'            => $f['name'],
                 '{field_name_input}'      => $f['name_input'],

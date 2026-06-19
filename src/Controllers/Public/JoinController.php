@@ -447,6 +447,7 @@ final class JoinController
 
             $tokens = [
                 '{listing_title}'                => View::e($listing->title),
+                '{listing_subject}'              => View::e($listing->subject),
                 '{listing_url}'                  => View::e($listing->url),
                 '{field_name}'                    => $f['name'],
                 '{field_name_input}'              => $f['name_input'],

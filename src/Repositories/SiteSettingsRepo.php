@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Luster\Repositories;
 
 use Luster\Core\Database;
-use Luster\Support\SuccessRenderer;
 
 /**
  * Key/value store for site-wide (non-per-listing) settings.
@@ -80,18 +79,22 @@ class SiteSettingsRepo
             // ListingRowRenderer::renderTemplate().
             'owned_template' => '<div class="fl-listing-list">' . "\n"
                              . '{each_listing}' . "\n"
+                             . "\n"
                              . '<div class="fl-listing-item">' . "\n"
                              . '{if_listing_image}<div class="fl-listing-image-wrap"><img class="fl-listing-image" src="{listing_image_url}" alt="{listing_subject}"></div>{/if_listing_image}' . "\n"
+                             . "\n"
                              . '<div class="fl-listing-body">' . "\n"
-                             . '<a class="fl-listing-title" href="{listing_url}" target="_blank" rel="noopener noreferrer">{listing_subject}</a>' . "\n"
+                             . '<a href="{listing_url}" target="_blank" title="{listing_subject}">{listing_subject}</a>' . "\n"
+                             . "\n"
                              . '<span class="fl-listing-subject">{listing_title}</span>' . "\n"
                              . '<div class="fl-listing-meta">' . "\n"
-                             . '{if_approved_by}<div class="fl-listing-network">{if_tfl}The Fanlistings Network{/if_tfl}{if_tafl}The Anime Fanlistings Network{/if_tafl}</div>{/if_approved_by}' . "\n"
-                             . '<div class="fl-listing-category">{listing_category}</div>' . "\n"
-                             . '<div class="fl-listing-member-count">{member_count} member(s){if_pending} · {member_pending_count} pending{/if_pending}</div>' . "\n"
-                             . '{if_countries}<div class="fl-listing-country-count">{country_count} countries</div>{/if_countries}' . "\n"
-                             . '<div class="fl-listing-date-opened">Opened: {date_opened}</div>' . "\n"
-                             . '{if_date_updated}<div class="fl-listing-date-updated">Updated: {date_updated}</div>{/if_date_updated}' . "\n"
+                             . '{if_approved_by}<b>Approved by:</b> {if_tfl}The Fanlistings Network{/if_tfl}{if_tafl}The Anime Fanlistings Network{/if_tafl}<br>{/if_approved_by}' . "\n"
+                             . '<b>Category:</b> {listing_category}<br>' . "\n"
+                             . '<b>Members:</b> {member_count} member(s) & {if_pending}{member_pending_count} pending{/if_pending}<br>' . "\n"
+                             . '<b>Countries:</b> {if_countries}{country_count} countries{/if_countries}<br>' . "\n"
+                             . '<b>Opened:</b> {date_opened}<br>' . "\n"
+                             . '{if_date_updated}<b>Updated:</b> {date_updated}{/if_date_updated}' . "\n"
+                             . "\n"
                              . '</div>' . "\n"
                              . '</div>' . "\n"
                              . '</div>' . "\n"
@@ -99,52 +102,67 @@ class SiteSettingsRepo
                              . '</div>',
             'joined_template' => '<div class="fl-joined-list">' . "\n"
                                . '{each_joined}' . "\n"
-                               . '{if_listing_image}<a href="{listing_url}" title="{listing_subject} - {listing_category}&#010;Joined on {date_joined}" target="_blank" rel="noopener noreferrer"><img src="{listing_image_url}" alt="{listing_category} {date_joined}"></a>{/if_listing_image}'
-                               . '<a href="{listing_url}" target="_blank" rel="noopener noreferrer">{listing_subject}</a>' . "\n"
+                               . "\n"
+                               . '{if_listing_image}' . "\n"
+                               . '<a href="{listing_url}" target="_blank"><img src="{listing_image_url}" title="{listing_subject} - {listing_category}&#010;Joined on {date_joined}"></a>' . "\n"
+                               . '{/if_listing_image}' . "\n"
+                               . '{if_no_listing_image}' . "\n"
+                               . '<a href="{listing_url}" target="_blank">{listing_subject}</a>' . "\n"
+                               . '{/if_no_listing_image}' . "\n"
+                               . "\n"
                                . '{/each_joined}' . "\n"
                                . '</div>',
             'collective_stats_template' => '<div class="fl-cstats">' . "\n"
                                          . '<div class="fl-cstats-grid">' . "\n"
-                                         . '<span class="fl-cstats-label">Owned listings:</span><span class="fl-cstats-value">{owned_active} open, {owned_upcoming} upcoming</span>' . "\n"
-                                         . '<span class="fl-cstats-label">Joined listings:</span><span class="fl-cstats-value">{joined_active}</span>' . "\n"
-                                         . '<span class="fl-cstats-label">Total members:</span><span class="fl-cstats-value">{members_approved} approved</span>' . "\n"
+                                         . '<b>Owned Listings:</b> {owned_active} open, {owned_upcoming} upcoming<br>' . "\n"
+                                         . '<b>Joined listings:</b> {joined_active}<br>' . "\n"
+                                         . '<b>Total members:</b> {members_approved} approved<br>' . "\n"
                                          . '</div>' . "\n"
-                                         . '<div class="fl-cstats-random">Featured: <a href="{owned_random_url}">{owned_random_name}</a></div>' . "\n"
                                          . '</div>',
             'collective_affiliates_section_template' => '<div class="fl-affiliates-section">' . "\n"
                                                     . '{if_affiliates}' . "\n"
-                                                    . '<ul class="fl-affiliate-list">' . "\n"
+                                                    . '<p><a href="{affiliate_apply_url}">Apply to become an affiliate?</a></p>' . "\n"
+                                                    . "\n"
                                                     . '{each_affiliate}' . "\n"
-                                                    . '<li class="fl-affiliate-item">{if_aff_image}<a href="{aff_url}" target="_blank" rel="noopener noreferrer"><img src="{aff_image_url}" alt="{aff_name}"></a>{/if_aff_image}{if_no_aff_image}<a href="{aff_url}">{aff_name}</a>{/if_no_aff_image}</li>' . "\n"
+                                                    . '{if_aff_image}<a href="{aff_url}" title="{aff_name}" target="_blank"><img src="{aff_image_url}" alt="{aff_name}"></a>{/if_aff_image}' . "\n"
+                                                    . '{if_no_aff_image}<a href="{aff_url}" title="{aff_name}" target="_blank">{aff_name}</a>{/if_no_aff_image}' . "\n"
                                                     . '{/each_affiliate}' . "\n"
-                                                    . '</ul>' . "\n"
+                                                    . "\n"
                                                     . '{/if_affiliates}' . "\n"
+                                                    . "\n"
                                                     . '{if_no_affiliates}' . "\n"
-                                                    . '<p class="fl-affiliates-empty">No affiliates yet.</p>' . "\n"
+                                                    . 'No affiliates yet. <a href="{affiliate_apply_url}">Apply to become an affiliate?</a>' . "\n"
                                                     . '{/if_no_affiliates}' . "\n"
                                                     . '</div>',
             // Single-listing embeds — each has its own separate template so site
             // owners can style them independently from the full owned-listings list.
             'random_listing_template' => '<div class="fl-random-listing">' . "\n"
                                       . '{each_listing}' . "\n"
+                                      . "\n"
                                       . '<div class="fl-random-listing-item">' . "\n"
                                       . '{if_listing_image}<div class="fl-random-listing-image-wrap"><img class="fl-random-listing-image" src="{listing_image_url}" alt="{listing_subject}"></div>{/if_listing_image}' . "\n"
+                                      . "\n"
                                       . '<div class="fl-random-listing-body">' . "\n"
-                                      . '<a class="fl-random-listing-title" href="{listing_url}" target="_blank" rel="noopener noreferrer">{listing_subject}</a>' . "\n"
+                                      . '<a href="{listing_url}" target="_blank" title="{listing_subject}">{listing_subject}</a>' . "\n"
+                                      . "\n"
                                       . '<span class="fl-random-listing-subject">{listing_title}</span>' . "\n"
                                       . '</div>' . "\n"
+                                      . "\n"
                                       . '</div>' . "\n"
                                       . '{/each_listing}' . "\n"
                                       . '</div>',
             'latest_listing_template' => '<div class="fl-latest-listing">' . "\n"
                                       . '{each_listing}' . "\n"
+                                      . "\n"
                                       . '<div class="fl-latest-listing-item">' . "\n"
                                       . '{if_listing_image}<div class="fl-latest-listing-image-wrap"><img class="fl-latest-listing-image" src="{listing_image_url}" alt="{listing_subject}"></div>{/if_listing_image}' . "\n"
+                                      . "\n"
                                       . '<div class="fl-latest-listing-body">' . "\n"
-                                      . '<a class="fl-latest-listing-title" href="{listing_url}" target="_blank" rel="noopener noreferrer">{listing_subject}</a>' . "\n"
+                                      . '<a href="{listing_url}" target="_blank" title="{listing_subject}">{listing_subject}</a>' . "\n"
+                                      . "\n"
                                       . '<span class="fl-latest-listing-subject">{listing_title}</span>' . "\n"
-                                      . '<span class="fl-latest-listing-date">Opened: {date_opened}</span>' . "\n"
                                       . '</div>' . "\n"
+                                      . "\n"
                                       . '</div>' . "\n"
                                       . '{/each_listing}' . "\n"
                                       . '</div>',
@@ -153,24 +171,31 @@ class SiteSettingsRepo
             // JoinedListingRowRenderer.
             'random_joined_listing_template' => '<div class="fl-random-joined-listing">' . "\n"
                                               . '{each_joined}' . "\n"
+                                              . "\n"
                                               . '<div class="fl-random-joined-listing-item">' . "\n"
                                               . '{if_listing_image}<div class="fl-random-joined-listing-image-wrap"><img class="fl-random-joined-listing-image" src="{listing_image_url}" alt="{listing_subject}"></div>{/if_listing_image}' . "\n"
+                                              . "\n"
                                               . '<div class="fl-random-joined-listing-body">' . "\n"
-                                              . '<a class="fl-random-joined-listing-title" href="{listing_url}" target="_blank" rel="noopener noreferrer">{listing_subject}</a>' . "\n"
+                                              . '<a href="{listing_url}" target="_blank" title="{listing_subject} - {listing_category}&#010;Joined on {date_joined}">{listing_subject}</a>' . "\n"
+                                              . "\n"
                                               . '<span class="fl-random-joined-listing-category">{listing_category}</span>' . "\n"
                                               . '</div>' . "\n"
+                                              . "\n"
                                               . '</div>' . "\n"
                                               . '{/each_joined}' . "\n"
                                               . '</div>',
             'latest_joined_listing_template' => '<div class="fl-latest-joined-listing">' . "\n"
                                               . '{each_joined}' . "\n"
+                                              . "\n"
                                               . '<div class="fl-latest-joined-listing-item">' . "\n"
                                               . '{if_listing_image}<div class="fl-latest-joined-listing-image-wrap"><img class="fl-latest-joined-listing-image" src="{listing_image_url}" alt="{listing_subject}"></div>{/if_listing_image}' . "\n"
+                                              . "\n"
                                               . '<div class="fl-latest-joined-listing-body">' . "\n"
-                                              . '<a class="fl-latest-joined-listing-title" href="{listing_url}" target="_blank" rel="noopener noreferrer">{listing_subject}</a>' . "\n"
+                                              . '<a href="{listing_url}" target="_blank" title="{listing_subject} - {listing_category}&#010;Joined on {date_joined}">{listing_subject}</a>' . "\n"
+                                              . "\n"
                                               . '<span class="fl-latest-joined-listing-category">{listing_category}</span>' . "\n"
-                                              . '<span class="fl-latest-joined-listing-date">Joined: {date_joined}</span>' . "\n"
                                               . '</div>' . "\n"
+                                              . "\n"
                                               . '</div>' . "\n"
                                               . '{/each_joined}' . "\n"
                                               . '</div>',
@@ -180,7 +205,7 @@ class SiteSettingsRepo
             'collective_updates_template'                => self::defaultCollectiveUpdatesTemplate(),
             'collective_codes_template'                  => self::defaultCollectiveCodesTemplate(),
             'collective_codes_submit_form_template'      => self::defaultCollectiveCodesSubmitFormTemplate(),
-            'collective_contact_sent_template'           => SuccessRenderer::defaultTemplate('contact-sent'),
+            'collective_contact_sent_template'           => '<div class="fl-success"><p>Your message has been sent. Thank you for getting in touch, {sender_name}!</p></div>',
             'collective_adoption_form_template'          => self::defaultCollectiveAdoptionFormTemplate(),
             'collective_kim_list_overview_template'      => self::defaultCollectiveKimListOverviewTemplate(),
             'collective_kim_list_subject_template'       => self::defaultCollectiveKimListSubjectTemplate(),
@@ -192,12 +217,15 @@ class SiteSettingsRepo
 
     public static function defaultCollectiveAffiliateApplyFormTemplate(): string
     {
-        return '{field_name}' . "\n"
+        return '<div class="fl-form-fields">' . "\n"
+             . '{field_name}' . "\n"
              . '{field_email}' . "\n"
              . '{field_url}' . "\n"
              . '{field_image}' . "\n"
              . '{field_message}' . "\n"
              . '{captcha_block}' . "\n"
+             . '</div>' . "\n"
+             . "\n"
              . '<div class="fl-form-actions">' . "\n"
              . '{submit_button}' . "\n"
              . '{clear_button}' . "\n"
@@ -206,16 +234,17 @@ class SiteSettingsRepo
 
     public static function defaultKimSignupFormTemplate(): string
     {
-        return '<h2 class="fl-kim-heading">KIM List &mdash; Sign Up</h2>' . "\n"
-             . '<p class="fl-kim-intro">KIM (Keep In Mind) is an adoption interest registry. If a fanlisting owner might someday give up their listing, you can sign up here to express interest in adopting it.</p>' . "\n"
+        return '<div class="fl-form-fields">' . "\n"
              . '{field_name}' . "\n"
-             . '{field_email}' . "\n"
              . '{field_url}' . "\n"
+             . '{field_email}' . "\n"
              . '{field_fanlisting_id}' . "\n"
              . '{field_password}' . "\n"
              . '{field_password_confirm}' . "\n"
              . '{field_send_copy}' . "\n"
              . '{captcha_block}' . "\n"
+             . '</div>' . "\n"
+             . "\n"
              . '<div class="fl-form-actions">' . "\n"
              . '{submit_button}' . "\n"
              . '{clear_button}' . "\n"
@@ -226,18 +255,17 @@ class SiteSettingsRepo
     {
         return <<<'HTML'
 <div class="fl-embed fl-embed--wishlist">
-<h1>Wishlist</h1>
 
 {if_has_top}
 <h2>Top Wanted</h2>
 {each_wishlist_item_top}
 <div class="fl-wishlist-item">
-{if_item_url}<a class="fl-wishlist-subject" href="{item_url}" rel="noopener noreferrer" title="{item_subject}">{if_item_image}<img src="{item_image_url}" alt="{item_subject}">{/if_item_image}</a>{/if_item_url}
+{if_item_url}<a class="fl-wishlist-subject" href="{item_url}" title="{item_subject}">{if_item_image}<img src="{item_image_url}" alt="{item_subject}">{/if_item_image}</a>{/if_item_url}
 
 <div class="fl-wishlist-info">
-{if_item_url}<a class="fl-wishlist-subject" href="{item_url}" rel="noopener noreferrer" title="{item_subject}">{item_subject}</a>{/if_item_url}<br>
+{if_item_url}<a class="fl-wishlist-subject" href="{item_url}" title="{item_subject}">{item_subject}</a>{/if_item_url}{if_no_item_url}{item_subject}{/if_no_item_url}<br>
 {if_item_category}<b>Category:</b> {item_category}{/if_item_category}<br>
-{if_item_description}<p class="fl-wishlist-description">{item_description}</p>{/if_item_description}
+{if_item_description}<p>{item_description}</p>{/if_item_description}
 </div>
 </div>
 {/each_wishlist_item_top}
@@ -247,12 +275,12 @@ class SiteSettingsRepo
 <h2>Wanted</h2>
 {each_wishlist_item_wanted}
 <div class="fl-wishlist-item">
-{if_item_url}<a class="fl-wishlist-subject" href="{item_url}" rel="noopener noreferrer" title="{item_subject}">{if_item_image}<img src="{item_image_url}" alt="{item_subject}">{/if_item_image}</a>{/if_item_url}
+{if_item_url}<a class="fl-wishlist-subject" href="{item_url}" title="{item_subject}">{if_item_image}<img src="{item_image_url}" alt="{item_subject}">{/if_item_image}</a>{/if_item_url}
 
 <div class="fl-wishlist-info">
-{if_item_url}<a class="fl-wishlist-subject" href="{item_url}" rel="noopener noreferrer" title="{item_subject}">{item_subject}</a>{/if_item_url}<br>
+{if_item_url}<a class="fl-wishlist-subject" href="{item_url}" title="{item_subject}">{item_subject}</a>{/if_item_url}{if_no_item_url}{item_subject}{/if_no_item_url}<br>
 {if_item_category}<b>Category:</b> {item_category}{/if_item_category}<br>
-{if_item_description}<p class="fl-wishlist-description">{item_description}</p>{/if_item_description}
+{if_item_description}<p>{item_description}</p>{/if_item_description}
 </div>
 </div>
 {/each_wishlist_item_wanted}
@@ -262,12 +290,12 @@ class SiteSettingsRepo
 <h2>Granted</h2>
 {each_wishlist_item_granted}
 <div class="fl-wishlist-item">
-{if_item_url}<a class="fl-wishlist-subject" href="{item_url}" rel="noopener noreferrer" title="{item_subject}">{if_item_image}<img src="{item_image_url}" alt="{item_subject}">{/if_item_image}</a>{/if_item_url}
+{if_item_url}<a class="fl-wishlist-subject" href="{item_url}" title="{item_subject}">{if_item_image}<img src="{item_image_url}" alt="{item_subject}">{/if_item_image}</a>{/if_item_url}
 
 <div class="fl-wishlist-info">
-{if_item_url}<a class="fl-wishlist-subject" href="{item_url}" rel="noopener noreferrer" title="{item_subject}">{item_subject}</a>{/if_item_url}<br>
+{if_item_url}<a class="fl-wishlist-subject" href="{item_url}" title="{item_subject}">{item_subject}</a>{/if_item_url}{if_no_item_url}{item_subject}{/if_no_item_url}<br>
 {if_item_category}<b>Category:</b> {item_category}{/if_item_category}<br>
-{if_item_description}<p class="fl-wishlist-description">{item_description}</p>{/if_item_description}
+{if_item_description}<p>{item_description}</p>{/if_item_description}
 </div>
 </div>
 {/each_wishlist_item_granted}
@@ -278,12 +306,54 @@ HTML;
 
     public static function defaultCollectiveUpdatesTemplate(): string
     {
-        return ListingSettingsRepo::defaultUpdatesTemplate();
+        return '<div class="fl-updates-list">' . "\n"
+            . '{each_update}' . "\n"
+            . "\n"
+            . '<div class="fl-update-item">' . "\n"
+            . '<h3 class="fl-update-title">{update_title}</h3>' . "\n"
+            . "\n"
+            . '<div class="fl-update-meta">' . "\n"
+            . '<span class="fl-update-date"><b>Date Posted:</b> {update_date}</span>'
+            . '{if_author} by <span class="fl-update-author">{update_author}</span>{/if_author}<br>' . "\n"
+            . '{if_categories}<b>Categories:</b> <span class="fl-update-categories">{update_categories}</span>{/if_categories}</div>' . "\n"
+            . "\n"
+            . '<div class="fl-update-body">{update_body_html}</div>' . "\n"
+            . '</div>' . "\n"
+            . "\n"
+            . '{/each_update}' . "\n"
+            . '</div>';
     }
 
     public static function defaultCollectiveCodesTemplate(): string
     {
-        return ListingSettingsRepo::defaultCodesTemplate();
+        return '<div class="fl-embed fl-embed--codes">' . "\n"
+            . '{if_no_codes}<p>No codes available yet.</p>{/if_no_codes}' . "\n"
+            . '{if_codes}' . "\n"
+            . "\n"
+            . '<div class="fl-codes">' . "\n"
+            . '{each_size_group}' . "\n"
+            . "\n"
+            . '<div class="fl-code-group">' . "\n"
+            . '<h2>{group_size}</h2>' . "\n"
+            . "\n"
+            . '<ul class="fl-code-list">' . "\n"
+            . '{each_code}' . "\n"
+            . "\n"
+            . '<li class="fl-code-item">' . "\n"
+            . '<img src="{code_url}" alt="{code_alt}" class="fl-code-image">' . "\n"
+            . '{if_donor}<span class="fl-code-caption">by {if_donor_url}<a href="{code_donor_url}" target="_blank">{code_donor_name}</a>{/if_donor_url}{if_no_donor_url}{code_donor_name}{/if_no_donor_url}</span>{/if_donor}' . "\n"
+            . '{if_code_name}<span class="fl-code-caption">{code_name}</span>{/if_code_name}' . "\n"
+            . '</li>' . "\n"
+            . "\n"
+            . '{/each_code}' . "\n"
+            . '</ul>' . "\n"
+            . '</div>' . "\n"
+            . "\n"
+            . '{/each_size_group}' . "\n"
+            . '</div>' . "\n"
+            . "\n"
+            . '{/if_codes}' . "\n"
+            . '</div>';
     }
 
     /**
@@ -294,8 +364,7 @@ HTML;
      */
     public static function defaultCollectiveCodesSubmitFormTemplate(): string
     {
-        return '<h1>Submit a Code for {site_name}</h1>' . "\n"
-            . '<p>All submissions are reviewed before being published. Accepted: JPEG, PNG, GIF, WebP. Max 200 KB.</p>' . "\n"
+        return '<p>All submissions are reviewed before being published.</p>' . "\n"
             . '<div class="fl-form-fields">' . "\n"
             . '{field_submitter_name}' . "\n"
             . '{field_submitter_email}' . "\n"
@@ -303,6 +372,7 @@ HTML;
             . '{field_code_image}' . "\n"
             . '{captcha_block}' . "\n"
             . '</div>' . "\n"
+            . "\n"
             . '<div class="fl-form-actions">' . "\n"
             . '{submit_button}' . "\n"
             . '{clear_button}' . "\n"
@@ -314,15 +384,15 @@ HTML;
      */
     public static function defaultCollectiveAdoptionFormTemplate(): string
     {
-        return '<h1>Adopt a Listing</h1>' . "\n"
-            . '<div class="fl-form-fields">' . "\n"
-            . '{field_listing_id}' . "\n"
+        return '<div class="fl-form-fields">' . "\n"
             . '{field_name}' . "\n"
             . '{field_email}' . "\n"
             . '{field_url}' . "\n"
+            . '{field_listing_id}' . "\n"
             . '{field_message}' . "\n"
             . '{captcha_block}' . "\n"
             . '</div>' . "\n"
+            . "\n"
             . '<div class="fl-form-actions">' . "\n"
             . '{submit_button}' . "\n"
             . '{clear_button}' . "\n"
@@ -334,16 +404,19 @@ HTML;
      */
     public static function defaultCollectiveKimListOverviewTemplate(): string
     {
-        return '{if_has_listings}' . "\n"
-            . '<ul class="fl-kim-overview-list">' . "\n"
+        return '<div class="fl-embed fl-embed--kim-list">' . "\n"
+            . '{if_no_listings}<p>No fanlistings with sign-ups yet.</p>{/if_no_listings}' . "\n"
+            . "\n"
+            . '{if_has_listings}' . "\n"
+            . '<ul>' . "\n"
+            . "\n"
             . '{each_kim_listing}' . "\n"
-            . '<li class="fl-kim-overview-item"><a href="{listing_kim_url}">{listing_subject}</a> ({listing_kim_count})</li>' . "\n"
+            . '<li><a href="{listing_kim_url}">{listing_subject}</a> &mdash; {listing_kim_count} Interested</li>' . "\n"
             . '{/each_kim_listing}' . "\n"
+            . "\n"
             . '</ul>' . "\n"
             . '{/if_has_listings}' . "\n"
-            . '{if_no_listings}' . "\n"
-            . '<p class="fl-empty">No KIM sign-ups yet.</p>' . "\n"
-            . '{/if_no_listings}';
+            . '</div>';
     }
 
     /**
@@ -351,20 +424,26 @@ HTML;
      */
     public static function defaultCollectiveKimListSubjectTemplate(): string
     {
-        return '<h2>{listing_subject}</h2>' . "\n"
+        return '<div class="fl-embed fl-embed--kim-subject">' . "\n"
+            . '<h3>KIM &mdash; {listing_subject}</h3>' . "\n"
+            . '{if_kim_overview_url}<p><a href="{kim_overview_url}">&larr; Back to KIM List</a></p>{/if_kim_overview_url}' . "\n"
+            . "\n"
+            . '{if_kim_signup_url}<p>Interested in adopting this fanlisting? <a href="{kim_signup_url}">Click here to sign-up</a></p>{/if_kim_signup_url}' . "\n"
+            . "\n"
+            . '{if_no_kim_members}<p>No one has signed up yet.</p>{/if_no_kim_members}' . "\n"
+            . "\n"
             . '{if_has_kim_members}' . "\n"
-            . '<ul class="fl-kim-member-list">' . "\n"
+            . '<ul>' . "\n"
             . '{each_kim_member}' . "\n"
-            . '<li class="fl-kim-member-item">'
-            . '{if_member_url}<a href="{member_url}" rel="noopener noreferrer">{member_name}</a>{/if_member_url}'
-            . '{if_no_member_url}{member_name}{/if_no_member_url}'
+            . "\n"
+            . '<li>' . "\n"
+            . '{if_member_url}<a href="{member_url}" target="_blank">{member_name}</a>{/if_member_url}{if_no_member_url}<span class="fl-kim-member-name">{member_name}</span>{/if_no_member_url}' . "\n"
             . '</li>' . "\n"
+            . "\n"
             . '{/each_kim_member}' . "\n"
             . '</ul>' . "\n"
             . '{/if_has_kim_members}' . "\n"
-            . '{if_no_kim_members}' . "\n"
-            . '<p class="fl-empty">No one has signed up yet.</p>' . "\n"
-            . '{/if_no_kim_members}';
+            . '</div>';
     }
 
     /**
@@ -372,20 +451,25 @@ HTML;
      */
     public static function defaultKimUpdateFormTemplate(): string
     {
-        return '<h1>Update Your KIM Details</h1>' . "\n"
-            . '<div class="fl-form-fields">' . "\n"
+        return '<div class="fl-form-fields">' . "\n"
             . '{field_name}' . "\n"
             . '{field_current_email}' . "\n"
             . '{field_current_password}' . "\n"
             . '{field_fanlisting_id}' . "\n"
+            . '{field_new_email}' . "\n"
+            . '{field_new_url}' . "\n"
+            . '{field_new_password}' . "\n"
+            . '{field_new_password_confirm}' . "\n"
+            . '{field_send_copy}' . "\n"
+            . '{captcha_block}' . "\n"
             . '</div>' . "\n"
+            . "\n"
             . '<div class="fl-form-actions">' . "\n"
             . '{submit_button}' . "\n"
             . '{clear_button}' . "\n"
             . '</div>' . "\n"
-            . '{if_lost_password_url}'
-            . '<p class="fl-form-hint"><a href="{lost_password_url}">Forgot your password?</a></p>'
-            . '{/if_lost_password_url}';
+            . "\n"
+            . '{if_lost_password_url}<p class="fl-form-hint"><a href="{lost_password_url}">Forgot your password?</a></p>{/if_lost_password_url}';
     }
 
     /**
@@ -394,25 +478,30 @@ HTML;
     public static function defaultKimResetFormTemplate(): string
     {
         return '{if_step_email}' . "\n"
-            . '<h1>Reset Your KIM Password</h1>' . "\n"
             . '<div class="fl-form-fields">' . "\n"
             . '{field_email}' . "\n"
             . '{field_fanlisting_id}' . "\n"
+            . '{captcha_block}' . "\n"
             . '</div>' . "\n"
-            . '<div class="fl-form-actions">{submit_button} {clear_button}</div>' . "\n"
+            . '<div class="fl-form-actions">' . "\n"
+            . '{submit_button}' . "\n"
+            . '{clear_button}' . "\n"
+            . '</div>' . "\n"
             . '{/if_step_email}' . "\n"
+            . "\n"
             . '{if_step_confirm}' . "\n"
+            . '{if_token_invalid}<p class="fl-errors">This reset link has expired or is invalid. Please <a href="{reset_request_url}">request a new one</a>.</p>{/if_token_invalid}' . "\n"
+            . "\n"
             . '{if_token_valid}' . "\n"
-            . '<h1>Choose a New KIM Password</h1>' . "\n"
             . '<div class="fl-form-fields">' . "\n"
             . '{field_password}' . "\n"
             . '{field_password_confirm}' . "\n"
             . '</div>' . "\n"
-            . '<div class="fl-form-actions">{submit_button} {clear_button}</div>' . "\n"
+            . '<div class="fl-form-actions">' . "\n"
+            . '{submit_button}' . "\n"
+            . '{clear_button}' . "\n"
+            . '</div>' . "\n"
             . '{/if_token_valid}' . "\n"
-            . '{if_token_invalid}' . "\n"
-            . '<p class="fl-error">This reset link is invalid or has expired. <a href="{reset_request_url}">Request a new one.</a></p>' . "\n"
-            . '{/if_token_invalid}' . "\n"
             . '{/if_step_confirm}';
     }
 
@@ -421,12 +510,14 @@ HTML;
      */
     public static function defaultCollectiveContactFormTemplate(): string
     {
-        return '{field_name}' . "\n"
+        return '<div class="fl-form-fields">' . "\n"
+            . '{field_name}' . "\n"
             . '{field_email}' . "\n"
             . '{field_url}' . "\n"
             . '{field_subject}' . "\n"
             . '{field_message}' . "\n"
             . '{captcha_block}' . "\n"
+            . '</div>' . "\n"
             . '<div class="fl-form-actions">' . "\n"
             . '{submit_button}' . "\n"
             . '{clear_button}' . "\n"

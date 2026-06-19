@@ -231,7 +231,7 @@ final class JoinedListingRowRendererTest extends TestCase
 
         $html = JoinedListingRowRenderer::renderTemplate($defaults['latest_joined_listing_template'], [$listing], self::UPLOADS_URL);
 
-        self::assertStringContainsString('Joined: 2024-03-01', $html);
+        self::assertStringContainsString('Joined on 2024-03-01', $html);
     }
 
     // -----------------------------------------------------------------------

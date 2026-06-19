@@ -111,12 +111,16 @@ SQL;
     // SiteSettingsRepo collective_codes_template
     // -----------------------------------------------------------------------
 
-    public function testDefaultCollectiveCodesTemplateMatchesListingDefault(): void
+    public function testDefaultCollectiveCodesTemplateHasExpectedStructure(): void
     {
-        self::assertSame(
-            ListingSettingsRepo::defaultCodesTemplate(),
-            SiteSettingsRepo::defaultCollectiveCodesTemplate(),
-        );
+        $tpl = SiteSettingsRepo::defaultCollectiveCodesTemplate();
+
+        self::assertNotSame('', $tpl);
+        self::assertStringContainsString('fl-embed--codes', $tpl);
+        self::assertStringContainsString('{each_size_group}', $tpl);
+        self::assertStringContainsString('{each_code}', $tpl);
+        self::assertStringContainsString('{code_url}', $tpl);
+        self::assertStringNotContainsString('{listing_subject}', $tpl);
     }
 
     public function testCollectiveDefaultsIncludesCollectiveCodesTemplate(): void
@@ -124,7 +128,7 @@ SQL;
         $defaults = SiteSettingsRepo::collectiveDefaults();
 
         self::assertArrayHasKey('collective_codes_template', $defaults);
-        self::assertSame(ListingSettingsRepo::defaultCodesTemplate(), $defaults['collective_codes_template']);
+        self::assertSame(SiteSettingsRepo::defaultCollectiveCodesTemplate(), $defaults['collective_codes_template']);
     }
 
     public function testGetCollectiveCodesTemplateReturnsNullWhenNotSet(): void

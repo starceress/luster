@@ -109,6 +109,7 @@ final class CodesSubmitController
             if ($csFormTpl !== '') {
                 $tokens = [
                     '{listing_title}'               => View::e($listingName),
+                    '{listing_subject}'             => View::e((string) ($listing->subject ?? $listingName)),
                     '{listing_url}'                 => View::e($listingUrl),
                     '{field_code_image}'            => $f['code_image'],
                     '{field_code_image_input}'      => $f['code_image_input'],

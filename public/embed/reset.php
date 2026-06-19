@@ -157,6 +157,7 @@ if ($_lusterStep === 'confirm') {
         ]);
         $_lusterTokens2 = [
             '{listing_title}'             => View::e((string) $_lusterListing->title),
+            '{listing_subject}'           => View::e((string) $_lusterListing->subject),
             '{listing_url}'               => View::e((string) $_lusterListing->url),
             '{field_email}'               => '',
             '{captcha_block}'             => '',
@@ -237,6 +238,7 @@ if ($_lusterStep === 'confirm') {
         ]);
         $_lusterTokens1 = [
             '{listing_title}'             => View::e((string) $_lusterListing->title),
+            '{listing_subject}'           => View::e((string) $_lusterListing->subject),
             '{listing_url}'               => View::e((string) $_lusterListing->url),
             '{field_email}'               => $_lusterF['email'],
             '{captcha_block}'             => $_lusterF['captcha_answer'],
