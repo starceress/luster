@@ -93,6 +93,7 @@ $rangeLast  = min($page * $per_page, $total);
       <select name="type" class="form" id="rules-type-select">
         <option value="">All Types</option>
         <?php foreach ($_typeLabels as $val => $label): ?>
+          <?php if (!in_array($val, $used_types ?? [], true)) continue; ?>
           <option value="<?= View::e($val) ?>"<?= $type === $val ? ' selected' : '' ?>><?= View::e($label) ?></option>
         <?php endforeach; ?>
       </select>
@@ -199,7 +200,7 @@ $rangeLast  = min($page * $per_page, $total);
 
             <td data-label="Listing">
               <div class="ctx-cell">
-                <a class="text-strong link" href="<?= $b ?>/admin/rules/<?= (int) $row['listing_id'] ?>/edit"><?= View::e($row['listing_subject']) ?></a>
+                <a class="link" href="<?= $b ?>/admin/rules/<?= (int) $row['listing_id'] ?>/edit"><b><?= View::e($row['listing_subject']) ?></b></a>
                 <?php if ($row['listing_type'] !== '' && $row['listing_type'] !== 'listing'): ?>
                   <span class="badge badge-inactive"><?= View::e($_typeLabels[$row['listing_type']] ?? ucfirst($row['listing_type'])) ?></span>
                 <?php endif; ?>

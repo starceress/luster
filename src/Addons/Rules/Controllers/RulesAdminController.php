@@ -68,16 +68,25 @@ final class RulesAdminController extends AdminController
         $rows     = array_slice($allRows, ($page - 1) * $perPage, $perPage);
         $subjects = $repo->getSubjects();
 
+        // Derive used types from search-only results so the dropdown shows all
+        // in-use types regardless of which type filter is currently active.
+        $unfiltered = $type !== '' ? $repo->getAllWithListings($sort, $dir, $search, '') : $allRows;
+        $usedTypes  = array_values(array_unique(array_filter(
+            array_column($unfiltered, 'listing_type'),
+            static fn(string $t): bool => $t !== ''
+        )));
+
         return $this->adminLayout('admin/addons/rules/index.php', 'Join Rules', 'rules', [
-            'rows'     => $rows,
-            'total'    => $total,
-            'page'     => $page,
-            'pages'    => $pages,
-            'per_page' => $perPage,
-            'subjects' => $subjects,
-            'success'  => $success,
-            'error'    => $error,
-            'sort'     => $sort,
+            'rows'       => $rows,
+            'total'      => $total,
+            'page'       => $page,
+            'pages'      => $pages,
+            'per_page'   => $perPage,
+            'subjects'   => $subjects,
+            'used_types' => $usedTypes,
+            'success'    => $success,
+            'error'      => $error,
+            'sort'       => $sort,
             'dir'      => $dir,
             'search'   => $search,
             'type'     => $type,

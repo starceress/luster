@@ -281,6 +281,17 @@ final class MemberLinkCheckRepo
         $stmt->execute(['listing_id' => $listingId]);
     }
 
+    /** Resets link-check statuses across every listing back to 'unchecked'. */
+    public function resetLinkStatusAll(): void
+    {
+        $this->db->pdo()->exec(
+            "UPDATE `lstr_member_link_checks`
+                SET link_status       = 'unchecked',
+                    link_redirect_url = NULL,
+                    link_checked_at   = NULL"
+        );
+    }
+
     /** Removes all check records for a listing (called during re-sync). */
     public function clearListing(int $listingId): void
     {
@@ -433,6 +444,42 @@ final class MemberLinkCheckRepo
         );
         $stmt->execute(['status' => $status]);
         return $stmt->fetchAll(PDO::FETCH_OBJ);
+    }
+
+    /**
+     * Returns one summary row per listing that has been synced into the check
+     * table — used by the All Listings view to render the per-listing overview.
+     *
+     * @return array<int, array{total:int, ok:int, dead:int, redirect:int, unchecked:int, last_checked:?string}>
+     */
+    public function getPerListingSummary(): array
+    {
+        $stmt = $this->db->pdo()->query(
+            "SELECT
+                 listing_id,
+                 COUNT(*)                         AS total,
+                 SUM(link_status = 'ok')          AS cnt_ok,
+                 SUM(link_status = 'dead')        AS cnt_dead,
+                 SUM(link_status = 'redirect')    AS cnt_redirect,
+                 SUM(link_status = 'unchecked')   AS cnt_unchecked,
+                 MAX(link_checked_at)             AS last_checked
+               FROM `lstr_member_link_checks`
+              GROUP BY listing_id
+              ORDER BY listing_id"
+        );
+
+        $result = [];
+        foreach ($stmt !== false ? $stmt->fetchAll(PDO::FETCH_ASSOC) : [] as $row) {
+            $result[(int) $row['listing_id']] = [
+                'total'        => (int)    $row['total'],
+                'ok'           => (int)   ($row['cnt_ok']        ?? 0),
+                'dead'         => (int)   ($row['cnt_dead']       ?? 0),
+                'redirect'     => (int)   ($row['cnt_redirect']   ?? 0),
+                'unchecked'    => (int)   ($row['cnt_unchecked']  ?? 0),
+                'last_checked' => $row['last_checked'],
+            ];
+        }
+        return $result;
     }
 
     // -----------------------------------------------------------------------

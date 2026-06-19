@@ -2603,9 +2603,7 @@ try {
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Migration 78: create lstr_member_link_checks table for tracking approved fan
-// URL health via the Link Checker. Stores one row per (listing_id, member_email)
-// with the check status, last checked date, and the redirect target URL if the
-// member URL has moved.
+// URL health via the Link Checker.
 // ─────────────────────────────────────────────────────────────────────────────
 try {
     if (!(int) $pdo->query('SELECT COUNT(*) FROM `lstr_migrations` WHERE migration_number = 78')->fetchColumn()) {
@@ -2628,6 +2626,39 @@ try {
     }
 } catch (PDOException $e) {
     $errors[] = 'Migration 78 — ' . htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Migration 79: add surrogate auto-increment id column to lstr_member_link_checks.
+// Migration 78 used a composite (listing_id, member_email) primary key; repos
+// expect a single-column integer id for row targeting and AJAX updates.
+// ─────────────────────────────────────────────────────────────────────────────
+try {
+    if (!(int) $pdo->query('SELECT COUNT(*) FROM `lstr_migrations` WHERE migration_number = 79')->fetchColumn()) {
+        $hasId = (int) $pdo->query(
+            "SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
+              WHERE TABLE_SCHEMA = DATABASE()
+                AND TABLE_NAME   = 'lstr_member_link_checks'
+                AND COLUMN_NAME  = 'id'"
+        )->fetchColumn();
+
+        if (!$hasId) {
+            $pdo->exec(
+                "ALTER TABLE `lstr_member_link_checks`
+                   ADD COLUMN `id` INT NOT NULL AUTO_INCREMENT FIRST,
+                   DROP PRIMARY KEY,
+                   ADD PRIMARY KEY (`id`),
+                   ADD UNIQUE KEY `uniq_mlc_listing_email` (`listing_id`, `member_email`)"
+            );
+        }
+
+        $pdo->exec('INSERT INTO `lstr_migrations` (migration_number) VALUES (79)');
+        $done[] = $hasId
+            ? 'Migration 79: <code>id</code> column already present on <code>lstr_member_link_checks</code>'
+            : 'Added surrogate <code>id</code> primary key to <code>lstr_member_link_checks</code>';
+    }
+} catch (PDOException $e) {
+    $errors[] = 'Migration 79 — ' . htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

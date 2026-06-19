@@ -29,7 +29,7 @@ $b = rtrim(View::e($base_url), '/');
 $flTab = $tab ?? 'all';
 
 $flFilterQs = http_build_query(array_filter([
-    'tab'      => $flTab !== 'all'   ? $flTab           : '',
+    'tab'      => $flTab,
     'search'   => $search          ?? '',
     'network'  => $filter_network  ?? '',
     'category' => $filter_cat      ?? '',
@@ -42,7 +42,7 @@ $flPageUrl = static function (int $p) use ($b, $flFilterQs): string {
 
 $flTabUrl = static function (string $t) use ($b, $search, $filter_network, $filter_cat, $filter_type): string {
     $qs = http_build_query(array_filter([
-        'tab'      => $t !== 'all' ? $t : '',
+        'tab'      => $t,
         'search'   => $search          ?? '',
         'network'  => $filter_network  ?? '',
         'category' => $filter_cat      ?? '',
@@ -108,7 +108,7 @@ $flDir  = $dir  ?? 'asc';
 $flSortUrl = static function (string $col) use ($b, $flSort, $flDir, $flTab, $search, $filter_network, $filter_cat, $filter_type): string {
     $newDir = ($flSort === $col && $flDir === 'asc') ? 'desc' : 'asc';
     $qs = http_build_query(array_filter([
-        'tab'      => $flTab !== 'all' ? $flTab : '',
+        'tab'      => $flTab,
         'search'   => $search          ?? '',
         'network'  => $filter_network  ?? '',
         'category' => $filter_cat      ?? '',
@@ -131,19 +131,19 @@ $flSortUrl = static function (string $col) use ($b, $flSort, $flDir, $flTab, $se
     </button>
   </div>
   <div>
-    <a href="<?= $b ?>/admin/listings/add" class="btn btn-primary btn-sm"><?= View::icon('add') ?> Add Listing</a>
-    <a href="<?= $b ?>/admin/listings/global-templates" class="btn btn-secondary btn-sm">Global Templates</a>
+    <a href="<?= $b ?>/admin/listings/add" class="btn btn-primary btn-sm"><?= View::icon('add', ['width' => 20, 'height' => 20]) ?> Add Listing</a>
+    <a href="<?= $b ?>/admin/listings/global-templates" class="btn btn-secondary btn-sm"><?= View::icon('template') ?> Global Templates</a>
     <a href="<?= $b ?>/admin/listings/settings" class="btn btn-quaternary btn-sm"><?= View::icon('gear') ?> Owned Settings</a>
   </div>
 </div>
 
 <div class="filter-panel" id="filter-panel">
   <form method="GET" action="" class="filter-row" id="fl-filter-form">
-    <?php if ($flTab !== 'all'): ?><input type="hidden" name="tab" value="<?= View::e($flTab) ?>"><?php endif; ?>
+    <input type="hidden" name="tab" value="<?= View::e($flTab) ?>">
     <div class="select-wrap">
     <select id="fl-net-sel" name="network" >
-      <?php $_netCounts = $network_counts ?? []; $_netTotal = array_sum($_netCounts); ?>
-      <option value=""><?= $_netTotal > 0 ? 'All Networks' : 'All Networks' ?></option>
+      <?php $_netCounts = $network_counts ?? []; $_netTotal = $total_before_filter ?? array_sum($_netCounts); ?>
+      <option value=""><?= 'All Networks' . ($_netTotal > 0 ? ' (' . $_netTotal . ')' : '') ?></option>
       <?php foreach ($allNetworks as $net): ?>
         <?php $_nc = (int) ($_netCounts[strtoupper($net)] ?? 0); ?>
         <option value="<?= View::e($net) ?>"
@@ -159,8 +159,8 @@ $flSortUrl = static function (string $col) use ($b, $flSort, $flDir, $flTab, $se
             data-tfl='<?= $dataTfl ?>'
             data-tafl='<?= $dataTafl ?>'
             data-custom='<?= $dataCustom ?>'>
-      <?php $_catCounts = $category_counts ?? []; ?>
-      <option value="">All Categories</option>
+      <?php $_catCounts = $category_counts ?? []; $_catTotal = $total_after_network_filter ?? $total_before_filter ?? array_sum($_catCounts); ?>
+      <option value=""><?= 'All Categories' . ($_catTotal > 0 ? ' (' . $_catTotal . ')' : '') ?></option>
       <?php if ($fn === ''): ?>
         <?php if (!empty($tfl_cats)): ?>
           <optgroup label="TFL">
@@ -213,7 +213,7 @@ $flSortUrl = static function (string $col) use ($b, $flSort, $flDir, $flTab, $se
     <select name="type">
       <?php $_typeLabels = ['listing' => 'Fanlisting', 'clique' => 'Clique', 'collective' => 'Collective', 'shrine' => 'Shrine', 'webring' => 'Webring', 'other' => 'Other']; ?>
       <?php $_typeCounts = $type_counts ?? []; $_typeTotal = array_sum($_typeCounts); ?>
-      <option value=""><?= $_typeTotal > 0 ? 'All Types' : 'All Types' ?></option>
+      <option value=""><?= 'All Types' . ($_typeTotal > 0 ? ' (' . $_typeTotal . ')' : '') ?></option>
       <?php foreach ($type_options ?? [] as $to): ?>
         <?php $_tc = (int) ($_typeCounts[$to] ?? 0); ?>
         <option value="<?= View::e($to) ?>"
@@ -230,7 +230,7 @@ $flSortUrl = static function (string $col) use ($b, $flSort, $flDir, $flTab, $se
              placeholder="Search&hellip;" value="<?= View::e($search ?? '') ?>">
     </div>
     <button type="submit" class="btn btn-secondary btn-sm">Search</button>
-    <?php $flResetUrl = $b . '/admin/listings' . ($flTab !== 'all' ? '?tab=' . urlencode($flTab) : ''); ?>
+    <?php $flResetUrl = $b . '/admin/listings?tab=' . urlencode($flTab); ?>
     <a href="<?= View::e($flResetUrl) ?>" class="btn btn-quaternary btn-sm">Reset</a>
 
   </form>
@@ -239,9 +239,9 @@ $flSortUrl = static function (string $col) use ($b, $flSort, $flDir, $flTab, $se
 <?php
 $_flStatusTabs = [
     'all'      => ['label' => 'All',      'badge' => 'badge-inactive'],
+    'pending'  => ['label' => 'Pending',  'badge' => 'badge-pending'],
     'current'  => ['label' => 'Current',  'badge' => 'badge-current'],
     'upcoming' => ['label' => 'Upcoming', 'badge' => 'badge-upcoming'],
-    'pending'  => ['label' => 'Pending',  'badge' => 'badge-pending'],
 ];
 $_flTabCounts = $tab_counts ?? [];
 ?>

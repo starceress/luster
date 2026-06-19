@@ -506,6 +506,8 @@ return [
             LinkCheckerController::class, 'applyRedirectMember');
         $router->post('/admin/link-checker/reset-members',
             LinkCheckerController::class, 'resetMembers');
+        $router->post('/admin/link-checker/scan-member-ajax',
+            LinkCheckerController::class, 'scanMemberAjax');
 
         // ── Feedback ──────────────────────────────────────────────────
         $router->get('/admin/feedback',  FeedbackController::class, 'showForm');

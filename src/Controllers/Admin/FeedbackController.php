@@ -198,17 +198,21 @@ final class FeedbackController extends AdminController
             $addons = $stmt->fetchAll(\PDO::FETCH_COLUMN);
         } catch (\Throwable) {}
 
-        // Recent error log entries — strip the absolute path prefix from source
-        // so reports show e.g. "luster\src\Core\View.php:154" instead of a full server path
+        // Recent error log entries — strip the absolute server path from both the
+        // source field and the message body so reports only reveal project-relative paths.
+        // "called in C:\xampp\htdocs\luster\templates\foo.php" → "called in templates\foo.php"
         $errorLogRows = [];
         try {
             $repo = new ErrorLogRepo($db);
             $errorLogRows = $repo->getPaginated(1, 10)['rows'];
 
-            $stripPrefix = dirname(LUSTER_BASE) . DIRECTORY_SEPARATOR;
+            $stripPrefix = LUSTER_BASE . DIRECTORY_SEPARATOR;
             $errorLogRows = array_map(static function (array $row) use ($stripPrefix): array {
                 if (isset($row['source']) && str_starts_with($row['source'], $stripPrefix)) {
                     $row['source'] = substr($row['source'], strlen($stripPrefix));
+                }
+                if (isset($row['message'])) {
+                    $row['message'] = str_replace($stripPrefix, '', $row['message']);
                 }
                 return $row;
             }, $errorLogRows);

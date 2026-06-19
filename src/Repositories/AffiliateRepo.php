@@ -1250,7 +1250,6 @@ final class AffiliateRepo
             "SELECT id, name, email, url, fanlisting_id
              FROM lstr_affiliates
              WHERE id IN ({$placeholders})
-               AND active = 1 AND pending = 0
                AND email IS NOT NULL AND TRIM(email) != ''
              ORDER BY id ASC"
         );

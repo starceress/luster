@@ -278,16 +278,23 @@ final class GlobalCodesController extends AdminController
             ]);
         }
 
-        // Global view — show pending across all listings with filters
+        // Global view — All tab (placeholder) or Pending tab (cross-listing pending list)
+        $globalTabRaw = trim((string) $request->query('tab', ''));
+        $globalTab    = in_array($globalTabRaw, ['all', 'pending'], true) ? $globalTabRaw : '';
+
         $filters = array_filter([
             'size'   => $filterSize,
             'donor'  => $filterDonor,
             'search' => $filterSearch,
         ]);
 
-        // If search term looks like a listing name, scope to matching listing IDs
         $result       = $codesRepo->getPendingAllPaginated(self::PER_PAGE, $page, $filters);
         $pendingTotal = $result['total'];
+
+        // Smart default: land on Pending if any exist, otherwise All
+        if ($globalTab === '') {
+            $globalTab = $pendingTotal > 0 ? 'pending' : 'all';
+        }
 
         // Build listing map for the table
         $listingMap = [];
@@ -300,8 +307,9 @@ final class GlobalCodesController extends AdminController
             'listing_id'    => 0,
             'all_listings'  => $allListings,
             'listing_map'   => $listingMap,
-            'tab'           => 'pending',
-            'codes'         => $result['items'],
+            'tab'           => $globalTab,
+            'tab_counts'    => ['all' => 0, 'pending' => $pendingTotal],
+            'codes'         => $globalTab === 'pending' ? $result['items'] : [],
             'pending_count'       => $pendingTotal,
             'pending_per_listing'  => $pendingPerListing,
             'approved_per_listing' => $approvedPerListing,
@@ -311,7 +319,7 @@ final class GlobalCodesController extends AdminController
             'filter_search'       => $filterSearch,
             'filters_active'      => $filterSize !== '' || $filterDonor !== '' || $filterSearch !== '',
             'page'                => $page,
-            'total_pages'         => $result['pages'],
+            'total_pages'         => $globalTab === 'pending' ? $result['pages'] : 1,
             'total'               => $pendingTotal,
             'view_mode'           => 'global',
             'success'       => $success,

@@ -75,12 +75,38 @@ final class JoinedListingRepo
     }
 
     /**
-     * Returns row counts for each status tab in one query.
+     * Returns row counts for each status tab in one query, optionally scoped
+     * to the same search/network/category filters the listing view uses.
      *
-     * @return array{all: int, approved: int, pending: int, hidden: int}
+     * @return array{all: int, approved: int, pending: int, hidden: int, visible_pending: int}
      */
-    public function countAllByStatusTab(): array
+    public function countAllByStatusTab(string $search = '', string $filterNetwork = '', string $filterCat = ''): array
     {
+        $conditions = [];
+        $params     = [];
+
+        if ($search !== '') {
+            $pattern       = '%' . $search . '%';
+            $conditions[]  = '(name LIKE :q1 OR url LIKE :q2 OR category LIKE :q3 OR categories_json LIKE :q4)';
+            $params[':q1'] = $pattern;
+            $params[':q2'] = $pattern;
+            $params[':q3'] = $pattern;
+            $params[':q4'] = $pattern;
+        }
+
+        if ($filterNetwork !== '') {
+            $conditions[]   = 'categories_json LIKE :net';
+            $params[':net'] = '%' . $filterNetwork . '%';
+        }
+
+        if ($filterCat !== '') {
+            $conditions[]    = '(category = :cat OR categories_json LIKE :catj)';
+            $params[':cat']  = $filterCat;
+            $params[':catj'] = '%"name":"' . $filterCat . '"%';
+        }
+
+        $whereClause = $conditions !== [] ? 'WHERE ' . implode(' AND ', $conditions) : '';
+
         $stmt = $this->db->prepare(
             "SELECT
                  COUNT(*) AS all_count,
@@ -88,8 +114,11 @@ final class JoinedListingRepo
                  SUM(CASE WHEN status = 'pending'  THEN 1 ELSE 0 END) AS pending_count,
                  SUM(CASE WHEN active = 0          THEN 1 ELSE 0 END) AS hidden_count,
                  SUM(CASE WHEN status = 'pending' AND active = 1 THEN 1 ELSE 0 END) AS visible_pending_count
-             FROM lstr_joined"
+             FROM lstr_joined {$whereClause}"
         );
+        foreach ($params as $key => $value) {
+            $stmt->bindValue($key, $value, \PDO::PARAM_STR);
+        }
         $stmt->execute();
         $row = $stmt->fetch();
 

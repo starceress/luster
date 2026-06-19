@@ -14,11 +14,12 @@
 // re-declaring.
 
 // Global: .modal-close buttons auto-dismiss their parent .modal-backdrop.
+// Modals with data-managed-close handle their own dismiss (focus-restore, etc.).
 document.addEventListener('click', function (e) {
   var btn = e.target.closest('.modal-close');
   if (!btn) return;
   var backdrop = btn.closest('.modal-backdrop');
-  if (backdrop) backdrop.style.display = 'none';
+  if (backdrop && !backdrop.hasAttribute('data-managed-close')) backdrop.style.display = 'none';
 });
 
 // HTML escaping -- use esc() anywhere in this file.
@@ -3050,10 +3051,19 @@ document.addEventListener('click', function (e) {
   }
 
   document.querySelectorAll('form.js-warn-unsaved').forEach(function (form) {
-    var initial   = snapshotForm(form);
+    var initial   = null;
     var submitted = false;
+    // Snapshot after autofill has settled. Guard is clean (initial === null)
+    // until the snapshot fires so we never block legitimate navigation.
+    // readyState check handles async/dynamic script loads gracefully.
+    function takeSnapshot() { initial = snapshotForm(form); }
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', takeSnapshot);
+    } else {
+      takeSnapshot();
+    }
     form.addEventListener('submit', function () { submitted = true; });
-    guards.push(function () { return submitted || snapshotForm(form) === initial; });
+    guards.push(function () { return submitted || initial === null || snapshotForm(form) === initial; });
   });
 
   if (!guards.length) return;
@@ -3588,7 +3598,20 @@ function adminWireFilterPanel(btnId, panelId, htmlClass) {
 (function () {
   adminWireFilterPanel('codes-filter-toggle', 'codes-filter-panel', 'fp-codes');
 
-  ['codes-listing-sel', 'codes-size-sel', 'codes-donor-sel'].forEach(function (id) {
+  var codesListingSel = document.getElementById('codes-listing-sel');
+  if (codesListingSel) {
+    codesListingSel.addEventListener('change', function () {
+      // When switching away from All Listings, suppress the global tab param so
+      // per-listing and collective views don't inherit an all/pending value.
+      if (this.value !== '0') {
+        var globalTab = document.getElementById('codes-global-tab');
+        if (globalTab) globalTab.disabled = true;
+      }
+      var form = document.getElementById('codes-filter-form');
+      if (form) form.submit();
+    });
+  }
+  ['codes-size-sel', 'codes-donor-sel'].forEach(function (id) {
     var sel = document.getElementById(id);
     if (sel) {
       sel.addEventListener('change', function () {
@@ -5215,7 +5238,7 @@ document.addEventListener('click', function (e) {
     var endpoint  = startBtn.dataset.endpoint;
     var csrf      = startBtn.dataset.csrf;
     var idsUrl    = startBtn.dataset.idsUrl || null;
-    var prefix    = panelId === 'affiliates' ? 'lc-aff-' : 'lc-joined-';
+    var prefix    = panelId === 'affiliates' ? 'lc-aff-' : panelId === 'members' ? 'lc-mem-' : 'lc-joined-';
 
     startBtn.disabled = true;
     if (progWrap) progWrap.classList.remove('is-hidden');
@@ -5231,7 +5254,9 @@ document.addEventListener('click', function (e) {
 
       function next() {
         if (done >= total) {
-          startBtn.disabled = false;
+          if (progLabel) progLabel.textContent = done + ' / ' + total + ' — done. Reloading…';
+          if (progBar)   progBar.style.width   = '100%';
+          setTimeout(function () { window.location.reload(); }, 800);
           return;
         }
         var id  = ids[done];
@@ -5259,7 +5284,7 @@ document.addEventListener('click', function (e) {
       // Fallback: current page rows only (no ids-url set)
       var panel = document.getElementById('tab-' + panelId);
       var rows  = panel ? Array.from(panel.querySelectorAll('tbody tr')) : [];
-      processIds(rows.map(function (r) { return r.id.replace(/^lc-(aff|joined)-/, ''); }));
+      processIds(rows.map(function (r) { return r.id.replace(/^lc-(aff|joined|mem)-/, ''); }));
     }
   }
 
@@ -5323,6 +5348,154 @@ document.addEventListener('click', function (e) {
     });
   });
 
+  // ── Link-checker tab persistence ─────────────────────────────────────────
+  var lcTabInput = document.getElementById('lc-filter-tab');
+  function lcOnTabChange(tabId) {
+    if (lcTabInput) lcTabInput.value = tabId;
+  }
+  document.querySelectorAll('.tabs-btn[data-tab]').forEach(function (btn) {
+    btn.addEventListener('click', function () { lcOnTabChange(btn.dataset.tab); });
+  });
+  var lcTabSelect = document.querySelector('.tabs-select');
+  if (lcTabSelect) {
+    lcTabSelect.addEventListener('change', function () { lcOnTabChange(lcTabSelect.value); });
+  }
+
+  // Auto-activate tab from ?tab= URL param
+  (function () {
+    var params  = new URLSearchParams(window.location.search);
+    var initTab = params.get('tab');
+    if (!initTab) return;
+    var tabBtn = document.querySelector('.tabs-btn[data-tab="' + initTab + '"]');
+    if (tabBtn) tabBtn.click();
+  })();
+
+  // ── Per-panel "Run Link Checker" buttons ─────────────────────────────────
+  document.querySelectorAll('.js-lc-run-panel').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var panelId = btn.dataset.panel;
+      var map     = { affiliates: 'lc-check-affiliates', joined: 'lc-check-joined', members: 'lc-check-members' };
+      var hidden  = document.getElementById(map[panelId] || '');
+      if (hidden && !hidden.disabled) hidden.click();
+    });
+  });
+
+  // ── Scan All Listings ────────────────────────────────────────────────────
+  var scanAllBtn = document.getElementById('lc-scan-all-btn');
+  if (scanAllBtn) {
+    scanAllBtn.addEventListener('click', function () {
+      var ids      = JSON.parse(scanAllBtn.dataset.listingIds || '[]');
+      var csrf     = scanAllBtn.dataset.csrf;
+      var endpoint = scanAllBtn.dataset.endpoint;
+      if (ids.length === 0) return;
+
+      var progWrap  = document.getElementById('lc-scan-prog');
+      var progBar   = document.getElementById('lc-scan-prog-bar');
+      var progLabel = document.getElementById('lc-scan-prog-label');
+
+      scanAllBtn.disabled = true;
+      if (progWrap) progWrap.classList.remove('is-hidden');
+
+      var done    = 0;
+      var total   = ids.length;
+      var skipped = 0;
+      var errors  = 0;
+
+      function scanNext() {
+        if (done >= total) {
+          var parts = ['Sync complete.'];
+          if (skipped > 0) parts.push(skipped + ' skipped (no member table).');
+          if (errors > 0) parts.push(errors + ' error' + (errors !== 1 ? 's' : '') + '.');
+          parts.push('Reloading…');
+          if (progLabel) progLabel.textContent = parts.join(' ');
+          if (progBar)   progBar.style.width   = '100%';
+          setTimeout(function () { window.location.reload(); }, 800);
+          return;
+        }
+        var id = ids[done];
+        if (progLabel) progLabel.textContent = 'Syncing listing ' + (done + 1) + ' / ' + total + '…';
+        if (progBar)   progBar.style.width   = Math.round((done / total) * 100) + '%';
+
+        var fd = new FormData();
+        fd.append('_csrf', csrf);
+        fd.append('listing_id', id);
+
+        fetch(endpoint, { method: 'POST', body: fd })
+          .then(function (r) { return r.ok ? r.json() : r.json().catch(function () { return { error: 'Request failed' }; }); })
+          .catch(function () { return { error: 'Network error' }; })
+          .then(function (data) {
+            if (data.error) {
+              if (typeof data.error === 'string' && data.error.indexOf('no member table') !== -1) {
+                skipped++;
+              } else {
+                errors++;
+              }
+            }
+            done++;
+            scanNext();
+          });
+      }
+
+      scanNext();
+    });
+  }
+
+  // ── Per-row Scan buttons (delegated) ─────────────────────────────────────
+  document.addEventListener('click', function (e) {
+    var btn = e.target.closest('.js-lc-scan-listing');
+    if (!btn) return;
+
+    var lid      = btn.dataset.listingId;
+    var csrf     = btn.dataset.csrf;
+    var endpoint = btn.dataset.endpoint;
+    var row      = document.getElementById('lc-mem-sum-' + lid);
+
+    btn.disabled    = true;
+    btn.textContent = 'Scanning…';
+
+    var fd = new FormData();
+    fd.append('_csrf', csrf);
+    fd.append('listing_id', lid);
+
+    fetch(endpoint, { method: 'POST', body: fd })
+      .then(function (r) { return r.ok ? r.json() : r.json().catch(function () { return { error: 'Request failed' }; }); })
+      .catch(function () { return { error: 'Network error' }; })
+      .then(function (data) {
+        if (data.error) {
+          btn.disabled    = false;
+          btn.textContent = 'Error';
+          btn.classList.add('btn-danger');
+          setTimeout(function () {
+            btn.textContent = 'Scan';
+            btn.classList.remove('btn-danger');
+          }, 2000);
+          return;
+        }
+        if (row) {
+          var s = data.stats || {};
+          function setCell(cls, val) {
+            var el = row.querySelector(cls);
+            if (el) el.innerHTML = val;
+          }
+          function fmtCell(key, v) {
+            if (v === undefined || v === null) return '<span class="text-dim">&mdash;</span>';
+            v = parseInt(v, 10);
+            if (v === 0) return '<span class="text-dim">0</span>';
+            if (key === 'dead')     return '<span class="badge badge-warning">' + v + '</span>';
+            if (key === 'redirect') return '<span class="badge badge-redirect">' + v + '</span>';
+            return '' + v;
+          }
+          setCell('.lc-ms-total',     data.synced !== undefined ? (parseInt(data.synced,10) === 0 ? '<span class="text-dim">0</span>' : '' + data.synced) : '<span class="text-dim">&mdash;</span>');
+          setCell('.lc-ms-ok',        fmtCell('ok', s.ok));
+          setCell('.lc-ms-dead',      fmtCell('dead', s.dead));
+          setCell('.lc-ms-redirect',  fmtCell('redirect', s.redirect));
+          setCell('.lc-ms-unchecked', fmtCell('unchecked', s.unchecked));
+        }
+        btn.disabled    = false;
+        btn.textContent = 'Scan';
+      });
+  });
+
 }());
 
 // ── Embed snippet copy + code toggle ────────────────────────────────
@@ -5373,7 +5546,8 @@ document.addEventListener('click', function (e) {
     { label: 'Custom Templates',   hint: 'Emails',   url: base + '/admin/emails?tab=custom' },
     { label: 'General',            hint: 'Settings', url: base + '/admin/settings#panel-general' },
     { label: 'Account Details',    hint: 'Settings', url: base + '/admin/settings#panel-admin' },
-    { label: 'Additional Accounts', hint: 'Settings', url: base + '/admin/settings#panel-accounts' },
+    { label: 'Admin Accounts',     hint: 'Settings', url: base + '/admin/settings#panel-accounts' },
+    { label: 'Notifications',      hint: 'Settings', url: base + '/admin/settings#panel-notifications' },
     { label: 'Appearance',         hint: 'Settings', url: base + '/admin/settings#panel-appearance' },
     { label: 'SMTP & Email',       hint: 'Settings', url: base + '/admin/settings#panel-smtp' },
     { label: 'Server Paths',       hint: 'Settings', url: base + '/admin/settings#panel-embed' },
@@ -6092,20 +6266,77 @@ document.addEventListener('click', function (e) {
   btn.remove();
 });
 
-// ── Affiliate message read-more / collapse ────────────────────────────────────
+// ── Affiliate message modal ───────────────────────────────────────────────────
 
 document.addEventListener('click', function (e) {
-  var btn = e.target.closest('.msg-read-more, .msg-collapse');
+  var btn = e.target.closest('.js-aff-msg-open');
   if (!btn) return;
-  var cell = btn.closest('td');
-  if (!cell) return;
-  var ellipsis = cell.querySelector('.msg-ellipsis');
-  var tail     = cell.querySelector('.msg-tail');
-  if (!ellipsis || !tail) return;
   e.preventDefault();
-  var expanding = btn.classList.contains('msg-read-more');
-  ellipsis.hidden = expanding;
-  tail.hidden     = !expanding;
+  var modal = document.getElementById('aff-msg-modal');
+  if (!modal) return;
+
+  var d       = btn.dataset;
+  var name    = d.affName    || '';
+  var url     = d.affUrl     || '';
+  var email   = d.affEmail   || '';
+  var image   = d.affImage   || '';
+  var listing = d.affListing || '';
+  var date    = d.affDate    || '';
+  var msg     = d.affMsg     || '';
+
+  var elTitle   = document.getElementById('aff-msg-modal-title');
+  var elName    = document.getElementById('aff-msg-modal-name');
+  var elUrl     = document.getElementById('aff-msg-modal-url');
+  var elEmail   = document.getElementById('aff-msg-modal-email');
+  var elListing = document.getElementById('aff-msg-modal-listing');
+  var elDate    = document.getElementById('aff-msg-modal-date');
+  var elImage   = document.getElementById('aff-msg-modal-image');
+  var elBody    = document.getElementById('aff-msg-modal-body');
+
+  if (elTitle) elTitle.textContent = name || 'Affiliate Application';
+  if (elName)  elName.textContent  = name;
+  if (elUrl)   elUrl.innerHTML     = url ? '<a href="' + esc(url) + '" target="_blank" rel="noopener noreferrer" class="link">' + esc(url) + '</a>' : '<span class="text-dim">&mdash;</span>';
+  if (elEmail) elEmail.innerHTML   = email ? '<a href="mailto:' + esc(email) + '" class="link">' + esc(email) + '</a>' : '<span class="text-dim">&mdash;</span>';
+  if (elListing) elListing.textContent = listing || '—';
+  if (elDate)  elDate.textContent  = date || '—';
+  if (elImage) {
+    if (image) {
+      elImage.innerHTML = '<img src="' + esc(image) + '" alt="" style="max-width:200px;max-height:100px;border-radius:3px;object-fit:contain">';
+      elImage.hidden = false;
+    } else {
+      elImage.innerHTML = '';
+      elImage.hidden = true;
+    }
+  }
+  if (elBody) elBody.textContent = msg;
+  var elMsgWrap = document.getElementById('aff-msg-modal-msg-wrap');
+  if (elMsgWrap) elMsgWrap.hidden = !msg;
+
+  modal._affPrevFocus = document.activeElement;
+  modal.classList.remove('is-hidden');
+  modal.style.display = '';
+  var closeBtn = modal.querySelector('.modal-close');
+  if (closeBtn) closeBtn.focus();
+});
+
+function affMsgClose() {
+  var modal = document.getElementById('aff-msg-modal');
+  if (!modal || modal.classList.contains('is-hidden')) return;
+  modal.classList.add('is-hidden');
+  if (modal._affPrevFocus && typeof modal._affPrevFocus.focus === 'function') {
+    modal._affPrevFocus.focus();
+  }
+}
+
+document.addEventListener('click', function (e) {
+  if (e.target.closest('#aff-msg-modal .modal-close')) { affMsgClose(); return; }
+  var modal = document.getElementById('aff-msg-modal');
+  if (!modal || modal.classList.contains('is-hidden')) return;
+  if (e.target === modal) affMsgClose();
+});
+
+document.addEventListener('keydown', function (e) {
+  if (e.key === 'Escape') affMsgClose();
 });
 
 // Listing edit: compatibility-wrapper subtabs.

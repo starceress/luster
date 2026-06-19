@@ -332,7 +332,7 @@ final class KimMemberRepo
             $params[] = $fanlistingId;
         }
         $stmt = $this->db->prepare(
-            "SELECT id, name, email, url, added_at FROM lstr_kim_members
+            "SELECT id, fanlisting_id, name, email, url, added_at FROM lstr_kim_members
               WHERE id IN ({$placeholders}){$flClause}
               ORDER BY name ASC"
         );
@@ -342,11 +342,12 @@ final class KimMemberRepo
         foreach ($stmt->fetchAll() as $row) {
             $id = (int) $row['id'];
             $result[$id] = [
-                'id'       => $id,
-                'name'     => (string) $row['name'],
-                'email'    => (string) $row['email'],
-                'url'      => (string) ($row['url'] ?? ''),
-                'added_at' => (string) ($row['added_at'] ?? ''),
+                'id'           => $id,
+                'fanlisting_id'=> (int) $row['fanlisting_id'],
+                'name'         => (string) $row['name'],
+                'email'        => (string) $row['email'],
+                'url'          => (string) ($row['url'] ?? ''),
+                'added_at'     => (string) ($row['added_at'] ?? ''),
             ];
         }
         return $result;
@@ -458,7 +459,7 @@ final class KimMemberRepo
     }
 
     /**
-     * Returns a map of fanlisting_id → total KIM member count (all statuses).
+     * Returns a map of fanlisting_id → approved+granted KIM member count (pending excluded).
      * Used to show member counts next to listing filter options.
      *
      * @return array<int, int>
@@ -468,6 +469,7 @@ final class KimMemberRepo
         $stmt = $this->db->prepare(
             'SELECT fanlisting_id, COUNT(*) AS cnt
              FROM lstr_kim_members
+             WHERE pending = 0
              GROUP BY fanlisting_id'
         );
         $stmt->execute();

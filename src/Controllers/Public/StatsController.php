@@ -26,7 +26,8 @@ use Luster\Support\ListingTemplateResolver;
  * Returns 404 for unknown listings and for upcoming/trouble listings
  * (i.e. anything that is not actively open).
  *
- * Tokens: see ListingSettingsRepo::defaultStatsTemplate() for the full reference.
+ * Tokens: see ListingSettingsRepo::defaultStatsTemplate()
+ * "Per-listing stats template" for the full reference.
  */
 final class StatsController
 {

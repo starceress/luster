@@ -728,7 +728,7 @@ $_newTo         = min($_totalNew, $page * $per_page);
             </td>
             <td data-label="Listing">
               <a href="<?= $b ?>/admin/members?listing_id=<?= $flId ?>&status=pending" class="link">
-                <?= View::e($fl->title) ?>
+                <b><?= View::e($fl->title) ?></b>
               </a>
             </td>
             <td data-label="Name">
@@ -857,7 +857,7 @@ endif;
             <td class="cb-col" data-label=""><input type="checkbox" name="ids[]" class="row-cb-pu" value="<?= (int) $pu->id ?>" data-name="<?= View::e($pu->member_email) ?>"></td>
             <td data-label="Listing">
               <?php if ($puListing !== null): ?>
-                <a href="<?= $b ?>/admin/members?listing_id=<?= $puFlId ?>&status=pending" class="link"><?= View::e($puListing->title) ?></a>
+                <a href="<?= $b ?>/admin/members?listing_id=<?= $puFlId ?>&status=pending" class="link"><b><?= View::e($puListing->title) ?></b></a>
               <?php else: ?>
                 <span class="text-dim">#<?= $puFlId ?></span>
               <?php endif; ?>

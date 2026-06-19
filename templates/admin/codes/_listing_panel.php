@@ -122,7 +122,7 @@ $_tabRejected = $_codesBaseUrl !== null
       <?php endif; ?>
       <?php $_hasDonorInfo = $code->donorId !== null || $code->submitterName !== null || $code->submitterEmail !== null || $code->submitterUrl !== null; ?>
       <details<?= $_hasDonorInfo ? ' open' : '' ?> class="code-donor-details">
-        <summary class="link" style="font-size:var(--fs-sm);margin-bottom:.5rem;display:inline-block;list-style:none;cursor:pointer"><?= $_hasDonorInfo ? 'Donor information' : '+ Add donor information' ?></summary>
+        <summary class="link" style="font-size:var(--fs-sm);margin-bottom:.5rem;display:inline-block;list-style:none;cursor:pointer"><?= $_hasDonorInfo ? 'Donor information' : '+ Add Donor Information' ?></summary>
         <div>
           <label class="form-label code-modal-label">Donor Name</label>
           <input class="form" type="text" name="submitter_name"
@@ -196,7 +196,7 @@ $_tabRejected = $_codesBaseUrl !== null
             <?php endif; ?>
           </select>
         </div>
-        <p class="panel-hint"><a href="#" id="upload-add-donor-toggle" class="link btn btn-sm"><?= View::icon('add') ?> Add New Donor</a></p>
+        <p class="panel-hint"><a href="#" id="upload-add-donor-toggle" class="link btn"><?= View::icon('add') ?> Add New Donor</a></p>
       </div>
 
       <!-- Inline new donor fields -->

@@ -1085,6 +1085,7 @@ $ltok = static fn(string $ta, string $token, string $label, string $desc): strin
           <p class="form-hint mb-sm" data-token-search-help>Arrange and label every field of the contact form. Each field token has a "_input" version that prints just the bare input (no label/wrapper) for custom layouts.</p>
           <table class="et-token-table et-token-table--compact"><tbody>
             <?= $ltok('contact_form_template', '{listing_title}',         '{listing_title}',         'The listing\'s display name.') ?>
+            <?= $ltok('contact_form_template', '{listing_subject}',       '{listing_subject}',       'What this fanlisting is about (e.g. "Archeology", "Marilyn Monroe").') ?>
             <?= $ltok('contact_form_template', '{listing_url}',           '{listing_url}',           'The link to the listing.') ?>
             <?= $ltok('contact_form_template', '{field_name}',            '{field_name}',            'The Name field, with label and wrapper.') ?>
             <?= $ltok('contact_form_template', '{field_name_input}',      '{field_name_input}',      'Just the Name input, no label or wrapper.') ?>

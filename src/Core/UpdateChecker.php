@@ -118,7 +118,7 @@ final class UpdateChecker
      */
     public function shouldSendNotification(UpdateStatus $status): bool
     {
-        if ($this->repo->get('update_email_notify') !== '1') {
+        if (($this->repo->get('update_email_notify') ?? '1') !== '1') {
             return false;
         }
         if (!$status->updateAvailable || $status->latest === null) {

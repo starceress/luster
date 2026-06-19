@@ -568,7 +568,8 @@ $_grp = static fn(string $g): string => ($activeGroup !== 'all' && $activeGroup 
             <?= $tok('joined_template', '{listing_image_html}', '{listing_image_html}', 'A ready-made img tag. Empty when there is no image.') ?>
             <?= $tok('joined_template', '{listing_status}',     '{listing_status}',     'The joined listing status.') ?>
             <?= $tok('joined_template', '{date_joined}',        '{date_joined}',        'The date you added this joined listing.') ?>
-            <?= $tok('joined_template', '{if_listing_image}{/if_listing_image}', '{if_listing_image}...{/if_listing_image}', 'Shows only when the joined listing has an image.') ?>
+            <?= $tok('joined_template', '{if_listing_image}{/if_listing_image}',         '{if_listing_image}...{/if_listing_image}',         'Shows only when the joined listing has an image.') ?>
+            <?= $tok('joined_template', '{if_no_listing_image}{/if_no_listing_image}', '{if_no_listing_image}...{/if_no_listing_image}', 'Shows only when the joined listing has no image.') ?>
             <?= $tok('joined_template', '{current_count}',  '{current_count}',  'How many joined listings are being shown.') ?>
             <?= $tok('joined_template', '{total_count}',    '{total_count}',    'The total number of joined listings in this view.') ?>
             <?= $tok('joined_template', '{if_current_listings}{/if_current_listings}', '{if_current_listings}...{/if_current_listings}', 'Shows only when there is at least one joined listing.') ?>
@@ -590,7 +591,8 @@ $_grp = static fn(string $g): string => ($activeGroup !== 'all' && $activeGroup 
             <?= $tok('latest_joined_listing_template', '{listing_image_html}', '{listing_image_html}', 'A ready-made img tag. Empty when there is no image.') ?>
             <?= $tok('latest_joined_listing_template', '{listing_status}',     '{listing_status}',     'The joined listing status.') ?>
             <?= $tok('latest_joined_listing_template', '{date_joined}',        '{date_joined}',        'The date you joined this listing.') ?>
-            <?= $tok('latest_joined_listing_template', '{if_listing_image}{/if_listing_image}', '{if_listing_image}...{/if_listing_image}', 'Shows only when the joined listing has an image.') ?>
+            <?= $tok('latest_joined_listing_template', '{if_listing_image}{/if_listing_image}',         '{if_listing_image}...{/if_listing_image}',         'Shows only when the joined listing has an image.') ?>
+            <?= $tok('latest_joined_listing_template', '{if_no_listing_image}{/if_no_listing_image}', '{if_no_listing_image}...{/if_no_listing_image}', 'Shows only when the joined listing has no image.') ?>
           </tbody></table>
         </div>
       </details>
@@ -609,7 +611,8 @@ $_grp = static fn(string $g): string => ($activeGroup !== 'all' && $activeGroup 
             <?= $tok('random_joined_listing_template', '{listing_image_html}', '{listing_image_html}', 'A ready-made img tag. Empty when there is no image.') ?>
             <?= $tok('random_joined_listing_template', '{listing_status}',     '{listing_status}',     'The joined listing status.') ?>
             <?= $tok('random_joined_listing_template', '{date_joined}',        '{date_joined}',        'The date you added this joined listing.') ?>
-            <?= $tok('random_joined_listing_template', '{if_listing_image}{/if_listing_image}', '{if_listing_image}...{/if_listing_image}', 'Shows only when the joined listing has an image.') ?>
+            <?= $tok('random_joined_listing_template', '{if_listing_image}{/if_listing_image}',         '{if_listing_image}...{/if_listing_image}',         'Shows only when the joined listing has an image.') ?>
+            <?= $tok('random_joined_listing_template', '{if_no_listing_image}{/if_no_listing_image}', '{if_no_listing_image}...{/if_no_listing_image}', 'Shows only when the joined listing has no image.') ?>
           </tbody></table>
         </div>
       </details>

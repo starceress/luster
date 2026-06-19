@@ -55,12 +55,6 @@ $quickActions = [
         'label' => 'Edit Join Rules',
         'muted' => !$hasRules,
     ],
-    'manage_adoptions' => [
-        'href'  => $hasAdoption ? "$b/admin/adoptions" : "$b/admin/addons",
-        'icon'  => 'adoptions',
-        'label' => 'Manage Adoptions',
-        'muted' => !$hasAdoption,
-    ],
 ];
 
 $quickActionsOrder = array_values(array_unique(array_intersect($quick_actions_order ?? [], array_keys($quickActions))));
@@ -74,7 +68,7 @@ foreach (array_keys($quickActions) as $qaKey) {
 <div class="toolbar">
   <div class="actions-row"></div>
   <div class="actions-row actions-row--right">
-    <a href="<?= $b ?>/admin/collective/templates" class="btn btn-primary btn-sm">Collective Templates</a>
+    <a href="<?= $b ?>/admin/collective/templates" class="btn btn-primary btn-sm"><?= View::icon('template') ?> Collective Templates</a>
     <a href="<?= $b ?>/admin/collective/settings" class="btn btn-quaternary btn-sm"><?= View::icon('gear') ?> Collective Settings</a>
   </div>
 </div>
@@ -216,13 +210,8 @@ foreach (array_keys($quickActions) as $qaKey) {
   </div>
 
   <div class="card">
-    <div class="card-head"><?= View::icon('embed') ?> References</div>
+    <div class="card-head">Manage Collective</div>
     <div class="collective-action-list">
-
-      <a href="<?= $b ?>/admin/collective/templates" class="collective-action-item">
-        <span class="pc-head-icon pc-head-icon-bg"><?= View::icon('notes') ?></span>
-        <span class="collective-action-label">Collective Templates</span>
-      </a>
 
       <a href="<?= $b ?>/admin/collective/snippets" class="collective-action-item">
         <span class="pc-head-icon pc-head-icon-bg"><?= View::icon('embed') ?></span>
@@ -232,20 +221,20 @@ foreach (array_keys($quickActions) as $qaKey) {
       <a href="<?= $b ?>/admin/affiliates?tab=approved&amp;scope=collective" class="collective-action-item">
         <span class="pc-head-icon pc-head-icon-bg"><?= View::icon('link') ?></span>
         <span>
-          <span class="collective-action-label">View All Collective Affiliates</span>
+          <span class="collective-action-label">Manage Collective Affiliates</span>
           <?php $_affCount = (int) ($total_affiliates_collective ?? 0); ?>
-          <span class="badge <?= $_affCount > 0 ? 'badge-info' : 'badge-inactive' ?> badge-inline-sm"><?= $_affCount ?> <?= $_affCount === 1 ? 'Affiliate' : 'Affiliates' ?></span>
+          <span class="badge <?= $_affCount > 0 ? 'badge-info-gold' : 'badge-inactive' ?> badge-inline-sm"><?= $_affCount ?> <?= $_affCount === 1 ? 'Affiliate' : 'Affiliates' ?></span>
         </span>
       </a>
 
       <a href="<?= $b ?>/admin/codes?collective=1" class="collective-action-item">
         <span class="pc-head-icon pc-head-icon-bg"><?= View::icon('image') ?></span>
         <span>
-          <span class="collective-action-label">View All Collective Codes</span>
+          <span class="collective-action-label">Manage Collective Codes</span>
           <?php $_codeTotal = (int) ($codes['total'] ?? 0); $_codePending = (int) ($codes['pending'] ?? 0); ?>
-          <span class="badge <?= $_codeTotal > 0 ? 'badge-info' : 'badge-inactive' ?> badge-inline-sm"><?= $_codeTotal ?> <?= $_codeTotal === 1 ? 'Code' : 'Codes' ?></span>
+          <span class="badge <?= $_codeTotal > 0 ? 'badge-info-gold' : 'badge-inactive' ?> badge-inline-sm"><?= $_codeTotal ?> <?= $_codeTotal === 1 ? 'Code' : 'Codes' ?></span>
           <?php if ($_codePending > 0): ?>
-            <span class="badge badge-pending badge-inline-sm"><?= $_codePending ?> Pending</span>
+            <span class="badge badge-inactive badge-inline-sm"><?= $_codePending ?> Pending</span>
           <?php endif; ?>
         </span>
       </a>
@@ -254,7 +243,7 @@ foreach (array_keys($quickActions) as $qaKey) {
       <a href="<?= $b ?>/admin/updates/collective" class="collective-action-item">
         <span class="pc-head-icon pc-head-icon-bg"><?= View::icon('updates') ?></span>
         <span>
-          <span class="collective-action-label">Collective Updates Index</span>
+          <span class="collective-action-label">Collective Updates</span>
           <?php if ($addons['updates'] !== null): ?>
             <span class="badge badge-info-gold badge-inline-sm"><?= (int) $addons['updates'] ?> <?= (int) $addons['updates'] === 1 ? 'Update' : 'Updates' ?></span>
           <?php endif; ?>
@@ -268,7 +257,7 @@ foreach (array_keys($quickActions) as $qaKey) {
         <span>
           <span class="collective-action-label">Wishlist Index</span>
           <?php if ($addons['wishlist'] !== null): ?>
-            <span class="badge badge-info-pink badge-inline-sm"><?= (int) $addons['wishlist'] ?> <?= (int) $addons['wishlist'] === 1 ? 'Entry' : 'Entries' ?></span>
+            <span class="badge badge-info-gold badge-inline-sm"><?= (int) $addons['wishlist'] ?> <?= (int) $addons['wishlist'] === 1 ? 'Entry' : 'Entries' ?></span>
           <?php endif; ?>
         </span>
       </a>
@@ -277,7 +266,7 @@ foreach (array_keys($quickActions) as $qaKey) {
       <?php if ($hasKim): ?>
       <a href="<?= $b ?>/admin/kim" class="collective-action-item">
         <span class="pc-head-icon pc-head-icon-bg"><?= View::icon('kim') ?></span>
-        <span class="collective-action-label">Keep In Mind Index<?php if (($addons['kim'] ?? null) !== null): ?> <span class="badge badge-inactive badge-inline-sm"><?= (int) $addons['kim'] ?> sign-up<?= (int) $addons['kim'] !== 1 ? 's' : '' ?></span><?php endif; ?></span>
+        <span class="collective-action-label">Keep In Mind Index<?php if (($addons['kim'] ?? null) !== null): ?> <span class="badge badge-info-gold badge-inline-sm"><?= (int) $addons['kim'] ?> sign-up<?= (int) $addons['kim'] !== 1 ? 's' : '' ?></span><?php endif; ?></span>
       </a>
       <?php endif; ?>
 
@@ -285,6 +274,13 @@ foreach (array_keys($quickActions) as $qaKey) {
       <a href="<?= $b ?>/admin/rules" class="collective-action-item">
         <span class="pc-head-icon pc-head-icon-bg"><?= View::icon('rules') ?></span>
         <span class="collective-action-label">Join Rules Index</span>
+      </a>
+      <?php endif; ?>
+
+      <?php if ($hasAdoption): ?>
+      <a href="<?= $b ?>/admin/adoptions" class="collective-action-item">
+        <span class="pc-head-icon pc-head-icon-bg"><?= View::icon('adoptions') ?></span>
+        <span class="collective-action-label">Manage Adoptions</span>
       </a>
       <?php endif; ?>
 

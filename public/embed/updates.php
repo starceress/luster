@@ -140,10 +140,11 @@ if ($_lusterUpdatesTemplate !== null) {
     // so that user-authored update body text cannot accidentally match {listing_subject}.
     $tplForLoop = $_lusterFid !== null
         ? str_replace(
-            ['{listing_title}', '{listing_subject}'],
+            ['{listing_title}', '{listing_subject}', '{listing_url}'],
             [
                 htmlspecialchars((string) $_lusterListing->title,   ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),
                 htmlspecialchars((string) $_lusterListing->subject, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),
+                htmlspecialchars((string) $_lusterListing->url,     ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),
             ],
             $_lusterUpdatesTemplate,
         )

@@ -59,7 +59,7 @@ final class JoinedController extends AdminController
         $taflCats        = $categoryRepo->getBySource('tafl');
         $customNetworks  = $categoryRepo->getCustomNetworks();
 
-        $tabCounts      = $repo->countAllByStatusTab();
+        $tabCounts      = $repo->countAllByStatusTab($search, $filterNetwork, $filterCat);
         $networkCounts  = $repo->getNetworkCounts();
         $categoryCounts = $repo->getCategoryCountMap(false);
 

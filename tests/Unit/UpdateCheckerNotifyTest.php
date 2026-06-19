@@ -35,13 +35,13 @@ final class UpdateCheckerNotifyTest extends TestCase
     // shouldSendNotification — opt-in gating
     // -----------------------------------------------------------------------
 
-    public function testNotificationOffByDefaultWhenSettingAbsent(): void
+    public function testNotificationOnByDefaultWhenSettingAbsent(): void
     {
         $store   = new InMemorySettings();
         $checker = $this->makeChecker($store);
         $status  = $this->statusWith(true, '2.0.0');
 
-        self::assertFalse($checker->shouldSendNotification($status));
+        self::assertTrue($checker->shouldSendNotification($status));
     }
 
     public function testNotificationOffWhenSettingIsZero(): void

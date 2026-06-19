@@ -123,8 +123,6 @@ $allTokenDesc = [
     '{kim_name}'           => "KIM member's name",
     '{kim_email}'          => "KIM member's email address",
     '{kim_url}'            => "KIM member's website link",
-    '{name}'               => "Older short name for {fan_name}; bulk email only",
-    '{email}'              => "Older short name for {fan_email}; bulk email only",
 ];
 
 $commonTokens = ['{fan_name}', '{fan_email}', '{fan_url}', '{fan_country}', '{listing_title}', '{listing_subject}', '{listing_url}', '{site_name}', '{owner_name}', '{owner_email}'];
@@ -176,8 +174,6 @@ $bulkTokens = [
     '{site_name}'       => $allTokenDesc['{site_name}'],
     '{owner_name}'      => $allTokenDesc['{owner_name}'],
     '{owner_email}'     => $allTokenDesc['{owner_email}'],
-    '{name}'            => $allTokenDesc['{name}'],
-    '{email}'           => $allTokenDesc['{email}'],
 ];
 
 $isGlobal     = ($scope === 'global');

@@ -60,7 +60,8 @@ final class ListingController extends AdminController
         $cfgAll    = $config->all();
         $ownedSort = (string) ($cfgAll['owned_sort'] ?? 'id');
 
-        $tab = trim((string) $request->query('tab', 'all'));
+        $tabExplicit = $request->query('tab', null) !== null;
+        $tab         = trim((string) $request->query('tab', 'all'));
         if (!in_array($tab, ['all', 'current', 'upcoming', 'pending'], true)) {
             $tab = 'all';
         }
@@ -151,6 +152,11 @@ final class ListingController extends AdminController
             $typeCountsAll[$type] = ($typeCountsAll[$type] ?? 0) + 1;
         }
 
+        // Total listing count before network/category/type filtering.
+        // Used for the "All Networks" and "All Categories" option labels in the filter
+        // dropdowns — using array_sum($networkCounts) would over-count multi-network listings.
+        $totalBeforeFilter = count($listings);
+
         // Network filter — name-based via resolved category data.
         if ($filterNetwork !== '') {
             $netUpper = strtoupper($filterNetwork);
@@ -166,6 +172,10 @@ final class ListingController extends AdminController
                 }
             ));
         }
+
+        // Count after network filter but before category/type filter — used for
+        // the "All Categories (N)" label so it reflects the active network scope.
+        $totalAfterNetworkFilter = count($listings);
 
         // Category filter — name-based, optionally scoped to selected network.
         if ($filterCat !== '') {
@@ -238,6 +248,12 @@ final class ListingController extends AdminController
             else                    { $tabCounts['current']++; }
         }
 
+        // When no tab was explicitly requested, land on "pending" if there are pending
+        // listings so the admin's attention is drawn there first.
+        if (!$tabExplicit && $tabCounts['pending'] > 0) {
+            $tab = 'pending';
+        }
+
         // Apply status tab filter.
         if ($tab !== 'all') {
             $listings = array_values(array_filter($listings, static function ($fl) use ($tab): bool {
@@ -295,9 +311,11 @@ final class ListingController extends AdminController
             'tafl_cats'       => $taflCats,
             'custom_networks' => $customNetworks,
             'custom_cats'     => $customCats,
-            'network_counts'  => $networkCounts,
-            'category_counts' => $categoryCounts,
-            'type_counts'     => $typeCountsAll,
+            'network_counts'           => $networkCounts,
+            'category_counts'          => $categoryCounts,
+            'type_counts'              => $typeCountsAll,
+            'total_before_filter'      => $totalBeforeFilter,
+            'total_after_network_filter' => $totalAfterNetworkFilter,
             'page'            => $page,
             'total_pages'     => $totalPages,
             'total'           => $totalItems,

@@ -101,7 +101,7 @@ $rangeEnd   = min($total, $page * $per_page);
   </div>
   <div class="actions-row actions-row--right">
     <a href="<?= $b ?>/admin/affiliates/email?scope=<?= View::e($scope) ?>" class="btn btn-secondary btn-sm">Email Affiliates</a>
-    <a href="<?= $b ?>/admin/affiliates/add" class="btn btn-primary btn-sm">+ Add Affiliate</a>
+    <a href="<?= $b ?>/admin/affiliates/add" class="btn btn-primary btn-sm"><?= View::icon('add') ?> Add Affiliate</a>
   </div>
 </div>
 
@@ -297,7 +297,7 @@ $rangeEnd   = min($total, $page * $per_page);
             </a>
           </th>
           <?php if ($tab === 'pending'): ?>
-            <th>Message</th>
+            <th>Application</th>
             <th>Submitted</th>
           <?php endif; ?>
           <?php if ($tab === 'all'): ?>
@@ -367,24 +367,23 @@ $rangeEnd   = min($total, $page * $per_page);
               </a>
               <div class="mem-url">Listing</div>
             <?php else: ?>
-              <span class="text-strong">Collective</span>
+              <a href="<?= $b ?>/admin/collective" class="link text-strong"><?= ($app_name ?? '') !== '' ? View::e($app_name) : 'Collective' ?></a>
+              <div class="mem-url">Collective</div>
             <?php endif; ?>
           </td>
 
           <!-- Pending-only: Message + Submitted -->
           <?php if ($tab === 'pending'): ?>
-          <td class="cell-truncate" data-label="Message">
+          <td data-label="Application">
             <?php $msg = (string) ($aff->applicationMessage ?? ''); ?>
-            <?php if ($msg !== ''): ?>
-              <?php if (mb_strlen($msg) > 80): ?>
-                <?php $msgHead = mb_strimwidth($msg, 0, 80, ''); $msgTail = mb_substr($msg, 80); ?>
-                <?= View::e($msgHead) ?><span class="msg-ellipsis">&hellip; <button type="button" class="link msg-read-more">Read more &rarr;</button></span><span class="msg-tail" hidden><?= nl2br(View::e($msgTail)) ?><br><button type="button" class="link msg-collapse">&larr; Collapse</button></span>
-              <?php else: ?>
-                <?= nl2br(View::e($msg)) ?>
-              <?php endif; ?>
-            <?php else: ?>
-              <span class="text-dim">&mdash;</span>
-            <?php endif; ?>
+            <button type="button" class="link js-aff-msg-open"
+                    data-aff-name="<?= View::e($aff->name) ?>"
+                    data-aff-url="<?= View::e($aff->url) ?>"
+                    data-aff-email="<?= View::e($aff->email ?? '') ?>"
+                    data-aff-image="<?= ($aff->image !== null && $aff->image !== '') ? View::e($b . '/uploads/affiliates/' . $aff->image) : '' ?>"
+                    data-aff-listing="<?= $fl !== null ? View::e($fl->subject ?: $fl->title) : View::e(($app_name ?? '') !== '' ? $app_name : 'Collective') ?>"
+                    data-aff-date="<?= $aff->createdAt !== '' ? View::e(date($admin_date_format, strtotime($aff->createdAt))) : '' ?>"
+                    data-aff-msg="<?= View::e($msg) ?>"><?= $msg !== '' ? 'Click to Read' : 'View Details' ?></button>
           </td>
           <td class="text-dim nowrap" data-label="Submitted">
             <?= $aff->createdAt !== '' ? View::e(date($admin_date_format, strtotime($aff->createdAt))) : '&mdash;' ?>
@@ -480,3 +479,29 @@ endif; ?>
 <?php endforeach; ?>
 
 <?php endif; ?>
+
+<!-- Affiliate application modal -->
+<div class="modal-backdrop is-hidden" id="aff-msg-modal" role="dialog" aria-modal="true" aria-labelledby="aff-msg-modal-title" data-managed-close>
+  <div class="modal modal--wide">
+    <div class="modal-header">
+      <h3 class="modal-title" id="aff-msg-modal-title">Affiliate Application</h3>
+      <button type="button" class="modal-close" aria-label="Close">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div id="aff-msg-modal-image" style="margin-bottom:.75rem;text-align:center" hidden></div>
+      <table class="data-table" style="margin-bottom:.75rem">
+        <tbody>
+          <tr><th style="width:100px">Name</th><td id="aff-msg-modal-name"></td></tr>
+          <tr><th>URL</th><td id="aff-msg-modal-url"></td></tr>
+          <tr><th>Email</th><td id="aff-msg-modal-email"></td></tr>
+          <tr><th>Listing</th><td id="aff-msg-modal-listing"></td></tr>
+          <tr><th>Submitted</th><td id="aff-msg-modal-date"></td></tr>
+        </tbody>
+      </table>
+      <div id="aff-msg-modal-msg-wrap">
+        <div style="font-weight:600;margin-bottom:.35rem;color:var(--text)">Message</div>
+        <div id="aff-msg-modal-body" style="white-space:pre-wrap;color:var(--text-muted);line-height:1.5"></div>
+      </div>
+    </div>
+  </div>
+</div>

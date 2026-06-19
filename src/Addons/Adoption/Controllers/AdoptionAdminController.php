@@ -163,11 +163,12 @@ final class AdoptionAdminController
                 if (!in_array($fl->id, $adoptionListingIds, true)) {
                     continue;
                 }
-                $lc = $listingCounts[$fl->id] ?? ['all' => 0, 'pending' => 0, 'approved' => 0];
+                $lc = $listingCounts[$fl->id] ?? ['all' => 0, 'pending' => 0, 'approved' => 0, 'granted' => 0];
                 $adoptionListings[] = [
-                    'listing'       => $fl,
+                    'listing'        => $fl,
                     'count_pending'  => $lc['pending'],
                     'count_approved' => $lc['approved'],
+                    'count_granted'  => $lc['granted'],
                     'count_all'      => $lc['all'],
                 ];
             }
@@ -560,26 +561,51 @@ final class AdoptionAdminController
         $db     = $this->app->getDatabase();
         $config = $this->app->getConfig();
 
-        $ids = array_filter(
-            array_map('intval', (array) $request->query('ids', [])),
-            static fn(int $id): bool => $id > 0
-        );
-
         $returnUrl = (string) $request->query('_return', $this->app->getBaseUrl() . '/admin/adoptions');
 
         $adoptionRepo = new AdoptionRepo($db);
         $listingRepo  = new ListingRepo($db, $config);
+        $session      = $this->app->getSession();
 
         $applications = [];
-        foreach (array_unique($ids) as $id) {
-            $app = $adoptionRepo->getById($id);
-            if ($app !== null) {
-                $applications[] = $app;
+
+        // Mode A: explicit IDs (from bulk action selector)
+        $rawIds = array_filter(
+            array_map('intval', (array) $request->query('ids', [])),
+            static fn(int $id): bool => $id > 0
+        );
+        if (!empty($rawIds)) {
+            foreach (array_unique($rawIds) as $id) {
+                $app = $adoptionRepo->getById($id);
+                if ($app !== null) {
+                    $applications[] = $app;
+                }
+            }
+        }
+
+        // Mode B: listing_id + statuses (from emailAllForListing — avoids URL length limits)
+        $directListingId    = (int) $request->query('listing_id', 0);
+        $sourceModeStatuses = '';
+        if (empty($applications) && $directListingId > 0) {
+            $rawStatuses     = explode(',', (string) $request->query('statuses', 'approved,granted'));
+            $allowedStatuses = ['pending', 'reviewed', 'approved', 'rejected', 'granted'];
+            $statuses        = array_values(array_filter(
+                array_map('trim', $rawStatuses),
+                static fn(string $s): bool => in_array($s, $allowedStatuses, true)
+            ));
+            if (empty($statuses)) {
+                $statuses = ['approved', 'granted'];
+            }
+            $sourceModeStatuses = implode(',', $statuses);
+            foreach ($statuses as $st) {
+                $rows = $adoptionRepo->query($st, $directListingId);
+                foreach ($rows as $row) {
+                    $applications[] = $row;
+                }
             }
         }
 
         if (empty($applications)) {
-            $session = $this->app->getSession();
             $session->set('lstr_flash_error', 'No valid applications selected.');
             return Response::redirect($returnUrl);
         }
@@ -600,7 +626,6 @@ final class AdoptionAdminController
         }
 
         $savedEmails = (new SavedEmailRepo($db))->getAll();
-        $session     = $this->app->getSession();
         $old         = (array) $session->get('lstr_flash_old', []);
         $error       = (string) $session->get('lstr_flash_error', '');
         $session->remove('lstr_flash_old');
@@ -616,10 +641,12 @@ final class AdoptionAdminController
             'owner_name'     => (string) $config->get('owner_name',  ''),
             'owner_email'    => (string) $config->get('owner_email', ''),
             'site_name'      => (string) $config->get('site_name',   ''),
-            'saved_emails'   => $savedEmails,
-            'return_url'     => $returnUrl,
-            'old'            => ['subject' => (string) ($old['subject'] ?? ''), 'body' => (string) ($old['body'] ?? '')],
-            'error'          => $error,
+            'saved_emails'        => $savedEmails,
+            'return_url'          => $returnUrl,
+            'old'                 => ['subject' => (string) ($old['subject'] ?? ''), 'body' => (string) ($old['body'] ?? '')],
+            'error'               => $error,
+            'source_listing_id'   => $directListingId,
+            'source_statuses'     => $sourceModeStatuses,
         ], [
             $this->crumb('Adoptions', $this->adminUrl('/admin/adoptions')),
             $this->crumb('Email Applicants'),
@@ -648,7 +675,14 @@ final class AdoptionAdminController
         if ($subject === '' || $body === '') {
             $session->set('lstr_flash_error', 'Subject and message are required.');
             $session->set('lstr_flash_old', ['subject' => $subject, 'body' => $body]);
-            $qs = http_build_query(['ids' => array_values($ids), '_return' => $returnUrl]);
+            // Prefer Mode B redirect (listing_id + statuses) to avoid URL length limits.
+            $sourceLid      = (int) $request->post('source_listing_id', 0);
+            $sourceStatuses = trim((string) $request->post('source_statuses', ''));
+            if ($sourceLid > 0 && $sourceStatuses !== '') {
+                $qs = http_build_query(['listing_id' => $sourceLid, 'statuses' => $sourceStatuses, '_return' => $returnUrl]);
+            } else {
+                $qs = http_build_query(['ids' => array_values($ids), '_return' => $returnUrl]);
+            }
             return Response::redirect($baseUrl . '/admin/adoptions/email?' . $qs);
         }
 
@@ -701,6 +735,45 @@ final class AdoptionAdminController
         }
         $session->set('lstr_flash_success', $msg);
         return Response::redirect($returnUrl);
+    }
+
+    // -----------------------------------------------------------------------
+    // GET /admin/adoptions/{lid}/email-all
+    // -----------------------------------------------------------------------
+
+    public function emailAllForListing(Request $request, array $params): Response
+    {
+        $lid          = (int) ($params['lid'] ?? 0);
+        $db           = $this->app->getDatabase();
+        $config       = $this->app->getConfig();
+        $session      = $this->app->getSession();
+        $baseUrl      = $this->app->getBaseUrl();
+        $adoptionRepo = new AdoptionRepo($db);
+        $listingRepo  = new ListingRepo($db, $config);
+
+        $listing = $listingRepo->getById($lid);
+        if ($listing === null) {
+            $session->set('lstr_flash_error', 'Listing not found.');
+            return Response::redirect($baseUrl . '/admin/adoptions?tab=listings');
+        }
+
+        $approved = $adoptionRepo->query('approved', $lid);
+        $granted  = $adoptionRepo->query('granted',  $lid);
+        $all      = array_merge($approved, $granted);
+
+        if (empty($all)) {
+            $session->set('lstr_flash_error', 'No approved or granted applicants for this listing.');
+            return Response::redirect($baseUrl . '/admin/adoptions?tab=listings');
+        }
+
+        // Redirect with listing_id + statuses instead of serialising every ID into the URL,
+        // which can hit browser/server URL-length limits for large adoption lists.
+        $qs = http_build_query([
+            'listing_id' => $lid,
+            'statuses'   => 'approved,granted',
+            '_return'    => $baseUrl . '/admin/adoptions?tab=listings',
+        ]);
+        return Response::redirect($baseUrl . '/admin/adoptions/email?' . $qs);
     }
 
     // -----------------------------------------------------------------------

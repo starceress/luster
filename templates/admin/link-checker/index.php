@@ -27,6 +27,10 @@ use Luster\Core\View;
 /** @var int    $mem_total_pages */
 /** @var ?\Luster\Models\Listing        $mem_listing */
 /** @var \Luster\Models\Listing[]        $listings */
+/** @var \Luster\Models\Listing[]        $mem_sum_listings */
+/** @var int                             $mem_sum_page */
+/** @var int                             $mem_sum_total */
+/** @var int                             $mem_sum_total_pages */
 /** @var ?int                            $listing_id_filter */
 /** @var string $owner_url */
 /** @var string $csrf_token */
@@ -118,12 +122,22 @@ $lcMemSortUrl = static function (string $col) use ($b, $listing_id_filter, $stat
     return $b . '/admin/link-checker' . ($qs !== '' ? '?' . $qs : '');
 };
 
-$lcStatusUrl = static function (string $s) use ($b, $listing_id_filter, $status, $search, $aff_sort, $aff_dir, $joined_sort, $joined_dir, $mem_sort, $mem_dir): string {
+$lcMemSumPageUrl = static function (int $p) use ($b, $listing_id_filter): string {
+    $qs = http_build_query(array_filter([
+        'listing_id'   => $listing_id_filter !== null ? (string) $listing_id_filter : '',
+        'tab'          => 'members',
+        'mem_sum_page' => $p > 1 ? (string) $p : '',
+    ], static fn(string $v): bool => $v !== ''));
+    return $b . '/admin/link-checker' . ($qs !== '' ? '?' . $qs : '');
+};
+
+$lcStatusUrl = static function (string $s, string $tab = '') use ($b, $listing_id_filter, $status, $search, $aff_sort, $aff_dir, $joined_sort, $joined_dir, $mem_sort, $mem_dir): string {
     $newStatus = ($status === $s) ? '' : $s;
     $qs = http_build_query(array_filter([
         'listing_id'  => $listing_id_filter !== null ? (string) $listing_id_filter : '',
         'status'      => $newStatus,
         'search'      => $search,
+        'tab'         => $tab,
         'aff_sort'    => $aff_sort !== 'name' ? $aff_sort : '',
         'aff_dir'     => $aff_dir  !== 'asc'  ? $aff_dir  : '',
         'joined_sort' => $joined_sort !== 'name'       ? $joined_sort : '',
@@ -167,6 +181,23 @@ $statusBadgeClass = static function (string $s): string {
         default           => 'badge-inactive',
     };
 };
+
+$sumCell = static function (?array $ms, string $key): string {
+    if ($ms === null) {
+        return '<span class="text-dim">&mdash;</span>';
+    }
+    $v = (int) ($ms[$key] ?? 0);
+    if ($v === 0) {
+        return '<span class="text-dim">0</span>';
+    }
+    if ($key === 'dead') {
+        return '<span class="badge badge-error">' . $v . '</span>';
+    }
+    if ($key === 'redirect') {
+        return '<span class="badge badge-redirect">' . $v . '</span>';
+    }
+    return (string) $v;
+};
 ?>
 
 <?php if ($success !== ''): ?>
@@ -187,7 +218,6 @@ $statusBadgeClass = static function (string $s): string {
     </button>
   </div>
   <div class="actions-row">
-    <button id="lc-run-btn" class="btn btn-primary btn-sm">Run Link Checker</button>
     <a href="<?= $b ?>/admin/link-checker/settings" class="btn btn-quaternary btn-sm"><?= View::icon('gear') ?>Link Checker Settings</a>
   </div>
 </div>
@@ -195,7 +225,7 @@ $statusBadgeClass = static function (string $s): string {
 <!-- ── FILTER PANEL ────────────────────────────────────────────────────────── -->
 <div class="filter-panel" id="lc-filter-panel">
   <form method="GET" action="<?= $b ?>/admin/link-checker" id="lc-filter-form" class="filter-row">
-    <input type="hidden" name="tab" value="affiliates" id="lc-filter-tab">
+    <input type="hidden" name="tab" value="members" id="lc-filter-tab">
     <?php if (!empty($listings)): ?>
     <div class="select-wrap">
       <?php $_lcSc = $aff_scope_counts ?? []; $_lcTotal = array_sum($_lcSc); ?>
@@ -244,11 +274,10 @@ $statusBadgeClass = static function (string $s): string {
 <!-- ── TAB NAVIGATION ─────────────────────────────────────────────────────── -->
 <div class="tabs-wrap">
   <div class="tabs">
-    <button class="tabs-btn active" data-tab="affiliates">Affiliates</button>
+    <button class="tabs-btn active" data-tab="members">Members</button>
+    <button class="tabs-btn" data-tab="affiliates">Affiliates</button>
     <button class="tabs-btn" data-tab="joined">Joined</button>
-    <?php if ($listing_id_filter !== null && $listing_id_filter > 0): ?>
-    <button class="tabs-btn" data-tab="members">Members<?php if ((int) ($mem_total ?? 0) > 0): ?> <span class="badge badge-inactive"><?= (int) $mem_total ?></span><?php endif; ?></button>
-    <?php endif; ?>
+    <span style="display:block;width:1px;background:var(--border);margin:4px .5rem;align-self:stretch;flex-shrink:0" aria-hidden="true"></span>
     <button class="tabs-btn" data-tab="moved">Redirected<?php if ($totalMoved > 0): ?> <span class="badge badge-redirect"><?= $totalMoved ?></span><?php endif; ?></button>
     <button class="tabs-btn" data-tab="dead">Dead<?php if ($totalDead > 0): ?> <span class="badge badge-error"><?= $totalDead ?></span><?php endif; ?></button>
   </div>
@@ -257,24 +286,288 @@ $statusBadgeClass = static function (string $s): string {
   <span class="overview-section-title">Section</span>
   <div class="select-wrap flex-fill">
     <select class="tabs-select" aria-label="Select tab">
+      <option value="members">Members<?= (int) ($mem_total ?? 0) > 0 ? ' (' . (int) $mem_total . ')' : '' ?></option>
       <option value="affiliates">Affiliates<?= (int) ($aff_total ?? 0) > 0 ? ' (' . (int) $aff_total . ')' : '' ?></option>
       <option value="joined">Joined<?= (int) ($joined_total ?? 0) > 0 ? ' (' . (int) $joined_total . ')' : '' ?></option>
-      <?php if ($listing_id_filter !== null && $listing_id_filter > 0): ?>
-      <option value="members">Members<?= (int) ($mem_total ?? 0) > 0 ? ' (' . (int) $mem_total . ')' : '' ?></option>
-      <?php endif; ?>
       <option value="moved">Redirected<?= $totalMoved > 0 ? ' (' . $totalMoved . ')' : '' ?></option>
       <option value="dead">Dead<?= $totalDead > 0 ? ' (' . $totalDead . ')' : '' ?></option>
     </select>
   </div>
 </div>
 
+  <!-- ── Members panel ───────────────────────────────────────────────────── -->
+  <div id="tab-members" class="tabs-panel active" role="tabpanel">
+  <?php
+    $_memSummary = $mem_summary ?? [];
+    $_allListings = $listings ?? [];
+    $_scanEndpoint = $b . '/admin/link-checker/scan-member-ajax';
+    $_allListingIds = array_values(array_map(static fn($l) => (int) $l->id, $_allListings));
+  ?>
+  <?php if ($listing_id_filter === 0): ?>
+
+    <!-- ── Collective — no member table ─────────────────────────────────── -->
+    <div class="card">
+      <div class="empty">
+        <div class="empty-icon"><?= View::icon('members', ['width' => 32, 'height' => 32]) ?></div>
+        <div class="empty-title">Members are per-listing.</div>
+        <div>Select a specific listing from the filter above, or choose <strong>All Listings</strong> to see every listing's member URLs.</div>
+      </div>
+    </div>
+
+  <?php elseif ($listing_id_filter === null): ?>
+
+    <!-- ── All Listings view ─────────────────────────────────────────────── -->
+
+    <!-- Hidden check-all trigger -->
+    <button id="lc-check-members" style="display:none"
+            data-csrf="<?= View::e($csrf_token) ?>"
+            data-endpoint="<?= $b ?>/admin/link-checker/check-member"
+            data-ids-url="<?= View::e($b . '/admin/link-checker/all-ids?panel=members') ?>"
+            data-panel="members"></button>
+
+    <p>
+      Member URLs are checked against a synced snapshot stored in Luster. Use "Scan All Listings" to import the current member URLs from every listing at once, or scan individual listings using the row buttons below. <b>Note:</b> Large collectives may take a moment to sync.
+    </p>
+
+    <!-- Scan All + Run Link Checker buttons -->
+    <div class="actions-row" style="margin-bottom:.75rem;gap:.5rem">
+      <button id="lc-scan-all-btn" class="btn btn-secondary btn-sm"
+              data-csrf="<?= View::e($csrf_token) ?>"
+              data-endpoint="<?= View::e($_scanEndpoint) ?>"
+              data-listing-ids="<?= View::e(json_encode($_allListingIds, JSON_THROW_ON_ERROR)) ?>">
+        <?= View::icon('refresh', ['width' => 21, 'height' => 21]) ?> Scan All Listings
+      </button>
+      <button type="button" class="btn btn-primary btn-sm js-lc-run-panel" data-panel="members">
+        <?= View::icon('linkcheck') ?> Run Link Checker
+      </button>
+    </div>
+    <div class="lc-progress-wrap is-hidden" id="lc-scan-prog" style="margin-bottom:.75rem">
+      <div class="lc-progress" role="progressbar" aria-valuemin="0" aria-valuemax="100">
+        <div class="lc-progress-bar" id="lc-scan-prog-bar" style="width:0%"></div>
+      </div>
+      <span class="lc-prog-label" id="lc-scan-prog-label">Preparing&hellip;</span>
+    </div>
+
+    <!-- Check-all progress bar -->
+    <div class="lc-progress-wrap is-hidden" id="lc-prog-members" style="margin-bottom:.75rem">
+      <div class="lc-progress" role="progressbar" aria-valuemin="0" aria-valuemax="100">
+        <div class="lc-progress-bar" id="lc-prog-bar-members" style="width:0%"></div>
+      </div>
+      <span class="lc-prog-label" id="lc-prog-label-members">0 / <?= (int) ($mem_total ?? 0) ?></span>
+    </div>
+
+    <div class="card">
+      <div class="card-head">
+        <span>All Listings</span>
+        <?php
+          $_sumStart = ($mem_sum_page - 1) * $lc_per_page + 1;
+          $_sumEnd   = min($mem_sum_page * $lc_per_page, $mem_sum_total);
+        ?>
+        <?php if ($mem_sum_total > 0): ?>
+        <span class="row-sub">Showing <?= $_sumStart ?>&#8211;<?= $_sumEnd ?> of <?= number_format($mem_sum_total) ?> listing<?= $mem_sum_total !== 1 ? 's' : '' ?></span>
+        <?php endif; ?>
+        <div class="stat-pills" style="margin-left:auto">
+          <span class="badge badge-current"><?= (int) ($mem_stats['ok']        ?? 0) ?> Active</span>
+          <span class="badge badge-error"><?= (int) ($mem_stats['dead']       ?? 0) ?> Dead</span>
+          <span class="badge badge-redirect"><?= (int) ($mem_stats['redirect']   ?? 0) ?> Redirect</span>
+          <span class="badge badge-inactive"><?= (int) ($mem_stats['unchecked']  ?? 0) ?> Unchecked</span>
+        </div>
+      </div>
+      <?php if (empty($_allListings)): ?>
+      <div class="empty">
+        <div class="empty-icon"><?= View::icon('linkcheck', ['width' => 32, 'height' => 32]) ?></div>
+        <div class="empty-title">No listings found.</div>
+        <div>Add a listing to start checking member URLs.</div>
+      </div>
+      <?php else: ?>
+      <div class="table-wrap">
+        <table class="data-table mem-table">
+          <thead>
+            <tr>
+              <th>Listing</th>
+              <th>Synced</th>
+              <th>Active</th>
+              <th>Dead</th>
+              <th>Redirect</th>
+              <th>Unchecked</th>
+              <th>Last Checked</th>
+              <th class="act-col">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <?php foreach ($mem_sum_listings ?? [] as $_lst): ?>
+            <?php $_lsid = (int) $_lst->id; $_ms = $_memSummary[$_lsid] ?? null; ?>
+            <tr id="lc-mem-sum-<?= $_lsid ?>">
+              <td data-label="Listing">
+                <span class="text-strong"><?= View::e($_lst->subject ?: $_lst->title) ?></span>
+              </td>
+              <td data-label="Synced" class="lc-ms-total"><?= $sumCell($_ms, 'total') ?></td>
+              <td data-label="Active" class="lc-ms-ok"><?= $sumCell($_ms, 'ok') ?></td>
+              <td data-label="Dead" class="lc-ms-dead"><?= $sumCell($_ms, 'dead') ?></td>
+              <td data-label="Redirect" class="lc-ms-redirect"><?= $sumCell($_ms, 'redirect') ?></td>
+              <td data-label="Unchecked" class="lc-ms-unchecked"><?= $sumCell($_ms, 'unchecked') ?></td>
+              <td data-label="Last Checked" class="text-muted lc-ms-checked">
+                <?= $_ms !== null && $_ms['last_checked'] !== null
+                    ? View::e(date($admin_date_format, strtotime((string) $_ms['last_checked'])))
+                    : '<span class="text-dim">&mdash;</span>' ?>
+              </td>
+              <td class="act-col" data-label="">
+                <div class="data-actions">
+                  <button type="button" class="btn btn-secondary btn-xs js-lc-scan-listing"
+                          data-listing-id="<?= $_lsid ?>"
+                          data-csrf="<?= View::e($csrf_token) ?>"
+                          data-endpoint="<?= View::e($_scanEndpoint) ?>">
+                    Scan
+                  </button>
+                  <a href="<?= View::e($b . '/admin/link-checker?' . http_build_query(['listing_id' => $_lsid, 'tab' => 'members'])) ?>"
+                     class="btn btn-tertiary btn-xs">View</a>
+                </div>
+              </td>
+            </tr>
+            <?php endforeach; ?>
+          </tbody>
+        </table>
+      </div>
+      <?php endif; ?>
+    </div>
+    <?php if ($mem_sum_total_pages > 1): ?>
+      <?php $pg_current = $mem_sum_page; $pg_total = $mem_sum_total_pages; $pg_url = $lcMemSumPageUrl;
+      include LUSTER_BASE . '/templates/admin/_pagination.php'; ?>
+    <?php endif; ?>
+
+  <?php else: ?>
+
+    <!-- ── Per-listing view ──────────────────────────────────────────────── -->
+
+    <!-- Hidden check-all trigger -->
+    <button id="lc-check-members" style="display:none"
+            data-csrf="<?= View::e($csrf_token) ?>"
+            data-endpoint="<?= $b ?>/admin/link-checker/check-member"
+            data-ids-url="<?= View::e($b . '/admin/link-checker/all-ids?panel=members&listing_id=' . $listing_id_filter) ?>"
+            data-panel="members"></button>
+
+    <!-- Scan + Run buttons above card -->
+    <div class="actions-row" style="margin-bottom:.75rem;gap:.5rem">
+      <form method="POST" action="<?= $b ?>/admin/link-checker/scan-members" class="action-form-inline">
+        <input type="hidden" name="_csrf"      value="<?= View::e($csrf_token) ?>">
+        <input type="hidden" name="listing_id" value="<?= (int) $listing_id_filter ?>">
+        <button type="submit" class="btn btn-secondary btn-sm"><?= View::icon('refresh') ?> Scan Members</button>
+      </form>
+      <button type="button" class="btn btn-primary btn-sm js-lc-run-panel" data-panel="members">
+        <?= View::icon('linkcheck') ?> Run Link Checker
+      </button>
+    </div>
+
+    <!-- Check-all progress bar -->
+    <div class="lc-progress-wrap is-hidden" id="lc-prog-members" style="margin-bottom:.75rem">
+      <div class="lc-progress" role="progressbar" aria-valuemin="0" aria-valuemax="100">
+        <div class="lc-progress-bar" id="lc-prog-bar-members" style="width:0%"></div>
+      </div>
+      <span class="lc-prog-label" id="lc-prog-label-members">0 / <?= count($members ?? []) ?></span>
+    </div>
+
+    <div class="card">
+      <div class="card-head">
+        <span>Member URLs<?php if ($mem_listing !== null): ?> &mdash; <?= View::e($mem_listing->subject ?: $mem_listing->title) ?><?php endif; ?></span>
+        <?php if ($mem_total > 0): ?>
+        <span class="row-sub">Showing <?= ($mem_page - 1) * $lc_per_page + 1 ?>&#8211;<?= ($mem_page - 1) * $lc_per_page + count($members ?? []) ?> of <?= number_format($mem_total) ?> member<?= $mem_total !== 1 ? 's' : '' ?></span>
+        <?php endif; ?>
+        <div class="stat-pills" style="margin-left:auto">
+          <a href="<?= View::e($lcStatusUrl('ok', 'members')) ?>" class="badge badge-current<?= $status === 'ok' ? ' badge--active' : '' ?>"><?= (int) ($mem_stats['ok'] ?? 0) ?> Active</a>
+          <a href="<?= View::e($lcStatusUrl('dead', 'members')) ?>" class="badge badge-error<?= $status === 'dead' ? ' badge--active' : '' ?>"><?= (int) ($mem_stats['dead'] ?? 0) ?> Dead</a>
+          <a href="<?= View::e($lcStatusUrl('redirect', 'members')) ?>" class="badge badge-redirect<?= $status === 'redirect' ? ' badge--active' : '' ?>"><?= (int) ($mem_stats['redirect'] ?? 0) ?> Redirect</a>
+          <a href="<?= View::e($lcStatusUrl('unchecked', 'members')) ?>" class="badge badge-inactive<?= $status === 'unchecked' ? ' badge--active' : '' ?>"><?= (int) ($mem_stats['unchecked'] ?? 0) ?> Unchecked</a>
+        </div>
+      </div>
+      <?php if (empty($members)): ?>
+      <div class="empty">
+        <div class="empty-icon"><?= View::icon('linkcheck', ['width' => 32, 'height' => 32]) ?></div>
+        <div class="empty-title">No member URLs scanned yet.</div>
+        <div>Click <strong>Scan Members</strong> above to sync member URLs from this listing, then run the checker.</div>
+      </div>
+      <?php else: ?>
+      <div class="table-wrap">
+        <table class="data-table mem-table">
+          <thead>
+            <tr>
+              <th><a href="<?= View::e($lcMemSortUrl('member_name')) ?>" class="sort-th<?= $mem_sort === 'member_name' ? ' sort-active' : '' ?>">Name <?= View::sortIcon('member_name', $mem_sort, $mem_dir) ?></a></th>
+              <th><a href="<?= View::e($lcMemSortUrl('member_url')) ?>" class="sort-th<?= $mem_sort === 'member_url' ? ' sort-active' : '' ?>">URL <?= View::sortIcon('member_url', $mem_sort, $mem_dir) ?></a></th>
+              <th><a href="<?= View::e($lcMemSortUrl('link_status')) ?>" class="sort-th<?= $mem_sort === 'link_status' ? ' sort-active' : '' ?>">Status <?= View::sortIcon('link_status', $mem_sort, $mem_dir) ?></a></th>
+              <th><a href="<?= View::e($lcMemSortUrl('link_checked_at')) ?>" class="sort-th<?= $mem_sort === 'link_checked_at' ? ' sort-active' : '' ?>">Last Checked <?= View::sortIcon('link_checked_at', $mem_sort, $mem_dir) ?></a></th>
+              <th class="act-col">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <?php foreach ($members as $mem): ?>
+            <tr id="lc-mem-<?= (int) $mem->id ?>">
+              <td data-label="Name"><span class="text-strong"><?= View::e((string) $mem->member_name) ?></span></td>
+              <td data-label="URL">
+                <?php if ($mem->member_url !== ''): ?>
+                <a href="<?= View::e((string) $mem->member_url) ?>" target="_blank" rel="noopener noreferrer" class="link"><?= View::e((string) $mem->member_url) ?></a>
+                <?php if ($mem->link_redirect_url !== null): ?>
+                  <div class="lc-redirect-info">
+                    &rarr; <a href="<?= View::e((string) $mem->link_redirect_url) ?>" target="_blank" rel="noopener noreferrer" class="link"><?= View::e((string) $mem->link_redirect_url) ?></a>
+                  </div>
+                <?php endif; ?>
+                <?php else: ?>
+                <span class="text-dim">&mdash;</span>
+                <?php endif; ?>
+              </td>
+              <td data-label="Status">
+                <span class="badge <?= View::e($statusBadgeClass((string) $mem->link_status)) ?>" data-lc-link-badge>
+                  <?= View::e($statusLabel((string) $mem->link_status)) ?>
+                </span>
+              </td>
+              <td class="lc-checked-cell text-muted" data-label="Last Checked" data-lc-checked>
+                <?= $mem->link_checked_at !== null ? View::e(date($admin_date_format, strtotime((string) $mem->link_checked_at))) : '<span class="text-dim">&mdash;</span>' ?>
+              </td>
+              <td class="act-col" data-label="">
+                <button class="btn btn-quaternary btn-xs js-lc-single"
+                        data-id="<?= (int) $mem->id ?>"
+                        data-type="member"
+                        data-csrf="<?= View::e($csrf_token) ?>"
+                        data-endpoint="<?= $b ?>/admin/link-checker/check-member">
+                  Check
+                </button>
+              </td>
+            </tr>
+            <?php endforeach; ?>
+          </tbody>
+        </table>
+      </div>
+      <?php endif; ?>
+    </div>
+    <?php if ($mem_total_pages > 1): ?>
+      <?php $pg_current = $mem_page; $pg_total = $mem_total_pages; $pg_url = $lcMemPageUrl;
+      include LUSTER_BASE . '/templates/admin/_pagination.php'; ?>
+    <?php endif; ?>
+    <?php if ($mem_total > 0): ?>
+    <div class="actions-row actions-row--right" style="margin-top:.75rem">
+      <form method="POST" action="<?= $b ?>/admin/link-checker/reset-members"
+            data-confirm="Reset all member link check statuses for this listing?">
+        <input type="hidden" name="_csrf"      value="<?= View::e($csrf_token) ?>">
+        <input type="hidden" name="listing_id" value="<?= (int) $listing_id_filter ?>">
+        <button type="submit" class="btn btn-tertiary btn-sm">Reset Member Statuses</button>
+      </form>
+    </div>
+    <?php endif; ?>
+
+  <?php endif; ?>
+  </div>
+
   <!-- ── Affiliates panel ─────────────────────────────────────────────────── -->
-  <div id="tab-affiliates" class="tabs-panel active" role="tabpanel">
+  <div id="tab-affiliates" class="tabs-panel" role="tabpanel">
     <button id="lc-check-affiliates" style="display:none"
             data-csrf="<?= View::e($csrf_token) ?>"
             data-endpoint="<?= $b ?>/admin/link-checker/check-affiliate"
             data-ids-url="<?= View::e($b . '/admin/link-checker/all-ids?panel=affiliates' . ($listing_id_filter !== null ? '&listing_id=' . $listing_id_filter : '')) ?>"
             data-panel="affiliates"></button>
+
+    <div class="actions-row" style="margin-bottom:.75rem">
+      <button type="button" class="btn btn-primary btn-sm js-lc-run-panel" data-panel="affiliates">
+        <?= View::icon('linkcheck') ?> Run Link Checker
+      </button>
+    </div>
     <div class="lc-progress-wrap is-hidden" id="lc-prog-affiliates">
       <div class="lc-progress" role="progressbar" aria-valuemin="0" aria-valuemax="100">
         <div class="lc-progress-bar" id="lc-prog-bar-affiliates" style="width:0%"></div>
@@ -285,7 +578,7 @@ $statusBadgeClass = static function (string $s): string {
     <?php if (empty($affiliates)): ?>
     <div class="card">
       <div class="empty">
-        <div class="empty-icon"><?= View::icon('link', ['width' => 32, 'height' => 32]) ?></div>
+        <div class="empty-icon"><?= View::icon('linkcheck', ['width' => 32, 'height' => 32]) ?></div>
         <div class="empty-title">No affiliates found.</div>
         <div>Add some affiliates to start checking links.</div>
         <a href="<?= $b ?>/admin/affiliates/add" class="btn btn-primary btn-sm"><?= View::icon('add') ?> Add Affiliate</a>
@@ -297,10 +590,10 @@ $statusBadgeClass = static function (string $s): string {
         <span><?= $filterLabel !== null ? View::e($filterLabel) : 'All Listings' ?></span>
         <span class="row-sub">Showing <?= ($aff_page - 1) * $lc_per_page + 1 ?>&#8211;<?= ($aff_page - 1) * $lc_per_page + count($affiliates) ?> of <?= number_format($aff_total) ?> affiliate<?= $aff_total !== 1 ? 's' : '' ?></span>
         <div class="stat-pills" style="margin-left:auto">
-          <a href="<?= View::e($lcStatusUrl('ok')) ?>" class="badge badge-current<?= $status === 'ok' ? ' badge--active' : '' ?>"><?= $aff_stats['ok'] ?> Active</a>
-          <a href="<?= View::e($lcStatusUrl('dead')) ?>" class="badge badge-error<?= $status === 'dead' ? ' badge--active' : '' ?>"><?= $aff_stats['dead'] ?> Dead</a>
-          <a href="<?= View::e($lcStatusUrl('redirect')) ?>" class="badge badge-redirect<?= $status === 'redirect' ? ' badge--active' : '' ?>"><?= $aff_stats['redirect'] ?> Redirect</a>
-          <a href="<?= View::e($lcStatusUrl('unchecked')) ?>" class="badge badge-inactive<?= $status === 'unchecked' ? ' badge--active' : '' ?>"><?= $aff_stats['unchecked'] ?> Unchecked</a>
+          <a href="<?= View::e($lcStatusUrl('ok', 'affiliates')) ?>" class="badge badge-current<?= $status === 'ok' ? ' badge--active' : '' ?>"><?= $aff_stats['ok'] ?> Active</a>
+          <a href="<?= View::e($lcStatusUrl('dead', 'affiliates')) ?>" class="badge badge-error<?= $status === 'dead' ? ' badge--active' : '' ?>"><?= $aff_stats['dead'] ?> Dead</a>
+          <a href="<?= View::e($lcStatusUrl('redirect', 'affiliates')) ?>" class="badge badge-redirect<?= $status === 'redirect' ? ' badge--active' : '' ?>"><?= $aff_stats['redirect'] ?> Redirect</a>
+          <a href="<?= View::e($lcStatusUrl('unchecked', 'affiliates')) ?>" class="badge badge-inactive<?= $status === 'unchecked' ? ' badge--active' : '' ?>"><?= $aff_stats['unchecked'] ?> Unchecked</a>
         </div>
       </div>
       <div class="table-wrap">
@@ -379,6 +672,12 @@ $statusBadgeClass = static function (string $s): string {
             data-endpoint="<?= $b ?>/admin/link-checker/check-joined"
             data-ids-url="<?= $b ?>/admin/link-checker/all-ids?panel=joined"
             data-panel="joined"></button>
+
+    <div class="actions-row" style="margin-bottom:.75rem">
+      <button type="button" class="btn btn-primary btn-sm js-lc-run-panel" data-panel="joined">
+        <?= View::icon('linkcheck') ?> Run Link Checker
+      </button>
+    </div>
     <div class="lc-progress-wrap is-hidden" id="lc-prog-joined">
       <div class="lc-progress" role="progressbar" aria-valuemin="0" aria-valuemax="100">
         <div class="lc-progress-bar" id="lc-prog-bar-joined" style="width:0%"></div>
@@ -389,7 +688,7 @@ $statusBadgeClass = static function (string $s): string {
     <?php if (empty($joined)): ?>
     <div class="card">
       <div class="empty">
-        <div class="empty-icon"><?= View::icon('heart', ['width' => 32, 'height' => 32]) ?></div>
+        <div class="empty-icon"><?= View::icon('linkcheck', ['width' => 32, 'height' => 32]) ?></div>
         <div class="empty-title">No joined listings found.</div>
         <div>Add some joined listings to start checking links.</div>
         <a href="<?= $b ?>/admin/joined/add" class="btn btn-primary btn-xs"><?= View::icon('add') ?> Add Joined Listing</a>
@@ -401,10 +700,10 @@ $statusBadgeClass = static function (string $s): string {
         <span>Joined Listings</span>
         <span class="row-sub">Showing <?= ($joined_page - 1) * $lc_per_page + 1 ?>&#8211;<?= ($joined_page - 1) * $lc_per_page + count($joined) ?> of <?= number_format($joined_total) ?> listing<?= $joined_total !== 1 ? 's' : '' ?></span>
         <div class="stat-pills" style="margin-left:auto">
-          <a href="<?= View::e($lcStatusUrl('ok')) ?>" class="badge badge-current<?= $status === 'ok' ? ' badge--active' : '' ?>"><?= $joined_stats['ok'] ?> Active</a>
-          <a href="<?= View::e($lcStatusUrl('dead')) ?>" class="badge badge-error<?= $status === 'dead' ? ' badge--active' : '' ?>"><?= $joined_stats['dead'] ?> Dead</a>
-          <a href="<?= View::e($lcStatusUrl('redirect')) ?>" class="badge badge-redirect<?= $status === 'redirect' ? ' badge--active' : '' ?>"><?= $joined_stats['redirect'] ?> Redirect</a>
-          <a href="<?= View::e($lcStatusUrl('unchecked')) ?>" class="badge badge-inactive<?= $status === 'unchecked' ? ' badge--active' : '' ?>"><?= $joined_stats['unchecked'] ?> Unchecked</a>
+          <a href="<?= View::e($lcStatusUrl('ok', 'joined')) ?>" class="badge badge-current<?= $status === 'ok' ? ' badge--active' : '' ?>"><?= $joined_stats['ok'] ?> Active</a>
+          <a href="<?= View::e($lcStatusUrl('dead', 'joined')) ?>" class="badge badge-error<?= $status === 'dead' ? ' badge--active' : '' ?>"><?= $joined_stats['dead'] ?> Dead</a>
+          <a href="<?= View::e($lcStatusUrl('redirect', 'joined')) ?>" class="badge badge-redirect<?= $status === 'redirect' ? ' badge--active' : '' ?>"><?= $joined_stats['redirect'] ?> Redirect</a>
+          <a href="<?= View::e($lcStatusUrl('unchecked', 'joined')) ?>" class="badge badge-inactive<?= $status === 'unchecked' ? ' badge--active' : '' ?>"><?= $joined_stats['unchecked'] ?> Unchecked</a>
         </div>
       </div>
       <div class="table-wrap">
@@ -463,129 +762,15 @@ $statusBadgeClass = static function (string $s): string {
     <?php endif; ?>
   </div>
 
-  <!-- ── Members panel ───────────────────────────────────────────────────── -->
-  <div id="tab-members" class="tabs-panel" role="tabpanel">
-    <?php if ($listing_id_filter === null || $listing_id_filter <= 0): ?>
-    <div class="card">
-      <div class="empty">
-        <div class="empty-icon"><?= View::icon('members', ['width' => 32, 'height' => 32]) ?></div>
-        <div class="empty-title">Select a listing to check member URLs.</div>
-        <div>Use the Listing filter above to choose a specific listing first.</div>
-      </div>
-    </div>
-    <?php else: ?>
-      <button id="lc-check-members" style="display:none"
-              data-csrf="<?= View::e($csrf_token) ?>"
-              data-endpoint="<?= $b ?>/admin/link-checker/check-member"
-              data-ids-url="<?= View::e($b . '/admin/link-checker/all-ids?panel=members&listing_id=' . $listing_id_filter) ?>"
-              data-panel="members"></button>
-      <div class="lc-progress-wrap is-hidden" id="lc-prog-members">
-        <div class="lc-progress" role="progressbar" aria-valuemin="0" aria-valuemax="100">
-          <div class="lc-progress-bar" id="lc-prog-bar-members" style="width:0%"></div>
-        </div>
-        <span class="lc-prog-label" id="lc-prog-label-members">0 / <?= count($members ?? []) ?></span>
-      </div>
-      <div class="card">
-        <div class="card-head">
-          <span>Member URLs<?php if ($mem_listing !== null): ?> &mdash; <?= View::e($mem_listing->title) ?><?php endif; ?></span>
-          <?php if ($mem_total > 0): ?>
-          <span class="row-sub">Showing <?= ($mem_page - 1) * $lc_per_page + 1 ?>&#8211;<?= ($mem_page - 1) * $lc_per_page + count($members ?? []) ?> of <?= number_format($mem_total) ?> member<?= $mem_total !== 1 ? 's' : '' ?></span>
-          <?php endif; ?>
-          <div class="stat-pills" style="margin-left:auto">
-            <a href="<?= View::e($lcStatusUrl('ok')) ?>" class="badge badge-current<?= $status === 'ok' ? ' badge--active' : '' ?>"><?= (int) ($mem_stats['ok'] ?? 0) ?> Active</a>
-            <a href="<?= View::e($lcStatusUrl('dead')) ?>" class="badge badge-error<?= $status === 'dead' ? ' badge--active' : '' ?>"><?= (int) ($mem_stats['dead'] ?? 0) ?> Dead</a>
-            <a href="<?= View::e($lcStatusUrl('redirect')) ?>" class="badge badge-redirect<?= $status === 'redirect' ? ' badge--active' : '' ?>"><?= (int) ($mem_stats['redirect'] ?? 0) ?> Redirect</a>
-            <a href="<?= View::e($lcStatusUrl('unchecked')) ?>" class="badge badge-inactive<?= $status === 'unchecked' ? ' badge--active' : '' ?>"><?= (int) ($mem_stats['unchecked'] ?? 0) ?> Unchecked</a>
-          </div>
-          <form method="POST" action="<?= $b ?>/admin/link-checker/scan-members" class="action-form-inline" style="margin-left:.5rem">
-            <input type="hidden" name="_csrf"       value="<?= View::e($csrf_token) ?>">
-            <input type="hidden" name="listing_id"  value="<?= (int) $listing_id_filter ?>">
-            <button type="submit" class="btn btn-secondary btn-sm"><?= View::icon('refresh') ?> Scan</button>
-          </form>
-        </div>
-        <?php if (empty($members)): ?>
-        <div class="empty">
-          <div class="empty-icon"><?= View::icon('members', ['width' => 32, 'height' => 32]) ?></div>
-          <div class="empty-title">No member URLs scanned yet.</div>
-          <div>Click <strong>Scan</strong> to sync member URLs from this listing into the check table, then run the checker.</div>
-        </div>
-        <?php else: ?>
-        <div class="table-wrap">
-          <table class="data-table mem-table">
-            <thead>
-              <tr>
-                <th><a href="<?= View::e($lcMemSortUrl('member_name')) ?>" class="sort-th<?= $mem_sort === 'member_name' ? ' sort-active' : '' ?>">Name <?= View::sortIcon('member_name', $mem_sort, $mem_dir) ?></a></th>
-                <th><a href="<?= View::e($lcMemSortUrl('member_url')) ?>" class="sort-th<?= $mem_sort === 'member_url' ? ' sort-active' : '' ?>">URL <?= View::sortIcon('member_url', $mem_sort, $mem_dir) ?></a></th>
-                <th><a href="<?= View::e($lcMemSortUrl('link_status')) ?>" class="sort-th<?= $mem_sort === 'link_status' ? ' sort-active' : '' ?>">Status <?= View::sortIcon('link_status', $mem_sort, $mem_dir) ?></a></th>
-                <th><a href="<?= View::e($lcMemSortUrl('link_checked_at')) ?>" class="sort-th<?= $mem_sort === 'link_checked_at' ? ' sort-active' : '' ?>">Last Checked <?= View::sortIcon('link_checked_at', $mem_sort, $mem_dir) ?></a></th>
-                <th class="act-col">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              <?php foreach ($members as $mem): ?>
-              <tr id="lc-mem-<?= (int) $mem->id ?>">
-                <td data-label="Name"><span class="text-strong"><?= View::e((string) $mem->member_name) ?></span></td>
-                <td data-label="URL">
-                  <?php if ($mem->member_url !== ''): ?>
-                  <a href="<?= View::e((string) $mem->member_url) ?>" target="_blank" rel="noopener noreferrer" class="link"><?= View::e((string) $mem->member_url) ?></a>
-                  <?php if ($mem->link_redirect_url !== null): ?>
-                    <div class="lc-redirect-info">
-                      &rarr; <a href="<?= View::e((string) $mem->link_redirect_url) ?>" target="_blank" rel="noopener noreferrer" class="link"><?= View::e((string) $mem->link_redirect_url) ?></a>
-                    </div>
-                  <?php endif; ?>
-                  <?php else: ?>
-                  <span class="text-dim">&mdash;</span>
-                  <?php endif; ?>
-                </td>
-                <td data-label="Status">
-                  <span class="badge <?= View::e($statusBadgeClass((string) $mem->link_status)) ?>" data-lc-link-badge>
-                    <?= View::e($statusLabel((string) $mem->link_status)) ?>
-                  </span>
-                </td>
-                <td class="lc-checked-cell text-muted" data-label="Last Checked" data-lc-checked>
-                  <?= $mem->link_checked_at !== null ? View::e(date($admin_date_format, strtotime((string) $mem->link_checked_at))) : '<span class="text-dim">&mdash;</span>' ?>
-                </td>
-                <td class="act-col" data-label="">
-                  <button class="btn btn-quaternary btn-xs js-lc-single"
-                          data-id="<?= (int) $mem->id ?>"
-                          data-type="member"
-                          data-csrf="<?= View::e($csrf_token) ?>"
-                          data-endpoint="<?= $b ?>/admin/link-checker/check-member">
-                    Check
-                  </button>
-                </td>
-              </tr>
-              <?php endforeach; ?>
-            </tbody>
-          </table>
-        </div>
-        <?php endif; ?>
-      </div>
-      <?php if ($mem_total_pages > 1): ?>
-        <?php $pg_current = $mem_page; $pg_total = $mem_total_pages; $pg_url = $lcMemPageUrl;
-        include LUSTER_BASE . '/templates/admin/_pagination.php'; ?>
-      <?php endif; ?>
-      <?php if ($mem_total > 0): ?>
-      <div class="actions-row actions-row--right" style="margin-top:.75rem">
-        <form method="POST" action="<?= $b ?>/admin/link-checker/reset-members" onsubmit="return confirm('Reset all member link check statuses for this listing?')">
-          <input type="hidden" name="_csrf"       value="<?= View::e($csrf_token) ?>">
-          <input type="hidden" name="listing_id"  value="<?= (int) $listing_id_filter ?>">
-          <button type="submit" class="btn btn-tertiary btn-sm">Reset Member Statuses</button>
-        </form>
-      </div>
-      <?php endif; ?>
-    <?php endif; ?>
-  </div>
-
   <!-- ── Redirected Links panel ──────────────────────────────────────────── -->
   <div id="tab-moved" class="tabs-panel" role="tabpanel">
     <p>These URLs respond with an HTTP redirect, meaning the content has moved to a new address. Click <strong>Update URL</strong> to replace the stored URL with the redirect target. The record will be re-checked on the next run.</p>
     <?php if ($totalMoved === 0): ?>
     <div class="card">
       <div class="empty">
-        <div class="empty-icon"><?= View::icon('link', ['width' => 32, 'height' => 32]) ?></div>
+        <div class="empty-icon"><?= View::icon('linkcheck', ['width' => 32, 'height' => 32]) ?></div>
         <div class="empty-title">No redirected links found.</div>
-        <div>Run the checker on the Affiliates or Joined Listings tabs first.</div>
+        <div>Run the checker on the Members, Affiliates, or Joined tabs first.</div>
       </div>
     </div>
     <?php else: ?>
@@ -718,9 +903,9 @@ $statusBadgeClass = static function (string $s): string {
     <?php if ($totalDead === 0): ?>
     <div class="card">
       <div class="empty">
-        <div class="empty-icon"><?= View::icon('caution', ['width' => 32, 'height' => 32]) ?></div>
+        <div class="empty-icon"><?= View::icon('linkcheck', ['width' => 32, 'height' => 32]) ?></div>
         <div class="empty-title">No dead links found.</div>
-        <div>Run the checker on the Affiliates or Joined Listings tabs first.</div>
+        <div>Run the checker on the Members, Affiliates, or Joined tabs first.</div>
       </div>
     </div>
     <?php else: ?>
@@ -792,23 +977,3 @@ $statusBadgeClass = static function (string $s): string {
     <?php endif; ?>
   </div>
 
-<script>
-(function () {
-  var tabInput = document.getElementById('lc-filter-tab');
-  var runBtn   = document.getElementById('lc-run-btn');
-
-  function onTabChange(tabId) {
-    if (tabInput) tabInput.value = tabId;
-    if (runBtn) runBtn.style.display = (tabId === 'affiliates' || tabId === 'joined' || tabId === 'members') ? '' : 'none';
-  }
-
-  document.querySelectorAll('.tabs-btn[data-tab]').forEach(function (btn) {
-    btn.addEventListener('click', function () { onTabChange(btn.dataset.tab); });
-  });
-
-  var tabSelect = document.querySelector('.tabs-select');
-  if (tabSelect) {
-    tabSelect.addEventListener('change', function () { onTabChange(tabSelect.value); });
-  }
-})();
-</script>

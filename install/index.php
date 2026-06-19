@@ -925,8 +925,9 @@ function installTables(PDO $pdo): void
             PRIMARY KEY (`id`)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
 
-        // Migration 78: member URL link-check tracking
+        // Migration 78 + 79: member URL link-check tracking (id surrogate PK added in 79)
         "CREATE TABLE IF NOT EXISTS `lstr_member_link_checks` (
+            `id`                INT NOT NULL AUTO_INCREMENT,
             `listing_id`        INT NOT NULL,
             `member_email`      VARCHAR(255) NOT NULL,
             `member_name`       VARCHAR(255) NOT NULL DEFAULT '',
@@ -934,7 +935,8 @@ function installTables(PDO $pdo): void
             `link_status`       ENUM('unchecked','ok','redirect','dead','error') NOT NULL DEFAULT 'unchecked',
             `link_redirect_url` VARCHAR(500) NULL,
             `link_checked_at`   DATETIME NULL,
-            PRIMARY KEY (`listing_id`, `member_email`),
+            PRIMARY KEY (`id`),
+            UNIQUE KEY `uniq_mlc_listing_email` (`listing_id`, `member_email`),
             INDEX `idx_mlc_status`  (`link_status`),
             INDEX `idx_mlc_listing` (`listing_id`)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",

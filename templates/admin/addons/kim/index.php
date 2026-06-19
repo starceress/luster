@@ -69,7 +69,7 @@ $sortUrl = static function (string $col) use ($buildUrl, $sort, $dir): string {
 
 $hasBulkApprove  = in_array($tab, ['all', 'pending'], true);
 $nonPendingCount = ($counts['approved'] ?? 0) + ($counts['granted'] ?? 0);
-$showEmailBulk   = $listing_id > 0;
+$showEmailBulk   = true;
 
 // Bulk form action + return URL
 $bulkAction = $listing_id > 0
@@ -101,8 +101,8 @@ $dateFmt    = $admin_date_format ?? 'm-d-Y';
     </button>
   </div>
   <div class="actions-row actions-row--right">
-    <a href="<?= $b ?>/admin/kim/listings" class="btn btn-primary btn-sm">Listing View</a>
-    <a href="<?= $b ?>/admin/kim/add" class="btn btn-secondary btn-sm">+ Add KIM Entry</a>
+    <a href="<?= $b ?>/admin/kim/listings" class="btn btn-primary btn-sm">Toggle Listing View</a>
+    <a href="<?= $b ?>/admin/kim/add" class="btn btn-secondary btn-sm"><?= View::icon('add') ?> Add KIM Entry</a>
     <a href="<?= $b ?>/admin/kim/settings" class="btn btn-quaternary btn-sm"><?= View::icon('gear') ?>KIM Settings</a>
   </div>
 </div>
@@ -198,10 +198,14 @@ $dateFmt    = $admin_date_format ?? 'm-d-Y';
     <?php endif; ?>
     <?php if ($selected_listing !== null): ?>&mdash; <?= View::e($selected_listing->subject) ?><?php endif; ?>
     <span class="row-sub">Showing <?= $rangeStart ?>&ndash;<?= $rangeEnd ?> of <?= $total ?> Sign-Up<?= $total !== 1 ? 's' : '' ?></span>
-    <?php if ($listing_id > 0 && $nonPendingCount > 0): ?>
+    <?php
+      // Use unfiltered per-listing count so the badge is not scoped by active search.
+      $_kimEmailAllN = (int) ($kim_listing_counts[$listing_id] ?? 0);
+    ?>
+    <?php if ($listing_id > 0 && $_kimEmailAllN > 0): ?>
       <a href="<?= $b ?>/admin/kim/<?= $listing_id ?>/bulk-email"
          class="btn btn-secondary btn-sm actions-row--right">
-        Email All (<?= $nonPendingCount ?>)
+        Email All (<?= $_kimEmailAllN ?>)
       </a>
     <?php endif; ?>
   </div>
@@ -250,14 +254,14 @@ $dateFmt    = $admin_date_format ?? 'm-d-Y';
           </a>
         </th>
         <?php endif; ?>
+        <?php if ($tab === 'all'): ?>
         <th>
-          <?php if ($tab === 'all'): ?>
           <a href="<?= View::e($sortUrl('status')) ?>"
              class="sort-th<?= $sort === 'status' ? ' sort-active' : '' ?>">
             Status <?= View::sortIcon('status', $sort, $dir) ?>
           </a>
-          <?php else: ?>Status<?php endif; ?>
         </th>
+        <?php endif; ?>
         <th>
           <a href="<?= View::e($sortUrl('added_at')) ?>"
              class="sort-th<?= $sort === 'added_at' ? ' sort-active' : '' ?>">
@@ -289,11 +293,18 @@ $dateFmt    = $admin_date_format ?? 'm-d-Y';
         </td>
 
         <?php if ($listing_id === 0): ?>
-        <td data-label="Listing" class="text-muted">
-          <?= View::e($listing_map[$m->fanlistingId] ?? '—') ?>
+        <td data-label="Listing">
+          <?php if (isset($listing_map[$m->fanlistingId])): ?>
+            <a href="<?= $b ?>/admin/listings/<?= (int) $m->fanlistingId ?>/edit" class="link">
+              <b><?= View::e($listing_map[$m->fanlistingId]) ?></b>
+            </a>
+          <?php else: ?>
+            <span class="text-dim">—</span>
+          <?php endif; ?>
         </td>
         <?php endif; ?>
 
+        <?php if ($tab === 'all'): ?>
         <td data-label="Status">
           <?php if ($m->pending): ?>
             <span class="badge badge-pending">Pending</span>
@@ -303,6 +314,7 @@ $dateFmt    = $admin_date_format ?? 'm-d-Y';
             <span class="badge badge-current">Approved</span>
           <?php endif; ?>
         </td>
+        <?php endif; ?>
 
         <td class="text-dim nowrap" data-label="Signed Up">
           <?= View::e(date($dateFmt, strtotime($m->addedAt))) ?>

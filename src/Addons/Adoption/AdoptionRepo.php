@@ -331,10 +331,10 @@ final class AdoptionRepo
     }
 
     /**
-     * Returns pending/approved/total counts per listing in one query.
+     * Returns pending/approved/granted/total counts per listing in one query.
      * Used by the admin listings tab overview.
      *
-     * @return array<int, array{all: int, pending: int, approved: int}>
+     * @return array<int, array{all: int, pending: int, approved: int, granted: int}>
      */
     public function getAllListingCounts(): array
     {
@@ -343,7 +343,9 @@ final class AdoptionRepo
                 fanlisting_id,
                 COUNT(*)                    AS total,
                 SUM(status = 'pending')     AS cnt_pending,
-                SUM(status = 'approved')    AS cnt_approved
+                SUM(status = 'reviewed')    AS cnt_reviewed,
+                SUM(status = 'approved')    AS cnt_approved,
+                SUM(status = 'granted')     AS cnt_granted
              FROM `" . self::TABLE . "`
              GROUP BY fanlisting_id"
         );
@@ -353,7 +355,9 @@ final class AdoptionRepo
             $result[(int) $row['fanlisting_id']] = [
                 'all'      => (int) $row['total'],
                 'pending'  => (int) $row['cnt_pending'],
+                'reviewed' => (int) $row['cnt_reviewed'],
                 'approved' => (int) $row['cnt_approved'],
+                'granted'  => (int) $row['cnt_granted'],
             ];
         }
         return $result;

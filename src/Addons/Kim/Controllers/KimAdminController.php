@@ -230,6 +230,11 @@ final class KimAdminController extends AdminController
         $adminId      = (int) $session->get('lstr_admin_id');
         $count        = count($ids);
 
+        if ($action === 'email_selected') {
+            $qs = http_build_query(['ids' => array_values($ids), '_return' => $returnTo]);
+            return Response::redirect($baseUrl . '/admin/kim/email-selected?' . $qs);
+        }
+
         match ($action) {
             'approve' => (function () use ($kimRepo, $activityRepo, $ids, $adminId, $count, $request, $session): void {
                 $kimRepo->approveByIds($ids);
@@ -990,6 +995,194 @@ final class KimAdminController extends AdminController
 
         $session->set('lstr_flash_success', 'KIM entry added' . ($approveNow ? ' and approved.' : ' as pending.'));
         return Response::redirect($baseUrl . '/admin/kim?listing_id=' . $fanlistingId);
+    }
+
+    // -----------------------------------------------------------------------
+    // GET /admin/kim/email-selected  — cross-listing email-selected compose
+    // -----------------------------------------------------------------------
+
+    public function emailSelectedGlobalForm(Request $request, array $params): Response
+    {
+        $db      = $this->app->getDatabase();
+        $config  = $this->app->getConfig();
+        $session = $this->app->getSession();
+        $baseUrl = $this->app->getBaseUrl();
+
+        $returnUrl = trim((string) $request->query('_return', $baseUrl . '/admin/kim'));
+        if (!str_starts_with($returnUrl, $baseUrl . '/admin/kim')) {
+            $returnUrl = $baseUrl . '/admin/kim';
+        }
+
+        $rawIds = array_filter(
+            array_map('intval', (array) $request->query('ids', [])),
+            static fn(int $id): bool => $id > 0
+        );
+
+        if (empty($rawIds)) {
+            $session->set('lstr_flash_error', 'No members selected.');
+            return Response::redirect($returnUrl);
+        }
+
+        $kimRepo    = new KimMemberRepo($db);
+        $idEmailMap = $kimRepo->getEmailsByIds(array_values($rawIds));
+
+        if (empty($idEmailMap)) {
+            $session->set('lstr_flash_error', 'No valid members selected.');
+            return Response::redirect($returnUrl);
+        }
+
+        // Pre-load all referenced listings for per-recipient token preview
+        $listingRepo = new ListingRepo($db, $config);
+        $listingIds  = array_unique(array_column(array_values($idEmailMap), 'fanlisting_id'));
+        $listingMap  = [];
+        foreach ($listingIds as $lid) {
+            $fl = $listingRepo->getById($lid);
+            if ($fl !== null) {
+                $listingMap[$lid] = $fl;
+            }
+        }
+
+        $memberNames = array_combine(
+            array_column(array_values($idEmailMap), 'email'),
+            array_column(array_values($idEmailMap), 'name'),
+        ) ?: [];
+
+        $fromEmail   = (string) $config->get('owner_email', '');
+        $fromName    = (string) $config->get('owner_name',  '');
+        $savedEmails = (new \Luster\Repositories\SavedEmailRepo($db))->getAll();
+
+        $error   = (string) $session->get('lstr_flash_error',   '');
+        $success = (string) $session->get('lstr_flash_success', '');
+        $old     = (array)  $session->get('lstr_email_old',     []);
+        $session->remove('lstr_flash_error');
+        $session->remove('lstr_flash_success');
+        $session->remove('lstr_email_old');
+
+        return $this->adminLayout('admin/addons/kim/email-selected.php', 'Email Selected KIM Members', 'kim', [
+            'id_email_map'   => $idEmailMap,
+            'listing_map'    => $listingMap,
+            'recipient_count'=> count($idEmailMap),
+            'member_names'   => $memberNames,
+            'from_name'      => $fromName,
+            'from_email'     => $fromEmail,
+            'owner_name'     => (string) $config->get('owner_name',  ''),
+            'owner_email'    => (string) $config->get('owner_email', ''),
+            'site_name'      => (string) $config->get('site_name',   ''),
+            'saved_emails'   => $savedEmails,
+            'return_url'     => $returnUrl,
+            'old'            => $old,
+            'error'          => $error,
+            'success'        => $success,
+        ], '', [
+            $this->crumb('Keep In Mind', $this->adminUrl('/admin/kim')),
+            $this->crumb('Email Selected'),
+        ]);
+    }
+
+    // -----------------------------------------------------------------------
+    // POST /admin/kim/email-selected  — cross-listing email-selected send
+    // -----------------------------------------------------------------------
+
+    public function emailSelectedGlobalSend(Request $request, array $params): Response
+    {
+        $db      = $this->app->getDatabase();
+        $config  = $this->app->getConfig();
+        $session = $this->app->getSession();
+        $baseUrl = $this->app->getBaseUrl();
+
+        $returnUrl = trim((string) $request->post('_return', $baseUrl . '/admin/kim'));
+        if (!str_starts_with($returnUrl, $baseUrl . '/admin/kim')) {
+            $returnUrl = $baseUrl . '/admin/kim';
+        }
+
+        $rawIds = array_filter(
+            array_map('intval', (array) $request->post('kim_member_ids', [])),
+            static fn(int $id): bool => $id > 0
+        );
+
+        $subject = trim((string) $request->post('subject', ''));
+        $body    = trim((string) $request->post('body',    ''));
+
+        if ($subject === '' || $body === '') {
+            $session->set('lstr_flash_error', 'Please fill in both the subject and message before sending.');
+            $session->set('lstr_email_old', ['subject' => $subject, 'body' => $body]);
+            $qs = http_build_query(['ids' => array_values($rawIds), '_return' => $returnUrl]);
+            return Response::redirect($baseUrl . '/admin/kim/email-selected?' . $qs);
+        }
+
+        if (empty($rawIds)) {
+            $session->set('lstr_flash_error', 'No recipients selected.');
+            return Response::redirect($returnUrl);
+        }
+
+        $kimRepo     = new KimMemberRepo($db);
+        $listingRepo = new ListingRepo($db, $config);
+        $recipients  = array_values($kimRepo->getEmailsByIds(array_values($rawIds)));
+
+        if (empty($recipients)) {
+            $session->set('lstr_flash_error', 'No valid recipients found. The selected members may have been deleted.');
+            return Response::redirect($returnUrl);
+        }
+
+        // Pre-load unique listings for token substitution
+        $listingIds = array_unique(array_column($recipients, 'fanlisting_id'));
+        $listingMap = [];
+        foreach ($listingIds as $lid) {
+            $fl = $listingRepo->getById($lid);
+            if ($fl !== null) {
+                $listingMap[$lid] = $fl;
+            }
+        }
+
+        $siteName   = (string) $config->get('site_name',  '');
+        $ownerName  = (string) $config->get('owner_name',  '');
+        $ownerEmail = (string) $config->get('owner_email', '');
+
+        $search = ['{name}', '{email}', '{url}', '{added_at}',
+                   '{listing_subject}', '{listing_url}',
+                   '{site_name}', '{owner_name}', '{owner_email}'];
+
+        $mailer = new Mailer($config);
+        $sent   = 0;
+        $failed = 0;
+
+        foreach ($recipients as $r) {
+            $fl = $listingMap[$r['fanlisting_id']] ?? null;
+            $replace = [
+                $r['name'], $r['email'], $r['url'], $r['added_at'],
+                $fl?->subject ?? '', $fl?->url ?? '',
+                $siteName, $ownerName, $ownerEmail,
+            ];
+
+            try {
+                $mailer->send(
+                    $r['email'], $r['name'],
+                    str_replace($search, $replace, $subject),
+                    str_replace($search, $replace, $body)
+                );
+                $sent++;
+            } catch (\Throwable $e) {
+                $failed++;
+                error_log('[KIM] Cross-listing email failed for ' . $r['email'] . ': ' . $e->getMessage());
+            }
+        }
+
+        (new ActivityRepo($db))->log(
+            (int) $session->get('lstr_admin_id'),
+            'kim.bulk_email',
+            "Sent cross-listing email to {$sent} KIM member(s)" . ($failed > 0 ? ", {$failed} failed" : ''),
+            $request->ip(),
+        );
+
+        if ($sent === 0) {
+            $session->set('lstr_flash_error', "Email could not be delivered. {$failed} message(s) failed.");
+        } else {
+            $session->set(
+                'lstr_flash_success',
+                "Email sent: {$sent} delivered" . ($failed > 0 ? ", {$failed} failed" : '') . '.'
+            );
+        }
+        return Response::redirect($returnUrl);
     }
 
     // -----------------------------------------------------------------------

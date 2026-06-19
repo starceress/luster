@@ -71,7 +71,7 @@ $catSortUrl = static function (string $col) use ($b, $sort, $dir, $source, $sear
     </button>
   </div>
   <div class="actions-row">
-    <a href="<?= $b ?>/admin/categories/add" class="btn btn-primary btn-sm">+ Add New Category</a>
+    <a href="<?= $b ?>/admin/categories/add" class="btn btn-primary btn-sm"><?= View::icon('add') ?> Add New Category</a>
     <form method="POST" action="<?= $b ?>/admin/categories/seed" class="action-form-inline">
       <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
       <button type="submit" name="include_tafl" value="0" class="btn btn-secondary btn-sm">Seed TFL</button>

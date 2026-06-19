@@ -29,11 +29,10 @@ use Luster\Repositories\SavedEmailRepo;
  *
  * Listing ID = 0 means "all listings" (recipients are deduplicated by email).
  *
- * Supported body tokens:
- *   {name}         → member's name
- *   {email}        → member's email address
- *   {listing_title} → name of the listing they are a member of (or app name for all-listing sends)
- *   {site_name}    → site/collective name from config
+ * Supported body tokens (per-recipient substitution):
+ *   {fan_name}, {fan_email}, {fan_url}, {fan_country}
+ *   {listing_title}, {listing_subject}, {listing_url}
+ *   {site_name}, {owner_name}, {owner_email}
  */
 final class BulkEmailController extends AdminController
 {
@@ -309,7 +308,6 @@ final class BulkEmailController extends AdminController
      * Tokens: {fan_name}, {fan_email}, {fan_url}, {fan_country},
      *         {listing_title}, {listing_subject}, {listing_url},
      *         {site_name}, {owner_name}, {owner_email}
-     * Legacy aliases: {name} → {fan_name}, {email} → {fan_email}
      *
      * @param array{name:string,url:string,country:string,listing_name:string,listing_subject:string,listing_url:string} $recipient
      */
@@ -323,13 +321,11 @@ final class BulkEmailController extends AdminController
         return str_replace(
             [
                 '{fan_name}', '{fan_email}', '{fan_url}', '{fan_country}',
-                '{name}',                    '{email}',
                 '{listing_title}',            '{listing_subject}',            '{listing_url}',
                 '{site_name}',  '{owner_name}', '{owner_email}',
             ],
             [
                 $recipient['name'], $recipient['email'], $recipient['url'], $recipient['country'],
-                $recipient['name'],                      $recipient['email'],
                 $recipient['listing_name'], $recipient['listing_subject'], $recipient['listing_url'],
                 $siteName,      $ownerName,     $ownerEmail,
             ],

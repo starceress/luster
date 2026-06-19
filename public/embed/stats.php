@@ -22,7 +22,8 @@ use Luster\Support\ListingTemplateResolver;
  *   $luster_return        = false;  // optional: true = return string, false = echo
  *   require '/absolute/path/to/luster/public/embed/stats.php';
  *
- * See ListingSettingsRepo::defaultStatsTemplate() for the full token reference.
+ * See ListingSettingsRepo::defaultStatsTemplate()
+ * "Per-listing stats template" for the full token reference.
  */
 
 // ---------------------------------------------------------------------------

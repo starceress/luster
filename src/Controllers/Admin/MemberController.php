@@ -93,6 +93,18 @@ final class MemberController extends AdminController
             $cntApproved       = $memberRepo->countApproved($listing->dbprefix);
             $cntRejected       = $memberRepo->countRejected($listing->dbprefix);
             $cntPendingUpdates = $pendingUpdateRepo->countByListing($listingId);
+            // Populate the full map so the dropdown "All Listings" total is accurate
+            foreach ($allListings as $fl) {
+                if ($fl->dbprefix === '') { continue; }
+                if ((int) $fl->id === (int) $listing->id) {
+                    $listingCountsMap[(int) $fl->id] = ['approved' => $cntApproved, 'pending' => $cntPendingNew, 'rejected' => $cntRejected];
+                } else {
+                    $p = $memberRepo->countPending($fl->dbprefix);
+                    $a = $memberRepo->countApproved($fl->dbprefix);
+                    $r = $memberRepo->countRejected($fl->dbprefix);
+                    $listingCountsMap[(int) $fl->id] = ['approved' => $a, 'pending' => $p, 'rejected' => $r];
+                }
+            }
         } else {
             $cntPendingNew     = 0;
             $cntApproved       = 0;

@@ -10,7 +10,7 @@ use PDO;
 use PHPUnit\Framework\TestCase;
 
 /**
- * Tests for FanaticallyImportSource covering import edge cases:
+ * Tests for FanaticallyImportSource:
  *
  *   Fix 1 — approved_by stored as '' not null for unapproved listings
  *   Fix 2 — notify_member_on_join=1 → join_confirmation_email IS NULL;
@@ -907,7 +907,7 @@ final class FanaticallyImportSourceTest extends TestCase
     }
 
     // -----------------------------------------------------------------------
-    // Existing-listing overwrite — dbtable mapping
+    // Existing-listing overwrite
     // -----------------------------------------------------------------------
 
     public function testOverwriteModeReusesExistingDbtableForMembers(): void
@@ -1399,7 +1399,7 @@ final class FanaticallyImportSourceTest extends TestCase
     }
 
     // -----------------------------------------------------------------------
-    // enth_ schema support (owned.additional only)
+    // enth_ schema support
     // -----------------------------------------------------------------------
 
     /** Target schema with enth_fanlistings instead of owned (triggers enthusiast_enth path). */

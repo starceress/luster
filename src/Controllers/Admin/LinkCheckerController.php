@@ -43,6 +43,7 @@ final class LinkCheckerController extends AdminController
         $affPage    = max(1, (int) ($request->query('aff_page',    1) ?: 1));
         $joinedPage = max(1, (int) ($request->query('joined_page', 1) ?: 1));
         $memPage    = max(1, (int) ($request->query('mem_page',    1) ?: 1));
+        $memSumPage = max(1, (int) ($request->query('mem_sum_page', 1) ?: 1));
 
         $statusValues = ['ok', 'redirect', 'dead', 'unchecked'];
         $statusParam  = trim((string) $request->query('status', ''));
@@ -86,16 +87,25 @@ final class LinkCheckerController extends AdminController
         $affResult    = $affRepo->paginateForLinkCheck($listingFilter, $perPage, $affPage, $affOrderBy, $statusArg, $searchArg);
         $joinedResult = $joinedRepo->paginateForLinkCheck($perPage, $joinedPage, $joinedOrderBy, $statusArg, $searchArg);
 
-        $memRepo     = new MemberLinkCheckRepo($db, $config);
-        $memItems    = [];
-        $memTotal    = 0;
-        $memStats    = ['ok' => 0, 'dead' => 0, 'redirect' => 0, 'unchecked' => 0];
+        $listingRepo  = new ListingRepo($db, $config);
+        $allListings  = $listingRepo->getAll();
+
+        $memSumTotal      = count($allListings);
+        $memSumTotalPages = max(1, (int) ceil($memSumTotal / $perPage));
+        $memSumPage       = min($memSumPage, $memSumTotalPages);
+        $memSumOffset     = ($memSumPage - 1) * $perPage;
+        $memSumListings   = array_slice($allListings, $memSumOffset, $perPage);
+
+        $memRepo      = new MemberLinkCheckRepo($db, $config);
+        $memItems     = [];
+        $memTotal     = 0;
+        $memStats     = ['ok' => 0, 'dead' => 0, 'redirect' => 0, 'unchecked' => 0];
         $movedMembers = [];
         $deadMembers  = [];
         $memListing   = null;
+        $memSummary   = [];
 
         if ($listingFilter !== null && $listingFilter > 0) {
-            $listingRepo  = new ListingRepo($db, $config);
             $memListing   = $listingRepo->getById($listingFilter);
             $memResult    = $memRepo->paginate(
                 $listingFilter,
@@ -111,7 +121,14 @@ final class LinkCheckerController extends AdminController
             $memStats     = $memRepo->getLinkStats($listingFilter);
             $movedMembers = $memRepo->getByLinkStatus('redirect', $listingFilter);
             $deadMembers  = $memRepo->getByLinkStatus('dead', $listingFilter);
+        } elseif ($listingFilter === null) {
+            $memStats     = $memRepo->getLinkStatsAll();
+            $memSummary   = $memRepo->getPerListingSummary();
+            $memTotal     = array_sum($memStats);
+            $movedMembers = $memRepo->getByLinkStatusAll('redirect');
+            $deadMembers  = $memRepo->getByLinkStatusAll('dead');
         }
+        // listing_id=0 (Collective) has no member table — $mem* defaults stay empty
 
         return $this->adminLayout(
             'admin/link-checker/index.php',
@@ -143,8 +160,13 @@ final class LinkCheckerController extends AdminController
                 'mem_sort'           => $memSortParam,
                 'mem_dir'            => $memDirParam,
                 'mem_listing'        => $memListing,
+                'mem_summary'        => $memSummary,
                 'owner_url'          => $this->resolveReciprocalUrl(),
-                'listings'           => (new ListingRepo($db, $config))->getAll(),
+                'listings'           => $allListings,
+                'mem_sum_listings'   => $memSumListings,
+                'mem_sum_page'       => $memSumPage,
+                'mem_sum_total'      => $memSumTotal,
+                'mem_sum_total_pages'=> $memSumTotalPages,
                 'listing_id_filter'  => $listingFilter,
                 'status'             => $statusParam,
                 'search'             => $searchParam,
@@ -285,10 +307,14 @@ final class LinkCheckerController extends AdminController
             );
         } elseif ($panel === 'members') {
             $listingIdRaw = (string) $request->query('listing_id', '');
-            $listingId    = ($listingIdRaw !== '' && ctype_digit($listingIdRaw)) ? (int) $listingIdRaw : 0;
+            $listingId    = ($listingIdRaw !== '' && ctype_digit($listingIdRaw)) ? (int) $listingIdRaw : -1;
+            $memRepo      = new MemberLinkCheckRepo($db, $this->app->getConfig());
             if ($listingId > 0) {
-                $ids = (new MemberLinkCheckRepo($db, $this->app->getConfig()))->getAllIds($listingId);
+                $ids = $memRepo->getAllIds($listingId);
+            } elseif ($listingIdRaw === '') {
+                $ids = $memRepo->getAllIdsAll();
             }
+            // listing_id=0 (Collective) has no member table — $ids stays empty
         }
 
         return Response::json(array_values($ids));
@@ -523,6 +549,48 @@ final class LinkCheckerController extends AdminController
     }
 
     // -----------------------------------------------------------------------
+    // AJAX — sync one listing's member URLs (used by Scan All and per-row Scan)
+    // -----------------------------------------------------------------------
+
+    public function scanMemberAjax(Request $request): Response
+    {
+        if (!$this->validCsrf($request)) {
+            return Response::json(['error' => 'Invalid CSRF token'], 403);
+        }
+
+        $listingId = (int) ($request->post('listing_id') ?? 0);
+        if ($listingId <= 0) {
+            return Response::json(['error' => 'Invalid listing ID'], 422);
+        }
+
+        $db      = $this->app->getDatabase();
+        $config  = $this->app->getConfig();
+        $listing = (new ListingRepo($db, $config))->getById($listingId);
+
+        if ($listing === null) {
+            return Response::json(['error' => 'Listing not found'], 404);
+        }
+
+        if ($listing->dbprefix === '') {
+            return Response::json(['error' => 'Listing has no member table configured (skipped)'], 422);
+        }
+
+        try {
+            $memRepo = new MemberLinkCheckRepo($db, $config);
+            $count   = $memRepo->syncFromListing($listingId, $listing->dbprefix);
+            $stats   = $memRepo->getLinkStats($listingId);
+        } catch (\Throwable $e) {
+            return Response::json(['error' => $e->getMessage()], 500);
+        }
+
+        return Response::json([
+            'synced'     => $count,
+            'listing_id' => $listingId,
+            'stats'      => $stats,
+        ]);
+    }
+
+    // -----------------------------------------------------------------------
     // AJAX — check a single member URL
     // -----------------------------------------------------------------------
 
@@ -641,13 +709,14 @@ final class LinkCheckerController extends AdminController
         $db = $this->app->getDatabase();
         (new AffiliateRepo($db))->resetLinkStatus();
         (new JoinedListingRepo($db))->resetLinkStatus();
+        (new MemberLinkCheckRepo($db, $this->app->getConfig()))->resetLinkStatusAll();
 
         $this->app->getSession()->set('lstr_flash_success', 'All link statuses have been reset.');
 
         (new ActivityRepo($db))->log(
             (int) $this->app->getSession()->get('lstr_admin_id', 0) ?: null,
             'link-checker',
-            'Reset all affiliate and joined-listing link statuses',
+            'Reset all affiliate, joined-listing, and member link statuses',
             $request->ip(),
         );
 

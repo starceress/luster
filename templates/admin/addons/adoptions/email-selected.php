@@ -124,6 +124,10 @@ $oldBody    = htmlspecialchars($old['body'] ?? '', ENT_QUOTES, 'UTF-8');
     <form method="POST" action="<?= $b ?>/admin/adoptions/email" id="es-form">
       <input type="hidden" name="_csrf"    value="<?= View::e($csrf_token) ?>">
       <input type="hidden" name="_return"  value="<?= View::e($return_url) ?>">
+      <?php if (isset($source_listing_id) && $source_listing_id > 0): ?>
+        <input type="hidden" name="source_listing_id" value="<?= (int) $source_listing_id ?>">
+        <input type="hidden" name="source_statuses"   value="<?= View::e($source_statuses ?? '') ?>">
+      <?php endif; ?>
       <div id="es-id-inputs">
         <?php foreach ($applications as $app): ?>
           <input type="hidden" name="ids[]" value="<?= (int) $app['id'] ?>">

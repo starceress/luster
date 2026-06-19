@@ -124,7 +124,7 @@ $sortUrl = static function (string $col) use ($buildUrl, $sort, $dir): string {
     <?php if ($tab === 'listings'): ?>
       <a href="<?= $b ?>/admin/adoptions" class="btn btn-primary btn-sm">All Applications</a>
     <?php else: ?>
-      <a href="<?= View::e($tabUrl('listings')) ?>" class="btn btn-primary btn-sm">Listing View</a>
+      <a href="<?= View::e($tabUrl('listings')) ?>" class="btn btn-primary btn-sm">Toggle Listing View</a>
     <?php endif; ?>
     <a href="<?= $b ?>/admin/adoptions/settings" class="btn btn-quaternary btn-sm"><?= View::icon('gear') ?>Adoptions Settings</a>
   </div>
@@ -140,11 +140,20 @@ $sortUrl = static function (string $col) use ($buildUrl, $sort, $dir): string {
 
     <?php if (!empty($fanlistings)): ?>
     <div class="select-wrap">
-      <?php $_adoptCounts = $adoption_listing_counts ?? []; $_adoptTotal = array_sum(array_column($_adoptCounts, 'all')); ?>
+      <?php
+        $_adoptCounts = $adoption_listing_counts ?? [];
+        $_adoptTotal  = array_sum(array_map(
+            static fn(array $c): int => (int) ($c['reviewed'] ?? 0) + (int) ($c['approved'] ?? 0) + (int) ($c['granted'] ?? 0),
+            $_adoptCounts
+        ));
+      ?>
       <select name="listing_id" id="adopt-listing-sel">
         <option value="0"><?= $_adoptTotal > 0 ? 'All Listings (' . $_adoptTotal . ')' : 'All Listings' ?></option>
         <?php foreach ($fanlistings as $fl): ?>
-          <?php $_adoptN = (int) ($_adoptCounts[(int) $fl->id]['all'] ?? 0); ?>
+          <?php
+            $_lc    = $_adoptCounts[(int) $fl->id] ?? [];
+            $_adoptN = (int) ($_lc['reviewed'] ?? 0) + (int) ($_lc['approved'] ?? 0) + (int) ($_lc['granted'] ?? 0);
+          ?>
           <option value="<?= (int) $fl->id ?>"
                   <?= $listing_id === $fl->id ? 'selected' : '' ?>>
             <?= View::e($fl->subject ?: $fl->title) ?><?= $_adoptN > 0 ? ' (' . $_adoptN . ')' : '' ?>
@@ -232,6 +241,17 @@ $sortUrl = static function (string $col) use ($buildUrl, $sort, $dir): string {
       <?php endif; ?>
       <?php if ($selected_listing !== null): ?>&mdash; <?= View::e($selected_listing->subject ?: $selected_listing->title) ?><?php endif; ?>
       <span class="row-sub">Showing <?= $rangeStart ?>&ndash;<?= $rangeEnd ?> of <?= $total ?> Application<?= $total !== 1 ? 's' : '' ?></span>
+      <?php
+        // Use unfiltered per-listing totals so the badge is not scoped by active search.
+        $_alc = $adoption_listing_counts[$listing_id] ?? [];
+        $emailAllCount = (int) ($_alc['reviewed'] ?? 0) + (int) ($_alc['approved'] ?? 0) + (int) ($_alc['granted'] ?? 0);
+        if ($listing_id > 0 && $emailAllCount > 0):
+      ?>
+        <a href="<?= $b ?>/admin/adoptions/<?= (int) $listing_id ?>/email-all"
+           class="btn btn-secondary btn-sm actions-row--right">
+          Email All (<?= $emailAllCount ?>)
+        </a>
+      <?php endif; ?>
     </div>
 
     <div class="bulk bulk--flush">
@@ -273,12 +293,14 @@ $sortUrl = static function (string $col) use ($buildUrl, $sort, $dir): string {
               </a>
             </th>
             <?php endif; ?>
+            <?php if ($tab === 'all'): ?>
             <th>
               <a href="<?= View::e($sortUrl('status')) ?>"
                  class="sort-th<?= $sort === 'status' ? ' sort-active' : '' ?>">
                 Status <?= View::sortIcon('status', $sort, $dir) ?>
               </a>
             </th>
+            <?php endif; ?>
             <th>
               <a href="<?= View::e($sortUrl('applied_at')) ?>"
                  class="sort-th<?= $sort === 'applied_at' ? ' sort-active' : '' ?>">
@@ -319,7 +341,7 @@ $sortUrl = static function (string $col) use ($buildUrl, $sort, $dir): string {
             <td data-label="Listing">
               <?php if ($fl !== null): ?>
                 <a href="<?= $b ?>/admin/listings/<?= (int) $fl->id ?>/edit" class="link">
-                  <?= View::e($fl->subject ?: $fl->title) ?>
+                  <b><?= View::e($fl->subject ?: $fl->title) ?></b>
                 </a>
               <?php else: ?>
                 <span class="text-dim">#<?= (int) $app['fanlisting_id'] ?></span>
@@ -327,11 +349,13 @@ $sortUrl = static function (string $col) use ($buildUrl, $sort, $dir): string {
             </td>
             <?php endif; ?>
 
+            <?php if ($tab === 'all'): ?>
             <td data-label="Status">
               <span class="badge <?= $statusBadge[$app['status']] ?? 'badge-inactive' ?>">
                 <?= View::e($statusLabels[$app['status']] ?? $app['status']) ?>
               </span>
             </td>
+            <?php endif; ?>
 
             <td class="text-dim nowrap" data-label="Applied">
               <?= View::e(date($admin_date_format, strtotime((string) $app['applied_at']))) ?>
@@ -398,13 +422,17 @@ endif; ?>
             <th>Listing</th>
             <th class="table-num">Pending</th>
             <th class="table-num">Approved</th>
+            <th class="table-num">Granted</th>
             <th class="table-num">Total</th>
             <th class="act-col"></th>
           </tr>
         </thead>
         <tbody>
           <?php foreach ($adoption_listings as $i => $item): ?>
-          <?php $fl = $item['listing']; ?>
+          <?php
+            $fl          = $item['listing'];
+            $emailAllN   = (int) $item['count_approved'] + (int) $item['count_granted'];
+          ?>
           <tr>
             <td class="table-num text-dim"><?= $i + 1 ?></td>
             <td data-label="Listing">
@@ -424,14 +452,27 @@ endif; ?>
             </td>
             <td class="table-num" data-label="Approved">
               <?php if ($item['count_approved'] > 0): ?>
-                <span class="badge badge-current"><?= (int) $item['count_approved'] ?></span>
+                <a href="<?= $b ?>/admin/adoptions?tab=approved&listing_id=<?= (int) $fl->id ?>" class="badge badge-current"><?= (int) $item['count_approved'] ?></a>
+              <?php else: ?>
+                <span class="text-dim">&mdash;</span>
+              <?php endif; ?>
+            </td>
+            <td class="table-num" data-label="Granted">
+              <?php if ($item['count_granted'] > 0): ?>
+                <a href="<?= $b ?>/admin/adoptions?tab=granted&listing_id=<?= (int) $fl->id ?>" class="badge badge-redirect"><?= (int) $item['count_granted'] ?></a>
               <?php else: ?>
                 <span class="text-dim">&mdash;</span>
               <?php endif; ?>
             </td>
             <td class="table-num text-dim" data-label="Total"><?= (int) $item['count_all'] ?></td>
             <td class="act-col" data-label="">
-              <a href="<?= $b ?>/admin/adoptions?listing_id=<?= (int) $fl->id ?>" class="btn btn-primary btn-xs">View Applications</a>
+              <div class="data-actions">
+                <a href="<?= $b ?>/admin/adoptions?listing_id=<?= (int) $fl->id ?>" class="btn btn-primary btn-xs">View</a>
+                <?php if ($emailAllN > 0): ?>
+                  <a href="<?= $b ?>/admin/adoptions/<?= (int) $fl->id ?>/email-all"
+                     class="btn btn-secondary btn-xs">Email All (<?= $emailAllN ?>)</a>
+                <?php endif; ?>
+              </div>
             </td>
           </tr>
           <?php endforeach; ?>

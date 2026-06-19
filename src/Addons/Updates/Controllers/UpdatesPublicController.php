@@ -75,10 +75,11 @@ final class UpdatesPublicController
         $updatesTemplateHtml = null;
         if ($resolved['should_render_template']) {
             $resolvedTpl = str_replace(
-                ['{listing_title}', '{listing_subject}'],
+                ['{listing_title}', '{listing_subject}', '{listing_url}'],
                 [
                     htmlspecialchars((string) $listing->title,   ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),
                     htmlspecialchars((string) $listing->subject, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),
+                    htmlspecialchars((string) $listing->url,     ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),
                 ],
                 $resolved['value'],
             );

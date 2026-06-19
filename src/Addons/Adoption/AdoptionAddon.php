@@ -131,6 +131,8 @@ final class AdoptionAddon implements AddonInterface
             AdoptionAdminController::class, 'bulkEmailForm');
         $router->post('/admin/adoptions/email',
             AdoptionAdminController::class, 'bulkEmailSend');
+        $router->get('/admin/adoptions/{lid}/email-all',
+            AdoptionAdminController::class, 'emailAllForListing');
         $router->get('/admin/adoptions/{id}/email',
             AdoptionAdminController::class, 'emailForm');
         $router->post('/admin/adoptions/{id}/email',

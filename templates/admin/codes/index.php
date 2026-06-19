@@ -99,10 +99,14 @@ $filtersActive = $filters_active ?? false;
     <?php endif; ?>
 
     <div class="select-wrap">
-      <?php $_apl = $approved_per_listing ?? []; $_aplTotal = array_sum($_apl); ?>
+      <?php
+        $_apl           = $approved_per_listing ?? [];
+        $_aplCollective = (int) ($_apl[0] ?? 0);
+        $_aplTotal      = array_sum($_apl) - $_aplCollective;
+      ?>
       <select name="listing_id" id="codes-listing-sel">
         <option value="0"<?= $lid === 0 && $viewMode !== 'collective' ? ' selected' : '' ?>>All Listings<?= $_aplTotal > 0 ? ' (' . $_aplTotal . ')' : '' ?></option>
-        <option value="collective"<?= $viewMode === 'collective' ? ' selected' : '' ?>><?= ($app_name ?? '') !== '' ? View::e($app_name) . ' (Collective)' : 'Collective' ?></option>
+        <option value="collective"<?= $viewMode === 'collective' ? ' selected' : '' ?>><?= ($app_name ?? '') !== '' ? View::e($app_name) . ' (Collective)' : 'Collective' ?><?= $_aplCollective > 0 ? ' (' . $_aplCollective . ')' : '' ?></option>
         <?php foreach ($allListing as $fl): ?>
           <?php $_flApproved = (int) ($_apl[(int) $fl->id] ?? 0); ?>
           <option value="<?= (int) $fl->id ?>"<?= $lid === (int) $fl->id ? ' selected' : '' ?>>
@@ -147,11 +151,16 @@ $filtersActive = $filters_active ?? false;
              value="<?= View::e($filterSearch) ?>">
     </div>
 
+    <?php if ($viewMode === 'global'): ?>
+      <input type="hidden" name="tab" id="codes-global-tab" value="<?= View::e($tab) ?>">
+    <?php endif; ?>
     <button type="submit" class="btn btn-secondary btn-sm">Search</button>
     <?php if ($viewMode === 'collective'): ?>
       <a href="<?= $b ?>/admin/codes?collective=1" class="btn btn-quaternary btn-sm">Reset</a>
+    <?php elseif ($viewMode === 'global'): ?>
+      <a href="<?= $b ?>/admin/codes?tab=<?= urlencode($tab) ?>" class="btn btn-quaternary btn-sm">Reset</a>
     <?php else: ?>
-      <a href="<?= $b ?>/admin/codes<?= $lid > 0 ? '?listing_id=' . $lid : '' ?>" class="btn btn-quaternary btn-sm">Reset</a>
+      <a href="<?= $b ?>/admin/codes?listing_id=<?= $lid ?>" class="btn btn-quaternary btn-sm">Reset</a>
     <?php endif; ?>
   </form>
 </div>
@@ -222,7 +231,7 @@ $_colUploads        = $uploads_url ?? ($b . '/uploads/codes');
       </div>
       <?php $_hasDonorInfo = $code->submitterName !== null || $code->submitterEmail !== null || $code->submitterUrl !== null; ?>
       <details<?= $_hasDonorInfo ? ' open' : '' ?> class="code-donor-details">
-        <summary class="link" style="font-size:var(--fs-sm);margin-bottom:.5rem;display:inline-block;list-style:none;cursor:pointer"><?= $_hasDonorInfo ? 'Donor information' : '+ Add donor information' ?></summary>
+        <summary class="link" style="font-size:var(--fs-sm);margin-bottom:.5rem;display:inline-block;list-style:none;cursor:pointer"><?= $_hasDonorInfo ? 'Donor information' : '+ Add Donor Information' ?></summary>
         <div>
           <label class="form-label code-modal-label">Donor Name</label>
           <input class="form" type="text" name="submitter_name"
@@ -289,7 +298,7 @@ $_colUploads        = $uploads_url ?? ($b . '/uploads/codes');
             <?php endif; ?>
           </select>
         </div>
-        <p class="panel-hint"><a href="#" id="upload-add-donor-toggle" class="link"><?= View::icon('add') ?> Add new donor</a></p>
+        <p class="panel-hint"><a href="#" id="upload-add-donor-toggle" class="link btn"><?= View::icon('add') ?> Add New Donor</a></p>
       </div>
 
       <div id="upload-new-donor-wrap" class="is-hidden">
@@ -413,15 +422,34 @@ $_colUploads        = $uploads_url ?? ($b . '/uploads/codes');
 
 <?php elseif ($viewMode === 'global'): ?>
 <!-- ══════════════════════════════════════════════════════════════════ -->
-<!-- GLOBAL VIEW: pending donations across all listings                 -->
+<!-- GLOBAL VIEW: tab selector + All placeholder / Pending review      -->
 <!-- ══════════════════════════════════════════════════════════════════ -->
+<?php $_globalPending = (int) ($pending_count ?? 0); ?>
 
-<?php if (empty($codes)): ?>
+<div class="tabs-wrap">
+  <div class="tabs">
+    <a href="<?= View::e($tabUrl('all')) ?>" class="tabs-btn<?= $tab === 'all' ? ' active' : '' ?>">All</a>
+    <a href="<?= View::e($tabUrl('pending')) ?>" class="tabs-btn<?= $tab === 'pending' ? ' active' : '' ?>">
+      Pending <span class="badge badge-<?= $_globalPending > 0 ? 'pending' : 'inactive' ?>"><?= $_globalPending ?></span>
+    </a>
+  </div>
+</div>
+
+<?php if ($tab === 'all'): ?>
+<div class="card">
+  <div class="empty">
+    <div class="empty-icon"><?= View::icon('image', ['width' => 32, 'height' => 32]) ?></div>
+    <div class="empty-title">Use the dropdowns above to get started.</div>
+    <div>Choose a listing to view all of its codes.</div>
+  </div>
+</div>
+
+<?php elseif (empty($codes)): ?>
 <div class="card">
   <div class="empty">
     <div class="empty-icon"><?= View::icon('image', ['width' => 32, 'height' => 32]) ?></div>
     <div class="empty-title">No pending code donations.</div>
-    <div>Codes will appear here — select a listing above to manage it.</div>
+    <div>All caught up &mdash; select a listing above to manage its codes.</div>
   </div>
 </div>
 
@@ -551,7 +579,7 @@ $_colUploads        = $uploads_url ?? ($b . '/uploads/codes');
 </form>
 <?php endforeach; ?>
 
-<?php endif; // empty($codes) ?>
+<?php endif; // empty($codes) / tab all ?>
 
 <?php else: ?>
 <!-- ══════════════════════════════════════════════════════════════════ -->

@@ -136,7 +136,7 @@ $collLastDate = $latest_coll !== null
           <td class="text-dim">0</td>
           <td>
             <div class="ctx-cell">
-              <a href="<?= $b ?>/admin/updates/collective" class="link"><?= View::e($site_name) ?></a>
+              <a href="<?= $b ?>/admin/updates/collective" class="link"><b><?= View::e($site_name) ?></b></a>
               <span class="badge badge-info-gold">Collective</span>
             </div>
           </td>
@@ -172,7 +172,7 @@ $collLastDate = $latest_coll !== null
           <tr>
             <td class="text-dim"><?= $fid ?></td>
             <td class="<?= $cnt === 0 ? 'text-muted' : '' ?>">
-              <a href="<?= $b ?>/admin/listings/<?= $fid ?>/edit" class="link"><?= View::e($listing->subject) ?></a>
+              <a href="<?= $b ?>/admin/listings/<?= $fid ?>/edit" class="link"><b><?= View::e($listing->subject) ?></b></a>
             </td>
             <td class="text-dim">
               <?= $lastDate !== null ? View::e($lastDate) : '<span class="text-dim">&mdash;</span>' ?>
