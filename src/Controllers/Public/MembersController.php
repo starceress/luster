@@ -21,9 +21,9 @@ use Luster\Support\MembersTemplateRenderer;
  *
  * GET /members/{id}[?sort=country|name&country=...&page=N]
  *
- * sort=country (default), no country param â†’ country summary (countries + counts)
- * sort=country, country=X               â†’ paginated members from that country
- * sort=name                             â†’ paginated alphabetical list of all members
+ * sort=country (default), no country param → country summary (countries + counts)
+ * sort=country, country=X               → paginated members from that country
+ * sort=name                             → paginated alphabetical list of all members
  */
 final class MembersController
 {
@@ -100,7 +100,7 @@ final class MembersController
             );
 
             $statsLine = $country . ': ' . $result['total'] . ' member(s)'
-                . ($result['pages'] > 1 ? ' â€” page ' . $page . ' of ' . $result['pages'] : '');
+                . ($result['pages'] > 1 ? ' — page ' . $page . ' of ' . $result['pages'] : '');
 
             $paginationHtml = Pagination::render(
                 $page, $result['pages'], $membersBase, $paginationTemplate,
@@ -160,7 +160,7 @@ final class MembersController
 
         $result = $memberRepo->paginate($listing->dbprefix, $page, $perPage, true, $sort);
 
-        $statsLine      = $result['total'] . ' member(s) â€” page ' . $page . ' of ' . $result['pages'];
+        $statsLine      = $result['total'] . ' member(s) — page ' . $page . ' of ' . $result['pages'];
         $paginationHtml = Pagination::render(
             $page, $result['pages'], $membersBase, $paginationTemplate, ['sort' => $sort],
         );

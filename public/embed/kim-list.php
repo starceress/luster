@@ -156,18 +156,59 @@ if ($_lusterSubjectId > 0) {
         );
     }
 
+    $_lusterSubjectTpl = $_lusterSiteSettings->get('collective_kim_list_subject_template') ?? '';
+    $_lusterSubjectTemplateHtml = null;
+    if ($_lusterSubjectTpl !== '') {
+        $_lusterHasMembers = count($_lusterMembers) > 0;
+        $_lusterTplOut = TemplateEngine::conditionals($_lusterSubjectTpl, [
+            'has_kim_members' => $_lusterHasMembers,
+            'no_kim_members'  => !$_lusterHasMembers,
+        ]);
+        $_lusterTplOut = TemplateEngine::loop(
+            $_lusterTplOut,
+            'kim_member',
+            $_lusterMembers,
+            static function (string $inner, object $member): string {
+                return TemplateEngine::render(
+                    $inner,
+                    ['member_name' => $member->name, 'member_url' => $member->url],
+                    [],
+                    ['member_url' => $member->url !== '', 'no_member_url' => $member->url === ''],
+                );
+            },
+        );
+        $_lusterKimOverviewUrl = $_lusterListBase ?? $_lusterBaseUrl . '/kim/list';
+        $_lusterKimSignupUrl  = $_lusterLinkSignup ?? $_lusterBaseUrl . '/kim';
+        $_lusterTplOut = TemplateEngine::conditionals($_lusterTplOut, [
+            'kim_overview_url' => $_lusterKimOverviewUrl !== '',
+            'kim_signup_url'   => $_lusterKimSignupUrl !== '',
+        ]);
+        $_lusterSubjectTemplateHtml = TemplateEngine::tokens(
+            $_lusterTplOut,
+            [
+                'listing_title'    => $_lusterListing->title,
+                'listing_subject'  => $_lusterListing->subject,
+                'listing_url'      => $_lusterListing->url,
+                'kim_overview_url' => $_lusterKimOverviewUrl,
+                'kim_signup_url'   => $_lusterKimSignupUrl,
+            ],
+            ['pagination' => $_lusterPagination],
+        );
+    }
+
     $_lusterHtml = $_lusterApp->getView()->render('default/addons/kim/subject.php', [
-        'listing'                => $_lusterListing,
-        'members'                => $_lusterMembers,
-        'base_url'               => $_lusterBaseUrl,
-        'theme_path'             => $_lusterBaseUrl . '/assets/default/',
-        'link_list'              => $_lusterListBase,
-        'link_signup'            => $_lusterLinkSignup,
+        'listing'                  => $_lusterListing,
+        'members'                  => $_lusterMembers,
+        'base_url'                 => $_lusterBaseUrl,
+        'theme_path'               => $_lusterBaseUrl . '/assets/default/',
+        'link_list'                => $_lusterListBase,
+        'link_signup'              => $_lusterLinkSignup,
         'kim_member_template_html' => $_lusterKimMemberHtml,
-        'pagination'             => $_lusterPagination,
-        'page'                   => $_lusterPage,
-        'pages'                  => $_lusterPages,
-        'total'                  => $_lusterTotal,
+        'subject_template_html'    => $_lusterSubjectTemplateHtml,
+        'pagination'               => $_lusterPagination,
+        'page'                     => $_lusterPage,
+        'pages'                    => $_lusterPages,
+        'total'                    => $_lusterTotal,
     ]);
 } else {
     // -----------------------------------------------------------------------
@@ -193,12 +234,42 @@ if ($_lusterSubjectId > 0) {
         ];
     }
 
+    $_lusterOverviewTpl = $_lusterSiteSettings->get('collective_kim_list_overview_template') ?? '';
+    $_lusterOverviewTemplateHtml = null;
+    if ($_lusterOverviewTpl !== '') {
+        $_lusterHasListings = count($_lusterFanlistingsWithCounts) > 0;
+        $_lusterTplOut = TemplateEngine::conditionals($_lusterOverviewTpl, [
+            'has_listings' => $_lusterHasListings,
+            'no_listings'  => !$_lusterHasListings,
+        ]);
+        $_lusterOverviewTemplateHtml = TemplateEngine::loop(
+            $_lusterTplOut,
+            'kim_listing',
+            array_values($_lusterFanlistingsWithCounts),
+            static function (string $inner, mixed $entry) use ($_lusterListBase, $_lusterBaseUrl): string {
+                $fl    = $entry['listing'];
+                $count = (int) $entry['count'];
+                $url   = $_lusterListBase !== null
+                    ? $_lusterListBase . '?id=' . (int) $fl->id
+                    : $_lusterBaseUrl . '/kim/list/' . (int) $fl->id;
+                return TemplateEngine::render($inner, [
+                    'listing_title'     => $fl->title,
+                    'listing_subject'   => $fl->subject,
+                    'listing_url'       => $fl->url,
+                    'listing_kim_url'   => $url,
+                    'listing_kim_count' => (string) $count,
+                ]);
+            },
+        );
+    }
+
     $_lusterHtml = $_lusterApp->getView()->render('default/addons/kim/list.php', [
         'fanlistings_with_counts' => $_lusterFanlistingsWithCounts,
         'base_url'                => $_lusterBaseUrl,
         'theme_path'              => $_lusterBaseUrl . '/assets/default/',
         'link_signup'             => $_lusterLinkSignup,
         'link_list_base'          => $_lusterListBase,
+        'overview_template_html'  => $_lusterOverviewTemplateHtml,
     ]);
 }
 

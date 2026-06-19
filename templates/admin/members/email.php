@@ -123,9 +123,12 @@ $listingId  = (int) ($listing->id ?? 0);
 
         <div class="composer-row">
           <span class="composer-lbl">Subject</span>
-        <span class="badge badge-info-pink"><?= $flName ?>:</span>
-        <input class="subj-input" type="text" name="subject_suffix" id="subject"
-               maxlength="255" required value="<?= $oldSubject ?>" placeholder="Enter subject&hellip;">
+          <span class="badge badge-info-pink"><?= $flName ?>:</span>
+          <div class="flex-fill">
+            <input class="subj-input" type="text" name="subject_suffix" id="subject"
+                   maxlength="255" required value="<?= $oldSubject ?>" placeholder="Enter subject&hellip;">
+            <p class="form-hint">Tokens work in the subject line too.</p>
+          </div>
         </div>
       </div>
 

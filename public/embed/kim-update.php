@@ -4,8 +4,11 @@ declare(strict_types=1);
 
 use Luster\Addons\Kim\KimMemberRepo;
 use Luster\Core\Captcha;
+use Luster\Core\TemplateEngine;
+use Luster\Core\View;
 use Luster\Repositories\ListingRepo;
 use Luster\Repositories\SiteSettingsRepo;
+use Luster\Support\FormTemplateRenderer;
 
 /**
  * Luster embed — KIM List update form fragment.
@@ -113,7 +116,7 @@ $_lusterLinkList   = $luster_kim_list_url   ?? $_toKimLink($_lusterKimUrls["kim_
 $_lusterBaseUrl = $_lusterApp->getBaseUrl();
 
 $_lusterCaptchaQ   = Captcha::getQuestion('kim_update');
-$_lusterWrapperTpl = $_lusterSiteSettings->get('collective_field_wrapper_template', '') ?? '';
+$_lusterWrapperTpl = '';
 
 $_lusterFlSelectHtml = '<select class="fl-select" id="kim-fanlisting" name="fanlisting_id" required>'
                      . '<option value="">&#8212; Select the fanlisting your entry is for &#8212;</option>';
@@ -137,6 +140,41 @@ $_lusterF = $_lusterApp->getFormFieldBuilder()->build([
     ['type' => 'text',     'name' => 'captcha_answer',       'id' => 'kim-captcha',              'label' => 'Captcha: ' . $_lusterCaptchaQ,        'required' => true,  'attrs' => ['maxlength' => '10', 'autocomplete' => 'off']],
 ], $_lusterWrapperTpl);
 
+$_lusterFormHtml = null;
+$_lusterUpdateTpl = $_lusterSiteSettings->get('kim_update_form_template') ?? '';
+if ($_lusterUpdateTpl !== '') {
+    $_lusterLostPwUrl = $_lusterLinkReset ?? $_lusterBaseUrl . '/kim/reset';
+    $_lusterTplOut = TemplateEngine::conditionals($_lusterUpdateTpl, [
+        'lost_password_url' => true,
+    ]);
+    $_lusterTokens = [
+        '{field_name}'                       => $_lusterF['name'],
+        '{field_name_input}'                 => $_lusterF['name_input'],
+        '{field_current_email}'              => $_lusterF['current_email'],
+        '{field_current_email_input}'        => $_lusterF['current_email_input'],
+        '{field_current_password}'           => $_lusterF['current_password'],
+        '{field_current_password_input}'     => $_lusterF['current_password_input'],
+        '{field_fanlisting_id}'              => $_lusterF['fanlisting_id'],
+        '{field_fanlisting_id_input}'        => $_lusterF['fanlisting_id_input'],
+        '{field_new_email}'                  => $_lusterF['new_email'],
+        '{field_new_email_input}'            => $_lusterF['new_email_input'],
+        '{field_new_url}'                    => $_lusterF['new_url'],
+        '{field_new_url_input}'              => $_lusterF['new_url_input'],
+        '{field_new_password}'               => $_lusterF['new_password'],
+        '{field_new_password_input}'         => $_lusterF['new_password_input'],
+        '{field_new_password_confirm}'       => $_lusterF['new_password_confirm'],
+        '{field_new_password_confirm_input}' => $_lusterF['new_password_confirm_input'],
+        '{captcha_block}'                    => $_lusterF['captcha_answer'],
+        '{captcha_block_input}'              => $_lusterF['captcha_answer_input'],
+        '{captcha_question}'                 => View::e($_lusterCaptchaQ),
+        '{submit_button}'                    => '<button type="submit" class="fl-submit">Update</button>',
+        '{clear_button}'                     => '<button type="reset" class="fl-btn-secondary">Clear</button>',
+        '{lost_password_url}'                => View::e($_lusterLostPwUrl),
+    ];
+    $_lusterInner    = FormTemplateRenderer::expandTokens($_lusterTplOut, $_lusterTokens);
+    $_lusterFormHtml = FormTemplateRenderer::wrapForm($_lusterInner, $_lusterBaseUrl . '/kim/update', $_lusterApp->getCSRF()->token(), false);
+}
+
 $_lusterHtml = $_lusterApp->getView()->render('default/addons/kim/update.php', [
     'form_action' => $_lusterBaseUrl . '/kim/update',
     'csrf_token'  => $_lusterApp->getCSRF()->token(),
@@ -145,6 +183,7 @@ $_lusterHtml = $_lusterApp->getView()->render('default/addons/kim/update.php', [
         : '',
     'old'         => $_lusterOld,
     'f'           => $_lusterF,
+    'form_html'   => $_lusterFormHtml,
     'base_url'    => $_lusterBaseUrl,
     'theme_path'  => $_lusterBaseUrl . '/assets/default/',
     'link_reset'  => $_lusterLinkReset,

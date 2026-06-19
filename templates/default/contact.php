@@ -9,12 +9,23 @@
  *   $csrf_token   string
  *   $errors       string  pre-escaped HTML error block, or ''
  *   $f            array<string,string>  keys: 'name', 'email', 'url', 'subject', 'message', 'captcha_answer'
+ *   $form_html    ?string  pre-rendered <form> HTML when a custom contact_form_template is set;
+ *                          bypasses the markup below when present
  */
 
 declare(strict_types=1);
 
 use Luster\Core\View;
 ?>
+<?php if (isset($form_html)): ?>
+<div class="fl-embed fl-embed--contact">
+  <?php if ($errors !== ''): ?>
+    <div class="fl-errors"><?= $errors ?></div>
+  <?php endif; ?>
+  <?= $form_html ?>
+</div>
+<?php return; ?>
+<?php endif; ?>
 <div class="fl-embed fl-embed--contact">
 
   <?php if ($errors !== ''): ?>

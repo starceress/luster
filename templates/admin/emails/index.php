@@ -55,6 +55,8 @@ $typeLabels = [
     EmailTemplateRepo::TYPE_ADOPTION_REJECTED  => 'Adoption Application Rejected',
     EmailTemplateRepo::TYPE_KIM_APPLIED        => 'Admin - KIM List Sign-Up',
     EmailTemplateRepo::TYPE_KIM_APPROVED       => 'KIM Sign-Up Approved',
+    EmailTemplateRepo::TYPE_KIM_UPDATE         => 'KIM Entry Updated',
+    EmailTemplateRepo::TYPE_KIM_RESET          => 'KIM Password Reset',
 ];
 
 $navLabels = [
@@ -73,6 +75,8 @@ $navLabels = [
     EmailTemplateRepo::TYPE_ADOPTION_REJECTED  => 'Adoption Rejected',
     EmailTemplateRepo::TYPE_KIM_APPLIED        => 'KIM Applied',
     EmailTemplateRepo::TYPE_KIM_APPROVED       => 'KIM Approved',
+    EmailTemplateRepo::TYPE_KIM_UPDATE         => 'KIM Updated',
+    EmailTemplateRepo::TYPE_KIM_RESET          => 'KIM Reset',
 ];
 
 $typeHints = [
@@ -91,6 +95,8 @@ $typeHints = [
     EmailTemplateRepo::TYPE_ADOPTION_REJECTED  => 'Sent to the applicant after you reject their adoption application.',
     EmailTemplateRepo::TYPE_KIM_APPLIED        => 'Sent to the listing admin when someone signs up to the KIM List.',
     EmailTemplateRepo::TYPE_KIM_APPROVED       => 'Sent to the KIM member after you approve their sign-up.',
+    EmailTemplateRepo::TYPE_KIM_UPDATE         => 'Sent to the KIM member after their entry details are updated.',
+    EmailTemplateRepo::TYPE_KIM_RESET          => 'Sent when a KIM member requests a password reset. Keep {reset_url} in this email.',
 ];
 
 $allTokenDesc = [
@@ -98,6 +104,7 @@ $allTokenDesc = [
     '{fan_email}'       => "The fan or donor's email address",
     '{fan_url}'         => "The fan or donor's website link, if they gave one",
     '{fan_country}'     => "Fan's country",
+    '{fan_password}'    => "The fan's auto-generated password (blank when the fan chose their own; join email only)",
     '{reset_url}'       => "The secure link the fan clicks to set a new password",
     '{listing_title}'    => "The listing's display name",
     '{listing_subject}' => "What the listing is about",
@@ -122,6 +129,7 @@ $allTokenDesc = [
 
 $commonTokens = ['{fan_name}', '{fan_email}', '{fan_url}', '{fan_country}', '{listing_title}', '{listing_subject}', '{listing_url}', '{site_name}', '{owner_name}', '{owner_email}'];
 $typeTokens   = array_fill_keys(EmailTemplateRepo::TYPES, $commonTokens);
+$typeTokens[EmailTemplateRepo::TYPE_JOIN] = array_merge($commonTokens, ['{reset_url}', '{fan_password}']);
 $typeTokens[EmailTemplateRepo::TYPE_RESET] = array_merge(
     ['{fan_name}', '{fan_email}', '{reset_url}'],
     array_slice($commonTokens, 2)
@@ -138,8 +146,11 @@ $typeTokens[EmailTemplateRepo::TYPE_ADOPTION_REJECTED]  = $adoptionTokens;
 $kimTokens = ['{kim_name}', '{kim_email}', '{kim_url}', '{listing_title}', '{listing_url}', '{site_name}', '{owner_name}', '{owner_email}'];
 $typeTokens[EmailTemplateRepo::TYPE_KIM_APPLIED]  = $kimTokens;
 $typeTokens[EmailTemplateRepo::TYPE_KIM_APPROVED] = $kimTokens;
+$typeTokens[EmailTemplateRepo::TYPE_KIM_UPDATE]   = $kimTokens;
+$typeTokens[EmailTemplateRepo::TYPE_KIM_RESET]    = array_merge(['{reset_url}'], $kimTokens);
 
 $typeExtraHints = [
+    EmailTemplateRepo::TYPE_JOIN  => 'Include {reset_url} so fans can reset their password later. {fan_password} is available but only fills for auto-generated passwords — it is blank when the fan chose their own.',
     EmailTemplateRepo::TYPE_RESET => 'This email needs {reset_url}. Without it, the fan will not have a password reset link to click.',
     EmailTemplateRepo::TYPE_AFFILIATE_APPLIED => 'Affiliate emails use {aff_*} tokens instead of {fan_*} tokens because the person is applying with a website, not joining as a member.',
     EmailTemplateRepo::TYPE_AFFILIATE_APPROVED => 'Affiliate emails use {aff_*} tokens instead of {fan_*} tokens because the person is applying with a website, not joining as a member.',
@@ -150,6 +161,8 @@ $typeExtraHints = [
     EmailTemplateRepo::TYPE_ADOPTION_REJECTED => 'Adoption emails use {applicant_*} tokens instead of {fan_*} tokens. This email is sent to the applicant when you reject their application.',
     EmailTemplateRepo::TYPE_KIM_APPLIED  => 'KIM emails use {kim_*} tokens instead of {fan_*} tokens. This notification goes to the listing admin email when someone signs up to the KIM List.',
     EmailTemplateRepo::TYPE_KIM_APPROVED => 'KIM emails use {kim_*} tokens instead of {fan_*} tokens. This email is sent to the KIM member when you approve their sign-up.',
+    EmailTemplateRepo::TYPE_KIM_UPDATE   => 'KIM emails use {kim_*} tokens. This email is sent to the KIM member after their entry details are changed.',
+    EmailTemplateRepo::TYPE_KIM_RESET    => 'KIM emails use {kim_*} tokens. This email must include {reset_url} so the KIM member can click a link to set a new password.',
 ];
 
 $bulkTokens = [
@@ -168,6 +181,12 @@ $bulkTokens = [
 ];
 
 $isGlobal     = ($scope === 'global');
+$visibleTypes = $isGlobal
+    ? EmailTemplateRepo::TYPES
+    : array_values(array_filter(
+        EmailTemplateRepo::TYPES,
+        fn(string $t) => !in_array($t, EmailTemplateRepo::COLLECTIVE_ONLY_TYPES, true)
+    ));
 $resetConfirm = $isGlobal
     ? 'Reset this template to the built-in default? Your edits will be lost.'
     : 'Reset this template to the global version? Your per-listing customisation will be removed.';
@@ -202,25 +221,22 @@ $oldBodyE    = htmlspecialchars($old_body ?? '', ENT_QUOTES, 'UTF-8');
 </div>
 
 <div id="tab-templates" class="tabs-panel<?= $active_tab === 'templates' ? ' active' : '' ?>">
-  <div class="email-scope-row">
-    <form method="GET" action="<?= $b ?>/admin/emails" class="action-form-inline">
-      <input type="hidden" name="tab" value="templates">
-      <div class="select-wrap email-scope-select">
-        <select name="listing" class="js-autosubmit" >
-          <option value="global"<?= $isGlobal ? ' selected' : '' ?>>Collective &amp; Global Listings (Default)</option>
-          <?php if (!empty($all_listings)): ?>
-            <option disabled></option>
-            <?php foreach ($all_listings as $l): ?>
-              <?php $sel = (!$isGlobal && (int) $scope === $l->id); ?>
-              <option value="<?= (int) $l->id ?>"<?= $sel ? ' selected' : '' ?>>
-                <?= View::e($l->title) ?>
-              </option>
-            <?php endforeach; ?>
-          <?php endif; ?>
-        </select>
-      </div>
-    </form>
-
+  <form method="GET" action="<?= $b ?>/admin/emails" class="email-scope-row">
+    <input type="hidden" name="tab" value="templates">
+    <div class="select-wrap email-scope-select">
+      <select name="listing" class="js-autosubmit">
+        <option value="global"<?= $isGlobal ? ' selected' : '' ?>>Collective &amp; Global Listings (Default)</option>
+        <?php if (!empty($all_listings)): ?>
+          <option disabled></option>
+          <?php foreach ($all_listings as $l): ?>
+            <?php $sel = (!$isGlobal && (int) $scope === $l->id); ?>
+            <option value="<?= (int) $l->id ?>"<?= $sel ? ' selected' : '' ?>>
+              <?= View::e($l->title) ?>
+            </option>
+          <?php endforeach; ?>
+        <?php endif; ?>
+      </select>
+    </div>
     <?php if (!$isGlobal && $listing !== null): ?>
       <span class="text-dim">
         Cards showing <span class="badge badge-info">Custom</span> override the global template.
@@ -231,7 +247,7 @@ $oldBodyE    = htmlspecialchars($old_body ?? '', ENT_QUOTES, 'UTF-8');
         <span class="badge badge-info-gold">Global</span> templates apply to all listings unless a per-listing override exists.
       </span>
     <?php endif; ?>
-  </div>
+  </form>
 
   <div id="et-preview-data"
        data-site-name="<?= View::e($site_name_val) ?>"
@@ -251,10 +267,17 @@ $oldBodyE    = htmlspecialchars($old_body ?? '', ENT_QUOTES, 'UTF-8');
       <nav class="panel-card">
         <div class="card-head">Template Name</div>
         <div class="panel-body">
-          <?php foreach (EmailTemplateRepo::TYPES as $i => $type): ?>
+          <div class="search-field-wrap" style="margin:.25rem 0 .5rem">
+            <?= View::icon('search', ['class' => 'search-field-icon', 'aria-hidden' => 'true']) ?>
+            <input type="search" id="et-nav-search" class="form"
+                   placeholder="Filter templates..." autocomplete="off"
+                   aria-label="Filter email templates">
+          </div>
+          <?php foreach ($visibleTypes as $i => $type): ?>
             <button type="button"
                     class="mini-nav-item<?= $i === 0 ? ' active' : '' ?>"
-                    data-et-tab="<?= View::e($type) ?>">
+                    data-et-tab="<?= View::e($type) ?>"
+                    data-et-nav-label="<?= View::e(strtolower($navLabels[$type])) ?>">
               <?= View::e($navLabels[$type]) ?>
               <?php if (!$isGlobal && isset($cards[$type]) && $cards[$type]['isCustomised']): ?>
                 <span class="pc-head-badge">&#x2726;</span>
@@ -265,7 +288,7 @@ $oldBodyE    = htmlspecialchars($old_body ?? '', ENT_QUOTES, 'UTF-8');
       </nav>
 
       <div class="settings-content">
-        <?php foreach (EmailTemplateRepo::TYPES as $i => $type):
+        <?php foreach ($visibleTypes as $i => $type):
           $card = $cards[$type];
         ?>
         <div class="et-panel<?= $i === 0 ? ' active' : '' ?>"
@@ -380,7 +403,7 @@ $oldBodyE    = htmlspecialchars($old_body ?? '', ENT_QUOTES, 'UTF-8');
       </div>
     </div>
   </form>
-  <?php foreach (EmailTemplateRepo::TYPES as $type): ?>
+  <?php foreach ($visibleTypes as $type): ?>
   <form id="et-reset-<?= View::e($type) ?>"
         method="POST"
         action="<?= $b ?>/admin/email-templates/reset"
@@ -391,6 +414,19 @@ $oldBodyE    = htmlspecialchars($old_body ?? '', ENT_QUOTES, 'UTF-8');
     <input type="hidden" name="type"   value="<?= View::e($type) ?>">
   </form>
   <?php endforeach; ?>
+  <script>
+  (function () {
+    var inp = document.getElementById('et-nav-search');
+    if (!inp) return;
+    inp.addEventListener('input', function () {
+      var q = inp.value.trim().toLowerCase();
+      document.querySelectorAll('[data-et-nav-label]').forEach(function (btn) {
+        var match = !q || btn.dataset.etNavLabel.indexOf(q) !== -1;
+        btn.classList.toggle('is-hidden', !match);
+      });
+    });
+  }());
+  </script>
 </div>
 
 <div id="tab-bulk" class="tabs-panel<?= $active_tab === 'bulk' ? ' active' : '' ?>">

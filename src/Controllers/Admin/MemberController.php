@@ -10,9 +10,10 @@ use Luster\Core\Response;
 use Luster\Core\Validator;
 use Luster\Repositories\ActivityRepo;
 use Luster\Repositories\EmailTemplateRepo;
+use Luster\Repositories\FieldRepo;
 use Luster\Repositories\ListingRepo;
 use Luster\Repositories\ListingSettingsRepo;
-use Luster\Repositories\FieldRepo;
+use Luster\Repositories\MemberLinkCheckRepo;
 use Luster\Repositories\MemberRepo;
 use Luster\Repositories\PendingUpdateRepo;
 
@@ -376,6 +377,11 @@ final class MemberController extends AdminController
             }
 
             $memberRepo->update($listing->dbprefix, $email, $updateData);
+            if ($url !== '') {
+                try {
+                    (new MemberLinkCheckRepo($db, $config))->upsertMember($listingId, $email, $name, $url);
+                } catch (\Throwable) {}
+            }
             (new ListingSettingsRepo($db))->touchLastUpdated($listingId);
 
             $activityRepo->log(
@@ -589,10 +595,22 @@ final class MemberController extends AdminController
                 'delete'  => $memberRepo->deleteByEmail($listing->dbprefix, $email),
             };
 
+            // Sync member link check snapshot (best-effort)
+            if (in_array($action, ['reject', 'delete'], true)) {
+                try {
+                    (new MemberLinkCheckRepo($db, $config))->removeMember($listingId, $email);
+                } catch (\Throwable) {}
+            }
+
             // Approval email — mirrors the single-action path (best-effort)
             if ($action === 'approve') {
                 $member = $memberRepo->getByEmail($listing->dbprefix, $email);
                 if ($member !== null) {
+                    if (($member->url ?? '') !== '') {
+                        try {
+                            (new MemberLinkCheckRepo($db, $config))->upsertMember($listingId, $member->email, $member->name, $member->url);
+                        } catch (\Throwable) {}
+                    }
                     try {
                         $cfg       = $this->app->getConfig();
                         $emailRepo = new EmailTemplateRepo($db);
@@ -686,6 +704,12 @@ final class MemberController extends AdminController
         foreach ($pending as $member) {
             $memberRepo->approve($listing->dbprefix, $member->email);
 
+            if (($member->url ?? '') !== '') {
+                try {
+                    (new MemberLinkCheckRepo($db, $config))->upsertMember($listingId, $member->email, $member->name, $member->url);
+                } catch (\Throwable) {}
+            }
+
             try {
                 $cfg       = $this->app->getConfig();
                 $emailRepo = new EmailTemplateRepo($db);
@@ -759,6 +783,12 @@ final class MemberController extends AdminController
             foreach ($pending as $member) {
                 $memberRepo->approve($fl->dbprefix, $member->email);
                 $listingCount++;
+
+                if (($member->url ?? '') !== '') {
+                    try {
+                        (new MemberLinkCheckRepo($db, $config))->upsertMember((int) $fl->id, $member->email, $member->name, $member->url);
+                    } catch (\Throwable) {}
+                }
 
                 try {
                     $tokens = EmailTemplateRepo::buildTokens(
@@ -1070,6 +1100,13 @@ final class MemberController extends AdminController
             'delete'  => $memberRepo->deleteByEmail($listing->dbprefix, $email),
         };
 
+        // Sync member link check snapshot (best-effort)
+        if (in_array($action, ['reject', 'delete'], true)) {
+            try {
+                (new MemberLinkCheckRepo($db, $config))->removeMember($listingId, $email);
+            } catch (\Throwable) {}
+        }
+
         // Touch last_updated when a member is approved (signals listing activity)
         if ($action === 'approve') {
             (new ListingSettingsRepo($db))->touchLastUpdated($listingId);
@@ -1077,6 +1114,11 @@ final class MemberController extends AdminController
             // Approval email (best-effort)
             $member = $memberRepo->getByEmail($listing->dbprefix, $email);
             if ($member !== null) {
+                if (($member->url ?? '') !== '') {
+                    try {
+                        (new MemberLinkCheckRepo($db, $config))->upsertMember($listingId, $member->email, $member->name, $member->url);
+                    } catch (\Throwable) {}
+                }
                 try {
                     $cfg       = $this->app->getConfig();
                     $mailer    = new Mailer($cfg);

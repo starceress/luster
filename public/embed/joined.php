@@ -199,7 +199,7 @@ if ($_lusterJoinedTemplate !== null) {
     // item — otherwise $_lusterListingHtml stays null and templates/default/
     // joined.php falls through to its own "No listings to display" branches.
     if (str_contains($_lusterJoinedTemplate, '{each_current_joined}') || !empty($_lusterJoinedItems)) {
-        $_lusterListingHtml = JoinedListingRowRenderer::renderTemplate($_lusterJoinedTemplate, $_lusterJoinedItems, $_lusterUploadsUrl);
+        $_lusterListingHtml = JoinedListingRowRenderer::renderTemplate($_lusterJoinedTemplate, $_lusterJoinedItems, $_lusterUploadsUrl, (string) ($luster_date_format ?? ''));
     }
 }
 

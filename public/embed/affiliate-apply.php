@@ -110,7 +110,7 @@ if ($_lusterListingId === 0) {
     $_lusterSiteUrl    = (string) ($_lusterConfig->get('site_url', '') ?: $_lusterApp->getBaseUrl());
 
     $_lusterCaptchaQ   = Captcha::getQuestion('affiliate_apply');
-    $_lusterWrapperTpl = $_lusterSiteRepo->get('collective_field_wrapper_template', '') ?? '';
+    $_lusterWrapperTpl = '';
     $_lusterF          = $_lusterApp->getFormFieldBuilder()->build([
         ['type' => 'text',     'name' => 'name',           'id' => 'aff-name',    'label' => 'Name',                      'required' => true,  'value' => (string) ($_lusterOld['name']    ?? ''), 'attrs' => ['maxlength' => '200', 'autocomplete' => 'organization']],
         ['type' => 'url',      'name' => 'url',            'id' => 'aff-url',     'label' => 'Website URL (optional)',                       'required' => true,  'value' => (string) ($_lusterOld['url']     ?? ''), 'attrs' => ['maxlength' => '500', 'placeholder' => 'https://', 'autocomplete' => 'url']],

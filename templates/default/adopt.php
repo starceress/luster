@@ -9,12 +9,17 @@
  *   $errors        string  pre-escaped HTML error block, or ''
  *   $f             array<string,string>  keys: 'name', 'email', 'url', 'message', 'captcha_answer'
  *   $form_html     string|null  when set, renders custom template and short-circuits default
+ *   $success_html  string|null  when set, renders the success block and short-circuits the form
  */
 
 declare(strict_types=1);
 
 use Luster\Core\View;
 
+if (isset($success_html) && $success_html !== '') {
+    echo $success_html;
+    return;
+}
 if (isset($form_html)) {
     ?>
 <div class="fl-embed fl-embed--adopt">

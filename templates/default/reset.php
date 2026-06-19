@@ -13,6 +13,16 @@
 declare(strict_types=1);
 
 use Luster\Core\View;
+
+if (isset($form_html)) {
+    ?>
+<div class="fl-embed fl-embed--reset">
+  <?php if ($errors !== ''): ?><div class="fl-errors"><?= $errors ?></div><?php endif; ?>
+  <?= $form_html ?>
+</div>
+    <?php
+    return;
+}
 ?>
 <div class="fl-embed fl-embed--reset">
   <?php if ($errors !== ''): ?>

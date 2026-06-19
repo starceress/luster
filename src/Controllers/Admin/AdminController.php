@@ -134,7 +134,7 @@ abstract class AdminController
             return [];
         }
 
-        $parts = preg_split('/\s*(?:â€º|›|>)\s*/u', $subtitle) ?: [$subtitle];
+        $parts = preg_split('/\s*(?:›|>)\s*/u', $subtitle) ?: [$subtitle];
         $crumbs = [];
         foreach ($parts as $part) {
             $label = trim($part);

@@ -394,21 +394,17 @@
   --fl: ; /* Outer wrapper — intentionally empty */
 }
 
-.fl-stats-table {
+.fl-stats-grid {
   display: grid;
   grid-template-columns: auto 1fr;
   gap: 0.25em 1em;
 }
 
-.fl-stat-row {
-  display: contents;
-}
-
-.fl-stat-label {
+.fl-stats-label {
   font-weight: 500;
 }
 
-.fl-stat-value {
+.fl-stats-value {
   --fl: ; /* Inherits from host */
 }
 

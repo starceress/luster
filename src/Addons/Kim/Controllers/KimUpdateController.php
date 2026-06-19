@@ -11,17 +11,21 @@ use Luster\Core\Mailer;
 use Luster\Core\PasswordPolicy;
 use Luster\Core\Request;
 use Luster\Core\Response;
+use Luster\Core\TemplateEngine;
 use Luster\Core\Validator;
+use Luster\Core\View;
+use Luster\Repositories\EmailTemplateRepo;
 use Luster\Repositories\ListingRepo;
 use Luster\Repositories\SiteSettingsRepo;
 use Luster\Support\FormFieldBuilder;
+use Luster\Support\FormTemplateRenderer;
 use Luster\Support\SuccessRenderer;
 
 /**
  * Public KIM update form.
  *
- * GET  /kim/update  â€” update form
- * POST /kim/update  â€” authenticates and updates the KIM entry, redirects to host page
+ * GET  /kim/update  — update form
+ * POST /kim/update  — authenticates and updates the KIM entry, redirects to host page
  */
 final class KimUpdateController
 {
@@ -33,16 +37,18 @@ final class KimUpdateController
 
     public function showForm(Request $request, array $params): Response
     {
-        $session = $this->app->getSession();
-        $error   = (string) $session->get('lstr_flash_error', '');
-        $old     = (array)  $session->get('lstr_flash_old',   []);
+        $session     = $this->app->getSession();
+        $successHtml = (string) $session->get('lstr_flash_success_html', '');
+        $error       = (string) $session->get('lstr_flash_error', '');
+        $old         = (array)  $session->get('lstr_flash_old',   []);
+        $session->remove('lstr_flash_success_html');
         $session->remove('lstr_flash_error');
         $session->remove('lstr_flash_old');
 
         $listingRepo = new ListingRepo($this->app->getDatabase(), $this->app->getConfig());
         $fanlistings = $listingRepo->getAll();
 
-        return $this->renderForm($fanlistings, $old, $error);
+        return $this->renderForm($fanlistings, $old, $error, '', $successHtml);
     }
 
     // -----------------------------------------------------------------------
@@ -64,7 +70,7 @@ final class KimUpdateController
             return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $fallbackUrl);
         }
 
-        // Honeypot â€” silent reject; fake success so bots see no difference
+        // Honeypot — silent reject; fake success so bots see no difference
         if ((string) $request->post('website_confirm', '') !== '') {
             $session->remove('lstr_embed_return_to');
             $session->set('lstr_flash_success_html', SuccessRenderer::render('', 'kim-updated'));
@@ -74,10 +80,10 @@ final class KimUpdateController
         $listingRepo = new ListingRepo($this->app->getDatabase(), $this->app->getConfig());
         $fanlistings = $listingRepo->getAll();
 
-        // Captcha â€” redirect with flash on failure so the form re-renders with a fresh question
+        // Captcha — redirect with flash on failure so the form re-renders with a fresh question
         if (!Captcha::validate((string) $request->post('captcha_answer', ''), 'kim_update')) {
             $rateLimit->hitDefault($ip, 'kim_update');
-            $session->set('lstr_flash_error', 'Incorrect answer â€” please try again.');
+            $session->set('lstr_flash_error', 'Incorrect answer — please try again.');
             $session->set('lstr_flash_old', [
                 'name'          => trim((string) $request->post('name',           '')),
                 'current_email' => trim((string) $request->post('current_email',  '')),
@@ -200,13 +206,23 @@ final class KimUpdateController
         $sendCopy = ((string) $request->post('send_copy', '') === '1');
         if ($sendCopy) {
             try {
-                $mailer   = new Mailer($this->app->getConfig());
-                $siteName = (string) $this->app->getConfig()->get('site_name', 'Luster');
-                $subject  = "KIM List Updated â€” {$siteName}";
-                $body     = "Hi {$name},\n\n"
-                          . "Your KIM List entry has been updated.\n"
-                          . "Updated fields: " . implode(', ', $updatedFields) . "\n\n"
-                          . "-- {$siteName}";
+                $config    = $this->app->getConfig();
+                $siteName  = (string) $config->get('site_name', '');
+                $ownerName  = (string) $config->get('owner_name',  '');
+                $ownerEmail = (string) $config->get('owner_email', '');
+                $emailRepo = new EmailTemplateRepo($this->app->getDatabase());
+                $tokens    = EmailTemplateRepo::buildKimTokens(
+                    listingName: $siteName,
+                    listingUrl:  $this->app->getBaseUrl(),
+                    siteName:    $siteName,
+                    ownerName:   $ownerName,
+                    ownerEmail:  $ownerEmail,
+                    kimName:     $name,
+                    kimEmail:    $newEmail !== '' ? $newEmail : $currentEmail,
+                    kimUrl:      $member->url ?? '',
+                );
+                [$subject, $body] = $emailRepo->resolveForListing(null, EmailTemplateRepo::TYPE_KIM_UPDATE, $tokens);
+                $mailer = new Mailer($config);
                 $mailer->send($newEmail !== '' ? $newEmail : $currentEmail, $name, $subject, $body);
             } catch (\Throwable $e) {
                 error_log('[KIM] Update confirmation email failed: ' . $e->getMessage());
@@ -227,9 +243,10 @@ final class KimUpdateController
         array  $old = [],
         string $error = '',
         string $captchaError = '',
+        string $successHtml = '',
     ): Response {
-        $baseUrl    = $this->app->getBaseUrl();
-        $wrapperTpl = (new SiteSettingsRepo($this->app->getDatabase()))->get('collective_field_wrapper_template', '') ?? '';
+        $baseUrl  = $this->app->getBaseUrl();
+        $siteRepo = new SiteSettingsRepo($this->app->getDatabase());
 
         $flSelectHtml = '<select class="fl-select" id="kim-fanlisting" name="fanlisting_id" required>'
                       . '<option value="">&#8212; Select the fanlisting your entry is for &#8212;</option>';
@@ -243,28 +260,69 @@ final class KimUpdateController
 
         $captchaQ = Captcha::getQuestion('kim_update');
         $f = $this->app->getFormFieldBuilder()->build([
-            ['type' => 'text',     'name' => 'name',             'id' => 'kim-name',             'label' => 'Name',                                                                         'required' => true,  'value' => (string) ($old['name']          ?? ''), 'attrs' => ['maxlength' => '100', 'autocomplete' => 'name']],
-            ['type' => 'email',    'name' => 'current_email',    'id' => 'kim-current-email',    'label' => 'Current Email',                                                                'required' => true,  'value' => (string) ($old['current_email'] ?? ''), 'attrs' => ['maxlength' => '255', 'autocomplete' => 'email']],
-            ['type' => 'password', 'name' => 'current_password', 'id' => 'kim-current-password', 'label' => 'Current Password',                                                             'required' => true,  'attrs' => ['maxlength' => '255', 'autocomplete' => 'current-password']],
-            ['type' => 'select',   'name' => 'fanlisting_id',    'id' => 'kim-fanlisting',       'label' => 'Fanlisting',                                                                   'required' => true,  'raw_input' => $flSelectHtml],
-            ['type' => 'email',    'name' => 'new_email',        'id' => 'kim-new-email',        'label' => 'New Email',                                                                    'required' => false, 'value' => (string) ($old['new_email']     ?? ''), 'attrs' => ['maxlength' => '255', 'autocomplete' => 'off'], 'hint' => 'Leave blank to keep current'],
-            ['type' => 'url',      'name' => 'new_url',          'id' => 'kim-new-url',          'label' => 'New Website URL',                                                 'required' => false, 'value' => (string) ($old['new_url']       ?? ''), 'attrs' => ['maxlength' => '500', 'placeholder' => 'https://'], 'hint' => 'Leave blank to keep current'],
-            ['type' => 'password', 'name' => 'new_password',     'id' => 'kim-new-password',     'label' => 'New Password',                                                                 'required' => false, 'attrs' => ['maxlength' => '255', 'autocomplete' => 'new-password'], 'hint' => 'Min 8 characters; leave blank to keep current'],
-            ['type' => 'password', 'name' => 'new_password_confirm', 'id' => 'kim-new-password-confirm', 'label' => 'Confirm New Password',                                               'required' => false, 'attrs' => ['maxlength' => '255', 'autocomplete' => 'new-password']],
-            ['type' => 'text',     'name' => 'captcha_answer',   'id' => 'kim-captcha',          'label' => 'Captcha: ' . $captchaQ,                                                       'required' => true,  'error' => $captchaError, 'attrs' => ['maxlength' => '10', 'autocomplete' => 'off']],
-        ], $wrapperTpl);
+            ['type' => 'text',     'name' => 'name',                 'id' => 'kim-name',                 'label' => 'Name',                    'required' => true,  'value' => (string) ($old['name']          ?? ''), 'attrs' => ['maxlength' => '100', 'autocomplete' => 'name']],
+            ['type' => 'email',    'name' => 'current_email',        'id' => 'kim-current-email',        'label' => 'Current Email',           'required' => true,  'value' => (string) ($old['current_email'] ?? ''), 'attrs' => ['maxlength' => '255', 'autocomplete' => 'email']],
+            ['type' => 'password', 'name' => 'current_password',     'id' => 'kim-current-password',     'label' => 'Current Password',        'required' => true,  'attrs' => ['maxlength' => '255', 'autocomplete' => 'current-password']],
+            ['type' => 'select',   'name' => 'fanlisting_id',        'id' => 'kim-fanlisting',           'label' => 'Fanlisting',              'required' => true,  'raw_input' => $flSelectHtml],
+            ['type' => 'email',    'name' => 'new_email',            'id' => 'kim-new-email',            'label' => 'New Email',               'required' => false, 'value' => (string) ($old['new_email']     ?? ''), 'attrs' => ['maxlength' => '255', 'autocomplete' => 'off'], 'hint' => 'Leave blank to keep current'],
+            ['type' => 'url',      'name' => 'new_url',              'id' => 'kim-new-url',              'label' => 'New Website URL',         'required' => false, 'value' => (string) ($old['new_url']       ?? ''), 'attrs' => ['maxlength' => '500', 'placeholder' => 'https://'], 'hint' => 'Leave blank to keep current'],
+            ['type' => 'password', 'name' => 'new_password',         'id' => 'kim-new-password',         'label' => 'New Password',            'required' => false, 'attrs' => ['maxlength' => '255', 'autocomplete' => 'new-password'], 'hint' => 'Min 8 characters; leave blank to keep current'],
+            ['type' => 'password', 'name' => 'new_password_confirm', 'id' => 'kim-new-password-confirm', 'label' => 'Confirm New Password',    'required' => false, 'attrs' => ['maxlength' => '255', 'autocomplete' => 'new-password']],
+            ['type' => 'text',     'name' => 'captcha_answer',       'id' => 'kim-captcha',              'label' => 'Captcha: ' . $captchaQ,  'required' => true,  'error' => $captchaError, 'attrs' => ['maxlength' => '10', 'autocomplete' => 'off']],
+        ], '');
+
+        $formHtml  = null;
+        $updateTpl = $siteRepo->get('kim_update_form_template') ?? '';
+        if ($updateTpl !== '') {
+            $lostPwUrl = $baseUrl . '/kim/reset';
+            $tpl = TemplateEngine::conditionals($updateTpl, [
+                'lost_password_url' => true,
+            ]);
+            $tokens = [
+                '{field_name}'                       => $f['name'],
+                '{field_name_input}'                 => $f['name_input'],
+                '{field_current_email}'              => $f['current_email'],
+                '{field_current_email_input}'        => $f['current_email_input'],
+                '{field_current_password}'           => $f['current_password'],
+                '{field_current_password_input}'     => $f['current_password_input'],
+                '{field_fanlisting_id}'              => $f['fanlisting_id'],
+                '{field_fanlisting_id_input}'        => $f['fanlisting_id_input'],
+                '{field_new_email}'                  => $f['new_email'],
+                '{field_new_email_input}'            => $f['new_email_input'],
+                '{field_new_url}'                    => $f['new_url'],
+                '{field_new_url_input}'              => $f['new_url_input'],
+                '{field_new_password}'               => $f['new_password'],
+                '{field_new_password_input}'         => $f['new_password_input'],
+                '{field_new_password_confirm}'       => $f['new_password_confirm'],
+                '{field_new_password_confirm_input}' => $f['new_password_confirm_input'],
+                '{field_send_copy}'                  => $f['send_copy'] ?? '',
+                '{field_send_copy_input}'            => $f['send_copy_input'] ?? '',
+                '{captcha_block}'                    => $f['captcha_answer'],
+                '{captcha_block_input}'              => $f['captcha_answer_input'],
+                '{captcha_question}'                 => View::e($captchaQ),
+                '{submit_button}'                    => '<button type="submit" class="fl-submit">Update</button>',
+                '{clear_button}'                     => '<button type="reset" class="fl-btn-secondary">Clear</button>',
+                '{lost_password_url}'                => View::e($lostPwUrl),
+            ];
+            $innerHtml = FormTemplateRenderer::expandTokens($tpl, $tokens);
+            $formHtml  = FormTemplateRenderer::wrapForm($innerHtml, $baseUrl . '/kim/update', $this->app->getCSRF()->token(), false);
+        }
 
         return $this->renderKimPage('update.php', [
-            'page_title'  => 'KIM List â€” Update Entry',
-            'form_action' => $baseUrl . '/kim/update',
-            'csrf_token'  => $this->app->getCSRF()->token(),
-            'errors'      => $error !== ''
+            'page_title'   => 'KIM List — Update Entry',
+            'form_action'  => $baseUrl . '/kim/update',
+            'csrf_token'   => $this->app->getCSRF()->token(),
+            'errors'       => $error !== ''
                 ? '<p>' . htmlspecialchars($error, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '</p>'
                 : '',
-            'old'         => $old,
-            'f'           => $f,
-            'base_url'    => $baseUrl,
-            'theme_path'  => $baseUrl . '/assets/css/default/',
+            'old'          => $old,
+            'f'            => $f,
+            'form_html'    => $formHtml,
+            'success_html' => $successHtml,
+            'link_reset'   => null,
+            'link_list'    => null,
+            'base_url'     => $baseUrl,
+            'theme_path'   => $baseUrl . '/assets/css/default/',
         ]);
     }
 

@@ -101,6 +101,124 @@ final class CollectiveStatsRepo
         ];
     }
 
+    /**
+     * Returns counts of active owned listings by network approval.
+     *
+     * @return array{tfl: int, tafl: int}
+     */
+    public function getOwnedNetworkCounts(): array
+    {
+        try {
+            if ($this->isOwnedSchema) {
+                $activeCond = 'o.status = 2';
+            } else {
+                $activeCond = 'o.upcoming = 0 AND o.trouble = 0';
+            }
+            $stmt = $this->db->prepare(
+                "SELECT SUM(s.approved_by = 'tfl')  AS tfl,
+                        SUM(s.approved_by = 'tafl') AS tafl
+                 FROM {$this->ownedTable} o
+                 INNER JOIN lstr_fanlisting_settings s
+                    ON s.fanlisting_id = o.{$this->ownedPk}
+                 WHERE {$activeCond}"
+            );
+            $stmt->execute();
+            $row = $stmt->fetch();
+            return [
+                'tfl'  => (int) ($row['tfl']  ?? 0),
+                'tafl' => (int) ($row['tafl'] ?? 0),
+            ];
+        } catch (\Throwable) {
+            return ['tfl' => 0, 'tafl' => 0];
+        }
+    }
+
+    /**
+     * Returns counts of active joined listings by category network.
+     *
+     * Reads `categories_json` (preferred — stores network directly) and falls
+     * back to the legacy `category` column matched against `lstr_categories`.
+     * A listing is counted once per network it belongs to (not per category).
+     *
+     * @return array{tfl: int, tafl: int}
+     */
+    public function getJoinedNetworkCounts(): array
+    {
+        try {
+            $stmt = $this->db->prepare(
+                'SELECT categories_json, category_id, category FROM lstr_joined WHERE active = 1'
+            );
+            $stmt->execute();
+
+            $tfl  = 0;
+            $tafl = 0;
+            $legacyCatIds  = [];
+            $legacyNames   = [];
+
+            foreach ($stmt->fetchAll() as $row) {
+                $json = $row['categories_json'] ?? null;
+                if ($json !== null && $json !== '') {
+                    $decoded = json_decode($json, true);
+                    if (is_array($decoded)) {
+                        $networks = [];
+                        foreach ($decoded as $entry) {
+                            $net = strtolower(trim((string) ($entry['network'] ?? '')));
+                            if ($net !== '') {
+                                $networks[$net] = true;
+                            }
+                        }
+                        if (isset($networks['tfl']))  { $tfl++; }
+                        if (isset($networks['tafl'])) { $tafl++; }
+                        continue;
+                    }
+                }
+                $catId = $row['category_id'] ?? null;
+                if ($catId !== null && (int) $catId > 0) {
+                    $legacyCatIds[] = (int) $catId;
+                } else {
+                    $cat = trim((string) ($row['category'] ?? ''));
+                    if ($cat !== '') {
+                        $legacyNames[] = $cat;
+                    }
+                }
+            }
+
+            $sourceById = [];
+            if (!empty($legacyCatIds)) {
+                $ph   = implode(',', array_fill(0, count($legacyCatIds), '?'));
+                $cStmt = $this->db->prepare("SELECT id, source FROM lstr_categories WHERE id IN ({$ph})");
+                $cStmt->execute($legacyCatIds);
+                foreach ($cStmt->fetchAll() as $r) {
+                    $sourceById[(int) $r['id']] = (string) $r['source'];
+                }
+                foreach ($legacyCatIds as $cid) {
+                    $src = $sourceById[$cid] ?? '';
+                    if ($src === 'tfl')  { $tfl++; }
+                    if ($src === 'tafl') { $tafl++; }
+                }
+            }
+
+            if (!empty($legacyNames)) {
+                $ph   = implode(',', array_fill(0, count($legacyNames), '?'));
+                $cStmt = $this->db->prepare("SELECT name, source FROM lstr_categories WHERE name IN ({$ph})");
+                $cStmt->execute($legacyNames);
+                $sourceByName = [];
+                foreach ($cStmt->fetchAll() as $r) {
+                    $sourceByName[(string) $r['name']] = (string) $r['source'];
+                }
+                foreach ($legacyNames as $name) {
+                    $src = $sourceByName[$name] ?? '';
+                    if ($src === 'tfl')  { $tfl++; }
+                    if ($src === 'tafl') { $tafl++; }
+                }
+            }
+
+            return ['tfl' => $tfl, 'tafl' => $tafl];
+        } catch (\Throwable) {
+            return ['tfl' => 0, 'tafl' => 0];
+        }
+    }
+
     // -----------------------------------------------------------------------
     // Joined listing counts
     // -----------------------------------------------------------------------

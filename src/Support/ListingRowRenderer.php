@@ -7,6 +7,7 @@ namespace Luster\Support;
 use Luster\Core\TemplateEngine;
 use Luster\Core\View;
 use Luster\Models\Listing;
+use Luster\Support\DateFormatter;
 
 /**
  * Renders owned-listing rows by substituting tokens in the owned_template
@@ -34,6 +35,7 @@ final class ListingRowRenderer
         string  $uploadsUrl,
         string  $categoryName = '',
         array   $memberStats  = ['approved' => 0, 'pending' => 0, 'country_count' => 0],
+        string  $dateFormat   = '',
     ): string {
         $status = match (true) {
             $listing->trouble  => 'pending',
@@ -54,6 +56,13 @@ final class ListingRowRenderer
         $approvedBy   = (string) ($settings['approved_by'] ?? '');
         $description  = (string) ($settings['description'] ?? '');
 
+        $network     = strtoupper($approvedBy);
+        $networkName = match ($approvedBy) {
+            'tfl'   => 'The Fanlistings Network',
+            'tafl'  => 'The Anime Fanlistings Network',
+            default => '',
+        };
+
         return TemplateEngine::render(
             $template,
             escaped: [
@@ -65,18 +74,18 @@ final class ListingRowRenderer
                 'listing_type'         => $listing->listingtype,
                 'listing_category'     => $categoryName,
                 'listing_image_url'    => $imageUrl,
-                'date_opened'          => $listing->opened ?? '',
-                'date_updated'         => (string) ($settings['last_updated'] ?? ''),
+                'date_opened'          => DateFormatter::formatWith($listing->opened ?? '', $dateFormat),
+                'date_updated'         => DateFormatter::formatWith((string) ($settings['last_updated'] ?? ''), $dateFormat),
                 'member_count'         => (int) ($memberStats['approved'] ?? 0),
                 'member_pending_count' => $pendingCount,
-                // Internal alias — pre-Phase-2 templates used {pending_count} for
-                // the per-listing pending member count; {member_pending_count} is
-                // now the canonical name (see docs/PUBLIC-TEMPLATES-PLAN.md). Both
-                // resolve here, inside the row, before the outer template's own
-                // {pending_count} *section* count token is processed.
                 'pending_count'        => $pendingCount,
                 'country_count'        => $countryCount,
-                'approved_by'          => $approvedBy,
+                'approved_by'          => $network,
+                'network'              => $network,
+                'network_status'       => $network,
+                'network_name'         => $networkName,
+                'tfl_url'              => 'https://thefanlistings.org/',
+                'tafl_url'             => 'https://www.animefanlistings.com/',
                 'listing_description'  => $description,
             ],
             raw: [
@@ -85,17 +94,13 @@ final class ListingRowRenderer
             conditions: [
                 'listing_image'   => $imageUrl !== '',
                 'countries'       => $countryCount > 0,
-                // Carried over from the pre-Phase-2 default template (symmetric
-                // with {if_countries}) — not in the plan's owned-row token table,
-                // but dropping it would silently break "{if_pending} (+N pending)"
-                // which is the obvious counterpart pattern site owners would expect.
                 'pending'         => $pendingCount > 0,
                 'status_current'  => $status === 'current',
                 'status_upcoming' => $status === 'upcoming',
                 'status_pending'  => $status === 'pending',
                 'tfl'             => $approvedBy === 'tfl',
                 'tafl'            => $approvedBy === 'tafl',
-                'approved'        => $approvedBy !== '',
+                'approved_by'     => $approvedBy !== '',
                 'date_updated'    => (string) ($settings['last_updated'] ?? '') !== '',
                 'description'     => $description !== '',
             ],
@@ -132,6 +137,7 @@ final class ListingRowRenderer
         array  $settingsMap,
         array  $statsMap,
         array  $categoryMap = [],
+        string $dateFormat  = '',
     ): string {
         return TemplateEngine::loop(
             $template,
@@ -144,6 +150,7 @@ final class ListingRowRenderer
                 $uploadsUrl,
                 $categoryMap[$listing->id] ?? '',
                 $statsMap[$listing->id] ?? ['approved' => 0, 'pending' => 0, 'country_count' => 0],
+                $dateFormat,
             ),
         );
     }
@@ -186,13 +193,14 @@ final class ListingRowRenderer
         array  $settingsMap,
         array  $statsMap,
         array  $categoryMap = [],
+        string $dateFormat  = '',
     ): string {
         $isSectioned = str_contains($template, '{each_current}')
                     || str_contains($template, '{each_upcoming}')
                     || str_contains($template, '{each_pending}');
 
         if (!$isSectioned) {
-            return self::renderGroup('listing', $template, $listings, $uploadsUrl, $settingsMap, $statsMap, $categoryMap);
+            return self::renderGroup('listing', $template, $listings, $uploadsUrl, $settingsMap, $statsMap, $categoryMap, $dateFormat);
         }
 
         $current  = [];
@@ -224,7 +232,7 @@ final class ListingRowRenderer
         );
 
         foreach (['current' => $current, 'upcoming' => $upcoming, 'pending' => $pending] as $name => $group) {
-            $html = self::renderGroup($name, $html, $group, $uploadsUrl, $settingsMap, $statsMap, $categoryMap);
+            $html = self::renderGroup($name, $html, $group, $uploadsUrl, $settingsMap, $statsMap, $categoryMap, $dateFormat);
         }
 
         return $html;

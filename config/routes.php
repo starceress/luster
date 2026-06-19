@@ -370,6 +370,10 @@ return [
             SettingsController::class, 'checkUpdate');
         $router->post('/admin/settings/import-visibility',
             SettingsController::class, 'saveImportVisibility');
+        $router->post('/admin/settings/notifications',
+            SettingsController::class, 'saveNotifications');
+        $router->post('/admin/settings/default-theme',
+            SettingsController::class, 'saveDefaultTheme');
         $router->post('/admin/settings/skin',
             SettingsController::class, 'saveSkin');
 
@@ -398,6 +402,8 @@ return [
         // ── Global Codes ─────────────────────────────────────────────
         $router->get('/admin/codes',
             \Luster\Controllers\Admin\GlobalCodesController::class, 'index');
+        $router->get('/admin/codes/collective/export',
+            \Luster\Controllers\Admin\GlobalCodesController::class, 'exportCollective');
         $router->post('/admin/codes/collective-upload',
             \Luster\Controllers\Admin\GlobalCodesController::class, 'uploadCollective');
         $router->post('/admin/codes/approve-all',
@@ -492,6 +498,14 @@ return [
             LinkCheckerController::class, 'applyRedirectJoined');
         $router->post('/admin/link-checker/save-cron-settings',
             LinkCheckerController::class, 'saveCronSettings');
+        $router->post('/admin/link-checker/scan-members',
+            LinkCheckerController::class, 'scanMembers');
+        $router->post('/admin/link-checker/check-member',
+            LinkCheckerController::class, 'checkMember');
+        $router->post('/admin/link-checker/apply-member-redirect',
+            LinkCheckerController::class, 'applyRedirectMember');
+        $router->post('/admin/link-checker/reset-members',
+            LinkCheckerController::class, 'resetMembers');
 
         // ── Feedback ──────────────────────────────────────────────────
         $router->get('/admin/feedback',  FeedbackController::class, 'showForm');

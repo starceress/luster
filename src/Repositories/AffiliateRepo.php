@@ -1239,4 +1239,34 @@ final class AffiliateRepo
 
         return $result;
     }
+
+    public function getEmailRecipientsByIds(array $ids): array
+    {
+        if (empty($ids)) {
+            return [];
+        }
+        $placeholders = implode(', ', array_fill(0, count($ids), '?'));
+        $stmt = $this->db->prepare(
+            "SELECT id, name, email, url, fanlisting_id
+             FROM lstr_affiliates
+             WHERE id IN ({$placeholders})
+               AND active = 1 AND pending = 0
+               AND email IS NOT NULL AND TRIM(email) != ''
+             ORDER BY id ASC"
+        );
+        $stmt->execute(array_values($ids));
+
+        $result = [];
+        foreach ($stmt->fetchAll() as $row) {
+            $id = (int) $row['id'];
+            $result[$id] = [
+                'id'         => $id,
+                'name'       => (string) $row['name'],
+                'email'      => trim((string) $row['email']),
+                'url'        => (string) ($row['url'] ?? ''),
+                'listing_id' => $row['fanlisting_id'] !== null ? (int) $row['fanlisting_id'] : null,
+            ];
+        }
+        return $result;
+    }
 }

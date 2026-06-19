@@ -120,7 +120,7 @@ $_lusterLinkList   = $luster_kim_list_url   ?? $_toKimLink($_lusterKimUrls["kim_
 $_lusterBaseUrl = $_lusterApp->getBaseUrl();
 
 $_lusterCaptchaQ  = Captcha::getQuestion('kim_signup');
-$_lusterWrapperTpl = $_lusterSiteSettings->get('collective_field_wrapper_template', '') ?? '';
+$_lusterWrapperTpl = '';
 
 $_lusterFlSelectHtml = '<select class="fl-select" id="kim-fanlisting" name="fanlisting_id" required>'
                      . '<option value="">&#8212; Select a Listing &#8212;</option>';

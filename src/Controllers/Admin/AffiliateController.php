@@ -63,6 +63,11 @@ final class AffiliateController extends AdminController
             return Response::redirect($redirect);
         }
 
+        if ($action === 'email_selected') {
+            $session->set('lstr_aff_selected_ids', $selected);
+            return Response::redirect($baseUrl . '/admin/affiliates/email');
+        }
+
         $count = count($selected);
 
         $affected = match ($action) {
@@ -721,13 +726,27 @@ final class AffiliateController extends AdminController
         $listingRepo   = new ListingRepo($db, $config);
         $listings      = $listingRepo->getAll();
 
-        // Pre-compute recipient counts for each scope option
-        $scopeCounts = [
-            'all'        => count($affiliateRepo->getEmailRecipients('all')),
-            'collective' => count($affiliateRepo->getEmailRecipients('collective')),
-        ];
-        foreach ($listings as $fl) {
-            $scopeCounts[(string) $fl->id] = count($affiliateRepo->getEmailRecipients($fl->id));
+        // Selected-only mode: triggered by bulk email_selected action
+        $selectedIds  = array_values(array_filter(
+            array_map('intval', (array) $session->get('lstr_aff_selected_ids', [])),
+            fn(int $id) => $id > 0
+        ));
+        $session->remove('lstr_aff_selected_ids');
+        $selectedOnly = !empty($selectedIds);
+
+        if ($selectedOnly) {
+            $idRecipMap  = $affiliateRepo->getEmailRecipientsByIds($selectedIds);
+            $scopeCounts = [];
+        } else {
+            $idRecipMap = [];
+            // Pre-compute recipient counts for each scope option
+            $scopeCounts = [
+                'all'        => count($affiliateRepo->getEmailRecipients('all')),
+                'collective' => count($affiliateRepo->getEmailRecipients('collective')),
+            ];
+            foreach ($listings as $fl) {
+                $scopeCounts[(string) $fl->id] = count($affiliateRepo->getEmailRecipients($fl->id));
+            }
         }
 
         $savedEmails = (new SavedEmailRepo($db))->getAll();
@@ -747,6 +766,9 @@ final class AffiliateController extends AdminController
             'listings'      => $listings,
             'scope_counts'  => $scopeCounts,
             'selected_scope'=> $selectedScope,
+            'selected_only' => $selectedOnly,
+            'id_recip_map'  => $idRecipMap,
+            'aff_ids'       => $selectedIds,
             'saved_emails'  => $savedEmails,
             'from_name'     => $fromName,
             'from_email'    => $fromEmail,
@@ -777,28 +799,46 @@ final class AffiliateController extends AdminController
         $body    = trim((string) $request->post('body',    ''));
         $scope   = trim((string) $request->post('scope',   'all'));
 
+        $affIds       = array_values(array_filter(
+            array_map('intval', (array) $request->post('aff_ids', [])),
+            fn(int $id) => $id > 0
+        ));
+        $selectedOnly = !empty($affIds);
+
         if ($subject === '' || $body === '') {
             $session->set('lstr_flash_error', 'Please fill in both the subject and message before sending.');
             $session->set('lstr_email_old', ['subject' => $subject, 'body' => $body, 'scope' => $scope]);
+            if ($selectedOnly) {
+                $session->set('lstr_aff_selected_ids', $affIds);
+                return Response::redirect($baseUrl . '/admin/affiliates/email');
+            }
             return Response::redirect($baseUrl . '/admin/affiliates/email?scope=' . urlencode($scope));
         }
 
         $affiliateRepo = new AffiliateRepo($db);
         $listingRepo   = new ListingRepo($db, $config);
 
-        // Resolve scope value
-        $resolvedScope = match (true) {
-            $scope === 'all'        => 'all',
-            $scope === 'collective' => 'collective',
-            ctype_digit($scope)     => (int) $scope,
-            default                 => 'all',
-        };
-
-        $recipients = $affiliateRepo->getEmailRecipients($resolvedScope);
+        if ($selectedOnly) {
+            $recipients    = array_values($affiliateRepo->getEmailRecipientsByIds($affIds));
+            $resolvedScope = 'selected';
+        } else {
+            // Resolve scope value
+            $resolvedScope = match (true) {
+                $scope === 'all'        => 'all',
+                $scope === 'collective' => 'collective',
+                ctype_digit($scope)     => (int) $scope,
+                default                 => 'all',
+            };
+            $recipients = $affiliateRepo->getEmailRecipients($resolvedScope);
+        }
 
         if (empty($recipients)) {
             $session->set('lstr_flash_error', 'No affiliates with email addresses found for the selected scope.');
             $session->set('lstr_email_old', ['subject' => $subject, 'body' => $body, 'scope' => $scope]);
+            if ($selectedOnly) {
+                $session->set('lstr_aff_selected_ids', $affIds);
+                return Response::redirect($baseUrl . '/admin/affiliates/email');
+            }
             return Response::redirect($baseUrl . '/admin/affiliates/email?scope=' . urlencode($scope));
         }
 
@@ -843,6 +883,7 @@ final class AffiliateController extends AdminController
         }
 
         $scopeLabel = match (true) {
+            $resolvedScope === 'selected'   => 'selected affiliates (' . count($recipients) . ')',
             $resolvedScope === 'all'        => 'all affiliates',
             $resolvedScope === 'collective' => 'collective affiliates',
             default                         => 'listing #' . $resolvedScope . ' affiliates',

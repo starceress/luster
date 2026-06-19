@@ -170,6 +170,15 @@ final class BulkEmailController extends AdminController
             ? $referer
             : $baseUrl . '/admin/emails?tab=custom';
 
+        // Restore selected-recipient context so selected-mode composers reload correctly
+        $affIds = array_values(array_filter(
+            array_map('intval', (array) $request->post('aff_ids', [])),
+            fn(int $id) => $id > 0
+        ));
+        if (!empty($affIds)) {
+            $session->set('lstr_aff_selected_ids', $affIds);
+        }
+
         if ($name === '' || $body === '') {
             $session->set('lstr_flash_error', 'Template name and body are required.');
             return Response::redirect($redirect);

@@ -47,10 +47,10 @@ use Luster\Core\View;
       <input type="text" id="website-confirm" name="website_confirm" tabindex="-1" autocomplete="off">
     </div>
 
-    <?= $f['code_image'] ?>
     <?= $f['submitter_name'] ?>
     <?= $f['submitter_email'] ?>
     <?= $f['submitter_url'] ?>
+    <?= $f['code_image'] ?>
     <?= $f['captcha'] ?>
 
     <div class="fl-form-actions">

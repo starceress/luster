@@ -3,8 +3,12 @@
 declare(strict_types=1);
 
 use Luster\Core\Captcha;
+use Luster\Core\View;
 use Luster\Repositories\ListingRepo;
 use Luster\Repositories\ListingSettingsRepo;
+use Luster\Repositories\SiteSettingsRepo;
+use Luster\Support\FormTemplateRenderer;
+use Luster\Support\ListingTemplateResolver;
 
 /**
  * Luster embed — per-listing contact form fragment.
@@ -108,10 +112,9 @@ $_lusterFormAction = isset($luster_contact_action)
     : $_lusterBaseUrl . '/contact/' . $_lusterListingId;
 
 $_lusterSettingsRepo = new ListingSettingsRepo($_lusterApp->getDatabase());
-$_lusterWrapperTpl   = $_lusterSettingsRepo->getWrapperTemplate($_lusterListingId) ?? '';
 $_lusterCaptchaQ     = Captcha::getQuestion('contact_listing');
 
-$_lusterSubjOld = (string) ($_lusterOld['subject'] ?? '');
+$_lusterSubjOld  = (string) ($_lusterOld['subject'] ?? '');
 $_lusterSubjHtml = '<select id="contact-subject" name="subject" required>'
                  . '<option value="" disabled' . ($_lusterSubjOld === '' ? ' selected' : '') . '>Choose &mdash;</option>';
 foreach (['Comments', 'Contact', 'Questions/Concerns', 'Affiliation', 'Link Exchange'] as $_lusterSubjOpt) {
@@ -127,7 +130,39 @@ $_lusterF = $_lusterApp->getFormFieldBuilder()->build([
     ['type' => 'select',   'name' => 'subject',        'id' => 'contact-subject', 'label' => 'Subject',     'required' => true,  'raw_input' => $_lusterSubjHtml],
     ['type' => 'textarea', 'name' => 'message',        'id' => 'contact-message', 'label' => 'Message',     'required' => true,  'value' => (string) ($_lusterOld['message'] ?? ''), 'attrs' => ['maxlength' => '5000', 'rows' => '6']],
     ['type' => 'text',     'name' => 'captcha_answer', 'id' => 'contact-captcha', 'label' => 'Captcha: ' . $_lusterCaptchaQ, 'required' => true, 'attrs' => ['maxlength' => '10', 'autocomplete' => 'off']],
-], $_lusterWrapperTpl);
+], '');
+
+$_lusterFormHtml   = null;
+$_lusterGlobals    = (new SiteSettingsRepo($_lusterApp->getDatabase()))->getGlobalTemplates();
+$_lusterResolved   = ListingTemplateResolver::resolve(
+    $_lusterSettingsRepo->getContactFormTemplate($_lusterListingId),
+    $_lusterGlobals['listing_default_contact_form_template'] ?? null,
+    '',
+);
+$_lusterContactTpl = $_lusterResolved['should_render_template'] ? $_lusterResolved['value'] : '';
+if ($_lusterContactTpl !== '') {
+    $_lusterTokens = [
+        '{listing_title}'        => View::e($_lusterListing->title),
+        '{listing_url}'          => View::e($_lusterListing->url),
+        '{field_name}'           => $_lusterF['name'],
+        '{field_name_input}'     => $_lusterF['name_input'],
+        '{field_email}'          => $_lusterF['email'],
+        '{field_email_input}'    => $_lusterF['email_input'],
+        '{field_url}'            => $_lusterF['url'],
+        '{field_url_input}'      => $_lusterF['url_input'],
+        '{field_subject}'        => $_lusterF['subject'],
+        '{field_subject_input}'  => $_lusterF['subject_input'],
+        '{field_message}'        => $_lusterF['message'],
+        '{field_message_input}'  => $_lusterF['message_input'],
+        '{captcha_block}'        => $_lusterF['captcha_answer'],
+        '{captcha_block_input}'  => $_lusterF['captcha_answer_input'],
+        '{captcha_question}'     => View::e($_lusterCaptchaQ),
+        '{submit_button}'        => '<button type="submit" class="fl-submit">Send Message</button>',
+        '{clear_button}'         => '<button type="reset" class="fl-btn-secondary">Clear</button>',
+    ];
+    $_lusterInner   = FormTemplateRenderer::expandTokens($_lusterContactTpl, $_lusterTokens);
+    $_lusterFormHtml = FormTemplateRenderer::wrapForm($_lusterInner, $_lusterFormAction, $_lusterApp->getCSRF()->token(), false);
+}
 
 $_lusterHtml = $_lusterApp->getView()->renderFragment('contact.php', [
     'listing'      => $_lusterListing,
@@ -142,6 +177,7 @@ $_lusterHtml = $_lusterApp->getView()->renderFragment('contact.php', [
         ? '<p>' . htmlspecialchars($_lusterError, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '</p>'
         : '',
     'f'            => $_lusterF,
+    'form_html'    => $_lusterFormHtml,
 ]);
 
 if ($luster_return ?? false) { return $_lusterHtml; }

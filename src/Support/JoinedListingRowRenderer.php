@@ -7,6 +7,7 @@ namespace Luster\Support;
 use Luster\Core\TemplateEngine;
 use Luster\Core\View;
 use Luster\Models\JoinedListing;
+use Luster\Support\DateFormatter;
 
 /**
  * Renders joined-listing rows by substituting tokens in the joined_template
@@ -23,7 +24,7 @@ final class JoinedListingRowRenderer
     /**
      * Replace all {token} placeholders for one joined listing and return the HTML row.
      */
-    public static function render(JoinedListing $listing, string $template, string $uploadsUrl): string
+    public static function render(JoinedListing $listing, string $template, string $uploadsUrl, string $dateFormat = ''): string
     {
         $imageUrl  = ($listing->image !== null && $listing->image !== '') ? $uploadsUrl . '/' . $listing->image : '';
         $imageHtml = $imageUrl !== ''
@@ -37,7 +38,7 @@ final class JoinedListingRowRenderer
                 'listing_url'       => $listing->url,
                 'listing_category'  => $listing->category,
                 'listing_image_url' => $imageUrl,
-                'date_joined'       => $listing->dateJoined ?? '',
+                'date_joined'       => DateFormatter::formatWith($listing->dateJoined ?? '', $dateFormat),
                 'listing_status'    => $listing->status,
             ],
             raw: [
@@ -55,13 +56,13 @@ final class JoinedListingRowRenderer
      *
      * @param JoinedListing[] $listings
      */
-    public static function renderGroup(string $loopName, string $template, array $listings, string $uploadsUrl): string
+    public static function renderGroup(string $loopName, string $template, array $listings, string $uploadsUrl, string $dateFormat = ''): string
     {
         return TemplateEngine::loop(
             $template,
             $loopName,
             $listings,
-            static fn(string $inner, JoinedListing $listing): string => self::render($listing, $inner, $uploadsUrl),
+            static fn(string $inner, JoinedListing $listing): string => self::render($listing, $inner, $uploadsUrl, $dateFormat),
         );
     }
 
@@ -78,10 +79,10 @@ final class JoinedListingRowRenderer
      *
      * @param JoinedListing[] $listings
      */
-    public static function renderTemplate(string $template, array $listings, string $uploadsUrl): string
+    public static function renderTemplate(string $template, array $listings, string $uploadsUrl, string $dateFormat = ''): string
     {
         if (!str_contains($template, '{each_current_joined}')) {
-            return self::renderGroup('joined', $template, $listings, $uploadsUrl);
+            return self::renderGroup('joined', $template, $listings, $uploadsUrl, $dateFormat);
         }
 
         $html = TemplateEngine::render(
@@ -95,6 +96,6 @@ final class JoinedListingRowRenderer
             ],
         );
 
-        return self::renderGroup('current_joined', $html, $listings, $uploadsUrl);
+        return self::renderGroup('current_joined', $html, $listings, $uploadsUrl, $dateFormat);
     }
 }

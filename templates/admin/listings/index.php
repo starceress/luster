@@ -80,7 +80,7 @@ $filtersActive = ($search ?? '') !== '' || ($filter_network ?? '') !== ''
 // Combinations:
 //   network [: category] [ - type] [ - "search"]
 //   type only, search only, or any subset thereof
-//   nothing â€ â€™ "All Listings"
+//   nothing → "All Listings"
 $_fn  = $filter_network ?? '';
 $_fc  = $filter_cat     ?? '';
 $_ft  = $filter_type    ?? '';

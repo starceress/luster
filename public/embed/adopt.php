@@ -3,12 +3,8 @@
 declare(strict_types=1);
 
 use Luster\Core\Captcha;
-use Luster\Core\View;
 use Luster\Repositories\ListingRepo;
 use Luster\Repositories\ListingSettingsRepo;
-use Luster\Repositories\SiteSettingsRepo;
-use Luster\Support\FormTemplateRenderer;
-use Luster\Support\ListingTemplateResolver;
 
 /**
  * Luster embed — adoption application form fragment.
@@ -129,35 +125,7 @@ $_lusterF          = $_lusterApp->getFormFieldBuilder()->build([
     ['type' => 'text',     'name' => 'captcha_answer', 'id' => 'adopt-captcha', 'label' => 'Captcha: ' . $_lusterCaptchaQ, 'required' => true, 'attrs' => ['maxlength' => '10', 'autocomplete' => 'off']],
 ], $_lusterWrapperTpl);
 
-$_lusterFormHtml      = null;
-$_lusterGlobalTpls    = (new SiteSettingsRepo($_lusterApp->getDatabase()))->getGlobalTemplates();
-$_lusterAdoptResolved = ListingTemplateResolver::resolve(
-    $_lusterSettingsRepo->getAdoptFormTemplate($_lusterListingId),
-    $_lusterGlobalTpls['listing_default_adopt_form_template'] ?? null,
-    '',
-);
-$_lusterAdoptFormTpl  = $_lusterAdoptResolved['should_render_template'] ? $_lusterAdoptResolved['value'] : '';
-if ($_lusterAdoptFormTpl !== '') {
-    $_lusterAdoptTokens = [
-        '{listing_title}'        => View::e($_lusterListing->title),
-        '{listing_url}'          => View::e($_lusterListing->url),
-        '{field_name}'           => $_lusterF['name'],
-        '{field_name_input}'     => $_lusterF['name_input'],
-        '{field_email}'          => $_lusterF['email'],
-        '{field_email_input}'    => $_lusterF['email_input'],
-        '{field_url}'            => $_lusterF['url'],
-        '{field_url_input}'      => $_lusterF['url_input'],
-        '{field_message}'        => $_lusterF['message'],
-        '{field_message_input}'  => $_lusterF['message_input'],
-        '{captcha_block}'        => $_lusterF['captcha_answer'],
-        '{captcha_block_input}'  => $_lusterF['captcha_answer_input'],
-        '{captcha_question}'     => View::e($_lusterCaptchaQ),
-        '{submit_button}'        => '<button type="submit" class="fl-submit">Submit Application</button>',
-        '{clear_button}'         => '<button type="reset" class="fl-btn-secondary">Clear</button>',
-    ];
-    $_lusterInnerHtml = FormTemplateRenderer::expandTokens($_lusterAdoptFormTpl, $_lusterAdoptTokens);
-    $_lusterFormHtml  = FormTemplateRenderer::wrapForm($_lusterInnerHtml, $_lusterFormAction, $_lusterApp->getCSRF()->token(), false);
-}
+$_lusterFormHtml = null;
 
 $_lusterHtml = $_lusterApp->getView()->renderFragment('adopt.php', [
     'listing'             => $_lusterListing,

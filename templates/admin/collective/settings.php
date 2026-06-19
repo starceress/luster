@@ -72,19 +72,21 @@ $b = rtrim(View::e($base_url ?? ''), '/');
         <input id="s-form-url-affiliate-apply" type="text" name="collective_form_url_affiliate_apply" class="form" maxlength="200"
                value="<?= View::e($site_settings['collective_form_url_affiliate_apply'] ?? '') ?>"
                placeholder="affiliate-apply.php">
-        <p class="form-hint">The public page on your site where other sites can apply to affiliate with your collective (e.g. <code>affiliate-apply.php</code>). Leave blank to use Luster's built-in page.</p>
+        <p class="form-hint">The public page on your site where other sites can apply to affiliate with your collective. Leave blank to use Luster's built-in page.</p>
       </div>
-    </div>
-
-    <div class="pc-section">
-      <div class="pc-section-label">Pending Items Digest</div>
       <div class="form-group">
-        <label class="toggle-wrap">
-          <input type="checkbox" name="pending_digest_enabled" value="1"
-                 <?= ($site_settings['pending_digest_enabled'] ?? '1') === '1' ? 'checked' : '' ?>>
-          <span class="toggle-label">Email me a weekly pending items digest</span>
-        </label>
-        <p class="form-hint">Sent to the Owner Email once a week when there are pending members, affiliate applications, code submissions, update requests, KIM sign-ups, or adoption applications waiting for review. Nothing is sent when the queue is empty.</p>
+        <label class="form-label" for="s-form-url-adopt">Adoption Form</label>
+        <input id="s-form-url-adopt" type="text" name="collective_form_url_adopt" class="form" maxlength="200"
+               value="<?= View::e($site_settings['collective_form_url_adopt'] ?? '') ?>"
+               placeholder="adopt.php">
+        <p class="form-hint">The public page on your site hosting the collective adoption application form. Leave blank to use Luster's built-in page.</p>
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="s-form-url-contact">Contact Form</label>
+        <input id="s-form-url-contact" type="text" name="collective_form_url_contact" class="form" maxlength="200"
+               value="<?= View::e($site_settings['collective_form_url_contact'] ?? '') ?>"
+               placeholder="contact.php">
+        <p class="form-hint">The public page on your site hosting the collective contact form. Leave blank to use Luster's built-in page.</p>
       </div>
     </div>
 

@@ -243,6 +243,10 @@ if ($_lusterCached !== null) {
     }
 }
 
+// Network counts
+$_lusterOwnedNetwork  = $_lusterStatsRepo->getOwnedNetworkCounts();
+$_lusterJoinedNetwork = $_lusterStatsRepo->getJoinedNetworkCounts();
+
 // Newest/random are always fetched fresh (random must rotate; newest should reflect reality)
 $_lusterOwnedNewest  = $_lusterStatsRepo->getNewestOwned($_lusterCount);
 $_lusterJoinedNewest = $_lusterStatsRepo->getNewestJoined($_lusterCount);
@@ -284,6 +288,12 @@ $luster_joined_random       = $_lusterJoinedRandom;
 
 // Category breakdown
 $luster_categories          = $_lusterCategories;
+
+// Network counts
+$luster_owned_tfl_count     = $_lusterOwnedNetwork['tfl'];
+$luster_owned_tafl_count    = $_lusterOwnedNetwork['tafl'];
+$luster_joined_tfl_count    = $_lusterJoinedNetwork['tfl'];
+$luster_joined_tafl_count   = $_lusterJoinedNetwork['tafl'];
 
 // Countries across all listings (distinct, case-insensitive)
 $luster_countries_count     = $_lusterCountriesCount;
@@ -397,9 +407,12 @@ if ($_lusterCStatsTemplate !== null) {
             '{owned_active}',
             '{owned_upcoming}',
             '{owned_pending}',
+            '{owned_tfl_count}',
+            '{owned_tafl_count}',
             '{joined_active}',
             '{joined_pending}',
-            '{affiliates}',
+            '{joined_tfl_count}',
+            '{joined_tafl_count}',
             '{members_total}',
             '{members_approved}',
             '{members_pending}',
@@ -409,14 +422,19 @@ if ($_lusterCStatsTemplate !== null) {
             '{owned_random_name}',
             '{owned_random_url}',
             '{collective_last_updated}',
+            '{tfl_url}',
+            '{tafl_url}',
         ],
         [
             (string) $luster_owned_active,
             (string) $luster_owned_upcoming,
             (string) $luster_owned_pending,
+            (string) $luster_owned_tfl_count,
+            (string) $luster_owned_tafl_count,
             (string) $luster_joined_active,
             (string) $luster_joined_pending,
-            (string) $luster_affiliates,
+            (string) $luster_joined_tfl_count,
+            (string) $luster_joined_tafl_count,
             (string) $luster_members_total,
             (string) $luster_members_approved,
             (string) $luster_members_pending,
@@ -426,6 +444,8 @@ if ($_lusterCStatsTemplate !== null) {
             $_lusterE($_lusterOwnedRandom !== null ? $_lusterOwnedRandom->title : ''),
             $_lusterE($_lusterOwnedRandom !== null ? $_lusterOwnedRandom->url  : ''),
             $_lusterE($luster_collective_last_updated),
+            'https://thefanlistings.org/',
+            'https://www.animefanlistings.com/',
         ],
         $_lusterCStatsTemplate,
     );

@@ -58,8 +58,8 @@ if (isset($form_html) && $form_html !== null) {
       <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
 
       <?= $f['name'] ?>
-      <?= $f['url'] ?>
       <?= $f['email'] ?>
+      <?= $f['url'] ?>
       <?= $f['fanlisting_id'] ?>
       <?= $f['password'] ?>
       <?= $f['password_confirm'] ?>

@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Luster\Support;
 
 use Luster\Core\TemplateEngine;
-use Luster\Core\View;
 use Luster\Models\Affiliate;
 
 /**
@@ -19,7 +18,6 @@ use Luster\Models\Affiliate;
  *   {aff_name}      — affiliate name (escaped)
  *   {aff_url}       — affiliate URL (escaped)
  *   {aff_image_url} — raw image URL (escaped), empty string when no image
- *   {aff_image}     — ready-made <img src="..." alt="{aff_name}"> tag, empty string when no image
  *   {if_aff_image}...{/if_aff_image}       — kept only when the affiliate has an image
  *   {if_no_aff_image}...{/if_no_aff_image} — kept only when the affiliate has no image
  */
@@ -34,10 +32,6 @@ final class AffiliateRowRenderer
             ? $uploadsUrl . '/' . $affiliate->image
             : '';
 
-        $imageTag = $imageUrl !== ''
-            ? '<img src="' . View::e($imageUrl) . '" alt="' . View::e($affiliate->name) . '">'
-            : '';
-
         return TemplateEngine::render(
             $rowTemplate,
             escaped: [
@@ -45,9 +39,7 @@ final class AffiliateRowRenderer
                 'aff_url'       => $affiliate->url,
                 'aff_image_url' => $imageUrl,
             ],
-            raw: [
-                'aff_image' => $imageTag,
-            ],
+            raw: [],
             conditions: [
                 'aff_image'    => $imageUrl !== '',
                 'no_aff_image' => $imageUrl === '',

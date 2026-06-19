@@ -21,40 +21,15 @@ use Luster\Support\ListingTemplateResolver;
  *
  * Returns the stats_template stored in lstr_fanlisting_settings, with {token}
  * placeholders replaced with live data. If no custom template is configured,
- * DEFAULT_TEMPLATE is used.
+ * ListingSettingsRepo::defaultStatsTemplate() is used.
  *
  * Returns 404 for unknown listings and for upcoming/trouble listings
  * (i.e. anything that is not actively open).
  *
- * Tokens:
- *   {stat_opened}       — date listing opened, formatted "Month Dth Year"
- *   {stat_updated}      — most recent activity date: whichever is more recent
- *                         of the newest approved member's join date and the
- *                         admin-set "last updated" date; "N/A" if neither is set
- *   {stat_approved}     — approved member count
- *   {stat_pending}      — pending member count
- *   {stat_countries}    — unique country count for approved members
- *   {stat_newmembers}        — newest 5 approved member names, formatted with
- *                              Oxford comma (e.g. "A, B, and C")
- *   {stat_growth}            — average members per day since opened, e.g. "1.23 members/day"
- *   {if_stat_pending}...{/if_stat_pending} — rendered only when pending count > 0
- *   {listing_title}      — listing name (HTML-escaped)
- *   {listing_url}       — listing URL (HTML-escaped)
- *   {approved_by}       — linked network name ("The Fanlistings Network" or
- *                         "The Anime Fanlistings Network"), or '' if not approved
- *   {if_approved_by}...{/if_approved_by}  — rendered only when approved_by is set
- *   {network_status}    — linked network name, or "Independent" when not approved
- *                         by a network; always renders something
+ * Tokens: see ListingSettingsRepo::defaultStatsTemplate() for the full reference.
  */
 final class StatsController
 {
-    private const DEFAULT_TEMPLATE =
-        '<h1>Listing Statistics</h1>'
-        . '<p><b>Members:</b> {stat_approved} total{if_stat_pending} (+{stat_pending} pending){/if_stat_pending} across {stat_countries} countries<br>'
-        . '<b>Newest:</b> {stat_newmembers}<br>'
-        . '<b>Opened On:</b> {stat_opened}<br>'
-        . '<b>Last Updated:</b> {stat_updated}{if_approved_by}<br>'
-        . '<b>Approved by:</b> {approved_by}{/if_approved_by}</p>';
 
     public function __construct(private readonly Application $app) {}
 
@@ -92,15 +67,16 @@ final class StatsController
         $resolved       = ListingTemplateResolver::resolve(
             $templates['stats_template'] ?? null,
             $globalTemplates['listing_default_stats_template'] ?? null,
-            self::DEFAULT_TEMPLATE,
+            ListingSettingsRepo::defaultStatsTemplate(),
         );
         $template = $resolved['value'];
 
         // Approval status
-        $approvedBy     = $settingsRepo->getApprovedBy($listingId);
-        $approvedByHtml = match ($approvedBy) {
-            'tfl'   => '<a href="https://thefanlistings.org">The Fanlistings Network</a>',
-            'tafl'  => '<a href="https://animefanlistings.org">The Anime Fanlistings Network</a>',
+        $approvedBy  = $settingsRepo->getApprovedBy($listingId);
+        $network     = strtoupper($approvedBy);
+        $networkName = match ($approvedBy) {
+            'tfl'   => 'The Fanlistings Network',
+            'tafl'  => 'The Anime Fanlistings Network',
             default => '',
         };
 
@@ -137,12 +113,20 @@ final class StatsController
             $template,
         );
         $template = (string) preg_replace(
+            '/\{if_tfl\}(.*?)\{\/if_tfl\}/s',
+            $approvedBy === 'tfl' ? '$1' : '',
+            $template,
+        );
+        $template = (string) preg_replace(
+            '/\{if_tafl\}(.*?)\{\/if_tafl\}/s',
+            $approvedBy === 'tafl' ? '$1' : '',
+            $template,
+        );
+        $template = (string) preg_replace(
             '/\{if_stat_pending\}(.*?)\{\/if_stat_pending\}/s',
             $pending > 0 ? '$1' : '',
             $template,
         );
-
-        $networkStatus = $approvedByHtml !== '' ? $approvedByHtml : 'Independent';
 
         $output = str_replace(
             [
@@ -156,7 +140,11 @@ final class StatsController
                 '{listing_title}',
                 '{listing_url}',
                 '{approved_by}',
+                '{network}',
                 '{network_status}',
+                '{network_name}',
+                '{tfl_url}',
+                '{tafl_url}',
             ],
             [
                 $opened,
@@ -168,8 +156,12 @@ final class StatsController
                 $growth . ' members/day',
                 htmlspecialchars($listing->title, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),
                 htmlspecialchars($listing->url,  ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),
-                $approvedByHtml,
-                $networkStatus,
+                $network,
+                $network,
+                $network,
+                $networkName,
+                'https://thefanlistings.org/',
+                'https://www.animefanlistings.com/',
             ],
             $template,
         );

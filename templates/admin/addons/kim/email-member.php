@@ -157,8 +157,11 @@ $backUrl    = $listing !== null
           <?php if ($flSubject !== ''): ?>
             <span class="badge badge-info-pink"><?= $flSubject ?>:</span>
           <?php endif; ?>
-          <input class="subj-input" type="text" name="subject_suffix" id="subject"
-                 maxlength="255" required value="<?= $oldSubject ?>" placeholder="Enter subject&hellip;">
+          <div class="flex-fill">
+            <input class="subj-input" type="text" name="subject_suffix" id="subject"
+                   maxlength="255" required value="<?= $oldSubject ?>" placeholder="Enter subject&hellip;">
+            <p class="form-hint">Tokens work in the subject line too.</p>
+          </div>
         </div>
       </div>
 

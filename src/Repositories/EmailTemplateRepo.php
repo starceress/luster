@@ -81,6 +81,24 @@ final class EmailTemplateRepo
     public const TYPE_ADOPTION_REJECTED  = 'adoption_rejected';
     public const TYPE_KIM_APPLIED        = 'kim_applied';
     public const TYPE_KIM_APPROVED       = 'kim_approved';
+    public const TYPE_KIM_UPDATE         = 'kim_update';
+    public const TYPE_KIM_RESET          = 'kim_reset';
+
+    /**
+     * Types that are collective-level only.
+     * When resolveForListing() is called with a non-null listing ID and one of
+     * these types, any stored per-listing row is ignored — the global template
+     * (or built-in default) is used instead, just as for a collective-level call.
+     */
+    public const COLLECTIVE_ONLY_TYPES = [
+        self::TYPE_ADOPTION_APPLIED,
+        self::TYPE_ADOPTION_APPROVED,
+        self::TYPE_ADOPTION_REJECTED,
+        self::TYPE_KIM_APPLIED,
+        self::TYPE_KIM_APPROVED,
+        self::TYPE_KIM_UPDATE,
+        self::TYPE_KIM_RESET,
+    ];
 
     /** All valid type values in display order. */
     public const TYPES = [
@@ -99,6 +117,8 @@ final class EmailTemplateRepo
         self::TYPE_ADOPTION_REJECTED,
         self::TYPE_KIM_APPLIED,
         self::TYPE_KIM_APPROVED,
+        self::TYPE_KIM_UPDATE,
+        self::TYPE_KIM_RESET,
     ];
 
     // -----------------------------------------------------------------------
@@ -121,6 +141,8 @@ final class EmailTemplateRepo
         self::TYPE_ADOPTION_REJECTED  => 'Your adoption application for {listing_title}',
         self::TYPE_KIM_APPLIED        => 'New KIM List sign-up for {listing_title}',
         self::TYPE_KIM_APPROVED       => 'Your KIM List sign-up for {listing_title} has been approved',
+        self::TYPE_KIM_UPDATE         => 'Your KIM List entry has been updated',
+        self::TYPE_KIM_RESET          => 'Reset your KIM List password',
     ];
 
     // -----------------------------------------------------------------------
@@ -129,13 +151,13 @@ final class EmailTemplateRepo
 
     private const DEFAULT_BODY_JOIN =
         'Hi {fan_name},' . "\n\n"
-        . 'Thank you for joining the {listing_title} listing.' . "\n\n"
+        . 'Thank you for joining {listing_title}.' . "\n\n"
         . 'Here are your membership details:' . "\n"
         . '  Name    : {fan_name}' . "\n"
         . '  Email   : {fan_email}' . "\n"
         . '  Website : {fan_url}' . "\n"
         . '  Country : {fan_country}' . "\n\n"
-        . 'Please keep this email for your records. If you ever need to change your password, you can use the password reset form.' . "\n\n"
+        . 'You set a password when joining — keep it somewhere safe. If you ever need to reset it, use the password reset form on the listing website.' . "\n\n"
         . '-- {owner_name}' . "\n"
         . '{site_name}';
 
@@ -177,7 +199,7 @@ final class EmailTemplateRepo
         . '{site_name}';
 
     private const DEFAULT_BODY_AFFILIATE_APPLIED =
-        'A new affiliate application has been received for the {listing_title} listing.' . "\n\n"
+        'A new affiliate application has been received for {listing_title}.' . "\n\n"
         . '  Site name: {aff_name}' . "\n"
         . '  URL      : {aff_url}' . "\n"
         . '  Email    : {aff_email}' . "\n\n"
@@ -187,7 +209,7 @@ final class EmailTemplateRepo
 
     private const DEFAULT_BODY_AFFILIATE_APPROVED =
         'Hello {aff_name},' . "\n\n"
-        . 'Your affiliate application for the {listing_title} listing has been approved!' . "\n\n"
+        . 'Your affiliate application for {listing_title} has been approved!' . "\n\n"
         . 'Your site is now listed as an affiliate at: {listing_url}' . "\n\n"
         . 'Thank you for affiliating with us.' . "\n\n"
         . '-- {owner_name}' . "\n"
@@ -195,20 +217,20 @@ final class EmailTemplateRepo
 
     private const DEFAULT_BODY_AFFILIATE_REJECTED =
         'Hello {aff_name},' . "\n\n"
-        . 'Thank you for applying to affiliate with the {listing_title} listing.' . "\n\n"
+        . 'Thank you for applying to affiliate with {listing_title}.' . "\n\n"
         . 'Unfortunately, we are not able to approve your application at this time.' . "\n\n"
         . '-- {owner_name}' . "\n"
         . '{site_name}';
 
     private const DEFAULT_BODY_CODE_APPROVED =
         'Hi {fan_name},' . "\n\n"
-        . 'Thank you for donating a code to the {listing_title} listing — it has been approved and is now live!' . "\n\n"
+        . 'Thank you for donating a code to {listing_title} — it has been approved and is now live!' . "\n\n"
         . 'View the codes at: {listing_url}' . "\n\n"
         . '-- {owner_name}' . "\n"
         . '{site_name}';
 
     private const DEFAULT_BODY_ADOPTION_APPLIED =
-        'A new adoption application has been received for the {listing_title} listing.' . "\n\n"
+        'A new adoption application has been received for {listing_title}.' . "\n\n"
         . '  Name   : {applicant_name}' . "\n"
         . '  Email  : {applicant_email}' . "\n"
         . '  Website: {applicant_url}' . "\n\n"
@@ -242,6 +264,21 @@ final class EmailTemplateRepo
         'Hi {kim_name},' . "\n\n"
         . 'Your Keep In Mind sign-up for {listing_title} has been approved.' . "\n\n"
         . 'We will let you know when the listing is open for members.' . "\n\n"
+        . '-- {owner_name}' . "\n"
+        . '{site_name}';
+
+    private const DEFAULT_BODY_KIM_UPDATE =
+        'Hi {kim_name},' . "\n\n"
+        . 'Your Keep In Mind entry has been updated successfully.' . "\n\n"
+        . '-- {owner_name}' . "\n"
+        . '{site_name}';
+
+    private const DEFAULT_BODY_KIM_RESET =
+        'Hi {kim_name},' . "\n\n"
+        . 'We received a request to reset the password for your Keep In Mind account.' . "\n\n"
+        . 'Click the link below to set a new password. This link expires in 1 hour.' . "\n\n"
+        . '{reset_url}' . "\n\n"
+        . 'If you did not request this, you can safely ignore this email. Your password will not change.' . "\n\n"
         . '-- {owner_name}' . "\n"
         . '{site_name}';
 
@@ -386,11 +423,16 @@ final class EmailTemplateRepo
      */
     public function resolveForListing(?int $listingId, string $type, array $tokens): array
     {
-        $perListing = $listingId !== null ? $this->get($listingId, $type) : null;
+        // Collective-only types must not pick up stale per-listing rows: treat as collective
+        $effectiveId = ($listingId !== null && in_array($type, self::COLLECTIVE_ONLY_TYPES, true))
+            ? null
+            : $listingId;
+
+        $perListing = $effectiveId !== null ? $this->get($effectiveId, $type) : null;
         $global     = $this->getGlobal($type);
 
         // Collective affiliate_applied: substitute a clearer subject when no custom template wins
-        if ($listingId === null && $type === self::TYPE_AFFILIATE_APPLIED) {
+        if ($effectiveId === null && $type === self::TYPE_AFFILIATE_APPLIED) {
             $globalActive = $global !== null && $global->enabled && trim($global->subject) !== '';
             if (!$globalActive) {
                 return [
@@ -432,6 +474,8 @@ final class EmailTemplateRepo
             self::TYPE_ADOPTION_REJECTED  => self::DEFAULT_BODY_ADOPTION_REJECTED,
             self::TYPE_KIM_APPLIED        => self::DEFAULT_BODY_KIM_APPLIED,
             self::TYPE_KIM_APPROVED       => self::DEFAULT_BODY_KIM_APPROVED,
+            self::TYPE_KIM_UPDATE         => self::DEFAULT_BODY_KIM_UPDATE,
+            self::TYPE_KIM_RESET          => self::DEFAULT_BODY_KIM_RESET,
             default                       => '',
         };
     }
@@ -463,12 +507,14 @@ final class EmailTemplateRepo
         string $fanUrl         = '',
         string $fanCountry     = '',
         string $resetUrl       = '',
+        string $fanPassword    = '',
     ): array {
         return [
             '{fan_name}'         => $fanName,
             '{fan_email}'        => $fanEmail,
             '{fan_url}'          => $fanUrl,
             '{fan_country}'      => $fanCountry,
+            '{fan_password}'     => $fanPassword,
             '{reset_url}'        => $resetUrl,
             '{listing_title}'     => $listingName,
             '{listing_subject}'  => $listingSubject,
@@ -562,6 +608,7 @@ final class EmailTemplateRepo
         string $kimName     = '',
         string $kimEmail    = '',
         string $kimUrl      = '',
+        string $resetUrl    = '',
     ): array {
         return [
             '{listing_title}'  => $listingName,
@@ -572,6 +619,7 @@ final class EmailTemplateRepo
             '{kim_name}'       => $kimName,
             '{kim_email}'      => $kimEmail,
             '{kim_url}'        => $kimUrl,
+            '{reset_url}'      => $resetUrl,
         ];
     }
 

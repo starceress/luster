@@ -100,7 +100,7 @@ $rangeEnd   = min($total, $page * $per_page);
     </button>
   </div>
   <div class="actions-row actions-row--right">
-    <a href="<?= $b ?>/admin/affiliates/email" class="btn btn-secondary btn-sm">Email Affiliates</a>
+    <a href="<?= $b ?>/admin/affiliates/email?scope=<?= View::e($scope) ?>" class="btn btn-secondary btn-sm">Email Affiliates</a>
     <a href="<?= $b ?>/admin/affiliates/add" class="btn btn-primary btn-sm">+ Add Affiliate</a>
   </div>
 </div>
@@ -256,6 +256,7 @@ $rangeEnd   = min($total, $page * $per_page);
           <?php if ($tab !== 'pending'): ?>
             <option value="delete">Delete</option>
           <?php endif; ?>
+          <option value="email_selected">Email Selected</option>
         </select>
       </div>
       <button type="submit" class="btn btn-quaternary btn-sm">Apply to Selected</button>
@@ -437,8 +438,8 @@ $rangeEnd   = min($total, $page * $per_page);
                  class="btn btn-tertiary btn-xs">Edit</a>
 
               <?php if ($aff->email !== null && $aff->email !== ''): ?>
-                <a href="<?= $b ?>/admin/affiliates/email?scope=<?= $aff->listingId !== null ? (int) $aff->listingId : 'collective' ?>"
-                   class="btn btn-secondary btn-xs">Email</a>
+                <button type="submit" form="aff-email-<?= (int) $aff->id ?>"
+                        class="btn btn-secondary btn-xs">Email</button>
               <?php endif; ?>
 
               <?php if ($aff->status !== 'pending'): ?>
@@ -464,5 +465,18 @@ $rangeEnd   = min($total, $page * $per_page);
     $pg_current = $page; $pg_total = $total_pages; $pg_url = $pageUrl;
     include LUSTER_BASE . '/templates/admin/_pagination.php';
 endif; ?>
+
+<?php foreach ($affiliates as $aff): ?>
+  <?php if ($aff->email !== null && $aff->email !== ''): ?>
+    <form id="aff-email-<?= (int) $aff->id ?>"
+          method="POST" action="<?= $b ?>/admin/affiliates/bulk">
+      <input type="hidden" name="_csrf"      value="<?= View::e($csrf_token) ?>">
+      <input type="hidden" name="action"     value="email_selected">
+      <input type="hidden" name="scope"      value="<?= View::e($scope) ?>">
+      <input type="hidden" name="_return"    value="<?= View::e($returnUrl) ?>">
+      <input type="hidden" name="selected[]" value="<?= (int) $aff->id ?>">
+    </form>
+  <?php endif; ?>
+<?php endforeach; ?>
 
 <?php endif; ?>

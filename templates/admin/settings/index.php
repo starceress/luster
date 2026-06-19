@@ -47,6 +47,7 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
       <a href="#panel-appearance" class="mini-nav-item"><?= View::icon('palette') ?> Appearance</a>
       <a href="#panel-smtp" class="mini-nav-item"><?= View::icon('email') ?> SMTP &amp; Email</a>
       <a href="#panel-embed" class="mini-nav-item"><?= View::icon('paths') ?> Server Paths</a>
+      <a href="#panel-notifications" class="mini-nav-item"><?= View::icon('email') ?> Notifications</a>
       <a href="#panel-blacklist" class="mini-nav-item"><?= View::icon('blacklist') ?> Spam Filtering</a>
       <a href="#panel-system" class="mini-nav-item"><?= View::icon('wrench') ?> System Details</a>
       <div class="select-wrap settings-nav-select-wrap">
@@ -57,6 +58,7 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
           <option value="panel-appearance">Appearance</option>
           <option value="panel-smtp">SMTP &amp; Email</option>
           <option value="panel-embed">Server Paths</option>
+          <option value="panel-notifications">Notifications</option>
           <option value="panel-blacklist">Spam Filtering</option>
           <option value="panel-system">System Details</option>
         </select>
@@ -321,6 +323,35 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
             </div>
           </div>
           <?php endif; ?>
+        </div>
+
+        <div class="pc-section">
+          <div class="pc-section-label">Default Mode</div>
+          <?php $activeDefaultTheme = $site_settings['admin_default_theme'] ?? 'light'; ?>
+          <div class="listing-field-row">
+            <label class="listing-field-label">Light / Dark</label>
+            <div>
+              <div class="theme-mode-picker">
+                <form method="POST" action="<?= $b ?>/admin/settings/default-theme"
+                      class="action-form-inline" id="default-theme-form">
+                  <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
+                  <input type="hidden" name="admin_default_theme" id="default-theme-value"
+                         value="<?= View::e($activeDefaultTheme) ?>">
+                </form>
+                <label class="theme-mode-btn<?= $activeDefaultTheme === 'light' ? ' theme-mode-btn--active' : '' ?>">
+                  <input type="radio" name="default_theme_radio" value="light" class="sr-only"
+                         <?= $activeDefaultTheme === 'light' ? 'checked' : '' ?>>
+                  <?= View::icon('sun') ?> Light
+                </label>
+                <label class="theme-mode-btn<?= $activeDefaultTheme === 'dark' ? ' theme-mode-btn--active' : '' ?>">
+                  <input type="radio" name="default_theme_radio" value="dark" class="sr-only"
+                         <?= $activeDefaultTheme === 'dark' ? 'checked' : '' ?>>
+                  <?= View::icon('moon') ?> Dark
+                </label>
+              </div>
+              <p class="form-hint">Sets the starting theme for new browsers and sessions. Each admin can override it locally using the toggle button in the header.</p>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -658,6 +689,135 @@ function cfgVal(array $cfg, string $key, $default = ''): string {
         </div>
       </div>
     </form>
+
+
+<!-- ──── PANEL: NOTIFICATIONS ────────────────────────────────────── -->
+    <div id="panel-notifications" class="mini-nav-panel">
+      <div class="gradient-card">
+        <div class="pc-head">
+          <div class="pc-head-icon pc-head-icon-bg">
+            <?= View::icon('email') ?>
+          </div>
+          <div class="pc-head-meta">
+            <div class="pc-head-title">Notifications</div>
+            <div class="pc-head-sub">Control which automated email alerts Luster sends to administrators.</div>
+          </div>
+        </div>
+
+        <form method="POST" action="<?= $b ?>/admin/settings/notifications">
+          <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
+
+          <div class="pc-section">
+            <div class="pc-section-label">Admin Alerts</div>
+
+            <div class="listing-field-row">
+              <label class="listing-field-label" for="notif-update-email">Update Notifications</label>
+              <div>
+                <label class="toggle-wrap">
+                  <input type="hidden" name="update_email_notify" value="0">
+                  <input type="checkbox" id="notif-update-email" name="update_email_notify" value="1"
+                         <?= ($site_settings['update_email_notify'] ?? '0') === '1' ? 'checked' : '' ?>>
+                  <span class="toggle-label">Email me when a new Luster update is available</span>
+                </label>
+                <p class="form-hint">Sends one email when an update is detected. Requires a working mail configuration above.</p>
+              </div>
+            </div>
+
+            <div class="listing-field-row">
+              <label class="listing-field-label" for="notif-pending-digest">Pending Digest</label>
+              <div>
+                <label class="toggle-wrap">
+                  <input type="hidden" name="pending_digest_enabled" value="0">
+                  <input type="checkbox" id="notif-pending-digest" name="pending_digest_enabled" value="1"
+                         <?= ($site_settings['pending_digest_enabled'] ?? '0') === '1' ? 'checked' : '' ?>>
+                  <span class="toggle-label">Send a daily summary of pending member joins and updates</span>
+                </label>
+                <p class="form-hint">Batches pending-approval notifications into a single daily email rather than one per event.</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="pc-section">
+            <div class="pc-section-label">Listing Update Tracking</div>
+
+            <div class="listing-field-row">
+              <label class="listing-field-label" for="notif-stale-days">Dashboard stale warning (days)</label>
+              <div>
+                <input id="notif-stale-days" type="number" name="stale_days" class="form form--compact"
+                       min="1" max="365"
+                       value="<?= View::e($site_settings['stale_days'] ?? '45') ?>">
+                <p class="form-hint">Show a dashboard warning when this many days pass without marking a listing updated. Default: 45.</p>
+              </div>
+            </div>
+
+            <div class="listing-field-row">
+              <label class="listing-field-label" for="notif-overdue-email">Overdue email</label>
+              <div>
+                <label class="toggle-wrap">
+                  <input type="hidden" name="overdue_notify_enabled" value="0">
+                  <input type="checkbox" id="notif-overdue-email" name="overdue_notify_enabled" value="1"
+                         <?= ($site_settings['overdue_notify_enabled'] ?? '1') === '1' ? 'checked' : '' ?>>
+                  <span class="toggle-label">Email me when listings haven't been updated in N days</span>
+                </label>
+                <p class="form-hint">Sends one reminder email per day at most, listing any fanlistings that need an update.</p>
+              </div>
+            </div>
+
+            <div class="listing-field-row">
+              <label class="listing-field-label" for="notif-overdue-days">Days until overdue email</label>
+              <div>
+                <input id="notif-overdue-days" type="number" name="overdue_days" class="form form--compact"
+                       min="1" max="365"
+                       value="<?= View::e($site_settings['overdue_days'] ?? '55') ?>">
+                <p class="form-hint">Send the reminder when this many days pass without an update. Default: 55. TFL guidelines recommend 55 days.</p>
+              </div>
+            </div>
+          </div>
+
+          <?php
+            $lastSentTs = (int) ($site_settings['overdue_notify_last_sent'] ?? '0');
+            if ($lastSentTs > 0) {
+                $nfDatePart = date($admin_date_format ?? 'j M Y', $lastSentTs);
+                $nfTimePart = date($admin_time_format ?? 'H:i', $lastSentTs);
+                $nfLastSent = $nfDatePart . ' at ' . $nfTimePart;
+            } else {
+                $nfLastSent = 'Never';
+            }
+          ?>
+          <div class="pc-section">
+            <div class="pc-section-label">Overdue Notification Status</div>
+
+            <div class="listing-field-row">
+              <label class="listing-field-label">Last sent</label>
+              <div>
+                <p class="form-hint">Last notification sent: <strong><?= View::e($nfLastSent) ?></strong></p>
+              </div>
+            </div>
+
+            <div class="listing-field-row">
+              <label class="listing-field-label">Send now</label>
+              <div>
+                <button type="button" class="btn btn-quaternary btn-sm"
+                        onclick="document.getElementById('overdue-now-form').requestSubmit()">
+                  <?= View::icon('email') ?> Send overdue notification now
+                </button>
+                <p class="form-hint" style="margin-top:.5rem">Bypasses the 24-hour window and immediately sends the overdue notification if any listings are due.</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="composer-footer">
+            <button type="submit" class="btn btn-primary">Save Notification Settings</button>
+            <button type="button" id="notifications-clear-btn" class="btn btn-ghost">Clear</button>
+          </div>
+        </form>
+
+        <form id="overdue-now-form" method="POST"
+              action="<?= $b ?>/admin/listings/settings/send-overdue-now" style="display:none">
+          <input type="hidden" name="_csrf" value="<?= View::e($csrf_token ?? '') ?>">
+        </form>
+      </div>
+    </div>
 
 
 <!-- ──── PANEL: BLACKLIST ───────────────────────────────────────────── -->

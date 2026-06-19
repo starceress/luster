@@ -34,6 +34,30 @@ final class DateFormatter
     }
 
     /**
+     * Formats a date string using a caller-supplied format string.
+     *
+     * - ''        → returns $dateStr as-is (no formatting)
+     * - 'ordinal' → delegates to self::format() (e.g. "March 1st 2026")
+     * - any other → passed to date() as a PHP format string
+     *
+     * Falls back to the raw string if the date cannot be parsed.
+     */
+    public static function formatWith(string $dateStr, string $phpFormat): string
+    {
+        if ($phpFormat === '') {
+            return $dateStr;
+        }
+
+        if ($phpFormat === 'ordinal') {
+            return self::format($dateStr);
+        }
+
+        $ts = strtotime($dateStr);
+
+        return $ts === false ? $dateStr : date($phpFormat, $ts);
+    }
+
+    /**
      * Returns whichever of two nullable date/datetime strings is chronologically
      * later. If one is null or unparseable, returns the other. Returns null if
      * both are null or unparseable.

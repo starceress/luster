@@ -56,12 +56,13 @@ final class AuthController
         $session->remove('lstr_flash_username');
 
         $html = $this->app->getView()->render('admin/auth/login.php', [
-            'csrf_token'    => $this->app->getCSRF()->token(),
-            'error'         => $error,
-            'username'      => $username,
-            'site_name'     => (string) $this->app->getConfig()->get('site_name', 'Luster'),
-            'base_url'      => $this->app->getBaseUrl(),
-            'selected_skin' => $this->selectedSkin(),
+            'csrf_token'          => $this->app->getCSRF()->token(),
+            'error'               => $error,
+            'username'            => $username,
+            'site_name'           => (string) $this->app->getConfig()->get('site_name', 'Luster'),
+            'base_url'            => $this->app->getBaseUrl(),
+            'selected_skin'       => $this->selectedSkin(),
+            'admin_default_theme' => $this->adminDefaultTheme(),
         ]);
 
         return Response::html($html);
@@ -235,12 +236,13 @@ final class AuthController
         $session->remove('lstr_flash_error');
 
         $html = $this->app->getView()->render('admin/auth/forgot.php', [
-            'csrf_token'    => $this->app->getCSRF()->token(),
-            'success'       => $success,
-            'error'         => $error,
-            'site_name'     => (string) $this->app->getConfig()->get('site_name', 'Luster'),
-            'base_url'      => $this->app->getBaseUrl(),
-            'selected_skin' => $this->selectedSkin(),
+            'csrf_token'          => $this->app->getCSRF()->token(),
+            'success'             => $success,
+            'error'               => $error,
+            'site_name'           => (string) $this->app->getConfig()->get('site_name', 'Luster'),
+            'base_url'            => $this->app->getBaseUrl(),
+            'selected_skin'       => $this->selectedSkin(),
+            'admin_default_theme' => $this->adminDefaultTheme(),
         ]);
 
         return Response::html($html);
@@ -349,12 +351,13 @@ final class AuthController
         $session->remove('lstr_flash_error');
 
         $html = $this->app->getView()->render('admin/auth/reset.php', [
-            'csrf_token'    => $this->app->getCSRF()->token(),
-            'error'         => $error,
-            'raw_token'     => $rawToken,
-            'site_name'     => (string) $this->app->getConfig()->get('site_name', 'Luster'),
-            'base_url'      => $baseUrl,
-            'selected_skin' => $this->selectedSkin(),
+            'csrf_token'          => $this->app->getCSRF()->token(),
+            'error'               => $error,
+            'raw_token'           => $rawToken,
+            'site_name'           => (string) $this->app->getConfig()->get('site_name', 'Luster'),
+            'base_url'            => $baseUrl,
+            'selected_skin'       => $this->selectedSkin(),
+            'admin_default_theme' => $this->adminDefaultTheme(),
         ]);
 
         return Response::html($html);
@@ -416,10 +419,27 @@ final class AuthController
 
     private function selectedSkin(): string
     {
+        return $this->selectedSkinAndTheme()['skin'];
+    }
+
+    private function adminDefaultTheme(): string
+    {
+        return $this->selectedSkinAndTheme()['theme'];
+    }
+
+    private function selectedSkinAndTheme(): array
+    {
+        static $cache = null;
+        if ($cache !== null) {
+            return $cache;
+        }
         try {
             $siteRepo = new SiteSettingsRepo($this->app->getDatabase());
-            $settings = $siteRepo->getMany(['selected_skin', 'selected_skin_hash']);
+            $settings = $siteRepo->getMany(['selected_skin', 'selected_skin_hash', 'admin_default_theme']);
             $slug     = $settings['selected_skin'] ?? '';
+            $theme    = in_array($settings['admin_default_theme'] ?? '', ['dark', 'light'], true)
+                ? $settings['admin_default_theme']
+                : 'dark';
 
             if ($slug !== '' && !\Luster\Core\SkinCatalog::isBundled($slug)) {
                 $skinFile    = $this->app->getBasePath() . '/public/assets/css/skins/' . $slug . '.css';
@@ -427,13 +447,14 @@ final class AuthController
                 $storedHash  = $settings['selected_skin_hash'] ?? null;
 
                 if ($currentHash === false || ($storedHash !== null && $currentHash !== $storedHash)) {
-                    return '';
+                    $slug = '';
                 }
             }
 
-            return $slug;
+            $cache = ['skin' => $slug, 'theme' => $theme];
         } catch (\Throwable) {
-            return '';
+            $cache = ['skin' => '', 'theme' => 'dark'];
         }
+        return $cache;
     }
 }

@@ -162,9 +162,7 @@ final class AffiliatesController
      *
      * Supported tokens:
      *   {each_affiliate}...{/each_affiliate} — inline per-row loop; {aff_*} tokens work inside
-     *   {affiliates}           — rendered affiliate rows (built-in link/image rows)
      *   {affiliates_count}     — total active affiliate count
-     *   {affiliates_list}      — comma-separated <a href>name</a> list
      *   {affiliate_apply_url}  — URL of the affiliate application form
      *   {if_affiliates}...{/if_affiliates}           — shown when count > 0
      *   {if_no_affiliates}...{/if_no_affiliates}     — shown when count = 0
@@ -188,27 +186,6 @@ final class AffiliatesController
             $template = (string) preg_replace('/\{each_affiliate\}.*?\{\/each_affiliate\}/s', $rendered, $template, 1);
         }
 
-        // Build {affiliates} content — built-in link/image rows
-        $rowParts = [];
-        foreach ($affiliates as $aff) {
-            $imageUrl = ($aff->image !== null && $aff->image !== '') ? $uploadsUrl . '/' . $aff->image : '';
-            if ($imageUrl !== '') {
-                $rowParts[] = '<a href="' . $e($aff->url) . '" target="_blank" rel="noopener noreferrer">'
-                    . '<img src="' . $e($imageUrl) . '" alt="' . $e($aff->name) . '"></a>';
-            } else {
-                $rowParts[] = '<a href="' . $e($aff->url) . '" target="_blank" rel="noopener noreferrer">'
-                    . $e($aff->name) . '</a>';
-            }
-        }
-        $rows = implode("\n", $rowParts);
-
-        // Build {affiliates_list} — comma-separated plain links
-        $listParts = [];
-        foreach ($affiliates as $aff) {
-            $listParts[] = '<a href="' . $e($aff->url) . '">' . $e($aff->name) . '</a>';
-        }
-        $plainList = implode(', ', $listParts);
-
         // Process conditional blocks
         if ($total > 0) {
             $output = preg_replace('/\{if_no_affiliates\}.*?\{\/if_no_affiliates\}/s', '', $template) ?? $template;
@@ -219,8 +196,8 @@ final class AffiliatesController
         }
 
         return str_replace(
-            ['{affiliates}', '{affiliates_count}', '{affiliates_list}', '{affiliate_apply_url}'],
-            [$rows, (string) $total, $plainList, htmlspecialchars($affiliateApplyUrl, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8')],
+            ['{affiliates_count}', '{affiliate_apply_url}'],
+            [(string) $total, htmlspecialchars($affiliateApplyUrl, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8')],
             $output,
         );
     }

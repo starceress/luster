@@ -13,8 +13,8 @@ use Luster\Core\TemplateEngine;
  * Two layout modes, detected by which loop token the template contains:
  *   Grouped: {each_size_group}...{/each_size_group} wraps an inner
  *     {each_code}...{/each_code} — codes are grouped by detected dimensions.
- *   Flat: a single {each_code}...{/each_code} loop over all codes, with
- *     {if_size_changed}...{/if_size_changed} available per row.
+ *   Flat: a single {each_code}...{/each_code} loop over all codes with
+ *     {if_size_changed} available per row.
  *
  * Per-code tokens (inside {each_code}):
  *   {code_url}, {code_alt}, {code_width}, {code_height}, {code_size},
@@ -42,9 +42,10 @@ final class CodesTemplateRenderer
     /**
      * @param object[]                                              $codes
      * @param array<string, array{label: string, codes: object[]}> $grouped
-     * @param array<int, int[]>                                     $catMap
-     * @param array<int, object>                                    $categoryMap
      * @param array<int, object>                                    $donorMap
+     * @param array<int, int[]>                                     $catMap      code_id => [cat_id, ...]
+     * @param array<int, object>                                    $categoryMap cat_id => category object
+     * @param string                                                $listingName listing title for alt fallback
      *
      * @return ?string null when the template contains neither {each_size_group}
      *                  nor {each_code} — i.e. it isn't a recognised codes template
@@ -53,21 +54,23 @@ final class CodesTemplateRenderer
         string $tpl,
         array $codes,
         array $grouped,
-        array $catMap,
-        array $categoryMap,
         array $donorMap,
         string $uploadsUrl,
-        string $listingName,
+        array $catMap = [],
+        array $categoryMap = [],
+        string $listingName = '',
     ): ?string {
         if (!str_contains($tpl, '{each_size_group}') && !str_contains($tpl, '{each_code}')) {
             return null;
         }
 
+        $prevSizeKey  = null;
+        $isGrouped   = str_contains($tpl, '{each_size_group}');
+
         $renderCode = static function (
             string $inner,
             object $code,
-            bool   $sizeChanged,
-        ) use ($catMap, $categoryMap, $donorMap, $uploadsUrl, $listingName): string {
+        ) use ($donorMap, $uploadsUrl, $catMap, $categoryMap, $listingName, &$prevSizeKey, $isGrouped): string {
             $dnrObj    = ($code->donorId !== null) ? ($donorMap[$code->donorId] ?? null) : null;
             $donorName = $code->submitterName ?? ($dnrObj !== null ? $dnrObj->name : null);
             $donorUrl  = '';
@@ -79,17 +82,31 @@ final class CodesTemplateRenderer
 
             $hasSize   = $code->width > 0 && $code->height > 0;
             $sizeLabel = $hasSize ? ((int) $code->width . '×' . (int) $code->height) : '';
-            $altText   = $donorName !== null
-                ? 'Donated by ' . $donorName
-                : ($sizeLabel !== '' ? $sizeLabel : $listingName . ' code');
+            $sizeKey   = $hasSize ? ((int) $code->width . 'x' . (int) $code->height) : 'unknown';
 
-            $catIds   = $catMap[$code->id] ?? [];
-            $catNames = [];
-            foreach ($catIds as $catId) {
+            // Alt text fallback: donor → size → listing name
+            if ($donorName !== null) {
+                $altText = 'Donated by ' . $donorName;
+            } elseif ($sizeLabel !== '') {
+                $altText = $sizeLabel;
+            } elseif ($listingName !== '') {
+                $altText = $listingName . ' code';
+            } else {
+                $altText = 'code';
+            }
+
+            // Category names
+            $codeCatIds   = $catMap[$code->id] ?? [];
+            $catNames     = [];
+            foreach ($codeCatIds as $catId) {
                 if (isset($categoryMap[$catId])) {
                     $catNames[] = $categoryMap[$catId]->name;
                 }
             }
+            $categoriesStr = implode(', ', $catNames);
+
+            $sizeChanged   = !$isGrouped && $sizeKey !== $prevSizeKey;
+            $prevSizeKey   = $sizeKey;
 
             return TemplateEngine::render(
                 $inner,
@@ -100,7 +117,7 @@ final class CodesTemplateRenderer
                     'code_height'     => $hasSize ? (string) (int) $code->height : '',
                     'code_size'       => $sizeLabel,
                     'code_name'       => (string) ($code->name ?? ''),
-                    'code_categories' => implode(', ', $catNames),
+                    'code_categories' => $categoriesStr,
                     'code_donor_name' => (string) ($donorName ?? ''),
                     'code_donor_url'  => $donorUrl,
                 ],
@@ -112,7 +129,7 @@ final class CodesTemplateRenderer
                     'no_donor'     => $donorName === null,
                     'donor_url'    => $donorUrl !== '',
                     'no_donor_url' => $donorUrl === '',
-                    'categories'   => count($catNames) > 0,
+                    'categories'   => !empty($catNames),
                     'code_name'    => ($code->name ?? '') !== '',
                 ],
             );
@@ -132,7 +149,7 @@ final class CodesTemplateRenderer
                         $processed,
                         'code',
                         $group['codes'],
-                        static fn(string $inner, object $code): string => $renderCode($inner, $code, false),
+                        static fn(string $inner, object $code): string => $renderCode($inner, $code),
                     );
                 },
             );
@@ -142,14 +159,7 @@ final class CodesTemplateRenderer
                 $tpl,
                 'code',
                 $codes,
-                static function (string $inner, object $code) use (&$prevSizeKey, $renderCode): string {
-                    $sizeKey     = ($code->width > 0 && $code->height > 0)
-                        ? ((int) $code->width . 'x' . (int) $code->height)
-                        : 'unknown';
-                    $sizeChanged = $sizeKey !== $prevSizeKey;
-                    $prevSizeKey = $sizeKey;
-                    return $renderCode($inner, $code, $sizeChanged);
-                },
+                static fn(string $inner, object $code): string => $renderCode($inner, $code),
             );
         }
 

@@ -6,6 +6,7 @@ $hasKim      = in_array('kim',      $installed, true);
 $hasUpdates  = in_array('updates',  $installed, true);
 $hasWishlist = in_array('wishlist', $installed, true);
 $hasRules    = in_array('rules',    $installed, true);
+$hasAdoption = in_array('adoption', $installed, true);
 $codes       = $collective_codes ?? ['total' => 0, 'pending' => 0];
 $addons      = $addon_counts     ?? ['wishlist' => null, 'updates' => null];
 
@@ -47,6 +48,18 @@ $quickActions = [
         'icon'  => 'kim',
         'label' => 'Add KIM Entry',
         'muted' => !$hasKim,
+    ],
+    'edit_rules' => [
+        'href'  => $hasRules ? "$b/admin/rules" : "$b/admin/addons",
+        'icon'  => 'rules',
+        'label' => 'Edit Join Rules',
+        'muted' => !$hasRules,
+    ],
+    'manage_adoptions' => [
+        'href'  => $hasAdoption ? "$b/admin/adoptions" : "$b/admin/addons",
+        'icon'  => 'adoptions',
+        'label' => 'Manage Adoptions',
+        'muted' => !$hasAdoption,
     ],
 ];
 

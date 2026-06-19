@@ -166,8 +166,14 @@ $catSortUrl = static function (string $col) use ($b, $sort, $dir, $source, $sear
       <?php else: ?>
         Categories
       <?php endif; ?>
+      <?php
+        $_catTotal = (int) ($total ?? 0);
+        $_catPP    = (int) ($per_page ?? 10);
+        $_catFrom  = $_catTotal > 0 ? ($page - 1) * $_catPP + 1 : 0;
+        $_catTo    = min($_catFrom + $_catPP - 1, $_catTotal);
+      ?>
       <span class="row-sub">
-        Showing <?= count($items ?? []) ?> of <?= (int) ($total ?? 0) ?> categor<?= (int) ($total ?? 0) === 1 ? 'y' : 'ies' ?>
+        Showing <?= $_catFrom ?>&ndash;<?= $_catTo ?> of <?= $_catTotal ?> categor<?= $_catTotal === 1 ? 'y' : 'ies' ?>
       </span>
     </div>
     <div class="bulk bulk--flush">

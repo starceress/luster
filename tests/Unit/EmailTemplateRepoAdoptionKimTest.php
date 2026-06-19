@@ -26,9 +26,9 @@ final class EmailTemplateRepoAdoptionKimTest extends TestCase
         self::assertContains(EmailTemplateRepo::TYPE_KIM_APPROVED,      EmailTemplateRepo::TYPES);
     }
 
-    public function testTypesArrayHasFifteenEntries(): void
+    public function testTypesArrayHasSeventeenEntries(): void
     {
-        self::assertCount(15, EmailTemplateRepo::TYPES);
+        self::assertCount(17, EmailTemplateRepo::TYPES);
     }
 
     // -----------------------------------------------------------------------

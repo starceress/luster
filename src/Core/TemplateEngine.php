@@ -39,10 +39,8 @@ final class TemplateEngine
      * `input` — rendered <input>/<select>/<textarea> markup from FieldRenderer,
      * passed straight through a form-field wrapper template.
      *
-     * `aff_image` — ready-made <img> tag for an affiliate's image (AffiliateRowRenderer);
-     * named to match the documented {aff_image} token rather than {aff_image_html}.
      */
-    private const RAW_TOKEN_ALLOWLIST = ['input', 'aff_image'];
+    private const RAW_TOKEN_ALLOWLIST = ['input', 'pagination', 'network_status'];
 
     private function __construct()
     {

@@ -132,7 +132,7 @@ final class CollectiveKimTemplatesTest extends TestCase
 
         self::assertStringContainsString('{if_token_invalid}', $tpl);
         self::assertStringContainsString('{if_token_valid}', $tpl);
-        self::assertStringContainsString('{hidden_token}', $tpl);
+        self::assertStringNotContainsString('{hidden_token}', $tpl, 'Hidden token is auto-injected, not a user-facing template token');
         self::assertStringContainsString('{reset_request_url}', $tpl);
     }
 }

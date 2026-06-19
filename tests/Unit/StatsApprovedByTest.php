@@ -9,33 +9,46 @@ use PHPUnit\Framework\TestCase;
 final class StatsApprovedByTest extends TestCase
 {
     // -----------------------------------------------------------------------
-    // {approved_by} token value mapping
+    // {approved_by} / {network} token value mapping
     // -----------------------------------------------------------------------
 
-    public function testTflProducesLink(): void
+    public function testTflProducesUppercaseAcronym(): void
     {
-        $html = $this->approvedByHtml('tfl');
-
-        self::assertStringContainsString('thefanlistings.org', $html);
-        self::assertStringContainsString('The Fanlistings Network', $html);
+        self::assertSame('TFL', $this->networkValue('tfl'));
     }
 
-    public function testTaflProducesLink(): void
+    public function testTaflProducesUppercaseAcronym(): void
     {
-        $html = $this->approvedByHtml('tafl');
-
-        self::assertStringContainsString('animefanlistings.org', $html);
-        self::assertStringContainsString('The Anime Fanlistings Network', $html);
+        self::assertSame('TAFL', $this->networkValue('tafl'));
     }
 
     public function testEmptyApprovedByProducesEmptyString(): void
     {
-        self::assertSame('', $this->approvedByHtml(''));
+        self::assertSame('', $this->networkValue(''));
     }
 
-    public function testUnknownValueProducesEmptyString(): void
+    public function testUnknownValueProducesUppercasedInput(): void
     {
-        self::assertSame('', $this->approvedByHtml('other'));
+        self::assertSame('OTHER', $this->networkValue('other'));
+    }
+
+    // -----------------------------------------------------------------------
+    // {network_name} token
+    // -----------------------------------------------------------------------
+
+    public function testNetworkNameTfl(): void
+    {
+        self::assertSame('The Fanlistings Network', $this->networkName('tfl'));
+    }
+
+    public function testNetworkNameTafl(): void
+    {
+        self::assertSame('The Anime Fanlistings Network', $this->networkName('tafl'));
+    }
+
+    public function testNetworkNameEmpty(): void
+    {
+        self::assertSame('', $this->networkName(''));
     }
 
     // -----------------------------------------------------------------------
@@ -98,36 +111,36 @@ final class StatsApprovedByTest extends TestCase
 
     public function testFullReplacementWithTfl(): void
     {
-        $template = 'Members: {stat_approved} {if_approved_by}| Approved: {approved_by}{/if_approved_by}';
+        $template = 'Members: {stat_approved} {if_approved_by}| Network: {network}{/if_approved_by}';
 
         $result = $this->applyFull($template, 'tfl', '42');
 
-        self::assertStringContainsString('Members: 42', $result);
-        self::assertStringContainsString('thefanlistings.org', $result);
-        self::assertStringNotContainsString('{approved_by}', $result);
-        self::assertStringNotContainsString('{if_approved_by}', $result);
+        self::assertSame('Members: 42 | Network: TFL', $result);
     }
 
     public function testFullReplacementWithNoApproval(): void
     {
-        $template = 'Members: {stat_approved} {if_approved_by}| Approved: {approved_by}{/if_approved_by}';
+        $template = 'Members: {stat_approved} {if_approved_by}| Network: {network}{/if_approved_by}';
 
         $result = $this->applyFull($template, '', '7');
 
         self::assertSame('Members: 7 ', $result);
-        self::assertStringNotContainsString('{approved_by}', $result);
-        self::assertStringNotContainsString('{if_approved_by}', $result);
     }
 
     // -----------------------------------------------------------------------
-    // Helpers — mirror the logic in StatsController and embed/stats.php
+    // Helpers — mirror the logic in stats.php and renderStatsTemplate()
     // -----------------------------------------------------------------------
 
-    private function approvedByHtml(string $approvedBy): string
+    private function networkValue(string $approvedBy): string
+    {
+        return strtoupper($approvedBy);
+    }
+
+    private function networkName(string $approvedBy): string
     {
         return match ($approvedBy) {
-            'tfl'   => '<a href="https://thefanlistings.org">The Fanlistings Network</a>',
-            'tafl'  => '<a href="https://animefanlistings.org">The Anime Fanlistings Network</a>',
+            'tfl'   => 'The Fanlistings Network',
+            'tafl'  => 'The Anime Fanlistings Network',
             default => '',
         };
     }
@@ -144,9 +157,10 @@ final class StatsApprovedByTest extends TestCase
     private function applyFull(string $template, string $approvedBy, string $approvedCount): string
     {
         $template = $this->applyConditional($template, $approvedBy);
+        $network  = $this->networkValue($approvedBy);
         return str_replace(
-            ['{stat_approved}', '{approved_by}'],
-            [$approvedCount, $this->approvedByHtml($approvedBy)],
+            ['{stat_approved}', '{approved_by}', '{network}'],
+            [$approvedCount, $network, $network],
             $template,
         );
     }

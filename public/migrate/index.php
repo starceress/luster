@@ -2168,7 +2168,6 @@ try {
         );
         foreach ([
             'collective_pagination_template',
-            'collective_field_wrapper_template',
             'collective_success_template',
             'collective_contact_sent_template',
             'collective_affiliate_apply_sent_template',
@@ -2505,6 +2504,130 @@ try {
     }
 } catch (PDOException $e) {
     $errors[] = 'Migration 74 — ' . htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Migration 75: add contact-form URL override and contact form template columns
+//
+// lstr_fanlisting_settings.form_url_contact — override URL for the contact
+//   form (mirrors form_url_join / form_url_update / form_url_reset).
+// lstr_fanlisting_settings.contact_form_template — per-listing contact form
+//   template stored in the DB (parallel to other form template columns).
+// ─────────────────────────────────────────────────────────────────────────────
+try {
+    if (!(int) $pdo->query('SELECT COUNT(*) FROM `lstr_migrations` WHERE migration_number = 75')->fetchColumn()) {
+        $changes = [];
+
+        $found = $pdo->query("SHOW COLUMNS FROM `lstr_fanlisting_settings` LIKE 'form_url_contact'")->fetchAll();
+        if (empty($found)) {
+            $pdo->exec("ALTER TABLE `lstr_fanlisting_settings` ADD COLUMN `form_url_contact` VARCHAR(500) NOT NULL DEFAULT ''");
+            $changes[] = 'lstr_fanlisting_settings.form_url_contact';
+        }
+
+        $found = $pdo->query("SHOW COLUMNS FROM `lstr_fanlisting_settings` LIKE 'contact_form_template'")->fetchAll();
+        if (empty($found)) {
+            $pdo->exec("ALTER TABLE `lstr_fanlisting_settings` ADD COLUMN `contact_form_template` TEXT NULL");
+            $changes[] = 'lstr_fanlisting_settings.contact_form_template';
+        }
+
+        $pdo->exec('INSERT INTO `lstr_migrations` (migration_number) VALUES (75)');
+        $done[] = $changes !== []
+            ? 'Added columns: ' . implode(', ', array_map(static fn (string $c): string => "<code>{$c}</code>", $changes))
+            : 'Migration 75 columns already present';
+    }
+} catch (PDOException $e) {
+    $errors[] = 'Migration 75 — ' . htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Migration 76: remove the stale collective_field_wrapper_template setting
+//
+// The collective field-wrapper template was removed from the admin UI and
+// SiteSettingsRepo::collectiveDefaults() in Phase D. Any stored DB value
+// is now dead weight — delete it so it cannot interfere with future key
+// additions that share similar names.
+// ─────────────────────────────────────────────────────────────────────────────
+try {
+    if (!(int) $pdo->query('SELECT COUNT(*) FROM `lstr_migrations` WHERE migration_number = 76')->fetchColumn()) {
+        try {
+            $pdo->exec("DELETE FROM `lstr_site_settings` WHERE setting_key = 'collective_field_wrapper_template'");
+        } catch (PDOException) {
+            // lstr_site_settings may not exist yet on a fresh install — safe to ignore
+        }
+        $pdo->exec('INSERT INTO `lstr_migrations` (migration_number) VALUES (76)');
+        $done[] = 'Removed stale <code>collective_field_wrapper_template</code> setting from <code>lstr_site_settings</code>';
+    }
+} catch (PDOException $e) {
+    $errors[] = 'Migration 76 — ' . htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Migration 77: add update_form_template and reset_form_template columns to
+// lstr_fanlisting_settings so per-listing custom form templates can be stored
+// for the Update Membership and Password Reset public forms.
+// ─────────────────────────────────────────────────────────────────────────────
+try {
+    if (!(int) $pdo->query('SELECT COUNT(*) FROM `lstr_migrations` WHERE migration_number = 77')->fetchColumn()) {
+        $changes = [];
+
+        $found = $pdo->query(
+            "SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
+              WHERE TABLE_SCHEMA = DATABASE()
+                AND TABLE_NAME   = 'lstr_fanlisting_settings'
+                AND COLUMN_NAME  = 'update_form_template'"
+        )->fetchColumn();
+        if (!$found) {
+            $pdo->exec("ALTER TABLE `lstr_fanlisting_settings` ADD COLUMN `update_form_template` TEXT NULL");
+            $changes[] = 'lstr_fanlisting_settings.update_form_template';
+        }
+
+        $found = $pdo->query(
+            "SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
+              WHERE TABLE_SCHEMA = DATABASE()
+                AND TABLE_NAME   = 'lstr_fanlisting_settings'
+                AND COLUMN_NAME  = 'reset_form_template'"
+        )->fetchColumn();
+        if (!$found) {
+            $pdo->exec("ALTER TABLE `lstr_fanlisting_settings` ADD COLUMN `reset_form_template` TEXT NULL");
+            $changes[] = 'lstr_fanlisting_settings.reset_form_template';
+        }
+
+        $pdo->exec('INSERT INTO `lstr_migrations` (migration_number) VALUES (77)');
+        $done[] = $changes !== []
+            ? 'Added columns: ' . implode(', ', array_map(static fn (string $c): string => "<code>{$c}</code>", $changes))
+            : 'Migration 77 columns already present';
+    }
+} catch (PDOException $e) {
+    $errors[] = 'Migration 77 — ' . htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Migration 78: create lstr_member_link_checks table for tracking approved fan
+// URL health via the Link Checker. Stores one row per (listing_id, member_email)
+// with the check status, last checked date, and the redirect target URL if the
+// member URL has moved.
+// ─────────────────────────────────────────────────────────────────────────────
+try {
+    if (!(int) $pdo->query('SELECT COUNT(*) FROM `lstr_migrations` WHERE migration_number = 78')->fetchColumn()) {
+        $pdo->exec(
+            "CREATE TABLE IF NOT EXISTS `lstr_member_link_checks` (
+                `listing_id`       INT NOT NULL,
+                `member_email`     VARCHAR(255) NOT NULL,
+                `member_name`      VARCHAR(255) NOT NULL DEFAULT '',
+                `member_url`       VARCHAR(500) NOT NULL DEFAULT '',
+                `link_status`      ENUM('unchecked','ok','redirect','dead','error') NOT NULL DEFAULT 'unchecked',
+                `link_redirect_url` VARCHAR(500) NULL,
+                `link_checked_at`  DATETIME NULL,
+                PRIMARY KEY (`listing_id`, `member_email`),
+                INDEX `idx_mlc_status` (`link_status`),
+                INDEX `idx_mlc_listing` (`listing_id`)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci"
+        );
+        $pdo->exec('INSERT INTO `lstr_migrations` (migration_number) VALUES (78)');
+        $done[] = 'Created <code>lstr_member_link_checks</code> table';
+    }
+} catch (PDOException $e) {
+    $errors[] = 'Migration 78 — ' . htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

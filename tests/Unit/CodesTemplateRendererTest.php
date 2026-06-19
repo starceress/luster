@@ -17,7 +17,7 @@ use PHPUnit\Framework\TestCase;
 final class CodesTemplateRendererTest extends TestCase
 {
     // -----------------------------------------------------------------------
-    // Fixture helpers — shapes match CodesRepo / CodeCategoriesRepo / CodeDonorsRepo
+    // Fixture helpers — shapes match CodesRepo / CodeDonorsRepo
     // -----------------------------------------------------------------------
 
     private function makeCode(
@@ -48,17 +48,6 @@ final class CodesTemplateRendererTest extends TestCase
         ];
     }
 
-    private function makeCategory(int $id, string $name): object
-    {
-        return (object) [
-            'id'        => $id,
-            'listingId' => 1,
-            'name'      => $name,
-            'parentId'  => null,
-            'sortOrder' => 0,
-        ];
-    }
-
     private function makeDonor(int $id, string $name, ?string $url = null): object
     {
         return (object) [
@@ -81,10 +70,7 @@ final class CodesTemplateRendererTest extends TestCase
             [],
             [],
             [],
-            [],
-            [],
             '/uploads/codes',
-            'My Listing',
         );
 
         self::assertNull($result);
@@ -99,10 +85,7 @@ final class CodesTemplateRendererTest extends TestCase
             [$this->makeCode(1)],
             [],
             [],
-            [],
-            [],
             '/uploads/codes',
-            'My Listing',
         );
 
         self::assertNull($result);
@@ -112,22 +95,22 @@ final class CodesTemplateRendererTest extends TestCase
     // Flat mode — per-code tokens
     // -----------------------------------------------------------------------
 
-    public function testFlatModeCodeUrlAndAltWithSize(): void
+    public function testFlatModeCodeUrlRendered(): void
     {
         $code = $this->makeCode(1, 50, 50, null, null, null, null, 'abc123.gif');
-        $tpl  = '{each_code}<img src="{code_url}" alt="{code_alt}">{/each_code}';
+        $tpl  = '{each_code}<img src="{code_url}">{/each_code}';
 
-        $html = CodesTemplateRenderer::render($tpl, [$code], [], [], [], [], '/uploads/codes', 'My Listing');
+        $html = CodesTemplateRenderer::render($tpl, [$code], [], [], '/uploads/codes');
 
-        self::assertSame('<img src="/uploads/codes/abc123.gif" alt="50×50">', $html);
+        self::assertSame('<img src="/uploads/codes/abc123.gif">', $html);
     }
 
     public function testFlatModeSizeTokensWhenDimensionsPresent(): void
     {
         $code = $this->makeCode(1, 88, 31);
-        $tpl  = '{each_code}{if_size}{code_width}x{code_height} ({code_size}){/if_size}{/each_code}';
+        $tpl  = '{each_code}{code_width}x{code_height} ({code_size}){/each_code}';
 
-        $html = CodesTemplateRenderer::render($tpl, [$code], [], [], [], [], '/uploads/codes', 'My Listing');
+        $html = CodesTemplateRenderer::render($tpl, [$code], [], [], '/uploads/codes');
 
         self::assertSame('88x31 (88×31)', $html);
     }
@@ -135,41 +118,11 @@ final class CodesTemplateRendererTest extends TestCase
     public function testFlatModeNoSizeWhenDimensionsZero(): void
     {
         $code = $this->makeCode(1, 0, 0);
-        $tpl  = '{each_code}[{if_size}HAS SIZE{/if_size}{code_width}|{code_height}|{code_size}]{/each_code}';
+        $tpl  = '{each_code}[{code_width}|{code_height}|{code_size}]{/each_code}';
 
-        $html = CodesTemplateRenderer::render($tpl, [$code], [], [], [], [], '/uploads/codes', 'My Listing');
+        $html = CodesTemplateRenderer::render($tpl, [$code], [], [], '/uploads/codes');
 
         self::assertSame('[||]', $html);
-    }
-
-    public function testFlatModeAltFallsBackToListingNameWhenNoSizeOrDonor(): void
-    {
-        $code = $this->makeCode(1, 0, 0);
-        $tpl  = '{each_code}{code_alt}{/each_code}';
-
-        $html = CodesTemplateRenderer::render($tpl, [$code], [], [], [], [], '/uploads/codes', 'Sparkle Fanlisting');
-
-        self::assertSame('Sparkle Fanlisting code', $html);
-    }
-
-    public function testFlatModeAltPrefersSizeOverListingNameWhenNoDonor(): void
-    {
-        $code = $this->makeCode(1, 80, 15);
-        $tpl  = '{each_code}{code_alt}{/each_code}';
-
-        $html = CodesTemplateRenderer::render($tpl, [$code], [], [], [], [], '/uploads/codes', 'Sparkle Fanlisting');
-
-        self::assertSame('80×15', $html);
-    }
-
-    public function testFlatModeAltPrefersDonorOverSize(): void
-    {
-        $code = $this->makeCode(1, 80, 15, null, null, 'Jamie');
-        $tpl  = '{each_code}{code_alt}{/each_code}';
-
-        $html = CodesTemplateRenderer::render($tpl, [$code], [], [], [], [], '/uploads/codes', 'Sparkle Fanlisting');
-
-        self::assertSame('Donated by Jamie', $html);
     }
 
     public function testFlatModeCodeNameConditional(): void
@@ -178,38 +131,9 @@ final class CodesTemplateRendererTest extends TestCase
         $unnamed = $this->makeCode(2, 50, 50, null);
         $tpl     = '{each_code}[{if_code_name}{code_name}{/if_code_name}]{/each_code}';
 
-        $html = CodesTemplateRenderer::render($tpl, [$named, $unnamed], [], [], [], [], '/uploads/codes', 'My Listing');
+        $html = CodesTemplateRenderer::render($tpl, [$named, $unnamed], [], [], '/uploads/codes');
 
         self::assertSame('[Spring Set][]', $html);
-    }
-
-    public function testFlatModeSizeChangedTracksConsecutiveCodes(): void
-    {
-        $codes = [
-            $this->makeCode(1, 50, 50),
-            $this->makeCode(2, 50, 50),
-            $this->makeCode(3, 100, 100),
-            $this->makeCode(4, 50, 50),
-        ];
-        $tpl = '{each_code}{if_size_changed}NEW:{/if_size_changed}{code_size}|{/each_code}';
-
-        $html = CodesTemplateRenderer::render($tpl, $codes, [], [], [], [], '/uploads/codes', 'My Listing');
-
-        self::assertSame('NEW:50×50|50×50|NEW:100×100|NEW:50×50|', $html);
-    }
-
-    public function testFlatModeSizeChangedGroupsZeroDimensionCodesAsUnknown(): void
-    {
-        $codes = [
-            $this->makeCode(1, 0, 0),
-            $this->makeCode(2, 0, 0),
-            $this->makeCode(3, 50, 50),
-        ];
-        $tpl = '{each_code}{if_size_changed}NEW {/if_size_changed}#{/each_code}';
-
-        $html = CodesTemplateRenderer::render($tpl, $codes, [], [], [], [], '/uploads/codes', 'My Listing');
-
-        self::assertSame('NEW ##NEW #', $html);
     }
 
     // -----------------------------------------------------------------------
@@ -222,7 +146,7 @@ final class CodesTemplateRendererTest extends TestCase
         $donorMap = [5 => $this->makeDonor(5, 'Bob', 'https://bob.example/')];
         $tpl      = '{each_code}{code_donor_name}|{code_donor_url}{/each_code}';
 
-        $html = CodesTemplateRenderer::render($tpl, [$code], [], [], [], $donorMap, '/uploads/codes', 'My Listing');
+        $html = CodesTemplateRenderer::render($tpl, [$code], [], $donorMap, '/uploads/codes');
 
         self::assertSame('Alice|https://alice.example/', $html);
     }
@@ -233,7 +157,7 @@ final class CodesTemplateRendererTest extends TestCase
         $donorMap = [5 => $this->makeDonor(5, 'Bob', 'https://bob.example/')];
         $tpl      = '{each_code}{code_donor_name}|{code_donor_url}{/each_code}';
 
-        $html = CodesTemplateRenderer::render($tpl, [$code], [], [], [], $donorMap, '/uploads/codes', 'My Listing');
+        $html = CodesTemplateRenderer::render($tpl, [$code], [], $donorMap, '/uploads/codes');
 
         self::assertSame('Bob|https://bob.example/', $html);
     }
@@ -243,7 +167,7 @@ final class CodesTemplateRendererTest extends TestCase
         $code = $this->makeCode(1, 50, 50);
         $tpl  = '{each_code}[{if_donor}DONOR{/if_donor}{if_no_donor}NO DONOR{/if_no_donor}]{/each_code}';
 
-        $html = CodesTemplateRenderer::render($tpl, [$code], [], [], [], [], '/uploads/codes', 'My Listing');
+        $html = CodesTemplateRenderer::render($tpl, [$code], [], [], '/uploads/codes');
 
         self::assertSame('[NO DONOR]', $html);
     }
@@ -253,7 +177,7 @@ final class CodesTemplateRendererTest extends TestCase
         $code = $this->makeCode(1, 50, 50, null, null, 'Carol', null);
         $tpl  = '{each_code}[{if_donor}{code_donor_name}{/if_donor}{if_donor_url}<a href="{code_donor_url}">link</a>{/if_donor_url}{if_no_donor_url}no-link{/if_no_donor_url}]{/each_code}';
 
-        $html = CodesTemplateRenderer::render($tpl, [$code], [], [], [], [], '/uploads/codes', 'My Listing');
+        $html = CodesTemplateRenderer::render($tpl, [$code], [], [], '/uploads/codes');
 
         self::assertSame('[Carolno-link]', $html);
     }
@@ -264,50 +188,9 @@ final class CodesTemplateRendererTest extends TestCase
         $donorMap = [7 => $this->makeDonor(7, 'Dana', null)];
         $tpl      = '{each_code}[{code_donor_name}{if_donor_url}HAS-URL{/if_donor_url}{if_no_donor_url}NO-URL{/if_no_donor_url}]{/each_code}';
 
-        $html = CodesTemplateRenderer::render($tpl, [$code], [], [], [], $donorMap, '/uploads/codes', 'My Listing');
+        $html = CodesTemplateRenderer::render($tpl, [$code], [], $donorMap, '/uploads/codes');
 
         self::assertSame('[DanaNO-URL]', $html);
-    }
-
-    // -----------------------------------------------------------------------
-    // Categories
-    // -----------------------------------------------------------------------
-
-    public function testCategoriesRenderedFromCatMapAndCategoryMap(): void
-    {
-        $code        = $this->makeCode(1, 50, 50);
-        $catMap      = [1 => [10, 20]];
-        $categoryMap = [
-            10 => $this->makeCategory(10, 'Anime'),
-            20 => $this->makeCategory(20, 'Games'),
-        ];
-        $tpl = '{each_code}[{if_categories}{code_categories}{/if_categories}]{/each_code}';
-
-        $html = CodesTemplateRenderer::render($tpl, [$code], [], $catMap, $categoryMap, [], '/uploads/codes', 'My Listing');
-
-        self::assertSame('[Anime, Games]', $html);
-    }
-
-    public function testNoCategoriesWhenCatMapEmpty(): void
-    {
-        $code = $this->makeCode(1, 50, 50);
-        $tpl  = '{each_code}[{if_categories}HAS{/if_categories}{code_categories}]{/each_code}';
-
-        $html = CodesTemplateRenderer::render($tpl, [$code], [], [], [], [], '/uploads/codes', 'My Listing');
-
-        self::assertSame('[]', $html);
-    }
-
-    public function testCategoryIdsNotInCategoryMapAreSkipped(): void
-    {
-        $code        = $this->makeCode(1, 50, 50);
-        $catMap      = [1 => [10, 99]];
-        $categoryMap = [10 => $this->makeCategory(10, 'Anime')];
-        $tpl         = '{each_code}{code_categories}{/each_code}';
-
-        $html = CodesTemplateRenderer::render($tpl, [$code], [], $catMap, $categoryMap, [], '/uploads/codes', 'My Listing');
-
-        self::assertSame('Anime', $html);
     }
 
     // -----------------------------------------------------------------------
@@ -319,7 +202,7 @@ final class CodesTemplateRendererTest extends TestCase
         $code = $this->makeCode(1, 50, 50, '<b>Bold</b> & "quoted"', null, 'A & B <Co>');
         $tpl  = '{each_code}{code_name}|{code_donor_name}{/each_code}';
 
-        $html = CodesTemplateRenderer::render($tpl, [$code], [], [], [], [], '/uploads/codes', 'My Listing');
+        $html = CodesTemplateRenderer::render($tpl, [$code], [], [], '/uploads/codes');
 
         self::assertSame('&lt;b&gt;Bold&lt;/b&gt; &amp; &quot;quoted&quot;|A &amp; B &lt;Co&gt;', $html);
     }
@@ -341,7 +224,7 @@ final class CodesTemplateRendererTest extends TestCase
 
         $tpl = '{each_size_group}<h2>{group_size} ({group_code_count})</h2>{each_code}<span>{code_url}</span>{/each_code}{/each_size_group}';
 
-        $html = CodesTemplateRenderer::render($tpl, [$code1, $code2, $code3], $grouped, [], [], [], '/uploads/codes', 'My Listing');
+        $html = CodesTemplateRenderer::render($tpl, [$code1, $code2, $code3], $grouped, [], '/uploads/codes');
 
         self::assertSame(
             '<h2>50×50 (2)</h2><span>/uploads/codes/a.gif</span><span>/uploads/codes/b.gif</span>'
@@ -350,18 +233,40 @@ final class CodesTemplateRendererTest extends TestCase
         );
     }
 
-    public function testGroupedModeNeverSetsSizeChanged(): void
+    public function testGroupedModeNeverFiresSizeChanged(): void
     {
-        $code1 = $this->makeCode(1, 50, 50);
-        $code2 = $this->makeCode(2, 50, 50);
+        $code1 = $this->makeCode(1, 50, 50, null, null, null, null, 'a.gif');
+        $code2 = $this->makeCode(2, 100, 100, null, null, null, null, 'b.gif');
 
-        $grouped = ['50x50' => ['label' => '50×50', 'codes' => [$code1, $code2]]];
+        $grouped = [
+            '50x50'   => ['label' => '50×50', 'codes' => [$code1]],
+            '100x100' => ['label' => '100×100', 'codes' => [$code2]],
+        ];
 
-        $tpl = '{each_size_group}{each_code}[{if_size_changed}CHANGED{/if_size_changed}]{/each_code}{/each_size_group}';
+        $tpl = '{each_size_group}{each_code}{if_size_changed}CHANGED{/if_size_changed}[{code_url}]{/each_code}{/each_size_group}';
 
-        $html = CodesTemplateRenderer::render($tpl, [$code1, $code2], $grouped, [], [], [], '/uploads/codes', 'My Listing');
+        $html = CodesTemplateRenderer::render($tpl, [$code1, $code2], $grouped, [], '/uploads/codes');
 
-        self::assertSame('[][]', $html);
+        self::assertStringNotContainsString('CHANGED', $html,
+            '{if_size_changed} must never fire in grouped mode');
+        self::assertStringContainsString('[/uploads/codes/a.gif]', $html);
+        self::assertStringContainsString('[/uploads/codes/b.gif]', $html);
+    }
+
+    public function testFlatModeSizeChangedFiresOnFirstOfEachGroup(): void
+    {
+        $code1 = $this->makeCode(1, 50, 50, null, null, null, null, 'a.gif');
+        $code2 = $this->makeCode(2, 50, 50, null, null, null, null, 'b.gif');
+        $code3 = $this->makeCode(3, 100, 100, null, null, null, null, 'c.gif');
+
+        $tpl = '{each_code}{if_size_changed}[NEW]{/if_size_changed}{code_url};{/each_code}';
+
+        $html = CodesTemplateRenderer::render($tpl, [$code1, $code2, $code3], [], [], '/uploads/codes');
+
+        self::assertSame(
+            '[NEW]/uploads/codes/a.gif;/uploads/codes/b.gif;[NEW]/uploads/codes/c.gif;',
+            $html,
+        );
     }
 
     // -----------------------------------------------------------------------
@@ -372,7 +277,7 @@ final class CodesTemplateRendererTest extends TestCase
     {
         $tpl = '{if_codes}HAS{/if_codes}{if_no_codes}NONE{/if_no_codes}{each_code}{/each_code}';
 
-        $html = CodesTemplateRenderer::render($tpl, [], [], [], [], [], '/uploads/codes', 'My Listing');
+        $html = CodesTemplateRenderer::render($tpl, [], [], [], '/uploads/codes');
 
         self::assertSame('NONE', $html);
     }
@@ -382,7 +287,7 @@ final class CodesTemplateRendererTest extends TestCase
         $code = $this->makeCode(1, 50, 50);
         $tpl  = '{if_codes}HAS{/if_codes}{if_no_codes}NONE{/if_no_codes}{each_code}{/each_code}';
 
-        $html = CodesTemplateRenderer::render($tpl, [$code], [], [], [], [], '/uploads/codes', 'My Listing');
+        $html = CodesTemplateRenderer::render($tpl, [$code], [], [], '/uploads/codes');
 
         self::assertSame('HAS', $html);
     }
@@ -398,10 +303,7 @@ final class CodesTemplateRendererTest extends TestCase
             [],
             [],
             [],
-            [],
-            [],
             '/uploads/codes',
-            'My Fanlisting',
         );
 
         self::assertNotNull($html);
@@ -409,7 +311,7 @@ final class CodesTemplateRendererTest extends TestCase
         self::assertStringNotContainsString('fl-code-group', $html);
     }
 
-    public function testDefaultTemplateRendersGroupedOutputWithDonorAndCategory(): void
+    public function testDefaultTemplateRendersGroupedOutputWithDonor(): void
     {
         $code1 = $this->makeCode(1, 88, 31, 'Classic', 5, null, null, 'classic.gif');
         $code2 = $this->makeCode(2, 88, 31, null, null, 'Jamie', 'https://jamie.example/', 'jamie.gif');
@@ -417,28 +319,21 @@ final class CodesTemplateRendererTest extends TestCase
         $grouped = [
             '88x31' => ['label' => '88×31', 'codes' => [$code1, $code2]],
         ];
-        $catMap      = [1 => [10]];
-        $categoryMap = [10 => $this->makeCategory(10, 'Anime')];
-        $donorMap    = [5 => $this->makeDonor(5, 'Riley', 'https://riley.example/')];
+        $donorMap = [5 => $this->makeDonor(5, 'Riley', 'https://riley.example/')];
 
         $html = CodesTemplateRenderer::render(
             ListingSettingsRepo::defaultCodesTemplate(),
             [$code1, $code2],
             $grouped,
-            $catMap,
-            $categoryMap,
             $donorMap,
             '/uploads/codes',
-            'My Fanlisting',
         );
 
         self::assertNotNull($html);
         self::assertStringContainsString('<h2 class="fl-code-group-label">88×31</h2>', $html);
         self::assertStringContainsString('src="/uploads/codes/classic.gif"', $html);
         self::assertStringContainsString('src="/uploads/codes/jamie.gif"', $html);
-        self::assertStringContainsString('alt="Donated by Riley"', $html);
         self::assertStringContainsString('<span class="fl-code-caption">Classic</span>', $html);
-        self::assertStringContainsString('<span class="fl-code-caption">Anime</span>', $html);
         self::assertStringContainsString('by <a href="https://riley.example/" target="_blank" rel="noopener noreferrer">Riley</a>', $html);
         self::assertStringContainsString('by <a href="https://jamie.example/" target="_blank" rel="noopener noreferrer">Jamie</a>', $html);
         self::assertStringNotContainsString('No codes available yet.', $html);

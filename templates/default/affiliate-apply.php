@@ -32,8 +32,8 @@ use Luster\Core\View;
   <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
 
   <?= $f['name'] ?>
-  <?= $f['url'] ?>
   <?= $f['email'] ?>
+  <?= $f['url'] ?>
   <?= $f['image'] ?>
   <?= $f['message'] ?>
 

@@ -22,6 +22,12 @@ $b           = rtrim(View::e($base_url), '/');
 $_linkList   = isset($link_list) && $link_list !== '' ? $link_list : null;
 $_linkSignup = isset($link_signup) && $link_signup !== '' ? $link_signup : null;
 ?>
+<?php if (isset($subject_template_html) && $subject_template_html !== null): ?>
+<div class="fl-embed fl-embed--kim-list">
+  <?= $subject_template_html ?>
+</div>
+<?php return; ?>
+<?php endif; ?>
 <div class="fl-embed fl-embed--kim-list">
   <div class="fl-kim">
     <h2 class="fl-kim-heading fl-kim-subject-heading">KIM — <?= View::e($listing->subject) ?></h2>

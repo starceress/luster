@@ -4,7 +4,7 @@ use Luster\Core\View;
 /**
  * @var \Luster\Models\Listing  $listing
  * @var string[]                $selected_emails
- * @var array<string,string>    $member_names      email â†’ name
+ * @var array<string,string>    $member_names      email → name
  * @var object[]                $saved_emails
  * @var string                  $from_name
  * @var string                  $from_email

@@ -353,7 +353,7 @@ final class AffiliateApplyController
         $siteName        = (string) $config->get('site_name', 'Collective');
         $siteUrl         = (string) ($config->get('site_url', '') ?: $baseUrl);
         $siteRepo        = new SiteSettingsRepo($this->app->getDatabase());
-        $wrapperTpl      = $siteRepo->get('collective_field_wrapper_template', '') ?? '';
+        $wrapperTpl      = '';
 
         $f = $this->app->getFormFieldBuilder()->build([
             ['type' => 'text',     'name' => 'name',           'id' => 'aff-name',    'label' => 'Site name',                      'required' => true,  'value' => (string) ($old['name']    ?? ''), 'attrs' => ['maxlength' => '200', 'autocomplete' => 'organization']],

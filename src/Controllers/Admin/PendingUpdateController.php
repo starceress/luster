@@ -11,6 +11,7 @@ use Luster\Core\Response;
 use Luster\Repositories\ActivityRepo;
 use Luster\Repositories\EmailTemplateRepo;
 use Luster\Repositories\ListingRepo;
+use Luster\Repositories\MemberLinkCheckRepo;
 use Luster\Repositories\MemberRepo;
 use Luster\Repositories\PendingUpdateRepo;
 
@@ -74,6 +75,20 @@ final class PendingUpdateController
         $memberRepo->update($listing->dbprefix, $pending->member_email, $pending->changes);
 
         $pendingRepo->delete($id);
+
+        // Sync member link check snapshot (best-effort)
+        $updatedUrl = (string) ($pending->changes['url'] ?? $member->url ?? '');
+        if ($updatedUrl !== '') {
+            try {
+                $updatedName = (string) ($pending->changes['name'] ?? $member->name ?? '');
+                (new MemberLinkCheckRepo($db, $config))->upsertMember(
+                    $pending->fanlisting_id,
+                    $pending->member_email,
+                    $updatedName,
+                    $updatedUrl,
+                );
+            } catch (\Throwable) {}
+        }
 
         // Notify the fan that their update has been applied (best-effort)
         try {
@@ -148,6 +163,20 @@ final class PendingUpdateController
 
             $memberRepo->update($listing->dbprefix, $pending->member_email, $pending->changes);
             $pendingRepo->delete($pending->id);
+
+            // Sync member link check snapshot (best-effort)
+            $_updatedUrl = (string) ($pending->changes['url'] ?? $member->url ?? '');
+            if ($_updatedUrl !== '') {
+                try {
+                    $_updatedName = (string) ($pending->changes['name'] ?? $member->name ?? '');
+                    (new MemberLinkCheckRepo($db, $config))->upsertMember(
+                        $pending->fanlisting_id,
+                        $pending->member_email,
+                        $_updatedName,
+                        $_updatedUrl,
+                    );
+                } catch (\Throwable) {}
+            }
 
             try {
                 $emailRepo = new EmailTemplateRepo($db);
@@ -234,6 +263,18 @@ final class PendingUpdateController
 
             $memberRepo->update($listing->dbprefix, $pending->member_email, $pending->changes);
             $pendingRepo->delete($pending->id);
+
+            // Sync member link check snapshot (best-effort)
+            $_bUrl = (string) ($pending->changes['url'] ?? $member->url ?? '');
+            if ($_bUrl !== '') {
+                try {
+                    $_bName = (string) ($pending->changes['name'] ?? $member->name ?? '');
+                    (new MemberLinkCheckRepo($db, $config))->upsertMember(
+                        $pending->fanlisting_id, $pending->member_email, $_bName, $_bUrl,
+                    );
+                } catch (\Throwable) {}
+            }
+
             $count++;
         }
 

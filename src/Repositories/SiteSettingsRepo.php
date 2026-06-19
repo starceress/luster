@@ -67,7 +67,7 @@ class SiteSettingsRepo
      * Shared by the admin collective page and the embed files so
      * both always show the same fallback markup.
      *
-     * @return array{owned_template: string, joined_template: string, collective_stats_template: string, collective_affiliates_section_template: string, random_listing_template: string, latest_listing_template: string, random_joined_listing_template: string, latest_joined_listing_template: string, collective_affiliate_apply_form_template: string, kim_signup_form_template: string, wishlist_template: string, collective_updates_template: string, collective_codes_template: string, collective_codes_submit_form_template: string, collective_contact_sent_template: string, collective_adoption_form_template: string, collective_kim_list_overview_template: string, collective_kim_list_subject_template: string, kim_update_form_template: string, kim_reset_form_template: string}
+     * @return array{owned_template: string, joined_template: string, collective_stats_template: string, collective_affiliates_section_template: string, random_listing_template: string, latest_listing_template: string, random_joined_listing_template: string, latest_joined_listing_template: string, collective_affiliate_apply_form_template: string, kim_signup_form_template: string, wishlist_template: string, collective_updates_template: string, collective_codes_template: string, collective_codes_submit_form_template: string, collective_contact_sent_template: string, collective_adoption_form_template: string, collective_kim_list_overview_template: string, collective_kim_list_subject_template: string, kim_update_form_template: string, kim_reset_form_template: string, collective_contact_form_template: string}
      */
     public static function collectiveDefaults(): array
     {
@@ -86,7 +86,7 @@ class SiteSettingsRepo
                              . '<a class="fl-listing-title" href="{listing_url}" target="_blank" rel="noopener noreferrer">{listing_subject}</a>' . "\n"
                              . '<span class="fl-listing-subject">{listing_title}</span>' . "\n"
                              . '<div class="fl-listing-meta">' . "\n"
-                             . '{if_approved}<div class="fl-listing-network">{if_tfl}The Fanlistings Network{/if_tfl}{if_tafl}The Anime Fanlistings Network{/if_tafl}</div>{/if_approved}' . "\n"
+                             . '{if_approved_by}<div class="fl-listing-network">{if_tfl}The Fanlistings Network{/if_tfl}{if_tafl}The Anime Fanlistings Network{/if_tafl}</div>{/if_approved_by}' . "\n"
                              . '<div class="fl-listing-category">{listing_category}</div>' . "\n"
                              . '<div class="fl-listing-member-count">{member_count} member(s){if_pending} · {member_pending_count} pending{/if_pending}</div>' . "\n"
                              . '{if_countries}<div class="fl-listing-country-count">{country_count} countries</div>{/if_countries}' . "\n"
@@ -99,9 +99,8 @@ class SiteSettingsRepo
                              . '</div>',
             'joined_template' => '<div class="fl-joined-list">' . "\n"
                                . '{each_joined}' . "\n"
-                               . '{if_listing_image}' . "\n"
-                               . '<a href="{listing_url}" title="{listing_subject} - {listing_category}&#010;Joined on {date_joined}" target="_blank" rel="noopener noreferrer"><img src="{listing_image_url}" alt="{listing_category} {date_joined}"></a>' . "\n"
-                               . '{/if_listing_image}' . "\n"
+                               . '{if_listing_image}<a href="{listing_url}" title="{listing_subject} - {listing_category}&#010;Joined on {date_joined}" target="_blank" rel="noopener noreferrer"><img src="{listing_image_url}" alt="{listing_category} {date_joined}"></a>{/if_listing_image}'
+                               . '<a href="{listing_url}" target="_blank" rel="noopener noreferrer">{listing_subject}</a>' . "\n"
                                . '{/each_joined}' . "\n"
                                . '</div>',
             'collective_stats_template' => '<div class="fl-cstats">' . "\n"
@@ -116,7 +115,7 @@ class SiteSettingsRepo
                                                     . '{if_affiliates}' . "\n"
                                                     . '<ul class="fl-affiliate-list">' . "\n"
                                                     . '{each_affiliate}' . "\n"
-                                                    . '<li class="fl-affiliate-item">{if_aff_image}{aff_image}{/if_aff_image}{if_no_aff_image}<a href="{aff_url}">{aff_name}</a>{/if_no_aff_image}</li>' . "\n"
+                                                    . '<li class="fl-affiliate-item">{if_aff_image}<a href="{aff_url}" target="_blank" rel="noopener noreferrer"><img src="{aff_image_url}" alt="{aff_name}"></a>{/if_aff_image}{if_no_aff_image}<a href="{aff_url}">{aff_name}</a>{/if_no_aff_image}</li>' . "\n"
                                                     . '{/each_affiliate}' . "\n"
                                                     . '</ul>' . "\n"
                                                     . '{/if_affiliates}' . "\n"
@@ -187,14 +186,15 @@ class SiteSettingsRepo
             'collective_kim_list_subject_template'       => self::defaultCollectiveKimListSubjectTemplate(),
             'kim_update_form_template'                   => self::defaultKimUpdateFormTemplate(),
             'kim_reset_form_template'                    => self::defaultKimResetFormTemplate(),
+            'collective_contact_form_template'           => self::defaultCollectiveContactFormTemplate(),
         ];
     }
 
     public static function defaultCollectiveAffiliateApplyFormTemplate(): string
     {
         return '{field_name}' . "\n"
-             . '{field_url}' . "\n"
              . '{field_email}' . "\n"
+             . '{field_url}' . "\n"
              . '{field_image}' . "\n"
              . '{field_message}' . "\n"
              . '{captcha_block}' . "\n"
@@ -209,8 +209,8 @@ class SiteSettingsRepo
         return '<h2 class="fl-kim-heading">KIM List &mdash; Sign Up</h2>' . "\n"
              . '<p class="fl-kim-intro">KIM (Keep In Mind) is an adoption interest registry. If a fanlisting owner might someday give up their listing, you can sign up here to express interest in adopting it.</p>' . "\n"
              . '{field_name}' . "\n"
-             . '{field_url}' . "\n"
              . '{field_email}' . "\n"
+             . '{field_url}' . "\n"
              . '{field_fanlisting_id}' . "\n"
              . '{field_password}' . "\n"
              . '{field_password_confirm}' . "\n"
@@ -297,10 +297,10 @@ HTML;
         return '<h1>Submit a Code for {site_name}</h1>' . "\n"
             . '<p>All submissions are reviewed before being published. Accepted: JPEG, PNG, GIF, WebP. Max 200 KB.</p>' . "\n"
             . '<div class="fl-form-fields">' . "\n"
-            . '{field_code_image}' . "\n"
             . '{field_submitter_name}' . "\n"
             . '{field_submitter_email}' . "\n"
             . '{field_submitter_url}' . "\n"
+            . '{field_code_image}' . "\n"
             . '{captcha_block}' . "\n"
             . '</div>' . "\n"
             . '<div class="fl-form-actions">' . "\n"
@@ -381,6 +381,7 @@ HTML;
             . '</div>' . "\n"
             . '<div class="fl-form-actions">' . "\n"
             . '{submit_button}' . "\n"
+            . '{clear_button}' . "\n"
             . '</div>' . "\n"
             . '{if_lost_password_url}'
             . '<p class="fl-form-hint"><a href="{lost_password_url}">Forgot your password?</a></p>'
@@ -398,7 +399,7 @@ HTML;
             . '{field_email}' . "\n"
             . '{field_fanlisting_id}' . "\n"
             . '</div>' . "\n"
-            . '<div class="fl-form-actions">{submit_button}</div>' . "\n"
+            . '<div class="fl-form-actions">{submit_button} {clear_button}</div>' . "\n"
             . '{/if_step_email}' . "\n"
             . '{if_step_confirm}' . "\n"
             . '{if_token_valid}' . "\n"
@@ -406,14 +407,30 @@ HTML;
             . '<div class="fl-form-fields">' . "\n"
             . '{field_password}' . "\n"
             . '{field_password_confirm}' . "\n"
-            . '{hidden_token}' . "\n"
             . '</div>' . "\n"
-            . '<div class="fl-form-actions">{submit_button}</div>' . "\n"
+            . '<div class="fl-form-actions">{submit_button} {clear_button}</div>' . "\n"
             . '{/if_token_valid}' . "\n"
             . '{if_token_invalid}' . "\n"
             . '<p class="fl-error">This reset link is invalid or has expired. <a href="{reset_request_url}">Request a new one.</a></p>' . "\n"
             . '{/if_token_invalid}' . "\n"
             . '{/if_step_confirm}';
+    }
+
+    /**
+     * Default Collective Contact Form template.
+     */
+    public static function defaultCollectiveContactFormTemplate(): string
+    {
+        return '{field_name}' . "\n"
+            . '{field_email}' . "\n"
+            . '{field_url}' . "\n"
+            . '{field_subject}' . "\n"
+            . '{field_message}' . "\n"
+            . '{captcha_block}' . "\n"
+            . '<div class="fl-form-actions">' . "\n"
+            . '{submit_button}' . "\n"
+            . '{clear_button}' . "\n"
+            . '</div>';
     }
 
     /**
@@ -464,7 +481,11 @@ HTML;
             'listing_default_join_form_template',
             'listing_default_codes_submit_form_template',
             'listing_default_affiliate_apply_form_template',
-            'listing_default_adopt_form_template',
+            'listing_default_update_form_template',
+            'listing_default_reset_form_template',
+            'listing_default_codes_template',
+            'listing_default_contact_form_template',
+            'listing_default_contact_sent_template',
         ]);
     }
 }

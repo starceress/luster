@@ -201,7 +201,7 @@ SQL;
 
         self::assertStringContainsString('{field_new_password}', $tpl);
         self::assertStringContainsString('{field_new_password_confirm}', $tpl);
-        self::assertStringContainsString('{hidden_token}', $tpl);
+        self::assertStringNotContainsString('{hidden_token}', $tpl, 'Hidden token is auto-injected, not a user-facing template token');
         self::assertStringContainsString('{reset_request_url}', $tpl);
     }
 

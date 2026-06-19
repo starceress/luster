@@ -93,6 +93,7 @@ final class FeedbackController extends AdminController
                 'message'          => $message,
                 'contact_name'     => $contactName,
                 'contact_email'    => $contactEmail,
+                'contact_url'      => $contactUrl,
                 'include_sysinfo'  => $includeSysinfo,
                 'include_errorlog' => $includeErrorlog,
             ],

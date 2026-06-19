@@ -264,7 +264,7 @@ final class KimSignupController
     ): Response {
         $baseUrl    = $this->app->getBaseUrl();
         $siteRepo   = new SiteSettingsRepo($this->app->getDatabase());
-        $wrapperTpl = $siteRepo->get('collective_field_wrapper_template', '') ?? '';
+        $wrapperTpl = '';
         $siteName   = (string) $this->app->getConfig()->get('site_name', 'Luster');
 
         $flSelectHtml = '<select class="fl-select" id="kim-fanlisting" name="fanlisting_id" required>'

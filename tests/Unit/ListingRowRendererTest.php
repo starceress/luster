@@ -411,14 +411,14 @@ final class ListingRowRendererTest extends TestCase
             'https://example.com/uploads/listings',
         );
 
-        self::assertSame('tfl', $tfl);
-        self::assertSame('tafl', $tafl);
+        self::assertSame('TFL', $tfl);
+        self::assertSame('TAFL', $tafl);
         self::assertSame('', $none);
     }
 
     public function testNetworkConditionalsMatchApprovedBy(): void
     {
-        $template = '{if_tfl}TFL{/if_tfl}{if_tafl}TAFL{/if_tafl}{if_approved}APPROVED{/if_approved}';
+        $template = '{if_tfl}TFL{/if_tfl}{if_tafl}TAFL{/if_tafl}{if_approved_by}APPROVED{/if_approved_by}';
 
         $tfl = ListingRowRenderer::render(
             $this->makeListing(),
@@ -442,6 +442,34 @@ final class ListingRowRendererTest extends TestCase
         self::assertSame('TFLAPPROVED', $tfl);
         self::assertSame('TAFLAPPROVED', $tafl);
         self::assertSame('', $none);
+    }
+
+    public function testNetworkTokenRendersRawText(): void
+    {
+        $template = '{network}|{network_status}|{network_name}|{tfl_url}|{tafl_url}';
+
+        $tfl = ListingRowRenderer::render(
+            $this->makeListing(),
+            $template,
+            ['approved_by' => 'tfl'],
+            'https://example.com/uploads/listings',
+        );
+        $tafl = ListingRowRenderer::render(
+            $this->makeListing(),
+            $template,
+            ['approved_by' => 'tafl'],
+            'https://example.com/uploads/listings',
+        );
+        $none = ListingRowRenderer::render(
+            $this->makeListing(),
+            $template,
+            [],
+            'https://example.com/uploads/listings',
+        );
+
+        self::assertSame('TFL|TFL|The Fanlistings Network|https://thefanlistings.org/|https://www.animefanlistings.com/', $tfl);
+        self::assertSame('TAFL|TAFL|The Anime Fanlistings Network|https://thefanlistings.org/|https://www.animefanlistings.com/', $tafl);
+        self::assertSame('|||https://thefanlistings.org/|https://www.animefanlistings.com/', $none);
     }
 
     // -----------------------------------------------------------------------
@@ -576,7 +604,7 @@ final class ListingRowRendererTest extends TestCase
         self::assertSame(2, substr_count($html, '9 members'));
         self::assertSame(2, substr_count($html, '+2 pending'));
         self::assertSame(2, substr_count($html, '4 countries'));
-        self::assertSame(2, substr_count($html, 'tfl'));
+        self::assertSame(2, substr_count($html, 'TFL'));
         self::assertSame(2, substr_count($html, 'src="https://example.com/uploads/listings/shared.jpg"'));
         self::assertStringContainsString('Listing A:', $html);
         self::assertStringContainsString('Listing B:', $html);

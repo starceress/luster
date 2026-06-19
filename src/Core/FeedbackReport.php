@@ -89,11 +89,12 @@ final class FeedbackReport
 
     public static function compose(array $form, string $sysInfo, string $errorLog): string
     {
-        $type    = $form['type']          ?? 'other';
-        $subject = $form['subject']       ?? '';
-        $message = $form['message']       ?? '';
-        $name    = $form['contact_name']  ?? '';
-        $contact = $form['contact_email'] ?? '';
+        $type       = $form['type']          ?? 'other';
+        $subject    = $form['subject']       ?? '';
+        $message    = $form['message']       ?? '';
+        $name       = $form['contact_name']  ?? '';
+        $contact    = $form['contact_email'] ?? '';
+        $contactUrl = $form['contact_url']   ?? '';
         $includeSysInfo  = (bool) ($form['include_sysinfo']  ?? false);
         $includeErrorLog = (bool) ($form['include_errorlog'] ?? false);
 
@@ -106,6 +107,9 @@ final class FeedbackReport
         $body .= self::row('Type',    $typeLabel);
         $body .= self::row('Name',    $nameDisplay);
         $body .= self::row('Contact', $contactDisplay);
+        if ($contactUrl !== '') {
+            $body .= self::row('Website', $contactUrl);
+        }
         $body .= "\n";
         $body .= "Subject: {$subject}\n\n";
         $body .= $message;

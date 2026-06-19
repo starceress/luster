@@ -61,6 +61,9 @@ final class EmailTemplatesController extends AdminController
         $emailRepo = new EmailTemplateRepo($db);
 
         foreach (EmailTemplateRepo::TYPES as $type) {
+            if ($listingId !== 0 && in_array($type, EmailTemplateRepo::COLLECTIVE_ONLY_TYPES, true)) {
+                continue;
+            }
             $subject = trim((string) $request->post('email_subject_' . $type, ''));
             $body    = trim((string) $request->post('email_body_'    . $type, ''));
             $enabled = $request->post('email_enabled_' . $type) === '1';
@@ -103,6 +106,10 @@ final class EmailTemplatesController extends AdminController
             return Response::json(['ok' => false, 'error' => 'Invalid type.'], 422);
         }
 
+        if ($listingId !== 0 && in_array($type, EmailTemplateRepo::COLLECTIVE_ONLY_TYPES, true)) {
+            return Response::json(['ok' => false, 'error' => 'This template type is collective-level only.'], 422);
+        }
+
         if ($listingId !== 0) {
             $listingRepo = new ListingRepo($db, $config);
             if ($listingRepo->getById($listingId) === null) {
@@ -140,6 +147,11 @@ final class EmailTemplatesController extends AdminController
 
         if (!in_array($type, EmailTemplateRepo::TYPES, true)) {
             $session->set('lstr_flash_error', 'Invalid template type.');
+            return Response::redirect($baseUrl . '/admin/emails?tab=templates');
+        }
+
+        if ($listingId !== 0 && in_array($type, EmailTemplateRepo::COLLECTIVE_ONLY_TYPES, true)) {
+            $session->set('lstr_flash_error', 'This template type is collective-level only.');
             return Response::redirect($baseUrl . '/admin/emails?tab=templates');
         }
 

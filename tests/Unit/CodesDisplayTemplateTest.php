@@ -63,7 +63,7 @@ SQL;
         $tpl = ListingSettingsRepo::defaultCodesTemplate();
 
         self::assertStringContainsString('{code_url}', $tpl);
-        self::assertStringContainsString('{code_alt}', $tpl);
+        self::assertStringContainsString('{code_name}', $tpl);
         self::assertStringContainsString('{group_size}', $tpl);
     }
 

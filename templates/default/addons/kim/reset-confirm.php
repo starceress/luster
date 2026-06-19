@@ -9,6 +9,7 @@
  *   $token        string  raw token (empty when invalid)
  *   $token_valid  bool
  *   $f            array<string,string>  keys: new_password, new_password_confirm
+ *   $form_html    string|null  custom form template HTML (both valid/invalid states), or null
  *   $base_url     string
  */
 
@@ -17,6 +18,18 @@ declare(strict_types=1);
 use Luster\Core\View;
 
 $b = rtrim(View::e($base_url), '/');
+
+if (isset($form_html) && $form_html !== null) {
+    ?>
+<div class="fl-embed fl-embed--kim-reset">
+  <div class="fl-kim">
+    <?php if (($errors ?? '') !== ''): ?><div class="fl-errors"><?= $errors ?></div><?php endif; ?>
+    <?= $form_html ?>
+  </div>
+</div>
+    <?php
+    return;
+}
 ?>
 <div class="fl-embed fl-embed--kim-reset">
   <div class="fl-kim">

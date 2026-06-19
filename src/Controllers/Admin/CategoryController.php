@@ -76,6 +76,7 @@ final class CategoryController extends AdminController
             'total'          => $result['total'],
             'pages'          => $result['pages'],
             'page'           => $page,
+            'per_page'       => $perPage,
             'total_pages'    => $result['pages'],
             'source'         => $source,
             'search'         => $search,

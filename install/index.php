@@ -682,6 +682,7 @@ function installTables(PDO $pdo): void
             `form_url_join`                VARCHAR(500)          NOT NULL DEFAULT '',
             `form_url_update`              VARCHAR(500)          NOT NULL DEFAULT '',
             `form_url_reset`               VARCHAR(500)          NOT NULL DEFAULT '',
+            `form_url_contact`             VARCHAR(500)          NOT NULL DEFAULT '',
             `redirect_url_reset`           VARCHAR(500)          NOT NULL DEFAULT '',
             `last_updated`                 DATE                  NULL DEFAULT NULL,
             `queue_updates`                TINYINT(1)            NOT NULL DEFAULT 0,
@@ -704,6 +705,7 @@ function installTables(PDO $pdo): void
             `field_wrapper_template`       TEXT                  NULL DEFAULT NULL,
             `success_template`             TEXT                  NULL DEFAULT NULL,
             `contact_sent_template`        TEXT                  NULL DEFAULT NULL,
+            `contact_form_template`        TEXT                  NULL DEFAULT NULL,
             `affiliate_apply_sent_template` TEXT                 NULL DEFAULT NULL,
             `codes_template`               TEXT                  NULL DEFAULT NULL,
             `updates_template`             TEXT                  NULL DEFAULT NULL,
@@ -713,6 +715,8 @@ function installTables(PDO $pdo): void
             `codes_submit_form_template`   TEXT                  NULL DEFAULT NULL,
             `affiliate_apply_form_template` TEXT                 NULL DEFAULT NULL,
             `adopt_form_template`          TEXT                  NULL DEFAULT NULL,
+            `update_form_template`         TEXT                  NULL DEFAULT NULL,
+            `reset_form_template`          TEXT                  NULL DEFAULT NULL,
             `updated_at`                   DATETIME              NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
             PRIMARY KEY (`fanlisting_id`)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
@@ -921,6 +925,20 @@ function installTables(PDO $pdo): void
             PRIMARY KEY (`id`)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
 
+        // Migration 78: member URL link-check tracking
+        "CREATE TABLE IF NOT EXISTS `lstr_member_link_checks` (
+            `listing_id`        INT NOT NULL,
+            `member_email`      VARCHAR(255) NOT NULL,
+            `member_name`       VARCHAR(255) NOT NULL DEFAULT '',
+            `member_url`        VARCHAR(500) NOT NULL DEFAULT '',
+            `link_status`       ENUM('unchecked','ok','redirect','dead','error') NOT NULL DEFAULT 'unchecked',
+            `link_redirect_url` VARCHAR(500) NULL,
+            `link_checked_at`   DATETIME NULL,
+            PRIMARY KEY (`listing_id`, `member_email`),
+            INDEX `idx_mlc_status`  (`link_status`),
+            INDEX `idx_mlc_listing` (`listing_id`)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
+
     ];
 
     foreach ($statements as $statement) {
@@ -985,7 +1003,7 @@ function installTables(PDO $pdo): void
          (36),(37),(38),(39),(40),(41),(42),(43),(44),(45),(46),
          (47),(48),(49),(50),(51),(52),(53),(55),(56),(57),
          (58),(59),(60),(61),(62),(63),(64),(65),(66),(67),(68),
-         (69),(70),(71),(72),(73),(74)'
+         (69),(70),(71),(72),(73),(74),(75),(76),(77),(78)'
     );
 }
 

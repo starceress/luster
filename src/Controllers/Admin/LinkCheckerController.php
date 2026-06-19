@@ -7,10 +7,11 @@ namespace Luster\Controllers\Admin;
 use Luster\Core\LinkChecker;
 use Luster\Core\Request;
 use Luster\Core\Response;
+use Luster\Repositories\ActivityRepo;
 use Luster\Repositories\AffiliateRepo;
 use Luster\Repositories\JoinedListingRepo;
-use Luster\Repositories\ActivityRepo;
 use Luster\Repositories\ListingRepo;
+use Luster\Repositories\MemberLinkCheckRepo;
 use Luster\Repositories\SiteSettingsRepo;
 
 final class LinkCheckerController extends AdminController
@@ -41,6 +42,7 @@ final class LinkCheckerController extends AdminController
 
         $affPage    = max(1, (int) ($request->query('aff_page',    1) ?: 1));
         $joinedPage = max(1, (int) ($request->query('joined_page', 1) ?: 1));
+        $memPage    = max(1, (int) ($request->query('mem_page',    1) ?: 1));
 
         $statusValues = ['ok', 'redirect', 'dead', 'unchecked'];
         $statusParam  = trim((string) $request->query('status', ''));
@@ -66,10 +68,50 @@ final class LinkCheckerController extends AdminController
         $joinedSortDir = $joinedDirParam === 'desc' ? 'DESC' : 'ASC';
         $joinedOrderBy = $joinedSortCol . ' ' . $joinedSortDir . ($joinedSortCol !== 'name' ? ', name ASC' : '');
 
+        $memSortAllowed = [
+            'member_name'     => 'member_name',
+            'member_url'      => 'member_url',
+            'link_status'     => 'link_status',
+            'link_checked_at' => 'link_checked_at',
+        ];
+        $memSortParam = trim((string) $request->query('mem_sort', 'member_name'));
+        $memDirParam  = strtolower(trim((string) $request->query('mem_dir', 'asc')));
+        if (!isset($memSortAllowed[$memSortParam])) { $memSortParam = 'member_name'; }
+        if (!in_array($memDirParam, ['asc', 'desc'], true)) { $memDirParam = 'asc'; }
+        $memSortCol = $memSortAllowed[$memSortParam];
+        $memSortDir = $memDirParam;
+
         $statusArg    = $statusParam !== '' ? $statusParam : null;
         $searchArg    = $searchParam !== '' ? $searchParam : null;
         $affResult    = $affRepo->paginateForLinkCheck($listingFilter, $perPage, $affPage, $affOrderBy, $statusArg, $searchArg);
         $joinedResult = $joinedRepo->paginateForLinkCheck($perPage, $joinedPage, $joinedOrderBy, $statusArg, $searchArg);
+
+        $memRepo     = new MemberLinkCheckRepo($db, $config);
+        $memItems    = [];
+        $memTotal    = 0;
+        $memStats    = ['ok' => 0, 'dead' => 0, 'redirect' => 0, 'unchecked' => 0];
+        $movedMembers = [];
+        $deadMembers  = [];
+        $memListing   = null;
+
+        if ($listingFilter !== null && $listingFilter > 0) {
+            $listingRepo  = new ListingRepo($db, $config);
+            $memListing   = $listingRepo->getById($listingFilter);
+            $memResult    = $memRepo->paginate(
+                $listingFilter,
+                $statusParam,
+                $searchParam,
+                $memSortCol,
+                $memSortDir,
+                $perPage,
+                $memPage,
+            );
+            $memItems     = $memResult['items'];
+            $memTotal     = $memResult['total'];
+            $memStats     = $memRepo->getLinkStats($listingFilter);
+            $movedMembers = $memRepo->getByLinkStatus('redirect', $listingFilter);
+            $deadMembers  = $memRepo->getByLinkStatus('dead', $listingFilter);
+        }
 
         return $this->adminLayout(
             'admin/link-checker/index.php',
@@ -91,6 +133,16 @@ final class LinkCheckerController extends AdminController
                 'moved_joined'       => $joinedRepo->getByLinkStatus('redirect'),
                 'dead_affiliates'    => $affRepo->getByLinkStatus('dead', $listingFilter),
                 'dead_joined'        => $joinedRepo->getByLinkStatus('dead'),
+                'members'            => $memItems,
+                'mem_total'          => $memTotal,
+                'mem_page'           => $memPage,
+                'mem_total_pages'    => max(1, (int) ceil($memTotal / $perPage)),
+                'mem_stats'          => $memStats,
+                'moved_members'      => $movedMembers,
+                'dead_members'       => $deadMembers,
+                'mem_sort'           => $memSortParam,
+                'mem_dir'            => $memDirParam,
+                'mem_listing'        => $memListing,
                 'owner_url'          => $this->resolveReciprocalUrl(),
                 'listings'           => (new ListingRepo($db, $config))->getAll(),
                 'listing_id_filter'  => $listingFilter,
@@ -231,6 +283,12 @@ final class LinkCheckerController extends AdminController
                 static fn($j) => $j->id,
                 (new JoinedListingRepo($db))->getAllForLinkCheck(),
             );
+        } elseif ($panel === 'members') {
+            $listingIdRaw = (string) $request->query('listing_id', '');
+            $listingId    = ($listingIdRaw !== '' && ctype_digit($listingIdRaw)) ? (int) $listingIdRaw : 0;
+            if ($listingId > 0) {
+                $ids = (new MemberLinkCheckRepo($db, $this->app->getConfig()))->getAllIds($listingId);
+            }
         }
 
         return Response::json(array_values($ids));
@@ -411,6 +469,163 @@ final class LinkCheckerController extends AdminController
         );
 
         return Response::redirect($this->adminUrl('/admin/link-checker'));
+    }
+
+    // -----------------------------------------------------------------------
+    // Sync member URLs for a listing into the check table
+    // -----------------------------------------------------------------------
+
+    public function scanMembers(Request $request): Response
+    {
+        if (!$this->validCsrf($request)) {
+            $this->app->getSession()->set('lstr_flash_error', 'Invalid security token.');
+            return Response::redirect($this->adminUrl('/admin/link-checker'));
+        }
+
+        $listingId = (int) ($request->post('listing_id') ?? 0);
+        if ($listingId <= 0) {
+            $this->app->getSession()->set('lstr_flash_error', 'Please select a listing to scan.');
+            return Response::redirect($this->adminUrl('/admin/link-checker'));
+        }
+
+        $db      = $this->app->getDatabase();
+        $config  = $this->app->getConfig();
+        $listing = (new ListingRepo($db, $config))->getById($listingId);
+
+        if ($listing === null) {
+            $this->app->getSession()->set('lstr_flash_error', 'Listing not found.');
+            return Response::redirect($this->adminUrl('/admin/link-checker'));
+        }
+
+        if ($listing->dbprefix === '') {
+            $this->app->getSession()->set('lstr_flash_error', 'This listing has no member table configured and cannot be scanned.');
+            return Response::redirect($this->adminUrl('/admin/link-checker?listing_id=' . $listingId));
+        }
+
+        try {
+            $count = (new MemberLinkCheckRepo($db, $config))->syncFromListing($listingId, $listing->dbprefix);
+        } catch (\Throwable $e) {
+            $this->app->getSession()->set('lstr_flash_error', 'Scan failed: ' . $e->getMessage());
+            return Response::redirect($this->adminUrl('/admin/link-checker?listing_id=' . $listingId));
+        }
+
+        $noun = $count !== 1 ? 'URLs' : 'URL';
+        $this->app->getSession()->set('lstr_flash_success', "Scan complete: {$count} member {$noun} imported for checking.");
+
+        (new ActivityRepo($db))->log(
+            (int) $this->app->getSession()->get('lstr_admin_id', 0) ?: null,
+            'link-checker',
+            "Scanned {$count} member URLs for listing #{$listingId}",
+            $request->ip(),
+        );
+
+        return Response::redirect($this->adminUrl('/admin/link-checker?listing_id=' . $listingId));
+    }
+
+    // -----------------------------------------------------------------------
+    // AJAX — check a single member URL
+    // -----------------------------------------------------------------------
+
+    public function checkMember(Request $request): Response
+    {
+        if (!$this->validCsrf($request)) {
+            return Response::json(['error' => 'Invalid CSRF token'], 403);
+        }
+
+        $id     = (int) ($request->post('id') ?? 0);
+        $db     = $this->app->getDatabase();
+        $repo   = new MemberLinkCheckRepo($db, $this->app->getConfig());
+        $member = $repo->getById($id);
+
+        if ($member === null) {
+            return Response::json(['error' => 'Not found'], 404);
+        }
+
+        $result = LinkChecker::check($member->member_url);
+        $repo->updateLinkStatus($id, $result['status'], $result['redirect_url']);
+
+        return Response::json([
+            'link_status'  => $result['status'],
+            'http_code'    => $result['http_code'],
+            'redirect_url' => $result['redirect_url'],
+            'checked_at'   => date('Y-m-d H:i'),
+        ]);
+    }
+
+    // -----------------------------------------------------------------------
+    // Apply stored redirect URL to a member record
+    // -----------------------------------------------------------------------
+
+    public function applyRedirectMember(Request $request): Response
+    {
+        if (!$this->validCsrf($request)) {
+            $this->app->getSession()->set('lstr_flash_error', 'Invalid security token.');
+            return Response::redirect($this->adminUrl('/admin/link-checker'));
+        }
+
+        $id        = (int) ($request->post('id')         ?? 0);
+        $listingId = (int) ($request->post('listing_id') ?? 0);
+
+        if ($listingId <= 0) {
+            $this->app->getSession()->set('lstr_flash_error', 'Listing not found.');
+            return Response::redirect($this->adminUrl('/admin/link-checker'));
+        }
+
+        $db      = $this->app->getDatabase();
+        $config  = $this->app->getConfig();
+        $listing = (new ListingRepo($db, $config))->getById($listingId);
+
+        if ($listing === null) {
+            $this->app->getSession()->set('lstr_flash_error', 'Listing not found.');
+            return Response::redirect($this->adminUrl('/admin/link-checker'));
+        }
+
+        if ($id <= 0 || !(new MemberLinkCheckRepo($db, $config))->applyRedirectUrl($id, $listing->dbprefix)) {
+            $this->app->getSession()->set('lstr_flash_error', 'Could not update URL — record not found or not in redirect state.');
+            return Response::redirect($this->adminUrl('/admin/link-checker?listing_id=' . $listingId));
+        }
+
+        $this->app->getSession()->set('lstr_flash_success', 'Member URL updated to redirect target and queued for re-check.');
+
+        (new ActivityRepo($db))->log(
+            (int) $this->app->getSession()->get('lstr_admin_id', 0) ?: null,
+            'link-checker',
+            "Applied redirect URL to member link check record #{$id}",
+            $request->ip(),
+        );
+
+        return Response::redirect($this->adminUrl('/admin/link-checker?listing_id=' . $listingId));
+    }
+
+    // -----------------------------------------------------------------------
+    // Reset all member link statuses for a listing
+    // -----------------------------------------------------------------------
+
+    public function resetMembers(Request $request): Response
+    {
+        if (!$this->validCsrf($request)) {
+            return Response::redirect($this->adminUrl('/admin/link-checker'));
+        }
+
+        $listingId = (int) ($request->post('listing_id') ?? 0);
+        if ($listingId <= 0) {
+            $this->app->getSession()->set('lstr_flash_error', 'No listing selected.');
+            return Response::redirect($this->adminUrl('/admin/link-checker'));
+        }
+
+        $db = $this->app->getDatabase();
+        (new MemberLinkCheckRepo($db, $this->app->getConfig()))->resetLinkStatus($listingId);
+
+        $this->app->getSession()->set('lstr_flash_success', 'Member link statuses have been reset.');
+
+        (new ActivityRepo($db))->log(
+            (int) $this->app->getSession()->get('lstr_admin_id', 0) ?: null,
+            'link-checker',
+            "Reset member link statuses for listing #{$listingId}",
+            $request->ip(),
+        );
+
+        return Response::redirect($this->adminUrl('/admin/link-checker?listing_id=' . $listingId));
     }
 
     // -----------------------------------------------------------------------

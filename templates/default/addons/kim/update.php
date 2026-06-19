@@ -6,10 +6,12 @@
  *   $form_action  string
  *   $csrf_token   string
  *   $errors       string  pre-escaped HTML error string, or ''
+ *   $success_html string  pre-rendered success HTML, or ''
  *   $old          array   keys: send_copy
  *   $f            array<string,string>  keys: name, current_email, current_password,
  *                                             fanlisting_id, new_email, new_url,
  *                                             new_password, new_password_confirm, captcha_answer
+ *   $form_html    string|null  custom form template HTML, or null to use hardcoded form
  *   $base_url     string
  */
 
@@ -18,8 +20,33 @@ declare(strict_types=1);
 use Luster\Core\View;
 
 $b = rtrim(View::e($base_url), '/');
-$_linkReset = ($link_reset !== null && $link_reset !== '') ? $link_reset : null;
-$_linkList  = ($link_list  !== null && $link_list  !== '') ? $link_list  : null;
+$_linkReset = (($link_reset ?? null) !== null && $link_reset !== '') ? $link_reset : null;
+$_linkList  = (($link_list  ?? null) !== null && $link_list  !== '') ? $link_list  : null;
+
+if (($success_html ?? '') !== '') {
+    echo '<div class="fl-embed fl-embed--kim-update"><div class="fl-kim">' . $success_html . '</div></div>';
+    return;
+}
+
+if (isset($form_html) && $form_html !== null) {
+    ?>
+<div class="fl-embed fl-embed--kim-update">
+  <div class="fl-kim">
+    <?php if (($errors ?? '') !== ''): ?><div class="fl-errors"><?= $errors ?></div><?php endif; ?>
+    <?= $form_html ?>
+    <?php
+    $_metaLinks = [];
+    if ($_linkReset !== null) $_metaLinks[] = '<a href="' . View::e($_linkReset) . '">Forgot password?</a>';
+    if ($_linkList  !== null) $_metaLinks[] = '<a href="' . View::e($_linkList)  . '">View the KIM list</a>';
+    ?>
+    <?php if (!empty($_metaLinks)): ?>
+    <p class="fl-kim-meta"><?= implode(' &middot; ', $_metaLinks) ?></p>
+    <?php endif; ?>
+  </div>
+</div>
+    <?php
+    return;
+}
 ?>
 <div class="fl-embed fl-embed--kim-update">
   <div class="fl-kim">

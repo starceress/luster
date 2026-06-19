@@ -3,7 +3,7 @@ use Luster\Core\View;
 require_once __DIR__ . '/../_css_assets.php';
 ?>
 <!DOCTYPE html>
-<html lang="en" data-theme="dark"<?= ($selected_skin ?? '') !== '' ? ' data-skin="' . View::e($selected_skin) . '"' : '' ?>>
+<html lang="en" data-theme="<?= in_array($admin_default_theme ?? 'dark', ['dark', 'light'], true) ? View::e($admin_default_theme) : 'dark' ?>"<?= ($selected_skin ?? '') !== '' ? ' data-skin="' . View::e($selected_skin) . '"' : '' ?>>
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">

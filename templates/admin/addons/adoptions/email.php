@@ -147,9 +147,12 @@ $oldBody    = htmlspecialchars($old['body'] ?? '', ENT_QUOTES, 'UTF-8');
         </div>
         <div class="composer-row">
           <span class="composer-lbl">Subject</span>
-          <input class="subj-input" type="text" name="subject" id="subject"
-                 maxlength="255" required placeholder="Enter subject&hellip;"
-                 value="<?= $oldSubject ?>">
+          <div class="flex-fill">
+            <input class="subj-input" type="text" name="subject" id="subject"
+                   maxlength="255" required placeholder="Enter subject&hellip;"
+                   value="<?= $oldSubject ?>">
+            <p class="form-hint">Tokens work in the subject line too.</p>
+          </div>
         </div>
       </div>
 

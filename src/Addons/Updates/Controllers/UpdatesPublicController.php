@@ -19,14 +19,14 @@ use Luster\Support\ListingTemplateResolver;
 /**
  * Public read-only controller for the Updates add-on.
  *
- * No auth, no CSRF, no rate limiting â€” both routes are GET only.
+ * No auth, no CSRF, no rate limiting — both routes are GET only.
  */
 final class UpdatesPublicController
 {
     public function __construct(private readonly Application $app) {}
 
     // -----------------------------------------------------------------------
-    // GET /updates/{id}  â€” per-fanlisting feed
+    // GET /updates/{id}  — per-fanlisting feed
     // -----------------------------------------------------------------------
 
     public function feed(Request $request, array $params): Response
@@ -81,7 +81,7 @@ final class UpdatesPublicController
             'listing'               => $listing,
             'listing_name'          => $listing->title,
             'listing_url'           => $listing->url,
-            'page_title'            => 'Updates â€” ' . $listing->title,
+            'page_title'            => 'Updates — ' . $listing->title,
             'base_url'              => $baseUrl,
             'theme_path'            => $themePath,
             'updates'               => $updates,
@@ -149,7 +149,7 @@ final class UpdatesPublicController
     }
 
     // -----------------------------------------------------------------------
-    // GET /updates  â€” collective feed
+    // GET /updates  — collective feed
     // -----------------------------------------------------------------------
 
     public function collective(Request $request, array $params): Response
@@ -192,7 +192,7 @@ final class UpdatesPublicController
             'listing'               => null,
             'listing_name'          => $siteName,
             'listing_url'           => $baseUrl,
-            'page_title'            => 'Updates â€” ' . $siteName,
+            'page_title'            => 'Updates — ' . $siteName,
             'base_url'              => $baseUrl,
             'theme_path'            => $themePath,
             'updates'               => $updates,

@@ -15,8 +15,8 @@ use Luster\Repositories\SiteSettingsRepo;
 /**
  * Public KIM listing browser.
  *
- * GET /kim/list       â€” shows all fanlistings with interest counts
- * GET /kim/list/{id}  â€” shows approved KIM members for a specific fanlisting
+ * GET /kim/list       — shows all fanlistings with interest counts
+ * GET /kim/list/{id}  — shows approved KIM members for a specific fanlisting
  */
 final class KimListController
 {
@@ -28,12 +28,12 @@ final class KimListController
 
     public function index(Request $request, array $params): Response
     {
-        $listingRepo = new ListingRepo($this->app->getDatabase(), $this->app->getConfig());
-        $kimRepo     = new KimMemberRepo($this->app->getDatabase());
+        $db          = $this->app->getDatabase();
+        $listingRepo = new ListingRepo($db, $this->app->getConfig());
+        $kimRepo     = new KimMemberRepo($db);
 
         $fanlistings = $listingRepo->getAll();
 
-        // Filter out trouble listings
         $filtered = array_filter($fanlistings, static fn($fl) => !$fl->trouble);
 
         $approvedCounts = $kimRepo->getApprovedCountsAll();
@@ -44,21 +44,45 @@ final class KimListController
             if ($count === 0) {
                 continue;
             }
-            $fanlistingsWithCounts[] = [
-                'listing' => $fl,
-                'count'   => $count,
-            ];
+            $fanlistingsWithCounts[] = ['listing' => $fl, 'count' => $count];
         }
 
         $baseUrl = $this->app->getBaseUrl();
 
+        $overviewTpl = (new SiteSettingsRepo($db))->get('collective_kim_list_overview_template') ?? '';
+        $overviewTemplateHtml = null;
+        if ($overviewTpl !== '') {
+            $hasListings = count($fanlistingsWithCounts) > 0;
+            $tpl = TemplateEngine::conditionals($overviewTpl, [
+                'has_listings' => $hasListings,
+                'no_listings'  => !$hasListings,
+            ]);
+            $overviewTemplateHtml = TemplateEngine::loop(
+                $tpl,
+                'kim_listing',
+                array_values($fanlistingsWithCounts),
+                static function (string $inner, mixed $entry) use ($baseUrl): string {
+                    $fl    = $entry['listing'];
+                    $count = (int) $entry['count'];
+                    return TemplateEngine::render($inner, [
+                        'listing_title'     => $fl->title,
+                        'listing_subject'   => $fl->subject,
+                        'listing_url'       => $fl->url,
+                        'listing_kim_url'   => $baseUrl . '/kim/list/' . $fl->id,
+                        'listing_kim_count' => (string) $count,
+                    ]);
+                },
+            );
+        }
+
         return $this->renderKimPage('list.php', [
-            'page_title'             => 'KIM List',
+            'page_title'              => 'KIM List',
             'fanlistings_with_counts' => $fanlistingsWithCounts,
-            'base_url'               => $baseUrl,
-            'theme_path'             => $baseUrl . '/assets/css/default/',
-            'link_signup'            => null,
-            'link_list_base'         => null,
+            'base_url'                => $baseUrl,
+            'theme_path'              => $baseUrl . '/assets/css/default/',
+            'link_signup'             => null,
+            'link_list_base'          => null,
+            'overview_template_html'  => $overviewTemplateHtml,
         ]);
     }
 
@@ -69,20 +93,23 @@ final class KimListController
     public function subject(Request $request, array $params): Response
     {
         $fanlistingId = (int) ($params['id'] ?? 0);
+        $db           = $this->app->getDatabase();
 
-        $listingRepo = new ListingRepo($this->app->getDatabase(), $this->app->getConfig());
+        $listingRepo = new ListingRepo($db, $this->app->getConfig());
         $listing     = $listingRepo->getById($fanlistingId);
 
         if ($listing === null) {
             return Response::notFound('That fanlisting does not exist.');
         }
 
-        $kimRepo = new KimMemberRepo($this->app->getDatabase());
+        $kimRepo = new KimMemberRepo($db);
         $members = $kimRepo->getApprovedByFanlisting($fanlistingId);
 
-        $baseUrl = $this->app->getBaseUrl();
+        $baseUrl    = $this->app->getBaseUrl();
+        $siteRepo   = new SiteSettingsRepo($db);
 
-        $kimMemberTemplate = (new SiteSettingsRepo($this->app->getDatabase()))->get('kim_member_template');
+        // Legacy per-member template (still supported)
+        $kimMemberTemplate = $siteRepo->get('kim_member_template');
         $kimMemberHtml     = null;
         if ($kimMemberTemplate !== null && trim($kimMemberTemplate) !== '') {
             $kimMemberHtml = TemplateEngine::loop(
@@ -108,8 +135,55 @@ final class KimListController
             );
         }
 
+        // Collective subject template (Phase C)
+        $subjectTpl = $siteRepo->get('collective_kim_list_subject_template') ?? '';
+        $subjectTemplateHtml = null;
+        if ($subjectTpl !== '') {
+            $hasMembers = count($members) > 0;
+            $tpl = TemplateEngine::conditionals($subjectTpl, [
+                'has_kim_members' => $hasMembers,
+                'no_kim_members'  => !$hasMembers,
+            ]);
+            $tpl = TemplateEngine::loop(
+                $tpl,
+                'kim_member',
+                $members,
+                static function (string $inner, object $member): string {
+                    return TemplateEngine::render(
+                        $inner,
+                        [
+                            'member_name' => $member->name,
+                            'member_url'  => $member->url,
+                        ],
+                        [],
+                        [
+                            'member_url'    => $member->url !== '',
+                            'no_member_url' => $member->url === '',
+                        ],
+                    );
+                },
+            );
+            $kimOverviewUrl = $baseUrl . '/kim/list';
+            $kimSignupUrl   = $baseUrl . '/kim';
+            $tpl = TemplateEngine::conditionals($tpl, [
+                'kim_overview_url' => true,
+                'kim_signup_url'   => true,
+            ]);
+            $subjectTemplateHtml = TemplateEngine::tokens(
+                $tpl,
+                [
+                    'listing_title'   => $listing->title,
+                    'listing_subject' => $listing->subject,
+                    'listing_url'     => $listing->url,
+                    'kim_overview_url' => $kimOverviewUrl,
+                    'kim_signup_url'   => $kimSignupUrl,
+                ],
+                ['pagination' => ''],
+            );
+        }
+
         return $this->renderKimPage('subject.php', [
-            'page_title'               => 'KIM â€” ' . $listing->subject,
+            'page_title'               => 'KIM — ' . $listing->subject,
             'listing'                  => $listing,
             'members'                  => $members,
             'base_url'                 => $baseUrl,
@@ -117,6 +191,7 @@ final class KimListController
             'link_list'                => null,
             'link_signup'              => null,
             'kim_member_template_html' => $kimMemberHtml,
+            'subject_template_html'    => $subjectTemplateHtml,
         ]);
     }
 

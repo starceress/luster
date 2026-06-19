@@ -21,6 +21,7 @@ use Luster\Repositories\ListingRepo;
 use Luster\Repositories\ListingSettingsRepo;
 use Luster\Repositories\FieldRepo;
 use Luster\Repositories\BlacklistRepo;
+use Luster\Repositories\MemberLinkCheckRepo;
 use Luster\Repositories\MemberRepo;
 use Luster\Repositories\SiteSettingsRepo;
 use Luster\Support\FormFieldBuilder;
@@ -31,8 +32,8 @@ use Luster\Support\SuccessRenderer;
 /**
  * Public join form.
  *
- * GET  /join/{id} â€” renders the join form for a listing.
- * POST /join/{id} â€” validates input, checks for duplicates, inserts member,
+ * GET  /join/{id} — renders the join form for a listing.
+ * POST /join/{id} — validates input, checks for duplicates, inserts member,
  *                   sends confirmation email, redirects to host page.
  *
  * Security properties:
@@ -134,10 +135,10 @@ final class JoinController
                         ? rtrim((string) $listing->url, '/') . '/' . ltrim($formPageName, '/')
                         : $baseUrl . '/join/' . $listingId;
 
-        // Captcha â€” redirect with flash on failure so the form re-renders with a fresh question
+        // Captcha — redirect with flash on failure so the form re-renders with a fresh question
         if (!Captcha::validate((string) $request->post('captcha_answer', ''), 'join')) {
             $rateLimit->hitDefault($ip, RateLimit::ACTION_PUBLIC_JOIN);
-            $session->set('lstr_flash_error', 'Incorrect answer â€” please try again.');
+            $session->set('lstr_flash_error', 'Incorrect answer — please try again.');
             $session->set('lstr_flash_old', [
                 'name'      => trim((string) $request->post('name',    '')),
                 'email'     => trim((string) $request->post('email',   '')),
@@ -215,7 +216,7 @@ final class JoinController
             return Response::redirect($embedReturnTo !== '' ? $embedReturnTo : $formUrl);
         }
 
-        // Password â€” use the supplied value or auto-generate a secure one
+        // Password — use the supplied value or auto-generate a secure one
         $rawPassword     = (string) $request->post('password',         '');
         $passwordConfirm = (string) $request->post('password_confirm', '');
 
@@ -284,7 +285,7 @@ final class JoinController
             $insertData['updated']  = date('Y-m-d H:i:s');
         }
 
-        // Additional fields â€” names from FieldRepo only, never raw user input.
+        // Additional fields — names from FieldRepo only, never raw user input.
         // Checkbox fields post as arrays; implode to a comma-separated string.
         foreach ($fields as $field) {
             $colName   = ($prefix === '') ? $field->name : 'additional_' . $field->name;
@@ -300,15 +301,22 @@ final class JoinController
         // Pending joins wait for admin approval, which will touch it via MemberController.
         if ($autoApprove) {
             $settingsRepo->touchLastUpdated($listingId);
+            // Sync member link check snapshot for auto-approved joins (best-effort)
+            if ($url !== '') {
+                try {
+                    (new MemberLinkCheckRepo($this->app->getDatabase(), $this->app->getConfig()))
+                        ->upsertMember($listingId, $email, $name, $url);
+                } catch (\Throwable) {}
+            }
         }
 
-        // Confirmation email always sent (best-effort â€” do not abort on failure)
+        // Confirmation email always sent (best-effort — do not abort on failure)
         {
             try {
                 $cfg       = $this->app->getConfig();
                 $mailer    = new Mailer($cfg);
                 $emailRepo = new EmailTemplateRepo($this->app->getDatabase());
-                $resetUrl  = $wasGenerated ? $this->issuePasswordSetupUrl($listingId, $email) : '';
+                $resetUrl  = $autoApprove ? $this->issuePasswordSetupUrl($listingId, $email) : '';
                 $tokens    = EmailTemplateRepo::buildTokens(
                     listingName:    $listing->title,
                     listingUrl:     $listing->url,
@@ -321,6 +329,7 @@ final class JoinController
                     fanUrl:         $url,
                     fanCountry:     $country,
                     resetUrl:       $resetUrl,
+                    fanPassword:    $wasGenerated ? $rawPassword : '',
                 );
                 [$subject, $body] = $emailRepo->resolveForListing($listingId, EmailTemplateRepo::TYPE_JOIN, $tokens);
                 $mailer->send($email, $name, $subject, $body);
@@ -338,7 +347,7 @@ final class JoinController
             }
         }
 
-        // Admin notification email (best-effort â€” only when listing has an email address)
+        // Admin notification email (best-effort — only when listing has an email address)
         if ($listing->email !== '') {
             try {
                 $cfg          = $this->app->getConfig();
@@ -501,7 +510,24 @@ final class JoinController
 
         $resetRepo->create($listingId, $email, $tokenHash, $expiresAt);
 
-        return $this->app->getBaseUrl() . '/reset/' . $listingId . '/confirm?token=' . urlencode($rawToken);
+        $baseUrl       = $this->app->getBaseUrl();
+        $settingsRepo  = new ListingSettingsRepo($this->app->getDatabase());
+        $embedSettings = $settingsRepo->getEmbedSettings($listingId);
+        $formPageName  = (string) $embedSettings['form_url_reset'];
+
+        if ($formPageName !== '') {
+            if (preg_match('#^https?://#i', $formPageName)) {
+                $hostResetUrl = $formPageName;
+            } else {
+                $listingRepo  = new ListingRepo($this->app->getDatabase(), $this->app->getConfig());
+                $listing      = $listingRepo->getById($listingId);
+                $hostResetUrl = rtrim((string) ($listing->url ?? ''), '/') . '/' . ltrim($formPageName, '/');
+            }
+            $sep = str_contains($hostResetUrl, '?') ? '&' : '?';
+            return $hostResetUrl . $sep . 'token=' . urlencode($rawToken);
+        }
+
+        return $baseUrl . '/reset/' . $listingId . '/confirm?token=' . urlencode($rawToken);
     }
 
     /**

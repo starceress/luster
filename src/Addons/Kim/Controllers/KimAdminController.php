@@ -485,17 +485,27 @@ final class KimAdminController extends AdminController
             return Response::notFound('Fanlisting not found.');
         }
 
-        $kimRepo    = new KimMemberRepo($db);
+        $kimRepo     = new KimMemberRepo($db);
         $selectedIds = (array) $session->get('lstr_kim_selected_ids', []);
         $session->remove('lstr_kim_selected_ids');
 
         if (!empty($selectedIds)) {
-            $recipients   = $kimRepo->getEmailsByIds(array_map('intval', $selectedIds));
-            $selectedOnly = true;
+            // Selected mode: use ID-keyed map (supports chip removal by ID)
+            $idEmailMap    = $kimRepo->getEmailsByIds(array_map('intval', $selectedIds), $fanlistingId);
+            $allRecipients = [];
+            $selectedOnly  = true;
         } else {
-            $recipients   = $kimRepo->getEmailsByFanlisting($fanlistingId);
-            $selectedOnly = false;
+            // Bulk mode: all approved members; no chip removal UI
+            $idEmailMap    = [];
+            $allRecipients = $kimRepo->getEmailsByFanlisting($fanlistingId);
+            $selectedOnly  = false;
         }
+
+        $recipients  = $selectedOnly ? array_values($idEmailMap) : $allRecipients;
+        $memberNames = array_combine(
+            array_column($recipients, 'email'),
+            array_column($recipients, 'name'),
+        ) ?: [];
 
         $fromEmail = (string) $config->get('owner_email', '');
         $fromName  = (string) $config->get('owner_name',  '');
@@ -508,18 +518,12 @@ final class KimAdminController extends AdminController
         $session->remove('lstr_flash_success');
         $session->remove('lstr_email_old');
 
-        $selectedEmails = array_column($recipients, 'email');
-        $memberNames    = array_combine(
-            array_column($recipients, 'email'),
-            array_column($recipients, 'name'),
-        );
-
         return $this->adminLayout('admin/addons/kim/bulk-email.php', 'Bulk Email', 'kim', [
             'listing'         => $listing,
-            'recipients'      => $recipients,
+            'id_email_map'    => $idEmailMap,
+            'all_recipients'  => $allRecipients,
             'recipient_count' => count($recipients),
             'selected_only'   => $selectedOnly,
-            'selected_emails' => $selectedEmails,
             'member_names'    => $memberNames,
             'from_name'       => $fromName,
             'from_email'      => $fromEmail,
@@ -558,29 +562,23 @@ final class KimAdminController extends AdminController
         $subject = trim((string) $request->post('subject', ''));
         $body    = trim((string) $request->post('body',    ''));
 
+        $kimRepo  = new KimMemberRepo($db);
+        $postedIds = array_values(array_filter(
+            array_map('intval', (array) $request->post('kim_member_ids', [])),
+            static fn(int $id) => $id > 0
+        ));
+
         if ($subject === '' || $body === '') {
             $session->set('lstr_flash_error', 'Please fill in both the subject and message before sending.');
             $session->set('lstr_email_old', ['subject' => $subject, 'body' => $body]);
+            if (!empty($postedIds)) {
+                $session->set('lstr_kim_selected_ids', $postedIds);
+            }
             return Response::redirect($baseUrl . '/admin/kim/' . $fanlistingId . '/bulk-email');
         }
 
-        $kimRepo = new KimMemberRepo($db);
-
-        $postedEmails = $request->post('emails', []);
-        if (is_array($postedEmails) && !empty($postedEmails)) {
-            $safeEmails = array_values(array_filter(
-                array_map('strval', $postedEmails),
-                static fn(string $e) => filter_var($e, FILTER_VALIDATE_EMAIL) !== false
-            ));
-            $recipients = array_map(static function (string $e) use ($kimRepo, $fanlistingId): array {
-                $m = $kimRepo->findByEmailAndFanlisting($e, $fanlistingId);
-                return [
-                    'name'     => $m ? $m->name    : '',
-                    'email'    => $e,
-                    'url'      => $m ? $m->url     : '',
-                    'added_at' => $m ? $m->addedAt : '',
-                ];
-            }, $safeEmails);
+        if (!empty($postedIds)) {
+            $recipients = array_values($kimRepo->getEmailsByIds($postedIds, $fanlistingId));
         } else {
             $recipients = $kimRepo->getEmailsByFanlisting($fanlistingId);
         }

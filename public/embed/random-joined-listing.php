@@ -72,7 +72,7 @@ if (trim($_lusterTemplate) === '') {
 
 $_lusterUploadsUrl = $_lusterApp->getBaseUrl() . '/uploads/joined';
 
-$_lusterHtml = JoinedListingRowRenderer::renderTemplate($_lusterTemplate, [$_lusterListing], $_lusterUploadsUrl);
+$_lusterHtml = JoinedListingRowRenderer::renderTemplate($_lusterTemplate, [$_lusterListing], $_lusterUploadsUrl, (string) ($luster_date_format ?? ''));
 $_lusterHtml .= \Luster\Core\View::attribution();
 
 // ---------------------------------------------------------------------------

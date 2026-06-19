@@ -59,6 +59,19 @@ use Luster\Core\View;
         </div>
       </div>
 
+      <!-- Contact URL (optional) -->
+      <div class="listing-field-row<?= isset($field_errors['contact_url']) ? ' has-error' : '' ?>">
+        <label class="listing-field-label" for="f-contact-url">Website URL</label>
+        <div>
+          <input type="url" id="f-contact-url" name="contact_url" class="form"
+                 value="<?= View::e($old['contact_url'] ?? '') ?>" maxlength="512" placeholder="https://yoursite.example.com">
+          <p class="form-hint">Optional. Include your site URL if you'd like us to follow up via your contact page.</p>
+          <?php if (isset($field_errors['contact_url'])): ?>
+          <p class="field-error"><?= View::e($field_errors['contact_url']) ?></p>
+          <?php endif; ?>
+        </div>
+      </div>
+
       <!-- Report type -->
       <div class="listing-field-row<?= isset($field_errors['type']) ? ' has-error' : '' ?>">
         <label class="listing-field-label" for="f-type">Report type <span class="req">*</span></label>

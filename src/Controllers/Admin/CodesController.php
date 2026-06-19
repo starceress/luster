@@ -54,7 +54,7 @@ final class CodesController extends AdminController
     private function afterActionRedirect(Request $request, string $baseUrl, int $listingId, string $editSuffix = ''): Response
     {
         if ($request->post('_from', '') === 'codes') {
-            return Response::redirect($baseUrl . '/admin/codes?listing_id=' . $listingId);
+            return Response::redirect($baseUrl . '/admin/codes?listing_id=' . $listingId . $editSuffix);
         }
         return Response::redirect($baseUrl . '/admin/listings/' . $listingId . '/edit?tab=codes' . $editSuffix);
     }
@@ -1224,11 +1224,14 @@ final class CodesController extends AdminController
 
     public function export(Request $request, array $params): Response
     {
-        if (!class_exists('ZipArchive')) {
-            return Response::html('<p>The PHP <code>zip</code> extension is not enabled. Enable <code>extension=zip</code> in your <code>php.ini</code> and restart your web server.</p>', 500);
-        }
-
         $listingId = (int) ($params['fid'] ?? 0);
+        $session   = $this->app->getSession();
+        $baseUrl   = $this->app->getBaseUrl();
+
+        if (!class_exists('ZipArchive')) {
+            $session->set('lstr_flash_error', 'The PHP zip extension is not enabled. Enable extension=zip in php.ini and restart your web server.');
+            return $this->afterActionRedirect($request, $baseUrl, $listingId);
+        }
 
         $db     = $this->app->getDatabase();
         $config = $this->app->getConfig();
@@ -1244,34 +1247,26 @@ final class CodesController extends AdminController
         $codes     = $codesRepo->getByListing($listingId, 'approved');
 
         if (empty($codes)) {
-            $session = $this->app->getSession();
             $session->set('lstr_flash_error', 'No approved codes to export.');
-            $baseUrl = $this->app->getBaseUrl();
             return $this->afterActionRedirect($request, $baseUrl, $listingId);
         }
 
         $uploadDir = realpath(__DIR__ . '/../../../public/uploads/codes');
         if ($uploadDir === false) {
-            $session = $this->app->getSession();
             $session->set('lstr_flash_error', 'Upload directory not found.');
-            $baseUrl = $this->app->getBaseUrl();
             return $this->afterActionRedirect($request, $baseUrl, $listingId);
         }
 
         $tmpFile = tempnam(sys_get_temp_dir(), 'lstr_codes_');
         if ($tmpFile === false) {
-            $session = $this->app->getSession();
             $session->set('lstr_flash_error', 'Could not create temporary file for export.');
-            $baseUrl = $this->app->getBaseUrl();
             return $this->afterActionRedirect($request, $baseUrl, $listingId);
         }
 
         $zip = new \ZipArchive();
         if ($zip->open($tmpFile, \ZipArchive::OVERWRITE) !== true) {
             unlink($tmpFile);
-            $session = $this->app->getSession();
             $session->set('lstr_flash_error', 'Could not create ZIP archive.');
-            $baseUrl = $this->app->getBaseUrl();
             return $this->afterActionRedirect($request, $baseUrl, $listingId);
         }
 
@@ -1288,14 +1283,17 @@ final class CodesController extends AdminController
 
         if ($added === 0) {
             unlink($tmpFile);
-            $session = $this->app->getSession();
             $session->set('lstr_flash_error', 'No code image files found on disk.');
-            $baseUrl = $this->app->getBaseUrl();
             return $this->afterActionRedirect($request, $baseUrl, $listingId);
         }
 
-        $zipContent = (string) file_get_contents($tmpFile);
+        $zipContent = file_get_contents($tmpFile);
         unlink($tmpFile);
+
+        if ($zipContent === false) {
+            $session->set('lstr_flash_error', 'Could not read ZIP archive.');
+            return $this->afterActionRedirect($request, $baseUrl, $listingId);
+        }
 
         $safeName = preg_replace('/[^a-zA-Z0-9_.\-]/', '_', $listing->title);
         $filename = 'codes_' . $safeName . '_' . date('Ymd') . '.zip';

@@ -4,11 +4,13 @@
  *
  * Variables:
  *   $listing          Listing
- *   $recipients       array<int, array{name: string, email: string}>
+ *   $id_email_map     array<int, array{id: int, name: string, email: string, url: string, added_at: string}>
+ *                     ID-keyed map; populated only when $selected_only = true
+ *   $all_recipients   array<int, array{name: string, email: string, url: string, added_at: string}>
+ *                     Position-keyed; populated only when $selected_only = false
  *   $recipient_count  int
  *   $selected_only    bool
- *   $selected_emails  string[]
- *   $member_names     array<string, string>   email â†’ name
+ *   $member_names     array<string, string>   email -> name
  *   $from_name        string
  *   $from_email       string
  *   $owner_name       string
@@ -130,8 +132,9 @@ $oldBody    = htmlspecialchars($old['body'] ?? '', ENT_QUOTES, 'UTF-8');
       <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
       <div id="es-email-inputs">
         <?php if ($selected_only): ?>
-          <?php foreach ($selected_emails as $email): ?>
-            <input type="hidden" name="emails[]" value="<?= View::e($email) ?>">
+          <?php foreach ($id_email_map as $memberId => $memberData): ?>
+            <input type="hidden" name="kim_member_ids[]" value="<?= (int) $memberId ?>"
+                   data-email="<?= View::e($memberData['email']) ?>">
           <?php endforeach; ?>
         <?php endif; ?>
       </div>
@@ -157,23 +160,32 @@ $oldBody    = htmlspecialchars($old['body'] ?? '', ENT_QUOTES, 'UTF-8');
         <div class="composer-row">
           <span class="composer-lbl">To</span>
           <div id="es-chip" class="es-chip">
-            <?php foreach ($selected_emails as $email):
-              $name = $member_names[$email] ?? '';
-            ?>
-              <span class="es-chip-item" data-email="<?= View::e($email) ?>">
-                <?php if ($name !== ''): ?>
-                  <strong><?= View::e($name) ?></strong>
-                  <span>&lt;<?= View::e($email) ?>&gt;</span>
-                <?php else: ?>
-                  <span><?= View::e($email) ?></span>
-                <?php endif; ?>
-                <?php if ($selected_only): ?>
+            <?php if ($selected_only): ?>
+              <?php foreach ($id_email_map as $memberId => $memberData): ?>
+                <span class="es-chip-item" data-id="<?= (int) $memberId ?>">
+                  <?php if ($memberData['name'] !== ''): ?>
+                    <strong><?= View::e($memberData['name']) ?></strong>
+                    <span>&lt;<?= View::e($memberData['email']) ?>&gt;</span>
+                  <?php else: ?>
+                    <span><?= View::e($memberData['email']) ?></span>
+                  <?php endif; ?>
                   <button type="button" class="es-chip-remove"
-                          aria-label="Remove <?= View::e($email) ?>"
+                          aria-label="Remove <?= View::e($memberData['email']) ?>"
                           title="Remove recipient">&times;</button>
-                <?php endif; ?>
-              </span>
-            <?php endforeach; ?>
+                </span>
+              <?php endforeach; ?>
+            <?php else: ?>
+              <?php foreach ($all_recipients as $r): ?>
+                <span class="es-chip-item">
+                  <?php if ($r['name'] !== ''): ?>
+                    <strong><?= View::e($r['name']) ?></strong>
+                    <span>&lt;<?= View::e($r['email']) ?>&gt;</span>
+                  <?php else: ?>
+                    <span><?= View::e($r['email']) ?></span>
+                  <?php endif; ?>
+                </span>
+              <?php endforeach; ?>
+            <?php endif; ?>
           </div>
         </div>
         <div class="composer-row">
@@ -250,9 +262,13 @@ $oldBody    = htmlspecialchars($old['body'] ?? '', ENT_QUOTES, 'UTF-8');
   </div>
 </div>
 
+<?php
+  $previewFirstEmail = (string) (array_key_first($member_names) ?? '');
+  $previewFirstName  = $previewFirstEmail !== '' ? ($member_names[$previewFirstEmail] ?? '') : '';
+?>
 <div id="es-preview-data"
-     data-first-name="<?= View::e(reset($member_names) ?: '') ?>"
-     data-first-email="<?= View::e(array_key_first($member_names) ?? '') ?>"
+     data-first-name="<?= View::e($previewFirstName) ?>"
+     data-first-email="<?= View::e($previewFirstEmail) ?>"
      data-listing-name="<?= $flSubject ?>"
      data-listing-subject="<?= $flSubject ?>"
      data-listing-url="<?= View::e($listing->url ?? '') ?>"

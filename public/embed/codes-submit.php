@@ -128,7 +128,7 @@ if ($_lusterSuccess !== '') {
 $_lusterCaptchaQ = Captcha::getQuestion('code_submit');
 
 if ($_lusterIsCollective) {
-    $_lusterWrapperTpl = (new \Luster\Repositories\SiteSettingsRepo($_lusterDb))->get('collective_field_wrapper_template', '') ?? '';
+    $_lusterWrapperTpl = '';
 } else {
     $_lusterCsSettingsRepo = new \Luster\Repositories\ListingSettingsRepo($_lusterDb);
     $_lusterWrapperTpl     = $_lusterCsSettingsRepo->getWrapperTemplate($_lusterListingId) ?? '';

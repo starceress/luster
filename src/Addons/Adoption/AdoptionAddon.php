@@ -115,8 +115,10 @@ final class AdoptionAddon implements AddonInterface
     public function registerRoutes(Router $router): void
     {
         // Public routes
-        $router->get('/adopt/{id}',       AdoptPublicController::class, 'showForm');
-        $router->post('/adopt/{id}',      AdoptPublicController::class, 'submit');
+        $router->get('/adopt/{id}',         AdoptPublicController::class, 'showForm');
+        $router->post('/adopt/{id}',        AdoptPublicController::class, 'submit');
+        $router->get('/adopt-collective',   AdoptPublicController::class, 'collectiveForm');
+        $router->post('/adopt-collective',  AdoptPublicController::class, 'collectiveSubmit');
 
         // Admin routes — literal/specific paths before parameterised routes
         $router->post('/admin/adoptions/bulk',

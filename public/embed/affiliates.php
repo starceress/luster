@@ -154,27 +154,6 @@ if ($_lusterSectionTemplate !== null) {
         $_lusterTpl = (string) preg_replace('/\{each_affiliate\}.*?\{\/each_affiliate\}/s', $_lusterEachRows, $_lusterTpl, 1);
     }
 
-    // Build {affiliates} content — built-in link/image rows
-    $rowParts = [];
-    foreach ($_lusterResult['items'] as $_aff) {
-        $imageUrl = ($_aff->image !== null && $_aff->image !== '') ? $_lusterUploadsUrl . '/' . $_aff->image : '';
-        if ($imageUrl !== '') {
-            $rowParts[] = '<a href="' . $e($_aff->url) . '" target="_blank" rel="noopener noreferrer">'
-                . '<img src="' . $e($imageUrl) . '" alt="' . $e($_aff->name) . '"></a>';
-        } else {
-            $rowParts[] = '<a href="' . $e($_aff->url) . '" target="_blank" rel="noopener noreferrer">'
-                . $e($_aff->name) . '</a>';
-        }
-    }
-    $_lusterRowsHtml = implode("\n", $rowParts);
-
-    // Build {affiliates_list}
-    $listParts = [];
-    foreach ($_lusterResult['items'] as $_aff) {
-        $listParts[] = '<a href="' . $e($_aff->url) . '">' . $e($_aff->name) . '</a>';
-    }
-    $plainList = implode(', ', $listParts);
-
     // Process conditionals
     $total = $_lusterResult['total'];
     if ($total > 0) {
@@ -194,8 +173,8 @@ if ($_lusterSectionTemplate !== null) {
     }
 
     $_lusterSectionHtml = str_replace(
-        ['{affiliates}', '{affiliates_count}', '{affiliates_list}', '{affiliate_apply_url}'],
-        [$_lusterRowsHtml, (string) $total, $plainList, htmlspecialchars($_lusterAffApplyUrl, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8')],
+        ['{affiliates_count}', '{affiliate_apply_url}'],
+        [(string) $total, htmlspecialchars($_lusterAffApplyUrl, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8')],
         $_lusterSectionHtml,
     );
 }

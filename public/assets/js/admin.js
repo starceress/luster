@@ -976,6 +976,48 @@ document.addEventListener('change', function (e) {
   }
 });
 
+document.addEventListener('dragover', function (e) {
+  var label = e.target.closest('.file-drop-zone');
+  if (!label) return;
+  e.preventDefault();
+  label.classList.add('is-dragover');
+});
+
+document.addEventListener('dragleave', function (e) {
+  var label = e.target.closest('.file-drop-zone');
+  if (!label) return;
+  if (!label.contains(e.relatedTarget)) {
+    label.classList.remove('is-dragover');
+  }
+});
+
+document.addEventListener('drop', function (e) {
+  var label = e.target.closest('.file-drop-zone');
+  if (!label) return;
+  e.preventDefault();
+  label.classList.remove('is-dragover');
+
+  var input = label.querySelector('input[type="file"]');
+  if (!input) return;
+
+  var dt    = e.dataTransfer;
+  var files = dt ? dt.files : null;
+  if (!files || files.length === 0) return;
+
+  if (!input.multiple) {
+    var single = files[0];
+    var dts = new DataTransfer();
+    dts.items.add(single);
+    input.files = dts.files;
+  } else {
+    var dtm = new DataTransfer();
+    for (var i = 0; i < files.length; i++) { dtm.items.add(files[i]); }
+    input.files = dtm.files;
+  }
+
+  input.dispatchEvent(new Event('change', { bubbles: true }));
+});
+
 // ── 24b. Listings edit: status pill toggle ────────────────────────────────────
 // Active state is handled by CSS :has(input:checked) on .status-pill--* classes.
 
@@ -1852,6 +1894,10 @@ document.addEventListener('change', function (e) {
         lines.push("  . '<br>" + vals.tpl[vals.tpl.length-1].line.replace(/\\/g,'\\\\').replace(/'/g,"\\'") + "';");
       }
     }
+    // Date format override
+    if (['stats','owned','joined','random','latest','random-joined','latest-joined'].indexOf(type) !== -1 && vals.date_format) {
+      lines.push('$luster_date_format = ' + phpStr(vals.date_format) + ';');
+    }
     // Require line
     if (type === 'kim' || type === 'kim-list' || type === 'kim-update' || type === 'kim-reset')
                                 lines.push('// Requires KIM List add-on (Admin → Add-ons)');
@@ -1920,6 +1966,9 @@ document.addEventListener('change', function (e) {
             { token: '{approved_by}',       label: 'Approved-by network',   line: '{if_approved_by}Approved by: {approved_by}{/if_approved_by}' },
           ],
         },
+        { id: 'date_format', label: 'Date format', type: 'select',
+          opts: [['','Default (15th November 2026)'],['F j, Y','November 15, 2026'],['M j, Y','Nov 15, 2026'],['n/j/Y','11/15/2026'],['j.n.Y','15.11.2026'],['Y-m-d','2026-11-15']],
+          hint: 'How dates appear in the stats snippet.' },
       ],
     },
     affiliates: {
@@ -1951,6 +2000,9 @@ document.addEventListener('change', function (e) {
         { id: 'show_list',          label: 'Overview style',          type: 'select', opts: [['','Link list'],['false','Dropdown']], hint: 'How categories appear on the main page before a category is selected.', showIf: { field: 'browse_by_category', equals: '' } },
         { id: 'show_cat_switcher',  label: 'Per-category switcher',   type: 'select', opts: [['','Show'],['false','Hide']], hint: 'When a visitor is browsing a category, show a dropdown to switch to another.' },
         { id: 'exclude_pending',    label: 'Pending listings',        type: 'select', opts: [['','Hide when showing all'],['false','Show when showing all']], hint: 'Only matters when "Listings to show" is All statuses.' },
+        { id: 'date_format', label: 'Date format', type: 'select',
+          opts: [['','As stored'],['ordinal','15th November 2026'],['F j, Y','November 15, 2026'],['M j, Y','Nov 15, 2026'],['n/j/Y','11/15/2026'],['j.n.Y','15.11.2026'],['Y-m-d','2026-11-15']],
+          hint: 'How listing dates appear.' },
       ],
     },
     joined: {
@@ -1960,6 +2012,9 @@ document.addEventListener('change', function (e) {
         { id: 'show_list',          label: 'Overview style',          type: 'select', opts: [['','Link list'],['false','Dropdown']], hint: 'How categories appear on the main page before a category is selected.', showIf: { field: 'browse_by_category', equals: '' } },
         { id: 'show_cat_switcher',  label: 'Per-category switcher',   type: 'select', opts: [['','Show'],['false','Hide']], hint: 'A compact category dropdown shown after a visitor has selected a category, letting them switch to another. Does not affect the main overview picker.' },
         { id: 'show_all_by_default', label: 'Show all listings first', type: 'select', opts: [['','No'],['true','Yes']], hint: 'Shows every joined listing right away while still keeping the category selector visible for filtering. Only applies when visitors are choosing a category.', showIf: [{ field: 'browse_by_category', equals: '' }, { field: 'category', equals: '' }] },
+        { id: 'date_format', label: 'Date format', type: 'select',
+          opts: [['','As stored'],['ordinal','15th November 2026'],['F j, Y','November 15, 2026'],['M j, Y','Nov 15, 2026'],['n/j/Y','11/15/2026'],['j.n.Y','15.11.2026'],['Y-m-d','2026-11-15']],
+          hint: 'How listing dates appear.' },
       ],
     },
     cstats: {
@@ -2053,10 +2108,31 @@ document.addEventListener('change', function (e) {
       fields: [
         { id: 'status', label: 'Choose from', type: 'select',
           opts: [['current','Current listings'],['upcoming','Upcoming listings'],['all','All listings']], hint: '' },
+        { id: 'date_format', label: 'Date format', type: 'select',
+          opts: [['','As stored'],['ordinal','15th November 2026'],['F j, Y','November 15, 2026'],['M j, Y','Nov 15, 2026'],['n/j/Y','11/15/2026'],['j.n.Y','15.11.2026'],['Y-m-d','2026-11-15']],
+          hint: 'How listing dates appear.' },
       ],
     },
     latest: {
-      fields: [],
+      fields: [
+        { id: 'date_format', label: 'Date format', type: 'select',
+          opts: [['','As stored'],['ordinal','15th November 2026'],['F j, Y','November 15, 2026'],['M j, Y','Nov 15, 2026'],['n/j/Y','11/15/2026'],['j.n.Y','15.11.2026'],['Y-m-d','2026-11-15']],
+          hint: 'How listing dates appear.' },
+      ],
+    },
+    'random-joined': {
+      fields: [
+        { id: 'date_format', label: 'Date format', type: 'select',
+          opts: [['','As stored'],['ordinal','15th November 2026'],['F j, Y','November 15, 2026'],['M j, Y','Nov 15, 2026'],['n/j/Y','11/15/2026'],['j.n.Y','15.11.2026'],['Y-m-d','2026-11-15']],
+          hint: 'How listing dates appear.' },
+      ],
+    },
+    'latest-joined': {
+      fields: [
+        { id: 'date_format', label: 'Date format', type: 'select',
+          opts: [['','As stored'],['ordinal','15th November 2026'],['F j, Y','November 15, 2026'],['M j, Y','Nov 15, 2026'],['n/j/Y','11/15/2026'],['j.n.Y','15.11.2026'],['Y-m-d','2026-11-15']],
+          hint: 'How listing dates appear.' },
+      ],
     },
     kim: {
       fields: [],
@@ -2316,7 +2392,9 @@ document.addEventListener('change', function (e) {
           + '<div class="site-pager"><span class="on">1</span><span>2</span><span>3</span><span>&rsaquo;</span></div>';
       }
 
-      case 'stats':
+      case 'stats': {
+        var statsDfMap = {'F j, Y':'November 15, 2026','M j, Y':'Nov 15, 2026','n/j/Y':'11/15/2026','j.n.Y':'15.11.2026','Y-m-d':'2026-11-15'};
+        var statsDfNote = vals.date_format && statsDfMap[vals.date_format] ? '<div class="site-note">Dates: ' + statsDfMap[vals.date_format] + '</div>' : '';
         return '<h4>' + name + ' &mdash; Statistics</h4>'
           + '<div class="site-stats">'
           + '<div class="site-stat"><span class="k">Members</span><span class="v">33</span></div>'
@@ -2326,7 +2404,9 @@ document.addEventListener('change', function (e) {
           + '<div class="site-stat"><span class="k">Growth</span><span class="v">0.31/day</span></div>'
           + '<div class="site-stat"><span class="k">Newest</span><span class="v">Elise</span></div>'
           + '</div>'
-          + '<div class="site-note">Shown using the stats template saved in Luster.</div>';
+          + '<div class="site-note">Shown using the stats template saved in Luster.</div>'
+          + statsDfNote;
+      }
 
       case 'col-codes':
       case 'codes':
@@ -2442,6 +2522,8 @@ document.addEventListener('change', function (e) {
         var showSwitcher = vals.show_cat_switcher !== 'false';
         var statusVal = vals.status || '';
         var hasCatId = parseInt(vals.category_id || '0', 10) > 0;
+        var ownedDfMap = {'ordinal':'15th November 2026','F j, Y':'November 15, 2026','M j, Y':'Nov 15, 2026','n/j/Y':'11/15/2026','j.n.Y':'15.11.2026','Y-m-d':'2026-11-15'};
+        var ownedDfNote = vals.date_format && ownedDfMap[vals.date_format] ? '<div class="site-note">Dates: ' + ownedDfMap[vals.date_format] + '</div>' : '';
         var allSamplesO = {
           '':        [['Huntrix', ''],            ['Witch King', ''],      ['The Force', '']],
           'upcoming':[['Golden Hour', 'Upcoming'],['The Magicians', 'Upcoming']],
@@ -2464,22 +2546,22 @@ document.addEventListener('change', function (e) {
             + catListO
             + '<div class="site-note" style="margin:.4rem 0 .2rem">After selecting a category:</div>'
             + switcherO
-            + rowsO;
+            + rowsO + ownedDfNote;
         }
         if (hasCatId) {
           return '<h4>Owned fanlistings</h4>'
             + '<div class="site-note" style="margin-bottom:.25rem">Showing category ID ' + parseInt(vals.category_id, 10) + ' only:</div>'
-            + rowsO;
+            + rowsO + ownedDfNote;
         }
         if (hideDropdown) {
-          return '<h4>Owned fanlistings</h4>' + rowsO;
+          return '<h4>Owned fanlistings</h4>' + rowsO + ownedDfNote;
         }
         return '<h4>Owned fanlistings</h4>'
           + '<div class="site-note" style="margin-bottom:.25rem">Category overview:</div>'
           + (asList ? catListO : catDropdownO)
           + '<div class="site-note" style="margin:.4rem 0 .2rem">After selecting a category:</div>'
           + switcherO
-          + rowsO;
+          + rowsO + ownedDfNote;
       }
 
       case 'joined': {
@@ -2488,6 +2570,8 @@ document.addEventListener('change', function (e) {
         var showSwitcher2 = vals.show_cat_switcher !== 'false';
         var catVal2 = vals.category || '';
         var showAllFirst2 = vals.show_all_by_default === 'true';
+        var joinedDfMap = {'ordinal':'15th November 2026','F j, Y':'November 15, 2026','M j, Y':'Nov 15, 2026','n/j/Y':'11/15/2026','j.n.Y':'15.11.2026','Y-m-d':'2026-11-15'};
+        var joinedDfNote = vals.date_format && joinedDfMap[vals.date_format] ? '<div class="site-note">Dates: ' + joinedDfMap[vals.date_format] + '</div>' : '';
         var sampleRows2 = [['Sailor Moon','Anime'],['Cowboy Bebop','Anime'],['Radiohead','Music']].map(function (it) {
           return '<div class="site-row"><a class="site-link" href="#">' + it[0] + '</a><span class="site-flag">' + it[1] + '</span></div>';
         }).join('');
@@ -2502,17 +2586,18 @@ document.addEventListener('change', function (e) {
             + (asList2 ? catList2 : catDropdown2)
             + '<div class="site-note" style="margin:.4rem 0 .2rem">After selecting a category:</div>'
             + switcher2
-            + sampleRows2;
+            + sampleRows2 + joinedDfNote;
         }
         if (catVal2 === 'all') {
-          return '<h4>Joined fanlistings</h4>' + sampleRows2;
+          return '<h4>Joined fanlistings</h4>' + sampleRows2 + joinedDfNote;
         }
         if (showAllFirst2) {
-          return '<h4>Joined fanlistings</h4>' + catDropdown2 + sampleRows2;
+          return '<h4>Joined fanlistings</h4>' + catDropdown2 + sampleRows2 + joinedDfNote;
         }
         return '<h4>Joined fanlistings</h4>'
           + catDropdown2
-          + '<div class="site-note">Listings appear after a category is chosen.</div>';
+          + '<div class="site-note">Listings appear after a category is chosen.</div>'
+          + joinedDfNote;
       }
 
       case 'cstats':
@@ -2528,21 +2613,32 @@ document.addEventListener('change', function (e) {
       case 'random': {
         var randStatus = vals.status || 'current';
         var randBadge = randStatus === 'upcoming' ? 'Upcoming' : randStatus === 'all' ? 'Any status' : 'Current';
+        var randDfMap = {'ordinal':'15th November 2026','F j, Y':'November 15, 2026','M j, Y':'Nov 15, 2026','n/j/Y':'11/15/2026','j.n.Y':'15.11.2026','Y-m-d':'2026-11-15'};
+        var randDfNote = vals.date_format && randDfMap[vals.date_format] ? '<div class="site-note">Dates: ' + randDfMap[vals.date_format] + '</div>' : '';
         return '<h4>Featured listing</h4>'
           + '<div class="site-row"><a class="site-link" href="#">' + name + '</a><span class="site-flag">' + randBadge + '</span></div>'
-          + '<div class="site-note">A different listing each page load.' + (randStatus === 'upcoming' ? ' Pool: upcoming listings only.' : randStatus === 'all' ? ' Pool: all statuses.' : '') + '</div>';
+          + '<div class="site-note">A different listing each page load.' + (randStatus === 'upcoming' ? ' Pool: upcoming listings only.' : randStatus === 'all' ? ' Pool: all statuses.' : '') + '</div>'
+          + randDfNote;
       }
 
-      case 'latest':
+      case 'latest': {
+        var latestDfMap = {'ordinal':'15th November 2026','F j, Y':'November 15, 2026','M j, Y':'Nov 15, 2026','n/j/Y':'11/15/2026','j.n.Y':'15.11.2026','Y-m-d':'2026-11-15'};
+        var latestDfNote = vals.date_format && latestDfMap[vals.date_format] ? '<div class="site-note">Dates: ' + latestDfMap[vals.date_format] + '</div>' : '';
         return '<h4>Latest listing</h4>'
           + '<div class="site-row"><a class="site-link" href="#">' + name + '</a><span class="site-flag">Current</span></div>'
-          + '<div class="site-note">Your most recently opened listing.</div>';
+          + '<div class="site-note">Your most recently opened listing.</div>'
+          + latestDfNote;
+      }
 
       case 'random-joined':
-      case 'latest-joined':
+      case 'latest-joined': {
+        var rjlDfMap = {'ordinal':'15th November 2026','F j, Y':'November 15, 2026','M j, Y':'Nov 15, 2026','n/j/Y':'11/15/2026','j.n.Y':'15.11.2026','Y-m-d':'2026-11-15'};
+        var rjlDfNote = vals.date_format && rjlDfMap[vals.date_format] ? '<div class="site-note">Dates: ' + rjlDfMap[vals.date_format] + '</div>' : '';
         return '<h4>' + (key === 'random-joined' ? 'Featured joined listing' : 'Latest joined listing') + '</h4>'
           + '<div class="site-row"><a class="site-link" href="#">Sailor Moon</a><span class="site-flag">Anime</span></div>'
-          + '<div class="site-note">' + (key === 'random-joined' ? 'A different joined listing each page load.' : 'The fanlisting you most recently joined.') + '</div>';
+          + '<div class="site-note">' + (key === 'random-joined' ? 'A different joined listing each page load.' : 'The fanlisting you most recently joined.') + '</div>'
+          + rjlDfNote;
+      }
 
       case 'kim':
         return '<h4>Keep me in mind</h4>'
@@ -3997,6 +4093,8 @@ function adminWireFilterPanel(btnId, panelId, htmlClass) {
         var terms        = tokenSearchNorm(rawQuery).split(/\s+/).filter(Boolean);
         var active       = terms.length > 0;
         var totalMatches = 0;
+        var groupSel     = document.getElementById('tpl-group-select');
+        var activeGroup  = groupSel ? groupSel.value : 'all';
 
         if (active && !wasOpen._active) {
           tokenCards.forEach(function (card, i) { wasOpen[i] = card.open; });
@@ -4004,9 +4102,11 @@ function adminWireFilterPanel(btnId, panelId, htmlClass) {
         }
 
         tokenCards.forEach(function (card, i) {
-          var rows    = card.querySelectorAll('.tok-row[data-token]');
-          var helps   = card.querySelectorAll('[data-token-search-help]');
-          var matches = 0;
+          var cardGroup   = card.getAttribute('data-tpl-group') || 'all';
+          var groupMatch  = activeGroup === 'all' || cardGroup === activeGroup;
+          var rows        = card.querySelectorAll('.tok-row[data-token]');
+          var helps       = card.querySelectorAll('[data-token-search-help]');
+          var matches     = 0;
 
           helps.forEach(function (el) { el.hidden = active; });
 
@@ -4019,11 +4119,11 @@ function adminWireFilterPanel(btnId, panelId, htmlClass) {
           });
 
           if (active) {
-            card.hidden = matches === 0;
-            if (matches > 0) card.open = true;
-            totalMatches += matches;
+            card.hidden = !(groupMatch && matches > 0);
+            if (groupMatch && matches > 0) card.open = true;
+            if (groupMatch) totalMatches += matches;
           } else {
-            card.hidden = false;
+            card.hidden = !groupMatch;
             if (wasOpen._active) { card.open = !!wasOpen[i]; delete wasOpen[i]; }
           }
         });
@@ -4042,6 +4142,47 @@ function adminWireFilterPanel(btnId, panelId, htmlClass) {
         });
       }
     });
+  }());
+
+  // Group selector (Collective Templates page)
+  (function () {
+    var sel = document.getElementById('tpl-group-select');
+    if (!sel) return;
+
+    var allowedGroups = (function () {
+      var set = {};
+      sel.querySelectorAll('option').forEach(function (o) { set[o.value] = true; });
+      return set;
+    }());
+
+    function applyGroup(group) {
+      if (!allowedGroups[group]) group = 'all';
+      sel.value = group;
+
+      document.querySelectorAll('[data-tpl-group]').forEach(function (el) {
+        var g = el.getAttribute('data-tpl-group');
+        el.hidden = group !== 'all' && g !== group;
+      });
+
+      var returnInput = document.getElementById('tpl-return-group');
+      if (returnInput) returnInput.value = group;
+
+      var url = new URL(window.location.href);
+      if (group === 'all') {
+        url.searchParams.delete('group');
+      } else {
+        url.searchParams.set('group', group);
+      }
+      history.replaceState(null, '', url.toString());
+
+      document.querySelectorAll('[data-token-search]').forEach(function (input) {
+        if (input.value.trim() !== '') {
+          input.dispatchEvent(new Event('input', { bubbles: false }));
+        }
+      });
+    }
+
+    sel.addEventListener('change', function () { applyGroup(sel.value); });
   }());
 
   // Reset to default button
@@ -4106,15 +4247,21 @@ function adminWireFilterPanel(btnId, panelId, htmlClass) {
     stats: 'Statistics Preview', updates: 'Updates Feed Preview',
     codes_submit_form: 'Code Donation Form Preview', rules_intro: 'Join Rules Intro Preview',
     rules: 'Join Rules Preview',
-    join_form: 'Join Form Preview', affiliate_apply_form: 'Affiliate Application Form Preview',
+    join_form: 'Join Form Preview', update_form: 'Update Membership Form Preview', reset_form: 'Lost Password Form Preview',
+    affiliate_apply_form: 'Affiliate Application Form Preview',
+    contact_form: 'Contact Form Preview', contact_sent: 'Contact Sent Preview',
     collective_affiliate_apply_form: 'Collective Affiliate Apply Form Preview',
+    collective_adopt_form: 'Collective Adoption Form Preview',
     kim_signup_form: 'KIM Sign-Up Form Preview',
-    adopt_form: 'Adopt Form Preview',
     wishlist: 'Wishlist Preview', collective_updates: 'Collective Updates Feed Preview',
     codes: 'Codes Display Preview', collective_codes: 'Collective Codes Display Preview',
     collective_codes_submit_form: 'Collective Codes Donation Form Preview',
-    collective_field_wrapper: 'Form Field Wrapper Preview',
-    collective_contact_sent: 'Contact Sent Message Preview'
+    collective_contact_form: 'Contact Form Preview',
+    collective_contact_sent: 'Contact Sent Message Preview',
+    collective_kim_list_overview: 'KIM List Overview Preview',
+    collective_kim_list_subject: 'KIM Subject View Preview',
+    kim_update_form: 'KIM Update Form Preview',
+    kim_reset_form: 'KIM Reset Form Preview'
   };
 
   function closeColtplModal() {
@@ -4400,7 +4547,7 @@ function adminWireFilterPanel(btnId, panelId, htmlClass) {
     : null;
 
   var context        = previewData ? (previewData.dataset.context || '') : '';
-  var recipientLabel = scopeEl ? 'affiliate' : (context === 'adoption' ? 'applicant' : 'member');
+  var recipientLabel = scopeEl ? 'affiliate' : (context === 'adoption' ? 'applicant' : (context === 'affiliate' ? 'affiliate' : 'member'));
 
   // ── Recipient count (chips-based for KIM, scope-based for affiliate email) ─
   function getRecipientCount() {
@@ -4424,14 +4571,23 @@ function adminWireFilterPanel(btnId, panelId, htmlClass) {
     chips.addEventListener('click', function (e) {
       var btn = e.target.closest('.es-chip-remove');
       if (!btn) return;
-      var chip  = btn.closest('.es-chip-item');
-      var email = chip.dataset.email;
+      var chip = btn.closest('.es-chip-item');
       chip.classList.add('es-chip-removed');
       chip.style.display = 'none';
       if (emailInputs) {
-        emailInputs.querySelectorAll('input[name="emails[]"]').forEach(function (inp) {
-          if (inp.value === email) inp.remove();
-        });
+        var id = chip.dataset.id;
+        if (id) {
+          // ID-based tracking (KIM email-selected)
+          emailInputs.querySelectorAll('input[name="kim_member_ids[]"]').forEach(function (inp) {
+            if (inp.value === id) inp.remove();
+          });
+        } else {
+          // Email-based tracking (member/adoption email-selected)
+          var email = chip.dataset.email;
+          emailInputs.querySelectorAll('input[name="emails[]"]').forEach(function (inp) {
+            if (inp.value === email) inp.remove();
+          });
+        }
       }
       syncRecipientCount();
     });
@@ -4638,7 +4794,7 @@ document.addEventListener('click', function (e) {
 // ── 43. Settings -- scoped panel clear buttons ─────────────────────────────────
 
 (function () {
-  [['general-clear-btn', 'panel-general'], ['smtp-clear-btn', 'panel-smtp'], ['embed-clear-btn', 'panel-embed']].forEach(function (pair) {
+  [['general-clear-btn', 'panel-general'], ['smtp-clear-btn', 'panel-smtp'], ['embed-clear-btn', 'panel-embed'], ['notifications-clear-btn', 'panel-notifications']].forEach(function (pair) {
     var btn   = document.getElementById(pair[0]);
     var panel = document.getElementById(pair[1]);
     if (!btn || !panel) return;
@@ -5108,8 +5264,9 @@ document.addEventListener('click', function (e) {
   }
 
   // ── "Check All" buttons ───────────────────────────────────────────────────
-  var checkAffBtn    = document.getElementById('lc-check-affiliates');
-  var checkJoinedBtn = document.getElementById('lc-check-joined');
+  var checkAffBtn     = document.getElementById('lc-check-affiliates');
+  var checkJoinedBtn  = document.getElementById('lc-check-joined');
+  var checkMembersBtn = document.getElementById('lc-check-members');
 
   if (checkAffBtn) {
     checkAffBtn.addEventListener('click', function () {
@@ -5121,6 +5278,11 @@ document.addEventListener('click', function (e) {
       runBatch(checkJoinedBtn, 'joined');
     });
   }
+  if (checkMembersBtn) {
+    checkMembersBtn.addEventListener('click', function () {
+      runBatch(checkMembersBtn, 'members');
+    });
+  }
 
   // ── Toolbar "Run Link Checker" proxy ─────────────────────────────────────
   var lcRunBtn = document.getElementById('lc-run-btn');
@@ -5128,7 +5290,9 @@ document.addEventListener('click', function (e) {
     lcRunBtn.addEventListener('click', function () {
       var activeTab = document.querySelector('.tabs-btn.active[data-tab]');
       var tabId     = activeTab ? activeTab.dataset.tab : 'affiliates';
-      var panelBtn  = tabId === 'joined' ? checkJoinedBtn : checkAffBtn;
+      var panelBtn  = tabId === 'joined' ? checkJoinedBtn
+                    : tabId === 'members' ? checkMembersBtn
+                    : checkAffBtn;
       if (!panelBtn || panelBtn.disabled) return;
       runBatch(panelBtn, tabId);
     });
@@ -5143,8 +5307,12 @@ document.addEventListener('click', function (e) {
     var endpoint = btn.dataset.endpoint;
     var csrf     = btn.dataset.csrf;
     var type     = btn.dataset.type;
-    var panelId  = type === 'affiliate' ? 'affiliates' : 'joined';
-    var rowId    = 'lc-' + (type === 'affiliate' ? 'aff' : 'joined') + '-' + id;
+    var panelId  = type === 'affiliate' ? 'affiliates'
+                 : type === 'member'    ? 'members'
+                 : 'joined';
+    var rowId    = type === 'affiliate' ? 'lc-aff-' + id
+                 : type === 'member'    ? 'lc-mem-' + id
+                 : 'lc-joined-' + id;
     var row      = document.getElementById(rowId);
 
     if (!row) return;
@@ -5443,6 +5611,29 @@ document.addEventListener('click', function (e) {
   });
 }());
 
+
+// ── 48b. Default mode picker (Light / Dark radio buttons) ─────────────────────
+(function () {
+  var radios = document.querySelectorAll('[name="default_theme_radio"]');
+  if (!radios.length) return;
+
+  radios.forEach(function (radio) {
+    radio.addEventListener('change', function () {
+      var theme = this.value;
+      // Update active-class on labels immediately so selection is visible
+      document.querySelectorAll('.theme-mode-btn').forEach(function (lbl) {
+        lbl.classList.toggle('theme-mode-btn--active', lbl.querySelector('[name="default_theme_radio"]').value === theme);
+      });
+      // Persist to localStorage BEFORE form submit to prevent FOUC on redirect
+      try { localStorage.setItem('lstr_theme', theme); } catch (e) {}
+      document.documentElement.setAttribute('data-theme', theme);
+      var hidden = document.getElementById('default-theme-value');
+      if (hidden) { hidden.value = theme; }
+      var form = document.getElementById('default-theme-form');
+      if (form) { form.requestSubmit(); }
+    });
+  });
+}());
 
 // ── 49. Wishlist: drag-and-drop row reorder ────────────────────────────────────
 //

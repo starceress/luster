@@ -18,6 +18,12 @@ $b             = rtrim(View::e($base_url), '/');
 $_linkSignup   = isset($link_signup) && $link_signup !== '' ? $link_signup : null;
 $_linkListBase = isset($link_list_base) && $link_list_base !== '' ? $link_list_base : null;
 ?>
+<?php if (isset($overview_template_html) && $overview_template_html !== null): ?>
+<div class="fl-embed fl-embed--kim-list">
+  <?= $overview_template_html ?>
+</div>
+<?php return; ?>
+<?php endif; ?>
 <div class="fl-embed fl-embed--kim-list">
   <div class="fl-kim">
     <h2 class="fl-kim-heading">KIM List</h2>

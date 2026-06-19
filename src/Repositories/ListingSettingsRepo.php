@@ -294,6 +294,24 @@ final class ListingSettingsRepo
     }
 
     /**
+     * Saves (upserts) the per-listing contact-sent confirmation template.
+     * Pass null/empty to clear the override (falls back to global default).
+     */
+    public function saveContactSentTemplate(int $listingId, ?string $template): void
+    {
+        try {
+            $stmt = $this->db->prepare(
+                'INSERT INTO lstr_fanlisting_settings (fanlisting_id, contact_sent_template)
+                 VALUES (:id, :val)
+                 ON DUPLICATE KEY UPDATE contact_sent_template = VALUES(contact_sent_template)'
+            );
+            $stmt->execute(['id' => $listingId, 'val' => ($template !== null && trim($template) !== '') ? $template : null]);
+        } catch (\Exception) {
+            // column not present yet
+        }
+    }
+
+    /**
      * Returns the per-listing field wrapper template string, or null when not set /
      * when Migration 64 has not been run yet.
      */
@@ -374,6 +392,36 @@ final class ListingSettingsRepo
         return '{field_name}' . "\n"
              . '{field_email}' . "\n"
              . '{field_url}' . "\n"
+             . '{field_message}' . "\n"
+             . '{captcha_block}' . "\n"
+             . '<div class="fl-form-actions">' . "\n"
+             . '{submit_button}' . "\n"
+             . '{clear_button}' . "\n"
+             . '</div>';
+    }
+
+    public function getContactFormTemplate(int $listingId): ?string
+    {
+        try {
+            $stmt = $this->db->prepare(
+                'SELECT contact_form_template FROM lstr_fanlisting_settings WHERE fanlisting_id = :id'
+            );
+            $stmt->execute(['id' => $listingId]);
+            $row = $stmt->fetch();
+            return ($row !== false && $row['contact_form_template'] !== null)
+                ? (string) $row['contact_form_template']
+                : null;
+        } catch (\Exception) {
+            return null;
+        }
+    }
+
+    public static function defaultContactFormTemplate(): string
+    {
+        return '{field_name}' . "\n"
+             . '{field_email}' . "\n"
+             . '{field_url}' . "\n"
+             . '{field_subject}' . "\n"
              . '{field_message}' . "\n"
              . '{captcha_block}' . "\n"
              . '<div class="fl-form-actions">' . "\n"
@@ -493,6 +541,7 @@ final class ListingSettingsRepo
             . '{captcha_block}' . "\n"
             . '<div class="fl-form-actions">' . "\n"
             . '{submit_button}' . "\n"
+            . '{clear_button}' . "\n"
             . '</div>' . "\n"
             . '{/if_signed_in}';
     }
@@ -508,7 +557,7 @@ final class ListingSettingsRepo
             . '{field_email}' . "\n"
             . '{captcha_block}' . "\n"
             . '</div>' . "\n"
-            . '<div class="fl-form-actions">{submit_button}</div>' . "\n"
+            . '<div class="fl-form-actions">{submit_button} {clear_button}</div>' . "\n"
             . '{/if_step_email}' . "\n"
             . '{if_step_confirm}' . "\n"
             . '{if_token_valid}' . "\n"
@@ -516,9 +565,8 @@ final class ListingSettingsRepo
             . '<div class="fl-form-fields">' . "\n"
             . '{field_new_password}' . "\n"
             . '{field_new_password_confirm}' . "\n"
-            . '{hidden_token}' . "\n"
             . '</div>' . "\n"
-            . '<div class="fl-form-actions">{submit_button}</div>' . "\n"
+            . '<div class="fl-form-actions">{submit_button} {clear_button}</div>' . "\n"
             . '{/if_token_valid}' . "\n"
             . '{if_token_invalid}' . "\n"
             . '<p class="fl-error">This reset link is invalid or has expired. <a href="{reset_request_url}">Request a new one.</a></p>' . "\n"
@@ -583,12 +631,17 @@ final class ListingSettingsRepo
      */
     public static function defaultStatsTemplate(): string
     {
-        return '<h1>Listing Statistics</h1>'
-            . "\n" . '<p><b>Members:</b> {stat_approved} total{if_stat_pending} (+{stat_pending} pending){/if_stat_pending} across {stat_countries} countries<br>'
-            . "\n" . '<b>Newest Members:</b> {stat_newmembers}<br>'
-            . "\n" . '<b>Opened On:</b> {stat_opened}<br>'
-            . "\n" . '<b>Last Updated:</b> {stat_updated}{if_approved_by}<br>'
-            . "\n" . '<b>Approved by:</b> {approved_by}{/if_approved_by}</p>';
+        return '<div class="fl-stats">' . "\n"
+            . '<div class="fl-stats-grid">' . "\n"
+            . '<span class="fl-stats-label">Members:</span><span class="fl-stats-value">{stat_approved} total{if_stat_pending} (+{stat_pending} pending){/if_stat_pending}</span>' . "\n"
+            . '<span class="fl-stats-label">Countries:</span><span class="fl-stats-value">{stat_countries}</span>' . "\n"
+            . '<span class="fl-stats-label">Newest:</span><span class="fl-stats-value">{stat_newmembers}</span>' . "\n"
+            . '<span class="fl-stats-label">Opened:</span><span class="fl-stats-value">{stat_opened}</span>' . "\n"
+            . '<span class="fl-stats-label">Updated:</span><span class="fl-stats-value">{stat_updated}</span>' . "\n"
+            . '<span class="fl-stats-label">Growth:</span><span class="fl-stats-value">{stat_growth}</span>' . "\n"
+            . '{if_approved_by}<span class="fl-stats-label">Approved by:</span><span class="fl-stats-value"><a href="{if_tfl}{tfl_url}{/if_tfl}{if_tafl}{tafl_url}{/if_tafl}">{network_name}</a></span>{/if_approved_by}' . "\n"
+            . '</div>' . "\n"
+            . '</div>';
     }
 
     /**
@@ -626,7 +679,7 @@ final class ListingSettingsRepo
             . '<ul class="fl-affiliate-list">' . "\n"
             . '<p><a href="{affiliate_apply_url}">Apply to become an affiliate?</a></p>' . "\n\n"
             . '{each_affiliate}' . "\n"
-            . '<li class="fl-affiliate-item">{if_aff_image}{aff_image}{/if_aff_image}{if_no_aff_image}<a href="{aff_url}">{aff_name}</a>{/if_no_aff_image}</li>' . "\n"
+            . '<li class="fl-affiliate-item">{if_aff_image}<a href="{aff_url}" target="_blank" rel="noopener noreferrer"><img src="{aff_image_url}" alt="{aff_name}"></a>{/if_aff_image}{if_no_aff_image}<a href="{aff_url}">{aff_name}</a>{/if_no_aff_image}</li>' . "\n"
             . '{/each_affiliate}' . "\n\n"
             . '</ul>' . "\n"
             . '{/if_affiliates}' . "\n\n"
@@ -678,7 +731,6 @@ final class ListingSettingsRepo
             . '<figure class="fl-code-image"><img src="{code_url}" alt="{code_alt}" loading="lazy"></figure>' . "\n"
             . '{if_donor}<span class="fl-code-caption">by {if_donor_url}<a href="{code_donor_url}" target="_blank" rel="noopener noreferrer">{code_donor_name}</a>{/if_donor_url}{if_no_donor_url}{code_donor_name}{/if_no_donor_url}</span>{/if_donor}' . "\n"
             . '{if_code_name}<span class="fl-code-caption">{code_name}</span>{/if_code_name}' . "\n"
-            . '{if_categories}<span class="fl-code-caption">{code_categories}</span>{/if_categories}' . "\n"
             . '</li>' . "\n"
             . '{/each_code}' . "\n"
             . '</ul>' . "\n"
@@ -723,8 +775,8 @@ final class ListingSettingsRepo
         return '<h1>Affiliate Application — {listing_title}</h1>' . "\n"
             . '<div class="fl-form-fields">' . "\n"
             . '{field_name}' . "\n"
-            . '{field_url}' . "\n"
             . '{field_email}' . "\n"
+            . '{field_url}' . "\n"
             . '{field_image}' . "\n"
             . '{field_message}' . "\n"
             . '{captcha_block}' . "\n"
@@ -743,10 +795,10 @@ final class ListingSettingsRepo
         return '<h1>Submit a Code for {listing_title}</h1>' . "\n"
             . '<p>All submissions are reviewed before being published. Accepted: JPEG, PNG, GIF, WebP. Max 200 KB.</p>' . "\n"
             . '<div class="fl-form-fields">' . "\n"
-            . '{field_code_image}' . "\n"
             . '{field_submitter_name}' . "\n"
             . '{field_submitter_email}' . "\n"
             . '{field_submitter_url}' . "\n"
+            . '{field_code_image}' . "\n"
             . '{captcha_block}' . "\n"
             . '</div>' . "\n"
             . '<div class="fl-form-actions">' . "\n"
@@ -804,6 +856,13 @@ final class ListingSettingsRepo
         if (!str_contains($tpl, '$$')) {
             return $tpl;
         }
+
+        $tpl = (string) preg_replace(
+            '/<img\b[^>]*?src=["\'][^"\']*\$\$aff_image\$\$[^"\']*["\'][^>]*?\/?>/is',
+            '{if_aff_image}<img src="{aff_image_url}" alt="{aff_name}">{/if_aff_image}{if_no_aff_image}{aff_name}{/if_no_aff_image}',
+            $tpl,
+        );
+
         return str_replace(
             [
                 '$$stat_opened$$',
@@ -841,7 +900,7 @@ final class ListingSettingsRepo
                 '{fan_country}',
                 '{aff_name}',
                 '{aff_url}',
-                '{aff_image}',
+                '{if_aff_image}<img src="{aff_image_url}" alt="{aff_name}">{/if_aff_image}{if_no_aff_image}{aff_name}{/if_no_aff_image}',
                 '{listing_title}',
                 '{listing_url}',
             ],
@@ -865,8 +924,64 @@ final class ListingSettingsRepo
         ?string $joinFormTemplate = null,
         ?string $affiliateApplyFormTemplate = null,
         ?string $adoptFormTemplate = null,
+        ?string $contactFormTemplate = null,
+        ?string $updateFormTemplate = null,
+        ?string $resetFormTemplate = null,
     ): void {
         $attempts = [
+            [
+                'sql' => 'INSERT INTO lstr_fanlisting_settings
+                     (fanlisting_id, stats_template, members_template, affiliates_section_template,
+                      updates_template, codes_submit_form_template,
+                      rules_intro_template, join_form_template, affiliate_apply_form_template,
+                      adopt_form_template, contact_form_template, update_form_template, reset_form_template)
+                 VALUES (:id, :stats, :members, :section, :updates, :codes_form, :rules,
+                         :join_form, :aff_apply_form, :adopt_form, :contact_form, :update_form, :reset_form)
+                 ON DUPLICATE KEY UPDATE
+                     stats_template                = VALUES(stats_template),
+                     members_template              = VALUES(members_template),
+                     affiliates_section_template   = VALUES(affiliates_section_template),
+                     updates_template              = VALUES(updates_template),
+                     codes_submit_form_template    = VALUES(codes_submit_form_template),
+                     rules_intro_template          = VALUES(rules_intro_template),
+                     join_form_template            = VALUES(join_form_template),
+                     affiliate_apply_form_template = VALUES(affiliate_apply_form_template),
+                     adopt_form_template           = VALUES(adopt_form_template),
+                     contact_form_template         = VALUES(contact_form_template),
+                     update_form_template          = VALUES(update_form_template),
+                     reset_form_template           = VALUES(reset_form_template)',
+                'bind' => ['id' => $listingId, 'stats' => $statsTemplate, 'members' => $membersTemplate,
+                           'section' => $affiliatesSectionTemplate, 'updates' => $updatesTemplate,
+                           'codes_form' => $codesSubmitFormTemplate, 'rules' => $rulesIntroTemplate,
+                           'join_form' => $joinFormTemplate, 'aff_apply_form' => $affiliateApplyFormTemplate,
+                           'adopt_form' => $adoptFormTemplate, 'contact_form' => $contactFormTemplate,
+                           'update_form' => $updateFormTemplate, 'reset_form' => $resetFormTemplate],
+            ],
+            [
+                'sql' => 'INSERT INTO lstr_fanlisting_settings
+                     (fanlisting_id, stats_template, members_template, affiliates_section_template,
+                      updates_template, codes_submit_form_template,
+                      rules_intro_template, join_form_template, affiliate_apply_form_template,
+                      adopt_form_template, contact_form_template)
+                 VALUES (:id, :stats, :members, :section, :updates, :codes_form, :rules,
+                         :join_form, :aff_apply_form, :adopt_form, :contact_form)
+                 ON DUPLICATE KEY UPDATE
+                     stats_template                = VALUES(stats_template),
+                     members_template              = VALUES(members_template),
+                     affiliates_section_template   = VALUES(affiliates_section_template),
+                     updates_template              = VALUES(updates_template),
+                     codes_submit_form_template    = VALUES(codes_submit_form_template),
+                     rules_intro_template          = VALUES(rules_intro_template),
+                     join_form_template            = VALUES(join_form_template),
+                     affiliate_apply_form_template = VALUES(affiliate_apply_form_template),
+                     adopt_form_template           = VALUES(adopt_form_template),
+                     contact_form_template         = VALUES(contact_form_template)',
+                'bind' => ['id' => $listingId, 'stats' => $statsTemplate, 'members' => $membersTemplate,
+                           'section' => $affiliatesSectionTemplate, 'updates' => $updatesTemplate,
+                           'codes_form' => $codesSubmitFormTemplate, 'rules' => $rulesIntroTemplate,
+                           'join_form' => $joinFormTemplate, 'aff_apply_form' => $affiliateApplyFormTemplate,
+                           'adopt_form' => $adoptFormTemplate, 'contact_form' => $contactFormTemplate],
+            ],
             [
                 'sql' => 'INSERT INTO lstr_fanlisting_settings
                      (fanlisting_id, stats_template, members_template, affiliates_section_template,
@@ -1117,34 +1232,69 @@ final class ListingSettingsRepo
     /**
      * Returns contact form settings for a listing.
      *
-     * Requires Migration 37.
+     * Requires Migration 37 (contact_enabled, contact_recipient)
+     * and Migration 75 (form_url_contact). Returns safe defaults when
+     * columns are absent.
      *
-     * @return array{enabled: bool, recipient: string|null}
+     * @return array{enabled: bool, recipient: string|null, form_url_contact: string}
      */
     public function getContactSettings(int $listingId): array
     {
+        $defaults = ['enabled' => true, 'recipient' => null, 'form_url_contact' => ''];
+
         try {
             $stmt = $this->db->prepare(
-                'SELECT contact_enabled, contact_recipient
+                'SELECT contact_enabled, contact_recipient, form_url_contact
                  FROM lstr_fanlisting_settings
                  WHERE fanlisting_id = :id'
             );
             $stmt->execute(['id' => $listingId]);
             $row = $stmt->fetch();
         } catch (\Exception) {
-            return ['enabled' => true, 'recipient' => null];
+            try {
+                // Migration 75 not yet run — fall back to 2-column query
+                $stmt = $this->db->prepare(
+                    'SELECT contact_enabled, contact_recipient
+                     FROM lstr_fanlisting_settings
+                     WHERE fanlisting_id = :id'
+                );
+                $stmt->execute(['id' => $listingId]);
+                $row = $stmt->fetch();
+            } catch (\Exception) {
+                return $defaults;
+            }
         }
 
         if ($row === false) {
-            return ['enabled' => true, 'recipient' => null];
+            return $defaults;
         }
 
         return [
-            'enabled'   => (bool) $row['contact_enabled'],
-            'recipient' => $row['contact_recipient'] !== null && $row['contact_recipient'] !== ''
+            'enabled'          => (bool) $row['contact_enabled'],
+            'recipient'        => $row['contact_recipient'] !== null && $row['contact_recipient'] !== ''
                 ? (string) $row['contact_recipient']
                 : null,
+            'form_url_contact' => (string) ($row['form_url_contact'] ?? ''),
         ];
+    }
+
+    /**
+     * Saves (upserts) the contact form URL path for a listing.
+     */
+    public function saveFormUrlContact(int $listingId, string $url): void
+    {
+        try {
+            $stmt = $this->db->prepare(
+                'INSERT INTO lstr_fanlisting_settings (fanlisting_id, form_url_contact)
+                 VALUES (:id, :url)
+                 ON DUPLICATE KEY UPDATE form_url_contact = VALUES(form_url_contact)'
+            );
+            $stmt->execute([
+                'id'  => $listingId,
+                'url' => $url,
+            ]);
+        } catch (\Exception) {
+        }
     }
 
     /**

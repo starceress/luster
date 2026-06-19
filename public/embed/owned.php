@@ -283,6 +283,7 @@ if ($_lusterOwnedTemplate !== null && $_lusterShowListings) {
         $_lusterSettingsMap,
         $_lusterMemberStatsMap,
         $_lusterListingCategoryMap,
+        (string) ($luster_date_format ?? ''),
     );
 }
 

@@ -18,13 +18,19 @@ use Luster\Core\TemplateEngine;
 use Luster\Core\UpdateChecker;
 use Luster\Core\Validator;
 use Luster\Core\View;
+use Luster\Support\AffiliateRowRenderer;
+use Luster\Support\CollectiveFormUrlResolver;
 use Luster\Support\FormTemplateRenderer;
 use Luster\Repositories\ActivityRepo;
 use Luster\Repositories\AdminUserRepo;
 use Luster\Repositories\AffiliateRepo;
 use Luster\Repositories\BlacklistRepo;
 use Luster\Repositories\CollectiveStatsRepo;
+use Luster\Repositories\CodeCategoriesRepo;
+use Luster\Repositories\CodeDonorsRepo;
 use Luster\Repositories\CodesRepo;
+use Luster\Support\CodesTemplateRenderer;
+use Luster\Support\SuccessRenderer;
 use Luster\Repositories\ErrorLogRepo;
 use Luster\Repositories\JoinedListingRepo;
 use Luster\Repositories\ListingRepo;
@@ -296,6 +302,15 @@ final class SettingsController extends AdminController
         $session->remove('lstr_flash_success');
         $session->remove('lstr_flash_error');
 
+        $groupWhitelist = [
+            'all', 'owned', 'joined', 'stats', 'codes',
+            'contact', 'affiliates', 'adoption', 'kim', 'wishlist', 'updates',
+        ];
+        $activeGroup = (string) $request->query('group', 'all');
+        if (!in_array($activeGroup, $groupWhitelist, true)) {
+            $activeGroup = 'all';
+        }
+
         $siteRepo = new SiteSettingsRepo($this->app->getDatabase());
         $collectiveTemplates = $siteRepo->getMany([
             'owned_template',
@@ -310,10 +325,20 @@ final class SettingsController extends AdminController
             'kim_signup_form_template',
             'wishlist_template',
             'collective_updates_template',
+            'collective_codes_template',
+            'collective_codes_submit_form_template',
+            'collective_kim_list_overview_template',
+            'collective_kim_list_subject_template',
+            'kim_update_form_template',
+            'kim_reset_form_template',
+            'collective_contact_form_template',
+            'collective_contact_sent_template',
+            'collective_adoption_form_template',
         ]);
 
         return $this->adminLayout('admin/collective/templates.php', 'Collective Templates', 'collective', [
             'collective_templates' => $collectiveTemplates,
+            'activeGroup'          => $activeGroup,
             'success'              => $success,
             'error'                => $error,
         ], '', [
@@ -341,8 +366,13 @@ final class SettingsController extends AdminController
             'random-joined', 'latest-joined',
             'collective_affiliates_section', 'collective_stats',
             'collective_affiliate_apply_form',
+            'collective_adopt_form',
             'kim_signup_form',
+            'collective_kim_list_overview', 'collective_kim_list_subject',
+            'kim_update_form', 'kim_reset_form',
             'wishlist', 'collective_updates',
+            'collective_codes', 'collective_codes_submit_form',
+            'collective_contact_form', 'collective_contact_sent',
         ];
 
         if (!in_array($type, $allowed, true)) {
@@ -367,9 +397,18 @@ final class SettingsController extends AdminController
                 'collective_affiliates_section'      => $this->coltplPreviewAffiliates($tpl, $db, $uploadsBase . '/affiliates'),
                 'collective_stats'                   => $this->coltplPreviewStats($tpl, $db, $config),
                 'collective_affiliate_apply_form'    => $this->coltplPreviewAffiliateApplyForm($tpl, $config),
+                'collective_adopt_form'              => $this->coltplPreviewAdoptForm($tpl),
                 'kim_signup_form'                    => $this->coltplPreviewKimSignupForm($tpl, $config),
+                'collective_kim_list_overview'       => $this->coltplPreviewKimListOverview($tpl),
+                'collective_kim_list_subject'        => $this->coltplPreviewKimListSubject($tpl),
+                'kim_update_form'                    => $this->coltplPreviewKimUpdateForm($tpl, $config),
+                'kim_reset_form'                     => $this->coltplPreviewKimResetForm($tpl, $config),
                 'wishlist'                            => $this->coltplPreviewWishlist($tpl, $db, $uploadsBase . '/wishlist'),
                 'collective_updates'                  => $this->coltplPreviewCollectiveUpdates($tpl, $db),
+                'collective_codes'                   => $this->coltplPreviewCodes($tpl, $db, $uploadsBase . '/codes'),
+                'collective_codes_submit_form'        => $this->coltplPreviewCodesSubmitForm($tpl, $config),
+                'collective_contact_form'             => $this->coltplPreviewContactForm($tpl, $config),
+                'collective_contact_sent'             => $this->coltplPreviewContactSent($tpl),
             };
         } catch (\Throwable $e) {
             $html = '<p style="color:#c00;font-family:monospace">Preview error: '
@@ -502,58 +541,42 @@ final class SettingsController extends AdminController
         $e = static fn(string $v): string => htmlspecialchars($v, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 
         if (preg_match('/\{each_affiliate\}(.*?)\{\/each_affiliate\}/s', $tpl, $m)) {
-            $rows = [];
-            foreach ($affiliates as $aff) {
-                $imageUrl = ($aff->image !== null && $aff->image !== '') ? $uploadsUrl . '/' . $aff->image : '';
-                $imageTag = $imageUrl !== '' ? '<img src="' . $e($imageUrl) . '" alt="' . $e($aff->name) . '">' : '';
-                $rows[] = str_replace(
-                    ['{aff_name}', '{aff_url}', '{aff_image}', '{aff_image_url}', '{aff_image_tag}'],
-                    [$e($aff->name), $e($aff->url), $e($aff->image ?? ''), $e($imageUrl), $imageTag],
-                    $m[1],
-                );
-            }
+            $rendered = AffiliateRowRenderer::renderRows($m[1], $affiliates, $uploadsUrl);
             $tpl = (string) preg_replace(
                 '/\{each_affiliate\}.*?\{\/each_affiliate\}/s',
-                implode("\n", $rows),
+                $rendered,
                 $tpl,
                 1,
             );
         }
 
-        $rowParts = [];
-        foreach ($affiliates as $aff) {
-            $imageUrl = ($aff->image !== null && $aff->image !== '') ? $uploadsUrl . '/' . $aff->image : '';
-            $rowParts[] = $imageUrl !== ''
-                ? '<a href="' . $e($aff->url) . '" target="_blank" rel="noopener noreferrer">'
-                  . '<img src="' . $e($imageUrl) . '" alt="' . $e($aff->name) . '"></a>'
-                : '<a href="' . $e($aff->url) . '" target="_blank" rel="noopener noreferrer">' . $e($aff->name) . '</a>';
-        }
-        $affiliatesContent = implode("\n", $rowParts);
-        $linkList = implode(', ', array_map(
-            static fn($aff) => '<a href="' . $e($aff->url) . '">' . $e($aff->name) . '</a>',
-            $affiliates,
-        ));
-
         $tpl = (string) preg_replace('/\{if_affiliates\}(.*?)\{\/if_affiliates\}/s',       $total > 0 ? '$1' : '',  $tpl);
         $tpl = (string) preg_replace('/\{if_no_affiliates\}(.*?)\{\/if_no_affiliates\}/s', $total > 0 ? ''  : '$1', $tpl);
 
+        $baseUrl    = rtrim((string) $this->app->getConfig()->get('app_url', ''), '/');
+        $siteUrl    = (string) ($this->app->getConfig()->get('site_url', '') ?: $baseUrl);
+        $siteRepo   = new SiteSettingsRepo($db);
+        $affOverride = $siteRepo->get('collective_form_url_affiliate_apply');
+        $affiliateApplyUrl = CollectiveFormUrlResolver::resolve($affOverride, $siteUrl, $baseUrl . '/affiliate-apply/collective');
+
         return str_replace(
-            ['{affiliates}', '{affiliates_count}', '{affiliates_list}'],
-            [$affiliatesContent, (string) $total, $linkList],
+            ['{affiliates_count}', '{affiliate_apply_url}'],
+            [(string) $total, $e($affiliateApplyUrl)],
             $tpl,
         );
     }
 
     private function coltplPreviewStats(string $tpl, Database $db, Config $config): string
     {
-        $repo         = new CollectiveStatsRepo($db, $config);
-        $owned        = $repo->getOwnedCounts();
-        $joined       = $repo->getJoinedCounts();
-        $affCount     = $repo->getAffiliateCount();
-        $members      = $repo->getMemberTotals();
-        $newest       = $repo->getNewestOwned(1);
-        $random       = $repo->getRandomOwned();
-        $countries    = $repo->getDistinctCountryCount();
+        $repo           = new CollectiveStatsRepo($db, $config);
+        $owned          = $repo->getOwnedCounts();
+        $joined         = $repo->getJoinedCounts();
+        $members        = $repo->getMemberTotals();
+        $newest         = $repo->getNewestOwned(1);
+        $random         = $repo->getRandomOwned();
+        $countries      = $repo->getDistinctCountryCount();
+        $ownedNetwork   = $repo->getOwnedNetworkCounts();
+        $joinedNetwork  = $repo->getJoinedNetworkCounts();
 
         $e = static fn(string $v): string => htmlspecialchars($v, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 
@@ -571,18 +594,24 @@ final class SettingsController extends AdminController
         return str_replace(
             [
                 '{owned_active}', '{owned_upcoming}', '{owned_pending}',
-                '{joined_active}', '{affiliates}',
+                '{owned_tfl_count}', '{owned_tafl_count}',
+                '{joined_active}',
+                '{joined_tfl_count}', '{joined_tafl_count}',
                 '{members_total}', '{members_approved}', '{members_pending}',
                 '{countries_count}',
                 '{owned_newest_name}', '{owned_newest_url}',
                 '{owned_random_name}', '{owned_random_url}',
+                '{tfl_url}', '{tafl_url}',
             ],
             [
                 (string) $owned['active'],
                 (string) $owned['upcoming'],
                 (string) $owned['trouble'],
+                (string) $ownedNetwork['tfl'],
+                (string) $ownedNetwork['tafl'],
                 (string) $joined['active'],
-                (string) $affCount,
+                (string) $joinedNetwork['tfl'],
+                (string) $joinedNetwork['tafl'],
                 (string) $members['total'],
                 (string) $members['approved'],
                 (string) $members['pending'],
@@ -591,6 +620,8 @@ final class SettingsController extends AdminController
                 $e(!empty($newest) ? $newest[0]->url : ''),
                 $e($random !== null ? ($random->subject ?: $random->title) : ''),
                 $e($random !== null ? $random->url : ''),
+                'https://thefanlistings.org/',
+                'https://www.animefanlistings.com/',
             ],
             $tpl,
         );
@@ -607,7 +638,7 @@ final class SettingsController extends AdminController
             ['type' => 'text',     'name' => 'name',           'id' => 'aff-name',    'label' => 'Site name',                      'required' => true,  'value' => '', 'attrs' => ['maxlength' => '200', 'autocomplete' => 'organization']],
             ['type' => 'url',      'name' => 'url',            'id' => 'aff-url',     'label' => 'Site URL',                       'required' => true,  'value' => '', 'attrs' => ['maxlength' => '500', 'placeholder' => 'https://', 'autocomplete' => 'url']],
             ['type' => 'email',    'name' => 'email',          'id' => 'aff-email',   'label' => 'Email (optional)',           'required' => true, 'value' => '', 'attrs' => ['maxlength' => '255', 'autocomplete' => 'email']],
-            ['type' => 'file',     'name' => 'image',          'id' => 'aff-image',   'label' => 'Site Button / Image (optional)', 'required' => false, 'attrs' => ['accept' => 'image/jpeg,image/png,image/gif,image/webp']],
+            ['type' => 'file',     'name' => 'image',          'id' => 'aff-image',   'label' => 'Site Button / Image (optional)', 'required' => false, 'attrs' => ['accept' => 'image/jpeg,image/png,image/gif,image/webp'], 'hint' => 'JPEG, PNG, GIF, or WebP. Max 2 MB.'],
             ['type' => 'textarea', 'name' => 'message',        'id' => 'aff-message', 'label' => 'Message (optional)',             'required' => false, 'value' => '', 'attrs' => ['maxlength' => '2000', 'rows' => '4']],
             ['type' => 'text',     'name' => 'captcha_answer', 'id' => 'aff-captcha', 'label' => 'Captcha: ' . $captchaQuestion,   'required' => true,  'attrs' => ['maxlength' => '10', 'autocomplete' => 'off']],
         ];
@@ -635,6 +666,50 @@ final class SettingsController extends AdminController
 
         $inner = FormTemplateRenderer::expandTokens($tpl, $tokens);
         return FormTemplateRenderer::wrapForm($inner, '#', $this->app->getCSRF()->token(), true, preview: true);
+    }
+
+    private function coltplPreviewAdoptForm(string $tpl): string
+    {
+        $captchaQuestion = Captcha::getQuestion('adopt');
+        $fb = $this->app->getFormFieldBuilder();
+
+        $listingSelectHtml = '<select class="fl-select" id="adopt-listing" name="listing_id" required>'
+                           . '<option value="">&#8212; Select a Listing &#8212;</option>'
+                           . '<option value="1">Sample Fanlisting A</option>'
+                           . '<option value="2">Sample Fanlisting B</option>'
+                           . '</select>';
+
+        $descriptors = [
+            ['type' => 'select',   'name' => 'listing_id',    'id' => 'adopt-listing', 'label' => 'Listing',     'required' => true,  'raw_input' => $listingSelectHtml],
+            ['type' => 'text',     'name' => 'name',          'id' => 'adopt-name',    'label' => 'Name',        'required' => true,  'value' => '', 'attrs' => ['maxlength' => '100', 'autocomplete' => 'name']],
+            ['type' => 'email',    'name' => 'email',         'id' => 'adopt-email',   'label' => 'Email',       'required' => true,  'value' => '', 'attrs' => ['maxlength' => '255', 'autocomplete' => 'email']],
+            ['type' => 'url',      'name' => 'url',           'id' => 'adopt-url',     'label' => 'Website URL', 'required' => false, 'value' => '', 'attrs' => ['maxlength' => '500', 'placeholder' => 'https://', 'autocomplete' => 'url'], 'hint' => 'Optional'],
+            ['type' => 'textarea', 'name' => 'message',       'id' => 'adopt-message', 'label' => 'Message',     'required' => false, 'value' => '', 'attrs' => ['maxlength' => '2000', 'rows' => '5'], 'hint' => 'Optional'],
+            ['type' => 'text',     'name' => 'captcha_answer','id' => 'adopt-captcha', 'label' => 'Captcha: ' . $captchaQuestion, 'required' => true, 'attrs' => ['maxlength' => '10', 'autocomplete' => 'off']],
+        ];
+        $f = $fb->build($descriptors, '');
+
+        $tokens = [
+            '{site_name}'              => 'Sample Collective',
+            '{field_listing_id}'       => $f['listing_id'],
+            '{field_listing_id_input}' => $f['listing_id_input'],
+            '{field_name}'             => $f['name'],
+            '{field_name_input}'       => $f['name_input'],
+            '{field_email}'            => $f['email'],
+            '{field_email_input}'      => $f['email_input'],
+            '{field_url}'              => $f['url'],
+            '{field_url_input}'        => $f['url_input'],
+            '{field_message}'          => $f['message'],
+            '{field_message_input}'    => $f['message_input'],
+            '{captcha_block}'          => $f['captcha_answer'],
+            '{captcha_block_input}'    => $f['captcha_answer_input'],
+            '{captcha_question}'       => View::e($captchaQuestion),
+            '{submit_button}'          => '<button type="submit" class="fl-submit">Submit Application</button>',
+            '{clear_button}'           => '<button type="reset" class="fl-btn-secondary">Clear</button>',
+        ];
+
+        $inner = FormTemplateRenderer::expandTokens($tpl, $tokens);
+        return FormTemplateRenderer::wrapForm($inner, '#', $this->app->getCSRF()->token(), false, preview: true);
     }
 
     private function coltplPreviewKimSignupForm(string $tpl, Config $config): string
@@ -684,6 +759,185 @@ final class SettingsController extends AdminController
         ];
 
         $inner = FormTemplateRenderer::expandTokens($tpl, $tokens);
+        return FormTemplateRenderer::wrapForm($inner, '#', $this->app->getCSRF()->token(), false, preview: true);
+    }
+
+    private function coltplPreviewKimListOverview(string $tpl): string
+    {
+        $sampleListings = [
+            ['title' => 'Sample Listing A', 'subject' => 'Archeology', 'url' => '#', 'kim_url' => '#', 'count' => 4],
+            ['title' => 'Sample Listing B', 'subject' => 'Marilyn Monroe', 'url' => '#', 'kim_url' => '#', 'count' => 2],
+            ['title' => 'Sample Listing C', 'subject' => 'Vintage Tea Sets', 'url' => '#', 'kim_url' => '#', 'count' => 7],
+        ];
+
+        $hasListings = count($sampleListings) > 0;
+        $tpl = TemplateEngine::conditionals($tpl, [
+            'has_listings' => $hasListings,
+            'no_listings'  => !$hasListings,
+        ]);
+
+        return TemplateEngine::loop(
+            $tpl,
+            'kim_listing',
+            $sampleListings,
+            static function (string $inner, array $entry): string {
+                return TemplateEngine::tokens($inner, [
+                    'listing_title'     => $entry['title'],
+                    'listing_subject'   => $entry['subject'],
+                    'listing_url'       => $entry['url'],
+                    'listing_kim_url'   => $entry['kim_url'],
+                    'listing_kim_count' => (string) $entry['count'],
+                ]);
+            },
+        );
+    }
+
+    private function coltplPreviewKimListSubject(string $tpl): string
+    {
+        $sampleMembers = [
+            (object) ['name' => 'Alice', 'url' => 'https://alice.example.com'],
+            (object) ['name' => 'Bob', 'url' => ''],
+            (object) ['name' => 'Carol', 'url' => 'https://carol.example.com'],
+        ];
+
+        $hasMembers = count($sampleMembers) > 0;
+        $tpl = TemplateEngine::conditionals($tpl, [
+            'has_kim_members' => $hasMembers,
+            'no_kim_members'  => !$hasMembers,
+        ]);
+        $tpl = TemplateEngine::loop(
+            $tpl,
+            'kim_member',
+            $sampleMembers,
+            static function (string $inner, object $member): string {
+                return TemplateEngine::render(
+                    $inner,
+                    ['member_name' => $member->name, 'member_url' => $member->url],
+                    [],
+                    ['member_url' => $member->url !== '', 'no_member_url' => $member->url === ''],
+                );
+            },
+        );
+
+        $tpl = TemplateEngine::conditionals($tpl, [
+            'kim_overview_url' => true,
+            'kim_signup_url'   => true,
+        ]);
+
+        return TemplateEngine::tokens(
+            $tpl,
+            [
+                'listing_title'    => 'Sample Fanlisting',
+                'listing_subject'  => 'Sample Fanlisting',
+                'listing_url'      => '#',
+                'kim_overview_url' => '#',
+                'kim_signup_url'   => '#',
+            ],
+            ['pagination' => ''],
+        );
+    }
+
+    private function coltplPreviewKimUpdateForm(string $tpl, Config $config): string
+    {
+        $captchaQ = Captcha::getQuestion('kim_update_prev');
+        $fb       = $this->app->getFormFieldBuilder();
+
+        $flSelectHtml = '<select class="fl-select" id="kim-fanlisting" name="fanlisting_id" required>'
+                      . '<option value="">&#8212; Select the fanlisting your entry is for &#8212;</option>'
+                      . '<option value="1">Sample Fanlisting</option>'
+                      . '</select>';
+
+        $f = $fb->build([
+            ['type' => 'text',     'name' => 'name',                 'id' => 'kim-name',                 'label' => 'Name',                 'required' => true,  'attrs' => ['maxlength' => '100']],
+            ['type' => 'email',    'name' => 'current_email',        'id' => 'kim-current-email',        'label' => 'Current Email',        'required' => true,  'attrs' => ['maxlength' => '255']],
+            ['type' => 'password', 'name' => 'current_password',     'id' => 'kim-current-password',     'label' => 'Current Password',     'required' => true,  'attrs' => ['maxlength' => '255']],
+            ['type' => 'select',   'name' => 'fanlisting_id',        'id' => 'kim-fanlisting',           'label' => 'Fanlisting',           'required' => true,  'raw_input' => $flSelectHtml],
+            ['type' => 'email',    'name' => 'new_email',            'id' => 'kim-new-email',            'label' => 'New Email',            'required' => false, 'attrs' => ['maxlength' => '255'], 'hint' => 'Leave blank to keep current'],
+            ['type' => 'url',      'name' => 'new_url',              'id' => 'kim-new-url',              'label' => 'New Website URL',      'required' => false, 'attrs' => ['maxlength' => '500', 'placeholder' => 'https://'], 'hint' => 'Leave blank to keep current'],
+            ['type' => 'password', 'name' => 'new_password',         'id' => 'kim-new-password',         'label' => 'New Password',         'required' => false, 'attrs' => ['maxlength' => '255'], 'hint' => 'Min 8 characters; leave blank to keep current'],
+            ['type' => 'password', 'name' => 'new_password_confirm', 'id' => 'kim-new-password-confirm', 'label' => 'Confirm New Password', 'required' => false, 'attrs' => ['maxlength' => '255']],
+            ['type' => 'text',     'name' => 'captcha_answer',       'id' => 'kim-captcha',              'label' => 'Captcha: ' . $captchaQ, 'required' => true, 'attrs' => ['maxlength' => '10']],
+        ], '');
+
+        $lostPwUrl = '#';
+        $tplOut = TemplateEngine::conditionals($tpl, ['lost_password_url' => true]);
+        $tokens = [
+            '{field_name}'                       => $f['name'],
+            '{field_name_input}'                 => $f['name_input'],
+            '{field_current_email}'              => $f['current_email'],
+            '{field_current_email_input}'        => $f['current_email_input'],
+            '{field_current_password}'           => $f['current_password'],
+            '{field_current_password_input}'     => $f['current_password_input'],
+            '{field_fanlisting_id}'              => $f['fanlisting_id'],
+            '{field_fanlisting_id_input}'        => $f['fanlisting_id_input'],
+            '{field_new_email}'                  => $f['new_email'],
+            '{field_new_email_input}'            => $f['new_email_input'],
+            '{field_new_url}'                    => $f['new_url'],
+            '{field_new_url_input}'              => $f['new_url_input'],
+            '{field_new_password}'               => $f['new_password'],
+            '{field_new_password_input}'         => $f['new_password_input'],
+            '{field_new_password_confirm}'       => $f['new_password_confirm'],
+            '{field_new_password_confirm_input}' => $f['new_password_confirm_input'],
+            '{field_send_copy}'                  => '',
+            '{field_send_copy_input}'            => '',
+            '{captcha_block}'                    => $f['captcha_answer'],
+            '{captcha_block_input}'              => $f['captcha_answer_input'],
+            '{captcha_question}'                 => View::e($captchaQ),
+            '{submit_button}'                    => '<button type="submit" class="fl-submit">Update</button>',
+            '{clear_button}'                     => '<button type="reset" class="fl-btn-secondary">Clear</button>',
+            '{lost_password_url}'                => View::e($lostPwUrl),
+        ];
+
+        $inner = FormTemplateRenderer::expandTokens($tplOut, $tokens);
+        return FormTemplateRenderer::wrapForm($inner, '#', $this->app->getCSRF()->token(), false, preview: true);
+    }
+
+    private function coltplPreviewKimResetForm(string $tpl, Config $config): string
+    {
+        $captchaQ = Captcha::getQuestion('kim_reset_prev');
+        $fb       = $this->app->getFormFieldBuilder();
+
+        $flSelectHtml = '<select class="fl-select" id="kim-fanlisting" name="fanlisting_id" required>'
+                      . '<option value="">&#8212; Select the fanlisting your entry is for &#8212;</option>'
+                      . '<option value="1">Sample Fanlisting</option>'
+                      . '</select>';
+
+        $fEmail = $fb->build([
+            ['type' => 'email',  'name' => 'email',          'id' => 'kim-email',      'label' => 'Email',                  'required' => true, 'attrs' => ['maxlength' => '255']],
+            ['type' => 'select', 'name' => 'fanlisting_id',  'id' => 'kim-fanlisting', 'label' => 'Fanlisting',             'required' => true, 'raw_input' => $flSelectHtml],
+            ['type' => 'text',   'name' => 'captcha_answer', 'id' => 'kim-captcha',    'label' => 'Captcha: ' . $captchaQ, 'required' => true, 'attrs' => ['maxlength' => '10']],
+        ], '');
+        $fConfirm = $fb->build([
+            ['type' => 'password', 'name' => 'new_password',         'id' => 'kim-new-password',         'label' => 'New Password',         'required' => true, 'attrs' => ['maxlength' => '255']],
+            ['type' => 'password', 'name' => 'new_password_confirm', 'id' => 'kim-new-password-confirm', 'label' => 'Confirm New Password', 'required' => true, 'attrs' => ['maxlength' => '255']],
+        ], '');
+
+        $tplOut = TemplateEngine::conditionals($tpl, [
+            'step_email'    => true,
+            'step_confirm'  => true,
+            'token_valid'   => true,
+            'token_invalid' => false,
+        ]);
+
+        $tokens = [
+            '{field_email}'                      => $fEmail['email'],
+            '{field_email_input}'                => $fEmail['email_input'],
+            '{field_fanlisting_id}'              => $fEmail['fanlisting_id'],
+            '{field_fanlisting_id_input}'        => $fEmail['fanlisting_id_input'],
+            '{captcha_block}'                    => $fEmail['captcha_answer'],
+            '{captcha_block_input}'              => $fEmail['captcha_answer_input'],
+            '{captcha_question}'                 => View::e($captchaQ),
+            '{field_password}'                   => $fConfirm['new_password'],
+            '{field_password_input}'             => $fConfirm['new_password_input'],
+            '{field_password_confirm}'           => $fConfirm['new_password_confirm'],
+            '{field_password_confirm_input}'     => $fConfirm['new_password_confirm_input'],
+            '{hidden_token}'                     => '',
+            '{reset_request_url}'                => '#',
+            '{submit_button}'                    => '<button type="submit" class="fl-submit">Submit</button>',
+            '{clear_button}'                     => '<button type="reset" class="fl-btn-secondary">Clear</button>',
+        ];
+
+        $inner = FormTemplateRenderer::expandTokens($tplOut, $tokens);
         return FormTemplateRenderer::wrapForm($inner, '#', $this->app->getCSRF()->token(), false, preview: true);
     }
 
@@ -784,6 +1038,165 @@ final class SettingsController extends AdminController
         );
     }
 
+    private function coltplPreviewCodes(string $tpl, Database $db, string $uploadsUrl): string
+    {
+        $codesRepo      = new CodesRepo($db);
+        $codeDonorsRepo = new CodeDonorsRepo($db);
+        $catsRepo       = new CodeCategoriesRepo($db);
+
+        $codes      = $codesRepo->getByListing(null, 'approved');
+        $donors     = $codeDonorsRepo->getByListing(null);
+        $categories = $catsRepo->getByListing(null);
+        $catMap     = $catsRepo->getCategoryMapForListing(null);
+
+        $donorMap = [];
+        foreach ($donors as $donor) {
+            $donorMap[$donor->id] = $donor;
+        }
+
+        $categoryMap = [];
+        foreach ($categories as $cat) {
+            $categoryMap[$cat->id] = $cat;
+        }
+
+        $grouped = [];
+        foreach ($codes as $code) {
+            if ($code->width > 0 && $code->height > 0) {
+                $key   = (int) $code->width . 'x' . (int) $code->height;
+                $label = (int) $code->width . 'x' . (int) $code->height . 'px';
+            } else {
+                $key   = 'unknown';
+                $label = 'Other';
+            }
+            if (!isset($grouped[$key])) {
+                $grouped[$key] = ['label' => $label, 'codes' => []];
+            }
+            $grouped[$key]['codes'][] = $code;
+        }
+        uksort($grouped, function (string $a, string $b): int {
+            if ($a === 'unknown') return 1;
+            if ($b === 'unknown') return -1;
+            [$aw, $ah] = explode('x', $a);
+            [$bw, $bh] = explode('x', $b);
+            return $aw !== $bw ? (int) $aw - (int) $bw : (int) $ah - (int) $bh;
+        });
+
+        $appName = (string) ($this->app->getConfig()->get('app_name', '') ?: 'Collective');
+        $html = CodesTemplateRenderer::render(
+            $tpl, $codes, $grouped, $donorMap, $uploadsUrl,
+            $catMap, $categoryMap, $appName,
+        );
+
+        if ($html === null) {
+            return '<p style="color:#c00">Template must include an {each_code} or {each_size_group} block.</p>';
+        }
+
+        if (trim($html) === '' && empty($codes)) {
+            return '<p style="font-style:italic;color:#888">No approved collective codes to preview with.</p>';
+        }
+
+        return $html;
+    }
+
+    private function coltplPreviewCodesSubmitForm(string $tpl, Config $config): string
+    {
+        $siteName = (string) $config->get('site_name', 'Collective');
+        $siteUrl  = (string) ($config->get('site_url', '') ?: $this->app->getBaseUrl());
+
+        $captchaQuestion = Captcha::getQuestion('code_submit');
+        $fb = $this->app->getFormFieldBuilder();
+
+        $descriptors = [
+            ['type' => 'file',  'name' => 'code_image',      'id' => 'code-image',  'label' => 'Upload Code',                'required' => true,  'attrs' => ['accept' => 'image/jpeg,image/png,image/gif,image/webp']],
+            ['type' => 'text',  'name' => 'submitter_name',  'id' => 'sub-name',    'label' => 'Name',                       'required' => false, 'value' => '', 'attrs' => ['maxlength' => '150', 'autocomplete' => 'name']],
+            ['type' => 'email', 'name' => 'submitter_email', 'id' => 'sub-email',   'label' => 'Email',                      'required' => true,  'value' => '', 'attrs' => ['maxlength' => '255', 'autocomplete' => 'email'], 'hint' => 'Required — used only to notify you when your code is approved.'],
+            ['type' => 'url',   'name' => 'submitter_url',   'id' => 'sub-url',     'label' => 'Website (optional)',         'required' => false, 'value' => '', 'attrs' => ['maxlength' => '255', 'placeholder' => 'https://', 'autocomplete' => 'url'], 'hint' => 'Displayed as a link on your donated code.'],
+            ['type' => 'text',  'name' => 'captcha',         'id' => 'captcha',     'label' => 'Captcha: ' . $captchaQuestion, 'required' => true, 'attrs' => ['maxlength' => '10', 'autocomplete' => 'off']],
+        ];
+        $f = $fb->build($descriptors, '');
+
+        $tokens = [
+            '{listing_title}'               => View::e($siteName),
+            '{listing_url}'                 => View::e($siteUrl),
+            '{field_code_image}'            => $f['code_image'],
+            '{field_code_image_input}'      => $f['code_image_input'],
+            '{field_submitter_name}'        => $f['submitter_name'],
+            '{field_submitter_name_input}'  => $f['submitter_name_input'],
+            '{field_submitter_email}'       => $f['submitter_email'],
+            '{field_submitter_email_input}' => $f['submitter_email_input'],
+            '{field_submitter_url}'         => $f['submitter_url'],
+            '{field_submitter_url_input}'   => $f['submitter_url_input'],
+            '{captcha_block}'               => $f['captcha'],
+            '{captcha_block_input}'         => $f['captcha_input'],
+            '{captcha_question}'            => View::e($captchaQuestion),
+            '{submit_button}'               => '<button type="submit" class="fl-submit">Submit Code</button>',
+            '{clear_button}'               => '<button type="reset" class="fl-btn-secondary">Clear</button>',
+        ];
+
+        $inner = FormTemplateRenderer::expandTokens($tpl, $tokens);
+        return FormTemplateRenderer::wrapForm($inner, '#', $this->app->getCSRF()->token(), true, preview: true);
+    }
+
+    private function coltplPreviewContactForm(string $tpl, Config $config): string
+    {
+        $siteName = (string) $config->get('site_name', 'Collective');
+        $siteUrl  = (string) ($config->get('site_url', '') ?: $this->app->getBaseUrl());
+
+        $captchaQuestion = Captcha::getQuestion('contact_collective');
+        $fb = $this->app->getFormFieldBuilder();
+
+        $subjectHtml = '<select id="contact-subject" name="subject" required>'
+                     . '<option value="" disabled selected>Choose &mdash;</option>'
+                     . '<option value="Comments">Comments</option>'
+                     . '<option value="Questions/Concerns">Questions/Concerns</option>'
+                     . '<option value="Affiliation">Affiliation</option>'
+                     . '</select>';
+
+        $descriptors = [
+            ['type' => 'text',     'name' => 'name',           'id' => 'contact-name',    'label' => 'Name',        'required' => true,  'value' => '', 'attrs' => ['maxlength' => '100', 'autocomplete' => 'name']],
+            ['type' => 'email',    'name' => 'email',          'id' => 'contact-email',   'label' => 'Email',       'required' => true,  'value' => '', 'attrs' => ['maxlength' => '255', 'autocomplete' => 'email']],
+            ['type' => 'url',      'name' => 'url',            'id' => 'contact-url',     'label' => 'Website URL', 'required' => false, 'value' => '', 'attrs' => ['maxlength' => '255', 'autocomplete' => 'url']],
+            ['type' => 'select',   'name' => 'subject',        'id' => 'contact-subject', 'label' => 'Subject',     'required' => true,  'raw_input' => $subjectHtml],
+            ['type' => 'textarea', 'name' => 'message',        'id' => 'contact-message', 'label' => 'Message',     'required' => true,  'value' => '', 'attrs' => ['maxlength' => '5000', 'rows' => '6']],
+            ['type' => 'text',     'name' => 'captcha_answer', 'id' => 'contact-captcha', 'label' => 'Captcha: ' . $captchaQuestion, 'required' => true, 'attrs' => ['maxlength' => '10', 'autocomplete' => 'off']],
+        ];
+        $f = $fb->build($descriptors, '');
+
+        $tokens = [
+            '{listing_title}'        => View::e($siteName),
+            '{listing_url}'          => View::e($siteUrl),
+            '{field_name}'           => $f['name'],
+            '{field_name_input}'     => $f['name_input'],
+            '{field_email}'          => $f['email'],
+            '{field_email_input}'    => $f['email_input'],
+            '{field_url}'            => $f['url'],
+            '{field_url_input}'      => $f['url_input'],
+            '{field_subject}'        => $f['subject'],
+            '{field_subject_input}'  => $f['subject_input'],
+            '{field_message}'        => $f['message'],
+            '{field_message_input}'  => $f['message_input'],
+            '{captcha_block}'        => $f['captcha_answer'],
+            '{captcha_block_input}'  => $f['captcha_answer_input'],
+            '{captcha_question}'     => View::e($captchaQuestion),
+            '{submit_button}'        => '<button type="submit" class="fl-submit">Send Message</button>',
+            '{clear_button}'         => '<button type="reset" class="fl-btn-secondary">Clear</button>',
+        ];
+
+        $inner = FormTemplateRenderer::expandTokens($tpl, $tokens);
+        return FormTemplateRenderer::wrapForm($inner, '#', $this->app->getCSRF()->token(), true, preview: true);
+    }
+
+    private function coltplPreviewContactSent(string $tpl): string
+    {
+        return SuccessRenderer::render($tpl, 'contact-sent', [
+            'sender_name'  => 'Alice',
+            'sender_email' => 'alice@example.com',
+            'site_name'    => 'My Collective',
+            'owner_name'   => 'Site Owner',
+            'owner_email'  => 'owner@example.com',
+        ]);
+    }
+
     // -----------------------------------------------------------------------
     // GET /admin/collective/snippets
     // -----------------------------------------------------------------------
@@ -820,7 +1233,10 @@ final class SettingsController extends AdminController
             'collective_contact_enabled',
             'collective_contact_recipient',
             'collective_affiliate_apply_enabled',
-            'pending_digest_enabled',
+            'collective_form_url_codes_submit',
+            'collective_form_url_affiliate_apply',
+            'collective_form_url_adopt',
+            'collective_form_url_contact',
         ]);
 
         return $this->adminLayout('admin/collective/settings.php', 'Collective Settings', 'collective', [
@@ -852,7 +1268,15 @@ final class SettingsController extends AdminController
         $siteSettings->set('collective_contact_recipient', $collectiveContactRecipient !== '' ? $collectiveContactRecipient : null);
 
         $siteSettings->set('collective_affiliate_apply_enabled', $request->post('collective_affiliate_apply_enabled') === '1' ? '1' : '0');
-        $siteSettings->set('pending_digest_enabled', $request->post('pending_digest_enabled') === '1' ? '1' : '0');
+
+        $codesSubmitUrl     = trim((string) $request->post('collective_form_url_codes_submit',    ''));
+        $affiliateApplyUrl  = trim((string) $request->post('collective_form_url_affiliate_apply', ''));
+        $adoptUrl           = trim((string) $request->post('collective_form_url_adopt',           ''));
+        $contactUrl         = trim((string) $request->post('collective_form_url_contact',         ''));
+        $siteSettings->set('collective_form_url_codes_submit',    $codesSubmitUrl    !== '' ? $codesSubmitUrl    : null);
+        $siteSettings->set('collective_form_url_affiliate_apply', $affiliateApplyUrl !== '' ? $affiliateApplyUrl : null);
+        $siteSettings->set('collective_form_url_adopt',           $adoptUrl          !== '' ? $adoptUrl          : null);
+        $siteSettings->set('collective_form_url_contact',         $contactUrl        !== '' ? $contactUrl        : null);
 
         (new ActivityRepo($this->app->getDatabase()))->log(
             (int) $session->get('lstr_admin_id'),
@@ -907,6 +1331,9 @@ final class SettingsController extends AdminController
             'overdue_days',
             'overdue_notify_last_sent',
             'stale_days',
+            'update_email_notify',
+            'pending_digest_enabled',
+            'admin_default_theme',
         ]);
 
         // Detect community skin files in public/assets/css/skins/
@@ -1246,6 +1673,15 @@ final class SettingsController extends AdminController
         $session  = $this->app->getSession();
         $baseUrl  = $this->app->getBaseUrl();
 
+        $groupWhitelist = [
+            'all', 'owned', 'joined', 'stats', 'codes',
+            'contact', 'affiliates', 'adoption', 'kim', 'wishlist', 'updates',
+        ];
+        $returnGroup = (string) $request->post('return_group', 'all');
+        if (!in_array($returnGroup, $groupWhitelist, true)) {
+            $returnGroup = 'all';
+        }
+
         $ownedTemplate                       = (string) $request->post('owned_template',                            '');
         $joinedTemplate                      = (string) $request->post('joined_template',                           '');
         $cStatsTemplate                      = (string) $request->post('collective_stats_template',                 '');
@@ -1255,9 +1691,18 @@ final class SettingsController extends AdminController
         $randomJoinedListingTemplate         = (string) $request->post('random_joined_listing_template',            '');
         $latestJoinedListingTemplate         = (string) $request->post('latest_joined_listing_template',            '');
         $collectiveAffiliateApplyFormTpl     = (string) $request->post('collective_affiliate_apply_form_template',  '');
+        $collectiveAdoptionFormTpl           = (string) $request->post('collective_adoption_form_template',           '');
         $kimSignupFormTpl                    = (string) $request->post('kim_signup_form_template',                   '');
         $wishlistTemplate                    = (string) $request->post('wishlist_template',                          '');
         $collectiveUpdatesTemplate           = (string) $request->post('collective_updates_template',                '');
+        $collectiveCodesTemplate             = (string) $request->post('collective_codes_template',                  '');
+        $collectiveCodesSubmitFormTpl        = (string) $request->post('collective_codes_submit_form_template',      '');
+        $kimListOverviewTpl                  = (string) $request->post('collective_kim_list_overview_template',      '');
+        $kimListSubjectTpl                   = (string) $request->post('collective_kim_list_subject_template',       '');
+        $kimUpdateFormTpl                    = (string) $request->post('kim_update_form_template',                   '');
+        $kimResetFormTpl                     = (string) $request->post('kim_reset_form_template',                    '');
+        $contactFormTpl                      = (string) $request->post('collective_contact_form_template',           '');
+        $contactSentTpl                      = (string) $request->post('collective_contact_sent_template',           '');
 
         $siteRepo = new SiteSettingsRepo($this->app->getDatabase());
         $siteRepo->set('owned_template',            $ownedTemplate  !== '' ? $ownedTemplate  : null);
@@ -1270,9 +1715,18 @@ final class SettingsController extends AdminController
         $siteRepo->set('random_joined_listing_template', $randomJoinedListingTemplate !== '' ? $randomJoinedListingTemplate : null);
         $siteRepo->set('latest_joined_listing_template', $latestJoinedListingTemplate !== '' ? $latestJoinedListingTemplate : null);
         $siteRepo->set('collective_affiliate_apply_form_template', $collectiveAffiliateApplyFormTpl !== '' ? $collectiveAffiliateApplyFormTpl : null);
+        $siteRepo->set('collective_adoption_form_template',        $collectiveAdoptionFormTpl       !== '' ? $collectiveAdoptionFormTpl       : null);
         $siteRepo->set('kim_signup_form_template', $kimSignupFormTpl !== '' ? $kimSignupFormTpl : null);
         $siteRepo->set('wishlist_template',            $wishlistTemplate          !== '' ? $wishlistTemplate          : null);
-        $siteRepo->set('collective_updates_template',  $collectiveUpdatesTemplate !== '' ? $collectiveUpdatesTemplate  : null);
+        $siteRepo->set('collective_updates_template',  $collectiveUpdatesTemplate !== '' ? $collectiveUpdatesTemplate : null);
+        $siteRepo->set('collective_codes_template',    $collectiveCodesTemplate   !== '' ? $collectiveCodesTemplate   : null);
+        $siteRepo->set('collective_codes_submit_form_template', $collectiveCodesSubmitFormTpl !== '' ? $collectiveCodesSubmitFormTpl : null);
+        $siteRepo->set('collective_kim_list_overview_template', $kimListOverviewTpl !== '' ? $kimListOverviewTpl : null);
+        $siteRepo->set('collective_kim_list_subject_template',  $kimListSubjectTpl  !== '' ? $kimListSubjectTpl  : null);
+        $siteRepo->set('kim_update_form_template',  $kimUpdateFormTpl !== '' ? $kimUpdateFormTpl : null);
+        $siteRepo->set('kim_reset_form_template',   $kimResetFormTpl  !== '' ? $kimResetFormTpl  : null);
+        $siteRepo->set('collective_contact_form_template', $contactFormTpl !== '' ? $contactFormTpl : null);
+        $siteRepo->set('collective_contact_sent_template', $contactSentTpl !== '' ? $contactSentTpl : null);
 
         $activityRepo = new ActivityRepo($this->app->getDatabase());
         $activityRepo->log(
@@ -1283,7 +1737,11 @@ final class SettingsController extends AdminController
         );
 
         $session->set('lstr_flash_success', 'Collective templates saved.');
-        return Response::redirect($baseUrl . '/admin/collective/templates');
+        $redirect = $baseUrl . '/admin/collective/templates';
+        if ($returnGroup !== 'all') {
+            $redirect .= '?group=' . rawurlencode($returnGroup);
+        }
+        return Response::redirect($redirect);
     }
 
     private function tableExists(Database $db, string $table): bool
@@ -1364,6 +1822,61 @@ final class SettingsController extends AdminController
 
         $session->set('lstr_flash_success', 'Import visibility settings saved.');
         return Response::redirect($baseUrl . '/admin/settings#panel-system');
+    }
+
+    // -----------------------------------------------------------------------
+    // POST /admin/settings/default-theme
+    // -----------------------------------------------------------------------
+
+    public function saveDefaultTheme(Request $request, array $params): Response
+    {
+        $session  = $this->app->getSession();
+        $baseUrl  = $this->app->getBaseUrl();
+        $theme    = (string) $request->post('admin_default_theme', 'light');
+
+        if (!in_array($theme, ['light', 'dark'], true)) {
+            $theme = 'light';
+        }
+
+        (new SiteSettingsRepo($this->app->getDatabase()))->set('admin_default_theme', $theme);
+
+        (new ActivityRepo($this->app->getDatabase()))->log(
+            (int) $session->get('lstr_admin_id'),
+            'settings.save',
+            'Admin default theme changed to: ' . $theme,
+            $request->ip(),
+        );
+
+        $session->set('lstr_flash_success', 'Default theme saved.');
+        return Response::redirect($baseUrl . '/admin/settings#panel-appearance');
+    }
+
+    // -----------------------------------------------------------------------
+    // POST /admin/settings/notifications
+    // -----------------------------------------------------------------------
+
+    public function saveNotifications(Request $request, array $params): Response
+    {
+        $session      = $this->app->getSession();
+        $baseUrl      = $this->app->getBaseUrl();
+        $db           = $this->app->getDatabase();
+        $siteSettings = new SiteSettingsRepo($db);
+
+        $siteSettings->set('update_email_notify',   $request->post('update_email_notify')   === '1' ? '1' : '0');
+        $siteSettings->set('pending_digest_enabled', $request->post('pending_digest_enabled') === '1' ? '1' : '0');
+        $siteSettings->set('overdue_notify_enabled', $request->post('overdue_notify_enabled') === '1' ? '1' : '0');
+        $siteSettings->set('stale_days',   (string) max(1, min(365, (int) $request->post('stale_days',   '45'))));
+        $siteSettings->set('overdue_days', (string) max(1, min(365, (int) $request->post('overdue_days', '55'))));
+
+        (new ActivityRepo($db))->log(
+            (int) $session->get('lstr_admin_id'),
+            'settings.save',
+            'Notification settings updated',
+            $request->ip(),
+        );
+
+        $session->set('lstr_flash_success', 'Notification settings saved.');
+        return Response::redirect($baseUrl . '/admin/settings#panel-notifications');
     }
 
     // -----------------------------------------------------------------------

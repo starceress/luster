@@ -75,7 +75,7 @@ if ($_lusterEmbedBase === '') {
 
 $_lusterFormAction = $_lusterEmbedBase . '/codes/submit/0';
 $_lusterCaptchaQ   = Captcha::getQuestion('code_submit');
-$_lusterWrapperTpl = (new SiteSettingsRepo($_lusterDb))->get('collective_field_wrapper_template', '') ?? '';
+$_lusterWrapperTpl = '';
 
 $_lusterF = $_lusterApp->getFormFieldBuilder()->build([
     ['type' => 'file',  'name' => 'code_image',      'id' => 'code-image', 'label' => 'Upload Code',       'required' => true,  'attrs' => ['accept' => 'image/jpeg,image/png,image/gif,image/webp']],

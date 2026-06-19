@@ -22,25 +22,7 @@ use Luster\Support\ListingTemplateResolver;
  *   $luster_return        = false;  // optional: true = return string, false = echo
  *   require '/absolute/path/to/luster/public/embed/stats.php';
  *
- * Available {token} placeholders (same as the /stats/{id} endpoint):
- *   {stat_opened}       — date listing opened ("March 1st 2026")
- *   {stat_updated}      — most recent activity date: whichever is more recent
- *                         of the newest approved member's join date and the
- *                         admin-set "last updated" date; "N/A" if neither is set
- *   {stat_approved}     — approved member count
- *   {stat_pending}      — pending member count
- *   {stat_countries}    — unique country count for approved members
- *   {stat_newmembers}   — newest 5 approved member names, formatted with
- *                         Oxford comma (e.g. "A, B, and C")
- *   {stat_growth}       — average members per day since opened, e.g. "1.23 members/day"
- *   {listing_title}      — listing name (HTML-escaped)
- *   {listing_url}       — listing URL (HTML-escaped)
- *   {approved_by}       — linked network name ("The Fanlistings Network" or
- *                         "The Anime Fanlistings Network"), or '' if not approved
- *   {if_stat_pending}...{/if_stat_pending} — rendered only when pending count > 0
- *   {if_approved_by}...{/if_approved_by}  — rendered only when approved_by is set
- *   {network_status}    — linked network name, or "Independent" when not approved
- *                         by a network; always renders something
+ * See ListingSettingsRepo::defaultStatsTemplate() for the full token reference.
  */
 
 // ---------------------------------------------------------------------------
@@ -134,13 +116,14 @@ if (isset($luster_stats_template) && trim((string) $luster_stats_template) !== '
 // 6. Format dates
 // ---------------------------------------------------------------------------
 
+$_lusterDateFmt     = (string) ($luster_date_format ?? '');
 $_lusterOpened = $_lusterListing->joined !== null
-    ? DateFormatter::format($_lusterListing->joined)
+    ? ($_lusterDateFmt !== '' ? DateFormatter::formatWith($_lusterListing->joined, $_lusterDateFmt) : DateFormatter::format($_lusterListing->joined))
     : 'Unknown';
 
 $_lusterUpdatedDate = DateFormatter::mostRecent($_lusterMemberDate, $_lusterAdminDate);
 $_lusterUpdated     = $_lusterUpdatedDate !== null
-    ? DateFormatter::format($_lusterUpdatedDate)
+    ? ($_lusterDateFmt !== '' ? DateFormatter::formatWith($_lusterUpdatedDate, $_lusterDateFmt) : DateFormatter::format($_lusterUpdatedDate))
     : 'N/A';
 
 // ---------------------------------------------------------------------------
@@ -174,10 +157,11 @@ if ($_lusterListing->joined !== null) {
 // 8. Replace tokens and output
 // ---------------------------------------------------------------------------
 
-$_lusterApprovedBy     = $_lusterSettingsRepo->getApprovedBy($_lusterListingId);
-$_lusterApprovedByHtml = match ($_lusterApprovedBy) {
-    'tfl'   => '<a href="https://thefanlistings.org">The Fanlistings Network</a>',
-    'tafl'  => '<a href="https://animefanlistings.org">The Anime Fanlistings Network</a>',
+$_lusterApprovedBy   = $_lusterSettingsRepo->getApprovedBy($_lusterListingId);
+$_lusterNetwork      = strtoupper($_lusterApprovedBy);
+$_lusterNetworkName  = match ($_lusterApprovedBy) {
+    'tfl'   => 'The Fanlistings Network',
+    'tafl'  => 'The Anime Fanlistings Network',
     default => '',
 };
 
@@ -188,12 +172,20 @@ $_lusterTemplate = (string) preg_replace(
     $_lusterTemplate,
 );
 $_lusterTemplate = (string) preg_replace(
+    '/\{if_tfl\}(.*?)\{\/if_tfl\}/s',
+    $_lusterApprovedBy === 'tfl' ? '$1' : '',
+    $_lusterTemplate,
+);
+$_lusterTemplate = (string) preg_replace(
+    '/\{if_tafl\}(.*?)\{\/if_tafl\}/s',
+    $_lusterApprovedBy === 'tafl' ? '$1' : '',
+    $_lusterTemplate,
+);
+$_lusterTemplate = (string) preg_replace(
     '/\{if_stat_pending\}(.*?)\{\/if_stat_pending\}/s',
     $_lusterPending > 0 ? '$1' : '',
     $_lusterTemplate,
 );
-
-$_lusterNetworkStatus = $_lusterApprovedByHtml !== '' ? $_lusterApprovedByHtml : 'Independent';
 
 $_lusterHtml = str_replace(
     [
@@ -207,7 +199,11 @@ $_lusterHtml = str_replace(
         '{listing_title}',
         '{listing_url}',
         '{approved_by}',
+        '{network}',
         '{network_status}',
+        '{network_name}',
+        '{tfl_url}',
+        '{tafl_url}',
     ],
     [
         $_lusterOpened,
@@ -219,8 +215,12 @@ $_lusterHtml = str_replace(
         $_lusterGrowth . ' members/day',
         htmlspecialchars($_lusterListing->title, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),
         htmlspecialchars($_lusterListing->url,  ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),
-        $_lusterApprovedByHtml,
-        $_lusterNetworkStatus,
+        $_lusterNetwork,
+        $_lusterNetwork,
+        $_lusterNetwork,
+        $_lusterNetworkName,
+        'https://thefanlistings.org/',
+        'https://www.animefanlistings.com/',
     ],
     $_lusterTemplate,
 );

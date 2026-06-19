@@ -138,6 +138,7 @@ $_lusterHtml = ListingRowRenderer::renderTemplate(
     [$_lusterListing->id => $_lusterSettings],
     [$_lusterListing->id => $_flStats],
     $_lusterCategoryName !== '' ? [$_lusterListing->id => $_lusterCategoryName] : [],
+    (string) ($luster_date_format ?? ''),
 );
 
 $_lusterHtml .= \Luster\Core\View::attribution();

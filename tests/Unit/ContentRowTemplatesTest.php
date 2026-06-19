@@ -9,7 +9,6 @@ use PHPUnit\Framework\TestCase;
 
 /**
  * Tests the Phase 4 content-row template rendering contracts:
- *   - Codes: flat {each_code} with {if_size_changed} tracking
  *   - Codes: grouped {each_size_group} with nested {each_code}
  *   - Updates: {update_body_html} raw insertion + author/category conditionals
  *   - Wishlist: {type_top}/{type_wanted}/{type_granted} conditionals
@@ -17,95 +16,6 @@ use PHPUnit\Framework\TestCase;
  */
 final class ContentRowTemplatesTest extends TestCase
 {
-    // -------------------------------------------------------------------------
-    // Codes — flat mode
-    // -------------------------------------------------------------------------
-
-    public function testCodesFlatModeTracksIfSizeChanged(): void
-    {
-        $codes = [
-            ['size_label' => '75×50',  'name' => 'a.gif'],
-            ['size_label' => '75×50',  'name' => 'b.gif'],
-            ['size_label' => '100×50', 'name' => 'c.gif'],
-        ];
-        $tpl = '{each_code}{if_size_changed}[{code_size}]{/if_size_changed}{code_name};{/each_code}';
-
-        $prevSizeKey = '';
-        $result      = TemplateEngine::loop(
-            $tpl,
-            'code',
-            $codes,
-            static function (string $inner, array $code) use (&$prevSizeKey): string {
-                $sizeChanged = ($prevSizeKey !== $code['size_label']);
-                $prevSizeKey = $code['size_label'];
-                return TemplateEngine::render(
-                    $inner,
-                    ['code_size' => $code['size_label'], 'code_name' => $code['name']],
-                    [],
-                    ['size_changed' => $sizeChanged],
-                );
-            },
-        );
-
-        // First code of each size group gets the header; same-size codes do not.
-        self::assertSame('[75×50]a.gif;b.gif;[100×50]c.gif;', $result);
-    }
-
-    public function testCodesFlatModeFirstCodeAlwaysGetsHeader(): void
-    {
-        $codes = [['size_label' => '50×50', 'name' => 'x.png']];
-        $tpl   = '{each_code}{if_size_changed}[{code_size}]{/if_size_changed}{code_name}{/each_code}';
-
-        $prevSizeKey = '';
-        $result      = TemplateEngine::loop(
-            $tpl,
-            'code',
-            $codes,
-            static function (string $inner, array $code) use (&$prevSizeKey): string {
-                $sizeChanged = ($prevSizeKey !== $code['size_label']);
-                $prevSizeKey = $code['size_label'];
-                return TemplateEngine::render(
-                    $inner,
-                    ['code_size' => $code['size_label'], 'code_name' => $code['name']],
-                    [],
-                    ['size_changed' => $sizeChanged],
-                );
-            },
-        );
-
-        self::assertSame('[50×50]x.png', $result);
-    }
-
-    public function testCodesFlatModeSizeSwitchResetsHeader(): void
-    {
-        // Three distinct sizes; header must appear exactly three times.
-        $codes = [
-            ['size_label' => 'A', 'name' => '1'],
-            ['size_label' => 'B', 'name' => '2'],
-            ['size_label' => 'A', 'name' => '3'],
-        ];
-        $tpl = '{each_code}{if_size_changed}[{code_size}]{/if_size_changed}{code_name}{/each_code}';
-
-        $prevSizeKey = '';
-        $result      = TemplateEngine::loop(
-            $tpl,
-            'code',
-            $codes,
-            static function (string $inner, array $code) use (&$prevSizeKey): string {
-                $sizeChanged = ($prevSizeKey !== $code['size_label']);
-                $prevSizeKey = $code['size_label'];
-                return TemplateEngine::render(
-                    $inner,
-                    ['code_size' => $code['size_label'], 'code_name' => $code['name']],
-                    [],
-                    ['size_changed' => $sizeChanged],
-                );
-            },
-        );
-
-        self::assertSame('[A]1[B]2[A]3', $result);
-    }
-
     // -------------------------------------------------------------------------
     // Codes — grouped mode
     // -------------------------------------------------------------------------

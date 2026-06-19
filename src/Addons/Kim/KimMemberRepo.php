@@ -312,32 +312,44 @@ final class KimMemberRepo
     }
 
     /**
-     * Returns name + email + url + added_at for a specific set of member IDs.
-     * Used for bulk email-selected.
+     * Returns id + name + email + url + added_at for a specific set of member IDs,
+     * keyed by member ID. Used for bulk email-selected.
      *
-     * @param  int[]  $ids
-     * @return array<int, array{name: string, email: string, url: string, added_at: string}>
+     * @param  int[]    $ids
+     * @param  int|null $fanlistingId  When set, restricts to that fanlisting (prevents cross-listing ID spoofing)
+     * @return array<int, array{id: int, name: string, email: string, url: string, added_at: string}>
      */
-    public function getEmailsByIds(array $ids): array
+    public function getEmailsByIds(array $ids, ?int $fanlistingId = null): array
     {
         if (empty($ids)) {
             return [];
         }
         $placeholders = implode(', ', array_fill(0, count($ids), '?'));
+        $params       = array_values($ids);
+        $flClause     = '';
+        if ($fanlistingId !== null) {
+            $flClause = ' AND fanlisting_id = ?';
+            $params[] = $fanlistingId;
+        }
         $stmt = $this->db->prepare(
-            "SELECT name, email, url, added_at FROM lstr_kim_members WHERE id IN ({$placeholders}) ORDER BY name ASC"
+            "SELECT id, name, email, url, added_at FROM lstr_kim_members
+              WHERE id IN ({$placeholders}){$flClause}
+              ORDER BY name ASC"
         );
-        $stmt->execute(array_values($ids));
+        $stmt->execute($params);
 
-        return array_map(
-            static fn(array $row) => [
+        $result = [];
+        foreach ($stmt->fetchAll() as $row) {
+            $id = (int) $row['id'];
+            $result[$id] = [
+                'id'       => $id,
                 'name'     => (string) $row['name'],
                 'email'    => (string) $row['email'],
                 'url'      => (string) ($row['url'] ?? ''),
                 'added_at' => (string) ($row['added_at'] ?? ''),
-            ],
-            $stmt->fetchAll()
-        );
+            ];
+        }
+        return $result;
     }
 
     /**

@@ -245,11 +245,15 @@ final class Application
             $navLcRedirect = ($affStats['redirect']  ?? 0) + ($joinedStats['redirect']  ?? 0);
         } catch (\Throwable) {}
 
-        $selectedSkin = '';
+        $selectedSkin       = '';
+        $adminDefaultTheme  = 'light';
         try {
             $siteRepo     = new \Luster\Repositories\SiteSettingsRepo($this->database);
-            $skinSettings = $siteRepo->getMany(['selected_skin', 'selected_skin_hash']);
-            $selectedSkin = $skinSettings['selected_skin'] ?? '';
+            $skinSettings = $siteRepo->getMany(['selected_skin', 'selected_skin_hash', 'admin_default_theme']);
+            $selectedSkin      = $skinSettings['selected_skin'] ?? '';
+            $adminDefaultTheme = in_array($skinSettings['admin_default_theme'] ?? '', ['dark', 'light'], true)
+                ? $skinSettings['admin_default_theme']
+                : 'light';
             $storedHash   = $skinSettings['selected_skin_hash'] ?? null;
 
             // Verify community skin file integrity on every request.
@@ -303,7 +307,8 @@ final class Application
             'nav_site_url'          => rtrim((string) $this->config->get('site_url', ''), '/'),
             'nav_installed_addons'  => $this->installedAddonKeys,
             'selected_skin'         => $selectedSkin,
-            'app_name'              => (string) ($this->config->get('app_name', '') ?? ''),
+            'admin_default_theme'   => $adminDefaultTheme,
+            'app_name'              => (string) ($this->config->get('site_name', '') ?: ($this->config->get('app_name', '') ?? '')),
             'owner_name'            => (string) ($this->config->get('owner_name', '') ?? ''),
             'nav_display_name'      => (string) ($this->session->get('lstr_admin_display_name', '') ?? ''),
         ];

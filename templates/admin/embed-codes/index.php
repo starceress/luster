@@ -681,10 +681,14 @@ $epSafe = View::e($ep);
                 <tr><td class="act-col"><code class="ec-tk">{stat_growth}</code></td><td>Average new members per day since the listing opened.</td></tr>
                 <tr><td class="act-col"><code class="ec-tk">{listing_title}</code></td><td>Name of the listing.</td></tr>
                 <tr><td class="act-col"><code class="ec-tk">{listing_url}</code></td><td>Link to the listing.</td></tr>
-                <tr><td class="act-col"><code class="ec-tk">{approved_by}</code></td><td>The network that approved the listing, if one is saved.</td></tr>
+                <tr><td class="act-col"><code class="ec-tk">{approved_by}</code></td><td>Network acronym: &ldquo;TFL&rdquo;, &ldquo;TAFL&rdquo;, or empty. Plain text.</td></tr>
+                <tr><td class="act-col"><code class="ec-tk">{network}</code></td><td>Same as {approved_by} &mdash; network acronym as raw text. Empty when not set.</td></tr>
+                <tr><td class="act-col"><code class="ec-tk">{network_name}</code></td><td>Full network name: &ldquo;The Fanlistings Network&rdquo;, &ldquo;The Anime Fanlistings Network&rdquo;, or empty.</td></tr>
+                <tr><td class="act-col"><code class="ec-tk">{tfl_url}</code></td><td>TFL website URL: <code>https://thefanlistings.org/</code></td></tr>
+                <tr><td class="act-col"><code class="ec-tk">{tafl_url}</code></td><td>TAFL website URL: <code>https://www.animefanlistings.com/</code></td></tr>
                 <tr><td class="act-col"><code class="ec-tk">{if_stat_pending}&hellip;{/if_stat_pending}</code></td><td>Shows the text inside only when there are pending members.</td></tr>
                 <tr><td class="act-col"><code class="ec-tk">{if_approved_by}&hellip;{/if_approved_by}</code></td><td>Shows the text inside only when the listing has an approved-by network saved.</td></tr>
-                <tr><td class="act-col"><code class="ec-tk">{network_status}</code></td><td>The approving network as a linked name, or &ldquo;Independent&rdquo; when no network is saved. Always shows something.</td></tr>
+                <tr><td class="act-col"><code class="ec-tk">{if_tfl}&hellip;{/if_tfl}</code>, <code class="ec-tk">{if_tafl}&hellip;{/if_tafl}</code></td><td>Shows the text inside only when the listing is registered with that specific network.</td></tr>
               </tbody>
             </table>
             </div>
@@ -742,13 +746,17 @@ $epSafe = View::e($ep);
                 <tr><td class="act-col"><code class="ec-tk">{member_count}</code></td><td>Number of approved members.</td></tr>
                 <tr><td class="act-col"><code class="ec-tk">{member_pending_count}</code></td><td>Number of members waiting for approval on this listing.</td></tr>
                 <tr><td class="act-col"><code class="ec-tk">{country_count}</code></td><td>Number of different countries represented by approved members.</td></tr>
-                <tr><td class="act-col"><code class="ec-tk">{approved_by}</code></td><td>The approval network saved for this listing, such as <code>tfl</code> or <code>tafl</code>. Empty means no network is saved.</td></tr>
+                <tr><td class="act-col"><code class="ec-tk">{approved_by}</code></td><td>Network acronym: &ldquo;TFL&rdquo;, &ldquo;TAFL&rdquo;, or empty. Plain text.</td></tr>
+                <tr><td class="act-col"><code class="ec-tk">{network}</code></td><td>Same as {approved_by} &mdash; network acronym as raw text. Empty when not set.</td></tr>
+                <tr><td class="act-col"><code class="ec-tk">{network_name}</code></td><td>Full network name, or empty.</td></tr>
+                <tr><td class="act-col"><code class="ec-tk">{tfl_url}</code></td><td>TFL website URL.</td></tr>
+                <tr><td class="act-col"><code class="ec-tk">{tafl_url}</code></td><td>TAFL website URL.</td></tr>
                 <tr><td class="act-col"><code class="ec-tk">{if_listing_image}&hellip;{/if_listing_image}</code></td><td>Shows the text inside only when the listing has an image.</td></tr>
                 <tr><td class="act-col"><code class="ec-tk">{if_countries}&hellip;{/if_countries}</code></td><td>Shows the text inside only when at least one country is counted.</td></tr>
                 <tr><td class="act-col"><code class="ec-tk">{if_pending}&hellip;{/if_pending}</code></td><td>Shows the text inside only when this listing has members waiting for approval.</td></tr>
                 <tr><td class="act-col"><code class="ec-tk">{if_status_current}&hellip;{/if_status_current}</code>, <code class="ec-tk">{if_status_upcoming}&hellip;{/if_status_upcoming}</code>, <code class="ec-tk">{if_status_pending}&hellip;{/if_status_pending}</code></td><td>Shows the text inside only when the listing&rsquo;s status matches.</td></tr>
                 <tr><td class="act-col"><code class="ec-tk">{if_tfl}&hellip;{/if_tfl}</code>, <code class="ec-tk">{if_tafl}&hellip;{/if_tafl}</code></td><td>Shows the text inside only when the listing is registered with that network.</td></tr>
-                <tr><td class="act-col"><code class="ec-tk">{if_approved}&hellip;{/if_approved}</code></td><td>Shows the text inside only when the listing is registered with either network.</td></tr>
+                <tr><td class="act-col"><code class="ec-tk">{if_approved_by}&hellip;{/if_approved_by}</code></td><td>Shows the text inside only when the listing is registered with either network.</td></tr>
               </tbody>
             </table>
             </div>
@@ -813,7 +821,7 @@ $epSafe = View::e($ep);
         <!-- AFFILIATES TOKENS -->
         <div class="ec-ref-panel" id="ec-ref-aff-tokens">
           <h3 class="pc-head-title">Affiliates</h3>
-          <p class="text-muted">Put these words in your affiliates template. Use <code>{affiliates}</code> for ready-made rows, or <code>{each_affiliate}</code> when you want to design each affiliate row yourself.</p>
+          <p class="text-muted">Put these words in your affiliates template. Use <code>{each_affiliate}</code> to design each affiliate row yourself.</p>
           <div class="ec-ref-card">
             <div class="table-wrap">
             <table class="data-table">
@@ -822,7 +830,9 @@ $epSafe = View::e($ep);
                 <tr><td class="act-col"><code class="ec-tk">{each_affiliate}&hellip;{/each_affiliate}</code></td><td>Wrap your affiliate row in this. Luster repeats what&rsquo;s inside once per affiliate.</td></tr>
                 <tr><td class="act-col"><code class="ec-tk">{aff_name}</code></td><td>Affiliate site&rsquo;s name.</td></tr>
                 <tr><td class="act-col"><code class="ec-tk">{aff_url}</code></td><td>Affiliate site&rsquo;s link.</td></tr>
-                <tr><td class="act-col"><code class="ec-tk">{aff_image_url}</code></td><td>The affiliate image. If there is no image, shows a text link to the affiliate instead.</td></tr>
+                <tr><td class="act-col"><code class="ec-tk">{aff_image_url}</code></td><td>Full URL of the affiliate&rsquo;s image, or empty string if none. Use inside <code>{if_aff_image}</code> to avoid broken <code>&lt;img&gt;</code> tags.</td></tr>
+                <tr><td class="act-col"><code class="ec-tk">{if_aff_image}&hellip;{/if_aff_image}</code></td><td>Shows the text inside only when the affiliate has an image.</td></tr>
+                <tr><td class="act-col"><code class="ec-tk">{if_no_aff_image}&hellip;{/if_no_aff_image}</code></td><td>Shows the text inside only when the affiliate has no image. Use to show a text link fallback.</td></tr>
               </tbody>
             </table>
             </div>
@@ -833,9 +843,7 @@ $epSafe = View::e($ep);
             <table class="data-table">
               <thead><tr><th class="act-col">Template word</th><th>What it shows</th></tr></thead>
               <tbody>
-                <tr><td class="act-col"><code class="ec-tk">{affiliates}</code></td><td>All affiliate rows using the saved row template.</td></tr>
                 <tr><td class="act-col"><code class="ec-tk">{affiliates_count}</code></td><td>Number of active affiliates.</td></tr>
-                <tr><td class="act-col"><code class="ec-tk">{affiliates_list}</code></td><td>A simple linked list of affiliate names.</td></tr>
                 <tr><td class="act-col"><code class="ec-tk">{affiliate_apply_url}</code></td><td>Link to the matching affiliate application form. Listing affiliates point to that listing; collective affiliates point to the collective application form.</td></tr>
                 <tr><td class="act-col"><code class="ec-tk">{if_affiliates}&hellip;{/if_affiliates}</code></td><td>Shows the text inside only when there are affiliates.</td></tr>
                 <tr><td class="act-col"><code class="ec-tk">{if_no_affiliates}&hellip;{/if_no_affiliates}</code></td><td>Shows the text inside only when there are no affiliates.</td></tr>
@@ -859,7 +867,6 @@ $epSafe = View::e($ep);
                 <tr><td class="act-col"><code class="ec-tk">{owned_pending}</code></td><td>Number of pending or inactive owned listings.</td></tr>
                 <tr><td class="act-col"><code class="ec-tk">{joined_active}</code></td><td>Number of active joined listings.</td></tr>
                 <tr><td class="act-col"><code class="ec-tk">{joined_pending}</code></td><td>Number of joined listings waiting for approval.</td></tr>
-                <tr><td class="act-col"><code class="ec-tk">{affiliates}</code></td><td>Number of active collective affiliates.</td></tr>
                 <tr><td class="act-col"><code class="ec-tk">{members_total}</code></td><td>Total members across all your listings.</td></tr>
                 <tr><td class="act-col"><code class="ec-tk">{members_approved}</code></td><td>Approved members across all your listings.</td></tr>
                 <tr><td class="act-col"><code class="ec-tk">{members_pending}</code></td><td>Members waiting for approval across all your listings.</td></tr>
@@ -990,15 +997,17 @@ $epSafe = View::e($ep);
                 <tr><td class="act-col"><code class="ec-tk">{group_size}</code></td><td>The size label for the group.</td></tr>
                 <tr><td class="act-col"><code class="ec-tk">{group_code_count}</code></td><td>How many codes are in this size group.</td></tr>
                 <tr><td class="act-col"><code class="ec-tk">{code_url}</code></td><td>Direct link to the code image file.</td></tr>
-                <tr><td class="act-col"><code class="ec-tk">{code_alt}</code></td><td>Suggested image alt text, using donor credit when the code was donated.</td></tr>
+                <tr><td class="act-col"><code class="ec-tk">{code_alt}</code></td><td>Suggested alt text (donor name, then size, then listing name). Good for <code>&lt;img alt="{code_alt}"&gt;</code>.</td></tr>
                 <tr><td class="act-col"><code class="ec-tk">{code_width}</code>, <code class="ec-tk">{code_height}</code></td><td>Image width and height in pixels. Empty when Luster does not know the size.</td></tr>
                 <tr><td class="act-col"><code class="ec-tk">{code_size}</code></td><td>The size label, such as 75x50.</td></tr>
                 <tr><td class="act-col"><code class="ec-tk">{code_name}</code></td><td>The code name, if one is saved.</td></tr>
-                <tr><td class="act-col"><code class="ec-tk">{code_categories}</code></td><td>Code category names, separated by commas.</td></tr>
+                <tr><td class="act-col"><code class="ec-tk">{code_categories}</code></td><td>Comma-separated code category names. Empty when none assigned.</td></tr>
                 <tr><td class="act-col"><code class="ec-tk">{code_donor_name}</code>, <code class="ec-tk">{code_donor_url}</code></td><td>Donor name and donor link, when the code has donor credit.</td></tr>
-                <tr><td class="act-col"><code class="ec-tk">{if_size}</code>, <code class="ec-tk">{if_size_changed}</code></td><td><code>{if_size}</code> is true when the code has dimensions. <code>{if_size_changed}</code> is true for the first code of each new size in a flat list.</td></tr>
+                <tr><td class="act-col"><code class="ec-tk">{if_size}&hellip;{/if_size}</code></td><td>Shows only when width and height are known.</td></tr>
+                <tr><td class="act-col"><code class="ec-tk">{if_size_changed}&hellip;{/if_size_changed}</code></td><td>Flat mode only. Shows when the code size differs from the previous code &mdash; useful for size headings.</td></tr>
                 <tr><td class="act-col"><code class="ec-tk">{if_donor}</code>, <code class="ec-tk">{if_no_donor}</code>, <code class="ec-tk">{if_donor_url}</code>, <code class="ec-tk">{if_no_donor_url}</code></td><td>Shows donor markup only when donor details exist, or alternate markup when they do not.</td></tr>
-                <tr><td class="act-col"><code class="ec-tk">{if_categories}</code>, <code class="ec-tk">{if_code_name}</code></td><td>Shows the text inside only when categories or a code name exist.</td></tr>
+                <tr><td class="act-col"><code class="ec-tk">{if_categories}&hellip;{/if_categories}</code></td><td>Shows only when the code has categories assigned.</td></tr>
+                <tr><td class="act-col"><code class="ec-tk">{if_code_name}</code></td><td>Shows the text inside only when the code has a saved name.</td></tr>
               </tbody>
             </table>
             </div>

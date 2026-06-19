@@ -271,6 +271,8 @@ final class GlobalCodesController extends AdminController
                 'code_status_counts'  => $codeStatusCounts,
                 'code_status_filter'  => $codeStatusFilter,
                 'total_codes'         => count($allCodes),
+                'code_edit_cat_id'    => ((int) $request->query('edit_cat', '0')) ?: null,
+                'code_edit_donor_id'  => ((int) $request->query('edit_donor', '0')) ?: null,
                 'success'             => $success,
                 'error'               => $error,
             ]);
@@ -803,6 +805,80 @@ final class GlobalCodesController extends AdminController
         $tab = trim((string) $request->post('_tab', 'approved'));
         $session->set('lstr_flash_success', 'Collective code order saved.');
         return Response::redirect($baseUrl . '/admin/codes?collective=1&tab=' . urlencode($tab));
+    }
+
+    // -----------------------------------------------------------------------
+    // GET /admin/codes/collective/export
+    // -----------------------------------------------------------------------
+
+    public function exportCollective(Request $request, array $params): Response
+    {
+        $session = $this->app->getSession();
+        $baseUrl = $this->app->getBaseUrl();
+
+        if (!class_exists('ZipArchive')) {
+            $session->set('lstr_flash_error', 'The PHP zip extension is not enabled. Enable extension=zip in php.ini and restart your web server.');
+            return Response::redirect($baseUrl . '/admin/codes?collective=1');
+        }
+
+        $db        = $this->app->getDatabase();
+        $codesRepo = new CodesRepo($db);
+        $codes     = $codesRepo->getByListing(null, 'approved');
+
+        if (empty($codes)) {
+            $session->set('lstr_flash_error', 'No approved collective codes to export.');
+            return Response::redirect($baseUrl . '/admin/codes?collective=1');
+        }
+
+        $uploadDir = realpath(__DIR__ . '/../../../public/uploads/codes');
+        if ($uploadDir === false) {
+            $session->set('lstr_flash_error', 'Upload directory not found.');
+            return Response::redirect($baseUrl . '/admin/codes?collective=1');
+        }
+
+        $tmpFile = tempnam(sys_get_temp_dir(), 'lstr_ccodes_');
+        if ($tmpFile === false) {
+            $session->set('lstr_flash_error', 'Could not create temporary file for export.');
+            return Response::redirect($baseUrl . '/admin/codes?collective=1');
+        }
+
+        $zip = new \ZipArchive();
+        if ($zip->open($tmpFile, \ZipArchive::OVERWRITE) !== true) {
+            unlink($tmpFile);
+            $session->set('lstr_flash_error', 'Could not create ZIP archive.');
+            return Response::redirect($baseUrl . '/admin/codes?collective=1');
+        }
+
+        $added = 0;
+        foreach ($codes as $code) {
+            $filePath = $uploadDir . DIRECTORY_SEPARATOR . $code->filename;
+            if (is_file($filePath)) {
+                $zip->addFile($filePath, $code->filename);
+                $added++;
+            }
+        }
+
+        $zip->close();
+
+        if ($added === 0) {
+            unlink($tmpFile);
+            $session->set('lstr_flash_error', 'No collective code image files found on disk.');
+            return Response::redirect($baseUrl . '/admin/codes?collective=1');
+        }
+
+        $zipContent = file_get_contents($tmpFile);
+        unlink($tmpFile);
+
+        if ($zipContent === false) {
+            $session->set('lstr_flash_error', 'Could not read ZIP archive.');
+            return Response::redirect($baseUrl . '/admin/codes?collective=1');
+        }
+
+        $config   = $this->app->getConfig();
+        $siteName = preg_replace('/[^a-zA-Z0-9_.\-]/', '_', (string) $config->get('site_name', 'collective'));
+        $filename = 'codes_' . ($siteName !== '' ? $siteName : 'collective') . '_' . date('Ymd') . '.zip';
+
+        return Response::download($zipContent, $filename, 'application/zip');
     }
 
     // -----------------------------------------------------------------------

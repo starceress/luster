@@ -4,8 +4,12 @@
  *
  * Variables:
  *   $listings       Listing[]
- *   $scope_counts   array<string, int>  'all'|'collective'|'{id}' → count
+ *   $scope_counts   array<string, int>  'all'|'collective'|'{id}' → count (empty when selected_only)
  *   $selected_scope string              pre-selected scope value
+ *   $selected_only  bool                true when opened from bulk "Email Selected"
+ *   $id_recip_map   array<int, array{id: int, name: string, email: string, url: string, listing_id: ?int}>
+ *                   ID-keyed map; populated only when selected_only = true
+ *   $aff_ids        int[]               IDs of selected affiliates (empty when not selected_only)
  *   $saved_emails   object[]
  *   $from_name      string
  *   $from_email     string
@@ -24,11 +28,15 @@ declare(strict_types=1);
 
 use Luster\Core\View;
 
-$b          = rtrim(View::e($base_url), '/');
-$oldSubject = View::e($old['subject'] ?? '');
-$oldBody    = htmlspecialchars($old['body'] ?? '', ENT_QUOTES, 'UTF-8');
-$oldScope   = $old['scope'] ?? $selected_scope ?? 'all';
-$totalCount = (int) ($scope_counts['all'] ?? 0);
+$b            = rtrim(View::e($base_url), '/');
+$oldSubject   = View::e($old['subject'] ?? '');
+$oldBody      = htmlspecialchars($old['body'] ?? '', ENT_QUOTES, 'UTF-8');
+$oldScope     = $old['scope'] ?? $selected_scope ?? 'all';
+$selectedOnly = (bool) ($selected_only ?? false);
+$idRecipMap   = (array) ($id_recip_map ?? []);
+$affIds       = (array) ($aff_ids ?? []);
+$totalCount   = $selectedOnly ? count($idRecipMap) : (int) ($scope_counts['all'] ?? 0);
+$displayCount = $selectedOnly ? $totalCount : (int) ($scope_counts[$oldScope] ?? $totalCount);
 ?>
 
 <div class="page-topbar">
@@ -74,6 +82,12 @@ $totalCount = (int) ($scope_counts['all'] ?? 0);
           <input type="hidden" name="referer"     value="<?= View::e($_SERVER['REQUEST_URI'] ?? '') ?>">
           <input type="hidden" name="tpl_subject" id="es-save-subject">
           <input type="hidden" name="tpl_body"    id="es-save-body">
+          <div id="es-save-emails"></div>
+          <?php if ($selectedOnly): ?>
+            <?php foreach ($affIds as $id): ?>
+              <input type="hidden" name="aff_ids[]" value="<?= (int) $id ?>">
+            <?php endforeach; ?>
+          <?php endif; ?>
           <input type="text" name="tpl_name" id="es-save-name"
                  class="form" placeholder="Template name&hellip;" maxlength="150">
           <p class="form-hint">This saves the message as a reusable starting point. It does not send anything.</p>
@@ -123,13 +137,19 @@ $totalCount = (int) ($scope_counts['all'] ?? 0);
   <div class="gradient-card">
     <form method="POST" action="<?= $b ?>/admin/affiliates/email" id="es-form">
       <input type="hidden" name="_csrf" value="<?= View::e($csrf_token) ?>">
+      <?php if ($selectedOnly): ?>
+        <input type="hidden" name="scope" value="all">
+        <?php foreach ($affIds as $id): ?>
+          <input type="hidden" name="aff_ids[]" value="<?= (int) $id ?>">
+        <?php endforeach; ?>
+      <?php endif; ?>
 
       <div class="pc-head">
         <div class="pc-head-icon pc-head-icon-bg"><?= View::icon('email') ?></div>
-        <div class="pc-head-title">Email Affiliates</div>
+        <div class="pc-head-title"><?= $selectedOnly ? 'Email Selected Affiliates' : 'Email Affiliates' ?></div>
         <span class="badge badge-info-pink pc-head-badge" id="es-count-badge">
-          <span id="es-count-label"><?= (int) ($scope_counts[$oldScope] ?? $totalCount) ?></span>
-          affiliate<?= ((int) ($scope_counts[$oldScope] ?? $totalCount)) !== 1 ? 's' : '' ?>
+          <span id="es-count-label"><?= $displayCount ?></span>
+          affiliate<?= $displayCount !== 1 ? 's' : '' ?>
         </span>
       </div>
 
@@ -145,26 +165,41 @@ $totalCount = (int) ($scope_counts['all'] ?? 0);
         </div>
         <div class="composer-row">
           <span class="composer-lbl">To</span>
-          <div>
-            <div class="select-wrap">
-              <select name="scope" id="es-scope">
-                <option value="all"<?= $oldScope === 'all' ? ' selected' : '' ?>>
-                  All Affiliates (<?= (int) ($scope_counts['all'] ?? 0) ?>)
-                </option>
-                <option value="collective"<?= $oldScope === 'collective' ? ' selected' : '' ?>>
-                  Collective only (<?= (int) ($scope_counts['collective'] ?? 0) ?>)
-                </option>
-                <?php foreach ($listings as $fl): ?>
-                  <option value="<?= (int) $fl->id ?>"
-                          data-listing-name="<?= View::e($fl->title) ?>"
-                          data-listing-url="<?= View::e($fl->url) ?>"
-                          <?= $oldScope === (string) $fl->id ? 'selected' : '' ?>>
-                    <?= View::e($fl->subject) ?> (<?= (int) ($scope_counts[(string) $fl->id] ?? 0) ?>)
-                  </option>
-                <?php endforeach; ?>
-              </select>
+          <?php if ($selectedOnly): ?>
+            <div id="es-chip" class="es-chip">
+              <?php foreach ($idRecipMap as $r): ?>
+                <span class="es-chip-item">
+                  <?php if ($r['name'] !== ''): ?>
+                    <strong><?= View::e($r['name']) ?></strong>
+                    <span>&lt;<?= View::e($r['email']) ?>&gt;</span>
+                  <?php else: ?>
+                    <span><?= View::e($r['email']) ?></span>
+                  <?php endif; ?>
+                </span>
+              <?php endforeach; ?>
             </div>
-          </div>
+          <?php else: ?>
+            <div>
+              <div class="select-wrap">
+                <select name="scope" id="es-scope">
+                  <option value="all"<?= $oldScope === 'all' ? ' selected' : '' ?>>
+                    All Affiliates (<?= (int) ($scope_counts['all'] ?? 0) ?>)
+                  </option>
+                  <option value="collective"<?= $oldScope === 'collective' ? ' selected' : '' ?>>
+                    Collective only (<?= (int) ($scope_counts['collective'] ?? 0) ?>)
+                  </option>
+                  <?php foreach ($listings as $fl): ?>
+                    <option value="<?= (int) $fl->id ?>"
+                            data-listing-name="<?= View::e($fl->title) ?>"
+                            data-listing-url="<?= View::e($fl->url) ?>"
+                            <?= $oldScope === (string) $fl->id ? 'selected' : '' ?>>
+                      <?= View::e($fl->subject) ?> (<?= (int) ($scope_counts[(string) $fl->id] ?? 0) ?>)
+                    </option>
+                  <?php endforeach; ?>
+                </select>
+              </div>
+            </div>
+          <?php endif; ?>
         </div>
         <div class="composer-row">
           <span class="composer-lbl">Subject</span>
@@ -186,8 +221,8 @@ $totalCount = (int) ($scope_counts['all'] ?? 0);
       <div class="composer-footer">
         <button type="button" class="btn btn-primary" id="es-send-btn">
           <?= View::icon('send') ?>
-          Send to <span id="es-send-count"><?= (int) ($scope_counts[$oldScope] ?? $totalCount) ?></span>
-          affiliate<?= ((int) ($scope_counts[$oldScope] ?? $totalCount)) !== 1 ? 's' : '' ?> &rarr;
+          Send to <span id="es-send-count"><?= $displayCount ?></span>
+          affiliate<?= $displayCount !== 1 ? 's' : '' ?> &rarr;
         </button>
         <button type="button" class="btn btn-preview" id="es-preview-btn"><?= View::icon('eye-on') ?> Preview</button>
         <button type="button" class="btn btn-ghost js-form-reset">Clear</button>
@@ -241,8 +276,16 @@ $totalCount = (int) ($scope_counts['all'] ?? 0);
   </div>
 </div>
 
+<?php
+  $previewFirstRecip = !empty($idRecipMap) ? reset($idRecipMap) : null;
+  $previewFirstName  = $previewFirstRecip !== null ? $previewFirstRecip['name']  : '';
+  $previewFirstEmail = $previewFirstRecip !== null ? $previewFirstRecip['email'] : '';
+?>
 <div id="es-preview-data"
-     data-scope-counts="<?= htmlspecialchars(json_encode($scope_counts, JSON_THROW_ON_ERROR), ENT_QUOTES, 'UTF-8') ?>"
+     data-context="affiliate"
+     data-scope-counts="<?= $selectedOnly ? '{}' : htmlspecialchars(json_encode($scope_counts, JSON_THROW_ON_ERROR), ENT_QUOTES, 'UTF-8') ?>"
+     data-first-name="<?= View::e($previewFirstName) ?>"
+     data-first-email="<?= View::e($previewFirstEmail) ?>"
      data-from-name="<?= View::e($from_name) ?>"
      data-from-email="<?= View::e($from_email) ?>"
      data-site-name="<?= View::e($site_name) ?>"

@@ -6,7 +6,9 @@
  *   $form_action  string
  *   $csrf_token   string
  *   $errors       string  pre-escaped HTML error string, or ''
+ *   $success_html string  pre-rendered success HTML, or ''
  *   $f            array<string,string>  keys: email, fanlisting_id, captcha_answer
+ *   $form_html    string|null  custom form template HTML, or null to use hardcoded form
  *   $base_url     string
  */
 
@@ -15,7 +17,27 @@ declare(strict_types=1);
 use Luster\Core\View;
 
 $b = rtrim(View::e($base_url), '/');
-$_linkUpdate = ($link_update !== null && $link_update !== '') ? $link_update : null;
+$_linkUpdate = (($link_update ?? null) !== null && $link_update !== '') ? $link_update : null;
+
+if (($success_html ?? '') !== '') {
+    echo '<div class="fl-embed fl-embed--kim-reset"><div class="fl-kim">' . $success_html . '</div></div>';
+    return;
+}
+
+if (isset($form_html) && $form_html !== null) {
+    ?>
+<div class="fl-embed fl-embed--kim-reset">
+  <div class="fl-kim">
+    <?php if (($errors ?? '') !== ''): ?><div class="fl-errors"><?= $errors ?></div><?php endif; ?>
+    <?= $form_html ?>
+    <?php if ($_linkUpdate !== null): ?>
+    <p class="fl-kim-meta"><a href="<?= View::e($_linkUpdate) ?>">&larr; Back to Update</a></p>
+    <?php endif; ?>
+  </div>
+</div>
+    <?php
+    return;
+}
 ?>
 <div class="fl-embed fl-embed--kim-reset">
   <div class="fl-kim">

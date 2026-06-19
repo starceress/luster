@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use Luster\Core\Captcha;
 use Luster\Repositories\SiteSettingsRepo;
+use Luster\Support\FormTemplateRenderer;
 
 /**
  * Luster embed — collective contact form fragment.
@@ -84,7 +85,7 @@ $_lusterFormAction = isset($luster_contact_action)
     : $_lusterBaseUrl . '/contact';
 
 $_lusterCaptchaQ   = Captcha::getQuestion('contact_collective');
-$_lusterWrapperTpl = (new \Luster\Repositories\SiteSettingsRepo($_lusterApp->getDatabase()))->get('collective_field_wrapper_template', '') ?? '';
+$_lusterWrapperTpl = '';
 
 $_lusterSubjOld = (string) ($_lusterOld['subject'] ?? '');
 $_lusterSubjHtml = '<select id="contact-subject" name="subject" required>'
@@ -104,6 +105,32 @@ $_lusterF = $_lusterApp->getFormFieldBuilder()->build([
     ['type' => 'text',     'name' => 'captcha_answer', 'id' => 'contact-captcha', 'label' => 'Captcha: ' . $_lusterCaptchaQ, 'required' => true, 'attrs' => ['maxlength' => '10', 'autocomplete' => 'off']],
 ], $_lusterWrapperTpl);
 
+$_lusterContactTpl = (string) ($_lusterSiteRepo->get('collective_contact_form_template') ?? '');
+$_lusterFormHtml   = null;
+if ($_lusterContactTpl !== '') {
+    $_lusterTokens = [
+        '{listing_title}'        => htmlspecialchars((string) $_lusterConfig->get('app_name', 'Collective'), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),
+        '{listing_url}'          => htmlspecialchars((string) $_lusterConfig->get('app_url',  ''),           ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),
+        '{field_name}'           => $_lusterF['name'],
+        '{field_name_input}'     => $_lusterF['name_input'],
+        '{field_email}'          => $_lusterF['email'],
+        '{field_email_input}'    => $_lusterF['email_input'],
+        '{field_url}'            => $_lusterF['url'],
+        '{field_url_input}'      => $_lusterF['url_input'],
+        '{field_subject}'        => $_lusterF['subject'],
+        '{field_subject_input}'  => $_lusterF['subject_input'],
+        '{field_message}'        => $_lusterF['message'],
+        '{field_message_input}'  => $_lusterF['message_input'],
+        '{captcha_block}'        => $_lusterF['captcha_answer'],
+        '{captcha_block_input}'  => $_lusterF['captcha_answer_input'],
+        '{captcha_question}'     => htmlspecialchars($_lusterCaptchaQ, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),
+        '{submit_button}'        => '<button type="submit" class="fl-submit">Send Message</button>',
+        '{clear_button}'         => '<button type="reset" class="fl-btn-secondary">Clear</button>',
+    ];
+    $_lusterInner  = FormTemplateRenderer::expandTokens($_lusterContactTpl, $_lusterTokens);
+    $_lusterFormHtml = FormTemplateRenderer::wrapForm($_lusterInner, $_lusterFormAction, $_lusterApp->getCSRF()->token(), true);
+}
+
 $_lusterHtml = $_lusterApp->getView()->renderFragment('contact.php', [
     'listing'      => null,
     'listing_name' => (string) $_lusterConfig->get('app_name', 'Collective'),
@@ -117,6 +144,7 @@ $_lusterHtml = $_lusterApp->getView()->renderFragment('contact.php', [
         ? '<p>' . htmlspecialchars($_lusterError, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '</p>'
         : '',
     'f'            => $_lusterF,
+    'form_html'    => $_lusterFormHtml,
 ]);
 
 if ($luster_return ?? false) { return $_lusterHtml; }

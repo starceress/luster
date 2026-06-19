@@ -22,18 +22,18 @@ use Luster\Support\ListingTemplateResolver;
 use Luster\Support\SuccessRenderer;
 
 /**
- * Public fan code submission â€" allows fans to submit code images for review.
+ * Public fan code submission — allows fans to submit code images for review.
  *
  * Routes:
- *   GET  /codes/submit/{id}  â€" show submission form
- *   POST /codes/submit/{id}  â€" process submission (stores as pending), redirects to host page
+ *   GET  /codes/submit/{id}  — show submission form
+ *   POST /codes/submit/{id}  — process submission (stores as pending), redirects to host page
  */
 final class CodesSubmitController
 {
     /** Allowed MIME types for submitted code images. */
     private const ALLOWED_MIME = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
 
-    /** Maximum upload size per file (200 KB â€" tighter limit for fan submissions). */
+    /** Maximum upload size per file (200 KB — tighter limit for fan submissions). */
     private const MAX_SIZE = 204_800;
 
     public function __construct(private readonly Application $app) {}
@@ -83,7 +83,7 @@ final class CodesSubmitController
         $captchaQuestion = Captcha::getQuestion('code_submit');
 
         if ($isCollective) {
-            $wrapperTpl = (new SiteSettingsRepo($this->app->getDatabase()))->get('collective_field_wrapper_template', '') ?? '';
+            $wrapperTpl = '';
         } else {
             $settingsRepoRcs = new ListingSettingsRepo($this->app->getDatabase());
             $wrapperTpl      = $settingsRepoRcs->getWrapperTemplate($listingId) ?? '';
@@ -227,7 +227,7 @@ final class CodesSubmitController
             return Response::redirect($formUrl);
         }
 
-        // Honeypot â€" bots fill the hidden field; humans leave it blank
+        // Honeypot — bots fill the hidden field; humans leave it blank
         if ((string) $request->post('website_confirm', '') !== '') {
             $session->remove('lstr_embed_return_to');
             $session->set('lstr_flash_success_html', SuccessRenderer::render('', 'code-submitted'));

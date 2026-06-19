@@ -51,7 +51,7 @@ $htmlClassAttr = $htmlClasses === [] ? '' : ' class="' . View::e(implode(' ', $h
 
 ?>
 <!DOCTYPE html>
-<html lang="en"<?= $htmlClassAttr ?> data-theme="light"<?= ($selected_skin ?? '') !== '' ? ' data-skin="' . View::e($selected_skin) . '"' : '' ?>>
+<html lang="en"<?= $htmlClassAttr ?> data-theme="<?= in_array($admin_default_theme ?? 'light', ['dark', 'light'], true) ? View::e($admin_default_theme) : 'light' ?>"<?= ($selected_skin ?? '') !== '' ? ' data-skin="' . View::e($selected_skin) . '"' : '' ?>>
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
